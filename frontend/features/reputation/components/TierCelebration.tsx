@@ -157,10 +157,7 @@ export function TierCelebration({ address }: { address?: string | null }) {
         className="celebrate-card-pop relative isolate mb-6 overflow-hidden border bg-[var(--color-surface)]"
         style={{
           borderColor: `color-mix(in oklab, ${hue} 45%, transparent)`,
-          borderTopLeftRadius: 16,
-          borderTopRightRadius: 16,
-          borderBottomLeftRadius: 16,
-          borderBottomRightRadius: 4,
+          borderRadius: 16,
           boxShadow: 'var(--shadow-card)',
         }}
       >
@@ -190,7 +187,6 @@ export function TierCelebration({ address }: { address?: string | null }) {
               background: hue,
               color: '#0e0e0e',
               borderRadius: 12,
-              borderBottomRightRadius: 3,
             }}
           >
             {tier[0]}

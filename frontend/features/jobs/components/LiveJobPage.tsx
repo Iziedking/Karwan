@@ -413,10 +413,7 @@ function SettleSection({
           href={`/deals/${job.jobId}`}
           className="inline-flex items-center gap-2 px-[18px] py-[10px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors"
           style={{
-            borderTopLeftRadius: 10,
-            borderTopRightRadius: 10,
-            borderBottomLeftRadius: 10,
-            borderBottomRightRadius: 3,
+            borderRadius: 10,
           }}
         >
           {s.escrowLive.cta}
@@ -712,10 +709,7 @@ function EditBriefModal({
               border: trustedMatch
                 ? '1px solid color-mix(in oklab, var(--lp-accent) 35%, transparent)'
                 : '1px solid var(--lp-border-light)',
-              borderTopLeftRadius: 12,
-              borderTopRightRadius: 12,
-              borderBottomLeftRadius: 12,
-              borderBottomRightRadius: 3,
+              borderRadius: 12,
             }}
           >
             <input
@@ -834,10 +828,7 @@ export function CancelBriefSection({
             style={{
               background: 'rgba(176, 61, 58, 0.08)',
               border: '1px solid rgba(176, 61, 58, 0.30)',
-              borderTopLeftRadius: 10,
-              borderTopRightRadius: 10,
-              borderBottomLeftRadius: 10,
-              borderBottomRightRadius: 3,
+              borderRadius: 10,
             }}
           >
             <p className="text-[13px] text-[var(--lp-dark)] leading-snug">
@@ -851,10 +842,7 @@ export function CancelBriefSection({
                 className="mono text-[11px] font-bold uppercase tracking-[0.10em] px-3.5 py-2 text-white transition-colors disabled:opacity-60"
                 style={{
                   background: '#b03d3a',
-                  borderTopLeftRadius: 8,
-                  borderTopRightRadius: 8,
-                  borderBottomLeftRadius: 8,
-                  borderBottomRightRadius: 2,
+                  borderRadius: 8,
                 }}
               >
                 {busy ? cs.confirmYesBusy : cs.confirmYes}

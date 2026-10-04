@@ -11,6 +11,7 @@ import { analyticsCopy } from './analytics';
 import { signupCopy } from './signup';
 import { payLinkCopy } from './payLink';
 import { requestPageCopy } from './requestPage';
+import { passportCopy } from './passport';
 import { recoveryCopy } from './recovery';
 import { docsProductCopy } from './docsProduct';
 
@@ -24,6 +25,7 @@ export const hi: Messages = {
   signup: signupCopy.hi,
   payLink: payLinkCopy.hi,
   requestPage: requestPageCopy.hi,
+  passport: passportCopy.hi,
   recovery: recoveryCopy.hi,
   docsProduct: docsProductCopy.hi,
   socialTrade: socialTradeCopy.hi,
@@ -2440,6 +2442,7 @@ export const hi: Messages = {
         tenure: 'अवधि',
         activity: 'गतिविधि',
         referral: 'रेफरल',
+        breadth: "अलग-अलग लोग",
       },
     },
     footer: {

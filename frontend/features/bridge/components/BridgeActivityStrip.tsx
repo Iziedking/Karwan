@@ -189,10 +189,7 @@ export function BridgeActivityStrip({
               style={{
                 background: 'var(--lp-card)',
                 border: '1px solid var(--lp-border-light)',
-                borderTopLeftRadius: 12,
-                borderTopRightRadius: 12,
-                borderBottomLeftRadius: 12,
-                borderBottomRightRadius: 3,
+                borderRadius: 12,
               }}
             >
               <div className="flex items-center gap-3">

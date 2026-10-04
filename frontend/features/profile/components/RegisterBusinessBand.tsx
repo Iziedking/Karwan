@@ -295,10 +295,7 @@ export function RegisterBusinessBand({
 const BAND_INSET = 'px-4 py-7 md:px-8 md:py-9';
 
 const cornerStyle = {
-  borderTopLeftRadius: 6,
-  borderTopRightRadius: 6,
-  borderBottomLeftRadius: 6,
-  borderBottomRightRadius: 2,
+  borderRadius: 6,
 } as const;
 
 function StatusPill({ status }: { status: BusinessRegistrationStatus }) {

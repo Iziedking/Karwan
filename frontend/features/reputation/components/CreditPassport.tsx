@@ -4,18 +4,13 @@ import { api, type Reputation, type UserProfile } from '@/core/api';
 import {
   TIER_HUE,
   TIER_LABEL,
-  tierBg,
-  tierBorder,
-  tierInk,
   type CompositeTier,
 } from '@/features/reputation/tierColors';
 import { shortAddress } from '@/shared/utils/format';
 import { skillDateLabel, skillLabel } from '../skillCredentials';
-import { tierLadderPosition } from '../tierProgress';
-import { tierProgress, tierProgressLabel, type Tier as ProgressTier } from '../tierProgressLabel';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import { BackButton } from '@/shared/components/BackButton';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 import { WalletAvatar } from '@/shared/components/WalletAvatar';
 
@@ -27,16 +22,15 @@ const TIER_LADDER: CompositeTier[] = ['NEW', 'COLD', 'ESTABLISHED', 'STRONG', 'E
 /// Ordered list of the composite term keys the engine returns. The visible
 /// label for each comes from i18n at render time; the order here drives the
 /// vertical ordering in the Score factors section.
-const TERM_KEYS = ['completion', 'stake', 'volume', 'tenure', 'activity', 'referral'] as const;
+const TERM_KEYS = ['completion', 'breadth', 'stake', 'volume', 'tenure', 'activity', 'referral'] as const;
 type TermKey = (typeof TERM_KEYS)[number];
 
 type FetchState = 'idle' | 'loading' | 'ready' | 'error';
 
 export function CreditPassport({ address }: { address: string }) {
-  const cp = useTranslations().creditPassport;
-  /// Shared across the passport, the profile card and the stake page, so all
-  /// three phrase a capped tier the same way.
-  const tp = useTranslations().tierProgress;
+  const t = useTranslations();
+  const cp = t.creditPassport;
+  const { locale } = useLocale();
   const valid = ADDR_RE.test(address);
   const [rep, setRep] = useState<Reputation | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -183,17 +177,6 @@ export function CreditPassport({ address }: { address: string }) {
     value: (terms as Record<string, number | undefined>)[key],
   })).filter((r): r is { label: string; value: number } => typeof r.value === 'number');
 
-  // What reaching the next tier would take, from the tier actually HELD and
-  // whichever gate is binding. It used to find the next SCORE band, which on a
-  // capped wallet named a tier that points cannot buy: 711 held at ESTABLISHED
-  // was told "Elite +89", skipping STRONG entirely.
-  const progress = tierProgress({
-    score,
-    tier: tier as ProgressTier,
-    tierCappedBy: rep.tierCappedBy ?? null,
-    dealsToNextTier: rep.dealsToNextTier ?? null,
-  });
-  const progressLabel = tierProgressLabel(progress, tp, (t) => TIER_LABEL[t]);
 
   // Tenure in days. Pulled from the registration timestamp the engine uses for
   // the tenure factor. Surfaced as a stat so viewers see how long this wallet
@@ -218,239 +201,133 @@ export function CreditPassport({ address }: { address: string }) {
     }
   }
 
+  const pc = t.passport;
+  const done = rep.successCount;
+  const settled = rep.successCount + rep.disputedCount + rep.failedCount;
+  const counterparties = rep.inputs?.distinctCounterparties;
+  const volume = rep.inputs?.lifetimeVolumeUsdc ?? 0;
+  const lastDealAt = rep.inputs?.lastActionAt;
+  const dateLabel = (ms: number) => new Date(ms).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
+  const tierName = TIER_LABEL[tier];
+  const breadth = rep.terms?.breadth;
+  const heldLine =
+    rep.tierCappedBy === 'deals' && rep.dealsToNextTier
+      ? (rep.dealsToNextTier === 1 ? pc.heldDealsOne : pc.heldDeals).replace('{tier}', tierName).replace('{n}', String(rep.dealsToNextTier))
+      : null;
+  // Deals with the same few people count for less; say how much, and what lifts it.
+  const breadthLine =
+    breadth != null && breadth < 1 && settled > 0 && counterparties
+      ? (counterparties === 1 ? pc.breadthNoteOne : pc.breadthNote).replace('{n}', String(counterparties)).replace('{pct}', String(Math.round(breadth * 100)))
+      : null;
+  const rung = TIER_LADDER.indexOf(tier);
+
   return (
     <Shell>
-      {/* HEADER */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div className="min-w-0">
-          <p className="eyebrow">{cp.eyebrow}</p>
-          <div className="mt-2 flex items-center gap-4">
-            <PassportPhoto src={profile?.profileImageDataUrl || profile?.xProfileImageUrl} address={address} />
-            <h1
-              className="min-w-0 text-[clamp(1.75rem,4vw,2.5rem)] tracking-tight leading-[1.05]"
-              style={{ fontFamily: 'var(--font-serif)' }}
-            >
-              {profile?.displayName || cp.fallbackName}
-            </h1>
-          </div>
-          <div className="mt-3 flex items-center gap-2 flex-wrap">
-            <button
-              type="button"
-              onClick={copyAddress}
-              className="inline-flex min-h-11 items-center gap-1.5 mono text-[12px] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] transition-colors"
-            >
-              {shortAddress(address)}
-              <span className="text-[10px] text-[var(--color-ink-faint)]">
-                {copied ? cp.copyAddressDone : cp.copyAddressIdle}
-              </span>
-            </button>
-            {profile?.xHandle && (
-              <a
-                href={`https://x.com/${profile.xHandle.replace(/^@/, '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex min-h-11 items-center mono text-[12px] text-[var(--color-accent)] hover:underline"
-              >
-                @{profile.xHandle.replace(/^@/, '')}
-              </a>
-            )}
-          </div>
-        </div>
-        <TierPill tier={tier} />
-      </div>
-
-      {/* SCORE PANEL: score + tier ladder + next-tier hint, all in one card so
-          the number, the tier, and what it would take to climb sit together
-          instead of as three separate isolated panels. */}
-      <section
-        className="mt-8 rounded-xl border overflow-hidden"
-        style={{ borderColor: 'var(--color-line)', background: 'var(--color-surface)' }}
-      >
-        <div className="p-6 md:p-7">
-          <div className="flex items-end gap-4 flex-wrap">
-            <span
-              className="text-[72px] md:text-[88px] leading-[0.85] tabular-nums tracking-[-0.02em]"
-              style={{ fontFamily: 'var(--font-serif)', color: tierInk(tier) }}
-            >
-              {score}
-            </span>
-            <div className="pb-1">
-              <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-ink-faint)]">
-                {cp.scorePanel.compositeScore}
-              </p>
-              <p className="mt-0.5 mono text-[11px] text-[var(--color-ink-dim)] tabular-nums">
-                {cp.scorePanel.outOfTotal}
-              </p>
-            </div>
-            {progressLabel && (
-              <div className="ms-auto pb-1 text-end">
-                <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-ink-faint)]">
-                  {cp.scorePanel.nextTier}
-                </p>
-                <p
-                  className="mt-0.5 mono text-[12px] tabular-nums"
-                  style={{ color: 'var(--color-ink)' }}
-                >
-                  {progressLabel}
-                </p>
-              </div>
-            )}
-          </div>
-          <ScoreBand tier={tier} />
-        </div>
-      </section>
-
-      {/* TRADE RECORD: four stats in one row: the three on-chain outcome
-          counters plus active stake. This replaces the two-row layout that
-          duplicated outcome data (Settled / Success rate / Dispute rate on
-          top, Success / Disputed / Failed below) with one tighter strip. */}
-      <section
-        className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-px rounded-xl overflow-hidden border"
-        style={{ borderColor: 'var(--color-line)', background: 'var(--color-line)' }}
-      >
-        <Stat
-          label={cp.stats.success}
-          value={String(rep.successCount)}
-          tone={rep.successCount > 0 ? 'positive' : undefined}
-          syncingCopy={cp.stats.syncing}
-          syncingTitle={cp.stats.syncingTitle}
-        />
-        <Stat
-          label={cp.stats.disputed}
-          value={String(rep.disputedCount)}
-          tone={rep.disputedCount > 0 ? 'warning' : undefined}
-          syncingCopy={cp.stats.syncing}
-          syncingTitle={cp.stats.syncingTitle}
-        />
-        <Stat
-          label={cp.stats.failed}
-          value={String(rep.failedCount)}
-          tone={rep.failedCount > 0 ? 'critical' : undefined}
-          syncingCopy={cp.stats.syncing}
-          syncingTitle={cp.stats.syncingTitle}
-        />
-        <Stat
-          label={cp.stats.activeStake}
-          value={`${trimUsdc(stakeUsdc)} USDC`}
-          syncing={!stakeSynced}
-          syncingCopy={cp.stats.syncing}
-          syncingTitle={cp.stats.syncingTitle}
-        />
-      </section>
-
-      {/* META: settled total + tenure days, lower-weight than the trade
-          record. Separates the headline outcome counters from the supporting
-          metadata so the eye lands on outcomes first. */}
-      <section className="mt-4 flex items-center justify-between gap-3 flex-wrap text-[12px] text-[var(--color-ink-dim)] px-1">
-        <span>
-          <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)] me-1.5">
-            {cp.meta.settled}
-          </span>
-          <span className="tabular-nums">{total}</span>
-        </span>
-        {tenureDays != null && (
-          <span>
-            <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)] me-1.5">
-              {cp.meta.tenure}
-            </span>
-            <span className="tabular-nums">
-              {tenureDays}
-              {cp.meta.tenureDaysSuffix}
-            </span>
-          </span>
-        )}
-      </section>
-
-      {/* SCORE FACTORS: each row reads as data, not decoration: explicit
-          numerator/denominator, percent fill matches numerator, label sits
-          left of value so the eye scans down the column of values cleanly. */}
-      {termRows.length > 0 && (
-        <section
-          className="mt-5 rounded-xl border p-6"
-          style={{ borderColor: 'var(--color-line)', background: 'var(--color-surface)' }}
-        >
-          <div className="flex items-baseline justify-between gap-2">
-            <p className="eyebrow">{cp.factors.eyebrow}</p>
-            <p className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">
-              {cp.factors.scaleCaption}
+      <section className="rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5 sm:p-7">
+        <div className="flex flex-wrap items-center gap-4">
+          <PassportPhoto src={profile?.profileImageDataUrl || profile?.xProfileImageUrl} address={address} />
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-[22px] font-semibold text-[var(--lp-dark)] sm:text-[26px]">{profile?.displayName || cp.fallbackName}</h1>
+            <p className="mt-0.5 text-[14px] text-[var(--lp-text-sub)]">
+              {[profile?.handle ? `@${profile.handle}` : null, tenureDays != null && registeredAt ? pc.since.replace('{date}', dateLabel(registeredAt)) : null].filter(Boolean).join(' · ')}
             </p>
           </div>
-          <div className="mt-4 space-y-3.5">
-            {termRows.map((r) => (
-              <TermBar key={r.label} label={r.label} value={r.value} hue={hue} />
-            ))}
-          </div>
-        </section>
-      )}
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-[var(--lp-text-sub)]">
+          <button type="button" onClick={copyAddress} className="inline-flex min-h-11 items-center gap-1.5 tabular-nums hover:text-[var(--lp-dark)]">
+            {shortAddress(address)}
+            <span className="text-[12px]">{copied ? cp.copyAddressDone : cp.copyAddressIdle}</span>
+          </button>
+          {profile?.xHandle && (
+            <a href={`https://x.com/${profile.xHandle.replace(/^@/, '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center hover:text-[var(--lp-dark)]">
+              @{profile.xHandle.replace(/^@/, '')}
+            </a>
+          )}
+        </div>
 
-      {/* VERIFIED SKILLS. What this wallet is verified to DO, which is the one
-          thing the passport could not say: it carried deal history, stake and
-          tenure, and nothing about capability.
-
-          Only complete verifications reach the client at all (the public
-          profile projection drops everything else, see publicSkillCredentials),
-          so there is nothing to filter here and no state to render. No empty
-          state either: "no verified skills" is not a fact worth a panel, and an
-          absent panel says it more honestly than an empty one. */}
-      {skillCredentials.length > 0 && (
-        <section
-          className="mt-5 rounded-xl border p-6"
-          style={{ borderColor: 'var(--color-line)', background: 'var(--color-surface)' }}
-        >
-          <div className="flex items-baseline justify-between gap-2">
-            <p className="eyebrow">{cp.skills.eyebrow}</p>
-            <p className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">
-              {cp.skills.caption}
-            </p>
+        <div className="mt-6 border-t border-[var(--lp-border-light)] pt-5">
+          <p className="text-[13px] text-[var(--lp-text-sub)]">{pc.standing}</p>
+          <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <span className="text-[34px] font-semibold leading-none text-[var(--lp-dark)]">{tierName}</span>
+            <span className="text-[15px] tabular-nums text-[var(--lp-text-sub)]">{pc.scoreOf.replace('{score}', String(score))}</span>
           </div>
-          <ul className="mt-4 flex flex-wrap gap-2">
-            {skillCredentials.map((credential) => (
-              <li
-                key={credential.skillId}
-                className="inline-flex items-center gap-2 border px-2.5 py-1.5"
-                style={{
-                  borderColor: 'var(--color-line-strong)',
-                  background: 'var(--color-surface-2)',
-                  borderTopLeftRadius: 10,
-                  borderTopRightRadius: 10,
-                  borderBottomLeftRadius: 10,
-                  borderBottomRightRadius: 3,
-                }}
-              >
-                <span aria-hidden style={{ color: 'var(--lp-accent)' }}>
-                  <CheckGlyph />
-                </span>
-                <span className="text-[13px] font-semibold text-[var(--color-ink)]">
-                  {skillLabel(credential.skillId)}
-                </span>
-                <span className="mono text-[9px] uppercase tracking-[0.12em] tabular-nums text-[var(--color-ink-faint)]">
-                  {skillDateLabel(credential, cp.skills)}
-                </span>
+          {heldLine ? <p className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{heldLine}</p> : null}
+          {breadthLine ? <p className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{breadthLine}</p> : null}
+          <ol className="mt-4 grid grid-cols-5 gap-1" aria-label={pc.standing}>
+            {TIER_LADDER.map((band, index) => (
+              <li key={band} aria-current={index === rung ? 'step' : undefined} className="min-w-0">
+                <span aria-hidden className={`block h-[5px] rounded-full ${index < rung ? 'bg-[#6a8a1e]' : index === rung ? 'bg-[var(--lp-dark)]' : 'bg-[var(--lp-border-light)]'}`} />
+                <span className={`mt-1.5 block truncate text-[12px] ${index === rung ? 'font-semibold text-[var(--lp-dark)]' : 'text-[var(--lp-text-sub)]'}`}>{TIER_LABEL[band]}</span>
               </li>
             ))}
-          </ul>
-        </section>
-      )}
+          </ol>
+        </div>
 
-      {/* SME COMPANY + REPAYMENT. Part of the SME Trades rail; hidden until
-          launch. Renders only when the wallet has an SME profile or
-          repayment history. */}
+        <div className="mt-6">
+          <h2 className="text-[13px] text-[var(--lp-text-sub)]">{pc.record}</h2>
+          <dl className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <PassportFact label={pc.settled} value={String(settled)} />
+            <PassportFact label={pc.completed} value={pc.completedOf.replace('{done}', String(done)).replace('{total}', String(settled))} />
+            <PassportFact label={pc.disputes} value={String(rep.disputedCount)} />
+            <PassportFact label={pc.volume} value={`${trimUsdc(String(volume))} USDC`} />
+          </dl>
+          <dl className="mt-3 divide-y divide-[var(--lp-border-light)] border-t border-[var(--lp-border-light)] text-[14px]">
+            {counterparties != null ? (
+              <div className="flex items-center justify-between gap-4 py-3">
+                <dt className="text-[var(--lp-text-sub)]">{pc.counterparties}</dt>
+                <dd className="tabular-nums text-[var(--lp-dark)]">{counterparties}</dd>
+              </div>
+            ) : null}
+            <div className="flex items-center justify-between gap-4 py-3">
+              <dt className="text-[var(--lp-text-sub)]">{pc.stake}</dt>
+              <dd className="tabular-nums text-[var(--lp-dark)]">{stakeSynced ? `${trimUsdc(stakeUsdc)} USDC` : cp.stats.syncing}</dd>
+            </div>
+            {lastDealAt ? (
+              <div className="flex items-center justify-between gap-4 py-3">
+                <dt className="text-[var(--lp-text-sub)]">{pc.lastDeal}</dt>
+                <dd className="text-[var(--lp-dark)]">{dateLabel(lastDealAt)}</dd>
+              </div>
+            ) : null}
+          </dl>
+        </div>
+
+        {skillCredentials.length > 0 && (
+          <div className="mt-5">
+            <h2 className="text-[13px] text-[var(--lp-text-sub)]">{pc.skills}</h2>
+            <ul className="mt-2 flex flex-wrap gap-2">
+              {skillCredentials.map((credential) => (
+                <li key={credential.skillId} className="inline-flex min-h-9 items-center gap-2 rounded-full border border-[var(--lp-border-light)] px-3.5 text-[13px] text-[var(--lp-dark)]">
+                  <span aria-hidden className="text-[#6a8a1e]"><CheckGlyph /></span>
+                  {skillLabel(credential.skillId)}
+                  <span className="text-[12px] tabular-nums text-[var(--lp-text-sub)]">{skillDateLabel(credential, cp.skills)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className="mt-6 flex flex-wrap items-start justify-between gap-x-6 border-t border-[var(--lp-border-light)] pt-1">
+          {termRows.length > 0 ? (
+            <details className="group min-w-0 flex-1">
+              <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 text-[14px] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] [&::-webkit-details-marker]:hidden">
+                {pc.how}
+                <span aria-hidden className="transition-transform group-open:rotate-180">⌄</span>
+              </summary>
+              <div className="space-y-3 pb-4">
+                {termRows.map((r) => (
+                  <TermBar key={r.label} label={r.label} value={r.value} hue={hue} />
+                ))}
+                <p className="pt-1 text-[12px] leading-snug text-[var(--lp-text-sub)]">{cp.footer.disclaimer}</p>
+              </div>
+            </details>
+          ) : null}
+          <a href={`${EXPLORER}/address/${address}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 items-center text-[14px] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)]">
+            {pc.proof}
+          </a>
+        </div>
+      </section>
+
       {SME_TRADES_ENABLED && <SmePassportBand sme={sme} />}
-
-      {/* FOOTER */}
-      <footer className="mt-6 flex items-center justify-between gap-3 flex-wrap">
-        <p className="text-[12px] text-[var(--color-ink-faint)] leading-snug max-w-[48ch]">
-          {cp.footer.disclaimer}
-        </p>
-        <a
-          href={`${EXPLORER}/address/${address}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex min-h-11 items-center gap-1.5 mono text-[11px] uppercase tracking-[0.12em] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] transition-colors"
-        >
-          {cp.footer.verifiedLink}
-        </a>
-      </footer>
     </Shell>
   );
 }
@@ -468,103 +345,13 @@ function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 
-function TierPill({ tier }: { tier: CompositeTier }) {
-  return (
-    <span
-      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border mono text-[12px] font-semibold uppercase tracking-[0.14em]"
-      style={{ color: tierInk(tier), background: tierBg(tier), borderColor: tierBorder(tier) }}
-    >
-      <span aria-hidden className="w-2 h-2 rounded-full" style={{ background: TIER_HUE[tier] }} />
-      {TIER_LABEL[tier]}
-    </span>
-  );
-}
 
-/// Earned-tier ladder. The score remains visible above, while this line stays
-/// on the gated tier until the backend awards the next one.
-function ScoreBand({ tier }: { tier: CompositeTier }) {
-  const pct = tierLadderPosition(tier as ProgressTier);
-  return (
-    <div className="mt-5">
-      <div className="relative h-2 rounded-full" style={{ background: 'var(--color-surface-2)' }}>
-        <div
-          className="absolute inset-y-0 start-0 rounded-full"
-          style={{ width: `${pct}%`, background: TIER_HUE[tier] }}
-        />
-        <span
-          aria-hidden
-          className="absolute top-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full [[dir=rtl]_&]:translate-x-1/2"
-          style={{ insetInlineStart: `${pct}%`, background: TIER_HUE[tier] }}
-        />
-        {TIER_LADDER.slice(0, -1).map((band, index) => (
-          <span
-            key={band}
-            aria-hidden
-            className="absolute top-1/2 -translate-y-1/2 w-px h-3"
-            style={{ insetInlineStart: `${12.5 + index * 25}%`, background: 'var(--color-line-strong)' }}
-          />
-        ))}
-      </div>
-      <div className="mt-2 grid grid-cols-5 mono text-[7px] uppercase tracking-[0.04em] text-[var(--color-ink-faint)] sm:text-[9px] sm:tracking-[0.1em]">
-        {TIER_LADDER.map((band, index) => (
-          <span
-            key={band}
-            className={index === 0 ? 'text-start' : index === TIER_LADDER.length - 1 ? 'text-end' : 'text-center'}
-          >
-            {TIER_LABEL[band]}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
 
-function Stat({
-  label,
-  value,
-  tone,
-  syncing,
-  syncingCopy,
-  syncingTitle,
-}: {
-  label: string;
-  value: string;
-  tone?: 'positive' | 'warning' | 'critical';
-  /// True while the underlying read is mid-flight, the value is provisional
-  /// and may still rise. Renders a small "syncing" chip next to the label so
-  /// readers don't take a partial total as final.
-  syncing?: boolean;
-  syncingCopy: string;
-  syncingTitle: string;
-}) {
-  const color =
-    tone === 'positive'
-      ? 'var(--color-positive)'
-      : tone === 'warning'
-        ? 'var(--color-warning)'
-        : tone === 'critical'
-          ? 'var(--color-critical)'
-          : 'var(--color-ink)';
+function PassportFact({ label, value }: { label: string; value: string }) {
   return (
-    <div className="p-4" style={{ background: 'var(--color-surface)' }}>
-      <div className="flex items-center gap-1.5">
-        <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">{label}</p>
-        {syncing && (
-          <span
-            className="mono text-[8px] uppercase tracking-[0.14em] px-1.5 py-0.5 rounded-full"
-            style={{
-              color: 'var(--color-ink-faint)',
-              background: 'var(--color-surface-2)',
-            }}
-          >
-            {syncingCopy}
-            <span className="sr-only"> {syncingTitle}</span>
-          </span>
-        )}
-      </div>
-      <p className="mt-1.5 text-[22px] tabular-nums tracking-tight" style={{ fontFamily: 'var(--font-serif)', color }}>
-        {value}
-      </p>
+    <div className="rounded-[14px] bg-[var(--lp-light)] px-3.5 py-3">
+      <dt className="text-[13px] text-[var(--lp-text-sub)]">{label}</dt>
+      <dd className="mt-0.5 text-[20px] font-semibold tabular-nums text-[var(--lp-dark)]">{value}</dd>
     </div>
   );
 }

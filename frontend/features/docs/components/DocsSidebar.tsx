@@ -73,10 +73,7 @@ export function DocsSidebar() {
                   : 'border-[var(--lp-border-light)] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] hover:bg-[var(--lp-card)]/60',
               )}
               style={{
-                borderTopLeftRadius: 10,
-                borderTopRightRadius: 10,
-                borderBottomLeftRadius: 10,
-                borderBottomRightRadius: 3,
+                borderRadius: 10,
               }}
             >
               <span

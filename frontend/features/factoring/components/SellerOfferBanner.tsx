@@ -251,10 +251,7 @@ export function SellerOfferBanner({
         style={{
           background: 'rgba(175, 201, 91, 0.12)',
           border: '1px solid rgba(175, 201, 91, 0.45)',
-          borderTopLeftRadius: 10,
-          borderTopRightRadius: 10,
-          borderBottomLeftRadius: 10,
-          borderBottomRightRadius: 3,
+          borderRadius: 10,
         }}
       >
         <div className="min-w-0">
@@ -277,10 +274,7 @@ export function SellerOfferBanner({
           onClick={() => setModalOpen(true)}
           className="mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-2 bg-[var(--lp-dark)] text-[var(--lp-bg)]"
           style={{
-            borderTopLeftRadius: 6,
-            borderTopRightRadius: 6,
-            borderBottomLeftRadius: 6,
-            borderBottomRightRadius: 2,
+            borderRadius: 6,
           }}
         >
           See offers →
@@ -551,10 +545,7 @@ function OfferRow({
           : 'border-[var(--lp-field-border)] bg-[var(--lp-bg)]',
       )}
       style={{
-        borderTopLeftRadius: 10,
-        borderTopRightRadius: 10,
-        borderBottomLeftRadius: 10,
-        borderBottomRightRadius: 3,
+        borderRadius: 10,
       }}
     >
       <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -604,10 +595,7 @@ function OfferRow({
                 : 'bg-transparent text-[var(--lp-dark)] border border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
             )}
             style={{
-              borderTopLeftRadius: 6,
-              borderTopRightRadius: 6,
-              borderBottomLeftRadius: 6,
-              borderBottomRightRadius: 2,
+              borderRadius: 6,
             }}
           >
             {isAccepting ? 'Finishing…' : receiptPending ? 'Finish receipt' : 'Accept'}
@@ -655,10 +643,7 @@ function FactoringRequestBand({
         border: waiting
           ? '1px solid rgba(175, 201, 91, 0.45)'
           : '1px solid var(--lp-border-light)',
-        borderTopLeftRadius: 10,
-        borderTopRightRadius: 10,
-        borderBottomLeftRadius: 10,
-        borderBottomRightRadius: 3,
+        borderRadius: 10,
       }}
     >
       <div className="min-w-0">
@@ -683,10 +668,7 @@ function FactoringRequestBand({
             : 'bg-[var(--lp-dark)] text-[var(--lp-bg)]',
         )}
         style={{
-          borderTopLeftRadius: 6,
-          borderTopRightRadius: 6,
-          borderBottomLeftRadius: 6,
-          borderBottomRightRadius: 2,
+          borderRadius: 6,
         }}
       >
         {cta}

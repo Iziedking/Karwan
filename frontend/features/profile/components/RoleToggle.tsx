@@ -86,10 +86,7 @@ export function RoleToggle({
             background: 'rgba(176,61,58,0.10)',
             color: '#b03d3a',
             border: '1px solid rgba(176,61,58,0.35)',
-            borderTopLeftRadius: 8,
-            borderTopRightRadius: 8,
-            borderBottomLeftRadius: 8,
-            borderBottomRightRadius: 2,
+            borderRadius: 8,
           }}
         >
           {error}

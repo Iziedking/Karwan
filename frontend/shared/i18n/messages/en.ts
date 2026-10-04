@@ -14,6 +14,7 @@ import { analyticsCopy, type AnalyticsCopy } from './analytics';
 import { signupCopy, type SignupCopy } from './signup';
 import { payLinkCopy, type PayLinkCopy } from './payLink';
 import { requestPageCopy, type RequestPageCopy } from './requestPage';
+import { passportCopy, type PassportCopy } from './passport';
 import { recoveryCopy, type RecoveryCopy } from './recovery';
 import { docsProductCopy, type DocsProductCopy } from './docsProduct';
 interface MessagesShape {
@@ -26,6 +27,7 @@ interface MessagesShape {
   signup: SignupCopy;
   payLink: PayLinkCopy;
   requestPage: RequestPageCopy;
+  passport: PassportCopy;
   recovery: RecoveryCopy;
   docsProduct: DocsProductCopy;
   socialTrade: SocialTradeCopy;
@@ -2231,6 +2233,7 @@ interface MessagesShape {
         tenure: string;
         activity: string;
         referral: string;
+        breadth: string;
       };
     };
     footer: {
@@ -5288,6 +5291,7 @@ export const en: MessagesShape = {
   signup: signupCopy.en,
   payLink: payLinkCopy.en,
   requestPage: requestPageCopy.en,
+  passport: passportCopy.en,
   recovery: recoveryCopy.en,
   docsProduct: docsProductCopy.en,
   socialTrade: socialTradeCopy.en,
@@ -7746,6 +7750,7 @@ export const en: MessagesShape = {
         tenure: 'Tenure',
         activity: 'Activity',
         referral: 'Referral',
+        breadth: "Different people",
       },
     },
     footer: {

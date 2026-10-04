@@ -100,10 +100,7 @@ export function DocsFigure({
       <div
         className="overflow-hidden bg-[var(--lp-card)] border border-[var(--lp-border-light)]"
         style={{
-          borderTopLeftRadius: 14,
-          borderTopRightRadius: 14,
-          borderBottomLeftRadius: 14,
-          borderBottomRightRadius: 4,
+          borderRadius: 14,
         }}
       >
         {missing ? (

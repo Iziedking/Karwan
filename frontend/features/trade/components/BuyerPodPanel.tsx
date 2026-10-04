@@ -134,10 +134,7 @@ function BuyerPodPanelInner({
       style={{
         background: 'rgba(175, 201, 91, 0.12)',
         border: '1px solid rgba(175, 201, 91, 0.45)',
-        borderTopLeftRadius: 10,
-        borderTopRightRadius: 10,
-        borderBottomLeftRadius: 10,
-        borderBottomRightRadius: 3,
+        borderRadius: 10,
       }}
     >
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -178,10 +175,7 @@ function BuyerPodPanelInner({
             'bg-[var(--lp-dark)] text-[var(--lp-bg)]',
           )}
           style={{
-            borderTopLeftRadius: 6,
-            borderTopRightRadius: 6,
-            borderBottomLeftRadius: 6,
-            borderBottomRightRadius: 2,
+            borderRadius: 6,
           }}
         >
           {submitting

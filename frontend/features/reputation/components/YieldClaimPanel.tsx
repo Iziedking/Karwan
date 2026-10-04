@@ -157,10 +157,7 @@ export function YieldClaimPanel() {
           background: 'var(--lp-workspace-raised)',
           color: 'var(--lp-workspace-ink)',
           border: '1px solid var(--lp-workspace-border)',
-          borderTopLeftRadius: 18,
-          borderTopRightRadius: 18,
-          borderBottomLeftRadius: 18,
-          borderBottomRightRadius: 4,
+          borderRadius: 18,
         }}
       >
         <div

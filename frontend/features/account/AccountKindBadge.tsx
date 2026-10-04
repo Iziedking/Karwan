@@ -75,10 +75,7 @@ export function AccountKindBadge({
       style={{
         borderColor: tone === 'dark' ? 'var(--lp-workspace-border)' : 'var(--color-line)',
         color: tone === 'dark' ? 'var(--lp-workspace-muted)' : 'var(--lp-text-muted)',
-        borderTopLeftRadius: 7,
-        borderTopRightRadius: 7,
-        borderBottomLeftRadius: 7,
-        borderBottomRightRadius: 2,
+        borderRadius: 7,
       }}
     >
       {/* Tinted by state, so verification still carries when the words are gone:

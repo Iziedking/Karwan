@@ -86,10 +86,7 @@ export function LegacyBanner() {
             style={{
               background: 'var(--lp-accent)',
               color: 'var(--lp-band-dark)',
-              borderTopLeftRadius: 14,
-              borderTopRightRadius: 14,
-              borderBottomLeftRadius: 14,
-              borderBottomRightRadius: 4,
+              borderRadius: 14,
             }}
             aria-hidden
           >
@@ -125,10 +122,7 @@ export function LegacyBanner() {
             href="/legacy"
             className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 mono text-[11px] sm:text-[13px] font-bold uppercase tracking-[0.1em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] sm:hover:-translate-y-0.5 active:translate-y-0 transition-[transform,box-shadow] duration-150 shadow-[0_4px_0_rgba(0,0,0,0.35)] hover:shadow-[0_5px_0_rgba(0,0,0,0.35)] active:shadow-[0_1px_0_rgba(0,0,0,0.35)]"
             style={{
-              borderTopLeftRadius: 14,
-              borderTopRightRadius: 14,
-              borderBottomLeftRadius: 14,
-              borderBottomRightRadius: 3,
+              borderRadius: 14,
             }}
           >
             {t.openRecovery}

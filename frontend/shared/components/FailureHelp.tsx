@@ -59,10 +59,7 @@ export function FailureHelp({
       style={{
         background: 'var(--color-surface, #fff)',
         border: '1px solid var(--color-line, rgba(0,0,0,0.1))',
-        borderTopLeftRadius: 10,
-        borderTopRightRadius: 10,
-        borderBottomLeftRadius: 10,
-        borderBottomRightRadius: 3,
+        borderRadius: 10,
       }}
     >
       <div>

@@ -111,10 +111,7 @@ export function ConfirmModal({
                 color: 'var(--ink-2)',
                 background: 'transparent',
                 border: '1px solid var(--rule-dark)',
-                borderTopLeftRadius: 10,
-                borderTopRightRadius: 10,
-                borderBottomLeftRadius: 10,
-                borderBottomRightRadius: 3,
+                borderRadius: 10,
               }}
             >
               {cancelLabel}
@@ -128,10 +125,7 @@ export function ConfirmModal({
                 color: confirmFg,
                 background: confirmBg,
                 border: '1px solid transparent',
-                borderTopLeftRadius: 10,
-                borderTopRightRadius: 10,
-                borderBottomLeftRadius: 10,
-                borderBottomRightRadius: 3,
+                borderRadius: 10,
               }}
             >
               {confirmLabel}

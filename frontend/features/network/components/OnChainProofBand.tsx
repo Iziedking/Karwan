@@ -262,10 +262,7 @@ function DailyAreaChart({ series, loading, errored, onRetry }: DailyAreaChartPro
           height: 220,
           background: 'var(--lp-workspace-soft)',
           border: '1px solid var(--lp-workspace-border)',
-          borderTopLeftRadius: 18,
-          borderTopRightRadius: 18,
-          borderBottomLeftRadius: 18,
-          borderBottomRightRadius: 4,
+          borderRadius: 18,
         }}
       >
         <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-faint)] animate-pulse">
@@ -283,10 +280,7 @@ function DailyAreaChart({ series, loading, errored, onRetry }: DailyAreaChartPro
           height: 220,
           background: 'var(--lp-workspace-soft)',
           border: '1px solid var(--lp-workspace-border)',
-          borderTopLeftRadius: 18,
-          borderTopRightRadius: 18,
-          borderBottomLeftRadius: 18,
-          borderBottomRightRadius: 4,
+          borderRadius: 18,
         }}
       >
         <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-faint)]">
@@ -389,10 +383,7 @@ function DailyAreaChart({ series, loading, errored, onRetry }: DailyAreaChartPro
         style={{
           background: 'var(--lp-workspace-soft)',
           border: '1px solid var(--lp-workspace-border)',
-          borderTopLeftRadius: 18,
-          borderTopRightRadius: 18,
-          borderBottomLeftRadius: 18,
-          borderBottomRightRadius: 4,
+          borderRadius: 18,
         }}
       >
         <div className="flex items-center justify-between px-5 pt-4">
@@ -522,10 +513,7 @@ function HoverTooltip({ point, xPct }: { point: NetworkOnchainDayPoint; xPct: nu
         transform: flipLeft ? 'translateX(calc(-100% - 12px))' : 'translateX(12px)',
         background: 'rgba(14,14,14,0.96)',
         border: '1px solid rgba(255,255,255,0.18)',
-        borderTopLeftRadius: 8,
-        borderTopRightRadius: 8,
-        borderBottomLeftRadius: 8,
-        borderBottomRightRadius: 2,
+        borderRadius: 8,
         boxShadow: '0 4px 18px rgba(0,0,0,0.55)',
         minWidth: 156,
         zIndex: 2,

@@ -117,10 +117,7 @@ export function InviteLinkTools({
 }
 
 const cornerStyle = {
-  borderTopLeftRadius: 8,
-  borderTopRightRadius: 8,
-  borderBottomLeftRadius: 8,
-  borderBottomRightRadius: 2,
+  borderRadius: 8,
 } as const;
 
 function copyCtaLabel(state: ShareState, copy: InviteLinkToolsCopy): string {

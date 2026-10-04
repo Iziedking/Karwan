@@ -159,10 +159,7 @@ export function AgentX402Panel({
     <div
       className="bg-[var(--lp-card)] border border-[var(--lp-border-light)] p-5"
       style={{
-        borderTopLeftRadius: 16,
-        borderTopRightRadius: 16,
-        borderBottomLeftRadius: 16,
-        borderBottomRightRadius: 4,
+        borderRadius: 16,
       }}
     >
       <div className="flex items-center justify-between gap-3 flex-wrap">

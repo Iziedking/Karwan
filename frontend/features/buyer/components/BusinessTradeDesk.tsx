@@ -92,10 +92,7 @@ function ActionCard({
           : 'border border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-raised)] text-[var(--lp-workspace-ink)]',
       )}
       style={{
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        borderBottomLeftRadius: 20,
-        borderBottomRightRadius: 4,
+        borderRadius: 20,
       }}
     >
       <span>

@@ -595,10 +595,7 @@ function WithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCopy }) 
                   border: active
                     ? '1px solid var(--lp-control-active-border)'
                     : '1px solid var(--lp-border-light)',
-                  borderTopLeftRadius: 10,
-                  borderTopRightRadius: 10,
-                  borderBottomLeftRadius: 10,
-                  borderBottomRightRadius: 3,
+                  borderRadius: 10,
                 }}
               >
                 {d.short}
@@ -627,10 +624,7 @@ function WithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCopy }) 
               recipient && !recipientValid
                 ? '1px solid rgba(176,61,58,0.6)'
                 : '1px solid var(--lp-border-light)',
-            borderTopLeftRadius: 12,
-            borderTopRightRadius: 12,
-            borderBottomLeftRadius: 12,
-            borderBottomRightRadius: 3,
+            borderRadius: 12,
           }}
         />
         {recipient && !recipientValid && (
@@ -668,10 +662,7 @@ function WithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCopy }) 
               amount && !amountValid
                 ? '1px solid rgba(176,61,58,0.6)'
                 : '1px solid var(--lp-border-light)',
-            borderTopLeftRadius: 12,
-            borderTopRightRadius: 12,
-            borderBottomLeftRadius: 12,
-            borderBottomRightRadius: 3,
+            borderRadius: 12,
           }}
         />
         {amount && Number(amount) > balance && (
@@ -688,10 +679,7 @@ function WithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCopy }) 
             background: 'rgba(176,61,58,0.10)',
             color: '#b03d3a',
             border: '1px solid rgba(176,61,58,0.35)',
-            borderTopLeftRadius: 10,
-            borderTopRightRadius: 10,
-            borderBottomLeftRadius: 10,
-            borderBottomRightRadius: 3,
+            borderRadius: 10,
           }}
         >
           {error}
@@ -783,10 +771,7 @@ function CashoutRailPicker({
               style={{
                 background: active ? 'color-mix(in srgb, var(--lp-accent) 12%, var(--lp-card))' : 'var(--lp-card)',
                 border: active ? '1px solid var(--accent-deep)' : '1px solid var(--lp-border-light)',
-                borderTopLeftRadius: 14,
-                borderTopRightRadius: 14,
-                borderBottomLeftRadius: 14,
-                borderBottomRightRadius: 4,
+                borderRadius: 14,
                 opacity: unavailable ? 0.78 : 1,
               }}
             >
@@ -1023,10 +1008,7 @@ function BridgeFact({
       style={{
         background: 'var(--lp-card)',
         border: '1px solid var(--lp-border-light)',
-        borderTopLeftRadius: 12,
-        borderTopRightRadius: 12,
-        borderBottomLeftRadius: 12,
-        borderBottomRightRadius: 3,
+        borderRadius: 12,
       }}
     >
       <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
@@ -1078,10 +1060,7 @@ function WalletPickerTile({
         border: active
           ? '1px solid rgba(175, 201, 91,0.55)'
           : '1px solid var(--lp-border-light)',
-        borderTopLeftRadius: 12,
-        borderTopRightRadius: 12,
-        borderBottomLeftRadius: 12,
-        borderBottomRightRadius: 3,
+        borderRadius: 12,
       }}
     >
       <div className="flex items-center justify-between gap-2">
@@ -1127,10 +1106,7 @@ function Stat({ label, value }: { label: string; value: string }) {
       style={{
         background: 'var(--lp-card)',
         border: '1px solid var(--lp-border-light)',
-        borderTopLeftRadius: 12,
-        borderTopRightRadius: 12,
-        borderBottomLeftRadius: 12,
-        borderBottomRightRadius: 3,
+        borderRadius: 12,
       }}
     >
       <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
@@ -1156,10 +1132,7 @@ function ComingSoonTile({
       style={{
         background: 'var(--lp-card)',
         border: '1px dashed var(--lp-border-light)',
-        borderTopLeftRadius: 14,
-        borderTopRightRadius: 14,
-        borderBottomLeftRadius: 14,
-        borderBottomRightRadius: 4,
+        borderRadius: 14,
         opacity: 0.55,
       }}
     >

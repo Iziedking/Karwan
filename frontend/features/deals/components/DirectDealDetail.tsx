@@ -497,10 +497,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                   disabled={isRefetching}
                   className="inline-flex min-h-11 items-center justify-center gap-2 px-5 py-3 mono text-[12px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                   style={{
-                    borderTopLeftRadius: 12,
-                    borderTopRightRadius: 12,
-                    borderBottomLeftRadius: 12,
-                    borderBottomRightRadius: 3,
+                    borderRadius: 12,
                   }}
                 >
                   {isRefetching ? es.transientRetrying : es.transientCta}
@@ -1283,10 +1280,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
             style={{
               background: 'color-mix(in oklab, var(--lp-accent) 14%, transparent)',
               border: '1px solid color-mix(in oklab, var(--lp-accent) 35%, transparent)',
-              borderTopLeftRadius: 12,
-              borderTopRightRadius: 12,
-              borderBottomLeftRadius: 12,
-              borderBottomRightRadius: 3,
+              borderRadius: 12,
             }}
           >
             <div className="min-w-0">
@@ -1304,10 +1298,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               href="/legacy"
               className="shrink-0 inline-flex items-center gap-2 px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-control-active-bg)] text-[var(--lp-control-active-ink)] transition-colors"
               style={{
-                borderTopLeftRadius: 10,
-                borderTopRightRadius: 10,
-                borderBottomLeftRadius: 10,
-                borderBottomRightRadius: 2,
+                borderRadius: 10,
               }}
             >
               {dd.legacyBanner.cta}
@@ -1555,10 +1546,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                       style={{
                         background: 'rgba(178, 84, 37, 0.10)',
                         border: '1px solid rgba(178, 84, 37, 0.35)',
-                        borderTopLeftRadius: 10,
-                        borderTopRightRadius: 10,
-                        borderBottomLeftRadius: 10,
-                        borderBottomRightRadius: 3,
+                        borderRadius: 10,
                       }}
                     >
                       <p className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[#b25425]">
@@ -1582,10 +1570,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                     style={{
                       background: 'rgba(178, 84, 37, 0.10)',
                       border: '1px solid rgba(178, 84, 37, 0.35)',
-                      borderTopLeftRadius: 10,
-                      borderTopRightRadius: 10,
-                      borderBottomLeftRadius: 10,
-                      borderBottomRightRadius: 3,
+                      borderRadius: 10,
                     }}
                   >
                     <p className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[#b25425]">
@@ -1610,10 +1595,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                       style={{
                         background: 'rgba(79, 138, 63, 0.10)',
                         border: '1px solid rgba(79, 138, 63, 0.35)',
-                        borderTopLeftRadius: 10,
-                        borderTopRightRadius: 10,
-                        borderBottomLeftRadius: 10,
-                        borderBottomRightRadius: 3,
+                        borderRadius: 10,
                       }}
                     >
                       <p className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-accent)]">
@@ -1632,10 +1614,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                     style={{
                       background: 'rgba(178, 84, 37, 0.10)',
                       border: '1px solid rgba(178, 84, 37, 0.35)',
-                      borderTopLeftRadius: 10,
-                      borderTopRightRadius: 10,
-                      borderBottomLeftRadius: 10,
-                      borderBottomRightRadius: 3,
+                      borderRadius: 10,
                     }}
                   >
                     <p className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[#b25425]">
@@ -2176,10 +2155,7 @@ function TradeContextBand({ deal }: { deal: DirectDeal }) {
                   key={d.hash}
                   className="flex items-center gap-3 px-3 py-2 border border-[var(--lp-field-border)] bg-[var(--lp-bg)]"
                   style={{
-                    borderTopLeftRadius: 6,
-                    borderTopRightRadius: 6,
-                    borderBottomLeftRadius: 6,
-                    borderBottomRightRadius: 2,
+                    borderRadius: 6,
                   }}
                 >
                   <span className="mono text-[9px] uppercase tracking-[0.16em] font-bold px-1.5 py-0.5 bg-[var(--lp-dark)] text-[var(--lp-bg)]">
@@ -2917,10 +2893,7 @@ function ActionPanel({
               placeholder={copy.awaitingDelivery.proofPlaceholder}
               className="w-full bg-[var(--lp-workspace-raised)] text-[var(--lp-workspace-ink)] placeholder:text-[var(--lp-workspace-faint)] px-3.5 py-2.5 text-[13px] leading-relaxed border border-[var(--lp-workspace-border)] focus:outline-none focus:border-[var(--lp-accent)] focus:shadow-[0_0_0_3px_rgba(175,201,91,0.25)] resize-none transition-shadow"
               style={{
-                borderTopLeftRadius: 12,
-                borderTopRightRadius: 12,
-                borderBottomLeftRadius: 12,
-                borderBottomRightRadius: 3,
+                borderRadius: 12,
               }}
             />
           </label>
@@ -3126,10 +3099,7 @@ function ActionPanel({
                 placeholder={copy.awaitingDelivery.proofPlaceholder}
                 className="w-full bg-[var(--lp-workspace-raised)] text-[var(--lp-workspace-ink)] placeholder:text-[var(--lp-workspace-faint)] px-3.5 py-2.5 text-[13px] leading-relaxed border border-[var(--lp-workspace-border)] focus:outline-none focus:border-[var(--lp-accent)] resize-none transition-shadow"
                 style={{
-                  borderTopLeftRadius: 12,
-                  borderTopRightRadius: 12,
-                  borderBottomLeftRadius: 12,
-                  borderBottomRightRadius: 3,
+                  borderRadius: 12,
                 }}
               />
             </label>
@@ -3507,10 +3477,7 @@ function WindowNote({
       className="text-[12.5px] leading-snug px-3 py-2.5"
       style={{
         ...style,
-        borderTopLeftRadius: 10,
-        borderTopRightRadius: 10,
-        borderBottomLeftRadius: 10,
-        borderBottomRightRadius: 3,
+        borderRadius: 10,
       }}
     >
       {children}
@@ -3607,10 +3574,7 @@ function ExtensionPendingNote({
         background: isDark ? 'rgba(255,255,255,0.05)' : 'var(--lp-light)',
         color: isDark ? 'rgba(255,255,255,0.78)' : 'var(--lp-text-sub)',
         border: isDark ? '1px solid rgba(255,255,255,0.10)' : '1px solid var(--lp-border-light)',
-        borderTopLeftRadius: 10,
-        borderTopRightRadius: 10,
-        borderBottomLeftRadius: 10,
-        borderBottomRightRadius: 3,
+        borderRadius: 10,
       }}
     >
       <p className="mono text-[10px] uppercase tracking-[0.18em] opacity-70">
@@ -3654,10 +3618,7 @@ function ExtensionBuyerBanner({
       style={{
         background: 'rgba(175, 201, 91,0.10)',
         border: '1px solid rgba(175, 201, 91,0.32)',
-        borderTopLeftRadius: 12,
-        borderTopRightRadius: 12,
-        borderBottomLeftRadius: 12,
-        borderBottomRightRadius: 3,
+        borderRadius: 12,
       }}
     >
       <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-accent)]">
@@ -3905,10 +3866,7 @@ function CancelProposalBanner({
       style={{
         background: 'var(--lp-card)',
         border: '1px solid var(--lp-accent)',
-        borderTopLeftRadius: 12,
-        borderTopRightRadius: 12,
-        borderBottomLeftRadius: 12,
-        borderBottomRightRadius: 3,
+        borderRadius: 12,
         boxShadow: '0 1px 0 rgba(175, 201, 91,0.20)',
       }}
     >
@@ -3959,10 +3917,7 @@ function CancelProposalBanner({
               href="/legacy"
               className="inline-flex items-center gap-2 px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-control-active-bg)] text-[var(--lp-control-active-ink)] transition-colors"
               style={{
-                borderTopLeftRadius: 10,
-                borderTopRightRadius: 10,
-                borderBottomLeftRadius: 10,
-                borderBottomRightRadius: 2,
+                borderRadius: 10,
               }}
             >
               {copy.legacyCta}
@@ -4105,10 +4060,7 @@ function ProposeCancelModal({
                       border: active
                         ? '1px solid var(--lp-accent)'
                         : '1px solid var(--lp-border-light)',
-                      borderTopLeftRadius: 10,
-                      borderTopRightRadius: 10,
-                      borderBottomLeftRadius: 10,
-                      borderBottomRightRadius: 3,
+                      borderRadius: 10,
                     }}
                   >
                     <p className="mono text-[10px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)]">
@@ -4373,10 +4325,7 @@ function GoodsShipmentFields({
   const field =
     'w-full bg-[var(--lp-workspace-raised)] text-[var(--lp-workspace-ink)] placeholder:text-[var(--lp-workspace-faint)] px-3.5 py-2.5 text-[13px] border border-[var(--lp-workspace-border)] focus:outline-none focus:border-[var(--lp-accent)]';
   const radius = {
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 3,
+    borderRadius: 12,
   } as const;
 
   return (

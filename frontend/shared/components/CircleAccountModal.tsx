@@ -122,10 +122,7 @@ export function CircleAccountModal({ open, onClose }: Props) {
               background: 'var(--lp-light)',
               border: '1px solid var(--lp-border-light)',
               color: 'var(--lp-dark)',
-              borderTopLeftRadius: 12,
-              borderTopRightRadius: 12,
-              borderBottomLeftRadius: 12,
-              borderBottomRightRadius: 3,
+              borderRadius: 12,
             }}
           >
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
@@ -156,10 +153,7 @@ export function CircleAccountModal({ open, onClose }: Props) {
               background: 'var(--lp-light)',
               border: '1px solid var(--lp-border-light)',
               color: 'var(--lp-dark)',
-              borderTopLeftRadius: 12,
-              borderTopRightRadius: 12,
-              borderBottomLeftRadius: 12,
-              borderBottomRightRadius: 3,
+              borderRadius: 12,
             }}
           >
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>

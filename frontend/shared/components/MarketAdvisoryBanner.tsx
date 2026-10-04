@@ -77,7 +77,7 @@ export function MarketAdvisoryBanner({ jobId }: { jobId: string }) {
   return (
     <div
       className="bg-[#fff7e8] border border-[#e8c97a] p-4 sm:p-5 text-[#5a4a1f]"
-      style={{ borderRadius: 16, borderBottomRightRadius: 4 }}
+      style={{ borderRadius: 16 }}
     >
       <div className="flex items-start justify-between gap-3">
         <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[#9a7b2f]">

@@ -100,10 +100,7 @@ export default function DealError({
               onClick={retry}
               className="inline-flex min-h-11 items-center justify-center bg-[var(--lp-accent)] px-5 py-2.5 mono text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--accent-ink)] transition-colors hover:bg-[var(--lp-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
               style={{
-                borderTopLeftRadius: 10,
-                borderTopRightRadius: 10,
-                borderBottomLeftRadius: 10,
-                borderBottomRightRadius: 3,
+                borderRadius: 10,
               }}
             >
               {es.transientCta}
@@ -112,10 +109,7 @@ export default function DealError({
               href="/buyer"
               className="inline-flex min-h-11 items-center justify-center border border-[var(--lp-outline-strong)] px-5 py-2.5 mono text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--lp-text-muted)] transition-colors hover:border-[var(--lp-accent)] hover:text-[var(--lp-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
               style={{
-                borderTopLeftRadius: 10,
-                borderTopRightRadius: 10,
-                borderBottomLeftRadius: 10,
-                borderBottomRightRadius: 3,
+                borderRadius: 10,
               }}
             >
               {es.notFoundCta}

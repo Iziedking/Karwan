@@ -14,6 +14,7 @@ import { ProfilePeekModal } from './ProfilePeekModal';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 import { presentPaidEvidenceReceipt } from '../paidEvidencePresentation';
+import { buttonClasses } from '@/shared/components/Button';
 
 interface Props {
   proposal: MatchProposal;
@@ -26,6 +27,10 @@ interface Props {
   /// them behind its Research button instead.
   quiet?: boolean;
 }
+
+const PRIMARY_BTN = buttonClasses({ className: 'rounded-full px-5' });
+const OUTLINE_BTN = buttonClasses({ variant: 'outline', className: 'rounded-full px-5' });
+const CRITICAL_BTN = buttonClasses({ variant: 'critical', className: 'rounded-full px-5' });
 
 export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = false }: Props) {
   const mb = useTranslations().matchBanner;
@@ -179,12 +184,11 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
         <div className="flex items-baseline gap-3">
           <div className="flex items-baseline gap-1.5">
             <span
-              className="serif text-[38px] tabular-nums leading-none tracking-[-0.02em]"
-              style={{ color: 'var(--color-ink)' }}
+              className="text-[34px] font-semibold tabular-nums leading-none tracking-[-0.02em] text-[var(--lp-dark)]"
             >
               {formatUsdc(shownPrice, { withSuffix: false })}
             </span>
-            <span className="mono text-[11px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
+            <span className="text-[15px] font-medium text-[var(--lp-text-sub)]">
               USDC
             </span>
             {pendingRaise && proposal.originalPriceUsdc && (
@@ -227,7 +231,7 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
       {/* Keep the decision surface quiet. Full provenance remains available on
           demand so a match card does not read like an operator log. */}
       {!quiet && proposal.paidSignal && (
-        <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">
+        <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-[var(--color-ink-faint)]">
           <span>{mb.paidData.label}</span>
           <span className="normal-case tracking-normal text-[11px]">
             seller verification funded · ${proposal.paidSignal.amountUsd}
@@ -290,10 +294,7 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
           style={{
             background: 'color-mix(in oklab, var(--color-positive) 12%, transparent)',
             border: '1px solid color-mix(in oklab, var(--color-positive) 42%, var(--color-line))',
-            borderTopLeftRadius: 6,
-            borderTopRightRadius: 6,
-            borderBottomLeftRadius: 6,
-            borderBottomRightRadius: 2,
+            borderRadius: 6,
           }}
         >
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden>
@@ -307,7 +308,7 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
             />
           </svg>
           <span
-            className="mono text-[9px] font-bold uppercase tracking-[0.16em]"
+            className="text-[13px] font-semibold"
             style={{ color: 'var(--color-positive)' }}
           >
             {mb.business.label}
@@ -337,13 +338,10 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
             background: 'rgba(178, 84, 37, 0.10)',
             border: '1px solid rgba(178, 84, 37, 0.30)',
             color: '#b25425',
-            borderTopLeftRadius: 10,
-            borderTopRightRadius: 10,
-            borderBottomLeftRadius: 10,
-            borderBottomRightRadius: 3,
+            borderRadius: 14,
           }}
         >
-          <p className="mono text-[9px] font-bold uppercase tracking-[0.18em] mb-1.5">
+          <p className="text-[13px] font-semibold mb-1.5">
             {riskLabel[proposal.riskFlag!]}
           </p>
           <p className="text-[12.5px] leading-snug" style={{ color: 'var(--color-ink)' }}>
@@ -363,14 +361,11 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
           style={{
             background: 'rgba(224, 162, 60, 0.10)',
             border: '1px solid rgba(224, 162, 60, 0.32)',
-            borderTopLeftRadius: 10,
-            borderTopRightRadius: 10,
-            borderBottomLeftRadius: 10,
-            borderBottomRightRadius: 3,
+            borderRadius: 14,
           }}
         >
           <p
-            className="mono text-[9px] font-bold uppercase tracking-[0.18em] mb-1.5"
+            className="text-[13px] font-semibold mb-1.5"
             style={{ color: '#b07d1f' }}
           >
             {mb.topUp.eyebrow}
@@ -392,8 +387,7 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
             type="button"
             onClick={onApprove}
             disabled={busy !== null}
-            style={{ backgroundColor: 'var(--color-ink)', color: 'var(--color-surface)' }}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md text-[13px] font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-wait transition-opacity"
+            className={PRIMARY_BTN}
           >
             {busy === 'approve' && <Spinner />}
             {busy === 'approve' ? mb.approveBusy : mb.approveCta}
@@ -402,8 +396,7 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
             type="button"
             onClick={() => setShowRaiseInput(true)}
             disabled={busy !== null}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md text-[13px] font-medium border transition-colors hover:bg-[var(--color-surface-2)] disabled:opacity-50"
-            style={{ borderColor: 'var(--color-line-strong)', color: 'var(--color-ink-dim)' }}
+            className={OUTLINE_BTN}
           >
             Raise offer
           </button>
@@ -411,11 +404,7 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
             type="button"
             onClick={() => setShowDeclineReason(true)}
             disabled={busy !== null}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md text-[13px] font-medium border transition-colors hover:bg-[var(--color-surface-2)] disabled:opacity-50"
-            style={{
-              borderColor: 'var(--color-line-strong)',
-              color: 'var(--color-ink-dim)',
-            }}
+            className={OUTLINE_BTN}
           >
             {mb.declineCta}
           </button>
@@ -428,7 +417,7 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
       {viewerIsSeller && !pendingRaise && showRaiseInput && (
         <div className="mt-4 space-y-2">
           <label className="block space-y-1.5">
-            <span className="text-[10px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
+            <span className="text-[13px] text-[var(--lp-text-sub)]">
               Your price (USDC). The buyer approves it or declines.
             </span>
             <input
@@ -436,7 +425,7 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
               onChange={(e) => setRaisePrice(e.target.value)}
               inputMode="decimal"
               placeholder={`Higher than ${formatUsdc(proposal.agreedPriceUsdc, { withSuffix: false })}`}
-              className="w-full rounded-md border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2 text-[13px] focus:outline-none focus:border-[var(--color-ink)]"
+              className="min-h-11 w-full rounded-[12px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-4 text-[15px] focus:outline-none focus:border-[var(--color-ink)]"
             />
           </label>
           <div className="flex items-center gap-2">
@@ -444,8 +433,7 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
               type="button"
               onClick={onRaise}
               disabled={busy !== null}
-              style={{ backgroundColor: 'var(--color-ink)', color: 'var(--color-surface)' }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-[13px] font-semibold hover:opacity-90 disabled:opacity-50"
+              className={PRIMARY_BTN}
             >
               {busy === 'raise' && <Spinner />}
               {busy === 'raise' ? 'Sending' : 'Send to buyer'}
@@ -487,7 +475,7 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
                 background: 'rgba(224, 162, 60, 0.10)',
                 border: '1px solid rgba(224, 162, 60, 0.32)',
                 color: '#b07d1f',
-                borderRadius: 3,
+                borderRadius: 999,
               }}
             >
               This is above the budget and tolerance you set. Approving pays over your original cap.
@@ -498,8 +486,7 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
               type="button"
               onClick={onApprove}
               disabled={busy !== null}
-              style={{ backgroundColor: 'var(--color-ink)', color: 'var(--color-surface)' }}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md text-[13px] font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-wait transition-opacity"
+              className={PRIMARY_BTN}
             >
               {busy === 'approve' && <Spinner />}
               {busy === 'approve'
@@ -510,8 +497,7 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
               type="button"
               onClick={onDecline}
               disabled={busy !== null}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md text-[13px] font-medium border transition-colors hover:bg-[var(--color-surface-2)] disabled:opacity-50"
-              style={{ borderColor: 'var(--color-line-strong)', color: 'var(--color-ink-dim)' }}
+              className={OUTLINE_BTN}
             >
               {busy === 'decline' && <Spinner />}
               {busy === 'decline' ? mb.declineConfirmBusy : mb.declineCta}
@@ -523,7 +509,7 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
       {viewerIsSeller && showDeclineReason && (
         <div className="mt-4 space-y-2">
           <label className="block space-y-1.5">
-            <span className="text-[10px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
+            <span className="text-[13px] text-[var(--lp-text-sub)]">
               {mb.declineReasonLabel}
             </span>
             <input
@@ -531,7 +517,7 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
               onChange={(e) => setDeclineReason(e.target.value)}
               maxLength={400}
               placeholder={mb.declineReasonPlaceholder}
-              className="w-full rounded-md border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2 text-[13px] focus:outline-none focus:border-[var(--color-ink)]"
+              className="min-h-11 w-full rounded-[12px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-4 text-[15px] focus:outline-none focus:border-[var(--color-ink)]"
             />
           </label>
           <div className="flex items-center gap-2">
@@ -539,11 +525,7 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
               type="button"
               onClick={onDecline}
               disabled={busy !== null}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-[13px] font-semibold border"
-              style={{
-                borderColor: 'var(--color-critical)',
-                color: 'var(--color-critical)',
-              }}
+              className={CRITICAL_BTN}
             >
               {busy === 'decline' && <Spinner />}
               {busy === 'decline' ? mb.declineConfirmBusy : mb.declineConfirmCta}
@@ -633,7 +615,7 @@ function CounterpartySignal({
   if (!trusted) {
     return (
       <div className="flex items-center gap-2.5 flex-wrap">
-        <span className="text-[10px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
+        <span className="text-[13px] text-[var(--lp-text-sub)]">
           {label}
         </span>
         <div className="flex flex-col items-center gap-0.5 shrink-0">
@@ -674,7 +656,7 @@ function CounterpartySignal({
           <button
             type="button"
             onClick={onOpenPeek}
-            className="mono text-[10px] uppercase tracking-[0.14em] px-2 py-1 border transition-colors hover:bg-[var(--color-surface-2)]"
+            className="text-[13px] px-2 py-1 border transition-colors hover:bg-[var(--color-surface-2)]"
             style={{
               color: 'var(--color-ink-dim)',
               borderColor: 'var(--color-line-strong)',
@@ -698,10 +680,7 @@ function CounterpartySignal({
       style={{
         background: 'color-mix(in oklab, var(--lp-accent) 8%, transparent)',
         border: '1px solid color-mix(in oklab, var(--lp-accent) 32%, var(--color-line))',
-        borderTopLeftRadius: 12,
-        borderTopRightRadius: 12,
-        borderBottomLeftRadius: 12,
-        borderBottomRightRadius: 3,
+        borderRadius: 12,
       }}
     >
       <div className="shrink-0 flex flex-col items-center gap-1">
@@ -739,7 +718,7 @@ function CounterpartySignal({
       </div>
       <div className="min-w-0 flex-1 flex flex-col gap-1.5">
         <div className="flex items-baseline gap-2 flex-wrap">
-          <span className="text-[10px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
+          <span className="text-[13px] text-[var(--lp-text-sub)]">
             {label}
           </span>
           <span className="font-sans text-[15px] font-bold text-[var(--color-ink)]">
@@ -751,7 +730,7 @@ function CounterpartySignal({
           <ReputationBadge address={address} size="sm" />
         </div>
         {recordLine && (
-          <div className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-ink-dim)]">
+          <div className="text-[13px] text-[var(--color-ink-dim)]">
             {recordLine}
           </div>
         )}
@@ -760,11 +739,11 @@ function CounterpartySignal({
             href={passportHref}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 px-2.5 py-1 mono text-[10px] uppercase tracking-[0.12em] font-semibold transition-colors"
+            className="inline-flex items-center gap-1 px-2.5 py-1 text-[13px] font-semibold transition-colors"
             style={{
               background: 'var(--lp-accent)',
               color: 'var(--lp-band-dark)',
-              borderRadius: 3,
+              borderRadius: 999,
             }}
           >
             {copy.creditPassport}
@@ -775,11 +754,11 @@ function CounterpartySignal({
               href={xHref}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 px-2.5 py-1 mono text-[10px] uppercase tracking-[0.12em] font-semibold transition-colors"
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-[13px] font-semibold transition-colors"
               style={{
                 background: 'var(--lp-dark)',
                 color: 'var(--lp-card)',
-                borderRadius: 3,
+                borderRadius: 999,
               }}
             >
               <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
@@ -792,11 +771,11 @@ function CounterpartySignal({
             <button
               type="button"
               onClick={onOpenPeek}
-              className="inline-flex items-center gap-1 px-2.5 py-1 mono text-[10px] uppercase tracking-[0.12em] font-semibold border transition-colors hover:bg-[var(--color-surface-2)]"
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-[13px] font-semibold border transition-colors hover:bg-[var(--color-surface-2)]"
               style={{
                 color: 'var(--color-ink-dim)',
                 borderColor: 'var(--color-line-strong)',
-                borderRadius: 3,
+                borderRadius: 999,
               }}
             >
               {copy.more}

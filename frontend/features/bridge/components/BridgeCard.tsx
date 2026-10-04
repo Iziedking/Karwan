@@ -702,10 +702,7 @@ export function BridgeCard({
               background: 'rgba(175, 201, 91,0.10)',
               color: 'var(--lp-dark)',
               border: '1px solid rgba(175, 201, 91,0.35)',
-              borderTopLeftRadius: 6,
-              borderTopRightRadius: 6,
-              borderBottomLeftRadius: 6,
-              borderBottomRightRadius: 2,
+              borderRadius: 6,
             }}
           >
             <span className="relative flex size-1.5">
@@ -781,10 +778,7 @@ export function BridgeCard({
             style={{
               background: 'var(--lp-card)',
               border: '1px solid var(--lp-border-light)',
-              borderTopLeftRadius: 12,
-              borderTopRightRadius: 12,
-              borderBottomLeftRadius: 12,
-              borderBottomRightRadius: 3,
+              borderRadius: 12,
             }}
           >
             <div className="px-4 pt-3 pb-0.5 flex items-baseline justify-between">
@@ -857,10 +851,7 @@ export function BridgeCard({
               style={{
                 background: 'var(--lp-light)',
                 border: '1px dashed rgba(0,0,0,0.18)',
-                borderTopLeftRadius: 12,
-                borderTopRightRadius: 12,
-                borderBottomLeftRadius: 12,
-                borderBottomRightRadius: 3,
+                borderRadius: 12,
               }}
             >
               {mintRecipient && <WalletAvatar address={mintRecipient} size={24} />}
@@ -898,10 +889,7 @@ export function BridgeCard({
               style={{
                 background: 'var(--lp-accent)',
                 color: 'var(--accent-ink)',
-                borderTopLeftRadius: 14,
-                borderTopRightRadius: 14,
-                borderBottomLeftRadius: 14,
-                borderBottomRightRadius: 4,
+                borderRadius: 14,
                 boxShadow: '0 4px 0 rgba(0,0,0,0.22)',
               }}
             >
@@ -922,10 +910,7 @@ export function BridgeCard({
               style={{
                 background: 'var(--lp-accent)',
                 color: 'var(--accent-ink)',
-                borderTopLeftRadius: 14,
-                borderTopRightRadius: 14,
-                borderBottomLeftRadius: 14,
-                borderBottomRightRadius: 4,
+                borderRadius: 14,
                 boxShadow: canSubmit && !startingBridge ? '0 4px 0 rgba(0,0,0,0.22)' : 'none',
                 opacity: startingBridge ? 0.75 : !canSubmit ? 0.4 : 1,
               }}
@@ -1039,10 +1024,7 @@ export function BridgeRow({
       style={{
         background: 'var(--lp-card)',
         border: '1px solid var(--lp-border-light)',
-        borderTopLeftRadius: 12,
-        borderTopRightRadius: 12,
-        borderBottomLeftRadius: 12,
-        borderBottomRightRadius: 3,
+        borderRadius: 12,
         boxShadow: expanded
           ? '0 1px 0 rgba(0,0,0,0.04), 0 10px 28px -14px rgba(0,0,0,0.22)'
           : '0 1px 0 rgba(0,0,0,0.03), 0 6px 18px -14px rgba(0,0,0,0.14)',
@@ -1200,10 +1182,7 @@ export function BridgeRow({
                 style={{
                   background: 'var(--lp-accent)',
                   color: 'var(--accent-ink)',
-                  borderTopLeftRadius: 8,
-                  borderTopRightRadius: 8,
-                  borderBottomLeftRadius: 8,
-                  borderBottomRightRadius: 2,
+                  borderRadius: 8,
                 }}
               >
                 {copy.recheckOnChain}
@@ -1217,10 +1196,7 @@ export function BridgeRow({
                 style={{
                   background: 'var(--lp-control-active-bg)',
                   color: 'var(--lp-control-active-ink)',
-                  borderTopLeftRadius: 8,
-                  borderTopRightRadius: 8,
-                  borderBottomLeftRadius: 8,
-                  borderBottomRightRadius: 2,
+                  borderRadius: 8,
                 }}
               >
                 {copy.retryFromStart}
@@ -1371,10 +1347,7 @@ function BridgeSteps({
                 background: tileBg,
                 color: tileColor,
                 border: `1px solid ${tileBorder}`,
-                borderTopLeftRadius: 6,
-                borderTopRightRadius: 6,
-                borderBottomLeftRadius: 6,
-                borderBottomRightRadius: 2,
+                borderRadius: 6,
               }}
             >
               {String(i + 1).padStart(2, '0')}
@@ -1424,10 +1397,7 @@ function ErrorBanner({
       style={{
         background: 'var(--lp-card)',
         border: `1px solid ${TONE_HEX.critical}`,
-        borderTopLeftRadius: 10,
-        borderTopRightRadius: 10,
-        borderBottomLeftRadius: 10,
-        borderBottomRightRadius: 3,
+        borderRadius: 10,
         boxShadow: `0 1px 0 rgba(176,61,58,0.18)`,
       }}
     >
@@ -1489,10 +1459,7 @@ function StatusPill({
         background: bg,
         color: fg,
         border: `1px solid ${border}`,
-        borderTopLeftRadius: 10,
-        borderTopRightRadius: 10,
-        borderBottomLeftRadius: 10,
-        borderBottomRightRadius: 3,
+        borderRadius: 10,
       }}
     >
       <span>{label}</span>
@@ -1543,10 +1510,7 @@ function PhaseChip({
         background: bg,
         color: fg,
         border: `1px solid ${border}`,
-        borderTopLeftRadius: 5,
-        borderTopRightRadius: 5,
-        borderBottomLeftRadius: 5,
-        borderBottomRightRadius: 2,
+        borderRadius: 5,
       }}
     >
       <span
@@ -1640,10 +1604,7 @@ function CircleSourceFundBanner({
       style={{
         background: 'var(--lp-card)',
         border: '1px solid var(--lp-border-light)',
-        borderTopLeftRadius: 12,
-        borderTopRightRadius: 12,
-        borderBottomLeftRadius: 12,
-        borderBottomRightRadius: 3,
+        borderRadius: 12,
         boxShadow: '0 1px 0 rgba(0,0,0,0.04)',
       }}
     >
@@ -1655,10 +1616,7 @@ function CircleSourceFundBanner({
               background: funded ? 'rgba(175,201,91,0.12)' : empty ? 'rgba(178,84,37,0.12)' : 'rgba(175, 201, 91, 0.18)',
               color: funded ? TONE_HEX.positive : empty ? TONE_HEX.warning : 'var(--lp-band-dark)',
               border: `1px solid ${funded ? 'rgba(175,201,91,0.42)' : empty ? 'rgba(178,84,37,0.35)' : 'var(--lp-accent)'}`,
-              borderTopLeftRadius: 4,
-              borderTopRightRadius: 4,
-              borderBottomLeftRadius: 4,
-              borderBottomRightRadius: 2,
+              borderRadius: 4,
             }}
           >
             <span aria-hidden className="inline-block w-[5px] h-[5px]" style={{ background: accent }} />
@@ -1710,10 +1668,7 @@ function CircleSourceFundBanner({
             style={{
               background: 'var(--lp-accent)',
               color: 'var(--lp-band-dark)',
-              borderTopLeftRadius: 6,
-              borderTopRightRadius: 6,
-              borderBottomLeftRadius: 6,
-              borderBottomRightRadius: 2,
+              borderRadius: 6,
             }}
           >
             {claiming ? copy.requesting : copy.getUsdc}
@@ -1781,10 +1736,7 @@ function SolanaDepositBanner({
       style={{
         background: 'var(--lp-card)',
         border: '1px solid var(--lp-border-light)',
-        borderTopLeftRadius: 12,
-        borderTopRightRadius: 12,
-        borderBottomLeftRadius: 12,
-        borderBottomRightRadius: 3,
+        borderRadius: 12,
         boxShadow: '0 1px 0 rgba(0,0,0,0.04)',
       }}
     >
@@ -1807,10 +1759,7 @@ function SolanaDepositBanner({
               onClick={() => setAttempt((n) => n + 1)}
               className="shrink-0 mono text-[10px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity px-2 py-1 border border-[var(--lp-outline)]"
               style={{
-                borderTopLeftRadius: 6,
-                borderTopRightRadius: 6,
-                borderBottomLeftRadius: 6,
-                borderBottomRightRadius: 2,
+                borderRadius: 6,
               }}
             >
               {copy.retry}
@@ -1822,10 +1771,7 @@ function SolanaDepositBanner({
               disabled={!address}
               className="shrink-0 mono text-[10px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity disabled:opacity-50 px-2 py-1 border border-[var(--lp-outline)]"
               style={{
-                borderTopLeftRadius: 6,
-                borderTopRightRadius: 6,
-                borderBottomLeftRadius: 6,
-                borderBottomRightRadius: 2,
+                borderRadius: 6,
                 color: copied ? TONE_HEX.positive : undefined,
               }}
             >
@@ -1890,10 +1836,7 @@ function Web3FundHint({
       style={{
         background: 'var(--lp-card)',
         border: '1px solid var(--lp-border-light)',
-        borderTopLeftRadius: 12,
-        borderTopRightRadius: 12,
-        borderBottomLeftRadius: 12,
-        borderBottomRightRadius: 3,
+        borderRadius: 12,
       }}
     >
       <div className="flex items-center gap-2">
@@ -1916,10 +1859,7 @@ function Web3FundHint({
             style={{
               background: 'var(--lp-accent)',
               color: 'var(--lp-band-dark)',
-              borderTopLeftRadius: 6,
-              borderTopRightRadius: 6,
-              borderBottomLeftRadius: 6,
-              borderBottomRightRadius: 2,
+              borderRadius: 6,
             }}
           >
             {copied === 'usdc' ? copy.copied : copy.getTestUsdc}
@@ -1939,10 +1879,7 @@ function Web3FundHint({
             borderColor: 'var(--lp-accent)',
             color: 'var(--lp-band-dark)',
             background: 'rgba(175, 201, 91, 0.18)',
-            borderTopLeftRadius: 6,
-            borderTopRightRadius: 6,
-            borderBottomLeftRadius: 6,
-            borderBottomRightRadius: 2,
+            borderRadius: 6,
           }}
         >
           {copied === 'gas' ? copy.copied : copy.claimGasTemplate.replace('{native}', source.nativeSymbol)}
@@ -2039,10 +1976,7 @@ function RecipientPicker({
                 border: active
                   ? '1px solid var(--lp-accent)'
                   : '1px solid var(--lp-border-light)',
-                borderTopLeftRadius: 10,
-                borderTopRightRadius: 10,
-                borderBottomLeftRadius: 10,
-                borderBottomRightRadius: 2,
+                borderRadius: 10,
                 opacity: disabled ? 0.5 : 1,
                 cursor: disabled ? 'not-allowed' : 'pointer',
               }}
@@ -2074,10 +2008,7 @@ function RecipientPicker({
             className="w-full bg-[var(--lp-light)] px-4 py-3 text-[13px] mono tabular-nums focus:outline-none text-[var(--lp-dark)] placeholder:text-[var(--lp-text-muted)]"
             style={{
               border: '1px solid var(--lp-border-light)',
-              borderTopLeftRadius: 10,
-              borderTopRightRadius: 10,
-              borderBottomLeftRadius: 10,
-              borderBottomRightRadius: 2,
+              borderRadius: 10,
             }}
           />
           <VerifyBanner kind={customKind} copy={copy} />
@@ -2092,10 +2023,7 @@ function RecipientPicker({
             style={{
               background: 'var(--lp-light)',
               border: '1px dashed rgba(0,0,0,0.18)',
-              borderTopLeftRadius: 12,
-              borderTopRightRadius: 12,
-              borderBottomLeftRadius: 12,
-              borderBottomRightRadius: 3,
+              borderRadius: 12,
             }}
           >
             <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -2166,10 +2094,7 @@ function VerifyBanner({
         background: tone.bg,
         color: tone.text,
         border: `1px solid ${tone.border}`,
-        borderTopLeftRadius: 8,
-        borderTopRightRadius: 8,
-        borderBottomLeftRadius: 8,
-        borderBottomRightRadius: 2,
+        borderRadius: 8,
       }}
     >
       <span
@@ -2269,10 +2194,7 @@ function SourceChainDropdown({
         style={{
           background: 'var(--lp-card)',
           border: '1px solid var(--lp-border-light)',
-          borderTopLeftRadius: 12,
-          borderTopRightRadius: 12,
-          borderBottomLeftRadius: 12,
-          borderBottomRightRadius: 3,
+          borderRadius: 12,
         }}
       >
         <span className="flex items-center gap-2.5 min-w-0">
@@ -2325,10 +2247,7 @@ function SourceChainDropdown({
             style={{
               background: 'var(--lp-card)',
               border: '1px solid var(--lp-border-light)',
-              borderTopLeftRadius: 12,
-              borderTopRightRadius: 12,
-              borderBottomLeftRadius: 12,
-              borderBottomRightRadius: 4,
+              borderRadius: 12,
               boxShadow: '0 18px 50px -18px rgba(0,0,0,0.28)',
             }}
           >

@@ -69,10 +69,7 @@ export function TelegramConnectButton({
         title={tc.button.disabledTitle}
         className={`inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border ${chipMuted} cursor-not-allowed w-fit`}
         style={{
-          borderTopLeftRadius: 8,
-          borderTopRightRadius: 8,
-          borderBottomLeftRadius: 8,
-          borderBottomRightRadius: 2,
+          borderRadius: 8,
         }}
       >
         <TelegramGlyph />
@@ -96,10 +93,7 @@ export function TelegramConnectButton({
         }
         className={`inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border ${chipClass} transition-colors w-fit`}
         style={{
-          borderTopLeftRadius: 8,
-          borderTopRightRadius: 8,
-          borderBottomLeftRadius: 8,
-          borderBottomRightRadius: 2,
+          borderRadius: 8,
         }}
       >
         <TelegramGlyph />
@@ -150,10 +144,7 @@ function ModalNote({ tone, children }: { tone: 'info' | 'error'; children: React
       className="px-3 py-2.5 text-[12.5px] leading-snug"
       style={{
         ...style,
-        borderTopLeftRadius: 10,
-        borderTopRightRadius: 10,
-        borderBottomLeftRadius: 10,
-        borderBottomRightRadius: 3,
+        borderRadius: 10,
       }}
     >
       {children}
@@ -241,10 +232,7 @@ function TelegramConnectModal({
                 onClick={startLink}
                 className="inline-flex w-full items-center justify-center gap-2 px-5 py-3 mono text-[13px] font-bold uppercase tracking-[0.08em] transition-[transform,box-shadow] duration-150 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0"
                 style={{
-                  borderTopLeftRadius: 14,
-                  borderTopRightRadius: 14,
-                  borderBottomLeftRadius: 14,
-                  borderBottomRightRadius: 4,
+                  borderRadius: 14,
                   boxShadow: '0 4px 0 rgba(0,0,0,0.22)',
                 }}
               >
@@ -267,10 +255,7 @@ function TelegramConnectModal({
                 rel="noreferrer"
                 className="inline-flex w-full items-center justify-center gap-2 px-5 py-3 mono text-[13px] font-bold uppercase tracking-[0.08em] transition-[transform,box-shadow] duration-150 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0"
                 style={{
-                  borderTopLeftRadius: 14,
-                  borderTopRightRadius: 14,
-                  borderBottomLeftRadius: 14,
-                  borderBottomRightRadius: 4,
+                  borderRadius: 14,
                   boxShadow: '0 4px 0 rgba(0,0,0,0.22)',
                 }}
               >
@@ -295,10 +280,7 @@ function TelegramConnectModal({
                 style={{
                   background: 'var(--lp-light)',
                   border: '1px solid var(--lp-border-light)',
-                  borderTopLeftRadius: 12,
-                  borderTopRightRadius: 12,
-                  borderBottomLeftRadius: 12,
-                  borderBottomRightRadius: 3,
+                  borderRadius: 12,
                 }}
               >
                 <div>

@@ -52,10 +52,7 @@ export function MoneyCard({
       style={{
         background: 'var(--lp-card)',
         border: '1px solid var(--lp-border-light)',
-        borderTopLeftRadius: 14,
-        borderTopRightRadius: 14,
-        borderBottomLeftRadius: 14,
-        borderBottomRightRadius: 4,
+        borderRadius: 14,
       }}
     >
       <Edge />

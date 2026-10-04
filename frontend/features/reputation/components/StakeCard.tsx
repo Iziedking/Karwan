@@ -691,26 +691,11 @@ export function StakeCard() {
           </div>
         </div>
         {tier && (
-          <div
-            className="inline-flex items-stretch border"
-            style={{ borderColor: tone.border, borderRadius: 3 }}
-          >
-            <span aria-hidden className="w-[3px]" style={{ background: tone.color }} />
-            <span
-              className="px-2.5 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.14em]"
-              style={{ color: tone.color, background: tone.bg }}
-            >
-              {tier}
-            </span>
-            {rep?.score != null && (
-              <span
-                className="px-2.5 py-1.5 mono text-[11px] tabular-nums"
-                style={{ color: 'var(--color-ink-dim)', background: 'var(--lp-light)' }}
-              >
-                {rep.score}/1000
-              </span>
-            )}
-          </div>
+          <span className="inline-flex min-h-9 items-center gap-2 rounded-full border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3.5 text-[13px] text-[var(--lp-dark)]">
+            <span aria-hidden className="size-2 rounded-full" style={{ background: tone.color }} />
+            <span className="font-semibold">{tier}</span>
+            {rep?.score != null && <span className="tabular-nums text-[var(--lp-text-sub)]">{rep.score}/1000</span>}
+          </span>
         )}
       </div>
 
@@ -724,10 +709,7 @@ export function StakeCard() {
           style={{
             background: 'rgba(178, 84, 37, 0.10)',
             border: '1px solid rgba(178, 84, 37, 0.35)',
-            borderTopLeftRadius: 12,
-            borderTopRightRadius: 12,
-            borderBottomLeftRadius: 12,
-            borderBottomRightRadius: 3,
+            borderRadius: 12,
           }}
         >
           <div className="min-w-0">
@@ -746,10 +728,7 @@ export function StakeCard() {
             onClick={switchToArc}
             className="shrink-0 mono text-[11px] font-bold uppercase tracking-[0.08em] px-4 py-2 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors"
             style={{
-              borderTopLeftRadius: 10,
-              borderTopRightRadius: 10,
-              borderBottomLeftRadius: 10,
-              borderBottomRightRadius: 2,
+              borderRadius: 10,
             }}
           >
             {sc.wrongNetwork.switchButton}
@@ -824,10 +803,7 @@ export function StakeCard() {
                 'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0',
               )}
               style={{
-                borderTopLeftRadius: 12,
-                borderTopRightRadius: 12,
-                borderBottomLeftRadius: 12,
-                borderBottomRightRadius: 3,
+                borderRadius: 12,
               }}
             >
               {busyKind?.kind === 'deposit' ? sc.depositForm.submitBusy : sc.depositForm.submit}
@@ -896,10 +872,7 @@ export function StakeCard() {
                 'disabled:opacity-50 disabled:cursor-not-allowed',
               )}
               style={{
-                borderTopLeftRadius: 12,
-                borderTopRightRadius: 12,
-                borderBottomLeftRadius: 12,
-                borderBottomRightRadius: 3,
+                borderRadius: 12,
               }}
             >
               {busyKind?.kind === 'request' ? sc.withdrawForm.submitBusy : sc.withdrawForm.submit}
@@ -933,10 +906,7 @@ export function StakeCard() {
             background:
               'linear-gradient(120deg, color-mix(in oklab, var(--lp-accent) 14%, transparent), color-mix(in oklab, var(--lp-accent) 4%, transparent))',
             border: '1px solid color-mix(in oklab, var(--lp-accent) 35%, transparent)',
-            borderTopLeftRadius: 12,
-            borderTopRightRadius: 12,
-            borderBottomLeftRadius: 12,
-            borderBottomRightRadius: 3,
+            borderRadius: 12,
           }}
         >
           <div className="min-w-0 flex-1">
@@ -961,10 +931,7 @@ export function StakeCard() {
               onClick={cancelPendingWithdraw}
               className="px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] hover:bg-black/[0.04] transition-colors"
               style={{
-                borderTopLeftRadius: 8,
-                borderTopRightRadius: 8,
-                borderBottomLeftRadius: 8,
-                borderBottomRightRadius: 2,
+                borderRadius: 8,
               }}
             >
               {sc.confirm.cancel}
@@ -974,10 +941,7 @@ export function StakeCard() {
               onClick={confirmWithdraw}
               className="px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.12em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors"
               style={{
-                borderTopLeftRadius: 10,
-                borderTopRightRadius: 10,
-                borderBottomLeftRadius: 10,
-                borderBottomRightRadius: 2,
+                borderRadius: 10,
               }}
             >
               {sc.confirm.confirm}
@@ -1176,10 +1140,7 @@ function CoolingList({
               style={{
                 background: 'var(--lp-light)',
                 border: '1px solid var(--lp-border-light)',
-                borderTopLeftRadius: 12,
-                borderTopRightRadius: 12,
-                borderBottomLeftRadius: 12,
-                borderBottomRightRadius: 3,
+                borderRadius: 12,
               }}
             >
               <div className="min-w-0 flex flex-col gap-1">
@@ -1220,10 +1181,7 @@ function CoolingList({
                   disabled={busy || vaultDeployed}
                   className="px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.12em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors disabled:opacity-50 shrink-0"
                   style={{
-                    borderTopLeftRadius: 10,
-                    borderTopRightRadius: 10,
-                    borderBottomLeftRadius: 10,
-                    borderBottomRightRadius: 2,
+                    borderRadius: 10,
                   }}
                 >
                   {busy ? copy.claimBusy : copy.claimLabel}
@@ -1250,10 +1208,7 @@ function YieldNote({ copy }: { copy: Messages['stakeCard']['yield'] }) {
         background:
           'linear-gradient(120deg, color-mix(in oklab, var(--lp-accent) 14%, transparent), color-mix(in oklab, var(--lp-accent) 4%, transparent))',
         border: '1px solid color-mix(in oklab, var(--lp-accent) 30%, transparent)',
-        borderTopLeftRadius: 12,
-        borderTopRightRadius: 12,
-        borderBottomLeftRadius: 12,
-        borderBottomRightRadius: 3,
+        borderRadius: 12,
       }}
     >
       <p className="mono text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--lp-band-dark)]">
@@ -1296,10 +1251,7 @@ function Note({ tone, children }: { tone: 'info' | 'warn'; children: React.React
       className="px-4 py-3 text-[12.5px] leading-snug"
       style={{
         ...style,
-        borderTopLeftRadius: 10,
-        borderTopRightRadius: 10,
-        borderBottomLeftRadius: 10,
-        borderBottomRightRadius: 3,
+        borderRadius: 10,
       }}
     >
       {children}

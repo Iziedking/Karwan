@@ -11,6 +11,7 @@ import { analyticsCopy } from './analytics';
 import { signupCopy } from './signup';
 import { payLinkCopy } from './payLink';
 import { requestPageCopy } from './requestPage';
+import { passportCopy } from './passport';
 import { recoveryCopy } from './recovery';
 import { docsProductCopy } from './docsProduct';
 
@@ -24,6 +25,7 @@ export const fr: Messages = {
   signup: signupCopy.fr,
   payLink: payLinkCopy.fr,
   requestPage: requestPageCopy.fr,
+  passport: passportCopy.fr,
   recovery: recoveryCopy.fr,
   docsProduct: docsProductCopy.fr,
   socialTrade: socialTradeCopy.fr,
@@ -2442,6 +2444,7 @@ export const fr: Messages = {
         tenure: 'Ancienneté',
         activity: 'Activité',
         referral: 'Parrainage',
+        breadth: "Personnes différentes",
       },
     },
     footer: {

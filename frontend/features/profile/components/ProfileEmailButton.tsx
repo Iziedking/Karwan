@@ -60,10 +60,7 @@ export function ProfileEmailButton({
         title={verified ? (displayEmail ?? '') : t.add}
         className={`inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border ${chipClass} transition-colors w-fit max-w-[240px]`}
         style={{
-          borderTopLeftRadius: 8,
-          borderTopRightRadius: 8,
-          borderBottomLeftRadius: 8,
-          borderBottomRightRadius: 2,
+          borderRadius: 8,
         }}
       >
         <MailGlyph />
@@ -224,10 +221,7 @@ function EmailModal({ address, onClose }: { address: string; onClose: () => void
               style={{
                 background: 'var(--lp-light)',
                 border: '1px solid var(--lp-border-light)',
-                borderTopLeftRadius: 12,
-                borderTopRightRadius: 12,
-                borderBottomLeftRadius: 12,
-                borderBottomRightRadius: 3,
+                borderRadius: 12,
               }}
             >
               <div className="min-w-0">
@@ -258,7 +252,7 @@ function EmailModal({ address, onClose }: { address: string; onClose: () => void
                 type="button"
                 onClick={remove}
                 className="inline-flex items-center justify-center gap-2 px-5 py-2.5 mono text-[12px] font-bold uppercase tracking-[0.08em] border border-[var(--lp-border)] text-[var(--lp-text-sub)] hover:border-[var(--lp-critical)] hover:text-[var(--lp-critical)] transition-colors"
-                style={{ borderTopLeftRadius: 12, borderTopRightRadius: 12, borderBottomLeftRadius: 12, borderBottomRightRadius: 4 }}
+                style={{ borderRadius: 12 }}
               >
                 {t.remove}
               </button>
@@ -289,7 +283,7 @@ function EmailModal({ address, onClose }: { address: string; onClose: () => void
                   onClick={sendCode}
                   disabled={sending}
                   className="inline-flex items-center justify-center gap-2 px-5 py-2.5 mono text-[12px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-60 transition-colors"
-                  style={{ borderTopLeftRadius: 12, borderTopRightRadius: 12, borderBottomLeftRadius: 12, borderBottomRightRadius: 4 }}
+                  style={{ borderRadius: 12 }}
                 >
                   {sending ? t.sending : t.sendCode}
                 </button>
@@ -325,7 +319,7 @@ function EmailModal({ address, onClose }: { address: string; onClose: () => void
                   onClick={verify}
                   disabled={verifying}
                   className="inline-flex items-center justify-center gap-2 px-5 py-2.5 mono text-[12px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-60 transition-colors"
-                  style={{ borderTopLeftRadius: 12, borderTopRightRadius: 12, borderBottomLeftRadius: 12, borderBottomRightRadius: 4 }}
+                  style={{ borderRadius: 12 }}
                 >
                   {verifying ? t.verifying : t.verify}
                 </button>

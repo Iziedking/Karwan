@@ -73,10 +73,7 @@ export function ConnectorPill({
           ? 'color-mix(in srgb, currentColor 22%, transparent)'
           : 'color-mix(in srgb, currentColor 14%, transparent)'
     }`,
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
-    borderBottomLeftRadius: 8,
-    borderBottomRightRadius: 2,
+    borderRadius: 8,
   };
 
   if (href) {

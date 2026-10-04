@@ -107,10 +107,7 @@ export function ExtensionRequestModal({
                     border: active
                       ? '1px solid var(--lp-control-active-border)'
                       : '1px solid var(--lp-border-light)',
-                    borderTopLeftRadius: 10,
-                    borderTopRightRadius: 10,
-                    borderBottomLeftRadius: 10,
-                    borderBottomRightRadius: 3,
+                    borderRadius: 10,
                   }}
                 >
                   {er.presets[p.key]}
@@ -132,10 +129,7 @@ export function ExtensionRequestModal({
             className="w-full bg-[var(--lp-light)] text-[var(--lp-dark)] placeholder:text-[var(--lp-text-muted)] px-3.5 py-2.5 text-[13px] leading-relaxed focus:outline-none resize-none"
             style={{
               border: '1px solid var(--lp-border-light)',
-              borderTopLeftRadius: 12,
-              borderTopRightRadius: 12,
-              borderBottomLeftRadius: 12,
-              borderBottomRightRadius: 3,
+              borderRadius: 12,
             }}
           />
         </div>
@@ -148,10 +142,7 @@ export function ExtensionRequestModal({
                 background: 'rgba(176,61,58,0.10)',
                 color: '#b03d3a',
                 border: '1px solid rgba(176,61,58,0.35)',
-                borderTopLeftRadius: 10,
-                borderTopRightRadius: 10,
-                borderBottomLeftRadius: 10,
-                borderBottomRightRadius: 3,
+                borderRadius: 10,
               }}
             >
               {error}
@@ -168,10 +159,7 @@ export function ExtensionRequestModal({
             style={{
               background: 'var(--lp-accent)',
               color: 'var(--lp-band-dark)',
-              borderTopLeftRadius: 12,
-              borderTopRightRadius: 12,
-              borderBottomLeftRadius: 12,
-              borderBottomRightRadius: 3,
+              borderRadius: 12,
             }}
           >
             {busy ? er.sending : er.send}

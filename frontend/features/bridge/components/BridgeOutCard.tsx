@@ -208,10 +208,7 @@ export function BridgeOutCard() {
                 style={{
                   background: 'var(--lp-card)',
                   border: '1px solid var(--lp-border-light)',
-                  borderTopLeftRadius: 12,
-                  borderTopRightRadius: 12,
-                  borderBottomLeftRadius: 12,
-                  borderBottomRightRadius: 3,
+                  borderRadius: 12,
                 }}
               >
                 <span className="flex items-center gap-2.5 min-w-0">
@@ -237,10 +234,7 @@ export function BridgeOutCard() {
                   style={{
                     background: 'var(--lp-card)',
                     border: '1px solid var(--lp-border-light)',
-                    borderTopLeftRadius: 12,
-                    borderTopRightRadius: 12,
-                    borderBottomLeftRadius: 12,
-                    borderBottomRightRadius: 4,
+                    borderRadius: 12,
                     boxShadow: '0 18px 50px -18px rgba(0,0,0,0.28)',
                   }}
                 >
@@ -277,10 +271,7 @@ export function BridgeOutCard() {
               style={{
                 background: 'var(--lp-card)',
                 border: '1px solid var(--lp-border-light)',
-                borderTopLeftRadius: 12,
-                borderTopRightRadius: 12,
-                borderBottomLeftRadius: 12,
-                borderBottomRightRadius: 3,
+                borderRadius: 12,
               }}
             >
               <div className="px-4 pt-3 pb-0.5 flex items-baseline justify-between">
@@ -344,10 +335,7 @@ export function BridgeOutCard() {
                   background: 'rgba(175, 201, 91,0.10)',
                   color: 'var(--lp-dark)',
                   border: '1px solid rgba(175, 201, 91,0.30)',
-                  borderTopLeftRadius: 10,
-                  borderTopRightRadius: 10,
-                  borderBottomLeftRadius: 10,
-                  borderBottomRightRadius: 3,
+                  borderRadius: 10,
                 }}
               >
                 {faucetNote}
@@ -360,10 +348,7 @@ export function BridgeOutCard() {
               style={{
                 background: 'var(--lp-light)',
                 border: '1px dashed rgba(0,0,0,0.18)',
-                borderTopLeftRadius: 12,
-                borderTopRightRadius: 12,
-                borderBottomLeftRadius: 12,
-                borderBottomRightRadius: 3,
+                borderRadius: 12,
               }}
             >
               <div className="flex items-center justify-between gap-2">
@@ -408,10 +393,7 @@ export function BridgeOutCard() {
               style={{
                 background: 'var(--lp-accent)',
                 color: 'var(--accent-ink)',
-                borderTopLeftRadius: 14,
-                borderTopRightRadius: 14,
-                borderBottomLeftRadius: 14,
-                borderBottomRightRadius: 4,
+                borderRadius: 14,
                 boxShadow: canSubmit && !sending ? '0 4px 0 rgba(0,0,0,0.22)' : 'none',
                 opacity: sending ? 0.75 : undefined,
               }}
@@ -478,10 +460,7 @@ function RecipientVerifyPill({
         background: tone.bg,
         color: tone.text,
         border: `1px solid ${tone.border}`,
-        borderTopLeftRadius: 8,
-        borderTopRightRadius: 8,
-        borderBottomLeftRadius: 8,
-        borderBottomRightRadius: 2,
+        borderRadius: 8,
       }}
     >
       <span

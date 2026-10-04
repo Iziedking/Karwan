@@ -212,10 +212,7 @@ export function FeedbackForm() {
                           style={{
                             background: on ? 'var(--lp-control-active-bg)' : 'var(--lp-light)',
                             border: `1px solid ${on ? 'var(--lp-control-active-border)' : 'var(--lp-border-light)'}`,
-                            borderTopLeftRadius: 10,
-                            borderTopRightRadius: 10,
-                            borderBottomLeftRadius: 10,
-                            borderBottomRightRadius: 3,
+                            borderRadius: 10,
                           }}
                         >
                           <span className="flex items-center justify-between gap-3">
@@ -255,10 +252,7 @@ export function FeedbackForm() {
                     className="min-h-12 w-full px-3.5 py-3 text-[14px] text-[var(--lp-dark)] bg-[var(--lp-light)] outline-none focus:border-[var(--lp-accent)] transition-colors"
                     style={{
                       border: '1px solid var(--lp-border-light)',
-                      borderTopLeftRadius: 10,
-                      borderTopRightRadius: 10,
-                      borderBottomLeftRadius: 10,
-                      borderBottomRightRadius: 3,
+                      borderRadius: 10,
                     }}
                   />
                 </Field>
@@ -275,10 +269,7 @@ export function FeedbackForm() {
                     className="min-h-[148px] w-full resize-y px-3.5 py-3 text-[14px] leading-relaxed text-[var(--lp-dark)] bg-[var(--lp-light)] outline-none focus:border-[var(--lp-accent)] transition-colors"
                     style={{
                       border: '1px solid var(--lp-border-light)',
-                      borderTopLeftRadius: 10,
-                      borderTopRightRadius: 10,
-                      borderBottomLeftRadius: 10,
-                      borderBottomRightRadius: 3,
+                      borderRadius: 10,
                     }}
                   />
                 </Field>
@@ -367,10 +358,7 @@ export function FeedbackForm() {
                       className="min-h-12 w-full px-3.5 py-3 text-[14px] text-[var(--lp-dark)] bg-[var(--lp-light)] outline-none focus:border-[var(--lp-accent)] transition-colors"
                       style={{
                         border: '1px solid var(--lp-border-light)',
-                        borderTopLeftRadius: 10,
-                        borderTopRightRadius: 10,
-                        borderBottomLeftRadius: 10,
-                        borderBottomRightRadius: 3,
+                        borderRadius: 10,
                       }}
                     />
                   </Field>
@@ -383,10 +371,7 @@ export function FeedbackForm() {
                       className="min-h-12 w-full px-3.5 py-3 text-[14px] text-[var(--lp-dark)] bg-[var(--lp-light)] outline-none focus:border-[var(--lp-accent)] transition-colors"
                       style={{
                         border: '1px solid var(--lp-border-light)',
-                        borderTopLeftRadius: 10,
-                        borderTopRightRadius: 10,
-                        borderBottomLeftRadius: 10,
-                        borderBottomRightRadius: 3,
+                        borderRadius: 10,
                       }}
                     />
                   </Field>
@@ -420,10 +405,7 @@ export function FeedbackForm() {
                     disabled={busy}
                     className="inline-flex min-h-11 items-center justify-center gap-2 px-5 py-3 text-[13px] font-semibold bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors disabled:opacity-60"
                     style={{
-                      borderTopLeftRadius: 10,
-                      borderTopRightRadius: 10,
-                      borderBottomLeftRadius: 10,
-                      borderBottomRightRadius: 3,
+                      borderRadius: 10,
                     }}
                   >
                     {busy ? fb.submit.sending : fb.submit.cta}
@@ -475,10 +457,7 @@ function SuccessCard({
             style={{
               background: 'var(--lp-control-active-bg)',
               color: 'var(--lp-control-active-ink)',
-              borderTopLeftRadius: 14,
-              borderTopRightRadius: 14,
-              borderBottomLeftRadius: 14,
-              borderBottomRightRadius: 4,
+              borderRadius: 14,
             }}
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -504,10 +483,7 @@ function SuccessCard({
               onClick={onReset}
               className="inline-flex items-center gap-2 px-5 py-3 mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors"
               style={{
-                borderTopLeftRadius: 10,
-                borderTopRightRadius: 10,
-                borderBottomLeftRadius: 10,
-                borderBottomRightRadius: 3,
+                borderRadius: 10,
               }}
             >
               {copy.sendAnother}

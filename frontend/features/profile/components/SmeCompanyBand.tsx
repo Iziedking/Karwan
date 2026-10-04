@@ -232,10 +232,7 @@ export function SmeCompanyBand({
             onClick={() => setEditing(true)}
             className="inline-flex min-h-11 items-center mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-2 border border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)] transition-colors"
             style={{
-              borderTopLeftRadius: 6,
-              borderTopRightRadius: 6,
-              borderBottomLeftRadius: 6,
-              borderBottomRightRadius: 2,
+              borderRadius: 6,
             }}
           >
             {hasAny ? t.edit : t.addCompany}
@@ -331,10 +328,7 @@ export function SmeCompanyBand({
                   disabled={saving}
                   className="inline-flex min-h-11 items-center mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-2 bg-[var(--lp-dark)] text-[var(--lp-bg)] disabled:opacity-60"
                   style={{
-                    borderTopLeftRadius: 6,
-                    borderTopRightRadius: 6,
-                    borderBottomLeftRadius: 6,
-                    borderBottomRightRadius: 2,
+                    borderRadius: 6,
                   }}
                 >
                   {saving ? t.saving : t.save}

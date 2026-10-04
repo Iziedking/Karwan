@@ -488,10 +488,7 @@ export function DirectDealForm() {
               style={{
                 background: 'var(--lp-light)',
                 border: '1px solid var(--lp-border-light)',
-                borderTopLeftRadius: 10,
-                borderTopRightRadius: 10,
-                borderBottomLeftRadius: 10,
-                borderBottomRightRadius: 2,
+                borderRadius: 10,
               }}
             >
               <span className="font-sans text-[13.5px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
@@ -617,10 +614,7 @@ export function DirectDealForm() {
                     : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
                 )}
                 style={{
-                  borderTopLeftRadius: 6,
-                  borderTopRightRadius: 6,
-                  borderBottomLeftRadius: 6,
-                  borderBottomRightRadius: 2,
+                  borderRadius: 6,
                 }}
               >
                 {opt}
@@ -646,10 +640,7 @@ export function DirectDealForm() {
                         : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
                     )}
                     style={{
-                      borderTopLeftRadius: 6,
-                      borderTopRightRadius: 6,
-                      borderBottomLeftRadius: 6,
-                      borderBottomRightRadius: 2,
+                      borderRadius: 6,
                     }}
                   >
                     {code}
@@ -672,10 +663,7 @@ export function DirectDealForm() {
                         : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
                     )}
                     style={{
-                      borderTopLeftRadius: 6,
-                      borderTopRightRadius: 6,
-                      borderBottomLeftRadius: 6,
-                      borderBottomRightRadius: 2,
+                      borderRadius: 6,
                     }}
                   >
                     {tt.paymentTermLabels[code]}
@@ -760,10 +748,7 @@ export function DirectDealForm() {
                       key={d.hash}
                       className="flex items-center gap-3 px-3 py-2 border border-[var(--lp-field-border)] bg-[var(--lp-bg)]"
                       style={{
-                        borderTopLeftRadius: 6,
-                        borderTopRightRadius: 6,
-                        borderBottomLeftRadius: 6,
-                        borderBottomRightRadius: 2,
+                        borderRadius: 6,
                       }}
                     >
                       <span className="mono text-[9px] uppercase tracking-[0.16em] font-bold px-1.5 py-0.5 bg-[var(--lp-dark)] text-[var(--lp-bg)]">
@@ -820,10 +805,7 @@ export function DirectDealForm() {
         )}
         style={{
           border: '1px solid',
-          borderTopLeftRadius: 12,
-          borderTopRightRadius: 12,
-          borderBottomLeftRadius: 12,
-          borderBottomRightRadius: 3,
+          borderRadius: 12,
         }}
       >
         <input
@@ -952,10 +934,7 @@ export function DirectDealForm() {
               : 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0 shadow-[0_4px_0_rgba(0,0,0,0.22)] hover:shadow-[0_5px_0_rgba(0,0,0,0.22)] active:shadow-[0_1px_0_rgba(0,0,0,0.22)]',
           )}
           style={{
-            borderTopLeftRadius: 14,
-            borderTopRightRadius: 14,
-            borderBottomLeftRadius: 14,
-            borderBottomRightRadius: 4,
+            borderRadius: 14,
           }}
         >
           {submitting && (

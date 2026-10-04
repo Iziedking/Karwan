@@ -130,10 +130,7 @@ export function ConfirmDialog({
             onClick={onCancel}
             className="px-4 py-2.5 mono text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] hover:bg-black/[0.04] transition-colors"
             style={{
-              borderTopLeftRadius: 10,
-              borderTopRightRadius: 10,
-              borderBottomLeftRadius: 10,
-              borderBottomRightRadius: 2,
+              borderRadius: 10,
             }}
           >
             {resolvedCancel}
@@ -146,10 +143,7 @@ export function ConfirmDialog({
             style={{
               background: confirmBg,
               color: confirmText,
-              borderTopLeftRadius: 12,
-              borderTopRightRadius: 12,
-              borderBottomLeftRadius: 12,
-              borderBottomRightRadius: 3,
+              borderRadius: 12,
             }}
           >
             {confirmLabel}

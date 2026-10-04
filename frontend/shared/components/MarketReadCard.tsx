@@ -76,10 +76,7 @@ export function MarketReadCard({
       style={{
         background: tone.bg,
         border: `1px solid ${tone.fg}3a`,
-        borderTopLeftRadius: 12,
-        borderTopRightRadius: 12,
-        borderBottomLeftRadius: 12,
-        borderBottomRightRadius: 3,
+        borderRadius: 12,
       }}
     >
       <div className="flex items-center justify-between gap-3 flex-wrap">

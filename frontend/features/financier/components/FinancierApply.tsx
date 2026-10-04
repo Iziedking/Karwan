@@ -134,10 +134,7 @@ export function FinancierApply({
             aria-busy={busy}
             className="mono text-[11px] uppercase tracking-[0.1em] font-bold px-5 py-3 bg-[var(--lp-dark)] text-[var(--lp-bg)] disabled:opacity-40 transition"
             style={{
-              borderTopLeftRadius: 11,
-              borderTopRightRadius: 11,
-              borderBottomLeftRadius: 11,
-              borderBottomRightRadius: 3,
+              borderRadius: 11,
             }}
           >
             {busy ? 'Applying...' : eligibility.eligible ? 'Apply to fund trade' : 'Not eligible yet'}

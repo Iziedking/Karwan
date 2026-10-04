@@ -46,10 +46,7 @@ export default function AppError({
             style={{
               background: 'var(--lp-accent)',
               color: 'var(--accent-ink)',
-              borderTopLeftRadius: 10,
-              borderTopRightRadius: 10,
-              borderBottomLeftRadius: 10,
-              borderBottomRightRadius: 3,
+              borderRadius: 10,
             }}
           >
             Reload
@@ -61,10 +58,7 @@ export default function AppError({
               background: 'transparent',
               color: 'var(--ink-2)',
               border: '1px solid var(--rule-dark)',
-              borderTopLeftRadius: 10,
-              borderTopRightRadius: 10,
-              borderBottomLeftRadius: 10,
-              borderBottomRightRadius: 3,
+              borderRadius: 10,
             }}
           >
             Back home

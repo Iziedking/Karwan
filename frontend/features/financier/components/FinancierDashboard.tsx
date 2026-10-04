@@ -315,10 +315,7 @@ export function FinancierDashboard() {
                 !tab_.available && 'opacity-40 cursor-not-allowed',
               )}
               style={{
-                borderTopLeftRadius: 6,
-                borderTopRightRadius: 6,
-                borderBottomLeftRadius: 6,
-                borderBottomRightRadius: 2,
+                borderRadius: 6,
               }}
             >
               {t.tabs[tab_.id]}
@@ -546,10 +543,7 @@ function InvoiceCard({
               data-guide="financier-offer"
               className="mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 bg-[var(--lp-dark)] text-[var(--lp-bg)]"
               style={{
-                borderTopLeftRadius: 6,
-                borderTopRightRadius: 6,
-                borderBottomLeftRadius: 6,
-                borderBottomRightRadius: 2,
+                borderRadius: 6,
               }}
             >
               {receiptPending ? 'receipt in progress' : existingOffer ? t.editOffer : t.makeOffer}
@@ -832,10 +826,7 @@ function OfferModal({
                       : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
                   )}
                   style={{
-                    borderTopLeftRadius: 6,
-                    borderTopRightRadius: 6,
-                    borderBottomLeftRadius: 6,
-                    borderBottomRightRadius: 2,
+                    borderRadius: 6,
                   }}
                 >
                   {tier} · {(bps / 100).toFixed(0)}%
@@ -955,10 +946,7 @@ function OfferModal({
             disabled={submitting || belowSellerFloor}
             className="w-full mono text-[12px] uppercase tracking-[0.14em] font-bold py-3 bg-[var(--lp-dark)] text-[var(--lp-bg)] disabled:opacity-60"
             style={{
-              borderTopLeftRadius: 10,
-              borderTopRightRadius: 10,
-              borderBottomLeftRadius: 10,
-              borderBottomRightRadius: 2,
+              borderRadius: 10,
             }}
           >
             {submitting
@@ -1088,10 +1076,7 @@ function POCard({
             onClick={onOpenFund}
             className="mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 bg-[var(--lp-dark)] text-[var(--lp-bg)]"
             style={{
-              borderTopLeftRadius: 6,
-              borderTopRightRadius: 6,
-              borderBottomLeftRadius: 6,
-              borderBottomRightRadius: 2,
+              borderRadius: 6,
             }}
           >
             Fund line
@@ -1436,10 +1421,7 @@ function FundModal({
                       : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
                   )}
                   style={{
-                    borderTopLeftRadius: 6,
-                    borderTopRightRadius: 6,
-                    borderBottomLeftRadius: 6,
-                    borderBottomRightRadius: 2,
+                    borderRadius: 6,
                   }}
                 >
                   <span className="block mono text-[9px] uppercase tracking-[0.1em] font-bold">
@@ -1484,10 +1466,7 @@ function FundModal({
             disabled={submitting || !validRepay || onWrongChain}
             className="w-full mono text-[12px] uppercase tracking-[0.14em] font-bold py-3 bg-[var(--lp-dark)] text-[var(--lp-bg)] disabled:opacity-60"
             style={{
-              borderTopLeftRadius: 10,
-              borderTopRightRadius: 10,
-              borderBottomLeftRadius: 10,
-              borderBottomRightRadius: 2,
+              borderRadius: 10,
             }}
           >
             {step === 'approving'

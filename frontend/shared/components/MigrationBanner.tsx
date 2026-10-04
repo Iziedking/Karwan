@@ -43,10 +43,7 @@ export function MigrationBanner() {
             style={{
               background: '#ffb800',
               color: '#3a0e0a',
-              borderTopLeftRadius: 12,
-              borderTopRightRadius: 12,
-              borderBottomLeftRadius: 12,
-              borderBottomRightRadius: 3,
+              borderRadius: 12,
             }}
             aria-hidden
           >
@@ -69,10 +66,7 @@ export function MigrationBanner() {
             href="/profile"
             className="inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 mono text-[11px] sm:text-[12px] font-bold uppercase tracking-[0.1em] bg-white text-[#3a0e0a] hover:bg-white/90 transition-colors"
             style={{
-              borderTopLeftRadius: 12,
-              borderTopRightRadius: 12,
-              borderBottomLeftRadius: 12,
-              borderBottomRightRadius: 3,
+              borderRadius: 12,
             }}
           >
             {t.openProfile}

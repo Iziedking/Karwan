@@ -42,10 +42,7 @@ function CodeBlock({ children, label }: { children: string; label: string }) {
       aria-label={label}
       className="mt-5 max-w-[720px] overflow-x-auto bg-[var(--lp-card)] border border-[var(--lp-border-light)] p-5 mono text-[12px] leading-relaxed text-[var(--lp-dark)]"
       style={{
-        borderTopLeftRadius: 12,
-        borderTopRightRadius: 12,
-        borderBottomLeftRadius: 12,
-        borderBottomRightRadius: 4,
+        borderRadius: 12,
       }}
     >
       <code>{children}</code>

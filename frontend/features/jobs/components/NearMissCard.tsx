@@ -6,6 +6,7 @@ import { api, ApiError, type NearMissApproval } from '@/core/api';
 import { formatUsdc } from '@/shared/utils/format';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
+import { buttonClasses } from '@/shared/components/Button';
 
 interface Props {
   nearMiss: NearMissApproval;
@@ -50,7 +51,7 @@ export function NearMissCard({ nearMiss, onChange }: Props) {
   const me = address?.toLowerCase();
   const viewerIsAsked = !!me && me === nearMiss.askedUser.toLowerCase();
   const askedSeller = nearMiss.askedSide === 'seller';
-  // Below floor (seller asked) reads in navy; above cap (buyer asked) in amber.
+  // The dot says whose call it is: navy when the seller is asked, amber when the buyer is.
   const rail = askedSeller ? '#3a4a85' : '#b07d1f';
 
   async function onProceed() {
@@ -89,82 +90,55 @@ export function NearMissCard({ nearMiss, onChange }: Props) {
     .replace('{limit}', limitStr);
 
   return (
-    <div
-      className="relative flex items-stretch border bg-[var(--color-surface)] fade-up"
-      style={{ borderColor: 'var(--color-line-strong)', borderRadius: 3 }}
-    >
-      <span aria-hidden className="w-[3px]" style={{ background: rail }} />
-      <div className="flex-1 px-5 py-4">
-        <div className="flex items-center justify-between gap-3 mb-2">
-          <p className="mono uppercase font-semibold text-[9px] tracking-[0.22em]" style={{ color: rail }}>
-            {nm.eyebrow}
-          </p>
-          <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)] tabular-nums">
-            {remainingLabel(nearMiss.expiresAt, now, nm)}
-          </span>
-        </div>
-
-        <div className="flex items-baseline gap-1.5">
-          <span
-            className="serif text-[38px] tabular-nums leading-none tracking-[-0.02em]"
-            style={{ color: 'var(--color-ink)' }}
-          >
-            {formatUsdc(nearMiss.proceedPriceUsdc, { withSuffix: false })}
-          </span>
-          <span className="mono text-[11px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
-            USDC
-          </span>
-        </div>
-
-        <p className="mt-3 text-[13px] leading-relaxed text-[var(--color-ink-dim)]">
-          {viewerIsAsked
-            ? nm.askedBodyTemplate.replace('{direction}', directionLine)
-            : askedSeller
-              ? nm.otherBodySellerTemplate
-              : nm.otherBodyBuyerTemplate}
+    <section className="rounded-[18px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-5 py-4 fade-up">
+      <div className="flex items-center justify-between gap-3">
+        <p className="inline-flex items-center gap-2 text-[13px] font-medium text-[var(--lp-text-sub)]">
+          <span aria-hidden className="size-2 shrink-0 rounded-full" style={{ background: rail }} />
+          {nm.eyebrow}
         </p>
-
-        {(nearMiss.marketFairPriceUsdc != null || nearMiss.marketNote) && (
-          <p className="mt-2 text-[12px] leading-relaxed text-[var(--color-ink-faint)]">
-            <span className="mono uppercase tracking-[0.12em] text-[10px]" style={{ color: rail }}>
-              market check ·{' '}
-            </span>
-            {nearMiss.marketFairPriceUsdc != null && (
-              <>about ${nearMiss.marketFairPriceUsdc.toFixed(0)} in the market</>
-            )}
-            {nearMiss.marketDemand && <> · demand {nearMiss.marketDemand}</>}
-            {nearMiss.marketNote ? `. ${nearMiss.marketNote}` : '.'}
-          </p>
-        )}
-
-        {viewerIsAsked && (
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={onProceed}
-              disabled={busy !== null}
-              style={{ backgroundColor: 'var(--color-ink)', color: 'var(--color-surface)' }}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md text-[13px] font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-wait transition-opacity"
-            >
-              {busy === 'proceed' && <Spinner />}
-              {busy === 'proceed' ? nm.proceedBusy : nm.proceedCta}
-            </button>
-            <button
-              type="button"
-              onClick={onDecline}
-              disabled={busy !== null}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md text-[13px] font-medium border transition-colors hover:bg-[var(--color-surface-2)] disabled:opacity-50"
-              style={{ borderColor: 'var(--color-line-strong)', color: 'var(--color-ink-dim)' }}
-            >
-              {busy === 'decline' && <Spinner />}
-              {busy === 'decline' ? nm.declineBusy : nm.declineCta}
-            </button>
-          </div>
-        )}
-
-        {error && <p className="mt-3 text-[11px] mono text-[var(--color-critical)]">{error}</p>}
+        <span className="shrink-0 text-[12px] tabular-nums text-[var(--lp-text-muted)]">
+          {remainingLabel(nearMiss.expiresAt, now, nm)}
+        </span>
       </div>
-    </div>
+
+      <p className="mt-3 text-[34px] font-semibold leading-none tabular-nums tracking-[-0.02em] text-[var(--lp-dark)]">
+        {formatUsdc(nearMiss.proceedPriceUsdc, { withSuffix: false })}
+        <span className="ms-1.5 text-[15px] font-medium tracking-normal text-[var(--lp-text-sub)]">USDC</span>
+      </p>
+
+      <p className="mt-3 text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
+        {viewerIsAsked
+          ? nm.askedBodyTemplate.replace('{direction}', directionLine)
+          : askedSeller
+            ? nm.otherBodySellerTemplate
+            : nm.otherBodyBuyerTemplate}
+      </p>
+
+      {viewerIsAsked && (
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={onProceed}
+            disabled={busy !== null}
+            className={buttonClasses({ className: 'rounded-full px-5' })}
+          >
+            {busy === 'proceed' && <Spinner />}
+            {busy === 'proceed' ? nm.proceedBusy : nm.proceedCta}
+          </button>
+          <button
+            type="button"
+            onClick={onDecline}
+            disabled={busy !== null}
+            className={buttonClasses({ variant: 'outline', className: 'rounded-full px-5' })}
+          >
+            {busy === 'decline' && <Spinner />}
+            {busy === 'decline' ? nm.declineBusy : nm.declineCta}
+          </button>
+        </div>
+      )}
+
+      {error && <p role="alert" className="mt-3 text-[13px] text-[var(--color-critical)]">{error}</p>}
+    </section>
   );
 }
 

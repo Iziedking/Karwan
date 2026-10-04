@@ -61,10 +61,7 @@ function FinancierGateSkeleton() {
             key={i}
             className={`h-40 bg-black/[0.05] ${pulse}`}
             style={{
-              borderTopLeftRadius: 16,
-              borderTopRightRadius: 16,
-              borderBottomLeftRadius: 16,
-              borderBottomRightRadius: 4,
+              borderRadius: 16,
             }}
           />
         ))}

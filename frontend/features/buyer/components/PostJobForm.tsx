@@ -138,10 +138,7 @@ function OptionTick({
       )}
       style={{
         border: '1px solid',
-        borderTopLeftRadius: 12,
-        borderTopRightRadius: 12,
-        borderBottomLeftRadius: 12,
-        borderBottomRightRadius: 3,
+        borderRadius: 12,
       }}
     >
       <input
@@ -392,10 +389,7 @@ export function PostJobForm() {
         style={{
           background: 'var(--lp-light)',
           border: '1px solid var(--lp-border-light)',
-          borderTopLeftRadius: 14,
-          borderTopRightRadius: 14,
-          borderBottomLeftRadius: 14,
-          borderBottomRightRadius: 4,
+          borderRadius: 14,
         }}
       >
         <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
@@ -411,10 +405,7 @@ export function PostJobForm() {
           href="/onboarding"
           className="inline-flex items-center gap-2 mt-2 px-[18px] py-[10px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.22)] hover:shadow-[0_4px_0_rgba(0,0,0,0.22)]"
           style={{
-            borderTopLeftRadius: 12,
-            borderTopRightRadius: 12,
-            borderBottomLeftRadius: 12,
-            borderBottomRightRadius: 3,
+            borderRadius: 12,
           }}
         >
           {t.noBuyerProfile.cta}
@@ -511,10 +502,7 @@ export function PostJobForm() {
                     : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
                 )}
                 style={{
-                  borderTopLeftRadius: 6,
-                  borderTopRightRadius: 6,
-                  borderBottomLeftRadius: 6,
-                  borderBottomRightRadius: 2,
+                  borderRadius: 6,
                 }}
               >
                 {tt.types[opt]}
@@ -540,10 +528,7 @@ export function PostJobForm() {
                         : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
                     )}
                     style={{
-                      borderTopLeftRadius: 6,
-                      borderTopRightRadius: 6,
-                      borderBottomLeftRadius: 6,
-                      borderBottomRightRadius: 2,
+                      borderRadius: 6,
                     }}
                   >
                     {code}
@@ -566,10 +551,7 @@ export function PostJobForm() {
                         : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
                     )}
                     style={{
-                      borderTopLeftRadius: 6,
-                      borderTopRightRadius: 6,
-                      borderBottomLeftRadius: 6,
-                      borderBottomRightRadius: 2,
+                      borderRadius: 6,
                     }}
                   >
                     {tt.paymentTermLabels[code]}
@@ -649,10 +631,7 @@ export function PostJobForm() {
                       key={d.hash}
                       className="flex items-center gap-3 px-3 py-2 border border-[var(--lp-field-border)] bg-[var(--lp-bg)]"
                       style={{
-                        borderTopLeftRadius: 6,
-                        borderTopRightRadius: 6,
-                        borderBottomLeftRadius: 6,
-                        borderBottomRightRadius: 2,
+                        borderRadius: 6,
                       }}
                     >
                       <span className="mono text-[9px] uppercase tracking-[0.16em] font-bold px-1.5 py-0.5 bg-[var(--lp-dark)] text-[var(--lp-bg)]">
@@ -782,10 +761,7 @@ export function PostJobForm() {
             background: 'rgba(178, 84, 37, 0.10)',
             border: '1px solid rgba(178, 84, 37, 0.35)',
             color: '#b25425',
-            borderTopLeftRadius: 12,
-            borderTopRightRadius: 12,
-            borderBottomLeftRadius: 12,
-            borderBottomRightRadius: 3,
+            borderRadius: 12,
           }}
         >
           <p className="mono text-[9px] font-bold uppercase tracking-[0.18em] mb-1.5">
@@ -877,10 +853,7 @@ export function PostJobForm() {
               : 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0 shadow-[0_4px_0_rgba(0,0,0,0.22)] hover:shadow-[0_5px_0_rgba(0,0,0,0.22)] active:shadow-[0_1px_0_rgba(0,0,0,0.22)]',
           )}
           style={{
-            borderTopLeftRadius: 14,
-            borderTopRightRadius: 14,
-            borderBottomLeftRadius: 14,
-            borderBottomRightRadius: 4,
+            borderRadius: 14,
           }}
         >
           {submitting && (

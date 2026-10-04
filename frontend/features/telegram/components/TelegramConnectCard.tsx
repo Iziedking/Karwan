@@ -30,10 +30,7 @@ function Note({ tone, children }: { tone: 'info' | 'error'; children: ReactNode 
       className="px-3 py-2.5 text-[12.5px] leading-snug"
       style={{
         ...style,
-        borderTopLeftRadius: 10,
-        borderTopRightRadius: 10,
-        borderBottomLeftRadius: 10,
-        borderBottomRightRadius: 3,
+        borderRadius: 10,
       }}
     >
       {children}
@@ -68,10 +65,7 @@ export function TelegramConnectCard({ address }: { address?: string }) {
               background: 'rgba(175,201,91,0.12)',
               color: 'var(--lp-accent)',
               border: '1px solid rgba(175,201,91,0.38)',
-              borderTopLeftRadius: 6,
-              borderTopRightRadius: 6,
-              borderBottomLeftRadius: 6,
-              borderBottomRightRadius: 2,
+              borderRadius: 6,
             }}
           >
             <span
@@ -109,10 +103,7 @@ export function TelegramConnectCard({ address }: { address?: string }) {
               onClick={startLink}
               className="inline-flex items-center gap-2 px-5 py-3 mono text-[13px] font-bold uppercase tracking-[0.08em] transition-[transform,box-shadow] duration-150 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0"
               style={{
-                borderTopLeftRadius: 14,
-                borderTopRightRadius: 14,
-                borderBottomLeftRadius: 14,
-                borderBottomRightRadius: 4,
+                borderRadius: 14,
                 boxShadow: '0 4px 0 rgba(0,0,0,0.22)',
               }}
             >
@@ -136,10 +127,7 @@ export function TelegramConnectCard({ address }: { address?: string }) {
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 px-5 py-3 mono text-[13px] font-bold uppercase tracking-[0.08em] transition-[transform,box-shadow] duration-150 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0"
                 style={{
-                  borderTopLeftRadius: 14,
-                  borderTopRightRadius: 14,
-                  borderBottomLeftRadius: 14,
-                  borderBottomRightRadius: 4,
+                  borderRadius: 14,
                   boxShadow: '0 4px 0 rgba(0,0,0,0.22)',
                 }}
               >
@@ -172,10 +160,7 @@ export function TelegramConnectCard({ address }: { address?: string }) {
               style={{
                 background: 'var(--lp-light)',
                 border: '1px solid var(--lp-border-light)',
-                borderTopLeftRadius: 12,
-                borderTopRightRadius: 12,
-                borderBottomLeftRadius: 12,
-                borderBottomRightRadius: 3,
+                borderRadius: 12,
               }}
             >
               <div>

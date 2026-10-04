@@ -130,10 +130,7 @@ function LegacyPageInner() {
               href="/"
               className="mt-8 inline-flex min-h-11 items-center gap-2 px-5 py-3 mono text-[12px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)]"
               style={{
-                borderTopLeftRadius: 12,
-                borderTopRightRadius: 12,
-                borderBottomLeftRadius: 12,
-                borderBottomRightRadius: 3,
+                borderRadius: 12,
               }}
             >
               {lp.closed.home}
@@ -163,10 +160,7 @@ function LegacyPageInner() {
             style={{
               background: 'color-mix(in oklab, var(--lp-accent) 14%, transparent)',
               border: '1px solid color-mix(in oklab, var(--lp-accent) 35%, transparent)',
-              borderTopLeftRadius: 12,
-              borderTopRightRadius: 12,
-              borderBottomLeftRadius: 12,
-              borderBottomRightRadius: 3,
+              borderRadius: 12,
             }}
           >
             <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-accent)]">
@@ -528,10 +522,7 @@ function PositionGroup({
               style={{
                 background: 'var(--lp-card)',
                 border: '1px solid var(--lp-border-light)',
-                borderTopLeftRadius: 12,
-                borderTopRightRadius: 12,
-                borderBottomLeftRadius: 12,
-                borderBottomRightRadius: 3,
+                borderRadius: 12,
               }}
             >
               <div className="min-w-0">
@@ -552,10 +543,7 @@ function PositionGroup({
                   'disabled:opacity-50 disabled:cursor-not-allowed',
                 )}
                 style={{
-                  borderTopLeftRadius: 10,
-                  borderTopRightRadius: 10,
-                  borderBottomLeftRadius: 10,
-                  borderBottomRightRadius: 2,
+                  borderRadius: 10,
                 }}
               >
                 {isBusy ? signingLabel : actionLabel}
@@ -602,10 +590,7 @@ function CoolingGroup({
               style={{
                 background: 'var(--lp-card)',
                 border: '1px solid var(--lp-border-light)',
-                borderTopLeftRadius: 12,
-                borderTopRightRadius: 12,
-                borderBottomLeftRadius: 12,
-                borderBottomRightRadius: 3,
+                borderRadius: 12,
               }}
             >
               <div className="min-w-0">
@@ -643,10 +628,7 @@ function CoolingGroup({
                       'disabled:opacity-50 disabled:cursor-not-allowed',
                     )}
                     style={{
-                      borderTopLeftRadius: 10,
-                      borderTopRightRadius: 10,
-                      borderBottomLeftRadius: 10,
-                      borderBottomRightRadius: 2,
+                      borderRadius: 10,
                     }}
                   >
                     {isBusy ? copy.stake.claimingLabel : copy.stake.claimToWallet}
@@ -847,10 +829,7 @@ function LegacyDealsList({ address, copy }: { address: string; copy: Messages['l
                 style={{
                   background: 'var(--lp-card)',
                   border: '1px solid var(--lp-border-light)',
-                  borderTopLeftRadius: 12,
-                  borderTopRightRadius: 12,
-                  borderBottomLeftRadius: 12,
-                  borderBottomRightRadius: 3,
+                  borderRadius: 12,
                 }}
               >
                 <div className="min-w-0">
@@ -985,10 +964,7 @@ function DealRow({
       style={{
         background: 'var(--lp-card)',
         border: '1px solid var(--lp-border-light)',
-        borderTopLeftRadius: 14,
-        borderTopRightRadius: 14,
-        borderBottomLeftRadius: 14,
-        borderBottomRightRadius: 4,
+        borderRadius: 14,
       }}
     >
       <div className="flex items-baseline justify-between gap-3 flex-wrap">
@@ -1089,10 +1065,7 @@ function ActionButton({
           : 'border border-[var(--lp-outline-strong)] text-[var(--lp-dark)] hover:bg-black/[0.04] hover:border-[var(--lp-outline-hover)]',
       )}
       style={{
-        borderTopLeftRadius: 10,
-        borderTopRightRadius: 10,
-        borderBottomLeftRadius: 10,
-        borderBottomRightRadius: 2,
+        borderRadius: 10,
       }}
     >
       {label}
@@ -1107,10 +1080,7 @@ function Stat({ label, value }: { label: string; value: string }) {
       style={{
         background: 'var(--lp-card)',
         border: '1px solid var(--lp-border-light)',
-        borderTopLeftRadius: 12,
-        borderTopRightRadius: 12,
-        borderBottomLeftRadius: 12,
-        borderBottomRightRadius: 3,
+        borderRadius: 12,
       }}
     >
       <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
@@ -1147,10 +1117,7 @@ function Note({
       className="px-4 py-3 text-[12.5px] leading-snug"
       style={{
         ...style,
-        borderTopLeftRadius: 10,
-        borderTopRightRadius: 10,
-        borderBottomLeftRadius: 10,
-        borderBottomRightRadius: 3,
+        borderRadius: 10,
       }}
     >
       {children}

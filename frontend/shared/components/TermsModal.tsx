@@ -141,10 +141,7 @@ export function TermsModal() {
                 'disabled:opacity-50 disabled:cursor-not-allowed',
               )}
               style={{
-                borderTopLeftRadius: 12,
-                borderTopRightRadius: 12,
-                borderBottomLeftRadius: 12,
-                borderBottomRightRadius: 3,
+                borderRadius: 12,
               }}
             >
               {submitting

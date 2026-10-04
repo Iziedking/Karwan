@@ -11,6 +11,7 @@ import { analyticsCopy } from './analytics';
 import { signupCopy } from './signup';
 import { payLinkCopy } from './payLink';
 import { requestPageCopy } from './requestPage';
+import { passportCopy } from './passport';
 import { recoveryCopy } from './recovery';
 import { docsProductCopy } from './docsProduct';
 
@@ -24,6 +25,7 @@ export const ar: Messages = {
   signup: signupCopy.ar,
   payLink: payLinkCopy.ar,
   requestPage: requestPageCopy.ar,
+  passport: passportCopy.ar,
   recovery: recoveryCopy.ar,
   docsProduct: docsProductCopy.ar,
   socialTrade: socialTradeCopy.ar,
@@ -2442,6 +2444,7 @@ export const ar: Messages = {
         tenure: 'المدّة',
         activity: 'النشاط',
         referral: 'الإحالة',
+        breadth: "أشخاص مختلفون",
       },
     },
     footer: {

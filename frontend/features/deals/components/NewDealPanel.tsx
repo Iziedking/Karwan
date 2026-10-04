@@ -36,10 +36,7 @@ export function NewDealPanel() {
           style={{
             background: 'var(--lp-light)',
             border: '1px solid var(--lp-border-light)',
-            borderTopLeftRadius: 12,
-            borderTopRightRadius: 12,
-            borderBottomLeftRadius: 12,
-            borderBottomRightRadius: 3,
+            borderRadius: 12,
           }}
         >
           {MODES.map((m) => {
@@ -54,10 +51,7 @@ export function NewDealPanel() {
                 style={{
                   background: isActive ? 'var(--lp-control-active-bg)' : 'transparent',
                   color: isActive ? 'var(--lp-control-active-ink)' : 'var(--lp-text-sub)',
-                  borderTopLeftRadius: 9,
-                  borderTopRightRadius: 9,
-                  borderBottomLeftRadius: 9,
-                  borderBottomRightRadius: 2,
+                  borderRadius: 9,
                   boxShadow: isActive ? '0 2px 0 rgba(0,0,0,0.18)' : 'none',
                 }}
               >

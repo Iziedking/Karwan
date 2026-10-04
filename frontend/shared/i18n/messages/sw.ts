@@ -11,6 +11,7 @@ import { analyticsCopy } from './analytics';
 import { signupCopy } from './signup';
 import { payLinkCopy } from './payLink';
 import { requestPageCopy } from './requestPage';
+import { passportCopy } from './passport';
 import { recoveryCopy } from './recovery';
 import { docsProductCopy } from './docsProduct';
 
@@ -24,6 +25,7 @@ export const sw: Messages = {
   signup: signupCopy.sw,
   payLink: payLinkCopy.sw,
   requestPage: requestPageCopy.sw,
+  passport: passportCopy.sw,
   recovery: recoveryCopy.sw,
   docsProduct: docsProductCopy.sw,
   socialTrade: socialTradeCopy.sw,
@@ -2439,6 +2441,7 @@ export const sw: Messages = {
         tenure: 'Urefu wa muda',
         activity: 'Shughuli',
         referral: 'Rufaa',
+        breadth: "Watu tofauti",
       },
     },
     footer: {

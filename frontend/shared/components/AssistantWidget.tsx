@@ -1400,7 +1400,7 @@ function ConfirmCard({
           onClick={confirm}
           disabled={status === 'running'}
           className="flex-1 mono text-[10px] uppercase tracking-[0.1em] font-bold px-3 py-2 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] disabled:opacity-60 hover:brightness-105 transition"
-          style={{ borderTopLeftRadius: 10, borderTopRightRadius: 10, borderBottomLeftRadius: 10, borderBottomRightRadius: 3 }}
+          style={{ borderRadius: 10 }}
         >
           {status === 'running' ? busyLabel : status === 'error' ? 'Try again' : action.confirmLabel ?? 'Confirm'}
         </button>

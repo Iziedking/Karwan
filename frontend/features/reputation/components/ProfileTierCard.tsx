@@ -56,7 +56,7 @@ export function ProfileTierCard({ address }: { address?: string | null }) {
   return (
     <div
       className="fade-up fade-up-4 mt-5 w-full max-w-[440px] border border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-raised)] px-5 py-4"
-      style={{ borderRadius: 16, borderBottomRightRadius: 4 }}
+      style={{ borderRadius: 16 }}
     >
       <div className="flex items-center justify-between gap-3">
         <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-faint)]">

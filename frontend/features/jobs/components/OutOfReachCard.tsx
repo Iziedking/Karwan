@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, ApiError } from '@/core/api';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { buttonClasses } from '@/shared/components/Button';
 
 /// Shown when the only topical match sits far past the buyer's ceiling, so the
 /// deal can never settle at this budget. Non-destructive: the request stays open
@@ -74,47 +75,26 @@ export function OutOfReachCard({
   }
 
   return (
-    <div
-      className="bg-[var(--lp-card)] border p-5 sm:p-6"
-      style={{
-        borderColor: 'var(--lp-border-light)',
-        borderTopLeftRadius: 16,
-        borderTopRightRadius: 16,
-        borderBottomLeftRadius: 16,
-        borderBottomRightRadius: 4,
-      }}
-    >
-      <span className="mono text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+    <section className="rounded-[18px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-5 py-4">
+      <p className="inline-flex items-center gap-2 text-[13px] font-medium text-[var(--lp-text-sub)]">
+        <span aria-hidden className="size-2 shrink-0 rounded-full bg-[var(--color-warning)]" />
         {c.tag}
-      </span>
-      <h3 className="mt-2 font-sans text-[20px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
-        {c.title}
-      </h3>
-      <p className="mt-3 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+      </p>
+      <h3 className="mt-2 text-[18px] font-semibold leading-snug text-[var(--lp-dark)]">{c.title}</h3>
+      <p className="mt-2 text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
         {c.bodyTemplate
           .replace('{floor}', String(floor))
           .replace('{budget}', String(budget))}
       </p>
       {canReconsider && (
-        <p className="mt-2 text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
+        <p className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
           {c.reconsiderHintTemplate.replace('{price}', String(Math.round(passedPriceUsdc!)))}
         </p>
       )}
-      {error && <p className="mt-2 mono text-[11px] text-[#b03d3a]">{error}</p>}
-      <div className="mt-4 flex flex-wrap items-center gap-3">
+      {error && <p role="alert" className="mt-2 text-[13px] text-[var(--color-critical)]">{error}</p>}
+      <div className="mt-4 flex flex-wrap items-center gap-2">
         {canReconsider && (
-          <button
-            type="button"
-            onClick={reconsider}
-            disabled={busy}
-            className="inline-flex items-center gap-2 px-4 py-[10px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors disabled:opacity-60"
-            style={{
-              borderTopLeftRadius: 10,
-              borderTopRightRadius: 10,
-              borderBottomLeftRadius: 10,
-              borderBottomRightRadius: 3,
-            }}
-          >
+          <button type="button" onClick={reconsider} disabled={busy} className={buttonClasses({ className: 'rounded-full px-5' })}>
             {busy
               ? c.reconsiderBusy
               : c.reconsiderCtaTemplate.replace('{price}', String(Math.round(passedPriceUsdc!)))}
@@ -123,33 +103,14 @@ export function OutOfReachCard({
         <button
           type="button"
           onClick={() => router.push(`/buyer?budget=${floor}#new-deal`)}
-          className={
-            canReconsider
-              ? 'mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)]'
-              : 'inline-flex items-center gap-2 px-4 py-[10px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors'
-          }
-          style={
-            canReconsider
-              ? undefined
-              : {
-                  borderTopLeftRadius: 10,
-                  borderTopRightRadius: 10,
-                  borderBottomLeftRadius: 10,
-                  borderBottomRightRadius: 3,
-                }
-          }
+          className={buttonClasses({ variant: canReconsider ? 'outline' : 'primary', className: 'rounded-full px-5' })}
         >
           {c.raiseCta}
-          {!canReconsider && <span aria-hidden>→</span>}
         </button>
-        <button
-          type="button"
-          onClick={keepWaiting}
-          className="mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)]"
-        >
+        <button type="button" onClick={keepWaiting} className={buttonClasses({ variant: 'ghost', className: 'rounded-full px-4' })}>
           {c.waitCta}
         </button>
       </div>
-    </div>
+    </section>
   );
 }

@@ -238,10 +238,7 @@ export function ProfilePeekModal({
               background: 'var(--lp-light)',
               border: '1px solid var(--lp-border-light)',
               color: 'var(--lp-dark)',
-              borderTopLeftRadius: 12,
-              borderTopRightRadius: 12,
-              borderBottomLeftRadius: 12,
-              borderBottomRightRadius: 3,
+              borderRadius: 12,
             }}
           >
             {copied ? pp.copied : pp.copyAddress}
@@ -256,10 +253,7 @@ export function ProfilePeekModal({
                 background: 'var(--lp-dark)',
                 border: '1px solid var(--lp-dark)',
                 color: 'var(--lp-card)',
-                borderTopLeftRadius: 12,
-                borderTopRightRadius: 12,
-                borderBottomLeftRadius: 12,
-                borderBottomRightRadius: 3,
+                borderRadius: 12,
               }}
             >
               <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
@@ -274,10 +268,7 @@ export function ProfilePeekModal({
                 background: 'var(--lp-light)',
                 border: '1px dashed rgba(0,0,0,0.18)',
                 color: 'var(--lp-text-muted)',
-                borderTopLeftRadius: 12,
-                borderTopRightRadius: 12,
-                borderBottomLeftRadius: 12,
-                borderBottomRightRadius: 3,
+                borderRadius: 12,
               }}
             >
               {loaded ? pp.xNotConnected : pp.loading}
@@ -527,10 +518,7 @@ function WorkRecordSection({
                   style={{
                     background: 'var(--lp-light)',
                     border: '1px solid var(--lp-border-light)',
-                    borderTopLeftRadius: 8,
-                    borderTopRightRadius: 8,
-                    borderBottomLeftRadius: 8,
-                    borderBottomRightRadius: 2,
+                    borderRadius: 8,
                   }}
                 >
                   <span

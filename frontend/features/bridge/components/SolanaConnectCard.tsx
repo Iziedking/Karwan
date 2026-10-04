@@ -9,10 +9,7 @@ import type { SolanaWallet } from '../hooks/useSolanaWallet';
 const PANEL = {
   background: 'var(--lp-card)',
   border: '1px solid var(--lp-border-light)',
-  borderTopLeftRadius: 12,
-  borderTopRightRadius: 12,
-  borderBottomLeftRadius: 12,
-  borderBottomRightRadius: 3,
+  borderRadius: 12,
 } as const;
 
 /// Non-custodial Solana funding. The user connects their own Solana wallet
@@ -72,10 +69,7 @@ export function SolanaConnectCard({
           style={{
             background: 'var(--lp-accent)',
             color: 'var(--lp-band-dark)',
-            borderTopLeftRadius: 8,
-            borderTopRightRadius: 8,
-            borderBottomLeftRadius: 8,
-            borderBottomRightRadius: 2,
+            borderRadius: 8,
           }}
         >
           {copy.install}
@@ -92,10 +86,7 @@ export function SolanaConnectCard({
           style={{
             background: 'var(--lp-accent)',
             color: 'var(--lp-band-dark)',
-            borderTopLeftRadius: 8,
-            borderTopRightRadius: 8,
-            borderBottomLeftRadius: 8,
-            borderBottomRightRadius: 2,
+            borderRadius: 8,
           }}
         >
           {wallet.connecting ? copy.connecting : copy.connect}
@@ -147,10 +138,7 @@ export function SolanaConnectCard({
                 style={{
                   background: 'var(--lp-accent)',
                   color: 'var(--lp-band-dark)',
-                  borderTopLeftRadius: 6,
-                  borderTopRightRadius: 6,
-                  borderBottomLeftRadius: 6,
-                  borderBottomRightRadius: 2,
+                  borderRadius: 6,
                 }}
               >
                 {copied === 'usdc' ? copy.copied : copy.getUsdc}
@@ -165,10 +153,7 @@ export function SolanaConnectCard({
                 borderColor: 'var(--lp-accent)',
                 color: 'var(--lp-band-dark)',
                 background: 'rgba(175, 201, 91, 0.18)',
-                borderTopLeftRadius: 6,
-                borderTopRightRadius: 6,
-                borderBottomLeftRadius: 6,
-                borderBottomRightRadius: 2,
+                borderRadius: 6,
               }}
             >
               {copied === 'gas' ? copy.copied : copy.getGas}

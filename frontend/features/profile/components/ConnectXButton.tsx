@@ -136,10 +136,7 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
         title={cx.disabledTitle}
         className={`inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border ${chipMuted} cursor-not-allowed w-fit`}
         style={{
-          borderTopLeftRadius: 8,
-          borderTopRightRadius: 8,
-          borderBottomLeftRadius: 8,
-          borderBottomRightRadius: 2,
+          borderRadius: 8,
         }}
       >
         <XBrandTile />
@@ -154,10 +151,7 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
         <span
           className={`inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border ${chipBase}`}
           style={{
-            borderTopLeftRadius: 8,
-            borderTopRightRadius: 8,
-            borderBottomLeftRadius: 8,
-            borderBottomRightRadius: 2,
+            borderRadius: 8,
           }}
         >
           {profile.xProfileImageUrl ? (
@@ -194,10 +188,7 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
           disabled={busy}
           className={`inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border ${chipBase} transition-colors w-fit disabled:opacity-50`}
           style={{
-            borderTopLeftRadius: 8,
-            borderTopRightRadius: 8,
-            borderBottomLeftRadius: 8,
-            borderBottomRightRadius: 2,
+            borderRadius: 8,
           }}
         >
           <XBrandTile />
@@ -218,10 +209,7 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
         onClick={() => setOpen(true)}
         className={`inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border ${chipBase} transition-colors w-fit`}
         style={{
-          borderTopLeftRadius: 8,
-          borderTopRightRadius: 8,
-          borderBottomLeftRadius: 8,
-          borderBottomRightRadius: 2,
+          borderRadius: 8,
         }}
       >
         <XBrandTile />
@@ -234,10 +222,7 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
     <div
       className="inline-flex flex-col gap-2 p-3 border border-white/12 w-fit"
       style={{
-        borderTopLeftRadius: 10,
-        borderTopRightRadius: 10,
-        borderBottomLeftRadius: 10,
-        borderBottomRightRadius: 2,
+        borderRadius: 10,
         background: 'var(--surface-1)',
       }}
     >

@@ -43,7 +43,7 @@ export function DocsPager() {
         <Link
           href={next.href}
           className="group flex flex-col gap-1 p-4 text-end bg-[var(--lp-card)] border border-[var(--lp-border-light)] hover:border-[var(--lp-accent)] transition-colors sm:col-start-2"
-          style={{ borderRadius: 12, borderBottomRightRadius: 3 }}
+          style={{ borderRadius: 12 }}
         >
           <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)] inline-flex items-center gap-1 justify-end">
             {t.pager.next}

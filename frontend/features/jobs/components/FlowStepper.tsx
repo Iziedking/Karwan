@@ -110,10 +110,7 @@ export function FlowStepper({
                 background: tileBg,
                 color: tileColor,
                 border: `1px solid ${tileBorder}`,
-                borderTopLeftRadius: 6,
-                borderTopRightRadius: 6,
-                borderBottomLeftRadius: 6,
-                borderBottomRightRadius: 2,
+                borderRadius: 6,
               }}
             >
               {String(i + 1).padStart(2, '0')}

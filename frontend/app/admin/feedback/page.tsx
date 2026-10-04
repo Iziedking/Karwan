@@ -320,10 +320,7 @@ function FeedbackCard({
     <div
       className="bg-[var(--lp-card)] border border-[var(--lp-border-light)] p-5"
       style={{
-        borderTopLeftRadius: 14,
-        borderTopRightRadius: 14,
-        borderBottomLeftRadius: 14,
-        borderBottomRightRadius: 4,
+        borderRadius: 14,
       }}
     >
       <div className="flex flex-wrap items-center gap-2">

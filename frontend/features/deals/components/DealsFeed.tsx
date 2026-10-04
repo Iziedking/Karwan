@@ -72,10 +72,7 @@ export function DealsFeed() {
           style={{
             background: 'var(--lp-light)',
             border: '1px solid var(--lp-border-light)',
-            borderTopLeftRadius: 9,
-            borderTopRightRadius: 9,
-            borderBottomLeftRadius: 9,
-            borderBottomRightRadius: 2,
+            borderRadius: 9,
           }}
         >
           {tabs.map((t) => {
@@ -97,10 +94,7 @@ export function DealsFeed() {
                   background: active ? 'var(--lp-card)' : 'transparent',
                   color: active ? 'var(--lp-dark)' : 'var(--lp-text-sub)',
                   border: active ? '1px solid var(--lp-border-light)' : '1px solid transparent',
-                  borderTopLeftRadius: 7,
-                  borderTopRightRadius: 7,
-                  borderBottomLeftRadius: 7,
-                  borderBottomRightRadius: 2,
+                  borderRadius: 7,
                   boxShadow: active ? '0 1px 0 rgba(0,0,0,0.04)' : 'none',
                 }}
               >
