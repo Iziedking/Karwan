@@ -579,6 +579,8 @@ export const sw: Messages = {
     managedBlurb: 'Chapisha unachohitaji. Wakala wako anatafuta ofa zinazofaa kwenye Karwan. Kagua muuzaji na ukubaliane kuhusu masharti kabla ya malipo.',
     directLabel: 'Nina muuzaji',
     directBlurb: 'Mwalike muuzaji wako na uandike mlichokubaliana. Nyote mnakagua masharti kabla ya kuweka malipo salama.',
+    switchToDirect: "Tayari una muuzaji? Mwalike",
+    switchToManaged: "Bado huna muuzaji? Acha wakala wako akutafutie",
   },
   roleToggle: {
     ariaGroup: 'Aina ya akaunti',

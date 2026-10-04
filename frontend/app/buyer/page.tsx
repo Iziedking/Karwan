@@ -94,7 +94,7 @@ function PersonalBuyerDesk() {
       <Band tone="light" compact>
         <div id="new-deal" className="scroll-mt-20" />
         <DealAmountProvider>
-        <div className="mx-auto grid max-w-[1120px] items-start gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
+        <div className="mx-auto grid max-w-[940px] items-start gap-5 lg:grid-cols-[minmax(0,640px)_280px] lg:justify-center">
           <div className="lg:order-2">
             <BalanceSidecar />
           </div>

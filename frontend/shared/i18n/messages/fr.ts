@@ -582,6 +582,8 @@ export const fr: Messages = {
     managedBlurb: 'Publiez votre besoin. Votre agent cherche des offres adaptées sur Karwan. Examinez le vendeur et convenez des conditions avant de payer.',
     directLabel: "J'ai un vendeur",
     directBlurb: 'Invitez votre vendeur et notez votre accord. Vous examinez tous les deux les conditions avant de sécuriser le paiement.',
+    switchToDirect: "Vous avez déjà un vendeur ? Invitez-le",
+    switchToManaged: "Pas encore de vendeur ? Laissez votre agent en trouver un",
   },
   roleToggle: {
     ariaGroup: 'Type de compte',

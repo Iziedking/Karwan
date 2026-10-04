@@ -582,6 +582,8 @@ export const ar: Messages = {
     managedBlurb: 'انشر ما تحتاجه. يبحث وكيلك عن عروض مناسبة على Karwan. راجع البائع واتفق على الشروط قبل الدفع.',
     directLabel: 'لديّ بائع',
     directBlurb: 'ادعُ البائع وسجل ما اتفقتما عليه. تراجعان الشروط معًا قبل تأمين الدفع.',
+    switchToDirect: "لديك بائع بالفعل؟ ادعه",
+    switchToManaged: "لا يوجد بائع بعد؟ دع وكيلك يجد واحدًا",
   },
   roleToggle: {
     ariaGroup: 'نوع الحساب',

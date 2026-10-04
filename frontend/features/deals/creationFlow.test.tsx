@@ -44,12 +44,11 @@ test('direct creation primes the confirmed deal before opening its route', () =>
   assert.ok(navigate > prime);
 });
 
-test('switching deal paths keeps visited forms mounted and uses accessible choice buttons', () => {
+test('each deal path opens its own form, picked by the link that brought the buyer', () => {
   const source = read('./components/NewDealPanel.tsx');
-  assert.match(source, /hidden=\{mode !== 'managed'\}/);
-  assert.match(source, /hidden=\{mode !== 'direct'\}/);
-  assert.match(source, /aria-pressed=\{isActive\}/);
-  assert.doesNotMatch(source, /role="tab"/);
+  assert.match(source, /search\.get\('mode'\) === 'direct'/);
+  assert.match(source, /direct \? <DirectDealComposer \/> : <BriefComposer \/>/);
+  assert.doesNotMatch(source, /aria-pressed/);
 });
 
 test('creation rejects non-finite, negative, fractional stage and out-of-range values', () => {

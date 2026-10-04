@@ -1,71 +1,34 @@
 'use client';
-import { useState } from 'react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { BriefComposer } from '@/features/buyer/components/BriefComposer';
 import { ActivationGate } from '@/shared/components/ActivationGate';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { DirectDealComposer } from './DirectDealComposer';
 
-type Mode = 'managed' | 'direct';
-
+/// One form per path. The trade page already asked which path the buyer wants
+/// (find a seller, or bring one), so this page shows that form alone, with a
+/// quiet link to the other. A listing's "Make offer" link carries the seller and
+/// opens the direct form.
 export function NewDealPanel() {
-  const a11y = useTranslations().a11y;
   const t = useTranslations().dealPanel;
-  const MODES: Array<{ value: Mode; label: string }> = [
-    { value: 'managed', label: t.managedLabel },
-    { value: 'direct', label: t.directLabel },
-  ];
-  // When the user arrives here via a "Make offer" link from a listing detail
-  // page (/buyer?seller=0x...&amount=...&terms=...), default to the direct
-  // mode so the pre-filled fields are visible without a tab click. ?mode=direct
-  // does the same without a counterparty, which is what a "Direct deal" call to
-  // action links to.
   const search = useSearchParams();
-  const initialMode: Mode =
-    search.get('seller') || search.get('sellerEmail') || search.get('mode') === 'direct' ? 'direct' : 'managed';
-  const [mode, setMode] = useState<Mode>(initialMode);
-  const [visited, setVisited] = useState<Record<Mode, boolean>>({ managed: initialMode === 'managed', direct: initialMode === 'direct' });
+  const direct = !!(search.get('seller') || search.get('sellerEmail') || search.get('mode') === 'direct');
 
   return (
-    <div className="space-y-7" id="deal-composer">
+    <div className="space-y-6" id="deal-composer">
       <div>
-        <div
-          role="group"
-          aria-label={a11y.dealType}
-          className="grid grid-cols-2 gap-1 p-1"
-          style={{
-            background: 'var(--lp-light)',
-            border: '1px solid var(--lp-border-light)',
-            borderRadius: 12,
-          }}
-        >
-          {MODES.map((m) => {
-            const isActive = mode === m.value;
-            return (
-              <button
-                key={m.value}
-                type="button"
-                aria-pressed={isActive}
-                onClick={() => { setMode(m.value); setVisited(previous => ({ ...previous, [m.value]: true })); }}
-                className="min-h-11 px-4 py-2 text-[14px] font-semibold transition-[background-color,color,box-shadow] duration-200"
-                style={{
-                  background: isActive ? 'var(--lp-control-active-bg)' : 'transparent',
-                  color: isActive ? 'var(--lp-control-active-ink)' : 'var(--lp-text-sub)',
-                  borderRadius: 9,
-                  boxShadow: isActive ? '0 2px 0 rgba(0,0,0,0.18)' : 'none',
-                }}
-              >
-                {m.label}
-              </button>
-            );
-          })}
-        </div>
+        <h2 className="text-[20px] font-semibold text-[var(--lp-dark)]">{direct ? t.directLabel : t.managedLabel}</h2>
+        <p className="mt-1 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{direct ? t.directBlurb : t.managedBlurb}</p>
       </div>
-
-      <ActivationGate>
-        {visited.managed ? <div hidden={mode !== 'managed'}><BriefComposer /></div> : null}
-        {visited.direct ? <div hidden={mode !== 'direct'}><DirectDealComposer /></div> : null}
-      </ActivationGate>
+      <ActivationGate>{direct ? <DirectDealComposer /> : <BriefComposer />}</ActivationGate>
+      <Link
+        href={direct ? '/buyer?mode=managed#new-deal' : '/buyer?mode=direct#new-deal'}
+        scroll={false}
+        className="inline-flex min-h-11 items-center text-[14px] text-[var(--lp-text-sub)] underline-offset-4 hover:text-[var(--lp-dark)] hover:underline"
+      >
+        {direct ? t.switchToManaged : t.switchToDirect}
+      </Link>
     </div>
   );
 }

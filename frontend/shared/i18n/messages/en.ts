@@ -541,6 +541,8 @@ interface MessagesShape {
     managedBlurb: string;
     directLabel: string;
     directBlurb: string;
+    switchToDirect: string;
+    switchToManaged: string;
   };
   roleToggle: {
     ariaGroup: string;
@@ -5850,6 +5852,8 @@ export const en: MessagesShape = {
     managedBlurb: 'Post what you need. Your agent looks for matching offers on Karwan. Review the seller and agree the terms before payment.',
     directLabel: 'I have a seller',
     directBlurb: 'Invite your seller and record what you agreed. You both review the terms before you secure the payment.',
+    switchToDirect: "Already have a seller? Invite them",
+    switchToManaged: "No seller yet? Let your agent find one",
   },
   roleToggle: {
     ariaGroup: 'Account type',
