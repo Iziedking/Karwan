@@ -143,7 +143,7 @@ export interface UserProfile {
   };
   /// SME-grade profile for B2B trade-finance flows. Optional; rendering on
   /// the credit passport gates on presence. Filled in by the user via the
-  /// /profile Â· COMPANY card; some fields (verifiedAt) are written by the
+  /// /profile · COMPANY card; some fields (verifiedAt) are written by the
   /// SecurityAgent later. taxId is encrypted at rest; never returned in
   /// plaintext from the public passport route.
   smeProfile?: {
@@ -341,7 +341,7 @@ async function writeProfileSnapshot(
     // Early-warning tripwire. A write that OMITS a LIVE email / X binding is a
     // route rebuilding the profile from a partial shape instead of spreading the
     // existing row. The preserve loop above already kept the data, so this is not
-    // data loss â€” but it is exactly the pattern that silently disconnected a
+    // data loss — but it is exactly the pattern that silently disconnected a
     // user's email + X before, so surface it. Any NEW route that reconstructs the
     // row trips this in logs before it ships a regression; the clean fix is to
     // make that route spread `existing`. Fires only when a binding actually
@@ -429,14 +429,14 @@ export async function updateProfile(
 /// untouched fields (email, X binding, settings, business/verification, agent
 /// research, ...) forward instead of dropping them. `edited` names the keys the
 /// caller sets itself, so buyer/seller keep their clear-by-omission behaviour
-/// when a role changes. createdAt/updatedAt are always stripped â€” upsertProfile
+/// when a role changes. createdAt/updatedAt are always stripped — upsertProfile
 /// owns them. Pair with upsertProfile: `upsertProfile({ ...carryProfile(existing,
 /// ['settings']), settings })`. This is the clean alternative to relying on the
 /// preserve-on-omit safety net; using it keeps the identity tripwire quiet.
 /// Return type asserts the required identity core (address/role/displayName) is
 /// present so a call site can spread it straight into upsertProfile. The
 /// contract: whatever you list in `edited` you must re-provide. For a brand-new
-/// wallet (existing null) it returns an empty shell â€” the caller's own body
+/// wallet (existing null) it returns an empty shell — the caller's own body
 /// supplies the required fields in that case (the profile-create path).
 export function carryProfile(
   existing: UserProfile | null,

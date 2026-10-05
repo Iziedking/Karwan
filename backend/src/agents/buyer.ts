@@ -1,4 +1,5 @@
 import { SELLER_LINK_DETAIL, SELLER_NOT_BOUND, sellerAgentBinding, sellerBindingRefusal } from '../deals/sellerBinding.js';
+import { carriedGate } from './proposalCarry.js';
 import { offerToChoose } from './chooseOffer.js';
 import { generateObject } from 'ai';
 import { formatUnits, parseUnits, type Log } from 'viem';
@@ -3756,16 +3757,11 @@ async function proposeMatch(
     // approval/decline. That reset flipped the approval gate back to the seller
     // and left the buyer unable to approve the raised price. Carry those fields
     // over from the stored proposal so the gate survives a refresh.
+    // Only for the same seller's match, and never for an offer a person chose
+    // (allowSupersede: false): a decline carried onto a new match left a chosen
+    // offer born declined and unfundable.
     const prior = await dbGetMatchProposal(state.jobId);
-    if (prior?.awaitingParty === 'buyer' && prior.raisedPriceUsdc) {
-      proposal.awaitingParty = prior.awaitingParty;
-      proposal.raisedPriceUsdc = prior.raisedPriceUsdc;
-      proposal.originalPriceUsdc = prior.originalPriceUsdc;
-      proposal.raisedAt = prior.raisedAt;
-      proposal.raiseOverCap = prior.raiseOverCap;
-    }
-    if (prior?.approvedAt) proposal.approvedAt = prior.approvedAt;
-    if (prior?.declinedAt) proposal.declinedAt = prior.declinedAt;
+    Object.assign(proposal, carriedGate(prior, proposal.sellerAgent, { humanChosen: opts?.allowSupersede === false }));
 
     await dbUpsertMatchProposal(proposal);
 

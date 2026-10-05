@@ -183,11 +183,11 @@ async function recordSubmission(
     const opChat = supportOperatorChatId();
     if (opChat !== null) {
       const base = config.FRONTEND_BASE_URL?.replace(/\/$/, '');
-      const where = [company.sector, company.region].filter(Boolean).join(' Â· ');
+      const where = [company.sector, company.region].filter(Boolean).join(' · ');
       void sendTelegramMessage(
         opChat,
         `*New business review*\n${company.companyName}${where ? `\n${where}` : ''}\n` +
-          `Applicant: \`${address.slice(0, 6)}â€¦${address.slice(-4)}\`\nDocument: ${docKind}`,
+          `Applicant: \`${address.slice(0, 6)}…${address.slice(-4)}\`\nDocument: ${docKind}`,
         base ? [{ text: 'Open admin review', url: `${base}/admin/business` }] : undefined,
       );
     }

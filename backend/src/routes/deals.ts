@@ -118,6 +118,7 @@ import { provisionUserAgentWallets } from '../circle/wallets.js';
 import { seedAgentFromOperator } from '../chain/agentSeed.js';
 import { bus, recentEventsByType } from '../events.js';
 import { addSystemMessage } from '../chat/systemMessages.js';
+import { disputeViewFor, parseStatement, statementWindowOpen } from '../deals/disputeJudge.js';
 import { settleFactoringForDeal } from '../agents/factoringWatcher.js';
 import { settlePOFinancingForDeal } from '../agents/poWatcher.js';
 import { sendTelegramMessage, supportOperatorChatId } from '../telegram/bot.js';
@@ -1602,9 +1603,12 @@ dealsRoutes.get('/direct/:jobId', async (c) => {
   const trust = deal.trust ? trustForViewer(deal.trust, viewerIsBuyer ? 'buyer' : 'seller') : undefined;
   // Both parties see where the delivery check stands; only the buyer sees the review behind it.
   const deliveryCheck = deliveryCheckState(deal);
+  const dispute = deal.disputed
+    ? disputeViewFor(deal, viewerIsBuyer ? 'buyer' : 'seller', Date.now(), config.DISPUTE_STATEMENT_WINDOW_MS)
+    : undefined;
   const shaped = viewerIsBuyer
-    ? { ...enriched, ...extras, trust, deliveryCheck }
-    : { ...enriched, ...extras, trust, deliveryCheck, deliveryMatch: undefined };
+    ? { ...enriched, ...extras, trust, deliveryCheck, dispute, disputeStatements: undefined, judgeProposal: undefined }
+    : { ...enriched, ...extras, trust, deliveryCheck, dispute, disputeStatements: undefined, judgeProposal: undefined, deliveryMatch: undefined };
   if (viewerIsBuyer && held && enriched.deliveryProof) {
     return c.json({ deal: { ...shaped, deliveryProof: undefined } });
   }
@@ -4537,6 +4541,52 @@ function notifyOperatorOfDispute(
 /// - Seller: buyer is stalling on the final release after the window passed.
 /// - Buyer: seller marked delivered with substandard work and buyer wants to
 ///   formally freeze the escrow before being pushed into auto-release.
+/// A party gives their account of a dispute: three fixed answers and up to five
+/// links, inside the statement window. They can update it until the window
+/// closes. The judge reads both once they are in or the window ends.
+dealsRoutes.post('/direct/:jobId/dispute/statement', async (c) => {
+  const jobId = c.req.param('jobId');
+  const deal = await getDeal(jobId);
+  if (!deal) return c.json({ error: 'deal not found' }, 404);
+  let raw: Record<string, unknown>;
+  try {
+    raw = (await c.req.json()) as Record<string, unknown>;
+  } catch {
+    return c.json({ error: 'invalid body' }, 400);
+  }
+  const caller = typeof raw.caller === 'string' ? raw.caller : '';
+  if (!caller || !isSessionSelf(c, caller)) {
+    return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  }
+  const side: 'buyer' | 'seller' | null =
+    caller.toLowerCase() === deal.buyer.toLowerCase() ? 'buyer' : caller.toLowerCase() === deal.seller.toLowerCase() ? 'seller' : null;
+  if (!side) return c.json({ error: 'only the buyer or seller of this deal can give a statement', code: 'forbidden' }, 403);
+  if (!statementWindowOpen(deal, Date.now(), config.DISPUTE_STATEMENT_WINDOW_MS)) {
+    return c.json({ error: 'statements are not open on this deal', code: 'STATEMENTS_CLOSED' }, 409);
+  }
+  if (deal.judgeProposal) {
+    return c.json({ error: 'the judge has already proposed a ruling', code: 'STATEMENTS_CLOSED' }, 409);
+  }
+  const parsed = parseStatement({ received: raw.received, missing: raw.missing, late: raw.late, links: raw.links ?? [] });
+  if (!parsed.ok) return c.json({ error: 'answer all three questions; links must be http(s), five at most', code: 'INVALID_STATEMENT' }, 400);
+  const now = Date.now();
+  const first = !deal.disputeStatements?.[side];
+  await patchDeal(jobId, {
+    disputeStatements: { ...(deal.disputeStatements ?? {}), [side]: { ...parsed.value, submittedAt: now } },
+  });
+  if (first) {
+    await addSystemMessage({
+      jobId,
+      channel: 'trade',
+      channelKey: jobId,
+      eventType: side === 'buyer' ? 'deal.dispute.statement.buyer' : 'deal.dispute.statement.seller',
+      occurrenceKey: `dispute-statement:${side}`,
+      body: side === 'buyer' ? 'The buyer gave their account of the dispute.' : 'The seller gave their account of the dispute.',
+    }).catch(() => undefined);
+  }
+  return c.json({ accepted: true, jobId, side }, 200);
+});
+
 dealsRoutes.post('/direct/:jobId/appeal', async (c) => {
   const jobId = c.req.param('jobId');
   const deal = await getDeal(jobId);

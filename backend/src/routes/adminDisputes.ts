@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { reviewedProposal } from '../deals/disputeJudge.js';
 import { z } from 'zod';
 import { encodeFunctionData, keccak256, toBytes, recoverTypedDataAddress, type Address } from 'viem';
 import { publicClient } from '../chain/client.js';
@@ -140,6 +141,8 @@ adminDisputeRoutes.get('/', async (c) => {
       dealAmountUsdc: d.dealAmountUsdc,
       disputedAt: d.disputedAt ?? null,
       disputedBy: d.disputedBy ?? null,
+      statements: d.disputeStatements ?? null,
+      proposal: d.judgeProposal ?? null,
     }));
 
   /// Which contract actually holds each disputed escrow, and whether a ruling
@@ -492,12 +495,15 @@ adminDisputeRoutes.post('/:jobId/execute', async (c) => {
       );
     }
 
+    const ruled = await getDeal(jobId.data);
+    const proposal = reviewedProposal(ruled?.judgeProposal, body.sellerBps);
     await patchDeal(jobId.data, {
       settledAt: Date.now(),
       cancelKind: 'resolved',
       cancelReason: body.rulingReason,
       resolvedSellerBps: body.sellerBps,
       disputeLoser: body.sellerBps >= 5000 ? 'buyer' : 'seller',
+      ...(proposal ? { judgeProposal: proposal } : {}),
     });
     await clearSignatures(jobId.data);
 

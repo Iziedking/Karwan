@@ -25,7 +25,9 @@ const C = {
 } as const;
 
 const SITE = (process.env.FRONTEND_BASE_URL?.trim() || 'https://karwan.site').replace(/\/$/, '');
-const MARK_URL = `${SITE}/brand/karwan-mark-lime.png`;
+// A solid tile, not a transparent PNG: Gmail dark mode puts transparent
+// images on a white square.
+const MARK_URL = `${SITE}/brand/karwan-mark-email.png`;
 
 const FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif";
 const PAD = '28px';

@@ -3,6 +3,7 @@ import { dirname, resolve } from 'node:path';
 import { eq, or, desc } from 'drizzle-orm';
 import { db, pgEnabled, withPostgresTransaction } from './client.js';
 import { directDeals } from './schema.js';
+import type { DisputeStatement, JudgeProposal } from '../deals/disputeJudge.js';
 import { agreementDigest } from '../deals/agreementDigest.js';
 
 const STORE_PATH = resolve(process.cwd(), 'data', 'direct-deals.json');
@@ -300,6 +301,13 @@ export interface DirectDeal {
   /// timer — that case escalates to the human arbiter instead. Absent on deals
   /// disputed before this field existed.
   disputedBy?: 'buyer' | 'seller';
+  /// Each side's answers to the three dispute questions, taken inside the
+  /// statement window. Shown to the other side only once both are in or the
+  /// window has closed (deals/disputeJudge.ts disputeViewFor).
+  disputeStatements?: Partial<Record<'buyer' | 'seller', DisputeStatement>>;
+  /// The guard judge's proposed split. A proposal only: a reviewer confirms
+  /// or changes it on the admin disputes desk before money moves.
+  judgeProposal?: JudgeProposal;
   /// When the dispute deadline rule acted on this deal (ms). Set once, so the
   /// rule never opens a second dispute or resolves twice.
   deadlineRuleAt?: number;

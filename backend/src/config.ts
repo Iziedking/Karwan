@@ -198,7 +198,7 @@ const envSchema = z.object({
   ),
   /// Base mainnet RPC, used ONLY to read the x402 external payer's USDC balance
   /// for the admin health probe (x402PayerHealth). Settlement never touches this
-  /// â€” the facilitator submits on chain â€” so a public endpoint is fine. Defaults
+  /// — the facilitator submits on chain — so a public endpoint is fine. Defaults
   /// to Base's public RPC when unset.
   BASE_RPC_URL: z.preprocess(blankToUndefined, z.string().url().default('https://mainnet.base.org')),
   /// Bypass the 24h per-address cache on external screens / market lookups.
@@ -382,7 +382,7 @@ const envSchema = z.object({
   // A dispute with a silent counterparty could sit forever: the propose/accept
   // exit needs the other side to click accept, and the arbiter resolve() is a
   // manual admin action. To guarantee money is never permanently stuck, the
-  // watcher auto-resolves any dispute older than this via the arbiter path â€”
+  // watcher auto-resolves any dispute older than this via the arbiter path —
   // to the seller if they delivered (buyer went silent on real work), else a
   // refund to the buyer. 7-day default gives an engaged party ample room to
   // propose a split first; lower it for demos via env. Requires
@@ -396,6 +396,10 @@ const envSchema = z.object({
   // the testnet run passes.
   DISPUTE_DEADLINE_RULE_ENABLED: envBool('DISPUTE_DEADLINE_RULE_ENABLED'),
   DISPUTE_STATEMENT_WINDOW_MS: z.coerce.number().int().positive().default(172_800_000),
+  // The guard judge proposes a split once both statements are in or the
+  // window closes. Proposal only: a reviewer confirms every ruling, so it is
+  // on by default; this switches it off.
+  DISPUTE_JUDGE_DISABLED: envBool('DISPUTE_JUDGE_DISABLED'),
 
   // Financier application eligibility. Anyone can apply to fund factoring / PO
   // lines in the SME rail, but must meet a real bar: minimum account tenure on
@@ -529,7 +533,7 @@ const envSchema = z.object({
   SUPERVISOR_LLM_MODEL: z.string().default('claude-haiku-4-5-20251001'),
   // Proactive supervisor: when on, every captured backend error is auto-diagnosed
   // as it lands instead of only on-demand via POST /api/admin/diagnose. OFF by
-  // default because each diagnosis is a paid Anthropic call â€” turn it on once the
+  // default because each diagnosis is a paid Anthropic call — turn it on once the
   // on-demand diagnoses look reliable. Guardrails below cap the cost.
   SUPERVISOR_PROACTIVE_ENABLED: envBool('SUPERVISOR_PROACTIVE_ENABLED'),
   // Rate cap for proactive mode: at most this many diagnoses per rolling window,
@@ -973,7 +977,7 @@ if (
 
 // The external x402 rail (Base) funds every paid market read. When its payer
 // key is unset, maybeResearchMarket / maybeSellerResearch silently no-op, so
-// the agents negotiate blind on on-platform signals alone â€” the exact "live
+// the agents negotiate blind on on-platform signals alone — the exact "live
 // intelligence never reaches the decision" gap the agentic-workflow work
 // closes. Make that state LOUD at boot instead of a silent degradation. The
 // payer-EOA-balance-too-low half of the check is async (needs an on-chain read)

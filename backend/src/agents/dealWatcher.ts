@@ -1,4 +1,9 @@
 import { deliveryCheckDetail, type DeliveryCheckDetail } from '../deals/deliveryCheck.js';
+import { runDisputeJudge, type DisputeJudgeDeps } from '../deals/disputeJudgeRunner.js';
+import { rulingSchema } from '../deals/disputeJudge.js';
+import { listMessages } from '../db/messages.js';
+import { addSystemMessage } from '../chat/systemMessages.js';
+import { generateObjectWithLlmFallback } from '../llm/client.js';
 import { keccak256, toBytes } from 'viem';
 import { config } from '../config.js';
 import { recordHeartbeat } from '../ops/heartbeats.js';
@@ -640,6 +645,50 @@ async function maybeApplyDeadlineRule(deal: DirectDeal, now: number): Promise<bo
   }
 }
 
+const disputeJudgeDeps: DisputeJudgeDeps = {
+  listMessages: (jobId) => listMessages(jobId),
+  generate: async (prompt) => {
+    const result = await generateObjectWithLlmFallback({ schema: rulingSchema, prompt });
+    return { object: result.object, model: result.response?.modelId ?? 'unknown' };
+  },
+  patchDeal: (jobId, patch) => patchDeal(jobId, patch),
+  postSystem: async (eventType, deal, now) => {
+    await addSystemMessage({
+      jobId: deal.jobId,
+      channel: 'trade',
+      channelKey: deal.jobId,
+      eventType,
+      occurrenceKey: `${eventType}:${now}`,
+      body: 'The judge proposed a ruling. A reviewer confirms it before any money moves.',
+    });
+  },
+  notifyReviewer: (deal) => {
+    const opChat = supportOperatorChatId();
+    if (opChat === null) return;
+    const base = config.FRONTEND_BASE_URL?.replace(/\/$/, '');
+    void sendTelegramMessage(
+      opChat,
+      `*Dispute ruling proposed*\nAmount: ${deal.dealAmountUsdc} USDC\nJob: \`${deal.jobId.slice(0, 10)}…\`\n\nConfirm or change it on the disputes desk.`,
+      base ? [{ text: 'Open disputes', url: `${base}/admin/disputes` }] : undefined,
+    );
+  },
+};
+
+/// The guard judge (v2): once both statements are in or the window closes, it
+/// proposes a split for a reviewer to confirm. Never moves money itself.
+async function maybeRunDisputeJudge(deal: DirectDeal, now: number): Promise<void> {
+  if (config.DISPUTE_JUDGE_DISABLED || dealEscrowOps.isV3(deal) || processing.has(deal.jobId)) return;
+  processing.add(deal.jobId);
+  try {
+    const outcome = await runDisputeJudge(deal, now, disputeJudgeDeps, { windowMs: config.DISPUTE_STATEMENT_WINDOW_MS });
+    if (outcome !== 'none') logger.info({ jobId: deal.jobId }, 'dispute judge proposed a ruling');
+  } catch (err) {
+    logger.warn({ jobId: deal.jobId, err: (err as Error).message }, 'dispute judge failed (retried next tick)');
+  } finally {
+    processing.delete(deal.jobId);
+  }
+}
+
 async function tick() {
   const now = Date.now();
   const deals = await listAllDeals();
@@ -655,6 +704,7 @@ async function tick() {
       if (dealEscrowOps.isV3(deal)) {
         await runV3DisputeSafely(deal, now);
       } else if (!(await maybeApplyDeadlineRule(deal, now))) {
+        await maybeRunDisputeJudge(deal, now);
         await maybeAutoResolveDispute(deal, now);
       }
       continue;
