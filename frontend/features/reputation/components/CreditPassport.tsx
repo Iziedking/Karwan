@@ -82,6 +82,10 @@ export function CreditPassport({ address }: { address: string }) {
         setFetchState('error');
         return;
       }
+      if ('sealed' in repRes.value) {
+        setFetchState('error');
+        return;
+      }
       setRep(repRes.value);
       setProfile(profRes.status === 'fulfilled' ? profRes.value.profile : null);
       if (vaultRes.status === 'fulfilled') {
