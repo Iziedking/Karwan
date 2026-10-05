@@ -578,26 +578,21 @@ export interface TrustCardView {
   name: string | null;
   verifiedBusiness: boolean;
   verifiedPerson: boolean;
-  facts: { settled: number; distinctCounterparties: number; onTime: number; withDeadline: number; disputes: number };
+  facts: { settled: number; distinctCounterparties: number; onTime: number; withDeadline: number; disputes: number } | null;
+  tier?: SealedReputation['tier'];
+  reasons?: SealedReasonCode[];
   memberSince: number | null;
   stakeUsdc: string | null;
   provenAccounts: Array<'x'>;
   isNew: boolean;
 }
 
-/// A settled deal as the public feed publishes it. The backend sends these
-/// fields and nothing else; addresses arrive already masked.
+export type AmountBand = 'under_100' | '100_500' | '500_2000' | '2000_10000' | 'over_10000';
+
+/// A settled deal as the public feed publishes it: a value band and a time.
 export interface PublicFeedDeal {
-  jobId: string;
-  buyer: string;
-  seller: string;
-  dealAmountUsdc: string;
-  createdAt: number;
-  acceptedAt?: number;
-  settledAt?: number;
-  cancelledAt?: number;
-  updatedAt: number;
-  onChain: { state: number } | null;
+  amountBand: AmountBand;
+  settledAt: number;
 }
 
 export interface DirectDealFundingQuote {
@@ -1446,6 +1441,28 @@ export interface AgentNames {
   buyerName?: string;
   sellerName?: string;
 }
+
+export type SealedReasonCode =
+  | 'NEW_ON_KARWAN'
+  | 'HAS_COMPLETED_DEALS'
+  | 'MANY_COMPLETED_DEALS'
+  | 'USUALLY_ON_TIME'
+  | 'NO_LOST_DISPUTES'
+  | 'WORKS_WITH_MANY'
+  | 'HUMAN_VERIFIED';
+
+/// What anyone but the owner receives: tier and fixed reasons, never numbers.
+export interface SealedReputation {
+  sealed: true;
+  address: string;
+  displayName: string | null;
+  tag: string | null;
+  tier: 'NEW' | 'COLD' | 'ESTABLISHED' | 'STRONG' | 'ELITE';
+  reasons: SealedReasonCode[];
+  memberSince: number | null;
+}
+
+export type ReputationResponse = Reputation | SealedReputation;
 
 export interface Reputation {
   address: string;
@@ -3188,7 +3205,7 @@ export const api = {
     }>(`/api/events/replay?${q.toString()}`);
   },
   reputation: (address: string, fresh = false) =>
-    json<Reputation>(`/api/reputation?address=${address}${fresh ? '&fresh=1' : ''}`),
+    json<ReputationResponse>(`/api/reputation?address=${address}${fresh ? '&fresh=1' : ''}`),
   activationStatus: (address: string) =>
     json<ActivationStatus>(`/api/activation/status?address=${address}`),
   agentBinding: (address: string) =>

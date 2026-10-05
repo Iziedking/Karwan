@@ -15,6 +15,7 @@ import { signupCopy, type SignupCopy } from './signup';
 import { payLinkCopy, type PayLinkCopy } from './payLink';
 import { requestPageCopy, type RequestPageCopy } from './requestPage';
 import { passportCopy, type PassportCopy } from './passport';
+import { sealedRecordCopy, type SealedRecordCopy } from './sealedRecord';
 import { recoveryCopy, type RecoveryCopy } from './recovery';
 import { docsProductCopy, type DocsProductCopy } from './docsProduct';
 interface MessagesShape {
@@ -28,6 +29,7 @@ interface MessagesShape {
   payLink: PayLinkCopy;
   requestPage: RequestPageCopy;
   passport: PassportCopy;
+  sealedRecord: SealedRecordCopy;
   recovery: RecoveryCopy;
   docsProduct: DocsProductCopy;
   socialTrade: SocialTradeCopy;
@@ -5294,6 +5296,7 @@ export const en: MessagesShape = {
   payLink: payLinkCopy.en,
   requestPage: requestPageCopy.en,
   passport: passportCopy.en,
+  sealedRecord: sealedRecordCopy.en,
   recovery: recoveryCopy.en,
   docsProduct: docsProductCopy.en,
   socialTrade: socialTradeCopy.en,

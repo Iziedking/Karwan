@@ -12,6 +12,7 @@ import { signupCopy } from './signup';
 import { payLinkCopy } from './payLink';
 import { requestPageCopy } from './requestPage';
 import { passportCopy } from './passport';
+import { sealedRecordCopy } from './sealedRecord';
 import { recoveryCopy } from './recovery';
 import { docsProductCopy } from './docsProduct';
 
@@ -26,6 +27,7 @@ export const ar: Messages = {
   payLink: payLinkCopy.ar,
   requestPage: requestPageCopy.ar,
   passport: passportCopy.ar,
+  sealedRecord: sealedRecordCopy.ar,
   recovery: recoveryCopy.ar,
   docsProduct: docsProductCopy.ar,
   socialTrade: socialTradeCopy.ar,
