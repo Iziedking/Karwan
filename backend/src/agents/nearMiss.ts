@@ -51,6 +51,15 @@ function round2(n: number): string {
   return n.toFixed(2);
 }
 
+/// The buyer agent's live bid book, registered at start so this module can see
+/// whether a request already has an offer within budget without importing the
+/// agent (which imports this module).
+type InBudgetProbe = (jobId: string, ceilingUsdc: number, excludeSeller: string) => { seller: string; priceUsdc: number } | null;
+let inBudgetProbe: InBudgetProbe | null = null;
+export function setInBudgetProbe(probe: InBudgetProbe | null): void {
+  inBudgetProbe = probe;
+}
+
 function windowExpiry(deadlineUnix: number, now = Date.now()): number {
   const deadlineMs = deadlineUnix * 1000;
   const fromWindow = now + WINDOW_MS;
@@ -96,6 +105,30 @@ export async function maybeRaiseNearMiss(input: NearMissInput): Promise<boolean>
   if (gap <= 0) return false; // ranges overlap, not a near-miss
   if (buyerCeilingUsdc <= 0) {
     emitSkipped(jobId, 'invalid-buyer-ceiling', { buyerCeilingUsdc, sellerFloorUsdc });
+    return false;
+  }
+  // A request that already has a live offer within budget never needs the buyer
+  // to stretch: the agent should take the in-budget offer, not ask about a pricier one.
+  const alternative = inBudgetProbe?.(jobId, buyerCeilingUsdc, input.sellerAgent) ?? null;
+  if (alternative) {
+    emitSkipped(jobId, 'in-budget-alternative', {
+      buyerCeilingUsdc: round2(buyerCeilingUsdc),
+      sellerFloorUsdc: round2(sellerFloorUsdc),
+      alternativeSeller: alternative.seller,
+      alternativePriceUsdc: round2(alternative.priceUsdc),
+    });
+    return false;
+  }
+  // The buyer already passed this seller at this price. Re-opening the auction
+  // deletes the near-miss record, so the durable passed marker is what stops the
+  // same ask coming straight back; a lower price from them can still surface.
+  const passed = getOutOfReach(jobId)?.passed;
+  if (passed && passed.sellerAgent.toLowerCase() === input.sellerAgent.toLowerCase()
+      && sellerFloorUsdc >= Number(passed.sellerFloorUsdc)) {
+    emitSkipped(jobId, 'already-passed', {
+      sellerFloorUsdc: round2(sellerFloorUsdc),
+      passedFloorUsdc: passed.sellerFloorUsdc,
+    });
     return false;
   }
   const relGap = gap / buyerCeilingUsdc;

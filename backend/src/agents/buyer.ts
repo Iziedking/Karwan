@@ -33,6 +33,8 @@ import {
   type JobContext,
 } from '../llm/prompts.js';
 import { topicalMatchScore } from '../llm/keywords.js';
+import { listListingsForSeller, listingStatus } from '../db/listings.js';
+import { offerTopicalMatch } from './offerFit.js';
 import { logger } from '../logger.js';
 import { effectiveMilestonePcts as splitFor } from './milestoneSplit.js';
 import { reportError } from '../errorTracker.js';
@@ -105,7 +107,7 @@ import {
   type RepTier,
 } from './signals.js';
 import { classifyAgentError } from '../chain/errors.js';
-import { maybeRaiseNearMiss } from './nearMiss.js';
+import { maybeRaiseNearMiss, setInBudgetProbe } from './nearMiss.js';
 import { clearNearMiss, getPendingNearMiss, type NearMissApproval } from '../db/nearMiss.js';
 import { clearOutOfReach } from '../db/outOfReach.js';
 import { config } from '../config.js';
@@ -384,6 +386,31 @@ const COUNTER_RESPONSE_TIMEOUT_MS =
   Number.isFinite(envCounterTimeout) && envCounterTimeout > 0 ? envCounterTimeout : 180_000;
 
 const jobs = new Map<`0x${string}`, JobState>();
+
+/// The cheapest live offer on a request at or under the buyer's ceiling, from a
+/// seller other than `excludeSeller`. A seller already tried and dropped is not
+/// live. Used so a near-miss is never raised while an in-budget offer is waiting.
+export function inBudgetBidOf(
+  state: Pick<JobState, 'bids' | 'triedSellers' | 'finalized' | 'expired'>,
+  ceilingUsdc: number,
+  excludeSeller: string,
+): { seller: string; priceUsdc: number } | null {
+  if (state.finalized || state.expired) return null;
+  let best: { seller: string; priceUsdc: number } | null = null;
+  for (const bid of state.bids.values()) {
+    if (bid.seller.toLowerCase() === excludeSeller.toLowerCase()) continue;
+    if (state.triedSellers.has(bid.seller)) continue;
+    const price = Number(bid.priceUsdc);
+    if (!Number.isFinite(price) || price <= 0 || price > ceilingUsdc) continue;
+    if (!best || price < best.priceUsdc) best = { seller: bid.seller, priceUsdc: price };
+  }
+  return best;
+}
+
+setInBudgetProbe((jobId, ceilingUsdc, excludeSeller) => {
+  const state = jobs.get(jobId.toLowerCase() as `0x${string}`) ?? jobs.get(jobId as `0x${string}`);
+  return state ? inBudgetBidOf(state, ceilingUsdc, excludeSeller) : null;
+});
 const handledEvents = new Set<string>();
 let buyerTimerShadowObserver: BuyerTimerShadowObserver | null = null;
 let buyerTimerParityObserver: BuyerTimerParityObserver | null = null;
@@ -1403,6 +1430,20 @@ async function handleBidSubmitted(log: Log) {
       topicalMatch = topicalMatchScore(briefKeywords, sellerKeywords);
     } catch {
       /* leave undefined: ranking falls back to the deterministic score */
+    }
+    // The seller's own offers count too: an offer written for exactly this work
+    // is the strongest skill signal there is, even when the profile says otherwise.
+    try {
+      const sellerWallet = await findAgentWalletByAgentAddress(args.seller);
+      const offers = sellerWallet?.userAddress
+        ? listListingsForSeller(sellerWallet.userAddress).filter(
+            (l) => listingStatus(l) === 'open' || l.matchedJobId?.toLowerCase() === state.jobId.toLowerCase(),
+          )
+        : [];
+      const fromOffers = offerTopicalMatch(briefKeywords, offers);
+      if (fromOffers > (topicalMatch ?? 0)) topicalMatch = fromOffers;
+    } catch {
+      /* keep the profile score */
     }
   }
 
