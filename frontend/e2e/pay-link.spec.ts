@@ -19,7 +19,7 @@ const openRequest = {
   acceptedChains: ['Ethereum', 'Base'],
 };
 
-async function mockApi(page: Page, opts: { signedInAs?: string; request?: Record<string, unknown>; onCreate?: (body: unknown) => void } = {}) {
+async function mockApi(page: Page, opts: { signedInAs?: string; request?: Record<string, unknown>; reputation?: Record<string, unknown>; onCreate?: (body: unknown) => void } = {}) {
   await page.addInitScript(() => localStorage.setItem('karwan:guide:disabled', '1'));
   await page.route(`${API}/**`, async (route) => {
     const { pathname } = new URL(route.request().url());
@@ -38,7 +38,7 @@ async function mockApi(page: Page, opts: { signedInAs?: string; request?: Record
     if (pathname.startsWith('/api/profile')) {
       return route.fulfill({ json: { profile: { address: SELLER, displayName: 'Kingizie', handle: 'izieking' } } });
     }
-    if (pathname === '/api/reputation') return route.fulfill({ json: { score: 809, tier: 'ESTABLISHED', successCount: 20 } });
+    if (pathname === '/api/reputation') return route.fulfill({ json: opts.reputation ?? { score: 809, tier: 'ESTABLISHED', successCount: 20 } });
     if (method !== 'GET') return route.fulfill({ status: 403, body: '' });
     return route.fulfill({ json: { items: [], events: [], movements: [], messages: [] } });
   });
@@ -58,6 +58,13 @@ test('a payment link opens its own page: who asks, how much, Arc first, one butt
   await expect(page.getByText(/Contract address/)).toHaveCount(0);
   await expect(page.getByText(/Choose recipient/i)).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+});
+
+test('a sealed record shows the requester tier, never a deal count', async ({ page }) => {
+  await mockApi(page, { reputation: { sealed: true, address: SELLER, displayName: 'Kingizie', tag: 'izieking', tier: 'ESTABLISHED', reasons: ['HAS_COMPLETED_DEALS'], memberSince: null } });
+  await page.goto(`/deposit/request/${TOKEN}`);
+  await expect(page.getByText('@izieking · Tier Established')).toBeVisible();
+  await expect(page.getByText(/\d+ deals/)).toHaveCount(0);
 });
 
 test('a paid request says so, and the requester sees their own link to share', async ({ page }) => {
