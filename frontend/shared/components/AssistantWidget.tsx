@@ -311,7 +311,7 @@ export function AssistantWidget() {
           {unread && (
             <span
               aria-label={a11y.newReply}
-              className="absolute -top-1 -end-1 inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full bg-[var(--lp-critical)] text-white text-[13px] font-bold"
+              className="absolute -top-1.5 -end-1.5 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-[var(--lp-critical)] text-white text-[13px] font-bold leading-none"
             >
               1
             </span>

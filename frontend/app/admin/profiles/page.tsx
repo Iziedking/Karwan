@@ -143,12 +143,12 @@ export default function AdminProfiles() {
               <div className="col-span-2">
                 <dt className="mono text-[9px] uppercase tracking-[0.12em] text-white/30">Research</dt>
                 <dd className={`mt-1 mono uppercase tracking-[0.08em] ${p.researchActive ? 'text-[#9ac58b]' : 'text-white/40'}`}>
-                  {p.researchActive ? `On Â· $${p.researchCreditUsdc.toFixed(2)}` : 'Off'}
+                  {p.researchActive ? `On · $${p.researchCreditUsdc.toFixed(2)}` : 'Off'}
                 </dd>
               </div>
             </dl>
             <div className="mt-3 grid gap-2">
-              <Link href={`/credit-passport/${p.address}`} className="inline-flex min-h-11 items-center justify-center rounded-lg border border-white/10 px-3 mono text-[10px] uppercase tracking-[0.1em] text-white/65">Passport â†—</Link>
+              <Link href={`/credit-passport/${p.address}`} className="inline-flex min-h-11 items-center justify-center rounded-lg border border-white/10 px-3 mono text-[10px] uppercase tracking-[0.1em] text-white/65">Passport ↗</Link>
               <div className="grid grid-cols-2 gap-2">
                 <button type="button" onClick={() => toggleResearch(p)} disabled={busy === p.address} className="min-h-11 rounded-lg border border-white/10 px-2 mono text-[9px] uppercase tracking-[0.08em] text-white/60 disabled:opacity-40">{p.researchActive ? 'Clear research' : 'Grant research'}</button>
                 <button type="button" onClick={() => toggleBusiness(p)} disabled={busy === p.address} className="min-h-11 rounded-lg border border-white/10 px-2 mono text-[9px] uppercase tracking-[0.08em] text-white/60 disabled:opacity-40">{p.businessStatus === 'verified' ? 'Unverify' : 'Verify biz'}</button>

@@ -102,6 +102,9 @@ export function deriveJobLiveState(
   }
 
   for (const e of [...events].reverse()) {
+    // A new match after a decline is a live match again: the buyer chose
+    // another offer, or the agent moved on to the next seller.
+    if (e.type === 'deal.matched') declined = false;
     if (e.type === 'agent.declined' || e.type === 'deal.match.declined') {
       declined = true;
       recoverable = null;

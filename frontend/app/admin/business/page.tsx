@@ -115,9 +115,9 @@ export default function AdminBusiness() {
           <article key={`${p.address}:${p.workspaceId ?? ''}`} className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[15px] font-bold text-white/90">{p.company?.companyName || 'â€”'}</p>
+                <p className="text-[15px] font-bold text-white/90">{p.company?.companyName || '—'}</p>
                 <p className="mt-1 text-[11px] text-white/45">
-                  {[p.company?.sector, p.company?.region].filter(Boolean).join(' Â· ') || 'No sector or region supplied'}
+                  {[p.company?.sector, p.company?.region].filter(Boolean).join(' · ') || 'No sector or region supplied'}
                 </p>
               </div>
               <span className="shrink-0 rounded-md border border-white/10 px-2 py-1 mono text-[9px] uppercase tracking-[0.1em] text-white/50">

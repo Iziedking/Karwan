@@ -20,6 +20,7 @@ import { TrustCard } from './TrustCard';
 import { useChatUnread } from '@/features/chat/hooks/useChatUnread';
 import { DESKTOP_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { DealLatest, DealTimeline } from './DealTimeline';
+import { DisputePanel } from './DisputePanel';
 
 type Panel = 'record' | 'agreement' | 'messages' | 'receipts' | 'problem' | 'deliver' | 'answerTime' | 'answerCancel' | 'turnDown' | null;
 
@@ -261,6 +262,10 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
         ) : null}
         {automatic ? <p className="text-center text-[14px] text-[var(--lp-text-sub)] font-medium">{automatic}</p> : null}
       </div>
+
+      {deal.dispute && address ? (
+        <DisputePanel jobId={deal.jobId} dispute={deal.dispute} viewerIsBuyer={viewerIsBuyer} caller={address} name={name} myName={displayName} onChanged={onChanged} />
+      ) : null}
 
       {address && !desktop ? <DealLatest jobId={deal.jobId} caller={address} name={name} onOpen={() => setPanel('messages')} /> : null}
 

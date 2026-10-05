@@ -9,31 +9,13 @@ import type { ReactNode } from 'react';
 /// different KIND of thing from a count or a date, so the one number a user
 /// actually came to check had no more weight than a label beside it.
 ///
-/// Three rules, and they travel together:
+/// Two rules, and they travel together:
 ///
-/// 1. **A lime edge.** Money and only money carries it. The accent is otherwise
-///    reserved for the primary action and one focal indicator per screen, which
-///    is what makes it work here: if the eye is drawn to lime, it should be
-///    drawn to the balance.
-/// 2. **Display weight, tabular numerals.** Amounts are read by scanning and
+/// 1. **Display weight, tabular numerals.** Amounts are read by scanning and
 ///    compared down a column, so digits must not shift width between values.
-/// 3. **Its own bordered card.** A figure sitting loose in a paragraph is a
-///    fact; a figure in a card is a holding.
-///
-/// The colour is fixed rather than passed in. The home strip used to tint each
-/// tile differently (lime, navy, green), which read as three unrelated widgets
-/// instead of three views of the same balance.
-
-/// The lime edge, as a positioned child. `start-0` so it flips under RTL.
-function Edge() {
-  return (
-    <span
-      aria-hidden
-      className="absolute start-0 top-0 bottom-0 w-[3px]"
-      style={{ background: 'var(--lp-accent)' }}
-    />
-  );
-}
+/// 2. **Its own bordered card.** A figure sitting loose in a paragraph is a
+///    fact; a figure in a card is a holding. No coloured edge: the accent is
+///    kept for the primary action.
 
 export function MoneyCard({
   children,
@@ -43,7 +25,7 @@ export function MoneyCard({
   children: ReactNode;
   className?: string;
   /// Dense contexts (a wallet row in a list) take less padding than a headline
-  /// tile, but keep the same edge and the same numerals.
+  /// tile, but keep the same border and the same numerals.
   compact?: boolean;
 }) {
   return (
@@ -55,7 +37,6 @@ export function MoneyCard({
         borderRadius: 14,
       }}
     >
-      <Edge />
       {children}
     </div>
   );

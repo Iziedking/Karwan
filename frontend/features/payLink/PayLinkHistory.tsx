@@ -1,5 +1,5 @@
 'use client';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { api, type DepositRequestPublic } from '@/core/api';
@@ -28,8 +28,13 @@ export function PayLinkHistory({ refreshKey }: { refreshKey: string | null }) {
   );
 }
 
+/// The latest few first; the rest on request, so the page never scrolls forever.
+const FIRST_PAGE = 5;
+const MORE = 10;
+
 function Section({ title, rows }: { title: string; rows: DepositRequestPublic[] }) {
   const copy = useTranslations().payLink.create;
+  const [shown, setShown] = useState(FIRST_PAGE);
   const { locale } = useLocale();
   const status = (row: DepositRequestPublic) =>
     row.status === 'matched' ? copy.statusPaid : row.status === 'expired' ? copy.statusExpired : row.status === 'cancelled' ? copy.statusCancelled : copy.statusOpen;
@@ -37,7 +42,7 @@ function Section({ title, rows }: { title: string; rows: DepositRequestPublic[] 
     <section>
       <h2 className="text-[16px] font-semibold text-[var(--lp-dark)]">{title}</h2>
       <ul className="mt-2 divide-y divide-[var(--lp-border-light)] border-y border-[var(--lp-border-light)]">
-        {rows.map((row) => (
+        {rows.slice(0, shown).map((row) => (
           <li key={row.requestId}>
             <Link
               href={`/deposit/request/${row.requestId}`}
@@ -65,6 +70,15 @@ function Section({ title, rows }: { title: string; rows: DepositRequestPublic[] 
           </li>
         ))}
       </ul>
+      {rows.length > shown ? (
+        <button
+          type="button"
+          onClick={() => setShown((n) => n + MORE)}
+          className="mt-2 inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--lp-dark)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+        >
+          {copy.showMore}
+        </button>
+      ) : null}
     </section>
   );
 }

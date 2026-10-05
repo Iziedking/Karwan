@@ -151,7 +151,7 @@ export default function AdminDeals() {
               </div>
             </dl>
             <div className="mt-3 grid grid-cols-2 gap-2">
-              <Link href={`/deals/${d.jobId}`} className="inline-flex min-h-11 items-center justify-center rounded-lg border border-white/10 px-3 mono text-[10px] uppercase tracking-[0.1em] text-white/65">Open â†—</Link>
+              <Link href={`/deals/${d.jobId}`} className="inline-flex min-h-11 items-center justify-center rounded-lg border border-white/10 px-3 mono text-[10px] uppercase tracking-[0.1em] text-white/65">Open ↗</Link>
               <button type="button" onClick={() => extend(d.jobId)} disabled={busy === d.jobId} className="min-h-11 rounded-lg border border-white/10 px-3 mono text-[10px] uppercase tracking-[0.1em] text-white/60 disabled:opacity-40">Extend</button>
               {d.stage !== 'settled' && d.stage !== 'cancelled' ? (
                 <button type="button" onClick={() => release(d.jobId)} disabled={busy === d.jobId} className="col-span-2 min-h-11 rounded-lg border border-[#c98a5e]/35 px-3 mono text-[10px] font-bold uppercase tracking-[0.1em] text-[#dfa177] disabled:opacity-40">Review and release</button>

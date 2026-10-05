@@ -96,8 +96,9 @@ function DisputeCard({
   const { switchChain } = useSwitchChain();
   const { data: walletClient } = useWalletClient();
 
-  const [sellerBps, setSellerBps] = useState(5000);
-  const [reason, setReason] = useState('');
+  // The judge's proposal pre-fills the ruling; the reviewer confirms or changes it.
+  const [sellerBps, setSellerBps] = useState(dispute.proposal ? dispute.proposal.sellerBps : 5000);
+  const [reason, setReason] = useState(dispute.proposal?.summary ?? '');
   const [prepared, setPrepared] = useState<AdminDisputePrepared | null>(null);
   const [busy, setBusy] = useState<null | 'prepare' | 'sign' | 'exec'>(null);
   const [msg, setMsg] = useState<string | null>(null);
@@ -206,6 +207,8 @@ function DisputeCard({
         buyer {short(dispute.buyer)} · seller {short(dispute.seller)} · job{' '}
         {dispute.jobId.slice(0, 10)}…
       </p>
+
+      <JudgeRecord dispute={dispute} />
 
       {onRetiredEscrow ? (
         <div
@@ -338,5 +341,46 @@ function DisputeCard({
       </>
       )}
     </section>
+  );
+}
+
+/// What the reviewer rules from: both accounts and the judge's proposal with its
+/// item-by-item finding. Admin-only, so the full record shows.
+function JudgeRecord({ dispute }: { dispute: AdminDisputeRow }) {
+  const statements = dispute.statements ?? {};
+  const p = dispute.proposal;
+  if (!p && !statements.buyer && !statements.seller) return null;
+  return (
+    <div className="mt-4 space-y-3 text-[13px] leading-relaxed text-zinc-300" style={{ borderRadius: 8, background: 'rgba(255,255,255,0.04)', padding: 16 }}>
+      {(['buyer', 'seller'] as const).map((side) => {
+        const st = statements[side];
+        return (
+          <div key={side}>
+            <p className="mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">{side} account</p>
+            {st ? (
+              <>
+                <p className="mt-1"><span className="text-zinc-500">{side === 'buyer' ? 'Received' : 'Delivered'}:</span> {st.received}</p>
+                <p><span className="text-zinc-500">Missing or wrong:</span> {st.missing}</p>
+                <p><span className="text-zinc-500">Late:</span> {st.late}</p>
+                {st.links.map((l) => <a key={l} href={l} target="_blank" rel="noreferrer noopener" className="block truncate underline">{l}</a>)}
+              </>
+            ) : <p className="mt-1 text-zinc-500">No account given.</p>}
+          </div>
+        );
+      })}
+      {p ? (
+        <div>
+          <p className="mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+            Judge proposal · {p.confidence}{p.rule ? ` · ${p.rule}` : ''} · {p.model ?? ''} · {p.status}
+          </p>
+          <p className="mt-1">Seller {Math.round(p.sellerBps / 100)}% · buyer {100 - Math.round(p.sellerBps / 100)}%</p>
+          {p.summary ? <p className="mt-1">{p.summary}</p> : null}
+          {p.items.map((it, i) => (
+            <p key={i}><span className="text-zinc-500">{it.finding}:</span> {it.item}{it.evidence ? ` (${it.evidence})` : ''}</p>
+          ))}
+          <p className="mt-1 text-zinc-500">Pre-filled below. Confirm it, or change the split and the written ruling.</p>
+        </div>
+      ) : null}
+    </div>
   );
 }

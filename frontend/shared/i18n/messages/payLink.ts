@@ -19,6 +19,7 @@ export interface PayLinkCopy {
     qrAlt: string;
     requestedTitle: string;
     paidTitle: string;
+    showMore: string;
     statusOpen: string;
     statusPaid: string;
     statusExpired: string;
@@ -84,6 +85,7 @@ const en: PayLinkCopy = {
     qrAlt: 'QR code for this payment link',
     requestedTitle: "Your requests",
     paidTitle: "Paid by you",
+    showMore: "Show more",
     statusOpen: "Waiting",
     statusPaid: "Paid",
     statusExpired: "Expired",
@@ -149,6 +151,7 @@ const fr: PayLinkCopy = {
     qrAlt: 'QR code de ce lien de paiement',
     requestedTitle: "Vos demandes",
     paidTitle: "Payées par vous",
+    showMore: "Afficher plus",
     statusOpen: "En attente",
     statusPaid: "Payée",
     statusExpired: "Expirée",
@@ -214,6 +217,7 @@ const ar: PayLinkCopy = {
     qrAlt: 'رمز QR لرابط الدفع هذا',
     requestedTitle: "طلباتك",
     paidTitle: "دفعتها أنت",
+    showMore: "عرض المزيد",
     statusOpen: "بانتظار الدفع",
     statusPaid: "مدفوع",
     statusExpired: "منتهي",
@@ -279,6 +283,7 @@ const hi: PayLinkCopy = {
     qrAlt: 'इस भुगतान लिंक का QR कोड',
     requestedTitle: "आपके अनुरोध",
     paidTitle: "आपने भुगतान किया",
+    showMore: "और दिखाएँ",
     statusOpen: "प्रतीक्षा में",
     statusPaid: "भुगतान हुआ",
     statusExpired: "समाप्त",
@@ -344,6 +349,7 @@ const sw: PayLinkCopy = {
     qrAlt: 'Msimbo wa QR wa kiungo hiki cha malipo',
     requestedTitle: "Maombi yako",
     paidTitle: "Uliyolipa",
+    showMore: "Onyesha zaidi",
     statusOpen: "Inasubiri",
     statusPaid: "Imelipwa",
     statusExpired: "Imeisha muda",

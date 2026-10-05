@@ -35,7 +35,6 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
   // The same total and parts as the profile and the balance page.
   const owned = useOwnedBalance();
   const totalBalance = owned.total;
-  const money2 = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const activeDeals = deals.filter((deal) => {
     const stage = stageOf(deal);
     return stage !== 'settled' && stage !== 'cancelled';
@@ -76,9 +75,6 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
                 {totalBalance == null ? '-' : totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
               <span className="text-[17px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
-            </p>
-            <p className="mt-2 text-[15px] font-medium text-[var(--lp-text-sub)]">
-              {fill(home.balanceParts, { wallet: money2(owned.wallet), other: money2(owned.otherChains), agents: money2(owned.agents) })}
             </p>
             <p className="mt-0.5 text-[15px] font-medium text-[var(--lp-text-sub)]">
               {activeDeals.length === 1 ? home.activeTradesOne : fill(home.activeTrades, { n: activeDeals.length })}

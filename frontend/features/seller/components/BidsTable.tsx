@@ -96,7 +96,7 @@ export function BidsTable({
                     onClick={() => void doAbandon(b.jobId)}
                     className="inline-flex min-h-11 items-center rounded-lg border border-[#ff8a7a]/40 px-3 mono text-[13px] font-bold uppercase tracking-[0.1em] text-[#ff8a7a] disabled:opacity-50"
                   >
-                    {busy === b.jobId ? 'â€¦' : bt.row.abandonConfirm}
+                    {busy === b.jobId ? '…' : bt.row.abandonConfirm}
                   </button>
                 ) : (
                   <button
@@ -111,7 +111,7 @@ export function BidsTable({
                   href={href}
                   className="inline-flex min-h-11 items-center gap-1.5 px-2 mono text-[13px] font-bold uppercase tracking-[0.12em] text-[var(--lp-accent)]"
                 >
-                  {bt.row.open}<span aria-hidden>â†’</span>
+                  {bt.row.open}<span aria-hidden>→</span>
                 </Link>
               </div>
             </article>

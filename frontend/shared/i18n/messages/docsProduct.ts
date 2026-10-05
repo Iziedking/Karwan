@@ -132,7 +132,7 @@ const en: DocsProductCopy = {
     milestones: [
       { when: 'Now', title: 'Mainnet waitlist', body: "Karwan is live on Arc mainnet with account and wallet access by invitation. We onboard one user at a time through the waitlist." },
       { when: 'Next', title: 'Deals on mainnet', body: 'The escrow, deal board and stake contracts released on Arc mainnet, so real deals can settle.' },
-      { when: 'Then', title: 'Arbiter and external audit', body: 'An arbiter for deals where one side goes silent, using the delivery evidence, and an external audit of the contracts that hold money.' },
+      { when: 'Then', title: 'Automatic rulings and external audit', body: 'Small disputes settle on the judge\'s ruling without a reviewer once its proposals match reviewer decisions, and an external audit of the contracts that hold money.' },
       { when: 'After that', title: 'Trade from anywhere', body: 'Start a protected deal from the page where the trade began, starting with X, plus recurring deals.' },
       { when: 'Later', title: 'Local payouts', body: 'Cash out USDC to a local bank account, one country at a time.' },
     ],
@@ -230,7 +230,7 @@ const ar: DocsProductCopy = {
     milestones: [
       { when: 'الآن', title: 'قائمة انتظار الشبكة الرئيسية', body: "كروان متاحة على Arc mainnet بحسابات ومحافظ عبر الدعوة. نستقبل مستخدماً واحداً في كل مرة من قائمة الانتظار." },
       { when: 'التالي', title: 'الصفقات على الشبكة الرئيسية', body: 'إطلاق عقود الضمان ولوحة الصفقات والرهن على الشبكة الرئيسية لـ Arc لتتم تسوية صفقات حقيقية.' },
-      { when: 'ثم', title: 'المحكّم والتدقيق الخارجي', body: 'محكّم للصفقات التي يصمت فيها أحد الطرفين اعتمادًا على أدلة التسليم، وتدقيق خارجي للعقود التي تحتفظ بالمال.' },
+      { when: "ثم", title: "الأحكام التلقائية والتدقيق الخارجي", body: "تُحسم النزاعات الصغيرة بحكم الحَكَم دون مراجع بعد أن تطابق مقترحاته قرارات المراجعين، مع تدقيق خارجي للعقود التي تحتفظ بالأموال." },
       { when: 'بعد ذلك', title: 'التداول من أي مكان', body: 'ابدأ صفقة محمية من الصفحة التي بدأت فيها التجارة، بدءًا من X، إضافة إلى الصفقات المتكررة.' },
       { when: 'لاحقًا', title: 'السحب المحلي', body: 'اسحب USDC إلى حساب مصرفي محلي، دولة تلو الأخرى.' },
     ],
@@ -328,7 +328,7 @@ const fr: DocsProductCopy = {
     milestones: [
       { when: 'Maintenant', title: 'Liste d’attente mainnet', body: "Karwan est sur Arc mainnet avec un accès aux comptes et portefeuilles sur invitation. Nous accueillons une personne à la fois depuis la liste d’attente." },
       { when: 'Ensuite', title: 'Transactions sur le mainnet', body: 'Les contrats de séquestre, de tableau des transactions et de mise en jeu déployés sur le mainnet d’Arc, pour régler de vraies transactions.' },
-      { when: 'Puis', title: 'Arbitre et audit externe', body: 'Un arbitre pour les transactions où une partie ne répond plus, fondé sur les preuves de livraison, et un audit externe des contrats qui détiennent l’argent.' },
+      { when: "Puis", title: "Décisions automatiques et audit externe", body: "Les petits litiges se règlent sur la décision du juge sans examinateur, une fois que ses propositions concordent avec celles des examinateurs, et un audit externe des contrats qui détiennent l'argent." },
       { when: 'Après', title: 'Échanger depuis n’importe où', body: 'Lancez une transaction protégée depuis la page où l’échange a commencé, en commençant par X, avec des transactions récurrentes.' },
       { when: 'Plus tard', title: 'Retraits locaux', body: 'Retirez des USDC vers un compte bancaire local, un pays à la fois.' },
     ],
@@ -426,7 +426,7 @@ const hi: DocsProductCopy = {
     milestones: [
       { when: 'अभी', title: 'मेननेट प्रतीक्षा सूची', body: "Karwan Arc मेननेट पर निमंत्रण से खाता और वॉलेट पहुँच देता है। प्रतीक्षा सूची से एक समय में एक उपयोगकर्ता को आमंत्रित किया जाता है।" },
       { when: 'अगला', title: 'मेननेट पर सौदे', body: 'एस्क्रो, सौदा बोर्ड और स्टेक अनुबंध Arc मेननेट पर जारी, ताकि असली सौदे निपट सकें।' },
-      { when: 'फिर', title: 'मध्यस्थ और बाहरी ऑडिट', body: 'उन सौदों के लिए मध्यस्थ जिनमें एक पक्ष चुप हो जाए, डिलीवरी सबूतों के आधार पर, और पैसा रखने वाले अनुबंधों का बाहरी ऑडिट।' },
+      { when: "फिर", title: "स्वचालित फ़ैसले और बाहरी ऑडिट", body: "जब जज के प्रस्ताव समीक्षकों के फ़ैसलों से मेल खाने लगें, तब छोटे विवाद बिना समीक्षक के जज के फ़ैसले पर निपटेंगे, साथ ही पैसा रखने वाले अनुबंधों का बाहरी ऑडिट।" },
       { when: 'उसके बाद', title: 'कहीं से भी व्यापार', body: 'जिस पेज पर व्यापार शुरू हुआ वहीं से सुरक्षित सौदा शुरू करें, पहले X से, साथ में दोहराए जाने वाले सौदे।' },
       { when: 'बाद में', title: 'स्थानीय भुगतान', body: 'USDC को स्थानीय बैंक खाते में निकालें, एक-एक देश करके।' },
     ],
@@ -524,7 +524,7 @@ const sw: DocsProductCopy = {
     milestones: [
       { when: 'Sasa', title: 'Orodha ya kusubiri ya mainnet', body: "Karwan iko kwenye Arc mainnet yenye akaunti na pochi kwa mwaliko. Tunapokea mtumiaji mmoja kwa wakati kutoka orodha ya kusubiri." },
       { when: 'Kinachofuata', title: 'Mikataba kwenye mainnet', body: 'Mikataba ya escrow, ubao wa mikataba na dhamana huzinduliwa kwenye mainnet ya Arc ili mikataba halisi ikamilike.' },
-      { when: 'Kisha', title: 'Msuluhishi na ukaguzi wa nje', body: 'Msuluhishi wa mikataba ambapo upande mmoja umenyamaza, kwa kutumia ushahidi wa uwasilishaji, na ukaguzi wa nje wa mikataba inayoshikilia pesa.' },
+      { when: "Kisha", title: "Maamuzi ya kiotomatiki na ukaguzi wa nje", body: "Migogoro midogo itamalizwa kwa uamuzi wa mwamuzi bila mkaguzi pindi mapendekezo yake yanapolingana na maamuzi ya wakaguzi, pamoja na ukaguzi wa nje wa mikataba inayoshikilia pesa." },
       { when: 'Baada ya hapo', title: 'Fanya biashara popote', body: 'Anzisha mkataba uliolindwa kutoka ukurasa ambapo biashara ilianzia, kuanzia X, pamoja na mikataba ya kujirudia.' },
       { when: 'Baadaye', title: 'Malipo ya ndani', body: 'Toa USDC kwenda akaunti ya benki ya ndani, nchi moja baada ya nyingine.' },
     ],

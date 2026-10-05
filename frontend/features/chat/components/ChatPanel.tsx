@@ -10,7 +10,11 @@ import { useChat } from '../hooks/useChat';
 
 /// A deal-scoped conversation. Replies keep their context, images are the only
 /// attachment type, and the server enforces the retention window.
-export function ChatPanel({ jobId, caller, counterpartyLabel, counterpartyAddress, draftSeed, draftSeedKey }: { jobId: string; caller: string; counterpartyLabel: string; counterpartyAddress?: string; draftSeed?: string; draftSeedKey?: number }) {
+/// Messages show the latest page first; older ones load on request, so a long
+/// conversation never renders all at once.
+const MESSAGES_PER_PAGE = 30;
+
+export function ChatPanel({ jobId, caller, counterpartyLabel, counterpartyAddress, draftSeed, draftSeedKey, fill }: { jobId: string; caller: string; counterpartyLabel: string; counterpartyAddress?: string; draftSeed?: string; draftSeedKey?: number; /** Stretch to the parent's height, input pinned to the bottom. */ fill?: boolean }) {
   const cp = useTranslations().chatPanel;
   const { locale } = useLocale();
   const { messages, fetchState, fetchError, send, sending, writable } = useChat({ jobId, caller });
@@ -19,6 +23,7 @@ export function ChatPanel({ jobId, caller, counterpartyLabel, counterpartyAddres
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const me = caller.toLowerCase();
+  const [shown, setShown] = useState(MESSAGES_PER_PAGE);
   const listRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -58,13 +63,13 @@ export function ChatPanel({ jobId, caller, counterpartyLabel, counterpartyAddres
   const nameOf = (sender: string) => (sender.toLowerCase() === me ? cp.you : counterpartyLabel);
 
   return (
-    <section className="flex w-full flex-col overflow-hidden rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
+    <section className={cn('flex w-full flex-col overflow-hidden rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]', fill && 'h-full')}>
       <header className="flex items-center gap-3 border-b border-[var(--lp-border-light)] px-4 py-3 sm:px-5">
         <PersonAvatar address={counterpartyAddress} name={counterpartyLabel} size={36} />
         <p className="min-w-0 truncate text-[15px] font-semibold text-[var(--lp-dark)]">{counterpartyLabel}</p>
       </header>
 
-      <div ref={listRef} role="log" aria-live="polite" className="h-[min(56vh,520px)] min-h-[280px] overflow-y-auto px-3 py-4 sm:px-5">
+      <div ref={listRef} role="log" aria-live="polite" className={cn('overflow-y-auto px-3 py-4 sm:px-5', fill ? 'min-h-0 flex-1' : 'h-[min(56vh,520px)] min-h-[280px]')}>
         {fetchState === 'loading' ? (
           <div aria-busy="true" className="space-y-2">
             <div className="h-10 w-2/3 rounded-[18px] bg-[var(--lp-light)]" />
@@ -75,7 +80,13 @@ export function ChatPanel({ jobId, caller, counterpartyLabel, counterpartyAddres
         {fetchState === 'ready' && messages.length === 0 ? (
           <p className="grid h-full place-items-center text-[14px] text-[var(--lp-text-sub)] font-medium">{cp.emptyMessage}</p>
         ) : null}
+        {messages.length > shown ? (
+          <button type="button" onClick={() => setShown((n) => n + MESSAGES_PER_PAGE)} className="mx-auto mb-2 flex min-h-11 items-center px-3 text-[14px] font-semibold text-[var(--lp-dark)] underline underline-offset-4">
+            {cp.showEarlier}
+          </button>
+        ) : null}
         {messages.map((message, index) => {
+          if (index < messages.length - shown) return null;
           const sender = typeof message.sender === 'string' ? message.sender : '';
           const previous = messages[index - 1];
           const newDay = !previous || dayKey(previous.ts) !== dayKey(message.ts);

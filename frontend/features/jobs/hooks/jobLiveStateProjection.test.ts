@@ -207,3 +207,13 @@ test('projection does not mutate or expose the input event array', () => {
   assert.deepEqual(events, before);
   assert.notStrictEqual(result.events, events);
 });
+
+test('a match that follows a decline reopens the request, as when the buyer chooses another offer', () => {
+  // Newest first, as the live feed delivers them.
+  const result = deriveJobLiveState(
+    makeBuyerJob({ bids: [bid] }),
+    [makeJobEvent('deal.matched', {}, 200), makeJobEvent('deal.match.declined', {}, 100)],
+  );
+  assert.equal(result.declined, false);
+  assert.notEqual(result.ended, 'declined');
+});

@@ -1,4 +1,7 @@
 import type { Messages } from './en';
+import { requestListCopy } from './requestList';
+import { balanceSummaryCopy } from './balanceSummary';
+import { disputeJudgeCopy } from './disputeJudge';
 import { networkCopy } from './network';
 import { escrowDocsCopy } from './escrowDocs';
 import { socialTradeCopy } from './socialTrade';
@@ -27,6 +30,9 @@ export const sw: Messages = {
   pageNotFound: notFoundCopy.sw,
   offerRoster: offerRosterCopy.sw,
   dealLive: dealLiveCopy.sw,
+  disputeJudge: disputeJudgeCopy.sw,
+  balanceSummary: balanceSummaryCopy.sw,
+  requestList: requestListCopy.sw,
   search: searchCopy.sw,
   offers: offersCopy.sw,
   escrowV3: escrowV3Copy.sw,
@@ -2612,8 +2618,9 @@ export const sw: Messages = {
     topTier: 'Daraja la juu',
   },
   chatPanel: {
-    timeline: { "deal.accepted": "Muuzaji amekubali makubaliano.", "escrow.funded": "Mnunuzi ameweka pesa kwenye escrow. Pesa imeshikiliwa hadi itolewe.", "deal.delivered": "Muuzaji ameweka alama kuwa mpango umewasilishwa.", "deal.release.blocked": "Ukaguzi wa uwasilishaji umesimamisha malipo.", "deal.release.unblocked": "Ukaguzi wa uwasilishaji umekamilika. Malipo yanaweza kuendelea.", "deal.delivery.cleared": "Ukaguzi wa uwasilishaji umekamilika. Malipo yanaweza kuendelea.", "escrow.milestone.released": "Malipo yametolewa kwa muuzaji.", "deal.milestone.auto_released": "Malipo yametolewa baada ya muda wa ukaguzi kuisha.", "escrow.settled": "Mpango umekamilika.", "escrow.refunded": "Pesa imerudi kwa mnunuzi.", "escrow.reclaimed": "Pesa imerudi kwa mnunuzi.", "deal.disputed": "Mzozo umefunguliwa.", "escrow.resolved": "Mzozo umetatuliwa.", "deal.dispute.auto_resolved": "Mzozo umefungwa.", "deal.cancel.proposed": "Kufuta kumependekezwa.", "deal.cancel.declined": "Kufuta kumekataliwa.", "deal.cancelled": "Mpango umefutwa.", "deal.extension.requested": "Muda zaidi umeombwa.", "deal.extension.approved": "Muda zaidi umekubaliwa.", "deal.direct.edited": "Masharti yamesasishwa." },
+    timeline: { "deal.dispute.statement.buyer": disputeJudgeCopy.sw.timeline.statementBuyer, "deal.dispute.statement.seller": disputeJudgeCopy.sw.timeline.statementSeller, "deal.dispute.proposed": disputeJudgeCopy.sw.timeline.proposed, "deal.accepted": "Muuzaji amekubali makubaliano.", "escrow.funded": "Mnunuzi ameweka pesa kwenye escrow. Pesa imeshikiliwa hadi itolewe.", "deal.delivered": "Muuzaji ameweka alama kuwa mpango umewasilishwa.", "deal.release.blocked": "Ukaguzi wa uwasilishaji umesimamisha malipo.", "deal.release.unblocked": "Ukaguzi wa uwasilishaji umekamilika. Malipo yanaweza kuendelea.", "deal.delivery.cleared": "Ukaguzi wa uwasilishaji umekamilika. Malipo yanaweza kuendelea.", "escrow.milestone.released": "Malipo yametolewa kwa muuzaji.", "deal.milestone.auto_released": "Malipo yametolewa baada ya muda wa ukaguzi kuisha.", "escrow.settled": "Mpango umekamilika.", "escrow.refunded": "Pesa imerudi kwa mnunuzi.", "escrow.reclaimed": "Pesa imerudi kwa mnunuzi.", "deal.disputed": "Mzozo umefunguliwa.", "escrow.resolved": "Mzozo umetatuliwa.", "deal.dispute.auto_resolved": "Mzozo umefungwa.", "deal.cancel.proposed": "Kufuta kumependekezwa.", "deal.cancel.declined": "Kufuta kumekataliwa.", "deal.cancelled": "Mpango umefutwa.", "deal.extension.requested": "Muda zaidi umeombwa.", "deal.extension.approved": "Muda zaidi umekubaliwa.", "deal.direct.edited": "Masharti yamesasishwa." },
     reply: 'Jibu', cancelReply: 'Ghairi jibu', replyingTo: 'Kumjibu {name}', you: 'Wewe', imageAttachment: 'Kiambatisho cha picha', attachImage: 'Ambatisha picha', removeImage: 'Ondoa picha', imageOnly: 'Ongeza maelezo au tuma picha', imageUnsupported: 'Tumia picha ya PNG, JPEG au WebP.', imageTooLarge: 'Picha ni kubwa sana. Kikomo ni KB 750.', imageReadError: 'Picha haikuweza kusomwa. Jaribu tena.',conversationClosed: 'Mazungumzo haya yamefungwa.',
+    showEarlier: 'Onyesha ujumbe wa awali',
     loadError: 'Haikuweza kupakia historia ya mazungumzo.',
     emptyMessage: 'Hakuna ujumbe bado. Sema habari.',
     inputPlaceholder: 'Andika ujumbe…',
@@ -5048,7 +5055,7 @@ export const sw: Messages = {
       q3: { q: 'Nani anadhibiti mkoba wangu wa wakala?', a: 'Mkoba wako wa wakala ni Circle Developer-Controlled Wallet ambao mmiliki wake ni wewe. Karwan inaweza kusaini kwa niaba yake kuzungumza wakati unalala, lakini haifungui escrow bila idhini yako. Unaweza kufyeka fedha kutoka kwake wakati wowote kupitia ukurasa wa wasifu.' },
       q4: { q: 'Je, mikataba mahiri imewekwa?', a: 'Ndio. Mikataba ya escrow, vault, sifa, treasury, na job-board iko hai kwenye Arc Testnet (chenya 5042002). Anwani za sasa ziko kwenye hifadhi ya umma. Kila tukio kwenye mlisho wa shughuli linaunganishwa na muamala wake kwenye kichunguzi cha Arc.' },
       q5: { q: "Escrow inatoa vipi?", a: "Kagua uwasilishaji na uachilie hatua zilizokubaliwa. Ikiwa upande wowote unahitaji muda zaidi, muuzaji anaweza kuomba muda wa kuwasilisha na mnunuzi anaweza kuongeza muda wa ukaguzi, hadi kikomo kilicho kwenye masharti. Muda wa ukaguzi ukiisha bila hatua, mkataba unaweza kumruhusu muuzaji kudai hatua ya sasa, ikiwemo ya mwisho. Angalia tarehe na hatua kwenye mkataba." },
-      q6: { q: "Itakuwaje mkataba ukienda kwenye mgogoro?", a: "Mgogoro huzuia salio ambalo halijaachiliwa. Unaweza kupendekeza mgawanyo ambao upande mwingine utakubali. Msipokubaliana, msuluhishi huamua kutokana na rekodi ya mkataba: kama kazi iliwasilishwa kwa wakati, matokeo ya ukaguzi wa kazi iliyowasilishwa, na kama muuzaji alijibu. Uamuzi wa kiotomatiki huanza kutumika tu baada ya muda wa rufaa. Kufungua mgogoro si kurejeshewa pesa kiotomatiki." },
+      q6: { q: "Itakuwaje mkataba ukienda kwenye mgogoro?", a: "Mgogoro huzuia salio ambalo halijaachiliwa. Unaweza kupendekeza mgawanyo ambao upande mwingine utakubali. Vinginevyo kila upande hutoa maelezo yake ndani ya saa 48 kwa kujibu maswali matatu. Mwamuzi husoma maelezo ya pande zote, ukaguzi wa kazi iliyowasilishwa na mazungumzo ya mkataba, kisha anapendekeza mgawanyo. Mkaguzi huthibitisha kila uamuzi kabla pesa hazijasonga. Upande usiotoa maelezo hushindwa. Kufungua mgogoro si kurejeshewa pesa kiotomatiki." },
       q7: { q: 'Itakuwaje wakala wa muuzaji akiruka ombi langu lililolinganishwa na wakala?', a: 'Wasifu wa muuzaji una upeo wa bajeti na tarehe ya mwisho. Ikiwa ombi lako liko nje yake, wakala anaruka na ratiba inakuonyesha kwa nini. Ikiwa wakala hana uhakika kwa sababu nyingine yoyote, hilo pia linakaguliwa, hivyo hatua inayofuata haiwi kimya kamwe.' },
       q8: { q: "Ninaweza kufanya biashara za aina gani?", a: "Huduma na kazi za kidijitali, ndani ya nchi au kuvuka mipaka. Biashara ya bidhaa halisi na biashara kati ya kampuni zinakuja hivi karibuni. Kuja na mtu unayemfahamu, au chapisha ombi au ofa ili kumpata. Njia zote mbili hutumia escrow ya USDC kwenye Arc." },
       q9: { q: 'Mawazo ya wakala yanafanyika wapi?', a: 'Kila uamuzi unaogusa fedha unashughulikiwa na seti ya kanuni za uhakika nyuma: mipaka ya bajeti na tarehe ya mwisho, ulinganisho wa mada, mahitaji ya dhamana, hesabu ya kuhifadhi. Mfano wa lugha hushughulikia tu sehemu zinazohitaji hukumu, kama vile kama maelezo mawili ya ujuzi yasiyofanana yanaelezea kazi ile ile, au jinsi ya kuandika kaunta. Ikiwa mfano wa lugha unazimika, wakala unaendelea kufanya kazi kupitia njia zake za uhakika za salama.' },
@@ -5119,7 +5126,7 @@ export const sw: Messages = {
         autoRelease: { label: 'Kutolewa kiotomatiki.', body: 'Hatua zilizo kabla ya ya mwisho hujitoa zenyewe baada ya dirisha la ukaguzi kupita bila hatua yoyote kutoka kwa mnunuzi. Dirisha huonyeshwa kwenye deal na hurefuka kwa kila hatua inayofuata.' },
         deadline: { label: 'Tarehe ya mwisho iliyokosewa.', body: 'Wakati tarehe ya uwasilishaji inapita bila kitu kuwasilishwa, mnunuzi hutahadharishwa na anaweza kurudisha au kutoa muda zaidi. Kama hakuna anayetenda na muuzaji bado hajawasilisha baada ya dirisha la neema, escrow inarudi kwa mnunuzi kiotomatiki na kukosa huko kunarekodiwa dhidi ya muuzaji.' },
         cancel: { label: 'Kughairi.', body: 'Kughairi ambako pande zote mbili zinakubali kunarudisha fedha zote na hakuna adhabu. Fedha zilizowekewa stake na kutengwa kwa deal hurudishwa kwa muuzaji.' },
-        disputes: { label: "Migogoro.", body: "Mgogoro hufungia sehemu ya escrow ambayo haijaachiliwa. Pande zinaweza kukubaliana mgawanyo wenyewe. Vinginevyo, msuluhishi huamua kutokana na rekodi ya mkataba, ikiwemo uwasilishaji kwa wakati, ukaguzi wa kazi iliyowasilishwa na kama muuzaji alijibu, na huweka viwango vya kuachilia na kurejesha. Mkataba unaoendelea na mkataba uliothibitishwa ndio msingi wa njia iliyopo." },
+        disputes: { label: "Migogoro.", body: "Mgogoro hufungia sehemu ya escrow ambayo haijaachiliwa. Pande zinaweza kukubaliana mgawanyo wenyewe. Vinginevyo kila upande hutoa maelezo yake ndani ya saa 48. Mwamuzi husoma maelezo ya pande zote, ukaguzi wa kazi iliyowasilishwa na mazungumzo ya mkataba, na hupendekeza viwango vya kuachilia na kurejesha. Mkaguzi huthibitisha kila uamuzi kabla pesa hazijasonga. Upande usiotoa maelezo hushindwa. Mkataba unaoendelea na mkataba uliothibitishwa ndio msingi wa njia iliyopo." },
       },
       tail: 'Muda halisi unaotumika umechapishwa kwenye ukurasa wa migogoro ndani ya bidhaa, na unaweza kubadilika. Ukurasa huo unaonyesha thamani halisi, si nakala yake.',
     },

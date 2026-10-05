@@ -559,6 +559,32 @@ export interface DirectDealOnChainV3 {
 
 /// Mirrors backend/src/deals/dealView.ts. The server computes it once so every
 /// surface agrees on what the deal needs next.
+export interface DisputeStatementView {
+  received: string;
+  missing: string;
+  late: string;
+  links: string[];
+  submittedAt: number;
+}
+
+export interface DisputeProposalView {
+  sellerBps: number;
+  items: Array<{ item: string; finding: 'delivered' | 'partly-delivered' | 'missing' | 'unclear'; evidence: string }>;
+  confidence: 'clear' | 'inconclusive';
+  summary: string;
+  rule?: 'silent-seller' | 'silent-buyer' | 'both-silent' | 'judge-unavailable';
+  proposedAt: number;
+  status: 'awaiting-review' | 'confirmed' | 'overridden';
+}
+
+export interface DealDisputeView {
+  closesAt: number;
+  open: boolean;
+  otherSubmitted: boolean;
+  statements: Partial<Record<'buyer' | 'seller', DisputeStatementView>>;
+  proposal?: DisputeProposalView;
+}
+
 export interface DealView {
   stage: 'awaiting-acceptance' | 'awaiting-funding' | 'awaiting-delivery' | 'awaiting-first-release'
     | 'awaiting-final-release' | 'settled' | 'cancelled' | 'disputed';
@@ -776,6 +802,10 @@ export interface DirectDeal {
   deliveryMatch?: { verdict: 'aligned' | 'partial' | 'mismatch' | 'unknown'; reason: string };
   /// Where the delivery check stands, visible to both parties without the buyer's review.
   deliveryCheck?: 'checking' | 'passed' | 'held' | 'unverified' | null;
+  /// This viewer's view of a dispute (backend deals/disputeJudge.ts
+  /// disputeViewFor): the other side's account appears only once both are in
+  /// or the statement window has closed.
+  dispute?: DealDisputeView;
   reviewWindowStartedAt?: number;
   reviewExtensionMs?: number;
   reviewExtensionCount?: number;
@@ -1762,6 +1792,9 @@ export interface AdminDisputeRow {
   dealAmountUsdc: string;
   disputedAt: number | null;
   disputedBy: 'buyer' | 'seller' | null;
+  /// Each side's account and the judge's proposal, for the reviewer.
+  statements?: Partial<Record<'buyer' | 'seller', DisputeStatementView>> | null;
+  proposal?: (DisputeProposalView & { model?: string; inputsHash?: string }) | null;
   /// False when the escrow holding this deal is not the one a ruling targets.
   /// The admin surface offers no signing controls in that case: two owners
   /// signing something that cannot execute is worse than no controls at all.
@@ -2260,6 +2293,16 @@ export const api = {
     ),
   /// The buyer chooses one of the offers on their request at its own price.
   /// Funds escrow in the same call, so it runs behind the confirm sheet.
+  /// A party's account of a dispute: three answers and up to five links.
+  submitDisputeStatement: (
+    jobId: string,
+    caller: string,
+    answers: { received: string; missing: string; late: string; links: string[] },
+  ) =>
+    json<{ accepted: boolean; jobId: string; side: 'buyer' | 'seller' }>(
+      `/api/deals/direct/${jobId}/dispute/statement`,
+      { method: 'POST', body: JSON.stringify({ caller, ...answers }) },
+    ),
   chooseOffer: (jobId: string, caller: string, seller: string) =>
     json<{ accepted: boolean; jobId: string; txHash: string }>(
       `/api/jobs/${jobId}/choose-offer`,

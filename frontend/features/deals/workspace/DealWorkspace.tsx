@@ -154,12 +154,13 @@ export function DealWorkspace({ jobId }: { jobId: string }) {
       </div>
       </div>
       {desktop && address ? (
-        <aside aria-label={copy.simple.messages} className="sticky top-24 mt-4 flex h-[calc(100vh-8rem)] min-h-[480px] flex-col overflow-hidden rounded-[20px] bg-[var(--lp-card)] p-4">
+        <aside aria-label={copy.simple.messages} className="sticky top-24 mt-4 h-[calc(100vh-8rem)] min-h-[480px]">
           <ChatPanel
             jobId={deal.jobId}
             caller={address}
             counterpartyLabel={counterpartyName || shortAddress(actions.viewerIsBuyer ? deal.seller : deal.buyer)}
             counterpartyAddress={actions.viewerIsBuyer ? deal.seller : deal.buyer}
+            fill
           />
         </aside>
       ) : null}

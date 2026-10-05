@@ -1,4 +1,7 @@
 import type { Messages } from './en';
+import { requestListCopy } from './requestList';
+import { balanceSummaryCopy } from './balanceSummary';
+import { disputeJudgeCopy } from './disputeJudge';
 import { networkCopy } from './network';
 import { escrowDocsCopy } from './escrowDocs';
 import { socialTradeCopy } from './socialTrade';
@@ -27,6 +30,9 @@ export const ar: Messages = {
   pageNotFound: notFoundCopy.ar,
   offerRoster: offerRosterCopy.ar,
   dealLive: dealLiveCopy.ar,
+  disputeJudge: disputeJudgeCopy.ar,
+  balanceSummary: balanceSummaryCopy.ar,
+  requestList: requestListCopy.ar,
   search: searchCopy.ar,
   offers: offersCopy.ar,
   escrowV3: escrowV3Copy.ar,
@@ -2615,8 +2621,9 @@ export const ar: Messages = {
     topTier: 'أعلى فئة',
   },
   chatPanel: {
-    timeline: { "deal.accepted": "قبل البائع الاتفاق.", "escrow.funded": "موّل المشتري الضمان. الأموال محفوظة حتى الإفراج.", "deal.delivered": "وضع البائع علامة التسليم على الصفقة.", "deal.release.blocked": "أوقف فحص التسليم الدفع.", "deal.release.unblocked": "انتهى فحص التسليم. يمكن أن يتم الدفع.", "deal.delivery.cleared": "انتهى فحص التسليم. يمكن أن يتم الدفع.", "escrow.milestone.released": "تم تحرير دفعة إلى البائع.", "deal.milestone.auto_released": "تم تحرير دفعة بعد انتهاء مدة المراجعة.", "escrow.settled": "تمت تسوية الصفقة.", "escrow.refunded": "عادت الأموال إلى المشتري.", "escrow.reclaimed": "عادت الأموال إلى المشتري.", "deal.disputed": "تم فتح نزاع.", "escrow.resolved": "تمت تسوية النزاع.", "deal.dispute.auto_resolved": "تم إغلاق النزاع.", "deal.cancel.proposed": "تم اقتراح إلغاء.", "deal.cancel.declined": "تم رفض الإلغاء.", "deal.cancelled": "تم إلغاء الصفقة.", "deal.extension.requested": "تم طلب وقت إضافي.", "deal.extension.approved": "تمت الموافقة على وقت إضافي.", "deal.direct.edited": "تم تحديث الشروط." },
+    timeline: { "deal.dispute.statement.buyer": disputeJudgeCopy.ar.timeline.statementBuyer, "deal.dispute.statement.seller": disputeJudgeCopy.ar.timeline.statementSeller, "deal.dispute.proposed": disputeJudgeCopy.ar.timeline.proposed, "deal.accepted": "قبل البائع الاتفاق.", "escrow.funded": "موّل المشتري الضمان. الأموال محفوظة حتى الإفراج.", "deal.delivered": "وضع البائع علامة التسليم على الصفقة.", "deal.release.blocked": "أوقف فحص التسليم الدفع.", "deal.release.unblocked": "انتهى فحص التسليم. يمكن أن يتم الدفع.", "deal.delivery.cleared": "انتهى فحص التسليم. يمكن أن يتم الدفع.", "escrow.milestone.released": "تم تحرير دفعة إلى البائع.", "deal.milestone.auto_released": "تم تحرير دفعة بعد انتهاء مدة المراجعة.", "escrow.settled": "تمت تسوية الصفقة.", "escrow.refunded": "عادت الأموال إلى المشتري.", "escrow.reclaimed": "عادت الأموال إلى المشتري.", "deal.disputed": "تم فتح نزاع.", "escrow.resolved": "تمت تسوية النزاع.", "deal.dispute.auto_resolved": "تم إغلاق النزاع.", "deal.cancel.proposed": "تم اقتراح إلغاء.", "deal.cancel.declined": "تم رفض الإلغاء.", "deal.cancelled": "تم إلغاء الصفقة.", "deal.extension.requested": "تم طلب وقت إضافي.", "deal.extension.approved": "تمت الموافقة على وقت إضافي.", "deal.direct.edited": "تم تحديث الشروط." },
     reply: 'Reply', cancelReply: 'Cancel reply', replyingTo: 'Replying to {name}', you: 'You', imageAttachment: 'Image attachment', attachImage: 'Attach image', removeImage: 'Remove image', imageOnly: 'Add a caption or send the image', imageUnsupported: 'Use a PNG, JPEG, or WebP image.', imageTooLarge: 'That image is too large. Keep it under 750 KB.', imageReadError: 'We could not read that image. Try again.',conversationClosed: 'This conversation is closed.',
+    showEarlier: 'عرض الرسائل السابقة',
     loadError: 'تعذّر تحميل سجل المحادثة.',
     emptyMessage: 'لا رسائل بعد. ابدأ بتحية.',
     inputPlaceholder: 'اكتب رسالة…',
@@ -5051,7 +5058,7 @@ export const ar: Messages = {
       q3: { q: 'من يتحكم في محفظة الوكيل الخاصة بي؟', a: 'محفظة الوكيل لديك هي محفظة Developer-Controlled Wallet من Circle، أنت مالكها. يمكن لـ Karwan التوقيع نيابةً عنها للتفاوض أثناء نومك، لكنها لا تفتح ضمانًا أبدًا دون موافقتك. يمكنك سحب الأموال منها في أي وقت من صفحة الملف الشخصي.' },
       q4: { q: 'هل العقود الذكية منشورة؟', a: 'نعم. عقود الضمان والخزينة والسمعة و KarwanVault ولوحة الوظائف نشطة على Arc Testnet (السلسلة 5042002). العناوين الحالية موجودة في المستودع العام. يربط كل حدث في خلاصة النشاط بمعاملته على مستكشف Arc.' },
       q5: { q: "كيف يُفرج عن الضمان؟", a: "راجع التسليم وأفرج عن المراحل المتفق عليها. إذا احتاج أي طرف إلى وقت إضافي، يمكن للبائع طلب مهلة للتسليم ويمكن للمشتري تمديد مدة المراجعة، ضمن الحد الوارد في الشروط. إذا انتهت مدة المراجعة دون أي إجراء، قد يسمح العقد للبائع بالمطالبة بالمرحلة الحالية، بما فيها الأخيرة. تحقق من المواعيد والإجراءات في الصفقة." },
-      q6: { q: "ماذا لو تحوّلت الصفقة إلى نزاع؟", a: "يجمّد النزاع الرصيد غير المُفرج عنه. يمكنك اقتراح تقسيم يقبله الطرف الآخر. إذا لم تتفقا، يحكم المحكّم من سجل الصفقة: هل سُلّم العمل في موعده، ونتيجة فحص العمل المُسلَّم، وهل ردّ البائع. لا يسري الحكم التلقائي إلا بعد مهلة للاستئناف. فتح النزاع لا يعني استردادًا تلقائيًا." },
+      q6: { q: "ماذا لو تحوّلت الصفقة إلى نزاع؟", a: "يجمّد النزاع الرصيد غير المُفرج عنه. يمكنك اقتراح تقسيم يقبله الطرف الآخر. وإلا يقدّم كل طرف روايته خلال 48 ساعة بالإجابة عن ثلاثة أسئلة. يقرأ الحَكَم الروايتين وفحص العمل المُسلَّم ومحادثة الصفقة، ثم يقترح تقسيمًا. يؤكد مراجع كل حكم قبل أن يتحرك أي مال. الطرف الذي لا يقدّم روايته يخسر. فتح النزاع لا يعني استردادًا تلقائيًا." },
       q7: { q: 'ماذا لو تخطى وكيل البائع طلبي المُطابق بالوكيل؟', a: 'لدى ملف البائع نطاق ميزانية وموعد نهائي. إذا وقع طلبك خارجه، يتخطى الوكيل ويُظهر الجدول الزمني السبب. وإن كان الوكيل غير متأكد لأي سبب آخر، يُسجَّل ذلك أيضًا، فلا تكون الخطوة التالية صامتة أبدًا.' },
       q8: { q: "ما أنواع التجارة المتاحة؟", a: "الخدمات والعمل الرقمي، محليًا أو عبر الحدود. تجارة السلع المادية وتجارة الشركات قادمة قريبًا. أحضر طرفًا تعرفه، أو انشر طلبًا أو عرضًا لتجد طرفًا. يستخدم المساران ضمان USDC على Arc." },
       q9: { q: 'أين يعمل تفكير الوكيل؟', a: 'تُعالَج كل قرار يمس المال بمجموعة قواعد حتمية في الخلفية: حدود الميزانية والموعد النهائي، والمطابقة الموضوعية، ومتطلبات الحصة، وحساب الاحتياطي. يتولى نموذج اللغة فقط الأجزاء التي تتطلب حكمًا، مثل ما إذا كان وصفان متباينان لمهارات يصفان نفس العمل، أو كيفية صياغة عرض مضاد. إذا انقطع نموذج اللغة، يستمر الوكيل في العمل عبر بدائله الحتمية.' },
@@ -5122,7 +5129,7 @@ export const ar: Messages = {
         autoRelease: { label: 'الإطلاق التلقائي.', body: 'المراحل قبل الأخيرة تُطلق من تلقاء نفسها بعد مرور نافذة المراجعة دون تصرف من المشتري. النافذة معروضة على الصفقة وتطول مع كل مرحلة لاحقة.' },
         deadline: { label: 'موعد نهائي فائت.', body: 'عندما يمر موعد التسليم دون تسليم شيء، يُنبَّه المشتري ويمكنه الاسترداد أو منح تمديد. إذا لم يتصرف أحد وظل البائع دون تسليم بعد نافذة السماح، يعود الضمان إلى المشتري تلقائياً ويُسجَّل التفويت ضد البائع.' },
         cancel: { label: 'الإلغاء.', body: 'الإلغاء الذي يتفق عليه الطرفان يعيد المبلغ كاملاً دون أي عقوبة. الأموال المرهونة المحجوزة على الصفقة تعود إلى البائع.' },
-        disputes: { label: "النزاعات.", body: "يجمّد النزاع الجزء غير المُفرج عنه من الضمان. يمكن للطرفين الاتفاق على تقسيم. وإلا يحكم المحكّم من سجل الصفقة، بما في ذلك التسليم في الموعد وفحص العمل المُسلَّم وردّ البائع، ويحدد نسب الإفراج والاسترداد. الصفقة الحية والعقد الموثّق هما المرجع للمسار المتاح." },
+        disputes: { label: "النزاعات.", body: "يجمّد النزاع الجزء غير المُفرج عنه من الضمان. يمكن للطرفين الاتفاق على تقسيم. وإلا يقدّم كل طرف روايته خلال 48 ساعة. يقرأ الحَكَم الروايتين وفحص العمل المُسلَّم ومحادثة الصفقة، ويقترح نسب الإفراج والاسترداد. يؤكد مراجع كل حكم قبل أن يتحرك أي مال. الطرف الذي لا يقدّم روايته يخسر. الصفقة الحية والعقد الموثّق هما المرجع للمسار المتاح." },
       },
       tail: 'المدد الدقيقة السارية منشورة على صفحة النزاعات داخل المنتج، ويمكن أن تتغير. تلك الصفحة تعرض القيم الحية، لا نسخة منها.',
     },

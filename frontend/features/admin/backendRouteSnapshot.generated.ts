@@ -192,6 +192,7 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "POST", path: "/api/deals/direct/:jobId/delay-appeal-respond" },
   { method: "POST", path: "/api/deals/direct/:jobId/delivered" },
   { method: "POST", path: "/api/deals/direct/:jobId/dispute/escalate" },
+  { method: "POST", path: "/api/deals/direct/:jobId/dispute/statement" },
   { method: "POST", path: "/api/deals/direct/:jobId/edit" },
   { method: "POST", path: "/api/deals/direct/:jobId/evidence/manual-review" },
   { method: "POST", path: "/api/deals/direct/:jobId/extension/request" },
