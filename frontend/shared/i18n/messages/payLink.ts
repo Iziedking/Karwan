@@ -48,6 +48,7 @@ export interface PayLinkCopy {
     bothSee: string;
     receiptFor: string;
     paidBadge: string;
+    saveReceipt: string;
     receiptKind: string;
     receiptTo: string;
     receiptDate: string;
@@ -145,6 +146,7 @@ const en: PayLinkCopy = {
     bothSee: 'The request shows Paid for both of you.',
     receiptFor: 'For',
     paidBadge: 'Paid',
+    saveReceipt: "Save receipt",
     receiptKind: 'Payment receipt',
     receiptTo: 'To',
     receiptDate: 'Date',
@@ -242,6 +244,7 @@ const fr: PayLinkCopy = {
     bothSee: 'La demande indique Payé pour vous deux.',
     receiptFor: 'Pour',
     paidBadge: 'Payé',
+    saveReceipt: "Enregistrer le reçu",
     receiptKind: 'Reçu de paiement',
     receiptTo: 'À',
     receiptDate: 'Date',
@@ -339,6 +342,7 @@ const ar: PayLinkCopy = {
     bothSee: 'يظهر الطلب مدفوعًا لكليكما.',
     receiptFor: 'مقابل',
     paidBadge: 'مدفوع',
+    saveReceipt: "حفظ الإيصال",
     receiptKind: 'إيصال دفع',
     receiptTo: 'إلى',
     receiptDate: 'التاريخ',
@@ -436,6 +440,7 @@ const hi: PayLinkCopy = {
     bothSee: 'अनुरोध आप दोनों के लिए भुगतान हुआ दिखाता है।',
     receiptFor: 'किसके लिए',
     paidBadge: 'भुगतान हुआ',
+    saveReceipt: "रसीद सहेजें",
     receiptKind: 'भुगतान रसीद',
     receiptTo: 'किसे',
     receiptDate: 'तारीख',
@@ -533,6 +538,7 @@ const sw: PayLinkCopy = {
     bothSee: 'Ombi linaonyesha Limelipwa kwa nyote wawili.',
     receiptFor: 'Kwa ajili ya',
     paidBadge: 'Imelipwa',
+    saveReceipt: "Hifadhi risiti",
     receiptKind: 'Risiti ya malipo',
     receiptTo: 'Kwa',
     receiptDate: 'Tarehe',

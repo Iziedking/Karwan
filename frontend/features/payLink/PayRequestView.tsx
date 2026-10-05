@@ -25,6 +25,7 @@ import { FundToPay } from './FundToPay';
 import { AnyChainPay } from './AnyChainPay';
 import { afterPaid } from './chainPayState';
 import { ReceiptCard } from '@/features/receipt/ReceiptCard';
+import { downloadReceiptImage } from '@/features/activity/receiptPresentation';
 import { ARC_NETWORK } from '@/core/arcNetwork';
 import { LoginModal } from '@/shared/components/LoginModal';
 
@@ -280,6 +281,31 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
 
   if (paid) {
     const receipt = activity.myMoney;
+    const paidDate = paid.paidAt
+      ? new Date(paid.paidAt).toLocaleString(locale, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+      : '';
+    const saveReceipt = () =>
+      downloadReceiptImage(
+        {
+          title: copy.receiptKind,
+          summary: `${fill(copy.paid, { amount: request.amountUsdc ?? '' })} ${fill(copy.paidTo, { name })}`,
+          reference: null,
+          amount: request.amountUsdc ? `${request.amountUsdc} USDC` : null,
+          status: copy.paidBadge,
+          date: paidDate,
+          ...(arcHash ? { transaction: { label: copy.receiptRef, value: `${arcHash.slice(0, 8)}…${arcHash.slice(-4)}` } } : {}),
+          referenceLabel: request.purpose ? copy.receiptFor : receipt.receiptReference,
+          referenceNone: request.purpose || receipt.receiptReferenceNone,
+          historicalNote: '',
+          sharedNote: receipt.receiptSharedNote,
+          done: true,
+          dateLabel: copy.receiptDate,
+          ...(paid.paidChain ? { network: paid.paidChain, networkLabel: copy.receiptFrom } : {}),
+          ...(arcHash ? { verifyTitle: receipt.receiptVerifyTitle, verifyUrl: ARC_CCTP.explorerTx(arcHash) } : {}),
+          footnote: ARC_NETWORK === 'testnet' ? receipt.receiptTestnet : undefined,
+        },
+        `karwan-receipt-${token.slice(0, 8)}.png`,
+      );
     return (
       <section className="space-y-6 pt-2">
         <ReceiptCard
@@ -305,6 +331,13 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
           </div>
         ) : null}
         <button type="button" onClick={finish} className={PRIMARY}>{next.kind === 'home' ? copy.goHome : copy.joinCta}</button>
+        <button
+          type="button"
+          onClick={saveReceipt}
+          className="flex min-h-12 w-full items-center justify-center rounded-full border border-[var(--lp-border-light)] px-5 text-[15px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+        >
+          {copy.saveReceipt}
+        </button>
         <LoginModal open={signingIn} onClose={() => setSigningIn(false)} postAuthHref={`/deposit/request/${token}`} />
       </section>
     );

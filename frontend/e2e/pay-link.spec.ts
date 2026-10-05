@@ -189,3 +189,11 @@ test('a paid request never sends a signed-in payer to the landing page', async (
   await page.getByRole('button', { name: copy.pay.goHome }).click();
   await expect(page).toHaveURL(/\/app$/);
 });
+
+test('a paid request saves its receipt as an image', async ({ page }) => {
+  await mockApi(page, { request: { ...openRequest, status: 'matched', paidAt: Date.now(), paidChain: 'Base' } });
+  await page.goto(`/deposit/request/${TOKEN}`);
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: copy.pay.saveReceipt }).click();
+  expect((await download).suggestedFilename()).toMatch(/^karwan-receipt-.+\.png$/);
+});
