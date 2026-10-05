@@ -3460,6 +3460,8 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ txHash, chain }),
     }),
+  receiveRequest: (token: string) =>
+    json<{ request: DepositRequestPublic }>(`/api/deposit/requests/${encodeURIComponent(token)}/receive`, { method: 'POST' }),
   cancelDepositRequest: (token: string) =>
     json<{ request: DepositRequestPublic }>(
       `/api/deposit/requests/${encodeURIComponent(token)}/cancel`,
@@ -5236,6 +5238,14 @@ export interface DepositRequestPublic {
   acceptedChains: string[];
   paidAt?: number;
   paidChain?: string;
+  /// Whether a payer can send from an exchange or any wallet here.
+  anyChain?: boolean;
+  /// The request's own addresses, once a payer asked for them.
+  receiving?: { evm: { address: string; chains: string[] }; solana: { address: string } | null };
+  /// Transfers that landed on those addresses and where each is on its way.
+  payments?: Array<{ amountUsdc: string; chain: string; at: number; delivery?: 'moving' | 'delivered' | 'delayed' }>;
+  receivedUsdc?: string;
+  remainingUsdc?: string;
 }
 
 export interface ChatMessage {

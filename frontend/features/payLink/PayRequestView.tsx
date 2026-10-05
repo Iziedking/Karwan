@@ -22,11 +22,15 @@ import { isSealedReputation } from '@/features/reputation/sealed';
 import { TIER_LABEL } from '@/features/reputation/tierColors';
 import { ShareLink } from './ShareLink';
 import { FundToPay } from './FundToPay';
+import { AnyChainPay } from './AnyChainPay';
+import { afterPaid } from './chainPayState';
 import { ReceiptCard } from '@/features/receipt/ReceiptCard';
 import { ARC_NETWORK } from '@/core/arcNetwork';
 import { LoginModal } from '@/shared/components/LoginModal';
 
 type Source = 'arc' | CctpChainKey;
+/// How the payer pays: their Karwan balance, a connected wallet, or an address for any chain.
+type Method = 'account' | 'wallet' | 'chain';
 const ZERO = '0x0000000000000000000000000000000000000000';
 const PRIMARY =
   'flex min-h-14 w-full items-center justify-center rounded-full bg-[var(--lp-accent)] px-5 text-[16px] font-bold text-[#10170b] transition-opacity disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]';
@@ -143,6 +147,9 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
   // Signed in with email or passkey: pay from the Karwan account on Arc.
   const viaAccount = auth.method === 'circle' && !!auth.address;
   const [signingIn, setSigningIn] = useState(false);
+  const [method, setMethod] = useState<Method>(viaAccount ? 'account' : 'wallet');
+  const next = afterPaid(auth.isAuthenticated);
+  const finish = () => (next.kind === 'home' ? router.push(next.href) : setSigningIn(true));
   const account = useAccount();
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
@@ -265,6 +272,12 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
     void startAppKitBridge({ sourceChainKey: source, amountUsdc: amount, mintRecipient: recipient, getEvmProvider: () => connector.getProvider() });
   }
 
+  // Paid some other way while this page was open. A payment from another chain
+  // stays on its own steps until it reaches the requester.
+  useEffect(() => {
+    if (request.status === 'matched' && !paid && method !== 'chain' && followFrom === null) setPaid(request);
+  }, [request, paid, method, followFrom]);
+
   if (paid) {
     const receipt = activity.myMoney;
     return (
@@ -285,12 +298,19 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
           footnote={ARC_NETWORK === 'testnet' ? receipt.receiptTestnet : undefined}
         />
         <p className="text-center text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.bothSee}</p>
-        <button type="button" onClick={() => router.push('/')} className={PRIMARY}>{copy.done}</button>
+        {next.kind === 'join' ? (
+          <div className="border-t border-[var(--lp-border-light)] pt-5">
+            <p className="text-[16px] font-semibold text-[var(--lp-dark)]">{copy.joinTitle}</p>
+            <p className="mt-1 text-[14px] font-medium text-[var(--lp-text-sub)]">{copy.joinBody}</p>
+          </div>
+        ) : null}
+        <button type="button" onClick={finish} className={PRIMARY}>{next.kind === 'home' ? copy.goHome : copy.joinCta}</button>
+        <LoginModal open={signingIn} onClose={() => setSigningIn(false)} postAuthHref={`/deposit/request/${token}`} />
       </section>
     );
   }
 
-  if (request.status !== 'open') {
+  if (request.status !== 'open' && request.status !== 'matched') {
     return (
       <section className="space-y-4">
         <Requester recipient={request.recipientAddress} />
@@ -318,7 +338,7 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
           onCheckAgain={() => record && void recheck(record.id)}
           onTryAgain={() => setFollowFrom(null)}
           onAnother={() => setFollowFrom(null)}
-          onDone={() => router.push('/')}
+          onDone={finish}
         />
       </section>
     );
@@ -335,15 +355,33 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
       </div>
       {request.purpose ? <p className="mt-3 text-[15px] text-[var(--lp-dark)]">{fill(copy.forTemplate, { purpose: request.purpose })}</p> : null}
 
-      {viaAccount ? (
-        arcBalance !== null ? (
-          <p className="mt-8 text-[14px] text-[var(--lp-text-sub)] font-medium">
-            {fill(copy.accountBalance, { amount: formatAmount(arcBalance, locale) })}
-          </p>
-        ) : null
+      <p className="mt-8 text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.payWith}</p>
+      <div role="radiogroup" aria-label={copy.payWith} className="mt-2 space-y-2">
+        {viaAccount ? (
+          <PayOption
+            icon="balance"
+            selected={method === 'account'}
+            onSelect={() => setMethod('account')}
+            title={copy.optBalance}
+            sub={arcBalance !== null ? fill(copy.accountBalance, { amount: formatAmount(arcBalance, locale) }) : undefined}
+          />
+        ) : (
+          <PayOption icon="wallet" selected={method === 'wallet'} onSelect={() => setMethod('wallet')} title={copy.optWallet} sub={copy.optWalletSub} />
+        )}
+        {request.anyChain ? (
+          <PayOption icon="chain" selected={method === 'chain'} onSelect={() => setMethod('chain')} title={copy.optChain} sub={copy.optChainSub} />
+        ) : null}
+        <PayOption icon="card" soon={copy.soon} title={copy.optCard} sub={copy.optCardSub} />
+        <PayOption icon="phone" soon={copy.soon} title={copy.optUssd} sub={copy.optUssdSub} />
+      </div>
+
+      {method === 'chain' ? (
+        <AnyChainPay token={token} request={request} name={name} onDelivered={(r) => setPaid(r)} />
       ) : (
       <>
-      <p className="mt-8 text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.payFrom}</p>
+      {method === 'wallet' ? (
+      <>
+      <p className="mt-6 text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.payFrom}</p>
       <div role="radiogroup" aria-label={copy.payFrom} className="mt-2 flex flex-wrap gap-2">
         {(['arc', ...others] as Source[]).map((key) => (
           <button
@@ -369,8 +407,8 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
         </p>
       ) : null}
       </>
-      )}
-      {viaAccount && auth.address && short && arcBalance !== null ? (
+      ) : null}
+      {viaAccount && auth.address && short && arcBalance !== null && !request.anyChain ? (
         <FundToPay
           owner={auth.address}
           shortfall={formatAmount(Math.ceil((amount - arcBalance) * 100) / 100, locale)}
@@ -392,10 +430,60 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
           {copy.useEmail}
         </button>
       ) : null}
+      </>
+      )}
       <LoginModal open={signingIn} onClose={() => setSigningIn(false)} postAuthHref={null} />
+      {method !== 'chain' ? (
       <p className="mt-3 text-center text-[14px] text-[var(--lp-text-sub)] font-medium">
         {[source === 'arc' ? copy.arrivesArc : copy.arrivesOther, fill(copy.expires, { date: new Date(request.expiresAt).toLocaleDateString(locale, { day: 'numeric', month: 'short' }) })].join(' · ')}
       </p>
+      ) : null}
     </section>
+  );
+}
+
+const OPTION_ICON: Record<'balance' | 'wallet' | 'chain' | 'card' | 'phone', string> = {
+  balance: 'M3 7h18v12H3zM3 7l2-3h14l2 3M16 13h2',
+  wallet: 'M3 7h15a3 3 0 0 1 3 3v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 7l12-3v3M17 13h1',
+  chain: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 18h2v2h-2z',
+  card: 'M3 6h18v12H3zM3 10h18M7 15h3',
+  phone: 'M8 3h8a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM11 18h2',
+};
+
+/// One way to pay. Rails that are not live yet show and say so, and do nothing.
+function PayOption({ icon, title, sub, selected, onSelect, soon }: {
+  icon: keyof typeof OPTION_ICON;
+  title: string;
+  sub?: string;
+  selected?: boolean;
+  onSelect?: () => void;
+  soon?: string;
+}) {
+  const body = (
+    <>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0"><path d={OPTION_ICON[icon]} /></svg>
+      <span className="min-w-0 flex-1 text-start">
+        <span className="block text-[15px] font-semibold">{title}</span>
+        {sub ? <span className="mt-0.5 block text-[14px] font-medium text-[var(--lp-text-sub)]">{sub}</span> : null}
+      </span>
+      {soon ? <span className="shrink-0 rounded-full bg-[var(--lp-light)] px-2.5 py-1 text-[13px] font-medium text-[var(--lp-text-sub)]">{soon}</span> : null}
+    </>
+  );
+  if (soon) {
+    return <div aria-disabled className="flex min-h-16 items-center gap-3 rounded-[16px] border border-[var(--lp-border-light)] px-4 py-3 text-[var(--lp-text-sub)]">{body}</div>;
+  }
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={!!selected}
+      onClick={onSelect}
+      className={cn(
+        'flex min-h-16 w-full items-center gap-3 rounded-[16px] border px-4 py-3 text-[var(--lp-dark)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]',
+        selected ? 'border-[var(--lp-accent)] shadow-[inset_0_0_0_1px_var(--lp-accent)]' : 'border-[var(--lp-border-light)] hover:border-[var(--lp-outline-strong)]',
+      )}
+    >
+      {body}
+    </button>
   );
 }

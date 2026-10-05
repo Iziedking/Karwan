@@ -218,6 +218,7 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "GET", path: "/api/deposit/requests/:token" },
   { method: "POST", path: "/api/deposit/requests/:token/cancel" },
   { method: "POST", path: "/api/deposit/requests/:token/paid" },
+  { method: "POST", path: "/api/deposit/requests/:token/receive" },
   { method: "GET", path: "/api/deposit/requests/paid" },
   { method: "POST", path: "/api/diagnose" },
   { method: "GET", path: "/api/events" },

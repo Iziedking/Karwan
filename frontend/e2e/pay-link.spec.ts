@@ -19,7 +19,7 @@ const openRequest = {
   acceptedChains: ['Ethereum', 'Base'],
 };
 
-async function mockApi(page: Page, opts: { signedInAs?: string; request?: Record<string, unknown>; reputation?: Record<string, unknown>; onCreate?: (body: unknown) => void } = {}) {
+async function mockApi(page: Page, opts: { signedInAs?: string; request?: Record<string, unknown> | (() => Record<string, unknown>); onReceive?: () => void; reputation?: Record<string, unknown>; onCreate?: (body: unknown) => void } = {}) {
   await page.addInitScript(() => localStorage.setItem('karwan:guide:disabled', '1'));
   await page.route(`${API}/**`, async (route) => {
     const { pathname } = new URL(route.request().url());
@@ -30,7 +30,12 @@ async function mockApi(page: Page, opts: { signedInAs?: string; request?: Record
     if (pathname === '/api/deposit/address') {
       return route.fulfill({ json: { supported: true, chains: [{ key: 'base', name: 'Base', address: DEPOSIT_ADDRESS }, { key: 'eth', name: 'Ethereum', address: DEPOSIT_ADDRESS }], solana: null } });
     }
-    if (pathname === `/api/deposit/requests/${TOKEN}`) return route.fulfill({ json: { request: opts.request ?? openRequest } });
+    const current = () => (typeof opts.request === 'function' ? opts.request() : opts.request ?? openRequest);
+    if (pathname === `/api/deposit/requests/${TOKEN}`) return route.fulfill({ json: { request: current() } });
+    if (pathname === `/api/deposit/requests/${TOKEN}/receive` && method === 'POST') {
+      opts.onReceive?.();
+      return route.fulfill({ json: { request: current() } });
+    }
     if (pathname === '/api/deposit/requests' && method === 'POST') {
       opts.onCreate?.(route.request().postDataJSON());
       return route.fulfill({ status: 201, json: { request: openRequest } });
@@ -117,4 +122,70 @@ test('an account short of the amount gets its address, and Pay lights once the U
   balances[BUYER.toLowerCase()] = 12;
   await expect(pay).toBeEnabled({ timeout: 20_000 });
   await expect(page.getByText(copy.pay.fundWaiting)).toHaveCount(0);
+});
+
+const RECEIVING = '0x5a1e000000000000000000000000000000000abc';
+const SOLANA = 'So1anaReceive1111111111111111111111111111';
+
+test('pay with: wallet first, any chain when available, card and USSD shown as coming soon and inert', async ({ page }) => {
+  await mockApi(page, { request: { ...openRequest, anyChain: true } });
+  await page.goto(`/deposit/request/${TOKEN}`);
+  const options = page.getByRole('radiogroup', { name: copy.pay.payWith });
+  await expect(options.getByRole('radio', { name: new RegExp(copy.pay.optWallet) })).toHaveAttribute('aria-checked', 'true');
+  await expect(options.getByRole('radio', { name: new RegExp(copy.pay.optChain) })).toBeVisible();
+  await expect(options.getByText(copy.pay.optCard)).toBeVisible();
+  await expect(options.getByText(copy.pay.optUssd)).toBeVisible();
+  await expect(options.getByText(copy.pay.soon)).toHaveCount(2);
+  await expect(options.getByRole('radio', { name: new RegExp(copy.pay.optCard) })).toHaveCount(0);
+});
+
+test('send from any chain: the request address, the exact amount, part payment, then paid and an account offer', async ({ page }) => {
+  let state: Record<string, unknown> = { ...openRequest, anyChain: true };
+  let asked = 0;
+  await mockApi(page, {
+    request: () => state,
+    onReceive: () => {
+      asked += 1;
+      state = { ...state, receiving: { evm: { address: RECEIVING, chains: ['Ethereum', 'Base', 'Arbitrum', 'Polygon'] }, solana: { address: SOLANA } } };
+    },
+  });
+  await page.goto(`/deposit/request/${TOKEN}`);
+  await page.getByRole('radio', { name: new RegExp(copy.pay.optChain) }).click();
+  await expect(page.getByText(RECEIVING)).toBeVisible();
+  expect(asked).toBe(1);
+  await expect(page.getByText('10 USDC', { exact: true })).toBeVisible();
+  await expect(page.getByText(copy.pay.watching)).toBeVisible();
+  await page.getByRole('radio', { name: copy.pay.solanaTab }).click();
+  await expect(page.getByText(SOLANA)).toBeVisible();
+
+  state = { ...state, receivedUsdc: '6', remainingUsdc: '4', payments: [{ amountUsdc: '6', chain: 'Base', at: Date.now(), delivery: 'moving' }] };
+  await expect(page.getByText(copy.pay.partReceived.replace('{got}', '6').replace('{total}', '10').replace('{left}', '4'))).toBeVisible({ timeout: 15_000 });
+
+  state = {
+    ...state,
+    status: 'matched',
+    paidAt: Date.now(),
+    paidChain: 'Base',
+    receivedUsdc: '10',
+    remainingUsdc: '0',
+    payments: [
+      { amountUsdc: '6', chain: 'Base', at: Date.now(), delivery: 'delivered' },
+      { amountUsdc: '4', chain: 'Base', at: Date.now(), delivery: 'moving' },
+    ],
+  };
+  await expect(page.getByText(copy.pay.stepMoving)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(copy.pay.canClose.replace('{name}', '@izieking'))).toBeVisible();
+
+  state = { ...state, payments: [{ amountUsdc: '6', chain: 'Base', at: Date.now(), delivery: 'delivered' }, { amountUsdc: '4', chain: 'Base', at: Date.now(), delivery: 'delivered' }] };
+  await expect(page.getByText(copy.pay.paidBadge, { exact: true })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(copy.pay.joinTitle)).toBeVisible();
+  await expect(page.getByRole('button', { name: copy.pay.joinCta })).toBeVisible();
+  await expect(page.getByRole('button', { name: copy.pay.done })).toHaveCount(0);
+});
+
+test('a paid request never sends a signed-in payer to the landing page', async ({ page }) => {
+  await mockApi(page, { signedInAs: BUYER, request: { ...openRequest, status: 'matched', paidAt: Date.now(), paidChain: 'Arc' } });
+  await page.goto(`/deposit/request/${TOKEN}`);
+  await page.getByRole('button', { name: copy.pay.goHome }).click();
+  await expect(page).toHaveURL(/\/app$/);
 });

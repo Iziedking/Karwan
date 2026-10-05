@@ -61,6 +61,37 @@ export interface PayLinkCopy {
     cancelled: string;
     unavailableTitle: string;
     unavailableBody: string;
+    payWith: string;
+    optWallet: string;
+    optWalletSub: string;
+    optBalance: string;
+    optChain: string;
+    optChainSub: string;
+    optCard: string;
+    optCardSub: string;
+    optUssd: string;
+    optUssdSub: string;
+    soon: string;
+    evmTab: string;
+    solanaTab: string;
+    sendExactly: string;
+    chainsLine: string;
+    copyAddress: string;
+    copiedAddress: string;
+    watching: string;
+    chainError: string;
+    chainOff: string;
+    stepReceived: string;
+    stepMoving: string;
+    stepMovingSub: string;
+    stepDelayed: string;
+    stepPaid: string;
+    partReceived: string;
+    canClose: string;
+    goHome: string;
+    joinTitle: string;
+    joinBody: string;
+    joinCta: string;
   };
 }
 
@@ -127,6 +158,37 @@ const en: PayLinkCopy = {
     cancelled: 'This request was cancelled.',
     unavailableTitle: 'This request is not available.',
     unavailableBody: 'It may have expired, been cancelled, or the link may be incomplete.',
+    payWith: "Pay with",
+    optWallet: "Connect a wallet",
+    optWalletSub: "Arc, Base, Ethereum and more",
+    optBalance: "Your Karwan balance",
+    optChain: "Send from any chain",
+    optChainSub: "An exchange or any wallet",
+    optCard: "Card or bank",
+    optCardSub: "Pay in your currency",
+    optUssd: "USSD",
+    optUssdSub: "From any phone, no data",
+    soon: "Coming soon",
+    evmTab: "EVM chains",
+    solanaTab: "Solana",
+    sendExactly: "Send exactly",
+    chainsLine: "{chains}. USDC only.",
+    copyAddress: "Copy address",
+    copiedAddress: "Address copied",
+    watching: "Watching for your payment",
+    chainError: "Could not prepare an address. Try again.",
+    chainOff: "Sending from another chain is not available here yet.",
+    stepReceived: "Received on {chain}",
+    stepMoving: "Moving to Arc",
+    stepMovingSub: "About a minute",
+    stepDelayed: "Delayed. The money is safe on {chain}.",
+    stepPaid: "Paid to {name}",
+    partReceived: "Received {got} of {total} USDC. Send {left} USDC more to the same address.",
+    canClose: "You can close this page. {name} sees it either way.",
+    goHome: "Go to home",
+    joinTitle: "Get paid the same way",
+    joinBody: "Requests, protected deals and one balance on Arc.",
+    joinCta: "Create your account",
   },
 };
 
@@ -193,6 +255,37 @@ const fr: PayLinkCopy = {
     cancelled: 'Cette demande a été annulée.',
     unavailableTitle: 'Cette demande n’est pas disponible.',
     unavailableBody: 'Elle a peut-être expiré, été annulée, ou le lien est incomplet.',
+    payWith: "Payer avec",
+    optWallet: "Connecter un portefeuille",
+    optWalletSub: "Arc, Base, Ethereum et plus",
+    optBalance: "Votre solde Karwan",
+    optChain: "Envoyer depuis n'importe quelle chaîne",
+    optChainSub: "Une plateforme d'échange ou tout portefeuille",
+    optCard: "Carte ou banque",
+    optCardSub: "Payez dans votre devise",
+    optUssd: "USSD",
+    optUssdSub: "Depuis n'importe quel téléphone, sans données",
+    soon: "Bientôt",
+    evmTab: "Chaînes EVM",
+    solanaTab: "Solana",
+    sendExactly: "Envoyez exactement",
+    chainsLine: "{chains}. USDC uniquement.",
+    copyAddress: "Copier l'adresse",
+    copiedAddress: "Adresse copiée",
+    watching: "En attente de votre paiement",
+    chainError: "Impossible de préparer une adresse. Réessayez.",
+    chainOff: "L'envoi depuis une autre chaîne n'est pas encore disponible ici.",
+    stepReceived: "Reçu sur {chain}",
+    stepMoving: "Transfert vers Arc",
+    stepMovingSub: "Environ une minute",
+    stepDelayed: "Retardé. L'argent est en sécurité sur {chain}.",
+    stepPaid: "Payé à {name}",
+    partReceived: "{got} USDC reçus sur {total}. Envoyez encore {left} USDC à la même adresse.",
+    canClose: "Vous pouvez fermer cette page. {name} le voit dans tous les cas.",
+    goHome: "Aller à l'accueil",
+    joinTitle: "Soyez payé de la même façon",
+    joinBody: "Demandes, transactions protégées et un seul solde sur Arc.",
+    joinCta: "Créer votre compte",
   },
 };
 
@@ -259,6 +352,37 @@ const ar: PayLinkCopy = {
     cancelled: 'تم إلغاء هذا الطلب.',
     unavailableTitle: 'هذا الطلب غير متاح.',
     unavailableBody: 'ربما انتهت صلاحيته أو أُلغي، أو أن الرابط غير مكتمل.',
+    payWith: "الدفع عبر",
+    optWallet: "ربط محفظة",
+    optWalletSub: "Arc وBase وEthereum وغيرها",
+    optBalance: "رصيدك في Karwan",
+    optChain: "الإرسال من أي شبكة",
+    optChainSub: "منصة تداول أو أي محفظة",
+    optCard: "بطاقة أو بنك",
+    optCardSub: "ادفع بعملتك",
+    optUssd: "USSD",
+    optUssdSub: "من أي هاتف، دون بيانات",
+    soon: "قريبًا",
+    evmTab: "شبكات EVM",
+    solanaTab: "Solana",
+    sendExactly: "أرسل بالضبط",
+    chainsLine: "{chains}. USDC فقط.",
+    copyAddress: "نسخ العنوان",
+    copiedAddress: "تم نسخ العنوان",
+    watching: "بانتظار دفعتك",
+    chainError: "تعذر تجهيز عنوان. حاول مرة أخرى.",
+    chainOff: "الإرسال من شبكة أخرى غير متاح هنا بعد.",
+    stepReceived: "تم الاستلام على {chain}",
+    stepMoving: "جارٍ النقل إلى Arc",
+    stepMovingSub: "نحو دقيقة",
+    stepDelayed: "متأخر. المال آمن على {chain}.",
+    stepPaid: "تم الدفع إلى {name}",
+    partReceived: "استُلم {got} من {total} USDC. أرسل {left} USDC إضافية إلى العنوان نفسه.",
+    canClose: "يمكنك إغلاق هذه الصفحة. سيرى {name} الدفعة في كل الأحوال.",
+    goHome: "الذهاب إلى الرئيسية",
+    joinTitle: "احصل على أموالك بالطريقة نفسها",
+    joinBody: "طلبات وصفقات محمية ورصيد واحد على Arc.",
+    joinCta: "أنشئ حسابك",
   },
 };
 
@@ -325,6 +449,37 @@ const hi: PayLinkCopy = {
     cancelled: 'यह अनुरोध रद्द कर दिया गया।',
     unavailableTitle: 'यह अनुरोध उपलब्ध नहीं है।',
     unavailableBody: 'यह समाप्त या रद्द हो सकता है, या लिंक अधूरा है।',
+    payWith: "इससे भुगतान करें",
+    optWallet: "वॉलेट जोड़ें",
+    optWalletSub: "Arc, Base, Ethereum और अन्य",
+    optBalance: "आपका Karwan बैलेंस",
+    optChain: "किसी भी चेन से भेजें",
+    optChainSub: "कोई एक्सचेंज या कोई भी वॉलेट",
+    optCard: "कार्ड या बैंक",
+    optCardSub: "अपनी मुद्रा में भुगतान करें",
+    optUssd: "USSD",
+    optUssdSub: "किसी भी फ़ोन से, बिना डेटा",
+    soon: "जल्द आ रहा है",
+    evmTab: "EVM चेन",
+    solanaTab: "Solana",
+    sendExactly: "ठीक इतना भेजें",
+    chainsLine: "{chains}. केवल USDC.",
+    copyAddress: "पता कॉपी करें",
+    copiedAddress: "पता कॉपी हो गया",
+    watching: "आपके भुगतान की प्रतीक्षा",
+    chainError: "पता तैयार नहीं हो सका। फिर से कोशिश करें।",
+    chainOff: "दूसरी चेन से भेजना यहाँ अभी उपलब्ध नहीं है।",
+    stepReceived: "{chain} पर मिला",
+    stepMoving: "Arc पर भेजा जा रहा है",
+    stepMovingSub: "लगभग एक मिनट",
+    stepDelayed: "देरी हो रही है। पैसा {chain} पर सुरक्षित है।",
+    stepPaid: "{name} को भुगतान हो गया",
+    partReceived: "{total} में से {got} USDC मिले। उसी पते पर {left} USDC और भेजें।",
+    canClose: "आप यह पेज बंद कर सकते हैं। {name} इसे हर हाल में देखेंगे।",
+    goHome: "होम पर जाएँ",
+    joinTitle: "इसी तरह भुगतान पाएँ",
+    joinBody: "अनुरोध, सुरक्षित सौदे और Arc पर एक बैलेंस।",
+    joinCta: "अपना खाता बनाएँ",
   },
 };
 
@@ -391,6 +546,37 @@ const sw: PayLinkCopy = {
     cancelled: 'Ombi hili lilighairiwa.',
     unavailableTitle: 'Ombi hili halipatikani.',
     unavailableBody: 'Huenda limeisha muda, limeghairiwa, au kiungo hakijakamilika.',
+    payWith: "Lipa kwa",
+    optWallet: "Unganisha pochi",
+    optWalletSub: "Arc, Base, Ethereum na zaidi",
+    optBalance: "Salio lako la Karwan",
+    optChain: "Tuma kutoka mnyororo wowote",
+    optChainSub: "Soko la kubadilishana au pochi yoyote",
+    optCard: "Kadi au benki",
+    optCardSub: "Lipa kwa sarafu yako",
+    optUssd: "USSD",
+    optUssdSub: "Kutoka simu yoyote, bila data",
+    soon: "Inakuja hivi karibuni",
+    evmTab: "Minyororo ya EVM",
+    solanaTab: "Solana",
+    sendExactly: "Tuma kiasi hiki kamili",
+    chainsLine: "{chains}. USDC pekee.",
+    copyAddress: "Nakili anwani",
+    copiedAddress: "Anwani imenakiliwa",
+    watching: "Tunasubiri malipo yako",
+    chainError: "Imeshindwa kuandaa anwani. Jaribu tena.",
+    chainOff: "Kutuma kutoka mnyororo mwingine bado hakupatikani hapa.",
+    stepReceived: "Imepokelewa kwenye {chain}",
+    stepMoving: "Inahamishwa kwenda Arc",
+    stepMovingSub: "Takriban dakika moja",
+    stepDelayed: "Imechelewa. Pesa iko salama kwenye {chain}.",
+    stepPaid: "Imelipwa kwa {name}",
+    partReceived: "Imepokelewa USDC {got} kati ya {total}. Tuma USDC {left} zaidi kwa anwani ileile.",
+    canClose: "Unaweza kufunga ukurasa huu. {name} ataona kwa vyovyote.",
+    goHome: "Nenda nyumbani",
+    joinTitle: "Lipwa kwa njia hiyo hiyo",
+    joinBody: "Maombi, mikataba iliyolindwa na salio moja kwenye Arc.",
+    joinCta: "Fungua akaunti yako",
   },
 };
 

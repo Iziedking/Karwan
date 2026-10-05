@@ -707,6 +707,7 @@ interface MessagesShape {
         cancelRefund: string;
         depositCredited: string;
         depositCreditedFrom: string;
+        requestReceivedFrom: string;
         gatewayDeposit: string;
         gatewayFundAgent: string;
         gatewayCashOut: string;
@@ -4657,6 +4658,7 @@ interface MessagesShape {
       q9: { q: string; a: string };
       q10: { q: string; a: string };
       q11: { q: string; a: string };
+      q12: { q: string; a: string };
     };
     videoGuides: { eyebrow: string; title: string; body: string; badge: string };
     cta: { title: string; body: string; button: string; chainPrefix: string };
@@ -6024,6 +6026,7 @@ export const en: MessagesShape = {
         cancelRefund: 'Refunded {amount} USDC from a cancelled deal',
         depositCredited: 'Deposited {amount} USDC',
         depositCreditedFrom: 'Deposited {amount} USDC from {chain}',
+        requestReceivedFrom: 'Payment request: {amount} USDC from {chain}',
         gatewayDeposit: 'Moved {amount} USDC from your {source} wallet into your balance',
         gatewayFundAgent: 'Added {amount} USDC to the {agent} trade account',
         gatewayCashOut: 'Cashed out {amount} USDC to {to} on {chain}',
@@ -10514,6 +10517,7 @@ export const en: MessagesShape = {
       q9: { q: 'Where does the agent reasoning run?', a: "Agents compare candidates and propose terms within your budget and deadline. You review the terms before funding. Contract rules determine later releases, refunds and disputes." },
       q10: { q: "How does Karwan keep delivery safe?", a: "Every delivered link is checked for safety and checked against the agreed request. A delivery that fails either check pauses the payment. Checks cannot guarantee quality, so inspect the work before you release." },
       q11: { q: 'Can I bring my reputation from other platforms?', a: 'Not yet. Karwan is building this so your record from other platforms can count here, with your permission and without leaking your data. Today your reputation comes from completed Karwan deals.' },
+      q12: { q: "How do I get paid with a payment link?", a: "Create a link on Request and share it. The payer needs no account. They can pay from their Karwan balance, from a connected wallet, or with Send from any chain, which shows an address for EVM chains and one for Solana so they can pay from an exchange or any wallet. Money sent that way reaches your own address on Arc automatically. Sending less counts as part payment and the page shows what is left. Sending more marks the link paid and the extra is yours. Card or bank and USSD are coming soon." },
     },
     videoGuides: { eyebrow: 'Guided help', title: 'Know what to do next', body: 'Use the page tour on sensitive screens when you need context. It stays out of the way for returning users and can be opened again from the page control.', badge: 'In the app' },
     cta: { title: 'Start building your record', body: 'Agree the terms, fund USDC escrow, and every completed deal adds to your reputation.', button: 'Launch app', chainPrefix: 'chain' },
