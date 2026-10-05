@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { erc20Abi } from 'viem';
 import { useAccount, useChainId, useReadContract, useReadContracts, useSwitchChain } from 'wagmi';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
-import { api, type DepositRequestPublic } from '@/core/api';
+import { api, type DepositRequestPublic, type Reputation, type SealedReputation } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { moneySounds } from '@/shared/sound/moneySounds';
@@ -18,6 +18,8 @@ import { useBridges, type BridgeRecord } from '@/features/bridge/hooks/useBridge
 import { routeSpeed, stepForPhase, walletSources } from '@/features/bridge/routePlan';
 import { TransferProgress } from '@/features/bridge/components/TransferProgress';
 import { requestViewState } from '@/features/deposit/requestViewState';
+import { isSealedReputation } from '@/features/reputation/sealed';
+import { TIER_LABEL } from '@/features/reputation/tierColors';
 import { ShareLink } from './ShareLink';
 import { FundToPay } from './FundToPay';
 import { ReceiptCard } from '@/features/receipt/ReceiptCard';
@@ -78,11 +80,17 @@ function useRequester(recipient: string) {
 }
 
 function Requester({ recipient }: { recipient: string }) {
-  const copy = useTranslations().payLink.pay;
+  const t = useTranslations();
+  const copy = t.payLink.pay;
   const { profile, name, reputation } = useRequester(recipient);
   const [failed, setFailed] = useState(false);
   const photo = profile?.profileImageDataUrl || profile?.xProfileImageUrl;
-  const settled = reputation?.successCount ?? 0;
+  const sealed: SealedReputation | null = reputation && isSealedReputation(reputation) ? reputation : null;
+  const open: Reputation | null = reputation && !isSealedReputation(reputation) ? reputation : null;
+  const settled = open?.successCount ?? 0;
+  const recordLine = sealed
+    ? sealed.tier === 'NEW' ? copy.recordNew : `${t.sealedRecord.tier} ${TIER_LABEL[sealed.tier]}`
+    : settled > 0 && open?.tier ? fill(copy.record, { tier: open.tier, n: settled }) : copy.recordNew;
   return (
     <div className="flex items-center gap-3">
       {photo && !failed ? (
@@ -93,7 +101,7 @@ function Requester({ recipient }: { recipient: string }) {
       <div className="min-w-0">
         <p className="truncate text-[16px] font-semibold text-[var(--lp-dark)]">{profile?.displayName?.trim() || name}</p>
         <p className="truncate text-[13px] text-[var(--lp-text-sub)]">
-          {[profile?.handle ? `@${profile.handle}` : null, settled > 0 && reputation?.tier ? fill(copy.record, { tier: reputation.tier, n: settled }) : copy.recordNew]
+          {[profile?.handle ? `@${profile.handle}` : null, recordLine]
             .filter(Boolean)
             .join(' · ')}
         </p>

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 import { useReputation } from '../hooks/useReputation';
+import { reasonLine } from '../sealed';
 import {
   TIER_HUE,
   TIER_LABEL,
@@ -111,7 +112,8 @@ export function ReputationBadge({
   appearance?: 'default' | 'quiet';
 }) {
   const rb = useTranslations().reputationBadge;
-  const { data, fetchState } = useReputation(address);
+  const sr = useTranslations().sealedRecord;
+  const { data, sealed, fetchState } = useReputation(address);
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -198,6 +200,24 @@ export function ReputationBadge({
   const labelSize = size === 'sm' ? 'text-[9px]' : 'text-[10px]';
   const scoreSize = size === 'sm' ? 'text-[10px]' : 'text-[11px]';
   const quiet = appearance === 'quiet';
+
+  if (sealed) {
+    const style = TIER_STYLES[sealed.tier];
+    const label = `${style.label}. ${reasonLine(sealed.reasons, sr)}`;
+    return (
+      <Link
+        href={`/credit-passport/${address}`}
+        aria-label={label}
+        className="inline-flex min-h-6 items-stretch border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+        style={{ borderRadius: 2, borderColor: quiet ? 'transparent' : style.border, background: quiet ? 'transparent' : style.bg }}
+      >
+        <span aria-hidden className="w-[3px]" style={{ background: style.color }} />
+        <span className={`uppercase tracking-[0.18em] ${cellPad} ${labelSize}`} style={{ color: style.ink ?? style.color }}>
+          {style.label}
+        </span>
+      </Link>
+    );
+  }
 
   if (fetchState === 'loading' || !data) {
     if (quiet) {

@@ -1,7 +1,8 @@
 'use client';
 import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, type Reputation } from '@/core/api';
+import { api, type Reputation, type SealedReputation } from '@/core/api';
+import { isSealedReputation } from '../sealed';
 import { qk } from '@/core/queryKeys';
 
 type FetchState = 'idle' | 'loading' | 'success' | 'error';
@@ -30,7 +31,7 @@ export function useReputation(address?: string | null) {
     /// the cache so observers re-render.
     const res = await api.reputation(address, true);
     qc.setQueryData(qk.reputation(address), res);
-    return res;
+    return isSealedReputation(res) ? null : res;
   }, [address, qc]);
 
   let fetchState: FetchState = 'idle';
@@ -39,11 +40,10 @@ export function useReputation(address?: string | null) {
   else if (query.isSuccess) fetchState = 'success';
   else fetchState = 'loading';
 
-  return {
-    data: (query.data ?? null) as Reputation | null,
-    fetchState,
-    refetch,
-  };
+  const raw = query.data ?? null;
+  const sealed: SealedReputation | null = raw && isSealedReputation(raw) ? raw : null;
+  const data: Reputation | null = raw && !isSealedReputation(raw) ? raw : null;
+  return { data, sealed, fetchState, refetch };
 }
 
 export function invalidateReputation(address: string, qc: ReturnType<typeof useQueryClient>): void {
