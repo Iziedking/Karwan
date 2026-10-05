@@ -1750,15 +1750,15 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
       }),
       execute: async ({ tag, amountUsdc }) => {
         const check = checkKarwanTag(tag.replace(/^@/, ''));
-        if (!check.ok) return { error: 'That is not a valid Karwan tag.' };
+        if (!check.ok) return { ok: true, sendable: false, reason: 'That is not a valid Karwan tag.' };
         try {
           const [profile, walletWei] = await Promise.all([findProfileByHandle(check.tag), readUsdcBalance(address as Address)]);
           const found = tagRecipient(check.tag, profile, address);
-          if (!found.found) return { error: `No Karwan account has the tag @${check.tag}.` };
-          if (found.self) return { error: 'That tag is yours. You cannot send to yourself.' };
+          if (!found.found) return { ok: true, sendable: false, reason: `No Karwan account has the tag @${check.tag}.` };
+          if (found.self) return { ok: true, sendable: false, reason: 'That tag is yours. You cannot send to yourself.' };
           const walletUsdc = Number(formatUnits(walletWei, USDC_DECIMALS));
           if (walletUsdc < amountUsdc) {
-            return { error: `The wallet holds ${walletUsdc.toFixed(2)} USDC, less than ${amountUsdc}. Add money first.`, walletUsdc };
+            return { ok: true, sendable: false, reason: `The wallet holds ${walletUsdc.toFixed(2)} USDC, less than ${amountUsdc}. Add money first.`, walletUsdc };
           }
           const built = buildNavigateAction({
             destination: 'send',

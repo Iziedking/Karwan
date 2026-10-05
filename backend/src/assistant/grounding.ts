@@ -13,7 +13,7 @@ const accountTools = new Set([
   'find_karwan_tag', 'propose_send_to_tag', 'search_market', 'propose_direct_deal',
 ]);
 const subjects: Array<[RegExp, string[]]> = [
-  [/(?:\b(?:balance|solde|salio)\b|رصيد|शेष)/iu, ['get_my_balance', 'list_bridge_sources', 'check_top_up_sources']],
+  [/(?:\b(?:balance|solde|salio)\b|رصيد|शेष)/iu, ['get_my_balance', 'list_bridge_sources', 'check_top_up_sources', 'propose_send_to_tag']],
   [/\b(?:stake|staking|yield)\b/i, ['get_my_stake']],
   [/\b(?:business|workspace|registration)\b/i, ['get_my_workspaces']],
   [/\b(?:reputation|score|tier)\b/i, ['get_my_reputation']],
@@ -27,7 +27,7 @@ const subjects: Array<[RegExp, string[]]> = [
   [/\b(?:pay(?:ment)?\s*links?|invoice\s+link|payment\s+requests?|request\s+(?:money|payment|usdc|\d)|(?:got|been|get)\s+paid)\b/i, ['create_payment_link', 'list_my_payment_links', 'cancel_payment_link']],
   [/\b(?:deposit|add money|top[ -]?up)\b/i, ['get_my_deposit_addresses', 'check_top_up_sources', 'list_bridge_sources', 'get_my_balance']],
   [/(?:\bsend\b|\bpay\s+@|(?:^|\s)@[a-z][a-z0-9_]{2,19}\b)/i, ['propose_send_to_tag', 'find_karwan_tag', 'get_my_balance', 'propose_direct_deal']],
-  [/\b(?:(?<!request )money|funds|paid|landed|arrived?|received?)\b/i, ['get_my_balance', 'recall_activity', 'list_my_payment_links']],
+  [/\b(?:(?<!request )money|funds|paid|landed|arrived?|received?)\b/i, ['get_my_balance', 'recall_activity', 'list_my_payment_links', 'propose_send_to_tag']],
   [/\bprofile\b/i, ['get_my_profile']],
   [/\b(?:anything pending|everything|attention)\b/i, ['whats_pending']],
 ];

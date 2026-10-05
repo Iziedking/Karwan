@@ -77,3 +77,11 @@ test('a pasted id that is still a match grounds the answer once the match is rea
     false,
   );
 });
+
+test('asking to send money is grounded by the send check, which reads the wallet', () => {
+  const asked = messages('i want to send money to @lawful 10 usdc can you help me do that ?');
+  assert.equal(assessGrounding(asked, result('propose_send_to_tag', { ok: true, readyToReview: true, walletUsdc: 40 })).grounded, true);
+  // A definite no (unknown tag, own tag, not enough USDC) is an answer, not an outage.
+  assert.equal(assessGrounding(asked, result('propose_send_to_tag', { ok: true, sendable: false, reason: 'no_such_tag' })).grounded, true);
+  assert.equal(assessGrounding(asked, result('propose_send_to_tag', { error: 'Could not prepare that send right now.' })).grounded, false);
+});
