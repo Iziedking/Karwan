@@ -241,7 +241,7 @@ export default function InvitePage() {
           <PageCard>
             <div className="px-5 py-4 space-y-4">
               <div>
-                <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] mb-1">
+                <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] mb-1">
                   {ip.deal.termsLabel}
                 </p>
                 <p className="text-[14px] leading-relaxed text-[var(--lp-dark)] whitespace-pre-wrap">
@@ -290,7 +290,7 @@ export default function InvitePage() {
           {stage === 'review' && !canClaim && (
             <div className="space-y-4">
               <label className="block space-y-2">
-                <span className="inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                <span className="inline-flex items-center gap-1.5 mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
                   {ip.recipient.label}
                   <LpHint>{ip.recipient.hint}</LpHint>
                 </span>
@@ -309,7 +309,7 @@ export default function InvitePage() {
                 onClick={sendCode}
                 disabled={busy || !email.trim()}
                 className={cn(
-                  'inline-flex items-center gap-2 px-5 py-3 mono text-[12px] font-bold uppercase tracking-[0.08em]',
+                  'inline-flex items-center gap-2 px-5 py-3 mono text-[14px] font-bold uppercase tracking-[0.08em]',
                   'bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors',
                   'disabled:opacity-50 disabled:cursor-not-allowed',
                 )}
@@ -324,7 +324,7 @@ export default function InvitePage() {
 
           {(stage === 'send-code' || stage === 'verify-code') && (
             <div className="space-y-4">
-              <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+              <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
                 {verifyIntroParts[0]}
                 <strong>{email}</strong>
                 {verifyIntroParts[1] ?? ''}
@@ -342,7 +342,7 @@ export default function InvitePage() {
                   onClick={verifyCode}
                   disabled={busy || code.length !== 6}
                   className={cn(
-                    'inline-flex items-center gap-2 px-5 py-3 mono text-[12px] font-bold uppercase tracking-[0.08em]',
+                    'inline-flex items-center gap-2 px-5 py-3 mono text-[14px] font-bold uppercase tracking-[0.08em]',
                     'bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors',
                     'disabled:opacity-50 disabled:cursor-not-allowed',
                   )}
@@ -356,7 +356,7 @@ export default function InvitePage() {
                   type="button"
                   onClick={sendCode}
                   disabled={busy}
-                  className="px-4 py-3 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] underline underline-offset-2"
+                  className="px-4 py-3 mono text-[14px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] underline underline-offset-2 font-medium"
                 >
                   {ip.verifyCode.resend}
                 </button>
@@ -366,13 +366,13 @@ export default function InvitePage() {
 
           {stage === 'ready-to-claim' && (
             <div className="space-y-4">
-              <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{ip.claim.ready}</p>
+              <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{ip.claim.ready}</p>
               <button
                 type="button"
                 onClick={claim}
                 disabled={busy}
                 className={cn(
-                  'inline-flex min-h-11 items-center gap-2 px-5 py-3 mono text-[12px] font-bold uppercase tracking-[0.08em]',
+                  'inline-flex min-h-11 items-center gap-2 px-5 py-3 mono text-[14px] font-bold uppercase tracking-[0.08em]',
                   'bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors',
                   'disabled:opacity-50 disabled:cursor-not-allowed',
                 )}
@@ -385,13 +385,13 @@ export default function InvitePage() {
 
           {stage === 'review' && canClaim && (
             <div className="space-y-4">
-              <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{ip.claim.ready}</p>
+              <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{ip.claim.ready}</p>
               <button
                 type="button"
                 onClick={claim}
                 disabled={busy}
                 className={cn(
-                  'inline-flex min-h-11 items-center gap-2 px-5 py-3 mono text-[12px] font-bold uppercase tracking-[0.08em]',
+                  'inline-flex min-h-11 items-center gap-2 px-5 py-3 mono text-[14px] font-bold uppercase tracking-[0.08em]',
                   'bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors',
                   'disabled:opacity-50 disabled:cursor-not-allowed',
                 )}
@@ -403,11 +403,11 @@ export default function InvitePage() {
           )}
 
           {stage === 'claiming' && (
-            <p className="text-[14px] text-[var(--lp-text-sub)]">{ip.claiming.status}</p>
+            <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{ip.claiming.status}</p>
           )}
 
           {actionError && (
-            <p className="mt-4 mono text-[12px] text-[#7a1f1a]">{actionError}</p>
+            <p className="mt-4 mono text-[14px] text-[#7a1f1a]">{actionError}</p>
           )}
         </div>
       </Band>
@@ -418,7 +418,7 @@ export default function InvitePage() {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+      <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
         {label}
       </p>
       <p className="mt-1 font-sans text-[15px] font-extrabold text-[var(--lp-dark)] tabular-nums tracking-[-0.01em]">

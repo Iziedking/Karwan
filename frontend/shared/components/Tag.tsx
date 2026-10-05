@@ -14,7 +14,7 @@ const toneClass: Record<Tone, string> = {
 export function Tag({ children, tone = 'default' }: { children: ReactNode; tone?: Tone }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-[11px] font-medium tracking-tight ${toneClass[tone]}`}
+      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-[14px] font-medium tracking-tight ${toneClass[tone]}`}
     >
       {children}
     </span>

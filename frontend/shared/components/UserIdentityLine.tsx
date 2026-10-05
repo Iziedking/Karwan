@@ -11,12 +11,12 @@ export function UserIdentityLine() {
 
   if (!isConnected || !address) {
     return (
-      <p className="text-[12px] mono text-[var(--color-ink-faint)] mt-1">{t.walletNotConnected}</p>
+      <p className="text-[14px] mono text-[var(--color-ink-faint)] mt-1">{t.walletNotConnected}</p>
     );
   }
 
   return (
-    <p className="text-[12px] mono text-[var(--color-ink-faint)] mt-1">
+    <p className="text-[14px] mono text-[var(--color-ink-faint)] mt-1">
       {shortAddress(address)}
       {profile?.displayName ? ` · ${profile.displayName}` : ''}
     </p>

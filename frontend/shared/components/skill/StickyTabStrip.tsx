@@ -350,7 +350,7 @@ export function StickyTabStrip({
                   }
                 }}
                 className={cn(
-                  'group relative w-full min-h-11 cursor-pointer flex items-center justify-between gap-2 md:gap-3 py-3.5 md:py-5 px-3 md:px-4 font-sans text-[11px] md:text-[12px] font-semibold whitespace-nowrap transition-colors duration-[var(--dur-micro)] hover:bg-black/[0.035] focus-visible:bg-black/[0.035]',
+                  'group relative w-full min-h-11 cursor-pointer flex items-center justify-between gap-2 md:gap-3 py-3.5 md:py-5 px-3 md:px-4 font-sans text-[14px] font-semibold whitespace-nowrap transition-colors duration-[var(--dur-micro)] hover:bg-black/[0.035] focus-visible:bg-black/[0.035]',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-inset',
                 )}
                 style={{
@@ -390,7 +390,7 @@ export function StickyTabStrip({
                   />
                   {t.label}
                   {t.count != null ? (
-                    <span className="font-sans text-[10px] font-extrabold tabular-nums tracking-normal md:text-[11px]">
+                    <span className="font-sans text-[13px] font-extrabold tabular-nums tracking-normal md:text-[14px]">
                       {String(t.count).padStart(2, '0')}
                     </span>
                   ) : null}

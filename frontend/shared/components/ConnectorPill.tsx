@@ -33,7 +33,7 @@ export function ConnectorPill({
   className?: string;
 }) {
   const baseClass = cn(
-    'inline-flex items-center gap-2 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.06em] leading-none whitespace-nowrap transition-[border-color,background] duration-150',
+    'inline-flex items-center gap-2 px-3 py-1.5 font-mono text-[14px] font-bold uppercase tracking-[0.06em] leading-none whitespace-nowrap transition-[border-color,background] duration-150',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2',
     disabled && 'opacity-60 cursor-not-allowed',
     className,
@@ -120,7 +120,7 @@ export function ConnectorBadge({
       : 'color-mix(in srgb, currentColor 55%, transparent)';
   return (
     <span
-      className="font-mono text-[9.5px] font-bold uppercase tracking-[0.12em] px-1.5 py-[3px] leading-none"
+      className="font-mono text-[13px] font-bold uppercase tracking-[0.12em] px-1.5 py-[3px] leading-none"
       style={{
         color,
         background:

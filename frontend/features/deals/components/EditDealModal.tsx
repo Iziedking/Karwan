@@ -109,7 +109,7 @@ export function EditDealModal({
       >
         <div className="px-6 pb-2 pt-6">
           <h2 id="edit-terms-title" className="text-[22px] font-semibold tracking-[-0.02em]">{em.title}</h2>
-          <p className="mt-1.5 text-[14px] text-[var(--lp-text-sub)]">{em.body}</p>
+          <p className="mt-1.5 text-[14px] text-[var(--lp-text-sub)] font-medium">{em.body}</p>
         </div>
 
         <div className="space-y-5 px-6 pb-6 pt-3">
@@ -125,10 +125,10 @@ export function EditDealModal({
                 onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
                 className="form-input form-input-num pe-16"
               />
-              <span className="pointer-events-none absolute inset-y-0 end-4 grid place-items-center text-[14px] text-[var(--lp-text-sub)]">USDC</span>
+              <span className="pointer-events-none absolute inset-y-0 end-4 grid place-items-center text-[14px] text-[var(--lp-text-sub)] font-medium">USDC</span>
             </div>
             {fee ? (
-              <span className="block text-[13px] text-[var(--lp-text-sub)]">
+              <span className="block text-[14px] text-[var(--lp-text-sub)] font-medium">
                 {em.feeTemplate
                   .replace('{funded}', formatUsdc(fee.fundedAmount, { withSuffix: false }))
                   .replace('{seller}', formatUsdc(fee.sellerNet, { withSuffix: false }))}
@@ -159,7 +159,7 @@ export function EditDealModal({
             />
           </Field>
 
-          {error ? <p role="alert" className="text-[13px] text-[var(--color-danger,#b03d3a)]">{error}</p> : null}
+          {error ? <p role="alert" className="text-[14px] text-[var(--color-danger,#b03d3a)]">{error}</p> : null}
 
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <CTAPill onClick={submit} disabled={!canSave}>
@@ -183,7 +183,7 @@ function Field({ label, aside, children }: { label: string; aside?: string; chil
     <label className="block space-y-2">
       <span className="flex items-baseline justify-between gap-2">
         <span className="text-[14px] font-semibold">{label}</span>
-        {aside ? <span className="text-[12px] text-[var(--lp-text-muted)]">{aside}</span> : null}
+        {aside ? <span className="text-[14px] text-[var(--lp-text-muted)]">{aside}</span> : null}
       </span>
       {children}
     </label>

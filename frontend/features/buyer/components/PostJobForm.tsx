@@ -149,7 +149,7 @@ function OptionTick({
         className="w-4 h-4 shrink-0 cursor-pointer accent-[var(--lp-accent)]"
       />
       <span
-        className="inline-flex min-w-0 items-center gap-1.5 text-[12px] font-semibold"
+        className="inline-flex min-w-0 items-center gap-1.5 text-[14px] font-semibold"
         style={{ color: 'var(--lp-dark)' }}
       >
         <span>{label}</span>
@@ -375,7 +375,7 @@ export function PostJobForm() {
   if (!isConnected) {
     return (
       <div className="space-y-4">
-        <p className="text-[13px] text-[var(--lp-text-sub)]">
+        <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">
           {t.notConnected}
         </p>
       </div>
@@ -392,18 +392,18 @@ export function PostJobForm() {
           borderRadius: 14,
         }}
       >
-        <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+        <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
           {t.noBuyerProfile.eyebrow}
         </p>
         <h3 className="font-sans text-[20px] font-extrabold uppercase tracking-[-0.02em]">
           {t.noBuyerProfile.title}
         </h3>
-        <p className="text-[13px] text-[var(--lp-text-sub)] leading-relaxed">
+        <p className="text-[14px] text-[var(--lp-text-sub)] leading-relaxed font-medium">
           {t.noBuyerProfile.body}
         </p>
         <Link
           href="/onboarding"
-          className="inline-flex items-center gap-2 mt-2 px-[18px] py-[10px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.22)] hover:shadow-[0_4px_0_rgba(0,0,0,0.22)]"
+          className="inline-flex items-center gap-2 mt-2 px-[18px] py-[10px] mono text-[14px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.22)] hover:shadow-[0_4px_0_rgba(0,0,0,0.22)]"
           style={{
             borderRadius: 12,
           }}
@@ -449,7 +449,7 @@ export function PostJobForm() {
             />
           ))}
         </span>
-        <span className="text-[13px] font-semibold text-[var(--lp-text-sub)]">
+        <span className="text-[14px] font-semibold text-[var(--lp-text-sub)]">
           {rs.stepOf.replace('{n}', String(step + 1))} · {[rs.describe, rs.price, rs.payment][step]}
         </span>
       </div>
@@ -496,7 +496,7 @@ export function PostJobForm() {
                 disabled={submitting}
                 onClick={() => setTradeType(opt)}
                 className={cn(
-                  'mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border transition-colors',
+                  'mono text-[14px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border transition-colors',
                   tradeType === opt
                     ? 'bg-[var(--lp-dark)] text-[var(--lp-bg)] border-[var(--lp-dark)]'
                     : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
@@ -522,7 +522,7 @@ export function PostJobForm() {
                     title={tt.incotermGloss[code]}
                     onClick={() => setIncoterms(code)}
                     className={cn(
-                      'mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border transition-colors',
+                      'mono text-[14px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border transition-colors',
                       incoterms === code
                         ? 'bg-[var(--lp-accent)] text-[var(--accent-ink)] border-[var(--lp-accent)]'
                         : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
@@ -545,7 +545,7 @@ export function PostJobForm() {
                     disabled={submitting}
                     onClick={() => setPaymentTerms(code)}
                     className={cn(
-                      'mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border transition-colors',
+                      'mono text-[14px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border transition-colors',
                       paymentTerms === code
                         ? 'bg-[var(--lp-accent)] text-[var(--accent-ink)] border-[var(--lp-accent)]'
                         : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
@@ -620,7 +620,7 @@ export function PostJobForm() {
                 className="form-input"
               />
               {hashingFile ? (
-                <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] mt-2">
+                <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] mt-2">
                   Hashing…
                 </p>
               ) : null}
@@ -634,13 +634,13 @@ export function PostJobForm() {
                         borderRadius: 6,
                       }}
                     >
-                      <span className="mono text-[9px] uppercase tracking-[0.16em] font-bold px-1.5 py-0.5 bg-[var(--lp-dark)] text-[var(--lp-bg)]">
+                      <span className="mono text-[13px] uppercase tracking-[0.16em] font-bold px-1.5 py-0.5 bg-[var(--lp-dark)] text-[var(--lp-bg)]">
                         {DOC_KIND_LABELS[d.kind]}
                       </span>
-                      <span className="flex-1 truncate text-[12px] text-[var(--lp-dark)]">
+                      <span className="flex-1 truncate text-[14px] text-[var(--lp-dark)]">
                         {d.label}
                       </span>
-                      <code className="mono text-[10px] tabular-nums text-[var(--lp-text-muted)] hidden sm:inline">
+                      <code className="mono text-[13px] tabular-nums text-[var(--lp-text-muted)] hidden sm:inline">
                         {d.hash.slice(0, 10)}…{d.hash.slice(-6)}
                       </code>
                       <button
@@ -764,10 +764,10 @@ export function PostJobForm() {
             borderRadius: 12,
           }}
         >
-          <p className="mono text-[9px] font-bold uppercase tracking-[0.18em] mb-1.5">
+          <p className="mono text-[13px] font-bold uppercase tracking-[0.18em] mb-1.5">
             {t.intentWarning.eyebrow}
           </p>
-          <p className="text-[12.5px] leading-snug text-[var(--lp-dark)]">
+          <p className="text-[14px] leading-snug text-[var(--lp-dark)]">
             {t.intentWarning.bodyStart}
             <span className="font-bold">{t.intentWarning.bodyOffer}</span>
             {t.intentWarning.bodyMiddle}
@@ -873,12 +873,12 @@ export function PostJobForm() {
           {!submitting && <Icon name="send" size={16} directional />}
         </button>
         {submitting && (
-          <p className="text-[12px] text-[var(--lp-text-muted)] leading-snug max-w-[36ch]">
+          <p className="text-[14px] text-[var(--lp-text-muted)] leading-snug max-w-[36ch]">
             {t.submit.pendingHelper}
           </p>
         )}
         {!submitting && !reviewing && (
-          <p className="text-[14px] leading-6 text-[var(--lp-text-sub)]">
+          <p className="text-[14px] leading-6 text-[var(--lp-text-sub)] font-medium">
             {disabled ? c.requestRequired : c.requestNext}
           </p>
         )}
@@ -896,7 +896,7 @@ export function PostJobForm() {
           <p className="font-sans text-[14px] font-extrabold uppercase tracking-[-0.01em] text-[var(--lp-dark)]">
             {t.errors.insufficientBalanceTitle}
           </p>
-          <p className="text-[12px] text-[var(--lp-text-sub)] leading-snug">{error}</p>
+          <p className="text-[14px] text-[var(--lp-text-sub)] leading-snug font-medium">{error}</p>
           {/* The routes to the money, as a choice rather than one route picked
               for the user. Each tile is an icon and a label with its
               explanation in a tooltip; the action for the chosen route appears
@@ -918,7 +918,7 @@ export function PostJobForm() {
             <button
               type="button"
               onClick={() => window.open('/bridge?rail=gateway', '_blank', 'noopener')}
-              className="mono text-[11px] uppercase tracking-[0.1em] font-semibold text-[var(--lp-dark)] underline-offset-2 hover:underline"
+              className="mono text-[14px] uppercase tracking-[0.1em] font-semibold text-[var(--lp-dark)] underline-offset-2 hover:underline"
             >
               {t.errors.topUpCta}
             </button>
@@ -927,7 +927,7 @@ export function PostJobForm() {
       ) : (
         error && (
           <div className="space-y-1.5">
-            <p className="mono text-[12px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))]">{t.errors.postFailedPrefix} {error}</p>
+            <p className="mono text-[14px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))]">{t.errors.postFailedPrefix} {error}</p>
             {/activate|agent wallet/i.test(error) && (
               <button
                 type="button"
@@ -940,7 +940,7 @@ export function PostJobForm() {
                   }
                 }}
                 disabled={activating}
-                className="mono text-[11px] uppercase tracking-[0.1em] underline underline-offset-2 text-[var(--lp-dark)] disabled:opacity-50"
+                className="mono text-[14px] uppercase tracking-[0.1em] underline underline-offset-2 text-[var(--lp-dark)] disabled:opacity-50"
               >
                 {activating ? t.errors.activatingButton : t.errors.activateCta}
               </button>
@@ -968,7 +968,7 @@ function FieldSection({
   return (
     <section className="space-y-4" data-guide={dataGuide}>
       <div className="space-y-1.5">
-        <p className="mono text-[10px] uppercase tracking-[0.18em] font-medium text-[var(--lp-text-muted)]">
+        <p className="mono text-[13px] uppercase tracking-[0.18em] font-medium text-[var(--lp-text-muted)]">
           {eyebrow}
         </p>
         <h3 className="font-sans text-[17px] font-extrabold uppercase tracking-[-0.02em] text-[var(--lp-dark)]">
@@ -996,12 +996,12 @@ function FormLabel({
   return (
     <label className="block space-y-2" data-guide={dataGuide}>
       <span className="flex items-center gap-2 justify-between">
-        <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--lp-dark)]">
+        <span className="inline-flex items-center gap-1.5 text-[14px] font-medium text-[var(--lp-dark)]">
           {label}
           {hint && <Hint>{hint}</Hint>}
         </span>
         {unit && (
-          <span className="mono text-[9px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]/70">
+          <span className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]/70">
             {unit}
           </span>
         )}

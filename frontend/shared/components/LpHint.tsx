@@ -118,7 +118,7 @@ export function LpHint({
           <div
             ref={tooltipRef}
             role="tooltip"
-            className="fixed z-[200] px-3 py-2 text-[13px] leading-[1.45] pointer-events-none normal-case tracking-normal font-normal"
+            className="fixed z-[200] px-3 py-2 text-[14px] leading-[1.45] pointer-events-none normal-case tracking-normal font-normal"
             style={{
               top: pos.top - window.scrollY,
               left: pos.left - window.scrollX,

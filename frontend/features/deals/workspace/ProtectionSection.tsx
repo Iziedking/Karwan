@@ -8,7 +8,7 @@ export function ProtectionSection({ deal, viewerIsBuyer }: { deal: DirectDeal; v
   const lines = protectionLines(deal.trust, viewerIsBuyer ? 'buyer' : 'seller', copy, deal.requireStake ? deal.requireStakePct : undefined);
   return (
     <section aria-labelledby="deal-protection" className="mt-6 border-t border-[var(--lp-border-light)] pt-5">
-      <h2 id="deal-protection" className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{copy.title}</h2>
+      <h2 id="deal-protection" className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{copy.title}</h2>
       <ul className="mt-2 space-y-1.5 text-[14px] leading-relaxed text-[var(--lp-dark)]">
         {lines.map((line) => <li key={line}>{line}</li>)}
       </ul>

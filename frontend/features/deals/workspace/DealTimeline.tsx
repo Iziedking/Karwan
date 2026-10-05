@@ -65,9 +65,9 @@ export function DealTimeline({ progress, viewerIsBuyer, name, check, dueAt }: {
               <span className={cn('block text-[15px] leading-snug', row.state === 'upcoming' ? 'text-[var(--lp-text-sub)]' : 'font-medium text-[var(--lp-dark)]')}>
                 {title}
               </span>
-              {detail ? <span className="mt-0.5 block text-[13px] text-[var(--lp-text-sub)]">{detail}</span> : null}
+              {detail ? <span className="mt-0.5 block text-[14px] text-[var(--lp-text-sub)] font-medium">{detail}</span> : null}
             </span>
-            <span className="pt-0.5 text-[12.5px] tabular-nums text-[var(--lp-text-sub)]">
+            <span className="pt-0.5 text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">
               {row.at != null ? formatDealDate(row.at, locale) : ''}
             </span>
           </li>
@@ -107,7 +107,7 @@ export function DealLatest({ jobId, caller, name, onOpen }: {
               <Icon name={system ? 'check' : 'messages'} size={16} className="mt-0.5 shrink-0 text-[var(--lp-text-sub)]" />
               <span className="min-w-0">
                 <span dir="auto" className="line-clamp-2 text-[14px] leading-snug text-[var(--lp-dark)]">{text}</span>
-                <span className="mt-0.5 block text-[12px] text-[var(--lp-text-sub)]">{formatDealDate(m.ts, locale)}</span>
+                <span className="mt-0.5 block text-[14px] text-[var(--lp-text-sub)] font-medium">{formatDealDate(m.ts, locale)}</span>
               </span>
             </li>
           );

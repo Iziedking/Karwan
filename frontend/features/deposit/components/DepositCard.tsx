@@ -186,7 +186,7 @@ export function DepositCard() {
         {shown ? <Qr value={shown} label={t.qrAlt} /> : null}
 
         <div className="min-w-0 flex-1">
-          <span className="text-[13px] font-medium text-[var(--ink-secondary)]">
+          <span className="text-[14px] font-medium text-[var(--ink-secondary)]">
             {t.addressLabel}
           </span>
           {/* The whole address, wrapped, never truncated. A shortened address is
@@ -212,10 +212,10 @@ export function DepositCard() {
           </Link>
 
           <div className="mt-6">
-            <span className="text-[13px] font-medium text-[var(--ink-secondary)]">
+            <span className="text-[14px] font-medium text-[var(--ink-secondary)]">
               {t.acceptsLabel}
             </span>
-            <p className="mt-2 text-[14px] leading-relaxed text-[var(--ink-secondary)]">
+            <p className="mt-2 text-[14px] leading-relaxed text-[var(--ink-secondary)] font-medium">
               {group === 'solana' ? t.groups.solana : evm.map((chain) => chain.name).join(', ')}
             </p>
           </div>
@@ -342,7 +342,7 @@ export function Watching({ label }: { label: string }) {
         className="inline-block motion-safe:animate-pulse motion-reduce:animate-none"
         style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--ink-secondary)' }}
       />
-      <span className="text-[13px] text-[var(--ink-secondary)]">
+      <span className="text-[14px] text-[var(--ink-secondary)] font-medium">
         {label}
       </span>
     </div>
@@ -382,7 +382,7 @@ function DepositRow({
             .replace('{chain}', deposit.chainName)}
         </span>
       </span>
-      <span className="text-[13px] shrink-0 text-[var(--ink-secondary)]">
+      <span className="text-[14px] shrink-0 text-[var(--ink-secondary)] font-medium">
         {copy.stages[stage]}
       </span>
     </li>

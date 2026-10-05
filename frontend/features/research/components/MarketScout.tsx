@@ -92,16 +92,16 @@ export function MarketScout() {
   return (
     <div className="p-5" style={CARD_STYLE}>
       <div className="flex items-center justify-between gap-3">
-        <span className="mono text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+        <span className="mono text-[13px] font-bold uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
           Scout the market
         </span>
         {creditUsdc != null && (
-          <span className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+          <span className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
             credit ${creditUsdc.toFixed(2)}
           </span>
         )}
       </div>
-      <p className="mt-2 text-[12px] leading-snug text-[var(--lp-text-sub)]">
+      <p className="mt-2 text-[14px] leading-snug text-[var(--lp-text-sub)] font-medium">
         A live market read on any topic. Your agent pays for fresh web research and
         prices it for you.
       </p>
@@ -113,19 +113,19 @@ export function MarketScout() {
         }}
         rows={2}
         placeholder={pb.examples.scout}
-        className="mt-3 w-full resize-none rounded-lg border border-[var(--lp-border-light)] bg-[var(--lp-bg)] px-3 py-2 text-[13px] leading-snug text-[var(--lp-dark)] outline-none focus:border-[var(--lp-accent)]"
+        className="mt-3 w-full resize-none rounded-lg border border-[var(--lp-border-light)] bg-[var(--lp-bg)] px-3 py-2 text-[14px] leading-snug text-[var(--lp-dark)] outline-none focus:border-[var(--lp-accent)]"
       />
       <button
         type="button"
         onClick={runScout}
         disabled={loading || query.trim().length === 0}
-        className="mt-3 w-full rounded-lg bg-[var(--lp-accent)] px-4 py-2 mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--accent-ink)] transition disabled:opacity-45"
+        className="mt-3 w-full rounded-lg bg-[var(--lp-accent)] px-4 py-2 mono text-[13px] font-bold uppercase tracking-[0.16em] text-[var(--accent-ink)] transition disabled:opacity-45"
       >
         {loading ? 'scouting…' : 'scout demand'}
       </button>
 
       {error && (
-        <p className="mt-3 text-[11px] leading-snug text-[var(--lp-text-sub)]">
+        <p className="mt-3 text-[14px] leading-snug text-[var(--lp-text-sub)] font-medium">
           {error}
           {needsCredit && (
             <>
@@ -144,7 +144,7 @@ export function MarketScout() {
           <MarketReadCard mr={toCardData(read)} />
           <a
             href={requestHref(lastQuery, read)}
-            className="mt-3 inline-block mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-dark)] underline underline-offset-2"
+            className="mt-3 inline-block mono text-[13px] font-bold uppercase tracking-[0.16em] text-[var(--lp-dark)] underline underline-offset-2"
           >
             start a request with this →
           </a>

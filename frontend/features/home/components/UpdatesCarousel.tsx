@@ -178,7 +178,7 @@ export function UpdateTile({ card, trending, index, total }: { card: UpdateCard;
             <span
               key={item.name}
               aria-label={`${item.name}, ${item.requests === 1 ? t.trendingCountOne : t.trendingCount.replace('{n}', String(item.requests))}`}
-              className="inline-flex h-[26px] items-center gap-1.5 whitespace-nowrap rounded-full bg-[var(--lp-card)]/80 px-2.5 text-[12px] font-medium text-[var(--lp-dark)]"
+              className="inline-flex h-[26px] items-center gap-1.5 whitespace-nowrap rounded-full bg-[var(--lp-card)]/80 px-2.5 text-[14px] font-medium text-[var(--lp-dark)]"
             >
               <span aria-hidden>{item.name}</span>
               <span aria-hidden className="tabular-nums text-[var(--lp-text-sub)]">{item.requests}</span>
@@ -186,21 +186,21 @@ export function UpdateTile({ card, trending, index, total }: { card: UpdateCard;
           ))}
         </span>
       )
-      : <span className="mt-1.5 block text-[12.5px] leading-snug text-[var(--lp-text-sub)] sm:text-[13.5px]">{t.trendingEmpty}</span>
+      : <span className="mt-1.5 block text-[14px] leading-snug text-[var(--lp-text-sub)] font-medium">{t.trendingEmpty}</span>
     : card.body
-      ? <span className="mt-1.5 block text-[12.5px] leading-snug text-[var(--lp-text-sub)] sm:text-[13.5px]">{card.body}</span>
+      ? <span className="mt-1.5 block text-[14px] leading-snug text-[var(--lp-text-sub)] font-medium">{card.body}</span>
       : null;
   const content = (
     <>
       <span aria-hidden className={`update-art update-art-${card.art} pointer-events-none absolute inset-0`}>
         <span /><span /><span /><span />
       </span>
-      <span className="relative self-start rounded-full bg-[var(--lp-card)]/75 px-2.5 py-1 text-[11px] font-semibold text-[var(--lp-text-sub)] sm:text-[12px]">{card.tag}</span>
+      <span className="relative self-start rounded-full bg-[var(--lp-card)]/75 px-2.5 py-1 text-[14px] font-semibold text-[var(--lp-text-sub)]">{card.tag}</span>
       <span className="relative block max-w-[70%]">
-        <span className="block text-[22px] font-light leading-[1.1] tracking-[-0.02em] text-[var(--lp-dark)] sm:text-[28px]">{card.title}</span>
+        <span className="block text-[22px] font-normal leading-[1.1] tracking-[-0.02em] text-[var(--lp-dark)] sm:text-[28px]">{card.title}</span>
         {body}
       </span>
-      <span className="relative inline-flex items-center gap-1.5 self-start rounded-full bg-[var(--lp-dark)] px-3 py-1.5 text-[12px] font-semibold text-[var(--lp-card)] sm:text-[13px]">
+      <span className="relative inline-flex items-center gap-1.5 self-start rounded-full bg-[var(--lp-dark)] px-3 py-1.5 text-[14px] font-semibold text-[var(--lp-card)]">
         {card.kind === 'video' ? <PlayIcon /> : null}
         {card.ctaLabel}
         {external ? <span className="sr-only">, {t.opensNewTab}</span> : null}

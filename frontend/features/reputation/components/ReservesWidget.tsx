@@ -71,7 +71,7 @@ export function ReservesWidget() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {tiles.map((t) => (
           <MoneyCard key={t.label}>
-            <p className="inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+            <p className="inline-flex items-center gap-1.5 mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
               {t.label}
               <LpHint>{t.hint}</LpHint>
             </p>
@@ -134,10 +134,10 @@ function AccrualChart({ history, loaded }: { history: HistoryPoint[]; loaded: bo
         className="rounded-2xl border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 py-3 sm:px-4 sm:py-4"
       >
         <div className="flex items-baseline justify-between gap-3 px-2 pb-1">
-          <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+          <p className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
             Cumulative distribution
           </p>
-          <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-sub)]">
+          <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-sub)]">
             USDC
           </p>
         </div>
@@ -153,7 +153,7 @@ function AccrualChart({ history, loaded }: { history: HistoryPoint[]; loaded: bo
     return (
       <div
         ref={wrapperRef}
-        className="flex items-center justify-center text-[12px] text-[var(--lp-text-muted)] rounded-2xl border border-dashed border-[var(--lp-border-light)] bg-[var(--lp-card)]"
+        className="flex items-center justify-center text-[14px] text-[var(--lp-text-muted)] rounded-2xl border border-dashed border-[var(--lp-border-light)] bg-[var(--lp-card)]"
         style={{ height: 220 }}
       >
         Distribution chart appears once the first cron tick lands.
@@ -197,10 +197,10 @@ function AccrualChart({ history, loaded }: { history: HistoryPoint[]; loaded: bo
       className="relative overflow-hidden rounded-2xl border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 py-3 sm:px-4 sm:py-4"
     >
       <div className="flex items-baseline justify-between gap-3 px-2 pb-1">
-        <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+        <p className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
           Cumulative distribution
         </p>
-        <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-sub)]">
+        <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-sub)]">
           USDC
         </p>
       </div>

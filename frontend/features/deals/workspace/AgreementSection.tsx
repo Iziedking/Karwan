@@ -26,7 +26,7 @@ export function AgreementSection({ deal, bare = false }: { deal: DirectDeal; bar
     <section aria-labelledby={bare ? undefined : 'deal-agreement'} className="space-y-3">
       {bare ? null : <h2 id="deal-agreement" className="text-[20px] font-semibold text-[var(--lp-dark)]">{copy.agreement.title}</h2>}
       <p className="max-w-[62ch] whitespace-pre-wrap text-[15px] leading-relaxed text-[var(--lp-dark)]">{deal.terms}</p>
-      <p className="text-[14px] tabular-nums text-[var(--lp-text-sub)]">
+      <p className="text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">
         {[
           payments === 1 ? copy.agreement.paymentsOne : fill(copy.agreement.paymentsTemplate, { n: payments }),
           deal.deadlineUnix ? fill(copy.agreement.deliverByTemplate, { date: formatDealDate(deal.deadlineUnix * 1000, locale) }) : null,

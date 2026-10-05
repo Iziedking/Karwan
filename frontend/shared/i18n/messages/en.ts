@@ -1098,6 +1098,7 @@ interface MessagesShape {
     current: string;
     available: string;
     activeTrades: string;
+    activeTradesOne: string;
     balanceParts: string;
     wallets: string;
     add: string;
@@ -6432,7 +6433,8 @@ export const en: MessagesShape = {
     updating: 'Updating',
     current: 'Current',
     available: 'USDC available',
-    activeTrades: 'Active trades',
+    activeTrades: '{n} active trades',
+    activeTradesOne: '1 active trade',
     balanceParts: 'Wallet {wallet} · Other chains {other} · Agents {agents}',
     wallets: 'Wallets',
     add: 'Add',

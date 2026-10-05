@@ -58,7 +58,7 @@ export function DataRow({
         </BracketTag>
         {tagId && (
           <div
-            className="font-mono text-[11px] tabular-nums uppercase tracking-[0.04em]"
+            className="font-mono text-[14px] tabular-nums uppercase tracking-[0.04em]"
             style={{ color: onDark ? 'var(--ink-2)' : 'var(--ink-inv-2)' }}
           >
             {tagId}
@@ -78,7 +78,7 @@ export function DataRow({
         </div>
         {subtitle && (
           <div
-            className="text-[13px] leading-snug truncate"
+            className="text-[14px] leading-snug truncate"
             style={{ color: onDark ? 'var(--ink-2)' : 'var(--ink-inv-2)' }}
           >
             {subtitle}
@@ -98,7 +98,7 @@ export function DataRow({
             {value}
           </div>
           <div
-            className="mt-1 font-mono text-[10px] uppercase tracking-[0.08em]"
+            className="mt-1 font-mono text-[13px] uppercase tracking-[0.08em]"
             style={{ color: onDark ? 'var(--ink-2)' : 'var(--ink-inv-2)' }}
           >
             {unit}

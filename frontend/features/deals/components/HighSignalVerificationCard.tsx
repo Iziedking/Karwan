@@ -130,19 +130,19 @@ function DealWorldCheck({
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-[12px] font-semibold text-[var(--lp-text-sub)]">{copy.title}</p>
+          <p className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{copy.title}</p>
           <h2 id="high-signal-title" className="mt-2 text-[18px] font-bold text-[var(--lp-dark)]">
             {verified ? copy.verified : copy[role]}
           </h2>
-          <p className="mt-2 max-w-[58ch] text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
+          <p className="mt-2 max-w-[58ch] text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
             {verified ? copy.recordedBody : copy.body}
           </p>
         </div>
-        <span className="mono rounded-full border px-3 py-1.5 text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+        <span className="mono rounded-full border px-3 py-1.5 text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
           {verified ? copy.verified : unavailable ? copy.unavailableLabel : status === 'rejected' ? copy.rejected : copy.pending}
         </span>
       </div>
-      <p className="mt-3 max-w-[62ch] text-[12px] leading-relaxed text-[var(--lp-text-sub)]">{copy.limit}</p>
+      <p className="mt-3 max-w-[62ch] text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{copy.limit}</p>
 
       {!verified ? (
         <div className="mt-5 flex flex-wrap items-center gap-3">
@@ -150,7 +150,7 @@ function DealWorldCheck({
             type="button"
             onClick={begin}
             disabled={busy}
-            className="min-h-11 rounded-[10px] rounded-br-[3px] px-4 py-2.5 text-[13px] font-bold disabled:opacity-60"
+            className="min-h-11 rounded-[10px] rounded-br-[3px] px-4 py-2.5 text-[14px] font-bold disabled:opacity-60"
             style={{ background: 'var(--lp-accent)', color: 'var(--accent-ink)' }}
           >
             {busy ? copy.preparing : request ? copy.resume : copy.start}
@@ -160,7 +160,7 @@ function DealWorldCheck({
               type="button"
               onClick={skip}
               disabled={busy}
-              className="ms-auto min-h-11 rounded-full px-2 text-[11px] text-[var(--lp-text-muted)] opacity-60 transition-opacity hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] disabled:opacity-40"
+              className="ms-auto min-h-11 rounded-full px-2 text-[14px] text-[var(--lp-text-muted)] opacity-60 transition-opacity hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] disabled:opacity-40"
             >
               {copy.skip}
             </button>
@@ -189,11 +189,11 @@ function DealWorldCheck({
         />
       ) : null}
       {unavailable ? (
-        <p className="mt-4 text-[12px] leading-relaxed text-[var(--lp-text-sub)]">
+        <p className="mt-4 text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
           {copy.unavailable}
         </p>
       ) : null}
-      {error ? <p role="alert" className="mt-3 text-[12px] text-[var(--lp-dark)]">{error}</p> : null}
+      {error ? <p role="alert" className="mt-3 text-[14px] text-[var(--lp-dark)]">{error}</p> : null}
     </section>
   );
 }

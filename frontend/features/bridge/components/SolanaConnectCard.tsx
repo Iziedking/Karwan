@@ -44,18 +44,18 @@ export function SolanaConnectCard({
     <div className="relative mb-4 overflow-hidden px-4 py-3 ps-5" style={PANEL}>
       <div className="flex items-center gap-2">
         <ChainLogo chain="solana" size={18} />
-        <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+        <span className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
           {copy.eyebrow}
         </span>
       </div>
-      <p className="mt-1.5 text-[12px] leading-snug text-[var(--lp-text-sub)]">{copy.blurb}</p>
+      <p className="mt-1.5 text-[14px] leading-snug text-[var(--lp-text-sub)] font-medium">{copy.blurb}</p>
 
       {/* A different Solana wallet has claimed window.solana. Say which one, so
           the user can act, instead of showing "install Phantom" while Phantom is
           sitting right there disabled, or worse, handing it the burn and letting
           its confirm dialog hang. */}
       {!wallet.available && wallet.conflictingWallet && (
-        <p className="mt-2 text-[12px] leading-snug" style={{ color: '#b25425' }}>
+        <p className="mt-2 text-[14px] leading-snug" style={{ color: '#b25425' }}>
           {copy.conflictTemplate.replace('{wallet}', wallet.conflictingWallet)}
         </p>
       )}
@@ -65,7 +65,7 @@ export function SolanaConnectCard({
           href="https://phantom.com/"
           target="_blank"
           rel="noreferrer"
-          className="mt-3 inline-flex min-h-11 items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] font-bold px-3 py-1.5"
+          className="mt-3 inline-flex min-h-11 items-center gap-1.5 mono text-[13px] uppercase tracking-[0.14em] font-bold px-3 py-1.5"
           style={{
             background: 'var(--lp-accent)',
             color: 'var(--lp-band-dark)',
@@ -82,7 +82,7 @@ export function SolanaConnectCard({
           type="button"
           onClick={() => void wallet.connect()}
           disabled={wallet.connecting}
-          className="mt-3 inline-flex min-h-11 items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 disabled:opacity-50"
+          className="mt-3 inline-flex min-h-11 items-center gap-1.5 mono text-[13px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 disabled:opacity-50"
           style={{
             background: 'var(--lp-accent)',
             color: 'var(--lp-band-dark)',
@@ -95,24 +95,24 @@ export function SolanaConnectCard({
         <div className="mt-3">
           <div className="flex items-baseline justify-between gap-3">
             <div className="min-w-0">
-              <p className="mono text-[9px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+              <p className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
                 {copy.connected}
               </p>
-              <p className="mt-0.5 mono text-[12px] tabular-nums text-[var(--lp-dark)] truncate">
+              <p className="mt-0.5 mono text-[14px] tabular-nums text-[var(--lp-dark)] truncate">
                 {shortAddress(wallet.address)}
               </p>
             </div>
             <div className="text-end shrink-0">
               <p className="font-sans text-[16px] font-extrabold tabular-nums tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
                 {wallet.usdcBalance == null ? '—' : formatUsdc(wallet.usdcBalance, { withSuffix: false })}
-                <span className="ms-1 mono text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                <span className="ms-1 mono text-[13px] font-semibold uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
                   USDC
                 </span>
               </p>
               {/* SOL was invisible here, and it is the balance that decides
                   whether the transfer can happen at all. */}
               <p
-                className="mt-1 mono text-[10px] tabular-nums uppercase tracking-[0.12em]"
+                className="mt-1 mono text-[13px] tabular-nums uppercase tracking-[0.12em]"
                 style={{ color: needsGas ? '#b25425' : 'var(--lp-text-muted)' }}
               >
                 {wallet.solBalance == null ? '—' : wallet.solBalance.toFixed(4)} SOL
@@ -123,7 +123,7 @@ export function SolanaConnectCard({
           {/* Without SOL the burn cannot be simulated, so Phantom opens with an
               empty preview and Confirm greyed out. Say so before they get there. */}
           {needsGas && (
-            <p className="mt-2.5 text-[12px] leading-snug" style={{ color: '#b25425' }}>
+            <p className="mt-2.5 text-[14px] leading-snug" style={{ color: '#b25425' }}>
               {copy.needsSol}
             </p>
           )}
@@ -134,7 +134,7 @@ export function SolanaConnectCard({
               <button
                 type="button"
                 onClick={() => void copyAndOpen(USDC_FAUCET!, 'usdc')}
-                className="mono min-h-11 text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2.5 py-1"
+                className="mono min-h-11 text-[13px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2.5 py-1"
                 style={{
                   background: 'var(--lp-accent)',
                   color: 'var(--lp-band-dark)',
@@ -148,7 +148,7 @@ export function SolanaConnectCard({
             <button
               type="button"
               onClick={() => void copyAndOpen(SOLANA_GAS_FAUCET, 'gas')}
-              className="mono min-h-11 text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2.5 py-1 border transition-colors"
+              className="mono min-h-11 text-[13px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2.5 py-1 border transition-colors"
               style={{
                 borderColor: 'var(--lp-accent)',
                 color: 'var(--lp-band-dark)',
@@ -162,7 +162,7 @@ export function SolanaConnectCard({
             <button
               type="button"
               onClick={() => void wallet.disconnect()}
-              className="ms-auto inline-flex min-h-11 items-center mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+              className="ms-auto inline-flex min-h-11 items-center mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
             >
               {copy.disconnect}
             </button>

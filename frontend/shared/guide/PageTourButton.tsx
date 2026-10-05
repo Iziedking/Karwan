@@ -56,7 +56,7 @@ export function PageTourButton({ pathname, enabled }: { pathname: string; enable
         setVisible(false);
         startTour(tour.id, tour.steps, { force: true });
       }}
-      className="ms-auto inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-4 font-sans text-[13px] font-semibold text-[var(--lp-dark)] transition-colors hover:border-[var(--lp-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
+      className="ms-auto inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-4 font-sans text-[14px] font-semibold text-[var(--lp-dark)] transition-colors hover:border-[var(--lp-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
     >
       <svg aria-hidden width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="9" /><path d="M9.5 9a2.5 2.5 0 1 1 4 2c-1 .6-1.5 1-1.5 2.5 M12 16v1" /></svg>
       {GUIDE_COPY[locale].launch}

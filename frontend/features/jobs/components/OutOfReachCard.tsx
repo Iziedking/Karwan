@@ -76,7 +76,7 @@ export function OutOfReachCard({
 
   return (
     <section className="rounded-[18px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-5 py-4">
-      <p className="inline-flex items-center gap-2 text-[13px] font-medium text-[var(--lp-text-sub)]">
+      <p className="inline-flex items-center gap-2 text-[14px] font-medium text-[var(--lp-text-sub)]">
         <span aria-hidden className="size-2 shrink-0 rounded-full bg-[var(--color-warning)]" />
         {c.tag}
       </p>
@@ -87,11 +87,11 @@ export function OutOfReachCard({
           .replace('{budget}', String(budget))}
       </p>
       {canReconsider && (
-        <p className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+        <p className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
           {c.reconsiderHintTemplate.replace('{price}', String(Math.round(passedPriceUsdc!)))}
         </p>
       )}
-      {error && <p role="alert" className="mt-2 text-[13px] text-[var(--color-critical)]">{error}</p>}
+      {error && <p role="alert" className="mt-2 text-[14px] text-[var(--color-critical)]">{error}</p>}
       <div className="mt-4 flex flex-wrap items-center gap-2">
         {canReconsider && (
           <button type="button" onClick={reconsider} disabled={busy} className={buttonClasses({ className: 'rounded-full px-5' })}>

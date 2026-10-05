@@ -340,7 +340,7 @@ function RailLink({
       <span className={cn('min-w-0 flex-1 truncate', collapsed && 'sr-only')}>{children}</span>
       {badge && !collapsed ? (
         <span
-          className="mono rounded-full px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.12em]"
+          className="mono rounded-full px-2 py-1 text-[13px] font-semibold uppercase tracking-[0.12em]"
           style={{ background: 'color-mix(in oklab, var(--lp-accent) 20%, transparent)', color: 'var(--color-ink)' }}
         >
           {badge}
@@ -398,7 +398,7 @@ function NavLink({
       aria-label={title}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'relative flex h-full items-center px-3 text-[12px] font-semibold tracking-[0.01em] transition-colors',
+        'relative flex h-full items-center px-3 text-[14px] font-semibold tracking-[0.01em] transition-colors',
         active
           ? 'text-[var(--color-ink)]'
           : 'text-[var(--color-ink-dim)] hover:text-[var(--color-ink)]',
@@ -449,7 +449,7 @@ function NavLinkSoon({
       aria-label={title}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'relative inline-flex h-full items-center gap-1.5 whitespace-nowrap px-3 text-[12px] font-semibold tracking-[0.01em] transition-colors',
+        'relative inline-flex h-full items-center gap-1.5 whitespace-nowrap px-3 text-[14px] font-semibold tracking-[0.01em] transition-colors',
         active
           ? 'text-[var(--color-ink)]'
           : 'text-[var(--color-ink-dim)] hover:text-[var(--color-ink)]',
@@ -465,7 +465,7 @@ function NavLinkSoon({
       )}
       <span className="whitespace-nowrap">{children}</span>
       <span
-        className="mono whitespace-nowrap px-1.5 py-[2px] text-[8px] font-bold uppercase tracking-[0.12em]"
+        className="mono whitespace-nowrap px-1.5 py-[2px] text-[13px] font-bold uppercase tracking-[0.12em]"
         style={{
           background: 'color-mix(in oklab, var(--lp-accent) 14%, transparent)',
           color: 'var(--lp-accent)',
@@ -511,7 +511,7 @@ function ProfileLink({
       aria-label={t.profile}
       className={`group relative ${hideBelowLg ? 'hidden lg:inline-flex' : 'inline-flex'} h-9 max-w-[min(220px,calc(100vw-112px))] shrink-0 items-center gap-1.5 rounded-full border border-[var(--color-line-strong)] py-0.5 ps-0.5 pe-2 before:absolute before:-inset-1 before:content-[''] text-[var(--color-ink-dim)] transition-colors hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] sm:max-w-[min(220px,45vw)]`}
     >
-        <span className="relative grid shrink-0 place-items-center overflow-visible rounded-full bg-[var(--color-surface)] text-[10px] font-semibold tracking-[0.04em] text-[var(--color-ink)] size-8">
+        <span className="relative grid shrink-0 place-items-center overflow-visible rounded-full bg-[var(--color-surface)] text-[13px] font-semibold tracking-[0.04em] text-[var(--color-ink)] size-8">
           <span className="grid size-full place-items-center overflow-hidden rounded-full">
             {xImage ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -531,7 +531,7 @@ function ProfileLink({
           </span>
           {profileActionCount > 0 ? <ActionBeacon className="absolute -top-1 -end-1 size-3.5 rounded-full bg-[var(--color-surface)]" /> : null}
         </span>
-        <span className="hidden min-w-0 max-w-[160px] truncate text-[13px] font-medium tracking-[-0.01em] text-[var(--color-ink)] sm:inline">
+        <span className="hidden min-w-0 max-w-[160px] truncate text-[14px] font-medium tracking-[-0.01em] text-[var(--color-ink)] sm:inline">
           {identityName}
         </span>
         <svg

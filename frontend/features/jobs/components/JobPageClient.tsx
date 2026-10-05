@@ -184,7 +184,7 @@ export function JobPageClient({ jobId }: { jobId: string }) {
               <CTAPill href="/market">{jp.private.browseCta}</CTAPill>
               <Link
                 href="/buyer"
-                className="mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-workspace-muted)] hover:text-[var(--lp-workspace-ink)]"
+                className="mono text-[14px] uppercase tracking-[0.12em] text-[var(--lp-workspace-muted)] hover:text-[var(--lp-workspace-ink)]"
               >
                 {jp.private.postCta}
               </Link>
@@ -211,14 +211,14 @@ export function JobPageClient({ jobId }: { jobId: string }) {
             <p className="mt-6 text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
               {state.isNotFound ? jp.error.notFoundBody : jp.error.errorBody}
             </p>
-            <p className="mt-3 mono text-[10px] uppercase tracking-[0.14em] tabular-nums text-[var(--lp-workspace-faint)] break-all">
+            <p className="mt-3 mono text-[13px] uppercase tracking-[0.14em] tabular-nums text-[var(--lp-workspace-faint)] break-all">
               {jobId}
             </p>
             <div className="mt-7 flex flex-wrap items-center gap-3">
               <CTAPill href="/buyer">{jp.error.backCta}</CTAPill>
               <Link
                 href="/activity"
-                className="mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-workspace-muted)] hover:text-[var(--lp-workspace-ink)]"
+                className="mono text-[14px] uppercase tracking-[0.12em] text-[var(--lp-workspace-muted)] hover:text-[var(--lp-workspace-ink)]"
               >
                 {jp.error.activityCta}
               </Link>

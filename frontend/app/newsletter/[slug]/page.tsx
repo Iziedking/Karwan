@@ -37,7 +37,7 @@ function Body({ text }: { text: string }) {
           return (
             <ul key={i} className="mt-4 space-y-2 list-disc ps-5">
               {items.map((item, j) => (
-                <li key={j} className="text-[15px] leading-[1.7] text-[var(--ink)]/80">
+                <li key={j} className="text-[15px] leading-[1.7] text-[var(--lp-text-sub)]">
                   <Inline text={item.replace(/^\s*-\s*/, '')} />
                 </li>
               ))}
@@ -45,7 +45,7 @@ function Body({ text }: { text: string }) {
           );
         }
         return (
-          <p key={i} className="mt-4 text-[15px] leading-[1.7] text-[var(--ink)]/80">
+          <p key={i} className="mt-4 text-[15px] leading-[1.7] text-[var(--lp-text-sub)]">
             <Inline text={block.replace(/\n/g, ' ')} />
           </p>
         );
@@ -110,10 +110,10 @@ export default function NewsletterIssuePage({ params }: { params: Promise<{ slug
     return (
       <main className="mx-auto max-w-[680px] px-5 py-24">
         <h1 className="font-sans text-[22px] font-extrabold">{pb.newsletter.noSuchIssue}</h1>
-        <p className="mt-3 text-[15px] text-[var(--ink)]/60">
+        <p className="mt-3 text-[15px] text-[var(--lp-text-sub)]">
           This one has either not gone out or never existed.
         </p>
-        <Link href="/newsletter" className="mt-6 inline-block text-[13px] underline">
+        <Link href="/newsletter" className="mt-6 inline-block text-[14px] underline">
           Every issue
         </Link>
       </main>
@@ -123,7 +123,7 @@ export default function NewsletterIssuePage({ params }: { params: Promise<{ slug
   if (err) {
     return (
       <main className="mx-auto max-w-[680px] px-5 py-24">
-        <p className="text-[15px] text-[var(--ink)]/60">{pb.newsletter.couldNotLoadIssue}</p>
+        <p className="text-[15px] text-[var(--lp-text-sub)]">{pb.newsletter.couldNotLoadIssue}</p>
       </main>
     );
   }
@@ -131,14 +131,14 @@ export default function NewsletterIssuePage({ params }: { params: Promise<{ slug
   if (!issue) {
     return (
       <main className="mx-auto max-w-[680px] px-5 py-24">
-        <p className="text-[15px] text-[var(--ink)]/40">Loading</p>
+        <p className="text-[15px] text-[var(--lp-text-sub)]">Loading</p>
       </main>
     );
   }
 
   return (
     <main className="mx-auto max-w-[680px] px-5 py-16 sm:py-24">
-      <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--ink)]/40">
+      <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-sub)]">
         {issue.monthInReview ? 'Month in review' : 'Dispatch'} ·{' '}
         {new Date(issue.sentAt).toLocaleDateString('en-GB', {
           day: 'numeric',
@@ -150,7 +150,7 @@ export default function NewsletterIssuePage({ params }: { params: Promise<{ slug
       <h1 className="mt-3 font-sans text-[28px] sm:text-[34px] font-extrabold leading-[1.15]">
         {issue.subject}
       </h1>
-      <p className="mt-3 text-[16px] leading-[1.6] text-[var(--ink)]/60">{issue.preheader}</p>
+      <p className="mt-3 text-[16px] leading-[1.6] text-[var(--lp-text-sub)]">{issue.preheader}</p>
 
       {issue.sections.map((section) => (
         <section key={section.heading} className="mt-10">
@@ -161,10 +161,10 @@ export default function NewsletterIssuePage({ params }: { params: Promise<{ slug
 
       {issue.sources.length > 0 && (
         <section className="mt-12 border-t border-[var(--ink)]/10 pt-6">
-          <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--ink)]/40">Sources</p>
+          <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-sub)]">Sources</p>
           <ul className="mt-3 space-y-2">
             {issue.sources.map((s) => (
-              <li key={s.url} className="text-[13px] text-[var(--ink)]/50">
+              <li key={s.url} className="text-[14px] text-[var(--lp-text-sub)] font-medium">
                 <a href={s.url} target="_blank" rel="noreferrer" className="underline">
                   {s.title}
                 </a>{' '}
@@ -177,7 +177,7 @@ export default function NewsletterIssuePage({ params }: { params: Promise<{ slug
 
       <Link
         href="/newsletter"
-        className="mt-12 inline-block mono text-[10px] uppercase tracking-[0.14em] text-[var(--ink)]/50 hover:text-[var(--ink)]"
+        className="mt-12 inline-block mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-sub)] hover:text-[var(--ink)]"
       >
         Every issue
       </Link>

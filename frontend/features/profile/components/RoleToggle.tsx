@@ -81,7 +81,7 @@ export function RoleToggle({
     <div>
       {error && (
         <div
-          className="mb-3 px-3 py-2.5 text-[12.5px]"
+          className="mb-3 px-3 py-2.5 text-[14px]"
           style={{
             background: 'rgba(176,61,58,0.10)',
             color: '#b03d3a',
@@ -95,7 +95,7 @@ export function RoleToggle({
 
       {/* block, not inline: the control below is inline-flex, so an inline
           eyebrow would flow alongside it instead of sitting above it. */}
-      <span className="block mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+      <span className="block mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
         {t.eyebrow}
       </span>
 
@@ -136,7 +136,7 @@ export function RoleToggle({
               onClick={() => switchTo(opt.value)}
               disabled={busy || isActive}
               title={!eligibility.ok ? eligibility.reason : undefined}
-              className="relative z-10 flex-1 px-4 py-2.5 mono text-[11px] font-bold uppercase tracking-[0.1em] rounded-full transition-colors"
+              className="relative z-10 flex-1 px-4 py-2.5 mono text-[14px] font-bold uppercase tracking-[0.1em] rounded-full transition-colors"
               style={{
                 background: 'transparent',
                 color: isActive ? 'var(--lp-dark)' : 'var(--lp-text-sub)',
@@ -154,7 +154,7 @@ export function RoleToggle({
           their own copy; a single control needs a single caption. */}
       <p
         aria-live="polite"
-        className="mt-3 text-[13px] leading-snug text-[var(--lp-text-sub)]"
+        className="mt-3 text-[14px] leading-snug text-[var(--lp-text-sub)] font-medium"
       >
         {submitting
           ? t.saving

@@ -66,9 +66,9 @@ export function RecoveryRow() {
 
   return (
     <section id="recovery" aria-labelledby="recovery-heading" className="mt-6 border-t border-[var(--lp-border-light)] pt-5">
-      <h3 id="recovery-heading" className="text-[13px] font-semibold text-[var(--lp-text-muted)]">{t.title}</h3>
+      <h3 id="recovery-heading" className="text-[14px] font-semibold text-[var(--lp-text-muted)]">{t.title}</h3>
       <p className="mt-1.5 text-[15px] font-bold text-[var(--lp-dark)]">{cancelled && !status.request ? t.cancelled : title}</p>
-      {body && !(cancelled && !status.request) && <p className="mt-1 text-[13px] leading-5 text-[var(--lp-text-sub)]">{body}</p>}
+      {body && !(cancelled && !status.request) && <p className="mt-1 text-[14px] leading-5 text-[var(--lp-text-sub)] font-medium">{body}</p>}
       {action && <div className="mt-3">{action}</div>}
 
       <SetupSheet open={sheet === 'setup'} walletAddress={auth.address}
@@ -189,7 +189,7 @@ function TurnOnSheet({ open, walletAddress, onClose, onDone }: { open: boolean; 
               <dd className="mono font-semibold text-[var(--lp-dark)]">{feeText ?? ' '}</dd>
             </div>
           </dl>
-          <p className="text-[13px] text-[var(--lp-text-sub)]">{t.undo}</p>
+          <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{t.undo}</p>
           {state === 'low' ? (
             <p role="status" className="text-[14px] font-semibold text-[var(--lp-dark)]">{row.lowBalance}</p>
           ) : (

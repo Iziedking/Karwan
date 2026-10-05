@@ -58,7 +58,7 @@ export function LanguagePicker({ onChange, layout = 'grid' }: Props) {
               {LOCALE_NAMES[l]}
             </p>
             <p
-              className="mt-0.5 text-[12px]"
+              className="mt-0.5 text-[14px]"
               style={{ color: 'var(--lp-text-sub)' }}
             >
               {lp.languageLabels[l]}

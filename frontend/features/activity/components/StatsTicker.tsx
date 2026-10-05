@@ -57,7 +57,7 @@ export function StatsTicker() {
         {track.map((it, i) => (
           <span
             key={i}
-            className="flex items-center gap-2.5 whitespace-nowrap px-6 py-2.5 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-workspace-ink)]"
+            className="flex items-center gap-2.5 whitespace-nowrap px-6 py-2.5 mono text-[14px] uppercase tracking-[0.08em] text-[var(--lp-workspace-ink)]"
           >
             <span aria-hidden className="size-1.5 rounded-full bg-[var(--lp-accent)]" />
             <span className="font-semibold">{it.value}</span>

@@ -99,14 +99,14 @@ export function CircleAccountModal({ open, onClose }: Props) {
             <img src="/karwan-app-icon.svg" alt="" width="64" height="64" className="size-16 rounded-full" />
           </div>
           {auth.email && (
-            <p className="mono text-[12px] tracking-[0.04em] text-[var(--lp-text-sub)] mb-1">
+            <p className="mono text-[14px] tracking-[0.04em] text-[var(--lp-text-sub)] mb-1 font-medium">
               {auth.email}
             </p>
           )}
           <h2 className="font-sans text-[22px] font-extrabold tabular-nums tracking-[-0.02em] text-[var(--lp-dark)]">
             {shortAddress(address)}
           </h2>
-          <p className="mt-2 mono text-[12px] tabular-nums text-[var(--lp-text-muted)]">
+          <p className="mt-2 mono text-[14px] tabular-nums text-[var(--lp-text-muted)]">
             {human != null
               ? `${formatUsdc(human, { withSuffix: false })} ${t.balanceSuffix}`
               : `${t.balanceUnknownPrefix}  ${t.balanceSuffix}`}
@@ -117,7 +117,7 @@ export function CircleAccountModal({ open, onClose }: Props) {
           <button
             type="button"
             onClick={() => copy(address)}
-            className="group inline-flex items-center justify-center gap-2 px-4 py-3 mono text-[12px] font-semibold uppercase tracking-[0.08em] transition-colors"
+            className="group inline-flex items-center justify-center gap-2 px-4 py-3 mono text-[14px] font-semibold uppercase tracking-[0.08em] transition-colors"
             style={{
               background: 'var(--lp-light)',
               border: '1px solid var(--lp-border-light)',
@@ -148,7 +148,7 @@ export function CircleAccountModal({ open, onClose }: Props) {
             type="button"
             onClick={signOut}
             disabled={busy}
-            className="inline-flex items-center justify-center gap-2 px-4 py-3 mono text-[12px] font-semibold uppercase tracking-[0.08em] transition-colors disabled:opacity-60 disabled:cursor-wait"
+            className="inline-flex items-center justify-center gap-2 px-4 py-3 mono text-[14px] font-semibold uppercase tracking-[0.08em] transition-colors disabled:opacity-60 disabled:cursor-wait"
             style={{
               background: 'var(--lp-light)',
               border: '1px solid var(--lp-border-light)',
@@ -176,7 +176,7 @@ export function CircleAccountModal({ open, onClose }: Props) {
           </button>
         </div>
 
-        <p className="px-6 pb-5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] text-center leading-relaxed">
+        <p className="px-6 pb-5 mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] text-center leading-relaxed">
           Your Karwan account can hold available USDC for trades and transfers.
         </p>
       </div>

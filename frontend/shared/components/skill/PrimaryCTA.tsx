@@ -33,7 +33,7 @@ export function PrimaryCTA({
 }) {
   const reduced = useHydratedReducedMotion();
   const baseClass = cn(
-    'group relative inline-flex items-center gap-2 px-[22px] py-[14px] font-mono text-[12px] font-semibold uppercase tracking-[0.06em]',
+    'group relative inline-flex items-center gap-2 px-[22px] py-[14px] font-mono text-[14px] font-semibold uppercase tracking-[0.06em]',
     'transition-colors duration-[var(--dur-micro)] hover:bg-[var(--accent-deep)]',
     'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]',
     disabled && 'opacity-50 cursor-not-allowed',

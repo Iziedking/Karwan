@@ -73,17 +73,17 @@ export function ChatPanel({ jobId, caller, counterpartyLabel, counterpartyAddres
         ) : null}
         {fetchState === 'error' ? <p role="alert" className="text-[14px] text-[var(--lp-dark)]">{fetchError ?? cp.loadError}</p> : null}
         {fetchState === 'ready' && messages.length === 0 ? (
-          <p className="grid h-full place-items-center text-[14px] text-[var(--lp-text-sub)]">{cp.emptyMessage}</p>
+          <p className="grid h-full place-items-center text-[14px] text-[var(--lp-text-sub)] font-medium">{cp.emptyMessage}</p>
         ) : null}
         {messages.map((message, index) => {
           const sender = typeof message.sender === 'string' ? message.sender : '';
           const previous = messages[index - 1];
           const newDay = !previous || dayKey(previous.ts) !== dayKey(message.ts);
           const divider = newDay ? (
-            <p className="my-3 text-center text-[12px] font-medium text-[var(--lp-text-sub)]">{dayLabel(message.ts, locale)}</p>
+            <p className="my-3 text-center text-[14px] font-medium text-[var(--lp-text-sub)]">{dayLabel(message.ts, locale)}</p>
           ) : null;
           if (message.kind === 'system' || !sender) {
-            return <div key={message.id}>{divider}<p className="my-2 px-6 text-center text-[13px] text-[var(--lp-text-sub)]">{(message.eventType && cp.timeline[message.eventType]) || message.body}</p></div>;
+            return <div key={message.id}>{divider}<p className="my-2 px-6 text-center text-[14px] text-[var(--lp-text-sub)] font-medium">{(message.eventType && cp.timeline[message.eventType]) || message.body}</p></div>;
           }
           const mine = sender.toLowerCase() === me;
           const grouped = !newDay && previous && previous.kind !== 'system' && previous.sender === message.sender;
@@ -106,7 +106,7 @@ export function ChatPanel({ jobId, caller, counterpartyLabel, counterpartyAddres
                   )}
                 >
                   {quoted ? (
-                    <div className={cn('mb-1.5 rounded-[10px] border-s-2 px-2.5 py-1 text-[13px]', mine ? 'border-[var(--lp-accent)] bg-white/10' : 'border-[var(--lp-accent)] bg-[var(--lp-card)]')}>
+                    <div className={cn('mb-1.5 rounded-[10px] border-s-2 px-2.5 py-1 text-[14px]', mine ? 'border-[var(--lp-accent)] bg-white/10' : 'border-[var(--lp-accent)] bg-[var(--lp-card)]')}>
                       <p className="font-semibold">{nameOf(quoted.sender)}</p>
                       <p className="truncate opacity-80">{quoted.body || cp.imageAttachment}</p>
                     </div>
@@ -115,7 +115,7 @@ export function ChatPanel({ jobId, caller, counterpartyLabel, counterpartyAddres
                     <img src={message.imageDataUrl} alt={cp.imageAttachment} className="mb-1.5 max-h-60 w-full rounded-[12px] object-contain" />
                   ) : null}
                   {message.body ? <span>{message.body}</span> : null}
-                  <span className={cn('ms-2 inline-block translate-y-[3px] text-[11px] tabular-nums', mine ? 'text-[var(--lp-light)]/70' : 'text-[var(--lp-text-sub)]')}>
+                  <span className={cn('ms-2 inline-block translate-y-[3px] text-[14px] tabular-nums', mine ? 'text-[var(--lp-light)]/70' : 'text-[var(--lp-text-sub)]')}>
                     {timeOf(message.ts, locale)}
                   </span>
                 </div>
@@ -138,7 +138,7 @@ export function ChatPanel({ jobId, caller, counterpartyLabel, counterpartyAddres
       {sendError ? <p role="alert" className="mx-4 mb-2 text-[14px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))] sm:mx-5">{sendError}</p> : null}
 
       {!writable ? (
-        <p className="border-t border-[var(--lp-border-light)] px-5 py-4 text-[14px] text-[var(--lp-text-sub)]">{cp.conversationClosed}</p>
+        <p className="border-t border-[var(--lp-border-light)] px-5 py-4 text-[14px] text-[var(--lp-text-sub)] font-medium">{cp.conversationClosed}</p>
       ) : (
         <form
           onSubmit={(event) => { event.preventDefault(); void submit(); }}
@@ -146,7 +146,7 @@ export function ChatPanel({ jobId, caller, counterpartyLabel, counterpartyAddres
         >
           {replyTo ? (
             <div className="mb-2 flex items-center gap-2 rounded-[12px] border-s-2 border-[var(--lp-accent)] bg-[var(--lp-light)] py-1 pe-1 ps-3">
-              <p className="min-w-0 flex-1 truncate text-[13px] text-[var(--lp-text-sub)]">
+              <p className="min-w-0 flex-1 truncate text-[14px] text-[var(--lp-text-sub)] font-medium">
                 <span className="font-semibold text-[var(--lp-dark)]">{cp.replyingTo.replace('{name}', nameOf(replyTo.sender))}</span> {replyTo.body || cp.imageAttachment}
               </p>
               <button type="button" onClick={() => setReplyTo(null)} aria-label={cp.cancelReply} className="grid size-9 place-items-center rounded-full text-[var(--lp-text-sub)] hover:bg-[var(--lp-card)]">

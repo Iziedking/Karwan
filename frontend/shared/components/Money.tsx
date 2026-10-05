@@ -100,7 +100,7 @@ export function MoneyValue({
 /// number is the thing being read, the label only says which number it is.
 export function MoneyLabel({ children }: { children: ReactNode }) {
   return (
-    <p className="mt-2 mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-sub)]">
+    <p className="mt-2 mono text-[13px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-sub)]">
       {children}
     </p>
   );

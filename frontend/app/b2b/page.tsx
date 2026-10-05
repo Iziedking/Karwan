@@ -18,7 +18,7 @@ export default function B2BHubPage() {
       <AccountGate kind="business">
         <div className="product-surface mx-auto w-full max-w-[1100px] pb-12 sm:pb-16">
           <header className="border-b border-[var(--lp-border-light)] py-8 sm:py-12">
-            <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{bt.eyebrow}</p>
+            <p className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{bt.eyebrow}</p>
             <h1 className="mt-4 max-w-[17ch] text-[clamp(2.6rem,5vw,4.75rem)] font-semibold leading-[0.98] tracking-[-0.055em] text-[var(--lp-dark)]">
               {bt.title}
             </h1>

@@ -23,14 +23,14 @@ export function UsycReservesWidget() {
     <div
       className="flex flex-wrap items-baseline gap-x-2 gap-y-1.5 px-4 py-4 sm:px-5 rounded-2xl border border-[var(--lp-border-light)] bg-[var(--lp-card)]"
     >
-      <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+      <span className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
         USYC price
       </span>
       <span className="font-sans text-[18px] font-extrabold tabular-nums tracking-[-0.01em] text-[var(--lp-dark)]">
         ${price ? price.markUsd.toFixed(4) : '—'}
       </span>
       {price?.source === 'live' ? (
-        <span className="inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
+        <span className="inline-flex items-center gap-1.5 mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
           <span aria-hidden className="inline-block size-1.5 rounded-full bg-[var(--lp-accent)]" />
           live
         </span>

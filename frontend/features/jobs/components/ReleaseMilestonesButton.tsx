@@ -76,18 +76,18 @@ export function ReleaseMilestonesButton({
         {label}
       </button>
       {running && releasedCount > 0 && (
-        <p className="text-[12px] text-[var(--color-ink-dim)]">
+        <p className="text-[14px] text-[var(--color-ink-dim)] font-medium">
           {rm.progress.confirmed
             .replace('{count}', String(releasedCount))
             .replace('{total}', String(totalMilestones))}
         </p>
       )}
       {settled && (
-        <p className="text-[12px] text-[var(--color-positive)]">{rm.progress.settled}</p>
+        <p className="text-[14px] text-[var(--color-positive)]">{rm.progress.settled}</p>
       )}
       {error && (
         <div className="space-y-1.5">
-          <p className="text-xs text-[var(--color-critical)] mono">{error}</p>
+          <p className="text-[14px] text-[var(--color-critical)] mono">{error}</p>
           <FailureHelp error={error} action="release" jobId={jobId} />
         </div>
       )}

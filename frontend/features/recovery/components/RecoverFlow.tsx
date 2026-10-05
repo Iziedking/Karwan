@@ -169,7 +169,7 @@ export function RecoverFlow({ onBack, signInWithStoredPasskey }: {
 
       {step === 'email' && (
         <form onSubmit={sendCode} className="mt-2 space-y-3">
-          <p className="text-[14px] leading-[1.5] text-[var(--lp-text-sub)] sm:text-[15px]">{t.intro}</p>
+          <p className="text-[14px] leading-[1.5] text-[var(--lp-text-sub)] sm:text-[15px] font-medium">{t.intro}</p>
           <label className="block space-y-1.5 pt-3">
             <span className="text-[14px] font-semibold text-[var(--lp-dark)]">{t.email}</span>
             <input type="email" inputMode="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)}
@@ -182,7 +182,7 @@ export function RecoverFlow({ onBack, signInWithStoredPasskey }: {
 
       {step === 'code' && (
         <form onSubmit={verifyCode} className="mt-4 space-y-3">
-          <p className="text-[14px] leading-[1.5] text-[var(--lp-text-sub)] sm:text-[15px]">{t.codeSent.replace('{email}', email)}</p>
+          <p className="text-[14px] leading-[1.5] text-[var(--lp-text-sub)] sm:text-[15px] font-medium">{t.codeSent.replace('{email}', email)}</p>
           <label className="block space-y-1.5">
             <span className="text-[14px] font-semibold text-[var(--lp-dark)]">{t.code}</span>
             <input type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code}
@@ -195,7 +195,7 @@ export function RecoverFlow({ onBack, signInWithStoredPasskey }: {
 
       {(step === 'password' || step === 'ready' || step === 'working') && (
         <form onSubmit={step === 'password' ? start : recover} className="mt-4 space-y-3">
-          {step !== 'password' && <p className="text-[14px] leading-[1.5] text-[var(--lp-text-sub)] sm:text-[15px]">{t.readyBody}</p>}
+          {step !== 'password' && <p className="text-[14px] leading-[1.5] text-[var(--lp-text-sub)] sm:text-[15px] font-medium">{t.readyBody}</p>}
           <label className="block space-y-1.5">
             <span className="text-[14px] font-semibold text-[var(--lp-dark)]">{t.password}</span>
             <input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)}
@@ -208,20 +208,20 @@ export function RecoverFlow({ onBack, signInWithStoredPasskey }: {
       )}
 
       {step === 'waiting' && until && (
-        <p role="status" className="mt-3 text-[14px] leading-[1.5] text-[var(--lp-text-sub)] sm:text-[15px]">{t.waitingBody.replace('{date}', when(until))}</p>
+        <p role="status" className="mt-3 text-[14px] leading-[1.5] text-[var(--lp-text-sub)] sm:text-[15px] font-medium">{t.waitingBody.replace('{date}', when(until))}</p>
       )}
       {step === 'tooEarly' && until && (
-        <p role="status" className="mt-3 text-[14px] leading-[1.5] text-[var(--lp-text-sub)] sm:text-[15px]">{t.tooEarly.replace('{date}', when(until))}</p>
+        <p role="status" className="mt-3 text-[14px] leading-[1.5] text-[var(--lp-text-sub)] sm:text-[15px] font-medium">{t.tooEarly.replace('{date}', when(until))}</p>
       )}
       {step === 'locked' && (
-        <p role="status" className="mt-3 text-[14px] leading-[1.5] text-[var(--lp-text-sub)] sm:text-[15px]">{t.locked.replace('{date}', until ? when(until) : '')}</p>
+        <p role="status" className="mt-3 text-[14px] leading-[1.5] text-[var(--lp-text-sub)] sm:text-[15px] font-medium">{t.locked.replace('{date}', until ? when(until) : '')}</p>
       )}
       {step === 'neverOn' && (
-        <p role="status" className="mt-3 text-[14px] leading-[1.5] text-[var(--lp-text-sub)] sm:text-[15px]">{t.neverOn}</p>
+        <p role="status" className="mt-3 text-[14px] leading-[1.5] text-[var(--lp-text-sub)] sm:text-[15px] font-medium">{t.neverOn}</p>
       )}
       {step === 'done' && (
         <div className="mt-3 space-y-4" role="status">
-          <p className="text-[14px] leading-[1.5] text-[var(--lp-text-sub)] sm:text-[15px]">{t.doneBody}</p>
+          <p className="text-[14px] leading-[1.5] text-[var(--lp-text-sub)] sm:text-[15px] font-medium">{t.doneBody}</p>
           <a href="/account" className={primary}>{t.openWallet}</a>
         </div>
       )}

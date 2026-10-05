@@ -265,10 +265,10 @@ export function EventList({
     if (variant === 'card') {
       return (
         <div className="py-12 text-center space-y-2">
-          <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+          <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
             {el.empty.cardTag}
           </p>
-          <p className="text-[13px] text-[var(--lp-text-sub)] leading-relaxed max-w-[40ch] mx-auto">
+          <p className="text-[14px] text-[var(--lp-text-sub)] leading-relaxed max-w-[40ch] mx-auto font-medium">
             {el.empty.cardBody}
           </p>
         </div>
@@ -277,7 +277,7 @@ export function EventList({
     return (
       <div className="py-8 text-center space-y-1.5">
         <p className="eyebrow">{el.empty.timelineTag}</p>
-        <p className="text-[13px] text-[var(--color-ink-dim)] leading-relaxed max-w-[40ch] mx-auto">
+        <p className="text-[14px] text-[var(--color-ink-dim)] leading-relaxed max-w-[40ch] mx-auto font-medium">
           {el.empty.timelineBody}
         </p>
       </div>
@@ -319,7 +319,7 @@ export function EventList({
                 <span className="mobile-readable text-[15px] font-semibold text-[var(--lp-dark)]">
                   {text}
                 </span>
-                <span className="mobile-meta shrink-0 text-[12px] tabular-nums text-[var(--lp-text-muted)]">
+                <span className="mobile-meta shrink-0 text-[14px] tabular-nums text-[var(--lp-text-muted)]">
                   {repeat > 1 && <span className="me-2">{`×${repeat}`}</span>}
                   {relativeTime(e.ts)}
                 </span>
@@ -335,7 +335,7 @@ export function EventList({
                       ? e.payload?.detail
                       : undefined;
                 return typeof sub === 'string' && sub ? (
-                  <p className="mobile-readable mt-1 text-[13.5px] leading-snug text-[var(--lp-text-sub)]">
+                  <p className="mobile-readable mt-1 text-[14px] leading-snug text-[var(--lp-text-sub)] font-medium">
                     {sub}
                   </p>
                 ) : null;
@@ -343,7 +343,7 @@ export function EventList({
               <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5">
                 <ActorChip tone={tone} actor={e.actor} />
                 {showJobId && e.jobId && (
-                  <span className="inline-flex items-center gap-1 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                  <span className="inline-flex items-center gap-1 mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
                     {el.jobLabelCard}
                     <span className="tabular-nums text-[var(--lp-text-sub)] normal-case tracking-normal">
                       {shortHash(e.jobId, 6, 4)}
@@ -359,7 +359,7 @@ export function EventList({
                     target="_blank"
                     rel="noreferrer"
                     onClick={(ev) => ev.stopPropagation()}
-                    className="group inline-flex items-center gap-1 mono text-[10px] uppercase tracking-[0.12em] font-bold transition-colors relative z-10"
+                    className="group inline-flex items-center gap-1 mono text-[13px] uppercase tracking-[0.12em] font-bold transition-colors relative z-10"
                     style={{ color: 'var(--lp-dark)' }}
                     title={el.explorerTitle}
                   >
@@ -386,7 +386,7 @@ export function EventList({
                 {href && (
                   <span
                     aria-hidden
-                    className="ms-auto text-[13px] text-[var(--lp-text-sub)] transition-colors group-hover:text-[var(--lp-dark)]"
+                    className="ms-auto text-[14px] text-[var(--lp-text-sub)] transition-colors group-hover:text-[var(--lp-dark)] font-medium"
                   >
                     {el.openLink}
                   </span>
@@ -453,15 +453,15 @@ export function EventList({
               <StatusDot tone={dotTone} />
             </span>
             <div className="flex items-baseline justify-between gap-3">
-              <span className="text-[13px] text-[var(--color-ink)] font-medium">{text}</span>
-              <span className="text-[11px] text-[var(--color-ink-faint)] mono shrink-0">
+              <span className="text-[14px] text-[var(--color-ink)] font-medium">{text}</span>
+              <span className="text-[14px] text-[var(--color-ink-faint)] mono shrink-0">
                 {relativeTime(e.ts)}
               </span>
             </div>
             <div className="flex flex-wrap items-center gap-1.5 mt-2">
               <Tag tone={tagTone}>{e.actor}</Tag>
               {showJobId && e.jobId && (
-                <span className="inline-flex items-center gap-1 text-[11px] text-[var(--color-ink-faint)]">
+                <span className="inline-flex items-center gap-1 text-[14px] text-[var(--color-ink-faint)]">
                   {el.jobLabelTimeline}
                   <span className="mono">{shortHash(e.jobId, 6, 4)}</span>
                 </span>
@@ -474,7 +474,7 @@ export function EventList({
                   href={txHref}
                   target="_blank"
                   rel="noreferrer"
-                  className="group inline-flex items-center gap-1 text-[11px] mono text-[var(--color-accent)] hover:underline decoration-dotted underline-offset-2"
+                  className="group inline-flex items-center gap-1 text-[14px] mono text-[var(--color-accent)] hover:underline decoration-dotted underline-offset-2"
                   title={el.explorerTitle}
                 >
                   <span>{shortHash(txHash!, 6, 4)}</span>
@@ -500,7 +500,7 @@ export function EventList({
 
 function ActorChip({ tone, actor }: { tone: Tone; actor: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5 text-[13px] capitalize text-[var(--lp-text-sub)]">
+    <span className="inline-flex items-center gap-1.5 text-[14px] capitalize text-[var(--lp-text-sub)] font-medium">
       <span aria-hidden className="size-1.5 rounded-full" style={{ background: RAIL_COLOR[tone] }} />
       {actor}
     </span>
@@ -518,14 +518,14 @@ function DetailChip({
 }) {
   if (variant === 'card') {
     return (
-      <span className="inline-flex items-baseline gap-1.5 text-[13px]">
+      <span className="inline-flex items-baseline gap-1.5 text-[14px]">
         <span className="text-[var(--lp-text-muted)]">{label}</span>
         <span className="tabular-nums text-[var(--lp-dark)]">{value}</span>
       </span>
     );
   }
   return (
-    <span className="inline-flex items-baseline gap-1 px-2 py-0.5 rounded-md bg-[var(--color-surface-2)] border border-[var(--color-line)] text-[11px]">
+    <span className="inline-flex items-baseline gap-1 px-2 py-0.5 rounded-md bg-[var(--color-surface-2)] border border-[var(--color-line)] text-[14px]">
       <span className="text-[var(--color-ink-faint)] tracking-tight">{label}</span>
       <span className="text-[var(--color-ink)] mono">{value}</span>
     </span>

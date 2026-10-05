@@ -101,7 +101,7 @@ function ActionCard({
         </span>
         <span
           className={cn(
-            'mt-2 block max-w-[28ch] text-[13px] leading-relaxed',
+            'mt-2 block max-w-[28ch] text-[14px] leading-relaxed',
             accent ? 'text-[var(--lp-band-dark)]/80' : 'text-[var(--lp-workspace-muted)]',
           )}
         >

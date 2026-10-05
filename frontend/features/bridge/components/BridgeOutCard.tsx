@@ -182,13 +182,13 @@ export function BridgeOutCard() {
   return (
     <div data-guide="bridge-out" style={CARD_STYLE} className="h-full flex flex-col overflow-hidden">
       <div className="px-6 pt-6 pb-4">
-        <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+        <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
           {t.header.eyebrow}
         </span>
         <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
           {t.header.title}
         </h2>
-        <p className="mt-2 inline-flex items-center gap-2 mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+        <p className="mt-2 inline-flex items-center gap-2 mono text-[14px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
           <span>{t.header.subtitle}</span>
         </p>
       </div>
@@ -197,7 +197,7 @@ export function BridgeOutCard() {
         <form onSubmit={submit} className="space-y-5">
             {/* DESTINATION DROPDOWN */}
             <div className="relative">
-              <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+              <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
                 {t.form.destinationEyebrow}
               </span>
               <button
@@ -249,7 +249,7 @@ export function BridgeOutCard() {
                         className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg hover:bg-[var(--lp-light)] transition-colors text-start"
                       >
                         <ChainLogo chain={k} size={22} />
-                        <span className="font-sans text-[13px] font-semibold text-[var(--lp-dark)]">
+                        <span className="font-sans text-[14px] font-semibold text-[var(--lp-dark)]">
                           {k === 'arc' ? 'Arc' : SOURCE_CHAINS[k].name}
                         </span>
                         {k === destKey && (
@@ -275,20 +275,20 @@ export function BridgeOutCard() {
               }}
             >
               <div className="px-4 pt-3 pb-0.5 flex items-baseline justify-between">
-                <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+                <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
                   {t.form.amountEyebrow}
                 </span>
                 {arcBalance != null && Number(arcBalance) > 0 ? (
                   <button
                     type="button"
                     onClick={() => setAmount(Number(arcBalance))}
-                    className="-my-2 inline-flex min-h-11 items-center mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+                    className="-my-2 inline-flex min-h-11 items-center mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
                     title={amountCopy.maxTitle}
                   >
                     {amountCopy.balanceMaxTemplate.replace('{amount}', formatUsdc(arcBalance, { withSuffix: false }))}
                   </button>
                 ) : (
-                  <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                  <span className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
                     {amountCopy.balanceTemplate.replace(
                       '{amount}',
                       arcBalance != null ? formatUsdc(arcBalance, { withSuffix: false }) : '0',
@@ -307,7 +307,7 @@ export function BridgeOutCard() {
                   className="no-spinner flex-1 bg-transparent font-sans text-[32px] font-extrabold tracking-[-0.025em] tabular-nums focus:outline-none placeholder:text-[var(--lp-text-muted)] min-w-0 text-[var(--lp-dark)]"
                   placeholder="0"
                 />
-                <span className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] font-semibold">
+                <span className="mono text-[14px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] font-semibold">
                   USDC
                 </span>
               </div>
@@ -322,7 +322,7 @@ export function BridgeOutCard() {
                   type="button"
                   onClick={runFaucet}
                   disabled={faucetBusy}
-                  className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] underline-offset-2 hover:underline disabled:opacity-50"
+                  className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] underline-offset-2 hover:underline disabled:opacity-50"
                 >
                   {faucetBusy ? t.form.faucetBusy : t.form.faucetCta}
                 </button>
@@ -330,7 +330,7 @@ export function BridgeOutCard() {
             )}
             {isCircle && faucetNote && (
               <p
-                className="px-3 py-2 text-[11.5px] leading-snug"
+                className="px-3 py-2 text-[14px] leading-snug"
                 style={{
                   background: 'rgba(175, 201, 91,0.10)',
                   color: 'var(--lp-dark)',
@@ -352,14 +352,14 @@ export function BridgeOutCard() {
               }}
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+                <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
                   {t.form.landsAtPrefix} {destShort.toUpperCase()}
                 </span>
                 {auth.address && (
                   <button
                     type="button"
                     onClick={() => setRecipient(auth.address as string)}
-                    className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] underline-offset-2 hover:underline transition-colors"
+                    className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] underline-offset-2 hover:underline transition-colors"
                   >
                     {t.form.yourWallet}
                   </button>
@@ -371,10 +371,10 @@ export function BridgeOutCard() {
                 onChange={(e) => setRecipient(e.target.value)}
                 placeholder={t.form.recipientPlaceholder}
                 spellCheck={false}
-                className="mt-1.5 w-full bg-transparent text-[13px] mono tabular-nums focus:outline-none text-[var(--lp-dark)] placeholder:text-[var(--lp-text-muted)]"
+                className="mt-1.5 w-full bg-transparent text-[14px] mono tabular-nums focus:outline-none text-[var(--lp-dark)] placeholder:text-[var(--lp-text-muted)]"
               />
               {recipient.trim() !== '' && !recipientValid && (
-                <p className="mt-1 mono text-[10px] uppercase tracking-[0.1em] text-[#b03d3a]">
+                <p className="mt-1 mono text-[13px] uppercase tracking-[0.1em] text-[#b03d3a]">
                   {t.form.addressInvalid}
                 </p>
               )}
@@ -389,7 +389,7 @@ export function BridgeOutCard() {
               type="submit"
               disabled={!canSubmit || sending}
               aria-busy={sending}
-              className="group relative w-full px-4 py-3 mono text-[13px] font-bold uppercase tracking-[0.08em] inline-flex items-center justify-center gap-2 transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+              className="group relative w-full px-4 py-3 mono text-[14px] font-bold uppercase tracking-[0.08em] inline-flex items-center justify-center gap-2 transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0"
               style={{
                 background: 'var(--lp-accent)',
                 color: 'var(--accent-ink)',
@@ -415,7 +415,7 @@ export function BridgeOutCard() {
               </span>
             </button>
 
-            <p className="text-[11px] leading-snug text-[var(--lp-text-muted)]">
+            <p className="text-[14px] leading-snug text-[var(--lp-text-muted)]">
               {t.reassurance}
             </p>
           </form>
@@ -455,7 +455,7 @@ function RecipientVerifyPill({
           : copy.invalid;
   return (
     <div
-      className="inline-flex items-center gap-2 px-3 py-2 text-[11.5px] mono"
+      className="inline-flex items-center gap-2 px-3 py-2 text-[14px] mono"
       style={{
         background: tone.bg,
         color: tone.text,

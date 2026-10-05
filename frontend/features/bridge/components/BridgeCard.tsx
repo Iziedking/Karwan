@@ -679,10 +679,10 @@ export function BridgeCard({
   if (!identityAddress && !buyerAgent && !sellerAgent && !(prefillRecipient && isAddress(prefillRecipient))) {
     return (
       <div style={CARD_STYLE} className="p-6 h-full flex flex-col">
-        <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+        <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
           {bc.eyebrow.bridge}
         </span>
-        <p className="mt-3 text-[14px] text-[var(--lp-text-sub)]">
+        <p className="mt-3 text-[14px] text-[var(--lp-text-sub)] font-medium">
           {bc.buyerAgentNotConfigured}
         </p>
       </div>
@@ -697,7 +697,7 @@ export function BridgeCard({
       <div className="px-6 pt-6 pb-4 flex items-start justify-end gap-4">
         {activeCount > 0 && (
           <span
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] mono font-bold uppercase tracking-[0.14em] shrink-0"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[13px] mono font-bold uppercase tracking-[0.14em] shrink-0"
             style={{
               background: 'rgba(175, 201, 91,0.10)',
               color: 'var(--lp-dark)',
@@ -782,20 +782,20 @@ export function BridgeCard({
             }}
           >
             <div className="px-4 pt-3 pb-0.5 flex items-baseline justify-between">
-              <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+              <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
                 {bc.eyebrow.amount}
               </span>
               {sourceBalance != null && Number(sourceBalance) > 0 ? (
                 <button
                   type="button"
                   onClick={() => setAmount(Number(sourceBalance))}
-                  className="-my-2 inline-flex min-h-11 items-center mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+                  className="-my-2 inline-flex min-h-11 items-center mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
                   title={bc.amount.maxTitle}
                 >
                   {bc.amount.balanceMaxTemplate.replace('{amount}', formatUsdc(sourceBalance, { withSuffix: false }))}
                 </button>
               ) : (
-                <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                <span className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
                   {bc.amount.balanceTemplate.replace(
                     '{amount}',
                     sourceBalance != null ? formatUsdc(sourceBalance, { withSuffix: false }) : '0',
@@ -814,7 +814,7 @@ export function BridgeCard({
                 className="no-spinner flex-1 bg-transparent font-sans text-[32px] font-extrabold tracking-[-0.025em] tabular-nums focus:outline-none placeholder:text-[var(--lp-text-muted)] min-w-0 text-[var(--lp-dark)]"
                 placeholder="0"
               />
-              <span className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] font-semibold">
+              <span className="mono text-[14px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] font-semibold">
                 USDC
               </span>
             </div>
@@ -856,14 +856,14 @@ export function BridgeCard({
             >
               {mintRecipient && <WalletAvatar address={mintRecipient} size={24} />}
               <div className="flex-1 min-w-0">
-                <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+                <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
                   {bc.eyebrow.mintsTo}
                 </span>
                 {/* The wallet, not a sentence about the wallet. "Lands in your
                     Arc wallet" sat above the address and said less than the
                     address does. */}
                 {mintRecipient && (
-                  <p className="mt-0.5 mono text-[13px] font-semibold tabular-nums leading-tight text-[var(--lp-dark)] truncate">
+                  <p className="mt-0.5 mono text-[14px] font-semibold tabular-nums leading-tight text-[var(--lp-dark)] truncate">
                     {shortAddress(mintRecipient)}
                   </p>
                 )}
@@ -871,7 +871,7 @@ export function BridgeCard({
               <button
                 type="button"
                 onClick={() => setRecipientOpen(true)}
-                className="shrink-0 inline-flex min-h-11 items-center mono text-[10px] uppercase tracking-[0.12em] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity underline-offset-2 hover:underline"
+                className="shrink-0 inline-flex min-h-11 items-center mono text-[13px] uppercase tracking-[0.12em] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity underline-offset-2 hover:underline"
               >
                 {bc.recipient.sendElsewhere}
               </button>
@@ -885,7 +885,7 @@ export function BridgeCard({
               type="button"
               data-guide="bridge-submit"
               onClick={() => openConnectModal?.()}
-              className="group relative min-h-[45px] w-full px-4 py-3 mono text-[13px] font-bold uppercase tracking-[0.08em] inline-flex items-center justify-center gap-2 transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
+              className="group relative min-h-[45px] w-full px-4 py-3 mono text-[14px] font-bold uppercase tracking-[0.08em] inline-flex items-center justify-center gap-2 transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
               style={{
                 background: 'var(--lp-accent)',
                 color: 'var(--accent-ink)',
@@ -906,7 +906,7 @@ export function BridgeCard({
               data-guide="bridge-submit"
               disabled={!canSubmit || startingBridge}
               aria-busy={startingBridge}
-              className="group relative min-h-[45px] w-full px-4 py-3 mono text-[13px] font-bold uppercase tracking-[0.08em] inline-flex items-center justify-center gap-2 transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
+              className="group relative min-h-[45px] w-full px-4 py-3 mono text-[14px] font-bold uppercase tracking-[0.08em] inline-flex items-center justify-center gap-2 transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
               style={{
                 background: 'var(--lp-accent)',
                 color: 'var(--accent-ink)',
@@ -958,7 +958,7 @@ export function BridgeCard({
               <button
                 type="button"
                 onClick={() => setDepositMode(false)}
-                className="mono text-[10px] uppercase tracking-[0.12em] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity underline-offset-2 hover:underline"
+                className="mono text-[13px] uppercase tracking-[0.12em] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity underline-offset-2 hover:underline"
               >
                 {bc.connect.useWallet}
               </button>
@@ -966,7 +966,7 @@ export function BridgeCard({
               <button
                 type="button"
                 onClick={() => setDepositMode(true)}
-                className="mono text-[10px] uppercase tracking-[0.12em] font-bold text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors underline-offset-2 hover:underline"
+                className="mono text-[13px] uppercase tracking-[0.12em] font-bold text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors underline-offset-2 hover:underline"
               >
                 {bc.connect.useDeposit}
               </button>
@@ -1043,11 +1043,11 @@ export function BridgeRow({
             <span className="font-sans text-[22px] font-extrabold tabular-nums leading-none tracking-[-0.02em] text-[var(--lp-dark)]">
               {formatUsdc(bridge.amountUsdc, { withSuffix: false })}
             </span>
-            <span className="text-[11px] mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-none">
+            <span className="text-[14px] mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-none">
               USDC
             </span>
           </div>
-          <div className="mt-1.5 text-[11px] text-[var(--lp-text-sub)] tabular-nums truncate">
+          <div className="mt-1.5 text-[14px] text-[var(--lp-text-sub)] tabular-nums truncate font-medium">
             {(isOut ? copy.routeToTemplate : copy.routeFromTemplate).replace(
               '{chain}',
               meta.shortName,
@@ -1060,7 +1060,7 @@ export function BridgeRow({
               <>
                 <span className="mx-1.5 text-[var(--lp-text-muted)]">·</span>
                 <span
-                  className="mono text-[10px] uppercase tracking-[0.14em] font-bold"
+                  className="mono text-[13px] uppercase tracking-[0.14em] font-bold"
                   style={{ color: TONE_HEX.warning }}
                 >
                   {copy.stale}
@@ -1128,7 +1128,7 @@ export function BridgeRow({
                   }
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-baseline justify-between gap-3 text-[11px] hover:text-[var(--lp-dark)] text-[var(--lp-text-sub)] py-0.5 transition-colors"
+                  className="flex items-baseline justify-between gap-3 text-[14px] hover:text-[var(--lp-dark)] text-[var(--lp-text-sub)] py-0.5 transition-colors font-medium"
                 >
                   <span className="mono uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
                     {copy.burnLabelTemplate.replace(
@@ -1151,7 +1151,7 @@ export function BridgeRow({
                   }
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-baseline justify-between gap-3 text-[11px] hover:text-[var(--lp-dark)] text-[var(--lp-text-sub)] py-0.5 transition-colors"
+                  className="flex items-baseline justify-between gap-3 text-[14px] hover:text-[var(--lp-dark)] text-[var(--lp-text-sub)] py-0.5 transition-colors font-medium"
                 >
                   <span className="mono uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
                     {isOut
@@ -1168,7 +1168,7 @@ export function BridgeRow({
           )}
 
           {isStuck && (
-            <p className="text-[11px] text-[var(--lp-text-muted)] leading-snug">
+            <p className="text-[14px] text-[var(--lp-text-muted)] leading-snug">
               {copy.stuckNote}
             </p>
           )}
@@ -1178,7 +1178,7 @@ export function BridgeRow({
               <button
                 type="button"
                 onClick={onRecheck}
-                className="inline-flex min-h-11 items-center px-3 py-2 mono text-[11px] font-bold uppercase tracking-[0.08em] transition-colors"
+                className="inline-flex min-h-11 items-center px-3 py-2 mono text-[14px] font-bold uppercase tracking-[0.08em] transition-colors"
                 style={{
                   background: 'var(--lp-accent)',
                   color: 'var(--accent-ink)',
@@ -1192,7 +1192,7 @@ export function BridgeRow({
               <button
                 type="button"
                 onClick={onRetry}
-                className="inline-flex min-h-11 items-center px-3 py-2 mono text-[11px] font-bold uppercase tracking-[0.08em] transition-opacity hover:opacity-90"
+                className="inline-flex min-h-11 items-center px-3 py-2 mono text-[14px] font-bold uppercase tracking-[0.08em] transition-opacity hover:opacity-90"
                 style={{
                   background: 'var(--lp-control-active-bg)',
                   color: 'var(--lp-control-active-ink)',
@@ -1206,7 +1206,7 @@ export function BridgeRow({
               <button
                 type="button"
                 onClick={onDismiss}
-                className="inline-flex min-h-11 items-center px-3 py-2 mono text-[11px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] hover:bg-[var(--lp-card)] transition-colors rounded"
+                className="inline-flex min-h-11 items-center px-3 py-2 mono text-[14px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] hover:bg-[var(--lp-card)] transition-colors rounded font-medium"
               >
                 {copy.dismiss}
               </button>
@@ -1342,7 +1342,7 @@ function BridgeSteps({
               />
             )}
             <span
-              className="relative shrink-0 inline-flex items-center justify-center w-[26px] h-[26px] mono text-[10px] font-bold tabular-nums"
+              className="relative shrink-0 inline-flex items-center justify-center w-[26px] h-[26px] mono text-[13px] font-bold tabular-nums"
               style={{
                 background: tileBg,
                 color: tileColor,
@@ -1354,7 +1354,7 @@ function BridgeSteps({
             </span>
             <div className="flex-1 min-w-0 pt-1 flex items-center justify-between gap-3 flex-wrap">
               <span
-                className={`mono text-[11px] uppercase tracking-[0.14em] ${
+                className={`mono text-[14px] uppercase tracking-[0.14em] ${
                   done || active
                     ? 'text-[var(--lp-dark)] font-bold'
                     : 'text-[var(--lp-text-muted)] font-semibold'
@@ -1406,11 +1406,11 @@ function ErrorBanner({
         style={{ background: TONE_HEX.critical }}
       >
         <span aria-hidden className="inline-block w-[5px] h-[5px] bg-white" />
-        <span className="mono text-[9px] font-bold uppercase tracking-[0.18em] text-white">
+        <span className="mono text-[13px] font-bold uppercase tracking-[0.18em] text-white">
           {copy.errorBadge}
         </span>
       </div>
-      <p className="px-3 py-2.5 text-[13px] leading-snug text-[var(--lp-dark)]">{message}</p>
+      <p className="px-3 py-2.5 text-[14px] leading-snug text-[var(--lp-dark)]">{message}</p>
     </div>
   );
 }
@@ -1454,7 +1454,7 @@ function StatusPill({
         : 'rgba(175,201,91,0.50)';
   return (
     <span
-      className="shrink-0 inline-flex items-center mono text-[10px] font-bold uppercase tracking-[0.14em] leading-none px-2.5 py-1.5 whitespace-nowrap"
+      className="shrink-0 inline-flex items-center mono text-[13px] font-bold uppercase tracking-[0.14em] leading-none px-2.5 py-1.5 whitespace-nowrap"
       style={{
         background: bg,
         color: fg,
@@ -1505,7 +1505,7 @@ function PhaseChip({
         : 'var(--lp-accent)';
   return (
     <span
-      className="inline-flex items-stretch overflow-hidden mono text-[10px] font-bold uppercase tracking-[0.16em] leading-none"
+      className="inline-flex items-stretch overflow-hidden mono text-[13px] font-bold uppercase tracking-[0.16em] leading-none"
       style={{
         background: bg,
         color: fg,
@@ -1611,7 +1611,7 @@ function CircleSourceFundBanner({
       <div className="px-4 py-3 ps-5">
         <div className="flex items-center gap-3 flex-wrap">
           <span
-            className="inline-flex items-center gap-1.5 px-1.5 py-[3px] mono text-[9px] font-bold uppercase tracking-[0.16em] leading-none"
+            className="inline-flex items-center gap-1.5 px-1.5 py-[3px] mono text-[13px] font-bold uppercase tracking-[0.16em] leading-none"
             style={{
               background: funded ? 'rgba(175,201,91,0.12)' : empty ? 'rgba(178,84,37,0.12)' : 'rgba(175, 201, 91, 0.18)',
               color: funded ? TONE_HEX.positive : empty ? TONE_HEX.warning : 'var(--lp-band-dark)',
@@ -1622,7 +1622,7 @@ function CircleSourceFundBanner({
             <span aria-hidden className="inline-block w-[5px] h-[5px]" style={{ background: accent }} />
             {funded ? copy.badgeFunded : copy.badgeFundToBridge}
           </span>
-          <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+          <span className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
             {statusLine}
           </span>
         </div>
@@ -1630,22 +1630,22 @@ function CircleSourceFundBanner({
         {/* LIVE BALANCE READOUT */}
         <div className="mt-3 flex items-baseline gap-4">
           <div>
-            <p className="mono text-[9px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+            <p className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
               {copy.balanceHere}
             </p>
             <p className="mt-0.5 font-sans text-[18px] font-extrabold tabular-nums tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
               {wallet?.usdcBalance == null ? '—' : formatUsdc(wallet.usdcBalance, { withSuffix: false })}
-              <span className="ms-1 mono text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+              <span className="ms-1 mono text-[13px] font-semibold uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
                 USDC
               </span>
             </p>
           </div>
           <div>
-            <p className="mono text-[9px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+            <p className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
               {copy.gas}
             </p>
             <p
-              className="mt-0.5 mono text-[11px] uppercase tracking-[0.12em] leading-none"
+              className="mt-0.5 mono text-[14px] uppercase tracking-[0.12em] leading-none"
               style={{ color: gasDry ? TONE_HEX.warning : TONE_HEX.positive }}
             >
               {gasSponsored ? copy.sponsored : gasDry ? copy.needed : copy.covered}
@@ -1664,7 +1664,7 @@ function CircleSourceFundBanner({
             type="button"
             onClick={claimUsdc}
             disabled={!address || claiming}
-            className="mono min-h-11 text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2.5 py-1 disabled:opacity-50"
+            className="mono min-h-11 text-[13px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2.5 py-1 disabled:opacity-50"
             style={{
               background: 'var(--lp-accent)',
               color: 'var(--lp-band-dark)',
@@ -1676,7 +1676,7 @@ function CircleSourceFundBanner({
         </div>
         {note && (
           <p
-            className="mt-2 text-[11px] leading-snug"
+            className="mt-2 text-[14px] leading-snug"
             style={{ color: note.kind === 'err' ? TONE_HEX.warning : 'var(--lp-text-sub)' }}
           >
             {note.text}
@@ -1743,11 +1743,11 @@ function SolanaDepositBanner({
       <div className="px-4 py-3 ps-5">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+            <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
               {copy.addressLabel}
             </p>
             <p
-              className="mt-0.5 mono text-[12px] tabular-nums truncate"
+              className="mt-0.5 mono text-[14px] tabular-nums truncate"
               style={{ color: failed && !address ? TONE_HEX.warning : 'var(--lp-dark)' }}
             >
               {address ?? (failed ? copy.setupFailed : copy.provisioning)}
@@ -1757,7 +1757,7 @@ function SolanaDepositBanner({
             <button
               type="button"
               onClick={() => setAttempt((n) => n + 1)}
-              className="shrink-0 mono text-[10px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity px-2 py-1 border border-[var(--lp-outline)]"
+              className="shrink-0 mono text-[13px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity px-2 py-1 border border-[var(--lp-outline)]"
               style={{
                 borderRadius: 6,
               }}
@@ -1769,7 +1769,7 @@ function SolanaDepositBanner({
               type="button"
               onClick={copyAddress}
               disabled={!address}
-              className="shrink-0 mono text-[10px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity disabled:opacity-50 px-2 py-1 border border-[var(--lp-outline)]"
+              className="shrink-0 mono text-[13px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity disabled:opacity-50 px-2 py-1 border border-[var(--lp-outline)]"
               style={{
                 borderRadius: 6,
                 color: copied ? TONE_HEX.positive : undefined,
@@ -1779,13 +1779,13 @@ function SolanaDepositBanner({
             </button>
           )}
         </div>
-        <p className="mt-2 text-[11px] leading-snug text-[var(--lp-text-sub)]">{copy.note}</p>
+        <p className="mt-2 text-[14px] leading-snug text-[var(--lp-text-sub)] font-medium">{copy.note}</p>
         <div className="mt-1.5">
           <a
             href="https://faucet.solana.com/"
             target="_blank"
             rel="noreferrer"
-            className="mono text-[9px] uppercase tracking-[0.16em] font-bold inline-flex items-center gap-1 text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+            className="mono text-[13px] uppercase tracking-[0.16em] font-bold inline-flex items-center gap-1 text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
           >
             {copy.faucet}
             <ExternalIcon />
@@ -1840,7 +1840,7 @@ function Web3FundHint({
       }}
     >
       <div className="flex items-center gap-2">
-        <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+        <p className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
           {copy.eyebrowTemplate.replace('{chain}', source.shortName.toUpperCase())}
         </p>
         <LpHint side="bottom" align="start">
@@ -1855,7 +1855,7 @@ function Web3FundHint({
             type="button"
             onClick={() => void copyAndOpen(USDC_FAUCET!, 'usdc')}
             disabled={!fundAddress}
-            className="mono min-h-11 text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2.5 py-1 disabled:opacity-50"
+            className="mono min-h-11 text-[13px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2.5 py-1 disabled:opacity-50"
             style={{
               background: 'var(--lp-accent)',
               color: 'var(--lp-band-dark)',
@@ -1874,7 +1874,7 @@ function Web3FundHint({
           }}
           hidden={!GAS_FAUCETS[source.key]}
           disabled={!fundAddress}
-          className="mono min-h-11 text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2.5 py-1 border disabled:opacity-50"
+          className="mono min-h-11 text-[13px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2.5 py-1 border disabled:opacity-50"
           style={{
             borderColor: 'var(--lp-accent)',
             color: 'var(--lp-band-dark)',
@@ -1951,10 +1951,10 @@ function RecipientPicker({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
-        <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+        <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
           {copy.eyebrowChoose}
         </span>
-        <div className="flex items-center gap-1.5 text-[10px] mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)] shrink-0">
+        <div className="flex items-center gap-1.5 text-[13px] mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)] shrink-0">
           <ChainMark which="arc" size={14} />
           <span>{arcLabel}</span>
         </div>
@@ -1981,10 +1981,10 @@ function RecipientPicker({
                 cursor: disabled ? 'not-allowed' : 'pointer',
               }}
             >
-              <p className="text-[12px] font-semibold leading-tight text-[var(--lp-dark)]">
+              <p className="text-[14px] font-semibold leading-tight text-[var(--lp-dark)]">
                 {c.label}
               </p>
-              <p className="mt-0.5 mono text-[10px] tabular-nums text-[var(--lp-text-muted)] truncate">
+              <p className="mt-0.5 mono text-[13px] tabular-nums text-[var(--lp-text-muted)] truncate">
                 {c.isCustom
                   ? '0x...'
                   : c.address
@@ -2005,14 +2005,14 @@ function RecipientPicker({
             placeholder={copy.customPlaceholder}
             spellCheck={false}
             autoComplete="off"
-            className="w-full bg-[var(--lp-light)] px-4 py-3 text-[13px] mono tabular-nums focus:outline-none text-[var(--lp-dark)] placeholder:text-[var(--lp-text-muted)]"
+            className="w-full bg-[var(--lp-light)] px-4 py-3 text-[14px] mono tabular-nums focus:outline-none text-[var(--lp-dark)] placeholder:text-[var(--lp-text-muted)]"
             style={{
               border: '1px solid var(--lp-border-light)',
               borderRadius: 10,
             }}
           />
           <VerifyBanner kind={customKind} copy={copy} />
-          <p className="text-[11.5px] leading-snug text-[var(--lp-text-sub)]">
+          <p className="text-[14px] leading-snug text-[var(--lp-text-sub)] font-medium">
             {copy.customWarning}
           </p>
         </div>
@@ -2029,10 +2029,10 @@ function RecipientPicker({
             <div className="flex items-center gap-3 flex-1 min-w-0">
               <WalletAvatar address={resolved} size={24} />
               <div className="flex-1 min-w-0">
-                <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+                <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
                   {mintsToEyebrow}
                 </span>
-                <p className="mt-0.5 text-[13px] mono tabular-nums truncate text-[var(--lp-dark)]">
+                <p className="mt-0.5 text-[14px] mono tabular-nums truncate text-[var(--lp-dark)]">
                   {shortAddress(resolved)}
                 </p>
               </div>
@@ -2043,7 +2043,7 @@ function RecipientPicker({
                 dominant mobile mint-to layout bug). On sm+ it sits inline
                 on the right edge as before. */}
             <span
-              className="self-start sm:self-auto inline-flex items-center gap-1.5 px-2 py-1 mono text-[10px] uppercase tracking-[0.14em] whitespace-nowrap"
+              className="self-start sm:self-auto inline-flex items-center gap-1.5 px-2 py-1 mono text-[13px] uppercase tracking-[0.14em] whitespace-nowrap"
               style={{
                 background: 'rgba(175, 201, 91, 0.12)',
                 color: 'var(--lp-accent)',
@@ -2089,7 +2089,7 @@ function VerifyBanner({
           : copy.verify.invalid;
   return (
     <div
-      className="inline-flex items-center gap-2 px-3 py-2 text-[11.5px] mono"
+      className="inline-flex items-center gap-2 px-3 py-2 text-[14px] mono"
       style={{
         background: tone.bg,
         color: tone.text,
@@ -2182,7 +2182,7 @@ function SourceChainDropdown({
 
   return (
     <div data-guide="bridge-source" className="relative">
-      <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+      <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
         {eyebrow}
       </span>
       <button
@@ -2204,7 +2204,7 @@ function SourceChainDropdown({
               {active.name}
             </span>
             <span
-              className="block mt-0.5 mono text-[10px] uppercase tracking-[0.12em]"
+              className="block mt-0.5 mono text-[13px] uppercase tracking-[0.12em]"
               style={{ color: 'var(--lp-text-muted)' }}
             >
               {active.meta}
@@ -2271,12 +2271,12 @@ function SourceChainDropdown({
                     <ChainMark which={opt.iconKey} size={22} />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-sans text-[13px] font-semibold text-[var(--lp-dark)]">
+                        <span className="font-sans text-[14px] font-semibold text-[var(--lp-dark)]">
                           {opt.name}
                         </span>
                         {opt.disabled && opt.disabledTag && (
                           <span
-                            className="mono text-[8px] uppercase tracking-[0.14em] px-1.5 py-0.5 rounded-full"
+                            className="mono text-[13px] uppercase tracking-[0.14em] px-1.5 py-0.5 rounded-full"
                             style={{
                               color: 'var(--lp-text-muted)',
                               background: 'rgba(0,0,0,0.05)',
@@ -2287,7 +2287,7 @@ function SourceChainDropdown({
                         )}
                       </div>
                       <p
-                        className="mono text-[10px] mt-0.5 uppercase tracking-[0.12em]"
+                        className="mono text-[13px] mt-0.5 uppercase tracking-[0.12em]"
                         style={{ color: 'var(--lp-text-muted)' }}
                       >
                         {opt.meta}

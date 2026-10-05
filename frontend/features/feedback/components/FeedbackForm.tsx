@@ -217,7 +217,7 @@ export function FeedbackForm() {
                         >
                           <span className="flex items-center justify-between gap-3">
                             <span
-                              className="block text-[13px] font-bold"
+                              className="block text-[14px] font-bold"
                               style={{ color: on ? 'var(--lp-control-active-ink)' : 'var(--lp-dark)' }}
                             >
                               {c.label}
@@ -231,7 +231,7 @@ export function FeedbackForm() {
                             />
                           </span>
                           <span
-                            className="block mt-3 text-[12px] leading-snug"
+                            className="block mt-3 text-[14px] leading-snug"
                             style={{ color: on ? 'var(--lp-control-active-ink)' : 'var(--lp-text-sub)' }}
                           >
                             {c.blurb}
@@ -295,7 +295,7 @@ export function FeedbackForm() {
                       borderRadius: 12,
                     }}
                   >
-                    <p className="text-[13px] text-[var(--lp-text-sub)]">
+                    <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">
                       {fb.dropZone.bodyBefore}
                       <button
                         type="button"
@@ -306,7 +306,7 @@ export function FeedbackForm() {
                       </button>
                       {fb.dropZone.bodyAfter}
                     </p>
-                    <p className="mt-1 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                    <p className="mt-1 mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
                       {fb.dropZone.formatLine.replace('{n}', String(MAX_SHOTS))}
                     </p>
                     <input
@@ -378,7 +378,7 @@ export function FeedbackForm() {
                 </div>
 
                 {address && (
-                  <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                  <p className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
                     {fb.submit.sendingAsTemplate.replace(
                       '{address}',
                       `${address.slice(0, 6)}…${address.slice(-4)}`,
@@ -388,7 +388,7 @@ export function FeedbackForm() {
 
                 {error && (
                   <p
-                    className="border-s-2 px-3.5 py-2 text-[13px] leading-relaxed"
+                    className="border-s-2 px-3.5 py-2 text-[14px] leading-relaxed"
                     style={{
                       color: 'var(--neg)',
                       borderColor: 'var(--neg)',
@@ -403,7 +403,7 @@ export function FeedbackForm() {
                     type="button"
                     onClick={submit}
                     disabled={busy}
-                    className="inline-flex min-h-11 items-center justify-center gap-2 px-5 py-3 text-[13px] font-semibold bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors disabled:opacity-60"
+                    className="inline-flex min-h-11 items-center justify-center gap-2 px-5 py-3 text-[14px] font-semibold bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors disabled:opacity-60"
                     style={{
                       borderRadius: 10,
                     }}
@@ -411,7 +411,7 @@ export function FeedbackForm() {
                     {busy ? fb.submit.sending : fb.submit.cta}
                     {!busy && <span aria-hidden>→</span>}
                   </button>
-                  <span className="text-[12px] text-[var(--lp-text-muted)]">
+                  <span className="text-[14px] text-[var(--lp-text-muted)]">
                     {fb.submit.noAccountNeeded}
                   </span>
                 </div>
@@ -427,7 +427,7 @@ export function FeedbackForm() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
+      <p className="mb-2 text-[14px] font-semibold uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
         {label}
       </p>
       {children}
@@ -474,14 +474,14 @@ function SuccessCard({
             {copy.headline}
             <span style={{ color: 'var(--lp-accent)' }}>.</span>
           </h2>
-          <p className="mt-3 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+          <p className="mt-3 text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
             {copy.body}
           </p>
           <div className="mt-6 flex items-center justify-center gap-3">
             <button
               type="button"
               onClick={onReset}
-              className="inline-flex items-center gap-2 px-5 py-3 mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors"
+              className="inline-flex items-center gap-2 px-5 py-3 mono text-[14px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors"
               style={{
                 borderRadius: 10,
               }}
@@ -490,7 +490,7 @@ function SuccessCard({
             </button>
             <Link
               href={DEALS_AVAILABLE ? '/app' : WALLET_HOME}
-              className="mono text-[12px] uppercase tracking-[0.10em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)]"
+              className="mono text-[14px] uppercase tracking-[0.10em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] font-medium"
             >
               {copy.backToApp}
             </Link>

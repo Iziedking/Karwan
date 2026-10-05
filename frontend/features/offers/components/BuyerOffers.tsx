@@ -114,7 +114,7 @@ export function BuyerOffers({ jobId, budgetUsdc }: { jobId: string; budgetUsdc: 
                 {formatUsdc(offer.priceUsdc)}
               </span>
             </div>
-            <p className="mt-1 text-[13px] text-[var(--lp-text-sub)]">
+            <p className="mt-1 text-[14px] text-[var(--lp-text-sub)] font-medium">
               {t.deliverByOn.replace('{date}', shortDate(offer.deliverByUnix, locale))}
             </p>
             {offer.note ? <p dir="auto" className="mt-3 text-[15px] leading-relaxed text-[var(--lp-text-sub)]">{offer.note}</p> : null}
@@ -129,7 +129,7 @@ export function BuyerOffers({ jobId, budgetUsdc }: { jobId: string; budgetUsdc: 
       <Button variant={chosen ? 'outline' : undefined} size="lg" className="mt-5 w-full rounded-full" onClick={() => setChosen(top)}>
         {t.accept.replace('{seller}', sellerName(top.sellerUser)).replace('{price}', formatUsdc(top.priceUsdc, { withSuffix: false }))}
       </Button>
-      <p className="mt-3 text-center text-[13px] text-[var(--lp-text-sub)]">{t.agentLine}</p>
+      <p className="mt-3 text-center text-[14px] text-[var(--lp-text-sub)] font-medium">{t.agentLine}</p>
 
       <ConfirmSheetShell open={!!chosen} labelledBy={titleId} busy={busy || fundingBusy} onClose={closeConfirmation}>
         {chosen ? (
@@ -142,7 +142,7 @@ export function BuyerOffers({ jobId, budgetUsdc }: { jobId: string; budgetUsdc: 
               {formatUsdc(chosen.fundedUsdc ?? chosen.priceUsdc)}
             </p>
             {chosen.fundedUsdc && chosen.fundedUsdc !== chosen.priceUsdc ? (
-              <p className="text-[14px] tabular-nums text-[var(--lp-text-sub)]">
+              <p className="text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">
                 {t.includesFee.replace('{price}', formatUsdc(chosen.priceUsdc, { withSuffix: false }))}
               </p>
             ) : null}

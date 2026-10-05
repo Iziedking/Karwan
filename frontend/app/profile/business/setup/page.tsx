@@ -78,7 +78,7 @@ function BusinessSetupForm({ profile }: { profile: UserProfile }) {
       {error && <p role="alert" className="text-sm leading-relaxed text-[var(--lp-text-sub)]">{error}</p>}
       <div>
         <button type="submit" disabled={saving || !name.trim()} className="flex min-h-[52px] w-full items-center justify-between gap-3 rounded-full bg-[var(--lp-accent)] px-5 py-3 text-[15px] font-bold text-[#10170b] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)] disabled:cursor-not-allowed disabled:opacity-50">{saving ? common.loading : t.save}<span aria-hidden>→</span></button>
-        <p className="mt-3 text-center text-[12px] text-[var(--lp-text-sub)]">{t.next}</p>
+        <p className="mt-3 text-center text-[14px] text-[var(--lp-text-sub)] font-medium">{t.next}</p>
         <Link href="/profile/business" className="mt-2 flex min-h-11 items-center justify-center text-[14px] font-semibold text-[var(--lp-text-sub)] underline underline-offset-4">{common.cancel}</Link>
       </div>
     </form>

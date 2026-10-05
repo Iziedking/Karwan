@@ -97,7 +97,7 @@ export function RequestPage({ initial, explorer }: { initial: BuyerJob; explorer
     <div className="product-surface mx-auto max-w-[720px] px-4 pb-24 pt-6 sm:px-6">
       <Link
         href={view.viewer === 'seller' ? '/seller' : '/buyer'}
-        className="inline-flex min-h-11 items-center text-[14px] text-[var(--lp-text-sub)] underline-offset-4 hover:underline"
+        className="inline-flex min-h-11 items-center text-[14px] text-[var(--lp-text-sub)] underline-offset-4 hover:underline font-medium"
       >
         {view.viewer === 'seller' ? t.backSeller : t.back}
       </Link>
@@ -119,7 +119,7 @@ export function RequestPage({ initial, explorer }: { initial: BuyerJob; explorer
               ) : null}
               <span className="text-[22px] font-semibold tabular-nums text-[var(--lp-dark)]">{view.priceUsdc} USDC</span>
               {view.wasUsdc ? (
-                <span className="text-[14px] text-[var(--lp-text-sub)]">{fill(t.match.was, { was: view.wasUsdc })}</span>
+                <span className="text-[14px] text-[var(--lp-text-sub)] font-medium">{fill(t.match.was, { was: view.wasUsdc })}</span>
               ) : null}
             </p>
           ) : null}
@@ -147,7 +147,7 @@ export function RequestPage({ initial, explorer }: { initial: BuyerJob; explorer
           <section className="space-y-3">
             <button type="button" aria-expanded={timelineOpen} onClick={() => setTimelineOpen((v) => !v)} className={TOGGLE}>
               <span>{t.timeline}</span>
-              <span className="text-[13px] font-medium text-[var(--lp-text-sub)]">{timelineOpen ? t.offers.hide : t.offers.show}</span>
+              <span className="text-[14px] font-medium text-[var(--lp-text-sub)]">{timelineOpen ? t.offers.hide : t.offers.show}</span>
             </button>
             {timelineOpen ? <EventList events={live.events} explorer={explorer} collapseRepeats /> : null}
           </section>

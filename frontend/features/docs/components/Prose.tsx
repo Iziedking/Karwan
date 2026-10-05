@@ -70,7 +70,7 @@ export function DocsListItem({ children }: { children: ReactNode }) {
 /// use inside content bands rather than at the top of a hero.
 export function DocsEyebrow({ children }: { children: ReactNode }) {
   return (
-    <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+    <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
       {children}
     </p>
   );
@@ -109,7 +109,7 @@ export function DocsFigure({
               aria-hidden
               className="inline-block w-2 h-2 rounded-full bg-[var(--lp-accent)]"
             />
-            <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+            <span className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
               {kind === 'video' ? t.figure.videoComingSoon : t.figure.screenshotComingSoon}
             </span>
           </div>
@@ -128,7 +128,7 @@ export function DocsFigure({
         )}
       </div>
       {caption && (
-        <figcaption className="mt-3 mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+        <figcaption className="mt-3 mono text-[14px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
           {caption}
         </figcaption>
       )}
@@ -156,7 +156,7 @@ export function DocsCallout({
       <p className="text-[14px] font-semibold text-[var(--lp-dark)]">
         {title}
       </p>
-      <div className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+      <div className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
         {children}
       </div>
     </aside>

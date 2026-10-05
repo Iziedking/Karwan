@@ -23,7 +23,7 @@ export default function DocsEscrowPage() {
         {t.title}
       </h1>
       <p
-        className="mt-6 inline-block border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 py-2 mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]"
+        className="mt-6 inline-block border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 py-2 mono text-[14px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]"
         style={{ borderRadius: 3 }}
       >
         {t.status}

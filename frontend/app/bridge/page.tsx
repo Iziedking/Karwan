@@ -164,7 +164,7 @@ function BridgePageInner() {
       <PageTour id={BRIDGE_TOUR_ID} steps={buildBridgeSteps({ direction, rail })} />
       <Band tone="light" compact>
         <header className="max-w-[620px] pb-5">
-          <p className="text-[13px] text-[var(--ink-secondary)]">{messages.accountHome.balanceLabel}</p>
+          <p className="text-[14px] text-[var(--ink-secondary)] font-medium">{messages.accountHome.balanceLabel}</p>
           <div className="mt-1 flex items-center"><h1 className="text-[32px] sm:text-[40px] font-medium leading-[1.1] tracking-[-0.015em] text-[var(--ink)]">{pageTitle}</h1><NetworkHint /></div>
         </header>
       </Band>
@@ -281,13 +281,13 @@ function ComingSoonPanel({
       }}
     >
       <span
-        className="inline-flex rounded-full bg-[var(--tint)] px-3 py-1 text-[13px] text-[var(--ink-secondary)]"
+        className="inline-flex rounded-full bg-[var(--tint)] px-3 py-1 text-[14px] text-[var(--ink-secondary)] font-medium"
 
       >
         {soon}
       </span>
       <p className="mt-4 text-[17px] font-medium text-[var(--ink)]">{action}</p>
-      <p className="mt-2 max-w-[46ch] text-[13px] leading-relaxed text-[var(--ink-secondary)]">
+      <p className="mt-2 max-w-[46ch] text-[14px] leading-relaxed text-[var(--ink-secondary)] font-medium">
         {body}
       </p>
     </div>

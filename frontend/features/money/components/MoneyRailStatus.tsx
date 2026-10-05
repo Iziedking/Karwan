@@ -59,15 +59,15 @@ export function MoneyRailStatus({ direction }: { direction: Direction }) {
               className="min-w-0"
             >
               <div className="flex items-center justify-between gap-2">
-                <p className="text-[13px] font-medium text-[var(--ink)]">{row.label}</p>
+                <p className="text-[14px] font-medium text-[var(--ink)]">{row.label}</p>
                 <span
-                  className="mono rounded-full px-2 py-1 text-[13px]"
+                  className="mono rounded-full px-2 py-1 text-[14px]"
                   style={{ color: tone.color, background: tone.background }}
                 >
                   {statusLabel(state)}
                 </span>
               </div>
-              <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--ink-secondary)]">{row.body}</p>
+              <p className="mt-1.5 text-[14px] leading-relaxed text-[var(--ink-secondary)] font-medium">{row.body}</p>
             </div>
           );
         })}

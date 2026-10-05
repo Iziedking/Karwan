@@ -20,7 +20,7 @@ export function LiveDot() {
   const pinging = state === 'live';
 
   return (
-    <span className="inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] font-medium text-[var(--color-ink-dim)]">
+    <span className="inline-flex items-center gap-1.5 mono text-[13px] uppercase tracking-[0.14em] font-medium text-[var(--color-ink-dim)]">
       <span aria-hidden className="relative inline-flex w-[6px] h-[6px]">
         {pinging && (
           <span

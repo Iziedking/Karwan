@@ -192,7 +192,7 @@ export function OnChainProofBand() {
             {t.headlinePrefix}<Accent>{t.headlineAccent}</Accent>.
           </HeroHeadline>
           {stats && (
-            <p className="mt-7 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-workspace-faint)] tabular-nums">
+            <p className="mt-7 mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-workspace-faint)] tabular-nums">
               {t.blockPrefix} {fmtBlock(stats.fromBlock)} → {fmtBlock(stats.toBlock)}
             </p>
           )}
@@ -265,7 +265,7 @@ function DailyAreaChart({ series, loading, errored, onRetry }: DailyAreaChartPro
           borderRadius: 18,
         }}
       >
-        <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-faint)] animate-pulse">
+        <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-workspace-faint)] animate-pulse">
           {t.loading}
         </p>
       </div>
@@ -283,14 +283,14 @@ function DailyAreaChart({ series, loading, errored, onRetry }: DailyAreaChartPro
           borderRadius: 18,
         }}
       >
-        <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-faint)]">
+        <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-workspace-faint)]">
           {errored ? t.error : t.empty}
         </p>
         {errored && onRetry && (
           <button
             type="button"
             onClick={onRetry}
-            className="mono text-[10px] uppercase tracking-[0.18em] px-4 py-2 border border-[var(--lp-workspace-border)] text-[var(--lp-workspace-muted)] hover:text-[var(--lp-workspace-ink)] hover:border-[var(--lp-workspace-ink)] transition-colors"
+            className="mono text-[13px] uppercase tracking-[0.18em] px-4 py-2 border border-[var(--lp-workspace-border)] text-[var(--lp-workspace-muted)] hover:text-[var(--lp-workspace-ink)] hover:border-[var(--lp-workspace-ink)] transition-colors"
             style={{ borderRadius: 999 }}
           >
             {t.retry}
@@ -387,10 +387,10 @@ function DailyAreaChart({ series, loading, errored, onRetry }: DailyAreaChartPro
         }}
       >
         <div className="flex items-center justify-between px-5 pt-4">
-          <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-workspace-faint)]">
+          <p className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-workspace-faint)]">
             {t.activityEyebrow}
           </p>
-          <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-workspace-muted)] tabular-nums">
+          <p className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-workspace-muted)] tabular-nums">
             {t.maxPerDay.replace('{max}', String(maxY))}
           </p>
         </div>
@@ -519,7 +519,7 @@ function HoverTooltip({ point, xPct }: { point: NetworkOnchainDayPoint; xPct: nu
         zIndex: 2,
       }}
     >
-      <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)]">
+      <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)]">
         {formatTooltipDate(point.ts)}
       </p>
       <div className="mt-2 space-y-1.5">
@@ -539,10 +539,10 @@ function TipRow({ color, label, value }: { color: string; label: string; value: 
         className="inline-block w-2 h-2 shrink-0"
         style={{ background: color, borderRadius: 1 }}
       />
-      <span className="mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-workspace-muted)] flex-1">
+      <span className="mono text-[13px] uppercase tracking-[0.1em] text-[var(--lp-workspace-muted)] flex-1">
         {label}
       </span>
-      <span className="font-sans text-[13px] font-extrabold tabular-nums text-[var(--lp-workspace-ink)]">
+      <span className="font-sans text-[14px] font-extrabold tabular-nums text-[var(--lp-workspace-ink)]">
         {value}
       </span>
     </div>
@@ -563,7 +563,7 @@ function LegendDot({ color, label }: { color: string; label: string }) {
         className="inline-block w-2.5 h-2.5"
         style={{ background: color, borderRadius: 1 }}
       />
-      <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-workspace-muted)]">
+      <span className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-workspace-muted)]">
         {label}
       </span>
     </span>
@@ -601,7 +601,7 @@ function ProofMetric({
 }) {
   return (
     <div className="min-w-0 bg-[var(--lp-workspace-raised)] p-3 sm:p-4">
-      <p className="inline-flex items-center gap-1.5 mono text-[8px] uppercase leading-relaxed tracking-[0.12em] text-[var(--lp-workspace-muted)] sm:text-[9px]">
+      <p className="inline-flex items-center gap-1.5 mono text-[13px] uppercase leading-relaxed tracking-[0.12em] text-[var(--lp-workspace-muted)]">
         {label}
         {hint ? <LpHint>{hint}</LpHint> : null}
       </p>
@@ -612,7 +612,7 @@ function ProofMetric({
           <span className="min-w-0 max-w-full">
             <AnimatedNumber value={value} decimals={decimals} />
           </span>
-          {unit && <span className="mono text-[8px] uppercase tracking-[0.12em] text-[var(--lp-workspace-faint)]">{unit}</span>}
+          {unit && <span className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-workspace-faint)]">{unit}</span>}
         </p>
       )}
     </div>

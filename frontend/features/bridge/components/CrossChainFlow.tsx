@@ -32,7 +32,7 @@ const SECONDARY =
 const QUIET =
   'inline-flex min-h-10 items-center rounded-full bg-[var(--tint)] px-4 text-[14px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:bg-[var(--line)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]';
 const CHIP =
-  'inline-flex min-h-10 items-center rounded-full bg-[var(--tint)] px-3.5 text-[13px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:bg-[var(--line)] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]';
+  'inline-flex min-h-10 items-center rounded-full bg-[var(--tint)] px-3.5 text-[14px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:bg-[var(--line)] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]';
 const OPTION =
   'flex min-h-12 cursor-pointer items-center justify-between gap-3 rounded-full bg-[var(--tint)] px-4 text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none has-[:checked]:bg-[var(--ink)] has-[:checked]:text-[var(--canvas)] has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[var(--action)]';
 const SOFT = 'bg-[var(--tint)] motion-safe:animate-pulse motion-reduce:animate-none rounded-full';
@@ -320,7 +320,7 @@ function CrossChainFlow({ intent }: { intent: CrossChainIntent }) {
             <DepositCard />
             <p className="flex items-center justify-between gap-3 border-t border-[var(--lp-border-light)] pt-4 text-[15px] text-[var(--lp-dark)]">
               {t.cardOrBank}
-              <span className="text-[13px] text-[var(--lp-text-sub)]">{t.comingSoon}</span>
+              <span className="text-[14px] text-[var(--lp-text-sub)] font-medium">{t.comingSoon}</span>
             </p>
           </section>
         ) : intent === 'move' && !wallet ? (
@@ -334,7 +334,7 @@ function CrossChainFlow({ intent }: { intent: CrossChainIntent }) {
               <h2 id="cross-where" className="text-[22px] font-medium text-[var(--ink)]">{inbound ? t.whereFrom : t.whereTo}</h2>
               {inbound ? (
                 <fieldset className="space-y-2">
-                  <legend className="text-[13px] font-medium text-[var(--ink-secondary)]">{t.fromWallet}</legend>
+                  <legend className="text-[14px] font-medium text-[var(--ink-secondary)]">{t.fromWallet}</legend>
                   {!account.isConnected ? (
                     <button type="button" onClick={() => openConnectModal?.()} className={SECONDARY}>{t.connectWallet}</button>
                   ) : reads.isPending ? (
@@ -370,7 +370,7 @@ function CrossChainFlow({ intent }: { intent: CrossChainIntent }) {
                   {intent === 'add' ? (
                     <p className="flex items-center justify-between gap-3 border-t border-[var(--lp-border-light)] pt-4 text-[15px] text-[var(--lp-dark)]">
                       {t.cardOrBank}
-                      <span className="text-[13px] text-[var(--lp-text-sub)]">{t.comingSoon}</span>
+                      <span className="text-[14px] text-[var(--lp-text-sub)] font-medium">{t.comingSoon}</span>
                     </p>
                   ) : null}
                 </fieldset>
@@ -400,7 +400,7 @@ function CrossChainFlow({ intent }: { intent: CrossChainIntent }) {
                     </p>
                   ) : (
                     <div>
-                      <label htmlFor={recipientId} className="text-[13px] font-medium text-[var(--lp-text-sub)]">{t.recipientLabel}</label>
+                      <label htmlFor={recipientId} className="text-[14px] font-medium text-[var(--lp-text-sub)]">{t.recipientLabel}</label>
                       <input
                         id={recipientId}
                         value={recipient}
@@ -411,9 +411,9 @@ function CrossChainFlow({ intent }: { intent: CrossChainIntent }) {
                         className="mt-2 min-h-[52px] w-full rounded-[14px] bg-[var(--tint)] px-4 text-[16px] text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
                       />
                       {recipient.trim() !== '' && !ADDRESS.test(recipient.trim()) ? (
-                        <p className="mt-2 text-[13px] text-[var(--color-critical)]">{sheet.recipientInvalid}</p>
+                        <p className="mt-2 text-[14px] text-[var(--color-critical)]">{sheet.recipientInvalid}</p>
                       ) : ADDRESS.test(recipient.trim()) ? (
-                        <p className="mt-2 text-[13px] text-[var(--lp-dark)]">
+                        <p className="mt-2 text-[14px] text-[var(--lp-dark)]">
                           <AddressText template={sheet.recipientCheck} address={groupAddress(recipient.trim())} />
                         </p>
                       ) : null}
@@ -424,7 +424,7 @@ function CrossChainFlow({ intent }: { intent: CrossChainIntent }) {
             </section>
 
             <section className="space-y-4">
-              <label htmlFor={amountId} className="text-[13px] font-medium text-[var(--lp-text-sub)]">{sheet.amountLabel}</label>
+              <label htmlFor={amountId} className="text-[14px] font-medium text-[var(--lp-text-sub)]">{sheet.amountLabel}</label>
               <div className="flex min-h-[52px] items-center gap-2 rounded-[14px] bg-[var(--tint)] px-4">
                 <input
                   id={amountId}
@@ -436,10 +436,10 @@ function CrossChainFlow({ intent }: { intent: CrossChainIntent }) {
                   dir="ltr"
                   className="min-h-[52px] min-w-0 flex-1 rounded-[14px] bg-transparent text-[32px] font-medium leading-none tracking-normal tabular-nums text-[var(--ink)] outline-none placeholder:text-[var(--ink-secondary)] focus-visible:ring-2 focus-visible:ring-[var(--action)]"
                 />
-                <span className="text-[13px] text-[var(--ink-secondary)]">USDC</span>
+                <span className="text-[14px] text-[var(--ink-secondary)] font-medium">USDC</span>
               </div>
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-[13px] tabular-nums text-[var(--lp-text-sub)]">
+                <p className="text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">
                   {available === null ? ' ' : fill(sheet.available, { amount: formatBalance(available, locale) })}
                 </p>
                 <div className="flex gap-2">
@@ -458,7 +458,7 @@ function CrossChainFlow({ intent }: { intent: CrossChainIntent }) {
                   ))}
                 </div>
               </div>
-              <div className="space-y-1 text-[14px] text-[var(--lp-text-sub)]">
+              <div className="space-y-1 text-[14px] text-[var(--lp-text-sub)] font-medium">
                 {inbound ? <p>{t.walletShowsFee}</p> : null}
                 <p>{routeKind === 'pool' ? t.usuallySeconds : t.usuallyUnderMinute}</p>
               </div>
@@ -467,7 +467,7 @@ function CrossChainFlow({ intent }: { intent: CrossChainIntent }) {
               ) : null}
               {intent === 'send' ? <p className="text-[14px] font-medium text-[var(--color-warning)]">{sheet.sendIrreversible}</p> : null}
               {declined ? (
-                <p role="alert" className="text-[13px] text-[var(--color-critical)]">{sheet.declined}</p>
+                <p role="alert" className="text-[14px] text-[var(--color-critical)]">{sheet.declined}</p>
               ) : null}
               <button type="button" onClick={() => void submit()} disabled={blocked} className={PRIMARY}>{cta}</button>
             </section>
@@ -477,7 +477,7 @@ function CrossChainFlow({ intent }: { intent: CrossChainIntent }) {
         <footer className="flex flex-wrap items-center justify-between gap-3">
           <button type="button" onClick={() => setHistoryOpen(true)} className={QUIET}>{t.history}</button>
           {USDC_FAUCET ? (
-            <a href={USDC_FAUCET} target="_blank" rel="noreferrer" className="text-[13px] text-[var(--lp-text-sub)] underline underline-offset-4">
+            <a href={USDC_FAUCET} target="_blank" rel="noreferrer" className="text-[14px] text-[var(--lp-text-sub)] underline underline-offset-4 font-medium">
               {t.faucet}
             </a>
           ) : null}

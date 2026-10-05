@@ -47,7 +47,7 @@ function ActivityPageInner({
       <PageTour id={ACTIVITY_TOUR_ID} steps={ACTIVITY_STEPS} />
       <Band tone="light" compact>
         <header className="activity-hero mb-5 border-b border-[var(--lp-border-light)] pb-5">
-          <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">Your records</p>
+          <p className="text-[14px] font-semibold text-[var(--lp-text-sub)]">Your records</p>
           <h1 className="mt-2 text-[clamp(2.8rem,6vw,5.2rem)] font-semibold leading-[0.94] tracking-[-0.065em] text-[var(--lp-dark)]">Activity</h1>
         </header>
         <div className="fade-up fade-up-1">

@@ -72,14 +72,14 @@ export function InviteLinkTools({
           value={url}
           readOnly
           aria-label={copy.qrAlt}
-          className="min-h-11 min-w-0 flex-1 bg-[var(--lp-workspace-raised)] border border-[var(--lp-workspace-border)] rounded-[3px] px-2.5 py-2 text-[12px] mono text-[var(--lp-workspace-ink)]"
+          className="min-h-11 min-w-0 flex-1 bg-[var(--lp-workspace-raised)] border border-[var(--lp-workspace-border)] rounded-[3px] px-2.5 py-2 text-[14px] mono text-[var(--lp-workspace-ink)]"
           onFocus={(event) => event.currentTarget.select()}
         />
         <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0">
           <button
             type="button"
             onClick={shareLink}
-            className="min-h-11 px-3 py-2 mono text-[10px] font-bold uppercase tracking-[0.1em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors"
+            className="min-h-11 px-3 py-2 mono text-[13px] font-bold uppercase tracking-[0.1em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors"
             style={cornerStyle}
           >
             {copy.shareCta}
@@ -87,7 +87,7 @@ export function InviteLinkTools({
           <button
             type="button"
             onClick={copyLink}
-            className="min-h-11 px-3 py-2 mono text-[10px] font-bold uppercase tracking-[0.1em] border border-[var(--lp-workspace-border)] text-[var(--lp-workspace-ink)] hover:border-[var(--lp-accent)] transition-colors"
+            className="min-h-11 px-3 py-2 mono text-[13px] font-bold uppercase tracking-[0.1em] border border-[var(--lp-workspace-border)] text-[var(--lp-workspace-ink)] hover:border-[var(--lp-accent)] transition-colors"
             style={cornerStyle}
           >
             {copyCtaLabel(shareState, copy)}
@@ -100,12 +100,12 @@ export function InviteLinkTools({
           type="button"
           aria-expanded={qrOpen}
           onClick={() => setQrOpen((open) => !open)}
-          className="min-h-11 px-2 py-2 mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-workspace-muted)] underline underline-offset-2 hover:text-[var(--lp-workspace-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--lp-accent)]"
+          className="min-h-11 px-2 py-2 mono text-[13px] uppercase tracking-[0.1em] text-[var(--lp-workspace-muted)] underline underline-offset-2 hover:text-[var(--lp-workspace-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--lp-accent)]"
         >
           {copy.qrCta}
         </button>
         {status && (
-          <span role={shareState === 'failed' ? 'alert' : 'status'} className="text-[12px] text-[var(--lp-workspace-muted)]">
+          <span role={shareState === 'failed' ? 'alert' : 'status'} className="text-[14px] text-[var(--lp-workspace-muted)]">
             {status}
           </span>
         )}
@@ -170,13 +170,13 @@ function InviteQr({ value, copy }: { value: string; copy: InviteLinkToolsCopy })
   }, [value]);
 
   if (state === 'failed') {
-    return <p className="text-[12px] text-[var(--lp-workspace-muted)]">{copy.qrUnavailable}</p>;
+    return <p className="text-[14px] text-[var(--lp-workspace-muted)]">{copy.qrUnavailable}</p>;
   }
 
   return (
     <div className="flex items-center gap-3 p-3 bg-white w-fit" style={cornerStyle}>
       {state === 'loading' && (
-        <span className="mono text-[10px] uppercase tracking-[0.12em] text-black">{copy.qrLoading}</span>
+        <span className="mono text-[13px] uppercase tracking-[0.12em] text-black">{copy.qrLoading}</span>
       )}
       <canvas
         ref={canvasRef}

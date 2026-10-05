@@ -140,11 +140,11 @@ export function WaitlistCard({ onSignIn, onCreate }: { onSignIn: () => void; onC
             <>
               <div className="space-y-2 pt-1">
                 <a href={`${TESTNET_ORIGIN}/start?mode=signup`} className={primary}>{t.tryTestnet}</a>
-                <p className="text-center text-[13px] text-[var(--ink-secondary)]">{t.tryTestnetNote}</p>
+                <p className="text-center text-[14px] text-[var(--ink-secondary)] font-medium">{t.tryTestnetNote}</p>
               </div>
               <fieldset className="border-t border-[var(--line)] pt-4 sm:pt-5">
                 <legend className="text-[14px] font-medium text-[var(--ink)]">{t.useCaseTitle}</legend>
-                <p className="mt-1 text-[13px] text-[var(--ink-secondary)]">{t.useCaseHint}</p>
+                <p className="mt-1 text-[14px] text-[var(--ink-secondary)] font-medium">{t.useCaseHint}</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {WAITLIST_USE_CASES.map((choice) => {
                     const on = useCases.includes(choice);
@@ -156,7 +156,7 @@ export function WaitlistCard({ onSignIn, onCreate }: { onSignIn: () => void; onC
                     );
                   })}
                 </div>
-                <p aria-live="polite" className="mt-2 min-h-5 text-[13px] text-[var(--ink-secondary)]">{useCases.length ? t.useCaseThanks : null}</p>
+                <p aria-live="polite" className="mt-2 min-h-5 text-[14px] text-[var(--ink-secondary)] font-medium">{useCases.length ? t.useCaseThanks : null}</p>
               </fieldset>
               <a href="https://x.com/karwanBuild" target="_blank" rel="noreferrer"
                 className="inline-flex min-h-11 items-center rounded-full text-[14px] font-medium text-[var(--ink-secondary)] underline underline-offset-4 hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">
@@ -172,7 +172,7 @@ export function WaitlistCard({ onSignIn, onCreate }: { onSignIn: () => void; onC
       )}
 
       {step !== 'done' && (
-        <p className="mt-5 border-t border-[var(--line)] pt-4 text-[14px] text-[var(--ink-secondary)] sm:mt-7 sm:pt-5">
+        <p className="mt-5 border-t border-[var(--line)] pt-4 text-[14px] text-[var(--ink-secondary)] sm:mt-7 sm:pt-5 font-medium">
           {t.invitedPrompt}{' '}
           <button type="button" onClick={onSignIn} className={link}>{t.signIn}</button>
         </p>

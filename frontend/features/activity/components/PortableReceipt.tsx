@@ -129,7 +129,7 @@ export function PortableReceipt({
       >
         <div className="karwan-receipt-chrome flex items-start justify-between gap-4">
           <div>
-            <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">Receipt</p>
+            <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">Receipt</p>
             <h2 id="karwan-receipt-title" className="mt-2 text-[22px] font-bold tracking-[-0.03em] text-[var(--lp-dark)]">
               {copy.receiptTitle}
             </h2>
@@ -161,7 +161,7 @@ export function PortableReceipt({
         />
 
         {!canShare && (
-          <p className="karwan-receipt-actions mt-4 text-[12px] leading-relaxed text-[var(--lp-text-muted)]">
+          <p className="karwan-receipt-actions mt-4 text-[14px] leading-relaxed text-[var(--lp-text-muted)]">
             {copy.receiptShareBuyerOnly}
           </p>
         )}
@@ -185,7 +185,7 @@ export function PortableReceipt({
               });
             }}
             disabled={busy !== null}
-            className="inline-flex min-h-11 items-center justify-center rounded-md bg-[var(--lp-accent)] px-4 mono text-[10px] uppercase tracking-[0.13em] font-bold text-[var(--lp-band-dark)] transition-opacity hover:bg-[var(--lp-accent-hover)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+            className="inline-flex min-h-11 items-center justify-center rounded-md bg-[var(--lp-accent)] px-4 mono text-[13px] uppercase tracking-[0.13em] font-bold text-[var(--lp-band-dark)] transition-opacity hover:bg-[var(--lp-accent-hover)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
           >
             {copy.receiptExportPdf}
           </button>
@@ -203,7 +203,7 @@ export function PortableReceipt({
               });
             }}
             disabled={busy !== null}
-            className="inline-flex min-h-11 items-center justify-center rounded-md border border-[var(--lp-border-light)] px-4 mono text-[10px] uppercase tracking-[0.13em] font-bold text-[var(--lp-dark)] transition-opacity hover:bg-[var(--lp-light)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+            className="inline-flex min-h-11 items-center justify-center rounded-md border border-[var(--lp-border-light)] px-4 mono text-[13px] uppercase tracking-[0.13em] font-bold text-[var(--lp-dark)] transition-opacity hover:bg-[var(--lp-light)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
           >
             {copy.receiptExportImage}
           </button>

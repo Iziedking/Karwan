@@ -65,23 +65,23 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
             aria-label={home.balanceLabel}
           >
             <div className="flex items-center justify-between gap-3">
-              <p className="text-[13px] font-semibold text-[var(--lp-text-sub)] sm:text-[14px]">{home.balanceLabel}</p>
-              <Link href="/account" className="-me-1 inline-flex min-h-9 items-center gap-1 rounded-full px-1 text-[13px] font-semibold text-[var(--lp-dark)] hover:text-[var(--lp-accent-on-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+              <p className="text-[15px] font-semibold text-[var(--lp-text-sub)]">{home.balanceLabel}</p>
+              <Link href="/account" className="-me-1 inline-flex min-h-9 items-center gap-1 rounded-full px-1 text-[15px] font-semibold text-[var(--lp-dark)] hover:text-[var(--lp-accent-on-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
                 {home.details}
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="rtl:-scale-x-100"><path d="m9 18 6-6-6-6" /></svg>
               </Link>
             </div>
             <p className="mt-1.5 flex items-baseline gap-2">
-              <span className={`text-[34px] font-semibold leading-none tabular-nums tracking-[-0.04em] text-[var(--lp-dark)] sm:text-[44px] ${owned.loading && totalBalance == null ? 'motion-safe:animate-pulse' : ''}`}>
+              <span className={`text-[40px] font-bold leading-none tabular-nums tracking-[-0.03em] text-[var(--lp-dark)] sm:text-[48px] ${owned.loading && totalBalance == null ? 'motion-safe:animate-pulse' : ''}`}>
                 {totalBalance == null ? '-' : totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
-              <span className="text-[14px] text-[var(--lp-text-sub)]">USDC</span>
+              <span className="text-[17px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
             </p>
-            <p className="mt-1 text-[12.5px] text-[var(--lp-text-sub)] sm:text-[13px]">
+            <p className="mt-2 text-[15px] font-medium text-[var(--lp-text-sub)]">
               {fill(home.balanceParts, { wallet: money2(owned.wallet), other: money2(owned.otherChains), agents: money2(owned.agents) })}
             </p>
-            <p className="mt-0.5 text-[12.5px] text-[var(--lp-text-sub)] sm:text-[13px]">
-              {home.activeTrades} {activeDeals.length}
+            <p className="mt-0.5 text-[15px] font-medium text-[var(--lp-text-sub)]">
+              {activeDeals.length === 1 ? home.activeTradesOne : fill(home.activeTrades, { n: activeDeals.length })}
             </p>
             <div className="mt-3.5 grid grid-cols-4 gap-2">
               <QuickAction href="/bridge?direction=in">{home.add}</QuickAction>
@@ -97,10 +97,10 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
                 <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--lp-card)]">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="var(--lp-accent)" stroke="var(--lp-accent-on-light)" strokeWidth="1.6" strokeLinejoin="round"><path d="M12 3s6 6.4 6 11a6 6 0 0 1-12 0c0-4.6 6-11 6-11z" /></svg>
                 </span>
-                <span className="min-w-0 flex-1 text-[12.5px] leading-snug sm:text-[13px]">
+                <span className="min-w-0 flex-1 text-[14px] leading-snug">
                   <span className="font-bold">{home.faucetLabel}</span> · {home.faucetBody}
                 </span>
-                <span className="shrink-0 rounded-full bg-[var(--lp-dark)] px-3 py-1.5 text-[12px] font-semibold text-[var(--lp-card)]">{home.faucetClaim}</span>
+                <span className="shrink-0 rounded-full bg-[var(--lp-dark)] px-3 py-1.5 text-[14px] font-semibold text-[var(--lp-card)]">{home.faucetClaim}</span>
               </Link>
             ) : null}
           </motion.div>
@@ -127,12 +127,12 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
         >
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{home.currentTrade}</p>
+              <p className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{home.currentTrade}</p>
               <h2 dir="auto" className="mt-1 line-clamp-1 text-[17px] font-semibold tracking-[-0.01em] text-[var(--lp-dark)]">
                 {dealHeadline(currentDeal.terms) || home.tradeDetails}
               </h2>
             </div>
-            <Link href={`/deals/${currentDeal.jobId}`} className="inline-flex min-h-11 shrink-0 items-center gap-1 text-[13px] font-bold text-[var(--lp-dark)] hover:text-[var(--lp-accent-on-light)]">{translations.profile.hub.open}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="rtl:-scale-x-100"><path d="m9 18 6-6-6-6" /></svg></Link>
+            <Link href={`/deals/${currentDeal.jobId}`} className="inline-flex min-h-11 shrink-0 items-center gap-1 text-[14px] font-bold text-[var(--lp-dark)] hover:text-[var(--lp-accent-on-light)]">{translations.profile.hub.open}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="rtl:-scale-x-100"><path d="m9 18 6-6-6-6" /></svg></Link>
           </div>
 
           <p className="mt-5 truncate text-[14px] font-semibold text-[var(--lp-dark)]">
@@ -157,7 +157,7 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
             <div>
               <h2 className="text-[23px] font-semibold tracking-[-0.035em] text-[var(--lp-dark)]">{home.recentTrades}</h2>
             </div>
-            <Link href="/activity" className="inline-flex min-h-11 shrink-0 items-center text-[13px] font-bold text-[var(--lp-dark)] hover:text-[var(--lp-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] gap-1">{home.allActivity}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="rtl:-scale-x-100"><path d="m9 18 6-6-6-6" /></svg></Link>
+            <Link href="/activity" className="inline-flex min-h-11 shrink-0 items-center text-[14px] font-bold text-[var(--lp-dark)] hover:text-[var(--lp-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] gap-1">{home.allActivity}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="rtl:-scale-x-100"><path d="m9 18 6-6-6-6" /></svg></Link>
           </div>
           <div className="mt-3"><TradeBook deals={recentDeals} fetchState={fetchState} /></div>
         </motion.div> : null}
@@ -209,7 +209,7 @@ function DealFlow({ stage, delivered, labels, progressLabel, states }: {
           <li key={label} aria-current={current ? 'step' : undefined} className="min-w-0">
             <span aria-hidden className={`block h-1.5 rounded-full transition-colors duration-200 ${fill}`} />
             <span
-              className={`mt-2 block truncate text-[12px] ${
+              className={`mt-2 block truncate text-[14px] ${
                 current ? 'font-semibold text-[var(--lp-dark)]' : done ? 'text-[var(--lp-dark)]' : 'text-[var(--lp-text-sub)]'
               }`}
             >
@@ -223,7 +223,7 @@ function DealFlow({ stage, delivered, labels, progressLabel, states }: {
   );
 }
 
-const QUICK_ACTION = 'inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--lp-border-light)] px-2 text-[13px] font-semibold text-[var(--lp-dark)] transition-[background-color,border-color,transform] duration-200 hover:-translate-y-0.5 hover:border-[var(--lp-outline-strong)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] motion-reduce:hover:translate-y-0';
+const QUICK_ACTION = 'inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--lp-border-light)] px-2 text-[14px] font-semibold text-[var(--lp-dark)] transition-[background-color,border-color,transform] duration-200 hover:-translate-y-0.5 hover:border-[var(--lp-outline-strong)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] motion-reduce:hover:translate-y-0';
 
 function QuickAction({ href, children }: { href: string; children: string }) {
   return <Link href={href} className={QUICK_ACTION}>{children}</Link>;
@@ -234,8 +234,8 @@ function TradeBook({ deals, fetchState }: { deals: ReturnType<typeof useDirectDe
   const { address } = useAuth();
   const me = address?.toLowerCase();
   if (fetchState === 'loading' || fetchState === 'idle') return <div className="space-y-px overflow-hidden rounded-[16px] bg-[var(--lp-border-light)]" aria-label={t.accountHome.loadingRecent}><div className="h-20 animate-pulse bg-[var(--lp-card)] motion-reduce:animate-none" /><div className="h-20 animate-pulse bg-[var(--lp-card)] motion-reduce:animate-none" /></div>;
-  if (fetchState === 'error') return <p className="rounded-[16px] bg-[var(--lp-card)] p-5 text-[14px] text-[var(--lp-text-sub)]">{t.dealsFeed.errorBody}</p>;
-  if (deals.length === 0) return <p className="border-s-2 border-[var(--lp-accent)] py-4 ps-4 text-[14px] leading-6 text-[var(--lp-text-sub)]"><span className="block font-semibold text-[var(--lp-dark)]">{t.accountHome.noTrades}</span><span className="mt-1 block">{t.accountHome.noTradesHint}</span></p>;
+  if (fetchState === 'error') return <p className="rounded-[16px] bg-[var(--lp-card)] p-5 text-[14px] text-[var(--lp-text-sub)] font-medium">{t.dealsFeed.errorBody}</p>;
+  if (deals.length === 0) return <p className="border-s-2 border-[var(--lp-accent)] py-4 ps-4 text-[14px] leading-6 text-[var(--lp-text-sub)] font-medium"><span className="block font-semibold text-[var(--lp-dark)]">{t.accountHome.noTrades}</span><span className="mt-1 block">{t.accountHome.noTradesHint}</span></p>;
   return (
     <ul className="trade-book overflow-hidden rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
       {deals.slice(0, 5).map((deal) => {
@@ -248,7 +248,7 @@ function TradeBook({ deals, fetchState }: { deals: ReturnType<typeof useDirectDe
           <li key={deal.jobId}>
             <Link href={`/deals/${deal.jobId}`} className="group grid min-h-[72px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 transition-colors duration-200 hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)] sm:px-5">
               <PersonAvatar address={isBuyer ? deal.seller : deal.buyer} name={counterparty} size={36} />
-              <span className="min-w-0"><span dir="auto" className="block truncate text-[15px] font-semibold text-[var(--lp-dark)]">{title}</span><span className="mt-1 block truncate text-[12.5px] text-[var(--lp-text-sub)]">{title === counterparty ? '' : `${counterparty} · `}{t.dealStage.labels[stage]} · {date}</span></span>
+              <span className="min-w-0"><span dir="auto" className="block truncate text-[15px] font-semibold text-[var(--lp-dark)]">{title}</span><span className="mt-1 block truncate text-[14px] text-[var(--lp-text-sub)] font-medium">{title === counterparty ? '' : `${counterparty} · `}{t.dealStage.labels[stage]} · {date}</span></span>
               <span className="flex items-center gap-2"><span className="whitespace-nowrap text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">{formatUsdc(deal.dealAmountUsdc, { withSuffix: true })}</span><span className="text-[var(--lp-text-sub)] transition-transform duration-200 group-hover:translate-x-0.5"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="rtl:-scale-x-100"><path d="m9 18 6-6-6-6" /></svg></span></span>
             </Link>
           </li>

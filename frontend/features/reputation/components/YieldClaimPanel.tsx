@@ -105,7 +105,7 @@ export function YieldClaimPanel() {
 
   if (!address) {
     return (
-      <div className="rounded-2xl border border-dashed border-[var(--lp-border-light)] bg-[var(--lp-card)] px-5 py-6 text-[13px] text-[var(--lp-text-muted)]">
+      <div className="rounded-2xl border border-dashed border-[var(--lp-border-light)] bg-[var(--lp-card)] px-5 py-6 text-[14px] text-[var(--lp-text-muted)]">
         Sign in to see your accrued yield and claim it to your wallet.
       </div>
     );
@@ -137,13 +137,13 @@ export function YieldClaimPanel() {
             key={t.label}
             className="min-w-0 bg-[var(--lp-card)] px-5 py-4 sm:px-6 sm:py-5"
           >
-            <p className="flex min-h-[30px] items-start gap-1.5 mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+            <p className="flex min-h-[30px] items-start gap-1.5 mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
               {t.label}
               <LpHint>{t.hint}</LpHint>
             </p>
             <p className="mt-1.5 flex min-w-0 flex-wrap items-baseline gap-x-1.5 gap-y-0.5 font-sans text-[24px] font-extrabold leading-none tracking-[-0.02em] tabular-nums text-[var(--lp-dark)] sm:text-[28px]">
               <span className="whitespace-nowrap">{t.value}</span>
-              <span className="shrink-0 text-[13px] font-semibold tracking-normal text-[var(--lp-text-muted)]">
+              <span className="shrink-0 text-[14px] font-semibold tracking-normal text-[var(--lp-text-muted)]">
                 USDC
               </span>
             </p>
@@ -170,7 +170,7 @@ export function YieldClaimPanel() {
         />
         <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-5 py-5 sm:px-7 sm:py-6">
           <div className="min-w-0">
-            <p className="mono text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--lp-accent-on-light)]">
+            <p className="mono text-[13px] font-bold uppercase tracking-[0.18em] text-[var(--lp-accent-on-light)]">
               Claim
             </p>
             <p className="mt-2 font-sans text-[28px] sm:text-[32px] font-extrabold leading-none tracking-[-0.02em] tabular-nums">
@@ -184,7 +184,7 @@ export function YieldClaimPanel() {
                 href={ARC_EXPLORER_TX(lastTx)}
                 target="_blank"
                 rel="noreferrer"
-                className="mt-2 inline-flex min-h-11 items-center mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-accent)]"
+                className="mt-2 inline-flex min-h-11 items-center mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-accent)]"
               >
                 tx {shortHash(lastTx)} ↗
               </a>
@@ -195,7 +195,7 @@ export function YieldClaimPanel() {
             {onWrongChain ? (
               <button
                 onClick={() => switchChainAsync({ chainId: ARC_CHAIN_ID }).catch(() => {})}
-                className="min-h-11 rounded-md border border-amber-300/60 bg-amber-200/15 px-4 py-2.5 text-[12px] font-bold uppercase tracking-[0.08em] text-amber-100"
+                className="min-h-11 rounded-md border border-amber-300/60 bg-amber-200/15 px-4 py-2.5 text-[14px] font-bold uppercase tracking-[0.08em] text-amber-100"
               >
                 Switch to Arc
               </button>
@@ -204,7 +204,7 @@ export function YieldClaimPanel() {
                 onClick={submit}
                 disabled={!canClaim}
                 aria-busy={busy}
-                className="min-h-11 rounded-md px-5 py-2.5 text-[12px] font-bold uppercase tracking-[0.08em] transition disabled:opacity-35 disabled:cursor-not-allowed"
+                className="min-h-11 rounded-md px-5 py-2.5 text-[14px] font-bold uppercase tracking-[0.08em] transition disabled:opacity-35 disabled:cursor-not-allowed"
                 style={{
                   background: canClaim ? 'var(--lp-accent)' : 'var(--lp-workspace-soft)',
                   color: canClaim ? 'var(--lp-band-dark)' : 'var(--lp-workspace-muted)',
@@ -221,14 +221,14 @@ export function YieldClaimPanel() {
               href={`https://testnet.arcscan.app/address/${KARWAN_YIELD_DISTRIBUTOR_ADDRESS}`}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex min-h-11 items-center justify-center text-center mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)] hover:text-[var(--lp-workspace-ink)]"
+              className="inline-flex min-h-11 items-center justify-center text-center mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)] hover:text-[var(--lp-workspace-ink)]"
             >
               contract ↗
             </a>
           </div>
         </div>
         {error ? (
-          <p className="relative px-5 sm:px-7 pb-4 text-[11px] text-red-200/90 break-all">{error}</p>
+          <p className="relative px-5 sm:px-7 pb-4 text-[14px] text-red-200/90 break-all">{error}</p>
         ) : null}
       </div>
     </div>

@@ -119,7 +119,7 @@ export function BusinessHome({
               <CTAPill href="/financier" variant="secondary" tone="dark">
                 Finance a trade
               </CTAPill>
-              <span className="ms-1 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--lp-workspace-border)] mono text-[11px] uppercase tracking-[0.08em] text-[var(--lp-workspace-muted)]">
+              <span className="ms-1 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--lp-workspace-border)] mono text-[14px] uppercase tracking-[0.08em] text-[var(--lp-workspace-muted)]">
                 <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-[var(--lp-accent)]" />
                 {shortAddress(profile.address)}
               </span>
@@ -163,10 +163,10 @@ export function BusinessHome({
           <PageCard>
             <div className="p-5 md:p-7">
               <div className="flex items-center justify-between gap-3">
-                <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+                <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
                   {bh.analytics.chartTitle}
                 </span>
-                <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] tabular-nums">
+                <span className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] tabular-nums">
                   {book.volume.toLocaleString('en-US', { maximumFractionDigits: 2 })} USDC
                 </span>
               </div>
@@ -264,32 +264,32 @@ function BusinessAvailability({ workspaceId }: { workspaceId: string }) {
         </div>
         <div className="rounded-[20px] border border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-raised)] p-5 md:p-6">
           <div className="grid gap-3 sm:grid-cols-[auto_minmax(0,1fr)_minmax(0,0.7fr)_auto] sm:items-end">
-            <label className="text-[12px] text-[var(--lp-workspace-muted)]">
+            <label className="text-[14px] text-[var(--lp-workspace-muted)]">
               Type
-              <select value={tradeType} onChange={(event) => setTradeType(event.target.value as 'goods' | 'services')} className="mt-2 min-h-11 w-full rounded-xl border border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-band)] px-3 text-[13px] text-[var(--lp-workspace-ink)] outline-none focus:border-[var(--lp-accent)]">
+              <select value={tradeType} onChange={(event) => setTradeType(event.target.value as 'goods' | 'services')} className="mt-2 min-h-11 w-full rounded-xl border border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-band)] px-3 text-[14px] text-[var(--lp-workspace-ink)] outline-none focus:border-[var(--lp-accent)]">
                 <option value="goods">Goods</option>
                 <option value="services">Services</option>
               </select>
             </label>
-            <label className="text-[12px] text-[var(--lp-workspace-muted)]">
+            <label className="text-[14px] text-[var(--lp-workspace-muted)]">
               What can you trade?
-              <input value={title} onChange={(event) => setTitle(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') void addRecord(); }} placeholder="e.g. Solar lamps" className="mt-2 min-h-11 w-full rounded-xl border border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-band)] px-3 text-[13px] text-[var(--lp-workspace-ink)] outline-none placeholder:text-[var(--lp-workspace-faint)] focus:border-[var(--lp-accent)]" />
+              <input value={title} onChange={(event) => setTitle(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') void addRecord(); }} placeholder="e.g. Solar lamps" className="mt-2 min-h-11 w-full rounded-xl border border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-band)] px-3 text-[14px] text-[var(--lp-workspace-ink)] outline-none placeholder:text-[var(--lp-workspace-faint)] focus:border-[var(--lp-accent)]" />
             </label>
-            <label className="text-[12px] text-[var(--lp-workspace-muted)]">
+            <label className="text-[14px] text-[var(--lp-workspace-muted)]">
               Region
-              <input value={region} onChange={(event) => setRegion(event.target.value)} placeholder="Optional" className="mt-2 min-h-11 w-full rounded-xl border border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-band)] px-3 text-[13px] text-[var(--lp-workspace-ink)] outline-none placeholder:text-[var(--lp-workspace-faint)] focus:border-[var(--lp-accent)]" />
+              <input value={region} onChange={(event) => setRegion(event.target.value)} placeholder="Optional" className="mt-2 min-h-11 w-full rounded-xl border border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-band)] px-3 text-[14px] text-[var(--lp-workspace-ink)] outline-none placeholder:text-[var(--lp-workspace-faint)] focus:border-[var(--lp-accent)]" />
             </label>
-            <button type="button" onClick={() => void addRecord()} disabled={!title.trim() || saving} className="min-h-11 rounded-full bg-[var(--lp-accent)] px-4 text-[13px] font-bold text-[#10170b] disabled:cursor-not-allowed disabled:opacity-50">{saving ? 'Saving…' : 'Add'}</button>
+            <button type="button" onClick={() => void addRecord()} disabled={!title.trim() || saving} className="min-h-11 rounded-full bg-[var(--lp-accent)] px-4 text-[14px] font-bold text-[#10170b] disabled:cursor-not-allowed disabled:opacity-50">{saving ? 'Saving…' : 'Add'}</button>
           </div>
-          {error ? <p role="alert" className="mt-3 text-[12px] text-[var(--lp-workspace-muted)]">{error}</p> : null}
+          {error ? <p role="alert" className="mt-3 text-[14px] text-[var(--lp-workspace-muted)]">{error}</p> : null}
           <div className="mt-5 border-t border-[var(--lp-workspace-border)] pt-4">
-            {query.isPending ? <p className="text-[12px] text-[var(--lp-workspace-muted)]">Loading availability…</p> : records.length === 0 ? <p className="text-[12px] text-[var(--lp-workspace-muted)]">Nothing listed yet. Add the first thing this business is ready to trade.</p> : (
+            {query.isPending ? <p className="text-[14px] text-[var(--lp-workspace-muted)]">Loading availability…</p> : records.length === 0 ? <p className="text-[14px] text-[var(--lp-workspace-muted)]">Nothing listed yet. Add the first thing this business is ready to trade.</p> : (
               <ul className="grid gap-2 sm:grid-cols-2">
                 {records.map((record) => (
                   <li key={record.id} className="flex items-center gap-3 rounded-xl border border-[var(--lp-workspace-border)] px-3 py-3">
-                    <span className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-accent)]">{record.tradeType}</span>
-                    <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-[var(--lp-workspace-ink)]">{record.title}</span>
-                    {record.region ? <span className="hidden truncate text-[11px] text-[var(--lp-workspace-muted)] sm:block">{record.region}</span> : null}
+                    <span className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-accent)]">{record.tradeType}</span>
+                    <span className="min-w-0 flex-1 truncate text-[14px] font-semibold text-[var(--lp-workspace-ink)]">{record.title}</span>
+                    {record.region ? <span className="hidden truncate text-[14px] text-[var(--lp-workspace-muted)] sm:block">{record.region}</span> : null}
                     <button type="button" onClick={() => void removeRecord(record)} aria-label={`Remove ${record.title}`} className="text-[16px] text-[var(--lp-workspace-muted)] hover:text-[var(--lp-workspace-ink)]">×</button>
                   </li>
                 ))}
@@ -311,7 +311,7 @@ function StatusChip({
 }) {
   if (status === 'verified') {
     return (
-      <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--lp-accent)]/40 mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-accent)]">
+      <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--lp-accent)]/40 mono text-[13px] font-bold uppercase tracking-[0.16em] text-[var(--lp-accent)]">
         <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-[var(--lp-accent)]" />
         {bh.status.verified}
       </span>
@@ -319,7 +319,7 @@ function StatusChip({
   }
   if (status === 'submitted') {
     return (
-      <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--lp-workspace-border)] mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-workspace-muted)]">
+      <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--lp-workspace-border)] mono text-[13px] font-bold uppercase tracking-[0.16em] text-[var(--lp-workspace-muted)]">
         <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-[var(--lp-workspace-faint)]" />
         {bh.status.underReview}
       </span>
@@ -329,7 +329,7 @@ function StatusChip({
   return (
     <Link
       href="/business/verification"
-      className="inline-flex min-h-11 items-center gap-2 px-3 py-2 rounded-full border border-[var(--lp-workspace-border)] mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-workspace-muted)] hover:text-[var(--lp-workspace-ink)] hover:border-[var(--lp-workspace-ink)] transition-colors"
+      className="inline-flex min-h-11 items-center gap-2 px-3 py-2 rounded-full border border-[var(--lp-workspace-border)] mono text-[13px] font-bold uppercase tracking-[0.16em] text-[var(--lp-workspace-muted)] hover:text-[var(--lp-workspace-ink)] hover:border-[var(--lp-workspace-ink)] transition-colors"
     >
       {bh.status.finishVerification}
       <span aria-hidden>→</span>
@@ -361,7 +361,7 @@ function BookSummaryCard({
       }}
     >
       <div className="px-6 pt-6 pb-5 border-b border-[var(--lp-workspace-border)] flex items-center justify-between">
-        <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)]">{eyebrow}</span>
+        <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)]">{eyebrow}</span>
         <span
           aria-hidden
           className="w-[7px] h-[7px]"
@@ -393,12 +393,12 @@ function CardStat({
   }) {
   return (
     <div className="px-4 py-5">
-      <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)]">{label}</p>
+      <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)]">{label}</p>
       <p className="mt-1.5 font-sans text-[22px] font-extrabold tabular-nums tracking-[-0.02em] text-[var(--lp-workspace-ink)]">
         <AnimatedNumber value={value} decimals={decimals} />
       </p>
       {unit && (
-        <p className="mt-0.5 mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-workspace-muted)]">{unit}</p>
+        <p className="mt-0.5 mono text-[13px] uppercase tracking-[0.1em] text-[var(--lp-workspace-muted)]">{unit}</p>
       )}
     </div>
   );
@@ -427,12 +427,12 @@ function BookTile({
         borderBottomRightRadius: 14,
       }}
     >
-      <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">{label}</p>
+      <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">{label}</p>
       <p className="mt-2 font-sans text-[28px] font-extrabold tabular-nums tracking-[-0.025em] leading-none text-[var(--lp-dark)]">
         <AnimatedNumber value={value} decimals={decimals} />
       </p>
       {unit && (
-        <p className="mt-1 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+        <p className="mt-1 mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
           {unit}
         </p>
       )}
@@ -457,7 +457,7 @@ function VolumeChart({
   if (series.length === 0) {
     return (
       <div className="h-[200px] flex items-center justify-center">
-        <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)] text-center max-w-[34ch]">
+        <p className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)] text-center max-w-[34ch]">
           {emptyLabel}
         </p>
       </div>

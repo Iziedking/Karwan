@@ -31,7 +31,7 @@ export function TermsContent({ heading, contents = false }: { heading?: ReactNod
       {contents && <nav aria-label={messages.docsProduct.toc.title} className="border-y border-[var(--lp-border-light)] py-6">
         <h2 className="text-[14px] font-semibold text-[var(--lp-dark)]">{messages.docsProduct.toc.title}</h2>
         <ol className="mt-3 grid gap-x-8 sm:grid-cols-2">
-          {sections.map((section, index) => <li key={index}><a href={`#${id}-terms-${index + 1}`} className="flex min-h-11 items-center py-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)] underline decoration-[var(--lp-border-light)] underline-offset-4 hover:text-[var(--lp-dark)] focus-visible:outline-2 focus-visible:outline-[var(--lp-accent)]">{section.title}</a></li>)}
+          {sections.map((section, index) => <li key={index}><a href={`#${id}-terms-${index + 1}`} className="flex min-h-11 items-center py-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)] underline decoration-[var(--lp-border-light)] underline-offset-4 hover:text-[var(--lp-dark)] focus-visible:outline-2 focus-visible:outline-[var(--lp-accent)] font-medium">{section.title}</a></li>)}
         </ol>
       </nav>}
 
@@ -228,7 +228,7 @@ export function TermsContent({ heading, contents = false }: { heading?: ReactNod
         <p>{t.s9.body}</p>
       </Section>
 
-      <p className="text-[13px] leading-relaxed text-[var(--lp-text-sub)] pt-6 border-t border-[var(--lp-border-light)]">
+      <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] pt-6 border-t border-[var(--lp-border-light)] font-medium">
         {t.footer.version} {TERMS_DISPLAY_VERSION} . {t.footer.updated} {TERMS_LAST_UPDATED}
       </p>
     </article>

@@ -80,13 +80,13 @@ export function MarketAdvisoryBanner({ jobId }: { jobId: string }) {
       style={{ borderRadius: 16 }}
     >
       <div className="flex items-start justify-between gap-3">
-        <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[#9a7b2f]">
+        <span className="mono text-[13px] font-bold uppercase tracking-[0.16em] text-[#9a7b2f]">
           Market check
         </span>
         <button
           type="button"
           onClick={dismiss}
-          className="mono text-[10px] uppercase tracking-[0.12em] text-[#9a7b2f] hover:text-[#5a4a1f]"
+          className="mono text-[13px] uppercase tracking-[0.12em] text-[#9a7b2f] hover:text-[#5a4a1f]"
         >
           dismiss
         </button>
@@ -103,7 +103,7 @@ export function MarketAdvisoryBanner({ jobId }: { jobId: string }) {
         )}
         .
       </p>
-      <p className="mt-1.5 text-[13px] leading-snug text-[#6a5a2f]">
+      <p className="mt-1.5 text-[14px] leading-snug text-[#6a5a2f]">
         You can still proceed at your price, or reopen the request closer to the market rate to pay
         less.
         {adv.note ? ` ${adv.note}` : ''}
@@ -112,7 +112,7 @@ export function MarketAdvisoryBanner({ jobId }: { jobId: string }) {
         <button
           type="button"
           onClick={() => router.push(`/buyer?budget=${Math.round(adv.fairPriceUsdc!)}#new-deal`)}
-          className="mt-3 inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[#5a4a1f] text-[#fff7e8] mono text-[10px] font-bold uppercase tracking-[0.12em] hover:bg-[#6a5a2f] transition-colors"
+          className="mt-3 inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[#5a4a1f] text-[#fff7e8] mono text-[13px] font-bold uppercase tracking-[0.12em] hover:bg-[#6a5a2f] transition-colors"
         >
           reopen at ~${adv.fairPriceUsdc.toFixed(0)} →
         </button>

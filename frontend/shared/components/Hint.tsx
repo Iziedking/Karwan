@@ -118,7 +118,7 @@ export function Hint({
           <div
             ref={tooltipRef}
             role="tooltip"
-            className="fixed z-[200] w-64 px-3 py-2 rounded-md bg-[var(--color-ink)] text-[var(--color-bg)] text-[11px] leading-snug pointer-events-none shadow-lg normal-case tracking-normal font-normal"
+            className="fixed z-[200] w-64 px-3 py-2 rounded-md bg-[var(--color-ink)] text-[var(--color-bg)] text-[14px] leading-snug pointer-events-none shadow-lg normal-case tracking-normal font-normal"
             style={{
               top: pos.top - window.scrollY,
               left: pos.left - window.scrollX,

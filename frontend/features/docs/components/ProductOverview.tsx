@@ -51,11 +51,11 @@ function Hero() {
       </h1>
       <p className="mt-6 max-w-[58ch] text-[18px] leading-relaxed text-[var(--lp-text-sub)]">{t.lede}</p>
       <ul className="mt-7 flex flex-wrap gap-2">
-        <li className="inline-flex min-h-9 items-center gap-2 rounded-full border border-[var(--lp-border-light)] px-3.5 text-[13px] font-semibold text-[var(--lp-dark)]">
+        <li className="inline-flex min-h-9 items-center gap-2 rounded-full border border-[var(--lp-border-light)] px-3.5 text-[14px] font-semibold text-[var(--lp-dark)]">
           <span aria-hidden className="h-2 w-2 rounded-full bg-[var(--lp-accent)]" />
           {t.testnet}
         </li>
-        <li className="inline-flex min-h-9 items-center gap-2 rounded-full border border-[var(--lp-border-light)] px-3.5 text-[13px] font-semibold text-[var(--lp-dark)]">
+        <li className="inline-flex min-h-9 items-center gap-2 rounded-full border border-[var(--lp-border-light)] px-3.5 text-[14px] font-semibold text-[var(--lp-dark)]">
           <span aria-hidden className="h-2 w-2 rounded-full border-2 border-[var(--lp-dark)]" />
           {t.mainnet}
         </li>
@@ -70,7 +70,7 @@ function Hero() {
       </div>
       <a
         href="#problem"
-        className={cn(styles.cue, 'absolute bottom-6 start-0 inline-flex min-h-11 items-center gap-3 text-[13px] font-semibold text-[var(--lp-text-sub)] transition-opacity duration-300', scrolled && 'pointer-events-none opacity-0')}
+        className={cn(styles.cue, 'absolute bottom-6 start-0 inline-flex min-h-11 items-center gap-3 text-[14px] font-semibold text-[var(--lp-text-sub)] transition-opacity duration-300', scrolled && 'pointer-events-none opacity-0')}
         aria-hidden={scrolled}
         tabIndex={scrolled ? -1 : 0}
       >
@@ -153,12 +153,12 @@ function DealCard({ active }: { active: number }) {
   const paid = active === 3;
   return (
     <div aria-hidden className="rounded-[18px] border border-[var(--lp-outline-strong)] bg-[var(--lp-card)] p-6">
-      <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{card.label}</p>
+      <p className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{card.label}</p>
       <p className="mt-2 text-[18px] font-bold text-[var(--lp-dark)]">{card.title}</p>
       <p className="mono mt-4 text-[44px] font-bold leading-none tracking-[-0.03em] text-[var(--lp-dark)]">
         150 <span className="text-[16px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
       </p>
-      <p className="mt-3 text-[13px] text-[var(--lp-text-sub)]">{card.parties}</p>
+      <p className="mt-3 text-[14px] text-[var(--lp-text-sub)] font-medium">{card.parties}</p>
       <div className="mt-6 grid grid-cols-4 gap-1.5">
         {card.states.map((s, i) => (
           <span
@@ -186,7 +186,7 @@ function DealStrip({ active }: { active: number }) {
           <span key={s} className={cn('h-1 rounded-full transition-colors duration-300', i <= active ? (paid ? 'bg-[var(--lp-accent)]' : 'bg-[var(--lp-dark)]') : 'bg-[var(--lp-border-light)]')} />
         ))}
       </div>
-      <p className="mt-1.5 text-[13px] font-semibold text-[var(--lp-dark)]">{card.states[active]}</p>
+      <p className="mt-1.5 text-[14px] font-semibold text-[var(--lp-dark)]">{card.states[active]}</p>
     </div>
   );
 }
@@ -204,12 +204,12 @@ function Why() {
           [t.facts.token, t.facts.tokenValue],
         ].map(([k, v]) => (
           <div key={k} className="border-t-2 border-[var(--lp-dark)] pt-3">
-            <dt className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{k}</dt>
+            <dt className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{k}</dt>
             <dd className="mt-1 text-[17px] font-bold leading-snug text-[var(--lp-dark)]">{v}</dd>
           </div>
         ))}
       </dl>
-      <p className="mt-3 text-[13px] text-[var(--lp-text-sub)]">{t.facts.note}</p>
+      <p className="mt-3 text-[14px] text-[var(--lp-text-sub)] font-medium">{t.facts.note}</p>
       <ul className="mt-10 grid gap-x-10 @xl:grid-cols-2">
         {t.why.reasons.map((r) => (
           <li key={r.title} className="border-t border-[var(--lp-border-light)] py-6">
@@ -228,7 +228,7 @@ function Why() {
 function StatusChip({ status }: { status: 'live' | 'invite' | 'planned' }) {
   const label = useTranslations().docsProduct.today.status[status];
   return (
-    <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-[var(--lp-dark)]">
+    <span className="inline-flex items-center gap-2 text-[14px] font-semibold text-[var(--lp-dark)]">
       <span
         aria-hidden
         className={cn(
@@ -251,19 +251,19 @@ function Today() {
       <p className="mt-3 max-w-[64ch] text-[15px] text-[var(--lp-text-sub)]">{t.lede}</p>
       <div className="mt-8 max-w-[760px]" role="table" aria-label={t.title}>
         <div role="row" className="hidden grid-cols-[minmax(0,1fr)_140px_140px] gap-4 border-b border-[var(--lp-outline-strong)] pb-3 @xl:grid">
-          <span role="columnheader" className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{t.feature}</span>
-          <span role="columnheader" className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{t.testnet}</span>
-          <span role="columnheader" className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{t.mainnet}</span>
+          <span role="columnheader" className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{t.feature}</span>
+          <span role="columnheader" className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{t.testnet}</span>
+          <span role="columnheader" className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{t.mainnet}</span>
         </div>
         {t.rows.map((row) => (
           <div key={row.feature} role="row" className="grid grid-cols-2 gap-x-4 gap-y-2 border-b border-[var(--lp-border-light)] py-4 @xl:grid-cols-[minmax(0,1fr)_140px_140px] @xl:items-center">
             <span role="cell" className="col-span-2 text-[15px] font-semibold text-[var(--lp-dark)] @xl:col-span-1">{row.feature}</span>
             <span role="cell" className="flex flex-col gap-0.5">
-              <span className="text-[12px] text-[var(--lp-text-sub)] @xl:hidden">{t.testnet}</span>
+              <span className="text-[14px] text-[var(--lp-text-sub)] @xl:hidden font-medium">{t.testnet}</span>
               <StatusChip status={row.testnet} />
             </span>
             <span role="cell" className="flex flex-col gap-0.5">
-              <span className="text-[12px] text-[var(--lp-text-sub)] @xl:hidden">{t.mainnet}</span>
+              <span className="text-[14px] text-[var(--lp-text-sub)] @xl:hidden font-medium">{t.mainnet}</span>
               <StatusChip status={row.mainnet} />
             </span>
           </div>
@@ -304,7 +304,7 @@ function Explore() {
             <Link href={s.href} className="group flex min-h-[72px] items-center justify-between gap-4 py-4">
               <span>
                 <span className="block text-[16px] font-bold text-[var(--lp-dark)]">{labelFor(s.key)}</span>
-                <span className="mt-1 block text-[14px] text-[var(--lp-text-sub)]">
+                <span className="mt-1 block text-[14px] text-[var(--lp-text-sub)] font-medium">
                   {s.key === 'escrow' ? m.docsEscrowPage.nav.blurb : m.docsShell.sidebar.sections[s.key].blurb}
                 </span>
               </span>

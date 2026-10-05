@@ -14,16 +14,16 @@ export function TrustCard({ card, onOpenPassport, bare = false }: { card: TrustC
     <section aria-labelledby={bare ? undefined : 'deal-trust'} className="space-y-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         {bare ? null : <h2 id="deal-trust" className="text-[20px] font-semibold text-[var(--lp-dark)]">{copy.trust.title}</h2>}
-        <span className="text-[13px] text-[var(--lp-text-sub)]">{roleLabel}</span>
+        <span className="text-[14px] text-[var(--lp-text-sub)] font-medium">{roleLabel}</span>
       </div>
       {card.name ? (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <button type="button" onClick={onOpenPassport} className="inline-flex min-h-11 items-center text-[17px] font-semibold text-[var(--lp-dark)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2">
             {card.name}
           </button>
-          {card.verifiedBusiness ? <span className="text-[13px] font-medium text-[var(--color-positive)]"><span aria-hidden>✓</span> {copy.trust.verifiedBusiness}</span> : null}
+          {card.verifiedBusiness ? <span className="text-[14px] font-medium text-[var(--color-positive)]"><span aria-hidden>✓</span> {copy.trust.verifiedBusiness}</span> : null}
           {card.verifiedPerson ? (
-            <span className="text-[13px] font-medium text-[var(--color-positive)]">
+            <span className="text-[14px] font-medium text-[var(--color-positive)]">
               <span aria-hidden>✓</span> {copy.trust.verifiedPerson}
               <span className="sr-only">. {copy.trust.verifiedPersonDetail}</span>
             </span>
@@ -37,7 +37,7 @@ export function TrustCard({ card, onOpenPassport, bare = false }: { card: TrustC
           {card.reasons?.length ? reasonLine(card.reasons, sr) : null}
         </p>
       ) : card.isNew ? (
-        <p className="text-[14px] text-[var(--lp-text-sub)]">{copy.trust.newAccount}</p>
+        <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.trust.newAccount}</p>
       ) : (
         <p className="text-[14px] tabular-nums text-[var(--lp-dark)]">{trustFactParts(card, copy, locale).join(' · ')}</p>
       )}
@@ -45,7 +45,7 @@ export function TrustCard({ card, onOpenPassport, bare = false }: { card: TrustC
         <p className="text-[14px] tabular-nums text-[var(--lp-dark)]">{fill(copy.trust.stakeTemplate, { amount: formatUsdcAmount(card.stakeUsdc, locale) })}</p>
       ) : null}
       {card.provenAccounts.length > 0 ? (
-        <p className="text-[13px] text-[var(--lp-text-sub)]">
+        <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">
           {copy.trust.proven}: {card.provenAccounts.map((account, i) => (
             <span key={i}>
               {account === 'x' ? 'X' : account}<span aria-hidden> ✓</span>
@@ -54,7 +54,7 @@ export function TrustCard({ card, onOpenPassport, bare = false }: { card: TrustC
           ))}
         </p>
       ) : null}
-      <p className="text-[13px] text-[var(--lp-text-sub)]">{copy.trust.notChecked}</p>
+      <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.trust.notChecked}</p>
     </section>
   );
 }

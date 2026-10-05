@@ -51,7 +51,7 @@ export function MigrationBanner() {
           </span>
           <div className="min-w-0">
             <span
-              className="inline-block mono text-[10px] font-bold uppercase tracking-[0.16em] px-2 py-0.5 mb-2"
+              className="inline-block mono text-[13px] font-bold uppercase tracking-[0.16em] px-2 py-0.5 mb-2"
               style={{ background: '#ffb800', color: '#3a0e0a', borderRadius: 3 }}
             >
               {t.eyebrow}
@@ -64,7 +64,7 @@ export function MigrationBanner() {
         <div className="flex items-center gap-2 shrink-0">
           <Link
             href="/profile"
-            className="inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 mono text-[11px] sm:text-[12px] font-bold uppercase tracking-[0.1em] bg-white text-[#3a0e0a] hover:bg-white/90 transition-colors"
+            className="inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 mono text-[14px] font-bold uppercase tracking-[0.1em] bg-white text-[#3a0e0a] hover:bg-white/90 transition-colors"
             style={{
               borderRadius: 12,
             }}
@@ -80,7 +80,7 @@ export function MigrationBanner() {
               setDismissed(true);
             }}
             aria-label={t.dismissAria}
-            className="mono text-[12px] text-white/60 hover:text-white px-2 py-1 transition-colors"
+            className="mono text-[14px] text-white/75 hover:text-white px-2 py-1 transition-colors"
           >
             ×
           </button>

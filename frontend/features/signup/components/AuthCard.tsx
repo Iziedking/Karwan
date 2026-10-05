@@ -389,7 +389,7 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
 
           {inStep === 'passkey' && (
             <div className="mt-6 space-y-3">
-              <p className="break-all text-[14px] text-[var(--ink-secondary)]">{email}</p>
+              <p className="break-all text-[14px] text-[var(--ink-secondary)] font-medium">{email}</p>
               <Primary onClick={() => void signInWithPasskey()} disabled={!!busy || waitingForSignIn}>
                 {busy === 'passkey' || waitingForSignIn ? t.signIn.passkeyWaiting : t.signIn.passkeyButton}
               </Primary>
@@ -425,7 +425,7 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
 
           <ErrorLine error={error} />
 
-          <div className="mt-5 space-y-2 border-t border-[var(--line)] pt-4 text-[14px] text-[var(--ink-secondary)] sm:mt-7 sm:pt-5">
+          <div className="mt-5 space-y-2 border-t border-[var(--line)] pt-4 text-[14px] text-[var(--ink-secondary)] sm:mt-7 sm:pt-5 font-medium">
             {onWaitlist ? (
               <p>
                 <button type="button" onClick={onWaitlist} className="inline-flex min-h-11 items-center rounded-full font-medium text-[var(--ink)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">
@@ -458,7 +458,7 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
         </>
       ) : (
         <>
-          <p className="text-[13px] font-medium tabular-nums text-[var(--ink-secondary)]">{s.step.replace('{n}', String(stepNumber))}</p>
+          <p className="text-[14px] font-medium tabular-nums text-[var(--ink-secondary)]">{s.step.replace('{n}', String(stepNumber))}</p>
           <h1 className={`mt-1 ${START_TITLE}`}>
             {upStep === 'tag' ? s.tagLabel
               : upStep === 'code' ? s.codeTitle
@@ -532,7 +532,7 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
                 <KindOption selected={kind === 'business'} title={s.business} body={s.businessBody}
                   badge={businessOpen ? undefined : s.comingSoon} disabled={!businessOpen} onSelect={() => setKind('business')} />
               </div>
-              <label className="flex min-h-11 cursor-pointer items-start gap-3 pt-2 text-[14px] leading-[1.5] text-[var(--ink-secondary)]">
+              <label className="flex min-h-11 cursor-pointer items-start gap-3 pt-2 text-[14px] leading-[1.5] text-[var(--ink-secondary)] font-medium">
                 <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)}
                   className="mt-[3px] h-4 w-4 shrink-0 accent-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]" />
                 <span>
@@ -556,7 +556,7 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
             </p>
           )}
           {!authedWithoutAccount && (
-            <p className="mt-5 border-t border-[var(--line)] pt-4 text-[14px] text-[var(--ink-secondary)] sm:mt-7 sm:pt-5">
+            <p className="mt-5 border-t border-[var(--line)] pt-4 text-[14px] text-[var(--ink-secondary)] sm:mt-7 sm:pt-5 font-medium">
               {s.haveAccount}{' '}
               <button type="button" onClick={() => switchMode('signin')} className="inline-flex min-h-11 items-center rounded-full font-medium text-[var(--ink)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">
                 {s.signIn}
@@ -589,7 +589,7 @@ function Divider({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-3 py-4" aria-hidden>
       <span className="h-px flex-1 bg-[var(--line)]" />
-      <span className="text-[13px] text-[var(--ink-secondary)]">{label}</span>
+      <span className="text-[14px] text-[var(--ink-secondary)] font-medium">{label}</span>
       <span className="h-px flex-1 bg-[var(--line)]" />
     </div>
   );
@@ -648,7 +648,7 @@ function KindOption(props: { selected: boolean; title: string; body: string; bad
       </button>
       {inert && props.badge && (
         <span id={noteId} role="tooltip"
-          className={`pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 whitespace-nowrap rounded-[14px] bg-[var(--ink)] px-3 py-2 text-[13px] font-medium text-[var(--canvas)] transition-opacity duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none group-hover:opacity-100 group-focus-within:opacity-100 ${noteOpen ? 'opacity-100' : 'opacity-0'}`}>
+          className={`pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 whitespace-nowrap rounded-[14px] bg-[var(--ink)] px-3 py-2 text-[14px] font-medium text-[var(--canvas)] transition-opacity duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none group-hover:opacity-100 group-focus-within:opacity-100 ${noteOpen ? 'opacity-100' : 'opacity-0'}`}>
           {props.badge}
         </span>
       )}

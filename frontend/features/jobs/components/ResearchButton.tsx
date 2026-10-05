@@ -30,7 +30,7 @@ export function ResearchButton({ jobId, proposal, role }: { jobId: string; propo
           {proposal?.marketRead ? <MarketReadCard mr={proposal.marketRead} role={role} /> : null}
           {paid ? (
             <div>
-              <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{copy.verification}</p>
+              <p className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{copy.verification}</p>
               <p className="mt-1 text-[15px] text-[var(--lp-dark)]">{copy.verificationTemplate.replace('{amount}', String(paid.amountUsd))}</p>
             </div>
           ) : null}

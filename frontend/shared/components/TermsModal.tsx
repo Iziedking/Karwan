@@ -95,7 +95,7 @@ export function TermsModal() {
           style={{ borderBottom: '1px solid var(--lp-border-light)' }}
         >
           <div>
-            <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+            <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
               {t.eyebrow}
             </p>
             <h2 className="mt-1.5 font-sans text-[22px] font-extrabold tracking-[-0.02em]">
@@ -105,7 +105,7 @@ export function TermsModal() {
           <Link
             href="/terms"
             target="_blank"
-            className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] underline underline-offset-2 shrink-0"
+            className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] underline underline-offset-2 shrink-0"
           >
             {t.openInTab}
           </Link>
@@ -124,19 +124,19 @@ export function TermsModal() {
           className="px-6 py-4 flex items-center justify-between gap-4 flex-wrap"
           style={{ borderTop: '1px solid var(--lp-border-light)' }}
         >
-          <p className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+          <p className="mono text-[14px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
             {scrolledToEnd ? t.canAccept : t.scrollPrompt}
           </p>
           <div className="flex items-center gap-2 flex-wrap">
             {terms.error && (
-              <span className="mono text-[11px] text-[#7a1f1a]">{terms.error}</span>
+              <span className="mono text-[14px] text-[#7a1f1a]">{terms.error}</span>
             )}
             <button
               type="button"
               onClick={accept}
               disabled={!scrolledToEnd || submitting}
               className={cn(
-                'inline-flex items-center gap-2 px-5 py-3 mono text-[12px] font-bold uppercase tracking-[0.08em]',
+                'inline-flex items-center gap-2 px-5 py-3 mono text-[14px] font-bold uppercase tracking-[0.08em]',
                 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors',
                 'disabled:opacity-50 disabled:cursor-not-allowed',
               )}

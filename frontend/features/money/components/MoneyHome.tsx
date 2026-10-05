@@ -77,7 +77,7 @@ function MoneyHomeInner() {
             </div>
           ) : state === 'error' ? (
             <div className="space-y-4">
-              <h1 id="money-balance" className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{t.home.balanceLabel}</h1>
+              <h1 id="money-balance" className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{t.home.balanceLabel}</h1>
               <p role="alert" className="text-[15px] leading-relaxed text-[var(--lp-dark)]">{t.home.loadError}</p>
               <button type="button" onClick={balances.refetch} className={SECONDARY}>{t.home.tryAgain}</button>
             </div>
@@ -85,7 +85,7 @@ function MoneyHomeInner() {
             <>
               <div className="-mb-2 flex justify-end"><NetworkHint /></div>
               <h1 id="money-balance" className="space-y-2">
-                <span className="block text-[13px] font-semibold text-[var(--lp-text-sub)]">{t.home.balanceLabel}</span>
+                <span className="block text-[14px] font-semibold text-[var(--lp-text-sub)]">{t.home.balanceLabel}</span>
                 <span className="flex items-baseline gap-2 tabular-nums">
                   {/* Counts to a new value; under reduced motion it fades instead. */}
                   <motion.span
@@ -121,7 +121,7 @@ function MoneyHomeInner() {
         <section id="agents" aria-labelledby="money-agents" className="scroll-mt-24 space-y-4">
           <div>
             <h2 id="money-agents" className="text-[20px] font-semibold text-[var(--lp-dark)]">{t.home.agentsTitle}</h2>
-            <p className="mt-1 text-[14px] text-[var(--lp-text-sub)]">{t.home.agentsLine}</p>
+            <p className="mt-1 text-[14px] text-[var(--lp-text-sub)] font-medium">{t.home.agentsLine}</p>
           </div>
           {balances.activationLoading ? (
             <div aria-busy="true" className="space-y-3">
@@ -144,7 +144,7 @@ function MoneyHomeInner() {
                   <li key={agent} className="flex flex-wrap items-center gap-x-2 gap-y-1 py-3">
                     <span className="min-w-0 flex-1">
                       <span id={nameId} className="block text-[15px] font-semibold text-[var(--lp-dark)]">{name}</span>
-                      <span className="block text-[14px] tabular-nums text-[var(--lp-text-sub)]">
+                      <span className="block text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">
                         {amount === null ? ' ' : `${formatBalance(amount, locale)} USDC`}
                       </span>
                     </span>
@@ -239,7 +239,7 @@ function ByNetwork({ address, balance, pool }: { address?: `0x${string}`; balanc
     <Disclosure id="money-networks" title={t.byNetworkTitle} open={open} onToggle={() => setOpen((value) => !value)}>
       <div className="space-y-6">
         <div>
-          <h3 className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{t.inYourBalance}</h3>
+          <h3 className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{t.inYourBalance}</h3>
           <dl className="divide-y divide-[var(--lp-border-light)]">
             {line(CHAIN_META.arc.name, balance)}
             {pool > 0 ? line(t.heldAnyNetwork, pool) : null}
@@ -247,7 +247,7 @@ function ByNetwork({ address, balance, pool }: { address?: `0x${string}`; balanc
         </div>
         {elsewhere.length > 0 ? (
           <div>
-            <h3 className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{t.otherNetworks}</h3>
+            <h3 className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{t.otherNetworks}</h3>
             <dl className="divide-y divide-[var(--lp-border-light)]">
               {elsewhere.map((row) => line(CHAIN_META[row.key].name, row.amount))}
             </dl>
@@ -268,7 +268,7 @@ function ProofOnArc({ address, agents }: {
   const [open, setOpen] = useState(false);
   const item = (label: string, value: ReactNode) => (
     <div key={label}>
-      <dt className="text-[13px] text-[var(--lp-text-sub)]">{label}</dt>
+      <dt className="text-[14px] text-[var(--lp-text-sub)] font-medium">{label}</dt>
       <dd className="mt-1 text-[14px] text-[var(--lp-dark)]">{value}</dd>
     </div>
   );

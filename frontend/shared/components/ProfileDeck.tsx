@@ -233,7 +233,7 @@ export function ProfileDeck({
                   borderBottomRightRadius: 5,
                 }}
               >
-                <span className="block px-6 pt-6 mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+                <span className="block px-6 pt-6 mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
                   {p.label}
                 </span>
               </div>
@@ -328,7 +328,7 @@ export function ProfileDeck({
         data-floating-avoid
       >
         <div className="flex items-center gap-2">
-          <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] tabular-nums">
+          <span className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] tabular-nums">
             {String(active + 1).padStart(2, '0')}/{String(panels.length).padStart(2, '0')}
           </span>
         </div>
@@ -439,7 +439,7 @@ function DeckNav({
       type="button"
       onClick={onClick}
       aria-label={label}
-      className="group inline-flex min-h-11 min-w-11 items-center justify-center gap-2 px-3 py-2 mono text-[10px] uppercase tracking-[0.14em] font-bold border border-[var(--lp-border-light)] text-[var(--lp-text-sub)] hover:text-[var(--lp-ink)] hover:border-[var(--lp-ink)] transition-colors"
+      className="group inline-flex min-h-11 min-w-11 items-center justify-center gap-2 px-3 py-2 mono text-[13px] uppercase tracking-[0.14em] font-bold border border-[var(--lp-border-light)] text-[var(--lp-text-sub)] hover:text-[var(--lp-ink)] hover:border-[var(--lp-ink)] transition-colors"
       style={{
         borderRadius: 10,
       }}

@@ -74,7 +74,7 @@ function CopyAddress({
       onClick={copy}
       aria-label={copied ? wp.copyAddress.copied : wp.copyAddress.idle}
       title={copied ? wp.copyAddress.copied : wp.copyAddress.idle}
-      className="group mt-1 inline-flex max-w-full items-center gap-2 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] transition-colors hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
+      className="group mt-1 inline-flex max-w-full items-center gap-2 mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] transition-colors hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
     >
       <span className="truncate">{short(address)}</span>
       <span className="grid h-6 w-6 shrink-0 place-items-center rounded-[6px] border border-transparent transition-[border-color,background,color] group-hover:border-[var(--lp-border-light)] group-hover:bg-[var(--lp-card)]">
@@ -155,7 +155,7 @@ function FaucetButton({
       onClick={onClick}
       disabled={busy}
       aria-busy={busy}
-      className="inline-flex min-h-10 items-center justify-center rounded-full border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3.5 text-[13px] font-semibold text-[var(--lp-dark)] transition-colors hover:border-[var(--lp-outline-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] disabled:opacity-50"
+      className="inline-flex min-h-10 items-center justify-center rounded-full border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3.5 text-[14px] font-semibold text-[var(--lp-dark)] transition-colors hover:border-[var(--lp-outline-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] disabled:opacity-50"
     >
       {busy ? copy.busy : copy.idle}
     </button>
@@ -234,7 +234,7 @@ export function WalletsPanel({ address }: { address?: string }) {
   return (
     <section className="max-w-[680px]">
       {ARC_NETWORK === 'testnet' ? (
-        <p className="mb-3 text-[13px] leading-snug text-[var(--lp-text-sub)]">{wp.faucetHint}</p>
+        <p className="mb-3 text-[14px] leading-snug text-[var(--lp-text-sub)] font-medium">{wp.faucetHint}</p>
       ) : null}
       <ul className="space-y-2">
         <Row
@@ -297,7 +297,7 @@ export function WalletsPanel({ address }: { address?: string }) {
             />
           </>
         ) : ARC_NETWORK === 'testnet' ? (
-          <li className="rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] px-4 py-3 text-[13px] text-[var(--lp-text-sub)]">
+          <li className="rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] px-4 py-3 text-[14px] text-[var(--lp-text-sub)] font-medium">
             {wp.agentsNotCreated}
           </li>
         ) : null}
@@ -308,7 +308,7 @@ export function WalletsPanel({ address }: { address?: string }) {
       </ul>
 
       {note ? (
-        <p role="status" className="mt-3 rounded-[14px] border border-[var(--color-accent-soft)] bg-[var(--color-accent-soft)] px-3.5 py-2.5 text-[13px] leading-snug text-[var(--lp-dark)]">
+        <p role="status" className="mt-3 rounded-[14px] border border-[var(--color-accent-soft)] bg-[var(--color-accent-soft)] px-3.5 py-2.5 text-[14px] leading-snug text-[var(--lp-dark)]">
           {note}
         </p>
       ) : null}

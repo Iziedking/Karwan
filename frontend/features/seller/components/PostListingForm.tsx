@@ -169,7 +169,7 @@ export function PostListingForm() {
   }
 
   if (!isConnected) {
-    return <p className="text-[13px] text-[var(--lp-workspace-muted)]">{pl.notConnected}</p>;
+    return <p className="text-[14px] text-[var(--lp-workspace-muted)]">{pl.notConnected}</p>;
   }
 
   const stepLabels = [rs.describe, rs.price, rs.payment];
@@ -198,7 +198,7 @@ export function PostListingForm() {
                 />
               ))}
             </span>
-            <span className="text-[13px] font-semibold text-[var(--lp-text-sub)]">
+            <span className="text-[14px] font-semibold text-[var(--lp-text-sub)]">
               {fill(rs.stepOf, step + 1)} · {stepLabels[step]}
             </span>
           </div>
@@ -243,7 +243,7 @@ export function PostListingForm() {
                       <Icon name="check" size={16} />
                     </span>
                   </span>
-                  <span className="mt-0.5 block text-[13px] text-[var(--lp-text-sub)]">{f.fixedHint}</span>
+                  <span className="mt-0.5 block text-[14px] text-[var(--lp-text-sub)] font-medium">{f.fixedHint}</span>
                 </span>
                 {[
                   { label: f.perUnit, hint: f.perUnitHint },
@@ -258,10 +258,10 @@ export function PostListingForm() {
                     className="group cursor-not-allowed rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3.5 py-3 opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
                   >
                     <span className="block text-[15px] font-semibold text-[var(--lp-dark)]">{option.label}</span>
-                    <span aria-hidden className="mt-0.5 block text-[13px] text-[var(--lp-text-sub)] group-hover:hidden group-focus-visible:hidden">
+                    <span aria-hidden className="mt-0.5 block text-[14px] text-[var(--lp-text-sub)] group-hover:hidden group-focus-visible:hidden font-medium">
                       {option.hint}
                     </span>
-                    <span aria-hidden className="mt-0.5 hidden text-[13px] font-semibold text-[var(--lp-dark)] group-hover:block group-focus-visible:block">
+                    <span aria-hidden className="mt-0.5 hidden text-[14px] font-semibold text-[var(--lp-dark)] group-hover:block group-focus-visible:block">
                       {f.soon}
                     </span>
                   </span>
@@ -295,7 +295,7 @@ export function PostListingForm() {
                   className="form-input form-input-num"
                 />
                 {floorInvalid ? (
-                  <span className="block text-[13px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))]">{f.floorTooLow}</span>
+                  <span className="block text-[14px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))]">{f.floorTooLow}</span>
                 ) : null}
               </Field>
             </div>
@@ -324,7 +324,7 @@ export function PostListingForm() {
                   {f.other}
                 </button>
                 {customReady ? (
-                  <label className="inline-flex items-center gap-2 text-[14px] text-[var(--lp-text-sub)]">
+                  <label className="inline-flex items-center gap-2 text-[14px] text-[var(--lp-text-sub)] font-medium">
                     <span className="block w-20 shrink-0">
                       <input
                         inputMode="numeric"
@@ -341,7 +341,7 @@ export function PostListingForm() {
                   </label>
                 ) : null}
               </div>
-              <p className="mt-1.5 text-[13px] text-[var(--lp-text-sub)]">{f.readyInHint}</p>
+              <p className="mt-1.5 text-[14px] text-[var(--lp-text-sub)] font-medium">{f.readyInHint}</p>
             </div>
 
             <div data-guide="seller-window">
@@ -444,7 +444,7 @@ export function PostListingForm() {
         </div>
 
         {watchingForListingId && (
-          <p className="inline-flex items-center gap-2 text-[13px] font-medium text-[var(--lp-accent-on-light)]">
+          <p className="inline-flex items-center gap-2 text-[14px] font-medium text-[var(--lp-accent-on-light)]">
             <span aria-hidden className="size-1.5 rounded-full bg-[var(--lp-accent)]" />
             {pl.watchingScanning}
           </p>
@@ -481,10 +481,10 @@ export function PostListingForm() {
         if (visible.length === 0) {
           return (
             <div className="pt-6 border-t border-[var(--lp-workspace-border)]">
-              <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)] mb-3">
+              <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)] mb-3">
                 {pl.yourOffers.eyebrow}
               </p>
-              <p className="text-[13px] text-[var(--lp-workspace-muted)]">
+              <p className="text-[14px] text-[var(--lp-workspace-muted)]">
                 {pl.yourOffers.allDismissed}
               </p>
             </div>
@@ -492,7 +492,7 @@ export function PostListingForm() {
         }
         return (
           <div className="pt-6 border-t border-[var(--lp-workspace-border)]">
-            <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)] mb-4">
+            <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)] mb-4">
               {pl.yourOffers.eyebrow}
             </p>
             <ul className="divide-y divide-[var(--lp-workspace-border)]">
@@ -528,12 +528,12 @@ export function PostListingForm() {
                       <p className="text-[14px] font-semibold tracking-tight truncate text-[var(--lp-workspace-ink)]">
                         {l.title}
                       </p>
-                      <p className="text-[12px] text-[var(--lp-workspace-muted)] truncate">{l.description}</p>
+                      <p className="text-[14px] text-[var(--lp-workspace-muted)] truncate">{l.description}</p>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
                       <span className="font-sans text-[16px] font-extrabold tabular-nums tracking-[-0.01em] text-[var(--lp-workspace-ink)]">
                         {l.askingPriceUsdc}
-                        <span className="ms-1 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-workspace-muted)]">
+                        <span className="ms-1 mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-workspace-muted)]">
                           USDC
                         </span>
                       </span>
@@ -547,13 +547,13 @@ export function PostListingForm() {
                             dismiss(l.id);
                           }}
                           onKeyDown={(e) => e.stopPropagation()}
-                          className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full mono text-[12px] text-[var(--lp-workspace-muted)] hover:text-[var(--lp-workspace-ink)] hover:bg-[var(--lp-workspace-soft)] transition-colors"
+                          className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full mono text-[14px] text-[var(--lp-workspace-muted)] hover:text-[var(--lp-workspace-ink)] hover:bg-[var(--lp-workspace-soft)] transition-colors"
                         >
                           ×
                         </button>
                       )}
                       <span
-                        className="mono text-[10px] uppercase tracking-[0.12em] font-semibold"
+                        className="mono text-[13px] uppercase tracking-[0.12em] font-semibold"
                         style={{
                           color: isCancelled || isExpired ? 'var(--lp-workspace-muted)' : 'var(--lp-accent-on-light)',
                         }}
@@ -598,7 +598,7 @@ function Field({
           {label}
           {hint && <Hint>{hint}</Hint>}
         </span>
-        {unit && <span className="text-[13px] text-[var(--lp-text-sub)]">{unit}</span>}
+        {unit && <span className="text-[14px] text-[var(--lp-text-sub)] font-medium">{unit}</span>}
       </span>
       {children}
     </label>

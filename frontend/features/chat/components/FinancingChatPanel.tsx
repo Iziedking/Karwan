@@ -83,26 +83,26 @@ export function FinancingChatPanel({ kind, positionId, seller, financier }: { ki
   return (
     <section className="flex h-[min(68vh,620px)] min-h-[360px] min-w-0 flex-col overflow-hidden border border-[var(--lp-border-light)] bg-[var(--lp-card)]" style={{ borderRadius: 16 }}>
       <header className="border-b border-[var(--lp-border-light)] px-4 py-4 sm:px-5">
-        <p className="mono text-[9px] font-bold uppercase tracking-[0.15em] text-[var(--lp-text-muted)]">{fc.title}</p>
+        <p className="mono text-[13px] font-bold uppercase tracking-[0.15em] text-[var(--lp-text-muted)]">{fc.title}</p>
         <h2 className="mt-1 text-lg font-semibold text-[var(--lp-dark)]">{fc.privateConversation}</h2>
-        <p className="mt-1 text-xs leading-5 text-[var(--lp-text-sub)]">{fc.coordinateBody}</p>
+        <p className="mt-1 text-[14px] leading-5 text-[var(--lp-text-sub)] font-medium">{fc.coordinateBody}</p>
       </header>
 
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-4 sm:px-5">
-        {messages.length === 0 ? <div className="mx-auto mt-12 max-w-xs text-center"><p className="text-sm font-medium text-[var(--lp-dark)]">{fc.startTitle}</p><p className="mt-1 text-xs leading-5 text-[var(--lp-text-muted)]">{fc.startBody}</p></div> : null}
+        {messages.length === 0 ? <div className="mx-auto mt-12 max-w-xs text-center"><p className="text-sm font-medium text-[var(--lp-dark)]">{fc.startTitle}</p><p className="mt-1 text-[14px] leading-5 text-[var(--lp-text-muted)]">{fc.startBody}</p></div> : null}
         {messages.map(message => {
-          if (message.kind === 'system') return <div key={message.id} className="flex items-center gap-3 py-1"><span className="h-px flex-1 bg-[var(--lp-border-light)]" /><p className="max-w-[75%] text-center text-[10px] text-[var(--lp-text-muted)]">{message.body}</p><span className="h-px flex-1 bg-[var(--lp-border-light)]" /></div>;
+          if (message.kind === 'system') return <div key={message.id} className="flex items-center gap-3 py-1"><span className="h-px flex-1 bg-[var(--lp-border-light)]" /><p className="max-w-[75%] text-center text-[13px] text-[var(--lp-text-muted)]">{message.body}</p><span className="h-px flex-1 bg-[var(--lp-border-light)]" /></div>;
           const mine = !!auth.address && message.sender.toLowerCase() === auth.address.toLowerCase();
           const quoted = message.replyToId ? byId.get(message.replyToId) : undefined;
           return <article key={message.id} className={`group flex ${mine ? 'justify-end' : 'justify-start'}`}>
             <div className="max-w-[88%] sm:max-w-[76%]">
-              <div className={`mb-1 flex items-center gap-2 ${mine ? 'justify-end' : ''}`}><span className="mono text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">{mine ? 'You' : roleFor(message.sender)}</span><span className="text-[9px] text-[var(--lp-text-muted)]">{new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(message.ts)}</span></div>
+              <div className={`mb-1 flex items-center gap-2 ${mine ? 'justify-end' : ''}`}><span className="mono text-[13px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">{mine ? 'You' : roleFor(message.sender)}</span><span className="text-[13px] text-[var(--lp-text-muted)]">{new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(message.ts)}</span></div>
               <div className={`border p-3 text-sm leading-5 ${mine ? 'border-[var(--lp-dark)] bg-[var(--lp-dark)] text-white' : 'border-[var(--lp-border-light)] bg-white/60 text-[var(--lp-dark)]'}`} style={{ borderRadius: mine ? '14px 14px 4px 14px' : '14px 14px 14px 4px' }}>
-                {quoted ? <div className={`mb-2 border-s-2 px-2 py-1.5 text-xs ${mine ? 'border-white/55 bg-white/10 text-white/80' : 'border-[var(--lp-text-muted)] bg-black/[0.035] text-[var(--lp-text-sub)]'}`}><p className="mono mb-0.5 text-[8px] font-bold uppercase tracking-[0.12em]">{roleFor(quoted.sender)}</p><p>{excerpt(quoted.body)}</p></div> : null}
+                {quoted ? <div className={`mb-2 border-s-2 px-2 py-1.5 text-[14px] ${mine ? 'border-white/55 bg-white/10 text-white/80' : 'border-[var(--lp-text-muted)] bg-black/[0.035] text-[var(--lp-text-sub)]'}`}><p className="mono mb-0.5 text-[13px] font-bold uppercase tracking-[0.12em]">{roleFor(quoted.sender)}</p><p>{excerpt(quoted.body)}</p></div> : null}
                 {message.imageDataUrl ? <img src={message.imageDataUrl} alt="image attachment" className="mb-2 max-h-56 w-full rounded-lg object-contain" /> : null}
                 {message.body ? <p className="whitespace-pre-wrap break-words">{message.body}</p> : null}
               </div>
-              {writable ? <button type="button" onClick={() => setReplyingTo(message)} className={`mt-1 mono text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-muted)] underline-offset-2 hover:underline ${mine ? 'float-right' : ''}`}>Reply</button> : null}
+              {writable ? <button type="button" onClick={() => setReplyingTo(message)} className={`mt-1 mono text-[13px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-muted)] underline-offset-2 hover:underline ${mine ? 'float-right' : ''}`}>Reply</button> : null}
             </div>
           </article>;
         })}
@@ -111,16 +111,16 @@ export function FinancingChatPanel({ kind, positionId, seller, financier }: { ki
 
       <footer className="border-t border-[var(--lp-border-light)] bg-white/40 p-3 sm:p-4">
         {writable ? <>
-          {sendError ? <p className="mb-2 border-s-2 border-orange-500/70 px-2 text-xs text-orange-700">{sendError}</p> : null}
-          {imageDataUrl ? <div className="mb-2 flex items-center gap-2"><img src={imageDataUrl} alt="image preview" className="h-14 w-14 rounded-lg border border-[var(--lp-border-light)] object-cover" /><button type="button" onClick={() => setImageDataUrl(null)} className="min-h-11 px-2 mono text-[9px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)] underline">remove image</button></div> : null}
-          {replyingTo ? <div className="mb-2 flex items-start justify-between gap-3 border-s-2 border-[var(--lp-dark)] bg-white/65 px-3 py-2"><div className="min-w-0"><p className="mono text-[8px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">Replying to {roleFor(replyingTo.sender)}</p><p className="mt-0.5 truncate text-xs text-[var(--lp-text-sub)]">{excerpt(replyingTo.body)}</p></div><button type="button" onClick={() => setReplyingTo(null)} aria-label={fc.cancelReply} className="shrink-0 text-lg leading-none text-[var(--lp-text-muted)]">×</button></div> : null}
+          {sendError ? <p className="mb-2 border-s-2 border-orange-500/70 px-2 text-[14px] text-orange-700">{sendError}</p> : null}
+          {imageDataUrl ? <div className="mb-2 flex items-center gap-2"><img src={imageDataUrl} alt="image preview" className="h-14 w-14 rounded-lg border border-[var(--lp-border-light)] object-cover" /><button type="button" onClick={() => setImageDataUrl(null)} className="min-h-11 px-2 mono text-[13px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)] underline">remove image</button></div> : null}
+          {replyingTo ? <div className="mb-2 flex items-start justify-between gap-3 border-s-2 border-[var(--lp-dark)] bg-white/65 px-3 py-2"><div className="min-w-0"><p className="mono text-[13px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">Replying to {roleFor(replyingTo.sender)}</p><p className="mt-0.5 truncate text-[14px] text-[var(--lp-text-sub)] font-medium">{excerpt(replyingTo.body)}</p></div><button type="button" onClick={() => setReplyingTo(null)} aria-label={fc.cancelReply} className="shrink-0 text-lg leading-none text-[var(--lp-text-muted)]">×</button></div> : null}
           <div className="flex items-end gap-2">
             <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={event => { onImageSelected(event.target.files?.[0]); event.currentTarget.value = ''; }} />
             <button type="button" onClick={() => fileRef.current?.click()} aria-label="attach image" className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-[var(--lp-border-light)] text-lg text-[var(--lp-text-sub)]">+</button>
             <textarea value={draft} onChange={event => setDraft(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void send(); } }} rows={1} maxLength={2000} placeholder={imageDataUrl ? 'image only or add a message' : fc.placeholder} className="min-h-11 max-h-28 min-w-0 flex-1 resize-none border border-[var(--lp-border-light)] bg-white px-3 py-2.5 text-sm text-[var(--lp-dark)] outline-none focus:border-[var(--lp-dark)]" style={{ borderRadius: 10 }} />
-            <button type="button" disabled={(!draft.trim() && !imageDataUrl) || sending} onClick={() => void send()} className="inline-flex min-h-11 shrink-0 items-center rounded-xl bg-[var(--lp-dark)] px-4 text-xs font-semibold text-white disabled:opacity-40">{sending ? 'sending' : 'send'}</button>
+            <button type="button" disabled={(!draft.trim() && !imageDataUrl) || sending} onClick={() => void send()} className="inline-flex min-h-11 shrink-0 items-center rounded-xl bg-[var(--lp-dark)] px-4 text-[14px] font-semibold text-white disabled:opacity-40">{sending ? 'sending' : 'send'}</button>
           </div>
-        </> : <div className="rounded-lg border border-[var(--lp-border-light)] bg-white/55 px-3 py-3 text-xs leading-5 text-[var(--lp-text-sub)]"><strong className="text-[var(--lp-dark)]">{fc.closedTitle}</strong> {fc.closedBody}</div>}
+        </> : <div className="rounded-lg border border-[var(--lp-border-light)] bg-white/55 px-3 py-3 text-[14px] leading-5 text-[var(--lp-text-sub)] font-medium"><strong className="text-[var(--lp-dark)]">{fc.closedTitle}</strong> {fc.closedBody}</div>}
       </footer>
     </section>
   );

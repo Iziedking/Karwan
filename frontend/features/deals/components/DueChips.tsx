@@ -92,7 +92,7 @@ export function DueChips({
           return (
             <button key={key} type="button" aria-pressed={active} disabled={disabled} onClick={() => pickDays(days)} className={chipClass(active)}>
               {rs[key]}
-              <span className="text-[12px] font-normal opacity-75">{shortDate(Date.now() + days * DAY_MS)}</span>
+              <span className="text-[14px] font-normal opacity-75">{shortDate(Date.now() + days * DAY_MS)}</span>
             </button>
           );
         })}
@@ -142,7 +142,7 @@ export function DueChips({
                 // A sensible number per unit, so switching never lands on 90 minutes meant as 90 days.
                 onClick={() => onChange({ min: 15, hr: 2, d: 5 }[key], key)}
                 className={cn(
-                  'min-h-11 min-w-11 rounded-[10px] px-2.5 text-[13px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+                  'min-h-11 min-w-11 rounded-[10px] px-2.5 text-[14px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50',
                   unit === key ? 'bg-[var(--lp-control-active-bg)] text-[var(--lp-control-active-ink)]' : 'text-[var(--lp-text-sub)]',
                 )}
               >
@@ -160,7 +160,7 @@ export function DueChips({
             setExactTime(true);
             if (value === '') onChange(2, 'hr');
           }}
-          className="inline-flex min-h-11 items-center text-[13px] font-semibold text-[var(--lp-text-sub)] underline underline-offset-4 hover:text-[var(--lp-dark)]"
+          className="inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--lp-text-sub)] underline underline-offset-4 hover:text-[var(--lp-dark)]"
         >
           {rs.exactTime}
         </button>

@@ -30,7 +30,7 @@ export function BalanceSidecar({ agent = 'buyer' }: { agent?: 'buyer' | 'seller'
 
   return (
     <aside aria-labelledby="sidecar-balance" className="rounded-[18px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5">
-      <h2 id="sidecar-balance" className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{name}</h2>
+      <h2 id="sidecar-balance" className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{name}</h2>
       {balances.activationLoading ? (
         <div aria-busy="true" className="mt-2 h-8 w-32 rounded-[8px] bg-[var(--lp-light)]" />
       ) : !balances.activated ? (

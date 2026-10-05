@@ -160,12 +160,12 @@ export function MyMoneyLedger({
       </Suspense>
       <div className="flex items-baseline justify-between gap-3">
         {!nested && (
-          <span className="text-[13px] font-semibold text-[var(--lp-text-sub)]">
+          <span className="text-[14px] font-semibold text-[var(--lp-text-sub)]">
             {t.eyebrow}
           </span>
         )}
         {items && items.length > 0 && (
-          <span className="ms-auto mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+          <span className="ms-auto mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
             {t.count.replace('{n}', String(items.length))}
           </span>
         )}
@@ -180,7 +180,7 @@ export function MyMoneyLedger({
           <span className="block h-full w-1/3 bg-[var(--lp-accent)] motion-safe:animate-pulse" />
         </div>
       ) : items.length === 0 ? (
-        <p className="text-[13px] leading-relaxed text-[var(--lp-text-sub)] max-w-[52ch]">
+        <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[52ch] font-medium">
           {t.empty}
         </p>
       ) : (
@@ -207,7 +207,7 @@ export function MyMoneyLedger({
                     <span className="block text-[15px] font-medium leading-snug text-[var(--lp-dark)]">
                       {ledgerRowText(ledgerLine(item, t.text))}
                     </span>
-                    <span className="mt-1 block text-[13px] text-[var(--lp-text-sub)]">
+                    <span className="mt-1 block text-[14px] text-[var(--lp-text-sub)] font-medium">
                       {when(item.ts, t.justNow)}
                       {item.status !== 'done' && (
                         <>
@@ -246,7 +246,7 @@ export function MyMoneyLedger({
 
       {rows.length > PAGE_SIZE && (
         <nav data-floating-avoid className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--lp-border-light)] pt-3" aria-label={translations.activity.view.pagerAria}>
-          <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+          <span className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
             {translations.activity.view.countRange
               .replace('{start}', String(pageStart + 1))
               .replace('{end}', String(Math.min(pageStart + PAGE_SIZE, rows.length)))
@@ -258,11 +258,11 @@ export function MyMoneyLedger({
               onClick={() => setPage((current) => Math.max(1, current - 1))}
               disabled={safePage <= 1}
               aria-label={translations.activity.view.prevAria}
-              className="inline-flex min-h-11 min-w-11 items-center justify-center border border-[var(--lp-border-light)] mono text-[11px] text-[var(--lp-text-sub)] transition-colors disabled:cursor-not-allowed disabled:opacity-40 enabled:hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center border border-[var(--lp-border-light)] mono text-[14px] text-[var(--lp-text-sub)] transition-colors disabled:cursor-not-allowed disabled:opacity-40 enabled:hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] font-medium"
             >
               ←
             </button>
-            <span className="min-w-16 text-center mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+            <span className="min-w-16 text-center mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
               {safePage} / {totalPages}
             </span>
             <button
@@ -270,7 +270,7 @@ export function MyMoneyLedger({
               onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
               disabled={safePage >= totalPages}
               aria-label={translations.activity.view.nextAria}
-              className="inline-flex min-h-11 min-w-11 items-center justify-center border border-[var(--lp-border-light)] mono text-[11px] text-[var(--lp-text-sub)] transition-colors disabled:cursor-not-allowed disabled:opacity-40 enabled:hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center border border-[var(--lp-border-light)] mono text-[14px] text-[var(--lp-text-sub)] transition-colors disabled:cursor-not-allowed disabled:opacity-40 enabled:hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] font-medium"
             >
               →
             </button>

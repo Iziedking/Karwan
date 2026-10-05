@@ -77,19 +77,19 @@ export function ExtensionRequestModal({
         }}
       >
         <div className="px-6 pt-6 pb-2">
-          <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+          <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
             {er.tag}
           </p>
           <h2 className="mt-2 font-sans text-[22px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
             {er.title}
           </h2>
-          <p className="mt-2 text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
+          <p className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
             {er.body}
           </p>
         </div>
 
         <div className="px-6 pt-4">
-          <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)] mb-2">
+          <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)] mb-2">
             {er.durationEyebrow}
           </p>
           <div className="flex flex-wrap gap-2">
@@ -100,7 +100,7 @@ export function ExtensionRequestModal({
                   key={p.seconds}
                   type="button"
                   onClick={() => setSeconds(p.seconds)}
-                  className="mono text-[11px] uppercase tracking-[0.14em] px-3 py-2 transition-colors"
+                  className="mono text-[14px] uppercase tracking-[0.14em] px-3 py-2 transition-colors"
                   style={{
                     background: active ? 'var(--lp-control-active-bg)' : 'var(--lp-card)',
                     color: active ? 'var(--lp-control-active-ink)' : 'var(--lp-dark)',
@@ -118,7 +118,7 @@ export function ExtensionRequestModal({
         </div>
 
         <div className="px-6 pt-5">
-          <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)] mb-2">
+          <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)] mb-2">
             {er.reasonEyebrow}
           </p>
           <textarea
@@ -126,7 +126,7 @@ export function ExtensionRequestModal({
             onChange={(e) => setReason(e.target.value.slice(0, 280))}
             rows={3}
             placeholder={er.reasonPlaceholder}
-            className="w-full bg-[var(--lp-light)] text-[var(--lp-dark)] placeholder:text-[var(--lp-text-muted)] px-3.5 py-2.5 text-[13px] leading-relaxed focus:outline-none resize-none"
+            className="w-full bg-[var(--lp-light)] text-[var(--lp-dark)] placeholder:text-[var(--lp-text-muted)] px-3.5 py-2.5 text-[14px] leading-relaxed focus:outline-none resize-none"
             style={{
               border: '1px solid var(--lp-border-light)',
               borderRadius: 12,
@@ -137,7 +137,7 @@ export function ExtensionRequestModal({
         {error && (
           <div className="px-6 pt-4">
             <p
-              className="text-[12.5px] px-3 py-2"
+              className="text-[14px] px-3 py-2"
               style={{
                 background: 'rgba(176,61,58,0.10)',
                 color: '#b03d3a',
@@ -155,7 +155,7 @@ export function ExtensionRequestModal({
             type="button"
             onClick={submit}
             disabled={busy}
-            className="inline-flex items-center gap-2 px-5 py-2.5 mono text-[12px] font-bold uppercase tracking-[0.08em] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-2 px-5 py-2.5 mono text-[14px] font-bold uppercase tracking-[0.08em] disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
               background: 'var(--lp-accent)',
               color: 'var(--lp-band-dark)',
@@ -168,7 +168,7 @@ export function ExtensionRequestModal({
             type="button"
             onClick={onClose}
             disabled={busy}
-            className="px-4 py-2.5 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] underline underline-offset-2 disabled:opacity-50"
+            className="px-4 py-2.5 mono text-[14px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] underline underline-offset-2 disabled:opacity-50 font-medium"
           >
             {er.cancel}
           </button>

@@ -46,7 +46,7 @@ export function RecoveryPasswordStep({ walletAddress, onDone, headingLevel = 'h1
     <form onSubmit={save} className="space-y-4">
       <div>
         <Heading className="text-[22px] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--lp-dark)] sm:text-[26px]">{t.title}</Heading>
-        <p className="mt-2 text-[14px] leading-[1.5] text-[var(--lp-text-sub)] sm:text-[15px]">{t.body}</p>
+        <p className="mt-2 text-[14px] leading-[1.5] text-[var(--lp-text-sub)] sm:text-[15px] font-medium">{t.body}</p>
       </div>
       <label className="block space-y-1.5">
         <span className="text-[14px] font-semibold text-[var(--lp-dark)]">{t.label}</span>
@@ -55,11 +55,11 @@ export function RecoveryPasswordStep({ walletAddress, onDone, headingLevel = 'h1
             autoComplete="new-password" disabled={busy} autoFocus aria-describedby="recovery-password-hint"
             className="h-[46px] w-full bg-transparent px-4 text-[16px] sm:h-[50px] text-[var(--lp-dark)] outline-none" />
           <button type="button" onClick={() => setVisible((v) => !v)}
-            className="me-2 min-h-11 shrink-0 px-2 text-[13px] font-semibold text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)]">
+            className="me-2 min-h-11 shrink-0 px-2 text-[14px] font-semibold text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)]">
             {visible ? t.hide : t.show}
           </button>
         </span>
-        <span id="recovery-password-hint" aria-live="polite" className="block min-h-5 text-[13px] text-[var(--lp-text-sub)]">{hint}</span>
+        <span id="recovery-password-hint" aria-live="polite" className="block min-h-5 text-[14px] text-[var(--lp-text-sub)] font-medium">{hint}</span>
       </label>
       <button type="submit" disabled={!strength.ok || busy}
         className="inline-flex min-h-12 sm:min-h-[52px] w-full items-center justify-center rounded-[12px] bg-[var(--lp-accent)] px-5 text-[15px] font-semibold text-[var(--accent-ink)] transition-colors hover:bg-[var(--lp-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)] disabled:cursor-not-allowed disabled:opacity-50">

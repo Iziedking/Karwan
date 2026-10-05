@@ -24,12 +24,12 @@ export function FormError({
       }}
     >
       <p
-        className="mono text-[10px] font-semibold uppercase tracking-[0.12em]"
+        className="mono text-[13px] font-semibold uppercase tracking-[0.12em]"
         style={{ color: 'var(--neg)' }}
       >
         {stripMechanicalTags(eyebrow)}
       </p>
-      <p className="mt-1 text-[13px] leading-snug text-[var(--lp-dark)]">{children}</p>
+      <p className="mt-1 text-[14px] leading-snug text-[var(--lp-dark)]">{children}</p>
     </div>
   );
 }

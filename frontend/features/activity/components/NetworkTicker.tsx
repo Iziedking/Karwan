@@ -168,7 +168,7 @@ function TickerCardView({ card, muted }: { card: TickerCard; muted: boolean }) {
         </BracketTag>
         {!muted && card.at > 0 && (
           <span
-            className="font-mono text-[10px] uppercase tracking-[0.12em] tabular-nums"
+            className="font-mono text-[13px] uppercase tracking-[0.12em] tabular-nums"
             style={{ color: 'var(--lp-workspace-faint)' }}
           >
             {relativeTime(card.at)}
@@ -178,7 +178,7 @@ function TickerCardView({ card, muted }: { card: TickerCard; muted: boolean }) {
 
       <div className="relative px-5 pb-5 ps-6">
         <p
-          className="font-mono text-[11px] tabular-nums leading-snug"
+          className="font-mono text-[14px] tabular-nums leading-snug"
           style={{ color: 'var(--lp-workspace-muted)' }}
         >
           <span style={{ color: 'var(--lp-workspace-ink)' }}>{t.subjects.completed}</span>{' '}
@@ -195,7 +195,7 @@ function TickerCardView({ card, muted }: { card: TickerCard; muted: boolean }) {
             {sr.bands[card.band]}
           </span>
           <span
-            className="font-mono text-[10px] uppercase tracking-[0.14em]"
+            className="font-mono text-[13px] uppercase tracking-[0.14em]"
             style={{ color: 'var(--lp-workspace-faint)' }}
           >
             {sr.usdcDeal}

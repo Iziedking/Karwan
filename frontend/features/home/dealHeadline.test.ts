@@ -14,3 +14,8 @@ test('a brief with sentences keeps its first one, and empty terms stay empty', (
   assert.equal(dealHeadline(''), '');
   assert.equal(dealHeadline(undefined), '');
 });
+
+test('terms with no brief have no headline, so the row falls back to who it is with', () => {
+  assert.equal(dealHeadline('Delivery: by 19 Oct. Payment: 150 USDC on delivery.'), '');
+  assert.equal(dealHeadline('Payment: 50% now, 50% on delivery.'), '');
+});

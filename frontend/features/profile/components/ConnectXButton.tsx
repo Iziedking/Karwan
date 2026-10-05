@@ -36,8 +36,8 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
     : 'border-white/20 text-white hover:bg-white/[0.06] hover:border-white/35';
   const chipMuted = onLight
     ? 'border-[var(--lp-border)] text-[var(--lp-text-sub)]'
-    : 'border-white/20 text-white/45';
-  const sublabel = onLight ? 'text-[var(--lp-text-sub)]' : 'text-white/55';
+    : 'border-white/20 text-white/75';
+  const sublabel = onLight ? 'text-[var(--lp-text-sub)]' : 'text-white/75';
   const errClass = onLight ? 'text-[#a73a37]' : 'text-[#e8806b]';
   const search = useSearchParams();
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -134,7 +134,7 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
         type="button"
         disabled
         title={cx.disabledTitle}
-        className={`inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border ${chipMuted} cursor-not-allowed w-fit`}
+        className={`inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[14px] font-bold uppercase tracking-[0.08em] border ${chipMuted} cursor-not-allowed w-fit`}
         style={{
           borderRadius: 8,
         }}
@@ -149,7 +149,7 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
     return (
       <div className="inline-flex items-center gap-2">
         <span
-          className={`inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border ${chipBase}`}
+          className={`inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[14px] font-bold uppercase tracking-[0.08em] border ${chipBase}`}
           style={{
             borderRadius: 8,
           }}
@@ -170,7 +170,7 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
           type="button"
           onClick={unlink}
           disabled={busy}
-          className={`mono text-[10px] uppercase tracking-[0.12em] ${sublabel} hover:${onLight ? 'text-[var(--lp-band-dark)]' : 'text-white'} transition-colors disabled:opacity-50`}
+          className={`mono text-[13px] uppercase tracking-[0.12em] ${sublabel} hover:${onLight ? 'text-[var(--lp-band-dark)]' : 'text-white'} transition-colors disabled:opacity-50`}
         >
           {busy ? cx.working : cx.unlink}
         </button>
@@ -186,7 +186,7 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
           type="button"
           onClick={startOAuth}
           disabled={busy}
-          className={`inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border ${chipBase} transition-colors w-fit disabled:opacity-50`}
+          className={`inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[14px] font-bold uppercase tracking-[0.08em] border ${chipBase} transition-colors w-fit disabled:opacity-50`}
           style={{
             borderRadius: 8,
           }}
@@ -195,7 +195,7 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
           {busy ? cx.redirecting : cx.connectCta}
         </button>
         {error && (
-          <p className={`mono text-[10px] ${errClass} leading-snug max-w-[34ch]`}>{error}</p>
+          <p className={`mono text-[13px] ${errClass} leading-snug max-w-[34ch]`}>{error}</p>
         )}
       </div>
     );
@@ -207,7 +207,7 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border ${chipBase} transition-colors w-fit`}
+        className={`inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[14px] font-bold uppercase tracking-[0.08em] border ${chipBase} transition-colors w-fit`}
         style={{
           borderRadius: 8,
         }}
@@ -226,11 +226,11 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
         background: 'var(--surface-1)',
       }}
     >
-      <label className="mono text-[10px] uppercase tracking-[0.14em] text-white/55">
+      <label className="mono text-[13px] uppercase tracking-[0.14em] text-white/75">
         {cx.handleLabel}
       </label>
       <div className="inline-flex items-center gap-2">
-        <span className="mono text-[12px] text-white/55">@</span>
+        <span className="mono text-[14px] text-white/75">@</span>
         <input
           autoFocus
           value={handle}
@@ -245,13 +245,13 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
           }}
           placeholder={cx.handlePlaceholder}
           maxLength={15}
-          className="bg-transparent border-b border-white/20 focus:border-white/60 focus:outline-none mono text-[13px] text-white w-44 py-1"
+          className="bg-transparent border-b border-white/20 focus:border-white/60 focus:outline-none mono text-[14px] text-white w-44 py-1"
         />
         <button
           type="button"
           onClick={saveHandle}
           disabled={busy || !handle.trim()}
-          className="mono text-[10px] uppercase tracking-[0.12em] font-bold px-2 py-1 bg-white text-black hover:bg-white/90 transition-colors disabled:opacity-50"
+          className="mono text-[13px] uppercase tracking-[0.12em] font-bold px-2 py-1 bg-white text-black hover:bg-white/90 transition-colors disabled:opacity-50"
         >
           {busy ? cx.saving : cx.save}
         </button>
@@ -262,16 +262,16 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
             setHandle('');
             setError(null);
           }}
-          className="mono text-[10px] uppercase tracking-[0.12em] text-white/55 hover:text-white transition-colors"
+          className="mono text-[13px] uppercase tracking-[0.12em] text-white/75 hover:text-white transition-colors"
         >
           {cx.cancel}
         </button>
       </div>
-      <p className="mono text-[10px] text-white/45 leading-snug max-w-[34ch]">
+      <p className="mono text-[13px] text-white/75 leading-snug max-w-[34ch]">
         {cx.handleNote}
       </p>
       {error && (
-        <p className="mono text-[10px] text-[#e8806b] leading-snug max-w-[34ch]">{error}</p>
+        <p className="mono text-[13px] text-[#e8806b] leading-snug max-w-[34ch]">{error}</p>
       )}
     </div>
   );

@@ -187,7 +187,7 @@ export function TopUpFromGateway({
       </div>
 
       {!loading && (
-        <p className="text-[13px] text-[var(--ink-secondary)]">
+        <p className="text-[14px] text-[var(--ink-secondary)] font-medium">
           {covers || !valid
             ? t.availableTemplate.replace(
                 '{amount}',
@@ -201,7 +201,7 @@ export function TopUpFromGateway({
 
       {(phase === 'moving' || phase === 'done') && <GatewayProgress steps={steps} />}
 
-      {phase === 'error' && <p className="text-[13px] text-[var(--color-critical)]">{error ?? t.failed}</p>}
+      {phase === 'error' && <p className="text-[14px] text-[var(--color-critical)]">{error ?? t.failed}</p>}
     </div>
   );
 }

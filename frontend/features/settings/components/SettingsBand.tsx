@@ -181,10 +181,10 @@ export function SettingsBand() {
         className="mt-6 pt-5 border-t"
         style={{ borderColor: 'var(--color-line)' }}
       >
-        <p className="mb-2 text-[13px] font-semibold text-[var(--color-critical)]">
+        <p className="mb-2 text-[14px] font-semibold text-[var(--color-critical)]">
           {t.settings.dangerZone}
         </p>
-        <p className="max-w-[52ch] text-[14px] leading-6 text-[var(--color-ink-dim)]">
+        <p className="max-w-[52ch] text-[14px] leading-6 text-[var(--color-ink-dim)] font-medium">
           {t.settings.accountDeleteHint}
         </p>
         <div className="mt-3 grid gap-2 sm:flex sm:flex-wrap sm:items-center">
@@ -200,7 +200,7 @@ export function SettingsBand() {
             type="button"
             disabled={deleteConfirm !== 'DELETE' || deleting || forceConfirm !== null}
             onClick={() => runDelete(false)}
-            className="min-h-11 w-full rounded-[10px] px-4 py-2 text-[13px] font-semibold disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
+            className="min-h-11 w-full rounded-[10px] px-4 py-2 text-[14px] font-semibold disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
             style={{
               background: 'var(--color-critical)',
               color: 'var(--color-surface)',
@@ -215,13 +215,13 @@ export function SettingsBand() {
             className="mt-3 max-w-[52ch] rounded-[10px] border p-4"
             style={{ borderColor: 'var(--color-critical)' }}
           >
-            <p className="text-[14px] leading-6 text-[var(--color-ink-dim)]">{forceConfirm}</p>
+            <p className="text-[14px] leading-6 text-[var(--color-ink-dim)] font-medium">{forceConfirm}</p>
             <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:items-center">
               <button
                 type="button"
                 disabled={deleting}
                 onClick={() => runDelete(true)}
-                className="min-h-11 rounded-[10px] px-4 py-2 text-[13px] font-semibold disabled:opacity-40"
+                className="min-h-11 rounded-[10px] px-4 py-2 text-[14px] font-semibold disabled:opacity-40"
                 style={{
                   background: 'var(--color-critical)',
                   color: 'var(--color-surface)',
@@ -237,7 +237,7 @@ export function SettingsBand() {
                   setForceConfirm(null);
                   setDeleteConfirm('');
                 }}
-                className="min-h-11 rounded-[10px] px-4 py-2 text-[13px] font-semibold disabled:opacity-40"
+                className="min-h-11 rounded-[10px] px-4 py-2 text-[14px] font-semibold disabled:opacity-40"
                 style={{
                   border: '1px solid var(--color-line)',
                   color: 'var(--color-ink-dim)',
@@ -249,19 +249,19 @@ export function SettingsBand() {
           </div>
         )}
         {deleteError && (
-          <p className="mt-2 max-w-[52ch] text-[13px] leading-5 text-[var(--color-critical)]">
+          <p className="mt-2 max-w-[52ch] text-[14px] leading-5 text-[var(--color-critical)]">
             {deleteError}
           </p>
         )}
       </div>
 
       {saving && (
-        <p className="mt-4 text-[13px] text-[var(--color-ink-dim)]">
+        <p className="mt-4 text-[14px] text-[var(--color-ink-dim)] font-medium">
           {t.common.loading}
         </p>
       )}
       {error && (
-        <p className="mt-4 text-[13px] text-[var(--color-critical)]">
+        <p className="mt-4 text-[14px] text-[var(--color-critical)]">
           {t.common.error}: {error}
         </p>
       )}
@@ -325,7 +325,7 @@ function PasskeyRow({
             className="inline-block w-1.5 h-1.5 rounded-full"
             style={{ background: 'var(--color-accent, #b25425)' }}
           />
-          <span className="text-[14px] text-[var(--color-ink-dim)]">
+          <span className="text-[14px] text-[var(--color-ink-dim)] font-medium">
             {t.activeChip}
           </span>
         </div>
@@ -335,18 +335,18 @@ function PasskeyRow({
             type="button"
             onClick={addPasskey}
             disabled={busy || !supports}
-            className="inline-flex min-h-11 items-center gap-2 rounded-[10px] bg-[var(--color-ink)] px-4 py-2 text-[13px] font-semibold text-[var(--color-surface)] transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex min-h-11 items-center gap-2 rounded-[10px] bg-[var(--color-ink)] px-4 py-2 text-[14px] font-semibold text-[var(--color-surface)] transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
           >
             {busy ? t.addingButton : t.addButton}
             <span aria-hidden>→</span>
           </button>
           {!supports && (
-            <p className="text-[13px] text-[var(--color-ink-dim)]">
+            <p className="text-[14px] text-[var(--color-ink-dim)] font-medium">
               {t.noBrowserSupport}
             </p>
           )}
           {error && (
-            <p className="text-[13px] text-[var(--color-critical)]">{error}</p>
+            <p className="text-[14px] text-[var(--color-critical)]">{error}</p>
           )}
         </div>
       )}
@@ -416,7 +416,7 @@ function Switch({
           />
         </span>
       </span>
-      <span className="text-[14px] text-[var(--color-ink-dim)]">{label}</span>
+      <span className="text-[14px] text-[var(--color-ink-dim)] font-medium">{label}</span>
     </label>
   );
 }

@@ -59,10 +59,10 @@ export function ProfileTierCard({ address }: { address?: string | null }) {
       style={{ borderRadius: 16 }}
     >
       <div className="flex items-center justify-between gap-3">
-        <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-faint)]">
+        <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-workspace-faint)]">
           {pt.eyebrow}
         </span>
-        <span className="mono text-[11px] tabular-nums text-[var(--lp-workspace-muted)]">
+        <span className="mono text-[14px] tabular-nums text-[var(--lp-workspace-muted)]">
           {score}
           <span className="text-[var(--lp-workspace-faint)]"> {pt.scoreSuffix}</span>
         </span>
@@ -79,7 +79,7 @@ export function ProfileTierCard({ address }: { address?: string | null }) {
         >
           {tier}
         </span>
-        <span className="min-w-0 text-[12px] text-[var(--lp-workspace-muted)]">
+        <span className="min-w-0 text-[14px] text-[var(--lp-workspace-muted)]">
           {progressLabel}
         </span>
       </div>

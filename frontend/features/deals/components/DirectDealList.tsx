@@ -116,7 +116,7 @@ export function StageBadge({ stage }: { stage: DealStage }) {
   // label does not need to shout it a second time.
   return (
     <span
-      className="inline-flex items-center rounded-[2px] px-2 py-[5px] text-[10px] mono font-bold uppercase tracking-[0.16em] leading-none whitespace-nowrap"
+      className="inline-flex items-center rounded-[2px] px-2 py-[5px] text-[13px] mono font-bold uppercase tracking-[0.16em] leading-none whitespace-nowrap"
       style={{ border: `1px solid ${m.chipFg}59`, color: m.chipFg }}
     >
       {label}
@@ -153,7 +153,7 @@ export function DirectDealList({ role }: { role?: 'buyer' | 'seller' }) {
   }
   if (fetchState === 'error') {
     return (
-      <p className="p-8 text-center mono text-[12px] uppercase tracking-[0.1em] text-[#7a1f1a]">
+      <p className="p-8 text-center mono text-[14px] uppercase tracking-[0.1em] text-[#7a1f1a]">
         {t.errorBody}
       </p>
     );
@@ -161,10 +161,10 @@ export function DirectDealList({ role }: { role?: 'buyer' | 'seller' }) {
   if (visible.length === 0) {
     return (
       <div className="p-10 text-center space-y-2">
-        <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+        <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
           {scoped.length === 0 ? t.empty.noDealsTag : t.empty.allDismissedTag}
         </p>
-        <p className="body-copy text-[13px] text-[var(--lp-text-sub)] max-w-[40ch] mx-auto">
+        <p className="body-copy text-[14px] text-[var(--lp-text-sub)] max-w-[40ch] mx-auto font-medium">
           {scoped.length === 0
             ? role === 'seller'
               ? t.empty.promptSeller
@@ -201,7 +201,7 @@ export function DirectDealList({ role }: { role?: 'buyer' | 'seller' }) {
               <div className="flex items-center justify-between gap-6">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2.5 flex-wrap">
-                    <span className="mono text-[10px] uppercase tracking-[0.18em] font-medium text-[var(--lp-text-muted)]">
+                    <span className="mono text-[13px] uppercase tracking-[0.18em] font-medium text-[var(--lp-text-muted)]">
                       {isBuyer ? t.roleEyebrow.buying : t.roleEyebrow.selling}
                     </span>
                     <StageBadge stage={stage} />
@@ -210,20 +210,20 @@ export function DirectDealList({ role }: { role?: 'buyer' | 'seller' }) {
                     <span className="font-sans text-[26px] font-extrabold tabular-nums tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
                       {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}
                     </span>
-                    <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                    <span className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
                       USDC
                     </span>
                   </div>
-                  <p className="mt-2 text-[13px] text-[var(--lp-text-sub)] line-clamp-1 max-w-[60ch]">
+                  <p className="mt-2 text-[14px] text-[var(--lp-text-sub)] line-clamp-1 max-w-[60ch] font-medium">
                     {deal.terms}
                   </p>
                 </div>
                 <div className="text-end shrink-0 space-y-1.5">
-                  <p className="mono text-[10px] uppercase tracking-[0.18em] font-medium text-[var(--lp-text-muted)]">
+                  <p className="mono text-[13px] uppercase tracking-[0.18em] font-medium text-[var(--lp-text-muted)]">
                     {isBuyer ? t.counterpartyEyebrow.seller : t.counterpartyEyebrow.buyer}
                   </p>
                   <span
-                    className="inline-flex items-center gap-1.5 px-2 py-0.5 mono text-[11px] border"
+                    className="inline-flex items-center gap-1.5 px-2 py-0.5 mono text-[14px] border"
                     style={{
                       borderColor: 'var(--lp-border-light)',
                       background: 'var(--lp-light)',
@@ -238,14 +238,14 @@ export function DirectDealList({ role }: { role?: 'buyer' | 'seller' }) {
                     />
                     {receiptReference ?? receiptPending}
                   </span>
-                  <p className="mono text-[10px] uppercase tracking-[0.08em] text-[var(--lp-text-muted)]">
+                  <p className="mono text-[13px] uppercase tracking-[0.08em] text-[var(--lp-text-muted)]">
                     {receiptReferenceLabel}
                   </p>
                   {((deal.tradeLane ?? 'service') === 'finance' ||
                     deal.tradeType === 'goods' ||
                     deal.tradeType === 'mixed') && (
                     <span
-                      className="inline-flex mono text-[8.5px] font-bold uppercase tracking-[0.14em] px-1.5 py-0.5"
+                      className="inline-flex mono text-[13px] font-bold uppercase tracking-[0.14em] px-1.5 py-0.5"
                       style={{
                         background: 'color-mix(in oklab, var(--lp-accent) 20%, transparent)',
                         color: 'var(--lp-dark)',
@@ -410,7 +410,7 @@ function SwipeableRow({
             opacity: Math.min(1, Math.abs(dragX) / 100),
           }}
         >
-          <span className="mono text-[11px] uppercase tracking-[0.18em] font-bold text-white">
+          <span className="mono text-[14px] uppercase tracking-[0.18em] font-bold text-white">
             {t.dismissReveal}
           </span>
         </div>

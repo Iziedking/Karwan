@@ -38,7 +38,7 @@ export function FailureHelp({
       <button
         type="button"
         onClick={explain}
-        className="mono text-[11px] uppercase tracking-[0.1em] underline underline-offset-2 text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] transition-colors"
+        className="mono text-[14px] uppercase tracking-[0.1em] underline underline-offset-2 text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] transition-colors font-medium"
       >
         {eh.explainCta}
       </button>
@@ -46,11 +46,11 @@ export function FailureHelp({
   }
 
   if (state === 'loading') {
-    return <p className="text-[11px] text-[var(--color-ink-dim)]">{eh.explaining}</p>;
+    return <p className="text-[14px] text-[var(--color-ink-dim)] font-medium">{eh.explaining}</p>;
   }
 
   if (state === 'error') {
-    return <p className="text-[11px] text-[var(--color-ink-dim)]">{eh.failed}</p>;
+    return <p className="text-[14px] text-[var(--color-ink-dim)] font-medium">{eh.failed}</p>;
   }
 
   return (
@@ -63,16 +63,16 @@ export function FailureHelp({
       }}
     >
       <div>
-        <p className="mono text-[9px] font-bold uppercase tracking-[0.16em] text-[var(--color-ink-dim)]">
+        <p className="mono text-[13px] font-bold uppercase tracking-[0.16em] text-[var(--color-ink-dim)]">
           {eh.whatHappened}
         </p>
-        <p className="mt-1 text-[12.5px] leading-snug text-[var(--color-ink)]">{diagnosis?.summary}</p>
+        <p className="mt-1 text-[14px] leading-snug text-[var(--color-ink)]">{diagnosis?.summary}</p>
       </div>
       <div>
-        <p className="mono text-[9px] font-bold uppercase tracking-[0.16em] text-[var(--color-ink-dim)]">
+        <p className="mono text-[13px] font-bold uppercase tracking-[0.16em] text-[var(--color-ink-dim)]">
           {eh.whatToDo}
         </p>
-        <p className="mt-1 text-[12.5px] leading-snug text-[var(--color-ink)]">{diagnosis?.suggestedFix}</p>
+        <p className="mt-1 text-[14px] leading-snug text-[var(--color-ink)]">{diagnosis?.suggestedFix}</p>
       </div>
     </div>
   );

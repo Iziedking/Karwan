@@ -87,7 +87,7 @@ function LineRow({
       <div className="px-3.5 py-3">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <span
-            className="mono text-[9px] font-bold uppercase tracking-[0.12em] px-1.5 py-0.5 rounded shrink-0"
+            className="mono text-[13px] font-bold uppercase tracking-[0.12em] px-1.5 py-0.5 rounded shrink-0"
             style={{ color: tone, background: `${tone}1f` }}
           >
             {STATE_LABEL[line.state]}
@@ -98,20 +98,20 @@ function LineRow({
               financier waiting on a delivery that will never release. */}
           {isLegacy ? (
             <span
-              className="mono text-[9px] font-bold uppercase tracking-[0.12em] px-1.5 py-0.5 rounded shrink-0"
+              className="mono text-[13px] font-bold uppercase tracking-[0.12em] px-1.5 py-0.5 rounded shrink-0"
               style={{ color: '#6b6b6b', background: '#6b6b6b1f' }}
               title={pb.financierPanels.retiredContract}
             >
               RETIRED RAIL
             </span>
           ) : null}
-          <span className="mono text-[13px] font-bold tabular-nums text-[var(--lp-dark)]">
+          <span className="mono text-[14px] font-bold tabular-nums text-[var(--lp-dark)]">
             {side === 'financier'
               ? `${line.principalUsdc} → ${line.repayUsdc} USDC`
               : `${line.principalUsdc} USDC advance`}
           </span>
         </div>
-        <div className="mt-2 flex items-center gap-3 flex-wrap mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+        <div className="mt-2 flex items-center gap-3 flex-wrap mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
           <span>{side === 'financier' ? 'seller' : 'financier'} {short(counterparty)}</span>
           {proof ? (
             <a
@@ -128,7 +128,7 @@ function LineRow({
         </div>
         {isLegacy ? (
           <div className="mt-2.5 pt-2.5 border-t border-[var(--lp-border-light)] flex items-center justify-between gap-3 flex-wrap">
-            <span className="text-[11px] text-[var(--lp-text-muted)] max-w-[46ch]">
+            <span className="text-[14px] text-[var(--lp-text-muted)] max-w-[46ch]">
               This line is on the retired contract. It holds no funds and cannot move, so it will
               not settle on its own.
             </span>
@@ -136,7 +136,7 @@ function LineRow({
               type="button"
               onClick={dismiss}
               disabled={dismissing}
-              className="mono text-[10px] uppercase tracking-[0.14em] font-bold px-2.5 py-1.5 border border-[var(--lp-outline-strong)] disabled:opacity-50 shrink-0"
+              className="mono text-[13px] uppercase tracking-[0.14em] font-bold px-2.5 py-1.5 border border-[var(--lp-outline-strong)] disabled:opacity-50 shrink-0"
               style={{ borderRadius: 6 }}
             >
               {dismissing ? 'Dismissing…' : 'Dismiss'}
@@ -180,14 +180,14 @@ export function POLinesPanel() {
       }}
     >
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+        <span className="mono text-[13px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
           My PO lines
         </span>
-        <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
+        <span className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
           {total} line{total === 1 ? '' : 's'}
         </span>
       </div>
-      <p className="mt-2 text-[12px] leading-snug text-[var(--lp-text-sub)] max-w-[64ch]">
+      <p className="mt-2 text-[14px] leading-snug text-[var(--lp-text-sub)] max-w-[64ch] font-medium">
         The advance reaches the seller in the same transaction that funds the line, and the escrow
         repays you ahead of the seller when the deal settles. Every step links to its transaction
         on Arc.
@@ -195,7 +195,7 @@ export function POLinesPanel() {
 
       {lines.asFinancier.length > 0 ? (
         <div className="mt-4">
-          <p className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] mb-2">
+          <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] mb-2">
             You funded
           </p>
           <ul className="space-y-2">
@@ -208,7 +208,7 @@ export function POLinesPanel() {
 
       {lines.asSeller.length > 0 ? (
         <div className="mt-4">
-          <p className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] mb-2">
+          <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] mb-2">
             Financed to you
           </p>
           <ul className="space-y-2">

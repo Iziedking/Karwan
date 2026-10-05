@@ -156,22 +156,22 @@ export function ListingDetail({ listingId }: { listingId: string }) {
     'inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--lp-dark)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]';
 
   const action = isCancelled ? (
-    <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{ld.state.cancelledBody}</p>
+    <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{ld.state.cancelledBody}</p>
   ) : isExpired ? (
     <>
-      <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+      <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
         {listing.matchedJobId ? ld.state.expiredMatchedBody : ld.state.expiredUnmatchedBody}
       </p>
       {listing.matchedJobId ? <Link href={`/jobs/${listing.matchedJobId}`} className={`mt-4 ${primaryClass}`}>{ld.state.openMatchedCta}</Link> : null}
     </>
   ) : matched ? (
     <>
-      <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{ld.state.matchedBody}</p>
+      <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{ld.state.matchedBody}</p>
       <Link href={`/jobs/${listing.matchedJobId}`} className={`mt-4 ${primaryClass}`}>{ld.state.openMatchedCta}</Link>
     </>
   ) : viewerIsOwner ? (
     <>
-      <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{ld.state.scanningBody}</p>
+      <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{ld.state.scanningBody}</p>
       {!confirmCancel ? (
         <div className="mt-3 flex flex-wrap items-center gap-x-6">
           <button type="button" onClick={() => setShowEdit(true)} className={quietClass}>{ld.state.editCta}</button>
@@ -193,13 +193,13 @@ export function ListingDetail({ listingId }: { listingId: string }) {
               {ld.state.confirmNo}
             </button>
           </div>
-          {cancelError ? <p role="alert" className="mt-2 text-[13px] text-[var(--lp-dark)]">{cancelError}</p> : null}
+          {cancelError ? <p role="alert" className="mt-2 text-[14px] text-[var(--lp-dark)]">{cancelError}</p> : null}
         </div>
       )}
     </>
   ) : (
     <>
-      <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{ld.state.buyerBody}</p>
+      <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{ld.state.buyerBody}</p>
       <Link href={buyerOfferHref} className={`mt-4 w-full sm:w-auto ${primaryClass}`}>
         {ld.state.buyerCtaTemplate.replace('{amount}', String(listing.askingPriceUsdc))}
       </Link>
@@ -209,8 +209,8 @@ export function ListingDetail({ listingId }: { listingId: string }) {
   return (
     <main className="product-surface mx-auto w-full max-w-[760px] px-4 pb-16 pt-6 sm:px-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-[13px] text-[var(--lp-text-sub)]">{ld.pitch.sectionTag}</p>
-        <span className={`inline-flex min-h-8 items-center gap-1.5 rounded-full px-3 text-[12px] font-semibold ${pill}`}>
+        <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{ld.pitch.sectionTag}</p>
+        <span className={`inline-flex min-h-8 items-center gap-1.5 rounded-full px-3 text-[14px] font-semibold ${pill}`}>
           {isOpen ? <span aria-hidden className="size-1.5 rounded-full bg-[var(--lp-accent)] motion-safe:animate-pulse" /> : null}
           {statusLabel}
         </span>
@@ -227,7 +227,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
       >
         <PersonAvatar address={listing.sellerUser} name={sellerName} />
         <span className="min-w-0">
-          <span className="block text-[12px] text-[var(--lp-text-sub)]">{ld.pitch.sellerEyebrow}</span>
+          <span className="block text-[14px] text-[var(--lp-text-sub)] font-medium">{ld.pitch.sellerEyebrow}</span>
           <span className="block truncate text-[15px] font-semibold text-[var(--lp-dark)]">
             {sellerName}
             {sellerTag ? <span className="ms-1.5 font-normal text-[var(--lp-text-sub)]">{sellerTag}</span> : null}
@@ -237,37 +237,37 @@ export function ListingDetail({ listingId }: { listingId: string }) {
 
       <dl className="mt-6 flex flex-wrap gap-x-10 gap-y-3">
         <div>
-          <dt className="text-[13px] text-[var(--lp-text-sub)]">{ld.pitch.askingLabel}</dt>
+          <dt className="text-[14px] text-[var(--lp-text-sub)] font-medium">{ld.pitch.askingLabel}</dt>
           <dd className="mt-0.5 text-[20px] font-semibold tabular-nums text-[var(--lp-dark)]">{formatUsdc(listing.askingPriceUsdc)}</dd>
         </div>
         {listing.readyInDays ? (
           <div>
-            <dt className="text-[13px] text-[var(--lp-text-sub)]">{flow.readyIn}</dt>
+            <dt className="text-[14px] text-[var(--lp-text-sub)] font-medium">{flow.readyIn}</dt>
             <dd className="mt-0.5 text-[20px] font-semibold text-[var(--lp-dark)]">{flow.readyInRow.replace('{n}', String(listing.readyInDays))}</dd>
           </div>
         ) : null}
         {showFloor ? (
           <div>
-            <dt className="text-[13px] text-[var(--lp-text-sub)]">{ld.pitch.floorLabelTemplate.replace('{n}', String(listing.negotiationMaxDecreasePct ?? 0))}</dt>
+            <dt className="text-[14px] text-[var(--lp-text-sub)] font-medium">{ld.pitch.floorLabelTemplate.replace('{n}', String(listing.negotiationMaxDecreasePct ?? 0))}</dt>
             <dd className="mt-0.5 text-[20px] font-semibold tabular-nums text-[var(--lp-dark)]">{formatUsdc(floor!)}</dd>
           </div>
         ) : null}
       </dl>
-      {showFloor ? <p className="mt-2 text-[12px] text-[var(--lp-text-muted)]">{ld.pitch.floorNote}</p> : null}
+      {showFloor ? <p className="mt-2 text-[14px] text-[var(--lp-text-muted)]">{ld.pitch.floorNote}</p> : null}
 
       <section className="mt-6 rounded-[18px] bg-[var(--lp-card)] p-5">{action}</section>
-      <p className="mt-3 text-[12px] text-[var(--lp-text-muted)]">
+      <p className="mt-3 text-[14px] text-[var(--lp-text-muted)]">
         {ld.hero.postedTemplate.replace('{time}', relativeTime(listing.postedAt))}
         {isOpen && listing.expiresAt ? ` · ${ld.state.windowClosesTemplate.replace('{time}', relativeTime(listing.expiresAt))}` : null}
       </p>
 
       {listing.terms ? (
         <details className="group mt-8 border-t border-[var(--lp-border-light)]">
-          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between text-[14px] text-[var(--lp-text-sub)] [&::-webkit-details-marker]:hidden">
+          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between text-[14px] text-[var(--lp-text-sub)] [&::-webkit-details-marker]:hidden font-medium">
             {TERMS_COPY[locale].agreement}
             <span aria-hidden className="transition-transform group-open:rotate-180">⌄</span>
           </summary>
-          <p dir="auto" className="whitespace-pre-wrap pb-4 text-[14px] leading-6 text-[var(--lp-text-sub)]">{listing.terms}</p>
+          <p dir="auto" className="whitespace-pre-wrap pb-4 text-[14px] leading-6 text-[var(--lp-text-sub)] font-medium">{listing.terms}</p>
         </details>
       ) : null}
 
@@ -373,7 +373,7 @@ function EditListingModal({
         }}
       >
         <div className="px-6 pt-6 pb-3">
-          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+          <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
             {em.tag}
           </span>
           <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-tight">
@@ -382,12 +382,12 @@ function EditListingModal({
           </h2>
         </div>
         <div className="px-6 pb-6 space-y-4">
-          <p className="text-[13px] text-[var(--lp-text-sub)] leading-relaxed">
+          <p className="text-[14px] text-[var(--lp-text-sub)] leading-relaxed font-medium">
             {em.body}
           </p>
 
           <label className="block space-y-1.5">
-            <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+            <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
               {em.titleEyebrow}
             </span>
             <input
@@ -398,13 +398,13 @@ function EditListingModal({
               className="form-input"
               maxLength={120}
             />
-            <span className="mono text-[10px] text-[var(--lp-text-muted)]">
+            <span className="mono text-[13px] text-[var(--lp-text-muted)]">
               {title.length}/120
             </span>
           </label>
 
           <label className="block space-y-1.5">
-            <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+            <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
               {em.descriptionEyebrow}
             </span>
             <textarea
@@ -415,13 +415,13 @@ function EditListingModal({
               className="form-input form-textarea"
               maxLength={500}
             />
-            <span className="mono text-[10px] text-[var(--lp-text-muted)]">
+            <span className="mono text-[13px] text-[var(--lp-text-muted)]">
               {description.length}/500
             </span>
           </label>
 
           <label className="block space-y-1.5">
-            <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+            <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
               {em.askingPriceEyebrow}
             </span>
             <input
@@ -435,7 +435,7 @@ function EditListingModal({
               className="form-input form-input-num"
             />
             {priceChanged && (
-              <span className="mono text-[10px] text-[var(--lp-text-sub)]">
+              <span className="mono text-[13px] text-[var(--lp-text-sub)]">
                 {em.priceWasTemplate.replace('{n}', String(initialAskingPriceUsdc))}
               </span>
             )}
@@ -443,7 +443,7 @@ function EditListingModal({
 
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
-              <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+              <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
                 {em.floorEyebrow}
               </span>
               <span className="font-sans text-[16px] font-extrabold tabular-nums tracking-[-0.02em] text-[var(--lp-dark)]">
@@ -461,7 +461,7 @@ function EditListingModal({
               className="w-full accent-[var(--lp-accent)]"
               aria-label={em.floorAria}
             />
-            <p className="mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)] leading-snug">
+            <p className="mono text-[13px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)] leading-snug">
               {em.floorFootTemplate.replace(
                 '{amount}',
                 typeof price === 'number' ? (price * (1 - floorPct / 100)).toFixed(2) : '0.00',
@@ -470,7 +470,7 @@ function EditListingModal({
           </div>
 
           <label className="block space-y-1.5">
-            <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+            <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
               {em.windowDaysEyebrow}
             </span>
             <input
@@ -483,13 +483,13 @@ function EditListingModal({
               disabled={busy}
               className="form-input form-input-num"
             />
-            <span className="mono text-[10px] text-[var(--lp-text-muted)] leading-snug">
+            <span className="mono text-[13px] text-[var(--lp-text-muted)] leading-snug">
               {ttlChanged ? em.windowReanchored : em.windowDefault}
             </span>
           </label>
 
           {error && (
-            <p className="mono text-[11px] text-[#b03d3a]">{error}</p>
+            <p className="mono text-[14px] text-[#b03d3a]">{error}</p>
           )}
 
           <div className="flex items-center gap-3 pt-2">
@@ -517,7 +517,7 @@ function PriceRow({
 }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
-      <span className="text-[13px] text-[var(--lp-text-sub)]">{label}</span>
+      <span className="text-[14px] text-[var(--lp-text-sub)] font-medium">{label}</span>
       <span
         className={`mono tabular-nums ${
           strong

@@ -119,14 +119,14 @@ export function SellerDesk() {
             <section aria-labelledby="bidding" className="space-y-3">
               <h2 id="bidding" className="text-[17px] font-semibold text-[var(--lp-dark)]">{t.seller.bidding}</h2>
               {desk.data.bidding.length === 0 ? (
-                <p className="text-[14px] text-[var(--lp-text-sub)]">{t.seller.biddingEmpty}</p>
+                <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{t.seller.biddingEmpty}</p>
               ) : (
                 <ul className="divide-y divide-[var(--lp-border-light)]">
                   {desk.data.bidding.map((b) => (
                     <li key={b.jobId} className="flex min-h-14 flex-wrap items-center justify-between gap-3 py-2">
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[15px] text-[var(--lp-dark)]">{b.title ?? t.request.aRequest}</span>
-                        <span className="block text-[13px] text-[var(--lp-text-sub)]">{t.seller.states[b.state]}</span>
+                        <span className="block text-[14px] text-[var(--lp-text-sub)] font-medium">{t.seller.states[b.state]}</span>
                       </span>
                       <span className="flex items-center gap-3">
                         <span className="text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">{b.priceUsdc} USDC</span>
@@ -147,14 +147,14 @@ export function SellerDesk() {
             <section aria-labelledby="offers" className="space-y-3">
               <h2 id="offers" className="text-[17px] font-semibold text-[var(--lp-dark)]">{t.seller.offers}</h2>
               {desk.data.offers.length === 0 ? (
-                <p className="text-[14px] text-[var(--lp-text-sub)]">{t.seller.offersEmpty}</p>
+                <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{t.seller.offersEmpty}</p>
               ) : (
                 <ul className="divide-y divide-[var(--lp-border-light)]">
                   {desk.data.offers.map((o) => (
                     <li key={o.id} className="flex min-h-14 items-center justify-between gap-3 py-2">
                       <span className="min-w-0">
                         <span className="block truncate text-[15px] text-[var(--lp-dark)]">{o.title}</span>
-                        <span className="block text-[13px] text-[var(--lp-text-sub)]">{fill(t.seller.daysLeft, { days: o.daysLeft })}</span>
+                        <span className="block text-[14px] text-[var(--lp-text-sub)] font-medium">{fill(t.seller.daysLeft, { days: o.daysLeft })}</span>
                       </span>
                       <span className="shrink-0 text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">{o.priceUsdc} USDC</span>
                     </li>

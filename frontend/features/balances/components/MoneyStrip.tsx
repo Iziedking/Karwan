@@ -178,7 +178,7 @@ export function MoneyStrip({ embedded = false }: { embedded?: boolean }) {
       <div className="relative overflow-hidden rounded-[18px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] p-4 sm:rounded-[22px] sm:p-6">
         <div className="flex flex-wrap items-end justify-between gap-3 fade-up">
           <SectionTag>{ms.eyebrow}</SectionTag>
-          <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">USDC</span>
+          <span className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">USDC</span>
         </div>
         <div data-guide="home-money" className="mt-4 fade-up fade-up-1 sm:mt-5">
           {/* Mobile: one rotating card so the phone view stays uncluttered. */}

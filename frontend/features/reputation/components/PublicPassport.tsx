@@ -41,7 +41,7 @@ export function PublicPassport({ address }: { address: string }) {
             <li key={label} className="py-3 text-[15px] text-[var(--lp-dark)]">{label}</li>
           ))}
         </ul>
-        {since ? <p className="mt-4 text-[14px] text-[var(--lp-text-sub)]">{t.passport.since.replace('{date}', since)}</p> : null}
+        {since ? <p className="mt-4 text-[14px] text-[var(--lp-text-sub)] font-medium">{t.passport.since.replace('{date}', since)}</p> : null}
       </section>
       <div className="mt-8 border-t border-[var(--lp-border-light)] pt-6">
         <Link
@@ -50,7 +50,7 @@ export function PublicPassport({ address }: { address: string }) {
         >
           {sr.startDeal}
         </Link>
-        <p className="mt-4 text-[13px] text-[var(--lp-text-sub)]">{sr.noNumbers}</p>
+        <p className="mt-4 text-[14px] text-[var(--lp-text-sub)] font-medium">{sr.noNumbers}</p>
       </div>
     </article>
   );

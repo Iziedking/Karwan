@@ -167,10 +167,10 @@ export function SellerOfferBanner({
       <div className="mx-auto w-full max-w-[760px] border border-[var(--lp-border-light)] bg-white/45 px-5 py-4 sm:px-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="mono text-[9px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">{pb.sellerOffer.privatePosition}</p>
+            <p className="mono text-[13px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">{pb.sellerOffer.privatePosition}</p>
             <p className="mt-1 text-[14px] text-[var(--lp-dark)]">{pb.sellerOffer.trackRepayment}</p>
           </div>
-          <Link href={`/financier/${kind}/${positionId}`} className="mono text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lp-dark)] underline underline-offset-4">
+          <Link href={`/financier/${kind}/${positionId}`} className="mono text-[13px] font-bold uppercase tracking-[0.14em] text-[var(--lp-dark)] underline underline-offset-4">
             Open position →
           </Link>
         </div>
@@ -255,13 +255,13 @@ export function SellerOfferBanner({
         }}
       >
         <div className="min-w-0">
-          <p className="mono text-[10px] uppercase tracking-[0.18em] font-bold text-[var(--lp-dark)]">
+          <p className="mono text-[13px] uppercase tracking-[0.18em] font-bold text-[var(--lp-dark)]">
             Early payout available
           </p>
           <p className="mt-1.5 text-[14px] text-[var(--lp-dark)] leading-snug">
             Settle now instead of waiting for buyer release.
           </p>
-          <p className="mt-1 mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] tabular-nums">
+          <p className="mt-1 mono text-[14px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] tabular-nums">
             {offers.length} {offers.length === 1 ? 'offer' : 'offers'} · best:{' '}
             <span className="text-[var(--lp-dark)] font-bold">
               {formatUsdc(best.offeredAdvanceUsdc, { withSuffix: false })} USDC
@@ -272,7 +272,7 @@ export function SellerOfferBanner({
         <button
           type="button"
           onClick={() => setModalOpen(true)}
-          className="mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-2 bg-[var(--lp-dark)] text-[var(--lp-bg)]"
+          className="mono text-[14px] uppercase tracking-[0.14em] font-bold px-3 py-2 bg-[var(--lp-dark)] text-[var(--lp-bg)]"
           style={{
             borderRadius: 6,
           }}
@@ -446,7 +446,7 @@ function OffersModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-5 py-4 border-b border-[var(--lp-border-light)] flex items-center justify-between gap-3">
-          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+          <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
             Offers
           </span>
           <button
@@ -460,22 +460,22 @@ function OffersModal({
         </div>
         <div className="p-5 md:p-6 space-y-3">
           <div>
-            <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+            <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
               FACE VALUE
             </p>
             <p className="mt-1 serif text-[24px] tabular-nums leading-none tracking-[-0.02em] text-[var(--lp-dark)]">
               {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}{' '}
-              <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+              <span className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
                 USDC
               </span>
             </p>
           </div>
-          <p className="text-[12px] text-[var(--lp-text-sub)] leading-snug">
+          <p className="text-[14px] text-[var(--lp-text-sub)] leading-snug font-medium">
             Accept an offer to take immediate payout. Settlement on buyer release
             routes the agreed amount to the financier.
           </p>
           {qual ? (
-            <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-snug">
+            <p className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-snug">
               Your tier{' '}
               <span className="font-bold text-[var(--lp-dark)]">{qual.tier.toUpperCase()}</span>
               {' helps financiers assess the offer.'}
@@ -498,7 +498,7 @@ function OffersModal({
           </ul>
           {error ? (
             <div className="space-y-1.5">
-              <p className="text-[12px] leading-snug text-[var(--lp-critical)]">{error}</p>
+              <p className="text-[14px] leading-snug text-[var(--lp-critical)]">{error}</p>
             </div>
           ) : null}
         </div>
@@ -551,25 +551,25 @@ function OfferRow({
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="min-w-0">
           {isBest ? (
-            <span className="inline-block mono text-[9px] uppercase tracking-[0.18em] font-bold px-1.5 py-0.5 mb-2 bg-[var(--lp-accent)] text-[var(--accent-ink)]">
+            <span className="inline-block mono text-[13px] uppercase tracking-[0.18em] font-bold px-1.5 py-0.5 mb-2 bg-[var(--lp-accent)] text-[var(--accent-ink)]">
               BEST
             </span>
           ) : null}
           <p className="serif text-[22px] tabular-nums leading-none tracking-[-0.02em] text-[var(--lp-dark)]">
             {advance.toFixed(2)}{' '}
-            <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+            <span className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
               USDC
             </span>
           </p>
-          <p className="mt-2 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] tabular-nums">
+          <p className="mt-2 mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] tabular-nums">
             {discountPct}% discount · +{spread} USDC spread
           </p>
-          <p className="mt-0.5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] tabular-nums">
+          <p className="mt-0.5 mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] tabular-nums">
             Expires in {expiresInHours}h
           </p>
           {requiredStake > 0 ? (
             <p
-              className="mt-0.5 mono text-[10px] uppercase tracking-[0.14em] tabular-nums text-[var(--lp-text-muted)]"
+              className="mt-0.5 mono text-[13px] uppercase tracking-[0.14em] tabular-nums text-[var(--lp-text-muted)]"
             >
               Suggested stake signal: {requiredStake.toFixed(2)} USDC
               {freeStake != null ? ` · seller has ${freeStake.toFixed(2)}` : ''}
@@ -578,7 +578,7 @@ function OfferRow({
           <Link
             href={`/credit-passport/${offer.financier}`}
             target="_blank"
-            className="inline-block mt-2 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+            className="inline-block mt-2 mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
           >
             Financier passport ↗
           </Link>
@@ -589,7 +589,7 @@ function OfferRow({
             onClick={() => onAccept(offer)}
             disabled={anyAccepting}
             className={cn(
-              'mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-2 disabled:opacity-60',
+              'mono text-[14px] uppercase tracking-[0.14em] font-bold px-3 py-2 disabled:opacity-60',
               isBest
                 ? 'bg-[var(--lp-dark)] text-[var(--lp-bg)]'
                 : 'bg-transparent text-[var(--lp-dark)] border border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
@@ -647,12 +647,12 @@ function FactoringRequestBand({
       }}
     >
       <div className="min-w-0">
-        <p className="mono text-[10px] uppercase tracking-[0.18em] font-bold text-[var(--lp-dark)]">
+        <p className="mono text-[13px] uppercase tracking-[0.18em] font-bold text-[var(--lp-dark)]">
           {tag}
         </p>
         <p className="mt-1.5 text-[14px] text-[var(--lp-dark)] leading-snug">{line}</p>
         {error ? (
-          <p className="mt-1 mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-critical)]">
+          <p className="mt-1 mono text-[14px] uppercase tracking-[0.14em] text-[var(--lp-critical)]">
             {error}
           </p>
         ) : null}
@@ -662,7 +662,7 @@ function FactoringRequestBand({
         onClick={onClick}
         disabled={busy}
         className={cn(
-          'mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-2 disabled:opacity-50',
+          'mono text-[14px] uppercase tracking-[0.14em] font-bold px-3 py-2 disabled:opacity-50',
           waiting
             ? 'bg-transparent text-[var(--lp-dark)] border border-[var(--lp-outline-strong)]'
             : 'bg-[var(--lp-dark)] text-[var(--lp-bg)]',

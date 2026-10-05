@@ -100,7 +100,7 @@ function Requester({ recipient }: { recipient: string }) {
       )}
       <div className="min-w-0">
         <p className="truncate text-[16px] font-semibold text-[var(--lp-dark)]">{profile?.displayName?.trim() || name}</p>
-        <p className="truncate text-[13px] text-[var(--lp-text-sub)]">
+        <p className="truncate text-[14px] text-[var(--lp-text-sub)] font-medium">
           {[profile?.handle ? `@${profile.handle}` : null, recordLine]
             .filter(Boolean)
             .join(' · ')}
@@ -124,7 +124,7 @@ function OwnRequest({ request }: { request: DepositRequestPublic }) {
   const url = typeof window !== 'undefined' ? window.location.href : '';
   return (
     <section className="space-y-6">
-      <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{copy.tag}</p>
+      <p className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{copy.tag}</p>
       <Amount value={request.amountUsdc} />
       {request.purpose ? <p className="text-[15px] text-[var(--lp-dark)]">{fill(copy.forTemplate, { purpose: request.purpose })}</p> : null}
       <p className="text-[15px] text-[var(--lp-text-sub)]">{request.status === 'matched' ? copy.paidAlready : request.status === 'expired' ? copy.expired : request.status === 'cancelled' ? copy.cancelled : copy.yours}</p>
@@ -284,7 +284,7 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
           verify={arcHash ? { href: ARC_CCTP.explorerTx(arcHash), title: receipt.receiptVerifyTitle, body: receipt.receiptVerifyBody, qrLabel: receipt.receiptProof } : undefined}
           footnote={ARC_NETWORK === 'testnet' ? receipt.receiptTestnet : undefined}
         />
-        <p className="text-center text-[13px] text-[var(--lp-text-sub)]">{copy.bothSee}</p>
+        <p className="text-center text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.bothSee}</p>
         <button type="button" onClick={() => router.push('/')} className={PRIMARY}>{copy.done}</button>
       </section>
     );
@@ -303,7 +303,7 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
   if (followFrom !== null) {
     return (
       <section className="space-y-6">
-        <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{fill(copy.paying, { name })}</p>
+        <p className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{fill(copy.paying, { name })}</p>
         <Amount value={request.amountUsdc} />
         <TransferProgress
           direction="in"
@@ -326,7 +326,7 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
 
   return (
     <section>
-      <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{copy.tag}</p>
+      <p className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{copy.tag}</p>
       <div className="mt-5">
         <Requester recipient={request.recipientAddress} />
       </div>
@@ -337,13 +337,13 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
 
       {viaAccount ? (
         arcBalance !== null ? (
-          <p className="mt-8 text-[13px] text-[var(--lp-text-sub)]">
+          <p className="mt-8 text-[14px] text-[var(--lp-text-sub)] font-medium">
             {fill(copy.accountBalance, { amount: formatAmount(arcBalance, locale) })}
           </p>
         ) : null
       ) : (
       <>
-      <p className="mt-8 text-[13px] text-[var(--lp-text-sub)]">{copy.payFrom}</p>
+      <p className="mt-8 text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.payFrom}</p>
       <div role="radiogroup" aria-label={copy.payFrom} className="mt-2 flex flex-wrap gap-2">
         {(['arc', ...others] as Source[]).map((key) => (
           <button
@@ -364,7 +364,7 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
         ))}
       </div>
       {owner && balance !== null ? (
-        <p className={cn('mt-3 text-[13px]', short ? 'text-[var(--color-critical)]' : 'text-[var(--lp-text-sub)]')}>
+        <p className={cn('mt-3 text-[14px]', short ? 'text-[var(--color-critical)]' : 'text-[var(--lp-text-sub)]')}>
           {short ? fill(copy.notEnough, { chain: chainName(source) }) : fill(copy.walletOn, { chain: chainName(source), amount: formatAmount(balance, locale) })}
         </p>
       ) : null}
@@ -378,7 +378,7 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
           onLanded={refetchBalance}
         />
       ) : null}
-      {declined ? <p role="status" className="mt-3 text-[13px] text-[var(--lp-text-sub)]">{copy.connect}</p> : null}
+      {declined ? <p role="status" className="mt-3 text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.connect}</p> : null}
 
       <button type="button" onClick={() => void pay()} disabled={!!owner && (short || amount <= 0)} className={cn(PRIMARY, 'mt-10')}>
         {owner ? fill(copy.payCta, { amount: request.amountUsdc ?? '' }) : copy.connect}
@@ -387,13 +387,13 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
         <button
           type="button"
           onClick={() => setSigningIn(true)}
-          className="mx-auto mt-2 flex min-h-11 items-center px-3 text-[14px] text-[var(--lp-text-sub)] underline-offset-4 hover:text-[var(--lp-dark)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+          className="mx-auto mt-2 flex min-h-11 items-center px-3 text-[14px] text-[var(--lp-text-sub)] underline-offset-4 hover:text-[var(--lp-dark)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] font-medium"
         >
           {copy.useEmail}
         </button>
       ) : null}
       <LoginModal open={signingIn} onClose={() => setSigningIn(false)} postAuthHref={null} />
-      <p className="mt-3 text-center text-[13px] text-[var(--lp-text-sub)]">
+      <p className="mt-3 text-center text-[14px] text-[var(--lp-text-sub)] font-medium">
         {[source === 'arc' ? copy.arrivesArc : copy.arrivesOther, fill(copy.expires, { date: new Date(request.expiresAt).toLocaleDateString(locale, { day: 'numeric', month: 'short' }) })].join(' · ')}
       </p>
     </section>

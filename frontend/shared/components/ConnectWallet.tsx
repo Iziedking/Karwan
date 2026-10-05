@@ -30,10 +30,10 @@ function NavBalance({ alwaysVisible = false }: { alwaysVisible?: boolean }) {
   const human = data ? formatUnits(data.value, data.decimals) : null;
   return (
     <span className={alwaysVisible ? 'inline-flex items-center gap-1.5' : 'hidden lg:inline-flex items-center gap-1.5'}>
-      <span className="font-sans text-[13px] font-extrabold tabular-nums tracking-[-0.01em] text-[var(--color-ink)]">
+      <span className="font-sans text-[14px] font-extrabold tabular-nums tracking-[-0.01em] text-[var(--color-ink)]">
         {hidden ? '••••' : isLoading || !human ? '-' : formatUsdc(human, { withSuffix: false })}
       </span>
-      <span className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">
+      <span className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">
         USDC
       </span>
       <button
@@ -164,7 +164,7 @@ export function ConnectWalletButton({
         className="inline-flex items-center px-3.5 py-1.5"
         style={{ opacity: 0, pointerEvents: 'none' }}
       >
-        <span className="mono text-[11px]">…</span>
+        <span className="mono text-[14px]">…</span>
       </div>
     );
   }
@@ -292,7 +292,7 @@ export function ConnectWalletButton({
                       onClick={openChainModal}
                       type="button"
                       suppressHydrationWarning
-                      className="inline-flex min-h-11 items-center gap-1.5 px-3.5 py-[7px] rounded-full mono text-[10.5px] uppercase tracking-[0.10em] font-bold transition-colors hover:bg-[rgba(176,61,58,0.06)]"
+                      className="inline-flex min-h-11 items-center gap-1.5 px-3.5 py-[7px] rounded-full mono text-[13px] uppercase tracking-[0.10em] font-bold transition-colors hover:bg-[rgba(176,61,58,0.06)]"
                       style={{
                         background: 'var(--color-surface)',
                         color: '#b03d3a',
@@ -312,7 +312,7 @@ export function ConnectWalletButton({
                       type="button"
                       suppressHydrationWarning
                       aria-label={t.networkTooltip.replace('{chain}', chain.name ?? t.fallbackChain)}
-                      className="inline-flex min-h-11 items-center gap-1.5 px-3.5 py-[7px] rounded-full mono text-[10.5px] uppercase tracking-[0.10em] font-bold transition-colors hover:bg-[rgba(201,96,48,0.08)] disabled:opacity-60"
+                      className="inline-flex min-h-11 items-center gap-1.5 px-3.5 py-[7px] rounded-full mono text-[13px] uppercase tracking-[0.10em] font-bold transition-colors hover:bg-[rgba(201,96,48,0.08)] disabled:opacity-60"
                       style={{
                         background: 'var(--color-surface)',
                         color: '#c96030',

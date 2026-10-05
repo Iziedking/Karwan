@@ -16,4 +16,4 @@ export function useMediaQuery(query: string): boolean {
 }
 
 /// The deal page puts the conversation beside the deal from this width up.
-export const DESKTOP_QUERY = '(min-width: 1024px)';
+export const DESKTOP_QUERY = '(min-width: 1200px)';

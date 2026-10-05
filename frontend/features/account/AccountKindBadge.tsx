@@ -71,7 +71,7 @@ export function AccountKindBadge({
       // cards at sign-up.
       aria-label={title}
       role="img"
-      className="inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] whitespace-nowrap px-2 py-1 border"
+      className="inline-flex items-center gap-1.5 mono text-[13px] uppercase tracking-[0.14em] whitespace-nowrap px-2 py-1 border"
       style={{
         borderColor: tone === 'dark' ? 'var(--lp-workspace-border)' : 'var(--color-line)',
         color: tone === 'dark' ? 'var(--lp-workspace-muted)' : 'var(--lp-text-muted)',

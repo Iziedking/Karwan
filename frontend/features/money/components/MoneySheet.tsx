@@ -237,7 +237,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
 
       {move === 'send' ? (
         <div className="mt-6">
-          <label htmlFor={recipientId} className="text-[13px] font-medium text-[var(--lp-text-sub)]">{t.sheet.recipientLabel}</label>
+          <label htmlFor={recipientId} className="text-[14px] font-medium text-[var(--lp-text-sub)]">{t.sheet.recipientLabel}</label>
           <input
             id={recipientId}
             value={recipient}
@@ -284,7 +284,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
               type="button"
               onClick={() => setToOtherAgent((value) => !value)}
               disabled={state.kind !== 'editing'}
-              className="col-start-3 justify-self-end min-h-11 text-[13px] font-semibold text-[var(--lp-text-sub)] underline underline-offset-4 hover:text-[var(--lp-dark)] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              className="col-start-3 justify-self-end min-h-11 text-[14px] font-semibold text-[var(--lp-text-sub)] underline underline-offset-4 hover:text-[var(--lp-dark)] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
             >
               {fill(t.sheet.switchTo, { name: withdrawToAgent ? t.sheet.yourBalance.toLowerCase() : otherAgentName.toLowerCase() })}
             </button>
@@ -293,7 +293,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
       )}
 
       <div className="mt-6">
-        <label htmlFor={amountId} className="text-[13px] font-medium text-[var(--lp-text-sub)]">{t.sheet.amountLabel}</label>
+        <label htmlFor={amountId} className="text-[14px] font-medium text-[var(--lp-text-sub)]">{t.sheet.amountLabel}</label>
         <div className="mt-2 flex items-baseline gap-2 border-b-2 border-[var(--lp-dark)] pb-2 focus-within:border-[var(--accent)]">
           <input
             id={amountId}
@@ -310,7 +310,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
           <span className="text-[18px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
         </div>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-[13px] tabular-nums text-[var(--lp-text-sub)]">
+          <p className="text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">
             {available === null ? ' ' : fill(t.sheet.available, { amount: formatBalance(available, locale) })}
           </p>
           <div className="flex gap-2">
@@ -331,7 +331,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
         </div>
       </div>
 
-      <p className="mt-4 text-[13px] text-[var(--lp-text-sub)]">{t.sheet.timeSeconds}</p>
+      <p className="mt-4 text-[14px] text-[var(--lp-text-sub)] font-medium">{t.sheet.timeSeconds}</p>
 
       <AnimatePresence mode="wait" initial={false}>
         {state.kind === 'editing' ? (
@@ -363,7 +363,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
               <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--accent)] text-[15px] text-[var(--accent-ink)]">✓</span>
               {fill(doneLine, { amount: formatAmount(moved, locale), tag: paidTag?.tag ?? '', name: otherAgentName.toLowerCase() })}
             </p>
-            <dl className="space-y-1 text-[14px] tabular-nums text-[var(--lp-text-sub)]">
+            <dl className="space-y-1 text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">
               <div className="flex justify-between gap-3">
                 <dt>{t.sheet.yourBalance}</dt>
                 <dd>{balances.balance === null ? '' : `${formatBalance(balances.balance, locale)} USDC`}</dd>
@@ -376,7 +376,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
               ) : null}
             </dl>
             {state.reference ? (
-              <p className="text-[13px] text-[var(--lp-text-sub)]">
+              <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">
                 {t.sheet.reference} <span className="mono tabular-nums text-[var(--lp-dark)]">{state.reference}</span>
               </p>
             ) : null}
@@ -392,7 +392,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
                   <li
                     key={step}
                     aria-current={current ? 'step' : undefined}
-                    className={`border-t-2 pt-2 text-[13px] ${done || current ? 'font-semibold text-[var(--lp-dark)]' : 'text-[var(--lp-text-sub)]'}`}
+                    className={`border-t-2 pt-2 text-[14px] ${done || current ? 'font-semibold text-[var(--lp-dark)]' : 'text-[var(--lp-text-sub)]'}`}
                     style={{ borderColor: done ? 'var(--lp-dark)' : current ? 'var(--accent)' : 'var(--lp-border-light)' }}
                   >
                     {stepLabel[step]}
@@ -459,9 +459,9 @@ function Place({ label, name, amount, locale, end = false }: {
 }) {
   return (
     <div className={end ? 'min-w-0 text-end' : 'min-w-0'}>
-      <p className="text-[13px] text-[var(--lp-text-sub)]">{label}</p>
+      <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{label}</p>
       <p className="truncate text-[15px] font-semibold text-[var(--lp-dark)]">{name}</p>
-      <p className="text-[13px] tabular-nums text-[var(--lp-text-sub)]">{amount === null ? ' ' : `${formatBalance(amount, locale)} USDC`}</p>
+      <p className="text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">{amount === null ? ' ' : `${formatBalance(amount, locale)} USDC`}</p>
     </div>
   );
 }
@@ -469,13 +469,13 @@ function Place({ label, name, amount, locale, end = false }: {
 /// Who a tag pays: their name and tag, with the address shortened so the person
 /// can still compare it with one they were given.
 function TagLine({ lookup, copy }: { lookup: TagLookup; copy: MoneyCopy['sheet'] }) {
-  if (lookup.state === 'checking') return <p className="mt-2 text-[13px] text-[var(--lp-text-sub)]">{copy.recipientChecking}</p>;
-  if (lookup.state === 'error') return <p className="mt-2 text-[13px] text-[var(--color-critical)]">{copy.tagError}</p>;
+  if (lookup.state === 'checking') return <p className="mt-2 text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.recipientChecking}</p>;
+  if (lookup.state === 'error') return <p className="mt-2 text-[14px] text-[var(--color-critical)]">{copy.tagError}</p>;
   const result = lookup.result;
-  if (!result.found) return <p className="mt-2 text-[13px] text-[var(--color-critical)]">{fill(copy.tagNotFound, { tag: result.tag })}</p>;
-  if (result.self) return <p className="mt-2 text-[13px] text-[var(--color-critical)]">{copy.tagSelf}</p>;
+  if (!result.found) return <p className="mt-2 text-[14px] text-[var(--color-critical)]">{fill(copy.tagNotFound, { tag: result.tag })}</p>;
+  if (result.self) return <p className="mt-2 text-[14px] text-[var(--color-critical)]">{copy.tagSelf}</p>;
   return (
-    <p className="mt-2 flex flex-wrap items-baseline gap-x-2 text-[13px]">
+    <p className="mt-2 flex flex-wrap items-baseline gap-x-2 text-[14px]">
       <span className="font-semibold text-[var(--lp-dark)]">{fill(copy.tagFound, { name: result.displayName, tag: result.tag })}</span>
       <span dir="ltr" className="tabular-nums text-[var(--lp-text-sub)]">{`${result.address.slice(0, 6)}…${result.address.slice(-4)}`}</span>
     </p>
@@ -489,10 +489,10 @@ function RecipientLine({ status, kind, grouped, copy }: {
   copy: MoneyCopy['sheet'];
 }) {
   if (status === 'missing') return null;
-  if (status === 'invalid') return <p className="mt-2 text-[13px] text-[var(--color-critical)]">{copy.recipientInvalid}</p>;
-  if (status === 'checking') return <p className="mt-2 text-[13px] text-[var(--lp-text-sub)]">{copy.recipientChecking}</p>;
+  if (status === 'invalid') return <p className="mt-2 text-[14px] text-[var(--color-critical)]">{copy.recipientInvalid}</p>;
+  if (status === 'checking') return <p className="mt-2 text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.recipientChecking}</p>;
   return (
-    <div className="mt-2 space-y-1 text-[13px]">
+    <div className="mt-2 space-y-1 text-[14px]">
       {grouped ? (
         <p className="text-[var(--lp-dark)]">
           <AddressText template={copy.recipientCheck} address={grouped} />

@@ -66,7 +66,7 @@ export function CreatePayLink() {
       ) : (
         <form onSubmit={(event) => void create(event)} className="space-y-3" aria-busy={busy}>
           <label className={FIELD}>
-            <span className="text-[13px] text-[var(--lp-text-sub)]">{copy.amount}</span>
+            <span className="text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.amount}</span>
             <span className="mt-1 flex items-baseline gap-2">
               <input
                 inputMode="decimal"
@@ -80,7 +80,7 @@ export function CreatePayLink() {
             </span>
           </label>
           <label className={FIELD}>
-            <span className="text-[13px] text-[var(--lp-text-sub)]">{copy.forLabel}</span>
+            <span className="text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.forLabel}</span>
             <input
               value={purpose}
               maxLength={120}
@@ -90,10 +90,10 @@ export function CreatePayLink() {
             />
           </label>
           <div className={FIELD}>
-            <span className="text-[13px] text-[var(--lp-text-sub)]">{copy.paidTo}</span>
+            <span className="text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.paidTo}</span>
             <p className="mt-1 text-[17px] text-[var(--lp-dark)]">{me ? `${copy.yourAccount} · ${me}` : copy.yourAccount}</p>
           </div>
-          <p className="px-1 pt-1 text-[13px] text-[var(--lp-text-sub)]">{copy.lasts}</p>
+          <p className="px-1 pt-1 text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.lasts}</p>
           {error ? <p role="alert" className="px-1 text-[14px] text-[var(--color-critical)]">{copy.error}</p> : null}
           <div className="pt-3">
             <button type="submit" disabled={!valid || busy} className={PRIMARY}>

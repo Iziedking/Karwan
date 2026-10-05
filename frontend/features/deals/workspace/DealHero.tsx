@@ -118,9 +118,9 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
         <p className="text-[15px] font-semibold text-[var(--lp-dark)]">{paused.title}</p>
         <p className="text-[14px] leading-relaxed text-[var(--lp-dark)]">{reason}</p>
         {saw ? (
-          <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]"><span className="font-semibold text-[var(--lp-dark)]">{paused.saw}:</span> <span dir="auto">{saw}</span></p>
+          <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium"><span className="font-semibold text-[var(--lp-dark)]">{paused.saw}:</span> <span dir="auto">{saw}</span></p>
         ) : null}
-        <p className="text-[13px] text-[var(--lp-text-sub)]">{paused.stays}</p>
+        <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{paused.stays}</p>
       </div>
     );
   } else if (check === 'checking') {
@@ -132,7 +132,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
         </span>
         <span className="space-y-1">
           <span className="block text-[15px] font-semibold text-[var(--lp-dark)]">{live.checking}</span>
-          <span className="block text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{live.checkingBody}</span>
+          <span className="block text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{live.checkingBody}</span>
         </span>
       </div>
     );
@@ -149,7 +149,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
         </span>
         <span className="space-y-1">
           <span className="block text-[15px] font-semibold text-[var(--lp-dark)]">{passed ? live.passed : live.unverified}</span>
-          <span className="block text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+          <span className="block text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
             {viewerIsBuyer
               ? passed ? live.passedBuyer : live.unverifiedBuyer
               : fill(passed ? live.passedSeller : live.unverifiedSeller, { name })}{' '}
@@ -167,9 +167,6 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
     );
   } else if (view.stage === 'awaiting-delivery' && deal.extensionRequest && !viewerIsBuyer) {
     moment = <p className="text-[15px] text-[var(--lp-dark)]">{fill(s.moreTimeSentTemplate, { name })}</p>;
-  } else if (view.stage === 'awaiting-delivery' && deal.deadlineUnix) {
-    const date = formatDealDate(deal.deadlineUnix * 1000, locale);
-    moment = <p className="text-[15px] text-[var(--lp-dark)]">{viewerIsBuyer ? fill(s.buyerDueTemplate, { name, date }) : fill(s.sellerDueTemplate, { date })}</p>;
   } else if ((view.stage === 'awaiting-first-release' || view.stage === 'awaiting-final-release') && viewerIsBuyer && deal.delivered) {
     const proof = deal.deliveryProof?.trim();
     moment = (
@@ -189,7 +186,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
           <PersonAvatar address={counterparty} name={name} />
           <span className="min-w-0">
             <span className="block truncate text-[16px] font-semibold text-[var(--lp-dark)]">{name}</span>
-            {facts ? <span className="block truncate text-[13px] text-[var(--lp-text-sub)]">{facts}</span> : null}
+            {facts ? <span className="block truncate text-[14px] text-[var(--lp-text-sub)] font-medium">{facts}</span> : null}
           </span>
         </button>
         {address && !desktop ? (
@@ -213,8 +210,8 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
           {copy.money[LINE_KEY[view.money.line]]}
         </p>
         <h1 id="deal-amount" className="mt-3 flex items-baseline gap-2 tabular-nums">
-          <span className="text-[56px] font-semibold leading-none tracking-[-0.04em] text-[var(--lp-dark)] sm:text-[72px]">{formatUsdcAmount(deal.dealAmountUsdc, locale)}</span>
-          <span className="text-[18px] font-medium text-[var(--lp-text-sub)]">USDC</span>
+          <span className="text-[56px] font-bold leading-none tracking-[-0.035em] text-[var(--lp-dark)] sm:text-[72px]">{formatUsdcAmount(deal.dealAmountUsdc, locale)}</span>
+          <span className="text-[18px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
         </h1>
         {moment ? <div className="mt-3 max-w-[52ch]">{moment}</div> : null}
         <DealTimeline
@@ -230,7 +227,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
               <Icon name="check" size={20} className="text-[var(--color-positive)]" />
               {dl.completeTitle}
             </p>
-            <p className="mt-1.5 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{dl.completeBody}</p>
+            <p className="mt-1.5 text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{dl.completeBody}</p>
           </div>
         ) : null}
       </section>
@@ -262,7 +259,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
             {fill(dl.again, { name })}
           </a>
         ) : null}
-        {automatic ? <p className="text-center text-[13px] text-[var(--lp-text-sub)]">{automatic}</p> : null}
+        {automatic ? <p className="text-center text-[14px] text-[var(--lp-text-sub)] font-medium">{automatic}</p> : null}
       </div>
 
       {address && !desktop ? <DealLatest jobId={deal.jobId} caller={address} name={name} onOpen={() => setPanel('messages')} /> : null}

@@ -311,7 +311,7 @@ export function AssistantWidget() {
           {unread && (
             <span
               aria-label={a11y.newReply}
-              className="absolute -top-1 -end-1 inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full bg-[var(--lp-critical)] text-white text-[9px] font-bold"
+              className="absolute -top-1 -end-1 inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full bg-[var(--lp-critical)] text-white text-[13px] font-bold"
             >
               1
             </span>
@@ -348,7 +348,7 @@ export function AssistantWidget() {
               <img src="/brand/karwan-mark-lime.svg" alt="" aria-hidden width={30} height={30} className="size-[30px] shrink-0" />
               <div className="min-w-0">
                 <p className="text-[16px] font-semibold text-[var(--lp-dark)]">{t.title}</p>
-                <p className="mt-0.5 truncate text-[12.5px] text-[var(--lp-text-sub)]">{t.subtitle}</p>
+                <p className="mt-0.5 truncate text-[14px] text-[var(--lp-text-sub)] font-medium">{t.subtitle}</p>
               </div>
             </div>
             <div className="flex items-center gap-1 shrink-0">
@@ -392,7 +392,7 @@ export function AssistantWidget() {
                     type="button"
                     onClick={() => void send(question)}
                     disabled={loading}
-                    className="min-h-9 rounded-full border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 text-[13.5px] text-[var(--lp-dark)] transition-colors hover:border-[var(--lp-outline-strong)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+                    className="min-h-9 rounded-full border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 text-[14px] text-[var(--lp-dark)] transition-colors hover:border-[var(--lp-outline-strong)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
                   >
                     {question}
                   </button>
@@ -417,18 +417,18 @@ export function AssistantWidget() {
               <>
                 <div className="flex items-center gap-2 pt-1">
                   <span className="h-px flex-1 bg-[var(--lp-border-light)]" />
-                  <span className="mono text-[9px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+                  <span className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
                     {t.liveHeader}
                   </span>
                   <span className="h-px flex-1 bg-[var(--lp-border-light)]" />
                 </div>
                 {convoId && (
-                  <p className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] text-center">
+                  <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] text-center">
                     Ticket {convoId}
                   </p>
                 )}
                 {!liveClosed && (
-                  <p className="mono text-[10px] leading-snug text-[var(--lp-text-sub)] px-1">
+                  <p className="mono text-[13px] leading-snug text-[var(--lp-text-sub)] px-1">
                     {t.liveBanner ??
                       'Connected to support. A person will reply here, usually within a few minutes.'}
                   </p>
@@ -436,7 +436,7 @@ export function AssistantWidget() {
                 {live.map((m, i) => (
                   <div key={`l${i}`}>
                     {m.role === 'operator' && (
-                      <p className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-accent)] mb-1 ms-1">
+                      <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-accent)] mb-1 ms-1">
                         {t.operatorName}
                       </p>
                     )}
@@ -446,7 +446,7 @@ export function AssistantWidget() {
                   </div>
                 ))}
                 {liveClosed && (
-                  <p className="mono text-[10px] leading-snug text-[var(--lp-text-muted)] px-1 pt-1">
+                  <p className="mono text-[13px] leading-snug text-[var(--lp-text-muted)] px-1 pt-1">
                     {t.liveClosed ??
                       'This support chat is closed. The transcript was emailed to you.'}
                   </p>
@@ -461,7 +461,7 @@ export function AssistantWidget() {
               </Bubble>
             )}
             {error && (
-              <p className="mono text-[11px] text-[var(--lp-critical)] px-1">{error}</p>
+              <p className="mono text-[14px] text-[var(--lp-critical)] px-1">{error}</p>
             )}
           </div>
 
@@ -482,7 +482,7 @@ export function AssistantWidget() {
                 <button
                   type="button"
                   onClick={endChat}
-                  className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition"
+                  className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition"
                 >
                   {t.endChat}
                 </button>
@@ -492,7 +492,7 @@ export function AssistantWidget() {
               <button
                 type="button"
                 onClick={resetToAssistant}
-                className="w-full mono text-[11px] uppercase tracking-[0.1em] font-bold px-3 py-2.5 rounded-[10px] bg-[var(--lp-dark)] text-[var(--lp-bg)] transition"
+                className="w-full mono text-[14px] uppercase tracking-[0.1em] font-bold px-3 py-2.5 rounded-[10px] bg-[var(--lp-dark)] text-[var(--lp-bg)] transition"
               >
                 {t.backToAssistant}
               </button>
@@ -519,14 +519,14 @@ export function AssistantWidget() {
                   </button>
                 </div>
                 {!isLive && auth.isAuthenticated ? (
-                  <p className="mt-2 text-center text-[11.5px] text-[var(--lp-text-muted)]">{t.confirmNote}</p>
+                  <p className="mt-2 text-center text-[14px] text-[var(--lp-text-muted)]">{t.confirmNote}</p>
                 ) : null}
                 {/* Guidance disclaimer is only true for signed-OUT visitors (the
                     assistant holds no tools for them). Once signed in it CAN act
                     (each action still gated by a confirm card), so the line would
                     be wrong — hide it. */}
                 {!isLive && !auth.isAuthenticated && (
-                  <p className="mono text-[9px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)] mt-2 leading-snug">
+                  <p className="mono text-[13px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)] mt-2 leading-snug">
                     {t.disclaimer}
                   </p>
                 )}
@@ -588,7 +588,7 @@ function NavigateButton({
       <span className="min-w-0 flex-1">
         <span className="line-clamp-2 text-[14px] font-semibold leading-snug">{action.label}</span>
         {action.description ? (
-          <span className="mt-0.5 block truncate text-[12.5px] text-[var(--lp-text-sub)]">{action.description}</span>
+          <span className="mt-0.5 block truncate text-[14px] text-[var(--lp-text-sub)] font-medium">{action.description}</span>
         ) : null}
       </span>
       <span aria-hidden className="grid size-7 shrink-0 place-items-center rounded-full bg-[var(--lp-light)] text-[var(--lp-text-sub)] transition-colors group-hover:bg-[var(--lp-accent)] group-hover:text-[var(--accent-ink)]">
@@ -1333,10 +1333,10 @@ function ConfirmCard({
   if (status === 'done' && result) {
     return (
       <div className="border border-[var(--lp-border-light)] bg-[var(--lp-bg)] p-3" style={{ borderRadius: 12 }}>
-        <p className={`mono text-[10px] uppercase tracking-[0.12em] font-bold ${result.state === 'pending' ? 'text-[var(--lp-text-muted)]' : 'text-[var(--lp-accent)]'}`}>
+        <p className={`mono text-[13px] uppercase tracking-[0.12em] font-bold ${result.state === 'pending' ? 'text-[var(--lp-text-muted)]' : 'text-[var(--lp-accent)]'}`}>
           {result.state === 'pending' ? 'In flight' : 'Completed'}
         </p>
-        <p className="text-[12.5px] text-[var(--lp-dark)] mt-1">{result.successText}</p>
+        <p className="text-[14px] text-[var(--lp-dark)] mt-1">{result.successText}</p>
         {result.txHash ? (
           <a
             href={ARC_EXPLORER_TX(result.txHash)}
@@ -1345,15 +1345,15 @@ function ConfirmCard({
             className="mt-2 flex items-baseline justify-between gap-3 group"
             title={result.txHash}
           >
-            <span className="shrink-0 mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">Receipt</span>
-            <span className="min-w-0 mono text-[11px] text-[var(--lp-dark)] tabular-nums truncate underline decoration-[var(--lp-accent)] decoration-2 underline-offset-2 group-hover:opacity-80">
+            <span className="shrink-0 mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">Receipt</span>
+            <span className="min-w-0 mono text-[14px] text-[var(--lp-dark)] tabular-nums truncate underline decoration-[var(--lp-accent)] decoration-2 underline-offset-2 group-hover:opacity-80">
               {result.txHash.slice(0, 8)}…{result.txHash.slice(-6)} ↗
             </span>
           </a>
         ) : result.refId ? (
           <div className="mt-2 flex items-baseline justify-between gap-3" title={result.refId}>
-            <span className="shrink-0 mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">{pb.assistant.transferRef}</span>
-            <span className="min-w-0 mono text-[11px] text-[var(--lp-dark)] tabular-nums truncate">
+            <span className="shrink-0 mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">{pb.assistant.transferRef}</span>
+            <span className="min-w-0 mono text-[14px] text-[var(--lp-dark)] tabular-nums truncate">
               {result.refId.slice(0, 8)}…{result.refId.slice(-6)}
             </span>
           </div>
@@ -1364,7 +1364,7 @@ function ConfirmCard({
             onNavigate();
             router.push(result.viewHref);
           }}
-          className="mt-2 mono text-[10px] uppercase tracking-[0.1em] font-bold text-[var(--lp-dark)] underline decoration-[var(--lp-accent)] decoration-2 underline-offset-2 hover:opacity-80"
+          className="mt-2 mono text-[13px] uppercase tracking-[0.1em] font-bold text-[var(--lp-dark)] underline decoration-[var(--lp-accent)] decoration-2 underline-offset-2 hover:opacity-80"
         >
           {result.viewLabel}
         </button>
@@ -1374,33 +1374,33 @@ function ConfirmCard({
 
   return (
     <div className="border border-[var(--lp-border-light)] bg-[var(--lp-bg)] p-3" style={{ borderRadius: 12 }}>
-      <p className="font-sans text-[13px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">{action.title}</p>
+      <p className="font-sans text-[14px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">{action.title}</p>
       {action.summary && (
-        <p className="text-[12px] leading-snug text-[var(--lp-text-sub)] mt-1">{action.summary}</p>
+        <p className="text-[14px] leading-snug text-[var(--lp-text-sub)] mt-1 font-medium">{action.summary}</p>
       )}
       <dl className="mt-2 space-y-1.5">
         {action.fields.map((f, i) => (
           <div key={i} className="flex items-baseline justify-between gap-3">
-            <dt className="shrink-0 mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">{f.label}</dt>
-            <dd className="min-w-0 text-[12px] text-[var(--lp-dark)] text-end break-all tabular-nums">{f.value}</dd>
+            <dt className="shrink-0 mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">{f.label}</dt>
+            <dd className="min-w-0 text-[14px] text-[var(--lp-dark)] text-end break-all tabular-nums">{f.value}</dd>
           </div>
         ))}
       </dl>
       {action.warning && (
-        <p className="flex items-start gap-1.5 mono text-[10px] leading-snug text-[var(--lp-critical)] mt-2.5">
+        <p className="flex items-start gap-1.5 mono text-[13px] leading-snug text-[var(--lp-critical)] mt-2.5">
           <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden className="shrink-0 mt-px">
             <path d="M8 1.5l6.5 11.5H1.5L8 1.5zm0 4.2v3.4m0 1.7v.1" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
           </svg>
           <span>{action.warning}</span>
         </p>
       )}
-      {status === 'error' && <p className="mono text-[10px] text-[var(--lp-critical)] mt-2">{errMsg}</p>}
+      {status === 'error' && <p className="mono text-[13px] text-[var(--lp-critical)] mt-2">{errMsg}</p>}
       <div className="flex gap-2 mt-3">
         <button
           type="button"
           onClick={confirm}
           disabled={status === 'running'}
-          className="flex-1 mono text-[10px] uppercase tracking-[0.1em] font-bold px-3 py-2 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] disabled:opacity-60 hover:brightness-105 transition"
+          className="flex-1 mono text-[13px] uppercase tracking-[0.1em] font-bold px-3 py-2 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] disabled:opacity-60 hover:brightness-105 transition"
           style={{ borderRadius: 10 }}
         >
           {status === 'running' ? busyLabel : status === 'error' ? 'Try again' : action.confirmLabel ?? 'Confirm'}
@@ -1412,7 +1412,7 @@ function ConfirmCard({
             setStatus('dismissed');
           }}
           disabled={status === 'running'}
-          className="mono text-[10px] uppercase tracking-[0.1em] font-bold px-3 py-2 border border-[var(--lp-border-light)] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] disabled:opacity-60 transition"
+          className="mono text-[13px] uppercase tracking-[0.1em] font-bold px-3 py-2 border border-[var(--lp-border-light)] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] disabled:opacity-60 transition"
           style={{ borderRadius: 10 }}
         >
           {action.cancelLabel ?? 'Not now'}
@@ -1524,7 +1524,7 @@ function RichText({ text, onNavigate }: { text: string; onNavigate: () => void }
             <div key={li} className="flex gap-2.5">
               <span
                 aria-hidden
-                className="mt-[3px] inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--lp-accent)] px-1 text-[11px] font-bold tabular-nums text-[var(--lp-band-dark)]"
+                className="mt-[3px] inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--lp-accent)] px-1 text-[14px] font-bold tabular-nums text-[var(--lp-band-dark)]"
               >
                 {step[1]}
               </span>

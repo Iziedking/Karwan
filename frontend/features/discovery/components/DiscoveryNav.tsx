@@ -31,11 +31,11 @@ export function DiscoveryNav({
             href={item.href}
             aria-current={current ? 'page' : undefined}
             className={quiet ? cn(
-              'inline-flex min-h-10 items-center text-[13px] font-medium transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)]',
+              'inline-flex min-h-10 items-center text-[14px] font-medium transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)]',
               'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)]',
               current ? 'text-[var(--ink)] underline underline-offset-4' : 'text-[var(--ink-secondary)] hover:text-[var(--ink)]',
             ) : cn(
-              'relative inline-flex min-h-11 items-center px-3 mono text-[11px] font-semibold uppercase tracking-[0.1em]',
+              'relative inline-flex min-h-11 items-center px-3 mono text-[14px] font-semibold uppercase tracking-[0.1em]',
               'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]',
               current
                 ? dark

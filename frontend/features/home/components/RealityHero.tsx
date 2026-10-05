@@ -151,7 +151,7 @@ export function RealityHero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: reduce ? 0.18 : dur.hero, ease: ease.out }}
         >
-          <p className="text-[13px] font-semibold text-[var(--lp-workspace-ink)]/72">{lp.hero.tag}</p>
+          <p className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{lp.hero.tag}</p>
           <h1
             id="landing-heading"
             className="mt-5 max-w-[12ch] text-balance text-[clamp(3rem,6.6vw,6.4rem)] font-semibold leading-[0.9] tracking-[-0.065em]"
@@ -159,13 +159,13 @@ export function RealityHero() {
             {lp.hero.titleLine1} {lp.hero.titleLine2}{' '}
             <span className="text-[var(--lp-accent)]">{lp.hero.titleAccent}</span>
           </h1>
-          <p className="mt-7 max-w-[54ch] text-pretty text-[clamp(0.98rem,1.45vw,1.15rem)] leading-[1.6] text-[var(--lp-workspace-ink)]/72">
+          <p className="mt-7 max-w-[54ch] text-pretty text-[clamp(0.98rem,1.45vw,1.15rem)] leading-[1.6] text-[var(--lp-text-sub)]">
             {lp.hero.body}
           </p>
           <Link href="/app" className="landing-action landing-action-primary mt-8">
             {lp.hero.ctaPrimary}<span aria-hidden className="landing-action-arrow">→</span>
           </Link>
-          <p className="mt-7 text-[12px] text-[var(--lp-workspace-ink)]/55">{lp.hero.footnote}</p>
+          <p className="mt-7 text-[14px] text-[var(--lp-text-sub)] font-medium">{lp.hero.footnote}</p>
         </motion.div>
 
         <motion.div
@@ -187,26 +187,26 @@ export function RealityHero() {
                 <div className="flex items-center gap-3">
                   <PlatformMark id={intent.id} />
                   <div>
-                    <p className="text-[11px] font-semibold tracking-[0.08em] text-[var(--lp-workspace-ink)]/55">{intent.platform}</p>
-                    <p className="mt-1 text-[13px] text-[var(--lp-workspace-ink)]/72">{intent.label}</p>
+                    <p className="text-[14px] font-semibold tracking-[0.08em] text-[var(--lp-text-sub)]">{intent.platform}</p>
+                    <p className="mt-1 text-[14px] text-[var(--lp-text-sub)] font-medium">{intent.label}</p>
                   </div>
                 </div>
                 <span className="landing-status-pill">{intent.status}</span>
               </div>
 
               <p className="mt-8 max-w-[17ch] text-[clamp(1.5rem,3vw,2.25rem)] font-semibold leading-[1.02] tracking-[-0.04em]">{intent.title}</p>
-              <p className="mt-3 max-w-[38ch] text-[13px] leading-relaxed text-[var(--lp-workspace-ink)]/62">{intent.detail}</p>
+              <p className="mt-3 max-w-[38ch] text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{intent.detail}</p>
 
               <div className="mt-7 flex items-end justify-between gap-4 border-y border-white/15 py-5">
                 <div>
-                  <p className="text-[12px] text-[var(--lp-workspace-ink)]/55">Trade value</p>
+                  <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">Trade value</p>
                   <p className="mt-1 text-2xl font-semibold tabular-nums tracking-[-0.04em]">{intent.amount}</p>
                 </div>
-                <p className="text-end text-[12px] text-[var(--lp-workspace-ink)]/55">Milestones<br />and delivery proof</p>
+                <p className="text-end text-[14px] text-[var(--lp-text-sub)] font-medium">Milestones<br />and delivery proof</p>
               </div>
 
-              <div className="mt-5 flex items-center justify-between gap-3 text-[13px]">
-                <span className="text-[var(--lp-workspace-ink)]/62">Example trade intent</span>
+              <div className="mt-5 flex items-center justify-between gap-3 text-[14px]">
+                <span className="text-[var(--lp-text-sub)]">Example trade intent</span>
                 <Link href="/app" className="inline-flex min-h-11 items-center text-[var(--lp-accent)] focus-visible:outline focus-visible:outline-2">Enter Karwan →</Link>
               </div>
             </motion.div>

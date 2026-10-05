@@ -99,19 +99,19 @@ export function QuickStartBand() {
           {steps.map((s) => {
             const content = (
               <>
-                <span className="mono shrink-0 text-[11px] font-bold tracking-[0.16em] text-[var(--lp-accent-hover)]">
+                <span className="mono shrink-0 text-[14px] font-bold tracking-[0.16em] text-[var(--lp-accent-hover)]">
                   {s.n}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block font-sans text-[15px] font-extrabold tracking-[-0.01em] leading-tight text-[var(--lp-dark)]">
                     {s.title}
                   </span>
-                  <span className="mt-1 block max-w-[62ch] text-[13px] leading-snug text-[var(--lp-text-sub)]">
+                  <span className="mt-1 block max-w-[62ch] text-[14px] leading-snug text-[var(--lp-text-sub)] font-medium">
                     {s.body}
                   </span>
                 </span>
                 {s.cta ? (
-                  <span className="shrink-0 mono text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--lp-dark)] transition-transform group-hover:translate-x-1">
+                  <span className="shrink-0 mono text-[14px] font-bold uppercase tracking-[0.1em] text-[var(--lp-dark)] transition-transform group-hover:translate-x-1">
                     {s.cta} <span aria-hidden>→</span>
                   </span>
                 ) : null}

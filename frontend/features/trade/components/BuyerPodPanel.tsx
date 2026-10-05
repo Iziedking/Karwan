@@ -139,7 +139,7 @@ function BuyerPodPanelInner({
     >
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="min-w-0">
-          <p className="mono text-[10px] uppercase tracking-[0.18em] font-bold text-[var(--lp-dark)]">
+          <p className="mono text-[13px] uppercase tracking-[0.18em] font-bold text-[var(--lp-dark)]">
             Confirm delivery
           </p>
           <p className="mt-1.5 text-[14px] text-[var(--lp-dark)] leading-snug max-w-[50ch]">
@@ -148,7 +148,7 @@ function BuyerPodPanelInner({
             the trade record locks in.
           </p>
           {txHash ? (
-            <p className="mt-2 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+            <p className="mt-2 mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
               ANCHORED ·{' '}
               <a
                 href={ARC_EXPLORER_TX(txHash)}
@@ -161,7 +161,7 @@ function BuyerPodPanelInner({
             </p>
           ) : null}
           {error ? (
-            <p className="mt-2 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-critical)]">
+            <p className="mt-2 mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-critical)]">
               {error}
             </p>
           ) : null}
@@ -171,7 +171,7 @@ function BuyerPodPanelInner({
           onClick={signPoD}
           disabled={submitting || onWrongChain || !!txHash}
           className={cn(
-            'mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-2 disabled:opacity-60',
+            'mono text-[14px] uppercase tracking-[0.14em] font-bold px-3 py-2 disabled:opacity-60',
             'bg-[var(--lp-dark)] text-[var(--lp-bg)]',
           )}
           style={{

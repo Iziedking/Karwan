@@ -59,7 +59,7 @@ export function ResearchRows() {
 
   return (
     <div className="space-y-2">
-      <h2 className="flex items-center gap-1.5 px-1 text-[13px] font-semibold text-[var(--lp-text-sub)]">
+      <h2 className="flex items-center gap-1.5 px-1 text-[14px] font-semibold text-[var(--lp-text-sub)]">
         {s.researchTitle}
         <Hint side="bottom">{s.researchHint}</Hint>
       </h2>

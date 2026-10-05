@@ -214,7 +214,7 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
                       onMouseDown={(event) => event.stopPropagation()}
                     >
                       <header className="border-b border-[var(--color-line)] px-6 pb-5 pt-6">
-                        {!compact && <p className="mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">
+                        {!compact && <p className="mono text-[13px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">
                           • {active.kind === 'prompt' ? 'Input required' : 'Review action'}
                         </p>}
                         <h2
@@ -226,7 +226,7 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
                         {active.options.message ? (
                           <p
                             id="karwan-dialog-message"
-                            className="mt-3 max-w-[38ch] text-[13px] leading-relaxed text-[var(--color-ink-dim)]"
+                            className="mt-3 max-w-[38ch] text-[14px] leading-relaxed text-[var(--color-ink-dim)] font-medium"
                           >
                             {active.options.message}
                           </p>
@@ -236,7 +236,7 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
                       {!compact && <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
                         {active.kind === 'prompt' ? (
                           <label className="block">
-                            <span className="mono text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
+                            <span className="mono text-[13px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
                               • Value
                             </span>
                             <input
@@ -252,7 +252,7 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
                             This action may be difficult to reverse. Confirm the target before continuing.
                           </FormError>
                         ) : (
-                          <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
+                          <p className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
                             Ready for your decision
                           </p>
                         )}
@@ -301,12 +301,12 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
                     }}
                   >
                     <p
-                      className="mono text-[10px] font-semibold uppercase tracking-[0.12em]"
+                      className="mono text-[13px] font-semibold uppercase tracking-[0.12em]"
                       style={{ color: toast.tone === 'error' ? 'var(--neg)' : 'var(--pos)' }}
                     >
                       • {toast.tone === 'error' ? 'Attention' : 'Done'}
                     </p>
-                    <p className="mt-1.5 text-[13px] leading-snug text-[var(--color-ink)]">
+                    <p className="mt-1.5 text-[14px] leading-snug text-[var(--color-ink)]">
                       {toast.message}
                     </p>
                   </motion.div>

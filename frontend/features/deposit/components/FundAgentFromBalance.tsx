@@ -78,7 +78,7 @@ export function FundAgentFromBalance({
         {phase === 'moving' ? t.moving : phase === 'done' ? t.done : t.fundPool}
       </button>
       {error ? (
-        <p className="text-[13px] leading-snug text-[var(--color-critical)]">{error}</p>
+        <p className="text-[14px] leading-snug text-[var(--color-critical)]">{error}</p>
       ) : null}
     </div>
   );

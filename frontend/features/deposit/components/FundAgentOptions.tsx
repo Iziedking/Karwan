@@ -82,14 +82,14 @@ export function FundAgentOptions({
 
   return (
     <div className="space-y-3">
-      <p className="text-[13px] text-[var(--ink-secondary)]">
+      <p className="text-[14px] text-[var(--ink-secondary)] font-medium">
         {copy.eyebrow}
       </p>
 
       <div className="space-y-1.5">
         <label
           htmlFor={`fund-agent-amount-${agent}`}
-          className="text-[13px] font-medium text-[var(--ink)]"
+          className="text-[14px] font-medium text-[var(--ink)]"
         >
           {copy.amount.label}
         </label>
@@ -108,15 +108,15 @@ export function FundAgentOptions({
             aria-describedby={`fund-agent-amount-note-${agent}`}
             className="min-h-[52px] min-w-0 flex-1 rounded-[14px] bg-transparent text-[16px] font-medium tabular-nums text-[var(--ink)] outline-none placeholder:text-[var(--ink-secondary)] focus-visible:ring-2 focus-visible:ring-[var(--action)]"
           />
-          <span className="text-[13px] text-[var(--ink-secondary)]">
+          <span className="text-[14px] text-[var(--ink-secondary)] font-medium">
             USDC
           </span>
         </div>
-        <p id={`fund-agent-amount-note-${agent}`} className="text-[13px] leading-snug text-[var(--ink-secondary)]">
+        <p id={`fund-agent-amount-note-${agent}`} className="text-[14px] leading-snug text-[var(--ink-secondary)] font-medium">
           {copy.amount.note}
         </p>
         {amountInput.trim() !== '' && !validAmount && (
-          <p className="text-[13px] leading-snug text-[var(--color-critical)]">
+          <p className="text-[14px] leading-snug text-[var(--color-critical)]">
             {copy.amount.invalid}
           </p>
         )}
@@ -192,7 +192,7 @@ export function FundAgentOptions({
       {/* The Circle path is the only one that needs no wallet at all, so say so
           once rather than repeating it in four tooltips. */}
       {!circleAccount && route === 'wallet' && (
-        <p className="text-[13px] leading-snug text-[var(--ink-secondary)]">{copy.wallet.web3Note}</p>
+        <p className="text-[14px] leading-snug text-[var(--ink-secondary)] font-medium">{copy.wallet.web3Note}</p>
       )}
     </div>
   );
@@ -259,7 +259,7 @@ function MoveFromOtherAgent({
             : copy.moveCta.replace('{amount}', String(amountUsdc))}
       </button>
       {error && (
-        <p className="text-[13px] leading-snug text-[var(--color-critical)]">
+        <p className="text-[14px] leading-snug text-[var(--color-critical)]">
           {error}
         </p>
       )}
@@ -282,7 +282,7 @@ function FundGatewayCallout({
 }) {
   return (
     <div className="space-y-2">
-      <p className="text-[13px] leading-snug text-[var(--ink-secondary)]">{note}</p>
+      <p className="text-[14px] leading-snug text-[var(--ink-secondary)] font-medium">{note}</p>
       <a
         href={`/bridge?rail=${rail}`}
         target="_blank"

@@ -100,7 +100,7 @@ export function TermsBuilder({
                 <Icon name="check" size={16} />
               </span>
             </span>
-            <span className="mt-0.5 block text-[13px] text-[var(--lp-text-sub)]">{t.serviceHint}</span>
+            <span className="mt-0.5 block text-[14px] text-[var(--lp-text-sub)] font-medium">{t.serviceHint}</span>
           </span>
           {[
             { label: t.goods, hint: t.goodsHint },
@@ -115,10 +115,10 @@ export function TermsBuilder({
               className="group cursor-not-allowed rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3.5 py-3 opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
             >
               <span className="block text-[15px] font-semibold text-[var(--lp-dark)]">{option.label}</span>
-              <span aria-hidden className="mt-0.5 block text-[13px] text-[var(--lp-text-sub)] group-hover:hidden group-focus-visible:hidden">
+              <span aria-hidden className="mt-0.5 block text-[14px] text-[var(--lp-text-sub)] group-hover:hidden group-focus-visible:hidden font-medium">
                 {option.hint}
               </span>
-              <span aria-hidden className="mt-0.5 hidden text-[13px] font-semibold text-[var(--lp-dark)] group-hover:block group-focus-visible:block">
+              <span aria-hidden className="mt-0.5 hidden text-[14px] font-semibold text-[var(--lp-dark)] group-hover:block group-focus-visible:block">
                 {t.soon}
               </span>
             </span>
@@ -130,7 +130,7 @@ export function TermsBuilder({
         <div className="mb-2 flex items-center justify-between gap-3">
           <p className="text-[14px] font-semibold text-[var(--lp-dark)]">{t.parts}</p>
           {value.parts.length > 2 ? (
-            <button type="button" onClick={() => set({ parts: value.parts.map((part, i) => ({ ...part, pct: evenSplit(value.parts.length)[i]! })) })} className="min-h-11 text-[13px] font-semibold text-[var(--lp-dark)] underline underline-offset-4">
+            <button type="button" onClick={() => set({ parts: value.parts.map((part, i) => ({ ...part, pct: evenSplit(value.parts.length)[i]! })) })} className="min-h-11 text-[14px] font-semibold text-[var(--lp-dark)] underline underline-offset-4">
               {t.splitEvenly}
             </button>
           ) : null}
@@ -142,7 +142,7 @@ export function TermsBuilder({
                 <span className="flex min-w-0 flex-1 flex-col">
                   <span className="text-[14px] font-semibold text-[var(--lp-dark)]">{partName(index)}</span>
                   {priceUsdc && priceUsdc > 0 ? (
-                    <span className="whitespace-nowrap text-[13px] tabular-nums text-[var(--lp-text-sub)]">{((priceUsdc * part.pct) / 100).toFixed(2)} USDC</span>
+                    <span className="whitespace-nowrap text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">{((priceUsdc * part.pct) / 100).toFixed(2)} USDC</span>
                   ) : null}
                 </span>
                 {value.parts.length === 1 ? null : <span className="flex w-24 shrink-0 items-center gap-1.5">
@@ -153,7 +153,7 @@ export function TermsBuilder({
                     aria-label={`${partName(index)} %`}
                     className="form-input form-input-num h-10 text-end"
                   />
-                  <span aria-hidden className="text-[14px] text-[var(--lp-text-sub)]">%</span>
+                  <span aria-hidden className="text-[14px] text-[var(--lp-text-sub)] font-medium">%</span>
                 </span>}
                 {value.parts.length > minParts ? (
                   <button
@@ -191,7 +191,7 @@ export function TermsBuilder({
               {t.addPart}
             </button>
           ) : <span />}
-          {value.parts.length === 1 ? null : <p className={cn('text-[13px] font-semibold tabular-nums', total === 100 ? 'text-[var(--lp-accent-on-light)]' : 'text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))]')}>
+          {value.parts.length === 1 ? null : <p className={cn('text-[14px] font-semibold tabular-nums', total === 100 ? 'text-[var(--lp-accent-on-light)]' : 'text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))]')}>
             {(total === 100 ? t.total : t.needs100).replace('{sum}', String(total))}
           </p>}
         </div>
@@ -222,7 +222,7 @@ export function TermsBuilder({
             {t.other}
           </button>
           {customReview ? (
-            <label className="inline-flex items-center gap-2 text-[14px] text-[var(--lp-text-sub)]">
+            <label className="inline-flex items-center gap-2 text-[14px] text-[var(--lp-text-sub)] font-medium">
               <span className="block w-20 shrink-0">
                 <input
                   inputMode="numeric"
@@ -294,10 +294,10 @@ export function TermsBuilder({
           {t.agreement}
           <Hint>{t.agreementNote}</Hint>
         </p>
-        <p dir="auto" className="mt-3 whitespace-pre-wrap text-[14px] leading-6 text-[var(--lp-text-sub)]">{agreement}</p>
+        <p dir="auto" className="mt-3 whitespace-pre-wrap text-[14px] leading-6 text-[var(--lp-text-sub)] font-medium">{agreement}</p>
         <ul className="mt-3 space-y-1.5">
           {issues.length === 0 ? (
-            <li className="flex items-start gap-2 text-[13px] text-[var(--lp-dark)]">
+            <li className="flex items-start gap-2 text-[14px] text-[var(--lp-dark)]">
               <span aria-hidden className="mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-full bg-[color-mix(in_srgb,var(--lp-accent)_35%,transparent)] text-[var(--lp-accent-on-light)]">
                 <Icon name="check" size={16} />
               </span>
@@ -305,7 +305,7 @@ export function TermsBuilder({
             </li>
           ) : (
             issues.map((issue) => (
-              <li key={issue.code === 'no-what' ? `no-what-${issue.part}` : issue.code} className="flex items-start gap-2 text-[13px] text-[var(--lp-dark)]">
+              <li key={issue.code === 'no-what' ? `no-what-${issue.part}` : issue.code} className="flex items-start gap-2 text-[14px] text-[var(--lp-dark)]">
                 <span aria-hidden className="mt-1.5 size-2 shrink-0 rounded-full bg-[var(--status-warning,#C98A1B)]" />
                 {issue.code === 'no-what'
                   ? t.noWhat.replace('{n}', String(issue.part))

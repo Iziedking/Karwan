@@ -141,7 +141,7 @@ export function WorkspaceBottomNav() {
                 <NavIcon name={item.icon} active={item.active} />
               )}
             </span>
-            <span className={cn('inline-flex max-w-full items-center gap-1 truncate text-[11px] transition-[font-weight] duration-200', item.active ? 'font-bold' : 'font-medium')}>
+            <span className={cn('inline-flex max-w-full items-center gap-1 truncate text-[14px] transition-[font-weight] duration-200', item.active ? 'font-bold' : 'font-medium')}>
               <span className="truncate">{item.label}</span>
               {item.signal ? <ActionBeacon /> : null}
             </span>

@@ -66,7 +66,7 @@ export function SiteFooter() {
               <p className="text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[34ch]">
                 {messages.landingEditorial.kicker}.
               </p>
-              <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{messages.networkUi.poweredByArc}</p>
+              <p className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{messages.networkUi.poweredByArc}</p>
               <NewsletterSignup />
             </div>
 
@@ -118,7 +118,7 @@ export function SiteFooter() {
           </div>
 
           <div className={styles.bottom}>
-            <div className="ms-auto flex flex-wrap items-center gap-x-3 gap-y-1 font-sans text-[12px] leading-relaxed text-[var(--lp-text-muted)]">
+            <div className="ms-auto flex flex-wrap items-center gap-x-3 gap-y-1 font-sans text-[14px] leading-relaxed text-[var(--lp-text-muted)]">
               <span>{t.copyright.entity}</span>
               <span aria-hidden className="hidden sm:inline-block w-px h-3 bg-[var(--lp-border-light)]" />
               <span>{t.copyright.tagline}</span>
@@ -199,7 +199,7 @@ function NewsletterSignup() {
       <p className="text-sm font-semibold text-[var(--lp-text-sub)]">
         {t.title}
       </p>
-      <p className="text-[13px] leading-relaxed text-[var(--lp-text-sub)] max-w-[34ch]">
+      <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[34ch] font-medium">
         {t.blurb}
       </p>
       <div className="flex max-w-[360px] flex-col items-stretch gap-2 min-[380px]:flex-row">
@@ -214,7 +214,7 @@ function NewsletterSignup() {
           placeholder={t.placeholder}
           maxLength={200}
           aria-label={t.title}
-          className="min-h-11 min-w-0 flex-1 px-3 py-2 text-[13.5px] bg-[var(--lp-light)] text-[var(--lp-dark)] border border-[var(--lp-field-border)] placeholder:text-[var(--lp-text-muted)] focus:border-[var(--lp-dark)] transition-colors"
+          className="min-h-11 min-w-0 flex-1 px-3 py-2 text-[14px] bg-[var(--lp-light)] text-[var(--lp-dark)] border border-[var(--lp-field-border)] placeholder:text-[var(--lp-text-muted)] focus:border-[var(--lp-dark)] transition-colors"
           style={{ borderRadius: 10 }}
         />
         <button
@@ -271,7 +271,7 @@ function FooterLink({
 }) {
   const className = cn(
     'group inline-flex min-h-11 min-w-11 items-center gap-1.5 w-fit py-2 text-[14px] sm:text-[15px] font-medium tracking-[-0.005em]',
-    'text-[var(--lp-dark)]/85 hover:text-[var(--lp-dark)] transition-colors',
+    'text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors',
   );
   const inner = (
     <>
@@ -319,7 +319,7 @@ function FooterContact({ label }: { label: string }) {
   const [revealed, setRevealed] = useState(false);
   const className = cn(
     'group inline-flex min-h-11 min-w-11 items-center gap-1.5 w-fit py-2 text-[14px] sm:text-[15px] font-medium tracking-[-0.005em]',
-    'text-[var(--lp-dark)]/85 hover:text-[var(--lp-dark)] transition-colors',
+    'text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors',
   );
   if (revealed) {
     return (
@@ -352,7 +352,7 @@ function FooterSocialLink({
       target="_blank"
       rel="noreferrer"
       aria-label={label}
-      className="group inline-flex min-h-11 min-w-11 items-center gap-2 py-2 sm:gap-2.5 w-fit text-[14px] sm:text-[15px] font-medium tracking-[-0.005em] text-[var(--lp-dark)]/85 hover:text-[var(--lp-dark)] transition-colors"
+      className="group inline-flex min-h-11 min-w-11 items-center gap-2 py-2 sm:gap-2.5 w-fit text-[14px] sm:text-[15px] font-medium tracking-[-0.005em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
     >
       <span
         aria-hidden

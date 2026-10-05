@@ -11,7 +11,7 @@ import { formatUsdcAmount } from './presentation';
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-3 border-t border-[var(--line)] py-2 first:border-t-0 first:pt-0">
-      <span className="text-[13px] text-[var(--ink-secondary)]">{label}</span>
+      <span className="text-[14px] text-[var(--ink-secondary)] font-medium">{label}</span>
       <span className="mono tabular-nums text-[14px] font-medium text-[var(--ink)]">{value}</span>
     </div>
   );
@@ -45,7 +45,7 @@ export function FundingQuoteRows({ quote, errorCode, viewerIsBuyer, onFunded, on
             value={`${formatUsdcAmount(quote.buyerFeeUsdc, locale)} USDC`}
           />
           <Row label={copy.fundingConsentModal.sellerReceives} value={`${formatUsdcAmount(quote.sellerNetUsdc, locale)} USDC`} />
-          <p className="pt-2 text-[13px] leading-snug text-[var(--ink-secondary)]">{copy.fundingConsentModal.noConversion}</p>
+          <p className="pt-2 text-[14px] leading-snug text-[var(--ink-secondary)] font-medium">{copy.fundingConsentModal.noConversion}</p>
         </div>
       ) : null}
       {errorCode === 'INSUFFICIENT_AGENT_BALANCE' ? (
@@ -63,7 +63,7 @@ export function FundingQuoteRows({ quote, errorCode, viewerIsBuyer, onFunded, on
               />
             </div>
           ) : (
-            <p className="mt-3 text-[13px] leading-relaxed text-[var(--ink-secondary)]">
+            <p className="mt-3 text-[14px] leading-relaxed text-[var(--ink-secondary)] font-medium">
               {copy.errors.insufficientBalanceBuyerPrefix}{' '}
               <Link href="/profile" className="font-medium text-[var(--ink)] rounded-full underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">
                 {copy.errors.insufficientBalanceBuyerLink}
@@ -71,11 +71,11 @@ export function FundingQuoteRows({ quote, errorCode, viewerIsBuyer, onFunded, on
             </p>
           )
         ) : (
-          <p className="mt-3 text-[13px] leading-relaxed text-[var(--ink-secondary)]">{copy.errors.insufficientBalanceSeller}</p>
+          <p className="mt-3 text-[14px] leading-relaxed text-[var(--ink-secondary)] font-medium">{copy.errors.insufficientBalanceSeller}</p>
         )
       ) : null}
       {errorCode === 'INSUFFICIENT_STAKE' && !viewerIsBuyer ? (
-        <p className="mt-3 text-[13px] leading-relaxed text-[var(--ink-secondary)]">
+        <p className="mt-3 text-[14px] leading-relaxed text-[var(--ink-secondary)] font-medium">
           <Link href="/stake" className="font-medium text-[var(--ink)] underline underline-offset-2">
             {copy.errors.insufficientStakeLink}
           </Link>{' '}

@@ -68,7 +68,7 @@ function ChainDropdown({
 
   return (
     <div className="relative">
-      <span className="mono text-[13px] text-[var(--ink-secondary)]">
+      <span className="mono text-[14px] text-[var(--ink-secondary)] font-medium">
         {eyebrow}
       </span>
       <button
@@ -124,7 +124,7 @@ function ChainDropdown({
                     className={`min-h-12 w-full flex items-center gap-2.5 rounded-full px-3 py-3 text-start transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] ${isActive ? "bg-[var(--tint)]" : "hover:bg-[var(--tint)]"}`}
                   >
 
-                    <span className="font-sans text-[13px] font-medium text-[var(--ink)]">
+                    <span className="font-sans text-[14px] font-medium text-[var(--ink)]">
                       {c.name}
                     </span>
                   </button>
@@ -159,7 +159,7 @@ function StepTab({
       onClick={onClick}
       disabled={disabled}
       aria-pressed={active}
-      className="inline-flex min-h-10 items-center gap-2 px-4 py-2 text-[13px] font-medium transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] disabled:opacity-40 disabled:cursor-not-allowed"
+      className="inline-flex min-h-10 items-center gap-2 px-4 py-2 text-[14px] font-medium transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] disabled:opacity-40 disabled:cursor-not-allowed"
       style={{
         background: active ? 'var(--ink)' : 'var(--tint)',
         borderRadius: 999,
@@ -168,7 +168,7 @@ function StepTab({
     >
       <span
         aria-hidden
-        className="text-[13px]"
+        className="text-[14px]"
         style={{ color: active ? 'var(--canvas)' : 'var(--ink-secondary)' }}
       >
         {index}
@@ -194,14 +194,14 @@ function StatusLine({
 }) {
   return (
     <div className="mt-3 flex items-start justify-between gap-2">
-      <p className="text-[13px]" style={{ color: tone === 'ok' ? 'var(--color-positive)' : 'var(--color-critical)' }}>
+      <p className="text-[14px]" style={{ color: tone === 'ok' ? 'var(--color-positive)' : 'var(--color-critical)' }}>
         {children}
       </p>
       <button
         type="button"
         onClick={onDismiss}
         aria-label={label}
-        className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-full bg-[var(--tint)] px-3 text-[13px] text-[var(--ink)] hover:bg-[var(--line)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
+        className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-full bg-[var(--tint)] px-3 text-[14px] text-[var(--ink)] hover:bg-[var(--line)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
       >
 {label}
       </button>
@@ -488,11 +488,11 @@ export function GatewayBalanceCard({
     return (
       <div data-guide="bridge-gateway" className="h-full p-5 sm:p-6" style={CARD_STYLE}>
         <div>
-          <p className="mt-3 text-[13px] leading-relaxed text-[var(--ink-secondary)] max-w-[42ch]">
+          <p className="mt-3 text-[14px] leading-relaxed text-[var(--ink-secondary)] max-w-[42ch] font-medium">
             {t.soonBody}
           </p>
           <label className="mt-5 block">
-            <span className="mono text-[13px] font-medium text-[var(--ink-secondary)]">
+            <span className="mono text-[14px] font-medium text-[var(--ink-secondary)]">
               {t.amount}
             </span>
             <input
@@ -526,7 +526,7 @@ export function GatewayBalanceCard({
             <StatusLine tone="ok" onDismiss={() => setPhase('idle')} label={t.dismiss}>
               {t.pooled}
               {poolReference && (
-                <span className="ms-1 mono text-[13px]">{poolReference}</span>
+                <span className="ms-1 mono text-[14px]">{poolReference}</span>
               )}
             </StatusLine>
           )}
@@ -546,7 +546,7 @@ export function GatewayBalanceCard({
     <div data-guide="bridge-gateway" className="p-6 h-full" style={CARD_STYLE}>
 
       {hasPending && (
-        <p className="text-[13px] tabular-nums text-[var(--color-warning)]">
+        <p className="text-[14px] tabular-nums text-[var(--color-warning)]">
           {formatUsdc(pending)} {t.pending}
         </p>
       )}
@@ -555,7 +555,7 @@ export function GatewayBalanceCard({
           says there is nothing to move, and two sentences saying the same thing
           read as a fault. */}
       {!funded && inbound && step === 'add' && (
-        <p className="mt-2 text-[13px] text-[var(--ink-secondary)]">{t.empty}</p>
+        <p className="mt-2 text-[14px] text-[var(--ink-secondary)] font-medium">{t.empty}</p>
       )}
 
       <div className="mt-5">
@@ -587,7 +587,7 @@ export function GatewayBalanceCard({
           // reload they are signed in but not connected. This used to be a bare
           // sentence telling them to connect with no way to do it from here.
           <div className="space-y-3">
-            <p className="text-[13px] text-[var(--ink-secondary)]">{t.connect}</p>
+            <p className="text-[14px] text-[var(--ink-secondary)] font-medium">{t.connect}</p>
             <button
               type="button"
               onClick={() => openConnectModal?.()}
@@ -607,7 +607,7 @@ export function GatewayBalanceCard({
             />
 
             <div className="mt-4 flex items-center justify-between gap-2">
-              <span className="mono text-[13px] font-medium text-[var(--ink-secondary)]">
+              <span className="mono text-[14px] font-medium text-[var(--ink-secondary)]">
                 {t.amount}
               </span>
               {walletUsdc != null && Number(walletUsdc) > 0 && (
@@ -615,7 +615,7 @@ export function GatewayBalanceCard({
                   type="button"
                   onClick={() => setAmount(walletUsdc)}
                   disabled={busy}
-                  className="min-h-10 rounded-full px-3 text-[13px] text-[var(--ink-secondary)] hover:text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
+                  className="min-h-10 rounded-full px-3 text-[14px] text-[var(--ink-secondary)] hover:text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] font-medium"
                 >
                   {t.maxTemplate.replace(
                     '{amount}',
@@ -692,7 +692,7 @@ export function GatewayBalanceCard({
                 each reports forwarderSupported.destination, so Circle's relayer
                 mints there and the recipient needs no gas. */}
             {inbound ? (
-              <p className="text-[13px] leading-relaxed text-[var(--ink-secondary)] max-w-[42ch]">
+              <p className="text-[14px] leading-relaxed text-[var(--ink-secondary)] max-w-[42ch] font-medium">
                 {t.arcPinned}
               </p>
             ) : (
@@ -726,7 +726,7 @@ export function GatewayBalanceCard({
                       onClick={() => setRecipient(key)}
                       disabled={movePhase === 'moving'}
                       aria-pressed={active}
-                      className="min-h-10 px-4 py-2 text-[13px] font-medium transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
+                      className="min-h-10 px-4 py-2 text-[14px] font-medium transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
                       style={{
                         background: active ? 'var(--ink)' : 'var(--tint)',
                         color: active ? 'var(--canvas)' : 'var(--ink)',
@@ -756,14 +756,14 @@ export function GatewayBalanceCard({
             )}
 
             <div className="mt-4 flex items-center justify-between gap-2">
-              <span className="mono text-[13px] font-medium text-[var(--ink-secondary)]">
+              <span className="mono text-[14px] font-medium text-[var(--ink-secondary)]">
                 {t.amount}
               </span>
               <button
                 type="button"
                 onClick={() => void fillMoveMax()}
                 disabled={movePhase === 'moving' || maxBusy}
-                className="mono text-[13px] text-[var(--ink-secondary)] hover:text-[var(--ink)] transition-colors disabled:opacity-50"
+                className="mono text-[14px] text-[var(--ink-secondary)] hover:text-[var(--ink)] transition-colors disabled:opacity-50 font-medium"
               >
                 {t.maxTemplate.replace(
                   '{amount}',
@@ -842,7 +842,7 @@ export function GatewayBalanceCard({
         ) : (
           // Nothing pooled, so there is nothing to move. A form here could
           // only be submitted into a failure.
-          <p className="text-[13px] leading-relaxed text-[var(--ink-secondary)] max-w-[42ch]">
+          <p className="text-[14px] leading-relaxed text-[var(--ink-secondary)] max-w-[42ch] font-medium">
             {t.outEmpty}
           </p>
         )}

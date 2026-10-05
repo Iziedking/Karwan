@@ -72,7 +72,7 @@ export function SwipeToPay({ disabled = false, label, onConfirm }: SwipeToPayPro
           className="absolute inset-y-1 start-1 rounded-[10px] bg-[var(--lp-accent)] transition-[width] duration-200 ease-out"
           style={{ width: `calc(${progress * 100}% - ${progress > 0 ? 4 : 0}px)` }}
         />
-        <span className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center px-14 text-center text-[12px] font-semibold text-[var(--lp-workspace-ink)]">
+        <span className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center px-14 text-center text-[14px] font-semibold text-[var(--lp-workspace-ink)]">
           {label}
           <span className="ms-2 text-[16px]" aria-hidden>→</span>
         </span>
@@ -91,7 +91,7 @@ export function SwipeToPay({ disabled = false, label, onConfirm }: SwipeToPayPro
           →
         </button>
       </div>
-      <p className="mono text-center text-[9px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)]">
+      <p className="mono text-center text-[13px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)]">
         Swipe to review and continue
       </p>
     </div>

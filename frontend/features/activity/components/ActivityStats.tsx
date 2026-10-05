@@ -24,10 +24,10 @@ export function ActivityStats({
   return (
     <section className="space-y-3" data-guide="activity-stats">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <span className="text-[13px] font-semibold text-[var(--lp-text-sub)]">
+        <span className="text-[14px] font-semibold text-[var(--lp-text-sub)]">
           {messages.activityReview.filterLabel}
         </span>
-        <span className="text-[12px] tabular-nums text-[var(--lp-text-muted)]">
+        <span className="text-[14px] tabular-nums text-[var(--lp-text-muted)]">
           {t.window.replace('{n}', String(windowSize))}
         </span>
       </div>
@@ -47,7 +47,7 @@ export function ActivityStats({
               borderColor: active ? 'var(--lp-control-active-border)' : 'var(--lp-border-light)',
             }}
           >
-            <p className="flex items-center justify-between gap-2 text-[13px] font-semibold">
+            <p className="flex items-center justify-between gap-2 text-[14px] font-semibold">
               {t.groups[g]}
               <span aria-hidden className="inline-flex size-5 shrink-0 items-center justify-center rounded border border-current">
                 {active ? '✓' : '+'}

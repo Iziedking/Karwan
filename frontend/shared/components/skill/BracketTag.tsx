@@ -47,7 +47,7 @@ export function BracketTag({
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-2 font-mono text-[11px] font-medium uppercase tracking-[0.04em] leading-none',
+        'inline-flex items-center gap-2 font-mono text-[14px] font-medium uppercase tracking-[0.04em] leading-none',
         className,
       )}
       style={{ color: textColor }}

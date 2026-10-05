@@ -86,7 +86,7 @@ export function WeeklyBars({
                 stroke="var(--lp-border-light)"
                 strokeWidth={1}
               />
-              <text x={PAD.left - 8} y={y(t) + 4} textAnchor="end" className="fill-[var(--lp-text-sub)] text-[11px] tabular-nums">
+              <text x={PAD.left - 8} y={y(t) + 4} textAnchor="end" className="fill-[var(--lp-text-sub)] text-[14px] tabular-nums">
                 {axisFormat(t)}
               </text>
             </g>
@@ -108,7 +108,7 @@ export function WeeklyBars({
                     x={PAD.left + slot * i + slot / 2}
                     y={HEIGHT - 8}
                     textAnchor="middle"
-                    className="fill-[var(--lp-text-sub)] text-[11px]"
+                    className="fill-[var(--lp-text-sub)] text-[14px]"
                   >
                     {d.label}
                   </text>
@@ -134,7 +134,7 @@ export function WeeklyBars({
         {tip ? (
           <div
             role="status"
-            className="pointer-events-none absolute top-0 z-10 min-w-[9rem] -translate-x-1/2 rounded-[10px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 py-2 text-[13px] shadow-[var(--shadow-pop)]"
+            className="pointer-events-none absolute top-0 z-10 min-w-[9rem] -translate-x-1/2 rounded-[10px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 py-2 text-[14px] shadow-[var(--shadow-pop)]"
             style={{ left: Math.min(Math.max(tipX, 80), width - 80) }}
           >
             <p className="font-semibold text-[var(--lp-dark)]">{tip.tooltip[0]}</p>
@@ -148,12 +148,12 @@ export function WeeklyBars({
         type="button"
         onClick={() => setTable((t) => !t)}
         aria-expanded={table}
-        className="inline-flex min-h-11 items-center text-[13px] font-medium text-[var(--lp-text-sub)] underline-offset-4 hover:underline"
+        className="inline-flex min-h-11 items-center text-[14px] font-medium text-[var(--lp-text-sub)] underline-offset-4 hover:underline"
       >
         {table ? hideTableLabel : showTableLabel}
       </button>
       {table ? (
-        <table className="w-full border-collapse text-[13px]">
+        <table className="w-full border-collapse text-[14px]">
           <thead>
             <tr className="border-b border-[var(--lp-border-light)] text-start text-[var(--lp-text-sub)]">
               <th className="py-2 text-start font-medium">{tableHeaders[0]}</th>

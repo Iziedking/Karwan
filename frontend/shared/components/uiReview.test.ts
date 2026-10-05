@@ -245,8 +245,8 @@ test('canonical theme text, selected controls and field edges meet contrast thre
 test('market price and unit stay together while the account label can truncate', () => {
   const market = source('../../features/listings/components/ListingsBrowse.tsx');
   assert.match(market, /<p className="flex min-w-0 shrink-0 items-baseline gap-1\.5"/);
-  assert.match(market, /<span className="whitespace-nowrap text-\[13px\] text-\[var\(--ink-secondary\)\]"/);
-  assert.match(market, /truncate text-\[13px\] text-\[var\(--ink-secondary\)\]/);
+  assert.match(market, /<span className="whitespace-nowrap text-\[14px\] text-\[var\(--ink-secondary\)\] font-medium"/);
+  assert.match(market, /truncate text-\[14px\] text-\[var\(--ink-secondary\)\]/);
 });
 
 test('account action is Move and keeps its existing route', () => {

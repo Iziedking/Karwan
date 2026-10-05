@@ -40,15 +40,15 @@ import { FactoringPositionsPanel } from './FactoringPositionsPanel';
 function DeskEmpty({ tag, body }: { tag: string; body: string }) {
   return (
     <div className="py-4">
-      <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+      <span className="mono text-[13px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
         {tag}
       </span>
-      <p className="mt-3 text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
+      <p className="mt-3 text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch] font-medium">
         {body}
       </p>
       <Link
         href="/market"
-        className="mt-4 inline-flex items-center gap-1.5 mono text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--lp-dark)] hover:text-[var(--lp-accent-hover)] transition-colors"
+        className="mt-4 inline-flex items-center gap-1.5 mono text-[14px] font-bold uppercase tracking-[0.1em] text-[var(--lp-dark)] hover:text-[var(--lp-accent-hover)] transition-colors"
       >
         Browse live trade <span aria-hidden>→</span>
       </Link>
@@ -308,7 +308,7 @@ export function FinancierDashboard() {
               disabled={!tab_.available}
               onClick={() => tab_.available && setTab(tab_.id)}
               className={cn(
-                'mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border transition-colors',
+                'mono text-[14px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border transition-colors',
                 tab === tab_.id
                   ? 'bg-[var(--lp-dark)] text-[var(--lp-bg)] border-[var(--lp-dark)]'
                   : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
@@ -345,7 +345,7 @@ export function FinancierDashboard() {
                   setSectorFilter('');
                   setRegionFilter('');
                 }}
-                className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)]"
+                className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)]"
               >
                 {t.filters.clear}
               </button>
@@ -492,12 +492,12 @@ function InvoiceCard({
       <div className="p-5 md:p-6 space-y-4" data-guide="financier-deal">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+            <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
               Face value
             </p>
             <p className="mt-1 serif text-[32px] tabular-nums leading-none tracking-[-0.02em] text-[var(--lp-dark)]">
               {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}{' '}
-              <span className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+              <span className="mono text-[14px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
                 USDC
               </span>
             </p>
@@ -505,7 +505,7 @@ function InvoiceCard({
           <div className="flex flex-col items-end gap-1.5">
             {deal.sellerTier ? (
               <span
-                className="mono text-[10px] uppercase tracking-[0.16em] font-bold px-2.5 py-1"
+                className="mono text-[13px] uppercase tracking-[0.16em] font-bold px-2.5 py-1"
                 style={{
                   border: `1px solid ${SELLER_TIER_HUE[deal.sellerTier] ?? '#9a9a9a'}`,
                   color: 'var(--lp-dark)',
@@ -515,7 +515,7 @@ function InvoiceCard({
                 {deal.sellerTier.toUpperCase()}
               </span>
             ) : null}
-            <span className="mono text-[10px] uppercase tracking-[0.18em] font-bold px-2.5 py-1 border border-[var(--lp-outline)] text-[var(--lp-dark)]">
+            <span className="mono text-[13px] uppercase tracking-[0.18em] font-bold px-2.5 py-1 border border-[var(--lp-outline)] text-[var(--lp-dark)]">
               {settlementWindow}
             </span>
           </div>
@@ -526,13 +526,13 @@ function InvoiceCard({
             href={`/credit-passport/${deal.seller}`}
             target="_blank"
             data-guide="financier-passport"
-            className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+            className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
           >
             {t.sellerPassport} ↗
           </Link>
           <div className="flex items-center gap-2.5">
             {existingOffer ? (
-              <span className="mono text-[9.5px] uppercase tracking-[0.14em] font-bold text-[var(--lp-text-muted)]">
+              <span className="mono text-[13px] uppercase tracking-[0.14em] font-bold text-[var(--lp-text-muted)]">
                 {t.yourOffer} · {(existingOffer.discountBps / 100).toFixed(1)}%
               </span>
             ) : null}
@@ -541,7 +541,7 @@ function InvoiceCard({
               onClick={receiptPending ? undefined : onOpenOffer}
               disabled={receiptPending}
               data-guide="financier-offer"
-              className="mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 bg-[var(--lp-dark)] text-[var(--lp-bg)]"
+              className="mono text-[14px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 bg-[var(--lp-dark)] text-[var(--lp-bg)]"
               style={{
                 borderRadius: 6,
               }}
@@ -559,17 +559,17 @@ function CompanyLine({ deal }: { deal: DirectDeal }) {
   const c = deal.counterpartyCompany;
   if (!c?.name && !c?.sector && !c?.region) {
     return (
-      <p className="text-[12px] text-[var(--lp-text-muted)]">
+      <p className="text-[14px] text-[var(--lp-text-muted)]">
         Seller: {shortAddress(deal.seller)}
       </p>
     );
   }
   return (
-    <div className="text-[12.5px] leading-snug">
+    <div className="text-[14px] leading-snug">
       {c.name ? (
         <p className="text-[var(--lp-dark)] font-medium">{c.name}</p>
       ) : null}
-      <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] mt-1">
+      <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] mt-1">
         {[c.sector, c.region].filter(Boolean).join(' · ')}
       </p>
     </div>
@@ -608,13 +608,13 @@ function FilterSelect({
 }) {
   return (
     <label className="inline-flex items-center gap-2">
-      <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+      <span className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
         {label}
       </span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="form-input text-[12px] py-1.5 px-2"
+        className="form-input text-[14px] py-1.5 px-2"
         style={{ minWidth: 120 }}
       >
         {options.map((o) => (
@@ -640,7 +640,7 @@ function FilterText({
 }) {
   return (
     <label className="inline-flex items-center gap-2">
-      <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+      <span className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
         {label}
       </span>
       <input
@@ -648,7 +648,7 @@ function FilterText({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="form-input text-[12px] py-1.5 px-2"
+        className="form-input text-[14px] py-1.5 px-2"
         style={{ minWidth: 140 }}
       />
     </label>
@@ -780,7 +780,7 @@ function OfferModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-5 py-4 border-b border-[var(--lp-border-light)] flex items-center justify-between gap-3">
-          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+          <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
             Offer
           </span>
           <button
@@ -794,12 +794,12 @@ function OfferModal({
         </div>
         <div className="p-5 md:p-6 space-y-5">
           <div>
-            <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+            <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
               {t.offer.faceValue}
             </p>
             <p className="mt-1 serif text-[28px] tabular-nums leading-none tracking-[-0.02em] text-[var(--lp-dark)]">
               {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}{' '}
-              <span className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+              <span className="mono text-[14px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
                 USDC
               </span>
             </p>
@@ -807,7 +807,7 @@ function OfferModal({
 
           {/* Tier-default presets per sme-design.md §8.2 */}
           <div>
-            <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] mb-2">
+            <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] mb-2">
               {t.offer.quickDiscount}
             </p>
             <div className="flex gap-2 flex-wrap">
@@ -820,7 +820,7 @@ function OfferModal({
                     setDiscountInput((bps / 100).toFixed(1));
                   }}
                   className={cn(
-                    'mono text-[10px] uppercase tracking-[0.14em] font-bold px-2.5 py-1 border transition-colors',
+                    'mono text-[13px] uppercase tracking-[0.14em] font-bold px-2.5 py-1 border transition-colors',
                     discountBps === bps
                       ? 'bg-[var(--lp-accent)] text-[var(--accent-ink)] border-[var(--lp-accent)]'
                       : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
@@ -837,7 +837,7 @@ function OfferModal({
 
           <div>
             <div className="flex items-baseline justify-between gap-3 mb-2">
-              <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+              <span className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
                 {t.offer.customDiscount}
               </span>
               {/* Typable as well as draggable. The slider steps 0.5% and can
@@ -883,7 +883,7 @@ function OfferModal({
               }}
               className="w-full"
             />
-            <div className="mt-1 flex justify-between mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+            <div className="mt-1 flex justify-between mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
               <span>1%</span>
               <span>20%</span>
             </div>
@@ -921,21 +921,21 @@ function OfferModal({
             ) : null}
           </dl>
 
-          <p className="mt-2 text-[11px] leading-relaxed text-[var(--lp-text-muted)]">
+          <p className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-muted)]">
             {t.offer.fundingSummaryTemplate
               .replace('{advance}', formatUsdc(quote.advanceUsdc, { withSuffix: false }))
               .replace('{settlement}', formatUsdc(quote.settlementAssignedUsdc, { withSuffix: false }))}
           </p>
 
           {belowSellerFloor ? (
-            <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-critical)]">
+            <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-critical)]">
               Below the seller minimum. Lower the discount to offer at least{' '}
               {sellerFloor!.toFixed(2)} USDC.
             </p>
           ) : null}
 
           {error ? (
-            <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-critical)]">
+            <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-critical)]">
               {error}
             </p>
           ) : null}
@@ -944,7 +944,7 @@ function OfferModal({
             type="button"
             onClick={submit}
             disabled={submitting || belowSellerFloor}
-            className="w-full mono text-[12px] uppercase tracking-[0.14em] font-bold py-3 bg-[var(--lp-dark)] text-[var(--lp-bg)] disabled:opacity-60"
+            className="w-full mono text-[14px] uppercase tracking-[0.14em] font-bold py-3 bg-[var(--lp-dark)] text-[var(--lp-bg)] disabled:opacity-60"
             style={{
               borderRadius: 10,
             }}
@@ -981,7 +981,7 @@ function ModalRow({
       : 'text-[var(--lp-dark)]';
   return (
     <div className="flex items-baseline justify-between gap-3">
-      <dt className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+      <dt className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
         {label}
       </dt>
       <dd className={cn('text-[14px] tabular-nums', valueClass)}>{value}</dd>
@@ -1043,21 +1043,21 @@ function POCard({
       <div className="p-5 md:p-6 space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+            <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
               Capital requested
             </p>
             <p className="mt-1 serif text-[32px] tabular-nums leading-none tracking-[-0.02em] text-[var(--lp-dark)]">
               {formatUsdc(deal.poFinancingRequestedAdvanceUsdc ?? deal.dealAmountUsdc, { withSuffix: false })}{' '}
-              <span className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+              <span className="mono text-[14px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
                 USDC
               </span>
             </p>
           </div>
           <div className="text-end">
-            <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+            <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
               {t.po.repayOnPod}
             </p>
-            <p className="mt-1 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-dark)]">
+            <p className="mt-1 mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-dark)]">
               {t.po.buyerOrAttester}
             </p>
           </div>
@@ -1067,14 +1067,14 @@ function POCard({
           <Link
             href={`/credit-passport/${deal.seller}`}
             target="_blank"
-            className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+            className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
           >
             {t.sellerPassport} ↗
           </Link>
           <button
             type="button"
             onClick={onOpenFund}
-            className="mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 bg-[var(--lp-dark)] text-[var(--lp-bg)]"
+            className="mono text-[14px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 bg-[var(--lp-dark)] text-[var(--lp-bg)]"
             style={{
               borderRadius: 6,
             }}
@@ -1319,7 +1319,7 @@ function FundModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-5 py-4 border-b border-[var(--lp-border-light)] flex items-center justify-between gap-3">
-          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+          <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
               Fund PO
           </span>
           <button
@@ -1333,12 +1333,12 @@ function FundModal({
         </div>
         <div className="p-5 md:p-6 space-y-5">
           <div>
-            <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+            <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
               PO VALUE
             </p>
             <p className="mt-1 serif text-[28px] tabular-nums leading-none tracking-[-0.02em] text-[var(--lp-dark)]">
               {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}{' '}
-              <span className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+              <span className="mono text-[14px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
                 USDC
               </span>
             </p>
@@ -1370,7 +1370,7 @@ function FundModal({
           </div>
 
           <ModalField label={t.po.sellerProtection}>
-            <div className="border border-[var(--lp-border-light)] bg-white/55 px-3 py-3 text-[13px] text-[var(--lp-text-sub)]">
+            <div className="border border-[var(--lp-border-light)] bg-white/55 px-3 py-3 text-[14px] text-[var(--lp-text-sub)] font-medium">
               {stakeBalance === null || collateral === null
                 ? 'Checking the seller’s available stake…'
                 : stakeBalance.total > 0
@@ -1387,23 +1387,23 @@ function FundModal({
             <div className="border border-[var(--lp-border-light)] bg-white/55 p-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <p className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                  <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
                     {t.po.expectedDelivery}
                   </p>
-                  <p className="mt-1 text-[13px] font-semibold text-[var(--lp-dark)]">
+                  <p className="mt-1 text-[14px] font-semibold text-[var(--lp-dark)]">
                     {deal.deadlineUnix ? formatDeadline(deal.deadlineUnix * 1000) : t.po.notDated}
                   </p>
                 </div>
                 <div>
-                  <p className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                  <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
                     {t.po.earliestRepayment}
                   </p>
-                  <p className="mt-1 text-[13px] font-semibold text-[var(--lp-dark)]">
+                  <p className="mt-1 text-[14px] font-semibold text-[var(--lp-dark)]">
                     {formatDeadline(minimumRepaymentAtMs)}
                   </p>
                 </div>
               </div>
-              <p className="mt-2 text-[11px] leading-relaxed text-[var(--lp-text-sub)]">
+              <p className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
                 {t.po.earliestNote}
               </p>
             </div>
@@ -1424,13 +1424,13 @@ function FundModal({
                     borderRadius: 6,
                   }}
                 >
-                  <span className="block mono text-[9px] uppercase tracking-[0.1em] font-bold">
+                  <span className="block mono text-[13px] uppercase tracking-[0.1em] font-bold">
                     {t.extensions[opt.labelKey]}
                   </span>
                   <span className={cn(
-                    'mt-1 block text-[10px]',
+                    'mt-1 block text-[13px]',
                     repaymentWindowSeconds === minimumRepaymentWindowSeconds + opt.seconds
-                      ? 'text-white/60'
+                      ? 'text-white/75'
                       : 'text-[var(--lp-text-muted)]',
                   )}>
                     {formatDeadline(minimumRepaymentAtMs + opt.seconds * 1000)}
@@ -1455,7 +1455,7 @@ function FundModal({
           </dl>
 
           {error ? (
-            <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-critical)]">
+            <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-critical)]">
               {error}
             </p>
           ) : null}
@@ -1464,7 +1464,7 @@ function FundModal({
             type="button"
             onClick={submit}
             disabled={submitting || !validRepay || onWrongChain}
-            className="w-full mono text-[12px] uppercase tracking-[0.14em] font-bold py-3 bg-[var(--lp-dark)] text-[var(--lp-bg)] disabled:opacity-60"
+            className="w-full mono text-[14px] uppercase tracking-[0.14em] font-bold py-3 bg-[var(--lp-dark)] text-[var(--lp-bg)] disabled:opacity-60"
             style={{
               borderRadius: 10,
             }}
@@ -1492,7 +1492,7 @@ function FundModal({
 function ModalField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block space-y-2">
-      <span className="mono text-[10px] uppercase tracking-[0.14em] font-medium text-[var(--lp-text-muted)]">
+      <span className="mono text-[13px] uppercase tracking-[0.14em] font-medium text-[var(--lp-text-muted)]">
         {label}
       </span>
       {children}

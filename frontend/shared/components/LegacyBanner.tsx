@@ -94,7 +94,7 @@ export function LegacyBanner() {
           </span>
           <div className="min-w-0">
             <span
-              className="inline-block mono text-[10px] font-bold uppercase tracking-[0.16em] px-2 py-0.5 mb-1.5 sm:mb-2 whitespace-nowrap"
+              className="inline-block mono text-[13px] font-bold uppercase tracking-[0.16em] px-2 py-0.5 mb-1.5 sm:mb-2 whitespace-nowrap"
               style={{
                 background: 'var(--lp-accent)',
                 color: 'var(--lp-band-dark)',
@@ -112,7 +112,7 @@ export function LegacyBanner() {
             <p className="font-sans text-[15px] sm:text-[19px] font-extrabold tracking-[-0.01em] leading-tight text-white">
               {t.title}
             </p>
-            <p className="hidden sm:block mt-1.5 text-[13px] leading-snug text-white/65">
+            <p className="hidden sm:block mt-1.5 text-[14px] leading-snug text-white/65">
               {t.body}
             </p>
           </div>
@@ -120,7 +120,7 @@ export function LegacyBanner() {
         <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
           <Link
             href="/legacy"
-            className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 mono text-[11px] sm:text-[13px] font-bold uppercase tracking-[0.1em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] sm:hover:-translate-y-0.5 active:translate-y-0 transition-[transform,box-shadow] duration-150 shadow-[0_4px_0_rgba(0,0,0,0.35)] hover:shadow-[0_5px_0_rgba(0,0,0,0.35)] active:shadow-[0_1px_0_rgba(0,0,0,0.35)]"
+            className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 mono text-[14px] font-bold uppercase tracking-[0.1em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] sm:hover:-translate-y-0.5 active:translate-y-0 transition-[transform,box-shadow] duration-150 shadow-[0_4px_0_rgba(0,0,0,0.35)] hover:shadow-[0_5px_0_rgba(0,0,0,0.35)] active:shadow-[0_1px_0_rgba(0,0,0,0.35)]"
             style={{
               borderRadius: 14,
             }}
@@ -136,7 +136,7 @@ export function LegacyBanner() {
             }}
             aria-label={t.dismissAria}
             title={t.dismissTooltip}
-            className="absolute sm:static top-2 end-2 mono text-[14px] sm:text-[12px] text-white/50 sm:text-white/40 hover:text-white/80 px-2 py-1 transition-colors"
+            className="absolute sm:static top-2 end-2 mono text-[14px] text-white/75 sm:text-white/75 hover:text-white/80 px-2 py-1 transition-colors"
           >
             ×
           </button>

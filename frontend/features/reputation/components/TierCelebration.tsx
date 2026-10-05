@@ -193,14 +193,14 @@ export function TierCelebration({ address }: { address?: string | null }) {
           </span>
 
           <div className="min-w-0 flex-1">
-            <p className="mono text-[10px] uppercase tracking-[0.2em]" style={{ color: labelInk }}>
+            <p className="mono text-[13px] uppercase tracking-[0.2em]" style={{ color: labelInk }}>
               {t.eyebrow}
             </p>
             <p className="mt-1.5 font-sans text-[22px] font-extrabold uppercase leading-[0.95] tracking-[-0.02em] text-[var(--color-ink)] sm:text-[26px]">
               {t.achievementPrefix} <span style={{ color: wordInk }}>{tier}</span>
               <span style={{ color: 'var(--lp-accent)' }}>.</span>
             </p>
-            <p className="mt-1.5 text-[13px] leading-snug text-[var(--color-ink-dim)]">
+            <p className="mt-1.5 text-[14px] leading-snug text-[var(--color-ink-dim)] font-medium">
               {t.blurbs[tier]}
             </p>
             {/* Rank ladder: filled squares up to the tier reached. */}

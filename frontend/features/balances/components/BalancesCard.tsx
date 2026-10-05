@@ -54,7 +54,7 @@ export function BalancesCard({
     return (
       <div className={cn(CARD, 'p-6')}>
         <h2 className="text-[18px] font-semibold tracking-[-0.02em]">{title ?? bc.title}</h2>
-        <p className="mt-2 text-[14px] text-[var(--lp-text-sub)]">{bc.signedOutBody}</p>
+        <p className="mt-2 text-[14px] text-[var(--lp-text-sub)] font-medium">{bc.signedOutBody}</p>
       </div>
     );
   }
@@ -94,16 +94,16 @@ export function BalancesCard({
     <>
       <span className="min-w-0 flex-1">
         <span className="block text-[18px] font-semibold tracking-[-0.02em]">{title ?? bc.title}</span>
-        <span className="mt-1 block text-[13px] text-[var(--lp-text-sub)]">
+        <span className="mt-1 block text-[14px] text-[var(--lp-text-sub)] font-medium">
           {subtitle ?? bc.chainCountTemplate.replace('{n}', String(rows.length))}
         </span>
       </span>
       {open ? (
         <span className="shrink-0 text-end">
-          <span className="block text-[12px] text-[var(--lp-text-muted)]">{bc.total}</span>
+          <span className="block text-[14px] text-[var(--lp-text-muted)]">{bc.total}</span>
           <span className="mono mt-0.5 block text-[24px] font-semibold leading-none tracking-[-0.03em]">
             {total === null ? '-' : <AnimatedNumber value={total} decimals={2} />}
-            <span className="ms-1 text-[13px] font-medium text-[var(--lp-text-sub)]">USDC</span>
+            <span className="ms-1 text-[14px] font-medium text-[var(--lp-text-sub)]">USDC</span>
           </span>
         </span>
       ) : null}
@@ -142,7 +142,7 @@ export function BalancesCard({
                       onClick={() => !t.disabled && setView(t.key)}
                       disabled={t.disabled}
                       className={cn(
-                        'min-h-9 rounded-full px-3.5 text-[13px] font-semibold transition-colors',
+                        'min-h-9 rounded-full px-3.5 text-[14px] font-semibold transition-colors',
                         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]',
                         selected
                           ? 'bg-[var(--lp-control-active-bg)] text-[var(--lp-control-active-ink)]'
@@ -160,7 +160,7 @@ export function BalancesCard({
           ) : null}
 
           {!active.address ? (
-            <p className="px-5 py-4 text-[14px] text-[var(--lp-text-sub)] sm:px-6">{bc.notConfigured}</p>
+            <p className="px-5 py-4 text-[14px] text-[var(--lp-text-sub)] sm:px-6 font-medium">{bc.notConfigured}</p>
           ) : (
             <ul className="px-5 sm:px-6">
               {listed.map((r) => (
@@ -181,10 +181,10 @@ export function BalancesCard({
                         </span>
                       ))}
                     </span>
-                    <span className="min-w-0 flex-1 text-[13px] text-[var(--lp-text-sub)]">
+                    <span className="min-w-0 flex-1 text-[14px] text-[var(--lp-text-sub)] font-medium">
                       {(listed.length ? bc.zeroOtherChainsTemplate : bc.zeroChainsTemplate).replace('{n}', String(empty.length))}
                     </span>
-                    <span className="text-[13px] font-semibold text-[var(--lp-dark)]">{showEmpty ? bc.hide : bc.reveal}</span>
+                    <span className="text-[14px] font-semibold text-[var(--lp-dark)]">{showEmpty ? bc.hide : bc.reveal}</span>
                   </button>
                   {showEmpty ? (
                     <ul className="border-t border-[var(--lp-border-light)]">
@@ -200,7 +200,7 @@ export function BalancesCard({
 
           <div className="mt-auto flex items-center justify-end gap-3 border-t border-[var(--lp-border-light)] px-5 py-3 sm:px-6">
             {lastUpdated > 0 ? (
-              <p className="text-[12px] text-[var(--lp-text-muted)]">
+              <p className="text-[14px] text-[var(--lp-text-muted)]">
                 {bc.updatedTemplate.replace('{time}', timeAgo(lastUpdated, bc.timeAgo))}
               </p>
             ) : null}
@@ -209,7 +209,7 @@ export function BalancesCard({
               onClick={refreshAll}
               disabled={busy}
               aria-busy={busy}
-              className="inline-flex min-h-9 items-center gap-1.5 rounded-full px-2 text-[12px] font-semibold text-[var(--lp-text-sub)] transition-colors hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] disabled:cursor-wait disabled:opacity-60"
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-full px-2 text-[14px] font-semibold text-[var(--lp-text-sub)] transition-colors hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] disabled:cursor-wait disabled:opacity-60"
             >
               <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden className={busy ? 'animate-spin motion-reduce:animate-none' : ''}>
                 <path d="M14 8a6 6 0 1 1-1.76-4.24M14 3v3h-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -230,11 +230,11 @@ function ChainRow({ rowKey, amount, muted = false }: { rowKey: RowKey; amount: n
       <ChainLogo chain={m.key} size={muted ? 24 : 30} />
       <span className="min-w-0 flex-1">
         <span className={cn('block text-[14px] font-semibold leading-tight', muted && 'text-[var(--lp-text-sub)]')}>{m.name}</span>
-        <span className="mt-0.5 block text-[12px] text-[var(--lp-text-muted)]">{m.sub}</span>
+        <span className="mt-0.5 block text-[14px] text-[var(--lp-text-muted)]">{m.sub}</span>
       </span>
       <span className={cn('mono text-end font-semibold tabular-nums', muted ? 'text-[14px] text-[var(--lp-text-muted)]' : 'text-[18px] tracking-[-0.02em]')}>
         {amount === null ? '-' : <AnimatedNumber value={amount} decimals={2} />}
-        <span className="ms-1 text-[12px] font-medium text-[var(--lp-text-muted)]">USDC</span>
+        <span className="ms-1 text-[14px] font-medium text-[var(--lp-text-muted)]">USDC</span>
       </span>
     </li>
   );

@@ -25,7 +25,7 @@ export function NetworkContext({ disclosure = false }: { disclosure?: boolean })
   const t = useTranslations().networkUi;
   const network = networkPresentation(settlementChain);
   const content = (
-    <div className="space-y-2 text-[13px] leading-6 text-[var(--lp-text-sub)]">
+    <div className="space-y-2 text-[14px] leading-6 text-[var(--lp-text-sub)] font-medium">
       <p className="font-semibold text-[var(--lp-dark)]">
         {t.settlementNetwork}: <bdi>Arc</bdi> · {t[network.environment]}
       </p>
@@ -44,7 +44,7 @@ export function NetworkContext({ disclosure = false }: { disclosure?: boolean })
 
   if (disclosure) return (
     <details className="group max-w-lg" data-network-context={network.environment}>
-      <summary className="flex min-h-[44px] cursor-pointer list-none items-center gap-3 py-2 text-[13.5px] font-medium text-[var(--lp-dark)] focus-visible:outline-offset-4">
+      <summary className="flex min-h-[44px] cursor-pointer list-none items-center gap-3 py-2 text-[14px] font-medium text-[var(--lp-dark)] focus-visible:outline-offset-4">
         {t.details}<span aria-hidden className="text-base group-open:rotate-45">+</span>
       </summary>
       <div className="pb-3 pt-1">{content}</div>

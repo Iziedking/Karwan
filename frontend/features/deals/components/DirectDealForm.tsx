@@ -440,7 +440,7 @@ export function DirectDealForm() {
 
   if (!isConnected) {
     return (
-      <p className="text-[13px] text-[var(--lp-text-sub)]">{dd.notConnected}</p>
+      <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{dd.notConnected}</p>
     );
   }
 
@@ -459,7 +459,7 @@ export function DirectDealForm() {
             />
           ))}
         </span>
-        <span className="text-[13px] font-semibold text-[var(--lp-text-sub)]">
+        <span className="text-[14px] font-semibold text-[var(--lp-text-sub)]">
           {rs.stepOf.replace('{n}', String(step + 1))} · {[rs.seller, rs.price, rs.payment][step]}
         </span>
       </div>
@@ -479,9 +479,9 @@ export function DirectDealForm() {
             className="form-input"
           />
           {contact.kind === 'email' && <EmailSuggestion email={counterparty} onApply={setCounterparty} className="mt-1.5" />}
-          {contact.kind === 'email' && <p className="mt-2 text-[13px] text-[var(--lp-dark)]">{fill(dd.counterparty.emailFound, { email: contact.email })}</p>}
-          {sellerAddress && !sameWallet && <p className="mt-2 text-[13px] text-[var(--lp-dark)]">{fill(dd.counterparty.addressFound, { short: shortAddress(sellerAddress) })}</p>}
-          {sameWallet && <span className="mono text-[11px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))] mt-1.5 inline-block">{dd.counterparty.walletSelfWarning}</span>}
+          {contact.kind === 'email' && <p className="mt-2 text-[14px] text-[var(--lp-dark)]">{fill(dd.counterparty.emailFound, { email: contact.email })}</p>}
+          {sellerAddress && !sameWallet && <p className="mt-2 text-[14px] text-[var(--lp-dark)]">{fill(dd.counterparty.addressFound, { short: shortAddress(sellerAddress) })}</p>}
+          {sameWallet && <span className="mono text-[14px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))] mt-1.5 inline-block">{dd.counterparty.walletSelfWarning}</span>}
           {partner && (
             <div
               className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-2.5"
@@ -491,12 +491,12 @@ export function DirectDealForm() {
                 borderRadius: 10,
               }}
             >
-              <span className="font-sans text-[13.5px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
+              <span className="font-sans text-[14px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
                 {partner.name}
               </span>
               {partner.verified && (
                 <span
-                  className="inline-flex items-center gap-1 mono text-[9px] font-bold uppercase tracking-[0.14em] px-1.5 py-0.5"
+                  className="inline-flex items-center gap-1 mono text-[13px] font-bold uppercase tracking-[0.14em] px-1.5 py-0.5"
                   style={{
                     background: 'color-mix(in oklab, #1f7a4c 14%, transparent)',
                     color: '#1f7a4c',
@@ -516,33 +516,33 @@ export function DirectDealForm() {
                 </span>
               )}
               {(partner.sector || partner.region) && (
-                <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                <span className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
                   {[partner.sector, partner.region].filter(Boolean).join(' · ')}
                 </span>
               )}
             </div>
           )}
           {contact.kind === 'tag' && contactState === 'looking' && (
-            <span className="mono text-[11px] text-[var(--lp-text-muted)] mt-1.5 inline-block">
+            <span className="mono text-[14px] text-[var(--lp-text-muted)] mt-1.5 inline-block">
               {fill(dd.counterparty.contactLooking, { tag: contact.tag })}
             </span>
           )}
           {contactMatch && (
-            <p className="mt-2 text-[13px] text-[var(--lp-dark)]">
+            <p className="mt-2 text-[14px] text-[var(--lp-dark)]">
               {contactMatch.kind === 'karwan'
                 ? fill(dd.counterparty.contactKarwan, { name: contactMatch.displayName, tag: contactMatch.tag })
                 : fill(dd.counterparty.contactPaytag, { tag: contactMatch.tag, masked: contactMatch.maskedAddress })}
             </p>
           )}
           {contact.kind === 'tag' && contactState === 'missing' && (
-            <span className="mono text-[11px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))] mt-1.5 inline-block">
+            <span className="mono text-[14px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))] mt-1.5 inline-block">
               {fill(paytagAllowed ? dd.counterparty.contactNotFoundPaytag : dd.counterparty.contactNotFound, { tag: contact.tag })}
             </span>
           )}
-          {contactState === 'self' && <span className="mono text-[11px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))] mt-1.5 inline-block">{dd.counterparty.contactSelf}</span>}
-          {contactState === 'error' && <span className="mono text-[11px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))] mt-1.5 inline-block">{dd.counterparty.contactError}</span>}
+          {contactState === 'self' && <span className="mono text-[14px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))] mt-1.5 inline-block">{dd.counterparty.contactSelf}</span>}
+          {contactState === 'error' && <span className="mono text-[14px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))] mt-1.5 inline-block">{dd.counterparty.contactError}</span>}
           {contact.kind === 'invalid' && counterparty.trim().length > 3 && !(/^0x[a-f0-9]*$/i.test(counterparty.trim()) && counterparty.trim().length < 42) && (
-            <span className="mono text-[11px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))] mt-1.5 inline-block">
+            <span className="mono text-[14px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))] mt-1.5 inline-block">
               {/^0x/i.test(counterparty.trim()) ? dd.counterparty.walletInvalid : dd.counterparty.contactInvalid}
             </span>
           )}
@@ -566,7 +566,7 @@ export function DirectDealForm() {
           />
         </FormLabel>
         <div className="space-y-2">
-          <p className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--lp-dark)]">
+          <p className="inline-flex items-center gap-1.5 text-[14px] font-medium text-[var(--lp-dark)]">
             {dd.terms.deadlineLabel}
             <Hint>{dd.terms.deadlineHint}</Hint>
           </p>
@@ -582,7 +582,7 @@ export function DirectDealForm() {
             }}
           />
         </div>
-        {deadlineValue === '' ? <p className="text-[14px] leading-6 text-[var(--lp-text-sub)]">{c.noDeadline}</p> : null}
+        {deadlineValue === '' ? <p className="text-[14px] leading-6 text-[var(--lp-text-sub)] font-medium">{c.noDeadline}</p> : null}
       </FieldSection>
       </div>
 
@@ -608,7 +608,7 @@ export function DirectDealForm() {
                 disabled={submitting}
                 onClick={() => setTradeType(opt)}
                 className={cn(
-                  'mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border transition-colors',
+                  'mono text-[14px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border transition-colors',
                   tradeType === opt
                     ? 'bg-[var(--lp-control-active-bg)] text-[var(--lp-control-active-ink)] border-[var(--lp-control-active-border)]'
                     : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
@@ -634,7 +634,7 @@ export function DirectDealForm() {
                     title={tt.incotermGloss[code]}
                     onClick={() => setIncoterms(code)}
                     className={cn(
-                      'mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border transition-colors',
+                      'mono text-[14px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border transition-colors',
                       incoterms === code
                         ? 'bg-[var(--lp-accent)] text-[var(--accent-ink)] border-[var(--lp-accent)]'
                         : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
@@ -657,7 +657,7 @@ export function DirectDealForm() {
                     disabled={submitting}
                     onClick={() => setPaymentTerms(code)}
                     className={cn(
-                      'mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border transition-colors',
+                      'mono text-[14px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border transition-colors',
                       paymentTerms === code
                         ? 'bg-[var(--lp-accent)] text-[var(--accent-ink)] border-[var(--lp-accent)]'
                         : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
@@ -737,7 +737,7 @@ export function DirectDealForm() {
                 className="form-input"
               />
               {hashingFile ? (
-                <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] mt-2">
+                <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] mt-2">
                   Hashing…
                 </p>
               ) : null}
@@ -751,13 +751,13 @@ export function DirectDealForm() {
                         borderRadius: 6,
                       }}
                     >
-                      <span className="mono text-[9px] uppercase tracking-[0.16em] font-bold px-1.5 py-0.5 bg-[var(--lp-dark)] text-[var(--lp-bg)]">
+                      <span className="mono text-[13px] uppercase tracking-[0.16em] font-bold px-1.5 py-0.5 bg-[var(--lp-dark)] text-[var(--lp-bg)]">
                         {DOC_KIND_LABEL_DD[d.kind]}
                       </span>
-                      <span className="flex-1 truncate text-[12px] text-[var(--lp-dark)]">
+                      <span className="flex-1 truncate text-[14px] text-[var(--lp-dark)]">
                         {d.label}
                       </span>
-                      <code className="mono text-[10px] tabular-nums text-[var(--lp-text-muted)] hidden sm:inline">
+                      <code className="mono text-[13px] tabular-nums text-[var(--lp-text-muted)] hidden sm:inline">
                         {d.hash.slice(0, 10)}…{d.hash.slice(-6)}
                       </code>
                       <button
@@ -840,12 +840,12 @@ export function DirectDealForm() {
                 <span className="font-sans text-[20px] font-extrabold tabular-nums tracking-[-0.02em] text-[var(--lp-dark)]">
                   {requireStakePct}
                 </span>
-                <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                <span className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
                   {dd.trustedMatch.pctCaption}
                 </span>
               </div>
               {typeof amount === 'number' && amount > 0 && (
-                <p className="basis-full mono text-[11px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)]">
+                <p className="basis-full mono text-[14px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)]">
                   {dd.trustedMatch.stakeNoteTemplate.replace(
                     '{amount}',
                     ((amount * requireStakePct) / 100).toFixed(2),
@@ -954,14 +954,14 @@ export function DirectDealForm() {
           {!submitting && <Icon name="send" size={16} directional />}
         </button>
         {!submitting && !reviewing && (
-          <p className="text-[14px] leading-6 text-[var(--lp-text-sub)]">
+          <p className="text-[14px] leading-6 text-[var(--lp-text-sub)] font-medium">
             {canSubmit ? c.directNext : c.required}
           </p>
         )}
       </div>
 
       {error && (
-        <p className="mono text-[12px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))]">
+        <p className="mono text-[14px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))]">
           {error}
         </p>
       )}
@@ -1003,12 +1003,12 @@ function FormLabel({
   return (
     <label className="block space-y-2">
       <span className="flex items-center gap-2 justify-between">
-        <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--lp-dark)]">
+        <span className="inline-flex items-center gap-1.5 text-[14px] font-medium text-[var(--lp-dark)]">
           {label}
           {hint && <Hint>{hint}</Hint>}
         </span>
         {unit && (
-          <span className="mono text-[9px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]/70">
+          <span className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]/70">
             {unit}
           </span>
         )}

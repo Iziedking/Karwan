@@ -163,7 +163,7 @@ export function AgentX402Panel({
       }}
     >
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <span className="inline-flex items-center mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+        <span className="inline-flex items-center mono text-[13px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
           Agent payments
           <Hint side="bottom" align="start">
             <span className="block">
@@ -173,7 +173,7 @@ export function AgentX402Panel({
             </span>
           </Hint>
         </span>
-        <span className="inline-flex items-center gap-2 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
+        <span className="inline-flex items-center gap-2 mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
           <span aria-hidden className="inline-block size-1.5 rounded-full bg-[var(--lp-accent)] animate-pulse" />
           agents paid ${total.toFixed(3)} · {display.length} call{display.length === 1 ? '' : 's'}
         </span>
@@ -204,16 +204,16 @@ export function AgentX402Panel({
                 className="w-full text-start px-3.5 py-2.5 flex items-center gap-3 hover:bg-black/[0.02] transition"
               >
                 <span
-                  className="mono text-[9px] font-bold uppercase tracking-[0.12em] px-1.5 py-0.5 rounded shrink-0"
+                  className="mono text-[13px] font-bold uppercase tracking-[0.12em] px-1.5 py-0.5 rounded shrink-0"
                   style={{ color: railTone, background: `${railTone}1f` }}
                 >
                   {p.rail === 'arc' ? 'Arc' : 'Base'}
                 </span>
-                <span className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] shrink-0">
+                <span className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] shrink-0">
                   {p.agent} agent
                 </span>
-                <span className="flex-1 text-[13px] text-[var(--lp-dark)] truncate">{label}</span>
-                <span className="mono text-[13px] font-bold tabular-nums text-[var(--lp-dark)] shrink-0">
+                <span className="flex-1 text-[14px] text-[var(--lp-dark)] truncate">{label}</span>
+                <span className="mono text-[14px] font-bold tabular-nums text-[var(--lp-dark)] shrink-0">
                   ${p.amountUsd.toFixed(3)}
                 </span>
                 <svg
@@ -228,7 +228,7 @@ export function AgentX402Panel({
                 </svg>
               </button>
               {isOpen && (
-                <div className="px-3.5 pb-3 pt-1 text-[12px] text-[var(--lp-text-sub)] border-t border-[var(--lp-border-light)]">
+                <div className="px-3.5 pb-3 pt-1 text-[14px] text-[var(--lp-text-sub)] border-t border-[var(--lp-border-light)] font-medium">
                   {p.kind === 'reputation' && (p.tier || p.score != null) && (
                     <p className="mt-2">
                       Returned: tier <strong className="text-[var(--lp-dark)]">{p.tier ?? '—'}</strong>
@@ -245,7 +245,7 @@ export function AgentX402Panel({
                       agent used this read to price the deal.
                     </p>
                   )}
-                  <div className="mt-2 flex items-center gap-3 flex-wrap mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                  <div className="mt-2 flex items-center gap-3 flex-wrap mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
                     <span>${p.amountUsd.toFixed(3)} on {p.rail === 'arc' ? 'Arc' : 'Base'}</span>
                     {p.rail === 'arc' && typeof p.gatewayBalanceAfter === 'number' && (
                       <span>deposit left ${p.gatewayBalanceAfter.toFixed(2)}</span>
@@ -265,7 +265,7 @@ export function AgentX402Panel({
                     )}
                   </div>
                   {p.rail === 'arc' && (
-                    <p className="mt-1.5 text-[10px] leading-snug text-[var(--lp-text-muted)] normal-case tracking-normal">
+                    <p className="mt-1.5 text-[13px] leading-snug text-[var(--lp-text-muted)] normal-case tracking-normal">
                       Paid from the agent&apos;s on-chain Gateway deposit. Cents settle in netted
                       batches, so they never appear as individual transfers.
                     </p>

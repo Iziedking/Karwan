@@ -49,18 +49,18 @@ export function WorkspaceSwitcher({ compact = false }: { compact?: boolean }) {
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
         className={cn(
-          'inline-flex min-h-10 items-center gap-2 rounded-full border border-[var(--color-line-strong)] px-3 text-[12px] font-semibold text-[var(--color-ink)] transition-colors hover:bg-[var(--color-surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]',
+          'inline-flex min-h-10 items-center gap-2 rounded-full border border-[var(--color-line-strong)] px-3 text-[14px] font-semibold text-[var(--color-ink)] transition-colors hover:bg-[var(--color-surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]',
           compact && 'max-w-[150px] px-2.5 sm:max-w-[220px]',
         )}
       >
-        <span aria-hidden className="grid size-6 shrink-0 place-items-center rounded-full bg-[var(--lp-accent)] text-[10px] font-black text-[#10170b]">
+        <span aria-hidden className="grid size-6 shrink-0 place-items-center rounded-full bg-[var(--lp-accent)] text-[13px] font-black text-[#10170b]">
           {activeWorkspace.kind === 'business' ? 'B' : 'P'}
         </span>
-        <span className="hidden text-[11px] font-semibold text-[var(--color-ink-dim)] sm:inline">{activeKindLabel}</span>
+        <span className="hidden text-[14px] font-semibold text-[var(--color-ink-dim)] sm:inline">{activeKindLabel}</span>
         <span className={cn('min-w-0 truncate', compact && 'hidden sm:block')}>
           {activeWorkspace.name}
         </span>
-        <span aria-hidden className="text-[14px] text-[var(--color-ink-dim)]">⌄</span>
+        <span aria-hidden className="text-[14px] text-[var(--color-ink-dim)] font-medium">⌄</span>
       </button>
 
       {open ? (
@@ -76,19 +76,19 @@ export function WorkspaceSwitcher({ compact = false }: { compact?: boolean }) {
                   workspace.id === activeWorkspace.id && 'bg-[var(--color-surface-2)]',
                 )}
               >
-                <span aria-hidden className="grid size-7 shrink-0 place-items-center rounded-full border border-[var(--color-line-strong)] text-[10px] font-bold text-[var(--lp-accent)]">
+                <span aria-hidden className="grid size-7 shrink-0 place-items-center rounded-full border border-[var(--color-line-strong)] text-[13px] font-bold text-[var(--lp-accent)]">
                   {workspace.kind === 'business' ? 'B' : 'P'}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[13px] font-semibold text-[var(--color-ink)]">{workspace.name}</span>
-                  <span className="mt-0.5 block text-[11px] text-[var(--color-ink-dim)]">{workspace.kind === 'business' ? businessCopy.label : personalLabel}</span>
+                  <span className="block truncate text-[14px] font-semibold text-[var(--color-ink)]">{workspace.name}</span>
+                  <span className="mt-0.5 block text-[14px] text-[var(--color-ink-dim)] font-medium">{workspace.kind === 'business' ? businessCopy.label : personalLabel}</span>
                 </span>
                 {workspace.id === activeWorkspace.id ? <span aria-hidden className="text-[var(--lp-accent)]">✓</span> : null}
               </button>
             ))}
           </div>
           {BUSINESS_ACCOUNTS_OPEN && !workspaces.some((workspace) => workspace.kind === 'business') ? (
-            <Link href="/profile/business/setup" onClick={() => setOpen(false)} className="mt-2 flex min-h-11 items-center justify-between rounded-[12px] border border-dashed border-[var(--color-line-strong)] px-3 text-[12px] font-semibold text-[var(--color-ink)] hover:border-[var(--lp-accent)]">
+            <Link href="/profile/business/setup" onClick={() => setOpen(false)} className="mt-2 flex min-h-11 items-center justify-between rounded-[12px] border border-dashed border-[var(--color-line-strong)] px-3 text-[14px] font-semibold text-[var(--color-ink)] hover:border-[var(--lp-accent)]">
               {businessCopy.open} <span aria-hidden>＋</span>
             </Link>
           ) : null}

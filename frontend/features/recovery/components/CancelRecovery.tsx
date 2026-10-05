@@ -24,7 +24,7 @@ export function CancelRecovery({ token }: { token: string }) {
       <h1 className="text-[22px] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--lp-dark)] sm:text-[26px]">
         {state === 'done' ? t.done : t.title}
       </h1>
-      <p role="status" className="mt-2 text-[14px] leading-[1.5] text-[var(--lp-text-sub)] sm:text-[15px]">
+      <p role="status" className="mt-2 text-[14px] leading-[1.5] text-[var(--lp-text-sub)] sm:text-[15px] font-medium">
         {state === 'done' ? t.doneBody : state === 'invalid' ? t.invalid : t.body}
       </p>
       {(state === 'idle' || state === 'busy') && (

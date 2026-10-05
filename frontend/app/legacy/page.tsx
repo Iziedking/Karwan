@@ -128,7 +128,7 @@ function LegacyPageInner() {
             </p>
             <Link
               href="/"
-              className="mt-8 inline-flex min-h-11 items-center gap-2 px-5 py-3 mono text-[12px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)]"
+              className="mt-8 inline-flex min-h-11 items-center gap-2 px-5 py-3 mono text-[14px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)]"
               style={{
                 borderRadius: 12,
               }}
@@ -163,14 +163,14 @@ function LegacyPageInner() {
               borderRadius: 12,
             }}
           >
-            <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-accent)]">
+            <span className="mono text-[13px] font-bold uppercase tracking-[0.16em] text-[var(--lp-accent)]">
               {lp.hero.windowClosesIn}
             </span>
             <span className="mono text-[14px] sm:text-[16px] font-extrabold text-white tabular-nums">
               {windowState?.closesAtMs ? <Countdown targetMs={windowState.closesAtMs} /> : '...'}
             </span>
           </div>
-          <p className="mt-5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] leading-relaxed">
+          <p className="mt-5 mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] leading-relaxed">
             {lp.hero.afterWindowNote}
           </p>
         </div>
@@ -181,7 +181,7 @@ function LegacyPageInner() {
         <HeroHeadline size="md">
           {lp.stake.title}<Punc>.</Punc>
         </HeroHeadline>
-        <p className="mt-4 text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[58ch]">
+        <p className="mt-4 text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[58ch] font-medium">
           {lp.stake.bodyBefore}{' '}
           <Link href="/stake" className="-my-2 inline-flex min-h-11 min-w-11 items-center justify-center align-middle underline underline-offset-2">
             {lp.stake.stakeLink}
@@ -198,7 +198,7 @@ function LegacyPageInner() {
         <HeroHeadline size="md">
           {lp.deals.title}<Punc>.</Punc>
         </HeroHeadline>
-        <p className="mt-4 text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[58ch]">
+        <p className="mt-4 text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[58ch] font-medium">
           {lp.deals.body}
         </p>
         <div className="mt-8">
@@ -453,7 +453,7 @@ function LegacyStakeCard({
       )}
 
       {lastTx && (
-        <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+        <p className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
           {copy.stake.txPrefix}{' '}
           <a
             href={ARC_EXPLORER_TX(lastTx)}
@@ -509,7 +509,7 @@ function PositionGroup({
 }) {
   return (
     <div className="space-y-2.5">
-      <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+      <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
         {title}
       </p>
       <ul className="space-y-2">
@@ -528,7 +528,7 @@ function PositionGroup({
               <div className="min-w-0">
                 <p className="font-sans text-[18px] font-extrabold tabular-nums tracking-[-0.02em] leading-none">
                   {formatUsdc(p.principalUsdc, { withSuffix: false })}{' '}
-                  <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] font-normal">
+                  <span className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] font-normal">
                     USDC · #{p.positionId} · GEN {p.generation}
                   </span>
                 </p>
@@ -538,7 +538,7 @@ function PositionGroup({
                 onClick={() => onAction(actionKind, p.positionId, p.generation)}
                 disabled={isBusy}
                 className={cn(
-                  'shrink-0 px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.08em]',
+                  'shrink-0 px-4 py-2 mono text-[14px] font-bold uppercase tracking-[0.08em]',
                   'bg-[var(--lp-band-dark)] text-[var(--lp-accent)] hover:bg-black/85 transition-colors',
                   'disabled:opacity-50 disabled:cursor-not-allowed',
                 )}
@@ -573,7 +573,7 @@ function CoolingGroup({
 }) {
   return (
     <div className="space-y-2.5">
-      <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+      <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
         {copy.stake.coolingTitle}
       </p>
       <ul className="space-y-2">
@@ -596,11 +596,11 @@ function CoolingGroup({
               <div className="min-w-0">
                 <p className="font-sans text-[18px] font-extrabold tabular-nums tracking-[-0.02em] leading-none">
                   {formatUsdc(p.principalUsdc, { withSuffix: false })}{' '}
-                  <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] font-normal">
+                  <span className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] font-normal">
                     USDC · #{p.positionId} · GEN {p.generation}
                   </span>
                 </p>
-                <p className="mt-1 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                <p className="mt-1 mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
                   {claimable
                     ? copy.stake.claimReady
                     : copy.stake.claimInTemplate.replace('{days}', String(days)).replace('{hours}', String(hours))}
@@ -612,7 +612,7 @@ function CoolingGroup({
                     type="button"
                     onClick={() => onAction('cancel', p.positionId, p.generation)}
                     disabled={isBusy}
-                    className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] underline underline-offset-2 disabled:opacity-50"
+                    className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] underline underline-offset-2 disabled:opacity-50"
                   >
                     {copy.stake.cancelLink}
                   </button>
@@ -623,7 +623,7 @@ function CoolingGroup({
                     onClick={() => onAction('claim', p.positionId, p.generation)}
                     disabled={isBusy}
                     className={cn(
-                      'px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.08em]',
+                      'px-4 py-2 mono text-[14px] font-bold uppercase tracking-[0.08em]',
                       'bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors',
                       'disabled:opacity-50 disabled:cursor-not-allowed',
                     )}
@@ -796,7 +796,7 @@ function LegacyDealsList({ address, copy }: { address: string; copy: Messages['l
         <Note tone="info">{copy.deals.noneOpen}</Note>
       ) : (
         <div className="space-y-2.5">
-          <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+          <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
             {copy.deals.openSectionTitle}
           </p>
           <ul className="space-y-3">
@@ -818,7 +818,7 @@ function LegacyDealsList({ address, copy }: { address: string; copy: Messages['l
 
       {past.length > 0 && (
         <div className="space-y-2.5">
-          <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+          <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
             {copy.deals.pastSectionTitle}
           </p>
           <ul className="space-y-2">
@@ -833,14 +833,14 @@ function LegacyDealsList({ address, copy }: { address: string; copy: Messages['l
                 }}
               >
                 <div className="min-w-0">
-                  <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                  <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
                     {(copy.deals.roles[deal.role] ?? deal.role)} · {(copy.deals.stateLabels[deal.stateLabel] ?? deal.stateLabel)}
                   </p>
                   <p className="mt-1 font-sans text-[16px] font-extrabold tabular-nums">
                     {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })} USDC
                   </p>
                 </div>
-                <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                <span className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
                   {deal.jobId.slice(0, 10)}…{deal.jobId.slice(-6)}
                 </span>
               </li>
@@ -850,7 +850,7 @@ function LegacyDealsList({ address, copy }: { address: string; copy: Messages['l
       )}
 
       {lastTx && (
-        <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+        <p className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
           {copy.deals.txPrefix}{' '}
           <a
             href={ARC_EXPLORER_TX(lastTx)}
@@ -969,24 +969,24 @@ function DealRow({
     >
       <div className="flex items-baseline justify-between gap-3 flex-wrap">
         <div className="min-w-0">
-          <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+          <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
             {(copy.deals.roles[deal.role] ?? deal.role).toUpperCase()} · {(copy.deals.stateLabels[deal.stateLabel] ?? deal.stateLabel).toUpperCase()} · {copy.deals.row.genTemplate.replace('{n}', String(deal.generation))}: {deal.jobId.slice(0, 10)}…{deal.jobId.slice(-6)}
           </p>
           <p className="mt-1.5 font-sans text-[22px] font-extrabold tabular-nums tracking-[-0.02em] leading-none">
             {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}{' '}
-            <span className="mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] font-normal">
+            <span className="mono text-[14px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] font-normal">
               USDC
             </span>
           </p>
         </div>
-        <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+        <span className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
           {deal.pastDeadline ? copy.deals.row.pastDeadline : copy.deals.row.live} · {deal.delivered ? copy.deals.row.delivered : copy.deals.row.notDelivered}
         </span>
       </div>
 
       {deal.hasCancellationProposal && deal.cancellationProposal && (
-        <p className="text-[12.5px] leading-snug text-[var(--lp-dark)]">
-          <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] me-2">
+        <p className="text-[14px] leading-snug text-[var(--lp-dark)]">
+          <span className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] me-2">
             {copy.deals.row.cancelProposedByTemplate.replace(
               '{role}',
               copy.deals.roles[deal.cancellationProposal.proposedBy] ?? deal.cancellationProposal.proposedBy,
@@ -1032,7 +1032,7 @@ function DealRow({
       </div>
 
       {!canRefund && !canRelease && !canAcceptCancel && !canProposeCancel && (
-        <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+        <p className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
           {copy.deals.row.noAction}
         </p>
       )}
@@ -1059,7 +1059,7 @@ function ActionButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        'px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.08em] transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
+        'px-4 py-2 mono text-[14px] font-bold uppercase tracking-[0.08em] transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
         tone === 'primary'
           ? 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)]'
           : 'border border-[var(--lp-outline-strong)] text-[var(--lp-dark)] hover:bg-black/[0.04] hover:border-[var(--lp-outline-hover)]',
@@ -1083,7 +1083,7 @@ function Stat({ label, value }: { label: string; value: string }) {
         borderRadius: 12,
       }}
     >
-      <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+      <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
         {label}
       </p>
       <p className="mt-1 font-sans text-[20px] font-extrabold tabular-nums tracking-[-0.02em]">
@@ -1114,7 +1114,7 @@ function Note({
         };
   return (
     <div
-      className="px-4 py-3 text-[12.5px] leading-snug"
+      className="px-4 py-3 text-[14px] leading-snug"
       style={{
         ...style,
         borderRadius: 10,

@@ -86,7 +86,7 @@ export function OffersRoster({ jobId, bids, pickSeller, caller, choosable, open:
                   </span>
                 ))}
                 {extra > 0 ? (
-                  <span className="-ms-2.5 grid size-[30px] place-items-center rounded-full bg-[var(--lp-light)] text-[11px] font-semibold text-[var(--lp-text-sub)] ring-2 ring-[var(--lp-card)]">+{extra}</span>
+                  <span className="-ms-2.5 grid size-[30px] place-items-center rounded-full bg-[var(--lp-light)] text-[14px] font-semibold text-[var(--lp-text-sub)] ring-2 ring-[var(--lp-card)]">+{extra}</span>
                 ) : null}
               </span>
               <span className="min-w-0 truncate text-[14px]">
@@ -96,7 +96,7 @@ export function OffersRoster({ jobId, bids, pickSeller, caller, choosable, open:
                 ) : null}
               </span>
             </span>
-            <span className="inline-flex shrink-0 items-center gap-1 text-[13px] font-semibold text-[var(--lp-dark)]">
+            <span className="inline-flex shrink-0 items-center gap-1 text-[14px] font-semibold text-[var(--lp-dark)]">
               {copy.show}
               <Icon name="chevron-right" size={16} className="rotate-90" />
             </span>
@@ -112,7 +112,7 @@ export function OffersRoster({ jobId, bids, pickSeller, caller, choosable, open:
               type="button"
               onClick={() => setOpen(false)}
               aria-expanded
-              className="inline-flex min-h-11 items-center gap-1 text-[13px] font-semibold text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+              className="inline-flex min-h-11 items-center gap-1 text-[14px] font-semibold text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
             >
               {copy.hide}
               <Icon name="chevron-right" size={16} className="-rotate-90" />
@@ -129,14 +129,14 @@ export function OffersRoster({ jobId, bids, pickSeller, caller, choosable, open:
             <button
               type="button"
               onClick={() => setPage((p) => p + 1)}
-              className="flex min-h-12 w-full items-center justify-center border-t border-[var(--lp-border-light)] text-[13px] font-semibold text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)]"
+              className="flex min-h-12 w-full items-center justify-center border-t border-[var(--lp-border-light)] text-[14px] font-semibold text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)]"
             >
               {fill(copy.showMore, { n: Math.min(OFFERS_PER_PAGE, ranked.length - shown.length) })}
             </button>
           ) : null}
         </div>
       )}
-      {open ? <p className="mt-3 px-1 text-[12.5px] leading-relaxed text-[var(--lp-text-sub)]">{copy.rankNote}</p> : null}
+      {open ? <p className="mt-3 px-1 text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{copy.rankNote}</p> : null}
 
       <Sheet open={!!viewing && !confirming} title={viewing ? nameOf(viewing) : ''} onClose={() => setViewing(null)}>
         {viewing ? (
@@ -193,7 +193,7 @@ function OfferRow({ bid, pick, copy, onOpen }: { bid: BuyerBid; pick: boolean; c
           <span dir="auto" className="truncate text-[14px] font-semibold text-[var(--lp-dark)]">{nameOf(bid)}</span>
           <ReputationBadge address={bid.seller} size="sm" appearance="quiet" />
         </span>
-        <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[12.5px] text-[var(--lp-text-sub)]">
+        <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[14px] text-[var(--lp-text-sub)] font-medium">
           {pick ? <span className="font-semibold text-[var(--color-positive)]">{copy.pick}</span> : null}
           {level ? <FitMark level={level} copy={copy} /> : null}
           {by ? <span>{fill(copy.delivers, { date: by })}</span> : null}
@@ -201,7 +201,7 @@ function OfferRow({ bid, pick, copy, onOpen }: { bid: BuyerBid; pick: boolean; c
       </span>
       <span className="shrink-0 text-end text-[16px] font-semibold tabular-nums text-[var(--lp-dark)]">
         {price(bid.priceUsdc)}
-        <span className="block text-[11px] font-medium text-[var(--lp-text-sub)]">USDC</span>
+        <span className="block text-[14px] font-medium text-[var(--lp-text-sub)]">USDC</span>
       </span>
     </button>
   );
@@ -225,29 +225,29 @@ function OfferDetail({ bid, pick, copy, canChoose, onChoose }: {
         <PersonAvatar address={bid.sellerUserAddress ?? undefined} name={nameOf(bid)} size={44} />
         <div className="min-w-0 flex-1">
           <ReputationBadge address={bid.seller} size="md" appearance="quiet" />
-          {pick ? <p className="mt-0.5 text-[12.5px] font-semibold text-[var(--color-positive)]">{copy.pick}</p> : null}
+          {pick ? <p className="mt-0.5 text-[14px] font-semibold text-[var(--color-positive)]">{copy.pick}</p> : null}
         </div>
         <p className="shrink-0 text-end text-[22px] font-semibold tabular-nums text-[var(--lp-dark)]">
           {price(bid.priceUsdc)}
-          <span className="block text-[12px] font-medium text-[var(--lp-text-sub)]">USDC</span>
+          <span className="block text-[14px] font-medium text-[var(--lp-text-sub)]">USDC</span>
         </p>
       </div>
       <dl className="grid grid-cols-3 gap-2">
         <div className="rounded-[14px] bg-[var(--lp-light)] p-3">
-          <dt className="text-[11.5px] text-[var(--lp-text-sub)]">{copy.settled}</dt>
+          <dt className="text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.settled}</dt>
           <dd className="mt-0.5 text-[17px] font-semibold tabular-nums text-[var(--lp-dark)]">{settled ?? '-'}</dd>
         </div>
         <div className="rounded-[14px] bg-[var(--lp-light)] p-3">
-          <dt className="text-[11.5px] text-[var(--lp-text-sub)]">{copy.disputes}</dt>
+          <dt className="text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.disputes}</dt>
           <dd className="mt-0.5 text-[17px] font-semibold tabular-nums text-[var(--lp-dark)]">{data ? data.disputedCount : '-'}</dd>
         </div>
         <div className="rounded-[14px] bg-[var(--lp-light)] p-3">
-          <dt className="text-[11.5px] text-[var(--lp-text-sub)]">{copy.deliverBy}</dt>
+          <dt className="text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.deliverBy}</dt>
           <dd className="mt-0.5 text-[17px] font-semibold text-[var(--lp-dark)]">{by}</dd>
         </div>
       </dl>
       {level || settled === 0 ? (
-        <p className="flex flex-wrap gap-2 text-[12.5px]">
+        <p className="flex flex-wrap gap-2 text-[14px]">
           {level ? <span className="rounded-full bg-[var(--lp-light)] px-3 py-1.5 text-[var(--lp-dark)]"><FitMark level={level} copy={copy} /></span> : null}
           {settled === 0 ? <span className="rounded-full bg-[var(--lp-light)] px-3 py-1.5 text-[var(--lp-text-sub)]">{copy.newHere}</span> : null}
         </p>
@@ -262,7 +262,7 @@ function OfferDetail({ bid, pick, copy, canChoose, onChoose }: {
         </button>
       ) : null}
       {bid.sellerUserAddress ? (
-        <a href={`/credit-passport/${bid.sellerUserAddress}`} className="block text-center text-[13px] font-semibold text-[var(--lp-dark)] underline underline-offset-4">
+        <a href={`/credit-passport/${bid.sellerUserAddress}`} className="block text-center text-[14px] font-semibold text-[var(--lp-dark)] underline underline-offset-4">
           {copy.record}
         </a>
       ) : null}

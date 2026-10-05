@@ -169,7 +169,7 @@ export function PasskeySignIn({ onStart }: { onStart: () => void }) {
 
       {step === 'create' && (
         <div className="space-y-3">
-          <p className="text-[14px] leading-snug text-[var(--lp-text-sub)]">{t.passkeyCreateHint}</p>
+          <p className="text-[14px] leading-snug text-[var(--lp-text-sub)] font-medium">{t.passkeyCreateHint}</p>
           <button
             type="button"
             data-auth-primary

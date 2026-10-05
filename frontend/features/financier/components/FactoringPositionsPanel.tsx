@@ -56,12 +56,12 @@ export function FactoringPositionsPanel() {
     <section className="border-t border-[var(--lp-border-light)] px-5 py-6 sm:px-7">
       <div className="mb-4 flex items-end justify-between gap-4">
         <div>
-          <p className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+          <p className="mono text-[13px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
             Invoice financing
           </p>
           <h2 className="mt-1 text-[20px] font-semibold text-[var(--lp-dark)]">{pb.financierPanels.yourPositions}</h2>
         </div>
-        <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+        <span className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
           {offers.length} {offers.length === 1 ? 'position' : 'positions'}
         </span>
       </div>
@@ -74,19 +74,19 @@ export function FactoringPositionsPanel() {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <span
-                    className="mono inline-flex px-2 py-1 text-[9px] font-bold uppercase tracking-[0.14em]"
+                    className="mono inline-flex px-2 py-1 text-[13px] font-bold uppercase tracking-[0.14em]"
                     style={{ color: status.tone, background: `color-mix(in srgb, ${status.tone} 12%, transparent)` }}
                   >
                     {status.label}
                   </span>
-                  <p className="mt-2 text-[12px] text-[var(--lp-text-sub)]">{status.detail}</p>
+                  <p className="mt-2 text-[14px] text-[var(--lp-text-sub)] font-medium">{status.detail}</p>
                 </div>
                 <p className="shrink-0 text-end text-[18px] font-semibold tabular-nums text-[var(--lp-dark)]">
                   {offer.offeredAdvanceUsdc} USDC
                 </p>
               </div>
 
-              <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-[var(--lp-border-light)] pt-3 text-[11px]">
+              <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-[var(--lp-border-light)] pt-3 text-[14px]">
                 <div>
                   <dt className="mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">{pb.financierPanels.expectedReturn}</dt>
                   <dd className="mt-1 font-semibold tabular-nums text-[var(--lp-dark)]">{offer.expectedReturnUsdc} USDC</dd>
@@ -98,10 +98,10 @@ export function FactoringPositionsPanel() {
               </dl>
 
               <div className="mt-4 flex items-center justify-between gap-3">
-                <span className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">{dateLabel(offer)}</span>
+                <span className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">{dateLabel(offer)}</span>
                 <Link
                   href={`/financier/factoring/${offer.id}`}
-                  className="mono text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lp-dark)] underline underline-offset-4"
+                  className="mono text-[13px] font-bold uppercase tracking-[0.14em] text-[var(--lp-dark)] underline underline-offset-4"
                 >
                   View position →
                 </Link>
@@ -116,7 +116,7 @@ export function FactoringPositionsPanel() {
           aria-label="Invoice financing positions pagination"
           className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--lp-border-light)] pt-4"
         >
-          <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+          <span className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
             {pageStart + 1}–{pageEnd} of {offers.length}
           </span>
           <div className="flex items-center gap-2">
@@ -129,7 +129,7 @@ export function FactoringPositionsPanel() {
             >
               ←
             </button>
-            <span className="mono min-w-[3.5rem] text-center text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+            <span className="mono min-w-[3.5rem] text-center text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
               {page + 1} / {pageCount}
             </span>
             <button
@@ -139,7 +139,7 @@ export function FactoringPositionsPanel() {
               onClick={() => setPage((current) => Math.min(pageCount - 1, current + 1))}
               className="inline-flex min-h-11 items-center gap-2 bg-[var(--lp-accent)] px-4 text-[var(--lp-dark)] transition-colors hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-35"
             >
-              <span className="mono text-[10px] font-bold uppercase tracking-[0.14em]">Next</span>
+              <span className="mono text-[13px] font-bold uppercase tracking-[0.14em]">Next</span>
               <span aria-hidden>→</span>
             </button>
           </div>

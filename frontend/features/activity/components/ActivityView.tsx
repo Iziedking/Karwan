@@ -100,10 +100,10 @@ export function ActivityView({ explorer }: { explorer: string }) {
   if (!isAuthed || !address) {
     return (
       <div className="py-12 text-center space-y-2.5 max-w-[48ch] mx-auto">
-        <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+        <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
           {t.notSignedInEyebrow}
         </p>
-        <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+        <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
           {t.notSignedInBody}
         </p>
       </div>
@@ -152,7 +152,7 @@ export function ActivityView({ explorer }: { explorer: string }) {
         ) : (
           <div id="activity-events-panel" className="min-w-0 space-y-4 p-3 sm:p-4" data-guide="activity-stream">
         <div ref={streamTopRef} className="flex items-baseline justify-end gap-3 scroll-mt-24">
-          <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+          <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
             {filtered.length === 0
               ? t.countZero
               : t.countRange
@@ -183,7 +183,7 @@ export function ActivityView({ explorer }: { explorer: string }) {
               type="button"
               onClick={() => setOnlyMine(v)}
               aria-pressed={onlyMine === v}
-              className={`inline-flex min-h-11 items-center mono text-[10px] uppercase tracking-[0.12em] px-3 py-1.5 rounded-md border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] ${
+              className={`inline-flex min-h-11 items-center mono text-[13px] uppercase tracking-[0.12em] px-3 py-1.5 rounded-md border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] ${
                 onlyMine === v
                   ? 'bg-[var(--lp-control-active-bg)] text-[var(--lp-control-active-ink)] border-[var(--lp-control-active-border)] font-bold'
                   : 'border-[var(--lp-border-light)] text-[var(--lp-text-muted)] hover:text-[var(--lp-ink)]'
@@ -258,12 +258,12 @@ function StreamSkeleton({ label }: { label: string }) {
 function StreamError({ body, retryLabel, onRetry }: { body: string; retryLabel: string; onRetry: () => void }) {
   return (
     <div role="alert" className="rounded-xl border border-[var(--lp-border-light)] p-5 text-center space-y-3">
-      <p className="text-[13px] font-semibold text-[var(--lp-dark)]">Activity unavailable</p>
-      <p className="text-[13px] leading-relaxed text-[var(--lp-text-sub)] max-w-[42ch] mx-auto">{body}</p>
+      <p className="text-[14px] font-semibold text-[var(--lp-dark)]">Activity unavailable</p>
+      <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[42ch] mx-auto font-medium">{body}</p>
       <button
         type="button"
         onClick={onRetry}
-        className="inline-flex min-h-11 items-center justify-center px-4 rounded-md border border-[var(--lp-border-light)] mono text-[10px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+        className="inline-flex min-h-11 items-center justify-center px-4 rounded-md border border-[var(--lp-border-light)] mono text-[13px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
       >
         {retryLabel}
       </button>
@@ -274,11 +274,11 @@ function StreamError({ body, retryLabel, onRetry }: { body: string; retryLabel: 
 function StreamRefreshNotice({ body, retryLabel, onRetry }: { body: string; retryLabel: string; onRetry: () => void }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--lp-border-light)] bg-[var(--lp-light)] px-3 py-2">
-      <p className="text-[12px] leading-snug text-[var(--lp-text-sub)]">{body}</p>
+      <p className="text-[14px] leading-snug text-[var(--lp-text-sub)] font-medium">{body}</p>
       <button
         type="button"
         onClick={onRetry}
-        className="inline-flex min-h-11 items-center px-3 mono text-[10px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] hover:text-[var(--lp-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+        className="inline-flex min-h-11 items-center px-3 mono text-[13px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] hover:text-[var(--lp-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
       >
         {retryLabel}
       </button>
@@ -328,7 +328,7 @@ function Pager({
         onClick={() => onPage(page - 1)}
         disabled={page <= 1}
         aria-label={t.prevAria}
-        className="inline-flex min-h-11 min-w-11 items-center justify-center mono text-[11px] px-2.5 py-1.5 border transition-colors disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+        className="inline-flex min-h-11 min-w-11 items-center justify-center mono text-[14px] px-2.5 py-1.5 border transition-colors disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
         style={{ borderColor: 'var(--lp-border-light)', color: 'var(--lp-text-sub)', ...radius }}
       >
         ←
@@ -339,7 +339,7 @@ function Pager({
           <span
             key={`gap-${i}`}
             aria-hidden
-            className="mono text-[11px] px-1 text-[var(--lp-text-muted)]"
+            className="mono text-[14px] px-1 text-[var(--lp-text-muted)]"
           >
             …
           </span>
@@ -349,7 +349,7 @@ function Pager({
             type="button"
             onClick={() => onPage(it)}
             aria-current={it === page ? 'page' : undefined}
-            className="inline-flex min-h-11 min-w-11 items-center justify-center mono text-[11px] tabular-nums px-3 py-1.5 border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center mono text-[14px] tabular-nums px-3 py-1.5 border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
             style={
               it === page
                 ? { background: 'var(--lp-accent)', borderColor: 'var(--lp-accent)', color: 'var(--accent-ink)', ...radius }
@@ -366,7 +366,7 @@ function Pager({
         onClick={() => onPage(page + 1)}
         disabled={page >= totalPages}
         aria-label={t.nextAria}
-        className="inline-flex min-h-11 min-w-11 items-center justify-center mono text-[11px] px-2.5 py-1.5 border transition-colors disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+        className="inline-flex min-h-11 min-w-11 items-center justify-center mono text-[14px] px-2.5 py-1.5 border transition-colors disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
         style={{ borderColor: 'var(--lp-border-light)', color: 'var(--lp-text-sub)', ...radius }}
       >
         →

@@ -27,7 +27,7 @@ export function SecondaryCTA({
 }: SecondaryCTAProps) {
   const classes = cn(
     'group inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] px-[22px] py-[13px]',
-    'font-mono text-[12px] font-semibold uppercase tracking-[0.06em]',
+    'font-mono text-[14px] font-semibold uppercase tracking-[0.06em]',
     'transition-[background-color,border-color,color,transform] duration-[var(--dur-fast)]',
     'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]',
     onDark

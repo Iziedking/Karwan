@@ -87,7 +87,7 @@ export function V3EscrowPanel({ deal, address, onChanged }: {
           </p>
           {reason ? <p className="text-[15px] text-[var(--lp-dark)]">{reason}</p> : null}
           {r.appealEndsAtMs ? (
-            <p className="text-[14px] text-[var(--lp-text-sub)]">{fill(copy.ruling.applies, { date: when(r.appealEndsAtMs) })}</p>
+            <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{fill(copy.ruling.applies, { date: when(r.appealEndsAtMs) })}</p>
           ) : null}
           {state.canAct ? button(copy.ruling.appeal, () => setSheet('escalate')) : null}
         </>
@@ -102,7 +102,7 @@ export function V3EscrowPanel({ deal, address, onChanged }: {
           <h2 className="text-[20px] font-semibold text-[var(--lp-dark)]">{copy.waiting.title}</h2>
           <p className="text-[15px] text-[var(--lp-dark)]">{copy.waiting.body}</p>
           {state.escalateOpensAtMs && !state.canAct ? (
-            <p className="text-[14px] text-[var(--lp-text-sub)]">{fill(copy.waiting.escalateFrom, { date: when(state.escalateOpensAtMs) })}</p>
+            <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{fill(copy.waiting.escalateFrom, { date: when(state.escalateOpensAtMs) })}</p>
           ) : null}
           {state.canAct ? button(copy.waiting.escalate, () => setSheet('escalate')) : null}
         </>

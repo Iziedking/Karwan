@@ -19,13 +19,13 @@ export function NewDealPanel() {
     <div className="space-y-6" id="deal-composer">
       <div>
         <h2 className="text-[20px] font-semibold text-[var(--lp-dark)]">{direct ? t.directLabel : t.managedLabel}</h2>
-        <p className="mt-1 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{direct ? t.directBlurb : t.managedBlurb}</p>
+        <p className="mt-1 text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{direct ? t.directBlurb : t.managedBlurb}</p>
       </div>
       <ActivationGate>{direct ? <DirectDealComposer /> : <BriefComposer />}</ActivationGate>
       <Link
         href={direct ? '/buyer?mode=managed#new-deal' : '/buyer?mode=direct#new-deal'}
         scroll={false}
-        className="inline-flex min-h-11 items-center text-[14px] text-[var(--lp-text-sub)] underline-offset-4 hover:text-[var(--lp-dark)] hover:underline"
+        className="inline-flex min-h-11 items-center text-[14px] text-[var(--lp-text-sub)] underline-offset-4 hover:text-[var(--lp-dark)] hover:underline font-medium"
       >
         {direct ? t.switchToManaged : t.switchToDirect}
       </Link>

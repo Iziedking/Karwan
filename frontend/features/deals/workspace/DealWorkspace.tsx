@@ -128,7 +128,7 @@ export function DealWorkspace({ jobId }: { jobId: string }) {
   }
 
   return (
-    <div className="product-surface mx-auto max-w-[560px] px-4 pb-16 pt-4 sm:px-6 lg:grid lg:max-w-[1080px] lg:grid-cols-[minmax(0,560px)_minmax(0,1fr)] lg:items-start lg:gap-10">
+    <div className="product-surface mx-auto max-w-[560px] px-4 pb-16 pt-4 sm:px-6 xl:grid xl:max-w-[1120px] xl:grid-cols-[minmax(0,560px)_minmax(0,1fr)] xl:items-start xl:gap-10">
       <div className="min-w-0">
       <DealHero
         deal={deal}

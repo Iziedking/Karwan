@@ -126,12 +126,12 @@ export function AgentStakeBinding() {
         </button>
       )}
       {foreign.length > 0 && (
-        <p role="status" className="text-[13px] leading-snug text-[var(--color-critical)]">
+        <p role="status" className="text-[14px] leading-snug text-[var(--color-critical)]">
           {t.foreignBody}
         </p>
       )}
       {error && (
-        <p role="alert" className="text-[13px] leading-snug text-[var(--color-critical)]">{error}</p>
+        <p role="alert" className="text-[14px] leading-snug text-[var(--color-critical)]">{error}</p>
       )}
     </div>
   );

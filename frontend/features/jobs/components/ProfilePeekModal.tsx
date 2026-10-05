@@ -127,7 +127,7 @@ export function ProfilePeekModal({
             </svg>
           </button>
           <div className="px-5 py-4">
-            <span className="mono text-[9px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+            <span className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
               {role === 'buyer' ? pp.compactEyebrowBuyer : pp.compactEyebrowSeller}
             </span>
             {displayName ? (
@@ -135,7 +135,7 @@ export function ProfilePeekModal({
                 <p className="mt-1.5 font-sans text-[16px] font-bold tracking-[-0.01em] text-[var(--lp-dark)] truncate">
                   {displayName}
                 </p>
-                <p className="mt-0.5 mono text-[11px] tabular-nums text-[var(--lp-text-sub)]">
+                <p className="mt-0.5 mono text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">
                   {shortAddress(address)}
                 </p>
               </>
@@ -144,7 +144,7 @@ export function ProfilePeekModal({
                 <p className="mt-1.5 font-sans text-[16px] font-bold tracking-[-0.01em] text-[var(--lp-dark)] truncate">
                   {shortAddress(address)}
                 </p>
-                <p className="mt-0.5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                <p className="mt-0.5 mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
                   {pp.noDisplayName}
                 </p>
               </>
@@ -198,18 +198,18 @@ export function ProfilePeekModal({
               />
             </svg>
           </button>
-          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+          <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
             {role === 'buyer' ? pp.fullEyebrowBuyer : pp.fullEyebrowSeller}
           </span>
           <h2 className="mt-2 font-sans text-[20px] font-extrabold tracking-[-0.02em] text-[var(--lp-dark)]">
             {displayName || shortAddress(address)}
           </h2>
           <div className="mt-2 flex items-center gap-2">
-            <p className="mono text-[11px] tabular-nums text-[var(--lp-text-sub)]">{shortAddress(address)}</p>
+            <p className="mono text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">{shortAddress(address)}</p>
             <button
               type="button"
               onClick={() => setShowTechnical((value) => !value)}
-              className="min-h-11 px-2 mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)] underline underline-offset-4"
+              className="min-h-11 px-2 mono text-[13px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)] underline underline-offset-4"
               aria-expanded={showTechnical}
             >
               {showTechnical ? 'hide details' : 'verification details'}
@@ -217,8 +217,8 @@ export function ProfilePeekModal({
           </div>
           {showTechnical && (
             <div className="mt-2 rounded-[8px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] p-3">
-              <p className="mono break-all text-[10px] leading-relaxed text-[var(--lp-text-muted)]">{address}</p>
-              <p className="mt-1 text-[11px] leading-relaxed text-[var(--lp-text-sub)]">
+              <p className="mono break-all text-[13px] leading-relaxed text-[var(--lp-text-muted)]">{address}</p>
+              <p className="mt-1 text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
                 technical identifiers are shown only when you request verification details.
               </p>
             </div>
@@ -233,7 +233,7 @@ export function ProfilePeekModal({
           <button
             type="button"
             onClick={() => copy(address)}
-            className="inline-flex items-center justify-center gap-2 px-4 py-3 mono text-[12px] font-semibold uppercase tracking-[0.08em] transition-colors"
+            className="inline-flex items-center justify-center gap-2 px-4 py-3 mono text-[14px] font-semibold uppercase tracking-[0.08em] transition-colors"
             style={{
               background: 'var(--lp-light)',
               border: '1px solid var(--lp-border-light)',
@@ -248,7 +248,7 @@ export function ProfilePeekModal({
               href={xHref}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 px-4 py-3 mono text-[12px] font-semibold uppercase tracking-[0.08em] transition-colors"
+              className="inline-flex items-center justify-center gap-2 px-4 py-3 mono text-[14px] font-semibold uppercase tracking-[0.08em] transition-colors"
               style={{
                 background: 'var(--lp-dark)',
                 border: '1px solid var(--lp-dark)',
@@ -263,7 +263,7 @@ export function ProfilePeekModal({
             </a>
           ) : (
             <span
-              className="inline-flex items-center justify-center gap-2 px-4 py-3 mono text-[11px] uppercase tracking-[0.08em]"
+              className="inline-flex items-center justify-center gap-2 px-4 py-3 mono text-[14px] uppercase tracking-[0.08em]"
               style={{
                 background: 'var(--lp-light)',
                 border: '1px dashed rgba(0,0,0,0.18)',
@@ -383,10 +383,10 @@ function WorkRecordSection({
   // clean). The backend already returns the role-appropriate rows.
   return (
     <div className="min-h-0 overflow-y-auto border-t border-[var(--lp-border-light)] px-6 pb-8 pt-5">
-      <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+      <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
         {role === 'seller' ? wr.eyebrow : wr.buyerEyebrow}
       </span>
-      <p className="mt-1.5 text-[12px] leading-snug text-[var(--lp-text-sub)]">
+      <p className="mt-1.5 text-[14px] leading-snug text-[var(--lp-text-sub)] font-medium">
         {role === 'seller' ? wr.subtitle : wr.buyerSubtitle}
       </p>
 
@@ -400,7 +400,7 @@ function WorkRecordSection({
               borderRadius: 8,
             }}
           >
-            <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+            <span className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
               verification report funded · ${payment.amountUsd.toFixed(2)}
             </span>
             {proof && (
@@ -408,7 +408,7 @@ function WorkRecordSection({
                 href={proof.href}
                 target="_blank"
                 rel="noreferrer"
-                className="shrink-0 mono text-[10px] uppercase tracking-[0.12em] underline underline-offset-2"
+                className="shrink-0 mono text-[13px] uppercase tracking-[0.12em] underline underline-offset-2"
                 style={{ color: 'var(--lp-accent)' }}
               >
                 {proof.label}
@@ -419,11 +419,11 @@ function WorkRecordSection({
               single $0.01 read has no per-call Arc tx. The linked deposit / payer
               wallet is the real on-chain proof; the caption explains the rail so
               the amount never reads as an unbacked claim. */}
-          <p className="mt-1.5 text-[11px] leading-relaxed text-[var(--lp-text-muted)]">
+          <p className="mt-1.5 text-[14px] leading-relaxed text-[var(--lp-text-muted)]">
             this report combines completed trade outcomes and counterparty confirmations. it does not grant an agent authority to move funds.
           </p>
-          <details className="mt-2 text-[11px] text-[var(--lp-text-muted)]">
-            <summary className="min-h-11 cursor-pointer py-2 mono text-[10px] uppercase tracking-[0.12em]">{wr.receiptView} technical proof</summary>
+          <details className="mt-2 text-[14px] text-[var(--lp-text-muted)]">
+            <summary className="min-h-11 cursor-pointer py-2 mono text-[13px] uppercase tracking-[0.12em]">{wr.receiptView} technical proof</summary>
             <div className="space-y-1 border-s border-[var(--lp-border-light)] ps-3">
               {!isTxHash(payment.txHash) && <p>{wr.receiptRail}</p>}
               {payment.evidenceId && <p className="mono break-all">evidence: {shortenEvidenceId(payment.evidenceId)}</p>}
@@ -437,24 +437,24 @@ function WorkRecordSection({
 
       {state.kind === 'done' && state.data.complimentary && (
         <div className="mt-3 border border-[var(--lp-border-light)] bg-[var(--lp-light)] px-3 py-2.5">
-          <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+          <p className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
             {wr.complimentaryDelivered.replace('{remaining}', String(state.data.complimentary.allowance.remaining))}
           </p>
         </div>
       )}
 
       {state.kind === 'loading' && (
-        <p className="mt-3 mono text-[11px] text-[var(--lp-text-muted)]">{wr.loading}</p>
+        <p className="mt-3 mono text-[14px] text-[var(--lp-text-muted)]">{wr.loading}</p>
       )}
 
       {state.kind === 'done' && state.data.locked && (
         <div className="mt-3">
-          <p className="text-[12px] leading-relaxed text-[var(--lp-text-sub)]">{wr.locked}</p>
+          <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{wr.locked}</p>
           <button
             type="button"
             onClick={() => void requestComplimentary()}
             disabled={requestingComplimentary}
-            className="mt-3 inline-flex min-h-11 items-center justify-center border px-4 py-2 mono text-[10px] font-bold uppercase tracking-[0.12em] transition-colors hover:bg-[var(--lp-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60"
+            className="mt-3 inline-flex min-h-11 items-center justify-center border px-4 py-2 mono text-[13px] font-bold uppercase tracking-[0.12em] transition-colors hover:bg-[var(--lp-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60"
             style={{
               background: 'var(--lp-accent)',
               color: 'var(--accent-ink)',
@@ -464,7 +464,7 @@ function WorkRecordSection({
             {requestingComplimentary ? wr.complimentaryLoading : wr.complimentaryAction}
           </button>
           {complimentaryError && (
-            <p role="alert" className="mt-2 text-[11px] leading-relaxed text-[var(--lp-text-muted)]">
+            <p role="alert" className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-muted)]">
               {wr.complimentaryUnavailable}
             </p>
           )}
@@ -482,7 +482,7 @@ function WorkRecordSection({
                   className="flex-1 px-3 py-2"
                   style={{ background: 'var(--lp-light)', border: '1px solid var(--lp-border-light)', borderRadius: 6 }}
                 >
-                  <p className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                  <p className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
                     Completion
                   </p>
                   <p className="mt-0.5 font-sans text-[18px] font-extrabold tabular-nums text-[var(--lp-dark)]">
@@ -495,7 +495,7 @@ function WorkRecordSection({
                   className="flex-1 px-3 py-2"
                   style={{ background: 'var(--lp-light)', border: '1px solid var(--lp-border-light)', borderRadius: 6 }}
                 >
-                  <p className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                  <p className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
                     On time
                   </p>
                   <p className="mt-0.5 font-sans text-[18px] font-extrabold tabular-nums text-[var(--lp-dark)]">
@@ -506,7 +506,7 @@ function WorkRecordSection({
             </div>
           )}
           {state.data.record.rows.length === 0 ? (
-            <p className="mt-3 text-[12px] text-[var(--lp-text-sub)]">
+            <p className="mt-3 text-[14px] text-[var(--lp-text-sub)] font-medium">
               {role === 'seller' ? wr.empty : wr.buyerEmpty}
             </p>
           ) : (
@@ -526,31 +526,31 @@ function WorkRecordSection({
                     className="shrink-0 inline-block w-[7px] h-[7px]"
                     style={{ background: OUTCOME_HUE[row.outcome] ?? '#6b6b6b' }}
                   />
-                  <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-[var(--lp-dark)]">
+                  <span className="min-w-0 flex-1 truncate text-[14px] font-medium text-[var(--lp-dark)]">
                     {row.category}
                   </span>
                   <span
-                    className="shrink-0 mono text-[9px] uppercase tracking-[0.1em]"
+                    className="shrink-0 mono text-[13px] uppercase tracking-[0.1em]"
                     style={{ color: OUTCOME_HUE[row.outcome] ?? 'var(--lp-text-muted)' }}
                   >
                     {row.outcome === 'clean' ? 'completed' : row.outcome === 'disputed' ? 'needs review' : 'not completed'}
                   </span>
                   {row.deliveredVia && (
-                    <span className="shrink-0 mono text-[9px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)]">
+                    <span className="shrink-0 mono text-[13px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)]">
                       {row.deliveredVia} evidence
                     </span>
                   )}
-                  <span className="shrink-0 mono text-[12px] tabular-nums text-[var(--lp-text-sub)]">
+                  <span className="shrink-0 mono text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">
                     {row.amountBand}
                   </span>
-                  <span className="shrink-0 mono text-[10px] tabular-nums text-[var(--lp-text-muted)]">
+                  <span className="shrink-0 mono text-[13px] tabular-nums text-[var(--lp-text-muted)]">
                     {row.ageLabel}
                   </span>
                 </li>
               ))}
             </ul>
           )}
-          <p className="mt-3 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+          <p className="mt-3 mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
             {wr.summaryTemplate
               .replace('{total}', String(state.data.record.summary.total))
               .replace('{clean}', String(state.data.record.summary.clean))
@@ -577,7 +577,7 @@ function TimingSummary({
     : [[labels.buyerVerification, timing.buyerVerificationMs, timing.samples.buyerVerification], [labels.buyerRelease, timing.buyerReleaseMs, timing.samples.buyerRelease]] as const;
   const available = items.filter(([, value]) => value != null);
   if (!available.length) return null;
-  return <div className="mt-3 rounded-lg border border-[var(--lp-border-light)] bg-[var(--lp-light)] px-3 py-2.5"><p className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">{labels.timingTitle}</p><div className="mt-2 grid grid-cols-2 gap-2">{available.map(([label, value, sample]) => <div key={label}><p className="text-[11px] text-[var(--lp-text-sub)]">{label}</p><p className="mt-0.5 text-sm font-semibold text-[var(--lp-dark)]">{formatDuration(value as number)}</p><p className="mono text-[9px] text-[var(--lp-text-muted)]">{labels.timingSampleTemplate.replace('{count}', String(sample)).replace('{unit}', sample === 1 ? 'deal' : 'deals')}</p></div>)}</div></div>;
+  return <div className="mt-3 rounded-lg border border-[var(--lp-border-light)] bg-[var(--lp-light)] px-3 py-2.5"><p className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">{labels.timingTitle}</p><div className="mt-2 grid grid-cols-2 gap-2">{available.map(([label, value, sample]) => <div key={label}><p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{label}</p><p className="mt-0.5 text-sm font-semibold text-[var(--lp-dark)]">{formatDuration(value as number)}</p><p className="mono text-[13px] text-[var(--lp-text-muted)]">{labels.timingSampleTemplate.replace('{count}', String(sample)).replace('{unit}', sample === 1 ? 'deal' : 'deals')}</p></div>)}</div></div>;
 }
 
 function formatDuration(ms: number): string {

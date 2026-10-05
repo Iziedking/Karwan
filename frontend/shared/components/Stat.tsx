@@ -15,7 +15,7 @@ export function Stat({
 }) {
   return (
     <div className="space-y-1">
-      <p className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.08em] text-[var(--color-ink-faint)]">
+      <p className="inline-flex items-center gap-1.5 text-[14px] uppercase tracking-[0.08em] text-[var(--color-ink-faint)]">
         {label}
         {hint && <Hint>{hint}</Hint>}
       </p>
@@ -35,8 +35,8 @@ export function Field({
 }) {
   return (
     <div className="space-y-0.5">
-      <p className="text-[11px] uppercase tracking-[0.08em] text-[var(--color-ink-faint)]">{label}</p>
-      <p className="text-[13px] mono text-[var(--color-ink)] break-all">
+      <p className="text-[14px] uppercase tracking-[0.08em] text-[var(--color-ink-faint)]">{label}</p>
+      <p className="text-[14px] mono text-[var(--color-ink)] break-all">
         {value}
         {copy && <CopyButton text={copy} />}
       </p>

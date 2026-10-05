@@ -13,7 +13,7 @@ export default function TermsPage() {
           <header className="mb-10 border-b border-[var(--lp-border-light)] pb-8">
             <h1 className="text-[clamp(2rem,5vw,3.5rem)] font-semibold leading-[1.1] tracking-[-0.04em] text-[var(--lp-dark)]">{t.eyebrow}</h1>
             <p className="mt-5 max-w-[62ch] text-[16px] leading-[1.8] text-[var(--lp-text-sub)]">{t.intro}</p>
-            <p className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-[13px] text-[var(--lp-text-sub)]">
+            <p className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-[14px] text-[var(--lp-text-sub)] font-medium">
               <span>{t.footer.version} {TERMS_DISPLAY_VERSION}</span>
               <span>{t.footer.updated} <time dir="ltr" dateTime={TERMS_LAST_UPDATED}>{TERMS_LAST_UPDATED}</time></span>
             </p>

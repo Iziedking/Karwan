@@ -83,7 +83,7 @@ export function TransferProgress(props: TransferProgressProps) {
             <li key={step} aria-current={current ? 'step' : undefined} className="flex items-center gap-3">
               <span
                 aria-hidden
-                className="grid size-6 shrink-0 place-items-center rounded-full text-[13px] font-medium tabular-nums"
+                className="grid size-6 shrink-0 place-items-center rounded-full text-[14px] font-medium tabular-nums"
                 style={{
                   background: done || current ? 'var(--ink)' : 'var(--tint)',
                   color: done || current ? 'var(--canvas)' : 'var(--ink-secondary)',
@@ -112,7 +112,7 @@ export function TransferProgress(props: TransferProgressProps) {
       </div>
 
       {!settled ? (
-        <p className="text-[13px] tabular-nums text-[var(--ink-secondary)]">
+        <p className="text-[14px] tabular-nums text-[var(--ink-secondary)] font-medium">
           {`${elapsed} · ${usually}${props.notifies === false ? '' : ` ${t.leaveNote}`}`}
         </p>
       ) : null}

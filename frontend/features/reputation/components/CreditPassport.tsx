@@ -139,7 +139,7 @@ export function CreditPassport({ address }: { address: string }) {
         <h1 className="mt-2 text-[28px] tracking-tight" style={{ fontFamily: 'var(--font-serif)' }}>
           {cp.invalid.headline}
         </h1>
-        <p className="mt-3 text-[14px] text-[var(--color-ink-dim)]">{cp.invalid.body}</p>
+        <p className="mt-3 text-[14px] text-[var(--color-ink-dim)] font-medium">{cp.invalid.body}</p>
       </Shell>
     );
   }
@@ -163,7 +163,7 @@ export function CreditPassport({ address }: { address: string }) {
         <h1 className="mt-2 text-[28px] tracking-tight" style={{ fontFamily: 'var(--font-serif)' }}>
           {cp.error.headline}
         </h1>
-        <p className="mt-3 text-[14px] text-[var(--color-ink-dim)]">
+        <p className="mt-3 text-[14px] text-[var(--color-ink-dim)] font-medium">
           {cp.error.bodyTemplate.replace('{address}', shortAddress(address))}
         </p>
       </Shell>
@@ -232,15 +232,15 @@ export function CreditPassport({ address }: { address: string }) {
           <PassportPhoto src={profile?.profileImageDataUrl || profile?.xProfileImageUrl} address={address} />
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-[22px] font-semibold text-[var(--lp-dark)] sm:text-[26px]">{profile?.displayName || cp.fallbackName}</h1>
-            <p className="mt-0.5 text-[14px] text-[var(--lp-text-sub)]">
+            <p className="mt-0.5 text-[14px] text-[var(--lp-text-sub)] font-medium">
               {[profile?.handle ? `@${profile.handle}` : null, tenureDays != null && registeredAt ? pc.since.replace('{date}', dateLabel(registeredAt)) : null].filter(Boolean).join(' · ')}
             </p>
           </div>
         </div>
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-[var(--lp-text-sub)]">
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[14px] text-[var(--lp-text-sub)] font-medium">
           <button type="button" onClick={copyAddress} className="inline-flex min-h-11 items-center gap-1.5 tabular-nums hover:text-[var(--lp-dark)]">
             {shortAddress(address)}
-            <span className="text-[12px]">{copied ? cp.copyAddressDone : cp.copyAddressIdle}</span>
+            <span className="text-[14px]">{copied ? cp.copyAddressDone : cp.copyAddressIdle}</span>
           </button>
           {profile?.xHandle && (
             <a href={`https://x.com/${profile.xHandle.replace(/^@/, '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center hover:text-[var(--lp-dark)]">
@@ -250,25 +250,25 @@ export function CreditPassport({ address }: { address: string }) {
         </div>
 
         <div className="mt-6 border-t border-[var(--lp-border-light)] pt-5">
-          <p className="text-[13px] text-[var(--lp-text-sub)]">{pc.standing}</p>
+          <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{pc.standing}</p>
           <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
             <span className="text-[34px] font-semibold leading-none text-[var(--lp-dark)]">{tierName}</span>
             <span className="text-[15px] tabular-nums text-[var(--lp-text-sub)]">{pc.scoreOf.replace('{score}', String(score))}</span>
           </div>
-          {heldLine ? <p className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{heldLine}</p> : null}
-          {breadthLine ? <p className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{breadthLine}</p> : null}
+          {heldLine ? <p className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{heldLine}</p> : null}
+          {breadthLine ? <p className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{breadthLine}</p> : null}
           <ol className="mt-4 grid grid-cols-5 gap-1" aria-label={pc.standing}>
             {TIER_LADDER.map((band, index) => (
               <li key={band} aria-current={index === rung ? 'step' : undefined} className="min-w-0">
                 <span aria-hidden className={`block h-[5px] rounded-full ${index < rung ? 'bg-[#6a8a1e]' : index === rung ? 'bg-[var(--lp-dark)]' : 'bg-[var(--lp-border-light)]'}`} />
-                <span className={`mt-1.5 block truncate text-[12px] ${index === rung ? 'font-semibold text-[var(--lp-dark)]' : 'text-[var(--lp-text-sub)]'}`}>{TIER_LABEL[band]}</span>
+                <span className={`mt-1.5 block truncate text-[14px] ${index === rung ? 'font-semibold text-[var(--lp-dark)]' : 'text-[var(--lp-text-sub)]'}`}>{TIER_LABEL[band]}</span>
               </li>
             ))}
           </ol>
         </div>
 
         <div className="mt-6">
-          <h2 className="text-[13px] text-[var(--lp-text-sub)]">{pc.record}</h2>
+          <h2 className="text-[14px] text-[var(--lp-text-sub)] font-medium">{pc.record}</h2>
           <dl className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
             <PassportFact label={pc.settled} value={String(settled)} />
             <PassportFact label={pc.completed} value={pc.completedOf.replace('{done}', String(done)).replace('{total}', String(settled))} />
@@ -297,13 +297,13 @@ export function CreditPassport({ address }: { address: string }) {
 
         {skillCredentials.length > 0 && (
           <div className="mt-5">
-            <h2 className="text-[13px] text-[var(--lp-text-sub)]">{pc.skills}</h2>
+            <h2 className="text-[14px] text-[var(--lp-text-sub)] font-medium">{pc.skills}</h2>
             <ul className="mt-2 flex flex-wrap gap-2">
               {skillCredentials.map((credential) => (
-                <li key={credential.skillId} className="inline-flex min-h-9 items-center gap-2 rounded-full border border-[var(--lp-border-light)] px-3.5 text-[13px] text-[var(--lp-dark)]">
+                <li key={credential.skillId} className="inline-flex min-h-9 items-center gap-2 rounded-full border border-[var(--lp-border-light)] px-3.5 text-[14px] text-[var(--lp-dark)]">
                   <span aria-hidden className="text-[#6a8a1e]"><CheckGlyph /></span>
                   {skillLabel(credential.skillId)}
-                  <span className="text-[12px] tabular-nums text-[var(--lp-text-sub)]">{skillDateLabel(credential, cp.skills)}</span>
+                  <span className="text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">{skillDateLabel(credential, cp.skills)}</span>
                 </li>
               ))}
             </ul>
@@ -313,7 +313,7 @@ export function CreditPassport({ address }: { address: string }) {
         <div className="mt-6 flex flex-wrap items-start justify-between gap-x-6 border-t border-[var(--lp-border-light)] pt-1">
           {termRows.length > 0 ? (
             <details className="group min-w-0 flex-1">
-              <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 text-[14px] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] [&::-webkit-details-marker]:hidden">
+              <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 text-[14px] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] [&::-webkit-details-marker]:hidden font-medium">
                 {pc.how}
                 <span aria-hidden className="transition-transform group-open:rotate-180">⌄</span>
               </summary>
@@ -321,11 +321,11 @@ export function CreditPassport({ address }: { address: string }) {
                 {termRows.map((r) => (
                   <TermBar key={r.label} label={r.label} value={r.value} hue={hue} />
                 ))}
-                <p className="pt-1 text-[12px] leading-snug text-[var(--lp-text-sub)]">{cp.footer.disclaimer}</p>
+                <p className="pt-1 text-[14px] leading-snug text-[var(--lp-text-sub)] font-medium">{cp.footer.disclaimer}</p>
               </div>
             </details>
           ) : null}
-          <a href={`${EXPLORER}/address/${address}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 items-center text-[14px] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)]">
+          <a href={`${EXPLORER}/address/${address}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 items-center text-[14px] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] font-medium">
             {pc.proof}
           </a>
         </div>
@@ -354,7 +354,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 function PassportFact({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-[14px] bg-[var(--lp-light)] px-3.5 py-3">
-      <dt className="text-[13px] text-[var(--lp-text-sub)]">{label}</dt>
+      <dt className="text-[14px] text-[var(--lp-text-sub)] font-medium">{label}</dt>
       <dd className="mt-0.5 text-[20px] font-semibold tabular-nums text-[var(--lp-dark)]">{value}</dd>
     </div>
   );
@@ -365,8 +365,8 @@ function TermBar({ label, value, hue }: { label: string; value: number; hue: str
   return (
     <div>
       <div className="flex items-baseline justify-between gap-2">
-        <span className="text-[12px] text-[var(--color-ink-dim)]">{label}</span>
-        <span className="mono text-[11px] tabular-nums text-[var(--color-ink-faint)]">{Math.round(pct)}</span>
+        <span className="text-[14px] text-[var(--color-ink-dim)] font-medium">{label}</span>
+        <span className="mono text-[14px] tabular-nums text-[var(--color-ink-faint)]">{Math.round(pct)}</span>
       </div>
       <div className="mt-1.5 h-1.5 rounded-full" style={{ background: 'var(--color-surface-2)' }}>
         <div className="h-full rounded-full" style={{ width: `${pct}%`, background: hue }} />
@@ -429,7 +429,7 @@ function SmePassportBand({
               <p className="text-[18px] font-extrabold leading-tight" style={{ color: 'var(--color-ink)' }}>
                 {p!.companyName}
                 {p!.verifiedAt ? (
-                  <span className="ms-2 mono text-[9px] uppercase tracking-[0.14em] font-bold px-1.5 py-0.5 align-middle" style={{ background: 'var(--color-accent)', color: 'var(--color-ink)' }}>
+                  <span className="ms-2 mono text-[13px] uppercase tracking-[0.14em] font-bold px-1.5 py-0.5 align-middle" style={{ background: 'var(--color-accent)', color: 'var(--color-ink)' }}>
                     VERIFIED
                   </span>
                 ) : null}
@@ -463,16 +463,16 @@ function SmePassportBand({
             </dl>
           </div>
         ) : (
-          <p className="text-[13px]" style={{ color: 'var(--color-ink-dim)' }}>
+          <p className="text-[14px]" style={{ color: 'var(--color-ink-dim)' }}>
             No company profile published.
           </p>
         )}
         {hasRepay ? (
           <div className="space-y-3.5">
-            <p className="mono text-[10px] uppercase tracking-[0.18em]" style={{ color: 'var(--color-ink-faint)' }}>
+            <p className="mono text-[13px] uppercase tracking-[0.18em]" style={{ color: 'var(--color-ink-faint)' }}>
               {smeT.repayment.eyebrow}
             </p>
-            <p className="mono text-[10px] uppercase tracking-[0.14em]" style={{ color: 'var(--color-ink-faint)' }}>
+            <p className="mono text-[13px] uppercase tracking-[0.14em]" style={{ color: 'var(--color-ink-faint)' }}>
               {smeT.repayment.windowTemplate.replace('{count}', String(r!.windowDealCount))}
             </p>
             <dl className="mt-2 space-y-3.5">
@@ -526,11 +526,11 @@ function PassportRow({
 }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
-      <dt className="mono text-[10px] uppercase tracking-[0.14em]" style={{ color: 'var(--color-ink-faint)' }}>
+      <dt className="mono text-[13px] uppercase tracking-[0.14em]" style={{ color: 'var(--color-ink-faint)' }}>
         {label}
       </dt>
       <dd
-        className={`text-[13px] text-end ${capitalize ? 'capitalize' : ''}`}
+        className={`text-[14px] text-end ${capitalize ? 'capitalize' : ''}`}
         style={{ color: 'var(--color-ink)' }}
       >
         {value}
@@ -556,7 +556,7 @@ function PassportStat({
         : 'var(--color-ink)';
   return (
     <div className="flex items-baseline justify-between gap-3">
-      <dt className="mono text-[10px] uppercase tracking-[0.14em]" style={{ color: 'var(--color-ink-faint)' }}>
+      <dt className="mono text-[13px] uppercase tracking-[0.14em]" style={{ color: 'var(--color-ink-faint)' }}>
         {label}
       </dt>
       <dd className="text-[18px] tabular-nums font-extrabold" style={{ color }}>

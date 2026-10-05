@@ -49,7 +49,7 @@ export function DocsToc() {
   if (headings.length < 2) return null;
   return (
     <nav aria-label={title} className="hidden 2xl:block 2xl:sticky 2xl:top-[104px] 2xl:self-start">
-      <p className="text-[13px] font-semibold text-[var(--lp-dark)]">{title}</p>
+      <p className="text-[14px] font-semibold text-[var(--lp-dark)]">{title}</p>
       <ul className="mt-3 border-s border-[var(--lp-border-light)]">
         {headings.map((h) => (
           <li key={h.id}>
@@ -57,7 +57,7 @@ export function DocsToc() {
               href={`#${h.id}`}
               aria-current={active === h.id ? 'location' : undefined}
               className={cn(
-                '-ms-px block border-s-2 py-1.5 ps-4 text-[13px] leading-snug transition-colors',
+                '-ms-px block border-s-2 py-1.5 ps-4 text-[14px] leading-snug transition-colors',
                 active === h.id
                   ? 'border-[var(--lp-dark)] font-semibold text-[var(--lp-dark)]'
                   : 'border-transparent text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)]',

@@ -32,7 +32,7 @@ export function StatusPill({
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 px-2.5 py-[5px] font-mono text-[10.5px] font-semibold uppercase tracking-[0.08em] leading-none rounded-full whitespace-nowrap',
+        'inline-flex items-center gap-1.5 px-2.5 py-[5px] font-mono text-[13px] font-semibold uppercase tracking-[0.08em] leading-none rounded-full whitespace-nowrap',
         className,
       )}
       style={{

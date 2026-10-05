@@ -92,11 +92,11 @@ export function NearMissCard({ nearMiss, onChange }: Props) {
   return (
     <section className="rounded-[18px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-5 py-4 fade-up">
       <div className="flex items-center justify-between gap-3">
-        <p className="inline-flex items-center gap-2 text-[13px] font-medium text-[var(--lp-text-sub)]">
+        <p className="inline-flex items-center gap-2 text-[14px] font-medium text-[var(--lp-text-sub)]">
           <span aria-hidden className="size-2 shrink-0 rounded-full" style={{ background: rail }} />
           {nm.eyebrow}
         </p>
-        <span className="shrink-0 text-[12px] tabular-nums text-[var(--lp-text-muted)]">
+        <span className="shrink-0 text-[14px] tabular-nums text-[var(--lp-text-muted)]">
           {remainingLabel(nearMiss.expiresAt, now, nm)}
         </span>
       </div>
@@ -137,7 +137,7 @@ export function NearMissCard({ nearMiss, onChange }: Props) {
         </div>
       )}
 
-      {error && <p role="alert" className="mt-3 text-[13px] text-[var(--color-critical)]">{error}</p>}
+      {error && <p role="alert" className="mt-3 text-[14px] text-[var(--color-critical)]">{error}</p>}
     </section>
   );
 }

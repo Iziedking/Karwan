@@ -45,13 +45,13 @@ function Section({ title, rows }: { title: string; rows: DepositRequestPublic[] 
             >
               <span className="min-w-0">
                 <span className="block text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">
-                  {row.amountUsdc ?? '…'} <span className="text-[13px] font-medium text-[var(--lp-text-sub)]">USDC</span>
+                  {row.amountUsdc ?? '…'} <span className="text-[14px] font-medium text-[var(--lp-text-sub)]">USDC</span>
                 </span>
-                <span className="block truncate text-[13px] text-[var(--lp-text-sub)]">
+                <span className="block truncate text-[14px] text-[var(--lp-text-sub)] font-medium">
                   {[row.purpose, new Date(row.paidAt ?? row.createdAt).toLocaleDateString(locale, { day: 'numeric', month: 'short' })].filter(Boolean).join(' · ')}
                 </span>
               </span>
-              <span className="inline-flex shrink-0 items-center gap-2 text-[13px] text-[var(--lp-text-sub)]">
+              <span className="inline-flex shrink-0 items-center gap-2 text-[14px] text-[var(--lp-text-sub)] font-medium">
                 <span
                   aria-hidden
                   className={cn(

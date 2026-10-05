@@ -181,7 +181,7 @@ export function HeroFlow() {
 
       {/* small caption hairline below the graphic so it reads as a flow */}
       <div
-        className="mt-3 flex items-center justify-between mono text-[10px] uppercase tracking-[0.14em]"
+        className="mt-3 flex items-center justify-between mono text-[13px] uppercase tracking-[0.14em]"
         style={{ color: SUB }}
       >
         <span>{t.caption.buyerAgent}</span>

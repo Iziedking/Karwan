@@ -72,12 +72,12 @@ function PulseStat({
 }) {
   return (
     <div className="px-5 py-4 flex items-center justify-between gap-3">
-      <span className="text-[11px] uppercase tracking-[0.08em] text-[var(--color-ink-faint)]">{label}</span>
+      <span className="text-[14px] uppercase tracking-[0.08em] text-[var(--color-ink-faint)]">{label}</span>
       <span className="inline-flex items-baseline gap-1">
         <span className={`text-[22px] mono font-semibold tracking-tight text-[var(--color-ink)] ${active ? 'pulse-once' : ''}`}>
           {value}
         </span>
-        {unit && <span className="text-[11px] text-[var(--color-ink-faint)] mono">{unit}</span>}
+        {unit && <span className="text-[14px] text-[var(--color-ink-faint)] mono">{unit}</span>}
       </span>
     </div>
   );

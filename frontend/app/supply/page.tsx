@@ -92,7 +92,7 @@ function SupplyPageInner() {
             <Link
               href="/partners"
               data-guide="supply-partners"
-              className="mono text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--lp-accent)] hover:underline"
+              className="mono text-[14px] font-semibold uppercase tracking-[0.08em] text-[var(--lp-accent)] hover:underline"
             >
               {sp.hero.ctaPartners}
             </Link>

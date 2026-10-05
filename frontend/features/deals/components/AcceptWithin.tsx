@@ -112,7 +112,7 @@ export function AcceptWithin({ hours, onChange, disabled }: { hours: number; onC
                   typeExact(text, key);
                 }}
                 className={cn(
-                  'min-h-11 min-w-11 rounded-[10px] px-3 text-[13px] font-semibold transition-colors',
+                  'min-h-11 min-w-11 rounded-[10px] px-3 text-[14px] font-semibold transition-colors',
                   unit === key ? 'bg-[var(--lp-control-active-bg)] text-[var(--lp-control-active-ink)]' : 'text-[var(--lp-text-sub)]',
                 )}
               >
@@ -130,7 +130,7 @@ export function AcceptWithin({ hours, onChange, disabled }: { hours: number; onC
             setDate('');
             typeExact(text);
           }}
-          className="inline-flex min-h-11 items-center text-[13px] font-semibold text-[var(--lp-text-sub)] underline underline-offset-4 hover:text-[var(--lp-dark)]"
+          className="inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--lp-text-sub)] underline underline-offset-4 hover:text-[var(--lp-dark)]"
         >
           {rs.exactTime}
         </button>

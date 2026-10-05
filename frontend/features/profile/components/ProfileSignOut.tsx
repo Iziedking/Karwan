@@ -51,7 +51,7 @@ export function ProfileSignOut() {
         </svg>
         <span role={busy ? 'status' : undefined}>{busy ? t.profileSignOut.pending : t.common.signOut}</span>
       </button>
-      {error && <p role="alert" className="max-w-[40ch] text-[13px] leading-relaxed text-[var(--lp-text-sub)]">{t.profileSignOut.error}</p>}
+      {error && <p role="alert" className="max-w-[40ch] text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{t.profileSignOut.error}</p>}
     </div>
   );
 }

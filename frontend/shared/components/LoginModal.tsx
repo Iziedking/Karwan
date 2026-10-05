@@ -432,7 +432,7 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
                 </svg>
               </button>
             )}
-            <p className="truncate text-[13px] font-semibold text-[var(--lp-text-sub)]">
+            <p className="truncate text-[14px] font-semibold text-[var(--lp-text-sub)]">
               {stage === 'enter-email' && t.eyebrow.signIn}
               {stage === 'auth' && (plan?.exists ? t.eyebrow.signIn : t.eyebrow.createAccount)}
             </p>
@@ -521,7 +521,7 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
             )}
             <div className="flex items-center gap-3 py-1" aria-hidden>
               <span className="h-px flex-1 bg-[var(--lp-outline-strong)]" />
-              <span className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{t.pickMethod.or}</span>
+              <span className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{t.pickMethod.or}</span>
               <span className="h-px flex-1 bg-[var(--lp-outline-strong)]" />
             </div>
             <ConnectButton.Custom>
@@ -577,7 +577,7 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
                 type="button"
                 onClick={sendOtp}
                 disabled={busy}
-                className="inline-flex min-h-11 w-full items-center justify-center mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] underline underline-offset-2 disabled:opacity-50 transition-colors"
+                className="inline-flex min-h-11 w-full items-center justify-center mono text-[14px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] underline underline-offset-2 disabled:opacity-50 transition-colors"
               >
                 {t.authStep.useCodeInstead}
               </button>
@@ -587,7 +587,7 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
           {stage === 'auth' && plan && !otpSent && plan.pref === 'otp' && (
             <div className="space-y-3">
               {!plan.supportsWebAuthn && (
-                <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-snug">
+                <p className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-snug">
                   {t.authStep.noWebAuthnHint}
                 </p>
               )}
@@ -605,7 +605,7 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
                 {busy ? t.authStep.sendingCode : t.authStep.sendCode}
               </button>
               {plan.supportsWebAuthn && plan.exists && !plan.hasPasskey && (
-                <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-snug">
+                <p className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-snug">
                   {t.authStep.noPasskeyHint}
                 </p>
               )}
@@ -615,7 +615,7 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
           {stage === 'auth' && otpSent && (
             <form onSubmit={verifyOtp} className="space-y-4">
               <label className="block space-y-1.5">
-                <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                <span className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
                   {t.otp.label}
                 </span>
                 <input
@@ -645,7 +645,7 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
                 >
                   <span className="inline-flex items-center gap-1.5">
                     <span
-                      className="mono text-[9px] font-bold uppercase tracking-[0.18em] px-1.5 py-[2px]"
+                      className="mono text-[13px] font-bold uppercase tracking-[0.18em] px-1.5 py-[2px]"
                       style={{
                         background: 'var(--lp-band-dark)',
                         color: 'var(--lp-accent)',
@@ -654,7 +654,7 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
                     >
                       {t.otp.devChip}
                     </span>
-                    <span className="mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
+                    <span className="mono text-[14px] uppercase tracking-[0.12em] text-[var(--lp-text-sub)] font-medium">
                       {t.otp.devTapToAutofill}
                     </span>
                   </span>
@@ -668,7 +668,7 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
                   type="button"
                   onClick={sendOtp}
                   disabled={busy}
-                  className="inline-flex min-h-11 items-center mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] underline underline-offset-2 disabled:opacity-50"
+                  className="inline-flex min-h-11 items-center mono text-[14px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] underline underline-offset-2 disabled:opacity-50"
                 >
                   {t.otp.resend}
                 </button>
@@ -687,7 +687,7 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
           )}
 
           {error && (
-            <p className="text-[13px] leading-snug text-[var(--lp-critical)]">{error}</p>
+            <p className="text-[14px] leading-snug text-[var(--lp-critical)]">{error}</p>
           )}
         </div>
       </div>

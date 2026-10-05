@@ -35,20 +35,20 @@ export function OpenDealRow({
         className="group flex min-h-20 items-center gap-4 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
       >
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[13px] text-[var(--lp-text-sub)]">
+          <span className="block truncate text-[14px] text-[var(--lp-text-sub)] font-medium">
             {counterparty ? `${role} · ${counterparty}` : role}
           </span>
           <span className="mt-1 flex items-baseline gap-1.5">
             <span className="text-[24px] font-semibold leading-none tracking-[-0.02em] tabular-nums text-[var(--lp-dark)]">
               {formatUsdc(amount)}
             </span>
-            <span className="text-[13px] text-[var(--lp-text-sub)]">{unit}</span>
+            <span className="text-[14px] text-[var(--lp-text-sub)] font-medium">{unit}</span>
           </span>
-          {meta ? <span className="mt-1.5 block truncate text-[13px] text-[var(--lp-text-muted)]">{meta}</span> : null}
+          {meta ? <span className="mt-1.5 block truncate text-[14px] text-[var(--lp-text-muted)]">{meta}</span> : null}
         </span>
         <span
           className={cn(
-            'inline-flex h-8 shrink-0 items-center rounded-full px-3 text-[13px] font-medium',
+            'inline-flex h-8 shrink-0 items-center rounded-full px-3 text-[14px] font-medium',
             yourMove
               ? 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)]'
               : 'bg-[var(--tint)] text-[var(--lp-text-sub)]',

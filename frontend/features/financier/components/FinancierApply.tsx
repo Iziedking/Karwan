@@ -75,13 +75,13 @@ export function FinancierApply({
   return (
     <div className="max-w-[640px] mx-auto py-12">
       <PageTour id={FINANCIER_APPLY_TOUR_ID} steps={FINANCIER_APPLY_STEPS} />
-      <p className="mono text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+      <p className="mono text-[13px] font-bold uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
         Financier
       </p>
       <h1 className="mt-2 font-sans text-[30px] sm:text-[36px] font-extrabold tracking-[-0.02em] text-[var(--lp-dark)] leading-[1.05]">
         Fund trade, earn the spread<span className="text-[var(--lp-accent)]">.</span>
       </h1>
-      <p className="mt-4 text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[52ch]">
+      <p className="mt-4 text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[52ch] font-medium">
         Financiers advance against accepted invoices and fund purchase orders, then collect
         repayment when the trade settles on chain. Anyone can apply. The desk unlocks once you
         meet the bar below.
@@ -95,7 +95,7 @@ export function FinancierApply({
           <div key={c.label} className="flex items-center gap-3 py-4">
             <span
               aria-hidden
-              className="shrink-0 inline-flex items-center justify-center w-5 h-5 mono text-[11px] font-bold"
+              className="shrink-0 inline-flex items-center justify-center w-5 h-5 mono text-[14px] font-bold"
               style={{
                 color: c.ok ? 'var(--lp-accent)' : 'var(--lp-text-muted)',
                 background: c.ok ? 'rgba(175,201,91,0.16)' : 'rgba(0,0,0,0.05)',
@@ -106,13 +106,13 @@ export function FinancierApply({
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-[14px] font-semibold text-[var(--lp-dark)]">{c.label}</p>
-              {!c.ok && <p className="mt-0.5 text-[12px] leading-snug text-[var(--lp-text-sub)]">{c.need}</p>}
+              {!c.ok && <p className="mt-0.5 text-[14px] leading-snug text-[var(--lp-text-sub)] font-medium">{c.need}</p>}
             </div>
-            <span className="shrink-0 mono text-[13px] tabular-nums text-[var(--lp-dark)]">{c.value}</span>
+            <span className="shrink-0 mono text-[14px] tabular-nums text-[var(--lp-dark)]">{c.value}</span>
             {!c.ok && c.fix && (
               <Link
                 href={c.fix.href}
-                className="shrink-0 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] underline underline-offset-2 hover:text-[var(--lp-dark)]"
+                className="shrink-0 mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] underline underline-offset-2 hover:text-[var(--lp-dark)]"
               >
                 {c.fix.label}
               </Link>
@@ -122,7 +122,7 @@ export function FinancierApply({
       </div>
 
       {pendingReview ? (
-        <p className="mt-8 text-[13px] text-[var(--lp-text-sub)]">
+        <p className="mt-8 text-[14px] text-[var(--lp-text-sub)] font-medium">
           Application received. We are reviewing it and will open your desk shortly.
         </p>
       ) : (
@@ -132,7 +132,7 @@ export function FinancierApply({
             onClick={apply}
             disabled={busy || !eligibility.eligible}
             aria-busy={busy}
-            className="mono text-[11px] uppercase tracking-[0.1em] font-bold px-5 py-3 bg-[var(--lp-dark)] text-[var(--lp-bg)] disabled:opacity-40 transition"
+            className="mono text-[14px] uppercase tracking-[0.1em] font-bold px-5 py-3 bg-[var(--lp-dark)] text-[var(--lp-bg)] disabled:opacity-40 transition"
             style={{
               borderRadius: 11,
             }}
@@ -140,14 +140,14 @@ export function FinancierApply({
             {busy ? 'Applying...' : eligibility.eligible ? 'Apply to fund trade' : 'Not eligible yet'}
           </button>
           {!eligibility.eligible && (
-            <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+            <span className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
               clear the checks above to apply
             </span>
           )}
         </div>
       )}
 
-      {error && <p className="mt-3 text-[12px] leading-snug text-[var(--lp-critical)]">{error}</p>}
+      {error && <p className="mt-3 text-[14px] leading-snug text-[var(--lp-critical)]">{error}</p>}
     </div>
   );
 }

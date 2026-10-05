@@ -75,7 +75,7 @@ export function NotificationToasts() {
           >
             <KindIcon type={t.type} />
             <span className="min-w-0">
-              <span className="block text-[12px] font-semibold text-[var(--lp-text-sub)]">{labelFor(t.type, toastLabels)}</span>
+              <span className="block text-[14px] font-semibold text-[var(--lp-text-sub)]">{labelFor(t.type, toastLabels)}</span>
               <span className="mt-0.5 block text-[14px] font-medium leading-snug">{t.summary}</span>
             </span>
             <span className="sr-only">{trToast.openAction}</span>

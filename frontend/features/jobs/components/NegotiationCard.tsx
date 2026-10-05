@@ -104,7 +104,7 @@ export function NegotiationCard({
           {nc.tag} · {stateCopy.tag}
         </SectionTag>
         {round > 0 && !presentation.terminal && (
-          <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] tabular-nums">
+          <span className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] tabular-nums">
             {round <= SOFT_ROUND_CAP
               ? nc.roundOfCapTemplate
                   .replace('{n}', String(round))
@@ -118,10 +118,10 @@ export function NegotiationCard({
         <h3 className="font-sans text-[22px] md:text-[26px] font-extrabold tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
           {stateCopy.headline}
         </h3>
-        <p className="mt-3 text-[13.5px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
+        <p className="mt-3 text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch] font-medium">
           {stateCopy.body}
         </p>
-        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
           <span>{nc.nextActors[presentation.nextActor]}</span>
           {visibleOfferFreshness ? <span className="tabular-nums">{visibleOfferFreshness}</span> : null}
         </div>
@@ -133,12 +133,12 @@ export function NegotiationCard({
             data-structured-offer-version={structuredOffer.version}
           >
             <div className="flex flex-wrap items-end justify-between gap-3">
-              <span className="mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+              <span className="mono text-[13px] font-semibold uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
                 {structuredOffer.version === 1 ? nc.offer.initial : nc.offer.changed}
               </span>
               <span className="font-sans text-[30px] font-extrabold leading-none tracking-[-0.03em] tabular-nums text-[var(--lp-dark)]">
                 {formatUsdc(structuredOffer.amountUsdc, { withSuffix: false })}{' '}
-                <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                <span className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
                   USDC
                 </span>
               </span>
@@ -161,7 +161,7 @@ export function NegotiationCard({
               return (
                 <div key={i} className="flex items-end gap-2">
                   {i > 0 && (
-                    <span aria-hidden className="mono text-[13px] text-[var(--lp-text-muted)] pb-5">
+                    <span aria-hidden className="mono text-[14px] text-[var(--lp-text-muted)] pb-5">
                       →
                     </span>
                   )}
@@ -176,7 +176,7 @@ export function NegotiationCard({
                       {formatUsdc(pt.price, { withSuffix: false })}
                     </span>
                     <span
-                      className="mono text-[9px] font-bold uppercase tracking-[0.16em]"
+                      className="mono text-[13px] font-bold uppercase tracking-[0.16em]"
                       style={{ color: isLast ? 'var(--lp-accent)' : SIDE_COLOR[pt.side] }}
                     >
                       {label}
@@ -185,7 +185,7 @@ export function NegotiationCard({
                 </div>
               );
             })}
-            <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] pb-[7px]">
+            <span className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] pb-[7px]">
               USDC
             </span>
           </div>
@@ -196,7 +196,7 @@ export function NegotiationCard({
             type="button"
             onClick={() => setOpen((v) => !v)}
             aria-expanded={open}
-            className="group inline-flex min-h-11 items-center gap-2 mono text-[11px] uppercase tracking-[0.12em] font-semibold text-[var(--lp-text-sub)] transition-colors hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
+            className="group inline-flex min-h-11 items-center gap-2 mono text-[14px] uppercase tracking-[0.12em] font-semibold text-[var(--lp-text-sub)] transition-colors hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
           >
             {open ? nc.timelineHide : nc.timelineShow}
             <svg

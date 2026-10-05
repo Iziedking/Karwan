@@ -108,7 +108,7 @@ export function SectionTag({
   return (
     <span
       className={cn(
-        'karwan-section-tag inline-flex items-center gap-2 mono text-[11px] font-medium uppercase tracking-[0.16em]',
+        'karwan-section-tag inline-flex items-center gap-2 mono text-[14px] font-medium uppercase tracking-[0.16em]',
         tone === 'dark' ? 'text-[var(--lp-workspace-muted)]' : 'text-[var(--lp-text-muted)]',
       )}
     >
@@ -285,7 +285,7 @@ export function BigStatTile({
     >
       <div
         className={cn(
-          'inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.16em]',
+          'inline-flex items-center gap-1.5 mono text-[13px] uppercase tracking-[0.16em]',
           isDark ? 'text-[var(--lp-workspace-muted)]' : 'text-[var(--lp-text-muted)]',
         )}
       >
@@ -318,7 +318,7 @@ export function BigStatTile({
                 // line on mobile instead of being clipped by the card's
                 // intentional overflow boundary. Desktop keeps the compact
                 // inline treatment.
-                'mono shrink-0 basis-full text-[10px] uppercase tracking-[0.12em] sm:basis-auto',
+                'mono shrink-0 basis-full text-[13px] uppercase tracking-[0.12em] sm:basis-auto',
                 isDark ? 'text-[var(--lp-workspace-muted)]' : 'text-[var(--lp-text-muted)]',
               )}
             >
@@ -369,10 +369,10 @@ export function AddressPill({ address, tone = 'dark' }: { address: string; tone?
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-2 px-3 py-1.5 rounded-full mono text-[11px] uppercase tracking-[0.08em]',
+        'inline-flex items-center gap-2 px-3 py-1.5 rounded-full mono text-[14px] uppercase tracking-[0.08em]',
         tone === 'dark'
           ? 'border border-[var(--lp-workspace-border)] text-[var(--lp-workspace-muted)]'
-          : 'border border-[var(--lp-outline)] text-[var(--lp-dark)]/70',
+          : 'border border-[var(--lp-outline)] text-[var(--lp-text-sub)]',
       )}
     >
       <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-[var(--lp-accent)]" />

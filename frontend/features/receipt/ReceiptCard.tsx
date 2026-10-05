@@ -43,7 +43,7 @@ export function ReceiptCard(props: ReceiptCardProps) {
         </span>
         <span
           className={cn(
-            'rounded-full px-3 py-1 text-[12px] font-semibold',
+            'rounded-full px-3 py-1 text-[14px] font-semibold',
             props.status.tone === 'done' ? 'bg-[#E7F0CF] text-[#33410f]' : props.status.tone === 'failed' ? 'bg-[#F6E1E0] text-[#7a2421]' : 'bg-[#EEF1F4] text-[#4b545d]',
           )}
         >
@@ -51,7 +51,7 @@ export function ReceiptCard(props: ReceiptCardProps) {
         </span>
       </header>
 
-      <p className="mt-7 text-[13px] text-[#5d666f]">{props.kind}</p>
+      <p className="mt-7 text-[14px] text-[#5d666f]">{props.kind}</p>
       {whole ? (
         <p className="mt-1.5 text-[44px] font-semibold leading-none tracking-[-0.03em] sm:text-[52px]">
           {whole}
@@ -64,9 +64,9 @@ export function ReceiptCard(props: ReceiptCardProps) {
         {props.rows.map((row) => (
           <div key={row.label} className="flex items-start justify-between gap-4 border-b border-[#E3E6E1] py-3 text-[14.5px]">
             <dt className="shrink-0 text-[#5d666f]">{row.label}</dt>
-            <dd className={cn('min-w-0 break-words text-end font-medium', row.mono && 'font-mono text-[13.5px] font-normal')}>
+            <dd className={cn('min-w-0 break-words text-end font-medium', row.mono && 'font-mono text-[14px] font-normal')}>
               {row.value}
-              {row.sub ? <span className="mt-0.5 block text-[12.5px] font-normal text-[#5d666f]">{row.sub}</span> : null}
+              {row.sub ? <span className="mt-0.5 block text-[14px] font-normal text-[#5d666f]">{row.sub}</span> : null}
             </dd>
           </div>
         ))}
@@ -85,15 +85,15 @@ export function ReceiptCard(props: ReceiptCardProps) {
             <span className="[&_div]:rounded-[8px] [&_div]:p-1.5 [&_canvas]:!h-[64px] [&_canvas]:!w-[64px]">
               <PayLinkQr value={props.verify.href} label={props.verify.qrLabel} />
             </span>
-            <span className="text-[12px] leading-snug text-[#5d666f]">
-              <b className="block text-[12.5px] font-semibold text-[#16202A]">{props.verify.title}</b>
+            <span className="text-[14px] leading-snug text-[#5d666f]">
+              <b className="block text-[14px] font-semibold text-[#16202A]">{props.verify.title}</b>
               {props.verify.body}
             </span>
           </a>
         ) : <span />}
         <CaravanStamp size={58} />
       </footer>
-      {props.footnote ? <p className="mt-4 text-center text-[11.5px] text-[#8a929a]">{props.footnote}</p> : null}
+      {props.footnote ? <p className="mt-4 text-center text-[14px] text-[#8a929a]">{props.footnote}</p> : null}
     </article>
   );
 }

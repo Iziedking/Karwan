@@ -246,7 +246,7 @@ async function layoutIsSound(page: Page, testInfo: TestInfo, primaryCount = 0) {
       }
     }
     if (card.badge) {
-      expect(card.badge.fontSize).toBe('13px');
+      expect(card.badge.fontSize).toBe('14px');
       expect(card.badge.background).toBe('rgba(0, 0, 0, 0)');
       expect(card.badge.borders).toEqual(['0px', '0px', '0px', '0px']);
       expect(card.badge.shadow).toBe('none');

@@ -97,7 +97,7 @@ export default function BrandPage() {
         <div className="mt-10 grid md:grid-cols-2 gap-5">
           <div className="rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
             <div className="p-6 md:p-7 space-y-3">
-              <p className="mono text-[12px] font-semibold text-[var(--lp-accent-on-light)]">
+              <p className="mono text-[14px] font-semibold text-[var(--lp-accent-on-light)]">
                 {t.voice.wordsWeUseLabel}
               </p>
               <p className="text-[16px] leading-[1.55] text-[var(--lp-text-sub)]">
@@ -107,7 +107,7 @@ export default function BrandPage() {
           </div>
           <div className="rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
             <div className="p-6 md:p-7 space-y-3">
-              <p className="mono text-[12px] font-semibold text-[var(--color-critical)]">
+              <p className="mono text-[14px] font-semibold text-[var(--color-critical)]">
                 {t.voice.wordsWeAvoidLabel}
               </p>
               <p className="text-[16px] leading-[1.55] text-[var(--lp-text-sub)]">
@@ -203,21 +203,21 @@ function LogoCard({
       >
         {preview}
         <div className="px-5 py-4 space-y-2 border-t border-[var(--lp-border-light)]">
-          <p className="mono text-[12px] font-medium text-[var(--lp-text-sub)]">
+          <p className="mono text-[14px] font-medium text-[var(--lp-text-sub)]">
             {label.toUpperCase()}
           </p>
           <div className="flex flex-wrap items-center gap-1">
             <a
               href={href}
               download
-              className="mono inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-[12px] uppercase tracking-[0.1em] text-[var(--lp-dark)] underline underline-offset-2 transition-colors hover:text-[var(--lp-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+              className="mono inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-[14px] uppercase tracking-[0.1em] text-[var(--lp-dark)] underline underline-offset-2 transition-colors hover:text-[var(--lp-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
             >
               SVG
             </a>
             {pngHref && <a
               href={pngHref}
               download
-              className="mono inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-[12px] uppercase tracking-[0.1em] text-[var(--lp-dark)] underline underline-offset-2 transition-colors hover:text-[var(--lp-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+              className="mono inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-[14px] uppercase tracking-[0.1em] text-[var(--lp-dark)] underline underline-offset-2 transition-colors hover:text-[var(--lp-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
             >
               PNG
             </a>}
@@ -284,7 +284,7 @@ function ColorChip({
           }}
         >
           <span
-            className="mono text-[12px] font-semibold"
+            className="mono text-[14px] font-semibold"
             style={{ color: labelTone === 'dark' ? '#0E0E0E' : '#FFFFFF' }}
           >
             {brandLabel}
@@ -292,7 +292,7 @@ function ColorChip({
         </div>
         <div className="px-5 py-4 flex items-center justify-between gap-3">
           <div>
-            <p className="mono text-[12px] font-medium text-[var(--lp-text-sub)]">
+            <p className="mono text-[14px] font-medium text-[var(--lp-text-sub)]">
               {name.toUpperCase()}
             </p>
             <button type="button" onClick={copy} aria-label={`${copyLabel} ${hex}`}
@@ -303,7 +303,7 @@ function ColorChip({
           <button
             type="button"
             onClick={copy}
-            className="mono inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-[13px] font-semibold text-[var(--lp-text-sub)] underline underline-offset-2 transition-colors hover:text-[var(--lp-dark)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+            className="mono inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-[14px] font-semibold text-[var(--lp-text-sub)] underline underline-offset-2 transition-colors hover:text-[var(--lp-dark)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
           >
             {copied ? copiedLabel : copyLabel}
           </button>

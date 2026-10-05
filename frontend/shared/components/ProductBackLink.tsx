@@ -33,7 +33,7 @@ export function ProductBackLink({
       }}
       aria-label={t.nav.backAria}
       className={cn(
-        'group relative z-10 inline-flex min-h-11 items-center gap-2 rounded-full px-2 text-[13px] font-semibold text-[var(--lp-text-sub)] transition-colors hover:bg-[var(--lp-card)] hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]',
+        'group relative z-10 inline-flex min-h-11 items-center gap-2 rounded-full px-2 text-[14px] font-semibold text-[var(--lp-text-sub)] transition-colors hover:bg-[var(--lp-card)] hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]',
         className,
       )}
     >

@@ -58,7 +58,7 @@ export function ProfileEmailButton({
         type="button"
         onClick={() => setOpen(true)}
         title={verified ? (displayEmail ?? '') : t.add}
-        className={`inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border ${chipClass} transition-colors w-fit max-w-[240px]`}
+        className={`inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[14px] font-bold uppercase tracking-[0.08em] border ${chipClass} transition-colors w-fit max-w-[240px]`}
         style={{
           borderRadius: 8,
         }}
@@ -69,7 +69,7 @@ export function ProfileEmailButton({
         </span>
         {verified && (
           <span
-            className="text-[9px] uppercase tracking-[0.12em] font-bold px-1.5 py-0.5"
+            className="text-[13px] uppercase tracking-[0.12em] font-bold px-1.5 py-0.5"
             style={{ background: 'rgba(175, 201, 91,0.18)', color: 'var(--lp-accent)', borderRadius: 3 }}
           >
             {t.verifiedTag}
@@ -188,7 +188,7 @@ function EmailModal({ address, onClose }: { address: string; onClose: () => void
           <div>
             <div className="flex items-center gap-2.5">
               <MailGlyph size={16} />
-              <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+              <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
                 {isBusiness ? t.businessEmailLabel : t.emailLabel}
               </span>
             </div>
@@ -225,7 +225,7 @@ function EmailModal({ address, onClose }: { address: string; onClose: () => void
               }}
             >
               <div className="min-w-0">
-                <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
                   {t.currentLabel}
                 </p>
                 <p className="mt-1 font-sans text-[16px] font-extrabold tracking-[-0.01em] truncate">
@@ -233,7 +233,7 @@ function EmailModal({ address, onClose }: { address: string; onClose: () => void
                 </p>
               </div>
               <span
-                className="inline-flex items-center gap-1.5 mono text-[10px] font-bold uppercase tracking-[0.14em] px-2 py-0.5"
+                className="inline-flex items-center gap-1.5 mono text-[13px] font-bold uppercase tracking-[0.14em] px-2 py-0.5"
                 style={{ background: 'rgba(175, 201, 91,0.18)', color: 'var(--lp-accent)', borderRadius: 3 }}
               >
                 {t.verifiedTag}
@@ -245,13 +245,13 @@ function EmailModal({ address, onClose }: { address: string; onClose: () => void
             // One email at a time. Once verified, the only action is removal;
             // adding a different address means removing this one first.
             <>
-              <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+              <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
                 {t.manageNote}
               </p>
               <button
                 type="button"
                 onClick={remove}
-                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 mono text-[12px] font-bold uppercase tracking-[0.08em] border border-[var(--lp-border)] text-[var(--lp-text-sub)] hover:border-[var(--lp-critical)] hover:text-[var(--lp-critical)] transition-colors"
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 mono text-[14px] font-bold uppercase tracking-[0.08em] border border-[var(--lp-border)] text-[var(--lp-text-sub)] hover:border-[var(--lp-critical)] hover:text-[var(--lp-critical)] transition-colors"
                 style={{ borderRadius: 12 }}
               >
                 {t.remove}
@@ -259,11 +259,11 @@ function EmailModal({ address, onClose }: { address: string; onClose: () => void
             </>
           ) : step === 'email' ? (
             <>
-              <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+              <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
                 {isBusiness ? t.descriptionBusiness : t.descriptionIndividual}
               </p>
               <label className="block space-y-2">
-                <span className="mono text-[10px] uppercase tracking-[0.14em] font-medium text-[var(--lp-text-muted)]">
+                <span className="mono text-[13px] uppercase tracking-[0.14em] font-medium text-[var(--lp-text-muted)]">
                   {isBusiness ? t.businessEmailLabel : t.emailLabel}
                 </span>
                 <input
@@ -282,7 +282,7 @@ function EmailModal({ address, onClose }: { address: string; onClose: () => void
                   type="button"
                   onClick={sendCode}
                   disabled={sending}
-                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 mono text-[12px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-60 transition-colors"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 mono text-[14px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-60 transition-colors"
                   style={{ borderRadius: 12 }}
                 >
                   {sending ? t.sending : t.sendCode}
@@ -291,16 +291,16 @@ function EmailModal({ address, onClose }: { address: string; onClose: () => void
             </>
           ) : (
             <>
-              <p className="text-[13.5px] leading-relaxed text-[var(--lp-text-sub)]">
+              <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
                 {t.sentNote.replace('{email}', pendingEmail)}
               </p>
               {devCode ? (
-                <p className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-accent)]">
+                <p className="mono text-[14px] uppercase tracking-[0.14em] text-[var(--lp-accent)]">
                   {t.devCodeNote.replace('{code}', devCode)}
                 </p>
               ) : null}
               <label className="block space-y-2">
-                <span className="mono text-[10px] uppercase tracking-[0.14em] font-medium text-[var(--lp-text-muted)]">
+                <span className="mono text-[13px] uppercase tracking-[0.14em] font-medium text-[var(--lp-text-muted)]">
                   {t.codeLabel}
                 </span>
                 <input
@@ -318,7 +318,7 @@ function EmailModal({ address, onClose }: { address: string; onClose: () => void
                   type="button"
                   onClick={verify}
                   disabled={verifying}
-                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 mono text-[12px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-60 transition-colors"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 mono text-[14px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-60 transition-colors"
                   style={{ borderRadius: 12 }}
                 >
                   {verifying ? t.verifying : t.verify}
@@ -327,7 +327,7 @@ function EmailModal({ address, onClose }: { address: string; onClose: () => void
                   type="button"
                   onClick={sendCode}
                   disabled={sending || verifying}
-                  className="mono text-[11px] uppercase tracking-[0.08em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+                  className="mono text-[14px] uppercase tracking-[0.08em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
                 >
                   {sending ? t.sending : t.resend}
                 </button>
@@ -336,7 +336,7 @@ function EmailModal({ address, onClose }: { address: string; onClose: () => void
           )}
 
           {error ? (
-            <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-critical)]">{error}</p>
+            <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-critical)]">{error}</p>
           ) : null}
         </div>
       </div>

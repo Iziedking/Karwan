@@ -197,7 +197,7 @@ export function ReputationBadge({
   }
 
   const cellPad = size === 'sm' ? 'px-1.5 py-[3px]' : 'px-2 py-1';
-  const labelSize = size === 'sm' ? 'text-[9px]' : 'text-[10px]';
+  const labelSize = size === 'sm' ? 'text-[13px]' : 'text-[13px]';
   const quiet = appearance === 'quiet';
 
   if (sealed) {
@@ -220,7 +220,7 @@ export function ReputationBadge({
 
   if (fetchState === 'loading' || !data) {
     if (quiet) {
-      return <span aria-hidden className="text-[13px] text-[var(--ink-secondary)]">·</span>;
+      return <span aria-hidden className="text-[14px] text-[var(--ink-secondary)] font-medium">·</span>;
     }
     return (
       <span
@@ -276,7 +276,7 @@ export function ReputationBadge({
       return (
         <span
           aria-label={accessibleLabel}
-          className="inline-flex items-center gap-2 whitespace-nowrap text-[13px] text-[var(--ink-secondary)]"
+          className="inline-flex items-center gap-2 whitespace-nowrap text-[14px] text-[var(--ink-secondary)] font-medium"
         >
           {badgeCells}
         </span>
@@ -307,7 +307,7 @@ export function ReputationBadge({
         aria-expanded={open}
         aria-label={accessibleLabel}
         className={quiet
-          ? 'group inline-flex min-h-10 items-center gap-2 rounded-full px-2 text-[13px] text-[var(--ink-secondary)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] hover:bg-[var(--tint)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]'
+          ? 'group inline-flex min-h-10 items-center gap-2 rounded-full px-2 text-[14px] text-[var(--ink-secondary)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] hover:bg-[var(--tint)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]'
           : 'group inline-flex min-h-11 items-stretch border transition-colors hover:brightness-95'}
         style={quiet ? undefined : {
           borderColor: tier.border,
@@ -329,7 +329,7 @@ export function ReputationBadge({
           >
             <div className="flex items-baseline justify-between gap-2 pb-2 border-b border-[var(--color-line)]">
               <span className="eyebrow">{rb.eyebrow}</span>
-              <span className="text-[10px] mono text-[var(--color-ink-faint)]">
+              <span className="text-[13px] mono text-[var(--color-ink-faint)]">
                 {(data.totalDeals === 1 ? rb.dealCountOneTemplate : rb.dealCountManyTemplate).replace('{count}', String(data.totalDeals))}
               </span>
             </div>
@@ -340,7 +340,7 @@ export function ReputationBadge({
               >
                 {showScore ? score : '-'}
               </span>
-              <span className="text-[10px] mono uppercase tracking-[0.1em] text-[var(--color-ink-faint)]">
+              <span className="text-[13px] mono uppercase tracking-[0.1em] text-[var(--color-ink-faint)]">
                 {showScore ? rb.scoreMaxTemplate.replace('{max}', String(scoreMax)) : rb.unratedLabel}
               </span>
             </div>
@@ -349,13 +349,13 @@ export function ReputationBadge({
               <StatRow label={rb.stats.disputed} value={data.disputedCount} tone="warning" />
               <StatRow label={rb.stats.failed} value={data.failedCount} tone="critical" />
             </div>
-            <p className="mt-3 pt-2 border-t border-[var(--color-line)] text-[10px] text-[var(--color-ink-faint)] leading-snug">
+            <p className="mt-3 pt-2 border-t border-[var(--color-line)] text-[13px] text-[var(--color-ink-faint)] leading-snug">
               {rb.compositeFootnote}
             </p>
             {address && (
               <Link
                 href={`/credit-passport/${address}`}
-                className="mt-2 inline-flex items-center gap-1 text-[10px] mono uppercase tracking-[0.12em] text-[var(--color-accent)] hover:underline"
+                className="mt-2 inline-flex items-center gap-1 text-[13px] mono uppercase tracking-[0.12em] text-[var(--color-accent)] hover:underline"
               >
                 {rb.creditPassportLink}
               </Link>
@@ -385,11 +385,11 @@ function StatRow({
       : 'var(--color-critical)';
   return (
     <div className="flex items-baseline justify-between gap-2">
-      <span className="inline-flex items-center gap-1.5 text-[11px] text-[var(--color-ink-dim)]">
+      <span className="inline-flex items-center gap-1.5 text-[14px] text-[var(--color-ink-dim)] font-medium">
         <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: color }} />
         {label}
       </span>
-      <span className="text-[12px] mono font-semibold tabular-nums">{value}</span>
+      <span className="text-[14px] mono font-semibold tabular-nums">{value}</span>
     </div>
   );
 }

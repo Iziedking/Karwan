@@ -76,7 +76,7 @@ export function RecentMoney() {
               <li key={item.id} className="flex items-start justify-between gap-4 py-3">
                 <span className="min-w-0">
                   <span className="block text-[15px] leading-snug text-[var(--lp-dark)]">{ledgerLine(item, texts)}</span>
-                  <span className="mt-1 flex flex-wrap gap-x-3 text-[12px] text-[var(--lp-text-sub)]">
+                  <span className="mt-1 flex flex-wrap gap-x-3 text-[14px] text-[var(--lp-text-sub)] font-medium">
                     {item.status === 'pending' ? <span>{copy.statusPending}</span> : null}
                     {item.status === 'failed' ? <span className="text-[var(--color-critical)]">{copy.statusFailed}</span> : null}
                     {reference ? <span className="mono break-all tabular-nums">{reference}</span> : null}

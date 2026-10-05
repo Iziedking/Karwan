@@ -169,13 +169,13 @@ export function GlobalLoadingSplash() {
             <p className="text-[14px] font-semibold text-[var(--color-ink,#ededed)]">
               Can't reach Karwan.
             </p>
-            <p className="text-[12px] text-[var(--color-ink,#ededed)] opacity-60 max-w-[24ch]">
+            <p className="text-[14px] text-[var(--color-ink,#ededed)] opacity-60 max-w-[24ch]">
               Check your connection and try again.
             </p>
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="mt-1 mono text-[11px] font-bold uppercase tracking-[0.12em] px-4 py-2 rounded-lg"
+              className="mt-1 mono text-[14px] font-bold uppercase tracking-[0.12em] px-4 py-2 rounded-lg"
               style={{ background: 'var(--lp-accent, #afc95b)', color: '#101214' }}
             >
               Retry

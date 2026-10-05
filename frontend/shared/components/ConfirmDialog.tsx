@@ -91,7 +91,7 @@ export function ConfirmDialog({
         }}
       >
         <span
-          className="inline-block mono text-[10px] font-bold uppercase tracking-[0.16em] px-1.5 py-0.5 mb-3"
+          className="inline-block mono text-[13px] font-bold uppercase tracking-[0.16em] px-1.5 py-0.5 mb-3"
           style={{
             background: 'var(--lp-band-dark)',
             color: 'var(--lp-accent)',
@@ -103,13 +103,13 @@ export function ConfirmDialog({
         <h2 className="font-sans text-[22px] font-extrabold tracking-[-0.01em] leading-tight">
           {title}
         </h2>
-        <div className="mt-3 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+        <div className="mt-3 text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
           {body}
         </div>
 
         {reasonPrompt && (
           <div className="mt-5">
-            <label className="block mono text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lp-text-muted)] mb-2">
+            <label className="block mono text-[13px] font-bold uppercase tracking-[0.14em] text-[var(--lp-text-muted)] mb-2">
               {reasonPrompt.label}
             </label>
             <textarea
@@ -128,7 +128,7 @@ export function ConfirmDialog({
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2.5 mono text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] hover:bg-black/[0.04] transition-colors"
+            className="px-4 py-2.5 mono text-[14px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] hover:bg-black/[0.04] transition-colors"
             style={{
               borderRadius: 10,
             }}
@@ -139,7 +139,7 @@ export function ConfirmDialog({
             type="button"
             disabled={reasonInvalid}
             onClick={() => onConfirm(reasonPrompt ? reason.trim() : undefined)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 mono text-[12px] font-bold uppercase tracking-[0.1em] transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.22)] hover:shadow-[0_4px_0_rgba(0,0,0,0.22)] active:shadow-[0_1px_0_rgba(0,0,0,0.22)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+            className="inline-flex items-center gap-2 px-5 py-2.5 mono text-[14px] font-bold uppercase tracking-[0.1em] transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.22)] hover:shadow-[0_4px_0_rgba(0,0,0,0.22)] active:shadow-[0_1px_0_rgba(0,0,0,0.22)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
             style={{
               background: confirmBg,
               color: confirmText,

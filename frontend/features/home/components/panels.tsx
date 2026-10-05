@@ -271,10 +271,10 @@ export function PanelAdvance({
       animate={{ opacity: active ? 1 : 0 }}
       transition={{ duration: reduce ? 0 : dur.base, ease: ease.out }}
       className={cn(
-        'group inline-flex min-h-11 items-center gap-2.5 px-2 mono text-[10px] uppercase tracking-[0.2em]',
+        'group inline-flex min-h-11 items-center gap-2.5 px-2 mono text-[13px] uppercase tracking-[0.2em]',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2',
         tone === 'dark'
-          ? 'text-white/60 hover:text-white focus-visible:ring-offset-[var(--lp-band-dark)]'
+          ? 'text-white/75 hover:text-white focus-visible:ring-offset-[var(--lp-band-dark)]'
           : 'text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] focus-visible:ring-offset-[var(--lp-light)]',
       )}
       style={{ pointerEvents: active ? 'auto' : 'none' }}

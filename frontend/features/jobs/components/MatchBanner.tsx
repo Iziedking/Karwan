@@ -142,12 +142,12 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
     return (
       <BannerFrame tone="positive" eyebrow={mb.approvedEyebrow}>
         <div className="flex items-baseline justify-between gap-4">
-          <p className="text-[13px] text-[var(--color-ink)] font-medium">
+          <p className="text-[14px] text-[var(--color-ink)] font-medium">
             {mb.approvedBody}
           </p>
           <a
             href={`/deals/${proposal.jobId}`}
-            className="text-[12px] mono text-[var(--color-ink)] underline-offset-2 hover:underline shrink-0"
+            className="text-[14px] mono text-[var(--color-ink)] underline-offset-2 hover:underline shrink-0"
           >
             {mb.approvedCta}
           </a>
@@ -158,7 +158,7 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
   if (declined) {
     return (
       <BannerFrame tone="default" eyebrow={mb.declinedEyebrow}>
-        <p className="text-[13px] text-[var(--color-ink-dim)]">
+        <p className="text-[14px] text-[var(--color-ink-dim)] font-medium">
           {viewerIsSeller ? mb.declinedSellerView : mb.declinedOtherView}
         </p>
       </BannerFrame>
@@ -191,12 +191,12 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
               USDC
             </span>
             {pendingRaise && proposal.originalPriceUsdc && (
-              <span className="mono text-[11px] text-[var(--color-ink-faint)] line-through">
+              <span className="mono text-[14px] text-[var(--color-ink-faint)] line-through">
                 {formatUsdc(proposal.originalPriceUsdc, { withSuffix: false })}
               </span>
             )}
           </div>
-          <span className="text-[12px] text-[var(--color-ink-faint)]">
+          <span className="text-[14px] text-[var(--color-ink-faint)]">
             {mb.proposedTemplate.replace('{time}', relativeTime(proposal.proposedAt))}
           </span>
         </div>
@@ -230,9 +230,9 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
       {/* Keep the decision surface quiet. Full provenance remains available on
           demand so a match card does not read like an operator log. */}
       {!quiet && proposal.paidSignal && (
-        <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-[var(--color-ink-faint)]">
+        <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[14px] text-[var(--color-ink-faint)]">
           <span>{mb.paidData.label}</span>
-          <span className="normal-case tracking-normal text-[11px]">
+          <span className="normal-case tracking-normal text-[14px]">
             seller verification funded · ${proposal.paidSignal.amountUsd}
           </span>
           <Hint side="bottom" align="start">
@@ -244,7 +244,7 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
                 )}
               </span>
               {paidEvidenceReceipt && (
-                <span className="block mono text-[10px] uppercase tracking-[0.08em] opacity-80">
+                <span className="block mono text-[13px] uppercase tracking-[0.08em] opacity-80">
                   {paidEvidenceReceipt.evidenceId
                     ? `${mb.paidData.evidenceCta ?? 'evidence'} ${paidEvidenceReceipt.displayEvidenceId}`
                     : 'payment recorded, evidence snapshot pending'}
@@ -263,7 +263,7 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
               href={ARC_EXPLORER_TX(proposal.paidSignal.transaction)}
               target="_blank"
               rel="noreferrer"
-              className="normal-case tracking-normal text-[11px] underline underline-offset-2"
+              className="normal-case tracking-normal text-[14px] underline underline-offset-2"
             >
               {mb.paidData.txCta} ↗
             </a>
@@ -307,13 +307,13 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
             />
           </svg>
           <span
-            className="text-[13px] font-semibold"
+            className="text-[14px] font-semibold"
             style={{ color: 'var(--color-positive)' }}
           >
             {mb.business.label}
           </span>
           {proposal.counterpartyBusiness.companyName && (
-            <span className="text-[13px] font-semibold text-[var(--color-ink)]">
+            <span className="text-[14px] font-semibold text-[var(--color-ink)]">
               {[
                 proposal.counterpartyBusiness.companyName,
                 proposal.counterpartyBusiness.sector,
@@ -340,10 +340,10 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
             borderRadius: 14,
           }}
         >
-          <p className="text-[13px] font-semibold mb-1.5">
+          <p className="text-[14px] font-semibold mb-1.5">
             {riskLabel[proposal.riskFlag!]}
           </p>
-          <p className="text-[12.5px] leading-snug" style={{ color: 'var(--color-ink)' }}>
+          <p className="text-[14px] leading-snug" style={{ color: 'var(--color-ink)' }}>
             {proposal.riskNote}
           </p>
         </div>
@@ -364,12 +364,12 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
           }}
         >
           <p
-            className="text-[13px] font-semibold mb-1.5"
+            className="text-[14px] font-semibold mb-1.5"
             style={{ color: '#b07d1f' }}
           >
             {mb.topUp.eyebrow}
           </p>
-          <p className="text-[12.5px] leading-snug" style={{ color: 'var(--color-ink)' }}>
+          <p className="text-[14px] leading-snug" style={{ color: 'var(--color-ink)' }}>
             {viewerIsBuyer
               ? mb.topUp.buyerTemplate.replace(
                   '{amount}',
@@ -416,7 +416,7 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
       {viewerIsSeller && !pendingRaise && showRaiseInput && (
         <div className="mt-4 space-y-2">
           <label className="block space-y-1.5">
-            <span className="text-[13px] text-[var(--lp-text-sub)]">
+            <span className="text-[14px] text-[var(--lp-text-sub)] font-medium">
               Your price (USDC). The buyer approves it or declines.
             </span>
             <input
@@ -444,7 +444,7 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
                 setRaisePrice('');
               }}
               disabled={busy !== null}
-              className="px-3 py-2 text-[12px] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)]"
+              className="px-3 py-2 text-[14px] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] font-medium"
             >
               {mb.declineCancelCta}
             </button>
@@ -454,7 +454,7 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
 
       {/* Raise pending: the seller waits, the buyer decides. */}
       {pendingRaise && viewerIsSeller && (
-        <p className="mt-4 text-[13px] text-[var(--color-ink-dim)]">
+        <p className="mt-4 text-[14px] text-[var(--color-ink-dim)] font-medium">
           You asked for {formatUsdc(proposal.raisedPriceUsdc!, { withSuffix: true })}. Waiting for
           the buyer to approve the new price or decline.
         </p>
@@ -462,14 +462,14 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
 
       {pendingRaise && viewerIsBuyer && (
         <div className="mt-4 space-y-3">
-          <p className="text-[13px] text-[var(--color-ink)]">
+          <p className="text-[14px] text-[var(--color-ink)]">
             The seller is not taking the {formatUsdc(proposal.originalPriceUsdc ?? proposal.agreedPriceUsdc, { withSuffix: false })} your agent agreed and asked for{' '}
             {formatUsdc(proposal.raisedPriceUsdc!, { withSuffix: true })}. Approve to fund at the new
             price, or decline.
           </p>
           {proposal.raiseOverCap && (
             <p
-              className="px-3 py-2 text-[12px] leading-snug"
+              className="px-3 py-2 text-[14px] leading-snug"
               style={{
                 background: 'rgba(224, 162, 60, 0.10)',
                 border: '1px solid rgba(224, 162, 60, 0.32)',
@@ -508,7 +508,7 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
       {viewerIsSeller && showDeclineReason && (
         <div className="mt-4 space-y-2">
           <label className="block space-y-1.5">
-            <span className="text-[13px] text-[var(--lp-text-sub)]">
+            <span className="text-[14px] text-[var(--lp-text-sub)] font-medium">
               {mb.declineReasonLabel}
             </span>
             <input
@@ -536,7 +536,7 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
                 setDeclineReason('');
               }}
               disabled={busy !== null}
-              className="px-3 py-2 text-[12px] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)]"
+              className="px-3 py-2 text-[14px] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] font-medium"
             >
               {mb.declineCancelCta}
             </button>
@@ -545,14 +545,14 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
       )}
 
       {viewerIsBuyer && !pendingRaise && proposal.fundable !== false && (
-        <p className="mt-3 text-[13px] text-[var(--color-ink-dim)]">{mb.buyerWaiting}</p>
+        <p className="mt-3 text-[14px] text-[var(--color-ink-dim)] font-medium">{mb.buyerWaiting}</p>
       )}
       {!viewerIsBuyer && !viewerIsSeller && (
-        <p className="mt-3 text-[13px] text-[var(--color-ink-dim)]">{mb.outsideWaiting}</p>
+        <p className="mt-3 text-[14px] text-[var(--color-ink-dim)] font-medium">{mb.outsideWaiting}</p>
       )}
 
       {error && (
-        <p className="mt-3 text-[11px] mono text-[var(--color-critical)]">{error}</p>
+        <p className="mt-3 text-[14px] mono text-[var(--color-critical)]">{error}</p>
       )}
     </BannerFrame>
   );
@@ -615,7 +615,7 @@ function CounterpartySignal({
   if (!trusted) {
     return (
       <div className="flex items-center gap-2.5 flex-wrap">
-        <span className="text-[13px] text-[var(--lp-text-sub)]">
+        <span className="text-[14px] text-[var(--lp-text-sub)] font-medium">
           {label}
         </span>
         <div className="flex flex-col items-center gap-0.5 shrink-0">
@@ -632,7 +632,7 @@ function CounterpartySignal({
             />
           ) : (
             <div
-              className="w-7 h-7 flex items-center justify-center mono text-[9px] font-bold uppercase"
+              className="w-7 h-7 flex items-center justify-center mono text-[13px] font-bold uppercase"
               style={{
                 background: 'var(--lp-light)',
                 border: '1px solid var(--color-line)',
@@ -644,19 +644,19 @@ function CounterpartySignal({
               {address.slice(2, 4).toUpperCase()}
             </div>
           )}
-          <span className="mono text-[9px] tabular-nums text-[var(--color-ink-faint)] tracking-tight">
+          <span className="mono text-[13px] tabular-nums text-[var(--color-ink-faint)] tracking-tight">
             {shortAddress(address)}
           </span>
         </div>
         {xHandle && (
-          <span className="mono text-[12px] text-[var(--color-ink-dim)]">@{xHandle}</span>
+          <span className="mono text-[14px] text-[var(--color-ink-dim)] font-medium">@{xHandle}</span>
         )}
         <ReputationBadge address={address} size="sm" />
         {canPeek && (
           <button
             type="button"
             onClick={onOpenPeek}
-            className="text-[13px] px-2 py-1 border transition-colors hover:bg-[var(--color-surface-2)]"
+            className="text-[14px] px-2 py-1 border transition-colors hover:bg-[var(--color-surface-2)]"
             style={{
               color: 'var(--color-ink-dim)',
               borderColor: 'var(--color-line-strong)',
@@ -710,7 +710,7 @@ function CounterpartySignal({
           </div>
         )}
         <span
-          className="mono text-[9px] tabular-nums text-[var(--color-ink-faint)] tracking-tight"
+          className="mono text-[13px] tabular-nums text-[var(--color-ink-faint)] tracking-tight"
           title={address}
         >
           {shortAddress(address)}
@@ -718,19 +718,19 @@ function CounterpartySignal({
       </div>
       <div className="min-w-0 flex-1 flex flex-col gap-1.5">
         <div className="flex items-baseline gap-2 flex-wrap">
-          <span className="text-[13px] text-[var(--lp-text-sub)]">
+          <span className="text-[14px] text-[var(--lp-text-sub)] font-medium">
             {label}
           </span>
           <span className="font-sans text-[15px] font-bold text-[var(--color-ink)]">
             {profile?.displayName?.trim() || (xHandle ? `@${xHandle}` : shortAddress(address))}
           </span>
           {xHandle && profile?.displayName && (
-            <span className="mono text-[11px] text-[var(--color-ink-faint)]">@{xHandle}</span>
+            <span className="mono text-[14px] text-[var(--color-ink-faint)]">@{xHandle}</span>
           )}
           <ReputationBadge address={address} size="sm" />
         </div>
         {recordLine && (
-          <div className="text-[13px] text-[var(--color-ink-dim)]">
+          <div className="text-[14px] text-[var(--color-ink-dim)] font-medium">
             {recordLine}
           </div>
         )}
@@ -739,7 +739,7 @@ function CounterpartySignal({
             href={passportHref}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 px-2.5 py-1 text-[13px] font-semibold transition-colors"
+            className="inline-flex items-center gap-1 px-2.5 py-1 text-[14px] font-semibold transition-colors"
             style={{
               background: 'var(--lp-accent)',
               color: 'var(--lp-band-dark)',
@@ -754,7 +754,7 @@ function CounterpartySignal({
               href={xHref}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 px-2.5 py-1 text-[13px] font-semibold transition-colors"
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-[14px] font-semibold transition-colors"
               style={{
                 background: 'var(--lp-dark)',
                 color: 'var(--lp-card)',
@@ -771,7 +771,7 @@ function CounterpartySignal({
             <button
               type="button"
               onClick={onOpenPeek}
-              className="inline-flex items-center gap-1 px-2.5 py-1 text-[13px] font-semibold border transition-colors hover:bg-[var(--color-surface-2)]"
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-[14px] font-semibold border transition-colors hover:bg-[var(--color-surface-2)]"
               style={{
                 color: 'var(--color-ink-dim)',
                 borderColor: 'var(--color-line-strong)',
@@ -820,7 +820,7 @@ function BannerFrame({
         : 'var(--color-ink)';
   return (
     <div className="rounded-[18px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-5 py-4 fade-up">
-      <p className="mb-2 inline-flex items-center gap-2 text-[13px] font-medium text-[var(--lp-text-sub)]">
+      <p className="mb-2 inline-flex items-center gap-2 text-[14px] font-medium text-[var(--lp-text-sub)]">
         <span aria-hidden className="size-2 shrink-0 rounded-full" style={{ background: toneInk }} />
         {eyebrow}
       </p>

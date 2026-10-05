@@ -31,7 +31,7 @@ export function ActivationGate({ children }: { children: ReactNode }) {
   return (
     <>
       <section className="overflow-hidden rounded-t-[16px] rounded-bl-[16px] rounded-br-[4px] border border-[var(--color-line)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-card)] sm:p-6">
-        <p className="inline-flex items-center gap-2 mono text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
+        <p className="inline-flex items-center gap-2 mono text-[13px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
           <span aria-hidden className="size-1.5 rounded-[1px] bg-[var(--warn)]" />
           Agent setup
         </p>
@@ -49,7 +49,7 @@ export function ActivationGate({ children }: { children: ReactNode }) {
             <h3 className="font-sans text-[18px] font-bold tracking-[-0.02em] text-[var(--color-ink)]">
               {t.title}
             </h3>
-            <p className="mt-2 max-w-[58ch] text-[13px] leading-relaxed text-[var(--color-ink-dim)]">
+            <p className="mt-2 max-w-[58ch] text-[14px] leading-relaxed text-[var(--color-ink-dim)] font-medium">
               {t.body}
             </p>
           </div>

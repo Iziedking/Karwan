@@ -118,7 +118,7 @@ export function MatchPanel({
       )}
       {error ? <p role="alert" className={ALERT}>{t.error}</p> : null}
       {proposal?.riskNote && view.viewer === 'seller' ? (
-        <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{proposal.riskNote}</p>
+        <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{proposal.riskNote}</p>
       ) : null}
     </div>
   );

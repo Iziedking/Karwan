@@ -51,12 +51,12 @@ export function FundToPay({ owner, shortfall, name, onLanded }: {
     <section className="mt-8 rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5">
       <h2 className="text-[17px] font-semibold text-[var(--lp-dark)]">{fill(copy.fundTitle, { amount: shortfall, name })}</h2>
       {data && !data.supported ? (
-        <p className="mt-2 text-[14px] text-[var(--lp-text-sub)]">{deposit.unavailable}</p>
+        <p className="mt-2 text-[14px] text-[var(--lp-text-sub)] font-medium">{deposit.unavailable}</p>
       ) : address ? (
         <div className="mt-5 flex flex-col items-center gap-5 sm:flex-row sm:items-start">
           <Qr value={address} label={deposit.qrAlt} />
           <div className="min-w-0 flex-1">
-            <p className="text-[13px] text-[var(--lp-text-sub)]">{deposit.addressLabel}</p>
+            <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{deposit.addressLabel}</p>
             <p className="mt-1 break-all text-[14px] font-medium tabular-nums text-[var(--lp-dark)] select-all">{address}</p>
             <button
               type="button"
@@ -65,7 +65,7 @@ export function FundToPay({ owner, shortfall, name, onLanded }: {
             >
               {copied ? deposit.copied : deposit.copy}
             </button>
-            <p className="mt-4 text-[13px] text-[var(--lp-text-sub)]">{deposit.acceptsLabel}</p>
+            <p className="mt-4 text-[14px] text-[var(--lp-text-sub)] font-medium">{deposit.acceptsLabel}</p>
             <p className="mt-1 text-[14px] text-[var(--lp-dark)]">{evm.map((chain) => chain.name).join(', ')}</p>
           </div>
         </div>

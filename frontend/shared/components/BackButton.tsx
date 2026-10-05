@@ -88,7 +88,7 @@ export function BackButton({
     tone === 'adaptive'
       ? 'border-[var(--color-line-strong)] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:border-[var(--color-ink-faint)] hover:bg-[var(--color-surface-2)]'
       : tone === 'light'
-      ? 'border-[var(--lp-outline)] text-[var(--lp-dark)]/70 hover:text-[var(--lp-dark)] hover:border-[var(--lp-outline-hover)] hover:bg-black/[0.04]'
+      ? 'border-[var(--lp-outline)] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] hover:border-[var(--lp-outline-hover)] hover:bg-black/[0.04]'
       : 'border-white/20 text-white/70 hover:text-white hover:border-white/40 hover:bg-white/5';
 
   return (
@@ -108,7 +108,7 @@ export function BackButton({
           className="transition-transform duration-200 group-hover:-translate-x-0.5"
         />
       </svg>
-      <span className="text-[13px] font-semibold tracking-[-0.005em]">
+      <span className="text-[14px] font-semibold tracking-[-0.005em]">
         {t.nav.back}
       </span>
     </button>

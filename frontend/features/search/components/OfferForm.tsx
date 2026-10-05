@@ -72,7 +72,7 @@ export function OfferForm({ onSubmit }: { onSubmit: (draft: OfferDraft) => void 
           <label htmlFor={ids.ttl} className="text-[14px] font-semibold text-[var(--lp-dark)]">{t.ttl}</label>
           <div className="mt-2 flex items-center gap-2">
             <input id={ids.ttl} inputMode="numeric" value={ttl} onChange={(e) => setTtl(e.target.value)} className={`${FIELD} min-w-0 tabular-nums`} />
-            <span className="text-[14px] text-[var(--lp-text-sub)]">{t.days}</span>
+            <span className="text-[14px] text-[var(--lp-text-sub)] font-medium">{t.days}</span>
           </div>
           {err('ttl')}
         </div>
@@ -81,7 +81,7 @@ export function OfferForm({ onSubmit }: { onSubmit: (draft: OfferDraft) => void 
         <label htmlFor={ids.room} className="text-[14px] text-[var(--lp-dark)]">{t.room}</label>
         <div className="mt-2 flex items-center gap-2">
           <input id={ids.room} inputMode="numeric" value={room} onChange={(e) => setRoom(e.target.value)} className={`${FIELD} max-w-[120px] tabular-nums`} />
-          <span className="text-[14px] text-[var(--lp-text-sub)]">{t.roomUnit}</span>
+          <span className="text-[14px] text-[var(--lp-text-sub)] font-medium">{t.roomUnit}</span>
         </div>
         {err('room')}
       </div>

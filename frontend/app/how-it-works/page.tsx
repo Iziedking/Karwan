@@ -5,7 +5,7 @@ import { DEALS_AVAILABLE } from '@/core/arcNetwork';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { WALLET_HOME, dealHref } from '@/shared/utils/routes';
 
-const SECTION_LABEL = 'text-[13px] font-medium text-[var(--color-ink-dim)]';
+const SECTION_LABEL = 'text-[14px] font-medium text-[var(--color-ink-dim)]';
 
 export default function HowItWorksPage() {
   const messages = useTranslations();
@@ -30,7 +30,7 @@ export default function HowItWorksPage() {
         <div className="max-w-2xl">
           <span className={SECTION_LABEL}>{t.direction.eyebrow}</span>
           <h2 className="text-[26px] tracking-tight font-semibold mt-2">{t.direction.title}</h2>
-          <p className="text-[14px] text-[var(--color-ink-dim)] mt-2 leading-relaxed">{t.direction.body}</p>
+          <p className="text-[14px] text-[var(--color-ink-dim)] mt-2 leading-relaxed font-medium">{t.direction.body}</p>
         </div>
         <div className="grid gap-x-8 md:grid-cols-3">
           {([
@@ -40,11 +40,11 @@ export default function HowItWorksPage() {
           ] as const).map(([title, body]) => (
             <div key={title} className="border-t border-[var(--color-line)] py-5">
               <p className="text-[14px] font-semibold">{title}</p>
-              <p className="text-[13px] text-[var(--color-ink-dim)] mt-2 leading-relaxed">{body}</p>
+              <p className="text-[14px] text-[var(--color-ink-dim)] mt-2 leading-relaxed font-medium">{body}</p>
             </div>
           ))}
         </div>
-        <p className="flex items-start gap-2 text-[13px] text-[var(--color-ink-dim)]">
+        <p className="flex items-start gap-2 text-[14px] text-[var(--color-ink-dim)] font-medium">
           <span aria-hidden className="mt-[6px] size-2 shrink-0 rounded-full bg-[var(--lp-accent)]" />
           {t.direction.status}
         </p>
@@ -62,7 +62,7 @@ export default function HowItWorksPage() {
           <h2 className="text-[26px] tracking-tight font-semibold mt-2">
             {t.directDeal.title}
           </h2>
-          <p className="text-[14px] text-[var(--color-ink-dim)] mt-2">
+          <p className="text-[14px] text-[var(--color-ink-dim)] mt-2 font-medium">
             {t.directDeal.body}
           </p>
         </div>
@@ -81,7 +81,7 @@ export default function HowItWorksPage() {
 
       <section className="border-y border-[var(--color-line)] py-6">
         <h2 className="text-[22px] font-semibold">{t.managedDeal.title}</h2>
-        <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-[var(--color-ink-dim)]">{t.managedDeal.body}</p>
+        <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-[var(--color-ink-dim)] font-medium">{t.managedDeal.body}</p>
         <Link href={dealHref('/market', DEALS_AVAILABLE)} className="mt-3 inline-flex min-h-11 items-center gap-2 font-semibold underline">{t.managedDeal.eyebrow}<span aria-hidden>→</span></Link>
       </section>
 
@@ -94,25 +94,25 @@ export default function HowItWorksPage() {
           <h2 className="text-[26px] tracking-tight font-semibold mt-2">
             {t.trust.title}
           </h2>
-          <p className="text-[14px] text-[var(--color-ink-dim)] mt-2 leading-relaxed">
+          <p className="text-[14px] text-[var(--color-ink-dim)] mt-2 leading-relaxed font-medium">
             {t.trust.body}
           </p>
         </div>
         <div className="grid md:grid-cols-2 gap-x-8">
           <div className="border-t border-[var(--color-line)] py-5">
             <p className="text-[14px] font-semibold">{t.trust.evidenceTitle}</p>
-            <p className="text-[13px] text-[var(--color-ink-dim)] mt-2 leading-relaxed">
+            <p className="text-[14px] text-[var(--color-ink-dim)] mt-2 leading-relaxed font-medium">
               {t.trust.evidence}
             </p>
           </div>
           <div className="border-t border-[var(--color-line)] py-5">
             <p className="text-[14px] font-semibold">{t.trust.identityTitle}</p>
-            <p className="text-[13px] text-[var(--color-ink-dim)] mt-2 leading-relaxed">
+            <p className="text-[14px] text-[var(--color-ink-dim)] mt-2 leading-relaxed font-medium">
               {t.trust.identity}
             </p>
           </div>
         </div>
-        <p className="text-[12px] text-[var(--color-ink-faint)] leading-relaxed max-w-2xl">
+        <p className="text-[14px] text-[var(--color-ink-faint)] leading-relaxed max-w-2xl">
           {t.trust.boundary}
         </p>
         <Link href="/docs" className="inline-flex min-h-11 items-center gap-2 text-[14px] font-semibold underline">
@@ -150,7 +150,7 @@ export default function HowItWorksPage() {
       {/* CTA */}
       <section className="text-center space-y-4 py-6">
         <h2 className="text-[28px] tracking-tight font-semibold">{t.cta.title}</h2>
-        <p className="text-[14px] text-[var(--color-ink-dim)]">
+        <p className="text-[14px] text-[var(--color-ink-dim)] font-medium">
           {t.cta.body}
         </p>
         <div className="pt-2">
@@ -162,7 +162,7 @@ export default function HowItWorksPage() {
             <span aria-hidden className="rtl-flip">→</span>
           </Link>
         </div>
-        <p className="text-[13px] text-[var(--color-ink-faint)] pt-2">
+        <p className="text-[14px] text-[var(--color-ink-faint)] pt-2">
           {messages.networkUi.builtOnArc}
         </p>
       </section>
@@ -185,7 +185,7 @@ function DemoStep({
         <span className="text-[26px] mono font-semibold leading-none text-[var(--color-ink-faint)]">{n}</span>
         <span className="text-[15px] font-medium">{title}</span>
       </div>
-      <p className="text-[13px] text-[var(--color-ink-dim)] leading-relaxed">{children}</p>
+      <p className="text-[14px] text-[var(--color-ink-dim)] leading-relaxed font-medium">{children}</p>
     </div>
   );
 }
@@ -197,7 +197,7 @@ function Faq({ q, children }: { q: string; children: React.ReactNode }) {
         <span className="text-[14px] font-medium">{q}</span>
         <span className="text-[var(--color-ink-faint)] group-open:rotate-45 transition-transform">+</span>
       </summary>
-      <p className="text-[13px] text-[var(--color-ink-dim)] leading-relaxed mt-3">{children}</p>
+      <p className="text-[14px] text-[var(--color-ink-dim)] leading-relaxed mt-3 font-medium">{children}</p>
     </details>
   );
 }

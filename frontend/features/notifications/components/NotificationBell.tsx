@@ -66,7 +66,7 @@ export function NotificationBell() {
         {unreadCount > 0 ? (
           <span
             aria-hidden
-            className="absolute -end-0.5 -top-0.5 inline-flex h-[16px] min-w-[16px] items-center justify-center rounded-full border-2 border-[var(--color-surface)] bg-[var(--lp-accent)] px-1 text-[10px] font-bold tabular-nums leading-none text-[var(--accent-ink)]"
+            className="absolute -end-0.5 -top-0.5 inline-flex h-[16px] min-w-[16px] items-center justify-center rounded-full border-2 border-[var(--color-surface)] bg-[var(--lp-accent)] px-1 text-[13px] font-bold tabular-nums leading-none text-[var(--accent-ink)]"
           >
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
@@ -85,7 +85,7 @@ export function NotificationBell() {
               <header className="flex items-center justify-between gap-3 px-5 pb-2 pt-4">
                 <h2 className="text-[17px] font-semibold tracking-[-0.01em]">{t.sectionTag}</h2>
                 {unreadCount > 0 ? (
-                  <button type="button" onClick={markAllRead} className="-me-2 min-h-11 rounded-full px-3 text-[13px] font-semibold text-[var(--lp-text-sub)] transition-colors hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+                  <button type="button" onClick={markAllRead} className="-me-2 min-h-11 rounded-full px-3 text-[14px] font-semibold text-[var(--lp-text-sub)] transition-colors hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
                     {t.markRead}
                   </button>
                 ) : null}
@@ -94,7 +94,7 @@ export function NotificationBell() {
               {notifications.length === 0 ? (
                 <div className="px-5 pb-8 pt-6 text-center">
                   <p className="text-[15px] font-semibold">{t.emptyTitle}</p>
-                  <p className="mx-auto mt-1 max-w-[32ch] text-[13px] leading-snug text-[var(--lp-text-sub)]">{t.emptyBody}</p>
+                  <p className="mx-auto mt-1 max-w-[32ch] text-[14px] leading-snug text-[var(--lp-text-sub)] font-medium">{t.emptyBody}</p>
                 </div>
               ) : (
                 <>
@@ -111,7 +111,7 @@ export function NotificationBell() {
                             <span className={`block text-[14px] leading-snug ${n.read ? 'text-[var(--lp-text-sub)]' : 'font-medium text-[var(--lp-dark)]'}`}>
                               {n.summary}
                             </span>
-                            <span className="mt-1 block text-[12px] text-[var(--lp-text-muted)]">{relativeTime(n.ts)}</span>
+                            <span className="mt-1 block text-[14px] text-[var(--lp-text-muted)]">{relativeTime(n.ts)}</span>
                           </span>
                           {n.read ? null : <span aria-hidden className="mt-1.5 size-2 shrink-0 rounded-full bg-[var(--lp-accent)]" />}
                           <span className="sr-only">{t.openAction}</span>
@@ -120,7 +120,7 @@ export function NotificationBell() {
                     ))}
                   </ul>
                   <footer className="border-t border-[var(--lp-border-light)] px-5 py-1 text-end">
-                    <button type="button" onClick={clearAll} className="-me-2 min-h-11 rounded-full px-3 text-[13px] text-[var(--lp-text-muted)] transition-colors hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+                    <button type="button" onClick={clearAll} className="-me-2 min-h-11 rounded-full px-3 text-[14px] text-[var(--lp-text-muted)] transition-colors hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
                       {t.clear}
                     </button>
                   </footer>

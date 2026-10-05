@@ -45,7 +45,7 @@ export function AgentShell({
       />
       <header className="relative px-7 pt-6 pb-5 flex flex-wrap items-start justify-between gap-4 border-b border-[var(--color-line)]">
         <div className="space-y-1.5">
-          <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
+          <div className="flex items-center gap-2 text-[14px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
             <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
             <span>{roleLabel}</span>
             <span className="text-[var(--color-ink-faint)]">·</span>
@@ -54,13 +54,13 @@ export function AgentShell({
           <h2 className="text-[22px] tracking-tight font-semibold text-[var(--color-ink)]">
             {displayName}
           </h2>
-          <p className="text-[12px] mono text-[var(--color-ink-faint)] break-all">{address}</p>
+          <p className="text-[14px] mono text-[var(--color-ink-faint)] break-all">{address}</p>
         </div>
         {rightSlot && <div className="shrink-0">{rightSlot}</div>}
       </header>
       <div className="relative px-7 py-5">{children}</div>
       {footer && (
-        <footer className="relative px-7 py-3 border-t border-[var(--color-line)] text-[11px] text-[var(--color-ink-faint)] flex items-center justify-between gap-3 bg-[var(--color-surface-2)]/40">
+        <footer className="relative px-7 py-3 border-t border-[var(--color-line)] text-[14px] text-[var(--color-ink-faint)] flex items-center justify-between gap-3 bg-[var(--color-surface-2)]/40">
           {footer}
         </footer>
       )}
@@ -71,7 +71,7 @@ export function AgentShell({
 export function MetricPill({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] px-3.5 py-2.5">
-      <p className="text-[10px] uppercase tracking-[0.1em] text-[var(--color-ink-faint)]">{label}</p>
+      <p className="text-[13px] uppercase tracking-[0.1em] text-[var(--color-ink-faint)]">{label}</p>
       <p className="mt-0.5 text-[14px] mono text-[var(--color-ink)] tabular-nums">{value}</p>
     </div>
   );
@@ -79,7 +79,7 @@ export function MetricPill({ label, value }: { label: string; value: ReactNode }
 
 export function CapabilityRow({ children }: { children: ReactNode }) {
   return (
-    <li className="flex items-start gap-2.5 text-[13px] text-[var(--color-ink-2)]">
+    <li className="flex items-start gap-2.5 text-[14px] text-[var(--color-ink-2)]">
       <span className="mt-1 shrink-0 w-3.5 h-3.5 rounded-full bg-[var(--color-accent-soft)] grid place-items-center">
         <svg width="8" height="8" viewBox="0 0 10 10" fill="none">
           <path
@@ -106,7 +106,7 @@ export function ActivateSlot({
   const as = useTranslations().agentShell;
   if (active) {
     return (
-      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-[var(--color-positive-soft)] text-[var(--color-positive)] text-[12px] font-medium">
+      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-[var(--color-positive-soft)] text-[var(--color-positive)] text-[14px] font-medium">
         <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-positive)]" />
         {as.activate.running}
       </div>
@@ -116,11 +116,11 @@ export function ActivateSlot({
     <button
       type="button"
       disabled
-      className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md bg-[#0c0e10] text-[#ffffff] text-[12px] font-semibold opacity-60 cursor-not-allowed"
+      className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md bg-[#0c0e10] text-[#ffffff] text-[14px] font-semibold opacity-60 cursor-not-allowed"
       title={as.activate.tooltip}
     >
       {comingSoonLabel ?? as.activate.connectWallet}
-      <span className="px-1.5 py-px rounded bg-white/15 text-[9px] tracking-wide uppercase">
+      <span className="px-1.5 py-px rounded bg-white/15 text-[13px] tracking-wide uppercase">
         {as.activate.soonBadge}
       </span>
     </button>

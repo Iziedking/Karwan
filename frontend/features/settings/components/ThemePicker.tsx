@@ -36,7 +36,7 @@ export function ThemePicker({
   return (
     <div className="inline-flex flex-wrap items-center gap-2.5">
       {showLabel ? (
-        <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+        <span className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
           {t.settings.theme}
         </span>
       ) : null}

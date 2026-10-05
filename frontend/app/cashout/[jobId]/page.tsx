@@ -137,7 +137,7 @@ function CashoutPageInner() {
               ? cp.hero.earnedTemplate.replace('{amount}', formatUsdc(info.dealAmountUsdc))
               : cp.hero.loading}
           </p>
-          <div className="mt-7 flex flex-wrap gap-2 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)]">
+          <div className="mt-7 flex flex-wrap gap-2 mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)]">
             <Link
               href={`/deals/${jobId}`}
               className="inline-flex min-h-11 items-center gap-1.5 hover:text-[var(--lp-accent)] transition-colors"
@@ -151,14 +151,14 @@ function CashoutPageInner() {
       <Band tone="light" compact>
         {fetchState === 'loading' && (
           <PageCard className="p-6 sm:p-8">
-            <p className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+            <p className="mono text-[14px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
               {cp.loading.label}
             </p>
           </PageCard>
         )}
         {fetchState === 'error' && (
           <PageCard className="p-6 sm:p-8">
-            <p className="text-[14px] text-[var(--lp-text-sub)]">
+            <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">
               {cp.errors.couldNotLoadDeal} {loadError ?? ''}
             </p>
           </PageCard>
@@ -487,13 +487,13 @@ function WithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCopy }) 
           className="mt-7 border-s-[3px] border-[var(--lp-accent)] bg-[color-mix(in_srgb,var(--lp-accent)_10%,transparent)] px-4 py-4 sm:px-5"
           role="status"
         >
-          <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+          <p className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
             Coming soon
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-[var(--lp-dark)]">
             {copy.comingSoon.body}
           </p>
-          <p className="mt-2 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+          <p className="mt-2 mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
             {rail === 'card' ? 'card payouts will be added after payment-provider review' : 'bank payouts will be added after payment-provider review'}
           </p>
         </div>
@@ -553,7 +553,7 @@ function WithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCopy }) 
           />
         </div>
         {isWeb3Identity && (
-          <p className="mt-2 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+          <p className="mt-2 mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
             {isConnected ? copy.withdraw.web3IdentitySigns : copy.withdraw.web3IdentityConnect}
           </p>
         )}
@@ -588,7 +588,7 @@ function WithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCopy }) 
                   setRecipient('');
                   setError(null);
                 }}
-                className="inline-flex min-h-11 items-center justify-center mono text-[11px] uppercase tracking-[0.14em] px-3 py-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="inline-flex min-h-11 items-center justify-center mono text-[14px] uppercase tracking-[0.14em] px-3 py-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{
                   background: active ? 'var(--lp-control-active-bg)' : 'var(--lp-card)',
                   color: active ? 'var(--lp-control-active-ink)' : 'var(--lp-dark)',
@@ -628,7 +628,7 @@ function WithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCopy }) 
           }}
         />
         {recipient && !recipientValid && (
-          <p className="mt-1.5 text-[12px] text-[#b03d3a]">
+          <p className="mt-1.5 text-[14px] text-[#b03d3a]">
             {copy.withdraw.invalidAddress.replace(
               '{kind}',
               dest === 'solanaDevnet' ? 'Solana' : 'EVM',
@@ -643,7 +643,7 @@ function WithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCopy }) 
           <button
             type="button"
             onClick={() => setAmount(balance.toString())}
-            className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+            className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
           >
             {copy.withdraw.max}
           </button>
@@ -666,7 +666,7 @@ function WithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCopy }) 
           }}
         />
         {amount && Number(amount) > balance && (
-          <p className="mt-1.5 text-[12px] text-[#b03d3a]">
+          <p className="mt-1.5 text-[14px] text-[#b03d3a]">
             {copy.withdraw.overBalance.replace('{balance}', String(balance))}
           </p>
         )}
@@ -674,7 +674,7 @@ function WithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCopy }) 
 
       {error && (
         <div
-          className="mt-5 px-3.5 py-2.5 text-[13px]"
+          className="mt-5 px-3.5 py-2.5 text-[14px]"
           style={{
             background: 'rgba(176,61,58,0.10)',
             color: '#b03d3a',
@@ -785,17 +785,17 @@ function CashoutRailPicker({
                   style={{ background: active ? 'var(--accent-deep)' : 'var(--lp-border-light)' }}
                 />
               </span>
-              <span className="mt-1 block text-[12px] leading-snug text-[var(--lp-text-sub)]">
+              <span className="mt-1 block text-[14px] leading-snug text-[var(--lp-text-sub)] font-medium">
                 {option.description}
               </span>
-              <span className="mt-2 block mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+              <span className="mt-2 block mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
                 {option.status}
               </span>
             </button>
           );
         })}
       </div>
-      <p className="mt-2 text-[12px] leading-relaxed text-[var(--lp-text-muted)]">
+      <p className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-muted)]">
         CCTP moves the same USDC between chains. Card and bank payouts will convert to local currency when available.
       </p>
     </div>
@@ -930,7 +930,7 @@ function BridgeProgressCard({
             }}
           />
         </div>
-        <p className="mt-2 mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+        <p className="mt-2 mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
           {stage.label}
         </p>
       </div>
@@ -955,7 +955,7 @@ function BridgeProgressCard({
       </dl>
 
       {pollError && (
-        <p className="mt-4 mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+        <p className="mt-4 mono text-[14px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
           {copy.bridgeProgress.retrying} {pollError}
         </p>
       )}
@@ -1011,10 +1011,10 @@ function BridgeFact({
         borderRadius: 12,
       }}
     >
-      <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+      <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
         {label}
       </p>
-      <p className="mt-1.5 mono text-[13px] tabular-nums text-[var(--lp-dark)]">{value}</p>
+      <p className="mt-1.5 mono text-[14px] tabular-nums text-[var(--lp-dark)]">{value}</p>
     </div>
   );
   if (href) {
@@ -1068,15 +1068,15 @@ function WalletPickerTile({
           {label}
         </p>
         {active && (
-          <span className="mono text-[9px] uppercase tracking-[0.18em] text-[var(--lp-accent)]">
+          <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-accent)]">
             {activeLabel}
           </span>
         )}
       </div>
-      <p className="mt-0.5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+      <p className="mt-0.5 mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
         {sub}
       </p>
-      <div className="mt-2 flex min-w-0 items-center gap-1.5 mono text-[11px] tabular-nums text-[var(--lp-text-sub)]">
+      <div className="mt-2 flex min-w-0 items-center gap-1.5 mono text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">
         <span className="truncate">{address ? shortAddress(address) : notProvisionedLabel}</span>
         {address && <CopyAddress value={address} className="shrink-0" />}
       </div>
@@ -1093,7 +1093,7 @@ function destLabel(k: DestKey): string {
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+    <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
       {children}
     </span>
   );
@@ -1109,7 +1109,7 @@ function Stat({ label, value }: { label: string; value: string }) {
         borderRadius: 12,
       }}
     >
-      <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+      <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
         {label}
       </p>
       <p className="mt-1.5 font-sans text-[18px] font-extrabold tabular-nums tracking-[-0.01em] text-[var(--lp-dark)]">
@@ -1136,7 +1136,7 @@ function ComingSoonTile({
         opacity: 0.55,
       }}
     >
-      <p className="mono text-[11px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+      <p className="mono text-[14px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
         {label}
       </p>
       <p className="mt-2 font-sans text-[16px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">

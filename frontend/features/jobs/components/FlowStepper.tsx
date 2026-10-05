@@ -105,7 +105,7 @@ export function FlowStepper({
               />
             )}
             <span
-              className="relative shrink-0 inline-flex items-center justify-center w-[26px] h-[26px] mono text-[10px] font-bold tabular-nums"
+              className="relative shrink-0 inline-flex items-center justify-center w-[26px] h-[26px] mono text-[13px] font-bold tabular-nums"
               style={{
                 background: tileBg,
                 color: tileColor,
@@ -117,7 +117,7 @@ export function FlowStepper({
             </span>
             <div className="flex-1 min-w-0 pt-1 flex items-center justify-between gap-3 flex-wrap">
               <span
-                className={`mono text-[11px] uppercase tracking-[0.14em] ${
+                className={`mono text-[14px] uppercase tracking-[0.14em] ${
                   isTerminal
                     ? 'font-bold'
                     : done || isActive

@@ -209,12 +209,12 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
     <main className="product-surface mx-auto w-full max-w-[760px] px-4 pb-16 pt-6 sm:px-6">
       <PageTour id={JOBS_TOUR_ID} steps={JOBS_STEPS} />
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-[13px] text-[var(--lp-text-sub)]">
+        <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">
           {rs.request}
-          <span className="ms-2 font-mono text-[13px] text-[var(--lp-dark)]">{requestRef(job.jobId)}</span>
+          <span className="ms-2 font-mono text-[14px] text-[var(--lp-dark)]">{requestRef(job.jobId)}</span>
         </p>
         <div className="flex items-center gap-2">
-          <span className={`inline-flex min-h-8 items-center gap-1.5 rounded-full px-3 text-[12px] font-semibold ${pill}`}>
+          <span className={`inline-flex min-h-8 items-center gap-1.5 rounded-full px-3 text-[14px] font-semibold ${pill}`}>
             {status.live ? <span aria-hidden className="size-1.5 rounded-full bg-[var(--lp-accent)] motion-safe:animate-pulse" /> : null}
             {status.label}
           </span>
@@ -231,18 +231,18 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
 
       <dl className="mt-6 flex flex-wrap gap-x-10 gap-y-3" data-guide="job-stats">
         <div>
-          <dt className="text-[13px] text-[var(--lp-text-sub)]">{rs.budget}</dt>
+          <dt className="text-[14px] text-[var(--lp-text-sub)] font-medium">{rs.budget}</dt>
           <dd className="mt-0.5 text-[20px] font-semibold tabular-nums text-[var(--lp-dark)]">{formatUsdc(job.budgetUsdc, { withSuffix: true })}</dd>
         </div>
         <div>
-          <dt className="text-[13px] text-[var(--lp-text-sub)]">{rs.due}</dt>
+          <dt className="text-[14px] text-[var(--lp-text-sub)] font-medium">{rs.due}</dt>
           <dd className="mt-0.5 text-[20px] font-semibold text-[var(--lp-dark)]">
             {new Date(job.deadlineUnix * 1000).toLocaleDateString(locale, { day: 'numeric', month: 'short' })}
           </dd>
         </div>
         {viewerIsBuyer ? (
           <div>
-            <dt className="text-[13px] text-[var(--lp-text-sub)]">{rs.offers}</dt>
+            <dt className="text-[14px] text-[var(--lp-text-sub)] font-medium">{rs.offers}</dt>
             <dd className="mt-0.5 text-[20px] font-semibold tabular-nums text-[var(--lp-dark)]">{job.bids.length}</dd>
           </div>
         ) : null}
@@ -255,13 +255,13 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
               aria-hidden
               className={`block h-[5px] rounded-full ${index < step ? 'bg-[#6a8a1e]' : index === step ? 'bg-[var(--lp-dark)]' : 'bg-[var(--lp-border-light)]'}`}
             />
-            <span className={`mt-1.5 block truncate text-[12.5px] ${index === step ? 'font-semibold text-[var(--lp-dark)]' : 'text-[var(--lp-text-sub)]'}`}>{label}</span>
+            <span className={`mt-1.5 block truncate text-[14px] ${index === step ? 'font-semibold text-[var(--lp-dark)]' : 'text-[var(--lp-text-sub)]'}`}>{label}</span>
           </li>
         ))}
       </ol>
 
       {isB2B && tradeChips.length > 0 ? (
-        <p className="mt-5 text-[14px] text-[var(--lp-text-sub)]">
+        <p className="mt-5 text-[14px] text-[var(--lp-text-sub)] font-medium">
           {tradeChips.map((c) => `${c.label} ${c.value}`).join(' · ')}
         </p>
       ) : null}
@@ -269,7 +269,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
       {expired ? (
         <section className="mt-6 rounded-[18px] bg-[var(--lp-card)] p-5">
           <p className="text-[16px] font-semibold text-[var(--lp-dark)]">{lj.statusLabels.requestExpired}</p>
-          <p className="mt-1 text-[14px] text-[var(--lp-text-sub)]">{lj.expired.bodyTemplate.replace('{time}', relativeTime(job.deadlineUnix))}</p>
+          <p className="mt-1 text-[14px] text-[var(--lp-text-sub)] font-medium">{lj.expired.bodyTemplate.replace('{time}', relativeTime(job.deadlineUnix))}</p>
         </section>
       ) : null}
 
@@ -282,8 +282,8 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
       {looking ? (
         <section className="mt-6 rounded-[18px] bg-[var(--lp-card)] p-5">
           <p className="text-[16px] font-semibold text-[var(--lp-dark)]">{rs.lookingTitle}</p>
-          <p className="mt-1 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{rs.lookingBody}</p>
-          <p className="mt-3 inline-flex items-center gap-2 text-[13px] text-[var(--lp-text-sub)]">
+          <p className="mt-1 text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{rs.lookingBody}</p>
+          <p className="mt-3 inline-flex items-center gap-2 text-[14px] text-[var(--lp-text-sub)] font-medium">
             <span aria-hidden className="size-2 rounded-full bg-[var(--lp-accent)] shadow-[0_0_0_4px_rgba(175,201,91,0.25)]" />
             {rs.live}
           </p>
@@ -354,7 +354,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
       ) : null}
 
       <details className="group mt-8 border-t border-[var(--lp-border-light)]">
-        <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between text-[14px] text-[var(--lp-text-sub)] [&::-webkit-details-marker]:hidden">
+        <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between text-[14px] text-[var(--lp-text-sub)] [&::-webkit-details-marker]:hidden font-medium">
           {rs.details}
           <span aria-hidden className="transition-transform group-open:rotate-180">⌄</span>
         </summary>
@@ -367,11 +367,11 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
           ) : null}
           <div className="flex items-center justify-between gap-4 py-3">
             <dt className="text-[var(--lp-text-sub)]">{rs.proof}</dt>
-            <dd className="font-mono text-[13px] text-[var(--lp-dark)]">{shortHash(job.termsHash, 6, 4)}</dd>
+            <dd className="font-mono text-[14px] text-[var(--lp-dark)]">{shortHash(job.termsHash, 6, 4)}</dd>
           </div>
           <div className="flex items-center justify-between gap-4 py-3">
             <dt className="text-[var(--lp-text-sub)]">{rs.requestId}</dt>
-            <dd className="min-w-0 truncate"><CopyId value={job.jobId} className="text-[13px] text-[var(--lp-dark)]" /></dd>
+            <dd className="min-w-0 truncate"><CopyId value={job.jobId} className="text-[14px] text-[var(--lp-dark)]" /></dd>
           </div>
         </dl>
       </details>
@@ -409,7 +409,7 @@ function SettleSection({
     const bodyAfter = s.escrowLive.bodyTemplate.split('{amount}')[1] ?? '';
     return (
       <SettleCard label={s.escrowLive.tag} title={s.escrowLive.title}>
-        <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] mb-4">
+        <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] mb-4 font-medium">
           {bodyBefore}
           <span className="font-sans font-extrabold tabular-nums text-[var(--lp-dark)]">
             {formatUsdc(job.budgetUsdc)}
@@ -418,7 +418,7 @@ function SettleSection({
         </p>
         <Link
           href={`/deals/${job.jobId}`}
-          className="inline-flex items-center gap-2 px-[18px] py-[10px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors"
+          className="inline-flex items-center gap-2 px-[18px] py-[10px] mono text-[14px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors"
           style={{
             borderRadius: 10,
           }}
@@ -433,7 +433,7 @@ function SettleSection({
   if (declined) {
     return (
       <SettleCard label={s.negotiationEnded.tag} title={s.negotiationEnded.title}>
-        <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+        <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
           {s.negotiationEnded.body}
         </p>
       </SettleCard>
@@ -454,7 +454,7 @@ function SettleSection({
         }
       >
         {stalled ? (
-          <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+          <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
             {s.funding.stalledBodyTemplate.replace('{time}', stalledTime)}
           </p>
         ) : (
@@ -466,7 +466,7 @@ function SettleSection({
 
   return (
     <SettleCard label={s.locked.tag} title={s.locked.title}>
-      <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{s.locked.body}</p>
+      <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{s.locked.body}</p>
     </SettleCard>
   );
 }
@@ -552,7 +552,7 @@ export function EditBriefSection({
           </h3>
         </div>
         <div className="px-6 pb-6 space-y-3">
-          <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+          <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
             {es.body}
           </p>
           <button
@@ -561,7 +561,7 @@ export function EditBriefSection({
               setError(null);
               setOpen(true);
             }}
-            className="mono text-[11px] uppercase tracking-[0.12em] font-semibold text-[var(--lp-accent-on-light)] underline underline-offset-2 hover:underline-offset-4"
+            className="mono text-[14px] uppercase tracking-[0.12em] font-semibold text-[var(--lp-accent-on-light)] underline underline-offset-2 hover:underline-offset-4"
           >
             {es.cta}
           </button>
@@ -652,7 +652,7 @@ function EditBriefModal({
         }}
       >
         <div className="px-6 pt-6 pb-3">
-          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+          <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
             {m.tag}
           </span>
           <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-tight">
@@ -661,12 +661,12 @@ function EditBriefModal({
           </h2>
         </div>
         <div className="px-6 pb-6 space-y-4">
-          <p className="text-[13px] text-[var(--lp-text-sub)] leading-relaxed">
+          <p className="text-[14px] text-[var(--lp-text-sub)] leading-relaxed font-medium">
             {m.body}
           </p>
 
           <label className="block space-y-1.5">
-            <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+            <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
               {m.requestTextEyebrow}
             </span>
             <textarea
@@ -677,14 +677,14 @@ function EditBriefModal({
               className="form-input form-textarea"
               maxLength={2000}
             />
-            <span className="mono text-[10px] text-[var(--lp-text-muted)]">
+            <span className="mono text-[13px] text-[var(--lp-text-muted)]">
               {text.length}/2000
             </span>
           </label>
 
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
-              <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+              <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
                 {m.toleranceEyebrow}
               </span>
               <span className="font-sans text-[16px] font-extrabold tabular-nums tracking-[-0.02em] text-[var(--lp-dark)]">
@@ -702,7 +702,7 @@ function EditBriefModal({
               className="w-full accent-[var(--lp-accent)]"
               aria-label={m.toleranceAria}
             />
-            <p className="mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)] leading-snug">
+            <p className="mono text-[13px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)] leading-snug">
               {m.toleranceFootTemplate.replace('{n}', String(tolerancePct))}
             </p>
           </div>
@@ -728,19 +728,19 @@ function EditBriefModal({
             />
             <div className="min-w-0">
               <span
-                className="mono text-[10px] font-bold uppercase tracking-[0.16em]"
+                className="mono text-[13px] font-bold uppercase tracking-[0.16em]"
                 style={{ color: trustedMatch ? 'var(--lp-band-dark)' : 'var(--lp-dark)' }}
               >
                 {m.trustedMatchEyebrow}
               </span>
-              <p className="mt-1.5 text-[12.5px] leading-snug text-[var(--lp-text-sub)]">
+              <p className="mt-1.5 text-[14px] leading-snug text-[var(--lp-text-sub)] font-medium">
                 {m.trustedMatchBody}
               </p>
             </div>
           </label>
 
           {error && (
-            <p className="mono text-[11px] text-[#b03d3a]">{error}</p>
+            <p className="mono text-[14px] text-[#b03d3a]">{error}</p>
           )}
 
           <div className="flex items-center gap-3 pt-2">
@@ -818,14 +818,14 @@ export function CancelBriefSection({
         </h3>
       </div>
       <div className="px-6 pb-6 space-y-3">
-        <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+        <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
           {cs.body}
         </p>
         {!confirm ? (
           <button
             type="button"
             onClick={() => setConfirm(true)}
-            className="mono text-[11px] uppercase tracking-[0.12em] font-semibold text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] underline underline-offset-2"
+            className="mono text-[14px] uppercase tracking-[0.12em] font-semibold text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] underline underline-offset-2"
           >
             {cs.cta}
           </button>
@@ -838,7 +838,7 @@ export function CancelBriefSection({
               borderRadius: 10,
             }}
           >
-            <p className="text-[13px] text-[var(--lp-dark)] leading-snug">
+            <p className="text-[14px] text-[var(--lp-dark)] leading-snug">
               {cs.confirmBody}
             </p>
             <div className="flex flex-wrap items-center gap-2">
@@ -846,7 +846,7 @@ export function CancelBriefSection({
                 type="button"
                 onClick={handleCancel}
                 disabled={busy}
-                className="mono text-[11px] font-bold uppercase tracking-[0.10em] px-3.5 py-2 text-white transition-colors disabled:opacity-60"
+                className="mono text-[14px] font-bold uppercase tracking-[0.10em] px-3.5 py-2 text-white transition-colors disabled:opacity-60"
                 style={{
                   background: '#b03d3a',
                   borderRadius: 8,
@@ -858,13 +858,13 @@ export function CancelBriefSection({
                 type="button"
                 onClick={() => setConfirm(false)}
                 disabled={busy}
-                className="mono text-[11px] uppercase tracking-[0.10em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)]"
+                className="mono text-[14px] uppercase tracking-[0.10em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] font-medium"
               >
                 {cs.confirmNo}
               </button>
             </div>
             {error && (
-              <p className="mono text-[11px] text-[#b03d3a]">{error}</p>
+              <p className="mono text-[14px] text-[#b03d3a]">{error}</p>
             )}
           </div>
         )}
@@ -929,7 +929,7 @@ function FundingStep({
         }}
       />
       <span
-        className={`mono text-[11px] uppercase tracking-[0.14em] ${
+        className={`mono text-[14px] uppercase tracking-[0.14em] ${
           done || active ? 'text-[var(--lp-dark)] font-bold' : 'text-[var(--lp-text-muted)]'
         }`}
       >

@@ -210,7 +210,7 @@ export function ListingsBrowse() {
               </FilterButton>
             </FilterGroup>
 
-            <span aria-hidden className="hidden text-[13px] text-[var(--ink-secondary)] sm:inline">·</span>
+            <span aria-hidden className="hidden text-[14px] text-[var(--ink-secondary)] sm:inline font-medium">·</span>
             <FilterGroup label={copy.scopeFilterLabel}>
               <FilterButton pressed={scope === 'all'} onClick={() => setScope('all')}>
                 {copy.scope.all}
@@ -223,7 +223,7 @@ export function ListingsBrowse() {
               </FilterButton>
             </FilterGroup>
 
-            <span aria-hidden className="hidden text-[13px] text-[var(--ink-secondary)] sm:inline">·</span>
+            <span aria-hidden className="hidden text-[14px] text-[var(--ink-secondary)] sm:inline font-medium">·</span>
             <FilterGroup label={copy.sortFilterLabel}>
                 <FilterButton pressed={sort === 'newest'} onClick={() => setSort('newest')}>
                   {copy.sort.newest}
@@ -297,11 +297,11 @@ export function ListingsBrowse() {
                     <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
                       <h2 className="text-[20px] font-medium tracking-[-0.015em] text-[var(--ink)]">
                         {section.title}
-                        <span className="ms-2 text-[13px] font-normal tabular-nums text-[var(--ink-secondary)]">
+                        <span className="ms-2 text-[14px] font-normal tabular-nums text-[var(--ink-secondary)]">
                           {section.cards.length}
                         </span>
                       </h2>
-                      <p className="text-[13px] text-[var(--ink-secondary)] sm:max-w-[48ch] sm:text-end">{section.note}</p>
+                      <p className="text-[14px] text-[var(--ink-secondary)] sm:max-w-[48ch] sm:text-end font-medium">{section.note}</p>
                     </div>
                     <div className="market-grid grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                       {paged.items.map((card) => (
@@ -472,7 +472,7 @@ function Pager({
   const neutral = 'bg-[var(--tint)] text-[var(--ink)]';
   return (
     <nav aria-label={copy.label} className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
-      <p className="text-[13px] tabular-nums text-[var(--ink-secondary)]" aria-live="polite">
+      <p className="text-[14px] tabular-nums text-[var(--ink-secondary)] font-medium" aria-live="polite">
         {range}
       </p>
       <div className="flex items-center gap-1.5">
@@ -484,7 +484,7 @@ function Pager({
         <ol className="flex items-center gap-1.5">
           {pageWindow(page, pageCount).map((n, i) =>
             n === 'gap' ? (
-              <li key={`gap-${i}`} aria-hidden className="hidden px-1 text-[14px] text-[var(--ink-secondary)] sm:block">
+              <li key={`gap-${i}`} aria-hidden className="hidden px-1 text-[14px] text-[var(--ink-secondary)] sm:block font-medium">
                 …
               </li>
             ) : (
@@ -559,10 +559,10 @@ function MarketCard({
     <>
       <div className="flex flex-1 flex-col gap-2 p-5 sm:p-6">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[13px] font-semibold" style={{ color: sideColor }}>
+          <span className="text-[14px] font-semibold" style={{ color: sideColor }}>
             {statusLabel}
           </span>
-          <span className="text-[13px] tabular-nums text-[var(--ink-secondary)]">{relativeTime(card.postedAt)}</span>
+          <span className="text-[14px] tabular-nums text-[var(--ink-secondary)] font-medium">{relativeTime(card.postedAt)}</span>
         </div>
         <Icon
           name={card.tradeLane === 'finance' ? 'file-text' : WORK_ICON[workKind(card.title, card.body)]}
@@ -576,9 +576,9 @@ function MarketCard({
           <h3 dir="auto" className="line-clamp-2 text-[19px] font-medium leading-[1.3] tracking-[-0.015em] text-[var(--ink)]">
             {card.title}
           </h3>
-          {card.body ? <p dir="auto" className="mt-2 line-clamp-1 text-[14px] leading-5 text-[var(--ink-secondary)]">{card.body}</p> : null}
+          {card.body ? <p dir="auto" className="mt-2 line-clamp-1 text-[14px] leading-5 text-[var(--ink-secondary)] font-medium">{card.body}</p> : null}
         </div>
-        <p className="mt-auto text-[13px] text-[var(--ink-secondary)]">
+        <p className="mt-auto text-[14px] text-[var(--ink-secondary)] font-medium">
           {facts.map((fact, i) => (
             <span key={fact}>
               {i > 0 ? (
@@ -600,12 +600,12 @@ function MarketCard({
           <span className="text-[22px] font-medium leading-none tracking-[-0.02em] text-[var(--ink)] tabular-nums">
             {formatUsdc(card.priceUsdc, { withSuffix: false })}
           </span>
-          <span className="whitespace-nowrap text-[13px] text-[var(--ink-secondary)]">
+          <span className="whitespace-nowrap text-[14px] text-[var(--ink-secondary)] font-medium">
             {copy.priceUnitTemplate.replace('{label}', card.side === 'offer' ? copy.priceLabelAsking : copy.priceLabelBudget)}
           </span>
         </p>
-        {card.side === 'request' ? <span className="text-[13px] text-[var(--ink-secondary)]">{bidCopy}</span> : <div className="flex min-w-0 flex-col items-end gap-1">
-          <span className="max-w-full truncate text-[13px] text-[var(--ink-secondary)]">
+        {card.side === 'request' ? <span className="text-[14px] text-[var(--ink-secondary)] font-medium">{bidCopy}</span> : <div className="flex min-w-0 flex-col items-end gap-1">
+          <span className="max-w-full truncate text-[14px] text-[var(--ink-secondary)] font-medium">
             {partyLabel}
             {card.partyIsYou ? copy.selfSuffix : ''}
           </span>

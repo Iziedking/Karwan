@@ -10,7 +10,7 @@ const STEP_MS = 1800;
 
 export function DealExampleLabel() {
   const t = useTranslations().signup;
-  return <p className="mt-4 text-center text-[12px] leading-relaxed text-[var(--lp-text-sub)]">{t.welcome.backdropLabel}</p>;
+  return <p className="mt-4 text-center text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{t.welcome.backdropLabel}</p>;
 }
 
 /// Behind the sign-in card: the kinds of deals people make on Karwan, each

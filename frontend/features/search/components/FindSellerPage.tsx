@@ -163,7 +163,7 @@ export function FindSellerPage() {
               <label htmlFor={ids.when} className="text-[14px] font-semibold text-[var(--lp-dark)]">{t.find.when}</label>
               <div className="mt-2 flex items-center gap-2">
                 <input id={ids.when} inputMode="numeric" value={days} onChange={(e) => setDays(e.target.value)} className={`${FIELD} min-w-0 tabular-nums`} />
-                <span className="text-[14px] text-[var(--lp-text-sub)]">{t.find.days}</span>
+                <span className="text-[14px] text-[var(--lp-text-sub)] font-medium">{t.find.days}</span>
               </div>
               {err('when')}
             </div>
@@ -184,7 +184,7 @@ export function FindSellerPage() {
                   <label htmlFor={ids.room} className="text-[14px] text-[var(--lp-dark)]">{t.find.room}</label>
                   <div className="mt-2 flex items-center gap-2">
                     <input id={ids.room} inputMode="numeric" value={room} onChange={(e) => setRoom(e.target.value)} className={`${FIELD} max-w-[120px] tabular-nums`} />
-                    <span className="text-[14px] text-[var(--lp-text-sub)]">{t.find.roomUnit}</span>
+                    <span className="text-[14px] text-[var(--lp-text-sub)] font-medium">{t.find.roomUnit}</span>
                   </div>
                   {err('room')}
                 </div>
@@ -213,7 +213,7 @@ export function FindSellerPage() {
           ) : requests.isPending ? (
             <div aria-busy="true" className="h-12 rounded-md bg-[var(--lp-light)] motion-safe:animate-pulse" />
           ) : lines.length === 0 ? (
-            <p className="text-[14px] text-[var(--lp-text-sub)]">{t.find.requestsEmpty}</p>
+            <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{t.find.requestsEmpty}</p>
           ) : (
             <ul className="divide-y divide-[var(--lp-border-light)]">
               {lines.map(({ job, title, state }) => (
@@ -224,7 +224,7 @@ export function FindSellerPage() {
                   >
                     <span className="min-w-0">
                       <span className="block truncate text-[15px] text-[var(--lp-dark)]">{title ?? t.request.aRequest}</span>
-                      <span className="block text-[13px] text-[var(--lp-text-sub)]">
+                      <span className="block text-[14px] text-[var(--lp-text-sub)] font-medium">
                         {fill(t.request.states[LINE_COPY[state]].headline, { count: job.bids.length })}
                       </span>
                     </span>

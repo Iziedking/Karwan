@@ -46,7 +46,7 @@ function AccountPageInner() {
             >
               <span className="min-w-0">
                 <span className="block text-[15px] font-semibold text-[var(--lp-dark)]">{t.faucetTitle}</span>
-                <span className="mt-0.5 block text-[13px] text-[var(--lp-text-sub)]">{t.faucetBody}</span>
+                <span className="mt-0.5 block text-[14px] text-[var(--lp-text-sub)] font-medium">{t.faucetBody}</span>
               </span>
               <span aria-hidden className="rtl-flip shrink-0 text-[var(--lp-text-sub)]">→</span>
             </Link>
@@ -69,14 +69,14 @@ function AccountAction({ href, label, description, icon, primary = false }: {
   return (
     <Link href={href} className="group grid min-h-[88px] grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 py-3 transition-colors hover:text-[var(--lp-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-inset">
       <span className={`grid size-10 place-items-center rounded-full ${primary ? 'bg-[var(--lp-accent)] text-[var(--accent-ink)]' : 'bg-[var(--lp-light)] text-[var(--lp-dark)]'}`} aria-hidden><ActionIcon icon={icon} /></span>
-      <span><span className="block text-[15px] font-bold text-[var(--lp-dark)]">{label}</span><span className="mt-1 block text-[12px] leading-5 text-[var(--lp-text-sub)]">{description}</span></span>
+      <span><span className="block text-[15px] font-bold text-[var(--lp-dark)]">{label}</span><span className="mt-1 block text-[14px] leading-5 text-[var(--lp-text-sub)] font-medium">{description}</span></span>
       <span aria-hidden className="text-[18px] text-[var(--lp-text-muted)] transition-transform duration-200 group-hover:translate-x-1 group-hover:text-[var(--lp-accent)] rtl:-scale-x-100 rtl:group-hover:-translate-x-1">→</span>
     </Link>
   );
 }
 
 function ActionIcon({ icon }: { icon: 'add' | 'move' | 'send' }) {
-  if (icon === 'add') return <span className="text-[25px] font-light leading-none">+</span>;
+  if (icon === 'add') return <span className="text-[25px] font-normal leading-none">+</span>;
   if (icon === 'move') return <span className="text-[22px] leading-none">↔</span>;
   return <span className="text-[22px] leading-none">↑</span>;
 }

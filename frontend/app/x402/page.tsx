@@ -40,7 +40,7 @@ function CodeBlock({ children, label }: { children: string; label: string }) {
     <pre
       tabIndex={0}
       aria-label={label}
-      className="mt-5 max-w-[720px] overflow-x-auto bg-[var(--lp-card)] border border-[var(--lp-border-light)] p-5 mono text-[12px] leading-relaxed text-[var(--lp-dark)]"
+      className="mt-5 max-w-[720px] overflow-x-auto bg-[var(--lp-card)] border border-[var(--lp-border-light)] p-5 mono text-[14px] leading-relaxed text-[var(--lp-dark)]"
       style={{
         borderRadius: 12,
       }}
@@ -69,7 +69,7 @@ export default function X402Page() {
               {ENDPOINTS.map((ep) => (
                 <DocsListItem key={ep.key}>
                   <strong>{t.endpoints.items[ep.key].name}</strong>
-                  <span className="mono text-[12px] text-[var(--lp-text-muted)]">
+                  <span className="mono text-[14px] text-[var(--lp-text-muted)]">
                     {' '}
                     {ep.path} ·{' '}
                     {ep.priceUsdc === '0' ? t.endpoints.freeLabel : `${ep.priceUsdc} USDC`}

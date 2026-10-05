@@ -147,7 +147,7 @@ export function SettlementRecord({
         <h3 id="settlement-record-heading" className="font-display text-[23px] font-semibold tracking-[-0.035em] text-[var(--lp-workspace-ink)]">
           {copy.title}
         </h3>
-        <p className="max-w-[44ch] text-[12px] leading-relaxed text-[var(--lp-workspace-muted)] sm:text-end">
+        <p className="max-w-[44ch] text-[14px] leading-relaxed text-[var(--lp-workspace-muted)] sm:text-end">
           {copy.body}
         </p>
       </div>
@@ -167,11 +167,11 @@ export function SettlementRecord({
 
       {fetchState === 'error' && (
         <div className="mt-5 border-s border-[var(--warn)] ps-4 py-1">
-          <p className="text-[13px] leading-relaxed text-[var(--lp-workspace-muted)]">{copy.errorBody}</p>
+          <p className="text-[14px] leading-relaxed text-[var(--lp-workspace-muted)]">{copy.errorBody}</p>
           <button
             type="button"
             onClick={onRetry}
-            className="mt-2 inline-flex min-h-11 items-center mono text-[11px] uppercase tracking-[0.15em] text-[var(--lp-workspace-ink)] transition-colors hover:text-[var(--lp-accent)]"
+            className="mt-2 inline-flex min-h-11 items-center mono text-[14px] uppercase tracking-[0.15em] text-[var(--lp-workspace-ink)] transition-colors hover:text-[var(--lp-accent)]"
           >
             {copy.retry}
           </button>
@@ -214,14 +214,14 @@ export function SettlementRecord({
               >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
-                    <p className="text-[13px] font-semibold text-[var(--lp-workspace-muted)]">
+                    <p className="text-[14px] font-semibold text-[var(--lp-workspace-muted)]">
                       {copy.paymentTemplate.replace('{n}', String(index + 1))} · {kindLabel}
                     </p>
                     <p className="mt-2 text-[26px] font-semibold leading-none tabular-nums text-[var(--lp-workspace-ink)]">
-                      {movement.amountUsdc} <span className="text-[13px] font-medium text-[var(--lp-workspace-muted)]">USDC</span>
+                      {movement.amountUsdc} <span className="text-[14px] font-medium text-[var(--lp-workspace-muted)]">USDC</span>
                     </p>
                     {breakdown ? (
-                      <p className="mt-1.5 text-[13px] tabular-nums text-[var(--lp-workspace-muted)]">
+                      <p className="mt-1.5 text-[14px] tabular-nums text-[var(--lp-workspace-muted)]">
                         {(movement.kind === 'escrow_funding' ? copy.fundingBreakdown : copy.payoutBreakdown)
                           .replace('{deal}', breakdown.base)
                           .replace('{share}', breakdown.base)
@@ -232,18 +232,18 @@ export function SettlementRecord({
                       type="button"
                       onClick={() => copyReference(movement.reference)}
                       aria-label={copy.copyReference.replace('{reference}', movement.reference)}
-                      className="mt-1 inline-flex min-h-11 max-w-full items-center gap-2 font-mono text-[12px] text-[var(--lp-workspace-muted)] transition-colors hover:text-[var(--lp-workspace-ink)]"
+                      className="mt-1 inline-flex min-h-11 max-w-full items-center gap-2 font-mono text-[14px] text-[var(--lp-workspace-muted)] transition-colors hover:text-[var(--lp-workspace-ink)]"
                     >
                       <span className="break-all text-start">{movement.reference}</span>
                       <span aria-hidden>{copiedReference === movement.reference ? '✓' : '⧉'}</span>
                     </button>
                   </div>
                   <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
-                    <span className={`inline-flex min-h-7 items-center gap-2 rounded-full border px-3 text-[12px] font-semibold ${tone.className}`}>
+                    <span className={`inline-flex min-h-7 items-center gap-2 rounded-full border px-3 text-[14px] font-semibold ${tone.className}`}>
                       <span aria-hidden className="size-1.5 rounded-full" style={{ background: tone.dot }} />
                       {stateLabel}
                     </span>
-                    <span className="text-[12px] tabular-nums text-[var(--lp-workspace-faint)]">
+                    <span className="text-[14px] tabular-nums text-[var(--lp-workspace-faint)]">
                       {utcStamp(movement.completedAt ?? movement.updatedAt)}
                     </span>
                   </div>
@@ -251,8 +251,8 @@ export function SettlementRecord({
 
                 <div className="mt-4 grid gap-3 border-t border-[var(--lp-workspace-border)] pt-4 sm:grid-cols-[1fr_auto] sm:items-center">
                   <div>
-                    <p className="text-[13px] leading-relaxed text-[var(--lp-workspace-ink)]">{stateLabel}</p>
-                    <p className="mt-1 text-[12px] leading-relaxed text-[var(--lp-workspace-muted)]">
+                    <p className="text-[14px] leading-relaxed text-[var(--lp-workspace-ink)]">{stateLabel}</p>
+                    <p className="mt-1 text-[14px] leading-relaxed text-[var(--lp-workspace-muted)]">
                       {copy.nextLabel}: {nextAction}
                     </p>
                   </div>
@@ -260,7 +260,7 @@ export function SettlementRecord({
                     <button
                       type="button"
                       onClick={() => setSelectedReceipt(receiptItem)}
-                      className="inline-flex min-h-11 items-center rounded-full bg-[var(--lp-workspace-ink)] px-4 text-[13px] font-semibold text-[var(--lp-workspace-raised)] transition-opacity hover:opacity-90"
+                      className="inline-flex min-h-11 items-center rounded-full bg-[var(--lp-workspace-ink)] px-4 text-[14px] font-semibold text-[var(--lp-workspace-raised)] transition-opacity hover:opacity-90"
                     >
                       {receiptCopy.viewReceipt}
                     </button>
@@ -273,7 +273,7 @@ export function SettlementRecord({
                           current === movement.reference ? null : movement.reference,
                         )
                       }
-                      className="inline-flex min-h-11 items-center justify-between gap-3 rounded-full border border-[var(--lp-workspace-border)] px-4 text-[13px] font-semibold text-[var(--lp-workspace-muted)] transition-colors hover:border-[var(--lp-accent)] hover:text-[var(--lp-workspace-ink)]"
+                      className="inline-flex min-h-11 items-center justify-between gap-3 rounded-full border border-[var(--lp-workspace-border)] px-4 text-[14px] font-semibold text-[var(--lp-workspace-muted)] transition-colors hover:border-[var(--lp-accent)] hover:text-[var(--lp-workspace-ink)]"
                     >
                       {expanded ? copy.hideProof : copy.showProof}
                       <span aria-hidden className={`transition-transform duration-200 motion-reduce:transition-none ${expanded ? 'rotate-90' : ''}`}>›</span>
@@ -283,17 +283,17 @@ export function SettlementRecord({
 
                 {expanded && (
                   <div id={`proof-${movement.reference}`} className="mt-4 border-t border-[var(--lp-workspace-border)] pt-4">
-                    <p className="text-[11px] font-semibold text-[var(--lp-workspace-faint)]">Payment proof</p>
+                    <p className="text-[14px] font-semibold text-[var(--lp-workspace-faint)]">Payment proof</p>
                     <ol className="mt-3 space-y-3">
                       {movement.legs.map((leg, legIndex) => (
                         <li key={`${movement.reference}:${leg.key}`} className="grid gap-2 border-s border-[var(--lp-workspace-border)] ps-3 sm:grid-cols-[1fr_auto] sm:items-start">
                           <div className="min-w-0">
-                            <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-workspace-faint)]">
+                            <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-workspace-faint)]">
                               Step {legIndex + 1} · {copy.legStates[leg.state]}
                             </p>
-                            <p className="mt-1 text-[13px] text-[var(--lp-workspace-ink)]">{leg.label}</p>
+                            <p className="mt-1 text-[14px] text-[var(--lp-workspace-ink)]">{leg.label}</p>
                             {leg.providerId && (
-                              <p className="mt-1 break-all mono text-[10px] tabular-nums text-[var(--lp-workspace-faint)]">
+                              <p className="mt-1 break-all mono text-[13px] tabular-nums text-[var(--lp-workspace-faint)]">
                                 {copy.providerReference}: {shortProof(leg.providerId)}
                               </p>
                             )}
@@ -303,7 +303,7 @@ export function SettlementRecord({
                               href={leg.explorerUrl}
                               target="_blank"
                               rel="noreferrer"
-                              className="inline-flex min-h-11 items-center mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)] transition-colors hover:text-[var(--lp-accent)]"
+                              className="inline-flex min-h-11 items-center mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)] transition-colors hover:text-[var(--lp-accent)]"
                             >
                               {copy.openProof} ↗
                             </a>
@@ -314,7 +314,7 @@ export function SettlementRecord({
                     <button
                       type="button"
                       onClick={() => setOpenReference(null)}
-                      className="mt-4 inline-flex min-h-11 items-center rounded-[10px] border border-[var(--lp-workspace-border)] px-4 mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)] transition-colors hover:border-[var(--lp-accent)] hover:text-[var(--lp-workspace-ink)]"
+                      className="mt-4 inline-flex min-h-11 items-center rounded-[10px] border border-[var(--lp-workspace-border)] px-4 mono text-[14px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)] transition-colors hover:border-[var(--lp-accent)] hover:text-[var(--lp-workspace-ink)]"
                     >
                       {copy.hideProof} ↑
                     </button>
@@ -328,8 +328,8 @@ export function SettlementRecord({
 
       {fetchState !== 'loading' && legacyReceipts.length > 0 && (
         <div className="mt-5 border-t border-[var(--lp-workspace-border)] pt-4">
-          <p className="text-[11px] font-semibold text-[var(--lp-workspace-faint)]">{copy.legacyTitle}</p>
-          <p className="mt-2 text-[12px] leading-relaxed text-[var(--lp-workspace-muted)]">{copy.legacyBody}</p>
+          <p className="text-[14px] font-semibold text-[var(--lp-workspace-faint)]">{copy.legacyTitle}</p>
+          <p className="mt-2 text-[14px] leading-relaxed text-[var(--lp-workspace-muted)]">{copy.legacyBody}</p>
           <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1">
             {legacyReceipts.map((receipt) => (
               <a
@@ -337,7 +337,7 @@ export function SettlementRecord({
                 href={`https://testnet.arcscan.app/tx/${receipt.txHash}`}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex min-h-11 items-center gap-2 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)] transition-colors hover:text-[var(--lp-accent)]"
+                className="inline-flex min-h-11 items-center gap-2 mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)] transition-colors hover:text-[var(--lp-accent)]"
               >
                 {receipt.key === 'funding' ? copy.legacyFunding : copy.legacyRefund}
                 <span className="tabular-nums">{shortProof(receipt.txHash)}</span>

@@ -55,7 +55,7 @@ export function FundAgentFromWallet({
   }, [busy, onBusyChange, settling]);
 
   if (!validRecipient) {
-    return <p className="text-[13px] leading-snug text-[var(--color-critical)]">{copy.recipient.notConfigured}</p>;
+    return <p className="text-[14px] leading-snug text-[var(--color-critical)]">{copy.recipient.notConfigured}</p>;
   }
   const destination = validRecipient;
 
@@ -85,10 +85,10 @@ export function FundAgentFromWallet({
         {label}
       </button>
       {latest?.error && latest.phase === 'error' ? (
-        <p className="text-[13px] leading-snug text-[var(--color-critical)]">{latest.error}</p>
+        <p className="text-[14px] leading-snug text-[var(--color-critical)]">{latest.error}</p>
       ) : null}
       {settling ? (
-        <p className="text-[13px] leading-snug text-[var(--ink-secondary)]">{copy.submit.activeNote}</p>
+        <p className="text-[14px] leading-snug text-[var(--ink-secondary)] font-medium">{copy.submit.activeNote}</p>
       ) : null}
     </div>
   );

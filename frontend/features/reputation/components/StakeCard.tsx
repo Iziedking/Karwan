@@ -630,7 +630,7 @@ export function StakeCard() {
     return (
       <div style={CARD_STYLE} className="px-6 py-8">
         <SectionEyebrow>{sc.eyebrow.stake}</SectionEyebrow>
-        <p className="mt-3 text-[14px] text-[var(--lp-text-sub)] max-w-[48ch] leading-relaxed">
+        <p className="mt-3 text-[14px] text-[var(--lp-text-sub)] max-w-[48ch] leading-relaxed font-medium">
           {sc.signedOut.body}
         </p>
       </div>
@@ -652,12 +652,12 @@ export function StakeCard() {
             >
               {formatUsdc(totalActive, { withSuffix: false })}
             </span>
-            <span className="mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+            <span className="mono text-[14px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
               {sc.summary.usdcActive}
             </span>
             {!synced && (
               <span
-                className="mono text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full"
+                className="mono text-[13px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full"
                 style={{
                   color: 'var(--lp-text-muted)',
                   background: 'var(--lp-surface-2, rgba(0,0,0,0.05))',
@@ -668,7 +668,7 @@ export function StakeCard() {
               </span>
             )}
           </div>
-          <div className="flex items-center gap-2.5 flex-wrap mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+          <div className="flex items-center gap-2.5 flex-wrap mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
             <span>
               {sc.summary.freeLabel} {formatUsdc(freeStakeUsdc, { withSuffix: false })}
             </span>
@@ -691,7 +691,7 @@ export function StakeCard() {
           </div>
         </div>
         {tier && (
-          <span className="inline-flex min-h-9 items-center gap-2 rounded-full border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3.5 text-[13px] text-[var(--lp-dark)]">
+          <span className="inline-flex min-h-9 items-center gap-2 rounded-full border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3.5 text-[14px] text-[var(--lp-dark)]">
             <span aria-hidden className="size-2 rounded-full" style={{ background: tone.color }} />
             <span className="font-semibold">{tier}</span>
             {rep?.score != null && <span className="tabular-nums text-[var(--lp-text-sub)]">{rep.score}/1000</span>}
@@ -714,19 +714,19 @@ export function StakeCard() {
         >
           <div className="min-w-0">
             <p
-              className="mono text-[9px] font-bold uppercase tracking-[0.18em]"
+              className="mono text-[13px] font-bold uppercase tracking-[0.18em]"
               style={{ color: '#b25425' }}
             >
               {sc.wrongNetwork.eyebrow}
             </p>
-            <p className="mt-1 text-[13px] leading-snug text-[var(--lp-dark)]">
+            <p className="mt-1 text-[14px] leading-snug text-[var(--lp-dark)]">
               {sc.wrongNetwork.body}
             </p>
           </div>
           <button
             type="button"
             onClick={switchToArc}
-            className="shrink-0 mono text-[11px] font-bold uppercase tracking-[0.08em] px-4 py-2 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors"
+            className="shrink-0 mono text-[14px] font-bold uppercase tracking-[0.08em] px-4 py-2 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors"
             style={{
               borderRadius: 10,
             }}
@@ -758,7 +758,7 @@ export function StakeCard() {
         {/* DEPOSIT */}
         <div className="space-y-3" data-guide="stake-deposit">
           <div className="flex items-baseline justify-between gap-2">
-            <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+            <span className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
               {sc.depositForm.label}
             </span>
             <button
@@ -766,7 +766,7 @@ export function StakeCard() {
               onClick={() => walletUsdc != null && setDepositAmount(Math.floor(walletUsdc * 100) / 100)}
               disabled={walletUsdc == null || walletUsdc <= 0}
               title={walletUsdc != null ? sc.depositForm.maxTitleTemplate.replace('{amount}', walletUsdc.toFixed(2)) : sc.depositForm.maxTitleLoading}
-              className="-my-2 inline-flex min-h-11 min-w-11 items-center justify-center mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] tabular-nums hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-sm px-0.5 transition-colors disabled:cursor-not-allowed disabled:hover:text-[var(--lp-text-muted)]"
+              className="-my-2 inline-flex min-h-11 min-w-11 items-center justify-center mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] tabular-nums hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-sm px-0.5 transition-colors disabled:cursor-not-allowed disabled:hover:text-[var(--lp-text-muted)]"
             >
               {sc.depositForm.max} {walletUsdc != null ? walletUsdc.toFixed(2) : '-'}
             </button>
@@ -797,7 +797,7 @@ export function StakeCard() {
                 onWrongChain
               }
               className={cn(
-                'inline-flex items-center gap-2 px-5 py-3 mono text-[12px] font-bold uppercase tracking-[0.08em] shrink-0 transition-[transform,box-shadow] duration-150',
+                'inline-flex items-center gap-2 px-5 py-3 mono text-[14px] font-bold uppercase tracking-[0.08em] shrink-0 transition-[transform,box-shadow] duration-150',
                 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0',
                 'shadow-[0_3px_0_rgba(0,0,0,0.22)] hover:shadow-[0_4px_0_rgba(0,0,0,0.22)] active:shadow-[0_1px_0_rgba(0,0,0,0.22)]',
                 'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0',
@@ -811,7 +811,7 @@ export function StakeCard() {
             </button>
           </div>
           {depositExceedsBalance && (
-            <p className="mono text-[10px] uppercase tracking-[0.12em]" style={{ color: '#b25425' }}>
+            <p className="mono text-[13px] uppercase tracking-[0.12em]" style={{ color: '#b25425' }}>
               {sc.depositForm.insufficientBalanceTemplate.replace('{amount}', walletUsdc?.toFixed(2) ?? '')}
             </p>
           )}
@@ -820,7 +820,7 @@ export function StakeCard() {
         {/* WITHDRAW */}
         <div className="space-y-3" data-guide="stake-withdraw">
           <div className="flex items-baseline justify-between gap-2">
-            <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+            <span className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
               {sc.withdrawForm.label}
             </span>
             <button
@@ -834,7 +834,7 @@ export function StakeCard() {
                     ? sc.withdrawForm.maxTitleAllReserved
                     : sc.withdrawForm.maxTitleNone
               }
-              className="-my-2 inline-flex min-h-11 min-w-11 items-center justify-center mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] tabular-nums hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-sm px-0.5 transition-colors disabled:cursor-not-allowed disabled:hover:text-[var(--lp-text-muted)]"
+              className="-my-2 inline-flex min-h-11 min-w-11 items-center justify-center mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] tabular-nums hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-sm px-0.5 transition-colors disabled:cursor-not-allowed disabled:hover:text-[var(--lp-text-muted)]"
             >
               {sc.withdrawForm.max} {formatUsdc(freeStakeUsdc, { withSuffix: false })}
             </button>
@@ -867,7 +867,7 @@ export function StakeCard() {
                 onWrongChain
               }
               className={cn(
-                'inline-flex items-center gap-2 px-5 py-3 mono text-[12px] font-bold uppercase tracking-[0.08em] shrink-0 transition-colors',
+                'inline-flex items-center gap-2 px-5 py-3 mono text-[14px] font-bold uppercase tracking-[0.08em] shrink-0 transition-colors',
                 'border border-[var(--lp-outline-strong)] text-[var(--lp-dark)] hover:bg-black/[0.04] hover:border-[var(--lp-outline-hover)]',
                 'disabled:opacity-50 disabled:cursor-not-allowed',
               )}
@@ -880,7 +880,7 @@ export function StakeCard() {
             </button>
           </div>
           {withdrawExceedsActive && (
-            <p className="mono text-[10px] uppercase tracking-[0.12em]" style={{ color: '#b25425' }}>
+            <p className="mono text-[13px] uppercase tracking-[0.12em]" style={{ color: '#b25425' }}>
               {Number(reservedUsdc) > 0
                 ? sc.withdrawForm.insufficientFreeTemplate
                     .replace('{free}', formatUsdc(freeStakeUsdc, { withSuffix: false }))
@@ -910,18 +910,18 @@ export function StakeCard() {
           }}
         >
           <div className="min-w-0 flex-1">
-            <p className="mono text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--lp-band-dark)]">
+            <p className="mono text-[13px] font-bold uppercase tracking-[0.18em] text-[var(--lp-band-dark)]">
               {sc.confirm.eyebrow}
             </p>
-            <p className="mt-1 text-[13px] leading-snug text-[var(--lp-dark)]">
+            <p className="mt-1 text-[14px] leading-snug text-[var(--lp-dark)]">
               {sc.confirm.coolPrefix} <span className="font-bold tabular-nums">{pendingWithdraw.coolingTotal} USDC</span> {sc.confirm.coolMiddle} <span className="font-bold">{sc.confirm.daysTemplate.replace('{days}', String(cooldownDays))}</span>.
             </p>
             {pendingWithdraw.coolingTotal > pendingWithdraw.requested + 0.000_001 && (
-              <p className="mt-1 text-[12px] leading-snug" style={{ color: '#b25425' }}>
+              <p className="mt-1 text-[14px] leading-snug" style={{ color: '#b25425' }}>
                 {sc.confirm.roundedPrefix} <span className="tabular-nums">{pendingWithdraw.requested}</span> {sc.confirm.roundedMiddle} {pendingWithdraw.toCool.length === 1 ? sc.confirm.smallestSingleTemplate.replace('{positionId}', pendingWithdraw.toCool[0].positionId).replace('{principal}', pendingWithdraw.toCool[0].principalUsdc) : sc.confirm.smallestMultiTemplate.replace('{count}', String(pendingWithdraw.toCool.length))}. {sc.confirm.roundedSuffix}
               </p>
             )}
-            <p className="mt-1 text-[12px] leading-snug text-[var(--lp-text-sub)]">
+            <p className="mt-1 text-[14px] leading-snug text-[var(--lp-text-sub)] font-medium">
               {sc.confirm.disclaimerTemplate.replace('{days}', String(cooldownDays))}
             </p>
           </div>
@@ -929,7 +929,7 @@ export function StakeCard() {
             <button
               type="button"
               onClick={cancelPendingWithdraw}
-              className="px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] hover:bg-black/[0.04] transition-colors"
+              className="px-3 py-1.5 mono text-[13px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] hover:bg-black/[0.04] transition-colors"
               style={{
                 borderRadius: 8,
               }}
@@ -939,7 +939,7 @@ export function StakeCard() {
             <button
               type="button"
               onClick={confirmWithdraw}
-              className="px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.12em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors"
+              className="px-4 py-2 mono text-[14px] font-bold uppercase tracking-[0.12em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors"
               style={{
                 borderRadius: 10,
               }}
@@ -950,7 +950,7 @@ export function StakeCard() {
         </div>
       )}
 
-      <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] leading-relaxed -mt-2">
+      <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] leading-relaxed -mt-2">
         {sc.cooldownFooterTemplate.replace('{days}', String(cooldownDays))}
       </p>
 
@@ -972,14 +972,14 @@ export function StakeCard() {
       {/* RECENT ACTIVITY */}
       {log.length > 0 && (
         <div className="space-y-2 pt-1">
-          <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+          <span className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
             {sc.recent.label}
           </span>
           <ul className="space-y-1.5">
             {log.map((entry) => (
               <li
                 key={entry.id}
-                className="flex items-center justify-between gap-3 mono text-[11px] text-[var(--lp-text-sub)]"
+                className="flex items-center justify-between gap-3 mono text-[14px] text-[var(--lp-text-sub)] font-medium"
               >
                 <span className="uppercase tracking-[0.1em] text-[var(--lp-text-muted)]">
                   {sc.recent.kinds[entry.kind]}
@@ -1022,7 +1022,7 @@ export function StakeCard() {
 
 function SectionEyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+    <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
       {children}
     </span>
   );
@@ -1037,7 +1037,7 @@ function StatePill({ state }: { state: 'active' | 'cooling' | 'claimed' }) {
         : { color: 'var(--color-ink-faint)', bg: 'var(--color-surface-2)' };
   return (
     <span
-      className="inline-flex items-center gap-1 px-1.5 py-[2px] mono text-[9px] font-bold uppercase tracking-[0.14em]"
+      className="inline-flex items-center gap-1 px-1.5 py-[2px] mono text-[13px] font-bold uppercase tracking-[0.14em]"
       style={{ color: tone.color, background: tone.bg, borderRadius: 3 }}
     >
       <span
@@ -1108,7 +1108,7 @@ function CoolingList({
   if (loading) {
     return (
       <div className="space-y-2">
-        <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+        <span className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
           {copy.label}
         </span>
         <div className="h-14 bg-black/[0.05] animate-pulse motion-reduce:animate-none rounded" />
@@ -1121,10 +1121,10 @@ function CoolingList({
   return (
     <div className="space-y-3">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+        <span className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
           {copy.label}
         </span>
-        <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] tabular-nums">
+        <span className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] tabular-nums">
           {cooling.length}
         </span>
       </div>
@@ -1148,11 +1148,11 @@ function CoolingList({
                   <span className="font-sans text-[18px] font-extrabold tabular-nums tracking-[-0.02em] leading-none">
                     {formatUsdc(p.principalUsdc, { withSuffix: false })}
                   </span>
-                  <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                  <span className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
                     {copy.usdcCooling}
                   </span>
                 </div>
-                <div className="flex items-center gap-3 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                <div className="flex items-center gap-3 mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
                   {p.claimableAt > 0 ? (
                     <CountdownLabel claimableAt={p.claimableAt} copy={copy} />
                   ) : (
@@ -1166,7 +1166,7 @@ function CoolingList({
                         onClick={() => onCancel(p.positionId)}
                         disabled={busy || vaultDeployed}
                         title={copy.cancelTitle}
-                        className="mono text-[10px] uppercase tracking-[0.12em] underline-offset-2 hover:underline hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-sm transition-colors disabled:opacity-50"
+                        className="mono text-[13px] uppercase tracking-[0.12em] underline-offset-2 hover:underline hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-sm transition-colors disabled:opacity-50"
                       >
                         {busy ? copy.cancelling : copy.cancelLabel}
                       </button>
@@ -1179,7 +1179,7 @@ function CoolingList({
                   type="button"
                   onClick={() => onClaim(p.positionId)}
                   disabled={busy || vaultDeployed}
-                  className="px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.12em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors disabled:opacity-50 shrink-0"
+                  className="px-4 py-2 mono text-[14px] font-bold uppercase tracking-[0.12em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors disabled:opacity-50 shrink-0"
                   style={{
                     borderRadius: 10,
                   }}
@@ -1211,10 +1211,10 @@ function YieldNote({ copy }: { copy: Messages['stakeCard']['yield'] }) {
         borderRadius: 12,
       }}
     >
-      <p className="mono text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--lp-band-dark)]">
+      <p className="mono text-[13px] font-bold uppercase tracking-[0.18em] text-[var(--lp-band-dark)]">
         {copy.eyebrow}
       </p>
-      <p className="mt-1.5 text-[12.5px] leading-snug text-[var(--lp-dark)]">
+      <p className="mt-1.5 text-[14px] leading-snug text-[var(--lp-dark)]">
         {copy.bodyPrefix}{' '}
         <span
           className="font-semibold"
@@ -1248,7 +1248,7 @@ function Note({ tone, children }: { tone: 'info' | 'warn'; children: React.React
         };
   return (
     <div
-      className="px-4 py-3 text-[12.5px] leading-snug"
+      className="px-4 py-3 text-[14px] leading-snug"
       style={{
         ...style,
         borderRadius: 10,

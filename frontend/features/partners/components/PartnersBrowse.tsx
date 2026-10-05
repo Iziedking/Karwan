@@ -113,7 +113,7 @@ export function PartnersBrowse() {
         <DiscoveryNav active="partners" tone="dark" />
         {!SME_TRADES_ENABLED ? (
           <div className="mt-6 max-w-[62ch] border-s-[3px] border-[var(--lp-accent)] bg-[var(--lp-workspace-soft)] px-4 py-3">
-            <p className="text-[13px] font-semibold text-[var(--lp-accent-on-light)]">
+            <p className="text-[14px] font-semibold text-[var(--lp-accent-on-light)]">
               {copy.pilotOnly}
             </p>
             <p className="mt-1.5 text-[14px] leading-relaxed text-[var(--lp-workspace-ink)]">{copy.pilotBody}</p>
@@ -123,11 +123,11 @@ export function PartnersBrowse() {
 
       <Band tone="light" tight>
         <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[var(--lp-border-light)] pb-4">
-            <p className="max-w-[62ch] text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+            <p className="max-w-[62ch] text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
               {copy.listedDetailsNote}
             </p>
             <p
-              className="text-[13px] text-[var(--lp-text-sub)] lg:text-end"
+              className="text-[14px] text-[var(--lp-text-sub)] lg:text-end font-medium"
               aria-live="polite"
             >
               {state === 'idle' ? `${copy.refreshing} · ` : ''}
@@ -137,7 +137,7 @@ export function PartnersBrowse() {
 
         <div className="py-6" role="search" aria-label={copy.searchLabel}>
           <label className="block max-w-2xl">
-            <span className="text-[13px] font-medium text-[var(--lp-text-sub)]">
+            <span className="text-[14px] font-medium text-[var(--lp-text-sub)]">
               {copy.searchLabel}
             </span>
             <span className="relative mt-2 block">
@@ -189,7 +189,7 @@ export function PartnersBrowse() {
                 type="button"
                 aria-pressed={verifiedOnly}
                 onClick={() => setVerifiedOnly((value) => !value)}
-                className="mb-1 inline-flex h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-[8px] border px-3 text-[12px] font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
+                className="mb-1 inline-flex h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-[8px] border px-3 text-[14px] font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
                 style={{
                   borderColor: verifiedOnly ? 'var(--color-positive)' : 'var(--lp-border-light)',
                   background: verifiedOnly ? 'var(--color-positive-soft)' : 'var(--lp-card)',
@@ -215,7 +215,7 @@ export function PartnersBrowse() {
           >
             <div>
               <h2 className="font-sans text-[17px] font-bold text-[var(--lp-dark)]">{copy.errorTitle}</h2>
-              <p className="mt-1 text-[13px] leading-relaxed text-[var(--lp-text-sub)]">{copy.errorBody}</p>
+              <p className="mt-1 text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{copy.errorBody}</p>
             </div>
             <Button type="button" variant="outline" onClick={() => setRetryToken((value) => value + 1)} className="shrink-0 self-start sm:self-auto">
               {copy.retry}
@@ -231,7 +231,7 @@ export function PartnersBrowse() {
               <h2 className="max-w-[28ch] font-sans text-[22px] font-bold leading-tight tracking-[-0.01em] text-[var(--lp-dark)]">
                 {copy.emptyTitle}
               </h2>
-              <p className="mt-3 max-w-[58ch] text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+              <p className="mt-3 max-w-[58ch] text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
                 {copy.emptyBody}
               </p>
               {filtersActive ? (
@@ -267,7 +267,7 @@ export function PartnersBrowse() {
 function FilterGroup({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <fieldset className="min-w-0">
-      <legend className="text-[13px] font-medium text-[var(--lp-text-sub)]">
+      <legend className="text-[14px] font-medium text-[var(--lp-text-sub)]">
         {label}
       </legend>
       <div className="mt-2 flex max-w-full items-center gap-1 overflow-x-auto pb-1">{children}</div>
@@ -289,7 +289,7 @@ function FilterButton({
       type="button"
       aria-pressed={pressed}
       onClick={onClick}
-      className="inline-flex h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-[8px] border px-3 text-[12px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
+      className="inline-flex h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-[8px] border px-3 text-[14px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
       style={{
         borderColor: pressed ? 'var(--lp-selected-border)' : 'var(--lp-border-light)',
         background: pressed ? 'var(--lp-selected-bg)' : 'var(--lp-card)',
@@ -338,12 +338,12 @@ function PartnerCard({
     <article className="border-b border-[var(--lp-border-light)] py-6 last:border-b-0 sm:py-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <p aria-hidden className="text-[13px] font-medium text-[var(--lp-text-sub)]">{String(position).padStart(2, '0')}</p>
+          <p aria-hidden className="text-[14px] font-medium text-[var(--lp-text-sub)]">{String(position).padStart(2, '0')}</p>
           <h3 className="mt-2 text-[clamp(1.4rem,2.3vw,1.85rem)] font-semibold leading-tight tracking-[-0.03em] text-[var(--lp-dark)]">
             {partner.name}
           </h3>
           {tradeMeta.length > 0 ? (
-            <p className="mt-2 break-words text-[14px] leading-6 text-[var(--lp-text-sub)]">{tradeMeta.join(' · ')}</p>
+            <p className="mt-2 break-words text-[14px] leading-6 text-[var(--lp-text-sub)] font-medium">{tradeMeta.join(' · ')}</p>
           ) : null}
         </div>
         <ReputationBadge address={partner.address} size="sm" withDetail />
@@ -351,8 +351,8 @@ function PartnerCard({
 
       {partner.verified ? (
         <div className="mt-5 border-s-[3px] border-[var(--lp-accent)] ps-4">
-          <p className="text-[13px] font-semibold text-[var(--lp-dark)]">{copy.identityVerified}</p>
-          <p className="mt-1 max-w-[64ch] text-[13px] leading-5 text-[var(--lp-text-sub)]">{copy.identityNote}</p>
+          <p className="text-[14px] font-semibold text-[var(--lp-dark)]">{copy.identityVerified}</p>
+          <p className="mt-1 max-w-[64ch] text-[14px] leading-5 text-[var(--lp-text-sub)] font-medium">{copy.identityNote}</p>
         </div>
       ) : null}
 
@@ -389,7 +389,7 @@ function PartnerCard({
 function CapRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
-      <dt className="text-[12px] font-medium text-[var(--lp-text-sub)]">{label}</dt>
+      <dt className="text-[14px] font-medium text-[var(--lp-text-sub)]">{label}</dt>
       <dd className="mt-1 break-words text-[14px] leading-5 text-[var(--lp-dark)]">{value}</dd>
     </div>
   );

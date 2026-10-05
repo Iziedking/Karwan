@@ -1,5 +1,6 @@
 ﻿import type { Metadata } from 'next';
 import localFont from 'next/font/local';
+import { Inter, Noto_Sans_Arabic, Noto_Sans_Devanagari } from 'next/font/google';
 import { DEFAULT_LOCALE } from '@/shared/i18n/locales';
 import './globals.css';
 import { TopNav } from '@/shared/components/TopNav';
@@ -27,7 +28,7 @@ import { SpeedInsights } from '@vercel/speed-insights/next'
 const SPEED_INSIGHTS_AVAILABLE = process.env.VERCEL === '1';
 
 // Geist is self-hosted as a fallback (woff2 in ./fonts) instead of pulled from
-// next/font/google. The product itself uses General Sans throughout.
+// next/font/google. General Sans carries the landing headlines.
 const geist = localFont({
   src: [{ path: './fonts/Geist-Variable.woff2', weight: '100 900', style: 'normal' }],
   variable: '--font-geist',
@@ -49,6 +50,30 @@ const generalSans = localFont({
   variable: '--font-general-sans',
   display: 'swap',
   adjustFontFallback: 'Arial',
+});
+
+// Inter is the product face: built for screens, it stays crisp at 14px.
+// next/font fetches it at build time and serves it from this origin.
+const inter = Inter({
+  subsets: ['latin', 'latin-ext'],
+  variable: '--font-inter',
+  display: 'swap',
+});
+
+// Inter has no Arabic or Devanagari letters. These carry Arabic and Hindi at
+// the same weight and size, instead of a thin system fallback. Not preloaded:
+// only a reader in that language downloads them.
+const notoArabic = Noto_Sans_Arabic({
+  subsets: ['arabic'],
+  variable: '--font-arabic',
+  display: 'swap',
+  preload: false,
+});
+const notoDevanagari = Noto_Sans_Devanagari({
+  subsets: ['devanagari'],
+  variable: '--font-devanagari',
+  display: 'swap',
+  preload: false,
 });
 
 // Each deployment names its own host (testnet.karwan.site, karwan.site) so
@@ -115,7 +140,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang={DEFAULT_LOCALE}
       dir="ltr"
-      className={`${geist.variable} ${generalSans.variable}`}
+      className={`${geist.variable} ${generalSans.variable} ${inter.variable} ${notoArabic.variable} ${notoDevanagari.variable}`}
       suppressHydrationWarning
     >
       <head>

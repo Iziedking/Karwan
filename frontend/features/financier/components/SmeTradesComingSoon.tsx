@@ -45,13 +45,13 @@ export function SmeTradesComingSoon() {
         <div className="mt-12 grid gap-px sm:grid-cols-3 bg-[var(--lp-border-light)]">
           {PILLARS.map((p) => (
             <div key={p.tag} className="bg-[var(--lp-bg)] p-6">
-              <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+              <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
                 {p.tag}
               </p>
               <h3 className="mt-3 font-sans text-[18px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
                 {p.title}
               </h3>
-              <p className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+              <p className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
                 {p.body}
               </p>
             </div>
@@ -62,7 +62,7 @@ export function SmeTradesComingSoon() {
           <CTAPill href="/financier">{pb.financierPanels.openFinancierDesk}</CTAPill>
           <Link
             href="/docs"
-            className="mono inline-flex min-h-11 items-center text-[11px] uppercase tracking-[0.14em] font-bold text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+            className="mono inline-flex min-h-11 items-center text-[14px] uppercase tracking-[0.14em] font-bold text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
           >
             Read the docs
           </Link>

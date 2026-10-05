@@ -170,7 +170,7 @@ function SellerPageInner() {
             }}
           >
             {fetchState === 'error' ? (
-              <p className="p-8 text-center text-[13px] text-[#ff8a7a]">
+              <p className="p-8 text-center text-[14px] text-[#ff8a7a]">
                 {sh.activeBids.errorMessage}
               </p>
             ) : fetchState === 'loading' || fetchState === 'idle' ? (
@@ -179,7 +179,7 @@ function SellerPageInner() {
                 <div className="h-14 rounded-md bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
               </div>
             ) : activeBids.length === 0 ? (
-              <p className="p-8 text-center text-[13px] text-[var(--lp-workspace-muted)]">
+              <p className="p-8 text-center text-[14px] text-[var(--lp-workspace-muted)]">
                 {sh.activeBids.emptyMessage}
               </p>
             ) : (

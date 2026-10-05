@@ -41,7 +41,7 @@ export function ActivityFilters({
               type="button"
               onClick={() => onToggleActor(a)}
               aria-pressed={active}
-              className="relative inline-flex min-h-11 items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+              className="relative inline-flex min-h-11 items-center gap-1.5 px-3 py-1.5 text-[14px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
               style={{
                 background: active ? 'var(--lp-card)' : 'transparent',
                 color: active ? 'var(--lp-dark)' : 'var(--lp-text-sub)',
@@ -81,7 +81,7 @@ export function ActivityFilters({
           value={jobIdSearch}
           onChange={(e) => onJobIdSearch(e.target.value)}
           placeholder={t.searchPlaceholder}
-          className="activity-search w-full min-h-11 bg-[var(--lp-card)] ps-8 pe-8 py-2 text-[12px] mono tabular-nums focus:outline-none transition-shadow placeholder:text-[var(--lp-text-sub)] placeholder:normal-case text-[var(--lp-dark)]"
+          className="activity-search w-full min-h-11 bg-[var(--lp-card)] ps-8 pe-8 py-2 text-[14px] mono tabular-nums focus:outline-none transition-shadow placeholder:text-[var(--lp-text-sub)] placeholder:normal-case text-[var(--lp-dark)] font-medium"
           style={{
             border: '1px solid var(--lp-border-light)',
             borderRadius: 10,
@@ -117,7 +117,7 @@ export function ActivityFilters({
         <button
           type="button"
           onClick={onClear}
-          className="inline-flex min-h-11 items-center mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+          className="inline-flex min-h-11 items-center mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
         >
           {t.clearFilters}
         </button>

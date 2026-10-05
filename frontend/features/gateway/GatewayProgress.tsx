@@ -62,7 +62,7 @@ export function GatewayProgress({ steps }: { steps: StepMap }) {
               : 'var(--ink-secondary)';
 
         return (
-          <li key={key} className="flex items-center gap-2 text-[13px]" aria-current={active ? "step" : undefined}>
+          <li key={key} className="flex items-center gap-2 text-[14px]" aria-current={active ? "step" : undefined}>
             <span
               aria-hidden
               className={
@@ -90,7 +90,7 @@ export function GatewayProgress({ steps }: { steps: StepMap }) {
                 href={step.explorerUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex min-h-10 items-center rounded-full px-2 text-[13px] text-[var(--ink-secondary)] underline underline-offset-2 hover:text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
+                className="inline-flex min-h-10 items-center rounded-full px-2 text-[14px] text-[var(--ink-secondary)] underline underline-offset-2 hover:text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] font-medium"
               >
                 {t.view}
               </a>

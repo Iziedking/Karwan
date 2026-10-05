@@ -28,7 +28,7 @@ export function DocsPager() {
           className="group flex flex-col gap-1 p-4 bg-[var(--lp-card)] border border-[var(--lp-border-light)] hover:border-[var(--lp-accent)] transition-colors"
           style={{ borderRadius: 12, borderBottomLeftRadius: 3 }}
         >
-          <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)] inline-flex items-center gap-1">
+          <span className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)] inline-flex items-center gap-1">
             <span aria-hidden className="transition-transform duration-200 group-hover:-translate-x-0.5">←</span>
             {t.pager.previous}
           </span>
@@ -45,7 +45,7 @@ export function DocsPager() {
           className="group flex flex-col gap-1 p-4 text-end bg-[var(--lp-card)] border border-[var(--lp-border-light)] hover:border-[var(--lp-accent)] transition-colors sm:col-start-2"
           style={{ borderRadius: 12 }}
         >
-          <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)] inline-flex items-center gap-1 justify-end">
+          <span className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)] inline-flex items-center gap-1 justify-end">
             {t.pager.next}
             <span aria-hidden className="transition-transform duration-200 group-hover:translate-x-0.5">→</span>
           </span>

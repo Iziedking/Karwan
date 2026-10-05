@@ -75,7 +75,7 @@ function OnboardingShell() {
           longer profile panels without making the setup feel artificially tall. */}
       <Band tone="dark" overlay={<GridOverlay />} compact>
         <div className="max-w-[60ch] mx-auto text-center min-h-[80vh]">
-          <span className="inline-flex items-center gap-2 mono text-[11px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)]">
+          <span className="inline-flex items-center gap-2 mono text-[14px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)]">
             <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-[var(--lp-accent)]" />
             {t.signUpTag}
           </span>
@@ -389,7 +389,7 @@ function OnboardingInner() {
       <Band tone="dark" overlay={<GridOverlay />} compact>
         <div className="max-w-[60ch] mx-auto text-center">
           <div className="fade-up flex justify-center">
-            <span className="inline-flex items-center gap-2 mono text-[11px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)]">
+            <span className="inline-flex items-center gap-2 mono text-[14px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)]">
               <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-[var(--lp-accent)]" />
               {t.onboarding.stepIndicator
                 .replace('{step}', String(stepN))
@@ -608,7 +608,7 @@ function ProgressDots({ current, total }: { current: number; total: number }) {
           <span key={i} aria-hidden className="flex min-w-0 flex-1 items-center last:flex-none">
             <span
               className={cn(
-                'inline-flex size-6 shrink-0 items-center justify-center rounded-full border font-sans text-[11px] font-bold transition-[background-color,border-color,color,box-shadow]',
+                'inline-flex size-6 shrink-0 items-center justify-center rounded-full border font-sans text-[14px] font-bold transition-[background-color,border-color,color,box-shadow]',
                 isDone && 'border-[var(--lp-accent)] bg-transparent text-[var(--lp-accent)]',
                 isActive && 'border-[var(--lp-accent)] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] shadow-[0_0_0_5px_rgba(175,201,91,0.18)]',
                 !isDone && !isActive && 'border-[var(--lp-workspace-border)] bg-transparent text-[var(--lp-workspace-faint)]',
@@ -639,14 +639,14 @@ function ConnectStep({ onLogin, onBack }: { onLogin: () => void; onBack: () => v
           borderRadius: 16,
         }}
       >
-        <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[44ch]">
+        <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[44ch] font-medium">
           {t.bodyText}
         </p>
         <div className="mt-6">
           <button
             type="button"
             onClick={onLogin}
-            className="inline-flex min-h-11 items-center gap-2 px-[20px] py-[12px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.18)] hover:shadow-[0_4px_0_rgba(0,0,0,0.18)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)]"
+            className="inline-flex min-h-11 items-center gap-2 px-[20px] py-[12px] mono text-[14px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.18)] hover:shadow-[0_4px_0_rgba(0,0,0,0.18)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)]"
             style={{
               borderRadius: 12,
             }}
@@ -655,7 +655,7 @@ function ConnectStep({ onLogin, onBack }: { onLogin: () => void; onBack: () => v
             <span aria-hidden>→</span>
           </button>
         </div>
-        <p className="mt-6 mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+        <p className="mt-6 mono text-[14px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
           {t.fineprint}
         </p>
       </div>
@@ -663,7 +663,7 @@ function ConnectStep({ onLogin, onBack }: { onLogin: () => void; onBack: () => v
         <button
           type="button"
           onClick={onBack}
-          className="group inline-flex min-h-11 items-center gap-2 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
+          className="group inline-flex min-h-11 items-center gap-2 mono text-[14px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors font-medium"
         >
           <svg aria-hidden width="18" height="18" viewBox="0 0 24 24" fill="none" className="rtl-flip shrink-0" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5m6-6-6 6 6 6" /></svg>
           {back}
@@ -688,7 +688,7 @@ function WalletReadyStep({ onDone }: { onDone: () => void }) {
         <h2 className="font-sans text-[21px] font-extrabold tracking-[-0.025em] text-[var(--lp-dark)]">
           {t.walletOnlyTitle}
         </h2>
-        <p className="mt-2 max-w-[48ch] text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{t.walletOnlyBody}</p>
+        <p className="mt-2 max-w-[48ch] text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{t.walletOnlyBody}</p>
       </div>
       <CTAPill onClick={onDone} tone="light">
         {t.toAccount}
@@ -733,7 +733,7 @@ function GetReadyStep({ onDone }: { onDone: () => void }) {
           {activated ? t.ready : t.agentTitle}
         </h2>
         {!activated && (
-          <p className="mt-2 max-w-[48ch] text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+          <p className="mt-2 max-w-[48ch] text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
             {t.doneBody}
           </p>
         )}
@@ -753,7 +753,7 @@ function GetReadyStep({ onDone }: { onDone: () => void }) {
             type="button"
             onClick={onDone}
             disabled={activating}
-            className="inline-flex min-h-11 items-center px-2 font-sans text-[13px] font-semibold text-[var(--lp-text-sub)] transition-colors hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex min-h-11 items-center px-2 font-sans text-[14px] font-semibold text-[var(--lp-text-sub)] transition-colors hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {t.skip}
           </button>
@@ -816,7 +816,7 @@ function AccountTypeStep({
         <button
           type="button"
           onClick={onBack}
-          className="group inline-flex min-h-11 items-center gap-2 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
+          className="group inline-flex min-h-11 items-center gap-2 mono text-[14px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors font-medium"
         >
           <svg aria-hidden width="18" height="18" viewBox="0 0 24 24" fill="none" className="rtl-flip shrink-0" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5m6-6-6 6 6 6" /></svg>
           {t.roleStep.backArrow.replace(/[←→]/g, "").trim()}
@@ -889,15 +889,15 @@ function AccountCard({
             there is room to learn it next to the words it stands for. */}
         <div className="flex items-center justify-between gap-4">
           <AccountKindIcon kind={kind === 'business' ? 'business' : 'individual'} size={26} />
-          <span className={cn('mono text-[10px] uppercase tracking-[0.2em] font-medium', eyebrowColor)}>
+          <span className={cn('mono text-[13px] uppercase tracking-[0.2em] font-medium', eyebrowColor)}>
             {disabled ? messages.signup.signUp.comingSoon : eyebrow}
           </span>
         </div>
         <h2 className="mt-3 font-sans text-[20px] font-extrabold uppercase tracking-[-0.02em] leading-[1.04] sm:mt-5 sm:text-[22px]">
           {title}
         </h2>
-        <p className={cn('mt-2.5 text-pretty text-[13.5px] leading-relaxed sm:mt-3', muted)}>{body}</p>
-        <p className={cn('mt-4 hidden mono text-[11px] uppercase tracking-[0.08em] sm:block', tagColor)}>{tagline}</p>
+        <p className={cn('mt-2.5 text-pretty text-[14px] leading-relaxed sm:mt-3', muted)}>{body}</p>
+        <p className={cn('mt-4 hidden mono text-[14px] uppercase tracking-[0.08em] sm:block', tagColor)}>{tagline}</p>
         <div className="mt-auto flex items-center justify-between pt-3 sm:pt-5">
           <span
             className={cn(
@@ -924,7 +924,7 @@ function AccountCard({
           <span
             aria-hidden
             className={cn(
-              'mono text-[10px] uppercase tracking-[0.12em] transition-opacity',
+              'mono text-[13px] uppercase tracking-[0.12em] transition-opacity',
               isSel ? 'opacity-100' : 'opacity-0',
             )}
           >
@@ -953,7 +953,7 @@ function RoleStep({
   return (
     <div className="space-y-6 sm:space-y-8">
       <div className="fade-up max-w-[50ch] mx-auto text-start">
-        <p className="mono text-[12px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+        <p className="mono text-[14px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
           {t.connectedAs}{' '}
           <span className="text-[var(--lp-dark)]">{identityLabel ?? t.secureAccount}</span>
         </p>
@@ -1006,7 +1006,7 @@ function RoleStep({
         <button
           type="button"
           onClick={onBack}
-          className="group inline-flex min-h-11 items-center gap-2 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
+          className="group inline-flex min-h-11 items-center gap-2 mono text-[14px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors font-medium"
         >
           <svg aria-hidden width="18" height="18" viewBox="0 0 24 24" fill="none" className="rtl-flip shrink-0" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5m6-6-6 6 6 6" /></svg>
           {t.backArrow}
@@ -1098,12 +1098,12 @@ function RoleCard({
     >
       <div className="flex h-full flex-col p-5 sm:p-6">
         <div className="flex items-center justify-between">
-          <span className={cn('mono text-[10px] uppercase tracking-[0.2em] font-medium', eyebrowColor)}>
+          <span className={cn('mono text-[13px] uppercase tracking-[0.2em] font-medium', eyebrowColor)}>
             {eyebrow}
           </span>
           {recommended && (
             <span
-              className="px-2 py-0.5 mono text-[9px] uppercase tracking-[0.18em] font-semibold"
+              className="px-2 py-0.5 mono text-[13px] uppercase tracking-[0.18em] font-semibold"
               style={{
                 background:
                   tone === 'accent' ? 'var(--lp-band-dark)' : 'var(--lp-accent)',
@@ -1118,8 +1118,8 @@ function RoleCard({
         <h2 className="mt-3 font-sans text-[20px] font-extrabold uppercase tracking-[-0.02em] leading-[1.04] sm:mt-5 sm:text-[22px]">
           {title}
         </h2>
-        <p className={cn('mt-2.5 text-pretty text-[13.5px] leading-relaxed sm:mt-3', muted)}>{body}</p>
-        <p className={cn('mt-4 hidden mono text-[11px] uppercase tracking-[0.08em] sm:block', tagColor)}>
+        <p className={cn('mt-2.5 text-pretty text-[14px] leading-relaxed sm:mt-3', muted)}>{body}</p>
+        <p className={cn('mt-4 hidden mono text-[14px] uppercase tracking-[0.08em] sm:block', tagColor)}>
           {tagline}
         </p>
         <div className="mt-auto flex items-center justify-between pt-3 sm:pt-5">
@@ -1148,7 +1148,7 @@ function RoleCard({
           <span
             aria-hidden
             className={cn(
-              'mono text-[10px] uppercase tracking-[0.12em] transition-opacity',
+              'mono text-[13px] uppercase tracking-[0.12em] transition-opacity',
               isSel ? 'opacity-100' : 'opacity-0',
             )}
           >
@@ -1182,7 +1182,7 @@ function TradeTypeChooser({
             onClick={() => onChange(o.value)}
             aria-pressed={sel}
             className={cn(
-              'min-h-11 rounded-md border px-3 py-2.5 mono text-[11px] uppercase tracking-[0.1em] font-semibold transition-colors',
+              'min-h-11 rounded-md border px-3 py-2.5 mono text-[14px] uppercase tracking-[0.1em] font-semibold transition-colors',
               sel
                 ? 'border-[var(--lp-control-active-border)] bg-[var(--lp-control-active-bg)] text-[var(--lp-control-active-ink)]'
                 : 'border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-text-sub)] hover:border-[var(--lp-dark)]',
@@ -1218,7 +1218,7 @@ function SkillSuggestions({
             aria-pressed={selected}
             onClick={() => onChange(toggleSkill(value, skill))}
             className={cn(
-              'inline-flex min-h-11 items-center rounded-full border px-4 py-2 font-sans text-[13px] font-semibold transition-[background-color,border-color,color,transform]',
+              'inline-flex min-h-11 items-center rounded-full border px-4 py-2 font-sans text-[14px] font-semibold transition-[background-color,border-color,color,transform]',
               'active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2',
               selected
                 ? 'border-[var(--lp-control-active-border)] bg-[var(--lp-control-active-bg)] text-[var(--lp-control-active-ink)]'
@@ -1249,7 +1249,7 @@ function MatchingPreview({
 }) {
   return (
     <div className="border-s-2 border-[var(--lp-accent)] bg-[var(--lp-light)] px-4 py-4 sm:px-5">
-      <p className="font-sans text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+      <p className="font-sans text-[13px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
         {eyebrow}
       </p>
       <p className="mt-2 text-pretty font-sans text-[17px] font-extrabold leading-snug tracking-[-0.02em] text-[var(--lp-dark)]">
@@ -1259,7 +1259,7 @@ function MatchingPreview({
         <span>{budget}</span>
         {delivery ? <span>{delivery}</span> : null}
       </div>
-      <p className="mt-3 max-w-[60ch] text-[13px] leading-relaxed text-[var(--lp-text-sub)]">{body}</p>
+      <p className="mt-3 max-w-[60ch] text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{body}</p>
     </div>
   );
 }
@@ -1281,7 +1281,7 @@ function RangePresets({
 }) {
   return (
     <div className="space-y-2.5">
-      <p className="font-sans text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--lp-text-sub)]">{label}</p>
+      <p className="font-sans text-[14px] font-bold uppercase tracking-[0.1em] text-[var(--lp-text-sub)]">{label}</p>
       <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-3">
         {ranges.map((range) => {
           const selected = currentMin === range.min && currentMax === range.max;
@@ -1292,7 +1292,7 @@ function RangePresets({
               aria-pressed={selected}
               onClick={() => onSelect(range)}
               className={cn(
-                'min-h-11 rounded-lg border px-3 py-2 font-sans text-[12px] font-bold tabular-nums transition-colors',
+                'min-h-11 rounded-lg border px-3 py-2 font-sans text-[14px] font-bold tabular-nums transition-colors',
                 selected
                   ? 'border-[var(--lp-control-active-border)] bg-[var(--lp-control-active-bg)] text-[var(--lp-control-active-ink)]'
                   : 'border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-text-sub)] hover:border-[var(--lp-dark)]',
@@ -1324,7 +1324,7 @@ function ValuePresets<T extends string | number>({
 }) {
   return (
     <div className="space-y-2.5">
-      <p className="flex items-center gap-2 font-sans text-[13px] font-bold text-[var(--lp-dark)]">
+      <p className="flex items-center gap-2 font-sans text-[14px] font-bold text-[var(--lp-dark)]">
         {label}
         {hint && <LpHint>{hint}</LpHint>}
       </p>
@@ -1338,7 +1338,7 @@ function ValuePresets<T extends string | number>({
               aria-pressed={selected}
               onClick={() => onSelect(value)}
               className={cn(
-                'min-h-11 rounded-lg border px-3 py-2 font-sans text-[12px] font-bold tabular-nums transition-colors',
+                'min-h-11 rounded-lg border px-3 py-2 font-sans text-[14px] font-bold tabular-nums transition-colors',
                 selected
                   ? 'border-[var(--lp-control-active-border)] bg-[var(--lp-control-active-bg)] text-[var(--lp-control-active-ink)]'
                   : 'border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-text-sub)] hover:border-[var(--lp-dark)]',
@@ -1359,7 +1359,7 @@ function ProfileProgress({ current, total }: { current: number; total: number })
     .replace('{total}', String(total));
   return (
     <div className="flex items-center justify-center gap-4">
-      <span className="font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+      <span className="font-sans text-[14px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
         {label}
       </span>
       <div className="flex gap-1.5">
@@ -1500,7 +1500,7 @@ function BusinessProfileStep(props: {
             if (panel === 0) props.onBack();
             else setPanel((current) => current - 1);
           }}
-          className="group inline-flex min-h-11 items-center gap-2 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
+          className="group inline-flex min-h-11 items-center gap-2 mono text-[14px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors font-medium"
         >
           <svg aria-hidden width="18" height="18" viewBox="0 0 24 24" fill="none" className="rtl-flip shrink-0" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5m6-6-6 6 6 6" /></svg>
           {t.roleStep.backArrow.replace(/[←→]/g, "").trim()}
@@ -1769,7 +1769,7 @@ function ProfileStep(props: {
             if (panel === 0) props.onBack();
             else setPanel((current) => current - 1);
           }}
-          className="group inline-flex min-h-11 items-center gap-2 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
+          className="group inline-flex min-h-11 items-center gap-2 mono text-[14px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors font-medium"
         >
           <svg aria-hidden width="18" height="18" viewBox="0 0 24 24" fill="none" className="rtl-flip shrink-0" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5m6-6-6 6 6 6" /></svg>
           {t.roleStep.backArrow.replace(/[←→]/g, "").trim()}
@@ -1822,7 +1822,7 @@ function ProfileSection({
             {number}
           </span>
           {eyebrow && (
-            <span className="font-sans text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+            <span className="font-sans text-[14px] font-bold uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
               {eyebrow}
             </span>
           )}
@@ -1884,7 +1884,7 @@ function NumField({
   }, [value]);
   return (
     <label className="block space-y-2.5">
-      <span className="flex items-center gap-1.5 font-sans text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--lp-text-sub)]">
+      <span className="flex items-center gap-1.5 font-sans text-[14px] font-bold uppercase tracking-[0.1em] text-[var(--lp-text-sub)]">
         {label}
         {hint && <Hint>{hint}</Hint>}
       </span>

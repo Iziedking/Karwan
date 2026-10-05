@@ -230,7 +230,7 @@ export function SmeCompanyBand({
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="inline-flex min-h-11 items-center mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-2 border border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)] transition-colors"
+            className="inline-flex min-h-11 items-center mono text-[14px] uppercase tracking-[0.14em] font-bold px-3 py-2 border border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)] transition-colors"
             style={{
               borderRadius: 6,
             }}
@@ -297,7 +297,7 @@ export function SmeCompanyBand({
                 certifications={certifications}
               />
             ) : (
-              <p className="text-[14px] text-[var(--lp-text-sub)] leading-relaxed">
+              <p className="text-[14px] text-[var(--lp-text-sub)] leading-relaxed font-medium">
 {t.emptyBody}
               </p>
             )}
@@ -311,10 +311,10 @@ export function SmeCompanyBand({
                   className="mt-0.5 w-4 h-4 accent-[var(--lp-accent)] shrink-0 cursor-pointer"
                 />
                 <span className="min-w-0">
-                  <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-dark)]">
+                  <span className="mono text-[13px] font-bold uppercase tracking-[0.16em] text-[var(--lp-dark)]">
                     {t.discovery.label}
                   </span>
-                  <span className="mt-1 block text-[12px] leading-snug text-[var(--lp-text-sub)]">
+                  <span className="mt-1 block text-[14px] leading-snug text-[var(--lp-text-sub)] font-medium">
 {t.discovery.body}
                   </span>
                 </span>
@@ -326,7 +326,7 @@ export function SmeCompanyBand({
                   type="button"
                   onClick={save}
                   disabled={saving}
-                  className="inline-flex min-h-11 items-center mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-2 bg-[var(--lp-dark)] text-[var(--lp-bg)] disabled:opacity-60"
+                  className="inline-flex min-h-11 items-center mono text-[14px] uppercase tracking-[0.14em] font-bold px-3 py-2 bg-[var(--lp-dark)] text-[var(--lp-bg)] disabled:opacity-60"
                   style={{
                     borderRadius: 6,
                   }}
@@ -337,12 +337,12 @@ export function SmeCompanyBand({
                   type="button"
                   onClick={() => setEditing(false)}
                   disabled={saving}
-                  className="inline-flex min-h-11 items-center px-2 mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]"
+                  className="inline-flex min-h-11 items-center px-2 mono text-[14px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]"
                 >
                   {t.cancel}
                 </button>
                 {error ? (
-                  <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-critical)]">
+                  <span className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-critical)]">
                     {error}
                   </span>
                 ) : null}
@@ -356,10 +356,10 @@ export function SmeCompanyBand({
              padded out with empty space reads as unfinished. */
           <PageCard className="self-start">
             <div className="p-4 md:p-5">
-              <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+              <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
                 {t.repayment.eyebrow}
               </p>
-              <p className="mt-1.5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+              <p className="mt-1.5 mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
                 {t.repayment.windowTemplate.replace('{count}', String(repayment.windowDealCount))}
               </p>
               <dl className="mt-5 space-y-3.5">
@@ -468,12 +468,12 @@ function ViewRow({
 }) {
   return (
     <div className="flex items-baseline justify-between gap-4">
-      <dt className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+      <dt className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
         {label}
       </dt>
       <dd
         className={cn(
-          'text-[13.5px] text-[var(--lp-dark)] text-end',
+          'text-[14px] text-[var(--lp-dark)] text-end',
           capitalize && 'capitalize',
         )}
       >
@@ -684,7 +684,7 @@ function EditField({
       <div className="flex min-h-7 items-center gap-1">
         <label
           htmlFor={id}
-          className="mono text-[10px] uppercase tracking-[0.14em] font-medium text-[var(--lp-text-muted)]"
+          className="mono text-[13px] uppercase tracking-[0.14em] font-medium text-[var(--lp-text-muted)]"
         >
           {label}
         </label>
@@ -712,7 +712,7 @@ function RepayRow({
         : 'text-[var(--lp-dark)] font-bold';
   return (
     <div className="flex items-baseline justify-between gap-4">
-      <dt className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+      <dt className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
         {label}
       </dt>
       <dd className={cn('text-[18px] tabular-nums', valueClass)}>{value}</dd>

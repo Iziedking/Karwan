@@ -39,7 +39,7 @@ export function DocsSidebar() {
   const labelFor = useDocsSectionLabel();
   return (
     <aside className="lg:sticky lg:top-[88px] lg:self-start">
-      <p className="mono mb-4 hidden text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)] lg:block">
+      <p className="mono mb-4 hidden text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)] lg:block">
         {t.sidebar.eyebrow}
       </p>
       <nav

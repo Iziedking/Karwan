@@ -124,7 +124,7 @@ export function ProfileAccountHub({
       hint={simple.photoHint}
     >
       {photoBusy || photoError || savedPhoto ? (
-        <div className="-mt-3 flex flex-wrap items-center gap-3 text-[13px]">
+        <div className="-mt-3 flex flex-wrap items-center gap-3 text-[14px]">
           {savedPhoto ? <button type="button" disabled={photoBusy} onClick={() => void savePhoto(null)} className="min-h-11 font-semibold text-[var(--lp-text-sub)] underline underline-offset-4">{hub.removePhoto}</button> : null}
           <span role="status" aria-live="polite" className="text-[var(--lp-text-sub)]">{photoBusy ? hub.savingPhoto : ''}</span>
           {photoError ? <span role="alert" className="text-[var(--color-critical)]">{photoError}</span> : null}
@@ -188,7 +188,7 @@ export function ProfileAccountHub({
       </RowGroup>
 
       <footer className="flex flex-wrap items-center justify-between gap-3 px-1">
-        <p className="text-[12px] text-[var(--lp-text-sub)]">{hub.accountLabel} {shortAddress(address)}</p>
+        <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{hub.accountLabel} {shortAddress(address)}</p>
         <ProfileSignOut />
       </footer>
     </ProfileFrame>

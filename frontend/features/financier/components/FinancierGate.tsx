@@ -29,13 +29,13 @@ export function FinancierGate() {
         <FinancierApply eligibility={q.data} onApplied={() => q.refetch()} />
       ) : (
         <div className="mx-auto max-w-[1440px] px-[clamp(20px,5vw,72px)] py-16 text-center">
-          <p className="mono text-[11px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+          <p className="mono text-[14px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
             Could not load your financier status.
           </p>
           <button
             type="button"
             onClick={() => q.refetch()}
-            className="mt-4 inline-flex items-center px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.1em] border border-[var(--lp-border-light)] text-[var(--lp-dark)] hover:border-[var(--lp-dark)] transition-colors"
+            className="mt-4 inline-flex items-center px-4 py-2 mono text-[14px] font-bold uppercase tracking-[0.1em] border border-[var(--lp-border-light)] text-[var(--lp-dark)] hover:border-[var(--lp-dark)] transition-colors"
             style={{ borderRadius: 10 }}
           >
             Try again

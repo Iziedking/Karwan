@@ -106,7 +106,7 @@ export function ConfirmModal({
             <button
               type="button"
               onClick={onCancel}
-              className="mono text-[11px] font-bold uppercase tracking-[0.1em] px-4 py-2.5 transition-colors hover:bg-[rgba(255,255,255,0.06)]"
+              className="mono text-[14px] font-bold uppercase tracking-[0.1em] px-4 py-2.5 transition-colors hover:bg-[rgba(255,255,255,0.06)]"
               style={{
                 color: 'var(--ink-2)',
                 background: 'transparent',
@@ -120,7 +120,7 @@ export function ConfirmModal({
               type="button"
               onClick={onConfirm}
               autoFocus
-              className="mono text-[11px] font-bold uppercase tracking-[0.1em] px-4 py-2.5 transition-opacity hover:opacity-90"
+              className="mono text-[14px] font-bold uppercase tracking-[0.1em] px-4 py-2.5 transition-opacity hover:opacity-90"
               style={{
                 color: confirmFg,
                 background: confirmBg,

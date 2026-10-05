@@ -66,7 +66,7 @@ export function VerificationStatusCard({ address }: { address: string }) {
             </Hint>
           </div>
           <span
-            className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.12em]"
+            className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 mono text-[13px] font-bold uppercase tracking-[0.12em]"
             style={{ color: tone, borderColor: `color-mix(in srgb, ${tone} 42%, transparent)` }}
             aria-live="polite"
           >
@@ -87,14 +87,14 @@ export function VerificationStatusCard({ address }: { address: string }) {
               key={label}
               className="flex min-h-11 min-w-0 items-center justify-between gap-4 border-t border-[var(--lp-workspace-border)] py-2.5"
             >
-              <span className="min-w-0 flex-1 text-[12px] text-[var(--lp-workspace-muted)]">
-                <span className="me-2 mono text-[9px] text-[var(--lp-workspace-faint)]">
+              <span className="min-w-0 flex-1 text-[14px] text-[var(--lp-workspace-muted)]">
+                <span className="me-2 mono text-[13px] text-[var(--lp-workspace-faint)]">
                   {String(index + 1).padStart(2, '0')}
                 </span>
                 {label}
               </span>
               <span
-                className="shrink-0 whitespace-nowrap text-end mono text-[9px] font-bold uppercase tracking-[0.08em]"
+                className="shrink-0 whitespace-nowrap text-end mono text-[13px] font-bold uppercase tracking-[0.08em]"
                 style={{ color: enabled ? 'var(--lp-accent)' : 'var(--lp-warning, #ffc857)' }}
               >
                 {enabled ? t.capabilities.available : t.capabilities.verificationRequired}
@@ -110,15 +110,15 @@ export function VerificationStatusCard({ address }: { address: string }) {
             rel="noopener noreferrer"
             className="group flex min-h-11 min-w-0 items-center justify-between gap-4 border-t border-[var(--lp-workspace-border)] py-2.5 transition-colors hover:border-[var(--lp-workspace-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
           >
-            <span className="min-w-0 flex-1 text-[12px] text-[var(--lp-workspace-muted)] group-hover:text-[var(--lp-workspace-ink)]">
-              <span className="me-2 mono text-[9px] text-[var(--lp-workspace-faint)]">
+            <span className="min-w-0 flex-1 text-[14px] text-[var(--lp-workspace-muted)] group-hover:text-[var(--lp-workspace-ink)]">
+              <span className="me-2 mono text-[13px] text-[var(--lp-workspace-faint)]">
                 {String(capabilities.length + 1).padStart(2, '0')}
               </span>
               {t.publicPassport}
             </span>
             <span
               aria-hidden
-              className="mono text-[11px] text-[var(--lp-accent)] transition-transform group-hover:translate-x-0.5"
+              className="mono text-[14px] text-[var(--lp-accent)] transition-transform group-hover:translate-x-0.5"
             >
               ↗
             </span>
@@ -128,7 +128,7 @@ export function VerificationStatusCard({ address }: { address: string }) {
         {canReviewBusiness && (
           <Link
             href="/business/verification"
-            className="mt-4 inline-flex min-h-11 items-center mono text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--lp-accent)] hover:text-[var(--lp-accent-hover)]"
+            className="mt-4 inline-flex min-h-11 items-center mono text-[14px] font-bold uppercase tracking-[0.1em] text-[var(--lp-accent)] hover:text-[var(--lp-accent-hover)]"
           >
             {t.reviewBusiness}
           </Link>

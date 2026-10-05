@@ -25,7 +25,7 @@ export function RoadmapTimeline({ showFullLink = true }: { showFullLink?: boolea
                 }
               />
               <div>
-                <p className={`mono text-[13px] font-semibold ${current ? 'text-[var(--lp-dark)]' : 'text-[var(--lp-text-sub)]'}`}>{m.when}</p>
+                <p className={`mono text-[14px] font-semibold ${current ? 'text-[var(--lp-dark)]' : 'text-[var(--lp-text-sub)]'}`}>{m.when}</p>
                 <h3 className="mt-1 text-[18px] font-bold tracking-[-0.01em] text-[var(--lp-dark)]">{m.title}</h3>
                 <p className="mt-1.5 text-[15px] leading-relaxed text-[var(--lp-text-sub)]">{m.body}</p>
               </div>
@@ -37,12 +37,12 @@ export function RoadmapTimeline({ showFullLink = true }: { showFullLink?: boolea
         <p className="text-[14px] font-semibold text-[var(--lp-dark)]">{t.later}</p>
         <ul className="mt-3 flex flex-wrap gap-2">
           {t.laterItems.map((item) => (
-            <li key={item} className="rounded-full border border-[var(--lp-border-light)] px-3 py-1.5 text-[13px] text-[var(--lp-text-sub)]">
+            <li key={item} className="rounded-full border border-[var(--lp-border-light)] px-3 py-1.5 text-[14px] text-[var(--lp-text-sub)] font-medium">
               {item}
             </li>
           ))}
         </ul>
-        <p className="mt-5 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{t.note}</p>
+        <p className="mt-5 text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{t.note}</p>
         {showFullLink && (
           <Link href="/docs/roadmap" className="mt-4 inline-flex min-h-11 items-center text-[15px] font-semibold text-[var(--lp-dark)] underline underline-offset-4">
             {t.full}

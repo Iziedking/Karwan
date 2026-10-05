@@ -146,7 +146,7 @@ function PersonalBuyerDesk() {
             }}
           >
             {fetchState === 'error' ? (
-              <p className="p-8 text-center text-[13px] text-[#ff8a7a]">
+              <p className="p-8 text-center text-[14px] text-[#ff8a7a]">
                 {bh.managedDeals.statesError}
               </p>
             ) : fetchState === 'loading' || fetchState === 'idle' ? (
@@ -155,7 +155,7 @@ function PersonalBuyerDesk() {
                 <div className="h-14 rounded-md bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
               </div>
             ) : sortedJobs.length === 0 ? (
-              <p className="p-8 text-center text-[13px] text-[var(--lp-workspace-muted)]">
+              <p className="p-8 text-center text-[14px] text-[var(--lp-workspace-muted)]">
                 {bh.managedDeals.statesEmpty}
               </p>
             ) : (

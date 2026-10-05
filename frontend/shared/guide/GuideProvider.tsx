@@ -559,13 +559,13 @@ function GuideStepOverlay() {
           className="p-5"
         >
           <div className="flex items-center justify-between gap-3">
-            <span className="font-sans text-[12px] text-[var(--lp-text-sub)]">
+            <span className="font-sans text-[14px] text-[var(--lp-text-sub)] font-medium">
               {copy.step} {active.index + 1}/{total}
             </span>
             <button
               type="button"
               onClick={() => close(true)}
-              className="min-h-11 rounded-full px-3 font-sans text-[13px] font-semibold text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] focus-visible:outline-2 focus-visible:outline-[var(--lp-accent)]"
+              className="min-h-11 rounded-full px-3 font-sans text-[14px] font-semibold text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] focus-visible:outline-2 focus-visible:outline-[var(--lp-accent)]"
             >
               {copy.close}
             </button>
@@ -574,7 +574,7 @@ function GuideStepOverlay() {
           <h3 id="page-tour-title" aria-live="polite" className="mt-2 font-sans text-[20px] font-semibold tracking-[-0.02em] leading-tight text-[var(--lp-dark)]">
             {step.title}
           </h3>
-          <p id="page-tour-body" aria-live="polite" className="body-copy mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+          <p id="page-tour-body" aria-live="polite" className="body-copy mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
             {step.body}
           </p>
 
@@ -620,8 +620,8 @@ function GuideStepOverlay() {
               </button>
             </div>
           </div>
-          {secondsLeft > 0 && <button type="button" onClick={() => { setWaitSkipped(true); setSecondsLeft(0); window.requestAnimationFrame(() => nextRef.current?.focus()); }} className="mt-2 min-h-11 px-2 text-start text-[12px] text-[var(--lp-text-sub)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-[var(--lp-accent)]">{copy.skipWait}</button>}
-          <button type="button" onClick={dismissAll} className="mt-3 min-h-11 rounded-full px-2 text-start font-sans text-[12px] text-[var(--lp-text-sub)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-[var(--lp-accent)]">{copy.stopTips}</button>
+          {secondsLeft > 0 && <button type="button" onClick={() => { setWaitSkipped(true); setSecondsLeft(0); window.requestAnimationFrame(() => nextRef.current?.focus()); }} className="mt-2 min-h-11 px-2 text-start text-[14px] text-[var(--lp-text-sub)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-[var(--lp-accent)] font-medium">{copy.skipWait}</button>}
+          <button type="button" onClick={dismissAll} className="mt-3 min-h-11 rounded-full px-2 text-start font-sans text-[14px] text-[var(--lp-text-sub)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-[var(--lp-accent)] font-medium">{copy.stopTips}</button>
         </div>
       </div>
     </div>,

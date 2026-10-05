@@ -63,7 +63,7 @@ function BusinessVerificationPageInner() {
       <Band tone="dark" compact overlay={<GridOverlay />}>
         <Link
           href="/profile/business"
-          className="inline-flex min-h-11 items-center gap-2 mono text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--lp-workspace-muted)] transition-colors hover:text-[var(--lp-workspace-ink)]"
+          className="inline-flex min-h-11 items-center gap-2 mono text-[14px] font-bold uppercase tracking-[0.12em] text-[var(--lp-workspace-muted)] transition-colors hover:text-[var(--lp-workspace-ink)]"
         >
           <span aria-hidden>←</span>
           {t.backToProfile}
@@ -108,7 +108,7 @@ function BusinessVerificationPageInner() {
                     <h2 className="font-sans text-[22px] font-extrabold tracking-[-0.025em] text-[var(--lp-dark)]">
                       {t.evidenceLockedTitle}
                     </h2>
-                    <p className="mt-2 max-w-[62ch] text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+                    <p className="mt-2 max-w-[62ch] text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
                       {t.evidenceLockedBody}
                     </p>
                   </div>
@@ -150,8 +150,8 @@ function VerificationProgress({
               aria-hidden
               className={
                 complete || active
-                  ? 'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--lp-accent)] mono text-[10px] font-bold text-[var(--lp-band-dark)]'
-                  : 'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[var(--lp-outline)] mono text-[10px] text-[var(--lp-text-muted)]'
+                  ? 'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--lp-accent)] mono text-[13px] font-bold text-[var(--lp-band-dark)]'
+                  : 'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[var(--lp-outline)] mono text-[13px] text-[var(--lp-text-muted)]'
               }
             >
               {complete ? '✓' : number}
@@ -159,8 +159,8 @@ function VerificationProgress({
             <span
               className={
                 active
-                  ? 'min-w-0 text-[11px] font-bold leading-tight text-[var(--lp-dark)] sm:text-[12px]'
-                  : 'min-w-0 text-[10px] leading-tight text-[var(--lp-text-muted)] sm:text-[12px]'
+                  ? 'min-w-0 text-[14px] font-bold leading-tight text-[var(--lp-dark)]'
+                  : 'min-w-0 text-[13px] leading-tight text-[var(--lp-text-muted)] sm:text-[14px]'
               }
             >
               {label}

@@ -122,12 +122,12 @@ export function ProfileNudge() {
           aria-label={copy.title}
         >
           <div className="mx-auto grid max-w-6xl grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2 px-4 py-4 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:gap-x-6 sm:px-6">
-            <span className="mono row-span-2 shrink-0 text-[11px] font-semibold tracking-[0.04em] text-[var(--lp-accent-on-light)] sm:row-span-1">
+            <span className="mono row-span-2 shrink-0 text-[14px] font-semibold tracking-[0.04em] text-[var(--lp-accent-on-light)] sm:row-span-1">
                 {copy.step}
             </span>
             <div className="min-w-0">
               <p className="text-[15px] font-semibold leading-snug text-[var(--lp-dark)]">{copy.title}</p>
-              <p className="mt-1 max-w-[68ch] text-[13px] leading-relaxed text-[var(--lp-text-sub)]">{copy.body}</p>
+              <p className="mt-1 max-w-[68ch] text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{copy.body}</p>
             </div>
             <div className="col-start-2 flex items-center gap-2 sm:col-start-auto">
               <Link

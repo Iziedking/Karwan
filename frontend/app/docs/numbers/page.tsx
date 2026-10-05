@@ -90,7 +90,7 @@ export default function DocsNumbersPage() {
   return (
     <article className="product-surface">
       <header className="space-y-4 border-b border-[var(--lp-border-light)] pb-8">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px]">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[14px]">
           <span className="inline-flex items-center gap-2 rounded-full border border-[var(--lp-border-light)] px-3 py-1 font-medium text-[var(--lp-dark)]">
             <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-[var(--chart-bar)]" />
             {testnet ? t.networkTestnet : t.networkMainnet}
@@ -130,7 +130,7 @@ function Freshness({ block, updatedAt, t }: { block: string; updatedAt: number; 
   }, []);
   const age = Math.max(0, Math.round((now - updatedAt) / 1000));
   return (
-    <p className="text-[13px] tabular-nums text-[var(--lp-text-sub)]">
+    <p className="text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">
       {age < 5 ? t.updatedNow : fill(t.updatedAgo, { n: String(age) })}
       <span aria-hidden className="mx-2">·</span>
       {fill(t.block, { block: Number(block).toLocaleString('en-US') })}
@@ -179,7 +179,7 @@ function RowBars({ rows }: { rows: Array<{ label: string; value: number; note?: 
           <div className="flex items-baseline justify-between gap-4">
             <span className="text-[15px] text-[var(--lp-dark)]">{r.label}</span>
             <span dir="ltr" className="text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">
-              {glanceUsdc(r.value)} <span className="text-[13px] font-normal text-[var(--lp-text-sub)]">USDC</span>
+              {glanceUsdc(r.value)} <span className="text-[14px] font-normal text-[var(--lp-text-sub)]">USDC</span>
             </span>
           </div>
           <div className="h-2 w-full rounded-full bg-[var(--lp-border-light)]">
@@ -188,7 +188,7 @@ function RowBars({ rows }: { rows: Array<{ label: string; value: number; note?: 
               style={{ width: `${r.value > 0 ? Math.max(1.5, (r.value / max) * 100) : 0}%` }}
             />
           </div>
-          {r.note ? <p className="text-[13px] text-[var(--lp-text-sub)]">{r.note}</p> : null}
+          {r.note ? <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{r.note}</p> : null}
         </li>
       ))}
     </ul>
@@ -198,11 +198,11 @@ function RowBars({ rows }: { rows: Array<{ label: string; value: number; note?: 
 function Stat({ label, value, unit }: { label: string; value: string; unit?: string }) {
   return (
     <div className="space-y-1">
-      <p className="text-[13px] text-[var(--lp-text-sub)]">{label}</p>
+      <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{label}</p>
       <p className="text-[24px] font-semibold tabular-nums text-[var(--lp-dark)]">
         <span dir="ltr">
           {value}
-          {unit ? <span className="ms-1.5 text-[13px] font-normal text-[var(--lp-text-sub)]">{unit}</span> : null}
+          {unit ? <span className="ms-1.5 text-[14px] font-normal text-[var(--lp-text-sub)]">{unit}</span> : null}
         </span>
       </p>
     </div>
@@ -222,7 +222,7 @@ function Hero({ stats, t }: { stats: LifetimeStats; t: Copy }) {
             <span className="ms-2 text-[18px] font-medium text-[var(--lp-text-sub)]">USDC</span>
           </span>
         </p>
-        <p className="text-[13px] text-[var(--lp-text-sub)]">{t.hero.note}</p>
+        <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{t.hero.note}</p>
       </div>
       <RowBars
         rows={[
@@ -325,7 +325,7 @@ function WhereItWent({ stats, t }: { stats: LifetimeStats; t: Copy }) {
           { label: t.went.fees, value: fees, note: share(fees) },
         ]}
       />
-      <p className="text-[13px] text-[var(--lp-text-sub)]">{t.went.note}</p>
+      <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{t.went.note}</p>
     </section>
   );
 }
@@ -372,7 +372,7 @@ function Contracts({
       href={`${explorer}/address/${address}`}
       target="_blank"
       rel="noreferrer"
-      className="inline-flex min-h-11 items-center mono text-[12px] text-[var(--lp-text-sub)] underline-offset-4 hover:underline"
+      className="inline-flex min-h-11 items-center mono text-[14px] text-[var(--lp-text-sub)] underline-offset-4 hover:underline font-medium"
     >
       {address.slice(0, 6)}…{address.slice(-4)} ↗
     </a>
@@ -394,9 +394,9 @@ function Contracts({
               <div className="min-w-0">
                 <p className="text-[15px] font-medium text-[var(--lp-dark)]">
                   {plainName(c.name)}
-                  {version(history) ? <span className="ms-2 text-[13px] font-normal text-[var(--lp-text-sub)]">{version(history)}</span> : null}
+                  {version(history) ? <span className="ms-2 text-[14px] font-normal text-[var(--lp-text-sub)]">{version(history)}</span> : null}
                 </p>
-                <p className="text-[13px] text-[var(--lp-text-sub)]">{role(c.kind)}</p>
+                <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{role(c.kind)}</p>
               </div>
               <div className="flex items-center gap-4">
                 <span className="text-[14px] tabular-nums text-[var(--lp-dark)]">
@@ -415,13 +415,13 @@ function Contracts({
           <summary className="inline-flex min-h-11 cursor-pointer items-center text-[15px] font-medium text-[var(--lp-dark)]">
             {t.contracts.retiredTitle} ({retired.length})
           </summary>
-          <p className="mb-3 text-[13px] text-[var(--lp-text-sub)]">{t.contracts.retiredLead}</p>
+          <p className="mb-3 text-[14px] text-[var(--lp-text-sub)] font-medium">{t.contracts.retiredLead}</p>
           <ul className="divide-y divide-[var(--lp-border-light)]">
             {retired.map((c) => (
               <li key={c.address} className="flex flex-wrap items-center justify-between gap-x-6 py-2">
                 <span className="text-[14px] text-[var(--lp-dark)]">
                   {plainName(c.name)}
-                  {version(c) ? <span className="ms-2 text-[13px] text-[var(--lp-text-sub)]">{version(c)}</span> : null}
+                  {version(c) ? <span className="ms-2 text-[14px] text-[var(--lp-text-sub)] font-medium">{version(c)}</span> : null}
                 </span>
                 {link(c.address)}
               </li>

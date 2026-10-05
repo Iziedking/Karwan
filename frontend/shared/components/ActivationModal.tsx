@@ -144,7 +144,7 @@ export function ActivationModal({
             onMouseDown={(event) => event.stopPropagation()}
           >
             <header className="border-b border-[var(--color-line)] px-6 pb-5 pt-6">
-              <p className="mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">
+              <p className="mono text-[13px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">
                 • Agent setup
               </p>
               <h2
@@ -156,7 +156,7 @@ export function ActivationModal({
             </header>
 
             <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-6">
-              <p className="max-w-[48ch] text-[13px] leading-relaxed text-[var(--color-ink-dim)]">
+              <p className="max-w-[48ch] text-[14px] leading-relaxed text-[var(--color-ink-dim)] font-medium">
                 {activated && agents ? t.namedBody : t.provisionBody}
               </p>
 
@@ -186,7 +186,7 @@ export function ActivationModal({
               </div>
 
               {!activated ? (
-                <p className="border-s border-[var(--color-line-strong)] ps-3 text-[12px] leading-relaxed text-[var(--color-ink-faint)]">
+                <p className="border-s border-[var(--color-line-strong)] ps-3 text-[14px] leading-relaxed text-[var(--color-ink-faint)]">
                   {t.setupHint}
                 </p>
               ) : null}
@@ -194,7 +194,7 @@ export function ActivationModal({
                 <FormError>{activated ? t.errorSavePrefix : t.errorActivatePrefix}</FormError>
               ) : null}
               {saved ? (
-                <p className="mono text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--color-positive)]">
+                <p className="mono text-[13px] font-semibold uppercase tracking-[0.12em] text-[var(--color-positive)]">
                   • Saved {t.savedNote}
                 </p>
               ) : null}
@@ -265,7 +265,7 @@ function NameField({
 }) {
   return (
     <label className="block">
-      <span className="flex items-baseline justify-between gap-3 mono text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
+      <span className="flex items-baseline justify-between gap-3 mono text-[13px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
         <span>• {label}</span>
         {address ? (
           <span className="normal-case tracking-normal">{shortAddress(address)}</span>
@@ -278,7 +278,7 @@ function NameField({
         placeholder={placeholder}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 min-h-12 w-full rounded-[10px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3 text-[13px] text-[var(--color-ink)] outline-none transition-colors placeholder:text-[var(--color-ink-faint)] focus:border-[color-mix(in_srgb,var(--accent)_60%,transparent)] disabled:opacity-50"
+        className="mt-2 min-h-12 w-full rounded-[10px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3 text-[14px] text-[var(--color-ink)] outline-none transition-colors placeholder:text-[var(--color-ink-faint)] focus:border-[color-mix(in_srgb,var(--accent)_60%,transparent)] disabled:opacity-50"
       />
     </label>
   );

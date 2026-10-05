@@ -62,7 +62,7 @@ export function RailSlider({
                 aria-selected={current}
                 onClick={() => onChange(rail.id)}
                 className={cn(
-                  'flex min-h-12 items-center justify-center gap-1.5 rounded-full px-2 py-3 text-[13px] font-medium',
+                  'flex min-h-12 items-center justify-center gap-1.5 rounded-full px-2 py-3 text-[14px] font-medium',
                   'transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-inset',
                   current ? 'bg-[var(--ink)] text-[var(--canvas)]' : 'text-[var(--ink)] hover:bg-[var(--line)]',
@@ -72,7 +72,7 @@ export function RailSlider({
                 {rail.state === 'soon' && (
                   <span
                     aria-hidden
-                    className="hidden shrink-0 rounded-full px-1 text-[13px] leading-none sm:inline"
+                    className="hidden shrink-0 rounded-full px-1 text-[14px] leading-none sm:inline"
                     style={{
                       background: current ? 'var(--tint)' : 'transparent',
                       color: current ? 'var(--canvas)' : 'var(--ink-secondary)',

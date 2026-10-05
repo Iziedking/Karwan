@@ -69,7 +69,7 @@ export function ProfileOpenDealsPanel({
     <div className="px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
       {showError ? (
         <div className="flex items-center justify-between gap-4 border-b border-[var(--lp-border-light)] pb-4">
-          <p role="status" className="text-[14px] text-[var(--lp-text-sub)]">{t.matches.loadError}</p>
+          <p role="status" className="text-[14px] text-[var(--lp-text-sub)] font-medium">{t.matches.loadError}</p>
           <Button type="button" variant="outline" onClick={onRetry}>{t.matches.retry}</Button>
         </div>
       ) : null}

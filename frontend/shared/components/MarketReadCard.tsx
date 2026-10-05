@@ -80,13 +80,13 @@ export function MarketReadCard({
       }}
     >
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <span className="mono text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+        <span className="mono text-[13px] font-bold uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
           Market read
         </span>
         <div className="flex items-center gap-2">
           {mr.priceBandUsdc && mr.priceBandUsdc.low !== mr.priceBandUsdc.high ? (
             <span
-              className="mono text-[9px] font-bold uppercase tracking-[0.14em] px-2 py-0.5 text-[var(--lp-text-sub)] tabular-nums"
+              className="mono text-[13px] font-bold uppercase tracking-[0.14em] px-2 py-0.5 text-[var(--lp-text-sub)] tabular-nums"
               style={{ background: 'rgba(0,0,0,0.04)', borderRadius: 3 }}
             >
               market {usdcFmt.format(mr.priceBandUsdc.low)} to{' '}
@@ -94,30 +94,30 @@ export function MarketReadCard({
             </span>
           ) : mr.fairPriceUsdc != null ? (
             <span
-              className="mono text-[9px] font-bold uppercase tracking-[0.14em] px-2 py-0.5 text-[var(--lp-text-sub)] tabular-nums"
+              className="mono text-[13px] font-bold uppercase tracking-[0.14em] px-2 py-0.5 text-[var(--lp-text-sub)] tabular-nums"
               style={{ background: 'rgba(0,0,0,0.04)', borderRadius: 3 }}
             >
               market ~{usdcFmt.format(mr.fairPriceUsdc)} USDC
             </span>
           ) : null}
           <span
-            className="mono text-[9px] font-bold uppercase tracking-[0.16em] px-2 py-0.5"
+            className="mono text-[13px] font-bold uppercase tracking-[0.16em] px-2 py-0.5"
             style={{ color: tone.fg, background: `${tone.fg}26`, borderRadius: 3 }}
           >
             {mr.demand} demand
           </span>
         </div>
       </div>
-      <p className="mt-2 text-[12px] leading-snug text-[var(--lp-text-sub)]">{mr.summary}</p>
+      <p className="mt-2 text-[14px] leading-snug text-[var(--lp-text-sub)] font-medium">{mr.summary}</p>
       {note && (
-        <p className="mt-1.5 text-[11px] leading-snug text-[var(--lp-text-sub)] italic">{note}</p>
+        <p className="mt-1.5 text-[14px] leading-snug text-[var(--lp-text-sub)] italic font-medium">{note}</p>
       )}
       {mr.highlights.length > 0 && (
         <ul className="mt-2 space-y-1">
           {mr.highlights.map((h) => (
             <li
               key={h}
-              className="text-[11px] leading-snug text-[var(--lp-text-sub)] ps-3"
+              className="text-[14px] leading-snug text-[var(--lp-text-sub)] ps-3 font-medium"
               style={{ textIndent: '-0.7rem' }}
             >
               • {h}
@@ -127,25 +127,25 @@ export function MarketReadCard({
       )}
       {(mr.priceObservations?.length ?? 0) > 0 && (
         <div className="mt-2.5">
-          <p className="mono text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+          <p className="mono text-[13px] font-bold uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
             Prices found in sources
           </p>
           <ul className="mt-1.5 space-y-1.5">
             {mr.priceObservations!.slice(0, 4).map((o, i) => {
               const src = mr.sources[o.sourceIndex];
               return (
-                <li key={`${o.sourceIndex}-${i}`} className="text-[11px] leading-snug">
+                <li key={`${o.sourceIndex}-${i}`} className="text-[14px] leading-snug">
                   <span className="mono font-bold text-[var(--lp-dark)] tabular-nums">
                     {usdcFmt.format(o.amountUsdc)} USDC
                   </span>
-                  <span className="mono text-[10px] text-[var(--lp-text-muted)]"> · {o.unit}</span>
+                  <span className="mono text-[13px] text-[var(--lp-text-muted)]"> · {o.unit}</span>
                   <span className="text-[var(--lp-text-sub)] italic"> “{o.quote.length > 110 ? `${o.quote.slice(0, 110)}…` : o.quote}”</span>
                   {src && (
                     <a
                       href={src.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="mono text-[10px] underline underline-offset-2 hover:opacity-80 ms-1"
+                      className="mono text-[13px] underline underline-offset-2 hover:opacity-80 ms-1"
                       style={{ color: tone.fg }}
                     >
                       source ↗
@@ -155,14 +155,14 @@ export function MarketReadCard({
               );
             })}
           </ul>
-          <p className="mt-1 mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+          <p className="mt-1 mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
             {mr.priceConfidence === 'grounded'
               ? 'each price checked word for word against its source'
               : 'one sourced price found. treat the number as a hint'}
           </p>
         </div>
       )}
-      <div className="mt-2.5 flex items-center gap-3 flex-wrap mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+      <div className="mt-2.5 flex items-center gap-3 flex-wrap mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
         <span>
           agent paid ${mr.amountUsd} to research
           {(mr.anglesRun?.length ?? 0) > 1 ? ` · ${mr.anglesRun!.length}-angle search` : ''} · Base

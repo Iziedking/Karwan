@@ -87,7 +87,7 @@ export function DealsFeed() {
                 }}
                 aria-pressed={active}
                 className={cn(
-                  'inline-flex min-h-11 items-center gap-1.5 px-3 py-2.5 mono text-[10px] font-bold uppercase tracking-[0.12em] transition-colors',
+                  'inline-flex min-h-11 items-center gap-1.5 px-3 py-2.5 mono text-[13px] font-bold uppercase tracking-[0.12em] transition-colors',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]',
                 )}
                 style={{
@@ -112,7 +112,7 @@ export function DealsFeed() {
             );
           })}
         </div>
-        <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+        <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
           {tr.liveEyebrow}
         </p>
       </div>
@@ -124,15 +124,15 @@ export function DealsFeed() {
           <div className="h-14 bg-black/[0.05] animate-pulse motion-reduce:animate-none rounded" />
         </div>
       ) : fetchState === 'error' ? (
-        <p className="px-6 md:px-8 py-12 text-center mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+        <p className="px-6 md:px-8 py-12 text-center mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
           {tr.errorBody}
         </p>
       ) : shown.length === 0 ? (
         <div className="px-6 md:px-8 py-12 text-center space-y-2">
-          <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+          <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
             {filter === 'all' ? tr.empty.noDealsTag : tr.empty.noMatchTag}
           </p>
-          <p className="text-[13px] text-[var(--lp-text-sub)] max-w-[40ch] mx-auto leading-relaxed">
+          <p className="text-[14px] text-[var(--lp-text-sub)] max-w-[40ch] mx-auto leading-relaxed font-medium">
             {filter === 'all'
               ? tr.empty.promptAll
               : filter === 'active'
@@ -157,7 +157,7 @@ export function DealsFeed() {
                   <div className="flex items-center justify-between md:justify-start gap-3 md:gap-3 md:shrink-0 md:min-w-[180px]">
                     <div className="flex items-center gap-3 min-w-0">
                       <StageBadge stage={stage} />
-                      <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] tabular-nums truncate">
+                      <span className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] tabular-nums truncate">
                         {relativeTime(deal.createdAt)}
                       </span>
                     </div>
@@ -166,7 +166,7 @@ export function DealsFeed() {
                       <span className="font-sans text-[22px] font-extrabold tabular-nums tracking-[-0.025em] leading-none text-[var(--lp-dark)] text-end">
                         {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}
                       </span>
-                      <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                      <span className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
                         USDC
                       </span>
                     </div>
@@ -181,7 +181,7 @@ export function DealsFeed() {
                     <span className="font-sans text-[28px] font-extrabold tabular-nums tracking-[-0.025em] leading-none text-[var(--lp-dark)] text-end min-w-[6.5ch]">
                       {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}
                     </span>
-                    <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                    <span className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
                       USDC
                     </span>
                   </div>
@@ -189,10 +189,10 @@ export function DealsFeed() {
                   {/* Mobile row 2 / desktop col 3: parties (left) + chevron (right) */}
                   <div className="flex items-center justify-between md:justify-start gap-3 md:gap-5 md:shrink-0">
                     <div className="text-start md:text-end min-w-0">
-                      <p className="mono text-[11px] tabular-nums text-[var(--lp-dark)] leading-snug break-all">
+                      <p className="mono text-[14px] tabular-nums text-[var(--lp-dark)] leading-snug break-all">
                         {receiptReference ?? receiptPending}
                       </p>
-                      <p className="mt-1.5 mono text-[10px] uppercase tracking-[0.08em] text-[var(--lp-text-muted)]">
+                      <p className="mt-1.5 mono text-[13px] uppercase tracking-[0.08em] text-[var(--lp-text-muted)]">
                         {receiptReferenceLabel}
                       </p>
                     </div>
@@ -214,7 +214,7 @@ export function DealsFeed() {
             data-floating-avoid
             className="grid w-full max-w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-5 py-5 border-t border-[var(--lp-border-light)] md:flex md:flex-wrap md:justify-between md:gap-x-4 md:gap-y-3 md:px-8"
           >
-            <p className="min-w-0 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] tabular-nums">
+            <p className="min-w-0 mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] tabular-nums">
               {tr.pager.pageOf
                 .replace('{page}', String(safePage + 1))
                 .replace('{total}', String(pageCount))}

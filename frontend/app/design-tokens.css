@@ -23,7 +23,8 @@
   --shadow-card: none;
   --shadow-card-hover: none;
   --shadow-pop: var(--sheet-shadow);
-  --font-sans: var(--font-general-sans), var(--font-geist), ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  --font-sans: var(--font-inter), var(--font-general-sans), var(--font-geist), ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  --font-display: var(--font-general-sans), var(--font-inter), ui-sans-serif, sans-serif;
   --font-body: var(--font-sans);
   --font-mono: var(--font-sans);
   --font-serif: var(--font-sans);
@@ -31,15 +32,17 @@
 
 :root {
   /* Runtime readers must not depend on Tailwind emitting a matching utility. */
-  --font-sans: var(--font-general-sans), var(--font-geist), ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  --font-sans: var(--font-inter), var(--font-general-sans), var(--font-geist), ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  --font-display: var(--font-general-sans), var(--font-inter), ui-sans-serif, sans-serif;
   --font-body: var(--font-sans);
   --font-mono: var(--font-sans);
   --font-serif: var(--font-sans);
   --canvas: #EEF2F7;
   --surface: var(--palette-mist);
   --ink: #16202A;
-  --ink-secondary: color-mix(in srgb, var(--ink) 76%, transparent);
-  --ink-muted: color-mix(in srgb, var(--ink) 64%, transparent);
+  /* Solid secondary ink: 7.6 to 1 on white, never see-through. */
+  --ink-secondary: #4A5561;
+  --ink-muted: #5B6672;
   --tint: color-mix(in srgb, var(--ink) 6%, transparent);
   --line: color-mix(in srgb, var(--ink) 8%, transparent);
   --control-line: color-mix(in srgb, var(--ink) 56%, transparent);
@@ -188,6 +191,8 @@
 }
 
 html[data-theme="dark"] {
+  --ink-secondary: #B9C3CD;
+  --ink-muted: #A3AFBB;
   --canvas: #0F161D;
   --surface: #151E27;
   --ink: #EEF2F7;
@@ -218,4 +223,12 @@ html[data-theme="dark"] {
     --dur-small: 0ms;
     --dur-panel: 0ms;
   }
+}
+
+/* Arabic and Hindi read in their own face; Latin words inside stay in Inter. */
+html:lang(ar) {
+  --font-sans: var(--font-inter), var(--font-arabic), ui-sans-serif, sans-serif;
+}
+html:lang(hi) {
+  --font-sans: var(--font-inter), var(--font-devanagari), ui-sans-serif, sans-serif;
 }

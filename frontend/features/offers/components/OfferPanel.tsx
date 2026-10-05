@@ -51,7 +51,7 @@ export function OfferPanel({ jobId, fallback }: { jobId: string; fallback: React
 
   return (
     <main className="mx-auto w-full max-w-[720px] px-4 py-10 sm:py-14">
-      <p className="text-[13px] font-medium" style={{ color: 'var(--color-request)' }}>
+      <p className="text-[14px] font-medium" style={{ color: 'var(--color-request)' }}>
         {t.requestLabel}
       </p>
       <h1 dir="auto" className="mt-2 text-[28px] font-medium leading-tight tracking-[-0.01em] text-[var(--lp-dark)] sm:text-[36px]">
@@ -117,7 +117,7 @@ function SentOffer({ jobId, offer, onChange }: { jobId: string; offer: Offer; on
   return (
     <div className="rounded-[20px] bg-[var(--lp-card)] p-6">
       <p className="text-[17px] font-medium text-[var(--lp-dark)]">{t.sent}</p>
-      <p className="mt-1 text-[14px] tabular-nums text-[var(--lp-text-sub)]">
+      <p className="mt-1 text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">
         {t.sentDetail.replace('{price}', formatUsdc(offer.priceUsdc, { withSuffix: false })).replace('{date}', shortDate(offer.deliverByUnix, locale))}
       </p>
       <Button
@@ -204,7 +204,7 @@ function MakeOffer({
             {t.sheetTitle}
           </h2>
           <div>
-            <label htmlFor={priceId} className="text-[13px] font-medium text-[var(--lp-text-sub)]">
+            <label htmlFor={priceId} className="text-[14px] font-medium text-[var(--lp-text-sub)]">
               {t.price}
             </label>
             <input
@@ -218,13 +218,13 @@ function MakeOffer({
             />
           </div>
           <div>
-            <label htmlFor={dateId} className="text-[13px] font-medium text-[var(--lp-text-sub)]">
+            <label htmlFor={dateId} className="text-[14px] font-medium text-[var(--lp-text-sub)]">
               {t.deliverBy}
             </label>
             <input id={dateId} type="date" value={date} onChange={(e) => setDate(e.target.value)} className={field} />
           </div>
           <div>
-            <label htmlFor={noteId} className="text-[13px] font-medium text-[var(--lp-text-sub)]">
+            <label htmlFor={noteId} className="text-[14px] font-medium text-[var(--lp-text-sub)]">
               {t.note}
             </label>
             <textarea
@@ -236,12 +236,12 @@ function MakeOffer({
               className={`${field} resize-none`}
             />
             {noteLength >= 250 ? (
-              <p className="mt-1 text-end text-[12px] tabular-nums text-[var(--lp-text-sub)]">
+              <p className="mt-1 text-end text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">
                 {t.noteCount.replace('{n}', String(noteLength))}
               </p>
             ) : null}
           </div>
-          <p className="text-[13px] leading-relaxed text-[var(--lp-text-sub)]">{t.explainer}</p>
+          <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{t.explainer}</p>
           {error ? (
             <p role="alert" className="text-[14px] text-[var(--color-critical)]">
               {t.errors[error.key]}

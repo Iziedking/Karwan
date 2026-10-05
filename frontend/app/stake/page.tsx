@@ -135,13 +135,13 @@ function StakePageInner() {
       </RowGroup>
 
       <section id="vault" className="scroll-mt-24 space-y-2" data-guide="stake-vault">
-        <h2 className="px-1 text-[13px] font-semibold text-[var(--lp-text-sub)]">{sp.vault.tag}</h2>
+        <h2 className="px-1 text-[14px] font-semibold text-[var(--lp-text-sub)]">{sp.vault.tag}</h2>
         <StakeCard />
         <LegacyStakeNudge />
       </section>
 
       <section className="space-y-2" data-guide="stake-your-yield">
-        <h2 className="flex items-center gap-1.5 px-1 text-[13px] font-semibold text-[var(--lp-text-sub)]">
+        <h2 className="flex items-center gap-1.5 px-1 text-[14px] font-semibold text-[var(--lp-text-sub)]">
           {pb.stake.yourYield}
           <Hint side="bottom">{pb.stake.networkYieldHint}</Hint>
         </h2>
@@ -183,9 +183,9 @@ function StakePageInner() {
                 <span className="inline-flex items-center gap-2">
                   <span aria-hidden className="size-2 rounded-full" style={{ background: TIER_HUE[name] }} />
                   {name}
-                  {name === tier ? <span className="rounded-full bg-[var(--tint)] px-2 text-[12px] font-semibold">{sp.ladder.youBadge}</span> : null}
+                  {name === tier ? <span className="rounded-full bg-[var(--tint)] px-2 text-[14px] font-semibold">{sp.ladder.youBadge}</span> : null}
                 </span>
-                <span className="block text-[13px] font-normal text-[var(--lp-text-sub)]">{sp.ladder.unlock[name]}</span>
+                <span className="block text-[14px] font-normal text-[var(--lp-text-sub)]">{sp.ladder.unlock[name]}</span>
               </span>
             }
             value={`${BREAKS[i]}${i < ORDER.length - 1 ? `–${BREAKS[i + 1] - 1}` : '+'}`}

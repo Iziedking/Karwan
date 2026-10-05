@@ -112,7 +112,7 @@ export function StartSheet({
 
       <div className="mt-6 flex flex-col gap-3">
         {mode === 'loading' ? (
-          <p aria-busy="true" className="text-[14px] text-[var(--lp-text-sub)]">{t.loading}</p>
+          <p aria-busy="true" className="text-[14px] text-[var(--lp-text-sub)] font-medium">{t.loading}</p>
         ) : mode === 'needsProfile' ? (
           <>
             <p className="text-[15px] text-[var(--lp-dark)]">{t.needsProfile}</p>

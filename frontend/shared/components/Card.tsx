@@ -32,7 +32,7 @@ export function Card({
         <header className="px-5 pt-4 pb-3 flex items-start justify-between gap-4 border-b border-[var(--color-line)]">
           <div className="min-w-0">
             {eyebrow && (
-              <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-[var(--color-ink-faint)] mb-1">
+              <p className="font-mono text-[13px] uppercase tracking-[0.08em] text-[var(--color-ink-faint)] mb-1">
                 {stripMechanicalTags(eyebrow)}
               </p>
             )}
@@ -43,7 +43,7 @@ export function Card({
       )}
       <div className={noPadding ? '' : 'px-5 py-4'}>{children}</div>
       {footer && (
-        <footer className="px-5 py-3 border-t border-[var(--color-line)] text-xs text-[var(--color-ink-faint)]">
+        <footer className="px-5 py-3 border-t border-[var(--color-line)] text-[14px] text-[var(--color-ink-faint)]">
           {footer}
         </footer>
       )}
