@@ -51,3 +51,12 @@ export function shouldWaitForWalletSession({
     siwe.phase === 'error' && sameAddress(siwe.address, walletAddress);
   return !failedForThisWallet;
 }
+
+/// How long a returning wallet may hold the page while it reconnects. A locked
+/// extension never answers, so wagmi stays "reconnecting" until this passes.
+export const WALLET_RESOLVE_CAP_MS = 6_000;
+
+export function walletStillResolving(status: string, waitedMs: number): boolean {
+  if (status !== 'connecting' && status !== 'reconnecting') return false;
+  return waitedMs < WALLET_RESOLVE_CAP_MS;
+}

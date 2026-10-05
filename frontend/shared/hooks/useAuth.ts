@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAccount, useDisconnect } from 'wagmi';
 import { useQueryClient } from '@tanstack/react-query';
@@ -12,7 +12,13 @@ import { useSiweStatus } from '@/shared/auth/siweState';
 import {
   sessionMatchesWallet,
   shouldWaitForWalletSession,
+  walletStillResolving,
+  WALLET_RESOLVE_CAP_MS,
 } from '@/shared/auth/authPresentation';
+
+/// When this tab first saw the wallet reconnecting, shared by every useAuth so
+/// a page opened later does not restart the wait.
+let walletResolvingSince: number | null = null;
 import {
   getAuthSessionServerSnapshot,
   getAuthSessionSnapshot,
@@ -230,9 +236,19 @@ export function useAuth(): AuthState & {
   // sees the first authMe() return null (loaded=true), the page paints the
   // SignInGate, then wagmi reconnects + SIWE lands and the page flips to the
   // authed view. That flash of "sign in" before the real page is exactly the
-  // jank we want to avoid. wagmi's 'reconnecting' status always resolves to
-  // 'connected' or 'disconnected' within a bounded window, so this can't hang.
-  const wagmiResolving = wagmiStatus === 'connecting' || wagmiStatus === 'reconnecting';
+  // jank we want to avoid. A locked extension never answers, so the wait is
+  // capped and the page falls through to sign in.
+  const [, setWaitTick] = useState(0);
+  const resolvingNow = wagmiStatus === 'connecting' || wagmiStatus === 'reconnecting';
+  if (resolvingNow && walletResolvingSince === null) walletResolvingSince = Date.now();
+  if (!resolvingNow) walletResolvingSince = null;
+  const waitedMs = walletResolvingSince === null ? 0 : Date.now() - walletResolvingSince;
+  const wagmiResolving = walletStillResolving(wagmiStatus, waitedMs);
+  useEffect(() => {
+    if (!wagmiResolving) return;
+    const id = window.setTimeout(() => setWaitTick((n) => n + 1), Math.max(0, WALLET_RESOLVE_CAP_MS - waitedMs) + 50);
+    return () => window.clearTimeout(id);
+  }, [wagmiResolving, waitedMs]);
   const walletSessionResolving = shouldWaitForWalletSession({
     isPublicRoute: isPublicAccessRoute(pathname),
     walletAddress: wagmiAddress,

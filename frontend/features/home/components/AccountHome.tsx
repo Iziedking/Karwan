@@ -13,6 +13,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { formatUsdc, shortAddress } from '@/shared/utils/format';
 import { UpdatesCarousel } from './UpdatesCarousel';
+import { PersonAvatar } from '@/shared/components/PersonAvatar';
 import { ARC_NETWORK } from '@/core/arcNetwork';
 import { PageTour } from '@/shared/guide/PageTour';
 import { HOME_TOUR_ID, HOME_STEPS } from '@/shared/guide/tours';
@@ -131,7 +132,7 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
                 {dealHeadline(currentDeal.terms) || home.tradeDetails}
               </h2>
             </div>
-            <Link href={`/deals/${currentDeal.jobId}`} className="inline-flex min-h-11 shrink-0 items-center text-[13px] font-bold text-[var(--lp-dark)] hover:text-[var(--lp-accent-on-light)]">{translations.profile.hub.open} →</Link>
+            <Link href={`/deals/${currentDeal.jobId}`} className="inline-flex min-h-11 shrink-0 items-center gap-1 text-[13px] font-bold text-[var(--lp-dark)] hover:text-[var(--lp-accent-on-light)]">{translations.profile.hub.open}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="rtl:-scale-x-100"><path d="m9 18 6-6-6-6" /></svg></Link>
           </div>
 
           <p className="mt-5 truncate text-[14px] font-semibold text-[var(--lp-dark)]">
@@ -156,7 +157,7 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
             <div>
               <h2 className="text-[23px] font-semibold tracking-[-0.035em] text-[var(--lp-dark)]">{home.recentTrades}</h2>
             </div>
-            <Link href="/activity" className="inline-flex min-h-11 shrink-0 items-center text-[13px] font-bold text-[var(--lp-dark)] hover:text-[var(--lp-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">{home.allActivity} →</Link>
+            <Link href="/activity" className="inline-flex min-h-11 shrink-0 items-center text-[13px] font-bold text-[var(--lp-dark)] hover:text-[var(--lp-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] gap-1">{home.allActivity}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="rtl:-scale-x-100"><path d="m9 18 6-6-6-6" /></svg></Link>
           </div>
           <div className="mt-3"><TradeBook deals={recentDeals} fetchState={fetchState} /></div>
         </motion.div> : null}
@@ -237,18 +238,18 @@ function TradeBook({ deals, fetchState }: { deals: ReturnType<typeof useDirectDe
   if (deals.length === 0) return <p className="border-s-2 border-[var(--lp-accent)] py-4 ps-4 text-[14px] leading-6 text-[var(--lp-text-sub)]"><span className="block font-semibold text-[var(--lp-dark)]">{t.accountHome.noTrades}</span><span className="mt-1 block">{t.accountHome.noTradesHint}</span></p>;
   return (
     <ul className="trade-book overflow-hidden rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
-      {deals.slice(0, 5).map((deal, index) => {
+      {deals.slice(0, 5).map((deal) => {
         const isBuyer = me === deal.buyer.toLowerCase();
         const stage = stageOf(deal);
         const counterparty = deal.counterpartyName || (isBuyer ? deal.sellerPaytag || shortAddress(deal.seller) : shortAddress(deal.buyer));
         const date = new Date(deal.updatedAt || deal.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
-        const reference = deal.receiptReferences?.find((value) => value.trim())?.trim();
+        const title = dealHeadline(deal.terms) || counterparty;
         return (
           <li key={deal.jobId}>
-            <Link href={`/deals/${deal.jobId}`} className="group grid min-h-[80px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 transition-colors duration-200 hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)] sm:px-5">
-              <span aria-hidden className="grid size-8 place-items-center rounded-full bg-[var(--lp-light)] text-[12px] font-bold tabular-nums text-[var(--lp-text-sub)]">{String(index + 1).padStart(2, '0')}</span>
-              <span className="min-w-0"><span className="block truncate text-[15px] font-semibold text-[var(--lp-dark)]">{counterparty}</span><span className="mt-1 block truncate text-[12px] text-[var(--lp-text-sub)]">{t.dealStage.labels[stage]} · {date}{reference ? ` · ${reference}` : ''}</span></span>
-              <span className="text-end"><span className="block whitespace-nowrap text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">{formatUsdc(deal.dealAmountUsdc, { withSuffix: true })}</span><span className="mt-1 block text-[12px] text-[var(--lp-text-muted)] transition-transform duration-200 group-hover:translate-x-0.5">{t.profile.hub.open} →</span></span>
+            <Link href={`/deals/${deal.jobId}`} className="group grid min-h-[72px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 transition-colors duration-200 hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)] sm:px-5">
+              <PersonAvatar address={isBuyer ? deal.seller : deal.buyer} name={counterparty} size={36} />
+              <span className="min-w-0"><span dir="auto" className="block truncate text-[15px] font-semibold text-[var(--lp-dark)]">{title}</span><span className="mt-1 block truncate text-[12.5px] text-[var(--lp-text-sub)]">{title === counterparty ? '' : `${counterparty} · `}{t.dealStage.labels[stage]} · {date}</span></span>
+              <span className="flex items-center gap-2"><span className="whitespace-nowrap text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">{formatUsdc(deal.dealAmountUsdc, { withSuffix: true })}</span><span className="text-[var(--lp-text-sub)] transition-transform duration-200 group-hover:translate-x-0.5"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="rtl:-scale-x-100"><path d="m9 18 6-6-6-6" /></svg></span></span>
             </Link>
           </li>
         );

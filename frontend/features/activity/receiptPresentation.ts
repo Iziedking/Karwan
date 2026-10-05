@@ -65,6 +65,11 @@ export function shortenHash(hash: string): string {
 /// image can never disagree about what the sentence says.
 export function readableMovementText(value: string): string {
   return shortenDealIds(redactWalletAddresses(value))
+    .replace(/Observed (\S+) USDC arrive in your identity wallet/g, 'Received $1 USDC in your wallet')
+    .replace(/Observed (\S+) USDC leave your/g, 'Sent $1 USDC from your')
+    .replace(/Observed (\S+) USDC (?:move into|arrive in) your/g, 'Moved $1 USDC into your')
+    .replace(/from the identity wallet/g, 'from your wallet')
+    .replace(/(?:the |your )?identity wallet/g, 'your wallet')
     .replace(/\b(buyer|seller) agent wallet\b/gi, '$1 trade account')
     .replace(/\b(buyer|seller) agent\b/gi, '$1 trade account')
     .replace(/\bsign-in wallet\b/gi, 'main account')

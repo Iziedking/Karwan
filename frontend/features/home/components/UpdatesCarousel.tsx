@@ -111,7 +111,7 @@ export function UpdatesCarousel() {
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="hidden items-center sm:flex">
             {cards.map((card, i) => (
-              <button key={card.id} type="button" onClick={() => go(i)} aria-label={t.updatesShow.replace('{n}', String(i + 1))} aria-current={i === active ? 'true' : undefined} className="grid size-6 place-items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-full">
+              <button key={card.id} type="button" onClick={() => go(i)} aria-label={t.updatesShow.replace('{n}', String(i + 1))} aria-current={i === active ? 'true' : undefined} className="grid size-11 place-items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-full">
                 <span className={cn('block h-1.5 rounded-full transition-[width,background-color] duration-300 ease-out motion-reduce:transition-none', i === active ? 'w-5 bg-[var(--lp-dark)]' : 'w-1.5 bg-[var(--lp-border)]')} />
               </button>
             ))}

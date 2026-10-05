@@ -7,10 +7,14 @@ function fill(template: string, values: Record<string, string | number>): string
   return template.replace(/\{(\w+)\}/g, (match, key: string) => (key in values ? String(values[key]) : match));
 }
 
-/// Drops trailing zeros from a USDC amount: "25.000000" reads "25".
+/// A USDC amount as the bell says it: trailing zeros dropped ("25.000000"
+/// reads "25"), to the cent from 1 USDC up, four places below so a fee never
+/// reads as zero. Same rule as the ledger rows.
 export function trimUsdc(raw: string): string {
   if (!raw.includes('.')) return raw;
-  const trimmed = raw.replace(/\.?0+$/, '');
+  const n = Number(raw);
+  const rounded = !Number.isFinite(n) ? raw : Math.abs(n) >= 1 ? n.toFixed(2) : n.toFixed(4);
+  const trimmed = rounded.replace(/\.?0+$/, '');
   return trimmed.length === 0 ? '0' : trimmed;
 }
 

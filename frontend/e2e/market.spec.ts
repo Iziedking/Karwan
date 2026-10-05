@@ -365,7 +365,10 @@ for (const theme of ['light', 'dark'] as const) {
         await expect(page.locator('.market-card h3').filter({ hasText: 'تصميم' })).toHaveAttribute('dir', 'auto');
         await expect(page.getByText(data.personalOffers[1]!.description, { exact: true })).toHaveAttribute('dir', 'auto');
         await readingCases(page, data);
-        await expect(page.locator('.market-card[data-market-side="offer"]').first().locator('[data-market-footer] [aria-label]')).toContainText('940');
+        // The badge names the tier; the score number lives on the passport.
+        const badge = page.locator('.market-card[data-market-side="offer"]').first().locator('[data-market-footer] [aria-label]');
+        await expect(badge).toContainText(/\S/);
+        await expect(badge).not.toContainText(/\d/);
         await expect(page.locator('#market-b2b .market-card').filter({ hasText: 'Invoice finance offer 0' }).locator('[data-market-footer] > p')).toContainText('12,345.67');
         await iconsAreAccessible(page, locale);
         await layoutIsSound(page, testInfo);

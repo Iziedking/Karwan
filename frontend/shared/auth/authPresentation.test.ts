@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { sessionMatchesWallet, shouldWaitForWalletSession } from './authPresentation';
+import { sessionMatchesWallet, shouldWaitForWalletSession, walletStillResolving, WALLET_RESOLVE_CAP_MS } from './authPresentation';
 
 const wallet = { connected: true, address: '0x1111111111111111111111111111111111111111' };
 const idleSiwe = { phase: 'idle' as const, address: null, error: null };
@@ -66,4 +66,12 @@ test('web3 sessions must match the connected wallet while Circle sessions remain
     ),
     true,
   );
+});
+
+test('a wallet that never answers stops holding the page after the cap', () => {
+  assert.equal(walletStillResolving('reconnecting', 0), true);
+  assert.equal(walletStillResolving('connecting', WALLET_RESOLVE_CAP_MS - 1), true);
+  assert.equal(walletStillResolving('reconnecting', WALLET_RESOLVE_CAP_MS), false);
+  assert.equal(walletStillResolving('disconnected', 0), false);
+  assert.equal(walletStillResolving('connected', 0), false);
 });

@@ -198,7 +198,6 @@ export function ReputationBadge({
 
   const cellPad = size === 'sm' ? 'px-1.5 py-[3px]' : 'px-2 py-1';
   const labelSize = size === 'sm' ? 'text-[9px]' : 'text-[10px]';
-  const scoreSize = size === 'sm' ? 'text-[10px]' : 'text-[11px]';
   const quiet = appearance === 'quiet';
 
   if (sealed) {
@@ -243,7 +242,9 @@ export function ReputationBadge({
   }
 
   // Prefer the composite engine (NEW..ELITE, 0..1000). Fall back to the legacy
-  // bps badge only when an older API response omits tier/score.
+  // bps badge only when an older API response omits tier/score. The compact
+  // badge shows the tier alone; the number lives in the detail, next to what
+  // it means.
   const useComposite = data.tier != null && data.score != null;
   const tier = useComposite
     ? TIER_STYLES[data.tier!]
@@ -257,7 +258,6 @@ export function ReputationBadge({
   const badgeCells = quiet ? (
     <>
       <span>{tier.label}</span>
-      {showScore ? <span className="tabular-nums">{score}</span> : null}
     </>
   ) : (
     <>
@@ -268,21 +268,6 @@ export function ReputationBadge({
       >
         {tier.label}
       </span>
-      {showScore ? (
-        <>
-          <span
-            aria-hidden
-            className="w-px self-stretch"
-            style={{ background: tier.border }}
-          />
-          <span
-            className={`flex items-center ${cellPad} mono tabular-nums ${scoreSize}`}
-            style={{ color: 'var(--color-ink-dim)' }}
-          >
-            {score}
-          </span>
-        </>
-      ) : null}
     </>
   );
 

@@ -4,6 +4,7 @@ import {
   ledgerAmountLabel,
   ledgerDirection,
   ledgerReferenceLabel,
+  ledgerRowText,
   ledgerLine,
   ledgerStatusTone,
 } from './ledgerPresentation';
@@ -72,4 +73,19 @@ test('a long recipient in a template is not printed raw', () => {
     ledgerLine({ summary: 'x', params: { t: 'agentWithdraw', amount: '5', agent: 'seller', to: '0x1234567890abcdef1234567890abcdef12345678' } }, texts),
     'Moved 5 USDC from the seller trade account to counterparty',
   );
+});
+
+test('a ledger row reads in plain words and to the cent, while small amounts keep their digits', () => {
+  assert.equal(ledgerRowText('Observed 9.954921 USDC arrive in your identity wallet'), 'Received 9.95 USDC in your wallet');
+  assert.equal(ledgerRowText('Observed 109.545475 USDC leave your buyer agent wallet'), 'Sent 109.55 USDC from your buyer trade account');
+  assert.equal(ledgerRowText('Observed 200 USDC move into your seller agent wallet'), 'Moved 200 USDC into your seller trade account');
+  assert.equal(ledgerRowText('Funded the buyer agent wallet with 161.32 USDC from the identity wallet'), 'Funded the buyer trade account with 161.32 USDC from your wallet');
+  assert.equal(ledgerAmountLabel('109.545475', 'cash_out'), '-109.55 USDC');
+  assert.equal(ledgerAmountLabel('0.043785', 'deposit'), '+0.0438 USDC');
+  assert.equal(ledgerAmountLabel('0.007', 'agent_spend'), '-0.007 USDC');
+});
+
+test('escrow funding and a bridge out are money leaving the account', () => {
+  assert.equal(ledgerDirection('escrow_funding'), 'out');
+  assert.equal(ledgerDirection('bridge'), 'out');
 });

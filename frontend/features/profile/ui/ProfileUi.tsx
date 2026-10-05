@@ -47,10 +47,10 @@ export function Row({ label, value, href, onClick, soon, children }: {
 }) {
   if (soon) {
     return (
-      <span role="button" aria-disabled="true" tabIndex={0} aria-label={`${label}, ${soon}`} className={`group ${rowBase} cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent)]`}>
-        <span aria-hidden className="min-w-0 flex-1 font-medium text-[var(--lp-text-sub)]">{label}</span>
-        <span aria-hidden className="text-[13px] font-semibold text-[var(--lp-text-sub)] opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">{soon}</span>
-      </span>
+      <div className={rowBase}>
+        <span className="min-w-0 flex-1 font-medium text-[var(--lp-text-sub)]">{label}</span>
+        <span className="shrink-0 rounded-full bg-[var(--lp-light)] px-2.5 py-1 text-[12px] font-semibold text-[var(--lp-text-sub)]">{soon}</span>
+      </div>
     );
   }
   const content = (

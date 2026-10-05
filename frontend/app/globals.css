@@ -1345,16 +1345,19 @@ html[data-theme="dark"] .product-surface {
   height: 4.1rem;
   place-items: center;
   border-radius: 50%;
-  background: var(--lp-accent);
-  color: var(--accent-ink);
+  border: 1px solid var(--lp-border-light);
+  background: var(--lp-card);
+  color: var(--lp-dark);
   font-size: 1.65rem;
   line-height: 1;
-  transition: transform 200ms var(--ease-out);
+  transition: transform 200ms var(--ease-out), background-color 200ms var(--ease-out), color 200ms var(--ease-out);
 }
 
 .trade-intent-action:hover .trade-intent-action-arrow,
 .trade-intent-action:focus-visible .trade-intent-action-arrow {
   transform: translateX(0.3rem);
+  background: var(--lp-dark);
+  color: var(--lp-card);
 }
 
 [dir="rtl"] .trade-intent-action:hover .trade-intent-action-arrow,

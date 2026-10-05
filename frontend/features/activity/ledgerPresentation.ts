@@ -54,6 +54,9 @@ const OUTBOUND = new Set([
   'financing_funded',
   'financing_repayment_sent',
   'agent_funding',
+  // The buyer's money moving into escrow, and USDC bridged off Arc.
+  'escrow_funding',
+  'bridge',
 ]);
 
 export function ledgerDirection(kind: string): LedgerDirection {
@@ -73,7 +76,22 @@ export function ledgerAmountLabel(
   if (!value) return null;
   const direction = ledgerDirection(kind);
   const sign = direction === 'in' ? '+' : direction === 'out' ? '-' : '';
-  return `${sign}${value} USDC`;
+  return `${sign}${displayUsdc(value)} USDC`;
+}
+
+/// A row shows money to the cent; under 1 USDC it keeps up to four places so
+/// a small fee never reads as zero. The receipt keeps the exact amount.
+export function displayUsdc(value: string): string {
+  const [, decimals = ''] = value.split('.');
+  const n = Number(value);
+  if (decimals.length <= 2 || !Number.isFinite(n)) return value;
+  if (Math.abs(n) >= 1) return n.toFixed(2);
+  return n.toFixed(4).replace(/0+$/, '');
+}
+
+/// The row's sentence: plain words, amounts to the cent.
+export function ledgerRowText(text: string): string {
+  return readableMovementText(text).replace(/(\d+\.\d{3,}) USDC/g, (_, num: string) => `${displayUsdc(num)} USDC`);
 }
 
 export interface LedgerLineItem {

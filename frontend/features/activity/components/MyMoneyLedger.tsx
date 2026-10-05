@@ -9,9 +9,9 @@ import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
 import {
   ledgerAmountLabel,
   ledgerDirection,
-  ledgerReferenceLabel,
   ledgerStatusTone,
   ledgerLine,
+  ledgerRowText,
 } from '../ledgerPresentation';
 import { PortableReceipt, type PortableReceiptItem } from './PortableReceipt';
 
@@ -103,7 +103,6 @@ export function MyMoneyLedger({
   const [items, setItems] = useState<Item[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [page, setPage] = useState(1);
-  const [copiedReference, setCopiedReference] = useState<string | null>(null);
   const [selectedReceipt, setSelectedReceipt] = useState<PortableReceiptItem | null>(null);
   const [wantedReceipt, setWantedReceipt] = useState<string | null>(null);
   const openedReceipt = useRef<string | null>(null);
@@ -152,16 +151,6 @@ export function MyMoneyLedger({
     [load],
   );
 
-  async function copyReference(reference: string) {
-    try {
-      await navigator.clipboard.writeText(reference);
-      setCopiedReference(reference);
-      window.setTimeout(() => setCopiedReference(null), 1500);
-    } catch {
-      // The complete reference remains selectable when clipboard access is unavailable.
-    }
-  }
-
   if (failed && !items) return null;
 
   return (
@@ -197,16 +186,10 @@ export function MyMoneyLedger({
       ) : (
         <ul className="divide-y divide-[var(--lp-border-light)] border-y border-[var(--lp-border-light)]">
           {visible.map(({ item, repeat }) => {
-            const href = explorerFor(item);
             const amount = ledgerAmountLabel(item.amountUsdc, item.kind);
-            const reference = ledgerReferenceLabel(item.refId);
             const statusColor = ledgerStatusTone(item.status) === 'failed' ? TONE.failed : TONE.pending;
             return (
-              <li
-                key={item.id}
-                data-ledger-status={item.status}
-                className="relative grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-1 py-3 sm:grid-cols-[minmax(0,1fr)_auto_9rem] sm:items-center"
-              >
+              <li key={item.id} data-ledger-status={item.status} className="relative">
                 {item.status === 'pending' && (
                   <span
                     aria-hidden
@@ -214,69 +197,47 @@ export function MyMoneyLedger({
                     style={{ background: TONE.pending }}
                   />
                 )}
-                <div className="col-start-1 row-start-1 min-w-0">
-                  <p className="text-[15px] font-medium leading-snug text-[var(--lp-dark)]">
-                    {ledgerLine(item, t.text)}
-                  </p>
-                  <p className="mt-1 text-[13px] text-[var(--lp-text-sub)]">
-                    {when(item.ts, t.justNow)}
-                    {item.status !== 'done' && (
-                      <>
-                        {' · '}
-                        <span className="inline-flex items-center gap-1.5 font-medium" style={{ color: statusColor }}>
-                          <span aria-hidden className="inline-block size-1.5 shrink-0 rounded-full" style={{ background: statusColor }} />
-                          {item.status === 'failed' ? t.failed : t.pending}
-                        </span>
-                      </>
-                    )}
-                    {repeat > 1 && (
-                      <>
-                        {' · '}
-                        <span className="tabular-nums">{t.repeated.replace('{n}', String(repeat))}</span>
-                      </>
-                    )}
-                  </p>
-                </div>
-                <div className="col-span-2 row-start-2 -ms-2 flex flex-wrap items-center gap-x-1 sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:ms-0 sm:justify-end">
-                  {href && (
-                    <a
-                      href={href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex min-h-11 items-center px-2 text-[13px] text-[var(--lp-text-sub)] underline-offset-4 transition-colors hover:text-[var(--lp-dark)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
-                    >
-                      {t.viewProof}
-                    </a>
-                  )}
-                  {reference && (
-                    // Never broken: people read a reference out to support and
-                    // compare it by eye, so it stays on one line.
-                    <button
-                      type="button"
-                      onClick={() => copyReference(reference)}
-                      aria-label={`${t.receipt}: ${reference}`}
-                      className="hidden min-h-11 shrink-0 items-center gap-1 whitespace-nowrap px-2 text-[13px] tabular-nums sm:inline-flex text-[var(--lp-text-sub)] transition-colors hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
-                    >
-                      <span>{reference}</span>
-                      <span aria-hidden>{copiedReference === reference ? '✓' : '⧉'}</span>
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setSelectedReceipt(item)}
-                    className="inline-flex min-h-11 items-center px-2 text-[13px] font-semibold text-[var(--lp-dark)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
-                  >
-                    {t.viewReceipt}
-                  </button>
-                </div>
-                <span
-                  className="col-start-2 row-start-1 whitespace-nowrap text-end text-[15px] font-semibold tabular-nums sm:col-start-3"
-                  style={{
-                    color: ledgerDirection(item.kind) === 'in' ? 'var(--lp-accent-on-light)' : 'var(--lp-dark)',
-                  }}
+                <button
+                  type="button"
+                  onClick={() => setSelectedReceipt(item)}
+                  aria-label={`${ledgerRowText(ledgerLine(item, t.text))}. ${t.viewReceipt}`}
+                  className="group grid min-h-16 w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 py-3 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)]"
                 >
-                  {amount}
-                </span>
+                  <span className="min-w-0">
+                    <span className="block text-[15px] font-medium leading-snug text-[var(--lp-dark)]">
+                      {ledgerRowText(ledgerLine(item, t.text))}
+                    </span>
+                    <span className="mt-1 block text-[13px] text-[var(--lp-text-sub)]">
+                      {when(item.ts, t.justNow)}
+                      {item.status !== 'done' && (
+                        <>
+                          {' · '}
+                          <span className="inline-flex items-center gap-1.5 font-medium" style={{ color: statusColor }}>
+                            <span aria-hidden className="inline-block size-1.5 shrink-0 rounded-full" style={{ background: statusColor }} />
+                            {item.status === 'failed' ? t.failed : t.pending}
+                          </span>
+                        </>
+                      )}
+                      {repeat > 1 && (
+                        <>
+                          {' · '}
+                          <span className="tabular-nums">{t.repeated.replace('{n}', String(repeat))}</span>
+                        </>
+                      )}
+                    </span>
+                  </span>
+                  <span className="flex items-center gap-2">
+                    {amount ? (
+                      <span
+                        className="whitespace-nowrap text-end text-[15px] font-semibold tabular-nums"
+                        style={{ color: ledgerDirection(item.kind) === 'in' ? 'var(--lp-accent-on-light)' : 'var(--lp-dark)' }}
+                      >
+                        {amount}
+                      </span>
+                    ) : null}
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0 text-[var(--lp-text-sub)] transition-transform group-hover:translate-x-0.5 rtl:-scale-x-100"><path d="m9 18 6-6-6-6" /></svg>
+                  </span>
+                </button>
               </li>
             );
           })}

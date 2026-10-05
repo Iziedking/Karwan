@@ -30,3 +30,8 @@ test('every language has a line for the same event, and the bell speaks it', () 
     assert.ok(line.length > 10 && line !== en.disputed, locale);
   }
 });
+
+test('a bell amount reads to the cent, and a small one keeps its digits', () => {
+  assert.equal(summaryFor('wallet.credited', { amountUsdc: '9.954921', walletRole: 'identity' }, 'buyer', en), '+9.95 USDC landed in your wallet.');
+  assert.equal(summaryFor('wallet.credited', { amountUsdc: '0.043785', walletRole: 'identity' }, 'buyer', en), '+0.0438 USDC landed in your wallet.');
+});
