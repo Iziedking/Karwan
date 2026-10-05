@@ -43,7 +43,7 @@ export const escrowDocsCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', EscrowDocs
           'Before anyone pays, both sides agree the terms. The contract stores them at funding, and the seller confirms the exact same terms on chain. Nobody can change them afterwards, Karwan included.',
         items: [
           { label: 'Price and milestones.', body: 'The amount, and how it splits into up to five payments.' },
-          { label: 'Delivery date.', body: 'When each delivery is due, and a short grace period after it.' },
+          { label: 'Delivery date.', body: 'When each delivery is due, and a short grace period after it. The seller can ask for more time; the buyer decides.' },
           { label: 'Review time.', body: 'How long the buyer has to check each delivery. It starts at delivery, or at arrival for physical goods.' },
           { label: 'More time.', body: 'How many times the buyer can extend the review, and by how much.' },
           { label: 'Final payment.', body: 'Whether the last payment can release when the review time ends, or needs the buyer. Large deals always need the buyer.' },
@@ -120,7 +120,7 @@ export const escrowDocsCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', EscrowDocs
           'Avant tout paiement, les deux parties conviennent des conditions. Le contrat les enregistre au financement, et le vendeur confirme exactement les mêmes conditions sur la chaîne. Personne ne peut les modifier ensuite, Karwan compris.',
         items: [
           { label: 'Prix et étapes.', body: 'Le montant, et sa répartition en cinq paiements au plus.' },
-          { label: 'Date de livraison.', body: 'La date de chaque livraison, et un court délai de grâce après elle.' },
+          { label: 'Date de livraison.', body: 'La date de chaque livraison, et un court délai de grâce après elle. Le vendeur peut demander plus de temps ; l’acheteur décide.' },
           { label: 'Délai de vérification.', body: 'Le temps dont l’acheteur dispose pour vérifier chaque livraison. Il commence à la livraison, ou à l’arrivée pour les biens physiques.' },
           { label: 'Plus de temps.', body: 'Combien de fois l’acheteur peut prolonger la vérification, et de combien.' },
           { label: 'Dernier paiement.', body: 'Si le dernier paiement peut être libéré à la fin du délai de vérification, ou s’il faut l’acheteur. Les gros accords exigent toujours l’acheteur.' },
@@ -197,7 +197,7 @@ export const escrowDocsCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', EscrowDocs
           'قبل أي دفع، يتفق الطرفان على الشروط. يسجلها العقد عند التمويل، ويؤكد البائع الشروط نفسها تماماً على السلسلة. لا يستطيع أحد تغييرها بعد ذلك، بما في ذلك Karwan.',
         items: [
           { label: 'السعر والمراحل.', body: 'المبلغ، وكيف يُقسّم إلى خمس دفعات كحد أقصى.' },
-          { label: 'موعد التسليم.', body: 'موعد كل تسليم، ومهلة سماح قصيرة بعده.' },
+          { label: 'موعد التسليم.', body: 'موعد كل تسليم، ومهلة سماح قصيرة بعده. يمكن للبائع طلب وقت إضافي، والقرار للمشتري.' },
           { label: 'مدة المراجعة.', body: 'الوقت المتاح للمشتري لفحص كل تسليم. تبدأ عند التسليم، أو عند الوصول في حالة السلع المادية.' },
           { label: 'وقت إضافي.', body: 'عدد المرات التي يمكن للمشتري فيها تمديد المراجعة، ومقدار كل تمديد.' },
           { label: 'الدفعة الأخيرة.', body: 'هل يمكن تحرير الدفعة الأخيرة عند انتهاء مدة المراجعة، أم تحتاج إلى المشتري. الصفقات الكبيرة تحتاج دائماً إلى المشتري.' },
@@ -274,7 +274,7 @@ export const escrowDocsCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', EscrowDocs
           'किसी भी भुगतान से पहले दोनों पक्ष शर्तें तय करते हैं। कॉन्ट्रैक्ट फंडिंग के समय उन्हें दर्ज करता है, और विक्रेता चेन पर बिल्कुल वही शर्तें पुष्टि करता है। इसके बाद कोई उन्हें नहीं बदल सकता, Karwan भी नहीं।',
         items: [
           { label: 'कीमत और चरण।', body: 'राशि, और वह अधिकतम पाँच भुगतानों में कैसे बँटती है।' },
-          { label: 'डिलीवरी की तारीख।', body: 'हर डिलीवरी कब देनी है, और उसके बाद थोड़ी मोहलत।' },
+          { label: 'डिलीवरी की तारीख।', body: 'हर डिलीवरी कब देनी है, और उसके बाद थोड़ी मोहलत। विक्रेता और समय माँग सकता है; फ़ैसला खरीदार करता है।' },
           { label: 'जाँच का समय।', body: 'हर डिलीवरी जाँचने के लिए खरीदार के पास कितना समय है। यह डिलीवरी पर शुरू होता है, या भौतिक सामान के लिए पहुँचने पर।' },
           { label: 'अधिक समय।', body: 'खरीदार जाँच कितनी बार और कितना बढ़ा सकता है।' },
           { label: 'अंतिम भुगतान।', body: 'क्या अंतिम भुगतान जाँच का समय खत्म होने पर जारी हो सकता है, या उसके लिए खरीदार चाहिए। बड़े सौदों में हमेशा खरीदार चाहिए।' },
@@ -351,7 +351,7 @@ export const escrowDocsCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', EscrowDocs
           'Kabla ya malipo yoyote, pande zote mbili zinakubaliana masharti. Mkataba unayahifadhi wakati wa kulipa, na muuzaji anathibitisha masharti yale yale kwenye mnyororo. Hakuna anayeweza kuyabadilisha baadaye, ikiwemo Karwan.',
         items: [
           { label: 'Bei na hatua.', body: 'Kiasi, na jinsi kinavyogawanywa katika malipo yasiyozidi matano.' },
-          { label: 'Tarehe ya kuwasilisha.', body: 'Kila uwasilishaji unatakiwa lini, na muda mfupi wa ziada baada yake.' },
+          { label: 'Tarehe ya kuwasilisha.', body: 'Kila uwasilishaji unatakiwa lini, na muda mfupi wa ziada baada yake. Muuzaji anaweza kuomba muda zaidi; mnunuzi ndiye anaamua.' },
           { label: 'Muda wa kukagua.', body: 'Muda alionao mnunuzi kukagua kila uwasilishaji. Unaanza wakati wa kuwasilisha, au bidhaa inapofika kwa bidhaa halisi.' },
           { label: 'Muda zaidi.', body: 'Mara ngapi mnunuzi anaweza kuongeza muda wa kukagua, na kwa kiasi gani.' },
           { label: 'Malipo ya mwisho.', body: 'Kama malipo ya mwisho yanaweza kutolewa muda wa kukagua ukiisha, au yanahitaji mnunuzi. Mipango mikubwa huhitaji mnunuzi kila wakati.' },

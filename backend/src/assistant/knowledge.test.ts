@@ -7,9 +7,8 @@ test('assistant leads with unified reputation and its open market for local and 
     KARWAN_PRODUCT_IDENTITY,
     'Karwan unifies online reputation, starting with an open market for secure local and cross-border trade.',
   );
-  assert.match(KARWAN_ASSISTANT_SYSTEM, /People and businesses can buy or sell services, goods, supplies/);
-  assert.match(KARWAN_ASSISTANT_SYSTEM, /A trade may be local/);
-  assert.match(KARWAN_ASSISTANT_SYSTEM, /or cross-border/);
+  assert.match(KARWAN_ASSISTANT_SYSTEM, /buy or sell services and digital work today, local or cross-border/);
+  assert.match(KARWAN_ASSISTANT_SYSTEM, /physical goods and business trade are coming soon/);
 });
 
 test('assistant keeps current and planned market capabilities separate', () => {
