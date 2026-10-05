@@ -2,19 +2,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { api, type PublicFeedDeal } from '@/core/api';
-import { formatUsdc, relativeTime } from '@/shared/utils/format';
+import { relativeTime } from '@/shared/utils/format';
 import { BracketTag, type BracketTagVariant } from '@/shared/components/skill';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { dur, ease } from '@/shared/motion/tokens';
 
-type EventKind = 'opened' | 'completed' | 'cancelled';
-
 interface TickerCard {
-  jobId: string;
-  kind: EventKind;
-  actor: string;
-  counterparty: string;
-  amountUsdc: string;
+  key: string;
+  band: PublicFeedDeal['amountBand'];
   at: number;
 }
 
@@ -48,47 +43,17 @@ export function NetworkTicker() {
 
   const cards = useMemo<TickerCard[]>(() => {
     if (!deals) return [];
-    const out: TickerCard[] = deals.map((d) => {
-      const settled = d.onChain?.state === 2 || !!d.settledAt;
-      if (d.cancelledAt) {
-        return {
-          jobId: d.jobId,
-          kind: 'cancelled',
-          actor: d.buyer,
-          counterparty: d.seller,
-          amountUsdc: d.dealAmountUsdc,
-          at: d.cancelledAt,
-        };
-      }
-      if (settled) {
-        return {
-          jobId: d.jobId,
-          kind: 'completed',
-          actor: d.seller,
-          counterparty: d.buyer,
-          amountUsdc: d.dealAmountUsdc,
-          at: d.settledAt ?? d.updatedAt,
-        };
-      }
-      return {
-        jobId: d.jobId,
-        kind: 'opened',
-        actor: d.buyer,
-        counterparty: d.seller,
-        amountUsdc: d.dealAmountUsdc,
-        at: d.acceptedAt ?? d.createdAt,
-      };
-    });
-    // Newest first, then trim to a sensible track length.
-    return out.sort((a, b) => b.at - a.at).slice(0, 14);
+    return deals
+      .map((d, i) => ({ key: `${d.settledAt}-${i}`, band: d.amountBand, at: d.settledAt }))
+      .sort((a, b) => b.at - a.at)
+      .slice(0, 14);
   }, [deals]);
 
-  // Brand fallback when the feed is empty. keep the rail visible during the
-  // quiet hours rather than collapsing the section.
+  // Brand fallback when the feed is empty, so the rail stays visible.
   const fallback: TickerCard[] = [
-    { jobId: '0x', kind: 'opened', actor: '0x0000', counterparty: '0x0000', amountUsdc: '50', at: 0 },
-    { jobId: '0x', kind: 'completed', actor: '0x0000', counterparty: '0x0000', amountUsdc: '100', at: 0 },
-    { jobId: '0x', kind: 'cancelled', actor: '0x0000', counterparty: '0x0000', amountUsdc: '200', at: 0 },
+    { key: 'f1', band: 'under_100', at: 0 },
+    { key: 'f2', band: '100_500', at: 0 },
+    { key: 'f3', band: '500_2000', at: 0 },
   ];
 
   const track = cards.length > 0 ? cards : fallback;
@@ -138,7 +103,7 @@ export function NetworkTicker() {
             }}
           >
             {loop.map((c, i) => (
-              <TickerCardView key={`${c.jobId}-${i}`} card={c} muted={track === fallback} />
+              <TickerCardView key={`${c.key}-${i}`} card={c} muted={track === fallback} />
             ))}
           </div>
         </div>
@@ -149,11 +114,11 @@ export function NetworkTicker() {
 
 function TickerCardView({ card, muted }: { card: TickerCard; muted: boolean }) {
   const t = useTranslations().networkTicker;
-  const eyebrow = t.eyebrows[card.kind];
-  // Map state to skill BracketTag variant.
-  const variant: BracketTagVariant =
-    card.kind === 'opened' ? 'live' : card.kind === 'completed' ? 'pos' : 'neg';
-  const verb = t.verbs[card.kind];
+  const sr = useTranslations().sealedRecord;
+  // The public feed carries settled deals only.
+  const eyebrow = t.eyebrows.completed;
+  const variant: BracketTagVariant = 'pos';
+  const verb = t.verbs.completed;
 
   return (
     <motion.div
@@ -216,7 +181,7 @@ function TickerCardView({ card, muted }: { card: TickerCard; muted: boolean }) {
           className="font-mono text-[11px] tabular-nums leading-snug"
           style={{ color: 'var(--lp-workspace-muted)' }}
         >
-          <span style={{ color: 'var(--lp-workspace-ink)' }}>{t.subjects[card.kind]}</span>{' '}
+          <span style={{ color: 'var(--lp-workspace-ink)' }}>{t.subjects.completed}</span>{' '}
           <span style={{ color: 'var(--lp-workspace-faint)' }}>{verb}</span>
         </p>
         <div className="mt-2 flex items-baseline gap-2">
@@ -227,13 +192,13 @@ function TickerCardView({ card, muted }: { card: TickerCard; muted: boolean }) {
               color: 'var(--lp-workspace-ink)',
             }}
           >
-            {formatUsdc(card.amountUsdc, { withSuffix: false })}
+            {sr.bands[card.band]}
           </span>
           <span
             className="font-mono text-[10px] uppercase tracking-[0.14em]"
             style={{ color: 'var(--lp-workspace-faint)' }}
           >
-            {t.usdcDeal}
+            {sr.usdcDeal}
           </span>
         </div>
       </div>
