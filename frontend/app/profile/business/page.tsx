@@ -46,7 +46,7 @@ export default function BusinessProfilePage() {
       ) : (
         <>
           <RowGroup>
-            <Row label={businessWorkspace.name} value={showingBusiness ? (verified ? undefined : t.setup) : undefined}>
+            <Row label={businessWorkspace.name} value={showingBusiness ? (verified ? messages.account.kind.verified : messages.account.kind.notVerified) : undefined}>
               {showingBusiness ? null : (
                 <button
                   type="button"
