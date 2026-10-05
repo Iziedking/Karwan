@@ -362,3 +362,56 @@ test('footer keeps the canonical brand and treats its motion as optional decorat
   assert.match(css, /background: var\(--lp-card\)/);
   assert.match(css, /min-height: 100svh/);
 });
+
+test('reputation badges and the app shell never leave a person on a bare number or an endless wait', () => {
+  const badge = source('../../features/reputation/components/ReputationBadge.tsx');
+  const cells = badge.slice(badge.indexOf('const badgeCells'), badge.indexOf('if (!withDetail)'));
+  assert.doesNotMatch(cells, /\{score\}/);
+  assert.match(source('../../app/not-found.tsx'), /pageNotFound/);
+  assert.doesNotMatch(source('../../app/app/page.tsx'), />Account home</);
+});
+
+test('the deal page shows dated steps, keeps messages one tap away, and puts the chat beside the deal on desktop', () => {
+  const hero = source('../../features/deals/workspace/DealHero.tsx');
+  assert.match(hero, /<DealTimeline/);
+  assert.doesNotMatch(hero, /className="mt-6 flex gap-1\.5"/);
+  assert.match(hero, /aria-label=\{fill\(dl\.message/);
+  assert.doesNotMatch(hero, /key: 'messages' as const/);
+  assert.match(source('../../features/deals/workspace/DealWorkspace.tsx'), /desktop && address \? \([\s\S]*?<ChatPanel/);
+});
+
+test('recent trades lead with what the deal is and who it is with, without numbering or text arrows', () => {
+  const home = source('../../features/home/components/AccountHome.tsx');
+  const rows = home.slice(home.indexOf('const counterparty = deal.counterpartyName'));
+  assert.match(rows, /dealHeadline\(deal\.terms\)/);
+  assert.match(rows, /<PersonAvatar/);
+  assert.doesNotMatch(rows, /padStart\(2, '0'\)/);
+  assert.doesNotMatch(home, /→/);
+});
+
+test('a ledger row is one tap to its receipt, in plain words, with proof and reference inside the receipt', () => {
+  const ledger = source('../../features/activity/components/MyMoneyLedger.tsx');
+  assert.match(ledger, /ledgerRowText\(ledgerLine\(item, t\.text\)\)/);
+  assert.doesNotMatch(ledger, /\{t\.viewProof\}/);
+  assert.doesNotMatch(ledger, /copyReference/);
+  assert.match(ledger, /proofHref=\{explorerFor\(selectedReceipt\)\}/);
+});
+
+test('a profile row that is not ready says so plainly, not only on hover, and is not a dead button', () => {
+  const ui = source('../../features/profile/ui/ProfileUi.tsx');
+  const soon = ui.slice(ui.indexOf('if (soon) {'), ui.indexOf('const content'));
+  assert.doesNotMatch(soon, /opacity-0/);
+  assert.doesNotMatch(soon, /role="button"|tabIndex/);
+});
+
+test('the trade chooser offers two equal choices, so neither is painted as the primary action', () => {
+  const css = source('../../app/globals.css');
+  const arrow = css.slice(css.indexOf('.trade-intent-action-arrow {'), css.indexOf('}', css.indexOf('.trade-intent-action-arrow {')));
+  assert.doesNotMatch(arrow, /var\(--lp-accent\)/);
+});
+
+test('carousel dots are full-size tap targets and the trade chooser draws its arrows as icons', () => {
+  const carousel = source('../../features/home/components/UpdatesCarousel.tsx');
+  assert.doesNotMatch(carousel, /className="grid size-6 place-items-center/);
+  assert.doesNotMatch(source('../../features/home/components/TradeDesk.tsx'), /→/);
+});

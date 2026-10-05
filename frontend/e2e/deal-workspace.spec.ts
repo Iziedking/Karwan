@@ -21,7 +21,7 @@ test('the money comes first with one clear action', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1 })).toContainText('1,200');
   await expect(page.getByText('Held in escrow', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Release 600 USDC' })).toBeVisible();
-  await expect(page.getByText('Releases automatically on 25 Sep 2026 unless the buyer disputes.')).toBeVisible();
+  await expect(page.getByText('Releases automatically on 25 Sep 2026 unless you raise a problem.')).toBeVisible();
   await expect(page.getByRole('tab')).toHaveCount(0);
 });
 
@@ -30,7 +30,7 @@ test('who it is with is one line, and the full record opens on request', async (
   await page.goto(`/deals/${JOB}`);
   await expect(page.getByText('14 settled · 13 of 14 on time', { exact: true })).toBeVisible();
   await expect(page.getByText('Verified business')).toHaveCount(0);
-  await page.getByRole('button', { name: /Amina Foods Ltd/ }).click();
+  await page.getByRole('button', { name: /^Amina Foods Ltd/ }).click();
   const sheet = page.getByRole('dialog');
   await expect(sheet).toContainText('14 settled · 13 of 14 on time · 0 disputes · since Mar 2026');
   await expect(sheet).toContainText('Verified business');

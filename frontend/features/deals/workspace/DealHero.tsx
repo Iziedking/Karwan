@@ -18,6 +18,8 @@ import { deliveryCheckStatus } from './checkStatus';
 import { Sheet } from './Sheet';
 import { TrustCard } from './TrustCard';
 import { useChatUnread } from '@/features/chat/hooks/useChatUnread';
+import { DESKTOP_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
+import { DealLatest, DealTimeline } from './DealTimeline';
 
 type Panel = 'record' | 'agreement' | 'messages' | 'receipts' | 'problem' | 'deliver' | 'answerTime' | 'answerCancel' | 'turnDown' | null;
 
@@ -53,7 +55,9 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   onRetryRecord: () => void;
 }) {
   const copy = useTranslations().dealWorkspace;
+  const dl = useTranslations().dealLive;
   const s = copy.simple;
+  const desktop = useMediaQuery(DESKTOP_QUERY);
   const declineCopy = useTranslations().directDealDetail.actionPanel.awaitingAcceptance;
   const { locale } = useLocale();
   const router = useRouter();
@@ -73,7 +77,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   const isGoods = deal.tradeType === 'goods' || deal.tradeType === 'mixed';
   const declined = view.stage === 'awaiting-acceptance' && !!deal.sellerDeclinedAt;
   const label = actionLabel(view.next, copy, locale);
-  const automatic = automaticLine(view, copy, locale);
+  const automatic = automaticLine(view, copy, locale, viewerIsBuyer ? dl : undefined);
   const close = () => setPanel(null);
   const done = () => {
     setPanel(null);
@@ -188,6 +192,19 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
             {facts ? <span className="block truncate text-[13px] text-[var(--lp-text-sub)]">{facts}</span> : null}
           </span>
         </button>
+        {address && !desktop ? (
+          <button
+            type="button"
+            onClick={() => setPanel('messages')}
+            aria-label={fill(dl.message, { name })}
+            className="relative ms-auto grid size-11 shrink-0 place-items-center rounded-full border border-[var(--lp-border-light)] text-[var(--lp-dark)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          >
+            <Icon name="messages" size={20} />
+            {chat.unread ? (
+              <span role="status" aria-label={s.newMessages} className="absolute end-2 top-2 size-2.5 rounded-full border-2 border-[var(--lp-light)] bg-[var(--lp-accent)]" />
+            ) : null}
+          </button>
+        ) : null}
       </header>
 
       <section aria-labelledby="deal-amount" className="pb-8 pt-10">
@@ -200,19 +217,22 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
           <span className="text-[18px] font-medium text-[var(--lp-text-sub)]">USDC</span>
         </h1>
         {moment ? <div className="mt-3 max-w-[52ch]">{moment}</div> : null}
-        <ol aria-label={copy.progress.title} className="mt-6 flex gap-1.5">
-          {view.progress.map((step) => (
-            <li
-              key={step.step}
-              aria-label={`${copy.progress[step.step]}${step.state === 'done' ? ' ✓' : ''}`}
-              aria-current={step.state === 'current' ? 'step' : undefined}
-              className={cn(
-                'h-1 flex-1 rounded-full',
-                step.state === 'done' ? 'bg-[var(--lp-dark)]' : step.state === 'current' ? 'bg-[var(--accent)]' : 'bg-[var(--lp-border-light)]',
-              )}
-            />
-          ))}
-        </ol>
+        <DealTimeline
+          progress={view.progress}
+          viewerIsBuyer={viewerIsBuyer}
+          name={name}
+          check={check}
+          dueAt={deal.deadlineUnix ? deal.deadlineUnix * 1000 : null}
+        />
+        {view.stage === 'settled' ? (
+          <div className="mt-6 rounded-[20px] bg-[var(--lp-card)] p-5">
+            <p className="flex items-center gap-2 text-[16px] font-semibold text-[var(--lp-dark)]">
+              <Icon name="check" size={20} className="text-[var(--color-positive)]" />
+              {dl.completeTitle}
+            </p>
+            <p className="mt-1.5 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{dl.completeBody}</p>
+          </div>
+        ) : null}
       </section>
 
       <div className="space-y-3 pb-6">
@@ -234,14 +254,23 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
             {s.turnDown}
           </button>
         ) : null}
+        {view.stage === 'settled' && viewerIsBuyer && address ? (
+          <a
+            href={`/buyer?seller=${deal.seller}`}
+            className="inline-flex min-h-14 w-full items-center justify-center rounded-full bg-[var(--action)] px-6 text-[16px] font-semibold text-[var(--on-action)] hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-offset-2"
+          >
+            {fill(dl.again, { name })}
+          </a>
+        ) : null}
         {automatic ? <p className="text-center text-[13px] text-[var(--lp-text-sub)]">{automatic}</p> : null}
       </div>
+
+      {address && !desktop ? <DealLatest jobId={deal.jobId} caller={address} name={name} onOpen={() => setPanel('messages')} /> : null}
 
       <nav aria-label={copy.protectedDeal} className="overflow-hidden rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
         {[
           ...(problems.length ? [{ key: 'problem' as const, text: s.problem }] : []),
           { key: 'agreement' as const, text: s.agreement },
-          ...(address ? [{ key: 'messages' as const, text: s.messages }] : []),
           { key: 'receipts' as const, text: s.receipts },
         ].map((row) => (
           <button
@@ -250,12 +279,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
             onClick={() => setPanel(row.key)}
             className="flex min-h-14 w-full items-center justify-between border-b border-[var(--lp-border-light)] px-5 text-start text-[15px] font-medium text-[var(--lp-dark)] last:border-b-0 hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent)]"
           >
-            <span className="inline-flex items-center gap-2.5">
-              {row.text}
-              {row.key === 'messages' && chat.unread ? (
-                <span role="status" aria-label={s.newMessages} className="size-2 rounded-full bg-[var(--lp-accent)]" />
-              ) : null}
-            </span>
+            <span>{row.text}</span>
             <Icon name="chevron-right" size={16} directional className="text-[var(--lp-text-sub)]" />
           </button>
         ))}

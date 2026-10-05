@@ -17,6 +17,7 @@ export interface SearchWorld extends MoneyWorld {
   postJob?: (route: Route) => Promise<void>;
   postListing?: (route: Route) => Promise<void>;
   abandon?: (route: Route) => Promise<void>;
+  chooseOffer?: (route: Route) => Promise<void>;
 }
 
 export function makeJob(over: Record<string, unknown> = {}) {
@@ -98,6 +99,7 @@ export async function serveSearch(page: Page, world: SearchWorld) {
     }
     if (path === '/api/jobs/matches/for') return route.fulfill({ json: { proposals: world.matches ?? [] } });
     if (path === '/api/listings/mine') return route.fulfill({ json: { listings: world.listings ?? [] } });
+    if (path === `/api/jobs/${JOB}/choose-offer` && method === 'POST' && world.chooseOffer) return world.chooseOffer(route);
     if (path === `/api/jobs/${JOB}/match`) return route.fulfill({ json: { proposal: world.proposal ?? null } });
     if (path === `/api/jobs/${JOB}/near-miss`) return route.fulfill({ json: { nearMiss: null } });
     if (path === `/api/jobs/${JOB}`) return route.fulfill({ json: world.job ?? makeJob() });

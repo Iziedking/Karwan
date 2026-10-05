@@ -7,7 +7,7 @@ import { api, ApiError, type BuyerJob } from '@/core/api';
 import { useJobSnapshot } from '../hooks/useJobSnapshot';
 import { useJobLiveState } from '../hooks/useJobLiveState';
 import { NegotiationCard } from './NegotiationCard';
-import { LiveBidsPanel } from './LiveBidsPanel';
+import { OffersRoster } from './OffersRoster';
 import { PageTour } from '@/shared/guide/PageTour';
 import { JOBS_TOUR_ID, JOBS_STEPS } from '@/shared/guide/tours';
 import { MatchBanner } from './MatchBanner';
@@ -327,6 +327,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
           viewerIsSeller={viewerIsSeller}
           callerAddress={address ?? undefined}
           onEdited={refreshJob}
+          isBuyer={viewerIsBuyer}
         />
         <CancelBriefSection
           job={job}
@@ -334,16 +335,22 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
           matchPending={!!matchPending}
           viewerIsSeller={viewerIsSeller}
           callerAddress={address ?? undefined}
+          isBuyer={viewerIsBuyer}
         />
       </div>
 
-      {viewerIsBuyer && job.bids.length > 0 ? (
-        <section className="mt-8" data-guide="job-bids">
-          <h2 className="text-[16px] font-semibold text-[var(--lp-dark)]">{rs.offers}</h2>
-          <div className="mt-2 overflow-hidden rounded-[18px] bg-[var(--lp-card)]">
-            <LiveBidsPanel initial={job} />
-          </div>
-        </section>
+      {viewerIsBuyer && job.bids.length > 0 && !job.escrowFunded ? (
+        <OffersRoster
+          jobId={job.jobId}
+          bids={job.bids}
+          pickSeller={proposal && !proposal.declinedAt ? proposal.sellerAgent : null}
+          caller={address ?? null}
+          choosable={!expired && !ended && !declined && !proposal?.approvedAt}
+          onChosen={() => {
+            void refreshJob();
+            void refreshProposal();
+          }}
+        />
       ) : null}
 
       <details className="group mt-8 border-t border-[var(--lp-border-light)]">

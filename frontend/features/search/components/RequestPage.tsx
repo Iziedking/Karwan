@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { OffersRoster } from '@/features/jobs/components/OffersRoster';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { BuyerJob } from '@/core/api';
@@ -49,7 +50,6 @@ export function RequestPage({ initial, explorer }: { initial: BuyerJob; explorer
   const { proposal, refresh: refreshProposal } = useMatchProposal(initial.jobId);
   const { nearMiss, refresh: refreshNearMiss } = useNearMiss(initial.jobId);
   const [now, setNow] = useState(() => Date.now());
-  const [offersOpen, setOffersOpen] = useState(false);
   const [timelineOpen, setTimelineOpen] = useState(false);
 
   useEffect(() => {
@@ -89,7 +89,6 @@ export function RequestPage({ initial, explorer }: { initial: BuyerJob; explorer
     void refreshNearMiss();
   };
   const title = requestTitle(job.briefText) ?? t.aRequest;
-  const offers = [...job.bids].sort((a, b) => Number(a.priceUsdc) - Number(b.priceUsdc));
   const pendingMatch = !!proposal && !proposal.approvedAt && !proposal.declinedAt;
   const canEdit = view.secondary.includes('editRequest') || view.primary === 'editRequest';
   const canCancel = view.secondary.includes('cancelRequest');
@@ -133,28 +132,15 @@ export function RequestPage({ initial, explorer }: { initial: BuyerJob; explorer
           )}
         </section>
 
-        {view.showOffers ? (
-          <section className="space-y-3">
-            <button type="button" aria-expanded={offersOpen} onClick={() => setOffersOpen((v) => !v)} className={TOGGLE}>
-              <span>{fill(t.offers.title, { count: offers.length })}</span>
-              <span className="text-[13px] font-medium text-[var(--lp-text-sub)]">{offersOpen ? t.offers.hide : t.offers.show}</span>
-            </button>
-            {offersOpen ? (
-              <ul className="divide-y divide-[var(--lp-border-light)]">
-                {offers.map((b) => (
-                  <li key={b.seller} className="flex min-h-12 items-center justify-between gap-3 py-2">
-                    <span className="min-w-0">
-                      <span className="block truncate text-[15px] text-[var(--lp-dark)]">{b.sellerDisplayName ?? t.offers.unnamed}</span>
-                      {b.topicalMatch != null ? (
-                        <span className="block text-[13px] text-[var(--lp-text-sub)]">{fill(t.offers.skill, { pct: b.topicalMatch })}</span>
-                      ) : null}
-                    </span>
-                    <span className="shrink-0 text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">{b.priceUsdc} USDC</span>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </section>
+        {view.showOffers && view.viewer === 'buyer' ? (
+          <OffersRoster
+            jobId={job.jobId}
+            bids={job.bids}
+            pickSeller={pendingMatch && proposal ? proposal.sellerAgent : null}
+            caller={address ?? null}
+            choosable={!job.expiredAt && !job.cancelledAt && !live.declined && !proposal?.approvedAt}
+            onChosen={refreshAll}
+          />
         ) : null}
 
         {view.showTimeline ? (

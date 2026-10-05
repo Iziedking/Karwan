@@ -5,6 +5,9 @@ import { socialTradeCopy } from './socialTrade';
 import { protectionCopy } from './protection';
 import { moneyCopy } from './money';
 import { notifyCopy } from './notifications';
+import { notFoundCopy } from './pageStates';
+import { dealLiveCopy } from './dealLive';
+import { offerRosterCopy } from './offerRoster';
 import { searchCopy } from './search';
 import { offersCopy } from './offers';
 import { escrowV3Copy } from './escrowV3';
@@ -21,6 +24,9 @@ export const hi: Messages = {
   protection: protectionCopy.hi,
   money: moneyCopy.hi,
   bell: notifyCopy.hi,
+  pageNotFound: notFoundCopy.hi,
+  offerRoster: offerRosterCopy.hi,
+  dealLive: dealLiveCopy.hi,
   search: searchCopy.hi,
   offers: offersCopy.hi,
   escrowV3: escrowV3Copy.hi,

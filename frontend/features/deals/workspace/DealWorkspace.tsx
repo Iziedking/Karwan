@@ -15,6 +15,9 @@ import { registerDealTools } from './webmcp';
 import { V3EscrowPanel } from '../v3/V3EscrowPanel';
 import { HighSignalVerificationCard } from '../components/HighSignalVerificationCard';
 import { ProtectionSection } from './ProtectionSection';
+import { ChatPanel } from '@/features/chat/components/ChatPanel';
+import { shortAddress } from '@/shared/utils/format';
+import { DESKTOP_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 
 const SOFT = 'bg-[var(--lp-workspace-soft)] motion-safe:animate-pulse motion-reduce:animate-none rounded-[10px]';
 
@@ -90,6 +93,7 @@ export function DealWorkspace({ jobId }: { jobId: string }) {
   const [recordState, setRecordState] = useState<SettlementRecordFetchState>('loading');
   const [recordKey, setRecordKey] = useState(0);
   const [fundingBusy, setFundingBusy] = useState(false);
+  const desktop = useMediaQuery(DESKTOP_QUERY);
   const counterpartyName = deal?.counterpartyTrust?.name ?? '';
   const actions = useWorkspaceActions(jobId, deal ?? null, address, counterpartyName, refresh);
   const fundingRecovery = actions.sheet?.action === 'fund' &&
@@ -124,7 +128,8 @@ export function DealWorkspace({ jobId }: { jobId: string }) {
   }
 
   return (
-    <div className="product-surface mx-auto max-w-[560px] px-4 pb-16 pt-4 sm:px-6">
+    <div className="product-surface mx-auto max-w-[560px] px-4 pb-16 pt-4 sm:px-6 lg:grid lg:max-w-[1080px] lg:grid-cols-[minmax(0,560px)_minmax(0,1fr)] lg:items-start lg:gap-10">
+      <div className="min-w-0">
       <DealHero
         deal={deal}
         view={deal.view}
@@ -147,6 +152,17 @@ export function DealWorkspace({ jobId }: { jobId: string }) {
       <div className="mt-6 empty:hidden">
         <V3EscrowPanel deal={deal} address={address} onChanged={() => { void refresh(); }} />
       </div>
+      </div>
+      {desktop && address ? (
+        <aside aria-label={copy.simple.messages} className="sticky top-24 mt-4 flex h-[calc(100vh-8rem)] min-h-[480px] flex-col overflow-hidden rounded-[20px] bg-[var(--lp-card)] p-4">
+          <ChatPanel
+            jobId={deal.jobId}
+            caller={address}
+            counterpartyLabel={counterpartyName || shortAddress(actions.viewerIsBuyer ? deal.seller : deal.buyer)}
+            counterpartyAddress={actions.viewerIsBuyer ? deal.seller : deal.buyer}
+          />
+        </aside>
+      ) : null}
       <ConfirmSheet
         open={!!actions.sheet}
         title={actions.sheet?.title ?? ''}

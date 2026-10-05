@@ -47,6 +47,18 @@ test('the automatic outcome names its date', () => {
   assert.equal(line, 'Releases automatically on 25 Sep 2026 unless the buyer disputes.');
 });
 
+test('the buyer reads the automatic outcome addressed to them', () => {
+  const you = en.dealLive;
+  const at = Date.UTC(2026, 9, 19, 9, 0);
+  const view = (kind: 'auto-release' | 'deadline-reclaim') => ({
+    stage: 'awaiting-delivery' as const, money: { line: 'held' as const }, progress: [],
+    next: { action: null, actor: 'counterparty' as const, amountUsdc: null }, automatic: { kind, at },
+  });
+  assert.equal(automaticLine(view('deadline-reclaim'), copy, 'en', you), 'If nothing is delivered, you can take your money back from 19 Oct 2026.');
+  assert.equal(automaticLine(view('auto-release'), copy, 'en', you), 'Releases automatically on 19 Oct 2026 unless you raise a problem.');
+  assert.equal(automaticLine(view('deadline-reclaim'), copy, 'en'), 'If nothing is delivered, the buyer can take the money back from 19 Oct 2026.');
+});
+
 test('a sealed card has no fact parts', () => {
   const sealedCard: TrustCardView = {
     role: 'seller', name: 'Amina', verifiedBusiness: false, verifiedPerson: false,

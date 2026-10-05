@@ -2258,6 +2258,13 @@ export const api = {
       `/api/jobs/${jobId}/raise-offer`,
       { method: 'POST', body: JSON.stringify({ caller, priceUsdc }) },
     ),
+  /// The buyer chooses one of the offers on their request at its own price.
+  /// Funds escrow in the same call, so it runs behind the confirm sheet.
+  chooseOffer: (jobId: string, caller: string, seller: string) =>
+    json<{ accepted: boolean; jobId: string; txHash: string }>(
+      `/api/jobs/${jobId}/choose-offer`,
+      { method: 'POST', body: JSON.stringify({ caller, seller }) },
+    ),
   cancelBrief: (jobId: string, caller: string) =>
     json<{ accepted: boolean; jobId: string }>(
       `/api/jobs/${jobId}/cancel`,

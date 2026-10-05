@@ -149,7 +149,8 @@ test('a match waiting on the seller gives the buyer no primary action', async ({
   await expect(page.getByRole('heading', { name: 'Match found.' })).toBeVisible();
   await expect(page.getByText(/Waiting for Ada Studio to accept/)).toBeVisible();
   expect(await accentControls(page)).toBe(0);
-  await expect(page.getByRole('button', { name: /Offers received \(1\)/ })).toHaveAttribute('aria-expanded', 'false');
+  // The only offer is the pick, so there is nothing else to unfold.
+  await expect(page.getByRole('button', { name: /other offer/ })).toHaveCount(0);
 });
 
 test('a raise gives the buyer one primary action', async ({ page }) => {

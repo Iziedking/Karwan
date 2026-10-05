@@ -8,6 +8,9 @@ import { socialTradeCopy, type SocialTradeCopy } from './socialTrade';
 import { protectionCopy, type ProtectionCopy } from './protection';
 import { moneyCopy, type MoneyCopy } from './money';
 import { notifyCopy, type NotifyCopy } from './notifications';
+import { notFoundCopy, type NotFoundCopy } from './pageStates';
+import { dealLiveCopy, type DealLiveCopy } from './dealLive';
+import { offerRosterCopy, type OfferRosterCopy } from './offerRoster';
 import { searchCopy, type SearchCopy } from './search';
 import { offersCopy, type OffersCopy } from './offers';
 import { escrowV3Copy, type EscrowV3Copy } from './escrowV3';
@@ -23,6 +26,9 @@ interface MessagesShape {
   protection: ProtectionCopy;
   money: MoneyCopy;
   bell: NotifyCopy;
+  pageNotFound: NotFoundCopy;
+  offerRoster: OfferRosterCopy;
+  dealLive: DealLiveCopy;
   search: SearchCopy;
   offers: OffersCopy;
   escrowV3: EscrowV3Copy;
@@ -5297,6 +5303,9 @@ export const en: MessagesShape = {
   protection: protectionCopy.en,
   money: moneyCopy.en,
   bell: notifyCopy.en,
+  pageNotFound: notFoundCopy.en,
+  offerRoster: offerRosterCopy.en,
+  dealLive: dealLiveCopy.en,
   search: searchCopy.en,
   offers: offersCopy.en,
   escrowV3: escrowV3Copy.en,

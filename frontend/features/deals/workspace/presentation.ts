@@ -93,12 +93,19 @@ export function trustFactParts(card: TrustCardView, copy: Copy, locale: string):
   return parts;
 }
 
-export function automaticLine(view: DealView, copy: Copy, locale: string): string | null {
+/// `you` is the buyer's own wording: the line is about their money, so it
+/// speaks to them instead of naming "the buyer".
+export function automaticLine(
+  view: DealView,
+  copy: Copy,
+  locale: string,
+  you?: { autoReleaseYou: string; reclaimYou: string },
+): string | null {
   if (!view.automatic) return null;
   const date = formatDealDate(view.automatic.at, locale);
   switch (view.automatic.kind) {
-    case 'auto-release': return fill(copy.automatic.autoReleaseTemplate, { date });
-    case 'deadline-reclaim': return fill(copy.automatic.deadlineReclaimTemplate, { date });
+    case 'auto-release': return fill(you?.autoReleaseYou ?? copy.automatic.autoReleaseTemplate, { date });
+    case 'deadline-reclaim': return fill(you?.reclaimYou ?? copy.automatic.deadlineReclaimTemplate, { date });
     case 'acceptance-expiry': return fill(copy.automatic.acceptanceExpiryTemplate, { date });
   }
 }
