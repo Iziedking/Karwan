@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { trustCard, trustFacts, type TrustDeal } from './trustCard.js';
+import { sealTrustCard, trustCard, trustFacts, type TrustDeal } from './trustCard.js';
 
 const SELLER = '0x2222222222222222222222222222222222222222';
 const deal = (patch: Partial<TrustDeal>): TrustDeal => ({
@@ -83,4 +83,24 @@ test('a disputed deal delivered before deadline still counts as on-time', () => 
   ], SELLER, 'seller');
   assert.equal(facts.onTime, 1);
   assert.equal(facts.disputes, 1);
+});
+
+test('a sealed card drops facts, keeps the stake on this deal, and carries tier and reasons', () => {
+  const card = trustCard({
+    role: 'seller',
+    facts: { settled: 4, distinctCounterparties: 3, onTime: 3, withDeadline: 3, disputes: 0 },
+    memberSince: 1,
+    displayName: 'Ada',
+    companyName: null,
+    businessVerified: false,
+    personVerified: true,
+    xProven: false,
+    stakeUsdc: '50',
+  });
+  const sealed = sealTrustCard(card, { tier: 'ESTABLISHED', reasons: ['HAS_COMPLETED_DEALS', 'USUALLY_ON_TIME'] });
+  assert.equal(sealed.facts, null);
+  assert.equal(sealed.stakeUsdc, '50');
+  assert.equal(sealed.tier, 'ESTABLISHED');
+  assert.deepEqual(sealed.reasons, ['HAS_COMPLETED_DEALS', 'USUALLY_ON_TIME']);
+  assert.equal(sealed.name, 'Ada');
 });

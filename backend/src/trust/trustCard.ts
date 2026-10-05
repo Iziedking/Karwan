@@ -24,11 +24,14 @@ export interface TrustCard {
   name: string | null;
   verifiedBusiness: boolean;
   verifiedPerson: boolean;
-  facts: TrustFacts;
+  facts: TrustFacts | null;
   memberSince: number | null;
   stakeUsdc: string | null;
   provenAccounts: Array<'x'>;
   isNew: boolean;
+  /// Present when the card is sealed: the counterparty sees tier and reasons.
+  tier?: import('../reputation/config.js').Tier;
+  reasons?: import('../sealed/reasons.js').ReasonCode[];
 }
 
 export interface TrustCardInput {
@@ -70,4 +73,11 @@ export function trustCard(input: TrustCardInput): TrustCard {
     provenAccounts: input.xProven ? ['x'] : [],
     isNew: input.facts.settled === 0,
   };
+}
+
+export function sealTrustCard(
+  card: TrustCard,
+  view: { tier: NonNullable<TrustCard['tier']>; reasons: NonNullable<TrustCard['reasons']> },
+): TrustCard {
+  return { ...card, facts: null, tier: view.tier, reasons: view.reasons };
 }

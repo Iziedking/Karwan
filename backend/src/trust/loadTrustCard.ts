@@ -1,7 +1,9 @@
 import { listDealsForAddress } from '../db/deals.js';
 import { getProfile } from '../db/profiles.js';
 import { milestoneAmountUsdc } from '../deals/dealView.js';
-import { trustCard, trustFacts, type TrustCard, type TrustFacts } from './trustCard.js';
+import { config } from '../config.js';
+import { loadPublicPassport } from '../sealed/passportLoader.js';
+import { sealTrustCard, trustCard, trustFacts, type TrustCard, type TrustFacts } from './trustCard.js';
 
 export interface TrustDealContext {
   dealAmountUsdc: string;
@@ -75,7 +77,7 @@ export async function loadTrustCard(
   const stakeUsdc = role === 'seller' && deal.requireStake && deal.acceptedAt
     ? milestoneAmountUsdc(deal.dealAmountUsdc, deal.requireStakePct ?? 50)
     : null;
-  return trustCard({
+  const card = trustCard({
     role,
     facts: cached.facts,
     memberSince: cached.memberSince,
@@ -86,6 +88,9 @@ export async function loadTrustCard(
     xProven: cached.xProven,
     stakeUsdc,
   });
+  if (!config.SEALED_RECORDS) return card;
+  const passport = await loadPublicPassport(subject);
+  return sealTrustCard(card, { tier: passport.tier, reasons: passport.reasons });
 }
 
 /// Test-only seam: clears the cache so tests don't leak state into each
