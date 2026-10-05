@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { db, pgEnabled } from '../db/client.js';
 import { depositRequests } from '../db/schema.js';
+import { microsToUsdc, receivedMicros, remainingUsdc } from './requestReceipts.js';
 
 export type DepositRequestStatus =
   | 'open'
@@ -26,8 +27,26 @@ export interface DepositRequest {
   matchedAt?: number;
   /// Who paid: the signed-in payer, else the sender on the Arc transfer.
   paidBy?: string;
+  /// The request's own receiving addresses, made the first time a payer asks
+  /// to send from another chain.
+  receiving?: ReceivingWallets;
+  /// Every transfer that landed on those addresses, counted once each.
+  receipts?: RequestReceipt[];
   createdAt: number;
   updatedAt: number;
+}
+
+export interface ReceivingWallets {
+  /// One address for every EVM chain; wallet ids by Circle blockchain code.
+  evm: { address: string; wallets: Record<string, string> };
+  solana: { address: string; walletId: string } | null;
+}
+
+export interface RequestReceipt {
+  txId: string;
+  amountUsdc: string;
+  chain: string;
+  at: number;
 }
 
 export interface DepositRequestPublic {
@@ -41,6 +60,12 @@ export interface DepositRequestPublic {
   acceptedChains: string[];
   paidAt?: number;
   paidChain?: string;
+  /// Present once the request has its own receiving addresses.
+  receiving?: { evm: { address: string; chains: string[] }; solana: { address: string } | null };
+  /// Transfers that landed on those addresses. No provider ids.
+  payments?: Array<{ amountUsdc: string; chain: string; at: number }>;
+  receivedUsdc?: string;
+  remainingUsdc?: string;
 }
 
 export const REQUEST_TTL_MINUTES = 60;
@@ -49,6 +74,8 @@ export const MAX_REQUEST_TTL_MINUTES = 7 * 24 * 60;
 const STORE_PATH = process.env.DEPOSIT_REQUESTS_STORE_PATH
   ? resolve(process.env.DEPOSIT_REQUESTS_STORE_PATH)
   : resolve(process.cwd(), 'data', 'deposit-requests.json');
+
+const EVM_RECEIVING_CHAINS = ['Ethereum', 'Base', 'Arbitrum', 'Polygon'];
 
 const ACCEPTED_CHAINS = [
   'Ethereum',
@@ -120,6 +147,21 @@ export function toPublicRequest(request: DepositRequest, now = Date.now()): Depo
     createdAt: request.createdAt,
     acceptedChains: ACCEPTED_CHAINS,
     ...(request.status === 'matched' && request.matchedAt ? { paidAt: request.matchedAt, paidChain: request.matchedChain } : {}),
+    ...(request.receiving
+      ? {
+          receiving: {
+            evm: { address: request.receiving.evm.address, chains: EVM_RECEIVING_CHAINS },
+            solana: request.receiving.solana ? { address: request.receiving.solana.address } : null,
+          },
+        }
+      : {}),
+    ...(request.receipts?.length
+      ? {
+          payments: request.receipts.map((r) => ({ amountUsdc: r.amountUsdc, chain: r.chain, at: r.at })),
+          receivedUsdc: microsToUsdc(receivedMicros(request)),
+          remainingUsdc: remainingUsdc(request),
+        }
+      : {}),
   };
 }
 
@@ -202,6 +244,19 @@ export async function listDepositRequestsPaidBy(payer: string, limit = 20): Prom
     .filter((request) => request.paidBy === normalised)
     .sort((a, b) => (b.matchedAt ?? 0) - (a.matchedAt ?? 0))
     .slice(0, limit);
+}
+
+/// Every request that has its own receiving addresses. Small: they are made
+/// only when a payer asks to send from another chain.
+export async function listRequestsWithReceiving(): Promise<DepositRequest[]> {
+  if (pgEnabled) {
+    const rows = await db()
+      .select({ data: depositRequests.data })
+      .from(depositRequests)
+      .where(sql`${depositRequests.data} ? 'receiving'`);
+    return rows.map((row) => row.data as DepositRequest);
+  }
+  return Object.values(loadFile()).filter((request) => !!request.receiving);
 }
 
 export async function cancelDepositRequest(owner: string, token: string): Promise<DepositRequest | null> {

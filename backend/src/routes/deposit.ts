@@ -18,6 +18,27 @@ import { coversRequest, payerOf, receivedBy } from '../money/requestPayment.js';
 import { publicClient } from '../chain/client.js';
 import { config } from '../config.js';
 import { rateLimit } from '../middleware/rateLimit.js';
+import { ensureReceiving, receivingSupported } from '../money/requestReceiving.js';
+import { getBridge } from '../db/bridges.js';
+import { bridgeIdForDeposit } from '../circle/depositRouter.js';
+import type { DepositRequest } from '../money/depositRequests.js';
+
+/// The public request plus what the pay page needs to follow money sent from
+/// another chain: whether that option exists here, and where each payment is
+/// on its way to the requester.
+async function payView(request: DepositRequest) {
+  const view = toPublicRequest(request);
+  const payments = view.payments
+    ? await Promise.all(
+        (request.receipts ?? []).map(async (r) => {
+          const bridge = await getBridge(bridgeIdForDeposit(r.txId)).catch(() => null);
+          const delivery = bridge?.status === 'minted' ? 'delivered' : bridge?.status === 'error' ? 'delayed' : 'moving';
+          return { amountUsdc: r.amountUsdc, chain: r.chain, at: r.at, delivery };
+        }),
+      )
+    : undefined;
+  return { ...view, anyChain: receivingSupported(), ...(payments ? { payments } : {}) };
+}
 
 /// Everything the deposit card needs, with Circle's vocabulary left behind.
 ///
@@ -93,7 +114,18 @@ depositRoutes.get('/requests/:token', async (c) => {
   if (publicRequest.status === 'expired' && request.status === 'open') {
     await saveDepositRequest({ ...request, status: 'expired', updatedAt: Date.now() });
   }
-  return c.json({ request: publicRequest });
+  return c.json({ request: await payView(request) });
+});
+
+/// The request's own addresses, for a payer sending from an exchange or any
+/// wallet. Public like the request itself; made once, on the first ask.
+depositRoutes.post('/requests/:token/receive', rateLimit({ windowMs: 60_000, max: 10, name: 'request-receive' }), async (c) => {
+  const result = await ensureReceiving(c.req.param('token') ?? '');
+  if (result.ok) return c.json({ request: await payView(result.request) });
+  if (result.reason === 'not_found') return c.json({ error: 'request not found' }, 404);
+  if (result.reason === 'closed') return c.json({ error: 'request is closed' }, 409);
+  if (result.reason === 'unsupported') return c.json({ error: 'not available here', code: 'unsupported' }, 409);
+  return c.json({ error: 'could not prepare an address right now' }, 503);
 });
 
 /// The recipient's own request history. No public caller can enumerate tokens.

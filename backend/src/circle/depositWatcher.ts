@@ -6,6 +6,7 @@ import { listAllAgentWallets } from '../db/agentWallets.js';
 import { appendActivity } from '../db/activityLog.js';
 import { routeDepositToArc, bridgeIdForDeposit } from './depositRouter.js';
 import { matchDepositRequest } from '../money/depositRequests.js';
+import { recordRequestReceipt, requestForAddress } from '../money/requestReceiving.js';
 /// Base58, so it cannot live in CCTP_CHAINS, which types `usdc` as a hex
 /// address. Shared with the Solana balance reader so one mint address decides
 /// both what counts as a deposit and what counts as a balance.
@@ -245,6 +246,14 @@ async function handle(event: KarwanEvent, fetchToken: FetchToken): Promise<void>
   if (n.state !== 'COMPLETE' && n.state !== 'CONFIRMED') return;
   if (!n.id || !n.blockchain || !n.destinationAddress) return;
 
+  // A payment link's own address comes first: it is tied to one request, so
+  // nothing about the amount has to be guessed.
+  const viaRequest = await requestForAddress(n.blockchain, n.destinationAddress);
+  if (viaRequest) {
+    await handleRequestReceipt(n, viaRequest, fetchToken);
+    return;
+  }
+
   const owner = await ownerOfDepositAddress(n.blockchain, n.destinationAddress);
   if (!owner) return; // not a deposit address of ours
 
@@ -333,6 +342,68 @@ async function handle(event: KarwanEvent, fetchToken: FetchToken): Promise<void>
     // (below the auto-bridge floor, or a chain the backend cannot sign for),
     // which is exactly when naming the chain matters most: the money is still
     // sitting there.
+    refId: bridgeIdForDeposit(n.id),
+    ...(n.txHash ? { txHash: n.txHash } : {}),
+  });
+}
+
+/// Money sent to a payment link's own address. It is counted against that
+/// request and moved to the requester on Arc, and it is moved even when the
+/// request had already closed: the money is theirs either way.
+async function handleRequestReceipt(
+  n: CircleTxNotification,
+  target: { token: string; walletId: string; address: string },
+  fetchToken: FetchToken,
+): Promise<void> {
+  if (!(await isUsdc(n, fetchToken))) {
+    logger.warn({ tokenId: n.tokenId, blockchain: n.blockchain, txId: n.id }, 'inbound to a payment link address skipped: not USDC');
+    return;
+  }
+  const amountUsdc = n.amounts?.[0] ?? null;
+  if (!amountUsdc || !n.id || !n.blockchain) return;
+  if (alreadyHandled(n.id)) return;
+
+  const originChain = friendlyChainName(n.blockchain);
+  const applied = await recordRequestReceipt(target.token, { txId: n.id, amountUsdc, chain: originChain });
+  if (!applied || applied.outcome === 'duplicate') return;
+  const requester = applied.request.recipientAddress.toLowerCase();
+
+  logger.info(
+    { token: target.token, requester, amountUsdc, outcome: applied.outcome, blockchain: n.blockchain, txId: n.id },
+    'payment link received USDC',
+  );
+
+  bus.emitEvent({
+    type: 'wallet.credited',
+    actor: 'platform',
+    payload: {
+      address: requester,
+      owner: requester,
+      amountUsdc,
+      chain: n.blockchain,
+      chainName: originChain,
+      bridgeId: bridgeIdForDeposit(n.id),
+      source: 'request',
+      requestId: target.token,
+      requestOutcome: applied.outcome,
+      ...(n.txHash ? { txHash: n.txHash } : {}),
+    },
+  });
+
+  routeDepositToArc({
+    owner: requester,
+    amountUsdc,
+    chain: n.blockchain,
+    txId: n.id,
+    source: { walletId: target.walletId, address: target.address },
+  });
+
+  void appendActivity({
+    address: requester,
+    kind: 'deposit',
+    summary: `Received ${amountUsdc} USDC from ${originChain} for a payment request`,
+    params: { t: 'requestReceivedFrom', amount: amountUsdc, chain: originChain, requestId: target.token },
+    amountUsdc,
     refId: bridgeIdForDeposit(n.id),
     ...(n.txHash ? { txHash: n.txHash } : {}),
   });

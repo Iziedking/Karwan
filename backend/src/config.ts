@@ -418,6 +418,10 @@ const envSchema = z.object({
   CIRCLE_API_KEY: optionalString,
   CIRCLE_ENTITY_SECRET: optionalString,
   CIRCLE_WALLET_SET_ID: optionalString,
+  // A wallet set used only for payment-link receiving addresses, so creating
+  // them never shares an index with account deposit wallets. Unset turns
+  // "Send from any chain" off on the pay page.
+  CIRCLE_PAYLINK_WALLET_SET_ID: optionalString,
   // Set true once a Circle Gas Station policy is configured in the console for
   // the wallet set, so DCW transactions (bridge approve / burn / mint) are
   // sponsored and bridge wallets no longer need native gas. When true the bridge

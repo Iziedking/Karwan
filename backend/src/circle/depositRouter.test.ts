@@ -107,3 +107,22 @@ test('a chain with no deposit wallet on record is not routed', async () => {
 test('an unparseable amount is not routed', async () => {
   assert.equal(await routed('tx-6', { amountUsdc: 'not-a-number' }), null);
 });
+
+test('a payment link receipt is sent from the request wallet to the requester, connected wallet or not', async () => {
+  // A wallet-account requester has no deposit wallets, which is exactly the
+  // person a request's own addresses exist for. The source is the request's
+  // wallet and the mint goes to the requester's own Arc address.
+  const REQUESTER = '0x9999000000000000000000000000000000000001';
+  for (const [txId, chain, source] of [
+    ['tx-req-evm', 'ETH-SEPOLIA', { walletId: 'req-eth', address: '0x7777000000000000000000000000000000000007' }],
+    ['tx-req-sol', 'SOL-DEVNET', { walletId: 'req-sol', address: 'ReqSo1anaAddr1111111111111111111111111111' }],
+  ] as const) {
+    routeDepositToArc({ owner: REQUESTER, amountUsdc: '12', chain, txId, source });
+    await new Promise((r) => setTimeout(r, 60));
+    const b = await getBridge(`deposit-${txId}`);
+    assert.ok(b, `${chain} should route`);
+    assert.equal(b.mintRecipient, REQUESTER);
+    assert.equal(b.bridgeWalletId, source.walletId);
+    assert.equal(b.bridgeWalletAddress, source.address);
+  }
+});

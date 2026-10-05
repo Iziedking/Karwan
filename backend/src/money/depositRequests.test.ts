@@ -55,3 +55,27 @@ test('USDC amounts compare in micros, not floating point', () => {
   assert.equal(usdcToMicros('12.34'), usdcToMicros('12.340000'));
   assert.notEqual(usdcToMicros('12.340001'), usdcToMicros('12.34'));
 });
+
+test('the public request shows what was received, what is left and where to send, never transfer ids', () => {
+  const request = createDepositRequest({ owner, amountUsdc: '120', now: 1_000 });
+  const pub = toPublicRequest(
+    {
+      ...request,
+      receiving: { evm: { address: '0xab', wallets: { 'BASE-SEPOLIA': 'w1' } }, solana: { address: 'So1', walletId: 'w2' } },
+      receipts: [{ txId: 'circle-secret-id', amountUsdc: '100', chain: 'Base', at: 2_000 }],
+    },
+    3_000,
+  );
+  assert.equal(pub.receivedUsdc, '100');
+  assert.equal(pub.remainingUsdc, '20');
+  assert.deepEqual(pub.receiving, { evm: { address: '0xab', chains: ['Ethereum', 'Base', 'Arbitrum', 'Polygon'] }, solana: { address: 'So1' } });
+  assert.deepEqual(pub.payments, [{ amountUsdc: '100', chain: 'Base', at: 2_000 }]);
+  assert.ok(!JSON.stringify(pub).includes('circle-secret-id'));
+  assert.ok(!JSON.stringify(pub).includes('w1'));
+});
+
+test('a request nobody has sent to yet carries no receiving fields', () => {
+  const pub = toPublicRequest(createDepositRequest({ owner, amountUsdc: '5', now: 1_000 }), 2_000);
+  assert.equal(pub.receiving, undefined);
+  assert.equal(pub.payments, undefined);
+});

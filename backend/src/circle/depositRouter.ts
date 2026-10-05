@@ -58,6 +58,10 @@ export interface DepositRoute {
   /// Circle's transaction id. The idempotency key for the whole route, so it
   /// stays server-side.
   txId: string;
+  /// The wallet the money landed in, when it is not one of the owner's own
+  /// deposit wallets: a payment link's receiving wallet. The mint still goes
+  /// to `owner`, the requester.
+  source?: { walletId: string; address: string };
 }
 
 /// Fire and forget. Never throws at the caller: a deposit that cannot be routed
@@ -114,8 +118,7 @@ async function route(p: DepositRoute): Promise<void> {
   const chainCfg = CCTP_CHAINS[chainKey];
   if (!chainCfg.circleBlockchain) return; // web3-only chain, backend cannot sign
 
-  const wallets = await getAgentWallets(owner);
-  const bridgeWallet = wallets?.bridgeWallets?.[chainCfg.circleBlockchain];
+  const bridgeWallet = p.source ?? (await getAgentWallets(owner))?.bridgeWallets?.[chainCfg.circleBlockchain];
   if (!bridgeWallet) {
     logger.warn(
       { owner, chainKey },
@@ -189,8 +192,7 @@ async function route(p: DepositRoute): Promise<void> {
 /// instruction builder here and sign it with the DCW `signTransaction` API,
 /// which does accept a raw Solana transaction.
 async function routeSolana(owner: string, p: DepositRoute): Promise<void> {
-  const wallets = await getAgentWallets(owner);
-  const bridgeWallet = wallets?.bridgeWallets?.[SOLANA_CIRCLE_CHAIN];
+  const bridgeWallet = p.source ?? (await getAgentWallets(owner))?.bridgeWallets?.[SOLANA_CIRCLE_CHAIN];
   if (!bridgeWallet) {
     logger.warn({ owner }, 'Solana deposit credited but no Solana wallet on record');
     return;
