@@ -7,6 +7,10 @@ import { tierRank, type Tier } from '../reputation/config.js';
 import { getTierState, saveTierState } from '../db/tierState.js';
 import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { bus } from '../events.js';
+import { readSession } from '../auth/session.js';
+import { config } from '../config.js';
+import { isOwnerView } from '../sealed/passport.js';
+import { loadPublicPassport } from '../sealed/passportLoader.js';
 
 const addrSchema = z
   .string()
@@ -96,6 +100,12 @@ reputationRoutes.get('/', async (c) => {
       if (owner?.userAddress) repAddr = owner.userAddress;
     } catch {
       /* fall back to the queried address on lookup failure */
+    }
+
+    // Anyone but the owner gets the public passport: tier and fixed reasons.
+    // The check runs on the resolved owner, so an agent address cannot leak it.
+    if (config.SEALED_RECORDS && !isOwnerView(readSession(c)?.address, repAddr)) {
+      return c.json(await loadPublicPassport(repAddr));
     }
 
     const cacheKey = repAddr.toLowerCase();
