@@ -1,4 +1,5 @@
 import { SELLER_LINK_DETAIL, SELLER_NOT_BOUND, sellerAgentBinding, sellerBindingRefusal } from '../deals/sellerBinding.js';
+import { offerToChoose } from './chooseOffer.js';
 import { generateObject } from 'ai';
 import { formatUnits, parseUnits, type Log } from 'viem';
 import { publicClient, watchEventsViaGetLogs } from '../chain/client.js';
@@ -4025,6 +4026,31 @@ export async function proceedAgentNearMiss(
   return approveAgentMatch(jobId);
 }
 
+/// The buyer chooses an offer themselves, over the agent's pick if there is one.
+/// The offer is taken at the seller's own price, so it proposes and funds in one
+/// step through the same path a near-miss proceed takes. A pending agent pick
+/// for another seller is declined first so that seller is told.
+export async function chooseAgentOffer(
+  jobId: string,
+  sellerAgentAddress: string,
+): Promise<{ ok: true; txHash: string } | { ok: false; code: string; message: string }> {
+  const state = jobs.get(jobId as `0x${string}`);
+  if (!state) {
+    return { ok: false, code: 'NO_JOB_STATE', message: 'This request is no longer open. Post it again to get new offers.' };
+  }
+  const existing = await dbGetMatchProposal(jobId);
+  const choice = offerToChoose([...state.bids.values()], sellerAgentAddress, {
+    funded: state.escrowFunded,
+    approved: !!existing?.approvedAt,
+    closed: !!state.expired,
+  });
+  if (!choice.ok) return choice;
+  if (existing && !existing.declinedAt && existing.sellerAgent.toLowerCase() !== choice.seller.toLowerCase()) {
+    await declineAgentMatch(jobId, 'buyer-chose-another-offer');
+  }
+  return proceedAgentNearMiss(jobId, choice.seller, choice.priceUsdc);
+}
+
 /// Seller raises the agreed price at the approval gate. The agent settled within
 /// the buyer's authorized range, but the seller wants more, so instead of just
 /// accept/decline they name a higher number. This does no on-chain work: it
@@ -4782,15 +4808,13 @@ export function expireJob(jobId: `0x${string}`): boolean {
 /// Returns ok=true on success; ok=false with a code when the brief is in a
 /// state where cancellation is no longer the user's gate (already finalized,
 /// escrow funded, or expired).
+/// The route checks that the caller posted the request (isRequestOwner); the
+/// on-chain buyer here is the buying agent, never the person.
 export function cancelBriefByBuyer(
   jobId: `0x${string}`,
-  caller: string,
 ): { ok: true } | { ok: false; code: string; message: string } {
   const state = jobs.get(jobId);
   if (!state) return { ok: false, code: 'NO_JOB', message: 'no tracked brief for this job id' };
-  if (state.context.buyer.toLowerCase() !== caller.toLowerCase()) {
-    return { ok: false, code: 'NOT_BUYER', message: 'only the buyer can cancel this brief' };
-  }
   if (state.escrowFunded) {
     return {
       ok: false,

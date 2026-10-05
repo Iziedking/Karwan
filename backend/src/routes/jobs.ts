@@ -26,6 +26,7 @@ import {
   getMarketplaceBriefs,
   cancelBriefByBuyer,
   proceedAgentNearMiss,
+  chooseAgentOffer,
   raiseMatchOffer,
   patchTrackedJobContext,
   reopenForNewBids,
@@ -38,6 +39,7 @@ import { endNearMissOnDecline, reRaiseNearMissFromPassed } from '../agents/nearM
 import { bus, recentEventsByType } from '../events.js';
 import { resolveBuyerProfileForUser } from '../agents/agent-registry.js';
 import { createBrief, patchBrief, getBrief, deleteBrief, rekeyBrief } from '../db/briefs.js';
+import { isRequestOwner } from '../agents/chooseOffer.js';
 import { accountTypeOf, deriveJobLane } from '../profile/accountType.js';
 import { getDeal } from '../db/deals.js';
 import { countLiveDirectOffers } from '../db/directOffers.js';
@@ -57,6 +59,7 @@ const addrSchema = z
 const callerSchema = z.object({ caller: addrSchema });
 const declineSchema = z.object({ caller: addrSchema, reason: z.string().min(1).max(400).optional() });
 const raiseSchema = z.object({ caller: addrSchema, priceUsdc: z.coerce.number().positive().max(1_000_000) });
+const chooseOfferSchema = z.object({ caller: addrSchema, seller: addrSchema });
 /// Pre-match edit. Any of briefText, negotiationMaxIncreasePct, or trustedMatch
 /// can change. Each field is optional but at least one must be provided. The
 /// in-flight match guard at the route layer prevents a desync against a running
@@ -608,6 +611,40 @@ jobsRoutes.post('/:jobId/approve-match', async (c) => {
   }
 });
 
+/// The buyer chooses one of the offers on their request at that offer's price.
+/// Only the person who posted the request can, and it funds escrow in the same
+/// step, so the frontend opens the confirm sheet before calling it.
+jobsRoutes.post('/:jobId/choose-offer', async (c) => {
+  const jobId = c.req.param('jobId');
+  let body;
+  try {
+    body = chooseOfferSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: invalidBodyMessage(err) }, 400);
+  }
+  if (!isSessionSelf(c, body.caller)) {
+    return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  }
+  const brief = getBrief(jobId);
+  if (!brief || !isRequestOwner(body.caller, brief)) {
+    return c.json({ error: 'only the buyer can choose an offer', code: 'forbidden' }, 403);
+  }
+  if (inFlight.has(jobId)) {
+    return c.json({ error: 'an action is already in progress for this job' }, 409);
+  }
+  inFlight.add(jobId);
+  try {
+    const result = await chooseAgentOffer(jobId, body.seller);
+    if (!result.ok) {
+      const status = result.code === 'INSUFFICIENT_AGENT_BALANCE' || result.code === 'CLOSED' || result.code.startsWith('ALREADY') ? 409 : result.code === 'NO_OFFER' ? 404 : 502;
+      return c.json({ error: 'could not choose this offer', code: result.code, detail: result.message }, status);
+    }
+    return c.json({ accepted: true, jobId, txHash: result.txHash }, 200);
+  } finally {
+    inFlight.delete(jobId);
+  }
+});
+
 /// Seller raises the agent-agreed price at the approval gate (they want more
 /// than the agent settled). This does no on-chain work: it flips the approval
 /// gate to the buyer, who approves at the raised price or declines. The buyer's
@@ -743,7 +780,11 @@ jobsRoutes.post('/:jobId/cancel', async (c) => {
   if (!isSessionSelf(c, body.caller)) {
     return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
   }
-  const result = cancelBriefByBuyer(jobId as `0x${string}`, body.caller);
+  const brief = getBrief(jobId);
+  if (!brief || !isRequestOwner(body.caller, brief)) {
+    return c.json({ error: 'only the buyer can cancel this request', code: 'NOT_BUYER' }, 403);
+  }
+  const result = cancelBriefByBuyer(jobId as `0x${string}`);
   if (!result.ok) {
     const status = result.code === 'NOT_BUYER' ? 403 : 409;
     return c.json({ error: result.message, code: result.code }, status);
