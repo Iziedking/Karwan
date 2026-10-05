@@ -42,8 +42,8 @@ export function ProfilePeekModal({
   const [loaded, setLoaded] = useState(false);
   const [showTechnical, setShowTechnical] = useState(false);
   const { copied, copy } = useClipboard();
-  const { data: rep } = useReputation(open ? address : undefined);
-  const tierHue = TIER_HUE[rep?.tier ?? 'NEW'];
+  const { data: rep, sealed: repSealed } = useReputation(open ? address : undefined);
+  const tierHue = TIER_HUE[repSealed?.tier ?? rep?.tier ?? 'NEW'];
 
   useEffect(() => {
     if (!open) return;

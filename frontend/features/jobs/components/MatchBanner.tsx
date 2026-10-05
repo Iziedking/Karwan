@@ -6,6 +6,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { api, ApiError, type MatchProposal, type UserProfile, type Reputation } from '@/core/api';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
 import { useReputation } from '@/features/reputation/hooks/useReputation';
+import { reasonLine } from '@/features/reputation/sealed';
 import { shortAddress, formatUsdc, relativeTime } from '@/shared/utils/format';
 import { MarketReadCard } from '@/shared/components/MarketReadCard';
 import { Hint } from '@/shared/components/Hint';
@@ -64,11 +65,9 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
   // buyer's live tier is now ESTABLISHED+, the warning is stale and contradicts
   // the badge shown right beside it. Read the live tier and suppress those flags
   // when it no longer holds. (spammy is velocity-based, not tier-based, kept.)
-  const { data: buyerRep } = useReputation(proposal.buyerUser);
-  const buyerProvenNow =
-    buyerRep?.tier === 'ESTABLISHED' ||
-    buyerRep?.tier === 'STRONG' ||
-    buyerRep?.tier === 'ELITE';
+  const { data: buyerRep, sealed: buyerSealed } = useReputation(proposal.buyerUser);
+  const buyerTier = buyerSealed?.tier ?? buyerRep?.tier;
+  const buyerProvenNow = buyerTier === 'ESTABLISHED' || buyerTier === 'STRONG' || buyerTier === 'ELITE';
   const flagIsRepBased =
     proposal.riskFlag === 'new-buyer' ||
     proposal.riskFlag === 'honey-trap' ||
@@ -586,7 +585,8 @@ function CounterpartySignal({
   copy: Messages['matchBanner']['counterparty'];
 }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const { data: rep } = useReputation(address);
+  const { data: rep, sealed: repSealed } = useReputation(address);
+  const sr = useTranslations().sealedRecord;
 
   useEffect(() => {
     let cancelled = false;
@@ -607,7 +607,7 @@ function CounterpartySignal({
   const xHandle = profile?.xHandle?.replace(/^@/, '') || null;
   const passportHref = `/credit-passport/${address}`;
   const xHref = xHandle ? `https://x.com/${xHandle}` : null;
-  const recordLine = rep ? formatRecord(rep, copy.record) : null;
+  const recordLine = repSealed ? reasonLine(repSealed.reasons, sr) : rep ? formatRecord(rep, copy.record) : null;
 
   // Compact row for Normal mode, preserves the existing footprint. Address
   // always renders as a masked line directly under the avatar so the viewer

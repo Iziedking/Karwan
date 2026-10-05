@@ -83,6 +83,7 @@ export function actorLabel(next: DealView['next'], counterpartyName: string, cop
 }
 
 export function trustFactParts(card: TrustCardView, copy: Copy, locale: string): string[] {
+  if (!card.facts) return [];
   const parts = [fill(copy.trust.settledTemplate, { n: card.facts.settled })];
   if (card.facts.withDeadline > 0) {
     parts.push(fill(copy.trust.onTimeTemplate, { on: card.facts.onTime, total: card.facts.withDeadline }));

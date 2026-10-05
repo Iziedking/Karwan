@@ -34,7 +34,7 @@ test('trust facts show what exists and hide what does not apply', () => {
     memberSince: Date.UTC(2026, 2, 1), stakeUsdc: null, provenAccounts: [], isNew: false,
   };
   assert.deepEqual(trustFactParts(card, copy, 'en'), ['14 settled', '13 of 14 on time', '0 disputes', 'since Mar 2026']);
-  const buyer: TrustCardView = { ...card, role: 'buyer', facts: { ...card.facts, withDeadline: 0 } };
+  const buyer: TrustCardView = { ...card, role: 'buyer', facts: { ...card.facts!, withDeadline: 0 } };
   assert.equal(trustFactParts(buyer, copy, 'en').some((part) => part.includes('on time')), false);
 });
 
@@ -45,4 +45,13 @@ test('the automatic outcome names its date', () => {
     automatic: { kind: 'auto-release', at: Date.UTC(2026, 8, 25, 9, 0) },
   }, copy, 'en');
   assert.equal(line, 'Releases automatically on 25 Sep 2026 unless the buyer disputes.');
+});
+
+test('a sealed card has no fact parts', () => {
+  const sealedCard: TrustCardView = {
+    role: 'seller', name: 'Amina', verifiedBusiness: false, verifiedPerson: false,
+    facts: null, memberSince: Date.UTC(2026, 2, 1), stakeUsdc: null, provenAccounts: [], isNew: false,
+    tier: 'ESTABLISHED', reasons: ['HAS_COMPLETED_DEALS'],
+  };
+  assert.deepEqual(trustFactParts(sealedCard, copy, 'en'), []);
 });

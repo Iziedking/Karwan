@@ -1,10 +1,13 @@
 'use client';
 import type { TrustCardView } from '@/core/api';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
+import { reasonLine } from '@/features/reputation/sealed';
+import { TIER_LABEL } from '@/features/reputation/tierColors';
 import { fill, formatUsdcAmount, trustFactParts } from './presentation';
 
 export function TrustCard({ card, onOpenPassport, bare = false }: { card: TrustCardView; onOpenPassport: () => void; bare?: boolean }) {
   const copy = useTranslations().dealWorkspace;
+  const sr = useTranslations().sealedRecord;
   const { locale } = useLocale();
   const roleLabel = card.role === 'seller' ? copy.trust.asSeller : copy.trust.asBuyer;
   return (
@@ -27,7 +30,13 @@ export function TrustCard({ card, onOpenPassport, bare = false }: { card: TrustC
           ) : null}
         </div>
       ) : null}
-      {card.isNew ? (
+      {card.facts == null ? (
+        <p className="text-[14px] text-[var(--lp-dark)]">
+          {card.tier ? <span className="font-medium">{TIER_LABEL[card.tier]}</span> : null}
+          {card.tier && card.reasons?.length ? ' · ' : null}
+          {card.reasons?.length ? reasonLine(card.reasons, sr) : null}
+        </p>
+      ) : card.isNew ? (
         <p className="text-[14px] text-[var(--lp-text-sub)]">{copy.trust.newAccount}</p>
       ) : (
         <p className="text-[14px] tabular-nums text-[var(--lp-dark)]">{trustFactParts(card, copy, locale).join(' · ')}</p>
