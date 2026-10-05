@@ -132,7 +132,7 @@ test('signed-in home splits only when the content column has room', () => {
   assert.match(css, /@container \(min-width: 1080px\)\s*\{\s*\.home-command-grid/);
   assert.match(css, /\.home-deals-grid\s*\{\s*grid-template-columns:/);
   assert.match(home, /currentDeal && showRecentDeals \? 'home-deals-grid grid gap-5' : ''/);
-  assert.match(home, /currentDeal = activeDeals\[0\] \?\? null/);
+  assert.match(home, /currentDeal = pickCurrentDeal\(deals\)/);
   assert.match(home, /recentDeals = currentDeal \? deals\.filter\(\(deal\) => deal\.jobId !== currentDeal\.jobId\) : deals/);
   assert.doesNotMatch(home, /lg:grid-cols-\[minmax\(0,0\.92fr\)/);
 });

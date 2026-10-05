@@ -4,6 +4,7 @@ import { escrowDocsCopy } from './escrowDocs';
 import { socialTradeCopy } from './socialTrade';
 import { protectionCopy } from './protection';
 import { moneyCopy } from './money';
+import { notifyCopy } from './notifications';
 import { searchCopy } from './search';
 import { offersCopy } from './offers';
 import { escrowV3Copy } from './escrowV3';
@@ -19,6 +20,7 @@ import { docsProductCopy } from './docsProduct';
 export const fr: Messages = {
   protection: protectionCopy.fr,
   money: moneyCopy.fr,
+  bell: notifyCopy.fr,
   search: searchCopy.fr,
   offers: offersCopy.fr,
   escrowV3: escrowV3Copy.fr,
@@ -915,6 +917,9 @@ export const fr: Messages = {
       moneyAndTrade: 'Argent et échanges',
       money: 'Argent',
       usdcBalance: 'Solde USDC',
+      setupTitle: 'Créez votre profil',
+      setupBody: 'Créez votre profil avant de commencer à échanger.',
+      setupCta: 'Continuer',
       wallets: 'Wallets',
       openDeals: 'Deals ouverts',
       reviewNow: 'À revoir',
@@ -1122,6 +1127,7 @@ export const fr: Messages = {
     current: 'Actuel',
     available: 'USDC disponibles',
     activeTrades: 'Deals actifs',
+    balanceParts: 'Portefeuille {wallet} · Autres réseaux {other} · Agents {agents}',
     wallets: 'Wallets',
     add: 'Ajouter',
     move: 'Déplacer',
@@ -2602,6 +2608,7 @@ export const fr: Messages = {
     topTier: 'Palier maximal',
   },
   chatPanel: {
+    timeline: { "deal.accepted": "Le vendeur a accepté l’accord.", "escrow.funded": "L’acheteur a financé le séquestre. L’argent est bloqué jusqu’à la libération.", "deal.delivered": "Le vendeur a marqué la transaction comme livrée.", "deal.release.blocked": "La vérification de la livraison a suspendu le paiement.", "deal.release.unblocked": "La vérification de la livraison est levée. Le paiement peut avancer.", "deal.delivery.cleared": "La vérification de la livraison est levée. Le paiement peut avancer.", "escrow.milestone.released": "Un paiement a été versé au vendeur.", "deal.milestone.auto_released": "Un paiement a été versé à la fin du délai d’examen.", "escrow.settled": "La transaction est réglée.", "escrow.refunded": "L’argent est retourné à l’acheteur.", "escrow.reclaimed": "L’argent est retourné à l’acheteur.", "deal.disputed": "Un litige a été ouvert.", "escrow.resolved": "Le litige a été réglé.", "deal.dispute.auto_resolved": "Le litige a été clos.", "deal.cancel.proposed": "Une annulation a été proposée.", "deal.cancel.declined": "L’annulation a été refusée.", "deal.cancelled": "La transaction a été annulée.", "deal.extension.requested": "Un délai supplémentaire a été demandé.", "deal.extension.approved": "Un délai supplémentaire a été accordé.", "deal.direct.edited": "Les conditions ont été mises à jour." },
     reply: 'Répondre', cancelReply: 'Annuler la réponse', replyingTo: 'Réponse à {name}', you: 'Vous', imageAttachment: 'Pièce jointe image', attachImage: 'Joindre une image', removeImage: "Supprimer l'image", imageOnly: 'Ajoutez une légende ou envoyez l’image', imageUnsupported: 'Utilisez une image PNG, JPEG ou WebP.', imageTooLarge: 'Cette image est trop volumineuse. Limite : 750 Ko.', imageReadError: "Impossible de lire l'image. Réessayez.",conversationClosed: 'Cette conversation est fermée.',
     loadError: "Impossible de charger l'historique de chat.",
     emptyMessage: 'Aucun message. Dites bonjour.',
@@ -3099,8 +3106,9 @@ export const fr: Messages = {
     },
   },
   dealWorkspace: {
-    checkPaused: { title: "Le paiement est en pause", stays: "Votre argent reste en séquestre jusqu’à la résolution.", saw: "Ce que la vérification a vu", noWallet: "La libération automatique ne peut pas s’exécuter pour ce deal. Libérez le paiement vous-même ici.", reasons: { "security-hold": "Le lien de livraison a été signalé comme dangereux, il vous est donc masqué.", "off-request": "La vérification a trouvé que la livraison ne correspond pas à votre demande.", "evidence-mismatch": "Les preuves de livraison ne correspondent pas aux conditions convenues.", "check-pending": "La vérification automatique n’a pas encore donné de résultat.", "check-expired": "Le résultat de la vérification a expiré avant la libération du paiement.", "terms-changed": "Les conditions ont changé après la vérification, elle doit donc être refaite.", "delivery-replaced": "Une livraison plus récente a été envoyée, la vérification doit donc être refaite.", "link-unverifiable": "Le lien de livraison n’a pas pu être ouvert pour la vérification." }, sellerHold: "Votre lien de livraison a été signalé comme dangereux et est masqué à l’acheteur. Envoyez un lien corrigé.", sellerOff: "La vérification indique que la livraison ne correspond peut-être pas à la demande. L’acheteur l’examine." },
-    protection: { title: "Protection de cette transaction", escrow: "Argent bloqué sous séquestre jusqu’à la libération", you: "Vous vérifiez avec World ID", buyer: "L’acheteur vérifie avec World ID", seller: "Le vendeur vérifie avec World ID", reasons: { first_deal: "première transaction", large_deal: "transaction importante", fast_new_account: "beaucoup de nouvelles transactions aujourd’hui", flagged_link_before: "un lien signalé au dossier" }, stake: "Le vendeur bloque {pct} % en garantie", github: "Livraison vérifiée sur GitHub", offMarket: "Prix éloigné des transactions similaires" },
+    checkPaused: { title: "Le paiement est en pause", stays: "Votre argent reste en séquestre jusqu’à la résolution.", saw: "Ce que la vérification a vu", noWallet: "La libération automatique ne peut pas s’exécuter pour ce deal. Libérez le paiement vous-même ici.", reasons: { "security-hold": "Le lien de livraison a été signalé comme dangereux, il vous est donc masqué.", "off-request": "La vérification a trouvé que la livraison ne correspond pas à votre demande.", "evidence-mismatch": "Les preuves de livraison ne correspondent pas aux conditions convenues.", "check-pending": "La vérification automatique n’a pas encore donné de résultat.", "check-expired": "Le résultat de la vérification a expiré avant la libération du paiement.", "terms-changed": "Les conditions ont changé après la vérification, elle doit donc être refaite.", "delivery-replaced": "Une livraison plus récente a été envoyée, la vérification doit donc être refaite.", "link-unverifiable": "Le lien de livraison n’a pas pu être ouvert pour la vérification." }, sellerHold: "Votre lien de livraison a été signalé comme dangereux et est masqué à l’acheteur. Envoyez un lien corrigé.", sellerOff: "La vérification indique que votre livraison ne correspond peut-être pas à la demande. Envoyez le bon lien." },
+    checkLive: { checking: "Vérification de la livraison", checkingBody: "Un agent de contrôle la compare à la demande. Le paiement attend le résultat.", passed: "Livraison vérifiée", passedBuyer: "Examinez le travail, puis libérez le paiement.", passedSeller: "{name} examine le travail ensuite.", unverified: "Le lien n’a pas pu être vérifié", unverifiedBuyer: "Examinez le travail vous-même avant de libérer le paiement.", unverifiedSeller: "{name} examine le travail lui-même." },
+    protection: { title: "Protection de cette transaction", escrow: "Argent bloqué sous séquestre jusqu’à la libération", you: "Vous vérifiez avec World ID", buyer: "L’acheteur vérifie avec World ID", seller: "Le vendeur vérifie avec World ID", reasons: { first_deal: "première transaction", large_deal: "transaction importante", fast_new_account: "beaucoup de nouvelles transactions aujourd’hui", flagged_link_before: "un lien signalé au dossier" }, stake: "Le vendeur bloque {pct} % en garantie", github: "Livraison vérifiée sur GitHub", offMarket: "Le prix est bien au-dessus des transactions similaires", belowMarket: "Le prix est bien en dessous des transactions similaires" },
     simple: {
       newHere: "Nouveau sur Karwan",
       agreement: "Accord",
@@ -5207,7 +5215,7 @@ export const fr: Messages = {
     refreshing: 'Actualisation',
     reveal: 'Afficher',
     hide: 'Masquer',
-    total: 'Total',
+    total: 'Sur ce portefeuille',
     zeroChainsTemplate: 'Aucun USDC sur {n} réseaux',
     zeroOtherChainsTemplate: 'Aucun USDC sur {n} autres réseaux',
     tabs: {

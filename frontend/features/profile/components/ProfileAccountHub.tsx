@@ -9,6 +9,7 @@ import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { formatBalance, heroAmount } from '@/features/money/balanceModel';
 import { useMoneyBalances } from '@/features/money/hooks/useMoneyBalances';
+import { useOwnedBalance } from '@/features/money/hooks/useOwnedBalance';
 import { ProfileFrame, Row, RowGroup } from '../ui/ProfileUi';
 import { ProfileSignOut } from './ProfileSignOut';
 import { WorkspaceSwitcher } from '@/features/workspaces/components/WorkspaceSwitcher';
@@ -87,6 +88,8 @@ export function ProfileAccountHub({
     : profile.email || shortAddress(address);
 
   const money = useMoneyBalances();
+  // The same total as Home and the balance page; the Agents row below shows its part.
+  const owned = useOwnedBalance();
   const { hasPasskey, method, email, refresh } = useAuth();
   const passkey = useAddPasskey(email, () => refresh());
   const { locale } = useLocale();
@@ -135,7 +138,7 @@ export function ProfileAccountHub({
       ) : null}
 
       <RowGroup title={DEALS_AVAILABLE ? hub.moneyAndTrade : hub.money}>
-        <Row label={hub.usdcBalance} value={money.balance == null ? undefined : `${formatBalance(heroAmount(balanceFacts), locale)} USDC`} href="/account" />
+        <Row label={hub.usdcBalance} value={owned.total == null ? undefined : `${formatBalance(owned.total, locale)} USDC`} href="/account" />
         {DEALS_AVAILABLE ? (
           <>
             <Row label={simple.agents} value={usdc(agentTotal)} href="/profile/agent-funds" />

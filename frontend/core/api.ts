@@ -652,7 +652,7 @@ export interface TrustView {
   verify: Partial<Record<'buyer' | 'seller', 'first_deal' | 'large_deal' | 'fast_new_account' | 'flagged_link_before' | 'check'>>;
   stakeRequired: boolean;
   delivery: 'github' | 'plain';
-  reasons: Array<'first_deal' | 'large_deal' | 'fast_new_account' | 'flagged_link_before' | 'lost_disputes' | 'off_market_price'>;
+  reasons: Array<'first_deal' | 'large_deal' | 'fast_new_account' | 'flagged_link_before' | 'lost_disputes' | 'off_market_price' | 'below_market_price'>;
 }
 
 export interface DirectDeal {
@@ -669,6 +669,8 @@ export interface DirectDeal {
   /// the identity used by dispute and direct-wallet payout paths. Managed
   /// payouts act on `sellerAgentAddress`.
   sellerPaytag?: string;
+  /// The other party's display name or @tag, resolved by the deal list for the viewer.
+  counterpartyName?: string;
   dealAmountUsdc: string;
   /// First milestone percent. On a two-milestone deal implies [firstReleasePct,
   /// 100 - firstReleasePct]; kept in sync with milestonePcts[0] when present.
@@ -772,6 +774,8 @@ export interface DirectDeal {
   /// from link safety). 'partial'/'mismatch' surface a buyer review notice and
   /// pause auto-release; the proof is always shown, the buyer decides.
   deliveryMatch?: { verdict: 'aligned' | 'partial' | 'mismatch' | 'unknown'; reason: string };
+  /// Where the delivery check stands, visible to both parties without the buyer's review.
+  deliveryCheck?: 'checking' | 'passed' | 'held' | 'unverified' | null;
   reviewWindowStartedAt?: number;
   reviewExtensionMs?: number;
   reviewExtensionCount?: number;

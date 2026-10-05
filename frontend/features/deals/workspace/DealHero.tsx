@@ -14,6 +14,7 @@ import { AgreementSection } from './AgreementSection';
 import { AnswerCancelSheet, AnswerTimeSheet, DeliverSheet, ProblemSheet, TurnDownSheet } from './DealSheets';
 import { actionLabel, actorLabel, automaticLine, fill, formatDealDate, formatUsdcAmount, trustFactParts } from './presentation';
 import { answersCancelHere, problemOptions } from './problems';
+import { deliveryCheckStatus } from './checkStatus';
 import { Sheet } from './Sheet';
 import { TrustCard } from './TrustCard';
 import { useChatUnread } from '@/features/chat/hooks/useChatUnread';
@@ -89,9 +90,16 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   }
 
   let moment: ReactNode = null;
-  const paused = deal.releaseBlockedReason && view.stage !== 'settled' && view.stage !== 'cancelled' ? copy.checkPaused : null;
+  const check = deliveryCheckStatus(deal, view.stage);
+  const live = copy.checkLive;
+  const paused = check === 'held' ? copy.checkPaused : null;
+  const proof = deal.deliveryProof?.trim();
+  const seeDelivery = viewerIsBuyer && proof && isLink(proof) ? (
+    <a href={proof} target="_blank" rel="noreferrer noopener" className="font-semibold underline underline-offset-4">{s.seeDelivery}</a>
+  ) : null;
   if (paused) {
-    const detail = deal.releaseBlockedDetail;
+    // A hold from the verdict shows at once, before the watcher records a detail.
+    const detail = deal.releaseBlockedDetail ?? (deal.releaseBlockedReason ? undefined : 'off-request');
     const reason = !detail
       ? paused.noWallet
       : !viewerIsBuyer && detail === 'security-hold'
@@ -109,6 +117,41 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
           <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]"><span className="font-semibold text-[var(--lp-dark)]">{paused.saw}:</span> <span dir="auto">{saw}</span></p>
         ) : null}
         <p className="text-[13px] text-[var(--lp-text-sub)]">{paused.stays}</p>
+      </div>
+    );
+  } else if (check === 'checking') {
+    moment = (
+      <div role="status" aria-live="polite" className="flex gap-3 rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-4">
+        <span aria-hidden className="relative mt-1.5 flex size-2.5 shrink-0">
+          <span className="absolute inline-flex size-full rounded-full bg-[var(--accent)] opacity-60 motion-safe:animate-ping" />
+          <span className="relative inline-flex size-2.5 rounded-full bg-[var(--accent)]" />
+        </span>
+        <span className="space-y-1">
+          <span className="block text-[15px] font-semibold text-[var(--lp-dark)]">{live.checking}</span>
+          <span className="block text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{live.checkingBody}</span>
+        </span>
+      </div>
+    );
+  } else if (check === 'passed' || check === 'unverified') {
+    const passed = check === 'passed';
+    moment = (
+      <div role="status" className="flex gap-3 rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-4">
+        <span aria-hidden className={cn('mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full', passed ? 'bg-[var(--accent)]' : 'bg-[var(--color-warning-soft)]')}>
+          {passed ? (
+            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--lp-band-dark)]"><path d="M2.5 6.3 5 8.7l4.6-5.2" /></svg>
+          ) : (
+            <span className="size-1.5 rounded-full bg-[var(--color-warning)]" />
+          )}
+        </span>
+        <span className="space-y-1">
+          <span className="block text-[15px] font-semibold text-[var(--lp-dark)]">{passed ? live.passed : live.unverified}</span>
+          <span className="block text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+            {viewerIsBuyer
+              ? passed ? live.passedBuyer : live.unverifiedBuyer
+              : fill(passed ? live.passedSeller : live.unverifiedSeller, { name })}{' '}
+            {seeDelivery}
+          </span>
+        </span>
       </div>
     );
   } else if (declined && deal.sellerDeclineNote) {
@@ -183,7 +226,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
           </button>
         ) : view.next.actor !== 'you' ? (
           <p className="flex min-h-14 w-full items-center justify-center rounded-full bg-[var(--tint)] px-6 text-[15px] font-medium text-[var(--lp-text-sub)]">
-            {actorLabel(view.next, displayName, copy)}
+            {check === 'checking' ? live.checking : actorLabel(view.next, displayName, copy)}
           </p>
         ) : null}
         {view.next.action === 'accept' && !deal.sellerDeclinedAt ? (

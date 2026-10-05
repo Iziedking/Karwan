@@ -4,6 +4,7 @@ import { escrowDocsCopy } from './escrowDocs';
 import { socialTradeCopy } from './socialTrade';
 import { protectionCopy } from './protection';
 import { moneyCopy } from './money';
+import { notifyCopy } from './notifications';
 import { searchCopy } from './search';
 import { offersCopy } from './offers';
 import { escrowV3Copy } from './escrowV3';
@@ -19,6 +20,7 @@ import { docsProductCopy } from './docsProduct';
 export const ar: Messages = {
   protection: protectionCopy.ar,
   money: moneyCopy.ar,
+  bell: notifyCopy.ar,
   search: searchCopy.ar,
   offers: offersCopy.ar,
   escrowV3: escrowV3Copy.ar,
@@ -915,6 +917,9 @@ export const ar: Messages = {
       moneyAndTrade: 'المال والتداول',
       money: 'المال',
       usdcBalance: 'رصيد USDC',
+      setupTitle: 'أنشئ ملفك الشخصي',
+      setupBody: 'أنشئ ملفك الشخصي قبل أن تبدأ التداول.',
+      setupCta: 'متابعة',
       wallets: 'المحافظ',
       openDeals: 'الصفقات المفتوحة',
       reviewNow: 'راجع الآن',
@@ -1122,6 +1127,7 @@ export const ar: Messages = {
     current: 'الحالي',
     available: 'USDC المتاح',
     activeTrades: 'الصفقات النشطة',
+    balanceParts: 'المحفظة {wallet} · شبكات أخرى {other} · الوكلاء {agents}',
     wallets: 'المحافظ',
     add: 'إضافة',
     move: 'نقل',
@@ -2602,6 +2608,7 @@ export const ar: Messages = {
     topTier: 'أعلى فئة',
   },
   chatPanel: {
+    timeline: { "deal.accepted": "قبل البائع الاتفاق.", "escrow.funded": "موّل المشتري الضمان. الأموال محفوظة حتى الإفراج.", "deal.delivered": "وضع البائع علامة التسليم على الصفقة.", "deal.release.blocked": "أوقف فحص التسليم الدفع.", "deal.release.unblocked": "انتهى فحص التسليم. يمكن أن يتم الدفع.", "deal.delivery.cleared": "انتهى فحص التسليم. يمكن أن يتم الدفع.", "escrow.milestone.released": "تم تحرير دفعة إلى البائع.", "deal.milestone.auto_released": "تم تحرير دفعة بعد انتهاء مدة المراجعة.", "escrow.settled": "تمت تسوية الصفقة.", "escrow.refunded": "عادت الأموال إلى المشتري.", "escrow.reclaimed": "عادت الأموال إلى المشتري.", "deal.disputed": "تم فتح نزاع.", "escrow.resolved": "تمت تسوية النزاع.", "deal.dispute.auto_resolved": "تم إغلاق النزاع.", "deal.cancel.proposed": "تم اقتراح إلغاء.", "deal.cancel.declined": "تم رفض الإلغاء.", "deal.cancelled": "تم إلغاء الصفقة.", "deal.extension.requested": "تم طلب وقت إضافي.", "deal.extension.approved": "تمت الموافقة على وقت إضافي.", "deal.direct.edited": "تم تحديث الشروط." },
     reply: 'Reply', cancelReply: 'Cancel reply', replyingTo: 'Replying to {name}', you: 'You', imageAttachment: 'Image attachment', attachImage: 'Attach image', removeImage: 'Remove image', imageOnly: 'Add a caption or send the image', imageUnsupported: 'Use a PNG, JPEG, or WebP image.', imageTooLarge: 'That image is too large. Keep it under 750 KB.', imageReadError: 'We could not read that image. Try again.',conversationClosed: 'This conversation is closed.',
     loadError: 'تعذّر تحميل سجل المحادثة.',
     emptyMessage: 'لا رسائل بعد. ابدأ بتحية.',
@@ -3099,8 +3106,9 @@ export const ar: Messages = {
     },
   },
   dealWorkspace: {
-    checkPaused: { title: "الدفع متوقف مؤقتًا", stays: "تبقى أموالك في الضمان حتى يتم حل الأمر.", saw: "ما الذي رصده الفحص", noWallet: "لا يمكن تشغيل الإفراج التلقائي لهذه الصفقة. أفرج عن الدفعة بنفسك من هنا.", reasons: { "security-hold": "تم الإبلاغ عن رابط التسليم على أنه غير آمن، لذلك هو مخفي عنك.", "off-request": "وجد الفحص أن التسليم لا يطابق ما طلبته.", "evidence-mismatch": "دليل التسليم لا يطابق الشروط المتفق عليها.", "check-pending": "لم يُرجع الفحص التلقائي نتيجة بعد.", "check-expired": "انتهت صلاحية نتيجة الفحص قبل الإفراج عن الدفعة.", "terms-changed": "تغيرت الشروط بعد إجراء الفحص، لذا يجب إعادته.", "delivery-replaced": "تم إرسال تسليم أحدث، لذا يجب إعادة الفحص.", "link-unverifiable": "تعذر فتح رابط التسليم لفحصه." }, sellerHold: "تم الإبلاغ عن رابط التسليم الخاص بك على أنه غير آمن وهو مخفي عن المشتري. أرسل رابطًا مصححًا.", sellerOff: "وجد الفحص أن التسليم قد لا يطابق الطلب. يراجعه المشتري." },
-    protection: { title: "الحماية في هذه الصفقة", escrow: "الأموال محفوظة في الضمان حتى الإفراج", you: "أنت تتحقق عبر World ID", buyer: "المشتري يتحقق عبر World ID", seller: "البائع يتحقق عبر World ID", reasons: { first_deal: "أول صفقة", large_deal: "صفقة كبيرة", fast_new_account: "صفقات جديدة كثيرة اليوم", flagged_link_before: "رابط مُبلَّغ عنه سابقًا" }, stake: "البائع يحتجز {pct}% كضمان", github: "التسليم يُفحص على GitHub", offMarket: "السعر بعيد عن الصفقات المماثلة" },
+    checkPaused: { title: "الدفع متوقف مؤقتًا", stays: "تبقى أموالك في الضمان حتى يتم حل الأمر.", saw: "ما الذي رصده الفحص", noWallet: "لا يمكن تشغيل الإفراج التلقائي لهذه الصفقة. أفرج عن الدفعة بنفسك من هنا.", reasons: { "security-hold": "تم الإبلاغ عن رابط التسليم على أنه غير آمن، لذلك هو مخفي عنك.", "off-request": "وجد الفحص أن التسليم لا يطابق ما طلبته.", "evidence-mismatch": "دليل التسليم لا يطابق الشروط المتفق عليها.", "check-pending": "لم يُرجع الفحص التلقائي نتيجة بعد.", "check-expired": "انتهت صلاحية نتيجة الفحص قبل الإفراج عن الدفعة.", "terms-changed": "تغيرت الشروط بعد إجراء الفحص، لذا يجب إعادته.", "delivery-replaced": "تم إرسال تسليم أحدث، لذا يجب إعادة الفحص.", "link-unverifiable": "تعذر فتح رابط التسليم لفحصه." }, sellerHold: "تم الإبلاغ عن رابط التسليم الخاص بك على أنه غير آمن وهو مخفي عن المشتري. أرسل رابطًا مصححًا.", sellerOff: "وجد الفحص أن تسليمك قد لا يطابق الطلب. أرسل الرابط الصحيح." },
+    checkLive: { checking: "جارٍ فحص التسليم", checkingBody: "يقارن وكيل الحماية التسليم بالطلب. ينتظر الدفع النتيجة.", passed: "اجتاز التسليم الفحص", passedBuyer: "راجع العمل، ثم حرّر الدفع.", passedSeller: "يراجع {name} العمل بعد ذلك.", unverified: "تعذّر فحص الرابط", unverifiedBuyer: "راجع العمل بنفسك قبل تحرير الدفع.", unverifiedSeller: "يراجع {name} العمل بنفسه." },
+    protection: { title: "الحماية في هذه الصفقة", escrow: "الأموال محفوظة في الضمان حتى الإفراج", you: "أنت تتحقق عبر World ID", buyer: "المشتري يتحقق عبر World ID", seller: "البائع يتحقق عبر World ID", reasons: { first_deal: "أول صفقة", large_deal: "صفقة كبيرة", fast_new_account: "صفقات جديدة كثيرة اليوم", flagged_link_before: "رابط مُبلَّغ عنه سابقًا" }, stake: "البائع يحتجز {pct}% كضمان", github: "التسليم يُفحص على GitHub", offMarket: "السعر أعلى بكثير من الصفقات المماثلة", belowMarket: "السعر أقل بكثير من الصفقات المماثلة" },
     simple: {
       newHere: "جديد على Karwan",
       agreement: "الاتفاق",
@@ -5207,7 +5215,7 @@ export const ar: Messages = {
     refreshing: 'جاري التحديث',
     reveal: 'إظهار',
     hide: 'إخفاء',
-    total: 'الإجمالي',
+    total: 'في هذه المحفظة',
     zeroChainsTemplate: 'لا يوجد USDC على {n} شبكات',
     zeroOtherChainsTemplate: 'لا يوجد USDC على {n} شبكات أخرى',
     tabs: {

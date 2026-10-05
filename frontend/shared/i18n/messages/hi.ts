@@ -4,6 +4,7 @@ import { escrowDocsCopy } from './escrowDocs';
 import { socialTradeCopy } from './socialTrade';
 import { protectionCopy } from './protection';
 import { moneyCopy } from './money';
+import { notifyCopy } from './notifications';
 import { searchCopy } from './search';
 import { offersCopy } from './offers';
 import { escrowV3Copy } from './escrowV3';
@@ -19,6 +20,7 @@ import { docsProductCopy } from './docsProduct';
 export const hi: Messages = {
   protection: protectionCopy.hi,
   money: moneyCopy.hi,
+  bell: notifyCopy.hi,
   search: searchCopy.hi,
   offers: offersCopy.hi,
   escrowV3: escrowV3Copy.hi,
@@ -913,6 +915,9 @@ export const hi: Messages = {
       moneyAndTrade: 'धन और ट्रेड',
       money: 'धन',
       usdcBalance: 'USDC बैलेंस',
+      setupTitle: 'अपनी प्रोफ़ाइल बनाएं',
+      setupBody: 'ट्रेड शुरू करने से पहले अपनी प्रोफ़ाइल बनाएं।',
+      setupCta: 'जारी रखें',
       wallets: 'वॉलेट',
       openDeals: 'खुले सौदे',
       reviewNow: 'अभी समीक्षा करें',
@@ -1120,6 +1125,7 @@ export const hi: Messages = {
     current: 'वर्तमान',
     available: 'उपलब्ध USDC',
     activeTrades: 'सक्रिय ट्रेड',
+    balanceParts: 'वॉलेट {wallet} · अन्य चेन {other} · एजेंट {agents}',
     wallets: 'वॉलेट',
     add: 'जोड़ें',
     move: 'स्थानांतरित करें',
@@ -2600,6 +2606,7 @@ export const hi: Messages = {
     topTier: 'शीर्ष श्रेणी',
   },
   chatPanel: {
+    timeline: { "deal.accepted": "विक्रेता ने समझौता स्वीकार किया।", "escrow.funded": "ख़रीदार ने एस्क्रो में पैसा जमा किया। रिलीज़ तक पैसा सुरक्षित है।", "deal.delivered": "विक्रेता ने डील को डिलीवर्ड चिह्नित किया।", "deal.release.blocked": "डिलीवरी जाँच ने भुगतान रोक दिया।", "deal.release.unblocked": "डिलीवरी जाँच पूरी हुई। भुगतान आगे बढ़ सकता है।", "deal.delivery.cleared": "डिलीवरी जाँच पूरी हुई। भुगतान आगे बढ़ सकता है।", "escrow.milestone.released": "विक्रेता को भुगतान जारी किया गया।", "deal.milestone.auto_released": "समीक्षा का समय ख़त्म होने पर भुगतान जारी किया गया।", "escrow.settled": "डील पूरी हो गई।", "escrow.refunded": "पैसा ख़रीदार को वापस गया।", "escrow.reclaimed": "पैसा ख़रीदार को वापस गया।", "deal.disputed": "विवाद खोला गया।", "escrow.resolved": "विवाद सुलझाया गया।", "deal.dispute.auto_resolved": "विवाद बंद किया गया।", "deal.cancel.proposed": "रद्द करने का प्रस्ताव दिया गया।", "deal.cancel.declined": "रद्द करने का प्रस्ताव अस्वीकार किया गया।", "deal.cancelled": "डील रद्द कर दी गई।", "deal.extension.requested": "अतिरिक्त समय माँगा गया।", "deal.extension.approved": "अतिरिक्त समय पर सहमति हुई।", "deal.direct.edited": "शर्तें अपडेट की गईं।" },
     reply: 'Reply', cancelReply: 'Cancel reply', replyingTo: 'Replying to {name}', you: 'You', imageAttachment: 'Image attachment', attachImage: 'Attach image', removeImage: 'Remove image', imageOnly: 'Add a caption or send the image', imageUnsupported: 'Use a PNG, JPEG, or WebP image.', imageTooLarge: 'That image is too large. Keep it under 750 KB.', imageReadError: 'We could not read that image. Try again.',conversationClosed: 'This conversation is closed.',
     loadError: 'चैट इतिहास लोड नहीं हो सका।',
     emptyMessage: 'अभी कोई संदेश नहीं। नमस्ते कहें।',
@@ -3097,8 +3104,9 @@ export const hi: Messages = {
     },
   },
   dealWorkspace: {
-    checkPaused: { title: "भुगतान रुका हुआ है", stays: "इसके हल होने तक आपका पैसा एस्क्रो में रहता है।", saw: "जांच ने क्या देखा", noWallet: "इस डील के लिए स्वचालित रिलीज़ नहीं चल सकती। यहां से खुद भुगतान रिलीज़ करें।", reasons: { "security-hold": "डिलीवरी लिंक को असुरक्षित बताया गया है, इसलिए यह आपसे छिपा है।", "off-request": "जांच में पाया गया कि डिलीवरी आपकी मांग से मेल नहीं खाती।", "evidence-mismatch": "डिलीवरी का प्रमाण तय शर्तों से मेल नहीं खाता।", "check-pending": "स्वचालित जांच का नतीजा अभी नहीं आया है।", "check-expired": "भुगतान रिलीज़ होने से पहले जांच का नतीजा समाप्त हो गया।", "terms-changed": "जांच के बाद शर्तें बदलीं, इसलिए इसे फिर से चलाना होगा।", "delivery-replaced": "नई डिलीवरी भेजी गई है, इसलिए जांच फिर से चलानी होगी।", "link-unverifiable": "जांच के लिए डिलीवरी लिंक नहीं खुल सका।" }, sellerHold: "आपके डिलीवरी लिंक को असुरक्षित बताया गया है और यह खरीदार से छिपा है। सही लिंक भेजें।", sellerOff: "जांच में पाया गया कि डिलीवरी शायद अनुरोध से मेल नहीं खाती। खरीदार इसकी समीक्षा करता है।" },
-    protection: { title: "इस डील पर सुरक्षा", escrow: "रिलीज़ तक पैसा एस्क्रो में रखा है", you: "आप World ID से सत्यापित करते हैं", buyer: "खरीदार World ID से सत्यापित करता है", seller: "विक्रेता World ID से सत्यापित करता है", reasons: { first_deal: "पहली डील", large_deal: "बड़ी डील", fast_new_account: "आज कई नई डील", flagged_link_before: "रिकॉर्ड पर एक फ़्लैग किया गया लिंक" }, stake: "विक्रेता {pct}% स्टेक रखता है", github: "डिलीवरी GitHub पर जाँची जाती है", offMarket: "कीमत मिलती-जुलती डील से बहुत अलग है" },
+    checkPaused: { title: "भुगतान रुका हुआ है", stays: "इसके हल होने तक आपका पैसा एस्क्रो में रहता है।", saw: "जांच ने क्या देखा", noWallet: "इस डील के लिए स्वचालित रिलीज़ नहीं चल सकती। यहां से खुद भुगतान रिलीज़ करें।", reasons: { "security-hold": "डिलीवरी लिंक को असुरक्षित बताया गया है, इसलिए यह आपसे छिपा है।", "off-request": "जांच में पाया गया कि डिलीवरी आपकी मांग से मेल नहीं खाती।", "evidence-mismatch": "डिलीवरी का प्रमाण तय शर्तों से मेल नहीं खाता।", "check-pending": "स्वचालित जांच का नतीजा अभी नहीं आया है।", "check-expired": "भुगतान रिलीज़ होने से पहले जांच का नतीजा समाप्त हो गया।", "terms-changed": "जांच के बाद शर्तें बदलीं, इसलिए इसे फिर से चलाना होगा।", "delivery-replaced": "नई डिलीवरी भेजी गई है, इसलिए जांच फिर से चलानी होगी।", "link-unverifiable": "जांच के लिए डिलीवरी लिंक नहीं खुल सका।" }, sellerHold: "आपके डिलीवरी लिंक को असुरक्षित बताया गया है और यह खरीदार से छिपा है। सही लिंक भेजें।", sellerOff: "जाँच में पाया गया कि आपकी डिलीवरी शायद अनुरोध से मेल नहीं खाती। सही लिंक भेजें।" },
+    checkLive: { checking: "डिलीवरी की जाँच हो रही है", checkingBody: "एक गार्ड एजेंट इसे अनुरोध से मिला रहा है। भुगतान नतीजे का इंतज़ार करता है।", passed: "डिलीवरी जाँच पास हुई", passedBuyer: "काम देखें, फिर भुगतान जारी करें।", passedSeller: "अब {name} काम देखेंगे।", unverified: "लिंक की जाँच नहीं हो सकी", unverifiedBuyer: "भुगतान जारी करने से पहले काम ख़ुद देखें।", unverifiedSeller: "{name} काम ख़ुद देखेंगे।" },
+    protection: { title: "इस डील पर सुरक्षा", escrow: "रिलीज़ तक पैसा एस्क्रो में रखा है", you: "आप World ID से सत्यापित करते हैं", buyer: "खरीदार World ID से सत्यापित करता है", seller: "विक्रेता World ID से सत्यापित करता है", reasons: { first_deal: "पहली डील", large_deal: "बड़ी डील", fast_new_account: "आज कई नई डील", flagged_link_before: "रिकॉर्ड पर एक फ़्लैग किया गया लिंक" }, stake: "विक्रेता {pct}% स्टेक रखता है", github: "डिलीवरी GitHub पर जाँची जाती है", offMarket: "कीमत मिलती-जुलती डील से काफ़ी ज़्यादा है", belowMarket: "कीमत मिलती-जुलती डील से काफ़ी कम है" },
     simple: {
       newHere: "Karwan पर नया",
       agreement: "समझौता",
@@ -5205,7 +5213,7 @@ export const hi: Messages = {
     refreshing: 'रिफ्रेश हो रहा',
     reveal: 'दिखाएं',
     hide: 'छिपाएं',
-    total: 'कुल',
+    total: 'इस वॉलेट में',
     zeroChainsTemplate: '{n} चेन पर कोई USDC नहीं',
     zeroOtherChainsTemplate: '{n} अन्य चेन पर कोई USDC नहीं',
     tabs: {

@@ -83,7 +83,7 @@ export function ChatPanel({ jobId, caller, counterpartyLabel, counterpartyAddres
             <p className="my-3 text-center text-[12px] font-medium text-[var(--lp-text-sub)]">{dayLabel(message.ts, locale)}</p>
           ) : null;
           if (message.kind === 'system' || !sender) {
-            return <div key={message.id}>{divider}<p className="my-2 px-6 text-center text-[13px] text-[var(--lp-text-sub)]">{message.body}</p></div>;
+            return <div key={message.id}>{divider}<p className="my-2 px-6 text-center text-[13px] text-[var(--lp-text-sub)]">{(message.eventType && cp.timeline[message.eventType]) || message.body}</p></div>;
           }
           const mine = sender.toLowerCase() === me;
           const grouped = !newDay && previous && previous.kind !== 'system' && previous.sender === message.sender;

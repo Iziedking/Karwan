@@ -10,6 +10,7 @@ export interface ProtectionCopy {
   stake: string;
   github: string;
   offMarket: string;
+  belowMarket: string;
 }
 
 /// The lines under "Protection on this deal", in the order a person reads
@@ -30,5 +31,6 @@ export function protectionLines(
   if (stakePct) lines.push(copy.stake.replace('{pct}', String(stakePct)));
   if (view?.delivery === 'github') lines.push(copy.github);
   if (view?.reasons.includes('off_market_price')) lines.push(copy.offMarket);
+  if (view?.reasons.includes('below_market_price')) lines.push(copy.belowMarket);
   return lines;
 }

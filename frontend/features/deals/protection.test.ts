@@ -11,7 +11,8 @@ const copy: ProtectionCopy = {
   reasons: { first_deal: 'first deal', large_deal: 'large deal', fast_new_account: 'many new deals today', flagged_link_before: 'a flagged link on record' },
   stake: 'Seller holds {pct}% stake',
   github: 'Delivery checked on GitHub',
-  offMarket: 'Price is far from similar deals',
+  offMarket: 'Price is well above similar deals',
+  belowMarket: 'Price is well below similar deals',
 };
 
 test('escrow alone when the engine asks nothing', () => {
@@ -34,5 +35,11 @@ test('names who verifies and why, from the viewer\'s side', () => {
 
 test('stake and an off-market price are listed', () => {
   const view = { verify: {}, stakeRequired: true, delivery: 'plain' as const, reasons: ['off_market_price' as const] };
-  assert.deepEqual(protectionLines(view, 'buyer', copy, 50).slice(1), ['Seller holds 50% stake', 'Price is far from similar deals']);
+  assert.deepEqual(protectionLines(view, 'buyer', copy, 50).slice(1), ['Seller holds 50% stake', 'Price is well above similar deals']);
+});
+
+test('a price well below similar deals says below, not just far', () => {
+  const lines = protectionLines({ level: 'watch', verify: {}, reasons: ['below_market_price'] } as never, 'buyer', copy);
+  assert.ok(lines.includes('Price is well below similar deals'));
+  assert.ok(!lines.includes('Price is well above similar deals'));
 });

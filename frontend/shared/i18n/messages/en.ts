@@ -7,6 +7,7 @@ import { escrowDocsCopy, type EscrowDocsCopy } from './escrowDocs';
 import { socialTradeCopy, type SocialTradeCopy } from './socialTrade';
 import { protectionCopy, type ProtectionCopy } from './protection';
 import { moneyCopy, type MoneyCopy } from './money';
+import { notifyCopy, type NotifyCopy } from './notifications';
 import { searchCopy, type SearchCopy } from './search';
 import { offersCopy, type OffersCopy } from './offers';
 import { escrowV3Copy, type EscrowV3Copy } from './escrowV3';
@@ -21,6 +22,7 @@ import { docsProductCopy, type DocsProductCopy } from './docsProduct';
 interface MessagesShape {
   protection: ProtectionCopy;
   money: MoneyCopy;
+  bell: NotifyCopy;
   search: SearchCopy;
   offers: OffersCopy;
   escrowV3: EscrowV3Copy;
@@ -892,6 +894,9 @@ interface MessagesShape {
       moneyAndTrade: string;
       money: string;
       usdcBalance: string;
+      setupTitle: string;
+      setupBody: string;
+      setupCta: string;
       wallets: string;
       openDeals: string;
       reviewNow: string;
@@ -1087,6 +1092,7 @@ interface MessagesShape {
     current: string;
     available: string;
     activeTrades: string;
+    balanceParts: string;
     wallets: string;
     add: string;
     move: string;
@@ -2357,6 +2363,7 @@ interface MessagesShape {
     topTier: string;
   };
   chatPanel: {
+    timeline: Record<string, string>;
     loadError: string;
     emptyMessage: string;
     inputPlaceholder: string;
@@ -2867,7 +2874,8 @@ interface MessagesShape {
   };
   dealWorkspace: {
     checkPaused: { title: string; stays: string; saw: string; noWallet: string; reasons: Record<"security-hold" | "off-request" | "evidence-mismatch" | "check-pending" | "check-expired" | "terms-changed" | "delivery-replaced" | "link-unverifiable", string>; sellerHold: string; sellerOff: string };
-    protection: { title: string; escrow: string; you: string; buyer: string; seller: string; reasons: { first_deal: string; large_deal: string; fast_new_account: string; flagged_link_before: string }; stake: string; github: string; offMarket: string };
+    checkLive: { checking: string; checkingBody: string; passed: string; passedBuyer: string; passedSeller: string; unverified: string; unverifiedBuyer: string; unverifiedSeller: string };
+    protection: { title: string; escrow: string; you: string; buyer: string; seller: string; reasons: { first_deal: string; large_deal: string; fast_new_account: string; flagged_link_before: string }; stake: string; github: string; offMarket: string; belowMarket: string };
     simple: {
       newHere: string;
       agreement: string;
@@ -5288,6 +5296,7 @@ interface MessagesShape {
 export const en: MessagesShape = {
   protection: protectionCopy.en,
   money: moneyCopy.en,
+  bell: notifyCopy.en,
   search: searchCopy.en,
   offers: offersCopy.en,
   escrowV3: escrowV3Copy.en,
@@ -6194,6 +6203,9 @@ export const en: MessagesShape = {
       moneyAndTrade: 'Money and trade',
       money: 'Money',
       usdcBalance: 'USDC balance',
+      setupTitle: 'Set up your profile',
+      setupBody: 'Create your profile before you start trading.',
+      setupCta: 'Continue',
       wallets: 'Wallets',
       openDeals: 'Open deals',
       reviewNow: 'Review now',
@@ -6412,6 +6424,7 @@ export const en: MessagesShape = {
     current: 'Current',
     available: 'USDC available',
     activeTrades: 'Active trades',
+    balanceParts: 'Wallet {wallet} · Other chains {other} · Agents {agents}',
     wallets: 'Wallets',
     add: 'Add',
     move: 'Move',
@@ -7911,6 +7924,7 @@ export const en: MessagesShape = {
     topTier: 'Top tier',
   },
   chatPanel: {
+    timeline: { "deal.accepted": "The seller accepted the agreement.", "escrow.funded": "The buyer funded the escrow. The money is held until release.", "deal.delivered": "The seller marked the deal delivered.", "deal.release.blocked": "The delivery check paused the payment.", "deal.release.unblocked": "The delivery check cleared. The payment can move.", "deal.delivery.cleared": "The delivery check cleared. The payment can move.", "escrow.milestone.released": "A payment was released to the seller.", "deal.milestone.auto_released": "A payment was released after the review time ended.", "escrow.settled": "The deal is settled.", "escrow.refunded": "The money went back to the buyer.", "escrow.reclaimed": "The money went back to the buyer.", "deal.disputed": "A dispute was opened.", "escrow.resolved": "The dispute was resolved.", "deal.dispute.auto_resolved": "The dispute was closed.", "deal.cancel.proposed": "A cancel was proposed.", "deal.cancel.declined": "The cancel was declined.", "deal.cancelled": "The deal was cancelled.", "deal.extension.requested": "More time was requested.", "deal.extension.approved": "More time was agreed.", "deal.direct.edited": "The terms were updated." },
     loadError: 'Could not load chat history.',
     emptyMessage: 'No messages yet. Say hello.',
     inputPlaceholder: 'Write a message…',
@@ -8419,8 +8433,9 @@ export const en: MessagesShape = {
     },
   },
   dealWorkspace: {
-    checkPaused: { title: "Payment is paused", stays: "Your money stays in escrow until this is resolved.", saw: "What the check saw", noWallet: "Automatic release cannot run for this deal. Release it yourself from here.", reasons: { "security-hold": "The delivery link was flagged as unsafe, so it is hidden from you.", "off-request": "The check found the delivery does not match what you asked for.", "evidence-mismatch": "The delivery evidence does not match the agreed terms.", "check-pending": "The automatic check has not returned a result yet.", "check-expired": "The check result expired before payment was released.", "terms-changed": "The terms changed after the check ran, so it has to run again.", "delivery-replaced": "A newer delivery was submitted, so the check has to run again.", "link-unverifiable": "The delivery link could not be opened to check it." }, sellerHold: "Your delivery link was flagged as unsafe and is hidden from the buyer. Send a corrected link.", sellerOff: "The check found the delivery may not match the request. The buyer reviews it." },
-    protection: { title: "Protection on this deal", escrow: "Money held in escrow until release", you: "You verify with World ID", buyer: "The buyer verifies with World ID", seller: "The seller verifies with World ID", reasons: { first_deal: "first deal", large_deal: "large deal", fast_new_account: "many new deals today", flagged_link_before: "a flagged link on record" }, stake: "Seller holds {pct}% stake", github: "Delivery checked on GitHub", offMarket: "Price is far from similar deals" },
+    checkPaused: { title: "Payment is paused", stays: "Your money stays in escrow until this is resolved.", saw: "What the check saw", noWallet: "Automatic release cannot run for this deal. Release it yourself from here.", reasons: { "security-hold": "The delivery link was flagged as unsafe, so it is hidden from you.", "off-request": "The check found the delivery does not match what you asked for.", "evidence-mismatch": "The delivery evidence does not match the agreed terms.", "check-pending": "The automatic check has not returned a result yet.", "check-expired": "The check result expired before payment was released.", "terms-changed": "The terms changed after the check ran, so it has to run again.", "delivery-replaced": "A newer delivery was submitted, so the check has to run again.", "link-unverifiable": "The delivery link could not be opened to check it." }, sellerHold: "Your delivery link was flagged as unsafe and is hidden from the buyer. Send a corrected link.", sellerOff: "The check found your delivery may not match the request. Send the right link." },
+    checkLive: { checking: "Checking the delivery", checkingBody: "A guard agent is comparing it with the request. Payment waits for the result.", passed: "Delivery check passed", passedBuyer: "Review the work, then release.", passedSeller: "{name} reviews the work next.", unverified: "The link could not be checked", unverifiedBuyer: "Review the work yourself before you release.", unverifiedSeller: "{name} reviews the work themselves." },
+    protection: { title: "Protection on this deal", escrow: "Money held in escrow until release", you: "You verify with World ID", buyer: "The buyer verifies with World ID", seller: "The seller verifies with World ID", reasons: { first_deal: "first deal", large_deal: "large deal", fast_new_account: "many new deals today", flagged_link_before: "a flagged link on record" }, stake: "Seller holds {pct}% stake", github: "Delivery checked on GitHub", offMarket: "Price is well above similar deals", belowMarket: "Price is well below similar deals" },
     simple: {
       newHere: "New to Karwan",
       agreement: "Agreement",
@@ -10643,7 +10658,7 @@ export const en: MessagesShape = {
     refreshing: 'Refreshing',
     reveal: 'Show',
     hide: 'Hide',
-    total: 'Total',
+    total: 'On this wallet',
     zeroChainsTemplate: 'No USDC on {n} chains',
     zeroOtherChainsTemplate: 'No USDC on {n} other chains',
     tabs: {

@@ -4,6 +4,7 @@ import { escrowDocsCopy } from './escrowDocs';
 import { socialTradeCopy } from './socialTrade';
 import { protectionCopy } from './protection';
 import { moneyCopy } from './money';
+import { notifyCopy } from './notifications';
 import { searchCopy } from './search';
 import { offersCopy } from './offers';
 import { escrowV3Copy } from './escrowV3';
@@ -19,6 +20,7 @@ import { docsProductCopy } from './docsProduct';
 export const sw: Messages = {
   protection: protectionCopy.sw,
   money: moneyCopy.sw,
+  bell: notifyCopy.sw,
   search: searchCopy.sw,
   offers: offersCopy.sw,
   escrowV3: escrowV3Copy.sw,
@@ -912,6 +914,9 @@ export const sw: Messages = {
       moneyAndTrade: 'Fedha na biashara',
       money: 'Fedha',
       usdcBalance: 'Salio la USDC',
+      setupTitle: 'Weka wasifu wako',
+      setupBody: 'Tengeneza wasifu wako kabla ya kuanza kufanya biashara.',
+      setupCta: 'Endelea',
       wallets: 'Pochi',
       openDeals: 'Biashara zilizo wazi',
       reviewNow: 'Kagua sasa',
@@ -1119,6 +1124,7 @@ export const sw: Messages = {
     current: 'Sasa',
     available: 'USDC inayopatikana',
     activeTrades: 'Biashara zinazoendelea',
+    balanceParts: 'Pochi {wallet} · Mitandao mingine {other} · Mawakala {agents}',
     wallets: 'Pochi',
     add: 'Ongeza',
     move: 'Hamisha',
@@ -2599,6 +2605,7 @@ export const sw: Messages = {
     topTier: 'Daraja la juu',
   },
   chatPanel: {
+    timeline: { "deal.accepted": "Muuzaji amekubali makubaliano.", "escrow.funded": "Mnunuzi ameweka pesa kwenye escrow. Pesa imeshikiliwa hadi itolewe.", "deal.delivered": "Muuzaji ameweka alama kuwa mpango umewasilishwa.", "deal.release.blocked": "Ukaguzi wa uwasilishaji umesimamisha malipo.", "deal.release.unblocked": "Ukaguzi wa uwasilishaji umekamilika. Malipo yanaweza kuendelea.", "deal.delivery.cleared": "Ukaguzi wa uwasilishaji umekamilika. Malipo yanaweza kuendelea.", "escrow.milestone.released": "Malipo yametolewa kwa muuzaji.", "deal.milestone.auto_released": "Malipo yametolewa baada ya muda wa ukaguzi kuisha.", "escrow.settled": "Mpango umekamilika.", "escrow.refunded": "Pesa imerudi kwa mnunuzi.", "escrow.reclaimed": "Pesa imerudi kwa mnunuzi.", "deal.disputed": "Mzozo umefunguliwa.", "escrow.resolved": "Mzozo umetatuliwa.", "deal.dispute.auto_resolved": "Mzozo umefungwa.", "deal.cancel.proposed": "Kufuta kumependekezwa.", "deal.cancel.declined": "Kufuta kumekataliwa.", "deal.cancelled": "Mpango umefutwa.", "deal.extension.requested": "Muda zaidi umeombwa.", "deal.extension.approved": "Muda zaidi umekubaliwa.", "deal.direct.edited": "Masharti yamesasishwa." },
     reply: 'Jibu', cancelReply: 'Ghairi jibu', replyingTo: 'Kumjibu {name}', you: 'Wewe', imageAttachment: 'Kiambatisho cha picha', attachImage: 'Ambatisha picha', removeImage: 'Ondoa picha', imageOnly: 'Ongeza maelezo au tuma picha', imageUnsupported: 'Tumia picha ya PNG, JPEG au WebP.', imageTooLarge: 'Picha ni kubwa sana. Kikomo ni KB 750.', imageReadError: 'Picha haikuweza kusomwa. Jaribu tena.',conversationClosed: 'Mazungumzo haya yamefungwa.',
     loadError: 'Haikuweza kupakia historia ya mazungumzo.',
     emptyMessage: 'Hakuna ujumbe bado. Sema habari.',
@@ -3096,8 +3103,9 @@ export const sw: Messages = {
     },
   },
   dealWorkspace: {
-    checkPaused: { title: "Malipo yamesimamishwa", stays: "Pesa zako zinabaki kwenye escrow hadi hili litatuliwe.", saw: "Ukaguzi uliona nini", noWallet: "Uachiliaji wa kiotomatiki hauwezi kufanya kazi kwa dili hili. Achilia malipo mwenyewe hapa.", reasons: { "security-hold": "Kiungo cha uwasilishaji kimeripotiwa kuwa si salama, kwa hiyo kimefichwa kwako.", "off-request": "Ukaguzi umeona uwasilishaji haulingani na ulichoomba.", "evidence-mismatch": "Ushahidi wa uwasilishaji haulingani na masharti yaliyokubaliwa.", "check-pending": "Ukaguzi wa kiotomatiki bado haujarudisha matokeo.", "check-expired": "Matokeo ya ukaguzi yaliisha kabla malipo hayajaachiliwa.", "terms-changed": "Masharti yalibadilika baada ya ukaguzi, kwa hiyo lazima ufanyike tena.", "delivery-replaced": "Uwasilishaji mpya umetumwa, kwa hiyo ukaguzi lazima ufanyike tena.", "link-unverifiable": "Kiungo cha uwasilishaji hakikuweza kufunguliwa ili kukagua." }, sellerHold: "Kiungo chako cha uwasilishaji kimeripotiwa kuwa si salama na kimefichwa kwa mnunuzi. Tuma kiungo kilichosahihishwa.", sellerOff: "Ukaguzi umeona uwasilishaji huenda haulingani na ombi. Mnunuzi analikagua." },
-    protection: { title: "Ulinzi wa mpango huu", escrow: "Pesa imeshikiliwa kwenye escrow hadi itolewe", you: "Unathibitisha kwa World ID", buyer: "Mnunuzi anathibitisha kwa World ID", seller: "Muuzaji anathibitisha kwa World ID", reasons: { first_deal: "mpango wa kwanza", large_deal: "mpango mkubwa", fast_new_account: "mipango mingi mipya leo", flagged_link_before: "kiungo kilichoripotiwa awali" }, stake: "Muuzaji anashikilia dhamana ya {pct}%", github: "Uwasilishaji unakaguliwa kwenye GitHub", offMarket: "Bei iko mbali na mipango inayofanana" },
+    checkPaused: { title: "Malipo yamesimamishwa", stays: "Pesa zako zinabaki kwenye escrow hadi hili litatuliwe.", saw: "Ukaguzi uliona nini", noWallet: "Uachiliaji wa kiotomatiki hauwezi kufanya kazi kwa dili hili. Achilia malipo mwenyewe hapa.", reasons: { "security-hold": "Kiungo cha uwasilishaji kimeripotiwa kuwa si salama, kwa hiyo kimefichwa kwako.", "off-request": "Ukaguzi umeona uwasilishaji haulingani na ulichoomba.", "evidence-mismatch": "Ushahidi wa uwasilishaji haulingani na masharti yaliyokubaliwa.", "check-pending": "Ukaguzi wa kiotomatiki bado haujarudisha matokeo.", "check-expired": "Matokeo ya ukaguzi yaliisha kabla malipo hayajaachiliwa.", "terms-changed": "Masharti yalibadilika baada ya ukaguzi, kwa hiyo lazima ufanyike tena.", "delivery-replaced": "Uwasilishaji mpya umetumwa, kwa hiyo ukaguzi lazima ufanyike tena.", "link-unverifiable": "Kiungo cha uwasilishaji hakikuweza kufunguliwa ili kukagua." }, sellerHold: "Kiungo chako cha uwasilishaji kimeripotiwa kuwa si salama na kimefichwa kwa mnunuzi. Tuma kiungo kilichosahihishwa.", sellerOff: "Ukaguzi umeona kuwa uwasilishaji wako huenda haulingani na ombi. Tuma kiungo sahihi." },
+    checkLive: { checking: "Uwasilishaji unakaguliwa", checkingBody: "Wakala wa ulinzi analinganisha na ombi. Malipo yanasubiri matokeo.", passed: "Uwasilishaji umepita ukaguzi", passedBuyer: "Kagua kazi, kisha toa malipo.", passedSeller: "{name} anakagua kazi ijayo.", unverified: "Kiungo hakikuweza kukaguliwa", unverifiedBuyer: "Kagua kazi mwenyewe kabla ya kutoa malipo.", unverifiedSeller: "{name} anakagua kazi mwenyewe." },
+    protection: { title: "Ulinzi wa mpango huu", escrow: "Pesa imeshikiliwa kwenye escrow hadi itolewe", you: "Unathibitisha kwa World ID", buyer: "Mnunuzi anathibitisha kwa World ID", seller: "Muuzaji anathibitisha kwa World ID", reasons: { first_deal: "mpango wa kwanza", large_deal: "mpango mkubwa", fast_new_account: "mipango mingi mipya leo", flagged_link_before: "kiungo kilichoripotiwa awali" }, stake: "Muuzaji anashikilia dhamana ya {pct}%", github: "Uwasilishaji unakaguliwa kwenye GitHub", offMarket: "Bei iko juu sana kuliko mikataba inayofanana", belowMarket: "Bei iko chini sana kuliko mikataba inayofanana" },
     simple: {
       newHere: "Mpya kwenye Karwan",
       agreement: "Makubaliano",
@@ -5204,7 +5212,7 @@ export const sw: Messages = {
     refreshing: 'Inaonyesha upya',
     reveal: 'Onyesha',
     hide: 'Ficha',
-    total: 'Jumla',
+    total: 'Kwenye pochi hii',
     zeroChainsTemplate: 'Hakuna USDC kwenye minyororo {n}',
     zeroOtherChainsTemplate: 'Hakuna USDC kwenye minyororo mingine {n}',
     tabs: {

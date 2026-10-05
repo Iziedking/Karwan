@@ -36,7 +36,7 @@ test('a send names the place and the amount, and nothing about routes', async ({
   await page.getByLabel('Recipient address').fill('0x2222222222222222222222222222222222222222');
   await page.getByLabel('Amount').fill('25');
   await expect(page.getByRole('button', { name: 'Send 25.00 USDC to Base Sepolia' })).toBeEnabled();
-  await expect(page.getByText("Sending to an address can't be undone.")).toBeVisible();
+  await expect(page.getByText("A send can't be undone.")).toBeVisible();
   await expect(page.getByText('Usually takes under a minute.')).toBeVisible();
   await expect(page.getByText(/gateway|cctp/i)).toHaveCount(0);
 });

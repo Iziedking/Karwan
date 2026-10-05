@@ -3,10 +3,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { api, type ChainEvent, type DirectDeal } from '@/core/api';
-import { deliverableNoun, startPhrase, tradeTypeOf } from '@/shared/deals/tradeVocabulary';
 import { qk } from '@/core/queryKeys';
 import { moneySounds } from '@/shared/sound/moneySounds';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { summaryFor } from '@/features/notifications/summary';
 import { fill } from '@/features/deals/workspace/presentation';
 import { bridgeDirection, classifyMoneyEvent, soundKeysFor } from '../classifyMoneyEvent';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
@@ -103,16 +103,6 @@ function bridgeNotificationId(e: ChainEvent): string {
 function bridgeSummary(e: ChainEvent, copy: { arrivedArc: string; reachedDestination: string }): string {
   const amount = trimUsdcLabel(String(e.payload?.amountUsdc ?? '0'));
   return fill(bridgeDirection(e.payload) === 'in' ? copy.arrivedArc : copy.reachedDestination, { amount });
-}
-
-function walletLabelFromPayload(payload: Record<string, unknown> | undefined): string {
-  const label = (payload?.walletLabel as string | undefined) ?? '';
-  if (label) return label;
-  const role = (payload?.walletRole as string | undefined) ?? '';
-  if (role === 'identity') return 'identity wallet';
-  if (role === 'buyerAgent') return 'buyer agent wallet';
-  if (role === 'sellerAgent') return 'seller agent wallet';
-  return 'wallet';
 }
 
 function trimUsdcLabel(raw: string): string {
@@ -212,271 +202,6 @@ function withTradeType(
   return { ...(payload ?? {}), tradeType: known };
 }
 
-function summaryFor(
-  type: string,
-  payload: Record<string, unknown> | undefined,
-  role: Role | null,
-): string {
-  const priceUsdc = (payload?.agreedPriceUsdc as string | undefined) ?? '';
-  const askingPriceUsdc = (payload?.askingPriceUsdc as string | number | undefined) ?? '';
-  const dealAmount = (payload?.dealAmountUsdc as string | undefined) ?? '';
-  const reason = (payload?.reason as string | undefined) ?? '';
-  // What was bought decides the wording. Every funded deal used to be announced
-  // as work to begin, which is a freelance sentence read by people who had just
-  // funded a shipment. Absent reads as service, which is what legacy deals were.
-  const trade = tradeTypeOf(payload?.tradeType);
-  switch (type) {
-    case 'deal.matched':
-      return role === 'seller'
-        ? priceUsdc
-          ? `A buyer matched your bid at ${priceUsdc} USDC. Accept to fund escrow.`
-          : 'A buyer matched your bid. Accept to fund escrow.'
-        : priceUsdc
-          ? `Your agent found a match at ${priceUsdc} USDC. Tap to review.`
-          : 'Your agent found a match. Tap to review.';
-    case 'deal.match.approved':
-      return role === 'seller'
-        ? priceUsdc
-          ? `Match accepted at ${priceUsdc} USDC. Escrow funded. Deliver when ready.`
-          : 'Match accepted. Escrow funded. Deliver when ready.'
-        : priceUsdc
-          ? `Seller accepted at ${priceUsdc} USDC. Escrow funded.`
-          : 'Seller accepted. Escrow funded.';
-    case 'deal.match.declined':
-      return role === 'seller'
-        ? 'You declined this match.'
-        : 'The seller declined this match. Post a fresh request to retry.';
-    case 'deal.match.raised': {
-      const raised = (payload?.raisedPriceUsdc as string | undefined) ?? '';
-      return raised
-        ? `The seller raised the price to ${raised} USDC. Tap to approve or decline.`
-        : 'The seller raised the price. Tap to approve or decline.';
-    }
-    case 'job.expired':
-      return 'A request expired with no match. Repost to retry.';
-    case 'listing.matched':
-      return askingPriceUsdc
-        ? `Karwan matched your offer to a request at ${askingPriceUsdc} USDC.`
-        : 'Karwan matched your offer to an open request.';
-    case 'trend.match': {
-      const keyword = (payload?.keyword as string | undefined) ?? '';
-      return keyword
-        ? `Requests for ${keyword} are up this week. Your offer matches.`
-        : 'A skill you offer is in rising demand this week.';
-    }
-    case 'agent.declined':
-      return reason ? `Agent ended negotiation: ${reason}` : 'Agent ended the negotiation.';
-    case 'negotiation.near-miss': {
-      const proceed = (payload?.proceedPriceUsdc as string | undefined) ?? '';
-      const gap = (payload?.gapUsdc as string | undefined) ?? '';
-      const where = role === 'seller' ? 'below your floor' : 'above your cap';
-      return proceed
-        ? `Karwan found a deal at ${proceed} USDC, ${gap} ${where}. Tap to proceed or pass.`
-        : `Karwan found a deal just ${where}. Tap to proceed or pass.`;
-    }
-    case 'deal.direct.created':
-      // Seller-facing: the buyer opened the deal and is waiting on the seller.
-      return dealAmount
-        ? `A buyer opened a deal with you at ${dealAmount} USDC. Review and agree to the terms.`
-        : 'A buyer opened a deal with you. Review and agree to the terms.';
-    case 'deal.invite.claimed':
-      // Fires after the recipient verifies their email and binds the deal.
-      // Surfaces as the seller's first in-app cue. The deal create event
-      // already fired before they were on Karwan, so this is the equivalent
-      // welcome ping for them.
-      return dealAmount
-        ? `Deal bound to your wallet at ${dealAmount} USDC. Review and agree to the terms.`
-        : 'Deal bound to your wallet. Review and agree to the terms.';
-    case 'offer.created': {
-      const price = payload?.priceUsdc;
-      return price !== undefined && price !== ''
-        ? `A seller offered ${price} USDC on your request. Review it and accept if it works for you.`
-        : 'A seller made an offer on your request. Review it and accept if it works for you.';
-    }
-    case 'deal.direct.edited': {
-      const who = payload?.countered ? 'The seller' : 'The buyer';
-      return dealAmount
-        ? `${who} sent new terms at ${dealAmount} USDC. Review them and agree if they work for you.`
-        : `${who} sent new terms. Review them and agree if they work for you.`;
-    }
-    case 'deal.seller-approved':
-      return 'Seller agreed to the terms. Review the exact total and fund escrow when ready.';
-    case 'deal.direct.declined':
-      return 'The seller turned down the terms and left a note. Open the deal to change them.';
-    case 'deal.accepted':
-      return role === 'seller'
-        ? `The buyer funded escrow. You can ${startPhrase(trade)}.`
-        : `Escrow is funded. The seller can ${startPhrase(trade)}.`;
-    case 'deal.delivered':
-      // Buyer-facing: the buyer verifies and releases.
-      return `Seller marked ${deliverableNoun(trade)} delivered. Release the first milestone.`;
-    case 'deal.delivery.flagged':
-      return role === 'seller'
-        ? 'Karwan flagged your delivery link. Submit a corrected link to clear it.'
-        : 'A delivery link was flagged and withheld. Release is paused until it clears.';
-    case 'deal.delivery.cleared':
-      return role === 'seller'
-        ? 'Your corrected link cleared. The buyer can see it now.'
-        : `The flagged link cleared. You can review ${deliverableNoun(trade)} and release.`;
-    case 'deal.release.blocked': {
-      const detail = payload?.detail as string | undefined;
-      const why: Record<string, string> = {
-        'security-hold': role === 'seller' ? 'your delivery link was flagged as unsafe. Send a corrected link' : 'the delivery link was flagged as unsafe',
-        'off-request': role === 'seller' ? 'the check found the delivery may not match the request' : 'the check found the delivery does not match what you asked for',
-        'evidence-mismatch': 'the delivery evidence does not match the agreed terms',
-        'check-pending': 'the automatic check has not returned a result yet',
-        'check-expired': 'the check result expired',
-        'terms-changed': 'the terms changed after the check ran',
-        'delivery-replaced': 'a newer delivery has to be checked',
-        'link-unverifiable': 'the delivery link could not be opened to check it',
-      };
-      const reason = detail && why[detail] ? why[detail] : 'automatic release cannot run for this deal';
-      return `Payment is paused: ${reason}. The money stays in escrow.`;
-    }
-    case 'deal.fund.insufficient':
-      return 'Your buyer agent needs USDC to fund escrow. Top it up from your profile.';
-    case 'escrow.milestone.released':
-      return role === 'seller' ? 'A milestone was released to you.' : 'A milestone was released.';
-    case 'deal.review.started':
-      return 'Review window opened. Release the final milestone when ready.';
-    case 'deal.deadline.passed':
-      return 'Deadline passed and the seller did not deliver. Reclaim your funds or grant an extension.';
-    case 'deal.review.heartbeat':
-      return 'The buyer extended the review window.';
-    case 'deal.auto_released':
-      return role === 'seller'
-        ? 'Review window passed. The final milestone auto-released to you.'
-        : 'Review window passed. The final milestone auto-released.';
-    case 'escrow.settled':
-      return 'Deal settled in full. Your track record was updated.';
-    case 'deal.disputed':
-      return 'Deal moved to dispute. Resolution is off-platform.';
-    case 'escrow.resolved': {
-      // sellerBps is the arbiter's split in basis points. Say the outcome
-      // plainly: "resolved" alone does not tell either party who got paid.
-      const bps = typeof payload?.sellerBps === 'number' ? payload.sellerBps : null;
-      if (bps === null) return 'An arbiter resolved the dispute and the escrow was paid out.';
-      if (bps === 0) return 'An arbiter resolved the dispute. The full amount was refunded to the buyer.';
-      if (bps >= 10000) return 'An arbiter resolved the dispute. The full amount was released to the seller.';
-      return `An arbiter resolved the dispute and split the escrow, ${bps / 100}% to the seller.`;
-    }
-    case 'deal.cancelled':
-      return 'Deal cancelled and refunded.';
-    case 'deal.cancel.proposed':
-      return reason
-        ? `Cancellation proposed by your counterparty: ${reason.slice(0, 60)}`
-        : 'Cancellation proposed by your counterparty.';
-    case 'deal.cancel.declined':
-      return 'Your cancellation proposal was declined.';
-    case 'wallet.credited': {
-      const credited = (payload?.amountUsdc as string | undefined) ?? '0';
-      const credit = trimUsdcLabel(credited);
-      const label = walletLabelFromPayload(payload);
-      return `+${credit} USDC landed in your ${label}.`;
-    }
-    case 'wallet.debited': {
-      const debited = (payload?.amountUsdc as string | undefined) ?? '0';
-      const debit = trimUsdcLabel(debited);
-      const label = walletLabelFromPayload(payload);
-      return `-${debit} USDC left your ${label}.`;
-    }
-    case 'vault.deposit': {
-      const raw = (payload?.amountUsdc as string | undefined) ?? '0';
-      return `Staked ${trimUsdcLabel(raw)} USDC.`;
-    }
-    case 'vault.withdraw.requested': {
-      const raw = (payload?.principalUsdc as string | undefined) ?? '';
-      const amount = raw ? `${trimUsdcLabel(raw)} USDC` : 'your position';
-      return `Cooldown started on ${amount}. Claimable in 3 days.`;
-    }
-    case 'vault.withdraw.cancelled': {
-      const raw = (payload?.principalUsdc as string | undefined) ?? '';
-      const amount = raw ? `${trimUsdcLabel(raw)} USDC` : 'the position';
-      return `Cooldown cancelled. ${amount} back to active stake.`;
-    }
-    case 'vault.claimed': {
-      const raw = (payload?.principalUsdc as string | undefined) ?? '';
-      const amount = raw ? `${trimUsdcLabel(raw)} USDC` : 'your stake';
-      return `Withdrew ${amount} from the vault.`;
-    }
-    case 'vault.cooldown.completed': {
-      const raw = (payload?.principalUsdc as string | undefined) ?? '';
-      const amount = raw ? `${trimUsdcLabel(raw)} USDC` : 'your position';
-      return `Cooldown finished. ${amount} ready to claim.`;
-    }
-    case 'cashout.arc.completed': {
-      const raw = (payload?.amountUsdc as string | undefined) ?? '0';
-      return `Cashed out ${trimUsdcLabel(raw)} USDC to your wallet.`;
-    }
-    case 'factoring.requested':
-      return 'A seller opened an invoice for early payout. Review it on the financier desk.';
-    case 'factoring.offered': {
-      const raw = (payload?.advance as string | undefined) ?? '';
-      const bps = payload?.discountBps;
-      const at =
-        typeof bps === 'number' ? ` at ${(bps / 100).toFixed(1).replace(/\.0$/, '')}%` : '';
-      return raw
-        ? `A financier offered ${trimUsdcLabel(raw)} USDC now${at} on your invoice.`
-        : 'A financier offered early payout on your invoice.';
-    }
-    case 'factoring.accepted':
-      return 'The seller accepted your factoring offer. Your advance is on its way.';
-    case 'factoring.settled': {
-      const raw = (payload?.repayUsdc as string | undefined) ?? '';
-      const amt = raw ? ` ${trimUsdcLabel(raw)} USDC` : '';
-      return role === 'seller'
-        ? `Factoring settled.${amt} went to your financier. Nothing further is owed.`
-        : `Repaid on a factored invoice.${amt} landed in your wallet.`;
-    }
-    case 'factoring.defaulted':
-      return role === 'seller'
-        ? 'Your factoring repayment failed. Fund your wallet and contact the financier.'
-        : 'A factored invoice defaulted. The repayment never went through.';
-    case 'po.funded':
-      return 'A financier funded a line against your purchase order.';
-    case 'po.released': {
-      const raw = (payload?.principalUsdc as string | undefined) ?? '';
-      const amt = raw ? ` ${trimUsdcLabel(raw)} USDC` : '';
-      return role === 'seller'
-        ? `Proof of delivery accepted.${amt} released to you early.`
-        : `Your PO line released.${amt} moved to the seller.`;
-    }
-    case 'po.repaid': {
-      const raw = (payload?.repayUsdc as string | undefined) ?? '';
-      const amt = raw ? ` ${trimUsdcLabel(raw)} USDC` : '';
-      return role === 'seller'
-        ? `PO line closed.${amt} went to the financier.`
-        : `Repaid on a PO line.${amt} landed in your wallet.`;
-    }
-    case 'po.defaulted':
-      return role === 'seller'
-        ? 'Your PO line repayment failed. Fund your wallet and contact the financier.'
-        : 'A PO line defaulted. The repayment never went through.';
-    case 'agent.funded': {
-      const raw = (payload?.amountUsdc as string | undefined) ?? '0';
-      const which = (payload?.agent as string | undefined) ?? 'agent';
-      const seed = payload?.seed === true;
-      return seed
-        ? `Seeded ${trimUsdcLabel(raw)} USDC into your ${which} agent.`
-        : `Funded ${trimUsdcLabel(raw)} USDC into your ${which} agent.`;
-    }
-    case 'agent.withdrawal': {
-      const raw = (payload?.amountUsdc as string | undefined) ?? '0';
-      const which = (payload?.agent as string | undefined) ?? 'agent';
-      return `Pulled ${trimUsdcLabel(raw)} USDC out of your ${which} agent.`;
-    }
-    case 'reputation.tier-up': {
-      const toTier = (payload?.toTier as string | undefined) ?? '';
-      const fromTier = (payload?.fromTier as string | undefined) ?? '';
-      if (toTier && fromTier) return `Tier up. You reached ${toTier}, up from ${fromTier}.`;
-      if (toTier) return `Tier up. You reached ${toTier} on Karwan.`;
-      return 'You hit a new reputation tier.';
-    }
-    default:
-      return 'Deal update';
-  }
-}
-
 function storageKey(address?: string | null): string | null {
   return address ? `${STORAGE_PREFIX}${address.toLowerCase()}` : null;
 }
@@ -522,7 +247,9 @@ export function subscribeToToasts(fn: ToastListener) {
 export function useNotifications() {
   const auth = useAuth();
   const qc = useQueryClient();
-  const notifyCopy = useTranslations().money.notify;
+  const translations = useTranslations();
+  const notifyCopy = translations.money.notify;
+  const bell = translations.bell;
   // Read inside the live-event handler, which subscribes once per account.
   const notifyCopyRef = useRef(notifyCopy);
   notifyCopyRef.current = notifyCopy;
@@ -609,7 +336,7 @@ export function useNotifications() {
             id,
             jobId: '',
             type: e.type,
-            summary: summaryFor(e.type, e.payload, null),
+            summary: summaryFor(e.type, e.payload, null, bell),
             ts: e.ts,
             read: readIdsRef.current.has(id),
             href: receiptHref(e),
@@ -629,7 +356,7 @@ export function useNotifications() {
             id,
             jobId: '',
             type: e.type,
-            summary: summaryFor(e.type, e.payload, null),
+            summary: summaryFor(e.type, e.payload, null, bell),
             ts: e.ts,
             read: readIdsRef.current.has(id),
             href: hrefForType(e.type, ''),
@@ -650,7 +377,7 @@ export function useNotifications() {
             id,
             jobId: e.jobId ?? '',
             type: e.type,
-            summary: summaryFor(e.type, e.payload, financeRole),
+            summary: summaryFor(e.type, e.payload, financeRole, bell),
             ts: e.ts,
             read: readIdsRef.current.has(id),
             href: financeHref(e.jobId ?? ''),
@@ -665,7 +392,7 @@ export function useNotifications() {
             id,
             jobId: e.jobId,
             type: e.type,
-            summary: summaryFor(e.type, e.payload, 'buyer'),
+            summary: summaryFor(e.type, e.payload, 'buyer', bell),
             ts: e.ts,
             read: readIdsRef.current.has(id),
             href: `/jobs/${e.jobId}`,
@@ -681,7 +408,7 @@ export function useNotifications() {
             id,
             jobId: '',
             type: e.type,
-            summary: summaryFor(e.type, e.payload, null),
+            summary: summaryFor(e.type, e.payload, null, bell),
             ts: e.ts,
             read: readIdsRef.current.has(id),
             href: hrefForType(e.type, ''),
@@ -712,10 +439,10 @@ export function useNotifications() {
           id,
           jobId: e.jobId,
           type: e.type,
-          summary: summaryFor(
-            e.type,
+          summary: summaryFor(e.type,
             withTradeType(e.payload, e.jobId, tradeByJobRef.current),
             role,
+            bell,
           ),
           ts: e.ts,
           read: readIdsRef.current.has(id),
@@ -794,7 +521,7 @@ export function useNotifications() {
           id,
           jobId: '',
           type: e.type,
-          summary: summaryFor(e.type, e.payload, null),
+          summary: summaryFor(e.type, e.payload, null, bell),
           ts: e.ts,
           read: readIdsRef.current.has(id),
           href: receiptHref(e),
@@ -829,7 +556,7 @@ export function useNotifications() {
           id,
           jobId: e.jobId ?? '',
           type: e.type,
-          summary: summaryFor(e.type, e.payload, financeRole),
+          summary: summaryFor(e.type, e.payload, financeRole, bell),
           ts: e.ts,
           read: readIdsRef.current.has(id),
           href: financeHref(e.jobId ?? ''),
@@ -863,7 +590,7 @@ export function useNotifications() {
           id,
           jobId: '',
           type: e.type,
-          summary: summaryFor(e.type, e.payload, null),
+          summary: summaryFor(e.type, e.payload, null, bell),
           ts: e.ts,
           read: readIdsRef.current.has(id),
           href: hrefForType(e.type, ''),
@@ -893,7 +620,7 @@ export function useNotifications() {
           id,
           jobId: e.jobId,
           type: e.type,
-          summary: summaryFor(e.type, e.payload, 'buyer'),
+          summary: summaryFor(e.type, e.payload, 'buyer', bell),
           ts: e.ts,
           read: readIdsRef.current.has(id),
           href: `/jobs/${e.jobId}`,
@@ -922,7 +649,7 @@ export function useNotifications() {
           id,
           jobId: '',
           type: e.type,
-          summary: summaryFor(e.type, e.payload, null),
+          summary: summaryFor(e.type, e.payload, null, bell),
           ts: e.ts,
           read: readIdsRef.current.has(id),
           href: hrefForType(e.type, ''),
@@ -997,10 +724,10 @@ export function useNotifications() {
         id,
         jobId: e.jobId,
         type: e.type,
-        summary: summaryFor(
-          e.type,
+        summary: summaryFor(e.type,
           withTradeType(e.payload, e.jobId, tradeByJobRef.current),
           role,
+          bell,
         ),
         ts: e.ts,
         read: readIdsRef.current.has(id),

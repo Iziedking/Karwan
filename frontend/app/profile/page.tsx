@@ -262,19 +262,21 @@ function ProfilePageInner() {
     ? profilePanels.find((panel) => panel.key === activeSection)
     : null;
 
-  if (!activeSection && !profile) {
+  // The loaded profile counts on the first render too; the local copy is only
+  // filled by the effect above, so checking it alone flashed this screen.
+  if (!activeSection && !(profile ?? loadedProfile)) {
     return (
       <main className="product-surface min-h-[calc(100vh-72px)] bg-[var(--lp-light)] px-4 py-8 sm:px-7 lg:px-10">
         <div className="mx-auto max-w-[760px]">
           <h1 className="text-[clamp(2.25rem,5vw,4rem)] font-semibold leading-none tracking-[-0.05em] text-[var(--lp-dark)]">
-            Set up your profile
+            {messages.profile.hub.setupTitle}
           </h1>
-          <p className="mt-3 text-[15px] text-[var(--lp-text-sub)]">Create your profile before you start trading.</p>
+          <p className="mt-3 text-[15px] text-[var(--lp-text-sub)]">{messages.profile.hub.setupBody}</p>
           <Link
             href="/start?mode=signup"
             className="mt-6 inline-flex min-h-11 items-center rounded-full bg-[var(--lp-accent)] px-5 text-[14px] font-bold text-[var(--lp-band-dark)]"
           >
-            Continue
+            {messages.profile.hub.setupCta}
           </Link>
         </div>
       </main>

@@ -3,10 +3,12 @@
 import Link from 'next/link';
 import type { CSSProperties } from 'react';
 import { motion } from 'motion/react';
-import { useQuery } from '@tanstack/react-query';
-import { api, type UserProfile } from '@/core/api';
+import type { UserProfile } from '@/core/api';
 import { stageOf, type DealStage } from '@/features/deals/components/DirectDealList';
 import { useDirectDeals } from '@/features/deals/hooks/useDirectDeals';
+import { pickCurrentDeal } from '@/features/home/currentDeal';
+import { useOwnedBalance } from '@/features/money/hooks/useOwnedBalance';
+import { fill } from '@/features/deals/workspace/presentation';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { formatUsdc, shortAddress } from '@/shared/utils/format';
@@ -28,23 +30,16 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
   const payLink = translations.payLink.create;
   const { address } = useAuth();
   const { deals, fetchState } = useDirectDeals();
-  const overview = useQuery({
-    queryKey: address ? ['wallet-overview', address] : ['wallet-overview', 'anon'],
-    queryFn: () => api.walletOverview(address!),
-    enabled: !!address,
-    staleTime: 20_000,
-    refetchInterval: 20_000,
-  });
 
-  const totalBalance = overview.data
-    ? [overview.data.identity?.usdcBalance, overview.data.agents?.buyer?.usdcBalance, overview.data.agents?.seller?.usdcBalance]
-        .reduce((sum, value) => sum + (Number(value) || 0), 0)
-    : null;
+  // The same total and parts as the profile and the balance page.
+  const owned = useOwnedBalance();
+  const totalBalance = owned.total;
+  const money2 = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const activeDeals = deals.filter((deal) => {
     const stage = stageOf(deal);
     return stage !== 'settled' && stage !== 'cancelled';
   });
-  const currentDeal = activeDeals[0] ?? null;
+  const currentDeal = pickCurrentDeal(deals);
   const recentDeals = currentDeal ? deals.filter((deal) => deal.jobId !== currentDeal.jobId) : deals;
   const showRecentDeals = recentDeals.length > 0 || !currentDeal || fetchState !== 'success';
   const name = displayName?.trim() || profile.displayName?.trim() || translations.profile.hero.fallbackName;
@@ -76,13 +71,16 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
               </Link>
             </div>
             <p className="mt-1.5 flex items-baseline gap-2">
-              <span className={`text-[34px] font-semibold leading-none tabular-nums tracking-[-0.04em] text-[var(--lp-dark)] sm:text-[44px] ${overview.isFetching && totalBalance == null ? 'motion-safe:animate-pulse' : ''}`}>
+              <span className={`text-[34px] font-semibold leading-none tabular-nums tracking-[-0.04em] text-[var(--lp-dark)] sm:text-[44px] ${owned.loading && totalBalance == null ? 'motion-safe:animate-pulse' : ''}`}>
                 {totalBalance == null ? '-' : totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
               <span className="text-[14px] text-[var(--lp-text-sub)]">USDC</span>
             </p>
             <p className="mt-1 text-[12.5px] text-[var(--lp-text-sub)] sm:text-[13px]">
-              {home.activeTrades} {activeDeals.length} · {home.wallets} {overview.data?.agents ? 3 : 1}
+              {fill(home.balanceParts, { wallet: money2(owned.wallet), other: money2(owned.otherChains), agents: money2(owned.agents) })}
+            </p>
+            <p className="mt-0.5 text-[12.5px] text-[var(--lp-text-sub)] sm:text-[13px]">
+              {home.activeTrades} {activeDeals.length}
             </p>
             <div className="mt-3.5 grid grid-cols-4 gap-2">
               <QuickAction href="/bridge?direction=in">{home.add}</QuickAction>
@@ -242,7 +240,7 @@ function TradeBook({ deals, fetchState }: { deals: ReturnType<typeof useDirectDe
       {deals.slice(0, 5).map((deal, index) => {
         const isBuyer = me === deal.buyer.toLowerCase();
         const stage = stageOf(deal);
-        const counterparty = isBuyer ? deal.sellerPaytag || shortAddress(deal.seller) : shortAddress(deal.buyer);
+        const counterparty = deal.counterpartyName || (isBuyer ? deal.sellerPaytag || shortAddress(deal.seller) : shortAddress(deal.buyer));
         const date = new Date(deal.updatedAt || deal.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
         const reference = deal.receiptReferences?.find((value) => value.trim())?.trim();
         return (
