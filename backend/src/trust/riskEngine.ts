@@ -31,7 +31,8 @@ export type TrustReason =
   | 'fast_new_account'
   | 'flagged_link_before'
   | 'lost_disputes'
-  | 'off_market_price';
+  | 'off_market_price'
+  | 'below_market_price';
 
 export interface PartyFacts {
   settledDeals: number;
@@ -102,7 +103,8 @@ export function decideTrust(input: TrustInput): TrustDecision {
 
   const z = input.deal.priceZ;
   const offMarket = z !== null && Math.abs(z) >= TRUST_LIMITS.offMarketZ;
-  if (offMarket) reasons.push({ code: 'off_market_price' });
+  // Above and below are told apart: a cheap price and an inflated one call for different words.
+  if (offMarket) reasons.push({ code: (z as number) > 0 ? 'off_market_price' : 'below_market_price' });
 
   const level: TrustLevel =
     Object.keys(verify).length > 0 || stakeRequired ? 'step_up' : offMarket || reasons.length > 0 ? 'watch' : 'clear';

@@ -28,5 +28,5 @@ test('every paused release gets a reason, and a clean delivery gets none', () =>
 test('the seller is told what to do without the buyer-private review', () => {
   assert.match(deliveryCheckReason('security-hold', 'seller'), /Send a corrected link/);
   assert.match(deliveryCheckReason('off-request', 'buyer'), /does not match what you asked for/);
-  assert.match(deliveryCheckReason('off-request', 'seller'), /The buyer reviews it/);
+  assert.match(deliveryCheckReason('off-request', 'seller'), /your delivery may not match the request. Send the right link/);
 });

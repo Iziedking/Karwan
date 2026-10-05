@@ -1,9 +1,9 @@
-import { listDealsForAddress } from '../db/deals.js';
 import { getProfile } from '../db/profiles.js';
 import { milestoneAmountUsdc } from '../deals/dealView.js';
 import { config } from '../config.js';
 import { loadPublicPassport } from '../sealed/passportLoader.js';
-import { sealTrustCard, trustCard, trustFacts, type TrustCard, type TrustFacts } from './trustCard.js';
+import { sealTrustCard, trustCard, trustFactsFromReputation, type TrustCard, type TrustFacts } from './trustCard.js';
+import { loadInputs } from '../reputation/signals.js';
 
 export interface TrustDealContext {
   dealAmountUsdc: string;
@@ -43,9 +43,10 @@ async function loadSubjectTrust(subject: string, role: 'seller' | 'buyer'): Prom
   const hit = subjectTrustCache.get(key);
   if (hit && now - hit.fetchedAt < SUBJECT_TRUST_CACHE_TTL_MS) return hit;
 
-  const [profile, deals] = await Promise.all([getProfile(subject), listDealsForAddress(subject)]);
+  // Facts come from the reputation record the passport shows, never a second count.
+  const [profile, inputs] = await Promise.all([getProfile(subject), loadInputs(subject)]);
   const value: CachedSubjectTrust = {
-    facts: trustFacts(deals, subject, role),
+    facts: trustFactsFromReputation(inputs),
     memberSince: profile?.createdAt ?? null,
     displayName: profile?.displayName ?? null,
     companyName: profile?.smeProfile?.companyName ?? null,

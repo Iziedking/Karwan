@@ -51,7 +51,14 @@ test('an off-market price is noted, never blocked', () => {
   const d = decideTrust({ buyer: seasoned, seller: seasoned, deal: { ...deal, priceZ: -4 }, worldIdAvailable: true });
   assert.equal(d.level, 'watch');
   assert.deepEqual(d.verify, {});
-  assert.deepEqual(d.reasons, [{ code: 'off_market_price' }]);
+  assert.deepEqual(d.reasons, [{ code: 'below_market_price' }]);
+});
+
+test('a price well above similar deals and one well below are told apart', () => {
+  const above = decideTrust({ buyer: seasoned, seller: seasoned, deal: { ...deal, priceZ: 4 }, worldIdAvailable: true });
+  assert.deepEqual(above.reasons, [{ code: 'off_market_price' }]);
+  const below = decideTrust({ buyer: seasoned, seller: seasoned, deal: { ...deal, priceZ: -4 }, worldIdAvailable: true });
+  assert.deepEqual(below.reasons, [{ code: 'below_market_price' }]);
 });
 
 test('without World ID configured nobody is asked, but the reasons are kept', () => {

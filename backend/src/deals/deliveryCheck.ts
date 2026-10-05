@@ -46,7 +46,7 @@ const BUYER: Record<DeliveryCheckDetail, string> = {
 const SELLER: Record<DeliveryCheckDetail, string> = {
   ...BUYER,
   'security-hold': 'Your delivery link was flagged as unsafe and is hidden from the buyer. Send a corrected link.',
-  'off-request': 'The check found the delivery may not match the request. The buyer reviews it.',
+  'off-request': 'The check found your delivery may not match the request. Send the right link.',
 };
 
 export function deliveryCheckReason(detail: DeliveryCheckDetail, role: 'buyer' | 'seller'): string {

@@ -61,6 +61,25 @@ export function trustFacts(deals: TrustDeal[], subject: string, role: 'seller' |
   };
 }
 
+/// The facts a counterparty sees, read from the same reputation record the
+/// passport shows, so the deal page and the passport always agree. Settled is
+/// every deal the record closed; the passport carries no on-time ratio, so
+/// neither does this.
+export function trustFactsFromReputation(inputs: {
+  successCount: number;
+  disputedCount: number;
+  failedCount: number;
+  distinctCounterparties: number;
+}): TrustFacts {
+  return {
+    settled: inputs.successCount + inputs.disputedCount + inputs.failedCount,
+    distinctCounterparties: inputs.distinctCounterparties,
+    onTime: 0,
+    withDeadline: 0,
+    disputes: inputs.disputedCount,
+  };
+}
+
 export function trustCard(input: TrustCardInput): TrustCard {
   return {
     role: input.role,

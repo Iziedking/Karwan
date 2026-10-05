@@ -112,6 +112,8 @@ import { pgEnabled } from '../db/client.js';
 import { pickEmailOwner, type EmailOwner } from '../identity/emailOwner.js';
 import { getUserByEmail } from '../db/users.js';
 import { findProfileByEmail, getProfile } from '../db/profiles.js';
+import { partyLabel } from '../deals/partyLabel.js';
+import { deliveryCheckState } from '../deals/deliveryCheckState.js';
 import { provisionUserAgentWallets } from '../circle/wallets.js';
 import { seedAgentFromOperator } from '../chain/agentSeed.js';
 import { bus, recentEventsByType } from '../events.js';
@@ -1541,13 +1543,27 @@ dealsRoutes.get('/direct', async (c) => {
     if (!refs.includes(movement.reference)) refs.push(movement.reference);
     referencesByJob.set(key, refs);
   }
+  // Name each counterparty once per request, so a list row reads "Lawful" or
+  // "@kingizie" instead of an address.
+  const viewer = parsed.data.toLowerCase();
+  const names = new Map<string, Promise<string | null>>();
+  const nameOf = (address: string) => {
+    const key = address.toLowerCase();
+    if (!names.has(key)) names.set(key, getProfile(key).then(partyLabel).catch(() => null));
+    return names.get(key)!;
+  };
   const enriched = await Promise.all(
     deals.map(async (d) => {
       const deal = await enrich(d);
+      const counterpartyName = await nameOf(d.buyer.toLowerCase() === viewer ? d.seller : d.buyer);
       // Attach only the signed-in party's durable movement references. The
       // deal list must never fall back to wallet addresses or raw tx hashes.
       const receiptReferences = referencesByJob.get(d.jobId.toLowerCase()) ?? [];
-      return receiptReferences.length ? { ...deal, receiptReferences } : deal;
+      return {
+        ...deal,
+        ...(counterpartyName ? { counterpartyName } : {}),
+        ...(receiptReferences.length ? { receiptReferences } : {}),
+      };
     }),
   );
   // Legacy deals live on the dedicated /legacy recovery page; filtering
@@ -1584,7 +1600,11 @@ dealsRoutes.get('/direct/:jobId', async (c) => {
   // also gates it; this strip is the authoritative defense.
   const extras = await partyView(enriched, viewerIsBuyer ? 'buyer' : 'seller', caller!);
   const trust = deal.trust ? trustForViewer(deal.trust, viewerIsBuyer ? 'buyer' : 'seller') : undefined;
-  const shaped = viewerIsBuyer ? { ...enriched, ...extras, trust } : { ...enriched, ...extras, trust, deliveryMatch: undefined };
+  // Both parties see where the delivery check stands; only the buyer sees the review behind it.
+  const deliveryCheck = deliveryCheckState(deal);
+  const shaped = viewerIsBuyer
+    ? { ...enriched, ...extras, trust, deliveryCheck }
+    : { ...enriched, ...extras, trust, deliveryCheck, deliveryMatch: undefined };
   if (viewerIsBuyer && held && enriched.deliveryProof) {
     return c.json({ deal: { ...shaped, deliveryProof: undefined } });
   }

@@ -139,6 +139,7 @@ import { startTeamDaily } from './telegram/team.js';
 import { startTelegramNotifier } from './telegram/notifier.js';
 import { startChatRetentionSweep } from './chat/retention.js';
 import { startEmailNotifier } from './emails/dealNotifier.js';
+import { registerDealTimeline } from './chat/dealTimeline.js';
 import { startXBroadcaster } from './notifiers/xBroadcaster.js';
 import {
   ensureSchema,
@@ -1257,6 +1258,8 @@ async function boot() {
   // Live-support housekeeping: prune closed conversations, archive abandoned
   // ones. No-op-safe regardless of whether the handoff is configured.
   stopFns.push(startSupportSweeper());
+  // Deal steps become quiet lines in each deal's chat.
+  registerDealTimeline();
   // Email notifier: deal lifecycle alerts to verified contact emails. No-op
   // cleanly when RESEND_API_KEY is unset.
   try {

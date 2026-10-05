@@ -45,7 +45,7 @@ test('a paused release tells the buyer why, with the private note only for them'
   const toSeller = contentFor(blocked, 'seller', 'service', 'The link is a landing page, not the logo files.');
   assert.ok(toSeller);
   assert.doesNotMatch(toSeller.body, /landing page/);
-  assert.match(toSeller.body, /The buyer reviews it/);
+  assert.match(toSeller.body, /Send the right link/);
 });
 
 test('a deadline refund tells the buyer the money is back and the seller why', () => {

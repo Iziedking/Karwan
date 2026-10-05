@@ -104,3 +104,12 @@ test('a sealed card drops facts, keeps the stake on this deal, and carries tier 
   assert.deepEqual(sealed.reasons, ['HAS_COMPLETED_DEALS', 'USUALLY_ON_TIME']);
   assert.equal(sealed.name, 'Ada');
 });
+
+test('the deal-page record is the passport record, so the two pages never disagree', async () => {
+  const { trustFactsFromReputation } = await import('./trustCard.js');
+  const facts = trustFactsFromReputation({ successCount: 23, disputedCount: 0, failedCount: 0, distinctCounterparties: 19 });
+  assert.deepEqual(facts, { settled: 23, distinctCounterparties: 19, onTime: 0, withDeadline: 0, disputes: 0 });
+  const withDisputes = trustFactsFromReputation({ successCount: 20, disputedCount: 2, failedCount: 1, distinctCounterparties: 9 });
+  assert.equal(withDisputes.settled, 23);
+  assert.equal(withDisputes.disputes, 2);
+});
