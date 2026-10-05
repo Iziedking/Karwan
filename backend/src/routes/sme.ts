@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { readSession } from '../auth/session.js';
+import { isSessionSelf, readSession } from '../auth/session.js';
+import { config } from '../config.js';
 import { accountKindOf } from '../profile/accountType.js';
 import { getProfile, upsertProfile } from '../db/profiles.js';
 import { listDealsForAddress } from '../db/deals.js';
@@ -77,7 +78,8 @@ smeRoutes.get('/profile/:address', async (c) => {
   if (!profile?.smeProfile) return c.json({ smeProfile: null, repaymentBehavior: null });
 
   const { taxIdEncrypted: _ignore, ...publicProfile } = profile.smeProfile;
-  const repaymentBehavior = await computeRepaymentBehavior(parsed.data);
+  const repaymentBehavior =
+    config.SEALED_RECORDS && !isSessionSelf(c, parsed.data) ? null : await computeRepaymentBehavior(parsed.data);
   return c.json({ smeProfile: publicProfile, repaymentBehavior });
 });
 
