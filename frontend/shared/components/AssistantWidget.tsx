@@ -15,6 +15,7 @@ import {
   type AssistantConfirmAction,
 } from '@/core/api';
 import { stripMarkdown } from '@/shared/utils/format';
+import { tidyAssistantText } from '@/shared/utils/assistantText';
 import { confirmTransaction } from '@/shared/chain/confirmTx';
 import {
   ARC_EXPLORER_TX,
@@ -1512,11 +1513,25 @@ function renderInline(line: string, onNavigate: () => void): React.ReactNode[] {
 /// Renders the assistant reply: line breaks preserved, dash bullets shown with a
 /// lime marker, markdown links and bold resolved.
 function RichText({ text, onNavigate }: { text: string; onNavigate: () => void }) {
-  const lines = text.split('\n');
+  const lines = tidyAssistantText(text).split('\n');
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       {lines.map((raw, li) => {
-        if (raw.trim() === '') return null;
+        if (raw.trim() === '' || /^\s*([-*_])\1{2,}\s*$/.test(raw)) return null;
+        const step = /^\s*(\d{1,2})[.)]\s+(.*)$/.exec(raw);
+        if (step) {
+          return (
+            <div key={li} className="flex gap-2.5">
+              <span
+                aria-hidden
+                className="mt-[3px] inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--lp-accent)] px-1 text-[11px] font-bold tabular-nums text-[var(--lp-band-dark)]"
+              >
+                {step[1]}
+              </span>
+              <p className="flex-1">{renderInline(step[2], onNavigate)}</p>
+            </div>
+          );
+        }
         const isBullet = /^\s*[-*]\s+/.test(raw);
         const line = isBullet ? raw.replace(/^\s*[-*]\s+/, '') : raw;
         const inline = renderInline(line, onNavigate);

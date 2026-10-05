@@ -39,3 +39,10 @@ test('assistant states the reputation direction with confidence and never as liv
   assert.match(KARWAN_ASSISTANT_SYSTEM, /Never claim to have read another platform, imported outside reputation or contacted a partner/);
   assert.match(KARWAN_ASSISTANT_SYSTEM, /only with their consent, and nothing is leaked/);
 });
+
+test('replies read like chat, link every page and keep unified reputation as planned', () => {
+  assert.match(KARWAN_ASSISTANT_SYSTEM, /No headings/);
+  assert.match(KARWAN_ASSISTANT_SYSTEM, /Never use em dashes or en dashes/);
+  assert.match(KARWAN_ASSISTANT_SYSTEM, /markdown link with a plain label/);
+  assert.match(KARWAN_ASSISTANT_SYSTEM, /bringing in a person's record from other platforms, with their permission, is planned/);
+});

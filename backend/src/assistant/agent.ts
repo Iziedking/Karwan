@@ -92,6 +92,7 @@ import {
   cancelDepositRequest,
   createDepositRequest,
   getDepositRequest,
+  MAX_REQUEST_TTL_MINUTES,
   listDepositRequests,
   listDepositRequestsPaidBy,
   saveDepositRequest,
@@ -1609,11 +1610,11 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
       inputSchema: z.object({
         amountUsdc: z.number().positive().max(1_000_000).optional().describe('Exact USDC amount to request. Omit for an open amount.'),
         note: z.string().max(200).optional().describe('What the payment is for, shown to the payer. Trimmed to 120 characters.'),
-        expiresInMinutes: z.number().int().min(5).max(7 * 24 * 60).optional().describe('Default 60. Up to 7 days (10080).'),
+        expiresInMinutes: z.number().int().min(5).max(7 * 24 * 60).optional().describe('Default 7 days (10080), the same as a link made on the request page. Shorter only when the user asks.'),
       }),
       execute: async ({ amountUsdc, note, expiresInMinutes }) => {
         try {
-          const request = createDepositRequest({ owner: address, amountUsdc, purpose: note, ttlMinutes: expiresInMinutes });
+          const request = createDepositRequest({ owner: address, amountUsdc, purpose: note, ttlMinutes: expiresInMinutes ?? MAX_REQUEST_TTL_MINUTES });
           await saveDepositRequest(request);
           const view = toPublicRequest(request);
           const built = buildNavigateAction({ destination: 'payment_link', token: view.requestId, label: 'Open the payment link' });
