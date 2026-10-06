@@ -28,6 +28,7 @@ import { ReceiptCard } from '@/features/receipt/ReceiptCard';
 import { downloadReceiptImage } from '@/features/activity/receiptPresentation';
 import { ARC_NETWORK } from '@/core/arcNetwork';
 import { LoginModal } from '@/shared/components/LoginModal';
+import { BackButton } from '@/shared/components/BackButton';
 
 type Source = 'arc' | CctpChainKey;
 /// How the payer pays: their Karwan balance, a connected wallet, or an address for any chain.
@@ -129,6 +130,7 @@ function OwnRequest({ request }: { request: DepositRequestPublic }) {
   const url = typeof window !== 'undefined' ? window.location.href : '';
   return (
     <section className="space-y-6">
+      <BackButton tone="adaptive" showOnPublic fallbackHref="/request" />
       <p className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{copy.tag}</p>
       <Amount value={request.amountUsdc} />
       {request.purpose ? <p className="text-[15px] text-[var(--lp-dark)]">{fill(copy.forTemplate, { purpose: request.purpose })}</p> : null}

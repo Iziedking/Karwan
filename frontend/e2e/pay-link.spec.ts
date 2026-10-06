@@ -83,6 +83,7 @@ test('a paid request says so, and the requester sees their own link to share', a
   await owner.goto(`/deposit/request/${TOKEN}`);
   await expect(owner.getByText(copy.pay.yours)).toBeVisible();
   await expect(owner.getByRole('button', { name: copy.create.copy })).toBeVisible();
+  await expect(owner.getByRole('button', { name: en.nav.backAria })).toBeVisible();
 });
 
 test('any signed-in account creates a link that lasts a week', async ({ page }) => {
