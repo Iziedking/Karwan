@@ -1,6 +1,7 @@
 import { SELLER_LINK_DETAIL, SELLER_NOT_BOUND, sellerAgentBinding, sellerBindingRefusal } from '../deals/sellerBinding.js';
 import { carriedGate } from './proposalCarry.js';
 import { offerToChoose } from './chooseOffer.js';
+import { sellerKey } from './sellerKey.js';
 import { generateObject } from 'ai';
 import { formatUnits, parseUnits, type Log } from 'viem';
 import { publicClient, watchEventsViaGetLogs } from '../chain/client.js';
@@ -1164,14 +1165,16 @@ export function startBuyerAgents() {
       if (!jobId || !seller) return;
       const state = jobs.get(jobId);
       if (!state || state.finalized || state.expired) return;
-      if (!state.counterRoundsBySeller.has(seller)) return;
-      if (state.triedSellers.has(seller)) return;
+      // The event may name the seller in another casing than the agent stored.
+      const countered = sellerKey(state.counterRoundsBySeller, seller) as `0x${string}` | null;
+      if (!countered) return;
+      if (sellerKey(state.triedSellers, seller)) return;
       logger.info(
-        { jobId, seller, reason: e.payload?.reason },
+        { jobId, seller: countered, reason: e.payload?.reason },
         'seller declined off-chain, cascading to next candidate',
       );
       safe('sellerDeclinedCascade', () =>
-        tryNextCandidate(state, seller, 'seller-declined'),
+        tryNextCandidate(state, countered, 'seller-declined'),
       );
     }
   });
