@@ -8,6 +8,7 @@ import {
   carryProfile,
   findProfileByXHandle,
   findProfileByXUserId,
+  freeDisplayName,
 } from '../db/profiles.js';
 import { logger } from '../logger.js';
 import { sessionAddress } from '../auth/session.js';
@@ -224,7 +225,8 @@ xRoutes.get('/oauth/callback', async (c) => {
       await upsertProfile({
         address: entry.address,
         role: 'buyer',
-        displayName: me.data.name ?? me.data.username,
+        // Never take a name another account already uses; onboarding asks for one then.
+        displayName: await freeDisplayName([me.data.name ?? '', me.data.username], entry.address),
         xHandle: me.data.username,
         xUserId: me.data.id,
         xProfileImageUrl: profileImage,

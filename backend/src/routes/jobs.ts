@@ -622,20 +622,27 @@ jobsRoutes.post('/:jobId/choose-offer', async (c) => {
   } catch (err) {
     return c.json({ error: invalidBodyMessage(err) }, 400);
   }
+  // Every refusal is logged with its reason, so a buyer's "could not choose"
+  // can be traced to the check that stopped it.
+  const refuse = (reason: string) => logger.warn({ jobId, seller: body.seller, reason }, 'choose-offer refused');
   if (!isSessionSelf(c, body.caller)) {
+    refuse('session-mismatch');
     return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
   }
   const brief = getBrief(jobId);
   if (!brief || !isRequestOwner(body.caller, brief)) {
+    refuse(brief ? 'not-request-owner' : 'no-brief');
     return c.json({ error: 'only the buyer can choose an offer', code: 'forbidden' }, 403);
   }
   if (inFlight.has(jobId)) {
+    refuse('in-flight');
     return c.json({ error: 'an action is already in progress for this job' }, 409);
   }
   inFlight.add(jobId);
   try {
     const result = await chooseAgentOffer(jobId, body.seller);
     if (!result.ok) {
+      refuse(result.code);
       const status = result.code === 'INSUFFICIENT_AGENT_BALANCE' || result.code === 'CLOSED' || result.code.startsWith('ALREADY') ? 409 : result.code === 'NO_OFFER' ? 404 : 502;
       return c.json({ error: 'could not choose this offer', code: result.code, detail: result.message }, status);
     }

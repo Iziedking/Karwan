@@ -502,6 +502,19 @@ export async function findProfileByName(name: string): Promise<UserProfile | nul
   );
 }
 
+/// The first of `candidates` that no other account uses as a display or
+/// company name, or '' when none is free, so the person picks one themselves.
+export async function freeDisplayName(candidates: string[], address: string): Promise<string> {
+  const self = address.toLowerCase();
+  for (const raw of candidates) {
+    const name = raw.trim();
+    if (!name) continue;
+    const owner = await findProfileByName(name);
+    if (!owner || owner.address.toLowerCase() === self) return name;
+  }
+  return '';
+}
+
 export async function findProfileByHandle(tag: string): Promise<UserProfile | null> {
   const t = tag.trim().replace(/^@/, '').toLowerCase();
   if (!t) return null;
