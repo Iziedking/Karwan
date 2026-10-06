@@ -3,6 +3,7 @@
 // would lock each value to its English literal type and reject translations.
 import type { LandingEditorialCopy } from './editorial';
 import { requestListCopy, type RequestListCopy } from './requestList';
+import { cashoutFlowCopy, type CashoutFlowCopy } from './cashoutFlow';
 import { balanceSummaryCopy, type BalanceSummaryCopy } from './balanceSummary';
 import { disputeJudgeCopy, type DisputeJudgeCopy } from './disputeJudge';
 import { networkCopy, type NetworkCopy } from './network';
@@ -35,6 +36,7 @@ interface MessagesShape {
   disputeJudge: DisputeJudgeCopy;
   balanceSummary: BalanceSummaryCopy;
   requestList: RequestListCopy;
+  cashoutFlow: CashoutFlowCopy;
   search: SearchCopy;
   offers: OffersCopy;
   escrowV3: EscrowV3Copy;
@@ -3877,111 +3879,6 @@ interface MessagesShape {
       body: string;
       buttonLabel: string;
     };
-    hero: {
-      tag: string;
-      titleBefore: string;
-      earnedTemplate: string;
-      loading: string;
-      backToDeal: string;
-    };
-    loading: { label: string };
-    errors: {
-      couldNotLoad: string;
-      couldNotLoadDeal: string;
-      solanaRoadmap: string;
-      withdrawFailed: string;
-    };
-    comingSoon: {
-      tag: string;
-      titleBefore: string;
-      titleAccent: string;
-      body: string;
-      tileLabel: string;
-      comingSoon: string;
-    };
-    notReady: {
-      tag: string;
-      titleBefore: string;
-      titleAccent: string;
-      titleAfter: string;
-      body: string;
-      cta: string;
-    };
-    legacy: { tag: string; body: string; cta: string };
-    walletAccount: {
-      tag: string;
-      titleBefore: string;
-      titleAccent: string;
-      body: string;
-      roadmap: string;
-      bridgeFromWallet: string;
-      sendOnArc: string;
-    };
-    withdraw: {
-      tag: string;
-      titleBefore: string;
-      body: string;
-      fromWalletLabel: string;
-      fromWalletTooltip: string;
-      whatIsThis: string;
-      dealWalletLabel: string;
-      dealWalletSub: string;
-      buyerWalletLabel: string;
-      buyerWalletSub: string;
-      identityWalletLabel: string;
-      identityWalletSub: string;
-      identityWalletSubWeb3: string;
-      web3IdentitySigns: string;
-      web3IdentityConnect: string;
-      connectWallet: string;
-      active: string;
-      notProvisioned: string;
-      sourceBalance: string;
-      fromDeal: string;
-      destinationChain: string;
-      recipientAddress: string;
-      base58Placeholder: string;
-      invalidAddress: string;
-      amountLabel: string;
-      max: string;
-      overBalance: string;
-      sendingOnArc: string;
-      bridgingOut: string;
-      sendTo: string;
-      bridgeTo: string;
-    };
-    sent: {
-      tag: string;
-      titleAccent: string;
-      body: string;
-      viewTx: string;
-      sendMore: string;
-    };
-    bridgeStage: {
-      burning: string;
-      burned: string;
-      attested: string;
-      minted: string;
-      errored: string;
-    };
-    bridgeProgress: {
-      tagBridged: string;
-      tagFailed: string;
-      tagBridging: string;
-      accentArrived: string;
-      accentErrored: string;
-      accentBridging: string;
-      bodyDone: string;
-      bodyFailed: string;
-      bodyInProgress: string;
-      burnLabel: string;
-      mintLabel: string;
-      pending: string;
-      retrying: string;
-      couldNotCheck: string;
-      sendMore: string;
-      tryAgain: string;
-    };
   };
   supplyPage: {
     signInGate: { tag: string; body: string };
@@ -5324,6 +5221,7 @@ export const en: MessagesShape = {
   disputeJudge: disputeJudgeCopy.en,
   balanceSummary: balanceSummaryCopy.en,
   requestList: requestListCopy.en,
+  cashoutFlow: cashoutFlowCopy.en,
   search: searchCopy.en,
   offers: offersCopy.en,
   escrowV3: escrowV3Copy.en,
@@ -9551,115 +9449,6 @@ export const en: MessagesShape = {
       titleBefore: 'Move your',
       body: 'Sign in to the account this deal settled on to withdraw.',
       buttonLabel: 'Sign in',
-    },
-    hero: {
-      tag: 'Cashout',
-      titleBefore: 'Move your',
-      earnedTemplate: 'You earned {amount} on this deal. Send it to any wallet on Arc, or bridge to another chain.',
-      loading: 'Loading your earnings…',
-      backToDeal: 'back to deal',
-    },
-    loading: { label: 'Loading…' },
-    errors: {
-      couldNotLoad: 'could not load',
-      couldNotLoadDeal: 'Could not load this deal.',
-      solanaRoadmap: 'Solana withdraw is on the roadmap. Use Ethereum Sepolia or another EVM chain for now.',
-      withdrawFailed: 'Withdraw failed',
-    },
-    comingSoon: {
-      tag: 'Coming soon',
-      titleBefore: 'Cash out to',
-      titleAccent: 'local currency',
-      body: 'Direct off-ramp to NGN, KES, INR, AED and more.',
-      tileLabel: 'Off-ramp',
-      comingSoon: 'Coming soon',
-    },
-    notReady: {
-      tag: 'Not ready',
-      titleBefore: "Deal isn’t",
-      titleAccent: 'settled',
-      titleAfter: 'yet',
-      body: 'Come back once the buyer releases the final milestone.',
-      cta: 'Open the deal',
-    },
-    legacy: {
-      tag: 'Legacy escrow',
-      body: 'This deal settled on a legacy escrow contract. Cash out from the legacy surface.',
-      cta: 'Open legacy surface',
-    },
-    walletAccount: {
-      tag: 'Wallet account',
-      titleBefore: 'Your USDC',
-      titleAccent: 'already landed',
-      body: 'The escrow released straight to your connected wallet on Arc. Use your wallet to bridge or send it elsewhere.',
-      roadmap: 'In-product wallet withdraw is on the roadmap.',
-      bridgeFromWallet: 'Bridge from wallet',
-      sendOnArc: 'Send on Arc',
-    },
-    withdraw: {
-      tag: 'Withdraw',
-      titleBefore: 'Send your',
-      body: 'Pick the source wallet, the destination chain, paste the address, set the amount.',
-      fromWalletLabel: 'From wallet',
-      fromWalletTooltip: 'Released escrow USDC lands on the deal wallet (your per-deal seller agent). Identity wallet is your main address. Switch to whichever currently holds the USDC you want to send.',
-      whatIsThis: 'what is this?',
-      dealWalletLabel: 'Deal wallet',
-      dealWalletSub: 'Where the escrow released',
-      buyerWalletLabel: 'Buyer wallet',
-      buyerWalletSub: 'Your buyer agent',
-      identityWalletLabel: 'Identity wallet',
-      identityWalletSub: 'Your main address',
-      identityWalletSubWeb3: 'Your connected wallet',
-      web3IdentitySigns: 'You sign this withdraw in your own wallet.',
-      web3IdentityConnect: 'Connect your wallet to withdraw from it.',
-      connectWallet: 'Connect wallet',
-      active: 'Active',
-      notProvisioned: 'Not provisioned',
-      sourceBalance: 'Source balance',
-      fromDeal: 'From deal',
-      destinationChain: 'Destination chain',
-      recipientAddress: 'Recipient address',
-      base58Placeholder: 'Base58 address',
-      invalidAddress: "That doesn’t look like a valid {kind} address.",
-      amountLabel: 'Amount (USDC)',
-      max: 'Max',
-      overBalance: 'Over the source wallet balance of {balance} USDC.',
-      sendingOnArc: 'Sending on Arc…',
-      bridgingOut: 'Bridging out…',
-      sendTo: 'Send to {chain}',
-      bridgeTo: 'Bridge to {chain}',
-    },
-    sent: {
-      tag: 'Sent',
-      titleAccent: 'on its way',
-      body: 'Transfer confirmed on Arc.',
-      viewTx: 'View tx {hash}',
-      sendMore: 'Send more',
-    },
-    bridgeStage: {
-      burning: 'Burning on Arc',
-      burned: 'Waiting for the transfer to confirm',
-      attested: 'Attested. Minting on destination',
-      minted: 'Minted on destination',
-      errored: 'Bridge errored',
-    },
-    bridgeProgress: {
-      tagBridged: 'Bridged',
-      tagFailed: 'Bridge failed',
-      tagBridging: 'Bridging',
-      accentArrived: 'arrived',
-      accentErrored: 'errored',
-      accentBridging: 'bridging',
-      bodyDone: 'Mint confirmed on {chain}. The USDC is in the recipient address.',
-      bodyFailed: 'Something went wrong on the way. The funds are still on the source side. Take a screenshot of this page and ping support.',
-      bodyInProgress: 'Sent from Arc. The money arrives on {chain} once the transfer confirms, usually in under a minute on testnet.',
-      burnLabel: 'Burn (Arc)',
-      mintLabel: 'Mint ({chain})',
-      pending: 'pending',
-      retrying: 'Retrying status check…',
-      couldNotCheck: 'Could not check status.',
-      sendMore: 'Send more',
-      tryAgain: 'Try again',
     },
   },
   supplyPage: {
