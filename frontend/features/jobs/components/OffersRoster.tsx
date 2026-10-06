@@ -11,6 +11,7 @@ import { useReputation } from '@/features/reputation/hooks/useReputation';
 import { ConfirmSheet } from '@/features/deals/workspace/ConfirmSheet';
 import { Sheet } from '@/features/deals/workspace/Sheet';
 import { fill } from '@/features/deals/workspace/presentation';
+import { chooseErrorKey } from '../chooseError';
 import { fitLevel, offersPage, OFFERS_PER_PAGE, priceRange, rankOffers, type FitLevel } from '../offerRoster';
 
 const nameOf = (bid: BuyerBid) => bid.sellerDisplayName?.trim() || shortAddress(bid.seller);
@@ -61,8 +62,7 @@ export function OffersRoster({ jobId, bids, pickSeller, caller, choosable, open:
       setViewing(null);
       onChosen();
     } catch (err) {
-      const code = err instanceof ApiError ? err.code : undefined;
-      setError(code === 'INSUFFICIENT_AGENT_BALANCE' ? copy.noFunds : copy.failed);
+      setError(copy[chooseErrorKey(err instanceof ApiError ? err.status : 0, err instanceof ApiError ? err.code : undefined)]);
     } finally {
       setBusy(false);
     }

@@ -26,6 +26,11 @@ export interface OfferRosterCopy {
   confirmBody: string;
   noFunds: string;
   failed: string;
+  closed: string;
+  taken: string;
+  gone: string;
+  notYours: string;
+  busy: string;
 }
 
 export const offerRosterCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', OfferRosterCopy> = {
@@ -54,6 +59,11 @@ export const offerRosterCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', OfferRost
     confirmBody: 'Your buying agent puts {amount} USDC in escrow now. {name} is paid only when you approve the work.',
     noFunds: 'Your buying agent needs more USDC to fund this offer. Add funds, then choose again.',
     failed: 'This offer could not be chosen. Try again.',
+    closed: "This request has closed. Post it again to get new offers.",
+    taken: "This request already has an agreed deal.",
+    gone: "This seller withdrew the offer. Choose another.",
+    notYours: "Only the account that posted this request can choose an offer. Sign in with it.",
+    busy: "Your agent is busy with this request. Try again in a minute.",
   },
   fr: {
     soFarOne: "1 offre pour l'instant",
@@ -80,6 +90,11 @@ export const offerRosterCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', OfferRost
     confirmBody: "Votre agent d'achat place {amount} USDC sous séquestre maintenant. {name} n'est payé que lorsque vous approuvez le travail.",
     noFunds: "Votre agent d'achat a besoin de plus d'USDC pour financer cette offre. Ajoutez des fonds, puis choisissez à nouveau.",
     failed: 'Impossible de choisir cette offre. Réessayez.',
+    closed: "Cette demande est close. Publiez-la à nouveau pour recevoir des offres.",
+    taken: "Cette demande a déjà un accord conclu.",
+    gone: "Ce vendeur a retiré son offre. Choisissez-en une autre.",
+    notYours: "Seul le compte qui a publié cette demande peut choisir une offre. Connectez-vous avec ce compte.",
+    busy: "Votre agent traite déjà cette demande. Réessayez dans une minute.",
   },
   ar: {
     soFarOne: 'عرض واحد حتى الآن',
@@ -106,6 +121,11 @@ export const offerRosterCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', OfferRost
     confirmBody: 'يضع وكيل الشراء {amount} USDC في الضمان الآن. لا يُدفع لـ {name} إلا عندما توافق على العمل.',
     noFunds: 'يحتاج وكيل الشراء إلى مزيد من USDC لتمويل هذا العرض. أضف أموالًا ثم اختر مجددًا.',
     failed: 'تعذّر اختيار هذا العرض. حاول مرة أخرى.',
+    closed: "أُغلق هذا الطلب. انشره مجددًا لتلقي عروض جديدة.",
+    taken: "لهذا الطلب صفقة متفق عليها بالفعل.",
+    gone: "سحب هذا البائع عرضه. اختر عرضًا آخر.",
+    notYours: "يمكن فقط للحساب الذي نشر هذا الطلب اختيار عرض. سجّل الدخول به.",
+    busy: "وكيلك منشغل بهذا الطلب. حاول بعد دقيقة.",
   },
   hi: {
     soFarOne: 'अब तक 1 ऑफ़र',
@@ -132,6 +152,11 @@ export const offerRosterCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', OfferRost
     confirmBody: 'आपका ख़रीद एजेंट अभी {amount} USDC एस्क्रो में रखेगा। {name} को भुगतान तभी होगा जब आप काम मंज़ूर करेंगे।',
     noFunds: 'इस ऑफ़र के लिए आपके ख़रीद एजेंट को और USDC चाहिए। फ़ंड जोड़ें, फिर दोबारा चुनें।',
     failed: 'यह ऑफ़र चुना नहीं जा सका। फिर से कोशिश करें।',
+    closed: "यह अनुरोध बंद हो गया है। नए ऑफ़र के लिए इसे फिर से पोस्ट करें।",
+    taken: "इस अनुरोध पर पहले से एक सौदा तय है।",
+    gone: "इस विक्रेता ने ऑफ़र वापस ले लिया। कोई और चुनें।",
+    notYours: "केवल वही खाता ऑफ़र चुन सकता है जिसने यह अनुरोध पोस्ट किया। उसी से साइन इन करें।",
+    busy: "आपका एजेंट इस अनुरोध पर काम कर रहा है। एक मिनट बाद फिर कोशिश करें।",
   },
   sw: {
     soFarOne: 'Ofa 1 hadi sasa',
@@ -158,5 +183,10 @@ export const offerRosterCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', OfferRost
     confirmBody: 'Wakala wako wa ununuzi anaweka USDC {amount} kwenye escrow sasa. {name} analipwa tu utakapoidhinisha kazi.',
     noFunds: 'Wakala wako wa ununuzi anahitaji USDC zaidi kufadhili ofa hii. Ongeza fedha, kisha uchague tena.',
     failed: 'Ofa hii haikuweza kuchaguliwa. Jaribu tena.',
+    closed: "Ombi hili limefungwa. Lichapishe tena upate ofa mpya.",
+    taken: "Ombi hili tayari lina makubaliano.",
+    gone: "Muuzaji huyu ameondoa ofa. Chagua nyingine.",
+    notYours: "Akaunti iliyochapisha ombi hili pekee ndiyo inaweza kuchagua ofa. Ingia nayo.",
+    busy: "Wakala wako anashughulikia ombi hili. Jaribu tena baada ya dakika moja.",
   },
 };

@@ -609,48 +609,21 @@ function CounterpartySignal({
   const xHref = xHandle ? `https://x.com/${xHandle}` : null;
   const recordLine = repSealed ? reasonLine(repSealed.reasons, sr) : rep ? formatRecord(rep, copy.record) : null;
 
-  // Compact row for Normal mode, preserves the existing footprint. Address
-  // always renders as a masked line directly under the avatar so the viewer
-  // can verify the wallet at a glance even when the X handle is bound.
+  // Compact row for Normal mode: the seller's name, their record and a way
+  // into their profile.
   if (!trusted) {
     return (
       <div className="flex items-center gap-2.5 flex-wrap">
         <span className="text-[14px] text-[var(--lp-text-sub)] font-medium">
           {label}
         </span>
-        <div className="flex flex-col items-center gap-0.5 shrink-0">
-          {avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={avatarUrl}
-              alt=""
-              width={28}
-              height={28}
-              className="w-7 h-7 rounded-full object-cover"
-              style={{ border: '1px solid var(--color-line)' }}
-              referrerPolicy="no-referrer"
-            />
-          ) : (
-            <div
-              className="w-7 h-7 flex items-center justify-center mono text-[13px] font-bold uppercase"
-              style={{
-                background: 'var(--lp-light)',
-                border: '1px solid var(--color-line)',
-                color: 'var(--color-ink-dim)',
-                borderRadius: 999,
-              }}
-              aria-hidden
-            >
-              {address.slice(2, 4).toUpperCase()}
-            </div>
-          )}
-          <span className="mono text-[13px] tabular-nums text-[var(--color-ink-faint)] tracking-tight">
-            {shortAddress(address)}
+        {/* The name only. Photo, address and handle live behind View profile,
+            where they read as one identity instead of a row of codes. */}
+        {profile?.displayName?.trim() || profile?.handle ? (
+          <span className="min-w-0 truncate text-[15px] font-semibold text-[var(--lp-dark)]">
+            {profile?.displayName?.trim() || `@${profile?.handle}`}
           </span>
-        </div>
-        {xHandle && (
-          <span className="mono text-[14px] text-[var(--color-ink-dim)] font-medium">@{xHandle}</span>
-        )}
+        ) : null}
         <ReputationBadge address={address} size="sm" />
         {canPeek && (
           <button

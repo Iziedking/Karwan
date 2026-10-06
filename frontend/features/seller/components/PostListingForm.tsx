@@ -380,9 +380,6 @@ export function PostListingForm() {
               { label: f.readyIn, value: fill(f.readyInRow, readyInDays) },
               { label: f.openFor, value: fill(f.openForRow, openDays) },
               { label: t.dealCreation.payment, value: terms.parts.map((part) => `${part.pct}%`).join(' / ') },
-              ...(cleanLines(terms.conditions).length
-                ? [{ label: TERMS_COPY[locale].conditions, value: cleanLines(terms.conditions).map((line) => `• ${line}`).join('\n') }]
-                : []),
               { label: TERMS_COPY[locale].agreement, value: agreementText },
             ]}
           >

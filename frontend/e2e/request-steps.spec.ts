@@ -63,8 +63,7 @@ test('a request is asked in three steps and posts the chosen date and milestones
   await expect(page.locator('button[data-guide="buyer-submit"]')).toBeDisabled();
   await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '1')} %` }).fill('20');
   await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '2')} %` }).fill('70');
-  await page.locator('summary', { hasText: tb.moreTerms }).click();
-  await page.getByRole('textbox', { name: `${tb.conditions} 1`, exact: true }).fill('2 rounds of changes included');
+  await expect(page.getByText('More terms', { exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: tb.days.replace('{n}', '7'), exact: true }).click();
   await expect(page.getByText(tb.ready, { exact: true })).toBeVisible();
 
@@ -79,7 +78,7 @@ test('a request is asked in three steps and posts the chosen date and milestones
   const agreement = String((posted as unknown as { terms: string }).terms);
   expect(agreement).toContain('• Milestone 1, 20% (30 USDC): Three logo sketches to choose from');
   expect(agreement).toContain('• Milestone 3, 10% (15 USDC): Brand colours sheet');
-  expect(agreement).toContain('• 2 rounds of changes included');
+  expect(agreement).not.toContain('Accepted when');
   expect(agreement).toContain('Check window: 7 days');
 });
 
@@ -125,17 +124,15 @@ test('a direct deal names the seller in one box and sends the agreed terms in tw
   await page.getByRole('button', { name: tb.addPart, exact: true }).click();
   await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '2')}: ${tb.whatLabel}`, exact: true }).fill('Product photos for the other 10 items');
   await page.getByRole('button', { name: tb.addPart, exact: true }).click();
-  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '3')}: ${tb.whatLabel}`, exact: true }).fill('Edited set in one folder');
+  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '3')}: ${tb.whatLabel}`, exact: true }).fill('Edited set in one folder, white background, 2000 px wide');
   await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '1')} %` }).fill('40');
   await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '2')} %` }).fill('40');
   await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '3')} %` }).fill('20');
-  await page.locator('summary', { hasText: tb.moreTerms }).click();
-  await page.getByRole('textbox', { name: `${tb.conditions} 1`, exact: true }).fill('White background, 2000 px wide');
   await page.getByRole('button', { name: tb.other, exact: true }).click();
   await page.getByRole('textbox', { name: tb.otherDays, exact: true }).fill('10');
 
   await page.getByRole('button', { name: en.dealCreation.review, exact: true }).click();
-  await expect(page.getByText('• White background, 2000 px wide', { exact: true })).toBeVisible();
+  await expect(page.getByRole('region').getByText(/Edited set in one folder, white background, 2000 px wide/)).toBeVisible();
   const send = page.getByRole('button', { name: rs.sendTo.replace('{name}', '0x3333…3333'), exact: true });
   await send.click();
   await expect.poll(() => posted).not.toBeNull();

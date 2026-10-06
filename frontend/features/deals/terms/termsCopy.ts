@@ -12,10 +12,6 @@ export interface TermsBuilderCopy {
   both: string;
   bothHint: string;
   soon: string;
-  conditions: string;
-  conditionPlaceholder: string;
-  addCondition: string;
-  conditionsHint: string;
   parts: string;
   whatLabel: string;
   whatPlaceholder: string;
@@ -24,7 +20,6 @@ export interface TermsBuilderCopy {
   payHalf: string;
   payThirty: string;
   payCustom: string;
-  moreTerms: string;
   part: string;
   addPart: string;
   removeLine: string;
@@ -53,9 +48,7 @@ export const TERMS_COPY: Record<Locale, TermsBuilderCopy> = {
     goods: 'Goods', goodsHint: 'Proof is a tracking number',
     both: 'Both', bothHint: 'Either proof works',
     soon: 'Soon',
-    conditions: 'It is accepted when', conditionPlaceholder: '2 rounds of changes included', addCondition: 'Add a condition',
-    conditionsHint: 'What the buyer checks before money is released.',
-    payHalf: 'Two equal parts', payThirty: '30% then 70%', payCustom: 'Custom', moreTerms: 'More terms',
+    payHalf: 'Two equal parts', payThirty: '30% then 70%', payCustom: 'Custom',
     parts: "Milestones", whatLabel: "What this milestone delivers", whatPlaceholder: "First draft of the logo in two styles", splitEvenly: "Split evenly", noWhat: "Say what milestone {n} delivers.", part: 'Milestone {n}', 
     addPart: "Add a milestone", removeLine: 'Remove', total: 'Adds up to {sum}%', needs100: 'Adds up to {sum}%, needs 100%',
     review: 'Time to check each delivery', day: '1 day', days: '{n} days', other: 'Other', otherDays: 'Days to check',
@@ -83,9 +76,7 @@ export const TERMS_COPY: Record<Locale, TermsBuilderCopy> = {
     goods: 'Des biens', goodsHint: 'La preuve est un numéro de suivi',
     both: 'Les deux', bothHint: 'L’une ou l’autre preuve',
     soon: 'Bientôt',
-    conditions: 'C’est accepté quand', conditionPlaceholder: '2 séries de modifications incluses', addCondition: 'Ajouter une condition',
-    conditionsHint: 'Ce que l’acheteur vérifie avant que l’argent soit libéré.',
-    payHalf: 'Deux parts égales', payThirty: '30 % puis 70 %', payCustom: 'Personnalisé', moreTerms: 'Plus de conditions',
+    payHalf: 'Deux parts égales', payThirty: '30 % puis 70 %', payCustom: 'Personnalisé',
     parts: "Étapes", whatLabel: "Ce que cette étape livre", whatPlaceholder: "Première version du logo en deux styles", splitEvenly: "Répartir également", noWhat: "Dites ce que l’étape {n} livre.", part: 'Étape {n}', 
     addPart: "Ajouter une étape", removeLine: 'Retirer', total: 'Total de {sum} %', needs100: 'Total de {sum} %, il faut 100 %',
     review: 'Temps pour vérifier chaque livraison', day: '1 jour', days: '{n} jours', other: 'Autre', otherDays: 'Jours pour vérifier',
@@ -113,9 +104,7 @@ export const TERMS_COPY: Record<Locale, TermsBuilderCopy> = {
     goods: 'بضائع', goodsHint: 'الإثبات رقم تتبع',
     both: 'كلاهما', bothHint: 'يصلح أي إثبات',
     soon: 'قريبًا',
-    conditions: 'يُقبل عندما', conditionPlaceholder: 'جولتا تعديل مشمولتان', addCondition: 'أضف شرطًا',
-    conditionsHint: 'ما يتحقق منه المشتري قبل تحرير المال.',
-    payHalf: 'جزآن متساويان', payThirty: '30% ثم 70%', payCustom: 'مخصص', moreTerms: 'شروط إضافية',
+    payHalf: 'جزآن متساويان', payThirty: '30% ثم 70%', payCustom: 'مخصص',
     parts: "المراحل", whatLabel: "ما تسلّمه هذه المرحلة", whatPlaceholder: "المسودة الأولى للشعار بأسلوبين", splitEvenly: "قسّم بالتساوي", noWhat: "اذكر ما تسلّمه المرحلة {n}.", part: 'المرحلة {n}', 
     addPart: "أضف مرحلة", removeLine: 'إزالة', total: 'المجموع {sum}%', needs100: 'المجموع {sum}%، والمطلوب 100%',
     review: 'مدة فحص كل تسليم', day: 'يوم واحد', days: '{n} أيام', other: 'أخرى', otherDays: 'أيام الفحص',
@@ -143,9 +132,7 @@ export const TERMS_COPY: Record<Locale, TermsBuilderCopy> = {
     goods: 'सामान', goodsHint: 'सबूत ट्रैकिंग नंबर है',
     both: 'दोनों', bothHint: 'कोई भी सबूत चलेगा',
     soon: 'जल्द',
-    conditions: 'यह स्वीकार होगा जब', conditionPlaceholder: 'बदलाव के 2 दौर शामिल', addCondition: 'शर्त जोड़ें',
-    conditionsHint: 'पैसा जारी होने से पहले खरीदार क्या जाँचता है।',
-    payHalf: 'दो बराबर हिस्से', payThirty: 'पहले 30%, फिर 70%', payCustom: 'अपने हिसाब से', moreTerms: 'और शर्तें',
+    payHalf: 'दो बराबर हिस्से', payThirty: 'पहले 30%, फिर 70%', payCustom: 'अपने हिसाब से',
     parts: "पड़ाव", whatLabel: "यह पड़ाव क्या देता है", whatPlaceholder: "दो शैलियों में लोगो का पहला ड्राफ़्ट", splitEvenly: "बराबर बाँटें", noWhat: "बताएँ कि पड़ाव {n} क्या देता है।", part: 'पड़ाव {n}', 
     addPart: "पड़ाव जोड़ें", removeLine: 'हटाएँ', total: 'कुल {sum}%', needs100: 'कुल {sum}%, 100% चाहिए',
     review: 'हर डिलीवरी जाँचने का समय', day: '1 दिन', days: '{n} दिन', other: 'अन्य', otherDays: 'जाँच के दिन',
@@ -173,9 +160,7 @@ export const TERMS_COPY: Record<Locale, TermsBuilderCopy> = {
     goods: 'Bidhaa', goodsHint: 'Ushahidi ni namba ya ufuatiliaji',
     both: 'Vyote viwili', bothHint: 'Ushahidi wowote unafaa',
     soon: 'Hivi karibuni',
-    conditions: 'Kinakubaliwa wakati', conditionPlaceholder: 'Mizunguko 2 ya marekebisho imejumuishwa', addCondition: 'Ongeza sharti',
-    conditionsHint: 'Anachokagua mnunuzi kabla pesa kutolewa.',
-    payHalf: 'Sehemu mbili sawa', payThirty: '30% kisha 70%', payCustom: 'Weka mwenyewe', moreTerms: 'Masharti zaidi',
+    payHalf: 'Sehemu mbili sawa', payThirty: '30% kisha 70%', payCustom: 'Weka mwenyewe',
     parts: "Hatua", whatLabel: "Hatua hii inawasilisha nini", whatPlaceholder: "Rasimu ya kwanza ya nembo kwa mitindo miwili", splitEvenly: "Gawanya sawa", noWhat: "Sema hatua ya {n} inawasilisha nini.", part: 'Hatua {n}', 
     addPart: "Ongeza hatua", removeLine: 'Ondoa', total: 'Jumla {sum}%', needs100: 'Jumla {sum}%, inahitaji 100%',
     review: 'Muda wa kukagua kila uwasilishaji', day: 'Siku 1', days: 'Siku {n}', other: 'Nyingine', otherDays: 'Siku za kukagua',

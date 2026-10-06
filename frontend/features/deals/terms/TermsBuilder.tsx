@@ -5,7 +5,7 @@ import { Hint } from '@/shared/components/Hint';
 import { Icon } from '@/shared/components/Icon';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { cn } from '@/shared/utils/cn';
-import { MAX_PARTS, cleanLines, composeTerms, evenSplit, termsIssues, type TermsDraft, type TermsPart } from './composeTerms';
+import { MAX_PARTS, composeTerms, evenSplit, termsIssues, type TermsDraft, type TermsPart } from './composeTerms';
 import { TERMS_COPY } from './termsCopy';
 
 const REVIEW_CHOICES = [1, 3, 7, 14] as const;
@@ -48,7 +48,6 @@ export function TermsBuilder({
   const t = TERMS_COPY[locale];
   const [customReview, setCustomReview] = useState(!REVIEW_CHOICES.includes(value.reviewWindowDays as (typeof REVIEW_CHOICES)[number]));
   const [reviewText, setReviewText] = useState(String(value.reviewWindowDays));
-  const [moreOpen, setMoreOpen] = useState(cleanLines(value.conditions).length > 0);
   const set = (patch: Partial<TermsDraft>) => onChange({ ...value, ...patch });
   const total = value.parts.reduce((sum, part) => sum + (Number.isFinite(part.pct) ? part.pct : 0), 0);
   const issues = termsIssues(value);
@@ -75,12 +74,6 @@ export function TermsBuilder({
     const kept = value.parts.filter((_, i) => i !== index);
     const shares = evenSplit(kept.length);
     set({ parts: kept.map((part, i) => ({ ...part, pct: shares[i]! })) });
-  }
-
-  function editCondition(index: number, text: string) {
-    const next = [...value.conditions];
-    next[index] = text;
-    set({ conditions: next });
   }
 
   return (
@@ -243,51 +236,6 @@ export function TermsBuilder({
         </div>
       </div>
 
-      <details open={moreOpen} onToggle={(event) => setMoreOpen(event.currentTarget.open)} className="border-y border-[var(--lp-border-light)]">
-        <summary className="flex min-h-11 cursor-pointer items-center gap-3 py-3 text-[14px] font-semibold text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
-          {t.moreTerms}<span aria-hidden className="ms-auto">{moreOpen ? '−' : '+'}</span>
-        </summary>
-        <div className="pb-5">
-          <p className="mb-2 flex items-center gap-1.5 text-[14px] font-semibold text-[var(--lp-dark)]">
-            {t.conditions}
-            <Hint>{t.conditionsHint}</Hint>
-          </p>
-          <ol className="space-y-2">
-            {value.conditions.map((line, index) => (
-              <li key={index} className="flex items-center gap-2 rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] py-1 ps-3.5 pe-1">
-                <span aria-hidden className="size-2 shrink-0 rounded-full bg-[var(--lp-accent)]" />
-                <input
-                  value={line}
-                  onChange={(e) => editCondition(index, e.target.value)}
-                  placeholder={t.conditionPlaceholder}
-                  aria-label={`${t.conditions} ${index + 1}`}
-                  maxLength={160}
-                  className="min-h-10 min-w-0 flex-1 bg-transparent text-[15px] text-[var(--lp-dark)] outline-none placeholder:text-[var(--lp-text-muted)]"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    const next = value.conditions.filter((_, i) => i !== index);
-                    set({ conditions: next.length ? next : [''] });
-                  }}
-                  aria-label={`${t.removeLine} ${index + 1}`}
-                  className="grid size-10 shrink-0 place-items-center rounded-full text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)]"
-                >
-                  <Icon name="close" size={16} />
-                </button>
-              </li>
-            ))}
-          </ol>
-          <button
-            type="button"
-            onClick={() => set({ conditions: [...value.conditions, ''] })}
-            disabled={value.conditions.length >= 12}
-            className="mt-2 inline-flex min-h-11 items-center rounded-[14px] border border-dashed border-[var(--lp-outline-strong)] px-3.5 text-[14px] font-medium text-[var(--lp-dark)] disabled:opacity-40"
-          >
-            {t.addCondition}
-          </button>
-        </div>
-      </details>
 
       <section aria-live="polite" className="rounded-[18px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] p-4">
         <p className="flex items-center gap-1.5 text-[15px] font-semibold text-[var(--lp-dark)]">
