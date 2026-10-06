@@ -14,7 +14,6 @@ import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import { getShellSurface, START_ROUTE, WALLET_HOME } from '@/shared/utils/routes';
 import { DEALS_AVAILABLE } from '@/core/arcNetwork';
 import { useOpenDeals } from '@/features/notifications/hooks/useOpenDeals';
-import { ActionBeacon } from './ActionBeacon';
 import type { UserProfile } from '@/core/api';
 import { WalletAvatar } from './WalletAvatar';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
@@ -529,7 +528,10 @@ function ProfileLink({
               initials
             )}
           </span>
-          {profileActionCount > 0 ? <ActionBeacon className="absolute -top-1 -end-1 size-3.5 rounded-full bg-[var(--color-surface)]" /> : null}
+          {/* The dot rests on the whole photo: no backing disc cutting into it. */}
+          {profileActionCount > 0 ? (
+            <span aria-hidden className="pointer-events-none absolute -end-0.5 -top-0.5 z-10 size-2.5 rounded-full bg-[var(--lp-accent)] shadow-[0_0_0_1.5px_var(--color-surface)]" />
+          ) : null}
         </span>
         <span className="hidden min-w-0 max-w-[160px] truncate text-[14px] font-medium tracking-[-0.01em] text-[var(--color-ink)] sm:inline">
           {identityName}
