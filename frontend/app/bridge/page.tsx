@@ -196,7 +196,7 @@ function BridgePageInner() {
           </div>
 
           <div data-guide="bridge-rails">
-            <RailSlider rails={rails} active={rail} onChange={setRail}>
+            <RailSlider rails={rails} active={rail} onChange={setRail} direction={direction}>
               <RailPanel
                 rail={rail}
                 direction={direction}

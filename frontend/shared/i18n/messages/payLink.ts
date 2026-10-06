@@ -31,6 +31,10 @@ export interface PayLinkCopy {
     record: string;
     recordNew: string;
     payFrom: string;
+    otherChains: string;
+    noUsdcOther: string;
+    show: string;
+    hide: string;
     arc: string;
     walletOn: string;
     payCta: string;
@@ -129,6 +133,10 @@ const en: PayLinkCopy = {
     record: '{tier} · {n} deals',
     recordNew: 'New on Karwan',
     payFrom: 'Pay from',
+    otherChains: "{n} other chains",
+    noUsdcOther: "No USDC on {n} other chains",
+    show: "Show",
+    hide: "Hide",
     arc: 'Arc',
     walletOn: 'Your wallet on {chain}: {amount} USDC',
     payCta: 'Pay {amount} USDC',
@@ -227,6 +235,10 @@ const fr: PayLinkCopy = {
     record: '{tier} · {n} transactions',
     recordNew: 'Nouveau sur Karwan',
     payFrom: 'Payer depuis',
+    otherChains: "{n} autres chaînes",
+    noUsdcOther: "Pas d'USDC sur {n} autres chaînes",
+    show: "Afficher",
+    hide: "Masquer",
     arc: 'Arc',
     walletOn: 'Votre portefeuille sur {chain} : {amount} USDC',
     payCta: 'Payer {amount} USDC',
@@ -325,6 +337,10 @@ const ar: PayLinkCopy = {
     record: '{tier} · {n} صفقة',
     recordNew: 'جديد على Karwan',
     payFrom: 'ادفع من',
+    otherChains: "{n} شبكات أخرى",
+    noUsdcOther: "لا USDC على {n} شبكات أخرى",
+    show: "عرض",
+    hide: "إخفاء",
     arc: 'Arc',
     walletOn: 'محفظتك على {chain}: {amount} USDC',
     payCta: 'ادفع {amount} USDC',
@@ -423,6 +439,10 @@ const hi: PayLinkCopy = {
     record: '{tier} · {n} डील',
     recordNew: 'Karwan पर नया',
     payFrom: 'यहाँ से भुगतान करें',
+    otherChains: "{n} अन्य चेन",
+    noUsdcOther: "{n} अन्य चेन पर कोई USDC नहीं",
+    show: "दिखाएँ",
+    hide: "छिपाएँ",
     arc: 'Arc',
     walletOn: '{chain} पर आपका वॉलेट: {amount} USDC',
     payCta: '{amount} USDC भुगतान करें',
@@ -521,6 +541,10 @@ const sw: PayLinkCopy = {
     record: '{tier} · mipango {n}',
     recordNew: 'Mpya kwenye Karwan',
     payFrom: 'Lipa kutoka',
+    otherChains: "Minyororo mingine {n}",
+    noUsdcOther: "Hakuna USDC kwenye minyororo mingine {n}",
+    show: "Onyesha",
+    hide: "Ficha",
     arc: 'Arc',
     walletOn: 'Pochi yako kwenye {chain}: USDC {amount}',
     payCta: 'Lipa USDC {amount}',

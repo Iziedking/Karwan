@@ -24,6 +24,8 @@ import { ShareLink } from './ShareLink';
 import { FundToPay } from './FundToPay';
 import { AnyChainPay } from './AnyChainPay';
 import { afterPaid } from './chainPayState';
+import { SourcePicker } from './SourcePicker';
+import { sourceRows } from './sourceRows';
 import { ReceiptCard } from '@/features/receipt/ReceiptCard';
 import { downloadReceiptImage } from '@/features/activity/receiptPresentation';
 import { ARC_NETWORK } from '@/core/arcNetwork';
@@ -36,8 +38,6 @@ type Method = 'account' | 'wallet' | 'chain';
 const ZERO = '0x0000000000000000000000000000000000000000';
 const PRIMARY =
   'flex min-h-14 w-full items-center justify-center rounded-full bg-[var(--lp-accent)] px-5 text-[16px] font-bold text-[#10170b] transition-opacity disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]';
-const CHIP =
-  'inline-flex min-h-11 items-center rounded-full border px-4 text-[14px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]';
 
 /// The page a payment link opens. It pays this one request: who asks, how
 /// much, for what, from where, and one button. While the money moves it shows
@@ -184,9 +184,6 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
     query: { enabled: !!owner && !viaAccount },
   });
   const funded = walletSources(SOURCE_CHAIN_KEYS, reads.data ?? []);
-  // Arc leads: it needs no bridge and lands in seconds. The other chains follow
-  // in balance order once a wallet is connected, or a short default list before.
-  const others: CctpChainKey[] = owner ? funded.map((s) => s.key) : SOURCE_CHAIN_KEYS.slice(0, 3);
   const [source, setSource] = useState<Source>('arc');
   const arcBalance = typeof arcRead.data === 'bigint' ? Number(arcRead.data) / 1_000_000 : null;
   const balance = source === 'arc' ? arcBalance : funded.find((s) => s.key === source)?.amount ?? (owner ? 0 : null);
@@ -205,6 +202,8 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
       : bridges.find((b) => b.startedAt >= followFrom && b.mintRecipient?.toLowerCase() === recipient.toLowerCase()) ?? null;
   const arcHash = record?.mintTxHash ?? null;
   const [paid, setPaid] = useState<DepositRequestPublic | null>(request.status === 'matched' ? request : null);
+  /// Confirmed while the payer is still on the steps. The receipt opens when they press Done.
+  const [confirmed, setConfirmed] = useState<DepositRequestPublic | null>(null);
 
   useEffect(() => {
     if (record) moneySounds.claim({ ids: [record.id, record.burnTxHash, record.mintTxHash] });
@@ -214,7 +213,7 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
   // request paid. A receipt not yet visible to the server is asked again.
   const confirming = useRef(false);
   useEffect(() => {
-    if (!arcHash || paid || confirming.current) return;
+    if (!arcHash || paid || confirmed || confirming.current) return;
     confirming.current = true;
     let stop = false;
     void (async () => {
@@ -222,7 +221,7 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
         try {
           const result = await api.confirmRequestPaid(token, arcHash, chainName(paidSource));
           if (result.request.status === 'matched') {
-            setPaid(result.request);
+            setConfirmed(result.request);
             moneySounds.outcome('success', { ids: [arcHash] });
             onPaid();
             return;
@@ -373,7 +372,7 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
           onCheckAgain={() => record && void recheck(record.id)}
           onTryAgain={() => setFollowFrom(null)}
           onAnother={() => setFollowFrom(null)}
-          onDone={finish}
+          onDone={() => (confirmed ? setPaid(confirmed) : finish())}
         />
       </section>
     );
@@ -417,25 +416,18 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
       {method === 'wallet' ? (
       <>
       <p className="mt-6 text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.payFrom}</p>
-      <div role="radiogroup" aria-label={copy.payFrom} className="mt-2 flex flex-wrap gap-2">
-        {(['arc', ...others] as Source[]).map((key) => (
-          <button
-            key={key}
-            type="button"
-            role="radio"
-            aria-checked={source === key}
-            onClick={() => setSource(key)}
-            className={cn(
-              CHIP,
-              source === key
-                ? 'border-[var(--lp-accent)] text-[var(--lp-dark)] shadow-[inset_0_0_0_1px_var(--lp-accent)]'
-                : 'border-[var(--lp-border-light)] text-[var(--lp-text-sub)] hover:border-[var(--lp-outline-strong)]',
-            )}
-          >
-            {chainName(key)}
-          </button>
-        ))}
-      </div>
+      <SourcePicker
+        {...sourceRows({
+          connected: !!owner,
+          arc: arcBalance,
+          chains: [...SOURCE_CHAIN_KEYS],
+          amounts: Object.fromEntries(funded.map((f) => [f.key, f.amount])) as Partial<Record<CctpChainKey, number>>,
+        })}
+        selected={source}
+        onSelect={setSource}
+        nameOf={chainName}
+        connected={!!owner}
+      />
       {owner && balance !== null ? (
         <p className={cn('mt-3 text-[14px]', short ? 'text-[var(--color-critical)]' : 'text-[var(--lp-text-sub)]')}>
           {short ? fill(copy.notEnough, { chain: chainName(source) }) : fill(copy.walletOn, { chain: chainName(source), amount: formatAmount(balance, locale) })}

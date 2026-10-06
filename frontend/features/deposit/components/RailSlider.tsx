@@ -15,9 +15,12 @@ export function RailSlider({
   rails,
   active,
   onChange,
+  direction = 'in',
   children,
 }: {
   rails: RailOption[];
+  /// Out of Arc the same rails read as withdrawals.
+  direction?: 'in' | 'out';
   active: DepositRail;
   onChange: (rail: DepositRail) => void;
   /// The panel for the active rail. Re-rendered on every change; the wipe is
@@ -39,6 +42,11 @@ export function RailSlider({
   }, [active]);
 
   const hasRailChoice = rails.length > 1;
+  const label = (rail: DepositRail) => {
+    const c = copy[rail];
+    if (direction === 'out' && rail === 'gateway') return { tab: copy.gateway.tabOut, title: copy.gateway.titleOut, blurb: copy.gateway.blurbOut };
+    return { tab: c.tab, title: c.title, blurb: c.blurb };
+  };
 
   return (
     <div>
@@ -62,17 +70,17 @@ export function RailSlider({
                 aria-selected={current}
                 onClick={() => onChange(rail.id)}
                 className={cn(
-                  'flex min-h-12 items-center justify-center gap-1.5 rounded-full px-2 py-3 text-[14px] font-medium',
+                  'flex min-h-12 flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 rounded-full px-2 py-2 text-[14px] font-medium',
                   'transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-inset',
                   current ? 'bg-[var(--ink)] text-[var(--canvas)]' : 'text-[var(--ink)] hover:bg-[var(--line)]',
                 )}
               >
-                <span>{copy[rail.id].tab}</span>
+                <span className="text-center leading-tight">{label(rail.id).tab}</span>
                 {rail.state === 'soon' && (
                   <span
                     aria-hidden
-                    className="hidden shrink-0 rounded-full px-1 text-[14px] leading-none sm:inline"
+                    className="shrink-0 rounded-full px-1 text-[13px] leading-none"
                     style={{
                       background: current ? 'var(--tint)' : 'transparent',
                       color: current ? 'var(--canvas)' : 'var(--ink-secondary)',
@@ -93,9 +101,9 @@ export function RailSlider({
         <div className="mt-5">
           <div className="mt-2 flex items-center gap-2">
             <h2 className="text-[22px] font-medium leading-tight tracking-[-0.015em] text-[var(--ink)]">
-              {copy[active].title}
+              {label(active).title}
             </h2>
-            <LpHint side="bottom" align="start">{copy[active].blurb}</LpHint>
+            <LpHint side="bottom" align="start">{label(active).blurb}</LpHint>
           </div>
         </div>
       )}

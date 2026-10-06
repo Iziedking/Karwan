@@ -1705,6 +1705,11 @@ export const sw: Messages = {
     declineConfirmBusy: 'Inakataa…',
     declineCancelCta: 'Ghairi',
     buyerWaiting: 'Inasubiri muuzaji akubali. Wakala wako atafadhili esokrau kiotomatiki atakapokubali. Hakuna hatua inayohitajika kwako.',
+    buyerCancel: "Ghairi ulinganisho huu",
+    buyerCancelBody: "Hakuna kilichofadhiliwa bado. Ombi linabaki wazi, kwa hiyo unaweza kuchagua ofa nyingine au kulighairi.",
+    buyerCancelConfirm: "Ghairi ulinganisho",
+    buyerCancelKeep: "Endelea kusubiri",
+    buyerCancelBusy: "Inaghairi",
     outsideWaiting: 'Inasubiri muuzaji akubali ujumbe huu.',
     counterparty: {
       buyerLabel: 'Mnunuzi',
@@ -2593,7 +2598,10 @@ export const sw: Messages = {
       tab: 'Ongeza salio papo hapo',
       tag: 'Ongeza salio papo hapo',
       title: 'Ongeza pesa kutoka mitandao mingine',
-      blurb: 'Ongeza USDC kutoka mtandao mwingine, kisha uihamishe hapa unapoihitaji. Kila hatua inaomba idhini yako.',
+      blurb: "Weka USDC kutoka mtandao wowote kwenye salio moja lililounganishwa. Salio lako la Arc likipungua, lipa kutoka humo kwa idhini moja, kwa sekunde.",
+      tabOut: "Kutoa papo hapo",
+      titleOut: "Toa kwenda mitandao mingine",
+      blurbOut: "Tuma USDC kutoka salio lako lililounganishwa kwenda mtandao wowote kwa idhini moja. Inafika kwa sekunde.",
     },
     cctp: {
       tab: 'Uhamisho',

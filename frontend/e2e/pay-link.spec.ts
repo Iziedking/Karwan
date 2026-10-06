@@ -58,6 +58,11 @@ test('a payment link opens its own page: who asks, how much, Arc first, one butt
   const chips = page.getByRole('radiogroup', { name: copy.pay.payFrom }).getByRole('radio');
   await expect(chips.first()).toHaveText(copy.pay.arc);
   await expect(chips.first()).toHaveAttribute('aria-checked', 'true');
+  // The other chains wait behind Show, so the list stays one row until asked.
+  await expect(chips).toHaveCount(1);
+  await page.getByRole('radiogroup', { name: copy.pay.payFrom }).getByRole('button', { name: new RegExp(copy.pay.show) }).click();
+  expect(await chips.count()).toBeGreaterThan(1);
+  await expect(chips.first()).toHaveAttribute('aria-checked', 'true');
   await expect(page.getByRole('button', { name: copy.pay.connect })).toBeVisible();
   // No deposit card, no recipient picker, no contract warning.
   await expect(page.getByText(/Contract address/)).toHaveCount(0);
@@ -178,10 +183,11 @@ test('send from any chain: the request address, the exact amount, part payment, 
   await expect(page.getByText(copy.pay.canClose.replace('{name}', '@izieking'))).toBeVisible();
 
   state = { ...state, payments: [{ amountUsdc: '6', chain: 'Base', at: Date.now(), delivery: 'delivered' }, { amountUsdc: '4', chain: 'Base', at: Date.now(), delivery: 'delivered' }] };
-  await expect(page.getByText(copy.pay.paidBadge, { exact: true })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(copy.pay.paidBadge, { exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: copy.pay.done, exact: true }).click({ timeout: 15_000 });
+  await expect(page.getByText(copy.pay.paidBadge, { exact: true })).toBeVisible();
   await expect(page.getByText(copy.pay.joinTitle)).toBeVisible();
   await expect(page.getByRole('button', { name: copy.pay.joinCta })).toBeVisible();
-  await expect(page.getByRole('button', { name: copy.pay.done })).toHaveCount(0);
 });
 
 test('a paid request never sends a signed-in payer to the landing page', async ({ page }) => {

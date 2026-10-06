@@ -1708,6 +1708,11 @@ export const fr: Messages = {
     declineConfirmBusy: 'Refus…',
     declineCancelCta: 'Annuler',
     buyerWaiting: "En attente de l'acceptation du vendeur. Votre agent financera le séquestre automatiquement. Aucune action requise de votre part.",
+    buyerCancel: "Annuler cette correspondance",
+    buyerCancelBody: "Rien n'est encore financé. La demande reste ouverte : vous pouvez choisir une autre offre ou l'annuler.",
+    buyerCancelConfirm: "Annuler la correspondance",
+    buyerCancelKeep: "Continuer d'attendre",
+    buyerCancelBusy: "Annulation",
     outsideWaiting: 'En attente de l’acceptation du vendeur.',
     counterparty: {
       buyerLabel: 'Acheteur',
@@ -2596,7 +2601,10 @@ export const fr: Messages = {
       tab: 'Recharge instantanée',
       tag: 'Recharge instantanée',
       title: 'Ajouter de l’argent depuis d’autres réseaux',
-      blurb: 'Ajoutez des USDC depuis un autre réseau, puis transférez-les ici quand vous en avez besoin. Chaque étape demande votre accord.',
+      blurb: "Gardez des USDC de n'importe quel réseau dans un solde unifié. Quand votre solde sur Arc baisse, payez avec lui en une validation, en quelques secondes.",
+      tabOut: "Retrait instantané",
+      titleOut: "Retirer vers d'autres réseaux",
+      blurbOut: "Envoyez des USDC de votre solde unifié vers n'importe quel réseau en une validation. Arrivée en quelques secondes.",
     },
     cctp: {
       tab: 'Transfert',

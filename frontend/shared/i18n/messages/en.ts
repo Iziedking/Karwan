@@ -1608,6 +1608,11 @@ interface MessagesShape {
     declineConfirmBusy: string;
     declineCancelCta: string;
     buyerWaiting: string;
+    buyerCancel: string;
+    buyerCancelBody: string;
+    buyerCancelConfirm: string;
+    buyerCancelKeep: string;
+    buyerCancelBusy: string;
     outsideWaiting: string;
     counterparty: {
       buyerLabel: string;
@@ -2354,7 +2359,7 @@ interface MessagesShape {
     chooserAria: string;
     soon: string;
     direct: { tab: string; tag: string; title: string; blurb: string };
-    gateway: { tab: string; tag: string; title: string; blurb: string };
+    gateway: { tab: string; tag: string; title: string; blurb: string; tabOut: string; titleOut: string; blurbOut: string };
     cctp: { tab: string; tag: string; title: string; blurb: string };
     onramp: {
       tab: string;
@@ -7015,6 +7020,11 @@ export const en: MessagesShape = {
     declineConfirmBusy: 'Declining…',
     declineCancelCta: 'Cancel',
     buyerWaiting: 'Waiting for the seller to accept. Your agent will fund escrow automatically when they do. No action needed from you.',
+    buyerCancel: "Cancel this match",
+    buyerCancelBody: "Nothing is funded yet. The request stays open, so you can choose another offer or cancel it.",
+    buyerCancelConfirm: "Cancel match",
+    buyerCancelKeep: "Keep waiting",
+    buyerCancelBusy: "Cancelling",
     outsideWaiting: 'Waiting for the seller to accept this match.',
     counterparty: {
       buyerLabel: 'Buyer',
@@ -7922,7 +7932,10 @@ export const en: MessagesShape = {
       tab: 'Instant top-up',
       tag: 'Instant top-up',
       title: 'Add money from other networks',
-      blurb: 'Add USDC from another network, then move it here when you need it. Each step asks for your approval.',
+      blurb: "Keep USDC from any network in one unified balance. When your Arc balance runs low, pay from it in one approval, in seconds.",
+      tabOut: "Instant withdraw",
+      titleOut: "Withdraw to other networks",
+      blurbOut: "Send USDC from your unified balance to any network in one approval. It lands in seconds.",
     },
     cctp: {
       tab: 'Transfer',

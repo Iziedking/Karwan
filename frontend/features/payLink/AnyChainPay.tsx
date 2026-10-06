@@ -55,13 +55,13 @@ export function AnyChainPay({ token, request, name, onDelivered }: {
   useEffect(() => {
     if (paymentCount > 0) moneySounds.claim({ ids: [`${token}:${paymentCount}`] });
   }, [paymentCount, token]);
+  // The arrival is heard at once; the receipt opens when the payer presses Done.
   const delivered = useRef(false);
   useEffect(() => {
     if (state.phase !== 'delivered' || delivered.current) return;
     delivered.current = true;
     moneySounds.outcome('success', { ids: [`${token}:delivered`] });
-    onDelivered(current);
-  }, [state.phase, current, onDelivered, token]);
+  }, [state.phase, token]);
 
   if (failed) return <p role="status" className="mt-6 text-[14px] font-medium text-[var(--lp-text-sub)]">{copy.chainError}</p>;
 
@@ -76,7 +76,13 @@ export function AnyChainPay({ token, request, name, onDelivered }: {
           sub={state.phase === 'delayed' ? fill(copy.stepDelayed, { chain: state.chain }) : copy.stepMovingSub}
         />
         <Step done={state.phase === 'delivered'} label={fill(copy.stepPaid, { name })} />
-        <li className="list-none pt-2 text-[14px] font-medium text-[var(--lp-text-sub)]">{fill(copy.canClose, { name })}</li>
+        {state.phase === 'delivered' ? (
+          <li className="list-none pt-4">
+            <button type="button" onClick={() => onDelivered(current)} className={PRIMARY}>{copy.done}</button>
+          </li>
+        ) : (
+          <li className="list-none pt-2 text-[14px] font-medium text-[var(--lp-text-sub)]">{fill(copy.canClose, { name })}</li>
+        )}
       </ol>
     );
   }

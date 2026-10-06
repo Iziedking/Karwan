@@ -40,6 +40,7 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
   const [busy, setBusy] = useState<'approve' | 'decline' | 'raise' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showDeclineReason, setShowDeclineReason] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
   const [declineReason, setDeclineReason] = useState('');
   const [showRaiseInput, setShowRaiseInput] = useState(false);
   const [raisePrice, setRaisePrice] = useState('');
@@ -546,6 +547,35 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
 
       {viewerIsBuyer && !pendingRaise && proposal.fundable !== false && (
         <p className="mt-3 text-[14px] text-[var(--color-ink-dim)] font-medium">{mb.buyerWaiting}</p>
+      )}
+      {viewerIsBuyer && !pendingRaise && !proposal.approvedAt && !proposal.declinedAt && (
+        confirmCancel ? (
+          <div className="mt-4 space-y-3">
+            <p className="text-[14px] font-medium text-[var(--color-ink)]">{mb.buyerCancelBody}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" onClick={onDecline} disabled={busy !== null} className={CRITICAL_BTN}>
+                {busy === 'decline' && <Spinner />}
+                {busy === 'decline' ? mb.buyerCancelBusy : mb.buyerCancelConfirm}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmCancel(false)}
+                disabled={busy !== null}
+                className="min-h-11 px-3 text-[14px] font-medium text-[var(--color-ink-dim)] hover:text-[var(--color-ink)]"
+              >
+                {mb.buyerCancelKeep}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setConfirmCancel(true)}
+            className="mt-3 inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--color-ink)] underline underline-offset-4"
+          >
+            {mb.buyerCancel}
+          </button>
+        )
       )}
       {!viewerIsBuyer && !viewerIsSeller && (
         <p className="mt-3 text-[14px] text-[var(--color-ink-dim)] font-medium">{mb.outsideWaiting}</p>
