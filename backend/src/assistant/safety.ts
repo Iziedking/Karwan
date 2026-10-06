@@ -6,11 +6,18 @@ export type AssistantSafetyMessage = { role: 'user' | 'assistant'; content: stri
  * answer these prompts would turn a temporary tool outage into a confident
  * guess. Static product questions may still use the provider chain.
  */
+const SMALL_TALK =
+  /^(?:(?:ok(?:ay)?|great|cool|nice|perfect|awesome|got it|alright|sure)[,!. ]*)?(?:thanks?(?: you)?(?: so much| a lot)?|thx|ty|cheers|ok(?:ay)?|got it|great|cool|nice|perfect|awesome|hello|hi|hey|good (?:morning|afternoon|evening)|bye|goodbye|see you|merci(?: beaucoup)?|bonjour|asante(?: sana)?|habari|shukran|شكرا|مرحبا|धन्यवाद|शुक्रिया|नमस्ते)[\s!.?🙏👍]*$/u;
+
 export function requiresLiveAccountState(messages: AssistantSafetyMessage[]): boolean {
   // Only the current turn decides. Joining history made one early balance
   // question turn every later product question stateful. Follow-ups such as
   // "what about now?" still fail closed because they are not generic help.
   const text = (messages.filter((m) => m.role === 'user').at(-1)?.content ?? '').toLowerCase();
+  // Thanks, greetings and goodbyes on their own carry no account claim. Without
+  // this a plain "thanks" after a send inherited the send's subjects and failed
+  // closed as if the account could not be read.
+  if (SMALL_TALK.test(text.trim())) return false;
   // Keep the classifier conservative. A generic product question such as
   // “how does agent matching work?” is static knowledge and may use the
   // provider fallback. Account-specific wording, money verbs, and outcome
