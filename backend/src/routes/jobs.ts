@@ -40,6 +40,7 @@ import { bus, recentEventsByType } from '../events.js';
 import { resolveBuyerProfileForUser } from '../agents/agent-registry.js';
 import { createBrief, patchBrief, getBrief, deleteBrief, rekeyBrief } from '../db/briefs.js';
 import { isRequestOwner } from '../agents/chooseOffer.js';
+import { matchDecliner } from '../agents/matchDecline.js';
 import { accountTypeOf, deriveJobLane } from '../profile/accountType.js';
 import { getDeal } from '../db/deals.js';
 import { countLiveDirectOffers } from '../db/directOffers.js';
@@ -815,19 +816,14 @@ jobsRoutes.post('/:jobId/decline-match', async (c) => {
   }
   const proposal = await getMatchProposal(jobId);
   if (!proposal) return c.json({ error: 'no match proposal for this job' }, 404);
-  // After a seller raise, the buyer holds the gate, so the buyer can decline the
-  // raised price (the match ends; the seller chose more over the agreed price).
-  // Otherwise the seller is the one who declines the match.
   const pendingRaise = proposal.awaitingParty === 'buyer' && !!proposal.raisedPriceUsdc;
-  const decliner = pendingRaise ? proposal.buyerUser : proposal.sellerUser;
-  if (body.caller.toLowerCase() !== decliner) {
-    return c.json(
-      { error: pendingRaise ? 'only the buyer can decline the raised price' : 'only the seller can decline this match' },
-      403,
-    );
-  }
-  const result = await declineAgentMatch(jobId, body.reason);
+  const who = matchDecliner(proposal, body.caller);
+  if (!who.ok) return c.json({ error: who.message }, 403);
+  const result = await declineAgentMatch(jobId, body.reason ?? (who.by === 'buyer' && !pendingRaise ? 'buyer-withdrew' : undefined));
   if (!result.ok) return c.json({ error: result.message, code: result.code }, 409);
+  // A buyer who withdraws a match the seller never answered gets the request
+  // back: the other offers stay, and they can choose one or cancel the request.
+  if (who.by === 'buyer' && !pendingRaise) reopenForNewBids(jobId);
   return c.json({ accepted: true, jobId }, 200);
 });
 

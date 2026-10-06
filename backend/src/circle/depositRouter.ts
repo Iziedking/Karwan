@@ -1,7 +1,7 @@
 import { logger } from '../logger.js';
 import { config } from '../config.js';
 import { getAgentWallets } from '../db/agentWallets.js';
-import { createBridge, getBridge } from '../db/bridges.js';
+import { createBridge, getBridge, patchBridge } from '../db/bridges.js';
 import {
   CCTP_CHAINS,
   CCTP_CHAIN_KEYS,
@@ -221,6 +221,15 @@ async function routeSolana(owner: string, p: DepositRoute): Promise<void> {
     { owner, amount: p.amountUsdc, bridgeId },
     'auto-bridging a Solana deposit to the Arc identity wallet',
   );
+
+  // The source wallet pays the Solana fee and token-account rent in SOL. A fresh
+  // wallet has none, which failed the burn and left the deposit where it landed.
+  const { ensureSolanaGas } = await import('./solanaGas.js');
+  if (!(await ensureSolanaGas(bridgeWallet.address))) {
+    logger.warn({ owner, bridgeId, wallet: bridgeWallet.address }, 'Solana deposit wallet has no SOL for the network fee; not bridging');
+    await patchBridge(bridgeId, { status: 'error', error: 'no SOL for the Solana network fee' });
+    return;
+  }
 
   const { bridgeInToArcViaAppKit } = await import('./bridge-kit.js');
   void bridgeInToArcViaAppKit({

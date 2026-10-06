@@ -9,6 +9,7 @@ import { USER_DCW_WALLETS } from '../chain/cctpChains.js';
 import { listAllAgentWallets } from '../db/agentWallets.js';
 import {
   circleWalletsClient,
+  dripTestnetUsdc,
   ARB_SEPOLIA_BLOCKCHAIN,
   BASE_SEPOLIA_BLOCKCHAIN,
   ETH_SEPOLIA_BLOCKCHAIN,
@@ -107,6 +108,8 @@ export async function ensureReceiving(token: string): Promise<EnsureResult> {
     if (latest.receiving) return { ok: true, request: latest };
     const saved = await saveDepositRequest({ ...latest, receiving, updatedAt: Date.now() });
     invalidateReceivingIndex();
+    // The Solana wallet pays its own fee to move a payment on; give it test SOL now.
+    if (receiving.solana) void dripTestnetUsdc(receiving.solana.address, { blockchain: SOL_DEVNET_BLOCKCHAIN, native: true, usdc: false });
     logger.info({ token, evm: receiving.evm.address, solana: receiving.solana?.address }, 'payment link receiving addresses made');
     return { ok: true, request: saved };
   } catch (err) {
