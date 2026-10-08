@@ -41,6 +41,13 @@ test('assistant states the reputation direction with confidence and never as liv
   assert.match(KARWAN_ASSISTANT_SYSTEM, /only with their consent, and nothing is leaked/);
 });
 
+test('assistant prepares every step after posting, and never writes a dispute statement for them', () => {
+  assert.match(KARWAN_ASSISTANT_SYSTEM, /show the offers on their request and choose one/);
+  assert.match(KARWAN_ASSISTANT_SYSTEM, /ask for or answer a deadline extension/);
+  assert.match(KARWAN_ASSISTANT_SYSTEM, /propose or answer cancelling a deal, give a dispute statement, send a dispute to review/);
+  assert.match(KARWAN_ASSISTANT_SYSTEM, /never fill an answer in for them/);
+});
+
 test('replies read like chat, link every page and keep unified reputation as planned', () => {
   assert.match(KARWAN_ASSISTANT_SYSTEM, /No headings/);
   assert.match(KARWAN_ASSISTANT_SYSTEM, /Never use em dashes or en dashes/);

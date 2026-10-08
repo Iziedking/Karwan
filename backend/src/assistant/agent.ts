@@ -33,6 +33,8 @@ import { getProfile } from '../db/profiles.js';
 import { readSourceUsdcBalance } from '../chain/cctpClients.js';
 import { readSolanaHolding } from '../chain/solanaBalances.js';
 import { lookupPlatformGuide } from './platformGuide.js';
+import { dealStepTools, dealStepPendingLines } from './dealTools.js';
+import { isRequestOwner } from '../agents/chooseOffer.js';
 import { assessGrounding } from './grounding.js';
 import { workspaceContext, dealProtectionContext } from './accountContext.js';
 import { summariseSkills } from '../verification/skillSummary.js';
@@ -725,6 +727,18 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
           }
 
           const now = Date.now();
+          const proposalJobs = new Set(proposals.map((p) => p.jobId));
+          for (const job of getBuyerSnapshot().jobs) {
+            if (!job.bids.length || proposalJobs.has(job.jobId)) continue;
+            const brief = getBrief(job.jobId);
+            if (!brief || !isRequestOwner(address, brief)) continue;
+            actionNeeded.push(
+              `Request ${job.jobId} has ${job.bids.length} offer${job.bids.length === 1 ? '' : 's'}. Offer to show them (list_offers_on_request) and choose one.`,
+            );
+          }
+          const steps = dealStepPendingLines(address, deals, now);
+          actionNeeded.push(...steps.actionNeeded);
+          waitingOnOthers.push(...steps.waitingOnOthers);
           for (const d of deals) {
             if (d.settledAt || d.cancelledAt) continue;
             const isBuyer = d.buyer === address;
@@ -2310,6 +2324,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
       },
     }),
 
+    ...dealStepTools(address, actions),
   };
 }
 

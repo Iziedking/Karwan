@@ -1097,12 +1097,90 @@ async function runConfirmIntent(
       ...(outcome.state === 'burned' ? { txHash: outcome.txHash } : {}),
     };
   }
+  if (action.intent === 'choose_offer') {
+    const p = action.payload as { jobId: string; caller: string; seller: string };
+    const r = await api.chooseOffer(p.jobId, p.caller, p.seller);
+    return {
+      successText: 'Offer chosen. The escrow is funded and the deal is live.',
+      viewHref: `/deals/${p.jobId}`,
+      viewLabel: 'Open the deal',
+      txHash: r.txHash,
+    };
+  }
+  if (action.intent === 'edit_request') {
+    const p = action.payload as { jobId: string; caller: string; briefText?: string; negotiationMaxIncreasePct?: number };
+    await api.editBrief(p.jobId, {
+      caller: p.caller,
+      ...(p.briefText ? { briefText: p.briefText } : {}),
+      ...(p.negotiationMaxIncreasePct !== undefined ? { negotiationMaxIncreasePct: p.negotiationMaxIncreasePct } : {}),
+    });
+    return { successText: 'Request updated. Your agent uses the new details from now on.', viewHref: `/jobs/${p.jobId}`, viewLabel: 'View the request' };
+  }
+  if (action.intent === 'raise_offer') {
+    const p = action.payload as { jobId: string; caller: string; priceUsdc: string };
+    await api.raiseMatchOffer(p.jobId, p.caller, p.priceUsdc);
+    return { successText: `Asked for ${p.priceUsdc} USDC. The buyer approves or declines.`, viewHref: `/jobs/${p.jobId}`, viewLabel: 'View the match' };
+  }
+  if (action.intent === 'request_extension') {
+    const p = action.payload as { jobId: string; caller: string; additionalSeconds: number; reason?: string };
+    await api.requestExtension({ jobId: p.jobId, caller: p.caller, additionalSeconds: p.additionalSeconds, ...(p.reason ? { reason: p.reason } : {}) });
+    return { successText: 'Request sent. The current deadline stands until the buyer answers.', viewHref: `/deals/${p.jobId}`, viewLabel: 'Open the deal' };
+  }
+  if (action.intent === 'respond_extension') {
+    const p = action.payload as { jobId: string; caller: string; decision: 'approved' | 'declined' };
+    await api.respondExtension({ jobId: p.jobId, caller: p.caller, decision: p.decision });
+    return {
+      successText: p.decision === 'approved' ? 'More time given. The new deadline is on the deal.' : 'Declined. The deadline stays as it was.',
+      viewHref: `/deals/${p.jobId}`,
+      viewLabel: 'Open the deal',
+    };
+  }
+  if (action.intent === 'cancel_deal') {
+    const p = action.payload as { jobId: string; caller: string; step: 'propose' | 'accept' | 'decline'; reason?: string };
+    if (p.step === 'propose') {
+      await api.proposeCancelDirectDeal(p.jobId, p.caller, p.reason ?? '');
+      return { successText: 'Proposal sent. Nothing changes until the other side accepts.', viewHref: `/deals/${p.jobId}`, viewLabel: 'Open the deal' };
+    }
+    if (p.step === 'accept') {
+      const r = await api.acceptCancelDirectDeal(p.jobId, p.caller);
+      return { successText: 'Deal cancelled.', viewHref: `/deals/${p.jobId}`, viewLabel: 'Open the deal', ...(r.txHash ? { txHash: r.txHash } : {}) };
+    }
+    await api.declineCancelDirectDeal(p.jobId, p.caller);
+    return { successText: 'Cancellation declined. The deal continues.', viewHref: `/deals/${p.jobId}`, viewLabel: 'Open the deal' };
+  }
+  if (action.intent === 'dispute_statement') {
+    const p = action.payload as { jobId: string; caller: string; received: string; missing: string; late: string; links: string[] };
+    await api.submitDisputeStatement(p.jobId, p.caller, { received: p.received, missing: p.missing, late: p.late, links: p.links });
+    return { successText: 'Statement submitted.', viewHref: `/deals/${p.jobId}`, viewLabel: 'Open the deal' };
+  }
+  if (action.intent === 'escalate_dispute') {
+    const p = action.payload as { jobId: string; caller: string };
+    const r = await api.escalateDealDispute(p.jobId, p.caller);
+    return { successText: 'Sent to review. A Karwan reviewer will rule.', viewHref: `/deals/${p.jobId}`, viewLabel: 'Open the deal', txHash: r.txHash };
+  }
+  if (action.intent === 'decline_deal') {
+    const p = action.payload as { jobId: string; caller: string; note: string };
+    await api.declineDirectDeal(p.jobId, { caller: p.caller, note: p.note });
+    return { successText: 'Deal turned down. The buyer has your note.', viewHref: `/deals/${p.jobId}`, viewLabel: 'Open the deal' };
+  }
   throw new Error('Unknown action');
 }
 
 /// A propose->confirm card for a reversible write. Nothing happens until the user
 /// taps Confirm; then it calls the intent's existing route. The card is
 /// single-shot: once posted it collapses to a success line so it can't re-submit.
+const DEAL_STEP_BUSY: Partial<Record<AssistantConfirmAction['intent'], string>> = {
+  choose_offer: 'Choosing…',
+  edit_request: 'Saving…',
+  raise_offer: 'Sending…',
+  request_extension: 'Sending…',
+  respond_extension: 'Saving…',
+  cancel_deal: 'Sending…',
+  dispute_statement: 'Submitting…',
+  escalate_dispute: 'Sending…',
+  decline_deal: 'Sending…',
+};
+
 function ConfirmCard({
   action,
   onNavigate,
@@ -1263,7 +1341,8 @@ function ConfirmCard({
     persisted && persisted !== 'dismissed' && persisted !== 'running' ? persisted : null,
   );
   const busyLabel =
-    action.intent === 'release_milestone'
+    DEAL_STEP_BUSY[action.intent] ??
+    (action.intent === 'release_milestone'
       ? 'Releasing…'
       : action.intent === 'withdraw_proceeds'
         ? 'Withdrawing…'
@@ -1293,7 +1372,7 @@ function ConfirmCard({
                           ? 'Claiming…'
                           : action.intent === 'fund_agent'
                             ? 'Funding…'
-                            : 'Posting…';
+                            : 'Posting…');
 
   async function confirm() {
     if (status === 'running' || status === 'done') return;

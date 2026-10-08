@@ -1676,7 +1676,16 @@ export interface AssistantConfirmAction {
     | 'claim_yield'
     | 'fund_agent'
     | 'pool_usdc_web3'
-    | 'fund_agent_web3';
+    | 'fund_agent_web3'
+    | 'choose_offer'
+    | 'edit_request'
+    | 'raise_offer'
+    | 'request_extension'
+    | 'respond_extension'
+    | 'cancel_deal'
+    | 'dispute_statement'
+    | 'escalate_dispute'
+    | 'decline_deal';
   title: string;
   summary?: string;
   /// Stark line for irreversible/money-moving actions (release). Absent on post_offer.

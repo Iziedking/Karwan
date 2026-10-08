@@ -9,8 +9,8 @@ import { privateAssistantProviders, staticFallbackMessages, requiresLiveAccountS
 
 test('guide cites only sources, pages, endpoints and tools that exist', () => {
   const endpoints = backendEndpoints();
-  const agent = readFileSync(new URL('./agent.ts', import.meta.url), 'utf8');
-  const agentTools = new Set([...agent.matchAll(/^    (\w+): tool\(\{/gm)].map((m) => m[1]!));
+  const agent = ['./agent.ts', './dealTools.ts'].map((f) => readFileSync(new URL(f, import.meta.url), 'utf8')).join('\n');
+  const agentTools =new Set([...agent.matchAll(/^    (\w+): tool\(\{/gm)].map((m) => m[1]!));
   assert.ok(agentTools.size > 30, 'tool parse');
   for (const entry of PLATFORM_GUIDE) {
     for (const source of entry.sources) assert.ok(existsSync(new URL('../../../' + source, import.meta.url)), source);

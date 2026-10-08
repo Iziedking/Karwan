@@ -1,3 +1,5 @@
+import type { DealStepConfirm } from './dealActions.js';
+
 /// Stage 2 of the chat-native transaction surface: the ACTION ENVELOPE. An
 /// assistant reply can carry structured actions the chat UI renders as prominent
 /// controls, instead of burying a link in prose. Stage 2 ships ONE variant,
@@ -203,7 +205,7 @@ export interface TopUpPayload {
   sourceKind: 'identity' | 'buyerAgent' | 'sellerAgent';
 }
 
-interface ConfirmActionBase {
+export interface ConfirmActionBase {
   kind: 'confirm';
   id: string;
   /// Card heading, e.g. "Post this offer".
@@ -327,7 +329,8 @@ export type ConfirmAction =
   | ClaimYieldConfirm
   | FundAgentConfirm
   | GatewayDepositConfirm
-  | Web3FundAgentConfirm;
+  | Web3FundAgentConfirm
+  | DealStepConfirm;
 
 /// Stage 2 shipped `navigate`; Stages 3-4 add `confirm`. The envelope + renderer
 /// carry the union unchanged as new variants land.
@@ -471,7 +474,7 @@ const DESTINATIONS: Record<NavigateDestination, DestSpec> = {
 /// pre-completed, show the old receipt, and never execute (or render nothing at
 /// all if the first was dismissed). Within-reply dedupe compares intent+payload
 /// instead (hasEquivalentConfirm below).
-function confirmNonce(): string {
+export function confirmNonce(): string {
   return `${Date.now().toString(36)}${Math.floor(Math.random() * 46_656).toString(36)}`;
 }
 
