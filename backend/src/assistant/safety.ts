@@ -9,6 +9,9 @@ export type AssistantSafetyMessage = { role: 'user' | 'assistant'; content: stri
 const SMALL_TALK =
   /^(?:(?:ok(?:ay)?|great|cool|nice|perfect|awesome|got it|alright|sure)[,!. ]*)?(?:thanks?(?: you)?(?: so much| a lot)?|thx|ty|cheers|ok(?:ay)?|got it|great|cool|nice|perfect|awesome|hello|hi|hey|good (?:morning|afternoon|evening)|bye|goodbye|see you|merci(?: beaucoup)?|bonjour|asante(?: sana)?|habari|shukran|شكرا|مرحبا|धन्यवाद|शुक्रिया|नमस्ते)[\s!.?🙏👍]*$/u;
 
+const ACT_ON_IT =
+  /^(?:(?:yes|yeah|yep|ok(?:ay)?|sure|great)[,!. ]*)?(?:(?:please|pls)\s+)?(?:(?:can|could|will|would)\s+you\s+(?:please\s+)?)?(?:go ahead|proceed|do it|do that|confirm|set (?:it|this|that) up|(?:post|create|make|set up|send|publish|list|open|start|book|submit)(?:\s+(?:it|this|that|them|one))?(?:\s+for me)?)(?:\s+(?:now|please))?[\s!.?]*$/i;
+
 export function requiresLiveAccountState(messages: AssistantSafetyMessage[]): boolean {
   // Only the current turn decides. Joining history made one early balance
   // question turn every later product question stateful. Follow-ups such as
@@ -18,6 +21,11 @@ export function requiresLiveAccountState(messages: AssistantSafetyMessage[]): bo
   // this a plain "thanks" after a send inherited the send's subjects and failed
   // closed as if the account could not be read.
   if (SMALL_TALK.test(text.trim())) return false;
+  // "Post it", "go ahead", "can you set it up": an instruction to act on what
+  // was just discussed. The agent prepares a card or asks for what is missing;
+  // any money step still needs the person's confirmation, so there is no
+  // account claim here to hold back.
+  if (ACT_ON_IT.test(text.trim())) return false;
   // Keep the classifier conservative. A generic product question such as
   // “how does agent matching work?” is static knowledge and may use the
   // provider fallback. Account-specific wording, money verbs, and outcome

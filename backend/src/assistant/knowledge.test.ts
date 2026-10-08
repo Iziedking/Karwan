@@ -33,8 +33,10 @@ test('assistant explains the unified identity and workspace model', () => {
 });
 
 test('assistant states the reputation direction with confidence and never as live', () => {
-  assert.match(KARWAN_ASSISTANT_SYSTEM, /one reputation that travels with a person/);
-  assert.match(KARWAN_ASSISTANT_SYSTEM, /This unified reputation is being built and is not live/);
+  assert.match(KARWAN_ASSISTANT_SYSTEM, /Karwan lets your reputation travel with you, and lets your agent use that reputation to find, negotiate with, and transact with the right people/);
+  assert.match(KARWAN_ASSISTANT_SYSTEM, /Humans make the decisions; agents do the legwork/);
+  assert.match(KARWAN_ASSISTANT_SYSTEM, /The portable reputation and agent-to-agent network are being built and are not live/);
+  assert.match(KARWAN_ASSISTANT_SYSTEM, /Today a person's Karwan reputation comes only from completed Karwan deals/);
   assert.match(KARWAN_ASSISTANT_SYSTEM, /Never claim to have read another platform, imported outside reputation or contacted a partner/);
   assert.match(KARWAN_ASSISTANT_SYSTEM, /only with their consent, and nothing is leaked/);
 });
