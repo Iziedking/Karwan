@@ -32,8 +32,9 @@ export default function HowItWorksPage() {
           <h2 className="text-[26px] tracking-tight font-semibold mt-2">{t.direction.title}</h2>
           <p className="text-[14px] text-[var(--color-ink-dim)] mt-2 leading-relaxed font-medium">{t.direction.body}</p>
         </div>
-        <div className="grid gap-x-8 md:grid-cols-3">
+        <div className="grid gap-x-8 md:grid-cols-2">
           {([
+            [t.direction.agentsTitle, t.direction.agents],
             [t.direction.consentTitle, t.direction.consent],
             [t.direction.partnersTitle, t.direction.partners],
             [t.direction.earnedTitle, t.direction.earned],

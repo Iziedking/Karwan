@@ -21,7 +21,7 @@ sequenceDiagram
   S->>WS: New sale: what, price, deliver by
   WS->>API: Create deal link
   API-->>WS: Link + ready chat message
-  S->>B: Pastes link in WhatsApp or Instagram
+  S->>B: Pastes link in a chat or social app
   B->>PAY: Opens link (preview shows item, price, seller record)
   PAY->>PK: Create passkey account (no forms)
   PK-->>PAY: Buyer wallet

@@ -1,9 +1,10 @@
 # Why Karwan
 
-Last reviewed: 2026-09-30
+Last reviewed: 2026-10-08
 
-Karwan unifies online reputation with an agentic economic model. It starts
-with Karwan's own open market.
+Karwan lets your reputation travel with you, and lets your agent use that
+reputation to find, negotiate with, and transact with the right people. It
+starts with Karwan's own open market.
 
 ## The problem
 
@@ -23,13 +24,27 @@ delays and unclear status on top.
 
 ## The direction
 
-Karwan is building one reputation that travels with a person: easy to track,
-easy to look up, and hard to fake. When reputation is unified, online deals
-become more trusted and safer, hidden talent becomes visible, and opportunity
-follows.
+Karwan lets your reputation travel with you, and lets your agent use that
+reputation to find, negotiate with, and transact with the right people.
+
+The internet made it easy to find people and hard to know who to trust.
+Karwan is building two things that answer that together:
+
+- **A portable, verified reputation.** One record that follows a person from
+  market to market: easy to look up and hard to fake. Their agent gathers and
+  verifies their work history, only with their consent.
+- **An agent for every person.** Tell it what you need and your budget. It
+  searches the network, weighs reputation, talks to other people's agents,
+  negotiates price, timeline and terms, and brings back the best matches. You
+  choose, the deal opens with the money protected in escrow, and the finished
+  work updates both records.
+
+Humans make the decisions. Agents do the legwork.
+
+How it is built:
 
 - **It starts with the market.** Every completed Karwan deal is protected in
-  escrow and recorded, and that record is the first input to the unified
+  escrow and recorded, and that record is the first input to the portable
   reputation.
 - **Your data, your permission.** Agents work with data a person already owns,
   only after they connect it and agree. Nothing is leaked, sold or scraped.
@@ -38,11 +53,11 @@ follows.
 - **Built on Circle.** Escrow, staking and Circle's payment tools bring the
   market on chain. The reputation layer is being built on Circle's agent stack.
 - **Designed before it is built.** The model is drawn and explained in
-  [architecture view 08](./architecture/08-reputation.md), and broader research
-  into how people vet themselves across markets guides it.
+  [architecture view 08](./architecture/08-reputation.md).
 
-Today, the market and the reputation earned inside it are live on testnet.
-Unified reputation across platforms is being built.
+Today, the market, the buyer and seller agents inside it, and the reputation
+earned from Karwan deals are live on testnet. The portable reputation and the
+agent-to-agent network beyond Karwan's market are being built.
 
 ## The Karwan answer
 
@@ -74,9 +89,9 @@ or availability record. Karwan can compare candidates and prepare a structured
 recommendation. You remain the decision maker before a match is accepted or
 money moves.
 
-This makes a trade found on TikTok, Instagram, Facebook, X, a marketplace, or
-a private conversation easier to bring into one protected closing path. Social
-platforms are discovery surfaces. Karwan is the place where both sides agree,
+This makes a trade found on a social app, a marketplace, or a private
+conversation easier to bring into one protected closing path. Those places are
+where people meet. Karwan is the place where both sides agree,
 settle, and keep the record.
 
 ## What agents do

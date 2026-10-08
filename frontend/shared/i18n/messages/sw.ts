@@ -4837,7 +4837,7 @@ export const sw: Messages = {
       unifiedReputation: { title: 'Sifa iliyounganishwa', body: 'Mwelekeo ambao kila kitu kingine kinautumikia. Karwan inajenga sifa moja inayokufuata, ili usijithibitishe kuanzia sifuri kwenye soko jipya, jukwaa la kazi au eneo jipya. Inaanza na soko la Karwan: biashara zilizokamilika ndizo chanzo cha kwanza na chenye uzito mkubwa zaidi. Mawakala watafanya kazi tu na data unayomiliki tayari, kwa ridhaa yako, na hakuna kinachovuja. Majukwaa mengine hujiunga kama washirika mara mfumo wa kazi unapobuniwa pamoja nao. Leo sifa yako inatokana na biashara za Karwan zilizokamilika.' },
       tradeAnywhere: {
         title: 'Anzisha biashara iliyolindwa popote',
-        body: 'Msaidizi wa kivinjari uliopangwa utafungua Karwan kando ya ukurasa ambako biashara inaanza. X itakuwa sehemu ya kwanza iliyolengwa, kisha mtiririko wa kawaida utafanya kazi kando ya TikTok, Facebook, Instagram, LinkedIn, na ukurasa mwingine wa HTTPS. Utachukua tu muktadha ambao mtumiaji anatoa kwa makusudi, bila kusoma ujumbe binafsi, kuendesha vitendo vya mitandao ya kijamii, au kufanya uamuzi wa kifedha. Mshirika anaweza kukagua na kukubali kwa kiungo cha kawaida cha Karwan bila kusakinisha kiendelezi.',
+        body: 'Msaidizi wa kivinjari uliopangwa utafungua Karwan kando ya ukurasa ambako biashara inaanza. Kinaanza kwenye kurasa za mitandao ya kijamii, kisha kinafanya kazi kando ya ukurasa mwingine wowote salama wa wavuti. Utachukua tu muktadha ambao mtumiaji anatoa kwa makusudi, bila kusoma ujumbe binafsi, kuendesha vitendo vya mitandao ya kijamii, au kufanya uamuzi wa kifedha. Mshirika anaweza kukagua na kukubali kwa kiungo cha kawaida cha Karwan bila kusakinisha kiendelezi.',
       },
       financeNetwork: {
         title: 'Soko wazi la ufadhili wa biashara',
@@ -4910,15 +4910,17 @@ export const sw: Messages = {
     direction: {
       startsLabel: 'Inaanza na soko',
       eyebrow: 'Tunakoelekea',
-      title: 'Sifa moja inayokufuata kila mahali',
-      body: 'Kila soko jipya, jukwaa la kazi au eneo jipya linawalazimisha watu kujithibitisha kuanzia sifuri. Karwan inajenga sifa moja inayounganisha rekodi yako, ili vipaji vilivyofichwa vionekane na fursa zifuate. Biashara za Karwan zinatangulia kwa sababu malipo, uwasilishaji na matokeo yake yote yamerekodiwa.',
+      title: "Sifa yako inakufuata. Wakala wako anaiweka kazini.",
+      body: "Mtandao umefanya iwe rahisi kupata watu na vigumu kujua nani wa kumwamini. Karwan inaruhusu sifa yako ikufuate, na wakala wako aitumie kuwapata watu sahihi, kujadiliana nao na kufanya biashara nao. Wewe unaamua. Wakala wako anafanya kazi.",
       consentTitle: 'Data yako, ruhusa yako',
       consent: 'Mawakala hufanya kazi tu na data unayomiliki tayari, baada ya kuiunganisha na kukubali. Hakuna kinachovuja, kuuzwa wala kukusanywa kwa siri, na unaweza kujiondoa wakati wowote.',
       partnersTitle: 'Washirika, si ukusanyaji wa siri',
       partners: 'Majukwaa mengine hujiunga kama washirika mara mfumo wa kazi unapobuniwa pamoja nao. Hakuna linalotajwa kabla ya makubaliano.',
+      agentsTitle: "Wakala wako anafanya kazi",
+      agents: "Mwambie unachohitaji na bajeti yako. Anatafuta kwenye mtandao, anapima sifa, anazungumza na mawakala wa wengine, anajadili bei, muda na masharti, na kukuletea chaguo bora. Wewe unachagua, pesa inalindwa, na kazi iliyokamilika inaongeza rekodi za pande zote mbili.",
       earnedTitle: 'Imepatikana, si kudaiwa',
       earned: 'Chanzo huhesabiwa tu kikiweza kuthibitishwa. Biashara za Karwan zilizokamilika zina uzito mkubwa zaidi.',
-      status: 'Inajengwa. Leo sifa yako ya Karwan inatokana na biashara za Karwan zilizokamilika.',
+      status: "Inajengwa. Leo sifa yako ya Karwan inatokana na mikataba ya Karwan iliyokamilika, na mawakala wako wanafanya kazi ndani ya soko la Karwan.",
     },
     contract: {
       eyebrow: 'Nyuma ya pazia',

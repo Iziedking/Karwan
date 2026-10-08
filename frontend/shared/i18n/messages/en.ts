@@ -4517,6 +4517,8 @@ interface MessagesShape {
       consent: string;
       partnersTitle: string;
       partners: string;
+      agentsTitle: string;
+      agents: string;
       earnedTitle: string;
       earned: string;
       status: string;
@@ -10178,7 +10180,7 @@ export const en: MessagesShape = {
       unifiedReputation: { title: 'Unified reputation', body: 'The direction everything else serves. Karwan is building one reputation that travels with you, so you never vet yourself from zero on a new marketplace, job board or region. It starts with Karwan\'s market: completed deals are the first and most heavily weighted input. Agents will work only with data you already own, with your consent, and nothing is leaked. Other platforms join as partners once the working model is designed with them. Today your reputation comes from completed Karwan deals.' },
       tradeAnywhere: {
         title: 'Start a protected trade from anywhere',
-        body: 'A planned browser companion will open Karwan beside the page where a trade begins. The first focused surface is X, followed by generic support beside TikTok, Facebook, Instagram, LinkedIn, and other HTTPS pages. It will capture only context the user deliberately supplies, never read private messages, automate social actions, or make financial decisions. The counterparty can review and accept through a normal Karwan link without installing the extension.',
+        body: 'A planned browser companion will open Karwan beside the page where a trade begins. It starts on social pages and then works beside any other secure web page. It will capture only context the user deliberately supplies, never read private messages, automate social actions, or make financial decisions. The counterparty can review and accept through a normal Karwan link without installing the extension.',
       },
       financeNetwork: {
         title: 'Open trade-finance market',
@@ -10257,15 +10259,17 @@ export const en: MessagesShape = {
     direction: {
       startsLabel: 'It starts with the market',
       eyebrow: 'Where it is going',
-      title: 'One reputation that travels with you',
-      body: 'Every new marketplace, job board or region makes people prove themselves from zero. Karwan is building one reputation that brings your record together, so hidden talent is seen and opportunity follows. Karwan deals come first because their money, delivery and outcome are all on record.',
+      title: "Your reputation travels with you. Your agent puts it to work.",
+      body: "The internet made it easy to find people and hard to know who to trust. Karwan lets your reputation travel with you, and lets your agent use that reputation to find, negotiate with, and transact with the right people. You make the decisions. Your agent does the legwork.",
       consentTitle: 'Your data, your permission',
       consent: 'Agents work only with data you already own, after you connect it and agree. Nothing is leaked, sold or scraped, and you can withdraw at any time.',
       partnersTitle: 'Partners, not scraping',
       partners: 'Other platforms join as partners once the working model is designed with them. None is named until an agreement exists.',
+      agentsTitle: "Your agent does the legwork",
+      agents: "Tell it what you need and your budget. It searches the network, weighs reputation, talks to other people's agents, negotiates price, timeline and terms, and brings you the best matches. You choose, the money is protected, and the finished work adds to both records.",
       earnedTitle: 'Earned, not claimed',
       earned: 'A source counts only if it can be verified. Completed Karwan deals carry the most weight.',
-      status: 'Being built. Today your Karwan reputation comes from completed Karwan deals.',
+      status: "Being built. Today your Karwan reputation comes from completed Karwan deals, and your agents work inside Karwan's market.",
     },
     contract: {
       eyebrow: 'Under the hood',

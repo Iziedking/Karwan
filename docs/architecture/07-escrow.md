@@ -175,7 +175,7 @@ Rulings only ever split a leg's unreleased money between the two parties, carry 
 ## 6. Emerging-market requirements
 
 - **Local money in and out.** Buyers pay in naira, shillings or cedis through local partners; the escrow only ever holds USDC; each deal records the FX rate and fee at funding so a refund returns the same local amount where the partner allows, and states when it cannot.
-- **Low data, chat first.** Every step has a short link and a plain message fit for WhatsApp or SMS; the delivery code works read aloud.
+- **Low data, chat first.** Every step has a short link and a plain message fit for a chat app or SMS; the delivery code works read aloud.
 - **Couriers without apps.** The delivery code can be entered by the seller on the courier's behalf.
 - **Small amounts.** Fees and clocks fit a 5 USDC sale as well as a 5,000 USDC order; the caps from the v3 design apply.
 - **Cancellation on unreliable schedules.** Every shape states upfront what happens if the other side goes quiet.
@@ -209,15 +209,3 @@ Rulings only ever split a leg's unreleased money between the two parties, carry 
 | Instalment module | Planned | |
 | Retainer module | Planned | |
 | Streaming for trusted retainers | Later | Sablier Flow style, only after the period model proves out |
-
-## 9. Sources from the wider lookup
-
-- Circle, [Refund Protocol](https://www.circle.com/blog/refund-protocol-non-custodial-dispute-resolution-for-stablecoin-payments): lockup, refund address fixed at payment, arbiter cannot send funds elsewhere. Karwan's rule that rulings only split between the two parties follows the same principle.
-- Upwork, [hourly payment protection](https://support.upwork.com/hc/en-us/articles/211068288-How-Hourly-Payment-Protection-works-for-freelancers) and [weekly billing](https://support.upwork.com/hc/en-us/articles/211063698-How-to-manage-the-weekly-billing-cycle): weekly cap, work diary, five-day review, disputes on hours.
-- Escrow.com, [milestones](https://www.escrow.com/milestones/how-it-works) and [inspection period](https://www.escrow.com/inspection-period): fully funded upfront, inspection per milestone, release on silence.
-- Sablier, [Flow](https://docs.sablier.com/concepts/flow/overview): open-ended per-second streams that can be paused, adjusted and topped up.
-- UMA, [Optimistic Oracle v3](https://docs.uma.xyz/developers/optimistic-oracle-v3): assert, liveness window, dispute with a bond; the pattern behind the appeal window.
-- Kleros, [ERC-792 arbitration](https://docs.kleros.io/developer/arbitration-development/erc-792-arbitration-standard) and [ERC-1497 evidence](https://docs.kleros.io/developer/arbitration-development/erc-1497-evidence-standard): arbitrable and arbitrator separation, meta-evidence as the agreement.
-- Nigeria: [Vesicash](https://techpoint.africa/feature/vesicash-escrow-services/) (escrow API since 2019), [EscrowPay](https://techpoint.africa/brandpress/escrowpay-launches-whatsapp-native-escrow/) (WhatsApp-native escrow, 2026), and [cash on delivery being withdrawn by large retailers](https://www.mondaq.com/nigeria/financial-services/1474486/the-emergence-of-escrow-payments-in-e-commerce-transactions-in-nigeria).
-- Kenya: M-Pesa escrow services such as [eConfirm](https://econfirm.co.ke/) and [Escrow Kenya](https://www.kenyaescrow.com/) (STK push into escrow, release on confirmation, about 3% fee).
-- Instalments: [digital lay-by in South Africa](https://www.gwebdesign.co.za/informal-lay-by-2-0-digitalizing-traditional-south-african-payment-models-for-modern-online-retail/) and [Africa BNPL growth](https://www.ecofinagency.com/news/1802-52998-africa-s-buy-now-pay-later-market-to-triple-to-16-8-billion-by-2031-report-says).

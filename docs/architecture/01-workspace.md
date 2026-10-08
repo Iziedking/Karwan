@@ -26,7 +26,7 @@ flowchart LR
     GW[Circle Gateway<br/>Instant top-up]
     IN[Local pay-in partner<br/>bank, mobile money, card]
     OUT[Local payout partner<br/>bank, mobile money]
-    MSG[Messaging<br/>WhatsApp, email]
+    MSG[Messaging<br/>chat apps, email]
   end
 
   S -- creates sale, offers on requests --> W

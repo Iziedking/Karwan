@@ -4840,7 +4840,7 @@ export const fr: Messages = {
       unifiedReputation: { title: 'Réputation unifiée', body: 'La direction que sert tout le reste. Karwan construit une réputation unique qui vous suit, pour ne plus jamais faire vos preuves depuis zéro sur une nouvelle place de marché, plateforme d’emploi ou région. Tout commence par le marché Karwan : les échanges conclus sont la première source et la plus importante. Les agents utiliseront uniquement les données que vous possédez déjà, avec votre accord, et rien n’est divulgué. Les autres plateformes rejoignent Karwan comme partenaires une fois le modèle conçu avec elles. Aujourd’hui, votre réputation vient des échanges Karwan conclus.' },
       tradeAnywhere: {
         title: 'Commencer une transaction protégée depuis n’importe où',
-        body: 'Un compagnon de navigateur prévu ouvrira Karwan à côté de la page où la transaction commence. X sera la première surface dédiée, puis le même parcours générique fonctionnera à côté de TikTok, Facebook, Instagram, LinkedIn et de toute autre page HTTPS. Il ne recueillera que le contexte fourni volontairement par l’utilisateur, sans lire les messages privés, automatiser une action sociale ni prendre une décision financière. La contrepartie pourra examiner et accepter la transaction avec un lien Karwan normal, sans installer l’extension.',
+        body: 'Un compagnon de navigateur prévu ouvrira Karwan à côté de la page où la transaction commence. Il commence sur les pages sociales, puis fonctionne à côté de toute autre page web sécurisée. Il ne recueillera que le contexte fourni volontairement par l’utilisateur, sans lire les messages privés, automatiser une action sociale ni prendre une décision financière. La contrepartie pourra examiner et accepter la transaction avec un lien Karwan normal, sans installer l’extension.',
       },
       financeNetwork: {
         title: 'Un marché ouvert du financement commercial',
@@ -4913,15 +4913,17 @@ export const fr: Messages = {
     direction: {
       startsLabel: 'Tout commence par le marché',
       eyebrow: 'Où nous allons',
-      title: 'Une réputation qui vous suit partout',
-      body: 'Chaque nouvelle place de marché, plateforme d’emploi ou région oblige à faire ses preuves depuis zéro. Karwan construit une réputation unique qui rassemble votre historique, pour que les talents cachés soient vus et que les opportunités suivent. Les échanges Karwan comptent en premier, car leur paiement, leur livraison et leur issue sont enregistrés.',
+      title: "Votre réputation vous suit. Votre agent la met au travail.",
+      body: "Internet a rendu facile de trouver des gens, et difficile de savoir à qui faire confiance. Karwan permet à votre réputation de vous suivre, et à votre agent de s'en servir pour trouver les bonnes personnes, négocier avec elles et conclure. Vous décidez. Votre agent fait le travail de fond.",
       consentTitle: 'Vos données, votre accord',
       consent: 'Les agents utilisent uniquement les données que vous possédez déjà, après que vous les avez connectées et acceptées. Rien n’est divulgué, vendu ni aspiré, et vous pouvez vous retirer à tout moment.',
       partnersTitle: 'Des partenaires, pas d’aspiration',
       partners: 'Les autres plateformes rejoignent Karwan comme partenaires une fois le modèle conçu avec elles. Aucune n’est nommée avant un accord.',
+      agentsTitle: "Votre agent fait le travail de fond",
+      agents: "Dites-lui ce qu'il vous faut et votre budget. Il cherche dans le réseau, pèse les réputations, parle aux agents des autres, négocie prix, délais et conditions, et vous présente les meilleures options. Vous choisissez, l'argent est protégé, et le travail livré enrichit les deux dossiers.",
       earnedTitle: 'Mérité, pas déclaré',
       earned: 'Une source ne compte que si elle peut être vérifiée. Les échanges Karwan conclus pèsent le plus.',
-      status: 'En construction. Aujourd’hui, votre réputation Karwan vient des échanges Karwan conclus.',
+      status: "En construction. Aujourd'hui, votre réputation Karwan vient des transactions Karwan terminées, et vos agents travaillent dans le marché Karwan.",
     },
     contract: {
       eyebrow: 'Sous le capot',
