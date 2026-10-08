@@ -1,6 +1,6 @@
 import { deliveryCheckDetail, type DeliveryCheckDetail } from '../deals/deliveryCheck.js';
 import { runDisputeJudge, type DisputeJudgeDeps } from '../deals/disputeJudgeRunner.js';
-import { rulingSchema } from '../deals/disputeJudge.js';
+import { rulingSchema, statementRemindersDue } from '../deals/disputeJudge.js';
 import { listMessages } from '../db/messages.js';
 import { addSystemMessage } from '../chat/systemMessages.js';
 import { generateObjectWithLlmFallback } from '../llm/client.js';
@@ -674,6 +674,32 @@ const disputeJudgeDeps: DisputeJudgeDeps = {
   },
 };
 
+const STATEMENT_REMINDER_LEAD_MS = 12 * 3_600_000;
+
+/// Reminds a side whose dispute statement is still missing, once, when the
+/// window has 12 hours left. Recorded before emitting so a restart never
+/// sends it twice.
+async function maybeRemindStatements(deal: DirectDeal, now: number): Promise<void> {
+  const sides = statementRemindersDue(deal, now, config.DISPUTE_STATEMENT_WINDOW_MS, STATEMENT_REMINDER_LEAD_MS);
+  if (!sides.length) return;
+  try {
+    const remindedAt = { ...(deal.disputeStatementRemindedAt ?? {}) };
+    for (const side of sides) remindedAt[side] = now;
+    await patchDeal(deal.jobId, { disputeStatementRemindedAt: remindedAt });
+    const closesAtMs = (deal.disputedAt ?? now) + config.DISPUTE_STATEMENT_WINDOW_MS;
+    for (const side of sides) {
+      bus.emitEvent({
+        type: 'deal.dispute.statement.due',
+        jobId: deal.jobId,
+        actor: 'platform',
+        payload: { buyer: deal.buyer, seller: deal.seller, side, closesAtMs },
+      });
+    }
+  } catch (err) {
+    logger.warn({ jobId: deal.jobId, err: (err as Error).message }, 'statement reminder failed (retried next tick)');
+  }
+}
+
 /// The guard judge (v2): once both statements are in or the window closes, it
 /// proposes a split for a reviewer to confirm. Never moves money itself.
 async function maybeRunDisputeJudge(deal: DirectDeal, now: number): Promise<void> {
@@ -704,6 +730,7 @@ async function tick() {
       if (dealEscrowOps.isV3(deal)) {
         await runV3DisputeSafely(deal, now);
       } else if (!(await maybeApplyDeadlineRule(deal, now))) {
+        await maybeRemindStatements(deal, now);
         await maybeRunDisputeJudge(deal, now);
         await maybeAutoResolveDispute(deal, now);
       }

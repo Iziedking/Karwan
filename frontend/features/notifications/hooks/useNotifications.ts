@@ -144,6 +144,14 @@ function shouldNotify(
     const by: Role = payload?.countered ? 'seller' : 'buyer';
     return !!role && role !== by;
   }
+  // A statement is news to the other side; a reminder is for the side named.
+  if (type === 'deal.dispute.statement') {
+    const side = payload?.side as Role | undefined;
+    return !!role && !!side && role !== side;
+  }
+  if (type === 'deal.dispute.statement.due') {
+    return !!role && payload?.side === role;
+  }
   if (type === 'deal.cancel.declined') {
     const by = payload?.proposedBy as Role | undefined;
     return !!role && !!by && role === by; // only the proposer hears the decline

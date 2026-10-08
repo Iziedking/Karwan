@@ -23,6 +23,7 @@ import { getProfile } from '../db/profiles.js';
 import { resendClient } from './resend.js';
 import { sendDealEventEmail } from './dealEventEmail.js';
 import { logger } from '../logger.js';
+import { closesLabel } from '../deals/disputeJudge.js';
 
 function base(): string | null {
   return config.FRONTEND_BASE_URL ? config.FRONTEND_BASE_URL.replace(/\/$/, '') : null;
@@ -46,6 +47,9 @@ function financierUrl(): string | undefined {
 
 // High-signal events only. Keep this list short on purpose.
 const EMAIL_RELEVANT = new Set([
+  'deal.extension.requested',
+  'deal.dispute.statement',
+  'deal.dispute.statement.due',
   'deal.matched',
   'deal.match.approved',
   'listing.matched',
@@ -435,6 +439,42 @@ export function contentFor(
             ctaUrl: dealUrl(e.jobId),
           }
         : null;
+    case 'deal.extension.requested': {
+      if (role !== 'buyer') return null;
+      const days = Math.max(1, Math.round(Number(e.payload?.additionalSeconds ?? 0) / 86_400));
+      const reason = String(e.payload?.reason ?? '').slice(0, 300);
+      return {
+        kicker: 'More time asked',
+        subject: `The seller asked for ${days} more day${days === 1 ? '' : 's'}`,
+        heading: 'The seller asked for more time',
+        body: `The seller asked for ${days} more day${days === 1 ? '' : 's'} to deliver.${reason ? ` Their reason: "${reason}"` : ''} Approve or decline on the deal. Until you answer, the current deadline stands.`,
+        ctaLabel: 'Answer the request',
+        ctaUrl: dealUrl(e.jobId),
+      };
+    }
+    case 'deal.dispute.statement': {
+      const side = e.payload?.side as 'buyer' | 'seller' | undefined;
+      if (!side || role === side || (role !== 'buyer' && role !== 'seller')) return null;
+      return {
+        kicker: 'Dispute',
+        subject: `The ${side} gave their account of the dispute`,
+        heading: 'Give your account',
+        body: `The ${side} gave their account of the dispute. Give yours on the deal before ${closesLabel(e.payload?.closesAtMs)}. A side that gives no account loses the dispute.`,
+        ctaLabel: 'Give your account',
+        ctaUrl: dealUrl(e.jobId),
+      };
+    }
+    case 'deal.dispute.statement.due': {
+      if (!role || e.payload?.side !== role) return null;
+      return {
+        kicker: 'Dispute',
+        subject: 'Your dispute statement is still missing',
+        heading: 'Give your account before the window closes',
+        body: `Your account of the dispute is still missing. Give it on the deal before ${closesLabel(e.payload?.closesAtMs)}. A side that gives no account loses the dispute.`,
+        ctaLabel: 'Give your account',
+        ctaUrl: dealUrl(e.jobId),
+      };
+    }
     case 'deal.cancel.proposed': {
       const proposedBy = (e.payload?.proposedBy as 'buyer' | 'seller' | undefined) ?? null;
       if (proposedBy && proposedBy === role) return null; // don't email the proposer

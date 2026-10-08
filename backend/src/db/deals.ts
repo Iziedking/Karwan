@@ -305,6 +305,8 @@ export interface DirectDeal {
   /// statement window. Shown to the other side only once both are in or the
   /// window has closed (deals/disputeJudge.ts disputeViewFor).
   disputeStatements?: Partial<Record<'buyer' | 'seller', DisputeStatement>>;
+  /// When each side was reminded that its statement is still missing.
+  disputeStatementRemindedAt?: Partial<Record<'buyer' | 'seller', number>>;
   /// The guard judge's proposed split. A proposal only: a reviewer confirms
   /// or changes it on the admin disputes desk before money moves.
   judgeProposal?: JudgeProposal;

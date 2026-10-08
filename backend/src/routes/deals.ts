@@ -4583,6 +4583,17 @@ dealsRoutes.post('/direct/:jobId/dispute/statement', async (c) => {
       occurrenceKey: `dispute-statement:${side}`,
       body: side === 'buyer' ? 'The buyer gave their account of the dispute.' : 'The seller gave their account of the dispute.',
     }).catch(() => undefined);
+    bus.emitEvent({
+      type: 'deal.dispute.statement',
+      jobId,
+      actor: side,
+      payload: {
+        buyer: deal.buyer,
+        seller: deal.seller,
+        side,
+        closesAtMs: (deal.disputedAt ?? now) + config.DISPUTE_STATEMENT_WINDOW_MS,
+      },
+    });
   }
   return c.json({ accepted: true, jobId, side }, 200);
 });

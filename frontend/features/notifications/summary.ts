@@ -129,6 +129,18 @@ export function summaryFor(
       return pick(c.cancelProposedReason, c.cancelProposed, { reason: reason.slice(0, 60) });
     case 'deal.cancel.declined':
       return c.cancelDeclined;
+    case 'deal.extension.requested': {
+      const days = Math.max(1, Math.round(Number(payload?.additionalSeconds ?? 0) / 86_400));
+      return days === 1 ? c.extensionAskedOne : fill(c.extensionAskedMany, { days });
+    }
+    case 'deal.extension.approved':
+      return c.extensionApproved;
+    case 'deal.extension.declined':
+      return c.extensionDeclined;
+    case 'deal.dispute.statement':
+      return str('side') === 'seller' ? c.statementGivenSeller : c.statementGivenBuyer;
+    case 'deal.dispute.statement.due':
+      return c.statementDue;
     case 'wallet.credited':
     case 'wallet.debited': {
       const role = str('walletRole');

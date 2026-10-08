@@ -35,6 +35,12 @@ export const DIRECT_TYPES = new Set([
   'deal.auto_released',
   'escrow.settled',
   'deal.disputed',
+  // Deadline extensions and dispute statements: each asks one side to act.
+  'deal.extension.requested',
+  'deal.extension.approved',
+  'deal.extension.declined',
+  'deal.dispute.statement',
+  'deal.dispute.statement.due',
   // An arbiter splitting the escrow is the single most consequential thing that
   // can happen to a deal without either party doing it. It notified nobody.
   'escrow.resolved',
@@ -137,6 +143,9 @@ export const TOAST_TYPES = new Set([
   'deal.direct.edited',
   'offer.created',
   'deal.cancel.proposed',
+  'deal.extension.requested',
+  'deal.dispute.statement',
+  'deal.dispute.statement.due',
   'deal.fund.insufficient',
   'deal.release.blocked',
   'negotiation.near-miss',
@@ -190,6 +199,11 @@ export const RECIPIENT: Record<string, Role | 'both'> = {
   'deal.auto_released': 'both',
   'escrow.settled': 'both',
   'deal.disputed': 'both',
+  'deal.extension.requested': 'buyer', // the seller asked; the buyer answers
+  'deal.extension.approved': 'seller',
+  'deal.extension.declined': 'seller',
+  'deal.dispute.statement': 'both', // special-cased to the side that has not given one
+  'deal.dispute.statement.due': 'both', // special-cased to the side named in the payload
   'escrow.resolved': 'both',
   'deal.cancelled': 'both',
   'deal.cancel.proposed': 'both', // special-cased to the counterparty below

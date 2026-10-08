@@ -82,6 +82,10 @@ export type KarwanEventType =
   | 'deal.dispute.auto_resolved'
   | 'deal.dispute.needs_arbiter'
   | 'deal.dispute.lapsed'
+  /// One side gave its account of a dispute; the other side is asked for theirs.
+  | 'deal.dispute.statement'
+  /// A side's statement is still missing and the window closes soon.
+  | 'deal.dispute.statement.due'
   | 'deal.cancelled'
   | 'deal.cancel.proposed'
   | 'deal.cancel.declined'

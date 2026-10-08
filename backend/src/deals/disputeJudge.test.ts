@@ -8,6 +8,8 @@ import {
   parseStatement,
   silentOutcome,
   statementWindowOpen,
+  statementRemindersDue,
+  closesLabel,
   type JudgeInput,
 } from './disputeJudge.js';
 
@@ -114,4 +116,25 @@ test('a reviewer ruling marks the proposal confirmed or overridden', async () =>
   assert.equal(reviewedProposal(p, 0)?.status, 'confirmed');
   assert.equal(reviewedProposal(p, 5000)?.status, 'overridden');
   assert.equal(reviewedProposal(undefined, 0), undefined);
+});
+
+test('statement reminder: only the silent side, only in the last 12 hours, only once', () => {
+  const windowMs = 48 * 3_600_000;
+  const lead = 12 * 3_600_000;
+  const disputedAt = 1_000_000;
+  const base = { disputed: true, disputedAt };
+  const late = disputedAt + windowMs - lead + 1;
+  assert.deepEqual(statementRemindersDue(base, disputedAt + 3_600_000, windowMs, lead), []);
+  assert.deepEqual(statementRemindersDue(base, late, windowMs, lead), ['buyer', 'seller']);
+  const sellerIn = { ...base, disputeStatements: { seller: { received: 'a', missing: 'b', late: 'c', links: [], submittedAt: late } } };
+  assert.deepEqual(statementRemindersDue(sellerIn, late, windowMs, lead), ['buyer']);
+  assert.deepEqual(statementRemindersDue({ ...sellerIn, disputeStatementRemindedAt: { buyer: late } }, late + 1, windowMs, lead), []);
+  assert.deepEqual(statementRemindersDue(base, disputedAt + windowMs + 1, windowMs, lead), []);
+  assert.deepEqual(statementRemindersDue({ ...base, settledAt: late }, late, windowMs, lead), []);
+  assert.deepEqual(statementRemindersDue({ ...base, judgeProposal: { status: 'awaiting-review' } }, late, windowMs, lead), []);
+});
+
+test('a statement deadline reads as a day, month and UTC time', () => {
+  assert.equal(closesLabel(Date.UTC(2026, 9, 10, 14, 5)), '10 Oct, 14:05 UTC');
+  assert.equal(closesLabel(undefined), 'the window closes');
 });

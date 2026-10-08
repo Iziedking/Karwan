@@ -40,6 +40,7 @@ interface DisputeDeal {
   settledAt?: number;
   cancelledAt?: number;
   disputeStatements?: Partial<Record<Side, DisputeStatement>>;
+  disputeStatementRemindedAt?: Partial<Record<Side, number>>;
   judgeProposal?: Pick<JudgeProposal, 'status'> & Partial<JudgeProposal>;
 }
 
@@ -61,6 +62,26 @@ const closed = (deal: DisputeDeal) => !deal.disputed || !!deal.settledAt || !!de
 
 export function statementWindowOpen(deal: DisputeDeal, now: number, windowMs: number): boolean {
   return !closed(deal) && now <= (deal.disputedAt ?? 0) + windowMs;
+}
+
+/// Sides that still owe a statement once the window is within leadMs of
+/// closing, each reminded once. A side that stays silent loses, so this is
+/// the nudge before that happens.
+/// A statement deadline as a message says it: day, month and time in UTC.
+export function closesLabel(ms: unknown): string {
+  const n = Number(ms);
+  if (!Number.isFinite(n) || n <= 0) return 'the window closes';
+  const d = new Date(n);
+  const month = d.toLocaleString('en-GB', { month: 'short', timeZone: 'UTC' });
+  return `${d.getUTCDate()} ${month}, ${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')} UTC`;
+}
+
+export function statementRemindersDue(deal: DisputeDeal, now: number, windowMs: number, leadMs: number): Side[] {
+  if (!statementWindowOpen(deal, now, windowMs) || deal.judgeProposal) return [];
+  if (now < (deal.disputedAt ?? 0) + windowMs - leadMs) return [];
+  return (['buyer', 'seller'] as const).filter(
+    (side) => !deal.disputeStatements?.[side] && !deal.disputeStatementRemindedAt?.[side],
+  );
 }
 
 /// What one side may see. The other side's statement stays hidden until both

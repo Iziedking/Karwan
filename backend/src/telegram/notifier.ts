@@ -5,6 +5,7 @@ import { getProfile, type UserLocale } from '../db/profiles.js';
 import { getTelegramLink } from '../db/telegramLinks.js';
 import { sendTelegramMessage, telegramEnabled } from './bot.js';
 import { logger } from '../logger.js';
+import { closesLabel } from '../deals/disputeJudge.js';
 import { tg } from '../i18n/telegram.js';
 import {
   deliverableNoun,
@@ -77,6 +78,11 @@ function withLink(text: string, url: string | null): NotifySummary {
 // subscribes on boot and is a no-op when the bot isn't configured.
 
 const RELEVANT = new Set([
+  'deal.extension.requested',
+  'deal.extension.approved',
+  'deal.extension.declined',
+  'deal.dispute.statement',
+  'deal.dispute.statement.due',
   'deal.matched',
   'deal.match.approved',
   'deal.match.declined',
@@ -458,6 +464,29 @@ ${String(e.payload?.note ?? '').replace(/[*_`[\]]/g, '').slice(0, 300)}`, url)
         url,
       );
     }
+    case 'deal.extension.requested': {
+      if (role !== 'buyer') return null;
+      const days = Math.max(1, Math.round(Number(e.payload?.additionalSeconds ?? 0) / 86_400));
+      const reason = String(e.payload?.reason ?? '').replace(/[*_`[\]]/g, '').slice(0, 200);
+      return withLink(`*The seller asked for ${days} more day${days === 1 ? '' : 's'}.*${reason ? `\n${reason}` : ''}\nApprove or decline on the deal.`, url);
+    }
+    case 'deal.extension.approved':
+    case 'deal.extension.declined':
+      if (role !== 'seller') return null;
+      return withLink(
+        e.type === 'deal.extension.approved'
+          ? '*The buyer gave you more time.* The new deadline is on the deal.'
+          : '*The buyer kept the deadline.* Deliver by the current date.',
+        url,
+      );
+    case 'deal.dispute.statement': {
+      const side = e.payload?.side as 'buyer' | 'seller' | undefined;
+      if (!side || role === side || (role !== 'buyer' && role !== 'seller')) return null;
+      return withLink(`*The ${side} gave their account of the dispute.* Give yours on the deal before ${closesLabel(e.payload?.closesAtMs)}.`, url);
+    }
+    case 'deal.dispute.statement.due':
+      if (!role || e.payload?.side !== role) return null;
+      return withLink(`*Your dispute statement is still missing.* Give it on the deal before ${closesLabel(e.payload?.closesAtMs)}, or the dispute goes against you.`, url);
     case 'deal.cancel.declined': {
       const proposedBy = (e.payload?.proposedBy as 'buyer' | 'seller' | undefined) ?? null;
       const proposerSelf = proposedBy && proposedBy === role;
