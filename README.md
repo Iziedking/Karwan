@@ -1,10 +1,10 @@
 # Karwan
 
-**One reputation for the internet, starting with an open market.**
+**Safe trade on the internet: a reputation that travels with you, and agents that put it to work.**
 
 People join a new marketplace, a new job board, a new region, and have to prove themselves from zero every time. Years of good work stay locked inside platforms that do not talk to each other, so real talent stays hidden and opportunities go to whoever is easiest to check.
 
-Karwan is building one reputation that travels with you: easy to track, easy to look up, and hard to fake. When reputation is unified, online deals become more trusted and safer, hidden talent becomes visible, and opportunity follows. Karwan unifies online reputation with an agentic economic model, and it starts with Karwan's own market.
+Karwan lets your reputation travel with you, and lets your agent use that reputation to find, negotiate with, and transact with the right people. Agents look people up, check and validate their record, negotiate terms and open a protected deal; people make the decisions. It is an agentic economy built on Circle's stack and Arc, secured on chain by escrow, and it starts with Karwan's own market.
 
 ## How it works
 
@@ -18,7 +18,8 @@ Karwan has two sides that grow together.
 | --- | --- |
 | Open market, direct deals, milestone escrow, delivery review, disputes, receipts | Live on testnet |
 | Reputation from completed Karwan deals, recorded on Arc | Live on testnet |
-| Unified reputation across platforms, agents working with data you own | Being built |
+| Buyer and seller agents that find, negotiate and match within limits you set | Live on testnet |
+| Portable reputation across platforms, verified with your permission, and agent-to-agent lookups and payments | Being built |
 | Partner platforms | Named here once an agreement exists |
 
 ## Availability
