@@ -1685,6 +1685,11 @@ export const sw: Messages = {
     declinedEyebrow: 'Ujumbe umekataliwa',
     declinedSellerView: 'Umekataa ulinganifu huu. Ombi linabaki limefungwa, na mnunuzi anaweza kutuma jipya.',
     declinedOtherView: 'Muuzaji amekataa ulinganifu huu. Tuma ombi jipya kupata muuzaji mwingine.',
+    cancelledEyebrow: "Ulinganisho umeghairiwa",
+    cancelledBuyerView: "Umeghairi ulinganisho huu. Ombi lako liko wazi tena: chagua ofa nyingine au subiri mpya.",
+    cancelledSellerView: "Mnunuzi aliughairi ulinganisho huu kabla hujakubali.",
+    raiseDeclinedBuyerView: "Umekataa bei iliyopandishwa. Ulinganisho umekwisha.",
+    raiseDeclinedSellerView: "Mnunuzi amekataa bei yako iliyopandishwa. Ulinganisho umekwisha.",
     pendingEyebrow: 'Ujumbe umepatikana · inasubiri idhini',
     proposedTemplate: 'imependekezwa {time}',
     risk: {

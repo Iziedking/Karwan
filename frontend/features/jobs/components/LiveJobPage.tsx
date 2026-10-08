@@ -618,10 +618,16 @@ function EditBriefModal({
   const dirty = textChanged || toleranceChanged || trustedChanged;
   const textValid = trimmed.length >= 5 && trimmed.length <= 2000;
   const toleranceValid = tolerancePct >= 0 && tolerancePct <= 50;
-  const valid = textValid && toleranceValid && dirty;
+  // Only invalid input blocks the button. Saving with nothing changed just
+  // closes the sheet, so it never looks stuck.
+  const valid = textValid && toleranceValid;
 
   function submit() {
     if (!valid || busy) return;
+    if (!dirty) {
+      onClose();
+      return;
+    }
     const patch: {
       briefText?: string;
       negotiationMaxIncreasePct?: number;

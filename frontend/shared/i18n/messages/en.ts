@@ -1569,6 +1569,11 @@ interface MessagesShape {
     declinedEyebrow: string;
     declinedSellerView: string;
     declinedOtherView: string;
+    cancelledEyebrow: string;
+    cancelledBuyerView: string;
+    cancelledSellerView: string;
+    raiseDeclinedBuyerView: string;
+    raiseDeclinedSellerView: string;
     pendingEyebrow: string;
     proposedTemplate: string;
     risk: {
@@ -6877,6 +6882,11 @@ export const en: MessagesShape = {
     declinedEyebrow: 'Match declined',
     declinedSellerView: 'You declined this match. The request stays closed, and the buyer can post a new one.',
     declinedOtherView: 'The seller declined this match. Post a new request to find another seller.',
+    cancelledEyebrow: "Match cancelled",
+    cancelledBuyerView: "You cancelled this match. Your request is open again: choose another offer, or wait for new ones.",
+    cancelledSellerView: "The buyer cancelled this match before you accepted.",
+    raiseDeclinedBuyerView: "You declined the raised price. The match has ended.",
+    raiseDeclinedSellerView: "The buyer declined your raised price. The match has ended.",
     pendingEyebrow: 'Match found · awaiting approval',
     proposedTemplate: 'proposed {time}',
     risk: {

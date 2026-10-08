@@ -1688,6 +1688,11 @@ export const ar: Messages = {
     declinedEyebrow: 'رُفض التطابق',
     declinedSellerView: 'لقد رفضت هذا التطابق. يظل الطلب مغلقًا، ويمكن للمشتري نشر طلب جديد.',
     declinedOtherView: 'رفض البائع هذا التطابق. انشر طلباً جديداً للعثور على بائع آخر.',
+    cancelledEyebrow: "أُلغي التطابق",
+    cancelledBuyerView: "ألغيت هذا التطابق. طلبك مفتوح مجددًا: اختر عرضًا آخر أو انتظر عروضًا جديدة.",
+    cancelledSellerView: "ألغى المشتري هذا التطابق قبل قبولك.",
+    raiseDeclinedBuyerView: "رفضت السعر المرفوع. انتهى التطابق.",
+    raiseDeclinedSellerView: "رفض المشتري سعرك المرفوع. انتهى التطابق.",
     pendingEyebrow: 'وُجد تطابق · بانتظار الموافقة',
     proposedTemplate: 'اقتُرح {time}',
     risk: {

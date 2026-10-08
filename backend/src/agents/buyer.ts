@@ -2,6 +2,7 @@ import { SELLER_LINK_DETAIL, SELLER_NOT_BOUND, sellerAgentBinding, sellerBinding
 import { carriedGate } from './proposalCarry.js';
 import { offerToChoose } from './chooseOffer.js';
 import { sellerKey } from './sellerKey.js';
+import { bidsFromHistory } from './bidHistory.js';
 import { generateObject } from 'ai';
 import { formatUnits, parseUnits, type Log } from 'viem';
 import { publicClient, watchEventsViaGetLogs } from '../chain/client.js';
@@ -1321,6 +1322,10 @@ async function handleJobPosted(log: Log, opts?: { silent?: boolean }) {
     { jobId: args.jobId, budget: state.context.budgetUsdc, buyer: buyer.displayName, silent: opts?.silent ?? false },
     'tracking job',
   );
+  // Offers live in memory; bring back the ones already made before a restart.
+  await restoreBidsFromHistory(state).catch((err) =>
+    logger.warn({ jobId: args.jobId, err: (err as Error).message }, 'could not restore offers from history'),
+  );
   // Inherit cancelledAt from the persisted deal so a restart doesn't undo the
   // grace-period filter (otherwise a cancelled deal would re-surface as "Open"
   // on the Managed Deals table until the bus next fires).
@@ -1368,6 +1373,40 @@ export const __directOfferTest = {
     directOfferLookup = fn;
   },
 };
+
+/// Rebuilds a tracked request's offers from its event history, with the
+/// seller's name, so a restart never empties the offer list or leaves a
+/// reopened request with nothing to choose from. Restored offers are not
+/// re-scored and start no timers.
+async function restoreBidsFromHistory(state: JobState): Promise<void> {
+  if (state.bids.size > 0) return;
+  const types = ['bid.submitted', 'bid.scored'];
+  const persisted = await recentEventsByType(types, 500, state.jobId);
+  const local = bus.recent(500, state.jobId).filter((e) => types.includes(e.type));
+  const restored = bidsFromHistory([...persisted, ...local]);
+  for (const r of restored) {
+    if (state.bids.has(r.seller)) continue;
+    let sellerUserAddress: string | undefined;
+    let sellerDisplayName: string | undefined;
+    try {
+      const wallet = await findAgentWalletByAgentAddress(r.seller);
+      if (wallet?.userAddress) {
+        sellerUserAddress = wallet.userAddress;
+        sellerDisplayName = (await getProfile(wallet.userAddress))?.displayName?.trim() || undefined;
+      }
+    } catch {
+      /* the offer still shows, by address */
+    }
+    state.bids.set(r.seller, {
+      ...r,
+      sellerTier: r.sellerTier as RepTier | undefined,
+      pattern: r.pattern as Bid['pattern'],
+      sellerUserAddress,
+      sellerDisplayName,
+    });
+  }
+  if (restored.length > 0) logger.info({ jobId: state.jobId, restored: restored.length }, 'restored offers from history');
+}
 
 async function handleBidSubmitted(log: Log) {
   const dedupeKey = logDedupeKey('BidSubmitted', log);
@@ -4045,7 +4084,7 @@ export async function chooseAgentOffer(
   });
   if (!choice.ok) return choice;
   if (existing && !existing.declinedAt && existing.sellerAgent.toLowerCase() !== choice.seller.toLowerCase()) {
-    await declineAgentMatch(jobId, 'buyer-chose-another-offer');
+    await declineAgentMatch(jobId, 'buyer-chose-another-offer', 'buyer');
   }
   return proceedAgentNearMiss(jobId, choice.seller, choice.priceUsdc);
 }
@@ -4321,6 +4360,7 @@ ${brief.terms}`
 export async function declineAgentMatch(
   jobId: string,
   reason?: string,
+  by: 'seller' | 'buyer' | 'raise' = 'seller',
 ): Promise<{ ok: true } | { ok: false; code: string; message: string }> {
   const proposal = await getMatchProposal(jobId);
   if (!proposal) return { ok: false, code: 'NO_PROPOSAL', message: 'no match proposal for this job' };
@@ -4328,6 +4368,7 @@ export async function declineAgentMatch(
   if (proposal.declinedAt) return { ok: false, code: 'ALREADY_DECLINED', message: 'match already declined' };
 
   proposal.declinedAt = Date.now();
+  proposal.declinedBy = by;
   await dbUpsertMatchProposal(proposal);
   bus.emitEvent({
     type: 'deal.match.declined',

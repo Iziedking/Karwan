@@ -157,11 +157,18 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
     );
   }
   if (declined) {
+    // Say who ended it. A buyer who withdrew gets their request back, so the
+    // card points forward instead of telling them to start over.
+    const by = proposal.declinedBy;
+    const body =
+      by === 'buyer'
+        ? (viewerIsSeller ? mb.cancelledSellerView : mb.cancelledBuyerView)
+        : by === 'raise'
+          ? (viewerIsSeller ? mb.raiseDeclinedSellerView : mb.raiseDeclinedBuyerView)
+          : viewerIsSeller ? mb.declinedSellerView : mb.declinedOtherView;
     return (
-      <BannerFrame tone="default" eyebrow={mb.declinedEyebrow}>
-        <p className="text-[14px] text-[var(--color-ink-dim)] font-medium">
-          {viewerIsSeller ? mb.declinedSellerView : mb.declinedOtherView}
-        </p>
+      <BannerFrame tone="default" eyebrow={by === 'buyer' ? mb.cancelledEyebrow : mb.declinedEyebrow}>
+        <p className="text-[14px] text-[var(--color-ink-dim)] font-medium">{body}</p>
       </BannerFrame>
     );
   }

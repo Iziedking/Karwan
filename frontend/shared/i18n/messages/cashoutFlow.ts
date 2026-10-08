@@ -3,6 +3,10 @@
 export interface CashoutFlowCopy {
   back: string;
   earnings: string;
+  from: string;
+  fromSeller: string;
+  fromBuyer: string;
+  fromMain: string;
   inWallet: string;
   sendTo: string;
   optBalance: string;
@@ -50,6 +54,10 @@ export const cashoutFlowCopy: Record<Locale, CashoutFlowCopy> = {
   en: {
     back: 'Back to deal',
     earnings: 'Your earnings from this deal',
+    from: "From",
+    fromSeller: "Seller agent",
+    fromBuyer: "Buyer agent",
+    fromMain: "Main wallet",
     inWallet: 'Your earnings landed in your wallet on Arc. Send them anywhere from here.',
     sendTo: 'Send to',
     optBalance: 'Your Karwan balance',
@@ -93,6 +101,10 @@ export const cashoutFlowCopy: Record<Locale, CashoutFlowCopy> = {
   fr: {
     back: 'Retour à la transaction',
     earnings: 'Vos gains sur cette transaction',
+    from: "Depuis",
+    fromSeller: "Agent vendeur",
+    fromBuyer: "Agent acheteur",
+    fromMain: "Portefeuille principal",
     inWallet: 'Vos gains sont arrivés dans votre portefeuille sur Arc. Envoyez-les où vous voulez depuis ici.',
     sendTo: 'Envoyer vers',
     optBalance: 'Votre solde Karwan',
@@ -136,6 +148,10 @@ export const cashoutFlowCopy: Record<Locale, CashoutFlowCopy> = {
   ar: {
     back: 'العودة إلى الصفقة',
     earnings: 'أرباحك من هذه الصفقة',
+    from: "من",
+    fromSeller: "وكيل البيع",
+    fromBuyer: "وكيل الشراء",
+    fromMain: "المحفظة الرئيسية",
     inWallet: 'وصلت أرباحك إلى محفظتك على Arc. أرسلها إلى أي مكان من هنا.',
     sendTo: 'إرسال إلى',
     optBalance: 'رصيدك في Karwan',
@@ -179,6 +195,10 @@ export const cashoutFlowCopy: Record<Locale, CashoutFlowCopy> = {
   hi: {
     back: 'डील पर वापस',
     earnings: 'इस डील से आपकी कमाई',
+    from: "यहाँ से",
+    fromSeller: "विक्रेता एजेंट",
+    fromBuyer: "खरीदार एजेंट",
+    fromMain: "मुख्य वॉलेट",
     inWallet: 'आपकी कमाई Arc पर आपके वॉलेट में आ गई है। यहाँ से इसे कहीं भी भेजें।',
     sendTo: 'यहाँ भेजें',
     optBalance: 'आपका Karwan बैलेंस',
@@ -222,6 +242,10 @@ export const cashoutFlowCopy: Record<Locale, CashoutFlowCopy> = {
   sw: {
     back: 'Rudi kwenye mpango',
     earnings: 'Mapato yako kutoka mpango huu',
+    from: "Kutoka",
+    fromSeller: "Wakala wa muuzaji",
+    fromBuyer: "Wakala wa mnunuzi",
+    fromMain: "Pochi kuu",
     inWallet: 'Mapato yako yamefika kwenye pochi yako kwenye Arc. Yatume popote kutoka hapa.',
     sendTo: 'Tuma kwa',
     optBalance: 'Salio lako la Karwan',

@@ -44,6 +44,9 @@ export interface MatchProposal {
   proposedAt: number;
   approvedAt?: number;
   declinedAt?: number;
+  /// Who ended it: the seller, the buyer withdrawing before the seller
+  /// accepted (the request reopens), or the buyer refusing a raised price.
+  declinedBy?: 'seller' | 'buyer' | 'raise';
   /// Seller raise. The agent settled at agreedPriceUsdc, but the seller wanted
   /// more and named a higher price at the approval gate. When set, the approval
   /// gate flips: the BUYER now approves (fund at raisedPriceUsdc) or declines.

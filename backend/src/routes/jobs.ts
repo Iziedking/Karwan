@@ -819,7 +819,8 @@ jobsRoutes.post('/:jobId/decline-match', async (c) => {
   const pendingRaise = proposal.awaitingParty === 'buyer' && !!proposal.raisedPriceUsdc;
   const who = matchDecliner(proposal, body.caller);
   if (!who.ok) return c.json({ error: who.message }, 403);
-  const result = await declineAgentMatch(jobId, body.reason ?? (who.by === 'buyer' && !pendingRaise ? 'buyer-withdrew' : undefined));
+  const by = pendingRaise ? 'raise' : who.by;
+  const result = await declineAgentMatch(jobId, body.reason ?? (by === 'buyer' ? 'buyer-withdrew' : undefined), by);
   if (!result.ok) return c.json({ error: result.message, code: result.code }, 409);
   // A buyer who withdraws a match the seller never answered gets the request
   // back: the other offers stay, and they can choose one or cancel the request.

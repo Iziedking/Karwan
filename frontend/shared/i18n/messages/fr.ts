@@ -1688,6 +1688,11 @@ export const fr: Messages = {
     declinedEyebrow: 'Match refusé',
     declinedSellerView: 'Vous avez refusé ce match. La demande reste fermée, et l\'acheteur peut en publier une nouvelle.',
     declinedOtherView: 'Le vendeur a refusé ce match. Publiez une nouvelle demande pour trouver un autre vendeur.',
+    cancelledEyebrow: "Correspondance annulée",
+    cancelledBuyerView: "Vous avez annulé cette correspondance. Votre demande est de nouveau ouverte : choisissez une autre offre ou attendez-en de nouvelles.",
+    cancelledSellerView: "L'acheteur a annulé cette correspondance avant votre acceptation.",
+    raiseDeclinedBuyerView: "Vous avez refusé le prix relevé. La correspondance est terminée.",
+    raiseDeclinedSellerView: "L'acheteur a refusé votre prix relevé. La correspondance est terminée.",
     pendingEyebrow: "Match trouvé · en attente d'approbation",
     proposedTemplate: 'proposé {time}',
     risk: {

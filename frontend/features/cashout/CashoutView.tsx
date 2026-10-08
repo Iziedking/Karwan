@@ -30,6 +30,7 @@ const FIELD =
 const OUT_KEYS: CctpChainKey[] = (['baseSepolia', 'sepolia', 'arbitrumSepolia', 'optimismSepolia', 'polygonAmoy'] as CctpChainKey[])
   .filter((k) => SOURCE_CHAIN_KEYS.includes(k));
 type Network = 'arc' | CctpChainKey;
+type From = 'sellerAgent' | 'buyerAgent' | 'identity';
 
 interface WalletSlice { address: string | null; arcBalanceUsdc: string | null; available: boolean }
 export interface CashoutInfo {
@@ -96,15 +97,30 @@ function CashoutForm({ info, jobId }: { info: CashoutInfo; jobId: string }) {
   const ownWallet = info.accountKind === 'wallet';
   // Earnings sit on the deal's seller wallet for an email account, or already
   // in a wallet account's own wallet.
-  const fromDeal = !ownWallet && info.sellerAgentWallet.available && Number(info.sellerAgentWallet.arcBalanceUsdc ?? 0) > 0;
-  const source = ownWallet ? info.identityWallet : fromDeal ? info.sellerAgentWallet : info.identityWallet;
-  const available = Number(source.arcBalanceUsdc ?? 0) || 0;
-  const canMoveToBalance = !ownWallet && fromDeal && !!info.identityWallet.address;
+  // The escrow pays the deal's seller agent, so that is where cashing out
+  // starts. The buyer agent and the main wallet are one tap away, never a
+  // silent fallback.
+  const sources: From[] = [
+    ...(info.sellerAgentWallet.available ? (['sellerAgent'] as const) : []),
+    ...(info.buyerAgentWallet.available ? (['buyerAgent'] as const) : []),
+    ...(ownWallet || info.identityWallet.available ? (['identity'] as const) : []),
+  ];
+  const [from, setFrom] = useState<From>(sources[0] ?? 'identity');
+  const sliceOf = (f: From) => (f === 'identity' ? info.identityWallet : f === 'buyerAgent' ? info.buyerAgentWallet : info.sellerAgentWallet);
+  const balanceOf = (f: From) => Number(sliceOf(f).arcBalanceUsdc ?? 0) || 0;
+  const available = balanceOf(from);
+  // A wallet account's main wallet is their own; they sign that send.
+  const signsOwnWallet = ownWallet && from === 'identity';
+  const canMoveToBalance = from !== 'identity' && !!info.identityWallet.address;
 
-  const [option, setOption] = useState<'balance' | 'wallet'>(canMoveToBalance ? 'balance' : 'wallet');
+  const [chosen, setOption] = useState<'balance' | 'wallet'>('balance');
+  const option = canMoveToBalance ? chosen : 'wallet';
   const [network, setNetwork] = useState<Network>('arc');
   const [recipientText, setRecipientText] = useState('');
   const [amountText, setAmountText] = useState(available ? String(available) : '');
+  useEffect(() => {
+    setAmountText(available ? String(available) : '');
+  }, [from, available]);
   const [tagMissing, setTagMissing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -141,7 +157,7 @@ function CashoutForm({ info, jobId }: { info: CashoutInfo; jobId: string }) {
     if (!ready) return;
     setError(null);
     setTagMissing(false);
-    if (ownWallet && (!account.address || !account.connector)) {
+    if (signsOwnWallet && (!account.address || !account.connector)) {
       openConnectModal?.();
       return;
     }
@@ -151,7 +167,7 @@ function CashoutForm({ info, jobId }: { info: CashoutInfo; jobId: string }) {
       if (!to) return;
       const dest: Network = toBalance ? 'arc' : network;
       moneySounds.submit();
-      if (ownWallet) {
+      if (signsOwnWallet) {
         const since = Date.now();
         setMoving({ kind: 'wallet', since });
         setSent({ amount, to: to.label, network: dest, txHash: null, reference: null, at: since });
@@ -169,7 +185,7 @@ function CashoutForm({ info, jobId }: { info: CashoutInfo; jobId: string }) {
         }
         return;
       }
-      const walletKind = fromDeal ? 'sellerAgent' : 'identity';
+      const walletKind = from;
       if (dest === 'arc') {
         const r = await api.cashoutArc({ jobId: info.jobId, recipient: to.address, amountUsdc: amount, walletKind, requestId: crypto.randomUUID() });
         moneySounds.outcome('success', { ids: [r.txHash] });
@@ -221,7 +237,30 @@ function CashoutForm({ info, jobId }: { info: CashoutInfo; jobId: string }) {
         {formatAmount(available, locale)}
         <span className="ms-2 text-[20px] font-medium tracking-normal text-[var(--lp-text-sub)]">USDC</span>
       </p>
-      {ownWallet ? <p className="mt-3 text-[15px] text-[var(--lp-text-sub)]">{copy.inWallet}</p> : null}
+      {sources.length > 1 ? (
+        <div className="mt-6">
+          <p className="text-[14px] font-medium text-[var(--lp-text-sub)]">{copy.from}</p>
+          <div role="radiogroup" aria-label={copy.from} className="mt-2 flex flex-wrap gap-2">
+            {sources.map((f) => (
+              <button
+                key={f}
+                type="button"
+                role="radio"
+                aria-checked={from === f}
+                onClick={() => setFrom(f)}
+                className={cn(
+                  'inline-flex min-h-11 items-center gap-2 rounded-full border px-3.5 text-[14px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]',
+                  from === f ? 'border-[var(--lp-accent)] text-[var(--lp-dark)] shadow-[inset_0_0_0_1px_var(--lp-accent)]' : 'border-[var(--lp-border-light)] text-[var(--lp-text-sub)]',
+                )}
+              >
+                {f === 'sellerAgent' ? copy.fromSeller : f === 'buyerAgent' ? copy.fromBuyer : copy.fromMain}
+                <span className="tabular-nums text-[var(--lp-text-sub)]">{formatAmount(balanceOf(f), locale)}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      {signsOwnWallet ? <p className="mt-3 text-[15px] text-[var(--lp-text-sub)]">{copy.inWallet}</p> : null}
       {available <= 0 ? (
         <p className="mt-6 text-[15px] text-[var(--lp-dark)]">{copy.nothingLeft}</p>
       ) : (
@@ -295,7 +334,7 @@ function CashoutForm({ info, jobId }: { info: CashoutInfo; jobId: string }) {
 
           {error ? <p role="alert" className="mt-4 text-[14px] text-[var(--color-critical)]">{error}</p> : null}
           <button type="button" onClick={() => void submit()} disabled={!ready} className={cn(PRIMARY, 'mt-8')}>
-            {ownWallet && !account.address
+            {signsOwnWallet && !account.address
               ? copy.connect
               : toBalance
                 ? fill(copy.moveCta, { amount: formatAmount(amountOk ? amount : available, locale) })

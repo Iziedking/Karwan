@@ -20,14 +20,14 @@ const info = {
   buyerAgentWallet: { address: null, arcBalanceUsdc: null, available: false },
 };
 
-async function mock(page: Page, opts: { onArc?: (body: Record<string, unknown>) => void; onOut?: (body: Record<string, unknown>) => void; bridgeStates?: string[] } = {}) {
+async function mock(page: Page, opts: { onArc?: (body: Record<string, unknown>) => void; onOut?: (body: Record<string, unknown>) => void; bridgeStates?: string[]; info?: Record<string, unknown> } = {}) {
   let tick = 0;
   await page.addInitScript(() => localStorage.setItem('karwan:guide:disabled', '1'));
   await page.route(`${API}/**`, async (route) => {
     const { pathname } = new URL(route.request().url());
     const method = route.request().method();
     if (pathname === '/api/auth/bootstrap') return route.fulfill({ json: { user: { address: SELLER, method: 'circle', hasPasskey: true }, profile: null } });
-    if (pathname === `/api/cashout/${JOB}`) return route.fulfill({ json: info });
+    if (pathname === `/api/cashout/${JOB}`) return route.fulfill({ json: opts.info ?? info });
     if (pathname === '/api/cashout/arc-withdraw' && method === 'POST') {
       opts.onArc?.(route.request().postDataJSON());
       return route.fulfill({ json: { ok: true, txHash: '0x' + 'a'.repeat(64), explorerUrl: 'https://x', reference: 'KWN-AAAA-BBBB-CCCC', movementState: 'completed' } });
@@ -79,4 +79,26 @@ test('another wallet on another chain shows the steps and waits for Done', async
   await expect(page.getByText(copy.sentBadge, { exact: true })).toHaveCount(0);
   await done.click();
   await expect(page.getByText(copy.sentBadge, { exact: true })).toBeVisible();
+});
+
+test('cashing out starts from the seller agent, even empty, and the buyer agent or main wallet are a tap away', async ({ page }) => {
+  let sent: Record<string, unknown> | null = null;
+  await mock(page, {
+    onArc: (b) => (sent = b),
+    info: {
+      ...info,
+      sellerAgentWallet: { address: DEAL_WALLET, arcBalanceUsdc: '0', available: true },
+      buyerAgentWallet: { address: '0x' + 'b'.repeat(40), arcBalanceUsdc: '4', available: true },
+    },
+  });
+  await page.goto(`/cashout/${JOB}`);
+  const from = page.getByRole('radiogroup', { name: copy.from });
+  await expect(from.getByRole('radio', { name: new RegExp(copy.fromSeller) })).toHaveAttribute('aria-checked', 'true');
+  await expect(page.getByText(copy.nothingLeft)).toBeVisible();
+  await from.getByRole('radio', { name: new RegExp(copy.fromMain) }).click();
+  // From the main wallet there is no "move to your balance": it already is the balance.
+  await expect(page.getByRole('radio', { name: new RegExp(copy.optBalance) })).toHaveCount(0);
+  await page.getByLabel(copy.addressArc).fill(OTHER);
+  await page.getByRole('button', { name: /^Send 12(\.00)? USDC$/ }).click();
+  await expect.poll(() => sent).toMatchObject({ recipient: OTHER, amountUsdc: 12, walletKind: 'identity' });
 });
