@@ -520,6 +520,13 @@ async function handleJobPosted(log: Log, opts?: { rescan?: boolean }) {
   // market-seeding volume each one would pay the model once per seller and offer.
   // People still find them in the market and respond by hand.
   if (getBrief(jobId)?.seedKey) return;
+  // The sweep re-enters every recent request. Skip the ones that no longer take
+  // offers, so a matched, funded, expired or cancelled request stops costing a
+  // model call per seller on every pass and after every restart.
+  if (opts?.rescan) {
+    const { isJobClosedForOffers } = await import('./buyer.js');
+    if (isJobClosedForOffers(jobId)) return;
+  }
 
   const sellers = await resolveAllSellerProfiles();
   if (sellers.length === 0) return;

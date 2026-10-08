@@ -3,6 +3,7 @@ import { carriedGate } from './proposalCarry.js';
 import { offerToChoose } from './chooseOffer.js';
 import { sellerKey } from './sellerKey.js';
 import { bidsFromHistory } from './bidHistory.js';
+import { closedForOffers } from './offerWindow.js';
 import { generateObject } from 'ai';
 import { formatUnits, parseUnits, type Log } from 'viem';
 import { publicClient, watchEventsViaGetLogs } from '../chain/client.js';
@@ -4770,6 +4771,14 @@ export function patchTrackedJobContext(
 /// Returns the JobContext of every open (not finalized, not escrow-funded,
 /// not expired) job. Used by listings cross-matching to scan briefs that a
 /// new listing could fill.
+/// Whether a tracked request no longer takes offers. Untracked reads as open,
+/// so a request the agent has not picked up yet is never skipped.
+export function isJobClosedForOffers(jobId: string): boolean {
+  const s = jobs.get(jobId as `0x${string}`);
+  if (!s) return false;
+  return closedForOffers(s, !!getPendingNearMiss(jobId));
+}
+
 export function listOpenJobContexts(): JobContext[] {
   return [...jobs.values()]
     .filter((s) => !s.finalized && !s.escrowFunded && !s.expired)

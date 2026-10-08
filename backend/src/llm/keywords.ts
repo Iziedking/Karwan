@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { generateObjectWithLlmFallback } from './client.js';
+import { singleFlight } from './singleFlight.js';
 import { withLlmRetry } from '../agents/llm-utils.js';
 import { logger } from '../logger.js';
 
@@ -59,7 +60,7 @@ export async function extractKeywords(text: string, label = 'keywords'): Promise
       generateObjectWithLlmFallback({
         schema: keywordSchema,
         prompt: `${PROMPT_PREFIX}\n\nInput:\n${cleaned}`,
-      }),
+      }, 'light'),
     );
     const tags = result.object.keywords
       .map((k) => k.toLowerCase().trim())
@@ -183,6 +184,15 @@ export async function judgeRelevance(input: {
   const key = relevanceKey(input);
   const cached = relevanceCache.get(key);
   if (cached && cached.expiresAt > Date.now()) return cached.value;
+  return singleFlight(relevanceInflight, key, () => judgeRelevanceUncached(input, key));
+}
+
+const relevanceInflight = new Map<string, Promise<RelevanceJudgement>>();
+
+async function judgeRelevanceUncached(
+  input: { briefText?: string; briefTags: string[]; sellerProfile: string; sellerTags: string[] },
+  key: string,
+): Promise<RelevanceJudgement> {
 
   const prompt = [
     'You decide whether a seller can plausibly fulfill a buyer request.',
@@ -212,7 +222,7 @@ export async function judgeRelevance(input: {
   let value: RelevanceJudgement;
   try {
     const r = await withLlmRetry('judgeRelevance', () =>
-      generateObjectWithLlmFallback({ schema: relevanceSchema, prompt }),
+      generateObjectWithLlmFallback({ schema: relevanceSchema, prompt }, 'light'),
     );
     value = { ...r.object, reasoning: r.object.reasoning.slice(0, 200) };
   } catch (err) {

@@ -23,6 +23,8 @@ const bedrock = config.BEDROCK_ENABLED
   ? createAmazonBedrock({ region: config.BEDROCK_REGION, credentialProvider: fromNodeProviderChain() })
   : null;
 export const bedrockModel: LM | null = bedrock?.(config.BEDROCK_MODEL) ?? null;
+/// The cheaper model for simple classification, when configured.
+export const bedrockLightModel: LM | null = config.BEDROCK_LIGHT_MODEL ? bedrock?.(config.BEDROCK_LIGHT_MODEL) ?? null : null;
 
 /// Wrap an ordered list of models so a call tries each in turn, dropping to the
 /// next on any error. The direct Anthropic key (Haiku) is primary and OpenRouter
@@ -84,8 +86,9 @@ function directChain(models: Array<LM | null>): LM | null {
 /// reach the next funded provider.
 export async function generateObjectWithLlmFallback<SCHEMA extends FlexibleSchema<unknown>>(
   options: { schema: SCHEMA; prompt: string },
+  tier: 'standard' | 'light' = 'standard',
 ) {
-  return runWithLlmFallback(llmModelCandidates, (model) =>
+  return runWithLlmFallback(tier === 'light' ? lightModelCandidates : llmModelCandidates, (model) =>
     generateObject({
       model,
       schema: options.schema,
@@ -124,6 +127,11 @@ export const llmModelCandidates: LM[] = [
 ].filter((m): m is LM => m !== null);
 
 export const llmModel = fallbackChain(llmModelCandidates);
+
+/// Simple yes/no and tagging calls: the cheaper model first, then the standard
+/// chain, so an answer the cheap model gets wrong in shape still lands on Haiku.
+export const lightModelCandidates: LM[] = [bedrockLightModel, ...llmModelCandidates].filter((m): m is LM => m !== null);
+export const lightModel = fallbackChain(lightModelCandidates);
 
 /// Release-gating structured checks (deliverable-meets-requirement verdict).
 /// Direct Anthropic (Haiku) primary, OpenRouter paid fallback.

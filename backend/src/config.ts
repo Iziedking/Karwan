@@ -559,6 +559,11 @@ const envSchema = z.object({
   BEDROCK_ENABLED: envBool('BEDROCK_ENABLED'),
   BEDROCK_REGION: z.string().default('us-east-1'),
   BEDROCK_MODEL: z.string().default('us.anthropic.claude-haiku-4-5-20251001-v1:0'),
+  // A cheaper Bedrock model for simple, high-volume yes/no and tagging calls
+  // (keyword extraction, seller relevance, listing match). Unset keeps them on
+  // BEDROCK_MODEL. Haiku stays on the assistant, negotiation, delivery checks
+  // and dispute rulings. Prove it first: node dist/scripts/probe-light-model.js
+  BEDROCK_LIGHT_MODEL: optionalString,
   ASSISTANT_MODEL: z.string().default('claude-haiku-4-5-20251001'),
   // The AUTHENTICATED assistant runs a tool-calling loop that can read the
   // signed-in user's OWN data (balance, deals). Because that data is private, it

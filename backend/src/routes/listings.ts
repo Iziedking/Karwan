@@ -2,7 +2,8 @@ import { prohibitedBody, prohibitedReason } from '../policy/prohibited.js';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { generateObject } from 'ai';
-import { llmModel } from '../llm/client.js';
+import { lightModel } from '../llm/client.js';
+import { singleFlight } from '../llm/singleFlight.js';
 import { withLlmRetry } from '../agents/llm-utils.js';
 import {
   cancelListing,
@@ -404,6 +405,8 @@ listingsRoutes.post('/', async (c) => {
 /// when a listing is consumed; otherwise bounded by open jobs × listings and
 /// reset on restart.
 const confirmedMatchCache = new Map<string, Map<string, string>>();
+/// One model call when the live scan and the reconciler judge the same pair at once.
+const listingMatchInflight = new Map<string, Promise<{ object: { match: boolean; confidence: number; reasoning?: string } }>>();
 
 /// Pairs the LLM explicitly rejected, keyed the same way. Only a real answer is
 /// cached, never a failed call, so a flaky model cannot hide a match; without
@@ -644,12 +647,14 @@ async function tryMatchListingToJobLegacy(
     });
   } else {
     try {
-      const result = await withLlmRetry(`listingMatch(${listing.id}:${job.jobId})`, () =>
-        generateObject({
-          model: llmModel,
-          schema: matchDecisionSchema,
-          prompt: buildListingMatchPrompt(listing, job),
-        }),
+      const result = await singleFlight(listingMatchInflight, `${job.jobId}:${listing.id}:${basis}`, () =>
+        withLlmRetry(`listingMatch(${listing.id}:${job.jobId})`, () =>
+          generateObject({
+            model: lightModel,
+            schema: matchDecisionSchema,
+            prompt: buildListingMatchPrompt(listing, job),
+          }),
+        ),
       );
       decision = result.object;
     } catch (err) {
