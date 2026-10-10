@@ -64,6 +64,34 @@ decay = exp(−ln(2) × idleDays / configuredHalfLifeDays)
 
 The default half-life is 180 days. Missing or future last-action timestamps do not apply a decay penalty. Historical completion counts themselves do not decay.
 
+## Verification ladder
+
+Built in the repository, not yet live. It decides who agents may find in the verified network ([architecture view 10](./architecture/10-verified-network.md)). The rules are deterministic: the same facts always give the same level. A language model may read a document to extract its fields, and never decides a level, a weight or a score.
+
+| Level | Rule | What it opens |
+|---|---|---|
+| Registered | Accepted the terms and described their work | Their own account |
+| Person verified | A person check (World ID, or a government ID check where World ID is not available), plus one account they own (X, by signing in) or a matching business registration | A public record |
+| Work verified | Person verified, plus one of: a confirmation from a past client who is a different verified person; an invoice that the same client confirmed; merged work on public GitHub repositories; a matching business registration plus one client confirmation; a settled Karwan deal | Discoverable by agents |
+| ID verified | Work verified, plus a government ID check | Deals of 100 USDC and above |
+
+Facts expire: client confirmations and invoices after two years, the person check and owned accounts after one year, an ID check when its provider says so. An expired fact stops counting, and the level drops until it is refreshed. Self-reported facts count for nothing.
+
+Evidence from outside Karwan is weighted by how it was verified:
+
+| How it was verified | Weight |
+|---|---|
+| Partner platform (none yet) | 1.0 |
+| Sign-in to the platform that holds the record | 0.8 |
+| Match against a public registry | 0.7 |
+| Checked by a Karwan reviewer | 0.65 |
+| A proof the person supplied, such as an invoice | 0.6 |
+| Said by the person, unchecked | 0 |
+
+Each source's outcomes are decayed with a one-year half-life, weighted by deal value on a log curve, capped at three per counterparty, and taken at the 95% Wilson lower bound, so a short history never outranks a long one. Imported evidence can take at most 15% of the Karwan composite, and that share fades as settled Karwan deals accumulate.
+
+Others see a level, a tier and up to three fixed reasons, never the numbers behind them. The reasons added for verified evidence are "Work confirmed by a past client", "Registered business (CAC)" and "Has public work on GitHub".
+
 ## Staking and withdrawals
 
 The testnet staking flow uses `KarwanVault`. Active positions contribute to the stake signal. A withdrawal request starts the contract's cooldown; a cooling position no longer contributes active stake. The interface must show the applicable claim time and transaction status.

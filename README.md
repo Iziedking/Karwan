@@ -51,7 +51,7 @@ Agents compare candidates and prepare terms within account limits. Users approve
 
 A personal workspace and an optional owner-only business workspace share one account. Business verification is separate from personal identity checks. Team permissions are planned.
 
-Connected-wallet users sign with their own wallet. Testnet email accounts use Circle Developer-Controlled Wallets operated by Karwan. Passkey sign-in and a passkey-controlled smart wallet are different mechanisms; a sign-in method alone does not establish custody. Customer Developer-Controlled Wallet provisioning is refused on mainnet. The Modular Wallet implementation is a separate passkey-signing path and is not evidence that every mainnet wallet flow has passed verification.
+Connected-wallet users sign with their own wallet. Testnet email accounts use Circle Developer-Controlled Wallets operated by Karwan. Passkey sign-in and a passkey-controlled smart wallet are different mechanisms; a sign-in method alone does not establish custody. Customer Developer-Controlled Wallet provisioning is refused on mainnet, with one planned exception: accounts created through the Karwan agent on WhatsApp, behind a flag and under the escrow beta limits, so people who never manage keys can trade from chat. That exception is built and not live. The Modular Wallet implementation is a separate passkey-signing path and is not evidence that every mainnet wallet flow has passed verification.
 
 Once funded, escrow contracts govern deal payouts. Wallet signing authority, contract administrator powers and recovery rules should be considered separately. Neither escrow nor a reputation score guarantees delivery, asset value or recovery from a software failure.
 
@@ -135,9 +135,27 @@ The target for the full mainnet contract release is 25 October 2026, after contr
 
 Later work includes a user-invoked browser companion for bringing trade context into Karwan, recurring work agreements, expanded evidence checks and local-currency payout corridors. Financing implementations remain subject to eligibility, funding and deployment controls. An implementation is not an offer of credit.
 
+## Built during the Tameion hackathon
+
+Work from 27 September to 17 October 2026, during The Canteen's Tameion agents hackathon with Circle and Arc. Status is given for each item.
+
+**Shipped to testnet in this window**
+- The assistant acts on deals behind confirm cards: choose and approve offers, edit requests, raise a price, extensions, cancellations, dispute statements and review, turning a deal down.
+- Sealed records: others see a public passport with tier and fixed reasons, never numbers; the full record is the owner's.
+- Disputes: a judge reads both accounts, the delivery check and the chat and proposes a split for a reviewer; a deadline rule for deals that fail their check.
+- Payment links paid from any chain, with each request on its own receiving addresses and part payments counted.
+- Delivery checks reported to both parties, offers and matching fixes, and a redesigned deal page.
+
+**Built in the repository, not yet deployed** ([architecture view 10](./docs/architecture/10-verified-network.md))
+- The Karwan agent on WhatsApp: a signed webhook, accounts created on accepting terms, the same assistant and confirm routes as the app, deal updates in chat.
+- A verification ladder decided by published rules: invoices that cannot be reused, past clients confirming a job in one tap, CAC review, a World ID person check, an ID check for deals of 100 USDC and above.
+- `KarwanFacts`, an append-only contract of verified facts that can only be written to a person, a public record page and a signed copy anyone can check without Karwan.
+- Agents that offer only work-verified people and answer each other from what the seller set, with record reads paid over x402.
+- Protected deals with someone you already know, started and paid from chat, and the mainnet escrow beta deploy with a 1,000 USDC cap and no yield.
+
 ## Documentation
 
-- [Architecture views](./docs/architecture/README.md), including [unified reputation](./docs/architecture/08-reputation.md)
+- [Architecture views](./docs/architecture/README.md), including [unified reputation](./docs/architecture/08-reputation.md) and [the verified network](./docs/architecture/10-verified-network.md)
 - [Architecture](./docs/architecture.md)
 - [Circle integration](./CIRCLE.md)
 - [Agent workflows](./docs/agent-workflows.md)
