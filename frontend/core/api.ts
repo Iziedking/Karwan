@@ -1485,6 +1485,9 @@ export type SealedReasonCode =
   | 'USUALLY_ON_TIME'
   | 'NO_LOST_DISPUTES'
   | 'WORKS_WITH_MANY'
+  | 'WORK_CONFIRMED_BY_CLIENT'
+  | 'REGISTERED_BUSINESS'
+  | 'OWNS_GITHUB_WORK'
   | 'HUMAN_VERIFIED';
 
 /// What anyone but the owner receives: tier and fixed reasons, never numbers.
@@ -3912,6 +3915,31 @@ export const api = {
   skipHighSignal: (jobId: string, caller: string) =>
     json<{ callerStatus: 'skipped' | 'verified' | null }>(`/api/deals/direct/${jobId}/high-signal/skip`, {
       method: 'POST', body: JSON.stringify({ caller }),
+    }),
+  record: (tag: string) =>
+    json<{
+      displayName: string | null;
+      tag: string | null;
+      level: 'registered' | 'person_verified' | 'work_verified' | 'id_verified';
+      tier: string;
+      reasons: SealedReasonCode[];
+      facts: { kind: string; issuedAt: number; expiresAt: number; txHash?: string }[];
+    }>(`/api/r/${encodeURIComponent(tag)}`),
+  /// Plain link, not a fetch: the browser downloads the signed JSON itself.
+  recordCredentialUrl: (tag: string) => `${BASE}/api/r/${encodeURIComponent(tag)}/credential`,
+  worldIdStatus: () =>
+    json<{ configured: boolean; environment: 'staging' | 'production'; action: string | null; appId: string | null; rpId: string | null }>(
+      '/api/world-id/status',
+    ),
+  worldIdRpSignature: (action: string) =>
+    json<{ sig: string; nonce: string; created_at: number; expires_at: number }>('/api/world-id/rp-signature', {
+      method: 'POST',
+      body: JSON.stringify({ action }),
+    }),
+  verifyPerson: (idkitResponse: Record<string, unknown>) =>
+    json<{ verified: true; level: 'registered' | 'person_verified' | 'work_verified' | 'id_verified' }>('/api/verification/person', {
+      method: 'POST',
+      body: JSON.stringify({ idkitResponse }),
     }),
   verifyHighSignal: (jobId: string, caller: string, idkitResponse: Record<string, unknown>) =>
     json<{ verified: boolean; callerStatus: 'verified'; provider: 'world-id'; environment: 'staging' | 'production' }>(

@@ -20,6 +20,9 @@ import { signupCopy } from './signup';
 import { payLinkCopy } from './payLink';
 import { requestPageCopy } from './requestPage';
 import { passportCopy } from './passport';
+import { personCheckCopy } from './personCheck';
+import { recordCopy } from './record';
+import { chatTermsCopy } from './chatTerms';
 import { sealedRecordCopy } from './sealedRecord';
 import { recoveryCopy } from './recovery';
 import { docsProductCopy } from './docsProduct';
@@ -43,6 +46,9 @@ export const sw: Messages = {
   payLink: payLinkCopy.sw,
   requestPage: requestPageCopy.sw,
   passport: passportCopy.sw,
+  personCheck: personCheckCopy.sw,
+  record: recordCopy.sw,
+  chatTerms: chatTermsCopy.sw,
   sealedRecord: sealedRecordCopy.sw,
   recovery: recoveryCopy.sw,
   docsProduct: docsProductCopy.sw,

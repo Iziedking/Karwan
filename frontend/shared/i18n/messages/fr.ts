@@ -20,6 +20,9 @@ import { signupCopy } from './signup';
 import { payLinkCopy } from './payLink';
 import { requestPageCopy } from './requestPage';
 import { passportCopy } from './passport';
+import { personCheckCopy } from './personCheck';
+import { recordCopy } from './record';
+import { chatTermsCopy } from './chatTerms';
 import { sealedRecordCopy } from './sealedRecord';
 import { recoveryCopy } from './recovery';
 import { docsProductCopy } from './docsProduct';
@@ -43,6 +46,9 @@ export const fr: Messages = {
   payLink: payLinkCopy.fr,
   requestPage: requestPageCopy.fr,
   passport: passportCopy.fr,
+  personCheck: personCheckCopy.fr,
+  record: recordCopy.fr,
+  chatTerms: chatTermsCopy.fr,
   sealedRecord: sealedRecordCopy.fr,
   recovery: recoveryCopy.fr,
   docsProduct: docsProductCopy.fr,
