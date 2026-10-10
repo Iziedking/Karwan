@@ -31,6 +31,7 @@ import {KarwanDealEscrow} from "../src/KarwanDealEscrow.sol";
 ///   FEE_BPS              platform fee, at most 1000
 ///   DEAL_CAP, TOTAL_CAP, HIGH_VALUE   USDC 6-decimal caps for the guarded beta
 ///   USYC_TELLER, USYC_TOKEN, USYC_ORACLE, USYC_PRICE_DECIMALS   (optional; all or none)
+///   ESCROW_YIELD         (optional, default true) false: no yield pool on the escrow
 ///   BOUNDS_*             (optional, testnet only) override one escrow bound,
 ///                        in seconds or bps; see boundsFromEnv
 contract DeploySuite is Script {
@@ -52,6 +53,9 @@ contract DeploySuite is Script {
         address oracle;
         uint8 priceDecimals;
         KarwanDealEscrow.Bounds bounds;
+        /// False leaves the escrow without a yield pool, so no deal principal
+        /// is ever parked. The guarded mainnet beta runs this way.
+        bool escrowYield;
     }
 
     struct Suite {
@@ -126,7 +130,8 @@ contract DeploySuite is Script {
             usyc: vm.envOr("USYC_TOKEN", address(0)),
             oracle: vm.envOr("USYC_ORACLE", address(0)),
             priceDecimals: uint8(vm.envOr("USYC_PRICE_DECIMALS", uint256(8))),
-            bounds: boundsFromEnv()
+            bounds: boundsFromEnv(),
+            escrowYield: vm.envOr("ESCROW_YIELD", true)
         });
         vm.startBroadcast();
         s = deploy(c, msg.sender);
@@ -167,7 +172,7 @@ contract DeploySuite is Script {
         s.escrow.setFeeBps(c.feeBps);
         s.escrow.setCaps(c.dealCap, c.totalCap, c.highValue);
         s.escrow.setGuardian(c.guardian);
-        s.escrow.setPool(address(s.pool));
+        if (c.escrowYield) s.escrow.setPool(address(s.pool));
         s.escrow.pauseNewDeals();
 
         s.pool.transferOwnership(c.owner);

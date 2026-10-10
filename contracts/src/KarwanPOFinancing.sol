@@ -413,9 +413,9 @@ contract KarwanPOFinancing is ReentrancyGuard, Guardable {
 
     // Claim repayment
 
-    /// @notice Close out the line. The escrow pays the assignee first at
-    ///         settlement, so by the time this runs the financier is usually
-    ///         already whole and nothing is pulled. A shortfall only arises
+    /// @notice Close out the line once the deal has ended. The escrow pays the
+    ///         assignee first at settlement, so by the time this runs the
+    ///         financier is usually already whole and nothing is pulled. A shortfall only arises
     ///         when the deal settled for less than the repay amount; that
     ///         remainder is still the seller's obligation and is pulled against
     ///         the approval the seller gave at offer-accept time.
@@ -424,6 +424,10 @@ contract KarwanPOFinancing is ReentrancyGuard, Guardable {
         if (l.state != POState.Outstanding) revert InvalidState();
         _requireNotHeld(invoiceId);
         if (msg.sender != l.financier && msg.sender != l.seller) revert NotParty();
+        // The assignment stays live until the deal ends. Settling the line
+        // earlier pulled the repay from the seller and let the escrow pay it
+        // again (KarwanPOEarlyClaimAttack.t.sol).
+        if (!escrow.isFinal(invoiceId)) revert DealStillLive();
 
         l.state = POState.Settled;
         l.settledAt = uint64(block.timestamp);

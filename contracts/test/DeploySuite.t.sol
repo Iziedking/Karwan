@@ -42,9 +42,40 @@ contract DeploySuiteTest is Test {
             usyc: address(0),
             oracle: address(0),
             priceDecimals: 8,
-            bounds: script.defaultBounds()
+            bounds: script.defaultBounds(),
+            escrowYield: true
         });
         s = script.deploy(c, address(script));
+    }
+
+    /// The Tameion mainnet beta deploys without yield: the escrow has no pool,
+    /// so no deal principal can ever be parked.
+    function test_EscrowWithoutYieldHasNoPool() public {
+        DeploySuite.Config memory c = DeploySuite.Config({
+            usdc: address(usdc),
+            owner: timelock,
+            feeSafe: feeSafe,
+            reviewSafe: reviewSafe,
+            seniorSafe: seniorSafe,
+            guardian: guardian,
+            autoArbiter: engine,
+            financeSigner: financeSigner,
+            feeBps: 150,
+            dealCap: 1_000e6,
+            totalCap: 10_000e6,
+            highValue: 5_000e6,
+            teller: address(0),
+            usyc: address(0),
+            oracle: address(0),
+            priceDecimals: 8,
+            bounds: script.defaultBounds(),
+            escrowYield: false
+        });
+        DeploySuite.Suite memory beta = script.deploy(c, address(script));
+        assertEq(address(beta.escrow.pool()), address(0));
+        assertEq(beta.escrow.dealCap(), 1_000e6);
+        assertEq(beta.escrow.totalCap(), 10_000e6);
+        assertTrue(beta.escrow.newDealsPaused());
     }
 
     function _accept() internal {
