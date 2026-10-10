@@ -99,6 +99,10 @@ export interface CashOutPayload {
 export interface ApproveMatchPayload {
   jobId: string;
   caller: string;
+  /// Read by the chat executor's deal gate; the route ignores them.
+  amountUsdc?: number;
+  buyer?: string;
+  seller?: string;
 }
 export interface DeclineMatchPayload {
   jobId: string;
@@ -309,6 +313,31 @@ export interface Web3FundAgentConfirm extends ConfirmActionBase {
   payload: Web3FundAgentPayload;
 }
 
+/// A protected deal with someone the buyer already knows, from chat.
+export interface CreateDirectDealPayload {
+  buyerAddress: string;
+  sellerAddress: string;
+  dealAmountUsdc: number;
+  terms: string;
+  deadlineDays: number;
+}
+export interface CreateDirectDealConfirm extends ConfirmActionBase {
+  intent: 'create_direct_deal';
+  payload: CreateDirectDealPayload;
+}
+
+/// The buyer pays an accepted direct deal into escrow, from chat.
+export interface FundDirectDealPayload {
+  jobId: string;
+  caller: string;
+  seller: string;
+  amountUsdc: number;
+}
+export interface FundDirectDealConfirm extends ConfirmActionBase {
+  intent: 'fund_direct_deal';
+  payload: FundDirectDealPayload;
+}
+
 /// Discriminated on `intent`, which also tells the frontend which route to call.
 export type ConfirmAction =
   | PostOfferConfirm
@@ -330,7 +359,9 @@ export type ConfirmAction =
   | FundAgentConfirm
   | GatewayDepositConfirm
   | Web3FundAgentConfirm
-  | DealStepConfirm;
+  | DealStepConfirm
+  | CreateDirectDealConfirm
+  | FundDirectDealConfirm;
 
 /// Stage 2 shipped `navigate`; Stages 3-4 add `confirm`. The envelope + renderer
 /// carry the union unchanged as new variants land.
@@ -862,6 +893,8 @@ export function buildApproveMatchConfirm(i: {
   priceUsdc: string;
   fundedAmountUsdc?: string;
   deadlineLabel: string;
+  buyer?: string;
+  seller?: string;
 }): ApproveMatchConfirm | { error: string } {
   if (!i.jobId) return { error: 'Missing the job id for the match.' };
   const fields = [
@@ -880,7 +913,13 @@ export function buildApproveMatchConfirm(i: {
     summary: `Accept ${i.counterpartyLabel} at ${i.priceUsdc} USDC and start the deal.`,
     warning: 'This funds the escrow from your buyer agent. The money is committed until the work is delivered or the deal is cancelled.',
     fields,
-    payload: { jobId: i.jobId, caller: i.caller },
+    payload: {
+      jobId: i.jobId,
+      caller: i.caller,
+      amountUsdc: Number(i.priceUsdc),
+      ...(i.buyer ? { buyer: i.buyer } : {}),
+      ...(i.seller ? { seller: i.seller } : {}),
+    },
     confirmLabel: 'Approve and fund',
     cancelLabel: 'Not now',
   };

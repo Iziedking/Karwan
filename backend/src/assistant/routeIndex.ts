@@ -31,6 +31,18 @@ export function backendEndpoints(): Set<string> {
       out.add(`${r[1]!.toUpperCase()} ${path}`);
     }
   }
+  // Routes built by a factory: app.route('/prefix', createXRoutes(...)), whose
+  // handlers are registered on a local `app` inside that routes file.
+  for (const m of index.matchAll(/app\.route\(\s*'([^']*)',\s*(\w+)\(/g)) {
+    const prefix = m[1] === '/' ? '' : m[1]!;
+    const file = imports.get(m[2]!);
+    if (!file) continue;
+    const source = readFileSync(join(SRC, 'routes', `${file}.ts`), 'utf8');
+    for (const r of source.matchAll(/\bapp\.(get|post|put|patch|delete)\(\s*'([^']*)'/g)) {
+      const path = r[2] === '/' ? prefix || '/' : `${prefix}${r[2]}`;
+      out.add(`${r[1]!.toUpperCase()} ${path}`);
+    }
+  }
   return out;
 }
 

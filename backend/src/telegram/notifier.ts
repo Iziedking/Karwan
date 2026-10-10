@@ -77,7 +77,7 @@ function withLink(text: string, url: string | null): NotifySummary {
 // to the linked Telegram chats for the relevant parties. The notifier
 // subscribes on boot and is a no-op when the bot isn't configured.
 
-const RELEVANT = new Set([
+export const RELEVANT = new Set([
   'deal.extension.requested',
   'deal.extension.approved',
   'deal.extension.declined',
@@ -160,7 +160,7 @@ const FINANCE_RECIPIENTS: Record<string, ReadonlyArray<'seller' | 'financier'>> 
   'po.defaulted': ['seller', 'financier'],
 };
 
-async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
+export async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
   // Bridge events fan out only to the address that owns the burn/relay; we
   // surface them via the mintRecipient in the payload when present.
   if (e.type.startsWith('bridge.')) {
@@ -292,7 +292,7 @@ async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
   return [];
 }
 
-function summaryFor(e: KarwanEvent, role: string, locale: UserLocale = 'en'): NotifySummary | null {
+export function summaryFor(e: KarwanEvent, role: string, locale: UserLocale = 'en'): NotifySummary | null {
   const short = (a: unknown) => {
     const s = typeof a === 'string' ? a : '';
     return s ? `\`${s.slice(0, 6)}…${s.slice(-4)}\`` : '';

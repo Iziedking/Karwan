@@ -14,9 +14,9 @@ import { ARC } from '../chain/client.js';
 /// verified and settled through Circle Gateway, landing USDC in the
 /// platform treasury.
 
-const FACILITATOR_URL = 'https://gateway-api-testnet.circle.com';
-/// Arc Testnet only. Buyers pay from an Arc Gateway deposit; Gateway
-/// requires deposit and payment on the same chain.
+const FACILITATOR_URL = ARC.gatewayApiBase;
+/// The active Arc network only. Buyers pay from an Arc Gateway deposit;
+/// Gateway requires deposit and payment on the same chain.
 const ACCEPTED_NETWORKS = [ARC.caip2];
 
 /// Shared client. The factoring settlement watcher reuses this same

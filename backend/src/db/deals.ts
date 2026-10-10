@@ -265,6 +265,9 @@ export interface DirectDeal {
   /// is not running and never learns they should appeal.
   /// Which check paused the release, told to both parties (deals/deliveryCheck.ts).
   releaseBlockedDetail?: import('../deals/deliveryCheck.js').DeliveryCheckDetail;
+  /// Which checks decided the latest delivery: Chainlink CRE, Karwan, or
+  /// Karwan standing in while CRE was expected.
+  deliveryCheckSource?: import('../deals/checkSource.js').CheckSource;
   releaseBlockedReason?:
     | 'requirement-mismatch'
     | 'evidence-unavailable'

@@ -1,3 +1,4 @@
+import { checkSourceFor } from '../deals/checkSource.js';
 import { deliveryCheckDetail, type DeliveryCheckDetail } from '../deals/deliveryCheck.js';
 import { runDisputeJudge, type DisputeJudgeDeps } from '../deals/disputeJudgeRunner.js';
 import { rulingSchema, statementRemindersDue } from '../deals/disputeJudge.js';
@@ -852,6 +853,10 @@ async function tick() {
             requireBinding: deal.evidenceRequired === true,
           })
         : undefined;
+      if (deal.delivered) {
+        const source = checkSourceFor({ creEnabled: config.CRE_ENABLED, creResult: !!deal.creEvidenceReceipt });
+        if (deal.deliveryCheckSource !== source) await patchDeal(deal.jobId, { deliveryCheckSource: source });
+      }
       const checkInput = {
         ...deal,
         evidenceRequired: deal.evidenceRequired,

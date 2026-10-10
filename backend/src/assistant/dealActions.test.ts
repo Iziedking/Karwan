@@ -24,7 +24,7 @@ function ok<T extends object>(card: T | { error: string }): T {
 test('choosing an offer warns that escrow is funded from the buyer agent and names seller and price', () => {
   const card = ok(buildChooseOfferConfirm({ caller, jobId, seller, sellerLabel: 'Ada Designs', priceUsdc: '120' }));
   assert.equal(card.intent, 'choose_offer');
-  assert.deepEqual(card.payload, { jobId, caller, seller });
+  assert.deepEqual(card.payload, { jobId, caller, seller, amountUsdc: 120 });
   assert.match(card.warning ?? '', /buyer agent/);
   assert.ok(card.fields.some((f) => f.value === '120 USDC'));
   assert.ok(card.fields.some((f) => f.value === 'Ada Designs'));

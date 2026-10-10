@@ -42,3 +42,19 @@ test('never more than three reasons, in priority order', () => {
   const all = reasonsFor({ settled: 12, distinctCounterparties: 8, onTime: 10, withDeadline: 10, disputesLost: 0, personVerified: true });
   assert.deepEqual(all, ['MANY_COMPLETED_DEALS', 'USUALLY_ON_TIME', 'NO_LOST_DISPUTES']);
 });
+
+test('a newcomer with a confirmed client and a registered business shows those, not only new', () => {
+  assert.deepEqual(
+    reasonsFor({ ...base, clientConfirmed: true, registeredBusiness: true, personVerified: true }),
+    ['NEW_ON_KARWAN', 'WORK_CONFIRMED_BY_CLIENT', 'REGISTERED_BUSINESS'],
+  );
+});
+
+test('public GitHub work shows when there is room', () => {
+  assert.deepEqual(reasonsFor({ ...base, githubWork: true }), ['NEW_ON_KARWAN', 'OWNS_GITHUB_WORK']);
+});
+
+test('deal performance still comes before verification reasons', () => {
+  const r = reasonsFor({ ...base, settled: 5, withDeadline: 5, onTime: 5, clientConfirmed: true });
+  assert.deepEqual(r, ['HAS_COMPLETED_DEALS', 'USUALLY_ON_TIME', 'NO_LOST_DISPUTES']);
+});

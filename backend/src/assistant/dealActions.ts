@@ -14,7 +14,7 @@ const shortId = (jobId: string) => jobId.slice(0, 10);
 
 export interface ChooseOfferConfirm extends ConfirmActionBase {
   intent: 'choose_offer';
-  payload: { jobId: string; caller: string; seller: string };
+  payload: { jobId: string; caller: string; seller: string; amountUsdc?: number };
 }
 export interface EditRequestConfirm extends ConfirmActionBase {
   intent: 'edit_request';
@@ -81,7 +81,7 @@ export function buildChooseOfferConfirm(i: {
       { label: 'Price', value: `${i.priceUsdc} USDC` },
       { label: 'Request', value: shortId(i.jobId) },
     ],
-    payload: { jobId: i.jobId, caller: i.caller, seller: i.seller },
+    payload: { jobId: i.jobId, caller: i.caller, seller: i.seller, amountUsdc: Number(i.priceUsdc) },
     confirmLabel: `Choose and fund ${i.priceUsdc} USDC`,
     cancelLabel: 'Not now',
   };

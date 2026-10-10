@@ -25,6 +25,8 @@ export interface ArcNetworkSpec {
   cctpDomain: number;
   /// Circle's CCTP attestation API for this network.
   irisApiBase: string;
+  /// Circle Gateway API (balances, x402 batched settlement) for this network.
+  gatewayApiBase: string;
   contracts: {
     usdc: Address;
     eurc: Address;
@@ -52,6 +54,7 @@ export const ARC_NETWORKS: Record<ArcNetworkName, ArcNetworkSpec> = {
     appKitChain: 'Arc_Testnet',
     cctpDomain: 26,
     irisApiBase: 'https://iris-api-sandbox.circle.com',
+    gatewayApiBase: 'https://gateway-api-testnet.circle.com',
     contracts: {
       usdc: '0x3600000000000000000000000000000000000000',
       eurc: '0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a',
@@ -80,6 +83,7 @@ export const ARC_NETWORKS: Record<ArcNetworkName, ArcNetworkSpec> = {
     appKitChain: 'Arc',
     cctpDomain: 26,
     irisApiBase: 'https://iris-api.circle.com',
+    gatewayApiBase: 'https://gateway-api.circle.com',
     contracts: {
       usdc: '0x3600000000000000000000000000000000000000',
       eurc: '0xbEf5f6d51CB62b58e6A8f77868681825C6fe21c1',

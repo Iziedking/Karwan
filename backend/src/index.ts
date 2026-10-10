@@ -44,6 +44,11 @@ import { gatewayRoutes } from './routes/gateway.js';
 import { chatRoutes } from './routes/chat.js';
 import { financingChatRoutes } from './routes/financingChat.js';
 import { telegramRoutes } from './routes/telegram.js';
+import { whatsappRoutes } from './routes/whatsapp.js';
+import { installApp } from './whatsapp/inProcess.js';
+import { closedPrefixes } from './chain/networkRoutes.js';
+import { dealEscrowV3Address } from './chain/dealEscrowV3Live.js';
+import { startWhatsappAgent } from './whatsapp/live.js';
 import { adminRoutes } from './routes/admin.js';
 import { adminAgentRuntimeRoutes } from './routes/adminAgentRuntime.js';
 import {
@@ -87,10 +92,19 @@ import { smeRoutes } from './routes/sme.js';
 import { assistantRoutes } from './routes/assistant.js';
 import { supportRoutes, startSupportSweeper } from './routes/support.js';
 import { configureAgentKitResearch, configureResearchScoutEvidenceShadow, researchRoutes } from './routes/research.js';
-import { configureWorldIdProof, createPostgresWorldIdNullifierStore, worldIdRoutes } from './routes/worldId.js';
+import { configureWorldIdProof, createPostgresWorldIdNullifierStore, verifyConfiguredWorldId, worldIdRoutes } from './routes/worldId.js';
+import type { IdKitResponseShape } from './worldid/idkitProof.js';
+import { sessionAddress } from './auth/session.js';
 import { diagnoseRoutes } from './routes/diagnose.js';
 import { businessRoutes, businessAdminRoutes } from './routes/business.js';
 import { verificationRoutes } from './routes/verification.js';
+import { createPersonVerificationRoutes } from './routes/personVerification.js';
+import { adminVerificationRoutes } from './routes/adminVerification.js';
+import { addVerifiedFact, claimNullifier, levelOf } from './verification/live.js';
+import { verificationServices } from './verification/services.js';
+import { createRecordRoutes } from './routes/record.js';
+import { recordDeps } from './verification/recordLive.js';
+import { startFactPublisher } from './verification/publisherLive.js';
 import { partnersRoutes } from './routes/partners.js';
 import { x402Routes } from './routes/x402.js';
 import { feedbackRoutes } from './routes/feedback.js';
@@ -373,36 +387,10 @@ app.get('/health', async (c) => {
   }
 });
 
-/// Route groups that need Karwan's own contracts. Where they are not deployed
-/// (Arc mainnet before the suite ships) these answer 409 instead of reaching a
-/// handler; the wallet routes (balances, deposits, bridging) stay open.
-const DEAL_ROUTE_PREFIXES = [
-  '/api/jobs',
-  '/api/agents',
-  '/api/milestones',
-  '/api/reputation',
-  '/api/deals',
-  '/api/cre',
-  '/api/vault',
-  '/api/legacy',
-  '/api/yield',
-  '/api/treasury',
-  '/api/listings',
-  '/api/trade',
-  '/api/factoring',
-  '/api/po-financing',
-  '/api/financier',
-  '/api/sme',
-  '/api/partners',
-  '/api/business',
-  '/api/x402',
-];
-if (!KARWAN_CONTRACTS_DEPLOYED) {
-  for (const prefix of DEAL_ROUTE_PREFIXES) {
-    app.use(`${prefix}/*`, async (c) =>
-      c.json({ error: 'Not available on this network yet.', code: 'not_on_this_network' }, 409),
-    );
-  }
+for (const prefix of closedPrefixes({ legacyDeployed: KARWAN_CONTRACTS_DEPLOYED, v3EscrowDeployed: dealEscrowV3Address !== null })) {
+  app.use(`${prefix}/*`, async (c) =>
+    c.json({ error: 'Not available on this network yet.', code: 'not_on_this_network' }, 409),
+  );
 }
 
 app.route('/api/jobs', offersRoutes);
@@ -435,6 +423,9 @@ app.route('/api/legacy', legacyRoutes);
 app.route('/api/chat', chatRoutes);
 app.route('/api/financing-chat', financingChatRoutes);
 app.route('/api/telegram', telegramRoutes);
+app.route('/api/whatsapp', whatsappRoutes);
+installApp(app);
+startWhatsappAgent();
 // Support-team router first: /api/admin/support is reachable by the scoped
 // support token, while the rest of /api/admin stays admin-only.
 app.route('/api/admin/support', supportTeamRoutes);
@@ -483,6 +474,28 @@ app.route('/api/world-id', worldIdRoutes);
 app.route('/api/diagnose', diagnoseRoutes);
 app.route('/api/business', businessRoutes);
 app.route('/api/verification', verificationRoutes);
+app.route(
+  '/api/verification',
+  createPersonVerificationRoutes({
+    now: Date.now,
+    sessionAddress,
+    verifyWorldId: async (idkitResponse) => {
+      const r = await verifyConfiguredWorldId({ idkitResponse: idkitResponse as unknown as IdKitResponseShape });
+      return r.verified ? { verified: true, nullifiers: r.nullifiers } : { verified: false, code: r.code, error: r.error };
+    },
+    claimNullifier,
+    addFact: addVerifiedFact,
+    levelOf: (address) => levelOf(address),
+    submitCac: async (address, rc, name) => {
+      const services = verificationServices();
+      if (!services) return { ok: false, reason: 'invalid_number' };
+      return services.cac.submit(address, rc, name);
+    },
+  }),
+);
+app.route('/api/admin/verification', adminVerificationRoutes);
+app.route('/api/r', createRecordRoutes(recordDeps));
+startFactPublisher();
 app.route('/api/partners', partnersRoutes);
 app.route('/api/admin/business', businessAdminRoutes);
 app.route('/api/x402', x402Routes);

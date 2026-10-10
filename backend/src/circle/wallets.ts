@@ -1,4 +1,5 @@
 import { config } from '../config.js';
+import { identityWalletAllowed } from './custodyRule.js';
 import { logger } from '../logger.js';
 import { getUserByAddress } from '../db/users.js';
 import { developerWallets } from './sdkCompat.js';
@@ -86,11 +87,12 @@ export interface ProvisionedBridgeWallet {
 /// wallet still have a real Arc address. The refId carries the email's hash
 /// so the Circle wallet set can be rebuilt from emails if our DB ever burns.
 export async function provisionUserIdentityWallet(
-  emailHash: string,
+  refHash: string,
+  purpose: 'email' | 'chat' = 'email',
 ): Promise<ProvisionedIdentityWallet> {
   // Mainnet users hold their own keys; a backend wallet here would custody
   // their money. Routes refuse first with a clear answer; this is the backstop.
-  if (!ARC.testnet) {
+  if (!identityWalletAllowed({ testnet: ARC.testnet, purpose, chatCustodyEnabled: config.CHAT_CUSTODY_ENABLED })) {
     throw new Error(`user identity wallets are not provisioned on Arc ${ARC.name}`);
   }
   if (!config.CIRCLE_WALLET_SET_ID) {
@@ -102,7 +104,7 @@ export async function provisionUserIdentityWallet(
     count: 1,
     walletSetId: config.CIRCLE_WALLET_SET_ID,
     accountType: 'SCA',
-    metadata: [{ name: 'karwan-identity', refId: emailHash }],
+    metadata: [{ name: purpose === 'chat' ? 'karwan-chat-identity' : 'karwan-identity', refId: refHash }],
   });
   const wallet = res.data?.wallets?.[0];
   if (!wallet?.id || !wallet.address) {

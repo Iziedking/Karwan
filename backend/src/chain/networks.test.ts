@@ -57,3 +57,8 @@ test('both networks share USDC and CCTP domain but not other addresses', () => {
   assert.notEqual(t.contracts.gatewayWallet, m.contracts.gatewayWallet);
   assert.notEqual(t.contracts.usycTeller, m.contracts.usycTeller);
 });
+
+test('each network talks to its own Circle Gateway API', () => {
+  assert.equal(resolveArcNetwork({ ARC_NETWORK: 'testnet' }).gatewayApiBase, 'https://gateway-api-testnet.circle.com');
+  assert.equal(resolveArcNetwork({ ARC_NETWORK: 'mainnet' }).gatewayApiBase, 'https://gateway-api.circle.com');
+});

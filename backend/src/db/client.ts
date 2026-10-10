@@ -127,6 +127,26 @@ export async function ensureSchema(): Promise<void> {
       address TEXT PRIMARY KEY,
       data JSONB NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS whatsapp_accounts (
+      number_hash TEXT PRIMARY KEY,
+      address TEXT UNIQUE,
+      data JSONB NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS verification_records (
+      kind TEXT NOT NULL,
+      key TEXT NOT NULL,
+      data JSONB NOT NULL,
+      PRIMARY KEY (kind, key)
+    );
+    CREATE TABLE IF NOT EXISTS whatsapp_processed (
+      message_id TEXT PRIMARY KEY,
+      ts BIGINT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS whatsapp_daily (
+      day TEXT NOT NULL,
+      number_hash TEXT NOT NULL,
+      PRIMARY KEY (day, number_hash)
+    );
     CREATE TABLE IF NOT EXISTS match_proposals (
       job_id TEXT PRIMARY KEY,
       buyer_user TEXT NOT NULL,

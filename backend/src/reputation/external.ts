@@ -17,7 +17,15 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 export const EXTERNAL_REPUTATION_MODEL = 'external-reputation-v1';
 
 /// How the evidence was obtained. Self-reported claims carry no weight.
-export type VerificationLevel = 'partner' | 'official_api' | 'user_proof' | 'self_reported';
+export type VerificationLevel =
+  | 'partner'
+  | 'official_api'
+  /// Matched against a public registry, such as a CAC business record.
+  | 'official_record'
+  /// Checked by a Karwan reviewer when the automatic check could not run.
+  | 'human_reviewed'
+  | 'user_proof'
+  | 'self_reported';
 
 export interface ExternalOutcome {
   /// When the engagement ended, epoch ms.
@@ -61,7 +69,7 @@ export const EXTERNAL_REPUTATION_PARAMS: ExternalReputationParams = {
   z: 1.96,
   priorWeight: 20,
   priorMean: 0.5,
-  verificationWeight: { partner: 1, official_api: 0.8, user_proof: 0.6, self_reported: 0 },
+  verificationWeight: { partner: 1, official_api: 0.8, official_record: 0.7, human_reviewed: 0.65, user_proof: 0.6, self_reported: 0 },
   maxImportedWeight: 0.15,
   importedFadeDeals: 10,
 };

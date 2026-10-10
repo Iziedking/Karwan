@@ -8,7 +8,7 @@ import { ARC } from '../chain/client.js';
 // doesn't have to remember anything between requests. Payload is small on
 // purpose, just enough to identify the user and the auth method.
 
-const COOKIE_NAME = 'karwan_session';
+export const COOKIE_NAME = 'karwan_session';
 const DEFAULT_TTL_DAYS = 30;
 
 export interface SessionPayload {

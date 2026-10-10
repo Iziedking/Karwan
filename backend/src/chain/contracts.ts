@@ -11,6 +11,9 @@ import { reputationV2Abi } from './abis/reputationV2.js';
 import { jobBoardV2Abi } from './abis/jobBoardV2.js';
 import { legacyEscrowAbi, LEGACY_ESCROW_STATE } from './abis/legacyEscrow.js';
 import { v2dEscrowAbi, V2D_ESCROW_STATE } from './abis/v2dEscrow.js';
+import { dealEscrowV3Abi } from './abis/dealEscrowV3.js';
+import { dealEscrowV3Address, v3FundingEnabled } from './dealEscrowV3Live.js';
+import { readEscrowFeeBps } from './escrowFee.js';
 
 /// Contracts-v2 cutover: when ESCROW_V2B_ENABLED is on (and KARWAN_*_ADDR point
 /// at the v2 bundle), the backend binds the v2 ABIs so it can decode the new
@@ -442,7 +445,12 @@ export async function getEscrowFeeBps(options?: { fresh?: boolean }): Promise<nu
   if (!options?.fresh && _feeBpsCache && _feeBpsCache.expiresAt > now) {
     return _feeBpsCache.value;
   }
-  const value = Number(await escrow.read.feeBps());
+  const value = await readEscrowFeeBps({
+    v3Funding: v3FundingEnabled(),
+    readV3: () =>
+      publicClient.readContract({ address: dealEscrowV3Address as Address, abi: dealEscrowV3Abi, functionName: 'feeBps' }) as Promise<bigint | number>,
+    readLegacy: () => escrow.read.feeBps(),
+  });
   _feeBpsCache = { value, expiresAt: now + FEE_BPS_TTL_MS };
   return value;
 }

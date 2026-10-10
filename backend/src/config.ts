@@ -50,6 +50,36 @@ const envSchema = z.object({
   /// Others see a public passport (tier and fixed reasons). Full reputation,
   /// stake positions and repayment behaviour are for the signed-in owner only.
   SEALED_RECORDS: envBool('SEALED_RECORDS'),
+  /// The Karwan agent on WhatsApp (Cloud API). Off until the Meta app,
+  /// number and secrets are in place.
+  WHATSAPP_ENABLED: envBool('WHATSAPP_ENABLED'),
+  WHATSAPP_APP_SECRET: optionalString,
+  WHATSAPP_TOKEN: optionalString,
+  WHATSAPP_VERIFY_TOKEN: optionalString,
+  WHATSAPP_PHONE_NUMBER_ID: optionalString,
+  WHATSAPP_GRAPH_VERSION: z.string().trim().min(1).default('v21.0'),
+  /// Unique people Meta lets an unverified business message outside the
+  /// 24-hour service window per day.
+  WHATSAPP_DAILY_LIMIT: z.coerce.number().int().positive().default(250),
+  /// Lets a WhatsApp account hold a Karwan-held identity wallet on mainnet,
+  /// under the escrow caps. Every other mainnet path keeps self-custody.
+  CHAT_CUSTODY_ENABLED: envBool('CHAT_CUSTODY_ENABLED'),
+  /// Pepper for hashing phone numbers into lookup keys.
+  CHAT_NUMBER_PEPPER: optionalString,
+  /// KarwanFacts on the active network, and the Circle wallet allowlisted
+  /// as its issuer. The facts publisher stays off until both are set.
+  KARWAN_FACTS_ADDR: optionalAddr,
+  FACTS_ISSUER_WALLET_ID: optionalString,
+  /// Agents only offer work-verified sellers, and only show requests from
+  /// person-verified buyers.
+  VERIFIED_NETWORK_ONLY: envBool('VERIFIED_NETWORK_ONLY'),
+  /// Agent-to-agent questions read the other side's record over x402,
+  /// paid in USDC. Off until the paid rail is proven on the network.
+  X402_AGENT_QUERIES: envBool('X402_AGENT_QUERIES'),
+  /// Chainlink CRE is the expected source of delivery checks for deals. On
+  /// before the workflow is fully wired, checks fall back to Karwan and the
+  /// deal records it. The other CRE_* flags keep their meaning.
+  CRE_ENABLED: envBool('CRE_ENABLED'),
   VERIFICATION_POLICY_VERSION: z.string().trim().min(1).default('testnet-open-v1'),
   PORT: z.coerce.number().int().positive().default(8787),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).default('info'),

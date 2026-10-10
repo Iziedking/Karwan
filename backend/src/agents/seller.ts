@@ -1,3 +1,5 @@
+import { sellerMayBid } from '../verification/networkGate.js';
+import { levelOf } from '../verification/live.js';
 import { blocksOffer, sellerAgentBinding, SELLER_LINK_DETAIL } from '../deals/sellerBinding.js';
 import { generateObject } from 'ai';
 import { formatUnits, parseUnits, type Log } from 'viem';
@@ -813,6 +815,22 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
           reason: 'finance-lane-requires-business',
           detail: 'This is an SME trade-finance request. Only verified business sellers bid here.',
         },
+      });
+      return;
+    }
+  }
+
+  // The verified network: a seller whose work is not verified is not put in
+  // front of buyers.
+  if (config.VERIFIED_NETWORK_ONLY) {
+    const ownerWallet = await findAgentWalletByAgentAddress(seller.address);
+    const gate = sellerMayBid({ enabled: true, level: ownerWallet ? await levelOf(ownerWallet.userAddress) : 'registered' });
+    if (!gate.ok) {
+      bus.emitEvent({
+        type: 'agent.skipped',
+        jobId: job.jobId,
+        actor: 'seller',
+        payload: { seller: seller.address, reason: gate.reason, detail: gate.detail },
       });
       return;
     }

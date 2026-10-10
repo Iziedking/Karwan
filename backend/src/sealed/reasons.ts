@@ -8,6 +8,9 @@ export type ReasonCode =
   | 'USUALLY_ON_TIME'
   | 'NO_LOST_DISPUTES'
   | 'WORKS_WITH_MANY'
+  | 'WORK_CONFIRMED_BY_CLIENT'
+  | 'REGISTERED_BUSINESS'
+  | 'OWNS_GITHUB_WORK'
   | 'HUMAN_VERIFIED';
 
 export interface SealedFacts {
@@ -17,6 +20,12 @@ export interface SealedFacts {
   withDeadline: number;
   disputesLost: number;
   personVerified: boolean;
+  /// A past client, verified as a different person, confirmed a job.
+  clientConfirmed?: boolean;
+  /// The business matched its CAC registration.
+  registeredBusiness?: boolean;
+  /// Merged work on public GitHub repositories they do not own alone.
+  githubWork?: boolean;
 }
 
 /// Testnet values. Mainnet values are set with the stage 2 record.
@@ -41,7 +50,10 @@ export function reasonsFor(facts: SealedFacts): ReasonCode[] {
     out.push('USUALLY_ON_TIME');
   }
   if (facts.settled >= REASON_RULES.noLostDisputesMinDeals && facts.disputesLost === 0) out.push('NO_LOST_DISPUTES');
+  if (facts.clientConfirmed) out.push('WORK_CONFIRMED_BY_CLIENT');
+  if (facts.registeredBusiness) out.push('REGISTERED_BUSINESS');
   if (facts.distinctCounterparties >= REASON_RULES.manyCounterparties) out.push('WORKS_WITH_MANY');
+  if (facts.githubWork) out.push('OWNS_GITHUB_WORK');
   if (facts.personVerified) out.push('HUMAN_VERIFIED');
   return out.slice(0, MAX_REASONS);
 }

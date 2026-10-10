@@ -97,3 +97,9 @@ test('imported weight starts at the cap and fades as Karwan deals settle', () =>
   assert.ok(importedFactorWeight(30) < importedFactorWeight(10));
   assert.equal(importedFactorWeight(-5), P.maxImportedWeight);
 });
+
+test('the registry and human-review levels sit between a platform sign-in and a user proof', () => {
+  const w = P.verificationWeight;
+  assert.ok(w.official_api > w.official_record && w.official_record > w.human_reviewed && w.human_reviewed > w.user_proof);
+  assert.equal(w.self_reported, 0);
+});

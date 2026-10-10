@@ -16,7 +16,7 @@ import { buildLegacyX402FundingObservation } from '../agents/financialCommandPro
 import { gatewayFundingCoordinator } from './gatewayFundingCoordinator.js';
 import { ARC } from '../chain/client.js';
 
-/// Buyer-side x402 client (Path A: same-chain self-pay on Arc Testnet).
+/// Buyer-side x402 client (Path A: same-chain self-pay on the active Arc network).
 /// The buyer agent pays Karwan's own paid endpoints during bid scoring,
 /// moving real USDC from the agent's Gateway deposit to the platform
 /// treasury through Circle's batched settlement.
@@ -26,7 +26,7 @@ import { ARC } from '../chain/client.js';
 /// x402 EOA; the buyer agent SCA funds its Gateway deposit via depositFor,
 /// and the EOA signs the EIP-3009 authorizations.
 
-const GATEWAY_API = 'https://gateway-api-testnet.circle.com/v1';
+const GATEWAY_API = `${ARC.gatewayApiBase}/v1`;
 const ARC_NETWORK = ARC.caip2;
 const ARC_GATEWAY_DOMAIN = 26;
 const GATEWAY_WALLET_ADDR = ARC.contracts.gatewayWallet;
@@ -90,7 +90,7 @@ export async function ensureX402Wallet(record: AgentWallets): Promise<X402Wallet
   return pending;
 }
 
-/// Available Gateway balance (USD) for a depositor on Arc Testnet. Gateway
+/// Available Gateway balance (USD) for a depositor on the active Arc network. Gateway
 /// returns no row for an address that never deposited; treat that as zero.
 export async function gatewayAvailableUsd(depositor: string): Promise<number> {
   const res = await fetch(`${GATEWAY_API}/balances`, {

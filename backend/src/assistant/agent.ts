@@ -34,6 +34,9 @@ import { readSourceUsdcBalance } from '../chain/cctpClients.js';
 import { readSolanaHolding } from '../chain/solanaBalances.js';
 import { lookupPlatformGuide } from './platformGuide.js';
 import { dealStepTools, dealStepPendingLines } from './dealTools.js';
+import { verificationTools } from './verificationTools.js';
+import { networkTools } from './networkTools.js';
+import { directDealTools } from './directDealTools.js';
 import { isRequestOwner } from '../agents/chooseOffer.js';
 import { assessGrounding } from './grounding.js';
 import { workspaceContext, dealProtectionContext } from './accountContext.js';
@@ -1250,6 +1253,8 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
             jobId,
             counterpartyLabel,
             priceUsdc: price,
+            buyer: p.buyerUser,
+            seller: p.sellerUser,
             ...(p.fundedAmountUsdc ? { fundedAmountUsdc: p.fundedAmountUsdc } : {}),
             deadlineLabel: p.deadlineUnix
               ? new Date(p.deadlineUnix * 1000).toISOString().slice(0, 10)
@@ -2325,6 +2330,9 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
     }),
 
     ...dealStepTools(address, actions),
+    ...verificationTools(address),
+    ...networkTools(address),
+    ...directDealTools(address, actions),
   };
 }
 

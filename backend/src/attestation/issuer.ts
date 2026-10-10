@@ -183,3 +183,13 @@ export async function verifyDealSettled(doc: DealSettledAttestation): Promise<bo
     return false;
   }
 }
+
+/// Signs any Karwan typed document with the issuer key, so every credential
+/// Karwan publishes verifies against the one address in the issuer manifest.
+/// Null when issuance is off.
+export async function signAsIssuer(
+  typedData: Parameters<ReturnType<typeof privateKeyToAccount>['signTypedData']>[0],
+): Promise<`0x${string}` | null> {
+  const acct = account();
+  return acct ? acct.signTypedData(typedData) : null;
+}
