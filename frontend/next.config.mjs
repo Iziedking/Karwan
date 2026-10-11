@@ -3,12 +3,14 @@ import { PHASE_PRODUCTION_BUILD } from 'next/constants.js';
 /** @type {import('next').NextConfig} */
 
 // Security headers for the Vercel-served frontend (api.karwan.site gets the
-// equivalent set from the Caddyfile). CSP is intentionally scoped to
-// frame-ancestors: a full script-src policy would need auditing against the
-// wallet SDKs and Next's inline runtime; framing denial is the part that
-// protects signature prompts from clickjacking today.
+// equivalent set from the Caddyfile). The enforced policy holds what no page
+// can trip over: no framing (signature prompts), no plugins, no <base>
+// rewrite, and forms post only here. script-src runs report-only until the
+// wallet SDKs and the edge-injected analytics script have been checked
+// against it in a browser; the console names anything it would block.
 const securityHeaders = [
-  { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
+  { key: 'Content-Security-Policy', value: "frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'" },
+  { key: 'Content-Security-Policy-Report-Only', value: "script-src 'self' 'unsafe-inline'" },
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
