@@ -1,6 +1,7 @@
 import { Hono, type Context } from 'hono';
 import { formatUnits } from 'viem';
 import { z } from 'zod';
+import { isCctpChainKey } from '../chain/cctpChains.js';
 import { DAILY_LIMIT_MICROS, type AccountKind } from '../moneyOut/rules.js';
 import type { MoneyOutStore, SavedAddress } from '../moneyOut/store.js';
 import type { WorldAccountSessions } from '../worldid/accountSessions.js';
@@ -23,9 +24,12 @@ export interface MoneyOutRouteDeps {
 }
 
 const purpose = z.enum(['enrol', 'add_address', 'return', 'unpause']);
+/// The chain keys money can leave to: Arc, the CCTP chains and Solana, named
+/// as everywhere else in Karwan.
+const PAYOUT_CHAIN = (chain: string) => chain === 'arc' || chain === 'solanaDevnet' || isCctpChainKey(chain);
 const destination = z
-  .object({ chain: z.string().regex(/^[a-z0-9-]{2,32}$/), address: z.string() })
-  .refine((d) => (d.chain.startsWith('solana') ? SOLANA : EVM).test(d.address));
+  .object({ chain: z.string().refine(PAYOUT_CHAIN), address: z.string() })
+  .refine((d) => (d.chain === 'solanaDevnet' ? SOLANA : EVM).test(d.address));
 const requestSchema = z.object({ purpose });
 const verifySchema = z.object({ purpose, idkitResponse: z.record(z.unknown()) });
 

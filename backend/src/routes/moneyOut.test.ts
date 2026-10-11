@@ -97,11 +97,30 @@ test('adding an address needs a World ID proof, waits 24 hours and tells the cha
 
 test('a bad address is refused before the World ID proof is used', async () => {
   const { app, verified } = setup();
-  for (const bad of [{ chain: 'arc', address: '0x12' }, { chain: 'arc' }, { chain: 'ARC!', address: DEST }]) {
+  for (const bad of [
+    { chain: 'arc', address: '0x12' },
+    { chain: 'arc' },
+    { chain: 'ARC!', address: DEST },
+    { chain: 'mars', address: DEST },
+    { chain: 'solanaDevnet', address: DEST },
+    { chain: 'baseSepolia', address: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU' },
+  ]) {
     const res = await call(app, 'POST', '/session/verify', { purpose: 'add_address', idkitResponse: { nonce: 'n' }, ...bad });
     assert.equal(res.status, 400);
   }
   assert.deepEqual(verified, []);
+});
+
+test('an address is saved on any chain Karwan pays out to, by its chain key', async () => {
+  const { app, store } = setup();
+  for (const good of [
+    { chain: 'baseSepolia', address: DEST },
+    { chain: 'solanaDevnet', address: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU' },
+  ]) {
+    const res = await call(app, 'POST', '/session/verify', { purpose: 'add_address', idkitResponse: { nonce: 'n' }, ...good });
+    assert.equal(res.status, 200, good.chain);
+  }
+  assert.deepEqual((await store.listAddresses(ALICE)).map((a) => a.chain), ['baseSepolia', 'solanaDevnet']);
 });
 
 test('a proof of a different World ID saves nothing', async () => {

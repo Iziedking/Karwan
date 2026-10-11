@@ -38,6 +38,9 @@ export interface DecideInput {
   now: number;
   /// The account's own wallets, which are never a saved address.
   ownAddresses: readonly string[];
+  /// The person signed in with a wallet key, which is theirs on every chain.
+  /// Smart-account and Karwan-held wallets are known to be theirs on Arc only.
+  ownEverywhere?: boolean;
   saved: readonly { chain: string; address: string; opensAt: number }[];
   spent: readonly Spend[];
   hasSession: boolean;
@@ -52,9 +55,18 @@ export const addressKey = (address: string) => (/^0x/i.test(address) ? address.t
 
 const same = (a: string, b: string) => addressKey(a) === addressKey(b);
 
+/// The payout lands in one of the account's own wallets.
+export function toOwnWallet(exit: Exit, ownAddresses: readonly string[], ownEverywhere = false): boolean {
+  return (
+    exit.kind === 'payout' &&
+    (exit.chain === 'arc' || ownEverywhere) &&
+    ownAddresses.some((a) => same(a, exit.address))
+  );
+}
+
 export function decide(input: DecideInput): Decision {
   const { exit } = input;
-  const own = exit.kind === 'payout' && input.ownAddresses.some((a) => same(a, exit.address));
+  const own = toOwnWallet(exit, input.ownAddresses, input.ownEverywhere);
 
   // Between the account's own wallets nothing leaves.
   if (own) return { ok: true };

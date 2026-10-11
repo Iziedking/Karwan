@@ -56,6 +56,16 @@ test('an allowed payment is counted, a retry counts once, and release gives it b
   assert.equal(third.ok, true);
 });
 
+test('a dry check answers the same but counts nothing', async () => {
+  const { guard, store, now } = setup();
+  await store.addAddress(WALLET, 'arc', DEST, now() - 48 * HOUR);
+  const dry = await guard.check({ wallet: WALLET, exit: payout, amountMicros: usdc(400), reference: 'd' }, { reserve: false });
+  assert.equal(dry.ok, true);
+  assert.deepEqual(await store.withAccountLock(WALLET, (s) => s.spentSince(0)), []);
+  const over = await guard.check({ wallet: WALLET, exit: payout, amountMicros: usdc(600), reference: 'e' }, { reserve: false });
+  assert.equal(!over.ok && over.refusal.code, 'DAILY_LIMIT');
+});
+
 test('the pause and the return check come from the account state', async () => {
   const { guard, store } = setup();
   await store.setPaused(WALLET, 1);

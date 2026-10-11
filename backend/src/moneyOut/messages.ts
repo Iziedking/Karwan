@@ -1,3 +1,4 @@
+import { chainLabel } from '../chain/cctpChains.js';
 import type { OutMessage } from '../channels/render.js';
 import type { SavedAddress } from './store.js';
 
@@ -14,9 +15,8 @@ export function shortAddress(address: string): string {
   return `${address.slice(0, head)}…${address.slice(-4)}`;
 }
 
-const chainName = (chain: string) => chain.charAt(0).toUpperCase() + chain.slice(1);
 
-function utc(ms: number): string {
+export function utc(ms: number): string {
   const d = new Date(ms);
   const hh = String(d.getUTCHours()).padStart(2, '0');
   const mm = String(d.getUTCMinutes()).padStart(2, '0');
@@ -27,7 +27,7 @@ export function addressAddedMessage(saved: SavedAddress): OutMessage {
   return {
     kind: 'buttons',
     body:
-      `You added ${shortAddress(saved.address)} on ${chainName(saved.chain)} as an address to send money to. ` +
+      `You added ${shortAddress(saved.address)} on ${chainLabel(saved.chain)} as an address to send money to. ` +
       `It can receive money from ${utc(saved.opensAt)}.\n\n` +
       'Not you? Tap Remove, or pause every payment out of your account.',
     buttons: [

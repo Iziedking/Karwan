@@ -124,6 +124,13 @@ test("a web account's agent wallets pay out only to its own wallet", () => {
   assert.deepEqual(decide(chat({ ...web, exit: payout(OWN), amountMicros: usdc(5_000) })), { ok: true });
 });
 
+test('an own address on another chain is own only for a wallet key, which is the same on every chain', () => {
+  const web = { kind: 'web' as const, saved: [], hasSession: false };
+  assert.deepEqual(decide(chat({ ...web, exit: payout(OWN, 'base') })), { ok: false, refusal: { code: 'OWN_WALLET_ONLY' } });
+  assert.deepEqual(decide(chat({ ...web, exit: payout(OWN, 'base'), ownEverywhere: true })), { ok: true });
+  assert.deepEqual(decide(chat({ exit: payout(OWN, 'base'), saved: [] })), { ok: false, refusal: { code: 'ADDRESS_NOT_SAVED' } });
+});
+
 test('a web account is not held to the chat rules when it pays into escrow', () => {
   const r = decide(chat({ kind: 'web', exit: { kind: 'escrow' }, hasSession: false, amountMicros: usdc(5_000) }));
   assert.deepEqual(r, { ok: true });
