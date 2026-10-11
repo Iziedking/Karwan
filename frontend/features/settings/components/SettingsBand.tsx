@@ -70,7 +70,11 @@ export function SettingsBand() {
           return;
         }
         const detail =
-          err instanceof ApiError && typeof err.detail === 'string' ? err.detail : null;
+          err instanceof ApiError && err.code === 'chat-account'
+            ? t.settings.chatAccountDelete
+            : err instanceof ApiError && typeof err.detail === 'string'
+              ? err.detail
+              : null;
         setDeleteError(detail ?? (err as Error).message);
         setForceConfirm(null);
         setDeleting(false);

@@ -163,6 +163,7 @@ export const sw: Messages = {
     accountDeleteHint: 'Inafuta wasifu wako, mipangilio, na alama za hatari. Sifa yako kwenye Arc ni ya kudumu.',
     accountDeleteConfirm: 'Andika DELETE kuthibitisha',
     fundedFallback: 'Pochi za mawakala wako zina fedha. Kufuta hakutazihamisha. Endelea hata hivyo?',
+    chatAccountDelete: 'Akaunti hii iliundwa kwenye mazungumzo. Tuma /delete kwa wakala wa Karwan ili kuifuta.',
     deletingButton: 'Inafuta',
     confirmDeleteYes: 'Ndiyo, futa',
     confirmDeleteNo: 'Hapana, iache',

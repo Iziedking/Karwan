@@ -166,6 +166,7 @@ export const fr: Messages = {
     accountDeleteHint: 'Supprime votre profil, vos paramètres et vos étiquettes de risque. Votre réputation sur Arc est permanente et reste.',
     accountDeleteConfirm: 'Tapez DELETE pour confirmer',
     fundedFallback: 'Vos wallets agent contiennent des fonds. La suppression ne les déplacera pas. Continuer quand même ?',
+    chatAccountDelete: 'Ce compte a été créé dans le chat. Envoyez /delete à l’agent Karwan pour le supprimer.',
     deletingButton: 'Suppression',
     confirmDeleteYes: 'Oui, supprimer',
     confirmDeleteNo: 'Non, garder',

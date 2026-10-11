@@ -164,6 +164,7 @@ export const hi: Messages = {
     accountDeleteHint: 'आपकी प्रोफ़ाइल, सेटिंग्स और जोखिम टैग हटाता है। Arc पर आपकी प्रतिष्ठा स्थायी है और बनी रहती है।',
     accountDeleteConfirm: 'पुष्टि के लिए DELETE लिखें',
     fundedFallback: 'आपके एजेंट वॉलेट में फंड हैं। हटाने से वे स्थानांतरित नहीं होंगे। फिर भी आगे बढ़ें?',
+    chatAccountDelete: 'यह खाता चैट में बना था। इसे हटाने के लिए Karwan एजेंट को /delete भेजें।',
     deletingButton: 'हटाया जा रहा है',
     confirmDeleteYes: 'हाँ, हटाएँ',
     confirmDeleteNo: 'नहीं, रहने दें',

@@ -16,6 +16,7 @@ import type { UserProfile } from '../db/profiles.js';
 import { getAgentWallets } from '../db/agentWallets.js';
 import { deleteUser, getUserByAddress, getUserByEmail } from '../db/users.js';
 import { removeTelegramLink } from '../db/telegramLinks.js';
+import { isChatAccount } from '../channels/accountsLive.js';
 import { readUsdcBalance } from '../chain/contracts.js';
 import { readSession, clearSessionCookie, isSessionSelf } from '../auth/session.js';
 import { extractKeywords } from '../llm/keywords.js';
@@ -522,6 +523,12 @@ profileRoutes.delete('/', async (c) => {
   // with NO session delete any address.
   if (!isSessionSelf(c, addr)) {
     return c.json({ error: 'You can only delete your own account.', code: 'forbidden' }, 403);
+  }
+
+  // A chat account is deleted from chat, with its wait and every store it
+  // has; this route would remove only part of it, at once.
+  if (await isChatAccount(addr)) {
+    return c.json({ error: 'This account was made in chat. Send /delete to the Karwan agent to delete it.', code: 'chat-account' }, 409);
   }
 
   // Warn (don't hard-block) when agent wallets still hold funds: deleting does

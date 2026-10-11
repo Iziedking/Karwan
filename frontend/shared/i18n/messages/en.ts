@@ -158,6 +158,7 @@ interface MessagesShape {
     accountDeleteHint: string;
     accountDeleteConfirm: string;
     fundedFallback: string;
+    chatAccountDelete: string;
     deletingButton: string;
     confirmDeleteYes: string;
     confirmDeleteNo: string;
@@ -5452,6 +5453,7 @@ export const en: MessagesShape = {
     accountDeleteHint: 'Removes your profile, settings and risk tags. Your reputation on Arc is permanent and stays.',
     accountDeleteConfirm: 'Type DELETE to confirm',
     fundedFallback: 'Your agent wallets are funded. Deleting will not move them. Proceed anyway?',
+    chatAccountDelete: 'This account was made in chat. Send /delete to the Karwan agent to delete it.',
     deletingButton: 'Deleting',
     confirmDeleteYes: 'Yes, delete',
     confirmDeleteNo: 'No, keep it',

@@ -166,6 +166,7 @@ export const ar: Messages = {
     accountDeleteHint: 'يحذف ملفك وإعداداتك وعلامات المخاطر. سمعتك على Arc دائمة ولا تُحذف.',
     accountDeleteConfirm: 'اكتب DELETE للتأكيد',
     fundedFallback: 'محافظ وكلائك تحتوي على رصيد. الحذف لن ينقلها. هل تواصل رغم ذلك؟',
+    chatAccountDelete: 'أُنشئ هذا الحساب في المحادثة. أرسل /delete إلى وكيل Karwan لحذفه.',
     deletingButton: 'جارٍ الحذف',
     confirmDeleteYes: 'نعم، احذف',
     confirmDeleteNo: 'لا، احتفظ بها',
