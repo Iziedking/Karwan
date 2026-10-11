@@ -170,6 +170,16 @@ export function isDealRoute(pathname: string | null | undefined): boolean {
   return !!pathname && DEAL_ROUTES.some((route) => matchesRoute(pathname, route));
 }
 
+/// One deal's own page. On mainnet this is the only deal surface that opens:
+/// the Karwan agent in chat sends people here to confirm a money step, and the
+/// backend shows a deal only to its parties.
+const DEAL_PAGE = /^\/deals\/0x[0-9a-fA-F]{64}$/;
+
+/// Whether a request for this path is sent to the wallet instead.
+export function dealRouteBlocked(pathname: string, dealsAvailable: boolean): boolean {
+  return !dealsAvailable && isDealRoute(pathname) && !DEAL_PAGE.test(pathname);
+}
+
 /// Deals exist only where the contracts do. Read from the raw env value so the
 /// middleware can use it without loading the chain definitions.
 export function dealsAvailableOn(network: string | undefined): boolean {

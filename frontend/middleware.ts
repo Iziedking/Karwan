@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { WALLET_HOME, dealsAvailableOn, isDealRoute } from './shared/utils/routes';
+import { WALLET_HOME, dealRouteBlocked, dealsAvailableOn } from './shared/utils/routes';
 
 const DEALS_AVAILABLE = dealsAvailableOn(process.env.NEXT_PUBLIC_ARC_NETWORK);
 
@@ -17,9 +17,9 @@ function isPrivateRoute(pathname: string): boolean {
 /// session). Public/shareable routes (landing, market, credit-passport) are left
 /// alone so they keep their instant-restore snappiness.
 export function middleware(req: NextRequest) {
-  // A wallet-only deployment has no deal contracts, so deal pages would only
-  // show errors. Send them to the wallet instead.
-  if (!DEALS_AVAILABLE && isDealRoute(req.nextUrl.pathname)) {
+  // Where the web deal rail is closed (mainnet), its pages go to the wallet.
+  // A deal's own page stays open for the deals people run from chat.
+  if (dealRouteBlocked(req.nextUrl.pathname, DEALS_AVAILABLE)) {
     return NextResponse.redirect(new URL(WALLET_HOME, req.url));
   }
   const res = NextResponse.next();

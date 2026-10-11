@@ -2,14 +2,15 @@ import { defineConfig, devices } from '@playwright/test';
 
 const port = Number(process.env.KARWAN_E2E_PORT || 3100);
 const baseURL = `http://127.0.0.1:${port}`;
-// Passkey recovery exists only on mainnet behind its flag, so its screens are
-// tested against a separate mainnet build: KARWAN_E2E_RECOVERY=1 runs only that
-// spec; every other run skips it.
+// Passkey recovery and the mainnet gates exist only on a mainnet build, so they
+// are tested against a separate one: KARWAN_E2E_RECOVERY=1 runs only the
+// recovery and mainnet-* specs; every other run skips them.
 const recovery = process.env.KARWAN_E2E_RECOVERY === '1';
+const MAINNET_SPECS = /(recovery|mainnet-[a-z-]+)\.spec\.ts$/;
 
 export default defineConfig({
   testDir: './e2e',
-  ...(recovery ? { testMatch: /recovery\.spec\.ts$/ } : { testIgnore: /recovery\.spec\.ts$/ }),
+  ...(recovery ? { testMatch: MAINNET_SPECS } : { testIgnore: MAINNET_SPECS }),
   timeout: 30_000,
   forbidOnly: !!process.env.CI,
   reporter: process.env.CI ? 'github' : 'list',
