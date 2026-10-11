@@ -202,6 +202,16 @@ export const PLATFORM_GUIDE: readonly GuideEntry[] = [
     sources: ['backend/src/telegram/agent/live.ts', 'backend/src/channels/dispatch.ts', 'backend/src/channels/moneySteps.ts', 'backend/src/assistant/directDealTools.ts'],
   },
   {
+    id: 'money-out', title: 'Where money can leave a chat account', status: 'gated', mainnet: 'off', route: '/account',
+    pages: ['/account', '/verify/person'],
+    api: ['GET /api/money-out/status', 'POST /api/money-out/session/request', 'POST /api/money-out/session/verify', 'DELETE /api/money-out/addresses/:id', 'POST /api/money-out/pause'],
+    tools: [],
+    keywords: 'saved address new address withdraw limit daily limit pause paused resume world id selfie stolen phone sim swap recycled number came back',
+    summary: 'For an account Karwan holds the keys of, money leaves only to an address the person added with their World ID, linked with a Selfie Check at the person check. A new address can receive money 24 hours after it is added, and the chat says so with a Remove button. Up to 500 USDC leaves in any 24 hours, payments into escrow included. After more than 60 quiet days, the next money step needs the World ID check again. Every payment out is announced in chat with a Pause button; resuming needs World ID. A web account’s agent wallets pay out only to the person’s own wallet. On by switch: mainnet, or testnet with the verified network on.',
+    steps: ['Link World ID at the person check.', 'The first payment to a new address offers to add it with World ID.', 'The address can receive money 24 hours later; the money page lists it, the limit left and Pause.'],
+    sources: ['backend/src/moneyOut/rules.ts', 'backend/src/moneyOut/guard.ts', 'backend/src/routes/moneyOut.ts', 'frontend/features/moneyOut/SavedAddresses.tsx'],
+  },
+  {
     id: 'records', title: 'Activity and receipts', status: 'testnet', mainnet: 'invite', route: '/activity',
     pages: ['/activity', '/activity/all-time'],
     api: ['GET /api/activity/me', 'GET /api/bridge/list'],

@@ -136,7 +136,42 @@ sequenceDiagram
   K-->>S: Paid, with proof on Arc
 ```
 
-Agreements, delivery and disputes are confirmed in chat. Every step that moves money opens a one-time Karwan link, valid once for ten minutes, and is confirmed on the page, where the person sees every figure first. No chat button moves money, and the chat adapter refuses a money step that reaches it. Money comes in from any wallet or chain, or a payment link. Funding from a bank or USSD is planned. Earnings can be withdrawn at any time.
+Agreements, delivery and disputes are confirmed in chat. Every step that moves money opens a one-time Karwan link, valid once for ten minutes, and is confirmed on the page, where the person sees every figure first. No chat button moves money, and the chat adapter refuses a money step that reaches it. Money comes in from any wallet or chain, or a payment link. Funding from a bank or USSD is planned. Earnings are withdrawn under the rules in the next section.
+
+## Money leaving an account Karwan holds
+
+A chat account's wallets are signed by Karwan, and the chat channel is how the person signs in. A recycled phone number, a SIM swap or a borrowed phone would otherwise be enough to empty them. So money leaves such an account only after a check that only the same person can pass: the World ID session they linked with a Selfie Check at the person check.
+
+```mermaid
+sequenceDiagram
+  actor P as Person
+  participant K as Karwan agent
+  participant W as Karwan page
+  participant G as Money-out guard
+  participant ID as World ID
+
+  P->>W: Withdraw 40 USDC to a new address
+  W->>G: Is this address saved?
+  G-->>W: No. Nothing is sent
+  W-->>P: "Add this address", with World ID
+  P->>ID: Selfie Check on the linked session
+  ID-->>W: Proof of the same session
+  W->>G: Save the address, open in 24 hours
+  K-->>P: "You added 0x12…ab. It can receive money from 14:05 tomorrow", Remove / Pause
+  Note over P,G: A day later
+  P->>W: Withdraw 40 USDC
+  W->>G: Saved, open, within 500 USDC today
+  G-->>W: Counted. Send
+  K-->>P: "40 USDC is leaving your account", Pause
+```
+
+- Money leaves only to an address added with the person's World ID. A new address can receive money 24 hours after it is added, and the chat says so at once with a Remove button.
+- Up to 500 USDC leaves in any 24 hours, payments into escrow included, so a deal with an accomplice is not a way around it.
+- After more than 60 quiet days, the next money step needs the World ID check again. A recycled number arrives exactly like this.
+- Every payment out is announced in chat with a Pause button, and only the World ID check resumes payments.
+- The guard runs in every route that moves money out of a Karwan-held wallet, never in a channel. A web account holds its own wallet, so the agent wallets Karwan signs for pay out only to it.
+
+Someone who holds the person's unlocked phone and their World App can still add an address. The 24-hour wait, the notices and the daily limit are what bound the loss.
 
 ## A deal with someone you already know
 
@@ -219,6 +254,9 @@ Chainlink CRE runs the same checks in a sandbox on a decentralised network, so a
 | Delivery check | The check cannot run or has no result yet | Nothing moves. The agent says the check is pending, and the buyer can take over the review |
 | Delivery check | CRE is on but unavailable | Karwan's own checks run, and the record says so |
 | Direct deal | The named person is not on Karwan | They get an invitation; the deal waits until they accept the terms and the deal |
+| Money out | Someone else gets into the person's chat | Money goes only to saved addresses; a new one waits 24 hours and the chat is told, with Remove and Pause |
+| Money out | World ID is down | No address can be added and a returning account waits; saved addresses keep working inside the limit |
+| Money out | Two payments at once | One at a time per account, so both cannot fit under the daily limit |
 | Record | Karwan is offline | Facts on Arc and the signed credential still verify |
 
 ## Status
@@ -230,6 +268,7 @@ Chainlink CRE runs the same checks in a sandbox on a decentralised network, so a
 | Person check with World ID | Built, behind a flag |
 | X sign-in linking | Built |
 | Telegram channel adapter, money steps confirmed on Karwan from a one-time link | Built, not deployed |
+| Money out of a Karwan-held account: saved addresses with World ID, 24-hour wait, 500 USDC a day, return check, Pause | Built, not deployed |
 | WhatsApp channel adapter | Built, paused |
 | Verification rules, ladder, evidence checks | Built, not deployed |
 | Facts contract on Arc and signed credential | Built, not deployed |
