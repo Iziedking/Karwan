@@ -1,6 +1,6 @@
-# 04 · Instant top-up
+# 04 · Top up from another chain
 
-A buyer whose money is not all on Arc funds a deal in one step. The user sees one balance and, when it helps, "Instant top-up" inside funding. Circle Gateway does the work underneath and is never named in the product.
+A buyer whose money is not all on Arc funds a deal in one step. The user sees one balance and, when it helps, "Top up from another chain" inside funding. Circle Gateway does the work underneath and is never named in the product.
 
 ## Where the money can sit
 
@@ -37,7 +37,7 @@ sequenceDiagram
   alt Balance covers
     FS-->>B: From your balance, arrives instantly
   else Short, web3 wallet has USDC on other chains
-    FS-->>B: Instant top-up 70 from Base, one signature
+    FS-->>B: Top up 70 from Base, one signature
     B->>WAL: Sign burn intent (browser)
     WAL->>GW: Transfer to buyer agent on Arc
     GW-->>AG: Minted by forwarder
@@ -58,7 +58,7 @@ sequenceDiagram
 ## Rules
 
 - One balance in copy. The pooled balance is never shown, named, or offered as a place to put money.
-- "Instant top-up" names the moment money comes in from another chain inside funding. No Gateway page, card, tab or tour step.
+- "Top up from another chain" names the moment money comes in from another chain inside funding. No Gateway page, card, tab or tour step.
 - The funding sheet states the split and fee before any signature; if the quote changes, it asks again.
 - Each move is one money movement with one receipt.
 
@@ -75,5 +75,5 @@ Today `pickRoute` returns `insufficient` when no single pocket covers the amount
 | Browser spend from the user's own wallet | Built | `frontend/features/gateway/lib.ts` |
 | Any-chain deposit address landing on Arc | Live | `backend/src/circle/depositWatcher.ts`, `depositRouter.ts` |
 | Gateway shown to users (balance card, bridge tab, "pool" copy, tour step) | Live, to be removed | `GatewayBalanceCard`, `app/bridge`, `TopUpFromGateway`, `ArcFundCard` |
-| Instant top-up inside the deal and request funding sheets | Planned | spec Part B |
+| Top up from another chain inside the deal and request funding sheets | Planned | spec Part B |
 | Two-leg funding across pockets | Planned | open decision above |

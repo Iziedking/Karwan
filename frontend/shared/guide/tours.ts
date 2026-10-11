@@ -162,7 +162,7 @@ export const BRIDGE_TOUR_ID = 'bridge-v2';
 
 export function buildBridgeSteps(view: {
   direction: 'in' | 'out';
-  rail: 'direct' | 'gateway' | 'cctp' | 'onramp';
+  rail: 'direct' | 'gateway' | 'cctp';
 }): TourStep[] {
   const steps: TourStep[] = [
     {

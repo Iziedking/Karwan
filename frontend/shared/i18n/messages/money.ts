@@ -110,8 +110,6 @@ export interface MoneyCopy {
     walletEmpty: string;
     connectWallet: string;
     fromExchange: string;
-    cardOrBank: string;
-    comingSoon: string;
     moveNeedsWallet: string;
     yourWallet: string;
     recipientLabel: string;
@@ -274,8 +272,6 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       walletEmpty: 'No USDC found in your connected wallet.',
       connectWallet: 'Connect a wallet',
       fromExchange: 'From an exchange or another app',
-      cardOrBank: 'Card or bank',
-      comingSoon: 'Coming soon',
       moveNeedsWallet: 'Moving to your own wallet on another network needs a connected wallet. You can still send to any address.',
       yourWallet: 'Your wallet',
       recipientLabel: 'Recipient address',
@@ -429,8 +425,6 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       walletEmpty: 'لا توجد USDC في محفظتك المتصلة.',
       connectWallet: 'ربط محفظة',
       fromExchange: 'من منصة تداول أو تطبيق آخر',
-      cardOrBank: 'بطاقة أو حساب بنكي',
-      comingSoon: 'قريبًا',
       moveNeedsWallet: 'النقل إلى محفظتك على شبكة أخرى يتطلب محفظة متصلة. ما زال بإمكانك الإرسال إلى أي عنوان.',
       yourWallet: 'محفظتك',
       recipientLabel: 'عنوان المستلم',
@@ -584,8 +578,6 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       walletEmpty: 'Aucun USDC trouvé dans votre portefeuille connecté.',
       connectWallet: 'Connecter un portefeuille',
       fromExchange: 'Depuis une plateforme d’échange ou une autre application',
-      cardOrBank: 'Carte ou virement',
-      comingSoon: 'Bientôt disponible',
       moveNeedsWallet: 'Déplacer vers votre propre portefeuille sur un autre réseau nécessite un portefeuille connecté. Vous pouvez toujours envoyer à n’importe quelle adresse.',
       yourWallet: 'Votre portefeuille',
       recipientLabel: 'Adresse du destinataire',
@@ -739,8 +731,6 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       walletEmpty: 'आपके जुड़े वॉलेट में कोई USDC नहीं मिला।',
       connectWallet: 'वॉलेट जोड़ें',
       fromExchange: 'किसी एक्सचेंज या दूसरे ऐप से',
-      cardOrBank: 'कार्ड या बैंक',
-      comingSoon: 'जल्द आ रहा है',
       moveNeedsWallet: 'दूसरे नेटवर्क पर अपने वॉलेट में ले जाने के लिए जुड़ा हुआ वॉलेट चाहिए। आप फिर भी किसी भी पते पर भेज सकते हैं।',
       yourWallet: 'आपका वॉलेट',
       recipientLabel: 'प्राप्तकर्ता का पता',
@@ -894,8 +884,6 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       walletEmpty: 'Hakuna USDC kwenye pochi yako iliyounganishwa.',
       connectWallet: 'Unganisha pochi',
       fromExchange: 'Kutoka kwenye soko la kubadilishana au programu nyingine',
-      cardOrBank: 'Kadi au benki',
-      comingSoon: 'Inakuja hivi karibuni',
       moveNeedsWallet: 'Kuhamisha kwenda pochi yako kwenye mtandao mwingine kunahitaji pochi iliyounganishwa. Bado unaweza kutuma kwa anwani yoyote.',
       yourWallet: 'Pochi yako',
       recipientLabel: 'Anwani ya mpokeaji',

@@ -72,11 +72,6 @@ export interface PayLinkCopy {
     optBalance: string;
     optChain: string;
     optChainSub: string;
-    optCard: string;
-    optCardSub: string;
-    optUssd: string;
-    optUssdSub: string;
-    soon: string;
     evmTab: string;
     solanaTab: string;
     sendExactly: string;
@@ -174,11 +169,6 @@ const en: PayLinkCopy = {
     optBalance: "Your Karwan balance",
     optChain: "Send from any chain",
     optChainSub: "An exchange or any wallet",
-    optCard: "Card or bank",
-    optCardSub: "Pay in your currency",
-    optUssd: "USSD",
-    optUssdSub: "From any phone, no data",
-    soon: "Coming soon",
     evmTab: "EVM chains",
     solanaTab: "Solana",
     sendExactly: "Send exactly",
@@ -276,11 +266,6 @@ const fr: PayLinkCopy = {
     optBalance: "Votre solde Karwan",
     optChain: "Envoyer depuis n'importe quelle chaîne",
     optChainSub: "Une plateforme d'échange ou tout portefeuille",
-    optCard: "Carte ou banque",
-    optCardSub: "Payez dans votre devise",
-    optUssd: "USSD",
-    optUssdSub: "Depuis n'importe quel téléphone, sans données",
-    soon: "Bientôt",
     evmTab: "Chaînes EVM",
     solanaTab: "Solana",
     sendExactly: "Envoyez exactement",
@@ -378,11 +363,6 @@ const ar: PayLinkCopy = {
     optBalance: "رصيدك في Karwan",
     optChain: "الإرسال من أي شبكة",
     optChainSub: "منصة تداول أو أي محفظة",
-    optCard: "بطاقة أو بنك",
-    optCardSub: "ادفع بعملتك",
-    optUssd: "USSD",
-    optUssdSub: "من أي هاتف، دون بيانات",
-    soon: "قريبًا",
     evmTab: "شبكات EVM",
     solanaTab: "Solana",
     sendExactly: "أرسل بالضبط",
@@ -480,11 +460,6 @@ const hi: PayLinkCopy = {
     optBalance: "आपका Karwan बैलेंस",
     optChain: "किसी भी चेन से भेजें",
     optChainSub: "कोई एक्सचेंज या कोई भी वॉलेट",
-    optCard: "कार्ड या बैंक",
-    optCardSub: "अपनी मुद्रा में भुगतान करें",
-    optUssd: "USSD",
-    optUssdSub: "किसी भी फ़ोन से, बिना डेटा",
-    soon: "जल्द आ रहा है",
     evmTab: "EVM चेन",
     solanaTab: "Solana",
     sendExactly: "ठीक इतना भेजें",
@@ -582,11 +557,6 @@ const sw: PayLinkCopy = {
     optBalance: "Salio lako la Karwan",
     optChain: "Tuma kutoka mnyororo wowote",
     optChainSub: "Soko la kubadilishana au pochi yoyote",
-    optCard: "Kadi au benki",
-    optCardSub: "Lipa kwa sarafu yako",
-    optUssd: "USSD",
-    optUssdSub: "Kutoka simu yoyote, bila data",
-    soon: "Inakuja hivi karibuni",
     evmTab: "Minyororo ya EVM",
     solanaTab: "Solana",
     sendExactly: "Tuma kiasi hiki kamili",

@@ -13,9 +13,6 @@ export interface CashoutFlowCopy {
   optBalanceSub: string;
   optWallet: string;
   optWalletSub: string;
-  optBank: string;
-  optBankSub: string;
-  soon: string;
   network: string;
   address: string;
   addressArc: string;
@@ -64,9 +61,6 @@ export const cashoutFlowCopy: Record<Locale, CashoutFlowCopy> = {
     optBalanceSub: 'On Arc, ready to spend',
     optWallet: 'Another wallet',
     optWalletSub: 'Arc, Base, Ethereum and more',
-    optBank: 'Bank or local currency',
-    optBankSub: 'NGN, KES, INR and more',
-    soon: 'Coming soon',
     network: 'Network',
     address: 'Address',
     addressArc: 'Address or Karwan tag',
@@ -111,9 +105,6 @@ export const cashoutFlowCopy: Record<Locale, CashoutFlowCopy> = {
     optBalanceSub: 'Sur Arc, prêt à dépenser',
     optWallet: 'Un autre portefeuille',
     optWalletSub: 'Arc, Base, Ethereum et plus',
-    optBank: 'Banque ou devise locale',
-    optBankSub: 'NGN, KES, INR et plus',
-    soon: 'Bientôt',
     network: 'Réseau',
     address: 'Adresse',
     addressArc: 'Adresse ou tag Karwan',
@@ -158,9 +149,6 @@ export const cashoutFlowCopy: Record<Locale, CashoutFlowCopy> = {
     optBalanceSub: 'على Arc، جاهز للإنفاق',
     optWallet: 'محفظة أخرى',
     optWalletSub: 'Arc وBase وEthereum وغيرها',
-    optBank: 'بنك أو عملة محلية',
-    optBankSub: 'NGN وKES وINR وغيرها',
-    soon: 'قريبًا',
     network: 'الشبكة',
     address: 'العنوان',
     addressArc: 'العنوان أو وسم Karwan',
@@ -205,9 +193,6 @@ export const cashoutFlowCopy: Record<Locale, CashoutFlowCopy> = {
     optBalanceSub: 'Arc पर, खर्च के लिए तैयार',
     optWallet: 'दूसरा वॉलेट',
     optWalletSub: 'Arc, Base, Ethereum और अन्य',
-    optBank: 'बैंक या स्थानीय मुद्रा',
-    optBankSub: 'NGN, KES, INR और अन्य',
-    soon: 'जल्द आ रहा है',
     network: 'नेटवर्क',
     address: 'पता',
     addressArc: 'पता या Karwan टैग',
@@ -252,9 +237,6 @@ export const cashoutFlowCopy: Record<Locale, CashoutFlowCopy> = {
     optBalanceSub: 'Kwenye Arc, tayari kutumika',
     optWallet: 'Pochi nyingine',
     optWalletSub: 'Arc, Base, Ethereum na zaidi',
-    optBank: 'Benki au sarafu ya ndani',
-    optBankSub: 'NGN, KES, INR na zaidi',
-    soon: 'Inakuja hivi karibuni',
     network: 'Mtandao',
     address: 'Anwani',
     addressArc: 'Anwani au tagi ya Karwan',

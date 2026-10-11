@@ -7,8 +7,8 @@ const ids = (method: 'circle' | 'web3', direction: 'in' | 'out') =>
 
 test('both account types are offered a way in, and both see every rail', () => {
   // The complaint this answers: an email account saw no rail choice at all.
-  assert.deepEqual(ids('circle', 'in'), ['direct', 'gateway', 'onramp']);
-  assert.deepEqual(ids('web3', 'in'), ['cctp', 'gateway', 'onramp']);
+  assert.deepEqual(ids('circle', 'in'), ['direct', 'gateway']);
+  assert.deepEqual(ids('web3', 'in'), ['cctp', 'gateway']);
 });
 
 test('a connected wallet is not shown a direct deposit rail at all', () => {
@@ -34,7 +34,6 @@ test('neither account type is dropped onto a rail it cannot use', () => {
   assert.equal(defaultRail(rails), 'direct');
   // Gateway needs a wallet to sign with, so it is shown as coming, not as broken.
   assert.equal(rails.find((r) => r.id === 'gateway')?.state, 'soon');
-  assert.equal(rails.find((r) => r.id === 'onramp')?.state, 'soon');
 });
 
 test('a wallet account gets gateway and CCTP as real options', () => {
@@ -44,8 +43,8 @@ test('a wallet account gets gateway and CCTP as real options', () => {
 });
 
 test('withdrawing leads with the rail that works for everyone', () => {
-  assert.deepEqual(ids('circle', 'out'), ['cctp', 'gateway', 'onramp']);
-  assert.deepEqual(ids('web3', 'out'), ['cctp', 'gateway', 'onramp']);
+  assert.deepEqual(ids('circle', 'out'), ['cctp', 'gateway']);
+  assert.deepEqual(ids('web3', 'out'), ['cctp', 'gateway']);
   assert.equal(defaultRail(railsFor({ method: 'circle', direction: 'out' })), 'cctp');
 });
 
@@ -95,7 +94,15 @@ test('an unknown account method is treated as the more restricted one', () => {
   // before we know there is one is how a page flashes an unusable panel, so an
   // unresolved account sees exactly what an email account sees.
   const rails = railsFor({ method: null, direction: 'in' });
-  assert.deepEqual(rails.map((rail) => rail.id), ['direct', 'gateway', 'onramp']);
+  assert.deepEqual(rails.map((rail) => rail.id), ['direct', 'gateway']);
   assert.equal(defaultRail(rails), 'direct');
   assert.equal(rails.find((rail) => rail.id === 'gateway')?.state, 'soon');
+});
+
+test('no card or bank rail is shown before a provider is contracted', () => {
+  for (const method of ['circle', 'web3', null] as const) {
+    for (const direction of ['in', 'out'] as const) {
+      assert.ok(!railsFor({ method, direction }).some((rail) => (rail.id as string) === 'onramp'));
+    }
+  }
 });

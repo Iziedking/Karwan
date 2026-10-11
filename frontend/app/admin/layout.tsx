@@ -79,7 +79,7 @@ function AccessGate({ onUnlock }: { onUnlock: (role: 'admin' | 'support') => voi
             <p className="mono text-[10px] font-bold uppercase tracking-[0.19em] text-[#AFC95B]">Karwan operator</p>
           </div>
           <h1 className="mt-4 max-w-[520px] font-sans text-[34px] font-black leading-[0.95] tracking-[-0.04em] sm:text-[clamp(36px,6vw,68px)]">Run trade operations with clear authority.</h1>
-          <p className="mt-4 max-w-[520px] text-[14px] leading-6 text-white/55 sm:mt-6 sm:text-[15px] sm:leading-7">Review customer work, monitor agent execution, resolve exceptions, and control funds from one audited console.</p>
+          <p className="mt-4 max-w-[520px] text-[14px] leading-6 text-white/55 sm:mt-6 sm:text-[15px] sm:leading-7">Review customer work, watch agents and resolve exceptions from one operator console.</p>
           <div className="mt-8 hidden gap-3 sm:grid sm:grid-cols-3">
             {[
               ['01', 'Unlock', 'Verify your operator access key.'],

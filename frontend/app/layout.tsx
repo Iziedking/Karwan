@@ -21,6 +21,7 @@ import { WorkspaceBottomNav } from '@/shared/components/WorkspaceBottomNav';
 import { PageFeedbackPrompt } from '@/shared/components/PageFeedbackPrompt';
 import { RouteTrail } from '@/shared/components/BackButton';
 import { SpeedInsights } from '@vercel/speed-insights/next'
+import { SITE_TITLE } from '@/shared/seo/routeTitle';
 
 // The Vercel script is only served inside a Vercel deployment. Rendering it
 // during an optimized local run creates a guaranteed 404 and obscures real
@@ -79,7 +80,7 @@ const notoDevanagari = Noto_Sans_Devanagari({
 // Each deployment names its own host (testnet.karwan.site, karwan.site) so
 // canonical and share links point back to the network the visitor is on.
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://karwan.site').replace(/\/$/, '');
-const TITLE = 'Karwan · one reputation, starting with an open market';
+const TITLE = SITE_TITLE;
 const DESCRIPTION =
   'Karwan brings your online reputation together so you never start from zero again. It starts with an open market where every completed trade builds your record. Mainnet access is by invitation.';
 

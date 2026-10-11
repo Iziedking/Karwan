@@ -271,7 +271,6 @@ function CashoutForm({ info, jobId }: { info: CashoutInfo; jobId: string }) {
               <Option icon="balance" title={copy.optBalance} sub={copy.optBalanceSub} selected={option === 'balance'} onSelect={() => setOption('balance')} />
             ) : null}
             <Option icon="wallet" title={copy.optWallet} sub={copy.optWalletSub} selected={option === 'wallet'} onSelect={() => setOption('wallet')} />
-            <Option icon="bank" title={copy.optBank} sub={copy.optBankSub} soon={copy.soon} />
           </div>
 
           {option === 'wallet' ? (
@@ -465,19 +464,17 @@ function Receipt({ sent, jobId, chainName }: { sent: Sent; jobId: string; chainN
   );
 }
 
-const ICON: Record<'balance' | 'wallet' | 'bank', string> = {
+const ICON: Record<'balance' | 'wallet', string> = {
   balance: 'M3 7h18v12H3zM3 7l2-3h14l2 3M16 13h2',
   wallet: 'M7 7h12l-3-3M17 17H5l3 3',
-  bank: 'M3 9l9-5 9 5M5 9v9M19 9v9M9 9v9M15 9v9M3 20h18',
 };
 
-function Option({ icon, title, sub, selected, onSelect, soon }: {
+function Option({ icon, title, sub, selected, onSelect }: {
   icon: keyof typeof ICON;
   title: string;
   sub: string;
   selected?: boolean;
   onSelect?: () => void;
-  soon?: string;
 }) {
   const body = (
     <>
@@ -486,10 +483,8 @@ function Option({ icon, title, sub, selected, onSelect, soon }: {
         <span className="block text-[15px] font-semibold">{title}</span>
         <span className="mt-0.5 block text-[14px] font-medium text-[var(--lp-text-sub)]">{sub}</span>
       </span>
-      {soon ? <span className="shrink-0 rounded-full bg-[var(--lp-light)] px-2.5 py-1 text-[13px] font-medium text-[var(--lp-text-sub)]">{soon}</span> : null}
     </>
   );
-  if (soon) return <div aria-disabled className="flex min-h-16 items-center gap-3 rounded-[16px] border border-[var(--lp-border-light)] px-4 py-3 text-[var(--lp-text-sub)]">{body}</div>;
   return (
     <button
       type="button"

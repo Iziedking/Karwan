@@ -13,7 +13,7 @@ Karwan unifies online reputation with an agentic economic model. People join a n
 | 01 | [Workspace](01-workspace.md) | How the pieces fit: people, the workspace, the rails underneath | Direction agreed |
 | 02 | [Deal link](02-deal-link.md) | A seller creates a link, a buyer pays from anywhere, the money is held, the seller is paid | Partly live |
 | 03 | [Direct offers](03-direct-offers.md) | A seller finds a request and offers on it; the buyer compares and accepts | Built, not yet deployed |
-| 04 | [Instant top-up](04-instant-top-up.md) | One balance; a buyer funds a deal even when the money is on other chains | Partly live |
+| 04 | [Top up from another chain](04-instant-top-up.md) | One balance; a buyer funds a deal even when the money is on other chains | Partly live |
 | 05 | [Sign-in and motion](05-sign-in.md) | How a person gets in, and how the sign-in art loads without slowing that down | Designed |
 | 06 | [Record](06-record.md) | How a completed sale becomes proof that is hard to fake | Designed |
 | 07 | [Escrow](07-escrow.md) | One engine for any deal: one-time, milestones, goods, pay on delivery, hourly, retainer, instalments, deposits | v3 built, extensions planned |

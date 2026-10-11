@@ -405,8 +405,6 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
         {request.anyChain ? (
           <PayOption icon="chain" selected={method === 'chain'} onSelect={() => setMethod('chain')} title={copy.optChain} sub={copy.optChainSub} />
         ) : null}
-        <PayOption icon="card" soon={copy.soon} title={copy.optCard} sub={copy.optCardSub} />
-        <PayOption icon="phone" soon={copy.soon} title={copy.optUssd} sub={copy.optUssdSub} />
       </div>
 
       {method === 'chain' ? (
@@ -469,22 +467,19 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
   );
 }
 
-const OPTION_ICON: Record<'balance' | 'wallet' | 'chain' | 'card' | 'phone', string> = {
+const OPTION_ICON: Record<'balance' | 'wallet' | 'chain', string> = {
   balance: 'M3 7h18v12H3zM3 7l2-3h14l2 3M16 13h2',
   wallet: 'M3 7h15a3 3 0 0 1 3 3v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 7l12-3v3M17 13h1',
   chain: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 18h2v2h-2z',
-  card: 'M3 6h18v12H3zM3 10h18M7 15h3',
-  phone: 'M8 3h8a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM11 18h2',
 };
 
-/// One way to pay. Rails that are not live yet show and say so, and do nothing.
-function PayOption({ icon, title, sub, selected, onSelect, soon }: {
+/// One way to pay.
+function PayOption({ icon, title, sub, selected, onSelect }: {
   icon: keyof typeof OPTION_ICON;
   title: string;
   sub?: string;
   selected?: boolean;
   onSelect?: () => void;
-  soon?: string;
 }) {
   const body = (
     <>
@@ -493,12 +488,8 @@ function PayOption({ icon, title, sub, selected, onSelect, soon }: {
         <span className="block text-[15px] font-semibold">{title}</span>
         {sub ? <span className="mt-0.5 block text-[14px] font-medium text-[var(--lp-text-sub)]">{sub}</span> : null}
       </span>
-      {soon ? <span className="shrink-0 rounded-full bg-[var(--lp-light)] px-2.5 py-1 text-[13px] font-medium text-[var(--lp-text-sub)]">{soon}</span> : null}
     </>
   );
-  if (soon) {
-    return <div aria-disabled className="flex min-h-16 items-center gap-3 rounded-[16px] border border-[var(--lp-border-light)] px-4 py-3 text-[var(--lp-text-sub)]">{body}</div>;
-  }
   return (
     <button
       type="button"

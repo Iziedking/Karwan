@@ -236,15 +236,6 @@ function RailPanel({
 }) {
   const copy = useTranslations().depositRails;
 
-  if (rail === 'onramp') {
-    return (
-      <ComingSoonPanel
-        body={copy.onramp.body}
-        action={direction === 'in' ? copy.onramp.inLabel : copy.onramp.outLabel}
-        soon={copy.soon}
-      />
-    );
-  }
   // Only an email or passkey account is ever offered this rail (see railModel),
   // so reaching it means there is an address to show.
   if (rail === 'direct') return <DepositCard />;

@@ -52,8 +52,8 @@ test('earnings go to the Karwan balance in one tap, then the receipt', async ({ 
   await page.goto(`/cashout/${JOB}`);
   await expect(page.getByText(copy.earnings)).toBeVisible();
   await expect(page.getByRole('radio', { name: new RegExp(copy.optBalance) })).toHaveAttribute('aria-checked', 'true');
-  await expect(page.getByText(copy.optBank)).toBeVisible();
-  await expect(page.getByRole('radio', { name: new RegExp(copy.optBank) })).toHaveCount(0);
+  // No bank or local-currency option until a provider is contracted.
+  await expect(page.getByText(/bank|local currency/i)).toHaveCount(0);
   // No internals: no wallet kinds, no burn and mint.
   await expect(page.getByText(/Deal wallet|Identity wallet|Burn|Mint/)).toHaveCount(0);
   await page.getByRole('button', { name: copy.moveCta.replace('{amount}', '56.25') }).click();

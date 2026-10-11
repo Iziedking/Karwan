@@ -32,9 +32,9 @@ const PRIMARY =
 const SECONDARY =
   'inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--tint)] px-5 text-[15px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:bg-[var(--line)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]';
 const QUIET =
-  'inline-flex min-h-10 items-center rounded-full bg-[var(--tint)] px-4 text-[14px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:bg-[var(--line)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]';
+  'inline-flex min-h-11 items-center rounded-full bg-[var(--tint)] px-4 text-[14px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:bg-[var(--line)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]';
 const CHIP =
-  'inline-flex min-h-10 items-center rounded-full bg-[var(--tint)] px-3.5 text-[14px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:bg-[var(--line)] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]';
+  'inline-flex min-h-11 items-center rounded-full bg-[var(--tint)] px-3.5 text-[14px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:bg-[var(--line)] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]';
 const OPTION =
   'flex min-h-12 cursor-pointer items-center justify-between gap-3 rounded-full bg-[var(--tint)] px-4 text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none has-[:checked]:bg-[var(--ink)] has-[:checked]:text-[var(--canvas)] has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[var(--action)]';
 const SOFT = 'bg-[var(--tint)] motion-safe:animate-pulse motion-reduce:animate-none rounded-full';
@@ -330,10 +330,6 @@ function CrossChainFlow({ intent }: { intent: CrossChainIntent }) {
           <section aria-labelledby="cross-where" className="space-y-6">
             <h2 id="cross-where" className="text-[22px] font-medium text-[var(--ink)]">{t.fromExchange}</h2>
             <DepositCard />
-            <p className="flex items-center justify-between gap-3 border-t border-[var(--lp-border-light)] pt-4 text-[15px] text-[var(--lp-dark)]">
-              {t.cardOrBank}
-              <span className="text-[14px] text-[var(--lp-text-sub)] font-medium">{t.comingSoon}</span>
-            </p>
           </section>
         ) : intent === 'move' && !wallet ? (
           <section className="space-y-3">
@@ -377,12 +373,6 @@ function CrossChainFlow({ intent }: { intent: CrossChainIntent }) {
                   {intent === 'pay' && ADDRESS.test(payee) ? (
                     <p className="pt-2 text-[14px] text-[var(--lp-dark)]">
                       <AddressText template={t.payTo} address={groupAddress(payee)} />
-                    </p>
-                  ) : null}
-                  {intent === 'add' ? (
-                    <p className="flex items-center justify-between gap-3 border-t border-[var(--lp-border-light)] pt-4 text-[15px] text-[var(--lp-dark)]">
-                      {t.cardOrBank}
-                      <span className="text-[14px] text-[var(--lp-text-sub)] font-medium">{t.comingSoon}</span>
                     </p>
                   ) : null}
                 </fieldset>

@@ -133,16 +133,14 @@ test('an account short of the amount gets its address, and Pay lights once the U
 const RECEIVING = '0x5a1e000000000000000000000000000000000abc';
 const SOLANA = 'So1anaReceive1111111111111111111111111111';
 
-test('pay with: wallet first, any chain when available, card and USSD shown as coming soon and inert', async ({ page }) => {
+test('pay with: wallet first, any chain when available, and nothing promised that is not live', async ({ page }) => {
   await mockApi(page, { request: { ...openRequest, anyChain: true } });
   await page.goto(`/deposit/request/${TOKEN}`);
   const options = page.getByRole('radiogroup', { name: copy.pay.payWith });
   await expect(options.getByRole('radio', { name: new RegExp(copy.pay.optWallet) })).toHaveAttribute('aria-checked', 'true');
   await expect(options.getByRole('radio', { name: new RegExp(copy.pay.optChain) })).toBeVisible();
-  await expect(options.getByText(copy.pay.optCard)).toBeVisible();
-  await expect(options.getByText(copy.pay.optUssd)).toBeVisible();
-  await expect(options.getByText(copy.pay.soon)).toHaveCount(2);
-  await expect(options.getByRole('radio', { name: new RegExp(copy.pay.optCard) })).toHaveCount(0);
+  await expect(options.getByRole('radio')).toHaveCount(2);
+  await expect(options.getByText(/card|bank|USSD|soon/i)).toHaveCount(0);
 });
 
 test('send from any chain: the request address, the exact amount, part payment, then paid and an account offer', async ({ page }) => {

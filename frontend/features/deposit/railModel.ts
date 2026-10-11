@@ -6,10 +6,10 @@
 /// branches, which is why they disagreed. They live here instead, as data, so
 /// the page renders what this says and a test can state what a user is offered.
 ///
-/// A rail is never hidden because it is unfinished. It is shown as SOON, because
-/// "there is a fourth way and it is coming" is information, and a rail that
-/// appears the week it ships is a page that changed shape under the user.
-export type DepositRail = 'onramp' | 'direct' | 'gateway' | 'cctp';
+/// A rail Karwan runs but this account cannot use yet is shown as SOON. A rail
+/// that needs a provider Karwan has no agreement with, such as card or bank
+/// funding, is not shown at all: SOON there would be a promise.
+export type DepositRail = 'direct' | 'gateway' | 'cctp';
 
 export type RailState =
   /// Usable now.
@@ -69,7 +69,6 @@ export function railsFor(input: {
       // Gateway needs a wallet to sign a burn intent, so an email account
       // cannot use it yet. The card already says exactly this.
       { id: 'gateway', state: circle ? 'soon' : 'ready' },
-      { id: 'onramp', state: 'soon' },
     ];
   }
 
@@ -87,7 +86,6 @@ export function railsFor(input: {
     // Out of Arc, CCTP is the route that works for every account today.
     { id: 'cctp', state: 'ready' },
     { id: 'gateway', state: circle ? 'soon' : 'ready' },
-    { id: 'onramp', state: 'soon' },
   ];
 }
 

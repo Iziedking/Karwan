@@ -23,8 +23,8 @@ test('an email account adds by address, with nothing to choose', async ({ page }
   await page.goto('/bridge?intent=add');
   await expect(page.getByRole('heading', { level: 1, name: 'Add USDC' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'From an exchange or another app' })).toBeVisible();
-  await expect(page.getByText('Card or bank')).toBeVisible();
-  await expect(page.getByText('Coming soon')).toBeVisible();
+  // Nothing is promised before a provider is contracted.
+  await expect(page.getByText(/card|bank|coming soon/i)).toHaveCount(0);
   await expect(page.getByText(/gateway|cctp/i)).toHaveCount(0);
 });
 

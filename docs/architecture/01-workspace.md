@@ -23,7 +23,7 @@ flowchart LR
   subgraph Rails[Rails underneath]
     Arc[Arc<br/>USDC settlement]
     CW[Circle wallets<br/>passkey and agent wallets]
-    GW[Circle Gateway<br/>Instant top-up]
+    GW[Circle Gateway<br/>Top up from another chain]
     IN[Local pay-in partner<br/>bank, mobile money, card]
     OUT[Local payout partner<br/>bank, mobile money]
     MSG[Messaging<br/>chat apps, email]

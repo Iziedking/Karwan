@@ -13,6 +13,7 @@ import { makeQueryPersister, persistOptions } from '@/core/queryPersister';
 import { QueryInvalidator } from '@/core/queryInvalidator';
 import { LiveCallerSync } from '@/shared/components/LiveCallerSync';
 import { LocaleProvider } from '@/shared/i18n/LocaleProvider';
+import { RouteTitle } from '@/shared/components/RouteTitle';
 import { GuideProvider } from '@/shared/guide/GuideProvider';
 import { AssistantWidget } from '@/shared/components/AssistantWidget';
 import { SiweGate } from '@/shared/components/SiweGate';
@@ -68,8 +69,13 @@ export function AppProviders({
     <RainbowKitProvider theme={theme} modalSize="compact" appInfo={{ appName: 'Karwan' }}>
       <GlobalLoadingSplash />
       <SiweGate />
-      <QueryInvalidator />
-      <LiveCallerSync />
+      {/* The landing page shows nothing live, so it opens no event stream. */}
+      {pathname === '/' ? null : (
+        <>
+          <QueryInvalidator />
+          <LiveCallerSync />
+        </>
+      )}
       <WorkspaceProvider>
         <GuideProvider>
           {children}
@@ -87,6 +93,7 @@ export function AppProviders({
   return (
     <MotionConfig reducedMotion="user">
     <LocaleProvider initialLocale={initialLocale}>
+      <RouteTitle />
       <WagmiProvider config={wagmiConfig}>
         {persister ? (
           <PersistQueryClientProvider

@@ -26,6 +26,7 @@ import { passportCopy, type PassportCopy } from './passport';
 import { personCheckCopy, type PersonCheckCopy } from './personCheck';
 import { moneyOutCopy, type MoneyOutCopy } from './moneyOut';
 import { recordCopy, type RecordCopy } from './record';
+import { routeTitlesCopy, type RouteTitleCopy } from './routeTitles';
 import { chatTermsCopy, type ChatTermsCopy } from './chatTerms';
 import { sealedRecordCopy, type SealedRecordCopy } from './sealedRecord';
 import { recoveryCopy, type RecoveryCopy } from './recovery';
@@ -52,6 +53,7 @@ interface MessagesShape {
   personCheck: PersonCheckCopy;
   moneyOut: MoneyOutCopy;
   record: RecordCopy;
+  routeTitles: RouteTitleCopy;
   chatTerms: ChatTermsCopy;
   sealedRecord: SealedRecordCopy;
   recovery: RecoveryCopy;
@@ -2465,15 +2467,6 @@ interface MessagesShape {
     direct: { tab: string; tag: string; title: string; blurb: string };
     gateway: { tab: string; tag: string; title: string; blurb: string; tabOut: string; titleOut: string; blurbOut: string };
     cctp: { tab: string; tag: string; title: string; blurb: string };
-    onramp: {
-      tab: string;
-      tag: string;
-      title: string;
-      blurb: string;
-      body: string;
-      inLabel: string;
-      outLabel: string;
-    };
   };
   /// Why a wallet is not at the next tier yet. One block, used by the passport,
   /// the profile card and the stake page, because all three used to answer this
@@ -5336,6 +5329,7 @@ export const en: MessagesShape = {
   personCheck: personCheckCopy.en,
   moneyOut: moneyOutCopy.en,
   record: recordCopy.en,
+  routeTitles: routeTitlesCopy.en,
   chatTerms: chatTermsCopy.en,
   sealedRecord: sealedRecordCopy.en,
   recovery: recoveryCopy.en,
@@ -7807,7 +7801,7 @@ export const en: MessagesShape = {
       primaryMarketsPlaceholder: 'e.g. MEASA, EU',
       annualVolume: 'Annual volume',
       minOrder: 'Min order',
-      minOrderPlaceholder: 'e.g. 500 units, or $5k',
+      minOrderPlaceholder: 'e.g. 500 units, or 5,000 USD',
       leadTimeDays: 'Lead time (days)',
       leadTimePlaceholder: 'e.g. 21',
       certifications: 'Certifications',
@@ -7837,15 +7831,15 @@ export const en: MessagesShape = {
       other: 'Other',
     },
     employeeBands: {
-      micro: 'Micro (< 10)',
-      small: 'Small (10–50)',
-      medium: 'Medium (50–250)',
+      micro: 'Micro, under 10',
+      small: 'Small, 10 to 50',
+      medium: 'Medium, 50 to 250',
     },
     volumeBands: {
-      under100k: 'Under $100k',
-      from100kTo1m: '$100k – $1M',
-      from1mTo10m: '$1M – $10M',
-      over10m: 'Over $10M',
+      under100k: 'Under 100,000 USD',
+      from100kTo1m: '100,000 to 1,000,000 USD',
+      from1mTo10m: '1,000,000 to 10,000,000 USD',
+      over10m: 'Over 10,000,000 USD',
     },
   },
   creditPassport: {
@@ -7996,9 +7990,9 @@ export const en: MessagesShape = {
       tooltip: 'Moves USDC between your own two agent wallets. Both belong to you, so nothing leaves your account.',
     },
     gateway: {
-      label: 'Instant top-up',
+      label: 'Top up from another chain',
       tooltip: 'Brings in money you hold on other networks. One approval, lands in seconds.',
-      fundCta: 'Instant top-up',
+      fundCta: 'Top up from another chain',
       noRecipient: 'This agent has no wallet on record yet, so there is nowhere to send the money.',
     },
     chain: {
@@ -8022,11 +8016,11 @@ export const en: MessagesShape = {
       blurb: 'Send USDC to this address from any chain you hold it on. It reaches Arc on its own and shows up as spendable.',
     },
     gateway: {
-      tab: 'Instant top-up',
-      tag: 'Instant top-up',
+      tab: 'Top up',
+      tag: 'Top up from another chain',
       title: 'Add money from other networks',
       blurb: "Keep USDC from any network in one unified balance. When your Arc balance runs low, pay from it in one approval, in seconds.",
-      tabOut: "Instant withdraw",
+      tabOut: 'Withdraw',
       titleOut: "Withdraw to other networks",
       blurbOut: "Send USDC from your unified balance to any network in one approval. It lands in seconds.",
     },
@@ -8035,15 +8029,6 @@ export const en: MessagesShape = {
       tag: 'Chain transfer',
       title: 'Move between two chains',
       blurb: 'Burns on the chain you are sending from and mints on the one you are sending to. The right tool for a one-off move.',
-    },
-    onramp: {
-      tab: 'Card & bank',
-      tag: 'Card and bank',
-      title: 'Your local currency',
-      blurb: 'Deposit, spend and withdraw in your local currency. Card or bank transfer, both ways.',
-      body: 'Not open yet. Every other route here settles in USDC. This one converts your currency to USDC on the way in, and back on the way out.',
-      inLabel: 'Buy USDC',
-      outLabel: 'Cash out to a bank',
     },
   },
   tierProgress: {
@@ -8375,7 +8360,7 @@ export const en: MessagesShape = {
       nudge: 'Best for a one off transfer. Your money goes straight from one chain to another.',
     },
     gateway: {
-      tag: 'Instant top-up',
+      tag: 'Top up from another chain',
       title: 'Add money from other networks',
       protocol: '',
       blurb: 'Add USDC from another network, then move it here. Each step asks for your approval.',
@@ -8402,13 +8387,13 @@ export const en: MessagesShape = {
     reverted: 'The network rejected this, so the money did not move.',
   },
   gatewayTopUp: {
-    cta: 'Instant top-up',
+    cta: 'Top up from another chain',
     fundPool: 'Add money',
     moving: 'Moving',
     done: 'Funded',
     failed: 'Funding failed.',
     feePreparationFailed: 'Circle could not prepare the transfer fee. Nothing moved. Refresh and try again.',
-    availableTemplate: '{amount} ready for an instant top-up.',
+    availableTemplate: '{amount} ready to top up from another chain.',
     shortTemplate: 'You have {have} ready. This needs {need}.',
   },
   agentStakeBinding: {
@@ -8424,9 +8409,9 @@ export const en: MessagesShape = {
   },
   gatewayCard: {
     connectCta: 'Connect wallet',
-    soonTag: 'Instant top-up',
+    soonTag: 'Top up from another chain',
     soonBody: 'Add USDC from your Karwan account. Your receipt reference appears as the movement is recorded.',
-    tag: 'Instant top-up',
+    tag: 'Top up from another chain',
     title: 'Add money from other networks',
     confirmed: 'Confirmed',
     pending: 'Pending',
@@ -10515,7 +10500,7 @@ export const en: MessagesShape = {
       q9: { q: 'Where does the agent reasoning run?', a: "Agents compare candidates and propose terms within your budget and deadline. You review the terms before funding. Contract rules determine later releases, refunds and disputes." },
       q10: { q: "How does Karwan keep delivery safe?", a: "Every delivered link is checked for safety and checked against the agreed request. A delivery that fails either check pauses the payment. Checks cannot guarantee quality, so inspect the work before you release." },
       q11: { q: 'Can I bring my reputation from other platforms?', a: 'Not yet. Karwan is building this so your record from other platforms can count here, with your permission and without leaking your data. Today your reputation comes from completed Karwan deals.' },
-      q12: { q: "How do I get paid with a payment link?", a: "Create a link on Request and share it. The payer needs no account. They can pay from their Karwan balance, from a connected wallet, or with Send from any chain, which shows an address for EVM chains and one for Solana so they can pay from an exchange or any wallet. Money sent that way reaches your own address on Arc automatically. Sending less counts as part payment and the page shows what is left. Sending more marks the link paid and the extra is yours. Card or bank and USSD are coming soon." },
+      q12: { q: "How do I get paid with a payment link?", a: "Create a link on Request and share it. The payer needs no account. They can pay from their Karwan balance, from a connected wallet, or with Send from any chain, which shows an address for EVM chains and one for Solana so they can pay from an exchange or any wallet. Money sent that way reaches your own address on Arc automatically. Sending less counts as part payment and the page shows what is left. Sending more marks the link paid and the extra is yours." },
     },
     videoGuides: { eyebrow: 'Guided help', title: 'Know what to do next', body: 'Use the page tour on sensitive screens when you need context. It stays out of the way for returning users and can be opened again from the page control.', badge: 'In the app' },
     cta: { title: 'Start building your record', body: 'Agree the terms, fund USDC escrow, and every completed deal adds to your reputation.', button: 'Launch app', chainPrefix: 'chain' },

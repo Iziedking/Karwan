@@ -23,6 +23,7 @@ import { passportCopy } from './passport';
 import { personCheckCopy } from './personCheck';
 import { moneyOutCopy } from './moneyOut';
 import { recordCopy } from './record';
+import { routeTitlesCopy } from './routeTitles';
 import { chatTermsCopy } from './chatTerms';
 import { sealedRecordCopy } from './sealedRecord';
 import { recoveryCopy } from './recovery';
@@ -50,6 +51,7 @@ export const sw: Messages = {
   personCheck: personCheckCopy.sw,
   moneyOut: moneyOutCopy.sw,
   record: recordCopy.sw,
+  routeTitles: routeTitlesCopy.sw,
   chatTerms: chatTermsCopy.sw,
   sealedRecord: sealedRecordCopy.sw,
   recovery: recoveryCopy.sw,
@@ -2478,7 +2480,7 @@ export const sw: Messages = {
       primaryMarketsPlaceholder: 'mf. MEASA, EU',
       annualVolume: 'Kiasi cha mwaka',
       minOrder: 'Oda ya chini',
-      minOrderPlaceholder: 'mf. vipande 500, au $5k',
+      minOrderPlaceholder: 'mf. vipande 500, au USD 5,000',
       leadTimeDays: 'Muda wa kuandaa (siku)',
       leadTimePlaceholder: 'mf. 21',
       certifications: 'Vyeti',
@@ -2508,15 +2510,15 @@ export const sw: Messages = {
       other: 'Nyingine',
     },
     employeeBands: {
-      micro: 'Ndogo sana (< 10)',
-      small: 'Ndogo (10–50)',
-      medium: 'Kati (50–250)',
+      micro: 'Ndogo sana, chini ya 10',
+      small: 'Ndogo, 10 hadi 50',
+      medium: 'Kati, 50 hadi 250',
     },
     volumeBands: {
-      under100k: 'Chini ya $100k',
-      from100kTo1m: '$100k – $1M',
-      from1mTo10m: '$1M – $10M',
-      over10m: 'Zaidi ya $10M',
+      under100k: 'Chini ya USD 100,000',
+      from100kTo1m: 'USD 100,000 hadi 1,000,000',
+      from1mTo10m: 'USD 1,000,000 hadi 10,000,000',
+      over10m: 'Zaidi ya USD 10,000,000',
     },
   },
   creditPassport: {
@@ -2667,9 +2669,9 @@ export const sw: Messages = {
       tooltip: 'Huhamisha USDC kati ya pochi zako mbili za wakala. Zote ni zako, hakuna kinachotoka kwenye akaunti yako.',
     },
     gateway: {
-      label: 'Ongeza salio papo hapo',
+      label: 'Ongeza salio kutoka mtandao mwingine',
       tooltip: 'Huleta pesa ulizo nazo kwenye mitandao mingine. Idhinisho moja, zinafika kwa sekunde chache.',
-      fundCta: 'Ongeza salio papo hapo',
+      fundCta: 'Ongeza salio kutoka mtandao mwingine',
       noRecipient: 'Wakala huyu hana pochi iliyorekodiwa, hivyo hakuna pa kutuma fedha.',
     },
     chain: {
@@ -2693,11 +2695,11 @@ export const sw: Messages = {
       blurb: 'Tuma USDC kwenye anwani hii kutoka mtandao wowote unaoshikilia. Zinafika Arc zenyewe na kuwa tayari kutumika.',
     },
     gateway: {
-      tab: 'Ongeza salio papo hapo',
-      tag: 'Ongeza salio papo hapo',
+      tab: 'Ongeza salio',
+      tag: 'Ongeza salio kutoka mtandao mwingine',
       title: 'Ongeza pesa kutoka mitandao mingine',
       blurb: "Weka USDC kutoka mtandao wowote kwenye salio moja lililounganishwa. Salio lako la Arc likipungua, lipa kutoka humo kwa idhini moja, kwa sekunde.",
-      tabOut: "Kutoa papo hapo",
+      tabOut: 'Toa',
       titleOut: "Toa kwenda mitandao mingine",
       blurbOut: "Tuma USDC kutoka salio lako lililounganishwa kwenda mtandao wowote kwa idhini moja. Inafika kwa sekunde.",
     },
@@ -2706,15 +2708,6 @@ export const sw: Messages = {
       tag: 'Uhamisho wa mtandao',
       title: 'Hamisha kati ya mitandao miwili',
       blurb: 'Huchoma kwenye mtandao unaotuma kutoka na kutengeneza kwenye unaotuma kwake. Njia sahihi kwa uhamisho wa mara moja.',
-    },
-    onramp: {
-      tab: 'Kadi na benki',
-      tag: 'Kadi na benki',
-      title: 'Sarafu yako ya nyumbani',
-      blurb: 'Weka, tumia na utoe kwa sarafu yako ya nyumbani. Kadi au uhamisho wa benki, njia zote mbili.',
-      body: 'Haijafunguliwa bado. Njia zote nyingine hapa hukamilika kwa USDC. Hii hubadilisha sarafu yako kuwa USDC unapoingiza, na kurudi unapotoa.',
-      inLabel: 'Nunua USDC',
-      outLabel: 'Toa kwenda benki',
     },
   },
   tierProgress: {
@@ -3035,7 +3028,7 @@ export const sw: Messages = {
       nudge: 'Bora kwa uhamisho wa mara moja. Pesa yako huenda moja kwa moja kutoka mnyororo mmoja hadi mwingine.',
     },
     gateway: {
-      tag: 'Ongeza salio papo hapo',
+      tag: 'Ongeza salio kutoka mtandao mwingine',
       title: 'Ongeza pesa kutoka mitandao mingine',
       protocol: '',
       blurb: 'Ongeza USDC kutoka mtandao mwingine, kisha uihamishe hapa. Kila hatua inaomba idhini yako.',
@@ -3062,13 +3055,13 @@ export const sw: Messages = {
     reverted: 'Mtandao umeikataa, kwa hivyo pesa hazikuhamishwa.',
   },
   gatewayTopUp: {
-    cta: 'Ongeza salio papo hapo',
+    cta: 'Ongeza salio kutoka mtandao mwingine',
     fundPool: 'Ongeza pesa',
     moving: 'Inahamisha',
     done: 'Imewekwa',
     failed: 'Kufadhili kumeshindwa.',
     feePreparationFailed: 'Circle haikuweza kuandaa ada ya uhamisho. Hakuna kilichohamishwa. Onyesha upya kisha ujaribu tena.',
-    availableTemplate: '{amount} tayari kwa kuongeza salio papo hapo.',
+    availableTemplate: '{amount} tayari kuongeza salio kutoka mtandao mwingine.',
     shortTemplate: 'Una {have} tayari. Hii inahitaji {need}.',
   },
   agentStakeBinding: {
@@ -3084,9 +3077,9 @@ export const sw: Messages = {
   },
   gatewayCard: {
     connectCta: 'Unganisha pochi',
-    soonTag: 'Ongeza salio papo hapo',
+    soonTag: 'Ongeza salio kutoka mtandao mwingine',
     soonBody: 'Bado haiko tayari kwa akaunti za barua pepe. Amana zinaendelea kufanya kazi kama kawaida.',
-    tag: 'Ongeza salio papo hapo',
+    tag: 'Ongeza salio kutoka mtandao mwingine',
     title: 'Ongeza pesa kutoka mitandao mingine',
     confirmed: 'Imethibitishwa',
     pending: 'Inasubiri',
@@ -5070,7 +5063,7 @@ export const sw: Messages = {
       q9: { q: 'Mawazo ya wakala yanafanyika wapi?', a: 'Kila uamuzi unaogusa fedha unashughulikiwa na seti ya kanuni za uhakika nyuma: mipaka ya bajeti na tarehe ya mwisho, ulinganisho wa mada, mahitaji ya dhamana, hesabu ya kuhifadhi. Mfano wa lugha hushughulikia tu sehemu zinazohitaji hukumu, kama vile kama maelezo mawili ya ujuzi yasiyofanana yanaelezea kazi ile ile, au jinsi ya kuandika kaunta. Ikiwa mfano wa lugha unazimika, wakala unaendelea kufanya kazi kupitia njia zake za uhakika za salama.' },
       q10: { q: "Karwan inawezaje kuweka uwasilishaji salama?", a: "Kila kiungo kilichowasilishwa hukaguliwa kwa usalama na dhidi ya ombi lililokubaliwa. Uwasilishaji unaoshindwa ukaguzi wowote husimamisha malipo. Ukaguzi hauwezi kuhakikisha ubora, kwa hivyo kagua kazi kabla ya kuachilia." },
       q11: { q: 'Je, naweza kuleta sifa yangu kutoka majukwaa mengine?', a: 'Bado. Karwan inajenga hili ili rekodi yako kwenye majukwaa mengine ihesabiwe hapa, kwa ruhusa yako na bila kuvujisha data yako. Leo sifa yako inatokana na biashara za Karwan zilizokamilika.' },
-      q12: { q: "Ninalipwaje kwa kiungo cha malipo?", a: "Unda kiungo kwenye Omba na ukishiriki. Mlipaji hahitaji akaunti. Anaweza kulipa kutoka salio lake la Karwan, kutoka pochi iliyounganishwa, au kwa Tuma kutoka mnyororo wowote, inayoonyesha anwani ya minyororo ya EVM na moja ya Solana ili alipe kutoka soko la kubadilishana au pochi yoyote. Pesa inayotumwa hivyo hufika kwenye anwani yako kwenye Arc moja kwa moja. Kiasi kidogo huhesabiwa kama malipo ya sehemu na ukurasa unaonyesha kilichobaki. Kiasi kikubwa huweka kiungo kama kimelipwa na ziada ni yako. Kadi au benki na USSD zinakuja hivi karibuni." },
+      q12: { q: "Ninalipwaje kwa kiungo cha malipo?", a: "Unda kiungo kwenye Omba na ukishiriki. Mlipaji hahitaji akaunti. Anaweza kulipa kutoka salio lake la Karwan, kutoka pochi iliyounganishwa, au kwa Tuma kutoka mnyororo wowote, inayoonyesha anwani ya minyororo ya EVM na moja ya Solana ili alipe kutoka soko la kubadilishana au pochi yoyote. Pesa inayotumwa hivyo hufika kwenye anwani yako kwenye Arc moja kwa moja. Kiasi kidogo huhesabiwa kama malipo ya sehemu na ukurasa unaonyesha kilichobaki. Kiasi kikubwa huweka kiungo kama kimelipwa na ziada ni yako." },
     },
     videoGuides: { eyebrow: 'Miongozo ya video', title: 'Itazame ikifanya kazi', body: 'Video fupi za kila mtiririko zinakuja. Wakati zinaandaliwa, ziara ya ndani ya programu inakuongoza hatua kwa hatua kwenye kila ukurasa. Ifungue kutoka kitufe cha Ziara chini ya skrini.', badge: 'Inakuja hivi karibuni' },
     cta: { title: 'Anza kujenga rekodi yako', body: 'Kubaliana masharti, fadhili escrow ya USDC, na kila biashara iliyokamilika inaongeza kwenye sifa yako.', button: 'Zindua programu', chainPrefix: 'chenya' },

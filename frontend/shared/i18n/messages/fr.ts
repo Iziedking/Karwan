@@ -23,6 +23,7 @@ import { passportCopy } from './passport';
 import { personCheckCopy } from './personCheck';
 import { moneyOutCopy } from './moneyOut';
 import { recordCopy } from './record';
+import { routeTitlesCopy } from './routeTitles';
 import { chatTermsCopy } from './chatTerms';
 import { sealedRecordCopy } from './sealedRecord';
 import { recoveryCopy } from './recovery';
@@ -50,6 +51,7 @@ export const fr: Messages = {
   personCheck: personCheckCopy.fr,
   moneyOut: moneyOutCopy.fr,
   record: recordCopy.fr,
+  routeTitles: routeTitlesCopy.fr,
   chatTerms: chatTermsCopy.fr,
   sealedRecord: sealedRecordCopy.fr,
   recovery: recoveryCopy.fr,
@@ -2481,7 +2483,7 @@ export const fr: Messages = {
       primaryMarketsPlaceholder: 'ex. MEASA, UE',
       annualVolume: 'Volume annuel',
       minOrder: 'Commande min.',
-      minOrderPlaceholder: 'ex. 500 unités, ou 5 k$',
+      minOrderPlaceholder: 'ex. 500 unités, ou 5 000 USD',
       leadTimeDays: 'Délai (jours)',
       leadTimePlaceholder: 'ex. 21',
       certifications: 'Certifications',
@@ -2511,15 +2513,15 @@ export const fr: Messages = {
       other: 'Autre',
     },
     employeeBands: {
-      micro: 'Micro (< 10)',
-      small: 'Petite (10–50)',
-      medium: 'Moyenne (50–250)',
+      micro: 'Micro, moins de 10',
+      small: 'Petite, de 10 à 50',
+      medium: 'Moyenne, de 50 à 250',
     },
     volumeBands: {
-      under100k: 'Moins de 100 k$',
-      from100kTo1m: '100 k$ – 1 M$',
-      from1mTo10m: '1 M$ – 10 M$',
-      over10m: 'Plus de 10 M$',
+      under100k: 'Moins de 100 000 USD',
+      from100kTo1m: 'De 100 000 à 1 000 000 USD',
+      from1mTo10m: 'De 1 000 000 à 10 000 000 USD',
+      over10m: 'Plus de 10 000 000 USD',
     },
   },
   creditPassport: {
@@ -2670,9 +2672,9 @@ export const fr: Messages = {
       tooltip: "Déplace des USDC entre vos deux portefeuilles d'agent. Les deux vous appartiennent, rien ne quitte votre compte.",
     },
     gateway: {
-      label: 'Recharge instantanée',
+      label: 'Recharger depuis une autre chaîne',
       tooltip: 'Utilise l’argent que vous détenez sur d’autres réseaux. Une approbation, et il arrive en quelques secondes.',
-      fundCta: 'Recharge instantanée',
+      fundCta: 'Recharger depuis une autre chaîne',
       noRecipient: "Cet agent n'a pas encore de portefeuille enregistré, il n'y a donc nulle part où envoyer les fonds.",
     },
     chain: {
@@ -2696,11 +2698,11 @@ export const fr: Messages = {
       blurb: "Envoyez des USDC à cette adresse depuis n'importe quelle chaîne. Ils rejoignent Arc tout seuls et deviennent disponibles.",
     },
     gateway: {
-      tab: 'Recharge instantanée',
-      tag: 'Recharge instantanée',
+      tab: 'Recharger',
+      tag: 'Recharger depuis une autre chaîne',
       title: 'Ajouter de l’argent depuis d’autres réseaux',
       blurb: "Gardez des USDC de n'importe quel réseau dans un solde unifié. Quand votre solde sur Arc baisse, payez avec lui en une validation, en quelques secondes.",
-      tabOut: "Retrait instantané",
+      tabOut: 'Retirer',
       titleOut: "Retirer vers d'autres réseaux",
       blurbOut: "Envoyez des USDC de votre solde unifié vers n'importe quel réseau en une validation. Arrivée en quelques secondes.",
     },
@@ -2709,15 +2711,6 @@ export const fr: Messages = {
       tag: 'Transfert de chaîne',
       title: 'Déplacer entre deux chaînes',
       blurb: "Brûle sur la chaîne de départ et émet sur celle d'arrivée. L'outil adapté à un transfert ponctuel.",
-    },
-    onramp: {
-      tab: 'Carte et banque',
-      tag: 'Carte et banque',
-      title: 'Votre monnaie locale',
-      blurb: 'Déposez, dépensez et retirez dans votre monnaie locale. Carte ou virement, dans les deux sens.',
-      body: "Pas encore ouverte. Toutes les autres routes ici se règlent en USDC. Celle-ci convertit votre monnaie en USDC à l'entrée, et l'inverse à la sortie.",
-      inLabel: 'Acheter des USDC',
-      outLabel: 'Retirer vers une banque',
     },
   },
   tierProgress: {
@@ -3038,7 +3031,7 @@ export const fr: Messages = {
       nudge: 'Idéal pour un transfert ponctuel. Votre argent passe directement d’une chaîne à une autre.',
     },
     gateway: {
-      tag: 'Recharge instantanée',
+      tag: 'Recharger depuis une autre chaîne',
       title: 'Ajouter de l’argent depuis d’autres réseaux',
       protocol: '',
       blurb: 'Ajoutez des USDC depuis un autre réseau, puis transférez-les ici. Chaque étape demande votre accord.',
@@ -3065,13 +3058,13 @@ export const fr: Messages = {
     reverted: 'Le réseau a rejeté cette opération, l’argent n’a pas bougé.',
   },
   gatewayTopUp: {
-    cta: 'Recharge instantanée',
+    cta: 'Recharger depuis une autre chaîne',
     fundPool: 'Ajouter de l’argent',
     moving: 'Transfert',
     done: 'Financé',
     failed: 'Le financement a échoué.',
     feePreparationFailed: "Circle n’a pas pu préparer les frais du transfert. Rien n’a bougé. Actualisez puis réessayez.",
-    availableTemplate: '{amount} prêts pour une recharge instantanée.',
+    availableTemplate: '{amount} prêts à recharger depuis une autre chaîne.',
     shortTemplate: 'Vous avez {have} disponibles. Il faut {need}.',
   },
   agentStakeBinding: {
@@ -3087,9 +3080,9 @@ export const fr: Messages = {
   },
   gatewayCard: {
     connectCta: 'Connecter le portefeuille',
-    soonTag: 'Recharge instantanée',
+    soonTag: 'Recharger depuis une autre chaîne',
     soonBody: 'Pas encore disponible pour les comptes e-mail. Les dépôts fonctionnent normalement.',
-    tag: 'Recharge instantanée',
+    tag: 'Recharger depuis une autre chaîne',
     title: 'Ajouter de l’argent depuis d’autres réseaux',
     confirmed: 'Confirmé',
     pending: 'En attente',
@@ -5073,7 +5066,7 @@ export const fr: Messages = {
       q9: { q: 'Où tourne le raisonnement de l\'agent?', a: 'Chaque décision qui touche à l\'argent est gérée par un jeu de règles déterministe côté backend: bornes de budget et d\'échéance, correspondance thématique, exigences de mise, calcul de réservation. Un modèle de langue ne traite que les parties qui demandent un jugement, comme savoir si deux descriptions de compétences sans recouvrement décrivent le même travail, ou comment formuler une contre-offre. Si le modèle de langue tombe, l\'agent continue de fonctionner via ses replis déterministes.' },
       q10: { q: "Comment Karwan sécurise-t-il la livraison ?", a: "Chaque lien livré est contrôlé pour sa sécurité et vérifié par rapport à la demande convenue. Une livraison qui échoue à l'un de ces contrôles suspend le paiement. Les contrôles ne garantissent pas la qualité : examinez le travail avant de libérer." },
       q11: { q: 'Puis-je apporter ma réputation d’autres plateformes ?', a: 'Pas encore. Karwan construit cette fonction pour que votre historique sur d’autres plateformes compte ici, avec votre accord et sans divulguer vos données. Aujourd’hui, votre réputation vient des échanges Karwan conclus.' },
-      q12: { q: "Comment être payé avec un lien de paiement ?", a: "Créez un lien dans Demander et partagez-le. Le payeur n'a pas besoin de compte. Il peut payer depuis son solde Karwan, depuis un portefeuille connecté, ou avec Envoyer depuis n'importe quelle chaîne, qui affiche une adresse pour les chaînes EVM et une pour Solana afin de payer depuis une plateforme d'échange ou tout portefeuille. L'argent envoyé ainsi arrive automatiquement à votre adresse sur Arc. Un montant inférieur compte comme paiement partiel et la page indique le reste. Un montant supérieur marque le lien comme payé et le surplus vous revient. Carte ou banque et USSD arrivent bientôt." },
+      q12: { q: "Comment être payé avec un lien de paiement ?", a: "Créez un lien dans Demander et partagez-le. Le payeur n'a pas besoin de compte. Il peut payer depuis son solde Karwan, depuis un portefeuille connecté, ou avec Envoyer depuis n'importe quelle chaîne, qui affiche une adresse pour les chaînes EVM et une pour Solana afin de payer depuis une plateforme d'échange ou tout portefeuille. L'argent envoyé ainsi arrive automatiquement à votre adresse sur Arc. Un montant inférieur compte comme paiement partiel et la page indique le reste. Un montant supérieur marque le lien comme payé et le surplus vous revient." },
     },
     videoGuides: { eyebrow: 'Guides vidéo', title: 'Voyez-le en action', body: 'De courtes vidéos de chaque flux arrivent bientôt. En attendant, la visite intégrée vous guide pas à pas sur chaque page. Ouvrez-la depuis le bouton Visite en bas de l\'écran.', badge: 'Bientôt' },
     cta: { title: 'Commencez à construire votre historique', body: 'Convenez des conditions, financez le séquestre en USDC, et chaque échange conclu renforce votre réputation.', button: 'Lancer l\'app', chainPrefix: 'chaîne' },
