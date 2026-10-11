@@ -603,8 +603,9 @@ jobsRoutes.post('/:jobId/approve-match', async (c) => {
       ? await proceedAgentNearMiss(jobId, proposal.sellerAgent, proposal.raisedPriceUsdc!)
       : await approveAgentMatch(jobId);
     if (!result.ok) {
-      const status = result.code === 'INSUFFICIENT_AGENT_BALANCE' ? 409 : 502;
-      return c.json({ error: 'approval failed', code: result.code, detail: result.message }, status);
+      const status = result.code === 'INSUFFICIENT_AGENT_BALANCE' || result.code === 'CHAT_DEAL_LIMIT' ? 409 : 502;
+      const error = result.code === 'CHAT_DEAL_LIMIT' ? result.message : 'approval failed';
+      return c.json({ error, code: result.code, detail: result.message }, status);
     }
     return c.json({ accepted: true, jobId, txHash: result.txHash }, 200);
   } finally {
@@ -644,8 +645,9 @@ jobsRoutes.post('/:jobId/choose-offer', async (c) => {
     const result = await chooseAgentOffer(jobId, body.seller);
     if (!result.ok) {
       refuse(result.code);
-      const status = result.code === 'INSUFFICIENT_AGENT_BALANCE' || result.code === 'CLOSED' || result.code.startsWith('ALREADY') ? 409 : result.code === 'NO_OFFER' ? 404 : 502;
-      return c.json({ error: 'could not choose this offer', code: result.code, detail: result.message }, status);
+      const status = result.code === 'INSUFFICIENT_AGENT_BALANCE' || result.code === 'CHAT_DEAL_LIMIT' || result.code === 'CLOSED' || result.code.startsWith('ALREADY') ? 409 : result.code === 'NO_OFFER' ? 404 : 502;
+      const error = result.code === 'CHAT_DEAL_LIMIT' ? result.message : 'could not choose this offer';
+      return c.json({ error, code: result.code, detail: result.message }, status);
     }
     return c.json({ accepted: true, jobId, txHash: result.txHash }, 200);
   } finally {

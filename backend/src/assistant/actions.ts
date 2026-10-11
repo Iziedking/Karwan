@@ -99,7 +99,7 @@ export interface CashOutPayload {
 export interface ApproveMatchPayload {
   jobId: string;
   caller: string;
-  /// Read by the chat executor's deal gate; the route ignores them.
+  /// For the confirm card only; the route reads the stored proposal.
   amountUsdc?: number;
   buyer?: string;
   seller?: string;

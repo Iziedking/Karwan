@@ -23,6 +23,8 @@ import { ESCROW_FUNDED, buildFundEscrowCall } from '../chain/settlement.js';
 import { v3FundingEnabled } from '../chain/dealEscrowV3Live.js';
 import { fundAgentMatchV3, type V3DealRecord } from './fundAgentMatchV3.js';
 import { fundAgentMatchV3Deps } from '../deals/fundDirectV3Live.js';
+import { chatFundingRefusal } from '../deals/chatDealGate.js';
+import { chatFundingDeps } from '../deals/chatFundingLive.js';
 import { jobBoardAbi } from '../chain/abis/jobBoard.js';
 import { executeContractCall } from '../chain/txs.js';
 import { negotiationModel } from '../llm/client.js';
@@ -3862,6 +3864,15 @@ export async function approveAgentMatch(
   }
   const state = jobs.get(jobId as `0x${string}`);
   if (!state) return { ok: false, code: 'NO_JOB_STATE', message: 'job state not in memory' };
+
+  // The buyer's agent funds here whoever approved, so a chat buyer's limits
+  // hold even when the seller is the one who says yes.
+  const chatLimit = await chatFundingRefusal(chatFundingDeps, {
+    buyer: proposal.buyerUser,
+    seller: proposal.sellerUser,
+    amountUsdc: Number(proposal.agreedPriceUsdc),
+  });
+  if (!chatLimit.ok) return { ok: false, code: 'CHAT_DEAL_LIMIT', message: chatLimit.message };
 
   const seller = proposal.sellerAgent as `0x${string}`;
 

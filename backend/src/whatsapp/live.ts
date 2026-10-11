@@ -20,8 +20,7 @@ import { assistantAgentModel } from '../llm/client.js';
 import { logger } from '../logger.js';
 import { setInboundHandler, setOpenRedeemer } from '../routes/whatsapp.js';
 import type { ExtractedInvoice } from '../verification/invoice.js';
-import { addVerifiedFact, cacReview, clientConfirmations, levelOf } from '../verification/live.js';
-import { chatDealGate } from '../deals/chatDealGate.js';
+import { addVerifiedFact, cacReview, clientConfirmations } from '../verification/live.js';
 import { installVerificationServices } from '../verification/services.js';
 import { createDispatcher } from './dispatch.js';
 import { createExecutor } from './executor.js';
@@ -216,18 +215,7 @@ export function startWhatsappAgent(): void {
       }
       return { ok: false, error: String(r.json.error ?? 'assistant-unavailable'), code: r.json.code as string | undefined };
     },
-    executeConfirm: createExecutor({
-      call: callAsAccount,
-      ...(config.VERIFIED_NETWORK_ONLY
-        ? {
-            fundingGate: async (account, deal) => {
-              const [buyer, seller] = await Promise.all([levelOf(account.address), levelOf(deal.seller)]);
-              const gate = chatDealGate({ amountUsdc: deal.amountUsdc, buyer, seller });
-              return gate.ok ? { ok: true as const } : { ok: false as const, message: gate.message };
-            },
-          }
-        : {}),
-    }),
+    executeConfirm: createExecutor({ call: callAsAccount }),
     clientAnswer: async (requestId, from, yes) => {
       const fact = await clientConfirm.answer(requestId, from, yes);
       if (fact) return 'Thank you. Your confirmation is on their record.';

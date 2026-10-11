@@ -29,3 +29,22 @@ export function chatDealGate(input: { amountUsdc: number; buyer: Ladder; seller:
   }
   return { ok: true };
 }
+
+export interface ChatFundingDeps {
+  enabled: boolean;
+  /// Karwan holds the keys of an account opened in a chat.
+  isChatAccount: (address: string) => Promise<boolean>;
+  levelOf: (address: string) => Promise<Ladder>;
+}
+
+/// Asked by every path that pays into escrow, not by a channel. A chat account
+/// that opens a browser session from a one-time link is held to the same
+/// limits as in the chat. Accounts that hold their own keys are not chat deals.
+export async function chatFundingRefusal(
+  deps: ChatFundingDeps,
+  input: { buyer: string; seller: string; amountUsdc: number },
+): Promise<ChatDealGate> {
+  if (!deps.enabled || !(await deps.isChatAccount(input.buyer.toLowerCase()))) return { ok: true };
+  const [buyer, seller] = await Promise.all([deps.levelOf(input.buyer.toLowerCase()), deps.levelOf(input.seller.toLowerCase())]);
+  return chatDealGate({ amountUsdc: input.amountUsdc, buyer, seller });
+}

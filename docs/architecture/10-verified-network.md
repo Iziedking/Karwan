@@ -77,7 +77,7 @@ sequenceDiagram
 |---|---|---|
 | Registered | Accepted the terms, described their work | Their own account |
 | Person verified | A person check (World ID, or an ID check where World ID is not available), plus one account they own (X) or a matching business registration | A public record |
-| Work verified | Independent proof of work: a verified past client's confirmation (an invoice can back it, never alone), public work on GitHub, a registered business with a client confirmation, or a completed Karwan deal | Discoverable by agents |
+| Work verified | Independent proof of work: a verified past client's confirmation (an invoice can back it, never alone), public work on GitHub, or a completed Karwan deal | Discoverable by agents |
 | ID verified | A government ID check | Deals of 100 USDC and above |
 
 ## Finding a counterparty and agreeing terms
@@ -241,4 +241,4 @@ Chainlink CRE runs the same checks in a sandbox on a decentralised network, so a
 | Funding from a bank or USSD | Planned. Provider to be chosen |
 | X and other channels | Planned, after the WhatsApp beta |
 
-Contract and module notes: the channel adapter calls the same assistant turn as the app, and confirm buttons run the app's own routes and checks. Facts are written to a facts contract that also receives completed deals from the escrow. The x402 payment uses a separate signing wallet per agent, because Circle Gateway accepts only plain signatures on payment authorisations.
+Contract and module notes: the channel adapter calls the same assistant turn as the app, and confirm buttons run the app's own routes and checks. The chat deal limits live in the funding routes, not in the adapter, so a browser session opened from a chat link meets the same limits. Facts are written to a facts contract that also receives completed deals from the escrow. The x402 payment uses a separate signing wallet per agent, because Circle Gateway accepts only plain signatures on payment authorisations.

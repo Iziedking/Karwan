@@ -24,6 +24,8 @@ import { readDisputeClocksV3, requireDealEscrowV3, v3FundingEnabled } from '../c
 import { DEAL_STATE } from '../chain/dealEscrowV3.js';
 import { chooseFundingEscrow, fundDirectDealV3, type EscrowVersion } from '../deals/fundDirectV3.js';
 import { fundDirectV3Deps } from '../deals/fundDirectV3Live.js';
+import { chatFundingRefusal } from '../deals/chatDealGate.js';
+import { chatFundingDeps } from '../deals/chatFundingLive.js';
 import { dealEscrowOps, escrowAddressOf } from '../deals/dealEscrowOpsLive.js';
 import { splitMicros } from '../deals/arbiterV3.js';
 import {
@@ -2185,6 +2187,14 @@ dealsRoutes.post('/direct/:jobId/fund', async (c) => {
       { error: 'the seller must agree to the terms before funding', code: 'SELLER_APPROVAL_REQUIRED' },
       409,
     );
+  }
+  const chatLimit = await chatFundingRefusal(chatFundingDeps, {
+    buyer: deal.buyer,
+    seller: deal.seller,
+    amountUsdc: Number(deal.dealAmountUsdc),
+  });
+  if (!chatLimit.ok) {
+    return c.json({ error: chatLimit.message, code: 'CHAT_DEAL_LIMIT', reason: chatLimit.reason }, 409);
   }
   if (inFlight.has(jobId)) {
     return c.json({ error: 'an action is already in progress for this deal' }, 409);

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { chatDealGate } from './chatDealGate.js';
+import { chatDealGate, chatFundingRefusal, type ChatFundingDeps } from './chatDealGate.js';
 
 const work = 'work_verified' as const;
 const id = 'id_verified' as const;
@@ -37,4 +37,51 @@ test('every refusal explains itself in plain words', () => {
     assert.equal(r.ok, false);
     assert.match((r as { message: string }).message, /usdc|verif/i);
   }
+});
+
+const CHAT_BUYER = '0x00000000000000000000000000000000000000c1';
+const WEB_BUYER = '0x00000000000000000000000000000000000000b1';
+const SELLER = '0x00000000000000000000000000000000000000a1';
+
+function deps(over: Partial<ChatFundingDeps> = {}): ChatFundingDeps {
+  return {
+    enabled: true,
+    isChatAccount: async (address) => address === CHAT_BUYER,
+    levelOf: async () => work,
+    ...over,
+  };
+}
+
+test('a chat account paying from any session is held to the beta limits', async () => {
+  const r = await chatFundingRefusal(deps(), { buyer: CHAT_BUYER, seller: SELLER, amountUsdc: 100 });
+  assert.equal(r.ok, false);
+  assert.equal((r as { reason: string }).reason, 'needs_id');
+  assert.deepEqual(await chatFundingRefusal(deps(), { buyer: CHAT_BUYER, seller: SELLER, amountUsdc: 50 }), { ok: true });
+});
+
+test('the buyer address is compared without regard to case', async () => {
+  const r = await chatFundingRefusal(deps(), { buyer: CHAT_BUYER.toUpperCase().replace('0X', '0x'), seller: SELLER, amountUsdc: 2_000 });
+  assert.equal(r.ok, false);
+});
+
+test('an account that holds its own keys and an off switch both pass untouched', async () => {
+  assert.deepEqual(await chatFundingRefusal(deps(), { buyer: WEB_BUYER, seller: SELLER, amountUsdc: 5_000 }), { ok: true });
+  assert.deepEqual(
+    await chatFundingRefusal(deps({ enabled: false }), { buyer: CHAT_BUYER, seller: SELLER, amountUsdc: 5_000 }),
+    { ok: true },
+  );
+});
+
+test('every path that pays into escrow asks the gate before money moves', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const deals = await readFile(new URL('../routes/deals.ts', import.meta.url), 'utf8');
+  const fund = deals.slice(deals.indexOf("dealsRoutes.post('/direct/:jobId/fund'"), deals.indexOf("dealsRoutes.post('/direct/:jobId/delivered'"));
+  assert.ok(fund.indexOf('chatFundingRefusal(') > 0, 'direct funding asks the gate');
+  assert.ok(fund.indexOf('chatFundingRefusal(') < fund.indexOf('inFlight.add(jobId)'), 'before anything is provisioned or signed');
+
+  const buyer = await readFile(new URL('../agents/buyer.ts', import.meta.url), 'utf8');
+  const approve = buyer.slice(buyer.indexOf('export async function approveAgentMatch('));
+  const body = approve.slice(0, approve.indexOf('\nexport '));
+  assert.ok(body.indexOf('chatFundingRefusal(') > 0, 'matched funding asks the gate');
+  assert.ok(body.indexOf('chatFundingRefusal(') < body.indexOf('sellerLinkRefusal('), 'before any chain step');
 });

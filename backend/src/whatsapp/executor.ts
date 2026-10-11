@@ -164,15 +164,9 @@ function stableBridgeId(actionId: string): string {
   return `chat-${actionId.replace(/[^a-zA-Z0-9._-]/g, '-')}`.slice(0, 120);
 }
 
-type FundingGate = (
-  account: { address: string },
-  deal: { amountUsdc: number; seller: string },
-) => Promise<{ ok: true } | { ok: false; message: string }>;
-
-/// Intents that pay into escrow from the buyer agent.
-const FUNDING = new Set<ConfirmAction['intent']>(['approve_match', 'choose_offer', 'fund_direct_deal']);
-
-export function createExecutor(deps: { call: Call; fundingGate?: FundingGate }) {
+/// The chat deal limits are not checked here: every route that pays into
+/// escrow asks deals/chatDealGate itself, whatever channel the call came from.
+export function createExecutor(deps: { call: Call }) {
   const used = new Set<string>();
 
   return async function executeConfirm(account: { address: string }, action: ConfirmAction): Promise<ExecuteResult> {
@@ -196,17 +190,6 @@ export function createExecutor(deps: { call: Call; fundingGate?: FundingGate }) 
     const route = ROUTES[action.intent];
     if (!route) return { ok: false, reason: 'refused', message: 'This step needs a wallet signature, so it has to be done in the Karwan app.' };
 
-    if (deps.fundingGate && FUNDING.has(action.intent)) {
-      const buyer = typeof p.buyer === 'string' ? p.buyer.toLowerCase() : account.address.toLowerCase();
-      if (buyer === account.address.toLowerCase()) {
-        const amountUsdc = Number(p.amountUsdc);
-        if (!Number.isFinite(amountUsdc) || amountUsdc <= 0 || typeof p.seller !== 'string') {
-          return { ok: false, reason: 'stale', message: 'I could not confirm the amount. Ask me again for the current step.' };
-        }
-        const gate = await deps.fundingGate(account, { amountUsdc, seller: p.seller });
-        if (!gate.ok) return { ok: false, reason: 'refused', message: gate.message };
-      }
-    }
     used.add(action.id);
     if (action.intent === 'fund_direct_deal') return finish(action, await fundDirect(deps.call, account.address, p));
     const step = route(p, action);
@@ -240,6 +223,7 @@ function finish(action: ConfirmAction, res: { status: number; json: Record<strin
   const txHash = typeof res.json.txHash === 'string' ? res.json.txHash : typeof res.json.depositTxHash === 'string' ? res.json.depositTxHash : undefined;
   const error = typeof res.json.error === 'string' ? res.json.error : undefined;
 
+  if (res.json.code === 'CHAT_DEAL_LIMIT' && error) return { ok: false, reason: 'refused', message: error };
   if (res.status >= 400 && res.status < 500) {
     return { ok: false, reason: 'stale', message: error ?? 'Things changed since I prepared this. Ask me again for the current step.' };
   }

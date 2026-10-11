@@ -112,52 +112,15 @@ test('cancel_deal follows its step', async () => {
   assert.deepEqual(calls[0].body, { caller: ME, reason: 'Changed plans', kind: 'mutual' });
 });
 
-test('a funding card the deal gate refuses never reaches the route', async () => {
-  const calls: string[] = [];
+test('a refusal from the chat deal limits is passed on in the words of the route', async () => {
   const execute = createExecutor({
-    call: async (_a, _m, path) => {
-      calls.push(path);
-      return { status: 200, json: { txHash: '0x1' } };
-    },
-    fundingGate: async (_account, deal) =>
-      deal.amountUsdc >= 100 ? { ok: false, message: 'Deals of 100 USDC and above need an ID check from both sides first.' } : { ok: true },
+    call: async () => ({
+      status: 409,
+      json: { error: 'Deals of 100 USDC and above need an ID check from both sides first.', code: 'CHAT_DEAL_LIMIT' },
+    }),
   });
-  const big = await execute({ address: ME }, action('choose_offer', { jobId: '0xj', caller: ME, seller: '0xs', amountUsdc: 250 }, 'g1'));
-  assert.equal(big.ok, false);
-  assert.match((big as { message: string }).message, /ID check/);
-  assert.equal(calls.length, 0);
-  const small = await execute({ address: ME }, action('choose_offer', { jobId: '0xj', caller: ME, seller: '0xs', amountUsdc: 50 }, 'g2'));
-  assert.equal(small.ok, true);
-  assert.equal(calls.length, 1);
-});
-
-test('the gate applies to approve_match only when the buyer approves', async () => {
-  const gated: string[] = [];
-  const execute = createExecutor({
-    call: async () => ({ status: 200, json: {} }),
-    fundingGate: async (account) => {
-      gated.push(account.address);
-      return { ok: true };
-    },
-  });
-  await execute({ address: ME }, action('approve_match', { jobId: '0xj', caller: ME, buyer: '0xother', seller: ME, amountUsdc: 50 }, 'g3'));
-  assert.equal(gated.length, 0, 'the seller approving does not fund');
-  await execute({ address: ME }, action('approve_match', { jobId: '0xj', caller: ME, buyer: ME, seller: '0xs', amountUsdc: 50 }, 'g4'));
-  assert.equal(gated.length, 1);
-});
-
-test('a funding card without its amount is refused when the gate is on', async () => {
-  const calls: string[] = [];
-  const execute = createExecutor({
-    call: async (_a, _m, path) => {
-      calls.push(path);
-      return { status: 200, json: {} };
-    },
-    fundingGate: async () => ({ ok: true }),
-  });
-  const r = await execute({ address: ME }, action('choose_offer', { jobId: '0xj', caller: ME, seller: '0xs' }, 'g5'));
-  assert.equal(r.ok, false);
-  assert.equal(calls.length, 0);
+  const r = await execute({ address: ME }, action('choose_offer', { jobId: '0xj', caller: ME, seller: '0xs', amountUsdc: 250 }, 'g1'));
+  assert.deepEqual(r, { ok: false, reason: 'refused', message: 'Deals of 100 USDC and above need an ID check from both sides first.' });
 });
 
 test('create_direct_deal opens the deal through the app route with the agreed terms', async () => {
