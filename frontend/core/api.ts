@@ -1624,6 +1624,43 @@ export interface AgentBindingStatus {
   vault?: `0x${string}`;
 }
 
+/// Money leaving a wallet Karwan signs for (backend/src/routes/moneyOut.ts).
+export type MoneyOutCheck = 'enrol' | 'add_address' | 'return' | 'unpause';
+/// A chain key as the backend names it: 'arc', a CCTP key, or 'solanaDevnet'.
+export interface MoneyOutDestination {
+  chain: string;
+  address: string;
+}
+export interface SavedPayoutAddress extends MoneyOutDestination {
+  id: string;
+  addedAt: number;
+  opensAt: number;
+}
+export interface MoneyOutStatus {
+  enabled: boolean;
+  kind: 'chat' | 'web';
+  hasSession: boolean;
+  paused: boolean;
+  returnCheckDue: boolean;
+  addresses: SavedPayoutAddress[];
+  limitUsdc: string;
+  leftUsdc: string;
+  moreAt: number | null;
+}
+/// A World ID 4.0 session request signed by the backend.
+export interface WorldSessionRequest {
+  provider: 'world-id';
+  proofMode: 'session';
+  sessionId?: string;
+  appId: string;
+  rpId: string;
+  environment: 'staging' | 'production';
+  nonce: string;
+  sig: string;
+  created_at: number;
+  expires_at: number;
+}
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -3916,6 +3953,20 @@ export const api = {
     json<{ callerStatus: 'skipped' | 'verified' | null }>(`/api/deals/direct/${jobId}/high-signal/skip`, {
       method: 'POST', body: JSON.stringify({ caller }),
     }),
+  moneyOutStatus: () => json<MoneyOutStatus>('/api/money-out/status'),
+  moneyOutSessionRequest: (purpose: MoneyOutCheck) =>
+    json<{ request: WorldSessionRequest }>('/api/money-out/session/request', {
+      method: 'POST',
+      body: JSON.stringify({ purpose }),
+    }),
+  moneyOutSessionVerify: (purpose: MoneyOutCheck, idkitResponse: Record<string, unknown>, destination?: MoneyOutDestination) =>
+    json<{ ok: true; purpose: MoneyOutCheck; address?: SavedPayoutAddress }>('/api/money-out/session/verify', {
+      method: 'POST',
+      body: JSON.stringify({ purpose, idkitResponse, ...destination }),
+    }),
+  moneyOutRemoveAddress: (id: string) =>
+    json<{ ok: true }>(`/api/money-out/addresses/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  moneyOutPause: () => json<{ ok: true; paused: true }>('/api/money-out/pause', { method: 'POST', body: '{}' }),
   record: (tag: string) =>
     json<{
       displayName: string | null;

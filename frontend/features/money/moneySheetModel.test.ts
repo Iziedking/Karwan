@@ -200,3 +200,9 @@ test('only a found tag that is not your own can be paid', () => {
   assert.equal(tagLookupStatus({ state: 'done', result: found }), 'ok');
   assert.equal(tagLookupStatus({ state: 'done', result: { ...found, self: true } }), 'invalid');
 });
+
+test('a send the money-out guard kept in shows its reason, not a failure', () => {
+  const refusal = { code: 'ADDRESS_NOT_SAVED' as const };
+  assert.deepEqual(fromArcSend({ phase: 'error', error: 'Add this address', refusal }, 'account'), { kind: 'guarded', refusal });
+  assert.equal(sheetProgress({ kind: 'guarded', refusal }), null);
+});

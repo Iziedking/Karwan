@@ -1,6 +1,7 @@
 import type { FundPhase } from '@/features/profile/hooks/useArcFund';
 import type { CircleFundPhase } from '@/features/profile/hooks/useCircleFund';
 import type { BridgePhase } from '@/features/bridge/hooks/useBridge';
+import type { MoneyOutRefusal } from '@/features/moneyOut/refusal';
 import { fromMicros, toMicros } from './usdc';
 
 export type MoneyMove = 'topUp' | 'withdraw' | 'send';
@@ -101,7 +102,10 @@ export type SheetState =
   | { kind: 'confirmed'; reference: string | null; txHash: string | null }
   | { kind: 'slow'; reference: string | null; txHash: string | null }
   | { kind: 'reverted' }
-  | { kind: 'failed'; declined: boolean };
+  | { kind: 'failed'; declined: boolean }
+  /// The money-out guard kept the money in: nothing was sent, and the reason
+  /// has its own next step.
+  | { kind: 'guarded'; refusal: MoneyOutRefusal };
 
 export type SheetStep = 'signed' | 'sent' | 'confirmed';
 export const SHEET_STEPS: SheetStep[] = ['signed', 'sent', 'confirmed'];
@@ -183,10 +187,11 @@ export function fromCircleFund(record: (Ids & { phase: CircleFundPhase }) | null
 /// the chain key 'arc'. A wallet-signed send sits in 'burning' while the wallet
 /// asks; a backend-signed one is already on its way.
 export function fromArcSend(
-  record: { phase: BridgePhase; burnTxHash?: string; mintTxHash?: string; error?: string } | null,
+  record: { phase: BridgePhase; burnTxHash?: string; mintTxHash?: string; error?: string; refusal?: MoneyOutRefusal } | null,
   signer: 'wallet' | 'account',
 ): SheetState {
   if (!record) return signer === 'wallet' ? { kind: 'signing' } : { kind: 'sent' };
+  if (record.phase === 'error' && record.refusal) return { kind: 'guarded', refusal: record.refusal };
   const txHash = record.mintTxHash ?? record.burnTxHash ?? null;
   switch (record.phase) {
     case 'switching':

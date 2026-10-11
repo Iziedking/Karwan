@@ -24,6 +24,7 @@ import { payLinkCopy, type PayLinkCopy } from './payLink';
 import { requestPageCopy, type RequestPageCopy } from './requestPage';
 import { passportCopy, type PassportCopy } from './passport';
 import { personCheckCopy, type PersonCheckCopy } from './personCheck';
+import { moneyOutCopy, type MoneyOutCopy } from './moneyOut';
 import { recordCopy, type RecordCopy } from './record';
 import { chatTermsCopy, type ChatTermsCopy } from './chatTerms';
 import { sealedRecordCopy, type SealedRecordCopy } from './sealedRecord';
@@ -49,6 +50,7 @@ interface MessagesShape {
   requestPage: RequestPageCopy;
   passport: PassportCopy;
   personCheck: PersonCheckCopy;
+  moneyOut: MoneyOutCopy;
   record: RecordCopy;
   chatTerms: ChatTermsCopy;
   sealedRecord: SealedRecordCopy;
@@ -5331,6 +5333,7 @@ export const en: MessagesShape = {
   requestPage: requestPageCopy.en,
   passport: passportCopy.en,
   personCheck: personCheckCopy.en,
+  moneyOut: moneyOutCopy.en,
   record: recordCopy.en,
   chatTerms: chatTermsCopy.en,
   sealedRecord: sealedRecordCopy.en,

@@ -45,6 +45,10 @@ export interface MoneyWorld {
   tags?: Record<string, { displayName: string; address: string }>;
   /// The live stream's body, served on every (re)connection.
   events?: () => string;
+  /// Same-chain send from the account's own wallet.
+  arcSend?: (route: Route) => Promise<void>;
+  /// Every /api/money-out/* call: status, World ID checks, remove, pause.
+  moneyOut?: (route: Route, path: string) => Promise<void>;
 }
 
 /// One live-stream event in the stream's own framing.
@@ -119,6 +123,8 @@ export async function serveMoney(page: Page, world: MoneyWorld) {
     if (path === '/api/activation/fund-agent' && world.fundAgent) return world.fundAgent(route);
     if (path === '/api/activation/withdraw' && world.withdraw) return world.withdraw(route);
     if (path === '/api/bridge/circle-bridge-out' && world.bridgeOut) return world.bridgeOut(route);
+    if (path === '/api/cashout/arc-send' && world.arcSend) return world.arcSend(route);
+    if (path.startsWith('/api/money-out/') && world.moneyOut) return world.moneyOut(route, path);
     if (path === '/api/events') {
       return route.fulfill({
         status: 200,

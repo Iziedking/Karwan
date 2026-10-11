@@ -21,6 +21,7 @@ import { payLinkCopy } from './payLink';
 import { requestPageCopy } from './requestPage';
 import { passportCopy } from './passport';
 import { personCheckCopy } from './personCheck';
+import { moneyOutCopy } from './moneyOut';
 import { recordCopy } from './record';
 import { chatTermsCopy } from './chatTerms';
 import { sealedRecordCopy } from './sealedRecord';
@@ -47,6 +48,7 @@ export const ar: Messages = {
   requestPage: requestPageCopy.ar,
   passport: passportCopy.ar,
   personCheck: personCheckCopy.ar,
+  moneyOut: moneyOutCopy.ar,
   record: recordCopy.ar,
   chatTerms: chatTermsCopy.ar,
   sealedRecord: sealedRecordCopy.ar,

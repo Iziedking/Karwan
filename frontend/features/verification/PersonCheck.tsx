@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { CredentialRequest, IDKitRequestWidget, any, type IDKitResult } from '@worldcoin/idkit';
-import { api, ApiError } from '@/core/api';
+import { api, ApiError, type MoneyOutStatus } from '@/core/api';
+import { useWorldAccountCheck } from '@/features/moneyOut/useWorldAccountCheck';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { PRIMARY, SECONDARY } from '@/shared/ui/controls';
 
 type Status = Awaited<ReturnType<typeof api.worldIdStatus>>;
 type RpSignature = Awaited<ReturnType<typeof api.worldIdRpSignature>>;
@@ -18,8 +20,15 @@ export function PersonCheck() {
   const [phase, setPhase] = useState<Phase>('idle');
   const [message, setMessage] = useState<string | null>(null);
 
+  // An account Karwan holds the keys of also links a World ID session, which
+  // every later payment to a new address is checked against.
+  const [money, setMoney] = useState<MoneyOutStatus | null>(null);
+  const [linked, setLinked] = useState(false);
+  const link = useWorldAccountCheck(() => setLinked(true));
+
   useEffect(() => {
     api.worldIdStatus().then(setStatus).catch(() => setStatus(null));
+    api.moneyOutStatus().then(setMoney).catch(() => setMoney(null));
   }, []);
 
   const ready = !!status?.configured && !!status.appId && !!status.action && !!status.rpId;
@@ -79,6 +88,34 @@ export function PersonCheck() {
         <p role="alert" className="mt-4 text-[14px] text-[var(--lp-ink)]">
           {message}
         </p>
+      ) : null}
+
+      {money?.kind === 'chat' && (!money.hasSession || linked) ? (
+        <section aria-labelledby="money-link-title" className="mt-10 border-t border-[var(--lp-line)] pt-6">
+          <h2 id="money-link-title" className="text-[20px] font-semibold text-[var(--lp-ink)]">{t.linkTitle}</h2>
+          {linked ? (
+            <p role="status" className="mt-2 text-[15px] text-[var(--lp-text-sub)]">{t.linkDone}</p>
+          ) : (
+            <>
+              <p className="mt-2 text-[15px] leading-relaxed text-[var(--lp-text-sub)]">{t.linkLead}</p>
+              <button
+                type="button"
+                onClick={() => void link.begin('enrol')}
+                disabled={link.phase !== 'idle'}
+                aria-busy={link.phase !== 'idle'}
+                className={`mt-5 ${phase === 'done' ? PRIMARY : SECONDARY}`}
+              >
+                {link.phase !== 'idle' ? t.preparing : t.linkStart}
+              </button>
+              {link.error ? (
+                <p role="alert" className="mt-3 text-[14px] text-[var(--lp-ink)]">
+                  {link.error}
+                </p>
+              ) : null}
+            </>
+          )}
+          {link.widget}
+        </section>
       ) : null}
 
       {status?.appId && status.action && status.rpId && signature ? (

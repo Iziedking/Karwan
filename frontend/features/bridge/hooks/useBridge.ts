@@ -37,6 +37,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { getPhantomProvider, getConflictingWalletName } from '../solanaProvider';
 import { useGuide } from '@/shared/guide/GuideProvider';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { moneyOutRefusalOf, type MoneyOutRefusal } from '@/features/moneyOut/refusal';
 
 const USDC_DECIMALS = 6;
 const STORAGE_KEY_PREFIX = 'karwan:bridges:';
@@ -180,6 +181,8 @@ export interface BridgeRecord {
   burnTxHash?: `0x${string}`;
   mintTxHash?: `0x${string}`;
   error?: string;
+  /// Set when the money-out guard kept the money in. Nothing was sent.
+  refusal?: MoneyOutRefusal;
   startedAt: number;
   updatedAt: number;
 }
@@ -1655,7 +1658,8 @@ export function useBridges() {
           err instanceof ApiError && typeof err.detail === 'string'
             ? err.detail
             : errorToString(err);
-        patch(id, (b) => ({ ...b, phase: 'error', error: detail }));
+        const refusal = moneyOutRefusalOf(err) ?? undefined;
+        patch(id, (b) => ({ ...b, phase: 'error', error: detail, refusal }));
       }
     },
     [patch],

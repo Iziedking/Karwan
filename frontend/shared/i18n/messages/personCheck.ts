@@ -10,6 +10,10 @@ export interface PersonCheckCopy {
   error: string;
   unavailable: string;
   signIn: string;
+  linkTitle: string;
+  linkLead: string;
+  linkStart: string;
+  linkDone: string;
 }
 
 const en: PersonCheckCopy = {
@@ -24,6 +28,10 @@ const en: PersonCheckCopy = {
   error: 'That did not work. Try again.',
   unavailable: 'The person check is not available right now.',
   signIn: 'Open this page from the link the Karwan agent sent you.',
+  linkTitle: 'Link your World ID to your money',
+  linkLead: 'A selfie check in World App. Karwan asks for it again before money leaves your account to a new address.',
+  linkStart: 'Link with World ID',
+  linkDone: 'Linked. Money leaves your account only after a check like this one.',
 };
 
 const ar: PersonCheckCopy = {
@@ -38,6 +46,10 @@ const ar: PersonCheckCopy = {
   error: 'لم ينجح ذلك. حاول مرة أخرى.',
   unavailable: 'التحقق من الشخص غير متاح الآن.',
   signIn: 'افتح هذه الصفحة من الرابط الذي أرسله لك وكيل Karwan.',
+  linkTitle: 'اربط World ID بأموالك',
+  linkLead: 'تحقق بصورة سيلفي في تطبيق World App. تطلبه Karwan مرة أخرى قبل أن يخرج المال من حسابك إلى عنوان جديد.',
+  linkStart: 'اربط عبر World ID',
+  linkDone: 'تم الربط. لا يخرج المال من حسابك إلا بعد تحقق مثل هذا.',
 };
 
 const fr: PersonCheckCopy = {
@@ -52,6 +64,10 @@ const fr: PersonCheckCopy = {
   error: 'Cela n’a pas fonctionné. Réessayez.',
   unavailable: 'La vérification de personne n’est pas disponible pour le moment.',
   signIn: 'Ouvrez cette page depuis le lien envoyé par l’agent Karwan.',
+  linkTitle: 'Liez votre World ID à votre argent',
+  linkLead: 'Une vérification par selfie dans World App. Karwan la redemande avant que de l’argent quitte votre compte vers une nouvelle adresse.',
+  linkStart: 'Lier avec World ID',
+  linkDone: 'C’est lié. L’argent ne quitte votre compte qu’après une vérification comme celle-ci.',
 };
 
 const hi: PersonCheckCopy = {
@@ -66,6 +82,10 @@ const hi: PersonCheckCopy = {
   error: 'यह काम नहीं किया। फिर से कोशिश करें।',
   unavailable: 'व्यक्ति जांच अभी उपलब्ध नहीं है।',
   signIn: 'यह पेज Karwan एजेंट के भेजे लिंक से खोलें।',
+  linkTitle: 'अपने पैसे से अपना World ID जोड़ें',
+  linkLead: 'World App में एक सेल्फ़ी जांच। किसी नए पते पर आपके खाते से पैसा जाने से पहले Karwan इसे फिर से मांगता है।',
+  linkStart: 'World ID से जोड़ें',
+  linkDone: 'जुड़ गया। आपके खाते से पैसा केवल ऐसी ही जांच के बाद निकलता है।',
 };
 
 const sw: PersonCheckCopy = {
@@ -80,6 +100,10 @@ const sw: PersonCheckCopy = {
   error: 'Haikufanya kazi. Jaribu tena.',
   unavailable: 'Ukaguzi wa mtu haupatikani kwa sasa.',
   signIn: 'Fungua ukurasa huu kupitia kiungo ulichotumiwa na wakala wa Karwan.',
+  linkTitle: 'Unganisha World ID yako na pesa zako',
+  linkLead: 'Ukaguzi wa selfie kwenye World App. Karwan huuomba tena kabla pesa haijatoka kwenye akaunti yako kwenda anwani mpya.',
+  linkStart: 'Unganisha kwa World ID',
+  linkDone: 'Imeunganishwa. Pesa hutoka kwenye akaunti yako tu baada ya ukaguzi kama huu.',
 };
 
 export const personCheckCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', PersonCheckCopy> = { en, ar, fr, hi, sw };

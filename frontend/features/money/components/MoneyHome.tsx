@@ -22,6 +22,7 @@ import { useMoneyBalances } from '../hooks/useMoneyBalances';
 import type { AgentKey, MoneyMove } from '../moneySheetModel';
 import { MoneySheet } from './MoneySheet';
 import { RecentMoney } from './RecentMoney';
+import { SavedAddresses } from '@/features/moneyOut/SavedAddresses';
 
 const PRIMARY =
   'inline-flex min-h-12 items-center justify-center rounded-[10px] bg-[var(--accent)] px-6 text-[15px] font-semibold text-[var(--accent-ink)] transition-colors duration-200 hover:bg-[var(--lp-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2';
@@ -160,6 +161,8 @@ function MoneyHomeInner() {
             </ul>
           )}
         </section>
+
+        <SavedAddresses />
 
         <RecentMoney />
 

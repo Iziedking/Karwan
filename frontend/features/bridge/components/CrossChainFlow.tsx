@@ -24,6 +24,8 @@ import { bridgeChainMeta, useBridges } from '../hooks/useBridge';
 import { outAvailable, planOut, poolOutcome, routeSpeed, stepForPhase, walletSources, type TransferStep } from '../routePlan';
 import { BridgeHistoryModal } from './BridgeHistorySection';
 import { TransferProgress } from './TransferProgress';
+import { MoneyOutNotice } from '@/features/moneyOut/MoneyOutNotice';
+import { moneyOutRefusalOf, type MoneyOutRefusal } from '@/features/moneyOut/refusal';
 
 const PRIMARY =
   'inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[var(--action)] px-5 text-[15px] font-medium text-[var(--on-action)] transition-opacity duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:opacity-90 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]';
@@ -42,7 +44,7 @@ type PoolDestination = Parameters<typeof api.gatewayCashOut>[0];
 
 type Started =
   | { kind: 'bridge'; since: number; direction: 'in' | 'out'; chainKey: string }
-  | { kind: 'pool'; startedAt: number; chainKey: CctpChainKey; step: TransferStep | 'failed'; leftSource: boolean; to: `0x${string}`; amount: number; requestId: string };
+  | { kind: 'pool'; startedAt: number; chainKey: CctpChainKey; step: TransferStep | 'failed'; leftSource: boolean; to: `0x${string}`; amount: number; requestId: string; refusal?: MoneyOutRefusal };
 
 /// The one-click /bridge. The person picks a place and an amount; Karwan picks
 /// the route. A payment request link is public; everything else needs an account.
@@ -226,6 +228,11 @@ function CrossChainFlow({ intent }: { intent: CrossChainIntent }) {
       outcome = poolOutcome(result);
       keys = { ids: [result.reference, result.txHash] };
     } catch (err) {
+      const refusal = moneyOutRefusalOf(err);
+      if (refusal) {
+        setStarted({ ...pool, step: 'failed', leftSource: false, refusal });
+        return;
+      }
       const named = err instanceof ApiError ? (err.body as { reference?: unknown } | null)?.reference : null;
       outcome = poolOutcome({ status: err instanceof ApiError ? err.status : null, reference: typeof named === 'string' ? named : null });
     }
@@ -302,7 +309,12 @@ function CrossChainFlow({ intent }: { intent: CrossChainIntent }) {
       </header>
 
       <div className="divide-y divide-[var(--lp-border-light)] [&>*]:py-8">
-        {progress ? (
+        {started?.kind === 'pool' && started.refusal ? (
+          <section className="space-y-4">
+            <MoneyOutNotice refusal={started.refusal} destination={{ chain: started.chainKey, address: started.to }} onCleared={reset} />
+            <button type="button" onClick={reset} className={SECONDARY}>{sheet.close}</button>
+          </section>
+        ) : progress ? (
           <TransferProgress
             {...progress}
             signer={wallet ? 'wallet' : 'account'}

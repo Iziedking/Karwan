@@ -37,6 +37,7 @@ import { useTagRecipient } from '../hooks/useTagRecipient';
 import { AddressText } from './AddressText';
 import { CHIP, PRIMARY, SECONDARY } from '@/shared/ui/controls';
 import { Icon } from '@/shared/components/Icon';
+import { MoneyOutNotice } from '@/features/moneyOut/MoneyOutNotice';
 
 export interface MoneySheetProps {
   open: boolean;
@@ -203,6 +204,11 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
       toAddress: withdrawToAgent ? otherAgentAddress : undefined,
     });
   }
+
+  // Where the payment was going, so a new address is added for exactly it.
+  const sendTo = paidTag ? paidTag.address : recipientCheck.normalized;
+  const goingTo = move === 'send' ? sendTo : withdrawToAgent ? otherAgentAddress : auth.address;
+  const guardedDestination = goingTo ? { chain: 'arc', address: goingTo } : undefined;
 
   function tryAgain() {
     inFlight.current = false;
@@ -381,6 +387,11 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
               </p>
             ) : null}
             <button type="button" onClick={finish} className={`${PRIMARY} w-full`}>{t.sheet.done}</button>
+          </motion.div>
+        ) : state.kind === 'guarded' ? (
+          <motion.div key="guarded" {...fade} className="mt-6 space-y-4">
+            <MoneyOutNotice refusal={state.refusal} destination={guardedDestination} onCleared={tryAgain} />
+            <button type="button" onClick={onClose} className={SECONDARY}>{t.sheet.close}</button>
           </motion.div>
         ) : progress ? (
           <motion.div key="progress" {...fade} className="mt-6 space-y-4">

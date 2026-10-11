@@ -9,6 +9,7 @@ import { useMoneyRefresh } from '@/shared/hooks/useMoneyRefresh';
 import { useArcFund } from '@/features/profile/hooks/useArcFund';
 import { useBridges } from '@/features/bridge/hooks/useBridge';
 import { startedRecord } from '@/features/bridge/crossChainIntent';
+import { moneyOutRefusalOf } from '@/features/moneyOut/refusal';
 import {
   afterRecheck,
   driverFor,
@@ -101,7 +102,9 @@ export function useMoneyMove() {
       } catch (err) {
         // An answer from the backend says what happened. No answer at all (the
         // connection dropped) cannot say, so it waits.
-        if (!(err instanceof ApiError)) next = { kind: 'slow', reference: null, txHash: null };
+        const refusal = moneyOutRefusalOf(err);
+        if (refusal) next = { kind: 'guarded', refusal };
+        else if (!(err instanceof ApiError)) next = { kind: 'slow', reference: null, txHash: null };
         else if (request.move === 'topUp' && request.source !== 'pool') next = fromFundingError(err.status, err.code);
         else next = fromMovementError(err.status, err.message, err.body);
       } finally {
