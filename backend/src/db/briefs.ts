@@ -193,13 +193,14 @@ export function listAllBriefs(): Brief[] {
 
 /// Removes every brief posted by `addressLower`. Used by the admin
 /// reset-history endpoint so an operator can clear test pollution for a
-/// single wallet without wiping the whole flat-file store.
-export function deleteBriefsByPoster(addressLower: string): number {
+/// single wallet without wiping the whole flat-file store. `keep` spares
+/// some, as an account deletion spares requests that became a deal.
+export function deleteBriefsByPoster(addressLower: string, keep: (b: Brief) => boolean = () => false): number {
   load();
   const target = addressLower.toLowerCase();
   let removed = 0;
   for (const [k, v] of store.entries()) {
-    if (v.postedBy.toLowerCase() === target) {
+    if (v.postedBy.toLowerCase() === target && !keep(v)) {
       store.delete(k);
       removed += 1;
     }

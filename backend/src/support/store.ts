@@ -197,6 +197,20 @@ export function closeConversation(id: string): SupportConversation | null {
   return convo;
 }
 
+/// Drops every conversation of one wallet, open or closed, when the account
+/// is deleted.
+export function deleteConversationsFor(address: string): number {
+  const a = address.toLowerCase();
+  let removed = 0;
+  for (const [id, c] of conversations) {
+    if (c.address !== a) continue;
+    conversations.delete(id);
+    removed++;
+  }
+  if (removed) schedulePersist();
+  return removed;
+}
+
 export function deleteConversation(id: string): void {
   if (conversations.delete(id)) schedulePersist();
 }

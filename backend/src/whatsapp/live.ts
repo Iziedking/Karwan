@@ -31,6 +31,7 @@ import { installChannelPorts } from '../channels/sender.js';
 import { createWhatsappNotifier } from '../channels/notifier.js';
 import { RELEVANT, recipientsFor, summaryFor } from '../telegram/notifier.js';
 import { bus } from '../events.js';
+import { accountDeletion } from '../accountDeletion/live.js';
 import { moneyOutChat } from '../moneyOut/live.js';
 
 
@@ -185,6 +186,7 @@ export function startWhatsappAgent(): void {
     },
     media: (account, m) => (account.address ? intake(account.address, m) : Promise.resolve([])),
     moneyOut: moneyOutChat,
+    deletion: accountDeletion,
   });
 
   setInboundHandler(dispatch);

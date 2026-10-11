@@ -3,7 +3,7 @@
 // data/feedback-assets/<id>/<n>.<ext> so the JSON stays small and the bytes can
 // be served directly. Postgres-backed in a future iteration.
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { logger } from '../logger.js';
@@ -156,6 +156,22 @@ export function readFeedbackAsset(
     logger.warn({ err: (err as Error).message, id, index }, 'feedback asset read failed');
     return null;
   }
+}
+
+/// Deletes everything sent from one wallet, screenshots included, when the
+/// account is deleted.
+export function deleteFeedbackFromWallet(address: string): number {
+  load();
+  const a = address.toLowerCase();
+  let removed = 0;
+  for (const [id, fb] of store) {
+    if (fb.context?.wallet?.toLowerCase() !== a) continue;
+    store.delete(id);
+    rmSync(join(ASSET_DIR, id), { recursive: true, force: true });
+    removed++;
+  }
+  if (removed) persist();
+  return removed;
 }
 
 /// Marks a feedback item triaged/resolved. Used by the operator viewer.

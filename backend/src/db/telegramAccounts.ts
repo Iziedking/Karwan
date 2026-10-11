@@ -48,6 +48,16 @@ export async function findTelegramAccountByAddress(address: string): Promise<Tel
   return r.rows[0]?.data ?? null;
 }
 
+/// Deletes the chat account at this address, when the account is deleted.
+export async function deleteTelegramAccountByAddress(address: string): Promise<void> {
+  const key = address.toLowerCase();
+  if (!pgEnabled) {
+    for (const [hash, a] of accountsInMemory) if (a.address === key) accountsInMemory.delete(hash);
+    return;
+  }
+  await postgresExecutor().query(`DELETE FROM telegram_accounts WHERE address = $1`, [key]);
+}
+
 export async function saveTelegramAccount(account: TelegramAccount): Promise<TelegramAccount> {
   const record = { ...account, address: account.address?.toLowerCase() ?? null };
   if (!pgEnabled) {

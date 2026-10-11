@@ -119,6 +119,18 @@ export async function consumeAssistantQuota(
   };
 }
 
+/// Forgets one account's counters, when the account is deleted.
+export async function deleteAssistantUsage(address: string): Promise<void> {
+  const key = address.toLowerCase();
+  if (pgEnabled) {
+    await db().delete(assistantUsage).where(eq(assistantUsage.address, key));
+    return;
+  }
+  const store = loadFile();
+  delete store[key];
+  saveFile(store);
+}
+
 async function read(address: string): Promise<AssistantUsage | null> {
   if (pgEnabled) {
     try {

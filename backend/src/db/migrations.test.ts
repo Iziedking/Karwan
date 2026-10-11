@@ -212,3 +212,12 @@ test('migration 36 holds the money-out guard: addresses, spend, account state an
   assert.match(sql, /purpose TEXT NOT NULL CHECK \(purpose IN \('enrol', 'add_address', 'return', 'unpause'\)\)/);
   assert.match(sql, /UNIQUE \(rp_id, environment, replay_key\)/);
 });
+
+test('migration 37 keeps one open deletion per account', () => {
+  const migration = NUMBERED_MIGRATIONS.find((m) => m.version === 37);
+  assert.equal(migration?.name, 'account_deletions');
+  const sql = migration!.sql;
+  assert.match(sql, /CREATE TABLE account_deletions_v1\b/);
+  assert.match(sql, /state IN \('scheduled', 'cancelled', 'refused', 'erasing', 'done'\)/);
+  assert.match(sql, /CREATE UNIQUE INDEX account_deletions_one_open ON account_deletions_v1 \(address\)\s+WHERE state IN \('scheduled', 'erasing'\)/);
+});

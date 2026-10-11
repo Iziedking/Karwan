@@ -99,6 +99,20 @@ async function contract(store: MoneyOutStore) {
     });
   const results = await Promise.all([attempt('race-1'), attempt('race-2')]);
   assert.deepEqual(results.filter(Boolean).length, 1);
+
+  // Forgetting one account leaves another account's rows alone.
+  const OTHER = '0x00000000000000000000000000000000000000ee';
+  await store.addAddress(OTHER, 'arc', DEST, 8_000);
+  await store.setPaused(OTHER, 30);
+  await store.withAccountLock(OTHER, (spend) => spend.reserve('other-1', usdc(5), 400));
+  await store.setPaused(WALLET, 40);
+  await store.forget(WALLET);
+  assert.deepEqual(await store.listAddresses(WALLET), []);
+  assert.deepEqual(await store.state(WALLET), { pausedAt: null, returnCheckDueAt: null });
+  assert.deepEqual(await store.withAccountLock(WALLET, (spend) => spend.spentSince(0)), []);
+  assert.equal((await store.listAddresses(OTHER)).length, 1);
+  assert.equal((await store.state(OTHER)).pausedAt, 30);
+  assert.equal((await store.withAccountLock(OTHER, (spend) => spend.spentSince(0))).length, 1);
 }
 
 test('the money-out store on Postgres', { skip: !url }, () => withSchema(contract));

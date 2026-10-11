@@ -1090,6 +1090,32 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       CREATE INDEX world_id_account_checks_wallet ON world_id_account_checks_v1 (wallet, expires_at);
     `,
   },
+  {
+    version: 37,
+    name: 'account_deletions',
+    sql: `
+      -- A chat account's deletion, from the confirm tap to the last store.
+      -- Kept after it runs: the address, the dates and what was removed and
+      -- kept. No name and no channel id.
+      CREATE TABLE account_deletions_v1 (
+        id TEXT PRIMARY KEY,
+        address TEXT NOT NULL,
+        channel TEXT NOT NULL,
+        state TEXT NOT NULL CHECK (state IN ('scheduled', 'cancelled', 'refused', 'erasing', 'done')),
+        requested_via TEXT NOT NULL CHECK (requested_via IN ('chat', 'admin')),
+        requested_at BIGINT NOT NULL,
+        due_at BIGINT NOT NULL,
+        closed_at BIGINT,
+        reason TEXT,
+        nullifiers_until BIGINT,
+        nullifiers_released_at BIGINT,
+        record JSONB NOT NULL
+      );
+      CREATE UNIQUE INDEX account_deletions_one_open ON account_deletions_v1 (address)
+        WHERE state IN ('scheduled', 'erasing');
+      CREATE INDEX account_deletions_due ON account_deletions_v1 (state, due_at);
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

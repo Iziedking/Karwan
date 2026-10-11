@@ -48,6 +48,30 @@ export async function listRecords<T>(kind: RecordKind): Promise<{ key: string; d
   return r.rows;
 }
 
+export async function deleteRecord(kind: RecordKind, key: string): Promise<void> {
+  if (!pgEnabled) {
+    memory.delete(memKey(kind, key));
+    return;
+  }
+  await postgresExecutor().query(`DELETE FROM verification_records WHERE kind = $1 AND key = $2`, [kind, key]);
+}
+
+/// Every key of a unique kind that one account holds.
+export async function keysHeldBy(kind: UniqueKind, owner: string): Promise<string[]> {
+  const who = owner.toLowerCase();
+  if (!pgEnabled) {
+    const prefix = `${kind}:`;
+    return [...memory.entries()]
+      .filter(([k, v]) => k.startsWith(prefix) && (v as { owner?: string }).owner === who)
+      .map(([k]) => k.slice(prefix.length));
+  }
+  const r = await postgresExecutor().query<{ key: string }>(
+    `SELECT key FROM verification_records WHERE kind = $1 AND data->>'owner' = $2`,
+    [kind, who],
+  );
+  return r.rows.map((row) => row.key);
+}
+
 /// Ties a key (an invoice fingerprint, a World ID nullifier) to one owner.
 /// True when the key is new or already this owner's.
 export async function claimUnique(kind: UniqueKind, key: string, owner: string): Promise<boolean> {

@@ -73,6 +73,25 @@ export async function saveWhatsappAccount(account: WhatsappAccount): Promise<Wha
   return record;
 }
 
+/// Deletes the chat account at this address and its daily counts, when the
+/// account is deleted.
+export async function deleteWhatsappAccountByAddress(address: string): Promise<void> {
+  const key = address.toLowerCase();
+  if (!pgEnabled) {
+    for (const [hash, a] of accountsInMemory) {
+      if (a.address !== key) continue;
+      accountsInMemory.delete(hash);
+      for (const d of dailyInMemory) if (d.endsWith(`:${hash}`)) dailyInMemory.delete(d);
+    }
+    return;
+  }
+  await postgresExecutor().query(
+    `DELETE FROM whatsapp_daily WHERE number_hash IN (SELECT number_hash FROM whatsapp_accounts WHERE address = $1)`,
+    [key],
+  );
+  await postgresExecutor().query(`DELETE FROM whatsapp_accounts WHERE address = $1`, [key]);
+}
+
 /// Counts a number against Meta's daily limit for messages outside the
 /// service window. A number already counted today is free; a new one is
 /// allowed only while the day is under the limit.

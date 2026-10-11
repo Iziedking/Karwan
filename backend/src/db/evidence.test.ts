@@ -36,3 +36,15 @@ test('a registration number is held by one account until that account releases i
   assert.equal(await holderOf('rc', 'RC7777777'), null);
   assert.equal(await claimUnique('rc', 'RC7777777', '0xkemi'), true);
 });
+
+test('the keys one account holds are listed, and a record can be deleted', async () => {
+  const { deleteRecord, keysHeldBy } = await import('./evidence.js');
+  await claimUnique('fp', 'fp-del-1', '0xDEL');
+  await claimUnique('fp', 'fp-del-2', '0xdel');
+  await claimUnique('fp', 'fp-keep', '0xother');
+  assert.deepEqual((await keysHeldBy('fp', '0xdel')).sort(), ['fp-del-1', 'fp-del-2']);
+  await putRecord('cac', 'c-del', { address: '0xdel' });
+  await deleteRecord('cac', 'c-del');
+  assert.equal(await getRecord('cac', 'c-del'), null);
+  assert.deepEqual(await keysHeldBy('fp', '0xother'), ['fp-keep']);
+});

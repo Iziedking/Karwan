@@ -1,3 +1,4 @@
+import { isDeleteCommand } from '../accountDeletion/rules.js';
 import type { AssistantAction, ConfirmAction } from '../assistant/actions.js';
 import { renderTurn, type OutMessage } from './render.js';
 import type { ChatAccount, InboundMessage } from './types.js';
@@ -41,6 +42,12 @@ export interface DispatchDeps<A extends ChatAccount = ChatAccount> {
   };
   /// One line a channel adds to the first message after someone joins.
   joinedTip?: string;
+  /// Deleting the account: the /delete command and its buttons. Answered
+  /// before the model runs, so a deletion never depends on it.
+  deletion?: {
+    command: (address: string) => Promise<OutMessage>;
+    tap: (address: string, replyId: string) => Promise<OutMessage | null>;
+  };
 }
 
 const HISTORY_MAX = 20;
@@ -94,6 +101,18 @@ export function createDispatcher<A extends ChatAccount>(deps: DispatchDeps<A>) {
       return;
     }
     const address = account.address;
+
+    if (deps.deletion) {
+      const answer = m.replyId
+        ? await deps.deletion.tap(address, m.replyId)
+        : isDeleteCommand(m.text)
+          ? await deps.deletion.command(address)
+          : null;
+      if (answer) {
+        await reply(answer);
+        return;
+      }
+    }
 
     if (m.replyId && deps.moneyOut) {
       const answer = await deps.moneyOut.tap(address, m.replyId);

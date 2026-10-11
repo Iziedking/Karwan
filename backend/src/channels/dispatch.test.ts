@@ -286,3 +286,40 @@ test('a channel can add one tip to the first message after joining', async () =>
   await s.dispatch(msg({ kind: 'button', replyId: 'terms:accept' }));
   assert.match(bodyOf(s.sent.at(-1)!), /what you sell or buy[\s\S]*Two-Step Verification/);
 });
+
+test('/delete and its buttons go to the deletion, never the assistant', async () => {
+  const calls: string[] = [];
+  const s = setup({
+    active: true,
+    extra: {
+      deletion: {
+        command: async (address) => {
+          calls.push(`command:${address}`);
+          return { kind: 'text', body: 'Delete your Karwan account?' };
+        },
+        tap: async (address, id) => {
+          calls.push(`tap:${address}:${id}`);
+          return id.startsWith('del:') ? { kind: 'text', body: 'Cancelled. Your account stays.' } : null;
+        },
+      },
+    },
+  });
+  await s.dispatch(msg({ text: '/delete' }));
+  await s.dispatch(msg({ kind: 'button', replyId: 'del:cancel' }));
+  assert.deepEqual(calls, ['command:0xabc', 'tap:0xabc:del:cancel']);
+  assert.equal(s.chats.length, 0);
+  assert.match(bodyOf(s.sent.at(-1)!), /Cancelled/);
+
+  await s.dispatch(msg({ text: 'please delete my account' }));
+  assert.equal(s.chats.length, 1, 'words go to the agent, which tells them to send /delete');
+});
+
+test('/delete from someone without an account gets the welcome', async () => {
+  const calls: string[] = [];
+  const s = setup({
+    extra: { deletion: { command: async (a) => (calls.push(a), { kind: 'text', body: 'x' }), tap: async () => null } },
+  });
+  await s.dispatch(msg({ text: '/delete' }));
+  assert.deepEqual(calls, []);
+  assert.match(bodyOf(s.sent.at(-1)!), /terms\/chat/);
+});

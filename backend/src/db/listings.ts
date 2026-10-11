@@ -159,12 +159,13 @@ export function listAllListings(): Listing[] {
 
 /// Removes every listing owned by `addressLower`. Used by the admin
 /// reset-history endpoint to drop test-pollution from a single wallet
-/// without wiping every other seller's data.
-export function deleteListingsBySeller(addressLower: string): number {
+/// without wiping every other seller's data. `keep` spares some, as an
+/// account deletion spares offers that became a deal.
+export function deleteListingsBySeller(addressLower: string, keep: (l: Listing) => boolean = () => false): number {
   const target = addressLower.toLowerCase();
   let removed = 0;
   for (const [k, v] of store.entries()) {
-    if (v.sellerUser === target) {
+    if (v.sellerUser === target && !keep(v)) {
       store.delete(k);
       removed += 1;
     }

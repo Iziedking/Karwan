@@ -244,6 +244,19 @@ export function deleteUser(address: string): boolean {
   return true;
 }
 
+/// The same delete, finished in Postgres before it returns, for an account
+/// deletion: a row left in Postgres would come back at the next boot.
+export async function deleteUserDurably(address: string): Promise<void> {
+  load();
+  const addr = address.toLowerCase();
+  const email = store.byAddress[addr];
+  if (pgEnabled) await db().delete(usersTable).where(eq(usersTable.address, addr));
+  if (!email) return;
+  delete store.byEmail[email];
+  delete store.byAddress[addr];
+  persist();
+}
+
 export function appendCredential(email: string, credential: PasskeyCredential): KarwanUser {
   load();
   const e = normEmail(email);

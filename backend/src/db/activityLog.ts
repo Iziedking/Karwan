@@ -104,6 +104,19 @@ export async function appendActivity(
   }
 }
 
+/// Removes every entry of one account, when the account is deleted. The
+/// movements themselves stay in their own stores.
+export async function deleteActivityFor(address: string): Promise<void> {
+  const a = address.toLowerCase();
+  if (pgEnabled) {
+    await db().delete(activityLog).where(eq(activityLog.address, a));
+    return;
+  }
+  const store = loadFile();
+  for (const [id, e] of Object.entries(store)) if (e.address === a) delete store[id];
+  saveFile(store);
+}
+
 /// A user's recorded money movements since `sinceTs`, newest first.
 export async function listActivityForAddress(
   address: string,

@@ -37,6 +37,9 @@ export interface MoneyOutStore {
   withAccountLock: <T>(wallet: string, fn: (spend: LockedSpend) => Promise<T>) => Promise<T>;
   /// Uncounts a payment that failed before anything was submitted.
   release: (reference: string) => Promise<void>;
+  /// Every saved address, payment count and pause of one account, when the
+  /// account is deleted.
+  forget: (wallet: string) => Promise<void>;
 }
 
 type Transaction = <T>(operation: (tx: SqlExecutor) => Promise<T>) => Promise<T>;
@@ -151,6 +154,14 @@ export function createPostgresMoneyOutStore(transaction: Transaction): MoneyOutS
       transaction(async (tx) => {
         await tx.query(`DELETE FROM money_out_spend_v1 WHERE reference = $1`, [reference]);
       }),
+
+    forget: (wallet) =>
+      transaction(async (tx) => {
+        const key = wallet.toLowerCase();
+        await tx.query(`DELETE FROM money_out_addresses_v1 WHERE wallet = $1`, [key]);
+        await tx.query(`DELETE FROM money_out_spend_v1 WHERE wallet = $1`, [key]);
+        await tx.query(`DELETE FROM money_out_state_v1 WHERE wallet = $1`, [key]);
+      }),
   };
 }
 
@@ -214,6 +225,12 @@ export function createMemoryMoneyOutStore(): MoneyOutStore {
     },
     release: async (reference) => {
       spends.delete(reference);
+    },
+    forget: async (wallet) => {
+      const key = wallet.toLowerCase();
+      for (let i = addresses.length - 1; i >= 0; i--) if (addresses[i]!.wallet === key) addresses.splice(i, 1);
+      for (const [reference, spend] of spends) if (spend.wallet === key) spends.delete(reference);
+      states.delete(key);
     },
   };
 }

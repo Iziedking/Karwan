@@ -211,6 +211,20 @@ export async function agentWalletIntegrity(): Promise<{
   return { total: all.length, emptyBuyer, emptySeller, sharedAddresses };
 }
 
+/// Drops one account's wallet record, when the account is deleted. The
+/// wallets stay at Circle; the caller keeps their ids first.
+export async function deleteAgentWallets(userAddress: string): Promise<void> {
+  const key = userAddress.toLowerCase();
+  if (pgEnabled) {
+    await db().delete(agentWallets).where(eq(agentWallets.userAddress, key));
+  } else {
+    const store = loadFile();
+    delete store[key];
+    saveFile(store);
+  }
+  invalidateAgentWalletCaches();
+}
+
 export async function saveAgentWallets(
   input: Omit<AgentWallets, 'createdAt'>,
 ): Promise<AgentWallets> {
