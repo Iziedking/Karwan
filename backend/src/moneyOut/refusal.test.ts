@@ -26,6 +26,7 @@ test('the limit says what is left and when more opens', () => {
   assert.deepEqual(refusalBody({ code: 'DAILY_LIMIT', leftMicros: 50_250_000n, moreAt }), {
     code: 'MONEY_OUT_DAILY_LIMIT',
     error: 'Up to 500 USDC can leave your account in 24 hours. 50.25 USDC can leave now, and more from 13 Oct, 09:00 UTC.',
+    limitUsdc: '500',
     leftUsdc: '50.25',
     moreAt,
   });

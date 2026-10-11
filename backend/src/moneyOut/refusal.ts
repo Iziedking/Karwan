@@ -7,6 +7,7 @@ export interface RefusalBody {
   /// One sentence the chat agent can say as it is. The web maps the code.
   error: string;
   opensAt?: number;
+  limitUsdc?: string;
   leftUsdc?: string;
   moreAt?: number;
 }
@@ -33,6 +34,7 @@ export function refusalBody(r: Refusal): RefusalBody {
         error:
           `Up to ${usdc(DAILY_LIMIT_MICROS)} USDC can leave your account in 24 hours. ` +
           `${usdc(r.leftMicros)} USDC can leave now, and more from ${utc(r.moreAt)}.`,
+        limitUsdc: usdc(DAILY_LIMIT_MICROS),
         leftUsdc: usdc(r.leftMicros),
         moreAt: r.moreAt,
       };
