@@ -70,6 +70,10 @@ const envSchema = z.object({
   /// as its issuer. The facts publisher stays off until both are set.
   KARWAN_FACTS_ADDR: optionalAddr,
   FACTS_ISSUER_WALLET_ID: optionalString,
+  /// Keys the evidence fingerprints written to KarwanFacts, so nobody can
+  /// test a guess against them. 32 characters or more; the publisher stays
+  /// off without it. Never rotate it after facts are on chain.
+  FACTS_EVIDENCE_KEY: optionalString,
   /// Agents only offer work-verified sellers, and only show requests from
   /// person-verified buyers.
   VERIFIED_NETWORK_ONLY: envBool('VERIFIED_NETWORK_ONLY'),

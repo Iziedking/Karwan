@@ -17,6 +17,8 @@ export const LEVEL_CODE: Record<StoredFact['level'], number> = {
 export interface PublisherDeps {
   /// The facts contract and the issuer wallet are both set.
   configured: boolean;
+  /// The keyed fingerprint written on Arc in place of the stored one.
+  seal: (evidenceHash: string) => string;
   listSubjects: () => Promise<string[]>;
   getStored: (address: string) => Promise<StoredFact[]>;
   putStored: (address: string, facts: StoredFact[]) => Promise<void>;
@@ -72,7 +74,7 @@ export function createFactPublisher(deps: PublisherDeps) {
             subject,
             kind: fact.kind,
             level: LEVEL_CODE[fact.level],
-            evidenceHash: fact.evidenceHash,
+            evidenceHash: deps.seal(fact.evidenceHash),
             expiresAtSec: Math.floor(fact.expiresAt / 1000),
           });
           if (result) {

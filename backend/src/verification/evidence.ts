@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, createHmac } from 'node:crypto';
 import type { Fact } from './ladder.js';
 
 const YEAR_MS = 365 * 24 * 3_600_000;
@@ -65,6 +65,13 @@ export async function revokeFact(address: string, factId: string, at: number, de
 
 export function evidenceHashOf(...parts: string[]): string {
   return `0x${createHash('sha256').update(parts.join('|')).digest('hex')}`;
+}
+
+/// The fingerprint that leaves Karwan, on Arc or anywhere public. A stored
+/// fingerprint can be recomputed from a guess (a registration number, an
+/// invoice someone holds); this one needs Karwan's key.
+export function sealEvidence(evidenceHash: string, key: string): string {
+  return `0x${createHmac('sha256', key).update(evidenceHash.toLowerCase()).digest('hex')}`;
 }
 
 /// What the public reasons may say about verified evidence.

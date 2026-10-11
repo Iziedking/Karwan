@@ -11,7 +11,7 @@ It builds on the unified reputation (view 08), the record (view 06), escrow (vie
 These hold for every part of this view and for every channel added later.
 
 1. **The record belongs to a person.** Wallets, phone numbers and linked accounts attach to one identity. A fact or a deal is written to that identity, never to an agent wallet acting for it, and the contract refuses any write that would.
-2. **Facts on chain, scores off chain.** Arc holds what was verified, by whom, how strongly, when it expires, and a fingerprint of the evidence. It holds no score, no document and no personal data. Scores are computed from the facts by a published formula that can improve without rewriting anyone's record.
+2. **Facts on chain, scores off chain.** Arc holds what was verified, by whom, how strongly, when it expires, and a fingerprint of the evidence, keyed with a secret Karwan holds so nobody can test a guess against it (a registration number, an invoice they have). It holds no score, no document and no personal data. Scores are computed from the facts by a published formula that can improve without rewriting anyone's record.
 3. **Code decides, models read.** A language model may read a conversation or extract the fields of a document. It never decides that something is verified, never sets a weight and never computes a score. Every verdict comes from deterministic rules that are tested and published.
 4. **Earned, not claimed.** Something a person says about themselves counts for nothing until it is checked. A past client's confirmation counts fully only when that client is a different, verified person. The same document cannot back two people.
 5. **Verified before discoverable.** Agents only find people who reached work verified. Unverified people can still use their own account; nobody's agent is pointed at them.
@@ -293,6 +293,7 @@ sequenceDiagram
 | Deletion | A deal opens during the wait | The deletion stops at the run, and the person is told why |
 | Deletion | A store fails halfway | The run is repeated until every store is done; the last message is sent once |
 | Deletion | A fact on Arc is not revoked yet | The account is not marked deleted until Arc shows the revoke |
+| Record | Someone holds a person's invoice or guesses their registration number | The fingerprint on Arc is keyed, so they cannot match it to the person |
 | Record | Karwan is offline | Facts on Arc and the signed credential still verify |
 
 ## Status

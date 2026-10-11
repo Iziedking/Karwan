@@ -85,4 +85,16 @@ elif [ "$chat_accounts" -gt 0 ]; then
 else
   echo "chat accounts: 0, no pepper yet"
 fi
+# Facts on Arc carry a fingerprint keyed with FACTS_EVIDENCE_KEY. Without the
+# key a restored publisher cannot recognise its own facts and would write them
+# again.
+facts_on_chain=$(docker exec "$CONTAINER" psql -U postgres -d karwan_mainnet -Atc \
+  "select count(*) from verification_records where kind = 'facts' and data::text like '%\"onchain\"%'" 2>/dev/null || echo 0)
+if age -d -i "$IDENTITY" "$work/env.mainnet.age" | grep -Eq '^FACTS_EVIDENCE_KEY=.+'; then
+  echo "accounts with facts on Arc: $facts_on_chain, facts key in the env backup"
+elif [ "$facts_on_chain" -gt 0 ]; then
+  echo "FACTS KEY MISSING: $facts_on_chain accounts with facts on Arc and no FACTS_EVIDENCE_KEY in env.mainnet"; exit 1
+else
+  echo "facts on Arc: none, no facts key yet"
+fi
 echo "RESTORE OK"

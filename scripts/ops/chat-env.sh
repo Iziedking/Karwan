@@ -71,6 +71,20 @@ pepper() {
   fi
 }
 
+# The key that seals evidence fingerprints before they go on chain. Replacing
+# it after facts are written breaks the publisher's check for facts already on
+# chain, so an existing one is never touched; a missing one is generated.
+facts_key() {
+  local result
+  result=$(remote set-random "$FILE" FACTS_EVIDENCE_KEY < /dev/null)
+  if [ "$result" = generated ]; then
+    changed=1
+    echo "FACTS_EVIDENCE_KEY generated on the server. Back up $DIR/$FILE with the database."
+  else
+    echo "FACTS_EVIDENCE_KEY already set. Kept, never replaced."
+  fi
+}
+
 # Must stay unset on mainnet: offered for removal when present.
 must_be_unset() {
   local key=$1
@@ -87,6 +101,7 @@ if [ "$NET" = testnet ]; then
   echo "Optional, only after DeployFacts on testnet:"
   ask KARWAN_FACTS_ADDR address
   ask FACTS_ISSUER_WALLET_ID text
+  facts_key
 else
   echo "Mainnet. Set these only once the mainnet bot exists, DeploySuite and DeployFacts are done,"
   echo "the Safe has accepted ownership, and the frontend with mainnet deal pages is deployed."
@@ -119,6 +134,7 @@ else
   fi
   ask KARWAN_FACTS_ADDR address
   ask FACTS_ISSUER_WALLET_ID text
+  facts_key
   echo
   echo "World ID (the person check):"
   fixed WORLD_ID_ENABLED true
@@ -145,9 +161,9 @@ if [[ "${go:-n}" =~ ^[Yy]$ ]]; then
   echo
   echo "What $SERVICE now has (set or not, never the value):"
   ssh -o BatchMode=yes "$HOST" "docker exec $SERVICE printenv" < /dev/null \
-    | grep -E '^(ARC_NETWORK|TELEGRAM_BOT_TOKEN|TELEGRAM_BOT_USERNAME|TELEGRAM_AGENT_ENABLED|CHAT_NUMBER_PEPPER|CHAT_CUSTODY_ENABLED|VERIFIED_NETWORK_ONLY|DEAL_REVIEW_WINDOW_MS|DEAL_ESCROW_V3_ENABLED|KARWAN_DEAL_ESCROW_ADDR|KARWAN_STAKE_VAULT_ADDR|KARWAN_FACTS_ADDR|FACTS_ISSUER_WALLET_ID|WORLD_ID_ENABLED|WORLD_ID_ENVIRONMENT|AGENT_SEED_PRIVATE_KEY|X402_AGENT_QUERIES|X402_PAID_SIGNALS_ENABLED)=' \
+    | grep -E '^(ARC_NETWORK|TELEGRAM_BOT_TOKEN|TELEGRAM_BOT_USERNAME|TELEGRAM_AGENT_ENABLED|CHAT_NUMBER_PEPPER|CHAT_CUSTODY_ENABLED|VERIFIED_NETWORK_ONLY|DEAL_REVIEW_WINDOW_MS|DEAL_ESCROW_V3_ENABLED|KARWAN_DEAL_ESCROW_ADDR|KARWAN_STAKE_VAULT_ADDR|KARWAN_FACTS_ADDR|FACTS_ISSUER_WALLET_ID|FACTS_EVIDENCE_KEY|WORLD_ID_ENABLED|WORLD_ID_ENVIRONMENT|AGENT_SEED_PRIVATE_KEY|X402_AGENT_QUERIES|X402_PAID_SIGNALS_ENABLED)=' \
     | sed 's/=.*/=<set>/' | sort
-  ssh -o BatchMode=yes "$HOST" "docker logs --since 1m $SERVICE 2>&1 | grep -i -E 'telegram agent|stays off|Invalid environment|Unsafe production' | tail -5" < /dev/null || true
+  ssh -o BatchMode=yes "$HOST" "docker logs --since 1m $SERVICE 2>&1 | grep -i -E 'telegram agent|stays off|facts publisher off|Invalid environment|Unsafe production' | tail -5" < /dev/null || true
 else
   echo "Saved. Recreate later with: ssh $HOST 'cd $DIR && docker compose up -d --no-deps $SERVICE'"
 fi

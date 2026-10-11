@@ -87,3 +87,19 @@ test('a revoked fact stops counting, and the same evidence can back the account 
   assert.equal(await addFact('0xada', fact({ id: 'cac-2', kind: 'cac_match', level: 'human_reviewed', evidenceHash: '0xcc' }), d), true);
   assert.equal((await factsFor('0xada', d, now)).filter((f) => f.kind === 'cac_match').length, 1);
 });
+
+test('the fingerprint that leaves Karwan is keyed: a guess cannot be tested against it', async () => {
+  const { createHash, createHmac } = await import('node:crypto');
+  const { evidenceHashOf, sealEvidence } = await import('./evidence.js');
+  const key = 'k'.repeat(32);
+  const plain = evidenceHashOf('cac_match', 'RC1234567', 'ada builds');
+  const sealed = sealEvidence(plain, key);
+  assert.match(sealed, /^0x[0-9a-f]{64}$/);
+  assert.notEqual(sealed, plain);
+  assert.equal(sealed, sealEvidence(plain.toUpperCase().replace('0X', '0x'), key), 'the same evidence gives the same fingerprint');
+  assert.notEqual(sealed, sealEvidence(plain, 'j'.repeat(32)), 'a different key gives a different fingerprint');
+  assert.equal(sealed, `0x${createHmac('sha256', key).update(plain).digest('hex')}`);
+  const guess = `0x${createHash('sha256').update('cac_match|RC1234567|ada builds').digest('hex')}`;
+  assert.equal(guess, plain, 'the stored fingerprint alone can be recomputed from a guess');
+  assert.notEqual(guess, sealed, 'the published one cannot');
+});

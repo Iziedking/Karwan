@@ -17,17 +17,18 @@ const fact = (over: Partial<StoredFact>): StoredFact => ({
 
 function setup(opts: { configured?: boolean; event?: boolean; revokeEvent?: boolean; stored?: Record<string, StoredFact[]> } = {}) {
   const stored = new Map(Object.entries(opts.stored ?? { '0xada': [fact({})] }));
-  const calls: Array<{ subject: string; level: number; expiresAt: number }> = [];
+  const calls: Array<{ subject: string; level: number; expiresAt: number; evidenceHash: string }> = [];
   const revokes: string[] = [];
   const deps: PublisherDeps = {
     configured: opts.configured ?? true,
+    seal: (h) => `sealed(${h})`,
     listSubjects: async () => [...stored.keys()],
     getStored: async (a) => stored.get(a) ?? [],
     putStored: async (a, f) => {
       stored.set(a, f);
     },
     recordOnChain: async (input) => {
-      calls.push({ subject: input.subject, level: input.level, expiresAt: input.expiresAtSec });
+      calls.push({ subject: input.subject, level: input.level, expiresAt: input.expiresAtSec, evidenceHash: input.evidenceHash });
       return opts.event === false ? null : { txHash: '0xtx', factId: '7' };
     },
     revokeOnChain: async ({ factId }) => {
@@ -78,6 +79,7 @@ test('one failing fact does not stop the others', async () => {
   const { publish, stored } = setup({ stored: { '0xada': [fact({ id: 'a' }), fact({ id: 'b', evidenceHash: `0x${'bb'.repeat(32)}` })] } });
   const failing = createFactPublisher({
     configured: true,
+    seal: (h) => h,
     listSubjects: async () => ['0xada'],
     getStored: async (a) => stored.get(a) ?? [],
     putStored: async (a, f) => {
@@ -117,4 +119,11 @@ test('a revoke whose receipt shows no FactRevoked is tried again on the next swe
   assert.equal(stored.get('0xada')![0].onchain?.revokedTxHash, undefined);
   await publish();
   assert.deepEqual(revokes, ['7', '7']);
+});
+
+test('the fingerprint written on Arc is the keyed one, never the stored one', async () => {
+  const { publish, stored, calls } = setup();
+  await publish();
+  assert.equal(calls[0]!.evidenceHash, `sealed(0x${'aa'.repeat(32)})`);
+  assert.equal(stored.get('0xada')![0]!.evidenceHash, `0x${'aa'.repeat(32)}`, 'the stored fingerprint is unchanged');
 });
