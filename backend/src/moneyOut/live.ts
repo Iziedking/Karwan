@@ -1,13 +1,14 @@
 import { isChatAccount } from '../channels/accountsLive.js';
-import { tellAccount } from '../channels/sender.js';
+import { openLinkFor, tellAccount } from '../channels/sender.js';
 import { config } from '../config.js';
 import { getAgentWallets } from '../db/agentWallets.js';
 import { pgEnabled, postgresExecutor, withPostgresTransaction } from '../db/client.js';
 import { chatFundingDeps } from '../deals/chatFundingLive.js';
 import { worldIdAccountSessions } from '../routes/worldId.js';
 import type { MoneyOutRouteDeps } from '../routes/moneyOut.js';
+import { createMoneyOutChat } from './chat.js';
 import { createMoneyOutGuard, type MoneyOutGuard } from './guard.js';
-import { addressAddedMessage } from './messages.js';
+import { addressAddedMessage, paymentOutMessage } from './messages.js';
 import type { AccountKind } from './rules.js';
 import { createMemoryMoneyOutStore, createPostgresMoneyOutStore } from './store.js';
 
@@ -47,6 +48,19 @@ let activeGuard: MoneyOutGuard = createMoneyOutGuard({
   kindOf,
   ownAddresses,
   hasSession,
+  notify: async (wallet, outgoing) => {
+    await tellAccount(wallet, paymentOutMessage(outgoing));
+  },
+});
+
+/// The Pause and Remove buttons and the check after a long silence, for every
+/// chat channel's dispatcher.
+export const moneyOutChat = createMoneyOutChat({
+  enabled,
+  now: Date.now,
+  store: moneyOutStore,
+  isChatAccount,
+  openLink: openLinkFor,
 });
 
 /// What every exit asks. Route tests swap the guard to reach a refusal without

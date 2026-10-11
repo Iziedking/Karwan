@@ -1,5 +1,7 @@
+import { formatUnits } from 'viem';
 import { chainLabel } from '../chain/cctpChains.js';
 import type { OutMessage } from '../channels/render.js';
+import type { Exit } from './rules.js';
 import type { SavedAddress } from './store.js';
 
 /// Chat buttons for the person's own money controls. Neither moves money, so
@@ -23,6 +25,20 @@ export function utc(ms: number): string {
   return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}, ${hh}:${mm} UTC`;
 }
 
+const PAUSE_BUTTON = { id: PAUSE_ID, title: 'Pause my money' };
+const NOT_YOU = 'Not you? Pause every payment out of your account now.';
+
+/// Sent the moment a payment out is counted, so a stranger using the account
+/// is seen while there is still time to stop the next one.
+export function paymentOutMessage(p: { exit: Exit; amountMicros: bigint }): OutMessage {
+  const amount = `${formatUnits(p.amountMicros, 6)} USDC`;
+  const what =
+    p.exit.kind === 'escrow'
+      ? `${amount} is going into escrow for a deal.`
+      : `${amount} is leaving your account for ${shortAddress(p.exit.address)} on ${chainLabel(p.exit.chain)}.`;
+  return { kind: 'buttons', body: `${what}\n\n${NOT_YOU}`, buttons: [PAUSE_BUTTON] };
+}
+
 export function addressAddedMessage(saved: SavedAddress): OutMessage {
   return {
     kind: 'buttons',
@@ -32,7 +48,7 @@ export function addressAddedMessage(saved: SavedAddress): OutMessage {
       'Not you? Tap Remove, or pause every payment out of your account.',
     buttons: [
       { id: removeId(saved.id), title: 'Remove' },
-      { id: PAUSE_ID, title: 'Pause my money' },
+      PAUSE_BUTTON,
     ],
   };
 }

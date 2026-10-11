@@ -32,6 +32,7 @@ import { setTelegramAgentHandler } from '../bot.js';
 import { createTelegramApi } from './api.js';
 import { createTelegramHandler } from './handler.js';
 import { toTelegram } from './render.js';
+import { moneyOutChat } from '../../moneyOut/live.js';
 
 const chatIdOf = (to: string) => Number(to.replace(/^tg:/, ''));
 
@@ -154,6 +155,10 @@ export function startTelegramAgent(): boolean {
     },
     executeConfirm: createExecutor({ call: callAsAccount, refuse: MONEY_INTENTS }),
     presentConfirm,
+    moneyOut: moneyOutChat,
+    // A recycled number logs into the old Telegram account unless it has a password.
+    joinedTip:
+      'One more thing: turn on Two-Step Verification in Telegram (Settings, Privacy and Security). Then nobody who later gets your phone number can open this chat.',
     clientAnswer: async (requestId, from, yes) => {
       const account = await getTelegramAccount(keyOf(from));
       const address = account?.address ?? (await findAddressByChatId(chatIdOf(from)));

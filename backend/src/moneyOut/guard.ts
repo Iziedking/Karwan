@@ -1,4 +1,5 @@
 import { decide, toOwnWallet, type AccountKind, type Exit, type Refusal } from './rules.js';
+import { logger } from '../logger.js';
 import type { MoneyOutStore } from './store.js';
 
 export interface MoneyOutGuardDeps {
@@ -10,6 +11,8 @@ export interface MoneyOutGuardDeps {
   ownAddresses: (wallet: string) => Promise<string[]>;
   /// The account has a World ID session saved.
   hasSession: (wallet: string) => Promise<boolean>;
+  /// Tells the chat a payment out was counted. Never awaited by the payment.
+  notify?: (wallet: string, outgoing: Outgoing) => Promise<void>;
 }
 
 export interface Outgoing {
@@ -68,6 +71,9 @@ export function createMoneyOutGuard(deps: MoneyOutGuardDeps) {
         return { ok: true, release: nothing };
       }
       await spend.reserve(input.reference, input.amountMicros, now);
+      void deps.notify?.(wallet, input).catch((err: Error) => {
+        logger.warn({ wallet, reference: input.reference, err: err.message }, 'money-out notice not sent');
+      });
       return { ok: true, release: () => deps.store.release(input.reference) };
     });
   }

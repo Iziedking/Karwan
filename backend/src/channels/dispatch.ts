@@ -33,6 +33,14 @@ export interface DispatchDeps<A extends ChatAccount = ChatAccount> {
   /// A message returned here is sent as is and the card is not kept, so no
   /// chat tap can confirm it. Used for steps that move money.
   presentConfirm?: (address: string, action: ConfirmAction) => Promise<OutMessage | null>;
+  /// The account's own money controls: the check after a long silence, and
+  /// the Pause and Remove buttons. A tap it does not know returns null.
+  moneyOut?: {
+    noteReturn: (address: string, previousAt: number | null) => Promise<OutMessage | null>;
+    tap: (address: string, replyId: string) => Promise<OutMessage | null>;
+  };
+  /// One line a channel adds to the first message after someone joins.
+  joinedTip?: string;
 }
 
 const HISTORY_MAX = 20;
@@ -81,12 +89,21 @@ export function createDispatcher<A extends ChatAccount>(deps: DispatchDeps<A>) {
         await reply(acceptButton("Setting up your account didn't finish. Tap Accept again in a minute."));
         return;
       }
-      await reply(
-        text("You're in. Tell me what you sell or buy, and where you work. Then I'll help you get verified so other agents can find you."),
-      );
+      const joined = "You're in. Tell me what you sell or buy, and where you work. Then I'll help you get verified so other agents can find you.";
+      await reply(text(deps.joinedTip ? `${joined}\n\n${deps.joinedTip}` : joined));
       return;
     }
     const address = account.address;
+
+    if (m.replyId && deps.moneyOut) {
+      const answer = await deps.moneyOut.tap(address, m.replyId);
+      if (answer) {
+        await reply(answer);
+        return;
+      }
+    }
+    const back = await deps.moneyOut?.noteReturn(address, first.lastInboundAt);
+    if (back) await reply(back);
 
     if (m.replyId?.startsWith('confirm:') || m.replyId?.startsWith('cancel:')) {
       const [verb, ...rest] = m.replyId.split(':');

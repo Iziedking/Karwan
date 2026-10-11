@@ -18,14 +18,14 @@ const card = {
   payload: {},
 } as unknown as AssistantAction;
 
-function setup(opts: { active?: boolean; chat?: DispatchDeps['chat']; execute?: DispatchDeps['executeConfirm']; acceptFails?: boolean; presentConfirm?: DispatchDeps['presentConfirm'] } = {}) {
+function setup(opts: { active?: boolean; chat?: DispatchDeps['chat']; execute?: DispatchDeps['executeConfirm']; acceptFails?: boolean; presentConfirm?: DispatchDeps['presentConfirm']; lastInboundAt?: number; extra?: Partial<DispatchDeps> } = {}) {
   let account: WhatsappAccount = {
     numberHash: 'h1',
     to: '2348012345678',
     address: opts.active ? '0xabc' : null,
     termsVersion: opts.active ? 'chat-2026-10-10' : null,
     termsAt: opts.active ? 1 : null,
-    lastInboundAt: null,
+    lastInboundAt: opts.lastInboundAt ?? null,
     queue: [],
     activated: !!opts.active,
   };
@@ -71,6 +71,7 @@ function setup(opts: { active?: boolean; chat?: DispatchDeps['chat']; execute?: 
     },
     media: async () => [{ kind: 'text', body: 'I read your invoice.' }],
     ...(opts.presentConfirm ? { presentConfirm: opts.presentConfirm } : {}),
+    ...opts.extra,
     executeConfirm:
       opts.execute ??
       (async (_a, action) => {
@@ -227,4 +228,61 @@ test('a money card can be shown as a link to Karwan, and no chat button can conf
   assert.ok(sent.some((m) => m.kind === 'link'));
   assert.equal(sent.some((m) => m.kind === 'buttons'), false);
   assert.deepEqual(account().pendingActions ?? {}, {});
+});
+
+const DAY = 24 * 3_600_000;
+
+test('the Pause and Remove buttons reach the money controls, never the assistant', async () => {
+  const taps: string[] = [];
+  const s = setup({
+    active: true,
+    extra: {
+      moneyOut: {
+        noteReturn: async () => null,
+        tap: async (_address, id) => {
+          taps.push(id);
+          return id === 'mo:pause' ? { kind: 'text', body: 'Every payment out of your account is paused.' } : null;
+        },
+      },
+    },
+  });
+  await s.dispatch(msg({ kind: 'button', replyId: 'mo:pause' }));
+  assert.deepEqual(taps, ['mo:pause']);
+  assert.equal(s.chats.length, 0);
+  assert.match(bodyOf(s.sent.at(-1)!), /paused/);
+});
+
+test('a money button from someone without an account gets the welcome, not the control', async () => {
+  const taps: string[] = [];
+  const s = setup({ extra: { moneyOut: { noteReturn: async () => null, tap: async (_a, id) => (taps.push(id), null) } } });
+  await s.dispatch(msg({ kind: 'button', replyId: 'mo:pause' }));
+  assert.deepEqual(taps, []);
+  assert.match(bodyOf(s.sent.at(-1)!), /terms\/chat/);
+});
+
+test('coming back after a long silence gets the return check first, then the answer', async () => {
+  const seen: Array<number | null> = [];
+  const s = setup({
+    active: true,
+    lastInboundAt: NOW - 61 * DAY,
+    extra: {
+      moneyOut: {
+        noteReturn: async (_address, previous) => {
+          seen.push(previous);
+          return { kind: 'text', body: 'Welcome back. Confirm it is still you with your World ID.' };
+        },
+        tap: async () => null,
+      },
+    },
+  });
+  await s.dispatch(msg({ text: 'send 50 USDC to my bank' }));
+  assert.deepEqual(seen, [NOW - 61 * DAY], 'asked with the previous message time, before it is overwritten');
+  assert.match(bodyOf(s.sent[0]!), /Welcome back/);
+  assert.match(bodyOf(s.sent.at(-1)!), /Hello from the agent/);
+});
+
+test('a channel can add one tip to the first message after joining', async () => {
+  const s = setup({ extra: { joinedTip: 'Turn on Two-Step Verification in Telegram.' } });
+  await s.dispatch(msg({ kind: 'button', replyId: 'terms:accept' }));
+  assert.match(bodyOf(s.sent.at(-1)!), /what you sell or buy[\s\S]*Two-Step Verification/);
 });

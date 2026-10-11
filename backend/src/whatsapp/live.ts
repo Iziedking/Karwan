@@ -30,6 +30,7 @@ import { installChannelPorts } from '../channels/sender.js';
 import { createWhatsappNotifier } from '../channels/notifier.js';
 import { RELEVANT, recipientsFor, summaryFor } from '../telegram/notifier.js';
 import { bus } from '../events.js';
+import { moneyOutChat } from '../moneyOut/live.js';
 
 
 /// Wires the WhatsApp agent to the real store, Graph API and assistant. Runs
@@ -173,6 +174,7 @@ export function startWhatsappAgent(): void {
       return yes ? 'Thank you. This request was already answered or has closed.' : 'Thank you for answering. Nothing was added to their record.';
     },
     media: (account, m) => (account.address ? intake(account.address, m) : Promise.resolve([])),
+    moneyOut: moneyOutChat,
   });
 
   setInboundHandler(dispatch);

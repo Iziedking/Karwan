@@ -32,3 +32,15 @@ test('the chat is told when an address is added, when it opens, and how to stop 
 test('a remove button carries the address id', () => {
   assert.equal(removeId('abc'), 'mo:rm:abc');
 });
+
+test('a payment out is announced with the amount, where it goes and a Pause button', async () => {
+  const { paymentOutMessage } = await import('./messages.js');
+  const out = paymentOutMessage({ exit: { kind: 'payout', chain: 'arc', address: '0x1234567890abcdef1234567890abcdef12345678' }, amountMicros: 12_500_000n });
+  assert.equal(out.kind, 'buttons');
+  if (out.kind !== 'buttons') return;
+  assert.equal(out.body, '12.5 USDC is leaving your account for 0x1234…5678 on Arc.\n\nNot you? Pause every payment out of your account now.');
+  assert.deepEqual(out.buttons, [{ id: PAUSE_ID, title: 'Pause my money' }]);
+
+  const escrow = paymentOutMessage({ exit: { kind: 'escrow' }, amountMicros: 20_000_000n });
+  assert.equal(escrow.kind === 'buttons' && escrow.body, '20 USDC is going into escrow for a deal.\n\nNot you? Pause every payment out of your account now.');
+});

@@ -83,3 +83,29 @@ test("a web account's escrow payment is not counted against a chat limit", async
   assert.equal(r.ok, true);
   assert.deepEqual(await store.withAccountLock(WALLET, (s) => s.spentSince(0)), []);
 });
+
+test('the chat is told once, when a payment out is counted, never on a dry check, a retry or a refusal', async () => {
+  let clock = 1_800_000_000_000;
+  const store = createMemoryMoneyOutStore();
+  const told: unknown[] = [];
+  const guard = createMoneyOutGuard({
+    enabled: true,
+    now: () => clock,
+    store,
+    kindOf: async () => 'chat',
+    ownAddresses: async () => [WALLET],
+    hasSession: async () => true,
+    notify: async (wallet, outgoing) => {
+      told.push({ wallet, reference: outgoing.reference });
+    },
+  });
+  await store.addAddress(WALLET, 'arc', DEST, clock - 48 * HOUR);
+  clock += 1;
+  await guard.check({ wallet: WALLET, exit: payout, amountMicros: usdc(10), reference: 'n-1' }, { reserve: false });
+  await guard.check({ wallet: WALLET, exit: payout, amountMicros: usdc(10), reference: 'n-1' });
+  await guard.check({ wallet: WALLET, exit: payout, amountMicros: usdc(10), reference: 'n-1' });
+  await guard.check({ wallet: WALLET, exit: payout, amountMicros: usdc(900), reference: 'n-2' });
+  await guard.check({ wallet: WALLET, exit: { kind: 'payout', chain: 'arc', address: WALLET }, amountMicros: usdc(1), reference: 'n-3' });
+  await new Promise((r) => setImmediate(r));
+  assert.deepEqual(told, [{ wallet: WALLET, reference: 'n-1' }]);
+});
