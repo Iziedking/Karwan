@@ -26,6 +26,8 @@ import { chooseFundingEscrow, fundDirectDealV3, type EscrowVersion } from '../de
 import { fundDirectV3Deps } from '../deals/fundDirectV3Live.js';
 import { chatFundingRefusal } from '../deals/chatDealGate.js';
 import { chatFundingDeps } from '../deals/chatFundingLive.js';
+import { moneyOutGuard } from '../moneyOut/live.js';
+import { refusalBody } from '../moneyOut/refusal.js';
 import { dealEscrowOps, escrowAddressOf } from '../deals/dealEscrowOpsLive.js';
 import { splitMicros } from '../deals/arbiterV3.js';
 import {
@@ -2196,6 +2198,14 @@ dealsRoutes.post('/direct/:jobId/fund', async (c) => {
   if (!chatLimit.ok) {
     return c.json({ error: chatLimit.message, code: 'CHAT_DEAL_LIMIT', reason: chatLimit.reason }, 409);
   }
+  const outgoing = {
+    wallet: deal.buyer,
+    exit: { kind: 'escrow' },
+    amountMicros: parseUnits(deal.dealAmountUsdc, USDC_DECIMALS),
+    reference: `fund:${jobId.toLowerCase()}`,
+  } as const;
+  const early = await moneyOutGuard.check(outgoing, { reserve: false });
+  if (!early.ok) return c.json(refusalBody(early.refusal), 409);
   if (inFlight.has(jobId)) {
     return c.json({ error: 'an action is already in progress for this deal' }, 409);
   }
@@ -2260,6 +2270,8 @@ dealsRoutes.post('/direct/:jobId/fund', async (c) => {
     const existingMovement = await getMoneyMovementByOperationKey(operationKey);
     movementReference = existingMovement?.reference;
 
+    const pass = await moneyOutGuard.check(outgoing);
+    if (!pass.ok) return c.json(refusalBody(pass.refusal), 409);
     if ((await fundingEscrowFor(latestDeal, jobId)) === 'v3') {
       const deps = fundDirectV3Deps();
       const v3Quote = buildDirectDealFundingQuote({

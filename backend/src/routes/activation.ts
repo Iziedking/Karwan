@@ -55,6 +55,8 @@ import {
   prepareAgentFundingLeg,
 } from '../money/agentFunding.js';
 import { parseUsdcMicros } from '../money/model.js';
+import { moneyOutGuard } from '../moneyOut/live.js';
+import { refusalBody } from '../moneyOut/refusal.js';
 import { invalidBodyMessage } from './invalidBody.js';
 
 // USDC on Arc exposes a 6-decimal ERC-20 interface. Withdrawals move funds
@@ -664,6 +666,18 @@ activationRoutes.post('/withdraw', async (c) => {
     return c.json({ error: 'You can only withdraw from your own agent wallet.', code: 'forbidden' }, 403);
   }
 
+  const amountWei = parseUnits(body.amountUsdc.toString(), USDC_DECIMALS);
+  const requestKey = body.requestId ?? randomUUID();
+  const operationKey = `cashout:agent-withdraw:${userAddress}:${body.agent}:${requestKey}`;
+  const outgoing = {
+    wallet: userAddress,
+    exit: { kind: 'payout', chain: 'arc', address: body.toAddress },
+    amountMicros: amountWei,
+    reference: operationKey,
+  } as const;
+  const early = await moneyOutGuard.check(outgoing, { reserve: false });
+  if (!early.ok) return c.json(refusalBody(early.refusal), 409);
+
   const wallets = await getAgentWallets(userAddress);
   if (!wallets) {
     return c.json({ error: 'no agent wallets for this address' }, 409);
@@ -680,7 +694,6 @@ activationRoutes.post('/withdraw', async (c) => {
   // balance" with the available amount, not a raw Circle/chain revert. An SCA
   // transfer can land as a "successful" handleOps tx while the inner transfer
   // reverts on a short balance, so checking up front is the only reliable signal.
-  const amountWei = parseUnits(body.amountUsdc.toString(), USDC_DECIMALS);
   try {
     const balance = await readUsdcBalance(agentAddress);
     if (balance < amountWei) {
@@ -710,9 +723,11 @@ activationRoutes.post('/withdraw', async (c) => {
   withdrawInFlight.add(key);
   let movementReference: string | undefined;
   try {
-    const requestKey = body.requestId ?? randomUUID();
+    // The check that counts, under the account's lock, before anything is submitted.
+    const pass = await moneyOutGuard.check(outgoing);
+    if (!pass.ok) return c.json(refusalBody(pass.refusal), 409);
     const { movement } = await ensureCashoutMovement({
-      operationKey: `cashout:agent-withdraw:${userAddress}:${body.agent}:${requestKey}`,
+      operationKey,
       amountUsdc: body.amountUsdc.toString(),
       initiatedBy: userAddress,
       recipient: body.toAddress,

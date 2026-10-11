@@ -1,7 +1,10 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { AppKit } from '@circle-fin/app-kit';
-import { sessionAddress } from '../auth/session.js';
+import { parseUnits } from 'viem';
+import { readSession, sessionAddress } from '../auth/session.js';
+import { moneyOutGuard } from '../moneyOut/live.js';
+import { refusalBody } from '../moneyOut/refusal.js';
 import { getUserByAddress } from '../db/users.js';
 import { appendActivity } from '../db/activityLog.js';
 import { bus } from '../events.js';
@@ -394,14 +397,26 @@ gatewayRoutes.post('/cash-out', async (c) => {
   } catch (err) {
     return c.json({ error: invalidBodyMessage(err) }, 400);
   }
+  const requestId = body.requestId ?? c.req.header('Idempotency-Key');
+  if (!requestId) return c.json({ error: 'requestId or Idempotency-Key is required' }, 400);
+
+  const outgoing = {
+    wallet: address,
+    exit: { kind: 'payout', chain: body.destChainKey, address: body.recipient },
+    amountMicros: parseUnits(body.amountUsdc.toString(), 6),
+    reference: `gateway:cash-out:${address.toLowerCase()}:${requestId}`,
+    ownEverywhere: readSession(c)?.method === 'web3',
+  } as const;
+  const early = await moneyOutGuard.check(outgoing, { reserve: false });
+  if (!early.ok) return c.json(refusalBody(early.refusal), 409);
 
   if (spendInFlight.has(address)) {
     return c.json({ error: 'a transfer is already in progress', code: 'in_flight' }, 409);
   }
   spendInFlight.add(address);
   try {
-    const requestId = body.requestId ?? c.req.header('Idempotency-Key');
-    if (!requestId) return c.json({ error: 'requestId or Idempotency-Key is required' }, 400);
+    const pass = await moneyOutGuard.check(outgoing);
+    if (!pass.ok) return c.json(refusalBody(pass.refusal), 409);
     const result = await cashOutFromGateway(
       address,
       body.destChainKey,

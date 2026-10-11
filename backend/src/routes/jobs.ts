@@ -161,6 +161,10 @@ const postJobSchema = z
 
 export const jobsRoutes = new Hono();
 
+/// A refusal whose message the buyer should read as it is: the chat deal limits
+/// and the money-out guard.
+export const saysWhy = (code: string) => code === 'CHAT_DEAL_LIMIT' || code.startsWith('MONEY_OUT_');
+
 /// The managed-jobs snapshot carries full negotiation state (bids, counter
 /// prices, amounts, buyer agent) and so must never enumerate every buyer's
 /// jobs. The masked public market surface is /marketplace; this is the owner's
@@ -603,8 +607,8 @@ jobsRoutes.post('/:jobId/approve-match', async (c) => {
       ? await proceedAgentNearMiss(jobId, proposal.sellerAgent, proposal.raisedPriceUsdc!)
       : await approveAgentMatch(jobId);
     if (!result.ok) {
-      const status = result.code === 'INSUFFICIENT_AGENT_BALANCE' || result.code === 'CHAT_DEAL_LIMIT' ? 409 : 502;
-      const error = result.code === 'CHAT_DEAL_LIMIT' ? result.message : 'approval failed';
+      const status = result.code === 'INSUFFICIENT_AGENT_BALANCE' || saysWhy(result.code) ? 409 : 502;
+      const error = saysWhy(result.code) ? result.message : 'approval failed';
       return c.json({ error, code: result.code, detail: result.message }, status);
     }
     return c.json({ accepted: true, jobId, txHash: result.txHash }, 200);
@@ -645,8 +649,8 @@ jobsRoutes.post('/:jobId/choose-offer', async (c) => {
     const result = await chooseAgentOffer(jobId, body.seller);
     if (!result.ok) {
       refuse(result.code);
-      const status = result.code === 'INSUFFICIENT_AGENT_BALANCE' || result.code === 'CHAT_DEAL_LIMIT' || result.code === 'CLOSED' || result.code.startsWith('ALREADY') ? 409 : result.code === 'NO_OFFER' ? 404 : 502;
-      const error = result.code === 'CHAT_DEAL_LIMIT' ? result.message : 'could not choose this offer';
+      const status = result.code === 'INSUFFICIENT_AGENT_BALANCE' || saysWhy(result.code) || result.code === 'CLOSED' || result.code.startsWith('ALREADY') ? 409 : result.code === 'NO_OFFER' ? 404 : 502;
+      const error = saysWhy(result.code) ? result.message : 'could not choose this offer';
       return c.json({ error, code: result.code, detail: result.message }, status);
     }
     return c.json({ accepted: true, jobId, txHash: result.txHash }, 200);

@@ -24,6 +24,8 @@ import { ensureCashoutMovement } from '../money/cashout.js';
 import { readSession } from '../auth/session.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
+import { moneyOutGuard } from '../moneyOut/live.js';
+import { refusalBody } from '../moneyOut/refusal.js';
 import { invalidBodyMessage } from './invalidBody.js';
 import { ARC } from '../chain/client.js';
 
@@ -70,6 +72,12 @@ const arcSendSchema = z.object({
 });
 
 export const cashoutRoutes = new Hono();
+
+/// A settled deal opens a withdrawal of at most what the deal was worth, so a
+/// small deal does not unlock everything else in the wallet.
+export function overDealAmount(deal: { dealAmountUsdc: string }, amountUsdc: number): boolean {
+  return parseUnits(amountUsdc.toString(), USDC_DECIMALS) > parseUnits(deal.dealAmountUsdc, USDC_DECIMALS);
+}
 
 interface ResolvedWallet {
   kind: WalletKind;
@@ -122,6 +130,18 @@ cashoutRoutes.post('/arc-withdraw', async (c) => {
   const session = readSession(c);
   if (!session) return c.json({ error: 'sign in to withdraw' }, 401);
 
+  const amountWei = parseUnits(body.amountUsdc.toString(), USDC_DECIMALS);
+  const requestKey = body.requestId ?? randomUUID();
+  const operationKey = `cashout:arc-withdraw:${session.address.toLowerCase()}:${requestKey}`;
+  const outgoing = {
+    wallet: session.address,
+    exit: { kind: 'payout', chain: 'arc', address: body.recipient },
+    amountMicros: amountWei,
+    reference: operationKey,
+  } as const;
+  const early = await moneyOutGuard.check(outgoing, { reserve: false });
+  if (!early.ok) return c.json(refusalBody(early.refusal), 409);
+
   const deal = await getDeal(body.jobId);
   if (!deal) return c.json({ error: 'deal not found' }, 404);
 
@@ -131,6 +151,12 @@ cashoutRoutes.post('/arc-withdraw', async (c) => {
   if (!deal.settledAt) {
     return c.json(
       { error: 'deal is not settled yet', code: 'NOT_SETTLED' },
+      409,
+    );
+  }
+  if (overDealAmount(deal, body.amountUsdc)) {
+    return c.json(
+      { error: `This deal was worth ${deal.dealAmountUsdc} USDC. Withdraw up to that from it.`, code: 'OVER_DEAL_AMOUNT' },
       409,
     );
   }
@@ -181,8 +207,6 @@ cashoutRoutes.post('/arc-withdraw', async (c) => {
     );
   }
 
-  const amountWei = parseUnits(body.amountUsdc.toString(), USDC_DECIMALS);
-
   // Balance read + transfer are not atomic: serialize per source wallet so two
   // concurrent withdraws can't both pass the check and both spend.
   if (cashoutInFlight.has(source.walletId)) {
@@ -218,9 +242,10 @@ cashoutRoutes.post('/arc-withdraw', async (c) => {
     // Allocate the Karwan receipt before Circle sees a transfer. The request
     // id is the client submission identity; callers that omit it still get a
     // one-shot operation key, while normal retries reuse the same reference.
-    const requestKey = body.requestId ?? randomUUID();
+    const pass = await moneyOutGuard.check(outgoing);
+    if (!pass.ok) return c.json(refusalBody(pass.refusal), 409);
     const { movement } = await ensureCashoutMovement({
-      operationKey: `cashout:arc-withdraw:${session.address.toLowerCase()}:${requestKey}`,
+      operationKey,
       amountUsdc: body.amountUsdc.toString(),
       initiatedBy: session.address,
       recipient: body.recipient,
@@ -350,6 +375,17 @@ cashoutRoutes.post('/arc-send', async (c) => {
   const session = readSession(c);
   if (!session) return c.json({ error: 'sign in to cash out' }, 401);
 
+  const amountWei = parseUnits(body.amountUsdc.toString(), USDC_DECIMALS);
+  const bridgeId = body.bridgeId ?? `arc-send-${session.address}-${randomUUID()}`;
+  const outgoing = {
+    wallet: session.address,
+    exit: { kind: 'payout', chain: 'arc', address: body.recipient },
+    amountMicros: amountWei,
+    reference: `cashout:arc-send:${session.address.toLowerCase()}:${bridgeId}`,
+  } as const;
+  const early = await moneyOutGuard.check(outgoing, { reserve: false });
+  if (!early.ok) return c.json(refusalBody(early.refusal), 409);
+
   const user = getUserByAddress(session.address);
   if (!user?.circleIdentityWalletId) {
     // Web3-only users have no Karwan-custodied wallet to send from; their USDC
@@ -364,8 +400,6 @@ cashoutRoutes.post('/arc-send', async (c) => {
       409,
     );
   }
-
-  const amountWei = parseUnits(body.amountUsdc.toString(), USDC_DECIMALS);
 
   // Serialize per identity wallet: balance read + transfer are not atomic.
   if (cashoutInFlight.has(user.circleIdentityWalletId)) {
@@ -393,9 +427,10 @@ cashoutRoutes.post('/arc-send', async (c) => {
     );
   }
 
-  const bridgeId = body.bridgeId ?? `arc-send-${session.address}-${randomUUID()}`;
+  const pass = await moneyOutGuard.check(outgoing);
+  if (!pass.ok) return c.json(refusalBody(pass.refusal), 409);
   const { movement } = await ensureCashoutMovement({
-    operationKey: `cashout:arc-send:${session.address.toLowerCase()}:${bridgeId}`,
+    operationKey: outgoing.reference,
     amountUsdc: body.amountUsdc.toString(),
     initiatedBy: session.address,
     recipient: body.recipient,

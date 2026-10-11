@@ -25,6 +25,8 @@ import { fundAgentMatchV3, type V3DealRecord } from './fundAgentMatchV3.js';
 import { fundAgentMatchV3Deps } from '../deals/fundDirectV3Live.js';
 import { chatFundingRefusal } from '../deals/chatDealGate.js';
 import { chatFundingDeps } from '../deals/chatFundingLive.js';
+import { moneyOutGuard } from '../moneyOut/live.js';
+import { refusalBody } from '../moneyOut/refusal.js';
 import { jobBoardAbi } from '../chain/abis/jobBoard.js';
 import { executeContractCall } from '../chain/txs.js';
 import { negotiationModel } from '../llm/client.js';
@@ -3873,6 +3875,17 @@ export async function approveAgentMatch(
     amountUsdc: Number(proposal.agreedPriceUsdc),
   });
   if (!chatLimit.ok) return { ok: false, code: 'CHAT_DEAL_LIMIT', message: chatLimit.message };
+  const outgoing = {
+    wallet: proposal.buyerUser,
+    exit: { kind: 'escrow' },
+    amountMicros: parseUnits(proposal.agreedPriceUsdc, USDC_DECIMALS),
+    reference: `fund:${jobId.toLowerCase()}`,
+  } as const;
+  const early = await moneyOutGuard.check(outgoing, { reserve: false });
+  if (!early.ok) {
+    const refused = refusalBody(early.refusal);
+    return { ok: false, code: refused.code, message: refused.error };
+  }
 
   const seller = proposal.sellerAgent as `0x${string}`;
 
@@ -3942,6 +3955,13 @@ export async function approveAgentMatch(
       { jobId, err: (err as Error).message },
       'approveAgentMatch: pre-accept balance check skipped',
     );
+  }
+
+  // Counted before the first on-chain step: acceptBid commits the job to fund.
+  const pass = await moneyOutGuard.check(outgoing);
+  if (!pass.ok) {
+    const refused = refusalBody(pass.refusal);
+    return { ok: false, code: refused.code, message: refused.error };
   }
 
   let acceptResult;

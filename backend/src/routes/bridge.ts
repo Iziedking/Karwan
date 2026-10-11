@@ -1,6 +1,6 @@
 import { recordedBridgeMintedPayload } from '../money/bridgeEvents.js';
 import { randomUUID } from 'node:crypto';
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 import { formatUnits, maxUint256, parseUnits, type PublicClient } from 'viem';
 import { config } from '../config.js';
@@ -17,7 +17,7 @@ import { getMoneyMovement } from '../db/moneyMovements.js';
 import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
 import { inboundSummary } from '../money/inboundSummary.js';
 import { getUserByAddress } from '../db/users.js';
-import { isSessionSelf, sessionAddress } from '../auth/session.js';
+import { isSessionSelf, readSession, sessionAddress } from '../auth/session.js';
 import { provisionUserBridgeWallet, dripTestnetUsdc } from '../circle/wallets.js';
 import { ensureAgentBridgeWallet } from '../circle/agentBridgeWallet.js';
 import {
@@ -55,6 +55,8 @@ import { ensureBridgeMovement } from '../money/bridge.js';
 
 import { sourceClients } from '../chain/cctpClients.js';
 import { USER_DCW_WALLETS } from '../chain/cctpChains.js';
+import { isOwnArcWallet, moneyOutGuard } from '../moneyOut/live.js';
+import { refusalBody } from '../moneyOut/refusal.js';
 import { invalidBodyMessage } from './invalidBody.js';
 
 const erc20BalanceOfAbi = [
@@ -186,6 +188,11 @@ async function computeFastMaxFee(
 }
 
 export const bridgeRoutes = new Hono();
+
+/// A top-up signs on the person's deposit wallet, which Karwan holds, so the
+/// minted USDC lands only in one of their own wallets on Arc.
+const mintNotOwn = (c: Context) =>
+  c.json({ error: 'A top-up lands in one of your own Karwan wallets.', code: 'MINT_NOT_OWN_WALLET' }, 409);
 
 /// The circle-* routes sign with a backend Circle wallet on the user's behalf,
 /// which only testnet allows (see USER_DCW_WALLETS).
@@ -1408,6 +1415,7 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
   if (!isSessionSelf(c, userAddress)) {
     return c.json({ error: 'You can only bridge your own funds.', code: 'forbidden' }, 403);
   }
+  if (!(await isOwnArcWallet(userAddress, body.mintRecipient))) return mintNotOwn(c);
 
   const amountUsdc = body.amountUsdc.toString();
   let amountMicros: bigint;
@@ -1753,6 +1761,7 @@ bridgeRoutes.post('/circle-bridge-app-kit', async (c) => {
   if (!isSessionSelf(c, userAddress)) {
     return c.json({ error: 'You can only bridge your own funds.', code: 'forbidden' }, 403);
   }
+  if (!(await isOwnArcWallet(userAddress, body.mintRecipient))) return mintNotOwn(c);
   const amountUsdc = body.amountUsdc.toString();
   let amountMicros: bigint;
   try {
@@ -2347,6 +2356,15 @@ bridgeRoutes.post('/circle-bridge-out', async (c) => {
   if (!isSessionSelf(c, userAddress)) {
     return c.json({ error: 'You can only bridge out your own funds.', code: 'forbidden' }, 403);
   }
+  const outgoing = {
+    wallet: userAddress,
+    exit: { kind: 'payout', chain: body.destChainKey, address: body.recipient },
+    amountMicros: parseUnits(body.amountUsdc.toString(), USDC_DECIMALS),
+    reference: `cashout:bridge-out:${userAddress}:${body.bridgeId}`,
+    ownEverywhere: readSession(c)?.method === 'web3',
+  } as const;
+  const early = await moneyOutGuard.check(outgoing, { reserve: false });
+  if (!early.ok) return c.json(refusalBody(early.refusal), 409);
   const user = getUserByAddress(userAddress);
 
   // Decide which wallet on Arc will burn. The identity source is custodial only
@@ -2456,8 +2474,10 @@ bridgeRoutes.post('/circle-bridge-out', async (c) => {
   // Allocate the user-facing receipt before App Kit starts its burn. The
   // movement owns both source burn and destination mint legs; the bridge row
   // remains a compatibility/progress projection for existing UI surfaces.
+  const pass = await moneyOutGuard.check(outgoing);
+  if (!pass.ok) return c.json(refusalBody(pass.refusal), 409);
   const { movement } = await ensureCashoutMovement({
-    operationKey: `cashout:bridge-out:${userAddress}:${body.bridgeId}`,
+    operationKey: outgoing.reference,
     amountUsdc,
     initiatedBy: userAddress,
     recipient: body.recipient,
