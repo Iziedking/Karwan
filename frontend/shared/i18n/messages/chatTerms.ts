@@ -5,13 +5,13 @@ export interface ChatTermsCopy {
   sections: { heading: string; body: string }[];
 }
 
-/// Terms for the Karwan agent in chat, version chat-2026-10-12 (Telegram).
+/// Terms for the Karwan agent in chat, version chat-2026-10-13 (Telegram).
 /// The English text is the one the owner approves; translations follow it.
 /// The version matches CHAT_TERMS_VERSION in backend/src/channels/identity.ts.
 const en: ChatTermsCopy = {
   title: 'The Karwan agent in chat',
   intro: 'These terms cover the free beta of the Karwan agent on Telegram. Accepting them in chat creates your Karwan account.',
-  version: 'Version chat-2026-10-12',
+  version: 'Version chat-2026-10-13',
   sections: [
     {
       heading: 'What the agent does',
@@ -43,7 +43,7 @@ const en: ChatTermsCopy = {
     },
     {
       heading: 'Deleting your data',
-      body: 'Ask Karwan to delete your account, in chat or at karwan.site, and we handle the request. Facts already written to Arc carry no personal data.',
+      body: 'Send /delete in chat to delete your account. It is refused while you have an open deal, offers or requests still live, or money in your wallets: finish those and withdraw first. The deletion runs 7 days after you confirm, and you can cancel it in chat until then. It removes your profile and tag, our chat history, your verified facts, which are also revoked on Arc, your saved addresses and your activity. We keep your deals and payments, because they are also the other party’s record and our books; they hold wallet addresses and amounts, not your name. We keep the one-way hash of your World ID for 12 months, so the same person cannot delete an account to start a clean record, then we delete it. The empty wallets stay, unused. If you ask by email or at karwan.site, we tell you in chat and the same wait applies.',
     },
     {
       heading: 'Your rights',
@@ -55,7 +55,7 @@ const en: ChatTermsCopy = {
 const ar: ChatTermsCopy = {
   title: 'وكيل Karwan في المحادثة',
   intro: 'تغطي هذه الشروط النسخة التجريبية المجانية من وكيل Karwan على تيليغرام. قبولها في المحادثة ينشئ حسابك على Karwan.',
-  version: 'الإصدار chat-2026-10-12',
+  version: 'الإصدار chat-2026-10-13',
   sections: [
     { heading: 'ما يفعله الوكيل', body: 'يسجّل الوكيل ما تبيعه أو تشتريه، ويفحص أدلتك، ويجد لك أشخاصًا موثّقين، ويسأل وكلاءهم عن السعر والمدة والشروط، ويُعدّ الصفقات. القرار لك. الاتفاقات والتسليم والنزاعات خطوات تؤكدها في المحادثة. كل خطوة تنقل المال، مثل الدفع إلى الضمان أو التحرير أو السحب أو إلغاء صفقة مموّلة، تفتح رابطًا لمرة واحدة إلى Karwan، وتؤكدها على Karwan حيث ترى كل رقم أولًا.' },
     { heading: 'حسابك ومحافظك', body: 'حسابك على تيليغرام هو طريقة دخولك، لذا يمكن لأي شخص يتحكم فيه أن يتصرف باسمك. فعّل التحقق بخطوتين في تيليغرام. تنشئ Karwan لحسابك ثلاث محافظ وتحتفظ بها: واحدة تعرّفك، ورصيد للشراء، ورصيد للأرباح. توقّع Karwan عنها عندما تؤكد خطوة، وللنتائج التلقائية التي وافقت عليها: استرداد بعد فوات موعد، وتحرير بعد انتهاء مدة المراجعة، وقبول البائع لصفقة موّلتها. يمكنك سحب أموالك وفق القواعد في القسم التالي، أو ربط محفظتك الخاصة.' },
@@ -64,7 +64,7 @@ const ar: ChatTermsCopy = {
     { heading: 'التحقق', body: 'يُحدَّد مستواك بقواعد منشورة، ولا يحدده نموذج لغوي أبدًا. ما تقوله عن نفسك فقط لا يُحتسب حتى يُفحص. لا يُحتسب تأكيد عميل سابق إلا إذا اجتاز ذلك العميل فحص الشخص. لا يجدك الوكلاء الآخرون إلا بعد التحقق من عملك. للحقائق مدة صلاحية، والحقيقة المنتهية لا تُحتسب.' },
     { heading: 'ما نحتفظ به', body: 'نحتفظ بمعرّف مستخدمك على تيليغرام، وما تقوله للوكيل، ونتائج كل فحص، وصفقاتك. تُقرأ الفواتير ثم تُحذف: نحتفظ فقط بالتفاصيل المقروءة منها وببصمة، كي لا تدعم الفاتورة نفسها حسابين. لا يجيب العميل السابق إلا إذا فتح الرابط الذي ترسله له، من حسابه الخاص. تطابق الآلات بين الناس بهذه التفاصيل، ولا يراها الآخرون.' },
     { heading: 'سجلك العام', body: 'يعرض سجلك على karwan.site/r/your-tag اسمك ومستواك ورتبتك وأسبابًا ثابتة والحقائق الموثّقة مع إثباتها على Arc. لا يعرض أبدًا حسابك على تيليغرام أو مستنداتك أو المبالغ أو أسماء عملائك. الحقائق المكتوبة على Arc لا تحمل بيانات شخصية.' },
-    { heading: 'حذف بياناتك', body: 'اطلب من Karwan حذف حسابك، في المحادثة أو على karwan.site، وسنتولى الطلب. الحقائق المكتوبة على Arc لا تحمل بيانات شخصية.' },
+    { heading: 'حذف بياناتك', body: 'أرسل /delete في المحادثة لحذف حسابك. يُرفض الحذف ما دامت لديك صفقة مفتوحة، أو عروض أو طلبات لا تزال قائمة، أو مال في محافظك: أنهِها واسحب مالك أولًا. يتم الحذف بعد 7 أيام من تأكيدك، ويمكنك إلغاؤه في المحادثة حتى ذلك الحين. يحذف ملفك الشخصي ووسمك، وسجل محادثاتنا، وحقائقك الموثّقة التي تُلغى أيضًا على Arc، وعناوينك المحفوظة، ونشاطك. نحتفظ بصفقاتك ومدفوعاتك لأنها أيضًا سجل الطرف الآخر وحساباتنا، وهي تحمل عناوين محافظ ومبالغ لا اسمك. نحتفظ بالبصمة أحادية الاتجاه لـ World ID الخاص بك مدة 12 شهرًا، كي لا يحذف الشخص نفسه حسابًا ليبدأ بسجل نظيف، ثم نحذفها. تبقى المحافظ الفارغة دون استخدام. إذا طلبت الحذف بالبريد الإلكتروني أو على karwan.site، نخبرك في المحادثة وتنطبق المدة نفسها.' },
     { heading: 'حقوقك', body: 'نعالج بياناتك بموافقتك، بموجب قانون حماية البيانات النيجيري لعام 2023 والقوانين الأخرى التي تنطبق عليك، فقط للتحقق منك ولمطابقة صفقاتك وتنفيذها. تنطبق أيضًا شروط Karwan الكاملة على karwan.site/terms.' },
   ],
 };
@@ -72,7 +72,7 @@ const ar: ChatTermsCopy = {
 const fr: ChatTermsCopy = {
   title: 'L’agent Karwan dans le chat',
   intro: 'Ces conditions couvrent la bêta gratuite de l’agent Karwan sur Telegram. Les accepter dans le chat crée votre compte Karwan.',
-  version: 'Version chat-2026-10-12',
+  version: 'Version chat-2026-10-13',
   sections: [
     { heading: 'Ce que fait l’agent', body: 'L’agent enregistre ce que vous vendez ou achetez, vérifie vos preuves, trouve pour vous des personnes vérifiées, demande à leurs agents le prix, le délai et les conditions, et prépare les deals. Vous décidez. Les accords, la livraison et les litiges sont des étapes que vous confirmez dans le chat. Chaque étape qui déplace de l’argent, comme payer l’escrow, libérer, retirer ou annuler un deal financé, ouvre un lien Karwan à usage unique, et vous la confirmez sur Karwan, où vous voyez chaque montant d’abord.' },
     { heading: 'Votre compte et vos portefeuilles', body: 'Votre compte Telegram sert à vous connecter : quiconque le contrôle peut agir en votre nom. Activez la vérification en deux étapes dans Telegram. Karwan crée et détient trois portefeuilles pour votre compte : un qui vous identifie, un solde d’achat et un solde de gains. Karwan signe pour eux quand vous confirmez une étape, et pour les issues automatiques que vous avez acceptées : un remboursement après un délai manqué, une libération après la période d’examen, et l’acceptation par le vendeur d’un deal que vous avez financé. Vous pouvez retirer votre argent selon les règles de la section suivante, ou connecter votre propre portefeuille.' },
@@ -81,7 +81,7 @@ const fr: ChatTermsCopy = {
     { heading: 'La vérification', body: 'Votre niveau est fixé par des règles publiées, jamais par un modèle de langage. Ce que vous dites seulement de vous ne compte pas tant que ce n’est pas vérifié. La confirmation d’un ancien client ne compte que si ce client a passé la vérification de personne. Les autres agents ne peuvent vous trouver qu’une fois votre travail vérifié. Les faits expirent, et un fait expiré ne compte plus.' },
     { heading: 'Ce que nous conservons', body: 'Nous conservons votre identifiant Telegram, ce que vous dites à l’agent, le résultat de chaque vérification et vos deals. Les factures sont lues puis supprimées : nous gardons seulement les informations lues et une empreinte, pour qu’une même facture ne puisse pas appuyer deux comptes. Un ancien client répond seulement s’il ouvre le lien que vous lui envoyez, depuis son propre compte. Des machines rapprochent les personnes à partir de ces informations ; les autres personnes ne les voient pas.' },
     { heading: 'Votre dossier public', body: 'Votre dossier sur karwan.site/r/your-tag montre votre nom, votre niveau, votre rang, des raisons fixes et les faits vérifiés avec leur preuve sur Arc. Il ne montre jamais votre compte Telegram, vos documents, des montants ou le nom de vos clients. Les faits écrits sur Arc ne contiennent aucune donnée personnelle.' },
-    { heading: 'Supprimer vos données', body: 'Demandez à Karwan de supprimer votre compte, dans le chat ou sur karwan.site, et nous traitons la demande. Les faits déjà écrits sur Arc ne contiennent aucune donnée personnelle.' },
+    { heading: 'Supprimer vos données', body: 'Envoyez /delete dans le chat pour supprimer votre compte. La suppression est refusée tant que vous avez un deal ouvert, des offres ou des demandes encore actives, ou de l’argent dans vos portefeuilles : terminez-les et retirez votre argent d’abord. Elle a lieu 7 jours après votre confirmation, et vous pouvez l’annuler dans le chat jusque-là. Elle efface votre profil et votre tag, l’historique de nos échanges, vos faits vérifiés, qui sont aussi révoqués sur Arc, vos adresses enregistrées et votre activité. Nous gardons vos deals et vos paiements, car ils sont aussi le dossier de l’autre partie et notre comptabilité ; ils contiennent des adresses de portefeuille et des montants, pas votre nom. Nous gardons l’empreinte à sens unique de votre World ID pendant 12 mois, pour qu’une même personne ne puisse pas supprimer un compte pour repartir avec un dossier vierge, puis nous la supprimons. Les portefeuilles vides restent, inutilisés. Si vous le demandez par e-mail ou sur karwan.site, nous vous prévenons dans le chat et le même délai s’applique.' },
     { heading: 'Vos droits', body: 'Nous traitons vos données avec votre consentement, selon la loi nigériane de 2023 sur la protection des données et les autres lois qui s’appliquent à vous, uniquement pour vous vérifier et pour rapprocher et mener vos deals. Les conditions complètes de Karwan sur karwan.site/terms s’appliquent aussi.' },
   ],
 };
@@ -89,7 +89,7 @@ const fr: ChatTermsCopy = {
 const hi: ChatTermsCopy = {
   title: 'चैट में Karwan एजेंट',
   intro: 'ये शर्तें Telegram पर Karwan एजेंट के मुफ़्त बीटा पर लागू होती हैं। चैट में इन्हें स्वीकार करने से आपका Karwan खाता बनता है।',
-  version: 'संस्करण chat-2026-10-12',
+  version: 'संस्करण chat-2026-10-13',
   sections: [
     { heading: 'एजेंट क्या करता है', body: 'एजेंट दर्ज करता है कि आप क्या बेचते या खरीदते हैं, आपके सबूत जाँचता है, आपके लिए सत्यापित लोग ढूँढता है, उनके एजेंटों से कीमत, समय और शर्तें पूछता है, और डील तैयार करता है। फ़ैसला आपका है। समझौते, डिलीवरी और विवाद ऐसे कदम हैं जिन्हें आप चैट में पुष्टि करते हैं। पैसा हिलाने वाला हर कदम, जैसे एस्क्रो में भुगतान, रिलीज़, निकासी या फ़ंड की गई डील रद्द करना, Karwan का एक बार का लिंक खोलता है, और आप उसे Karwan पर पुष्टि करते हैं, जहाँ आप पहले हर रकम देखते हैं।' },
     { heading: 'आपका खाता और वॉलेट', body: 'आपका Telegram खाता ही आपका साइन इन है, इसलिए जिसके पास उसका नियंत्रण है वह आपकी तरह काम कर सकता है। Telegram में दो-चरणीय सत्यापन चालू करें। Karwan आपके खाते के लिए तीन वॉलेट बनाता और रखता है: एक जो आपकी पहचान है, एक खरीद बैलेंस और एक कमाई बैलेंस। Karwan इनके लिए तब हस्ताक्षर करता है जब आप कोई कदम पुष्टि करते हैं, और उन स्वचालित नतीजों के लिए जिन पर आप सहमत हुए: समय सीमा चूकने पर रिफ़ंड, समीक्षा अवधि के बाद रिलीज़, और आपकी फ़ंड की गई डील को विक्रेता की स्वीकृति। आप अगले खंड के नियमों के अनुसार अपना पैसा निकाल सकते हैं, या अपना वॉलेट जोड़ सकते हैं।' },
@@ -98,7 +98,7 @@ const hi: ChatTermsCopy = {
     { heading: 'सत्यापन', body: 'आपका स्तर प्रकाशित नियमों से तय होता है, कभी किसी भाषा मॉडल से नहीं। अपने बारे में केवल कही गई बात तब तक नहीं गिनी जाती जब तक जाँची न जाए। किसी पुराने क्लाइंट की पुष्टि तभी गिनी जाती है जब उस क्लाइंट ने व्यक्ति जाँच पास कर ली हो। आपका काम सत्यापित होने के बाद ही दूसरे एजेंट आपको ढूँढ सकते हैं। तथ्यों की अवधि समाप्त होती है, और समाप्त तथ्य नहीं गिना जाता।' },
     { heading: 'हम क्या रखते हैं', body: 'हम आपकी Telegram यूज़र आईडी, आप एजेंट को जो बताते हैं, हर जाँच के नतीजे और आपकी डील रखते हैं। इनवॉइस पढ़े जाते हैं और फिर हटा दिए जाते हैं: हम केवल उनसे पढ़े गए विवरण और एक फ़िंगरप्रिंट रखते हैं, ताकि एक ही इनवॉइस दो खातों का समर्थन न कर सके। पुराना क्लाइंट तभी जवाब देता है जब वह आपके भेजे लिंक को अपने खाते से खोलता है। मशीनें इन्हीं विवरणों पर लोगों को मिलाती हैं; दूसरे लोग इन्हें नहीं देखते।' },
     { heading: 'आपका सार्वजनिक रिकॉर्ड', body: 'karwan.site/r/your-tag पर आपका रिकॉर्ड आपका नाम, स्तर, टियर, तय कारण और Arc पर प्रमाण के साथ सत्यापित तथ्य दिखाता है। यह कभी आपका Telegram खाता, दस्तावेज़, रकम या आपके क्लाइंट्स के नाम नहीं दिखाता। Arc पर लिखे तथ्यों में कोई निजी डेटा नहीं होता।' },
-    { heading: 'अपना डेटा हटाना', body: 'Karwan से अपना खाता हटाने को कहें, चैट में या karwan.site पर, और हम अनुरोध पर काम करते हैं। Arc पर पहले से लिखे तथ्यों में कोई निजी डेटा नहीं होता।' },
+    { heading: 'अपना डेटा हटाना', body: 'अपना खाता हटाने के लिए चैट में /delete भेजें। जब तक आपकी कोई डील खुली है, कोई ऑफ़र या अनुरोध अभी चालू है, या आपके वॉलेट में पैसा है, तब तक इसे मना किया जाता है: पहले उन्हें पूरा करें और पैसा निकालें। आपकी पुष्टि के 7 दिन बाद खाता हटता है, और तब तक आप चैट में इसे रद्द कर सकते हैं। इससे आपकी प्रोफ़ाइल और टैग, हमारी चैट का इतिहास, आपके सत्यापित तथ्य, जो Arc पर भी रद्द किए जाते हैं, आपके सहेजे गए पते और आपकी गतिविधि हटती है। हम आपकी डील और भुगतान रखते हैं, क्योंकि वे दूसरे पक्ष का रिकॉर्ड और हमारा हिसाब भी हैं; उनमें वॉलेट पते और रकम हैं, आपका नाम नहीं। हम आपके World ID का एकतरफ़ा हैश 12 महीने रखते हैं, ताकि वही व्यक्ति साफ़ रिकॉर्ड के लिए खाता हटाकर दोबारा शुरू न कर सके, फिर उसे हटा देते हैं। खाली वॉलेट बिना उपयोग के रहते हैं। अगर आप ईमेल से या karwan.site पर अनुरोध करते हैं, तो हम आपको चैट में बताते हैं और वही इंतज़ार लागू होता है।' },
     { heading: 'आपके अधिकार', body: 'हम आपकी सहमति से, नाइजीरिया डेटा संरक्षण अधिनियम 2023 और आप पर लागू अन्य कानूनों के तहत, केवल आपको सत्यापित करने और आपकी डील मिलाने और चलाने के लिए आपका डेटा संसाधित करते हैं। karwan.site/terms पर Karwan की पूरी शर्तें भी लागू होती हैं।' },
   ],
 };
@@ -106,7 +106,7 @@ const hi: ChatTermsCopy = {
 const sw: ChatTermsCopy = {
   title: 'Wakala wa Karwan kwenye mazungumzo',
   intro: 'Masharti haya yanahusu toleo la majaribio la bure la wakala wa Karwan kwenye Telegram. Kuyakubali kwenye mazungumzo kunaunda akaunti yako ya Karwan.',
-  version: 'Toleo chat-2026-10-12',
+  version: 'Toleo chat-2026-10-13',
   sections: [
     { heading: 'Wakala anafanya nini', body: 'Wakala anasajili unachouza au kununua, anakagua ushahidi wako, anakutafutia watu waliothibitishwa, anauliza mawakala wao kuhusu bei, muda na masharti, na anaandaa mikataba. Uamuzi ni wako. Makubaliano, uwasilishaji na migogoro ni hatua unazothibitisha kwenye mazungumzo. Kila hatua inayohamisha pesa, kama kulipa kwenye escrow, kutoa, kutoa pesa au kughairi mkataba uliofadhiliwa, inafungua kiungo cha Karwan cha mara moja, na unaithibitisha kwenye Karwan, ambapo unaona kila kiasi kwanza.' },
     { heading: 'Akaunti na pochi zako', body: 'Akaunti yako ya Telegram ndiyo njia ya kuingia, kwa hiyo yeyote anayeidhibiti anaweza kutenda kama wewe. Washa uthibitisho wa hatua mbili kwenye Telegram. Karwan inaunda na kushikilia pochi tatu za akaunti yako: moja inayokutambulisha, salio la kununua na salio la mapato. Karwan inazitia saini unapothibitisha hatua, na kwa matokeo ya moja kwa moja uliyokubali: kurejeshewa pesa baada ya tarehe ya mwisho kupita, kutolewa baada ya muda wa ukaguzi, na muuzaji kukubali mkataba uliofadhili. Unaweza kutoa pesa zako kwa kufuata sheria za sehemu inayofuata, au kuunganisha pochi yako mwenyewe.' },
@@ -115,7 +115,7 @@ const sw: ChatTermsCopy = {
     { heading: 'Uthibitisho', body: 'Kiwango chako kinaamuliwa kwa sheria zilizochapishwa, kamwe si kwa modeli ya lugha. Unachosema tu kuhusu wewe mwenyewe hakihesabiwi hadi kikaguliwe. Uthibitisho wa mteja wa awali unahesabiwa tu mteja huyo akiwa amepita ukaguzi wa mtu. Mawakala wengine wanaweza kukupata tu kazi yako ikishathibitishwa. Ukweli una muda wake, na ukweli uliokwisha muda hauhesabiwi.' },
     { heading: 'Tunachohifadhi', body: 'Tunahifadhi kitambulisho chako cha Telegram, unachomwambia wakala, matokeo ya kila ukaguzi na mikataba yako. Ankara zinasomwa kisha zinafutwa: tunahifadhi tu maelezo yaliyosomwa na alama ya kipekee, ili ankara moja isiweze kuunga mkono akaunti mbili. Mteja wa awali anajibu tu akifungua kiungo unachomtumia, kutoka kwenye akaunti yake mwenyewe. Mashine zinalinganisha watu kwa maelezo haya; watu wengine hawayaoni.' },
     { heading: 'Rekodi yako ya umma', body: 'Rekodi yako kwenye karwan.site/r/your-tag inaonyesha jina lako, kiwango, daraja, sababu zilizowekwa na ukweli uliothibitishwa pamoja na uthibitisho wake kwenye Arc. Haionyeshi kamwe akaunti yako ya Telegram, nyaraka, kiasi cha pesa au majina ya wateja wako. Ukweli ulioandikwa kwenye Arc hauna data binafsi.' },
-    { heading: 'Kufuta data yako', body: 'Iombe Karwan ifute akaunti yako, kwenye mazungumzo au kwenye karwan.site, na tunashughulikia ombi hilo. Ukweli ulioandikwa tayari kwenye Arc hauna data binafsi.' },
+    { heading: 'Kufuta data yako', body: 'Tuma /delete kwenye mazungumzo ili kufuta akaunti yako. Inakataliwa ukiwa na mkataba ulio wazi, ofa au maombi ambayo bado yako hai, au pesa kwenye pochi zako: yamalize na utoe pesa kwanza. Ufutaji unafanyika siku 7 baada ya kuthibitisha, na unaweza kuughairi kwenye mazungumzo hadi wakati huo. Unafuta wasifu na lebo yako, historia ya mazungumzo yetu, ukweli wako uliothibitishwa, ambao pia unabatilishwa kwenye Arc, anwani ulizohifadhi na shughuli zako. Tunahifadhi mikataba na malipo yako, kwa sababu pia ni rekodi ya upande mwingine na hesabu zetu; yana anwani za pochi na kiasi cha pesa, si jina lako. Tunahifadhi alama ya njia moja ya World ID yako kwa miezi 12, ili mtu yule yule asifute akaunti ili aanze na rekodi safi, kisha tunaifuta. Pochi tupu zinabaki bila kutumika. Ukiomba kwa barua pepe au kwenye karwan.site, tunakuarifu kwenye mazungumzo na muda ule ule unatumika.' },
     { heading: 'Haki zako', body: 'Tunachakata data yako kwa ridhaa yako, chini ya Sheria ya Ulinzi wa Data ya Nigeria ya 2023 na sheria nyingine zinazokuhusu, kwa ajili tu ya kukuthibitisha na kulinganisha na kuendesha mikataba yako. Masharti kamili ya Karwan kwenye karwan.site/terms pia yanatumika.' },
   ],
 };

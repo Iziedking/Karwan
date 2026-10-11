@@ -235,6 +235,36 @@ sequenceDiagram
 
 Chainlink CRE runs the same checks in a sandbox on a decentralised network, so a check result does not rest on Karwan alone. It is switched on with one setting, `CRE_ENABLED`, once the workflow is fully wired for deals. Until then Karwan's own checks run, and the record says which ran.
 
+## Deleting a chat account
+
+The person sends `/delete`. The channel answers it before the model runs, so a deletion never rests on a model's reply.
+
+```mermaid
+sequenceDiagram
+  actor P as Person
+  participant K as Karwan agent
+  participant D as Deletion
+  participant F as Facts publisher
+  participant A as KarwanFacts on Arc
+
+  P->>K: /delete
+  K->>D: Open deal, live offer or request, bidding agent, money left?
+  D-->>K: None
+  K-->>P: What goes and what stays. Delete / Keep
+  P->>K: Delete
+  D-->>P: "Deleted on 18 Oct, 14:05 UTC", Keep my account
+  Note over P,D: 7 days, cancellable in chat
+  D->>D: Checks again, then withdraws every fact and deletes the account's stores
+  F->>A: revoke each fact written to Arc
+  D-->>P: "Your Karwan account is deleted"
+  D->>D: The facts record goes once Arc shows every revoke
+```
+
+- Refused while a deal is open, an offer or request is live, the agent is still bidding, or any wallet holds a cent or more, on Arc or any chain Karwan signs on. A balance that cannot be read counts as money.
+- Deleted: the chat account and its link, profile and tag, the account row, facts (revoked on Arc), verification requests and claims, the World ID session, saved addresses, activity, support conversations, feedback, and offers and requests that never became a deal.
+- Kept: deals, payments and deal messages, which are also the other party's record. The one-way World ID hash is kept 12 months so the same person cannot start a clean record, then deleted. The empty wallets stay; the deletion record keeps their ids, the address and the dates, never a name or a channel id.
+- A web account is deleted from Settings. A chat account cannot be deleted there, because that route would remove only part of it at once.
+
 ## What fails where
 
 | Where | What can go wrong | What happens |
@@ -259,6 +289,10 @@ Chainlink CRE runs the same checks in a sandbox on a decentralised network, so a
 | Money out | Someone else gets into the person's chat | Money goes only to saved addresses; a new one waits 24 hours and the chat is told, with Remove and Pause |
 | Money out | World ID is down | No address can be added and a returning account waits; saved addresses keep working inside the limit |
 | Money out | Two payments at once | One at a time per account, so both cannot fit under the daily limit |
+| Deletion | Someone holding the person's phone sends /delete | Nothing runs for 7 days, and the owner can cancel in chat |
+| Deletion | A deal opens during the wait | The deletion stops at the run, and the person is told why |
+| Deletion | A store fails halfway | The run is repeated until every store is done; the last message is sent once |
+| Deletion | A fact on Arc is not revoked yet | The account is not marked deleted until Arc shows the revoke |
 | Record | Karwan is offline | Facts on Arc and the signed credential still verify |
 
 ## Status
@@ -271,6 +305,7 @@ Chainlink CRE runs the same checks in a sandbox on a decentralised network, so a
 | X sign-in linking | Built |
 | Telegram channel adapter, money steps confirmed on Karwan from a one-time link | Built, not deployed |
 | Money out of a Karwan-held account: saved addresses with World ID, 24-hour wait, 500 USDC a day, return check, Pause | Built, not deployed |
+| Deleting a chat account: /delete, 7-day wait, facts revoked on Arc | Built, not deployed |
 | WhatsApp channel adapter | Built, paused |
 | Verification rules, ladder, evidence checks | Built, not deployed |
 | Facts contract on Arc and signed credential | Built, not deployed |

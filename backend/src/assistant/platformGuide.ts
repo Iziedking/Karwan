@@ -212,6 +212,16 @@ export const PLATFORM_GUIDE: readonly GuideEntry[] = [
     sources: ['backend/src/moneyOut/rules.ts', 'backend/src/moneyOut/guard.ts', 'backend/src/routes/moneyOut.ts', 'frontend/features/moneyOut/SavedAddresses.tsx'],
   },
   {
+    id: 'account-deletion', title: 'Deleting a chat account', status: 'gated', mainnet: 'off', route: '/terms/chat',
+    pages: ['/terms/chat', '/settings'],
+    api: [],
+    tools: [],
+    keywords: 'delete account remove my account erase my data close account forget me privacy data protection cancel deletion',
+    summary: 'A chat account is deleted by sending /delete to the agent on Telegram; the agent cannot do it from a request in words. It is refused while a deal is open, offers or requests are live, the seller agent is still bidding, or any wallet holds 0.01 USDC or more. It runs 7 days after the person confirms, and they can cancel in chat until then. It removes the profile and tag, the chat history, verified facts (revoked on Arc too), saved addresses, activity, support conversations, feedback, and offers and requests that never became a deal. Deals, payments and deal messages stay, and the World ID hash is kept 12 months, then deleted. A web account is deleted in Settings; a chat account cannot be deleted there.',
+    steps: ['Send the delete command to the Karwan agent on Telegram.','Read what goes and what stays, and tap Delete my account.', 'It runs 7 days later; tap Keep my account to cancel before then.'],
+    sources: ['backend/src/accountDeletion/rules.ts', 'backend/src/accountDeletion/service.ts', 'backend/src/accountDeletion/live.ts', 'frontend/shared/i18n/messages/chatTerms.ts'],
+  },
+  {
     id: 'records', title: 'Activity and receipts', status: 'testnet', mainnet: 'invite', route: '/activity',
     pages: ['/activity', '/activity/all-time'],
     api: ['GET /api/activity/me', 'GET /api/bridge/list'],
