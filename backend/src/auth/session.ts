@@ -78,9 +78,11 @@ function sign(body: string): string {
   return b64url(createHmac('sha256', secret()).update(body).digest());
 }
 
-export function signSession(payload: Omit<SessionPayload, 'exp'> & { ttlDays?: number }): string {
+export function signSession(
+  payload: Omit<SessionPayload, 'exp'> & { ttlDays?: number; ttlSecs?: number },
+): string {
   const exp =
-    Math.floor(Date.now() / 1000) + (payload.ttlDays ?? DEFAULT_TTL_DAYS) * 86_400;
+    Math.floor(Date.now() / 1000) + (payload.ttlSecs ?? (payload.ttlDays ?? DEFAULT_TTL_DAYS) * 86_400);
   const full: SessionPayload = {
     address: payload.address.toLowerCase(),
     method: payload.method,
@@ -120,14 +122,17 @@ function isProd(): boolean {
   return process.env.NODE_ENV === 'production';
 }
 
-export function setSessionCookie(c: Context, payload: Omit<SessionPayload, 'exp'>) {
-  const token = signSession(payload);
+/// `ttlSecs` shortens a session that should not outlive one task, such as the
+/// one-time link a chat account opens for a verification page.
+export function setSessionCookie(c: Context, payload: Omit<SessionPayload, 'exp'>, opts: { ttlSecs?: number } = {}) {
+  const ttlSecs = opts.ttlSecs ?? DEFAULT_TTL_DAYS * 86_400;
+  const token = signSession({ ...payload, ttlSecs });
   setCookie(c, COOKIE_NAME, token, {
     path: '/',
     httpOnly: true,
     secure: isProd(),
     sameSite: isProd() ? 'None' : 'Lax',
-    maxAge: DEFAULT_TTL_DAYS * 86_400,
+    maxAge: ttlSecs,
   });
 }
 

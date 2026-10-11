@@ -4,7 +4,7 @@ import { config } from '../config.js';
 import { markProcessed } from '../db/whatsapp.js';
 import { setSessionCookie } from '../auth/session.js';
 import { logger } from '../logger.js';
-import type { OpenablePath } from '../whatsapp/openLink.js';
+import { OPEN_LINK_SESSION_SECS, type OpenablePath } from '../whatsapp/openLink.js';
 import { openHandler } from '../whatsapp/openRoute.js';
 import type { InboundMessage } from '../whatsapp/types.js';
 import { webhookHandlers } from '../whatsapp/webhook.js';
@@ -37,7 +37,8 @@ function createWhatsappRoutes() {
   const open = openHandler({
     webBase,
     redeem: (token) => redeemer(token),
-    signIn: (c, address) => setSessionCookie(c, { address, method: 'circle', chainId: ARC.chainId }),
+    signIn: (c, address) =>
+      setSessionCookie(c, { address, method: 'circle', chainId: ARC.chainId }, { ttlSecs: OPEN_LINK_SESSION_SECS }),
   });
   const app = new Hono();
   app.get('/webhook', challenge);

@@ -1,8 +1,11 @@
 /// A WhatsApp account has no browser session, so the few steps that need a
 /// page (signing in to X, the World ID check) open from a one-time link the
-/// agent sends to the account's own number. It signs in once, for ten
+/// agent sends to the account's own number. It works once, within ten
 /// minutes, and only to the pages listed here.
 const TTL_MS = 10 * 60_000;
+/// The browser session the link opens lasts long enough to finish the step,
+/// never the 30 days of a normal sign-in.
+export const OPEN_LINK_SESSION_SECS = 30 * 60;
 
 export const OPENABLE_PATHS = ['/verify/person', '/profile'] as const;
 export type OpenablePath = (typeof OPENABLE_PATHS)[number];
