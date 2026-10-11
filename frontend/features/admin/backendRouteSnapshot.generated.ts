@@ -166,6 +166,7 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "GET", path: "/api/cashout/:jobId" },
   { method: "POST", path: "/api/cashout/arc-send" },
   { method: "POST", path: "/api/cashout/arc-withdraw" },
+  { method: "GET", path: "/api/channels/open" },
   { method: "GET", path: "/api/chat/:jobId" },
   { method: "POST", path: "/api/chat/:jobId" },
   { method: "POST", path: "/api/circle/webhook" },
