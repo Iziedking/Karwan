@@ -28,6 +28,7 @@ import {
   type AnySourceChainKey,
 } from '../config';
 import { tokenMessengerV2Abi, usdcAbi } from '../abis';
+import { isSolanaGasShortfall } from '../solanaGas';
 import { humanTransferError } from '../errors';
 import { moneySounds } from '@/shared/sound/moneySounds';
 import { isAmbiguousFailure } from '@/features/money/moneySheetModel';
@@ -1252,7 +1253,7 @@ export function useBridges() {
         // would send them chasing the wrong chain entirely.
         const isSolanaSource = input.sourceChainKey === 'solanaDevnet';
         const friendly =
-          isSolanaSource && /sol|insufficient/i.test(raw)
+          isSolanaSource && isSolanaGasShortfall(raw)
             ? 'Your Solana deposit wallet needs a little SOL to pay the network fee. Send some SOL to that address and try again.'
             : humanTransferError(raw, err instanceof ApiError ? err.detail : undefined);
         patch(id, (b) => ({ ...b, phase: 'error', error: friendly }));
