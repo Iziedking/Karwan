@@ -4,7 +4,7 @@ import Link from 'next/link';
 import type { BuyerJob } from '@/core/api';
 import { useDismissed } from '@/shared/hooks/useDismissed';
 import { formatUsdc, relativeTime } from '@/shared/utils/format';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 import { cn } from '@/shared/utils/cn';
 import { requestTitle } from '@/features/search/requestTitle';
@@ -30,6 +30,7 @@ const MORE = 10;
 /// The buyer's own requests: what was asked, budget and due date, and where
 /// each one stands. The whole row opens the request.
 export function JobsTable({ jobs }: { jobs: BuyerJob[] }) {
+  const { locale } = useLocale();
   const { dismissed, dismiss } = useDismissed('managed-jobs');
   const jt = useTranslations().jobsTable;
   const rl = useTranslations().requestList;
@@ -60,7 +61,7 @@ export function JobsTable({ jobs }: { jobs: BuyerJob[] }) {
                 <span className="min-w-0 flex-1">
                   <span dir="auto" className="block truncate text-[16px] font-semibold text-[var(--lp-dark)]">{title}</span>
                   <span className="mt-1 block truncate text-[14px] font-medium text-[var(--lp-text-sub)]">
-                    {rl.upTo.replace('{amount}', formatUsdc(j.budgetUsdc, { withSuffix: false }))} · {rl.due.replace('{when}', relativeTime(j.deadlineUnix))}
+                    {rl.upTo.replace('{amount}', formatUsdc(j.budgetUsdc, { withSuffix: false }))} · {rl.due.replace('{when}', relativeTime(j.deadlineUnix, locale))}
                   </span>
                 </span>
                 <span className="inline-flex shrink-0 items-center gap-2 text-[14px] font-semibold text-[var(--lp-dark)]">

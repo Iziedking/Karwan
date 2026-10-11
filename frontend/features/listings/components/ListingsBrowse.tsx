@@ -42,7 +42,7 @@ import { PageTour } from '@/shared/guide/PageTour';
 import { MARKET_BIZ_TOUR_ID, MARKET_TOUR_ID, buildMarketSteps } from '@/shared/guide/tours';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 import { formatUsdc, relativeTime } from '@/shared/utils/format';
 import { pageItems, pageWindow } from '../pagination';
@@ -51,7 +51,7 @@ type CardVariant = 'default' | 'summary' | 'hiring';
 type SourceName = 'offers' | 'requests';
 
 const quietAction = 'inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--tint)] px-5 text-[14px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] hover:bg-[color-mix(in_srgb,var(--tint)_92%,var(--ink))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)]';
-const clearAction = 'inline-flex min-h-10 items-center rounded-full px-2 text-[14px] font-medium text-[var(--ink-secondary)] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)]';
+const clearAction = 'inline-flex min-h-11 items-center rounded-full px-2 text-[14px] font-medium text-[var(--ink-secondary)] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)]';
 
 interface MarketSection {
   key: string;
@@ -410,7 +410,7 @@ function FilterButton({
       type="button"
       aria-pressed={pressed}
       onClick={onClick}
-      className={`inline-flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-full px-4 text-[14px] font-medium transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)] ${pressed ? 'bg-[var(--ink)] text-[var(--canvas)]' : 'bg-[var(--tint)] text-[var(--ink)]'}`}
+      className={`inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-full px-4 text-[14px] font-medium transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)] ${pressed ? 'bg-[var(--ink)] text-[var(--canvas)]' : 'bg-[var(--tint)] text-[var(--ink)]'}`}
     >
       {children}
     </button>
@@ -468,7 +468,7 @@ function Pager({
   onPage: (page: number) => void;
 }) {
   const step =
-    'inline-flex min-h-10 min-w-10 items-center justify-center rounded-full px-4 text-[14px] font-medium transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)] disabled:cursor-not-allowed disabled:opacity-40';
+    'inline-flex min-h-11 min-w-11 items-center justify-center rounded-full px-4 text-[14px] font-medium transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)] disabled:cursor-not-allowed disabled:opacity-40';
   const neutral = 'bg-[var(--tint)] text-[var(--ink)]';
   return (
     <nav aria-label={copy.label} className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
@@ -523,6 +523,7 @@ function MarketCard({
   offerCopy: Messages['offers'];
   variant: CardVariant;
 }) {
+  const { locale } = useLocale();
   const isSummary = variant === 'summary';
   const side = card.side === 'offer' ? 'offer' : 'request';
   const sideColor = `var(--color-${side})`;
@@ -537,7 +538,7 @@ function MarketCard({
         : copy.individualBuyer;
   const availability = (card.side === 'offer' ? copy.availableUntilTemplate : copy.dueTemplate).replace(
     '{time}',
-    relativeTime(card.availableUntil),
+    relativeTime(card.availableUntil, locale),
   );
   const bidCopy =
     card.side === 'request'
@@ -562,7 +563,7 @@ function MarketCard({
           <span className="text-[14px] font-semibold" style={{ color: sideColor }}>
             {statusLabel}
           </span>
-          <span className="text-[14px] tabular-nums text-[var(--ink-secondary)] font-medium">{relativeTime(card.postedAt)}</span>
+          <span className="text-[14px] tabular-nums text-[var(--ink-secondary)] font-medium">{relativeTime(card.postedAt, locale)}</span>
         </div>
         <Icon
           name={card.tradeLane === 'finance' ? 'file-text' : WORK_ICON[workKind(card.title, card.body)]}

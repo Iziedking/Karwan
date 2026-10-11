@@ -33,7 +33,7 @@ import { stageOf, StageBadge, type DealStage } from './DirectDealList';
 import { findUnresolvedPayoutRecovery } from '../moneyRecovery';
 import { buildInviteUrl } from '../inviteLink';
 import { InviteLinkTools } from './InviteLinkTools';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 import {
   REVIEW_WINDOW_MS,
@@ -267,6 +267,7 @@ function milestonePctsFor(deal: DirectDeal): number[] {
 }
 
 export function DirectDealDetail({ jobId }: { jobId: string }) {
+  const { locale } = useLocale();
   const messages = useTranslations();
   const dd = messages.directDealDetail;
   const worldCopy = messages.worldCheck;
@@ -1096,7 +1097,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               {deal.receiptReferences?.[0] ? (
                 <span className="mono font-bold uppercase tracking-[0.12em]">{deal.receiptReferences[0]} · Karwan reference</span>
               ) : null}
-              <span>{dd.hero.openedTemplate.replace('{when}', relativeTime(deal.createdAt))}</span>
+              <span>{dd.hero.openedTemplate.replace('{when}', relativeTime(deal.createdAt, locale))}</span>
             </div>
           </div>
 
@@ -1460,7 +1461,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               </p>
               <p className="mt-4 pt-4 border-t border-[var(--lp-border-light)] mono text-[14px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
                 {deal.deadlineUnix
-                  ? dd.terms.deadlineTemplate.replace('{when}', relativeTime(deal.deadlineUnix * 1000))
+                  ? dd.terms.deadlineTemplate.replace('{when}', relativeTime(deal.deadlineUnix * 1000, locale))
                   : dd.terms.noDeadline}
               </p>
             </div>
@@ -1498,8 +1499,8 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                 ) : null}
                 <p className="mono text-[14px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
                   {deal.shipment.arrivedAt
-                    ? `Arrived ${relativeTime(deal.shipment.arrivedAt)}`
-                    : `Dispatched ${relativeTime(deal.shipment.dispatchedAt)}`}
+                    ? `Arrived ${relativeTime(deal.shipment.arrivedAt, locale)}`
+                    : `Dispatched ${relativeTime(deal.shipment.dispatchedAt, locale)}`}
                 </p>
                 {viewerIsBuyer && !deal.shipment.arrivedAt && !deal.settledAt ? (
                   <>
@@ -4115,6 +4116,7 @@ function EvidenceReceiptCard({
   refreshing: boolean;
   copy: Messages['directDealDetail']['evidenceReceipt'];
 }) {
+  const { locale } = useLocale();
   const tone = progress === 'pass' ? 'positive' : progress === 'mismatch' || progress === 'unavailable' ? 'warning' : 'neutral';
   const body = progress === 'unavailable' && receipt.state !== 'not-recorded'
     ? copy[evidenceReceiptBodyKey(receipt.state)]
@@ -4152,7 +4154,7 @@ function EvidenceReceiptCard({
           {receipt.evidenceRevision != null ? (
             <span>{copy.revisionTemplate.replace('{revision}', String(receipt.evidenceRevision))}</span>
           ) : null}
-          {receipt.recordedAt ? <span>{relativeTime(receipt.recordedAt * 1000)}</span> : null}
+          {receipt.recordedAt ? <span>{relativeTime(receipt.recordedAt * 1000, locale)}</span> : null}
         </div>
         {receipt.reportId ? (
           <div className="space-y-2">

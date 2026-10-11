@@ -155,7 +155,7 @@ function FaucetButton({
       onClick={onClick}
       disabled={busy}
       aria-busy={busy}
-      className="inline-flex min-h-10 items-center justify-center rounded-full border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3.5 text-[14px] font-semibold text-[var(--lp-dark)] transition-colors hover:border-[var(--lp-outline-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] disabled:opacity-50"
+      className="inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3.5 text-[14px] font-semibold text-[var(--lp-dark)] transition-colors hover:border-[var(--lp-outline-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] disabled:opacity-50"
     >
       {busy ? copy.busy : copy.idle}
     </button>

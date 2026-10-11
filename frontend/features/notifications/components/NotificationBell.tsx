@@ -7,11 +7,12 @@ import { Icon } from '@/shared/components/Icon';
 import { useNotifications, type AppNotification } from '../hooks/useNotifications';
 import { safeNotificationHref } from '../notificationRouting';
 import { relativeTime } from '@/shared/utils/format';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { requestPageRefresh } from '@/shared/utils/pageRefresh';
 import { KindIcon } from './KindIcon';
 
 export function NotificationBell() {
+  const { locale } = useLocale();
   const { isAuthenticated: isConnected } = useAuth();
   const { notifications, unreadCount, markRead, markAllRead, clearAll } = useNotifications();
   const t = useTranslations().notifications.bell;
@@ -111,7 +112,7 @@ export function NotificationBell() {
                             <span className={`block text-[14px] leading-snug ${n.read ? 'text-[var(--lp-text-sub)]' : 'font-medium text-[var(--lp-dark)]'}`}>
                               {n.summary}
                             </span>
-                            <span className="mt-1 block text-[14px] text-[var(--lp-text-muted)]">{relativeTime(n.ts)}</span>
+                            <span className="mt-1 block text-[14px] text-[var(--lp-text-muted)]">{relativeTime(n.ts, locale)}</span>
                           </span>
                           {n.read ? null : <span aria-hidden className="mt-1.5 size-2 shrink-0 rounded-full bg-[var(--lp-accent)]" />}
                           <span className="sr-only">{t.openAction}</span>

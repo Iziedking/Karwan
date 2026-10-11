@@ -4,7 +4,7 @@ import type { ChainEvent } from '@/core/api';
 import { hrefForEvent } from '@/features/activity/eventRouting';
 import { Tag, StatusDot } from '@/shared/components/Tag';
 import { shortHash, relativeTime, formatUsdc } from '@/shared/utils/format';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 
 /// A readable label for any event type, including ones i18n has no entry for.
@@ -260,6 +260,7 @@ export function EventList({
   /// stripped, has rows that genuinely carry no information apart.
   collapseRepeats?: boolean;
 }) {
+  const { locale } = useLocale();
   const el = useTranslations().eventList;
   if (events.length === 0) {
     if (variant === 'card') {
@@ -321,7 +322,7 @@ export function EventList({
                 </span>
                 <span className="mobile-meta shrink-0 text-[14px] tabular-nums text-[var(--lp-text-muted)]">
                   {repeat > 1 && <span className="me-2">{`×${repeat}`}</span>}
-                  {relativeTime(e.ts)}
+                  {relativeTime(e.ts, locale)}
                 </span>
               </div>
               {(() => {
@@ -455,7 +456,7 @@ export function EventList({
             <div className="flex items-baseline justify-between gap-3">
               <span className="text-[14px] text-[var(--color-ink)] font-medium">{text}</span>
               <span className="text-[14px] text-[var(--color-ink-faint)] mono shrink-0">
-                {relativeTime(e.ts)}
+                {relativeTime(e.ts, locale)}
               </span>
             </div>
             <div className="flex flex-wrap items-center gap-1.5 mt-2">

@@ -15,7 +15,7 @@ export function ProtectionSection({ deal, viewerIsBuyer }: { deal: DirectDeal; v
         {cashoutOpen(deal, !viewerIsBuyer) ? (
           <Link
             href={`/cashout/${deal.jobId}`}
-            className="inline-flex min-h-10 shrink-0 items-center rounded-full border border-[var(--lp-border-light)] px-4 text-[14px] font-semibold text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+            className="inline-flex min-h-11 shrink-0 items-center rounded-full border border-[var(--lp-border-light)] px-4 text-[14px] font-semibold text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
           >
             {copy.cashOut}
           </Link>

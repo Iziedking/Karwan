@@ -472,7 +472,7 @@ export function AssistantWidget() {
                 type="button"
                 onClick={startHandoff}
                 disabled={loading}
-                className="mb-2 min-h-10 w-full rounded-full border border-[var(--lp-border-light)] px-4 text-[14px] font-medium text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-light)] disabled:opacity-50"
+                className="mb-2 min-h-11 w-full rounded-full border border-[var(--lp-border-light)] px-4 text-[14px] font-medium text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-light)] disabled:opacity-50"
               >
                 {t.humanButton}
               </button>

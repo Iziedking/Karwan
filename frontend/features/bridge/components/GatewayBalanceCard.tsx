@@ -159,7 +159,7 @@ function StepTab({
       onClick={onClick}
       disabled={disabled}
       aria-pressed={active}
-      className="inline-flex min-h-10 items-center gap-2 px-4 py-2 text-[14px] font-medium transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] disabled:opacity-40 disabled:cursor-not-allowed"
+      className="inline-flex min-h-11 items-center gap-2 px-4 py-2 text-[14px] font-medium transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] disabled:opacity-40 disabled:cursor-not-allowed"
       style={{
         background: active ? 'var(--ink)' : 'var(--tint)',
         borderRadius: 999,
@@ -201,7 +201,7 @@ function StatusLine({
         type="button"
         onClick={onDismiss}
         aria-label={label}
-        className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-full bg-[var(--tint)] px-3 text-[14px] text-[var(--ink)] hover:bg-[var(--line)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
+        className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-full bg-[var(--tint)] px-3 text-[14px] text-[var(--ink)] hover:bg-[var(--line)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
       >
 {label}
       </button>
@@ -615,7 +615,7 @@ export function GatewayBalanceCard({
                   type="button"
                   onClick={() => setAmount(walletUsdc)}
                   disabled={busy}
-                  className="min-h-10 rounded-full px-3 text-[14px] text-[var(--ink-secondary)] hover:text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] font-medium"
+                  className="min-h-11 rounded-full px-3 text-[14px] text-[var(--ink-secondary)] hover:text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] font-medium"
                 >
                   {t.maxTemplate.replace(
                     '{amount}',
@@ -726,7 +726,7 @@ export function GatewayBalanceCard({
                       onClick={() => setRecipient(key)}
                       disabled={movePhase === 'moving'}
                       aria-pressed={active}
-                      className="min-h-10 px-4 py-2 text-[14px] font-medium transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
+                      className="min-h-11 px-4 py-2 text-[14px] font-medium transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
                       style={{
                         background: active ? 'var(--ink)' : 'var(--tint)',
                         color: active ? 'var(--canvas)' : 'var(--ink)',

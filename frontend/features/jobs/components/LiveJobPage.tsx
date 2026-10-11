@@ -269,7 +269,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
       {expired ? (
         <section className="mt-6 rounded-[18px] bg-[var(--lp-card)] p-5">
           <p className="text-[16px] font-semibold text-[var(--lp-dark)]">{lj.statusLabels.requestExpired}</p>
-          <p className="mt-1 text-[14px] text-[var(--lp-text-sub)] font-medium">{lj.expired.bodyTemplate.replace('{time}', relativeTime(job.deadlineUnix))}</p>
+          <p className="mt-1 text-[14px] text-[var(--lp-text-sub)] font-medium">{lj.expired.bodyTemplate.replace('{time}', relativeTime(job.deadlineUnix, locale))}</p>
         </section>
       ) : null}
 

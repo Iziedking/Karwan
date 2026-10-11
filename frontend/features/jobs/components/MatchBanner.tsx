@@ -12,7 +12,7 @@ import { MarketReadCard } from '@/shared/components/MarketReadCard';
 import { Hint } from '@/shared/components/Hint';
 import { ARC_EXPLORER_TX } from '@/features/profile/config';
 import { ProfilePeekModal } from './ProfilePeekModal';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 import { presentPaidEvidenceReceipt } from '../paidEvidencePresentation';
 import { buttonClasses } from '@/shared/components/Button';
@@ -34,6 +34,7 @@ const OUTLINE_BTN = buttonClasses({ variant: 'outline', className: 'rounded-full
 const CRITICAL_BTN = buttonClasses({ variant: 'critical', className: 'rounded-full px-5' });
 
 export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = false }: Props) {
+  const { locale } = useLocale();
   const mb = useTranslations().matchBanner;
   const router = useRouter();
   const { address } = useAuth();
@@ -205,7 +206,7 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
             )}
           </div>
           <span className="text-[14px] text-[var(--color-ink-faint)]">
-            {mb.proposedTemplate.replace('{time}', relativeTime(proposal.proposedAt))}
+            {mb.proposedTemplate.replace('{time}', relativeTime(proposal.proposedAt, locale))}
           </span>
         </div>
         {(() => {

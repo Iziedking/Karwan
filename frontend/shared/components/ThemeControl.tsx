@@ -28,7 +28,7 @@ export function ThemeControl({ onChange }: { onChange?: (next: ThemePreference) 
         setThemePreference(next);
         onChange?.(next);
       }}
-      className="relative inline-flex size-9 shrink-0 items-center before:absolute before:-inset-1 before:content-[''] justify-center rounded-full border border-[var(--color-line-strong)] text-[var(--color-ink)] transition-[background-color,color,border-color] hover:bg-[var(--color-surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+      className="inline-flex size-11 shrink-0 items-center justify-center rounded-full border border-[var(--color-line-strong)] text-[var(--color-ink)] transition-[background-color,color,border-color] hover:bg-[var(--color-surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
     >
       {mounted && preference === 'light' ? <SunIcon /> : mounted && preference === 'dark' ? <MoonIcon /> : <AutoIcon />}
     </button>

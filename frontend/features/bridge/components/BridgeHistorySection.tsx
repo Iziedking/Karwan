@@ -148,7 +148,7 @@ export function BridgeHistoryModal({
               type="button"
               onClick={onClose}
               aria-label={a11y.closeHistory}
-              className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-full px-3 text-[14px] text-[var(--ink-secondary)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] hover:bg-[var(--lp-light)] hover:text-[var(--ink)] font-medium"
+              className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-full px-3 text-[14px] text-[var(--ink-secondary)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] hover:bg-[var(--lp-light)] hover:text-[var(--ink)] font-medium"
             >
               {a11y.closeHistory}
             </button>
@@ -246,7 +246,7 @@ function PagerButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="inline-flex min-h-10 items-center gap-1.5 rounded-full px-3 py-2 text-[14px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] disabled:cursor-not-allowed disabled:opacity-40 enabled:hover:bg-[var(--lp-light)]"
+      className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 py-2 text-[14px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] disabled:cursor-not-allowed disabled:opacity-40 enabled:hover:bg-[var(--lp-light)]"
       style={{
         background: 'var(--tint)',
       }}
@@ -272,7 +272,7 @@ function FilterChip({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className="inline-flex min-h-10 w-full min-w-0 items-center justify-between gap-1.5 rounded-full px-2.5 py-2 text-[14px] font-medium transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] sm:px-3"
+      className="inline-flex min-h-11 w-full min-w-0 items-center justify-between gap-1.5 rounded-full px-2.5 py-2 text-[14px] font-medium transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] sm:px-3"
       style={{
         background: active ? 'var(--ink)' : 'var(--tint)',
         color: active ? 'var(--canvas)' : 'var(--ink)',

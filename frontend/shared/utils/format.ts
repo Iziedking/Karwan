@@ -31,26 +31,22 @@ export function formatUsdc(
   return opts?.withSuffix === false ? fixed : `${fixed} USDC`;
 }
 
-export function relativeTime(unixMsOrSec: number): string {
+const RELATIVE_UNITS: Array<[number, Intl.RelativeTimeFormatUnit]> = [
+  [2_592_000_000, 'month'],
+  [86_400_000, 'day'],
+  [3_600_000, 'hour'],
+  [60_000, 'minute'],
+];
+
+/// "3 days ago", "in 17 days", in the reader's language.
+export function relativeTime(unixMsOrSec: number, locale: string): string {
   const ms = unixMsOrSec > 10_000_000_000 ? unixMsOrSec : unixMsOrSec * 1000;
   const diff = ms - Date.now();
-  const abs = Math.abs(diff);
-  const sign = diff < 0 ? -1 : 1;
-  const units: Array<[number, string]> = [
-    [60_000, 'min'],
-    [3_600_000, 'hr'],
-    [86_400_000, 'd'],
-    [2_592_000_000, 'mo'],
-  ];
-  if (abs < 60_000) return sign < 0 ? 'just now' : 'in moments';
-  for (let i = units.length - 1; i >= 0; i--) {
-    const [u, label] = units[i]!;
-    if (abs >= u) {
-      const value = Math.round(abs / u);
-      return sign < 0 ? `${value}${label} ago` : `in ${value}${label}`;
-    }
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto', style: 'short' });
+  for (const [size, unit] of RELATIVE_UNITS) {
+    if (Math.abs(diff) >= size) return rtf.format(Math.round(diff / size), unit);
   }
-  return '';
+  return rtf.format(0, 'second');
 }
 
 export function explorerTxUrl(explorerBase: string, txHash: string): string {

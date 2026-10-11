@@ -15,7 +15,7 @@ import {
 } from '@/shared/components/Bands';
 import { formatUsdc, relativeTime } from '@/shared/utils/format';
 import { cn } from '@/shared/utils/cn';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { buildInviteUrl } from '@/features/deals/inviteLink';
 import { InviteLinkTools } from '@/features/deals/components/InviteLinkTools';
 import { LpHint } from '@/shared/components/LpHint';
@@ -30,6 +30,7 @@ type InviteResponse = Awaited<ReturnType<typeof api.getDealInvite>>;
 /// /invite/[token] is a public, privacy-safe preview. Only the verified
 /// recipient gets the private terms and an explicit claim action.
 export default function InvitePage() {
+  const { locale } = useLocale();
   const router = useRouter();
   const params = useParams<{ token: string }>();
   const token = typeof params?.token === 'string' ? params.token : '';
@@ -255,7 +256,7 @@ export default function InvitePage() {
                   label={ip.deal.deadline}
                   value={
                     deal.deadlineUnix
-                      ? relativeTime(deal.deadlineUnix * 1000)
+                      ? relativeTime(deal.deadlineUnix * 1000, locale)
                       : ip.deal.openEnded
                   }
                 />
@@ -269,8 +270,8 @@ export default function InvitePage() {
                   /// when the buyer chose something shorter like 1 hour.
                   value={
                     deal.acceptanceDeadlineUnix
-                      ? relativeTime(deal.acceptanceDeadlineUnix * 1000)
-                      : relativeTime(invite.expiresAt)
+                      ? relativeTime(deal.acceptanceDeadlineUnix * 1000, locale)
+                      : relativeTime(invite.expiresAt, locale)
                   }
                 />
               </div>

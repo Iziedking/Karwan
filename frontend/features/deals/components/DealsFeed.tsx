@@ -5,7 +5,7 @@ import { stageOf, StageBadge, STAGE_META, type DealStage } from './DirectDealLis
 import { useDirectDeals } from '../hooks/useDirectDeals';
 import { cn } from '@/shared/utils/cn';
 import { formatUsdc, relativeTime } from '@/shared/utils/format';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 
 type Filter = 'all' | 'active' | 'completed';
 
@@ -22,6 +22,7 @@ const ACTIVE_STAGES: DealStage[] = [
 /// lives in the NetworkTicker, that one shows masked network-wide activity
 /// and stays as the public surface. Renders inside a PageCard.
 export function DealsFeed() {
+  const { locale } = useLocale();
   const translations = useTranslations();
   const tr = translations.dealsFeed;
   const receiptReferenceLabel = translations.activity.myMoney.receiptReference;
@@ -158,7 +159,7 @@ export function DealsFeed() {
                     <div className="flex items-center gap-3 min-w-0">
                       <StageBadge stage={stage} />
                       <span className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] tabular-nums truncate">
-                        {relativeTime(deal.createdAt)}
+                        {relativeTime(deal.createdAt, locale)}
                       </span>
                     </div>
                     {/* Amount appears here on mobile, hidden on desktop (renders below as its own col) */}

@@ -307,7 +307,7 @@ export function ReputationBadge({
         aria-expanded={open}
         aria-label={accessibleLabel}
         className={quiet
-          ? 'group inline-flex min-h-10 items-center gap-2 rounded-full px-2 text-[14px] text-[var(--ink-secondary)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] hover:bg-[var(--tint)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]'
+          ? 'group inline-flex min-h-11 items-center gap-2 rounded-full px-2 text-[14px] text-[var(--ink-secondary)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] hover:bg-[var(--tint)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]'
           : 'group inline-flex min-h-11 items-stretch border transition-colors hover:brightness-95'}
         style={quiet ? undefined : {
           borderColor: tier.border,

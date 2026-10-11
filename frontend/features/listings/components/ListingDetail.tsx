@@ -257,8 +257,8 @@ export function ListingDetail({ listingId }: { listingId: string }) {
 
       <section className="mt-6 rounded-[18px] bg-[var(--lp-card)] p-5">{action}</section>
       <p className="mt-3 text-[14px] text-[var(--lp-text-muted)]">
-        {ld.hero.postedTemplate.replace('{time}', relativeTime(listing.postedAt))}
-        {isOpen && listing.expiresAt ? ` · ${ld.state.windowClosesTemplate.replace('{time}', relativeTime(listing.expiresAt))}` : null}
+        {ld.hero.postedTemplate.replace('{time}', relativeTime(listing.postedAt, locale))}
+        {isOpen && listing.expiresAt ? ` · ${ld.state.windowClosesTemplate.replace('{time}', relativeTime(listing.expiresAt, locale))}` : null}
       </p>
 
       {listing.terms ? (

@@ -4,7 +4,7 @@ import { motion } from 'motion/react';
 import { api, type PublicFeedDeal } from '@/core/api';
 import { relativeTime } from '@/shared/utils/format';
 import { BracketTag, type BracketTagVariant } from '@/shared/components/skill';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { dur, ease } from '@/shared/motion/tokens';
 
 interface TickerCard {
@@ -113,6 +113,7 @@ export function NetworkTicker() {
 }
 
 function TickerCardView({ card, muted }: { card: TickerCard; muted: boolean }) {
+  const { locale } = useLocale();
   const t = useTranslations().networkTicker;
   const sr = useTranslations().sealedRecord;
   // The public feed carries settled deals only.
@@ -171,7 +172,7 @@ function TickerCardView({ card, muted }: { card: TickerCard; muted: boolean }) {
             className="font-mono text-[13px] uppercase tracking-[0.12em] tabular-nums"
             style={{ color: 'var(--lp-workspace-faint)' }}
           >
-            {relativeTime(card.at)}
+            {relativeTime(card.at, locale)}
           </span>
         )}
       </div>
