@@ -49,6 +49,16 @@ test('addresses compare without case', () => {
   assert.deepEqual(decide(chat({ exit: payout(SAVED.toUpperCase().replace('0X', '0x')) })), { ok: true });
 });
 
+test('a Solana address is compared exactly, since its case is part of it', () => {
+  const sol = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU';
+  const saved = [{ chain: 'solana', address: sol, opensAt: NOW - HOUR }];
+  assert.deepEqual(decide(chat({ saved, exit: payout(sol, 'solana') })), { ok: true });
+  assert.deepEqual(decide(chat({ saved, exit: payout(sol.toLowerCase(), 'solana') })), {
+    ok: false,
+    refusal: { code: 'ADDRESS_NOT_SAVED' },
+  });
+});
+
 test("a payout to the account's own wallet needs no saved address", () => {
   assert.deepEqual(decide(chat({ exit: payout(OWN), saved: [] })), { ok: true });
 });

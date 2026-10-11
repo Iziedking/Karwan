@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { SqlExecutor } from '../db/migrations.js';
-import { ADDRESS_WAIT_MS, type Spend } from './rules.js';
+import { ADDRESS_WAIT_MS, addressKey, type Spend } from './rules.js';
 
 export interface SavedAddress {
   id: string;
@@ -80,7 +80,7 @@ export function createPostgresMoneyOutStore(transaction: Transaction): MoneyOutS
 
     addAddress: (wallet, chain, address, now) =>
       transaction(async (tx) => {
-        const key = [wallet.toLowerCase(), chain, address.toLowerCase()];
+        const key = [wallet.toLowerCase(), chain, addressKey(address)];
         await tx.query(
           `INSERT INTO money_out_addresses_v1 (id, wallet, chain, address, added_at, opens_at)
            VALUES ($1, $2, $3, $4, $5, $6)
@@ -167,13 +167,13 @@ export function createMemoryMoneyOutStore(): MoneyOutStore {
   return {
     listAddresses: async (wallet) => live(wallet).map(strip),
     addAddress: async (wallet, chain, address, now) => {
-      const existing = live(wallet).find((a) => a.chain === chain && a.address === address.toLowerCase());
+      const existing = live(wallet).find((a) => a.chain === chain && a.address === addressKey(address));
       if (existing) return strip(existing);
       const row = {
         id: randomUUID(),
         wallet: wallet.toLowerCase(),
         chain,
-        address: address.toLowerCase(),
+        address: addressKey(address),
         addedAt: now,
         opensAt: now + ADDRESS_WAIT_MS,
         removedAt: null,

@@ -47,7 +47,10 @@ export interface DecideInput {
 
 export type Decision = { ok: true } | { ok: false; refusal: Refusal };
 
-const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
+/// An EVM address is the same in any case; a Solana address is not.
+export const addressKey = (address: string) => (/^0x/i.test(address) ? address.toLowerCase() : address);
+
+const same = (a: string, b: string) => addressKey(a) === addressKey(b);
 
 export function decide(input: DecideInput): Decision {
   const { exit } = input;

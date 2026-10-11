@@ -1,4 +1,4 @@
-import { decide, type AccountKind, type Exit, type Refusal } from './rules.js';
+import { addressKey, decide, type AccountKind, type Exit, type Refusal } from './rules.js';
 import type { MoneyOutStore } from './store.js';
 
 export interface MoneyOutGuardDeps {
@@ -62,7 +62,7 @@ export function createMoneyOutGuard(deps: MoneyOutGuardDeps) {
 }
 
 function toOwnWallet(exit: Exit, own: readonly string[]): boolean {
-  return exit.kind === 'payout' && own.some((a) => a.toLowerCase() === exit.address.toLowerCase());
+  return exit.kind === 'payout' && own.some((a) => addressKey(a) === addressKey(exit.address));
 }
 
 export type MoneyOutGuard = ReturnType<typeof createMoneyOutGuard>;

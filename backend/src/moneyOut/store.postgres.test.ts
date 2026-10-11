@@ -57,6 +57,10 @@ async function contract(store: MoneyOutStore) {
   assert.notEqual(b.id, a.id);
   assert.equal(b.opensAt, 7_000 + ADDRESS_WAIT_MS, 'a removed address waits again');
 
+  const sol = await store.addAddress(WALLET, 'solana', '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU', 7_000);
+  assert.equal(sol.address, '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU', 'a Solana address keeps its case');
+  await store.removeAddress(WALLET, sol.id, 7_001);
+
   assert.deepEqual(await store.state(WALLET), { pausedAt: null, returnCheckDueAt: null });
   await store.setPaused(WALLET, 10);
   await store.setReturnCheckDue(WALLET, 20);
