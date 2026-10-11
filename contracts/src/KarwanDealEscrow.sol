@@ -354,7 +354,12 @@ contract KarwanDealEscrow is Ownable2Step, ReentrancyGuard, Guardable {
             vault.reserve(jobId, msg.sender, r, d.buyer);
             d.reserved = uint128(r);
         }
-        if (t.amount >= minYieldSize && (d.deadline == 0 || d.deadline >= block.timestamp + minYieldAge)) {
+        // A deal only ever parks in the pool it was accepted under. A pool set
+        // later cannot reach money that was put in before it existed.
+        if (
+            address(pool) != address(0) && t.amount >= minYieldSize
+                && (d.deadline == 0 || d.deadline >= block.timestamp + minYieldAge)
+        ) {
             d.eligible = true;
             d.eligibleAmount = t.amount;
             eligibleOutstanding += t.amount;
