@@ -19,6 +19,7 @@ import { addVerifiedFact, cacReview, clientConfirmations } from '../verification
 import { installVerificationServices } from '../verification/services.js';
 import { createDispatcher } from '../channels/dispatch.js';
 import { createExecutor } from '../channels/executor.js';
+import { MONEY_INTENTS, createMoneyStepPresenter } from '../channels/moneySteps.js';
 import { createIdentity, hashNumber } from '../channels/identity.js';
 import { callAsAccount } from '../channels/inProcess.js';
 import { createEvidenceIntake } from '../channels/media.js';
@@ -167,7 +168,16 @@ export function startWhatsappAgent(): void {
       }
       return { ok: false, error: String(r.json.error ?? 'assistant-unavailable'), code: r.json.code as string | undefined };
     },
-    executeConfirm: createExecutor({ call: callAsAccount }),
+    // Money is never confirmed by a chat button: the card becomes a one-time
+    // link to the Karwan page where the person sees every figure.
+    executeConfirm: createExecutor({ call: callAsAccount, refuse: MONEY_INTENTS }),
+    presentConfirm: createMoneyStepPresenter({
+      webBase,
+      openLink: async (address, path) => {
+        const token = apiBase ? await links.mint(address, path) : null;
+        return token ? chatOpenUrl(token) : null;
+      },
+    }),
     clientAnswer: async (requestId, from, yes) => {
       const fact = await clientConfirm.answer(requestId, from, yes);
       if (fact) return 'Thank you. Your confirmation is on their record.';
