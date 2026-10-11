@@ -163,3 +163,20 @@ test('fund_direct_deal without a quote does not fund', async () => {
   assert.equal(r.ok, false);
   assert.ok(!calls.some((c) => c.path.endsWith('/fund')));
 });
+
+test('a channel that confirms money on Karwan refuses a money card that reaches the executor', async () => {
+  const calls: string[] = [];
+  const execute = createExecutor({
+    call: async (_a, _m, path) => {
+      calls.push(path);
+      return { status: 200, json: {} };
+    },
+    refuse: new Set(['release_milestone']),
+  });
+  const r = await execute({ address: ME }, action('release_milestone', { jobId: '0xj', caller: ME }, 'm1'));
+  assert.equal(r.ok, false);
+  assert.match((r as { message: string }).message, /Karwan/);
+  assert.equal(calls.length, 0);
+  const other = await execute({ address: ME }, action('mark_delivered', { jobId: '0xj', caller: ME }, 'm2'));
+  assert.equal(other.ok, true);
+});

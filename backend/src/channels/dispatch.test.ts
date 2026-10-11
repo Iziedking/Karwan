@@ -18,7 +18,7 @@ const card = {
   payload: {},
 } as unknown as AssistantAction;
 
-function setup(opts: { active?: boolean; chat?: DispatchDeps['chat']; execute?: DispatchDeps['executeConfirm']; acceptFails?: boolean } = {}) {
+function setup(opts: { active?: boolean; chat?: DispatchDeps['chat']; execute?: DispatchDeps['executeConfirm']; acceptFails?: boolean; presentConfirm?: DispatchDeps['presentConfirm'] } = {}) {
   let account: WhatsappAccount = {
     numberHash: 'h1',
     to: '2348012345678',
@@ -70,6 +70,7 @@ function setup(opts: { active?: boolean; chat?: DispatchDeps['chat']; execute?: 
       return yes ? 'Thank you. Your answer is on their record.' : 'Thank you for answering.';
     },
     media: async () => [{ kind: 'text', body: 'I read your invoice.' }],
+    ...(opts.presentConfirm ? { presentConfirm: opts.presentConfirm } : {}),
     executeConfirm:
       opts.execute ??
       (async (_a, action) => {
@@ -213,4 +214,17 @@ test('a photo or document from an account goes to evidence intake', async () => 
   await s.dispatch(msg({ kind: 'media', mediaId: 'm1', mimeType: 'image/jpeg' }));
   assert.match(bodyOf(s.sent.at(-1)!), /I read your invoice/);
   assert.equal(s.chats.length, 0);
+});
+
+test('a money card can be shown as a link to Karwan, and no chat button can confirm it', async () => {
+  const { dispatch, sent, account } = setup({
+    active: true,
+    chat: async () => ({ ok: true, reply: 'Here is the release.', actions: [card] }),
+    presentConfirm: async (_address, action) =>
+      action.intent === 'release_milestone' ? { kind: 'link', body: 'Release 250 USDC', label: 'Open in Karwan', url: 'https://karwan.site/x' } : null,
+  });
+  await dispatch(msg({ text: 'release it' }));
+  assert.ok(sent.some((m) => m.kind === 'link'));
+  assert.equal(sent.some((m) => m.kind === 'buttons'), false);
+  assert.deepEqual(account().pendingActions ?? {}, {});
 });

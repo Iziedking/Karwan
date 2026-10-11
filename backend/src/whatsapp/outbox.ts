@@ -78,6 +78,8 @@ function payload(m: OutMessage): Record<string, unknown> {
   switch (m.kind) {
     case 'text':
       return { type: 'text', text: { body: m.body, preview_url: true } };
+    case 'link':
+      return { type: 'text', text: { body: `${m.body}\n\n${m.label}: ${m.url}`, preview_url: false } };
     case 'buttons':
       return {
         type: 'interactive',

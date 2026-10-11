@@ -11,7 +11,7 @@ export interface TelegramSend {
   text: string;
   parse_mode?: never;
   link_preview_options: { is_disabled: true };
-  reply_markup?: { inline_keyboard: { text: string; callback_data: string }[][] };
+  reply_markup?: { inline_keyboard: ({ text: string; callback_data: string } | { text: string; url: string })[][] };
 }
 
 export function tapData(buttonId: string): string {
@@ -34,6 +34,9 @@ export function resolveTap(data: string, pendingButtonIds: readonly string[]): s
 export function toTelegram(out: OutMessage): TelegramSend[] | null {
   const base = { link_preview_options: { is_disabled: true as const } };
   if (out.kind === 'text') return [{ ...base, text: out.body }];
+  // A plain URL button opens in Telegram's own browser on phones. It is not a
+  // Mini App: Telegram requires Mini Apps with crypto features to use TON only.
+  if (out.kind === 'link') return [{ ...base, text: out.body, reply_markup: { inline_keyboard: [[{ text: out.label, url: out.url }]] } }];
   if (out.kind === 'buttons') {
     const text = out.body.replace(/^\*([^*\n]+)\*/, '$1');
     return [

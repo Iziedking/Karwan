@@ -12,7 +12,7 @@ export type ExecuteResult =
   | { ok: true; summary: string; txHash?: string }
   | { ok: false; reason: 'reused' | 'stale' | 'refused'; message: string };
 
-export interface DispatchDeps<A extends ChatAccount> {
+export interface DispatchDeps<A extends ChatAccount = ChatAccount> {
   now: () => number;
   webBase: string;
   explorerTx: (hash: string) => string;
@@ -29,6 +29,10 @@ export interface DispatchDeps<A extends ChatAccount> {
   clientAnswer: (requestId: string, from: string, yes: boolean) => Promise<string>;
   /// A photo or document from an account: evidence intake.
   media: (account: A, m: InboundMessage) => Promise<OutMessage[]>;
+  /// How a channel shows a confirm card instead of Confirm and Cancel buttons.
+  /// A message returned here is sent as is and the card is not kept, so no
+  /// chat tap can confirm it. Used for steps that move money.
+  presentConfirm?: (address: string, action: ConfirmAction) => Promise<OutMessage | null>;
 }
 
 const HISTORY_MAX = 20;
@@ -132,8 +136,15 @@ export function createDispatcher<A extends ChatAccount>(deps: DispatchDeps<A>) {
       return;
     }
 
-    const pendingActions = { ...(account.pendingActions ?? {}) };
+    const kept: AssistantAction[] = [];
+    const elsewhere: OutMessage[] = [];
     for (const a of result.actions ?? []) {
+      const shown = a.kind === 'confirm' && deps.presentConfirm ? await deps.presentConfirm(address, a) : null;
+      if (shown) elsewhere.push(shown);
+      else kept.push(a);
+    }
+    const pendingActions = { ...(account.pendingActions ?? {}) };
+    for (const a of kept) {
       if (a.kind === 'confirm') pendingActions[a.id] = { action: a, expiresAt: deps.now() + CARD_TTL_MS };
     }
     await deps.saveAccount({
@@ -141,6 +152,7 @@ export function createDispatcher<A extends ChatAccount>(deps: DispatchDeps<A>) {
       history: [...history, { role: 'assistant' as const, content: result.reply }].slice(-HISTORY_MAX),
       pendingActions,
     });
-    for (const out of renderTurn(result.reply, result.actions, deps.webBase)) await reply(out);
+    for (const out of renderTurn(result.reply, kept, deps.webBase)) await reply(out);
+    for (const out of elsewhere) await reply(out);
   };
 }

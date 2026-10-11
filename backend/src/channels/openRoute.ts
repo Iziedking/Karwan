@@ -7,7 +7,7 @@ export interface OpenRouteDeps {
   signIn: (c: Context, address: string) => void;
 }
 
-/// GET /open?t=<token>: the one-time link a WhatsApp account gets for the few
+/// GET /open?t=<token>: the one-time link a chat account gets for the few
 /// steps that need a page. A used or expired link signs nobody in.
 export function openHandler(deps: OpenRouteDeps) {
   return async (c: Context) => {

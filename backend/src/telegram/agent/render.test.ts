@@ -46,3 +46,9 @@ test('plain text goes out as is, with link previews off', () => {
 test('a WhatsApp template has no Telegram form and is not sent', () => {
   assert.equal(toTelegram({ kind: 'template', name: 'deal_update', params: ['x'] }), null);
 });
+
+test('a money step becomes a link button, not a Mini App and not a callback', () => {
+  const [msg] = toTelegram({ kind: 'link', body: 'Pay 80 USDC into escrow', label: 'Open in Karwan', url: 'https://testnet.karwan.site/x' })!;
+  assert.deepEqual(msg!.reply_markup, { inline_keyboard: [[{ text: 'Open in Karwan', url: 'https://testnet.karwan.site/x' }]] });
+  assert.equal(JSON.stringify(msg).includes('web_app'), false);
+});

@@ -42,6 +42,17 @@ test('only known pages can be opened', async () => {
   assert.equal(await links.mint('0xada', '//evil.example'), null);
 });
 
+test('money steps open on their own pages, matched exactly', async () => {
+  const { links } = setup();
+  const id = `0x${'ab'.repeat(32)}`;
+  for (const path of [`/deals/${id}`, `/jobs/${id}`, '/account', '/stake', '/bridge?direction=in', '/bridge?direction=out']) {
+    assert.ok(await links.mint('0xada', path), path);
+  }
+  for (const path of ['/deals/0xabc', `/deals/${id}/extra`, `/deals/${id}?next=//evil.example`, '/bridge?direction=sideways', '/accounts']) {
+    assert.equal(await links.mint('0xada', path), null, path);
+  }
+});
+
 test('an unknown token opens nothing', async () => {
   const { links } = setup();
   assert.equal(await links.redeem('nope'), null);

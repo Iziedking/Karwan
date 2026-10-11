@@ -1,14 +1,25 @@
-/// A WhatsApp account has no browser session, so the few steps that need a
-/// page (signing in to X, the World ID check) open from a one-time link the
-/// agent sends to the account's own number. It works once, within ten
-/// minutes, and only to the pages listed here.
+/// A chat account has no browser session, so the steps that need a page open
+/// from a one-time link the agent sends in chat: the person check, signing in
+/// to X, and every step that moves money, which is always confirmed on Karwan
+/// itself and never by a chat button. A link works once, within ten minutes,
+/// and only for the pages matched here.
 const TTL_MS = 10 * 60_000;
 /// The browser session the link opens lasts long enough to finish the step,
 /// never the 30 days of a normal sign-in.
 export const OPEN_LINK_SESSION_SECS = 30 * 60;
 
-export const OPENABLE_PATHS = ['/verify/person', '/profile'] as const;
-export type OpenablePath = (typeof OPENABLE_PATHS)[number];
+const ID = '0x[0-9a-fA-F]{64}';
+const OPENABLE: readonly RegExp[] = [
+  /^\/verify\/person$/,
+  /^\/profile$/,
+  /^\/account$/,
+  /^\/stake$/,
+  /^\/bridge\?direction=(in|out)$/,
+  new RegExp(`^/deals/${ID}$`),
+  new RegExp(`^/jobs/${ID}$`),
+];
+
+export type OpenablePath = string;
 
 interface Pending {
   address: string;
@@ -24,7 +35,7 @@ export interface OpenLinkDeps {
   take: (token: string) => Promise<Pending | null>;
 }
 
-const isOpenable = (path: string): path is OpenablePath => (OPENABLE_PATHS as readonly string[]).includes(path);
+const isOpenable = (path: string): boolean => OPENABLE.some((pattern) => pattern.test(path));
 
 export function createOpenLinks(deps: OpenLinkDeps) {
   async function mint(address: string, path: string): Promise<string | null> {

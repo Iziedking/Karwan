@@ -5,14 +5,17 @@ export type TemplateName = 'match_found' | 'confirm_work' | 'deal_update' | 'ver
 export type OutMessage =
   | { kind: 'text'; body: string }
   | { kind: 'buttons'; body: string; buttons: { id: string; title: string }[] }
-  | { kind: 'template'; name: TemplateName; params: string[]; buttonIds?: string[] };
+  | { kind: 'template'; name: TemplateName; params: string[]; buttonIds?: string[] }
+  /// A step finished on a Karwan page, opened from a button where the channel
+  /// has link buttons and from the address in the text where it does not.
+  | { kind: 'link'; body: string; label: string; url: string };
 
-// WhatsApp Cloud API limits.
+// WhatsApp Cloud API limits, the tighter of the two channels.
 const TEXT_MAX = 4096;
 const INTERACTIVE_BODY_MAX = 1024;
 const BUTTON_TITLE_MAX = 20;
 
-/// Turn one assistant reply and its actions into WhatsApp messages. A confirm
+/// Turn one assistant reply and its actions into chat messages. A confirm
 /// card becomes a message with Confirm and Cancel buttons whose ids carry the
 /// card id, so a tap can be matched back to the exact card. Navigate actions
 /// become links under the reply.

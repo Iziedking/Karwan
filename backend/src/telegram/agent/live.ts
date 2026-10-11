@@ -1,9 +1,10 @@
 import { createHash } from 'node:crypto';
-import type { AssistantAction } from '../../assistant/actions.js';
+import type { AssistantAction, ConfirmAction } from '../../assistant/actions.js';
 import { ARC } from '../../chain/client.js';
 import { createDispatcher } from '../../channels/dispatch.js';
 import { createExecutor } from '../../channels/executor.js';
 import { createIdentity } from '../../channels/identity.js';
+import { MONEY_INTENTS, moneyStepPath } from '../../channels/moneySteps.js';
 import { callAsAccount } from '../../channels/inProcess.js';
 import { extractInvoice, MEDIA_MAX_BYTES } from '../../channels/invoiceExtract.js';
 import { createEvidenceIntake } from '../../channels/media.js';
@@ -113,6 +114,28 @@ export function startTelegramAgent(): boolean {
     return account;
   };
 
+  // Money is never confirmed by a chat button on Telegram. The card becomes a
+  // one-time Karwan link to the page where the person sees every figure and
+  // confirms; a web account that linked Telegram signs in there as usual.
+  const presentConfirm = async (address: string, action: ConfirmAction): Promise<OutMessage | null> => {
+    if (!MONEY_INTENTS.has(action.intent)) return null;
+    const path = moneyStepPath(action);
+    const details = [action.title, action.summary, ...action.fields.map((f) => `${f.label}: ${f.value}`), action.warning]
+      .filter(Boolean)
+      .join('\n');
+    if (!path) return { kind: 'text', body: `${details}\n\nOpen Karwan to finish this step.` };
+    const account = await findTelegramAccountByAddress(address);
+    const linkToken = account && !account.linkedWebAccount ? await chatOpenLinks.mint(address, path) : null;
+    const signedIn = linkToken ? chatOpenUrl(linkToken) : null;
+    const how = 'You confirm this on Karwan, where you see every figure before money moves.';
+    return {
+      kind: 'link',
+      body: signedIn ? `${details}\n\n${how} The link works once, within 10 minutes.` : `${details}\n\n${how}`,
+      label: 'Open in Karwan',
+      url: signedIn ?? `${webBase}${path}`,
+    };
+  };
+
   const dispatch = createDispatcher<TelegramAccount>({
     now: Date.now,
     webBase,
@@ -129,7 +152,8 @@ export function startTelegramAgent(): boolean {
       }
       return { ok: false, error: String(r.json.error ?? 'assistant-unavailable'), code: r.json.code as string | undefined };
     },
-    executeConfirm: createExecutor({ call: callAsAccount }),
+    executeConfirm: createExecutor({ call: callAsAccount, refuse: MONEY_INTENTS }),
+    presentConfirm,
     clientAnswer: async (requestId, from, yes) => {
       const account = await getTelegramAccount(keyOf(from));
       const address = account?.address ?? (await findAddressByChatId(chatIdOf(from)));

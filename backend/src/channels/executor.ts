@@ -166,10 +166,18 @@ function stableBridgeId(actionId: string): string {
 
 /// The chat deal limits are not checked here: every route that pays into
 /// escrow asks deals/chatDealGate itself, whatever channel the call came from.
-export function createExecutor(deps: { call: Call }) {
+export function createExecutor(deps: {
+  call: Call;
+  /// Intents this channel never runs from a chat tap. Its money steps are
+  /// confirmed on Karwan instead, so a stored card cannot move money here.
+  refuse?: ReadonlySet<ConfirmAction['intent']>;
+}) {
   const used = new Set<string>();
 
   return async function executeConfirm(account: { address: string }, action: ConfirmAction): Promise<ExecuteResult> {
+    if (deps.refuse?.has(action.intent)) {
+      return { ok: false, reason: 'refused', message: 'This step is confirmed on Karwan. Ask me again and I will send you the link.' };
+    }
     if (used.has(action.id)) return { ok: false, reason: 'reused', message: 'That is already done.' };
     const p = action.payload as unknown as P;
 
