@@ -6,12 +6,17 @@
 #   scripts/ops/forge-remote.sh --clean
 set -euo pipefail
 H=node-services
-FOUNDRY_IMAGE=ghcr.io/foundry-rs/foundry:v1.7.1
-TOOLBOX_IMAGE=trailofbits/eth-security-toolbox:latest
+# Images are pinned by digest, so a moved tag cannot change what runs.
+FOUNDRY_IMAGE=ghcr.io/foundry-rs/foundry:v1.7.1@sha256:8347b728d5d393dac1c018691b36f506d23b9dcd78341d40ea0fcb11c3a19cdd
+TOOLBOX_IMAGE=trailofbits/eth-security-toolbox@sha256:365282b8d03ab03f387fefadbcf3858e82d967597e90a17cf4879b3efb475764
 ARC_FOUNDRY=v0.8.0-2
 ARC_TARBALL=arc-foundry-$ARC_FOUNDRY-x86_64-unknown-linux-gnu.tar.gz
+# Recorded on 2026-10-11 from the release; checked here, never re-fetched.
+ARC_TARBALL_SHA256=088bdb96a84418b757f9825d491e702792f1d1d1e29a9145af305a6600a79556
 # Arc testnet seeds the blocklisted test address; a blank local Arc node does not.
+# The fork is pinned to one block so the pack does not depend on live state.
 ARC_TESTNET_RPC=https://rpc.testnet.arc.network
+ARC_FORK_BLOCK=66719638
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 STATE="$HOME/.karwan-forge-remote"
 
@@ -43,17 +48,17 @@ case "${1:-}" in
     ;;
   --arc)
     DIR=$(printf '%q' "$2")
-    ssh -o BatchMode=yes $H "set -e; cd $W; mkdir -p arc; cd arc
+    ssh -o BatchMode=yes $H "set -e; mkdir -p $W/arc; cd $W/arc
       if [ ! -x forge ]; then
         curl -sSfLO https://github.com/circlefin/arc-foundry/releases/download/$ARC_FOUNDRY/$ARC_TARBALL
-        curl -sSfLO https://github.com/circlefin/arc-foundry/releases/download/$ARC_FOUNDRY/$ARC_TARBALL.sha256
-        sha256sum -c $ARC_TARBALL.sha256
+        echo '$ARC_TARBALL_SHA256  $ARC_TARBALL' | sha256sum -c
         tar -xzf $ARC_TARBALL
-      fi
-      ./anvil --network arc --fork-url $ARC_TESTNET_RPC --port 8547 > anvil.log 2>&1 & A=\$!
-      sleep 3
-      cd ../c
-      set +e
+      fi" < /dev/null
+    # Arc's binaries need glibc 2.39, newer than any image on node-services, so
+    # they run on the host inside the throwaway workspace, checked by the pinned hash.
+    ssh -o BatchMode=yes $H "cd $W/c
+      ../arc/anvil --network arc --fork-url $ARC_TESTNET_RPC --fork-block-number $ARC_FORK_BLOCK --port 8547 > ../arc/anvil.log 2>&1 & A=\$!
+      for i in \$(seq 60); do ../arc/cast block-number --rpc-url http://127.0.0.1:8547 >/dev/null 2>&1 && break; sleep 1; done
       ARC_FORK=1 ../arc/forge test --fork-url http://127.0.0.1:8547 --match-path $DIR'/*' -vv
       R=\$?
       kill \$A
