@@ -3,23 +3,16 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { api, type BuyerJob } from '@/core/api';
-import { useActivation } from '@/shared/hooks/useActivation';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { BusinessTradeDesk } from '@/features/buyer/components/BusinessTradeDesk';
 import { JobsTable } from '@/features/buyer/components/JobsTable';
+import { openRequestCount } from '@/features/buyer/requestCounts';
 import { NewDealPanel } from '@/features/deals/components/NewDealPanel';
 import { BalanceSidecar } from '@/features/balances/components/BalanceSidecar';
 import { DealAmountProvider } from '@/features/balances/dealAmount';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { ActivateAgentsNotice } from '@/shared/components/ActivateAgentsNotice';
-import {
-  FullBleed,
-  Band,
-  SectionTag,
-  HeroHeadline,
-  Punc,
-  PageCard,
-} from '@/shared/components/Bands';
+import { FullBleed, Band, PageCard } from '@/shared/components/Bands';
 import { Hint } from '@/shared/components/Hint';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useSearchV2 } from '@/features/search/useSearchV2';
@@ -50,7 +43,6 @@ function PersonalBuyerDesk() {
   const creation = useTranslations().dealCreation;
   const auth = useAuth();
   const address = auth.address;
-  const { activated } = useActivation();
   const [jobs, setJobs] = useState<BuyerJob[]>([]);
   const [fetchState, setFetchState] = useState<FetchState>('idle');
   const bh = useTranslations().buyerHub;
@@ -79,6 +71,7 @@ function PersonalBuyerDesk() {
   }, [address]);
 
   const sortedJobs = [...jobs].sort((a, b) => b.deadlineUnix - a.deadlineUnix);
+  const openCount = openRequestCount(jobs);
 
   return (
     <FullBleed>
@@ -109,59 +102,36 @@ function PersonalBuyerDesk() {
         </DealAmountProvider>
       </Band>
 
-      {/* MANAGED DEALS */}
-      <Band tone="dark" compact>
-        <div className="flex flex-wrap items-end justify-between gap-6">
-          <div className="max-w-[46ch]">
-            <div className="flex items-center gap-2">
-              <SectionTag tone="dark" dot={activated ? 'live' : undefined}>
-                {bh.managedDeals.sectionTag}
-              </SectionTag>
-              <Hint glow side="bottom" align="start">{bh.managedDeals.description}</Hint>
-            </div>
-            <HeroHeadline as="h2" size="md">
+      {/* YOUR REQUESTS */}
+      <Band tone="light" compact>
+        <div className="mx-auto max-w-[940px]">
+          <div className="flex items-baseline justify-between gap-4 border-b border-[var(--lp-border-light)] pb-4">
+            <h2 className="flex items-center gap-2 text-[clamp(1.5rem,3vw,2rem)] font-semibold leading-tight tracking-[-0.03em] text-[var(--lp-dark)]">
               {bh.managedDeals.headline}
-              {sortedJobs.length > 0 && (
-                <>
-                  <Punc>.</Punc>
-                  <span className="ms-3 text-[var(--lp-workspace-muted)] font-sans font-extrabold">
-                    {sortedJobs.length}
-                  </span>
-                </>
-              )}
-              {sortedJobs.length === 0 && <Punc>.</Punc>}
-            </HeroHeadline>
-          </div>
-        </div>
-        <div className="mt-10">
-          <div
-            className="overflow-hidden"
-            style={{
-              background: 'var(--lp-workspace-raised)',
-              border: '1px solid var(--lp-workspace-border)',
-              borderTopLeftRadius: 22,
-              borderTopRightRadius: 22,
-              borderBottomLeftRadius: 22,
-              borderBottomRightRadius: 5,
-            }}
-          >
-            {fetchState === 'error' ? (
-              <p className="p-8 text-center text-[14px] text-[#ff8a7a]">
-                {bh.managedDeals.statesError}
+              <Hint side="bottom" align="start">{bh.managedDeals.description}</Hint>
+            </h2>
+            {fetchState === 'ready' && openCount > 0 && (
+              <p className="shrink-0 text-[15px] font-semibold tabular-nums text-[var(--lp-text-sub)]">
+                {bh.managedDeals.openCount.replace('{count}', String(openCount))}
               </p>
-            ) : fetchState === 'loading' || fetchState === 'idle' ? (
-              <div className="p-8 space-y-3">
-                <div className="h-14 rounded-md bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
-                <div className="h-14 rounded-md bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
-              </div>
-            ) : sortedJobs.length === 0 ? (
-              <p className="p-8 text-center text-[14px] text-[var(--lp-workspace-muted)]">
-                {bh.managedDeals.statesEmpty}
-              </p>
-            ) : (
-              <JobsTable jobs={sortedJobs} />
             )}
           </div>
+          {fetchState === 'error' ? (
+            <p role="alert" className="py-10 text-center text-[15px] font-medium text-[var(--color-critical)]">
+              {bh.managedDeals.statesError}
+            </p>
+          ) : fetchState === 'loading' || fetchState === 'idle' ? (
+            <div className="space-y-3 py-6" aria-busy>
+              <div className="h-14 rounded-md bg-[var(--color-surface-2)] motion-safe:animate-pulse" />
+              <div className="h-14 rounded-md bg-[var(--color-surface-2)] motion-safe:animate-pulse" />
+            </div>
+          ) : sortedJobs.length === 0 ? (
+            <p className="py-10 text-center text-[15px] font-medium text-[var(--lp-text-sub)]">
+              {bh.managedDeals.statesEmpty}
+            </p>
+          ) : (
+            <JobsTable jobs={sortedJobs} />
+          )}
         </div>
       </Band>
     </FullBleed>

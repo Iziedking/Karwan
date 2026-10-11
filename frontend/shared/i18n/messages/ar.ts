@@ -4299,12 +4299,11 @@ export const ar: Messages = {
     },
     newDeal: { sectionTag: 'صفقة جديدة', headline: 'افتح صفقة', description: 'عملية واحدة للإيداع في الضمان.' },
     managedDeals: {
-      sectionTag: 'الصفقات المدارة',
-      headline: 'مزادات قائمة',
-      description: 'طلبات جارية. تُقيّم العروض، عرض مضاد واحد في كل جولة، وتمويل الضمان عند القبول.',
-      statesConnect: 'اربط محفظتك لمشاهدة الصفقات المدارة.',
-      statesError: 'تعذّر تحميل صفقاتك المدارة.',
-      statesEmpty: 'لا توجد صفقات مدارة بعد. انشر طلبًا للبدء.',
+      headline: 'طلباتك',
+      description: 'طلبات يعمل عليها وكيلك. تُقيَّم العروض، ويُموَّل الضمان عند قبولك أحدها.',
+      openCount: '{count} مفتوحة',
+      statesError: 'تعذّر تحميل طلباتك.',
+      statesEmpty: 'لا توجد طلبات بعد. انشر طلبًا للبدء.',
     },
     agentVignette: {
       eyebrow: 'لوحة الوكيل',
@@ -4390,7 +4389,7 @@ export const ar: Messages = {
   jobsTable: {
     empty: {
       none: 'لا توجد صفقات بعد. أنشئ طلباً وسيردّ وكيل البائع خلال ثوانٍ.',
-      allDismissed: 'تم إخفاء كل الصفقات الملغاة.',
+      allDismissed: 'الطلبات المنتهية التي أخفيتها غير معروضة.',
     },
     columns: { job: 'الصفقة', budget: 'الميزانية', deadline: 'الموعد النهائي', status: 'الحالة', open: 'فتح' },
     status: {

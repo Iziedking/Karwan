@@ -4006,10 +4006,9 @@ interface MessagesShape {
       description: string;
     };
     managedDeals: {
-      sectionTag: string;
       headline: string;
       description: string;
-      statesConnect: string;
+      openCount: string;
       statesError: string;
       statesEmpty: string;
     };
@@ -9599,12 +9598,11 @@ export const en: MessagesShape = {
     },
     newDeal: { sectionTag: 'New deal', headline: 'Open a deal', description: 'One transaction to escrow.' },
     managedDeals: {
-      sectionTag: 'Managed deals',
-      headline: 'Running auctions',
-      description: 'Live requests. Offers scored, one counter per round, escrow funded on accept.',
-      statesConnect: 'Connect your wallet to see managed deals.',
-      statesError: "Couldn’t load your managed deals.",
-      statesEmpty: 'No managed deals yet. Post a request to start one.',
+      headline: 'Your requests',
+      description: 'Requests your agent is working on. Offers are scored, and escrow is funded when you accept one.',
+      openCount: '{count} open',
+      statesError: 'Couldn’t load your requests.',
+      statesEmpty: 'No requests yet. Post one to start.',
     },
     agentVignette: {
       eyebrow: 'Agent control',
@@ -9690,7 +9688,7 @@ export const en: MessagesShape = {
   jobsTable: {
     empty: {
       none: 'No jobs yet. Post a request and the seller agent will respond within seconds.',
-      allDismissed: 'All cancelled deals dismissed.',
+      allDismissed: 'Ended requests you hid are not shown.',
     },
     columns: { job: 'Job', budget: 'Budget', deadline: 'Deadline', status: 'Status', open: 'Open' },
     status: {

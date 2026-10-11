@@ -4299,12 +4299,11 @@ export const fr: Messages = {
     },
     newDeal: { sectionTag: 'Nouveau deal', headline: 'Ouvrir un deal', description: "Une seule transaction pour l'escrow." },
     managedDeals: {
-      sectionTag: 'Deals gérés',
-      headline: 'Enchères en cours',
-      description: 'Demandes en cours. Offres notées, une contre-offre par tour, escrow financé à l\'acceptation.',
-      statesConnect: 'Connectez votre wallet pour voir les deals gérés.',
-      statesError: 'Impossible de charger vos deals gérés.',
-      statesEmpty: "Aucun deal géré pour l'instant. Postez une demande pour en lancer un.",
+      headline: 'Vos demandes',
+      description: 'Demandes sur lesquelles votre agent travaille. Les offres sont notées, et l’escrow est financé quand vous en acceptez une.',
+      openCount: '{count} en cours',
+      statesError: 'Impossible de charger vos demandes.',
+      statesEmpty: 'Aucune demande pour l’instant. Publiez-en une pour commencer.',
     },
     agentVignette: {
       eyebrow: "Contrôle de l'agent",
@@ -4390,7 +4389,7 @@ export const fr: Messages = {
   jobsTable: {
     empty: {
       none: "Aucune mission pour le moment. Publiez une requête et l'agent vendeur répondra en quelques secondes.",
-      allDismissed: 'Toutes les transactions annulées ont été masquées.',
+      allDismissed: 'Les demandes terminées que vous avez masquées ne sont pas affichées.',
     },
     columns: { job: 'Mission', budget: 'Budget', deadline: 'Échéance', status: 'Statut', open: 'Ouvrir' },
     status: {

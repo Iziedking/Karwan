@@ -4296,12 +4296,11 @@ export const sw: Messages = {
     },
     newDeal: { sectionTag: 'Mkataba mpya', headline: 'Fungua mkataba', description: 'Muamala mmoja kwa escrow.' },
     managedDeals: {
-      sectionTag: 'Mikataba inayosimamiwa',
-      headline: 'Minada inayoendelea',
-      description: 'Maombi hai. Ofa hupimwa, kaunta moja kwa raundi, escrow hufadhiliwa unapokubali.',
-      statesConnect: 'Unganisha wallet yako ili kuona mikataba inayosimamiwa.',
-      statesError: 'Imeshindikana kupakia mikataba yako inayosimamiwa.',
-      statesEmpty: 'Hakuna mikataba inayosimamiwa bado. Tuma ombi ili kuanza mmoja.',
+      headline: 'Maombi yako',
+      description: 'Maombi ambayo wakala wako anayashughulikia. Ofa hupimwa, na escrow hufadhiliwa unapokubali mojawapo.',
+      openCount: 'Yaliyo wazi: {count}',
+      statesError: 'Imeshindikana kupakia maombi yako.',
+      statesEmpty: 'Bado hakuna maombi. Chapisha moja kuanza.',
     },
     agentVignette: {
       eyebrow: 'Udhibiti wa wakala',
@@ -4387,7 +4386,7 @@ export const sw: Messages = {
   jobsTable: {
     empty: {
       none: 'Hakuna kazi bado. Tuma ombi na wakala wa muuzaji atajibu ndani ya sekunde chache.',
-      allDismissed: 'Mikataba yote iliyofutwa imeondolewa.',
+      allDismissed: 'Maombi yaliyoisha uliyoyaficha hayaonyeshwi.',
     },
     columns: { job: 'Kazi', budget: 'Bajeti', deadline: 'Tarehe ya mwisho', status: 'Hali', open: 'Fungua' },
     status: {
