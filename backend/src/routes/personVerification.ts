@@ -19,7 +19,7 @@ export interface PersonVerificationDeps {
     address: string,
     rc: string,
     name: string,
-  ) => Promise<{ ok: true; status: 'review'; id: string } | { ok: false; reason: 'invalid_number' }>;
+  ) => Promise<{ ok: true; status: 'review'; id: string } | { ok: false; reason: 'invalid_number' | 'in_use' }>;
 }
 
 const WORLD_ID_STATUS: Record<string, 400 | 403 | 409 | 503> = {
@@ -74,6 +74,9 @@ export function createPersonVerificationRoutes(deps: PersonVerificationDeps): Ho
     const parsed = cacSchema.safeParse(await c.req.json().catch(() => ({})));
     if (!parsed.success) return c.json({ error: 'Send the registration number and the registered name.' }, 400);
     const r = await deps.submitCac(address, parsed.data.rc, parsed.data.name);
+    if (!r.ok && r.reason === 'in_use') {
+      return c.json({ error: 'This registration number already backs another Karwan account.', code: 'RC_IN_USE' }, 409);
+    }
     if (!r.ok) return c.json({ error: 'That is not an RC or BN number.', code: r.reason }, 400);
     return c.json(r);
   });

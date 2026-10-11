@@ -23,3 +23,16 @@ test('records of one kind are listed', async () => {
   assert.equal(all.filter((r) => r.data.status === 'review').length, 2);
   assert.ok(all.every((r) => typeof r.key === 'string'));
 });
+
+test('a registration number is held by one account until that account releases it', async () => {
+  const { holderOf, releaseUnique } = await import('./evidence.js');
+  assert.equal(await holderOf('rc', 'RC7777777'), null);
+  assert.equal(await claimUnique('rc', 'RC7777777', '0xADA'), true);
+  assert.equal(await holderOf('rc', 'RC7777777'), '0xada');
+  assert.equal(await claimUnique('rc', 'RC7777777', '0xkemi'), false);
+  await releaseUnique('rc', 'RC7777777', '0xkemi');
+  assert.equal(await holderOf('rc', 'RC7777777'), '0xada', 'only the holder can release it');
+  await releaseUnique('rc', 'RC7777777', '0xada');
+  assert.equal(await holderOf('rc', 'RC7777777'), null);
+  assert.equal(await claimUnique('rc', 'RC7777777', '0xkemi'), true);
+});

@@ -11,7 +11,9 @@ export interface StoredFact extends Fact {
   evidenceHash: string;
   /// Where it came from: 'whatsapp', 'x', 'world-id', 'cac-review'.
   source: string;
-  onchain?: { factId: string; txHash: string };
+  onchain?: { factId: string; txHash: string; revokedTxHash?: string };
+  /// A reviewer withdrew it. It stays in the history but no longer counts.
+  revokedAt?: number;
 }
 
 export interface EvidenceDeps {
@@ -38,15 +40,26 @@ export async function factsFor(address: string, deps: EvidenceDeps, now: number)
     deps.profile(key).catch(() => null),
     deps.settledDeals(key).catch(() => 0),
   ]);
-  return [...stored, ...derived({ xUserId: profile?.xUserId, settled }, now)];
+  return [...stored.filter((f) => f.revokedAt === undefined), ...derived({ xUserId: profile?.xUserId, settled }, now)];
 }
 
 /// False when this evidence already backs a fact on the account.
 export async function addFact(address: string, fact: StoredFact, deps: EvidenceDeps): Promise<boolean> {
   const key = address.toLowerCase();
   const stored = await deps.getStored(key);
-  if (stored.some((f) => f.evidenceHash === fact.evidenceHash && f.kind === fact.kind)) return false;
+  if (stored.some((f) => f.revokedAt === undefined && f.evidenceHash === fact.evidenceHash && f.kind === fact.kind)) return false;
   await deps.putStored(key, [...stored, fact]);
+  return true;
+}
+
+/// Withdraws a fact from the account's record. False when there is no such
+/// fact or it was already withdrawn.
+export async function revokeFact(address: string, factId: string, at: number, deps: EvidenceDeps): Promise<boolean> {
+  const key = address.toLowerCase();
+  const stored = await deps.getStored(key);
+  const target = stored.find((f) => f.id === factId && f.revokedAt === undefined);
+  if (!target) return false;
+  await deps.putStored(key, stored.map((f) => (f === target ? { ...f, revokedAt: at } : f)));
   return true;
 }
 

@@ -26,6 +26,7 @@ function setup(
     levelOf: async () => 'person_verified',
     submitCac: async (address, rc) => {
       cacSubmitted.push(`${address}:${rc}`);
+      if (rc === 'taken') return { ok: false, reason: 'in_use' };
       return rc === 'bad' ? { ok: false, reason: 'invalid_number' } : { ok: true, status: 'review', id: 'cac1' };
     },
   };
@@ -79,4 +80,11 @@ test('a CAC number is queued for review for the signed-in account', async () => 
   assert.deepEqual(cacSubmitted, ['0xada:RC1234567']);
   const bad = await post(app, '/cac', { rc: 'bad', name: 'x' });
   assert.equal(bad.status, 400);
+});
+
+test('a number that already backs another account is refused with its own code', async () => {
+  const { app } = setup();
+  const res = await post(app, '/cac', { rc: 'taken', name: 'Ada Builds Ltd' });
+  assert.equal(res.status, 409);
+  assert.equal((await res.json()).code, 'RC_IN_USE');
 });

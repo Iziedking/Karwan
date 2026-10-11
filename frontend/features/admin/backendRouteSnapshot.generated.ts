@@ -121,6 +121,8 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "POST", path: "/api/admin/usyc/run" },
   { method: "GET", path: "/api/admin/verification/cac" },
   { method: "POST", path: "/api/admin/verification/cac/:id" },
+  { method: "POST", path: "/api/admin/verification/cac/:id/revoke" },
+  { method: "GET", path: "/api/admin/verification/cac/approved" },
   { method: "GET", path: "/api/admin/waitlist" },
   { method: "POST", path: "/api/admin/waitlist/approve" },
   { method: "POST", path: "/api/admin/waitlist/invites" },

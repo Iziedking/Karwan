@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { listDealsForAddress } from '../db/deals.js';
-import { claimUnique, getRecord, listRecords, putRecord } from '../db/evidence.js';
+import { claimUnique, getRecord, holderOf, listRecords, putRecord, releaseUnique } from '../db/evidence.js';
 import { getProfile } from '../db/profiles.js';
 import { createCacReview, type CacRequest } from './cac.js';
 import { createClientConfirm, type ConfirmRequest } from './clientConfirm.js';
-import { addFact, factsFor, type EvidenceDeps, type StoredFact } from './evidence.js';
+import { addFact, factsFor, revokeFact, type EvidenceDeps, type StoredFact } from './evidence.js';
 import { ladderFor, type Ladder } from './ladder.js';
 
 /// The verification services on the real stores. Shared by the routes, the
@@ -41,6 +41,10 @@ export function cacReview(tell: (address: string, text: string) => Promise<void>
     list: async () => (await listRecords<CacRequest>('cac')).map((r) => r.data),
     addFact: addVerifiedFact,
     tell,
+    holderOf: (rc) => holderOf('rc', rc),
+    claim: (rc, address) => claimUnique('rc', rc, address),
+    release: (rc, address) => releaseUnique('rc', rc, address),
+    revokeFact: (address, factId, at) => revokeFact(address, factId, at, evidenceDeps),
   });
 }
 

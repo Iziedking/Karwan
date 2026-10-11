@@ -6,7 +6,9 @@ import { pgEnabled, postgresExecutor } from './client.js';
 ///   nullifier  key = nullifier  which account a World ID belongs to
 ///   confirm    key = request id a past client's confirmation request
 ///   cac        key = request id a business registration waiting for review
-export type RecordKind = 'facts' | 'fp' | 'nullifier' | 'confirm' | 'cac';
+///   rc         key = RC or BN   which account a business registration backs
+export type RecordKind = 'facts' | 'fp' | 'nullifier' | 'confirm' | 'cac' | 'rc';
+type UniqueKind = 'fp' | 'nullifier' | 'rc';
 
 const memory = new Map<string, unknown>();
 const memKey = (kind: RecordKind, key: string) => `${kind}:${key}`;
@@ -48,7 +50,7 @@ export async function listRecords<T>(kind: RecordKind): Promise<{ key: string; d
 
 /// Ties a key (an invoice fingerprint, a World ID nullifier) to one owner.
 /// True when the key is new or already this owner's.
-export async function claimUnique(kind: 'fp' | 'nullifier', key: string, owner: string): Promise<boolean> {
+export async function claimUnique(kind: UniqueKind, key: string, owner: string): Promise<boolean> {
   const who = owner.toLowerCase();
   if (!pgEnabled) {
     const held = memory.get(memKey(kind, key)) as { owner: string } | undefined;
@@ -62,4 +64,26 @@ export async function claimUnique(kind: 'fp' | 'nullifier', key: string, owner: 
   );
   const held = await getRecord<{ owner: string }>(kind, key);
   return held?.owner === who;
+}
+
+/// The account a unique key belongs to, or null when it is free.
+export async function holderOf(kind: UniqueKind, key: string): Promise<string | null> {
+  const held = pgEnabled
+    ? await getRecord<{ owner: string }>(kind, key)
+    : ((memory.get(memKey(kind, key)) as { owner: string } | undefined) ?? null);
+  return held?.owner ?? null;
+}
+
+/// Frees a unique key, only when this owner holds it.
+export async function releaseUnique(kind: UniqueKind, key: string, owner: string): Promise<void> {
+  const who = owner.toLowerCase();
+  if (!pgEnabled) {
+    const held = memory.get(memKey(kind, key)) as { owner: string } | undefined;
+    if (held?.owner === who) memory.delete(memKey(kind, key));
+    return;
+  }
+  await postgresExecutor().query(
+    `DELETE FROM verification_records WHERE kind = $1 AND key = $2 AND data->>'owner' = $3`,
+    [kind, key, who],
+  );
 }

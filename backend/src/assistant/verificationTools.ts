@@ -52,7 +52,7 @@ export function verificationTools(address: string) {
           let invoiceFactId: string | undefined;
           if (aboutLatestInvoice) {
             const stored = await evidenceDeps.getStored(address.toLowerCase());
-            invoiceFactId = stored.filter((f) => f.kind === 'invoice' && !f.corroborated).at(-1)?.id;
+            invoiceFactId = stored.filter((f) => f.kind === 'invoice' && !f.corroborated && f.revokedAt === undefined).at(-1)?.id;
           }
           if (clientWhatsapp && services.sendsToNumbers) {
             const r = await services.clientConfirm.request({ subject: address, subjectName: name, clientNumber: clientWhatsapp, job, month, invoiceFactId });
@@ -93,7 +93,11 @@ export function verificationTools(address: string) {
         const services = verificationServices();
         if (!services) return { error: 'Business registration checks are not available right now.' };
         const r = await services.cac.submit(address, rc, registeredName);
-        if (!r.ok) return { error: 'That is not an RC or BN number.' };
+        if (!r.ok) {
+          return {
+            error: r.reason === 'in_use' ? 'This registration number already backs another Karwan account.' : 'That is not an RC or BN number.',
+          };
+        }
         return { ok: true, status: 'waiting for review' };
       },
     }),

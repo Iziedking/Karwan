@@ -75,3 +75,15 @@ test('sealed extras reflect valid facts only', () => {
 test('a confirmation from an unverified client is not shown as confirmed', () => {
   assert.equal(sealedExtras([fact({ independent: false })], now).clientConfirmed, false);
 });
+
+test('a revoked fact stops counting, and the same evidence can back the account again later', async () => {
+  const { revokeFact } = await import('./evidence.js');
+  const { d } = deps();
+  await addFact('0xada', fact({ id: 'cac-1', kind: 'cac_match', level: 'human_reviewed', evidenceHash: '0xcc' }), d);
+  assert.equal(await revokeFact('0xada', 'cac-1', now, d), true);
+  assert.equal((await factsFor('0xada', d, now)).some((f) => f.kind === 'cac_match'), false);
+  assert.equal(await revokeFact('0xada', 'cac-1', now, d), false, 'already revoked');
+  assert.equal(await revokeFact('0xada', 'nope', now, d), false);
+  assert.equal(await addFact('0xada', fact({ id: 'cac-2', kind: 'cac_match', level: 'human_reviewed', evidenceHash: '0xcc' }), d), true);
+  assert.equal((await factsFor('0xada', d, now)).filter((f) => f.kind === 'cac_match').length, 1);
+});
