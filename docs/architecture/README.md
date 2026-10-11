@@ -20,6 +20,7 @@ Karwan unifies online reputation with an agentic economic model. People join a n
 | 08 | [Unified reputation](08-reputation.md) | How a person's record from Karwan and partner platforms becomes one reputation, with consent and nothing leaked | Designing |
 | 09 | [Trust engine](09-trust-engine.md) | Who verifies with World ID and why, how delivery is checked, and what protects each deal | v1 built |
 | 10 | [Verified network](10-verified-network.md) | The Karwan agent in WhatsApp: register, get verified, be found by agents, close a deal in escrow from chat. Holds the architecture rules every build follows | Planned, building |
+| 11 | [Contracts](11-contracts.md) | The suite on Arc, deployed once: an escrow per family of deals on one shared base, how they connect to stake, records, fees and yield, and what Karwan can and cannot do to the money | Designed |
 
 ## How to read a view
 

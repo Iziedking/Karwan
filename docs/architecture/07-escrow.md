@@ -64,6 +64,8 @@ flowchart TB
 
 ### Why a core with schedule modules
 
+**Superseded by [view 11](11-contracts.md).** Arc enforces the 24,576-byte contract limit, and research on real losses favoured keeping each family's money in its own contract. The suite now uses option C on one shared, audited settlement base, which removes the duplicated invariants listed against it below. The shapes, verification modes and dispute table in this view are unchanged and are assigned to families in view 11.
+
 | Option | For | Against |
 |---|---|---|
 | A. Grow the v3 terms struct to cover every shape | One contract to audit | Bytecode limit, and every new shape touches the audited core |
@@ -203,9 +205,9 @@ Rulings only ever split a leg's unreleased money between the two parties, carry 
 | Live escrow for today's deals | Live (v2b) | `KarwanEscrow.sol` |
 | Canonical terms JSON and clause compiler | Planned | |
 | Buyer checklist review and clause-cited disputes | Planned | |
-| Schedule module interface and allowlist | Planned | |
-| Delivery code module | Planned | |
-| Time period module (hourly, weekly) | Planned | |
-| Instalment module | Planned | |
-| Retainer module | Planned | |
+| Escrow families on a shared base (replaces the schedule module interface) | Planned | [View 11](11-contracts.md) |
+| Delivery code | Planned | Agreement family |
+| Hourly and weekly time | Planned | Time family |
+| Instalments | Planned | Agreement family |
+| Retainers | Planned | Time family |
 | Streaming for trusted retainers | Later | Sablier Flow style, only after the period model proves out |
