@@ -2054,47 +2054,123 @@ interface MessagesShape {
     turnOffTips: string;
   };
   financierDashboard: {
-    sectionTag: string;
-    headline: string;
+    title: string;
     intro: string;
-    tabs: { factor: string; po: string };
-    soon: string;
-    filters: { sector: string; region: string; regionPlaceholder: string; clear: string; allSectors: string };
-    sellerTierTitle: string;
-    sellerPassport: string;
-    yourOffer: string;
-    editOffer: string;
-    makeOffer: string;
-    emptyFactoring: { tag: string; body: string };
-    emptyPo: { tag: string; body: string };
+    testnet: string;
     close: string;
-    signInToPost: string;
-    signInToFund: string;
     working: string;
     switchToArc: string;
+    signInToPost: string;
+    signInToFund: string;
+    declined: string;
+    positions: {
+      title: string;
+      summary: string;
+      needsReview: string;
+      status: {
+        accepted: string;
+        settled: string;
+        defaulted: string;
+      };
+      detail: {
+        accepted: string;
+        settled: string;
+        defaulted: string;
+      };
+      advanced: string;
+      expected: string;
+      received: string;
+      view: string;
+      range: string;
+      previous: string;
+      next: string;
+      pagination: string;
+    };
+    open: {
+      title: string;
+      emptyTitle: string;
+      emptyBody: string;
+      loadError: string;
+      anySeller: string;
+      invoiceValue: string;
+      asksEarly: string;
+      terms: {
+        immediate: string;
+        net30: string;
+        net60: string;
+        net90: string;
+      };
+      tier: {
+        new: string;
+        cold: string;
+        established: string;
+        strong: string;
+        elite: string;
+      };
+      record: string;
+      yourOffer: string;
+      receiptPending: string;
+      makeOffer: string;
+      editOffer: string;
+    };
+    filters: {
+      label: string;
+      sector: string;
+      region: string;
+      regionPlaceholder: string;
+      clear: string;
+      any: string;
+      sectors: {
+        agriculture: string;
+        textiles: string;
+        electronics: string;
+        logistics: string;
+        manufacturing: string;
+        services: string;
+        other: string;
+      };
+    };
     offer: {
+      title: string;
       faceValue: string;
       quickDiscount: string;
       customDiscount: string;
       customDiscountAria: string;
-      invoiceFace: string;
       settlementAssigned: string;
       youPayNow: string;
       youReceiveOnSettlement: string;
       yourSpread: string;
       fundingSummaryTemplate: string;
       sellerFloor: string;
+      belowFloor: string;
+      nothingToAdvance: string;
+      openFor: string;
       replaceOffer: string;
       postOffer: string;
+      posting: string;
+      signIn: string;
+      connectWallet: string;
+      error: string;
       recipientUnavailable: string;
     };
     po: {
+      title: string;
+      emptyTitle: string;
+      emptyBody: string;
+      loadError: string;
+      capitalRequested: string;
       repayOnPod: string;
-      buyerOrAttester: string;
       fundLine: string;
+      sheetTitle: string;
+      orderValue: string;
       principal: string;
       repayOnSettlement: string;
       sellerProtection: string;
+      stakeChecking: string;
+      stakeCovers: string;
+      stakeShort: string;
+      stakeCommitted: string;
+      stakeNone: string;
       repaymentDeadline: string;
       expectedDelivery: string;
       earliestRepayment: string;
@@ -2104,14 +2180,26 @@ interface MessagesShape {
       youReceiveOnSettlement: string;
       yourSpread: string;
       ifSettlementFallsShort: string;
+      shortfallNote: string;
+      approving: string;
+      funding: string;
+      confirming: string;
+      signIn: string;
+      repayInvalid: string;
+      stakePending: string;
+      stakeTooLow: string;
+      error: string;
     };
     extensions: {
       days7: string;
       days30: string;
       days45: string;
-      shortCushion: string;
-      standard: string;
-      extended: string;
+    };
+    gate: {
+      tag: string;
+      body: string;
+      loadError: string;
+      retry: string;
     };
   };
   tradeTerms: {
@@ -7484,53 +7572,123 @@ export const en: MessagesShape = {
     turnOffTips: 'Turn off tips everywhere. You can re-enable them in Settings.',
   },
   financierDashboard: {
-    sectionTag: 'Financier',
-    headline: 'Fund real trade',
-    intro: 'Browse SME invoices and purchase orders open to early payout. Every deal has a credit passport, settles on Arc, and keeps a repayment record anyone can check.',
-    tabs: { factor: 'Factor invoices', po: 'Fund POs' },
-    soon: 'soon',
-    filters: { sector: 'Sector', region: 'Region', regionPlaceholder: 'e.g. Lagos', clear: 'Clear', allSectors: 'All sectors' },
-    sellerTierTitle: 'Seller reputation tier. Drives the discount floor and the stake the seller must post to take the advance.',
-    sellerPassport: 'Seller passport',
-    yourOffer: 'Your offer',
-    editOffer: 'Edit offer',
-    makeOffer: 'Make offer',
-    emptyFactoring: {
-      tag: 'No open factoring',
-      body: 'Nothing to fund right now. Invoices appear here the moment a seller raises one on an accepted deal.',
-    },
-    emptyPo: {
-      tag: 'No open PO lines',
-      body: 'Nothing to fund right now. Lines appear here as sellers draw against accepted purchase orders.',
-    },
+    title: 'Finance',
+    intro: 'Pay sellers early on accepted deals. You advance part of a payment now and receive that part, with your discount, when the buyer approves delivery.',
+    testnet: 'Testnet. Offers use test USDC.',
     close: 'Close',
+    working: 'Working',
+    switchToArc: 'Switch to Arc',
     signInToPost: 'Sign in to post',
     signInToFund: 'Sign in to fund',
-    working: 'Working…',
-    switchToArc: 'Switch to Arc',
+    declined: 'You declined the signature, so nothing was sent.',
+    positions: {
+      title: 'Your positions',
+      summary: '{active} active · {out} USDC out · {back} USDC expected back',
+      needsReview: '{count} need review',
+      status: {
+        accepted: 'Active',
+        settled: 'Repaid',
+        defaulted: 'Needs review',
+      },
+      detail: {
+        accepted: 'Repaid when the buyer approves delivery',
+        settled: 'Repaid in full',
+        defaulted: 'Repayment was not completed',
+      },
+      advanced: 'You advanced',
+      expected: 'Expected back',
+      received: 'Received',
+      view: 'View position',
+      range: '{from} to {to} of {total}',
+      previous: 'Previous',
+      next: 'Next',
+      pagination: 'Your positions, pages',
+    },
+    open: {
+      title: 'Open to finance',
+      emptyTitle: 'No invoices to finance right now.',
+      emptyBody: 'An invoice appears here when a seller asks to be paid early on an accepted deal.',
+      loadError: 'Could not load invoices. Try again shortly.',
+      anySeller: 'A seller on Karwan',
+      invoiceValue: 'Invoice value',
+      asksEarly: 'Asks for {amount} USDC early',
+      terms: {
+        immediate: 'Paid on delivery',
+        net30: 'Net 30',
+        net60: 'Net 60',
+        net90: 'Net 90',
+      },
+      tier: {
+        new: 'New',
+        cold: 'Early record',
+        established: 'Established',
+        strong: 'Strong',
+        elite: 'Elite',
+      },
+      record: 'Seller record',
+      yourOffer: 'Your offer: {rate}%',
+      receiptPending: 'Receipt in progress',
+      makeOffer: 'Make an offer',
+      editOffer: 'Edit offer',
+    },
+    filters: {
+      label: 'Filter invoices',
+      sector: 'Sector',
+      region: 'Region',
+      regionPlaceholder: 'e.g. Lagos',
+      clear: 'Clear filters',
+      any: 'Any',
+      sectors: {
+        agriculture: 'Agriculture',
+        textiles: 'Textiles',
+        electronics: 'Electronics',
+        logistics: 'Logistics',
+        manufacturing: 'Manufacturing',
+        services: 'Services',
+        other: 'Other',
+      },
+    },
     offer: {
+      title: 'Offer on this invoice',
       faceValue: 'Invoice value',
-      quickDiscount: 'Quick discount',
-      customDiscount: 'Custom discount',
-      customDiscountAria: 'Custom discount percent',
-      invoiceFace: 'Invoice value',
-      settlementAssigned: 'Settlement assigned',
+      quickDiscount: 'Suggested discount by seller tier',
+      customDiscount: 'Your discount',
+      customDiscountAria: 'Discount percent',
+      settlementAssigned: 'Portion assigned to you',
       youPayNow: 'You advance now',
       youReceiveOnSettlement: 'You receive after buyer approval',
       yourSpread: 'Your spread',
       fundingSummaryTemplate: 'You advance {advance} USDC now in exchange for the assigned {settlement} USDC after the buyer confirms delivery. Only this portion of the invoice is assigned to you.',
       sellerFloor: 'Seller will not go below',
+      belowFloor: 'Below the seller minimum. Lower the discount to offer at least {amount} USDC.',
+      nothingToAdvance: 'Nothing on this invoice can be advanced. No money is left in escrow to assign to you.',
+      openFor: 'Your offer stays open for 24 hours.',
       replaceOffer: 'Replace offer',
       postOffer: 'Post offer',
-      recipientUnavailable: "This invoice's payout account could not be verified. Refresh the desk and try again.",
+      posting: 'Posting the offer',
+      signIn: 'Sign in to post an offer.',
+      connectWallet: 'Connect your wallet to sign the advance authorization.',
+      error: 'Could not post the offer. Try again.',
+      recipientUnavailable: 'This invoice’s payout account could not be verified. Refresh the page and try again.',
     },
     po: {
+      title: 'Purchase orders',
+      emptyTitle: 'No purchase orders to fund right now.',
+      emptyBody: 'A line appears here when a seller draws against an accepted purchase order.',
+      loadError: 'Could not load purchase orders. Try again shortly.',
+      capitalRequested: 'Capital requested',
       repayOnPod: 'Repaid on proof of delivery',
-      buyerOrAttester: 'Buyer or attester',
       fundLine: 'Fund line',
+      sheetTitle: 'Fund this order',
+      orderValue: 'Order value',
       principal: 'Principal you fund',
       repayOnSettlement: 'Repay on settlement',
       sellerProtection: 'Seller protection',
+      stakeChecking: 'Checking the seller’s available stake.',
+      stakeCovers: '{collateral} USDC will be set aside from the seller’s {total} USDC stake. If repayment falls short, up to that amount can cover the unpaid balance.',
+      stakeShort: 'This offer needs {collateral} USDC of seller protection, but only {free} USDC is available.',
+      stakeCommitted: 'The seller has {total} USDC staked, but it is already committed elsewhere.',
+      stakeNone: 'The seller has no available stake to help cover a repayment shortfall.',
       repaymentDeadline: 'Repayment deadline',
       expectedDelivery: 'Expected delivery',
       earliestRepayment: 'Earliest repayment',
@@ -7540,14 +7698,26 @@ export const en: MessagesShape = {
       youReceiveOnSettlement: 'You receive on settlement',
       yourSpread: 'Your spread',
       ifSettlementFallsShort: 'If settlement falls short',
+      shortfallNote: 'You can report the unpaid balance after {date}. Recovery is not automatic.',
+      approving: 'Approving USDC',
+      funding: 'Funding the line',
+      confirming: 'Confirming',
+      signIn: 'Sign in to fund a purchase order.',
+      repayInvalid: 'Repay must be more than the principal and at most the order value.',
+      stakePending: 'Seller protection is still being checked. Try again in a moment.',
+      stakeTooLow: 'The seller does not have enough available stake for this offer.',
+      error: 'Could not fund the line. Try again.',
     },
     extensions: {
       days7: '7 more days',
       days30: '30 more days',
       days45: '45 more days',
-      shortCushion: 'Short cushion',
-      standard: 'Standard',
-      extended: 'Extended',
+    },
+    gate: {
+      tag: 'Finance',
+      body: 'Sign in to fund trade on Karwan.',
+      loadError: 'Could not load your financier status.',
+      retry: 'Try again',
     },
   },
   tradeTerms: {

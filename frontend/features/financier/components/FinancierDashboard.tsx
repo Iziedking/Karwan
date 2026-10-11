@@ -1,27 +1,30 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useId, useState } from 'react';
 import Link from 'next/link';
 import { useWalletClient, usePublicClient, useChainId } from 'wagmi';
 import { formatUnits, parseUnits } from 'viem';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { api, ApiError, type DirectDeal, type FactoringOffer, type POFinancingLine } from '@/core/api';
-import { Band, SectionTag, HeroHeadline, Punc, PageCard } from '@/shared/components/Bands';
+import { ARC_NETWORK } from '@/core/arcNetwork';
+import { Band } from '@/shared/components/Bands';
+import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
 import { PageTour } from '@/shared/guide/PageTour';
 import { FINANCIER_DESK_TOUR_ID, FINANCIER_DESK_STEPS } from '@/shared/guide/tours';
-import { formatUsdc, shortAddress } from '@/shared/utils/format';
+import { formatUsdc } from '@/shared/utils/format';
 import { cn } from '@/shared/utils/cn';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { chainErrorMessage } from '@/shared/utils/chainError';
 import { requireConfirmedTx } from '@/shared/chain/confirmTx';
 import type { Messages } from '@/shared/i18n/messages/en';
 import { useMoneyRefresh } from '@/shared/hooks/useMoneyRefresh';
+import { ALERT, FIELD, LINK, PRIMARY, SECONDARY } from '@/shared/ui/controls';
 import {
   ARC_CHAIN_ID,
-  ARC_EXPLORER_TX,
   ARC_USDC_ADDRESS,
   ARC_USDC_DECIMALS,
   KARWAN_PO_FINANCING_ADDRESS,
   KARWAN_VAULT_ADDRESS,
+  PO_FINANCING_ENABLED,
 } from '@/features/profile/config';
 import {
   buildTransferAuthorization,
@@ -29,56 +32,25 @@ import {
 } from '@/features/factoring/usdcAuthorization';
 import { resolveFactoringAdvanceRecipient } from '@/features/factoring/advanceRecipient';
 import { buildFactoringQuote } from '@/features/factoring/factoringQuote';
-import { TIER_HUE } from '@/features/reputation/tierColors';
+import { showFilters, termKey } from '../deskModel';
 import { POLinesPanel } from './POLinesPanel';
 import { FactoringPositionsPanel } from './FactoringPositionsPanel';
 
-/// Actionable empty state for a funding lane (SKILL §5.3 bracket-message
-/// pattern): what the lane is, why it is empty, and one way to act. Replaces the
-/// bare grey sentence the review flagged, so an empty desk still orients a
-/// first-time financier rather than dead-ending them.
-function DeskEmpty({ tag, body }: { tag: string; body: string }) {
-  return (
-    <div className="py-4">
-      <span className="mono text-[13px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-        {tag}
-      </span>
-      <p className="mt-3 text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch] font-medium">
-        {body}
-      </p>
-      <Link
-        href="/market"
-        className="mt-4 inline-flex items-center gap-1.5 mono text-[14px] font-bold uppercase tracking-[0.1em] text-[var(--lp-dark)] hover:text-[var(--lp-accent-hover)] transition-colors"
-      >
-        Browse live trade <span aria-hidden>→</span>
-      </Link>
-    </div>
-  );
-}
+type Copy = Messages['financierDashboard'];
 
-/// Turn a thrown signing/submit error into one short human line. A wallet
-/// rejection is the common case and should read calmly, never dump the raw
-/// viem string (with its "Version: viem@x" tag) into the modal.
-function friendlyError(e: unknown, chainCopy: Messages['chainErrors']): string {
-  // An ApiError's detail is written for a person by our own backend, so it is
-  // the one message worth passing through.
+/// Turn a thrown signing or submit error into one short human line. A wallet
+/// rejection is the common case and reads calmly; our own backend writes its
+/// detail for a person, so that one passes through; everything else goes
+/// through the shared chain mapper, which never shows viem's own sentences.
+function friendlyError(e: unknown, chainCopy: Messages['chainErrors'], declined: string, fallback: string): string {
   if (e instanceof ApiError) {
     return typeof e.detail === 'string' && e.detail.trim() ? e.detail : e.message;
   }
   const msg = (e as Error)?.message ?? '';
-  if (/user rejected|user denied|rejected the request|denied (the )?signature/i.test(msg)) {
-    return 'You declined the signature, so the offer was not posted.';
-  }
-  // Everything else goes through the shared mapper. It used to return the first
-  // line of the raw message, which put viem's own sentences on the card and,
-  // for a confirmation that had not arrived yet, told the financier their
-  // funding had failed when the transaction was on chain.
-  return chainErrorMessage(e, chainCopy, 'Could not post the offer. Please try again.');
+  if (/user rejected|user denied|rejected the request|denied (the )?signature/i.test(msg)) return declined;
+  return chainErrorMessage(e, chainCopy, fallback);
 }
 
-// USDC + KarwanPOFinancing ABIs. Hoisted to module scope per Vercel
-// `rendering-hoist-jsx`; both are tiny and `as const` enables viem's
-// strict type inference.
 const usdcAbi = [
   {
     type: 'function',
@@ -135,80 +107,53 @@ const vaultBalanceAbi = [
   },
 ] as const;
 
-// Hoisted constants per Vercel `rendering-hoist-jsx`.
-type Tab = 'factor' | 'po';
-
-// The API returns lower-case seller tiers here. Point each one at the shared
-// reputation palette so a rank never changes colour between desks.
-const SELLER_TIER_HUE: Record<string, string> = {
-  new: TIER_HUE.NEW,
-  cold: TIER_HUE.COLD,
-  established: TIER_HUE.ESTABLISHED,
-  strong: TIER_HUE.STRONG,
-  elite: TIER_HUE.ELITE,
-};
-
-const TABS: ReadonlyArray<{ id: Tab; available: boolean }> = [
-  { id: 'factor', available: true },
-  { id: 'po', available: true },
+const REPAYMENT_EXTENSION_OPTIONS: ReadonlyArray<{ labelKey: 'days7' | 'days30' | 'days45'; seconds: number }> = [
+  { labelKey: 'days7', seconds: 7 * 86_400 },
+  { labelKey: 'days30', seconds: 30 * 86_400 },
+  { labelKey: 'days45', seconds: 45 * 86_400 },
 ];
 
-/// `seconds` is the data; the label and the detail beside it are copy and are
-/// resolved from the locale at render.
-const REPAYMENT_EXTENSION_OPTIONS: ReadonlyArray<{
-  labelKey: 'days7' | 'days30' | 'days45';
-  detailKey: 'shortCushion' | 'standard' | 'extended';
-  seconds: number;
-}> = [
-  { labelKey: 'days7', detailKey: 'shortCushion', seconds: 7 * 86_400 },
-  { labelKey: 'days30', detailKey: 'standard', seconds: 30 * 86_400 },
-  { labelKey: 'days45', detailKey: 'extended', seconds: 45 * 86_400 },
+const SECTORS = ['agriculture', 'textiles', 'electronics', 'logistics', 'manufacturing', 'services', 'other'] as const;
+
+/// Suggested discounts by seller tier, per sme-design.md section 8.2. The
+/// financier can type any rate; these are starting points.
+const TIER_DISCOUNT_HINT: ReadonlyArray<{ tier: 'elite' | 'strong' | 'established'; bps: number }> = [
+  { tier: 'elite', bps: 100 },
+  { tier: 'strong', bps: 200 },
+  { tier: 'established', bps: 400 },
 ];
 
-function formatDeadline(timestampMs: number): string {
-  return new Intl.DateTimeFormat('en', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(timestampMs));
+const SECTION_TITLE = 'text-[clamp(1.35rem,2.4vw,1.75rem)] font-semibold leading-tight tracking-[-0.025em] text-[var(--lp-dark)]';
+const LABEL = 'text-[14px] font-medium text-[var(--lp-text-sub)]';
+const TOGGLE =
+  'inline-flex min-h-11 items-center rounded-full border px-4 text-[14px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]';
+
+function useDate() {
+  const { locale } = useLocale();
+  return useCallback(
+    (ms: number) => new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(ms)),
+    [locale],
+  );
 }
 
-const SECTOR_FILTERS: ReadonlyArray<string> = [
-  '',
-  'agriculture',
-  'textiles',
-  'electronics',
-  'logistics',
-  'manufacturing',
-  'services',
-  'other',
-];
-
-/// Tier-default discount in basis points per sme-design.md §8.2.
-/// Reading from the seller's tier is a Day 12 follow-up; for now the
-/// financier picks via the modal slider with these as suggestions.
-const TIER_DISCOUNT_HINT: Record<string, number> = {
-  ELITE: 100, // 1%
-  STRONG: 200, // 2%
-  ESTABLISHED: 400, // 4% (v2 gating)
-};
+function usdc(value: string | number): string {
+  return `${formatUsdc(value, { withSuffix: false })} USDC`;
+}
 
 export function FinancierDashboard() {
   const t = useTranslations().financierDashboard;
   const auth = useAuth();
-  const [tab, setTab] = useState<Tab>('factor');
   const [sectorFilter, setSectorFilter] = useState('');
   const [regionFilter, setRegionFilter] = useState('');
   const [available, setAvailable] = useState<DirectDeal[] | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [offerTarget, setOfferTarget] = useState<DirectDeal | null>(null);
   // This financier's own live offers, keyed by invoice. A second offer on an
-  // invoice you already quoted is a re-price, not a new bid, so the card has
-  // to say Edit rather than let you stack quotes on the same seller.
+  // invoice you already quoted is a re-price, so the row says Edit rather than
+  // letting you stack quotes on the same seller.
   const [myOffers, setMyOffers] = useState<Map<string, FactoringOffer>>(new Map());
-  // PO-tab state. Split from the factor tab so a tab switch never
-  // re-renders the inactive surface, per Vercel
-  // `rerender-split-combined-hooks`.
   const [poAvailable, setPoAvailable] = useState<DirectDeal[] | null>(null);
-  const [poLoading, setPoLoading] = useState(false);
-  const [poError, setPoError] = useState<string | null>(null);
+  const [poLoadFailed, setPoLoadFailed] = useState(false);
   const [fundTarget, setFundTarget] = useState<DirectDeal | null>(null);
 
   const reloadMyOffers = useCallback(() => {
@@ -223,7 +168,7 @@ export function FinancierDashboard() {
         setMyOffers(live);
       })
       .catch(() => {
-        // A failed read just means the card shows Make offer; the backend
+        // A failed read only means the row shows Make an offer; the backend
         // supersedes the old quote either way.
       });
   }, [auth.isAuthenticated]);
@@ -232,155 +177,100 @@ export function FinancierDashboard() {
     reloadMyOffers();
   }, [reloadMyOffers]);
 
-  useEffect(() => {
-    if (tab !== 'factor') return;
+  const loadInvoices = useCallback(() => {
     let cancelled = false;
-    setLoading(true);
-    setError(null);
+    setLoadFailed(false);
     api
-      .listFactoringAvailable({
-        sector: sectorFilter || undefined,
-        region: regionFilter || undefined,
-      })
+      .listFactoringAvailable({ sector: sectorFilter || undefined, region: regionFilter || undefined })
       .then((r) => {
-        if (cancelled) return;
-        setAvailable(r.deals);
+        if (!cancelled) setAvailable(r.deals);
       })
-      .catch((e) => {
-        if (cancelled) return;
-        setError((e as Error).message);
-      })
-      .finally(() => {
-        if (cancelled) return;
-        setLoading(false);
+      .catch(() => {
+        if (!cancelled) setLoadFailed(true);
       });
     return () => {
       cancelled = true;
     };
-  }, [tab, sectorFilter, regionFilter]);
+  }, [sectorFilter, regionFilter]);
 
-  // PO-tab fetch. Mirrors the factor-tab effect but reads the PO
-  // financing endpoint. Filters share the sector + region UI.
-  useEffect(() => {
-    if (tab !== 'po') return;
+  useEffect(() => loadInvoices(), [loadInvoices]);
+
+  const loadOrders = useCallback(() => {
+    if (!PO_FINANCING_ENABLED) return () => {};
     let cancelled = false;
-    setPoLoading(true);
-    setPoError(null);
+    setPoLoadFailed(false);
     api
-      .listPOFinancingAvailable({
-        sector: sectorFilter || undefined,
-        region: regionFilter || undefined,
-      })
+      .listPOFinancingAvailable({})
       .then((r) => {
-        if (cancelled) return;
-        setPoAvailable(r.deals);
+        if (!cancelled) setPoAvailable(r.deals);
       })
-      .catch((e) => {
-        if (cancelled) return;
-        setPoError((e as Error).message);
-      })
-      .finally(() => {
-        if (cancelled) return;
-        setPoLoading(false);
+      .catch(() => {
+        if (!cancelled) setPoLoadFailed(true);
       });
     return () => {
       cancelled = true;
     };
-  }, [tab, sectorFilter, regionFilter]);
+  }, []);
+
+  useEffect(() => loadOrders(), [loadOrders]);
+
+  const filterActive = !!(sectorFilter || regionFilter);
 
   return (
-    <main className="min-h-[70vh]">
+    <div className="product-surface min-h-[70vh]">
       <PageTour id={FINANCIER_DESK_TOUR_ID} steps={FINANCIER_DESK_STEPS} />
       <Band tone="light" compact>
-        <SectionTag>{t.sectionTag}</SectionTag>
-        <HeroHeadline size="md">
-          {t.headline}<Punc>.</Punc>
-        </HeroHeadline>
-        <p className="mt-5 max-w-[52ch] text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
-{t.intro}
-        </p>
-        {/* TAB BAR */}
-        <div className="mt-7 flex gap-2 flex-wrap" data-guide="financier-tabs">
-          {TABS.map((tab_) => (
-            <button
-              key={tab_.id}
-              type="button"
-              disabled={!tab_.available}
-              onClick={() => tab_.available && setTab(tab_.id)}
-              className={cn(
-                'mono text-[14px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border transition-colors',
-                tab === tab_.id
-                  ? 'bg-[var(--lp-dark)] text-[var(--lp-bg)] border-[var(--lp-dark)]'
-                  : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
-                !tab_.available && 'opacity-40 cursor-not-allowed',
-              )}
-              style={{
-                borderRadius: 6,
-              }}
-            >
-              {t.tabs[tab_.id]}
-              {!tab_.available ? <span className="ms-2 opacity-60">{t.soon}</span> : null}
-            </button>
-          ))}
-        </div>
-        {/* FILTERS: only when on factor tab */}
-        {tab === 'factor' ? (
-          <div className="mt-6 flex gap-3 flex-wrap items-center" data-guide="financier-filters">
-            <FilterSelect
-              label={t.filters.sector}
-              value={sectorFilter}
-              onChange={setSectorFilter}
-              options={SECTOR_FILTERS}
-            />
-            <FilterText
-              label={t.filters.region}
-              value={regionFilter}
-              onChange={setRegionFilter}
-              placeholder={t.filters.regionPlaceholder}
-            />
-            {sectorFilter || regionFilter ? (
-              <button
-                type="button"
-                onClick={() => {
+        <div className="mx-auto max-w-[940px]">
+          <header className="border-b border-[var(--lp-border-light)] pb-6">
+            <h1 className="text-[clamp(2rem,4vw,3rem)] font-semibold leading-tight tracking-[-0.04em] text-[var(--lp-dark)]">
+              {t.title}
+            </h1>
+            <p className="mt-3 max-w-[62ch] text-[16px] leading-relaxed text-[var(--lp-text-sub)]">{t.intro}</p>
+            {ARC_NETWORK === 'testnet' && <p className="mt-3 text-[14px] font-medium text-[var(--lp-text-sub)]">{t.testnet}</p>}
+          </header>
+
+          <FactoringPositionsPanel />
+          {PO_FINANCING_ENABLED && <POLinesPanel />}
+
+          <section aria-labelledby="open-invoices" className="pt-8">
+            <h2 id="open-invoices" className={SECTION_TITLE}>
+              {t.open.title}
+            </h2>
+            {showFilters(available?.length ?? 0, filterActive) && (
+              <Filters
+                t={t}
+                sector={sectorFilter}
+                region={regionFilter}
+                onSector={setSectorFilter}
+                onRegion={setRegionFilter}
+                onClear={() => {
                   setSectorFilter('');
                   setRegionFilter('');
                 }}
-                className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)]"
-              >
-                {t.filters.clear}
-              </button>
-            ) : null}
-          </div>
-        ) : null}
-      </Band>
-
-      <Band tone="light" compact>
-        {tab === 'factor' ? (
-          <>
-          <FactorInvoicesTab
-            available={available}
-            loading={loading}
-            error={error}
-            myOffers={myOffers}
-            onOpenOffer={(deal) => setOfferTarget(deal)}
-          />
-          <FactoringPositionsPanel />
-          </>
-        ) : (
-          <>
-            <FundPOsTab
-              available={poAvailable}
-              loading={poLoading}
-              error={poError}
-              onOpenFund={(deal) => setFundTarget(deal)}
+              />
+            )}
+            <InvoiceList
+              t={t}
+              available={available}
+              failed={loadFailed}
+              myOffers={myOffers}
+              onOpenOffer={setOfferTarget}
             />
-            <POLinesPanel />
-          </>
-        )}
+          </section>
+
+          {PO_FINANCING_ENABLED && (
+            <section aria-labelledby="open-orders" className="pt-10">
+              <h2 id="open-orders" className={SECTION_TITLE}>
+                {t.po.title}
+              </h2>
+              <OrderList t={t} available={poAvailable} failed={poLoadFailed} onOpenFund={setFundTarget} />
+            </section>
+          )}
+        </div>
       </Band>
 
       {offerTarget ? (
-        <OfferModal
+        <OfferSheet
           deal={offerTarget}
           existingOffer={myOffers.get(offerTarget.jobId.toLowerCase()) ?? null}
           isAuthed={auth.isAuthenticated}
@@ -388,278 +278,278 @@ export function FinancierDashboard() {
           onPosted={() => {
             setOfferTarget(null);
             reloadMyOffers();
-            // Re-fetch the list so the just-bid invoice no longer appears.
-            api
-              .listFactoringAvailable({
-                sector: sectorFilter || undefined,
-                region: regionFilter || undefined,
-              })
-              .then((r) => setAvailable(r.deals))
-              .catch(() => {});
+            loadInvoices();
           }}
         />
       ) : null}
       {fundTarget ? (
-        <FundModal
+        <FundSheet
           deal={fundTarget}
           isAuthed={auth.isAuthenticated}
           onClose={() => setFundTarget(null)}
           onFunded={() => {
             setFundTarget(null);
-            api
-              .listPOFinancingAvailable({
-                sector: sectorFilter || undefined,
-                region: regionFilter || undefined,
-              })
-              .then((r) => setPoAvailable(r.deals))
-              .catch(() => {});
+            loadOrders();
           }}
         />
       ) : null}
-    </main>
+    </div>
   );
 }
 
-// Factor tab
+function Filters({
+  t,
+  sector,
+  region,
+  onSector,
+  onRegion,
+  onClear,
+}: {
+  t: Copy;
+  sector: string;
+  region: string;
+  onSector: (v: string) => void;
+  onRegion: (v: string) => void;
+  onClear: () => void;
+}) {
+  const regionId = useId();
+  return (
+    <div role="group" aria-label={t.filters.label} className="mt-4 space-y-3" data-guide="financier-filters">
+      <div role="radiogroup" aria-label={t.filters.sector} className="flex flex-wrap gap-2">
+        {['', ...SECTORS].map((key) => {
+          const on = sector === key;
+          return (
+            <button
+              key={key || 'any'}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              onClick={() => onSector(key)}
+              className={cn(
+                TOGGLE,
+                on
+                  ? 'border-[var(--lp-dark)] bg-[var(--lp-dark)] text-[var(--lp-bg)]'
+                  : 'border-[var(--lp-outline-strong)] text-[var(--lp-dark)]',
+              )}
+            >
+              {key ? t.filters.sectors[key as (typeof SECTORS)[number]] : t.filters.any}
+            </button>
+          );
+        })}
+      </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <label htmlFor={regionId} className={LABEL}>
+          {t.filters.region}
+        </label>
+        <input
+          id={regionId}
+          type="text"
+          value={region}
+          onChange={(e) => onRegion(e.target.value)}
+          placeholder={t.filters.regionPlaceholder}
+          className={cn(FIELD, 'max-w-[240px]')}
+        />
+        {sector || region ? (
+          <button type="button" onClick={onClear} className={LINK}>
+            {t.filters.clear}
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
 
-function FactorInvoicesTab({
+function ListSkeleton() {
+  return (
+    <div className="mt-4 space-y-3" aria-busy>
+      <div className="h-[88px] rounded-md bg-[var(--color-surface-2)] motion-safe:animate-pulse" />
+      <div className="h-[88px] rounded-md bg-[var(--color-surface-2)] motion-safe:animate-pulse" />
+    </div>
+  );
+}
+
+function EmptyState({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="mt-4 border-y border-[var(--lp-border-light)] py-8">
+      <p className="text-[16px] font-semibold text-[var(--lp-dark)]">{title}</p>
+      <p className="mt-1 max-w-[56ch] text-[15px] leading-relaxed text-[var(--lp-text-sub)]">{body}</p>
+    </div>
+  );
+}
+
+function sellerName(deal: DirectDeal, t: Copy): string {
+  return deal.counterpartyCompany?.name?.trim() || t.open.anySeller;
+}
+
+function sellerMeta(deal: DirectDeal, t: Copy): string {
+  const c = deal.counterpartyCompany;
+  const sector = c?.sector && (SECTORS as readonly string[]).includes(c.sector)
+    ? t.filters.sectors[c.sector as (typeof SECTORS)[number]]
+    : c?.sector;
+  return [deal.sellerTier ? t.open.tier[deal.sellerTier] : null, sector, c?.region].filter(Boolean).join(' · ');
+}
+
+function InvoiceList({
+  t,
   available,
-  loading,
-  error,
+  failed,
   myOffers,
   onOpenOffer,
 }: {
+  t: Copy;
   available: DirectDeal[] | null;
-  loading: boolean;
-  error: string | null;
+  failed: boolean;
   myOffers: Map<string, FactoringOffer>;
   onOpenOffer: (deal: DirectDeal) => void;
 }) {
-  const t = useTranslations().financierDashboard;
-  if (loading && available === null) {
-    return <SkeletonGrid />;
-  }
-  if (error) {
-    return (
-      <p className="text-[14px] text-[var(--lp-critical)]">
-        Couldn't load opportunities: {error}
-      </p>
-    );
-  }
-  if (!available || available.length === 0) {
-    return (
-      <DeskEmpty
-        tag={t.emptyFactoring.tag}
-        body={t.emptyFactoring.body}
-      />
-    );
-  }
+  if (failed) return <p role="alert" className={cn(ALERT, 'mt-4')}>{t.open.loadError}</p>;
+  if (available === null) return <ListSkeleton />;
+  if (available.length === 0) return <EmptyState title={t.open.emptyTitle} body={t.open.emptyBody} />;
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <ul className="mt-4 divide-y divide-[var(--lp-border-light)] border-y border-[var(--lp-border-light)]">
       {available.map((deal) => (
-        <InvoiceCard
+        <InvoiceRow
           key={deal.jobId}
+          t={t}
           deal={deal}
           existingOffer={myOffers.get(deal.jobId.toLowerCase()) ?? null}
           onOpenOffer={() => onOpenOffer(deal)}
         />
       ))}
-    </div>
+    </ul>
   );
 }
 
-function InvoiceCard({
+function InvoiceRow({
+  t,
   deal,
   existingOffer,
   onOpenOffer,
 }: {
+  t: Copy;
   deal: DirectDeal;
   existingOffer: FactoringOffer | null;
   onOpenOffer: () => void;
 }) {
-  const t = useTranslations().financierDashboard;
   const receiptPending = existingOffer?.status === 'pending_receipt';
-  const settlementWindow =
-    deal.paymentTerms === 'net30'
-      ? 'NET 30'
-      : deal.paymentTerms === 'net60'
-        ? 'NET 60'
-        : deal.paymentTerms === 'net90'
-          ? 'NET 90'
-          : 'IMMEDIATE';
+  const meta = sellerMeta(deal, t);
   return (
-    <PageCard>
-      <div className="p-5 md:p-6 space-y-4" data-guide="financier-deal">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              Face value
-            </p>
-            <p className="mt-1 serif text-[32px] tabular-nums leading-none tracking-[-0.02em] text-[var(--lp-dark)]">
-              {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}{' '}
-              <span className="mono text-[14px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                USDC
-              </span>
-            </p>
-          </div>
-          <div className="flex flex-col items-end gap-1.5">
-            {deal.sellerTier ? (
-              <span
-                className="mono text-[13px] uppercase tracking-[0.16em] font-bold px-2.5 py-1"
-                style={{
-                  border: `1px solid ${SELLER_TIER_HUE[deal.sellerTier] ?? '#9a9a9a'}`,
-                  color: 'var(--lp-dark)',
-                }}
-                title={t.sellerTierTitle}
-              >
-                {deal.sellerTier.toUpperCase()}
-              </span>
-            ) : null}
-            <span className="mono text-[13px] uppercase tracking-[0.18em] font-bold px-2.5 py-1 border border-[var(--lp-outline)] text-[var(--lp-dark)]">
-              {settlementWindow}
-            </span>
-          </div>
-        </div>
-        <CompanyLine deal={deal} />
-        <div className="pt-3 border-t border-[var(--lp-border-light)] flex items-center justify-between gap-3 flex-wrap">
-          <Link
-            href={`/credit-passport/${deal.seller}`}
-            target="_blank"
-            data-guide="financier-passport"
-            className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
-          >
-            {t.sellerPassport} ↗
-          </Link>
-          <div className="flex items-center gap-2.5">
-            {existingOffer ? (
-              <span className="mono text-[13px] uppercase tracking-[0.14em] font-bold text-[var(--lp-text-muted)]">
-                {t.yourOffer} · {(existingOffer.discountBps / 100).toFixed(1)}%
-              </span>
-            ) : null}
-            <button
-              type="button"
-              onClick={receiptPending ? undefined : onOpenOffer}
-              disabled={receiptPending}
-              data-guide="financier-offer"
-              className="mono text-[14px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 bg-[var(--lp-dark)] text-[var(--lp-bg)]"
-              style={{
-                borderRadius: 6,
-              }}
-            >
-              {receiptPending ? 'receipt in progress' : existingOffer ? t.editOffer : t.makeOffer}
-            </button>
-          </div>
-        </div>
+    <li className="grid gap-4 py-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center" data-guide="financier-deal">
+      <div className="min-w-0">
+        <p dir="auto" className="truncate text-[16px] font-semibold text-[var(--lp-dark)]">{sellerName(deal, t)}</p>
+        {meta && <p className="mt-0.5 text-[14px] text-[var(--lp-text-sub)]">{meta}</p>}
+        <p className="mt-3 text-[22px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--lp-dark)]">
+          {usdc(deal.dealAmountUsdc)}
+        </p>
+        <p className="mt-0.5 text-[14px] text-[var(--lp-text-sub)]">
+          {[
+            t.open.terms[termKey(deal.paymentTerms)],
+            deal.factoringRequestedAdvanceUsdc
+              ? t.open.asksEarly.replace('{amount}', formatUsdc(deal.factoringRequestedAdvanceUsdc, { withSuffix: false }))
+              : null,
+          ]
+            .filter(Boolean)
+            .join(' · ')}
+        </p>
       </div>
-    </PageCard>
+      <div className="flex flex-wrap items-center gap-3 sm:flex-col sm:items-end">
+        {receiptPending ? (
+          <p className="text-[14px] font-medium text-[var(--lp-text-sub)]">{t.open.receiptPending}</p>
+        ) : (
+          <button
+            type="button"
+            onClick={onOpenOffer}
+            className={SECONDARY}
+            data-guide="financier-offer"
+          >
+            {existingOffer ? t.open.editOffer : t.open.makeOffer}
+          </button>
+        )}
+        {existingOffer && !receiptPending ? (
+          <p className="text-[14px] font-medium tabular-nums text-[var(--lp-text-sub)]">
+            {t.open.yourOffer.replace('{rate}', (existingOffer.discountBps / 100).toFixed(1))}
+          </p>
+        ) : null}
+        <Link
+          href={`/credit-passport/${deal.seller}`}
+          className={LINK}
+          data-guide="financier-passport"
+        >
+          {t.open.record}
+        </Link>
+      </div>
+    </li>
   );
 }
 
-function CompanyLine({ deal }: { deal: DirectDeal }) {
-  const c = deal.counterpartyCompany;
-  if (!c?.name && !c?.sector && !c?.region) {
-    return (
-      <p className="text-[14px] text-[var(--lp-text-muted)]">
-        Seller: {shortAddress(deal.seller)}
-      </p>
-    );
-  }
-  return (
-    <div className="text-[14px] leading-snug">
-      {c.name ? (
-        <p className="text-[var(--lp-dark)] font-medium">{c.name}</p>
-      ) : null}
-      <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] mt-1">
-        {[c.sector, c.region].filter(Boolean).join(' · ')}
-      </p>
-    </div>
-  );
-}
-
-function SkeletonGrid() {
-  return (
-    <div className="grid gap-4 md:grid-cols-2">
-      {[0, 1, 2, 3].map((i) => (
-        <PageCard key={i}>
-          <div className="p-5 md:p-6 space-y-3 opacity-50">
-            <div className="h-3 w-24 bg-black/10" />
-            <div className="h-9 w-36 bg-black/10" />
-            <div className="h-3 w-48 bg-black/10" />
-            <div className="h-3 w-32 bg-black/10" />
-          </div>
-        </PageCard>
-      ))}
-    </div>
-  );
-}
-
-// Filter row
-
-function FilterSelect({
-  label,
-  value,
-  onChange,
-  options,
+function OrderList({
+  t,
+  available,
+  failed,
+  onOpenFund,
 }: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  options: ReadonlyArray<string>;
+  t: Copy;
+  available: DirectDeal[] | null;
+  failed: boolean;
+  onOpenFund: (deal: DirectDeal) => void;
 }) {
+  if (failed) return <p role="alert" className={cn(ALERT, 'mt-4')}>{t.po.loadError}</p>;
+  if (available === null) return <ListSkeleton />;
+  if (available.length === 0) return <EmptyState title={t.po.emptyTitle} body={t.po.emptyBody} />;
   return (
-    <label className="inline-flex items-center gap-2">
-      <span className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-        {label}
-      </span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="form-input text-[14px] py-1.5 px-2"
-        style={{ minWidth: 120 }}
-      >
-        {options.map((o) => (
-          <option key={o} value={o}>
-            {o || 'Any'}
-          </option>
-        ))}
-      </select>
-    </label>
+    <ul className="mt-4 divide-y divide-[var(--lp-border-light)] border-y border-[var(--lp-border-light)]">
+      {available.map((deal) => {
+        const meta = sellerMeta(deal, t);
+        return (
+          <li key={deal.jobId} className="grid gap-4 py-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+            <div className="min-w-0">
+              <p dir="auto" className="truncate text-[16px] font-semibold text-[var(--lp-dark)]">{sellerName(deal, t)}</p>
+              {meta && <p className="mt-0.5 text-[14px] text-[var(--lp-text-sub)]">{meta}</p>}
+              <p className="mt-3 text-[14px] text-[var(--lp-text-sub)]">{t.po.capitalRequested}</p>
+              <p className="text-[22px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--lp-dark)]">
+                {usdc(deal.poFinancingRequestedAdvanceUsdc ?? deal.dealAmountUsdc)}
+              </p>
+              <p className="mt-0.5 text-[14px] text-[var(--lp-text-sub)]">{t.po.repayOnPod}</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 sm:flex-col sm:items-end">
+              <button type="button" onClick={() => onOpenFund(deal)} className={SECONDARY}>
+                {t.po.fundLine}
+              </button>
+              <Link href={`/credit-passport/${deal.seller}`} className={LINK}>
+                {t.open.record}
+              </Link>
+            </div>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
-
-function FilterText({
-  label,
-  value,
-  onChange,
-  placeholder,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-}) {
-  return (
-    <label className="inline-flex items-center gap-2">
-      <span className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-        {label}
-      </span>
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="form-input text-[14px] py-1.5 px-2"
-        style={{ minWidth: 140 }}
-      />
-    </label>
-  );
-}
-
-// Offer modal
 
 const OFFER_EXPIRES_HOURS = 24;
 
-function OfferModal({
+function SheetHeader({ id, title, onClose, closeLabel, busy }: { id: string; title: string; onClose: () => void; closeLabel: string; busy: boolean }) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-[var(--lp-border-light)] px-5 py-4">
+      <h2 id={id} className="text-[18px] font-semibold text-[var(--lp-dark)]">
+        {title}
+      </h2>
+      <button
+        type="button"
+        onClick={onClose}
+        disabled={busy}
+        aria-label={closeLabel}
+        className="inline-flex size-11 items-center justify-center rounded-[10px] text-[var(--lp-text-sub)] transition-colors hover:bg-[var(--color-surface-2)] hover:text-[var(--lp-dark)] disabled:opacity-40"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+          <path d="M18 6 6 18M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+function OfferSheet({
   deal,
   existingOffer,
   isAuthed,
@@ -675,22 +565,21 @@ function OfferModal({
   const t = useTranslations().financierDashboard;
   const chainCopy = useTranslations().chainErrors;
   const auth = useAuth();
+  const titleId = useId();
+  const rateId = useId();
   const { data: walletClient } = useWalletClient();
-  // Re-pricing an existing quote opens on the rate you already offered, not
-  // on the 2% default, so an edit starts from where you left it.
+  // Re-pricing an existing quote opens on the rate already offered, so an edit
+  // starts from where you left it.
   const [discountBps, setDiscountBps] = useState<number>(existingOffer?.discountBps ?? 200);
-  // Mirrors discountBps as a free-text percent so the field can hold a
-  // half-typed value without the slider fighting the keyboard.
-  const [discountInput, setDiscountInput] = useState(
-    ((existingOffer?.discountBps ?? 200) / 100).toFixed(1),
-  );
+  // The typed percent, kept apart from discountBps so a half-typed value is
+  // not snapped out from under the cursor.
+  const [discountInput, setDiscountInput] = useState(((existingOffer?.discountBps ?? 200) / 100).toFixed(1));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // The seller requests financing against a specific portion of the future
-  // settlement. That portion is not a prior payment. Keep these concepts
-  // separate so a 200 USDC request on a 500 USDC invoice never reads as if the
-  // other 300 USDC was already released.
+  // The seller asks for financing against a portion of the future settlement.
+  // That portion is not a prior payment: a 200 USDC request on a 500 USDC
+  // invoice never reads as if the other 300 USDC was already released.
   const quote = buildFactoringQuote({
     invoiceValueUsdc: deal.dealAmountUsdc,
     escrowAvailableUsdc: deal.claimableUsdc,
@@ -701,35 +590,36 @@ function OfferModal({
   const isCircleUser = auth.method === 'circle';
 
   /// The seller named a floor when they asked for early payout. The backend
-  /// refuses anything under it, so say so here rather than letting the offer
-  /// round-trip into a 409.
-  const sellerFloor = deal.factoringMinAdvanceUsdc
-    ? Number(deal.factoringMinAdvanceUsdc)
-    : null;
+  /// refuses anything under it, so say so here rather than round-trip a 409.
+  const sellerFloor = deal.factoringMinAdvanceUsdc ? Number(deal.factoringMinAdvanceUsdc) : null;
   const belowSellerFloor = sellerFloor !== null && advance < sellerFloor;
+  const nothingToAdvance = advance <= 0;
+
+  function setPercent(pct: number) {
+    setDiscountBps(Math.round(pct * 100));
+    setDiscountInput(pct.toFixed(1));
+  }
 
   async function submit() {
     if (!isAuthed) {
-      setError('Sign in to post an offer.');
+      setError(t.offer.signIn);
       return;
     }
     if (belowSellerFloor) {
-      setError(`This seller will not consider less than ${sellerFloor!.toFixed(2)} USDC.`);
+      setError(t.offer.belowFloor.replace('{amount}', sellerFloor!.toFixed(2)));
       return;
     }
     setSubmitting(true);
     setError(null);
     try {
-      // Web3 financiers sign the advance authorization now (USDC
-      // EIP-3009, no gas, no transfer yet). The relay submits it the
-      // moment the seller accepts, so the advance lands without the
-      // financier being online. Circle financiers skip this; the backend
-      // signs from their identity wallet at accept time.
+      // Wallet financiers sign the advance authorization now (USDC EIP-3009, no
+      // gas, no transfer yet). The relay submits it the moment the seller
+      // accepts, so the advance lands without the financier online. Email
+      // financiers skip this; the backend signs from their identity wallet.
       let advanceAuthorization;
       if (!isCircleUser) {
         if (!walletClient || !auth.address) {
-          setError('Connect your wallet to sign the advance authorization.');
-          setSubmitting(false);
+          setError(t.offer.connectWallet);
           return;
         }
         const advanceRecipient = resolveFactoringAdvanceRecipient(deal);
@@ -759,337 +649,148 @@ function OfferModal({
       });
       onPosted(r.offer);
     } catch (e) {
-      setError(friendlyError(e, chainCopy));
+      setError(friendlyError(e, chainCopy, t.declined, t.offer.error));
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-[80] flex items-end md:items-stretch md:justify-end"
-      style={{ background: 'rgba(0,0,0,0.45)' }}
-      onClick={onClose}
-    >
-      <div
-        className="karwan-sheet-enter max-h-[92dvh] w-full overflow-y-auto rounded-t-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] md:h-full md:max-h-none md:w-[440px] md:rounded-none md:rounded-s-[16px]"
-        style={{
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="px-5 py-4 border-b border-[var(--lp-border-light)] flex items-center justify-between gap-3">
-          <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            Offer
-          </span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex size-11 items-center justify-center rounded-[10px] text-[18px] leading-none text-[var(--lp-text-muted)] transition-colors hover:bg-[var(--lp-card)] hover:text-[var(--lp-dark)]"
-            aria-label={t.close}
-          >
-            ×
-          </button>
+    <ConfirmSheetShell open labelledBy={titleId} busy={submitting} onClose={onClose}>
+      <SheetHeader id={titleId} title={t.offer.title} onClose={onClose} closeLabel={t.close} busy={submitting} />
+      <div className="space-y-6 p-5 md:p-6">
+        <div>
+          <p className={LABEL}>{t.offer.faceValue}</p>
+          <p className="mt-1 text-[28px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--lp-dark)]">
+            {usdc(deal.dealAmountUsdc)}
+          </p>
         </div>
-        <div className="p-5 md:p-6 space-y-5">
-          <div>
-            <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              {t.offer.faceValue}
-            </p>
-            <p className="mt-1 serif text-[28px] tabular-nums leading-none tracking-[-0.02em] text-[var(--lp-dark)]">
-              {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}{' '}
-              <span className="mono text-[14px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                USDC
-              </span>
-            </p>
-          </div>
 
-          {/* Tier-default presets per sme-design.md §8.2 */}
-          <div>
-            <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] mb-2">
-              {t.offer.quickDiscount}
-            </p>
-            <div className="flex gap-2 flex-wrap">
-              {Object.entries(TIER_DISCOUNT_HINT).map(([tier, bps]) => (
+        <div>
+          <p className={LABEL}>{t.offer.quickDiscount}</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {TIER_DISCOUNT_HINT.map(({ tier, bps }) => {
+              const on = discountBps === bps;
+              return (
                 <button
                   key={tier}
                   type="button"
-                  onClick={() => {
-                    setDiscountBps(bps);
-                    setDiscountInput((bps / 100).toFixed(1));
-                  }}
+                  aria-pressed={on}
+                  onClick={() => setPercent(bps / 100)}
                   className={cn(
-                    'mono text-[13px] uppercase tracking-[0.14em] font-bold px-2.5 py-1 border transition-colors',
-                    discountBps === bps
-                      ? 'bg-[var(--lp-accent)] text-[var(--accent-ink)] border-[var(--lp-accent)]'
-                      : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
+                    TOGGLE,
+                    on
+                      ? 'border-[var(--lp-dark)] bg-[var(--lp-dark)] text-[var(--lp-bg)]'
+                      : 'border-[var(--lp-outline-strong)] text-[var(--lp-dark)]',
                   )}
-                  style={{
-                    borderRadius: 6,
-                  }}
                 >
-                  {tier} · {(bps / 100).toFixed(0)}%
+                  {t.open.tier[tier]} · {(bps / 100).toFixed(0)}%
                 </button>
-              ))}
-            </div>
+              );
+            })}
           </div>
+        </div>
 
-          <div>
-            <div className="flex items-baseline justify-between gap-3 mb-2">
-              <span className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                {t.offer.customDiscount}
-              </span>
-              {/* Typable as well as draggable. The slider steps 0.5% and can
-                  never express a rate a financier actually quoted, like 2.4%.
-                  Clamped on blur, not on change, so intermediate keystrokes
-                  ("" or ".") don't snap the value out from under the cursor. */}
-              <span className="inline-flex items-baseline gap-0.5">
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min={1}
-                  max={20}
-                  step={0.1}
-                  value={discountInput}
-                  onChange={(e) => {
-                    setDiscountInput(e.target.value);
-                    const pct = Number(e.target.value);
-                    if (Number.isFinite(pct) && pct >= 1 && pct <= 20) {
-                      setDiscountBps(Math.round(pct * 100));
-                    }
-                  }}
-                  onBlur={() => {
-                    const pct = Number(discountInput);
-                    const clamped = Number.isFinite(pct) ? Math.min(20, Math.max(1, pct)) : 1;
-                    setDiscountBps(Math.round(clamped * 100));
-                    setDiscountInput(clamped.toFixed(1));
-                  }}
-                  aria-label={t.offer.customDiscountAria}
-                  className="w-[3.6rem] bg-transparent text-end mono text-[14px] tabular-nums font-extrabold text-[var(--lp-dark)] border-b border-[var(--lp-outline)] focus:border-[var(--lp-accent)] focus:outline-none"
-                />
-                <span className="mono text-[14px] font-extrabold text-[var(--lp-dark)]">%</span>
-              </span>
-            </div>
-            <input
-              type="range"
-              min={100}
-              max={2000}
-              step={50}
-              value={discountBps}
-              onChange={(e) => {
-                setDiscountBps(Number(e.target.value));
-                setDiscountInput((Number(e.target.value) / 100).toFixed(1));
-              }}
-              className="w-full"
-            />
-            <div className="mt-1 flex justify-between mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-              <span>1%</span>
-              <span>20%</span>
-            </div>
-          </div>
-
-          <dl className="pt-3 border-t border-[var(--lp-border-light)] space-y-2.5">
-            <ModalRow
-              label={t.offer.invoiceFace}
-              value={`${formatUsdc(quote.invoiceValueUsdc, { withSuffix: false })} USDC`}
-            />
-            <ModalRow
-              label={t.offer.settlementAssigned}
-              value={`${formatUsdc(quote.settlementAssignedUsdc, { withSuffix: false })} USDC`}
-              bold
-            />
-            <ModalRow
-              label={t.offer.youPayNow}
-              value={`${formatUsdc(quote.advanceUsdc, { withSuffix: false })} USDC`}
-            />
-            <ModalRow
-              label={t.offer.youReceiveOnSettlement}
-              value={`${formatUsdc(quote.settlementReturnUsdc, { withSuffix: false })} USDC`}
-              bold
-            />
-            <ModalRow
-              label={t.offer.yourSpread}
-              value={`+${formatUsdc(quote.spreadUsdc, { withSuffix: false })} USDC`}
-              accent
-            />
-            {sellerFloor !== null ? (
-              <ModalRow
-                label={t.offer.sellerFloor}
-                value={`${sellerFloor.toFixed(2)} USDC`}
+        <div>
+          <div className="flex items-center justify-between gap-3">
+            <label htmlFor={rateId} className={LABEL}>
+              {t.offer.customDiscount}
+            </label>
+            <span className="inline-flex items-center gap-1">
+              <input
+                id={rateId}
+                type="number"
+                inputMode="decimal"
+                min={1}
+                max={20}
+                step={0.1}
+                value={discountInput}
+                onChange={(e) => {
+                  setDiscountInput(e.target.value);
+                  const pct = Number(e.target.value);
+                  if (Number.isFinite(pct) && pct >= 1 && pct <= 20) setDiscountBps(Math.round(pct * 100));
+                }}
+                onBlur={() => {
+                  const pct = Number(discountInput);
+                  setPercent(Number.isFinite(pct) ? Math.min(20, Math.max(1, pct)) : 1);
+                }}
+                aria-label={t.offer.customDiscountAria}
+                className="min-h-11 w-[4.5rem] rounded-[8px] border border-[var(--lp-outline-strong)] bg-[var(--lp-card)] px-2 text-end text-[16px] font-semibold tabular-nums text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
               />
-            ) : null}
-          </dl>
+              <span className="text-[16px] font-semibold text-[var(--lp-dark)]">%</span>
+            </span>
+          </div>
+          <input
+            type="range"
+            min={100}
+            max={2000}
+            step={50}
+            value={discountBps}
+            onChange={(e) => setPercent(Number(e.target.value) / 100)}
+            aria-label={t.offer.customDiscountAria}
+            className="mt-3 w-full accent-[var(--accent)]"
+          />
+          <div className="mt-1 flex justify-between text-[14px] tabular-nums text-[var(--lp-text-sub)]">
+            <span>1%</span>
+            <span>20%</span>
+          </div>
+        </div>
 
-          <p className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-muted)]">
-            {t.offer.fundingSummaryTemplate
-              .replace('{advance}', formatUsdc(quote.advanceUsdc, { withSuffix: false }))
-              .replace('{settlement}', formatUsdc(quote.settlementAssignedUsdc, { withSuffix: false }))}
+        <dl className="space-y-3 border-t border-[var(--lp-border-light)] pt-4">
+          <SheetRow label={t.offer.settlementAssigned} value={usdc(quote.settlementAssignedUsdc)} />
+          <SheetRow label={t.offer.youPayNow} value={usdc(quote.advanceUsdc)} strong />
+          <SheetRow label={t.offer.youReceiveOnSettlement} value={usdc(quote.settlementReturnUsdc)} strong />
+          <SheetRow label={t.offer.yourSpread} value={`+${usdc(quote.spreadUsdc)}`} />
+          {sellerFloor !== null ? <SheetRow label={t.offer.sellerFloor} value={usdc(sellerFloor)} /> : null}
+        </dl>
+
+        <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+          {t.offer.fundingSummaryTemplate
+            .replace('{advance}', formatUsdc(quote.advanceUsdc, { withSuffix: false }))
+            .replace('{settlement}', formatUsdc(quote.settlementAssignedUsdc, { withSuffix: false }))}{' '}
+          {t.offer.openFor}
+        </p>
+
+        {nothingToAdvance ? (
+          <p role="alert" className={ALERT}>
+            {t.offer.nothingToAdvance}
           </p>
+        ) : null}
+        {belowSellerFloor ? (
+          <p role="alert" className={ALERT}>
+            {t.offer.belowFloor.replace('{amount}', sellerFloor!.toFixed(2))}
+          </p>
+        ) : null}
+        {error ? (
+          <p role="alert" className={ALERT}>
+            {error}
+          </p>
+        ) : null}
 
-          {belowSellerFloor ? (
-            <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-critical)]">
-              Below the seller minimum. Lower the discount to offer at least{' '}
-              {sellerFloor!.toFixed(2)} USDC.
-            </p>
-          ) : null}
-
-          {error ? (
-            <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-critical)]">
-              {error}
-            </p>
-          ) : null}
-
-          <button
-            type="button"
-            onClick={submit}
-            disabled={submitting || belowSellerFloor}
-            className="w-full mono text-[14px] uppercase tracking-[0.14em] font-bold py-3 bg-[var(--lp-dark)] text-[var(--lp-bg)] disabled:opacity-60"
-            style={{
-              borderRadius: 10,
-            }}
-          >
-            {submitting
-              ? 'Posting…'
-              : !isAuthed
-                ? t.signInToPost
-                : existingOffer
-                  ? `${t.offer.replaceOffer} · 24h`
-                  : `${t.offer.postOffer} · 24h`}
-          </button>
-        </div>
+        <button type="button" onClick={submit} disabled={submitting || belowSellerFloor || nothingToAdvance} className={cn(PRIMARY, 'w-full')}>
+          {submitting
+            ? t.offer.posting
+            : !isAuthed
+              ? t.signInToPost
+              : existingOffer
+                ? t.offer.replaceOffer
+                : t.offer.postOffer}
+        </button>
       </div>
+    </ConfirmSheetShell>
+  );
+}
+
+function SheetRow({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4">
+      <dt className="text-[14px] text-[var(--lp-text-sub)]">{label}</dt>
+      <dd className={cn('whitespace-nowrap text-end text-[15px] tabular-nums text-[var(--lp-dark)]', strong && 'font-semibold')}>{value}</dd>
     </div>
   );
 }
 
-function ModalRow({
-  label,
-  value,
-  bold,
-  accent,
-}: {
-  label: string;
-  value: string;
-  bold?: boolean;
-  accent?: boolean;
-}) {
-  const valueClass = accent
-    ? 'text-[var(--lp-accent-strong, var(--lp-dark))] font-extrabold'
-    : bold
-      ? 'text-[var(--lp-dark)] font-extrabold'
-      : 'text-[var(--lp-dark)]';
-  return (
-    <div className="flex items-baseline justify-between gap-3">
-      <dt className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-        {label}
-      </dt>
-      <dd className={cn('text-[14px] tabular-nums', valueClass)}>{value}</dd>
-    </div>
-  );
-}
-
-// Fund POs tab
-
-function FundPOsTab({
-  available,
-  loading,
-  error,
-  onOpenFund,
-}: {
-  available: DirectDeal[] | null;
-  loading: boolean;
-  error: string | null;
-  onOpenFund: (deal: DirectDeal) => void;
-}) {
-  const t = useTranslations().financierDashboard;
-  if (loading && available === null) {
-    return <SkeletonGrid />;
-  }
-  if (error) {
-    return (
-      <p className="text-[14px] text-[var(--lp-critical)]">
-        Couldn't load PO lines: {error}
-      </p>
-    );
-  }
-  if (!available || available.length === 0) {
-    return (
-      <DeskEmpty
-        tag={t.emptyPo.tag}
-        body={t.emptyPo.body}
-      />
-    );
-  }
-  return (
-    <div className="grid gap-4 md:grid-cols-2">
-      {available.map((deal) => (
-        <POCard key={deal.jobId} deal={deal} onOpenFund={() => onOpenFund(deal)} />
-      ))}
-    </div>
-  );
-}
-
-function POCard({
-  deal,
-  onOpenFund,
-}: {
-  deal: DirectDeal;
-  onOpenFund: () => void;
-}) {
-  const t = useTranslations().financierDashboard;
-  return (
-    <PageCard>
-      <div className="p-5 md:p-6 space-y-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              Capital requested
-            </p>
-            <p className="mt-1 serif text-[32px] tabular-nums leading-none tracking-[-0.02em] text-[var(--lp-dark)]">
-              {formatUsdc(deal.poFinancingRequestedAdvanceUsdc ?? deal.dealAmountUsdc, { withSuffix: false })}{' '}
-              <span className="mono text-[14px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                USDC
-              </span>
-            </p>
-          </div>
-          <div className="text-end">
-            <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              {t.po.repayOnPod}
-            </p>
-            <p className="mt-1 mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-dark)]">
-              {t.po.buyerOrAttester}
-            </p>
-          </div>
-        </div>
-        <CompanyLine deal={deal} />
-        <div className="pt-3 border-t border-[var(--lp-border-light)] flex items-center justify-between gap-3 flex-wrap">
-          <Link
-            href={`/credit-passport/${deal.seller}`}
-            target="_blank"
-            className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
-          >
-            {t.sellerPassport} ↗
-          </Link>
-          <button
-            type="button"
-            onClick={onOpenFund}
-            className="mono text-[14px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 bg-[var(--lp-dark)] text-[var(--lp-bg)]"
-            style={{
-              borderRadius: 6,
-            }}
-          >
-            Fund line
-          </button>
-        </div>
-      </div>
-    </PageCard>
-  );
-}
-
-// Fund modal
-
-function FundModal({
+function FundSheet({
   deal,
   isAuthed,
   onClose,
@@ -1103,20 +804,22 @@ function FundModal({
   const t = useTranslations().financierDashboard;
   const chainCopy = useTranslations().chainErrors;
   const auth = useAuth();
+  const date = useDate();
+  const titleId = useId();
+  const principalId = useId();
+  const repayId = useId();
   const chainId = useChainId();
   const { data: walletClient } = useWalletClient();
   const arcClient = usePublicClient({ chainId: ARC_CHAIN_ID });
   const refreshMoney = useMoneyRefresh();
   const face = Number(deal.dealAmountUsdc);
-  const requested = deal.poFinancingRequestedAdvanceUsdc
-    ? Number(deal.poFinancingRequestedAdvanceUsdc)
-    : face;
+  const requested = deal.poFinancingRequestedAdvanceUsdc ? Number(deal.poFinancingRequestedAdvanceUsdc) : face;
   const nowUnix = Math.floor(Date.now() / 1000);
   const settlementDelaySeconds = deal.deadlineUnix ? Math.max(0, deal.deadlineUnix - nowUnix) : 0;
   const minimumRepaymentWindowSeconds = Math.max(7 * 86_400, settlementDelaySeconds + 7 * 86_400);
   const minimumRepaymentAtMs = (nowUnix + minimumRepaymentWindowSeconds) * 1000;
-  // Default principal at 80% of face, repay at 84% (5% fee on principal).
-  // Matches the demo scenario in sme-design.md §17 (5% PO financing fee).
+  // Default principal at 80% of the request, repay at 84% (a 5% fee on
+  // principal), the demo scenario in sme-design.md section 17.
   const [principal, setPrincipal] = useState<number>(Math.round(requested * 0.8 * 100) / 100);
   const [repay, setRepay] = useState<number>(Math.round(requested * 0.84 * 100) / 100);
   const [repaymentWindowSeconds, setRepaymentWindowSeconds] = useState<number>(minimumRepaymentWindowSeconds + 30 * 86_400);
@@ -1180,22 +883,23 @@ function FundModal({
 
   const spread = repay - principal;
   const validRepay = principal > 0 && principal <= requested && repay > principal && repay <= face;
+  const amount = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 2 });
 
   async function submit() {
     if (!isAuthed || !address) {
-      setError('Sign in to fund a PO line.');
+      setError(t.po.signIn);
       return;
     }
     if (!validRepay) {
-      setError('Repay must be greater than principal and at most the PO value.');
+      setError(t.po.repayInvalid);
       return;
     }
     if (collateral === null || collateral <= 0) {
-      setError('Seller protection is still being checked. Please try again in a moment.');
+      setError(t.po.stakePending);
       return;
     }
     if (stakeBalance && collateral > stakeBalance.free) {
-      setError('The seller does not have enough available stake for this offer.');
+      setError(t.po.stakeTooLow);
       return;
     }
     setSubmitting(true);
@@ -1203,8 +907,8 @@ function FundModal({
     setStep('idle');
     try {
       if (isCircleUser) {
-        // Circle DCW path. Backend signs approve + fund via the user's
-        // identity wallet, returns both tx hashes, mirrors the line.
+        // Email accounts: the backend signs approve and fund from the identity
+        // wallet, returns both hashes and mirrors the line.
         setStep('funding');
         const r = await api.fundPOLineCircle({
           address,
@@ -1216,16 +920,13 @@ function FundModal({
         });
         onFunded(r.line);
       } else {
-        if (!walletClient || !arcClient) {
-          throw new Error('Wallet not ready');
-        }
+        if (!walletClient || !arcClient) throw new Error('Wallet not ready');
         const principalWei = parseUnits(principal.toFixed(6), ARC_USDC_DECIMALS);
         const repayWei = parseUnits(repay.toFixed(6), ARC_USDC_DECIMALS);
         const collateralWei = parseUnits(collateral.toFixed(6), ARC_USDC_DECIMALS);
 
-        // Allowance precheck. Only approve if the existing allowance is
-        // short, so a repeat-funder doesn't pay gas for a redundant
-        // approve. Same pattern as StakeCard.tsx.
+        // Only approve when the existing allowance is short, so a repeat
+        // funder does not pay for a redundant approve.
         const current = (await arcClient.readContract({
           address: ARC_USDC_ADDRESS,
           abi: usdcAbi,
@@ -1246,21 +947,14 @@ function FundModal({
           await requireConfirmedTx(arcClient, approveHash, chainCopy.reverted);
         }
 
-        // Do not ask the wallet to broadcast a transaction the live contracts
-        // already say will revert. This catches stale PO state, missing escrow
-        // wiring, allowance/collateral capability drift, and self-funding with a
-        // readable error before the user pays gas.
+        // Never ask the wallet to broadcast what the live contracts already
+        // say will revert: stale PO state, missing escrow wiring, allowance or
+        // collateral drift, self-funding. The person reads why before paying gas.
         await arcClient.simulateContract({
           address: KARWAN_PO_FINANCING_ADDRESS,
           abi: poFinancingAbi,
           functionName: 'fund',
-          args: [
-            deal.jobId as `0x${string}`,
-            principalWei,
-            repayWei,
-            BigInt(repaymentWindowSeconds),
-            collateralWei,
-          ],
+          args: [deal.jobId as `0x${string}`, principalWei, repayWei, BigInt(repaymentWindowSeconds), collateralWei],
           account: address,
         });
 
@@ -1269,20 +963,13 @@ function FundModal({
           address: KARWAN_PO_FINANCING_ADDRESS,
           abi: poFinancingAbi,
           functionName: 'fund',
-          args: [
-            deal.jobId as `0x${string}`,
-            principalWei,
-            repayWei,
-            BigInt(repaymentWindowSeconds),
-            collateralWei,
-          ],
+          args: [deal.jobId as `0x${string}`, principalWei, repayWei, BigInt(repaymentWindowSeconds), collateralWei],
           chain: walletClient.chain,
           account: address,
         });
         await requireConfirmedTx(arcClient, fundHash, chainCopy.reverted);
-        // Principal has left the financier's wallet in this transaction, so
-        // the balance on screen is already stale. Do not make them wait for
-        // the backend to tell us what the receipt just did.
+        // Principal left the wallet in this transaction, so the balance on
+        // screen is already stale.
         refreshMoney();
 
         setStep('mirroring');
@@ -1297,205 +984,144 @@ function FundModal({
         onFunded(r.line);
       }
     } catch (e) {
-      setError(friendlyError(e, chainCopy));
+      setError(friendlyError(e, chainCopy, t.declined, t.po.error));
     } finally {
       setSubmitting(false);
       setStep('idle');
     }
   }
 
+  const protection =
+    stakeBalance === null || collateral === null
+      ? t.po.stakeChecking
+      : stakeBalance.total <= 0
+        ? t.po.stakeNone
+        : stakeBalance.free <= 0
+          ? t.po.stakeCommitted.replace('{total}', amount(stakeBalance.total))
+          : collateral <= stakeBalance.free
+            ? t.po.stakeCovers.replace('{collateral}', amount(collateral)).replace('{total}', amount(stakeBalance.total))
+            : t.po.stakeShort.replace('{collateral}', amount(collateral)).replace('{free}', amount(stakeBalance.free));
+
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-[80] flex items-end md:items-stretch md:justify-end"
-      style={{ background: 'rgba(0,0,0,0.45)' }}
-      onClick={onClose}
-    >
-      <div
-        className="karwan-sheet-enter max-h-[92dvh] w-full overflow-y-auto rounded-t-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] md:h-full md:max-h-none md:w-[480px] md:rounded-none md:rounded-s-[16px]"
-        style={{
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="px-5 py-4 border-b border-[var(--lp-border-light)] flex items-center justify-between gap-3">
-          <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              Fund PO
-          </span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex size-11 items-center justify-center rounded-[10px] text-[18px] leading-none text-[var(--lp-text-muted)] transition-colors hover:bg-[var(--lp-card)] hover:text-[var(--lp-dark)]"
-            aria-label="Close"
-          >
-            ×
-          </button>
+    <ConfirmSheetShell open labelledBy={titleId} busy={submitting} onClose={onClose}>
+      <SheetHeader id={titleId} title={t.po.sheetTitle} onClose={onClose} closeLabel={t.close} busy={submitting} />
+      <div className="space-y-6 p-5 md:p-6">
+        <div>
+          <p className={LABEL}>{t.po.orderValue}</p>
+          <p className="mt-1 text-[28px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--lp-dark)]">{usdc(deal.dealAmountUsdc)}</p>
         </div>
-        <div className="p-5 md:p-6 space-y-5">
+
+        <div className="grid grid-cols-2 gap-3">
           <div>
-            <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              PO VALUE
-            </p>
-            <p className="mt-1 serif text-[28px] tabular-nums leading-none tracking-[-0.02em] text-[var(--lp-dark)]">
-              {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}{' '}
-              <span className="mono text-[14px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                USDC
-              </span>
-            </p>
+            <label htmlFor={principalId} className={LABEL}>
+              {t.po.principal}
+            </label>
+            <input
+              id={principalId}
+              type="number"
+              min={0}
+              step={0.01}
+              value={principal}
+              onChange={(e) => setPrincipal(Number(e.target.value))}
+              disabled={submitting}
+              className={cn(FIELD, 'mt-2 tabular-nums')}
+            />
           </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <ModalField label={t.po.principal}>
-              <input
-                type="number"
-                min={0}
-                step={0.01}
-                value={principal}
-                onChange={(e) => setPrincipal(Number(e.target.value))}
-                disabled={submitting}
-                className="form-input form-input-num"
-              />
-            </ModalField>
-            <ModalField label={t.po.repayOnSettlement}>
-              <input
-                type="number"
-                min={0}
-                step={0.01}
-                value={repay}
-                onChange={(e) => setRepay(Number(e.target.value))}
-                disabled={submitting}
-                className="form-input form-input-num"
-              />
-            </ModalField>
+          <div>
+            <label htmlFor={repayId} className={LABEL}>
+              {t.po.repayOnSettlement}
+            </label>
+            <input
+              id={repayId}
+              type="number"
+              min={0}
+              step={0.01}
+              value={repay}
+              onChange={(e) => setRepay(Number(e.target.value))}
+              disabled={submitting}
+              className={cn(FIELD, 'mt-2 tabular-nums')}
+            />
           </div>
+        </div>
 
-          <ModalField label={t.po.sellerProtection}>
-            <div className="border border-[var(--lp-border-light)] bg-white/55 px-3 py-3 text-[14px] text-[var(--lp-text-sub)] font-medium">
-              {stakeBalance === null || collateral === null
-                ? 'Checking the seller’s available stake…'
-                : stakeBalance.total > 0
-                  ? stakeBalance.free > 0
-                    ? collateral <= stakeBalance.free
-                      ? `${collateral.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDC will be set aside from the seller’s ${stakeBalance.total.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDC stake. If repayment falls short, up to that amount can cover the unpaid balance.`
-                      : `This offer needs ${collateral.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDC of seller protection, but only ${stakeBalance.free.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDC is available.`
-                    : `The seller has ${stakeBalance.total.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDC staked, but it is already committed elsewhere.`
-                  : 'The seller has no available stake to help cover a repayment shortfall.'}
-            </div>
-          </ModalField>
+        <div>
+          <p className={LABEL}>{t.po.sellerProtection}</p>
+          <p className="mt-2 text-[14px] leading-relaxed text-[var(--lp-dark)]">{protection}</p>
+        </div>
 
-          <ModalField label={t.po.repaymentDeadline}>
-            <div className="border border-[var(--lp-border-light)] bg-white/55 p-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                    {t.po.expectedDelivery}
-                  </p>
-                  <p className="mt-1 text-[14px] font-semibold text-[var(--lp-dark)]">
-                    {deal.deadlineUnix ? formatDeadline(deal.deadlineUnix * 1000) : t.po.notDated}
-                  </p>
-                </div>
-                <div>
-                  <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                    {t.po.earliestRepayment}
-                  </p>
-                  <p className="mt-1 text-[14px] font-semibold text-[var(--lp-dark)]">
-                    {formatDeadline(minimumRepaymentAtMs)}
-                  </p>
-                </div>
-              </div>
-              <p className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
-                {t.po.earliestNote}
-              </p>
+        <div>
+          <p className={LABEL}>{t.po.repaymentDeadline}</p>
+          <dl className="mt-2 grid grid-cols-2 gap-3">
+            <div>
+              <dt className="text-[14px] text-[var(--lp-text-sub)]">{t.po.expectedDelivery}</dt>
+              <dd className="mt-0.5 text-[15px] font-semibold text-[var(--lp-dark)]">
+                {deal.deadlineUnix ? date(deal.deadlineUnix * 1000) : t.po.notDated}
+              </dd>
             </div>
-            <div className="mt-2 grid grid-cols-3 gap-2">
-              {REPAYMENT_EXTENSION_OPTIONS.map((opt) => (
+            <div>
+              <dt className="text-[14px] text-[var(--lp-text-sub)]">{t.po.earliestRepayment}</dt>
+              <dd className="mt-0.5 text-[15px] font-semibold text-[var(--lp-dark)]">{date(minimumRepaymentAtMs)}</dd>
+            </div>
+          </dl>
+          <p className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{t.po.earliestNote}</p>
+          <div role="radiogroup" aria-label={t.po.repaymentDeadline} className="mt-3 grid grid-cols-3 gap-2">
+            {REPAYMENT_EXTENSION_OPTIONS.map((opt) => {
+              const on = repaymentWindowSeconds === minimumRepaymentWindowSeconds + opt.seconds;
+              return (
                 <button
                   key={opt.seconds}
                   type="button"
+                  role="radio"
+                  aria-checked={on}
                   disabled={submitting}
                   onClick={() => setRepaymentWindowSeconds(minimumRepaymentWindowSeconds + opt.seconds)}
                   className={cn(
-                    'min-w-0 px-2 py-2.5 text-start border transition-colors',
-                    repaymentWindowSeconds === minimumRepaymentWindowSeconds + opt.seconds
-                      ? 'bg-[var(--lp-dark)] text-white border-[var(--lp-dark)]'
-                      : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
+                    'min-h-11 min-w-0 rounded-[10px] border px-2 py-2 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]',
+                    on
+                      ? 'border-[var(--lp-dark)] bg-[var(--lp-dark)] text-[var(--lp-bg)]'
+                      : 'border-[var(--lp-outline-strong)] text-[var(--lp-dark)]',
                   )}
-                  style={{
-                    borderRadius: 6,
-                  }}
                 >
-                  <span className="block mono text-[13px] uppercase tracking-[0.1em] font-bold">
-                    {t.extensions[opt.labelKey]}
-                  </span>
-                  <span className={cn(
-                    'mt-1 block text-[13px]',
-                    repaymentWindowSeconds === minimumRepaymentWindowSeconds + opt.seconds
-                      ? 'text-white/75'
-                      : 'text-[var(--lp-text-muted)]',
-                  )}>
-                    {formatDeadline(minimumRepaymentAtMs + opt.seconds * 1000)}
-                  </span>
+                  <span className="block text-[14px] font-semibold">{t.extensions[opt.labelKey]}</span>
+                  <span className="mt-0.5 block text-[14px] opacity-80">{date(minimumRepaymentAtMs + opt.seconds * 1000)}</span>
                 </button>
-              ))}
-            </div>
-          </ModalField>
-
-          <dl className="pt-3 border-t border-[var(--lp-border-light)] space-y-2.5">
-            <ModalRow label={t.po.sellerReceivesNow} value={`${principal.toFixed(2)} USDC`} />
-            <ModalRow
-              label={t.po.youReceiveOnSettlement}
-              value={`${repay.toFixed(2)} USDC`}
-              bold
-            />
-            <ModalRow label={t.po.yourSpread} value={`+${spread.toFixed(2)} USDC`} accent />
-            <ModalRow
-              label={t.po.ifSettlementFallsShort}
-              value={`You can report the unpaid balance after ${formatDeadline((nowUnix + repaymentWindowSeconds) * 1000)}. Recovery is not automatic.`}
-            />
-          </dl>
-
-          {error ? (
-            <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-critical)]">
-              {error}
-            </p>
-          ) : null}
-
-          <button
-            type="button"
-            onClick={submit}
-            disabled={submitting || !validRepay || onWrongChain}
-            className="w-full mono text-[14px] uppercase tracking-[0.14em] font-bold py-3 bg-[var(--lp-dark)] text-[var(--lp-bg)] disabled:opacity-60"
-            style={{
-              borderRadius: 10,
-            }}
-          >
-            {step === 'approving'
-              ? 'Approving USDC…'
-              : step === 'funding'
-                ? 'Funding line…'
-                : step === 'mirroring'
-                  ? 'Confirming…'
-                  : submitting
-                    ? t.working
-                    : onWrongChain
-                      ? t.switchToArc
-                      : isAuthed
-                        ? t.po.fundLine
-                        : t.signInToFund}
-          </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
-    </div>
-  );
-}
 
-function ModalField({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block space-y-2">
-      <span className="mono text-[13px] uppercase tracking-[0.14em] font-medium text-[var(--lp-text-muted)]">
-        {label}
-      </span>
-      {children}
-    </label>
+        <dl className="space-y-3 border-t border-[var(--lp-border-light)] pt-4">
+          <SheetRow label={t.po.sellerReceivesNow} value={usdc(principal)} />
+          <SheetRow label={t.po.youReceiveOnSettlement} value={usdc(repay)} strong />
+          <SheetRow label={t.po.yourSpread} value={`+${usdc(spread)}`} />
+        </dl>
+        <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+          <span className="font-medium text-[var(--lp-dark)]">{t.po.ifSettlementFallsShort}.</span>{' '}
+          {t.po.shortfallNote.replace('{date}', date((nowUnix + repaymentWindowSeconds) * 1000))}
+        </p>
+
+        {error ? (
+          <p role="alert" className={ALERT}>
+            {error}
+          </p>
+        ) : null}
+
+        <button type="button" onClick={submit} disabled={submitting || !validRepay || onWrongChain} className={cn(PRIMARY, 'w-full')}>
+          {step === 'approving'
+            ? t.po.approving
+            : step === 'funding'
+              ? t.po.funding
+              : step === 'mirroring'
+                ? t.po.confirming
+                : submitting
+                  ? t.working
+                  : onWrongChain
+                    ? t.switchToArc
+                    : isAuthed
+                      ? t.po.fundLine
+                      : t.signInToFund}
+        </button>
+      </div>
+    </ConfirmSheetShell>
   );
 }

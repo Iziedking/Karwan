@@ -12,16 +12,16 @@ const SME_TRADES_ENABLED = process.env.NEXT_PUBLIC_SME_TRADES_ENABLED === '1';
 /// live desk where financiers browse open factoring and PO financing
 /// opportunities. Posting an offer requires sign-in.
 export const metadata: Metadata = {
-  title: 'SME Trades · Karwan',
+  title: 'Finance · Karwan',
   description:
-    'Invoice factoring and purchase-order financing on Arc, with a portable on-chain credit passport for every counterparty.',
+    'Pay sellers early on accepted deals and get repaid when the buyer approves delivery.',
   openGraph: {
-    title: 'SME Trades · Karwan',
+    title: 'Finance · Karwan',
     description:
-      'Invoice factoring and purchase-order financing on Arc, with a portable on-chain credit passport for every counterparty.',
+      'Pay sellers early on accepted deals and get repaid when the buyer approves delivery.',
     type: 'website',
   },
-  twitter: { card: 'summary', title: 'SME Trades · Karwan' },
+  twitter: { card: 'summary', title: 'Finance · Karwan' },
 };
 
 export default function FinancierPage() {

@@ -1,25 +1,29 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import Link from 'next/link';
 import { api, type FactoringOffer } from '@/core/api';
-import { shortAddress } from '@/shared/utils/format';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
+import { formatUsdc } from '@/shared/utils/format';
+import { cn } from '@/shared/utils/cn';
+import { LINK, SECONDARY } from '@/shared/ui/controls';
+import { positionsSummary } from '../deskModel';
 
-const STATUS: Record<string, { label: string; tone: string; detail: string }> = {
-  accepted: { label: 'Active', tone: 'var(--lp-accent)', detail: 'Awaiting escrow settlement' },
-  settled: { label: 'Repaid', tone: 'var(--lp-accent)', detail: 'Position completed successfully' },
-  defaulted: { label: 'Needs review', tone: '#a33a32', detail: 'Repayment was not completed' },
-};
+const SHOWN = ['accepted', 'settled', 'defaulted'] as const;
+type ShownStatus = (typeof SHOWN)[number];
 const PAGE_SIZE = 4;
 
-function dateLabel(offer: FactoringOffer): string {
-  const value = offer.settledAt ?? offer.acceptedAt ?? offer.updatedAt ?? offer.offeredAt;
-  return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).format(value);
-}
+const DOT: Record<ShownStatus, string> = {
+  accepted: 'bg-[var(--lp-accent)]',
+  settled: 'bg-[var(--color-positive)]',
+  defaulted: 'bg-[var(--color-critical)]',
+};
 
+/// The financier's own money first: what is out, what is expected back, and
+/// each position with whose move it is. Hidden until there is a position.
 export function FactoringPositionsPanel() {
-  const pb = useTranslations().pageBits;
+  const t = useTranslations().financierDashboard.positions;
+  const { locale } = useLocale();
   const [offers, setOffers] = useState<FactoringOffer[]>([]);
   const [page, setPage] = useState(0);
 
@@ -30,7 +34,7 @@ export function FactoringPositionsPanel() {
         .then((result) =>
           setOffers(
             result.asFinancier
-              .filter((offer) => ['accepted', 'settled', 'defaulted'].includes(offer.status))
+              .filter((offer) => (SHOWN as readonly string[]).includes(offer.status))
               .sort((a, b) => (b.updatedAt ?? b.offeredAt) - (a.updatedAt ?? a.offeredAt)),
           ),
         )
@@ -47,100 +51,77 @@ export function FactoringPositionsPanel() {
 
   if (!offers.length) return null;
 
+  const summary = positionsSummary(offers);
   const pageCount = Math.ceil(offers.length / PAGE_SIZE);
   const pageStart = page * PAGE_SIZE;
-  const visibleOffers = offers.slice(pageStart, pageStart + PAGE_SIZE);
-  const pageEnd = Math.min(pageStart + PAGE_SIZE, offers.length);
+  const visible = offers.slice(pageStart, pageStart + PAGE_SIZE);
+  const when = (offer: FactoringOffer) =>
+    new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric', year: 'numeric' }).format(
+      offer.settledAt ?? offer.acceptedAt ?? offer.updatedAt ?? offer.offeredAt,
+    );
 
   return (
-    <section className="border-t border-[var(--lp-border-light)] px-5 py-6 sm:px-7">
-      <div className="mb-4 flex items-end justify-between gap-4">
-        <div>
-          <p className="mono text-[13px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-            Invoice financing
-          </p>
-          <h2 className="mt-1 text-[20px] font-semibold text-[var(--lp-dark)]">{pb.financierPanels.yourPositions}</h2>
-        </div>
-        <span className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-          {offers.length} {offers.length === 1 ? 'position' : 'positions'}
-        </span>
-      </div>
+    <section aria-labelledby="your-positions" className="pt-8" data-guide="financier-positions">
+      <h2 id="your-positions" className="text-[clamp(1.35rem,2.4vw,1.75rem)] font-semibold leading-tight tracking-[-0.025em] text-[var(--lp-dark)]">
+        {t.title}
+      </h2>
+      <p className="mt-1 text-[15px] font-medium tabular-nums text-[var(--lp-text-sub)]">
+        {t.summary
+          .replace('{active}', String(summary.active))
+          .replace('{out}', formatUsdc(summary.outUsdc, { withSuffix: false }))
+          .replace('{back}', formatUsdc(summary.expectedUsdc, { withSuffix: false }))}
+        {summary.needsReview > 0 ? ` · ${t.needsReview.replace('{count}', String(summary.needsReview))}` : ''}
+      </p>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        {visibleOffers.map((offer) => {
-          const status = STATUS[offer.status] ?? STATUS.accepted;
+      <ul className="mt-4 divide-y divide-[var(--lp-border-light)] border-y border-[var(--lp-border-light)]">
+        {visible.map((offer) => {
+          const status = offer.status as ShownStatus;
           return (
-            <article key={offer.id} className="border border-[var(--lp-border-light)] bg-white/45 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <span
-                    className="mono inline-flex px-2 py-1 text-[13px] font-bold uppercase tracking-[0.14em]"
-                    style={{ color: status.tone, background: `color-mix(in srgb, ${status.tone} 12%, transparent)` }}
-                  >
-                    {status.label}
-                  </span>
-                  <p className="mt-2 text-[14px] text-[var(--lp-text-sub)] font-medium">{status.detail}</p>
-                </div>
-                <p className="shrink-0 text-end text-[18px] font-semibold tabular-nums text-[var(--lp-dark)]">
-                  {offer.offeredAdvanceUsdc} USDC
+            <li key={offer.id} className="grid gap-3 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+              <div className="min-w-0">
+                <p className="flex items-center gap-2 text-[15px] font-semibold text-[var(--lp-dark)]">
+                  <span aria-hidden className={cn('size-2 rounded-full', DOT[status])} />
+                  {t.status[status]}
+                  <span className="font-normal text-[var(--lp-text-sub)]">· {when(offer)}</span>
                 </p>
+                <p className="mt-0.5 text-[14px] text-[var(--lp-text-sub)]">{t.detail[status]}</p>
+                <dl className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-[14px]">
+                  <div className="flex gap-1.5">
+                    <dt className="text-[var(--lp-text-sub)]">{t.advanced}</dt>
+                    <dd className="whitespace-nowrap font-semibold tabular-nums text-[var(--lp-dark)]">
+                      {formatUsdc(offer.offeredAdvanceUsdc, { withSuffix: false })} USDC
+                    </dd>
+                  </div>
+                  <div className="flex gap-1.5">
+                    <dt className="text-[var(--lp-text-sub)]">{status === 'settled' ? t.received : t.expected}</dt>
+                    <dd className="whitespace-nowrap font-semibold tabular-nums text-[var(--lp-dark)]">
+                      {formatUsdc(offer.expectedReturnUsdc, { withSuffix: false })} USDC
+                    </dd>
+                  </div>
+                </dl>
               </div>
-
-              <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-[var(--lp-border-light)] pt-3 text-[14px]">
-                <div>
-                  <dt className="mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">{pb.financierPanels.expectedReturn}</dt>
-                  <dd className="mt-1 font-semibold tabular-nums text-[var(--lp-dark)]">{offer.expectedReturnUsdc} USDC</dd>
-                </div>
-                <div>
-                  <dt className="mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">Seller</dt>
-                  <dd className="mt-1 font-semibold text-[var(--lp-dark)]">{shortAddress(offer.seller)}</dd>
-                </div>
-              </dl>
-
-              <div className="mt-4 flex items-center justify-between gap-3">
-                <span className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">{dateLabel(offer)}</span>
-                <Link
-                  href={`/financier/factoring/${offer.id}`}
-                  className="mono text-[13px] font-bold uppercase tracking-[0.14em] text-[var(--lp-dark)] underline underline-offset-4"
-                >
-                  View position →
-                </Link>
-              </div>
-            </article>
+              <Link href={`/financier/factoring/${offer.id}`} className={LINK}>
+                {t.view}
+              </Link>
+            </li>
           );
         })}
-      </div>
+      </ul>
 
       {pageCount > 1 && (
-        <nav
-          aria-label="Invoice financing positions pagination"
-          className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--lp-border-light)] pt-4"
-        >
-          <span className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-            {pageStart + 1}–{pageEnd} of {offers.length}
+        <nav aria-label={t.pagination} className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <span className="text-[14px] tabular-nums text-[var(--lp-text-sub)]">
+            {t.range
+              .replace('{from}', String(pageStart + 1))
+              .replace('{to}', String(Math.min(pageStart + PAGE_SIZE, offers.length)))
+              .replace('{total}', String(offers.length))}
           </span>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              aria-label="Previous positions"
-              disabled={page === 0}
-              onClick={() => setPage((current) => Math.max(0, current - 1))}
-              className="inline-flex min-h-11 min-w-11 items-center justify-center border border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-border-light)] disabled:cursor-not-allowed disabled:opacity-35"
-            >
-              ←
+            <button type="button" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))} className={SECONDARY}>
+              {t.previous}
             </button>
-            <span className="mono min-w-[3.5rem] text-center text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-              {page + 1} / {pageCount}
-            </span>
-            <button
-              type="button"
-              aria-label="Next positions"
-              disabled={page >= pageCount - 1}
-              onClick={() => setPage((current) => Math.min(pageCount - 1, current + 1))}
-              className="inline-flex min-h-11 items-center gap-2 bg-[var(--lp-accent)] px-4 text-[var(--lp-dark)] transition-colors hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-35"
-            >
-              <span className="mono text-[13px] font-bold uppercase tracking-[0.14em]">Next</span>
-              <span aria-hidden>→</span>
+            <button type="button" disabled={page >= pageCount - 1} onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))} className={SECONDARY}>
+              {t.next}
             </button>
           </div>
         </nav>

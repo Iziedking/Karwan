@@ -66,6 +66,11 @@ export const KARWAN_PO_FINANCING_ADDRESS =
 // internal testing. P2P deal flow is unaffected either way.
 export const SME_TRADES_ENABLED = process.env.NEXT_PUBLIC_SME_TRADES_ENABLED === '1';
 
+// Purchase-order financing on the financier desk. Off until a PO financing
+// contract that the deployed escrow authorizes is live; the one on testnet was
+// disabled on the escrow, so offering the lane would sell a dead button.
+export const PO_FINANCING_ENABLED = process.env.NEXT_PUBLIC_PO_FINANCING_ENABLED === '1';
+
 // Market scout launch gate. The user-triggered paid market read
 // (POST /api/research/scout) surfaces a "Scout the market" panel on the buyer
 // surface. Off by default; set NEXT_PUBLIC_SCOUT_ENABLED=1 to surface it. The

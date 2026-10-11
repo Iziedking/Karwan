@@ -2,6 +2,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { SECONDARY } from '@/shared/ui/controls';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { FinancierApply } from './FinancierApply';
 import { FinancierDashboard } from './FinancierDashboard';
@@ -12,6 +14,7 @@ import { FinancierDashboard } from './FinancierDashboard';
 /// the user sees the application card; once approved, the live desk.
 export function FinancierGate() {
   const auth = useAuth();
+  const t = useTranslations().financierDashboard.gate;
   const q = useQuery({
     queryKey: ['financier', 'eligibility', auth.address],
     queryFn: () => api.financierEligibility(),
@@ -20,7 +23,7 @@ export function FinancierGate() {
   });
 
   return (
-    <AuthGuard gateTag="FINANCIER" gateBody="Sign in to fund trade on Karwan.">
+    <AuthGuard gateTag={t.tag} gateBody={t.body}>
       {q.isLoading || (!q.data && !q.isError) ? (
         <FinancierGateSkeleton />
       ) : q.data?.status === 'approved' ? (
@@ -28,17 +31,10 @@ export function FinancierGate() {
       ) : q.data ? (
         <FinancierApply eligibility={q.data} onApplied={() => q.refetch()} />
       ) : (
-        <div className="mx-auto max-w-[1440px] px-[clamp(20px,5vw,72px)] py-16 text-center">
-          <p className="mono text-[14px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-            Could not load your financier status.
-          </p>
-          <button
-            type="button"
-            onClick={() => q.refetch()}
-            className="mt-4 inline-flex items-center px-4 py-2 mono text-[14px] font-bold uppercase tracking-[0.1em] border border-[var(--lp-border-light)] text-[var(--lp-dark)] hover:border-[var(--lp-dark)] transition-colors"
-            style={{ borderRadius: 10 }}
-          >
-            Try again
+        <div className="mx-auto max-w-[940px] px-5 py-16 text-center">
+          <p role="alert" className="text-[15px] font-medium text-[var(--lp-dark)]">{t.loadError}</p>
+          <button type="button" onClick={() => q.refetch()} className={`${SECONDARY} mt-4`}>
+            {t.retry}
           </button>
         </div>
       )}

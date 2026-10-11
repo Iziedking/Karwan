@@ -404,32 +404,22 @@ export const FINANCIER_APPLY_STEPS: TourStep[] = [
 ];
 
 /// Financier desk tour (/financier, after approval).
-export const FINANCIER_DESK_TOUR_ID = 'financier-desk-v1';
+export const FINANCIER_DESK_TOUR_ID = 'financier-desk-v2';
 export const FINANCIER_DESK_STEPS: TourStep[] = [
   {
-    title: 'Choose a desk',
-    body: 'Compare invoices for factoring with purchase orders for funding.',
-    target: 'financier-tabs',
-  },
-  {
-    title: 'Filter your lane',
-    body: 'Filter by sector and region to focus on familiar trades.',
-    target: 'financier-filters',
-  },
-  {
-    title: 'Review a trade',
-    body: 'Check face value, seller reputation, and settlement timing before committing capital.',
+    title: 'Review a seller',
+    body: 'Each invoice shows the amount, the payment terms and the seller tier.',
     target: 'financier-deal',
   },
   {
-    title: 'Post an offer',
-    body: 'Set your principal or discount and submit. Repayment follows settlement.',
-    target: 'financier-offer',
+    title: 'Check the record',
+    body: 'Open the seller record for verified history before you commit money.',
+    target: 'financier-passport',
   },
   {
-    title: 'Review the passport',
-    body: 'Open the seller’s credit passport for verified history and repayment signals.',
-    target: 'financier-passport',
+    title: 'Make an offer',
+    body: 'Set your discount and see what you advance now and what comes back after the buyer approves delivery.',
+    target: 'financier-offer',
   },
 ];
 
