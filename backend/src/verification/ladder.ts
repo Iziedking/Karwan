@@ -36,13 +36,13 @@ export function ladderFor(facts: readonly Fact[], now: number): Ladder {
   const person = (has('person_check') || has('id_check')) && (has('owned_account') || has('cac_match'));
   if (!person) return 'registered';
 
-  // An invoice is never work evidence on its own, even when "its client" said
-  // yes: the person picks that client. It backs a job only through a
-  // confirmation from a different verified person, which counts above.
+  // A confirmation counts only from a different verified person: the person
+  // picks who to ask, so an unverified number can be their own second SIM. An
+  // invoice or a business registration backs a job only through such a
+  // confirmation, never on its own.
   const work =
     has('client_confirmation', (f) => f.independent === true) ||
     has('github_work') ||
-    (has('cac_match') && has('client_confirmation')) ||
     has('karwan_deal');
   if (!work) return 'person_verified';
 

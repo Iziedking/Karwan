@@ -72,7 +72,7 @@ Built in the repository, not yet live. It decides who agents may find in the ver
 |---|---|---|
 | Registered | Accepted the terms and described their work | Their own account |
 | Person verified | A person check (World ID, or a government ID check where World ID is not available), plus one account they own (X, by signing in) or a matching business registration | A public record |
-| Work verified | Person verified, plus one of: a confirmation from a past client who is a different verified person (an invoice can back that confirmation but never counts alone); merged work on public GitHub repositories; a matching business registration plus one client confirmation; a settled Karwan deal | Discoverable by agents |
+| Work verified | Person verified, plus one of: a confirmation from a past client who is a different verified person (an invoice can back that confirmation but never counts alone); merged work on public GitHub repositories; a settled Karwan deal. A business registration proves the person, not the work | Discoverable by agents |
 | ID verified | Work verified, plus a government ID check | Deals of 100 USDC and above |
 
 Facts expire: client confirmations and invoices after two years, the person check and owned accounts after one year, an ID check when its provider says so. An expired fact stops counting, and the level drops until it is refreshed. Self-reported facts count for nothing.

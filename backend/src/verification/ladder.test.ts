@@ -57,10 +57,12 @@ test('public work on GitHub makes work verified', () => {
   assert.equal(ladderFor([person, account, f('github_work')], now), 'work_verified');
 });
 
-test('a CAC match plus one client confirmation, even from an unverified client, makes work verified', () => {
+test("a CAC match does not make a friend's confirmation count; a verified client's does", () => {
   const cac = f('cac_match', { level: 'official_record' });
-  const c = f('client_confirmation', { level: 'user_proof', independent: false });
-  assert.equal(ladderFor([person, cac, c], now), 'work_verified');
+  const friend = f('client_confirmation', { level: 'user_proof', independent: false });
+  const verifiedClient = f('client_confirmation', { level: 'user_proof', independent: true });
+  assert.equal(ladderFor([person, cac, friend], now), 'person_verified');
+  assert.equal(ladderFor([person, cac, verifiedClient], now), 'work_verified');
 });
 
 test('a settled Karwan deal makes work verified', () => {
