@@ -35,6 +35,7 @@
     "wallets:unify-backfill": "tsx --env-file=../.env src/scripts/wallet-unify-backfill.ts",
     "wallets:return": "tsx --env-file=../.env src/scripts/wallet-return-misswept.ts",
     "reviewer:create": "tsx --env-file=../.env src/scripts/provision-reviewer-wallet.ts",
+    "facts-issuer:create": "tsx --env-file=../.env src/scripts/provision-facts-issuer.ts",
     "yield:backfill": "tsx --env-file=../.env src/scripts/yield-backfill.ts",
     "legacy:unwind": "tsx --env-file=../.env src/scripts/legacy-vault-unwind.ts",
     "safe:add-owner": "tsx --env-file=../.env src/scripts/safe-add-owner.ts",
