@@ -102,12 +102,20 @@ test('one client confirms at most three jobs for the same person', async () => {
   assert.deepEqual(await ask(cc), { ok: false, reason: 'client_limit' });
 });
 
-test('a Yes about an invoice also backs that invoice; a No does not', async () => {
-  const { cc, corroborated } = setup();
+test('a Yes from a verified client also backs that invoice; a No does not', async () => {
+  const { cc, corroborated } = setup({ clientVerified: true });
   await cc.request({ subject: '0xada', subjectName: 'Ada Builds', clientNumber: '+2348000000002', job: 'a landing page', month: 'March 2026', invoiceFactId: 'inv-1' });
   await cc.answer('req1', '2348000000002', true);
   assert.deepEqual(corroborated, ['inv-1']);
   await cc.request({ subject: '0xada', subjectName: 'Ada Builds', clientNumber: '+2348000000002', job: 'a logo', month: 'April 2026', invoiceFactId: 'inv-2' });
   await cc.answer('req2', '2348000000002', false);
   assert.deepEqual(corroborated, ['inv-1']);
+});
+
+test('a Yes from a client who is not person verified does not back the invoice', async () => {
+  const { cc, corroborated, facts } = setup();
+  await cc.request({ subject: '0xada', subjectName: 'Ada Builds', clientNumber: '+2348000000002', job: 'a landing page', month: 'March 2026', invoiceFactId: 'inv-1' });
+  await cc.answer('req1', '2348000000002', true);
+  assert.deepEqual(corroborated, []);
+  assert.equal(facts[0]?.independent, false);
 });

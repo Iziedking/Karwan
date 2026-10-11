@@ -83,18 +83,19 @@ export function createClientConfirm(deps: ClientConfirmDeps) {
     await deps.putRequest({ ...r, status: yes ? 'yes' : 'no', answeredAt });
     if (!yes) return null;
 
+    const independent = await deps.isPersonVerified(r.clientHash);
     const fact: StoredFact = {
       id: `cw-${r.id}`,
       kind: 'client_confirmation',
       level: 'user_proof',
       issuedAt: answeredAt,
       expiresAt: answeredAt + TWO_YEARS_MS,
-      independent: await deps.isPersonVerified(r.clientHash),
+      independent,
       evidenceHash: evidenceHashOf('client_confirmation', r.id, r.clientHash),
       source: 'whatsapp',
     };
     await deps.addFact(r.subject, fact);
-    if (r.invoiceFactId) await deps.corroborate(r.subject, r.invoiceFactId);
+    if (r.invoiceFactId && independent) await deps.corroborate(r.subject, r.invoiceFactId);
     return fact;
   }
 

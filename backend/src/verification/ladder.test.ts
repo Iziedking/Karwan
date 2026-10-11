@@ -43,9 +43,14 @@ test('a confirmation from an unverified client does not', () => {
   assert.equal(ladderFor([person, account, c], now), 'person_verified');
 });
 
-test('an invoice alone does not; an invoice backed by its client does', () => {
+test('an invoice counts only through a confirmation from a different verified person', () => {
+  const invoice = f('invoice', { level: 'user_proof', corroborated: true });
+  const friend = f('client_confirmation', { level: 'user_proof', independent: false });
+  const verifiedClient = f('client_confirmation', { level: 'user_proof', independent: true });
   assert.equal(ladderFor([person, account, f('invoice', { level: 'user_proof' })], now), 'person_verified');
-  assert.equal(ladderFor([person, account, f('invoice', { level: 'user_proof', corroborated: true })], now), 'work_verified');
+  assert.equal(ladderFor([person, account, invoice], now), 'person_verified');
+  assert.equal(ladderFor([person, account, invoice, friend], now), 'person_verified');
+  assert.equal(ladderFor([person, account, invoice, verifiedClient], now), 'work_verified');
 });
 
 test('public work on GitHub makes work verified', () => {

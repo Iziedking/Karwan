@@ -21,7 +21,7 @@ export interface Fact {
   expiresAt: number;
   /// A client confirmation from a different, person-verified account.
   independent?: boolean;
-  /// An invoice whose client confirmed the same job.
+  /// An invoice whose client, a different verified person, confirmed the job.
   corroborated?: boolean;
 }
 
@@ -36,9 +36,11 @@ export function ladderFor(facts: readonly Fact[], now: number): Ladder {
   const person = (has('person_check') || has('id_check')) && (has('owned_account') || has('cac_match'));
   if (!person) return 'registered';
 
+  // An invoice is never work evidence on its own, even when "its client" said
+  // yes: the person picks that client. It backs a job only through a
+  // confirmation from a different verified person, which counts above.
   const work =
     has('client_confirmation', (f) => f.independent === true) ||
-    has('invoice', (f) => f.corroborated === true) ||
     has('github_work') ||
     (has('cac_match') && has('client_confirmation')) ||
     has('karwan_deal');

@@ -77,7 +77,7 @@ sequenceDiagram
 |---|---|---|
 | Registered | Accepted the terms, described their work | Their own account |
 | Person verified | A person check (World ID, or an ID check where World ID is not available), plus one account they own (X) or a matching business registration | A public record |
-| Work verified | Independent proof of work: a verified past client's confirmation, an invoice backed by that client, public work on GitHub, a registered business with a client confirmation, or a completed Karwan deal | Discoverable by agents |
+| Work verified | Independent proof of work: a verified past client's confirmation (an invoice can back it, never alone), public work on GitHub, a registered business with a client confirmation, or a completed Karwan deal | Discoverable by agents |
 | ID verified | A government ID check | Deals of 100 USDC and above |
 
 ## Finding a counterparty and agreeing terms
