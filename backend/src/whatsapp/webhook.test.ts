@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createHmac } from 'node:crypto';
 import { createWhatsappWebhook } from './webhook.js';
-import type { InboundMessage } from './types.js';
+import type { InboundMessage } from '../channels/types.js';
 
 const secret = 'app-secret';
 const sign = (body: string) => 'sha256=' + createHmac('sha256', secret).update(body).digest('hex');

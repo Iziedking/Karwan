@@ -1,18 +1,4 @@
-/// One message a person sent the Karwan number, reduced to what Karwan reads.
-export interface InboundMessage {
-  id: string;
-  /// The sender's number as WhatsApp gives it: digits, no plus sign.
-  from: string;
-  /// Epoch milliseconds.
-  timestamp: number;
-  kind: 'text' | 'button' | 'list' | 'media' | 'other';
-  /// Typed text, or a media caption.
-  text?: string;
-  /// The id of the button or list row the person tapped.
-  replyId?: string;
-  mediaId?: string;
-  mimeType?: string;
-}
+import type { InboundMessage } from '../channels/types.js';
 
 type Raw = Record<string, unknown>;
 

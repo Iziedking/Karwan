@@ -3,19 +3,20 @@ import { z } from 'zod';
 import { config } from '../config.js';
 import { getDeal } from '../db/deals.js';
 import { findProfileByHandle, getProfile } from '../db/profiles.js';
-import { findWhatsappAccountByAddress, getWhatsappAccount } from '../db/whatsapp.js';
+import { isChatAccount } from '../channels/accountsLive.js';
+import { getWhatsappAccount } from '../db/whatsapp.js';
 import { logger } from '../logger.js';
-import { hashNumber } from '../whatsapp/identity.js';
-import { messageNumber } from '../whatsapp/sender.js';
+import { hashNumber } from '../channels/identity.js';
+import { messageNumber } from '../channels/sender.js';
 import { confirmNonce, hasEquivalentConfirm, type AssistantAction, type ConfirmAction } from './actions.js';
 
 /// A protected deal with someone the person already knows, started and paid
-/// from chat. Only WhatsApp accounts get these; the app has its own deal form.
+/// from chat. Only chat accounts get these; the app has its own deal form.
 export function directDealTools(address: string, actions: AssistantAction[]) {
   const push = (card: ConfirmAction) => {
     if (!hasEquivalentConfirm(actions, card)) actions.push(card);
   };
-  const isChat = async () => !!(await findWhatsappAccountByAddress(address));
+  const isChat = () => isChatAccount(address);
 
   async function resolveSeller(who: string): Promise<{ address: string; label: string } | { number: string } | null> {
     const trimmed = who.trim();
@@ -36,9 +37,9 @@ export function directDealTools(address: string, actions: AssistantAction[]) {
   return {
     start_protected_deal: tool({
       description:
-        "Start a protected deal with someone the user already knows, by Karwan tag or WhatsApp number: the amount, what it is for and the days to deliver. Shows a Confirm card; on Confirm the seller is asked to accept, and the user pays into escrow after that. If the person is not on Karwan yet, they get an invitation instead.",
+        "Start a protected deal with someone the user already knows, by their Karwan tag: the amount, what it is for and the days to deliver. Shows a Confirm card; on Confirm the seller is asked to accept, and the user pays into escrow after that. A WhatsApp number works only while WhatsApp sending is running; otherwise ask for the person's Karwan tag.",
       inputSchema: z.object({
-        who: z.string().min(2).max(40).describe('Karwan tag like @ada, or a WhatsApp number with country code.'),
+        who: z.string().min(2).max(40).describe('Karwan tag like @ada. A WhatsApp number with country code only while WhatsApp sending is running.'),
         amountUsdc: z.number().positive().max(1_000),
         what: z.string().min(3).max(400).describe('What the deal is for, in the words both sides agreed.'),
         deadlineDays: z.number().int().min(1).max(180),
@@ -50,11 +51,14 @@ export function directDealTools(address: string, actions: AssistantAction[]) {
           if (!seller) return { error: `No Karwan account matches ${who}.` };
           if ('number' in seller) {
             const me = (await getProfile(address).catch(() => null))?.displayName?.trim() || 'Someone';
-            await messageNumber(seller.number, {
+            const invited = await messageNumber(seller.number, {
               kind: 'template',
               name: 'deal_update',
               params: [`${me} wants to start a protected deal with you for ${amountUsdc} USDC: ${what.slice(0, 80)}`],
             });
+            if (!invited) {
+              return { error: 'I can only find people here by their Karwan tag. Ask them for it, or for them to join Karwan first.' };
+            }
             return { invited: true, note: 'They are not on Karwan yet. They got an invitation; start the deal again once they join.' };
           }
           if (seller.address === address.toLowerCase()) return { error: 'A deal needs another person.' };

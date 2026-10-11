@@ -1,6 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { WhatsappAccount } from '../db/whatsapp.js';
-import { chatAccountEmail } from '../emails/chatRecipients.js';
+import type { ChatAccount } from './types.js';
 
 export const CHAT_TERMS_VERSION = 'chat-2026-10-10';
 
@@ -10,12 +9,16 @@ export function hashNumber(number: string, pepper: string): string {
   return createHash('sha256').update(`${pepper}:${number.replace(/\D/g, '')}`).digest('hex');
 }
 
-export interface IdentityDeps {
-  pepper: string;
+export interface IdentityDeps<A extends ChatAccount> {
   now: () => number;
-  getAccount: (numberHash: string) => Promise<WhatsappAccount | null>;
-  saveAccount: (a: WhatsappAccount) => Promise<WhatsappAccount>;
-  findByNullifier: (nullifier: string) => Promise<WhatsappAccount | null>;
+  /// The lookup key for a channel id. Each channel hashes its own ids.
+  keyOf: (from: string) => string;
+  /// A new, empty account for someone's first message. Nothing is provisioned.
+  blank: (numberHash: string, to: string) => A;
+  /// The placeholder email of a chat account. Nothing is ever sent to it.
+  emailOf: (numberHash: string) => string;
+  getAccount: (numberHash: string) => Promise<A | null>;
+  saveAccount: (a: A) => Promise<A>;
   provisionIdentity: (refHash: string) => Promise<{ walletId: string; address: string }>;
   createUser: (u: { email: string; address: string; circleIdentityWalletId: string }) => void;
   /// Creates the agent wallets, binds them to the identity and does
@@ -23,26 +26,18 @@ export interface IdentityDeps {
   activate: (address: string) => Promise<void>;
 }
 
-export function createIdentity(deps: IdentityDeps) {
-  async function getOrStart(from: string): Promise<WhatsappAccount> {
-    const numberHash = hashNumber(from, deps.pepper);
+export function createIdentity<A extends ChatAccount>(deps: IdentityDeps<A>) {
+  async function getOrStart(from: string): Promise<A> {
+    const numberHash = deps.keyOf(from);
     const existing = await deps.getAccount(numberHash);
     if (existing) return existing;
-    return deps.saveAccount({
-      numberHash,
-      to: from,
-      address: null,
-      termsVersion: null,
-      termsAt: null,
-      lastInboundAt: null,
-      queue: [],
-    });
+    return deps.saveAccount(deps.blank(numberHash, from));
   }
 
   /// Nothing is created before the person accepts. The identity wallet is
   /// saved before activation, so a failed activation is retried on the same
   /// wallet and never creates a second one.
-  async function acceptTerms(numberHash: string): Promise<WhatsappAccount> {
+  async function acceptTerms(numberHash: string): Promise<A> {
     let account = await deps.getAccount(numberHash);
     if (!account) throw new Error('unknown chat account');
     if (account.address && account.activated) return account;
@@ -50,7 +45,7 @@ export function createIdentity(deps: IdentityDeps) {
     if (!account.address) {
       const identity = await deps.provisionIdentity(numberHash);
       deps.createUser({
-        email: chatAccountEmail(numberHash),
+        email: deps.emailOf(numberHash),
         address: identity.address,
         circleIdentityWalletId: identity.walletId,
       });
@@ -65,18 +60,5 @@ export function createIdentity(deps: IdentityDeps) {
     return deps.saveAccount({ ...account, activated: true });
   }
 
-  /// One person, one account: a World ID nullifier belongs to one account.
-  async function attachNullifier(
-    numberHash: string,
-    nullifier: string,
-  ): Promise<{ ok: true } | { ok: false; reason: 'nullifier_in_use' }> {
-    const holder = await deps.findByNullifier(nullifier);
-    if (holder && holder.numberHash !== numberHash) return { ok: false, reason: 'nullifier_in_use' };
-    const account = await deps.getAccount(numberHash);
-    if (!account) throw new Error('unknown chat account');
-    await deps.saveAccount({ ...account, worldIdNullifier: nullifier });
-    return { ok: true };
-  }
-
-  return { getOrStart, acceptTerms, attachNullifier };
+  return { getOrStart, acceptTerms };
 }

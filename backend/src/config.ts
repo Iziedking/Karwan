@@ -614,6 +614,10 @@ const envSchema = z.object({
   // module no-ops gracefully and the /telegram routes report "not configured".
   TELEGRAM_BOT_TOKEN: optionalString,
   TELEGRAM_BOT_USERNAME: optionalString,
+  // The Karwan agent answers private chats on the same bot: accounts, getting
+  // verified, finding people and deals. Off by default; needs the bot token
+  // and CHAT_NUMBER_PEPPER as well.
+  TELEGRAM_AGENT_ENABLED: envBool('TELEGRAM_AGENT_ENABLED'),
   // Where team greetings go. Defaults to SUPPORT_TELEGRAM_CHAT_ID, which is the
   // staff group. Set this only to send greetings somewhere else.
   //

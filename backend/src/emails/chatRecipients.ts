@@ -1,14 +1,19 @@
-/// WhatsApp accounts have no email, but the user store is keyed by one. They
-/// get a placeholder on the reserved `.invalid` domain (RFC 2606), which can
-/// never be delivered, and every send drops it before it reaches Resend.
-const CHAT_DOMAIN = 'whatsapp.invalid';
+/// Chat accounts have no email, but the user store is keyed by one. They get
+/// a placeholder on a reserved `.invalid` domain (RFC 2606), which can never be
+/// delivered, and every send drops it before it reaches Resend.
+const CHAT_DOMAINS = ['whatsapp.invalid', 'telegram.invalid'] as const;
 
 export function chatAccountEmail(numberHash: string): string {
-  return `wa-${numberHash.slice(0, 24)}@${CHAT_DOMAIN}`;
+  return `wa-${numberHash.slice(0, 24)}@${CHAT_DOMAINS[0]}`;
+}
+
+export function telegramAccountEmail(userHash: string): string {
+  return `tg-${userHash.slice(0, 24)}@${CHAT_DOMAINS[1]}`;
 }
 
 export function isChatAccountEmail(email: string): boolean {
-  return email.trim().toLowerCase().endsWith(`@${CHAT_DOMAIN}`);
+  const e = email.trim().toLowerCase();
+  return CHAT_DOMAINS.some((domain) => e.endsWith(`@${domain}`));
 }
 
 export function deliverableRecipients(to: string | string[]): string[] {

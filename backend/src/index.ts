@@ -45,7 +45,8 @@ import { chatRoutes } from './routes/chat.js';
 import { financingChatRoutes } from './routes/financingChat.js';
 import { telegramRoutes } from './routes/telegram.js';
 import { whatsappRoutes } from './routes/whatsapp.js';
-import { installApp } from './whatsapp/inProcess.js';
+import { channelRoutes } from './routes/channels.js';
+import { installApp } from './channels/inProcess.js';
 import { closedPrefixes } from './chain/networkRoutes.js';
 import { dealEscrowV3Address } from './chain/dealEscrowV3Live.js';
 import { startWhatsappAgent } from './whatsapp/live.js';
@@ -149,6 +150,7 @@ import { syncBridgeEventsToBus } from './chain/bridgeEventSync.js';
 import { startReputationReconciler } from './reputation/reconciler.js';
 import { startAttestationSweep } from './attestation/sweep.js';
 import { startTelegramBot } from './telegram/bot.js';
+import { startTelegramAgent } from './telegram/agent/live.js';
 import { startTeamDaily } from './telegram/team.js';
 import { startTelegramNotifier } from './telegram/notifier.js';
 import { startChatRetentionSweep } from './chat/retention.js';
@@ -424,6 +426,7 @@ app.route('/api/chat', chatRoutes);
 app.route('/api/financing-chat', financingChatRoutes);
 app.route('/api/telegram', telegramRoutes);
 app.route('/api/whatsapp', whatsappRoutes);
+app.route('/api/channels', channelRoutes);
 installApp(app);
 startWhatsappAgent();
 // Support-team router first: /api/admin/support is reachable by the scoped
@@ -1262,6 +1265,9 @@ async function boot() {
   bootAgents();
   // Telegram bot + notifier: both no-op cleanly when TELEGRAM_BOT_TOKEN is unset.
   try {
+    // The agent installs itself on the bot before polling starts, so the
+    // first private message already reaches it.
+    startTelegramAgent();
     stopFns.push(startTelegramBot());
     stopFns.push(startTeamDaily());
     stopFns.push(startTelegramNotifier());

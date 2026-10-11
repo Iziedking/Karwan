@@ -5,7 +5,7 @@ import type { StoredFact } from './evidence.js';
 
 const now = Date.UTC(2026, 9, 12);
 
-function setup(opts: { clientVerified?: boolean } = {}) {
+function setup(opts: { clientVerified?: boolean; verifiedAddresses?: string[] } = {}) {
   const records = new Map<string, ConfirmRequest>();
   const sent: Array<{ to: string; params: string[]; buttonIds: string[] }> = [];
   const facts: StoredFact[] = [];
@@ -25,6 +25,7 @@ function setup(opts: { clientVerified?: boolean } = {}) {
       sent.push({ to, params, buttonIds });
     },
     isPersonVerified: async () => !!opts.clientVerified,
+    isAddressPersonVerified: async (address) => (opts.verifiedAddresses ?? []).includes(address),
     addFact: async (_address, f) => {
       facts.push(f);
       return true;
@@ -118,4 +119,53 @@ test('a Yes from a client who is not person verified does not back the invoice',
   await cc.answer('req1', '2348000000002', true);
   assert.deepEqual(corroborated, []);
   assert.equal(facts[0]?.independent, false);
+});
+
+const askByLink = (cc: ReturnType<typeof createClientConfirm>, invoiceFactId?: string) =>
+  cc.requestByLink({ subject: '0xada', subjectName: 'Ada Builds', job: 'a landing page', month: 'March 2026', ...(invoiceFactId ? { invoiceFactId } : {}) });
+
+test('a link request sends nothing and can be shown to whoever opens it', async () => {
+  const { cc, sent } = setup();
+  const r = await askByLink(cc);
+  assert.deepEqual(r, { ok: true, requestId: 'req1' });
+  assert.equal(sent.length, 0);
+  assert.deepEqual(await cc.questionFor('req1'), { subjectName: 'Ada Builds', job: 'a landing page', month: 'March 2026' });
+});
+
+test('the subject cannot answer their own link, by account or by chat', async () => {
+  const { cc, facts } = setup({ verifiedAddresses: ['0xada'] });
+  await askByLink(cc);
+  assert.equal(await cc.answerAsAccount('req1', { address: '0xada', channelHash: 'h:other' }, true), null);
+  assert.equal(await cc.answerAsAccount('req1', { address: '0xkemi', channelHash: 'h:2348000000001' }, true), null);
+  assert.equal(facts.length, 0);
+});
+
+test('a verified client answering a link makes an independent fact and backs the invoice', async () => {
+  const { cc, facts, corroborated } = setup({ verifiedAddresses: ['0xtunde'] });
+  await askByLink(cc, 'inv-1');
+  const f = await cc.answerAsAccount('req1', { address: '0xtunde', channelHash: 'h:tg:9' }, true);
+  assert.equal(f?.independent, true);
+  assert.equal(facts[0].source, 'link');
+  assert.deepEqual(corroborated, ['inv-1']);
+  assert.equal(await cc.questionFor('req1'), null, 'an answered link is closed');
+  assert.equal(await cc.answerAsAccount('req1', { address: '0xtunde', channelHash: 'h:tg:9' }, true), null);
+});
+
+test('an unverified client answering a link is kept but backs nothing', async () => {
+  const { cc, facts, corroborated } = setup();
+  await askByLink(cc, 'inv-1');
+  const f = await cc.answerAsAccount('req1', { address: '0xfriend', channelHash: 'h:tg:7' }, true);
+  assert.equal(f?.independent, false);
+  assert.deepEqual(corroborated, []);
+  assert.equal(facts.length, 1);
+});
+
+test('one account confirms at most three jobs for the same person by link', async () => {
+  const { cc } = setup({ verifiedAddresses: ['0xtunde'] });
+  for (let i = 1; i <= 3; i++) {
+    await askByLink(cc);
+    assert.ok(await cc.answerAsAccount(`req${i}`, { address: '0xtunde', channelHash: 'h:tg:9' }, true));
+  }
+  await askByLink(cc);
+  assert.equal(await cc.answerAsAccount('req4', { address: '0xtunde', channelHash: 'h:tg:9' }, true), null);
 });

@@ -67,6 +67,7 @@ export function clientConfirmations(ports: {
       const level = await levelOf(address);
       return level !== 'registered';
     },
+    isAddressPersonVerified: async (address) => (await levelOf(address)) !== 'registered',
     addFact: addVerifiedFact,
     corroborate: async (address, invoiceFactId) => {
       const stored = await evidenceDeps.getStored(address.toLowerCase());

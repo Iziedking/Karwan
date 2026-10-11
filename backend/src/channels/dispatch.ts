@@ -1,7 +1,6 @@
 import type { AssistantAction, ConfirmAction } from '../assistant/actions.js';
-import type { WhatsappAccount } from '../db/whatsapp.js';
 import { renderTurn, type OutMessage } from './render.js';
-import type { InboundMessage } from './types.js';
+import type { ChatAccount, InboundMessage } from './types.js';
 
 export type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
@@ -13,13 +12,13 @@ export type ExecuteResult =
   | { ok: true; summary: string; txHash?: string }
   | { ok: false; reason: 'reused' | 'stale' | 'refused'; message: string };
 
-export interface DispatchDeps {
+export interface DispatchDeps<A extends ChatAccount> {
   now: () => number;
   webBase: string;
   explorerTx: (hash: string) => string;
-  getOrStart: (from: string) => Promise<WhatsappAccount>;
-  acceptTerms: (numberHash: string) => Promise<WhatsappAccount>;
-  saveAccount: (a: WhatsappAccount) => Promise<WhatsappAccount>;
+  getOrStart: (from: string) => Promise<A>;
+  acceptTerms: (numberHash: string) => Promise<A>;
+  saveAccount: (a: A) => Promise<A>;
   send: (to: string, m: OutMessage) => Promise<{ sent: boolean }>;
   drain: (to: string) => Promise<void>;
   /// One assistant turn as the account, through the same route the app uses.
@@ -29,7 +28,7 @@ export interface DispatchDeps {
   /// Karwan account, so this runs before anything else. Returns the reply.
   clientAnswer: (requestId: string, from: string, yes: boolean) => Promise<string>;
   /// A photo or document from an account: evidence intake.
-  media: (account: WhatsappAccount, m: InboundMessage) => Promise<OutMessage[]>;
+  media: (account: A, m: InboundMessage) => Promise<OutMessage[]>;
 }
 
 const HISTORY_MAX = 20;
@@ -38,7 +37,7 @@ const ACCEPT_ID = 'terms:accept';
 
 const text = (body: string): OutMessage => ({ kind: 'text', body });
 
-export function createDispatcher(deps: DispatchDeps) {
+export function createDispatcher<A extends ChatAccount>(deps: DispatchDeps<A>) {
   const acceptButton = (body: string): OutMessage => ({
     kind: 'buttons',
     body,

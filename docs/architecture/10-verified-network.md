@@ -2,9 +2,9 @@
 
 Karwan lets your reputation travel with you, and lets your agent use that reputation to find, negotiate with, and transact with the right people.
 
-This view puts that to work where people already trade: in WhatsApp. A person tells the Karwan agent what they sell or buy. The agent checks their work and their identity. Once they are verified, other people's agents can find them. The agents agree price, timeline and terms. The two people approve the deal and settle it in escrow on Arc, without opening the Karwan site. Every verified fact and every completed deal joins the person's record on Arc, where anyone can check it.
+This view puts that to work where people already talk: in a chat app, starting with Telegram. A person tells the Karwan agent what they sell or buy. The agent checks their work and their identity. Once they are verified, other people's agents can find them. The agents agree price, timeline and terms. The two people approve the deal and settle it in escrow on Arc, without opening the Karwan site. Every verified fact and every completed deal joins the person's record on Arc, where anyone can check it.
 
-It builds on the unified reputation (view 08), the record (view 06), escrow (view 07) and the trust engine (view 09). WhatsApp is the first channel. Others follow on the same core.
+It builds on the unified reputation (view 08), the record (view 06), escrow (view 07) and the trust engine (view 09). Telegram is the first channel. A WhatsApp adapter is built and paused. Others follow on the same core.
 
 ## Architecture rules
 
@@ -27,7 +27,7 @@ These hold for every part of this view and for every channel added later.
 
 ```mermaid
 flowchart LR
-  P[Person or business] -->|chat| W[WhatsApp]
+  P[Person or business] -->|chat| W[Telegram]
   W --> C[Karwan channel adapter]
   C --> A[Karwan assistant<br/>same tools as the app]
   A --> V[Verification<br/>deterministic rules]
@@ -48,7 +48,7 @@ flowchart LR
 ```mermaid
 sequenceDiagram
   actor P as Person
-  participant W as WhatsApp
+  participant W as Telegram
   participant K as Karwan agent
   participant V as Verification
   actor C as Past client
@@ -61,11 +61,13 @@ sequenceDiagram
   K->>K: Create the identity, a buying wallet and an earnings wallet
   K-->>P: What do you sell or buy, where do you work, what proves it?
   P->>K: Links X by signing in, or gives a CAC number
-  P->>K: Sends an invoice, names a past client
+  P->>K: Sends an invoice, asks a past client to confirm
   K->>V: Extracted fields, file fingerprint
   V->>V: Rules: complete, dated, issuer matches, never used before
-  K->>C: "Did this person do this job for you?" Yes / No
-  C-->>K: Yes
+  K-->>P: A one-time link for the client
+  P->>C: Forwards the link
+  C->>K: Opens it: "Did this person do this job for you?" Yes
+  V->>V: Counts only if the client is a different verified person
   V->>V: Ladder: registered, person verified, work verified
   V->>F: Record each verified fact (no personal data)
   K-->>P: You are verified. Your record: karwan.site/r/tag
@@ -147,7 +149,7 @@ sequenceDiagram
   participant E as Escrow on Arc
 
   B->>K: "Start a protected deal with @ada for 80 USDC, logo, due Friday"
-  K->>K: Find Ada by Karwan tag or WhatsApp number
+  K->>K: Find Ada by Karwan tag
   K-->>B: The terms, with Confirm / Cancel
   B->>K: Confirm
   K-->>S: "Tunde wants a protected deal with you", the terms, Accept / Decline
@@ -204,7 +206,7 @@ Chainlink CRE runs the same checks in a sandbox on a decentralised network, so a
 |---|---|---|
 | Channel | A message is delivered twice | Each message is handled once |
 | Channel | A Confirm button is pressed twice, or after the deal moved | One action at most; the second press is told it is done, or shown the current step |
-| Channel | The 24-hour reply window has closed | Updates go out as approved message templates |
+| Channel | Someone has never started a chat with the bot | A bot cannot message them first, so the person gets a one-time link to forward |
 | Verification | The same invoice from two accounts | The second is refused |
 | Verification | A client says No | Stored as evidence against the claim; never shown to anyone else |
 | Verification | A business registry lookup fails | A reviewer checks it, and the fact records that a person reviewed it |
@@ -227,18 +229,19 @@ Chainlink CRE runs the same checks in a sandbox on a decentralised network, so a
 | Escrow (view 07) | Live on testnet |
 | Person check with World ID | Built, behind a flag |
 | X sign-in linking | Built |
-| WhatsApp channel adapter | Planned |
-| Verification rules, ladder, evidence checks | Planned |
-| Facts contract on Arc and signed credential | Planned |
-| Discovery limited to verified people | Planned |
+| Telegram channel adapter | Planned |
+| WhatsApp channel adapter | Built, paused |
+| Verification rules, ladder, evidence checks | Built, not deployed |
+| Facts contract on Arc and signed credential | Built, not deployed |
+| Discovery limited to verified people | Built, not deployed |
 | Agent-to-agent questions paid with x402 | Planned |
 | Direct deals with someone you already know (in the app) | Live on testnet |
-| Direct deals created, accepted and funded from chat | Planned |
+| Direct deals created, accepted and funded from chat | Built, not deployed |
 | Delivery checks: safety, match to the milestone, software evidence, signed result on the escrow | Built, testnet |
 | Delivery checks run in Chainlink CRE behind `CRE_ENABLED` | Planned. Waiting on the workflow being fully wired for deals |
-| Escrow on Arc mainnet for chat deals: beta, capped at 1,000 USDC per deal and 10,000 USDC in total, unaudited, replaced by the audited deployment at launch | Planned |
+| Escrow on Arc mainnet for chat deals: beta, capped at 1,000 USDC per deal and 10,000 USDC in total, unaudited, replaced by the audited deployment at launch | Built, not deployed |
 | ID check for deals from 100 USDC | Planned. Provider to be chosen |
 | Funding from a bank or USSD | Planned. Provider to be chosen |
-| X and other channels | Planned, after the WhatsApp beta |
+| X and other channels | Planned |
 
 Contract and module notes: the channel adapter calls the same assistant turn as the app, and confirm buttons run the app's own routes and checks. The chat deal limits live in the funding routes, not in the adapter, so a browser session opened from a chat link meets the same limits. Facts are written to a facts contract that also receives completed deals from the escrow. The x402 payment uses a separate signing wallet per agent, because Circle Gateway accepts only plain signatures on payment authorisations.

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createOutbox, type OutboxDeps } from './outbox.js';
-import type { OutMessage } from './render.js';
+import type { OutMessage } from '../channels/render.js';
 
 const HOUR = 3_600_000;
 const NOW = Date.UTC(2026, 9, 11, 12);

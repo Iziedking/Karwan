@@ -14,6 +14,8 @@ import {
   type SupportConversation,
 } from '../support/store.js';
 import { sendSupportTranscriptEmail } from '../emails/supportTranscript.js';
+import type { TgUpdate } from './agent/parse.js';
+import { isAgentUpdate, startPayload, textGoesToAgent } from './agent/routing.js';
 import { notifyUserOfReply } from '../support/notify.js';
 
 // Minimal Telegram Bot API client. Direct HTTP calls (no SDK), long-polling
@@ -138,6 +140,14 @@ export async function sendTelegramPhoto(
   }
 }
 
+/// The Karwan agent installs itself here when TELEGRAM_AGENT_ENABLED is on, so
+/// the bot does not import the assistant stack. Without it the bot behaves as
+/// before: linking, status and live support only.
+let agentHandler: ((update: TgUpdate) => Promise<void>) | null = null;
+export function setTelegramAgentHandler(fn: (update: TgUpdate) => Promise<void>): void {
+  agentHandler = fn;
+}
+
 /// Start the long-polling loop. Returns a stop function. Safe to call even
 /// without a token configured: just no-ops.
 export function startTelegramBot(): () => void {
@@ -166,30 +176,13 @@ async function loop() {
         await sleep(2_000);
         continue;
       }
-      const json = (await res.json()) as {
-        ok: boolean;
-        result?: Array<{
-          update_id: number;
-          message?: {
-            chat: { id: number; type: string; username?: string };
-            text?: string;
-            reply_to_message?: { text?: string };
-            /// Telegram delivers joins as a message with no text. The loop used
-            /// to gate on `message.text`, so these were dropped entirely.
-            new_chat_members?: Array<{
-              id: number;
-              is_bot?: boolean;
-              first_name?: string;
-              username?: string;
-            }>;
-          };
-        }>;
-      };
+      const json = (await res.json()) as { ok: boolean; result?: TgUpdate[] };
       if (!json.ok || !json.result) continue;
       for (const u of json.result) {
         lastUpdateId = Math.max(lastUpdateId, u.update_id);
         if (u.message?.new_chat_members?.length) await handleJoin(u.message);
-        if (u.message?.text) await handleMessage(u.message);
+        if (typeof u.message?.text === 'string') await handleMessage(u.message, u);
+        else if (agentHandler && isAgentUpdate(u)) await agentHandler(u);
       }
     } catch (err) {
       logger.warn({ err: (err as Error).message }, 'telegram poll error');
@@ -215,11 +208,14 @@ async function handleJoin(message: {
   await welcomeTeamMember(names);
 }
 
-async function handleMessage(message: {
-  chat: { id: number; type: string; username?: string };
-  text?: string;
-  reply_to_message?: { text?: string };
-}) {
+async function handleMessage(
+  message: {
+    chat: { id: number; type: string; username?: string };
+    text?: string;
+    reply_to_message?: { text?: string };
+  },
+  update: TgUpdate,
+) {
   const text = message.text ?? '';
   const chatId = message.chat.id;
   const username = message.chat.username;
@@ -232,6 +228,11 @@ async function handleMessage(message: {
   const opChat = supportOperatorChatId();
   if (opChat !== null && chatId === opChat) {
     if (await handleOperatorMessage(chatId, text, message.reply_to_message?.text)) return;
+  }
+
+  if (startPayload(text)?.kind === 'clientConfirm') {
+    if (agentHandler && message.chat.type === 'private') await agentHandler(update);
+    return;
   }
 
   if (text.startsWith('/start ')) {
@@ -302,17 +303,17 @@ async function handleMessage(message: {
   // into that ticket so the operator sees it, same as a widget or email reply.
   // (The operator chat is handled above and returns before this point.)
   const linkedAddr = await findAddressByChatId(chatId);
-  if (linkedAddr) {
-    const ticket = findOpenConversationByAddress(linkedAddr);
-    if (ticket) {
-      appendUserMessage(ticket.id, text);
-      try {
-        await relaySupportUserMessage(ticket, text);
-      } catch {
-        /* operator relay best-effort */
-      }
+  const ticket = linkedAddr ? findOpenConversationByAddress(linkedAddr) : null;
+  if (ticket) {
+    appendUserMessage(ticket.id, text);
+    try {
+      await relaySupportUserMessage(ticket, text);
+    } catch {
+      /* operator relay best-effort */
     }
+    return;
   }
+  if (agentHandler && textGoesToAgent({ chatType: message.chat.type, ticketOpen: false })) await agentHandler(update);
 }
 
 async function findLinkedAddressForChat(chatId: number): Promise<string | null> {

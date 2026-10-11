@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { chatAccountEmail, deliverableRecipients, isChatAccountEmail } from './chatRecipients.js';
+import { chatAccountEmail, deliverableRecipients, isChatAccountEmail, telegramAccountEmail } from './chatRecipients.js';
 
 test('a chat account email is on the reserved .invalid domain and recognised', () => {
   const e = chatAccountEmail('ab12cd34ef56');
@@ -13,4 +13,11 @@ test('chat account recipients are dropped, real ones kept', () => {
   assert.deepEqual(deliverableRecipients(['ada@example.com', chatAccountEmail('x')]), ['ada@example.com']);
   assert.deepEqual(deliverableRecipients(chatAccountEmail('x')), []);
   assert.deepEqual(deliverableRecipients('tunde@example.com'), ['tunde@example.com']);
+});
+
+test('a Telegram chat account gets its own undeliverable placeholder', () => {
+  const e = telegramAccountEmail('ab12cd34ef56');
+  assert.match(e, /^tg-ab12cd34ef56@telegram\.invalid$/);
+  assert.equal(isChatAccountEmail(e), true);
+  assert.deepEqual(deliverableRecipients([e, 'ada@example.com']), ['ada@example.com']);
 });

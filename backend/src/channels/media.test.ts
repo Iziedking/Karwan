@@ -20,6 +20,7 @@ function setup(over: Partial<IntakeDeps> = {}) {
   const claimed = new Map<string, string>();
   const deps: IntakeDeps = {
     now: () => now,
+    channel: 'whatsapp',
     download: async () => ({ bytes: new Uint8Array([1, 2, 3]), mimeType: 'image/jpeg' }),
     extract: async () => invoice,
     displayNameOf: async () => 'Ada Builds',
@@ -49,6 +50,23 @@ test('a good invoice becomes an invoice fact and the agent asks for the client',
   assert.equal(facts[0].corroborated, false);
   assert.match(body(out), /Tunde Stores/);
   assert.match(body(out), /WhatsApp number/);
+  assert.equal(facts[0].source, 'whatsapp');
+});
+
+test('on Telegram the fact names Telegram and the person is offered a link for the client', async () => {
+  let hint: string | undefined;
+  const { intake, facts } = setup({
+    channel: 'telegram',
+    download: async (_id, mimeType) => {
+      hint = mimeType;
+      return { bytes: new Uint8Array([1, 2, 3]), mimeType: mimeType ?? 'application/octet-stream' };
+    },
+  });
+  const out = await intake('0xada', media);
+  assert.equal(hint, 'image/jpeg', 'the type Telegram reported reaches the download');
+  assert.equal(facts[0].source, 'telegram');
+  assert.doesNotMatch(body(out), /WhatsApp/);
+  assert.match(body(out), /link/);
 });
 
 test('the same invoice from a second account is refused', async () => {

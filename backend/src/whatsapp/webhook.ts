@@ -1,7 +1,8 @@
 import { Hono, type Context } from 'hono';
 import { logger } from '../logger.js';
 import { verifyMetaSignature } from './signature.js';
-import { parseInbound, type InboundMessage } from './types.js';
+import type { InboundMessage } from '../channels/types.js';
+import { parseInbound } from './types.js';
 
 export interface WhatsappWebhookDeps {
   enabled: boolean;

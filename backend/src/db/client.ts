@@ -142,6 +142,15 @@ export async function ensureSchema(): Promise<void> {
       message_id TEXT PRIMARY KEY,
       ts BIGINT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS telegram_accounts (
+      user_hash TEXT PRIMARY KEY,
+      address TEXT UNIQUE,
+      data JSONB NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS telegram_processed (
+      update_id TEXT PRIMARY KEY,
+      ts BIGINT NOT NULL
+    );
     CREATE TABLE IF NOT EXISTS whatsapp_daily (
       day TEXT NOT NULL,
       number_hash TEXT NOT NULL,

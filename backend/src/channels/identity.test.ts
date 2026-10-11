@@ -1,20 +1,22 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { WhatsappAccount } from '../db/whatsapp.js';
+import { chatAccountEmail } from '../emails/chatRecipients.js';
 import { CHAT_TERMS_VERSION, createIdentity, hashNumber, type IdentityDeps } from './identity.js';
 
-function setup(overrides: Partial<IdentityDeps> = {}) {
+function setup(overrides: Partial<IdentityDeps<WhatsappAccount>> = {}) {
   const accounts = new Map<string, WhatsappAccount>();
   const calls = { provision: 0, createUser: [] as string[], activate: [] as string[] };
-  const deps: IdentityDeps = {
-    pepper: 'pepper-1',
+  const deps: IdentityDeps<WhatsappAccount> = {
     now: () => 1_000,
+    keyOf: (from) => hashNumber(from, 'pepper-1'),
+    blank: (numberHash, to) => ({ numberHash, to, address: null, termsVersion: null, termsAt: null, lastInboundAt: null, queue: [] }),
+    emailOf: chatAccountEmail,
     getAccount: async (h) => accounts.get(h) ?? null,
     saveAccount: async (a) => {
       accounts.set(a.numberHash, a);
       return a;
     },
-    findByNullifier: async (n) => [...accounts.values()].find((a) => a.worldIdNullifier === n) ?? null,
     provisionIdentity: async () => {
       calls.provision++;
       return { walletId: `w${calls.provision}`, address: `0x${String(calls.provision).padStart(40, '0')}` };
@@ -80,13 +82,4 @@ test('a failed activation keeps the account and retries on the next accept', asy
   const again = await identity.acceptTerms(a.numberHash);
   assert.ok(again.address);
   assert.equal(calls.provision, 1, 'the identity wallet is never created twice');
-});
-
-test('second account with the same nullifier is refused', async () => {
-  const { identity } = setup();
-  const a = await identity.getOrStart('1');
-  const b = await identity.getOrStart('2');
-  assert.deepEqual(await identity.attachNullifier(a.numberHash, 'null-1'), { ok: true });
-  assert.deepEqual(await identity.attachNullifier(b.numberHash, 'null-1'), { ok: false, reason: 'nullifier_in_use' });
-  assert.deepEqual(await identity.attachNullifier(a.numberHash, 'null-1'), { ok: true }, 'the same account again is fine');
 });

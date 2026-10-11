@@ -1,5 +1,5 @@
 import { logger } from '../logger.js';
-import type { OutMessage } from './render.js';
+import type { OutMessage } from '../channels/render.js';
 
 /// Meta lets a business reply freely for 24 hours after the person's last
 /// message. A small margin keeps a send near the edge from being refused.

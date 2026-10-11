@@ -9,9 +9,13 @@ const READABLE = /^(image\/(jpeg|png|webp)|application\/pdf)$/;
 
 export interface IntakeDeps {
   now: () => number;
-  /// The file Meta holds for this message, or null when it is missing or too
-  /// large. Nothing is kept after it is read.
-  download: (mediaId: string) => Promise<{ bytes: Uint8Array; mimeType: string } | null>;
+  /// The channel the file arrived on, recorded as the fact's source.
+  channel: 'whatsapp' | 'telegram';
+  /// The file the channel holds for this message, or null when it is missing
+  /// or too large. `mimeType` is the type the channel reported with the
+  /// message, for channels whose file lookup does not return one. Nothing is
+  /// kept after it is read.
+  download: (mediaId: string, mimeType?: string) => Promise<{ bytes: Uint8Array; mimeType: string } | null>;
   /// Reads the fields off the document. Decides nothing.
   extract: (bytes: Uint8Array, mimeType: string) => Promise<ExtractedInvoice>;
   displayNameOf: (address: string) => Promise<string>;
@@ -27,7 +31,7 @@ const text = (body: string): OutMessage => ({ kind: 'text', body });
 export function createEvidenceIntake(deps: IntakeDeps) {
   return async function intake(address: string, m: InboundMessage): Promise<OutMessage[]> {
     if (!m.mediaId) return [text("I couldn't open that file. Please send it again.")];
-    const file = await deps.download(m.mediaId);
+    const file = await deps.download(m.mediaId, m.mimeType);
     if (!file) return [text("I couldn't open that file. Please send it again, under 10 MB.")];
     if (!READABLE.test(file.mimeType)) return [text('Please send the invoice as a photo or a PDF.')];
 
@@ -63,12 +67,15 @@ export function createEvidenceIntake(deps: IntakeDeps) {
       expiresAt: issuedAt + TWO_YEARS_MS,
       corroborated: false,
       evidenceHash: `0x${createHash('sha256').update(file.bytes).digest('hex')}`,
-      source: 'whatsapp',
+      source: deps.channel,
     });
     return [
       text(
         `Got it: an invoice to ${fields.counterparty} for ${fields.amount} ${fields.currency ?? ''}`.trim() +
-          `, dated ${fields.date}.\n\nTo count it, ${fields.counterparty} confirms the job. Send me their WhatsApp number and I'll ask them.`,
+          `, dated ${fields.date}.\n\nTo count it, ${fields.counterparty} confirms the job. ` +
+          (deps.channel === 'whatsapp'
+            ? "Send me their WhatsApp number and I'll ask them."
+            : 'Ask me for a confirmation link and send it to them.'),
       ),
     ];
   };

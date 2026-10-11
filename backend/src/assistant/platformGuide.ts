@@ -199,7 +199,7 @@ export const PLATFORM_GUIDE: readonly GuideEntry[] = [
     keywords: 'whatsapp chat agent bot beta number phone direct deal protected escrow known person',
     summary: 'A free beta. People register, get verified, find verified sellers or customers and close a protected deal without opening the site; every money step is a Confirm button. Karwan holds the wallets of chat accounts. A deal with someone already known starts with start_protected_deal and is paid with pay_into_escrow once the seller accepts. Escrow on Arc mainnet is a beta, up to 1,000 USDC per deal and not audited; deals of 100 USDC and above need an ID check from both sides.',
     steps: ['The person accepts the terms in chat, then says what they sell or buy.', 'Buttons confirm or cancel every step.'],
-    sources: ['backend/src/whatsapp/dispatch.ts', 'backend/src/whatsapp/executor.ts', 'backend/src/assistant/directDealTools.ts'],
+    sources: ['backend/src/channels/dispatch.ts', 'backend/src/channels/executor.ts', 'backend/src/assistant/directDealTools.ts'],
   },
   {
     id: 'records', title: 'Activity and receipts', status: 'testnet', mainnet: 'invite', route: '/activity',

@@ -1,50 +1,36 @@
-import { randomBytes } from 'node:crypto';
-import { generateObject } from 'ai';
-import { z } from 'zod';
 import type { AssistantAction } from '../assistant/actions.js';
 import { ARC } from '../chain/client.js';
 import { provisionUserIdentityWallet } from '../circle/wallets.js';
 import { config } from '../config.js';
 import { claimUnique } from '../db/evidence.js';
-import { durableEphemeralMap } from '../db/ephemeral.js';
 import { getProfile } from '../db/profiles.js';
 import { createUser } from '../db/users.js';
 import {
   claimDailySlot,
   findWhatsappAccountByAddress,
-  findWhatsappAccountByNullifier,
   getWhatsappAccount,
   saveWhatsappAccount,
+  type WhatsappAccount,
 } from '../db/whatsapp.js';
-import { assistantAgentModel } from '../llm/client.js';
+import { chatAccountEmail } from '../emails/chatRecipients.js';
 import { logger } from '../logger.js';
-import { setInboundHandler, setOpenRedeemer } from '../routes/whatsapp.js';
-import type { ExtractedInvoice } from '../verification/invoice.js';
+import { setInboundHandler } from '../routes/whatsapp.js';
 import { addVerifiedFact, cacReview, clientConfirmations } from '../verification/live.js';
 import { installVerificationServices } from '../verification/services.js';
-import { createDispatcher } from './dispatch.js';
-import { createExecutor } from './executor.js';
-import { createIdentity, hashNumber } from './identity.js';
-import { callAsAccount } from './inProcess.js';
-import { createEvidenceIntake } from './media.js';
-import { createOpenLinks, type OpenablePath } from './openLink.js';
+import { createDispatcher } from '../channels/dispatch.js';
+import { createExecutor } from '../channels/executor.js';
+import { createIdentity, hashNumber } from '../channels/identity.js';
+import { callAsAccount } from '../channels/inProcess.js';
+import { createEvidenceIntake } from '../channels/media.js';
+import { chatOpenLinks, chatOpenUrl } from '../channels/openLinksLive.js';
+import { extractInvoice, MEDIA_MAX_BYTES } from '../channels/invoiceExtract.js';
 import { createOutbox } from './outbox.js';
-import type { OutMessage } from './render.js';
-import { installChatPorts } from './sender.js';
-import { createWhatsappNotifier } from './notifier.js';
+import type { OutMessage } from '../channels/render.js';
+import { installChannelPorts } from '../channels/sender.js';
+import { createWhatsappNotifier } from '../channels/notifier.js';
 import { RELEVANT, recipientsFor, summaryFor } from '../telegram/notifier.js';
 import { bus } from '../events.js';
 
-const MEDIA_MAX_BYTES = 10 * 1024 * 1024;
-
-const invoiceSchema = z.object({
-  issuer: z.string().optional(),
-  counterparty: z.string().optional(),
-  amount: z.number().optional(),
-  currency: z.string().optional(),
-  date: z.string().optional().describe('YYYY-MM-DD'),
-  number: z.string().optional(),
-});
 
 /// Wires the WhatsApp agent to the real store, Graph API and assistant. Runs
 /// at startup only when WHATSAPP_ENABLED is on and the pepper is set.
@@ -79,33 +65,20 @@ export function startWhatsappAgent(): void {
     },
   });
 
-  const pendingLinks = durableEphemeralMap<{ address: string; path: OpenablePath; expiresAt: number }>('wa-open');
-  const links = createOpenLinks({
-    now: Date.now,
-    newToken: () => randomBytes(24).toString('base64url'),
-    put: async (k, v) => {
-      pendingLinks.set(k, v);
-    },
-    take: async (k) => {
-      const v = pendingLinks.get(k) ?? null;
-      pendingLinks.delete(k);
-      return v;
-    },
-  });
-  setOpenRedeemer(links.redeem);
+  const links = chatOpenLinks;
 
   const sendToAddress = async (address: string, m: OutMessage) => {
     const a = await findWhatsappAccountByAddress(address);
     return a ? (await outbox.send(a.to, m)).sent : false;
   };
   const apiBase = config.PUBLIC_API_BASE_URL?.replace(/\/$/, '');
-  installChatPorts({
+  installChannelPorts('whatsapp', {
     toAddress: sendToAddress,
     toNumber: async (to, m) => (await outbox.send(to.replace(/\D/g, ''), m)).sent,
     openLink: async (address, path) => {
       if (!apiBase || !(await findWhatsappAccountByAddress(address))) return null;
       const token = await links.mint(address, path);
-      return token ? `${apiBase}/api/whatsapp/open?t=${token}` : null;
+      return token ? chatOpenUrl(token) : null;
     },
   });
 
@@ -127,12 +100,14 @@ export function startWhatsappAgent(): void {
     },
   });
   installVerificationServices({
+    sendsToNumbers: true,
     clientConfirm,
     cac: cacReview((address, text) => sendToAddress(address, { kind: 'text', body: text }).then(() => undefined)),
   });
 
   const intake = createEvidenceIntake({
     now: Date.now,
+    channel: 'whatsapp',
     download: async (mediaId) => {
       if (!config.WHATSAPP_TOKEN) return null;
       const auth = { Authorization: `Bearer ${config.WHATSAPP_TOKEN}` };
@@ -152,43 +127,19 @@ export function startWhatsappAgent(): void {
         return null;
       }
     },
-    extract: async (bytes, mimeType) => {
-      if (!assistantAgentModel) throw new Error('no direct model configured');
-      const file =
-        mimeType === 'application/pdf'
-          ? { type: 'file' as const, data: bytes, mediaType: mimeType }
-          : { type: 'image' as const, image: bytes, mediaType: mimeType };
-      const { object } = await generateObject({
-        model: assistantAgentModel,
-        schema: invoiceSchema,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text:
-                  'Read this invoice or receipt. Return who issued it, who it was issued to, the total amount as a number, ' +
-                  'the currency code, the invoice date as YYYY-MM-DD and the invoice number. Leave out any field that is not printed. Do not guess.',
-              },
-              file,
-            ],
-          },
-        ],
-      });
-      return object as ExtractedInvoice;
-    },
+    extract: extractInvoice,
     displayNameOf: async (address) => (await getProfile(address))?.displayName ?? '',
     claimFingerprint: (fp, address) => claimUnique('fp', fp, address),
     addFact: addVerifiedFact,
   });
 
-  const identity = createIdentity({
-    pepper,
+  const identity = createIdentity<WhatsappAccount>({
     now: Date.now,
+    keyOf,
+    blank: (numberHash, to) => ({ numberHash, to, address: null, termsVersion: null, termsAt: null, lastInboundAt: null, queue: [] }),
+    emailOf: chatAccountEmail,
     getAccount: getWhatsappAccount,
     saveAccount: saveWhatsappAccount,
-    findByNullifier: findWhatsappAccountByNullifier,
     provisionIdentity: (refHash) => provisionUserIdentityWallet(refHash, 'chat'),
     createUser: (u) => {
       createUser(u);

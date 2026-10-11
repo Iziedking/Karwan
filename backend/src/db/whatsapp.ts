@@ -1,27 +1,15 @@
 import { config } from '../config.js';
-import type { ConfirmAction } from '../assistant/actions.js';
-import type { OutMessage } from '../whatsapp/render.js';
+import type { OutMessage } from '../channels/render.js';
+import type { ChatAccount } from '../channels/types.js';
 import { pgEnabled, postgresExecutor } from './client.js';
 
 /// One WhatsApp number's state. The number itself is never stored in the
 /// clear: `numberHash` is the lookup key, `to` is kept only to message back.
-export interface WhatsappAccount {
-  numberHash: string;
-  to: string;
-  address: string | null;
-  termsVersion: string | null;
-  termsAt: number | null;
-  lastInboundAt: number | null;
+export interface WhatsappAccount extends ChatAccount {
+  /// Messages held until the 24 hour service window opens again.
   queue: OutMessage[];
-  /// Agent wallets created and bound. False after a failed activation, which
-  /// is retried on the next accept.
-  activated?: boolean;
   worldIdNullifier?: string;
   emailRecovery?: string;
-  /// The last messages of the conversation, sent with each assistant turn.
-  history?: { role: 'user' | 'assistant'; content: string }[];
-  /// Confirm cards waiting for a button tap, by card id.
-  pendingActions?: Record<string, { action: ConfirmAction; expiresAt: number }>;
 }
 
 const seenInMemory = new Set<string>();
