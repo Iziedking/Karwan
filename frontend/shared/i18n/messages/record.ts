@@ -21,6 +21,9 @@ export interface RecordCopy {
   downloadNote: string;
   notFound: string;
   unavailable: string;
+  notFoundHint: string;
+  retry: string;
+  home: string;
 }
 
 const en: RecordCopy = {
@@ -49,6 +52,9 @@ const en: RecordCopy = {
   downloadNote: 'Anyone can check the signed copy against Karwan’s published key and Arc, without calling Karwan.',
   notFound: 'No Karwan record with that tag.',
   unavailable: 'This record cannot be shown right now.',
+  notFoundHint: 'Check the spelling, or ask the person for their link.',
+  retry: 'Try again',
+  home: 'Go to Karwan',
 };
 
 const ar: RecordCopy = {
@@ -77,6 +83,9 @@ const ar: RecordCopy = {
   downloadNote: 'يمكن لأي شخص التحقق من النسخة الموقّعة مقابل مفتاح Karwan المنشور وشبكة Arc، دون الاتصال بـ Karwan.',
   notFound: 'لا يوجد سجل Karwan بهذا الوسم.',
   unavailable: 'لا يمكن عرض هذا السجل الآن.',
+  notFoundHint: 'تحقق من الكتابة، أو اطلب من الشخص رابطه.',
+  retry: 'حاول مرة أخرى',
+  home: 'اذهب إلى Karwan',
 };
 
 const fr: RecordCopy = {
@@ -105,6 +114,9 @@ const fr: RecordCopy = {
   downloadNote: 'Tout le monde peut vérifier la copie signée avec la clé publiée de Karwan et Arc, sans contacter Karwan.',
   notFound: 'Aucun dossier Karwan avec ce nom.',
   unavailable: 'Ce dossier ne peut pas être affiché pour le moment.',
+  notFoundHint: 'Vérifiez l’orthographe, ou demandez son lien à la personne.',
+  retry: 'Réessayer',
+  home: 'Aller sur Karwan',
 };
 
 const hi: RecordCopy = {
@@ -133,6 +145,9 @@ const hi: RecordCopy = {
   downloadNote: 'कोई भी Karwan से संपर्क किए बिना, Karwan की प्रकाशित कुंजी और Arc से हस्ताक्षरित प्रति जांच सकता है।',
   notFound: 'इस टैग का कोई Karwan रिकॉर्ड नहीं है।',
   unavailable: 'यह रिकॉर्ड अभी दिखाया नहीं जा सकता।',
+  notFoundHint: 'वर्तनी जाँचें, या उस व्यक्ति से उनका लिंक माँगें।',
+  retry: 'फिर से कोशिश करें',
+  home: 'Karwan पर जाएँ',
 };
 
 const sw: RecordCopy = {
@@ -161,6 +176,9 @@ const sw: RecordCopy = {
   downloadNote: 'Mtu yeyote anaweza kukagua nakala iliyosainiwa dhidi ya ufunguo uliochapishwa wa Karwan na Arc, bila kuwasiliana na Karwan.',
   notFound: 'Hakuna rekodi ya Karwan yenye jina hilo.',
   unavailable: 'Rekodi hii haiwezi kuonyeshwa kwa sasa.',
+  notFoundHint: 'Kagua tahajia, au muombe mtu huyo kiungo chake.',
+  retry: 'Jaribu tena',
+  home: 'Nenda Karwan',
 };
 
 export const recordCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', RecordCopy> = { en, ar, fr, hi, sw };

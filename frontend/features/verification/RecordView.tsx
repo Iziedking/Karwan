@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api, ApiError } from '@/core/api';
 import { explorerTxUrl, settlementChain } from '@/core/arcNetwork';
@@ -16,18 +17,40 @@ export function RecordView({ tag }: { tag: string }) {
   const sealed = useTranslations().sealedRecord;
   const [record, setRecord] = useState<RecordData | null>(null);
   const [failure, setFailure] = useState<'missing' | 'error' | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     api
       .record(tag)
-      .then(setRecord)
+      .then((r) => {
+        setFailure(null);
+        setRecord(r);
+      })
       .catch((err) => setFailure(err instanceof ApiError && err.status === 404 ? 'missing' : 'error'));
-  }, [tag]);
+  }, [tag, attempt]);
 
+  if (failure === 'missing') {
+    return (
+      <main className="mx-auto w-full max-w-[720px] px-4 py-12">
+        <p className="text-[16px] text-[var(--lp-ink)]">{t.notFound}</p>
+        <p className="mt-2 text-[15px] text-[var(--lp-text-sub)]">{t.notFoundHint}</p>
+        <Link href="/" className="mt-6 inline-flex min-h-11 items-center rounded-full border border-[var(--lp-line)] px-5 py-2.5 text-[14px] font-semibold text-[var(--lp-ink)]">
+          {t.home}
+        </Link>
+      </main>
+    );
+  }
   if (failure) {
     return (
       <main className="mx-auto w-full max-w-[720px] px-4 py-12">
-        <p className="text-[16px] text-[var(--lp-text-sub)]">{failure === 'missing' ? t.notFound : t.unavailable}</p>
+        <p className="text-[16px] text-[var(--lp-text-sub)]">{t.unavailable}</p>
+        <button
+          type="button"
+          onClick={() => setAttempt((n) => n + 1)}
+          className="mt-6 inline-flex min-h-11 items-center rounded-full border border-[var(--lp-line)] px-5 py-2.5 text-[14px] font-semibold text-[var(--lp-ink)]"
+        >
+          {t.retry}
+        </button>
       </main>
     );
   }
@@ -60,7 +83,7 @@ export function RecordView({ tag }: { tag: string }) {
           {record.facts.map((f, i) => (
             <li key={`${f.kind}-${i}`} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-[var(--lp-line)] py-3">
               <span className="text-[15px] text-[var(--lp-ink)]">{t.kinds[f.kind as RecordFactKind] ?? f.kind}</span>
-              <span className="text-[13px] text-[var(--lp-text-sub)]">
+              <span className="text-[14px] text-[var(--lp-text-sub)]">
                 {t.until} {date(f.expiresAt)}
                 {f.txHash ? (
                   <>
@@ -83,7 +106,7 @@ export function RecordView({ tag }: { tag: string }) {
       >
         {t.download}
       </a>
-      <p className="mt-3 text-[13px] leading-relaxed text-[var(--lp-text-sub)]">{t.downloadNote}</p>
+      <p className="mt-3 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{t.downloadNote}</p>
     </main>
   );
 }
