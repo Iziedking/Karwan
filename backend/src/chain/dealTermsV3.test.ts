@@ -145,6 +145,12 @@ test('a refundable deposit returns to the buyer on silence and needs a deadline'
   );
 });
 
+test('a network that holds every final milestone for the buyer sets it below the high-value line', () => {
+  const t = buildDealTerms(input({ milestonePcts: [100] }), { ...LIMITS, finalByBuyer: true });
+  assert.equal(t.finalRelease, 1);
+  assert.equal(buildDealTerms(input({ milestonePcts: [100] }), LIMITS).finalRelease, 0);
+});
+
 test('an open-ended deal has no deadline', () => {
   assert.equal(buildDealTerms(input({ deadlineUnix: null }), LIMITS).deliveryDeadline, 0n);
 });

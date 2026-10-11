@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { moneyInvariantInstallFailureIsFatal, runtimeSafetyErrors } from './configSafety.js';
+import { effectiveReviewWindowMs, moneyInvariantInstallFailureIsFatal, runtimeSafetyErrors } from './configSafety.js';
 
 test('production refuses to run without durable PostgreSQL persistence', () => {
   assert.equal(runtimeSafetyErrors({ nodeEnv: 'production' }).length, 2);
@@ -55,4 +55,12 @@ test('production refuses World ID in staging, which the real World App cannot co
   assert.deepEqual(runtimeSafetyErrors({ ...base, worldIdEnabled: true, worldIdEnvironment: 'production' }), []);
   assert.deepEqual(runtimeSafetyErrors({ ...base, worldIdEnabled: false, worldIdEnvironment: 'staging' }), []);
   assert.deepEqual(runtimeSafetyErrors({ nodeEnv: 'development', worldIdEnabled: true, worldIdEnvironment: 'staging' }), []);
+});
+
+test('mainnet never runs on the demo review clock', () => {
+  const threeDays = 3 * 86_400_000;
+  assert.equal(effectiveReviewWindowMs('mainnet', 300_000), threeDays);
+  assert.equal(effectiveReviewWindowMs('mainnet', 7 * 86_400_000), 7 * 86_400_000);
+  assert.equal(effectiveReviewWindowMs('testnet', 300_000), 300_000);
+  assert.equal(effectiveReviewWindowMs(undefined, 300_000), 300_000);
 });

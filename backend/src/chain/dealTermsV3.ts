@@ -72,6 +72,9 @@ export interface DealTermsLimits {
   /// Platform settings.
   baseReviewSecs: number;
   reclaimGraceSecs: number;
+  /// The last milestone waits for the buyer (or a ruling, or the silent
+  /// longstop) on every deal, not only at the high-value line.
+  finalByBuyer?: boolean;
 }
 
 export class DealTermsError extends Error {
@@ -166,7 +169,7 @@ export function buildDealTerms(input: DealTermsInput, limits: DealTermsLimits): 
     startLongstop,
     maxExtensions,
     extensionSecs,
-    finalRelease: highValue ? FINAL_RELEASE.byBuyer : FINAL_RELEASE.onTimer,
+    finalRelease: highValue || limits.finalByBuyer ? FINAL_RELEASE.byBuyer : FINAL_RELEASE.onTimer,
     silenceOutcome,
     silentLongstop,
     checkPolicy,

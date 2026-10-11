@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { z } from 'zod';
-import { runtimeSafetyErrors } from './configSafety.js';
+import { effectiveReviewWindowMs, runtimeSafetyErrors } from './configSafety.js';
 
 /// An empty env var is an empty STRING, and a zod `.default()` only fires on
 /// `undefined`. Without this, `FOO=` in .env skips the default, hits the
@@ -355,7 +355,8 @@ const envSchema = z.object({
   // Direct-deal review window in milliseconds. Used for two timers: the buyer
   // has this long to release the first milestone after the seller delivers, and
   // again to release the final milestone. When it expires the agent
-  // auto-releases. Default 5 min for demos; raise to hours for mainnet.
+  // auto-releases. Default 5 min for testnet demos; mainnet never goes below
+  // MAINNET_MIN_REVIEW_WINDOW_MS (3 days), whatever is set here.
   DEAL_REVIEW_WINDOW_MS: z.coerce.number().int().positive().default(300_000),
   // Each "still reviewing" tip adds this much time to the final-release window.
   // Default 10 min for demos.
@@ -1031,6 +1032,7 @@ if (parsed.data.X402_PAID_SIGNALS_ENABLED && !parsed.data.X402_BASE_PRIVATE_KEY)
 
 export const config = {
   ...parsed.data,
+  DEAL_REVIEW_WINDOW_MS: effectiveReviewWindowMs(parsed.data.ARC_NETWORK, parsed.data.DEAL_REVIEW_WINDOW_MS),
   /// Resolved CCTP relay wallet. Read this everywhere bridge mints fire.
   /// Equivalent to `CCTP_RELAY_WALLET_ID ?? BUYER_AGENT_WALLET_ID` after the
   /// transitional alias is removed.

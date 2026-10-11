@@ -59,14 +59,14 @@ emitted in `DealTermsSet`.
 | `reservationBps` | Seller stake reserved as insurance | 0, or 5000 to `maxReservationBps` |
 | `deliveryDeadline` | When the next undelivered milestone is late | 0 (open) only below `highValue`; otherwise now < d <= now + horizon |
 | `reclaimGrace` | Seller's last chance after the deadline | <= 30 days |
-| `reviewWindow` | Buyer's time to check each delivery | `minReview` to `maxReview` |
+| `reviewWindow` | Buyer's time to check each delivery | `minReview` to `maxReview`; the mainnet backend never sets less than 3 days |
 | `reviewStarts` | `ON_DELIVERY`, `ON_ARRIVAL` for physical goods, or `ON_CHECK_PASS` when a delivery check is agreed (section 13) | |
 | `checkPolicy` | The delivery check plan's policy ID and version, built from the terms | required when `ON_CHECK_PASS` |
 | `checkLongstop` | Review starts anyway this long after delivery if the check never answers | required when `ON_CHECK_PASS`, <= 14 days |
 | `arrivalLongstop` | For `ON_ARRIVAL`: review starts anyway this long after delivery if the buyer never confirms arrival | required when `ON_ARRIVAL`, <= 120 days |
 | `maxExtensions` | How many times the buyer may ask for more review time | 0 to 3 |
 | `extensionSecs` | Length of each extension | <= `reviewWindow` |
-| `finalRelease` | `ON_TIMER`: seller can claim the last milestone after review. `BY_BUYER`: last milestone needs the buyer, the arbiter, or the longstop | `BY_BUYER` required at or above `highValue` |
+| `finalRelease` | `ON_TIMER`: seller can claim the last milestone after review. `BY_BUYER`: last milestone needs the buyer, the arbiter, or the longstop | `BY_BUYER` required at or above `highValue`; the mainnet backend sets `BY_BUYER` on every deal |
 | `silentLongstop` | If the buyer neither releases nor disputes, the seller can claim this long after delivery, even under `BY_BUYER` or a missing evidence check | `reviewWindow` + all extensions <= longstop <= 180 days |
 | `evidenceRequired` | Timer claims need a passing delivery check (guardian attestation) | required at or above `highValue` |
 | `agreementHash` | Digest of the full signed off-chain agreement (scope, files, legal text) | not zero |

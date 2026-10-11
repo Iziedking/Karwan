@@ -75,7 +75,8 @@ export async function readReviewEndV3(address: Address, jobId: Hex): Promise<big
 }
 
 /// The deployed escrow's immutable bounds and caps, for buildDealTerms. The
-/// platform settings (base review, reclaim grace) come from config.
+/// platform settings (base review, reclaim grace, and on mainnet a final
+/// milestone that waits for the buyer) come from config.
 export async function readDealTermsLimits(address: Address, nowSecs: number): Promise<DealTermsLimits> {
   const read = (functionName: string) =>
     publicClient.readContract({ address, abi: dealEscrowV3Abi, functionName: functionName as never }) as Promise<
@@ -97,6 +98,7 @@ export async function readDealTermsLimits(address: Address, nowSecs: number): Pr
     highValueUnits: BigInt(highValue),
     baseReviewSecs: Math.floor(config.DEAL_REVIEW_WINDOW_MS / 1000),
     reclaimGraceSecs: Math.floor(config.DEAL_DEADLINE_RECLAIM_GRACE_MS / 1000),
+    finalByBuyer: config.ARC_NETWORK === 'mainnet',
   };
 }
 

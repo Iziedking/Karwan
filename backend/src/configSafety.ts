@@ -38,6 +38,16 @@ export function runtimeSafetyErrors(input: RuntimeSafetyInput): string[] {
   return errors;
 }
 
+/** Mainnet deals hold real money, so the review clock never drops to a demo value. */
+export const MAINNET_MIN_REVIEW_WINDOW_MS = 3 * 86_400_000;
+
+export function effectiveReviewWindowMs(
+  arcNetwork: RuntimeSafetyInput['arcNetwork'],
+  configuredMs: number,
+): number {
+  return arcNetwork === 'mainnet' ? Math.max(configuredMs, MAINNET_MIN_REVIEW_WINDOW_MS) : configuredMs;
+}
+
 export function moneyInvariantInstallFailureIsFatal(
   nodeEnv: RuntimeSafetyInput['nodeEnv'],
 ): boolean {
