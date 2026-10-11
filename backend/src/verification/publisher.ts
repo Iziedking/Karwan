@@ -29,11 +29,15 @@ export interface PublisherDeps {
     evidenceHash: string;
     expiresAtSec: number;
   }) => Promise<{ txHash: string; factId: string } | null>;
+  /// Revokes one fact this issuer wrote, or null when the receipt does not
+  /// show FactRevoked for it.
+  revokeOnChain: (input: { factId: string }) => Promise<{ txHash: string } | null>;
 }
 
-/// Writes stored facts that are not on chain yet. Idempotent: a fact is marked
+/// Writes stored facts that are not on chain yet, and revokes on chain the ones
+/// a reviewer withdrew after they were written. Idempotent: a fact is marked
 /// only after its event is read back, and a failure is retried next sweep.
-/// Returns how many facts were written.
+/// Returns how many facts were written or revoked.
 export function createFactPublisher(deps: PublisherDeps) {
   return async function publishPending(now = Date.now()): Promise<number> {
     if (!deps.configured) return 0;
@@ -43,7 +47,23 @@ export function createFactPublisher(deps: PublisherDeps) {
       let changed = false;
       const next: StoredFact[] = [];
       for (const fact of stored) {
-        if (fact.onchain || fact.expiresAt <= now || fact.level === 'self_reported') {
+        if (fact.revokedAt !== undefined && fact.onchain && !fact.onchain.revokedTxHash) {
+          try {
+            const result = await deps.revokeOnChain({ factId: fact.onchain.factId });
+            if (result) {
+              next.push({ ...fact, onchain: { ...fact.onchain, revokedTxHash: result.txHash } });
+              changed = true;
+              written++;
+              continue;
+            }
+            logger.warn({ subject, factId: fact.id }, 'facts: receipt had no FactRevoked event; will retry');
+          } catch (err) {
+            logger.warn({ subject, factId: fact.id, err: (err as Error).message }, 'facts: revoke failed; will retry');
+          }
+          next.push(fact);
+          continue;
+        }
+        if (fact.onchain || fact.revokedAt !== undefined || fact.expiresAt <= now || fact.level === 'self_reported') {
           next.push(fact);
           continue;
         }

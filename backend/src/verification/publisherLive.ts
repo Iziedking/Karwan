@@ -12,6 +12,7 @@ export const factsAbi = parseAbi([
   'function factsOf(address subject) view returns (uint256[])',
   'function getFact(uint256 id) view returns ((address subject, bytes32 kind, uint8 level, address issuer, uint64 issuedAt, uint64 expiresAt, bool revoked, bytes32 evidenceHash))',
   'event FactRecorded(uint256 indexed id, address indexed subject, bytes32 indexed kind, uint8 level, address issuer, bytes32 evidenceHash, uint64 expiresAt)',
+  'event FactRevoked(uint256 indexed id, address issuer)',
 ]);
 
 const SWEEP_MS = 60_000;
@@ -62,6 +63,26 @@ export function startFactPublisher(): () => void {
         (e) => e.args.subject.toLowerCase() === subject.toLowerCase() && e.args.evidenceHash === evidenceHash,
       );
       return event ? { txHash, factId: event.args.id.toString() } : null;
+    },
+    revokeOnChain: async ({ factId }) => {
+      const id = BigInt(factId);
+      const current = await publicClient.readContract({ address: contract, abi: factsAbi, functionName: 'getFact', args: [id] });
+      if (current.revoked) return { txHash: '' };
+
+      const { txHash } = await executeContractCall(
+        {
+          walletId,
+          contractAddress: contract,
+          abiFunctionSignature: 'revoke(uint256)',
+          abiParameters: [factId],
+          idempotencyKey: deterministicIdempotencyKey(`karwan-fact-revoke:${factId}`),
+        },
+        `facts.revoke(${factId})`,
+      );
+      // Done only when the receipt carries the revocation of this exact fact.
+      const receipt = await publicClient.getTransactionReceipt({ hash: txHash as Hex });
+      const event = parseEventLogs({ abi: factsAbi, logs: receipt.logs, eventName: 'FactRevoked' }).find((e) => e.args.id === id);
+      return event ? { txHash } : null;
     },
   });
 

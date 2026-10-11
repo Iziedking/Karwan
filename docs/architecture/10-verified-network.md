@@ -39,7 +39,7 @@ flowchart LR
   X --> F
   F --> R[Public record and<br/>signed credential]
   V -.->|when needed| H[Person check<br/>World ID]
-  V -.->|deals from 100 USDC| I[ID check provider]
+  V -.->|deals from 100 USDC, planned| I[ID check provider<br/>not chosen yet]
   G -.->|per question| N[USDC micropayment<br/>Circle x402]
 ```
 
@@ -78,9 +78,9 @@ sequenceDiagram
 | Level | What it takes | What it opens |
 |---|---|---|
 | Registered | Accepted the terms, described their work | Their own account |
-| Person verified | A person check (World ID, or an ID check where World ID is not available), plus one account they own (X) or a matching business registration | A public record |
+| Person verified | A person check (World ID; an ID check is planned for places World ID does not reach), plus one account they own (X) or a matching business registration | A public record |
 | Work verified | Independent proof of work: a verified past client's confirmation (an invoice can back it, never alone), public work on GitHub, or a completed Karwan deal | Discoverable by agents |
-| ID verified | A government ID check | Deals of 100 USDC and above |
+| ID verified | A government ID check. Planned: no provider yet, so nobody holds this level | Deals of 100 USDC and above, closed until then |
 
 ## Finding a counterparty and agreeing terms
 
@@ -245,10 +245,12 @@ Chainlink CRE runs the same checks in a sandbox on a decentralised network, so a
 | Verification | The same invoice from two accounts | The second is refused |
 | Verification | A client says No | Stored as evidence against the claim; never shown to anyone else |
 | Verification | A business registry lookup fails | A reviewer checks it, and the fact records that a person reviewed it |
+| Verification | Two accounts send the same business registration | It backs the first approved account only; the second is refused and told why |
+| Verification | A reviewer approves a registration in error | The reviewer withdraws it with a reason; the fact stops counting, the number is free again, and the person is told |
 | Identity | One person tries a second account | The person check is unique per identity; the second is refused |
 | Discovery | Few verified people fit | The agent says so, and never offers an unverified person |
 | Agent to agent | The micropayment cannot settle | The question is still answered and logged as unpaid |
-| Escrow | Deal above the beta cap, or from 100 USDC without an ID check | Refused before anything is signed, with the reason |
+| Escrow | Deal above the beta cap, or of 100 USDC and above while no ID check exists | Refused before anything is signed, with the reason |
 | Escrow | The transaction is submitted but the event is missing | Not treated as done; the agent says it is still confirming |
 | Escrow | Paused | No new deals; every open deal can still finish |
 | Delivery check | The check cannot run or has no result yet | Nothing moves. The agent says the check is pending, and the buyer can take over the review |

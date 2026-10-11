@@ -15,9 +15,10 @@ const fact = (over: Partial<StoredFact>): StoredFact => ({
   ...over,
 });
 
-function setup(opts: { configured?: boolean; event?: boolean; stored?: Record<string, StoredFact[]> } = {}) {
+function setup(opts: { configured?: boolean; event?: boolean; revokeEvent?: boolean; stored?: Record<string, StoredFact[]> } = {}) {
   const stored = new Map(Object.entries(opts.stored ?? { '0xada': [fact({})] }));
   const calls: Array<{ subject: string; level: number; expiresAt: number }> = [];
+  const revokes: string[] = [];
   const deps: PublisherDeps = {
     configured: opts.configured ?? true,
     listSubjects: async () => [...stored.keys()],
@@ -29,8 +30,12 @@ function setup(opts: { configured?: boolean; event?: boolean; stored?: Record<st
       calls.push({ subject: input.subject, level: input.level, expiresAt: input.expiresAtSec });
       return opts.event === false ? null : { txHash: '0xtx', factId: '7' };
     },
+    revokeOnChain: async ({ factId }) => {
+      revokes.push(factId);
+      return opts.revokeEvent === false ? null : { txHash: '0xrevoke' };
+    },
   };
-  return { publish: createFactPublisher(deps), stored, calls };
+  return { publish: createFactPublisher(deps), stored, calls, revokes };
 }
 
 test('an unpublished fact is written once and marked with its transaction', async () => {
@@ -82,8 +87,34 @@ test('one failing fact does not stop the others', async () => {
       if (n++ === 0) throw new Error('rpc down');
       return { txHash: '0xtx2', factId: '8' };
     },
+    revokeOnChain: async () => null,
   });
   void publish;
   assert.equal(await failing(), 1);
   assert.equal(stored.get('0xada')!.filter((f) => f.onchain).length, 1);
+});
+
+test('a fact a reviewer withdrew before it was published never goes on chain', async () => {
+  const { publish, calls } = setup({ stored: { '0xada': [fact({ revokedAt: now })] } });
+  assert.equal(await publish(), 0);
+  assert.equal(calls.length, 0);
+});
+
+test('a withdrawn fact already on Arc is revoked there once, by the issuer that wrote it', async () => {
+  const onchain = { factId: '7', txHash: '0xtx' };
+  const { publish, stored, revokes, calls } = setup({ stored: { '0xada': [fact({ revokedAt: now, onchain })] } });
+  assert.equal(await publish(), 1);
+  assert.deepEqual(revokes, ['7']);
+  assert.deepEqual(stored.get('0xada')![0].onchain, { ...onchain, revokedTxHash: '0xrevoke' });
+  assert.equal(await publish(), 0);
+  assert.deepEqual(revokes, ['7'], 'never twice');
+  assert.equal(calls.length, 0, 'a withdrawn fact is never written again');
+});
+
+test('a revoke whose receipt shows no FactRevoked is tried again on the next sweep', async () => {
+  const { publish, stored, revokes } = setup({ revokeEvent: false, stored: { '0xada': [fact({ revokedAt: now, onchain: { factId: '7', txHash: '0xtx' } })] } });
+  assert.equal(await publish(), 0);
+  assert.equal(stored.get('0xada')![0].onchain?.revokedTxHash, undefined);
+  await publish();
+  assert.deepEqual(revokes, ['7', '7']);
 });
