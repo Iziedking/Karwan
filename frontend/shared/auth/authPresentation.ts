@@ -11,9 +11,11 @@ function sameAddress(left: string | null | undefined, right: string | null | und
 
 /**
  * A Circle session remains the account identity even when an external wallet is
- * connected for funding. A web3 session is only valid for the wallet currently
- * connected in the browser. This prevents the header from showing one wallet
- * while private routes still use a cookie belonging to another.
+ * connected for funding. A web3 session stays valid while its wallet is locked,
+ * absent or reconnecting, so a returning user keeps their account and a way to
+ * sign out; the wallet is asked for only when something needs a signature. It
+ * stops counting when a different wallet is connected, so the header never
+ * shows one wallet while private routes use a cookie belonging to another.
  */
 export function sessionMatchesWallet(
   session: AuthSessionIdentity | null,
@@ -21,7 +23,16 @@ export function sessionMatchesWallet(
 ): boolean {
   if (!session) return false;
   if (session.method === 'circle') return true;
-  return wallet.connected && sameAddress(session.address, wallet.address);
+  return !wallet.connected || sameAddress(session.address, wallet.address);
+}
+
+/**
+ * A disconnect the person made: the wallet was connected in this tab and now
+ * is not. A wallet that never reconnected after a reload (locked or removed
+ * extension) is not a sign-out.
+ */
+export function walletWasDisconnected(previous: string | null, current: string): boolean {
+  return previous === 'connected' && current === 'disconnected';
 }
 
 /**
@@ -54,7 +65,8 @@ export function shouldWaitForWalletSession({
 
 /// How long a returning wallet may hold the page while it reconnects. A locked
 /// extension never answers, so wagmi stays "reconnecting" until this passes.
-export const WALLET_RESOLVE_CAP_MS = 6_000;
+/// A live session does not wait at all; this only covers a lapsed one.
+export const WALLET_RESOLVE_CAP_MS = 2_000;
 
 export function walletStillResolving(status: string, waitedMs: number): boolean {
   if (status !== 'connecting' && status !== 'reconnecting') return false;

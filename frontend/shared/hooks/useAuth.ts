@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAccount, useDisconnect } from 'wagmi';
 import { useQueryClient } from '@tanstack/react-query';
@@ -13,6 +13,7 @@ import {
   sessionMatchesWallet,
   shouldWaitForWalletSession,
   walletStillResolving,
+  walletWasDisconnected,
   WALLET_RESOLVE_CAP_MS,
 } from '@/shared/auth/authPresentation';
 
@@ -148,17 +149,20 @@ export function useAuth(): AuthState & {
     if (wagmiAddress) refresh();
   }, [wagmiAddress, refresh]);
 
-  // Drop a stale web3 session if wagmi has decisively disconnected. A user can
-  // disconnect from RainbowKit's account modal or their wallet extension
-  // without going through useAuth.signOut(), which would otherwise leave the
-  // backend cookie in place. The result was a confusing half-state: TopNav
-  // shows "Sign in" (wagmi disconnected) while the rest of the app still
-  // renders authed chrome (cookie still valid). Wait for wagmiStatus to land
-  // on 'disconnected' so we don't fight the auto-reconnect on first paint.
+  // A user can disconnect from RainbowKit's account modal or their wallet
+  // extension without going through useAuth.signOut(). Treat that as signing
+  // out, and clear the backend cookie with it. Only a disconnect seen in this
+  // tab counts: a wallet that never reconnects after a reload (a locked or
+  // removed extension) leaves the session alone, so the person keeps their
+  // account and the sign-out control instead of a "Sign in" button that
+  // contradicts a live cookie.
+  const previousWagmiStatus = useRef<string | null>(null);
   useEffect(() => {
+    const previous = previousWagmiStatus.current;
+    previousWagmiStatus.current = wagmiStatus;
     if (!session) return;
     if (session.method !== 'web3') return;
-    if (wagmiStatus !== 'disconnected') return;
+    if (!walletWasDisconnected(previous, wagmiStatus)) return;
     publishAuthSession(null);
     qc.clear();
     clearPersistedCache();
