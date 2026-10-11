@@ -100,6 +100,8 @@ import { diagnoseRoutes } from './routes/diagnose.js';
 import { businessRoutes, businessAdminRoutes } from './routes/business.js';
 import { verificationRoutes } from './routes/verification.js';
 import { createPersonVerificationRoutes } from './routes/personVerification.js';
+import { createMoneyOutRoutes } from './routes/moneyOut.js';
+import { moneyOutRouteDeps } from './moneyOut/live.js';
 import { adminVerificationRoutes } from './routes/adminVerification.js';
 import { addVerifiedFact, claimNullifier, levelOf } from './verification/live.js';
 import { verificationServices } from './verification/services.js';
@@ -496,6 +498,7 @@ app.route(
     },
   }),
 );
+app.route('/api/money-out', createMoneyOutRoutes({ ...moneyOutRouteDeps, sessionAddress }));
 app.route('/api/admin/verification', adminVerificationRoutes);
 app.route('/api/r', createRecordRoutes(recordDeps));
 startFactPublisher();
