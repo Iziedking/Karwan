@@ -3,7 +3,7 @@
 import { FullBleed, Band } from '@/shared/components/Bands';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
-/// Terms for the Karwan agent on WhatsApp, linked from the first message.
+/// Terms for the Karwan agent in chat, linked from the first message.
 export default function ChatTermsPage() {
   const t = useTranslations().chatTerms;
   return (

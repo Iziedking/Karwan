@@ -10,7 +10,7 @@ type RpSignature = Awaited<ReturnType<typeof api.worldIdRpSignature>>;
 type Phase = 'idle' | 'preparing' | 'open' | 'checking' | 'done';
 
 /// The account-level person check: one World ID proof, tied to one account.
-/// A WhatsApp user arrives here signed in through the agent's one-time link.
+/// A chat user arrives here signed in through the agent's one-time link.
 export function PersonCheck() {
   const t = useTranslations().personCheck;
   const [status, setStatus] = useState<Status | null>(null);

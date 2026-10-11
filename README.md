@@ -51,7 +51,7 @@ Agents compare candidates and prepare terms within account limits. Users approve
 
 A personal workspace and an optional owner-only business workspace share one account. Business verification is separate from personal identity checks. Team permissions are planned.
 
-Connected-wallet users sign with their own wallet. Testnet email accounts use Circle Developer-Controlled Wallets operated by Karwan. Passkey sign-in and a passkey-controlled smart wallet are different mechanisms; a sign-in method alone does not establish custody. Customer Developer-Controlled Wallet provisioning is refused on mainnet, with one planned exception: accounts created through the Karwan agent on WhatsApp, behind a flag and under the escrow beta limits, so people who never manage keys can trade from chat. That exception is built and not live. The Modular Wallet implementation is a separate passkey-signing path and is not evidence that every mainnet wallet flow has passed verification.
+Connected-wallet users sign with their own wallet. Testnet email accounts use Circle Developer-Controlled Wallets operated by Karwan. Passkey sign-in and a passkey-controlled smart wallet are different mechanisms; a sign-in method alone does not establish custody. Customer Developer-Controlled Wallet provisioning is refused on mainnet, with one planned exception: accounts created through the Karwan agent in chat (Telegram; the WhatsApp adapter is paused), behind a flag and under the escrow beta limits, so people who never manage keys can trade from chat. That exception is built and not live. The Modular Wallet implementation is a separate passkey-signing path and is not evidence that every mainnet wallet flow has passed verification.
 
 Once funded, escrow contracts govern deal payouts. Wallet signing authority, contract administrator powers and recovery rules should be considered separately. Neither escrow nor a reputation score guarantees delivery, asset value or recovery from a software failure.
 
@@ -147,11 +147,11 @@ Work from 27 September to 17 October 2026, during The Canteen's Tameion agents h
 - Delivery checks reported to both parties, offers and matching fixes, and a redesigned deal page.
 
 **Built in the repository, not yet deployed** ([architecture view 10](./docs/architecture/10-verified-network.md))
-- The Karwan agent on WhatsApp: a signed webhook, accounts created on accepting terms, the same assistant and confirm routes as the app, deal updates in chat.
-- A verification ladder decided by published rules: invoices that cannot be reused, past clients confirming a job in one tap, CAC review, a World ID person check, an ID check for deals of 100 USDC and above.
+- The Karwan agent on Telegram, on Karwan's existing bot: accounts created on accepting terms, the same assistant and routes as the app, and every step that moves money confirmed on Karwan from a one-time link. A WhatsApp adapter on the same core is built and paused.
+- A verification ladder decided by published rules: invoices that cannot be reused, past clients confirming a job from a link they open, which counts only when the client is person verified, CAC review and a World ID person check. Deals of 100 USDC and above stay closed until an ID check exists.
 - `KarwanFacts`, an append-only contract of verified facts that can only be written to a person, a public record page and a signed copy anyone can check without Karwan.
 - Agents that offer only work-verified people and answer each other from what the seller set, with record reads paid over x402.
-- Protected deals with someone you already know, started and paid from chat, and the mainnet escrow beta deploy with a 1,000 USDC cap and no yield.
+- Protected deals with someone you already know, started from chat and paid on Karwan, and the mainnet escrow beta deploy with a 1,000 USDC cap and no yield.
 
 ## Documentation
 

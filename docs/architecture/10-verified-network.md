@@ -109,33 +109,34 @@ sequenceDiagram
   S->>SA: Confirm
 ```
 
-## Closing the deal in chat
+## Closing the deal: agreed in chat, paid on Karwan
 
 ```mermaid
 sequenceDiagram
   actor B as Buyer
   participant K as Karwan agent
+  participant W as Karwan page
   participant E as Escrow on Arc
   actor S as Seller
   participant F as Facts on Arc
 
-  K-->>B: "Pay 250 USDC into escrow?" Confirm / Cancel
-  B->>K: Confirm
-  K->>E: Fund from the buying wallet
-  E-->>K: Receipt with the funding event
+  K-->>B: "Pay 250 USDC into escrow", with a one-time link
+  B->>W: Opens the link, sees every figure, confirms
+  W->>E: Fund from the buying wallet
+  E-->>W: Receipt with the funding event
   K-->>S: Funded. Accept to start
   S->>K: Accept
   S->>K: Delivered, with proof
-  K-->>B: "Release 250 USDC to the seller?" Confirm / Cancel
-  B->>K: Confirm
-  K->>E: Release
+  K-->>B: "Release 250 USDC to the seller", with a one-time link
+  B->>W: Opens the link and confirms
+  W->>E: Release
   E->>S: Payment to the earnings wallet
   E->>F: Completed deal joins both records
   K-->>B: Done, with proof on Arc
   K-->>S: Paid, with proof on Arc
 ```
 
-Money comes in from any wallet or chain, or a payment link. Funding from a bank or USSD is planned. Earnings can be withdrawn at any time.
+Agreements, delivery and disputes are confirmed in chat. Every step that moves money opens a one-time Karwan link, valid once for ten minutes, and is confirmed on the page, where the person sees every figure first. No chat button moves money, and the chat adapter refuses a money step that reaches it. Money comes in from any wallet or chain, or a payment link. Funding from a bank or USSD is planned. Earnings can be withdrawn at any time.
 
 ## A deal with someone you already know
 
@@ -155,13 +156,12 @@ sequenceDiagram
   K-->>S: "Tunde wants a protected deal with you", the terms, Accept / Decline
   Note over K,S: Someone not yet on Karwan accepts the terms first, then sees the deal
   S->>K: Accept
-  K-->>B: "Pay 80 USDC into escrow?" Confirm / Cancel
-  B->>K: Confirm
-  K->>E: Fund with the agreed terms
+  K-->>B: "Pay 80 USDC into escrow", with a one-time link
+  B->>E: Confirms on the Karwan page, funded with the agreed terms
   Note over B,E: Delivery, checks and release run as in the deal above
 ```
 
-A direct deal needs both people to have accepted the terms. It does not need either to be discoverable, because nobody was found by an agent. The beta cap and the ID check from 100 USDC apply as on every deal.
+A direct deal needs both people to have accepted the terms. It does not need either to be discoverable, because nobody was found by an agent. The beta cap applies as on every deal, and deals of 100 USDC and above stay closed until an ID check exists.
 
 ## Delivery checks
 
@@ -229,7 +229,7 @@ Chainlink CRE runs the same checks in a sandbox on a decentralised network, so a
 | Escrow (view 07) | Live on testnet |
 | Person check with World ID | Built, behind a flag |
 | X sign-in linking | Built |
-| Telegram channel adapter | Planned |
+| Telegram channel adapter, money steps confirmed on Karwan from a one-time link | Built, not deployed |
 | WhatsApp channel adapter | Built, paused |
 | Verification rules, ladder, evidence checks | Built, not deployed |
 | Facts contract on Arc and signed credential | Built, not deployed |
