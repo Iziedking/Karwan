@@ -116,11 +116,11 @@ test('a refusal from the chat deal limits is passed on in the words of the route
   const execute = createExecutor({
     call: async () => ({
       status: 409,
-      json: { error: 'Deals of 100 USDC and above need an ID check from both sides first.', code: 'CHAT_DEAL_LIMIT' },
+      json: { error: 'Deals of 100 USDC and above are not open in this beta. Split the work into separate deals under 100 USDC.', code: 'CHAT_DEAL_LIMIT' },
     }),
   });
   const r = await execute({ address: ME }, action('choose_offer', { jobId: '0xj', caller: ME, seller: '0xs', amountUsdc: 250 }, 'g1'));
-  assert.deepEqual(r, { ok: false, reason: 'refused', message: 'Deals of 100 USDC and above need an ID check from both sides first.' });
+  assert.deepEqual(r, { ok: false, reason: 'refused', message: 'Deals of 100 USDC and above are not open in this beta. Split the work into separate deals under 100 USDC.' });
 });
 
 test('create_direct_deal opens the deal through the app route with the agreed terms', async () => {

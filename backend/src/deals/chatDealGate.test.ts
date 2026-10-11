@@ -85,3 +85,11 @@ test('every path that pays into escrow asks the gate before money moves', async 
   assert.ok(body.indexOf('chatFundingRefusal(') > 0, 'matched funding asks the gate');
   assert.ok(body.indexOf('chatFundingRefusal(') < body.indexOf('sellerLinkRefusal('), 'before any chain step');
 });
+
+test('the refusal says these deals are not open yet, and never sends anyone to an ID check that does not exist', () => {
+  const r = chatDealGate({ amountUsdc: 150, buyer: work, seller: work });
+  assert.equal(r.ok, false);
+  const message = (r as { message: string }).message;
+  assert.equal(message, 'Deals of 100 USDC and above are not open in this beta. Split the work into separate deals under 100 USDC.');
+  assert.doesNotMatch(message, /ID check/i);
+});

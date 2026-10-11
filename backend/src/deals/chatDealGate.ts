@@ -24,7 +24,9 @@ export function chatDealGate(input: { amountUsdc: number; buyer: Ladder; seller:
     return {
       ok: false,
       reason: 'needs_id',
-      message: `Deals of ${ID_CHECK_FROM_USDC} USDC and above need an ID check from both sides first.`,
+      // No ID check provider exists yet, so nobody can reach id_verified: say
+      // the deal is not open rather than send people to a step they cannot take.
+      message: `Deals of ${ID_CHECK_FROM_USDC} USDC and above are not open in this beta. Split the work into separate deals under ${ID_CHECK_FROM_USDC} USDC.`,
     };
   }
   return { ok: true };
