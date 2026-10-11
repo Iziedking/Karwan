@@ -94,6 +94,10 @@ test(
             'agentkit_research_reservations_v1',
             'cre_delivery_requests_v1',
             'deal_deadline_recoveries_v1',
+            'money_out_addresses_v1',
+            'money_out_spend_v1',
+            'money_out_state_v1',
+            'world_id_account_checks_v1',
           ]) {
             assert.equal(names.has(table), true, `${schema} is missing ${table}`);
           }

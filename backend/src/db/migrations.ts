@@ -1042,6 +1042,54 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       CREATE INDEX direct_offers_job ON direct_offers_v1 (job_id, created_at);
     `,
   },
+  {
+    version: 36,
+    name: 'money_out_guard',
+    sql: `
+      -- Money leaving a wallet Karwan signs for goes only to an address the
+      -- person saved with their World ID, after a wait, within a daily limit.
+      CREATE TABLE money_out_addresses_v1 (
+        id TEXT PRIMARY KEY,
+        wallet TEXT NOT NULL,
+        chain TEXT NOT NULL,
+        address TEXT NOT NULL,
+        added_at BIGINT NOT NULL,
+        opens_at BIGINT NOT NULL,
+        removed_at BIGINT
+      );
+      CREATE UNIQUE INDEX money_out_addresses_live ON money_out_addresses_v1 (wallet, chain, address)
+        WHERE removed_at IS NULL;
+      CREATE INDEX money_out_addresses_wallet ON money_out_addresses_v1 (wallet);
+      -- One row per payment, keyed by its money movement, so a retry counts once.
+      CREATE TABLE money_out_spend_v1 (
+        reference TEXT PRIMARY KEY,
+        wallet TEXT NOT NULL,
+        amount_micros NUMERIC NOT NULL CHECK (amount_micros > 0),
+        at BIGINT NOT NULL
+      );
+      CREATE INDEX money_out_spend_wallet_at ON money_out_spend_v1 (wallet, at);
+      CREATE TABLE money_out_state_v1 (
+        wallet TEXT PRIMARY KEY,
+        paused_at BIGINT,
+        return_check_due_at BIGINT
+      );
+      CREATE TABLE world_id_account_checks_v1 (
+        rp_id TEXT NOT NULL,
+        environment TEXT NOT NULL CHECK (environment IN ('staging', 'production')),
+        nonce TEXT NOT NULL,
+        wallet TEXT NOT NULL,
+        purpose TEXT NOT NULL CHECK (purpose IN ('enrol', 'add_address', 'return', 'unpause')),
+        request JSONB NOT NULL,
+        expires_at BIGINT NOT NULL,
+        replay_key TEXT,
+        response_digest TEXT,
+        completed_at BIGINT,
+        PRIMARY KEY (rp_id, environment, nonce),
+        UNIQUE (rp_id, environment, replay_key)
+      );
+      CREATE INDEX world_id_account_checks_wallet ON world_id_account_checks_v1 (wallet, expires_at);
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

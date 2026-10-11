@@ -200,3 +200,15 @@ test('migration runner rolls back a failed migration and always releases its loc
     true,
   );
 });
+
+test('migration 36 holds the money-out guard: addresses, spend, account state and World ID account checks', () => {
+  const migration = NUMBERED_MIGRATIONS.find((m) => m.version === 36);
+  assert.equal(migration?.name, 'money_out_guard');
+  const sql = migration!.sql;
+  for (const table of ['money_out_addresses_v1', 'money_out_spend_v1', 'money_out_state_v1', 'world_id_account_checks_v1']) {
+    assert.match(sql, new RegExp(`CREATE TABLE ${table}\\b`));
+  }
+  assert.match(sql, /WHERE removed_at IS NULL/);
+  assert.match(sql, /purpose TEXT NOT NULL CHECK \(purpose IN \('enrol', 'add_address', 'return', 'unpause'\)\)/);
+  assert.match(sql, /UNIQUE \(rp_id, environment, replay_key\)/);
+});
