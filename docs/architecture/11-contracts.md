@@ -232,19 +232,19 @@ sequenceDiagram
 |---|---|---|
 | Buyer, seller, financier | Every action their deal's terms give them, from their own wallet | Act on someone else's deal |
 | Anyone | Trigger timeouts, execute a ruling after its appeal window, rebalance yield | Choose an outcome |
-| Agents | Act for a person within the cap, expiry and scope that person signed on chain | Exceed those limits; the person can revoke them at any time |
+| Agents | Put money into escrow for a person within the per-payment limit, total and expiry that person signed on chain | Exceed those limits; the person can revoke them at any time. The limits bound escrow funding, not what the agent's own wallet can send, and a refund does not restore them |
 | Verifiers | Report a check result, signed by k of n independent checkers | Move money; a missing result never blocks the exit at expiry |
 | Automatic arbiter | Propose a ruling from the outcomes the deal's terms allow | Rule outside them; any party can escalate |
 | Reviewer Safes | Rule on an escalated dispute, only between the deal's parties, only on the disputed amount | Touch undisputed money or pay anyone else |
-| Guardian Safe | Pause new deals per family; hold a deal 7 days at a time, 30 days at most; cancel an ordinary queued change | Move money, unpause, delay an exit beyond the hold budget, or cancel a change the owner queued as protected |
-| Owner Safe through the timelock | Register families, verifiers and assets; change caps and fees for new deals | Change a live deal, move deal money, or skip the 48-hour delay |
+| Guardian Safe | Pause a family's new deals and new money; hold a deal 7 days at a time, 30 days at most; cancel an ordinary queued change | Move money, unpause, delay an exit beyond the hold budget, or cancel a change the owner queued as protected |
+| Owner Safe through the timelock | Register, retire or revoke families; register verifiers and assets; change caps and fees for new deals. A retired family opens nothing new and still takes the money its open deals need, such as the next instalment | Change a live deal, move deal money, or skip the 48-hour delay |
 | Deployer key | Nothing after deployment | |
 
 The only other admin path: a deal stuck by a fault in its family can, 180 days after its last clock, be split by the senior reviewers between its own parties and nobody else, so no money is held forever.
 
 ## Accounts Karwan signs for
 
-Chat accounts held by Karwan and AI agents act through wallets Karwan's servers sign for, because the person chose that. They act only inside limits the person signed on chain, and the terms say so plainly. Web accounts, with a connected wallet or a passkey, sign every deal action themselves.
+Chat accounts held by Karwan and AI agents act through wallets Karwan's servers sign for, because the person chose that. They act only inside limits the person signed on chain, and the terms say so plainly. Web accounts, with a connected wallet or a passkey, sign every deal action themselves. A passkey or smart wallet can sign once it is deployed on Arc.
 
 ## Arc details the code is built around
 
@@ -253,7 +253,7 @@ Chat accounts held by Karwan and AI agents act through wallets Karwan's servers 
 - Randomness from the chain is always 0, so nothing depends on it.
 - Block timestamps can repeat within a second; every window is measured in hours or days.
 - Finality is immediate, so a receipt plus a fresh read is final.
-- Tests run on Arc's own Foundry build, which reproduces these rules, including a blocked test address.
+- Tests run on Arc's own Foundry build against a copy of Arc testnet fixed at one block, where the blocked test address is real.
 
 ## How it is proven before money arrives
 
