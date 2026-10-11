@@ -20,6 +20,9 @@
 #   from-wallet ADDR SIG  turn a wallet's personal_sign of the hash into the Safe's form
 #   accept A:SIG B:SIG   execute acceptOwnership from the Safe with two owner signatures
 #   verify         check owners, pending owner, backfill lock and reviewer on-chain
+#
+# The same day, publish the sources (any deploy, not only this one):
+#   script/mainnet/verify-sources.sh broadcast/DeployRegistries.s.sol/5042/run-latest.json
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
