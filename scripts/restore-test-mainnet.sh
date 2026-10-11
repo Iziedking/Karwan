@@ -73,4 +73,16 @@ echo "public tables: restored $restored_tables, manifest $expected_tables"
 docker exec "$CONTAINER" psql -U postgres -d karwan_mainnet -Atc \
   "select 'canary=' || v from backup_canary" 2>/dev/null || true
 [ "$restored_tables" = "$expected_tables" ] || { echo "RESTORE MISMATCH"; exit 1; }
+
+# Chat accounts are found by a hash keyed with CHAT_NUMBER_PEPPER. A backup
+# that holds those accounts without the pepper restores accounts nobody can reach.
+chat_accounts=$(docker exec "$CONTAINER" psql -U postgres -d karwan_mainnet -Atc \
+  "select (select count(*) from telegram_accounts) + (select count(*) from whatsapp_accounts)" 2>/dev/null || echo 0)
+if age -d -i "$IDENTITY" "$work/env.mainnet.age" | grep -Eq '^CHAT_NUMBER_PEPPER=.+'; then
+  echo "chat accounts: $chat_accounts, pepper in the env backup"
+elif [ "$chat_accounts" -gt 0 ]; then
+  echo "PEPPER MISSING: $chat_accounts chat accounts and no CHAT_NUMBER_PEPPER in env.mainnet"; exit 1
+else
+  echo "chat accounts: 0, no pepper yet"
+fi
 echo "RESTORE OK"
