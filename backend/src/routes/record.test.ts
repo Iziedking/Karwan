@@ -11,8 +11,8 @@ function setup(over: Partial<RecordDeps> = {}) {
     passport: async () => ({ displayName: 'Ada Builds', tag: 'ada', tier: 'Established', reasons: ['WORK_CONFIRMED_BY_CLIENT'] }),
     level: async () => 'work_verified',
     facts: async () => [
-      { kind: 'client_confirmation', level: 'user_proof', issuedAt: now - 1, expiresAt: now + 1e9, evidenceHash: '0xaa', txHash: '0x01' },
-      { kind: 'person_check', level: 'person', issuedAt: now - 1, expiresAt: now - 1, evidenceHash: '0xbb' },
+      { kind: 'client_confirmation', level: 'user_proof', issuedAt: now - 1, expiresAt: now + 1e9, txHash: '0x01' },
+      { kind: 'person_check', level: 'person', issuedAt: now - 1, expiresAt: now - 1 },
     ],
     credential: async () => ({ type: 'karwan.record.v1', signed: true }),
     ...over,

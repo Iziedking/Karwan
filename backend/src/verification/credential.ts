@@ -3,7 +3,7 @@ import { issuerAddress, signAsIssuer } from '../attestation/issuer.js';
 import { config } from '../config.js';
 import type { Ladder } from './ladder.js';
 
-export const RECORD_TYPE = 'karwan.record.v1' as const;
+export const RECORD_TYPE = 'karwan.record.v2' as const;
 const DAY_MS = 24 * 3_600_000;
 
 export interface CredentialFact {
@@ -11,7 +11,6 @@ export interface CredentialFact {
   level: string;
   issuedAt: number;
   expiresAt: number;
-  evidenceHash: string;
   /// The transaction that wrote it to KarwanFacts, once it is on chain.
   txHash?: string;
 }
@@ -33,7 +32,7 @@ export interface RecordCredential {
   proof: { type: 'eip712'; domain: typeof DOMAIN_BASE & { chainId: number }; primaryType: 'KarwanRecord'; signature: `0x${string}` };
 }
 
-const DOMAIN_BASE = { name: 'Karwan Record', version: '1' } as const;
+const DOMAIN_BASE = { name: 'Karwan Record', version: '2' } as const;
 
 const TYPES = {
   KarwanRecord: [
@@ -52,7 +51,7 @@ const TYPES = {
 /// The fact list is covered by its hash, computed from a fixed field order, so
 /// anyone can recompute it from the document.
 function factsHash(facts: CredentialFact[]): `0x${string}` {
-  const canonical = facts.map((f) => [f.kind, f.level, f.issuedAt, f.expiresAt, f.evidenceHash, f.txHash ?? ''].join('|'));
+  const canonical = facts.map((f) => [f.kind, f.level, f.issuedAt, f.expiresAt, f.txHash ?? ''].join('|'));
   return keccak256(toHex(canonical.join('\n')));
 }
 
@@ -93,7 +92,9 @@ export async function buildRecordCredential(input: {
       level: input.level,
       tier: input.tier,
       reasons: input.reasons,
-      facts: input.facts.filter((f) => f.expiresAt > input.now),
+      facts: input.facts
+        .filter((f) => f.expiresAt > input.now)
+        .map((f) => ({ kind: f.kind, level: f.level, issuedAt: f.issuedAt, expiresAt: f.expiresAt, ...(f.txHash ? { txHash: f.txHash } : {}) })),
       chainId: input.chainId,
       factsContract: input.factsContract.toLowerCase(),
     },

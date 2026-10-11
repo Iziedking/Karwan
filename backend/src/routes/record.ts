@@ -6,7 +6,6 @@ interface RecordFact {
   level: string;
   issuedAt: number;
   expiresAt: number;
-  evidenceHash: string;
   txHash?: string;
 }
 

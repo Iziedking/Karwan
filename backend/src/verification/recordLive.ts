@@ -13,13 +13,12 @@ const NO_CONTRACT = '0x0000000000000000000000000000000000000000';
 async function recordFacts(address: string, now: number) {
   const facts = await factsFor(address, evidenceDeps, now);
   return facts.map((f) => {
-    const stored = f as typeof f & { evidenceHash?: string; onchain?: { txHash: string } };
+    const stored = f as typeof f & { onchain?: { txHash: string } };
     return {
       kind: f.kind,
       level: String(f.level),
       issuedAt: f.issuedAt,
       expiresAt: f.expiresAt,
-      evidenceHash: stored.evidenceHash ?? '',
       ...(stored.onchain?.txHash ? { txHash: stored.onchain.txHash } : {}),
     };
   });
