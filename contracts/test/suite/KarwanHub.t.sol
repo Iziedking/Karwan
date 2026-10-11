@@ -68,6 +68,24 @@ contract KarwanHubTest is Test {
         hub.registerFamily(family, 100);
     }
 
+    function test_open_deals_take_money_unless_paused_revoked_or_asset_off() public {
+        assertTrue(hub.acceptsMoney(family, address(usdc)));
+        hub.retireFamily(family);
+        assertTrue(hub.acceptsMoney(family, address(usdc)));
+        hub.setCaps(family, address(usdc), 0, 10_000e6);
+        assertTrue(hub.acceptsMoney(family, address(usdc)));
+        vm.prank(guardian);
+        hub.pauseFamily(family);
+        assertFalse(hub.acceptsMoney(family, address(usdc)));
+        hub.resumeFamily(family);
+        hub.setAsset(address(usdc), false, 0);
+        assertFalse(hub.acceptsMoney(family, address(usdc)));
+        hub.setAsset(address(usdc), true, 0);
+        hub.revokeFamily(family);
+        assertFalse(hub.acceptsMoney(family, address(usdc)));
+        assertFalse(hub.acceptsMoney(stranger, address(usdc)));
+    }
+
     function test_revoked_family_loses_every_power() public {
         hub.revokeFamily(family);
         assertFalse(hub.isFamily(family));
@@ -134,6 +152,12 @@ contract KarwanHubTest is Test {
         hub.setIssuer(stranger, true);
         vm.expectRevert(e);
         hub.retireFamily(family);
+        vm.expectRevert(e);
+        hub.setFamilyFee(family, 0);
+        vm.expectRevert(e);
+        hub.resumeFamily(family);
+        vm.expectRevert(e);
+        hub.revokeFamily(family);
         vm.stopPrank();
     }
 

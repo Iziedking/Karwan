@@ -84,9 +84,11 @@ abstract contract KarwanSettlementBase is ReentrancyGuard, EIP712 {
     event Held(bytes32 indexed dealId, uint64 until, bytes32 reasonHash);
     event HoldReleased(bytes32 indexed dealId);
     event HorizonSet(bytes32 indexed dealId, uint64 horizon);
+    event AccountClosed(bytes32 indexed dealId);
     event LongstopSplit(bytes32 indexed dealId, address indexed by);
     event OutcomeUnrecorded(bytes32 indexed dealId, uint8 party);
     event RecordPending(bytes32 indexed dealId, uint8 party, uint8 outcome, uint16 detail);
+    event RecordAlreadyWritten(bytes32 indexed dealId, uint8 party);
 
     error NotOpen();
     error Exists();
@@ -111,6 +113,7 @@ abstract contract KarwanSettlementBase is ReentrancyGuard, EIP712 {
     error NotSenior();
     error Early();
     error NoPending();
+    error BadOutcome();
 
     constructor(address hub_, string memory name, string memory version) EIP712(name, version) {
         hub = IKarwanHub(hub_);
@@ -214,13 +217,14 @@ abstract contract KarwanSettlementBase is ReentrancyGuard, EIP712 {
         for (uint8 i; i < n; ++i) {
             sum += toPayees[i];
         }
-        if (sum != a.balance) revert BadAmount();
+        if (a.balance == 0 || sum != a.balance) revert BadAmount();
         _onLongstop(dealId);
         _payTo(dealId, a.payer, toPayer);
         for (uint8 i; i < n; ++i) {
             _payTo(dealId, _payees[dealId][i], toPayees[i]);
         }
         a.closed = true;
+        emit AccountClosed(dealId);
         for (uint8 p; p <= n; ++p) {
             _recordOutcome(dealId, p, Outcome.LONGSTOP, 0);
         }
@@ -229,15 +233,20 @@ abstract contract KarwanSettlementBase is ReentrancyGuard, EIP712 {
 
     // ------------------------------- Record -------------------------------
 
-    /// @notice Write an outcome that failed earlier. Anyone can call it.
+    /// @notice Write an outcome that failed earlier. Anyone can call it. An
+    ///         outcome the record already holds is dropped from the queue.
     function retryRecord(bytes32 dealId, uint8 party) external {
         bytes32 key = keccak256(abi.encode(dealId, party));
         uint24 p = pendingRecord[key];
         if (p == 0) revert NoPending();
         delete pendingRecord[key];
-        IKarwanRecord(hub.record()).recordOutcome(
-            dealId, _subject(dealId, party), party, uint8(p >> 16), _band(_accounts[dealId].funded), uint16(p)
-        );
+        IKarwanRecord rec = IKarwanRecord(hub.record());
+        uint64 subject = _subject(dealId, party);
+        if (rec.outcomeRecorded(rec.outcomeKey(address(this), dealId, subject, party))) {
+            emit RecordAlreadyWritten(dealId, party);
+            return;
+        }
+        rec.recordOutcome(dealId, subject, party, uint8(p >> 16), _band(_accounts[dealId].funded), uint16(p));
     }
 
     // -------------------------------- Views -------------------------------
@@ -334,7 +343,7 @@ abstract contract KarwanSettlementBase is ReentrancyGuard, EIP712 {
         Account storage a = _live(dealId);
         if (msg.sender != a.payer) revert NotParty();
         if (amount == 0) revert BadAmount();
-        if (!hub.openingConfig(address(this), a.asset).open) revert NotOpen();
+        if (!hub.acceptsMoney(address(this), a.asset)) revert NotOpen();
         if (uint256(a.funded) + amount > a.perDealCap) revert OverCap();
         if (held[a.asset] + amount > hub.totalCapOf(address(this), a.asset)) revert OverCap();
         a.funded += uint128(amount);
@@ -384,6 +393,7 @@ abstract contract KarwanSettlementBase is ReentrancyGuard, EIP712 {
         Account storage a = _live(dealId);
         if (a.balance != 0) revert BadAmount();
         a.closed = true;
+        emit AccountClosed(dealId);
     }
 
     function _extendHorizon(bytes32 dealId, uint64 horizon) internal {
@@ -403,6 +413,7 @@ abstract contract KarwanSettlementBase is ReentrancyGuard, EIP712 {
     ///      payees). A party with no identity at opening gets no record. A
     ///      failed write is kept for `retryRecord`.
     function _recordOutcome(bytes32 dealId, uint8 party, uint8 outcome, uint16 detail) internal {
+        if (outcome == 0 || outcome > Outcome.MAX) revert BadOutcome();
         uint64 subject = _subject(dealId, party);
         if (subject == 0 || (party != 0 && _accounts[dealId].consentMask & (uint8(1) << (party - 1)) == 0)) {
             emit OutcomeUnrecorded(dealId, party);

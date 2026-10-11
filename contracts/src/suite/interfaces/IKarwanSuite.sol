@@ -15,6 +15,7 @@ interface IKarwanHub {
 
     function openingConfig(address family, address asset) external view returns (OpeningConfig memory);
     function totalCapOf(address family, address asset) external view returns (uint128);
+    function acceptsMoney(address family, address asset) external view returns (bool);
     function isFamily(address family) external view returns (bool);
     function isVerifier(address verifier) external view returns (bool);
     function isIssuer(address issuer) external view returns (bool);
@@ -34,6 +35,8 @@ interface IKarwanIdentity {
 interface IKarwanRecord {
     function recordOutcome(bytes32 dealKey, uint64 subject, uint8 role, uint8 outcome, uint8 band, uint16 detail)
         external;
+    function outcomeRecorded(bytes32 key) external view returns (bool);
+    function outcomeKey(address family, bytes32 dealKey, uint64 subject, uint8 role) external pure returns (bytes32);
 }
 
 /// @notice Deal outcome codes written to the record. `detail` carries the

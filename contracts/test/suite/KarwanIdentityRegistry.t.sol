@@ -208,6 +208,38 @@ contract KarwanIdentityRegistryTest is Test {
         assertEq(reg.controllerOf(id), phone);
     }
 
+    function test_unbinding_the_recovery_wallet_ends_recovery() public {
+        _bindWallet(phone, phoneKey);
+        vm.prank(alice);
+        reg.setRecovery(phone);
+        vm.prank(phone);
+        reg.startRecovery();
+        vm.prank(alice);
+        reg.unbind(phone);
+        assertEq(reg.recoveryOf(id), address(0));
+        (address w,) = reg.recoveryRequestOf(id);
+        assertEq(w, address(0));
+    }
+
+    function test_unbinding_a_proposed_controller_withdraws_the_proposal() public {
+        _bindWallet(phone, phoneKey);
+        vm.prank(alice);
+        reg.proposeController(phone);
+        vm.prank(phone);
+        reg.unbind(phone);
+        assertEq(reg.pendingControllerOf(id), address(0));
+    }
+
+    function test_an_agent_is_never_recovery_or_controller() public {
+        _bindAgent(100e6, 500e6);
+        vm.startPrank(alice);
+        vm.expectRevert(KarwanIdentityRegistry.NotBound.selector);
+        reg.setRecovery(agent);
+        vm.expectRevert(KarwanIdentityRegistry.NotBound.selector);
+        reg.proposeController(agent);
+        vm.stopPrank();
+    }
+
     function test_recovery_wallet_must_belong_to_the_person() public {
         address other = makeAddr("other");
         vm.prank(other);

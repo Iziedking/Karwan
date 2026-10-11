@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import {SuiteFixture} from "./SuiteFixture.sol";
 import {KarwanSettlementBase} from "../../src/suite/KarwanSettlementBase.sol";
 import {Wallet1271} from "./mocks/Wallet1271.sol";
+import {TestFamily} from "./mocks/TestFamily.sol";
 
 contract SettlementAssignmentTest is SuiteFixture {
     address internal buyer;
@@ -81,6 +82,20 @@ contract SettlementAssignmentTest is SuiteFixture {
         vm.prank(buyer);
         vm.expectRevert(KarwanSettlementBase.NotParty.selector);
         family.assignPayout(DEAL, buyer, financier, 100e6, 0, 0, "");
+    }
+
+    function test_signature_for_one_family_fails_on_another() public {
+        TestFamily other = new TestFamily(address(hub));
+        hub.registerFamily(address(other), FEE_BPS);
+        hub.setCaps(address(other), address(usdc), PER_DEAL, TOTAL);
+        _open(seller);
+        vm.prank(buyer);
+        other.open(DEAL, address(usdc), _one(seller), uint64(block.timestamp + 30 days));
+        uint256 deadline = block.timestamp + 1 hours;
+        bytes memory s = _sig(sellerKey, family.assignDigest(DEAL, seller, financier, 10e6, 1, deadline));
+        vm.expectRevert(KarwanSettlementBase.BadSignature.selector);
+        other.assignPayout(DEAL, seller, financier, 10e6, 1, deadline, s);
+        family.assignPayout(DEAL, seller, financier, 10e6, 1, deadline, s);
     }
 
     function test_signature_is_single_use_and_expires() public {

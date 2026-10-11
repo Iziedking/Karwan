@@ -60,6 +60,19 @@ contract SigCheckTest is Test {
         assertTrue(h.isValid(w, DIGEST, _sign(k, DIGEST)));
     }
 
+    function test_compact_signature_is_valid() public {
+        (address w, uint256 k) = makeAddrAndKey("alice");
+        (bytes32 r, bytes32 vs) = vm.signCompact(k, DIGEST);
+        assertTrue(h.isValid(w, DIGEST, abi.encodePacked(r, vs)));
+    }
+
+    function test_compact_signature_from_someone_else_is_refused() public {
+        (address w,) = makeAddrAndKey("alice");
+        (, uint256 k2) = makeAddrAndKey("mallory");
+        (bytes32 r, bytes32 vs) = vm.signCompact(k2, DIGEST);
+        assertFalse(h.isValid(w, DIGEST, abi.encodePacked(r, vs)));
+    }
+
     function test_high_s_signature_is_refused() public {
         (address w, uint256 k) = makeAddrAndKey("alice");
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(k, DIGEST);

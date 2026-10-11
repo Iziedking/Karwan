@@ -11,7 +11,7 @@ import {IKarwanHub} from "./interfaces/IKarwanSuite.sol";
 ///         verifiers and issuers are trusted. It holds no money. Its owner is
 ///         the timelock, and families copy what a deal needs when it opens, so
 ///         a change here never reaches a deal already open.
-contract KarwanHub is Ownable2Step {
+contract KarwanHub is Ownable2Step, IKarwanHub {
     uint16 public constant MAX_FEE_BPS = 1_000;
 
     struct Family {
@@ -192,7 +192,7 @@ contract KarwanHub is Ownable2Step {
     // -------------------------------- Views -------------------------------
 
     /// @notice Everything a family copies into a deal when it opens.
-    function openingConfig(address family, address asset) external view returns (IKarwanHub.OpeningConfig memory c) {
+    function openingConfig(address family, address asset) external view returns (OpeningConfig memory c) {
         Family storage f = families[family];
         Caps storage k = capsOf[family][asset];
         c.open = f.registered && !f.retired && !f.paused && assetAllowed[asset] && k.perDeal != 0
@@ -208,6 +208,14 @@ contract KarwanHub is Ownable2Step {
 
     function totalCapOf(address family, address asset) external view returns (uint128) {
         return capsOf[family][asset].total;
+    }
+
+    /// @notice Whether a family's open deals may take more money: a retired
+    ///         family still finishes its instalments and weekly budgets; a
+    ///         paused or revoked family, or a delisted asset, takes none.
+    function acceptsMoney(address family, address asset) external view returns (bool) {
+        Family storage f = families[family];
+        return f.registered && !f.revoked && !f.paused && assetAllowed[asset];
     }
 
     /// @notice A family that may write records and use allowances: registered

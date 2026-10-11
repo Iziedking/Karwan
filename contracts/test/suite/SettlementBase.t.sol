@@ -202,6 +202,43 @@ contract SettlementBaseTest is SuiteFixture {
         assertEq(usdc.balanceOf(seller), 60e6);
     }
 
+    function test_retired_family_still_takes_money_for_open_deals() public {
+        _openAndFund(100e6);
+        hub.retireFamily(address(family));
+        vm.prank(buyer);
+        family.fund(DEAL, 50e6);
+        family.pay(DEAL, seller, 150e6);
+        assertEq(usdc.balanceOf(seller), 150e6);
+        vm.prank(buyer);
+        vm.expectRevert(KarwanSettlementBase.NotOpen.selector);
+        family.open(bytes32("deal-new"), address(usdc), _one(seller), uint64(block.timestamp + 1 days));
+    }
+
+    function test_zero_per_deal_cap_does_not_freeze_open_deals() public {
+        _openAndFund(100e6);
+        hub.setCaps(address(family), address(usdc), 0, TOTAL);
+        vm.prank(buyer);
+        family.fund(DEAL, 100e6);
+        assertEq(family.accountOf(DEAL).funded, 200e6);
+    }
+
+    function test_revoked_family_takes_no_money() public {
+        _openAndFund(100e6);
+        hub.revokeFamily(address(family));
+        vm.prank(buyer);
+        vm.expectRevert(KarwanSettlementBase.NotOpen.selector);
+        family.fund(DEAL, 1e6);
+        family.pay(DEAL, buyer, 100e6);
+    }
+
+    function test_closing_a_deal_is_announced() public {
+        _openAndFund(10e6);
+        family.pay(DEAL, buyer, 10e6);
+        vm.expectEmit(address(family));
+        emit KarwanSettlementBase.AccountClosed(DEAL);
+        family.close(DEAL);
+    }
+
     function test_payouts_go_only_to_parties() public {
         _openAndFund(100e6);
         vm.expectRevert(KarwanSettlementBase.NotParty.selector);

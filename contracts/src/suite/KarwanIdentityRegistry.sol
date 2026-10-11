@@ -181,6 +181,8 @@ contract KarwanIdentityRegistry is EIP712 {
 
     /// @notice Count a payment against an agent's limits. Called by escrow
     ///         families when an agent funds a deal; a no-op for other wallets.
+    ///         The limits bound what an agent puts into escrow, not what its
+    ///         key can send directly, and a refund does not restore them.
     function useAgentAllowance(address wallet, uint256 amount) external {
         if (!hub.isFamily(msg.sender)) revert NotFamily();
         Binding memory b = bindingOf[wallet];

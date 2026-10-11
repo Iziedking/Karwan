@@ -107,6 +107,47 @@ contract SettlementHoldsLongstopTest is SuiteFixture {
         assertTrue(record.outcomeRecorded(record.outcomeKey(address(family), DEAL, sellerId, 1)));
     }
 
+    function test_longstop_refused_on_an_empty_deal() public {
+        family.pay(DEAL, buyer, 100e6);
+        vm.warp(uint256(horizon) + 180 days);
+        uint256[] memory toPayees = new uint256[](1);
+        vm.prank(seniorSafe);
+        vm.expectRevert(KarwanSettlementBase.BadAmount.selector);
+        family.longstopSplit(DEAL, 0, toPayees);
+    }
+
+    function test_longstop_pays_the_financier_first_and_credits_a_blocked_party() public {
+        address financier = makeAddr("financier");
+        vm.prank(seller);
+        family.assignPayout(DEAL, seller, financier, 30e6, 0, 0, "");
+        usdc.setBlocked(buyer, true);
+        vm.warp(uint256(horizon) + 180 days);
+        uint256[] memory toPayees = new uint256[](1);
+        toPayees[0] = 60e6;
+        vm.prank(seniorSafe);
+        family.longstopSplit(DEAL, 40e6, toPayees);
+        assertEq(usdc.balanceOf(financier), 30e6);
+        assertEq(usdc.balanceOf(seller), 30e6);
+        assertEq(family.owed(address(usdc), buyer), 40e6);
+        assertTrue(family.accountOf(DEAL).closed);
+    }
+
+    function test_retry_drops_an_outcome_already_recorded() public {
+        vm.mockCallRevert(address(record), abi.encodeWithSelector(IKarwanRecord.recordOutcome.selector), "down");
+        family.recordOutcome(DEAL, 1, Outcome.COMPLETED, 0);
+        vm.clearMockedCalls();
+        family.recordOutcome(DEAL, 1, Outcome.COMPLETED, 0);
+        family.retryRecord(DEAL, 1);
+        assertEq(family.pendingRecord(keccak256(abi.encode(DEAL, uint8(1)))), 0);
+    }
+
+    function test_a_family_cannot_record_an_unknown_outcome() public {
+        vm.expectRevert(KarwanSettlementBase.BadOutcome.selector);
+        family.recordOutcome(DEAL, 1, 0, 0);
+        vm.expectRevert(KarwanSettlementBase.BadOutcome.selector);
+        family.recordOutcome(DEAL, 1, Outcome.MAX + 1, 0);
+    }
+
     function test_horizon_extension_delays_the_longstop() public {
         family.extendHorizon(DEAL, horizon + 60 days);
         vm.warp(uint256(horizon) + 180 days);
