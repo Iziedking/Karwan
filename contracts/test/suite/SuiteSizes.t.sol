@@ -4,6 +4,12 @@ pragma solidity ^0.8.24;
 import {console} from "forge-std/console.sol";
 import {SuiteFixture} from "./SuiteFixture.sol";
 import {KarwanTimelock} from "../../src/suite/KarwanTimelock.sol";
+import {KarwanAgreementEscrow} from "../../src/suite/KarwanAgreementEscrow.sol";
+import {KarwanCheckVerifier} from "../../src/suite/KarwanCheckVerifier.sol";
+import {SettlementLib} from "../../src/suite/settlement/SettlementLib.sol";
+import {AgreementBounds, AgreementLib} from "../../src/suite/agreement/AgreementLib.sol";
+import {AgreementDeliveryLib} from "../../src/suite/agreement/AgreementDeliveryLib.sol";
+import {AgreementTermsLib} from "../../src/suite/agreement/AgreementTermsLib.sol";
 
 contract SuiteSizesTest is SuiteFixture {
     uint256 internal constant ARC_LIMIT = 24_576;
@@ -15,15 +21,31 @@ contract SuiteSizesTest is SuiteFixture {
 
     function test_every_contract_keeps_two_kilobytes_of_headroom() public {
         KarwanTimelock tl = new KarwanTimelock(48 hours, makeAddr("o"), makeAddr("g"));
-        _check("KarwanTimelock", address(tl));
-        _check("KarwanHub", address(hub));
-        _check("KarwanIdentityRegistry", address(identity));
-        _check("KarwanRecord", address(record));
-        _check("TestFamily (settlement base)", address(family));
+        KarwanAgreementEscrow agreement =
+            new KarwanAgreementEscrow(address(hub), AgreementBounds(1 hours, 30 days, 365 days));
+        address[] memory signers = new address[](1);
+        signers[0] = makeAddr("checker");
+        KarwanCheckVerifier verifier = new KarwanCheckVerifier(signers, 1);
+        _check("KarwanTimelock", address(tl).code.length);
+        _check("KarwanHub", address(hub).code.length);
+        _check("KarwanIdentityRegistry", address(identity).code.length);
+        _check("KarwanRecord", address(record).code.length);
+        _check("TestFamily (settlement base)", address(family).code.length);
+        _check("KarwanAgreementEscrow", address(agreement).code.length);
+        _check("KarwanCheckVerifier", address(verifier).code.length);
+        _check("SettlementLib", type(SettlementLib).runtimeCode.length);
+        _check("AgreementLib", type(AgreementLib).runtimeCode.length);
+        _check("AgreementDeliveryLib", type(AgreementDeliveryLib).runtimeCode.length);
+        _check("AgreementTermsLib", type(AgreementTermsLib).runtimeCode.length);
     }
 
-    function _check(string memory name, address a) internal view {
-        uint256 n = a.code.length;
+    /// The base is compiled into every family, so its entry points must leave
+    /// a family most of the contract for its own entry points.
+    function test_settlement_base_stays_small() public view {
+        assertLe(address(family).code.length, 9_000);
+    }
+
+    function _check(string memory name, uint256 n) internal pure {
         console.log(name, n);
         assertLe(n, ARC_LIMIT - HEADROOM, name);
     }
