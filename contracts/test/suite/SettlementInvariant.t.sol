@@ -5,6 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {SuiteFixture} from "./SuiteFixture.sol";
 import {KarwanHub} from "../../src/suite/KarwanHub.sol";
 import {KarwanSettlementBase} from "../../src/suite/KarwanSettlementBase.sol";
+import {DealAccount} from "../../src/suite/settlement/SettlementLib.sol";
 import {TestFamily} from "./mocks/TestFamily.sol";
 import {BlocklistToken} from "./mocks/BlocklistToken.sol";
 
@@ -54,7 +55,7 @@ contract SettlementHandler is Test {
         return deals.length;
     }
 
-    function _deal(uint256 seed) internal view returns (bytes32 id, KarwanSettlementBase.Account memory a) {
+    function _deal(uint256 seed) internal view returns (bytes32 id, DealAccount memory a) {
         id = deals[seed % deals.length];
         a = family.accountOf(id);
     }
@@ -73,7 +74,7 @@ contract SettlementHandler is Test {
 
     function fund(uint256 dealSeed, uint256 amount) external {
         if (deals.length == 0) return;
-        (bytes32 id, KarwanSettlementBase.Account memory a) = _deal(dealSeed);
+        (bytes32 id, DealAccount memory a) = _deal(dealSeed);
         if (BlocklistToken(a.asset).blocked(a.payer)) return;
         amount = bound(amount, 1, 300e6);
         vm.prank(a.payer);
@@ -84,7 +85,7 @@ contract SettlementHandler is Test {
 
     function pay(uint256 dealSeed, uint256 who, uint256 amount) external {
         if (deals.length == 0) return;
-        (bytes32 id, KarwanSettlementBase.Account memory a) = _deal(dealSeed);
+        (bytes32 id, DealAccount memory a) = _deal(dealSeed);
         if (a.balance == 0 || a.closed) return;
         address[] memory payees = family.payeesOf(id);
         uint256 pick = who % (payees.length + 1);
@@ -97,7 +98,7 @@ contract SettlementHandler is Test {
 
     function payFee(uint256 dealSeed, uint256 amount) external {
         if (deals.length == 0) return;
-        (bytes32 id, KarwanSettlementBase.Account memory a) = _deal(dealSeed);
+        (bytes32 id, DealAccount memory a) = _deal(dealSeed);
         uint256 left = family.feeLeft(id);
         if (left > a.balance) left = a.balance;
         if (left == 0) return;
@@ -109,7 +110,7 @@ contract SettlementHandler is Test {
 
     function assign(uint256 dealSeed, uint256 who, uint128 amount) external {
         if (deals.length == 0) return;
-        (bytes32 id, KarwanSettlementBase.Account memory a) = _deal(dealSeed);
+        (bytes32 id, DealAccount memory a) = _deal(dealSeed);
         if (a.closed || a.payeeCount == 0) return;
         address payee = family.payeesOf(id)[who % a.payeeCount];
         amount = uint128(bound(amount, 1, 1_000e6));
@@ -128,7 +129,7 @@ contract SettlementHandler is Test {
 
     function longstop(uint256 dealSeed, uint256 toPayer, uint256 firstShare) external {
         if (deals.length == 0) return;
-        (bytes32 id, KarwanSettlementBase.Account memory a) = _deal(dealSeed);
+        (bytes32 id, DealAccount memory a) = _deal(dealSeed);
         if (a.closed || a.balance == 0) return;
         uint256 due = uint256(a.horizon) + family.LONGSTOP();
         if (block.timestamp < due) vm.warp(due);
@@ -207,7 +208,7 @@ contract SettlementInvariantTest is SuiteFixture {
     function invariant_held_is_the_sum_of_deal_balances_per_asset() public view {
         uint256[2] memory sum;
         for (uint256 i; i < handler.dealCount(); ++i) {
-            KarwanSettlementBase.Account memory a = family.accountOf(handler.deals(i));
+            DealAccount memory a = family.accountOf(handler.deals(i));
             sum[a.asset == address(usdc) ? 0 : 1] += a.balance;
         }
         assertEq(sum[0], family.held(address(usdc)));

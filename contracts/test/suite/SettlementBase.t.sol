@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {SuiteFixture} from "./SuiteFixture.sol";
 import {KarwanSettlementBase} from "../../src/suite/KarwanSettlementBase.sol";
+import {DealAccount} from "../../src/suite/settlement/SettlementLib.sol";
 import {KarwanIdentityRegistry} from "../../src/suite/KarwanIdentityRegistry.sol";
 import {SkimToken} from "./mocks/BlocklistToken.sol";
 
@@ -35,7 +36,7 @@ contract SettlementBaseTest is SuiteFixture {
         hub.setFamilyFee(address(family), 1_000);
         hub.setFeeRecipient(stranger);
         hub.setCaps(address(family), address(usdc), 10e6, 10e6);
-        KarwanSettlementBase.Account memory a = family.accountOf(DEAL);
+        DealAccount memory a = family.accountOf(DEAL);
         assertEq(a.feeBps, FEE_BPS);
         assertEq(a.feeRecipient, feeSafe);
         assertEq(a.perDealCap, PER_DEAL);

@@ -1,0 +1,450 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import {IKarwanHub, IKarwanIdentity, IKarwanRecord, Outcome} from "../interfaces/IKarwanSuite.sol";
+import {SigCheck} from "../SigCheck.sol";
+
+struct DealAccount {
+    address asset;
+    uint64 horizon;
+    uint8 payeeCount;
+    bool closed;
+    uint8 consentMask;
+    address payer;
+    uint64 payerId;
+    uint16 feeBps;
+    address feeRecipient;
+    uint64 holdUntil;
+    address seniorSafe;
+    uint64 holdUsed;
+    uint128 perDealCap;
+    uint128 funded;
+    uint128 balance;
+    uint128 feePaid;
+}
+
+struct Assignment {
+    address assignee;
+    uint128 amount;
+    uint128 paid;
+}
+
+/// @notice Every family's books, kept in one storage struct so the settlement
+///         library can work on them.
+struct SettlementStore {
+    mapping(bytes32 => DealAccount) accounts;
+    mapping(bytes32 => address[8]) payees;
+    mapping(bytes32 => uint64[8]) payeeIds;
+    mapping(bytes32 => mapping(address => Assignment)) assignments;
+    mapping(address => mapping(address => uint256)) owed;
+    mapping(address => uint256) owedTotal;
+    mapping(address => uint256) held;
+    mapping(address => mapping(uint256 => bool)) nonceUsed;
+    mapping(bytes32 => uint24) pendingRecord;
+}
+
+/// @title SettlementLib
+/// @notice The settlement base's money rules, linked once into every family at
+///         deploy and never changeable. It runs in the family's own context on
+///         the family's own books.
+library SettlementLib {
+    using SafeERC20 for IERC20;
+
+    uint16 internal constant BPS = 10_000;
+    uint16 internal constant MAX_FEE_BPS = 1_000;
+    uint8 internal constant MAX_PAYEES = 8;
+    uint64 internal constant LONGSTOP = 180 days;
+    uint64 internal constant MAX_HORIZON = 730 days;
+    uint64 internal constant HOLD_STEP = 7 days;
+    uint64 internal constant HOLD_BUDGET = 30 days;
+    bytes32 internal constant ASSIGN_TYPEHASH = keccak256(
+        "Assign(bytes32 dealId,address payee,address assignee,uint128 amount,uint256 nonce,uint256 deadline)"
+    );
+
+    event AccountOpened(
+        bytes32 indexed dealId, address indexed asset, address indexed payer, uint8 payees, uint16 feeBps, address feeRecipient
+    );
+    event Funded(bytes32 indexed dealId, address indexed from, uint256 amount);
+    event Paid(bytes32 indexed dealId, address indexed to, uint256 amount, bool toAssignee);
+    event FeePaid(bytes32 indexed dealId, address indexed to, uint256 amount);
+    event PayoutCredited(address indexed asset, address indexed to, uint256 amount);
+    event OwedWithdrawn(address indexed asset, address indexed to, uint256 amount);
+    event PayoutAssigned(bytes32 indexed dealId, address indexed payee, address indexed assignee, uint128 amount);
+    event AssignmentReleased(bytes32 indexed dealId, address indexed payee, address indexed assignee);
+    event PayeeAdded(bytes32 indexed dealId, address indexed payee);
+    event Accepted(bytes32 indexed dealId, address indexed payee);
+    event Held(bytes32 indexed dealId, uint64 until, bytes32 reasonHash);
+    event HorizonSet(bytes32 indexed dealId, uint64 horizon);
+    event AccountClosed(bytes32 indexed dealId);
+    event LongstopSplit(bytes32 indexed dealId, address indexed by);
+    event OutcomeUnrecorded(bytes32 indexed dealId, uint8 party);
+    event RecordPending(bytes32 indexed dealId, uint8 party, uint8 outcome, uint16 detail);
+    event RecordAlreadyWritten(bytes32 indexed dealId, uint8 party);
+
+    error NotOpen();
+    error Exists();
+    error Closed();
+    error BadParties();
+    error BadHorizon();
+    error NonceUsed();
+    error NotAllowed();
+    error NotParty();
+    error BadAmount();
+    error OverCap();
+    error FeeTooHigh();
+    error BadDelivery();
+    error NothingOwed();
+    error Assigned();
+    error NotAssignee();
+    error BadSignature();
+    error Expired();
+    error NotGuardian();
+    error OnHold();
+    error HoldBudget();
+    error NotSenior();
+    error Early();
+    error NoPending();
+    error BadOutcome();
+
+    // ------------------------------ Opening -------------------------------
+
+    function open(
+        SettlementStore storage s,
+        IKarwanHub hub,
+        bytes32 dealId,
+        address asset,
+        address payer,
+        address[] memory payees,
+        uint64 horizon
+    ) external returns (IKarwanHub.OpeningConfig memory cfg) {
+        DealAccount storage a = s.accounts[dealId];
+        if (a.payer != address(0)) revert Exists();
+        cfg = hub.openingConfig(address(this), asset);
+        if (!cfg.open) revert NotOpen();
+        if (cfg.feeBps > MAX_FEE_BPS) revert FeeTooHigh();
+        uint256 n = payees.length;
+        if (payer == address(0) || n > MAX_PAYEES) revert BadParties();
+        _checkHorizon(horizon);
+        a.asset = asset;
+        a.payer = payer;
+        a.payerId = IKarwanIdentity(hub.identity()).identityOf(payer);
+        a.horizon = horizon;
+        for (uint256 i; i < n; ++i) {
+            _appendPayee(s, hub, dealId, a, payees[i]);
+        }
+        a.feeBps = cfg.feeBps;
+        a.feeRecipient = cfg.feeRecipient;
+        a.seniorSafe = cfg.seniorSafe;
+        a.perDealCap = cfg.perDealCap;
+        emit AccountOpened(dealId, asset, payer, uint8(n), cfg.feeBps, cfg.feeRecipient);
+    }
+
+    function addPayee(SettlementStore storage s, IKarwanHub hub, bytes32 dealId, address payee) external {
+        DealAccount storage a = live(s, dealId);
+        if (a.balance != a.funded) revert NotAllowed();
+        _appendPayee(s, hub, dealId, a, payee);
+        emit PayeeAdded(dealId, payee);
+    }
+
+    function markConsent(SettlementStore storage s, bytes32 dealId, address payee) external {
+        DealAccount storage a = live(s, dealId);
+        uint8 n = a.payeeCount;
+        for (uint8 i; i < n; ++i) {
+            if (s.payees[dealId][i] == payee) {
+                a.consentMask |= uint8(1) << i;
+                emit Accepted(dealId, payee);
+                return;
+            }
+        }
+        revert NotParty();
+    }
+
+    function fund(SettlementStore storage s, IKarwanHub hub, bytes32 dealId, uint256 amount) external {
+        DealAccount storage a = live(s, dealId);
+        if (msg.sender != a.payer) revert NotParty();
+        if (amount == 0) revert BadAmount();
+        if (!hub.acceptsMoney(address(this), a.asset)) revert NotOpen();
+        if (uint256(a.funded) + amount > a.perDealCap) revert OverCap();
+        if (s.held[a.asset] + amount > hub.totalCapOf(address(this), a.asset)) revert OverCap();
+        a.funded += uint128(amount);
+        a.balance += uint128(amount);
+        s.held[a.asset] += amount;
+        IKarwanIdentity(hub.identity()).useAgentAllowance(msg.sender, amount);
+        IERC20 token = IERC20(a.asset);
+        uint256 before = token.balanceOf(address(this));
+        token.safeTransferFrom(msg.sender, address(this), amount);
+        if (token.balanceOf(address(this)) - before != amount) revert BadDelivery();
+        emit Funded(dealId, msg.sender, amount);
+    }
+
+    // ------------------------------- Payouts ------------------------------
+
+    function payTo(SettlementStore storage s, bytes32 dealId, address party, uint256 amount) public {
+        if (amount == 0) return;
+        DealAccount storage a = s.accounts[dealId];
+        if (party != a.payer && !isPayee(s, dealId, party)) revert NotParty();
+        _take(s, a, amount);
+        Assignment storage g = s.assignments[dealId][party];
+        uint256 cut;
+        if (g.assignee != address(0) && g.paid < g.amount) {
+            uint256 left = uint256(g.amount) - g.paid;
+            cut = amount < left ? amount : left;
+            g.paid += uint128(cut);
+            _deliver(s, a.asset, g.assignee, cut);
+            emit Paid(dealId, g.assignee, cut, true);
+        }
+        if (amount > cut) {
+            _deliver(s, a.asset, party, amount - cut);
+            emit Paid(dealId, party, amount - cut, false);
+        }
+    }
+
+    function payFee(SettlementStore storage s, bytes32 dealId, uint256 amount) external {
+        if (amount == 0) return;
+        DealAccount storage a = s.accounts[dealId];
+        if (amount > feeLeft(s, dealId)) revert FeeTooHigh();
+        _take(s, a, amount);
+        a.feePaid += uint128(amount);
+        _deliver(s, a.asset, a.feeRecipient, amount);
+        emit FeePaid(dealId, a.feeRecipient, amount);
+    }
+
+    function withdrawOwed(SettlementStore storage s, address asset) external {
+        uint256 amount = s.owed[asset][msg.sender];
+        if (amount == 0) revert NothingOwed();
+        s.owed[asset][msg.sender] = 0;
+        s.owedTotal[asset] -= amount;
+        IERC20(asset).safeTransfer(msg.sender, amount);
+        emit OwedWithdrawn(asset, msg.sender, amount);
+    }
+
+    function close(SettlementStore storage s, bytes32 dealId) public {
+        DealAccount storage a = live(s, dealId);
+        if (a.balance != 0) revert BadAmount();
+        a.closed = true;
+        emit AccountClosed(dealId);
+    }
+
+    // ----------------------------- Assignment -----------------------------
+
+    function assignPayout(
+        SettlementStore storage s,
+        bytes32 domainSeparator,
+        bytes32 dealId,
+        address payee,
+        address assignee,
+        uint128 amount,
+        uint256 nonce,
+        uint256 deadline,
+        bytes calldata sig
+    ) external {
+        live(s, dealId);
+        if (!isPayee(s, dealId, payee)) revert NotParty();
+        if (assignee == address(0) || assignee == payee || assignee == address(this) || amount == 0) {
+            revert BadParties();
+        }
+        if (s.assignments[dealId][payee].assignee != address(0)) revert Assigned();
+        if (msg.sender != payee) {
+            if (block.timestamp > deadline) revert Expired();
+            if (s.nonceUsed[payee][nonce]) revert NonceUsed();
+            s.nonceUsed[payee][nonce] = true;
+            bytes32 digest = assignDigest(domainSeparator, dealId, payee, assignee, amount, nonce, deadline);
+            if (!SigCheck.isValid(payee, digest, sig)) revert BadSignature();
+        }
+        s.assignments[dealId][payee] = Assignment(assignee, amount, 0);
+        emit PayoutAssigned(dealId, payee, assignee, amount);
+    }
+
+    function releaseAssignment(SettlementStore storage s, bytes32 dealId, address payee) external {
+        Assignment storage g = s.assignments[dealId][payee];
+        if (g.assignee == address(0) || msg.sender != g.assignee) revert NotAssignee();
+        delete s.assignments[dealId][payee];
+        emit AssignmentReleased(dealId, payee, msg.sender);
+    }
+
+    // -------------------------------- Holds -------------------------------
+
+    function hold(SettlementStore storage s, IKarwanHub hub, bytes32 dealId, bytes32 reasonHash) external {
+        if (msg.sender != hub.guardian()) revert NotGuardian();
+        DealAccount storage a = live(s, dealId);
+        if (a.holdUntil > block.timestamp) revert OnHold();
+        uint64 step = HOLD_STEP;
+        if (a.holdUsed + step > HOLD_BUDGET) step = HOLD_BUDGET - a.holdUsed;
+        if (step == 0) revert HoldBudget();
+        a.holdUsed += step;
+        a.holdUntil = uint64(block.timestamp) + step;
+        emit Held(dealId, a.holdUntil, reasonHash);
+    }
+
+    // ------------------------------ Long-stop -----------------------------
+
+    function checkLongstop(SettlementStore storage s, bytes32 dealId, uint256 toPayer, uint256[] calldata toPayees)
+        external
+        view
+    {
+        DealAccount storage a = live(s, dealId);
+        if (msg.sender != a.seniorSafe) revert NotSenior();
+        if (block.timestamp < uint256(a.horizon) + LONGSTOP) revert Early();
+        uint8 n = a.payeeCount;
+        if (toPayees.length != n) revert BadParties();
+        uint256 sum = toPayer;
+        for (uint8 i; i < n; ++i) {
+            sum += toPayees[i];
+        }
+        if (a.balance == 0 || sum != a.balance) revert BadAmount();
+    }
+
+    function payLongstop(
+        SettlementStore storage s,
+        IKarwanHub hub,
+        bytes32 dealId,
+        uint256 toPayer,
+        uint256[] calldata toPayees
+    ) external {
+        DealAccount storage a = s.accounts[dealId];
+        uint8 n = a.payeeCount;
+        payTo(s, dealId, a.payer, toPayer);
+        for (uint8 i; i < n; ++i) {
+            payTo(s, dealId, s.payees[dealId][i], toPayees[i]);
+        }
+        a.closed = true;
+        emit AccountClosed(dealId);
+        for (uint8 p; p <= n; ++p) {
+            recordOutcome(s, hub, dealId, p, Outcome.LONGSTOP, 0);
+        }
+        emit LongstopSplit(dealId, msg.sender);
+    }
+
+    // ------------------------------- Record -------------------------------
+
+    function recordOutcome(
+        SettlementStore storage s,
+        IKarwanHub hub,
+        bytes32 dealId,
+        uint8 party,
+        uint8 outcome,
+        uint16 detail
+    ) public {
+        if (outcome == 0 || outcome > Outcome.MAX) revert BadOutcome();
+        uint64 subject = subjectOf(s, dealId, party);
+        if (subject == 0 || (party != 0 && s.accounts[dealId].consentMask & (uint8(1) << (party - 1)) == 0)) {
+            emit OutcomeUnrecorded(dealId, party);
+            return;
+        }
+        IKarwanRecord rec = IKarwanRecord(hub.record());
+        uint8 band = _band(s.accounts[dealId].funded);
+        try rec.recordOutcome(dealId, subject, party, outcome, band, detail) {}
+        catch {
+            s.pendingRecord[keccak256(abi.encode(dealId, party))] = (uint24(outcome) << 16) | detail;
+            emit RecordPending(dealId, party, outcome, detail);
+        }
+    }
+
+    function retryRecord(SettlementStore storage s, IKarwanHub hub, bytes32 dealId, uint8 party) external {
+        bytes32 key = keccak256(abi.encode(dealId, party));
+        uint24 p = s.pendingRecord[key];
+        if (p == 0) revert NoPending();
+        delete s.pendingRecord[key];
+        IKarwanRecord rec = IKarwanRecord(hub.record());
+        uint64 subject = subjectOf(s, dealId, party);
+        if (rec.outcomeRecorded(rec.outcomeKey(address(this), dealId, subject, party))) {
+            emit RecordAlreadyWritten(dealId, party);
+            return;
+        }
+        rec.recordOutcome(dealId, subject, party, uint8(p >> 16), _band(s.accounts[dealId].funded), uint16(p));
+    }
+
+    // ------------------------------ Horizon -------------------------------
+
+    function extendHorizon(SettlementStore storage s, bytes32 dealId, uint64 horizon) external {
+        DealAccount storage a = live(s, dealId);
+        _checkHorizon(horizon);
+        if (horizon > a.horizon) {
+            a.horizon = horizon;
+            emit HorizonSet(dealId, horizon);
+        }
+    }
+
+    // -------------------------------- Views -------------------------------
+
+    function live(SettlementStore storage s, bytes32 dealId) public view returns (DealAccount storage a) {
+        a = s.accounts[dealId];
+        if (a.payer == address(0) || a.closed) revert Closed();
+    }
+
+    function isPayee(SettlementStore storage s, bytes32 dealId, address who) public view returns (bool) {
+        uint8 n = s.accounts[dealId].payeeCount;
+        for (uint8 i; i < n; ++i) {
+            if (s.payees[dealId][i] == who) return true;
+        }
+        return false;
+    }
+
+    function subjectOf(SettlementStore storage s, bytes32 dealId, uint8 party) public view returns (uint64) {
+        if (party == 0) return s.accounts[dealId].payerId;
+        if (party > s.accounts[dealId].payeeCount) revert NotParty();
+        return s.payeeIds[dealId][party - 1];
+    }
+
+    function feeLeft(SettlementStore storage s, bytes32 dealId) public view returns (uint256) {
+        DealAccount storage a = s.accounts[dealId];
+        return (uint256(a.funded) * a.feeBps) / BPS - a.feePaid;
+    }
+
+    function assignDigest(
+        bytes32 domainSeparator,
+        bytes32 dealId,
+        address payee,
+        address assignee,
+        uint128 amount,
+        uint256 nonce,
+        uint256 deadline
+    ) public pure returns (bytes32) {
+        return MessageHashUtils.toTypedDataHash(
+            domainSeparator, keccak256(abi.encode(ASSIGN_TYPEHASH, dealId, payee, assignee, amount, nonce, deadline))
+        );
+    }
+
+    // ------------------------------ Internals -----------------------------
+
+    function _appendPayee(SettlementStore storage s, IKarwanHub hub, bytes32 dealId, DealAccount storage a, address p)
+        private
+    {
+        uint8 n = a.payeeCount;
+        if (n == MAX_PAYEES || p == address(0) || p == a.payer || p == address(this) || isPayee(s, dealId, p)) {
+            revert BadParties();
+        }
+        uint64 pid = IKarwanIdentity(hub.identity()).identityOf(p);
+        if (pid != 0 && pid == a.payerId) revert BadParties();
+        s.payees[dealId][n] = p;
+        s.payeeIds[dealId][n] = pid;
+        a.payeeCount = n + 1;
+    }
+
+    function _checkHorizon(uint64 horizon) private view {
+        if (horizon <= block.timestamp || horizon > block.timestamp + MAX_HORIZON) revert BadHorizon();
+    }
+
+    function _take(SettlementStore storage s, DealAccount storage a, uint256 amount) private {
+        if (amount > a.balance) revert BadAmount();
+        a.balance -= uint128(amount);
+        s.held[a.asset] -= amount;
+    }
+
+    function _deliver(SettlementStore storage s, address asset, address to, uint256 amount) private {
+        if (IERC20(asset).trySafeTransfer(to, amount)) return;
+        s.owed[asset][to] += amount;
+        s.owedTotal[asset] += amount;
+        emit PayoutCredited(asset, to, amount);
+    }
+
+    function _band(uint256 amount) private pure returns (uint8) {
+        if (amount < 100e6) return 0;
+        if (amount < 1_000e6) return 1;
+        if (amount < 10_000e6) return 2;
+        return 3;
+    }
+}
