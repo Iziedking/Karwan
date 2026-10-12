@@ -82,7 +82,7 @@ A term is a clause both sides agreed, stored in the canonical terms and bound in
 |---|---|---|---|
 | Machine check | The clause is testable from evidence | A deterministic predicate; a model may only advise | "Merged pull request to `main` with passing CI" |
 | Buyer checklist | A person has to look | The buyer marks the clause met or not met, with a reason and photos | "Wig is 22 inch, body wave, black" |
-| Delivery code | Physical handover | The buyer gives a one-time code at handover; the seller or courier submits it | "Delivered to the buyer in person" |
+| Delivery code | Physical handover | The buyer shows a one-time code (32 random bytes, as a QR code or link) at handover; the seller or courier submits it. Its hash is public, so it is never a short number | "Delivered to the buyer in person" |
 | Time log | Hourly work | Hours, memos and artefacts per period, reviewed by the buyer | "Up to 20 hours a week on bookkeeping" |
 | Clock only | Nothing to test | The review window and silence rule | "Available for questions for 7 days" |
 
@@ -102,11 +102,11 @@ sequenceDiagram
   actor S as Seller or courier
 
   B->>APP: Pays for the order
-  APP->>APP: Generates a one-time code, stores only its hash
+  APP->>APP: Generates a 32-byte random code, stores only its hash
   APP->>ESC: fund(terms with codeHash)
   APP-->>B: Your delivery code (shown only to the buyer)
   S->>B: Hands over the item
-  B-->>S: Tells the code after checking the item
+  B-->>S: Shows the code as a QR code after checking the item
   S->>ESC: submitCode(code)
   ESC->>DCM: keccak(code) == codeHash?
   DCM-->>ESC: Releasable
@@ -205,8 +205,9 @@ Rulings only ever split a leg's unreleased money between the two parties, carry 
 | Live escrow for today's deals | Live (v2b) | `KarwanEscrow.sol` |
 | Canonical terms JSON and clause compiler | Planned | |
 | Buyer checklist review and clause-cited disputes | Planned | |
-| Escrow families on a shared base (replaces the schedule module interface) | Planned | [View 11](11-contracts.md) |
-| Delivery code | Planned | Agreement family |
+| Escrow families on a shared base (replaces the schedule module interface) | Base, hub and Agreement family built, not deployed | [View 11](11-contracts.md) |
+| Delivery code | Built, not deployed | Agreement family |
+| Up to 12 tranches, seller accept deadline, seller extension request | Built, not deployed | Agreement family |
 | Hourly and weekly time | Planned | Time family |
 | Instalments | Planned | Agreement family |
 | Retainers | Planned | Time family |

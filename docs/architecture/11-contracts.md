@@ -6,12 +6,12 @@ It replaces the "one core with schedule modules" choice in [view 07](07-escrow.m
 
 ## Rules for the suite
 
-1. **Each family of deals has its own escrow, holding its own money.** A fault in one family cannot reach another family's balance. Arc enforces the 24,576-byte contract limit, so a single contract could not hold every kind of deal without code that runs another contract's code inside its own, a pattern the suite does not use.
+1. **Each family of deals has its own escrow, holding its own money.** A fault in one family cannot reach another family's balance. Arc enforces the 24,576-byte contract limit, so each family keeps its rules in fixed libraries and holds only its own deals' money.
 2. **One shared base, audited once.** Every family escrow is built on the same settlement base, and the base decides who can ever be paid: a party recorded before any money left the deal, someone the payee signed the payout over to, or Karwan's fee within the maximum written into the contract (10%). No family, present or future, can widen that.
 3. **Every payout is pull-safe.** Arc refuses transfers to blocked addresses. A payment that cannot be delivered becomes an owed balance that only its owner can withdraw, so one blocked party never freezes a deal or anyone else.
 4. **An exit after expiry can never be blocked.** No pause, verifier, outside contract or admin key can stop a party from taking what the deal's terms give them once its clocks run out. A guardian hold can delay it, 7 days at a time and 30 days at most per deal.
 5. **A deal keeps the rules it opened with.** Fee, caps, reviewers, verifier and yield eligibility are fixed for the life of the deal. A later change applies to new deals only.
-6. **No upgrades.** No proxies, no code borrowed at run time, no self-destruct. A changed rule is a new contract, and funded deals stay where they are.
+6. **No upgradeable code.** No proxies, no self-destruct. Shared logic sits in libraries that are linked once at deployment and can never change; their addresses and bytecode are published with the deployment. A changed rule is a new contract, and funded deals stay where they are.
 7. **Parties act for themselves.** Every action a buyer, seller or financier can take is callable from their own wallet, with no Karwan server in the path. Every timeout can be triggered by anyone. Karwan runs a keeper as a convenience, not as a requirement.
 8. **Contracts Karwan does not control are outside parties.** USDC, USYC and its teller, and the ERC-8004 registries on Arc can be upgraded by their owners. The suite reaches them through narrow interfaces, and nothing they return can lose a deal's principal or block an exit.
 
@@ -76,7 +76,8 @@ Every family inherits it, and it is the part audited hardest.
 | Failed transfers never strand money | The amount moves to the payee's owed balance, withdrawable only by them |
 | Exit after expiry cannot be blocked | The refund or claim path at expiry ignores pauses, hooks, verifiers and outside contracts; holds can only delay it, within their 30-day budget |
 | Configuration is per deal | Fee, caps, reviewers, verifier and yield eligibility are copied into the deal when it opens |
-| Only USDC moves, through its ERC-20 interface | No function accepts native value; amounts are 6-decimal USDC throughout |
+| Only USDC moves, through its ERC-20 interface | No function accepts native value; amounts are 6-decimal tokens throughout, moved only by the base's library |
+| Checks come from several independent checkers | A delivery check counts only when the deal's verifier contract holds signatures from enough of its fixed checkers |
 | Bounded work per call | No call walks a list that users can grow; the worst case stays well under Arc's per-transaction gas cap |
 | Payouts go to the recorded wallet | A payout or owed balance goes only to the wallet recorded in the deal, or to its signed assignee, so money frozen by USDC's blocklist cannot be routed elsewhere |
 
@@ -84,7 +85,7 @@ Every family inherits it, and it is the part audited hardest.
 
 | Family | Covers | How money moves |
 |---|---|---|
-| Agreement | One-time and milestone deals, goods and mixed orders, net 30 to 90 terms, instalments, refundable deposits, pay on delivery | Up to 12 funded tranches. Each releases on the buyer's approval, a verifier's result, a delivery code, or a review window ending with the outcome agreed at opening. A dispute freezes only the disputed tranche. Both parties can sign any split. The seller can sign the payout over to a financier |
+| Agreement | One-time and milestone deals, goods and mixed orders, net 30 to 90 terms, instalments, refundable deposits, pay on delivery | Up to 12 funded tranches under one delivery deadline. Each releases on the buyer's approval, a delivery code, or a review window ending with the outcome agreed at opening; the review starts at delivery, at the buyer's arrival confirmation, or at a passing check. A review started late never reopens a clock that has run out, and a guardian hold delays only the tranche it falls in. A dispute freezes only the disputed tranche. Both parties can sign any split. The seller can sign the payout over to a financier |
 | Time | Hourly and weekly work, retainers | The buyer funds a weekly budget (hours times rate). The freelancer submits hours with a fingerprint of the work log. The buyer has a fixed window to object; silence pays. An objection freezes only the disputed hours, the rest is paid and the unused budget returns. A retainer is one funded period at a time |
 | Jobs and bounties | Agent-to-agent jobs, bounties, contests with one or more winners | The ERC-8183 job flow (open, funded, submitted, completed or rejected, refund after expiry that no hook can stop), with payouts split across winners and the same dispute path as the other families. Outside agents can use it through the ERC-8183 interface |
 | Trade finance | Purchase-order financing, invoice factoring | Holds the financier's advance and reserves the seller's stake. The buyer pays the Agreement escrow as usual; the seller's signed assignment pays the financier first, up to the agreed amount, and the seller the rest. A default resolves on chain against the reserved stake |
@@ -233,7 +234,7 @@ sequenceDiagram
 | Buyer, seller, financier | Every action their deal's terms give them, from their own wallet | Act on someone else's deal |
 | Anyone | Trigger timeouts, execute a ruling after its appeal window, rebalance yield | Choose an outcome |
 | Agents | Put money into escrow for a person within the per-payment limit, total and expiry that person signed on chain | Exceed those limits; the person can revoke them at any time. The limits bound escrow funding, not what the agent's own wallet can send, and a refund does not restore them |
-| Verifiers | Report a check result, signed by k of n independent checkers | Move money; a missing result never blocks the exit at expiry |
+| Verifiers | Report a check result, signed by k of n independent checkers | Move money; a missing result, or a failed result reported after the silence longstop, never blocks the exit |
 | Automatic arbiter | Propose a ruling from the outcomes the deal's terms allow | Rule outside them; any party can escalate |
 | Reviewer Safes | Rule on an escalated dispute, only between the deal's parties, only on the disputed amount | Touch undisputed money or pay anyone else |
 | Guardian Safe | Pause a family's new deals and new money; hold a deal 7 days at a time, 30 days at most; cancel an ordinary queued change | Move money, unpause, delay an exit beyond the hold budget, or cancel a change the owner queued as protected |
@@ -310,13 +311,13 @@ The suite launches on mainnet after step 8 with beta limits written into it: 1,0
 | Terms-driven escrow (v3): terms hash, clocks, checks, disputes with appeal, splits, owed balances, caps | Built, not deployed. Its rules carry into the Agreement family |
 | Stake vault and yield pool (v3) | Built, not deployed. Reworked for signed limits and the adapter |
 | Shared settlement base and hub | Built, not deployed |
-| Agreement family | Planned, first |
+| Agreement family | Built, not deployed: tranches, review on delivery, arrival or a check, extensions, pay on delivery, deposits, deadlines, agreed splits. Disputes and instalments next |
 | Trade finance family | Planned, first |
 | Time family | Planned, second |
 | Jobs and bounties family, ERC-8183 interface | Planned, third |
 | Identity registry with succession and recovery | Built, not deployed |
 | Record contract (one, replacing the reputation registry and the facts contract) | Built, not deployed |
-| Verifiers with k of n signatures | Planned |
+| Verifiers with k of n signatures | Built, not deployed |
 | Governance: timelock with a 24-hour floor and guardian cancel | Built, not deployed. The Safes are set up at deployment |
 | ERC-8004 mirror of the record | Later |
 | Yield on deal money | Built in v3, off at launch until the pool is eligible to hold USYC |
@@ -324,4 +325,4 @@ The suite launches on mainnet after step 8 with beta limits written into it: 1,0
 | Business registry already on mainnet | Live; its approvals carry into the record contract as business facts |
 | Independent audit and audit contest | Planned, before the beta limits rise |
 
-Contract notes: proposed names are `KarwanSettlementBase` (abstract), `KarwanHub`, `KarwanAgreementEscrow`, `KarwanTimeEscrow`, `KarwanJobEscrow`, `KarwanTradeFinance`, `KarwanIdentityRegistry`, `KarwanRecord`, `KarwanStakeVault`, `KarwanTimelock`, `KarwanYieldPool` and `KarwanUsycAdapter`. Every family's runtime code is measured against Arc's 24,576-byte limit in CI. All contracts are deployed at deterministic addresses from one reviewed script, and ownership goes to the timelock in the same run, so the deployer key holds nothing afterwards.
+Contract notes: proposed names are `KarwanSettlementBase` (abstract), `KarwanHub`, `KarwanAgreementEscrow`, `KarwanTimeEscrow`, `KarwanJobEscrow`, `KarwanTradeFinance`, `KarwanIdentityRegistry`, `KarwanRecord`, `KarwanStakeVault`, `KarwanTimelock`, `KarwanCheckVerifier`, `KarwanYieldPool` and `KarwanUsycAdapter`, with the fixed libraries `SettlementLib`, `AgreementLib`, `AgreementDeliveryLib` and `AgreementTermsLib`. Every family's runtime code is measured against Arc's 24,576-byte limit in CI. All contracts are deployed at deterministic addresses from one reviewed script, and ownership goes to the timelock in the same run, so the deployer key holds nothing afterwards.
