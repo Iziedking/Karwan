@@ -111,9 +111,11 @@ test('documentation returns to a useful internal destination', () => {
 });
 
 test('sidebar destinations are siblings, so a signed-in person sees no Back on them, only on the pages under them', () => {
-  for (const root of ['/app', '/p2p', '/b2b', '/market', '/partners', '/financier', '/activity']) {
+  // Profile is a tab in the phone's bottom bar, beside the others.
+  for (const root of ['/app', '/p2p', '/b2b', '/market', '/partners', '/financier', '/activity', '/profile']) {
     assert.equal(getProductBackHref(root, true), null, root);
   }
+  assert.equal(getProductBackHref('/profile/wallets', true), '/profile');
   assert.equal(getProductBackHref('/market', false), '/');
   assert.notEqual(getProductBackHref('/activity/receipt/1', true), null);
 });
@@ -450,6 +452,20 @@ test('Updates tiles ease in and out as they slide, following the scroll, and hol
   assert.match(block, /prefers-reduced-motion: no-preference/);
   assert.match(block, /\.updates-track > \.update-card[\s\S]*animation-timeline: view\(inline\)/);
   assert.match(block, /animation-range: entry 0% exit 100%/);
+});
+
+test('profile is tidy: one way to change the photo, rows say what they open, no address or dead rows by default', () => {
+  const hub = source('../../features/profile/components/ProfileAccountHub.tsx');
+  // The avatar is the one photo control: a menu once there is a photo.
+  assert.match(hub, /<PhotoMenu/);
+  assert.doesNotMatch(hub, /hint=\{simple\.photoHint\}/);
+  assert.doesNotMatch(hub, /underline underline-offset-4">\{hub\.removePhoto\}/);
+  const menu = source('../../features/profile/components/PhotoMenu.tsx');
+  assert.match(menu, /role="menu"/);
+  assert.match(menu, /role="menuitem"/);
+  assert.match(hub, /label=\{hub\.editProfile\} href="\/profile\/edit"/);
+  assert.doesNotMatch(hub, /hub\.devices/);
+  assert.doesNotMatch(hub, /hub\.accountLabel|shortAddress\(address\)\}/);
 });
 
 test('the desktop rail ends with Settings and Sign out, pinned to its foot, sign out asking first like Profile', () => {

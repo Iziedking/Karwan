@@ -908,7 +908,6 @@ interface MessagesShape {
       off: string;
       setUp: string;
       notAvailable: string;
-      photoHint: string;
     };
     signInGate: { tag: string; body: string };
     loadError: { tag: string; title: string; body: string };
@@ -937,10 +936,11 @@ interface MessagesShape {
       open: string;
       activityReceipts: string;
       reputation: string;
-      accountLabel: string;
       addPhoto: string;
       changePhoto: string;
       removePhoto: string;
+      editProfile: string;
+      choosePhoto: string;
       savingPhoto: string;
       photoError: string;
       photoTypeError: string;
@@ -950,7 +950,6 @@ interface MessagesShape {
       security: string;
       passkey: string;
       recovery: string;
-      devices: string;
       soon: string;
       other: string;
       publicProfile: string;
@@ -6247,7 +6246,6 @@ export const en: MessagesShape = {
       off: "Off",
       setUp: "Set up",
       notAvailable: "Not available",
-      photoHint: "Your photo shows on your public profile.",
     },
     signInGate: {
       tag: 'Profile',
@@ -6283,10 +6281,11 @@ export const en: MessagesShape = {
       open: 'Open',
       activityReceipts: 'Activity and receipts',
       reputation: 'Reputation',
-      accountLabel: 'Karwan account',
       addPhoto: 'Add profile photo',
       changePhoto: 'Change profile photo',
       removePhoto: 'Remove photo',
+      editProfile: "Edit profile",
+      choosePhoto: "Choose a new photo",
       savingPhoto: 'Saving photo',
       photoError: 'Could not save the photo. Try again.',
       photoTypeError: 'Choose a JPG, PNG, or WebP image under 5 MB.',
@@ -6296,7 +6295,6 @@ export const en: MessagesShape = {
       security: "Security",
       passkey: "Passkey",
       recovery: "Account recovery",
-      devices: "Signed-in devices",
       soon: "Soon",
       other: "Other",
       publicProfile: "Public profile",

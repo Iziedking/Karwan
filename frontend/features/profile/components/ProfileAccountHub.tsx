@@ -12,6 +12,7 @@ import { useMoneyBalances } from '@/features/money/hooks/useMoneyBalances';
 import { useOwnedBalance } from '@/features/money/hooks/useOwnedBalance';
 import { ProfileFrame, Row, RowGroup } from '../ui/ProfileUi';
 import { ProfileSignOut } from './ProfileSignOut';
+import { PhotoMenu } from './PhotoMenu';
 import { WorkspaceSwitcher } from '@/features/workspaces/components/WorkspaceSwitcher';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { DEALS_AVAILABLE } from '@/core/arcNetwork';
@@ -102,17 +103,23 @@ export function ProfileAccountHub({
     <ProfileFrame
       title={
         <span className="flex min-w-0 items-center gap-4">
-          <span className="relative shrink-0">
-            <input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" tabIndex={-1} aria-label={savedPhoto ? hub.changePhoto : hub.addPhoto} onChange={(event) => void choosePhoto(event)} />
-            <button type="button" disabled={photoBusy} aria-label={savedPhoto ? hub.changePhoto : hub.addPhoto} onClick={() => photoInput.current?.click()} className="group relative block size-14 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 disabled:opacity-60">
-              {(savedPhoto || profile.xProfileImageUrl) && !imageFailed ? (
-                <img src={savedPhoto || profile.xProfileImageUrl} alt="" width={56} height={56} className="size-14 rounded-full object-cover" onError={() => setImageFailed(true)} />
-              ) : (
-                <WalletAvatar address={address} size={56} />
-              )}
-              <span aria-hidden className="absolute -bottom-0.5 -end-0.5 grid size-6 place-items-center rounded-full border border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[14px] text-[var(--lp-dark)]">+</span>
-            </button>
-          </span>
+          <input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" tabIndex={-1} aria-label={savedPhoto ? hub.changePhoto : hub.addPhoto} onChange={(event) => void choosePhoto(event)} />
+          <PhotoMenu
+            hasPhoto={!!savedPhoto}
+            busy={photoBusy}
+            label={savedPhoto ? hub.changePhoto : hub.addPhoto}
+            changeLabel={hub.choosePhoto}
+            removeLabel={hub.removePhoto}
+            onChange={() => photoInput.current?.click()}
+            onRemove={() => void savePhoto(null)}
+          >
+            {(savedPhoto || profile.xProfileImageUrl) && !imageFailed ? (
+              <img src={savedPhoto || profile.xProfileImageUrl} alt="" width={56} height={56} className="size-14 rounded-full object-cover" onError={() => setImageFailed(true)} />
+            ) : (
+              <WalletAvatar address={address} size={56} />
+            )}
+            <span aria-hidden className="absolute -bottom-0.5 -end-0.5 grid size-6 place-items-center rounded-full border border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[14px] text-[var(--lp-dark)]">+</span>
+          </PhotoMenu>
           <span className="min-w-0">
             <span className="block truncate">{displayName}</span>
             <span className="block truncate text-[14px] font-normal tracking-normal text-[var(--lp-text-sub)]">
@@ -121,11 +128,9 @@ export function ProfileAccountHub({
           </span>
         </span>
       }
-      hint={simple.photoHint}
     >
-      {photoBusy || photoError || savedPhoto ? (
-        <div className="-mt-3 flex flex-wrap items-center gap-3 text-[14px]">
-          {savedPhoto ? <button type="button" disabled={photoBusy} onClick={() => void savePhoto(null)} className="min-h-11 font-semibold text-[var(--lp-text-sub)] underline underline-offset-4">{hub.removePhoto}</button> : null}
+      {photoBusy || photoError ? (
+        <div className="-mt-3 flex flex-wrap items-center gap-3 text-[14px] font-medium">
           <span role="status" aria-live="polite" className="text-[var(--lp-text-sub)]">{photoBusy ? hub.savingPhoto : ''}</span>
           {photoError ? <span role="alert" className="text-[var(--color-critical)]">{photoError}</span> : null}
         </div>
@@ -150,7 +155,7 @@ export function ProfileAccountHub({
       </RowGroup>
 
       <RowGroup title={hub.account}>
-        <Row label={simple.profileTitle} href="/profile/edit" />
+        <Row label={hub.editProfile} href="/profile/edit" />
         {DEALS_AVAILABLE ? <Row label={simple.agentsTitle} href="/profile/setup" /> : null}
         <Row label={simple.contactTitle} value={profile.email ?? simple.setUp} href="/profile/contact" />
         <Row label={simple.walletsTitle} href="/profile/wallets" />
@@ -177,7 +182,6 @@ export function ProfileAccountHub({
             />
           )}
           <Row label={hub.recovery} soon={hub.soon} />
-          <Row label={hub.devices} soon={hub.soon} />
         </RowGroup>
       ) : null}
 
@@ -187,8 +191,8 @@ export function ProfileAccountHub({
         <Row label={nav.help} href="/how-it-works" />
       </RowGroup>
 
-      <footer className="flex flex-wrap items-center justify-between gap-3 px-1">
-        <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{hub.accountLabel} {shortAddress(address)}</p>
+      {/* The account address lives in Wallets, with a copy button. */}
+      <footer className="flex justify-end px-1">
         <ProfileSignOut />
       </footer>
     </ProfileFrame>

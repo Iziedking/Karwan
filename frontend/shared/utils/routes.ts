@@ -43,7 +43,7 @@ export function isPublicDiscoveryRoute(pathname: string | null | undefined): boo
  * detail and settings views recoverable without guessing browser history,
  * which may point outside Karwan after a shared link is opened.
  */
-const SIDEBAR_ROOTS = new Set(['/p2p', '/b2b', '/market', '/partners', '/financier', '/activity']);
+const SIDEBAR_ROOTS = new Set(['/p2p', '/b2b', '/market', '/partners', '/financier', '/activity', '/profile']);
 
 export function getProductBackHref(
   pathname: string | null | undefined,
