@@ -6,6 +6,7 @@
 #   scripts/ops/backend-remote.sh typecheck
 #   scripts/ops/backend-remote.sh test            full backend suite with Postgres
 #   scripts/ops/backend-remote.sh test src/cre    one folder
+#   scripts/ops/backend-remote.sh test a.test.ts b.test.ts   several paths
 set -euo pipefail
 H=node-services
 NODE_IMAGE=node:20-bookworm
@@ -15,8 +16,14 @@ NPM_CACHE=/tmp/karwan-npm-cache
 
 case "${1:-}" in
   typecheck) CMD="npm --prefix backend run typecheck" ;;
-  test) CMD="cd backend && node ../scripts/run-tests.mjs ${2:-src} --concurrency=4" ;;
-  *) echo "usage: $0 typecheck | test [path]" >&2; exit 2 ;;
+  test)
+    shift
+    # Paths are pasted into a remote command, so only plain relative paths pass.
+    for p in "$@"; do
+      case "$p" in *[!A-Za-z0-9_./-]*|-*|*..*) echo "bad test path: $p" >&2; exit 2 ;; esac
+    done
+    CMD="cd backend && node ../scripts/run-tests.mjs ${*:-src} --concurrency=4" ;;
+  *) echo "usage: $0 typecheck | test [path...]" >&2; exit 2 ;;
 esac
 
 RUN=$(ssh -o BatchMode=yes $H 'd=$(mktemp -d /tmp/karwan-backend.XXXXXXXX); echo ${d##*.}' < /dev/null)

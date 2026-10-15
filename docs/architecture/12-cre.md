@@ -130,7 +130,7 @@ sequenceDiagram
 ```
 
 - **The verdict is pass only when every required item passes on the delivered commit**, in a run of the pinned runner. The evidence document lists each item's result, the commit, the run and the runner version, and its fingerprint is written on Arc with the result.
-- **One CRE result per delivery.** The adapter accepts one CRE result for a delivery revision, and refuses a CRE result once Arc already holds a result for that revision. On Arc, a fail never overturns a pass. A pass after a fail does start the review, because the escrow lets a verifier correct a fail.
+- **One result per delivery.** The deal's verifier keeps the first result for a delivery revision and refuses any later one, from CRE or from Karwan's checker, so nobody can swap a fail for a pass or the reverse. A seller who disagrees with a fail delivers again, which is a new revision, or opens a dispute.
 - **A new delivery is a new revision** and is checked again.
 - **No result is not a fail.** If the check cannot run, nothing is reported. The deal's own clocks still end it: the buyer can review the delivery themselves, and the silence longstop in view 11 applies.
 
@@ -140,7 +140,7 @@ CRE decides a deal's check only after one setting, `CRE_ENABLED`, is turned on. 
 
 Once the setting is on, a deal names a verifier that accepts a result from either CRE or Karwan's checker. Karwan's service waits for CRE. If CRE has no result within an hour, for example because the network has an error, Karwan's automated checks answer instead, and the record says which one decided. A deal funded while the setting was on keeps that verifier, so turning the setting off later never strands it.
 
-The hour is Karwan's rule, not the contract's. On Arc, that verifier accepts Karwan's checker at any time, so Karwan's checker could answer before CRE, or turn a CRE fail into a pass. Karwan's service does neither. Making the wait and the order a contract rule is open in the contract suite's review.
+The hour is Karwan's rule, not the contract's: on Arc, that verifier accepts Karwan's checker at any time, so Karwan's checker could answer before CRE. It cannot overturn CRE: whichever result reaches the verifier first is final for that delivery.
 
 ## Disputes read the same measurement
 
@@ -161,6 +161,13 @@ Some facts about a person come from outside Karwan, for example public work on G
 
 The person proves the GitHub account is theirs without relying on Karwan's word: they publish a public gist holding a message signed by their wallet. The workflow checks that the gist's owner is the account and that the signature is the wallet's.
 
+The report carries two values, both keyed with a secret held in the network's vault, so public GitHub data cannot be matched to a wallet:
+
+- **A seal of the numbers.** It goes to the record with the fact, so the fact can prove which numbers set its level.
+- **A key for the account.** The adapter uses it only to hold one GitHub account to one person while that person's fact is live. A renewal retires the person's previous fact. Another person's wallet is refused until the fact is revoked or expires.
+
+One limit is stated plainly: when an account moves to another person's wallet, the adapter's report data shows the same account key for both. The record itself does not link them.
+
 ```mermaid
 sequenceDiagram
   actor P as Person
@@ -175,7 +182,7 @@ sequenceDiagram
   K->>C: Check this account (HTTP trigger)
   C->>G: The gist, and public work for the account
   C->>C: Gist owner and wallet signature match. Published rule gives a level. No model
-  C->>A: Signed report: the fact, its level and its sealed evidence
+  C->>A: Signed report: the fact, its level, a seal of the numbers, a key for the account
   A->>R: recordFact(wallet, work fact, level, seal, expiry)
   R-->>P: The fact is on Arc, and verifies without Karwan
 ```
@@ -196,10 +203,19 @@ karwan-risk runs every two minutes. It takes a page of open deals from Karwan's 
 
 An agent acting for a party can pay a small USDC amount with x402 to:
 
-- **Dry-run a branch.** It runs the agreed policy on a branch before delivering. The result comes back with a report the decentralised network signed over that exact result, which anyone can check against Chainlink's published node keys. Nothing is written on Arc, and the deal does not move.
+- **Dry-run a branch.** It runs the agreed policy on a branch before delivering. The result comes back with a report the decentralised network signed over that exact result, which anyone can check against Chainlink's published node keys. The deal does not move.
 - **Fetch the evidence behind a check result.** The document's fingerprint can be checked against the result the adapter holds on Arc, without asking Karwan.
 
-The payment is taken by Karwan's x402 endpoint on Arc. The endpoint then starts the workflow with a signed request from a key the workflow trusts. Only a party's own agent may dry-run a deal's policy.
+A dry-run payment does not go to Karwan. The agent signs a USDC authorization to KarwanCreFees, a contract on Arc with no owner, and Karwan relays it:
+
+- the contract holds the 0.25 USDC for that run;
+- a signed answer from the network within the hour, through the adapter, releases it to Karwan;
+- after the hour an answer releases nothing, and anyone can call `refund`, which returns the USDC to the payer;
+- if USDC refuses a payout, for example to a blocklisted address, the amount is kept as an owed balance that only its owner can withdraw.
+
+USDC sent to the contract directly, outside a payment, belongs to no run and stays there.
+
+The workflow starts a dry run only while its fee is held on Arc. Only a party's own agent may dry-run a deal's policy. Evidence reads are paid to Karwan's x402 endpoint, since the answer is returned at once.
 
 ## What fails where
 
@@ -211,15 +227,17 @@ The payment is taken by Karwan's x402 endpoint on Arc. The endpoint then starts 
 | Check | Karwan stops serving the index | No new checks start. Deals end by their own clocks, and anyone can run the same workflow |
 | Check | The agreed tests are flaky and two runs disagree | The first completed run counts. The evidence names the run, so a reviewer can see it |
 | Check | The deal is in dispute when the result arrives | The result is approved but cannot be attested while the dispute is open. It can be submitted once the dispute ends, and only for the same delivery revision |
-| Check | A second CRE result for the same delivery, or one after Arc already holds a result | Refused by the adapter |
+| Check | A second result for the same delivery, from CRE or Karwan's checker | Refused: the verifier keeps the first |
 | Adapter | A report delivery failed and someone retries it much later | Refused: reports older than an hour are not accepted |
 | Adapter | A report claims to come from another workflow | Refused: the workflow id, owner and name must match the kind |
 | Record | The escrow's outcome write failed | karwan-risk retries it. The record keeps one outcome per deal and party |
 | Record | The gist is missing, too old, or signed by another wallet | No fact is written, and the person is told what to fix |
 | Record | A revoke names a fact written for another wallet | Refused by the adapter |
+| Record | A GitHub account that already backs a live fact asks for a fact on another person's wallet | Refused by the adapter until that fact is revoked or expires |
 | Risk | A timeout is not yet allowed | That call fails on its own; the others in the batch still run |
 | x402 | The payment does not settle | The dry run does not start |
 | x402 | The workflow is busy (one start every 30 seconds) | The request waits in a queue and the agent polls for the result |
+| x402 | A paid dry run gets no answer within an hour, or never starts | Anyone can call refund on the fee contract, and the USDC returns to the payer |
 
 ## Status
 
@@ -233,6 +251,7 @@ The payment is taken by Karwan's x402 endpoint on Arc. The endpoint then starts 
 | Acceptance policy fingerprinted on Arc | Built. The form where two people agree it is planned, with the suite's deal flow |
 | Automatic dispute proposals from the check evidence | Built as a rule. Used once the suite's deal flow is wired |
 | karwan-record: work facts from GitHub | Built. Its report path is rehearsed on the fork |
+| Dry-run fees held by KarwanCreFees, released by a signed answer or refunded after an hour | Built, not deployed. Tested on a fork of Arc Testnet with Arc's own USDC |
 | karwan-risk: timeouts, outcome write retries and alerts | Built. Its report path is rehearsed on the fork; alerts reach Karwan's logs until the suite's deal flow names who to tell |
 | x402 dry runs and evidence for agents | Built, not yet served |
 | CRE on Arc mainnet | Not available. CRE supports Arc Testnet only |
