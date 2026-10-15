@@ -14,8 +14,8 @@ Looked at from emerging markets first, where cash on delivery, "pay small small"
 | Fixed price, milestones | Website in three stages | Funded upfront, released stage by stage after review | v3, up to 5 milestones |
 | Physical goods with delivery | Wig from Lagos to Abuja | Held until the buyer has the item; review starts on arrival | v3 `ON_ARRIVAL` |
 | Pay on delivery, prepaid | Replaces cash on delivery | Held until the buyer taps "Received" at handover, which signs a release the app or the courier submits | Built, not deployed |
-| Hourly or weekly time | Virtual assistant, 20 h a week at 8 USDC | Weekly budget held; hours submitted with a work log; buyer reviews; approved hours paid, unused returned or rolled | Planned |
-| Retainer or subscription | Monthly social media management | One period funded at a time; paid at period end unless disputed; either side can end with notice | Planned |
+| Hourly or weekly time | Virtual assistant, 20 h a week at 8 USDC | Weekly budget held; hours submitted with a work log; buyer reviews; approved hours paid, unused returned or rolled | Built, not deployed: Time family |
+| Retainer or subscription | Monthly social media management | One period funded at a time; paid once the worker claims the period and the review passes, unless disputed; either side can end with notice | Built, not deployed: Time family |
 | Instalments, lay-by | Fridge paid in four parts | Buyer pays equal parts into escrow; the seller delivers once the last part is in; a missed part ends the plan with the cancellation fee agreed upfront | Built, not deployed |
 | Refundable deposit | Equipment rental, booking | Held and returned at the end unless the seller's claim holds | v3 `silenceOutcome = 1` |
 | Business order, net terms | 200 T-shirts, Net 30 | Held; review lasts the net term; a financier can advance the seller against the order and the seller's stake | Agreement family with `KarwanTradeFinance`, built, not deployed |
@@ -121,21 +121,19 @@ sequenceDiagram
 sequenceDiagram
   autonumber
   actor B as Buyer
-  participant ESC as Escrow core
-  participant TPM as Time period module
+  participant TM as Time escrow
   actor S as Seller
   participant EV as Evidence registry
 
-  B->>ESC: fund(week 1 budget = cap hours x rate)
+  B->>TM: open(terms): week 1 budget = cap hours x rate
   S->>EV: Time log for week 1 (hours, memos, artefact hashes)
-  S->>ESC: submitPeriod(1, hours = 16)
-  ESC->>TPM: releasable at period end + review window
-  alt Buyer approves or says nothing
-    ESC-->>S: 16 x rate paid
-    ESC-->>B: Unused 4 h returned, or rolled into week 2
-  else Buyer disputes hours
-    B->>ESC: dispute(clause: hours, reason)
-    ESC->>ESC: Only the disputed amount frozen, rest paid
+  S->>TM: submit(week 1, hours = 16, log fingerprint)
+  alt Buyer approves, or says nothing until the review window ends
+    TM-->>S: 16 x rate paid
+    TM-->>B: Unused 4 h returned, or carried forward
+  else Buyer objects to some hours after the claim grace
+    B->>TM: object(week 1, hours, clause)
+    TM->>TM: Only the objected hours held, the rest paid
   end
 ```
 
@@ -207,7 +205,7 @@ Rulings only ever split a leg's unreleased money between the two parties, carry 
 | Signed release at handover (replaces the delivery code) | Built, not deployed | Agreement family |
 | Disputes: arbiter proposal, 72-hour appeal, reviewer ruling within 5 days, fallback in the terms | Built, not deployed | Agreement family, shared dispute library |
 | Up to 12 tranches, seller accept deadline, seller extension request | Built, not deployed | Agreement family |
-| Hourly and weekly time | Planned | Time family |
+| Hourly and weekly time | Built, not deployed | Time family |
 | Instalments | Built, not deployed | Agreement family |
-| Retainers | Planned | Time family |
+| Retainers | Built, not deployed | Time family |
 | Streaming for trusted retainers | Later | Sablier Flow style, only after the period model proves out |

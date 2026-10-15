@@ -87,7 +87,7 @@ Every family inherits it, and it is the part audited hardest.
 | Family | Covers | How money moves |
 |---|---|---|
 | Agreement | One-time and milestone deals, goods and mixed orders, net 30 to 90 terms, instalments, refundable deposits, pay on delivery | Up to 12 funded tranches under one delivery deadline. Each releases on the buyer's approval, the buyer's signed release at handover, or a review window ending with the outcome agreed at opening; the review starts at delivery, at the buyer's arrival confirmation, or at a passing check. A review started late never reopens a clock that has run out, and a guardian hold delays only the tranche it falls in. Instalment plans take equal parts, and the seller delivers once the last is in. A dispute freezes only the disputed tranche, and a ruling pays only that tranche. Both parties can sign any split. The seller can sign the payout over to a financier |
-| Time | Hourly and weekly work, retainers | The buyer funds a weekly budget (hours times rate). The freelancer submits hours with a fingerprint of the work log. The buyer has a fixed window to object; silence pays. An objection freezes only the disputed hours, the rest is paid and the unused budget returns. A retainer is one funded period at a time |
+| Time | Hourly, daily and unit work, retainers | One employer and one worker. The employer funds each cycle's budget (the most hours times the rate, or the retainer), one cycle at a time or several ahead. The worker submits the units worked with a fingerprint of the work log, until a claim grace after the cycle ends, 2 days by default. The employer can approve at any time; once the grace ends and the claim is final, the employer has the review window, 5 days by default, to object to some units, and silence then pays the submitted units. An objection holds only the objected units for the dispute path; the rest is paid at once. Unused budget goes back, or carries forward when the terms say so. Either side ends the engagement with the notice the terms set, 0 to 4 cycles, and a cycle inside the notice runs only if the employer funds it; both sides together can end it at once. A new rate or hours apply to cycles not yet funded, once both sides sign. The per-deal cap counts what an engagement holds at once, and the engagement records one outcome when it closes, valued at what the worker was paid |
 | Jobs and bounties | Agent-to-agent jobs, bounties, contests with one or more winners | The ERC-8183 job flow (open, funded, submitted, completed or rejected, refund after expiry that no hook can stop), with payouts split across winners and the same dispute path as the other families. Outside agents can use it through the ERC-8183 interface |
 | Trade finance | Purchase-order financing, invoice factoring | Holds no money. In one transaction the financier advances to the seller, the seller's signed assignment makes the Agreement escrow repay the financier first, up to the agreed amount, and the seller's signed stake, at least 10% of the advance, is reserved for the financier. The seller's assignment names Trade finance as the only contract that may submit it, so it never takes effect without the advance. Only an accepted, fully funded deal can be financed, and the repayment must fit what the deal still owes the seller. A default resolves on chain against the reserved stake, which the financier keeps reserved when the deal's horizon moves later |
 
@@ -139,16 +139,16 @@ sequenceDiagram
   actor S as Freelancer
   participant K as Anyone
 
-  B->>TM: fundWeek(20 h x 8 USDC = 160)
-  S->>TM: submitHours(week 1, 16 h, log fingerprint)
+  B->>TM: open(terms): week 1 funded, 20 h x 8 USDC = 160, plus half the fee
+  S->>TM: accept(terms hash), then submit(week 1, 16 h, log fingerprint)
   alt No objection within the window
-    K->>TM: settleWeek(week 1)
-    TM-->>S: 128 USDC
-    TM-->>B: 32 USDC unused, returned or rolled into week 2
+    K->>TM: settle(week 1), once the claim grace and the review window end
+    TM-->>S: 128 USDC, less the worker's half of the fee
+    TM-->>B: 32 USDC unused and its fee share, returned or carried forward
   else Buyer objects to 4 hours
-    B->>TM: object(week 1, 4 h, reason)
-    TM-->>S: 96 USDC for the undisputed 12 h
-    Note over TM: 32 USDC frozen for the dispute path, 32 USDC unused returned
+    B->>TM: object(week 1, 4 h, clause), after the claim grace
+    TM-->>S: 96 USDC for the 12 h not objected to
+    Note over TM: 32 USDC held for the dispute path, which rules the worker's share of it; the 32 USDC unused goes back when the dispute ends
   end
 ```
 
@@ -317,7 +317,7 @@ The suite launches on mainnet after step 8 with beta limits written into it: 1,0
 | Shared settlement base and hub | Built, not deployed |
 | Agreement family | Built, not deployed: tranches, review on delivery, arrival or a check, extensions, signed release at handover, instalments, deposits, deadlines, agreed splits, disputes with appeal and a fallback, and an optional seller stake for the buyer, slashed only by a ruling or the dispute fallback and kept reserved for as long as the deal can run |
 | Trade finance family | Built, not deployed: purchase-order financing and factoring against Agreement deals |
-| Time family | Planned, second |
+| Time family | Built, not deployed: hourly, daily and unit work and retainers, cycle by cycle, with objections to some units, notice and signed amendments |
 | Jobs and bounties family, ERC-8183 interface | Planned, third |
 | Identity registry with succession and recovery | Built, not deployed |
 | Record contract (one, replacing the reputation registry and the facts contract) | Built, not deployed |
@@ -329,4 +329,4 @@ The suite launches on mainnet after step 8 with beta limits written into it: 1,0
 | Business registry already on mainnet | Live; its approvals carry into the record contract as business facts |
 | Independent audit and audit contest | Planned, before the beta limits rise |
 
-Contract notes: proposed names are `KarwanSettlementBase` (abstract), `KarwanHub`, `KarwanAgreementEscrow`, `KarwanTimeEscrow`, `KarwanJobEscrow`, `KarwanTradeFinance`, `KarwanIdentityRegistry`, `KarwanRecord`, `KarwanStakeVault`, `KarwanTimelock`, `KarwanCheckVerifier` and `KarwanYieldPool`, with the fixed libraries `SettlementLib`, `DisputeLib`, `AgreementLib`, `AgreementDisputeLib`, `AgreementDeliveryLib` and `AgreementTermsLib`. Every family's runtime code is measured against Arc's 24,576-byte limit in CI. All contracts are deployed at deterministic addresses from one reviewed script, and ownership goes to the timelock in the same run, so the deployer key holds nothing afterwards.
+Contract notes: proposed names are `KarwanSettlementBase` (abstract), `KarwanHub`, `KarwanAgreementEscrow`, `KarwanTimeEscrow`, `KarwanJobEscrow`, `KarwanTradeFinance`, `KarwanIdentityRegistry`, `KarwanRecord`, `KarwanStakeVault`, `KarwanTimelock`, `KarwanCheckVerifier` and `KarwanYieldPool`, with the fixed libraries `SettlementLib`, `DisputeLib`, `AgreementLib`, `AgreementDisputeLib`, `AgreementDeliveryLib`, `AgreementTermsLib`, `TimeLib` and `TimeDisputeLib`. Every family's runtime code is measured against Arc's 24,576-byte limit in CI. All contracts are deployed at deterministic addresses from one reviewed script, and ownership goes to the timelock in the same run, so the deployer key holds nothing afterwards.
