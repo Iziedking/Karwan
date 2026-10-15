@@ -14,7 +14,7 @@ const shortId = (jobId: string) => jobId.slice(0, 10);
 
 export interface ChooseOfferConfirm extends ConfirmActionBase {
   intent: 'choose_offer';
-  payload: { jobId: string; caller: string; seller: string; amountUsdc?: number };
+  payload: { jobId: string; caller: string; seller: string; amountUsdc?: number; acknowledgeUnverified?: boolean };
 }
 export interface EditRequestConfirm extends ConfirmActionBase {
   intent: 'edit_request';
@@ -66,6 +66,9 @@ export function buildChooseOfferConfirm(i: {
   seller: string;
   sellerLabel: string;
   priceUsdc: string;
+  /// The seller is not verified: the card says so first, and confirming
+  /// carries the person's acknowledgement to the route.
+  unverified?: boolean;
 }): ChooseOfferConfirm | { error: string } {
   if (!i.jobId) return { error: 'Missing the request id.' };
   if (!i.seller) return { error: 'Missing which offer to choose.' };
@@ -75,13 +78,26 @@ export function buildChooseOfferConfirm(i: {
     intent: 'choose_offer',
     title: 'Choose this offer',
     summary: `Go with ${i.sellerLabel} at ${i.priceUsdc} USDC and start the deal.`,
-    warning: 'This funds the escrow from your buyer agent. The money stays protected until the work is delivered or the deal is cancelled.',
+    warning: [
+      i.unverified
+        ? `${i.sellerLabel} is not verified. Karwan has not checked their identity or past work. Your money stays in escrow until you release it.`
+        : null,
+      'This funds the escrow from your buyer agent. The money stays protected until the work is delivered or the deal is cancelled.',
+    ]
+      .filter(Boolean)
+      .join(' '),
     fields: [
       { label: 'Seller', value: i.sellerLabel },
       { label: 'Price', value: `${i.priceUsdc} USDC` },
       { label: 'Request', value: shortId(i.jobId) },
     ],
-    payload: { jobId: i.jobId, caller: i.caller, seller: i.seller, amountUsdc: Number(i.priceUsdc) },
+    payload: {
+      jobId: i.jobId,
+      caller: i.caller,
+      seller: i.seller,
+      amountUsdc: Number(i.priceUsdc),
+      ...(i.unverified ? { acknowledgeUnverified: true } : {}),
+    },
     confirmLabel: `Choose and fund ${i.priceUsdc} USDC`,
     cancelLabel: 'Not now',
   };

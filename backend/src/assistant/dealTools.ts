@@ -5,7 +5,9 @@ import { logger } from '../logger.js';
 import { getBrief } from '../db/briefs.js';
 import { getDeal, type DirectDeal } from '../db/deals.js';
 import { listMatchProposalsForUser } from '../db/matchProposals.js';
-import { getBuyerJob } from '../agents/buyer.js';
+import { getBuyerJob, getShortlist } from '../agents/buyer.js';
+import { assistantView, isVerified } from '../agents/shortlist.js';
+import { levelOf } from '../verification/live.js';
 import { isRequestOwner } from '../agents/chooseOffer.js';
 import { statementWindowOpen } from '../deals/disputeJudge.js';
 import { hasEquivalentConfirm, type AssistantAction, type ConfirmAction } from './actions.js';
@@ -74,6 +76,15 @@ export function dealStepTools(address: string, actions: AssistantAction[]) {
           if (!isRequestOwner(address, brief)) return { error: 'That request is not theirs, so its offers are private.' };
           const job = getBuyerJob(jobId);
           if (!job) return { offers: [], note: 'This request is not collecting offers any more. It may have closed, matched or expired.' };
+          if (config.SHORTLIST_MODE) {
+            const shortlist = assistantView(getShortlist(jobId) ?? []);
+            return {
+              shortlist,
+              note: shortlist.length
+                ? 'Show each person by rank: name, Verified or Not verified, score, tier, completed deals, on-time percent, disputes lost, offer, days and price (with the opening ask when it differs). Say which one is Recommended and why, from its reasons. Offer their profile at karwan.site/r/<tag>. The person chooses; to prepare it call propose_choose_offer with that row\'s seller value. Never show the seller value.'
+                : 'No offers yet. The agent keeps looking until the request closes.',
+            };
+          }
           const offers = job.bids.slice(0, 10).map((b) => ({
             seller: b.seller,
             sellerName: b.sellerDisplayName ?? 'A Karwan seller',
@@ -105,14 +116,22 @@ export function dealStepTools(address: string, actions: AssistantAction[]) {
           if (!job) return { error: 'This request is not collecting offers any more. Offer to post it again.' };
           const bid = job.bids.find((b) => b.seller.toLowerCase() === seller.toLowerCase());
           if (!bid) return { error: 'That seller has no open offer on this request. Call list_offers_on_request again.' };
+          const row = config.SHORTLIST_MODE
+            ? (getShortlist(jobId) ?? []).find((e) => e.seller.toLowerCase() === bid.seller.toLowerCase())
+            : undefined;
+          if (row?.state === 'unavailable') return { error: 'That offer is no longer available. Call list_offers_on_request again.' };
+          const unverified = row
+            ? !row.verified
+            : config.SHORTLIST_MODE && !isVerified(await levelOf(bid.sellerUserAddress ?? bid.seller));
           return offer(
             actions,
             buildChooseOfferConfirm({
               caller: address,
               jobId,
               seller: bid.seller,
-              sellerLabel: bid.sellerDisplayName ?? 'A Karwan seller',
-              priceUsdc: bid.priceUsdc,
+              sellerLabel: row?.name ?? bid.sellerDisplayName ?? 'A Karwan seller',
+              priceUsdc: row ? String(row.priceUsdc) : bid.priceUsdc,
+              unverified,
             }),
           );
         }),

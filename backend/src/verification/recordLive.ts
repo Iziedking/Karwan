@@ -7,6 +7,10 @@ import { buildRecordCredential } from './credential.js';
 import { factsFor } from './evidence.js';
 import { ladderFor } from './ladder.js';
 import { evidenceDeps } from './live.js';
+import { listDealsForAddress } from '../db/deals.js';
+import { compute } from '../reputation/engine.js';
+import { loadInputs } from '../reputation/signals.js';
+import { countsFor } from '../reputation/recordRead.js';
 
 const NO_CONTRACT = '0x0000000000000000000000000000000000000000';
 
@@ -36,6 +40,14 @@ export const recordDeps: RecordDeps = {
     return ladderFor(await factsFor(address, evidenceDeps, now), now);
   },
   facts: (address) => recordFacts(address, Date.now()),
+  summary: async (address) => {
+    const [inputs, deals] = await Promise.all([loadInputs(address), listDealsForAddress(address).catch(() => [])]);
+    const counts = countsFor(deals, address);
+    return {
+      score: Math.round(compute(inputs).score / 10),
+      counts: { completed: counts.completed, onTimeRate: counts.onTimeRate, disputesLost: counts.disputesLost },
+    };
+  },
   credential: async (address) => {
     const now = Date.now();
     const [p, facts] = await Promise.all([loadPublicPassport(address), factsFor(address, evidenceDeps, now)]);

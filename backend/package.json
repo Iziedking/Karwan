@@ -38,6 +38,7 @@
     "facts-issuer:create": "tsx --env-file=../.env src/scripts/provision-facts-issuer.ts",
     "yield:backfill": "tsx --env-file=../.env src/scripts/yield-backfill.ts",
     "legacy:unwind": "tsx --env-file=../.env src/scripts/legacy-vault-unwind.ts",
+    "x402:spike": "tsx --env-file=../.env src/scripts/x402-record-spike.ts",
     "safe:add-owner": "tsx --env-file=../.env src/scripts/safe-add-owner.ts",
     "usyc:cron": "tsx --env-file=../.env src/scripts/usyc-cron.ts",
     "usyc:wrap": "tsx --env-file=../.env src/scripts/usyc-cron.ts",

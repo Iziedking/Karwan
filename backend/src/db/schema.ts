@@ -1,4 +1,4 @@
-import { pgTable, text, jsonb, bigint, index, uniqueIndex, primaryKey } from 'drizzle-orm/pg-core';
+import { pgTable, text, jsonb, bigint, index, uniqueIndex, primaryKey, integer, numeric } from 'drizzle-orm/pg-core';
 import type { KarwanUser } from './users.js';
 import type { UserProfile } from './profiles.js';
 import type { DirectDeal } from './deals.js';
@@ -425,6 +425,25 @@ export const scoutReads = pgTable(
   (t) => ({
     ownerTsIdx: index('scout_reads_owner_ts_idx').on(t.owner, t.ts),
   }),
+);
+
+/// Paid record reads (view 13). The signed detail is cleared 24 hours after the
+/// read; the score, level and receipt stay. Created by migration 38.
+export const recordReads = pgTable(
+  'record_reads_v1',
+  {
+    id: text('id').primaryKey(),
+    reader: text('reader').notNull(),
+    subject: text('subject').notNull(),
+    purpose: text('purpose').notNull(),
+    ref: text('ref').notNull(),
+    priceUsdc: numeric('price_usdc').notNull(),
+    paymentTx: text('payment_tx'),
+    scoreAtRead: integer('score_at_read').notNull(),
+    levelAtRead: text('level_at_read').notNull(),
+    detail: jsonb('detail'),
+    createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+  },
 );
 
 /// One immutable accounting row for each paid external research call. The row

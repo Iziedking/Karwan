@@ -97,7 +97,16 @@ const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAction) =
       sourceKind: p.sourceKind,
     },
   }),
-  choose_offer: (p) => ({ method: 'POST', path: `/api/jobs/${p.jobId}/choose-offer`, body: { caller: p.caller, seller: p.seller } }),
+  choose_offer: (p) => ({
+    method: 'POST',
+    path: `/api/jobs/${p.jobId}/choose-offer`,
+    body: {
+      caller: p.caller,
+      seller: p.seller,
+      ...(p.acknowledgeUnverified ? { acknowledgeUnverified: true } : {}),
+      ...(p.amountUsdc !== undefined ? { expectedPriceUsdc: p.amountUsdc } : {}),
+    },
+  }),
   edit_request: (p) => ({
     method: 'POST',
     path: `/api/jobs/${p.jobId}/edit`,

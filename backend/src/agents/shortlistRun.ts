@@ -1,0 +1,74 @@
+import type { Ladder } from '../verification/ladder.js';
+import type { RecordCounts } from '../reputation/recordRead.js';
+import { SHORTLIST_MAX, type ShortlistCandidate } from './shortlist.js';
+
+/// Turns the buyer agent's ranked bids into shortlist candidates: a paid
+/// record read on each of the first five, in parallel, each capped by a
+/// timeout. A read that fails or is slow leaves the free data in place.
+
+const MATCH_BAND_SIZE = 25;
+const DAY_S = 86_400;
+
+export interface ShortlistDeps {
+  readRecord: (
+    payerAgent: string,
+    subject: string,
+    ref: string,
+    forAccount: string,
+  ) => Promise<{ counts: RecordCounts; score: number } | null>;
+  level: (user: string) => Promise<Ladder>;
+  engine: (user: string) => Promise<{ score: number; tier: string; counts: RecordCounts }>;
+  profile: (user: string) => Promise<{ name: string | null; tag: string | null }>;
+  timeoutMs: number;
+}
+
+export interface ShortlistBid {
+  seller: string;
+  sellerUserAddress?: string;
+  priceUsdc: string;
+  deadlineUnix: number;
+  topicalMatch?: number;
+  deterministicScore: number;
+  title?: string;
+}
+
+function within<T>(p: Promise<T>, ms: number): Promise<T | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<null>((resolve) => {
+    timer = setTimeout(() => resolve(null), ms);
+  });
+  return Promise.race([p.catch(() => null), timeout]).finally(() => clearTimeout(timer));
+}
+
+export async function buildCandidates(
+  input: { jobId: string; buyerAgent: string; buyerUser: string; bids: readonly ShortlistBid[]; nowUnix: number },
+  deps: ShortlistDeps,
+): Promise<ShortlistCandidate[]> {
+  return Promise.all(
+    input.bids.slice(0, SHORTLIST_MAX).map(async (b) => {
+      const user = b.sellerUserAddress ?? b.seller;
+      const [level, engine, profile, read] = await Promise.all([
+        deps.level(user),
+        deps.engine(user),
+        deps.profile(user),
+        within(deps.readRecord(input.buyerAgent, user, input.jobId, input.buyerUser), deps.timeoutMs),
+      ]);
+      return {
+        seller: b.seller,
+        sellerUser: user,
+        name: profile.name ?? 'A Karwan seller',
+        tag: profile.tag,
+        level,
+        matchBand: b.topicalMatch != null ? Math.floor(b.topicalMatch / MATCH_BAND_SIZE) : -1,
+        deterministicScore: b.deterministicScore,
+        engineScore: read ? read.score * 10 : engine.score,
+        tier: engine.tier,
+        counts: read?.counts ?? engine.counts,
+        offer: b.title ?? '',
+        deliveryDays: Math.max(1, Math.round((b.deadlineUnix - input.nowUnix) / DAY_S)),
+        askedUsdc: Number(b.priceUsdc),
+        recordChecked: !!read,
+      };
+    }),
+  );
+}

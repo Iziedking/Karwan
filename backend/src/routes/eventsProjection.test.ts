@@ -72,3 +72,8 @@ test('a tracked party receives a follow-up offer even when the event omits party
   assert.equal(projected.structuredOffer?.version, 4);
   assert.deepEqual(projected.payload, {});
 });
+
+test('the shortlist is buyer-only: a seller on the job sees a pulse', async () => {
+  const { AUCTION_INTERNAL_TYPES } = await import('../auth/partyScope.js');
+  assert.equal(AUCTION_INTERNAL_TYPES.has('request.shortlist'), true);
+});

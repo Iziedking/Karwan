@@ -323,3 +323,24 @@ test('/delete from someone without an account gets the welcome', async () => {
   assert.deepEqual(calls, []);
   assert.match(bodyOf(s.sent.at(-1)!), /terms\/chat/);
 });
+
+test('after joining, the agent asks whether agents may check the record, then about other platforms', async () => {
+  const consents: Array<Record<string, boolean>> = [];
+  const consent = async (_address: string, patch: Record<string, boolean>) => {
+    consents.push(patch);
+  };
+  const { dispatch, sent } = setup({ extra: { consent } });
+  await dispatch(msg({ replyId: 'terms:accept' }));
+  const ask = sent.find((m) => m.kind === 'buttons' && m.body.includes('check your Karwan record'));
+  assert.ok(ask && ask.kind === 'buttons');
+  assert.deepEqual(ask.buttons.map((b) => b.id), ['rc:readable:yes', 'rc:readable:no']);
+
+  await dispatch(msg({ replyId: 'rc:readable:yes' }));
+  assert.deepEqual(consents[0], { recordReadable: true });
+  const next = sent.at(-1)!;
+  assert.ok(next.kind === 'buttons' && next.buttons[0]!.id === 'rc:lookup:yes');
+
+  await dispatch(msg({ replyId: 'rc:lookup:no' }));
+  assert.deepEqual(consents[1], { sourceLookup: false });
+  assert.match(sent.at(-1)!.kind === 'text' ? (sent.at(-1) as { body: string }).body : '', /change this any time in Profile/);
+});

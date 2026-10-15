@@ -7,6 +7,7 @@ import {
   updateX402Wallet,
   updateX402LastDeposit,
   findAgentWalletByAgentAddress,
+  getAgentWallets,
   type AgentWallets,
 } from '../db/agentWallets.js';
 import { config } from '../config.js';
@@ -15,6 +16,9 @@ import type { FinancialCommandShadowObserver } from '../agents/financialCommandS
 import { buildLegacyX402FundingObservation } from '../agents/financialCommandProjection.js';
 import { gatewayFundingCoordinator } from './gatewayFundingCoordinator.js';
 import { ARC } from '../chain/client.js';
+import { issuerAddress } from '../attestation/issuer.js';
+import { verifyRecordRead, type SignedRecordRead } from '../verification/recordReadSignature.js';
+import type { ReadPurpose } from './recordReadGate.js';
 
 /// Buyer-side x402 client (Path A: same-chain self-pay on the active Arc network).
 /// The buyer agent pays Karwan's own paid endpoints during bid scoring,
@@ -265,8 +269,9 @@ export interface X402PayResult<T> {
 export async function payX402<T = unknown>(
   url: string,
   x402: X402WalletRef,
+  headers: Record<string, string> = {},
 ): Promise<X402PayResult<T>> {
-  const first = await fetch(url);
+  const first = await fetch(url, { headers });
   if (first.status !== 402) {
     if (first.ok) {
       return { data: (await first.json()) as T, amountUsd: 0, payer: '', transaction: '' };
@@ -293,6 +298,7 @@ export async function payX402<T = unknown>(
   const payload = await scheme.createPaymentPayload(offer.x402Version ?? 2, option);
   const paid = await fetch(url, {
     headers: {
+      ...headers,
       // Circle Gateway verify requires the resource object ON the payment
       // payload ({url, description, mimeType}). createPaymentPayload does not
       // echo it, so copy it from the offer (the 402's PAYMENT-REQUIRED resource)
@@ -354,6 +360,62 @@ export interface PaidPassportSignal {
   /// in netted batches and never appear as individual transfers.
   gatewayBalanceAfter?: number;
   paidAt: number;
+}
+
+export interface PaidRecordRead {
+  read: SignedRecordRead;
+  amountUsd: number;
+  transaction: string;
+  payer: string;
+  depositTxHash?: string;
+  gatewayBalanceAfter?: number;
+}
+
+const RECORD_READ_PRICE_USD = 0.01;
+export const READS_BALANCE_EMPTY = 'reads balance not yet credited';
+
+/// A paid record read for one request, by the agent of the account it acts
+/// for. Checks the issuer signature before returning; a read that does not
+/// verify is thrown away. Callers treat any failure as "no read".
+export async function paidRecordRead(
+  payerAgentAddress: string,
+  subject: string,
+  opts: { purpose: ReadPurpose; ref: string; forAccount: string },
+): Promise<PaidRecordRead> {
+  const record = await findAgentWalletByAgentAddress(payerAgentAddress);
+  if (!record) throw new Error('no agent wallet record behind the paying agent');
+  const payerWalletId =
+    payerAgentAddress.toLowerCase() === record.sellerAddress.toLowerCase() ? record.sellerWalletId : record.buyerWalletId;
+  const x402 = await ensureX402Wallet(record);
+  const funding = await ensureGatewayFunding(record, x402, RECORD_READ_PRICE_USD, payerWalletId, opts.ref);
+  if (!funding.funded) throw new Error(`${READS_BALANCE_EMPTY} (available ${funding.availableUsd} USDC)`);
+  const query = new URLSearchParams({ purpose: opts.purpose, ref: opts.ref, for: opts.forAccount });
+  const result = await payX402<SignedRecordRead>(
+    `http://127.0.0.1:${config.PORT}/api/x402/record/${subject}?${query}`,
+    x402,
+    { 'x-karwan-payer-agent': payerAgentAddress },
+  );
+  const issuer = issuerAddress();
+  if (!issuer || !(await verifyRecordRead(result.data, issuer, Date.now()))) {
+    throw new Error('record read failed its signature check');
+  }
+  const gatewayBalanceAfter = await gatewayAvailableUsd(x402.address).catch(() => undefined);
+  return {
+    read: result.data,
+    amountUsd: result.amountUsd,
+    transaction: result.transaction,
+    payer: result.payer,
+    depositTxHash: funding.depositTxHash,
+    gatewayBalanceAfter,
+  };
+}
+
+/// What is left of a person's reads balance: the Gateway deposit behind their
+/// agent's x402 signer. Null when they have no agent or signer yet; reading
+/// the balance never creates one.
+export async function readsBalanceUsdc(owner: string): Promise<number | null> {
+  const signer = (await getAgentWallets(owner))?.x402Wallet?.address;
+  return signer ? gatewayAvailableUsd(signer) : null;
 }
 
 const CREDIT_PASSPORT_PRICE_USD = 0.01;

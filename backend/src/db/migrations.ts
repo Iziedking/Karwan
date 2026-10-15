@@ -1116,6 +1116,30 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       CREATE INDEX account_deletions_due ON account_deletions_v1 (state, due_at);
     `,
   },
+  {
+    version: 38,
+    name: 'record_reads',
+    sql: `
+      -- One row per paid record read. The signed detail is cleared 24 hours
+      -- after the read; the score, level and receipt stay.
+      CREATE TABLE record_reads_v1 (
+        id TEXT PRIMARY KEY,
+        reader TEXT NOT NULL,
+        subject TEXT NOT NULL,
+        purpose TEXT NOT NULL CHECK (purpose IN ('shortlist', 'bid', 'question')),
+        ref TEXT NOT NULL,
+        price_usdc NUMERIC NOT NULL,
+        payment_tx TEXT,
+        score_at_read INTEGER NOT NULL,
+        level_at_read TEXT NOT NULL,
+        detail JSONB,
+        created_at BIGINT NOT NULL
+      );
+      CREATE INDEX record_reads_subject ON record_reads_v1 (subject, created_at DESC);
+      CREATE INDEX record_reads_reader ON record_reads_v1 (reader, subject, created_at DESC);
+      CREATE INDEX record_reads_detail_due ON record_reads_v1 (created_at) WHERE detail IS NOT NULL;
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

@@ -14,7 +14,7 @@ import { installChannelPorts, tellAccount } from '../../channels/sender.js';
 import { provisionUserIdentityWallet } from '../../circle/wallets.js';
 import { config } from '../../config.js';
 import { claimUnique } from '../../db/evidence.js';
-import { getProfile } from '../../db/profiles.js';
+import { getProfile, updateProfile } from '../../db/profiles.js';
 import {
   findTelegramAccountByAddress,
   getTelegramAccount,
@@ -34,6 +34,7 @@ import { createTelegramHandler } from './handler.js';
 import { toTelegram } from './render.js';
 import { accountDeletion } from '../../accountDeletion/live.js';
 import { moneyOutChat } from '../../moneyOut/live.js';
+import { applySourcesUpdate, sourcesOf } from '../../reputation/consent.js';
 
 const chatIdOf = (to: string) => Number(to.replace(/^tg:/, ''));
 
@@ -145,6 +146,13 @@ export function startTelegramAgent(): boolean {
     }),
     moneyOut: moneyOutChat,
     deletion: accountDeletion,
+    consent: async (address, patch) => {
+      const saved = await updateProfile(address, (current) => ({
+        ...current,
+        reputationSources: applySourcesUpdate(sourcesOf(current), patch, Date.now()),
+      }));
+      if (!saved) throw new Error('no profile to save consent on');
+    },
     // A recycled number logs into the old Telegram account unless it has a password.
     joinedTip:
       'One more thing: turn on Two-Step Verification in Telegram (Settings, Privacy and Security). Then nobody who later gets your phone number can open this chat.',

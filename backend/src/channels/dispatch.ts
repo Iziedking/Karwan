@@ -42,6 +42,10 @@ export interface DispatchDeps<A extends ChatAccount = ChatAccount> {
   };
   /// One line a channel adds to the first message after someone joins.
   joinedTip?: string;
+  /// Saves the person's answer to the two reputation questions asked after
+  /// they join: may agents check their record, may their agent look them up
+  /// on platforms they connect.
+  consent?: (address: string, patch: { recordReadable?: boolean; sourceLookup?: boolean }) => Promise<void>;
   /// Deleting the account: the /delete command and its buttons. Answered
   /// before the model runs, so a deletion never depends on it.
   deletion?: {
@@ -55,6 +59,24 @@ const CARD_TTL_MS = 30 * 60_000;
 const ACCEPT_ID = 'terms:accept';
 
 const text = (body: string): OutMessage => ({ kind: 'text', body });
+
+const READABLE_ASK: OutMessage = {
+  kind: 'buttons',
+  body: 'May agents you deal with check your Karwan record? They pay a fraction of a cent to read your work history before they offer or choose. They never see your messages or who you worked with.',
+  buttons: [
+    { id: 'rc:readable:yes', title: 'Yes' },
+    { id: 'rc:readable:no', title: 'Not now' },
+  ],
+};
+
+const LOOKUP_ASK: OutMessage = {
+  kind: 'buttons',
+  body: 'May I look you up on platforms you connect later? I pay a few cents per read and nothing is shared with people.',
+  buttons: [
+    { id: 'rc:lookup:yes', title: 'Yes' },
+    { id: 'rc:lookup:no', title: 'Not now' },
+  ],
+};
 
 export function createDispatcher<A extends ChatAccount>(deps: DispatchDeps<A>) {
   const acceptButton = (body: string): OutMessage => ({
@@ -98,9 +120,23 @@ export function createDispatcher<A extends ChatAccount>(deps: DispatchDeps<A>) {
       }
       const joined = "You're in. Tell me what you sell or buy, and where you work. Then I'll help you get verified so other agents can find you.";
       await reply(text(deps.joinedTip ? `${joined}\n\n${deps.joinedTip}` : joined));
+      if (deps.consent) await reply(READABLE_ASK);
       return;
     }
     const address = account.address;
+
+    const consentTap = /^rc:(readable|lookup):(yes|no)$/.exec(m.replyId ?? '');
+    if (consentTap && deps.consent) {
+      const yes = consentTap[2] === 'yes';
+      try {
+        await deps.consent(address, consentTap[1] === 'readable' ? { recordReadable: yes } : { sourceLookup: yes });
+      } catch {
+        await reply(text("That didn't save. Tap your answer again in a minute."));
+        return;
+      }
+      await reply(consentTap[1] === 'readable' ? LOOKUP_ASK : text('Saved. You can change this any time in Profile.'));
+      return;
+    }
 
     if (deps.deletion) {
       const answer = m.replyId

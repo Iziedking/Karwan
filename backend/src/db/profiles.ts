@@ -4,6 +4,7 @@ import { eq, sql } from 'drizzle-orm';
 import { db, pgEnabled, withPostgresTransaction } from './client.js';
 import { profiles } from './schema.js';
 import { logger } from '../logger.js';
+import type { ReputationSources } from '../reputation/consent.js';
 
 const STORE_PATH = resolve(process.cwd(), 'data', 'profiles.json');
 
@@ -119,6 +120,9 @@ export interface UserProfile {
   /// User preferences. Includes locale (used to localise Telegram + email
   /// notifications backend-side) and other app-wide toggles.
   settings?: UserSettings;
+  /// Consent to be read by agents and to look the person up on platforms they
+  /// connect (view 13). Off until they turn it on; never in the public view.
+  reputationSources?: Partial<ReputationSources>;
   skillVerifications?: Array<{ skillId: string; status: 'pending' | 'verified' | 'rejected' | 'expired' | 'revoked'; issuer: string; evidenceType: string; commitment: string; submittedAt?: number; verifiedAt?: number; expiresAt?: number; reasonCode?: string; message?: string; }>;
   seller?: {
     skills: string[];
@@ -311,6 +315,7 @@ const PRESERVE_WHEN_OMITTED = [
   'xProfileImageUrl',
   'profileImageDataUrl',
   'settings',
+  'reputationSources',
 ] as const;
 
 export async function upsertProfile(

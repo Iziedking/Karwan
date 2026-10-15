@@ -18,6 +18,7 @@ import { executeContractCall } from '../chain/txs.js';
 import {
   getBuyerSnapshot,
   getBuyerJob,
+  getShortlist,
   reseedJobFromChain,
   getMatchProposal,
   listMatchProposalsForUser,
@@ -39,7 +40,10 @@ import { endNearMissOnDecline, reRaiseNearMissFromPassed } from '../agents/nearM
 import { bus, recentEventsByType } from '../events.js';
 import { resolveBuyerProfileForUser } from '../agents/agent-registry.js';
 import { createBrief, patchBrief, getBrief, deleteBrief, rekeyBrief } from '../db/briefs.js';
-import { isRequestOwner } from '../agents/chooseOffer.js';
+import { approvalGate, isRequestOwner } from '../agents/chooseOffer.js';
+import { config } from '../config.js';
+import { isVerified, shortlistChoiceCheck } from '../agents/shortlist.js';
+import { levelOf } from '../verification/live.js';
 import { matchDecliner } from '../agents/matchDecline.js';
 import { accountTypeOf, deriveJobLane } from '../profile/accountType.js';
 import { getDeal } from '../db/deals.js';
@@ -47,7 +51,7 @@ import { countLiveDirectOffers } from '../db/directOffers.js';
 import { jobActionsInFlight } from '../offers/jobLock.js';
 import { extractKeywords } from '../llm/keywords.js';
 import { isSessionSelf, sessionAddress, viewerAddress } from '../auth/session.js';
-import { getAgentWallets } from '../db/agentWallets.js';
+import { findAgentWalletByAgentAddress, getAgentWallets } from '../db/agentWallets.js';
 import { buyerFundingNeed } from '../agents/buyerFundingNeed.js';
 import { logger } from '../logger.js';
 import { invalidBodyMessage } from './invalidBody.js';
@@ -60,7 +64,12 @@ const addrSchema = z
 const callerSchema = z.object({ caller: addrSchema });
 const declineSchema = z.object({ caller: addrSchema, reason: z.string().min(1).max(400).optional() });
 const raiseSchema = z.object({ caller: addrSchema, priceUsdc: z.coerce.number().positive().max(1_000_000) });
-const chooseOfferSchema = z.object({ caller: addrSchema, seller: addrSchema });
+const chooseOfferSchema = z.object({
+  caller: addrSchema,
+  seller: addrSchema,
+  acknowledgeUnverified: z.boolean().optional(),
+  expectedPriceUsdc: z.union([z.string(), z.number()]).optional(),
+});
 /// Pre-match edit. Any of briefText, negotiationMaxIncreasePct, or trustedMatch
 /// can change. Each field is optional but at least one must be provided. The
 /// in-flight match guard at the route layer prevents a desync against a running
@@ -589,13 +598,21 @@ jobsRoutes.post('/:jobId/approve-match', async (c) => {
   // the raised price (through the near-miss proceed path) or decline it. Without
   // a raise, the seller is the gate as before.
   const pendingRaise = proposal.awaitingParty === 'buyer' && !!proposal.raisedPriceUsdc;
-  const caller = body.caller.toLowerCase();
-  if (pendingRaise) {
-    if (caller !== proposal.buyerUser) {
-      return c.json({ error: 'only the buyer can approve the raised price', code: 'forbidden' }, 403);
-    }
-  } else if (caller !== proposal.sellerUser) {
-    return c.json({ error: 'only the seller can approve this match' }, 403);
+  const gate = approvalGate({
+    shortlistMode: config.SHORTLIST_MODE,
+    pendingRaise,
+    caller: body.caller,
+    buyer: proposal.buyerUser,
+    seller: proposal.sellerUser,
+  });
+  if (!gate.ok) {
+    const error =
+      gate.code === 'buyer-chooses'
+        ? 'The buyer chooses from the shortlist first.'
+        : gate.code === 'not-buyer'
+          ? 'only the buyer can approve the raised price'
+          : 'only the seller can approve this match';
+    return c.json({ error, code: gate.code === 'buyer-chooses' ? gate.code : 'forbidden' }, gate.status);
   }
   if (inFlight.has(jobId)) {
     return c.json({ error: 'an action is already in progress for this job' }, 409);
@@ -615,6 +632,24 @@ jobsRoutes.post('/:jobId/approve-match', async (c) => {
   } finally {
     inFlight.delete(jobId);
   }
+});
+
+/// The shortlist for one request: who the agents found, verified or not, their
+/// score and numbers, and the one the agent recommends. Only the person who
+/// posted the request sees it.
+jobsRoutes.get('/:jobId/shortlist', async (c) => {
+  if (!config.SHORTLIST_MODE) return c.json({ error: 'not found' }, 404);
+  const jobId = c.req.param('jobId');
+  const caller = (c.req.query('caller') ?? '').toLowerCase();
+  const brief = getBrief(jobId);
+  if (!brief || !isSessionSelf(c, caller) || !isRequestOwner(caller, brief)) {
+    return c.json({ error: 'Only the person who posted this request sees its shortlist.' }, 403);
+  }
+  const job = getBuyerJob(jobId);
+  return c.json({
+    entries: getShortlist(jobId) ?? [],
+    closed: !job || !!job.expiredAt || !!job.escrowFunded,
+  });
 });
 
 /// The buyer chooses one of the offers on their request at that offer's price.
@@ -640,16 +675,31 @@ jobsRoutes.post('/:jobId/choose-offer', async (c) => {
     refuse(brief ? 'not-request-owner' : 'no-brief');
     return c.json({ error: 'only the buyer can choose an offer', code: 'forbidden' }, 403);
   }
+  if (config.SHORTLIST_MODE) {
+    const entries = getShortlist(jobId) ?? [];
+    const listed = entries.some((e) => e.seller.toLowerCase() === body.seller.toLowerCase());
+    const owner = listed ? null : await findAgentWalletByAgentAddress(body.seller).catch(() => null);
+    const offListVerified = listed || (!!owner && isVerified(await levelOf(owner.userAddress)));
+    const check = shortlistChoiceCheck(entries, body.seller, body.acknowledgeUnverified === true, offListVerified);
+    if (!check.ok) {
+      refuse(check.code);
+      const error =
+        check.code === 'unavailable'
+          ? 'This offer is no longer available.'
+          : 'This seller is not verified. Confirm that you want to go ahead.';
+      return c.json({ error, code: check.code }, 409);
+    }
+  }
   if (inFlight.has(jobId)) {
     refuse('in-flight');
     return c.json({ error: 'an action is already in progress for this job' }, 409);
   }
   inFlight.add(jobId);
   try {
-    const result = await chooseAgentOffer(jobId, body.seller);
+    const result = await chooseAgentOffer(jobId, body.seller, body.expectedPriceUsdc);
     if (!result.ok) {
       refuse(result.code);
-      const status = result.code === 'INSUFFICIENT_AGENT_BALANCE' || saysWhy(result.code) || result.code === 'CLOSED' || result.code.startsWith('ALREADY') ? 409 : result.code === 'NO_OFFER' ? 404 : 502;
+      const status = result.code === 'INSUFFICIENT_AGENT_BALANCE' || saysWhy(result.code) || result.code === 'CLOSED' || result.code === 'PRICE_CHANGED' || result.code.startsWith('ALREADY') ? 409 : result.code === 'NO_OFFER' ? 404 : 502;
       const error = saysWhy(result.code) ? result.message : 'could not choose this offer';
       return c.json({ error, code: result.code, detail: result.message }, status);
     }

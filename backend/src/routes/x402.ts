@@ -11,6 +11,18 @@ import { computeRepaymentBehavior } from './sme.js';
 import { skillDemand } from '../agents/marketDemand.js';
 import { logger } from '../logger.js';
 import { ARC } from '../chain/client.js';
+import { config } from '../config.js';
+import { findProfileByHandle } from '../db/profiles.js';
+import { getBrief } from '../db/briefs.js';
+import { getListing } from '../db/listings.js';
+import { saveRecordRead } from '../db/recordReads.js';
+import { getBuyerJob } from '../agents/buyer.js';
+import { issuerAddress } from '../attestation/issuer.js';
+import { mayReadRecord } from '../reputation/consent.js';
+import { buildRecordRead } from '../reputation/recordRead.js';
+import { signRecordRead } from '../verification/recordReadSignature.js';
+import { levelOf } from '../verification/live.js';
+import { isPartyToRequest, paymentFromReader, recordReadGate } from '../x402/recordReadGate.js';
 
 /// Karwan's paid data endpoints. Financiers and external agents pay
 /// per-call in USDC over x402 (Circle Gateway batched settlement on Arc
@@ -34,6 +46,7 @@ const PRICES = {
   concentration: 0.005,
   documentAnchors: 0.005,
   skillDemand: 0.005,
+  record: 0.01,
 } as const;
 
 /// Resolve an agent DCW to its owner so paid queries against either
@@ -164,6 +177,104 @@ x402Routes.get('/credit-passport/:address', async (c) => {
       502,
     );
   }
+});
+
+const purposeSchema = z.enum(['shortlist', 'bid', 'question']);
+
+/// The facts isPartyToRequest decides on. `ref` is a request id for shortlist
+/// and bid reads, and a listing id for a question.
+function requestFacts(ref: string, subject: string) {
+  const brief = getBrief(ref);
+  const job = brief ? getBuyerJob(ref) : null;
+  const listing = brief ? null : getListing(ref);
+  return {
+    briefPoster: brief?.postedBy ?? null,
+    subjectBid: !!job?.bids.some((b) => (b.sellerUserAddress ?? '').toLowerCase() === subject.toLowerCase()),
+    listingSeller: listing?.sellerUser ?? null,
+  };
+}
+
+/// GET /api/x402/record/:subject: $0.01. A signed karwan-record-v1 read for an
+/// agent acting for a named account on a named request, only with the
+/// subject's consent. Every refusal happens before the payment gate.
+x402Routes.get('/record/:subject', async (c) => {
+  const pepper = config.RECORD_COUNTERPARTY_PEPPER;
+  if (!config.RECORD_READS_ENABLED || !pepper) return c.json({ error: 'not available' }, 404);
+  const raw = c.req.param('subject');
+  const purpose = purposeSchema.safeParse(c.req.query('purpose'));
+  const ref = c.req.query('ref') ?? '';
+  const forAccount = (c.req.query('for') ?? '').toLowerCase();
+  const payerAgent = (c.req.header('x-karwan-payer-agent') ?? '').toLowerCase();
+  if (!purpose.success || !ref || !addrSchema.safeParse(forAccount).success) {
+    return c.json({ error: 'purpose, ref and for are required' }, 400);
+  }
+
+  const subject = addrSchema.safeParse(raw).success
+    ? await resolveSubject(raw)
+    : ((await findProfileByHandle(raw.replace(/^@/, '').toLowerCase()))?.address?.toLowerCase() ?? null);
+  const [subjectProfile, payerRecord] = await Promise.all([
+    subject ? getProfile(subject).catch(() => null) : Promise.resolve(null),
+    payerAgent ? findAgentWalletByAgentAddress(payerAgent).catch(() => null) : Promise.resolve(null),
+  ]);
+  const gate = recordReadGate({
+    subjectExists: !!subject && !!subjectProfile,
+    subjectConsents: mayReadRecord(subjectProfile),
+    readerAccount: forAccount,
+    payerIsReadersAgent: payerRecord?.userAddress.toLowerCase() === forAccount,
+    readerIsPartyToRef: !!subject && isPartyToRequest({ purpose: purpose.data, reader: forAccount, subject }, requestFacts(ref, subject)),
+  });
+  if (!gate.ok) return c.json({ error: gate.error }, gate.status);
+  if (!paymentFromReader(c.req.header('payment-signature'), payerRecord?.x402Wallet?.address)) {
+    return c.json({ error: "The payment must come from the named account's own agent." }, 403);
+  }
+
+  // Build and sign before charging, so a failure here never costs the reader.
+  let signed: Awaited<ReturnType<typeof signRecordRead>>;
+  let level: Awaited<ReturnType<typeof levelOf>>;
+  const now = Date.now();
+  try {
+    const issuer = issuerAddress();
+    if (!issuer) return c.json({ error: 'signing unavailable' }, 503);
+    const [inputs, deals, lvl] = await Promise.all([loadInputs(subject!), listDealsForAddress(subject!), levelOf(subject!)]);
+    level = lvl;
+    const result = compute(inputs);
+    signed = await signRecordRead(
+      buildRecordRead({
+        issuer,
+        subject: subject!,
+        tag: subjectProfile?.handle ?? null,
+        level,
+        engineScore: result.score,
+        tier: result.tier,
+        deals,
+        pepper,
+        now,
+      }),
+      ARC.chainId,
+    );
+  } catch (err) {
+    return c.json({ error: 'record read failed', detail: (err as Error).message }, 502);
+  }
+  if (!signed) return c.json({ error: 'signing unavailable' }, 503);
+
+  const payment = await requirePayment(c, PRICES.record, 'Karwan record read: signed work history for one request');
+  if (payment instanceof Response) return payment;
+
+  await saveRecordRead({
+    id: `${payment.transaction || now}-${subject}`,
+    reader: forAccount,
+    subject: subject!,
+    purpose: purpose.data,
+    ref,
+    priceUsdc: PRICES.record,
+    paymentTx: payment.transaction || null,
+    scoreAtRead: signed.score,
+    levelAtRead: level,
+    detail: signed,
+    createdAt: now,
+  }).catch((err: Error) => logger.warn({ err: err.message, subject }, 'x402: record read receipt not saved'));
+  logger.info({ subject, reader: forAccount, purpose: purpose.data, payer: payment.payer }, 'x402: record read served');
+  return c.json(signed);
 });
 
 /// GET /api/x402/repayment-behavior/:address: $0.005.

@@ -69,6 +69,7 @@ export async function buyerJobIds(caller: string): Promise<Set<string>> {
 /// class is the only leak-proof rule.
 export const AUCTION_INTERNAL_TYPES: ReadonlySet<KarwanEventType> = new Set<KarwanEventType>([
   'bid.scored',
+  'request.shortlist',
   'bid.submitted',
   'counter.issued',
   'counter.received',

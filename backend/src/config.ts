@@ -80,6 +80,14 @@ const envSchema = z.object({
   /// Agent-to-agent questions read the other side's record over x402,
   /// paid in USDC. Off until the paid rail is proven on the network.
   X402_AGENT_QUERIES: envBool('X402_AGENT_QUERIES'),
+  /// Agents pay to read each other's full record (view 13). Off until the
+  /// x402 spike passes on the network.
+  RECORD_READS_ENABLED: envBool('RECORD_READS_ENABLED'),
+  /// Key for the one-way counterparty fingerprint in record reads. Created by
+  /// the owner on the server; never rotated once reads are served.
+  RECORD_COUNTERPARTY_PEPPER: optionalString,
+  /// Buyers get a shortlist and choose; the agent no longer commits a match.
+  SHORTLIST_MODE: envBool('SHORTLIST_MODE'),
   /// Chainlink CRE is the expected source of delivery checks for deals. On
   /// before the workflow is fully wired, checks fall back to Karwan and the
   /// deal records it. The other CRE_* flags keep their meaning.

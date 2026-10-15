@@ -15,6 +15,7 @@ function setup(over: Partial<RecordDeps> = {}) {
       { kind: 'person_check', level: 'person', issuedAt: now - 1, expiresAt: now - 1 },
     ],
     credential: async () => ({ type: 'karwan.record.v1', signed: true }),
+    summary: async () => ({ score: 82, counts: { completed: 12, onTimeRate: 92, disputesLost: 0 } }),
     ...over,
   };
   return createRecordRoutes(deps);
@@ -30,9 +31,17 @@ test('a record shows name, level, tier, reasons and the valid facts with their p
   assert.deepEqual(body.facts, [{ kind: 'client_confirmation', issuedAt: now - 1, expiresAt: now + 1e9, txHash: '0x01' }]);
 });
 
-test('a record never carries numbers, phone, evidence or documents', async () => {
+test('a record shows the 0-100 score, the counts, what was checked and its sources', async () => {
+  const body = (await (await setup().request('/ada')).json()) as Record<string, unknown>;
+  assert.equal(body.score, 82);
+  assert.deepEqual(body.counts, { completed: 12, onTimeRate: 92, disputesLost: 0 });
+  assert.deepEqual(body.checks, [{ kind: 'client_confirmation', at: now - 1 }]);
+  assert.deepEqual(body.sources, [{ id: 'karwan', status: 'connected' }]);
+});
+
+test('a record never carries amounts, counterparties, phone, evidence or documents', async () => {
   const body = JSON.stringify(await (await setup().request('/ada')).json());
-  for (const forbidden of ['evidenceHash', 'score', 'phone', 'number', 'volume', 'amount']) {
+  for (const forbidden of ['evidenceHash', 'phone', 'number', 'volume', 'amount', 'lifetimeVolumeUsdc', 'counterparty']) {
     assert.ok(!body.includes(`"${forbidden}"`), forbidden);
   }
 });

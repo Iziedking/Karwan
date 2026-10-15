@@ -111,3 +111,11 @@ test('every new card has a unique id and no em dashes or dollar signs', () => {
     assert.doesNotMatch(JSON.stringify(card), /—|–|\$/);
   }
 });
+
+test('choosing an unverified seller says so on the card and carries the acknowledgement', () => {
+  const card = ok(buildChooseOfferConfirm({ caller, jobId, seller, sellerLabel: 'Kemi', priceUsdc: '60', unverified: true }));
+  assert.match(card.warning ?? '', /^Kemi is not verified\. Karwan has not checked their identity or past work\./);
+  assert.equal(card.payload.acknowledgeUnverified, true);
+  const verified = ok(buildChooseOfferConfirm({ caller, jobId, seller, sellerLabel: 'Ada', priceUsdc: '80' }));
+  assert.equal(verified.payload.acknowledgeUnverified, undefined);
+});

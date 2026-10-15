@@ -1,5 +1,5 @@
 ﻿import { serve } from '@hono/node-server';
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { cors } from 'hono/cors';
 import { getCookie } from 'hono/cookie';
 import { logger as appLogger } from './logger.js';
@@ -28,6 +28,7 @@ import { tagRoutes } from './routes/tags.js';
 import { waitlistRoutes } from './routes/waitlist.js';
 import { recoveryRoutes } from './routes/recovery.js';
 import { startRecoveryWatcher } from './recovery/watcher.js';
+import { startRecordReadSweep } from './reputation/recordReadSweep.js';
 import { reputationRoutes } from './routes/reputation.js';
 import { dealsRoutes } from './routes/deals.js';
 import { creDeliveryRequestRoutes } from './routes/creDeliveryRequest.js';
@@ -95,7 +96,8 @@ import { supportRoutes, startSupportSweeper } from './routes/support.js';
 import { configureAgentKitResearch, configureResearchScoutEvidenceShadow, researchRoutes } from './routes/research.js';
 import { configureWorldIdProof, createPostgresWorldIdNullifierStore, verifyConfiguredWorldId, worldIdRoutes } from './routes/worldId.js';
 import type { IdKitResponseShape } from './worldid/idkitProof.js';
-import { sessionAddress } from './auth/session.js';
+import { isSessionSelf, sessionAddress } from './auth/session.js';
+import { getProfile, updateProfile } from './db/profiles.js';
 import { diagnoseRoutes } from './routes/diagnose.js';
 import { businessRoutes, businessAdminRoutes } from './routes/business.js';
 import { verificationRoutes } from './routes/verification.js';
@@ -112,6 +114,9 @@ import { recordDeps } from './verification/recordLive.js';
 import { startFactPublisher } from './verification/publisherLive.js';
 import { partnersRoutes } from './routes/partners.js';
 import { x402Routes } from './routes/x402.js';
+import { createReputationSourcesRoutes } from './routes/reputationSources.js';
+import { readersOf } from './db/recordReads.js';
+import { readsBalanceUsdc } from './x402/buyerClient.js';
 import { feedbackRoutes } from './routes/feedback.js';
 import { clientErrorRoutes } from './routes/clientErrors.js';
 import { circleWebhookRoutes } from './routes/circle-webhook.js';
@@ -509,6 +514,23 @@ startAccountDeletionSweep();
 app.route('/api/partners', partnersRoutes);
 app.route('/api/admin/business', businessAdminRoutes);
 app.route('/api/x402', x402Routes);
+app.route(
+  '/api/me/reputation-sources',
+  createReputationSourcesRoutes({
+    isSelf: (c, address) => isSessionSelf(c as Context, address),
+    load: getProfile,
+    save: async (address, sources) => {
+      await updateProfile(address, (current) => ({ ...current, reputationSources: sources }));
+    },
+    readers: (address) => readersOf(address),
+    nameOf: async (address) => {
+      const p = await getProfile(address).catch(() => null);
+      return { name: p?.displayName ?? null, tag: p?.handle ?? null };
+    },
+    readsBalance: readsBalanceUsdc,
+    now: Date.now,
+  }),
+);
 app.route('/api/feedback', feedbackRoutes);
 app.route('/api/client-errors', clientErrorRoutes);
 app.route('/api/circle', circleWebhookRoutes);
@@ -539,6 +561,7 @@ const stopFns: Array<() => void> = [];
 // window. This worker is independent of agent flags so cleanup continues when
 // agents are intentionally disabled during maintenance or rollout.
 stopFns.push(startChatRetentionSweep());
+stopFns.push(startRecordReadSweep());
 
 // Any event that mutates on-chain escrow state has to bust the readEscrow
 // cache so the next read pulls fresh data instead of serving the stale tuple.

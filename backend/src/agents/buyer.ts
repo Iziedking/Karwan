@@ -1,6 +1,6 @@
 import { SELLER_LINK_DETAIL, SELLER_NOT_BOUND, sellerAgentBinding, sellerBindingRefusal } from '../deals/sellerBinding.js';
 import { carriedGate } from './proposalCarry.js';
-import { offerToChoose } from './chooseOffer.js';
+import { offerToChoose, priceAsSeen, withAgreedPrice } from './chooseOffer.js';
 import { sellerKey } from './sellerKey.js';
 import { bidsFromHistory } from './bidHistory.js';
 import { closedForOffers } from './offerWindow.js';
@@ -88,7 +88,9 @@ import { pendingEvaluations } from './evaluationTracker.js';
 /// few enough to keep total negotiation time bounded.
 const MAX_CANDIDATES = BUYER_MAX_CANDIDATES;
 import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
-import { createDeal, getDeal, patchDeal } from '../db/deals.js';
+import { createDeal, getDeal, listDealsForAddress, patchDeal } from '../db/deals.js';
+import { compute as computeReputation } from '../reputation/engine.js';
+import { loadInputs } from '../reputation/signals.js';
 import { getBrief, listOpenBriefJobIds, patchBrief } from '../db/briefs.js';
 import { findPendingDirectOfferByAgent } from '../db/directOffers.js';
 import { getProfile } from '../db/profiles.js';
@@ -120,7 +122,13 @@ import { maybeRaiseNearMiss, setInBudgetProbe } from './nearMiss.js';
 import { clearNearMiss, getPendingNearMiss, type NearMissApproval } from '../db/nearMiss.js';
 import { clearOutOfReach } from '../db/outOfReach.js';
 import { config } from '../config.js';
-import { paidCreditPassport, type PaidPassportSignal } from '../x402/buyerClient.js';
+import { paidCreditPassport, paidRecordRead, READS_BALANCE_EMPTY, type PaidPassportSignal } from '../x402/buyerClient.js';
+import { markUnavailable, pickRecommended, rankCandidates, toEntries, unavailableSellers, type ShortlistCandidate, type ShortlistEntry } from './shortlist.js';
+import { buildCandidates, type ShortlistDeps } from './shortlistRun.js';
+import { recentReadBy } from '../db/recordReads.js';
+import { countsFor } from '../reputation/recordRead.js';
+import type { SignedRecordRead } from '../verification/recordReadSignature.js';
+import { levelOf } from '../verification/live.js';
 import { researchMarket, type MarketRead } from '../x402/externalClient.js';
 import { chargeResearch } from '../x402/researchAccount.js';
 import { recordExternalResearchFailure, recordExternalResearchPayment } from '../x402/researchAccounting.js';
@@ -318,6 +326,12 @@ interface JobState {
   /// at MAX_CANDIDATES so a 10-bid auction can't spawn 10 sequential rounds.
   candidateQueue: Bid[];
   triedSellers: Set<`0x${string}`>;
+  /// Shortlist mode: the ranked candidates and what the buyer sees. The agent
+  /// negotiates only with the recommended seller; the buyer chooses.
+  shortlistCandidates?: ShortlistCandidate[];
+  shortlist?: ShortlistEntry[];
+  /// A paid read failed for an empty reads balance; the buyer is told once.
+  readsBalanceEmpty?: boolean;
   /// Snapshot of triedSellers at the moment a near-miss was passed and the
   /// auction re-opened. The walk-end near-miss skips these, so only genuinely
   /// NEW sellers (bidding after the pass) can raise a fresh prompt — old offers
@@ -1718,6 +1732,13 @@ async function handleBidSubmitted(log: Log) {
     return;
   }
 
+  // Shortlist already published: the late offer joins the list. The agent
+  // counters it only if it takes the recommendation and nobody is mid-counter.
+  if (config.SHORTLIST_MODE && state.collectionFired && state.shortlistCandidates && !state.expired) {
+    await publishShortlist(state, rankBidEntries(state), Number(state.context.budgetUsdc), { counter: false });
+    return;
+  }
+
   if (!state.collectionFired) {
     if (state.collectionStartedAt == null) {
       state.collectionStartedAt = Date.now();
@@ -1948,6 +1969,103 @@ interface RankedBidEntry {
   deterministicScore: number;
 }
 
+const SHORTLIST_READ_TIMEOUT_MS = 10_000;
+const READ_REUSE_MS = 600_000;
+
+/// `notify` marks the updates worth a chat message: the first list, a new
+/// recommendation, and an agreed price. Other refreshes only update screens.
+function shortlistPayload(state: JobState, notify: boolean) {
+  const rec = state.shortlist?.find((e) => e.recommended) ?? null;
+  return {
+    buyer: getBrief(state.jobId)?.postedBy ?? null,
+    count: state.shortlist?.length ?? 0,
+    recommended: rec?.sellerUser ?? null,
+    readsBalanceEmpty: !!state.readsBalanceEmpty,
+    entries: state.shortlist ?? [],
+    notify,
+  };
+}
+
+function shortlistDeps(state: JobState): ShortlistDeps {
+  return {
+    readRecord: async (payerAgent, subject, ref, forAccount) => {
+      if (!config.RECORD_READS_ENABLED) return null;
+      const reused = await recentReadBy(forAccount, subject, Date.now() - READ_REUSE_MS).catch(() => null);
+      const kept = reused?.detail as SignedRecordRead | null | undefined;
+      if (kept) return { counts: kept.counts, score: kept.score };
+      try {
+        const r = await paidRecordRead(payerAgent, subject, { purpose: 'shortlist', ref, forAccount });
+        recordSpend(ref, r.amountUsd);
+        return { counts: r.read.counts, score: r.read.score };
+      } catch (err) {
+        if ((err as Error).message.startsWith(READS_BALANCE_EMPTY)) state.readsBalanceEmpty = true;
+        logger.warn({ jobId: ref, subject, err: (err as Error).message }, 'shortlist record read failed (non-fatal)');
+        return null;
+      }
+    },
+    level: (user) => levelOf(user),
+    engine: async (user) => {
+      const [inputs, deals] = await Promise.all([loadInputs(user), listDealsForAddress(user).catch(() => [])]);
+      const result = computeReputation(inputs);
+      return { score: result.score, tier: result.tier, counts: countsFor(deals, user) };
+    },
+    profile: async (user) => {
+      const p = await getProfile(user).catch(() => null);
+      return { name: p?.displayName?.trim() || null, tag: p?.handle ?? null };
+    },
+    timeoutMs: SHORTLIST_READ_TIMEOUT_MS,
+  };
+}
+
+/// Shortlist mode: read the first five bidders, rank them, publish the list.
+/// On first publish the agent negotiates with the recommended seller only. A
+/// refresh from a late offer counters a new recommendation only when no counter
+/// is in flight and nothing is agreed or funded yet.
+async function publishShortlist(
+  state: JobState,
+  rankedEntries: RankedBidEntry[],
+  budget: number,
+  opts: { counter: boolean },
+) {
+  const buyerUser = getBrief(state.jobId)?.postedBy ?? state.context.buyer;
+  const before = state.shortlist?.find((e) => e.recommended)?.seller ?? null;
+  const candidates = await buildCandidates(
+    {
+      jobId: state.jobId,
+      buyerAgent: state.buyer.address,
+      buyerUser,
+      bids: rankedEntries.map((e) => ({ ...e.bid, deterministicScore: e.deterministicScore })),
+      nowUnix: Math.floor(Date.now() / 1000),
+    },
+    shortlistDeps(state),
+  );
+  const ranked = rankCandidates(candidates);
+  const recommended = pickRecommended(ranked, budget, unavailableSellers(state.shortlist ?? []));
+  state.shortlistCandidates = ranked;
+  state.shortlist = toEntries(ranked, recommended, budget, null, state.shortlist ?? []);
+  const changed = before?.toLowerCase() !== (recommended?.seller.toLowerCase() ?? null);
+  bus.emitEvent({
+    type: 'request.shortlist',
+    jobId: state.jobId,
+    actor: 'buyer',
+    payload: shortlistPayload(state, opts.counter || changed),
+  });
+  logger.info(
+    { jobId: state.jobId, count: state.shortlist.length, recommended: recommended?.seller ?? null },
+    'shortlist published',
+  );
+
+  if (!recommended) {
+    if (opts.counter) markNegotiationEnded(state, 'shortlist-no-recommendation');
+    return;
+  }
+  const head = rankedEntries.find((e) => e.bid.seller === recommended.seller)?.bid;
+  const mayCounter = opts.counter || (changed && !state.counterWatchdog && !state.finalized && !state.escrowFunded);
+  if (!head || !mayCounter || state.triedSellers.has(head.seller)) return;
+  state.candidateQueue = [head];
+  await issueCounter(state, head);
+}
+
 /// Rank the bids currently in the pool, highest first. Match-first: the seller
 /// whose skills/keywords best cover the brief wins ahead of price and
 /// reputation (the karwan-match-ranking rule). Within a topical-match band the
@@ -2151,6 +2269,11 @@ async function finalizeBidCollection(
     shadowPaidCallCount: 0,
   });
   publishNegotiationShadow(state, rankedEntries, decisionAt);
+
+  if (config.SHORTLIST_MODE && rankedEntries.length > 0) {
+    await publishShortlist(state, rankedEntries, budget, { counter: true });
+    return;
+  }
 
   // Audit: log when a ranking rule put a seller on top that a plain price+rep
   // sort would not have, so the choice is narratable and the bands are tunable.
@@ -2507,6 +2630,15 @@ async function tryNextCandidate(
   // it can't double-fire after we've already moved on.
   clearCounterWatchdog(state);
   state.triedSellers.add(failedSeller);
+  // Shortlist mode never cascades: the recommended seller's row stays at their
+  // own asking price and the buyer chooses from the list.
+  if (config.SHORTLIST_MODE && state.shortlist) {
+    state.shortlist = state.shortlist.map((e) =>
+      e.seller.toLowerCase() === failedSeller.toLowerCase() && e.state === 'negotiating' ? { ...e, state: 'ready' as const } : e,
+    );
+    bus.emitEvent({ type: 'request.shortlist', jobId: state.jobId, actor: 'buyer', payload: shortlistPayload(state, false) });
+    return;
+  }
   bus.emitEvent({
     type: 'negotiation.attempt-ended',
     jobId: state.jobId,
@@ -3531,11 +3663,22 @@ async function proposeMatch(
   // A crossable deal is closing: drop any "no match at your budget" marker so a
   // stale out-of-reach state can't linger on the job page after a real match.
   clearOutOfReach(state.jobId);
+  if (config.SHORTLIST_MODE && state.shortlistCandidates) {
+    const budget = Number(state.context.budgetUsdc);
+    state.shortlist = toEntries(
+      state.shortlistCandidates,
+      pickRecommended(state.shortlistCandidates, budget, unavailableSellers(state.shortlist ?? [])),
+      budget,
+      { seller, priceUsdc: Number(agreedPriceUsdc) },
+      state.shortlist ?? [],
+    );
+    bus.emitEvent({ type: 'request.shortlist', jobId: state.jobId, actor: 'buyer', payload: shortlistPayload(state, true) });
+  }
   // Re-rank the full pool before committing. A stronger bid that landed after
   // the collection window closed (a late ELITE while the agent negotiated a
   // COLD seller) supersedes the about-to-propose seller when it's acceptable at
   // its own price. Skipped for explicit human-chosen commits (near-miss resume).
-  if (opts?.allowSupersede !== false && !state.finalized) {
+  if (opts?.allowSupersede !== false && !state.finalized && !config.SHORTLIST_MODE) {
     const better = pickSupersedingBid(state, seller);
     if (better && better.bid.seller.toLowerCase() !== seller.toLowerCase()) {
       if (better.mode === 'direct') {
@@ -3666,10 +3809,13 @@ async function proposeMatch(
     // seller pays to read the buyer's, so both stamps land in the matched
     // window. Run together; either failing is non-fatal (no stamp, match still
     // forms). The seller's pull is cached for the deal's passportPulls at accept.
-    const [paidBid, sellerVerify] = await Promise.all([
-      verifyCounterpartyAtMatch(state.buyer.address as `0x${string}`, seller, 'buyer', state.jobId),
-      verifyCounterpartyAtMatch(seller, state.buyer.address as `0x${string}`, 'seller', state.jobId),
-    ]);
+    // Shortlist mode already paid for the reads while the list was built.
+    const [paidBid, sellerVerify] = config.SHORTLIST_MODE
+      ? [undefined, undefined]
+      : await Promise.all([
+          verifyCounterpartyAtMatch(state.buyer.address as `0x${string}`, seller, 'buyer', state.jobId),
+          verifyCounterpartyAtMatch(seller, state.buyer.address as `0x${string}`, 'seller', state.jobId),
+        ]);
     // This projection is pure and deterministic. Only expose its snapshot id
     // when the durable evidence shadow is enabled; otherwise the legacy paid
     // call has no persisted snapshot to point at.
@@ -3726,6 +3872,9 @@ async function proposeMatch(
       deadlineUnix: state.context.deadlineUnix,
       termsHash: state.context.termsHash,
       proposedAt: Date.now(),
+      // Shortlist mode: the agreed match waits for the buyer's choice, never
+      // the seller's approval.
+      ...(config.SHORTLIST_MODE ? { awaitingParty: 'buyer' as const } : {}),
       ...(risk ? { riskFlag: risk.flag, riskNote: risk.note } : {}),
       ...(paidBid
         ? {
@@ -4103,18 +4252,30 @@ export async function proceedAgentNearMiss(
 export async function chooseAgentOffer(
   jobId: string,
   sellerAgentAddress: string,
+  expectedPriceUsdc?: string | number,
 ): Promise<{ ok: true; txHash: string } | { ok: false; code: string; message: string }> {
   const state = jobs.get(jobId as `0x${string}`);
   if (!state) {
     return { ok: false, code: 'NO_JOB_STATE', message: 'This request is no longer open. Post it again to get new offers.' };
   }
   const existing = await dbGetMatchProposal(jobId);
-  const choice = offerToChoose([...state.bids.values()], sellerAgentAddress, {
+  // The seller who agreed a price in negotiation is chosen at that price; any
+  // other seller at their own asking price.
+  const choice = offerToChoose(withAgreedPrice([...state.bids.values()], existing), sellerAgentAddress, {
     funded: state.escrowFunded,
     approved: !!existing?.approvedAt,
     closed: !!state.expired,
   });
-  if (!choice.ok) return choice;
+  if (!choice.ok) {
+    if (choice.code === 'NO_OFFER' && state.shortlist) {
+      state.shortlist = markUnavailable(state.shortlist, sellerAgentAddress);
+      bus.emitEvent({ type: 'request.shortlist', jobId: state.jobId, actor: 'buyer', payload: shortlistPayload(state, false) });
+    }
+    return choice;
+  }
+  if (!priceAsSeen(choice.priceUsdc, expectedPriceUsdc)) {
+    return { ok: false, code: 'PRICE_CHANGED', message: `The price is now ${choice.priceUsdc} USDC. Check it and choose again.` };
+  }
   if (existing && !existing.declinedAt && existing.sellerAgent.toLowerCase() !== choice.seller.toLowerCase()) {
     await declineAgentMatch(jobId, 'buyer-chose-another-offer', 'buyer');
   }
@@ -4745,6 +4906,10 @@ export function deleteBuyerJobsForBuyer(buyerAddressLower: string): number {
     }
   }
   return removed;
+}
+
+export function getShortlist(jobId: string): ShortlistEntry[] | null {
+  return jobs.get(jobId as `0x${string}`)?.shortlist ?? null;
 }
 
 export function getBuyerJob(jobId: string): BuyerJobSnapshot | null {

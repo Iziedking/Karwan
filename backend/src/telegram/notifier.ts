@@ -5,6 +5,8 @@ import { getProfile, type UserLocale } from '../db/profiles.js';
 import { getTelegramLink } from '../db/telegramLinks.js';
 import { sendTelegramMessage, telegramEnabled } from './bot.js';
 import { logger } from '../logger.js';
+import { shortlistText } from '../channels/shortlistText.js';
+import type { ShortlistEntry } from '../agents/shortlist.js';
 import { closesLabel } from '../deals/disputeJudge.js';
 import { tg } from '../i18n/telegram.js';
 import {
@@ -78,6 +80,7 @@ function withLink(text: string, url: string | null): NotifySummary {
 // subscribes on boot and is a no-op when the bot isn't configured.
 
 export const RELEVANT = new Set([
+  'request.shortlist',
   'deal.extension.requested',
   'deal.extension.approved',
   'deal.extension.declined',
@@ -200,6 +203,12 @@ export async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     const deal = await getDeal(e.jobId);
     return deal ? [{ address: deal.seller, role: 'self' }] : [];
   }
+  // The shortlist goes to the person who posted the request, and only for the
+  // updates marked worth a message.
+  if (e.type === 'request.shortlist') {
+    const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
+    return buyer && e.payload?.notify === true ? [{ address: buyer, role: 'buyer' }] : [];
+  }
   if (e.type === 'deal.seller-approved') {
     const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
     return buyer ? [{ address: buyer, role: 'buyer' }] : [];
@@ -301,6 +310,15 @@ export function summaryFor(e: KarwanEvent, role: string, locale: UserLocale = 'e
   const url = dealUrl(e.jobId);
 
   switch (e.type) {
+    case 'request.shortlist': {
+      const entries = (e.payload?.entries as ShortlistEntry[] | undefined) ?? [];
+      return withLink(
+        shortlistText(entries, config.FRONTEND_BASE_URL ?? 'https://karwan.site', {
+          readsBalanceEmpty: e.payload?.readsBalanceEmpty === true,
+        }),
+        jobUrl(e.jobId),
+      );
+    }
     case 'listing.matched': {
       const price = (e.payload?.askingPriceUsdc as number | string | undefined) ?? '';
       const link = jobUrl(e.jobId);
@@ -331,6 +349,14 @@ export function summaryFor(e: KarwanEvent, role: string, locale: UserLocale = 'e
     case 'deal.matched': {
       const price = (e.payload?.agreedPriceUsdc as string | undefined) ?? '';
       const link = jobUrl(e.jobId);
+      if (config.SHORTLIST_MODE) {
+        return withLink(
+          role === 'seller'
+            ? `*You agreed${price ? ` ${price} USDC` : ' a price'} with the buyer's agent.* The buyer is choosing from a shortlist. You will hear when they pick.`
+            : `*Your agent agreed${price ? ` ${price} USDC` : ' a price'} with the seller it recommends.* Choose them, or anyone else on your shortlist.`,
+          link,
+        );
+      }
       return withLink(
         role === 'seller'
           ? `*Karwan matched your bid with a buyer*${price ? ` at ${price} USDC` : ''}. Tap to accept; escrow funds the moment you do.`

@@ -180,3 +180,9 @@ test('a channel that confirms money on Karwan refuses a money card that reaches 
   const other = await execute({ address: ME }, action('mark_delivered', { jobId: '0xj', caller: ME }, 'm2'));
   assert.equal(other.ok, true);
 });
+
+test('choose_offer passes the unverified acknowledgement to the route', async () => {
+  const { execute, calls } = setup(() => ({ status: 200, json: { accepted: true, txHash: '0x1' } }));
+  await execute({ address: ME }, action('choose_offer', { jobId: '0xj', caller: ME, seller: '0xs', acknowledgeUnverified: true }));
+  assert.deepEqual(calls[0]!.body, { caller: ME, seller: '0xs', acknowledgeUnverified: true });
+});

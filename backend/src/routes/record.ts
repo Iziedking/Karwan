@@ -16,11 +16,12 @@ export interface RecordDeps {
   level: (address: string) => Promise<Ladder>;
   facts: (address: string) => Promise<RecordFact[]>;
   credential: (address: string) => Promise<unknown | null>;
+  summary: (address: string) => Promise<{ score: number; counts: { completed: number; onTimeRate: number | null; disputesLost: number } }>;
 }
 
-/// The public record behind karwan.site/r/<tag>: who, how verified, and the
-/// proof on Arc for each fact. Never a number, a phone, a document or an
-/// evidence fingerprint.
+/// The public record behind karwan.site/r/<tag>: who, how verified, the 0-100
+/// score and the counts, and the proof on Arc for each fact. Never an amount, a
+/// counterparty, a phone, a document or an evidence fingerprint.
 export function createRecordRoutes(deps: RecordDeps): Hono {
   const app = new Hono();
 
@@ -30,7 +31,13 @@ export function createRecordRoutes(deps: RecordDeps): Hono {
     const address = await resolve(c.req.param('tag'));
     if (!address) return c.json({ error: 'No Karwan record with that tag.' }, 404);
     const now = deps.now();
-    const [passport, level, facts] = await Promise.all([deps.passport(address), deps.level(address), deps.facts(address)]);
+    const [passport, level, facts, summary] = await Promise.all([
+      deps.passport(address),
+      deps.level(address),
+      deps.facts(address),
+      deps.summary(address),
+    ]);
+    const valid = facts.filter((f) => f.expiresAt > now);
     c.header('Cache-Control', 'public, max-age=60');
     return c.json({
       displayName: passport.displayName,
@@ -38,8 +45,11 @@ export function createRecordRoutes(deps: RecordDeps): Hono {
       level,
       tier: passport.tier,
       reasons: passport.reasons,
-      facts: facts
-        .filter((f) => f.expiresAt > now)
+      score: summary.score,
+      counts: summary.counts,
+      checks: valid.map((f) => ({ kind: f.kind, at: f.issuedAt })),
+      sources: [{ id: 'karwan', status: 'connected' }],
+      facts: valid
         .map((f) => ({ kind: f.kind, issuedAt: f.issuedAt, expiresAt: f.expiresAt, ...(f.txHash ? { txHash: f.txHash } : {}) })),
     });
   });

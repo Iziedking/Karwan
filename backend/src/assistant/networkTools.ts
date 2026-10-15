@@ -11,7 +11,7 @@ import { prohibitedReason } from '../policy/prohibited.js';
 import { loadPublicPassport } from '../sealed/passportLoader.js';
 import { levelOf } from '../verification/live.js';
 import { buyerVisible, sellerMayBid } from '../verification/networkGate.js';
-import { paidCreditPassport } from '../x402/buyerClient.js';
+import { paidCreditPassport, paidRecordRead } from '../x402/buyerClient.js';
 import { searchMarket } from './marketSearch.js';
 
 /// The verified network from the assistant: find people agents may offer, and
@@ -96,6 +96,20 @@ export function networkTools(address: string) {
         const listing = getListing(listingId);
         if (!listing || listing.expiresAt <= Date.now()) return { error: 'That offer is no longer open.' };
         const answer = answerFromListing(listing, { topic, budgetUsdc });
+        if (config.RECORD_READS_ENABLED) {
+          try {
+            const wallets = await getAgentWallets(address);
+            if (!wallets?.buyerAddress) return { answer, paidRecordRead: null };
+            const r = await paidRecordRead(wallets.buyerAddress, listing.sellerUser, { purpose: 'question', ref: listingId, forAccount: address });
+            return {
+              answer,
+              paidRecordRead: { score: r.read.score, completedDeals: r.read.counts.completed, onTimePercent: r.read.counts.onTimeRate, paidUsdc: r.amountUsd, proofTx: r.depositTxHash ?? null },
+            };
+          } catch (err) {
+            logger.warn({ err: (err as Error).message }, 'assistant ask_their_agent record read failed');
+            return { answer, paidRecordRead: null, note: 'The record check did not go through; the answer stands.' };
+          }
+        }
         if (!config.X402_AGENT_QUERIES) return { answer, paidRecordRead: null };
         try {
           const wallets = await getAgentWallets(address);

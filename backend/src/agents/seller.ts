@@ -54,7 +54,8 @@ import { accountTypeOf } from '../profile/accountType.js';
 import { getProfile } from '../db/profiles.js';
 import { researchMarket, getCachedMarketPrice, getCachedMarketRead } from '../x402/externalClient.js';
 import { recordExternalResearchFailure, recordExternalResearchPayment } from '../x402/researchAccounting.js';
-import { type PaidPassportSignal } from '../x402/buyerClient.js';
+import { paidRecordRead, type PaidPassportSignal } from '../x402/buyerClient.js';
+import { shouldSkipBuyer } from './shortlist.js';
 import { config } from '../config.js';
 import { evaluationStarted, evaluationFinished } from './evaluationTracker.js';
 import { cleanDealPartnersFor } from './workRecord.js';
@@ -765,6 +766,36 @@ export function setSellerBuyerPassport(jobId: string, signal: PaidPassportSignal
   sellerBuyerPassport.set(jobId, { signal, at: Date.now() });
 }
 
+const BUYER_READ_TIMEOUT_MS = 10_000;
+
+/// Before bidding, the seller's agent pays to read the buyer's record and
+/// passes on a buyer who lost more disputes than they completed. A read that
+/// fails or is refused (the buyer has not allowed reads) never blocks the bid.
+async function skipsBuyerOnRecord(seller: SellerProfile, job: JobContext): Promise<boolean> {
+  const poster = getBrief(job.jobId)?.postedBy;
+  const owner = await findAgentWalletByAgentAddress(seller.address).catch(() => null);
+  if (!poster || !owner) return false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const read = await Promise.race([
+    paidRecordRead(seller.address, poster, { purpose: 'bid', ref: job.jobId, forAccount: owner.userAddress }).catch(() => null),
+    new Promise<null>((resolve) => {
+      timer = setTimeout(() => resolve(null), BUYER_READ_TIMEOUT_MS);
+    }),
+  ]).finally(() => clearTimeout(timer));
+  if (!shouldSkipBuyer(read?.read.counts ?? null, false)) return false;
+  bus.emitEvent({
+    type: 'agent.skipped',
+    jobId: job.jobId,
+    actor: 'seller',
+    payload: {
+      seller: seller.address,
+      reason: 'buyer-dispute-record',
+      detail: 'The buyer lost more disputes than they completed.',
+    },
+  });
+  return true;
+}
+
 async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
   const mismatch = profileMismatchReason(seller, job);
   if (mismatch) {
@@ -822,7 +853,7 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
 
   // The verified network: a seller whose work is not verified is not put in
   // front of buyers.
-  if (config.VERIFIED_NETWORK_ONLY) {
+  if (config.VERIFIED_NETWORK_ONLY && !config.SHORTLIST_MODE) {
     const ownerWallet = await findAgentWalletByAgentAddress(seller.address);
     const gate = sellerMayBid({ enabled: true, level: ownerWallet ? await levelOf(ownerWallet.userAddress) : 'registered' });
     if (!gate.ok) {
@@ -1175,6 +1206,8 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
     });
     return;
   }
+  if (config.SHORTLIST_MODE && config.RECORD_READS_ENABLED && (await skipsBuyerOnRecord(seller, job))) return;
+
   const finalPrice = opening.toFixed(2);
   // NEW buyers still raise a human-review flag so the seller can eyeball a fresh
   // counterparty before any eventual match is approved.
