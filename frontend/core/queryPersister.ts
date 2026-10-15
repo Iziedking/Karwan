@@ -45,10 +45,20 @@ function isPersistable(query: Query): boolean {
   return typeof root === 'string' && PERSISTABLE_PREFIXES.has(root);
 }
 
-export function makeQueryPersister(): Persister | null {
-  if (typeof window === 'undefined') return null;
+function browserStorage(): Storage | undefined {
+  try {
+    return typeof window === 'undefined' ? undefined : window.localStorage;
+  } catch {
+    return undefined;
+  }
+}
+
+/// Always a persister, so the provider tree is the same on the server and in
+/// the browser. Without storage (the server, or storage blocked) it keeps
+/// nothing.
+export function makeQueryPersister(): Persister {
   return createSyncStoragePersister({
-    storage: window.localStorage,
+    storage: browserStorage(),
     key: STORAGE_KEY,
     throttleTime: 500,
   }) as Persister;

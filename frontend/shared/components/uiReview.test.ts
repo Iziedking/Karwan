@@ -167,7 +167,7 @@ test('public navigation uses viewport width while workspace chrome keeps its wid
 test('the landing trade example keeps its explanatory copy readable', () => {
   const social = source('../../features/home/components/SocialTradeSection.module.css');
   for (const selector of ['.phoneBrand > span:last-child', '.source small', '.handoff', '.draft', '.terms dt', '.milestoneLabel', '.review']) {
-    assert.match(social, new RegExp(`${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\{[^}]*font-size: 12px`));
+    assert.match(social, new RegExp(`${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\{[^}]*font-size: 14px`));
   }
   assert.match(social, /\.disclaimer \{[^}]*font-size: 16px/);
 });

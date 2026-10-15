@@ -3,7 +3,6 @@ import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { MotionConfig } from 'motion/react';
 import { WagmiProvider } from 'wagmi';
-import { QueryClientProvider } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { RainbowKitProvider, lightTheme, darkTheme } from '@rainbow-me/rainbowkit';
 import '@rainbow-me/rainbowkit/styles.css';
@@ -35,10 +34,9 @@ export function AppProviders({
   const pathname = usePathname();
   const adminSurface = pathname === '/admin' || pathname.startsWith('/admin/');
 
-  /// The persister is built lazily so it only constructs on the client
-  /// (localStorage isn't available during SSR). When null (SSR or storage
-  /// disabled) fall through to the plain QueryClientProvider so the app
-  /// still works without persistence.
+  /// One provider on the server and in the browser: the persister keeps
+  /// nothing where there is no storage. Swapping providers after hydration
+  /// would change every useId below this point.
   const persister = useMemo(() => makeQueryPersister(), []);
 
   useEffect(() => {
@@ -95,16 +93,9 @@ export function AppProviders({
     <LocaleProvider initialLocale={initialLocale}>
       <RouteTitle />
       <WagmiProvider config={wagmiConfig}>
-        {persister ? (
-          <PersistQueryClientProvider
-            client={queryClient}
-            persistOptions={{ persister, ...persistOptions }}
-          >
-            {inner}
-          </PersistQueryClientProvider>
-        ) : (
-          <QueryClientProvider client={queryClient}>{inner}</QueryClientProvider>
-        )}
+        <PersistQueryClientProvider client={queryClient} persistOptions={{ persister, ...persistOptions }}>
+          {inner}
+        </PersistQueryClientProvider>
       </WagmiProvider>
     </LocaleProvider>
     </MotionConfig>
