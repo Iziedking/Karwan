@@ -2491,6 +2491,12 @@ export const sw: Messages = {
     counterpartyPlaceholder: 'mf. Acme Imports Ltd',
     counterpartyRegionPlaceholder: 'mf. Dubai, AE',
     removeDocument: 'Ondoa hati',
+    eyebrow: "Maelezo ya biashara",
+    documentsHint: "Faili zinabaki kwenye kifaa chako. Alama ya kidijitali ya kila faili pekee ndiyo huhifadhiwa na makubaliano, ili pande zote zithibitishe faili iliyokubaliwa.",
+    verified: "Imethibitishwa",
+    theirCompany: "Kampuni yao",
+    theirSector: "Sekta yao",
+    theirRegion: "Eneo lao",
     milestoneSplitAria: 'Asilimia za mgawanyo wa hatua, zikitenganishwa kwa koma',
   },
   smeCompany: {

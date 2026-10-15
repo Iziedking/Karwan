@@ -2270,6 +2270,12 @@ interface MessagesShape {
     counterpartyPlaceholder: string;
     counterpartyRegionPlaceholder: string;
     removeDocument: string;
+    eyebrow: string;
+    documentsHint: string;
+    verified: string;
+    theirCompany: string;
+    theirSector: string;
+    theirRegion: string;
     milestoneSplitAria: string;
   };
   smeCompany: {
@@ -7860,6 +7866,12 @@ export const en: MessagesShape = {
     counterpartyPlaceholder: 'e.g. Acme Imports Ltd',
     counterpartyRegionPlaceholder: 'e.g. Dubai, AE',
     removeDocument: 'Remove document',
+    eyebrow: "Trade details",
+    documentsHint: "Files stay on your device. Only a fingerprint of each file is saved with the deal, so both sides can prove which file was agreed.",
+    verified: "Verified",
+    theirCompany: "Their company",
+    theirSector: "Their sector",
+    theirRegion: "Their region",
     milestoneSplitAria: 'Milestone split percentages, comma separated',
   },
   smeCompany: {

@@ -2494,6 +2494,12 @@ export const ar: Messages = {
     counterpartyPlaceholder: 'مثال: شركة أكمي للاستيراد',
     counterpartyRegionPlaceholder: 'مثال: دبي، الإمارات',
     removeDocument: 'إزالة المستند',
+    eyebrow: "تفاصيل التجارة",
+    documentsHint: "تبقى الملفات على جهازك. تُحفظ بصمة كل ملف فقط مع الصفقة، ليثبت الطرفان أي ملف اتُّفق عليه.",
+    verified: "موثَّق",
+    theirCompany: "شركتهم",
+    theirSector: "قطاعهم",
+    theirRegion: "منطقتهم",
     milestoneSplitAria: 'نسب تقسيم المراحل، مفصولة بفواصل',
   },
   smeCompany: {

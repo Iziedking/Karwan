@@ -2492,6 +2492,12 @@ export const hi: Messages = {
     counterpartyPlaceholder: 'जैसे Acme Imports Ltd',
     counterpartyRegionPlaceholder: 'जैसे दुबई, AE',
     removeDocument: 'दस्तावेज़ हटाएं',
+    eyebrow: "व्यापार विवरण",
+    documentsHint: "फ़ाइलें आपके डिवाइस पर रहती हैं। सौदे के साथ हर फ़ाइल का केवल एक फ़िंगरप्रिंट सहेजा जाता है, ताकि दोनों पक्ष साबित कर सकें कि कौन-सी फ़ाइल तय हुई थी।",
+    verified: "सत्यापित",
+    theirCompany: "उनकी कंपनी",
+    theirSector: "उनका क्षेत्र",
+    theirRegion: "उनका इलाका",
     milestoneSplitAria: 'माइलस्टोन विभाजन प्रतिशत, कॉमा से अलग',
   },
   smeCompany: {

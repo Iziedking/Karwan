@@ -2494,6 +2494,12 @@ export const fr: Messages = {
     counterpartyPlaceholder: 'ex. Acme Imports Ltd',
     counterpartyRegionPlaceholder: 'ex. Dubaï, AE',
     removeDocument: 'Retirer le document',
+    eyebrow: "Détails de l’échange",
+    documentsHint: "Les fichiers restent sur votre appareil. Seule une empreinte de chaque fichier est enregistrée avec l’accord, pour prouver quel fichier a été convenu.",
+    verified: "Vérifié",
+    theirCompany: "Leur entreprise",
+    theirSector: "Leur secteur",
+    theirRegion: "Leur région",
     milestoneSplitAria: 'Pourcentages de répartition des jalons, séparés par des virgules',
   },
   smeCompany: {

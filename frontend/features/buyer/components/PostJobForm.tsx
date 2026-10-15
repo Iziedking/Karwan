@@ -28,7 +28,7 @@ import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { Icon } from '@/shared/components/Icon';
 import { DueChips } from '@/features/deals/components/DueChips';
-import { TermsBuilder, TermsBlockerNote, DEFAULT_TERMS } from '@/features/deals/terms/TermsBuilder';
+import { TermsBuilder, TermsBlockerNote, DEFAULT_TERMS, chip, chipOn, chipOff } from '@/features/deals/terms/TermsBuilder';
 import { durationText } from '@/features/deals/durationText';
 import { composeTerms, termsIssues, type TermsDraft } from '@/features/deals/terms/composeTerms';
 import { TERMS_COPY } from '@/features/deals/terms/termsCopy';
@@ -49,7 +49,7 @@ type DocumentKind = 'invoice' | 'po' | 'bol' | 'coo' | 'pod' | 'other';
 const INCOTERM_CODES = ['EXW', 'FCA', 'FOB', 'CIF', 'DAP', 'DDP'] as const;
 const PAYMENT_TERM_CODES = ['immediate', 'net30', 'net60', 'net90'] as const;
 
-const SECTORS: ReadonlyArray<string> = [
+const SECTORS = [
   'agriculture',
   'textiles',
   'electronics',
@@ -57,7 +57,7 @@ const SECTORS: ReadonlyArray<string> = [
   'manufacturing',
   'services',
   'other',
-];
+] as const;
 
 const DOC_KIND_LABELS: Record<DocumentKind, string> = {
   invoice: 'INVOICE',
@@ -172,6 +172,7 @@ export function PostJobForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const inFlight = useRef(false);
   const tt = useTranslations().tradeTerms;
+  const sectorLabels = useTranslations().smeCompany.sectors;
   const rs = c.requestSteps;
   const errCopy = useTranslations().chainErrors;
   const router = useRouter();
@@ -411,7 +412,7 @@ export function PostJobForm() {
           borderRadius: 14,
         }}
       >
-        <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+        <p className="text-[14px] text-[var(--lp-text-muted)]">
           {t.noBuyerProfile.eyebrow}
         </p>
         <h3 className="font-sans text-[20px] font-extrabold uppercase tracking-[-0.02em]">
@@ -505,7 +506,7 @@ export function PostJobForm() {
       {/* TRADE CONTEXT. Business-only surface on the SME Trades rail. Hidden
           for individuals so the P2P request stays the simple service flow. */}
       {SME_TRADES_ENABLED && isBusiness && (
-      <FieldSection eyebrow="Trade context" title={tt.sectionTitle}>
+      <FieldSection eyebrow={tt.eyebrow} title={tt.sectionTitle}>
         <FormLabel label={tt.tradeType}>
           <div className="flex gap-2 flex-wrap">
             {(['service', 'goods', 'mixed'] as const).map((opt) => (
@@ -514,15 +515,7 @@ export function PostJobForm() {
                 type="button"
                 disabled={submitting}
                 onClick={() => setTradeType(opt)}
-                className={cn(
-                  'mono text-[14px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border transition-colors',
-                  tradeType === opt
-                    ? 'bg-[var(--lp-dark)] text-[var(--lp-bg)] border-[var(--lp-dark)]'
-                    : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
-                )}
-                style={{
-                  borderRadius: 6,
-                }}
+                className={cn(chip, tradeType === opt ? chipOn : chipOff)}
               >
                 {tt.types[opt]}
               </button>
@@ -538,22 +531,14 @@ export function PostJobForm() {
                     key={code}
                     type="button"
                     disabled={submitting}
-                    title={tt.incotermGloss[code]}
                     onClick={() => setIncoterms(code)}
-                    className={cn(
-                      'mono text-[14px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border transition-colors',
-                      incoterms === code
-                        ? 'bg-[var(--lp-accent)] text-[var(--accent-ink)] border-[var(--lp-accent)]'
-                        : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
-                    )}
-                    style={{
-                      borderRadius: 6,
-                    }}
+                    className={cn(chip, incoterms === code ? chipOn : chipOff)}
                   >
                     {code}
                   </button>
                 ))}
               </div>
+              {incoterms ? <p className="mt-2 text-[14px] text-[var(--lp-text-sub)]">{incoterms}: {tt.incotermGloss[incoterms]}</p> : null}
             </FormLabel>
             <FormLabel label={tt.paymentTerms} hint={tt.paymentTermsHint}>
               <div className="flex gap-2 flex-wrap">
@@ -563,15 +548,7 @@ export function PostJobForm() {
                     type="button"
                     disabled={submitting}
                     onClick={() => setPaymentTerms(code)}
-                    className={cn(
-                      'mono text-[14px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border transition-colors',
-                      paymentTerms === code
-                        ? 'bg-[var(--lp-accent)] text-[var(--accent-ink)] border-[var(--lp-accent)]'
-                        : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
-                    )}
-                    style={{
-                      borderRadius: 6,
-                    }}
+                    className={cn(chip, paymentTerms === code ? chipOn : chipOff)}
                   >
                     {tt.paymentTermLabels[code]}
                   </button>
@@ -583,19 +560,20 @@ export function PostJobForm() {
                 label={tt.sourcingSector}
                 hint={tt.sourcingSectorHint}
               >
-                <select
-                  value={companySector}
-                  disabled={submitting}
-                  onChange={(e) => setCompanySector(e.target.value)}
-                  className="form-input"
-                >
-                  <option value="">—</option>
+                <div className="flex flex-wrap gap-2">
                   {SECTORS.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
+                    <button
+                      key={s}
+                      type="button"
+                      disabled={submitting}
+                      aria-pressed={companySector === s}
+                      onClick={() => setCompanySector(companySector === s ? '' : s)}
+                      className={cn(chip, companySector === s ? chipOn : chipOff)}
+                    >
+                      {sectorLabels[s]}
+                    </button>
                   ))}
-                </select>
+                </div>
               </FormLabel>
               <FormLabel
                 label={tt.sourcingRegion}
@@ -614,7 +592,7 @@ export function PostJobForm() {
             </div>
             <FormLabel
               label={c.documents}
-              hint="Hashes anchor on chain when the deal is accepted. Files stay on your device."
+              hint={tt.documentsHint}
             >
               <input
                 type="file"
@@ -638,11 +616,7 @@ export function PostJobForm() {
                 }}
                 className="form-input"
               />
-              {hashingFile ? (
-                <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] mt-2">
-                  Hashing…
-                </p>
-              ) : null}
+              
               {documentRefs.length > 0 ? (
                 <ul className="mt-3 space-y-2">
                   {documentRefs.map((d) => (
@@ -653,15 +627,12 @@ export function PostJobForm() {
                         borderRadius: 6,
                       }}
                     >
-                      <span className="mono text-[13px] uppercase tracking-[0.16em] font-bold px-1.5 py-0.5 bg-[var(--lp-dark)] text-[var(--lp-bg)]">
+                      <span className="shrink-0 rounded-full bg-[var(--lp-light)] px-2.5 py-0.5 text-[14px] font-semibold text-[var(--lp-dark)]">
                         {DOC_KIND_LABELS[d.kind]}
                       </span>
                       <span className="flex-1 truncate text-[14px] text-[var(--lp-dark)]">
                         {d.label}
                       </span>
-                      <code className="mono text-[13px] tabular-nums text-[var(--lp-text-muted)] hidden sm:inline">
-                        {d.hash.slice(0, 10)}…{d.hash.slice(-6)}
-                      </code>
                       <button
                         type="button"
                         onClick={() =>
@@ -783,7 +754,7 @@ export function PostJobForm() {
             borderRadius: 12,
           }}
         >
-          <p className="mono text-[13px] font-bold uppercase tracking-[0.18em] mb-1.5">
+          <p className="text-[14px] font-semibold mb-1.5">
             {t.intentWarning.eyebrow}
           </p>
           <p className="text-[14px] leading-snug text-[var(--lp-dark)]">
@@ -1022,7 +993,7 @@ function FieldSection({
   return (
     <section className="space-y-4" data-guide={dataGuide}>
       <div className="space-y-1.5">
-        <p className="mono text-[13px] uppercase tracking-[0.18em] font-medium text-[var(--lp-text-muted)]">
+        <p className="text-[14px] font-medium text-[var(--lp-text-muted)]">
           {eyebrow}
         </p>
         <h3 className="font-sans text-[17px] font-extrabold uppercase tracking-[-0.02em] text-[var(--lp-dark)]">
@@ -1055,7 +1026,7 @@ function FormLabel({
           {hint && <Hint>{hint}</Hint>}
         </span>
         {unit && (
-          <span className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]/70">
+          <span className="text-[14px] text-[var(--lp-text-muted)]/70">
             {unit}
           </span>
         )}

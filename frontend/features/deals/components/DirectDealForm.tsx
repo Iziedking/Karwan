@@ -11,7 +11,7 @@ import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import { cn } from '@/shared/utils/cn';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { Icon } from '@/shared/components/Icon';
-import { TermsBuilder, TermsBlockerNote, DEFAULT_TERMS } from '../terms/TermsBuilder';
+import { TermsBuilder, TermsBlockerNote, DEFAULT_TERMS, chip, chipOn, chipOff } from '../terms/TermsBuilder';
 import { durationText } from '../durationText';
 import { composeTerms, termsIssues, type TermsDraft } from '../terms/composeTerms';
 import { TERMS_COPY } from '../terms/termsCopy';
@@ -44,7 +44,7 @@ type TradeSourceChannel = 'karwan' | 'email' | 'tiktok' | 'instagram' | 'faceboo
 // than two copies whose glosses had already drifted apart.
 const INCOTERM_CODES_DD = ['EXW', 'FCA', 'FOB', 'CIF', 'DAP', 'DDP'] as const;
 const PAYMENT_TERM_CODES_DD = ['immediate', 'net30', 'net60', 'net90'] as const;
-const SECTORS_DD: ReadonlyArray<string> = [
+const SECTORS_DD = [
   'agriculture',
   'textiles',
   'electronics',
@@ -52,7 +52,7 @@ const SECTORS_DD: ReadonlyArray<string> = [
   'manufacturing',
   'services',
   'other',
-];
+] as const;
 const DOC_KIND_LABEL_DD: Record<DocumentKind, string> = {
   invoice: 'INVOICE',
   po: 'PO',
@@ -87,6 +87,7 @@ function inferDocKindDD(name: string): DocumentKind {
 export function DirectDealForm() {
   const t = useTranslations();
   const tt = t.tradeTerms;
+  const sectorLabels = t.smeCompany.sectors;
   const dd = t.directDeal;
   const c = t.dealCreation;
   const rs = c.requestSteps;
@@ -497,7 +498,7 @@ export function DirectDealForm() {
               </span>
               {partner.verified && (
                 <span
-                  className="inline-flex items-center gap-1 mono text-[13px] font-bold uppercase tracking-[0.14em] px-1.5 py-0.5"
+                  className="inline-flex items-center gap-1 text-[14px] font-semibold px-1.5 py-0.5"
                   style={{
                     background: 'color-mix(in oklab, #1f7a4c 14%, transparent)',
                     color: '#1f7a4c',
@@ -513,11 +514,11 @@ export function DirectDealForm() {
                       strokeLinejoin="round"
                     />
                   </svg>
-                  Verified
+                  {tt.verified}
                 </span>
               )}
               {(partner.sector || partner.region) && (
-                <span className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                <span className="text-[14px] text-[var(--lp-text-muted)]">
                   {[partner.sector, partner.region].filter(Boolean).join(' · ')}
                 </span>
               )}
@@ -608,17 +609,9 @@ export function DirectDealForm() {
                 type="button"
                 disabled={submitting}
                 onClick={() => setTradeType(opt)}
-                className={cn(
-                  'mono text-[14px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border transition-colors',
-                  tradeType === opt
-                    ? 'bg-[var(--lp-control-active-bg)] text-[var(--lp-control-active-ink)] border-[var(--lp-control-active-border)]'
-                    : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
-                )}
-                style={{
-                  borderRadius: 6,
-                }}
+                className={cn(chip, tradeType === opt ? chipOn : chipOff)}
               >
-                {opt}
+                {tt.types[opt]}
               </button>
             ))}
           </div>
@@ -632,22 +625,14 @@ export function DirectDealForm() {
                     key={code}
                     type="button"
                     disabled={submitting}
-                    title={tt.incotermGloss[code]}
                     onClick={() => setIncoterms(code)}
-                    className={cn(
-                      'mono text-[14px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border transition-colors',
-                      incoterms === code
-                        ? 'bg-[var(--lp-accent)] text-[var(--accent-ink)] border-[var(--lp-accent)]'
-                        : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
-                    )}
-                    style={{
-                      borderRadius: 6,
-                    }}
+                    className={cn(chip, incoterms === code ? chipOn : chipOff)}
                   >
                     {code}
                   </button>
                 ))}
               </div>
+              {incoterms ? <p className="mt-2 text-[14px] text-[var(--lp-text-sub)]">{incoterms}: {tt.incotermGloss[incoterms]}</p> : null}
             </FormLabel>
             <FormLabel label={tt.paymentTerms} hint={tt.paymentTermsHint}>
               <div className="flex gap-2 flex-wrap">
@@ -657,15 +642,7 @@ export function DirectDealForm() {
                     type="button"
                     disabled={submitting}
                     onClick={() => setPaymentTerms(code)}
-                    className={cn(
-                      'mono text-[14px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border transition-colors',
-                      paymentTerms === code
-                        ? 'bg-[var(--lp-accent)] text-[var(--accent-ink)] border-[var(--lp-accent)]'
-                        : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
-                    )}
-                    style={{
-                      borderRadius: 6,
-                    }}
+                    className={cn(chip, paymentTerms === code ? chipOn : chipOff)}
                   >
                     {tt.paymentTermLabels[code]}
                   </button>
@@ -673,7 +650,7 @@ export function DirectDealForm() {
               </div>
             </FormLabel>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <FormLabel label="Company">
+              <FormLabel label={tt.theirCompany}>
                 <input
                   type="text"
                   value={companyName}
@@ -684,22 +661,23 @@ export function DirectDealForm() {
                   maxLength={120}
                 />
               </FormLabel>
-              <FormLabel label="Sector">
-                <select
-                  value={companySector}
-                  disabled={submitting}
-                  onChange={(e) => setCompanySector(e.target.value)}
-                  className="form-input"
-                >
-                  <option value="">—</option>
+              <FormLabel label={tt.theirSector}>
+                <div className="flex flex-wrap gap-2">
                   {SECTORS_DD.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
+                    <button
+                      key={s}
+                      type="button"
+                      disabled={submitting}
+                      aria-pressed={companySector === s}
+                      onClick={() => setCompanySector(companySector === s ? '' : s)}
+                      className={cn(chip, companySector === s ? chipOn : chipOff)}
+                    >
+                      {sectorLabels[s]}
+                    </button>
                   ))}
-                </select>
+                </div>
               </FormLabel>
-              <FormLabel label="Region">
+              <FormLabel label={tt.theirRegion}>
                 <input
                   type="text"
                   value={companyRegion}
@@ -713,7 +691,7 @@ export function DirectDealForm() {
             </div>
             <FormLabel
               label={c.documents}
-              hint="Files stay on your device. Karwan records a tamper-evident receipt after the deal is accepted."
+              hint={tt.documentsHint}
             >
               <input
                 type="file"
@@ -737,11 +715,7 @@ export function DirectDealForm() {
                 }}
                 className="form-input"
               />
-              {hashingFile ? (
-                <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] mt-2">
-                  Hashing…
-                </p>
-              ) : null}
+              
               {documentRefs.length > 0 ? (
                 <ul className="mt-3 space-y-2">
                   {documentRefs.map((d) => (
@@ -752,15 +726,12 @@ export function DirectDealForm() {
                         borderRadius: 6,
                       }}
                     >
-                      <span className="mono text-[13px] uppercase tracking-[0.16em] font-bold px-1.5 py-0.5 bg-[var(--lp-dark)] text-[var(--lp-bg)]">
+                      <span className="shrink-0 rounded-full bg-[var(--lp-light)] px-2.5 py-0.5 text-[14px] font-semibold text-[var(--lp-dark)]">
                         {DOC_KIND_LABEL_DD[d.kind]}
                       </span>
                       <span className="flex-1 truncate text-[14px] text-[var(--lp-dark)]">
                         {d.label}
                       </span>
-                      <code className="mono text-[13px] tabular-nums text-[var(--lp-text-muted)] hidden sm:inline">
-                        {d.hash.slice(0, 10)}…{d.hash.slice(-6)}
-                      </code>
                       <button
                         type="button"
                         onClick={() =>
@@ -1005,7 +976,7 @@ function FormLabel({
           {hint && <Hint>{hint}</Hint>}
         </span>
         {unit && (
-          <span className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]/70">
+          <span className="text-[14px] text-[var(--lp-text-muted)]/70">
             {unit}
           </span>
         )}
