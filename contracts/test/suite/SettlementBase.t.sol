@@ -191,6 +191,18 @@ contract SettlementBaseTest is SuiteFixture {
         vm.stopPrank();
     }
 
+    function test_the_per_deal_cap_counts_what_a_deal_holds_at_once() public {
+        _openAndFund(600e6);
+        family.pay(DEAL, seller, 500e6);
+        vm.startPrank(buyer);
+        family.fund(DEAL, 900e6);
+        vm.expectRevert(KarwanSettlementBase.OverCap.selector);
+        family.fund(DEAL, 1);
+        vm.stopPrank();
+        assertEq(family.accountOf(DEAL).funded, 1_500e6);
+        assertEq(family.accountOf(DEAL).balance, PER_DEAL);
+    }
+
     function test_paused_family_takes_no_money_but_pays_out() public {
         _openAndFund(100e6);
         vm.prank(guardian);

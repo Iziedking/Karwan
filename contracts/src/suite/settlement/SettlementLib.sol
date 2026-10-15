@@ -13,6 +13,8 @@ struct DealAccount {
     uint8 payeeCount;
     bool closed;
     uint8 consentMask;
+    /// The family set the value this deal's record carries; see `recordValue`.
+    bool valued;
     address payer;
     uint64 payerId;
     uint16 feeBps;
@@ -30,6 +32,9 @@ struct DealAccount {
     /// Money the payer promised at opening and has not paid yet, such as the
     /// rest of an instalment plan. It already counts against the caps.
     uint128 promised;
+    /// What the deal paid out, when its family records that instead of
+    /// everything funded, such as an engagement funded cycle by cycle.
+    uint128 recordValue;
 }
 
 struct Assignment {
@@ -185,7 +190,9 @@ library SettlementLib {
     /// @notice The payer funds the deal. Money promised at opening is taken
     ///         even while the family is paused or its caps are full, and after
     ///         an agent's binding has expired, because it was counted then; only
-    ///         a revoked family or a delisted asset refuses it.
+    ///         a revoked family or a delisted asset refuses it. The per-deal cap
+    ///         bounds what a deal holds at once, so an engagement funded cycle by
+    ///         cycle stays under it for as long as it runs.
     function fund(SettlementStore storage s, IKarwanHub hub, bytes32 dealId, uint256 amount) external {
         DealAccount storage a = live(s, dealId);
         if (msg.sender != a.payer) revert NotParty();
@@ -199,7 +206,7 @@ library SettlementLib {
             s.promisedTotal[a.asset] -= amount;
         } else {
             if (!hub.acceptsMoney(address(this), a.asset)) revert NotOpen();
-            if (uint256(a.funded) + amount > a.perDealCap) revert OverCap();
+            if (uint256(a.balance) + amount > a.perDealCap) revert OverCap();
             _checkTotal(s, hub, a.asset, amount);
         }
         a.funded += uint128(amount);
@@ -223,7 +230,7 @@ library SettlementLib {
         DealAccount storage a = live(s, dealId);
         if (msg.sender != a.payer) revert NotParty();
         if (amount == 0 || a.promised != 0) revert BadAmount();
-        if (uint256(a.funded) + amount > a.perDealCap) revert OverCap();
+        if (uint256(a.balance) + amount > a.perDealCap) revert OverCap();
         _checkTotal(s, hub, a.asset, amount);
         a.promised = uint128(amount);
         s.promisedTotal[a.asset] += amount;
@@ -435,12 +442,19 @@ library SettlementLib {
             return;
         }
         IKarwanRecord rec = IKarwanRecord(hub.record());
-        uint8 band = _band(s.accounts[dealId].funded);
+        uint8 band = _band(_recordValue(s.accounts[dealId]));
         try rec.recordOutcome(dealId, subject, party, outcome, band, detail) {}
         catch {
             s.pendingRecord[keccak256(abi.encode(dealId, party))] = (uint24(outcome) << 16) | detail;
             emit RecordPending(dealId, party, outcome, detail);
         }
+    }
+
+    /// The family records the deal at what it paid out, not everything funded.
+    function setRecordValue(SettlementStore storage s, bytes32 dealId, uint256 value) external {
+        DealAccount storage a = s.accounts[dealId];
+        a.valued = true;
+        a.recordValue = uint128(value);
     }
 
     function retryRecord(SettlementStore storage s, IKarwanHub hub, bytes32 dealId, uint8 party) external {
@@ -454,7 +468,7 @@ library SettlementLib {
             emit RecordAlreadyWritten(dealId, party);
             return;
         }
-        rec.recordOutcome(dealId, subject, party, uint8(p >> 16), _band(s.accounts[dealId].funded), uint16(p));
+        rec.recordOutcome(dealId, subject, party, uint8(p >> 16), _band(_recordValue(s.accounts[dealId])), uint16(p));
     }
 
     // ------------------------------ Horizon -------------------------------
@@ -578,6 +592,10 @@ library SettlementLib {
             s.parked[asset] = parked;
             return false;
         }
+    }
+
+    function _recordValue(DealAccount storage a) private view returns (uint256) {
+        return a.valued ? a.recordValue : a.funded;
     }
 
     function _band(uint256 amount) private pure returns (uint8) {
