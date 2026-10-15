@@ -10,10 +10,10 @@ It replaces the "one core with schedule modules" choice in [view 07](07-escrow.m
 2. **One shared base, audited once.** Every family escrow is built on the same settlement base, and the base decides who can ever be paid: a party recorded before any money left the deal, someone the payee signed the payout over to, or Karwan's fee within the maximum written into the contract (10%). No family, present or future, can widen that.
 3. **Every payout is pull-safe.** Arc refuses transfers to blocked addresses. A payment that cannot be delivered becomes an owed balance that only its owner can withdraw, so one blocked party never freezes a deal or anyone else.
 4. **An exit after expiry can never be blocked.** No pause, verifier, outside contract or admin key can stop a party from taking what the deal's terms give them once its clocks run out. A guardian hold can delay it, 7 days at a time and 30 days at most per deal.
-5. **A deal keeps the rules it opened with.** Fee, caps, reviewers, verifier and yield eligibility are fixed for the life of the deal. A later change applies to new deals only.
+5. **A deal keeps the rules it opened with.** Fee, caps, reviewers, verifier and yield eligibility are fixed for the life of the deal. A later change applies to new deals only. The one exception is the yield pool's Teller, set out under the yield pool below.
 6. **No upgradeable code.** No proxies, no self-destruct. Shared logic sits in libraries that are linked once at deployment and can never change; their addresses and bytecode are published with the deployment. A changed rule is a new contract, and funded deals stay where they are.
 7. **Parties act for themselves.** Every action a buyer, seller or financier can take is callable from their own wallet, with no Karwan server in the path. Every timeout can be triggered by anyone. Karwan runs a keeper as a convenience, not as a requirement.
-8. **Contracts Karwan does not control are outside parties.** USDC, USYC and its teller, and the ERC-8004 registries on Arc can be upgraded by their owners. The suite reaches them through narrow interfaces, and nothing they return can lose a deal's principal or block an exit.
+8. **Contracts Karwan does not control are outside parties.** USDC, USYC and its teller, and the ERC-8004 registries on Arc can be upgraded by their owners. The suite reaches them through narrow interfaces, and nothing they return can block an exit. Deal money parked in the yield pool carries USYC's own risk: the pool's cushion and the treasury cover a shortfall, and until they do, the payouts that need the pool are owed.
 
 ## Participants
 
@@ -48,7 +48,7 @@ flowchart LR
   end
   subgraph Outside[Outside contracts]
     USDC[USDC]
-    USYC[USYC via an adapter]
+    USYC[USYC Teller]
     E8004[ERC-8004 registries]
   end
 
@@ -98,9 +98,9 @@ A new family is a new contract on the same base, registered through the timelock
 - **The hub holds no money.** It lists which contracts are Karwan families, which assets and caps apply, and which verifiers exist. Registration lets a family write records and reserve stake. It never gives access to another family's balance. A family found faulty can be revoked: it loses those powers, opens nothing new, and its open deals still pay out.
 - **Identity registry.** Wallets bind to one person by signature. A person can hand control to a new wallet, and their records follow. Deals and records are written to the person, never to an agent wallet acting for them. A person can also name one of their own wallets for recovery; it takes control after 7 days unless the person cancels.
 - **Record.** Families write deal outcomes to the person: outcome codes and value bands, never exact amounts, never a score. A write for a wallet that is not bound to a person is refused, and a deal reaches a payee's record only once that payee accepted it.
-- **Stake vault.** A registered family can reserve a person's stake only with a signature from one of that person's own wallets, never an agent's, naming the amount, the one beneficiary a slash can pay, and an expiry. Only the family that reserved can slash, never more than it reserved, and anyone frees a reservation once it expires or its family is revoked. Withdrawals wait 3 days. Stake never goes into yield.
+- **Stake vault.** A registered family can reserve a person's stake only with a signature from one of that person's own wallets, never an agent's, naming the amount, the one beneficiary a slash can pay, and an expiry. Only the family that reserved can slash, never more than it reserved, and anyone frees a reservation once it expires or its family is revoked. Withdrawals wait 7 days, as long as an identity recovery, so a stolen wallet cannot take the stake out before its owner takes the identity back. Stake never goes into yield.
 - **Treasury.** A dedicated Safe that receives fees and nothing else. It never holds deal money.
-- **Yield pool.** The one place where money from several families can sit together, so it gets the deepest review. A family may park a capped share of eligible deals, anyone can pull principal back, and USYC sits behind an adapter because its owners can upgrade it. Off at launch.
+- **Yield pool.** The one place where money from several families sits together, so it gets the deepest review. There is one pool per asset, set once in the hub, because the pool is the one address Circle entitles for USYC. The timelock sets each family's share of eligible deal money, at most 90%, and each deal copies it when it opens; a deal that cannot run for 3 days stays out. Anyone moves a family's parked money toward that share, and when an eligible deal pays out, the escrow brings back what is parked beyond the new share at once, so the cash behind deals that take no yield stays in the escrow. The pool keeps a cash buffer, by default 10% of what is parked and at least 5,000 USDC; the timelock can raise it to 50%. Buying USYC costs a little more than selling it, so the pool subscribes only as much as its value above what is parked can pay for, by the Teller's own quotes, and undoes a subscription that leaves what is parked uncovered. A payout the escrow cannot cover from its own cash is taken from the pool; if the pool cannot pay yet, the payout is owed and paid when it can. Yield first builds a cushion, by default 0.5% of what is parked (the timelock can set 0.1% to 5%), and only value above it goes to the fee recipient. A fall in USYC's price can leave the pool short of what families parked until the treasury tops it up; until then the last payouts to need the pool wait as owed. The treasury seeds the pool once, about 0.05% of what it expects to be parked, which pays for the first subscriptions; yield pays for later ones. The Teller can change only while the pool holds no shares of real worth. That change reaches money live deals have already parked, so like every timelock change it waits 48 hours in public, and the guardian can cancel it or stop new subscriptions. A delisted asset parks nothing new and brings parked money back. Off at launch, until Circle entitles the pool.
 - **Between families,** calls are typed and signed. Trade finance reaches the Agreement escrow only through the seller's signed assignment, and the stake vault only through the seller's signed reservation.
 
 ## A milestone deal, with nobody in the middle
@@ -285,8 +285,9 @@ The suite launches on mainnet after step 8 with beta limits written into it: 1,0
 | Reviewers | Miss the 5-day deadline | The fallback agreed in the terms applies |
 | Karwan servers | Offline | Parties act from their own wallets or the explorer; anyone can trigger timeouts |
 | Guardian | Safe compromised | Can pause new deals, place bounded holds and cancel ordinary changes; cannot move money or stop an exit. The owner replaces it with a protected change, which waits 7 days and the guardian cannot cancel |
-| Owner Safe | Signers compromised | Changes wait 48 hours in public and touch new deals only; users and the guardian can react |
-| USYC or its teller | Upgraded, paused or refuses | Principal is pulled back; the adapter can be replaced through the timelock; no deal waits on it |
+| Owner Safe | Signers compromised | Changes wait 48 hours in public; all but one touch new deals only. A new Teller for the yield pool reaches money already parked, so the guardian cancels it or stops new subscriptions in that window; users and the guardian can react |
+| USYC or its teller | Upgraded, paused or refuses | The pool keeps paying from its cash buffer and subscribes nothing new; a payout it cannot cover yet is owed and paid when it can, and no deal's state waits on it. A stopped pool brings its shares back to cash, half at a time if the Teller limits a redemption, and the Teller can then be replaced through the timelock |
+| USDC blocklist | Blocks the yield pool | Parked money cannot move; payouts that need it are owed until the block lifts; money held in the escrows is unaffected |
 | Trade finance | The deal ends without repaying the financier in full | The shortfall comes out of the seller's reserved stake to the financier; the rest is recovered off chain under the signed agreement. A financier who gave up the assignment, or replaced the line with a new one, cannot slash; a default is still recorded once the reservation has expired |
 | Deployment | Wrong address or bytecode | The deploy script is reviewed, rehearsed on a fork, and the deployed bytecode is compared with the audited release before any deal opens |
 
@@ -301,7 +302,7 @@ The suite launches on mainnet after step 8 with beta limits written into it: 1,0
 | S5 | A live deal's fee, caps, reviewers, verifier and yield eligibility never change |
 | S6 | A ruling never pays more than the disputed amount, and only to the deal's parties |
 | S7 | A slash pays only the harmed party recorded by the deal, within the staker's signed limit |
-| S8 | Principal in the yield pool can always be pulled back in full |
+| S8 | The yield pool owes each family exactly what it parked, pays out only to families and, above the cushion, to the fee recipient, and keeps no subscription that leaves what is parked uncovered |
 | S9 | A record write for an unbound wallet is refused |
 | S10 | The view 07 invariants I18 to I24 hold inside each family that offers the shape |
 
@@ -312,7 +313,7 @@ The suite launches on mainnet after step 8 with beta limits written into it: 1,0
 | Escrow for today's deals (v2b) | Live on testnet |
 | Terms-driven escrow (v3): terms hash, clocks, checks, disputes with appeal, splits, owed balances, caps | Built, not deployed. Its rules carry into the Agreement family |
 | Stake vault | Built, not deployed: stake per person, reservations only by the staker's own signature, slashes only to the named beneficiary |
-| Yield pool (v3) | Built, not deployed. To be reworked for the adapter |
+| Yield pool | Built, not deployed: one pool per asset, deal money parked by each family's share, payouts taken from it or owed, yield above a cushion to the fee recipient. Tested against Circle's USYC Teller on an Arc testnet fork |
 | Shared settlement base and hub | Built, not deployed |
 | Agreement family | Built, not deployed: tranches, review on delivery, arrival or a check, extensions, signed release at handover, instalments, deposits, deadlines, agreed splits, disputes with appeal and a fallback, and an optional seller stake for the buyer, slashed only by a ruling or the dispute fallback and kept reserved for as long as the deal can run |
 | Trade finance family | Built, not deployed: purchase-order financing and factoring against Agreement deals |
@@ -323,9 +324,9 @@ The suite launches on mainnet after step 8 with beta limits written into it: 1,0
 | Verifiers with k of n signatures | Built, not deployed |
 | Governance: timelock with a 24-hour floor and guardian cancel | Built, not deployed. The Safes are set up at deployment |
 | ERC-8004 mirror of the record | Later |
-| Yield on deal money | Built in v3, off at launch until the pool is eligible to hold USYC |
+| Yield on deal money | Built, off at launch until Circle entitles the pool to hold USYC |
 | Reputation registry already on mainnet | Live, holds no deals and no records; stays as it is, with a public note pointing to the record contract |
 | Business registry already on mainnet | Live; its approvals carry into the record contract as business facts |
 | Independent audit and audit contest | Planned, before the beta limits rise |
 
-Contract notes: proposed names are `KarwanSettlementBase` (abstract), `KarwanHub`, `KarwanAgreementEscrow`, `KarwanTimeEscrow`, `KarwanJobEscrow`, `KarwanTradeFinance`, `KarwanIdentityRegistry`, `KarwanRecord`, `KarwanStakeVault`, `KarwanTimelock`, `KarwanCheckVerifier`, `KarwanYieldPool` and `KarwanUsycAdapter`, with the fixed libraries `SettlementLib`, `DisputeLib`, `AgreementLib`, `AgreementDisputeLib`, `AgreementDeliveryLib` and `AgreementTermsLib`. Every family's runtime code is measured against Arc's 24,576-byte limit in CI. All contracts are deployed at deterministic addresses from one reviewed script, and ownership goes to the timelock in the same run, so the deployer key holds nothing afterwards.
+Contract notes: proposed names are `KarwanSettlementBase` (abstract), `KarwanHub`, `KarwanAgreementEscrow`, `KarwanTimeEscrow`, `KarwanJobEscrow`, `KarwanTradeFinance`, `KarwanIdentityRegistry`, `KarwanRecord`, `KarwanStakeVault`, `KarwanTimelock`, `KarwanCheckVerifier` and `KarwanYieldPool`, with the fixed libraries `SettlementLib`, `DisputeLib`, `AgreementLib`, `AgreementDisputeLib`, `AgreementDeliveryLib` and `AgreementTermsLib`. Every family's runtime code is measured against Arc's 24,576-byte limit in CI. All contracts are deployed at deterministic addresses from one reviewed script, and ownership goes to the timelock in the same run, so the deployer key holds nothing afterwards.
