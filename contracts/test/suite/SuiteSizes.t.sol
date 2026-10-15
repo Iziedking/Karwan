@@ -11,6 +11,10 @@ import {KarwanYieldPool} from "../../src/suite/KarwanYieldPool.sol";
 import {KarwanTimeEscrow} from "../../src/suite/KarwanTimeEscrow.sol";
 import {TimeLib} from "../../src/suite/time/TimeLib.sol";
 import {TimeDisputeLib} from "../../src/suite/time/TimeDisputeLib.sol";
+import {KarwanJobEscrow} from "../../src/suite/KarwanJobEscrow.sol";
+import {JobLib} from "../../src/suite/jobs/JobLib.sol";
+import {BountyLib} from "../../src/suite/jobs/BountyLib.sol";
+import {JobDisputeLib} from "../../src/suite/jobs/JobDisputeLib.sol";
 import {SettlementLib} from "../../src/suite/settlement/SettlementLib.sol";
 import {AgreementBounds} from "../../src/suite/agreement/AgreementTypes.sol";
 import {AgreementLib} from "../../src/suite/agreement/AgreementLib.sol";
@@ -45,6 +49,7 @@ contract SuiteSizesTest is SuiteFixture {
         _check("KarwanTradeFinance", address(new KarwanTradeFinance(address(hub))).code.length);
         _check("KarwanYieldPool", address(new KarwanYieldPool(address(hub), address(usdc))).code.length);
         _check("KarwanTimeEscrow", address(new KarwanTimeEscrow(address(hub))).code.length);
+        _check("KarwanJobEscrow", address(new KarwanJobEscrow(address(hub), address(usdc))).code.length);
         _check("SettlementLib", type(SettlementLib).runtimeCode.length);
         _check("AgreementLib", type(AgreementLib).runtimeCode.length);
         _check("AgreementDeliveryLib", type(AgreementDeliveryLib).runtimeCode.length);
@@ -53,6 +58,9 @@ contract SuiteSizesTest is SuiteFixture {
         _check("DisputeLib", type(DisputeLib).runtimeCode.length);
         _check("TimeLib", type(TimeLib).runtimeCode.length);
         _check("TimeDisputeLib", type(TimeDisputeLib).runtimeCode.length);
+        _check("JobLib", type(JobLib).runtimeCode.length);
+        _check("BountyLib", type(BountyLib).runtimeCode.length);
+        _check("JobDisputeLib", type(JobDisputeLib).runtimeCode.length);
     }
 
     /// The base is compiled into every family, so its entry points must leave
