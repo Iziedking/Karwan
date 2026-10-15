@@ -32,3 +32,12 @@ test('fractional fees round down exactly as the escrow does', () => {
   const need = buyerFundingNeed({ budgetUsdc: '0.000003', feeBps: 250, balanceWei: 0n });
   assert.equal(need.required, usdc(quote.fundedAmountUsdc) + usdc(GAS_HEADROOM_USDC));
 });
+
+test('the quote says what the need is made of: the price, your half of the fee and the network reserve', () => {
+  const need = buyerFundingNeed({ budgetUsdc: 120, feeBps: 250, balanceWei: 0n });
+  assert.equal(need.view.priceUsdc, '120');
+  assert.equal(need.view.buyerFeeUsdc, '1.5');
+  assert.equal(need.view.reserveUsdc, GAS_HEADROOM_USDC);
+  const parts = usdc(need.view.priceUsdc) + usdc(need.view.buyerFeeUsdc) + usdc(need.view.reserveUsdc);
+  assert.equal(parts, need.required, 'the parts add up to the need');
+});

@@ -567,6 +567,10 @@ interface MessagesShape {
     tolerance: string;
     toleranceHint: string;
     authorisation: string;
+    agentHas: string;
+    canSpend: string;
+    canSpendParts: string;
+    shortBy: string;
     extra: string;
     notes: string;
   };
@@ -4968,7 +4972,6 @@ interface MessagesShape {
       bodyAfter: string;
       bodyLink: string;
       bodyAfterLink: string;
-      bodyButtonRef: string;
       bodyTail: string;
     };
     submit: {
@@ -5932,6 +5935,10 @@ export const en: MessagesShape = {
     "tolerance": "Price flexibility",
     "toleranceHint": "The extra percentage your agent may agree above budget. Leave blank or 0 to ask you about higher prices.",
     "authorisation": "What you are authorising",
+    "agentHas": "Your buying agent has",
+    "canSpend": "It can spend up to",
+    "canSpendParts": "{price} USDC price limit, {fee} USDC for your share of the fee and {reserve} USDC kept for network costs.",
+    "shortBy": "Add {amount} USDC to your buying agent before you post.",
     "extra": "Business details",
     "notes": "Review all details. Nothing has been created yet."
   },
@@ -10886,8 +10893,7 @@ export const en: MessagesShape = {
       bodyAfter: '. Requests are for buyers; offers (posted from the seller desk) are for sellers. If you meant to sell a service, ',
       bodyLink: 'post an offer instead',
       bodyAfterLink: '. Click ',
-      bodyButtonRef: 'Post request',
-      bodyTail: ' again to post the request as-is.',
+      bodyTail: ' again to continue with the request as it is.',
     },
     submit: {
       submittingShort: 'Posting…',

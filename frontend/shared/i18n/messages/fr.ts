@@ -608,6 +608,10 @@ export const fr: Messages = {
     "tolerance": "Flexibilité du prix",
     "toleranceHint": "Pourcentage supplémentaire que l’agent peut accepter. Vide ou 0 : il vous demande pour un prix supérieur.",
     "authorisation": "Ce que vous autorisez",
+    "agentHas": "Votre agent d’achat dispose de",
+    "canSpend": "Il peut dépenser jusqu’à",
+    "canSpendParts": "{price} USDC de prix maximum, {fee} USDC pour votre part des frais et {reserve} USDC réservés aux frais de réseau.",
+    "shortBy": "Ajoutez {amount} USDC à votre agent d’achat avant de publier.",
     "extra": "Détails professionnels",
     "notes": "Vérifiez tous les détails. Rien n’a encore été créé."
   },
@@ -5407,8 +5411,7 @@ export const fr: Messages = {
       bodyAfter: '. Les demandes sont pour les acheteurs ; les offres (publiées depuis le bureau vendeur) sont pour les vendeurs. Si vous vouliez vendre un service, ',
       bodyLink: 'publiez plutôt une offre',
       bodyAfterLink: '. Cliquez sur ',
-      bodyButtonRef: 'Publier la demande',
-      bodyTail: ' à nouveau pour publier la demande telle quelle.',
+      bodyTail: ' à nouveau pour continuer avec la demande telle quelle.',
     },
     submit: {
       submittingShort: 'Publication…',

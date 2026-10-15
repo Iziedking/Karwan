@@ -1,5 +1,6 @@
 ﻿'use client';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -31,6 +32,8 @@ import { TermsBuilder, DEFAULT_TERMS } from '@/features/deals/terms/TermsBuilder
 import { composeTerms, termsIssues, type TermsDraft } from '@/features/deals/terms/composeTerms';
 import { TERMS_COPY } from '@/features/deals/terms/termsCopy';
 import { useReportDealAmount } from '@/features/balances/dealAmount';
+import { walletAmount } from '@/features/balances/walletFormat';
+import { requestFunding } from '../requestFunding';
 
 // SME trade-finance constants. Hoisted to module scope per the Vercel
 // `rendering-hoist-jsx` rule: these never change, so re-creating the
@@ -360,8 +363,22 @@ export function PostJobForm() {
     requestAnimationFrame(() => formRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
   }
 
+  // At review, the agent's balance against the most it may spend: the price
+  // limit (budget plus the agreed flexibility), the buyer's half of the fee and
+  // the network reserve. Posting waits until the agent can cover it, so a
+  // seller's acceptance never meets an escrow the agent cannot fund.
+  const limitPrice = validAmount(budget, 5_000_000) ? authorisedPrice(Number(budget), tolerance) : 0;
+  const quote = useQuery({
+    queryKey: ['funding-quote', limitPrice],
+    queryFn: () => api.fundingQuote(authorisedPrice(Number(budget), tolerance)),
+    enabled: reviewing && limitPrice > 0,
+    staleTime: 10_000,
+  });
+  const funding = reviewing ? requestFunding(quote.data) : null;
+  const usdc = (n: number) => `${walletAmount(String(n)) ?? n} USDC`;
+
   const disabled =
-    submitting || hashingFile || profileLoading || !profile?.buyer || !brief.trim() || !validAmount(budget, 5_000_000) ||
+    funding?.enough === false || submitting || hashingFile || profileLoading || !profile?.buyer || !brief.trim() || !validAmount(budget, 5_000_000) ||
     !validWhole(deadlineValue, 1, deadlineUnit === 'min' ? 1440 : deadlineUnit === 'hr' ? 72 : 90) ||
     (tolerance !== '' && !validWhole(tolerance, 0, 50)) || termsIssues(terms).length > 0;
   const buttonLabel = submitting
@@ -783,7 +800,7 @@ export function PostJobForm() {
               {t.intentWarning.bodyLink}
             </Link>
             {t.intentWarning.bodyAfterLink}
-            <span className="font-bold">{t.intentWarning.bodyButtonRef}</span>
+            <span className="font-bold">{c.review}</span>
             {t.intentWarning.bodyTail}
           </p>
         </div>
@@ -807,7 +824,36 @@ export function PostJobForm() {
       ]}>
         <p className="font-semibold">{c.authorisation}</p>
         <p className="mt-2">{c.managedNext}</p>
-        <p className="mt-2 text-[var(--lp-text-sub)]">{c.fees}</p>
+        {funding ? (
+          <>
+            <dl className="mt-3 space-y-1.5">
+              <div className="flex items-baseline justify-between gap-4">
+                <dt>{c.agentHas}</dt>
+                <dd className="font-semibold tabular-nums">{usdc(funding.balance)}</dd>
+              </div>
+              <div className="flex items-baseline justify-between gap-4">
+                <dt>{c.canSpend}</dt>
+                <dd className="font-semibold tabular-nums">{usdc(funding.canSpend)}</dd>
+              </div>
+            </dl>
+            <p className="mt-1.5 text-[var(--lp-text-sub)]">
+              {funding.parts
+                ? c.canSpendParts
+                    .replace('{price}', walletAmount(String(funding.parts.price)) ?? String(funding.parts.price))
+                    .replace('{fee}', walletAmount(String(funding.parts.fee)) ?? String(funding.parts.fee))
+                    .replace('{reserve}', walletAmount(String(funding.parts.reserve)) ?? String(funding.parts.reserve))
+                : c.fees}
+            </p>
+            {funding.enough === false ? (
+              <div className="mt-3 border-t border-[var(--lp-border-light)] pt-3">
+                <p className="font-semibold">{c.shortBy.replace('{amount}', walletAmount(String(funding.topUp)) ?? String(funding.topUp))}</p>
+                <FundAgentButton amountUsdc={funding.topUp} onFunded={() => void quote.refetch()} hideLine />
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <p className="mt-2 text-[var(--lp-text-sub)]">{c.fees}</p>
+        )}
       </CreationReview> : null}
 
       {/* SUBMIT */}

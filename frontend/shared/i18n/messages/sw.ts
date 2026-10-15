@@ -605,6 +605,10 @@ export const sw: Messages = {
     "tolerance": "Unyumbufu wa bei",
     "toleranceHint": "Asilimia ya ziada juu ya bajeti ambayo wakala anaweza kukubali. Acha tupu au 0 ili akuulize kuhusu bei kubwa.",
     "authorisation": "Unachoruhusu",
+    "agentHas": "Wakala wako wa kununua ana",
+    "canSpend": "Anaweza kutumia hadi",
+    "canSpendParts": "USDC {price} kikomo cha bei, USDC {fee} sehemu yako ya ada na USDC {reserve} zilizohifadhiwa kwa gharama za mtandao.",
+    "shortBy": "Ongeza USDC {amount} kwa wakala wako wa kununua kabla ya kuchapisha.",
     "extra": "Maelezo ya biashara",
     "notes": "Kagua maelezo yote. Bado hakuna kilichoundwa."
   },
@@ -5404,8 +5408,7 @@ export const sw: Messages = {
       bodyAfter: '. Maombi ni kwa wanunuzi; ofa (zilizochapishwa kutoka dawati la muuzaji) ni kwa wauzaji. Kama ulimaanisha kuuza huduma, ',
       bodyLink: 'badala yake chapisha ofa',
       bodyAfterLink: '. Bofya ',
-      bodyButtonRef: 'Tuma ombi',
-      bodyTail: ' tena ili kuchapisha ombi kama lilivyo.',
+      bodyTail: ' tena ili kuendelea na ombi kama lilivyo.',
     },
     submit: {
       submittingShort: 'Ombi linatumwa…',

@@ -608,6 +608,10 @@ export const ar: Messages = {
     "tolerance": "مرونة السعر",
     "toleranceHint": "النسبة الإضافية التي يمكن للوكيل قبولها فوق الميزانية. اتركها فارغة أو 0 ليطلب موافقتك على الأسعار الأعلى.",
     "authorisation": "ما تفوّض به",
+    "agentHas": "يملك وكيل الشراء لديك",
+    "canSpend": "يمكنه إنفاق ما يصل إلى",
+    "canSpendParts": "{price} USDC حد السعر، و{fee} USDC حصتك من الرسوم، و{reserve} USDC محجوزة لتكاليف الشبكة.",
+    "shortBy": "أضف {amount} USDC إلى وكيل الشراء قبل النشر.",
     "extra": "تفاصيل الأعمال",
     "notes": "راجع كل التفاصيل. لم يُنشأ شيء بعد."
   },
@@ -5407,8 +5411,7 @@ export const ar: Messages = {
       bodyAfter: '. الطلبات للمشترين؛ والعروض (من مكتب البائع) للبائعين. إذا قصدت بيع خدمة، ',
       bodyLink: 'انشر عرضًا بدلًا من ذلك',
       bodyAfterLink: '. اضغط ',
-      bodyButtonRef: 'انشر الطلب',
-      bodyTail: ' مرة أخرى لنشر الطلب كما هو.',
+      bodyTail: ' مرة أخرى للمتابعة بالطلب كما هو.',
     },
     submit: {
       submittingShort: 'جارٍ نشر الطلب…',

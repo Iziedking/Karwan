@@ -8,6 +8,11 @@ export interface FundingNeedView {
   requiredUsdc: string;
   balanceUsdc: string;
   topUpNeededUsdc: string;
+  /// What the need is made of, so a screen can show it: the deal price, the
+  /// buyer's half of the platform fee, and the reserve kept for network costs.
+  priceUsdc: string;
+  buyerFeeUsdc: string;
+  reserveUsdc: string;
 }
 
 /// What the buyer agent must hold before a request goes up: the amount the
@@ -21,7 +26,9 @@ export function buyerFundingNeed(input: {
 }): { required: bigint; shortfall: bigint; view: FundingNeedView } {
   const deal = parseUnits(String(input.budgetUsdc), USDC_DECIMALS);
   const feeTotal = (deal * BigInt(input.feeBps)) / 10_000n;
-  const required = deal + feeTotal / 2n + parseUnits(GAS_HEADROOM_USDC, USDC_DECIMALS);
+  const buyerFee = feeTotal / 2n;
+  const reserve = parseUnits(GAS_HEADROOM_USDC, USDC_DECIMALS);
+  const required = deal + buyerFee + reserve;
   const shortfall = input.balanceWei >= required ? 0n : required - input.balanceWei;
   return {
     required,
@@ -30,6 +37,9 @@ export function buyerFundingNeed(input: {
       requiredUsdc: formatUnits(required, USDC_DECIMALS),
       balanceUsdc: formatUnits(input.balanceWei, USDC_DECIMALS),
       topUpNeededUsdc: formatUnits(shortfall, USDC_DECIMALS),
+      priceUsdc: formatUnits(deal, USDC_DECIMALS),
+      buyerFeeUsdc: formatUnits(buyerFee, USDC_DECIMALS),
+      reserveUsdc: formatUnits(reserve, USDC_DECIMALS),
     },
   };
 }

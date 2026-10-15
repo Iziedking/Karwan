@@ -270,6 +270,10 @@ export interface FundingQuote {
   balanceUsdc: string;
   topUpNeededUsdc: string;
   activated: boolean;
+  /// What `requiredUsdc` is made of. Older servers leave these out.
+  priceUsdc?: string;
+  buyerFeeUsdc?: string;
+  reserveUsdc?: string;
 }
 
 export type UserRole = 'buyer' | 'seller' | 'both';
