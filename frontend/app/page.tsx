@@ -7,7 +7,9 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { SocialTradeSection } from '@/features/home/components/SocialTradeSection';
 import { ProtectionSection } from '@/features/home/components/ProtectionSection';
 import { TradeRoutesMap } from '@/features/home/components/TradeRoutesMap';
+import { SettlementRecord } from '@/features/home/components/SettlementRecord';
 import { useEntryHref } from '@/shared/auth/useEntryHref';
+import { dealHref, START_ROUTE } from '@/shared/utils/routes';
 import styles from './landing.module.css';
 
 function Arrow() {
@@ -63,20 +65,21 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-      <section className={styles.record} id="record" aria-labelledby="record-title">
-        <div className={styles.wrap}>
-          <p className={styles.eyebrow}>{t.recordLabel}</p>
-          <div className={styles.recordHead}><h2 id="record-title">{t.recordTitle}</h2><p>{t.recordBody}</p></div>
-          <ol className={styles.recordLines}>
-            {[[t.terms,t.both],[t.funded,t.buyer],[t.delivery,t.seller],[t.reviewed,t.buyer],[t.released,t.receipt]].map(([label,role]) => <li key={label}>{label}<span>{role}</span></li>)}
-          </ol>
-          <p className={styles.recordFoot}>{t.exampleNote}</p>
-          <div className={styles.limit}><h3>{t.limitTitle}</h3><p>{t.limitBody}</p><Link className={styles.textLink} href="/how-it-works">{t.rulesLink}<Arrow /></Link></div>
-        </div>
-      </section>
+      <SettlementRecord />
       <ProtectionSection />
       <TradeRoutesMap />
-      <section className={styles.closing} aria-labelledby="closing-title"><div className={styles.wrap}><h2 id="closing-title">{t.closeTitle}</h2><p>{t.closeBody}</p><Link className={styles.button} href={openHref}>{t.open}<Arrow /></Link></div></section>
+      <section className={styles.closing} aria-labelledby="closing-title">
+        <div className={styles.wrap}>
+          <h2 id="closing-title">{t.closeTitle}</h2>
+          <p>{t.closeBody}</p>
+          {/* The words ask for the waitlist, so the button does; trying it with
+              test funds is the second way in. */}
+          <div className={styles.closingActions}>
+            <Link className={styles.button} href="/waitlist">{t.waitlistCta}<Arrow /></Link>
+            <Link className={styles.textLink} href={DEALS_AVAILABLE ? openHref : dealHref(START_ROUTE, false)}>{t.tryTestnet}<Arrow /></Link>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

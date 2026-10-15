@@ -8,6 +8,7 @@ export interface LandingEditorialCopy {
   terms: string; funded: string; delivery: string; reviewed: string; released: string;
   both: string; buyer: string; seller: string; receipt: string; exampleNote: string;
   limitTitle: string; limitBody: string; rulesLink: string; closeTitle: string; closeBody: string;
+  liveDeals: string; liveFunded: string; liveReleased: string; liveReturned: string; liveReleasedShare: string; liveReturnedShare: string; liveRecent: string; livePrivate: string; liveSourceTestnet: string; liveSource: string; waitlistCta: string; tryTestnet: string;
   routes: {
     label: string; title: string; body: string;
     cities: Record<'kano' | 'hamburg' | 'lagos' | 'london' | 'johannesburg' | 'shenzhen' | 'nairobi' | 'dubai' | 'toronto'
