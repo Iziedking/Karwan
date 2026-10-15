@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 import {Ownable, Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import {IKarwanHub} from "./interfaces/IKarwanSuite.sol";
+import {IKarwanHub, IKarwanYieldPool} from "./interfaces/IKarwanSuite.sol";
 
 /// @title KarwanHub
 /// @notice The registry every Karwan contract reads: which escrow families
@@ -13,6 +13,8 @@ import {IKarwanHub} from "./interfaces/IKarwanSuite.sol";
 ///         a change here never reaches a deal already open.
 contract KarwanHub is Ownable2Step, IKarwanHub {
     uint16 public constant MAX_FEE_BPS = 1_000;
+    /// At most this share of a family's eligible deal money may sit in yield.
+    uint16 public constant MAX_YIELD_SHARE_BPS = 9_000;
 
     struct Family {
         bool registered;
@@ -44,6 +46,8 @@ contract KarwanHub is Ownable2Step, IKarwanHub {
     mapping(address => mapping(address => Caps)) public capsOf;
     mapping(address => bool) public isVerifier;
     mapping(address => bool) public isIssuer;
+    mapping(address => address) public yieldPoolOf;
+    mapping(address => uint16) public yieldShareOf;
 
     event Wired(address indexed identity, address indexed record, address indexed stakeVault);
     event FamilySet(address indexed family, bool retired, uint16 feeBps);
@@ -53,6 +57,8 @@ contract KarwanHub is Ownable2Step, IKarwanHub {
     event CapsSet(address indexed family, address indexed asset, uint128 perDeal, uint128 total);
     event RoleSet(bytes32 indexed role, address indexed who);
     event ListSet(bytes32 indexed list, address indexed who, bool ok);
+    event YieldPoolSet(address indexed asset, address indexed pool);
+    event YieldShareSet(address indexed family, uint16 bps);
 
     error NotDeployer();
     error AlreadyWired();
@@ -64,6 +70,8 @@ contract KarwanHub is Ownable2Step, IKarwanHub {
     error BadAsset();
     error NotAllowed();
     error Zero();
+    error PoolSet();
+    error BadShare();
 
     constructor(address owner_) Ownable(owner_) {
         deployer = msg.sender;
@@ -149,6 +157,33 @@ contract KarwanHub is Ownable2Step, IKarwanHub {
         emit CapsSet(family, asset, perDeal, total);
     }
 
+    // -------------------------------- Yield -------------------------------
+
+    /// @notice The asset's yield pool, set once. The pool is the one address
+    ///         Circle entitles for USYC and where every family's parked money
+    ///         for the asset sits, so it never moves; its own settings change
+    ///         its Teller.
+    function setYieldPool(address asset, address pool) external onlyOwner {
+        if (pool == address(0)) revert Zero();
+        if (yieldPoolOf[asset] != address(0)) revert PoolSet();
+        if (!assetAllowed[asset] || IKarwanYieldPool(pool).asset() != asset || IKarwanYieldPool(pool).hub() != address(this))
+        {
+            revert BadAsset();
+        }
+        yieldPoolOf[asset] = pool;
+        emit YieldPoolSet(asset, pool);
+    }
+
+    /// @notice The share of a family's eligible deal money that may sit in the
+    ///         yield pool. Each deal copies it at opening, so a change reaches
+    ///         new deals only; zero turns yield off for them.
+    function setYieldShare(address family, uint16 bps) external onlyOwner {
+        if (bps > MAX_YIELD_SHARE_BPS) revert BadShare();
+        _family(family);
+        yieldShareOf[family] = bps;
+        emit YieldShareSet(family, bps);
+    }
+
     // -------------------------------- Roles -------------------------------
 
     function setFeeRecipient(address who) external onlyOwner {
@@ -205,6 +240,7 @@ contract KarwanHub is Ownable2Step, IKarwanHub {
         c.reviewSafe = reviewSafe;
         c.seniorSafe = seniorSafe;
         c.autoArbiter = autoArbiter;
+        if (yieldPoolOf[asset] != address(0)) c.yieldBps = yieldShareOf[family];
     }
 
     function totalCapOf(address family, address asset) external view returns (uint128) {

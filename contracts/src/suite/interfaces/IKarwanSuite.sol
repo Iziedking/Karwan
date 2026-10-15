@@ -11,6 +11,7 @@ interface IKarwanHub {
         address reviewSafe;
         address seniorSafe;
         address autoArbiter;
+        uint16 yieldBps;
     }
 
     function openingConfig(address family, address asset) external view returns (OpeningConfig memory);
@@ -24,6 +25,16 @@ interface IKarwanHub {
     function identity() external view returns (address);
     function record() external view returns (address);
     function stakeVault() external view returns (address);
+    function feeRecipient() external view returns (address);
+    function yieldPoolOf(address asset) external view returns (address);
+}
+
+/// @notice The one place an asset's parked deal money sits, for every family.
+interface IKarwanYieldPool {
+    function hub() external view returns (address);
+    function asset() external view returns (address);
+    function deposit(uint256 amount) external;
+    function withdraw(uint256 amount) external;
 }
 
 interface IKarwanIdentity {
