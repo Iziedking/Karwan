@@ -817,13 +817,8 @@ export function DirectDealForm() {
           className="mt-0.5 w-4 h-4 accent-[var(--lp-accent)] shrink-0 cursor-pointer"
         />
         <div className="min-w-0">
-          <span
-            className="text-[14px] font-semibold inline-flex items-center gap-1.5"
-            style={{ color: 'var(--lp-dark)' }}
-          >
-            {c.security}
-            <Hint>{dd.trustedMatch.body}</Hint>
-          </span>
+          <span className="block text-[14px] font-semibold text-[var(--lp-dark)]">{c.security}</span>
+          <span className="mt-1 block text-[14px] leading-snug text-[var(--lp-text-sub)]">{dd.trustedMatch.body}</span>
           {requireStake && (
             <div className="mt-3 flex flex-wrap items-center gap-3">
               <input
@@ -841,12 +836,10 @@ export function DirectDealForm() {
                 <span className="font-sans text-[20px] font-extrabold tabular-nums tracking-[-0.02em] text-[var(--lp-dark)]">
                   {requireStakePct}
                 </span>
-                <span className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                  {dd.trustedMatch.pctCaption}
-                </span>
+                <span className="text-[14px] text-[var(--lp-text-sub)]">{dd.trustedMatch.pctCaption}</span>
               </div>
               {typeof amount === 'number' && amount > 0 && (
-                <p className="basis-full mono text-[14px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)]">
+                <p className="basis-full text-[14px] font-medium text-[var(--lp-dark)]">
                   {dd.trustedMatch.stakeNoteTemplate.replace(
                     '{amount}',
                     ((amount * requireStakePct) / 100).toFixed(2),

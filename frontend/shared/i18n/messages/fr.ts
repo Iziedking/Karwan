@@ -30,6 +30,7 @@ import { routeTitlesCopy } from './routeTitles';
 import { chatTermsCopy } from './chatTerms';
 import { sealedRecordCopy } from './sealedRecord';
 import { researchCopy } from './research';
+import { offerFlowCopy } from './offerFlow';
 import { recoveryCopy } from './recovery';
 import { docsProductCopy } from './docsProduct';
 
@@ -62,6 +63,7 @@ export const fr: Messages = {
   chatTerms: chatTermsCopy.fr,
   sealedRecord: sealedRecordCopy.fr,
   research: researchCopy.fr,
+  offerFlow: offerFlowCopy.fr,
   recovery: recoveryCopy.fr,
   docsProduct: docsProductCopy.fr,
   socialTrade: socialTradeCopy.fr,
@@ -600,8 +602,8 @@ export const fr: Messages = {
     "requestRequired": "Ajoutez une description, un budget et un délai de livraison.",
     "safeguards": "Protection supplémentaire",
     "none": "Aucune",
-    "security": "Garantie du vendeur",
-    "securityHelp": "Exige une mise du vendeur avant acceptation. Elle peut être réduite si le litige est tranché contre lui.",
+    "security": "Demander un dépôt au vendeur",
+    "securityHelp": "Le vendeur verse un dépôt pour accepter. Si un litige est tranché contre lui, il peut en perdre une partie ou la totalité.",
     "defaultSplit": "Vos étapes de paiement enregistrées",
     "placeholder": "Ex. : créer un logo de boulangerie avec deux révisions. Livrer les fichiers SVG et PNG sous 7 jours.",
     "budgetHint": "Votre prix cible en USDC. La flexibilité facultative augmente la limite autorisée.",
@@ -1461,7 +1463,7 @@ export const fr: Messages = {
       title: 'Définissez le montant et la répartition du déblocage.',
       amountLabel: 'Montant',
       deadlineLabel: 'Échéance (optionnel)',
-      deadlineHint: "Date à laquelle le vendeur doit livrer. Laissez vide pour un deal ouvert (sans pression de temps ni annulation unilatérale pour retard). Maximum 180 jours si défini.",
+      deadlineHint: "La date avant laquelle le vendeur doit livrer, jusqu’à 180 jours. Sans date limite, un retard ne permet pas d’annuler.",
       deliveryPctLabel: 'À la livraison',
       deliveryPctHint: 'Part libérée quand le vendeur marque livré. Le reste à votre vérification.',
       acceptanceWindowLabel: "Délai d'acceptation du vendeur",
@@ -1491,10 +1493,10 @@ export const fr: Messages = {
     },
     trustedMatch: {
       eyebrow: 'Match de confiance',
-      body: "Le vendeur doit miser des USDC pour accepter. Saisis s'il perd un litige. Idéal pour les deals à forte valeur ou non reproductibles. Désactivé pour les deals occasionnels.",
-      sliderAria: 'Pourcentage de mise requis',
-      pctCaption: '% du deal',
-      stakeNoteTemplate: '↳ le vendeur doit miser {amount} USDC pour accepter',
+      body: "Le vendeur verse un dépôt en USDC avant d’accepter. Si un litige est tranché contre lui, il peut en perdre une partie ou la totalité. Utile pour les gros accords ou un travail impossible à refaire.",
+      sliderAria: "Dépôt en part du prix",
+      pctCaption: "% du prix",
+      stakeNoteTemplate: "Le vendeur verse {amount} USDC pour accepter.",
     },
     submit: {
       opening: 'Ouverture du deal…',

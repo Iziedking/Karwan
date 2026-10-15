@@ -30,6 +30,7 @@ import { routeTitlesCopy } from './routeTitles';
 import { chatTermsCopy } from './chatTerms';
 import { sealedRecordCopy } from './sealedRecord';
 import { researchCopy } from './research';
+import { offerFlowCopy } from './offerFlow';
 import { recoveryCopy } from './recovery';
 import { docsProductCopy } from './docsProduct';
 
@@ -62,6 +63,7 @@ export const hi: Messages = {
   chatTerms: chatTermsCopy.hi,
   sealedRecord: sealedRecordCopy.hi,
   research: researchCopy.hi,
+  offerFlow: offerFlowCopy.hi,
   recovery: recoveryCopy.hi,
   docsProduct: docsProductCopy.hi,
   socialTrade: socialTradeCopy.hi,
@@ -598,8 +600,8 @@ export const hi: Messages = {
     "requestRequired": "विवरण, बजट और डिलीवरी की समय सीमा जोड़ें।",
     "safeguards": "अतिरिक्त सुरक्षा",
     "none": "कोई नहीं",
-    "security": "विक्रेता की सुरक्षा जमा",
-    "securityHelp": "स्वीकार करने से पहले विक्रेता की स्टेक राशि आवश्यक है। विवाद उसके विरुद्ध तय हो तो यह घट सकती है।",
+    "security": "विक्रेता से जमा राशि माँगें",
+    "securityHelp": "स्वीकार करने के लिए विक्रेता एक जमा राशि रखता है। अगर विवाद उसके ख़िलाफ़ तय होता है, तो वह इसका कुछ हिस्सा या पूरी राशि खो सकता है।",
     "defaultSplit": "आपके सहेजे गए खरीदार भुगतान चरण",
     "placeholder": "जैसे: बेकरी का लोगो बनाएँ, दो संशोधन शामिल हों। SVG और PNG फ़ाइलें 7 दिनों में दें।",
     "budgetHint": "USDC में आपका लक्षित मूल्य। वैकल्पिक मूल्य लचीलापन अधिकृत सीमा बढ़ाता है।",
@@ -1459,7 +1461,7 @@ export const hi: Messages = {
       title: 'राशि और रिलीज़ अनुपात तय करें।',
       amountLabel: 'राशि',
       deadlineLabel: 'समय सीमा (वैकल्पिक)',
-      deadlineHint: 'विक्रेता को कब तक डिलीवर करना है। ओपन-एंडेड डील के लिए खाली छोड़ें (कोई समय दबाव नहीं, देरी पर एकतरफा रद्द नहीं)। तय करने पर अधिकतम 180 दिन।',
+      deadlineHint: "वह तारीख जब तक विक्रेता को डिलीवर करना है, अधिकतम 180 दिन। बिना समय सीमा के, देरी रद्द करने का कारण नहीं है।",
       deliveryPctLabel: 'डिलीवरी पर',
       deliveryPctHint: 'विक्रेता द्वारा डिलीवर मार्क करने पर जारी हिस्सा। बाकी आपकी पुष्टि पर।',
       acceptanceWindowLabel: 'विक्रेता को स्वीकृति की समय सीमा',
@@ -1489,10 +1491,10 @@ export const hi: Messages = {
     },
     trustedMatch: {
       eyebrow: 'भरोसेमंद मैच',
-      body: 'स्वीकार करने के लिए विक्रेता को USDC स्टेक करना होगा। विवाद हारने पर स्लैश होगा। उच्च-मूल्य या न दोहराई जाने वाली डील के लिए बेहतर। सामान्य डील के लिए बंद रखें।',
-      sliderAria: 'आवश्यक स्टेक प्रतिशत',
-      pctCaption: 'डील का %',
-      stakeNoteTemplate: '↳ स्वीकार करने के लिए विक्रेता को {amount} USDC स्टेक करना होगा',
+      body: "स्वीकार करने से पहले विक्रेता USDC में एक जमा राशि रखता है। अगर विवाद उसके ख़िलाफ़ तय होता है, तो वह इसका कुछ हिस्सा या पूरी राशि खो सकता है। बड़े सौदों या दोबारा न हो सकने वाले काम के लिए उपयोगी।",
+      sliderAria: "कीमत के हिस्से के रूप में जमा राशि",
+      pctCaption: "कीमत का %",
+      stakeNoteTemplate: "स्वीकार करने के लिए विक्रेता {amount} USDC जमा करता है।",
     },
     submit: {
       opening: 'डील खुल रही है…',

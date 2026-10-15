@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { api, ApiError, type Listing } from '@/core/api';
@@ -18,6 +18,7 @@ import Link from 'next/link';
 import { walletAmount } from '@/features/balances/walletFormat';
 import { CreationReview } from '@/features/deals/components/CreationReview';
 import { TermsBuilder, TermsBlockerNote, DEFAULT_TERMS } from '@/features/deals/terms/TermsBuilder';
+import { stepOneBlocker } from '../offerFlow';
 import { cleanLines, composeTerms, termsIssues, type TermsDraft } from '@/features/deals/terms/composeTerms';
 import { TERMS_COPY } from '@/features/deals/terms/termsCopy';
 
@@ -38,8 +39,8 @@ export function PostListingForm() {
   const t = useTranslations();
   const rs = t.dealCreation.requestSteps;
   const f = pl.flow;
+  const offer = t.offerFlow;
   const { locale } = useLocale();
-  const router = useRouter();
   const auth = useAuth();
   const address = auth.address;
   const isConnected = auth.isAuthenticated;
@@ -75,6 +76,10 @@ export function PostListingForm() {
   const [recent, setRecent] = useState<Listing[]>([]);
   const { dismissed, dismiss } = useDismissed('seller-listings');
   const [watchingForListingId, setWatchingForListingId] = useState<string | null>(null);
+  // After publishing, the form gives way to the result; a later match is
+  // offered as a link instead of moving the page.
+  const [published, setPublished] = useState<{ id: string } | null>(null);
+  const [matchedJobId, setMatchedJobId] = useState<string | null>(null);
   const watchedListingRef = useRef<string | null>(null);
   // An offer that reads like a request ("Need a backend engineer") is named
   // before posting. Cleared on every text edit so a reworded post passes again.
@@ -91,10 +96,10 @@ export function PostListingForm() {
       if (!e.jobId) continue;
       if (watchedListingRef.current === watchingForListingId) return;
       watchedListingRef.current = watchingForListingId;
-      router.push(`/jobs/${e.jobId}`);
+      setMatchedJobId(e.jobId);
       return;
     }
-  }, [events, watchingForListingId, router]);
+  }, [events, watchingForListingId]);
 
   useEffect(() => {
     if (!address) return;
@@ -157,28 +162,69 @@ export function PostListingForm() {
       });
       setRecent((prev) => [r.listing, ...prev]);
       setWatchingForListingId(r.listing.id);
+      setMatchedJobId(null);
+      setPublished({ id: r.listing.id });
       recordAction('post-listing');
-      setTitle('');
-      setDescription('');
-      setTerms(DEFAULT_TERMS);
-      setReviewing(false);
-      setStep(0);
     } catch (err) {
-      setError(err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message);
+      setError(err instanceof ApiError && err.detail ? String(err.detail) : offer.tryAgain);
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function postAnother() {
+    setTitle('');
+    setDescription('');
+    setPrice('');
+    setFloorPrice('');
+    setReadyInDays('');
+    setCustomReady(false);
+    setTerms(DEFAULT_TERMS);
+    setReviewing(false);
+    setStep(0);
+    setIntentWarned(false);
+    setPublished(null);
+    setMatchedJobId(null);
   }
 
   if (!isConnected) {
     return <p className="text-[14px] text-[var(--lp-workspace-muted)]">{pl.notConnected}</p>;
   }
 
+  const stepOneMissing = step === 0 ? stepOneBlocker(title, description, offer) : null;
+
   const stepLabels = [rs.describe, rs.price, rs.payment];
 
   return (
     <div className="space-y-7">
       <PageTour id={SELLER_TOUR_ID} steps={SELLER_STEPS} />
+      {published ? (
+        <section aria-live="polite" className="rounded-[18px] border border-[var(--lp-workspace-border)] bg-[var(--lp-card)] p-5">
+          <h2 className="text-[20px] font-semibold text-[var(--lp-workspace-ink)]">{offer.liveTitle}</h2>
+          <p className="mt-2 text-[15px] leading-relaxed text-[var(--lp-workspace-muted)]">{offer.liveBody}</p>
+          {matchedJobId ? (
+            <p className="mt-4 text-[15px] font-semibold text-[var(--lp-workspace-ink)]">
+              {offer.matchedTitle}{' '}
+              <Link href={`/jobs/${matchedJobId}`} className="underline underline-offset-4">{offer.openDeal}</Link>
+            </p>
+          ) : null}
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <Link
+              href={`/listings/${published.id}`}
+              className="inline-flex min-h-12 items-center rounded-full bg-[var(--lp-accent)] px-6 text-[15px] font-semibold text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)] focus-visible:ring-offset-2"
+            >
+              {offer.viewOffer}
+            </Link>
+            <button
+              type="button"
+              onClick={postAnother}
+              className="inline-flex min-h-12 items-center rounded-full px-4 text-[15px] font-semibold text-[var(--lp-workspace-ink)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+            >
+              {offer.postAnother}
+            </button>
+          </div>
+        </section>
+      ) : (
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -441,14 +487,8 @@ export function PostListingForm() {
             </button>
           )}
           {!reviewing && step === 2 ? <TermsBlockerNote terms={terms} /> : null}
+          {stepOneMissing ? <p role="status" className="w-full text-[14px] font-medium text-[var(--lp-dark)]">{stepOneMissing}</p> : null}
         </div>
-
-        {watchingForListingId && (
-          <p className="inline-flex items-center gap-2 text-[14px] font-medium text-[var(--lp-accent-on-light)]">
-            <span aria-hidden className="size-1.5 rounded-full bg-[var(--lp-accent)]" />
-            {pl.watchingScanning}
-          </p>
-        )}
         {error && (
           <div className="space-y-1.5">
             <p role="alert" className="text-[14px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))]">
@@ -474,6 +514,7 @@ export function PostListingForm() {
           </div>
         )}
       </form>
+      )}
 
       {recent.length > 0 && (() => {
         const now = Date.now();

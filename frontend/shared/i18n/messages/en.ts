@@ -33,6 +33,7 @@ import { routeTitlesCopy, type RouteTitleCopy } from './routeTitles';
 import { chatTermsCopy, type ChatTermsCopy } from './chatTerms';
 import { sealedRecordCopy, type SealedRecordCopy } from './sealedRecord';
 import { researchCopy, type ResearchCopy } from './research';
+import { offerFlowCopy, type OfferFlowCopy } from './offerFlow';
 import { recoveryCopy, type RecoveryCopy } from './recovery';
 import { docsProductCopy, type DocsProductCopy } from './docsProduct';
 interface MessagesShape {
@@ -64,6 +65,7 @@ interface MessagesShape {
   chatTerms: ChatTermsCopy;
   sealedRecord: SealedRecordCopy;
   research: ResearchCopy;
+  offerFlow: OfferFlowCopy;
   recovery: RecoveryCopy;
   docsProduct: DocsProductCopy;
   socialTrade: SocialTradeCopy;
@@ -5387,6 +5389,7 @@ export const en: MessagesShape = {
   chatTerms: chatTermsCopy.en,
   sealedRecord: sealedRecordCopy.en,
   research: researchCopy.en,
+  offerFlow: offerFlowCopy.en,
   recovery: recoveryCopy.en,
   docsProduct: docsProductCopy.en,
   socialTrade: socialTradeCopy.en,
@@ -5927,8 +5930,8 @@ export const en: MessagesShape = {
     "requestRequired": "Add a description, budget and delivery deadline to review.",
     "safeguards": "Extra protection",
     "none": "None",
-    "security": "Seller security reserve",
-    "securityHelp": "Requires seller stake before acceptance. It can be reduced if a dispute is decided against the seller.",
+    "security": "Ask the seller for a deposit",
+    "securityHelp": "The seller puts down a deposit to accept. If a dispute is decided against them, they can lose part or all of it.",
     "defaultSplit": "Your saved buyer payment stages",
     "placeholder": "e.g. Design a bakery logo with two revisions. Deliver SVG and PNG files within 7 days.",
     "budgetHint": "Your target price in USDC. Optional price flexibility increases the authorised limit.",
@@ -6807,7 +6810,7 @@ export const en: MessagesShape = {
       title: 'Set the amount and release split.',
       amountLabel: 'Amount',
       deadlineLabel: 'Deadline (optional)',
-      deadlineHint: 'When the seller must deliver by. Leave blank for open-ended (no time pressure, no unilateral cancel for late delivery). Max 180 days when set.',
+      deadlineHint: "The date the seller must deliver by, up to 180 days. With no deadline, late delivery is not a reason to cancel.",
       deliveryPctLabel: 'On delivery',
       deliveryPctHint: 'Slice released when seller marks delivered. Rest on your verification.',
       acceptanceWindowLabel: 'Seller has to accept within',
@@ -6837,10 +6840,10 @@ export const en: MessagesShape = {
     },
     trustedMatch: {
       eyebrow: 'Trusted match',
-      body: "Seller has to stake USDC to accept. Slashed if they lose a dispute. Best for higher-value or one-shot deals you can't redo. Leave off for casual deals.",
-      sliderAria: 'Required stake percentage',
-      pctCaption: '% of deal',
-      stakeNoteTemplate: '↳ seller must stake {amount} USDC to accept',
+      body: "The seller puts down a deposit in USDC before accepting. If a dispute is decided against them, they can lose part or all of it. Useful for bigger deals or work you can't redo.",
+      sliderAria: "Deposit as a share of the price",
+      pctCaption: "% of the price",
+      stakeNoteTemplate: "The seller puts down {amount} USDC to accept.",
     },
     submit: {
       opening: 'Opening deal…',

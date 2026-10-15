@@ -30,6 +30,7 @@ import { routeTitlesCopy } from './routeTitles';
 import { chatTermsCopy } from './chatTerms';
 import { sealedRecordCopy } from './sealedRecord';
 import { researchCopy } from './research';
+import { offerFlowCopy } from './offerFlow';
 import { recoveryCopy } from './recovery';
 import { docsProductCopy } from './docsProduct';
 
@@ -62,6 +63,7 @@ export const ar: Messages = {
   chatTerms: chatTermsCopy.ar,
   sealedRecord: sealedRecordCopy.ar,
   research: researchCopy.ar,
+  offerFlow: offerFlowCopy.ar,
   recovery: recoveryCopy.ar,
   docsProduct: docsProductCopy.ar,
   socialTrade: socialTradeCopy.ar,
@@ -600,8 +602,8 @@ export const ar: Messages = {
     "requestRequired": "أضف وصفاً وميزانية وموعد تسليم.",
     "safeguards": "حماية إضافية",
     "none": "لا يوجد",
-    "security": "ضمان البائع",
-    "securityHelp": "يتطلب رهن البائع قبل القبول. يمكن خفضه إذا حُسم النزاع ضد البائع.",
+    "security": "اطلب عربونًا من البائع",
+    "securityHelp": "يضع البائع عربونًا ليقبل. إذا حُسم نزاع ضده، قد يخسر جزءًا منه أو كله.",
     "defaultSplit": "مراحل الدفع المحفوظة للمشتري",
     "placeholder": "مثال: تصميم شعار لمخبز مع جولتي تعديل وتسليم ملفات SVG وPNG خلال 7 أيام.",
     "budgetHint": "السعر المستهدف بعملة USDC. مرونة السعر الاختيارية تزيد الحد المصرّح به.",
@@ -1461,7 +1463,7 @@ export const ar: Messages = {
       title: 'حدّد المبلغ ونسبة الإفراج.',
       amountLabel: 'المبلغ',
       deadlineLabel: 'الموعد النهائي (اختياري)',
-      deadlineHint: 'الموعد الذي يجب أن يسلّم فيه البائع. اتركه فارغاً لصفقة مفتوحة (لا ضغط وقتي ولا إلغاء أحادي للتأخير). الحد الأقصى 180 يوماً عند التحديد.',
+      deadlineHint: "التاريخ الذي يجب أن يسلّم البائع قبله، حتى 180 يومًا. بدون موعد نهائي، التأخير ليس سببًا للإلغاء.",
       deliveryPctLabel: 'عند التسليم',
       deliveryPctHint: 'الجزء المُفرَج عنه عند تأشير التسليم. الباقي عند تحققك.',
       acceptanceWindowLabel: 'مهلة قبول البائع',
@@ -1491,10 +1493,10 @@ export const ar: Messages = {
     },
     trustedMatch: {
       eyebrow: 'تطابق موثوق',
-      body: 'يجب على البائع إيداع USDC للقبول. يُصادَر عند خسارة النزاع. أنسب للصفقات عالية القيمة أو غير القابلة للتكرار. اتركه مغلقاً للصفقات العادية.',
-      sliderAria: 'نسبة الإيداع المطلوبة',
-      pctCaption: '٪ من الصفقة',
-      stakeNoteTemplate: '↳ على البائع إيداع {amount} USDC للقبول',
+      body: "يضع البائع عربونًا بعملة USDC قبل القبول. إذا حُسم نزاع ضده، قد يخسر جزءًا منه أو كله. مفيد للصفقات الكبيرة أو للعمل الذي لا يمكن إعادته.",
+      sliderAria: "العربون كنسبة من السعر",
+      pctCaption: "٪ من السعر",
+      stakeNoteTemplate: "يضع البائع {amount} USDC ليقبل.",
     },
     submit: {
       opening: 'جاري فتح الصفقة…',

@@ -30,6 +30,7 @@ import { routeTitlesCopy } from './routeTitles';
 import { chatTermsCopy } from './chatTerms';
 import { sealedRecordCopy } from './sealedRecord';
 import { researchCopy } from './research';
+import { offerFlowCopy } from './offerFlow';
 import { recoveryCopy } from './recovery';
 import { docsProductCopy } from './docsProduct';
 
@@ -62,6 +63,7 @@ export const sw: Messages = {
   chatTerms: chatTermsCopy.sw,
   sealedRecord: sealedRecordCopy.sw,
   research: researchCopy.sw,
+  offerFlow: offerFlowCopy.sw,
   recovery: recoveryCopy.sw,
   docsProduct: docsProductCopy.sw,
   socialTrade: socialTradeCopy.sw,
@@ -597,8 +599,8 @@ export const sw: Messages = {
     "requestRequired": "Ongeza maelezo, bajeti na muda wa uwasilishaji.",
     "safeguards": "Ulinzi wa ziada",
     "none": "Hakuna",
-    "security": "Dhamana ya muuzaji",
-    "securityHelp": "Inahitaji stake ya muuzaji kabla ya kukubali. Inaweza kupunguzwa ikiwa uamuzi wa mgogoro ni dhidi yake.",
+    "security": "Mwombe muuzaji amana",
+    "securityHelp": "Muuzaji anaweka amana ili kukubali. Mgogoro ukiamuliwa dhidi yake, anaweza kupoteza sehemu au yote.",
     "defaultSplit": "Hatua zako za malipo zilizohifadhiwa",
     "placeholder": "Mfano: tengeneza nembo ya duka la mikate, pamoja na marekebisho mawili. Wasilisha SVG na PNG ndani ya siku 7.",
     "budgetHint": "Bei unayolenga kwa USDC. Unyumbufu wa hiari huongeza kikomo kilichoidhinishwa.",
@@ -1458,7 +1460,7 @@ export const sw: Messages = {
       title: 'Weka kiasi na mgawanyo wa kutoa.',
       amountLabel: 'Kiasi',
       deadlineLabel: 'Tarehe ya mwisho (si lazima)',
-      deadlineHint: 'Wakati ambao muuzaji anapaswa kupokea. Iache wazi kwa biashara isiyo na kikomo (hakuna shinikizo la muda, hakuna kufuta kwa upande mmoja kwa kuchelewa). Upeo wa siku 180 ukitajwa.',
+      deadlineHint: "Tarehe ambayo muuzaji lazima awasilishe kabla yake, hadi siku 180. Bila tarehe ya mwisho, kuchelewa si sababu ya kufuta.",
       deliveryPctLabel: 'Wakati wa kupokea',
       deliveryPctHint: 'Sehemu inayotolewa muuzaji anapotia alama ya kupokea. Iliyobaki kwa uthibitishaji wako.',
       acceptanceWindowLabel: 'Muda wa muuzaji kukubali',
@@ -1488,10 +1490,10 @@ export const sw: Messages = {
     },
     trustedMatch: {
       eyebrow: 'Ujumbe wa kuaminiwa',
-      body: 'Muuzaji anapaswa kuweka USDC ili kukubali. Anapoteza akishindwa kesi. Bora kwa biashara za thamani kubwa au za pekee usizoweza kurudia. Iache imefungwa kwa biashara za kawaida.',
-      sliderAria: 'Asilimia ya dhamana inayohitajika',
-      pctCaption: '% ya biashara',
-      stakeNoteTemplate: '↳ muuzaji lazima aweke {amount} USDC kukubali',
+      body: "Muuzaji anaweka amana ya USDC kabla ya kukubali. Mgogoro ukiamuliwa dhidi yake, anaweza kupoteza sehemu au yote. Inafaa kwa biashara kubwa au kazi isiyoweza kurudiwa.",
+      sliderAria: "Amana kama sehemu ya bei",
+      pctCaption: "% ya bei",
+      stakeNoteTemplate: "Muuzaji anaweka USDC {amount} ili kukubali.",
     },
     submit: {
       opening: 'Inafungua biashara…',
