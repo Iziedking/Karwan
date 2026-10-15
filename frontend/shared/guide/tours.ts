@@ -318,15 +318,15 @@ export const SETTINGS_TOUR_ID = 'settings-v1';
 export const SETTINGS_STEPS: TourStep[] = [
   {
     title: 'Preferences',
-    body: 'Set your language, timezone, and theme.',
+    body: 'Language, theme and sound. Tap a row to change it.',
   },
   {
-    title: 'Notifications',
-    body: 'Choose where deal updates are sent.',
+    title: 'Notifications and privacy',
+    body: 'Turn notifications on or off, and choose whether you appear on the public board.',
   },
   {
-    title: 'Account privacy',
-    body: 'Manage profile visibility and account settings.',
+    title: 'Security',
+    body: 'Your passkey, and deleting your profile, which asks you to confirm first.',
   },
 ];
 

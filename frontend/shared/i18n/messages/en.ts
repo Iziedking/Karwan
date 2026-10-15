@@ -143,6 +143,7 @@ interface MessagesShape {
   };
   settings: {
     title: string;
+    groups: { preferences: string; notificationsPrivacy: string; security: string };
     language: string;
     languageHint: string;
     theme: string;
@@ -151,12 +152,10 @@ interface MessagesShape {
     themeSystem: string;
     sound: string;
     notifications: string;
-    notificationsHint: string;
-    notificationsMute: string;
-    privacy: string;
+    notificationsNote: string;
     privacyPublicPassport: string;
-    dangerZone: string;
     accountDelete: string;
+    deleteTitle: string;
     accountDeleteHint: string;
     accountDeleteConfirm: string;
     fundedFallback: string;
@@ -165,9 +164,7 @@ interface MessagesShape {
     confirmDeleteYes: string;
     confirmDeleteNo: string;
     passkey: {
-      rowLabel: string;
-      rowHint: string;
-      activeChip: string;
+      passkeyLabel: string;
       addButton: string;
       addingButton: string;
       noBrowserSupport: string;
@@ -5437,7 +5434,8 @@ export const en: MessagesShape = {
 
   },
   settings: {
-    title: 'Preferences',
+    title: "Settings",
+    groups: { preferences: "Preferences", notificationsPrivacy: "Notifications and privacy", security: "Security" },
     language: 'Language',
     languageHint: 'Used for the app, notifications, and emails.',
     theme: 'Theme',
@@ -5446,13 +5444,11 @@ export const en: MessagesShape = {
     themeSystem: 'Daylight',
     sound: 'Sound',
     notifications: 'Notifications',
-    notificationsHint: 'Stops Karwan notifications across email and connected channels.',
-    notificationsMute: 'Mute all notifications',
-    privacy: 'Privacy',
+    notificationsNote: "Email and connected channels",
     privacyPublicPassport: 'List me on the public Credit Passport board',
-    dangerZone: 'Danger zone',
-    accountDelete: 'Delete my off-chain profile',
-    accountDeleteHint: 'Removes your profile, settings and risk tags. Your reputation on Arc is permanent and stays.',
+    accountDelete: "Delete profile",
+    deleteTitle: "Delete your profile?",
+    accountDeleteHint: "Removes your profile and settings from Karwan. Your completed deals and reputation stay on record.",
     accountDeleteConfirm: 'Type DELETE to confirm',
     fundedFallback: 'Your agent wallets are funded. Deleting will not move them. Proceed anyway?',
     chatAccountDelete: 'This account was made in chat. Send /delete to the Karwan agent to delete it.',
@@ -5460,9 +5456,7 @@ export const en: MessagesShape = {
     confirmDeleteYes: 'Yes, delete',
     confirmDeleteNo: 'No, keep it',
     passkey: {
-      rowLabel: 'Sign-in',
-      rowHint: 'A passkey is faster than a code on every login and works offline.',
-      activeChip: 'Passkey active',
+      passkeyLabel: "Passkey",
       addButton: 'Add a passkey',
       addingButton: 'Setting up…',
       noBrowserSupport: 'This browser has no passkey support.',

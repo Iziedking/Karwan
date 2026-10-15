@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   startRegistration,
@@ -8,12 +8,13 @@ import {
 import { api, ApiError, type UserSettings, type ThemePreference } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { purgeStoredNotifications } from '@/shared/utils/notificationStore';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import type { Locale } from '@/shared/i18n/locales';
-import { adoptPreferenceIfUnset } from '@/shared/hooks/useTheme';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
+import { LOCALE_NAMES, type Locale } from '@/shared/i18n/locales';
+import { adoptPreferenceIfUnset, setThemePreference, useTheme } from '@/shared/hooks/useTheme';
 import { LanguagePicker } from './LanguagePicker';
-import { ThemePicker } from './ThemePicker';
-import { Hint } from '@/shared/components/Hint';
+import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
+import { ThemeIcon } from '@/shared/components/ThemeControl';
+import { Row, RowGroup, ToggleRow } from '@/features/profile/ui/ProfileUi';
 import { sfx } from '@/shared/utils/sfx';
 
 type Saver = (patch: UserSettings) => Promise<void>;
@@ -27,7 +28,11 @@ const DEFAULT_SETTINGS: UserSettings = {
 
 export function SettingsBand() {
   const { address, isAuthenticated, method, email, hasPasskey, refresh, signOut } = useAuth();
-  const t = useTranslations();
+  const { locale, t } = useLocale();
+  const { preference, mounted } = useTheme();
+  const [sheet, setSheet] = useState<null | 'language' | 'theme' | 'delete'>(null);
+  const titleId = useId();
+  const deleteInput = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
   const [saving, setSaving] = useState(false);
@@ -128,148 +133,147 @@ export function SettingsBand() {
 
   function onLocaleChange(next: Locale) {
     save({ locale: next });
+    setSheet(null);
   }
 
-  function onThemeChange(next: ThemePreference) {
+  function chooseTheme(next: ThemePreference) {
+    setThemePreference(next);
     save({ theme: next });
+    setSheet(null);
   }
+
+  function closeDelete() {
+    if (deleting) return;
+    setSheet(null);
+    setDeleteConfirm('');
+    setForceConfirm(null);
+    setDeleteError(null);
+  }
+
+  const themeOptions: { value: ThemePreference; label: string }[] = [
+    { value: 'system', label: t.settings.themeSystem },
+    { value: 'light', label: t.settings.themeLight },
+    { value: 'dark', label: t.settings.themeDark },
+  ];
+  const themeNow = mounted ? preference : 'system';
+  const themeLabel = themeOptions.find((o) => o.value === themeNow)?.label ?? t.settings.themeSystem;
 
   return (
-    <section
-      className="border-t border-[var(--color-line)]"
-    >
-      <Row label={t.settings.language} hint={t.settings.languageHint}>
-        <LanguagePicker onChange={onLocaleChange} />
-      </Row>
-
-      <Row label={t.settings.theme}>
-        <ThemePicker onChange={onThemeChange} showLabel={false} />
-      </Row>
-
-      <Row label={t.settings.sound}>
-        <Switch
+    <div className="space-y-7">
+      <RowGroup title={t.settings.groups.preferences}>
+        <Row label={t.settings.language} value={LOCALE_NAMES[locale]} onClick={() => setSheet('language')} />
+        <Row label={t.settings.theme} value={themeLabel} onClick={() => setSheet('theme')} />
+        <ToggleRow
+          label={t.settings.sound}
+          note={t.money.settings.soundsSwitch}
           checked={soundsOn}
-          label={t.money.settings.soundsSwitch}
           onChange={(on) => {
             sfx.setMuted(!on);
             if (on) sfx.tap();
           }}
         />
-      </Row>
+      </RowGroup>
 
-      <Row label={t.settings.notifications} hint={t.settings.notificationsHint}>
-        <Switch
-          checked={!!settings.notificationsMuted}
-          label={t.settings.notificationsMute}
-          onChange={(v) => save({ notificationsMuted: v })}
+      <RowGroup title={t.settings.groups.notificationsPrivacy}>
+        <ToggleRow
+          label={t.settings.notifications}
+          note={t.settings.notificationsNote}
+          checked={!settings.notificationsMuted}
+          onChange={(on) => save({ notificationsMuted: !on })}
         />
-      </Row>
-
-      <Row label={t.settings.privacy}>
-        <Switch
-          checked={settings.publicPassport !== false}
+        <ToggleRow
           label={t.settings.privacyPublicPassport}
+          checked={settings.publicPassport !== false}
           onChange={(v) => save({ publicPassport: v })}
         />
-      </Row>
+      </RowGroup>
 
       {method === 'circle' && email && (
-        <PasskeyRow
-          hasPasskey={hasPasskey}
-          email={email}
-          onAdded={() => refresh()}
-        />
+        <RowGroup title={t.settings.groups.security}>
+          <PasskeyRow hasPasskey={hasPasskey} email={email} onAdded={() => refresh()} />
+        </RowGroup>
       )}
 
-      <div
-        className="mt-6 pt-5 border-t"
-        style={{ borderColor: 'var(--color-line)' }}
-      >
-        <p className="mb-2 text-[14px] font-semibold text-[var(--color-critical)]">
-          {t.settings.dangerZone}
-        </p>
-        <p className="max-w-[52ch] text-[14px] leading-6 text-[var(--color-ink-dim)] font-medium">
-          {t.settings.accountDeleteHint}
-        </p>
-        <div className="mt-3 grid gap-2 sm:flex sm:flex-wrap sm:items-center">
-          <input
-            type="text"
-            value={deleteConfirm}
-            onChange={(e) => setDeleteConfirm(e.target.value)}
-            placeholder={t.settings.accountDeleteConfirm}
-            className="min-h-11 w-full rounded-[10px] border bg-[var(--color-surface)] px-3 py-2 text-[14px] text-[var(--color-ink)] sm:w-auto"
-            style={{ borderColor: 'var(--color-line)' }}
-          />
-          <button
-            type="button"
-            disabled={deleteConfirm !== 'DELETE' || deleting || forceConfirm !== null}
-            onClick={() => runDelete(false)}
-            className="min-h-11 w-full rounded-[10px] px-4 py-2 text-[14px] font-semibold disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
-            style={{
-              background: 'var(--color-critical)',
-              color: 'var(--color-surface)',
-              border: '1px solid var(--color-critical)',
-            }}
-          >
-            {t.settings.accountDelete}
-          </button>
-        </div>
-        {forceConfirm && (
-          <div
-            className="mt-3 max-w-[52ch] rounded-[10px] border p-4"
-            style={{ borderColor: 'var(--color-critical)' }}
-          >
-            <p className="text-[14px] leading-6 text-[var(--color-ink-dim)] font-medium">{forceConfirm}</p>
-            <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:items-center">
-              <button
-                type="button"
-                disabled={deleting}
-                onClick={() => runDelete(true)}
-                className="min-h-11 rounded-[10px] px-4 py-2 text-[14px] font-semibold disabled:opacity-40"
-                style={{
-                  background: 'var(--color-critical)',
-                  color: 'var(--color-surface)',
-                  border: '1px solid var(--color-critical)',
-                }}
-              >
-                {deleting ? t.settings.deletingButton : t.settings.confirmDeleteYes}
-              </button>
-              <button
-                type="button"
-                disabled={deleting}
-                onClick={() => {
-                  setForceConfirm(null);
-                  setDeleteConfirm('');
-                }}
-                className="min-h-11 rounded-[10px] px-4 py-2 text-[14px] font-semibold disabled:opacity-40"
-                style={{
-                  border: '1px solid var(--color-line)',
-                  color: 'var(--color-ink-dim)',
-                }}
-              >
-                {t.settings.confirmDeleteNo}
-              </button>
-            </div>
-          </div>
-        )}
-        {deleteError && (
-          <p className="mt-2 max-w-[52ch] text-[14px] leading-5 text-[var(--color-critical)]">
-            {deleteError}
-          </p>
-        )}
-      </div>
+      <RowGroup>
+        <Row label={<span className="text-[var(--color-critical)]">{t.settings.accountDelete}</span>} onClick={() => setSheet('delete')} />
+      </RowGroup>
 
-      {saving && (
-        <p className="mt-4 text-[14px] text-[var(--color-ink-dim)] font-medium">
-          {t.common.loading}
-        </p>
-      )}
       {error && (
-        <p className="mt-4 text-[14px] text-[var(--color-critical)]">
+        <p role="alert" className="px-1 text-[14px] font-medium text-[var(--color-critical)]">
           {t.common.error}: {error}
         </p>
       )}
-    </section>
+      {saving ? <span role="status" className="sr-only">{t.common.loading}</span> : null}
+
+      <ConfirmSheetShell open={sheet === 'language'} labelledBy={`${titleId}-language`} busy={false} onClose={() => setSheet(null)}>
+        <h2 id={`${titleId}-language`} className="text-[20px] font-semibold text-[var(--lp-dark)]">{t.settings.language}</h2>
+        <p className="mt-1 mb-4 text-[14px] font-medium text-[var(--lp-text-sub)]">{t.settings.languageHint}</p>
+        <LanguagePicker onChange={onLocaleChange} />
+      </ConfirmSheetShell>
+
+      <ConfirmSheetShell open={sheet === 'theme'} labelledBy={`${titleId}-theme`} busy={false} onClose={() => setSheet(null)}>
+        <h2 id={`${titleId}-theme`} className="mb-4 text-[20px] font-semibold text-[var(--lp-dark)]">{t.settings.theme}</h2>
+        <div role="radiogroup" aria-labelledby={`${titleId}-theme`} className="divide-y divide-[var(--lp-border-light)] overflow-hidden rounded-[18px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
+          {themeOptions.map((o) => (
+            <button
+              key={o.value}
+              type="button"
+              role="radio"
+              aria-checked={themeNow === o.value}
+              onClick={() => chooseTheme(o.value)}
+              className="flex min-h-[56px] w-full items-center gap-3 px-4 text-start text-[15px] font-semibold text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)]"
+            >
+              <span aria-hidden className="grid size-5 place-items-center text-[var(--lp-text-sub)]"><ThemeIcon preference={o.value} /></span>
+              <span className="flex-1">{o.label}</span>
+              {themeNow === o.value ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0 text-[var(--lp-accent-on-light)]"><path d="m5 12 5 5 9-10" /></svg>
+              ) : null}
+            </button>
+          ))}
+        </div>
+      </ConfirmSheetShell>
+
+      <ConfirmSheetShell open={sheet === 'delete'} labelledBy={`${titleId}-delete`} busy={deleting} onClose={closeDelete} initialFocus={deleteInput}>
+        <h2 id={`${titleId}-delete`} className="text-[20px] font-semibold text-[var(--lp-dark)]">{t.settings.deleteTitle}</h2>
+        <p className="mt-2 text-[15px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{t.settings.accountDeleteHint}</p>
+        {forceConfirm ? (
+          <p role="alert" className="mt-4 rounded-[14px] border border-[var(--color-critical)] p-4 text-[14px] leading-relaxed text-[var(--lp-dark)] font-medium">{forceConfirm}</p>
+        ) : (
+          <label className="mt-5 block">
+            <span className="sr-only">{t.settings.accountDeleteConfirm}</span>
+            <input
+              ref={deleteInput}
+              type="text"
+              autoComplete="off"
+              value={deleteConfirm}
+              onChange={(e) => setDeleteConfirm(e.target.value)}
+              placeholder={t.settings.accountDeleteConfirm}
+              disabled={deleting}
+              className="min-h-[52px] w-full rounded-[14px] border-0 bg-[var(--tint)] px-4 text-[16px] text-[var(--ink)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
+            />
+          </label>
+        )}
+        {deleteError ? <p role="alert" className="mt-3 text-[14px] font-medium text-[var(--color-critical)]">{deleteError}</p> : null}
+        <div className="mt-5 grid gap-2">
+          <button
+            type="button"
+            disabled={deleting || (!forceConfirm && deleteConfirm !== 'DELETE')}
+            onClick={() => runDelete(!!forceConfirm)}
+            className="min-h-12 rounded-full bg-[var(--color-critical)] px-5 text-[15px] font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {deleting ? t.settings.deletingButton : forceConfirm ? t.settings.confirmDeleteYes : t.settings.accountDelete}
+          </button>
+          <button
+            type="button"
+            disabled={deleting}
+            onClick={closeDelete}
+            className="min-h-12 rounded-full border border-[var(--lp-border-light)] px-5 text-[15px] font-semibold text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-light)] disabled:opacity-40"
+          >
+            {t.settings.confirmDeleteNo}
+          </button>
+        </div>
+      </ConfirmSheetShell>
+    </div>
   );
 }
 
@@ -319,108 +323,16 @@ function PasskeyRow({
   onAdded: () => void | Promise<void>;
 }) {
   const { addPasskey, busy, error, justAdded, supports, copy: t } = useAddPasskey(email, onAdded);
-
+  const on = useLocale().t.profile.simple.on;
+  if (hasPasskey || justAdded) return <Row label={t.passkeyLabel} value={on} />;
   return (
-    <Row label={t.rowLabel} hint={t.rowHint}>
-      {hasPasskey || justAdded ? (
-        <div className="inline-flex items-center gap-2.5">
-          <span
-            aria-hidden
-            className="inline-block w-1.5 h-1.5 rounded-full"
-            style={{ background: 'var(--color-accent, #b25425)' }}
-          />
-          <span className="text-[14px] text-[var(--color-ink-dim)] font-medium">
-            {t.activeChip}
-          </span>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          <button
-            type="button"
-            onClick={addPasskey}
-            disabled={busy || !supports}
-            className="inline-flex min-h-11 items-center gap-2 rounded-[10px] bg-[var(--color-ink)] px-4 py-2 text-[14px] font-semibold text-[var(--color-surface)] transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {busy ? t.addingButton : t.addButton}
-            <span aria-hidden>→</span>
-          </button>
-          {!supports && (
-            <p className="text-[14px] text-[var(--color-ink-dim)] font-medium">
-              {t.noBrowserSupport}
-            </p>
-          )}
-          {error && (
-            <p className="text-[14px] text-[var(--color-critical)]">{error}</p>
-          )}
-        </div>
-      )}
-    </Row>
-  );
-}
-
-function Row({
-  label,
-  hint,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      className="grid items-start gap-3 border-t py-5 first:border-t-0 first:pt-0 sm:grid-cols-[minmax(150px,0.7fr)_minmax(0,1fr)] sm:gap-6"
-      style={{ borderColor: 'var(--color-line)' }}
-    >
-      <p className="inline-flex items-center gap-2 sm:min-h-11 text-[15px] font-semibold text-[var(--color-ink)]">
-        {label}
-        {hint && <Hint>{hint}</Hint>}
-      </p>
-      <div className="min-w-0">{children}</div>
-    </div>
-  );
-}
-
-function Switch({
-  checked,
-  label,
-  onChange,
-}: {
-  checked: boolean;
-  label: string;
-  onChange: (next: boolean) => void;
-}) {
-  return (
-    <label className="inline-flex min-h-11 items-center gap-3 cursor-pointer">
-      <span
-        role="switch"
-        aria-label={label}
-        aria-checked={checked}
-        tabIndex={0}
-        onClick={() => onChange(!checked)}
-        onKeyDown={(e) => {
-          if (e.key === ' ' || e.key === 'Enter') {
-            e.preventDefault();
-            onChange(!checked);
-          }
-        }}
-        className="inline-flex h-11 w-11 shrink-0 items-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent,#b25425)] focus-visible:ring-offset-2"
-      >
-        <span
-          aria-hidden
-          className="relative inline-block h-6 w-11 shrink-0 transition-colors"
-          style={{
-            background: checked ? 'var(--color-accent, #b25425)' : 'var(--color-line-strong)',
-            borderRadius: 999,
-          }}
-        >
-          <span
-            className="absolute top-0.5 inline-block h-5 w-5 bg-white transition-[inset-inline-start]"
-            style={{ insetInlineStart: checked ? 22 : 2, borderRadius: 999 }}
-          />
-        </span>
-      </span>
-      <span className="text-[14px] text-[var(--color-ink-dim)] font-medium">{label}</span>
-    </label>
+    <>
+      <Row
+        label={t.passkeyLabel}
+        value={busy ? t.addingButton : !supports ? t.noBrowserSupport : t.addButton}
+        onClick={supports && !busy ? () => void addPasskey() : undefined}
+      />
+      {error ? <p role="alert" className="px-4 py-3 text-[14px] font-medium text-[var(--color-critical)]">{error}</p> : null}
+    </>
   );
 }

@@ -175,16 +175,16 @@ test('the landing trade example keeps its explanatory copy readable', () => {
 test('the shared navbar cycles through three persisted appearance choices without a popover', () => {
   const nav = source('./TopNav.tsx');
   const control = source('./ThemeControl.tsx');
-  const picker = source('../../features/settings/components/ThemePicker.tsx');
   assert.match(nav, /isAlwaysDarkRoute\(pathname\) \? null : <ThemeControl className=/);
   assert.match(control, /system: 'light'/);
   assert.match(control, /light: 'dark'/);
   assert.match(control, /dark: 'system'/);
   assert.match(control, /setThemePreference\(next\)/);
   assert.doesNotMatch(control, /ThemePicker|aria-expanded|navbar-theme-options/);
-  assert.match(picker, /value: 'system'/);
-  assert.match(picker, /value: 'light'/);
-  assert.match(picker, /value: 'dark'/);
+  const settings = source('../../features/settings/components/SettingsBand.tsx');
+  assert.match(settings, /value: 'system'/);
+  assert.match(settings, /value: 'light'/);
+  assert.match(settings, /value: 'dark'/);
   assert.equal(en.settings.themeLight, 'Light');
 });
 
@@ -457,6 +457,25 @@ test('Updates tiles ease in and out as they slide, following the scroll, and hol
 test('phones keep the 14px floor: no rule shrinks text below the size the code asks for', () => {
   const css = source('../../app/globals.css');
   assert.doesNotMatch(css, /text-size-adjust:\s*(?!100%)\d+%/);
+});
+
+test('settings is a grouped list like Profile: choices open in a sheet, switches on the right, deleting asks in a sheet', () => {
+  const band = source('../../features/settings/components/SettingsBand.tsx');
+  assert.match(band, /<RowGroup title=\{t\.settings\.groups\.preferences\}/);
+  assert.doesNotMatch(band, /<Hint/);
+  assert.doesNotMatch(band, /settings\.notificationsMute\b|settings\.dangerZone/);
+  // Language and theme show the current choice and open the full list in a sheet.
+  assert.match(band, /label=\{t\.settings\.language\} value=\{LOCALE_NAMES\[locale\]\}/);
+  assert.match(band, /<ConfirmSheetShell[^>]*open=\{sheet === 'language'\}/);
+  assert.match(band, /<ConfirmSheetShell[^>]*open=\{sheet === 'theme'\}/);
+  // The type-to-confirm field lives inside the delete sheet, never on the page.
+  const del = band.indexOf("open={sheet === 'delete'}");
+  assert.ok(del > 0 && band.indexOf('accountDeleteConfirm') > del);
+  const ui = source('../../features/profile/ui/ProfileUi.tsx');
+  assert.match(ui, /export function ToggleRow/);
+  assert.equal(en.settings.title, 'Settings');
+  assert.doesNotMatch(en.settings.accountDeleteHint, /off-chain|risk tags|Arc/);
+  assert.doesNotMatch(en.settings.accountDelete, /off-chain/);
 });
 
 test('profile is tidy: one way to change the photo, rows say what they open, no address or dead rows by default', () => {

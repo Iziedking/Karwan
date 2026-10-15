@@ -65,3 +65,24 @@ export function Row({ label, value, href, onClick, soon, children }: {
   if (onClick) return <button type="button" onClick={onClick} className={`${rowBase} ${interactive}`}>{content}</button>;
   return <div className={rowBase}>{content}</div>;
 }
+
+/// A setting that is on or off: the label and one plain line under it on the
+/// left, the switch at the end. The whole row toggles it.
+export function ToggleRow({ label, note, checked, onChange }: {
+  label: string;
+  note?: string;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)} className={`${rowBase} ${interactive}`}>
+      <span className="min-w-0 flex-1">
+        <span className="block font-medium text-[var(--lp-dark)]">{label}</span>
+        {note ? <span className="block text-[14px] font-medium text-[var(--lp-text-sub)]">{note}</span> : null}
+      </span>
+      <span aria-hidden className="relative inline-block h-6 w-11 shrink-0 rounded-full transition-colors duration-200" style={{ background: checked ? 'var(--lp-accent)' : 'var(--color-line-strong)' }}>
+        <span className="absolute top-0.5 size-5 rounded-full bg-white shadow-sm transition-[inset-inline-start] duration-200 motion-reduce:transition-none" style={{ insetInlineStart: checked ? 22 : 2 }} />
+      </span>
+    </button>
+  );
+}
