@@ -459,6 +459,14 @@ test('phones keep the 14px floor: no rule shrinks text below the size the code a
   assert.doesNotMatch(css, /text-size-adjust:\s*(?!100%)\d+%/);
 });
 
+test('Back sits on the content column: a page frame draws its own and the shell steps aside', () => {
+  const frame = source('../../features/profile/ui/ProfileUi.tsx');
+  const inner = frame.slice(frame.indexOf('export function ProfileFrame'), frame.indexOf('export function RowGroup'));
+  assert.match(inner, /max-w-\[640px\][\s\S]*data-own-back[\s\S]*<ProductBackLink/);
+  assert.match(source('./ChromeFrame.tsx'), /<ProductBackLink[^>]*shell/);
+  assert.match(source('../../app/globals.css'), /main:has\(\[data-own-back\]\) \[data-shell-back\]/);
+});
+
 test('settings is a grouped list like Profile: choices open in a sheet, switches on the right, deleting asks in a sheet', () => {
   const band = source('../../features/settings/components/SettingsBand.tsx');
   assert.match(band, /<RowGroup title=\{t\.settings\.groups\.preferences\}/);

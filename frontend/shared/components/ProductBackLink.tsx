@@ -9,10 +9,14 @@ export function ProductBackLink({
   pathname,
   isAuthenticated,
   className,
+  shell = false,
 }: {
   pathname: string | null;
   isAuthenticated: boolean;
   className?: string;
+  /// The page-edge copy the app frame draws. A page that draws Back on its own
+  /// content column hides this one (globals.css, data-own-back).
+  shell?: boolean;
 }) {
   const href = getProductBackHref(pathname, isAuthenticated);
   const t = useTranslations();
@@ -32,6 +36,7 @@ export function ProductBackLink({
         router.push(href);
       }}
       aria-label={t.nav.backAria}
+      data-shell-back={shell ? '' : undefined}
       className={cn(
         'group relative z-10 inline-flex min-h-11 items-center gap-2 rounded-full px-2 text-[14px] font-semibold text-[var(--lp-text-sub)] transition-colors hover:bg-[var(--lp-card)] hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]',
         className,

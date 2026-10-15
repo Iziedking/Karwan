@@ -2598,6 +2598,9 @@ html[data-theme="dark"] .form-input::placeholder {
 }
 .updates-track::-webkit-scrollbar { display: none; }
 
+/* A page that draws Back on its own content column hides the page-edge one. */
+main:has([data-own-back]) [data-shell-back] { display: none; }
+
 /* As a tile slides in from an edge it grows from slightly small and faint to
    full, and eases back out as it leaves. Driven by the scroll itself, so it
    follows a finger or an arrow exactly and never moves on its own. */
