@@ -1,11 +1,12 @@
 'use client';
-import { useCallback, useState } from 'react';
+import { useCallback, useId, useState } from 'react';
 import { useYieldMe } from '../hooks/useYield';
 import { useChainId, usePublicClient, useSwitchChain, useWalletClient } from 'wagmi';
 import { api } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { LpHint } from '@/shared/components/LpHint';
+import { Hint } from '@/shared/components/Hint';
+import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
 import { chainErrorMessage } from '@/shared/utils/chainError';
 import { requireConfirmedTx } from '@/shared/chain/confirmTx';
 import {
@@ -14,10 +15,9 @@ import {
   KARWAN_YIELD_DISTRIBUTOR_ADDRESS,
 } from '../../profile/config';
 
-/// Per-account yield surface. Mirrors the network block's three-tile shape
-/// but for the connected wallet: distributed-to-you, claimed-by-you,
-/// available-to-claim. Inline Claim CTA pulls available USDC into the
-/// connected wallet (web3) or through the backend DCW (Circle).
+/// The account's yield: what has been earned, what has been claimed, and one
+/// Claim that carries the amount ready now. Claiming moves money, so it asks in
+/// the confirm sheet first; the result shows in place with its proof.
 
 const distributorAbi = [
   {
@@ -30,20 +30,15 @@ const distributorAbi = [
 ] as const;
 
 function fmt(s: string | undefined): string {
-  if (!s) return '—';
+  if (!s) return '0';
   const n = Number(s);
-  if (!Number.isFinite(n)) return '—';
-  if (n === 0) return '0';
+  if (!Number.isFinite(n) || n === 0) return '0';
   if (n < 1) return n.toFixed(4);
-  if (n < 1000) return n.toFixed(2);
-  return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
-}
-
-function shortHash(h: string): string {
-  return `${h.slice(0, 8)}...${h.slice(-6)}`;
+  return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 export function YieldClaimPanel() {
+  const t = useTranslations().yieldClaim;
   const auth = useAuth();
   const address = auth.address as `0x${string}` | undefined;
   const isCircleUser = auth.method === 'circle';
@@ -52,22 +47,20 @@ export function YieldClaimPanel() {
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
   const chainCopy = useTranslations().chainErrors;
+  const titleId = useId();
 
-  const { data: yieldData, isLoading: yieldLoading, refresh } = useYieldMe(address);
+  const { data: yieldData, isLoading: loading, refresh } = useYieldMe(address);
   const claimable = yieldData?.configured ? yieldData.claimableUsdc : '0';
   const lifetimeCredited = yieldData?.configured ? yieldData.lifetimeCreditedUsdc : '0';
   const lifetimeClaimed = yieldData?.configured ? yieldData.lifetimeClaimedUsdc : '0';
-  const loading = yieldLoading;
   const [busy, setBusy] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [lastTx, setLastTx] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const refetch = useCallback(async () => {
-    await refresh();
-  }, [refresh]);
-
   const onWrongChain = !isCircleUser && !!address && chainId !== ARC_CHAIN_ID;
   const claimableNum = Number(claimable);
+  const amount = fmt(claimable);
   const canClaim = !!address && !busy && claimableNum > 0 && !onWrongChain;
 
   const submit = useCallback(async () => {
@@ -95,142 +88,87 @@ export function YieldClaimPanel() {
         setLastTx(hash);
         await requireConfirmedTx(arcClient, hash, chainCopy.reverted);
       }
-      await refetch();
+      await refresh();
+      setSheetOpen(false);
     } catch (err) {
-      setError(chainErrorMessage(err, chainCopy, 'Could not claim right now. Try again.'));
+      setError(chainErrorMessage(err, chainCopy, t.error));
     } finally {
       setBusy(false);
     }
-  }, [address, claimableNum, isCircleUser, walletClient, arcClient, chainId, switchChainAsync, refetch, chainCopy]);
+  }, [address, claimableNum, isCircleUser, walletClient, arcClient, chainId, switchChainAsync, refresh, chainCopy, t.error]);
 
   if (!address) {
-    return (
-      <div className="rounded-2xl border border-dashed border-[var(--lp-border-light)] bg-[var(--lp-card)] px-5 py-6 text-[14px] text-[var(--lp-text-muted)]">
-        Sign in to see your accrued yield and claim it to your wallet.
-      </div>
-    );
+    return <p className="text-[14px] font-medium text-[var(--lp-text-sub)]">{t.signedOut}</p>;
   }
 
-  const tiles: Array<{ label: string; value: string; hint: string }> = [
-    {
-      label: 'Distributed to you',
-      value: loading ? '—' : fmt(lifetimeCredited),
-      hint: 'Lifetime credited to your stake',
-    },
-    {
-      label: 'Claimed by you',
-      value: loading ? '—' : fmt(lifetimeClaimed),
-      hint: 'Withdrawn to your wallet',
-    },
-    {
-      label: 'Available to claim',
-      value: loading ? '—' : fmt(claimable),
-      hint: 'Ready to pull right now',
-    },
-  ];
+  const claimLabel = busy ? t.claiming : t.claimTemplate.replace('{amount}', amount);
 
   return (
-    <div className="space-y-5">
-      <div className="grid min-w-0 grid-cols-1 gap-px overflow-hidden rounded-2xl border border-[var(--lp-border-light)] bg-[var(--lp-border-light)] md:grid-cols-3">
-        {tiles.map((t) => (
-          <div
-            key={t.label}
-            className="min-w-0 bg-[var(--lp-card)] px-5 py-4 sm:px-6 sm:py-5"
-          >
-            <p className="flex min-h-[30px] items-start gap-1.5 mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-              {t.label}
-              <LpHint>{t.hint}</LpHint>
-            </p>
-            <p className="mt-1.5 flex min-w-0 flex-wrap items-baseline gap-x-1.5 gap-y-0.5 font-sans text-[24px] font-extrabold leading-none tracking-[-0.02em] tabular-nums text-[var(--lp-dark)] sm:text-[28px]">
-              <span className="whitespace-nowrap">{t.value}</span>
-              <span className="shrink-0 text-[14px] font-semibold tracking-normal text-[var(--lp-text-muted)]">
-                USDC
-              </span>
-            </p>
-          </div>
-        ))}
+    <div className="divide-y divide-[var(--lp-border-light)]">
+      <div className="flex min-h-[52px] items-center justify-between gap-3 pb-3">
+        <span className="inline-flex items-center gap-1 text-[15px] font-medium text-[var(--lp-dark)]">
+          {t.earned}
+          <Hint side="bottom">{t.earnedHint}</Hint>
+        </span>
+        <span className="text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">{loading ? ' ' : `${fmt(lifetimeCredited)} USDC`}</span>
       </div>
-
-      <div
-        className="relative overflow-hidden"
-        style={{
-          background: 'var(--lp-workspace-raised)',
-          color: 'var(--lp-workspace-ink)',
-          border: '1px solid var(--lp-workspace-border)',
-          borderRadius: 18,
-        }}
-      >
-        <div
-          aria-hidden
-          className="absolute -top-px -end-px h-16 w-16 pointer-events-none"
-          style={{
-            background:
-              'linear-gradient(225deg, var(--lp-accent) 0% 8%, transparent 9%)',
-          }}
-        />
-        <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-5 py-5 sm:px-7 sm:py-6">
-          <div className="min-w-0">
-            <p className="mono text-[13px] font-bold uppercase tracking-[0.18em] text-[var(--lp-accent-on-light)]">
-              Claim
-            </p>
-            <p className="mt-2 font-sans text-[28px] sm:text-[32px] font-extrabold leading-none tracking-[-0.02em] tabular-nums">
-              {loading ? '—' : Number(claimable).toFixed(4)}
-              <span className="ms-2 text-[14px] font-semibold text-[var(--lp-workspace-muted)] tracking-normal">
-                USDC ready
-              </span>
-            </p>
-            {lastTx ? (
-              <a
-                href={ARC_EXPLORER_TX(lastTx)}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-2 inline-flex min-h-11 items-center mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-accent)]"
-              >
-                tx {shortHash(lastTx)} ↗
-              </a>
-            ) : null}
-          </div>
-
-          <div className="flex flex-col items-stretch gap-1.5 min-w-[180px]">
-            {onWrongChain ? (
-              <button
-                onClick={() => switchChainAsync({ chainId: ARC_CHAIN_ID }).catch(() => {})}
-                className="min-h-11 rounded-md border border-amber-300/60 bg-amber-200/15 px-4 py-2.5 text-[14px] font-bold uppercase tracking-[0.08em] text-amber-100"
-              >
-                Switch to Arc
-              </button>
-            ) : (
-              <button
-                onClick={submit}
-                disabled={!canClaim}
-                aria-busy={busy}
-                className="min-h-11 rounded-md px-5 py-2.5 text-[14px] font-bold uppercase tracking-[0.08em] transition disabled:opacity-35 disabled:cursor-not-allowed"
-                style={{
-                  background: canClaim ? 'var(--lp-accent)' : 'var(--lp-workspace-soft)',
-                  color: canClaim ? 'var(--lp-band-dark)' : 'var(--lp-workspace-muted)',
-                }}
-              >
-                {busy
-                  ? 'Claiming'
-                  : claimableNum > 0
-                    ? `Claim ${claimableNum.toFixed(4)}`
-                    : 'Nothing yet'}
-              </button>
-            )}
-            <a
-              href={`https://testnet.arcscan.app/address/${KARWAN_YIELD_DISTRIBUTOR_ADDRESS}`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex min-h-11 items-center justify-center text-center mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)] hover:text-[var(--lp-workspace-ink)]"
-            >
-              contract ↗
+      <div className="flex min-h-[52px] items-center justify-between gap-3 py-3">
+        <span className="text-[15px] font-medium text-[var(--lp-dark)]">{t.claimed}</span>
+        <span className="text-[15px] font-semibold tabular-nums text-[var(--lp-text-sub)]">{loading ? ' ' : `${fmt(lifetimeClaimed)} USDC`}</span>
+      </div>
+      <div className="pt-4">
+        {onWrongChain ? (
+          <button
+            type="button"
+            onClick={() => switchChainAsync({ chainId: ARC_CHAIN_ID }).catch(() => {})}
+            className="min-h-12 w-full rounded-full border border-[var(--lp-outline-strong)] px-5 text-[15px] font-semibold text-[var(--lp-dark)]"
+          >
+            {t.switchToArc}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setSheetOpen(true)}
+            disabled={!canClaim}
+            className="min-h-12 w-full rounded-full bg-[var(--lp-accent)] px-5 text-[15px] font-semibold text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] disabled:cursor-not-allowed disabled:bg-[var(--tint)] disabled:text-[var(--ink-secondary)]"
+          >
+            {claimableNum > 0 ? claimLabel : t.nothingYet}
+          </button>
+        )}
+        {lastTx && !busy ? (
+          <p role="status" className="mt-3 text-[14px] font-medium text-[var(--lp-text-sub)]">
+            {t.done}{' '}
+            <a href={ARC_EXPLORER_TX(lastTx)} target="_blank" rel="noreferrer" className="font-semibold text-[var(--lp-dark)] underline underline-offset-4">
+              {t.proof}
             </a>
-          </div>
-        </div>
-        {error ? (
-          <p className="relative px-5 sm:px-7 pb-4 text-[14px] text-red-200/90 break-all">{error}</p>
+          </p>
         ) : null}
       </div>
+
+      <ConfirmSheetShell open={sheetOpen} labelledBy={titleId} busy={busy} onClose={() => setSheetOpen(false)}>
+        <h2 id={titleId} className="text-[20px] font-semibold text-[var(--lp-dark)]">{t.sheetTitleTemplate.replace('{amount}', amount)}</h2>
+        <p className="mt-2 text-[15px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{t.sheetBody}</p>
+        {error ? <p role="alert" className="mt-3 text-[14px] font-medium text-[var(--color-critical)]">{error}</p> : null}
+        <div className="mt-5 grid gap-2">
+          <button
+            type="button"
+            onClick={() => void submit()}
+            disabled={busy}
+            aria-busy={busy}
+            className="min-h-12 rounded-full bg-[var(--lp-accent)] px-5 text-[15px] font-semibold text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-50"
+          >
+            {busy ? t.claiming : t.confirm}
+          </button>
+          <button
+            type="button"
+            onClick={() => setSheetOpen(false)}
+            disabled={busy}
+            className="min-h-12 rounded-full border border-[var(--lp-border-light)] px-5 text-[15px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)] disabled:opacity-40"
+          >
+            {t.cancel}
+          </button>
+        </div>
+      </ConfirmSheetShell>
     </div>
   );
 }

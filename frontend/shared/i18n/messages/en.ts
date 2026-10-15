@@ -1992,6 +1992,24 @@ interface MessagesShape {
     poBody: string;
     roadmap: string;
   };
+  /// The account yield panel on /stake.
+  yieldClaim: {
+    earned: string;
+    earnedHint: string;
+    claimed: string;
+    claimTemplate: string;
+    claiming: string;
+    nothingYet: string;
+    switchToArc: string;
+    done: string;
+    proof: string;
+    sheetTitleTemplate: string;
+    sheetBody: string;
+    confirm: string;
+    cancel: string;
+    error: string;
+    signedOut: string;
+  };
   partnersBrowse: {
     allSectors: string;
     searchLabel: string;
@@ -2911,6 +2929,7 @@ interface MessagesShape {
       reservedLabel: string;
       reservedTitle: string;
       coolingLabel: string;
+      freeHint: string;
     };
     wrongNetwork: {
       eyebrow: string;
@@ -2927,6 +2946,8 @@ interface MessagesShape {
       bodyPrefix: string;
       bodyMiddle: string;
     };
+    /// The confirm sheet a deposit opens before any money moves.
+    depositSheet: { titleTemplate: string; bodyTemplate: string; confirmTemplate: string };
     depositForm: {
       label: string;
       max: string;
@@ -7539,6 +7560,23 @@ export const en: MessagesShape = {
     poBody: "Working capital against a purchase order, released to the supplier once delivery is confirmed.",
     roadmap: "See the roadmap",
   },
+  yieldClaim: {
+    earned: "Earned so far",
+    earnedHint: "Yield credited to your stake since you started staking.",
+    claimed: "Claimed",
+    claimTemplate: "Claim {amount} USDC",
+    claiming: "Claiming",
+    nothingYet: "Nothing to claim yet",
+    switchToArc: "Switch to Arc",
+    done: "Claimed.",
+    proof: "Proof on Arc",
+    sheetTitleTemplate: "Claim {amount} USDC?",
+    sheetBody: "Moves your earned yield into your account. Your stake stays where it is.",
+    confirm: "Claim",
+    cancel: "Cancel",
+    error: "Could not claim right now. Try again.",
+    signedOut: "Sign in to see and claim your yield.",
+  },
   partnersBrowse: {
     allSectors: 'All sectors',
     searchLabel: 'Search businesses',
@@ -8503,6 +8541,7 @@ export const en: MessagesShape = {
       reservedLabel: 'Reserved',
       reservedTitle: 'Locked against an active deal as buyer-side insurance. Releases on settle, slashes to the buyer on a dispute you lose.',
       coolingLabel: 'Cooling',
+      freeHint: "Free stake can be withdrawn. Reserved stake backs your open deals: it releases when a deal settles and goes to the buyer if you lose a dispute.",
     },
     wrongNetwork: {
       eyebrow: 'Wrong network',
@@ -8519,6 +8558,7 @@ export const en: MessagesShape = {
       bodyPrefix: 'Idle stake accrues through',
       bodyMiddle: 'while it builds your reputation. You earn what it earns, credited daily.',
     },
+    depositSheet: { titleTemplate: "Stake {amount} USDC?", bodyTemplate: "Moves {amount} USDC from your account into stake, where it raises your reputation. Taking it out later starts a {days}-day cool-down.", confirmTemplate: "Stake {amount} USDC" },
     depositForm: {
       label: 'Deposit',
       max: 'Max',

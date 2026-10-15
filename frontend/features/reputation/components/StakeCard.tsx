@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { useBalance, useWalletClient, usePublicClient, useChainId, useSwitchChain } from 'wagmi';
 import { formatUnits, parseUnits } from 'viem';
 import { api } from '@/core/api';
@@ -13,6 +13,8 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useMoneyRefresh } from '@/shared/hooks/useMoneyRefresh';
 import { isConfirmationPending, requireConfirmedTx } from '@/shared/chain/confirmTx';
 import { AgentStakeBinding } from './AgentStakeBinding';
+import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
+import { Hint } from '@/shared/components/Hint';
 import type { Messages } from '@/shared/i18n/messages/en';
 import {
   ARC_CHAIN_ID,
@@ -139,6 +141,7 @@ const TIER_TONE: Record<
 /// a single slot, so whichever mounted last owned the pill.
 export function StakeCard() {
   const sc = useTranslations().stakeCard;
+  const proofLabel = useTranslations().yieldClaim.proof;
   const chainCopy = useTranslations().chainErrors;
   const auth = useAuth();
   const address = auth.address as `0x${string}` | undefined;
@@ -195,10 +198,12 @@ export function StakeCard() {
   const [log, setLog] = useState<ActionLog[]>([]);
   const [busyKind, setBusyKind] = useState<{ kind: ActionKind; positionId?: string } | null>(null);
 
-  // Pending-withdrawal confirmation. We never call the native `window.confirm`
-  // here; the dialog is rendered in-card as a state-driven banner so users
-  // stay inside the product surface. When set, the form shows the "Cool X USDC?
-  // Confirm / Cancel" pair; on confirm we execute, on cancel we clear.
+  // A parked withdrawal: set by submitWithdraw, shown in the confirm sheet,
+  // executed by confirmWithdraw or cleared on cancel.
+  // Money moves only from the confirm sheet: deposit opens it here, and a
+  // parked withdrawal (pendingWithdraw) opens its own.
+  const [depositSheet, setDepositSheet] = useState(false);
+  const sheetId = useId();
   const [pendingWithdraw, setPendingWithdraw] = useState<{
     requested: number;
     coolingTotal: number;
@@ -541,18 +546,6 @@ export function StakeCard() {
         await switchToArc();
         return;
       }
-      // Withdrawal is the only destructive action on a position. Guard it
-      // behind an explicit confirm so an accidental click doesn't kick off
-      // the cool-down (3 days on v2.D, was 7 on pre-v2.D). cancel + claim
-      // are reversible / terminal, no need to confirm.
-      if (kind === 'request') {
-        const ok = window.confirm(
-          sc.positionAction.confirmRequestTemplate
-            .replace('{days}', String(cooldownDays))
-            .replace('{positionId}', positionId),
-        );
-        if (!ok) return;
-      }
       setBusyKind({ kind, positionId });
       const logId = pushLog({ kind, positionId, status: 'pending' });
 
@@ -657,25 +650,25 @@ export function StakeCard() {
             </span>
             {!synced && (
               <span
-                className="mono text-[13px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full"
+                className="text-[14px] px-1.5 py-0.5 rounded-full font-medium"
                 style={{
                   color: 'var(--lp-text-muted)',
                   background: 'var(--lp-surface-2, rgba(0,0,0,0.05))',
                 }}
-                title={sc.summary.syncingTitle}
               >
                 {sc.summary.syncing}
               </span>
             )}
           </div>
-          <div className="flex items-center gap-2.5 flex-wrap mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-            <span>
+          <div className="flex items-center gap-2.5 flex-wrap text-[14px] text-[var(--ink-secondary)] font-medium">
+            <span className="inline-flex items-center gap-1">
               {sc.summary.freeLabel} {formatUsdc(freeStakeUsdc, { withSuffix: false })}
+              <Hint side="bottom">{sc.summary.freeHint}</Hint>
             </span>
             {Number(reservedUsdc) > 0 && (
               <>
                 <span aria-hidden>·</span>
-                <span title={sc.summary.reservedTitle}>
+                <span>
                   {sc.summary.reservedLabel} {formatUsdc(reservedUsdc, { withSuffix: false })}
                 </span>
               </>
@@ -690,13 +683,6 @@ export function StakeCard() {
             )}
           </div>
         </div>
-        {tier && (
-          <span className="inline-flex min-h-9 items-center gap-2 rounded-full border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3.5 text-[14px] text-[var(--lp-dark)]">
-            <span aria-hidden className="size-2 rounded-full" style={{ background: tone.color }} />
-            <span className="font-semibold">{tier}</span>
-            {rep?.score != null && <span className="tabular-nums text-[var(--lp-text-sub)]">{rep.score}/1000</span>}
-          </span>
-        )}
       </div>
 
       <AgentStakeBinding />
@@ -714,7 +700,7 @@ export function StakeCard() {
         >
           <div className="min-w-0">
             <p
-              className="mono text-[13px] font-bold uppercase tracking-[0.18em]"
+              className="text-[14px] font-bold"
               style={{ color: '#b25425' }}
             >
               {sc.wrongNetwork.eyebrow}
@@ -758,15 +744,14 @@ export function StakeCard() {
         {/* DEPOSIT */}
         <div className="space-y-3" data-guide="stake-deposit">
           <div className="flex items-baseline justify-between gap-2">
-            <span className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+            <span className="text-[14px] text-[var(--ink-secondary)] font-medium">
               {sc.depositForm.label}
             </span>
             <button
               type="button"
               onClick={() => walletUsdc != null && setDepositAmount(Math.floor(walletUsdc * 100) / 100)}
               disabled={walletUsdc == null || walletUsdc <= 0}
-              title={walletUsdc != null ? sc.depositForm.maxTitleTemplate.replace('{amount}', walletUsdc.toFixed(2)) : sc.depositForm.maxTitleLoading}
-              className="-my-2 inline-flex min-h-11 min-w-11 items-center justify-center mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] tabular-nums hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-sm px-0.5 transition-colors disabled:cursor-not-allowed disabled:hover:text-[var(--lp-text-muted)]"
+              className="-my-2 inline-flex min-h-11 min-w-11 items-center justify-center text-[14px] text-[var(--ink-secondary)] tabular-nums hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-sm px-0.5 transition-colors disabled:cursor-not-allowed disabled:hover:text-[var(--ink-secondary)] font-medium"
             >
               {sc.depositForm.max} {walletUsdc != null ? walletUsdc.toFixed(2) : '-'}
             </button>
@@ -787,7 +772,7 @@ export function StakeCard() {
             />
             <button
               type="button"
-              onClick={submitDeposit}
+              onClick={() => setDepositSheet(true)}
               aria-busy={busyKind?.kind === 'deposit'}
               disabled={
                 busyKind?.kind === 'deposit' ||
@@ -797,21 +782,19 @@ export function StakeCard() {
                 onWrongChain
               }
               className={cn(
-                'inline-flex items-center gap-2 px-5 py-3 mono text-[14px] font-bold uppercase tracking-[0.08em] shrink-0 transition-[transform,box-shadow] duration-150',
-                'bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0',
-                'shadow-[0_3px_0_rgba(0,0,0,0.22)] hover:shadow-[0_4px_0_rgba(0,0,0,0.22)] active:shadow-[0_1px_0_rgba(0,0,0,0.22)]',
-                'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0',
+                'inline-flex min-h-12 items-center justify-center rounded-full px-5 text-[15px] font-semibold shrink-0 transition-colors',
+                'bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)]',
+                'disabled:opacity-50 disabled:cursor-not-allowed',
               )}
               style={{
                 borderRadius: 12,
               }}
             >
               {busyKind?.kind === 'deposit' ? sc.depositForm.submitBusy : sc.depositForm.submit}
-              <span aria-hidden>↘</span>
             </button>
           </div>
           {depositExceedsBalance && (
-            <p className="mono text-[13px] uppercase tracking-[0.12em]" style={{ color: '#b25425' }}>
+            <p className="text-[14px] font-medium" style={{ color: '#b25425' }}>
               {sc.depositForm.insufficientBalanceTemplate.replace('{amount}', walletUsdc?.toFixed(2) ?? '')}
             </p>
           )}
@@ -820,21 +803,14 @@ export function StakeCard() {
         {/* WITHDRAW */}
         <div className="space-y-3" data-guide="stake-withdraw">
           <div className="flex items-baseline justify-between gap-2">
-            <span className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+            <span className="text-[14px] text-[var(--ink-secondary)] font-medium">
               {sc.withdrawForm.label}
             </span>
             <button
               type="button"
               onClick={() => Number(freeStakeUsdc) > 0 && setWithdrawAmount(Number(freeStakeUsdc))}
               disabled={Number(freeStakeUsdc) <= 0}
-              title={
-                Number(freeStakeUsdc) > 0
-                  ? sc.withdrawForm.maxTitleFreeTemplate.replace('{amount}', formatUsdc(freeStakeUsdc, { withSuffix: false }))
-                  : Number(reservedUsdc) > 0
-                    ? sc.withdrawForm.maxTitleAllReserved
-                    : sc.withdrawForm.maxTitleNone
-              }
-              className="-my-2 inline-flex min-h-11 min-w-11 items-center justify-center mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] tabular-nums hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-sm px-0.5 transition-colors disabled:cursor-not-allowed disabled:hover:text-[var(--lp-text-muted)]"
+              className="-my-2 inline-flex min-h-11 min-w-11 items-center justify-center text-[14px] text-[var(--ink-secondary)] tabular-nums hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-sm px-0.5 transition-colors disabled:cursor-not-allowed disabled:hover:text-[var(--ink-secondary)] font-medium"
             >
               {sc.withdrawForm.max} {formatUsdc(freeStakeUsdc, { withSuffix: false })}
             </button>
@@ -867,8 +843,8 @@ export function StakeCard() {
                 onWrongChain
               }
               className={cn(
-                'inline-flex items-center gap-2 px-5 py-3 mono text-[14px] font-bold uppercase tracking-[0.08em] shrink-0 transition-colors',
-                'border border-[var(--lp-outline-strong)] text-[var(--lp-dark)] hover:bg-black/[0.04] hover:border-[var(--lp-outline-hover)]',
+                'inline-flex min-h-12 items-center justify-center rounded-full px-5 text-[15px] font-semibold shrink-0 transition-colors',
+                'border border-[var(--lp-outline-strong)] text-[var(--lp-dark)] hover:bg-[var(--lp-light)]',
                 'disabled:opacity-50 disabled:cursor-not-allowed',
               )}
               style={{
@@ -876,11 +852,10 @@ export function StakeCard() {
               }}
             >
               {busyKind?.kind === 'request' ? sc.withdrawForm.submitBusy : sc.withdrawForm.submit}
-              <span aria-hidden>↗</span>
             </button>
           </div>
           {withdrawExceedsActive && (
-            <p className="mono text-[13px] uppercase tracking-[0.12em]" style={{ color: '#b25425' }}>
+            <p className="text-[14px] font-medium" style={{ color: '#b25425' }}>
               {Number(reservedUsdc) > 0
                 ? sc.withdrawForm.insufficientFreeTemplate
                     .replace('{free}', formatUsdc(freeStakeUsdc, { withSuffix: false }))
@@ -894,63 +869,73 @@ export function StakeCard() {
         </div>
       </div>
 
-      {/* IN-UI WITHDRAWAL CONFIRMATION.
-          Rendered when submitWithdraw has parked a pending request in state.
-          Replaces the previous native window.confirm(). Lime-tinted card with
-          the precise amount about to be cooled, the rounding caveat if any,
-          and confirm/cancel buttons that stay inside the product surface. */}
-      {pendingWithdraw && (
-        <div
-          className="-mt-2 px-4 py-3 flex flex-wrap items-center justify-between gap-3"
-          style={{
-            background:
-              'linear-gradient(120deg, color-mix(in oklab, var(--lp-accent) 14%, transparent), color-mix(in oklab, var(--lp-accent) 4%, transparent))',
-            border: '1px solid color-mix(in oklab, var(--lp-accent) 35%, transparent)',
-            borderRadius: 12,
-          }}
-        >
-          <div className="min-w-0 flex-1">
-            <p className="mono text-[13px] font-bold uppercase tracking-[0.18em] text-[var(--lp-band-dark)]">
-              {sc.confirm.eyebrow}
-            </p>
-            <p className="mt-1 text-[14px] leading-snug text-[var(--lp-dark)]">
-              {sc.confirm.coolPrefix} <span className="font-bold tabular-nums">{pendingWithdraw.coolingTotal} USDC</span> {sc.confirm.coolMiddle} <span className="font-bold">{sc.confirm.daysTemplate.replace('{days}', String(cooldownDays))}</span>.
+      <ConfirmSheetShell open={depositSheet} labelledBy={`${sheetId}-deposit`} busy={busyKind?.kind === 'deposit'} onClose={() => setDepositSheet(false)}>
+        <h2 id={`${sheetId}-deposit`} className="text-[20px] font-semibold text-[var(--lp-dark)]">
+          {sc.depositSheet.titleTemplate.replace('{amount}', String(depositAmount || 0))}
+        </h2>
+        <p className="mt-2 text-[15px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
+          {sc.depositSheet.bodyTemplate.replace('{amount}', String(depositAmount || 0)).replace('{days}', String(cooldownDays))}
+        </p>
+        <div className="mt-5 grid gap-2">
+          <button
+            type="button"
+            disabled={busyKind?.kind === 'deposit'}
+            aria-busy={busyKind?.kind === 'deposit'}
+            onClick={async () => {
+              await submitDeposit();
+              setDepositSheet(false);
+            }}
+            className="min-h-12 rounded-full bg-[var(--lp-accent)] px-5 text-[15px] font-semibold text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-50"
+          >
+            {busyKind?.kind === 'deposit' ? sc.depositForm.submitBusy : sc.depositSheet.confirmTemplate.replace('{amount}', String(depositAmount || 0))}
+          </button>
+          <button
+            type="button"
+            disabled={busyKind?.kind === 'deposit'}
+            onClick={() => setDepositSheet(false)}
+            className="min-h-12 rounded-full border border-[var(--lp-border-light)] px-5 text-[15px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)] disabled:opacity-40"
+          >
+            {sc.confirm.cancel}
+          </button>
+        </div>
+      </ConfirmSheetShell>
+
+      <ConfirmSheetShell open={pendingWithdraw !== null} labelledBy={`${sheetId}-withdraw`} busy={busyKind?.kind === 'request'} onClose={cancelPendingWithdraw}>
+        {pendingWithdraw ? (
+          <>
+            <h2 id={`${sheetId}-withdraw`} className="text-[20px] font-semibold text-[var(--lp-dark)]">{sc.confirm.eyebrow}</h2>
+            <p className="mt-2 text-[15px] leading-relaxed text-[var(--lp-dark)] font-medium">
+              {sc.confirm.coolPrefix} <span className="font-semibold tabular-nums">{pendingWithdraw.coolingTotal} USDC</span> {sc.confirm.coolMiddle} <span className="font-semibold">{sc.confirm.daysTemplate.replace('{days}', String(cooldownDays))}</span>.
             </p>
             {pendingWithdraw.coolingTotal > pendingWithdraw.requested + 0.000_001 && (
-              <p className="mt-1 text-[14px] leading-snug" style={{ color: '#b25425' }}>
+              <p className="mt-2 text-[14px] leading-relaxed text-[var(--lp-dark)] font-medium">
                 {sc.confirm.roundedPrefix} <span className="tabular-nums">{pendingWithdraw.requested}</span> {sc.confirm.roundedMiddle} {pendingWithdraw.toCool.length === 1 ? sc.confirm.smallestSingleTemplate.replace('{positionId}', pendingWithdraw.toCool[0].positionId).replace('{principal}', pendingWithdraw.toCool[0].principalUsdc) : sc.confirm.smallestMultiTemplate.replace('{count}', String(pendingWithdraw.toCool.length))}. {sc.confirm.roundedSuffix}
               </p>
             )}
-            <p className="mt-1 text-[14px] leading-snug text-[var(--lp-text-sub)] font-medium">
+            <p className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
               {sc.confirm.disclaimerTemplate.replace('{days}', String(cooldownDays))}
             </p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={cancelPendingWithdraw}
-              className="px-3 py-1.5 mono text-[13px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] hover:bg-black/[0.04] transition-colors"
-              style={{
-                borderRadius: 8,
-              }}
-            >
-              {sc.confirm.cancel}
-            </button>
-            <button
-              type="button"
-              onClick={confirmWithdraw}
-              className="px-4 py-2 mono text-[14px] font-bold uppercase tracking-[0.12em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors"
-              style={{
-                borderRadius: 10,
-              }}
-            >
-              {sc.confirm.confirm}
-            </button>
-          </div>
-        </div>
-      )}
+            <div className="mt-5 grid gap-2">
+              <button
+                type="button"
+                onClick={() => void confirmWithdraw()}
+                className="min-h-12 rounded-full bg-[var(--lp-accent)] px-5 text-[15px] font-semibold text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)]"
+              >
+                {`${sc.withdrawForm.submit} ${pendingWithdraw.coolingTotal} USDC`}
+              </button>
+              <button
+                type="button"
+                onClick={cancelPendingWithdraw}
+                className="min-h-12 rounded-full border border-[var(--lp-border-light)] px-5 text-[15px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)]"
+              >
+                {sc.confirm.cancel}
+              </button>
+            </div>
+          </>
+        ) : null}
+      </ConfirmSheetShell>
 
-      <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] leading-relaxed -mt-2">
+      <p className="text-[14px] text-[var(--ink-secondary)] leading-relaxed -mt-2 font-medium">
         {sc.cooldownFooterTemplate.replace('{days}', String(cooldownDays))}
       </p>
 
@@ -972,7 +957,7 @@ export function StakeCard() {
       {/* RECENT ACTIVITY */}
       {log.length > 0 && (
         <div className="space-y-2 pt-1">
-          <span className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+          <span className="text-[14px] text-[var(--ink-secondary)] font-medium">
             {sc.recent.label}
           </span>
           <ul className="space-y-1.5">
@@ -1004,9 +989,9 @@ export function StakeCard() {
                       href={ARC_EXPLORER_TX(entry.txHash)}
                       target="_blank"
                       rel="noreferrer"
-                      className="hover:underline"
+                      className="underline underline-offset-4"
                     >
-                      {entry.txHash.slice(0, 6)}…{entry.txHash.slice(-4)} ↗
+                      {proofLabel}
                     </a>
                   )}
                   {entry.status === 'failed' && (entry.error?.slice(0, 40) ?? sc.recent.failedFallback)}
@@ -1022,7 +1007,7 @@ export function StakeCard() {
 
 function SectionEyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+    <span className="text-[14px] text-[var(--ink-secondary)] font-medium">
       {children}
     </span>
   );
@@ -1037,7 +1022,7 @@ function StatePill({ state }: { state: 'active' | 'cooling' | 'claimed' }) {
         : { color: 'var(--color-ink-faint)', bg: 'var(--color-surface-2)' };
   return (
     <span
-      className="inline-flex items-center gap-1 px-1.5 py-[2px] mono text-[13px] font-bold uppercase tracking-[0.14em]"
+      className="inline-flex items-center gap-1 px-1.5 py-[2px] text-[14px] font-bold"
       style={{ color: tone.color, background: tone.bg, borderRadius: 3 }}
     >
       <span
@@ -1108,7 +1093,7 @@ function CoolingList({
   if (loading) {
     return (
       <div className="space-y-2">
-        <span className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+        <span className="text-[14px] text-[var(--ink-secondary)] font-medium">
           {copy.label}
         </span>
         <div className="h-14 bg-black/[0.05] animate-pulse motion-reduce:animate-none rounded" />
@@ -1121,10 +1106,10 @@ function CoolingList({
   return (
     <div className="space-y-3">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+        <span className="text-[14px] text-[var(--ink-secondary)] font-medium">
           {copy.label}
         </span>
-        <span className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] tabular-nums">
+        <span className="text-[14px] text-[var(--ink-secondary)] tabular-nums font-medium">
           {cooling.length}
         </span>
       </div>
@@ -1148,11 +1133,11 @@ function CoolingList({
                   <span className="font-sans text-[18px] font-extrabold tabular-nums tracking-[-0.02em] leading-none">
                     {formatUsdc(p.principalUsdc, { withSuffix: false })}
                   </span>
-                  <span className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                  <span className="text-[14px] text-[var(--ink-secondary)] font-medium">
                     {copy.usdcCooling}
                   </span>
                 </div>
-                <div className="flex items-center gap-3 mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                <div className="flex items-center gap-3 text-[14px] text-[var(--ink-secondary)] font-medium">
                   {p.claimableAt > 0 ? (
                     <CountdownLabel claimableAt={p.claimableAt} copy={copy} />
                   ) : (
@@ -1165,8 +1150,7 @@ function CoolingList({
                         type="button"
                         onClick={() => onCancel(p.positionId)}
                         disabled={busy || vaultDeployed}
-                        title={copy.cancelTitle}
-                        className="mono text-[13px] uppercase tracking-[0.12em] underline-offset-2 hover:underline hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-sm transition-colors disabled:opacity-50"
+                        className="text-[14px] underline-offset-2 hover:underline hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-sm transition-colors disabled:opacity-50 font-medium"
                       >
                         {busy ? copy.cancelling : copy.cancelLabel}
                       </button>
@@ -1211,7 +1195,7 @@ function YieldNote({ copy }: { copy: Messages['stakeCard']['yield'] }) {
         borderRadius: 12,
       }}
     >
-      <p className="mono text-[13px] font-bold uppercase tracking-[0.18em] text-[var(--lp-band-dark)]">
+      <p className="text-[14px] font-bold text-[var(--lp-band-dark)]">
         {copy.eyebrow}
       </p>
       <p className="mt-1.5 text-[14px] leading-snug text-[var(--lp-dark)]">

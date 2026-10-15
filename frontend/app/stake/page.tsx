@@ -15,7 +15,7 @@ import { YieldClaimPanel } from '@/features/reputation/components/YieldClaimPane
 import { LegacyStakeNudge } from '@/features/reputation/components/LegacyStakeNudge';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useReputation } from '@/features/reputation/hooks/useReputation';
-import { TIER_HUE, tierInk } from '@/features/reputation/tierColors';
+import { TIER_HUE, TIER_LABEL, tierInk } from '@/features/reputation/tierColors';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { tierProgress, tierProgressLabel } from '@/features/reputation/tierProgressLabel';
 
@@ -101,7 +101,7 @@ function StakePageInner() {
     tierCappedBy: data?.tierCappedBy ?? null,
     dealsToNextTier: data?.dealsToNextTier ?? null,
   });
-  const progressLabel = tierProgressLabel(progress, tp, (t) => t);
+  const progressLabel = tierProgressLabel(progress, tp, (name) => TIER_LABEL[name]);
   const nextTier = progress.kind === 'top' || progress.kind === 'unknown' ? null : progress.nextTier;
   const capped = data?.tierCappedBy != null;
 
@@ -126,12 +126,12 @@ function StakePageInner() {
           label={sp.position.tier}
           value={
             <span style={{ color: tierInk(tier) }}>
-              {tier}
+              {TIER_LABEL[tier]}
               {capped ? ` · ${data?.tierCappedBy === 'concentration' ? sp.position.cappedConcentration : sp.position.cappedDeals}` : ''}
             </span>
           }
         />
-        {nextValue ? <Row label={nextTier ? sp.position.toNextTemplate.replace('{tier}', nextTier) : sp.position.status} value={nextValue} /> : null}
+        {nextValue ? <Row label={nextTier ? sp.position.toNextTemplate.replace('{tier}', TIER_LABEL[nextTier]) : sp.position.status} value={nextValue} /> : null}
       </RowGroup>
 
       <section id="vault" className="scroll-mt-24 space-y-2" data-guide="stake-vault">
@@ -182,7 +182,7 @@ function StakePageInner() {
               <span className="block">
                 <span className="inline-flex items-center gap-2">
                   <span aria-hidden className="size-2 rounded-full" style={{ background: TIER_HUE[name] }} />
-                  {name}
+                  {TIER_LABEL[name]}
                   {name === tier ? <span className="rounded-full bg-[var(--tint)] px-2 text-[14px] font-semibold">{sp.ladder.youBadge}</span> : null}
                 </span>
                 <span className="block text-[14px] font-normal text-[var(--lp-text-sub)]">{sp.ladder.unlock[name]}</span>
