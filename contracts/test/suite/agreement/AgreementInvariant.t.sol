@@ -10,19 +10,25 @@ import {BlocklistToken} from "../mocks/BlocklistToken.sol";
 contract AgreementHandler is Test {
     KarwanAgreementEscrow internal escrow;
     BlocklistToken internal usdc;
+    address internal arbiter;
+    address internal reviewer;
     address[3] public buyers;
+    uint256[3] internal buyerKeys;
     address[3] public sellers;
     address public stranger = makeAddr("stranger");
     bytes32[] public deals;
     mapping(bytes32 => AgreementTerms) internal termsOf;
+    mapping(bytes32 => uint256) internal keyOf;
     bool public releaseFailed;
     uint256 public fundedTotal;
 
-    constructor(KarwanAgreementEscrow escrow_, BlocklistToken usdc_) {
+    constructor(KarwanAgreementEscrow escrow_, BlocklistToken usdc_, address arbiter_, address reviewer_) {
         escrow = escrow_;
         usdc = usdc_;
+        arbiter = arbiter_;
+        reviewer = reviewer_;
         for (uint256 i; i < 3; ++i) {
-            buyers[i] = makeAddr(string(abi.encodePacked("buyer", vm.toString(i))));
+            (buyers[i], buyerKeys[i]) = makeAddrAndKey(string(abi.encodePacked("buyer", vm.toString(i))));
             sellers[i] = makeAddr(string(abi.encodePacked("seller", vm.toString(i))));
             usdc.mint(buyers[i], 10_000_000e6);
             vm.prank(buyers[i]);
@@ -34,7 +40,7 @@ contract AgreementHandler is Test {
         return deals.length;
     }
 
-    function fund(uint256 who, uint256 amount, uint8 tranches, bool byBuyer, bool deposit) external {
+    function fund(uint256 who, uint256 amount, uint8 tranches, uint8 mode, uint8 parts) external {
         AgreementTerms memory t;
         t.asset = address(usdc);
         t.seller = sellers[who % 3];
@@ -47,14 +53,23 @@ contract AgreementHandler is Test {
         t.reclaimGrace = 1 days;
         t.reviewWindow = 2 days;
         t.silentLongstop = 5 days;
-        t.finalRelease = byBuyer ? 1 : 0;
-        t.silenceOutcome = deposit ? 1 : 0;
+        mode = mode % 3;
+        t.finalRelease = mode == 1 ? 1 : 0;
+        t.silenceOutcome = mode == 2 ? 1 : 0;
+        t.fallbackBps = 5_000;
+        parts = uint8(bound(parts, 0, 4));
+        if (parts >= 2 && mode != 2) {
+            t.parts = parts;
+            t.partEvery = 2 days;
+            t.cancelFeeBps = 1_000;
+        }
         t.agreementHash = keccak256("a");
         bytes32 salt = keccak256(abi.encode(deals.length));
         vm.prank(buyers[who % 3]);
         try escrow.fund(salt, t) returns (bytes32 id) {
             deals.push(id);
             termsOf[id] = t;
+            keyOf[id] = buyerKeys[who % 3];
             fundedTotal += escrow.accountOf(id).funded;
         } catch {}
     }
@@ -62,6 +77,22 @@ contract AgreementHandler is Test {
     function _pick(uint256 seed) internal view returns (bytes32 id, AgreementDeal memory d) {
         id = deals[seed % deals.length];
         d = escrow.getDeal(id);
+    }
+
+    function payPart(uint256 seed) external {
+        if (deals.length == 0) return;
+        (bytes32 id,) = _pick(seed);
+        uint256 before = escrow.accountOf(id).funded;
+        vm.prank(escrow.accountOf(id).payer);
+        try escrow.payPart(id) {
+            fundedTotal += escrow.accountOf(id).funded - before;
+        } catch {}
+    }
+
+    function cancelMissed(uint256 seed) external {
+        if (deals.length == 0) return;
+        (bytes32 id,) = _pick(seed);
+        try escrow.cancelMissed(id) {} catch {}
     }
 
     function accept(uint256 seed) external {
@@ -82,24 +113,31 @@ contract AgreementHandler is Test {
     function release(uint256 seed) external {
         if (deals.length == 0) return;
         (bytes32 id, AgreementDeal memory d) = _pick(seed);
-        if (d.state != AgreementState.Accepted) return;
+        bool live = d.state == AgreementState.Accepted || d.state == AgreementState.Disputed;
+        if (!live || d.partsPaid < termsOf[id].parts) return;
         vm.prank(escrow.accountOf(id).payer);
         try escrow.release(id) {} catch {
             releaseFailed = true;
         }
     }
 
+    function releaseBySig(uint256 seed) external {
+        if (deals.length == 0) return;
+        (bytes32 id, AgreementDeal memory d) = _pick(seed);
+        uint256 deadline = block.timestamp + 1 hours;
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(keyOf[id], escrow.releaseDigest(id, d.paid, deadline));
+        try escrow.releaseBySig(id, d.paid, deadline, abi.encodePacked(r, s, v)) {} catch {}
+    }
+
     function claim(uint256 seed) external {
         if (deals.length == 0) return;
         (bytes32 id,) = _pick(seed);
-        vm.prank(termsOf[id].seller);
         try escrow.claim(id) {} catch {}
     }
 
     function reclaim(uint256 seed) external {
         if (deals.length == 0) return;
         (bytes32 id,) = _pick(seed);
-        vm.prank(escrow.accountOf(id).payer);
         try escrow.reclaim(id) {} catch {}
     }
 
@@ -115,6 +153,46 @@ contract AgreementHandler is Test {
         try escrow.acceptSplit(id, bps) {} catch {}
     }
 
+    function dispute(uint256 seed, bool bySeller) external {
+        if (deals.length == 0) return;
+        (bytes32 id,) = _pick(seed);
+        vm.prank(bySeller ? termsOf[id].seller : escrow.accountOf(id).payer);
+        try escrow.dispute(id, bytes32("clause")) {} catch {}
+    }
+
+    function propose(uint256 seed, bool toSeller) external {
+        if (deals.length == 0) return;
+        (bytes32 id,) = _pick(seed);
+        vm.prank(arbiter);
+        try escrow.proposeRuling(id, toSeller ? 10_000 : 0, bytes32(0)) {} catch {}
+    }
+
+    function executeRuling(uint256 seed) external {
+        if (deals.length == 0) return;
+        (bytes32 id,) = _pick(seed);
+        try escrow.executeRuling(id) {} catch {}
+    }
+
+    function escalate(uint256 seed) external {
+        if (deals.length == 0) return;
+        (bytes32 id,) = _pick(seed);
+        vm.prank(arbiter);
+        try escrow.escalate(id) {} catch {}
+    }
+
+    function rule(uint256 seed, uint16 bps) external {
+        if (deals.length == 0) return;
+        (bytes32 id,) = _pick(seed);
+        vm.prank(reviewer);
+        try escrow.rule(id, uint16(bound(bps, 0, 10_000)), bytes32(0)) {} catch {}
+    }
+
+    function applyFallback(uint256 seed) external {
+        if (deals.length == 0) return;
+        (bytes32 id,) = _pick(seed);
+        try escrow.applyFallback(id) {} catch {}
+    }
+
     function cancel(uint256 seed) external {
         if (deals.length == 0) return;
         (bytes32 id,) = _pick(seed);
@@ -127,8 +205,9 @@ contract AgreementHandler is Test {
         (bytes32 id,) = _pick(seed);
         vm.startPrank(stranger);
         try escrow.release(id) {} catch {}
-        try escrow.claim(id) {} catch {}
-        try escrow.reclaim(id) {} catch {}
+        try escrow.dispute(id, bytes32(0)) {} catch {}
+        try escrow.rule(id, 10_000, bytes32(0)) {} catch {}
+        try escrow.payPart(id) {} catch {}
         vm.stopPrank();
     }
 
@@ -143,7 +222,7 @@ contract AgreementInvariantTest is AgreementFixture {
     function setUp() public {
         _deployAgreement();
         hub.setCaps(address(escrow), address(usdc), PER_DEAL, 100_000_000e6);
-        handler = new AgreementHandler(escrow, usdc);
+        handler = new AgreementHandler(escrow, usdc, arbiter, reviewSafe);
         targetContract(address(handler));
     }
 
@@ -153,22 +232,30 @@ contract AgreementInvariantTest is AgreementFixture {
 
     function invariant_ended_deals_hold_nothing_and_open_deals_hold_their_books() public view {
         uint256 sum;
+        uint256 promised;
         for (uint256 i; i < handler.dealCount(); ++i) {
             bytes32 id = handler.deals(i);
             AgreementDeal memory d = escrow.getDeal(id);
             uint256 balance = escrow.accountOf(id).balance;
             if (uint8(d.state) >= uint8(AgreementState.Settled)) {
                 assertEq(balance, 0);
+                assertEq(escrow.accountOf(id).promised, 0);
+            } else if (d.partsPaid < escrow.getTerms(id).parts) {
+                assertEq(balance, escrow.accountOf(id).funded);
             } else {
                 assertEq(balance, (d.sellerNet - d.released) + (d.feeTotal - d.feeReleased));
             }
             sum += balance;
+            promised += escrow.accountOf(id).promised;
         }
         assertEq(sum, escrow.held(address(usdc)));
+        assertEq(promised, escrow.promisedTotal(address(usdc)));
     }
 
-    function invariant_no_stranger_is_paid() public view {
+    function invariant_nobody_outside_the_deal_is_paid() public view {
         assertEq(usdc.balanceOf(handler.stranger()), 0);
+        assertEq(usdc.balanceOf(arbiter), 0);
+        assertEq(usdc.balanceOf(reviewSafe), 0);
     }
 
     function invariant_fee_never_above_one_percent_of_funding() public view {
