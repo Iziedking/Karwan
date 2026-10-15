@@ -21,6 +21,10 @@ export const updateInputSchema = z.object({
   body: z.string().trim().max(160).default(''),
   ctaLabel: z.string().trim().min(1).max(24),
   href,
+  /// A picture for the top of the tile: a Karwan path or an https address, the
+  /// same rule as the link, or empty for none. A video card without one shows
+  /// its own frame.
+  image: z.union([href, z.literal('')]).optional(),
   ground: z.enum(GROUNDS).default('mist'),
   art: z.number().int().min(0).max(2).default(0),
   active: z.boolean().default(true),

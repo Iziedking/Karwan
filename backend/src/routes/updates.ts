@@ -9,14 +9,15 @@ import { listAllBriefs } from '../db/briefs.js';
 import { liveUpdates, trendingCategories, updateInputSchema } from '../updates/model.js';
 import { createUpdate, deleteUpdate, listUpdates, patchUpdate, reorderUpdates } from '../updates/store.js';
 import { sourcedCards } from '../updates/source.js';
+import { withThumbnails } from '../updates/thumbnail.js';
 import { config } from '../config.js';
 
 export const updatesRoutes = new Hono();
 
 updatesRoutes.get('/', async (c) => {
   const now = Date.now();
-  const cards = (await sourcedCards(config.UPDATES_SOURCE_URL))
-    ?? liveUpdates(await listUpdates(), now).map(({ createdAt: _c, updatedAt: _u, active: _a, startsAt: _s, endsAt: _e, ...card }) => card);
+  const cards = await withThumbnails((await sourcedCards(config.UPDATES_SOURCE_URL))
+    ?? liveUpdates(await listUpdates(), now).map(({ createdAt: _c, updatedAt: _u, active: _a, startsAt: _s, endsAt: _e, ...card }) => card));
   const trending = cards.some((card) => card.kind === 'trending') ? trendingCategories(listAllBriefs(), now) : [];
   c.header('Cache-Control', 'public, max-age=60');
   return c.json({ cards, trending });

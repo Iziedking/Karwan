@@ -44,3 +44,14 @@ test('trending counts real requests from the last week, once each', () => {
     { name: 'design', requests: 1 },
   ]);
 });
+
+test('an image is a Karwan path or an https address, and optional', () => {
+  const base = { tag: 'T', title: 'T', ctaLabel: 'Go', href: '/market' };
+  assert.equal(updateInputSchema.safeParse(base).success, true);
+  assert.equal(updateInputSchema.safeParse({ ...base, image: '/media/updates/arc.jpg' }).success, true);
+  assert.equal(updateInputSchema.safeParse({ ...base, image: '' }).success, true);
+  assert.equal(updateInputSchema.safeParse({ ...base, image: 'https://i.vimeocdn.com/video/1.jpg' }).success, true);
+  for (const bad of ['javascript:alert(1)', '//evil.test/x.jpg', 'http://plain.test/x.jpg', 'data:image/png;base64,AA']) {
+    assert.equal(updateInputSchema.safeParse({ ...base, image: bad }).success, false, bad);
+  }
+});
