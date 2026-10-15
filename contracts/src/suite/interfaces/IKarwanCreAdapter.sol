@@ -9,8 +9,10 @@ pragma solidity ^0.8.24;
 ///         CHECK  = abi.encode(address verifier, address family, bytes32 dealId,
 ///                             uint32 revision, bool pass, bytes32 evidenceHash)
 ///         FACT   = abi.encode(uint8 op, address wallet, bytes32 factKind, uint8 level,
-///                             bytes32 evidenceSeal, uint64 expiresAt, uint256 factId)
+///                             bytes32 evidenceSeal, uint64 expiresAt, uint256 factId,
+///                             bytes32 accountKey)
 ///         KEEP   = abi.encode(KeepCall[] calls)
+///         DRY    = abi.encode(address fees, bytes32 runId, bytes32 resultHash)
 interface IKarwanCreAdapter {
     struct KeepCall {
         address family;
@@ -34,6 +36,7 @@ interface IKarwanCreAdapter {
     event FactWritten(uint256 indexed factId, address indexed wallet, bytes32 indexed factKind, uint8 level);
     event FactRevoked(uint256 indexed factId);
     event KeepResult(address indexed family, bytes4 indexed selector, bytes args, bool ok, bytes reason);
+    event DryRunAnswered(address indexed fees, bytes32 indexed runId, bytes32 resultHash);
 
     function approved(bytes32 digest) external view returns (bool);
     function verdictOf(bytes32 key) external view returns (bool set, bool pass, bytes32 evidenceHash);
@@ -70,4 +73,8 @@ interface IKarwanCheckVerifierView {
         address[] calldata signers,
         bytes[] calldata sigs
     ) external;
+}
+
+interface IKarwanCreFeesRelease {
+    function release(bytes32 runId, bytes32 resultHash) external;
 }

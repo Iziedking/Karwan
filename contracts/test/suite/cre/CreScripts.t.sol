@@ -7,6 +7,8 @@ import {KarwanCheckVerifier} from "../../../src/suite/KarwanCheckVerifier.sol";
 import {KarwanHub} from "../../../src/suite/KarwanHub.sol";
 import {DeployCreAdapter} from "../../../script/DeployCreAdapter.s.sol";
 import {DeployCheckVerifiers} from "../../../script/DeployCheckVerifiers.s.sol";
+import {DeployCreFees} from "../../../script/DeployCreFees.s.sol";
+import {KarwanCreFees} from "../../../src/suite/KarwanCreFees.sol";
 import {BindCreWorkflow} from "../../../script/BindCreWorkflow.s.sol";
 import {EvidenceRegistryDeploymentConfig} from "../../../script/EvidenceRegistryDeploymentConfig.sol";
 
@@ -94,5 +96,23 @@ contract CreScriptsTest is CreFixture {
         vm.expectRevert(abi.encodeWithSelector(DeployCreAdapter.BinderMustBeTheTimelock.selector, eoa));
         s.deploy(KEYSTONE, creOwner, address(hub), eoa, false);
         assertEq(s.deploy(MOCK, creOwner, address(hub), eoa, true).binder(), eoa);
+    }
+
+    function test_deploys_the_fee_contract_for_the_adapter_at_a_fixed_price() public {
+        address payee = makeAddr("karwanFees");
+        KarwanCreFees f = new DeployCreFees().deploy(address(adapter), payee);
+        assertEq(address(f.usdc()), 0x3600000000000000000000000000000000000000);
+        assertEq(f.adapter(), address(adapter));
+        assertEq(f.payee(), payee);
+        assertEq(f.price(), 250_000);
+    }
+
+    function test_the_fee_contract_needs_a_deployed_adapter_on_arc() public {
+        DeployCreFees s = new DeployCreFees();
+        vm.expectRevert(abi.encodeWithSelector(DeployCreFees.AdapterHasNoCode.selector, stranger));
+        s.deploy(stranger, makeAddr("karwanFees"));
+        vm.chainId(1);
+        vm.expectRevert(abi.encodeWithSelector(DeployCreFees.WrongChain.selector, 1));
+        s.deploy(address(adapter), makeAddr("karwanFees"));
     }
 }

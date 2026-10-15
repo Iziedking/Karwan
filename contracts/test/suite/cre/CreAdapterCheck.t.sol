@@ -85,13 +85,14 @@ contract CreAdapterCheckTest is CreFixture {
         verifierCK.report(address(escrow), id, 1, true, EVIDENCE, s, sig);
     }
 
-    function test_a_stranger_resubmitting_the_approved_result_changes_nothing() public {
+    function test_a_stranger_resubmitting_the_approved_result_is_refused() public {
         bytes32 id = _deliveredDeal(address(verifierCK));
         _report(address(verifierCK), id, 1, false);
         address[] memory s = new address[](1);
         s[0] = address(adapter);
         bytes[] memory sig = new bytes[](1);
         vm.prank(stranger);
+        vm.expectRevert(KarwanCheckVerifier.AlreadyReported.selector);
         verifierCK.report(address(escrow), id, 1, false, EVIDENCE, s, sig);
         assertTrue(_deal(id).checkFailed);
         assertFalse(_deal(id).checkPassed);
@@ -106,6 +107,19 @@ contract CreAdapterCheckTest is CreFixture {
         assertEq(adapter.isValidSignature(otherVerifier, ""), bytes4(0xffffffff));
         bytes32 otherFamily = adapter.checkDigest(address(verifierCK), address(family), id, 1, true, EVIDENCE);
         assertEq(adapter.isValidSignature(otherFamily, ""), bytes4(0xffffffff));
+    }
+
+    function test_karwan_checker_cannot_turn_a_cre_fail_into_a_pass() public {
+        bytes32 id = _deliveredDeal(address(verifierCK));
+        _report(address(verifierCK), id, 1, false);
+        assertTrue(_deal(id).checkFailed);
+        vm.expectRevert(KarwanCheckVerifier.AlreadyReported.selector);
+        this.reportAsCheckerExternal(id, true);
+        assertFalse(_deal(id).checkPassed);
+    }
+
+    function reportAsCheckerExternal(bytes32 id, bool pass) external {
+        _reportAsChecker(verifierCK, id, 1, pass);
     }
 
     function test_karwan_checker_alone_attests_through_v_cre_k() public {

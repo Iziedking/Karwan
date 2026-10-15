@@ -33,6 +33,7 @@ abstract contract CreFixture is AgreementFixture {
         adapter.bindWorkflow(1, CHECK_ID, CHECK_NAME);
         adapter.bindWorkflow(2, FACT_ID, FACT_NAME);
         adapter.bindWorkflow(3, KEEP_ID, KEEP_NAME);
+        adapter.bindWorkflow(4, CHECK_ID, CHECK_NAME);
         (checker, checkerKey) = makeAddrAndKey("karwanChecker");
         address[] memory k = new address[](1);
         k[0] = checker;
@@ -92,7 +93,7 @@ abstract contract CreFixture is AgreementFixture {
     }
 
     function _bound(uint8 kind) internal pure returns (bytes32 id, bytes10 name) {
-        if (kind == 1) return (CHECK_ID, CHECK_NAME);
+        if (kind == 1 || kind == 4) return (CHECK_ID, CHECK_NAME);
         if (kind == 2) return (FACT_ID, FACT_NAME);
         return (KEEP_ID, KEEP_NAME);
     }

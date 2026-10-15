@@ -3,9 +3,9 @@ pragma solidity ^0.8.24;
 
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import {IReceiver, IERC165} from "../interfaces/IReceiver.sol";
-import {IKarwanHub} from "./interfaces/IKarwanSuite.sol";
+import {IKarwanHub, IKarwanIdentity} from "./interfaces/IKarwanSuite.sol";
 import {
-    IKarwanCreAdapter, IKarwanCheckVerifierView, IKarwanRecordFacts
+    IKarwanCreAdapter, IKarwanCheckVerifierView, IKarwanRecordFacts, IKarwanCreFeesRelease
 } from "./interfaces/IKarwanCreAdapter.sol";
 import {AgreementDeal} from "./agreement/AgreementTypes.sol";
 
@@ -18,11 +18,12 @@ interface IAgreementDeals {
 ///         accepted only from the forwarder, only from the workflow bound to
 ///         its kind, and only within an hour of issue: the forwarder never
 ///         reverts and anyone may retry a failed delivery, so age is the guard.
-///         It holds no money and has no owner; each binding is set once.
+///         It holds no money and has no owner.
 contract KarwanCreAdapter is IReceiver, IERC1271, IKarwanCreAdapter {
     uint8 public constant CHECK = 1;
     uint8 public constant FACT = 2;
     uint8 public constant KEEP = 3;
+    uint8 public constant DRY = 4;
     uint64 public constant MAX_AGE = 1 hours;
     /// DON time can run slightly ahead of Arc's block time.
     uint64 public constant MAX_SKEW = 5 minutes;
@@ -64,6 +65,17 @@ contract KarwanCreAdapter is IReceiver, IERC1271, IKarwanCreAdapter {
     /// @dev The wallet each fact was written for; a revoke must name the same one.
     mapping(uint256 => address) public issuedTo;
 
+    /// @dev One outside account backs one person at a time: the hold is keyed
+    ///      by the workflow's keyed account key and lasts while its fact is live.
+    struct SealHold {
+        uint64 identity;
+        uint64 expiresAt;
+        uint256 factId;
+    }
+
+    mapping(bytes32 => SealHold) public sealHold;
+    mapping(uint256 => bytes32) private _holdOf;
+
     error NotForwarder();
     error NotBinder();
     error BadBinding();
@@ -76,6 +88,7 @@ contract KarwanCreAdapter is IReceiver, IERC1271, IKarwanCreAdapter {
     error BadKind();
     error NotAllowedKind();
     error NotIssued();
+    error SealHeld();
     error BadOp();
     error BadCall();
 
@@ -113,7 +126,7 @@ contract KarwanCreAdapter is IReceiver, IERC1271, IKarwanCreAdapter {
     ///         public and waits out the delay.
     function bindWorkflow(uint8 kind, bytes32 workflowId, bytes10 workflowName) external {
         if (msg.sender != binder) revert NotBinder();
-        if (kind < CHECK || kind > KEEP || workflowId == bytes32(0) || workflowName == bytes10(0)) revert BadBinding();
+        if (kind < CHECK || kind > DRY || workflowId == bytes32(0) || workflowName == bytes10(0)) revert BadBinding();
         bindingOf[kind] = Binding(workflowId, workflowName);
         emit WorkflowBound(kind, workflowId, workflowName);
     }
@@ -133,7 +146,8 @@ contract KarwanCreAdapter is IReceiver, IERC1271, IKarwanCreAdapter {
         reportUsed[reportId] = true;
         if (kind == CHECK) _check(reportId, body);
         else if (kind == FACT) _fact(body);
-        else _keep(body);
+        else if (kind == KEEP) _keep(body);
+        else _dry(body);
     }
 
     function supportsInterface(bytes4 interfaceId) external pure override returns (bool) {
@@ -211,18 +225,41 @@ contract KarwanCreAdapter is IReceiver, IERC1271, IKarwanCreAdapter {
     ///      write an outcome or a person check; only its own facts are revoked,
     ///      each for the wallet it was written for.
     function _fact(bytes memory body) private {
-        (uint8 op, address wallet, bytes32 factKind, uint8 level, bytes32 seal, uint64 expiresAt, uint256 factId) =
-            abi.decode(body, (uint8, address, bytes32, uint8, bytes32, uint64, uint256));
+        (
+            uint8 op,
+            address wallet,
+            bytes32 factKind,
+            uint8 level,
+            bytes32 seal,
+            uint64 expiresAt,
+            uint256 factId,
+            bytes32 accountKey
+        ) = abi.decode(body, (uint8, address, bytes32, uint8, bytes32, uint64, uint256, bytes32));
         IKarwanRecordFacts rec = IKarwanRecordFacts(hub.record());
         if (op == 1) {
             if (!isFactKind[factKind]) revert NotAllowedKind();
+            if (accountKey == bytes32(0)) revert BadOp();
+            uint64 person = IKarwanIdentity(hub.identity()).identityOf(wallet);
+            bytes32 holdKey = keccak256(abi.encode(factKind, accountKey));
+            SealHold memory hold = sealHold[holdKey];
+            bool live = hold.identity != 0 && hold.expiresAt > block.timestamp;
+            if (live && hold.identity != person) revert SealHeld();
             uint256 id = rec.recordFact(wallet, factKind, level, seal, expiresAt);
             issuedTo[id] = wallet;
+            sealHold[holdKey] = SealHold(person, expiresAt, id);
+            _holdOf[id] = holdKey;
             emit FactWritten(id, wallet, factKind, level);
+            // A renewal by the same person retires the fact it replaces.
+            if (live) {
+                emit FactRevoked(hold.factId);
+                rec.revoke(hold.factId);
+            }
         } else if (op == 2) {
             if (wallet == address(0) || issuedTo[factId] != wallet) revert NotIssued();
-            rec.revoke(factId);
+            bytes32 key = _holdOf[factId];
+            if (sealHold[key].factId == factId) delete sealHold[key];
             emit FactRevoked(factId);
+            rec.revoke(factId);
         } else {
             revert BadOp();
         }
@@ -242,6 +279,14 @@ contract KarwanCreAdapter is IReceiver, IERC1271, IKarwanCreAdapter {
             (bool ok, bytes memory reason) = c.family.call{gas: KEEP_CALL_GAS}(abi.encodePacked(c.selector, c.args));
             emit KeepResult(c.family, c.selector, c.args, ok, ok ? bytes("") : reason);
         }
+    }
+
+    /// @dev A signed dry-run answer releases the fee the agent paid. The fee
+    ///      contract accepts only its own adapter, so naming another moves nothing.
+    function _dry(bytes memory body) private {
+        (address fees, bytes32 runId, bytes32 resultHash) = abi.decode(body, (address, bytes32, bytes32));
+        emit DryRunAnswered(fees, runId, resultHash);
+        IKarwanCreFeesRelease(fees).release(runId, resultHash);
     }
 
     function isValidSignature(bytes32 hash, bytes memory) external view override returns (bytes4) {

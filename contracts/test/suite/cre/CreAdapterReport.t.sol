@@ -114,7 +114,7 @@ contract CreAdapterReportTest is CreFixture {
         vm.expectRevert(KarwanCreAdapter.NotBinder.selector);
         fresh.bindWorkflow(1, CHECK_ID, CHECK_NAME);
         vm.expectRevert(KarwanCreAdapter.BadBinding.selector);
-        fresh.bindWorkflow(4, CHECK_ID, CHECK_NAME);
+        fresh.bindWorkflow(5, CHECK_ID, CHECK_NAME);
 
         bytes32 nextId = keccak256("karwan-check-v2");
         adapter.bindWorkflow(1, nextId, CHECK_NAME);
