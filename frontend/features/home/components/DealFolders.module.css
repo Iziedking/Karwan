@@ -1,0 +1,85 @@
+.wrap { margin-top: clamp(28px, 4vh, 44px); }
+.row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(20px, 3vw, 40px); }
+
+/* A folder drawn as an object: back panel, the deals inside, a front panel
+   hinged on its bottom edge. Hover leans the front; opening fans the deals. */
+.folder {
+  --lean: 0deg;
+  --lift: -34px;
+  --rise: 6px;
+  --spread: 3px;
+  --fan: .6deg;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  --spring: cubic-bezier(.34, 1.36, .5, 1);
+  position: relative;
+  height: 330px;
+  transition: height .55s var(--ease);
+}
+.folder:not([data-static]):hover, .folder:focus-within { --lean: -10deg; --lift: -52px; --rise: 10px; --spread: 6px; --fan: 1deg; }
+/* Open, every card clears the one in front of it, so each range and date reads
+   in full. The folder grows to hold the stack instead of spilling upward. */
+.folder[data-open]:not([data-static]) { --lean: -24deg; --lift: -96px; --rise: 58px; --spread: 8px; --fan: .8deg; height: 470px; }
+
+.tab { position: absolute; left: 0; bottom: 214px; width: 42%; height: 28px; border: 1px solid var(--lp-border-light); border-bottom: 0; border-radius: 14px 14px 0 0; background: var(--lp-light); }
+.back { position: absolute; inset: auto 0 0; height: 216px; border: 1px solid var(--lp-border-light); border-radius: 0 16px 16px; background: var(--lp-light); }
+
+.cards { position: absolute; inset: 0; margin: 0; padding: 0; list-style: none; pointer-events: none; }
+.card {
+  position: absolute;
+  left: 7%;
+  width: 86%;
+  bottom: 76px;
+  height: 52px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 16px;
+  border: 1px solid var(--lp-border-light);
+  border-radius: 14px;
+  background: var(--lp-card);
+  transform-origin: 50% 100%;
+  transform:
+    translate(calc(var(--slot) * var(--spread)), calc(var(--lift) - var(--depth) * var(--rise)))
+    rotate(calc(var(--slot) * var(--fan)));
+  transition: transform .7s var(--spring) calc(var(--depth) * 35ms);
+}
+.band { padding: 4px 12px; border-radius: 999px; background: var(--lp-light); color: var(--lp-dark); font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.date { color: var(--lp-text-sub); font-size: 14px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+.front {
+  all: unset;
+  box-sizing: border-box;
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 10;
+  height: 168px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 20px 22px;
+  border: 1px solid var(--lp-border-light);
+  border-radius: 16px;
+  background: var(--lp-card);
+  color: var(--lp-dark);
+  cursor: pointer;
+  transform-origin: 50% 100%;
+  transform: perspective(760px) rotateX(var(--lean));
+  transition: transform .7s var(--spring);
+}
+.front:disabled { cursor: default; }
+.front:focus-visible { outline: 2px solid var(--karwan-green); outline-offset: 3px; }
+.figure { font-family: var(--font-display); font-size: clamp(38px, 4vw, 52px); line-height: 1; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.label { margin-top: 10px; font-size: 17px; font-weight: 600; }
+.meta { margin-top: 4px; max-width: calc(100% - 56px); color: var(--lp-text-sub); font-size: 14px; line-height: 1.45; }
+.key { position: absolute; right: 18px; bottom: 18px; display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--lp-border-light); border-radius: 12px; color: var(--lp-dark); }
+.chevron { transform: rotate(-90deg); transition: transform .35s var(--ease); }
+.folder[data-open] .chevron { transform: rotate(90deg); }
+
+@media (max-width: 760px) {
+  .row { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .folder, .card, .front, .chevron { transition: none; }
+}

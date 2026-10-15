@@ -5,7 +5,7 @@ import { api, type PublicFeedDeal } from '@/core/api';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { relativeTime } from '@/shared/utils/format';
 import styles from '@/app/landing.module.css';
-import { DealFolders } from './DealFolders';
+import { DealFolders, type DealStats } from './DealFolders';
 import { agentReadFigure, settlementFigures, type AgentReadFigure, type SettlementFigures } from '../settlementRecord';
 
 /// How payment moves through escrow, shown with the network's own record: the
@@ -21,6 +21,7 @@ export function SettlementRecord() {
     retry: 1,
   });
   const feed = useQuery({ queryKey: ['landing', 'feed'], queryFn: () => api.dealsFeed(), staleTime: 300_000, retry: 1 });
+  const stats = useQuery({ queryKey: ['landing', 'stats'], queryFn: () => api.dealsStats(), staleTime: 300_000, retry: 1 });
   const reads = useQuery({
     queryKey: ['landing', 'reads'],
     queryFn: ({ signal }) => api.networkReads({ signal }),
@@ -35,7 +36,7 @@ export function SettlementRecord() {
         <p className={styles.eyebrow}>{t.recordLabel}</p>
         <div className={styles.recordHead}><h2 id="record-title">{t.recordTitle}</h2><p>{t.recordBody}</p></div>
         {figures ? (
-          <LiveRecord figures={figures} reads={agentReadFigure(reads.data)} feed={feed.data?.deals} />
+          <LiveRecord figures={figures} reads={agentReadFigure(reads.data)} feed={feed.data?.deals} stats={stats.data} />
         ) : lifetime.isPending ? (
           <div className={styles.liveSkeleton} aria-hidden />
         ) : (
@@ -59,7 +60,7 @@ export function SettlementRecord() {
   );
 }
 
-function LiveRecord({ figures, reads, feed }: { figures: SettlementFigures; reads: AgentReadFigure | null; feed: PublicFeedDeal[] | undefined }) {
+function LiveRecord({ figures, reads, feed, stats }: { figures: SettlementFigures; reads: AgentReadFigure | null; feed: PublicFeedDeal[] | undefined; stats: DealStats | undefined }) {
   const messages = useTranslations();
   const t = messages.landingEditorial;
   const { locale } = useLocale();
@@ -102,7 +103,7 @@ function LiveRecord({ figures, reads, feed }: { figures: SettlementFigures; read
           </p>
         </div>
       </div>
-      <DealFolders feed={feed} />
+      <DealFolders feed={feed} stats={stats} />
       <p className={styles.recordFoot}>{source}</p>
     </>
   );
