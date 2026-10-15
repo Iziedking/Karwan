@@ -8,6 +8,9 @@ import {KarwanAgreementEscrow} from "../../src/suite/KarwanAgreementEscrow.sol";
 import {KarwanCheckVerifier} from "../../src/suite/KarwanCheckVerifier.sol";
 import {KarwanTradeFinance} from "../../src/suite/KarwanTradeFinance.sol";
 import {KarwanYieldPool} from "../../src/suite/KarwanYieldPool.sol";
+import {KarwanTimeEscrow} from "../../src/suite/KarwanTimeEscrow.sol";
+import {TimeLib} from "../../src/suite/time/TimeLib.sol";
+import {TimeDisputeLib} from "../../src/suite/time/TimeDisputeLib.sol";
 import {SettlementLib} from "../../src/suite/settlement/SettlementLib.sol";
 import {AgreementBounds} from "../../src/suite/agreement/AgreementTypes.sol";
 import {AgreementLib} from "../../src/suite/agreement/AgreementLib.sol";
@@ -41,12 +44,15 @@ contract SuiteSizesTest is SuiteFixture {
         _check("KarwanStakeVault", address(vault).code.length);
         _check("KarwanTradeFinance", address(new KarwanTradeFinance(address(hub))).code.length);
         _check("KarwanYieldPool", address(new KarwanYieldPool(address(hub), address(usdc))).code.length);
+        _check("KarwanTimeEscrow", address(new KarwanTimeEscrow(address(hub))).code.length);
         _check("SettlementLib", type(SettlementLib).runtimeCode.length);
         _check("AgreementLib", type(AgreementLib).runtimeCode.length);
         _check("AgreementDeliveryLib", type(AgreementDeliveryLib).runtimeCode.length);
         _check("AgreementTermsLib", type(AgreementTermsLib).runtimeCode.length);
         _check("AgreementDisputeLib", type(AgreementDisputeLib).runtimeCode.length);
         _check("DisputeLib", type(DisputeLib).runtimeCode.length);
+        _check("TimeLib", type(TimeLib).runtimeCode.length);
+        _check("TimeDisputeLib", type(TimeDisputeLib).runtimeCode.length);
     }
 
     /// The base is compiled into every family, so its entry points must leave
