@@ -3508,10 +3508,10 @@ export const api = {
     }),
   getDepositRequest: (token: string) =>
     json<{ request: DepositRequestPublic }>(`/api/deposit/requests/${encodeURIComponent(token)}`),
-  listDepositRequests: () =>
-    json<{ requests: DepositRequestPublic[] }>('/api/deposit/requests'),
-  paidDepositRequests: () =>
-    json<{ requests: DepositRequestPublic[] }>('/api/deposit/requests/paid'),
+  listDepositRequests: (page: RequestPage = {}) =>
+    json<RequestPageResult>(`/api/deposit/requests${requestPageQuery(page)}`),
+  paidDepositRequests: (page: RequestPage = {}) =>
+    json<RequestPageResult>(`/api/deposit/requests/paid${requestPageQuery(page)}`),
   confirmRequestPaid: (token: string, txHash: string, chain: string) =>
     json<{ request: DepositRequestPublic; pending?: boolean }>(`/api/deposit/requests/${encodeURIComponent(token)}/paid`, {
       method: 'POST',
@@ -5342,6 +5342,18 @@ export interface DepositRequestPublic {
   payments?: Array<{ amountUsdc: string; chain: string; at: number; delivery?: 'moving' | 'delivered' | 'delayed' }>;
   receivedUsdc?: string;
   remainingUsdc?: string;
+}
+
+/// One page of a request list. `before` is the `next` the previous page gave.
+export interface RequestPage { limit?: number; before?: number }
+export interface RequestPageResult { requests: DepositRequestPublic[]; next: number | null }
+
+function requestPageQuery(page: RequestPage): string {
+  const params = new URLSearchParams();
+  if (page.limit) params.set('limit', String(page.limit));
+  if (page.before) params.set('before', String(page.before));
+  const query = params.toString();
+  return query ? `?${query}` : '';
 }
 
 export interface ChatMessage {

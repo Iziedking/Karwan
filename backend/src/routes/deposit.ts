@@ -14,6 +14,7 @@ import {
   saveDepositRequest,
   toPublicRequest,
 } from '../money/depositRequests.js';
+import { pageOf, parsePageQuery } from '../money/requestPage.js';
 import { coversRequest, payerOf, receivedBy } from '../money/requestPayment.js';
 import { publicClient } from '../chain/client.js';
 import { config } from '../config.js';
@@ -98,10 +99,11 @@ depositRoutes.post('/requests', async (c) => {
 /// Requests the signed-in account paid, so a payer can find them again.
 depositRoutes.get('/requests/paid', async (c) => {
   const payer = sessionAddress(c);
-  if (!payer) return c.json({ requests: [] });
-  const requests = await listDepositRequestsPaidBy(payer, 20);
+  if (!payer) return c.json({ requests: [], next: null });
+  const { limit, before } = parsePageQuery({ limit: c.req.query('limit'), before: c.req.query('before') });
+  const page = pageOf(await listDepositRequestsPaidBy(payer, limit + 1, before), limit, (request) => request.matchedAt ?? 0);
   const now = Date.now();
-  return c.json({ requests: requests.map((request) => toPublicRequest(request, now)) });
+  return c.json({ requests: page.items.map((request) => toPublicRequest(request, now)), next: page.next });
 });
 
 /// Public by design. A recipient can share this URL with someone who is not
@@ -131,10 +133,11 @@ depositRoutes.post('/requests/:token/receive', rateLimit({ windowMs: 60_000, max
 /// The recipient's own request history. No public caller can enumerate tokens.
 depositRoutes.get('/requests', async (c) => {
   const owner = sessionAddress(c);
-  if (!owner) return c.json({ requests: [] });
-  const requests = await listDepositRequests(owner, 20);
+  if (!owner) return c.json({ requests: [], next: null });
+  const { limit, before } = parsePageQuery({ limit: c.req.query('limit'), before: c.req.query('before') });
+  const page = pageOf(await listDepositRequests(owner, limit + 1, before), limit, (request) => request.createdAt);
   const now = Date.now();
-  return c.json({ requests: requests.map((request) => toPublicRequest(request, now)) });
+  return c.json({ requests: page.items.map((request) => toPublicRequest(request, now)), next: page.next });
 });
 
 /// The payer reports the Arc transaction that paid a request. Public, because a

@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, lt, sql } from 'drizzle-orm';
 import { db, pgEnabled } from '../db/client.js';
 import { depositRequests } from '../db/schema.js';
 import { microsToUsdc, receivedMicros, remainingUsdc } from './requestReceipts.js';
@@ -210,38 +210,43 @@ export async function getDepositRequest(token: string): Promise<DepositRequest |
   return loadFile()[token] ?? null;
 }
 
-export async function listDepositRequests(owner: string, limit = 10): Promise<DepositRequest[]> {
+/// Newest first. `before` is the createdAt of the last row already shown.
+export async function listDepositRequests(owner: string, limit = 10, before?: number): Promise<DepositRequest[]> {
   const normalised = owner.toLowerCase();
   if (pgEnabled) {
     const rows = await db()
       .select()
       .from(depositRequests)
-      .where(eq(depositRequests.owner, normalised))
+      .where(before === undefined
+        ? eq(depositRequests.owner, normalised)
+        : and(eq(depositRequests.owner, normalised), lt(depositRequests.createdAt, before)))
       .orderBy(desc(depositRequests.createdAt))
       .limit(limit);
     return rows.map((row) => row.data as DepositRequest);
   }
   return Object.values(loadFile())
-    .filter((request) => request.owner === normalised)
+    .filter((request) => request.owner === normalised && (before === undefined || request.createdAt < before))
     .sort((a, b) => b.createdAt - a.createdAt)
     .slice(0, limit);
 }
 
 /// Requests this address paid, newest first. Payers are kept inside the row's
 /// data, so the read filters on that field rather than a column.
-export async function listDepositRequestsPaidBy(payer: string, limit = 20): Promise<DepositRequest[]> {
+/// `before` is the matchedAt of the last row already shown.
+export async function listDepositRequestsPaidBy(payer: string, limit = 20, before?: number): Promise<DepositRequest[]> {
   const normalised = payer.toLowerCase();
   if (pgEnabled) {
+    const paidBy = sql`${depositRequests.data}->>'paidBy' = ${normalised}`;
     const rows = await db()
       .select({ data: depositRequests.data })
       .from(depositRequests)
-      .where(sql`${depositRequests.data}->>'paidBy' = ${normalised}`)
+      .where(before === undefined ? paidBy : and(paidBy, lt(depositRequests.matchedAt, before)))
       .orderBy(desc(depositRequests.matchedAt))
       .limit(limit);
     return rows.map((row) => row.data as DepositRequest);
   }
   return Object.values(loadFile())
-    .filter((request) => request.paidBy === normalised)
+    .filter((request) => request.paidBy === normalised && (before === undefined || (request.matchedAt ?? 0) < before))
     .sort((a, b) => (b.matchedAt ?? 0) - (a.matchedAt ?? 0))
     .slice(0, limit);
 }
