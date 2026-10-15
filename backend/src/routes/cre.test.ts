@@ -106,7 +106,7 @@ test('a dry run registers its branch reference as a document', async () => {
   const policyHash = await store.putDocument('policy', policy);
   await call('/check/started', {
     method: 'POST',
-    body: { kind: 'dry', dealKey: 'dry-7f1c2a90-1b2c-4d5e-8f90-a1b2c3d4e5f6', family: FAMILY, dealId: DEAL, revision: 0, deliveredBlockHash: null, policyHash, reference },
+    body: { kind: 'dry', dealKey: `dry-${'7'.repeat(64)}`, family: FAMILY, dealId: DEAL, revision: 0, deliveredBlockHash: null, policyHash, reference },
   });
   const pending = (await (await call('/check/pending')).json()) as { items: { reference: unknown }[] };
   assert.deepEqual(pending.items[0]!.reference, reference);
@@ -153,12 +153,14 @@ test('alerts are acted on only when the risk workflow signed exactly those alert
   assert.deepEqual([...swapped.notified, ...wrongWorkflow.notified], []);
 });
 
-test('a dry-run result is stored only when the check workflow signed exactly that result', async () => {
-  const id = '7f1c2a90-1b2c-4d5e-8f90-a1b2c3d4e5f6';
-  const payload = { dealKey: `dry-${id}`, decision: 'PASS' };
+test('a dry-run result is stored under its fee run only when the check workflow signed exactly that result', async () => {
+  const runId = `0x${'7'.repeat(64)}`;
+  const payload = { dealKey: `dry-${runId.slice(2)}`, decision: 'PASS' };
   const good = setup();
   assert.equal((await good.call('/dry-run/result', { method: 'POST', body: { payload, report: signed('check', payload) } })).status, 200);
-  assert.deepEqual(((await good.store.getDryRun(id))?.result as { payload: unknown }).payload, payload);
+  assert.deepEqual(((await good.store.getDryRun(runId))?.result as { payload: unknown }).payload, payload);
+  const old = { dealKey: 'dry-7f1c2a90-1b2c-4d5e-8f90-a1b2c3d4e5f6', decision: 'PASS' };
+  assert.equal((await good.call('/dry-run/result', { method: 'POST', body: { payload: old, report: signed('check', old) } })).status, 400);
   const forged = setup();
   assert.equal((await forged.call('/dry-run/result', { method: 'POST', body: { payload: { ...payload, decision: 'FAIL' }, report: signed('check', payload) } })).status, 400);
   const bad = setup({ verifyReport: async () => ({ ok: false, reason: 'INSUFFICIENT_SIGNATURES' }) });

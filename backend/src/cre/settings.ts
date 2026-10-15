@@ -28,6 +28,10 @@ const schema = z.object({
   CRE_VERIFIER_CK_ADDR: address,
   CRE_ARC_RPC_URL: optional,
   CRE_IDENTITY_ADDR: address,
+  /// KarwanCreFees: holds dry-run payments until a signed answer or a refund.
+  CRE_FEES_ADDR: address,
+  /// Pays Arc gas to relay fee payments; it can move no one's money.
+  CRE_RELAYER_KEY: z.preprocess((v) => (v === undefined || v === '' ? undefined : v), z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional()),
 }).refine((s) => !(s.CRE_REPORT_TRUST === 'simulation' && s.NODE_ENV === 'production'), {
   message: 'CRE_REPORT_TRUST=simulation is refused in production',
 });
@@ -52,6 +56,8 @@ export interface CreSettings {
   verifierCK?: string;
   arcRpcUrl?: string;
   identity?: string;
+  fees?: string;
+  relayerKey?: string;
 }
 
 export function parseCreSettings(env: Record<string, string | undefined>): CreSettings {
@@ -76,5 +82,7 @@ export function parseCreSettings(env: Record<string, string | undefined>): CreSe
     verifierCK: s.CRE_VERIFIER_CK_ADDR,
     arcRpcUrl: s.CRE_ARC_RPC_URL,
     identity: s.CRE_IDENTITY_ADDR,
+    fees: s.CRE_FEES_ADDR,
+    relayerKey: s.CRE_RELAYER_KEY,
   };
 }

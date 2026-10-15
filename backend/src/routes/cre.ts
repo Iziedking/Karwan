@@ -165,13 +165,13 @@ export function createCreRoutes(deps: CreRouteDeps) {
 
   app.post('/dry-run/result', async (c) => {
     const body = z.object({
-      payload: z.object({ dealKey: z.string().regex(/^dry-[0-9a-f-]{36}$/) }).passthrough(),
+      payload: z.object({ dealKey: z.string().regex(/^dry-[0-9a-f]{64}$/) }).passthrough(),
       report: reportSchema,
     }).safeParse(await c.req.json().catch(() => null));
     if (!body.success) return c.json({ error: 'bad request' }, 400);
     const refused = await signedPost(c, body.data.report, body.data.payload, deps.workflows.check);
     if (refused) return refused;
-    await deps.store.putDryRun(body.data.payload.dealKey.slice(4), { payload: body.data.payload, report: body.data.report }, deps.now());
+    await deps.store.putDryRun(`0x${body.data.payload.dealKey.slice(4)}`, { payload: body.data.payload, report: body.data.report }, deps.now());
     return c.json({ ok: true });
   });
 

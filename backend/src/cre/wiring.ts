@@ -1,8 +1,19 @@
-import { randomUUID } from 'node:crypto';
-import { createPublicClient, http, parseAbi, type Address, type Hex } from 'viem';
+import {
+  createPublicClient,
+  createWalletClient,
+  defineChain,
+  encodeAbiParameters,
+  http,
+  keccak256,
+  parseAbi,
+  parseAbiParameters,
+  type Address,
+  type Hex,
+} from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
 import { logger } from '../logger.js';
 import { createCreRoutes } from '../routes/cre.js';
-import { createX402CreRoutes } from '../routes/x402Cre.js';
+import { createX402CreRoutes, type FeeAuthorization } from '../routes/x402Cre.js';
 import { createGatewayClient } from './gateway.js';
 import { adapterAbi, agreementAbi } from './shared/suiteAbi.js';
 import { createRegistryReader, verifyDonReport } from './reportVerify.js';
@@ -46,6 +57,36 @@ export function makePartyOf(read: ReadContract, identityRegistry: string) {
   };
 }
 
+const FEE_OPEN = 1;
+
+/// A fee payment counts once Arc shows its run open. The run id is keyed as
+/// the contract keys it, and a run another relayer opened first still counts.
+export function makeOpenFee(chain: { submit(a: FeeAuthorization): Promise<void>; runState(runId: Hex): Promise<number> }) {
+  return async (a: FeeAuthorization): Promise<{ runId: string } | { error: string }> => {
+    const runId = keccak256(encodeAbiParameters(parseAbiParameters('address, bytes32'), [a.from as Address, a.nonce as Hex]));
+    let reason = 'not open';
+    try {
+      await chain.submit(a);
+    } catch (err) {
+      reason = err instanceof Error ? err.message : String(err);
+    }
+    try {
+      if ((await chain.runState(runId)) === FEE_OPEN) return { runId };
+    } catch (err) {
+      reason = err instanceof Error ? err.message : String(err);
+    }
+    return { error: reason };
+  };
+}
+
+const feesAbi = parseAbi([
+  'function open(address from, uint256 value, uint256 validAfter, uint256 validBefore, bytes32 nonce, bytes signature) returns (bytes32)',
+  'function runs(bytes32 runId) view returns (address payer, uint64 openedAt, uint8 state, uint256 amount)',
+]);
+
+const ARC_TESTNET_ID = 5_042_002;
+const ARC_USDC = '0x3600000000000000000000000000000000000000';
+
 const suiteViews = parseAbi([
   'struct DealAccount { address asset; uint64 horizon; uint8 payeeCount; bool closed; uint8 consentMask; bool valued; address payer; uint64 payerId; uint16 feeBps; uint16 yieldBps; address feeRecipient; uint64 holdUntil; address seniorSafe; uint64 holdUsed; uint128 perDealCap; uint128 funded; uint128 balance; uint128 feePaid; uint128 promised; uint128 recordValue; }',
   'function accountOf(bytes32 dealId) view returns (DealAccount)',
@@ -61,10 +102,22 @@ async function storeFor(): Promise<CreStore> {
 /// workflow is not configured.
 export async function x402CreRoutesFromEnv(env: Record<string, string | undefined> = process.env) {
   const settings = parseCreSettings(env);
-  if (!settings.suiteEnabled || !settings.checkWorkflowId || !settings.gatewaySignerKey || !settings.adapter || !settings.identity) return null;
+  if (
+    !settings.suiteEnabled || !settings.checkWorkflowId || !settings.gatewaySignerKey || !settings.adapter || !settings.identity
+    || !settings.fees || !settings.relayerKey
+  ) return null;
   const { requirePayment } = await import('../x402/sellerFacilitator.js');
   const store = await storeFor();
-  const arc = createPublicClient({ transport: http(settings.arcRpcUrl ?? 'https://rpc.testnet.arc.network') });
+  const rpc = settings.arcRpcUrl ?? 'https://rpc.testnet.arc.network';
+  const chain = defineChain({
+    id: ARC_TESTNET_ID,
+    name: 'Arc Testnet',
+    nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 },
+    rpcUrls: { default: { http: [rpc] } },
+  });
+  const arc = createPublicClient({ chain, transport: http(rpc) });
+  const relayer = createWalletClient({ chain, account: privateKeyToAccount(settings.relayerKey as Hex), transport: http(rpc) });
+  const fees = settings.fees as Address;
   const abi = [...agreementAbi, ...adapterAbi, ...suiteViews];
   const read: ReadContract = (input) =>
     arc.readContract({ address: input.address as Address, abi, functionName: input.functionName as 'getTerms', args: input.args as [Hex] });
@@ -89,8 +142,24 @@ export async function x402CreRoutesFromEnv(env: Record<string, string | undefine
       }
     },
     creVerifiers: [settings.verifierK, settings.verifierCK].filter((v): v is string => !!v),
+    fee: { contract: fees, usdc: ARC_USDC, network: `eip155:${ARC_TESTNET_ID}`, amountAtomic: '250000', refundAfterSec: 3600 },
+    openFee: makeOpenFee({
+      submit: async (a) => {
+        const hash = await relayer.writeContract({
+          address: fees,
+          abi: feesAbi,
+          functionName: 'open',
+          args: [a.from as Address, BigInt(a.value), BigInt(a.validAfter), BigInt(a.validBefore), a.nonce as Hex, a.signature as Hex],
+        });
+        const receipt = await arc.waitForTransactionReceipt({ hash });
+        if (receipt.status !== 'success') throw new Error(`open reverted in ${hash}`);
+      },
+      runState: async (runId) => {
+        const [, , state] = await arc.readContract({ address: fees, abi: feesAbi, functionName: 'runs', args: [runId] });
+        return state;
+      },
+    }),
     start: (input) => gateway.start(checkWorkflowId, input),
-    newId: () => randomUUID(),
     now: () => Date.now(),
     adapter: settings.adapter,
   });

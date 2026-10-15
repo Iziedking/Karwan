@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { makeCheckApproved, makePartyOf } from './wiring.js';
+import { encodeAbiParameters, keccak256, parseAbiParameters } from 'viem';
+import { makeCheckApproved, makeOpenFee, makePartyOf } from './wiring.js';
 
 const ADAPTER = '0x00000000000000000000000000000000000ada97';
 const VERIFIER = '0x00000000000000000000000000000000000c4ec4';
@@ -63,4 +64,31 @@ test('a wallet is a party when the identity registry binds it to the buyer or th
   assert.equal(await partyOf(AGENT, FAMILY, DEAL), 'buyer');
   assert.equal(await partyOf(SELLER, FAMILY, DEAL), 'seller');
   assert.equal(await partyOf(`0x${'3'.repeat(40)}`, FAMILY, DEAL), null);
+});
+
+const FEE_AUTH = {
+  from: `0x${'b'.repeat(40)}`,
+  to: `0x${'fe'.repeat(20)}`,
+  value: '250000',
+  validAfter: '0',
+  validBefore: '1800003600',
+  nonce: `0x${'a'.repeat(64)}`,
+  signature: `0x${'1b'.repeat(65)}`,
+};
+const FEE_RUN = keccak256(encodeAbiParameters(parseAbiParameters('address, bytes32'), [FEE_AUTH.from as `0x${string}`, FEE_AUTH.nonce as `0x${string}`]));
+
+test('a fee payment counts once Arc shows its run open, keyed as the contract keys it', async () => {
+  const submitted: unknown[] = [];
+  const open = makeOpenFee({ submit: async (a) => { submitted.push(a); }, runState: async (id) => (id === FEE_RUN ? 1 : 0) });
+  assert.deepEqual(await open(FEE_AUTH), { runId: FEE_RUN });
+  assert.deepEqual(submitted, [FEE_AUTH]);
+});
+
+test('a run another relayer opened first still counts; a refused payment does not', async () => {
+  const raced = makeOpenFee({ submit: async () => { throw new Error('RunExists'); }, runState: async () => 1 });
+  assert.deepEqual(await raced(FEE_AUTH), { runId: FEE_RUN });
+  const refused = makeOpenFee({ submit: async () => { throw new Error('FiatTokenV2: invalid signature'); }, runState: async () => 0 });
+  assert.ok('error' in (await refused(FEE_AUTH)));
+  const spent = makeOpenFee({ submit: async () => {}, runState: async () => 2 });
+  assert.ok('error' in (await spent(FEE_AUTH)));
 });

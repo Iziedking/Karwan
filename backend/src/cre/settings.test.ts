@@ -34,3 +34,11 @@ test('simulation trust is refused in production', () => {
 test('a fallback shorter than ten minutes is refused', () => {
   assert.throws(() => parseCreSettings({ CRE_FALLBACK_AFTER_MS: '1000' }));
 });
+
+test('reads the dry-run fee contract and the relayer key that pays its gas', () => {
+  const key = `0x${'4'.repeat(64)}`;
+  const s = parseCreSettings({ CRE_FEES_ADDR: `0x${'fe'.repeat(20)}`, CRE_RELAYER_KEY: key });
+  assert.equal(s.fees, `0x${'fe'.repeat(20)}`);
+  assert.equal(s.relayerKey, key);
+  assert.throws(() => parseCreSettings({ CRE_RELAYER_KEY: 'not a key' }));
+});
