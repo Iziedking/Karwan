@@ -40,7 +40,7 @@ function AccountPageInner() {
           <h2 className="text-[22px] font-semibold tracking-[-0.035em] text-[var(--lp-dark)]">{t.manage}</h2>
           <nav className="mt-5 divide-y divide-[var(--lp-border-light)]">
             <AccountAction href="/bridge?direction=in" label={t.add} description={t.addHelp} icon="add" primary />
-            <AccountAction href="/bridge?direction=out&intent=move" label={messages.accountHome.move} description={t.moveHelp} icon="move" />
+            <AccountAction href="/bridge?direction=out" label={messages.accountHome.withdraw} description={t.withdrawHelp} icon="move" />
             <AccountAction href="/send" label={t.send} description={t.sendHelp} icon="send" />
           </nav>
           {ARC_NETWORK === 'testnet' ? (

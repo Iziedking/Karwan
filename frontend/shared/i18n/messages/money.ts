@@ -6,7 +6,6 @@ export interface MoneyCopy {
     movingOut: string;
     movingIn: string;
     add: string;
-    move: string;
     send: string;
     empty: string;
     loadError: string;
@@ -62,6 +61,8 @@ export interface MoneyCopy {
     otherNetwork: string;
     amountLabel: string;
     available: string;
+    /// Says what Available counts, beside it on Send.
+    availableHint: string;
     quarter: string;
     half: string;
     max: string;
@@ -171,7 +172,6 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       movingOut: '{amount} USDC on its way to {place}',
       movingIn: '{amount} USDC on its way from {place}',
       add: 'Add',
-      move: 'Move',
       send: 'Send',
       empty: 'Add USDC to start.',
       loadError: "Balances didn't load. Your money is unaffected.",
@@ -227,6 +227,7 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       otherNetwork: 'Send to another network',
       amountLabel: 'Amount',
       available: 'Available {amount} USDC',
+      availableHint: "What your main account can send now. The total on Home also counts your trade accounts and any USDC still on other networks.",
       quarter: '25%',
       half: '50%',
       max: 'Max',
@@ -324,7 +325,6 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       movingOut: '{amount} USDC في الطريق إلى {place}',
       movingIn: '{amount} USDC في الطريق من {place}',
       add: 'إضافة',
-      move: 'نقل',
       send: 'إرسال',
       empty: 'أضف USDC للبدء.',
       loadError: 'لم يتم تحميل الأرصدة. أموالك لم تتأثر.',
@@ -380,6 +380,7 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       otherNetwork: 'الإرسال إلى شبكة أخرى',
       amountLabel: 'المبلغ',
       available: 'المتاح {amount} USDC',
+      availableHint: "ما يمكن لحسابك الرئيسي إرساله الآن. يشمل الإجمالي في الرئيسية أيضًا حسابات التداول وأي USDC لا يزال على شبكات أخرى.",
       quarter: '25%',
       half: '50%',
       max: 'الحد الأقصى',
@@ -477,7 +478,6 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       movingOut: '{amount} USDC en route vers {place}',
       movingIn: '{amount} USDC en route depuis {place}',
       add: 'Ajouter',
-      move: 'Déplacer',
       send: 'Envoyer',
       empty: 'Ajoutez des USDC pour commencer.',
       loadError: 'Les soldes ne se sont pas chargés. Votre argent n’est pas affecté.',
@@ -533,6 +533,7 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       otherNetwork: 'Envoyer vers un autre réseau',
       amountLabel: 'Montant',
       available: 'Disponible : {amount} USDC',
+      availableHint: "Ce que votre compte principal peut envoyer maintenant. Le total sur l’accueil compte aussi vos comptes de trading et les USDC encore sur d’autres réseaux.",
       quarter: '25 %',
       half: '50 %',
       max: 'Max',
@@ -630,7 +631,6 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       movingOut: '{amount} USDC {place} की ओर जा रहे हैं',
       movingIn: '{amount} USDC {place} से आ रहे हैं',
       add: 'जोड़ें',
-      move: 'ले जाएँ',
       send: 'भेजें',
       empty: 'शुरू करने के लिए USDC जोड़ें।',
       loadError: 'बैलेंस लोड नहीं हुए। आपके पैसे पर कोई असर नहीं पड़ा।',
@@ -686,6 +686,7 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       otherNetwork: 'दूसरे नेटवर्क पर भेजें',
       amountLabel: 'राशि',
       available: 'उपलब्ध {amount} USDC',
+      availableHint: "आपका मुख्य खाता अभी इतना भेज सकता है. होम पर कुल राशि में आपके ट्रेड खाते और दूसरे नेटवर्क पर रखे USDC भी गिने जाते हैं.",
       quarter: '25%',
       half: '50%',
       max: 'अधिकतम',
@@ -783,7 +784,6 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       movingOut: '{amount} USDC ziko njiani kwenda {place}',
       movingIn: '{amount} USDC ziko njiani kutoka {place}',
       add: 'Ongeza',
-      move: 'Hamisha',
       send: 'Tuma',
       empty: 'Ongeza USDC ili uanze.',
       loadError: 'Salio halikupakia. Pesa zako haziathiriki.',
@@ -839,6 +839,7 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       otherNetwork: 'Tuma kwenye mtandao mwingine',
       amountLabel: 'Kiasi',
       available: 'Inapatikana {amount} USDC',
+      availableHint: "Kiasi akaunti yako kuu inaweza kutuma sasa. Jumla kwenye Nyumbani pia inahesabu akaunti zako za biashara na USDC iliyo bado kwenye mitandao mingine.",
       quarter: '25%',
       half: '50%',
       max: 'Yote',

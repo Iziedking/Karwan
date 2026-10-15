@@ -111,7 +111,7 @@ function MoneyHomeInner() {
               </p>
               <div className="flex flex-wrap gap-3">
                 <Link href="/bridge?intent=add" className={PRIMARY}>{t.home.add}</Link>
-                <Link href="/bridge?intent=move" className={SECONDARY}>{t.home.move}</Link>
+                <Link href="/bridge?direction=out" className={SECONDARY}>{t.home.withdraw}</Link>
                 <Link href="/send" className={SECONDARY}>{t.home.send}</Link>
                 <Link href="/request" className={SECONDARY}>{payLink.short}</Link>
               </div>

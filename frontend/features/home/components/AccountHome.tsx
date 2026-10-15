@@ -82,7 +82,7 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
             </p>
             <div className="mt-3.5 grid grid-cols-4 gap-2">
               <QuickAction href="/bridge?direction=in">{home.add}</QuickAction>
-              <QuickAction href="/bridge?direction=out&intent=move">{home.move}</QuickAction>
+              <QuickAction href="/bridge?direction=out">{home.withdraw}</QuickAction>
               <QuickAction href="/send">{home.send}</QuickAction>
               <QuickAction href="/request">{payLink.short}</QuickAction>
             </div>

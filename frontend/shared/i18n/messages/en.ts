@@ -404,7 +404,7 @@ interface MessagesShape {
       manage: string;
       add: string;
       addHelp: string;
-      moveHelp: string;
+      withdrawHelp: string;
       send: string;
       sendHelp: string;
       faucetTitle: string;
@@ -1125,7 +1125,7 @@ interface MessagesShape {
     balanceParts: string;
     wallets: string;
     add: string;
-    move: string;
+    withdraw: string;
     send: string;
     details: string;
     trades: string;
@@ -5737,7 +5737,7 @@ export const en: MessagesShape = {
       manage: 'Manage USDC',
       add: 'Add USDC',
       addHelp: 'Deposit from a supported wallet.',
-      moveHelp: 'Move USDC from your balance to a supported chain.',
+      withdrawHelp: "Withdraw USDC to a wallet on another network.",
       send: 'Send USDC',
       sendHelp: 'Pay a Karwan tag or an Arc address.',
       faucetTitle: "Get test USDC",
@@ -6490,7 +6490,7 @@ export const en: MessagesShape = {
     balanceParts: 'Wallet {wallet} · Other chains {other} · Agents {agents}',
     wallets: 'Wallets',
     add: 'Add',
-    move: 'Move',
+    withdraw: "Withdraw",
     send: 'Send',
     details: 'Details',
     trades: 'Trades',

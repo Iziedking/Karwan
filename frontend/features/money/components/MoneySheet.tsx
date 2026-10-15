@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from 'react';
 import Link from 'next/link';
+import { Hint } from '@/shared/components/Hint';
 import { AnimatePresence, motion } from 'motion/react';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useAddressKind, type AddressKind } from '@/shared/hooks/useAddressKind';
@@ -316,8 +317,9 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
           <span className="text-[18px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
         </div>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">
+          <p className="inline-flex items-center gap-1.5 text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">
             {available === null ? ' ' : fill(t.sheet.available, { amount: formatBalance(available, locale) })}
+            {available !== null && move === 'send' ? <Hint side="bottom">{t.sheet.availableHint}</Hint> : null}
           </p>
           <div className="flex gap-2">
             {(['quarter', 'half', 'max'] as const).map((chip) => (

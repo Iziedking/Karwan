@@ -267,11 +267,11 @@ test('market cards are quiet: no tinted surface, no decorative category icon, an
   assert.match(market, /card\.example \? \(/);
 });
 
-test('account action is Move and keeps its existing route', () => {
+test('account action is Withdraw, the route out that works for every account', () => {
   const account = source('../../features/account/AccountPageV1.tsx');
   const transfer = source('../../app/bridge/page.tsx');
-  assert.equal(en.accountHome.move, 'Move');
-  assert.match(account, /href="\/bridge\?direction=out&intent=move" label=\{messages\.accountHome\.move\}/);
+  assert.equal(en.accountHome.withdraw, 'Withdraw');
+  assert.match(account, /href="\/bridge\?direction=out" label=\{messages\.accountHome\.withdraw\}/);
   assert.doesNotMatch(account, /Withdraw from Gateway/);
   assert.match(transfer, /outIntent === 'move' \? header\.titleMove/);
   assert.equal(en.bridge.header.titleMove, 'Move USDC');
@@ -282,7 +282,7 @@ test('the transfer header speaks of one balance, never the Gateway pool', () => 
   assert.doesNotMatch(transfer, /Gateway balance/);
   for (const locale of [en, ar, fr, hi, sw]) {
     assert.doesNotMatch(Object.values(locale.bridge.header).join(' '), /Gateway/);
-    assert.doesNotMatch(locale.account.page.moveHelp, /Gateway/);
+    assert.doesNotMatch(locale.account.page.withdrawHelp, /Gateway/);
   }
 });
 
@@ -457,6 +457,20 @@ test('Updates tiles ease in and out as they slide, following the scroll, and hol
 test('phones keep the 14px floor: no rule shrinks text below the size the code asks for', () => {
   const css = source('../../app/globals.css');
   assert.doesNotMatch(css, /text-size-adjust:\s*(?!100%)\d+%/);
+});
+
+test('every balance surface offers Withdraw, the route out that works for every account, never the pooled Move', () => {
+  for (const file of ['../../features/home/components/AccountHome.tsx', '../../features/money/components/MoneyHome.tsx', '../../features/account/AccountPageV1.tsx']) {
+    const src = source(file);
+    assert.doesNotMatch(src, /intent=move/, file);
+    assert.match(src, /\/bridge\?direction=out"/, file);
+    assert.match(src, /\.withdraw\b/, file);
+  }
+});
+
+test('Send says what Available counts, so it is never read as a wrong balance', () => {
+  const sheet = source('../../features/money/components/MoneySheet.tsx');
+  assert.match(sheet, /t\.sheet\.available[\s\S]{0,400}<Hint[^>]*>\{t\.sheet\.availableHint\}<\/Hint>/);
 });
 
 test('Back sits on the content column: a page frame draws its own and the shell steps aside', () => {
