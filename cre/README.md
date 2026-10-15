@@ -1,8 +1,51 @@
 # Karwan Chainlink CRE workflows
 
+The design is in `docs/architecture/12-cre.md`.
+
+## The suite workflows
+
+Three workflows act on the contract suite, and only through
+`KarwanCreAdapter` (`contracts/src/suite/KarwanCreAdapter.sol`). The adapter
+accepts a report only from the forwarder, only from the workflow bound to its
+kind, and only within an hour of issue.
+
+| Folder | Kind | Triggers | Writes |
+|---|---|---|---|
+| `karwan-check` | CHECK | `Delivered` log on the Agreement escrows; a schedule that collects finished replays; an HTTP trigger for x402 dry runs | Pass or fail for one delivery revision, with the evidence hash. Nothing when there is no result |
+| `karwan-record` | FACT | An HTTP trigger from Karwan's backend | A GitHub work fact (`karwan.fact.github_work.v1`), after a wallet-signed gist proves the account is the person's |
+| `karwan-risk` | KEEP | A schedule over open deals; `RecordPending` and `PayoutCredited` logs | Timeouts each family lets anyone trigger, each confirmed by a simulated call from the adapter first |
+
+- **Shared code.** `shared/` holds the fingerprints, the policy and reference
+  schemas, the replay verdict, the evidence document and the report encoders.
+  The backend carries a byte-identical copy in `backend/src/cre/shared/`: run
+  `node scripts/cre-shared-sync.mjs` after any change, and
+  `backend/src/cre/sharedSync.test.ts` fails on drift.
+- **Replay runner.** `replay-runner/` becomes the public `karwan-replay`
+  repository, which re-runs the agreed items on the delivered commit.
+- **Enforcement switch.** While `CRE_ENABLED` is off, deals name the `V-K`
+  verifier and Karwan's checks decide. In this mode karwan-check runs with
+  `attest: false`, and its verdicts are only compared with Karwan's.
+
+Tests and checks:
+
+```text
+cd cre/<folder> && bun test && bun run typecheck
+scripts/ops/forge-remote.sh test --match-path 'test/suite/cre/*'
+scripts/ops/backend-remote.sh test src/cre
+scripts/ops/cre-remote.sh simulate karwan-check --target staging-settings --non-interactive --trigger-index 1
+```
+
+Deploy order (owner): suite deploy, then `DeployCreAdapter`, then
+`DeployCheckVerifiers`, then the three timelock calls it prints and the
+48-hour wait, then `cre workflow deploy` for each folder, then
+`BindCreWorkflow` once per kind.
+
+## github-delivery
+
 `github-delivery` evaluates one accepted delivery policy against an immutable
 GitHub pull-request commit, then prepares a signed report for the existing
-`KarwanEvidenceRegistry` non-custodial receiver.
+`KarwanEvidenceRegistry` non-custodial receiver. Once karwan-check replaces it
+in the registry, it serves only the legacy registry's deals.
 
 The staging target is intentionally keyless and fixture-only. Only the
 production target loads the Vault DON secret mapping.
@@ -223,3 +266,64 @@ read-only and fails unless the deployed receiver contains the exact accepted
 receipt and has consumed the report replay key. Karwan's backend release gates
 already read the same `receiptOf(dealId)` state, so the state change has a
 visible product consequence rather than being a disconnected demo.
+
+## Simulation forwarder, checked 15 October 2026
+
+The Chainlink docs say the simulation forwarder does not call a receiver's
+`onReport`; its published source says it does. The deployed contract decides.
+On a fork of Arc Testnet at block 66719638 (`scripts/ops/arc-fork.sh`), the
+forwarder at `0x6E9EE680ef59ef64Aa8C7371279c27E496b5eDc1` reports
+`MockKeystoneForwarder 1.0.0-dev`. A `report(receiver, rawReport, 0x, [])`
+call with a 109-byte header and a 4-byte body reached a probe receiver once,
+with 64 bytes of metadata and the 4-byte body. So a `cre workflow simulate
+--broadcast` run exercises the receiver for real, without signature checks.
+Reports signed in simulation still fail off-chain signature verification,
+by design.
+
+## Adapter rehearsal on a fork of Arc Testnet, 15 October 2026
+
+`contracts/script/CreForkScenario.s.sol` ran on `scripts/ops/arc-fork.sh`
+(Arc Foundry `anvil --network arc`, block 66719638) with `CRE_REHEARSAL=1` and
+public anvil test keys. It deployed the suite core, an Agreement escrow, the
+CRE adapter on the simulation forwarder and the `V-CRE|K` verifier, and funded,
+accepted and delivered one checked deal whose `checkPolicy` and `proofHash` are
+the fingerprints of `cre/karwan-check/fixtures/scenario.json`.
+
+A CHECK report encoded with `cre/shared/adapterReport.ts` was then sent through
+the deployed `MockKeystoneForwarder` with a 109-byte header naming the bound
+workflow. One transaction logged, in order:
+
+- `CheckApproved` from the adapter
+- `Reported` from the verifier
+- `CheckReported` and `ReviewStarted` from the escrow
+- `CheckSubmitted` from the adapter
+- `ReportProcessed(result=true)` from the forwarder
+
+A fresh read of `getDeal` showed `checkPassed = true`, with the review window
+started (`reviewEnd = reviewStartAt + 2 days`). This is a fork. It is not an
+Arc Testnet transaction and not a hosted CRE run.
+
+Keeper path, same fork and deal. The fork clock was moved past the review
+window, and a KEEP report (`claim(bytes32)` for the deal) was sent through the
+same forwarder:
+
+- The first attempt carried a 9-byte workflow name in the header. The adapter
+  refused it, and the forwarder logged `ReportProcessed(result=false)`.
+- Resent with the bound 10-byte name, one transaction logged the escrow's
+  `Paid`, `FeePaid`, `TranchePaid`, `AccountClosed` and `DealSettled`, then the
+  adapter's `KeepResult` and `ReportProcessed(result=true)`.
+- The seller's USDC rose by 99.5 (100 less the 0.5 fee), and `getDeal` showed
+  state 4 (Settled).
+- `OutcomeUnrecorded` was logged twice because the scenario's parties have no
+  registered identity.
+
+Fact path, same fork:
+
+- The seller registered an identity, and the record workflow was bound to
+  kind 2.
+- A FACT report (`karwan.fact.github_work.v1`, level 1) sent through the
+  forwarder logged `FactRecorded` from KarwanRecord, `FactWritten` from the
+  adapter and `ReportProcessed(result=true)`.
+- `getFact(0)` returned subject 1, level 1, issuer the adapter, and a one-year
+  expiry.
+- An earlier attempt against an unbound kind was refused.

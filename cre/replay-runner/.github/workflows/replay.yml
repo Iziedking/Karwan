@@ -1,0 +1,99 @@
+# Karwan replay runner. Re-runs the items two parties agreed at deal setup on
+# the exact commit the seller delivered, one job per item, in fresh GitHub-hosted
+# runners. Started by the karwan-check CRE workflow; its results are read back
+# by the same workflow and decided by fixed rules (cre/shared/verdict.ts).
+#
+# Pinned: a deal's acceptance policy names this file's blob sha, and a run of
+# any other version of this file gives no result.
+name: karwan replay
+
+run-name: karwan ${{ inputs.deal_key }} ${{ inputs.sha }} ${{ inputs.inputs_hash }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_repo:
+        description: owner/name of the delivered repository
+        required: true
+      sha:
+        description: the delivered commit, 40 hex
+        required: true
+      deal_key:
+        description: dealId-r<revision>, or dry-<id> for a dry run
+        required: true
+      policy_hash:
+        description: fingerprint of the agreed policy, for the record
+        required: true
+      items_json:
+        description: the policy items, as JSON
+        required: true
+      setup:
+        description: optional setup command run before each item
+        required: false
+        default: ""
+      timeout_minutes:
+        description: per-item time limit
+        required: true
+      inputs_hash:
+        description: sha256 of target_repo, sha, policy_hash, items_json and setup, one per line
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: karwan-${{ inputs.deal_key }}
+  cancel-in-progress: false
+
+jobs:
+  # The run is found by its name, which carries the inputs hash. This job
+  # re-derives the hash from the inputs it was actually given, so a run started
+  # with other items, another repository or another commit never counts.
+  guard:
+    name: guard
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Confirm the inputs match the run name
+        env:
+          TARGET_REPO: ${{ inputs.target_repo }}
+          SHA: ${{ inputs.sha }}
+          POLICY_HASH: ${{ inputs.policy_hash }}
+          ITEMS_JSON: ${{ inputs.items_json }}
+          SETUP: ${{ inputs.setup }}
+          EXPECTED: ${{ inputs.inputs_hash }}
+        run: |
+          actual=$(printf '%s\n%s\n%s\n%s\n%s' "$TARGET_REPO" "$SHA" "$POLICY_HASH" "$ITEMS_JSON" "$SETUP" | sha256sum | cut -d' ' -f1)
+          test "$actual" = "$EXPECTED"
+
+  items:
+    needs: guard
+    name: item:${{ matrix.item.id }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: ${{ fromJSON(inputs.timeout_minutes) }}
+    strategy:
+      fail-fast: false
+      matrix:
+        item: ${{ fromJSON(inputs.items_json) }}
+    steps:
+      - name: Check out the delivered commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ inputs.target_repo }}
+          ref: ${{ inputs.sha }}
+          persist-credentials: false
+      # Commands arrive through env, never interpolated into the script, so an
+      # item string cannot break out of this file.
+      - name: Confirm the commit
+        env:
+          SHA: ${{ inputs.sha }}
+        run: test "$(git rev-parse HEAD)" = "$SHA"
+      - name: Setup
+        if: ${{ inputs.setup != '' }}
+        env:
+          SETUP: ${{ inputs.setup }}
+        run: bash -c "$SETUP"
+      - name: Run the agreed item
+        env:
+          RUN: ${{ matrix.item.run }}
+        run: bash -c "$RUN"

@@ -1,0 +1,44 @@
+{
+  "policy": {
+    "policy": "karwan.replay.github.v1",
+    "repository": {
+      "owner": "karwan-xyz",
+      "name": "karwan-replay-fixture",
+      "id": 1
+    },
+    "baseBranch": "main",
+    "delivery": "pull",
+    "items": [
+      {
+        "id": "a",
+        "title": "Passing test",
+        "run": "npm test -- a",
+        "required": true
+      },
+      {
+        "id": "b",
+        "title": "Second test",
+        "run": "npm test -- b",
+        "required": true
+      }
+    ],
+    "partialAt": 1,
+    "runner": {
+      "repository": "karwan-xyz/karwan-replay",
+      "workflow": ".github/workflows/replay.yml",
+      "blobSha": "0000000000000000000000000000000000000000"
+    },
+    "timeoutMinutes": 10
+  },
+  "reference": {
+    "repository": {
+      "owner": "karwan-xyz",
+      "name": "karwan-replay-fixture",
+      "id": 1
+    },
+    "pull": 1,
+    "sha": "1111111111111111111111111111111111111111"
+  },
+  "policyHash": "0xa6ae3c77b6aec6b000e0660bef2d5d75e183e98b2493c87bc113ca74c9d90dc6",
+  "proofHash": "0xfcc24bb79b8b801c2a9422a81cbfa8e4979fe8a2aaef22858a58e07a4cd083a5"
+}

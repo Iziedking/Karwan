@@ -1,0 +1,21 @@
+{
+  "schedule": "0 * * * * *",
+  "chainId": 5042002,
+  "chainSelectorName": "arc-testnet",
+  "families": [
+    "0x0000000000000000000000000000000000000001"
+  ],
+  "verifiers": [
+    "0x0000000000000000000000000000000000000002"
+  ],
+  "attest": false,
+  "adapter": "0x0000000000000000000000000000000000000000",
+  "karwanApi": "https://api.karwan.site",
+  "apiTokenSecretId": "CRE_WORKFLOW_TOKEN",
+  "githubTokenSecretId": "GITHUB_REPLAY_TOKEN",
+  "runnerRef": "main",
+  "gatewayKey": "0x0000000000000000000000000000000000000003",
+  "gasLimit": "600000",
+  "maxItems": 3,
+  "runnerRepo": "karwan-xyz/karwan-replay"
+}
