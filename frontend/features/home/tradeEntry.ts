@@ -7,7 +7,7 @@ export const tradeEntryRoutes = (business: boolean) => ({
 });
 
 type Copy = { startHere: string; title: string; body: string; sell: string; sellBody: string; buy: string; buyBody: string;
-  agreement: string; scope: string; options: string; buyTitle: string; sellTitle: string; businessBuyBody: string;
+  agreement: string; options: string; buyTitle: string; sellTitle: string; businessBuyBody: string;
   journey: { brief: string; match: string; agree: string; settle: string };
   desk: {
     eyebrow: string; title: string; body: string; choosePath: string; paths: string; tryAgain: string;
@@ -15,6 +15,11 @@ type Copy = { startHere: string; title: string; body: string; sell: string; sell
     need: string; needBody: string;
     sell: string; sellBody: string; bringAgreement: string; bringAgreementBody: string;
     active: string; emptyTitle: string; emptyBody: string; open: string;
+    hub: {
+      yours: string; trades: string; yourMove: string; noMove: string;
+      requests: string; noneOpen: string; offersIn: string; offersInOne: string; noOffers: string;
+      offers: string; live: string; noneLive: string;
+    };
   } };
 
 export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
@@ -27,7 +32,6 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
     buy: 'Find something to buy', buyBody: 'Describe what you need, your budget and your deadline.',
     businessBuyBody: 'Browse what businesses offer on Karwan, then agree a deal.',
     agreement: 'I already have an agreement',
-    scope: 'Matching starts within Karwan. Finding customers across other websites is planned.',
     buyTitle: 'What do you need?', sellTitle: 'What do you offer?',
     journey: { brief: 'Brief', match: 'Match', agree: 'Agree', settle: 'Settle' },
     desk: {
@@ -40,6 +44,7 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
       bringAgreement: 'I already agreed with someone', bringAgreementBody: 'Start with someone you already know.',
       active: 'Active agreements', emptyTitle: 'Nothing active yet',
       emptyBody: 'Choose a path above and your agreement will stay here.', open: 'Open agreement',
+      hub: { yours: 'Your trading', trades: 'Active trades', yourMove: '{n} waiting on you', noMove: 'Nothing waiting on you', requests: 'Your requests', noneOpen: 'Nothing open', offersIn: '{n} offers in', offersInOne: '1 offer in', noOffers: 'No offers yet', offers: 'Your offers', live: 'Live on the market', noneLive: 'Nothing live' },
     },
   },
   fr: {
@@ -51,7 +56,6 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
     buy: 'Trouver quoi acheter', buyBody: 'Décrivez votre besoin, votre budget et votre échéance.',
     businessBuyBody: 'Parcourez les offres des entreprises sur Karwan, puis convenez d’un accord.',
     agreement: 'J’ai déjà un accord',
-    scope: 'Les mises en relation se font sur Karwan. La recherche de clients sur d’autres sites est prévue.',
     buyTitle: 'De quoi avez-vous besoin ?', sellTitle: 'Que proposez-vous ?',
     journey: { brief: 'Besoin', match: 'Mise en relation', agree: 'Accord', settle: 'Règlement' },
     desk: {
@@ -64,6 +68,7 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
       bringAgreement: 'J’ai déjà un accord avec quelqu’un', bringAgreementBody: 'Commencez avec une personne que vous connaissez déjà.',
       active: 'Accords actifs', emptyTitle: 'Aucun accord actif',
       emptyBody: 'Choisissez une voie ci-dessus et votre accord restera ici.', open: 'Ouvrir l’accord',
+      hub: { yours: 'Vos échanges', trades: 'Échanges en cours', yourMove: '{n} attendent votre action', noMove: 'Rien n’attend votre action', requests: 'Vos demandes', noneOpen: 'Rien en cours', offersIn: '{n} offres reçues', offersInOne: '1 offre reçue', noOffers: 'Aucune offre pour l’instant', offers: 'Vos offres', live: 'En ligne sur le marché', noneLive: 'Rien en ligne' },
     },
   },
   ar: {
@@ -75,7 +80,6 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
     buy: 'ابحث عما تشتريه', buyBody: 'صف ما تحتاجه وحدد ميزانيتك وموعد التسليم.',
     businessBuyBody: 'تصفح عروض الشركات على Karwan، ثم اتفق على صفقة.',
     agreement: 'لدي اتفاق بالفعل',
-    scope: 'تبدأ المطابقة داخل Karwan. البحث عن عملاء عبر مواقع أخرى ضمن الخطط المستقبلية.',
     buyTitle: 'ماذا تحتاج؟', sellTitle: 'ماذا تقدم؟',
     journey: { brief: 'الطلب', match: 'المطابقة', agree: 'الاتفاق', settle: 'التسوية' },
     desk: {
@@ -88,6 +92,7 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
       bringAgreement: 'اتفقت مع شخص بالفعل', bringAgreementBody: 'ابدأ مع شخص تعرفه بالفعل.',
       active: 'الاتفاقات النشطة', emptyTitle: 'لا توجد اتفاقات نشطة',
       emptyBody: 'اختر مساراً أعلاه وسيبقى اتفاقك هنا.', open: 'افتح الاتفاق',
+      hub: { yours: 'تداولاتك', trades: 'صفقات نشطة', yourMove: '{n} بانتظارك', noMove: 'لا شيء بانتظارك', requests: 'طلباتك', noneOpen: 'لا شيء مفتوح', offersIn: 'وصلت {n} عروض', offersInOne: 'وصل عرض واحد', noOffers: 'لا عروض بعد', offers: 'عروضك', live: 'معروضة في السوق', noneLive: 'لا شيء معروض' },
     },
   },
   hi: {
@@ -99,7 +104,6 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
     buy: 'खरीदने के लिए खोजें', buyBody: 'अपनी ज़रूरत, बजट और समय सीमा बताएं।',
     businessBuyBody: 'Karwan पर व्यवसायों की पेशकश देखें, फिर सौदे की शर्तें तय करें।',
     agreement: 'मेरा समझौता पहले से है',
-    scope: 'मिलान अभी Karwan के भीतर होता है। दूसरी वेबसाइटों पर ग्राहक खोजना भविष्य की योजना है।',
     buyTitle: 'आपको क्या चाहिए?', sellTitle: 'आप क्या देते हैं?',
     journey: { brief: 'ज़रूरत', match: 'मिलान', agree: 'सहमति', settle: 'निपटान' },
     desk: {
@@ -112,6 +116,7 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
       bringAgreement: 'मेरा किसी से पहले से समझौता है', bringAgreementBody: 'किसी ऐसे व्यक्ति से शुरू करें जिसे आप पहले से जानते हैं।',
       active: 'सक्रिय समझौते', emptyTitle: 'अभी कुछ सक्रिय नहीं',
       emptyBody: 'ऊपर से कोई रास्ता चुनें और आपका समझौता यहाँ रहेगा।', open: 'समझौता खोलें',
+      hub: { yours: 'आपका व्यापार', trades: 'सक्रिय सौदे', yourMove: '{n} आपकी प्रतीक्षा में', noMove: 'कुछ भी आपकी प्रतीक्षा में नहीं', requests: 'आपके अनुरोध', noneOpen: 'कुछ भी खुला नहीं', offersIn: '{n} ऑफ़र मिले', offersInOne: '1 ऑफ़र मिला', noOffers: 'अभी कोई ऑफ़र नहीं', offers: 'आपके ऑफ़र', live: 'बाज़ार में उपलब्ध', noneLive: 'कुछ भी उपलब्ध नहीं' },
     },
   },
   sw: {
@@ -123,7 +128,6 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
     buy: 'Tafuta cha kununua', buyBody: 'Eleza unachohitaji, bajeti yako na tarehe ya mwisho.',
     businessBuyBody: 'Angalia bidhaa na huduma za biashara kwenye Karwan, kisha ukubaliane kuhusu biashara.',
     agreement: 'Tayari nina makubaliano',
-    scope: 'Ulinganishaji unaanza ndani ya Karwan. Kutafuta wateja kwenye tovuti nyingine kumepangwa.',
     buyTitle: 'Unahitaji nini?', sellTitle: 'Unatoa nini?',
     journey: { brief: 'Hitaji', match: 'Ulinganifu', agree: 'Kubali', settle: 'Malipo' },
     desk: {
@@ -136,6 +140,7 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
       bringAgreement: 'Tayari nimekubaliana na mtu', bringAgreementBody: 'Anza na mtu unayemjua tayari.',
       active: 'Makubaliano yanayoendelea', emptyTitle: 'Hakuna yanayoendelea bado',
       emptyBody: 'Chagua njia hapo juu na makubaliano yako yatabaki hapa.', open: 'Fungua makubaliano',
+      hub: { yours: 'Biashara yako', trades: 'Biashara zinazoendelea', yourMove: '{n} zinakusubiri', noMove: 'Hakuna kinachokusubiri', requests: 'Maombi yako', noneOpen: 'Hakuna lililo wazi', offersIn: 'Ofa {n} zimefika', offersInOne: 'Ofa 1 imefika', noOffers: 'Bado hakuna ofa', offers: 'Ofa zako', live: 'Ziko sokoni', noneLive: 'Hakuna iliyo sokoni' },
     },
   },
 };

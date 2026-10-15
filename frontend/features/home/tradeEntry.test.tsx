@@ -11,16 +11,15 @@ test('entry routes reach real personal and business surfaces without changing wo
   assert.equal(tradeEntryRoutes(false).agreement, '/buyer?mode=direct#new-deal');
 });
 
-test('every supported language includes all entry labels', () => {
-  const keys = Object.keys(TRADE_ENTRY_COPY.en).sort();
+test('every supported language includes all entry labels, none empty', () => {
+  const leaves = (value: unknown, path = ''): Array<[string, unknown]> =>
+    value && typeof value === 'object'
+      ? Object.entries(value).flatMap(([key, inner]) => leaves(inner, path ? `${path}.${key}` : key))
+      : [[path, value]];
+  const keys = leaves(TRADE_ENTRY_COPY.en).map(([path]) => path).sort();
   for (const copy of Object.values(TRADE_ENTRY_COPY)) {
-    assert.deepEqual(Object.keys(copy).sort(), keys);
-    for (const [key, value] of Object.entries(copy)) {
-      if (typeof value === 'string') {
-        assert.ok(value.trim(), key);
-        continue;
-      }
-      assert.ok(Object.values(value).every((label) => label.trim()), key);
-    }
+    const entries = leaves(copy);
+    assert.deepEqual(entries.map(([path]) => path).sort(), keys);
+    for (const [path, label] of entries) assert.ok(typeof label === 'string' && label.trim(), path);
   }
 });

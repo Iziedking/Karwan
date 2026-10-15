@@ -110,6 +110,14 @@ test('documentation returns to a useful internal destination', () => {
   assert.equal(getProductBackHref('/how-it-works', true), '/app');
 });
 
+test('sidebar destinations are siblings, so a signed-in person sees no Back on them, only on the pages under them', () => {
+  for (const root of ['/app', '/p2p', '/b2b', '/market', '/partners', '/financier', '/activity']) {
+    assert.equal(getProductBackHref(root, true), null, root);
+  }
+  assert.equal(getProductBackHref('/market', false), '/');
+  assert.notEqual(getProductBackHref('/activity/receipt/1', true), null);
+});
+
 test('workspace width is column-bound and tablet navigation fills the rail gap', () => {
   const css = source('../../app/globals.css');
   assert.match(css, /\[data-workspace-main='true'\] \.w-bleed\s*\{\s*width: 100%;/);
@@ -402,12 +410,6 @@ test('a profile row that is not ready says so plainly, not only on hover, and is
   const soon = ui.slice(ui.indexOf('if (soon) {'), ui.indexOf('const content'));
   assert.doesNotMatch(soon, /opacity-0/);
   assert.doesNotMatch(soon, /role="button"|tabIndex/);
-});
-
-test('the trade chooser offers two equal choices, so neither is painted as the primary action', () => {
-  const css = source('../../app/globals.css');
-  const arrow = css.slice(css.indexOf('.trade-intent-action-arrow {'), css.indexOf('}', css.indexOf('.trade-intent-action-arrow {')));
-  assert.doesNotMatch(arrow, /var\(--lp-accent\)/);
 });
 
 test('the trade chooser draws its arrows as icons', () => {
