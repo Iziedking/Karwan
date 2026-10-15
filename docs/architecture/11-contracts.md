@@ -77,7 +77,7 @@ Every family inherits it, and it is the part audited hardest.
 | Exit after expiry cannot be blocked | The refund or claim path at expiry ignores pauses, hooks, verifiers and outside contracts; holds can only delay it, within their 30-day budget |
 | Configuration is per deal | Fee, caps, reviewers, verifier and yield eligibility are copied into the deal when it opens |
 | Only USDC moves, through its ERC-20 interface | No function accepts native value; amounts are 6-decimal tokens throughout, moved only by the base's library |
-| Checks come from several independent checkers | A delivery check counts only when the deal's verifier contract holds signatures from enough of its fixed checkers |
+| Checks come from several independent checkers | A delivery check counts only when the deal's verifier contract holds signatures from enough of its fixed checkers. The first result for a delivery is final, so no checker can overturn another's; a seller who disagrees delivers again or disputes |
 | Money promised at opening keeps its room | An instalment plan's whole price counts against the caps, and against an agent payer's signed limits as one payment, when the deal opens. Its later parts are accepted even while the family is paused or after the agent's binding expires; only a revoked family or a delisted asset refuses them |
 | Bounded work per call | No call walks a list that users can grow; the worst case stays well under Arc's per-transaction gas cap |
 | Payouts go to the recorded wallet | A payout or owed balance goes only to the wallet recorded in the deal, or to its signed assignee, so money frozen by USDC's blocklist cannot be routed elsewhere |

@@ -214,6 +214,22 @@ contract AgreementCheckTest is AgreementFixture {
         assertTrue(_deal(id).checkPassed);
     }
 
+    /// No checker can overturn another's result for the same delivery; a
+    /// seller who disagrees delivers again or disputes.
+    function test_the_first_result_for_a_delivery_is_final() public {
+        bytes32 id = _fundAccepted(_checkedTerms(), bytes32("c"));
+        _deliver(id);
+        _report(id, 1, false, 0, 1);
+        (address[] memory who, bytes[] memory sigs) = _signed(id, 1, true, 1, 2);
+        vm.expectRevert(KarwanCheckVerifier.AlreadyReported.selector);
+        verifier.report(address(escrow), id, 1, true, keccak256("evidence"), who, sigs);
+        (who, sigs) = _signed(id, 1, false, 0, 1);
+        vm.expectRevert(KarwanCheckVerifier.AlreadyReported.selector);
+        verifier.report(address(escrow), id, 1, false, keccak256("evidence"), who, sigs);
+        assertTrue(_deal(id).checkFailed);
+        assertFalse(_deal(id).checkPassed);
+    }
+
     function test_buyer_may_review_without_the_check() public {
         bytes32 id = _fundAccepted(_checkedTerms(), bytes32("c"));
         _deliver(id);

@@ -10,7 +10,8 @@ interface ICheckTarget {
 
 /// @title KarwanCheckVerifier
 /// @notice Reports a delivery check to an escrow family only when enough of
-///         its independent checkers signed the same result. The checkers and
+///         its independent checkers signed the same result, once per delivery
+///         revision: the first result is final. The checkers and
 ///         the threshold are fixed at deployment; a new set is a new verifier,
 ///         registered through the timelock, and deals keep the verifier they
 ///         opened with. Anyone may submit a signed report. It holds no money.
@@ -22,11 +23,16 @@ contract KarwanCheckVerifier is EIP712 {
     uint8 public immutable threshold;
     uint8 public immutable signerCount;
     mapping(address => bool) public isSigner;
+    /// A delivery revision that already has a result. No signer can overturn
+    /// another's; a seller who disagrees delivers again, which opens a new
+    /// revision, or disputes.
+    mapping(bytes32 => bool) public reported;
 
     event Reported(address indexed family, bytes32 indexed dealId, uint32 revision, bool pass, bytes32 evidenceHash);
 
     error BadSigners();
     error NotEnough();
+    error AlreadyReported();
 
     constructor(address[] memory signers, uint8 threshold_) EIP712("KarwanCheckVerifier", "1") {
         if (threshold_ == 0 || threshold_ > signers.length || signers.length > type(uint8).max) revert BadSigners();
@@ -58,6 +64,9 @@ contract KarwanCheckVerifier is EIP712 {
             if (s <= last || !isSigner[s] || !SigCheck.isValid(s, digest, sigs[i])) revert BadSigners();
             last = s;
         }
+        bytes32 key = keccak256(abi.encode(family, dealId, revision));
+        if (reported[key]) revert AlreadyReported();
+        reported[key] = true;
         emit Reported(family, dealId, revision, pass, evidenceHash);
         ICheckTarget(family).attestCheck(dealId, revision, pass, evidenceHash);
     }
