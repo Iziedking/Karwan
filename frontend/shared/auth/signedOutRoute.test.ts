@@ -3,9 +3,10 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { SIGNED_OUT_ROUTE } from './signedOutRoute';
 
-test('both explicit sign-out controls use the shared app destination', () => {
+test('every explicit sign-out control uses the shared app destination', () => {
   assert.equal(SIGNED_OUT_ROUTE, '/app');
-  const profile = readFileSync(new URL('../../features/profile/components/ProfileSignOut.tsx', import.meta.url), 'utf8');
+  // Profile and the desktop rail both sign out through one hook.
+  const profile = readFileSync(new URL('../../features/profile/useSignOutRequest.ts', import.meta.url), 'utf8');
   const modal = readFileSync(new URL('../components/CircleAccountModal.tsx', import.meta.url), 'utf8');
   assert.match(profile, /leave: \(destination\) => router\.replace\(destination\)/);
   assert.match(modal, /await auth\.signOut\(\);\s*onClose\(\);\s*router\.replace\(SIGNED_OUT_ROUTE\)/);

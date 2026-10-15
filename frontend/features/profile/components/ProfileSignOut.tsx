@@ -1,47 +1,11 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/shared/hooks/useAuth';
-import { useDialog } from '@/shared/components/Dialog';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { confirmSignOut } from '../signOutFlow';
+import { useSignOutRequest } from '../useSignOutRequest';
 
 export function ProfileSignOut() {
-  const { signOut } = useAuth();
-  const dialog = useDialog();
-  const router = useRouter();
   const t = useTranslations();
-  const pending = useRef(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(false);
-
-  async function requestSignOut() {
-    if (pending.current) return;
-    pending.current = true;
-    setError(false);
-    try {
-      await confirmSignOut({
-        confirm: () => dialog.confirm({
-          title: t.profileSignOut.title,
-          message: t.profileSignOut.body,
-          confirmLabel: t.common.signOut,
-          cancelLabel: t.common.cancel,
-          compact: true,
-        }),
-        signOut: async () => {
-          setBusy(true);
-          await signOut();
-        },
-        leave: (destination) => router.replace(destination),
-      });
-    } catch {
-      setError(true);
-    } finally {
-      pending.current = false;
-      setBusy(false);
-    }
-  }
+  const { request: requestSignOut, busy, error } = useSignOutRequest();
 
   return (
     <div className="flex flex-col items-end gap-2">

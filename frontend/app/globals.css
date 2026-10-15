@@ -2606,5 +2606,24 @@ html[data-theme="dark"] .form-input::placeholder {
 }
 .updates-track::-webkit-scrollbar { display: none; }
 
+/* As a tile slides in from an edge it grows from slightly small and faint to
+   full, and eases back out as it leaves. Driven by the scroll itself, so it
+   follows a finger or an arrow exactly and never moves on its own. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .updates-track > .update-card {
+      animation: update-card-pass linear both;
+      animation-timeline: view(inline);
+      animation-range: entry 0% exit 100%;
+    }
+  }
+}
+@keyframes update-card-pass {
+  entry 0% { opacity: 0.45; transform: scale(0.94); }
+  entry 100% { opacity: 1; transform: none; }
+  exit 0% { opacity: 1; transform: none; }
+  exit 100% { opacity: 0.45; transform: scale(0.94); }
+}
+
 /* The bottom nav pill slides from the start edge; in RTL that is the right. */
 html[dir="rtl"] [data-workspace-bottom-nav] { --nav-dir: -1; }

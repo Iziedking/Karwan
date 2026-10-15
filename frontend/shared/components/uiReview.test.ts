@@ -444,6 +444,24 @@ test('home Updates are media tiles with no generated art, a fixed media height, 
   assert.match(carousel, /lg:w-\[calc\(\(100%-48px\)\/3\)\]/);
 });
 
+test('Updates tiles ease in and out as they slide, following the scroll, and hold still for reduced motion', () => {
+  const css = source('../../app/globals.css');
+  const block = css.slice(css.indexOf('@supports (animation-timeline: view())'));
+  assert.match(block, /prefers-reduced-motion: no-preference/);
+  assert.match(block, /\.updates-track > \.update-card[\s\S]*animation-timeline: view\(inline\)/);
+  assert.match(block, /animation-range: entry 0% exit 100%/);
+});
+
+test('the desktop rail ends with Settings and Sign out, pinned to its foot, sign out asking first like Profile', () => {
+  const nav = source('./TopNav.tsx');
+  const rail = nav.slice(nav.indexOf('function WorkspaceRail('), nav.indexOf('function RailLink('));
+  assert.match(rail, /data-rail-footer[^>]*mt-auto/);
+  assert.match(rail, /href="\/settings"/);
+  assert.match(rail, /useSignOutRequest\(\)/);
+  const profile = source('../../features/profile/components/ProfileSignOut.tsx');
+  assert.match(profile, /useSignOutRequest\(\)/);
+});
+
 test('current trade and recent trades share one heading line and end together', () => {
   const home = source('../../features/home/components/AccountHome.tsx');
   assert.equal(home.match(/flex min-h-11 items-center[^"]*px-1/g)?.length, 2);

@@ -20,6 +20,7 @@ import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { LanguagePicker } from './LanguagePicker';
 import { ThemeControl } from './ThemeControl';
 import { Tooltip } from './Tooltip';
+import { useSignOutRequest } from '@/features/profile/useSignOutRequest';
 import { isAlwaysDarkRoute } from '@/shared/hooks/useTheme';
 import { PublicMenu } from './PublicMenu';
 import { Brand } from './Brand';
@@ -209,7 +210,9 @@ function WorkspaceRail({
   financeLabel: string;
   soonLabel: string;
 }) {
-  const t = useTranslations().nav;
+  const messages = useTranslations();
+  const t = messages.nav;
+  const signOut = useSignOutRequest();
   const financeActive = pathname.startsWith('/financier');
   const homeHref = DEALS_AVAILABLE ? '/app' : WALLET_HOME;
   const [collapsed, setCollapsed] = useState(false);
@@ -267,7 +270,7 @@ function WorkspaceRail({
         id="workspace-navigation"
         aria-label={t.railLabel}
         className={cn(
-          'pointer-events-auto absolute flex flex-col gap-1 transition-[width] duration-300 ease-out',
+          'pointer-events-auto absolute top-0 bottom-6 flex flex-col gap-1 transition-[width] duration-300 ease-out',
           collapsed ? 'w-[72px]' : 'w-[220px]',
         )}
         style={{ insetInlineStart: 'max(20px, calc(50% - 800px))' }}
@@ -316,6 +319,18 @@ function WorkspaceRail({
         <RailLink href="/activity" active={pathname.startsWith('/activity')} icon="activity" collapsed={collapsed} signal={unread} ariaLabel={t.activity}>
           {t.activity}
         </RailLink>
+        {/* Account housekeeping sits at the foot, apart from the places you work. */}
+        <div data-rail-footer className="mt-auto flex flex-col gap-1">
+          <RailLink href="/settings" active={pathname.startsWith('/settings')} icon="settings" collapsed={collapsed} ariaLabel={t.settingsAriaTitle}>
+            {t.settingsAriaTitle}
+          </RailLink>
+          <RailAction onClick={() => void signOut.request()} busy={signOut.busy} icon="signOut" collapsed={collapsed}>
+            {signOut.busy ? messages.profileSignOut.pending : messages.common.signOut}
+          </RailAction>
+          {signOut.error && !collapsed ? (
+            <p role="alert" className="px-4 text-[14px] leading-snug text-[var(--color-ink-dim)] font-medium">{messages.profileSignOut.error}</p>
+          ) : null}
+        </div>
       </nav>
     </aside>
   );
@@ -333,7 +348,7 @@ function RailLink({
 }: {
   href: string;
   active: boolean;
-  icon: 'home' | 'trade' | 'discover' | 'finance' | 'activity';
+  icon: RailIconName;
   children: React.ReactNode;
   ariaLabel?: string;
   collapsed?: boolean;
@@ -372,7 +387,43 @@ function RailLink({
   return collapsed ? <Tooltip label={children as string} side="end" className="w-full">{link}</Tooltip> : link;
 }
 
-function RailIcon({ name, active }: { name: 'home' | 'trade' | 'discover' | 'finance' | 'activity'; active: boolean }) {
+type RailIconName = 'home' | 'trade' | 'discover' | 'finance' | 'activity' | 'settings' | 'signOut';
+
+/// A rail row that does something instead of going somewhere.
+function RailAction({
+  onClick,
+  busy,
+  icon,
+  collapsed,
+  children,
+}: {
+  onClick: () => void;
+  busy: boolean;
+  icon: RailIconName;
+  collapsed: boolean;
+  children: string;
+}) {
+  const button = (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={busy}
+      aria-busy={busy}
+      aria-haspopup="dialog"
+      aria-label={collapsed ? children : undefined}
+      className={cn(
+        'group relative flex min-h-12 w-full items-center rounded-full text-[15px] font-medium text-[var(--color-ink-dim)] transition-colors duration-200 hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] disabled:cursor-wait disabled:opacity-60',
+        collapsed ? 'justify-center px-0' : 'gap-3 px-4',
+      )}
+    >
+      <RailIcon name={icon} active={false} />
+      <span className={cn('min-w-0 flex-1 truncate text-start', collapsed && 'sr-only')}>{children}</span>
+    </button>
+  );
+  return collapsed ? <Tooltip label={children} side="end" className="w-full">{button}</Tooltip> : button;
+}
+
+function RailIcon({ name, active }: { name: RailIconName; active: boolean }) {
   return (
     <svg
       width="22"
@@ -390,6 +441,13 @@ function RailIcon({ name, active }: { name: 'home' | 'trade' | 'discover' | 'fin
         <path d="m14.5 4.5-2.1 5.9-5.9 2.1 5.9 2.1 2.1 5.9 2.1-5.9 5.9-2.1-5.9-2.1-2.1-5.9Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
       ) : name === 'finance' ? (
         <path d="M4 19h16M6 17V9m4 8V5m4 12v-6m4 6V7" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      ) : name === 'settings' ? (
+        <>
+          <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.7" />
+          <path d="M12 3.5v2.2m0 12.6v2.2M3.5 12h2.2m12.6 0h2.2M6 6l1.6 1.6m8.8 8.8L18 18M6 18l1.6-1.6m8.8-8.8L18 6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+        </>
+      ) : name === 'signOut' ? (
+        <path d="M10 4H7a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h3m7-12 4 4-4 4m-8-4h12" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="rtl:-scale-x-100 origin-center" />
       ) : (
         <path d="M5 5v14m0-10h13l-3-3m3 3-3 3M19 19V5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
       )}
