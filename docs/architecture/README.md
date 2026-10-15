@@ -21,7 +21,7 @@ Karwan unifies online reputation with an agentic economic model. People join a n
 | 09 | [Trust engine](09-trust-engine.md) | Who verifies with World ID and why, how delivery is checked, and what protects each deal | v1 built |
 | 10 | [Verified network](10-verified-network.md) | The Karwan agent in WhatsApp: register, get verified, be found by agents, close a deal in escrow from chat. Holds the architecture rules every build follows | Planned, building |
 | 11 | [Contracts](11-contracts.md) | The suite on Arc, deployed once: an escrow per family of deals on one shared base, how they connect to stake, records, fees and yield, and what Karwan can and cannot do to the money | Designed |
-| 12 | [Checks, record and risk on CRE](12-cre.md) | How delivered work is replayed against what was agreed, how outside facts reach the record, and how deals keep moving, all signed by a decentralised network instead of Karwan | Planned |
+| 12 | [Checks, record and risk on CRE](12-cre.md) | How delivered work is replayed against what was agreed, how outside facts reach the record, and how deals keep moving, signed by a decentralised network with Karwan's checks as the fallback | Built, not deployed |
 | 13 | [Portable reputation](13-portable-reputation.md) | How agents bring a buyer a shortlist of verified and unverified people, pay to check each record, and how other platforms join as paid record sources | Built, not deployed |
 
 ## How to read a view
