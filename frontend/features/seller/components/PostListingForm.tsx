@@ -19,6 +19,7 @@ import { walletAmount } from '@/features/balances/walletFormat';
 import { CreationReview } from '@/features/deals/components/CreationReview';
 import { TermsBuilder, TermsBlockerNote, DEFAULT_TERMS } from '@/features/deals/terms/TermsBuilder';
 import { stepOneBlocker } from '../offerFlow';
+import { BUSINESS_ACCOUNTS_OPEN } from '@/features/account/businessOpen';
 import { cleanLines, composeTerms, termsIssues, type TermsDraft } from '@/features/deals/terms/composeTerms';
 import { TERMS_COPY } from '@/features/deals/terms/termsCopy';
 
@@ -281,6 +282,9 @@ export function PostListingForm() {
           </div>
 
           <div hidden={step !== 1} className="space-y-6">
+            {/* Per unit and per hour open with business accounts; until then a
+                fixed price is the only way to charge, so there is no choice. */}
+            {BUSINESS_ACCOUNTS_OPEN ? (
             <div role="group" aria-label={f.charge}>
               <p className="mb-2 text-[14px] font-semibold text-[var(--lp-dark)]">{f.charge}</p>
               <div className="grid gap-2 sm:grid-cols-3">
@@ -316,6 +320,7 @@ export function PostListingForm() {
                 ))}
               </div>
             </div>
+            ) : null}
 
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label={f.price} unit="USDC" hint={pl.sectionPricing.askingHint} dataGuide="seller-price">

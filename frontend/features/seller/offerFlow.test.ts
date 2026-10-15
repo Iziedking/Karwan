@@ -44,3 +44,8 @@ test('the seller deposit option speaks plainly in every language', () => {
   const option = direct.slice(direct.indexOf('checked={requireStake}'), direct.indexOf('</label>', direct.indexOf('checked={requireStake}')));
   assert.doesNotMatch(option, /\bmono\b|uppercase|text-\[13px\]/, 'the deposit option reads like the rest of the form');
 });
+
+test('ways to charge that do not work yet stay hidden until business accounts open', () => {
+  const form = readFileSync(new URL('./components/PostListingForm.tsx', import.meta.url), 'utf8');
+  assert.match(form, /\{BUSINESS_ACCOUNTS_OPEN \? \(\s*<div role="group" aria-label=\{f\.charge\}>/);
+});
