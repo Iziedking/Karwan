@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { DEALS_AVAILABLE } from '@/core/arcNetwork';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { START_ROUTE, WALLET_HOME } from '@/shared/utils/routes';
+import { WALLET_HOME } from '@/shared/utils/routes';
+import { useEntryHref } from '@/shared/auth/useEntryHref';
 import { Icon } from './Icon';
 
 /// Below the width where the public links fit in the bar, they move into a
@@ -12,6 +13,7 @@ import { Icon } from './Icon';
 /// height, which the landing panels depend on.
 export function PublicMenu() {
   const t = useTranslations();
+  const openHref = useEntryHref();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -71,7 +73,7 @@ export function PublicMenu() {
           {DEALS_AVAILABLE ? <Link className={linkClass} href="/market">{t.nav.market}</Link> : null}
           <Link className={linkClass} href="/docs">{t.footer.productLinks.docs}</Link>
           <Link
-            href={START_ROUTE}
+            href={openHref}
             className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--tint)] text-[15px] font-medium text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)] md:hidden"
           >
             {t.nav.openApp}

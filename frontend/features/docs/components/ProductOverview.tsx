@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/shared/utils/cn';
+import { useEntryHref } from '@/shared/auth/useEntryHref';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { DOCS_SECTIONS, useDocsSectionLabel } from './DocsSidebar';
 import { DocsH2 } from './Prose';
@@ -36,6 +37,7 @@ export function ProductOverview() {
 
 function Hero() {
   const t = useTranslations().docsProduct.hero;
+  const openHref = useEntryHref();
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -61,7 +63,7 @@ function Hero() {
         </li>
       </ul>
       <div className="mt-9 flex flex-wrap gap-3">
-        <Link href="/start" className="inline-flex min-h-[52px] items-center rounded-[12px] bg-[var(--lp-accent)] px-6 text-[15px] font-semibold text-[var(--accent-ink)] transition-colors hover:bg-[var(--lp-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]">
+        <Link href={openHref} className="inline-flex min-h-[52px] items-center rounded-[12px] bg-[var(--lp-accent)] px-6 text-[15px] font-semibold text-[var(--accent-ink)] transition-colors hover:bg-[var(--lp-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]">
           {t.primary}
         </Link>
         <a href="#how" className="inline-flex min-h-[52px] items-center rounded-[12px] border border-[var(--lp-outline-strong)] px-6 text-[15px] font-semibold text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-card)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
@@ -275,12 +277,13 @@ function Today() {
 
 function Cta() {
   const t = useTranslations().docsProduct.cta;
+  const openHref = useEntryHref();
   return (
     <section className="mt-16 rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-band-dark,#10171D)] px-[clamp(24px,5vw,56px)] py-[clamp(36px,6vw,64px)] text-[#F4F6F8]">
       <h2 className="max-w-[20ch] text-[clamp(1.8rem,3.4vw,2.6rem)] font-extrabold leading-[1.05] tracking-[-0.03em]">{t.title}</h2>
       <p className="mt-4 max-w-[52ch] text-[16px] leading-relaxed text-[#C5CDD5]">{t.body}</p>
       <div className="mt-8 flex flex-wrap gap-3">
-        <Link href="/start" className="inline-flex min-h-[52px] items-center rounded-[12px] bg-[var(--lp-accent)] px-6 text-[15px] font-semibold text-[#10171D] hover:bg-[var(--lp-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+        <Link href={openHref} className="inline-flex min-h-[52px] items-center rounded-[12px] bg-[var(--lp-accent)] px-6 text-[15px] font-semibold text-[#10171D] hover:bg-[var(--lp-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
           {t.primary}
         </Link>
         <a href={TESTNET_START} className="inline-flex min-h-[52px] items-center rounded-[12px] border border-white/35 px-6 text-[15px] font-semibold text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">

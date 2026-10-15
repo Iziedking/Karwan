@@ -1,3 +1,5 @@
+import { rememberSignedIn } from './signedInHint';
+
 export type SharedAuthMethod = 'web3' | 'circle';
 
 export interface SharedAuthSession {
@@ -52,6 +54,7 @@ export function publishAuthSession(
 ): void {
   if (snapshot.loaded === loaded && sessionsEqual(snapshot.session, session)) return;
   snapshot = { session, loaded };
+  if (loaded) rememberSignedIn(!!session);
   for (const listener of listeners) listener();
 }
 

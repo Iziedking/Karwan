@@ -7,6 +7,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { SocialTradeSection } from '@/features/home/components/SocialTradeSection';
 import { ProtectionSection } from '@/features/home/components/ProtectionSection';
 import { TradeRoutesMap } from '@/features/home/components/TradeRoutesMap';
+import { useEntryHref } from '@/shared/auth/useEntryHref';
 import styles from './landing.module.css';
 
 function Arrow() {
@@ -17,6 +18,7 @@ export default function HomePage() {
   const messages = useTranslations();
   const t = messages.landingEditorial;
   const videoRef = useRef<HTMLVideoElement>(null);
+  const openHref = useEntryHref();
 
   useEffect(() => {
     const video = videoRef.current;
@@ -42,7 +44,7 @@ export default function HomePage() {
           <p className={styles.kicker}>{t.kicker}</p>
           <h1 id="landing-title"><span>{t.titleFirst}</span>{' '}<span>{t.titleLast}</span></h1>
           <p className={styles.lead}>{t.lead}</p>
-          <Link className={styles.button} href="/start">{t.open}<Arrow /></Link>
+          <Link className={styles.button} href={openHref}>{t.open}<Arrow /></Link>
           <p className={styles.note}>{messages.networkUi.builtOnArc}</p>
         </div>
         <div className={styles.media}>
@@ -74,7 +76,7 @@ export default function HomePage() {
       </section>
       <ProtectionSection />
       <TradeRoutesMap />
-      <section className={styles.closing} aria-labelledby="closing-title"><div className={styles.wrap}><h2 id="closing-title">{t.closeTitle}</h2><p>{t.closeBody}</p><Link className={styles.button} href="/start">{t.open}<Arrow /></Link></div></section>
+      <section className={styles.closing} aria-labelledby="closing-title"><div className={styles.wrap}><h2 id="closing-title">{t.closeTitle}</h2><p>{t.closeBody}</p><Link className={styles.button} href={openHref}>{t.open}<Arrow /></Link></div></section>
     </div>
   );
 }
