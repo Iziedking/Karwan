@@ -3925,6 +3925,7 @@ export const ar: Messages = {
       },
     },
     agentsNotCreated: 'الوكلاء غير مُنشأين: فعّل الحساب لتجهيز وكيلي المشتري والبائع.',
+    unavailable: "غير متاح",
     faucetHint: "يؤدي الحصول على USDC إلى نسخ عنوان المحفظة وفتح صنبور Circle. اختر Arc Testnet والصق العنوان ثم اطلب.",
     faucetButton: {
       idle: 'احصل على USDC',

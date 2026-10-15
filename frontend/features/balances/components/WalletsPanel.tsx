@@ -7,16 +7,10 @@ import { LpHint } from '@/shared/components/LpHint';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ARC_NETWORK } from '@/core/arcNetwork';
 import type { Messages } from '@/shared/i18n/messages/en';
+import { walletAmount } from '../walletFormat';
 
 type Overview = Awaited<ReturnType<typeof api.walletOverview>>;
 type WalletsCopy = Messages['walletsPanel'];
-
-function fmt(v: string | null | undefined): string {
-  if (v === null || v === undefined) return 'Unavailable';
-  const n = Number(v);
-  if (!Number.isFinite(n)) return v;
-  return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
-}
 
 function short(addr?: string): string {
   return addr ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : '';
@@ -73,11 +67,10 @@ function CopyAddress({
       type="button"
       onClick={copy}
       aria-label={copied ? wp.copyAddress.copied : wp.copyAddress.idle}
-      title={copied ? wp.copyAddress.copied : wp.copyAddress.idle}
-      className="group mt-1 inline-flex max-w-full items-center gap-2 mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] transition-colors hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
+      className="group -ms-1.5 inline-flex min-h-11 min-w-11 max-w-full items-center gap-1.5 rounded-full px-1.5 text-[14px] font-medium tabular-nums text-[var(--ink-secondary)] transition-colors hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
     >
-      <span className="truncate">{short(address)}</span>
-      <span className="grid h-6 w-6 shrink-0 place-items-center rounded-[6px] border border-transparent transition-[border-color,background,color] group-hover:border-[var(--lp-border-light)] group-hover:bg-[var(--lp-card)]">
+      <span dir="ltr">{short(address)}</span>
+      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-[6px] border border-transparent transition-[border-color,background,color] group-hover:border-[var(--lp-border-light)] group-hover:bg-[var(--lp-card)]">
         {copied ? (
           <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" aria-hidden>
             <path d="m5.25 10.25 3 3 6.5-7" stroke="var(--lp-accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
@@ -119,23 +112,23 @@ function Row({
   const copied = !!address && copiedAddr === address;
   // Name and address on the left, balance and action on the right, at every
   // width, so every card in the list keeps one shape.
+  // Two lines at every width, so nothing is cut on a phone: who it is and
+  // what it holds, then its address and what you can do with it.
   return (
-    <li className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] px-3.5 py-2.5">
-      <div className="flex min-w-0 items-center gap-3">
+    <li data-wallet-row className="rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] px-3.5 py-3">
+      <div className="flex items-center gap-3">
         <WalletGlyph kind={walletKind} />
-        <div className="min-w-0">
-          <p className="flex items-center gap-1.5 text-[15px] font-semibold tracking-[-0.01em] text-[var(--lp-dark)]">
-            <span className="truncate">{title}</span>
-            <LpHint>{purpose}</LpHint>
-          </p>
-          {address && <CopyAddress address={address} copied={copied} onCopied={onCopied} />}
-          {copied ? <span aria-live="polite" className="sr-only">{copiedLabel}</span> : null}
-        </div>
-      </div>
-      <div className="flex shrink-0 items-center gap-3">
+        <p className="flex min-w-0 flex-1 items-center gap-1.5 text-[15px] font-semibold tracking-[-0.01em] text-[var(--lp-dark)]">
+          <span className="min-w-0 break-words">{title}</span>
+          <LpHint>{purpose}</LpHint>
+        </p>
         <MoneyValue value={primary} size="sm" />
+      </div>
+      <div className="mt-1 flex flex-wrap items-center justify-between gap-x-3 ps-[52px]">
+        {address ? <CopyAddress address={address} copied={copied} onCopied={onCopied} /> : <span />}
         {action}
       </div>
+      {copied ? <span aria-live="polite" className="sr-only">{copiedLabel}</span> : null}
     </li>
   );
 }
@@ -227,6 +220,14 @@ export function WalletsPanel({ address }: { address?: string }) {
     setFaucetBusy(null);
   };
 
+  // The faucet hands out test money, so it only exists on testnet.
+  const faucet = (target: 'identity' | 'buyer' | 'seller') => {
+    if (ARC_NETWORK !== 'testnet') return undefined;
+    const button = <FaucetButton onClick={() => runFaucet(target)} busy={faucetBusy === target} copy={wp.faucetButton} />;
+    return target === 'identity' ? <span data-guide="profile-faucet">{button}</span> : button;
+  };
+  const amount = (value: string | null | undefined) => walletAmount(value) ?? wp.unavailable;
+
   // Tightened so all three wallets and the holdings row are visible together.
   // This section already sits inside a deck card, so the old p-8 plus a 3-unit gap
   // between rows was a second frame's worth of air, and the third wallet fell
@@ -242,21 +243,11 @@ export function WalletsPanel({ address }: { address?: string }) {
           title={wp.rows.identity.title}
           purpose={isCircle ? wp.rows.identity.purposeCircle : wp.rows.identity.purposeWeb3}
           address={data?.identity?.address}
-          primary={fmt(data?.identity?.usdcBalance)}
+          primary={amount(data?.identity?.usdcBalance)}
           copiedAddr={copiedAddr}
           onCopied={markCopied}
           copiedLabel={wp.copyAddress.copied}
-          action={
-            ARC_NETWORK === 'testnet' ? (
-              <span data-guide="profile-faucet">
-                <FaucetButton
-                  onClick={() => runFaucet('identity')}
-                  busy={faucetBusy === 'identity'}
-                  copy={wp.faucetButton}
-                />
-              </span>
-            ) : undefined
-          }
+          action={faucet('identity')}
         />
 
         {agents?.buyer && agents?.seller ? (
@@ -266,34 +257,22 @@ export function WalletsPanel({ address }: { address?: string }) {
               title={wp.rows.buyer.title}
               purpose={wp.rows.buyer.purpose}
               address={agents.buyer.address}
-              primary={fmt(agents.buyer.usdcBalance)}
+              primary={amount(agents.buyer.usdcBalance)}
               copiedAddr={copiedAddr}
               onCopied={markCopied}
               copiedLabel={wp.copyAddress.copied}
-              action={
-                <FaucetButton
-                  onClick={() => runFaucet('buyer')}
-                  busy={faucetBusy === 'buyer'}
-                  copy={wp.faucetButton}
-                />
-              }
+              action={faucet('buyer')}
             />
             <Row
               walletKind="agent"
               title={wp.rows.seller.title}
               purpose={wp.rows.seller.purpose}
               address={agents.seller.address}
-              primary={fmt(agents.seller.usdcBalance)}
+              primary={amount(agents.seller.usdcBalance)}
               copiedAddr={copiedAddr}
               onCopied={markCopied}
               copiedLabel={wp.copyAddress.copied}
-              action={
-                <FaucetButton
-                  onClick={() => runFaucet('seller')}
-                  busy={faucetBusy === 'seller'}
-                  copy={wp.faucetButton}
-                />
-              }
+              action={faucet('seller')}
             />
           </>
         ) : ARC_NETWORK === 'testnet' ? (

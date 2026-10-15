@@ -3922,6 +3922,7 @@ export const sw: Messages = {
       },
     },
     agentsNotCreated: 'Wakala hawajaundwa: Washa ili uandae wakala wako mnunuzi na muuzaji.',
+    unavailable: "Haipatikani",
     faucetHint: "Pata USDC hunakili anwani ya pochi na kufungua faucet ya Circle. Chagua Arc Testnet, bandika anwani kisha dai.",
     faucetButton: {
       idle: 'Pata USDC',

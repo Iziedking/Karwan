@@ -69,7 +69,7 @@ export function MoneyValue({
     >
       {value}
       {showUnit ? (
-        <span className="ms-1.5 mono text-[0.45em] font-bold uppercase tracking-[0.12em] align-baseline text-[var(--lp-text-muted)]">
+        <span className="ms-1.5 text-[max(14px,0.45em)] font-semibold tracking-normal align-baseline text-[var(--lp-text-muted)]">
           {unit}
         </span>
       ) : null}
