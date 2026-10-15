@@ -638,10 +638,12 @@ export interface TrustCardView {
 
 export type AmountBand = 'under_100' | '100_500' | '500_2000' | '2000_10000' | 'over_10000';
 
-/// A settled deal as the public feed publishes it: a value band and a time.
+/// A settled deal as the public feed publishes it: a value band, a time, and
+/// whether an agent found the match. Older servers leave `origin` out.
 export interface PublicFeedDeal {
   amountBand: AmountBand;
   settledAt: number;
+  origin?: 'agent' | 'direct';
 }
 
 export interface DirectDealFundingQuote {
@@ -1428,6 +1430,14 @@ export interface LifetimeDay extends LifetimeVolumes {
   jobsPosted: number;
   transactions: number;
   financings: number;
+}
+
+/// Public totals of agent record reads. No reader, subject or price.
+export interface RecordReadTotals {
+  reads: number;
+  readers: number;
+  subjects: number;
+  since: number | null;
 }
 
 export interface LifetimeStats {
@@ -2521,6 +2531,10 @@ export const api = {
   /// script, so this is a fast read; it 503s until that first scan has run.
   networkLifetime: (init?: RequestInit) =>
     json<LifetimeStats>('/api/network/lifetime', init),
+  /// Agent record reads counted from the first one stored: totals only, and a
+  /// null start until a read exists. 503 when the store cannot answer.
+  networkReads: (init?: RequestInit) =>
+    json<RecordReadTotals>('/api/network/reads', init),
   /// What the contracts in service right now hold, read at head. Cheap enough
   /// to build on demand, so unlike the lifetime sweep it never 503s.
   networkContracts: (init?: RequestInit) =>

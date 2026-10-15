@@ -1,11 +1,12 @@
 'use client';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { api, type AmountBand } from '@/core/api';
+import { api, type PublicFeedDeal } from '@/core/api';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { relativeTime } from '@/shared/utils/format';
 import styles from '@/app/landing.module.css';
-import { latestSettled, settlementFigures, type SettlementFigures } from '../settlementRecord';
+import { DealFolders } from './DealFolders';
+import { agentReadFigure, settlementFigures, type AgentReadFigure, type SettlementFigures } from '../settlementRecord';
 
 /// How payment moves through escrow, shown with the network's own record: the
 /// all-time totals read from the contracts and the latest settled deals as
@@ -20,6 +21,12 @@ export function SettlementRecord() {
     retry: 1,
   });
   const feed = useQuery({ queryKey: ['landing', 'feed'], queryFn: () => api.dealsFeed(), staleTime: 300_000, retry: 1 });
+  const reads = useQuery({
+    queryKey: ['landing', 'reads'],
+    queryFn: ({ signal }) => api.networkReads({ signal }),
+    staleTime: 300_000,
+    retry: 1,
+  });
   const figures = settlementFigures(lifetime.data);
 
   return (
@@ -28,7 +35,7 @@ export function SettlementRecord() {
         <p className={styles.eyebrow}>{t.recordLabel}</p>
         <div className={styles.recordHead}><h2 id="record-title">{t.recordTitle}</h2><p>{t.recordBody}</p></div>
         {figures ? (
-          <LiveRecord figures={figures} recent={latestSettled(feed.data?.deals)} />
+          <LiveRecord figures={figures} reads={agentReadFigure(reads.data)} feed={feed.data?.deals} />
         ) : lifetime.isPending ? (
           <div className={styles.liveSkeleton} aria-hidden />
         ) : (
@@ -52,10 +59,9 @@ export function SettlementRecord() {
   );
 }
 
-function LiveRecord({ figures, recent }: { figures: SettlementFigures; recent: Array<{ amountBand: AmountBand; settledAt: number }> }) {
+function LiveRecord({ figures, reads, feed }: { figures: SettlementFigures; reads: AgentReadFigure | null; feed: PublicFeedDeal[] | undefined }) {
   const messages = useTranslations();
   const t = messages.landingEditorial;
-  const bands = messages.sealedRecord.bands;
   const { locale } = useLocale();
   const whole = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 });
   const rows: Array<[string, string, boolean]> = [
@@ -64,6 +70,7 @@ function LiveRecord({ figures, recent }: { figures: SettlementFigures; recent: A
     [t.liveReleased, whole.format(figures.releasedUsdc), true],
     [t.liveReturned, whole.format(figures.returnedUsdc), true],
   ];
+  const day = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric' });
   const source = (figures.testnet ? t.liveSourceTestnet : t.liveSource).replace('{time}', relativeTime(figures.scannedAt, locale));
 
   return (
@@ -77,6 +84,13 @@ function LiveRecord({ figures, recent }: { figures: SettlementFigures; recent: A
                 <dd>{value}{usdc ? <span> USDC</span> : null}</dd>
               </div>
             ))}
+            {reads ? (
+              <div>
+                <dt>{t.liveReads}</dt>
+                <dd>{whole.format(reads.reads)}</dd>
+                <dd className={styles.liveSince}>{t.liveReadsSince.replace('{date}', day.format(reads.since))}</dd>
+              </div>
+            ) : null}
           </dl>
           <div className={styles.liveBar} aria-hidden>
             <span className={styles.liveReleased} style={{ width: `${figures.releasedShare}%` }} />
@@ -87,21 +101,8 @@ function LiveRecord({ figures, recent }: { figures: SettlementFigures; recent: A
             <span><i className={styles.liveReturned} aria-hidden />{t.liveReturnedShare.replace('{n}', String(figures.returnedShare))}</span>
           </p>
         </div>
-        {recent.length > 0 ? (
-          <div className={styles.liveRecent}>
-            <h3>{t.liveRecent}</h3>
-            <ul>
-              {recent.map((deal) => (
-                <li key={deal.settledAt}>
-                  <span className={styles.liveBand}>{bands[deal.amountBand]} USDC</span>
-                  <span>{relativeTime(deal.settledAt, locale)}</span>
-                </li>
-              ))}
-            </ul>
-            <p>{t.livePrivate}</p>
-          </div>
-        ) : null}
       </div>
+      <DealFolders feed={feed} />
       <p className={styles.recordFoot}>{source}</p>
     </>
   );

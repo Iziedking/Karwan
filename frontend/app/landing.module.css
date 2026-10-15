@@ -93,11 +93,12 @@
 
 /* The network's own record, beside the payment schedule. */
 .closingActions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px 28px; }
-.live { display: grid; grid-template-columns: minmax(0,1.35fr) minmax(0,1fr); gap: clamp(28px,4vw,64px); border-top: 1px solid var(--lp-border-light); padding-top: clamp(20px,3vh,32px); }
-.liveFigures { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: clamp(18px,2.6vh,28px) 32px; margin: 0; }
+.live { display: grid; grid-template-columns: minmax(0,1fr); gap: clamp(28px,4vw,64px); border-top: 1px solid var(--lp-border-light); padding-top: clamp(20px,3vh,32px); }
+.liveFigures { display: grid; grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap: clamp(18px,2.6vh,28px) 32px; margin: 0; }
 .liveFigures dt { color: var(--lp-text-sub); font-size: 14px; font-weight: 600; margin-bottom: 6px; }
 .liveFigures dd { margin: 0; font-family: var(--font-display); font-size: clamp(32px,3.6vw,52px); line-height: 1; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
 .liveFigures dd span { font-family: var(--font-sans); font-size: 16px; font-weight: 600; letter-spacing: 0; color: var(--lp-text-sub); }
+.liveFigures dd.liveSince { margin-top: 8px; font-family: var(--font-sans); font-size: 14px; font-weight: 600; line-height: 1.4; letter-spacing: 0; color: var(--lp-text-sub); }
 .liveBar { display: flex; height: 10px; margin-top: clamp(24px,3.4vh,36px); border-radius: 999px; overflow: hidden; background: var(--lp-border-light); }
 .liveBar span { height: 100%; }
 .liveReleased { background: var(--karwan-green); }
@@ -105,13 +106,8 @@
 .liveLegend { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 12px 0 0; color: var(--lp-text-sub); font-size: 14px; font-weight: 600; }
 .liveLegend span { display: inline-flex; align-items: center; gap: 8px; }
 .liveLegend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; }
-.liveRecent h3 { font-size: 18px; font-weight: 600; margin-bottom: 10px; }
-.liveRecent ul { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--lp-border-light); }
-.liveRecent li { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 52px; border-bottom: 1px solid var(--lp-border-light); color: var(--lp-text-sub); font-size: 14px; font-variant-numeric: tabular-nums; }
 .liveBand { padding: 4px 12px; border-radius: 999px; background: var(--lp-light); color: var(--lp-dark); font-size: 14px; font-weight: 600; }
-.liveRecent p { margin: 12px 0 0; color: var(--lp-text-sub); font-size: 14px; line-height: 1.5; }
 .liveSkeleton { height: 320px; border-radius: 16px; background: var(--lp-light); }
 @media (prefers-reduced-motion: no-preference) { .liveSkeleton { animation: livePulse 1.6s ease-in-out infinite; } }
 @keyframes livePulse { 50% { opacity: .55; } }
-@media (max-width: 900px) { .live { grid-template-columns: 1fr; } }
 @media (max-width: 640px) { .closingActions { justify-content: flex-start; } .liveFigures { gap: 18px 20px; } }

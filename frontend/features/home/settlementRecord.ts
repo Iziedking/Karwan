@@ -45,3 +45,16 @@ export function settlementFigures(stats: LifetimeSlice | null | undefined): Sett
 export function latestSettled<T extends { amountBand: AmountBand; settledAt: number }>(feed: T[] | undefined, count = 5): T[] {
   return [...(feed ?? [])].sort((a, b) => b.settledAt - a.settledAt).slice(0, count);
 }
+
+export interface AgentReadFigure {
+  reads: number;
+  since: number;
+}
+
+/// Agent record reads, or null when none are recorded or the answer is not a
+/// real count; the figure is then left out, never shown as zero.
+export function agentReadFigure(totals: { reads: number; since: number | null } | null | undefined): AgentReadFigure | null {
+  if (!totals || !Number.isSafeInteger(totals.reads) || totals.reads <= 0) return null;
+  if (typeof totals.since !== 'number' || !Number.isFinite(totals.since) || totals.since <= 0) return null;
+  return { reads: totals.reads, since: totals.since };
+}

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { latestSettled, settlementFigures } from './settlementRecord';
+import { agentReadFigure, latestSettled, settlementFigures } from './settlementRecord';
 
 const stats = {
   network: { chainId: 5042002, name: 'Arc Testnet', testnet: true },
@@ -45,6 +45,22 @@ test('the landing shows the real record and asks for the waitlist where it says 
   const section = readFileSync(new URL('./components/SettlementRecord.tsx', import.meta.url), 'utf8');
   assert.match(section, /api\.networkLifetime\(/);
   assert.match(section, /api\.dealsFeed\(\)/);
-  assert.match(section, /sealedRecord\.bands/, 'settled deals show a value range, never an exact amount');
+  assert.match(section, /<DealFolders feed=/, 'settled deals reach the page through the folders, as value ranges');
   assert.doesNotMatch(section, /Loading|title=/);
+});
+
+test('agent record reads show only when a real count exists, with the day counting began', () => {
+  assert.deepEqual(agentReadFigure({ reads: 12, since: 1_790_000_000_000 }), { reads: 12, since: 1_790_000_000_000 });
+  assert.equal(agentReadFigure({ reads: 0, since: null }), null);
+  assert.equal(agentReadFigure({ reads: 3, since: null }), null);
+  assert.equal(agentReadFigure({ reads: Number.NaN, since: 5 }), null);
+  assert.equal(agentReadFigure({ reads: 1.5, since: 5 }), null);
+  assert.equal(agentReadFigure(undefined), null);
+});
+
+test('the read count comes from the public route and is left out when it fails', () => {
+  const section = readFileSync(new URL('./components/SettlementRecord.tsx', import.meta.url), 'utf8');
+  assert.match(section, /api\.networkReads\(/);
+  assert.match(section, /agentReadFigure\(/);
+  assert.match(section, /liveReadsSince/);
 });
