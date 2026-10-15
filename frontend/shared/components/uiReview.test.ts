@@ -149,9 +149,9 @@ test('signed-in home splits only when the content column has room', () => {
 
 test('business directory reads as open records without nested card scrollbars', () => {
   const partners = source('../../features/partners/components/PartnersBrowse.tsx');
-  assert.match(partners, /<h1[^>]*>\s*\{copy\.directoryTitle\}/);
-  assert.match(partners, /<article className="border-b/);
-  assert.match(partners, /<dl className="mt-6 grid/);
+  assert.match(partners, /<h1[^>]*>\s*\{messages\.listingsBrowse\.heroTitle\}/);
+  assert.match(partners, /<article className="flex h-full flex-col/);
+  assert.match(partners, /<dl className="mt-4 space-y-2/);
   assert.doesNotMatch(partners, /h-\[400px\]|overflow-y-auto|<select/);
 });
 

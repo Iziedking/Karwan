@@ -1985,13 +1985,7 @@ interface MessagesShape {
     businesses: string;
   };
   partnersBrowse: {
-    sectionTag: string;
-    headlineAccent: string;
     allSectors: string;
-    regionPlaceholder: string;
-    heroBody: string;
-    pilotBody: string;
-    directoryTitle: string;
     searchLabel: string;
     searchPlaceholder: string;
     sectorLabel: string;
@@ -2008,7 +2002,7 @@ interface MessagesShape {
     retry: string;
     emptyTitle: string;
     emptyBody: string;
-    identityVerified: string;
+    verified: string;
     identityNote: string;
     listedDetailsNote: string;
     supplies: string;
@@ -2022,6 +2016,7 @@ interface MessagesShape {
     signInToTrade: string;
     registerBusiness: string;
     pilotOnly: string;
+    pilotLine: string;
   };
   /// Seller and financier only. The buyer never sees this channel, so the copy
   /// says so plainly rather than leaving it to be inferred.
@@ -7530,13 +7525,7 @@ export const en: MessagesShape = {
     businesses: 'Businesses',
   },
   partnersBrowse: {
-    sectionTag: 'Find partners',
-    headlineAccent: 'business partner',
     allSectors: 'All sectors',
-    regionPlaceholder: 'e.g. Dubai, or South Asia',
-    heroBody: 'Browse real business profiles by sector, market, and location. Identity checks and trading history stay visible before you decide who to contact.',
-    pilotBody: 'Business deal tools are currently available to approved pilot accounts. The directory and public trust profiles remain open to everyone.',
-    directoryTitle: 'Browse business profiles',
     searchLabel: 'Search businesses',
     searchPlaceholder: 'Name, market, location, or certification',
     sectorLabel: 'Sector',
@@ -7553,20 +7542,21 @@ export const en: MessagesShape = {
     retry: 'Try again',
     emptyTitle: 'No businesses match these filters.',
     emptyBody: 'Clear a filter or search another market. Karwan will not invent a result when no profile matches.',
-    identityVerified: 'Business identity verified',
+    verified: "Verified",
     identityNote: 'Karwan reviewed the business identity. This is not a performance guarantee.',
-    listedDetailsNote: 'Business-supplied profile details',
+    listedDetailsNote: "Details as each business listed them",
     supplies: 'Can supply',
     markets: 'Markets',
     minimumOrder: 'Minimum order',
     leadTime: 'Lead time',
-    leadTimeTemplate: '{n} day lead time',
+    leadTimeTemplate: "{n} days",
     listedCertifications: 'Listed certifications',
     viewTrustProfile: 'View trust profile',
     openDeal: 'Open a deal',
     signInToTrade: 'Sign in to trade',
     registerBusiness: 'Register a business',
     pilotOnly: 'Business trading pilot',
+    pilotLine: "Business deals are open to approved pilot accounts. Anyone can browse.",
   },
   financingChat: {
     title: 'Seller \u2194 financier',

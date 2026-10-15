@@ -7,15 +7,12 @@ import { DiscoveryNav } from '@/features/discovery/components/DiscoveryNav';
 import { filterPartners, type PartnerSort } from '@/features/discovery/model';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
-import { Button, buttonClasses } from '@/shared/components/Button';
+import { FilterButton, FilterGroup, SortMenu } from '@/features/discovery/components/FilterBar';
 import { Skeleton, SkeletonText } from '@/shared/components/Skeleton';
-import {
-  Band,
-  FullBleed,
-  GridOverlay,
-  PageCard,
-  SectionTag,
-} from '@/shared/components/Bands';
+import { Band, FullBleed } from '@/shared/components/Bands';
+import { Hint } from '@/shared/components/Hint';
+import { Icon } from '@/shared/components/Icon';
+import { listedAmount } from '../partnerFacts';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -100,220 +97,144 @@ export function PartnersBrowse() {
     setSort('trust');
   }
 
-  return (
-    <FullBleed>
-      <Band tone="dark" tight overlay={<GridOverlay />}>
-        <SectionTag tone="dark">{copy.sectionTag}</SectionTag>
-        <h1 className="mt-4 max-w-[22ch] text-[clamp(2rem,3vw,2.75rem)] font-semibold leading-[1.08] tracking-[-0.035em] text-[var(--lp-workspace-ink)]">
-          {copy.directoryTitle}
-        </h1>
-        <p className="mt-5 max-w-[58ch] text-[16px] leading-relaxed text-[var(--lp-workspace-ink)]">
-          {copy.heroBody}
-        </p>
-        <DiscoveryNav active="partners" tone="dark" />
-        {!SME_TRADES_ENABLED ? (
-          <div className="mt-6 max-w-[62ch] border-s-[3px] border-[var(--lp-accent)] bg-[var(--lp-workspace-soft)] px-4 py-3">
-            <p className="text-[14px] font-semibold text-[var(--lp-accent-on-light)]">
-              {copy.pilotOnly}
-            </p>
-            <p className="mt-1.5 text-[14px] leading-relaxed text-[var(--lp-workspace-ink)]">{copy.pilotBody}</p>
-          </div>
-        ) : null}
-      </Band>
+  const quietAction = 'inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--tint)] px-5 text-[14px] font-medium text-[var(--ink)] transition-colors hover:bg-[color-mix(in_srgb,var(--tint)_92%,var(--ink))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)]';
+  const clearAction = 'inline-flex min-h-11 items-center rounded-full px-2 text-[14px] font-medium text-[var(--ink-secondary)] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)]';
 
-      <Band tone="light" tight>
-        <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[var(--lp-border-light)] pb-4">
-            <p className="max-w-[62ch] text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
-              {copy.listedDetailsNote}
-            </p>
-            <p
-              className="text-[14px] text-[var(--lp-text-sub)] lg:text-end font-medium"
-              aria-live="polite"
-            >
-              {state === 'idle' ? `${copy.refreshing} · ` : ''}
-              {partners !== null ? resultCopy : ''}
-            </p>
+  return (
+    <div className="product-surface">
+    <FullBleed>
+      <Band tone="light" compact>
+        {/* Partners is a tab of Discover: the same title, nav, search and bar. */}
+        <div className="pt-2 sm:pt-3">
+          <h1 className="text-[36px] font-medium leading-[1.1] tracking-[-0.015em] text-[var(--ink)] sm:text-[40px]">
+            {messages.listingsBrowse.heroTitle}
+          </h1>
+          <DiscoveryNav active="partners" tone="light" appearance="quiet" />
+          {!SME_TRADES_ENABLED ? (
+            <p className="mt-3 text-[14px] font-medium text-[var(--ink-secondary)]">{copy.pilotLine}</p>
+          ) : null}
         </div>
 
         <div className="py-6" role="search" aria-label={copy.searchLabel}>
-          <label className="block max-w-2xl">
-            <span className="text-[14px] font-medium text-[var(--lp-text-sub)]">
-              {copy.searchLabel}
-            </span>
-            <span className="relative mt-2 block">
-              <svg
-                aria-hidden
-                viewBox="0 0 18 18"
-                fill="none"
-                className="pointer-events-none absolute start-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--lp-text-muted)]"
-              >
-                <circle cx="7.75" cy="7.75" r="4.75" stroke="currentColor" strokeWidth="1.5" />
-                <path d="m11.25 11.25 3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
+          <label className="block">
+            <span className="sr-only">{copy.searchLabel}</span>
+            <span className="relative block">
+              <Icon name="search" size={20} className="pointer-events-none absolute start-4 top-1/2 -translate-y-1/2 text-[var(--ink-secondary)]" />
               <input
                 type="search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={copy.searchPlaceholder}
-                className="form-input min-h-12 w-full ps-11 pe-4"
-                style={{ paddingInlineStart: 44 }}
+                className="min-h-[52px] w-full rounded-[14px] border-0 bg-[var(--tint)] ps-12 pe-4 text-[15px] text-[var(--ink)] placeholder:text-[var(--ink-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
                 maxLength={120}
               />
             </span>
           </label>
 
-          <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
-            <div className="min-w-0">
-              <FilterGroup label={copy.sectorLabel}>
-                <FilterButton pressed={sector === ''} onClick={() => setSector('')}>
-                  {copy.allSectors}
+          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+            {/* A sector narrows the list when on; pressing it again shows every sector. */}
+            <FilterGroup label={copy.sectorLabel}>
+              {SECTORS.map((value) => (
+                <FilterButton key={value} pressed={sector === value} onClick={() => setSector(sector === value ? '' : value)}>
+                  {sectorLabels[value]}
                 </FilterButton>
-                {SECTORS.map((value) => (
-                  <FilterButton key={value} pressed={sector === value} onClick={() => setSector(value)}>
-                    {sectorLabels[value]}
-                  </FilterButton>
-                ))}
-              </FilterGroup>
-            </div>
-
-            <div className="flex flex-wrap items-end gap-3 xl:justify-end">
-              <FilterGroup label={copy.sortLabel}>
-                <FilterButton pressed={sort === 'trust'} onClick={() => setSort('trust')}>
-                  {copy.sortTrust}
-                </FilterButton>
-                <FilterButton pressed={sort === 'name'} onClick={() => setSort('name')}>
-                  {copy.sortName}
+              ))}
+            </FilterGroup>
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
+              <FilterGroup label={copy.verifiedOnly}>
+                <FilterButton pressed={verifiedOnly} onClick={() => setVerifiedOnly((value) => !value)}>
+                  {copy.verifiedOnly}
                 </FilterButton>
               </FilterGroup>
-              <button
-                type="button"
-                aria-pressed={verifiedOnly}
-                onClick={() => setVerifiedOnly((value) => !value)}
-                className="mb-1 inline-flex h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-[8px] border px-3 text-[14px] font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
-                style={{
-                  borderColor: verifiedOnly ? 'var(--color-positive)' : 'var(--lp-border-light)',
-                  background: verifiedOnly ? 'var(--color-positive-soft)' : 'var(--lp-card)',
-                  color: verifiedOnly ? 'var(--color-positive)' : 'var(--lp-text-sub)',
-                }}
-              >
-                <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-current" />
-                {copy.verifiedOnly}
-              </button>
-              {filtersActive ? (
-                <Button type="button" variant="ghost" onClick={clearFilters}>
-                  {copy.clear}
-                </Button>
-              ) : null}
+              <div className="ms-auto flex items-center gap-2">
+                {filtersActive ? (
+                  <button type="button" onClick={clearFilters} className={clearAction}>
+                    {copy.clear}
+                  </button>
+                ) : null}
+                <SortMenu
+                  label={copy.sortLabel}
+                  value={sort}
+                  options={[
+                    { value: 'trust', label: copy.sortTrust },
+                    { value: 'name', label: copy.sortName },
+                  ]}
+                  onChange={setSort}
+                />
+              </div>
             </div>
           </div>
         </div>
 
         {state === 'error' ? (
-          <div
-            role="alert"
-            className="mb-6 flex flex-col gap-4 border-s-[3px] border-[var(--color-critical)] bg-[var(--color-critical-soft)] px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
-          >
+          <div role="alert" className="mb-6 flex flex-col gap-4 rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="font-sans text-[17px] font-bold text-[var(--lp-dark)]">{copy.errorTitle}</h2>
-              <p className="mt-1 text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{copy.errorBody}</p>
+              <h2 className="text-[17px] font-medium text-[var(--ink)]">{copy.errorTitle}</h2>
+              <p className="mt-1 text-[14px] leading-relaxed text-[var(--ink-secondary)] font-medium">{copy.errorBody}</p>
             </div>
-            <Button type="button" variant="outline" onClick={() => setRetryToken((value) => value + 1)} className="shrink-0 self-start sm:self-auto">
+            <button type="button" onClick={() => setRetryToken((value) => value + 1)} className={quietAction}>
               {copy.retry}
-            </Button>
+            </button>
           </div>
+        ) : null}
+
+        {partners !== null && state !== 'error' ? (
+          <p className="mb-3 text-[14px] font-medium text-[var(--ink-secondary)]" aria-live="polite">
+            {state === 'idle' ? `${copy.refreshing} · ` : ''}
+            {resultCopy} · {copy.listedDetailsNote}
+          </p>
         ) : null}
 
         {partners === null && state !== 'error' ? <PartnersSkeleton /> : null}
 
         {partners !== null && filtered.length === 0 && state !== 'error' ? (
-          <PageCard>
-            <div className="px-6 py-10 sm:px-8 sm:py-12">
-              <h2 className="max-w-[28ch] font-sans text-[22px] font-bold leading-tight tracking-[-0.01em] text-[var(--lp-dark)]">
-                {copy.emptyTitle}
-              </h2>
-              <p className="mt-3 max-w-[58ch] text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
-                {copy.emptyBody}
-              </p>
-              {filtersActive ? (
-                <Button type="button" variant="outline" onClick={clearFilters} className="mt-6">
-                  {copy.clear}
-                </Button>
-              ) : null}
-            </div>
-          </PageCard>
+          <div className="border-t border-[var(--line)] py-8 sm:py-10">
+            <h2 className="text-[22px] font-medium leading-tight tracking-[-0.015em] text-[var(--ink)]">{copy.emptyTitle}</h2>
+            <p className="mt-3 max-w-[58ch] text-[15px] leading-relaxed text-[var(--ink-secondary)]">{copy.emptyBody}</p>
+            {filtersActive ? (
+              <button type="button" onClick={clearFilters} className={`${quietAction} mt-6`}>
+                {copy.clear}
+              </button>
+            ) : null}
+          </div>
         ) : null}
 
         {filtered.length > 0 ? (
-          <div className="border-y border-[var(--lp-border-light)]">
-            {filtered.map((partner, index) => (
-              <PartnerCard
-                key={partner.address}
-                partner={partner}
-                position={index + 1}
-                copy={copy}
-                sectorLabels={sectorLabels}
-                canOpenBusinessDeal={canOpenBusinessDeal}
-                isAuthenticated={auth.isAuthenticated}
-                businessAccount={businessAccount}
-              />
+          <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {filtered.map((partner) => (
+              <li key={partner.address} className="min-w-0">
+                <PartnerCard
+                  partner={partner}
+                  copy={copy}
+                  sectorLabels={sectorLabels}
+                  tierTemplate={messages.listingsBrowse.card.tierTemplate}
+                  canOpenBusinessDeal={canOpenBusinessDeal}
+                  isAuthenticated={auth.isAuthenticated}
+                  businessAccount={businessAccount}
+                />
+              </li>
             ))}
-          </div>
+          </ul>
         ) : null}
       </Band>
     </FullBleed>
-  );
-}
-
-function FilterGroup({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <fieldset className="min-w-0">
-      <legend className="text-[14px] font-medium text-[var(--lp-text-sub)]">
-        {label}
-      </legend>
-      <div className="mt-2 flex max-w-full items-center gap-1 overflow-x-auto pb-1">{children}</div>
-    </fieldset>
-  );
-}
-
-function FilterButton({
-  pressed,
-  onClick,
-  children,
-}: {
-  pressed: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={pressed}
-      onClick={onClick}
-      className="inline-flex h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-[8px] border px-3 text-[14px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
-      style={{
-        borderColor: pressed ? 'var(--lp-selected-border)' : 'var(--lp-border-light)',
-        background: pressed ? 'var(--lp-selected-bg)' : 'var(--lp-card)',
-        color: pressed ? 'var(--lp-selected-ink)' : 'var(--lp-text-sub)',
-      }}
-    >
-      {children}
-    </button>
+    </div>
   );
 }
 
 function PartnerCard({
   partner,
-  position,
   copy,
   sectorLabels,
+  tierTemplate,
   canOpenBusinessDeal,
   isAuthenticated,
   businessAccount,
 }: {
   partner: Partner;
-  position: number;
   copy: Messages['partnersBrowse'];
   sectorLabels: SectorLabels;
+  tierTemplate: string;
   canOpenBusinessDeal: boolean;
   isAuthenticated: boolean;
   businessAccount: boolean;
@@ -330,81 +251,73 @@ function PartnerCard({
       : !businessAccount
         ? copy.registerBusiness
         : copy.pilotOnly;
-  const tradeMeta = [sectorLabel(sectorLabels, partner.sector), partner.region, partner.canSupply ? copy.supplies : null].filter(
+  const meta = [sectorLabel(sectorLabels, partner.sector), partner.region, partner.canSupply ? copy.supplies : null].filter(
     (value): value is string => Boolean(value),
   );
+  const minOrder = listedAmount(partner.minOrderValue);
+  const facts = [
+    partner.primaryMarkets ? { label: copy.markets, value: partner.primaryMarkets } : null,
+    minOrder ? { label: copy.minimumOrder, value: minOrder } : null,
+    partner.leadTimeDays ? { label: copy.leadTime, value: copy.leadTimeTemplate.replace('{n}', String(partner.leadTimeDays)) } : null,
+    partner.certifications ? { label: copy.listedCertifications, value: partner.certifications } : null,
+  ].filter((fact): fact is { label: string; value: string } => fact !== null);
 
+  // The same white card as a Discover trade: a pale label up top, the name as
+  // the loudest line, then the facts the business listed, then the way in.
   return (
-    <article className="border-b border-[var(--lp-border-light)] py-6 last:border-b-0 sm:py-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0 flex-1">
-          <p aria-hidden className="text-[14px] font-medium text-[var(--lp-text-sub)]">{String(position).padStart(2, '0')}</p>
-          <h3 className="mt-2 text-[clamp(1.4rem,2.3vw,1.85rem)] font-semibold leading-tight tracking-[-0.03em] text-[var(--lp-dark)]">
-            {partner.name}
-          </h3>
-          {tradeMeta.length > 0 ? (
-            <p className="mt-2 break-words text-[14px] leading-6 text-[var(--lp-text-sub)] font-medium">{tradeMeta.join(' · ')}</p>
-          ) : null}
-        </div>
-        <ReputationBadge address={partner.address} size="sm" withDetail />
+    <article className="flex h-full flex-col overflow-hidden rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5">
+      <div className="flex min-h-7 items-center justify-between gap-2 text-[14px] font-medium text-[var(--ink-secondary)]">
+        {partner.verified ? (
+          <span className="inline-flex items-center gap-1">
+            <span className="rounded-full bg-[var(--color-positive-soft)] px-2.5 py-0.5 font-semibold text-[var(--color-positive)]">{copy.verified}</span>
+            <Hint side="bottom">{copy.identityNote}</Hint>
+          </span>
+        ) : <span />}
+        <ReputationBadge address={partner.address} appearance="text" textTemplate={tierTemplate} />
       </div>
-
-      {partner.verified ? (
-        <div className="mt-5 border-s-[3px] border-[var(--lp-accent)] ps-4">
-          <p className="text-[14px] font-semibold text-[var(--lp-dark)]">{copy.identityVerified}</p>
-          <p className="mt-1 max-w-[64ch] text-[14px] leading-5 text-[var(--lp-text-sub)] font-medium">{copy.identityNote}</p>
-        </div>
+      <h3 dir="auto" className="mt-3 line-clamp-2 text-[18px] font-medium leading-[1.3] tracking-[-0.015em] text-[var(--ink)]">
+        {partner.name}
+      </h3>
+      {meta.length > 0 ? (
+        <p className="mt-1 line-clamp-2 text-[14px] leading-5 text-[var(--ink-secondary)] font-medium">{meta.join(' · ')}</p>
       ) : null}
-
-      {partner.primaryMarkets || partner.minOrderValue || partner.leadTimeDays || partner.certifications ? (
-        <dl className="mt-6 grid gap-x-8 gap-y-4 border-t border-[var(--lp-border-light)] pt-5 sm:grid-cols-2 xl:grid-cols-4">
-          {partner.primaryMarkets ? <CapRow label={copy.markets} value={partner.primaryMarkets} /> : null}
-          {partner.minOrderValue ? <CapRow label={copy.minimumOrder} value={partner.minOrderValue} /> : null}
-          {partner.leadTimeDays ? (
-            <CapRow label={copy.leadTime} value={copy.leadTimeTemplate.replace('{n}', String(partner.leadTimeDays))} />
-          ) : null}
-          {partner.certifications ? <CapRow label={copy.listedCertifications} value={partner.certifications} /> : null}
+      {facts.length > 0 ? (
+        <dl className="mt-4 space-y-2 border-t border-[var(--lp-border-light)] pt-4 text-[14px]">
+          {facts.map((fact) => (
+            <div key={fact.label} className="flex min-w-0 items-baseline justify-between gap-3">
+              <dt className="shrink-0 font-medium text-[var(--ink-secondary)]">{fact.label}</dt>
+              <dd dir="auto" className="min-w-0 truncate text-end font-medium text-[var(--ink)]">{fact.value}</dd>
+            </div>
+          ))}
         </dl>
       ) : null}
-
-      <div className="mt-5 flex flex-wrap items-center gap-3">
-            {primaryHref ? (
-              <Link href={primaryHref} className={buttonClasses({ className: 'justify-between' })}>
-                {primaryLabel}
-                <span aria-hidden>→</span>
-              </Link>
-            ) : null}
-            <Link
-              href={`/credit-passport/${partner.address}`}
-              className={buttonClasses({ variant: 'ghost', className: 'justify-between' })}
-            >
-              {copy.viewTrustProfile}
-              <span aria-hidden>↗</span>
-            </Link>
+      <div className="mt-auto flex flex-wrap items-center gap-2 pt-5">
+        {primaryHref ? (
+          <Link href={primaryHref} className="inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--action)] px-4 text-[14px] font-medium text-[var(--on-action)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)]">
+            {primaryLabel}
+          </Link>
+        ) : null}
+        <Link
+          href={`/credit-passport/${partner.address}`}
+          className="inline-flex min-h-11 items-center gap-1 rounded-full px-1 text-[14px] font-semibold text-[var(--ink)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)]"
+        >
+          {copy.viewTrustProfile}
+          <Icon name="chevron-right" size={16} directional className="shrink-0" />
+        </Link>
       </div>
     </article>
   );
 }
 
-function CapRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="min-w-0">
-      <dt className="text-[14px] font-medium text-[var(--lp-text-sub)]">{label}</dt>
-      <dd className="mt-1 break-words text-[14px] leading-5 text-[var(--lp-dark)]">{value}</dd>
-    </div>
-  );
-}
-
 function PartnersSkeleton() {
   return (
-    <div className="border-y border-[var(--lp-border-light)]">
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {[0, 1, 2].map((index) => (
-        <div key={index} className="border-b border-[var(--lp-border-light)] py-6 last:border-b-0 sm:py-8">
-          <Skeleton className="h-3 w-10" />
-          <Skeleton className="mt-3 h-7 w-2/3" />
-          <Skeleton className="mt-3 h-3 w-1/2" />
-          <SkeletonText lines={2} className="mt-6 max-w-[60ch]" />
-          <Skeleton className="mt-5 h-11 w-40" />
+        <div key={index} className="rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5">
+          <Skeleton className="h-5 w-20" />
+          <Skeleton className="mt-4 h-6 w-2/3" />
+          <SkeletonText lines={2} className="mt-4" />
+          <Skeleton className="mt-5 h-11 w-36" />
         </div>
       ))}
     </div>
