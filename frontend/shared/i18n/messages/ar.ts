@@ -2129,8 +2129,6 @@ export const ar: Messages = {
       expectedReturn: 'العائد المتوقع',
       retiredContract: 'فُتح على عقد أوامر الشراء السابق، المتوقف في 2026-07-27. سُوّي خارج المنصة.',
       positionDetails: 'تفاصيل المركز',
-      smeTrades: 'تجارة الشركات الصغيرة',
-      openFinancierDesk: 'افتح مكتب التمويل',
       loadingPosition: 'جارٍ تحميل المركز…',
     },
     newsletter: {
@@ -2205,6 +2203,15 @@ export const ar: Messages = {
     navLabel: 'أقسام الاكتشاف',
     requestsAndOffers: 'الطلبات والعروض',
     businesses: 'الشركات',
+  },
+  financeSoon: {
+    title: "التمويل",
+    when: "يُفتح بعد التجربة مع الشركات. لا شيء هنا ينقل المال بعد.",
+    factoringTitle: "تمويل الفواتير",
+    factoringBody: "احصل على أموالك مبكرًا مقابل فاتورة مقبولة. يقدّم الممول المال ويُسدَّد له عند تسوية الصفقة.",
+    poTitle: "تمويل أوامر الشراء",
+    poBody: "رأس مال عامل مقابل أمر شراء، يُصرف للمورّد بعد تأكيد التسليم.",
+    roadmap: "اطّلع على خارطة الطريق",
   },
   partnersBrowse: {
     searchLabel: 'ابحث عن شركات',

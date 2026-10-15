@@ -1,73 +1,47 @@
 'use client';
 import Link from 'next/link';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { Band, SectionTag, HeroHeadline, Punc, CTAPill } from '@/shared/components/Bands';
+import { Band, FullBleed } from '@/shared/components/Bands';
+import { Icon } from '@/shared/components/Icon';
 
-/// Holding surface for the SME Trades rail before launch. The /financier
-/// route renders this until NEXT_PUBLIC_SME_TRADES_ENABLED is set, so the
-/// SME Trades nav slot resolves to a real page that explains what is
-/// coming rather than exposing an unfinished desk.
-
-const PILLARS: ReadonlyArray<{ tag: string; title: string; body: string }> = [
-  {
-    tag: '001',
-    title: 'Invoice factoring',
-    body: 'Suppliers draw early payout against an accepted invoice. Financiers fund at a tiered discount and are repaid on settlement.',
-  },
-  {
-    tag: '002',
-    title: 'PO financing',
-    body: 'Working capital against a purchase order, released to the supplier on verified proof of delivery.',
-  },
-  {
-    tag: '003',
-    title: 'Credit passport',
-    body: 'Every counterparty carries a portable, on-chain record of completed deals, repayment behaviour, and concentration.',
-  },
-];
-
+/// What /financier shows until NEXT_PUBLIC_SME_TRADES_ENABLED is set: what is
+/// coming, said plainly, and one way on to the written plan. No desk link,
+/// because there is no desk yet.
 export function SmeTradesComingSoon() {
-  const pb = useTranslations().pageBits;
+  const t = useTranslations().financeSoon;
+  const rows = [
+    { title: t.factoringTitle, body: t.factoringBody },
+    { title: t.poTitle, body: t.poBody },
+  ];
   return (
-    <main className="min-h-[70vh]">
-      <Band tone="light">
-        <SectionTag>{pb.financierPanels.smeTrades}</SectionTag>
-        <HeroHeadline size="lg">
-          Trade finance, on Arc<Punc>.</Punc>
-        </HeroHeadline>
-        <p className="mt-5 max-w-[58ch] text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
-          The SME rail extends Karwan settlement to working capital: invoice
-          factoring, purchase-order financing, and a credit passport that
-          travels with each counterparty. It opens to financiers after the
-          first pilot.
-        </p>
+    <div className="product-surface">
+      <FullBleed>
+        <Band tone="light" compact>
+          <div className="max-w-[640px] pt-2 sm:pt-3">
+            <h1 className="text-[36px] font-medium leading-[1.1] tracking-[-0.015em] text-[var(--ink)] sm:text-[40px]">
+              {t.title}
+            </h1>
+            <p className="mt-3 text-[15px] leading-relaxed text-[var(--ink-secondary)] font-medium">{t.when}</p>
 
-        <div className="mt-12 grid gap-px sm:grid-cols-3 bg-[var(--lp-border-light)]">
-          {PILLARS.map((p) => (
-            <div key={p.tag} className="bg-[var(--lp-bg)] p-6">
-              <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-                {p.tag}
-              </p>
-              <h3 className="mt-3 font-sans text-[18px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
-                {p.title}
-              </h3>
-              <p className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
-                {p.body}
-              </p>
-            </div>
-          ))}
-        </div>
+            <ul className="mt-6 divide-y divide-[var(--lp-border-light)] overflow-hidden rounded-[18px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
+              {rows.map((row) => (
+                <li key={row.title} className="px-4 py-4">
+                  <h2 className="text-[15px] font-semibold text-[var(--lp-dark)]">{row.title}</h2>
+                  <p className="mt-1 text-[14px] leading-relaxed text-[var(--ink-secondary)] font-medium">{row.body}</p>
+                </li>
+              ))}
+            </ul>
 
-        <div className="mt-12 flex items-center gap-4 flex-wrap">
-          <CTAPill href="/financier">{pb.financierPanels.openFinancierDesk}</CTAPill>
-          <Link
-            href="/docs"
-            className="mono inline-flex min-h-11 items-center text-[14px] uppercase tracking-[0.14em] font-bold text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
-          >
-            Read the docs
-          </Link>
-        </div>
-      </Band>
-    </main>
+            <Link
+              href="/docs/roadmap"
+              className="mt-6 inline-flex min-h-12 items-center gap-1.5 rounded-full bg-[var(--tint)] px-5 text-[14px] font-medium text-[var(--ink)] transition-colors hover:bg-[color-mix(in_srgb,var(--tint)_92%,var(--ink))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)]"
+            >
+              {t.roadmap}
+              <Icon name="chevron-right" size={16} directional className="shrink-0" />
+            </Link>
+          </div>
+        </Band>
+      </FullBleed>
+    </div>
   );
 }

@@ -1914,8 +1914,6 @@ interface MessagesShape {
       expectedReturn: string;
       retiredContract: string;
       positionDetails: string;
-      smeTrades: string;
-      openFinancierDesk: string;
       loadingPosition: string;
     };
     newsletter: { noSuchIssue: string; couldNotLoadIssue: string; couldNotLoadArchive: string };
@@ -1983,6 +1981,16 @@ interface MessagesShape {
     navLabel: string;
     requestsAndOffers: string;
     businesses: string;
+  };
+  /// /financier before finance trading opens.
+  financeSoon: {
+    title: string;
+    when: string;
+    factoringTitle: string;
+    factoringBody: string;
+    poTitle: string;
+    poBody: string;
+    roadmap: string;
   };
   partnersBrowse: {
     allSectors: string;
@@ -7435,8 +7443,6 @@ export const en: MessagesShape = {
       expectedReturn: 'Expected return',
       retiredContract: 'Opened on the previous PO contract, retired 2026-07-27. Settled off the desk.',
       positionDetails: 'position details',
-      smeTrades: 'SME trades',
-      openFinancierDesk: 'Open the financier desk',
       loadingPosition: 'Loading position\u2026',
     },
     newsletter: {
@@ -7523,6 +7529,15 @@ export const en: MessagesShape = {
     navLabel: 'Discovery sections',
     requestsAndOffers: 'Requests and offers',
     businesses: 'Businesses',
+  },
+  financeSoon: {
+    title: "Finance",
+    when: "Opens after the business pilot. Nothing here moves money yet.",
+    factoringTitle: "Invoice factoring",
+    factoringBody: "Get paid early on an accepted invoice. A financier advances the money and is repaid when the deal settles.",
+    poTitle: "Purchase-order financing",
+    poBody: "Working capital against a purchase order, released to the supplier once delivery is confirmed.",
+    roadmap: "See the roadmap",
   },
   partnersBrowse: {
     allSectors: 'All sectors',

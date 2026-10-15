@@ -2127,8 +2127,6 @@ export const hi: Messages = {
       expectedReturn: 'अपेक्षित रिटर्न',
       retiredContract: 'पिछले PO कॉन्ट्रैक्ट पर खोली गई, जो 2026-07-27 को बंद हुआ. डेस्क के बाहर सेटल.',
       positionDetails: 'पोजिशन विवरण',
-      smeTrades: 'SME व्यापार',
-      openFinancierDesk: 'फाइनेंसर डेस्क खोलें',
       loadingPosition: 'पोजिशन लोड हो रही है…',
     },
     newsletter: {
@@ -2203,6 +2201,15 @@ export const hi: Messages = {
     navLabel: 'खोज अनुभाग',
     requestsAndOffers: 'अनुरोध और ऑफ़र',
     businesses: 'व्यवसाय',
+  },
+  financeSoon: {
+    title: "फ़ाइनेंस",
+    when: "व्यवसाय पायलट के बाद खुलेगा. यहाँ अभी कोई पैसा नहीं चलता.",
+    factoringTitle: "इनवॉइस फ़ैक्टरिंग",
+    factoringBody: "स्वीकृत इनवॉइस पर जल्दी भुगतान पाएँ. फ़ाइनेंसर पैसा आगे देता है और डील सेटल होने पर वापस पाता है.",
+    poTitle: "खरीद-आदेश फ़ाइनेंसिंग",
+    poBody: "खरीद आदेश के बदले कार्यशील पूंजी, डिलीवरी की पुष्टि होने पर सप्लायर को जारी.",
+    roadmap: "रोडमैप देखें",
   },
   partnersBrowse: {
     searchLabel: 'व्यवसाय खोजें',

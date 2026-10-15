@@ -2129,8 +2129,6 @@ export const fr: Messages = {
       expectedReturn: 'Rendement attendu',
       retiredContract: 'Ouverte sur le précédent contrat BC, retiré le 2026-07-27. Réglée hors desk.',
       positionDetails: 'détails de la position',
-      smeTrades: 'Commerce PME',
-      openFinancierDesk: 'Ouvrir le desk financeur',
       loadingPosition: 'Chargement de la position…',
     },
     newsletter: {
@@ -2205,6 +2203,15 @@ export const fr: Messages = {
     navLabel: 'Sections de découverte',
     requestsAndOffers: 'Demandes et offres',
     businesses: 'Entreprises',
+  },
+  financeSoon: {
+    title: "Financement",
+    when: "Ouvre après le pilote entreprises. Rien ici ne déplace encore d’argent.",
+    factoringTitle: "Affacturage",
+    factoringBody: "Soyez payé plus tôt sur une facture acceptée. Un financeur avance l’argent et est remboursé au règlement du deal.",
+    poTitle: "Financement de bons de commande",
+    poBody: "Un fonds de roulement adossé à un bon de commande, versé au fournisseur une fois la livraison confirmée.",
+    roadmap: "Voir la feuille de route",
   },
   partnersBrowse: {
     searchLabel: 'Rechercher des entreprises',

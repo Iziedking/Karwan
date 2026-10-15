@@ -2126,8 +2126,6 @@ export const sw: Messages = {
       expectedReturn: 'Faida inayotarajiwa',
       retiredContract: 'Ilifunguliwa kwenye mkataba wa awali wa PO, uliositishwa 2026-07-27. Ilikamilishwa nje ya dawati.',
       positionDetails: 'maelezo ya nafasi',
-      smeTrades: 'Biashara za SME',
-      openFinancierDesk: 'Fungua dawati la mfadhili',
       loadingPosition: 'Inapakia nafasi…',
     },
     newsletter: {
@@ -2202,6 +2200,15 @@ export const sw: Messages = {
     navLabel: 'Sehemu za ugunduzi',
     requestsAndOffers: 'Maombi na ofa',
     businesses: 'Biashara',
+  },
+  financeSoon: {
+    title: "Fedha",
+    when: "Inafunguliwa baada ya majaribio ya biashara. Hakuna kinachohamisha pesa hapa bado.",
+    factoringTitle: "Ufadhili wa ankara",
+    factoringBody: "Lipwa mapema kwa ankara iliyokubaliwa. Mfadhili anatoa pesa mapema na analipwa deal ikikamilika.",
+    poTitle: "Ufadhili wa oda za ununuzi",
+    poBody: "Mtaji wa kazi dhidi ya oda ya ununuzi, unatolewa kwa msambazaji baada ya uwasilishaji kuthibitishwa.",
+    roadmap: "Tazama ramani ya njia",
   },
   partnersBrowse: {
     searchLabel: 'Tafuta biashara',
