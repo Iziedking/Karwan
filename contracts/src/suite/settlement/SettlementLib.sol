@@ -65,7 +65,7 @@ library SettlementLib {
     uint64 internal constant HOLD_STEP = 7 days;
     uint64 internal constant HOLD_BUDGET = 30 days;
     bytes32 internal constant ASSIGN_TYPEHASH = keccak256(
-        "Assign(bytes32 dealId,address payee,address assignee,uint128 amount,uint256 nonce,uint256 deadline)"
+        "Assign(bytes32 dealId,address payee,address assignee,uint128 amount,address submitter,uint256 nonce,uint256 deadline)"
     );
 
     event AccountOpened(
@@ -303,7 +303,7 @@ library SettlementLib {
             if (block.timestamp > deadline) revert Expired();
             if (s.nonceUsed[payee][nonce]) revert NonceUsed();
             s.nonceUsed[payee][nonce] = true;
-            bytes32 digest = assignDigest(domainSeparator, dealId, payee, assignee, amount, nonce, deadline);
+            bytes32 digest = assignDigest(domainSeparator, dealId, payee, assignee, amount, msg.sender, nonce, deadline);
             if (!SigCheck.isValid(payee, digest, sig)) revert BadSignature();
         }
         s.assignments[dealId][payee] = Assignment(assignee, amount, 0);
@@ -453,11 +453,13 @@ library SettlementLib {
         address payee,
         address assignee,
         uint128 amount,
+        address submitter,
         uint256 nonce,
         uint256 deadline
     ) public pure returns (bytes32) {
         return MessageHashUtils.toTypedDataHash(
-            domainSeparator, keccak256(abi.encode(ASSIGN_TYPEHASH, dealId, payee, assignee, amount, nonce, deadline))
+            domainSeparator,
+            keccak256(abi.encode(ASSIGN_TYPEHASH, dealId, payee, assignee, amount, submitter, nonce, deadline))
         );
     }
 

@@ -29,7 +29,7 @@ contract SettlementAssignmentTest is SuiteFixture {
 
     function _signedAssign(address payee, uint256 key, uint128 amount) internal {
         uint256 deadline = block.timestamp + 1 hours;
-        bytes32 d = family.assignDigest(DEAL, payee, financier, amount, 1, deadline);
+        bytes32 d = family.assignDigest(DEAL, payee, financier, amount, financier, 1, deadline);
         bytes memory s = _sig(key, d);
         vm.prank(financier);
         family.assignPayout(DEAL, payee, financier, amount, 1, deadline, s);
@@ -75,7 +75,7 @@ contract SettlementAssignmentTest is SuiteFixture {
         _open(seller);
         (, uint256 strangerKey) = makeAddrAndKey("stranger");
         uint256 deadline = block.timestamp + 1 hours;
-        bytes32 d = family.assignDigest(DEAL, seller, financier, 100e6, 1, deadline);
+        bytes32 d = family.assignDigest(DEAL, seller, financier, 100e6, address(this), 1, deadline);
         bytes memory s = _sig(strangerKey, d);
         vm.expectRevert(KarwanSettlementBase.BadSignature.selector);
         family.assignPayout(DEAL, seller, financier, 100e6, 1, deadline, s);
@@ -92,7 +92,7 @@ contract SettlementAssignmentTest is SuiteFixture {
         vm.prank(buyer);
         other.open(DEAL, address(usdc), _one(seller), uint64(block.timestamp + 30 days));
         uint256 deadline = block.timestamp + 1 hours;
-        bytes memory s = _sig(sellerKey, family.assignDigest(DEAL, seller, financier, 10e6, 1, deadline));
+        bytes memory s = _sig(sellerKey, family.assignDigest(DEAL, seller, financier, 10e6, address(this), 1, deadline));
         vm.expectRevert(KarwanSettlementBase.BadSignature.selector);
         other.assignPayout(DEAL, seller, financier, 10e6, 1, deadline, s);
         family.assignPayout(DEAL, seller, financier, 10e6, 1, deadline, s);
@@ -101,7 +101,7 @@ contract SettlementAssignmentTest is SuiteFixture {
     function test_signature_is_single_use_and_expires() public {
         _open(seller);
         uint256 deadline = block.timestamp + 1 hours;
-        bytes32 d = family.assignDigest(DEAL, seller, financier, 10e6, 7, deadline);
+        bytes32 d = family.assignDigest(DEAL, seller, financier, 10e6, address(this), 7, deadline);
         bytes memory s = _sig(sellerKey, d);
         family.assignPayout(DEAL, seller, financier, 10e6, 7, deadline, s);
         vm.prank(financier);
@@ -110,7 +110,7 @@ contract SettlementAssignmentTest is SuiteFixture {
         family.assignPayout(DEAL, seller, financier, 10e6, 7, deadline, s);
 
         uint256 soon = block.timestamp + 10;
-        bytes32 d2 = family.assignDigest(DEAL, seller, financier, 10e6, 8, soon);
+        bytes32 d2 = family.assignDigest(DEAL, seller, financier, 10e6, address(this), 8, soon);
         bytes memory s2 = _sig(sellerKey, d2);
         vm.warp(soon + 1);
         vm.expectRevert(KarwanSettlementBase.Expired.selector);
@@ -120,7 +120,7 @@ contract SettlementAssignmentTest is SuiteFixture {
     function test_payee_cancels_a_signature_before_it_is_used() public {
         _open(seller);
         uint256 deadline = block.timestamp + 1 hours;
-        bytes32 d = family.assignDigest(DEAL, seller, financier, 10e6, 3, deadline);
+        bytes32 d = family.assignDigest(DEAL, seller, financier, 10e6, financier, 3, deadline);
         bytes memory s = _sig(sellerKey, d);
         vm.prank(seller);
         family.cancelNonce(3);
@@ -136,8 +136,8 @@ contract SettlementAssignmentTest is SuiteFixture {
         family.open(other, address(usdc), _one(seller), uint64(block.timestamp + 30 days));
         vm.stopPrank();
         uint256 deadline = block.timestamp + 1 hours;
-        bytes memory sa = _sig(sellerKey, family.assignDigest(DEAL, seller, financier, 10e6, 1, deadline));
-        bytes memory sb = _sig(sellerKey, family.assignDigest(other, seller, financier, 10e6, 2, deadline));
+        bytes memory sa = _sig(sellerKey, family.assignDigest(DEAL, seller, financier, 10e6, address(this), 1, deadline));
+        bytes memory sb = _sig(sellerKey, family.assignDigest(other, seller, financier, 10e6, address(this), 2, deadline));
         family.assignPayout(other, seller, financier, 10e6, 2, deadline, sb);
         family.assignPayout(DEAL, seller, financier, 10e6, 1, deadline, sa);
     }
@@ -193,5 +193,18 @@ contract SettlementAssignmentTest is SuiteFixture {
         vm.prank(seller);
         vm.expectRevert(KarwanSettlementBase.Closed.selector);
         family.assignPayout(DEAL, seller, financier, 10e6, 0, 0, "");
+    }
+
+    function test_a_signature_names_who_may_submit_it() public {
+        _open(seller);
+        uint256 deadline = block.timestamp + 1 hours;
+        bytes memory s = _sig(sellerKey, family.assignDigest(DEAL, seller, financier, 10e6, financier, 1, deadline));
+        vm.prank(makeAddr("frontRunner"));
+        vm.expectRevert(KarwanSettlementBase.BadSignature.selector);
+        family.assignPayout(DEAL, seller, financier, 10e6, 1, deadline, s);
+        vm.prank(financier);
+        family.assignPayout(DEAL, seller, financier, 10e6, 1, deadline, s);
+        (address assignee,,) = family.assignmentOf(DEAL, seller);
+        assertEq(assignee, financier);
     }
 }

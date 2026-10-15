@@ -89,8 +89,11 @@ abstract contract KarwanSettlementBase is ReentrancyGuard, EIP712 {
 
     /// @notice A payee signs part of their payouts over to someone else, for
     ///         example a financier. The assignee is paid first, up to `amount`.
-    ///         With an empty signature, the payee must be the caller. Nonces
-    ///         are single-use in any order, and the payee can cancel one.
+    ///         With an empty signature, the payee must be the caller. A
+    ///         signature names the one address that may submit it, so a payee
+    ///         who signs for Trade finance is never assigned without the
+    ///         advance. Nonces are single-use in any order, and the payee can
+    ///         cancel one.
     function assignPayout(
         bytes32 dealId,
         address payee,
@@ -202,10 +205,11 @@ abstract contract KarwanSettlementBase is ReentrancyGuard, EIP712 {
         address payee,
         address assignee,
         uint128 amount,
+        address submitter,
         uint256 nonce,
         uint256 deadline
     ) external view returns (bytes32) {
-        return SettlementLib.assignDigest(_domainSeparatorV4(), dealId, payee, assignee, amount, nonce, deadline);
+        return SettlementLib.assignDigest(_domainSeparatorV4(), dealId, payee, assignee, amount, submitter, nonce, deadline);
     }
 
     // ------------------------- Paths for families -------------------------
