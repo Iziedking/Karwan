@@ -19,7 +19,9 @@ import {SigCheck} from "./SigCheck.sol";
 contract KarwanStakeVault is IKarwanStakeVault, EIP712, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
-    uint64 public constant COOLDOWN = 3 days;
+    /// As long as an identity recovery, so a wallet taken from its owner
+    /// cannot take the stake out before the owner takes the identity back.
+    uint64 public constant COOLDOWN = 7 days;
     uint64 public constant MAX_TERM = 1_095 days;
     bytes32 internal constant RESERVE_TYPEHASH = keccak256(
         "Reserve(address family,bytes32 ref,address asset,uint128 amount,address beneficiary,uint64 expiresAt,uint256 deadline)"

@@ -81,7 +81,7 @@ contract StakeVaultTest is SuiteFixture {
         vm.stopPrank();
     }
 
-    function test_a_withdrawal_waits_three_days_and_can_be_cancelled() public {
+    function test_a_withdrawal_waits_seven_days_and_can_be_cancelled() public {
         vm.startPrank(seller);
         vault.requestWithdraw(address(usdc), 40e6);
         vm.expectRevert(KarwanStakeVault.Early.selector);
@@ -89,7 +89,10 @@ contract StakeVaultTest is SuiteFixture {
         vault.cancelWithdraw(address(usdc));
         assertEq(vault.freeOf(sellerId, address(usdc)), 100e6);
         vault.requestWithdraw(address(usdc), 40e6);
-        vm.warp(vm.getBlockTimestamp() + 3 days);
+        vm.warp(vm.getBlockTimestamp() + 7 days - 1);
+        vm.expectRevert(KarwanStakeVault.Early.selector);
+        vault.withdraw(address(usdc));
+        vm.warp(vm.getBlockTimestamp() + 1);
         uint256 before = usdc.balanceOf(seller);
         vault.withdraw(address(usdc));
         vm.stopPrank();
@@ -106,10 +109,16 @@ contract StakeVaultTest is SuiteFixture {
         identity.bind(second, KarwanIdentityRegistry.Kind.Wallet, 0, 0, 0, deadline, s);
         vm.prank(second);
         vault.requestWithdraw(address(usdc), 25e6);
-        vm.warp(vm.getBlockTimestamp() + 3 days);
+        vm.warp(vm.getBlockTimestamp() + 7 days);
         vm.prank(second);
         vault.withdraw(address(usdc));
         assertEq(usdc.balanceOf(second), 25e6);
+    }
+
+    /// A wallet taken from its owner cannot take the stake out before the
+    /// owner's recovery wallet takes the identity back.
+    function test_a_withdrawal_waits_as_long_as_a_recovery() public view {
+        assertEq(vault.COOLDOWN(), identity.RECOVERY_DELAY());
     }
 
     function test_reserved_and_cooling_stake_stays_put() public {
