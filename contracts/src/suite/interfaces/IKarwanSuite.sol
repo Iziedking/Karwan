@@ -40,6 +40,53 @@ interface IKarwanRecord {
     function outcomeKey(address family, bytes32 dealKey, uint64 subject, uint8 role) external pure returns (bytes32);
 }
 
+interface IKarwanStakeVault {
+    function reserve(
+        bytes32 ref,
+        address staker,
+        address asset,
+        uint128 amount,
+        address beneficiary,
+        uint64 expiresAt,
+        uint256 deadline,
+        bytes calldata sig
+    ) external;
+    function extend(bytes32 ref, uint64 expiresAt) external;
+    function slash(bytes32 ref, uint256 amount) external returns (uint256 paid);
+    function release(bytes32 ref) external;
+    function expiryOf(address family, bytes32 ref) external view returns (uint64);
+}
+
+/// @notice What a family's deal still owes its seller, for financing it.
+///         `financeable` is true only while the deal runs with the seller's
+///         acceptance and all its money in.
+struct Receivable {
+    address asset;
+    address seller;
+    uint256 unpaid;
+    uint64 horizon;
+    bool open;
+    bool financeable;
+}
+
+/// @notice A family whose receivables Trade finance can advance against.
+interface IFinanceable {
+    function receivableOf(bytes32 dealId) external view returns (Receivable memory);
+    function assignmentOf(bytes32 dealId, address payee)
+        external
+        view
+        returns (address assignee, uint128 amount, uint128 paid);
+    function assignPayout(
+        bytes32 dealId,
+        address payee,
+        address assignee,
+        uint128 amount,
+        uint256 nonce,
+        uint256 deadline,
+        bytes calldata sig
+    ) external;
+}
+
 /// @notice Deal outcome codes written to the record. `detail` carries the
 ///         payee's share in basis points for rulings and splits.
 library Outcome {

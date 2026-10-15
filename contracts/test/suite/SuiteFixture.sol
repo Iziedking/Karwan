@@ -7,6 +7,7 @@ import {KarwanIdentityRegistry} from "../../src/suite/KarwanIdentityRegistry.sol
 import {KarwanRecord} from "../../src/suite/KarwanRecord.sol";
 import {BlocklistToken} from "./mocks/BlocklistToken.sol";
 import {TestFamily} from "./mocks/TestFamily.sol";
+import {KarwanStakeVault} from "../../src/suite/KarwanStakeVault.sol";
 
 abstract contract SuiteFixture is Test {
     uint128 internal constant PER_DEAL = 1_000e6;
@@ -18,6 +19,7 @@ abstract contract SuiteFixture is Test {
     KarwanRecord internal record;
     BlocklistToken internal usdc;
     TestFamily internal family;
+    KarwanStakeVault internal vault;
 
     address internal feeSafe = makeAddr("feeSafe");
     address internal guardian = makeAddr("guardian");
@@ -30,7 +32,8 @@ abstract contract SuiteFixture is Test {
         hub = new KarwanHub(address(this));
         identity = new KarwanIdentityRegistry(address(hub));
         record = new KarwanRecord(address(hub));
-        hub.wire(address(identity), address(record), makeAddr("stakeVault"));
+        vault = new KarwanStakeVault(address(hub));
+        hub.wire(address(identity), address(record), address(vault));
         usdc = new BlocklistToken(6);
         hub.setFeeRecipient(feeSafe);
         hub.setGuardian(guardian);
