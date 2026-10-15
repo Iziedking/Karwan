@@ -1293,7 +1293,7 @@ export const sw: Messages = {
   deposit: {
     tag: 'Amana',
     addressLabel: 'Anwani yako',
-    acceptsLabel: 'Tuma kutoka',
+    acceptsLabel: 'Weka kutoka mtandao wowote',
     copy: 'Nakili anwani',
     copied: 'Imenakiliwa',
     qrAlt: 'Msimbo QR wa anwani yako ya amana',
@@ -5036,7 +5036,7 @@ export const sw: Messages = {
       eyebrow: 'Deal ya moja kwa moja',
       title: 'Pale ulipo na mwenzi tayari',
       body: 'Mlikubaliana nje ya jukwaa. Karwan inahifadhi tu fedha hadi kazi ifanyike.',
-      step1: { title: 'Fungua deal', cta: 'Fungua dashibodi ya mnunuzi', bodyA: 'Kwenye ', bodyB: ', chagua "Nina muuzaji". Weka anwani ya mkoba wake, kiasi, tarehe ya mwisho, na kiasi gani kinatolewa wakati wa uwasilishaji. Escrow inafadhiliwa kwenye Arc, ikitaja muuzaji huyo moja kwa moja.' },
+      step1: { title: 'Fungua deal', cta: 'ukurasa wa mnunuzi', bodyA: 'Kwenye ', bodyB: ', chagua "Nina muuzaji". Weka anwani ya mkoba wake, kiasi, tarehe ya mwisho, na kiasi gani kinatolewa wakati wa uwasilishaji. Escrow inafadhiliwa kwenye Arc, ikitaja muuzaji huyo moja kwa moja.' },
       step2: { title: 'Muuzaji anawasilisha', body: 'Muuzaji anaingia kwa kutumia mkoba uliotaja. Deal inamsubiri kwenye dashibodi yake. Kazi ikiisha, anaweka alama imewasilishwa, kitu ambacho kinafungua malipo yako.' },
       step3: { title: 'Toa kwa mafungu', body: 'Unatoa sehemu ya kwanza, kisha unathibitisha kazi na kutoa zilizosalia. Escrow inakamilika, ada ya jukwaa inakusanywa, na sifa ya muuzaji inarekodiwa on-chain.' },
     },

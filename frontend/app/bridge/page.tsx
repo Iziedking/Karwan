@@ -114,15 +114,11 @@ function BridgePageInner() {
   const requestedAmount = requestedAmountRaw && Number.isFinite(Number(requestedAmountRaw)) && Number(requestedAmountRaw) > 0
     ? Number(requestedAmountRaw)
     : undefined;
-  const [direction, setDirection] = useState<Direction>(requestedDirection === 'out' ? 'out' : 'in');
+  // Add and Withdraw are separate ways in (Home's Add and Withdraw buttons), so
+  // the page shows only the side it was opened for, never the other one.
+  const direction: Direction = requestedDirection === 'out' ? 'out' : 'in';
   const [historyOpen, setHistoryOpen] = useState(false);
   const moneyIntent: MoneyIntent | undefined = direction === 'out' && outIntent ? outIntent : undefined;
-
-  useEffect(() => {
-    if (requestedDirection === 'in' || requestedDirection === 'out') {
-      setDirection(requestedDirection);
-    }
-  }, [requestedDirection]);
 
   // Which rails exist for this account and this direction lives in railModel,
   // not here. Both account types get the same chooser now: an email account used
@@ -140,7 +136,6 @@ function BridgePageInner() {
   // notice as the first thing on the page.
   useEffect(() => {
     setRail((current) => defaultRail(rails, params.get('rail') ?? current));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params]);
 
   // Flipping direction can retire the current rail: there is no direct-deposit
@@ -171,28 +166,8 @@ function BridgePageInner() {
 
       <Band tone="light" compact className="!pt-0 md:!pt-0">
         <div className="max-w-xl">
-          {/* Direction first, rail second. Which way the money goes is the
-              question every account has; which rail carries it depends on the
-              answer, and two of the four only exist in one direction. */}
-          <div className="mb-6 grid gap-3 sm:flex sm:flex-wrap sm:items-center sm:justify-between">
-            <div
-              data-guide="bridge-direction"
-              className="flex w-full p-1 sm:w-auto"
-              style={{
-                background: 'var(--tint)',
-                borderRadius: 999,
-              }}
-            >
-              <DirToggle active={direction === 'in'} onClick={() => setDirection('in')}>
-                {messages.account.page.add}
-              </DirToggle>
-              <DirToggle active={direction === 'out'} onClick={() => setDirection('out')}>
-                {outIntent === 'move' ? header.titleMove : header.titleOut}
-              </DirToggle>
-            </div>
-            <div data-guide="bridge-history" className="w-full sm:w-auto">
-              <HistoryButton onClick={() => setHistoryOpen(true)} label={c.transferHistory} />
-            </div>
+          <div data-guide="bridge-history" className="mb-6">
+            <HistoryButton onClick={() => setHistoryOpen(true)} label={c.transferHistory} />
           </div>
 
           <div data-guide="bridge-rails">
@@ -298,31 +273,6 @@ function HistoryButton({ onClick, label }: { onClick: () => void; label: string 
       }}
     >
       {label}
-    </button>
-  );
-}
-
-function DirToggle({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className="min-h-12 flex-1 rounded-full px-4 py-3 text-[14px] font-medium transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] sm:flex-none sm:px-5"
-      style={{
-        background: active ? 'var(--ink)' : 'transparent',
-        color: active ? 'var(--canvas)' : 'var(--ink-secondary)',
-      }}
-    >
-      {children}
     </button>
   );
 }

@@ -43,7 +43,7 @@ import { MoneyOutNotice } from '@/features/moneyOut/MoneyOutNotice';
 export interface MoneySheetProps {
   open: boolean;
   onClose: () => void;
-  /// The move the sheet opens on. Top-up and withdraw swap in place.
+  /// The move the sheet is for. It does not change while the sheet is open.
   move: MoneyMove;
   agent: AgentKey;
   prefillAmount?: number;
@@ -72,7 +72,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
   const amountRef = useRef<HTMLInputElement | null>(null);
   const announced = useRef<SheetState['kind'] | null>(null);
   const inFlight = useRef(false);
-  const [move, setMove] = useState<MoneyMove>(openedOn);
+  const move = openedOn;
   const [typed, setTyped] = useState('');
   const [recipient, setRecipient] = useState('');
   const [pressed, setPressed] = useState<number | null>(null);
@@ -83,7 +83,6 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
   // no result left over from last time.
   useEffect(() => {
     if (!open) return;
-    setMove(openedOn);
     setTyped(prefillAmount ? String(prefillAmount) : '');
     setRecipient(prefillRecipient ?? '');
     setPressed(null);
@@ -276,15 +275,11 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
       ) : (
         <div className="mt-6 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-y border-[var(--lp-border-light)] py-4">
           <Place label={t.sheet.from} name={fromName} amount={fromAmount} locale={locale} />
-          <button
-            type="button"
-            onClick={() => setMove(move === 'topUp' ? 'withdraw' : 'topUp')}
-            disabled={state.kind !== 'editing'}
-            aria-label={t.sheet.swap}
-            className="inline-grid size-11 place-items-center rounded-full border border-[var(--lp-outline-strong)] text-[var(--lp-dark)] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-          >
-            <span aria-hidden className="text-[18px] leading-none">⇄</span>
-          </button>
+          {/* Which way the money goes is fixed by the button that opened the
+              sheet; Top up and Withdraw are separate ways in. */}
+          <span aria-hidden className="inline-grid size-11 place-items-center text-[var(--lp-text-sub)]">
+            <Icon name="arrow-right" size={20} directional />
+          </span>
           <Place label={t.sheet.to} name={toName} amount={toAmount} locale={locale} end />
           {move === 'withdraw' && otherAgentAddress ? (
             <button

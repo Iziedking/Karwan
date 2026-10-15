@@ -1296,7 +1296,7 @@ export const fr: Messages = {
   deposit: {
     tag: 'Dépôt',
     addressLabel: 'Votre adresse',
-    acceptsLabel: 'Envoyer depuis',
+    acceptsLabel: 'Déposez depuis n’importe quelle chaîne',
     copy: "Copier l'adresse",
     copied: 'Copié',
     qrAlt: 'Code QR de votre adresse de dépôt',
@@ -5039,7 +5039,7 @@ export const fr: Messages = {
       eyebrow: 'Transaction directe',
       title: 'Quand vous avez déjà une contrepartie',
       body: 'Vous vous êtes mis d\'accord hors plateforme. Karwan se contente de sécuriser l\'argent pendant que le travail se fait.',
-      step1: { title: 'Ouvrez la transaction', cta: 'Ouvrir le tableau de bord acheteur', bodyA: 'Sur ', bodyB: ', choisissez "J\'ai un vendeur". Saisissez son adresse de portefeuille, le montant, une échéance et combien est libéré à la livraison. Le séquestre se finance sur Arc, en désignant directement ce vendeur.' },
+      step1: { title: 'Ouvrez la transaction', cta: 'la page acheteur', bodyA: 'Sur ', bodyB: ', choisissez "J\'ai un vendeur". Saisissez son adresse de portefeuille, le montant, une échéance et combien est libéré à la livraison. Le séquestre se finance sur Arc, en désignant directement ce vendeur.' },
       step2: { title: 'Le vendeur livre', body: 'Le vendeur se connecte avec le portefeuille que vous avez désigné. La transaction l\'attend sur son tableau de bord. Une fois le travail fait, il le marque livré, ce qui débloque vos libérations.' },
       step3: { title: 'Libérez par tranches', body: 'Vous libérez la première tranche, puis vous vérifiez le travail et libérez le reste. Le séquestre se règle, les frais de plateforme sont collectés, et la réputation du vendeur est inscrite on-chain.' },
     },

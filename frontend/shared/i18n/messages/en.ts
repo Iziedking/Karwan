@@ -6632,7 +6632,7 @@ export const en: MessagesShape = {
   deposit: {
     tag: 'Deposit',
     addressLabel: 'Your address',
-    acceptsLabel: 'Send from',
+    acceptsLabel: 'Deposit from any chain',
     copy: 'Copy address',
     copied: 'Copied',
     qrAlt: 'QR code of your deposit address',
@@ -10506,7 +10506,7 @@ export const en: MessagesShape = {
       eyebrow: 'Bring a deal',
       title: 'When you already know the other side',
       body: 'You found someone through a chat, marketplace, social post, or referral. Karwan records the terms and protects payment while goods or services are delivered.',
-      step1: { title: 'Agree and fund', cta: 'Open buyer dashboard', bodyA: 'On ', bodyB: ', pick "I have a seller". Enter their wallet or email, the amount, deadline, and milestones. The seller agrees first. You then review the current fee and exact total before funding escrow.' },
+      step1: { title: 'Agree and fund', cta: 'the buyer page', bodyA: 'On ', bodyB: ', pick "I have a seller". Enter their wallet or email, the amount, deadline, and milestones. The seller agrees first. You then review the current fee and exact total before funding escrow.' },
       step2: { title: 'Seller delivers', body: 'Delivery begins only after the deal shows escrow funded. When the agreed goods or service are delivered, the seller submits delivery for the buyer to review.' },
       step3: { title: 'Review and pay', body: 'You release the first slice, then verify the delivery and release the rest. The escrow settles, the platform fee is collected, and the seller\'s reputation is recorded on chain.' },
     },

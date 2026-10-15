@@ -166,11 +166,6 @@ export function buildBridgeSteps(view: {
 }): TourStep[] {
   const steps: TourStep[] = [
     {
-      title: 'Choose a direction',
-      body: 'Deposit brings USDC to Arc. Withdraw sends it out. Available routes follow your choice.',
-      target: 'bridge-direction',
-    },
-    {
       title: 'Choose a route',
       body: 'Select the route that matches where your USDC is now. Unavailable routes are marked clearly.',
       target: 'bridge-rails',
