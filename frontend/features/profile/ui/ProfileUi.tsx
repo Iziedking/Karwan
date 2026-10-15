@@ -29,10 +29,15 @@ export function ProfileFrame({ title, hint, children }: { title: ReactNode; hint
   );
 }
 
-export function RowGroup({ title, children }: { title?: string; children: ReactNode }) {
+export function RowGroup({ title, action, children }: { title?: string; action?: ReactNode; children: ReactNode }) {
   return (
     <section>
-      {title ? <h2 className="mb-2 px-1 text-[14px] font-semibold text-[var(--lp-text-sub)]">{title}</h2> : null}
+      {title ? (
+        <div className="mb-1 flex min-h-11 items-end justify-between gap-3 px-1">
+          <h2 className="pb-1 text-[14px] font-semibold text-[var(--lp-text-sub)]">{title}</h2>
+          {action}
+        </div>
+      ) : null}
       <div className="divide-y divide-[var(--lp-border-light)] overflow-hidden rounded-[18px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
         {children}
       </div>
@@ -46,9 +51,11 @@ const interactive = 'transition-colors hover:bg-[var(--lp-light)] focus-visible:
 /// A fact or a way in: label on the left, its value (or a control) on the
 /// right. With `href` or `onClick` the whole row opens it. `soon` shows a row
 /// that is not built yet, never clickable.
-export function Row({ label, value, href, onClick, soon, children }: {
+export function Row({ label, value, href, onClick, soon, full = false, children }: {
   label: ReactNode;
   value?: ReactNode;
+  /// Show the whole value, wrapping, instead of two lines then cut.
+  full?: boolean;
   href?: string;
   onClick?: () => void;
   soon?: string;
@@ -65,7 +72,7 @@ export function Row({ label, value, href, onClick, soon, children }: {
   const content = (
     <>
       <span className={value != null ? 'max-w-[55%] shrink-0 break-words font-medium text-[var(--lp-dark)]' : 'min-w-0 flex-1 font-medium text-[var(--lp-dark)]'}>{label}</span>
-      {value != null ? <span className="line-clamp-2 min-w-0 flex-1 break-words text-end text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">{value}</span> : null}
+      {value != null ? <span className={`${full ? '' : 'line-clamp-2 '}min-w-0 flex-1 break-words text-end text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium`}>{value}</span> : null}
       {children}
       {href || onClick ? <Icon name="chevron-right" size={16} directional className="shrink-0 text-[var(--lp-text-sub)]" /> : null}
     </>

@@ -32,6 +32,7 @@ import { ProfileAccountHub } from '@/features/profile/components/ProfileAccountH
 import { AgentFundsList } from '@/features/profile/components/AgentFundsList';
 import { ResearchRows } from '@/features/profile/components/ResearchRows';
 import { ProfileFrame, Row, RowGroup } from '@/features/profile/ui/ProfileUi';
+import { Hint } from '@/shared/components/Hint';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 
 type ProfileSection = 'wallets' | 'open-deals' | 'agents' | 'identity' | 'preferences';
@@ -155,9 +156,16 @@ function ProfilePageInner() {
     identity: simple.agentsTitle,
     preferences: simple.contactTitle,
   };
-  const usdcOrNotSet = (value: unknown) => (isAmount(value) ? `${value} USDC` : simple.notSet);
+  // Amounts read as they do everywhere else: grouped, "5,000 USDC".
+  const whole = (value: number) => value.toLocaleString('en-US');
+  const usdcOrNotSet = (value: unknown) => (isAmount(value) ? `${whole(value)} USDC` : simple.notSet);
   const rangeOrNotSet = (min: unknown, max: unknown, template: string) =>
-    isAmount(min) && isAmount(max) ? template.replace('{min}', String(min)).replace('{max}', String(max)) : simple.notSet;
+    isAmount(min) && isAmount(max) ? template.replace('{min}', whole(min)).replace('{max}', whole(max)) : simple.notSet;
+  const editLink = (anchor: 'selling' | 'buying') => (
+    <Link href={`/profile/edit#${anchor}`} className="inline-flex min-h-11 items-center rounded-full px-2 text-[14px] font-semibold text-[var(--lp-dark)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+      {simple.edit}
+    </Link>
+  );
 
   const profilePanels: ProfilePanel[] = [
     {
@@ -168,7 +176,7 @@ function ProfilePageInner() {
           <TierCelebration address={address} />
           {AGENTS_AVAILABLE ? (
             <RowGroup>
-              <Row label={simple.agents} value={activation.loading ? undefined : activation.activated ? simple.on : undefined}>
+              <Row label={<span className="inline-flex items-center gap-1">{simple.agents}<Hint side="bottom">{simple.agentsHint}</Hint></span>} value={activation.loading ? undefined : activation.activated ? simple.on : undefined}>
                 {!activation.loading && !activation.activated ? (
                   <button type="button" onClick={() => setActivationOpen(true)} className={ACCENT_PILL}>{simple.setUp}</button>
                 ) : null}
@@ -182,21 +190,22 @@ function ProfilePageInner() {
           ) : null}
           {profile ? (
             <>
+              {/* Selling first, buying second, the order Edit profile uses. */}
+              {profile.seller ? (
+                <RowGroup title={activation.agents?.sellerName || simple.sellingAgent} action={editLink('selling')}>
+                  <Row label={isBusiness ? t.agentProfiles.rows.supplies : simple.whatYouOffer} value={profile.seller.skills?.length ? profile.seller.skills.join(', ') : simple.notSet} full />
+                  <Row label={messages.profileEdit.offerDescription} value={profile.seller.bio?.trim() || simple.notSet} full />
+                  <Row label={simple.priceRange} value={rangeOrNotSet(profile.seller.minBudgetUsdc, profile.seller.maxBudgetUsdc, simple.usdcRange)} />
+                  <Row label={simple.deliveryTime} value={rangeOrNotSet(profile.seller.minDeadlineDays, profile.seller.maxDeadlineDays, simple.daysRange)} />
+                </RowGroup>
+              ) : null}
               {profile.buyer ? (
-                <RowGroup title={activation.agents?.buyerName || simple.buyingAgent}>
+                <RowGroup title={activation.agents?.buyerName || simple.buyingAgent} action={editLink('buying')}>
                   <Row label={simple.mostItMayPay} value={usdcOrNotSet(profile.buyer.maxBudgetUsdc)} />
                   <Row label={simple.deliveryTime} value={rangeOrNotSet(profile.buyer.minDeadlineDays, profile.buyer.maxDeadlineDays, simple.daysRange)} />
                   <Row label={simple.paymentSplit} value={profile.buyer.milestonePcts?.length ? profile.buyer.milestonePcts.map((pct) => `${pct}%`).join(' / ') : simple.notSet} />
                 </RowGroup>
               ) : null}
-              {profile.seller ? (
-                <RowGroup title={activation.agents?.sellerName || simple.sellingAgent}>
-                  <Row label={isBusiness ? t.agentProfiles.rows.supplies : simple.whatYouOffer} value={profile.seller.skills?.length ? profile.seller.skills.join(', ') : simple.notSet} />
-                  <Row label={simple.priceRange} value={rangeOrNotSet(profile.seller.minBudgetUsdc, profile.seller.maxBudgetUsdc, simple.usdcRange)} />
-                  <Row label={simple.deliveryTime} value={rangeOrNotSet(profile.seller.minDeadlineDays, profile.seller.maxDeadlineDays, simple.daysRange)} />
-                </RowGroup>
-              ) : null}
-              <Link href="/profile/edit" className={QUIET_PILL}>{simple.edit}</Link>
             </>
           ) : (
             <Link href="/start?mode=signup" className={ACCENT_PILL}>{t.noProfile.cta}</Link>
@@ -299,7 +308,7 @@ function ProfilePageInner() {
 
   return (
     <>
-      <ProfileFrame title={sectionTitle[activeSection]} hint={activeSection === 'identity' ? simple.agentsHint : undefined}>
+      <ProfileFrame title={sectionTitle[activeSection]} >
         {activePanel.content}
       </ProfileFrame>
       <ActivationModal

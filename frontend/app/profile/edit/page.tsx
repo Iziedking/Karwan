@@ -86,6 +86,14 @@ function ProfileEditInner() {
     setHydrated(true);
   }, [profile, fetchState, hydrated, router]);
 
+  // The summary's Edit links land on their card (#selling, #buying). The form
+  // renders after the profile loads, so the browser's own jump comes too early.
+  useEffect(() => {
+    if (!hydrated) return;
+    const id = window.location.hash.slice(1);
+    if (id === 'selling' || id === 'buying') document.getElementById(id)?.scrollIntoView({ block: 'start' });
+  }, [hydrated]);
+
   const wantsSeller = role === 'seller' || role === 'both';
   const wantsBuyer = role === 'buyer' || role === 'both';
 
@@ -195,7 +203,7 @@ function ProfileEditInner() {
         </FormCard>
 
         {wantsSeller ? (
-          <FormCard title={simple.sellingAgent}>
+          <FormCard id="selling" title={simple.sellingAgent}>
             <Field label={isBusiness ? t.agentProfiles.rows.supplies : simple.whatYouOffer} hint={simple.skillsHint}>
               <input value={skills} onChange={(e) => setSkills(e.target.value)} placeholder={isBusiness ? 'textiles, woven cotton, apparel' : 'logo design, branding'} className="form-input" />
               <Need when={blocked('offer')}>{pe.needs.offer}</Need>
@@ -214,7 +222,7 @@ function ProfileEditInner() {
         ) : null}
 
         {wantsBuyer ? (
-          <FormCard title={simple.buyingAgent}>
+          <FormCard id="buying" title={simple.buyingAgent}>
             <Field label={simple.mostItMayPay}>
               <UnitInput value={buyerMax} onChange={setBuyerMax} unit="USDC" />
               <Need when={blocked('buyerMax')}>{pe.needs.buyerMax}</Need>
@@ -276,9 +284,9 @@ const SEGMENT_ON = 'bg-[var(--lp-card)] text-[var(--ink)] shadow-[0_0_0_1px_var(
 const SEGMENT_OFF = 'text-[var(--ink-secondary)] hover:text-[var(--ink)]';
 
 /// One titled card, the way Profile groups its rows.
-function FormCard({ title, children }: { title: string; children: ReactNode }) {
+function FormCard({ id, title, children }: { id?: string; title: string; children: ReactNode }) {
   return (
-    <section>
+    <section id={id} className="scroll-mt-24">
       <h2 className="mb-2 px-1 text-[14px] font-semibold text-[var(--lp-text-sub)]">{title}</h2>
       <div className="space-y-5 rounded-[18px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-4">{children}</div>
     </section>
