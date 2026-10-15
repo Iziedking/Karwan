@@ -13,6 +13,7 @@ const publicEditorial = [
   '/',
   '/brand',
   '/how-it-works',
+  '/research',
   '/docs',
   '/docs/disputes',
   '/newsletter/example',

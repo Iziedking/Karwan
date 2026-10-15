@@ -29,6 +29,7 @@ import { recordCopy } from './record';
 import { routeTitlesCopy } from './routeTitles';
 import { chatTermsCopy } from './chatTerms';
 import { sealedRecordCopy } from './sealedRecord';
+import { researchCopy } from './research';
 import { recoveryCopy } from './recovery';
 import { docsProductCopy } from './docsProduct';
 
@@ -60,6 +61,7 @@ export const ar: Messages = {
   routeTitles: routeTitlesCopy.ar,
   chatTerms: chatTermsCopy.ar,
   sealedRecord: sealedRecordCopy.ar,
+  research: researchCopy.ar,
   recovery: recoveryCopy.ar,
   docsProduct: docsProductCopy.ar,
   socialTrade: socialTradeCopy.ar,

@@ -14,6 +14,7 @@ export function isPublicEditorialRoute(pathname: string | null | undefined): boo
   return [
     '/',
     '/how-it-works',
+    '/research',
     '/brand',
     '/newsletter',
     '/docs',

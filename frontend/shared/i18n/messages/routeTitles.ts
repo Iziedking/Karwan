@@ -46,6 +46,7 @@ export type RouteTitleKey =
   | 'wallets'
   | 'cancelRecovery'
   | 'requestMoney'
+  | 'research'
   | 'seller'
   | 'send'
   | 'settings'
@@ -108,6 +109,7 @@ const en: RouteTitleCopy = {
   wallets: 'Wallets',
   cancelRecovery: 'Cancel recovery',
   requestMoney: 'Request money',
+  research: 'Research',
   seller: 'Sell',
   send: 'Send',
   settings: 'Settings',
@@ -169,6 +171,7 @@ const ar: RouteTitleCopy = {
   wallets: 'المحافظ',
   cancelRecovery: 'إلغاء الاسترداد',
   requestMoney: 'طلب مال',
+  research: 'بحث',
   seller: 'بيع',
   send: 'إرسال',
   settings: 'الإعدادات',
@@ -230,6 +233,7 @@ const fr: RouteTitleCopy = {
   wallets: 'Portefeuilles',
   cancelRecovery: 'Annuler la récupération',
   requestMoney: 'Demander de l’argent',
+  research: 'Recherche',
   seller: 'Vendre',
   send: 'Envoyer',
   settings: 'Paramètres',
@@ -291,6 +295,7 @@ const hi: RouteTitleCopy = {
   wallets: 'वॉलेट',
   cancelRecovery: 'रिकवरी रद्द करें',
   requestMoney: 'पैसे का अनुरोध',
+  research: 'शोध',
   seller: 'बेचें',
   send: 'भेजें',
   settings: 'सेटिंग्स',
@@ -352,6 +357,7 @@ const sw: RouteTitleCopy = {
   wallets: 'Pochi',
   cancelRecovery: 'Ghairi urejeshaji',
   requestMoney: 'Omba pesa',
+  research: 'Utafiti',
   seller: 'Uza',
   send: 'Tuma',
   settings: 'Mipangilio',

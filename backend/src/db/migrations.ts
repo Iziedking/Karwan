@@ -1140,6 +1140,28 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       CREATE INDEX record_reads_detail_due ON record_reads_v1 (created_at) WHERE detail IS NOT NULL;
     `,
   },
+  {
+    version: 39,
+    name: 'research_answers',
+    sql: `
+      -- Answers to the public research survey at /research. No sign-in and
+      -- nothing about the sender beyond what they typed and the language.
+      CREATE TABLE research_answers_v1 (
+        id TEXT PRIMARY KEY,
+        created_at BIGINT NOT NULL,
+        locale TEXT NOT NULL,
+        role TEXT NOT NULL,
+        checks TEXT NOT NULL,
+        other_text TEXT,
+        trust_most TEXT NOT NULL,
+        easiest_fake TEXT NOT NULL,
+        share TEXT NOT NULL,
+        payer TEXT NOT NULL,
+        contact TEXT
+      );
+      CREATE INDEX research_answers_created ON research_answers_v1 (created_at);
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

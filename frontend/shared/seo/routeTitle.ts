@@ -44,6 +44,7 @@ const EXACT: Record<string, RouteTitleKey> = {
   '/profile/wallets': 'wallets',
   '/recover/cancel': 'cancelRecovery',
   '/request': 'requestMoney',
+  '/research': 'research',
   '/seller': 'seller',
   '/send': 'send',
   '/settings': 'settings',

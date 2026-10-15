@@ -42,6 +42,7 @@ import {
 import { logger } from '../logger.js';
 import { requireAdmin } from '../middleware/adminAuth.js';
 import { addInvites, ENV_INVITES, listInvites, listWaitlist, markInviteEmailed, removeInvite } from '../db/waitlist.js';
+import { listResearchAnswers, summarizeResearchAnswers } from '../db/researchAnswers.js';
 import { sendMainnetAccessEmail } from '../emails/mainnetAccess.js';
 import { parseEmailList } from '../profile/waitlistRules.js';
 import { researchMarket, externalPayerAddress, x402PayerHealth } from '../x402/externalClient.js';
@@ -1182,6 +1183,13 @@ adminRoutes.get('/treasury', async (c) => {
     logger.warn({ err: (err as Error).message, treasury }, 'admin: treasury read failed');
     return c.json({ error: 'treasury read failed', detail: (err as Error).message }, 502);
   }
+});
+
+// --- Research survey answers ------------------------------------------------
+
+adminRoutes.get('/research', async (c) => {
+  const answers = await listResearchAnswers();
+  return c.json({ summary: summarizeResearchAnswers(answers), answers });
 });
 
 // --- Mainnet waitlist and invites ------------------------------------------

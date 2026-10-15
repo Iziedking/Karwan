@@ -29,6 +29,7 @@ import { recordCopy } from './record';
 import { routeTitlesCopy } from './routeTitles';
 import { chatTermsCopy } from './chatTerms';
 import { sealedRecordCopy } from './sealedRecord';
+import { researchCopy } from './research';
 import { recoveryCopy } from './recovery';
 import { docsProductCopy } from './docsProduct';
 
@@ -60,6 +61,7 @@ export const sw: Messages = {
   routeTitles: routeTitlesCopy.sw,
   chatTerms: chatTermsCopy.sw,
   sealedRecord: sealedRecordCopy.sw,
+  research: researchCopy.sw,
   recovery: recoveryCopy.sw,
   docsProduct: docsProductCopy.sw,
   socialTrade: socialTradeCopy.sw,

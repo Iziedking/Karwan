@@ -32,6 +32,7 @@ import { recordCopy, type RecordCopy } from './record';
 import { routeTitlesCopy, type RouteTitleCopy } from './routeTitles';
 import { chatTermsCopy, type ChatTermsCopy } from './chatTerms';
 import { sealedRecordCopy, type SealedRecordCopy } from './sealedRecord';
+import { researchCopy, type ResearchCopy } from './research';
 import { recoveryCopy, type RecoveryCopy } from './recovery';
 import { docsProductCopy, type DocsProductCopy } from './docsProduct';
 interface MessagesShape {
@@ -62,6 +63,7 @@ interface MessagesShape {
   routeTitles: RouteTitleCopy;
   chatTerms: ChatTermsCopy;
   sealedRecord: SealedRecordCopy;
+  research: ResearchCopy;
   recovery: RecoveryCopy;
   docsProduct: DocsProductCopy;
   socialTrade: SocialTradeCopy;
@@ -5381,6 +5383,7 @@ export const en: MessagesShape = {
   routeTitles: routeTitlesCopy.en,
   chatTerms: chatTermsCopy.en,
   sealedRecord: sealedRecordCopy.en,
+  research: researchCopy.en,
   recovery: recoveryCopy.en,
   docsProduct: docsProductCopy.en,
   socialTrade: socialTradeCopy.en,

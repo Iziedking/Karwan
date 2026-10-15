@@ -3216,6 +3216,9 @@ export const api = {
       profile: UserProfile | null;
     }>('/api/auth/bootstrap'),
   authLogout: () => json<{ ok: boolean }>('/api/auth/logout', { method: 'POST' }),
+  /// The public research survey at /research. No sign-in.
+  submitResearch: (body: Record<string, unknown>) =>
+    json<{ ok: true }>('/api/survey/research', { method: 'POST', body: JSON.stringify(body) }),
   waitlistRequest: (email: string, locale: string) =>
     json<{ sent: true }>('/api/waitlist/request', { method: 'POST', body: JSON.stringify({ email, locale }) }),
   waitlistVerify: (email: string, code: string) =>
