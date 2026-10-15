@@ -303,7 +303,7 @@ export const ACTIVITY_STEPS: TourStep[] = [
   },
   {
     title: 'Your transaction history',
-    body: 'Open your history for amounts and receipts from your deals.',
+    body: 'Your money by day. Filter money in or out, and open a row for its receipt.',
     target: 'activity-money',
   },
   {

@@ -654,6 +654,7 @@ interface MessagesShape {
     usdcDeal: string;
   };
   activity: {
+    pageTitle: string;
     signInGate: {
       tag: string;
       body: string;
@@ -736,7 +737,6 @@ interface MessagesShape {
         yieldAccrued: string;
       };
       eyebrow: string;
-      count: string;
       loading: string;
       empty: string;
       pending: string;
@@ -769,6 +769,14 @@ interface MessagesShape {
       receiptVerifyBody: string;
       receiptTestnet: string;
       justNow: string;
+      /// What happened, in a word or two, keyed by the movement kind. The amount
+      /// sits in its own column, so the title never repeats it.
+      kind: Record<'deposit' | 'top_up' | 'transfer_in' | 'transfer_out' | 'payout' | 'release' | 'escrow_funding' | 'yield' | 'yield_claim' | 'refund' | 'stake' | 'unstake' | 'withdraw' | 'cash_out' | 'bridge' | 'agent_seed' | 'agent_topup' | 'agent_funding' | 'agent_spend' | 'gateway_deposit' | 'gateway_fund_agent' | 'gateway_cash_out' | 'financing_funded' | 'financing_received' | 'financing_repaid' | 'financing_repayment' | 'financing_repayment_sent', string>;
+      today: string;
+      yesterday: string;
+      filter: { all: string; in: string; out: string; aria: string };
+      emptyIn: string;
+      emptyOut: string;
       repeated: string;
       showAll: string;
       showLess: string;
@@ -5972,6 +5980,7 @@ export const en: MessagesShape = {
     usdcDeal: 'USDC deal',
   },
   activity: {
+    pageTitle: "Activity",
     signInGate: {
       tag: 'Stream',
       body: 'Sign in to review your trade records and recent activity across Karwan.',
@@ -6047,7 +6056,6 @@ export const en: MessagesShape = {
         yieldAccrued: 'Earned {amount} USDC of staking yield',
       },
       eyebrow: 'Money activity',
-      count: '{n} records',
       loading: 'Loading…',
       empty: 'Nothing yet. Money you add, send, or earn shows up here with a receipt.',
       pending: 'Pending',
@@ -6074,7 +6082,41 @@ export const en: MessagesShape = {
       receiptVerifyBody: "Opens this transaction on the explorer",
       receiptTestnet: "Arc testnet, no real value",
       justNow: 'just now',
-      repeated: '×{n}',
+      kind: {
+        deposit: "Deposit",
+        top_up: "Top up",
+        transfer_in: "Received",
+        transfer_out: "Sent",
+        payout: "Deal payment",
+        release: "Released to seller",
+        escrow_funding: "Deal funded",
+        yield: "Yield earned",
+        yield_claim: "Yield claimed",
+        refund: "Refund",
+        stake: "Staked",
+        unstake: "Unstaked",
+        withdraw: "Withdrawal",
+        cash_out: "Cash out",
+        bridge: "Sent to another network",
+        agent_seed: "Added by Karwan",
+        agent_topup: "Trade account top up",
+        agent_funding: "Trade account funded",
+        agent_spend: "Paid by your agent",
+        gateway_deposit: "Added to balance",
+        gateway_fund_agent: "Trade account funded",
+        gateway_cash_out: "Cash out",
+        financing_funded: "Advance funded",
+        financing_received: "Advance received",
+        financing_repaid: "Advance repaid",
+        financing_repayment: "Advance repayment",
+        financing_repayment_sent: "Advance repaid",
+      },
+      today: "Today",
+      yesterday: "Yesterday",
+      filter: { all: "All", in: "Money in", out: "Money out", aria: "Show" },
+      emptyIn: "No money in yet.",
+      emptyOut: "No money out yet.",
+      repeated: "{n} times",
       showAll: 'See all',
       showLess: 'Show less',
     },

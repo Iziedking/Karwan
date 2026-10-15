@@ -405,12 +405,23 @@ test('recent trades lead with what the deal is and who it is with, without numbe
   assert.doesNotMatch(home, /→/);
 });
 
-test('a ledger row is one tap to its receipt, in plain words, with proof and reference inside the receipt', () => {
+test('a ledger row is one tap to its receipt, titled by what happened, with proof and reference inside the receipt', () => {
   const ledger = source('../../features/activity/components/MyMoneyLedger.tsx');
-  assert.match(ledger, /ledgerRowText\(ledgerLine\(item, t\.text\)\)/);
+  assert.match(ledger, /ledgerTitle\(item, t\.kind, t\.text\)/);
   assert.doesNotMatch(ledger, /\{t\.viewProof\}/);
   assert.doesNotMatch(ledger, /copyReference/);
   assert.match(ledger, /proofHref=\{explorerFor\(selectedReceipt\)\}/);
+});
+
+test('activity is a statement: one count, rows under their day, a money in and out filter, a page title the size of the others', () => {
+  const ledger = source('../../features/activity/components/MyMoneyLedger.tsx');
+  assert.match(ledger, /const PAGE_SIZE = 25;/);
+  assert.match(ledger, /groupByDay\(/);
+  assert.match(ledger, /filterByDirection\(items, filter\)/);
+  assert.doesNotMatch(ledger, /t\.count/);
+  const page = source('../../app/activity/page.tsx');
+  assert.match(page, /text-\[36px\] font-medium/);
+  assert.doesNotMatch(page, /Your records|clamp\(2\.8rem/);
 });
 
 test('a profile row that is not ready says so plainly, not only on hover, and is not a dead button', () => {

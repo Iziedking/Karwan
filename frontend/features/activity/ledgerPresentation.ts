@@ -79,14 +79,19 @@ export function ledgerAmountLabel(
   return `${sign}${displayUsdc(value)} USDC`;
 }
 
-/// A row shows money to the cent; under 1 USDC it keeps up to four places so
-/// a small fee never reads as zero. The receipt keeps the exact amount.
+/// Every amount on the statement has one shape: cents with grouped thousands,
+/// so "20" and "19.997" never sit in one list as "20" and "20.00". Under 1 USDC
+/// it keeps up to four places so a small fee never reads as zero. The receipt
+/// keeps the exact amount.
 export function displayUsdc(value: string): string {
-  const [, decimals = ''] = value.split('.');
   const n = Number(value);
-  if (decimals.length <= 2 || !Number.isFinite(n)) return value;
-  if (Math.abs(n) >= 1) return n.toFixed(2);
-  return n.toFixed(4).replace(/0+$/, '');
+  if (value.trim() === '' || !Number.isFinite(n)) return value;
+  if (Math.abs(n) >= 1) {
+    return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  const small = n.toFixed(4).replace(/0+$/, '');
+  const [whole, decimals = ''] = small.split('.');
+  return `${whole}.${decimals.padEnd(2, '0')}`;
 }
 
 /// The row's sentence: plain words, amounts to the cent.
@@ -113,4 +118,63 @@ export function ledgerLine(item: LedgerLineItem, texts: Record<string, string>):
       return key === 'to' && value.length > 12 ? 'counterparty' : value;
     }),
   );
+}
+
+export type LedgerFilter = 'all' | 'in' | 'out';
+
+/// The statement's Money in and Money out views. A kind whose direction is not
+/// known stays under All only, never guessed into either side.
+export function filterByDirection<T extends { kind: string }>(items: readonly T[], filter: LedgerFilter): T[] {
+  if (filter === 'all') return [...items];
+  return items.filter((item) => ledgerDirection(item.kind) === filter);
+}
+
+export type LedgerDay = 'today' | 'yesterday' | 'date';
+
+/// Rows under their calendar day in the reader's time zone, in the order they
+/// came (the API sends newest first). `start` is local midnight, for the
+/// heading to format.
+export function groupByDay<T>(
+  rows: readonly T[],
+  tsOf: (row: T) => number,
+  now: number = Date.now(),
+): { day: LedgerDay; start: number; rows: T[] }[] {
+  const midnight = (ts: number) => {
+    const d = new Date(ts);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  };
+  const today = midnight(now);
+  const yesterday = midnight(today - 1);
+  const groups: { day: LedgerDay; start: number; rows: T[] }[] = [];
+  for (const row of rows) {
+    const start = midnight(tsOf(row));
+    const last = groups[groups.length - 1];
+    if (last && last.start === start) {
+      last.rows.push(row);
+      continue;
+    }
+    const day: LedgerDay = start === today ? 'today' : start === yesterday ? 'yesterday' : 'date';
+    groups.push({ day, start, rows: [row] });
+  }
+  return groups;
+}
+
+/// What happened, in a word or two, so the amount is said once, in its column.
+/// A kind with no title keeps its recorded sentence rather than going blank.
+export function ledgerTitle(
+  item: LedgerLineItem & { kind: string },
+  titles: Record<string, string>,
+  texts: Record<string, string>,
+): string {
+  return titles[item.kind] ?? ledgerRowText(ledgerLine(item, texts));
+}
+
+/// Who or where on the other side, when the record names it: a Karwan tag, a
+/// network, a deal. A wallet address is never shown raw.
+export function ledgerContext(item: { params?: Record<string, string> | null }): string | null {
+  const params = item.params;
+  if (!params) return null;
+  const value = params.who ?? params.chain ?? params.job;
+  if (!value || /^0x[0-9a-f]/i.test(value)) return null;
+  return readableMovementText(value);
 }
