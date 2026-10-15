@@ -13,6 +13,7 @@ import { Sheet } from '@/features/deals/workspace/Sheet';
 import { fill } from '@/features/deals/workspace/presentation';
 import { chooseErrorKey } from '../chooseError';
 import { fitLevel, offersPage, OFFERS_PER_PAGE, priceRange, rankOffers, type FitLevel } from '../offerRoster';
+import { Shortlist, useShortlist } from './Shortlist';
 
 const nameOf = (bid: BuyerBid) => bid.sellerDisplayName?.trim() || shortAddress(bid.seller);
 const price = (usdc: string | number) => formatUsdc(String(usdc), { withSuffix: false });
@@ -38,6 +39,11 @@ export function OffersRoster({ jobId, bids, pickSeller, caller, choosable, open:
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const shortlist = useShortlist(jobId, caller);
+
+  if (shortlist && caller) {
+    return <Shortlist jobId={jobId} caller={caller} entries={shortlist.entries} closed={shortlist.closed || !choosable} onChosen={onChosen} />;
+  }
 
   const ranked = rankOffers(bids);
   const isPick = (bid: BuyerBid) => !!pickSeller && bid.seller.toLowerCase() === pickSeller.toLowerCase();
@@ -57,7 +63,7 @@ export function OffersRoster({ jobId, bids, pickSeller, caller, choosable, open:
     setBusy(true);
     setError(null);
     try {
-      await api.chooseOffer(jobId, caller, viewing.seller);
+      await api.chooseOffer(jobId, caller, viewing.seller, { expectedPriceUsdc: viewing.priceUsdc });
       setConfirming(false);
       setViewing(null);
       onChosen();

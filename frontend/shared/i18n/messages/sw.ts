@@ -12,6 +12,9 @@ import { notifyCopy } from './notifications';
 import { notFoundCopy } from './pageStates';
 import { dealLiveCopy } from './dealLive';
 import { offerRosterCopy } from './offerRoster';
+import { shortlistCopy } from './shortlist';
+import { developersCopy } from './developers';
+import { reputationSourcesCopy } from './reputationSources';
 import { searchCopy } from './search';
 import { offersCopy } from './offers';
 import { escrowV3Copy } from './escrowV3';
@@ -35,6 +38,9 @@ export const sw: Messages = {
   bell: notifyCopy.sw,
   pageNotFound: notFoundCopy.sw,
   offerRoster: offerRosterCopy.sw,
+  shortlist: shortlistCopy.sw,
+  developers: developersCopy.sw,
+  reputationSources: reputationSourcesCopy.sw,
   dealLive: dealLiveCopy.sw,
   disputeJudge: disputeJudgeCopy.sw,
   balanceSummary: balanceSummaryCopy.sw,
@@ -1726,6 +1732,7 @@ export const sw: Messages = {
     approvedCta: 'Fungua biashara →',
     declinedEyebrow: 'Ujumbe umekataliwa',
     declinedSellerView: 'Umekataa ulinganifu huu. Ombi linabaki limefungwa, na mnunuzi anaweza kutuma jipya.',
+    buyerChoosing: 'Mnunuzi anachagua kutoka orodha fupi. Utaarifiwa atakapochagua.',
     declinedOtherView: 'Muuzaji amekataa ulinganifu huu. Tuma ombi jipya kupata muuzaji mwingine.',
     cancelledEyebrow: "Ulinganisho umeghairiwa",
     cancelledBuyerView: "Umeghairi ulinganisho huu. Ombi lako liko wazi tena: chagua ofa nyingine au subiri mpya.",
@@ -4877,7 +4884,7 @@ export const sw: Messages = {
     headline: 'Majibu ya haraka',
     intro: 'Maswali ambayo watumiaji wapya huuliza kwanza. Kama lako halipo hapa, fikia timu kupitia viungo vya chini.',
     items: [
-      { q: "Ninaongezaje USDC?", a: "Fungua Ongeza USDC na utumie anwani au njia ya chanzo inayoonyeshwa kwa akaunti yako. Hakiki mtandao, tokeni na mpokeaji kabla ya kutuma. Akaunti zilizounganishwa na pochi husaini uhamisho wao wenyewe. Fedha za majaribio zinapatikana kupitia Maelezo ya mtandao wakati toleo linatumia mtandao wa majaribio." },
+      { q: "Ninaongezaje USDC?", a:"Fungua Ongeza USDC na utumie anwani au njia ya chanzo inayoonyeshwa kwa akaunti yako. Hakiki mtandao, tokeni na mpokeaji kabla ya kutuma. Akaunti zilizounganishwa na pochi husaini uhamisho wao wenyewe. Fedha za majaribio zinapatikana kupitia Maelezo ya mtandao wakati toleo linatumia mtandao wa majaribio." },
       { q: "Je, nahitaji pochi ya kripto kutumia Karwan?", a: "Hapana. Chagua njia zinazopatikana kwa mtandao wako: passkey au pochi iliyounganishwa kwenye mainnet, na barua pepe yenye pochi inayosimamiwa pia kwenye testnet." },
       { q: "Je, hii ni pesa halisi?", a: "Angalia Maelezo ya mtandao kabla ya kuongeza USDC. Mtandao wa majaribio hutumia fedha zisizo na thamani halisi ya fedha. Mtandao mkuu hutumia fedha halisi. Salio na rekodi za miamala ni za mtandao wake; kubadilisha mazingira hakuhamishi fedha kati ya mitandao." },
       { q: "Je, mwenzangu wa biashara anahitaji akaunti?", a: "Unaweza kumwalika mhusika mwingine kwa barua pepe kwa makubaliano ya testnet. Anafungua kiungo, anathibitisha ufikiaji na anasoma masharti kabla ya kukubali. Escrow ya mainnet bado haipatikani." },
@@ -4895,6 +4902,8 @@ export const sw: Messages = {
       { q: "Je, hazina inapata mapato kweli, au hilo ni la ramani ya safari?", a: "Mapato hutegemea bidhaa iliyoamilishwa, ruhusa na hali ya mkataba. Hayana uhakika. Salio au matokeo ya testnet hayathibitishi mapato kwa fedha halisi." },
       { q: "Pesa zangu zinaenda wapi baada ya deal kukamilika?", a: "Makubaliano na pochi huonyesha akaunti inayopokea. Baada ya malipo, chagua uhamisho unaopatikana kwa akaunti yako. Mitandao na ada zinaweza kutofautiana." },
       { q: "Je, Karwan inashikilia fedha zangu?", a: "Udhibiti wa pochi hutegemea jinsi unavyoingia. Unasaini kwa pochi yako iliyounganishwa au pochi ya passkey ya mainnet. Karwan husimamia pochi za barua pepe zinazopatikana kwenye testnet. Baada ya kufadhili makubaliano, mkataba wa escrow huongoza fedha zake. Soma masharti kuhusu mamlaka na urejeshaji." },
+      { q: "Kwa nini naona wauzaji ambao hawajathibitishwa?", a: "Wakala wako anaorodhesha kila mtu anayefaa ombi lako na anaeleza wazi nani amethibitishwa. Ni muuzaji aliyethibitishwa tu anayeweza kupendekezwa, na kuchagua mtu ambaye hajathibitishwa kunakuuliza mara moja zaidi kabla pesa hazijasonga." },
+      { q: "Nani anaweza kusoma rekodi yangu?", a: "Mawakala unaoshughulika nao wanaweza kulipa sehemu ya senti kusoma historia ya kazi yako, ikiwa tu umewasha Ruhusu mawakala kukagua rekodi yangu kwenye Wasifu. Hawaoni kamwe ujumbe wako wala uliofanya kazi nao. Maelezo hufutwa baada ya saa 24, na Wasifu unaonyesha nani aliisoma." },
     ],
   },
   docsReputationPage: {

@@ -14,13 +14,13 @@ These hold for every part of this view and for every channel added later.
 2. **Facts on chain, scores off chain.** Arc holds what was verified, by whom, how strongly, when it expires, and a fingerprint of the evidence, keyed with a secret Karwan holds so nobody can test a guess against it (a registration number, an invoice they have). It holds no score, no document and no personal data. Scores are computed from the facts by a published formula that can improve without rewriting anyone's record.
 3. **Code decides, models read.** A language model may read a conversation or extract the fields of a document. It never decides that something is verified, never sets a weight and never computes a score. Every verdict comes from deterministic rules that are tested and published.
 4. **Earned, not claimed.** Something a person says about themselves counts for nothing until it is checked. A past client's confirmation counts fully only when that client is a different, verified person. The same document cannot back two people.
-5. **Verified before discoverable.** Agents only find people who reached work verified. Unverified people can still use their own account; nobody's agent is pointed at them.
+5. **Everyone is listed; verification is always shown.** Agents list verified and unverified people, labelled in words. Inside the same skill fit, verified ranks first, and only a verified person can be recommended. Choosing someone unverified asks once more before money moves. See view 13.
 6. **Agents do the legwork, people decide.** Agents search, ask and negotiate. Every payment, release, cancellation and agreement is a step the person confirms, with the consequence stated first.
 7. **One core, thin channels.** Every channel runs the same assistant, the same tools and the same authorization checks as the Karwan app. A channel only translates messages and buttons. Adding a channel adds no new way to move money.
 8. **Proven on chain, not assumed.** A money or record step is done only when the receipt shows the expected event and a fresh chain read agrees. "Submitted" is never "done".
 9. **Contracts are immutable and earn their limits.** Exploit tests come before code, then fuzzing, invariants and static analysis. A contract that is not yet audited runs with caps written into it. A pause stops new deals and never an exit. Deploys are the owner's.
 10. **Readable without Karwan.** Facts sit on Arc, and each person can export a signed credential that anyone can verify against Karwan's published key and the chain, with Karwan offline.
-11. **Only what is needed, only with consent.** Karwan keeps what verification and matching need, tells the person why, encrypts documents, and deletes on request. Machines match on the details; other people never see them.
+11. **Only what is needed, only with consent.** Karwan keeps what verification and matching need, tells the person why, encrypts documents, and deletes on request. Other people see a person's score, tier and counts, never deal amounts, messages or who the deals were with. Machines read the details only with the person's consent, and those details are deleted after 24 hours.
 12. **Status is stated, never implied.** Every capability is marked live, built or planned. Beta limits are said wherever money is involved.
 
 ## Participants
@@ -310,7 +310,7 @@ sequenceDiagram
 | WhatsApp channel adapter | Built, paused |
 | Verification rules, ladder, evidence checks | Built, not deployed |
 | Facts contract on Arc and signed credential | Built, not deployed |
-| Discovery limited to verified people | Built, not deployed |
+| Discovery limited to verified people | Built, not deployed. Replaced by the shortlist when `SHORTLIST_MODE` is on (view 13) |
 | Agent-to-agent questions paid with x402 | Planned |
 | Direct deals with someone you already know (in the app) | Live on testnet |
 | Direct deals created, accepted and funded from chat | Built, not deployed |

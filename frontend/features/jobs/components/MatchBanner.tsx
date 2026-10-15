@@ -57,6 +57,8 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
   const declined = !!proposal.declinedAt;
   // Seller raised the agent-agreed price; the approval gate is now the buyer's.
   const pendingRaise = !!proposal.raisedPriceUsdc && proposal.awaitingParty === 'buyer';
+  // Shortlist mode: the agent's agreed match waits for the buyer's choice.
+  const buyerChooses = proposal.awaitingParty === 'buyer' && !proposal.raisedPriceUsdc;
   const shownPrice = pendingRaise ? proposal.raisedPriceUsdc! : proposal.agreedPriceUsdc;
   const paidEvidenceReceipt = proposal.paidSignal
     ? presentPaidEvidenceReceipt(proposal.paidSignal)
@@ -389,7 +391,11 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = 
         </div>
       )}
 
-      {viewerIsSeller && !pendingRaise && !showDeclineReason && !showRaiseInput && (
+      {viewerIsSeller && buyerChooses ? (
+        <p className="mt-4 text-[14px] font-medium text-[var(--ink-secondary)]">{mb.buyerChoosing}</p>
+      ) : null}
+
+      {viewerIsSeller && !pendingRaise && !buyerChooses && !showDeclineReason && !showRaiseInput && (
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <button
             type="button"

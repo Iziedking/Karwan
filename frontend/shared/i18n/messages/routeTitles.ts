@@ -56,7 +56,8 @@ export type RouteTitleKey =
   | 'chatTerms'
   | 'personCheck'
   | 'waitlist'
-  | 'dataApi';
+  | 'dataApi'
+  | 'developers';
 
 export type RouteTitleCopy = Record<RouteTitleKey, string>;
 
@@ -118,6 +119,7 @@ const en: RouteTitleCopy = {
   personCheck: 'Person check',
   waitlist: 'Waitlist',
   dataApi: 'Paid data API',
+  developers: 'For platforms',
 };
 
 const ar: RouteTitleCopy = {
@@ -178,6 +180,7 @@ const ar: RouteTitleCopy = {
   personCheck: 'فحص الشخص',
   waitlist: 'قائمة الانتظار',
   dataApi: 'واجهة البيانات المدفوعة',
+  developers: 'للمنصات',
 };
 
 const fr: RouteTitleCopy = {
@@ -238,6 +241,7 @@ const fr: RouteTitleCopy = {
   personCheck: 'Vérification de personne',
   waitlist: 'Liste d’attente',
   dataApi: 'API de données payante',
+  developers: 'Pour les plateformes',
 };
 
 const hi: RouteTitleCopy = {
@@ -298,6 +302,7 @@ const hi: RouteTitleCopy = {
   personCheck: 'व्यक्ति जाँच',
   waitlist: 'प्रतीक्षा सूची',
   dataApi: 'सशुल्क डेटा API',
+  developers: 'प्लेटफ़ॉर्म के लिए',
 };
 
 const sw: RouteTitleCopy = {
@@ -358,6 +363,7 @@ const sw: RouteTitleCopy = {
   personCheck: 'Ukaguzi wa mtu',
   waitlist: 'Orodha ya kusubiri',
   dataApi: 'API ya data ya kulipia',
+  developers: 'Kwa majukwaa',
 };
 
 export const routeTitlesCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', RouteTitleCopy> = { en, ar, fr, hi, sw };

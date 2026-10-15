@@ -32,6 +32,7 @@ import { ProfileAccountHub } from '@/features/profile/components/ProfileAccountH
 import { AgentFundsList } from '@/features/profile/components/AgentFundsList';
 import { ResearchRows } from '@/features/profile/components/ResearchRows';
 import { ProfileFrame, Row, RowGroup } from '@/features/profile/ui/ProfileUi';
+import { ReputationSources } from '@/features/profile/ui/ReputationSources';
 import { Hint } from '@/shared/components/Hint';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 
@@ -174,6 +175,7 @@ function ProfilePageInner() {
       content: (
         <div data-guide="profile-identity" className="space-y-7">
           <TierCelebration address={address} />
+          {address ? <ReputationSources address={address} /> : null}
           {AGENTS_AVAILABLE ? (
             <RowGroup>
               <Row label={<span className="inline-flex items-center gap-1">{simple.agents}<Hint side="bottom">{simple.agentsHint}</Hint></span>} value={activation.loading ? undefined : activation.activated ? simple.on : undefined}>

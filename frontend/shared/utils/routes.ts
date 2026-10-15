@@ -20,6 +20,7 @@ export function isPublicEditorialRoute(pathname: string | null | undefined): boo
     '/terms',
     '/feedback',
     '/x402',
+    '/developers',
     '/activity/all-time',
     '/start',
     '/waitlist',

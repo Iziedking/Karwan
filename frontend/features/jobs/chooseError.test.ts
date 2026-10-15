@@ -13,3 +13,11 @@ test('each refusal names its reason instead of one "try again"', () => {
   assert.equal(chooseErrorKey(502, 'BID_FAILED'), 'failed');
   assert.equal(chooseErrorKey(0, undefined), 'failed');
 });
+
+test('a shortlist row that is no longer available reads as gone', () => {
+  assert.equal(chooseErrorKey(409, 'unavailable'), 'gone');
+});
+
+test('a price that changed while the sheet was open says so', () => {
+  assert.equal(chooseErrorKey(409, 'PRICE_CHANGED'), 'priceChanged');
+});

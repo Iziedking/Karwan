@@ -31,6 +31,7 @@ export interface OfferRosterCopy {
   gone: string;
   notYours: string;
   busy: string;
+  priceChanged: string;
 }
 
 export const offerRosterCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', OfferRosterCopy> = {
@@ -64,6 +65,7 @@ export const offerRosterCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', OfferRost
     gone: "This seller withdrew the offer. Choose another.",
     notYours: "Only the account that posted this request can choose an offer. Sign in with it.",
     busy: "Your agent is busy with this request. Try again in a minute.",
+    priceChanged: 'The price changed while this was open. Check the new price and choose again.',
   },
   fr: {
     soFarOne: "1 offre pour l'instant",
@@ -95,6 +97,7 @@ export const offerRosterCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', OfferRost
     gone: "Ce vendeur a retiré son offre. Choisissez-en une autre.",
     notYours: "Seul le compte qui a publié cette demande peut choisir une offre. Connectez-vous avec ce compte.",
     busy: "Votre agent traite déjà cette demande. Réessayez dans une minute.",
+    priceChanged: 'Le prix a changé pendant que c’était ouvert. Vérifiez le nouveau prix et choisissez à nouveau.',
   },
   ar: {
     soFarOne: 'عرض واحد حتى الآن',
@@ -126,6 +129,7 @@ export const offerRosterCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', OfferRost
     gone: "سحب هذا البائع عرضه. اختر عرضًا آخر.",
     notYours: "يمكن فقط للحساب الذي نشر هذا الطلب اختيار عرض. سجّل الدخول به.",
     busy: "وكيلك منشغل بهذا الطلب. حاول بعد دقيقة.",
+    priceChanged: 'تغيّر السعر أثناء فتح هذه الصفحة. تحقق من السعر الجديد واختر مرة أخرى.',
   },
   hi: {
     soFarOne: 'अब तक 1 ऑफ़र',
@@ -157,6 +161,7 @@ export const offerRosterCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', OfferRost
     gone: "इस विक्रेता ने ऑफ़र वापस ले लिया। कोई और चुनें।",
     notYours: "केवल वही खाता ऑफ़र चुन सकता है जिसने यह अनुरोध पोस्ट किया। उसी से साइन इन करें।",
     busy: "आपका एजेंट इस अनुरोध पर काम कर रहा है। एक मिनट बाद फिर कोशिश करें।",
+    priceChanged: 'यह खुला रहते हुए कीमत बदल गई। नई कीमत जांचें और फिर से चुनें।',
   },
   sw: {
     soFarOne: 'Ofa 1 hadi sasa',
@@ -188,5 +193,6 @@ export const offerRosterCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', OfferRost
     gone: "Muuzaji huyu ameondoa ofa. Chagua nyingine.",
     notYours: "Akaunti iliyochapisha ombi hili pekee ndiyo inaweza kuchagua ofa. Ingia nayo.",
     busy: "Wakala wako anashughulikia ombi hili. Jaribu tena baada ya dakika moja.",
+    priceChanged: 'Bei ilibadilika hii ikiwa wazi. Kagua bei mpya na uchague tena.',
   },
 };

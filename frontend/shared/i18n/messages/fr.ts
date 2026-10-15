@@ -12,6 +12,9 @@ import { notifyCopy } from './notifications';
 import { notFoundCopy } from './pageStates';
 import { dealLiveCopy } from './dealLive';
 import { offerRosterCopy } from './offerRoster';
+import { shortlistCopy } from './shortlist';
+import { developersCopy } from './developers';
+import { reputationSourcesCopy } from './reputationSources';
 import { searchCopy } from './search';
 import { offersCopy } from './offers';
 import { escrowV3Copy } from './escrowV3';
@@ -35,6 +38,9 @@ export const fr: Messages = {
   bell: notifyCopy.fr,
   pageNotFound: notFoundCopy.fr,
   offerRoster: offerRosterCopy.fr,
+  shortlist: shortlistCopy.fr,
+  developers: developersCopy.fr,
+  reputationSources: reputationSourcesCopy.fr,
   dealLive: dealLiveCopy.fr,
   disputeJudge: disputeJudgeCopy.fr,
   balanceSummary: balanceSummaryCopy.fr,
@@ -1729,6 +1735,7 @@ export const fr: Messages = {
     approvedCta: 'Ouvrir le deal →',
     declinedEyebrow: 'Match refusé',
     declinedSellerView: 'Vous avez refusé ce match. La demande reste fermée, et l\'acheteur peut en publier une nouvelle.',
+    buyerChoosing: 'L’acheteur choisit dans une sélection. Vous serez prévenu de son choix.',
     declinedOtherView: 'Le vendeur a refusé ce match. Publiez une nouvelle demande pour trouver un autre vendeur.',
     cancelledEyebrow: "Correspondance annulée",
     cancelledBuyerView: "Vous avez annulé cette correspondance. Votre demande est de nouveau ouverte : choisissez une autre offre ou attendez-en de nouvelles.",
@@ -4880,7 +4887,7 @@ export const fr: Messages = {
     headline: 'Réponses rapides',
     intro: 'Les questions que posent les nouveaux utilisateurs en premier. Si la vôtre n\'y est pas, contactez l\'équipe via les liens du pied de page.',
     items: [
-      { q: "Comment ajouter des USDC ?", a: "Ouvrez Ajouter des USDC et utilisez l’adresse ou le parcours source indiqué pour votre compte. Vérifiez le réseau, le jeton et la destination avant l’envoi. Les comptes avec portefeuille connecté signent leurs propres transferts. Les fonds de test sont accessibles via Détails du réseau lorsque le déploiement utilise le réseau de test." },
+      { q: "Comment ajouter des USDC ?", a:"Ouvrez Ajouter des USDC et utilisez l’adresse ou le parcours source indiqué pour votre compte. Vérifiez le réseau, le jeton et la destination avant l’envoi. Les comptes avec portefeuille connecté signent leurs propres transferts. Les fonds de test sont accessibles via Détails du réseau lorsque le déploiement utilise le réseau de test." },
       { q: "Ai-je besoin d'un portefeuille crypto pour utiliser Karwan ?", a: "Non. Utilisez les options proposées pour votre réseau : passkey ou portefeuille connecté sur mainnet, et connexion e-mail avec portefeuille géré également sur testnet." },
       { q: "Est-ce de l'argent réel ?", a: "Consultez Détails du réseau avant d’ajouter des USDC. Le réseau de test utilise des fonds sans valeur monétaire réelle. Le réseau principal utilise des fonds réels. Les soldes et les transactions appartiennent à leur réseau ; changer d’environnement ne transfère pas les fonds entre eux." },
       { q: "Ma contrepartie a-t-elle besoin d'un compte ?", a: "Pour un accord sur testnet, vous pouvez inviter une contrepartie par e-mail. Elle suit le lien, vérifie son accès et examine les conditions avant d’accepter. Le séquestre sur mainnet n’est pas encore disponible." },
@@ -4898,6 +4905,8 @@ export const fr: Messages = {
       { q: "La trésorerie génère-t-elle vraiment du rendement, ou est-ce une feuille de route ?", a: "Le rendement dépend du produit activé, des autorisations et de l’état du contrat. Il n’est pas garanti. Un solde ou un résultat de test ne prouve pas un rendement avec des fonds réels." },
       { q: "Où va mon argent après le règlement d'un deal ?", a: "L’accord et le portefeuille indiquent le compte destinataire. Choisissez un transfert disponible pour votre compte après le règlement. Les réseaux et les frais peuvent varier." },
       { q: "Karwan détient-il mes fonds ?", a: "Le contrôle dépend du mode de connexion. Vous signez avec votre portefeuille connecté ou votre portefeuille mainnet à passkey. Karwan gère les portefeuilles e-mail proposés sur testnet. Une fois un accord financé, le contrat de séquestre régit ses fonds. Consultez les conditions pour les pouvoirs et la récupération." },
+      { q: "Pourquoi vois-je des vendeurs non vérifiés ?", a: "Votre agent liste toutes les personnes qui correspondent à votre demande et indique clairement qui est vérifié. Seul un vendeur vérifié peut être recommandé, et choisir une personne non vérifiée vous demande une confirmation de plus avant tout mouvement d’argent." },
+      { q: "Qui peut lire mon dossier ?", a: "Les agents avec qui vous traitez peuvent payer une fraction de centime pour lire votre historique de travail, seulement si vous avez activé Autoriser les agents à consulter mon dossier dans Profil. Ils ne voient jamais vos messages ni avec qui vous avez travaillé. Les détails sont supprimés après 24 heures, et Profil montre qui l’a lu." },
     ],
   },
   docsReputationPage: {

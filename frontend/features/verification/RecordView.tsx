@@ -7,11 +7,13 @@ import { explorerTxUrl, settlementChain } from '@/core/arcNetwork';
 import { reasonLabels } from '@/features/reputation/sealed';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { RecordFactKind } from '@/shared/i18n/messages/record';
+import { recordNumbers } from './recordNumbers';
 
 type RecordData = Awaited<ReturnType<typeof api.record>>;
 
 /// karwan.site/r/<tag>: a person's portable record. Who they are, how they
-/// are verified, and the proof on Arc for each fact. No numbers.
+/// are verified, their score and counts, and the proof on Arc for each fact.
+/// Never an amount or who the deals were with.
 export function RecordView({ tag }: { tag: string }) {
   const t = useTranslations().record;
   const sealed = useTranslations().sealedRecord;
@@ -72,6 +74,12 @@ export function RecordView({ tag }: { tag: string }) {
           <dt className="text-[14px] text-[var(--lp-text-sub)]">{t.tier}</dt>
           <dd className="text-[14px] font-semibold text-[var(--lp-ink)]">{record.tier}</dd>
         </div>
+        {recordNumbers(record, t).map((row) => (
+          <div key={row.label} className="flex justify-between gap-4 border-b border-[var(--lp-line)] py-3">
+            <dt className="text-[14px] text-[var(--lp-text-sub)]">{row.label}</dt>
+            <dd className="text-[14px] font-semibold tabular-nums text-[var(--lp-ink)]">{row.value}</dd>
+          </div>
+        ))}
       </dl>
       {reasons.length ? <p className="mt-4 text-[15px] text-[var(--lp-ink)]">{reasons.join(' · ')}</p> : null}
 
@@ -98,6 +106,18 @@ export function RecordView({ tag }: { tag: string }) {
           ))}
         </ul>
       )}
+
+      <h2 className="mt-10 text-[18px] font-semibold text-[var(--lp-ink)]">{t.sources}</h2>
+      <dl className="mt-3 border-t border-[var(--lp-line)]">
+        <div className="flex justify-between gap-4 border-b border-[var(--lp-line)] py-3">
+          <dt className="text-[15px] text-[var(--lp-ink)]">{t.sourceKarwan}</dt>
+          <dd className="text-[14px] font-semibold text-[var(--lp-ink)]">{t.connected}</dd>
+        </div>
+        <div className="flex justify-between gap-4 border-b border-[var(--lp-line)] py-3">
+          <dt className="text-[15px] text-[var(--lp-ink)]">{t.otherPlatforms}</dt>
+          <dd className="text-[14px] text-[var(--lp-text-sub)]">{t.noPartners}</dd>
+        </div>
+      </dl>
 
       <a
         href={api.recordCredentialUrl(tag)}

@@ -24,6 +24,16 @@ export interface RecordCopy {
   notFoundHint: string;
   retry: string;
   home: string;
+  score: string;
+  scoreOf: string;
+  completed: string;
+  onTime: string;
+  disputesLost: string;
+  sources: string;
+  sourceKarwan: string;
+  connected: string;
+  otherPlatforms: string;
+  noPartners: string;
 }
 
 const en: RecordCopy = {
@@ -55,6 +65,16 @@ const en: RecordCopy = {
   notFoundHint: 'Check the spelling, or ask the person for their link.',
   retry: 'Try again',
   home: 'Go to Karwan',
+  score: 'Score',
+  scoreOf: '{n} of 100',
+  completed: 'Completed deals',
+  onTime: 'On time',
+  disputesLost: 'Disputes lost',
+  sources: 'Reputation from other platforms',
+  sourceKarwan: 'Karwan',
+  connected: 'Connected',
+  otherPlatforms: 'Other platforms',
+  noPartners: 'No partner platforms yet',
 };
 
 const ar: RecordCopy = {
@@ -86,6 +106,16 @@ const ar: RecordCopy = {
   notFoundHint: 'تحقق من الكتابة، أو اطلب من الشخص رابطه.',
   retry: 'حاول مرة أخرى',
   home: 'اذهب إلى Karwan',
+  score: 'النتيجة',
+  scoreOf: '{n} من 100',
+  completed: 'صفقات مكتملة',
+  onTime: 'في الموعد',
+  disputesLost: 'نزاعات خاسرة',
+  sources: 'السمعة من منصات أخرى',
+  sourceKarwan: 'Karwan',
+  connected: 'متصل',
+  otherPlatforms: 'منصات أخرى',
+  noPartners: 'لا منصات شريكة بعد',
 };
 
 const fr: RecordCopy = {
@@ -117,6 +147,16 @@ const fr: RecordCopy = {
   notFoundHint: 'Vérifiez l’orthographe, ou demandez son lien à la personne.',
   retry: 'Réessayer',
   home: 'Aller sur Karwan',
+  score: 'Score',
+  scoreOf: '{n} sur 100',
+  completed: 'Affaires terminées',
+  onTime: 'Dans les délais',
+  disputesLost: 'Litiges perdus',
+  sources: 'Réputation sur d’autres plateformes',
+  sourceKarwan: 'Karwan',
+  connected: 'Connecté',
+  otherPlatforms: 'Autres plateformes',
+  noPartners: 'Aucune plateforme partenaire pour l’instant',
 };
 
 const hi: RecordCopy = {
@@ -148,6 +188,16 @@ const hi: RecordCopy = {
   notFoundHint: 'वर्तनी जाँचें, या उस व्यक्ति से उनका लिंक माँगें।',
   retry: 'फिर से कोशिश करें',
   home: 'Karwan पर जाएँ',
+  score: 'स्कोर',
+  scoreOf: '100 में से {n}',
+  completed: 'पूरे सौदे',
+  onTime: 'समय पर',
+  disputesLost: 'हारे गए विवाद',
+  sources: 'दूसरे प्लेटफ़ॉर्म से साख',
+  sourceKarwan: 'Karwan',
+  connected: 'जुड़ा है',
+  otherPlatforms: 'दूसरे प्लेटफ़ॉर्म',
+  noPartners: 'अभी कोई साझेदार प्लेटफ़ॉर्म नहीं',
 };
 
 const sw: RecordCopy = {
@@ -179,6 +229,16 @@ const sw: RecordCopy = {
   notFoundHint: 'Kagua tahajia, au muombe mtu huyo kiungo chake.',
   retry: 'Jaribu tena',
   home: 'Nenda Karwan',
+  score: 'Alama',
+  scoreOf: '{n} kati ya 100',
+  completed: 'Mipango iliyokamilika',
+  onTime: 'Kwa wakati',
+  disputesLost: 'Mizozo aliyoshindwa',
+  sources: 'Sifa kutoka majukwaa mengine',
+  sourceKarwan: 'Karwan',
+  connected: 'Imeunganishwa',
+  otherPlatforms: 'Majukwaa mengine',
+  noPartners: 'Bado hakuna majukwaa washirika',
 };
 
 export const recordCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', RecordCopy> = { en, ar, fr, hi, sw };

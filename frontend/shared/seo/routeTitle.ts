@@ -55,6 +55,7 @@ const EXACT: Record<string, RouteTitleKey> = {
   '/verify/person': 'personCheck',
   '/waitlist': 'waitlist',
   '/x402': 'dataApi',
+  '/developers': 'developers',
 };
 
 const PATTERNS: [RegExp, RouteTitleKey][] = [

@@ -15,6 +15,9 @@ import { notifyCopy, type NotifyCopy } from './notifications';
 import { notFoundCopy, type NotFoundCopy } from './pageStates';
 import { dealLiveCopy, type DealLiveCopy } from './dealLive';
 import { offerRosterCopy, type OfferRosterCopy } from './offerRoster';
+import { shortlistCopy, type ShortlistCopy } from './shortlist';
+import { developersCopy, type DevelopersCopy } from './developers';
+import { reputationSourcesCopy, type ReputationSourcesCopy } from './reputationSources';
 import { searchCopy, type SearchCopy } from './search';
 import { offersCopy, type OffersCopy } from './offers';
 import { escrowV3Copy, type EscrowV3Copy } from './escrowV3';
@@ -37,6 +40,9 @@ interface MessagesShape {
   bell: NotifyCopy;
   pageNotFound: NotFoundCopy;
   offerRoster: OfferRosterCopy;
+  shortlist: ShortlistCopy;
+  developers: DevelopersCopy;
+  reputationSources: ReputationSourcesCopy;
   dealLive: DealLiveCopy;
   disputeJudge: DisputeJudgeCopy;
   balanceSummary: BalanceSummaryCopy;
@@ -1584,6 +1590,7 @@ interface MessagesShape {
     approvedCta: string;
     declinedEyebrow: string;
     declinedSellerView: string;
+    buyerChoosing: string;
     declinedOtherView: string;
     cancelledEyebrow: string;
     cancelledBuyerView: string;
@@ -5352,6 +5359,9 @@ export const en: MessagesShape = {
   bell: notifyCopy.en,
   pageNotFound: notFoundCopy.en,
   offerRoster: offerRosterCopy.en,
+  shortlist: shortlistCopy.en,
+  developers: developersCopy.en,
+  reputationSources: reputationSourcesCopy.en,
   dealLive: dealLiveCopy.en,
   disputeJudge: disputeJudgeCopy.en,
   balanceSummary: balanceSummaryCopy.en,
@@ -7048,6 +7058,7 @@ export const en: MessagesShape = {
     approvedCta: 'Open deal →',
     declinedEyebrow: 'Match declined',
     declinedSellerView: 'You declined this match. The request stays closed, and the buyer can post a new one.',
+    buyerChoosing: 'The buyer is choosing from a shortlist. You will hear when they pick.',
     declinedOtherView: 'The seller declined this match. Post a new request to find another seller.',
     cancelledEyebrow: "Match cancelled",
     cancelledBuyerView: "You cancelled this match. Your request is open again: choose another offer, or wait for new ones.",
@@ -10342,7 +10353,7 @@ export const en: MessagesShape = {
     headline: 'Quick answers',
     intro: 'The questions new users ask first. If yours is not here, reach the team through the links in the footer.',
     items: [
-      { q: "How do I add USDC?", a: "Open Add USDC and use the address or source route shown for your account. Check the exact network, token and destination before sending. Connected-wallet accounts sign their own transfers. Test funds are available through Network details when the deployment is on Testnet." },
+      { q: "How do I add USDC?", a:"Open Add USDC and use the address or source route shown for your account. Check the exact network, token and destination before sending. Connected-wallet accounts sign their own transfers. Test funds are available through Network details when the deployment is on Testnet." },
       { q: "Do I need a crypto wallet?", a: "No. You can sign in through the available email or passkey path. If you prefer self-custody, you can connect your own wallet." },
       { q: "Is this real money?", a: "Check Network details before adding USDC. Testnet uses test funds with no real monetary value. Mainnet uses real funds. Balances and transaction records belong to their network; switching environments does not move money between them." },
       { q: "Does my counterparty need an account?", a: "Not before you create a direct deal. You can address an invite to a supported wallet or email. The recipient must claim the invite, review the terms, and accept before the deal can continue." },
@@ -10360,6 +10371,8 @@ export const en: MessagesShape = {
       { q: "Does stake earn yield?", a: "The Stake page separates the vault position from network and account yield. Yield depends on the enabled route, permissions, contract state, and instrument value. It is not guaranteed." },
       { q: "Where does settled money go?", a: "The deal and wallet views show the destination account. Use Deposit / Withdraw for a supported transfer after settlement. Available routes depend on the live configuration." },
       { q: "Does Karwan custody funds?", a: "Wallet control depends on how you sign in. A connected wallet or mainnet passkey wallet is signed by you. Karwan operates the managed email wallets available on testnet. Once a deal is funded, the escrow contract governs those deal funds. Read the Terms for authority and recovery details." },
+      { q: "Why can I see sellers who are not verified?", a: "Your agent lists everyone who fits your request and says plainly who is verified. Only a verified seller can be recommended, and choosing someone who is not verified asks you once more before any money moves." },
+      { q: "Who can read my record?", a: "Agents you deal with can pay a fraction of a cent to read your work history, only if you turned on Let agents check my record in Profile. They never see your messages or who you worked with. The details are deleted after 24 hours, and Profile shows who read it." },
     ],
   },
   docsReputationPage: {

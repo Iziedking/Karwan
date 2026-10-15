@@ -57,7 +57,7 @@ test('Terms has a document heading, linked contents and readable non-monospace t
 test('translated FAQ arrays carry the same subjects and retire stale live-payment claims', () => {
   for (const [locale, messages] of Object.entries(MESSAGES)) {
     const items = messages.docsFaqPage.items;
-    assert.equal(items.length, 18, locale);
+    assert.equal(items.length, 20, locale);
     assert.match(items[9]!.a, /x402/, locale);
     assert.doesNotMatch(JSON.stringify(items), /2026-06-06|Hashnote|ERC-4626/, locale);
     assert.match(items[17]!.a, /testnet|Testnet|شبكة الاختبار|टेस्टनेट/, locale);

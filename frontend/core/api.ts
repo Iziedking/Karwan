@@ -114,6 +114,29 @@ export interface ApiStatus {
   };
 }
 
+/// One row of the shortlist a buyer chooses from, ranked by the backend.
+export interface ShortlistEntry {
+  rank: number;
+  seller: string;
+  sellerUser: string;
+  name: string;
+  tag: string | null;
+  level: 'registered' | 'person_verified' | 'work_verified' | 'id_verified';
+  verified: boolean;
+  score: number;
+  tier: string;
+  counts: { completed: number; onTimeRate: number | null; disputesLost: number };
+  offer: string;
+  deliveryDays: number;
+  priceUsdc: number;
+  askedUsdc: number | null;
+  recordChecked: boolean;
+  recommended: boolean;
+  reasons: Array<'best_fit' | 'verified' | 'within_budget' | 'lower_price' | 'on_time_record'>;
+  state: 'negotiating' | 'ready' | 'unavailable';
+  isNew: boolean;
+}
+
 export interface BuyerBid {
   seller: string;
   priceUsdc: string;
@@ -2360,11 +2383,21 @@ export const api = {
       `/api/deals/direct/${jobId}/dispute/statement`,
       { method: 'POST', body: JSON.stringify({ caller, ...answers }) },
     ),
-  chooseOffer: (jobId: string, caller: string, seller: string) =>
+  chooseOffer: (jobId: string, caller: string, seller: string, opts: { acknowledgeUnverified?: boolean; expectedPriceUsdc?: number | string } = {}) =>
     json<{ accepted: boolean; jobId: string; txHash: string }>(
       `/api/jobs/${jobId}/choose-offer`,
-      { method: 'POST', body: JSON.stringify({ caller, seller }) },
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          caller,
+          seller,
+          ...(opts.acknowledgeUnverified ? { acknowledgeUnverified: true } : {}),
+          ...(opts.expectedPriceUsdc !== undefined ? { expectedPriceUsdc: opts.expectedPriceUsdc } : {}),
+        }),
+      },
     ),
+  shortlist: (jobId: string, caller: string) =>
+    json<{ entries: ShortlistEntry[]; closed: boolean }>(`/api/jobs/${jobId}/shortlist?caller=${encodeURIComponent(caller)}`),
   cancelBrief: (jobId: string, caller: string) =>
     json<{ accepted: boolean; jobId: string }>(
       `/api/jobs/${jobId}/cancel`,
@@ -3981,7 +4014,22 @@ export const api = {
       tier: string;
       reasons: SealedReasonCode[];
       facts: { kind: string; issuedAt: number; expiresAt: number; txHash?: string }[];
+      score?: number;
+      counts?: { completed: number; onTimeRate: number | null; disputesLost: number };
+      sources?: { id: string; status: 'connected' }[];
     }>(`/api/r/${encodeURIComponent(tag)}`),
+  reputationSources: (address: string) =>
+    json<{
+      sources: { recordReadable: boolean; sourceLookup: boolean; interest: string; acceptedAt: number | null; copyVersion: string | null };
+      connected: string[];
+      readers: { name: string | null; tag: string | null; purpose: string; at: number }[];
+      readsBalanceUsdc: number | null;
+    }>(`/api/me/reputation-sources?address=${encodeURIComponent(address)}`),
+  updateReputationSources: (address: string, patch: { recordReadable?: boolean; sourceLookup?: boolean; interest?: string }) =>
+    json<{ sources: { recordReadable: boolean; sourceLookup: boolean; interest: string } }>(`/api/me/reputation-sources`, {
+      method: 'PUT',
+      body: JSON.stringify({ address, ...patch }),
+    }),
   /// Plain link, not a fetch: the browser downloads the signed JSON itself.
   recordCredentialUrl: (tag: string) => `${BASE}/api/r/${encodeURIComponent(tag)}/credential`,
   worldIdStatus: () =>
