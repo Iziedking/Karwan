@@ -40,6 +40,7 @@ library AgreementDisputeLib {
         d.state = AgreementState.Disputed;
         DisputeLib.open(g.disputes, dealId, clauseHash);
         AgreementCommon.bumpHorizon(s, dealId, block.timestamp + DisputeLib.LONGEST);
+        AgreementCommon.keepStake(s, g, dealId);
     }
 
     function proposeRuling(AgreementStore storage g, bytes32 dealId, uint16 sellerBps, bytes32 rulingHash) external {
@@ -52,6 +53,7 @@ library AgreementDisputeLib {
         bool party = msg.sender == s.accounts[dealId].payer || msg.sender == g.terms[dealId].seller;
         DisputeLib.escalate(g.disputes, dealId, party);
         AgreementCommon.bumpHorizon(s, dealId, block.timestamp + DisputeLib.RULING_PERIOD);
+        AgreementCommon.keepStake(s, g, dealId);
     }
 
     function executeRuling(SettlementStore storage s, AgreementStore storage g, IKarwanHub hub, bytes32 dealId)
@@ -117,11 +119,19 @@ library AgreementDisputeLib {
         SettlementLib.payFee(s, dealId, feeCut);
         SettlementLib.payTo(s, dealId, s.accounts[dealId].payer, toBuyer);
         emit TrancheRuled(dealId, d.paid - 1, sellerBps, toSeller, toBuyer);
+        AgreementTerms storage t = g.terms[dealId];
+        if (t.sellerStake != 0) {
+            // The buyer's share of this tranche's share of the stake.
+            uint256 slash = (uint256(t.sellerStake) * (C.BPS - sellerBps) * net) / (uint256(C.BPS) * d.sellerNet);
+            AgreementCommon.slashStake(hub, dealId, slash);
+        }
         if (last) {
             d.state = AgreementState.Ruled;
             SettlementLib.close(s, dealId);
+            AgreementCommon.releaseStake(hub, t, dealId);
             AgreementCommon.recordBoth(s, hub, dealId, Outcome.RULED, sellerBps);
         }
+        AgreementCommon.keepStake(s, g, dealId);
     }
 
     function _disputed(AgreementStore storage g, bytes32 dealId) private view {

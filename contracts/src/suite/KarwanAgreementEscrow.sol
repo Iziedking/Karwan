@@ -14,6 +14,9 @@ import {AgreementLib} from "./agreement/AgreementLib.sol";
 import {AgreementDisputeLib} from "./agreement/AgreementDisputeLib.sol";
 import {AgreementDeliveryLib} from "./agreement/AgreementDeliveryLib.sol";
 import {ICheckTarget} from "./KarwanCheckVerifier.sol";
+import {Receivable} from "./interfaces/IKarwanSuite.sol";
+import {AgreementCommon} from "./agreement/AgreementCommon.sol";
+import {DealAccount} from "./settlement/SettlementLib.sol";
 import {Dispute, DisputePanel, DisputeLib} from "./dispute/DisputeLib.sol";
 
 /// @title KarwanAgreementEscrow
@@ -76,6 +79,21 @@ contract KarwanAgreementEscrow is KarwanSettlementBase, ICheckTarget {
         return AgreementLib.releaseDigest(_domainSeparatorV4(), dealId, tranche, deadline);
     }
 
+    /// @notice What the deal still owes its seller, for Trade finance. Only an
+    ///         accepted deal with all its money in can be financed.
+    function receivableOf(bytes32 dealId) external view returns (Receivable memory r) {
+        AgreementDeal storage d = _g.deals[dealId];
+        AgreementTerms storage t = _g.terms[dealId];
+        DealAccount storage a = _s.accounts[dealId];
+        r.asset = a.asset;
+        r.seller = t.seller;
+        r.unpaid = d.sellerNet - d.released;
+        r.horizon = a.horizon;
+        r.open = d.state == AgreementState.Funded || d.state == AgreementState.Accepted
+            || d.state == AgreementState.Disputed;
+        r.financeable = d.state == AgreementState.Accepted && d.partsPaid >= t.parts;
+    }
+
     function reviewEndOf(bytes32 dealId) external view returns (uint64) {
         AgreementDeal storage d = _g.deals[dealId];
         return AgreementDeliveryLib.reviewEnd(d, _g.terms[dealId], _s.accounts[dealId].holdUsed - d.holdBase);
@@ -92,6 +110,17 @@ contract KarwanAgreementEscrow is KarwanSettlementBase, ICheckTarget {
     /// @notice The seller accepts the exact terms the buyer funded, in time.
     function accept(bytes32 dealId, bytes32 termsHash) external {
         AgreementLib.accept(_s, _g, dealId, termsHash);
+    }
+
+    /// @notice The seller accepts and reserves the stake the terms ask for.
+    function acceptWithStake(bytes32 dealId, bytes32 termsHash, uint256 deadline, bytes calldata sig) external {
+        AgreementLib.acceptWithStake(_s, _g, hub, dealId, termsHash, deadline, sig);
+    }
+
+    /// @notice The seller's stake follows the deal's horizon on its own; anyone
+    ///         retries here if the vault refused.
+    function keepStake(bytes32 dealId) external {
+        AgreementLib.keepStake(_s, _g, dealId);
     }
 
     /// @notice The buyer pays the next part of an instalment plan.
@@ -211,5 +240,6 @@ contract KarwanAgreementEscrow is KarwanSettlementBase, ICheckTarget {
     function _onLongstop(bytes32 dealId) internal override {
         _g.deals[dealId].state = AgreementState.Longstopped;
         DisputeLib.drop(_g.disputes, dealId);
+        AgreementCommon.releaseStake(hub, _g.terms[dealId], dealId);
     }
 }

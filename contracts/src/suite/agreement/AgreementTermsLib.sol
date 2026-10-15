@@ -49,7 +49,10 @@ library AgreementTermsLib {
                 || t.silentLongstop > l.maxHorizon
         ) revert BadTerms();
         if (t.deliveryDeadline <= t.acceptBy || t.deliveryDeadline > block.timestamp + l.maxHorizon) revert BadTerms();
-        if (t.agreementHash == bytes32(0) || t.partialBps >= C.BPS || t.fallbackBps > C.BPS) revert BadTerms();
+        if (
+            t.agreementHash == bytes32(0) || t.partialBps >= C.BPS || t.fallbackBps > C.BPS
+                || t.sellerStake > t.amount
+        ) revert BadTerms();
         _checkParts(t);
         if (
             l.highValue != 0 && t.amount >= l.highValue

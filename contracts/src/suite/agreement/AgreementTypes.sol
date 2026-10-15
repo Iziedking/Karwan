@@ -51,6 +51,11 @@ struct AgreementTerms {
     /// What the seller keeps of the price if the buyer misses a part, in basis
     /// points, at most 20%. Karwan takes no fee on a cancelled plan.
     uint16 cancelFeeBps;
+    /// The seller's stake behind the deal, for the buyer: reserved when the
+    /// seller accepts, slashed only by a ruling in the buyer's favour, in
+    /// proportion to the buyer's share, and freed at every other ending.
+    /// At most the price. 0 = none.
+    uint128 sellerStake;
     /// The verifier that reports checks, when review starts on a check.
     address verifier;
     bytes32 checkPolicy;
@@ -127,6 +132,9 @@ struct AgreementStore {
     mapping(bytes32 => AgreementTerms) terms;
     mapping(bytes32 => SplitOffer) splits;
     DisputeStore disputes;
+    /// The stake vault the escrow reserved sellers' stakes in, set at the
+    /// first staked acceptance. The hub wires its vault once.
+    address stakeVault;
 }
 
 struct AgreementBounds {

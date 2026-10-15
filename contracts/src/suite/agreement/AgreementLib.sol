@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {IKarwanHub, Outcome} from "../interfaces/IKarwanSuite.sol";
+import {IKarwanHub, IKarwanStakeVault, Outcome} from "../interfaces/IKarwanSuite.sol";
 import {DealAccount, SettlementStore, SettlementLib} from "../settlement/SettlementLib.sol";
 import {
     AgreementTerms,
@@ -54,6 +54,7 @@ library AgreementLib {
     error Late();
     error BadSignature();
     error Early();
+    error StakeNeeded();
 
     function dealIdFor(address buyer, bytes32 salt) public view returns (bytes32) {
         return keccak256(abi.encode(block.chainid, address(this), buyer, salt));
@@ -120,6 +121,7 @@ library AgreementLib {
         if (d.partsPaid == parts) _moveForLatePlan(s, g, d, dealId);
         emit PartPaid(dealId, d.partsPaid, amount);
         SettlementLib.fund(s, hub, dealId, amount);
+        AgreementCommon.keepStake(s, g, dealId);
     }
 
     /// @notice Once a part is past its due time and the grace, anyone ends the
@@ -146,14 +148,59 @@ library AgreementLib {
         SettlementLib.payTo(s, dealId, a.payer, balance - toSeller);
         SettlementLib.close(s, dealId);
         emit PlanCancelled(dealId, toSeller, balance - toSeller);
+        AgreementCommon.releaseStake(hub, t, dealId);
         if (accepted) AgreementCommon.recordBoth(s, hub, dealId, Outcome.CANCELLED, 0);
         else SettlementLib.recordOutcome(s, hub, dealId, AgreementCommon.BUYER, Outcome.CANCELLED, 0);
     }
 
     function accept(SettlementStore storage s, AgreementStore storage g, bytes32 dealId, bytes32 termsHash) external {
+        if (g.terms[dealId].sellerStake != 0) revert StakeNeeded();
+        _accept(s, g, dealId, termsHash);
+    }
+
+    /// @notice The seller accepts a deal whose terms ask for their stake, and
+    ///         reserves it for the buyer with a signature from their own wallet.
+    function acceptWithStake(
+        SettlementStore storage s,
+        AgreementStore storage g,
+        IKarwanHub hub,
+        bytes32 dealId,
+        bytes32 termsHash,
+        uint256 deadline,
+        bytes calldata sig
+    ) external {
+        AgreementTerms storage t = _accept(s, g, dealId, termsHash);
+        if (t.sellerStake == 0) revert BadState();
+        address vault = hub.stakeVault();
+        g.stakeVault = vault;
+        IKarwanStakeVault(vault).reserve(
+            dealId,
+            t.seller,
+            t.asset,
+            t.sellerStake,
+            s.accounts[dealId].payer,
+            AgreementCommon.stakeExpiry(s, dealId),
+            deadline,
+            sig
+        );
+    }
+
+    /// @notice Anyone retries keeping the seller's stake reserved past the
+    ///         deal's horizon, if the vault refused when the horizon moved.
+    function keepStake(SettlementStore storage s, AgreementStore storage g, bytes32 dealId) external {
+        AgreementDeal storage d = g.deals[dealId];
+        if (g.terms[dealId].sellerStake == 0) revert BadState();
+        if (d.state != AgreementState.Accepted && d.state != AgreementState.Disputed) revert BadState();
+        AgreementCommon.keepStake(s, g, dealId);
+    }
+
+    function _accept(SettlementStore storage s, AgreementStore storage g, bytes32 dealId, bytes32 termsHash)
+        private
+        returns (AgreementTerms storage t)
+    {
         AgreementDeal storage d = g.deals[dealId];
         if (d.state != AgreementState.Funded) revert BadState();
-        AgreementTerms storage t = g.terms[dealId];
+        t = g.terms[dealId];
         if (msg.sender != t.seller) revert BadCaller();
         if (block.timestamp > t.acceptBy || _partOverdue(d, t)) revert Late();
         if (termsHash != d.termsHash) revert HashMismatch();
@@ -187,6 +234,7 @@ library AgreementLib {
         AgreementCommon.bumpHorizon(s, dealId, uint256(d.deliveredAt) + t.startLongstop + t.silentLongstop + SettlementLib.HOLD_BUDGET);
         emit Delivered(dealId, d.paid, d.revision, proofHash);
         if (started) emit ReviewStarted(dealId, d.paid, d.reviewEnd);
+        AgreementCommon.keepStake(s, g, dealId);
     }
 
     function startReview(SettlementStore storage s, AgreementStore storage g, bytes32 dealId) external {
@@ -227,6 +275,7 @@ library AgreementLib {
         _onlyBuyer(s, dealId);
         _settle(s, g, dealId);
         _payTranche(s, g, hub, dealId, false);
+        AgreementCommon.keepStake(s, g, dealId);
     }
 
     /// @notice The same release, carried by the buyer's signature over the
@@ -248,6 +297,7 @@ library AgreementLib {
         if (!SigCheck.isValid(s.accounts[dealId].payer, digest, sig)) revert BadSignature();
         _settle(s, g, dealId);
         _payTranche(s, g, hub, dealId, false);
+        AgreementCommon.keepStake(s, g, dealId);
     }
 
     function releaseDigest(bytes32 domainSeparator, bytes32 dealId, uint8 tranche, uint256 deadline)
@@ -281,6 +331,7 @@ library AgreementLib {
         SettlementLib.payTo(s, dealId, buyer, amount);
         SettlementLib.close(s, dealId);
         emit DealReclaimed(dealId, amount, deposit);
+        AgreementCommon.releaseStake(hub, t, dealId);
         AgreementCommon.recordBoth(s, hub, dealId, deposit ? Outcome.DEPOSIT_RETURNED : Outcome.FAILED, 0);
     }
 
@@ -383,6 +434,7 @@ library AgreementLib {
         SettlementLib.payTo(s, dealId, s.accounts[dealId].payer, toBuyer);
         SettlementLib.close(s, dealId);
         emit SplitSettled(dealId, sellerBps, toSeller, toBuyer);
+        AgreementCommon.releaseStake(hub, g.terms[dealId], dealId);
         AgreementCommon.recordBoth(s, hub, dealId, outcome, sellerBps);
     }
 
@@ -404,6 +456,7 @@ library AgreementLib {
             d.state = AgreementState.Settled;
             SettlementLib.close(s, dealId);
             emit DealSettled(dealId);
+            AgreementCommon.releaseStake(hub, g.terms[dealId], dealId);
             AgreementCommon.recordBoth(s, hub, dealId, Outcome.COMPLETED, 0);
         }
     }
@@ -459,6 +512,7 @@ library AgreementLib {
         AgreementTerms storage t = g.terms[dealId];
         AgreementCommon.bumpHorizon(s, dealId, uint256(newDeadline) + t.reclaimGrace + t.startLongstop + t.silentLongstop);
         emit DeadlineMoved(dealId, newDeadline);
+        AgreementCommon.keepStake(s, g, dealId);
     }
 
     function _horizonOf(AgreementTerms calldata t) private pure returns (uint64) {
