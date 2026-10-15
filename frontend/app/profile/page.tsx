@@ -259,8 +259,8 @@ function ProfilePageInner() {
         <div data-guide="profile-preferences">
           <RowGroup>
             <Row label={messages.profile.hub.email}>{address && <ProfileEmailButton address={address} tone="light" />}</Row>
-            <Row label={messages.profile.hub.telegram}><TelegramConnectButton address={address ?? undefined} tone="light" /></Row>
-            <Row label={messages.profile.hub.x}><ConnectXButton tone="light" /></Row>
+            <Row label={<span className="block"><span className="block">{messages.profile.hub.telegram}</span><span className="block text-[14px] font-medium text-[var(--lp-text-sub)]">{messages.profile.hub.telegramNote}</span></span>}><TelegramConnectButton address={address ?? undefined} tone="light" /></Row>
+            <Row label={<span className="block"><span className="block">{messages.profile.hub.x}</span><span className="block text-[14px] font-medium text-[var(--lp-text-sub)]">{messages.profile.hub.xNote}</span></span>}><ConnectXButton tone="light" /></Row>
           </RowGroup>
         </div>
       ),

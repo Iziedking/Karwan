@@ -944,6 +944,8 @@ interface MessagesShape {
       email: string;
       telegram: string;
       x: string;
+      telegramNote: string;
+      xNote: string;
       security: string;
       passkey: string;
       recovery: string;
@@ -6316,6 +6318,8 @@ export const en: MessagesShape = {
       email: 'Email',
       telegram: 'Telegram',
       x: 'X',
+      telegramNote: "Get deal alerts in Telegram.",
+      xNote: "Shows your X handle and photo on your profile.",
       security: "Security",
       passkey: "Passkey",
       recovery: "Account recovery",

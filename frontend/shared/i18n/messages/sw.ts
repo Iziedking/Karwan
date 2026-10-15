@@ -990,6 +990,8 @@ export const sw: Messages = {
       email: 'Barua pepe',
       telegram: 'Telegram',
       x: 'X',
+      telegramNote: "Pata arifa za deal kwenye Telegram.",
+      xNote: "Inaonyesha jina lako la X na picha kwenye wasifu wako.",
       security: "Usalama",
       passkey: "Passkey",
       recovery: "Kurejesha akaunti",

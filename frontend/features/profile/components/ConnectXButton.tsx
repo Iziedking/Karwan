@@ -133,11 +133,7 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
       <button
         type="button"
         disabled
-        title={cx.disabledTitle}
-        className={`inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[14px] font-bold uppercase tracking-[0.08em] border ${chipMuted} cursor-not-allowed w-fit`}
-        style={{
-          borderRadius: 8,
-        }}
+        className={`inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-[14px] font-semibold border ${chipMuted} cursor-not-allowed w-fit`}
       >
         <XBrandTile />
         {cx.connectCta}
@@ -149,10 +145,7 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
     return (
       <div className="inline-flex items-center gap-2">
         <span
-          className={`inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[14px] font-bold uppercase tracking-[0.08em] border ${chipBase}`}
-          style={{
-            borderRadius: 8,
-          }}
+          className={`inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-[14px] font-semibold border ${chipBase}`}
         >
           {profile.xProfileImageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -170,7 +163,7 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
           type="button"
           onClick={unlink}
           disabled={busy}
-          className={`mono text-[13px] uppercase tracking-[0.12em] ${sublabel} hover:${onLight ? 'text-[var(--lp-band-dark)]' : 'text-white'} transition-colors disabled:opacity-50`}
+          className={`text-[14px] ${sublabel} hover:${onLight ? 'text-[var(--lp-band-dark)]' : 'text-white'} transition-colors disabled:opacity-50`}
         >
           {busy ? cx.working : cx.unlink}
         </button>
@@ -186,16 +179,13 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
           type="button"
           onClick={startOAuth}
           disabled={busy}
-          className={`inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[14px] font-bold uppercase tracking-[0.08em] border ${chipBase} transition-colors w-fit disabled:opacity-50`}
-          style={{
-            borderRadius: 8,
-          }}
+          className={`inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-[14px] font-semibold border ${chipBase} transition-colors w-fit disabled:opacity-50`}
         >
           <XBrandTile />
           {busy ? cx.redirecting : cx.connectCta}
         </button>
         {error && (
-          <p className={`mono text-[13px] ${errClass} leading-snug max-w-[34ch]`}>{error}</p>
+          <p className={`text-[14px] ${errClass} leading-snug max-w-[34ch]`}>{error}</p>
         )}
       </div>
     );
@@ -207,10 +197,7 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[14px] font-bold uppercase tracking-[0.08em] border ${chipBase} transition-colors w-fit`}
-        style={{
-          borderRadius: 8,
-        }}
+        className={`inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-[14px] font-semibold border ${chipBase} transition-colors w-fit`}
       >
         <XBrandTile />
         {cx.connectCta}
@@ -226,11 +213,11 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
         background: 'var(--surface-1)',
       }}
     >
-      <label className="mono text-[13px] uppercase tracking-[0.14em] text-white/75">
+      <label className="text-[14px] text-white/75">
         {cx.handleLabel}
       </label>
       <div className="inline-flex items-center gap-2">
-        <span className="mono text-[14px] text-white/75">@</span>
+        <span className="text-[14px] text-white/75">@</span>
         <input
           autoFocus
           value={handle}
@@ -245,13 +232,13 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
           }}
           placeholder={cx.handlePlaceholder}
           maxLength={15}
-          className="bg-transparent border-b border-white/20 focus:border-white/60 focus:outline-none mono text-[14px] text-white w-44 py-1"
+          className="bg-transparent border-b border-white/20 focus:border-white/60 focus:outline-none text-[14px] text-white w-44 py-1"
         />
         <button
           type="button"
           onClick={saveHandle}
           disabled={busy || !handle.trim()}
-          className="mono text-[13px] uppercase tracking-[0.12em] font-bold px-2 py-1 bg-white text-black hover:bg-white/90 transition-colors disabled:opacity-50"
+          className="text-[14px] font-semibold px-2 py-1 bg-white text-black hover:bg-white/90 transition-colors disabled:opacity-50"
         >
           {busy ? cx.saving : cx.save}
         </button>
@@ -262,16 +249,16 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
             setHandle('');
             setError(null);
           }}
-          className="mono text-[13px] uppercase tracking-[0.12em] text-white/75 hover:text-white transition-colors"
+          className="text-[14px] text-white/75 hover:text-white transition-colors"
         >
           {cx.cancel}
         </button>
       </div>
-      <p className="mono text-[13px] text-white/75 leading-snug max-w-[34ch]">
+      <p className="text-[14px] text-white/75 leading-snug max-w-[34ch]">
         {cx.handleNote}
       </p>
       {error && (
-        <p className="mono text-[13px] text-[#e8806b] leading-snug max-w-[34ch]">{error}</p>
+        <p className="text-[14px] text-[#e8806b] leading-snug max-w-[34ch]">{error}</p>
       )}
     </div>
   );

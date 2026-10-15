@@ -991,6 +991,8 @@ export const hi: Messages = {
       email: 'ईमेल',
       telegram: 'Telegram',
       x: 'X',
+      telegramNote: "Telegram पर डील अलर्ट पाएँ.",
+      xNote: "आपकी प्रोफ़ाइल पर आपका X हैंडल और फ़ोटो दिखाता है.",
       security: "सुरक्षा",
       passkey: "पासकी",
       recovery: "खाता रिकवरी",

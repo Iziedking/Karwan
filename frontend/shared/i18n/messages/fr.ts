@@ -993,6 +993,8 @@ export const fr: Messages = {
       email: 'E-mail',
       telegram: 'Telegram',
       x: 'X',
+      telegramNote: "Recevez les alertes de deals sur Telegram.",
+      xNote: "Affiche votre compte X et sa photo sur votre profil.",
       security: "Sécurité",
       passkey: "Clé d’accès",
       recovery: "Récupération du compte",

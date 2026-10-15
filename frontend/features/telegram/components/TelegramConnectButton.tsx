@@ -1,6 +1,6 @@
 'use client';
-import { useEffect, useState, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
+import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
+import { useEffect, useId, useState, type ReactNode } from 'react';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages';
 import { useTelegramLink } from '../hooks/useTelegramLink';
@@ -66,15 +66,11 @@ export function TelegramConnectButton({
       <button
         type="button"
         disabled
-        title={tc.button.disabledTitle}
-        className={`inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[14px] font-bold uppercase tracking-[0.08em] border ${chipMuted} cursor-not-allowed w-fit`}
-        style={{
-          borderRadius: 8,
-        }}
+        className={`inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-[14px] font-semibold border ${chipMuted} cursor-not-allowed w-fit`}
       >
         <TelegramGlyph />
         {tc.button.brand}
-        <span className={`text-[13px] uppercase tracking-[0.12em] font-bold px-1.5 py-0.5 ${offPillClass} rounded-sm`}>
+        <span className={`text-[14px] font-semibold px-1.5 py-0.5 ${offPillClass} rounded-sm`}>
           {tc.button.offBadge}
         </span>
       </button>
@@ -86,21 +82,13 @@ export function TelegramConnectButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        title={
-          linkedLabel
-            ? tc.button.manageTitleTemplate.replace('{label}', linkedLabel)
-            : tc.button.connectTitle
-        }
-        className={`inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[14px] font-bold uppercase tracking-[0.08em] border ${chipClass} transition-colors w-fit`}
-        style={{
-          borderRadius: 8,
-        }}
+        className={`inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-[14px] font-semibold border ${chipClass} transition-colors w-fit`}
       >
         <TelegramGlyph />
         {linkedLabel ?? tc.button.connectLabel}
         {linkedLabel && (
           <span
-            className="text-[13px] uppercase tracking-[0.12em] font-bold px-1.5 py-0.5"
+            className="text-[14px] font-semibold px-1.5 py-0.5"
             style={{
               background: 'rgba(175, 201, 91,0.18)',
               color: 'var(--lp-accent)',
@@ -167,37 +155,20 @@ function TelegramConnectModal({
   // translateY(0), still a transform). Without the portal the modal anchors to
   // a band instead of the viewport, so it renders mid-content and clips the
   // post-"Generate link" state below the fold. Mounted guard keeps SSR happy.
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  if (!mounted) return null;
+  const titleId = useId();
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[80] flex items-end sm:items-stretch sm:justify-end"
-      style={{ background: 'rgba(14,14,14,0.55)' }}
-      onClick={onClose}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        onClick={(e) => e.stopPropagation()}
-        className="karwan-sheet-enter max-h-[92dvh] w-full overflow-y-auto rounded-t-[22px] bg-[var(--lp-card)] text-[var(--lp-dark)] sm:h-full sm:max-h-none sm:w-[480px] sm:rounded-none sm:rounded-s-[16px]"
-        style={{
-          border: '1px solid var(--lp-border-light)',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.35)',
-        }}
-      >
-        <div className="px-6 pt-6 pb-3 flex items-start justify-between gap-3">
+  return (
+    <ConfirmSheetShell open labelledBy={titleId} busy={linking} onClose={onClose}>
+        <div className="pb-3 flex items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2.5">
               <TelegramGlyph size={16} />
-              <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+              <span className="text-[14px] text-[var(--lp-text-muted)]">
                 {copy.modal.eyebrow}
               </span>
             </div>
-            <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-none">
+            <h2 id={titleId} className="mt-2 text-[20px] font-semibold text-[var(--lp-dark)]">
               {copy.modal.title}
-              <span style={{ color: 'var(--lp-accent)' }}>.</span>
             </h2>
           </div>
           <button
@@ -217,8 +188,8 @@ function TelegramConnectModal({
           </button>
         </div>
 
-        <div className="px-6 pb-6 space-y-4">
-          <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+        <div className="space-y-4">
+          <p className="text-[14px] text-[var(--lp-text-muted)]">
             {copy.modal.subheading}
           </p>
 
@@ -230,7 +201,7 @@ function TelegramConnectModal({
               <button
                 type="button"
                 onClick={startLink}
-                className="inline-flex w-full items-center justify-center gap-2 px-5 py-3 mono text-[14px] font-bold uppercase tracking-[0.08em] transition-[transform,box-shadow] duration-150 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0"
+                className="inline-flex w-full items-center justify-center gap-2 px-5 py-3 text-[14px] font-semibold transition-[transform,box-shadow] duration-150 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0"
                 style={{
                   borderRadius: 14,
                   boxShadow: '0 4px 0 rgba(0,0,0,0.22)',
@@ -253,7 +224,7 @@ function TelegramConnectModal({
                 href={deepLink}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex w-full items-center justify-center gap-2 px-5 py-3 mono text-[14px] font-bold uppercase tracking-[0.08em] transition-[transform,box-shadow] duration-150 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0"
+                className="inline-flex w-full items-center justify-center gap-2 px-5 py-3 text-[14px] font-semibold transition-[transform,box-shadow] duration-150 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0"
                 style={{
                   borderRadius: 14,
                   boxShadow: '0 4px 0 rgba(0,0,0,0.22)',
@@ -263,7 +234,7 @@ function TelegramConnectModal({
                 <span aria-hidden>↗</span>
               </a>
               <ModalNote tone="info">
-                <p className="font-bold uppercase tracking-[0.08em] text-[13px]">
+                <p className="font-semibold text-[14px]">
                   {copy.modal.waitingNoteTitle}
                 </p>
                 <p className="mt-1 text-[14px] opacity-90 normal-case">
@@ -284,7 +255,7 @@ function TelegramConnectModal({
                 }}
               >
                 <div>
-                  <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                  <p className="text-[14px] text-[var(--lp-text-muted)]">
                     {copy.linkedCard.label}
                   </p>
                   <p className="mt-1 font-sans text-[16px] font-extrabold tracking-[-0.01em]">
@@ -294,7 +265,7 @@ function TelegramConnectModal({
                   </p>
                 </div>
                 {status.linkedAt && (
-                  <p className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                  <p className="text-[14px] text-[var(--lp-text-muted)]">
                     {copy.linkedCard.linkedAtTemplate.replace(
                       '{date}',
                       formatLinkedAt(status.linkedAt),
@@ -306,7 +277,7 @@ function TelegramConnectModal({
                 <button
                   type="button"
                   onClick={unlink}
-                  className="px-3 py-1.5 mono text-[14px] font-bold uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[#b03d3a] hover:bg-[rgba(176,61,58,0.07)] transition-colors rounded"
+                  className="px-3 py-1.5 text-[14px] font-semibold text-[var(--lp-text-sub)] hover:text-[#b03d3a] hover:bg-[rgba(176,61,58,0.07)] transition-colors rounded"
                 >
                   {copy.linkedCard.unlinkCta}
                 </button>
@@ -316,9 +287,7 @@ function TelegramConnectModal({
 
           {error && <ModalNote tone="error">{error}</ModalNote>}
         </div>
-      </div>
-    </div>,
-    document.body,
+    </ConfirmSheetShell>
   );
 }
 
