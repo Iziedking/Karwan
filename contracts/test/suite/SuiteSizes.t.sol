@@ -7,6 +7,7 @@ import {KarwanTimelock} from "../../src/suite/KarwanTimelock.sol";
 import {KarwanAgreementEscrow} from "../../src/suite/KarwanAgreementEscrow.sol";
 import {KarwanCheckVerifier} from "../../src/suite/KarwanCheckVerifier.sol";
 import {KarwanTradeFinance} from "../../src/suite/KarwanTradeFinance.sol";
+import {KarwanYieldPool} from "../../src/suite/KarwanYieldPool.sol";
 import {SettlementLib} from "../../src/suite/settlement/SettlementLib.sol";
 import {AgreementBounds} from "../../src/suite/agreement/AgreementTypes.sol";
 import {AgreementLib} from "../../src/suite/agreement/AgreementLib.sol";
@@ -39,6 +40,7 @@ contract SuiteSizesTest is SuiteFixture {
         _check("KarwanCheckVerifier", address(verifier).code.length);
         _check("KarwanStakeVault", address(vault).code.length);
         _check("KarwanTradeFinance", address(new KarwanTradeFinance(address(hub))).code.length);
+        _check("KarwanYieldPool", address(new KarwanYieldPool(address(hub), address(usdc))).code.length);
         _check("SettlementLib", type(SettlementLib).runtimeCode.length);
         _check("AgreementLib", type(AgreementLib).runtimeCode.length);
         _check("AgreementDeliveryLib", type(AgreementDeliveryLib).runtimeCode.length);
