@@ -2,7 +2,7 @@
 
 import type { MatchProposal } from '@/core/api';
 import { presentMatchingState } from '@/features/jobs/matchingPresentation';
-import { labelFor } from './PendingDealsBand';
+import { labelFor } from '../dealNextStep';
 import type { OpenDirectDeal } from '../hooks/useOpenDeals';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { Button } from '@/shared/components/Button';

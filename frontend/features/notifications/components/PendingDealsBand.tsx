@@ -7,47 +7,13 @@ import { useLocale } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages';
 import { Band, SectionTag, HeroHeadline, Punc } from '@/shared/components/Bands';
 import { Hint } from '@/shared/components/Hint';
-import { stageOf, type DealStage } from '@/features/deals/components/DirectDealList';
+import { stageOf } from '@/features/deals/components/DirectDealList';
+import { labelFor } from '@/features/notifications/dealNextStep';
+
 
 interface Props {
   tone?: 'light' | 'dark';
   headline?: string;
-}
-
-type PendingChips = Messages['pending']['chips'];
-
-/// Chip label for a deal stage from the viewer's side: either an action this
-/// viewer owns or a wait on the counterparty. Null on terminal stages so
-/// finished deals do not render here.
-export function labelFor(
-  stage: DealStage,
-  isBuyer: boolean,
-  chips: PendingChips,
-): { kind: 'action' | 'wait'; text: string } | null {
-  switch (stage) {
-    case 'awaiting-acceptance':
-      return isBuyer
-        ? { kind: 'wait', text: chips.waitingOnSeller }
-        : { kind: 'action', text: chips.agreeTerms };
-    case 'awaiting-funding':
-      return isBuyer
-        ? { kind: 'action', text: chips.reviewFunding }
-        : { kind: 'wait', text: chips.waitingOnBuyer };
-    case 'awaiting-delivery':
-      return isBuyer
-        ? { kind: 'wait', text: chips.waitingOnSeller }
-        : { kind: 'action', text: chips.markDelivered };
-    case 'awaiting-first-release':
-      return isBuyer
-        ? { kind: 'action', text: chips.releaseFirst }
-        : { kind: 'wait', text: chips.waitingOnBuyer };
-    case 'awaiting-final-release':
-      return isBuyer
-        ? { kind: 'action', text: chips.releaseFinal }
-        : { kind: 'wait', text: chips.waitingOnBuyer };
-    default:
-      return null;
-  }
 }
 
 /// Live direct deals on the viewer's book. Used on /app, /profile, /seller.

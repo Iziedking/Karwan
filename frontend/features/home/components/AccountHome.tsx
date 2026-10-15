@@ -18,7 +18,7 @@ import { ARC_NETWORK } from '@/core/arcNetwork';
 import { PageTour } from '@/shared/guide/PageTour';
 import { HOME_TOUR_ID, HOME_STEPS } from '@/shared/guide/tours';
 import { dealHeadline } from '@/features/home/dealHeadline';
-import { labelFor } from '@/features/notifications/components/PendingDealsBand';
+import { labelFor } from '@/features/notifications/dealNextStep';
 
 type AccountKind = 'person' | 'business';
 
