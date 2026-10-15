@@ -139,4 +139,54 @@ contract AgreementTermsTest is AgreementFixture {
         t.startLongstop = 10 days;
         _refused(t);
     }
+
+    function _plan() internal view returns (AgreementTerms memory t) {
+        t = _terms();
+        t.parts = 4;
+        t.partEvery = 7 days;
+        t.deliveryDeadline = uint64(block.timestamp + 30 days);
+    }
+
+    function test_instalments_need_two_to_twelve_parts_and_a_schedule() public {
+        AgreementTerms memory t = _plan();
+        t.parts = 1;
+        _refused(t);
+        t = _plan();
+        t.parts = 13;
+        t.deliveryDeadline = uint64(block.timestamp + 120 days);
+        _refused(t);
+        t = _plan();
+        t.partEvery = 0;
+        _refused(t);
+    }
+
+    function test_a_deposit_is_never_paid_in_parts() public {
+        AgreementTerms memory t = _plan();
+        t.silenceOutcome = 1;
+        _refused(t);
+    }
+
+    function test_delivery_falls_due_after_the_last_part_and_its_grace() public {
+        AgreementTerms memory t = _plan();
+        t.deliveryDeadline = uint64(block.timestamp + 21 days + t.reclaimGrace);
+        _refused(t);
+    }
+
+    function test_cancellation_fee_at_most_twenty_percent_and_only_on_a_plan() public {
+        AgreementTerms memory t = _plan();
+        t.cancelFeeBps = 2_001;
+        _refused(t);
+        t = _terms();
+        t.cancelFeeBps = 1_000;
+        _refused(t);
+        t = _terms();
+        t.partEvery = 7 days;
+        _refused(t);
+    }
+
+    function test_fallback_share_at_most_the_whole() public {
+        AgreementTerms memory t = _terms();
+        t.fallbackBps = 10_001;
+        _refused(t);
+    }
 }

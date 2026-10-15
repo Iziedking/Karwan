@@ -49,10 +49,25 @@ library AgreementTermsLib {
                 || t.silentLongstop > l.maxHorizon
         ) revert BadTerms();
         if (t.deliveryDeadline <= t.acceptBy || t.deliveryDeadline > block.timestamp + l.maxHorizon) revert BadTerms();
-        if (t.agreementHash == bytes32(0) || t.partialBps >= C.BPS) revert BadTerms();
+        if (t.agreementHash == bytes32(0) || t.partialBps >= C.BPS || t.fallbackBps > C.BPS) revert BadTerms();
+        _checkParts(t);
         if (
             l.highValue != 0 && t.amount >= l.highValue
                 && (t.finalRelease != C.FINAL_BY_BUYER || t.reviewStarts != C.START_ON_CHECK)
+        ) revert BadTerms();
+    }
+
+    /// An instalment plan has 2 to 12 parts, is never a deposit, and its
+    /// delivery deadline falls after the last part and its grace.
+    function _checkParts(AgreementTerms calldata t) private view {
+        if (t.parts == 0) {
+            if (t.partEvery != 0 || t.cancelFeeBps != 0) revert BadTerms();
+            return;
+        }
+        if (
+            t.parts < 2 || t.parts > C.MAX_PARTS || t.partEvery == 0 || t.cancelFeeBps > C.MAX_CANCEL_FEE_BPS
+                || t.silenceOutcome == C.SILENCE_REFUNDS_BUYER
+                || t.deliveryDeadline <= block.timestamp + uint256(t.parts - 1) * t.partEvery + t.reclaimGrace
         ) revert BadTerms();
     }
 }

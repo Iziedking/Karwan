@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import {AgreementFixture} from "./AgreementFixture.sol";
 import {AgreementTerms, AgreementState} from "../../../src/suite/agreement/AgreementTypes.sol";
 import {AgreementLib} from "../../../src/suite/agreement/AgreementLib.sol";
+import {AgreementCommon} from "../../../src/suite/agreement/AgreementCommon.sol";
 import {AgreementDeliveryLib} from "../../../src/suite/agreement/AgreementDeliveryLib.sol";
 import {KarwanSettlementBase} from "../../../src/suite/KarwanSettlementBase.sol";
 
@@ -182,7 +183,7 @@ contract AgreementFlowTest is AgreementFixture {
         vm.prank(guardian);
         escrow.hold(id, bytes32("scan"));
         vm.prank(seller);
-        vm.expectRevert(AgreementLib.OnHold.selector);
+        vm.expectRevert(AgreementCommon.OnHold.selector);
         escrow.claim(id);
         vm.prank(buyer);
         escrow.release(id);

@@ -3,8 +3,9 @@ pragma solidity ^0.8.24;
 
 import {SuiteFixture} from "../SuiteFixture.sol";
 import {KarwanAgreementEscrow} from "../../../src/suite/KarwanAgreementEscrow.sol";
-import {AgreementBounds} from "../../../src/suite/agreement/AgreementLib.sol";
-import {AgreementTerms, AgreementDeal, AgreementState} from "../../../src/suite/agreement/AgreementTypes.sol";
+import {
+    AgreementTerms, AgreementDeal, AgreementState, AgreementBounds
+} from "../../../src/suite/agreement/AgreementTypes.sol";
 
 abstract contract AgreementFixture is SuiteFixture {
     KarwanAgreementEscrow internal escrow;

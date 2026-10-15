@@ -21,7 +21,7 @@ library AgreementDeliveryLib {
         external
         returns (bool started)
     {
-        if (d.state != AgreementState.Accepted) revert BadState();
+        if (d.state != AgreementState.Accepted || d.partsPaid < t.parts) revert BadState();
         if (block.timestamp > uint256(d.deadline) + t.reclaimGrace) revert Late();
         d.revision += 1;
         d.deliveredAt = uint64(block.timestamp);
@@ -94,22 +94,38 @@ library AgreementDeliveryLib {
         return d.deliveredAt + t.startLongstop + t.reviewWindow + holdSecs;
     }
 
-    /// @notice Reverts unless the seller may claim the next tranche now.
-    function checkClaim(AgreementDeal storage d, AgreementTerms storage t, uint64 holdSecs) external view {
-        if (d.state != AgreementState.Accepted || d.deliveredAt == 0) revert BadState();
-        if (t.silenceOutcome == C.SILENCE_REFUNDS_BUYER || d.checkFailed) revert NotAllowed();
-        if (block.timestamp < reviewEnd(d, t, holdSecs)) revert Early();
+    /// @notice Why the seller cannot claim the next tranche on the clock now,
+    ///         as an error selector; 0 when they can.
+    function claimBar(AgreementDeal storage d, AgreementTerms storage t, uint64 holdSecs)
+        public
+        view
+        returns (bytes4)
+    {
+        if (d.state != AgreementState.Accepted || d.deliveredAt == 0) return BadState.selector;
+        if (t.silenceOutcome == C.SILENCE_REFUNDS_BUYER || d.checkFailed) return NotAllowed.selector;
+        if (block.timestamp < reviewEnd(d, t, holdSecs)) return Early.selector;
         bool silence = block.timestamp >= uint256(d.deliveredAt) + t.silentLongstop + holdSecs;
-        if (t.reviewStarts == C.START_ON_CHECK && !d.checkPassed && !silence) revert Early();
-        if (d.paid + 1 == d.count && t.finalRelease == C.FINAL_BY_BUYER && !silence) revert Early();
+        if (t.reviewStarts == C.START_ON_CHECK && !d.checkPassed && !silence) return Early.selector;
+        if (d.paid + 1 == d.count && t.finalRelease == C.FINAL_BY_BUYER && !silence) return Early.selector;
+        return 0;
     }
 
-    /// @notice Reverts unless the buyer may take the rest back at the deadline.
+    /// @notice Why the buyer cannot take the rest back now; 0 when they can.
+    ///         An unfinished instalment plan ends through a missed part instead.
+    function reclaimBar(AgreementDeal storage d, AgreementTerms storage t) public view returns (bytes4) {
+        if (d.state != AgreementState.Accepted || d.partsPaid < t.parts) return BadState.selector;
+        if (block.timestamp <= uint256(d.deadline) + t.reclaimGrace) return Early.selector;
+        if (t.silenceOutcome == C.SILENCE_REFUNDS_BUYER || d.deliveredAt == 0) return 0;
+        if (!(t.reviewStarts == C.START_ON_CHECK && d.checkFailed && !d.checkPassed)) return NotAllowed.selector;
+        return 0;
+    }
+
+    function checkClaim(AgreementDeal storage d, AgreementTerms storage t, uint64 holdSecs) external view {
+        _revert(claimBar(d, t, holdSecs));
+    }
+
     function checkReclaim(AgreementDeal storage d, AgreementTerms storage t) external view {
-        if (d.state != AgreementState.Accepted) revert BadState();
-        if (block.timestamp <= uint256(d.deadline) + t.reclaimGrace) revert Early();
-        if (t.silenceOutcome == C.SILENCE_REFUNDS_BUYER || d.deliveredAt == 0) return;
-        if (!(t.reviewStarts == C.START_ON_CHECK && d.checkFailed && !d.checkPassed)) revert NotAllowed();
+        _revert(reclaimBar(d, t));
     }
 
     /// @notice Moves the deal to the next tranche and returns what it pays.
@@ -137,6 +153,12 @@ library AgreementDeliveryLib {
         d.checkPassed = false;
         d.checkFailed = false;
         d.extUsed = 0;
+    }
+
+    function _revert(bytes4 e) private pure {
+        if (e == BadState.selector) revert BadState();
+        if (e == NotAllowed.selector) revert NotAllowed();
+        if (e == Early.selector) revert Early();
     }
 
     /// A review started after its start longstop counts from the longstop, so

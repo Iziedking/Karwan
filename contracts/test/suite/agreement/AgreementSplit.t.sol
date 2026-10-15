@@ -7,69 +7,9 @@ import {AgreementLib} from "../../../src/suite/agreement/AgreementLib.sol";
 import {KarwanRecord} from "../../../src/suite/KarwanRecord.sol";
 import {Outcome} from "../../../src/suite/interfaces/IKarwanSuite.sol";
 
-contract AgreementCodeSplitTest is AgreementFixture {
-    /// Codes are 32 random bytes carried in a QR code or link, never a short
-    /// number: the code's hash is public, so a short code can be guessed.
-    bytes32 internal constant CODE = keccak256("random 32-byte handover code");
-
+contract AgreementSplitTest is AgreementFixture {
     function setUp() public {
         _deployAgreement();
-    }
-
-    function _codeTerms(bytes32 salt) internal view returns (AgreementTerms memory t) {
-        t = _terms();
-        t.codeHash = keccak256(abi.encode(escrow.dealIdFor(buyer, salt), CODE));
-    }
-
-    function test_the_right_code_pays_the_seller() public {
-        bytes32 id = _fundAccepted(_codeTerms(bytes32("p")), bytes32("p"));
-        vm.prank(seller);
-        escrow.submitCode(id, CODE);
-        assertEq(usdc.balanceOf(seller), PRICE - 0.5e6);
-        assertEq(uint8(_state(id)), uint8(AgreementState.Settled));
-    }
-
-    function test_a_courier_with_the_code_pays_the_seller() public {
-        bytes32 id = _fundAccepted(_codeTerms(bytes32("p")), bytes32("p"));
-        vm.prank(stranger);
-        escrow.submitCode(id, CODE);
-        assertEq(usdc.balanceOf(seller), PRICE - 0.5e6);
-        assertEq(usdc.balanceOf(stranger), 0);
-    }
-
-    function test_a_wrong_code_pays_nothing() public {
-        bytes32 id = _fundAccepted(_codeTerms(bytes32("p")), bytes32("p"));
-        vm.prank(seller);
-        vm.expectRevert(AgreementLib.HashMismatch.selector);
-        escrow.submitCode(id, bytes32("guess"));
-    }
-
-    function test_a_code_is_used_once() public {
-        AgreementTerms memory t = _codeTerms(bytes32("p"));
-        t.trancheBps[0] = 5_000;
-        t.trancheBps[1] = 5_000;
-        bytes32 id = _fundAccepted(t, bytes32("p"));
-        vm.startPrank(seller);
-        escrow.submitCode(id, CODE);
-        vm.expectRevert(AgreementLib.BadState.selector);
-        escrow.submitCode(id, CODE);
-        vm.stopPrank();
-    }
-
-    function test_deals_without_a_code_refuse_one() public {
-        bytes32 id = _fundAccepted(_terms(), bytes32("p"));
-        vm.prank(seller);
-        vm.expectRevert(AgreementLib.BadState.selector);
-        escrow.submitCode(id, CODE);
-    }
-
-    function test_a_hold_stops_the_code_payment() public {
-        bytes32 id = _fundAccepted(_codeTerms(bytes32("p")), bytes32("p"));
-        vm.prank(guardian);
-        escrow.hold(id, bytes32("fraud"));
-        vm.prank(seller);
-        vm.expectRevert(AgreementLib.OnHold.selector);
-        escrow.submitCode(id, CODE);
     }
 
     function test_both_sides_agree_any_split() public {

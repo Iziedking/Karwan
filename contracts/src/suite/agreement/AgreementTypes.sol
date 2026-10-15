@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+import {DisputeStore} from "../dispute/DisputeLib.sol";
+
 /// @notice What both sides agree before an Agreement deal is funded. The
 ///         seller accepts the hash of exactly these bytes.
 struct AgreementTerms {
@@ -38,12 +40,20 @@ struct AgreementTerms {
     /// The partial refund an automatic ruling may propose, in basis points to
     /// the seller. 0 = none.
     uint16 partialBps;
+    /// The seller's share of a disputed tranche if the reviewer misses the
+    /// ruling deadline, in basis points.
+    uint16 fallbackBps;
+    /// Instalments: 0 = the whole price at funding, 2 to 12 = equal parts, the
+    /// first at funding and one every `partEvery` seconds after it. The seller
+    /// delivers only once every part is paid.
+    uint8 parts;
+    uint32 partEvery;
+    /// What the seller keeps of the price if the buyer misses a part, in basis
+    /// points, at most 20%. Karwan takes no fee on a cancelled plan.
+    uint16 cancelFeeBps;
     /// The verifier that reports checks, when review starts on a check.
     address verifier;
     bytes32 checkPolicy;
-    /// Pay on delivery: keccak256(abi.encode(dealId, code)). 0 = none. The
-    /// hash is public, so the code must be 32 random bytes, never a short number.
-    bytes32 codeHash;
     /// Digest of the full signed agreement off chain.
     bytes32 agreementHash;
 }
@@ -70,8 +80,9 @@ struct AgreementDeal {
     bool checkPassed;
     bool checkFailed;
     bool lateMark;
-    bool codeUsed;
+    uint8 partsPaid;
     uint32 revision;
+    uint64 fundedAt;
     uint64 deadline;
     uint64 deliveredAt;
     uint64 reviewStartAt;
@@ -97,5 +108,29 @@ library AgreementCodes {
     uint8 internal constant SILENCE_REFUNDS_BUYER = 1;
     uint8 internal constant MAX_TRANCHES = 12;
     uint8 internal constant MAX_EXTENSIONS = 3;
+    uint8 internal constant MAX_PARTS = 12;
+    uint16 internal constant MAX_CANCEL_FEE_BPS = 2_000;
     uint16 internal constant BPS = 10_000;
+}
+
+/// An offer holds only while no further tranche is paid.
+struct SplitOffer {
+    address proposer;
+    uint16 sellerBps;
+    bool active;
+    uint8 paid;
+}
+
+/// @notice An Agreement family's own books.
+struct AgreementStore {
+    mapping(bytes32 => AgreementDeal) deals;
+    mapping(bytes32 => AgreementTerms) terms;
+    mapping(bytes32 => SplitOffer) splits;
+    DisputeStore disputes;
+}
+
+struct AgreementBounds {
+    uint64 minReview;
+    uint64 maxReview;
+    uint64 maxHorizon;
 }

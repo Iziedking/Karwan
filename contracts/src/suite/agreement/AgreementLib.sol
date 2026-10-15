@@ -2,31 +2,22 @@
 pragma solidity ^0.8.24;
 
 import {IKarwanHub, Outcome} from "../interfaces/IKarwanSuite.sol";
-import {SettlementStore, SettlementLib} from "../settlement/SettlementLib.sol";
-import {AgreementTerms, AgreementDeal, AgreementState, AgreementCodes as C} from "./AgreementTypes.sol";
+import {DealAccount, SettlementStore, SettlementLib} from "../settlement/SettlementLib.sol";
+import {
+    AgreementTerms,
+    AgreementDeal,
+    AgreementState,
+    AgreementStore,
+    AgreementBounds,
+    SplitOffer,
+    AgreementCodes as C
+} from "./AgreementTypes.sol";
 import {AgreementTermsLib} from "./AgreementTermsLib.sol";
 import {AgreementDeliveryLib} from "./AgreementDeliveryLib.sol";
-
-/// An offer holds only while no further tranche is paid.
-struct SplitOffer {
-    address proposer;
-    uint16 sellerBps;
-    bool active;
-    uint8 paid;
-}
-
-/// @notice An Agreement family's own books.
-struct AgreementStore {
-    mapping(bytes32 => AgreementDeal) deals;
-    mapping(bytes32 => AgreementTerms) terms;
-    mapping(bytes32 => SplitOffer) splits;
-}
-
-struct AgreementBounds {
-    uint64 minReview;
-    uint64 maxReview;
-    uint64 maxHorizon;
-}
+import {DisputeLib} from "../dispute/DisputeLib.sol";
+import {AgreementCommon} from "./AgreementCommon.sol";
+import {AgreementDisputeLib} from "./AgreementDisputeLib.sol";
+import {SigCheck} from "../SigCheck.sol";
 
 /// @title AgreementLib
 /// @notice The Agreement family's deal rules, linked once at deploy and never
@@ -35,8 +26,7 @@ struct AgreementBounds {
 ///         signed assignee, or the fee within its rate.
 library AgreementLib {
     uint8 internal constant MAX_EXTENSION_REQUESTS = 3;
-    uint8 internal constant BUYER = 0;
-    uint8 internal constant SELLER = 1;
+    bytes32 internal constant RELEASE_TYPEHASH = keccak256("Release(bytes32 dealId,uint8 tranche,uint256 deadline)");
 
     event DealFunded(bytes32 indexed dealId, address indexed buyer, address indexed seller, uint256 funded, bytes32 termsHash);
     event DealAccepted(bytes32 indexed dealId);
@@ -53,6 +43,8 @@ library AgreementLib {
     event SplitProposed(bytes32 indexed dealId, address proposer, uint16 sellerBps);
     event SplitCancelled(bytes32 indexed dealId);
     event SplitSettled(bytes32 indexed dealId, uint16 sellerBps, uint256 toSeller, uint256 toBuyer);
+    event PartPaid(bytes32 indexed dealId, uint8 part, uint256 amount);
+    event PlanCancelled(bytes32 indexed dealId, uint256 toSeller, uint256 toBuyer);
 
     error BadState();
     error BadTerms();
@@ -60,7 +52,8 @@ library AgreementLib {
     error BadAmount();
     error HashMismatch();
     error Late();
-    error OnHold();
+    error BadSignature();
+    error Early();
 
     function dealIdFor(address buyer, bytes32 salt) public view returns (bytes32) {
         return keccak256(abi.encode(block.chainid, address(this), buyer, salt));
@@ -93,9 +86,68 @@ library AgreementLib {
         d.sellerNet = uint128(uint256(t.amount) - (fee - buyerFee));
         d.feeTotal = uint128(fee);
         d.termsHash = keccak256(abi.encode(t));
+        d.fundedAt = uint64(block.timestamp);
         g.terms[dealId] = t;
-        SettlementLib.fund(s, hub, dealId, uint256(t.amount) + buyerFee);
-        emit DealFunded(dealId, msg.sender, t.seller, uint256(t.amount) + buyerFee, d.termsHash);
+        bool high = cfg.highValue != 0 && t.amount >= cfg.highValue;
+        DisputeLib.setPanel(g.disputes, dealId, cfg.autoArbiter, high ? cfg.seniorSafe : cfg.reviewSafe);
+        uint256 total = uint256(t.amount) + buyerFee;
+        uint256 first = total;
+        if (t.parts != 0) {
+            first = total / t.parts;
+            d.partsPaid = 1;
+            SettlementLib.pledge(s, hub, dealId, total);
+        }
+        SettlementLib.fund(s, hub, dealId, first);
+        emit DealFunded(dealId, msg.sender, t.seller, first, d.termsHash);
+    }
+
+    // ----------------------------- Instalments ----------------------------
+
+    /// @notice The buyer pays the next part of an instalment plan, at any time
+    ///         until someone ends a missed plan. The last part pays whatever is
+    ///         left; paid late, it moves the delivery deadline by its lateness,
+    ///         so the seller keeps the time the terms gave them.
+    function payPart(SettlementStore storage s, AgreementStore storage g, IKarwanHub hub, bytes32 dealId) external {
+        AgreementDeal storage d = g.deals[dealId];
+        uint8 parts = g.terms[dealId].parts;
+        if ((d.state != AgreementState.Funded && d.state != AgreementState.Accepted) || d.partsPaid >= parts) {
+            revert BadState();
+        }
+        uint256 amount = d.partsPaid + 1 == parts
+            ? s.accounts[dealId].promised
+            : (uint256(d.sellerNet) + d.feeTotal) / parts;
+        d.partsPaid += 1;
+        if (d.partsPaid == parts) _moveForLatePlan(s, g, d, dealId);
+        emit PartPaid(dealId, d.partsPaid, amount);
+        SettlementLib.fund(s, hub, dealId, amount);
+    }
+
+    /// @notice Once a part is past its due time and the grace, anyone ends the
+    ///         plan: the seller keeps the agreed cancellation fee, the buyer
+    ///         gets the rest, and Karwan takes nothing. The fee applies only
+    ///         after the seller accepted and while the buyer could still pay.
+    function cancelMissed(SettlementStore storage s, AgreementStore storage g, IKarwanHub hub, bytes32 dealId)
+        external
+    {
+        AgreementDeal storage d = g.deals[dealId];
+        AgreementTerms storage t = g.terms[dealId];
+        bool accepted = d.state == AgreementState.Accepted;
+        if ((!accepted && d.state != AgreementState.Funded) || d.partsPaid >= t.parts) revert BadState();
+        if (!_partOverdue(d, t)) revert Early();
+        DealAccount storage a = s.accounts[dealId];
+        uint256 balance = a.balance;
+        uint256 toSeller;
+        if (accepted && SettlementLib.takesPromised(hub, a.asset)) {
+            toSeller = (uint256(t.amount) * t.cancelFeeBps) / C.BPS;
+            if (toSeller > balance) toSeller = balance;
+        }
+        d.state = AgreementState.Refunded;
+        SettlementLib.payTo(s, dealId, t.seller, toSeller);
+        SettlementLib.payTo(s, dealId, a.payer, balance - toSeller);
+        SettlementLib.close(s, dealId);
+        emit PlanCancelled(dealId, toSeller, balance - toSeller);
+        if (accepted) AgreementCommon.recordBoth(s, hub, dealId, Outcome.CANCELLED, 0);
+        else SettlementLib.recordOutcome(s, hub, dealId, AgreementCommon.BUYER, Outcome.CANCELLED, 0);
     }
 
     function accept(SettlementStore storage s, AgreementStore storage g, bytes32 dealId, bytes32 termsHash) external {
@@ -103,7 +155,7 @@ library AgreementLib {
         if (d.state != AgreementState.Funded) revert BadState();
         AgreementTerms storage t = g.terms[dealId];
         if (msg.sender != t.seller) revert BadCaller();
-        if (block.timestamp > t.acceptBy) revert Late();
+        if (block.timestamp > t.acceptBy || _partOverdue(d, t)) revert Late();
         if (termsHash != d.termsHash) revert HashMismatch();
         d.state = AgreementState.Accepted;
         SettlementLib.markConsent(s, dealId, msg.sender);
@@ -121,7 +173,7 @@ library AgreementLib {
         SettlementLib.payTo(s, dealId, buyer, amount);
         SettlementLib.close(s, dealId);
         emit DealCancelled(dealId, amount);
-        SettlementLib.recordOutcome(s, hub, dealId, BUYER, Outcome.CANCELLED, 0);
+        SettlementLib.recordOutcome(s, hub, dealId, AgreementCommon.BUYER, Outcome.CANCELLED, 0);
     }
 
     // ------------------------------ Delivery ------------------------------
@@ -132,7 +184,7 @@ library AgreementLib {
         AgreementTerms storage t = _onlySeller(g, dealId);
         AgreementDeal storage d = g.deals[dealId];
         bool started = AgreementDeliveryLib.mark(d, t, s.accounts[dealId].holdUsed);
-        _bumpHorizon(s, dealId, uint256(d.deliveredAt) + t.startLongstop + t.silentLongstop + SettlementLib.HOLD_BUDGET);
+        AgreementCommon.bumpHorizon(s, dealId, uint256(d.deliveredAt) + t.startLongstop + t.silentLongstop + SettlementLib.HOLD_BUDGET);
         emit Delivered(dealId, d.paid, d.revision, proofHash);
         if (started) emit ReviewStarted(dealId, d.paid, d.reviewEnd);
     }
@@ -155,7 +207,7 @@ library AgreementLib {
         AgreementTerms storage t = g.terms[dealId];
         if (msg.sender != t.verifier || t.verifier == address(0)) revert BadCaller();
         AgreementDeal storage d = g.deals[dealId];
-        bool started = AgreementDeliveryLib.attest(d, t, revision, pass, _holdSince(s, d, dealId));
+        bool started = AgreementDeliveryLib.attest(d, t, revision, pass, AgreementCommon.holdSince(s, d, dealId));
         emit CheckReported(dealId, revision, pass, evidenceHash);
         if (started) emit ReviewStarted(dealId, d.paid, d.reviewEnd);
     }
@@ -163,38 +215,55 @@ library AgreementLib {
     function requestMoreTime(SettlementStore storage s, AgreementStore storage g, bytes32 dealId) external {
         _onlyBuyer(s, dealId);
         AgreementDeal storage d = g.deals[dealId];
-        AgreementDeliveryLib.moreTime(d, g.terms[dealId], _holdSince(s, d, dealId));
+        AgreementDeliveryLib.moreTime(d, g.terms[dealId], AgreementCommon.holdSince(s, d, dealId));
         emit ReviewExtended(dealId, d.extUsed, d.reviewEnd);
     }
 
     // ------------------------------ Payment -------------------------------
 
+    /// @notice The buyer pays the next tranche. Open while the deal runs,
+    ///         including during a dispute, which it ends.
     function release(SettlementStore storage s, AgreementStore storage g, IKarwanHub hub, bytes32 dealId) external {
         _onlyBuyer(s, dealId);
+        _settle(s, g, dealId);
         _payTranche(s, g, hub, dealId, false);
+    }
+
+    /// @notice The same release, carried by the buyer's signature over the
+    ///         deal and tranche, so anyone can submit it and the buyer pays no
+    ///         gas: the app sends it, or a courier scans it at handover.
+    function releaseBySig(
+        SettlementStore storage s,
+        AgreementStore storage g,
+        IKarwanHub hub,
+        bytes32 domainSeparator,
+        bytes32 dealId,
+        uint8 tranche,
+        uint256 deadline,
+        bytes calldata sig
+    ) external {
+        if (block.timestamp > deadline) revert Late();
+        if (tranche != g.deals[dealId].paid) revert HashMismatch();
+        bytes32 digest = releaseDigest(domainSeparator, dealId, tranche, deadline);
+        if (!SigCheck.isValid(s.accounts[dealId].payer, digest, sig)) revert BadSignature();
+        _settle(s, g, dealId);
+        _payTranche(s, g, hub, dealId, false);
+    }
+
+    function releaseDigest(bytes32 domainSeparator, bytes32 dealId, uint8 tranche, uint256 deadline)
+        public
+        pure
+        returns (bytes32)
+    {
+        bytes32 structHash = keccak256(abi.encode(RELEASE_TYPEHASH, dealId, tranche, deadline));
+        return keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
     }
 
     /// @notice Anyone can trigger a claim the terms allow; the seller is paid.
     function claim(SettlementStore storage s, AgreementStore storage g, IKarwanHub hub, bytes32 dealId) external {
-        _notHeld(s, dealId);
+        AgreementCommon.notHeld(s, dealId);
         AgreementDeal storage d = g.deals[dealId];
-        AgreementDeliveryLib.checkClaim(d, g.terms[dealId], _holdSince(s, d, dealId));
-        _payTranche(s, g, hub, dealId, true);
-    }
-
-    function submitCode(
-        SettlementStore storage s,
-        AgreementStore storage g,
-        IKarwanHub hub,
-        bytes32 dealId,
-        bytes32 code
-    ) external {
-        AgreementTerms storage t = g.terms[dealId];
-        _notHeld(s, dealId);
-        AgreementDeal storage d = g.deals[dealId];
-        if (t.codeHash == bytes32(0) || d.codeUsed) revert BadState();
-        if (keccak256(abi.encode(dealId, code)) != t.codeHash) revert HashMismatch();
-        d.codeUsed = true;
+        AgreementDeliveryLib.checkClaim(d, g.terms[dealId], AgreementCommon.holdSince(s, d, dealId));
         _payTranche(s, g, hub, dealId, true);
     }
 
@@ -212,7 +281,7 @@ library AgreementLib {
         SettlementLib.payTo(s, dealId, buyer, amount);
         SettlementLib.close(s, dealId);
         emit DealReclaimed(dealId, amount, deposit);
-        _recordBoth(s, hub, dealId, deposit ? Outcome.DEPOSIT_RETURNED : Outcome.FAILED, 0);
+        AgreementCommon.recordBoth(s, hub, dealId, deposit ? Outcome.DEPOSIT_RETURNED : Outcome.FAILED, 0);
     }
 
     function extendDeadline(
@@ -256,7 +325,7 @@ library AgreementLib {
         external
     {
         AgreementDeal storage d = g.deals[dealId];
-        if (d.state != AgreementState.Accepted) revert BadState();
+        _running(g, d, dealId);
         if (sellerBps > C.BPS) revert BadAmount();
         if (msg.sender != s.accounts[dealId].payer && msg.sender != g.terms[dealId].seller) revert BadCaller();
         g.splits[dealId] = SplitOffer(msg.sender, sellerBps, true, d.paid);
@@ -278,13 +347,14 @@ library AgreementLib {
         uint16 sellerBps
     ) external {
         AgreementDeal storage d = g.deals[dealId];
-        if (d.state != AgreementState.Accepted) revert BadState();
+        _running(g, d, dealId);
         SplitOffer memory o = g.splits[dealId];
         if (!o.active || o.sellerBps != sellerBps || o.paid != d.paid) revert HashMismatch();
         address buyer = s.accounts[dealId].payer;
         address seller = g.terms[dealId].seller;
         if (msg.sender == o.proposer || (msg.sender != buyer && msg.sender != seller)) revert BadCaller();
         delete g.splits[dealId];
+        DisputeLib.drop(g.disputes, dealId);
         split(s, g, hub, dealId, sellerBps, AgreementState.Split, Outcome.SPLIT);
     }
 
@@ -313,7 +383,7 @@ library AgreementLib {
         SettlementLib.payTo(s, dealId, s.accounts[dealId].payer, toBuyer);
         SettlementLib.close(s, dealId);
         emit SplitSettled(dealId, sellerBps, toSeller, toBuyer);
-        _recordBoth(s, hub, dealId, outcome, sellerBps);
+        AgreementCommon.recordBoth(s, hub, dealId, outcome, sellerBps);
     }
 
     // ------------------------------ Internals -----------------------------
@@ -334,8 +404,45 @@ library AgreementLib {
             d.state = AgreementState.Settled;
             SettlementLib.close(s, dealId);
             emit DealSettled(dealId);
-            _recordBoth(s, hub, dealId, Outcome.COMPLETED, 0);
+            AgreementCommon.recordBoth(s, hub, dealId, Outcome.COMPLETED, 0);
         }
+    }
+
+    /// Before a payment both sides agree to: the plan is fully paid and any
+    /// dispute ends.
+    function _settle(SettlementStore storage s, AgreementStore storage g, bytes32 dealId) private {
+        AgreementDeal storage d = g.deals[dealId];
+        if (d.partsPaid < g.terms[dealId].parts) revert BadState();
+        if (d.state == AgreementState.Disputed) {
+            uint64 openedAt = g.disputes.disputes[dealId].openedAt;
+            DisputeLib.drop(g.disputes, dealId);
+            AgreementDisputeLib.endDispute(s, g, dealId, openedAt);
+        }
+    }
+
+    /// A plan's next part is past its due time and the grace.
+    function _partOverdue(AgreementDeal storage d, AgreementTerms storage t) private view returns (bool) {
+        if (d.partsPaid >= t.parts) return false;
+        uint256 due = uint256(d.fundedAt) + uint256(d.partsPaid) * t.partEvery;
+        return block.timestamp > due + t.reclaimGrace;
+    }
+
+    function _moveForLatePlan(SettlementStore storage s, AgreementStore storage g, AgreementDeal storage d, bytes32 dealId)
+        private
+    {
+        AgreementTerms storage t = g.terms[dealId];
+        uint256 lastDue = uint256(d.fundedAt) + uint256(t.parts - 1) * t.partEvery;
+        if (block.timestamp <= lastDue) return;
+        d.deadline += uint64(block.timestamp - lastDue);
+        AgreementCommon.bumpHorizon(s, dealId, uint256(d.deadline) + t.reclaimGrace + t.startLongstop + t.silentLongstop);
+        emit DeadlineMoved(dealId, d.deadline);
+    }
+
+    function _running(AgreementStore storage g, AgreementDeal storage d, bytes32 dealId) private view {
+        if (
+            (d.state != AgreementState.Accepted && d.state != AgreementState.Disputed)
+                || d.partsPaid < g.terms[dealId].parts
+        ) revert BadState();
     }
 
     function _moveDeadline(
@@ -350,38 +457,13 @@ library AgreementLib {
         if (newDeadline <= d.deadline || newDeadline > block.timestamp + maxHorizon) revert BadTerms();
         d.deadline = newDeadline;
         AgreementTerms storage t = g.terms[dealId];
-        _bumpHorizon(s, dealId, uint256(newDeadline) + t.reclaimGrace + t.startLongstop + t.silentLongstop);
+        AgreementCommon.bumpHorizon(s, dealId, uint256(newDeadline) + t.reclaimGrace + t.startLongstop + t.silentLongstop);
         emit DeadlineMoved(dealId, newDeadline);
-    }
-
-    function _bumpHorizon(SettlementStore storage s, bytes32 dealId, uint256 horizon) private {
-        uint256 cap = block.timestamp + SettlementLib.MAX_HORIZON;
-        SettlementLib.extendHorizon(s, dealId, uint64(horizon > cap ? cap : horizon));
     }
 
     function _horizonOf(AgreementTerms calldata t) private pure returns (uint64) {
         uint256 h = uint256(t.deliveryDeadline) + t.reclaimGrace + t.startLongstop + t.silentLongstop;
         return h > type(uint64).max ? type(uint64).max : uint64(h);
-    }
-
-    function _recordBoth(SettlementStore storage s, IKarwanHub hub, bytes32 dealId, uint8 outcome, uint16 detail)
-        private
-    {
-        SettlementLib.recordOutcome(s, hub, dealId, BUYER, outcome, detail);
-        SettlementLib.recordOutcome(s, hub, dealId, SELLER, outcome, detail);
-    }
-
-    /// Hold time used since the current delivery was marked.
-    function _holdSince(SettlementStore storage s, AgreementDeal storage d, bytes32 dealId)
-        private
-        view
-        returns (uint64)
-    {
-        return s.accounts[dealId].holdUsed - d.holdBase;
-    }
-
-    function _notHeld(SettlementStore storage s, bytes32 dealId) private view {
-        if (s.accounts[dealId].holdUntil > block.timestamp) revert OnHold();
     }
 
     function _onlyBuyer(SettlementStore storage s, bytes32 dealId) private view returns (address buyer) {

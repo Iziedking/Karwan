@@ -2,17 +2,27 @@
 pragma solidity ^0.8.24;
 
 import {KarwanSettlementBase} from "./KarwanSettlementBase.sol";
-import {AgreementTerms, AgreementDeal, AgreementState} from "./agreement/AgreementTypes.sol";
-import {AgreementStore, AgreementBounds, SplitOffer, AgreementLib} from "./agreement/AgreementLib.sol";
+import {
+    AgreementTerms,
+    AgreementDeal,
+    AgreementState,
+    AgreementStore,
+    AgreementBounds,
+    SplitOffer
+} from "./agreement/AgreementTypes.sol";
+import {AgreementLib} from "./agreement/AgreementLib.sol";
+import {AgreementDisputeLib} from "./agreement/AgreementDisputeLib.sol";
 import {AgreementDeliveryLib} from "./agreement/AgreementDeliveryLib.sol";
 import {ICheckTarget} from "./KarwanCheckVerifier.sol";
+import {Dispute, DisputePanel, DisputeLib} from "./dispute/DisputeLib.sol";
 
 /// @title KarwanAgreementEscrow
-/// @notice Fixed-price and milestone deals, goods, net terms, refundable
-///         deposits and pay on delivery. The buyer funds a deal with its full
-///         terms, the seller accepts the exact terms hash, and every clock and
-///         payout follows those terms. The rules live in `AgreementLib`, linked
-///         once at deploy; every payout goes through the settlement base.
+/// @notice Fixed-price and milestone deals, goods, net terms, instalment
+///         plans, refundable deposits and release at handover. The buyer funds
+///         a deal with its full terms, the seller accepts the exact terms hash,
+///         and every clock, dispute and payout follows those terms. The rules
+///         live in `AgreementLib`, `AgreementDisputeLib` and the shared `DisputeLib`, linked once at deploy; every
+///         payout goes through the settlement base.
 contract KarwanAgreementEscrow is KarwanSettlementBase, ICheckTarget {
     uint64 public immutable minReview;
     uint64 public immutable maxReview;
@@ -53,6 +63,19 @@ contract KarwanAgreementEscrow is KarwanSettlementBase, ICheckTarget {
         return _g.splits[dealId];
     }
 
+    function disputeOf(bytes32 dealId) external view returns (Dispute memory) {
+        return _g.disputes.disputes[dealId];
+    }
+
+    function panelOf(bytes32 dealId) external view returns (DisputePanel memory) {
+        return _g.disputes.panels[dealId];
+    }
+
+    /// @notice What the buyer signs to release a tranche (EIP-712).
+    function releaseDigest(bytes32 dealId, uint8 tranche, uint256 deadline) external view returns (bytes32) {
+        return AgreementLib.releaseDigest(_domainSeparatorV4(), dealId, tranche, deadline);
+    }
+
     function reviewEndOf(bytes32 dealId) external view returns (uint64) {
         AgreementDeal storage d = _g.deals[dealId];
         return AgreementDeliveryLib.reviewEnd(d, _g.terms[dealId], _s.accounts[dealId].holdUsed - d.holdBase);
@@ -69,6 +92,16 @@ contract KarwanAgreementEscrow is KarwanSettlementBase, ICheckTarget {
     /// @notice The seller accepts the exact terms the buyer funded, in time.
     function accept(bytes32 dealId, bytes32 termsHash) external {
         AgreementLib.accept(_s, _g, dealId, termsHash);
+    }
+
+    /// @notice The buyer pays the next part of an instalment plan.
+    function payPart(bytes32 dealId) external nonReentrant {
+        AgreementLib.payPart(_s, _g, hub, dealId);
+    }
+
+    /// @notice Anyone ends an instalment plan whose part is past due and grace.
+    function cancelMissed(bytes32 dealId) external nonReentrant {
+        AgreementLib.cancelMissed(_s, _g, hub, dealId);
     }
 
     /// @notice The buyer takes back a deal the seller has not accepted.
@@ -95,21 +128,24 @@ contract KarwanAgreementEscrow is KarwanSettlementBase, ICheckTarget {
         AgreementLib.requestMoreTime(_s, _g, dealId);
     }
 
-    /// @notice The buyer pays the next tranche. Always open while the deal runs.
+    /// @notice The buyer pays the next tranche. Always open while the deal
+    ///         runs, including during a dispute, which it ends.
     function release(bytes32 dealId) external nonReentrant {
         AgreementLib.release(_s, _g, hub, dealId);
+    }
+
+    /// @notice Anyone submits the buyer's signed release; the seller is paid.
+    function releaseBySig(bytes32 dealId, uint8 tranche, uint256 deadline, bytes calldata sig)
+        external
+        nonReentrant
+    {
+        AgreementLib.releaseBySig(_s, _g, hub, _domainSeparatorV4(), dealId, tranche, deadline, sig);
     }
 
     /// @notice Anyone triggers the seller's claim on the next delivered tranche
     ///         when the terms allow; the seller is paid.
     function claim(bytes32 dealId) external nonReentrant {
         AgreementLib.claim(_s, _g, hub, dealId);
-    }
-
-    /// @notice Pay on delivery: the seller or courier submits the code the buyer
-    ///         handed over; the seller is paid.
-    function submitCode(bytes32 dealId, bytes32 code) external nonReentrant {
-        AgreementLib.submitCode(_s, _g, hub, dealId, code);
     }
 
     /// @notice After the deadline and grace, anyone triggers the buyer's refund
@@ -143,7 +179,37 @@ contract KarwanAgreementEscrow is KarwanSettlementBase, ICheckTarget {
         AgreementLib.acceptSplit(_s, _g, hub, dealId, sellerBps);
     }
 
+    /// @notice A party disputes the delivered tranche, citing a clause.
+    function dispute(bytes32 dealId, bytes32 clauseHash) external {
+        AgreementDisputeLib.dispute(_s, _g, dealId, clauseHash);
+    }
+
+    /// @notice The automatic arbiter fixed at opening proposes an outcome the
+    ///         terms allow; it applies after the appeal window.
+    function proposeRuling(bytes32 dealId, uint16 sellerBps, bytes32 rulingHash) external {
+        AgreementDisputeLib.proposeRuling(_g, dealId, sellerBps, rulingHash);
+    }
+
+    function escalate(bytes32 dealId) external {
+        AgreementDisputeLib.escalate(_s, _g, dealId);
+    }
+
+    function executeRuling(bytes32 dealId) external nonReentrant {
+        AgreementDisputeLib.executeRuling(_s, _g, hub, dealId);
+    }
+
+    /// @notice The reviewer fixed at opening rules an escalated dispute.
+    function rule(bytes32 dealId, uint16 sellerBps, bytes32 rulingHash) external nonReentrant {
+        AgreementDisputeLib.rule(_s, _g, hub, dealId, sellerBps, rulingHash);
+    }
+
+    /// @notice After the reviewer's deadline, anyone applies the terms' fallback.
+    function applyFallback(bytes32 dealId) external nonReentrant {
+        AgreementDisputeLib.applyFallback(_s, _g, hub, dealId);
+    }
+
     function _onLongstop(bytes32 dealId) internal override {
         _g.deals[dealId].state = AgreementState.Longstopped;
+        DisputeLib.drop(_g.disputes, dealId);
     }
 }
