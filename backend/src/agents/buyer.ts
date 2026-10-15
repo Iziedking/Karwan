@@ -4663,6 +4663,8 @@ export interface MarketplaceBrief {
   /// service / person to keep legacy briefs in the open P2P pool.
   tradeLane?: 'service' | 'finance';
   partyKind?: 'person' | 'business';
+  /// Seeded example stock rather than a real person's request.
+  example: boolean;
 }
 
 /// Open buyer briefs, packaged for the public marketplace surface. Strips
@@ -4684,6 +4686,7 @@ export function getMarketplaceBriefs(): MarketplaceBrief[] {
         postedAt: brief?.createdAt ?? Date.now(),
         tradeLane: brief?.tradeLane ?? 'service',
         partyKind: brief?.partyKind ?? 'person',
+        example: Boolean(brief?.seedKey),
       };
     })
     .sort((a, b) => b.postedAt - a.postedAt);

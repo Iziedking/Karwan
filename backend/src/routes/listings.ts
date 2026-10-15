@@ -33,6 +33,7 @@ import { logger } from '../logger.js';
 import { isSessionSelf, sessionAddress } from '../auth/session.js';
 import { accountTypeOf, deriveLane } from '../profile/accountType.js';
 import { invalidBodyMessage } from './invalidBody.js';
+import { publicListing } from '../marketplace/publicListing.js';
 import type { MatchingShadowObserver } from '../matching/shadow.js';
 import type { MatchingAuditTelemetry } from '../matching/audit.js';
 import { buildListingMatchingShadowObservation } from '../matching/listingProjection.js';
@@ -129,29 +130,11 @@ export function configureListingMatchingEngineShadow(
   };
 }
 
-/// Public projection. Drops agent-private steering (negotiationMaxDecreasePct)
-/// and the matchedJobId. That id is the matched deal's secret handle, and the
-/// per-job read gate treats anyone who can name the jobId plus a party address
-/// as a party, so publishing (sellerUser, matchedJobId) pairs here would let an
-/// anonymous caller read the matched deal's full negotiation. The owner still
-/// gets matchedJobId via /listings/mine and the owner /:id view.
-function stripPrivateFields(
-  l: Listing,
-): Omit<Listing, 'negotiationMaxDecreasePct' | 'matchedJobId' | 'seedKey'> {
-  const {
-    negotiationMaxDecreasePct: _drop,
-    matchedJobId: _drop2,
-    seedKey: _drop3,
-    ...rest
-  } = l;
-  return rest;
-}
-
 /// All listings, newest first. Public surface, strips private agent steering
 /// (negotiationMaxDecreasePct) so a buyer-side LLM can't enumerate floors.
 listingsRoutes.get('/', (c) => {
   // Rows that describe a trade Karwan does not support stay off the market.
-  return c.json({ listings: listAllListings().filter((l) => !prohibitedReason(l.title, l.description, l.terms)).map(stripPrivateFields) });
+  return c.json({ listings: listAllListings().filter((l) => !prohibitedReason(l.title, l.description, l.terms)).map(publicListing) });
 });
 
 /// Listings owned by the caller, with the private fields intact. The caller's
@@ -192,8 +175,8 @@ listingsRoutes.get('/:id', (c) => {
       status,
     });
   }
-  const { negotiationMaxDecreasePct: _drop, seedKey: _drop2, ...publicListing } = listing;
-  return c.json({ listing: publicListing, viewerIsOwner: false, status });
+  const { negotiationMaxDecreasePct: _drop, seedKey, ...visible } = listing;
+  return c.json({ listing: { ...visible, example: Boolean(seedKey) }, viewerIsOwner: false, status });
 });
 
 /// Seller cancels their own listing. Allowed only when it hasn't matched yet
