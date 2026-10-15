@@ -18,7 +18,7 @@ Looked at from emerging markets first, where cash on delivery, "pay small small"
 | Retainer or subscription | Monthly social media management | One period funded at a time; paid at period end unless disputed; either side can end with notice | Planned |
 | Instalments, lay-by | Fridge paid in four parts | Buyer pays equal parts into escrow; the seller delivers once the last part is in; a missed part ends the plan with the cancellation fee agreed upfront | Built, not deployed |
 | Refundable deposit | Equipment rental, booking | Held and returned at the end unless the seller's claim holds | v3 `silenceOutcome = 1` |
-| Business order, net terms | 200 T-shirts, Net 30 | Held; review lasts the net term; financing can advance the seller | v3 net preset, `KarwanPOFinancing` |
+| Business order, net terms | 200 T-shirts, Net 30 | Held; review lasts the net term; a financier can advance the seller against the order and the seller's stake | Agreement family with `KarwanTradeFinance`, built, not deployed |
 
 ## 2. Architecture
 

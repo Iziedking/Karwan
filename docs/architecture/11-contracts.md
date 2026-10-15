@@ -89,7 +89,7 @@ Every family inherits it, and it is the part audited hardest.
 | Agreement | One-time and milestone deals, goods and mixed orders, net 30 to 90 terms, instalments, refundable deposits, pay on delivery | Up to 12 funded tranches under one delivery deadline. Each releases on the buyer's approval, the buyer's signed release at handover, or a review window ending with the outcome agreed at opening; the review starts at delivery, at the buyer's arrival confirmation, or at a passing check. A review started late never reopens a clock that has run out, and a guardian hold delays only the tranche it falls in. Instalment plans take equal parts, and the seller delivers once the last is in. A dispute freezes only the disputed tranche, and a ruling pays only that tranche. Both parties can sign any split. The seller can sign the payout over to a financier |
 | Time | Hourly and weekly work, retainers | The buyer funds a weekly budget (hours times rate). The freelancer submits hours with a fingerprint of the work log. The buyer has a fixed window to object; silence pays. An objection freezes only the disputed hours, the rest is paid and the unused budget returns. A retainer is one funded period at a time |
 | Jobs and bounties | Agent-to-agent jobs, bounties, contests with one or more winners | The ERC-8183 job flow (open, funded, submitted, completed or rejected, refund after expiry that no hook can stop), with payouts split across winners and the same dispute path as the other families. Outside agents can use it through the ERC-8183 interface |
-| Trade finance | Purchase-order financing, invoice factoring | Holds the financier's advance and reserves the seller's stake. The buyer pays the Agreement escrow as usual; the seller's signed assignment pays the financier first, up to the agreed amount, and the seller the rest. A default resolves on chain against the reserved stake |
+| Trade finance | Purchase-order financing, invoice factoring | Holds no money. In one transaction the financier advances to the seller, the seller's signed assignment makes the Agreement escrow repay the financier first, up to the agreed amount, and the seller's signed stake, at least 10% of the advance, is reserved for the financier. The seller's assignment names Trade finance as the only contract that may submit it, so it never takes effect without the advance. Only an accepted, fully funded deal can be financed, and the repayment must fit what the deal still owes the seller. A default resolves on chain against the reserved stake, which the financier keeps reserved when the deal's horizon moves later |
 
 A new family is a new contract on the same base, registered through the timelock. Kinds of deal that do not fit any family stay out until they get their own contract: per-second streaming, pooled lending with tranches and write-downs, contests decided by a vote, and letter-of-credit document workflows.
 
@@ -98,10 +98,10 @@ A new family is a new contract on the same base, registered through the timelock
 - **The hub holds no money.** It lists which contracts are Karwan families, which assets and caps apply, and which verifiers exist. Registration lets a family write records and reserve stake. It never gives access to another family's balance. A family found faulty can be revoked: it loses those powers, opens nothing new, and its open deals still pay out.
 - **Identity registry.** Wallets bind to one person by signature. A person can hand control to a new wallet, and their records follow. Deals and records are written to the person, never to an agent wallet acting for them. A person can also name one of their own wallets for recovery; it takes control after 7 days unless the person cancels.
 - **Record.** Families write deal outcomes to the person: outcome codes and value bands, never exact amounts, never a score. A write for a wallet that is not bound to a person is refused, and a deal reaches a payee's record only once that payee accepted it.
-- **Stake vault.** A family can reserve a seller's or agent's stake only within the limit the staker signed. A slash pays only the party the deal records as harmed. Stake never goes into yield.
+- **Stake vault.** A registered family can reserve a person's stake only with a signature from one of that person's own wallets, never an agent's, naming the amount, the one beneficiary a slash can pay, and an expiry. Only the family that reserved can slash, never more than it reserved, and anyone frees a reservation once it expires or its family is revoked. Withdrawals wait 3 days. Stake never goes into yield.
 - **Treasury.** A dedicated Safe that receives fees and nothing else. It never holds deal money.
 - **Yield pool.** The one place where money from several families can sit together, so it gets the deepest review. A family may park a capped share of eligible deals, anyone can pull principal back, and USYC sits behind an adapter because its owners can upgrade it. Off at launch.
-- **Between families,** calls are typed and signed. Trade finance reaches the Agreement escrow only through the seller's signed assignment.
+- **Between families,** calls are typed and signed. Trade finance reaches the Agreement escrow only through the seller's signed assignment, and the stake vault only through the seller's signed reservation.
 
 ## A milestone deal, with nobody in the middle
 
@@ -165,18 +165,19 @@ sequenceDiagram
   participant SV as Stake vault
 
   Bu->>AG: Funds a Net 30 order
-  S->>TF: Asks for an advance against the order
-  F->>TF: Offers terms, and the seller accepts
-  S->>AG: Signs the payout over to the trade finance contract, up to the repayment amount
-  TF->>SV: Reserves the seller's stake within the seller's signed limit
-  F->>TF: Funds the advance
-  TF-->>S: Advance paid
+  S->>AG: Accepts the order
+  S->>F: Asks for an advance; they agree the advance, the repayment and the stake
+  S-->>F: Signs the payout over to the financier, up to the repayment, and a stake reservation for them
+  F->>TF: Opens the line with the seller's two signatures
+  TF->>AG: Records the assignment
+  TF->>SV: Reserves the seller's stake, at least 10% of the advance
+  TF-->>S: Advance, straight from the financier
   Bu->>AG: Releases after review (or the review window ends)
-  AG-->>TF: Repayment, paid first
+  AG-->>F: Repayment, paid first
   AG-->>S: The rest of the order
-  TF-->>F: Repayment, withdrawn by the financier
-  TF->>SV: Releases the reservation
-  Note over TF,SV: Order refunded or never delivered: the reserved stake covers the financier first, any shortfall is recovered off chain under the signed agreement
+  Note over TF: Anyone settles the line once the deal ends
+  TF->>SV: Repaid in full: releases the stake
+  Note over TF,SV: Refunded or split short: the shortfall comes out of the stake to the financier, and the rest is recovered off chain under the signed agreement
 ```
 
 ## A dispute
@@ -286,7 +287,7 @@ The suite launches on mainnet after step 8 with beta limits written into it: 1,0
 | Guardian | Safe compromised | Can pause new deals, place bounded holds and cancel ordinary changes; cannot move money or stop an exit. The owner replaces it with a protected change, which waits 7 days and the guardian cannot cancel |
 | Owner Safe | Signers compromised | Changes wait 48 hours in public and touch new deals only; users and the guardian can react |
 | USYC or its teller | Upgraded, paused or refuses | Principal is pulled back; the adapter can be replaced through the timelock; no deal waits on it |
-| Trade finance | Buyer never pays | The reserved stake covers the financier first; the rest is recovered off chain |
+| Trade finance | The deal ends without repaying the financier in full | The shortfall comes out of the seller's reserved stake to the financier; the rest is recovered off chain under the signed agreement. A financier who gave up the assignment, or replaced the line with a new one, cannot slash; a default is still recorded once the reservation has expired |
 | Deployment | Wrong address or bytecode | The deploy script is reviewed, rehearsed on a fork, and the deployed bytecode is compared with the audited release before any deal opens |
 
 ## Suite invariants
@@ -310,10 +311,11 @@ The suite launches on mainnet after step 8 with beta limits written into it: 1,0
 |---|---|
 | Escrow for today's deals (v2b) | Live on testnet |
 | Terms-driven escrow (v3): terms hash, clocks, checks, disputes with appeal, splits, owed balances, caps | Built, not deployed. Its rules carry into the Agreement family |
-| Stake vault and yield pool (v3) | Built, not deployed. Reworked for signed limits and the adapter |
+| Stake vault | Built, not deployed: stake per person, reservations only by the staker's own signature, slashes only to the named beneficiary |
+| Yield pool (v3) | Built, not deployed. To be reworked for the adapter |
 | Shared settlement base and hub | Built, not deployed |
-| Agreement family | Built, not deployed: tranches, review on delivery, arrival or a check, extensions, signed release at handover, instalments, deposits, deadlines, agreed splits, disputes with appeal and a fallback. Stake hooks come with the stake vault |
-| Trade finance family | Planned, first |
+| Agreement family | Built, not deployed: tranches, review on delivery, arrival or a check, extensions, signed release at handover, instalments, deposits, deadlines, agreed splits, disputes with appeal and a fallback, and an optional seller stake for the buyer, slashed only by a ruling or the dispute fallback and kept reserved for as long as the deal can run |
+| Trade finance family | Built, not deployed: purchase-order financing and factoring against Agreement deals |
 | Time family | Planned, second |
 | Jobs and bounties family, ERC-8183 interface | Planned, third |
 | Identity registry with succession and recovery | Built, not deployed |
