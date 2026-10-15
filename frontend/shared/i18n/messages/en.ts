@@ -1104,7 +1104,6 @@ interface MessagesShape {
     updatesTitle: string;
     updatesPrev: string;
     updatesNext: string;
-    updatesShow: string;
     trendingEmpty: string;
     trendingCount: string;
     trendingCountOne: string;
@@ -6438,7 +6437,6 @@ export const en: MessagesShape = {
     updatesTitle: "Updates",
     updatesPrev: "Previous update",
     updatesNext: "Next update",
-    updatesShow: "Show update {n}",
     trendingEmpty: "Not enough requests this week yet.",
     trendingCount: "{n} requests",
     trendingCountOne: "1 request",

@@ -1139,7 +1139,6 @@ export const fr: Messages = {
     updatesTitle: "Actualités",
     updatesPrev: "Actualité précédente",
     updatesNext: "Actualité suivante",
-    updatesShow: "Afficher l’actualité {n}",
     trendingEmpty: "Pas encore assez de demandes cette semaine.",
     trendingCount: "{n} demandes",
     trendingCountOne: "1 demande",

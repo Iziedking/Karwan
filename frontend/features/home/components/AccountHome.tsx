@@ -18,6 +18,7 @@ import { ARC_NETWORK } from '@/core/arcNetwork';
 import { PageTour } from '@/shared/guide/PageTour';
 import { HOME_TOUR_ID, HOME_STEPS } from '@/shared/guide/tours';
 import { dealHeadline } from '@/features/home/dealHeadline';
+import { labelFor } from '@/features/notifications/components/PendingDealsBand';
 
 type AccountKind = 'person' | 'business';
 
@@ -54,7 +55,7 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
           {translations.businessHome.hero.welcomeBack} {firstName}
         </h1>
 
-        <div className="mt-4 flex flex-col items-start gap-3 lg:flex-row lg:items-center lg:gap-6">
+        <div className="mt-4">
           <motion.div
             data-guide="home-money"
             initial={{ opacity: 0, y: 12 }}
@@ -99,69 +100,102 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
                 <span className="shrink-0 rounded-full bg-[var(--lp-dark)] px-3 py-1.5 text-[14px] font-semibold text-[var(--lp-card)]">{home.faucetClaim}</span>
               </Link>
             ) : null}
+            <Link
+              data-guide="home-start"
+              href={accountKind === 'business' ? '/b2b' : '/p2p'}
+              className="group mt-3 flex min-h-12 items-center justify-between gap-3 rounded-[16px] border border-[var(--lp-border-light)] px-4 text-[15px] font-semibold text-[var(--lp-dark)] transition-colors hover:border-[var(--lp-outline-strong)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+            >
+              {home.tradeNow}
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="transition-transform duration-200 group-hover:translate-x-0.5 rtl:-scale-x-100 motion-reduce:transition-none"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
+            </Link>
           </motion.div>
 
-          <Link
-            data-guide="home-start"
-            href={accountKind === 'business' ? '/b2b' : '/p2p'}
-            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--lp-border-light)] bg-[var(--lp-card)]/40 px-5 text-[14px] font-semibold text-[var(--lp-dark)] transition-colors hover:border-[var(--lp-outline-strong)] hover:bg-[var(--lp-card)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
-          >
-            {home.tradeNow}
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="rtl:-scale-x-100"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
-          </Link>
         </div>
 
         <UpdatesCarousel />
       </section>
 
-      <section data-guide="home-deals" className={`${currentDeal && showRecentDeals ? 'home-deals-grid grid gap-5' : ''} mt-7 border-t border-[var(--lp-border-light)] pt-7`} aria-label={home.trades}>
+      <section data-guide="home-deals" className={`${currentDeal && showRecentDeals ? 'home-deals-grid grid gap-5' : ''} pt-7`} aria-label={home.trades}>
         {currentDeal ? <motion.div
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
-          className="trade-route"
+          className="flex min-w-0 flex-col"
         >
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{home.currentTrade}</p>
-              <h2 dir="auto" className="mt-1 line-clamp-1 text-[17px] font-semibold tracking-[-0.01em] text-[var(--lp-dark)]">
-                {dealHeadline(currentDeal.terms) || home.tradeDetails}
-              </h2>
-            </div>
-            <Link href={`/deals/${currentDeal.jobId}`} className="inline-flex min-h-11 shrink-0 items-center gap-1 text-[14px] font-bold text-[var(--lp-dark)] hover:text-[var(--lp-accent-on-light)]">{translations.profile.hub.open}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="rtl:-scale-x-100"><path d="m9 18 6-6-6-6" /></svg></Link>
+          <div className="flex min-h-11 items-center px-1">
+            <h2 className="text-[23px] font-semibold tracking-[-0.035em] text-[var(--lp-dark)]">{home.currentTrade}</h2>
           </div>
-
-          <p className="mt-5 truncate text-[14px] font-semibold text-[var(--lp-dark)]">
-            {formatUsdc(currentDeal.dealAmountUsdc, { withSuffix: true })} · {translations.dealStage.labels[stageOf(currentDeal)]}
-          </p>
-          <DealFlow
-            stage={stageOf(currentDeal)}
-            delivered={currentDeal.delivered === true}
-            labels={[home.flowAgreement, home.flowSecured, home.flowDelivery, home.flowSettlement]}
-            progressLabel={home.dealProgress}
-            states={{ done: home.flowDone, now: home.flowNow, disputed: home.flowDisputed, upcoming: home.flowUpcoming }}
-          />
+          <CurrentTrade deal={currentDeal} />
         </motion.div> : null}
 
         {showRecentDeals ? <motion.div
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-          className="min-w-0"
+          className="flex min-w-0 flex-col"
         >
-          <div className="flex items-end justify-between gap-4 px-1">
-            <div>
-              <h2 className="text-[23px] font-semibold tracking-[-0.035em] text-[var(--lp-dark)]">{home.recentTrades}</h2>
-            </div>
+          <div className="flex min-h-11 items-center justify-between gap-4 px-1">
+            <h2 className="text-[23px] font-semibold tracking-[-0.035em] text-[var(--lp-dark)]">{home.recentTrades}</h2>
             <Link href="/activity" className="inline-flex min-h-11 shrink-0 items-center text-[14px] font-bold text-[var(--lp-dark)] hover:text-[var(--lp-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] gap-1">{home.allActivity}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="rtl:-scale-x-100"><path d="m9 18 6-6-6-6" /></svg></Link>
           </div>
-          <div className="mt-3"><TradeBook deals={recentDeals} fetchState={fetchState} /></div>
+          <div className="mt-3 flex flex-1 flex-col"><TradeBook deals={recentDeals} fetchState={fetchState} /></div>
         </motion.div> : null}
       </section>
     </div>
   );
 }
 
+
+/// The trade that needs attention first: what it is and with whom, the amount
+/// as the loudest line, whose move it is, and where it stands. It stretches to
+/// the height of the recent trades beside it, so both columns end together.
+function CurrentTrade({ deal }: { deal: NonNullable<ReturnType<typeof pickCurrentDeal>> }) {
+  const translations = useTranslations();
+  const home = translations.accountHome;
+  const { address } = useAuth();
+  const isBuyer = address?.toLowerCase() === deal.buyer.toLowerCase();
+  const stage = stageOf(deal);
+  const counterparty = deal.counterpartyName || (isBuyer ? deal.sellerPaytag || shortAddress(deal.seller) : shortAddress(deal.buyer));
+  const next = labelFor(stage, isBuyer, translations.pending.chips);
+  const yours = next?.kind === 'action';
+  return (
+    <div className="trade-route mt-3 flex flex-1 flex-col">
+      <div className="flex items-center gap-3">
+        <PersonAvatar address={isBuyer ? deal.seller : deal.buyer} name={counterparty} size={40} />
+        <div className="min-w-0">
+          <p dir="auto" className="truncate text-[16px] font-semibold text-[var(--lp-dark)]">{dealHeadline(deal.terms) || home.tradeDetails}</p>
+          <p dir="auto" className="mt-0.5 truncate text-[14px] font-medium text-[var(--lp-text-sub)]">{counterparty}</p>
+        </div>
+      </div>
+
+      <p className="mt-6 flex items-baseline gap-2">
+        <span className="text-[36px] font-bold leading-none tabular-nums tracking-[-0.03em] text-[var(--lp-dark)]">{formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}</span>
+        <span className="text-[16px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
+      </p>
+      <p className="mt-2 flex items-center gap-2 text-[15px] font-semibold text-[var(--lp-dark)]">
+        <span aria-hidden className={`size-2 shrink-0 rounded-full ${yours ? 'bg-[var(--lp-accent)]' : 'bg-[var(--lp-text-sub)]'}`} />
+        <span className="truncate">{translations.dealStage.labels[stage]}{next ? <span className="font-medium text-[var(--lp-text-sub)]"> · {next.text}</span> : null}</span>
+      </p>
+
+      <div className="mt-auto pt-6">
+        <DealFlow
+          stage={stage}
+          delivered={deal.delivered === true}
+          labels={[home.flowAgreement, home.flowSecured, home.flowDelivery, home.flowSettlement]}
+          progressLabel={home.dealProgress}
+          states={{ done: home.flowDone, now: home.flowNow, disputed: home.flowDisputed, upcoming: home.flowUpcoming }}
+        />
+        <Link
+          href={`/deals/${deal.jobId}`}
+          className="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-full bg-[var(--lp-dark)] px-5 text-[15px] font-semibold text-[var(--lp-card)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
+        >
+          {yours && next ? next.text : home.tradeDetails}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="rtl:-scale-x-100"><path d="m9 18 6-6-6-6" /></svg>
+        </Link>
+      </div>
+    </div>
+  );
+}
 
 /// Which step the deal is on: 0 agreed, 1 funded, 2 delivered, 3 paid, 4 all
 /// done. A dispute stays on the step it interrupted, shown as paused.
@@ -189,7 +223,7 @@ function DealFlow({ stage, delivered, labels, progressLabel, states }: {
   const progress = progressFor(stage, delivered);
   const disputed = stage === 'disputed';
   return (
-    <ol className="mt-6 grid grid-cols-4 gap-1.5" aria-label={progressLabel}>
+    <ol className="grid grid-cols-4 gap-1.5" aria-label={progressLabel}>
       {labels.map((label, index) => {
         const done = progress > index;
         const current = progress === index;
@@ -233,7 +267,7 @@ function TradeBook({ deals, fetchState }: { deals: ReturnType<typeof useDirectDe
   if (fetchState === 'error') return <p className="rounded-[16px] bg-[var(--lp-card)] p-5 text-[14px] text-[var(--lp-text-sub)] font-medium">{t.dealsFeed.errorBody}</p>;
   if (deals.length === 0) return <p className="border-s-2 border-[var(--lp-accent)] py-4 ps-4 text-[14px] leading-6 text-[var(--lp-text-sub)] font-medium"><span className="block font-semibold text-[var(--lp-dark)]">{t.accountHome.noTrades}</span><span className="mt-1 block">{t.accountHome.noTradesHint}</span></p>;
   return (
-    <ul className="trade-book overflow-hidden rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
+    <ul className="trade-book flex-1 overflow-hidden rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
       {deals.slice(0, 5).map((deal) => {
         const isBuyer = me === deal.buyer.toLowerCase();
         const stage = stageOf(deal);

@@ -1139,7 +1139,6 @@ export const ar: Messages = {
     updatesTitle: "آخر الأخبار",
     updatesPrev: "الخبر السابق",
     updatesNext: "الخبر التالي",
-    updatesShow: "عرض الخبر {n}",
     trendingEmpty: "لا توجد طلبات كافية هذا الأسبوع بعد.",
     trendingCount: "{n} طلبات",
     trendingCountOne: "طلب واحد",

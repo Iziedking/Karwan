@@ -1137,7 +1137,6 @@ export const hi: Messages = {
     updatesTitle: "अपडेट",
     updatesPrev: "पिछला अपडेट",
     updatesNext: "अगला अपडेट",
-    updatesShow: "अपडेट {n} दिखाएं",
     trendingEmpty: "इस हफ़्ते अभी पर्याप्त अनुरोध नहीं हैं।",
     trendingCount: "{n} अनुरोध",
     trendingCountOne: "1 अनुरोध",

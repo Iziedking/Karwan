@@ -2236,6 +2236,7 @@ export interface UpdateInput {
   body: string;
   ctaLabel: string;
   href: string;
+  image?: string;
   ground: UpdateGround;
   art: 0 | 1 | 2;
   active?: boolean;
@@ -2245,6 +2246,7 @@ export interface UpdateInput {
 export interface UpdateCard extends Omit<UpdateInput, 'active' | 'startsAt' | 'endsAt'> {
   id: string;
   order: number;
+  videoSeconds?: number;
 }
 export interface AdminUpdateCard extends UpdateInput {
   id: string;

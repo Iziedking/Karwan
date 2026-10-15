@@ -410,8 +410,22 @@ test('the trade chooser offers two equal choices, so neither is painted as the p
   assert.doesNotMatch(arrow, /var\(--lp-accent\)/);
 });
 
-test('carousel dots are full-size tap targets and the trade chooser draws its arrows as icons', () => {
-  const carousel = source('../../features/home/components/UpdatesCarousel.tsx');
-  assert.doesNotMatch(carousel, /className="grid size-6 place-items-center/);
+test('the trade chooser draws its arrows as icons', () => {
   assert.doesNotMatch(source('../../features/home/components/TradeDesk.tsx'), /→/);
+});
+
+test('home Updates are media tiles with no generated art, a fixed media height, three to the column, and never move on their own', () => {
+  const carousel = source('../../features/home/components/UpdatesCarousel.tsx');
+  assert.doesNotMatch(carousel, /update-art/);
+  assert.doesNotMatch(source('../../app/globals.css'), /\.update-art/);
+  assert.doesNotMatch(carousel, /setTimeout|setInterval/);
+  assert.match(carousel, /h-\[180px\][^"]*sm:h-\[212px\]/);
+  assert.match(carousel, /lg:w-\[calc\(\(100%-48px\)\/3\)\]/);
+});
+
+test('current trade and recent trades share one heading line and end together', () => {
+  const home = source('../../features/home/components/AccountHome.tsx');
+  assert.equal(home.match(/flex min-h-11 items-center[^"]*px-1/g)?.length, 2);
+  assert.match(home, /trade-route mt-3 flex flex-1 flex-col/);
+  assert.match(home, /trade-book flex-1/);
 });

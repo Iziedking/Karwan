@@ -1136,7 +1136,6 @@ export const sw: Messages = {
     updatesTitle: "Habari mpya",
     updatesPrev: "Habari iliyotangulia",
     updatesNext: "Habari inayofuata",
-    updatesShow: "Onyesha habari {n}",
     trendingEmpty: "Bado hakuna maombi ya kutosha wiki hii.",
     trendingCount: "Maombi {n}",
     trendingCountOne: "Ombi 1",

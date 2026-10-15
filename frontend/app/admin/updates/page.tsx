@@ -110,7 +110,7 @@ export default function AdminUpdatesPage() {
     <div>
       <h1 className="font-sans text-[24px] font-extrabold">Home updates</h1>
       <p className="mt-2 max-w-[68ch] text-[13px] text-white/55">
-        Cards in the Updates row on every signed-in home page, in this order. Link to a Karwan page like /how-it-works or an https address such as an Arc House post or a video. Keep figures real: a Trending card fills itself from this week&apos;s requests.
+        Cards in the Updates row on every signed-in home page, in this order. Link to a Karwan page like /how-it-works or an https address such as an Arc House post or a video. Use real product screenshots or video frames, never stock art. Keep figures real: a Trending card fills itself from this week&apos;s requests.
       </p>
       {source ? (
         <p role="note" className="mt-4 rounded-lg border border-[#AFC95B]/40 bg-[#AFC95B]/10 px-3 py-2 text-[13px] text-white/85">
@@ -146,8 +146,13 @@ export default function AdminUpdatesPage() {
               <input value={form.href} onChange={(e) => set('href', e.target.value)} maxLength={500} placeholder="/how-it-works or https://…" className={inputClass} />
             </label>
           </div>
-          <div className="mt-3 grid gap-3 sm:grid-cols-3">
-            <fieldset><legend className={labelClass}>Colour</legend>
+          {form.kind !== 'trending' ? (
+            <label className="mt-3 block"><span className={labelClass}>Picture, 16:9 (optional{form.kind === 'video' ? '; a YouTube or Vimeo link shows its own frame' : ''})</span>
+              <input value={form.image ?? ''} onChange={(e) => set('image', e.target.value.trim())} maxLength={500} placeholder="/media/updates/arc.jpg or https://…" className={inputClass} />
+            </label>
+          ) : null}
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <fieldset><legend className={labelClass}>Colour (behind text, charts and missing pictures)</legend>
               <div className="mt-1.5 flex gap-2">
                 {GROUNDS.map((g) => (
                   <button key={g.value} type="button" onClick={() => set('ground', g.value)} aria-label={g.label} aria-pressed={form.ground === g.value}
@@ -155,9 +160,6 @@ export default function AdminUpdatesPage() {
                     style={{ background: `var(--update-${g.value})` }} />
                 ))}
               </div>
-            </fieldset>
-            <fieldset><legend className={labelClass}>Art</legend>
-              <Segmented options={[{ value: 0, label: 'Circles' }, { value: 1, label: 'Arch' }, { value: 2, label: 'Diamond' }] as const} value={form.art} onChange={(v) => set('art', v)} />
             </fieldset>
             <label className="flex items-end gap-2 pb-3 text-[13px]">
               <input type="checkbox" checked={form.active !== false} onChange={(e) => set('active', e.target.checked)} className="size-4 accent-[#AFC95B]" />
@@ -174,7 +176,7 @@ export default function AdminUpdatesPage() {
 
         <div>
           <p className={labelClass}>Preview</p>
-          <div className="mt-2 rounded-xl bg-[#EEF0F2] p-4">
+          <div className="mt-2 flex rounded-xl bg-[#EEF0F2] p-4 [&>*]:!w-[377px] [&>*]:max-w-full">
             <UpdateTile card={preview} trending={trending} index={0} total={1} />
           </div>
         </div>
