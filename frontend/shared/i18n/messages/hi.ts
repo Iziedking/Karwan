@@ -2807,6 +2807,8 @@ export const hi: Messages = {
     emptyFilteredBody: 'कोई फ़िल्टर हटाएँ या खोज को व्यापक करें।',
     card: {
       matchedBefore: 'पहले मैच हुआ',
+      tierTemplate: 'स्तर {tier}',
+      example: 'उदाहरण',
       availableUntilTemplate: '{time} उपलब्ध',
       dueTemplate: '{time} देय',
       individualSeller: 'व्यक्तिगत विक्रेता',

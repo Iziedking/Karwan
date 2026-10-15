@@ -250,11 +250,19 @@ test('canonical theme text, selected controls and field edges meet contrast thre
   }
 });
 
-test('market price and unit stay together while the account label can truncate', () => {
+test('market price and unit stay together, and card facts sit on fixed lines that truncate rather than wrap', () => {
   const market = source('../../features/listings/components/ListingsBrowse.tsx');
-  assert.match(market, /<p className="flex min-w-0 shrink-0 items-baseline gap-1\.5"/);
+  assert.match(market, /<p className="flex items-baseline gap-1\.5">/);
   assert.match(market, /<span className="whitespace-nowrap text-\[14px\] text-\[var\(--ink-secondary\)\] font-medium"/);
-  assert.match(market, /truncate text-\[14px\] text-\[var\(--ink-secondary\)\]/);
+  assert.match(market, /<p className="truncate">\{\[\.\.\.facts/);
+  assert.doesNotMatch(market, /data-market-facts className="[^"]*flex-wrap/);
+});
+
+test('market cards are quiet: no tinted surface, no decorative category icon, and example stock says so', () => {
+  const market = source('../../features/listings/components/ListingsBrowse.tsx');
+  assert.match(market, /const shell = '[^']*bg-\[var\(--lp-card\)\]/);
+  assert.doesNotMatch(market, /--market-surface|market-card-glyph|WORK_ICON/);
+  assert.match(market, /card\.example \? \(/);
 });
 
 test('account action is Move and keeps its existing route', () => {

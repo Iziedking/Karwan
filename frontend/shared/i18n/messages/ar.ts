@@ -2809,6 +2809,8 @@ export const ar: Messages = {
     emptyFilteredBody: 'امسح أحد العوامل أو وسّع البحث.',
     card: {
       matchedBefore: 'تمت مطابقته سابقاً',
+      tierTemplate: 'المستوى {tier}',
+      example: 'مثال',
       availableUntilTemplate: 'متاح {time}',
       dueTemplate: 'الموعد {time}',
       individualSeller: 'بائع فردي',

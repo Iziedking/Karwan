@@ -20,6 +20,8 @@ export interface DiscoveryCard {
   tradeLane: 'service' | 'finance';
   partyIsYou: boolean;
   matchedBefore: boolean;
+  /// Example stock Karwan seeded; the card says so.
+  example: boolean;
   bidsCount?: number;
 }
 
@@ -54,6 +56,7 @@ export function buildDiscoveryCards(
       tradeLane: listing.tradeLane ?? 'service',
       partyIsYou: !!viewer && listing.sellerUser.toLowerCase() === viewer,
       matchedBefore: !!listing.matchedAt,
+      example: listing.example === true,
     }));
 
   const requests: DiscoveryCard[] = briefs
@@ -76,6 +79,7 @@ export function buildDiscoveryCards(
         tradeLane: brief.tradeLane ?? 'service',
         partyIsYou: false,
         matchedBefore: false,
+        example: brief.example === true,
         bidsCount: brief.bidsCount + (brief.offerCount ?? 0),
       } satisfies DiscoveryCard;
     });

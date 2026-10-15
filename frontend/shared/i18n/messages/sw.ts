@@ -2806,6 +2806,8 @@ export const sw: Messages = {
     emptyFilteredBody: 'Ondoa kichujio au panua utafutaji.',
     card: {
       matchedBefore: 'Ilishawahi kulinganishwa',
+      tierTemplate: 'Kiwango {tier}',
+      example: 'Mfano',
       availableUntilTemplate: 'Inapatikana {time}',
       dueTemplate: 'Mwisho {time}',
       individualSeller: 'Muuzaji binafsi',

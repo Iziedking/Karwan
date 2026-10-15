@@ -105,11 +105,14 @@ export function ReputationBadge({
   size = 'sm',
   withDetail = false,
   appearance = 'default',
+  textTemplate,
 }: {
   address?: string;
   size?: 'sm' | 'md';
   withDetail?: boolean;
-  appearance?: 'default' | 'quiet';
+  appearance?: 'default' | 'quiet' | 'text';
+  /// For 'text': how the tier reads, e.g. "Tier {tier}".
+  textTemplate?: string;
 }) {
   const rb = useTranslations().reputationBadge;
   const sr = useTranslations().sealedRecord;
@@ -199,6 +202,15 @@ export function ReputationBadge({
   const cellPad = size === 'sm' ? 'px-1.5 py-[3px]' : 'px-2 py-1';
   const labelSize = size === 'sm' ? 'text-[13px]' : 'text-[13px]';
   const quiet = appearance === 'quiet';
+
+  // Plain words for a row that is itself a link, so no link or button nests
+  // inside it. The full record stays one tap away on the row's own page.
+  if (appearance === 'text') {
+    const tierKey = sealed?.tier ?? (data?.tier ?? null);
+    if (!tierKey) return null;
+    const word = TIER_STYLES[tierKey].label;
+    return <span className="whitespace-nowrap">{textTemplate ? textTemplate.replace('{tier}', word) : word}</span>;
+  }
 
   if (sealed) {
     const style = TIER_STYLES[sealed.tier];

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { api, type Listing, type MarketplaceBrief } from '@/core/api';
 import { DiscoveryNav } from '@/features/discovery/components/DiscoveryNav';
 import {
@@ -16,26 +16,7 @@ import {
   type DiscoverySort,
 } from '@/features/discovery/model';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
-import { workKind, type WorkKind } from '@/features/discovery/workKind';
-import { Icon, type IconName } from '@/shared/components/Icon';
-
-const WORK_ICON: Record<WorkKind, IconName> = {
-  device: 'smartphone',
-  apparel: 'shirt',
-  goods: 'package',
-  ai: 'bot',
-  code: 'code',
-  design: 'pen-tool',
-  translation: 'languages',
-  writing: 'pen-line',
-  media: 'clapperboard',
-  marketing: 'megaphone',
-  money: 'calculator',
-  research: 'chart',
-  teaching: 'graduation-cap',
-  advice: 'messages',
-  general: 'briefcase',
-};
+import { Icon } from '@/shared/components/Icon';
 import { Skeleton, SkeletonText } from '@/shared/components/Skeleton';
 import { Band, FullBleed } from '@/shared/components/Bands';
 import { PageTour } from '@/shared/guide/PageTour';
@@ -197,49 +178,50 @@ export function ListingsBrowse() {
             </span>
           </label>
 
-          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1">
-            <FilterGroup label={copy.typeFilterLabel}>
-              <FilterButton pressed={side === 'all'} onClick={() => setSide('all')}>
+          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+            <FilterGroup label={copy.typeFilterLabel} segmented>
+              <FilterButton segmented pressed={side === 'all'} onClick={() => setSide('all')}>
                 {copy.filters.all} <span className="tabular-nums">{loading ? <Skeleton className="h-4 w-4" /> : visibleCards.length}</span>
               </FilterButton>
-              <FilterButton pressed={side === 'request'} onClick={() => setSide('request')}>
+              <FilterButton segmented pressed={side === 'request'} onClick={() => setSide('request')}>
                 {copy.filters.briefs} <span className="tabular-nums">{loading ? <Skeleton className="h-4 w-4" /> : visibleCards.filter((card) => card.side === 'request').length}</span>
               </FilterButton>
-              <FilterButton pressed={side === 'offer'} onClick={() => setSide('offer')}>
+              <FilterButton segmented pressed={side === 'offer'} onClick={() => setSide('offer')}>
                 {copy.filters.offers} <span className="tabular-nums">{loading ? <Skeleton className="h-4 w-4" /> : visibleCards.filter((card) => card.side === 'offer').length}</span>
               </FilterButton>
             </FilterGroup>
 
-            <span aria-hidden className="hidden text-[14px] text-[var(--ink-secondary)] sm:inline font-medium">·</span>
-            <FilterGroup label={copy.scopeFilterLabel}>
-              <FilterButton pressed={scope === 'all'} onClick={() => setScope('all')}>
-                {copy.scope.all}
-              </FilterButton>
-              <FilterButton pressed={scope === 'services'} onClick={() => setScope('services')}>
-                {copy.scope.services}
-              </FilterButton>
-              <FilterButton pressed={scope === 'business'} onClick={() => setScope('business')}>
-                {copy.scope.business}
-              </FilterButton>
-            </FilterGroup>
+            {/* Market and sort wrap as one row, sort at its end, so the menu never
+                lands on a line of its own. */}
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
+              {/* Market narrows the list when one is on; pressing it again shows every market. */}
+              <FilterGroup label={copy.scopeFilterLabel}>
+                <FilterButton pressed={scope === 'services'} onClick={() => setScope(scope === 'services' ? 'all' : 'services')}>
+                  {copy.scope.services}
+                </FilterButton>
+                <FilterButton pressed={scope === 'business'} onClick={() => setScope(scope === 'business' ? 'all' : 'business')}>
+                  {copy.scope.business}
+                </FilterButton>
+              </FilterGroup>
 
-            <span aria-hidden className="hidden text-[14px] text-[var(--ink-secondary)] sm:inline font-medium">·</span>
-            <FilterGroup label={copy.sortFilterLabel}>
-                <FilterButton pressed={sort === 'newest'} onClick={() => setSort('newest')}>
-                  {copy.sort.newest}
-                </FilterButton>
-                <FilterButton pressed={sort === 'price-asc'} onClick={() => setSort('price-asc')}>
-                  {copy.sort.lowestPrice}
-                </FilterButton>
-                <FilterButton pressed={sort === 'price-desc'} onClick={() => setSort('price-desc')}>
-                  {copy.sort.highestPrice}
-                </FilterButton>
-            </FilterGroup>
-            {filtersActive ? (
-              <button type="button" onClick={clearFilters} className={clearAction}>
-                {copy.clearFilters}
-              </button>
-            ) : null}
+              <div className="ms-auto flex items-center gap-2">
+                {filtersActive ? (
+                  <button type="button" onClick={clearFilters} className={clearAction}>
+                    {copy.clearFilters}
+                  </button>
+                ) : null}
+                <SortMenu
+                  label={copy.sortFilterLabel}
+                  value={sort}
+                  options={[
+                    { value: 'newest', label: copy.sort.newest },
+                    { value: 'price-asc', label: copy.sort.lowestPrice },
+                    { value: 'price-desc', label: copy.sort.highestPrice },
+                  ]}
+                  onChange={setSort}
+                />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -384,14 +366,18 @@ function buildSections(
   ];
 }
 
-function FilterGroup({ label, children }: { label: string; children: React.ReactNode }) {
+function FilterGroup({ label, segmented = false, children }: { label: string; segmented?: boolean; children: React.ReactNode }) {
   return (
-    <fieldset className="w-full min-w-0 sm:w-auto">
-      <legend className="sr-only">
-        {label}
-      </legend>
-      {/* One row per group on phones, scrolled sideways, so chips never orphan. */}
-      <div className="-mx-1 flex gap-1.5 overflow-x-auto p-1 [scrollbar-width:none] sm:flex-wrap sm:overflow-visible [&::-webkit-scrollbar]:hidden">{children}</div>
+    <fieldset className="min-w-0 max-w-full">
+      <legend className="sr-only">{label}</legend>
+      {/* One row per group on phones, scrolled sideways, so options never orphan. */}
+      <div
+        className={`flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+          segmented ? 'rounded-full bg-[var(--tint)] p-1' : 'p-1'
+        }`}
+      >
+        {children}
+      </div>
     </fieldset>
   );
 }
@@ -399,21 +385,127 @@ function FilterGroup({ label, children }: { label: string; children: React.React
 function FilterButton({
   pressed,
   onClick,
+  segmented = false,
   children,
 }: {
   pressed: boolean;
   onClick: () => void;
+  segmented?: boolean;
   children: React.ReactNode;
 }) {
+  const look = segmented
+    ? pressed
+      ? 'bg-[var(--lp-card)] text-[var(--ink)] shadow-[0_0_0_1px_var(--lp-border-light)]'
+      : 'text-[var(--ink-secondary)] hover:text-[var(--ink)]'
+    : pressed
+      ? 'border-[var(--ink)] bg-[var(--ink)] text-[var(--canvas)]'
+      : 'border-[var(--lp-border-light)] text-[var(--ink)] hover:border-[var(--lp-outline-strong)]';
   return (
     <button
       type="button"
       aria-pressed={pressed}
       onClick={onClick}
-      className={`inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-full px-4 text-[14px] font-medium transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)] ${pressed ? 'bg-[var(--ink)] text-[var(--canvas)]' : 'bg-[var(--tint)] text-[var(--ink)]'}`}
+      className={`inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-full px-4 text-[14px] font-semibold transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)] ${segmented ? '' : 'border'} ${look}`}
     >
       {children}
     </button>
+  );
+}
+
+/// Sort is a choice of order, not a filter, so it is one small menu at the end
+/// of the bar. Arrow keys move through the options, Enter or Space picks one,
+/// Escape closes and focus goes back to the button.
+function SortMenu<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  options: Array<{ value: T; label: string }>;
+  onChange: (value: T) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const wrap = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const items = useRef<Array<HTMLButtonElement | null>>([]);
+  const current = options.find((option) => option.value === value) ?? options[0]!;
+
+  useEffect(() => {
+    if (!open) return;
+    items.current[Math.max(0, options.findIndex((option) => option.value === value))]?.focus();
+    const away = (event: PointerEvent) => {
+      if (!wrap.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener('pointerdown', away);
+    return () => document.removeEventListener('pointerdown', away);
+  }, [open, options, value]);
+
+  const close = () => {
+    setOpen(false);
+    trigger.current?.focus();
+  };
+
+  return (
+    <fieldset className="min-w-0">
+      <legend className="sr-only">{label}</legend>
+      <div ref={wrap} className="relative p-1">
+        <button
+          ref={trigger}
+          type="button"
+          aria-haspopup="menu"
+          aria-expanded={open}
+          onClick={() => setOpen((was) => !was)}
+          className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[var(--lp-border-light)] px-4 text-[14px] font-semibold text-[var(--ink)] transition-colors hover:border-[var(--lp-outline-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)]"
+        >
+          {current.label}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className={`transition-transform duration-200 motion-reduce:transition-none ${open ? 'rotate-180' : ''}`}><path d="m6 9 6 6 6-6" /></svg>
+        </button>
+        {open ? (
+          <div
+            role="menu"
+            aria-label={label}
+            className="absolute end-1 top-full z-30 mt-1 min-w-[200px] rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-1.5 shadow-[0_8px_24px_rgba(0,0,0,0.12)]"
+            onKeyDown={(event) => {
+              const at = items.current.findIndex((item) => item === document.activeElement);
+              if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                event.preventDefault();
+                const step = event.key === 'ArrowDown' ? 1 : -1;
+                items.current[(at + step + options.length) % options.length]?.focus();
+              } else if (event.key === 'Escape') {
+                event.preventDefault();
+                close();
+              } else if (event.key === 'Tab') {
+                setOpen(false);
+              }
+            }}
+          >
+            {options.map((option, index) => (
+              <button
+                key={option.value}
+                ref={(el) => {
+                  items.current[index] = el;
+                }}
+                type="button"
+                role="menuitemradio"
+                aria-checked={option.value === value}
+                onClick={() => {
+                  onChange(option.value);
+                  close();
+                }}
+                className="flex min-h-11 w-full items-center justify-between gap-3 rounded-[10px] px-3 text-start text-[15px] font-medium text-[var(--ink)] hover:bg-[var(--tint)] focus-visible:bg-[var(--tint)] focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--action)]"
+              >
+                {option.label}
+                {option.value === value ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m5 12 5 5 9-10" /></svg>
+                ) : null}
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </fieldset>
   );
 }
 
@@ -552,75 +644,63 @@ function MarketCard({
     (fact): fact is string => !!fact,
   );
 
-  // Slate for requests, olive for offers, so the side reads before the words do.
-  const surface = `var(--${side}-surface)`;
-  const shell = 'market-card relative flex h-full flex-col overflow-hidden rounded-[20px]';
+  // A white card for every trade: a tinted label says which side it is, the
+  // amount is the loudest line, and example stock says so up front.
+  const shell = 'market-card relative flex h-full flex-col overflow-hidden rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]';
+  const party = card.side === 'offer' && /^0x[a-fA-F0-9]{40}$/.test(card.partyAddress)
+    ? <ReputationBadge address={card.partyAddress} appearance="text" textTemplate={copy.tierTemplate} />
+    : null;
 
   const content = (
     <>
-      <div className="flex flex-1 flex-col gap-2 p-5 sm:p-6">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-[14px] font-semibold" style={{ color: sideColor }}>
-            {statusLabel}
+      <div className="flex flex-1 flex-col p-5">
+        <div className="flex items-center justify-between gap-2 text-[14px] font-medium text-[var(--ink-secondary)]">
+          <span className="flex min-w-0 items-center gap-2">
+            {/* A tinted label, not a dot: the two side tones are close in light
+                mode, so the label carries its own pale ground. */}
+            <span className="rounded-full px-2.5 py-0.5 font-semibold" style={{ background: `var(--${side}-surface)`, color: sideColor }}>{statusLabel}</span>
+            {card.example ? (
+              <span className="rounded-full border border-[var(--lp-border-light)] px-2 py-0.5 text-[13px] font-semibold text-[var(--ink-secondary)]">{copy.example}</span>
+            ) : null}
           </span>
-          <span className="text-[14px] tabular-nums text-[var(--ink-secondary)] font-medium">{relativeTime(card.postedAt, locale)}</span>
+          <span className="shrink-0 tabular-nums">{relativeTime(card.postedAt, locale)}</span>
         </div>
-        <Icon
-          name={card.tradeLane === 'finance' ? 'file-text' : WORK_ICON[workKind(card.title, card.body)]}
-          size={24}
-          className="market-card-glyph mt-4 mb-6 shrink-0"
-          style={{ color: sideColor }}
-        />
-        {/* Two title lines and one body line always fit the same space, so
+        {/* Two title lines and one body line always take the same room, so
             every card in a row keeps its footer on the same line. */}
-        <div className="h-20 shrink-0 overflow-hidden">
-          <h3 dir="auto" className="line-clamp-2 text-[19px] font-medium leading-[1.3] tracking-[-0.015em] text-[var(--ink)]">
+        <div className="mt-3 h-20 shrink-0 overflow-hidden">
+          <h3 dir="auto" className="line-clamp-2 text-[18px] font-medium leading-[1.3] tracking-[-0.015em] text-[var(--ink)]">
             {card.title}
           </h3>
-          {card.body ? <p dir="auto" className="mt-2 line-clamp-1 text-[14px] leading-5 text-[var(--ink-secondary)] font-medium">{card.body}</p> : null}
+          {card.body ? <p dir="auto" className="mt-1 line-clamp-1 text-[14px] leading-5 text-[var(--ink-secondary)] font-medium">{card.body}</p> : null}
         </div>
-        <p className="mt-auto text-[14px] text-[var(--ink-secondary)] font-medium">
-          {facts.map((fact, i) => (
-            <span key={fact}>
-              {i > 0 ? (
-                <span aria-hidden className="mx-1.5">
-                  ·
-                </span>
-              ) : null}
-              {fact}
-            </span>
-          ))}
-        </p>
-      </div>
-      <div
-        data-market-footer
-        className="mx-5 flex h-[68px] shrink-0 items-center justify-between gap-3 border-t py-3.5 sm:mx-6"
-        style={{ borderColor: `color-mix(in srgb, ${sideColor} 24%, transparent)` }}
-      >
-        <p className="flex min-w-0 shrink-0 items-baseline gap-1.5">
-          <span className="text-[22px] font-medium leading-none tracking-[-0.02em] text-[var(--ink)] tabular-nums">
-            {formatUsdc(card.priceUsdc, { withSuffix: false })}
-          </span>
-          <span className="whitespace-nowrap text-[14px] text-[var(--ink-secondary)] font-medium">
-            {copy.priceUnitTemplate.replace('{label}', card.side === 'offer' ? copy.priceLabelAsking : copy.priceLabelBudget)}
-          </span>
-        </p>
-        {card.side === 'request' ? <span className="text-[14px] text-[var(--ink-secondary)] font-medium">{bidCopy}</span> : <div className="flex min-w-0 flex-col items-end gap-1">
-          <span className="max-w-full truncate text-[14px] text-[var(--ink-secondary)] font-medium">
-            {partyLabel}
-            {card.partyIsYou ? copy.selfSuffix : ''}
-          </span>
-          {card.side === 'offer' && /^0x[a-fA-F0-9]{40}$/.test(card.partyAddress) ? (
-            <ReputationBadge address={card.partyAddress} size="sm" appearance="quiet" />
+        {/* Facts sit on fixed lines, so a separator never starts a line:
+            when and where it stands, then for an offer who sells it. */}
+        <div data-market-facts className="mt-auto space-y-0.5 pt-3 text-[14px] text-[var(--ink-secondary)] font-medium">
+          <p className="truncate">{[...facts, card.side === 'request' ? bidCopy : null].filter(Boolean).join(' · ')}</p>
+          {card.side === 'offer' ? (
+            <p className="flex min-w-0 items-center gap-1.5">
+              <span className="truncate">{partyLabel}{card.partyIsYou ? copy.selfSuffix : ''}</span>
+              {party ? <span data-market-tier className="whitespace-nowrap"><span aria-hidden className="me-1.5">·</span>{party}</span> : null}
+            </p>
           ) : null}
-        </div>}
+        </div>
+      </div>
+      <div data-market-footer className="mx-5 shrink-0 border-t border-[var(--lp-border-light)] py-4">
+        <p className="flex items-baseline gap-1.5">
+        <span className="text-[24px] font-bold leading-none tracking-[-0.02em] text-[var(--ink)] tabular-nums">
+          {formatUsdc(card.priceUsdc, { withSuffix: false })}
+        </span>
+        <span className="whitespace-nowrap text-[14px] text-[var(--ink-secondary)] font-medium">
+          {copy.priceUnitTemplate.replace('{label}', card.side === 'offer' ? copy.priceLabelAsking : copy.priceLabelBudget)}
+        </span>
+        </p>
       </div>
     </>
   );
 
   if (isSummary) {
     return (
-      <article className={shell} style={{ background: surface }} data-market-side={card.side}>
+      <article className={shell} data-market-side={card.side}>
         {content}
       </article>
     );
@@ -630,8 +710,7 @@ function MarketCard({
     <Link
       href={card.href}
       data-market-side={card.side}
-      style={{ '--market-surface': surface, '--market-edge': `color-mix(in srgb, ${sideColor} 45%, transparent)` } as React.CSSProperties}
-      className={`${shell} bg-[var(--market-surface)] outline-offset-[-1px] hover:outline hover:outline-1 hover:outline-[var(--market-edge)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)]`}
+      className={`${shell} transition-colors hover:border-[var(--lp-outline-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)]`}
     >
       {content}
     </Link>

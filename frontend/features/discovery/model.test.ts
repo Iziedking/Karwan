@@ -167,3 +167,15 @@ test('a request card counts agent bids and direct offers together', () => {
   const none = buildDiscoveryCards(listings, [{ ...briefs[0]!, bidsCount: 0 }], { now: NOW });
   assert.equal(none.find((card) => card.id === 'request-finance')?.bidsCount, 0);
 });
+
+test('seeded example stock stays marked as an example on its card, and real rows do not', () => {
+  const cards = buildDiscoveryCards(
+    [{ ...listings[0], id: 'offer-example', example: true }, listings[0]],
+    [{ ...briefs[0], jobId: 'request-example', example: true }],
+    { now: NOW },
+  );
+  const byId = new Map(cards.map((card) => [card.id, card.example]));
+  assert.equal(byId.get('offer-example'), true);
+  assert.equal(byId.get('offer-open'), false);
+  assert.equal(byId.get('request-example'), true);
+});

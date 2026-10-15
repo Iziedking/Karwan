@@ -1042,6 +1042,8 @@ export interface MarketplaceBrief {
   /// to finance-lane or business-posted cards. Absent reads as service/person.
   tradeLane?: 'service' | 'finance';
   partyKind?: 'person' | 'business';
+  /// Example stock Karwan seeded, not a real person's request.
+  example?: boolean;
 }
 
 export type ListingStatus = 'open' | 'matched' | 'cancelled' | 'expired';
@@ -1066,6 +1068,8 @@ export interface Listing {
   /// to finance-lane or business-posted cards. Absent reads as service/person.
   tradeLane?: 'service' | 'finance';
   partyKind?: 'person' | 'business';
+  /// Example stock Karwan seeded, not a real person's offer.
+  example?: boolean;
   /// Days the seller needs once a deal starts.
   readyInDays?: number;
   /// The agreement the offer is sold on, and the parts it was built from.

@@ -188,14 +188,9 @@ async function layoutIsSound(page: Page, testInfo: TestInfo, primaryCount = 0) {
       const readingArea = title.parentElement!;
       const body = readingArea.querySelector<HTMLElement>('p');
       const price = footer.querySelector('p')!;
-      const right = footer.children[1]!;
-      const badge = right.querySelector<HTMLElement>('[aria-label]');
-      const parts = [
-        ...Array.from(price.children).map((part, i) => ({ name: i === 0 ? 'price' : 'unit', ...bounds(part) })),
-        ...(right.tagName === 'SPAN' ? [{ name: 'offer-count', ...bounds(right) }]
-          : [{ name: 'party-label', ...bounds(right.firstElementChild!) }, ...(badge ? [{ name: 'reputation', ...bounds(badge) }] : [])]),
-      ];
-      const badgeStyle = badge ? getComputedStyle(badge) : null;
+      const tier = el.querySelector<HTMLElement>('[data-market-tier]');
+      const parts = Array.from(price.children).map((part, i) => ({ name: i === 0 ? 'price' : 'unit', ...bounds(part) }));
+      const badgeStyle = tier ? getComputedStyle(tier) : null;
       return { section: el.closest('section')?.id, top: rect.top, bottom: rect.bottom,
         footerTop: footerRect.top, footerBottom: footerRect.bottom, radius: style.borderRadius,
         borders: [style.borderTopWidth, style.borderRightWidth, style.borderBottomWidth, style.borderLeftWidth],
@@ -219,7 +214,8 @@ async function layoutIsSound(page: Page, testInfo: TestInfo, primaryCount = 0) {
   for (const heading of metrics.headings) expect(heading.weight, heading.text).toBeLessThanOrEqual(500);
   for (const card of metrics.cards) {
     expect(card.radius).toBe('20px');
-    expect(card.borders).toEqual(['0px', '0px', '0px', '0px']);
+    // A quiet white card: one hairline, never a tint or a shadow.
+    expect(card.borders).toEqual(['1px', '1px', '1px', '1px']);
     expect(card.shadow).toBe('none');
     expect(card.transform).toBe('none');
     expect(card.userText.length).toBeGreaterThanOrEqual(1);
@@ -365,10 +361,9 @@ for (const theme of ['light', 'dark'] as const) {
         await expect(page.locator('.market-card h3').filter({ hasText: 'تصميم' })).toHaveAttribute('dir', 'auto');
         await expect(page.getByText(data.personalOffers[1]!.description, { exact: true })).toHaveAttribute('dir', 'auto');
         await readingCases(page, data);
-        // The badge names the tier; the score number lives on the passport.
-        const badge = page.locator('.market-card[data-market-side="offer"]').first().locator('[data-market-footer] [aria-label]');
-        await expect(badge).toContainText(/\S/);
-        await expect(badge).not.toContainText(/\d/);
+        // The tier is named in words; the score number lives on the passport.
+        const tier = page.locator('.market-card[data-market-side="offer"] [data-market-tier]').first();
+        if (await tier.count()) await expect(tier).not.toContainText(/\d/);
         await expect(page.locator('#market-b2b .market-card').filter({ hasText: 'Invoice finance offer 0' }).locator('[data-market-footer] > p')).toContainText('12,345.67');
         await iconsAreAccessible(page, locale);
         await layoutIsSound(page, testInfo);
@@ -453,10 +448,8 @@ if (!mainnet) {
       await page.keyboard.press('Shift+Tab');
       await expect(all).toBeFocused();
       await page.keyboard.press('Enter');
-      // The three type buttons lead directly to the scope group.
+      // The three type buttons lead directly to the two market toggles.
       for (let i = 0; i < 3; i++) await page.keyboard.press('Tab');
-      focus.push(await keyboardFocus(filterButton(page, locale, 'scope', copy.scope.all)));
-      await page.keyboard.press('Tab');
       const services = filterButton(page, locale, 'scope', copy.scope.services);
       focus.push(await keyboardFocus(services));
       await page.keyboard.press('Space');
@@ -466,21 +459,33 @@ if (!mainnet) {
       const business = filterButton(page, locale, 'scope', copy.scope.business);
       focus.push(await keyboardFocus(business));
       await page.keyboard.press('Space');
+      await expect(services).toHaveAttribute('aria-pressed', 'false');
       await sections(page, locale, 0, 4, 4);
-      await page.keyboard.press('Tab');
-      focus.push(await keyboardFocus(filterButton(page, locale, 'sort', copy.sort.newest)));
-      await page.keyboard.press('Tab');
-      const lowest = filterButton(page, locale, 'sort', copy.sort.lowestPrice);
-      focus.push(await keyboardFocus(lowest));
-      await page.keyboard.press('Enter');
-      await expect(lowest).toHaveAttribute('aria-pressed', 'true');
-      await page.keyboard.press('Tab');
-      const highest = filterButton(page, locale, 'sort', copy.sort.highestPrice);
-      focus.push(await keyboardFocus(highest));
-      await page.keyboard.press('Space');
-      await expect(highest).toHaveAttribute('aria-pressed', 'true');
+      // With a filter on, Clear sits before the sort menu.
       await page.keyboard.press('Tab');
       const clear = page.getByRole('button', { name: copy.clearFilters, exact: true });
+      await expect(clear).toBeFocused();
+      await page.keyboard.press('Tab');
+      const sort = filterButton(page, locale, 'sort', copy.sort.newest);
+      focus.push(await keyboardFocus(sort));
+      await expect(sort).toHaveAttribute('aria-haspopup', 'menu');
+      // Opening the menu focuses the current order; arrows move, Enter picks.
+      await page.keyboard.press('Enter');
+      await expect(page.getByRole('menuitemradio', { name: copy.sort.newest, exact: true })).toBeFocused();
+      await page.keyboard.press('ArrowDown');
+      const lowest = page.getByRole('menuitemradio', { name: copy.sort.lowestPrice, exact: true });
+      focus.push(await keyboardFocus(lowest));
+      await page.keyboard.press('Enter');
+      await expect(filterButton(page, locale, 'sort', copy.sort.lowestPrice)).toBeFocused();
+      await page.keyboard.press('Space');
+      await page.keyboard.press('ArrowDown');
+      await page.keyboard.press('Enter');
+      await expect(filterButton(page, locale, 'sort', copy.sort.highestPrice)).toBeFocused();
+      await page.keyboard.press('Space');
+      await expect(page.getByRole('menuitemradio', { name: copy.sort.highestPrice, exact: true })).toHaveAttribute('aria-checked', 'true');
+      await page.keyboard.press('Escape');
+      await expect(filterButton(page, locale, 'sort', copy.sort.highestPrice)).toBeFocused();
+      await page.keyboard.press('Shift+Tab');
       focus.push(await keyboardFocus(clear));
       await page.keyboard.press('Enter');
       await sections(page, locale, 17, 4, 4);

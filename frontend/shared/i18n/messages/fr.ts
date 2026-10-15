@@ -2809,6 +2809,8 @@ export const fr: Messages = {
     emptyFilteredBody: 'Effacez un filtre ou élargissez la recherche.',
     card: {
       matchedBefore: 'Déjà mis en relation',
+      tierTemplate: 'Niveau {tier}',
+      example: 'Exemple',
       availableUntilTemplate: 'Disponible {time}',
       dueTemplate: 'Échéance {time}',
       individualSeller: 'Vendeur particulier',

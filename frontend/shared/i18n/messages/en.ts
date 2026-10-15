@@ -2590,6 +2590,8 @@ interface MessagesShape {
       metaAwaitingBids: string;
       priceUnitTemplate: string;
       matchedBefore: string;
+      tierTemplate: string;
+      example: string;
       availableUntilTemplate: string;
       dueTemplate: string;
       individualSeller: string;
@@ -8149,6 +8151,8 @@ export const en: MessagesShape = {
       metaAwaitingBids: 'awaiting offers',
       priceUnitTemplate: 'USDC {label}',
       matchedBefore: 'Matched before',
+      tierTemplate: 'Tier {tier}',
+      example: 'Example',
       availableUntilTemplate: 'Available {time}',
       dueTemplate: 'Due {time}',
       individualSeller: 'Individual seller',
