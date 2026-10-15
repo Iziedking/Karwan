@@ -10,6 +10,7 @@ import { shortAddress } from '@/shared/utils/format';
 import { skillDateLabel, skillLabel } from '../skillCredentials';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import { BackButton } from '@/shared/components/BackButton';
+import { walletAmount } from '@/features/balances/walletFormat';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 import { WalletAvatar } from '@/shared/components/WalletAvatar';
@@ -261,7 +262,8 @@ export function CreditPassport({ address }: { address: string }) {
             {TIER_LADDER.map((band, index) => (
               <li key={band} aria-current={index === rung ? 'step' : undefined} className="min-w-0">
                 <span aria-hidden className={`block h-[5px] rounded-full ${index < rung ? 'bg-[#6a8a1e]' : index === rung ? 'bg-[var(--lp-dark)]' : 'bg-[var(--lp-border-light)]'}`} />
-                <span className={`mt-1.5 block truncate text-[14px] ${index === rung ? 'font-semibold text-[var(--lp-dark)]' : 'text-[var(--lp-text-sub)]'}`}>{TIER_LABEL[band]}</span>
+                {/* On a phone only your tier is named under its bar, so a long name is never cut. */}
+                <span className={`mt-1.5 whitespace-nowrap text-[14px] ${index === 0 ? 'text-start' : index === TIER_LADDER.length - 1 ? 'text-end' : 'text-center'} ${index === rung ? 'block font-semibold text-[var(--lp-dark)]' : 'hidden sm:block text-[var(--lp-text-sub)]'}`}>{TIER_LABEL[band]}</span>
               </li>
             ))}
           </ol>
@@ -273,7 +275,7 @@ export function CreditPassport({ address }: { address: string }) {
             <PassportFact label={pc.settled} value={String(settled)} />
             <PassportFact label={pc.completed} value={pc.completedOf.replace('{done}', String(done)).replace('{total}', String(settled))} />
             <PassportFact label={pc.disputes} value={String(rep.disputedCount)} />
-            <PassportFact label={pc.volume} value={`${trimUsdc(String(volume))} USDC`} />
+            <PassportFact label={pc.volume} value={`${walletAmount(String(volume)) ?? trimUsdc(String(volume))} USDC`} />
           </dl>
           <dl className="mt-3 divide-y divide-[var(--lp-border-light)] border-t border-[var(--lp-border-light)] text-[14px]">
             {counterparties != null ? (
@@ -284,7 +286,7 @@ export function CreditPassport({ address }: { address: string }) {
             ) : null}
             <div className="flex items-center justify-between gap-4 py-3">
               <dt className="text-[var(--lp-text-sub)]">{pc.stake}</dt>
-              <dd className="tabular-nums text-[var(--lp-dark)]">{stakeSynced ? `${trimUsdc(stakeUsdc)} USDC` : cp.stats.syncing}</dd>
+              <dd className="tabular-nums text-[var(--lp-dark)]">{stakeSynced ? `${walletAmount(stakeUsdc) ?? trimUsdc(stakeUsdc)} USDC` : cp.stats.syncing}</dd>
             </div>
             {lastDealAt ? (
               <div className="flex items-center justify-between gap-4 py-3">
@@ -315,7 +317,7 @@ export function CreditPassport({ address }: { address: string }) {
             <details className="group min-w-0 flex-1">
               <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 text-[14px] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] [&::-webkit-details-marker]:hidden font-medium">
                 {pc.how}
-                <span aria-hidden className="transition-transform group-open:rotate-180">⌄</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0 transition-transform group-open:rotate-180"><path d="m6 9 6 6 6-6" /></svg>
               </summary>
               <div className="space-y-3 pb-4">
                 {termRows.map((r) => (
@@ -340,7 +342,8 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <main className="min-h-[70vh] px-5 py-12 md:py-16">
       <div className="mx-auto w-full max-w-[680px]">
-        <div className="mb-7">
+        {/* Back on this column; the app's page-edge copy steps aside. */}
+        <div data-own-back className="-ms-2 mb-5">
           <BackButton tone="adaptive" showOnPublic fallbackHref="/partners" />
         </div>
         {children}

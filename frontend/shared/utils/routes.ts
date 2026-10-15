@@ -19,7 +19,6 @@ export function isPublicEditorialRoute(pathname: string | null | undefined): boo
     '/docs',
     '/terms',
     '/feedback',
-    '/credit-passport',
     '/x402',
     '/activity/all-time',
     '/start',
@@ -35,7 +34,7 @@ export function isPublicEditorialRoute(pathname: string | null | undefined): boo
  */
 export function isPublicDiscoveryRoute(pathname: string | null | undefined): boolean {
   if (!pathname) return false;
-  return ['/market', '/listings', '/partners'].some((route) => matchesRoute(pathname, route));
+  return ['/market', '/listings', '/partners', '/credit-passport'].some((route) => matchesRoute(pathname, route));
 }
 
 /**

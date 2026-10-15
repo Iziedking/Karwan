@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useReputation } from '../hooks/useReputation';
 import { reasonLabels } from '../sealed';
-import { TIER_HUE, TIER_LABEL } from '../tierColors';
+import { TIER_LABEL, tierBg, tierInk } from '../tierColors';
 import { CreditPassport } from './CreditPassport';
 
 export function PublicPassport({ address }: { address: string }) {
@@ -31,8 +31,8 @@ export function PublicPassport({ address }: { address: string }) {
         <p className="mt-1 text-[15px] text-[var(--lp-text-sub)]">@{sealed.tag}</p>
       ) : null}
       <p className="mt-4 inline-flex items-center gap-2 text-[15px] font-medium text-[var(--lp-dark)]">
-        <span aria-hidden className="size-2 rounded-full" style={{ background: TIER_HUE[sealed.tier] }} />
-        <span className="text-[var(--lp-text-sub)]">{sr.tier}</span> {TIER_LABEL[sealed.tier]}
+        <span className="text-[var(--lp-text-sub)]">{sr.tier}</span>
+        <span className="rounded-full px-2.5 py-0.5 font-semibold" style={{ background: tierBg(sealed.tier), color: tierInk(sealed.tier) }}>{TIER_LABEL[sealed.tier]}</span>
       </p>
       <section aria-labelledby="passport-record" className="mt-8 border-t border-[var(--lp-border-light)] pt-6">
         <h2 id="passport-record" className="text-[17px] font-semibold text-[var(--lp-dark)]">{sr.record}</h2>

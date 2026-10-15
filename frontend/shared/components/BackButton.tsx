@@ -86,17 +86,17 @@ export function BackButton({
   // whichever it sits on so it never washes out.
   const toneCls =
     tone === 'adaptive'
-      ? 'border-[var(--color-line-strong)] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:border-[var(--color-ink-faint)] hover:bg-[var(--color-surface-2)]'
+      ? ' text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)]'
       : tone === 'light'
-      ? 'border-[var(--lp-outline)] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] hover:border-[var(--lp-outline-hover)] hover:bg-black/[0.04]'
-      : 'border-white/20 text-white/70 hover:text-white hover:border-white/40 hover:bg-white/5';
+      ? ' text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] hover:bg-black/[0.04]'
+      : ' text-white/70 hover:text-white hover:bg-white/5';
 
   return (
     <button
       type="button"
       onClick={goBack}
       aria-label={t.nav.backAria}
-      className={`group inline-flex items-center gap-1.5 h-9 px-2.5 sm:px-3 rounded-md border transition-colors shrink-0 ${toneCls}`}
+      className={`group inline-flex min-h-11 items-center gap-2 rounded-full px-2 transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] ${toneCls}`}
     >
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
         <path
