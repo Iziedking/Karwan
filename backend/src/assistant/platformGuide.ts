@@ -38,7 +38,7 @@ export const PLATFORM_GUIDE: readonly GuideEntry[] = [
     tools: ['get_my_profile'],
     keywords: 'sign up signup register account create join login sign in tag handle username passkey email wallet connect waitlist invite',
     summary: 'One account per person. At sign up you choose a Karwan tag (@handle), then sign in with email (6-digit code), a passkey, or by connecting a wallet. Tags are 3 to 20 characters: lowercase letters, numbers and underscores, starting with a letter. On mainnet, access is by invitation through the waitlist.',
-    steps: ['Open /start and choose Sign up.', 'Pick a Karwan tag; availability shows as you type.', 'Continue with email (enter the 6-digit code) or connect a wallet. On mainnet, email accounts also create a passkey.', 'Choose a personal account and accept the terms, then Create account.', 'Accounts made before tags existed are asked once to choose a tag.'],
+    steps: ['Open /start and choose Sign up.', 'Pick a Karwan tag; availability shows as you type.', 'Continue with email (enter the 6-digit code) or connect a wallet. On mainnet, email accounts also create a passkey.', 'Choose a personal account and accept the terms, then Create account.', 'Accounts made before tags existed are asked once to choose a tag.', 'Signing in where a passkey cannot be reached (another device, an embedded browser): on testnet choose Use an email code instead on the passkey screen; on mainnet the passkey holds the wallet, so use account recovery.'],
     sources: ['backend/src/routes/signup.ts', 'backend/src/profile/karwanTag.ts', 'frontend/app/start/page.tsx'],
   },
   {
@@ -228,7 +228,7 @@ export const PLATFORM_GUIDE: readonly GuideEntry[] = [
     tools: ['recall_activity', 'find_transaction'],
     keywords: 'activity history receipt reference transaction payment settled records pending where did my money go',
     summary: 'Transaction history records requested, pending and completed money movements. A submitted request is not settlement. Missing data is not zero money or proof nothing happened. Account reads are snapshots; explain when chain reconciliation or support is needed.',
-    steps: ['Open /activity and find the movement by date or amount.', 'Open it for the reference and status.'],
+    steps: ['Open /activity; movements sit under their day, newest first. Filter Money in or Money out to narrow it.', 'Open the row for the full sentence, reference and status.'],
     sources: ['backend/src/db/activityLog.ts', 'backend/src/assistant/bridgeStanding.ts'],
   },
   {

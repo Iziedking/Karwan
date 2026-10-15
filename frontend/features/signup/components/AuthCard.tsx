@@ -23,6 +23,7 @@ import { RECOVERY_ON } from '@/features/recovery/flag';
 import { RecoverFlow } from '@/features/recovery/components/RecoverFlow';
 import { RecoveryPasswordStep } from '@/features/recovery/components/RecoveryPasswordStep';
 import { START_CARD, START_TITLE } from '@/features/signup/components/cardStyles';
+import { passkeyFallback } from '../passkeyFallback';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const HOME = DEALS_AVAILABLE ? '/app' : WALLET_HOME;
@@ -363,6 +364,9 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
     );
   }
 
+  // The passkey step is reached with user-held keys exactly when modular wallets are on.
+  const fallback = passkeyFallback({ userHoldsKeys: MODULAR_WALLETS_ENABLED, recoveryOn: RECOVERY_ON });
+
   return (
     <div className={card}>
       {mode === 'signin' ? (
@@ -393,7 +397,13 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
               <Primary onClick={() => void signInWithPasskey()} disabled={!!busy || waitingForSignIn}>
                 {busy === 'passkey' || waitingForSignIn ? t.signIn.passkeyWaiting : t.signIn.passkeyButton}
               </Primary>
-              {RECOVERY_ON && !testnetPasskey.current && (
+              {fallback === 'email' && (
+                <button type="button" onClick={() => void sendCode()} disabled={!!busy || waitingForSignIn}
+                  className="inline-flex min-h-11 items-center rounded-full text-[14px] font-medium text-[var(--ink-secondary)] underline underline-offset-4 hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] disabled:cursor-not-allowed disabled:opacity-50">
+                  {busy === 'send' ? t.signIn.sendingCode : t.signIn.useCodeInstead}
+                </button>
+              )}
+              {fallback === 'recovery' && (
                 <button type="button" onClick={() => { setError(null); setRecovering(true); }} disabled={!!busy}
                   className="inline-flex min-h-11 items-center rounded-full text-[14px] font-medium text-[var(--ink-secondary)] underline underline-offset-4 hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] disabled:cursor-not-allowed disabled:opacity-50">
                   {recoveryCopy.flow.entry}

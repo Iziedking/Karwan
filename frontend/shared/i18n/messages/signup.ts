@@ -16,6 +16,9 @@ export interface SignupCopy {
     passkeyTitle: string;
     passkeyButton: string;
     passkeyWaiting: string;
+    /// Offered beside the passkey where an email code signs the same account in.
+    useCodeInstead: string;
+    sendingCode: string;
     codeTitle: string;
     codeSent: string;
     codeLabel: string;
@@ -153,6 +156,8 @@ const en: SignupCopy = {
     passkeyTitle: 'Use your passkey',
     passkeyButton: 'Sign in with passkey',
     passkeyWaiting: 'Waiting for your passkey',
+    useCodeInstead: 'Use an email code instead',
+    sendingCode: 'Sending code',
     codeTitle: 'Check your email',
     codeSent: 'We sent a 6-digit code to {email}.',
     codeLabel: 'Code',
@@ -295,6 +300,8 @@ const ar: SignupCopy = {
     passkeyTitle: 'استخدم مفتاح المرور',
     passkeyButton: 'تسجيل الدخول بمفتاح المرور',
     passkeyWaiting: 'بانتظار مفتاح المرور',
+    useCodeInstead: 'استخدم رمز البريد الإلكتروني بدلًا من ذلك',
+    sendingCode: 'جارٍ إرسال الرمز',
     codeTitle: 'تحقق من بريدك',
     codeSent: 'أرسلنا رمزًا من 6 أرقام إلى {email}.',
     codeLabel: 'الرمز',
@@ -437,6 +444,8 @@ const fr: SignupCopy = {
     passkeyTitle: 'Utilisez votre clé d’accès',
     passkeyButton: 'Se connecter avec une clé d’accès',
     passkeyWaiting: 'En attente de votre clé d’accès',
+    useCodeInstead: 'Utiliser plutôt un code par e-mail',
+    sendingCode: 'Envoi du code',
     codeTitle: 'Consultez vos e-mails',
     codeSent: 'Nous avons envoyé un code à 6 chiffres à {email}.',
     codeLabel: 'Code',
@@ -579,6 +588,8 @@ const hi: SignupCopy = {
     passkeyTitle: 'अपनी पासकी इस्तेमाल करें',
     passkeyButton: 'पासकी से साइन इन करें',
     passkeyWaiting: 'आपकी पासकी का इंतज़ार',
+    useCodeInstead: 'इसके बजाय ईमेल कोड इस्तेमाल करें',
+    sendingCode: 'कोड भेजा जा रहा है',
     codeTitle: 'अपना ईमेल देखें',
     codeSent: 'हमने {email} पर 6 अंकों का कोड भेजा है।',
     codeLabel: 'कोड',
@@ -721,6 +732,8 @@ const sw: SignupCopy = {
     passkeyTitle: 'Tumia passkey yako',
     passkeyButton: 'Ingia kwa passkey',
     passkeyWaiting: 'Inasubiri passkey yako',
+    useCodeInstead: 'Tumia msimbo wa barua pepe badala yake',
+    sendingCode: 'Inatuma msimbo',
     codeTitle: 'Angalia barua pepe yako',
     codeSent: 'Tumetuma msimbo wa tarakimu 6 kwa {email}.',
     codeLabel: 'Msimbo',
