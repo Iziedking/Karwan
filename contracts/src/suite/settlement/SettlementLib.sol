@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
-import {IKarwanHub, IKarwanIdentity, IKarwanRecord, Outcome} from "../interfaces/IKarwanSuite.sol";
+import {IKarwanHub, IKarwanIdentity, IKarwanRecord, IKarwanYieldPool, Outcome} from "../interfaces/IKarwanSuite.sol";
 import {SigCheck} from "../SigCheck.sol";
 
 struct DealAccount {
@@ -16,6 +16,9 @@ struct DealAccount {
     address payer;
     uint64 payerId;
     uint16 feeBps;
+    /// The share of this deal's money that may sit in the yield pool, fixed at
+    /// opening; zero for none.
+    uint16 yieldBps;
     address feeRecipient;
     uint64 holdUntil;
     address seniorSafe;
@@ -48,6 +51,12 @@ struct SettlementStore {
     mapping(address => uint256) promisedTotal;
     mapping(address => mapping(uint256 => bool)) nonceUsed;
     mapping(bytes32 => uint24) pendingRecord;
+    /// Per asset, what the family may park: each eligible deal's balance times
+    /// its yield share.
+    mapping(address => uint256) parkable;
+    /// Per asset, what the family has in the yield pool.
+    mapping(address => uint256) parked;
+    mapping(address => address) yieldPool;
 }
 
 /// @title SettlementLib
@@ -64,6 +73,8 @@ library SettlementLib {
     uint64 internal constant MAX_HORIZON = 730 days;
     uint64 internal constant HOLD_STEP = 7 days;
     uint64 internal constant HOLD_BUDGET = 30 days;
+    /// A deal is eligible for yield only if it can run at least this long.
+    uint64 internal constant MIN_YIELD_TERM = 3 days;
     bytes32 internal constant ASSIGN_TYPEHASH = keccak256(
         "Assign(bytes32 dealId,address payee,address assignee,uint128 amount,address submitter,uint256 nonce,uint256 deadline)"
     );
@@ -88,6 +99,8 @@ library SettlementLib {
     event OutcomeUnrecorded(bytes32 indexed dealId, uint8 party);
     event RecordPending(bytes32 indexed dealId, uint8 party, uint8 outcome, uint16 detail);
     event RecordAlreadyWritten(bytes32 indexed dealId, uint8 party);
+    event YieldParked(address indexed asset, uint256 amount);
+    event YieldPulled(address indexed asset, uint256 amount);
 
     error NotOpen();
     error Exists();
@@ -113,6 +126,7 @@ library SettlementLib {
     error Early();
     error NoPending();
     error BadOutcome();
+    error PoolBusy();
 
     // ------------------------------ Opening -------------------------------
 
@@ -144,6 +158,7 @@ library SettlementLib {
         a.feeRecipient = cfg.feeRecipient;
         a.seniorSafe = cfg.seniorSafe;
         a.perDealCap = cfg.perDealCap;
+        if (cfg.yieldBps != 0 && horizon >= block.timestamp + MIN_YIELD_TERM) a.yieldBps = cfg.yieldBps;
         emit AccountOpened(dealId, asset, payer, uint8(n), cfg.feeBps, cfg.feeRecipient);
     }
 
@@ -190,6 +205,7 @@ library SettlementLib {
         a.funded += uint128(amount);
         a.balance += uint128(amount);
         s.held[a.asset] += amount;
+        if (a.yieldBps != 0) s.parkable[a.asset] += (amount * a.yieldBps) / BPS;
         if (!pledged) IKarwanIdentity(hub.identity()).useAgentAllowance(msg.sender, amount);
         IERC20 token = IERC20(a.asset);
         uint256 before = token.balanceOf(address(this));
@@ -231,18 +247,18 @@ library SettlementLib {
         if (party != a.payer && !isPayee(s, dealId, party)) revert NotParty();
         _take(s, a, amount);
         Assignment storage g = s.assignments[dealId][party];
+        address assignee = g.assignee;
         uint256 cut;
-        if (g.assignee != address(0) && g.paid < g.amount) {
+        if (assignee != address(0) && g.paid < g.amount) {
             uint256 left = uint256(g.amount) - g.paid;
             cut = amount < left ? amount : left;
             g.paid += uint128(cut);
-            _deliver(s, a.asset, g.assignee, cut);
-            emit Paid(dealId, g.assignee, cut, true);
+            emit Paid(dealId, assignee, cut, true);
         }
-        if (amount > cut) {
-            _deliver(s, a.asset, party, amount - cut);
-            emit Paid(dealId, party, amount - cut, false);
-        }
+        if (amount > cut) emit Paid(dealId, party, amount - cut, false);
+        if (a.yieldBps != 0) _trim(s, a.asset);
+        if (cut != 0) _deliver(s, a.asset, assignee, cut);
+        if (amount > cut) _deliver(s, a.asset, party, amount - cut);
     }
 
     function payFee(SettlementStore storage s, bytes32 dealId, uint256 amount) external {
@@ -251,8 +267,9 @@ library SettlementLib {
         if (amount > feeLeft(s, dealId)) revert FeeTooHigh();
         _take(s, a, amount);
         a.feePaid += uint128(amount);
-        _deliver(s, a.asset, a.feeRecipient, amount);
         emit FeePaid(dealId, a.feeRecipient, amount);
+        if (a.yieldBps != 0) _trim(s, a.asset);
+        _deliver(s, a.asset, a.feeRecipient, amount);
     }
 
     function withdrawOwed(SettlementStore storage s, address asset) external {
@@ -260,8 +277,9 @@ library SettlementLib {
         if (amount == 0) revert NothingOwed();
         s.owed[asset][msg.sender] = 0;
         s.owedTotal[asset] -= amount;
-        IERC20(asset).safeTransfer(msg.sender, amount);
         emit OwedWithdrawn(asset, msg.sender, amount);
+        if (!_liquid(s, asset, amount)) revert PoolBusy();
+        IERC20(asset).safeTransfer(msg.sender, amount);
     }
 
     function close(SettlementStore storage s, bytes32 dealId) public {
@@ -317,6 +335,35 @@ library SettlementLib {
         emit AssignmentReleased(dealId, payee, msg.sender);
     }
 
+    // -------------------------------- Yield -------------------------------
+
+    /// @notice Moves the family's parked money toward its target: the eligible
+    ///         share of its deals' balances, never more than it holds for
+    ///         deals. A revoked family, or a delisted asset, brings it all back.
+    ///         Anyone may call it;
+    ///         a pool that cannot pay back yet leaves the money parked.
+    function rebalanceYield(SettlementStore storage s, IKarwanHub hub, address asset) external {
+        address pool = s.yieldPool[asset];
+        if (pool == address(0)) {
+            pool = hub.yieldPoolOf(asset);
+            if (pool == address(0)) revert NotOpen();
+            s.yieldPool[asset] = pool;
+        }
+        uint256 target = s.parkable[asset];
+        if (target > s.held[asset]) target = s.held[asset];
+        if (!hub.isFamily(address(this)) || !hub.assetAllowed(asset)) target = 0;
+        uint256 parked = s.parked[asset];
+        if (parked < target) {
+            uint256 add = target - parked;
+            s.parked[asset] = target;
+            emit YieldParked(asset, add);
+            IERC20(asset).forceApprove(pool, add);
+            IKarwanYieldPool(pool).deposit(add);
+        } else if (parked > target) {
+            _pull(s, asset, parked - target);
+        }
+    }
+
     // -------------------------------- Holds -------------------------------
 
     function hold(SettlementStore storage s, IKarwanHub hub, bytes32 dealId, bytes32 reasonHash) external {
@@ -358,13 +405,13 @@ library SettlementLib {
     ) external {
         DealAccount storage a = s.accounts[dealId];
         uint8 n = a.payeeCount;
+        _endPromise(s, a);
+        a.closed = true;
+        emit AccountClosed(dealId);
         payTo(s, dealId, a.payer, toPayer);
         for (uint8 i; i < n; ++i) {
             payTo(s, dealId, s.payees[dealId][i], toPayees[i]);
         }
-        _endPromise(s, a);
-        a.closed = true;
-        emit AccountClosed(dealId);
         for (uint8 p; p <= n; ++p) {
             recordOutcome(s, hub, dealId, p, Outcome.LONGSTOP, 0);
         }
@@ -487,13 +534,50 @@ library SettlementLib {
         if (amount > a.balance) revert BadAmount();
         a.balance -= uint128(amount);
         s.held[a.asset] -= amount;
+        if (a.yieldBps != 0) {
+            uint256 share = (amount * a.yieldBps) / BPS;
+            uint256 left = s.parkable[a.asset];
+            s.parkable[a.asset] = left > share ? left - share : 0;
+        }
     }
 
+    /// When an eligible deal pays out, what is parked beyond the new target
+    /// comes back at once, so the cash behind deals that take no yield stays in
+    /// the escrow. A pool that cannot pay yet leaves it parked.
+    function _trim(SettlementStore storage s, address asset) private {
+        uint256 parked = s.parked[asset];
+        if (parked == 0) return;
+        uint256 target = s.parkable[asset];
+        if (target > s.held[asset]) target = s.held[asset];
+        if (parked > target) _pull(s, asset, parked - target);
+    }
+
+    /// A payout the family cannot cover from its own balance pulls the rest
+    /// from the yield pool; if the pool cannot pay yet, the payout is owed.
     function _deliver(SettlementStore storage s, address asset, address to, uint256 amount) private {
-        if (IERC20(asset).trySafeTransfer(to, amount)) return;
+        if (_liquid(s, asset, amount) && IERC20(asset).trySafeTransfer(to, amount)) return;
         s.owed[asset][to] += amount;
         s.owedTotal[asset] += amount;
         emit PayoutCredited(asset, to, amount);
+    }
+
+    function _liquid(SettlementStore storage s, address asset, uint256 amount) private returns (bool) {
+        uint256 have = IERC20(asset).balanceOf(address(this));
+        if (have >= amount) return true;
+        return _pull(s, asset, amount - have);
+    }
+
+    function _pull(SettlementStore storage s, address asset, uint256 amount) private returns (bool) {
+        uint256 parked = s.parked[asset];
+        if (amount > parked) return false;
+        s.parked[asset] = parked - amount;
+        try IKarwanYieldPool(s.yieldPool[asset]).withdraw(amount) {
+            emit YieldPulled(asset, amount);
+            return true;
+        } catch {
+            s.parked[asset] = parked;
+            return false;
+        }
     }
 
     function _band(uint256 amount) private pure returns (uint8) {

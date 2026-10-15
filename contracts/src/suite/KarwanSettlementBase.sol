@@ -49,6 +49,8 @@ abstract contract KarwanSettlementBase is ReentrancyGuard, EIP712 {
     event OutcomeUnrecorded(bytes32 indexed dealId, uint8 party);
     event RecordPending(bytes32 indexed dealId, uint8 party, uint8 outcome, uint16 detail);
     event RecordAlreadyWritten(bytes32 indexed dealId, uint8 party);
+    event YieldParked(address indexed asset, uint256 amount);
+    event YieldPulled(address indexed asset, uint256 amount);
 
     error NotOpen();
     error Exists();
@@ -74,12 +76,19 @@ abstract contract KarwanSettlementBase is ReentrancyGuard, EIP712 {
     error Early();
     error NoPending();
     error BadOutcome();
+    error PoolBusy();
 
     constructor(address hub_, string memory name, string memory version) EIP712(name, version) {
         hub = IKarwanHub(hub_);
     }
 
     // --------------------------- Public paths -----------------------------
+
+    /// @notice Anyone moves the family's parked money for `asset` toward its
+    ///         target in the asset's yield pool.
+    function rebalanceYield(address asset) external nonReentrant {
+        SettlementLib.rebalanceYield(_s, hub, asset);
+    }
 
     /// @notice Collect payouts that could not be delivered earlier, only to
     ///         the address they are owed to.
@@ -186,6 +195,14 @@ abstract contract KarwanSettlementBase is ReentrancyGuard, EIP712 {
 
     function promisedTotal(address asset) external view returns (uint256) {
         return _s.promisedTotal[asset];
+    }
+
+    function parked(address asset) external view returns (uint256) {
+        return _s.parked[asset];
+    }
+
+    function parkable(address asset) external view returns (uint256) {
+        return _s.parkable[asset];
     }
 
     function held(address asset) external view returns (uint256) {
