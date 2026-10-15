@@ -3,6 +3,7 @@ import { getNetworkStats } from '../chain/networkStats.js';
 import { getLifetimeStats } from '../chain/lifetimeStats.js';
 import { getCurrentContracts } from '../chain/currentContracts.js';
 import { config } from '../config.js';
+import { recordReadTotals } from '../db/recordReads.js';
 
 export const networkRoutes = new Hono();
 
@@ -57,6 +58,18 @@ networkRoutes.get('/lifetime', async (c) => {
     );
   }
   return c.json(stats);
+});
+
+/// Agent record reads, counted from the first one stored. Aggregates only: no
+/// reader, subject, price, ref or detail. A store that cannot answer says so
+/// with a 503, so the page shows nothing rather than a zero it cannot vouch for.
+networkRoutes.get('/reads', async (c) => {
+  try {
+    const { reads, readers, subjects, since } = await recordReadTotals();
+    return c.json({ reads, readers, subjects, since });
+  } catch {
+    return c.json({ error: 'record reads unavailable' }, 503);
+  }
 });
 
 /// What the contracts in service right now hold, read at head rather than

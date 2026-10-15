@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, isNotNull, lt, or } from 'drizzle-orm';
+import { and, count, countDistinct, desc, eq, gte, isNotNull, lt, min, or } from 'drizzle-orm';
 import { db, pgEnabled } from './client.js';
 import { recordReads } from './schema.js';
 
@@ -120,4 +120,39 @@ export async function deleteReadsFor(address: string): Promise<number> {
     .where(or(eq(recordReads.reader, a), eq(recordReads.subject, a)))
     .returning({ id: recordReads.id });
   return rows.length;
+}
+
+/// What the public may know about record reads: how many, by how many readers,
+/// about how many people, and since the first one. A field reaches the public
+/// only by being named here.
+export interface RecordReadTotals {
+  reads: number;
+  readers: number;
+  subjects: number;
+  since: number | null;
+}
+
+export async function recordReadTotals(): Promise<RecordReadTotals> {
+  if (!pgEnabled) {
+    return {
+      reads: mem.length,
+      readers: new Set(mem.map((r) => r.reader)).size,
+      subjects: new Set(mem.map((r) => r.subject)).size,
+      since: mem.length ? Math.min(...mem.map((r) => r.createdAt)) : null,
+    };
+  }
+  const [row] = await db()
+    .select({
+      reads: count(),
+      readers: countDistinct(recordReads.reader),
+      subjects: countDistinct(recordReads.subject),
+      since: min(recordReads.createdAt),
+    })
+    .from(recordReads);
+  return {
+    reads: Number(row?.reads ?? 0),
+    readers: Number(row?.readers ?? 0),
+    subjects: Number(row?.subjects ?? 0),
+    since: row?.since == null ? null : Number(row.since),
+  };
 }
