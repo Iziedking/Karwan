@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -19,6 +19,7 @@ import { WalletAvatar } from './WalletAvatar';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { LanguagePicker } from './LanguagePicker';
 import { ThemeControl } from './ThemeControl';
+import { Tooltip } from './Tooltip';
 import { isAlwaysDarkRoute } from '@/shared/hooks/useTheme';
 import { PublicMenu } from './PublicMenu';
 import { Brand } from './Brand';
@@ -228,7 +229,7 @@ function WorkspaceRail({
     };
   }, [collapsed]);
 
-  const toggleRail = () => {
+  const toggleRail = useCallback(() => {
     setCollapsed((current) => {
       const next = !current;
       try {
@@ -238,7 +239,23 @@ function WorkspaceRail({
       }
       return next;
     });
-  };
+  }, []);
+
+  // The same key as most desktop apps with a sidebar: Ctrl B, or Command B on
+  // a Mac. Left alone while someone is typing.
+  const [shortcut, setShortcut] = useState('Ctrl B');
+  useEffect(() => {
+    if (/Mac|iPhone|iPad/.test(navigator.platform)) setShortcut('⌘B');
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey || e.key.toLowerCase() !== 'b') return;
+      const el = e.target as HTMLElement | null;
+      if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return;
+      e.preventDefault();
+      toggleRail();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [toggleRail]);
 
   return (
     <aside
@@ -255,22 +272,24 @@ function WorkspaceRail({
         )}
         style={{ insetInlineStart: 'max(20px, calc(50% - 800px))' }}
       >
-        <button
-          type="button"
-          data-chrome="workspace-rail-toggle"
-          aria-expanded={!collapsed}
-          aria-label={collapsed ? t.railExpandAria : t.railCollapseAria}
-          onClick={toggleRail}
-          className={cn(
-            'mb-1 inline-flex size-11 shrink-0 items-center justify-center self-start rounded-[12px] text-[var(--color-ink-dim)] transition-colors duration-200 hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]',
-          )}
-          aria-controls="workspace-navigation"
-        >
-          <svg aria-hidden width="20" height="20" viewBox="0 0 24 24" fill="none" className="rtl:-scale-x-100">
-            <rect x="3.5" y="4.5" width="17" height="15" rx="3" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M9.5 4.5v15" stroke="currentColor" strokeWidth="1.5" />
-          </svg>
-        </button>
+        {/* The toggle sits on the icon column: centred when collapsed, and under
+            the icons (16px padding plus half a 22px icon) when open. */}
+        <Tooltip label={collapsed ? t.railExpandAria : t.railCollapseAria} shortcut={shortcut} side="end" className={cn('mb-1', collapsed ? 'self-center' : 'ms-[5px] self-start')}>
+          <button
+            type="button"
+            data-chrome="workspace-rail-toggle"
+            aria-expanded={!collapsed}
+            aria-label={collapsed ? t.railExpandAria : t.railCollapseAria}
+            onClick={toggleRail}
+            className="inline-flex size-11 shrink-0 items-center justify-center rounded-[12px] text-[var(--color-ink-dim)] transition-colors duration-200 hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+            aria-controls="workspace-navigation"
+          >
+            <svg aria-hidden width="20" height="20" viewBox="0 0 24 24" fill="none" className="rtl:-scale-x-100">
+              <rect x="3.5" y="4.5" width="17" height="15" rx="3" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M9.5 4.5v15" stroke="currentColor" strokeWidth="1.5" />
+            </svg>
+          </button>
+        </Tooltip>
         <RailLink href={homeHref} active={pathname === homeHref} icon="home" collapsed={collapsed} ariaLabel={t.home}>
           {t.home}
         </RailLink>
@@ -321,7 +340,7 @@ function RailLink({
   badge?: string;
   signal?: boolean;
 }) {
-  return (
+  const link = (
     <Link
       href={href}
       aria-label={ariaLabel}
@@ -349,6 +368,8 @@ function RailLink({
       ) : null}
     </Link>
   );
+  // Collapsed, the icon stands alone, so it names itself on hover.
+  return collapsed ? <Tooltip label={children as string} side="end" className="w-full">{link}</Tooltip> : link;
 }
 
 function RailIcon({ name, active }: { name: 'home' | 'trade' | 'discover' | 'finance' | 'activity'; active: boolean }) {

@@ -1,4 +1,5 @@
 'use client';
+import { Tooltip } from '@/shared/components/Tooltip';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
@@ -56,23 +57,25 @@ export function NotificationBell() {
 
   return (
     <div ref={wrapRef} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((s) => !s)}
-        aria-label={unreadCount > 0 ? `${t.aria}, ${unreadCount} unread` : t.aria}
-        aria-expanded={open}
-        className="relative inline-flex size-9 items-center justify-center rounded-full text-[var(--color-ink-dim)] before:absolute before:-inset-1 before:content-[''] transition-colors hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
-      >
-        <Icon name="bell" size={20} />
-        {unreadCount > 0 ? (
-          <span
-            aria-hidden
-            className="absolute -end-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-[var(--color-surface)] bg-[var(--lp-accent)] px-1 text-[13px] font-bold tabular-nums leading-none text-[var(--accent-ink)]"
-          >
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </span>
-        ) : null}
-      </button>
+      <Tooltip label={t.aria} align="end" off={open}>
+        <button
+          type="button"
+          onClick={() => setOpen((s) => !s)}
+          aria-label={unreadCount > 0 ? `${t.aria}, ${unreadCount} unread` : t.aria}
+          aria-expanded={open}
+          className="relative inline-flex size-9 items-center justify-center rounded-full text-[var(--color-ink-dim)] before:absolute before:-inset-1 before:content-[''] transition-colors hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+        >
+          <Icon name="bell" size={20} />
+          {unreadCount > 0 ? (
+            <span
+              aria-hidden
+              className="absolute -end-1.5 -top-1 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[var(--lp-accent)] px-[5px] text-[13px] font-semibold tabular-nums leading-none tracking-[-0.02em] text-[var(--accent-ink)] shadow-[0_0_0_1.5px_var(--color-surface)]"
+            >
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          ) : null}
+        </button>
+      </Tooltip>
 
       {open && typeof document !== 'undefined'
         ? createPortal(

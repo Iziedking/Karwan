@@ -1,6 +1,7 @@
 'use client';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { setThemePreference, useTheme, type ThemePreference } from '@/shared/hooks/useTheme';
+import { Tooltip } from './Tooltip';
 
 const nextPreference: Record<ThemePreference, ThemePreference> = {
   system: 'light',
@@ -18,10 +19,12 @@ export function ThemeControl({ onChange }: { onChange?: (next: ThemePreference) 
       ? t.settings.themeLight
       : t.settings.themeDark;
 
+  const label = `${t.settings.theme}: ${mounted ? currentLabel : t.settings.themeDark}`;
   return (
+    <Tooltip label={label} align="end">
     <button
       type="button"
-      aria-label={`${t.settings.theme}: ${mounted ? currentLabel : t.settings.themeDark}`}
+      aria-label={label}
       data-theme-preference={mounted ? preference : undefined}
       onClick={() => {
         const next = nextPreference[preference];
@@ -32,6 +35,7 @@ export function ThemeControl({ onChange }: { onChange?: (next: ThemePreference) 
     >
       {mounted && preference === 'light' ? <SunIcon /> : mounted && preference === 'dark' ? <MoonIcon /> : <AutoIcon />}
     </button>
+    </Tooltip>
   );
 }
 
