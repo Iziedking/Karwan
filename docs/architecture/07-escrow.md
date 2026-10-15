@@ -13,10 +13,10 @@ Looked at from emerging markets first, where cash on delivery, "pay small small"
 | Instant one-time | A logo file, a phone case | Paid now, held briefly, released on confirmation or a short timer | v3 single milestone |
 | Fixed price, milestones | Website in three stages | Funded upfront, released stage by stage after review | v3, up to 5 milestones |
 | Physical goods with delivery | Wig from Lagos to Abuja | Held until the buyer has the item; review starts on arrival | v3 `ON_ARRIVAL` |
-| Pay on delivery, prepaid | Replaces cash on delivery | Held until the buyer hands a one-time delivery code to the courier or seller | Planned |
+| Pay on delivery, prepaid | Replaces cash on delivery | Held until the buyer taps "Received" at handover, which signs a release the app or the courier submits | Built, not deployed |
 | Hourly or weekly time | Virtual assistant, 20 h a week at 8 USDC | Weekly budget held; hours submitted with a work log; buyer reviews; approved hours paid, unused returned or rolled | Planned |
 | Retainer or subscription | Monthly social media management | One period funded at a time; paid at period end unless disputed; either side can end with notice | Planned |
-| Instalments, lay-by | Fridge paid in four parts | Buyer pays in parts into escrow; goods released when fully paid; cancellation rule agreed upfront | Planned |
+| Instalments, lay-by | Fridge paid in four parts | Buyer pays equal parts into escrow; the seller delivers once the last part is in; a missed part ends the plan with the cancellation fee agreed upfront | Built, not deployed |
 | Refundable deposit | Equipment rental, booking | Held and returned at the end unless the seller's claim holds | v3 `silenceOutcome = 1` |
 | Business order, net terms | 200 T-shirts, Net 30 | Held; review lasts the net term; financing can advance the seller | v3 net preset, `KarwanPOFinancing` |
 
@@ -26,14 +26,14 @@ Looked at from emerging markets first, where cash on delivery, "pay small small"
 flowchart TB
   subgraph Agree[Agree]
     T[Terms builder<br/>shape, price, schedule, clauses]
-    C[Clause compiler<br/>machine check, buyer checklist,<br/>delivery code, time log]
+    C[Clause compiler<br/>machine check, buyer checklist,<br/>signed release, time log]
     H[Canonical terms<br/>JSON, versioned, hashed]
     T --> C --> H
   end
 
   subgraph Chain[On Arc]
     CORE[Escrow core<br/>holds all money, one state machine per leg,<br/>invariants, exits never pause]
-    SCH[Schedule modules<br/>milestone, time period, instalment,<br/>retainer, deposit, delivery code]
+    SCH[Schedule modules<br/>milestone, time period, instalment,<br/>retainer, deposit, signed release]
     EV[Evidence registry<br/>receipts and attestations]
     CORE -- asks: what is releasable now --> SCH
     EV -- starts or withholds clocks --> CORE
@@ -42,7 +42,7 @@ flowchart TB
   subgraph Verify[Verify]
     MC[Machine checks<br/>deterministic predicates]
     BC[Buyer checklist<br/>each clause met or not met]
-    DC[Delivery code<br/>hash on chain, code to buyer]
+    DC[Signed release<br/>buyer's wallet signs, anyone submits]
     TL[Time log<br/>hours, memos, artefacts]
   end
 
@@ -82,7 +82,7 @@ A term is a clause both sides agreed, stored in the canonical terms and bound in
 |---|---|---|---|
 | Machine check | The clause is testable from evidence | A deterministic predicate; a model may only advise | "Merged pull request to `main` with passing CI" |
 | Buyer checklist | A person has to look | The buyer marks the clause met or not met, with a reason and photos | "Wig is 22 inch, body wave, black" |
-| Delivery code | Physical handover | The buyer shows a one-time code (32 random bytes, as a QR code or link) at handover; the seller or courier submits it. Its hash is public, so it is never a short number | "Delivered to the buyer in person" |
+| Signed release | Physical handover | The buyer taps "Received"; their wallet signs a release for that tranche, which the app submits, or the courier scans as a QR code where there is no signal. Nothing to guess, and no gas for the buyer. A signature stays good until its expiry, even if a dispute opens later, so the app signs with a short expiry | "Released by the buyer at handover" |
 | Time log | Hourly work | Hours, memos and artefacts per period, reviewed by the buyer | "Up to 20 hours a week on bookkeeping" |
 | Clock only | Nothing to test | The review window and silence rule | "Available for questions for 7 days" |
 
@@ -96,22 +96,23 @@ The buyer's review screen is the terms as a checklist. Releasing means every cla
 sequenceDiagram
   autonumber
   actor B as Buyer
-  participant APP as Karwan
-  participant ESC as Escrow core
-  participant DCM as Delivery code module
+  participant APP as Karwan app
+  participant ESC as Agreement escrow
   actor S as Seller or courier
 
   B->>APP: Pays for the order
-  APP->>APP: Generates a 32-byte random code, stores only its hash
-  APP->>ESC: fund(terms with codeHash)
-  APP-->>B: Your delivery code (shown only to the buyer)
+  APP->>ESC: fund(terms)
   S->>B: Hands over the item
-  B-->>S: Shows the code as a QR code after checking the item
-  S->>ESC: submitCode(code)
-  ESC->>DCM: keccak(code) == codeHash?
-  DCM-->>ESC: Releasable
+  B->>APP: Checks the item, taps Received
+  APP->>APP: The buyer's wallet signs Release(deal, tranche, expiry)
+  alt Online
+    APP->>ESC: releaseBySig(signature)
+  else No signal at the door
+    APP-->>S: Shows the signed release as a QR code
+    S->>ESC: releaseBySig(signature), once back online
+  end
   ESC-->>S: Paid
-  Note over B,S: No code by the arrival longstop: buyer review rules apply
+  Note over B,S: No release: the delivery mark and arrival review apply, and silence pays the seller
 ```
 
 ### Hourly work, weekly
@@ -144,18 +145,15 @@ sequenceDiagram
 sequenceDiagram
   autonumber
   actor B as Buyer
-  participant ESC as Escrow core
-  participant IM as Instalment module
+  participant ESC as Agreement escrow
   actor S as Seller
 
-  B->>ESC: fund(part 1 of 4)
+  B->>ESC: fund(terms): part 1 of 4, the rest counted against the caps now
   S->>ESC: accept(termsHash): item reserved
-  B->>ESC: pay part 2, 3, 4 on schedule
-  ESC->>IM: fully paid?
-  IM-->>ESC: Yes
-  S->>ESC: markDelivered
+  B->>ESC: payPart: parts 2, 3 and 4, any time until someone ends a missed plan
+  S->>ESC: markDelivered, only once every part is in
   ESC-->>S: Paid after review
-  Note over B,S: Missed part past grace: buyer refunded minus the agreed cancellation fee, item released back to the seller
+  Note over B,S: A part missed past its grace: anyone ends the plan. The seller keeps the agreed fee, at most 20% and never more than was paid, if they accepted before the default; the buyer gets the rest; Karwan takes nothing. A last part paid late moves the delivery deadline by its lateness
 ```
 
 ## 5. Disputes an arbiter can decide
@@ -167,7 +165,7 @@ Every dispute cites a clause. The automatic arbiter reads the terms, the clocks 
 | Nothing delivered by deadline + grace | No delivery mark | Full refund to the buyer |
 | Delivered on time, machine check passed, buyer cites no failed clause | Receipt for this revision | Seller paid |
 | Machine check failed on the cited clause for this revision | Mismatch receipt | Buyer refunded for that leg |
-| Delivery code submitted | Code matched on chain | Seller paid; dispute refused |
+| Buyer signed a release at handover | Signature on chain | Seller paid; the tranche is closed |
 | Hours disputed, time log shows activity for the claimed hours | Log hashes, artefacts | Seller paid for logged hours with artefacts; the rest escalates |
 | Buyer checklist: clause not met, with photos, seller does not respond in 48 h | Checklist, photos, silence | Refund or agreed partial |
 | Both sides have evidence on a subjective clause | Conflicting | Escalate to admin review |
@@ -177,8 +175,8 @@ Rulings only ever split a leg's unreleased money between the two parties, carry 
 ## 6. Emerging-market requirements
 
 - **Local money in and out.** Buyers pay in naira, shillings or cedis through local partners; the escrow only ever holds USDC; each deal records the FX rate and fee at funding so a refund returns the same local amount where the partner allows, and states when it cannot.
-- **Low data, chat first.** Every step has a short link and a plain message fit for a chat app or SMS; the delivery code works read aloud.
-- **Couriers without apps.** The delivery code can be entered by the seller on the courier's behalf.
+- **Low data, chat first.** Every step has a short link and a plain message fit for a chat app or SMS; release at handover signs on the buyer's phone and needs no signal at the door.
+- **Couriers without apps.** The seller can submit the buyer's signed release on the courier's behalf.
 - **Small amounts.** Fees and clocks fit a 5 USDC sale as well as a 5,000 USDC order; the caps from the v3 design apply.
 - **Cancellation on unreliable schedules.** Every shape states upfront what happens if the other side goes quiet.
 
@@ -188,7 +186,7 @@ Rulings only ever split a leg's unreleased money between the two parties, carry 
 |---|---|
 | I18 | A schedule module never moves money; removing every module call leaves conservation intact |
 | I19 | Per leg: paid to seller + returned to buyer + fees + owed == funded for that leg |
-| I20 | A delivery code releases at most its own leg, once |
+| I20 | A signed release pays at most its own tranche, once |
 | I21 | A time-period leg never pays more than cap hours x rate for that period |
 | I22 | An instalment deal never pays the seller before the last part is funded |
 | I23 | A dispute freezes only the disputed leg's unreleased amount |
@@ -206,9 +204,10 @@ Rulings only ever split a leg's unreleased money between the two parties, carry 
 | Canonical terms JSON and clause compiler | Planned | |
 | Buyer checklist review and clause-cited disputes | Planned | |
 | Escrow families on a shared base (replaces the schedule module interface) | Base, hub and Agreement family built, not deployed | [View 11](11-contracts.md) |
-| Delivery code | Built, not deployed | Agreement family |
+| Signed release at handover (replaces the delivery code) | Built, not deployed | Agreement family |
+| Disputes: arbiter proposal, 72-hour appeal, reviewer ruling within 5 days, fallback in the terms | Built, not deployed | Agreement family, shared dispute library |
 | Up to 12 tranches, seller accept deadline, seller extension request | Built, not deployed | Agreement family |
 | Hourly and weekly time | Planned | Time family |
-| Instalments | Planned | Agreement family |
+| Instalments | Built, not deployed | Agreement family |
 | Retainers | Planned | Time family |
 | Streaming for trusted retainers | Later | Sablier Flow style, only after the period model proves out |

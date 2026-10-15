@@ -78,6 +78,7 @@ Every family inherits it, and it is the part audited hardest.
 | Configuration is per deal | Fee, caps, reviewers, verifier and yield eligibility are copied into the deal when it opens |
 | Only USDC moves, through its ERC-20 interface | No function accepts native value; amounts are 6-decimal tokens throughout, moved only by the base's library |
 | Checks come from several independent checkers | A delivery check counts only when the deal's verifier contract holds signatures from enough of its fixed checkers |
+| Money promised at opening keeps its room | An instalment plan's whole price counts against the caps, and against an agent payer's signed limits as one payment, when the deal opens. Its later parts are accepted even while the family is paused or after the agent's binding expires; only a revoked family or a delisted asset refuses them |
 | Bounded work per call | No call walks a list that users can grow; the worst case stays well under Arc's per-transaction gas cap |
 | Payouts go to the recorded wallet | A payout or owed balance goes only to the wallet recorded in the deal, or to its signed assignee, so money frozen by USDC's blocklist cannot be routed elsewhere |
 
@@ -85,7 +86,7 @@ Every family inherits it, and it is the part audited hardest.
 
 | Family | Covers | How money moves |
 |---|---|---|
-| Agreement | One-time and milestone deals, goods and mixed orders, net 30 to 90 terms, instalments, refundable deposits, pay on delivery | Up to 12 funded tranches under one delivery deadline. Each releases on the buyer's approval, a delivery code, or a review window ending with the outcome agreed at opening; the review starts at delivery, at the buyer's arrival confirmation, or at a passing check. A review started late never reopens a clock that has run out, and a guardian hold delays only the tranche it falls in. A dispute freezes only the disputed tranche. Both parties can sign any split. The seller can sign the payout over to a financier |
+| Agreement | One-time and milestone deals, goods and mixed orders, net 30 to 90 terms, instalments, refundable deposits, pay on delivery | Up to 12 funded tranches under one delivery deadline. Each releases on the buyer's approval, the buyer's signed release at handover, or a review window ending with the outcome agreed at opening; the review starts at delivery, at the buyer's arrival confirmation, or at a passing check. A review started late never reopens a clock that has run out, and a guardian hold delays only the tranche it falls in. Instalment plans take equal parts, and the seller delivers once the last is in. A dispute freezes only the disputed tranche, and a ruling pays only that tranche. Both parties can sign any split. The seller can sign the payout over to a financier |
 | Time | Hourly and weekly work, retainers | The buyer funds a weekly budget (hours times rate). The freelancer submits hours with a fingerprint of the work log. The buyer has a fixed window to object; silence pays. An objection freezes only the disputed hours, the rest is paid and the unused budget returns. A retainer is one funded period at a time |
 | Jobs and bounties | Agent-to-agent jobs, bounties, contests with one or more winners | The ERC-8183 job flow (open, funded, submitted, completed or rejected, refund after expiry that no hook can stop), with payouts split across winners and the same dispute path as the other families. Outside agents can use it through the ERC-8183 interface |
 | Trade finance | Purchase-order financing, invoice factoring | Holds the financier's advance and reserves the seller's stake. The buyer pays the Agreement escrow as usual; the seller's signed assignment pays the financier first, up to the agreed amount, and the seller the rest. A default resolves on chain against the reserved stake |
@@ -200,7 +201,7 @@ sequenceDiagram
     RV->>ESC: rule(split between the two parties) within 5 days
     Note over RV: 1 of 4 reviewers below the high-value line, 2 of 4 at or above it
   end
-  Note over ESC: Reviewers miss the deadline: the fallback agreed in the terms applies
+  Note over ESC: Reviewers miss the deadline: anyone applies the seller's share written into the terms
   ESC-->>P: Each side's share, as a payout or an owed balance
 ```
 
@@ -237,7 +238,7 @@ sequenceDiagram
 | Verifiers | Report a check result, signed by k of n independent checkers | Move money; a missing result, or a failed result reported after the silence longstop, never blocks the exit |
 | Automatic arbiter | Propose a ruling from the outcomes the deal's terms allow | Rule outside them; any party can escalate |
 | Reviewer Safes | Rule on an escalated dispute, only between the deal's parties, only on the disputed amount | Touch undisputed money or pay anyone else |
-| Guardian Safe | Pause a family's new deals and new money; hold a deal 7 days at a time, 30 days at most; cancel an ordinary queued change | Move money, unpause, delay an exit beyond the hold budget, or cancel a change the owner queued as protected |
+| Guardian Safe | Pause a family's new deals and any money an open deal has not already pledged; hold a deal 7 days at a time, 30 days at most; cancel an ordinary queued change | Move money, unpause, delay an exit beyond the hold budget, or cancel a change the owner queued as protected |
 | Owner Safe through the timelock | Register, retire or revoke families; register verifiers and assets; change caps and fees for new deals. A retired family opens nothing new and still takes the money its open deals need, such as the next instalment | Change a live deal, move deal money, or skip the 48-hour delay |
 | Deployer key | Nothing after deployment | |
 
@@ -311,7 +312,7 @@ The suite launches on mainnet after step 8 with beta limits written into it: 1,0
 | Terms-driven escrow (v3): terms hash, clocks, checks, disputes with appeal, splits, owed balances, caps | Built, not deployed. Its rules carry into the Agreement family |
 | Stake vault and yield pool (v3) | Built, not deployed. Reworked for signed limits and the adapter |
 | Shared settlement base and hub | Built, not deployed |
-| Agreement family | Built, not deployed: tranches, review on delivery, arrival or a check, extensions, pay on delivery, deposits, deadlines, agreed splits. Disputes and instalments next |
+| Agreement family | Built, not deployed: tranches, review on delivery, arrival or a check, extensions, signed release at handover, instalments, deposits, deadlines, agreed splits, disputes with appeal and a fallback. Stake hooks come with the stake vault |
 | Trade finance family | Planned, first |
 | Time family | Planned, second |
 | Jobs and bounties family, ERC-8183 interface | Planned, third |
@@ -325,4 +326,4 @@ The suite launches on mainnet after step 8 with beta limits written into it: 1,0
 | Business registry already on mainnet | Live; its approvals carry into the record contract as business facts |
 | Independent audit and audit contest | Planned, before the beta limits rise |
 
-Contract notes: proposed names are `KarwanSettlementBase` (abstract), `KarwanHub`, `KarwanAgreementEscrow`, `KarwanTimeEscrow`, `KarwanJobEscrow`, `KarwanTradeFinance`, `KarwanIdentityRegistry`, `KarwanRecord`, `KarwanStakeVault`, `KarwanTimelock`, `KarwanCheckVerifier`, `KarwanYieldPool` and `KarwanUsycAdapter`, with the fixed libraries `SettlementLib`, `AgreementLib`, `AgreementDeliveryLib` and `AgreementTermsLib`. Every family's runtime code is measured against Arc's 24,576-byte limit in CI. All contracts are deployed at deterministic addresses from one reviewed script, and ownership goes to the timelock in the same run, so the deployer key holds nothing afterwards.
+Contract notes: proposed names are `KarwanSettlementBase` (abstract), `KarwanHub`, `KarwanAgreementEscrow`, `KarwanTimeEscrow`, `KarwanJobEscrow`, `KarwanTradeFinance`, `KarwanIdentityRegistry`, `KarwanRecord`, `KarwanStakeVault`, `KarwanTimelock`, `KarwanCheckVerifier`, `KarwanYieldPool` and `KarwanUsycAdapter`, with the fixed libraries `SettlementLib`, `DisputeLib`, `AgreementLib`, `AgreementDisputeLib`, `AgreementDeliveryLib` and `AgreementTermsLib`. Every family's runtime code is measured against Arc's 24,576-byte limit in CI. All contracts are deployed at deterministic addresses from one reviewed script, and ownership goes to the timelock in the same run, so the deployer key holds nothing afterwards.
