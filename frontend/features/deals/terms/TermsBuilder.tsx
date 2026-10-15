@@ -1,12 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Hint } from '@/shared/components/Hint';
 import { Icon } from '@/shared/components/Icon';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { cn } from '@/shared/utils/cn';
 import { MAX_PARTS, composeTerms, evenSplit, termsIssues, type TermsDraft, type TermsPart } from './composeTerms';
 import { TERMS_COPY } from './termsCopy';
+import { termsBlocker, termsIssueText } from './termsBlocker';
 
 const REVIEW_CHOICES = [1, 3, 7, 14] as const;
 export const MAX_REVIEW_DAYS = 90;
@@ -78,45 +78,9 @@ export function TermsBuilder({
 
   return (
     <fieldset disabled={disabled} className="min-w-0 space-y-6">
-      <p className="flex items-center gap-2 text-[22px] font-semibold tracking-[-0.02em] text-[var(--lp-dark)]">
-        {t.title}
-        <Hint side="bottom">{t.lead}</Hint>
-      </p>
-
       <div>
-        <p className="mb-2 text-[14px] font-semibold text-[var(--lp-dark)]">{t.kind}</p>
-        <div className="grid gap-2 sm:grid-cols-3">
-          <span className="rounded-[16px] border border-[var(--lp-accent)] bg-[var(--lp-card)] px-3.5 py-3 shadow-[inset_0_0_0_1px_var(--lp-accent)]">
-            <span className="flex items-center justify-between gap-2 text-[15px] font-semibold text-[var(--lp-dark)]">
-              {t.service}
-              <span className="grid size-5 place-items-center rounded-full bg-[var(--lp-accent)] text-[var(--lp-band-dark)]">
-                <Icon name="check" size={16} />
-              </span>
-            </span>
-            <span className="mt-0.5 block text-[14px] text-[var(--lp-text-sub)] font-medium">{t.serviceHint}</span>
-          </span>
-          {[
-            { label: t.goods, hint: t.goodsHint },
-            { label: t.both, hint: t.bothHint },
-          ].map((option) => (
-            <span
-              key={option.label}
-              role="button"
-              aria-disabled="true"
-              tabIndex={0}
-              aria-label={`${option.label}, ${t.soon}`}
-              className="group cursor-not-allowed rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3.5 py-3 opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
-            >
-              <span className="block text-[15px] font-semibold text-[var(--lp-dark)]">{option.label}</span>
-              <span aria-hidden className="mt-0.5 block text-[14px] text-[var(--lp-text-sub)] group-hover:hidden group-focus-visible:hidden font-medium">
-                {option.hint}
-              </span>
-              <span aria-hidden className="mt-0.5 hidden text-[14px] font-semibold text-[var(--lp-dark)] group-hover:block group-focus-visible:block">
-                {t.soon}
-              </span>
-            </span>
-          ))}
-        </div>
+        <p className="text-[22px] font-semibold tracking-[-0.02em] text-[var(--lp-dark)]">{t.title}</p>
+        <p className="mt-1 text-[14px] text-[var(--lp-text-sub)]">{t.lead}</p>
       </div>
 
       <div>
@@ -191,10 +155,7 @@ export function TermsBuilder({
       </div>
 
       <div>
-        <p className="mb-2 flex items-center gap-1.5 text-[14px] font-semibold text-[var(--lp-dark)]">
-          {t.review}
-          <Hint>{t.reviewHint}</Hint>
-        </p>
+        <p className="mb-2 text-[14px] font-semibold text-[var(--lp-dark)]">{t.review}</p>
         <div className="flex flex-wrap items-center gap-2">
           {REVIEW_CHOICES.map((days) => (
             <button
@@ -234,14 +195,13 @@ export function TermsBuilder({
             </label>
           ) : null}
         </div>
+        <p className="mt-2 text-[14px] text-[var(--lp-text-sub)]">{t.reviewRule}</p>
       </div>
 
 
       <section aria-live="polite" className="rounded-[18px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] p-4">
-        <p className="flex items-center gap-1.5 text-[15px] font-semibold text-[var(--lp-dark)]">
-          {t.agreement}
-          <Hint>{t.agreementNote}</Hint>
-        </p>
+        <p className="text-[15px] font-semibold text-[var(--lp-dark)]">{t.agreement}</p>
+        <p className="mt-0.5 text-[14px] text-[var(--lp-text-sub)]">{t.agreementNote}</p>
         <p dir="auto" className="mt-3 whitespace-pre-wrap text-[14px] leading-6 text-[var(--lp-text-sub)] font-medium">{agreement}</p>
         <ul className="mt-3 space-y-1.5">
           {issues.length === 0 ? (
@@ -255,11 +215,7 @@ export function TermsBuilder({
             issues.map((issue) => (
               <li key={issue.code === 'no-what' ? `no-what-${issue.part}` : issue.code} className="flex items-start gap-2 text-[14px] text-[var(--lp-dark)]">
                 <span aria-hidden className="mt-1.5 size-2 shrink-0 rounded-full bg-[var(--status-warning,#C98A1B)]" />
-                {issue.code === 'no-what'
-                  ? t.noWhat.replace('{n}', String(issue.part))
-                  : issue.code === 'split'
-                    ? t.split.replace('{sum}', String(issue.total))
-                    : t.vague.replace('{item}', issue.item)}
+                {termsIssueText(issue, t)}
               </li>
             ))
           )}
@@ -267,4 +223,13 @@ export function TermsBuilder({
       </section>
     </fieldset>
   );
+}
+
+/// Under a form's disabled button: the first thing the terms still need, so
+/// the person knows why they cannot go on.
+export function TermsBlockerNote({ terms }: { terms: TermsDraft }) {
+  const { locale } = useLocale();
+  const reason = termsBlocker(terms, TERMS_COPY[locale]);
+  if (!reason) return null;
+  return <p role="status" className="w-full text-[14px] font-medium text-[var(--lp-dark)]">{reason}</p>;
 }

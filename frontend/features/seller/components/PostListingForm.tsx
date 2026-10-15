@@ -17,7 +17,7 @@ import { Icon } from '@/shared/components/Icon';
 import Link from 'next/link';
 import { walletAmount } from '@/features/balances/walletFormat';
 import { CreationReview } from '@/features/deals/components/CreationReview';
-import { TermsBuilder, DEFAULT_TERMS } from '@/features/deals/terms/TermsBuilder';
+import { TermsBuilder, TermsBlockerNote, DEFAULT_TERMS } from '@/features/deals/terms/TermsBuilder';
 import { cleanLines, composeTerms, termsIssues, type TermsDraft } from '@/features/deals/terms/composeTerms';
 import { TERMS_COPY } from '@/features/deals/terms/termsCopy';
 
@@ -440,6 +440,7 @@ export function PostListingForm() {
               {step < 2 ? rs.continue : t.dealCreation.review}
             </button>
           )}
+          {!reviewing && step === 2 ? <TermsBlockerNote terms={terms} /> : null}
         </div>
 
         {watchingForListingId && (

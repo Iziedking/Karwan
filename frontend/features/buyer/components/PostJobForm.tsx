@@ -28,7 +28,8 @@ import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { Icon } from '@/shared/components/Icon';
 import { DueChips } from '@/features/deals/components/DueChips';
-import { TermsBuilder, DEFAULT_TERMS } from '@/features/deals/terms/TermsBuilder';
+import { TermsBuilder, TermsBlockerNote, DEFAULT_TERMS } from '@/features/deals/terms/TermsBuilder';
+import { durationText } from '@/features/deals/durationText';
 import { composeTerms, termsIssues, type TermsDraft } from '@/features/deals/terms/composeTerms';
 import { TERMS_COPY } from '@/features/deals/terms/termsCopy';
 import { useReportDealAmount } from '@/features/balances/dealAmount';
@@ -166,6 +167,7 @@ export function PostJobForm() {
   const { locale } = useLocale();
   const t = useTranslations().postJob;
   const c = useTranslations().dealCreation;
+  const dt = useTranslations();
   const [reviewing, setReviewing] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const inFlight = useRef(false);
@@ -814,7 +816,10 @@ export function PostJobForm() {
       }} rows={[
         { label: t.sectionWork.requestLabel, value: brief },
         { label: t.sectionTerms.budgetLabel, value: `${budget} USDC` },
-        { label: t.sectionTerms.deadlineLabel, value: `${deadlineValue} ${previewUnitLabel}` },
+        { label: t.sectionTerms.deadlineLabel, value: durationText(
+          deadlineUnit === 'min' ? { days: 0, hours: 0, minutes: Number(deadlineValue) } : deadlineUnit === 'hr' ? { days: 0, hours: Number(deadlineValue) } : { days: Number(deadlineValue), hours: 0 },
+          { day: TERMS_COPY[locale].day, days: TERMS_COPY[locale].days, hr: dt.directDeal.preview.unitHr, min: dt.directDeal.preview.unitMin },
+        ) },
         { label: c.limit, value: `${authorisedPrice(Number(budget), tolerance)} USDC` },
         { label: c.payment, value: terms.parts.map((part) => `${part.pct}%`).join(' / ') },
         { label: TERMS_COPY[locale].agreement, value: agreementText },
@@ -923,9 +928,13 @@ export function PostJobForm() {
           </p>
         )}
         {!submitting && !reviewing && (
-          <p className="text-[14px] leading-6 text-[var(--lp-text-sub)] font-medium">
-            {disabled ? c.requestRequired : c.requestNext}
-          </p>
+          disabled && termsIssues(terms).length > 0 ? (
+            <TermsBlockerNote terms={terms} />
+          ) : (
+            <p className="text-[14px] leading-6 text-[var(--lp-text-sub)] font-medium">
+              {disabled ? c.requestRequired : c.requestNext}
+            </p>
+          )
         )}
       </div>
 

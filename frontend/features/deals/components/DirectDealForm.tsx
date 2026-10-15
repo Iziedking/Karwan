@@ -11,7 +11,8 @@ import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import { cn } from '@/shared/utils/cn';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { Icon } from '@/shared/components/Icon';
-import { TermsBuilder, DEFAULT_TERMS } from '../terms/TermsBuilder';
+import { TermsBuilder, TermsBlockerNote, DEFAULT_TERMS } from '../terms/TermsBuilder';
+import { durationText } from '../durationText';
 import { composeTerms, termsIssues, type TermsDraft } from '../terms/composeTerms';
 import { TERMS_COPY } from '../terms/termsCopy';
 import { DueChips } from './DueChips';
@@ -875,7 +876,7 @@ export function DirectDealForm() {
                 : sellerAddress ?? counterparty.trim(),
         },
         { label: dd.terms.amountLabel, value: `${amount} USDC` },
-        { label: dd.terms.deadlineLabel, value: deadlineValue === '' ? c.noDeadline : `${submitDays * 24 + submitHours} ${dd.preview.unitHr}` },
+        { label: dd.terms.deadlineLabel, value: deadlineValue === '' ? c.noDeadline : durationText({ days: submitDays, hours: submitHours }, { day: TERMS_COPY[locale].day, days: TERMS_COPY[locale].days, hr: dd.preview.unitHr, min: dd.preview.unitMin }) },
         { label: c.payment, value: terms.parts.map((part) => `${part.pct}%`).join(' / ') },
         { label: TERMS_COPY[locale].agreement, value: agreementText },
         { label: c.responseWindow, value: formatWindow(acceptanceHours, t.postJob.unitPickerLabels) },
@@ -953,9 +954,13 @@ export function DirectDealForm() {
           {!submitting && <Icon name="send" size={16} directional />}
         </button>
         {!submitting && !reviewing && (
-          <p className="text-[14px] leading-6 text-[var(--lp-text-sub)] font-medium">
-            {canSubmit ? c.directNext : c.required}
-          </p>
+          termsValid || canSubmit ? (
+            <p className="text-[14px] leading-6 text-[var(--lp-text-sub)] font-medium">
+              {canSubmit ? c.directNext : c.required}
+            </p>
+          ) : (
+            <TermsBlockerNote terms={terms} />
+          )
         )}
       </div>
 
