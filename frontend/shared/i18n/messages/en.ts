@@ -1929,12 +1929,16 @@ interface MessagesShape {
   };
   profileEdit: {
     displayName: string;
-    minBudget: string;
-    maxBudget: string;
-    minDays: string;
-    maxDays: string;
-    asBuyer: string;
     milestoneSplit: string;
+    you: string;
+    offerDescription: string;
+    from: string;
+    to: string;
+    days: string;
+    custom: string;
+    saveFailed: string;
+    /// Said under a field while it keeps Save off.
+    needs: { name: string; offer: string; bio: string; price: string; days: string; buyerMax: string; split: string; };
   };
   /// Verified-business registration band.
   registerBusiness: {
@@ -7487,12 +7491,15 @@ export const en: MessagesShape = {
   },
   profileEdit: {
     displayName: 'Display name',
-    minBudget: 'Min budget (USDC)',
-    maxBudget: 'Max budget (USDC)',
-    minDays: 'Min days',
-    maxDays: 'Max days',
-    asBuyer: 'As a buyer',
     milestoneSplit: 'Milestone split (must total 100)',
+    you: "You",
+    offerDescription: "Description on your offers",
+    from: "from",
+    to: "to",
+    days: "days",
+    custom: "Custom",
+    saveFailed: "Could not save. Check the fields and try again.",
+    needs: { name: "Add your name.", offer: "Add at least one thing you offer.", bio: "Add a short description buyers will see.", price: "The highest price must be above the lowest.", days: "The longest time must be at least the shortest.", buyerMax: "Set the most your buying agent may pay.", split: "The parts must add up to 100%." },
   },
   registerBusiness: {
     legalCompanyName: 'Legal company name',

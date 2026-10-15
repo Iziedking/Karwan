@@ -5,11 +5,11 @@ import { AuthGuard } from '@/shared/components/AuthGuard';
 import { FormError } from '@/shared/components/FormError';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { api, ApiError, type UserRole } from '@/core/api';
-import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { cn } from '@/shared/utils/cn';
 import { Hint } from '@/shared/components/Hint';
 import { ProfileFrame } from '@/features/profile/ui/ProfileUi';
-import { TERMS_COPY } from '@/features/deals/terms/termsCopy';
+import { editBlockers, splitPercents, type EditBlocker } from '@/features/profile/editRules';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 
 /// Dedicated profile edit. A first-class route, NOT the onboarding flow: no
@@ -31,7 +31,6 @@ function ProfileEditInner() {
   const router = useRouter();
   const t = useTranslations().profile;
   const simple = t.simple;
-  const { locale } = useLocale();
   const { profile, address, fetchState } = useUserProfile();
   const { isBusinessWorkspace } = useWorkspaceContext();
 
@@ -92,28 +91,29 @@ function ProfileEditInner() {
 
   const showIdentity = !isBusiness;
 
-  const canSave = (() => {
-    if (saving || !displayName.trim()) return false;
-    if (wantsSeller) {
-      if (skills.split(',').map((s) => s.trim()).filter(Boolean).length === 0) return false;
-      if (!bio.trim()) return false;
-      if (!(sellerMin > 0) || !(sellerMax > sellerMin)) return false;
-      if (!(sellerMinDays > 0) || !(sellerMaxDays >= sellerMinDays)) return false;
-    }
-    if (wantsBuyer) {
-      if (!(buyerMax > 0)) return false;
-      if (!(buyerMinDays > 0) || !(buyerMaxDays >= buyerMinDays)) return false;
-      const pcts = milestoneSplit.split(',').map((s) => Number(s.trim())).filter(Number.isFinite);
-      if (pcts.length === 0 || pcts.reduce((a, b) => a + b, 0) !== 100) return false;
-    }
-    return true;
-  })();
+  const blockers = editBlockers({
+    role,
+    needsName: showIdentity,
+    displayName,
+    skills,
+    bio,
+    sellerMin,
+    sellerMax,
+    sellerMinDays,
+    sellerMaxDays,
+    buyerMax,
+    buyerMinDays,
+    buyerMaxDays,
+    split: milestoneSplit,
+  });
+  const blocked = (key: EditBlocker) => blockers.includes(key);
+  const canSave = !saving && blockers.length === 0;
 
   async function save() {
     if (!address || !canSave) return;
     setSaving(true);
     setError(null);
-    const milestonePcts = milestoneSplit.split(',').map((s) => Number(s.trim())).filter(Number.isFinite);
+    const milestonePcts = splitPercents(milestoneSplit);
     try {
       await api.saveProfile({
         address,
@@ -142,19 +142,17 @@ function ProfileEditInner() {
       if (typeof window !== 'undefined') window.dispatchEvent(new Event('karwan:profile-saved'));
       router.push('/profile');
     } catch (err) {
-      const raw =
-        err instanceof ApiError ? (err.detail as unknown) ?? err.message : (err as Error).message;
-      setError(typeof raw === 'string' ? raw : JSON.stringify(raw));
+      // The server's own words stay in the console; the page says it plainly.
+      console.warn('profile save failed', err instanceof ApiError ? err.detail ?? err.message : err);
+      setError(pe.saveFailed);
       setSaving(false);
     }
   }
 
   const splitText = milestoneSplit.replace(/\s/g, '');
-  const presetSplits = [
-    { value: '50,50', label: TERMS_COPY[locale].payHalf },
-    { value: '30,70', label: TERMS_COPY[locale].payThirty },
-  ];
-  const customSplit = !presetSplits.some((preset) => preset.value === splitText);
+  const splitLabel = (value: string) => value.split(',').map((part) => `${part}%`).join(' / ');
+  const presetSplits = ['50,50', '30,70'];
+  const customSplit = !presetSplits.includes(splitText);
   const roles: { value: UserRole; label: string }[] = [
     { value: 'seller', label: simple.sell },
     { value: 'buyer', label: simple.buy },
@@ -162,7 +160,7 @@ function ProfileEditInner() {
   ];
 
   return (
-    <ProfileFrame title={simple.profileTitle}>
+    <ProfileFrame title={t.hub.editProfile}>
       <form
         onSubmit={(event) => {
           event.preventDefault();
@@ -170,78 +168,81 @@ function ProfileEditInner() {
         }}
         className="space-y-7"
       >
-        {showIdentity ? (
-          <Field label={pe.displayName}>
-            <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={40} className="form-input" />
-          </Field>
-        ) : null}
-
-        <div role="group" aria-label={simple.useKarwanTo}>
-          <p className="mb-2 text-[14px] font-semibold text-[var(--lp-dark)]">{simple.useKarwanTo}</p>
-          <div className="flex flex-wrap gap-2">
-            {roles.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                aria-pressed={role === option.value}
-                disabled={saving}
-                onClick={() => setRole(option.value)}
-                className={cn(CHIP, role === option.value ? CHIP_ON : CHIP_OFF)}
-              >
-                {option.label}
-              </button>
-            ))}
+        <FormCard title={pe.you}>
+          {showIdentity ? (
+            <Field label={pe.displayName}>
+              <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={40} className="form-input" />
+              <Need when={blocked('name')}>{pe.needs.name}</Need>
+            </Field>
+          ) : null}
+          <div role="group" aria-label={simple.useKarwanTo}>
+            <p className="mb-2 text-[14px] font-semibold text-[var(--lp-dark)]">{simple.useKarwanTo}</p>
+            <div className="grid grid-cols-3 gap-1 rounded-full bg-[var(--tint)] p-1">
+              {roles.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  aria-pressed={role === option.value}
+                  disabled={saving}
+                  onClick={() => setRole(option.value)}
+                  className={cn(SEGMENT, role === option.value ? SEGMENT_ON : SEGMENT_OFF)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        </FormCard>
 
         {wantsSeller ? (
-          <section className="space-y-4">
-            <h2 className="text-[17px] font-semibold text-[var(--lp-dark)]">{simple.sellingAgent}</h2>
+          <FormCard title={simple.sellingAgent}>
             <Field label={isBusiness ? t.agentProfiles.rows.supplies : simple.whatYouOffer} hint={simple.skillsHint}>
               <input value={skills} onChange={(e) => setSkills(e.target.value)} placeholder={isBusiness ? 'textiles, woven cotton, apparel' : 'logo design, branding'} className="form-input" />
+              <Need when={blocked('offer')}>{pe.needs.offer}</Need>
             </Field>
-            <Field label={simple.aboutYou}>
+            <Field label={pe.offerDescription}>
               <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} className="form-input form-textarea" />
+              <Need when={blocked('bio')}>{pe.needs.bio}</Need>
             </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <NumberField label={pe.minBudget} value={sellerMin} onChange={setSellerMin} />
-              <NumberField label={pe.maxBudget} value={sellerMax} onChange={setSellerMax} />
-              <NumberField label={pe.minDays} value={sellerMinDays} onChange={setSellerMinDays} />
-              <NumberField label={pe.maxDays} value={sellerMaxDays} onChange={setSellerMaxDays} />
-            </div>
-          </section>
+            <RangeField label={simple.priceRange} unit="USDC" from={sellerMin} to={sellerMax} onFrom={setSellerMin} onTo={setSellerMax} fromAria={pe.from} toAria={pe.to}>
+              <Need when={blocked('sellerPrice')}>{pe.needs.price}</Need>
+            </RangeField>
+            <RangeField label={simple.deliveryTime} unit={pe.days} from={sellerMinDays} to={sellerMaxDays} onFrom={setSellerMinDays} onTo={setSellerMaxDays} fromAria={pe.from} toAria={pe.to}>
+              <Need when={blocked('sellerDays')}>{pe.needs.days}</Need>
+            </RangeField>
+          </FormCard>
         ) : null}
 
         {wantsBuyer ? (
-          <section className="space-y-4">
-            <h2 className="text-[17px] font-semibold text-[var(--lp-dark)]">{simple.buyingAgent}</h2>
-            <div className="grid grid-cols-2 gap-3">
-              <NumberField label={simple.mostItMayPay} value={buyerMax} onChange={setBuyerMax} />
-              <span aria-hidden />
-              <NumberField label={pe.minDays} value={buyerMinDays} onChange={setBuyerMinDays} />
-              <NumberField label={pe.maxDays} value={buyerMaxDays} onChange={setBuyerMaxDays} />
-            </div>
+          <FormCard title={simple.buyingAgent}>
+            <Field label={simple.mostItMayPay}>
+              <UnitInput value={buyerMax} onChange={setBuyerMax} unit="USDC" />
+              <Need when={blocked('buyerMax')}>{pe.needs.buyerMax}</Need>
+            </Field>
+            <RangeField label={simple.deliveryTime} unit={pe.days} from={buyerMinDays} to={buyerMaxDays} onFrom={setBuyerMinDays} onTo={setBuyerMaxDays} fromAria={pe.from} toAria={pe.to}>
+              <Need when={blocked('buyerDays')}>{pe.needs.days}</Need>
+            </RangeField>
             <div role="group" aria-label={simple.paymentSplit}>
               <p className="mb-2 text-[14px] font-semibold text-[var(--lp-dark)]">{simple.paymentSplit}</p>
-              <div className="flex flex-wrap gap-2">
-                {presetSplits.map((preset) => (
+              <div className="grid grid-cols-3 gap-1 rounded-full bg-[var(--tint)] p-1">
+                {presetSplits.map((value) => (
                   <button
-                    key={preset.value}
+                    key={value}
                     type="button"
-                    aria-pressed={splitText === preset.value}
-                    onClick={() => setMilestoneSplit(preset.value)}
-                    className={cn(CHIP, splitText === preset.value ? CHIP_ON : CHIP_OFF)}
+                    aria-pressed={splitText === value}
+                    onClick={() => setMilestoneSplit(value)}
+                    className={cn(SEGMENT, splitText === value ? SEGMENT_ON : SEGMENT_OFF)}
                   >
-                    {preset.label}
+                    {splitLabel(value)}
                   </button>
                 ))}
                 <button
                   type="button"
                   aria-pressed={customSplit}
                   onClick={() => { if (!customSplit) setMilestoneSplit('40,60'); }}
-                  className={cn(CHIP, customSplit ? CHIP_ON : CHIP_OFF)}
+                  className={cn(SEGMENT, customSplit ? SEGMENT_ON : SEGMENT_OFF)}
                 >
-                  {TERMS_COPY[locale].payCustom}
+                  {pe.custom}
                 </button>
               </div>
               {customSplit ? (
@@ -249,26 +250,45 @@ function ProfileEditInner() {
                   <input value={milestoneSplit} onChange={(e) => setMilestoneSplit(e.target.value)} aria-label={pe.milestoneSplit} className="form-input tabular-nums" />
                 </span>
               ) : null}
+              <Need when={blocked('split')}>{pe.needs.split}</Need>
             </div>
-          </section>
+          </FormCard>
         ) : null}
 
         {error ? <FormError>{error}</FormError> : null}
-        <button
-          type="submit"
-          disabled={!canSave}
-          className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[var(--lp-accent)] px-6 text-[15px] font-semibold text-[var(--lp-band-dark)] disabled:cursor-not-allowed disabled:opacity-45 sm:w-auto"
-        >
-          {saving ? simple.saving : simple.save}
-        </button>
+        {/* Save stays in reach while the form scrolls, above the phone's bottom bar. */}
+        <div data-sticky-save className="sticky bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-10 -mx-1 rounded-full bg-[var(--canvas)] p-1 lg:bottom-4">
+          <button
+            type="submit"
+            disabled={!canSave}
+            className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[var(--lp-accent)] px-6 text-[15px] font-semibold text-[var(--lp-band-dark)] disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            {saving ? simple.saving : simple.save}
+          </button>
+        </div>
       </form>
     </ProfileFrame>
   );
 }
 
-const CHIP = 'inline-flex min-h-11 items-center rounded-full border px-4 text-[14px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)] disabled:opacity-50';
-const CHIP_ON = 'border-[var(--lp-dark)] bg-[var(--lp-dark)] text-[var(--lp-light)]';
-const CHIP_OFF = 'border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-dark)] hover:border-[var(--lp-outline-strong)]';
+const SEGMENT = 'inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-full px-2 text-[14px] font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)] disabled:opacity-50';
+const SEGMENT_ON = 'bg-[var(--lp-card)] text-[var(--ink)] shadow-[0_0_0_1px_var(--lp-border-light)]';
+const SEGMENT_OFF = 'text-[var(--ink-secondary)] hover:text-[var(--ink)]';
+
+/// One titled card, the way Profile groups its rows.
+function FormCard({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section>
+      <h2 className="mb-2 px-1 text-[14px] font-semibold text-[var(--lp-text-sub)]">{title}</h2>
+      <div className="space-y-5 rounded-[18px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-4">{children}</div>
+    </section>
+  );
+}
+
+/// What a field needs before Save turns on, said under it.
+function Need({ when, children }: { when: boolean; children: ReactNode }) {
+  return when ? <span className="block text-[14px] font-medium text-[var(--color-critical)]">{children}</span> : null;
+}
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
@@ -282,31 +302,68 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
   );
 }
 
-function NumberField({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  onChange: (n: number) => void;
-}) {
+function NumberInput({ value, onChange, ariaLabel }: { value: number; onChange: (n: number) => void; ariaLabel?: string }) {
   const [text, setText] = useState(() => (Number.isFinite(value) ? String(value) : ''));
   useEffect(() => {
     setText(Number.isFinite(value) ? String(value) : '');
   }, [value]);
   return (
-    <Field label={label}>
-      <input
-        type="number"
-        inputMode="decimal"
-        value={text}
-        onChange={(e) => {
-          setText(e.target.value);
-          onChange(e.target.value.trim() === '' ? NaN : Number(e.target.value));
-        }}
-        className="form-input form-input-num"
-      />
-    </Field>
+    <input
+      type="number"
+      inputMode="decimal"
+      aria-label={ariaLabel}
+      value={text}
+      onChange={(e) => {
+        setText(e.target.value);
+        onChange(e.target.value.trim() === '' ? NaN : Number(e.target.value));
+      }}
+      className="form-input form-input-num min-w-0 flex-1"
+    />
+  );
+}
+
+/// A number with its unit beside it, inside the field's row.
+function UnitInput({ value, onChange, unit, ariaLabel }: { value: number; onChange: (n: number) => void; unit: string; ariaLabel?: string }) {
+  return (
+    <span className="flex items-center gap-2">
+      <NumberInput value={value} onChange={onChange} ariaLabel={ariaLabel} />
+      <span className="shrink-0 text-[14px] font-medium text-[var(--ink-secondary)]">{unit}</span>
+    </span>
+  );
+}
+
+/// A range on one line: from, to, then the unit once.
+function RangeField({
+  label,
+  unit,
+  from,
+  to,
+  onFrom,
+  onTo,
+  fromAria,
+  toAria,
+  children,
+}: {
+  label: string;
+  unit: string;
+  from: number;
+  to: number;
+  onFrom: (n: number) => void;
+  onTo: (n: number) => void;
+  fromAria: string;
+  toAria: string;
+  children?: ReactNode;
+}) {
+  return (
+    <div role="group" aria-label={label} className="space-y-2">
+      <p className="text-[14px] font-semibold text-[var(--lp-dark)]">{label}</p>
+      <div className="flex items-center gap-2">
+        <NumberInput value={from} onChange={onFrom} ariaLabel={`${label}, ${fromAria}`} />
+        <span aria-hidden className="text-[var(--ink-secondary)]">–</span>
+        <NumberInput value={to} onChange={onTo} ariaLabel={`${label}, ${toAria}`} />
+        <span className="shrink-0 text-[14px] font-medium text-[var(--ink-secondary)]">{unit}</span>
+      </div>
+      {children}
+    </div>
   );
 }
