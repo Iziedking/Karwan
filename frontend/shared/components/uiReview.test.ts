@@ -454,6 +454,11 @@ test('Updates tiles ease in and out as they slide, following the scroll, and hol
   assert.match(block, /animation-range: entry 0% exit 100%/);
 });
 
+test('phones keep the 14px floor: no rule shrinks text below the size the code asks for', () => {
+  const css = source('../../app/globals.css');
+  assert.doesNotMatch(css, /text-size-adjust:\s*(?!100%)\d+%/);
+});
+
 test('profile is tidy: one way to change the photo, rows say what they open, no address or dead rows by default', () => {
   const hub = source('../../features/profile/components/ProfileAccountHub.tsx');
   // The avatar is the one photo control: a menu once there is a photo.

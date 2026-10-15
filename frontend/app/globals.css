@@ -93,17 +93,9 @@
        stays stable whether or not a page currently scrolls vertically. */
     scrollbar-gutter: stable;
   }
-  /* Phones read a step smaller: text only, so layout and 44px targets hold.
-     Honoured by iOS Safari and Android Chrome; desktop browsers ignore it. */
-  @media (max-width: 640px) {
-    html {
-      -webkit-text-size-adjust: 92%;
-      text-size-adjust: 92%;
-    }
-  }
   /* iOS Safari zooms in on any field under 16px when it is tapped, and stays
-     zoomed after. Fields render at 16px on phones; under the 92% adjustment
-     above that needs 16 / 0.92. Pinch zoom stays available for everyone. */
+     zoomed after, so fields render at 16px on phones. Pinch zoom stays
+     available for everyone. */
   @media (max-width: 767px) {
     input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not([type='file']),
     textarea,

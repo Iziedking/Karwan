@@ -262,9 +262,14 @@ export function MyMoneyLedger({
                               <span className="block truncate text-[15px] font-medium leading-snug text-[var(--lp-dark)]">
                                 {title}
                               </span>
-                              <span className="mt-0.5 block truncate text-[14px] text-[var(--ink-secondary)] font-medium tabular-nums">
+                              <span className="mt-0.5 block line-clamp-2 break-words text-[14px] text-[var(--ink-secondary)] font-medium tabular-nums">
                                 {timeLabel(item.ts)}
-                                {context ? ` · ${context}` : null}
+                                {context ? (
+                                  <>
+                                    {' · '}
+                                    <span className="whitespace-nowrap">{context}</span>
+                                  </>
+                                ) : null}
                                 {item.status !== 'done' && (
                                   <>
                                     {' · '}
