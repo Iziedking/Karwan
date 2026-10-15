@@ -5293,6 +5293,8 @@ export const ar: Messages = {
     total: 'في هذه المحفظة',
     zeroChainsTemplate: 'لا يوجد USDC على {n} شبكات',
     zeroOtherChainsTemplate: 'لا يوجد USDC على {n} شبكات أخرى',
+    zeroChainOne: 'لا يوجد USDC على شبكة واحدة',
+    zeroOtherChainOne: 'لا يوجد USDC على شبكة أخرى واحدة',
     tabs: {
       you: 'أنت',
       buyer: 'وكيل الشراء',

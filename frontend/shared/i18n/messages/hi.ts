@@ -5291,6 +5291,8 @@ export const hi: Messages = {
     total: 'इस वॉलेट में',
     zeroChainsTemplate: '{n} चेन पर कोई USDC नहीं',
     zeroOtherChainsTemplate: '{n} अन्य चेन पर कोई USDC नहीं',
+    zeroChainOne: '1 चेन पर कोई USDC नहीं',
+    zeroOtherChainOne: '1 अन्य चेन पर कोई USDC नहीं',
     tabs: {
       you: 'आप',
       buyer: 'खरीद एजेंट',

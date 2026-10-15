@@ -9,6 +9,8 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { DEALS_AVAILABLE } from '@/core/arcNetwork';
 import type { Messages } from '@/shared/i18n/messages/en';
+import { useMoneyBalances } from '@/features/money/hooks/useMoneyBalances';
+import { arcIncludingPool, emptyChainsLabel } from '../chainRows';
 
 const CARD = 'flex h-full flex-col rounded-[22px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-dark)]';
 
@@ -49,6 +51,7 @@ export function BalancesCard({
   const youBal = useChainBalances(address, open && view === 'you');
   const buyerBal = useChainBalances(buyer, open && view === 'buyer');
   const sellerBal = useChainBalances(seller, open && view === 'seller');
+  const { pool } = useMoneyBalances();
 
   if (!auth.isAuthenticated || !address) {
     return (
@@ -80,7 +83,8 @@ export function BalancesCard({
 
   const rows = ROW_KEYS.map((key) => {
     const q = active.bal[key];
-    const amount = q.isLoading || !q.data ? null : Number(formatUnits(q.data.value, q.data.decimals));
+    const read = q.isLoading || !q.data ? null : Number(formatUnits(q.data.value, q.data.decimals));
+    const amount = view === 'you' && key === 'arc' ? arcIncludingPool(read, pool) : read;
     return { key, amount };
   });
   const settled = rows.every((r) => r.amount !== null);
@@ -182,7 +186,7 @@ export function BalancesCard({
                       ))}
                     </span>
                     <span className="min-w-0 flex-1 text-[14px] text-[var(--lp-text-sub)] font-medium">
-                      {(listed.length ? bc.zeroOtherChainsTemplate : bc.zeroChainsTemplate).replace('{n}', String(empty.length))}
+                      {emptyChainsLabel(empty.length, listed.length > 0, bc)}
                     </span>
                     <span className="text-[14px] font-semibold text-[var(--lp-dark)]">{showEmpty ? bc.hide : bc.reveal}</span>
                   </button>

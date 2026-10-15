@@ -14,6 +14,8 @@ import { useGuide } from '@/shared/guide/GuideProvider';
 import { SELLER_TOUR_ID, SELLER_STEPS } from '@/shared/guide/tours';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { Icon } from '@/shared/components/Icon';
+import Link from 'next/link';
+import { walletAmount } from '@/features/balances/walletFormat';
 import { CreationReview } from '@/features/deals/components/CreationReview';
 import { TermsBuilder, DEFAULT_TERMS } from '@/features/deals/terms/TermsBuilder';
 import { cleanLines, composeTerms, termsIssues, type TermsDraft } from '@/features/deals/terms/composeTerms';
@@ -477,22 +479,18 @@ export function PostListingForm() {
         const visible = recent.filter((l) => !dismissed.has(l.id));
         if (visible.length === 0) {
           return (
-            <div className="pt-6 border-t border-[var(--lp-workspace-border)]">
-              <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)] mb-3">
-                {pl.yourOffers.eyebrow}
-              </p>
-              <p className="text-[14px] text-[var(--lp-workspace-muted)]">
+            <section className="pt-6 border-t border-[var(--lp-workspace-border)]">
+              <h2 className="text-[16px] font-semibold text-[var(--lp-workspace-ink)]">{pl.yourOffers.eyebrow}</h2>
+              <p className="mt-2 text-[14px] font-medium text-[var(--lp-workspace-muted)]">
                 {pl.yourOffers.allDismissed}
               </p>
-            </div>
+            </section>
           );
         }
         return (
-          <div className="pt-6 border-t border-[var(--lp-workspace-border)]">
-            <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)] mb-4">
-              {pl.yourOffers.eyebrow}
-            </p>
-            <ul className="divide-y divide-[var(--lp-workspace-border)]">
+          <section className="pt-6 border-t border-[var(--lp-workspace-border)]">
+            <h2 className="text-[16px] font-semibold text-[var(--lp-workspace-ink)]">{pl.yourOffers.eyebrow}</h2>
+            <ul className="mt-2 divide-y divide-[var(--lp-workspace-border)]">
               {visible.slice(0, 5).map((l) => {
                 const isCancelled = !!l.cancelledAt;
                 const isMatched = !!l.matchedAt && !!l.matchedJobId;
@@ -505,70 +503,51 @@ export function PostListingForm() {
                     : isMatched
                       ? pl.offerStatuses.matched
                       : pl.offerStatuses.open;
-                const arrow = isMatched ? '↗' : '→';
                 return (
-                  <li
-                    key={l.id}
-                    onClick={() => router.push(`/listings/${l.id}`)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        router.push(`/listings/${l.id}`);
-                      }
-                    }}
-                    tabIndex={0}
-                    role="link"
-                    aria-label={pl.openAriaTemplate.replace('{title}', l.title)}
-                    className="group cursor-pointer py-3 flex items-center justify-between gap-3 hover:bg-[var(--lp-workspace-soft)] -mx-2 px-2 transition-colors rounded-md focus:bg-[var(--lp-workspace-soft)] focus:outline-none"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-[14px] font-semibold tracking-tight truncate text-[var(--lp-workspace-ink)]">
-                        {l.title}
-                      </p>
-                      <p className="text-[14px] text-[var(--lp-workspace-muted)] truncate">{l.description}</p>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span className="font-sans text-[16px] font-extrabold tabular-nums tracking-[-0.01em] text-[var(--lp-workspace-ink)]">
-                        {l.askingPriceUsdc}
-                        <span className="ms-1 mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-workspace-muted)]">
-                          USDC
+                  <li key={l.id} className="flex items-center gap-1">
+                    <Link
+                      href={`/listings/${l.id}`}
+                      aria-label={pl.openAriaTemplate.replace('{title}', l.title)}
+                      className="flex min-h-14 min-w-0 flex-1 items-center justify-between gap-3 rounded-md py-3 hover:bg-[var(--lp-workspace-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)]"
+                    >
+                      <span className="min-w-0">
+                        <span className="line-clamp-2 break-words text-[15px] font-semibold leading-snug text-[var(--lp-workspace-ink)]">{l.title}</span>
+                        <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <span className="text-[14px] font-medium tabular-nums text-[var(--lp-workspace-muted)]">
+                            {walletAmount(String(l.askingPriceUsdc)) ?? l.askingPriceUsdc} USDC
+                          </span>
+                          {/* A tinted label, like Request's: the state reads on its own ground. */}
+                          <span
+                            className={cn(
+                              'rounded-full px-2.5 py-0.5 text-[14px] font-semibold',
+                              isMatched
+                                ? 'bg-[var(--color-positive-soft)] text-[var(--color-positive)]'
+                                : isTerminal
+                                  ? 'bg-[var(--tint)] text-[var(--ink-secondary)]'
+                                  : 'bg-[var(--tint)] text-[var(--ink)]',
+                            )}
+                          >
+                            {label}
+                          </span>
                         </span>
                       </span>
-                      {isTerminal && (
-                        <button
-                          type="button"
-                          title={pl.dismissTitle}
-                          aria-label={pl.dismissAriaTemplate.replace('{status}', label.toLowerCase())}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            dismiss(l.id);
-                          }}
-                          onKeyDown={(e) => e.stopPropagation()}
-                          className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full mono text-[14px] text-[var(--lp-workspace-muted)] hover:text-[var(--lp-workspace-ink)] hover:bg-[var(--lp-workspace-soft)] transition-colors"
-                        >
-                          ×
-                        </button>
-                      )}
-                      <span
-                        className="mono text-[13px] uppercase tracking-[0.12em] font-semibold"
-                        style={{
-                          color: isCancelled || isExpired ? 'var(--lp-workspace-muted)' : 'var(--lp-accent-on-light)',
-                        }}
+                      <Icon name="chevron-right" size={16} directional className="shrink-0 text-[var(--lp-workspace-muted)]" />
+                    </Link>
+                    {isTerminal && (
+                      <button
+                        type="button"
+                        aria-label={pl.dismissAriaTemplate.replace('{status}', label.toLowerCase())}
+                        onClick={() => dismiss(l.id)}
+                        className="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-[var(--lp-workspace-muted)] transition-colors hover:bg-[var(--lp-workspace-soft)] hover:text-[var(--lp-workspace-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
                       >
-                        {label}
-                        <span
-                          aria-hidden
-                          className="ms-1 inline-block transition-transform duration-200 group-hover:translate-x-0.5"
-                        >
-                          {arrow}
-                        </span>
-                      </span>
-                    </div>
+                        <Icon name="close" size={16} />
+                      </button>
+                    )}
                   </li>
                 );
               })}
             </ul>
-          </div>
+          </section>
         );
       })()}
     </div>

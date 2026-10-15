@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Icon } from '@/shared/components/Icon';
 import { ARC_NETWORK } from '@/core/arcNetwork';
 import { BalancesCard } from '@/features/balances/components/BalancesCard';
 import { AuthGuard } from '@/shared/components/AuthGuard';
@@ -22,9 +23,9 @@ function AccountPageInner() {
   const t = messages.account.page;
   return (
     <div className="product-surface mx-auto w-full max-w-[1040px] pb-14">
-      <header className="mt-5 grid gap-4 border-b border-[var(--lp-border-light)] pb-7 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.45fr)] lg:items-end">
+      <header className="mt-5">
         <div>
-          <div className="flex items-center"><h1 className="text-[clamp(2.7rem,6vw,5.2rem)] font-semibold leading-[0.94] tracking-[-0.065em] text-[var(--lp-dark)]">{messages.accountHome.balanceLabel}</h1><NetworkHint /></div>
+          <div className="flex items-center"><h1 className="text-[28px] font-semibold tracking-[-0.02em] text-[var(--lp-dark)]">{messages.accountHome.balanceLabel}</h1><NetworkHint /></div>
         </div>
       </header>
 
@@ -52,7 +53,7 @@ function AccountPageInner() {
                 <span className="block text-[15px] font-semibold text-[var(--lp-dark)]">{t.faucetTitle}</span>
                 <span className="mt-0.5 block text-[14px] text-[var(--lp-text-sub)] font-medium">{t.faucetBody}</span>
               </span>
-              <span aria-hidden className="rtl-flip shrink-0 text-[var(--lp-text-sub)]">→</span>
+              <Icon name="chevron-right" size={20} directional className="shrink-0 text-[var(--lp-text-sub)]" />
             </Link>
           ) : null}
           <RecoveryRow />
@@ -74,15 +75,15 @@ function AccountAction({ href, label, description, icon, primary = false }: {
     <Link href={href} className="group grid min-h-[88px] grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 py-3 transition-colors hover:text-[var(--lp-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-inset">
       <span className={`grid size-10 place-items-center rounded-full ${primary ? 'bg-[var(--lp-accent)] text-[var(--accent-ink)]' : 'bg-[var(--lp-light)] text-[var(--lp-dark)]'}`} aria-hidden><ActionIcon icon={icon} /></span>
       <span><span className="block text-[15px] font-bold text-[var(--lp-dark)]">{label}</span><span className="mt-1 block text-[14px] leading-5 text-[var(--lp-text-sub)] font-medium">{description}</span></span>
-      <span aria-hidden className="text-[18px] text-[var(--lp-text-muted)] transition-transform duration-200 group-hover:translate-x-1 group-hover:text-[var(--lp-accent)] rtl:-scale-x-100 rtl:group-hover:-translate-x-1">→</span>
+      <Icon name="chevron-right" size={20} directional className="text-[var(--lp-text-muted)] transition-transform duration-200 group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5 motion-reduce:transition-none" />
     </Link>
   );
 }
 
 function ActionIcon({ icon }: { icon: 'add' | 'move' | 'send' }) {
-  if (icon === 'add') return <span className="text-[25px] font-normal leading-none">+</span>;
-  if (icon === 'move') return <span className="text-[22px] leading-none">↔</span>;
-  return <span className="text-[22px] leading-none">↑</span>;
+  if (icon === 'add') return <Icon name="plus" size={20} />;
+  if (icon === 'move') return <Icon name="arrow-up-right" size={20} />;
+  return <Icon name="send" size={20} />;
 }
 
 /// The same total as Home, and where it sits. Home shows only the total; the
