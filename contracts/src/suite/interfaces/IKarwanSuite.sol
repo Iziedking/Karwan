@@ -17,6 +17,7 @@ interface IKarwanHub {
     function totalCapOf(address family, address asset) external view returns (uint128);
     function acceptsMoney(address family, address asset) external view returns (bool);
     function isFamily(address family) external view returns (bool);
+    function assetAllowed(address asset) external view returns (bool);
     function isVerifier(address verifier) external view returns (bool);
     function isIssuer(address issuer) external view returns (bool);
     function guardian() external view returns (address);

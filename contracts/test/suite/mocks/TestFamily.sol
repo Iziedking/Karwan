@@ -27,6 +27,10 @@ contract TestFamily is KarwanSettlementBase {
         _fund(dealId, amount);
     }
 
+    function pledge(bytes32 dealId, uint256 amount) external {
+        _pledge(dealId, amount);
+    }
+
     function pay(bytes32 dealId, address party, uint256 amount) external nonReentrant {
         _payTo(dealId, party, amount);
     }

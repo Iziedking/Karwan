@@ -118,8 +118,9 @@ contract KarwanHub is Ownable2Step, IKarwanHub {
         emit FamilyRevoked(family);
     }
 
-    /// @notice Stop a family's new deals and new money. The guardian or the
-    ///         owner can pause; only the owner resumes. Exits never pause.
+    /// @notice Stop a family's new deals and any money an open deal has not
+    ///         already pledged. The guardian or the owner can pause; only the
+    ///         owner resumes. Exits never pause.
     function pauseFamily(address family) external {
         if (msg.sender != guardian && msg.sender != owner()) revert NotGuardian();
         _family(family).paused = true;
@@ -210,9 +211,10 @@ contract KarwanHub is Ownable2Step, IKarwanHub {
         return capsOf[family][asset].total;
     }
 
-    /// @notice Whether a family's open deals may take more money: a retired
-    ///         family still finishes its instalments and weekly budgets; a
+    /// @notice Whether a family's open deals may take money they have not
+    ///         pledged: a retired family still finishes its weekly budgets; a
     ///         paused or revoked family, or a delisted asset, takes none.
+    ///         Pledged parts follow `isFamily` and `assetAllowed` instead.
     function acceptsMoney(address family, address asset) external view returns (bool) {
         Family storage f = families[family];
         return f.registered && !f.revoked && !f.paused && assetAllowed[asset];

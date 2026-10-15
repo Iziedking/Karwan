@@ -31,6 +31,7 @@ abstract contract KarwanSettlementBase is ReentrancyGuard, EIP712 {
         bytes32 indexed dealId, address indexed asset, address indexed payer, uint8 payees, uint16 feeBps, address feeRecipient
     );
     event Funded(bytes32 indexed dealId, address indexed from, uint256 amount);
+    event Promised(bytes32 indexed dealId, uint256 amount);
     event Paid(bytes32 indexed dealId, address indexed to, uint256 amount, bool toAssignee);
     event FeePaid(bytes32 indexed dealId, address indexed to, uint256 amount);
     event PayoutCredited(address indexed asset, address indexed to, uint256 amount);
@@ -180,6 +181,10 @@ abstract contract KarwanSettlementBase is ReentrancyGuard, EIP712 {
         return _s.owedTotal[asset];
     }
 
+    function promisedTotal(address asset) external view returns (uint256) {
+        return _s.promisedTotal[asset];
+    }
+
     function held(address asset) external view returns (uint256) {
         return _s.held[asset];
     }
@@ -222,6 +227,10 @@ abstract contract KarwanSettlementBase is ReentrancyGuard, EIP712 {
 
     function _fund(bytes32 dealId, uint256 amount) internal {
         SettlementLib.fund(_s, hub, dealId, amount);
+    }
+
+    function _pledge(bytes32 dealId, uint256 amount) internal {
+        SettlementLib.pledge(_s, hub, dealId, amount);
     }
 
     function _payTo(bytes32 dealId, address party, uint256 amount) internal {

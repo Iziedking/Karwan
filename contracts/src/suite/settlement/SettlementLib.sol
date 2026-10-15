@@ -24,6 +24,9 @@ struct DealAccount {
     uint128 funded;
     uint128 balance;
     uint128 feePaid;
+    /// Money the payer promised at opening and has not paid yet, such as the
+    /// rest of an instalment plan. It already counts against the caps.
+    uint128 promised;
 }
 
 struct Assignment {
@@ -42,6 +45,7 @@ struct SettlementStore {
     mapping(address => mapping(address => uint256)) owed;
     mapping(address => uint256) owedTotal;
     mapping(address => uint256) held;
+    mapping(address => uint256) promisedTotal;
     mapping(address => mapping(uint256 => bool)) nonceUsed;
     mapping(bytes32 => uint24) pendingRecord;
 }
@@ -68,6 +72,7 @@ library SettlementLib {
         bytes32 indexed dealId, address indexed asset, address indexed payer, uint8 payees, uint16 feeBps, address feeRecipient
     );
     event Funded(bytes32 indexed dealId, address indexed from, uint256 amount);
+    event Promised(bytes32 indexed dealId, uint256 amount);
     event Paid(bytes32 indexed dealId, address indexed to, uint256 amount, bool toAssignee);
     event FeePaid(bytes32 indexed dealId, address indexed to, uint256 amount);
     event PayoutCredited(address indexed asset, address indexed to, uint256 amount);
@@ -162,22 +167,60 @@ library SettlementLib {
         revert NotParty();
     }
 
+    /// @notice The payer funds the deal. Money promised at opening is taken
+    ///         even while the family is paused or its caps are full, and after
+    ///         an agent's binding has expired, because it was counted then; only
+    ///         a revoked family or a delisted asset refuses it.
     function fund(SettlementStore storage s, IKarwanHub hub, bytes32 dealId, uint256 amount) external {
         DealAccount storage a = live(s, dealId);
         if (msg.sender != a.payer) revert NotParty();
         if (amount == 0) revert BadAmount();
-        if (!hub.acceptsMoney(address(this), a.asset)) revert NotOpen();
-        if (uint256(a.funded) + amount > a.perDealCap) revert OverCap();
-        if (s.held[a.asset] + amount > hub.totalCapOf(address(this), a.asset)) revert OverCap();
+        uint256 promised = a.promised;
+        bool pledged = promised != 0;
+        if (pledged) {
+            if (amount > promised) revert OverCap();
+            if (!takesPromised(hub, a.asset)) revert NotOpen();
+            a.promised = uint128(promised - amount);
+            s.promisedTotal[a.asset] -= amount;
+        } else {
+            if (!hub.acceptsMoney(address(this), a.asset)) revert NotOpen();
+            if (uint256(a.funded) + amount > a.perDealCap) revert OverCap();
+            _checkTotal(s, hub, a.asset, amount);
+        }
         a.funded += uint128(amount);
         a.balance += uint128(amount);
         s.held[a.asset] += amount;
-        IKarwanIdentity(hub.identity()).useAgentAllowance(msg.sender, amount);
+        if (!pledged) IKarwanIdentity(hub.identity()).useAgentAllowance(msg.sender, amount);
         IERC20 token = IERC20(a.asset);
         uint256 before = token.balanceOf(address(this));
         token.safeTransferFrom(msg.sender, address(this), amount);
         if (token.balanceOf(address(this)) - before != amount) revert BadDelivery();
         emit Funded(dealId, msg.sender, amount);
+    }
+
+    /// @notice The payer promises money the deal will take later. It counts
+    ///         against the caps and an agent payer's signed limits now, as one
+    ///         payment, so a later part is never refused for room another deal
+    ///         took, and an agent cannot split a deal to pass its per-payment
+    ///         limit.
+    function pledge(SettlementStore storage s, IKarwanHub hub, bytes32 dealId, uint256 amount) external {
+        DealAccount storage a = live(s, dealId);
+        if (msg.sender != a.payer) revert NotParty();
+        if (amount == 0 || a.promised != 0) revert BadAmount();
+        if (uint256(a.funded) + amount > a.perDealCap) revert OverCap();
+        _checkTotal(s, hub, a.asset, amount);
+        a.promised = uint128(amount);
+        s.promisedTotal[a.asset] += amount;
+        emit Promised(dealId, amount);
+        IKarwanIdentity(hub.identity()).useAgentAllowance(msg.sender, amount);
+    }
+
+    function takesPromised(IKarwanHub hub, address asset) public view returns (bool) {
+        return hub.isFamily(address(this)) && hub.assetAllowed(asset);
+    }
+
+    function _checkTotal(SettlementStore storage s, IKarwanHub hub, address asset, uint256 amount) private view {
+        if (s.held[asset] + s.promisedTotal[asset] + amount > hub.totalCapOf(address(this), asset)) revert OverCap();
     }
 
     // ------------------------------- Payouts ------------------------------
@@ -224,8 +267,17 @@ library SettlementLib {
     function close(SettlementStore storage s, bytes32 dealId) public {
         DealAccount storage a = live(s, dealId);
         if (a.balance != 0) revert BadAmount();
+        _endPromise(s, a);
         a.closed = true;
         emit AccountClosed(dealId);
+    }
+
+    function _endPromise(SettlementStore storage s, DealAccount storage a) private {
+        uint256 promised = a.promised;
+        if (promised != 0) {
+            a.promised = 0;
+            s.promisedTotal[a.asset] -= promised;
+        }
     }
 
     // ----------------------------- Assignment -----------------------------
@@ -310,6 +362,7 @@ library SettlementLib {
         for (uint8 i; i < n; ++i) {
             payTo(s, dealId, s.payees[dealId][i], toPayees[i]);
         }
+        _endPromise(s, a);
         a.closed = true;
         emit AccountClosed(dealId);
         for (uint8 p; p <= n; ++p) {
