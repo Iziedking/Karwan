@@ -3,11 +3,14 @@
 
 export type AmountBand = 'under_100' | '100_500' | '500_2000' | '2000_10000' | 'over_10000';
 
-/// What the public may know about a settled deal: roughly how large, and when.
-/// No parties, no deal id, no exact amount.
+export type DealOrigin = 'agent' | 'direct';
+
+/// What the public may know about a settled deal: roughly how large, when, and
+/// whether an agent found the match. No parties, no deal id, no exact amount.
 export interface PublicFeedDeal {
   amountBand: AmountBand;
   settledAt: number;
+  origin: DealOrigin;
 }
 
 export interface PublicFeedSource {
@@ -37,6 +40,12 @@ export function amountBand(usdc: string): AmountBand {
   return 'over_10000';
 }
 
-export function publicFeedDeal(deal: PublicFeedSource): PublicFeedDeal {
-  return { amountBand: amountBand(deal.dealAmountUsdc), settledAt: deal.settledAt ?? deal.updatedAt };
+/// New rows say how they began; older ones fall back to the brief store, since
+/// every agent deal has a brief and a direct deal never does.
+export function dealOrigin(deal: { origin?: DealOrigin }, hasBrief: boolean): DealOrigin {
+  return deal.origin ?? (hasBrief ? 'agent' : 'direct');
+}
+
+export function publicFeedDeal(deal: PublicFeedSource, origin: DealOrigin): PublicFeedDeal {
+  return { amountBand: amountBand(deal.dealAmountUsdc), settledAt: deal.settledAt ?? deal.updatedAt, origin };
 }

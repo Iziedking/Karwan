@@ -155,7 +155,7 @@ import { termsDigest } from '../deals/termsDigest.js';
 import { agreementDigest } from '../deals/agreementDigest.js';
 import { fundingAgreementBlock } from '../deals/fundingAgreement.js';
 import { releaseBlockReasonForDelivery } from '../deals/releaseBlock.js';
-import { publicFeedDeal } from '../deals/publicFeed.js';
+import { dealOrigin, publicFeedDeal } from '../deals/publicFeed.js';
 import { manualReviewActive, manualReviewEligibility } from '../deals/evidenceManualReview.js';
 import { dealView, type DealViewInput } from '../deals/dealView.js';
 import { loadTrustCard } from '../trust/loadTrustCard.js';
@@ -1498,7 +1498,7 @@ dealsRoutes.post('/invite/:token/claim', async (c) => {
 /// without exposing in-flight deals.
 dealsRoutes.get('/feed', async (c) => {
   const deals = (await listAllDeals()).filter((d) => d.settledAt != null);
-  return c.json({ deals: deals.slice(0, 60).map((d) => publicFeedDeal(d)) });
+  return c.json({ deals: deals.slice(0, 60).map((d) => publicFeedDeal(d, dealOrigin(d, !!getBrief(d.jobId)))) });
 });
 
 /// Aggregate network stats. Counts and total volume only. no per-deal rows, no
@@ -1511,9 +1511,7 @@ dealsRoutes.get('/stats', async (c) => {
   // Split direct vs agent. New rows carry an explicit origin; legacy rows fall
   // back to the brief store, since every agent deal has a brief and a direct
   // deal never does.
-  const agent = deals.filter(
-    (d) => (d.origin ?? (getBrief(d.jobId) ? 'agent' : 'direct')) === 'agent',
-  ).length;
+  const agent = deals.filter((d) => dealOrigin(d, !!getBrief(d.jobId)) === 'agent').length;
   const direct = total - agent;
   return c.json({ total, direct, agent, settled, volumeUsdc });
 });

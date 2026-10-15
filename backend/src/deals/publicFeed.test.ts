@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { amountBand, publicFeedDeal } from './publicFeed.js';
+import { amountBand, dealOrigin, publicFeedDeal } from './publicFeed.js';
 
 const BUYER = '0x7711886865c33606ebd977da02a6a25373c75a35';
 const SELLER = '0xa045e8104bc066fff5bfc673abf354871edc03c5';
@@ -25,8 +25,16 @@ const settled = {
   onChain: { state: 2, dealAmountWei: '100000000', milestonePcts: [50, 50] },
 };
 
-test('the public feed carries a value band and a time, nothing that names a party', () => {
-  assert.deepEqual(publicFeedDeal(settled), { amountBand: '100_500', settledAt: 3 });
+test('the public feed carries a value band, a time and how the deal began, nothing that names a party', () => {
+  assert.deepEqual(publicFeedDeal(settled, 'agent'), { amountBand: '100_500', settledAt: 3, origin: 'agent' });
+  assert.deepEqual(publicFeedDeal(settled, 'direct'), { amountBand: '100_500', settledAt: 3, origin: 'direct' });
+});
+
+test('a deal began with an agent when it says so, or, for older rows, when it has a brief', () => {
+  assert.equal(dealOrigin({ origin: 'agent' }, false), 'agent');
+  assert.equal(dealOrigin({ origin: 'direct' }, true), 'direct');
+  assert.equal(dealOrigin({}, true), 'agent');
+  assert.equal(dealOrigin({}, false), 'direct');
 });
 
 test('bands follow the published edges', () => {
@@ -44,11 +52,11 @@ test('an amount that is not a number bands as under 100, never throws', () => {
 });
 
 test('a feed row without settledAt falls back to updatedAt', () => {
-  assert.deepEqual(publicFeedDeal({ ...settled, settledAt: undefined }), { amountBand: '100_500', settledAt: 4 });
+  assert.deepEqual(publicFeedDeal({ ...settled, settledAt: undefined }, 'direct'), { amountBand: '100_500', settledAt: 4, origin: 'direct' });
 });
 
 test('nothing private survives serialization', () => {
-  const wire = JSON.stringify(publicFeedDeal(settled));
+  const wire = JSON.stringify(publicFeedDeal(settled, 'agent'));
   for (const secret of ['Deliver the agent', '960ba432', '0b7ed4bf', 'private assessment', 'Acme', '0x52dd', BUYER, SELLER, settled.jobId, '0x7711', '0xa045', 'milestonePcts']) {
     assert.equal(wire.includes(secret), false, `leaked ${secret}`);
   }
