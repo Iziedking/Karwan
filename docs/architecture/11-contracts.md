@@ -88,7 +88,7 @@ Every family inherits it, and it is the part audited hardest.
 |---|---|---|
 | Agreement | One-time and milestone deals, goods and mixed orders, net 30 to 90 terms, instalments, refundable deposits, pay on delivery | Up to 12 funded tranches under one delivery deadline. Each releases on the buyer's approval, the buyer's signed release at handover, or a review window ending with the outcome agreed at opening; the review starts at delivery, at the buyer's arrival confirmation, or at a passing check. A review started late never reopens a clock that has run out, and a guardian hold delays only the tranche it falls in. Instalment plans take equal parts, and the seller delivers once the last is in. A dispute freezes only the disputed tranche, and a ruling pays only that tranche. Both parties can sign any split. The seller can sign the payout over to a financier |
 | Time | Hourly, daily and unit work, retainers | One employer and one worker. The employer funds each cycle's budget (the most hours times the rate, or the retainer), one cycle at a time or several ahead. The worker submits the units worked with a fingerprint of the work log, until a claim grace after the cycle ends, 2 days by default. The employer can approve at any time; once the grace ends and the claim is final, the employer has the review window, 5 days by default, to object to some units, and silence then pays the submitted units. An objection holds only the objected units for the dispute path; the rest is paid at once. Unused budget goes back, or carries forward when the terms say so. Either side ends the engagement with the notice the terms set, 0 to 4 cycles, and a cycle inside the notice runs only if the employer funds it; both sides together can end it at once. A new rate or hours apply to cycles not yet funded, once both sides sign. The per-deal cap counts what an engagement holds at once, and the engagement records one outcome when it closes, valued at what the worker was paid |
-| Jobs and bounties | Agent-to-agent jobs, bounties, contests with one or more winners | The ERC-8183 job flow (open, funded, submitted, completed or rejected, refund after expiry that no hook can stop), with payouts split across winners and the same dispute path as the other families. Outside agents can use it through the ERC-8183 interface |
+| Jobs and bounties | Agent-to-agent jobs, bounties, contests with one or more winners | Jobs follow ERC-8183, so outside agents use them through the standard interface: the client names a provider and an evaluator, the client or the provider sets the budget, the client funds exactly the budget it expects, and the evaluator completes or rejects the submitted work. On top of the standard, the evaluator's silence pays the provider once the review window ends, 5 days by default; a rejection of submitted work waits 3 days, in which the provider can take it to the shared dispute path, which can pay all, none or part; and submitted work never expires into a refund. A funded job nobody submitted for goes back at its expiry, and no hook can stop it, because hooks are not taken. Bounties and contests hold the prize; entrants submit a fingerprint of their work before the deadline, and the evaluator awards up to 8 places from the entries, with shares fixed when the bounty opens; after the deadline it may fill fewer places, and the shares of empty places go back. A bounty not awarded in time goes back to the client, whose record shows it was not awarded if anyone entered. The fee is split as in every family, and each escrow takes one asset, fixed at deployment |
 | Trade finance | Purchase-order financing, invoice factoring | Holds no money. In one transaction the financier advances to the seller, the seller's signed assignment makes the Agreement escrow repay the financier first, up to the agreed amount, and the seller's signed stake, at least 10% of the advance, is reserved for the financier. The seller's assignment names Trade finance as the only contract that may submit it, so it never takes effect without the advance. Only an accepted, fully funded deal can be financed, and the repayment must fit what the deal still owes the seller. A default resolves on chain against the reserved stake, which the financier keeps reserved when the deal's horizon moves later |
 
 A new family is a new contract on the same base, registered through the timelock. Kinds of deal that do not fit any family stay out until they get their own contract: per-second streaming, pooled lending with tranches and write-downs, contests decided by a vote, and letter-of-credit document workflows.
@@ -151,6 +151,53 @@ sequenceDiagram
     Note over TM: 32 USDC held for the dispute path, which rules the worker's share of it; the 32 USDC unused goes back when the dispute ends
   end
 ```
+
+## An agent job
+
+One agent hires another through the ERC-8183 interface. No step needs a Karwan server, and an evaluator who says nothing cannot hold up the provider's pay.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor C as Client agent
+  participant JB as Jobs escrow
+  actor P as Provider agent
+  actor E as Evaluator
+  participant K as Anyone
+
+  C->>JB: createJob(provider, evaluator, expiry, description)
+  P->>JB: setBudget(200 USDC)
+  C->>JB: fund(job, expected budget 200), plus half the fee
+  P->>JB: submit(job, deliverable fingerprint)
+  alt Evaluator completes
+    E->>JB: complete(job, reason)
+    JB-->>P: 200 USDC, less the provider's half of the fee
+  else Evaluator says nothing for the review window
+    K->>JB: release(job)
+    JB-->>P: 200 USDC, less the provider's half of the fee
+  else Evaluator rejects within the review window
+    E->>JB: reject(job, reason)
+    alt Provider disputes within 3 days
+      P->>JB: disputeRejection(job, clause)
+      Note over JB: The shared dispute path rules the provider's share of the budget
+    else No dispute
+      K->>JB: confirmRejection(job)
+      JB-->>C: The budget and the client's half of the fee back
+    end
+  end
+```
+
+Where the Jobs family differs from ERC-8183:
+
+- Hooks are not taken; a job created with one is refused.
+- `claimRefund` refunds only a funded job nobody submitted for. Submitted work is completed, rejected or paid by silence.
+- The evaluator rejects submitted work only within the review window, and the rejection takes effect after 3 days unless the provider disputes it; until then the job stays `Submitted`.
+- A ruling ends the job `Completed` when it pays the provider anything, with `PaymentReleased` and `Refunded` for the two shares, and `Rejected` when it pays nothing.
+- `submit` must come before the job's expiry, and the provider cannot be the evaluator.
+- The client funds the budget plus half the fee; `JobFunded` reports the budget.
+- `JobCompleted` and `JobRejected` always name the job's evaluator; the reason reads `silence` or `ruling` when the evaluator did not decide.
+- Bounties are Karwan's own: `getJob` reports a bounty's prize as its budget, its entry deadline as its expiry, and no provider.
+- Each escrow takes one asset, fixed at deployment.
 
 ## Financing a business order
 
@@ -318,7 +365,7 @@ The suite launches on mainnet after step 8 with beta limits written into it: 1,0
 | Agreement family | Built, not deployed: tranches, review on delivery, arrival or a check, extensions, signed release at handover, instalments, deposits, deadlines, agreed splits, disputes with appeal and a fallback, and an optional seller stake for the buyer, slashed only by a ruling or the dispute fallback and kept reserved for as long as the deal can run |
 | Trade finance family | Built, not deployed: purchase-order financing and factoring against Agreement deals |
 | Time family | Built, not deployed: hourly, daily and unit work and retainers, cycle by cycle, with objections to some units, notice and signed amendments |
-| Jobs and bounties family, ERC-8183 interface | Planned, third |
+| Jobs and bounties family, ERC-8183 interface | Built, not deployed: ERC-8183 jobs where the evaluator's silence pays and a rejection of submitted work can be disputed, and bounties and contests paying up to 8 winners from the entries |
 | Identity registry with succession and recovery | Built, not deployed |
 | Record contract (one, replacing the reputation registry and the facts contract) | Built, not deployed |
 | Verifiers with k of n signatures | Built, not deployed |
@@ -329,4 +376,4 @@ The suite launches on mainnet after step 8 with beta limits written into it: 1,0
 | Business registry already on mainnet | Live; its approvals carry into the record contract as business facts |
 | Independent audit and audit contest | Planned, before the beta limits rise |
 
-Contract notes: proposed names are `KarwanSettlementBase` (abstract), `KarwanHub`, `KarwanAgreementEscrow`, `KarwanTimeEscrow`, `KarwanJobEscrow`, `KarwanTradeFinance`, `KarwanIdentityRegistry`, `KarwanRecord`, `KarwanStakeVault`, `KarwanTimelock`, `KarwanCheckVerifier` and `KarwanYieldPool`, with the fixed libraries `SettlementLib`, `DisputeLib`, `AgreementLib`, `AgreementDisputeLib`, `AgreementDeliveryLib`, `AgreementTermsLib`, `TimeLib` and `TimeDisputeLib`. Every family's runtime code is measured against Arc's 24,576-byte limit in CI. All contracts are deployed at deterministic addresses from one reviewed script, and ownership goes to the timelock in the same run, so the deployer key holds nothing afterwards.
+Contract notes: proposed names are `KarwanSettlementBase` (abstract), `KarwanHub`, `KarwanAgreementEscrow`, `KarwanTimeEscrow`, `KarwanJobEscrow`, `KarwanTradeFinance`, `KarwanIdentityRegistry`, `KarwanRecord`, `KarwanStakeVault`, `KarwanTimelock`, `KarwanCheckVerifier` and `KarwanYieldPool`, with the fixed libraries `SettlementLib`, `DisputeLib`, `AgreementLib`, `AgreementDisputeLib`, `AgreementDeliveryLib`, `AgreementTermsLib`, `TimeLib`, `TimeDisputeLib`, `JobLib`, `BountyLib` and `JobDisputeLib`. Every family's runtime code is measured against Arc's 24,576-byte limit in CI. All contracts are deployed at deterministic addresses from one reviewed script, and ownership goes to the timelock in the same run, so the deployer key holds nothing afterwards.
