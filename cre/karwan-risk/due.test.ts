@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { keccak256, toBytes, type Address } from 'viem';
+import { encodeAbiParameters, keccak256, parseAbiParameters, toBytes, type Address } from 'viem';
 import { KEEP_SELECTORS } from '../shared/adapterReport.js';
 import { agreementAlerts, agreementCandidates, type AgreementView, type DisputeView } from './due.js';
 
@@ -64,5 +64,24 @@ describe('agreement alerts', () => {
       .toEqual([{ kind: 'dispute_no_proposal', family: FAMILY, dealId: DEAL }]);
     expect(agreementAlerts(FAMILY, DEAL, disputed, { ...noDispute, openedAt: NOW - 6 * DAY, escalated: true, escalatedAt: NOW - 4 * DAY }, NOW))
       .toEqual([{ kind: 'ruling_due', family: FAMILY, dealId: DEAL }]);
+  });
+});
+
+describe('record retries on the sweep', () => {
+  test('a finished deal offers a record retry for the buyer and the seller', () => {
+    for (const state of [4, 5, 6, 7, 8, 9]) {
+      const calls = agreementCandidates(FAMILY, DEAL, deal({ state }), noDispute, NOW);
+      expect(calls.map((c) => [c.selector, c.args])).toEqual([0, 1].map((party) => [
+        KEEP_SELECTORS['retryRecord(bytes32,uint8)'],
+        encodeAbiParameters(parseAbiParameters('bytes32, uint8'), [DEAL, party]),
+      ]));
+    }
+  });
+
+  test('an open deal offers no record retry', () => {
+    for (const state of [1, 2, 3]) {
+      const calls = agreementCandidates(FAMILY, DEAL, deal({ state }), noDispute, NOW);
+      expect(selectors(calls)).not.toContain(KEEP_SELECTORS['retryRecord(bytes32,uint8)']);
+    }
   });
 });

@@ -14,6 +14,7 @@ const base: Config = {
   githubTokenSecretId: 'GITHUB_REPLAY_TOKEN',
   runnerRef: 'main',
   runnerRepo: 'karwan-xyz/karwan-replay',
+  fees: '0x00000000000000000000000000000000000fee05',
   gatewayKey: '0x0000000000000000000000000000000000000abc',
   gasLimit: '600000',
   maxItems: 3,
@@ -41,6 +42,13 @@ describe('karwan-check config', () => {
 
   test('needs the pinned runner repository', () => {
     const { runnerRepo: _r, ...rest } = base;
+    expect(() => configSchema.parse(rest)).toThrow();
+  });
+
+  test('needs the fee contract that holds dry-run payments', () => {
+    expect(() => configSchema.parse({ ...base, fees: '0x0000000000000000000000000000000000000000' })).toThrow();
+    expect(() => configSchema.parse({ ...base, attest: false, adapter: '0x0000000000000000000000000000000000000000' })).toThrow();
+    const { fees: _f, ...rest } = base;
     expect(() => configSchema.parse(rest)).toThrow();
   });
 

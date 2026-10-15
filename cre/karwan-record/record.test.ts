@@ -48,11 +48,11 @@ function harness(over: Partial<{
 
 const decodeFact = (report: Hex) => {
   const [kind, , , , , body] = decodeAbiParameters(parseAbiParameters('uint8, uint256, address, uint64, bytes32, bytes'), report);
-  const [op, wallet, factKind, level, seal, expiresAt, factId] = decodeAbiParameters(
-    parseAbiParameters('uint8, address, bytes32, uint8, bytes32, uint64, uint256'),
+  const [op, wallet, factKind, level, seal, expiresAt, factId, accountKey] = decodeAbiParameters(
+    parseAbiParameters('uint8, address, bytes32, uint8, bytes32, uint64, uint256, bytes32'),
     body,
   );
-  return { kind, op, wallet: wallet.toLowerCase(), factKind, level, seal, expiresAt, factId };
+  return { kind, op, wallet: wallet.toLowerCase(), factKind, level, seal, expiresAt, factId, accountKey };
 };
 
 const request = { op: 1 as const, wallet: WALLET, login: 'ada', gistId: 'abc123' };
@@ -73,6 +73,23 @@ describe('GitHub work facts', () => {
     b.ports.sealKey = () => keccak256(toBytes('another key'));
     handleWorkRequest(b.ports, config, request);
     expect(decodeFact(a.written[0]).seal).not.toBe(decodeFact(b.written[0]).seal);
+  });
+
+  test('the seal carries the numbers; the account key names only the account, for the hold in the adapter', () => {
+    const a = harness();
+    handleWorkRequest(a.ports, config, request);
+    const more = Array.from({ length: 30 }, (_, i) => ({ repo: `org${i % 6}/repo`, mergedAt: NOW - (i + 1) * DAY }));
+    const b = harness({ merged: more });
+    handleWorkRequest(b.ports, config, request);
+    const fa = decodeFact(a.written[0]);
+    const fb = decodeFact(b.written[0]);
+    expect(fa.seal).not.toBe(fb.seal);
+    expect(fa.accountKey).toBe(fb.accountKey);
+    expect(fa.accountKey).not.toBe(fa.seal);
+    const c = harness();
+    c.ports.user = () => ({ id: 9999, createdAt: NOW - 800 * DAY });
+    handleWorkRequest(c.ports, config, request);
+    expect(decodeFact(c.written[0]).accountKey).not.toBe(fa.accountKey);
   });
 
   test('no fact below level 1', () => {

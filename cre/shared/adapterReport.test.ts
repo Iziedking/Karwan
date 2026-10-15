@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { decodeAbiParameters, keccak256, parseAbiParameters, toBytes, type Address, type Hex } from 'viem';
 import {
-  CHECK, FACT, KEEP, KEEP_SELECTORS, checkBody, checkDigest, encodeEnvelope, factBody, keepBody,
+  CHECK, DRY, FACT, KEEP, KEEP_SELECTORS, checkBody, checkDigest, dryBody, encodeEnvelope, factBody, keepBody,
 } from './adapterReport.js';
 
 const ADAPTER = '0x00000000000000000000000000000000000ada97' as Address;
@@ -43,14 +43,25 @@ describe('adapter reports', () => {
   });
 
   test('fact and keep bodies follow the frozen layouts', () => {
-    const fact = factBody({ op: 1, wallet: ADAPTER, factKind: keccak256(toBytes('karwan.fact.github_work.v1')), level: 2, evidenceSeal: keccak256(toBytes('s')), expiresAt: 1_900_000_000, factId: 0n });
-    const decoded = decodeAbiParameters(parseAbiParameters('uint8, address, bytes32, uint8, bytes32, uint64, uint256'), fact);
+    const accountKey = keccak256(toBytes('account'));
+    const fact = factBody({ op: 1, wallet: ADAPTER, factKind: keccak256(toBytes('karwan.fact.github_work.v1')), level: 2, evidenceSeal: keccak256(toBytes('s')), expiresAt: 1_900_000_000, factId: 0n, accountKey });
+    const decoded = decodeAbiParameters(parseAbiParameters('uint8, address, bytes32, uint8, bytes32, uint64, uint256, bytes32'), fact);
     expect(decoded[0]).toBe(1);
     expect(decoded[3]).toBe(2);
+    expect(decoded[7]).toBe(accountKey);
     const keep = keepBody([{ family: ADAPTER, selector: KEEP_SELECTORS['claim(bytes32)'], args: keccak256(toBytes('deal')) }]);
     const [calls] = decodeAbiParameters(parseAbiParameters('(address family, bytes4 selector, bytes args)[]'), keep);
     expect(calls[0].selector).toBe(KEEP_SELECTORS['claim(bytes32)']);
     expect([FACT, KEEP]).toEqual([2, 3]);
+  });
+
+  test('a dry-run answer names the fee contract, the run and the result', () => {
+    const fees = '0x00000000000000000000000000000000000fee05' as Address;
+    const runId = keccak256(toBytes('run'));
+    const resultHash = keccak256(toBytes('result'));
+    const [f, r, h] = decodeAbiParameters(parseAbiParameters('address, bytes32, bytes32'), dryBody({ fees, runId, resultHash }));
+    expect([f.toLowerCase(), r, h]).toEqual([fees, runId, resultHash]);
+    expect(DRY).toBe(4);
   });
 
   test('keeper selectors are the 15 the adapter is deployed with', () => {

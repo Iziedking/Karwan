@@ -12,6 +12,7 @@ import {
 export const CHECK = 1;
 export const FACT = 2;
 export const KEEP = 3;
+export const DRY = 4;
 
 /// The report id is derived from what is reported and when, so every DON
 /// node computes the same one and a re-sent identical report is refused.
@@ -63,8 +64,10 @@ export function factBody(f: {
   evidenceSeal: Hex;
   expiresAt: number;
   factId: bigint;
+  /// Keyed per outside account; the adapter holds one account to one person.
+  accountKey: Hex;
 }): Hex {
-  return encodeAbiParameters(parseAbiParameters('uint8, address, bytes32, uint8, bytes32, uint64, uint256'), [
+  return encodeAbiParameters(parseAbiParameters('uint8, address, bytes32, uint8, bytes32, uint64, uint256, bytes32'), [
     f.op,
     f.wallet,
     f.factKind,
@@ -72,7 +75,13 @@ export function factBody(f: {
     f.evidenceSeal,
     BigInt(f.expiresAt),
     f.factId,
+    f.accountKey,
   ]);
+}
+
+/// A signed dry-run answer: the adapter releases the fee held for the run.
+export function dryBody(d: { fees: Address; runId: Hex; resultHash: Hex }): Hex {
+  return encodeAbiParameters(parseAbiParameters('address, bytes32, bytes32'), [d.fees, d.runId, d.resultHash]);
 }
 
 export interface KeepCall {

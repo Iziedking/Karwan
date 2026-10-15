@@ -63,7 +63,8 @@ export function handleWorkRequest(ports: RecordPorts, config: RecordConfig, req:
     ports.writeReport(encodeEnvelope({ kind: FACT, chainId: config.chainId, adapter: config.adapter, issuedAt: now, body }).report).ok;
 
   if (req.op === 2) {
-    const ok = write(factBody({ op: 2, wallet: req.wallet, factKind: WORK_FACT_KIND, level: 0, evidenceSeal: `0x${'0'.repeat(64)}`, expiresAt: 0, factId: BigInt(req.factId!) }));
+    const zero = `0x${'0'.repeat(64)}` as Hex;
+    const ok = write(factBody({ op: 2, wallet: req.wallet, factKind: WORK_FACT_KIND, level: 0, evidenceSeal: zero, expiresAt: 0, factId: BigInt(req.factId!), accountKey: zero }));
     return { outcome: ok ? 'revoked' : 'write-failed' };
   }
 
@@ -77,12 +78,21 @@ export function handleWorkRequest(ports: RecordPorts, config: RecordConfig, req:
   const level = workLevel(stats);
   if (level === 0) return { outcome: 'no-fact', level };
 
+  // Both keyed, so public GitHub data cannot be matched to a wallet. The seal
+  // goes to the record and proves the numbers behind the level; the account
+  // key names only the account, so the adapter holds it to one person.
+  const sealKey = ports.sealKey();
+  const accountKey = keccak256(encodeAbiParameters(parseAbiParameters('bytes32, uint256, string'), [
+    sealKey,
+    BigInt(user.id),
+    GITHUB_WORK_RULE,
+  ]));
   const seal = keccak256(encodeAbiParameters(parseAbiParameters('bytes32, uint256, string, bytes32'), [
-    ports.sealKey(),
+    sealKey,
     BigInt(user.id),
     GITHUB_WORK_RULE,
     fingerprint(stats),
   ]));
-  const ok = write(factBody({ op: 1, wallet: req.wallet, factKind: WORK_FACT_KIND, level, evidenceSeal: seal, expiresAt: now + YEAR, factId: 0n }));
+  const ok = write(factBody({ op: 1, wallet: req.wallet, factKind: WORK_FACT_KIND, level, evidenceSeal: seal, expiresAt: now + YEAR, factId: 0n, accountKey }));
   return ok ? { outcome: 'written', level } : { outcome: 'write-failed' };
 }

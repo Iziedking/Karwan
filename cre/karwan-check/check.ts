@@ -1,5 +1,5 @@
 import type { Address, Hex } from 'viem';
-import { CHECK, checkBody, encodeEnvelope } from '../shared/adapterReport.js';
+import { CHECK, DRY, checkBody, dryBody, encodeEnvelope } from '../shared/adapterReport.js';
 import { buildEvidence, type EvidenceDocument } from '../shared/evidence.js';
 import { parsePolicy, policyFingerprint, type AcceptancePolicy } from '../shared/policy.js';
 import { proofFingerprint, referenceSchema, type DeliveryReference } from '../shared/reference.js';
@@ -18,6 +18,8 @@ export interface CheckConfig {
   maxItems: number;
   /// The one replay runner repository this workflow trusts.
   runnerRepo: string;
+  /// KarwanCreFees: holds what an agent paid for a dry run until it is answered.
+  fees: Address;
 }
 
 export interface DeliveredLog {
@@ -69,6 +71,8 @@ export interface CheckPorts {
   closeItem(dealKey: string, outcome: string): void;
   /// Head commit and base branch of a pull request in the agreed repository.
   pullHead(repo: string, pull: number): { headSha: string; baseRef: string } | null;
+  /// The fee run on Arc: 1 while the payment is held, unanswered and not refunded.
+  feeRun(fees: Address, runId: Hex): { state: number };
   findRun(runnerRepo: string, dealKey: string, sha: string, inputsHash: string): RunFacts | null;
   writeReport(report: Hex): { ok: boolean };
   postEvidence(payload: Record<string, unknown>): void;
@@ -84,6 +88,7 @@ export type StartOutcome =
   | 'reference-mismatch'
   | 'runner-not-pinned'
   | 'dispatch-failed'
+  | 'not-paid'
   | 'dispatched';
 
 const sameAddress = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
@@ -172,22 +177,24 @@ export function startReplay(ports: CheckPorts, config: CheckConfig, log: Deliver
 }
 
 export interface DryRunRequest {
-  dryRunId: string;
+  /// The fee run: keccak(payer, payment nonce) in KarwanCreFees.
+  runId: Hex;
   family: Address;
   dealId: Hex;
   branchSha: string;
   pull?: number;
 }
 
-const DRY_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const FEE_OPEN = 1;
 const SHA = /^[0-9a-f]{40}$/;
 const HEX32 = /^0x[0-9a-fA-F]{64}$/;
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
 
 /// A party's agent paid to try a branch against the agreed policy before
-/// delivering. Same pins as a real check; the result never reaches Arc.
+/// delivering. Same pins as a real check. The result itself stays off Arc;
+/// only the fee it paid is released there, by a signed answer.
 export function startDryRun(ports: CheckPorts, config: CheckConfig, req: DryRunRequest): StartOutcome | 'bad-request' {
-  if (!DRY_ID.test(req.dryRunId) || !SHA.test(req.branchSha) || !HEX32.test(req.dealId) || !ADDRESS.test(req.family)) {
+  if (!HEX32.test(req.runId) || !SHA.test(req.branchSha) || !HEX32.test(req.dealId) || !ADDRESS.test(req.family)) {
     return 'bad-request';
   }
   if (req.pull !== undefined && (!Number.isInteger(req.pull) || req.pull <= 0)) return 'bad-request';
@@ -199,8 +206,9 @@ export function startDryRun(ports: CheckPorts, config: CheckConfig, req: DryRunR
   if (!policy) return 'policy-mismatch';
   if (policy.runner.repository !== config.runnerRepo) return 'runner-not-pinned';
   if (ports.runnerBlob(policy.runner.repository) !== policy.runner.blobSha) return 'runner-not-pinned';
+  if (ports.feeRun(config.fees, req.runId).state !== FEE_OPEN) return 'not-paid';
 
-  const dealKey = `dry-${req.dryRunId}`;
+  const dealKey = `dry-${req.runId.slice(2).toLowerCase()}`;
   const sent = ports.dispatch({
     runner: policy.runner.repository,
     targetRepo: repoName(policy),
@@ -256,7 +264,7 @@ export function collectResults(ports: CheckPorts, config: CheckConfig): CollectO
 
 /// Outcomes that will not change on a later run, so the item leaves the index.
 const CLOSE_ON = new Set<CollectOutcome['outcome']>(['stale', 'already-decided', 'not-ours', 'policy-mismatch', 'reference-mismatch']);
-const DRY_KEY = /^dry-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const DRY_KEY = /^dry-[0-9a-f]{64}$/;
 
 function collectOne(ports: CheckPorts, config: CheckConfig, item: PendingItem): CollectOutcome {
   const out = (outcome: CollectOutcome['outcome'], decision?: ReplayDecision): CollectOutcome =>
@@ -300,7 +308,19 @@ function collectOne(ports: CheckPorts, config: CheckConfig, item: PendingItem): 
     : { doc: null as EvidenceDocument | null, evidenceHash: null as Hex | null };
 
   if (item.kind === 'dry') {
-    ports.postDryRun({ dealKey: item.dealKey, dealId: item.dealId, decision: verdict.decision, doc: evidence.doc, evidenceHash: evidence.evidenceHash });
+    // A decided answer releases the fee; no answer leaves it for the agent to refund.
+    let released = false;
+    if (verdict.decision !== 'UNAVAILABLE' && evidence.evidenceHash) {
+      const { report } = encodeEnvelope({
+        kind: DRY,
+        chainId: config.chainId,
+        adapter: config.adapter,
+        issuedAt: ports.now(),
+        body: dryBody({ fees: config.fees, runId: `0x${item.dealKey.slice(4)}`, resultHash: evidence.evidenceHash }),
+      });
+      released = ports.writeReport(report).ok;
+    }
+    ports.postDryRun({ dealKey: item.dealKey, dealId: item.dealId, decision: verdict.decision, doc: evidence.doc, evidenceHash: evidence.evidenceHash, released });
     return out('dry-run', verdict.decision);
   }
 
@@ -337,4 +357,13 @@ function collectOne(ports: CheckPorts, config: CheckConfig, item: PendingItem): 
   });
   if (!decided) return out('no-result', verdict.decision);
   return out(attested ? 'attested' : 'shadow', verdict.decision);
+}
+
+const RUN_LOOKBACK_SEC = 7 * 86_400;
+
+/// Runs started in the last seven days, newest first, 100 to a page: a busy
+/// runner never pushes a deal's run off the only page the workflow reads.
+export function runsListUrl(runner: string, nowSec: number): string {
+  const since = new Date((nowSec - RUN_LOOKBACK_SEC) * 1000).toISOString().slice(0, 19);
+  return `https://api.github.com/repos/${runner}/actions/workflows/replay.yml/runs?event=workflow_dispatch&per_page=100&created=${encodeURIComponent(`>=${since}Z`)}`;
 }

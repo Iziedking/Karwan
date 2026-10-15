@@ -1,4 +1,4 @@
-import type { Address, Hex } from 'viem';
+import { encodeAbiParameters, parseAbiParameters, type Address, type Hex } from 'viem';
 import { KEEP_SELECTORS, type KeepCall } from '../shared/adapterReport.js';
 
 /// Candidates only: each one is confirmed by a simulated call from the
@@ -9,6 +9,10 @@ const RULING_PERIOD = 5 * DAY;
 const PROPOSAL_WINDOW = 5 * DAY;
 const ACCEPTED = 2;
 const DISPUTED = 3;
+/// Settled and every later state: the deal is over, only its record may be owed.
+const FINISHED = 4;
+/// SettlementLib parties: 0 is the payer (buyer), 1 the Agreement payee (seller).
+const PARTIES = [0, 1] as const;
 
 export interface AgreementView {
   state: number;
@@ -48,6 +52,12 @@ export function agreementCandidates(family: Address, dealId: Hex, d: AgreementVi
   if (d.state === ACCEPTED) {
     if (d.deliveredAt > 0 && d.reviewEnd > 0 && now >= d.reviewEnd && !d.checkFailed) out.push(call(family, 'claim(bytes32)', dealId));
     if (now > d.deadline) out.push(call(family, 'reclaim(bytes32)', dealId));
+  } else if (d.state >= FINISHED) {
+    // The escrow logs RecordPending when an outcome write fails; the sweep
+    // catches any the log trigger missed. Simulation drops the ones not owed.
+    for (const party of PARTIES) {
+      out.push(call(family, 'retryRecord(bytes32,uint8)', encodeAbiParameters(parseAbiParameters('bytes32, uint8'), [dealId, party])));
+    }
   } else if (d.state === DISPUTED) {
     if (dispute.proposed && !dispute.escalated && now >= dispute.proposedAt + APPEAL_WINDOW) {
       out.push(call(family, 'executeRuling(bytes32)', dealId));

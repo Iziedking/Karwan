@@ -11,8 +11,8 @@ kind, and only within an hour of issue.
 
 | Folder | Kind | Triggers | Writes |
 |---|---|---|---|
-| `karwan-check` | CHECK | `Delivered` log on the Agreement escrows; a schedule that collects finished replays; an HTTP trigger for x402 dry runs | Pass or fail for one delivery revision, with the evidence hash. Nothing when there is no result |
-| `karwan-record` | FACT | An HTTP trigger from Karwan's backend | A GitHub work fact (`karwan.fact.github_work.v1`), after a wallet-signed gist proves the account is the person's |
+| `karwan-check` | CHECK, DRY | `Delivered` log on the Agreement escrows; a schedule that collects finished replays; an HTTP trigger for x402 dry runs | Pass or fail for one delivery revision, with the evidence hash. For a dry run with a result, the release of its fee in `KarwanCreFees`. Nothing when there is no result |
+| `karwan-record` | FACT | An HTTP trigger from Karwan's backend | A GitHub work fact (`karwan.fact.github_work.v1`), after a wallet-signed gist proves the account is the person's. The seal carries the numbers; a separate account key lets the adapter hold one account to one person |
 | `karwan-risk` | KEEP | A schedule over open deals; `RecordPending` and `PayoutCredited` logs | Timeouts each family lets anyone trigger, each confirmed by a simulated call from the adapter first |
 
 - **Shared code.** `shared/` holds the fingerprints, the policy and reference
@@ -22,6 +22,13 @@ kind, and only within an hour of issue.
   `backend/src/cre/sharedSync.test.ts` fails on drift.
 - **Replay runner.** `replay-runner/` becomes the public `karwan-replay`
   repository, which re-runs the agreed items on the delivered commit.
+- **Dry-run fees.** `KarwanCreFees` (`contracts/src/suite/KarwanCreFees.sol`)
+  holds each dry-run payment, taken with USDC `receiveWithAuthorization`. A
+  DRY report releases it to Karwan; with no answer within an hour, anyone
+  calls `refund(runId)` and it returns to the payer. Deploy it with
+  `DeployCreFees` after the adapter, bind kind 4 to the karwan-check
+  workflow, and set `fees` in the karwan-check config and `CRE_FEES_ADDR` and
+  `CRE_RELAYER_KEY` (gas only) in the backend.
 - **Enforcement switch.** While `CRE_ENABLED` is off, deals name the `V-K`
   verifier and Karwan's checks decide. In this mode karwan-check runs with
   `attest: false`, and its verdicts are only compared with Karwan's.
@@ -37,8 +44,9 @@ scripts/ops/cre-remote.sh simulate karwan-check --target staging-settings --non-
 
 Deploy order (owner): suite deploy, then `DeployCreAdapter`, then
 `DeployCheckVerifiers`, then the three timelock calls it prints and the
-48-hour wait, then `cre workflow deploy` for each folder, then
-`BindCreWorkflow` once per kind.
+48-hour wait, then `DeployCreFees`, then `cre workflow deploy` for each
+folder, then `BindCreWorkflow` once per kind (kinds 1 and 4 both to
+karwan-check).
 
 ## github-delivery
 

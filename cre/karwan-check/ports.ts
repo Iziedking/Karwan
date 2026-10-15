@@ -17,6 +17,7 @@ import {
   decodeEventLog,
   decodeFunctionResult,
   encodeFunctionData,
+  parseAbi,
   toBytes,
   zeroAddress,
   type Address,
@@ -25,7 +26,7 @@ import {
 import { canonicalJson } from '../shared/canonical.js';
 import { agreementAbi } from '../shared/suiteAbi.js';
 import type { RunFacts } from '../shared/verdict.js';
-import type { CheckPorts, DispatchArgs, PendingItem } from './check.js';
+import { runsListUrl, type CheckPorts, type DispatchArgs, type PendingItem } from './check.js';
 
 const GITHUB_API = 'https://api.github.com';
 const RUNNER_WORKFLOW = '.github/workflows/replay.yml';
@@ -33,6 +34,7 @@ const MAX_BODY_BYTES = 512_000;
 /// ReceiverContractExecutionStatus.SUCCESS (not exported for EVM by the SDK).
 /// The forwarder never reverts, so a write counts only when the receiver ran.
 const RECEIVER_SUCCESS = 0;
+const feesAbi = parseAbi(['function runs(bytes32 runId) view returns (address payer, uint64 openedAt, uint8 state, uint256 amount)']);
 const DELIVERED_TOPIC = '0xd45beba397c83fdda516d54bb097da4de94910b65c27d164acabb48abe741efc' as Hex;
 
 export interface PortsConfig {
@@ -211,6 +213,15 @@ export function createPorts(runtime: Runtime<unknown>, config: PortsConfig): Che
       nodePost(runtime, `${config.karwanApi}/api/cre/check/close`, karwan, { dealKey, outcome });
     },
 
+    feeRun: (fees, runId) => {
+      const [, , state] = decodeFunctionResult({
+        abi: feesAbi,
+        functionName: 'runs',
+        data: call(fees, encodeFunctionData({ abi: feesAbi, functionName: 'runs', args: [runId] })),
+      });
+      return { state };
+    },
+
     pullHead: (repo, pull) => {
       const v = nodeGet(runtime, `${GITHUB_API}/repos/${repo}/pulls/${pull}`, github, (f) => {
         const j = parsed(f) as { head?: { sha?: string }; base?: { ref?: string } } | null;
@@ -221,7 +232,7 @@ export function createPorts(runtime: Runtime<unknown>, config: PortsConfig): Che
 
     findRun: (runner, dealKey, sha, inputsHash) => {
       const title = `karwan ${dealKey} ${sha} ${inputsHash}`;
-      const listUrl = `${GITHUB_API}/repos/${runner}/actions/workflows/replay.yml/runs?event=workflow_dispatch&per_page=30`;
+      const listUrl = runsListUrl(runner, Math.floor(runtime.now().getTime() / 1000));
       const found = nodeGet(runtime, listUrl, github, (f) => {
         const j = parsed(f) as { workflow_runs?: { id: number; display_title: string; status: string; created_at: string; head_sha: string }[] } | null;
         const runs = (j?.workflow_runs ?? []).filter((r) => r.display_title === title);

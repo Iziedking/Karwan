@@ -4,13 +4,16 @@ import { REPLAY_POLICY, policyFingerprint, parsePolicy } from '../shared/policy.
 import { proofFingerprint, referenceSchema } from '../shared/reference.js';
 import { replayInputsHash, type RunFacts } from '../shared/verdict.js';
 import { canonicalJson } from '../shared/canonical.js';
-import { collectResults, startDryRun, startReplay, type CheckConfig, type CheckPorts, type DeliveredLog, type PendingItem } from './check.js';
+import { collectResults, runsListUrl, startDryRun, startReplay, type CheckConfig, type CheckPorts, type DeliveredLog, type PendingItem } from './check.js';
 
 const FAMILY = '0x00000000000000000000000000000000000fa411' as Address;
 const VERIFIER = '0x00000000000000000000000000000000000c4ec4' as Address;
 const ADAPTER = '0x00000000000000000000000000000000000ada97' as Address;
 const DEAL = keccak256(toBytes('deal'));
 const BLOCK = keccak256(toBytes('block'));
+const FEES = '0x00000000000000000000000000000000000fee05' as Address;
+const RUN = keccak256(toBytes('agent payment run'));
+const DRY_KEY = `dry-${RUN.slice(2)}`;
 const NOW = 1_800_000_000;
 
 const policy = parsePolicy({
@@ -29,7 +32,7 @@ const policy = parsePolicy({
 }, { partialAllowed: true });
 const reference = referenceSchema.parse({ repository: { owner: 'acme', name: 'billing', id: 123456 }, pull: 7, sha: 'b'.repeat(40) });
 
-const config: CheckConfig = { chainId: 5_042_002, verifiers: [VERIFIER], attest: true, adapter: ADAPTER, maxItems: 3, runnerRepo: 'karwan-xyz/karwan-replay' };
+const config: CheckConfig = { chainId: 5_042_002, verifiers: [VERIFIER], attest: true, adapter: ADAPTER, maxItems: 3, runnerRepo: 'karwan-xyz/karwan-replay', fees: FEES };
 const INPUTS = replayInputsHash({ targetRepo: 'acme/billing', sha: 'b'.repeat(40), policyHash: policyFingerprint(policy), itemsJson: canonicalJson(policy.items), setup: 'npm ci' });
 
 function harness(over: Partial<{
@@ -46,6 +49,7 @@ function harness(over: Partial<{
   pending: PendingItem[];
   loggedProof: Hex | null;
   pull: { headSha: string; baseRef: string } | null;
+  feeState: number;
 }> = {}) {
   const calls = { dispatched: [] as unknown[], started: [] as unknown[], written: [] as Hex[], evidence: [] as unknown[], dryResults: [] as unknown[], closed: [] as unknown[], runLookups: [] as unknown[] };
   const s = {
@@ -62,6 +66,7 @@ function harness(over: Partial<{
     pending: [] as PendingItem[],
     loggedProof: proofFingerprint(reference) as Hex | null,
     pull: { headSha: 'b'.repeat(40), baseRef: 'main' } as { headSha: string; baseRef: string } | null,
+    feeState: 1,
     ...over,
   };
   const ports: CheckPorts = {
@@ -76,6 +81,7 @@ function harness(over: Partial<{
     pending: (limit, cursor) => { calls.runLookups.push({ cursor }); return s.pending; },
     findRun: (runner, dealKey, sha, inputsHash) => { calls.runLookups.push({ runner, dealKey, sha, inputsHash }); return s.run; },
     pullHead: () => s.pull,
+    feeRun: (fees, runId) => { calls.runLookups.push({ fees, runId }); return { state: s.feeState }; },
     closeItem: (dealKey, outcome) => { calls.closed.push({ dealKey, outcome }); },
     writeReport: (report) => { calls.written.push(report); return { ok: true }; },
     postEvidence: (payload) => { calls.evidence.push(payload); },
@@ -245,25 +251,45 @@ describe('collecting results', () => {
     expect(collectResults(ports, { ...config, maxItems: 2 })).toHaveLength(2);
   });
 
-  test('a dry run reports off chain only', () => {
-    const dry: PendingItem = { kind: 'dry', dealKey: 'dry-7f1c2a90-1b2c-4d5e-8f90-a1b2c3d4e5f6', family: FAMILY, dealId: DEAL, revision: 0, deliveredBlockHash: null, policy, reference };
-    const { ports, calls } = harness({ pending: [dry], run: completedRun() });
+  const dryItem = (): PendingItem => ({ kind: 'dry', dealKey: DRY_KEY, family: FAMILY, dealId: DEAL, revision: 0, deliveredBlockHash: null, policy, reference });
+
+  test('a decided dry run releases its fee through the adapter, then reports off chain', () => {
+    const { ports, calls } = harness({ pending: [dryItem()], run: completedRun() });
     expect(collectResults(ports, config)[0]).toMatchObject({ outcome: 'dry-run', decision: 'PASS' });
+    expect(calls.written).toHaveLength(1);
+    const [kind, , adapter, , , body] = decodeAbiParameters(parseAbiParameters('uint8, uint256, address, uint64, bytes32, bytes'), calls.written[0]);
+    expect(kind).toBe(4);
+    expect(adapter.toLowerCase()).toBe(ADAPTER);
+    const [fees, runId, resultHash] = decodeAbiParameters(parseAbiParameters('address, bytes32, bytes32'), body);
+    expect([fees.toLowerCase(), runId]).toEqual([FEES, RUN]);
+    expect(calls.dryResults[0]).toMatchObject({ dealKey: DRY_KEY, decision: 'PASS', evidenceHash: resultHash, released: true });
+  });
+
+  test('a dry run with no result releases nothing, so the agent can take its fee back', () => {
+    const late = { ...completedRun(), status: 'in_progress' as const, createdAt: NOW - 3 * 3600 };
+    const { ports, calls } = harness({ pending: [dryItem()], run: late });
+    expect(collectResults(ports, config)[0]).toMatchObject({ outcome: 'dry-run', decision: 'UNAVAILABLE' });
     expect(calls.written).toHaveLength(0);
-    expect(calls.dryResults).toHaveLength(1);
+    expect(calls.dryResults[0]).toMatchObject({ released: false });
+  });
+
+  test('a dry key that is not a fee run is refused', () => {
+    const { ports, calls } = harness({ pending: [{ ...dryItem(), dealKey: 'dry-7f1c2a90-1b2c-4d5e-8f90-a1b2c3d4e5f6' }], run: completedRun() });
+    expect(collectResults(ports, config)[0]).toMatchObject({ outcome: 'reference-mismatch' });
+    expect(calls.written).toHaveLength(0);
   });
 });
 
 describe('starting a dry run (x402, HTTP trigger)', () => {
-  const request = { dryRunId: '7f1c2a90-1b2c-4d5e-8f90-a1b2c3d4e5f6', family: FAMILY, dealId: DEAL, branchSha: 'f'.repeat(40), pull: 9 };
+  const request = { runId: RUN, family: FAMILY, dealId: DEAL, branchSha: 'f'.repeat(40), pull: 9 };
 
   test('runs the agreed policy on the branch, with a dry key', () => {
     const { ports, calls } = harness();
     expect(startDryRun(ports, config, request)).toBe('dispatched');
-    expect(calls.dispatched[0]).toMatchObject({ targetRepo: 'acme/billing', sha: 'f'.repeat(40), dealKey: `dry-${request.dryRunId}`, items: policy.items });
+    expect(calls.dispatched[0]).toMatchObject({ targetRepo: 'acme/billing', sha: 'f'.repeat(40), dealKey: DRY_KEY, items: policy.items });
     expect(calls.started[0]).toMatchObject({
       kind: 'dry',
-      dealKey: `dry-${request.dryRunId}`,
+      dealKey: DRY_KEY,
       reference: { repository: policy.repository, pull: 9, sha: 'f'.repeat(40) },
     });
   });
@@ -273,6 +299,16 @@ describe('starting a dry run (x402, HTTP trigger)', () => {
     expect(startDryRun(ports, config, { ...request, branchSha: 'main' })).toBe('bad-request');
     const other = harness({ verifier: '0x000000000000000000000000000000000000dead' });
     expect(startDryRun(other.ports, config, request)).toBe('not-ours');
+  });
+
+  test('starts only while the fee for the run is held on Arc', () => {
+    for (const feeState of [0, 2, 3]) {
+      const { ports, calls } = harness({ feeState });
+      expect(startDryRun(ports, config, request)).toBe('not-paid');
+      expect(calls.dispatched).toHaveLength(0);
+    }
+    const { calls } = (() => { const h = harness(); startDryRun(h.ports, config, request); return h; })();
+    expect(calls.runLookups).toContainEqual({ fees: FEES, runId: RUN });
   });
 
   test('refuses when the policy Karwan serves is not the one on Arc', () => {
@@ -320,5 +356,15 @@ describe('review fixes: the agreed repository, the agreed inputs, a stable index
     const decided = harness({ pending: [pendingDeal()], checkPassed: true });
     collectResults(decided.ports, config);
     expect(decided.calls.closed).toEqual([{ dealKey: `${DEAL}-r1`, outcome: 'already-decided' }]);
+  });
+});
+
+describe('finding the run', () => {
+  test('asks GitHub for up to 100 runs from the last seven days, not the latest 30', () => {
+    const url = new URL(runsListUrl('karwan-xyz/karwan-replay', 1_800_000_000));
+    expect(url.pathname).toBe('/repos/karwan-xyz/karwan-replay/actions/workflows/replay.yml/runs');
+    expect(url.searchParams.get('event')).toBe('workflow_dispatch');
+    expect(url.searchParams.get('per_page')).toBe('100');
+    expect(url.searchParams.get('created')).toBe(`>=${new Date((1_800_000_000 - 7 * 86_400) * 1000).toISOString().slice(0, 19)}Z`);
   });
 });

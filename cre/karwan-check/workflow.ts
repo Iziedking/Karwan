@@ -35,11 +35,15 @@ export const configSchema = z.object({
   runnerRef: z.string().min(1).max(100),
   /// The one replay runner repository this workflow trusts (owner/name).
   runnerRepo: z.string().regex(/^[A-Za-z0-9-]{1,39}\/[A-Za-z0-9_.-]{1,100}$/),
+  /// KarwanCreFees: dry-run payments wait there for a signed answer or a refund.
+  fees: address,
   /// The key Karwan's x402 endpoint signs dry-run requests with.
   gatewayKey: address,
   gasLimit: z.string().regex(/^[1-9][0-9]*$/),
   maxItems: z.number().int().min(1).max(3),
-}).strict().refine((c) => !c.attest || c.adapter !== zeroAddress, 'an attesting workflow needs the deployed adapter');
+}).strict()
+  .refine((c) => !c.attest || c.adapter !== zeroAddress, 'an attesting workflow needs the deployed adapter')
+  .refine((c) => c.fees !== zeroAddress && c.adapter !== zeroAddress, 'dry-run fees are released through the deployed adapter');
 
 export type Config = z.infer<typeof configSchema>;
 
@@ -50,6 +54,7 @@ const checkConfig = (c: Config): CheckConfig => ({
   adapter: c.adapter as Address,
   maxItems: c.maxItems,
   runnerRepo: c.runnerRepo,
+  fees: c.fees as Address,
 });
 
 export function onDelivered(runtime: Runtime<Config>, log: EVMLog): string {
