@@ -176,7 +176,7 @@ test('the shared navbar cycles through three persisted appearance choices withou
   const nav = source('./TopNav.tsx');
   const control = source('./ThemeControl.tsx');
   const picker = source('../../features/settings/components/ThemePicker.tsx');
-  assert.match(nav, /isAlwaysDarkRoute\(pathname\) \? null : <ThemeControl \/>/);
+  assert.match(nav, /isAlwaysDarkRoute\(pathname\) \? null : <ThemeControl className=/);
   assert.match(control, /system: 'light'/);
   assert.match(control, /light: 'dark'/);
   assert.match(control, /dark: 'system'/);
@@ -471,6 +471,26 @@ test('profile is tidy: one way to change the photo, rows say what they open, no 
   assert.match(hub, /label=\{hub\.editProfile\} href="\/profile\/edit"/);
   assert.doesNotMatch(hub, /hub\.devices/);
   assert.doesNotMatch(hub, /hub\.accountLabel|shortAddress\(address\)\}/);
+});
+
+test('the rail foot reads Theme, Settings, Sign out; Settings is a cog, not a sun; theme sits in no circle', () => {
+  const nav = source('./TopNav.tsx');
+  const rail = nav.slice(nav.indexOf('function WorkspaceRail('), nav.indexOf('function RailLink('));
+  const foot = rail.slice(rail.indexOf('data-rail-footer'));
+  assert.ok(foot.indexOf('<RailTheme') > -1 && foot.indexOf('<RailTheme') < foot.indexOf('href="/settings"'));
+  // The old settings mark was a circle with eight rays: the theme sun.
+  assert.doesNotMatch(nav, /M6 6l1\.6 1\.6/);
+  // With the rail on screen, theme lives there, so the top bar drops it.
+  assert.match(nav, /showFullChrome \? 'lg:hidden' : ''/);
+  const theme = source('./ThemeControl.tsx');
+  assert.doesNotMatch(theme, /rounded-full border/);
+});
+
+test('languages are one list, a check on the current one, never an orphan tile centred alone', () => {
+  const picker = source('../../features/settings/components/LanguagePicker.tsx');
+  assert.match(picker, /role="radiogroup"/);
+  assert.match(picker, /role="radio"/);
+  assert.doesNotMatch(picker, /last:odd/);
 });
 
 test('the desktop rail ends with Settings and Sign out, pinned to its foot, sign out asking first like Profile', () => {

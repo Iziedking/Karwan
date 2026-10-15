@@ -18,7 +18,7 @@ import type { UserProfile } from '@/core/api';
 import { WalletAvatar } from './WalletAvatar';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { LanguagePicker } from './LanguagePicker';
-import { ThemeControl } from './ThemeControl';
+import { ThemeControl, ThemeIcon, useThemeCycle } from './ThemeControl';
 import { Tooltip } from './Tooltip';
 import { useSignOutRequest } from '@/features/profile/useSignOutRequest';
 import { isAlwaysDarkRoute } from '@/shared/hooks/useTheme';
@@ -167,7 +167,7 @@ export function TopNav() {
               {pathname === START_ROUTE ? null : <LaunchAppCTA />}
             </>
           )}
-          {isAlwaysDarkRoute(pathname) ? null : <ThemeControl />}
+          {isAlwaysDarkRoute(pathname) ? null : <ThemeControl className={showFullChrome ? 'lg:hidden' : ''} />}
           {publicSurface ? <PublicMenu /> : null}
         </div>
       </div>
@@ -321,6 +321,7 @@ function WorkspaceRail({
         </RailLink>
         {/* Account housekeeping sits at the foot, apart from the places you work. */}
         <div data-rail-footer className="mt-auto flex flex-col gap-1">
+          <RailTheme collapsed={collapsed} />
           <RailLink href="/settings" active={pathname.startsWith('/settings')} icon="settings" collapsed={collapsed} ariaLabel={t.settingsAriaTitle}>
             {t.settingsAriaTitle}
           </RailLink>
@@ -387,6 +388,31 @@ function RailLink({
   return collapsed ? <Tooltip label={children as string} side="end" className="w-full">{link}</Tooltip> : link;
 }
 
+/// Theme in the rail: the same cycle as the top bar's button, named, with
+/// the current choice beside it.
+function RailTheme({ collapsed }: { collapsed: boolean }) {
+  const theme = useThemeCycle();
+  const button = (
+    <button
+      type="button"
+      onClick={theme.cycle}
+      aria-label={theme.label}
+      data-theme-preference={theme.current}
+      className={cn(
+        'flex min-h-12 w-full items-center rounded-full text-[15px] font-medium text-[var(--color-ink-dim)] transition-colors duration-200 hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]',
+        collapsed ? 'justify-center px-0' : 'gap-3 px-4',
+      )}
+    >
+      <span aria-hidden className="grid size-[22px] shrink-0 place-items-center">
+        <ThemeIcon preference={theme.current} />
+      </span>
+      <span className={cn('min-w-0 flex-1 truncate text-start', collapsed && 'sr-only')}>{theme.title}</span>
+      {collapsed ? null : <span className="shrink-0 text-[14px] text-[var(--color-ink-dim)]">{theme.currentLabel}</span>}
+    </button>
+  );
+  return collapsed ? <Tooltip label={theme.label} side="end" className="w-full">{button}</Tooltip> : button;
+}
+
 type RailIconName = 'home' | 'trade' | 'discover' | 'finance' | 'activity' | 'settings' | 'signOut';
 
 /// A rail row that does something instead of going somewhere.
@@ -443,8 +469,8 @@ function RailIcon({ name, active }: { name: RailIconName; active: boolean }) {
         <path d="M4 19h16M6 17V9m4 8V5m4 12v-6m4 6V7" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
       ) : name === 'settings' ? (
         <>
-          <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.7" />
-          <path d="M12 3.5v2.2m0 12.6v2.2M3.5 12h2.2m12.6 0h2.2M6 6l1.6 1.6m8.8 8.8L18 18M6 18l1.6-1.6m8.8-8.8L18 6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+          <path d="M10.3 3.6a1.7 1.7 0 0 1 3.4 0l.2 1.3a7 7 0 0 1 1.9 1.1l1.2-.5a1.7 1.7 0 0 1 2.1.8l.4.7a1.7 1.7 0 0 1-.4 2.2l-1 .8a7 7 0 0 1 0 2.1l1 .8a1.7 1.7 0 0 1 .4 2.2l-.4.7a1.7 1.7 0 0 1-2.1.8l-1.2-.5a7 7 0 0 1-1.9 1.1l-.2 1.3a1.7 1.7 0 0 1-3.4 0l-.2-1.3a7 7 0 0 1-1.9-1.1l-1.2.5a1.7 1.7 0 0 1-2.1-.8l-.4-.7a1.7 1.7 0 0 1 .4-2.2l1-.8a7 7 0 0 1 0-2.1l-1-.8a1.7 1.7 0 0 1-.4-2.2l.4-.7a1.7 1.7 0 0 1 2.1-.8l1.2.5a7 7 0 0 1 1.9-1.1Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+          <circle cx="12" cy="12" r="2.6" stroke="currentColor" strokeWidth="1.6" />
         </>
       ) : name === 'signOut' ? (
         <path d="M10 4H7a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h3m7-12 4 4-4 4m-8-4h12" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="rtl:-scale-x-100 origin-center" />

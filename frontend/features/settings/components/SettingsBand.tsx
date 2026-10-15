@@ -369,10 +369,10 @@ function Row({
 }) {
   return (
     <div
-      className="grid items-center gap-3 border-t py-5 first:border-t-0 first:pt-0 sm:grid-cols-[minmax(150px,0.7fr)_minmax(0,1fr)] sm:gap-6"
+      className="grid items-start gap-3 border-t py-5 first:border-t-0 first:pt-0 sm:grid-cols-[minmax(150px,0.7fr)_minmax(0,1fr)] sm:gap-6"
       style={{ borderColor: 'var(--color-line)' }}
     >
-      <p className="inline-flex items-center gap-2 text-[15px] font-semibold text-[var(--color-ink)]">
+      <p className="inline-flex items-center gap-2 sm:min-h-11 text-[15px] font-semibold text-[var(--color-ink)]">
         {label}
         {hint && <Hint>{hint}</Hint>}
       </p>

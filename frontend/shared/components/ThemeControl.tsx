@@ -9,31 +9,46 @@ const nextPreference: Record<ThemePreference, ThemePreference> = {
   dark: 'system',
 };
 
-export function ThemeControl({ onChange }: { onChange?: (next: ThemePreference) => void }) {
+/// One theme cycle for every place that offers it: automatic, light, dark.
+export function useThemeCycle(onChange?: (next: ThemePreference) => void) {
   const t = useTranslations();
   const { preference, mounted } = useTheme();
-
-  const currentLabel = preference === 'system'
+  const current = mounted ? preference : 'system';
+  const currentLabel = current === 'system'
     ? t.settings.themeSystem
-    : preference === 'light'
+    : current === 'light'
       ? t.settings.themeLight
       : t.settings.themeDark;
+  return {
+    current,
+    title: t.settings.theme,
+    currentLabel,
+    label: `${t.settings.theme}: ${currentLabel}`,
+    cycle: () => {
+      const next = nextPreference[preference];
+      setThemePreference(next);
+      onChange?.(next);
+    },
+  };
+}
 
-  const label = `${t.settings.theme}: ${mounted ? currentLabel : t.settings.themeDark}`;
+export function ThemeIcon({ preference }: { preference: ThemePreference }) {
+  return preference === 'light' ? <SunIcon /> : preference === 'dark' ? <MoonIcon /> : <AutoIcon />;
+}
+
+/// The top bar's theme button: the mark alone, no ring, a full 44px target.
+export function ThemeControl({ onChange, className = '' }: { onChange?: (next: ThemePreference) => void; className?: string }) {
+  const theme = useThemeCycle(onChange);
   return (
-    <Tooltip label={label} align="end">
+    <Tooltip label={theme.label} align="end" className={className}>
     <button
       type="button"
-      aria-label={label}
-      data-theme-preference={mounted ? preference : undefined}
-      onClick={() => {
-        const next = nextPreference[preference];
-        setThemePreference(next);
-        onChange?.(next);
-      }}
-      className="inline-flex size-11 shrink-0 items-center justify-center rounded-full border border-[var(--color-line-strong)] text-[var(--color-ink)] transition-[background-color,color,border-color] hover:bg-[var(--color-surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+      aria-label={theme.label}
+      data-theme-preference={theme.current}
+      onClick={theme.cycle}
+      className="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-[var(--color-ink-dim)] transition-colors hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
     >
-      {mounted && preference === 'light' ? <SunIcon /> : mounted && preference === 'dark' ? <MoonIcon /> : <AutoIcon />}
+      <ThemeIcon preference={theme.current} />
     </button>
     </Tooltip>
   );
