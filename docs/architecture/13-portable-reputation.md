@@ -72,6 +72,21 @@ sequenceDiagram
 
 The agent weighs the buyer's own buying history: deals finished as a buyer, sellers who came back, the largest deal size they have finished, and disputes lost. The same check runs when a posted offer is matched to a request. A read that comes back after the agent stopped waiting is still kept on the bid, so the seller sees what it cost.
 
+## World ID before escrow funds
+
+When the buyer chooses an offer, Karwan's trust rules (`trust-v1`) decide whether either side must prove with World ID that they are a real, unique person before the buyer's agent funds escrow. The rules read only facts Karwan keeps:
+
+| Asks for World ID | When |
+|---|---|
+| First deal | No settled deal and no World ID pass before: a person check, a deal check or a money-out check |
+| Large deal | 1,000 USDC or more, both sides, every time |
+| Busy new account | Account under 7 days old with 5 or more deals in a day, unless they passed World ID that same day |
+| Malicious link | A link they sent was judged malicious. A suspicious verdict alone only puts the deal on watch |
+
+A price far from the market, a low score or a seller-check flag never asks for World ID. The buyer checks in the confirm step. When the seller must check, the buyer's choice is held, the seller is told on their desk, by email and in chat, and escrow funds the moment they pass. The check is tied to the request, the seller and the price, so a new price or another seller asks again. On testnet either side can skip; on mainnet it is enforced.
+
+Before switching it on, the rules were replayed over the 197 testnet deals with the facts as they stood at each deal. The earlier rules would have asked on 97 deals, including 8 asks from links that were only suspicious and repeat asks of people who had already passed. The final rules ask on 55: each of the 56 people once for their first deal, one busy new account and three large deals.
+
 ## While agents work
 
 Anyone watching a request sees each agent move pop up and fade: an offer, a counter, a paid record check, a pass, a match. The seller desk does the same for the seller's own agent. Nothing is lost when a note fades; the timeline keeps the record. Someone who posts and leaves gets an email when the shortlist is ready, and a seller gets one when their offer is matched to a request.
@@ -152,7 +167,8 @@ Outcomes from platforms are scored with the published model `external-reputation
 | Karwan record read paid with x402, both directions | Built, not deployed (`RECORD_READS_ENABLED`). The x402 rail it uses settled a live 0.01 USDC read on testnet on 16 Oct 2026 |
 | Seller's agent weighing the buyer's buying history, shown on the seller desk | Built, not deployed |
 | Live agent notes on the request page and seller desk; shortlist-ready email | Built, not deployed |
-| More proof, ID checks and World ID asked for high-value or drifting deals | World ID per deal exists; asking for it from the record check is planned |
+| World ID asked on agent deals by the trust rules, buyer at choose and seller before funding | Built, not deployed; skippable on testnet only |
+| More proof and ID checks asked from the record check | Planned |
 | Consent switches, reads balance and "who read my record" | Built, not deployed |
 | Scoring model for platform outcomes (`external-reputation-v1`) | Built |
 | Platforms serving record reads | Planned. No platform has joined; none is named until one has |
