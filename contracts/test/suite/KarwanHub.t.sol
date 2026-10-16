@@ -6,6 +6,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {KarwanHub} from "../../src/suite/KarwanHub.sol";
 import {KarwanTimelock} from "../../src/suite/KarwanTimelock.sol";
 import {IKarwanHub} from "../../src/suite/interfaces/IKarwanSuite.sol";
+import {KarwanYieldPool} from "../../src/suite/KarwanYieldPool.sol";
 import {BlocklistToken} from "./mocks/BlocklistToken.sol";
 
 contract KarwanHubTest is Test {
@@ -107,6 +108,46 @@ contract KarwanHubTest is Test {
         vm.expectRevert(KarwanHub.BadFee.selector);
         hub.registerFamily(makeAddr("f2"), 1_001);
         hub.setFamilyFee(family, 1_000);
+    }
+
+    /// A fee paid to a family's own address would stay in it while its books
+    /// let it go, so a family is never the fee recipient.
+    function test_a_family_is_never_the_fee_recipient() public {
+        vm.expectRevert(KarwanHub.NotAllowed.selector);
+        hub.setFeeRecipient(family);
+        address next = makeAddr("nextFamily");
+        hub.setFeeRecipient(next);
+        vm.expectRevert(KarwanHub.NotAllowed.selector);
+        hub.registerFamily(next, 100);
+    }
+
+    /// The hub, the stake vault and a yield pool would hold fees with no way
+    /// out, so none of them is the fee recipient either, in whichever order
+    /// they are set.
+    function test_no_suite_contract_is_the_fee_recipient() public {
+        vm.expectRevert(KarwanHub.NotAllowed.selector);
+        hub.setFeeRecipient(address(hub));
+        address stakeVault = hub.stakeVault();
+        vm.expectRevert(KarwanHub.NotAllowed.selector);
+        hub.setFeeRecipient(stakeVault);
+
+        KarwanYieldPool pool = new KarwanYieldPool(address(hub), address(usdc));
+        address feeSafe = hub.feeRecipient();
+        hub.setFeeRecipient(address(pool));
+        vm.expectRevert(KarwanHub.NotAllowed.selector);
+        hub.setYieldPool(address(usdc), address(pool));
+        hub.setFeeRecipient(feeSafe);
+        hub.setYieldPool(address(usdc), address(pool));
+        vm.expectRevert(KarwanHub.NotAllowed.selector);
+        hub.setFeeRecipient(address(pool));
+
+        KarwanHub fresh = new KarwanHub(address(this));
+        address freshVault = makeAddr("freshVault");
+        fresh.setFeeRecipient(freshVault);
+        address identity = makeAddr("identity");
+        address record = makeAddr("record");
+        vm.expectRevert(KarwanHub.NotAllowed.selector);
+        fresh.wire(identity, record, freshVault);
     }
 
     function test_caps_per_deal_never_above_total() public {

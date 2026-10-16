@@ -48,6 +48,7 @@ contract KarwanHub is Ownable2Step, IKarwanHub {
     mapping(address => bool) public isIssuer;
     mapping(address => address) public yieldPoolOf;
     mapping(address => uint16) public yieldShareOf;
+    mapping(address => bool) internal isYieldPool;
 
     event Wired(address indexed identity, address indexed record, address indexed stakeVault);
     event FamilySet(address indexed family, bool retired, uint16 feeBps);
@@ -83,6 +84,7 @@ contract KarwanHub is Ownable2Step, IKarwanHub {
         if (msg.sender != deployer) revert NotDeployer();
         if (identity != address(0)) revert AlreadyWired();
         if (identity_ == address(0) || record_ == address(0) || stakeVault_ == address(0)) revert Zero();
+        if (stakeVault_ == feeRecipient) revert NotAllowed();
         identity = identity_;
         record = record_;
         stakeVault = stakeVault_;
@@ -96,6 +98,7 @@ contract KarwanHub is Ownable2Step, IKarwanHub {
         if (feeBps > MAX_FEE_BPS) revert BadFee();
         Family storage f = families[family];
         if (f.registered) revert AlreadyRegistered();
+        if (family == feeRecipient) revert NotAllowed();
         f.registered = true;
         f.feeBps = feeBps;
         emit FamilySet(family, false, feeBps);
@@ -170,7 +173,9 @@ contract KarwanHub is Ownable2Step, IKarwanHub {
         {
             revert BadAsset();
         }
+        if (pool == feeRecipient) revert NotAllowed();
         yieldPoolOf[asset] = pool;
+        isYieldPool[pool] = true;
         emit YieldPoolSet(asset, pool);
     }
 
@@ -186,8 +191,15 @@ contract KarwanHub is Ownable2Step, IKarwanHub {
 
     // -------------------------------- Roles -------------------------------
 
+    /// @notice The fee recipient is never a family: a fee paid to a family's
+    ///         own address would stay in it while its books let it go. Nor is
+    ///         it the hub, the stake vault or a yield pool, which would hold the
+    ///         fees with no way out.
     function setFeeRecipient(address who) external onlyOwner {
         if (who == address(0)) revert Zero();
+        if (families[who].registered || who == address(this) || who == stakeVault || isYieldPool[who]) {
+            revert NotAllowed();
+        }
         feeRecipient = who;
         emit RoleSet("feeRecipient", who);
     }
