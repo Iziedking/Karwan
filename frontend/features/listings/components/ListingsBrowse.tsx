@@ -518,7 +518,7 @@ function MarketCard({
                 mode, so the label carries its own pale ground. */}
             <span className="rounded-full px-2.5 py-0.5 font-semibold" style={{ background: `var(--${side}-surface)`, color: sideColor }}>{statusLabel}</span>
             {card.example ? (
-              <span className="rounded-full border border-[var(--lp-border-light)] px-2 py-0.5 text-[13px] font-semibold text-[var(--ink-secondary)]">{copy.example}</span>
+              <span className="rounded-full border border-[var(--lp-border-light)] px-2 py-0.5 text-[14px] font-semibold text-[var(--ink-secondary)]">{copy.example}</span>
             ) : null}
           </span>
           <span className="shrink-0 tabular-nums">{relativeTime(card.postedAt, locale)}</span>
