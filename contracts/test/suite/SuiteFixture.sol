@@ -92,6 +92,11 @@ abstract contract SuiteFixture is Test {
         return abi.encodePacked(r, s, v);
     }
 
+    /// One digit, for labelling up to ten fuzzing actors.
+    function _digit(uint256 i) internal pure returns (string memory) {
+        return string(abi.encodePacked(bytes1(uint8(48 + i))));
+    }
+
     function _one(address a) internal pure returns (address[] memory list) {
         list = new address[](1);
         list[0] = a;
