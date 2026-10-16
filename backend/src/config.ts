@@ -87,6 +87,13 @@ const envSchema = z.object({
   /// /api/network/reads. Off by default, so they close again by unsetting it.
   /// Chain-derived totals (/api/network/lifetime, /contracts) stay open.
   PUBLIC_TRACTION_ENABLED: envBool('PUBLIC_TRACTION_ENABLED'),
+  /// Wallet addresses of the team's own test accounts, comma-separated. The
+  /// traction proof counts them and shows them masked, so the share of
+  /// activity that is the team's is stated, not hidden.
+  TRACTION_TEAM_ACCOUNTS: z.preprocess(
+    (v) => (typeof v === 'string' ? v.split(',').map((s) => s.trim()).filter(Boolean) : []),
+    z.array(z.string()),
+  ),
   /// Key for the one-way counterparty fingerprint in record reads. Created by
   /// the owner on the server; never rotated once reads are served.
   RECORD_COUNTERPARTY_PEPPER: optionalString,

@@ -312,6 +312,7 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "GET", path: "/api/network/lifetime" },
   { method: "GET", path: "/api/network/onchain" },
   { method: "GET", path: "/api/network/reads" },
+  { method: "GET", path: "/api/network/traction-proof" },
   { method: "GET", path: "/api/newsletter/archive" },
   { method: "GET", path: "/api/newsletter/archive/:slug" },
   { method: "POST", path: "/api/newsletter/subscribe" },

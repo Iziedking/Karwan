@@ -102,13 +102,14 @@ Earlier deployments remain discoverable for existing positions. The public activ
 
 ### Public numbers
 
-Each network's API serves these without sign-in. Testnet figures include accounts run by the Karwan team. `/api/network/reads`, `/api/deals/stats` and `/api/deals/feed` answer only while `PUBLIC_TRACTION_ENABLED` is on, and the feed gives each settlement's day, not its time.
+Each network's API serves these without sign-in. Testnet figures include accounts run by the Karwan team. `/api/network/reads`, `/api/network/traction-proof`, `/api/deals/stats` and `/api/deals/feed` answer only while `PUBLIC_TRACTION_ENABLED` is on, and the feed gives each settlement's day, not its time.
 
 | Endpoint | What it reports |
 | --- | --- |
 | `GET /api/network/lifetime` | Totals read from every Karwan contract on the network: deals funded, USDC funded, released and returned. Served from a scan, so it can be hours old. |
 | `GET /api/network/contracts` | The contracts the network runs now, whether each has code at head, and the USDC each holds. On mainnet, the two registries above. |
 | `GET /api/network/reads` | Paid agent reads: every x402 read that settled, split by endpoint, and the signed record reads among them. Counts only. |
+| `GET /api/network/traction-proof` | Waitlist sign-ups and research survey answers by day, how many survey answers left an email or a phone number, and the team's own test accounts, with every email, phone and wallet masked. Self-reported from Karwan's database, so it cannot be checked on chain the way `/lifetime` can. Team accounts come from `TRACTION_TEAM_ACCOUNTS`. |
 | `GET /api/deals/stats` | Deal counts. `settledVolumeUsdc` sums the agreed amounts of settled deals. `createdValueUsdc` sums every deal created, including unfunded and cancelled ones, and is not volume. |
 
 ## Development

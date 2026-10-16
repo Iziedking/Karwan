@@ -5,6 +5,9 @@ import { getCurrentContracts } from '../chain/currentContracts.js';
 import { config } from '../config.js';
 import { recordReadTotals } from '../db/recordReads.js';
 import { paidReadTotals } from '../db/paidReads.js';
+import { listWaitlist } from '../db/waitlist.js';
+import { listResearchAnswers } from '../db/researchAnswers.js';
+import { buildTractionProof } from '../traction/proof.js';
 
 export const networkRoutes = new Hono();
 
@@ -96,5 +99,19 @@ networkRoutes.get('/contracts', async (c) => {
       { error: 'contract state unavailable', detail: (err as Error).message },
       502,
     );
+  }
+});
+
+/// Waitlist, survey and team counts by day, every contact masked. Self-reported
+/// from Karwan's own database, so the body says so; the chain totals live at
+/// /lifetime. Closed with the other traction routes.
+networkRoutes.get('/traction-proof', async (c) => {
+  if (!config.PUBLIC_TRACTION_ENABLED) return c.json({ error: 'not available' }, 404);
+  try {
+    const [waitlist, survey] = await Promise.all([listWaitlist(), listResearchAnswers()]);
+    c.header('Cache-Control', 'public, max-age=300');
+    return c.json(buildTractionProof({ waitlist, survey, team: config.TRACTION_TEAM_ACCOUNTS, now: Date.now() }));
+  } catch {
+    return c.json({ error: 'traction proof unavailable' }, 503);
   }
 });
