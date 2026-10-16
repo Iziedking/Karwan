@@ -68,7 +68,7 @@ test('the agent-wallet withdrawal counts the payment before it submits the trans
   assert.ok(counted < route.indexOf('executeContractCall('), 'and it comes before the transfer');
 });
 
-const { cashoutRoutes, overDealAmount } = await import('../routes/cashout.js');
+const { cashoutRoutes } = await import('../routes/cashout.js');
 
 test('a send from the Karwan wallet asks the guard before anything else and stops on its no', async () => {
   const { asked, restore } = refusingGuard();
@@ -113,10 +113,11 @@ test('both cash-out routes count the payment before they submit the transfer', a
   }
 });
 
-test('one settled deal cannot unlock more than the deal was worth', () => {
-  assert.equal(overDealAmount({ dealAmountUsdc: '50' }, 50), false);
-  assert.equal(overDealAmount({ dealAmountUsdc: '50' }, 50.01), true);
-  assert.equal(overDealAmount({ dealAmountUsdc: '50' }, 200), true);
+test('a seller can move any amount their wallet holds, not only what one deal paid', async () => {
+  const route = await handler('cashout.ts', "cashoutRoutes.post('/arc-withdraw'", "cashoutRoutes.post('/arc-send'");
+  assert.doesNotMatch(route, /OVER_DEAL_AMOUNT|dealAmountUsdc/);
+  assert.match(route, /code: 'INSUFFICIENT_BALANCE'/);
+  assert.match(route, /code: 'WITHDRAW_IN_PROGRESS'/);
 });
 
 const { gatewayRoutes } = await import('../routes/gateway.js');

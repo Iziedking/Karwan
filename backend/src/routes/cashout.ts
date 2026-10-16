@@ -73,12 +73,6 @@ const arcSendSchema = z.object({
 
 export const cashoutRoutes = new Hono();
 
-/// A settled deal opens a withdrawal of at most what the deal was worth, so a
-/// small deal does not unlock everything else in the wallet.
-export function overDealAmount(deal: { dealAmountUsdc: string }, amountUsdc: number): boolean {
-  return parseUnits(amountUsdc.toString(), USDC_DECIMALS) > parseUnits(deal.dealAmountUsdc, USDC_DECIMALS);
-}
-
 interface ResolvedWallet {
   kind: WalletKind;
   address: string;
@@ -154,12 +148,6 @@ cashoutRoutes.post('/arc-withdraw', async (c) => {
       409,
     );
   }
-  if (overDealAmount(deal, body.amountUsdc)) {
-    return c.json(
-      { error: `This deal was worth ${deal.dealAmountUsdc} USDC. Withdraw up to that from it.`, code: 'OVER_DEAL_AMOUNT' },
-      409,
-    );
-  }
   if (deal.legacyEscrow) {
     return c.json(
       {
@@ -210,7 +198,7 @@ cashoutRoutes.post('/arc-withdraw', async (c) => {
   // Balance read + transfer are not atomic: serialize per source wallet so two
   // concurrent withdraws can't both pass the check and both spend.
   if (cashoutInFlight.has(source.walletId)) {
-    return c.json({ error: 'another withdraw from this wallet is in progress' }, 409);
+    return c.json({ error: 'another withdraw from this wallet is in progress', code: 'WITHDRAW_IN_PROGRESS' }, 409);
   }
   cashoutInFlight.add(source.walletId);
   try {

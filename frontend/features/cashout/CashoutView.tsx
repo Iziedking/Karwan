@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAccount } from 'wagmi';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
-import { api, ApiError, type BridgeChainKey } from '@/core/api';
+import { api, type BridgeChainKey, type MoneyOutDestination } from '@/core/api';
 import { useBridges, type BridgeRecord } from '@/features/bridge/hooks/useBridge';
 import { SOURCE_CHAINS, SOURCE_CHAIN_KEYS, ARC_CCTP, type CctpChainKey } from '@/features/bridge/config';
 import { routeSpeed, stepForPhase, type TransferStep } from '@/features/bridge/routePlan';
@@ -17,7 +17,10 @@ import { fill } from '@/features/deals/workspace/presentation';
 import { cn } from '@/shared/utils/cn';
 import { moneySounds } from '@/shared/sound/moneySounds';
 import { ARC_NETWORK } from '@/core/arcNetwork';
+import { MoneyOutNotice } from '@/features/moneyOut/MoneyOutNotice';
+import { moneyOutRefusalOf, type MoneyOutRefusal } from '@/features/moneyOut/refusal';
 import { parseRecipient, stepForBridgeStatus } from './recipient';
+import { cashoutErrorKey } from './cashoutError';
 
 const PRIMARY =
   'flex min-h-14 w-full items-center justify-center rounded-full bg-[var(--lp-accent)] px-5 text-[16px] font-bold text-[#10170b] transition-opacity disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]';
@@ -124,6 +127,7 @@ function CashoutForm({ info, jobId }: { info: CashoutInfo; jobId: string }) {
   const [tagMissing, setTagMissing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refusal, setRefusal] = useState<{ refusal: MoneyOutRefusal; destination: MoneyOutDestination | undefined } | null>(null);
   const [moving, setMoving] = useState<Moving | null>(null);
   const [sent, setSent] = useState<Sent | null>(null);
   const [confirmed, setConfirmed] = useState<Sent | null>(null);
@@ -156,16 +160,19 @@ function CashoutForm({ info, jobId }: { info: CashoutInfo; jobId: string }) {
   async function submit() {
     if (!ready) return;
     setError(null);
+    setRefusal(null);
     setTagMissing(false);
     if (signsOwnWallet && (!account.address || !account.connector)) {
       openConnectModal?.();
       return;
     }
     setBusy(true);
+    let destination: MoneyOutDestination | undefined;
     try {
       const to = await resolveTo();
       if (!to) return;
       const dest: Network = toBalance ? 'arc' : network;
+      destination = { chain: dest, address: to.address };
       moneySounds.submit();
       if (signsOwnWallet) {
         const since = Date.now();
@@ -205,7 +212,9 @@ function CashoutForm({ info, jobId }: { info: CashoutInfo; jobId: string }) {
       setMoving({ kind: 'bridge', bridgeId: r.bridgeId, reference: r.reference });
     } catch (err) {
       setMoving(null);
-      setError(err instanceof ApiError && err.detail ? String(err.detail) : copy.failed);
+      const guard = moneyOutRefusalOf(err);
+      if (guard) setRefusal({ refusal: guard, destination });
+      else setError(copy[cashoutErrorKey(err)]);
     } finally {
       setBusy(false);
     }
@@ -332,6 +341,7 @@ function CashoutForm({ info, jobId }: { info: CashoutInfo; jobId: string }) {
           </label>
 
           {error ? <p role="alert" className="mt-4 text-[14px] text-[var(--color-critical)]">{error}</p> : null}
+          {refusal ? <div className="mt-4"><MoneyOutNotice refusal={refusal.refusal} destination={refusal.destination} onCleared={() => setRefusal(null)} /></div> : null}
           <button type="button" onClick={() => void submit()} disabled={!ready} className={cn(PRIMARY, 'mt-8')}>
             {signsOwnWallet && !account.address
               ? copy.connect

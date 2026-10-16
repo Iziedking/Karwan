@@ -33,6 +33,10 @@ export interface CashoutFlowCopy {
   openDeal: string;
   legacyBody: string;
   failed: string;
+  notEnough: string;
+  walletUnavailable: string;
+  busy: string;
+  notSettled: string;
   receiptKind: string;
   sentBadge: string;
   sentence: string;
@@ -81,6 +85,10 @@ export const cashoutFlowCopy: Record<Locale, CashoutFlowCopy> = {
     openDeal: 'Open the deal',
     legacyBody: 'This deal settled on an older contract. Contact support to move these earnings.',
     failed: 'That did not go through. Try again.',
+    notEnough: 'This wallet holds less than that. Pick a smaller amount.',
+    walletUnavailable: 'That wallet cannot send from here. Pick another.',
+    busy: 'Another move from this wallet is still going. Try again in a moment.',
+    notSettled: 'This deal is not released yet.',
     receiptKind: 'Cash-out receipt',
     sentBadge: 'Sent',
     sentence: 'Sent {amount} USDC to {to}',
@@ -125,6 +133,10 @@ export const cashoutFlowCopy: Record<Locale, CashoutFlowCopy> = {
     openDeal: 'Ouvrir la transaction',
     legacyBody: "Cette transaction a été réglée sur un ancien contrat. Contactez l'assistance pour transférer ces gains.",
     failed: "Ça n'a pas abouti. Réessayez.",
+    notEnough: 'Ce portefeuille contient moins que cela. Choisissez un montant plus petit.',
+    walletUnavailable: "Ce portefeuille ne peut pas envoyer d'ici. Choisissez-en un autre.",
+    busy: 'Un autre envoi depuis ce portefeuille est en cours. Réessayez dans un instant.',
+    notSettled: "Cette transaction n'est pas encore libérée.",
     receiptKind: "Reçu d'encaissement",
     sentBadge: 'Envoyé',
     sentence: '{amount} USDC envoyés à {to}',
@@ -169,6 +181,10 @@ export const cashoutFlowCopy: Record<Locale, CashoutFlowCopy> = {
     openDeal: 'فتح الصفقة',
     legacyBody: 'سُوّيت هذه الصفقة على عقد قديم. تواصل مع الدعم لنقل هذه الأرباح.',
     failed: 'لم تكتمل العملية. حاول مرة أخرى.',
+    notEnough: 'هذه المحفظة تحتوي على أقل من ذلك. اختر مبلغًا أصغر.',
+    walletUnavailable: 'لا يمكن لهذه المحفظة الإرسال من هنا. اختر محفظة أخرى.',
+    busy: 'هناك تحويل آخر من هذه المحفظة قيد التنفيذ. حاول بعد لحظة.',
+    notSettled: 'لم يتم تحرير هذه الصفقة بعد.',
     receiptKind: 'إيصال سحب',
     sentBadge: 'أُرسل',
     sentence: 'أُرسل {amount} USDC إلى {to}',
@@ -213,6 +229,10 @@ export const cashoutFlowCopy: Record<Locale, CashoutFlowCopy> = {
     openDeal: 'डील खोलें',
     legacyBody: 'यह डील एक पुराने कॉन्ट्रैक्ट पर सेटल हुई। यह कमाई ले जाने के लिए सहायता से संपर्क करें।',
     failed: 'यह पूरा नहीं हुआ। फिर से कोशिश करें।',
+    notEnough: 'इस वॉलेट में इससे कम है। छोटी राशि चुनें।',
+    walletUnavailable: 'यह वॉलेट यहाँ से नहीं भेज सकता। कोई दूसरा चुनें।',
+    busy: 'इस वॉलेट से एक और भेजना अभी चल रहा है। थोड़ी देर में फिर कोशिश करें।',
+    notSettled: 'यह डील अभी जारी नहीं हुई है।',
     receiptKind: 'कैश-आउट रसीद',
     sentBadge: 'भेजा गया',
     sentence: '{to} को {amount} USDC भेजे गए',
@@ -257,6 +277,10 @@ export const cashoutFlowCopy: Record<Locale, CashoutFlowCopy> = {
     openDeal: 'Fungua mpango',
     legacyBody: 'Mpango huu ulikamilishwa kwenye mkataba wa zamani. Wasiliana na msaada kuhamisha mapato haya.',
     failed: 'Haikufanikiwa. Jaribu tena.',
+    notEnough: 'Pochi hii ina kiasi kidogo kuliko hicho. Chagua kiasi kidogo zaidi.',
+    walletUnavailable: 'Pochi hiyo haiwezi kutuma kutoka hapa. Chagua nyingine.',
+    busy: 'Uhamisho mwingine kutoka pochi hii bado unaendelea. Jaribu tena baada ya muda mfupi.',
+    notSettled: 'Mpango huu bado haujaachiliwa.',
     receiptKind: 'Risiti ya kutoa pesa',
     sentBadge: 'Imetumwa',
     sentence: 'Imetumwa USDC {amount} kwa {to}',
