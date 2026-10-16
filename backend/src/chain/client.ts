@@ -9,6 +9,7 @@ import {
 } from 'viem';
 import { config } from '../config.js';
 import { resolveArcNetwork } from './networks.js';
+import { redactErrorUrls, rpcSecretUrls } from '../security/rpcUrlRedact.js';
 
 /// The Arc network this deployment runs on, resolved once from config. See
 /// chain/networks.ts; nothing else should name a chain id or endpoint.
@@ -83,6 +84,7 @@ function hostOf(url: string): string {
 }
 
 const RPC_HOSTS = RPC_URLS.map(hostOf);
+const RPC_SECRET_URLS = rpcSecretUrls(process.env);
 
 /// Say that every endpoint was tried, not just the one that spoke last.
 ///
@@ -106,10 +108,29 @@ export function withEndpointContext(transport: Transport): Transport {
         try {
           return await inner.request(args);
         } catch (err) {
+          redactErrorUrls(err, RPC_SECRET_URLS);
           if (err instanceof Error && !err.message.includes(ALL_FAILED)) {
             err.message = `${ALL_FAILED} (${RPC_HOSTS.join(' then ')}). The error below is from the LAST endpoint tried and is not necessarily the cause; check the earlier ones before blaming it.\n${err.message}`;
           }
           throw err;
+        }
+      },
+    } as ReturnType<Transport>;
+  };
+}
+
+/// The key never leaves in an error: viem puts the full URL in every HTTP
+/// error, and the single-endpoint path has no annotation wrapper to scrub it.
+function withRedactedErrors(transport: Transport): Transport {
+  return (opts) => {
+    const inner = transport(opts);
+    return {
+      ...inner,
+      async request(args: Parameters<typeof inner.request>[0]) {
+        try {
+          return await inner.request(args);
+        } catch (err) {
+          throw redactErrorUrls(err, RPC_SECRET_URLS);
         }
       },
     } as ReturnType<Transport>;
@@ -122,7 +143,7 @@ export function withEndpointContext(transport: Transport): Transport {
 /// pinning a single RPC, which makes a rate-limited primary rotate to a backup.
 export const arcTransport =
   httpTransports.length === 1
-    ? httpTransports[0]!
+    ? withRedactedErrors(httpTransports[0]!)
     : withEndpointContext(
         fallback(httpTransports, {
           rank: false,
