@@ -1497,6 +1497,7 @@ dealsRoutes.post('/invite/:token/claim', async (c) => {
 /// activity. Aggregate counts live on /stats so the home numbers stay accurate
 /// without exposing in-flight deals.
 dealsRoutes.get('/feed', async (c) => {
+  if (!config.PUBLIC_TRACTION_ENABLED) return c.json({ error: 'not available' }, 404);
   const deals = (await listAllDeals()).filter((d) => d.settledAt != null);
   return c.json({ deals: deals.slice(0, 60).map((d) => publicFeedDeal(d, dealOrigin(d, !!getBrief(d.jobId)))) });
 });
@@ -1504,16 +1505,23 @@ dealsRoutes.get('/feed', async (c) => {
 /// Aggregate network stats. Counts and total volume only. no per-deal rows, no
 /// addresses. Safe to serve publicly: it reveals nothing about any single deal.
 dealsRoutes.get('/stats', async (c) => {
+  if (!config.PUBLIC_TRACTION_ENABLED) return c.json({ error: 'not available' }, 404);
   const deals = await listAllDeals();
   const total = deals.length;
-  const settled = deals.filter((d) => d.settledAt != null).length;
-  const volumeUsdc = deals.reduce((s, d) => s + (Number(d.dealAmountUsdc) || 0), 0);
+  const settledDeals = deals.filter((d) => d.settledAt != null);
+  const settled = settledDeals.length;
+  const amountOf = (list: typeof deals) => list.reduce((s, d) => s + (Number(d.dealAmountUsdc) || 0), 0);
+  // Agreed amounts, not money moved. Created value includes deals that were
+  // never funded or were cancelled, so it is named for what it is and never
+  // served as "volume". On-chain released totals are /api/network/lifetime.
+  const settledVolumeUsdc = amountOf(settledDeals);
+  const createdValueUsdc = amountOf(deals);
   // Split direct vs agent. New rows carry an explicit origin; legacy rows fall
   // back to the brief store, since every agent deal has a brief and a direct
   // deal never does.
   const agent = deals.filter((d) => dealOrigin(d, !!getBrief(d.jobId)) === 'agent').length;
   const direct = total - agent;
-  return c.json({ total, direct, agent, settled, volumeUsdc });
+  return c.json({ total, direct, agent, settled, settledVolumeUsdc, createdValueUsdc });
 });
 
 /// List direct deals where the address is buyer or seller, enriched with the

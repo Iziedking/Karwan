@@ -1177,6 +1177,21 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       CREATE INDEX agent_world_checks_seller ON agent_world_checks_v1 (seller_user);
     `,
   },
+  {
+    version: 41,
+    name: 'paid_reads',
+    sql: `
+      -- How many paid x402 reads each endpoint served per UTC day. Counts only,
+      -- nothing about the reader, the subject or the payment.
+      CREATE TABLE paid_reads_v1 (
+        endpoint TEXT NOT NULL,
+        day TEXT NOT NULL,
+        reads INTEGER NOT NULL CHECK (reads > 0),
+        first_at BIGINT NOT NULL,
+        PRIMARY KEY (endpoint, day)
+      );
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

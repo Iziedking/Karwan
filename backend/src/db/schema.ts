@@ -446,6 +446,22 @@ export const recordReads = pgTable(
   },
 );
 
+/// Paid x402 reads, counted per endpoint and UTC day. Only the count: no
+/// reader, subject, price or payment reference, so the public total can say how
+/// many reads were paid for without keeping anything about any one of them.
+export const paidReads = pgTable(
+  'paid_reads_v1',
+  {
+    endpoint: text('endpoint').notNull(),
+    day: text('day').notNull(),
+    reads: integer('reads').notNull(),
+    firstAt: bigint('first_at', { mode: 'number' }).notNull(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.endpoint, t.day] }),
+  }),
+);
+
 /// One immutable accounting row for each paid external research call. The row
 /// is written as soon as the provider confirms payment, before synthesis or
 /// matching can succeed. `data` keeps the provider receipt envelope while the

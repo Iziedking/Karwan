@@ -141,6 +141,10 @@ Outcomes from platforms are scored with the published model `external-reputation
 - After a read, the reader keeps the score and a signed receipt: who read, for what, when, what it cost. The details are deleted after 24 hours.
 - A person sees who read their record. Deleting an account deletes its reads.
 
+## How paid reads are counted
+
+`GET /api/network/reads` reports every x402 read that settled, on any paid endpoint (`reads`, from the first one in `since`, split in `byEndpoint`), and the signed record reads among them with how many readers and people they touched (`recordReads`). Each paid read adds one to a per-endpoint daily count. The count keeps no reader, subject, price or payment reference, so it outlives the 24-hour read details and says nothing about any one read. A payment that does not settle is not counted. The route answers only while `PUBLIC_TRACTION_ENABLED` is on.
+
 ## What fails where
 
 | Step | Failure | What happens |

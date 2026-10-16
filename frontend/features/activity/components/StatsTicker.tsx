@@ -30,10 +30,13 @@ export function StatsTicker() {
       .dealsStats()
       .then((s) => {
         if (cancelled) return;
+        // Settled amounts only. Older backends send no settledVolumeUsdc, and
+        // the figure is left out rather than filled from created value.
+        const settledVolume = typeof s.settledVolumeUsdc === 'number' ? s.settledVolumeUsdc : null;
         setItems([
           { value: s.total.toLocaleString(), label: t.liveLabels.directDealsOnChain },
           { value: s.settled.toLocaleString(), label: t.liveLabels.settledInFull },
-          { value: `${s.volumeUsdc.toLocaleString()} USDC`, label: t.liveLabels.movedThroughEscrow },
+          ...(settledVolume === null ? [] : [{ value: `${settledVolume.toLocaleString()} USDC`, label: t.liveLabels.movedThroughEscrow }]),
           ...baseItems,
         ]);
       })

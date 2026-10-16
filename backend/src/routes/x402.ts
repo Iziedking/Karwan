@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { requirePayment } from '../x402/sellerFacilitator.js';
+import type { Context } from 'hono';
+import { requirePayment, type X402Payment } from '../x402/sellerFacilitator.js';
+import { countPaidRead, type PaidReadEndpoint } from '../db/paidReads.js';
 import { loadInputs } from '../reputation/signals.js';
 import { compute } from '../reputation/engine.js';
 import { getProfile } from '../db/profiles.js';
@@ -67,6 +69,22 @@ async function passportHidden(address: string): Promise<boolean> {
   return profile?.settings?.publicPassport === false;
 }
 
+/// Charge for one read and, once the payment settled, count it. The count is
+/// what /api/network/reads reports, so every paid endpoint goes through here.
+async function chargeRead(
+  c: Context,
+  endpoint: PaidReadEndpoint,
+  priceUsd: number,
+  description: string,
+): Promise<X402Payment | Response> {
+  const payment = await requirePayment(c, priceUsd, description);
+  if (payment instanceof Response) return payment;
+  await countPaidRead(endpoint, Date.now()).catch((err: Error) =>
+    logger.warn({ err: err.message, endpoint }, 'x402: paid read not counted'),
+  );
+  return payment;
+}
+
 export const x402Routes = new Hono();
 
 /// GET /api/x402: free directory of the paid endpoints.
@@ -125,8 +143,9 @@ x402Routes.get('/skill-demand/:keywords', async (c) => {
     .slice(0, 8);
   if (keywords.length === 0) return c.json({ error: 'no keywords' }, 400);
 
-  const payment = await requirePayment(
+  const payment = await chargeRead(
     c,
+    'skill-demand',
     PRICES.skillDemand,
     'Karwan skill demand: open-brief demand for a skill',
   );
@@ -142,8 +161,9 @@ x402Routes.get('/credit-passport/:address', async (c) => {
   const subject = await resolveSubject(parsed.data);
   if (await passportHidden(subject)) return c.json({ error: 'passport not public' }, 404);
 
-  const payment = await requirePayment(
+  const payment = await chargeRead(
     c,
+    'credit-passport',
     PRICES.creditPassport,
     'Karwan credit passport: composite reputation snapshot',
   );
@@ -257,7 +277,7 @@ x402Routes.get('/record/:subject', async (c) => {
   }
   if (!signed) return c.json({ error: 'signing unavailable' }, 503);
 
-  const payment = await requirePayment(c, PRICES.record, 'Karwan record read: signed work history for one request');
+  const payment = await chargeRead(c, 'record', PRICES.record, 'Karwan record read: signed work history for one request');
   if (payment instanceof Response) return payment;
 
   await saveRecordRead({
@@ -284,8 +304,9 @@ x402Routes.get('/repayment-behavior/:address', async (c) => {
   const subject = await resolveSubject(parsed.data);
   if (await passportHidden(subject)) return c.json({ error: 'passport not public' }, 404);
 
-  const payment = await requirePayment(
+  const payment = await chargeRead(
     c,
+    'repayment-behavior',
     PRICES.repaymentBehavior,
     'Karwan repayment behaviour: rolling settlement window',
   );
@@ -305,8 +326,9 @@ x402Routes.get('/concentration/:address', async (c) => {
   const subject = await resolveSubject(parsed.data);
   if (await passportHidden(subject)) return c.json({ error: 'passport not public' }, 404);
 
-  const payment = await requirePayment(
+  const payment = await chargeRead(
     c,
+    'concentration',
     PRICES.concentration,
     'Karwan counterparty concentration: ratio, flags, histogram',
   );
@@ -359,8 +381,9 @@ x402Routes.get('/document-anchors/:invoiceId', async (c) => {
   const anchors = await listAnchorsForInvoice(parsed.data);
   if (anchors.length === 0) return c.json({ error: 'no anchors for this invoice' }, 404);
 
-  const payment = await requirePayment(
+  const payment = await chargeRead(
     c,
+    'document-anchors',
     PRICES.documentAnchors,
     'Karwan document anchors: on-chain anchored hashes for an invoice',
   );

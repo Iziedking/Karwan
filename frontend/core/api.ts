@@ -1478,12 +1478,14 @@ export interface LifetimeDay extends LifetimeVolumes {
   financings: number;
 }
 
-/// Public totals of agent record reads. No reader, subject or price.
+/// Public totals of paid agent reads. `reads` counts every settled x402 read
+/// on any paid endpoint; `recordReads` is the signed record reads among them.
+/// No reader, subject or price.
 export interface RecordReadTotals {
   reads: number;
-  readers: number;
-  subjects: number;
   since: number | null;
+  byEndpoint: Partial<Record<string, number>>;
+  recordReads: { reads: number; readers: number; subjects: number };
 }
 
 export interface LifetimeStats {
@@ -2560,9 +2562,11 @@ export const api = {
     }),
   dealsFeed: () => json<{ deals: PublicFeedDeal[] }>('/api/deals/feed'),
   /// Aggregate network numbers only (no per-deal data). Use this for stat
-  /// counters; the feed itself is settled-only and private-safe.
+  /// counters; the feed itself is settled-only and private-safe. Amounts are
+  /// agreed deal amounts: quote settledVolumeUsdc as volume, never
+  /// createdValueUsdc, which includes unfunded and cancelled deals.
   dealsStats: () =>
-    json<{ total: number; direct: number; agent: number; settled: number; volumeUsdc: number }>(
+    json<{ total: number; direct: number; agent: number; settled: number; settledVolumeUsdc: number; createdValueUsdc: number }>(
       '/api/deals/stats',
     ),
   /// Provable on-chain stats scanned from current contract events. Counts,
@@ -2577,8 +2581,8 @@ export const api = {
   /// script, so this is a fast read; it 503s until that first scan has run.
   networkLifetime: (init?: RequestInit) =>
     json<LifetimeStats>('/api/network/lifetime', init),
-  /// Agent record reads counted from the first one stored: totals only, and a
-  /// null start until a read exists. 503 when the store cannot answer.
+  /// Paid agent reads counted from the first one: totals only, and a null
+  /// start until a read exists. 503 when the store cannot answer.
   networkReads: (init?: RequestInit) =>
     json<RecordReadTotals>('/api/network/reads', init),
   /// What the contracts in service right now hold, read at head. Cheap enough

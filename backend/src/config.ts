@@ -83,6 +83,10 @@ const envSchema = z.object({
   /// Agents pay to read each other's full record (view 13). Off until the
   /// x402 spike passes on the network.
   RECORD_READS_ENABLED: envBool('RECORD_READS_ENABLED'),
+  /// Opens the public traction routes: /api/deals/feed, /api/deals/stats and
+  /// /api/network/reads. Off by default, so they close again by unsetting it.
+  /// Chain-derived totals (/api/network/lifetime, /contracts) stay open.
+  PUBLIC_TRACTION_ENABLED: envBool('PUBLIC_TRACTION_ENABLED'),
   /// Key for the one-way counterparty fingerprint in record reads. Created by
   /// the owner on the server; never rotated once reads are served.
   RECORD_COUNTERPARTY_PEPPER: optionalString,

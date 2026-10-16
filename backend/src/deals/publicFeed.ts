@@ -6,7 +6,8 @@ export type AmountBand = 'under_100' | '100_500' | '500_2000' | '2000_10000' | '
 export type DealOrigin = 'agent' | 'direct';
 
 /// What the public may know about a settled deal: roughly how large, when, and
-/// whether an agent found the match. No parties, no deal id, no exact amount.
+/// whether an agent found the match. No parties, no deal id, no exact amount,
+/// and the day rather than the time.
 export interface PublicFeedDeal {
   amountBand: AmountBand;
   settledAt: number;
@@ -46,6 +47,11 @@ export function dealOrigin(deal: { origin?: DealOrigin }, hasBrief: boolean): De
   return deal.origin ?? (hasBrief ? 'agent' : 'direct');
 }
 
+const DAY_MS = 86_400_000;
+
+/// The settle time is the start of its UTC day. An exact time could be matched
+/// to the escrow transaction and tie the amount band to the wallets.
 export function publicFeedDeal(deal: PublicFeedSource, origin: DealOrigin): PublicFeedDeal {
-  return { amountBand: amountBand(deal.dealAmountUsdc), settledAt: deal.settledAt ?? deal.updatedAt, origin };
+  const at = deal.settledAt ?? deal.updatedAt;
+  return { amountBand: amountBand(deal.dealAmountUsdc), settledAt: at - (at % DAY_MS), origin };
 }

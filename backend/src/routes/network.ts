@@ -4,6 +4,7 @@ import { getLifetimeStats } from '../chain/lifetimeStats.js';
 import { getCurrentContracts } from '../chain/currentContracts.js';
 import { config } from '../config.js';
 import { recordReadTotals } from '../db/recordReads.js';
+import { paidReadTotals } from '../db/paidReads.js';
 
 export const networkRoutes = new Hono();
 
@@ -60,13 +61,21 @@ networkRoutes.get('/lifetime', async (c) => {
   return c.json(stats);
 });
 
-/// Agent record reads, counted from the first one stored. Aggregates only: no
-/// reader, subject, price, ref or detail. A store that cannot answer says so
+/// Paid agent reads, counted from the first one. `reads` is every x402 read
+/// that settled, on any paid endpoint; `recordReads` is the signed record reads
+/// among them, with how many readers and people they touched. Aggregates only:
+/// no reader, subject, price, ref or detail. A store that cannot answer says so
 /// with a 503, so the page shows nothing rather than a zero it cannot vouch for.
 networkRoutes.get('/reads', async (c) => {
+  if (!config.PUBLIC_TRACTION_ENABLED) return c.json({ error: 'not available' }, 404);
   try {
-    const { reads, readers, subjects, since } = await recordReadTotals();
-    return c.json({ reads, readers, subjects, since });
+    const [paid, record] = await Promise.all([paidReadTotals(), recordReadTotals()]);
+    return c.json({
+      reads: paid.reads,
+      since: paid.since,
+      byEndpoint: paid.byEndpoint,
+      recordReads: { reads: record.reads, readers: record.readers, subjects: record.subjects },
+    });
   } catch {
     return c.json({ error: 'record reads unavailable' }, 503);
   }

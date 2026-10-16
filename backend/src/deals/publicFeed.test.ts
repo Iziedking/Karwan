@@ -26,8 +26,8 @@ const settled = {
 };
 
 test('the public feed carries a value band, a time and how the deal began, nothing that names a party', () => {
-  assert.deepEqual(publicFeedDeal(settled, 'agent'), { amountBand: '100_500', settledAt: 3, origin: 'agent' });
-  assert.deepEqual(publicFeedDeal(settled, 'direct'), { amountBand: '100_500', settledAt: 3, origin: 'direct' });
+  assert.deepEqual(publicFeedDeal(settled, 'agent'), { amountBand: '100_500', settledAt: 0, origin: 'agent' });
+  assert.deepEqual(publicFeedDeal(settled, 'direct'), { amountBand: '100_500', settledAt: 0, origin: 'direct' });
 });
 
 test('a deal began with an agent when it says so, or, for older rows, when it has a brief', () => {
@@ -52,7 +52,13 @@ test('an amount that is not a number bands as under 100, never throws', () => {
 });
 
 test('a feed row without settledAt falls back to updatedAt', () => {
-  assert.deepEqual(publicFeedDeal({ ...settled, settledAt: undefined }, 'direct'), { amountBand: '100_500', settledAt: 4, origin: 'direct' });
+  assert.deepEqual(publicFeedDeal({ ...settled, settledAt: undefined }, 'direct'), { amountBand: '100_500', settledAt: 0, origin: 'direct' });
+});
+
+test('the settle time is rounded down to the UTC day, so it cannot be matched to a transaction', () => {
+  const at = Date.UTC(2026, 9, 16, 14, 37, 12, 345);
+  assert.equal(publicFeedDeal({ ...settled, settledAt: at }, 'agent').settledAt, Date.UTC(2026, 9, 16));
+  assert.equal(publicFeedDeal({ ...settled, settledAt: Date.UTC(2026, 9, 16) }, 'agent').settledAt, Date.UTC(2026, 9, 16));
 });
 
 test('nothing private survives serialization', () => {
