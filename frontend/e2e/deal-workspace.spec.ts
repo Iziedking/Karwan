@@ -65,6 +65,19 @@ test('messages stay closed on a wide screen until the message button opens them'
   await expect(page.getByRole('dialog').getByRole('log')).toBeVisible();
 });
 
+test('Back sits on the deal column, not at the edge of a wide screen', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await serveDeal(page, deliveredDeal);
+  await page.goto(`/deals/${JOB}`);
+  const amount = page.getByRole('heading', { level: 1 });
+  await expect(amount).toContainText('1,200');
+  const back = page.getByRole('button', { name: en.nav.backAria, exact: true }).filter({ visible: true });
+  await expect(back).toHaveCount(1);
+  const backBox = await back.boundingBox();
+  const amountBox = await amount.boundingBox();
+  expect(Math.abs(backBox!.x - amountBox!.x)).toBeLessThan(24);
+});
+
 test('a new counterparty is described neutrally', async ({ page }) => {
   await serveDeal(page, {
     ...deliveredDeal,

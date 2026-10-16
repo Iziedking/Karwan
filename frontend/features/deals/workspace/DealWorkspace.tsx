@@ -1,10 +1,12 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { api, type MoneyMovementView } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ConnectWalletButton } from '@/shared/components/ConnectWallet';
+import { ProductBackLink } from '@/shared/components/ProductBackLink';
 import { type SettlementRecordFetchState } from '../components/SettlementRecord';
 import { useDirectDeal, type DealErrorKind } from '../hooks/useDirectDeals';
 import { ConfirmSheet } from './ConfirmSheet';
@@ -84,6 +86,7 @@ function DealFetchError({ kind, isRefetching, onRetry }: {
 export function DealWorkspace({ jobId }: { jobId: string }) {
   const copy = useTranslations().dealWorkspace;
   const auth = useAuth();
+  const pathname = usePathname();
   const address = auth.address ?? null;
   const { deal, fetchState, refresh, errorKind, isRefetching } = useDirectDeal(jobId);
   const [movements, setMovements] = useState<MoneyMovementView[]>([]);
@@ -125,6 +128,9 @@ export function DealWorkspace({ jobId }: { jobId: string }) {
 
   return (
     <div className="product-surface mx-auto max-w-[560px] px-4 pb-16 pt-4 sm:px-6">
+      <div data-own-back className="-ms-2 mb-4 empty:hidden">
+        <ProductBackLink pathname={pathname} isAuthenticated={auth.isAuthenticated} />
+      </div>
       <div className="min-w-0">
       <DealHero
         deal={deal}
