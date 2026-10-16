@@ -62,3 +62,32 @@ test('a deadline refund tells the buyer the money is back and the seller why', (
   assert.match(seller.body, /did not pass the delivery check by the deadline/);
   assert.doesNotMatch(buyer.body + seller.body, /—/);
 });
+
+const shortlistReady = (notify: boolean, count = 3): KarwanEvent => ({
+  type: 'request.shortlist',
+  jobId: '0xjob',
+  actor: 'buyer',
+  ts: 0,
+  payload: { buyer: '0xb', count, notify, entries: [] },
+} as unknown as KarwanEvent);
+
+test('a ready shortlist emails the buyer to come and choose', () => {
+  const c = contentFor(shortlistReady(true), 'buyer', 'service');
+  assert.match(c!.subject, /Your agent found 3 sellers/);
+  assert.match(c!.body, /Nothing moves until you choose and confirm/);
+  assert.match(c!.ctaUrl ?? '/jobs/0xjob', /\/jobs\/0xjob$/);
+});
+
+test('shortlist updates that are not worth a message, and empty lists, send no email', () => {
+  assert.equal(contentFor(shortlistReady(false), 'buyer', 'service'), null);
+  assert.equal(contentFor(shortlistReady(true, 0), 'buyer', 'service'), null);
+});
+
+test('in shortlist mode a match tells the buyer they choose, not that escrow funds by itself', () => {
+  const matched = { type: 'deal.matched', jobId: '0xjob', actor: 'buyer', ts: 0, payload: { buyer: '0xb', seller: '0xs', agreedPriceUsdc: '90' } } as unknown as KarwanEvent;
+  const toBuyer = contentFor(matched, 'buyer', 'service', undefined, { shortlistMode: true });
+  assert.match(toBuyer!.body, /Choose them, or anyone else on your shortlist/);
+  assert.doesNotMatch(toBuyer!.body, /automatically/);
+  const toSeller = contentFor(matched, 'seller', 'service', undefined, { shortlistMode: true });
+  assert.match(toSeller!.body, /The buyer is choosing from a shortlist/);
+});

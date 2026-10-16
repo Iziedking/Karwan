@@ -53,6 +53,7 @@ const EMAIL_RELEVANT = new Set([
   'deal.matched',
   'deal.match.approved',
   'listing.matched',
+  'request.shortlist',
   'deal.direct.created',
   'deal.seller-approved',
   'deal.direct.declined',
@@ -118,6 +119,11 @@ async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
   if (e.type === 'listing.matched') {
     const seller = (e.payload?.seller as string | undefined)?.toLowerCase();
     return seller ? [{ address: seller, role: 'seller' }] : [];
+  }
+  if (e.type === 'request.shortlist') {
+    // Only the poster, and only for the updates marked worth a message.
+    const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
+    return buyer && e.payload?.notify === true ? [{ address: buyer, role: 'buyer' }] : [];
   }
   const finance = FINANCE_RECIPIENTS[e.type];
   if (finance) {
@@ -190,14 +196,48 @@ export function contentFor(
   /// The buyer's private requirement review, read from the deal for the buyer
   /// alone. Never on the event, which both parties receive.
   buyerPrivateNote?: string,
+  opts: { shortlistMode?: boolean } = {},
 ): EmailContent | null {
+  const shortlistMode = opts.shortlistMode ?? config.SHORTLIST_MODE;
   const amount = (e.payload?.dealAmountUsdc as string | undefined) ?? '';
   const amountSuffix = amount ? ` (${amount} USDC)` : '';
 
   switch (e.type) {
+    case 'request.shortlist': {
+      const count = Number(e.payload?.count ?? 0);
+      if (e.payload?.notify !== true || count < 1) return null;
+      const people = count === 1 ? '1 seller' : `${count} sellers`;
+      return {
+        kicker: 'Shortlist ready',
+        subject: `Your agent found ${people} for your request`,
+        heading: `Your agent found ${people}`,
+        body: `Your agent checked their records and listed ${people} for your request, verified or not, with each one's score and numbers. Open the request to see who it recommends and choose. Nothing moves until you choose and confirm.`,
+        ctaLabel: 'Choose a seller',
+        ctaUrl: jobUrl(e.jobId),
+      };
+    }
     case 'deal.matched': {
       const price = (e.payload?.agreedPriceUsdc as string | undefined) ?? '';
       const priceSuffix = price ? ` at ${price} USDC` : '';
+      if (shortlistMode) {
+        return role === 'seller'
+          ? {
+              kicker: 'Price agreed',
+              subject: `You agreed a price with a buyer's agent${priceSuffix}`,
+              heading: 'You agreed a price',
+              body: `You agreed a price with the buyer's agent${priceSuffix}. The buyer is choosing from a shortlist. You will hear when they pick.`,
+              ctaLabel: 'View the request',
+              ctaUrl: jobUrl(e.jobId),
+            }
+          : {
+              kicker: 'Match found',
+              subject: `Your agent agreed a price with the seller it recommends${priceSuffix}`,
+              heading: 'Your agent recommends a seller',
+              body: `Your agent agreed a price with the seller it recommends${priceSuffix}. Choose them, or anyone else on your shortlist. Nothing moves until you confirm.`,
+              ctaLabel: 'Choose a seller',
+              ctaUrl: jobUrl(e.jobId),
+            };
+      }
       return role === 'seller'
         ? {
             kicker: 'Match found',
