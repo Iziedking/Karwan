@@ -389,13 +389,14 @@ test('reputation badges and the app shell never leave a person on a bare number 
   assert.doesNotMatch(source('../../app/app/page.tsx'), />Account home</);
 });
 
-test('the deal page shows dated steps, keeps messages one tap away, and puts the chat beside the deal on desktop', () => {
+test('the deal page shows dated steps, and messages stay closed behind the message button at every width', () => {
   const hero = source('../../features/deals/workspace/DealHero.tsx');
   assert.match(hero, /<DealTimeline/);
   assert.doesNotMatch(hero, /className="mt-6 flex gap-1\.5"/);
-  assert.match(hero, /aria-label=\{fill\(dl\.message/);
+  assert.match(hero, /\{address \? \(\s*<button[\s\S]*?aria-label=\{fill\(dl\.message/);
+  assert.doesNotMatch(hero, /!desktop/);
   assert.doesNotMatch(hero, /key: 'messages' as const/);
-  assert.match(source('../../features/deals/workspace/DealWorkspace.tsx'), /desktop && address \? \([\s\S]*?<ChatPanel/);
+  assert.doesNotMatch(source('../../features/deals/workspace/DealWorkspace.tsx'), /<ChatPanel/);
 });
 
 test('recent trades lead with what the deal is and who it is with, without numbering or text arrows', () => {

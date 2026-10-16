@@ -55,6 +55,16 @@ test('the agreement opens in a sheet instead of sitting on the page', async ({ p
   await expect(page.getByRole('dialog')).toContainText('Deliver the translated catalogue');
 });
 
+test('messages stay closed on a wide screen until the message button opens them', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await serveDeal(page, deliveredDeal);
+  await page.goto(`/deals/${JOB}`);
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('1,200');
+  await expect(page.getByRole('log')).toHaveCount(0);
+  await page.getByRole('button', { name: /^Message Amina Foods Ltd/ }).click();
+  await expect(page.getByRole('dialog').getByRole('log')).toBeVisible();
+});
+
 test('a new counterparty is described neutrally', async ({ page }) => {
   await serveDeal(page, {
     ...deliveredDeal,

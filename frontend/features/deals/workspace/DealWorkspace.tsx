@@ -15,9 +15,6 @@ import { registerDealTools } from './webmcp';
 import { V3EscrowPanel } from '../v3/V3EscrowPanel';
 import { HighSignalVerificationCard } from '../components/HighSignalVerificationCard';
 import { ProtectionSection } from './ProtectionSection';
-import { ChatPanel } from '@/features/chat/components/ChatPanel';
-import { shortAddress } from '@/shared/utils/format';
-import { DESKTOP_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 
 const SOFT = 'bg-[var(--lp-workspace-soft)] motion-safe:animate-pulse motion-reduce:animate-none rounded-[10px]';
 
@@ -93,7 +90,6 @@ export function DealWorkspace({ jobId }: { jobId: string }) {
   const [recordState, setRecordState] = useState<SettlementRecordFetchState>('loading');
   const [recordKey, setRecordKey] = useState(0);
   const [fundingBusy, setFundingBusy] = useState(false);
-  const desktop = useMediaQuery(DESKTOP_QUERY);
   const counterpartyName = deal?.counterpartyTrust?.name ?? '';
   const actions = useWorkspaceActions(jobId, deal ?? null, address, counterpartyName, refresh);
   const fundingRecovery = actions.sheet?.action === 'fund' &&
@@ -128,7 +124,7 @@ export function DealWorkspace({ jobId }: { jobId: string }) {
   }
 
   return (
-    <div className="product-surface mx-auto max-w-[560px] px-4 pb-16 pt-4 sm:px-6 xl:grid xl:max-w-[1120px] xl:grid-cols-[minmax(0,560px)_minmax(0,1fr)] xl:items-start xl:gap-10">
+    <div className="product-surface mx-auto max-w-[560px] px-4 pb-16 pt-4 sm:px-6">
       <div className="min-w-0">
       <DealHero
         deal={deal}
@@ -153,17 +149,6 @@ export function DealWorkspace({ jobId }: { jobId: string }) {
         <V3EscrowPanel deal={deal} address={address} onChanged={() => { void refresh(); }} />
       </div>
       </div>
-      {desktop && address ? (
-        <aside aria-label={copy.simple.messages} className="sticky top-24 mt-4 h-[calc(100vh-8rem)] min-h-[480px]">
-          <ChatPanel
-            jobId={deal.jobId}
-            caller={address}
-            counterpartyLabel={counterpartyName || shortAddress(actions.viewerIsBuyer ? deal.seller : deal.buyer)}
-            counterpartyAddress={actions.viewerIsBuyer ? deal.seller : deal.buyer}
-            fill
-          />
-        </aside>
-      ) : null}
       <ConfirmSheet
         open={!!actions.sheet}
         title={actions.sheet?.title ?? ''}

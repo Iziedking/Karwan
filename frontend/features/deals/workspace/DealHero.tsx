@@ -18,7 +18,6 @@ import { deliveryCheckStatus } from './checkStatus';
 import { Sheet } from './Sheet';
 import { TrustCard } from './TrustCard';
 import { useChatUnread } from '@/features/chat/hooks/useChatUnread';
-import { DESKTOP_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { DealLatest, DealTimeline } from './DealTimeline';
 import { DisputePanel } from './DisputePanel';
 
@@ -58,7 +57,6 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   const copy = useTranslations().dealWorkspace;
   const dl = useTranslations().dealLive;
   const s = copy.simple;
-  const desktop = useMediaQuery(DESKTOP_QUERY);
   const declineCopy = useTranslations().directDealDetail.actionPanel.awaitingAcceptance;
   const { locale } = useLocale();
   const router = useRouter();
@@ -190,7 +188,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
             {facts ? <span className="block truncate text-[14px] text-[var(--lp-text-sub)] font-medium">{facts}</span> : null}
           </span>
         </button>
-        {address && !desktop ? (
+        {address ? (
           <button
             type="button"
             onClick={() => setPanel('messages')}
@@ -267,7 +265,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
         <DisputePanel jobId={deal.jobId} dispute={deal.dispute} viewerIsBuyer={viewerIsBuyer} caller={address} name={name} myName={displayName} onChanged={onChanged} />
       ) : null}
 
-      {address && !desktop ? <DealLatest jobId={deal.jobId} caller={address} name={name} onOpen={() => setPanel('messages')} /> : null}
+      {address ? <DealLatest jobId={deal.jobId} caller={address} name={name} onOpen={() => setPanel('messages')} /> : null}
 
       <nav aria-label={copy.protectedDeal} className="overflow-hidden rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
         {[
