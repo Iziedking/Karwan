@@ -113,3 +113,9 @@ test('a request the agent passed on shows as passed with its check', () => {
   assert.equal(d.bidding[0].check?.flag, 'disputes');
   assert.equal(d.bidding[0].check?.disputesLost, 3);
 });
+
+test('buyers waiting on my World ID check are carried to the desk and count as something to do', () => {
+  const d = desk({ worldChecks: [{ jobId: '0xj9', title: 'Logo', priceUsdc: '1200', reason: 'large_deal', skipAllowed: true }] });
+  assert.equal(d.worldChecks.length, 1);
+  assert.equal(d.empty, false);
+});

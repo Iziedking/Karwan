@@ -15,6 +15,14 @@ export interface AgentNudgesCopy {
   matched: string;
   scanned: string;
   aRequest: string;
+  world: {
+    needed: string;
+    why: string;
+    waiting: string;
+    sellerTitle: string;
+    sellerLine: string;
+    reasons: { first_deal: string; large_deal: string; fast_new_account: string; flagged_link_before: string };
+  };
   desk: {
     bid: string;
     checked: string;
@@ -41,6 +49,19 @@ export const agentNudgesCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', AgentNudg
     matched: 'Your agent found a match',
     scanned: 'Your agent searched the market for sellers',
     aRequest: 'a request',
+    world: {
+      needed: 'Confirm with World ID before your agent funds this deal.',
+      why: 'Why: {reason}',
+      waiting: 'Waiting for {name} to confirm with World ID. Escrow funds as soon as they do.',
+      sellerTitle: 'Confirm with World ID to start',
+      sellerLine: 'A buyer chose your offer on {title} at {amount} USDC. Escrow funds as soon as you confirm.',
+      reasons: {
+        first_deal: 'first deal on Karwan',
+        large_deal: 'a deal of 1,000 USDC or more',
+        fast_new_account: 'many deals from a new account in one day',
+        flagged_link_before: 'a link sent earlier was judged malicious',
+      },
+    },
     desk: {
       bid: 'Your agent offered {amount} USDC on {title}',
       checked: 'Your agent paid {amount} USDC to check the buyer on {title}',
@@ -65,6 +86,19 @@ export const agentNudgesCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', AgentNudg
     matched: 'Votre agent a trouvé une correspondance',
     scanned: 'Votre agent a cherché des vendeurs sur le marché',
     aRequest: 'une demande',
+    world: {
+      needed: 'Confirmez avec World ID avant que votre agent ne finance cet accord.',
+      why: 'Pourquoi : {reason}',
+      waiting: 'En attente de la confirmation World ID de {name}. Le séquestre est financé dès que c’est fait.',
+      sellerTitle: 'Confirmez avec World ID pour commencer',
+      sellerLine: 'Un acheteur a choisi votre offre sur {title} à {amount} USDC. Le séquestre est financé dès votre confirmation.',
+      reasons: {
+        first_deal: 'premier accord sur Karwan',
+        large_deal: 'un accord de 1 000 USDC ou plus',
+        fast_new_account: 'beaucoup d’accords en un jour depuis un nouveau compte',
+        flagged_link_before: 'un lien envoyé plus tôt a été jugé malveillant',
+      },
+    },
     desk: {
       bid: 'Votre agent a proposé {amount} USDC sur {title}',
       checked: "Votre agent a payé {amount} USDC pour vérifier l'acheteur de {title}",
@@ -89,6 +123,19 @@ export const agentNudgesCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', AgentNudg
     matched: 'وجد وكيلك تطابقًا',
     scanned: 'بحث وكيلك في السوق عن بائعين',
     aRequest: 'طلب',
+    world: {
+      needed: 'أكّد عبر World ID قبل أن يموّل وكيلك هذه الصفقة.',
+      why: 'السبب: {reason}',
+      waiting: 'بانتظار تأكيد {name} عبر World ID. يُموَّل الضمان فور التأكيد.',
+      sellerTitle: 'أكّد عبر World ID للبدء',
+      sellerLine: 'اختار مشترٍ عرضك على {title} مقابل {amount} USDC. يُموَّل الضمان فور تأكيدك.',
+      reasons: {
+        first_deal: 'أول صفقة على Karwan',
+        large_deal: 'صفقة بقيمة 1,000 USDC أو أكثر',
+        fast_new_account: 'صفقات كثيرة من حساب جديد في يوم واحد',
+        flagged_link_before: 'رابط أُرسل سابقًا صُنّف ضارًا',
+      },
+    },
     desk: {
       bid: 'عرض وكيلك {amount} USDC على {title}',
       checked: 'دفع وكيلك {amount} USDC للتحقق من المشتري في {title}',
@@ -113,6 +160,19 @@ export const agentNudgesCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', AgentNudg
     matched: 'आपके एजेंट को मैच मिल गया',
     scanned: 'आपके एजेंट ने बाज़ार में विक्रेता खोजे',
     aRequest: 'एक अनुरोध',
+    world: {
+      needed: 'आपका एजेंट इस सौदे को फ़ंड करे, उससे पहले World ID से पुष्टि करें।',
+      why: 'कारण: {reason}',
+      waiting: '{name} की World ID पुष्टि का इंतज़ार है। पुष्टि होते ही एस्क्रो फ़ंड हो जाएगा।',
+      sellerTitle: 'शुरू करने के लिए World ID से पुष्टि करें',
+      sellerLine: 'एक खरीदार ने {title} पर आपका ऑफ़र {amount} USDC में चुना। आपकी पुष्टि होते ही एस्क्रो फ़ंड हो जाएगा।',
+      reasons: {
+        first_deal: 'Karwan पर पहला सौदा',
+        large_deal: '1,000 USDC या उससे ज़्यादा का सौदा',
+        fast_new_account: 'नए खाते से एक दिन में कई सौदे',
+        flagged_link_before: 'पहले भेजा गया एक लिंक हानिकारक पाया गया',
+      },
+    },
     desk: {
       bid: 'आपके एजेंट ने {title} पर {amount} USDC की पेशकश की',
       checked: 'आपके एजेंट ने {title} के खरीदार की जांच के लिए {amount} USDC चुकाए',
@@ -137,6 +197,19 @@ export const agentNudgesCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', AgentNudg
     matched: 'Wakala wako amepata mechi',
     scanned: 'Wakala wako alitafuta wauzaji sokoni',
     aRequest: 'ombi',
+    world: {
+      needed: 'Thibitisha kwa World ID kabla wakala wako hajafadhili mkataba huu.',
+      why: 'Sababu: {reason}',
+      waiting: 'Inasubiri {name} athibitishe kwa World ID. Escrow inafadhiliwa mara tu atakapothibitisha.',
+      sellerTitle: 'Thibitisha kwa World ID ili kuanza',
+      sellerLine: 'Mnunuzi amechagua ofa yako kwa {title} kwa USDC {amount}. Escrow inafadhiliwa mara tu utakapothibitisha.',
+      reasons: {
+        first_deal: 'mkataba wa kwanza kwenye Karwan',
+        large_deal: 'mkataba wa USDC 1,000 au zaidi',
+        fast_new_account: 'mikataba mingi kutoka akaunti mpya kwa siku moja',
+        flagged_link_before: 'kiungo kilichotumwa awali kilionekana kuwa hatari',
+      },
+    },
     desk: {
       bid: 'Wakala wako alitoa ofa ya USDC {amount} kwa {title}',
       checked: 'Wakala wako alilipa USDC {amount} kumkagua mnunuzi wa {title}',

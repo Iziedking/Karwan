@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { api, ApiError, type BuyerBid } from '@/core/api';
+import { api, ApiError, type BuyerBid, type WorldCheckReason } from '@/core/api';
 import { PersonAvatar } from '@/shared/components/PersonAvatar';
 import { Icon } from '@/shared/components/Icon';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -14,6 +14,8 @@ import { fill } from '@/features/deals/workspace/presentation';
 import { chooseErrorKey } from '../chooseError';
 import { fitLevel, offersPage, OFFERS_PER_PAGE, priceRange, rankOffers, type FitLevel } from '../offerRoster';
 import { Shortlist, useShortlist } from './Shortlist';
+import { AgentWorldCheck } from './AgentWorldCheck';
+import { worldStepFrom } from '../agentWorldStep';
 
 const nameOf = (bid: BuyerBid) => bid.sellerDisplayName?.trim() || shortAddress(bid.seller);
 const price = (usdc: string | number) => formatUsdc(String(usdc), { withSuffix: false });
@@ -39,10 +41,11 @@ export function OffersRoster({ jobId, bids, pickSeller, caller, choosable, open:
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [worldStep, setWorldStep] = useState<{ reason: WorldCheckReason | null; skipAllowed: boolean } | null>(null);
   const shortlist = useShortlist(jobId, caller);
 
   if (shortlist && caller) {
-    return <Shortlist jobId={jobId} caller={caller} entries={shortlist.entries} closed={shortlist.closed || !choosable} onChosen={onChosen} />;
+    return <Shortlist jobId={jobId} caller={caller} entries={shortlist.entries} closed={shortlist.closed || !choosable} worldCheck={shortlist.worldCheck ?? null} onChosen={onChosen} />;
   }
 
   const ranked = rankOffers(bids);
@@ -64,10 +67,16 @@ export function OffersRoster({ jobId, bids, pickSeller, caller, choosable, open:
     setError(null);
     try {
       await api.chooseOffer(jobId, caller, viewing.seller, { expectedPriceUsdc: viewing.priceUsdc });
+      setWorldStep(null);
       setConfirming(false);
       setViewing(null);
       onChosen();
     } catch (err) {
+      const step = worldStepFrom(err);
+      if (step) {
+        setWorldStep(step);
+        return;
+      }
       setError(copy[chooseErrorKey(err instanceof ApiError ? err.status : 0, err instanceof ApiError ? err.code : undefined)]);
     } finally {
       setBusy(false);
@@ -163,8 +172,23 @@ export function OffersRoster({ jobId, bids, pickSeller, caller, choosable, open:
         busy={busy}
         error={error}
         onConfirm={() => { if (!busy) void choose(); }}
-        onClose={() => { if (!busy) setConfirming(false); }}
-      />
+        onClose={() => {
+          if (busy) return;
+          setConfirming(false);
+          setWorldStep(null);
+        }}
+      >
+        {viewing && caller && worldStep ? (
+          <AgentWorldCheck
+            jobId={jobId}
+            caller={caller}
+            role="buyer"
+            reason={worldStep.reason}
+            skipAllowed={worldStep.skipAllowed}
+            onDone={() => void choose()}
+          />
+        ) : null}
+      </ConfirmSheet>
     </section>
   );
 }

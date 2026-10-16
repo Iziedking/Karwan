@@ -29,6 +29,12 @@ export function deskNudges(prev: SellerDesk | null, next: SellerDesk, copy: Agen
       out.push(fill(copy.desk.checked, { amount: b.check.paidUsdc.toFixed(2), title }));
     }
   }
+  const asked = new Set(prev.worldChecks.map((w) => w.jobId.toLowerCase()));
+  for (const w of next.worldChecks) {
+    if (!asked.has(w.jobId.toLowerCase())) {
+      out.push(fill(copy.world.sellerLine, { title: w.title ?? copy.aRequest, amount: w.priceUsdc }));
+    }
+  }
   const waiting = new Set(prev.needsYou.map((m) => m.jobId.toLowerCase()));
   for (const m of next.needsYou) {
     if (!waiting.has(m.jobId.toLowerCase())) out.push(fill(copy.desk.chosen, { title: m.title ?? copy.aRequest }));

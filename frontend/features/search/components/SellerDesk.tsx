@@ -12,6 +12,7 @@ import { ALERT, PRIMARY, QUIET, SECONDARY } from '@/shared/ui/controls';
 import { sellerDeskView, type BidLine, type BuyerCheckLine, type SellerDesk as SellerDeskData } from '../sellerDeskView';
 import { deskNudges } from '../deskNudges';
 import { NudgeStack } from '@/features/jobs/components/AgentNudges';
+import { AgentWorldCheck } from '@/features/jobs/components/AgentWorldCheck';
 import type { Messages } from '@/shared/i18n/messages';
 import { startPlan } from '../startPlan';
 import { useStartRun } from '../hooks/useStartRun';
@@ -47,6 +48,7 @@ export function SellerDesk() {
         bids: seller.activeBids,
         recentBids: seller.recentBids ?? [],
         listings: listings.listings,
+        worldChecks: seller.worldChecks ?? [],
         now: Date.now(),
       });
     },
@@ -117,6 +119,29 @@ export function SellerDesk() {
         <div aria-busy="true" className="mt-6 h-24 rounded-md bg-[var(--lp-light)] motion-safe:animate-pulse" />
       ) : (
         <div className="divide-y divide-[var(--lp-border-light)] [&>*]:py-8">
+          {desk.data.worldChecks.length > 0 ? (
+            <section aria-labelledby="world-checks" className="space-y-3">
+              <h2 id="world-checks" className="text-[17px] font-semibold text-[var(--lp-dark)]">{nudgeCopy.world.sellerTitle}</h2>
+              <ul className="space-y-3">
+                {desk.data.worldChecks.map((w) => (
+                  <li key={w.jobId} className="space-y-2">
+                    <p className="text-[15px] text-[var(--lp-dark)]">
+                      {fill(nudgeCopy.world.sellerLine, { title: w.title ?? nudgeCopy.aRequest, amount: w.priceUsdc })}
+                    </p>
+                    <AgentWorldCheck
+                      jobId={w.jobId}
+                      caller={me}
+                      role="seller"
+                      reason={w.reason}
+                      skipAllowed={w.skipAllowed}
+                      onDone={() => void qc.invalidateQueries({ queryKey: deskKey })}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
           {desk.data.needsYou.length > 0 ? (
             <section aria-labelledby="needs-you" className="space-y-3">
               <h2 id="needs-you" className="text-[17px] font-semibold text-[var(--lp-dark)]">{t.seller.needsYou}</h2>

@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { api, ApiError, type ShortlistEntry } from '@/core/api';
+import { api, ApiError, type AgentWorldCheckView, type ShortlistEntry, type WorldCheckReason } from '@/core/api';
 import { PersonAvatar } from '@/shared/components/PersonAvatar';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { formatUsdc } from '@/shared/utils/format';
@@ -9,6 +9,8 @@ import { ConfirmSheet } from '@/features/deals/workspace/ConfirmSheet';
 import { fill } from '@/features/deals/workspace/presentation';
 import { chooseErrorKey } from '../chooseError';
 import { shortlistNotice, shortlistRowView } from '../shortlistPresentation';
+import { AgentWorldCheck } from './AgentWorldCheck';
+import { worldStepFrom } from '../agentWorldStep';
 
 const POLL_MS = 6_000;
 const price = (usdc: number) => formatUsdc(String(usdc), { withSuffix: false });
@@ -16,7 +18,7 @@ const price = (usdc: number) => formatUsdc(String(usdc), { withSuffix: false });
 /// The shortlist for a request, or null when the backend does not run it, so
 /// the caller falls back to the plain offers list.
 export function useShortlist(jobId: string, caller: string | null) {
-  const [state, setState] = useState<{ entries: ShortlistEntry[]; closed: boolean } | null>(null);
+  const [state, setState] = useState<{ entries: ShortlistEntry[]; closed: boolean; worldCheck?: AgentWorldCheckView | null } | null>(null);
   useEffect(() => {
     if (!caller) return;
     let stopped = false;
@@ -47,11 +49,12 @@ export function useShortlist(jobId: string, caller: string | null) {
 
 /// Who the agents found for this request, verified or not, with each person's
 /// score and numbers and the one the agent recommends. The buyer chooses.
-export function Shortlist({ jobId, caller, entries, closed, onChosen }: {
+export function Shortlist({ jobId, caller, entries, closed, worldCheck, onChosen }: {
   jobId: string;
   caller: string;
   entries: ShortlistEntry[];
   closed: boolean;
+  worldCheck?: AgentWorldCheckView | null;
   onChosen: () => void;
 }) {
   const t = useTranslations();
@@ -60,20 +63,31 @@ export function Shortlist({ jobId, caller, entries, closed, onChosen }: {
   const [choosing, setChoosing] = useState<ShortlistEntry | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [worldStep, setWorldStep] = useState<{ reason: WorldCheckReason | null; skipAllowed: boolean } | null>(null);
+  const world = t.agentNudges.world;
   const notice = shortlistNotice(entries, copy);
+  const waitingOn = worldCheck?.waitingOn === 'seller' && worldCheck.buyerConfirmed
+    ? entries.find((e) => e.seller.toLowerCase() === worldCheck.sellerAgent.toLowerCase())?.name ?? null
+    : null;
 
-  async function choose() {
-    if (!choosing) return;
+  async function choose(entry: ShortlistEntry | null = choosing) {
+    if (!entry) return;
     setBusy(true);
     setError(null);
     try {
-      await api.chooseOffer(jobId, caller, choosing.seller, {
-        acknowledgeUnverified: !choosing.verified,
-        expectedPriceUsdc: choosing.priceUsdc,
+      await api.chooseOffer(jobId, caller, entry.seller, {
+        acknowledgeUnverified: !entry.verified,
+        expectedPriceUsdc: entry.priceUsdc,
       });
+      setWorldStep(null);
       setChoosing(null);
       onChosen();
     } catch (err) {
+      const step = worldStepFrom(err);
+      if (step) {
+        setWorldStep(step);
+        return;
+      }
       setError(roster[chooseErrorKey(err instanceof ApiError ? err.status : 0, err instanceof ApiError ? err.code : undefined)]);
     } finally {
       setBusy(false);
@@ -95,6 +109,7 @@ export function Shortlist({ jobId, caller, entries, closed, onChosen }: {
         <h2 className="text-[17px] font-semibold text-[var(--lp-dark)]">{copy.title}</h2>
         <p className="mt-1 text-[14px] font-medium text-[var(--ink-secondary)]">{copy.note}</p>
         {notice ? <p className="mt-2 text-[14px] font-semibold text-[var(--lp-dark)]">{notice}</p> : null}
+        {waitingOn ? <p role="status" className="mt-2 text-[14px] font-semibold text-[var(--lp-dark)]">{fill(world.waiting, { name: waitingOn })}</p> : null}
       </div>
       {entries.length ? (
         <ul className="divide-y divide-[var(--lp-border-light)] border-t border-[var(--lp-border-light)]">
@@ -123,9 +138,22 @@ export function Shortlist({ jobId, caller, entries, closed, onChosen }: {
           if (!busy) void choose();
         }}
         onClose={() => {
-          if (!busy) setChoosing(null);
+          if (busy) return;
+          setChoosing(null);
+          setWorldStep(null);
         }}
-      />
+      >
+        {choosing && worldStep ? (
+          <AgentWorldCheck
+            jobId={jobId}
+            caller={caller}
+            role="buyer"
+            reason={worldStep.reason}
+            skipAllowed={worldStep.skipAllowed}
+            onDone={() => void choose(choosing)}
+          />
+        ) : null}
+      </ConfirmSheet>
     </section>
   );
 }

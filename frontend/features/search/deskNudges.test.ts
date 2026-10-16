@@ -8,7 +8,7 @@ const copy = agentNudgesCopy.en;
 const line = (over: Partial<BidLine> = {}): BidLine => ({
   jobId: '0xj1', title: 'Logo', state: 'offered', priceUsdc: '80', withdrawable: true, check: null, ...over,
 });
-const desk = (bidding: BidLine[], needsYou: SellerDesk['needsYou'] = []): SellerDesk => ({ needsYou, bidding, offers: [], empty: false });
+const desk = (bidding: BidLine[], needsYou: SellerDesk['needsYou'] = []): SellerDesk => ({ needsYou, bidding, offers: [], worldChecks: [], empty: false });
 const check = { paidUsdc: 0.01, completed: 2, repeatSellers: 0, disputesLost: 0, score: 40, flag: null, late: false };
 
 test('the first load gives no nudges', () => {
@@ -32,4 +32,11 @@ test('state changes and a buyer choosing you each say so once', () => {
     'A match on Menu needs you',
   ]);
   assert.deepEqual(deskNudges(after, after, copy), []);
+});
+
+test('a buyer newly waiting on my World ID check says so once', () => {
+  const wc = { jobId: '0xj9', title: 'Logo', priceUsdc: '1200', reason: 'large_deal' as const, skipAllowed: true };
+  const out = deskNudges(desk([]), { ...desk([]), worldChecks: [wc] }, copy);
+  assert.deepEqual(out, ['A buyer chose your offer on Logo at 1200 USDC. Escrow funds as soon as you confirm.']);
+  assert.deepEqual(deskNudges({ ...desk([]), worldChecks: [wc] }, { ...desk([]), worldChecks: [wc] }, copy), []);
 });

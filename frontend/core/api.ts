@@ -254,6 +254,30 @@ export interface BuyerCheck {
   late?: boolean;
 }
 
+/// Why the trust rules ask someone for World ID before escrow funds.
+export type WorldCheckReason = 'first_deal' | 'large_deal' | 'fast_new_account' | 'flagged_link_before';
+
+/// The open World ID step on an agent request, as the buyer sees it.
+export interface AgentWorldCheckView {
+  sellerAgent: string;
+  priceUsdc: string;
+  buyer: 'pending' | 'verified' | 'skipped' | null;
+  seller: 'pending' | 'verified' | 'skipped' | null;
+  waitingOn: 'buyer' | 'seller' | null;
+  reason: WorldCheckReason | null;
+  buyerConfirmed: boolean;
+  skipAllowed: boolean;
+}
+
+/// A buyer chose this seller and waits on the seller's World ID check.
+export interface SellerWorldCheck {
+  jobId: string;
+  title: string | null;
+  priceUsdc: string;
+  reason: WorldCheckReason | null;
+  skipAllowed: boolean;
+}
+
 export interface SellerActiveBid {
   jobId: string;
   seller?: string;
@@ -2332,7 +2356,7 @@ export const api = {
       `/api/agents/buyer${address ? `?address=${address}` : ''}`,
     ),
   seller: (address?: string) =>
-    json<{ profile: SellerAgentProfile | null; activeBids: SellerActiveBid[]; recentBids?: SellerBidOutcome[] }>(
+    json<{ profile: SellerAgentProfile | null; activeBids: SellerActiveBid[]; recentBids?: SellerBidOutcome[]; worldChecks?: SellerWorldCheck[] }>(
       `/api/agents/seller${address ? `?address=${address}` : ''}`,
     ),
   /// Abandon one of the signed-in seller's own in-flight bids. Identity is the
@@ -2415,7 +2439,7 @@ export const api = {
       { method: 'POST', body: JSON.stringify({ caller, ...answers }) },
     ),
   chooseOffer: (jobId: string, caller: string, seller: string, opts: { acknowledgeUnverified?: boolean; expectedPriceUsdc?: number | string } = {}) =>
-    json<{ accepted: boolean; jobId: string; txHash: string }>(
+    json<{ accepted: boolean; jobId: string; txHash?: string; code?: 'SELLER_CHECK_PENDING'; reason?: WorldCheckReason }>(
       `/api/jobs/${jobId}/choose-offer`,
       {
         method: 'POST',
@@ -2428,7 +2452,7 @@ export const api = {
       },
     ),
   shortlist: (jobId: string, caller: string) =>
-    json<{ entries: ShortlistEntry[]; closed: boolean }>(`/api/jobs/${jobId}/shortlist?caller=${encodeURIComponent(caller)}`),
+    json<{ entries: ShortlistEntry[]; closed: boolean; worldCheck?: AgentWorldCheckView | null }>(`/api/jobs/${jobId}/shortlist?caller=${encodeURIComponent(caller)}`),
   cancelBrief: (jobId: string, caller: string) =>
     json<{ accepted: boolean; jobId: string }>(
       `/api/jobs/${jobId}/cancel`,
@@ -4017,6 +4041,21 @@ export const api = {
       sellerStatus: 'pending' | 'verified' | 'unavailable' | 'rejected' | 'skipped' | null;
       world: { configured: boolean; environment: 'staging' | 'production'; action: string | null; appId: string | null; rpId: string | null };
     }>(`/api/deals/direct/${jobId}/high-signal${caller ? `?caller=${encodeURIComponent(caller)}` : ''}`),
+  agentWorldCheckRequest: (jobId: string, caller: string) =>
+    json<{ role: 'buyer' | 'seller'; request: WorldSessionRequest }>(`/api/jobs/${jobId}/world-check/request`, {
+      method: 'POST', body: JSON.stringify({ caller }),
+    }),
+  agentWorldCheckVerify: (jobId: string, caller: string, idkitResponse: Record<string, unknown>) =>
+    json<{ verified: true; role: 'buyer' | 'seller'; funded: boolean; worldCheck: AgentWorldCheckView | null }>(
+      `/api/jobs/${jobId}/world-check/verify`,
+      { method: 'POST', body: JSON.stringify({ caller, idkitResponse }) },
+    ),
+  /// Testnet only; the server refuses it on mainnet.
+  agentWorldCheckSkip: (jobId: string, caller: string) =>
+    json<{ skipped: true; role: 'buyer' | 'seller'; funded: boolean; worldCheck: AgentWorldCheckView | null }>(
+      `/api/jobs/${jobId}/world-check/skip`,
+      { method: 'POST', body: JSON.stringify({ caller }) },
+    ),
   requestHighSignal: (jobId: string, caller: string) =>
     json<{
       policy: 'standard' | 'high_signal';
