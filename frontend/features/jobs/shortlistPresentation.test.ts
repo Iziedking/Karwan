@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { ShortlistEntry } from '@/core/api';
 import { shortlistCopy } from '@/shared/i18n/messages/shortlist';
-import { shortlistNotice, shortlistRowView } from './shortlistPresentation';
+import { shortlistNotice, shortlistRowView, shortlistState } from './shortlistPresentation';
 
 const copy = shortlistCopy.en;
 
@@ -55,4 +55,16 @@ test('every locale has every key and no em dash', () => {
     assert.deepEqual(keys(shortlistCopy[locale]), keys(shortlistCopy.en), locale);
     assert.doesNotMatch(JSON.stringify(shortlistCopy[locale]), /—/);
   }
+});
+
+test('shortlistState: a reply without an entries array falls back to the offers list', () => {
+  assert.equal(shortlistState({} as never), null);
+  assert.equal(shortlistState({ closed: false } as never), null);
+  assert.equal(shortlistState({ entries: null, closed: true } as never), null);
+  assert.equal(shortlistState(null as never), null);
+});
+
+test('shortlistState: a reply with entries passes through', () => {
+  const reply = { entries: [ada], closed: false, worldCheck: null };
+  assert.deepEqual(shortlistState(reply), reply);
 });

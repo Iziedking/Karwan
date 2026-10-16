@@ -8,7 +8,7 @@ import { formatUsdc } from '@/shared/utils/format';
 import { ConfirmSheet } from '@/features/deals/workspace/ConfirmSheet';
 import { fill } from '@/features/deals/workspace/presentation';
 import { chooseErrorKey } from '../chooseError';
-import { shortlistNotice, shortlistRowView } from '../shortlistPresentation';
+import { shortlistNotice, shortlistRowView, shortlistState, type ShortlistState } from '../shortlistPresentation';
 import { AgentWorldCheck } from './AgentWorldCheck';
 import { worldStepFrom } from '../agentWorldStep';
 
@@ -18,17 +18,17 @@ const price = (usdc: number) => formatUsdc(String(usdc), { withSuffix: false });
 /// The shortlist for a request, or null when the backend does not run it, so
 /// the caller falls back to the plain offers list.
 export function useShortlist(jobId: string, caller: string | null) {
-  const [state, setState] = useState<{ entries: ShortlistEntry[]; closed: boolean; worldCheck?: AgentWorldCheckView | null } | null>(null);
+  const [state, setState] = useState<ShortlistState | null>(null);
   useEffect(() => {
     if (!caller) return;
     let stopped = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const load = async () => {
       try {
-        const next = await api.shortlist(jobId, caller);
+        const next = shortlistState(await api.shortlist(jobId, caller));
         if (stopped) return;
         setState(next);
-        if (!next.closed) timer = setTimeout(load, POLL_MS);
+        if (next && !next.closed) timer = setTimeout(load, POLL_MS);
       } catch (err) {
         if (stopped) return;
         if (err instanceof ApiError && (err.status === 404 || err.status === 403)) {

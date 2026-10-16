@@ -1,4 +1,4 @@
-import type { ShortlistEntry } from '@/core/api';
+import type { AgentWorldCheckView, ShortlistEntry } from '@/core/api';
 import type { ShortlistCopy } from '@/shared/i18n/messages/shortlist';
 import { fill } from '@/features/deals/workspace/presentation';
 
@@ -11,6 +11,18 @@ export interface ShortlistRowView {
   reasonLine: string | null;
   profileHref: string | null;
   choosable: boolean;
+}
+
+export interface ShortlistState {
+  entries: ShortlistEntry[];
+  closed: boolean;
+  worldCheck?: AgentWorldCheckView | null;
+}
+
+/// The shortlist reply as state, or null when it carries no entries list, so
+/// the job page falls back to the plain offers list instead of crashing.
+export function shortlistState(reply: ShortlistState | null | undefined): ShortlistState | null {
+  return reply && Array.isArray(reply.entries) ? reply : null;
 }
 
 export function shortlistRowView(e: ShortlistEntry, copy: ShortlistCopy): ShortlistRowView {
