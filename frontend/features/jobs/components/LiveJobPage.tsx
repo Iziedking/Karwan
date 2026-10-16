@@ -8,6 +8,7 @@ import { useJobSnapshot } from '../hooks/useJobSnapshot';
 import { useJobLiveState } from '../hooks/useJobLiveState';
 import { NegotiationCard } from './NegotiationCard';
 import { OffersRoster } from './OffersRoster';
+import { AgentNudges } from './AgentNudges';
 import { PageTour } from '@/shared/guide/PageTour';
 import { JOBS_TOUR_ID, JOBS_STEPS } from '@/shared/guide/tours';
 import { MatchBanner } from './MatchBanner';
@@ -208,6 +209,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
   return (
     <main className="product-surface mx-auto w-full max-w-[760px] px-4 pb-16 pt-6 sm:px-6">
       <PageTour id={JOBS_TOUR_ID} steps={JOBS_STEPS} />
+      <AgentNudges events={events} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">
           {rs.request}

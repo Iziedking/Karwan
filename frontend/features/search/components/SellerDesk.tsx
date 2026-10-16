@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/core/api';
@@ -9,11 +9,16 @@ import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { fill } from '@/features/deals/workspace/presentation';
 import { ALERT, PRIMARY, QUIET, SECONDARY } from '@/shared/ui/controls';
-import { sellerDeskView, type BidLine } from '../sellerDeskView';
+import { sellerDeskView, type BidLine, type BuyerCheckLine, type SellerDesk as SellerDeskData } from '../sellerDeskView';
+import { deskNudges } from '../deskNudges';
+import { NudgeStack } from '@/features/jobs/components/AgentNudges';
+import type { Messages } from '@/shared/i18n/messages';
 import { startPlan } from '../startPlan';
 import { useStartRun } from '../hooks/useStartRun';
 import { StartSheet } from './StartSheet';
 import { OfferForm, type OfferDraft } from './OfferForm';
+
+const DESK_POLL_MS = 8_000;
 
 /// The personal seller desk, status first: what needs you, what your agent is
 /// bidding on, what you offer. A seller with nothing yet gets the form.
@@ -29,6 +34,7 @@ export function SellerDesk() {
     queryKey: deskKey,
     enabled: !!me,
     staleTime: 15_000,
+    refetchInterval: DESK_POLL_MS,
     queryFn: async () => {
       const [seller, matches, listings] = await Promise.all([
         api.seller(me),
@@ -45,6 +51,18 @@ export function SellerDesk() {
       });
     },
   });
+  const nudgeCopy = useTranslations().agentNudges;
+  const lastDesk = useRef<SellerDeskData | null>(null);
+  const [nudges, setNudges] = useState<{ key: string; text: string }[]>([]);
+  useEffect(() => {
+    if (!desk.data) return;
+    const fresh = deskNudges(lastDesk.current, desk.data, nudgeCopy);
+    lastDesk.current = desk.data;
+    if (fresh.length) {
+      const at = Date.now();
+      setNudges((list) => [...list, ...fresh.map((text, i) => ({ key: `${at}-${i}`, text }))]);
+    }
+  }, [desk.data, nudgeCopy]);
   const [formOpen, setFormOpen] = useState(false);
   const [draft, setDraft] = useState<OfferDraft | null>(null);
   const [withdrawing, setWithdrawing] = useState<string | null>(null);
@@ -90,6 +108,7 @@ export function SellerDesk() {
 
   return (
     <div className="product-surface mx-auto max-w-[720px] px-4 pb-24 pt-6 sm:px-6">
+      <NudgeStack items={nudges} />
       <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-[var(--lp-dark)]">{t.seller.title}</h1>
       {actionError ? <p role="alert" className={`${ALERT} mt-4`}>{t.request.error}</p> : null}
       {desk.isError ? (
@@ -127,9 +146,12 @@ export function SellerDesk() {
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[15px] text-[var(--lp-dark)]">{b.title ?? t.request.aRequest}</span>
                         <span className="block text-[14px] text-[var(--lp-text-sub)] font-medium">{t.seller.states[b.state]}</span>
+                        {b.check ? <BuyerCheckLines check={b.check} copy={t.seller.buyerCheck} /> : null}
                       </span>
                       <span className="flex items-center gap-3">
-                        <span className="text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">{b.priceUsdc} USDC</span>
+                        {b.state === 'passed' ? null : (
+                          <span className="text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">{b.priceUsdc} USDC</span>
+                        )}
                         {b.withdrawable ? (
                           <button type="button" className={QUIET} onClick={() => void withdraw(b)}>
                             {withdrawing === b.jobId ? t.seller.withdrawConfirm : t.seller.withdraw}
@@ -198,5 +220,22 @@ export function SellerDesk() {
         onTryAgain={() => start.reset()}
       />
     </div>
+  );
+}
+
+/// What the seller's agent paid to learn about the buyer, as counts. A flag
+/// says why the agent wants the seller to look, or why it passed.
+function BuyerCheckLines({ check, copy }: { check: BuyerCheckLine; copy: Messages['search']['seller']['buyerCheck'] }) {
+  return (
+    <span className="mt-1 block text-[14px] font-medium text-[var(--lp-text-sub)]">
+      <span className="block">
+        {fill(copy.paid, { amount: check.paidUsdc.toFixed(2) })}
+        {check.late ? ` · ${copy.late}` : ''}
+      </span>
+      <span className="block tabular-nums">
+        {fill(copy.numbers, { completed: check.completed, repeat: check.repeatSellers, disputes: check.disputesLost, score: check.score })}
+      </span>
+      {check.flag ? <span className="block font-semibold text-[var(--lp-dark)]">{copy.flags[check.flag]}</span> : null}
+    </span>
   );
 }

@@ -86,3 +86,30 @@ test('an older backend with no title field still reads as untitled', () => {
   const d = desk({ bids: [legacy as SellerActiveBid] });
   assert.equal(d.bidding[0].title, null);
 });
+
+const check = (over: Partial<NonNullable<SellerActiveBid['buyerCheck']>> = {}): NonNullable<SellerActiveBid['buyerCheck']> => ({
+  verdict: 'bid', reason: 'record-ok', score: 55, tier: 'ESTABLISHED',
+  asBuyer: { completed: 4, unsuccessful: 0, repeatSellers: 1, largestBand: '50to250' },
+  disputesLost: 0, paidUsdc: 0.01, receipt: 'r1', checkedAt: 1, ...over,
+});
+
+test('a live bid carries what the agent paid to learn about the buyer', () => {
+  const d = desk({ bids: [liveBid({ buyerCheck: check({ verdict: 'review', reason: 'first-at-this-size' }) })] });
+  assert.deepEqual(d.bidding[0].check, {
+    paidUsdc: 0.01, completed: 4, repeatSellers: 1, disputesLost: 0, score: 55,
+    flag: 'first-at-this-size', late: false,
+  });
+});
+
+test('a clean check has no flag, and a bid without a read has no check', () => {
+  const d = desk({ bids: [liveBid({ buyerCheck: check() }), liveBid({ jobId: '0xj5' })] });
+  assert.equal(d.bidding[0].check?.flag, null);
+  assert.equal(d.bidding[1].check, null);
+});
+
+test('a request the agent passed on shows as passed with its check', () => {
+  const d = desk({ recentBids: [outcome({ outcome: 'passed', lastPrice: '0', buyerCheck: check({ verdict: 'pass', reason: 'disputes', disputesLost: 3 }) })] });
+  assert.equal(d.bidding[0].state, 'passed');
+  assert.equal(d.bidding[0].check?.flag, 'disputes');
+  assert.equal(d.bidding[0].check?.disputesLost, 3);
+});

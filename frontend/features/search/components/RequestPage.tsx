@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { OffersRoster } from '@/features/jobs/components/OffersRoster';
+import { AgentNudges } from '@/features/jobs/components/AgentNudges';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { BuyerJob } from '@/core/api';
@@ -95,6 +96,7 @@ export function RequestPage({ initial, explorer }: { initial: BuyerJob; explorer
 
   return (
     <div className="product-surface mx-auto max-w-[720px] px-4 pb-24 pt-6 sm:px-6">
+      <AgentNudges events={live.events} />
       <Link
         href={view.viewer === 'seller' ? '/seller' : '/buyer'}
         className="inline-flex min-h-11 items-center text-[14px] text-[var(--lp-text-sub)] underline-offset-4 hover:underline font-medium"

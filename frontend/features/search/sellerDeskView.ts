@@ -1,13 +1,43 @@
-import type { Listing, MatchProposal, SellerActiveBid, SellerBidOutcome } from '@/core/api';
+import type { BuyerCheck, Listing, MatchProposal, SellerActiveBid, SellerBidOutcome } from '@/core/api';
 
-export type BidState = 'offered' | 'negotiating' | 'won' | 'lost' | 'withdrawn' | 'expired';
+export type BidState = 'offered' | 'negotiating' | 'won' | 'lost' | 'withdrawn' | 'expired' | 'passed';
+export type BuyerFlag = Exclude<BuyerCheck['reason'], 'record-ok'>;
+export interface BuyerCheckLine {
+  paidUsdc: number;
+  completed: number;
+  repeatSellers: number;
+  disputesLost: number;
+  score: number;
+  flag: BuyerFlag | null;
+  late: boolean;
+}
 export interface NeedsYouLine { jobId: string; title: string | null; priceUsdc: string }
-export interface BidLine { jobId: string; title: string | null; state: BidState; priceUsdc: string; withdrawable: boolean }
+export interface BidLine {
+  jobId: string;
+  title: string | null;
+  state: BidState;
+  priceUsdc: string;
+  withdrawable: boolean;
+  check: BuyerCheckLine | null;
+}
 export interface OfferLine { id: string; title: string; priceUsdc: number; daysLeft: number }
 export interface SellerDesk { needsYou: NeedsYouLine[]; bidding: BidLine[]; offers: OfferLine[]; empty: boolean }
 
 const ENDED_SHOWN = 10;
 const DAY_MS = 86_400_000;
+
+function checkLine(c: BuyerCheck | null | undefined): BuyerCheckLine | null {
+  if (!c) return null;
+  return {
+    paidUsdc: c.paidUsdc,
+    completed: c.asBuyer.completed,
+    repeatSellers: c.asBuyer.repeatSellers,
+    disputesLost: c.disputesLost,
+    score: c.score,
+    flag: c.reason === 'record-ok' ? null : c.reason,
+    late: c.late === true,
+  };
+}
 
 /// The seller's desk in the order it is read: what needs them, what their
 /// agent is bidding on, what they offer. Only the seller's own prices appear.
@@ -35,13 +65,21 @@ export function sellerDeskView(input: {
     state: !b.finalized && b.counterRounds > 0 ? 'negotiating' : 'offered',
     priceUsdc: b.lastBidPrice,
     withdrawable: !b.finalized,
+    check: checkLine(b.buyerCheck),
   }));
   const liveIds = new Set(input.bids.map((b) => b.jobId.toLowerCase()));
   const ended: BidLine[] = [...input.recentBids]
     .filter((r) => !liveIds.has(r.jobId.toLowerCase()))
     .sort((a, b) => b.at - a.at)
     .slice(0, ENDED_SHOWN)
-    .map((r) => ({ jobId: r.jobId, title: r.title ?? null, state: r.outcome, priceUsdc: r.lastPrice, withdrawable: false }));
+    .map((r) => ({
+      jobId: r.jobId,
+      title: r.title ?? null,
+      state: r.outcome,
+      priceUsdc: r.lastPrice,
+      withdrawable: false,
+      check: checkLine(r.buyerCheck),
+    }));
 
   const offers = input.listings
     .filter((l) => !l.cancelledAt && !l.matchedAt && l.expiresAt > input.now)

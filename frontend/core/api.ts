@@ -239,6 +239,21 @@ export interface SellerAgentProfile {
   confidenceThreshold: number;
 }
 
+/// What the seller's agent learned from its paid read of the buyer before it
+/// bid. Counts only; the deal-by-deal read stays with the agent.
+export interface BuyerCheck {
+  verdict: 'bid' | 'review' | 'pass';
+  reason: 'record-ok' | 'disputes' | 'mixed-record' | 'new-buyer-large' | 'first-at-this-size';
+  score: number;
+  tier: string;
+  asBuyer: { completed: number; unsuccessful: number; repeatSellers: number; largestBand: string | null };
+  disputesLost: number;
+  paidUsdc: number;
+  receipt: string | null;
+  checkedAt: number;
+  late?: boolean;
+}
+
 export interface SellerActiveBid {
   jobId: string;
   seller?: string;
@@ -251,6 +266,7 @@ export interface SellerActiveBid {
   /// First line of the request's brief. Never names the buyer. Null when the
   /// brief record was lost.
   title: string | null;
+  buyerCheck?: BuyerCheck | null;
 }
 
 /// How one of the seller agent's bids ended, recorded when it left the live map.
@@ -258,9 +274,10 @@ export interface SellerBidOutcome {
   jobId: string;
   sellerAgent: string;
   title: string | null;
-  outcome: 'won' | 'lost' | 'withdrawn' | 'expired';
+  outcome: 'won' | 'lost' | 'withdrawn' | 'expired' | 'passed';
   lastPrice: string;
   at: number;
+  buyerCheck?: BuyerCheck;
 }
 
 /// What the buyer agent must hold before a request goes up, and how much of it

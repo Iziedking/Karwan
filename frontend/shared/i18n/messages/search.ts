@@ -96,13 +96,19 @@ export interface SearchCopy {
     offers: string;
     post: string;
     accept: string;
-    states: { offered: string; negotiating: string; won: string; lost: string; withdrawn: string; expired: string };
+    states: { offered: string; negotiating: string; won: string; lost: string; withdrawn: string; expired: string; passed: string };
     withdraw: string;
     withdrawConfirm: string;
     daysLeft: string;
     loadError: string;
     biddingEmpty: string;
     offersEmpty: string;
+    buyerCheck: {
+      paid: string;
+      numbers: string;
+      late: string;
+      flags: { disputes: string; 'mixed-record': string; 'new-buyer-large': string; 'first-at-this-size': string };
+    };
   };
   offer: {
     title: string;
@@ -220,13 +226,24 @@ const en: SearchCopy = {
     offers: 'Your offers',
     post: 'Post an offer',
     accept: 'Accept match',
-    states: { offered: 'Offered', negotiating: 'Negotiating', won: 'Won', lost: 'Lost', withdrawn: 'Withdrawn', expired: 'Expired' },
+    states: { offered: 'Offered', negotiating: 'Negotiating', won: 'Won', lost: 'Lost', withdrawn: 'Withdrawn', expired: 'Expired', passed: 'Passed' },
     withdraw: 'Withdraw',
     withdrawConfirm: 'Confirm withdraw',
     daysLeft: '{days} days left',
     loadError: 'Your selling desk did not load. Try again.',
     biddingEmpty: 'No offers right now.',
     offersEmpty: 'No offers up.',
+    buyerCheck: {
+      paid: 'Your agent paid {amount} USDC to check this buyer',
+      numbers: '{completed} deals as a buyer · {repeat} repeat sellers · {disputes} disputes lost · score {score}',
+      late: 'Checked after your agent bid',
+      flags: {
+        disputes: 'Passed: the buyer lost more disputes than they completed',
+        'mixed-record': 'Look before you accept: more failed buys than finished ones',
+        'new-buyer-large': 'Look before you accept: a new buyer on a large request',
+        'first-at-this-size': 'Look before you accept: their first buy at this size',
+      },
+    },
   },
   offer: {
     title: 'Post an offer',
@@ -344,13 +361,24 @@ const fr: SearchCopy = {
     offers: 'Vos offres',
     post: 'Publier une offre',
     accept: 'Accepter',
-    states: { offered: 'Proposée', negotiating: 'En négociation', won: 'Remportée', lost: 'Perdue', withdrawn: 'Retirée', expired: 'Expirée' },
+    states: { offered: 'Proposée', negotiating: 'En négociation', won: 'Remportée', lost: 'Perdue', withdrawn: 'Retirée', expired: 'Expirée', passed: 'Écartée' },
     withdraw: 'Retirer',
     withdrawConfirm: 'Confirmer le retrait',
     daysLeft: '{days} jours restants',
     loadError: 'Votre espace de vente ne s’est pas chargé. Réessayez.',
     biddingEmpty: 'Aucune offre en cours.',
     offersEmpty: 'Aucune offre publiée.',
+    buyerCheck: {
+      paid: 'Votre agent a payé {amount} USDC pour vérifier cet acheteur',
+      numbers: '{completed} achats conclus · {repeat} vendeurs fidèles · {disputes} litiges perdus · score {score}',
+      late: 'Vérifié après l’offre de votre agent',
+      flags: {
+        disputes: 'Écartée : l’acheteur a perdu plus de litiges qu’il n’a conclu d’achats',
+        'mixed-record': 'À vérifier avant d’accepter : plus d’achats échoués que conclus',
+        'new-buyer-large': 'À vérifier avant d’accepter : nouvel acheteur sur une grosse demande',
+        'first-at-this-size': 'À vérifier avant d’accepter : son premier achat de ce montant',
+      },
+    },
   },
   offer: {
     title: 'Publier une offre',
@@ -468,13 +496,24 @@ const ar: SearchCopy = {
     offers: 'عروضك',
     post: 'انشر عرضًا',
     accept: 'اقبل',
-    states: { offered: 'مُقدَّم', negotiating: 'قيد التفاوض', won: 'فاز', lost: 'خسر', withdrawn: 'مسحوب', expired: 'منتهٍ' },
+    states: { offered: 'مُقدَّم', negotiating: 'قيد التفاوض', won: 'فاز', lost: 'خسر', withdrawn: 'مسحوب', expired: 'منتهٍ', passed: 'تم التجاوز' },
     withdraw: 'اسحب',
     withdrawConfirm: 'أكّد السحب',
     daysLeft: 'متبقٍ {days} أيام',
     loadError: 'تعذر تحميل مكتب البيع. حاول مرة أخرى.',
     biddingEmpty: 'لا توجد عروض الآن.',
     offersEmpty: 'لا توجد عروض منشورة.',
+    buyerCheck: {
+      paid: 'دفع وكيلك {amount} USDC للتحقق من هذا المشتري',
+      numbers: '{completed} صفقات كمشترٍ · {repeat} بائعون عادوا · {disputes} نزاعات خاسرة · التقييم {score}',
+      late: 'تم التحقق بعد عرض وكيلك',
+      flags: {
+        disputes: 'تم التجاوز: خسر المشتري نزاعات أكثر مما أتم من صفقات',
+        'mixed-record': 'راجعه قبل القبول: مشتريات فاشلة أكثر من المكتملة',
+        'new-buyer-large': 'راجعه قبل القبول: مشترٍ جديد على طلب كبير',
+        'first-at-this-size': 'راجعه قبل القبول: أول شراء له بهذا الحجم',
+      },
+    },
   },
   offer: {
     title: 'انشر عرضًا',
@@ -592,13 +631,24 @@ const hi: SearchCopy = {
     offers: 'आपके ऑफ़र',
     post: 'ऑफ़र पोस्ट करें',
     accept: 'स्वीकार करें',
-    states: { offered: 'पेश किया', negotiating: 'मोलभाव जारी', won: 'जीता', lost: 'हारा', withdrawn: 'वापस लिया', expired: 'समाप्त' },
+    states: { offered: 'पेश किया', negotiating: 'मोलभाव जारी', won: 'जीता', lost: 'हारा', withdrawn: 'वापस लिया', expired: 'समाप्त', passed: 'छोड़ा' },
     withdraw: 'वापस लें',
     withdrawConfirm: 'वापसी की पुष्टि करें',
     daysLeft: '{days} दिन बाकी',
     loadError: 'आपका बिक्री डेस्क लोड नहीं हुआ। फिर से कोशिश करें।',
     biddingEmpty: 'अभी कोई ऑफ़र नहीं।',
     offersEmpty: 'कोई ऑफ़र पोस्ट नहीं है।',
+    buyerCheck: {
+      paid: 'आपके एजेंट ने इस खरीदार की जांच के लिए {amount} USDC चुकाए',
+      numbers: 'खरीदार के रूप में {completed} सौदे · {repeat} दोबारा आए विक्रेता · {disputes} विवाद हारे · स्कोर {score}',
+      late: 'आपके एजेंट के ऑफ़र के बाद जांचा गया',
+      flags: {
+        disputes: 'छोड़ा गया: खरीदार ने पूरे सौदों से ज़्यादा विवाद हारे',
+        'mixed-record': 'स्वीकार करने से पहले देखें: पूरी हुई खरीद से ज़्यादा असफल खरीद',
+        'new-buyer-large': 'स्वीकार करने से पहले देखें: बड़े अनुरोध पर नया खरीदार',
+        'first-at-this-size': 'स्वीकार करने से पहले देखें: इस आकार की उनकी पहली खरीद',
+      },
+    },
   },
   offer: {
     title: 'ऑफ़र पोस्ट करें',
@@ -716,13 +766,24 @@ const sw: SearchCopy = {
     offers: 'Ofa zako',
     post: 'Chapisha ofa',
     accept: 'Kubali',
-    states: { offered: 'Imetolewa', negotiating: 'Majadiliano', won: 'Umeshinda', lost: 'Umeshindwa', withdrawn: 'Imeondolewa', expired: 'Imeisha muda' },
+    states: { offered: 'Imetolewa', negotiating: 'Majadiliano', won: 'Umeshinda', lost: 'Umeshindwa', withdrawn: 'Imeondolewa', expired: 'Imeisha muda', passed: 'Imeachwa' },
     withdraw: 'Ondoa',
     withdrawConfirm: 'Thibitisha kuondoa',
     daysLeft: 'Siku {days} zimebaki',
     loadError: 'Dawati lako la mauzo halikupakia. Jaribu tena.',
     biddingEmpty: 'Hakuna ofa sasa.',
     offersEmpty: 'Hakuna ofa zilizochapishwa.',
+    buyerCheck: {
+      paid: 'Wakala wako alilipa USDC {amount} kumkagua mnunuzi huyu',
+      numbers: 'Mikataba {completed} kama mnunuzi · wauzaji {repeat} waliorudi · migogoro {disputes} aliyoshindwa · alama {score}',
+      late: 'Imekaguliwa baada ya wakala wako kutoa ofa',
+      flags: {
+        disputes: 'Imeachwa: mnunuzi alishindwa migogoro mingi kuliko mikataba aliyokamilisha',
+        'mixed-record': 'Kagua kabla ya kukubali: manunuzi yaliyoshindwa ni mengi kuliko yaliyokamilika',
+        'new-buyer-large': 'Kagua kabla ya kukubali: mnunuzi mpya kwenye ombi kubwa',
+        'first-at-this-size': 'Kagua kabla ya kukubali: ununuzi wake wa kwanza wa kiasi hiki',
+      },
+    },
   },
   offer: {
     title: 'Chapisha ofa',
