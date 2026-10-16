@@ -80,11 +80,11 @@ export async function executeRecoveryOnchain(privateKey: Hex, newPasskey: Stored
 /// The wallet's spendable USDC on Arc, in wei (18 decimals, Arc's native unit).
 export async function walletBalanceWei(address: Hex): Promise<bigint> {
   const { createPublicClient, fallback, http } = await import('viem');
-  const { ARC_NETWORK, publicRpcFor } = await import('@/core/arcNetwork');
+  const { ARC_NETWORK, arcRpcPool } = await import('@/core/arcNetwork');
   const reader = createPublicClient({
     chain,
     transport: fallback(
-      [process.env.NEXT_PUBLIC_ARC_RPC_URL, publicRpcFor(ARC_NETWORK)].filter((u): u is string => !!u).map((u) => http(u)),
+      arcRpcPool(ARC_NETWORK, process.env.NEXT_PUBLIC_ARC_RPC_URL).map((u) => http(u)),
     ),
   });
   return reader.getBalance({ address });

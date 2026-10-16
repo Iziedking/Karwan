@@ -34,6 +34,21 @@ export function publicRpcFor(name: ArcNetworkName): string {
   return name === 'mainnet' ? 'https://rpc.mainnet.arc.io' : 'https://rpc.testnet.arc.network';
 }
 
+/// Keyless RPCs a browser may call, after the network's own public endpoint.
+/// dRPC backs up the public testnet RPC, which has gone dark on its own before.
+const EXTRA_PUBLIC_RPCS: Record<ArcNetworkName, readonly string[]> = {
+  testnet: ['https://arc-testnet.drpc.org'],
+  mainnet: [],
+};
+
+/// Every Arc RPC the browser may use, in order: the dedicated endpoint
+/// (NEXT_PUBLIC_ARC_RPC_URL) first, then the public ones, so the site stays on
+/// chain when the dedicated one is down.
+export function arcRpcPool(name: ArcNetworkName, dedicated: string | undefined): string[] {
+  const pool = [dedicated?.trim(), publicRpcFor(name), ...EXTRA_PUBLIC_RPCS[name]];
+  return [...new Set(pool.filter((u): u is string => !!u))];
+}
+
 export const ARC_NETWORK: ArcNetworkName = parseArcNetwork(process.env.NEXT_PUBLIC_ARC_NETWORK);
 
 // Branding is independent of this choice; changing a label must never switch

@@ -1,6 +1,6 @@
 import { createClient, createPublicClient, fallback, http, type Hex } from 'viem';
 import { createBundlerClient, toWebAuthnAccount } from 'viem/account-abstraction';
-import { ARC_NETWORK, publicRpcFor, settlementChain as arcChain } from '@/core/arcNetwork';
+import { ARC_NETWORK, arcRpcPool, settlementChain as arcChain } from '@/core/arcNetwork';
 import { modularClient } from './config';
 import { circleFeeEstimator, type CircleGasPrice } from './fees';
 import { passkeyName } from './passkeyName';
@@ -77,9 +77,7 @@ export async function passkeyProvider(passkey: StoredPasskey): Promise<PasskeyPr
   const reader = createPublicClient({
     chain: arcChain,
     transport: fallback(
-      [process.env.NEXT_PUBLIC_ARC_RPC_URL, publicRpcFor(ARC_NETWORK)]
-        .filter((u): u is string => !!u)
-        .map((u) => http(u)),
+      arcRpcPool(ARC_NETWORK, process.env.NEXT_PUBLIC_ARC_RPC_URL).map((u) => http(u)),
     ),
   });
   return createPasskeyProvider({

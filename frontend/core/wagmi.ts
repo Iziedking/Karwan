@@ -24,7 +24,7 @@ import {
 } from 'viem/chains';
 import type { Chain, Transport } from 'viem';
 import { http, createConfig } from 'wagmi';
-import { ARC_NETWORK, publicRpcFor, settlementChain as arcChain } from './arcNetwork';
+import { ARC_NETWORK, arcRpcPool, settlementChain as arcChain } from './arcNetwork';
 import { connectorsForWallets } from '@rainbow-me/rainbowkit';
 import { MODULAR_WALLETS_ENABLED } from '@/features/modularWallet/config';
 import { passkeyConnector } from '@/features/modularWallet/connector';
@@ -46,10 +46,7 @@ export { arcChain };
 /// inlined into the client bundle, so the dedicated URL is PUBLIC — restrict it
 /// to the app's domains via the provider's endpoint security (referrer/origin
 /// allowlist), or it can be lifted and its quota drained.
-export const ARC_RPC_URLS: string[] = [
-  process.env.NEXT_PUBLIC_ARC_RPC_URL,
-  publicRpcFor(ARC_NETWORK),
-].filter((u): u is string => !!u && u.length > 0);
+export const ARC_RPC_URLS: string[] = arcRpcPool(ARC_NETWORK, process.env.NEXT_PUBLIC_ARC_RPC_URL);
 
 const WC_PROJECT_ID = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID?.trim() || null;
 
