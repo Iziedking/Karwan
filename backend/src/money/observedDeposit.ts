@@ -47,25 +47,23 @@ export function observedArcTransferOperationKey(
     : `arc:observed-transfer:${kind}:${suffix}`;
 }
 
+/// The wallet the way people know it: their balance or one of their agents.
+export function walletPlainName(role: ObservedArcDepositInput['walletRole']): string {
+  return role === 'identity' ? 'balance' : role === 'buyerAgent' ? 'buying agent' : 'selling agent';
+}
+
 export function observedArcDepositSummary(input: Pick<ObservedArcDepositInput, 'amountMicros' | 'walletRole'>): string {
-  const amount = formatUsdcMicros(input.amountMicros);
-  if (input.walletRole === 'identity') return `Deposited ${amount} USDC into your identity wallet`;
-  const agent = input.walletRole === 'buyerAgent' ? 'buyer' : 'seller';
-  return `Deposited ${amount} USDC into your ${agent} agent wallet`;
+  return `Deposited ${formatUsdcMicros(input.amountMicros)} USDC into your ${walletPlainName(input.walletRole)}`;
 }
 
 export function observedArcTransferSummary(
   input: Pick<ObservedArcTransferInput, 'amountMicros' | 'walletRole' | 'kind'>,
 ): string {
   const amount = formatUsdcMicros(input.amountMicros);
-  const wallet = input.walletRole === 'identity'
-    ? 'identity wallet'
-    : input.walletRole === 'buyerAgent'
-      ? 'buyer agent wallet'
-      : 'seller agent wallet';
-  if (input.kind === 'cash_out') return `Observed ${amount} USDC leave your ${wallet}`;
-  if (input.kind === 'agent_funding') return `Observed ${amount} USDC move into your ${wallet}`;
-  return `Observed ${amount} USDC arrive in your ${wallet}`;
+  const wallet = walletPlainName(input.walletRole);
+  if (input.kind === 'cash_out') return `${amount} USDC left your ${wallet}`;
+  if (input.kind === 'agent_funding') return `${amount} USDC moved into your ${wallet}`;
+  return `${amount} USDC arrived in your ${wallet}`;
 }
 
 /**

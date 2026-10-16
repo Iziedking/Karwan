@@ -551,6 +551,8 @@ export const ar: Messages = {
       emptyTitle: 'لا شيء بعد',
       emptyBody: 'تظهر هنا مطابقات الصفقات، أحداث الضمان، واقتراحات الإلغاء فور حدوثها.',
       openAction: 'فتح',
+      timesTemplate: "{n} مرات",
+      unread: "غير مقروء",
     },
     toast: {
       openAction: 'فتح',

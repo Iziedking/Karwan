@@ -144,7 +144,8 @@ export function summaryFor(
     case 'wallet.credited':
     case 'wallet.debited': {
       const role = str('walletRole');
-      const label = str('walletLabel') || (role === 'buyerAgent' ? c.wallets.buyerAgent : role === 'sellerAgent' ? c.wallets.sellerAgent : c.wallets.wallet);
+      // The role decides: older events carry an internal label people do not know.
+      const label = (role === 'buyerAgent' ? c.wallets.buyerAgent : role === 'sellerAgent' ? c.wallets.sellerAgent : c.wallets.wallet);
       return fill(type === 'wallet.credited' ? c.credited : c.debited, { amount: trimUsdc(str('amountUsdc') || '0'), label });
     }
     case 'vault.deposit':

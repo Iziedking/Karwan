@@ -548,6 +548,8 @@ export const sw: Messages = {
       emptyTitle: 'Bado hakuna kitu',
       emptyBody: 'Ulinganifu wa biashara, matukio ya escrow, na mapendekezo ya kughairi yataonekana hapa wanapotokea.',
       openAction: 'Fungua',
+      timesTemplate: "mara {n}",
+      unread: "Haijasomwa",
     },
     toast: {
       openAction: 'Fungua',

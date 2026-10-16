@@ -503,6 +503,9 @@ interface MessagesShape {
       emptyTitle: string;
       emptyBody: string;
       openAction: string;
+      /// Under a row that folds repeats: how many times it happened.
+      timesTemplate: string;
+      unread: string;
     };
     toast: {
       openAction: string;
@@ -5888,6 +5891,8 @@ export const en: MessagesShape = {
       emptyTitle: 'Nothing yet',
       emptyBody: 'Deal matches, escrow events, and cancellation proposals land here as they happen.',
       openAction: 'Open',
+      timesTemplate: "{n} times",
+      unread: "Unread",
     },
     toast: {
       openAction: 'Open',

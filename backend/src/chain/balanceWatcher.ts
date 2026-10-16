@@ -9,6 +9,7 @@ import { recordHeartbeat } from '../ops/heartbeats.js';
 import {
   observedArcDepositOperationKey,
   recordObservedArcTransfer,
+  walletPlainName,
 } from '../money/observedDeposit.js';
 import { findMoneyMovementByTransferProof } from '../db/moneyMovements.js';
 
@@ -122,9 +123,7 @@ function rememberTransfer(key: string): boolean {
 }
 
 function roleLabel(role: WalletRole): string {
-  if (role === 'identity') return 'identity wallet';
-  if (role === 'buyerAgent') return 'buyer agent wallet';
-  return 'seller agent wallet';
+  return walletPlainName(role);
 }
 
 function observedRole(role: WalletRole): 'identity' | 'buyerAgent' | 'sellerAgent' {

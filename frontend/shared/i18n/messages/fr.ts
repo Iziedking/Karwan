@@ -551,6 +551,8 @@ export const fr: Messages = {
       emptyTitle: 'Rien pour l’instant',
       emptyBody: "Les correspondances de deals, événements de séquestre et propositions d'annulation s'affichent ici dès qu'ils se produisent.",
       openAction: 'Ouvrir',
+      timesTemplate: "{n} fois",
+      unread: "Non lu",
     },
     toast: {
       openAction: 'Ouvrir',

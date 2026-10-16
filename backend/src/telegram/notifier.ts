@@ -9,6 +9,7 @@ import { shortlistText } from '../channels/shortlistText.js';
 import type { ShortlistEntry } from '../agents/shortlist.js';
 import { closesLabel } from '../deals/disputeJudge.js';
 import { tg } from '../i18n/telegram.js';
+import { walletPlainName } from '../money/observedDeposit.js';
 import {
   deliverableNoun,
   startPhrase,
@@ -600,19 +601,19 @@ ${String(e.payload?.note ?? '').replace(/[*_`[\]]/g, '').slice(0, 300)}`, url)
       return withLink('*Bridge failed*. Check the activity feed.', null);
     case 'wallet.credited': {
       const credited = (e.payload?.amountUsdc as string | undefined) ?? '0';
-      const label = (e.payload?.walletLabel as string | undefined) ?? 'wallet';
+      const label = plainWallet(e.payload?.walletRole);
       const credit = trimUsdcLabel(credited);
       return withLink(
-        `*+${credit} USDC* landed in your ${label}.`,
+        `*${credit} USDC* arrived in your ${label}.`,
         null,
       );
     }
     case 'wallet.debited': {
       const debited = (e.payload?.amountUsdc as string | undefined) ?? '0';
-      const label = (e.payload?.walletLabel as string | undefined) ?? 'wallet';
+      const label = plainWallet(e.payload?.walletRole);
       const debit = trimUsdcLabel(debited);
       return withLink(
-        `*-${debit} USDC* left your ${label}.`,
+        `*${debit} USDC* left your ${label}.`,
         null,
       );
     }
@@ -814,4 +815,10 @@ export function startTelegramNotifier(): () => void {
       logger.warn({ err: (err as Error).message, type: e.type }, 'telegram notifier error');
     }
   });
+}
+
+/// The wallet by its role, the way people know it. Older events carry an
+/// internal label, so the role decides.
+function plainWallet(role: unknown): string {
+  return role === 'identity' || role === 'buyerAgent' || role === 'sellerAgent' ? walletPlainName(role) : 'balance';
 }

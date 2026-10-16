@@ -11,6 +11,7 @@ import { fill } from '@/features/deals/workspace/presentation';
 import { bridgeDirection, classifyMoneyEvent, soundKeysFor } from '../classifyMoneyEvent';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
 import { safeNotificationHref } from '../notificationRouting';
+import { mergeNotifications, plainSavedSummary } from '../groupNotifications';
 import {
   NOTIFICATION_STORAGE_PREFIX,
   loadReadIds,
@@ -224,6 +225,7 @@ function load(address?: string | null): AppNotification[] {
     return Array.isArray(parsed)
       ? parsed.map((notification) => ({
           ...notification,
+          summary: plainSavedSummary(notification.summary),
           href: safeNotificationHref(notification),
         }))
       : [];
@@ -457,13 +459,7 @@ export function useNotifications() {
           href: hrefForType(e.type, e.jobId),
         });
       }
-      setNotifications((list) => {
-        const seen = new Set(list.map((n) => n.id));
-        const merged = [...list];
-        for (const n of fresh) if (!seen.has(n.id)) merged.push(n);
-        merged.sort((a, b) => b.ts - a.ts);
-        return merged.slice(0, MAX_STORED);
-      });
+      setNotifications((list) => mergeNotifications(list, fresh, MAX_STORED));
       initialHydrateRef.current = true;
     } catch {
       initialHydrateRef.current = true;

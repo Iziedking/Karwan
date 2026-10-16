@@ -21,7 +21,7 @@ test('the seller is told to send the right link when the check holds their deliv
 test('amounts fill in, and a missing amount falls back to a whole sentence', () => {
   assert.equal(summaryFor('deal.matched', { agreedPriceUsdc: '200' }, 'buyer', en), 'Your agent found a match at 200 USDC. Tap to review.');
   assert.equal(summaryFor('deal.matched', {}, 'buyer', en), 'Your agent found a match. Tap to review.');
-  assert.equal(summaryFor('wallet.credited', { amountUsdc: '198.500000', walletRole: 'sellerAgent' }, 'seller', en), '+198.5 USDC landed in your selling agent.');
+  assert.equal(summaryFor('wallet.credited', { amountUsdc: '198.500000', walletRole: 'sellerAgent' }, 'seller', en), '198.5 USDC arrived in your selling agent.');
 });
 
 test('every language has a line for the same event, and the bell speaks it', () => {
@@ -32,8 +32,8 @@ test('every language has a line for the same event, and the bell speaks it', () 
 });
 
 test('a bell amount reads to the cent, and a small one keeps its digits', () => {
-  assert.equal(summaryFor('wallet.credited', { amountUsdc: '9.954921', walletRole: 'identity' }, 'buyer', en), '+9.95 USDC landed in your wallet.');
-  assert.equal(summaryFor('wallet.credited', { amountUsdc: '0.043785', walletRole: 'identity' }, 'buyer', en), '+0.0438 USDC landed in your wallet.');
+  assert.equal(summaryFor('wallet.credited', { amountUsdc: '9.954921', walletRole: 'identity' }, 'buyer', en), '9.95 USDC arrived in your balance.');
+  assert.equal(summaryFor('wallet.credited', { amountUsdc: '0.043785', walletRole: 'identity' }, 'buyer', en), '0.0438 USDC arrived in your balance.');
 });
 
 test('an extension ask tells the buyer how many days and what to do', () => {
@@ -49,5 +49,14 @@ test('a dispute statement prompts the side that still owes one', () => {
   assert.match(summaryFor('deal.dispute.statement.due', { side: 'buyer' }, 'buyer', en), /still missing/);
   for (const locale of ['ar', 'fr', 'hi', 'sw'] as const) {
     assert.notEqual(summaryFor('deal.dispute.statement.due', { side: 'buyer' }, 'buyer', notifyCopy[locale]), en.statementDue, locale);
+  }
+});
+
+test('money notes name the wallet by its role, with no plus or minus sign', () => {
+  // Older events carry an internal label; the role decides the words.
+  assert.equal(summaryFor('wallet.credited', { amountUsdc: '20', walletRole: 'identity', walletLabel: 'identity wallet' }, 'buyer', en), '20 USDC arrived in your balance.');
+  assert.equal(summaryFor('wallet.debited', { amountUsdc: '5', walletRole: 'buyerAgent', walletLabel: 'buyer agent wallet' }, 'buyer', en), '5 USDC left your buying agent.');
+  for (const copy of Object.values(notifyCopy)) {
+    assert.doesNotMatch(copy.credited + copy.debited, /^[+-]|identity/);
   }
 });

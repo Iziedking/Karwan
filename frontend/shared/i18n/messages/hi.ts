@@ -549,6 +549,8 @@ export const hi: Messages = {
       emptyTitle: 'अभी कुछ नहीं',
       emptyBody: 'डील मैच, एस्क्रो घटनाएँ, और रद्दीकरण प्रस्ताव जैसे ही होते हैं यहाँ दिखाई देते हैं।',
       openAction: 'खोलें',
+      timesTemplate: "{n} बार",
+      unread: "अपठित",
     },
     toast: {
       openAction: 'खोलें',
