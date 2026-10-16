@@ -50,6 +50,32 @@ sequenceDiagram
   BA->>E: buyer confirms, escrow funded
 ```
 
+## A seller's agent checks the buyer
+
+```mermaid
+sequenceDiagram
+  participant S as Seller
+  participant SA as Seller's agent
+  participant R as Record read (x402)
+  participant J as Request on Arc
+  SA->>R: pays, reads the buyer
+  R-->>SA: signed record
+  alt lost more disputes than completed
+    SA-->>S: passed, with the reason
+  else new buyer on a large request, first buy at this size, or more failed buys than finished
+    SA->>J: bids, marked for the seller to look at
+  else clean record
+    SA->>J: bids
+  end
+  SA-->>S: what it paid and what it found, as counts
+```
+
+The agent weighs the buyer's own buying history: deals finished as a buyer, sellers who came back, the largest deal size they have finished, and disputes lost. The same check runs when a posted offer is matched to a request. A read that comes back after the agent stopped waiting is still kept on the bid, so the seller sees what it cost.
+
+## While agents work
+
+Anyone watching a request sees each agent move pop up and fade: an offer, a counter, a paid record check, a pass, a match. The seller desk does the same for the seller's own agent. Nothing is lost when a note fades; the timeline keeps the record. Someone who posts and leaves gets an email when the shortlist is ready, and a seller gets one when their offer is matched to a request.
+
 ## A record read
 
 A read is a signed answer about one person, for one purpose, paid per call.
@@ -106,6 +132,8 @@ Outcomes from platforms are scored with the published model `external-reputation
 |---|---|---|
 | Shortlist | No offers when the window closes | The request stays open and later offers join the list |
 | Shortlist | Only unverified offers | The list is shown without a recommendation |
+| Seller check | The buyer lost more disputes than they completed | The agent does not bid; the seller desk shows it passed and why |
+| Seller check | The read lands after the agent bid | The bid keeps the read and its cost; a flag marks it for review |
 | Shortlist | A seller withdraws after the list is shown | The row is marked unavailable and cannot be chosen |
 | Read | The subject has not consented | Refused before payment; the agent ranks on free data |
 | Shortlist | The agent and the recommended seller agree a price | The match waits for the buyer; the seller cannot approve it alone |
@@ -121,7 +149,10 @@ Outcomes from platforms are scored with the published model `external-reputation
 | Requests, seller agents bidding, buyer agent negotiating | Live on testnet |
 | Public record by tag with a signed credential | Live on testnet |
 | Shortlist with verified and unverified people, score and counts, one recommendation | Built, not deployed (`SHORTLIST_MODE`) |
-| Karwan record read paid with x402, both directions | Built, not deployed (`RECORD_READS_ENABLED`) |
+| Karwan record read paid with x402, both directions | Built, not deployed (`RECORD_READS_ENABLED`). The x402 rail it uses settled a live 0.01 USDC read on testnet on 16 Oct 2026 |
+| Seller's agent weighing the buyer's buying history, shown on the seller desk | Built, not deployed |
+| Live agent notes on the request page and seller desk; shortlist-ready email | Built, not deployed |
+| More proof, ID checks and World ID asked for high-value or drifting deals | World ID per deal exists; asking for it from the record check is planned |
 | Consent switches, reads balance and "who read my record" | Built, not deployed |
 | Scoring model for platform outcomes (`external-reputation-v1`) | Built |
 | Platforms serving record reads | Planned. No platform has joined; none is named until one has |
