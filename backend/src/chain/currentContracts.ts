@@ -2,7 +2,7 @@ import { resolve, dirname } from 'node:path';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { erc20Abi, formatUnits } from 'viem';
 import { eq } from 'drizzle-orm';
-import { publicClient } from './client.js';
+import { ARC, publicClient } from './client.js';
 import { type ContractKind } from './deployLedger.js';
 import { currentLedger } from './ledgerRegistry.js';
 import { config } from '../config.js';
@@ -74,6 +74,18 @@ export interface CurrentContractsSnapshot {
   readAt: number;
 }
 
+/// Registries deployed on a network where the core suite is not, read from the
+/// deployment record (contracts/deployments/registries-<chainId>.json). Mainnet
+/// runs wallet-only, so its four core addresses stay unset and a reputation
+/// address in the env would stop the process; without this the public contract
+/// list would leave out contracts that are live there.
+export const PUBLISHED_REGISTRIES: Partial<Record<number, { reputation: string; businessRegistry: string }>> = {
+  5042: {
+    reputation: '0xa8E41F941b44CA091E3Ab7b600fe1484838aE27D',
+    businessRegistry: '0x69eA60B6EFd13A126Eb00d25aB0f21A4AfC636eF',
+  },
+};
+
 /// The contracts the running deployment is wired to, in the order the page
 /// reads best: money first, market plumbing last.
 ///
@@ -86,6 +98,7 @@ export function configuredContracts(): Array<{
   address: string | undefined;
   holdsUsdc: boolean;
 }> {
+  const published = PUBLISHED_REGISTRIES[ARC.chainId];
   return [
     { name: 'KarwanEscrow', kind: 'settlement', address: config.KARWAN_ESCROW_ADDR, holdsUsdc: true },
     { name: 'KarwanEvidenceRegistry', kind: 'registry', address: config.KARWAN_EVIDENCE_REGISTRY_ADDR, holdsUsdc: false },
@@ -95,8 +108,8 @@ export function configuredContracts(): Array<{
     { name: 'KarwanTreasury', kind: 'treasury', address: config.KARWAN_TREASURY_CONTRACT_ADDR, holdsUsdc: true },
     { name: 'KarwanYieldDistributor', kind: 'treasury', address: config.KARWAN_YIELD_DISTRIBUTOR_ADDR, holdsUsdc: true },
     { name: 'KarwanJobBoard', kind: 'registry', address: config.KARWAN_JOBBOARD_ADDR, holdsUsdc: false },
-    { name: 'KarwanReputation', kind: 'registry', address: config.KARWAN_REPUTATION_ADDR, holdsUsdc: false },
-    { name: 'KarwanBusinessRegistry', kind: 'registry', address: config.KARWAN_BUSINESS_REGISTRY_ADDR, holdsUsdc: false },
+    { name: 'KarwanReputation', kind: 'registry', address: config.KARWAN_REPUTATION_ADDR ?? published?.reputation, holdsUsdc: false },
+    { name: 'KarwanBusinessRegistry', kind: 'registry', address: config.KARWAN_BUSINESS_REGISTRY_ADDR ?? published?.businessRegistry, holdsUsdc: false },
     // The v3 suite, running beside the live escrow on testnet. Unset entries
     // are left out like any other unconfigured contract.
     { name: 'KarwanDealEscrow', kind: 'settlement', address: config.KARWAN_DEAL_ESCROW_ADDR, holdsUsdc: true },

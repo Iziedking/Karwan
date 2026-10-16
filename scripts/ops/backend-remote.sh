@@ -34,10 +34,11 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# The backend's guide and release-notes tests read frontend pages, docs, README.md and RELEASE_NOTES.md.
+# The backend's guide and release-notes tests read frontend pages, docs, README.md and RELEASE_NOTES.md;
+# the contract-list test reads contracts/deployments.
 tar -C "$ROOT" -czf - --exclude=node_modules --exclude=dist --exclude=backend/data --exclude='*.log' \
   --exclude=.next --exclude=test-results --exclude=playwright-report \
-  package.json package-lock.json README.md RELEASE_NOTES.md docs backend frontend cre/shared scripts \
+  package.json package-lock.json README.md RELEASE_NOTES.md docs backend frontend cre/shared scripts contracts/deployments \
   | ssh -o BatchMode=yes $H "mkdir -p $W/repo $NPM_CACHE && tar -C $W/repo -xzf -"
 
 ssh -o BatchMode=yes $H "docker run -d --rm --name $PG -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=karwan_test $PG_IMAGE >/dev/null
