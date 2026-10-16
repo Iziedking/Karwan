@@ -6,6 +6,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 import { useReputation } from '../hooks/useReputation';
 import { reasonLine } from '../sealed';
+import { badgeAccessibleLabel, dealCountLine } from '../badgeLabel';
 import {
   TIER_HUE,
   TIER_LABEL,
@@ -266,7 +267,8 @@ export function ReputationBadge({
   // Composite score is meaningful from day one (stake + time terms), so show it
   // whenever we have it; legacy bps only made sense with settled deals.
   const showScore = useComposite ? true : data.totalDeals > 0;
-  const accessibleLabel = `${tier.label}. ${(data.totalDeals === 1 ? rb.dealCountOneTemplate : rb.dealCountManyTemplate).replace('{count}', String(data.totalDeals))}`;
+  const accessibleLabel = badgeAccessibleLabel(tier.label, data.totalDeals, rb);
+  const dealCount = dealCountLine(data.totalDeals, rb);
   const badgeCells = quiet ? (
     <>
       <span>{tier.label}</span>
@@ -341,9 +343,7 @@ export function ReputationBadge({
           >
             <div className="flex items-baseline justify-between gap-2 pb-2 border-b border-[var(--color-line)]">
               <span className="eyebrow">{rb.eyebrow}</span>
-              <span className="text-[13px] mono text-[var(--color-ink-faint)]">
-                {(data.totalDeals === 1 ? rb.dealCountOneTemplate : rb.dealCountManyTemplate).replace('{count}', String(data.totalDeals))}
-              </span>
+              {dealCount && <span className="text-[13px] mono text-[var(--color-ink-faint)]">{dealCount}</span>}
             </div>
             <div className="pt-3 pb-2 flex items-baseline gap-3">
               <span
