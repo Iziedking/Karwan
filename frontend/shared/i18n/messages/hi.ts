@@ -13,6 +13,7 @@ import { notFoundCopy } from './pageStates';
 import { dealLiveCopy } from './dealLive';
 import { offerRosterCopy } from './offerRoster';
 import { shortlistCopy } from './shortlist';
+import { agentNudgesCopy } from './agentNudges';
 import { developersCopy } from './developers';
 import { reputationSourcesCopy } from './reputationSources';
 import { searchCopy } from './search';
@@ -41,6 +42,7 @@ export const hi: Messages = {
   pageNotFound: notFoundCopy.hi,
   offerRoster: offerRosterCopy.hi,
   shortlist: shortlistCopy.hi,
+  agentNudges: agentNudgesCopy.hi,
   developers: developersCopy.hi,
   reputationSources: reputationSourcesCopy.hi,
   dealLive: dealLiveCopy.hi,
@@ -937,7 +939,7 @@ export const hi: Messages = {
       notEnough: "खरीद एजेंट में पर्याप्त USDC नहीं है। पहले टॉप अप करें।",
       tryAgain: "यह पूरा नहीं हुआ। फिर कोशिश करें।",
       profileTitle: "प्रोफ़ाइल",
-      agentsTitle: "आपके एजेंट क्या स्वीकार करते हैं",
+      agentsTitle: "एजेंट वर्कस्पेस",
       agentsHint: "आपके एजेंट केवल इन सीमाओं के भीतर सौदे करते हैं।",
       agentFundsTitle: "एजेंट फंड",
       walletsTitle: "वॉलेट",

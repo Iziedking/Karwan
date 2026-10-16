@@ -16,6 +16,7 @@ import { notFoundCopy, type NotFoundCopy } from './pageStates';
 import { dealLiveCopy, type DealLiveCopy } from './dealLive';
 import { offerRosterCopy, type OfferRosterCopy } from './offerRoster';
 import { shortlistCopy, type ShortlistCopy } from './shortlist';
+import { agentNudgesCopy, type AgentNudgesCopy } from './agentNudges';
 import { developersCopy, type DevelopersCopy } from './developers';
 import { reputationSourcesCopy, type ReputationSourcesCopy } from './reputationSources';
 import { searchCopy, type SearchCopy } from './search';
@@ -43,6 +44,7 @@ interface MessagesShape {
   pageNotFound: NotFoundCopy;
   offerRoster: OfferRosterCopy;
   shortlist: ShortlistCopy;
+  agentNudges: AgentNudgesCopy;
   developers: DevelopersCopy;
   reputationSources: ReputationSourcesCopy;
   dealLive: DealLiveCopy;
@@ -5375,6 +5377,7 @@ export const en: MessagesShape = {
   pageNotFound: notFoundCopy.en,
   offerRoster: offerRosterCopy.en,
   shortlist: shortlistCopy.en,
+  agentNudges: agentNudgesCopy.en,
   developers: developersCopy.en,
   reputationSources: reputationSourcesCopy.en,
   dealLive: dealLiveCopy.en,
@@ -6283,7 +6286,7 @@ export const en: MessagesShape = {
       notEnough: "Not enough USDC in your buying agent. Top it up first.",
       tryAgain: "That did not go through. Try again.",
       profileTitle: "Profile",
-      agentsTitle: "What your agents accept",
+      agentsTitle: "Agent workspace",
       agentsHint: "Your agents only agree to deals inside these limits.",
       agentFundsTitle: "Agent funds",
       walletsTitle: "Wallets",

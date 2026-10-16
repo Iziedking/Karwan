@@ -40,3 +40,13 @@ test('each Reputation section explains itself, in every language', () => {
     }
   }
 });
+
+test('the agent page is called Agent workspace, in the page and the tab title', async () => {
+  const { routeTitlesCopy: routeTitles } = await import('../../shared/i18n/messages/routeTitles');
+  const names = { en: 'Agent workspace', fr: 'Espace des agents', ar: 'مساحة عمل الوكلاء', hi: 'एजेंट वर्कस्पेस', sw: 'Eneo la kazi la mawakala' };
+  for (const [locale, name] of Object.entries(names)) {
+    const src = read(`../../shared/i18n/messages/${locale}.ts`);
+    assert.match(src, new RegExp(`agentsTitle: "${name}"`), locale);
+    assert.equal(routeTitles[locale as 'en'].profileSetup, name, `${locale} tab title`);
+  }
+});

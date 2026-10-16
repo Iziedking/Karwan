@@ -13,6 +13,7 @@ import { notFoundCopy } from './pageStates';
 import { dealLiveCopy } from './dealLive';
 import { offerRosterCopy } from './offerRoster';
 import { shortlistCopy } from './shortlist';
+import { agentNudgesCopy } from './agentNudges';
 import { developersCopy } from './developers';
 import { reputationSourcesCopy } from './reputationSources';
 import { searchCopy } from './search';
@@ -41,6 +42,7 @@ export const fr: Messages = {
   pageNotFound: notFoundCopy.fr,
   offerRoster: offerRosterCopy.fr,
   shortlist: shortlistCopy.fr,
+  agentNudges: agentNudgesCopy.fr,
   developers: developersCopy.fr,
   reputationSources: reputationSourcesCopy.fr,
   dealLive: dealLiveCopy.fr,
@@ -939,7 +941,7 @@ export const fr: Messages = {
       notEnough: "Pas assez d’USDC chez votre agent acheteur. Alimentez-le d’abord.",
       tryAgain: "Cela n’a pas abouti. Réessayez.",
       profileTitle: "Profil",
-      agentsTitle: "Ce que vos agents acceptent",
+      agentsTitle: "Espace des agents",
       agentsHint: "Vos agents n’acceptent que des accords dans ces limites.",
       agentFundsTitle: "Fonds des agents",
       walletsTitle: "Portefeuilles",

@@ -13,6 +13,7 @@ import { notFoundCopy } from './pageStates';
 import { dealLiveCopy } from './dealLive';
 import { offerRosterCopy } from './offerRoster';
 import { shortlistCopy } from './shortlist';
+import { agentNudgesCopy } from './agentNudges';
 import { developersCopy } from './developers';
 import { reputationSourcesCopy } from './reputationSources';
 import { searchCopy } from './search';
@@ -41,6 +42,7 @@ export const sw: Messages = {
   pageNotFound: notFoundCopy.sw,
   offerRoster: offerRosterCopy.sw,
   shortlist: shortlistCopy.sw,
+  agentNudges: agentNudgesCopy.sw,
   developers: developersCopy.sw,
   reputationSources: reputationSourcesCopy.sw,
   dealLive: dealLiveCopy.sw,
@@ -936,7 +938,7 @@ export const sw: Messages = {
       notEnough: "USDC haitoshi kwa wakala wako wa kununua. Mjaze kwanza.",
       tryAgain: "Haikufanikiwa. Jaribu tena.",
       profileTitle: "Wasifu",
-      agentsTitle: "Wakala wako wanakubali nini",
+      agentsTitle: "Eneo la kazi la mawakala",
       agentsHint: "Wakala wako wanakubali mikataba ndani ya mipaka hii tu.",
       agentFundsTitle: "Fedha za wakala",
       walletsTitle: "Pochi",

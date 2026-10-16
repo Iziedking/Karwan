@@ -13,6 +13,7 @@ import { notFoundCopy } from './pageStates';
 import { dealLiveCopy } from './dealLive';
 import { offerRosterCopy } from './offerRoster';
 import { shortlistCopy } from './shortlist';
+import { agentNudgesCopy } from './agentNudges';
 import { developersCopy } from './developers';
 import { reputationSourcesCopy } from './reputationSources';
 import { searchCopy } from './search';
@@ -41,6 +42,7 @@ export const ar: Messages = {
   pageNotFound: notFoundCopy.ar,
   offerRoster: offerRosterCopy.ar,
   shortlist: shortlistCopy.ar,
+  agentNudges: agentNudgesCopy.ar,
   developers: developersCopy.ar,
   reputationSources: reputationSourcesCopy.ar,
   dealLive: dealLiveCopy.ar,
@@ -939,7 +941,7 @@ export const ar: Messages = {
       notEnough: "لا يوجد ما يكفي من USDC لدى وكيل الشراء. عبّئه أولًا.",
       tryAgain: "لم يكتمل ذلك. حاول مرة أخرى.",
       profileTitle: "الملف الشخصي",
-      agentsTitle: "ما يقبله وكلاؤك",
+      agentsTitle: "مساحة عمل الوكلاء",
       agentsHint: "لا يوافق وكلاؤك إلا على صفقات ضمن هذه الحدود.",
       agentFundsTitle: "أموال الوكلاء",
       walletsTitle: "المحافظ",
