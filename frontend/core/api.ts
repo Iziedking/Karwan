@@ -7,6 +7,7 @@ import type {
 import { credentialsForApiRequest } from './adminTransport';
 import type { KdfParams } from '@/features/recovery/crypto';
 import type { Offer } from '@/features/offers/model';
+import type { SurveyAnswer, SurveySummary } from '@/features/admin/surveyPresentation';
 
 // next.config.mjs refuses a production build without NEXT_PUBLIC_BACKEND_URL,
 // so localhost here only ever serves development and tests.
@@ -3292,6 +3293,8 @@ export const api = {
   recoveryRelease: (ticket: string) =>
     json<{ kdf: KdfParams; iv: string; blob: string; recoveryAddress: string; walletAddress: string }>('/api/recovery/release', { method: 'POST', body: JSON.stringify({ ticket }) }),
   recoveryCompleted: () => json<{ completed: true }>('/api/recovery/completed', { method: 'POST', body: '{}' }),
+  adminResearch: () =>
+    json<{ summary: SurveySummary; answers: SurveyAnswer[] }>('/api/admin/research', { headers: adminHeaders() }),
   adminWaitlist: () =>
     json<{
       waitlist: Array<{ email: string; locale: string; joinedAt: number; useCases?: WaitlistUseCase[] }>;

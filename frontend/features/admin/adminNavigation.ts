@@ -54,6 +54,7 @@ export const ADMIN_NAVIGATION: AdminNavigationGroup[] = [
       { href: '/admin/feedback', label: 'Feedback', description: 'Product feedback queue' },
       { href: '/admin/newsletter', label: 'Publishing', description: 'Draft, review and send' },
       { href: '/admin/waitlist', label: 'Waitlist', description: 'Mainnet waitlist and invites' },
+      { href: '/admin/survey', label: 'Survey', description: 'Research survey answers' },
       { href: '/admin/team', label: 'Team access', description: 'Members and invitations' },
       { href: '/admin/team-keys', label: 'Team keys', description: 'Scoped machine access' },
     ],
