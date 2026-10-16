@@ -134,3 +134,33 @@ test('a seller off the list still needs the acknowledgement when not verified', 
   assert.deepEqual(shortlistChoiceCheck([], 'z', true, false), { ok: true });
   assert.deepEqual(shortlistChoiceCheck([], 'z', false, true), { ok: true });
 });
+
+test('on testnet a clean Karwan record can be recommended when nobody verified fits, and is still shown as not verified', () => {
+  const clean = c({ seller: 'k', level: 'registered', askedUsdc: 90, counts: { completed: 82, onTimeRate: 97, disputesWon: 0, disputesLost: 0, cancelled: 0 } });
+  const ranked = rankCandidates([clean]);
+  assert.equal(pickRecommended(ranked, 100), null, 'mainnet rule unchanged');
+  const rec = pickRecommended(ranked, 100, new Set(), { cleanRecordCounts: true });
+  assert.equal(rec?.seller, 'k');
+  const [e] = toEntries(ranked, rec, 100, null, []);
+  assert.equal(e!.verified, false);
+  assert.ok(!e!.reasons.includes('verified'));
+});
+
+test('on testnet a verified seller still comes first, and a lost dispute or no deals never qualifies', () => {
+  const ranked = rankCandidates([
+    c({ seller: 'clean', level: 'registered', askedUsdc: 50, deterministicScore: 99 }),
+    c({ seller: 'ver', level: 'work_verified', askedUsdc: 90, deterministicScore: 10 }),
+  ]);
+  assert.equal(pickRecommended(ranked, 100, new Set(), { cleanRecordCounts: true })?.seller, 'ver');
+  const lost = rankCandidates([c({ level: 'registered', counts: { completed: 9, onTimeRate: 90, disputesWon: 0, disputesLost: 1, cancelled: 0 } })]);
+  assert.equal(pickRecommended(lost, 100, new Set(), { cleanRecordCounts: true }), null);
+  const none = rankCandidates([c({ level: 'registered', counts: { completed: 0, onTimeRate: null, disputesWon: 0, disputesLost: 0, cancelled: 0 } })]);
+  assert.equal(pickRecommended(none, 100, new Set(), { cleanRecordCounts: true }), null);
+});
+
+test('a shortlist with no recommendation stays open for the buyer to choose', async () => {
+  const { readFileSync } = await import('node:fs');
+  const buyer = readFileSync(new URL('./buyer.ts', import.meta.url), 'utf8');
+  assert.doesNotMatch(buyer, /markNegotiationEnded\(state, 'shortlist-no-recommendation'\)/);
+  assert.match(buyer, /cleanRecordCounts: config\.ARC_NETWORK === 'testnet'/);
+});

@@ -2017,6 +2017,9 @@ function shortlistDeps(state: JobState): ShortlistDeps {
   };
 }
 
+/// Testnet lets a clean Karwan record stand in for verification when picking.
+const RECOMMEND_OPTS = { cleanRecordCounts: config.ARC_NETWORK === 'testnet' };
+
 /// Shortlist mode: read the first five bidders, rank them, publish the list.
 /// On first publish the agent negotiates with the recommended seller only. A
 /// refresh from a late offer counters a new recommendation only when no counter
@@ -2040,7 +2043,7 @@ async function publishShortlist(
     shortlistDeps(state),
   );
   const ranked = rankCandidates(candidates);
-  const recommended = pickRecommended(ranked, budget, unavailableSellers(state.shortlist ?? []));
+  const recommended = pickRecommended(ranked, budget, unavailableSellers(state.shortlist ?? []), RECOMMEND_OPTS);
   state.shortlistCandidates = ranked;
   state.shortlist = toEntries(ranked, recommended, budget, null, state.shortlist ?? []);
   const changed = before?.toLowerCase() !== (recommended?.seller.toLowerCase() ?? null);
@@ -2055,10 +2058,10 @@ async function publishShortlist(
     'shortlist published',
   );
 
-  if (!recommended) {
-    if (opts.counter) markNegotiationEnded(state, 'shortlist-no-recommendation');
-    return;
-  }
+  // No pick yet: the list stays open for the buyer to choose from, and late
+  // offers keep joining it. The request ends when the buyer chooses or cancels,
+  // or when it expires, never on the first look at the offers.
+  if (!recommended) return;
   const head = rankedEntries.find((e) => e.bid.seller === recommended.seller)?.bid;
   const mayCounter = opts.counter || (changed && !state.counterWatchdog && !state.finalized && !state.escrowFunded);
   if (!head || !mayCounter || state.triedSellers.has(head.seller)) return;
@@ -3667,7 +3670,7 @@ async function proposeMatch(
     const budget = Number(state.context.budgetUsdc);
     state.shortlist = toEntries(
       state.shortlistCandidates,
-      pickRecommended(state.shortlistCandidates, budget, unavailableSellers(state.shortlist ?? [])),
+      pickRecommended(state.shortlistCandidates, budget, unavailableSellers(state.shortlist ?? []), RECOMMEND_OPTS),
       budget,
       { seller, priceUsdc: Number(agreedPriceUsdc) },
       state.shortlist ?? [],

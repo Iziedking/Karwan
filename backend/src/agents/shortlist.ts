@@ -64,16 +64,22 @@ export function rankCandidates(cands: readonly ShortlistCandidate[]): ShortlistC
   );
 }
 
+/// A verified seller inside the budget, best first. On testnet, where few
+/// people have done the person check yet, a seller with settled Karwan deals
+/// and no lost dispute may be recommended when no verified one fits; they
+/// stay marked not verified, and choosing them still asks the buyer to confirm.
 export function pickRecommended(
   ranked: readonly ShortlistCandidate[],
   budgetUsdc: number,
   unavailable: ReadonlySet<string> = new Set(),
+  opts: { cleanRecordCounts?: boolean } = {},
 ): ShortlistCandidate | null {
-  return (
-    ranked
-      .slice(0, SHORTLIST_MAX)
-      .find((c) => isVerified(c.level) && c.askedUsdc <= budgetUsdc && !unavailable.has(c.seller.toLowerCase())) ?? null
-  );
+  const open = ranked
+    .slice(0, SHORTLIST_MAX)
+    .filter((c) => c.askedUsdc <= budgetUsdc && !unavailable.has(c.seller.toLowerCase()));
+  const verified = open.find((c) => isVerified(c.level));
+  if (verified || !opts.cleanRecordCounts) return verified ?? null;
+  return open.find((c) => c.counts.completed > 0 && c.counts.disputesLost === 0) ?? null;
 }
 
 /// Sellers already marked unavailable, so a refresh keeps them that way.
@@ -84,7 +90,7 @@ export function unavailableSellers(entries: readonly ShortlistEntry[]): Set<stri
 function reasonsFor(rec: ShortlistCandidate, ranked: readonly ShortlistCandidate[], budgetUsdc: number): RecommendReason[] {
   const out: RecommendReason[] = [];
   if (ranked[0]?.seller === rec.seller) out.push('best_fit');
-  out.push('verified');
+  if (isVerified(rec.level)) out.push('verified');
   if (rec.askedUsdc <= budgetUsdc) out.push('within_budget');
   if (ranked.length > 1 && ranked.every((c) => c.seller === rec.seller || c.askedUsdc > rec.askedUsdc)) out.push('lower_price');
   if ((rec.counts.onTimeRate ?? 0) >= ON_TIME_REASON_MIN) out.push('on_time_record');
