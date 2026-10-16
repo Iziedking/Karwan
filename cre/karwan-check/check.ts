@@ -28,6 +28,7 @@ export interface DeliveredLog {
   revision: number;
   proofHash: Hex;
   blockHash: Hex;
+  blockNumber: number;
 }
 
 export interface PendingItem {
@@ -37,6 +38,7 @@ export interface PendingItem {
   dealId: Hex;
   revision: number;
   deliveredBlockHash: Hex | null;
+  deliveredBlockNumber: number | null;
   policy: unknown;
   reference: unknown;
 }
@@ -60,8 +62,9 @@ export interface CheckPorts {
   now(): number;
   readTerms(family: Address, dealId: Hex): { verifier: Address; checkPolicy: Hex; partialBps: number };
   readDeal(family: Address, dealId: Hex): { state: number; revision: number; checkPassed: boolean; checkFailed: boolean };
-  /// proofHash of the Delivered log for this revision, found by block hash.
-  deliveredProof(family: Address, dealId: Hex, revision: number, blockHash: Hex): Hex | null;
+  /// proofHash of the Delivered log for this revision: looked up by block
+  /// number (the capability filters by range), kept only from the logged block.
+  deliveredProof(family: Address, dealId: Hex, revision: number, blockHash: Hex, blockNumber: number): Hex | null;
   fetchDoc(hash: Hex): unknown | null;
   runnerBlob(runnerRepo: string): string | null;
   dispatch(args: DispatchArgs): boolean;
@@ -75,6 +78,8 @@ export interface CheckPorts {
   feeRun(fees: Address, runId: Hex): { state: number };
   findRun(runnerRepo: string, dealKey: string, sha: string, inputsHash: string): RunFacts | null;
   writeReport(report: Hex): { ok: boolean };
+  /// The adapter's stored verdict for a delivery, read at the latest block.
+  verdictOnChain(verifier: Address, family: Address, dealId: Hex, revision: number): { set: boolean; pass: boolean; evidenceHash: Hex };
   postEvidence(payload: Record<string, unknown>): void;
   postDryRun(payload: Record<string, unknown>): void;
 }
@@ -170,6 +175,7 @@ export function startReplay(ports: CheckPorts, config: CheckConfig, log: Deliver
     dealId: log.dealId,
     revision: log.revision,
     deliveredBlockHash: log.blockHash,
+    deliveredBlockNumber: log.blockNumber,
     policyHash: terms.checkPolicy,
     referenceHash: log.proofHash,
   });
@@ -186,6 +192,7 @@ export interface DryRunRequest {
 }
 
 const FEE_OPEN = 1;
+const FEE_RELEASED = 2;
 const SHA = /^[0-9a-f]{40}$/;
 const HEX32 = /^0x[0-9a-fA-F]{64}$/;
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
@@ -228,6 +235,7 @@ export function startDryRun(ports: CheckPorts, config: CheckConfig, req: DryRunR
     dealId: req.dealId,
     revision: 0,
     deliveredBlockHash: null,
+    deliveredBlockNumber: null,
     policyHash: terms.checkPolicy,
     reference: { repository: policy.repository, pull: req.pull ?? 1, sha: req.branchSha },
   });
@@ -282,8 +290,8 @@ function collectOne(ports: CheckPorts, config: CheckConfig, item: PendingItem): 
     const deal = ports.readDeal(item.family, item.dealId);
     if (deal.state !== AGREEMENT_ACCEPTED || deal.revision !== item.revision) return out('stale');
     if (deal.checkPassed || deal.checkFailed) return out('already-decided');
-    const proof = item.deliveredBlockHash
-      ? ports.deliveredProof(item.family, item.dealId, item.revision, item.deliveredBlockHash)
+    const proof = item.deliveredBlockHash && item.deliveredBlockNumber !== null
+      ? ports.deliveredProof(item.family, item.dealId, item.revision, item.deliveredBlockHash, item.deliveredBlockNumber)
       : null;
     reference = proof ? loadReference(item.reference, proof) : null;
     if (!reference || !sameRepository(reference, policy)) return out('reference-mismatch');
@@ -318,7 +326,8 @@ function collectOne(ports: CheckPorts, config: CheckConfig, item: PendingItem): 
         issuedAt: ports.now(),
         body: dryBody({ fees: config.fees, runId: `0x${item.dealKey.slice(4)}`, resultHash: evidence.evidenceHash }),
       });
-      released = ports.writeReport(report).ok;
+      // The forwarder never reverts; only the fee run on Arc says whether it was released.
+      released = ports.writeReport(report).ok && ports.feeRun(config.fees, `0x${item.dealKey.slice(4)}`).state === FEE_RELEASED;
     }
     ports.postDryRun({ dealKey: item.dealKey, dealId: item.dealId, decision: verdict.decision, doc: evidence.doc, evidenceHash: evidence.evidenceHash, released });
     return out('dry-run', verdict.decision);
@@ -341,7 +350,11 @@ function collectOne(ports: CheckPorts, config: CheckConfig, item: PendingItem): 
         evidenceHash: evidence.evidenceHash,
       }),
     });
-    attested = ports.writeReport(report).ok;
+    // The forwarder never reverts; only the adapter's stored verdict says it took the report.
+    if (ports.writeReport(report).ok) {
+      const held = ports.verdictOnChain(terms.verifier, item.family, item.dealId, item.revision);
+      attested = held.set && held.pass === (verdict.decision === 'PASS') && held.evidenceHash.toLowerCase() === evidence.evidenceHash.toLowerCase();
+    }
     if (!attested) return out('write-failed', verdict.decision);
   }
   ports.postEvidence({

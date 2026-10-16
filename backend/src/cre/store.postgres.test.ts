@@ -33,9 +33,10 @@ test('the Postgres CRE store keeps documents, rotates the replay index and summa
 
     const deal = `0x${'d'.repeat(64)}`;
     for (const n of [1, 2, 3]) {
-      await store.upsertCheckItem({ dealKey: `${deal}-r${n}`, kind: 'deal', family: '0xf', dealId: deal, revision: n, deliveredBlockHash: null, policyHash: hash, referenceHash: null }, 1_000 + n);
+      await store.upsertCheckItem({ dealKey: `${deal}-r${n}`, kind: 'deal', family: '0xf', dealId: deal, revision: n, deliveredBlockHash: null, deliveredBlockNumber: 66_719_640 + n, policyHash: hash, referenceHash: null }, 1_000 + n);
     }
     assert.deepEqual((await store.pendingCheckItems(2, 2_000, 0)).map((i) => i.revision), [1, 2]);
+    assert.deepEqual((await store.pendingCheckItems(1, 2_000, 0)).map((i) => i.deliveredBlockNumber), [66_719_641]);
     assert.deepEqual((await store.pendingCheckItems(2, 2_000, 2)).map((i) => i.revision), [3, 1]);
     await store.closeCheckItem(`${deal}-r1`, { decision: 'PASS' }, 2_000);
     assert.deepEqual((await store.pendingCheckItems(5, 2_001, 0)).map((i) => i.revision), [2, 3]);

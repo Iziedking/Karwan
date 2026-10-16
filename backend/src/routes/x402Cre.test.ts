@@ -177,7 +177,7 @@ test('the dry-run result is free to poll and never shows who paid', async () => 
 
 test('evidence for a check is sold to parties only, with what is needed to verify it on Arc', async () => {
   const s = setup();
-  await s.store.upsertCheckItem({ dealKey: `${DEAL}-r1`, kind: 'deal', family: FAMILY, dealId: DEAL, revision: 1, deliveredBlockHash: null, policyHash: `0x${'1'.repeat(64)}`, referenceHash: null }, 1);
+  await s.store.upsertCheckItem({ dealKey: `${DEAL}-r1`, kind: 'deal', family: FAMILY, dealId: DEAL, revision: 1, deliveredBlockHash: null, deliveredBlockNumber: null, policyHash: `0x${'1'.repeat(64)}`, referenceHash: null }, 1);
   await s.store.closeCheckItem(`${DEAL}-r1`, { decision: 'PASS', evidenceHash: `0x${'9'.repeat(64)}`, attested: true }, 2);
   assert.equal((await s.call(`/evidence/${FAMILY}/${DEAL}/1`, { payer: STRANGER })).status, 403);
   const res = await s.call(`/evidence/${FAMILY}/${DEAL}/1`, { payer: BUYER });

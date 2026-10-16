@@ -35,6 +35,7 @@ const startedSchema = z.object({
   dealId: hex32,
   revision: z.number().int().min(0),
   deliveredBlockHash: hex32.nullable(),
+  deliveredBlockNumber: z.number().int().min(0).nullable().default(null),
   policyHash: hex32,
   referenceHash: hex32.optional(),
   reference: z.unknown().optional(),
@@ -83,7 +84,7 @@ export function createCreRoutes(deps: CreRouteDeps) {
     }
     await deps.store.upsertCheckItem({
       dealKey: s.dealKey, kind: s.kind, family: s.family, dealId: s.dealId, revision: s.revision,
-      deliveredBlockHash: s.deliveredBlockHash, policyHash: s.policyHash, referenceHash,
+      deliveredBlockHash: s.deliveredBlockHash, deliveredBlockNumber: s.deliveredBlockNumber, policyHash: s.policyHash, referenceHash,
     }, deps.now());
     return c.json({ ok: true });
   });
@@ -97,7 +98,7 @@ export function createCreRoutes(deps: CreRouteDeps) {
       if (!policy || !reference) continue;
       out.push({
         kind: i.kind, dealKey: i.dealKey, family: i.family, dealId: i.dealId, revision: i.revision,
-        deliveredBlockHash: i.deliveredBlockHash, policy: policy.body, reference: reference.body,
+        deliveredBlockHash: i.deliveredBlockHash, deliveredBlockNumber: i.deliveredBlockNumber, policy: policy.body, reference: reference.body,
       });
     }
     return c.json({ items: out });

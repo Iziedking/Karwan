@@ -37,7 +37,7 @@ test('a page of pending replays depends only on the cursor, so every DON node re
   for (const n of [1, 2, 3]) {
     await store.upsertCheckItem({
       dealKey: `${DEAL}-r${n}`, kind: 'deal', family: FAMILY, dealId: DEAL, revision: n,
-      deliveredBlockHash: `0x${'b'.repeat(64)}`, policyHash: fingerprint(policy), referenceHash: `0x${'c'.repeat(64)}`,
+      deliveredBlockHash: `0x${'b'.repeat(64)}`, deliveredBlockNumber: 1, policyHash: fingerprint(policy), referenceHash: `0x${'c'.repeat(64)}`,
     }, 1_000 + n);
   }
   assert.deepEqual((await store.pendingCheckItems(2, 2_000, 0)).map((i) => i.revision), [1, 2]);
@@ -52,7 +52,7 @@ test('a replay nobody answers drops out of the index after a day', async () => {
   const store = createMemoryCreStore();
   await store.upsertCheckItem({
     dealKey: `${DEAL}-r1`, kind: 'deal', family: FAMILY, dealId: DEAL, revision: 1,
-    deliveredBlockHash: null, policyHash: fingerprint(policy), referenceHash: null,
+    deliveredBlockHash: null, deliveredBlockNumber: null, policyHash: fingerprint(policy), referenceHash: null,
   }, 0);
   assert.equal((await store.pendingCheckItems(5, 86_400_000 + 1, 0)).length, 0);
 });
@@ -82,7 +82,7 @@ test('a closed check keeps its outcome for later reads', async () => {
   const store = createMemoryCreStore();
   await store.upsertCheckItem({
     dealKey: `${DEAL}-r1`, kind: 'deal', family: FAMILY, dealId: DEAL, revision: 1,
-    deliveredBlockHash: null, policyHash: fingerprint(policy), referenceHash: null,
+    deliveredBlockHash: null, deliveredBlockNumber: null, policyHash: fingerprint(policy), referenceHash: null,
   }, 1);
   assert.equal(await store.checkOutcome(`${DEAL}-r1`), null);
   await store.closeCheckItem(`${DEAL}-r1`, { decision: 'PASS', evidenceHash: '0xabc' }, 2);

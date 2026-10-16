@@ -1,5 +1,6 @@
 import {
   bytesToBase64,
+  blockNumber as protoBlock,
   bytesToHex,
   consensusIdenticalAggregation,
   cre,
@@ -7,6 +8,7 @@ import {
   getNetwork,
   hexToBase64,
   LAST_FINALIZED_BLOCK_NUMBER,
+  LATEST_BLOCK_NUMBER,
   prepareReportRequest,
   text,
   TxStatus,
@@ -16,15 +18,18 @@ import {
 import {
   decodeEventLog,
   decodeFunctionResult,
+  encodeAbiParameters,
   encodeFunctionData,
+  keccak256,
   parseAbi,
+  parseAbiParameters,
   toBytes,
   zeroAddress,
   type Address,
   type Hex,
 } from 'viem';
 import { canonicalJson } from '../shared/canonical.js';
-import { agreementAbi } from '../shared/suiteAbi.js';
+import { adapterAbi, agreementAbi } from '../shared/suiteAbi.js';
 import type { RunFacts } from '../shared/verdict.js';
 import { runsListUrl, type CheckPorts, type DispatchArgs, type PendingItem } from './check.js';
 
@@ -116,10 +121,10 @@ export function createPorts(runtime: Runtime<unknown>, config: PortsConfig): Che
     'User-Agent': 'karwan-check',
   };
 
-  const call = (to: Address, data: Hex): Hex =>
+  const call = (to: Address, data: Hex, at: typeof LAST_FINALIZED_BLOCK_NUMBER = LAST_FINALIZED_BLOCK_NUMBER): Hex =>
     bytesToHex(evm.callContract(runtime, {
       call: encodeCallMsg({ from: zeroAddress, to, data }),
-      blockNumber: LAST_FINALIZED_BLOCK_NUMBER,
+      blockNumber: at,
     }).result().data);
 
   const blobAt = (runner: string, ref: string): string | null => {
@@ -152,15 +157,17 @@ export function createPorts(runtime: Runtime<unknown>, config: PortsConfig): Che
       return { state: d.state, revision: d.revision, checkPassed: d.checkPassed, checkFailed: d.checkFailed };
     },
 
-    deliveredProof: (family, dealId, revision, blockHash) => {
+    deliveredProof: (family, dealId, revision, blockHash, number) => {
       const reply = evm.filterLogs(runtime, {
         filterQuery: {
-          blockHash: hexToBase64(blockHash),
+          fromBlock: protoBlock(number),
+          toBlock: protoBlock(number),
           addresses: [hexToBase64(family)],
           topics: [{ topic: [hexToBase64(DELIVERED_TOPIC)] }, { topic: [hexToBase64(dealId)] }],
         },
       }).result();
       for (const log of reply.logs) {
+        if (bytesToHex(log.blockHash).toLowerCase() !== blockHash.toLowerCase()) continue;
         const decoded = decodeEventLog({
           abi: agreementAbi,
           eventName: 'Delivered',
@@ -213,11 +220,21 @@ export function createPorts(runtime: Runtime<unknown>, config: PortsConfig): Che
       nodePost(runtime, `${config.karwanApi}/api/cre/check/close`, karwan, { dealKey, outcome });
     },
 
+    verdictOnChain: (verifier, family, dealId, revision) => {
+      const key = keccak256(encodeAbiParameters(parseAbiParameters('address, address, bytes32, uint32'), [verifier, family, dealId, revision]));
+      const [set, pass, evidenceHash] = decodeFunctionResult({
+        abi: adapterAbi,
+        functionName: 'verdictOf',
+        data: call(config.adapter as Address, encodeFunctionData({ abi: adapterAbi, functionName: 'verdictOf', args: [key] }), LATEST_BLOCK_NUMBER),
+      });
+      return { set, pass, evidenceHash };
+    },
+
     feeRun: (fees, runId) => {
       const [, , state] = decodeFunctionResult({
         abi: feesAbi,
         functionName: 'runs',
-        data: call(fees, encodeFunctionData({ abi: feesAbi, functionName: 'runs', args: [runId] })),
+        data: call(fees, encodeFunctionData({ abi: feesAbi, functionName: 'runs', args: [runId] }), LATEST_BLOCK_NUMBER),
       });
       return { state };
     },

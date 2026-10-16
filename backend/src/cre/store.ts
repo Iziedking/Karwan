@@ -17,6 +17,8 @@ export interface CheckItem {
   dealId: string;
   revision: number;
   deliveredBlockHash: string | null;
+  /// The workflow finds the Delivered log by block number, then checks the hash.
+  deliveredBlockNumber: number | null;
   policyHash: string;
   referenceHash: string | null;
 }
@@ -163,6 +165,7 @@ CREATE TABLE cre_check_items_v1 (
   deal_id TEXT NOT NULL,
   revision INTEGER NOT NULL CHECK (revision >= 0),
   delivered_block_hash TEXT,
+  delivered_block_number BIGINT CHECK (delivered_block_number >= 0),
   policy_hash TEXT NOT NULL,
   reference_hash TEXT,
   state TEXT NOT NULL CHECK (state IN ('pending', 'closed')),
@@ -216,26 +219,29 @@ export function createSqlCreStore(sql: SqlExecutor): CreStore {
     },
     async upsertCheckItem(i, nowMs) {
       await sql.query(
-        `INSERT INTO cre_check_items_v1 (deal_key, kind, family, deal_id, revision, delivered_block_hash, policy_hash, reference_hash, state, created_at, served_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending', $9, $9)
+        `INSERT INTO cre_check_items_v1 (deal_key, kind, family, deal_id, revision, delivered_block_hash, delivered_block_number, policy_hash, reference_hash, state, created_at, served_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending', $10, $10)
          ON CONFLICT (deal_key) DO UPDATE SET state = 'pending', delivered_block_hash = EXCLUDED.delivered_block_hash,
+           delivered_block_number = EXCLUDED.delivered_block_number,
            policy_hash = EXCLUDED.policy_hash, reference_hash = EXCLUDED.reference_hash`,
-        [i.dealKey, i.kind, i.family, i.dealId, i.revision, i.deliveredBlockHash, i.policyHash, i.referenceHash, nowMs],
+        [i.dealKey, i.kind, i.family, i.dealId, i.revision, i.deliveredBlockHash, i.deliveredBlockNumber, i.policyHash, i.referenceHash, nowMs],
       );
     },
     async pendingCheckItems(limit, nowMs, cursor) {
       const r = await sql.query<{
         deal_key: string; kind: 'deal' | 'dry'; family: string; deal_id: string; revision: number;
-        delivered_block_hash: string | null; policy_hash: string; reference_hash: string | null;
+        delivered_block_hash: string | null; delivered_block_number: string | number | null; policy_hash: string; reference_hash: string | null;
       }>(
-        `SELECT deal_key, kind, family, deal_id, revision, delivered_block_hash, policy_hash, reference_hash
+        `SELECT deal_key, kind, family, deal_id, revision, delivered_block_hash, delivered_block_number, policy_hash, reference_hash
          FROM cre_check_items_v1 WHERE state = 'pending' AND $2 - created_at <= $1
          ORDER BY created_at, deal_key LIMIT $3`,
         [CHECK_ITEM_TTL_MS, nowMs, PAGE_SCAN],
       );
       return rotate(r.rows, limit, cursor).map((row) => ({
         dealKey: row.deal_key, kind: row.kind, family: row.family, dealId: row.deal_id, revision: Number(row.revision),
-        deliveredBlockHash: row.delivered_block_hash, policyHash: row.policy_hash, referenceHash: row.reference_hash,
+        deliveredBlockHash: row.delivered_block_hash,
+        deliveredBlockNumber: row.delivered_block_number === null ? null : Number(row.delivered_block_number),
+        policyHash: row.policy_hash, referenceHash: row.reference_hash,
       }));
     },
     async closeCheckItem(dealKey, outcome) {

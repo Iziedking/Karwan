@@ -92,11 +92,12 @@ test('a started replay enters the index and is served with its documents inline'
   const referenceHash = await store.putDocument('reference', reference);
   const started = await call('/check/started', {
     method: 'POST',
-    body: { kind: 'deal', dealKey: `${DEAL}-r1`, family: FAMILY, dealId: DEAL, revision: 1, deliveredBlockHash: `0x${'e'.repeat(64)}`, policyHash, referenceHash },
+    body: { kind: 'deal', dealKey: `${DEAL}-r1`, family: FAMILY, dealId: DEAL, revision: 1, deliveredBlockHash: `0x${'e'.repeat(64)}`, deliveredBlockNumber: 66_719_640, policyHash, referenceHash },
   });
   assert.equal(started.status, 200);
-  const pending = (await (await call('/check/pending?limit=9')).json()) as { items: { dealKey: string; policy: unknown; reference: unknown }[] };
+  const pending = (await (await call('/check/pending?limit=9')).json()) as { items: { dealKey: string; deliveredBlockNumber: number | null; policy: unknown; reference: unknown }[] };
   assert.equal(pending.items.length, 1);
+  assert.equal(pending.items[0]!.deliveredBlockNumber, 66_719_640);
   assert.deepEqual(pending.items[0]!.policy, policy);
   assert.deepEqual(pending.items[0]!.reference, reference);
 });

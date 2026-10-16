@@ -4,6 +4,7 @@ import {
   decodeJson,
   getNetwork,
   logTriggerConfig,
+  protoBigIntToBigint,
   type EVMLog,
   type HTTPPayload,
   type Runtime,
@@ -70,6 +71,7 @@ export function onDelivered(runtime: Runtime<Config>, log: EVMLog): string {
     revision: decoded.args.revision,
     proofHash: decoded.args.proofHash,
     blockHash: bytesToHex(log.blockHash),
+    blockNumber: log.blockNumber ? Number(protoBigIntToBigint(log.blockNumber)) : 0,
   });
   return JSON.stringify({ outcome });
 }

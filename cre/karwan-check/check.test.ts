@@ -50,6 +50,8 @@ function harness(over: Partial<{
   loggedProof: Hex | null;
   pull: { headSha: string; baseRef: string } | null;
   feeState: number;
+  /// What Arc shows after a write: the adapter took it, or refused it.
+  writeTakes: boolean;
 }> = {}) {
   const calls = { dispatched: [] as unknown[], started: [] as unknown[], written: [] as Hex[], evidence: [] as unknown[], dryResults: [] as unknown[], closed: [] as unknown[], runLookups: [] as unknown[] };
   const s = {
@@ -67,13 +69,15 @@ function harness(over: Partial<{
     loggedProof: proofFingerprint(reference) as Hex | null,
     pull: { headSha: 'b'.repeat(40), baseRef: 'main' } as { headSha: string; baseRef: string } | null,
     feeState: 1,
+    writeTakes: true,
+    held: { set: false, pass: false, evidenceHash: `0x${'0'.repeat(64)}` as Hex },
     ...over,
   };
   const ports: CheckPorts = {
     now: () => NOW,
     readTerms: () => ({ verifier: s.verifier, checkPolicy: s.checkPolicy, partialBps: s.partialBps }),
     readDeal: () => ({ state: s.state, revision: s.revision, checkPassed: s.checkPassed, checkFailed: s.checkFailed }),
-    deliveredProof: () => s.loggedProof,
+    deliveredProof: (_f, _d, _r, hash, number) => { calls.runLookups.push({ proofAt: [hash, number] }); return s.loggedProof; },
     fetchDoc: (hash) => s.docs[hash] ?? null,
     runnerBlob: () => s.runnerBlob,
     dispatch: (args) => { calls.dispatched.push(args); return true; },
@@ -83,14 +87,28 @@ function harness(over: Partial<{
     pullHead: () => s.pull,
     feeRun: (fees, runId) => { calls.runLookups.push({ fees, runId }); return { state: s.feeState }; },
     closeItem: (dealKey, outcome) => { calls.closed.push({ dealKey, outcome }); },
-    writeReport: (report) => { calls.written.push(report); return { ok: true }; },
+    // The forwarder never reverts, so a write always "succeeds"; only Arc's
+    // state after it says whether the adapter took the report.
+    writeReport: (report) => {
+      calls.written.push(report);
+      if (s.writeTakes) {
+        const [kind, , , , , body] = decodeAbiParameters(parseAbiParameters('uint8, uint256, address, uint64, bytes32, bytes'), report);
+        if (kind === 1) {
+          const [, , , , pass, evidenceHash] = decodeAbiParameters(parseAbiParameters('address, address, bytes32, uint32, bool, bytes32'), body);
+          s.held = { set: true, pass, evidenceHash };
+        }
+        if (kind === 4) s.feeState = 2;
+      }
+      return { ok: true };
+    },
+    verdictOnChain: () => s.held,
     postEvidence: (payload) => { calls.evidence.push(payload); },
     postDryRun: (payload) => { calls.dryResults.push(payload); },
   };
   return { ports, calls };
 }
 
-const delivered: DeliveredLog = { family: FAMILY, dealId: DEAL, revision: 1, proofHash: proofFingerprint(reference), blockHash: BLOCK };
+const delivered: DeliveredLog = { family: FAMILY, dealId: DEAL, revision: 1, proofHash: proofFingerprint(reference), blockHash: BLOCK, blockNumber: 66_719_640 };
 
 const completedRun = (conclusions: [string, string][] = [['item:i1', 'success'], ['item:i2', 'success']]): RunFacts => ({
   runId: 501,
@@ -109,6 +127,7 @@ const pendingDeal = (): PendingItem => ({
   dealId: DEAL,
   revision: 1,
   deliveredBlockHash: BLOCK,
+  deliveredBlockNumber: 66_719_640,
   policy,
   reference,
 });
@@ -172,6 +191,7 @@ describe('starting a replay (Delivered log)', () => {
       dealId: DEAL,
       revision: 1,
       deliveredBlockHash: BLOCK,
+      deliveredBlockNumber: 66_719_640,
       policyHash: policyFingerprint(policy),
       referenceHash: proofFingerprint(reference),
     }]);
@@ -251,7 +271,7 @@ describe('collecting results', () => {
     expect(collectResults(ports, { ...config, maxItems: 2 })).toHaveLength(2);
   });
 
-  const dryItem = (): PendingItem => ({ kind: 'dry', dealKey: DRY_KEY, family: FAMILY, dealId: DEAL, revision: 0, deliveredBlockHash: null, policy, reference });
+  const dryItem = (): PendingItem => ({ kind: 'dry', dealKey: DRY_KEY, family: FAMILY, dealId: DEAL, revision: 0, deliveredBlockHash: null, deliveredBlockNumber: null, policy, reference });
 
   test('a decided dry run releases its fee through the adapter, then reports off chain', () => {
     const { ports, calls } = harness({ pending: [dryItem()], run: completedRun() });
@@ -366,5 +386,34 @@ describe('finding the run', () => {
     expect(url.searchParams.get('event')).toBe('workflow_dispatch');
     expect(url.searchParams.get('per_page')).toBe('100');
     expect(url.searchParams.get('created')).toBe(`>=${new Date((1_800_000_000 - 7 * 86_400) * 1000).toISOString().slice(0, 19)}Z`);
+  });
+});
+
+describe('finding the delivery log', () => {
+  test('looks the Delivered log up by its block number and checks the block hash', () => {
+    const { ports, calls } = harness({ pending: [pendingDeal()], run: completedRun() });
+    collectResults(ports, config);
+    expect(calls.runLookups).toContainEqual({ proofAt: [BLOCK, 66_719_640] });
+  });
+
+  test('an item without its block number has no proof, so no result', () => {
+    const { ports, calls } = harness({ pending: [{ ...pendingDeal(), deliveredBlockNumber: null }], run: completedRun() });
+    expect(collectResults(ports, config)[0]).toMatchObject({ outcome: 'reference-mismatch' });
+    expect(calls.written).toHaveLength(0);
+  });
+});
+
+describe('a write counts only when Arc shows it', () => {
+  test('a check result the adapter refused is a failed write, not attested', () => {
+    const { ports, calls } = harness({ pending: [pendingDeal()], run: completedRun(), writeTakes: false });
+    expect(collectResults(ports, config)[0]).toMatchObject({ outcome: 'write-failed', decision: 'PASS' });
+    expect(calls.written).toHaveLength(1);
+  });
+
+  test('a dry-run answer the adapter refused releases nothing', () => {
+    const dry: PendingItem = { kind: 'dry', dealKey: DRY_KEY, family: FAMILY, dealId: DEAL, revision: 0, deliveredBlockHash: null, deliveredBlockNumber: null, policy, reference };
+    const { ports, calls } = harness({ pending: [dry], run: completedRun(), writeTakes: false });
+    collectResults(ports, config);
+    expect(calls.dryResults[0]).toMatchObject({ released: false });
   });
 });
