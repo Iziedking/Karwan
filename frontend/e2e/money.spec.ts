@@ -19,7 +19,7 @@ test('the balance is the loudest thing on the page, with one primary action', as
   await expect(heading).toContainText('1,240.50');
   await expect(page.getByText('Ready to use on Arc')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Add', exact: true })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Move', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Withdraw', exact: true })).toHaveAttribute('href', '/bridge?direction=out');
   await expect(page.getByRole('link', { name: 'Send', exact: true })).toHaveAttribute('href', '/send');
   expect(await accentControls(page)).toBe(1);
 });

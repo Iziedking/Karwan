@@ -133,6 +133,12 @@ function filterButton(page: Page, locale: Locale, group: 'type' | 'scope' | 'sor
   return page.getByRole('group', { name: legend, exact: true }).getByRole('button', { name: new RegExp(`^${escaped}`) });
 }
 
+/// Sort is a menu: open it from its trigger, then pick the order.
+async function sortBy(page: Page, label: string) {
+  await page.getByRole('group', { name: en.listingsBrowse.sortFilterLabel, exact: true }).getByRole('button').first().click();
+  await page.getByRole('menuitemradio', { name: label, exact: true }).click();
+}
+
 async function sideCounts(page: Page, locale: Locale, all: number, offers: number, requests: number) {
   const copy = messages[locale].listingsBrowse;
   for (const [label, count] of [[copy.filters.all, all], [copy.filters.offers, offers], [copy.filters.briefs, requests]] as const) {
@@ -272,7 +278,7 @@ async function readingCases(page: Page, data: ReturnType<typeof marketData>) {
 
 async function iconsAreAccessible(page: Page, locale: Locale) {
   const copy = messages[locale].listingsBrowse;
-  const search = page.getByTestId('market').getByRole('search', { name: copy.searchLabel, exact: true }).locator('svg');
+  const search = page.getByTestId('market').getByRole('search', { name: copy.searchLabel, exact: true }).locator('label svg');
   await expect(search).toHaveCount(1);
   const pager = page.locator('#market-p2p').getByRole('navigation', { name: copy.pager.label, exact: true });
   for (const [icon, size, directional] of [
@@ -625,9 +631,9 @@ if (!mainnet) {
     const copy = en.listingsBrowse;
     await sideCounts(page, 'en', 25, 13, 12);
     const personal = page.locator('#market-p2p');
-    await filterButton(page, 'en', 'sort', copy.sort.highestPrice).click();
+    await sortBy(page, copy.sort.highestPrice);
     await expect(personal.getByRole('heading', { level: 3 }).first()).toHaveText('Review inventory 7.');
-    await filterButton(page, 'en', 'sort', copy.sort.lowestPrice).click();
+    await sortBy(page, copy.sort.lowestPrice);
     await expect(personal.getByRole('heading', { level: 3 }).first()).toHaveText(data.personalOffers[0]!.title);
     const search = page.getByRole('textbox', { name: copy.searchLabel, exact: true });
     await search.fill('bakery sample packs');
@@ -635,8 +641,8 @@ if (!mainnet) {
     const request = page.locator('.market-card[data-market-side="request"]');
     await expect(request.getByRole('heading', { level: 3 })).toHaveText('Find packaging for my shop.');
     const offers = en.offers.countMany.replace('{n}', '5');
-    await expect(request.locator('[data-market-footer]')).toContainText(offers);
-    await expect(request.getByText(offers, { exact: true })).toHaveCount(1);
+    await expect(request.locator('[data-market-facts]')).toContainText(offers);
+    await expect(request.getByText(offers)).toHaveCount(1);
     await search.fill('تصميم');
     await expect(page.locator('.market-card')).toHaveCount(1);
     await expect(page.locator('.market-card h3')).toHaveText(data.personalOffers[1]!.title);
@@ -648,13 +654,13 @@ if (!mainnet) {
     await layoutIsSound(page, testInfo);
     await page.getByRole('button', { name: copy.clearFilters, exact: true }).first().click();
     await expect(search).toHaveValue('');
-    await expect(filterButton(page, 'en', 'sort', copy.sort.newest)).toHaveAttribute('aria-pressed', 'true');
+    await expect(filterButton(page, 'en', 'sort', copy.sort.newest)).toBeVisible();
     await expect(page.locator('.market-card')).toHaveCount(20);
     await expect(personal.getByRole('heading', { level: 3 }).first()).toHaveText(data.personalOffers[0]!.title);
     const zero = personal.locator('.market-card[data-market-side="request"]').filter({ hasText: 'Review inventory 2.' });
-    await expect(zero.locator('[data-market-footer]')).toContainText(en.offers.countNone);
+    await expect(zero.locator('[data-market-facts]')).toContainText(en.offers.countNone);
     const one = personal.locator('.market-card[data-market-side="request"]').filter({ hasText: 'أحتاج' });
-    await expect(one.locator('[data-market-footer]')).toContainText(en.offers.countOne);
+    await expect(one.locator('[data-market-facts]')).toContainText(en.offers.countOne);
   });
 
   test('a failed source leaves current requests visible and retry restores both sides', async ({ page }, testInfo) => {

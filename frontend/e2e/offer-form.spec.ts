@@ -35,8 +35,9 @@ test('an offer is set in three steps: price, floor, ready-in time and terms', as
   await page.locator('[data-guide="seller-listing"] textarea').fill('A logo in SVG and PNG with two rounds of changes.');
   await next.click();
 
-  await expect(page.getByRole('button', { name: `${f.perUnit}, ${f.soon}` })).toHaveAttribute('aria-disabled', 'true');
-  await expect(page.getByRole('button', { name: `${f.perHour}, ${f.soon}` })).toHaveAttribute('aria-disabled', 'true');
+  // Ways to charge that do not work yet stay hidden until business accounts open.
+  await expect(page.getByRole('button', { name: f.perUnit })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: f.perHour })).toHaveCount(0);
   await page.locator('[data-guide="seller-price"] input').fill('100');
   await page.locator('[data-guide="seller-floor"] input').fill('40');
   await expect(page.getByText(f.floorTooLow, { exact: true })).toBeVisible();

@@ -40,6 +40,10 @@ async function mockApi(page: Page, opts: { signedInAs?: string; request?: Record
       opts.onCreate?.(route.request().postDataJSON());
       return route.fulfill({ status: 201, json: { request: openRequest } });
     }
+    // Both request lists are paged: the requests on this page and where the next starts.
+    if ((pathname === '/api/deposit/requests' || pathname === '/api/deposit/requests/paid') && method === 'GET') {
+      return route.fulfill({ json: { requests: [], next: null } });
+    }
     if (pathname.startsWith('/api/profile')) {
       return route.fulfill({ json: { profile: { address: SELLER, displayName: 'Kingizie', handle: 'izieking' } } });
     }

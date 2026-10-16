@@ -50,7 +50,7 @@ test('a request is asked in three steps and posts the chosen date and milestones
 
   await expect(page.getByText(`${rs.stepOf.replace('{n}', '3')} · ${rs.payment}`)).toBeVisible();
   const tb = TERMS_COPY.en;
-  await expect(page.getByText(tb.noWhat.replace('{n}', '1'), { exact: true })).toBeVisible();
+  await expect(page.getByRole('listitem').filter({ hasText: tb.noWhat.replace('{n}', '1') })).toBeVisible();
   await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '1')}: ${tb.whatLabel}`, exact: true }).fill('Three logo sketches to choose from');
   // Every deal starts as one milestone; a second is added on purpose.
   await page.getByRole('button', { name: tb.addPart, exact: true }).click();
@@ -79,7 +79,7 @@ test('a request is asked in three steps and posts the chosen date and milestones
   expect(agreement).toContain('• Milestone 1, 20% (30 USDC): Three logo sketches to choose from');
   expect(agreement).toContain('• Milestone 3, 10% (15 USDC): Brand colours sheet');
   expect(agreement).not.toContain('Accepted when');
-  expect(agreement).toContain('Check window: 7 days');
+  expect(agreement).toContain('Time to check: 7 days after each delivery');
 });
 
 test('a picked date becomes whole days until the end of that day', async ({ page }) => {
@@ -147,5 +147,5 @@ test('a direct deal names the seller in one box and sends the agreed terms in tw
   const agreement = String((posted as unknown as { terms: string }).terms);
   expect(agreement).toContain('• Milestone 1, 40% (80 USDC): Product photos for the first 10 items');
   expect(agreement).toContain('• Milestone 3, 20% (40 USDC): Edited set in one folder');
-  expect(agreement).toContain('Check window: 10 days');
+  expect(agreement).toContain('Time to check: 10 days after each delivery');
 });

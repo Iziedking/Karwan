@@ -10,6 +10,7 @@ export interface SearchWorld extends MoneyWorld {
   jobs?: unknown[];
   job?: Record<string, unknown>;
   proposal?: Record<string, unknown> | null;
+  shortlist?: { entries: unknown[]; closed: boolean };
   seller?: { activeBids: unknown[]; recentBids: unknown[] };
   matches?: unknown[];
   listings?: unknown[];
@@ -102,6 +103,10 @@ export async function serveSearch(page: Page, world: SearchWorld) {
     if (path === `/api/jobs/${JOB}/choose-offer` && method === 'POST' && world.chooseOffer) return world.chooseOffer(route);
     if (path === `/api/jobs/${JOB}/match`) return route.fulfill({ json: { proposal: world.proposal ?? null } });
     if (path === `/api/jobs/${JOB}/near-miss`) return route.fulfill({ json: { nearMiss: null } });
+    // Shortlist mode is off unless a spec turns it on, as on a backend without it.
+    if (path === `/api/jobs/${JOB}/shortlist`) {
+      return world.shortlist ? route.fulfill({ json: world.shortlist }) : route.fulfill({ status: 404, json: { error: 'not_found' } });
+    }
     if (path === `/api/jobs/${JOB}`) return route.fulfill({ json: world.job ?? makeJob() });
     return route.fallback();
   });
