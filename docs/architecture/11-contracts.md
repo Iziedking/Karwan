@@ -307,7 +307,7 @@ Chat accounts held by Karwan and AI agents act through wallets Karwan's servers 
 
 ## How it is proven before money arrives
 
-Every release passes, in order:
+Every release passes, in order. The threat model behind these steps is [view 14](14-threat-model.md).
 
 1. A written threat model and invariant list, mapped to the OWASP Smart Contract Top 10.
 2. An exploit test written before each fix and each feature.
@@ -374,6 +374,7 @@ The suite launches on mainnet after step 8 with beta limits written into it: 1,0
 | Yield on deal money | Built, off at launch until Circle entitles the pool to hold USYC |
 | Reputation registry already on mainnet | Live, holds no deals and no records; stays as it is, with a public note pointing to the record contract |
 | Business registry already on mainnet | Live; its approvals carry into the record contract as business facts |
+| Assurance: the threat model, one property set per family run by Foundry, Medusa and Echidna, Halmos proofs of the settlement base's books, Slither and Aderyn with every finding explained except the CRE contracts' Aderyn findings, which the CRE build is triaging | Built. Full branch coverage, mutation testing and the 24-hour runs come next |
 | Independent audit and audit contest | Planned, before the beta limits rise |
 
 Contract notes: proposed names are `KarwanSettlementBase` (abstract), `KarwanHub`, `KarwanAgreementEscrow`, `KarwanTimeEscrow`, `KarwanJobEscrow`, `KarwanTradeFinance`, `KarwanIdentityRegistry`, `KarwanRecord`, `KarwanStakeVault`, `KarwanTimelock`, `KarwanCheckVerifier` and `KarwanYieldPool`, with the fixed libraries `SettlementLib`, `DisputeLib`, `AgreementLib`, `AgreementDisputeLib`, `AgreementDeliveryLib`, `AgreementTermsLib`, `TimeLib`, `TimeDisputeLib`, `JobLib`, `BountyLib` and `JobDisputeLib`. Every family's runtime code is measured against Arc's 24,576-byte limit in CI. All contracts are deployed at deterministic addresses from one reviewed script, and ownership goes to the timelock in the same run, so the deployer key holds nothing afterwards.
