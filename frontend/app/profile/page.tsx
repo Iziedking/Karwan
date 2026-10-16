@@ -92,7 +92,7 @@ function ProfilePageInner() {
   const activeSection = PROFILE_SECTION_BY_PATH[pathname] ?? null;
   const { profile: loadedProfile, address, fetchState } = useUserProfile();
   const { isBusinessWorkspace } = useWorkspaceContext();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(loadedProfile ?? null);
   const activation = useActivation();
   const openDeals = useOpenDeals();
   const [activationOpen, setActivationOpen] = useState(false);

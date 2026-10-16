@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/core/api';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { Row, RowGroup, ToggleRow } from './ProfileUi';
@@ -15,41 +16,34 @@ const INTEREST_MAX = 280;
 export function ReputationSources({ address }: { address: string }) {
   const copy = useTranslations().reputationSources;
   const { locale } = useLocale();
-  const [data, setData] = useState<Sources | null>(null);
+  const queryClient = useQueryClient();
+  const key = ['reputation-sources', address];
+  // Cached, so coming back to this page shows the last answer straight away.
+  const query = useQuery({ queryKey: key, queryFn: () => api.reputationSources(address), staleTime: 30_000 });
+  const data = query.data ?? null;
   const [interest, setInterest] = useState('');
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
+  const loadedInterest = data?.sources.interest;
   useEffect(() => {
-    let live = true;
-    api
-      .reputationSources(address)
-      .then((next) => {
-        if (!live) return;
-        setData(next);
-        setInterest(next.sources.interest);
-      })
-      .catch(() => {
-        if (live) setError(copy.failed);
-      });
-    return () => {
-      live = false;
-    };
-  }, [address, copy.failed]);
+    if (loadedInterest !== undefined) setInterest(loadedInterest);
+  }, [loadedInterest]);
 
   async function update(patch: { recordReadable?: boolean; sourceLookup?: boolean; interest?: string }) {
     setError(null);
     setSaved(false);
     try {
       const { sources } = await api.updateReputationSources(address, patch);
-      setData((d) => (d ? { ...d, sources: { ...d.sources, ...sources } } : d));
+      queryClient.setQueryData<Sources>(key, (d) => (d ? { ...d, sources: { ...d.sources, ...sources } } : d));
       if (patch.interest !== undefined) setSaved(true);
     } catch {
       setError(copy.failed);
     }
   }
 
-  if (!data) return error ? <p className="text-[14px] font-medium text-[var(--lp-dark)]">{error}</p> : null;
+  if (query.isError && !data) return <p className="text-[14px] font-medium text-[var(--lp-dark)]">{copy.failed}</p>;
+  // Holds the section's place while it loads, so what sits below never jumps.
+  if (!data) return <div aria-hidden data-guide="profile-reputation" className="h-[188px] rounded-[18px] bg-[var(--lp-light)] motion-safe:animate-pulse" />;
 
   return (
     <div data-guide="profile-reputation" className="space-y-7">
@@ -105,7 +99,7 @@ export function ReputationSources({ address }: { address: string }) {
 
       <RowGroup title={copy.balance} hint={copy.balanceTip}>
         <Row
-          label={<span className="block"><span className="block">{copy.balance}</span><span className="block text-[14px] font-medium text-[var(--lp-text-sub)]">{copy.balanceNote}</span></span>}
+          label={<span className="block text-[14px] font-medium text-[var(--lp-text-sub)]">{copy.balanceNote}</span>}
           value={data.readsBalanceUsdc === null ? copy.balanceUnavailable : `${data.readsBalanceUsdc.toFixed(2)} USDC`}
         />
         <Row label={copy.fundAgent} href="/profile/agent-funds" />

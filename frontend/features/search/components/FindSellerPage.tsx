@@ -17,21 +17,10 @@ import { startPlan, type StartPlan } from '../startPlan';
 import { BRIEF_MAX, parseSplit, requestErrors } from '../formRules';
 import { useStartRun } from '../hooks/useStartRun';
 import { requestTitle } from '../requestTitle';
-import { requestLineState, type RequestLineState } from '../requestView';
+import { requestLineState } from '../requestView';
+import { LINE_COPY } from '../requestLineCopy';
 import { StartSheet } from './StartSheet';
 
-type StateKeys = keyof ReturnType<typeof useTranslations>['search']['request']['states'];
-
-const LINE_COPY: Record<RequestLineState, StateKeys> = {
-  funded: 'funded',
-  cancelled: 'cancelled',
-  expired: 'expired',
-  declined: 'declined',
-  matchFound: 'matchWaitingSellerBuyer',
-  closing: 'closing',
-  offersArriving: 'offersArriving',
-  looking: 'looking',
-};
 
 /// The personal buyer desk: say what you need, the most you will pay and when,
 /// and the agent looks. The first press sets up the agents and moves the

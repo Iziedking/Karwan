@@ -72,21 +72,21 @@ export function TradeDesk({ business = false }: TradeDeskProps) {
         </div>
         <div className="mt-3 grid gap-2 sm:grid-cols-3 sm:gap-3">
           <Tile
-            href="/activity"
+            href="/profile/open-deals"
             label={hub.trades}
             value={fetchState === 'success' ? summary.trades.active : null}
             note={summary.trades.yourMove > 0 ? fill(hub.yourMove, summary.trades.yourMove) : hub.noMove}
             flag={summary.trades.yourMove > 0}
           />
           <Tile
-            href="/buyer?mode=managed"
+            href="/p2p/requests"
             label={hub.requests}
             value={requests.isSuccess ? summary.requests.open : null}
             note={summary.requests.open === 0 ? hub.noneOpen : summary.requests.offers === 0 ? hub.noOffers : summary.requests.offers === 1 ? hub.offersInOne : fill(hub.offersIn, summary.requests.offers)}
             flag={summary.requests.offers > 0}
           />
           <Tile
-            href={business ? '/supply' : '/seller'}
+            href="/p2p/offers"
             label={hub.offers}
             value={listings.isSuccess ? summary.offers.live : null}
             note={summary.offers.live > 0 ? hub.live : hub.noneLive}

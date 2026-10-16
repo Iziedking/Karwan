@@ -193,8 +193,9 @@ export function ListingsBrowse() {
             </FilterGroup>
 
             {/* Market and sort wrap as one row, sort at its end, so the menu never
-                lands on a line of its own. */}
-            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
+                lands on a line of its own. On a phone that row takes a full line
+                under the counts instead of squeezing beside them. */}
+            <div data-market-filters className="flex min-w-0 basis-full flex-wrap items-center gap-x-2 gap-y-1 sm:flex-1 sm:basis-0">
               {/* Market narrows the list when one is on; pressing it again shows every market. */}
               <FilterGroup label={copy.scopeFilterLabel}>
                 <FilterButton pressed={scope === 'services'} onClick={() => setScope(scope === 'services' ? 'all' : 'services')}>

@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { tradeHubSummary } from './tradeHub';
+import { liveOffers, openRequests, tradeHubSummary } from './tradeHub';
+import { getProductBackHref } from '../../shared/utils/routes';
+import { routeTitleKey } from '../../shared/seo/routeTitle';
 
 const now = 1_000_000_000_000;
 const me = '0xme';
@@ -50,4 +53,32 @@ test('live offers are the listings not matched, cancelled or past their window',
     now,
   });
   assert.equal(summary.offers.live, 1);
+});
+
+test('the lists hold exactly what the cards count, newest first', () => {
+  const requests = [
+    job({ jobId: 'a', deadlineUnix: now / 1000 + 100 }),
+    job({ jobId: 'b', deadlineUnix: now / 1000 + 900, bids: [{}] }),
+    job({ jobId: 'c', cancelledAt: now - 1 }),
+  ] as never;
+  const listings = [
+    listing({ id: 'x', postedAt: 1 }),
+    listing({ id: 'y', postedAt: 5 }),
+    listing({ id: 'z', postedAt: 9, matchedAt: now - 1 }),
+    listing({ id: 'w', postedAt: 7, expiresAt: now - 1 }),
+  ] as never;
+  const summary = tradeHubSummary({ me, trades: [], requests, listings, now });
+  assert.deepEqual(openRequests(requests, now).map((j) => j.jobId), ['b', 'a']);
+  assert.deepEqual(liveOffers(listings, now).map((l) => l.id), ['y', 'x']);
+  assert.equal(summary.requests.open, openRequests(requests, now).length);
+  assert.equal(summary.offers.live, liveOffers(listings, now).length);
+});
+
+test('each card opens its own list, never a form or the whole activity feed', () => {
+  const desk = readFileSync(new URL('./components/TradeDesk.tsx', import.meta.url), 'utf8');
+  for (const href of ['/profile/open-deals', '/p2p/requests', '/p2p/offers']) assert.match(desk, new RegExp(`href="${href}"`), href);
+  assert.equal(getProductBackHref('/p2p/requests'), '/p2p');
+  assert.equal(getProductBackHref('/p2p/offers'), '/p2p');
+  assert.equal(routeTitleKey('/p2p/requests'), 'yourRequests');
+  assert.equal(routeTitleKey('/p2p/offers'), 'yourOffers');
 });

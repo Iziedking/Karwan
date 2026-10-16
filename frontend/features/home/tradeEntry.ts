@@ -18,7 +18,7 @@ type Copy = { startHere: string; title: string; body: string; sell: string; sell
     hub: {
       yours: string; trades: string; yourMove: string; noMove: string;
       requests: string; noneOpen: string; offersIn: string; offersInOne: string; noOffers: string;
-      offers: string; live: string; noneLive: string;
+      offers: string; live: string; noneLive: string; postRequest: string; postOffer: string;
     };
   } };
 
@@ -44,7 +44,7 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
       bringAgreement: 'I already agreed with someone', bringAgreementBody: 'Start with someone you already know.',
       active: 'Active agreements', emptyTitle: 'Nothing active yet',
       emptyBody: 'Choose a path above and your agreement will stay here.', open: 'Open agreement',
-      hub: { yours: 'Your trading', trades: 'Active trades', yourMove: '{n} waiting on you', noMove: 'Nothing waiting on you', requests: 'Your requests', noneOpen: 'Nothing open', offersIn: '{n} offers in', offersInOne: '1 offer in', noOffers: 'No offers yet', offers: 'Your offers', live: 'Live on the market', noneLive: 'Nothing live' },
+      hub: { yours: 'Your trading', trades: 'Active trades', yourMove: '{n} waiting on you', noMove: 'Nothing waiting on you', requests: 'Your requests', noneOpen: 'Nothing open', offersIn: '{n} offers in', offersInOne: '1 offer in', noOffers: 'No offers yet', offers: 'Your offers', live: 'Live on the market', noneLive: 'Nothing live', postRequest: 'Post a request', postOffer: 'Post an offer' },
     },
   },
   fr: {
@@ -68,7 +68,7 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
       bringAgreement: 'J’ai déjà un accord avec quelqu’un', bringAgreementBody: 'Commencez avec une personne que vous connaissez déjà.',
       active: 'Accords actifs', emptyTitle: 'Aucun accord actif',
       emptyBody: 'Choisissez une voie ci-dessus et votre accord restera ici.', open: 'Ouvrir l’accord',
-      hub: { yours: 'Vos échanges', trades: 'Échanges en cours', yourMove: '{n} attendent votre action', noMove: 'Rien n’attend votre action', requests: 'Vos demandes', noneOpen: 'Rien en cours', offersIn: '{n} offres reçues', offersInOne: '1 offre reçue', noOffers: 'Aucune offre pour l’instant', offers: 'Vos offres', live: 'En ligne sur le marché', noneLive: 'Rien en ligne' },
+      hub: { yours: 'Vos échanges', trades: 'Échanges en cours', yourMove: '{n} attendent votre action', noMove: 'Rien n’attend votre action', requests: 'Vos demandes', noneOpen: 'Rien en cours', offersIn: '{n} offres reçues', offersInOne: '1 offre reçue', noOffers: 'Aucune offre pour l’instant', offers: 'Vos offres', live: 'En ligne sur le marché', noneLive: 'Rien en ligne', postRequest: 'Publier une demande', postOffer: 'Publier une offre' },
     },
   },
   ar: {
@@ -92,7 +92,7 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
       bringAgreement: 'اتفقت مع شخص بالفعل', bringAgreementBody: 'ابدأ مع شخص تعرفه بالفعل.',
       active: 'الاتفاقات النشطة', emptyTitle: 'لا توجد اتفاقات نشطة',
       emptyBody: 'اختر مساراً أعلاه وسيبقى اتفاقك هنا.', open: 'افتح الاتفاق',
-      hub: { yours: 'تداولاتك', trades: 'صفقات نشطة', yourMove: '{n} بانتظارك', noMove: 'لا شيء بانتظارك', requests: 'طلباتك', noneOpen: 'لا شيء مفتوح', offersIn: 'وصلت {n} عروض', offersInOne: 'وصل عرض واحد', noOffers: 'لا عروض بعد', offers: 'عروضك', live: 'معروضة في السوق', noneLive: 'لا شيء معروض' },
+      hub: { yours: 'تداولاتك', trades: 'صفقات نشطة', yourMove: '{n} بانتظارك', noMove: 'لا شيء بانتظارك', requests: 'طلباتك', noneOpen: 'لا شيء مفتوح', offersIn: 'وصلت {n} عروض', offersInOne: 'وصل عرض واحد', noOffers: 'لا عروض بعد', offers: 'عروضك', live: 'معروضة في السوق', noneLive: 'لا شيء معروض', postRequest: 'انشر طلبًا', postOffer: 'انشر عرضًا' },
     },
   },
   hi: {
@@ -116,7 +116,7 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
       bringAgreement: 'मेरा किसी से पहले से समझौता है', bringAgreementBody: 'किसी ऐसे व्यक्ति से शुरू करें जिसे आप पहले से जानते हैं।',
       active: 'सक्रिय समझौते', emptyTitle: 'अभी कुछ सक्रिय नहीं',
       emptyBody: 'ऊपर से कोई रास्ता चुनें और आपका समझौता यहाँ रहेगा।', open: 'समझौता खोलें',
-      hub: { yours: 'आपका व्यापार', trades: 'सक्रिय सौदे', yourMove: '{n} आपकी प्रतीक्षा में', noMove: 'कुछ भी आपकी प्रतीक्षा में नहीं', requests: 'आपके अनुरोध', noneOpen: 'कुछ भी खुला नहीं', offersIn: '{n} ऑफ़र मिले', offersInOne: '1 ऑफ़र मिला', noOffers: 'अभी कोई ऑफ़र नहीं', offers: 'आपके ऑफ़र', live: 'बाज़ार में उपलब्ध', noneLive: 'कुछ भी उपलब्ध नहीं' },
+      hub: { yours: 'आपका व्यापार', trades: 'सक्रिय सौदे', yourMove: '{n} आपकी प्रतीक्षा में', noMove: 'कुछ भी आपकी प्रतीक्षा में नहीं', requests: 'आपके अनुरोध', noneOpen: 'कुछ भी खुला नहीं', offersIn: '{n} ऑफ़र मिले', offersInOne: '1 ऑफ़र मिला', noOffers: 'अभी कोई ऑफ़र नहीं', offers: 'आपके ऑफ़र', live: 'बाज़ार में उपलब्ध', noneLive: 'कुछ भी उपलब्ध नहीं', postRequest: 'अनुरोध पोस्ट करें', postOffer: 'ऑफ़र पोस्ट करें' },
     },
   },
   sw: {
@@ -140,7 +140,7 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
       bringAgreement: 'Tayari nimekubaliana na mtu', bringAgreementBody: 'Anza na mtu unayemjua tayari.',
       active: 'Makubaliano yanayoendelea', emptyTitle: 'Hakuna yanayoendelea bado',
       emptyBody: 'Chagua njia hapo juu na makubaliano yako yatabaki hapa.', open: 'Fungua makubaliano',
-      hub: { yours: 'Biashara yako', trades: 'Biashara zinazoendelea', yourMove: '{n} zinakusubiri', noMove: 'Hakuna kinachokusubiri', requests: 'Maombi yako', noneOpen: 'Hakuna lililo wazi', offersIn: 'Ofa {n} zimefika', offersInOne: 'Ofa 1 imefika', noOffers: 'Bado hakuna ofa', offers: 'Ofa zako', live: 'Ziko sokoni', noneLive: 'Hakuna iliyo sokoni' },
+      hub: { yours: 'Biashara yako', trades: 'Biashara zinazoendelea', yourMove: '{n} zinakusubiri', noMove: 'Hakuna kinachokusubiri', requests: 'Maombi yako', noneOpen: 'Hakuna lililo wazi', offersIn: 'Ofa {n} zimefika', offersInOne: 'Ofa 1 imefika', noOffers: 'Bado hakuna ofa', offers: 'Ofa zako', live: 'Ziko sokoni', noneLive: 'Hakuna iliyo sokoni', postRequest: 'Chapisha ombi', postOffer: 'Chapisha ofa' },
     },
   },
 };

@@ -44,7 +44,7 @@ test('each row shows level, score, price and real numbers, with one recommendati
 
 test('an unavailable row says so, and an empty reads balance is said once at the top', () => {
   const text = shortlistText([entry({ state: 'unavailable', recommended: false })], 'https://karwan.site', { readsBalanceEmpty: true });
-  assert.match(text, /^Your reads balance is empty/);
+  assert.match(text, /^Your record checks balance is empty/);
   assert.match(text, /No longer available/);
 });
 
@@ -56,8 +56,8 @@ test('a list with no recommendation says none is verified yet', () => {
   assert.match(shortlistText([kemi], 'https://karwan.site', { readsBalanceEmpty: false }), /None of these sellers is verified yet/);
 });
 
-test('an empty reads balance points to funding the buying agent, the only way it refills', () => {
+test('an empty record checks balance points to topping up the buying agent, the only way it refills', () => {
   const text = shortlistText([], 'https://karwan.site', { readsBalanceEmpty: true });
-  assert.match(text, /fund your buying agent/i);
+  assert.match(text, /top up your buying agent/i);
   assert.doesNotMatch(text, /Add 0\.10 USDC/);
 });

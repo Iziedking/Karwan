@@ -2615,11 +2615,13 @@ main:has([data-own-back]) [data-shell-back] { display: none; }
     }
   }
 }
+/* Only the last stretch of a tile's way out (and first stretch in) eases it,
+   so a tile you can still read is always at full strength. */
 @keyframes update-card-pass {
-  entry 0% { opacity: 0.45; transform: scale(0.94); }
-  entry 100% { opacity: 1; transform: none; }
-  exit 0% { opacity: 1; transform: none; }
-  exit 100% { opacity: 0.45; transform: scale(0.94); }
+  entry 0% { opacity: 0.6; transform: scale(0.97); }
+  entry 40% { opacity: 1; transform: none; }
+  exit 60% { opacity: 1; transform: none; }
+  exit 100% { opacity: 0.6; transform: scale(0.97); }
 }
 
 /* The bottom nav pill slides from the start edge; in RTL that is the right. */

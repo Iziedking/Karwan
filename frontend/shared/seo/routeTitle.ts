@@ -32,6 +32,8 @@ const EXACT: Record<string, RouteTitleKey> = {
   '/newsletter': 'newsletter',
   '/onboarding': 'onboarding',
   '/p2p': 'trade',
+  '/p2p/requests': 'yourRequests',
+  '/p2p/offers': 'yourOffers',
   '/partners': 'businesses',
   '/profile': 'profile',
   '/profile/agent-funds': 'agentFunds',

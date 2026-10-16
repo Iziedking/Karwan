@@ -6,12 +6,12 @@ import { useEffect, useRef, useState } from 'react';
 /// or outlined) and a small sort menu at the end.
 export function FilterGroup({ label, segmented = false, children }: { label: string; segmented?: boolean; children: React.ReactNode }) {
   return (
-    <fieldset className="min-w-0 max-w-full">
+    <fieldset className={`min-w-0 max-w-full ${segmented ? 'basis-full sm:basis-auto' : ''}`}>
       <legend className="sr-only">{label}</legend>
       {/* One row per group on phones, scrolled sideways, so options never orphan. */}
       <div
         className={`flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
-          segmented ? 'rounded-full bg-[var(--tint)] p-1' : 'p-1'
+          segmented ? 'rounded-full bg-[var(--tint)] p-1 sm:w-auto' : 'p-1'
         }`}
       >
         {children}
@@ -43,7 +43,7 @@ export function FilterButton({
       type="button"
       aria-pressed={pressed}
       onClick={onClick}
-      className={`inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-full px-4 text-[14px] font-semibold transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)] ${segmented ? '' : 'border'} ${look}`}
+      className={`inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-full text-[14px] font-semibold transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)] ${segmented ? 'flex-1 px-3 sm:flex-none sm:px-4' : 'border px-4'} ${look}`}
     >
       {children}
     </button>

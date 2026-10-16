@@ -44,7 +44,7 @@ export function shortlistText(
 ): string {
   const parts: string[] = [];
   if (opts.readsBalanceEmpty) {
-    parts.push('Your reads balance is empty, so this list uses free data. Fund your buying agent in Profile and your agent checks records again.');
+    parts.push('Your record checks balance is empty, so this list uses free data. Top up your buying agent in Profile and your agent checks records again.');
   }
   if (entries.length === 0) {
     parts.push('No one has offered yet. Your agent keeps looking until the request closes.');

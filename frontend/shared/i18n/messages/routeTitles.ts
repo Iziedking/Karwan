@@ -43,6 +43,8 @@ export type RouteTitleKey =
   | 'editProfile'
   | 'openDeals'
   | 'profileSetup'
+  | 'yourRequests'
+  | 'yourOffers'
   | 'wallets'
   | 'cancelRecovery'
   | 'requestMoney'
@@ -106,6 +108,8 @@ const en: RouteTitleCopy = {
   editProfile: 'Edit profile',
   openDeals: 'Open deals',
   profileSetup: 'Agent workspace',
+  yourRequests: 'Your requests',
+  yourOffers: 'Your offers',
   wallets: 'Wallets',
   cancelRecovery: 'Cancel recovery',
   requestMoney: 'Request money',
@@ -168,6 +172,8 @@ const ar: RouteTitleCopy = {
   editProfile: 'تعديل الملف',
   openDeals: 'الصفقات المفتوحة',
   profileSetup: 'مساحة عمل الوكلاء',
+  yourRequests: 'طلباتك',
+  yourOffers: 'عروضك',
   wallets: 'المحافظ',
   cancelRecovery: 'إلغاء الاسترداد',
   requestMoney: 'طلب مال',
@@ -230,6 +236,8 @@ const fr: RouteTitleCopy = {
   editProfile: 'Modifier le profil',
   openDeals: 'Deals ouverts',
   profileSetup: 'Espace des agents',
+  yourRequests: 'Vos demandes',
+  yourOffers: 'Vos offres',
   wallets: 'Portefeuilles',
   cancelRecovery: 'Annuler la récupération',
   requestMoney: 'Demander de l’argent',
@@ -292,6 +300,8 @@ const hi: RouteTitleCopy = {
   editProfile: 'प्रोफ़ाइल संपादित करें',
   openDeals: 'खुली डील',
   profileSetup: 'एजेंट वर्कस्पेस',
+  yourRequests: 'आपके अनुरोध',
+  yourOffers: 'आपके ऑफ़र',
   wallets: 'वॉलेट',
   cancelRecovery: 'रिकवरी रद्द करें',
   requestMoney: 'पैसे का अनुरोध',
@@ -354,6 +364,8 @@ const sw: RouteTitleCopy = {
   editProfile: 'Hariri wasifu',
   openDeals: 'Mikataba iliyo wazi',
   profileSetup: 'Eneo la kazi la mawakala',
+  yourRequests: 'Maombi yako',
+  yourOffers: 'Ofa zako',
   wallets: 'Pochi',
   cancelRecovery: 'Ghairi urejeshaji',
   requestMoney: 'Omba pesa',
