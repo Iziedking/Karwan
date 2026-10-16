@@ -45,9 +45,13 @@ ssh -o BatchMode=yes $H "docker run --rm -v $W:/w --entrypoint sh $BUN_IMAGE -c 
 tar -C "$ROOT" -czf - --exclude=node_modules --exclude='.cre_build_tmp.*' cre backend/src/evidence \
   | ssh -o BatchMode=yes $H "mkdir -p $W/repo && tar -C $W/repo -xzf -"
 
+# The Bun image carries no root certificates, so the CLI gets the host's,
+# read-only, plus the simulation API's certificate while cre-sim.sh is up.
 run() {
   ssh -o BatchMode=yes $H "ENV=; [ -f ~/.karwan-cre-env ] && ENV='--env-file /home/ubuntu/.karwan-cre-env'
-    docker run --rm --network host \$ENV -v $W:/w -w /w/repo/cre --entrypoint sh $BUN_IMAGE -c $(printf '%q' "$1")" < /dev/null
+    CA=/etc/ssl/certs/ca-certificates.crt; [ -f /tmp/karwan-cre-sim/tls/ca-bundle.crt ] && CA=/tmp/karwan-cre-sim/tls/ca-bundle.crt
+    [ -f /tmp/karwan-cre-sim/sim.env ] && ENV=\"\$ENV --env-file /tmp/karwan-cre-sim/sim.env\"
+    docker run --rm --network host \$ENV -v \$CA:/etc/ssl/certs/ca-certificates.crt:ro -v $W:/w -w /w/repo/cre --entrypoint sh $BUN_IMAGE -c $(printf '%q' "$1")" < /dev/null
 }
 
 case "${1:-}" in

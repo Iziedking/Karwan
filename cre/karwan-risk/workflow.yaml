@@ -4,7 +4,7 @@ staging-settings:
   workflow-artifacts:
     workflow-path: "./main.ts"
     config-path: "./config.staging.json"
-    secrets-path: "../secrets.yaml"
+    secrets-path: "../secrets.suite.yaml"
 
 production-settings:
   user-workflow:
@@ -13,4 +13,13 @@ production-settings:
   workflow-artifacts:
     workflow-path: "./main.ts"
     config-path: "./config.production.json"
-    secrets-path: "../secrets.yaml"
+    secrets-path: "../secrets.suite.yaml"
+
+# Rehearsals only: the Arc fork and the local CRE API (scripts/ops/cre-sim.sh).
+simulation-settings:
+  user-workflow:
+    workflow-name: "karwan-risk-sim"
+  workflow-artifacts:
+    workflow-path: "./main.ts"
+    config-path: "./config.simulation.json"
+    secrets-path: "../secrets.suite.yaml"

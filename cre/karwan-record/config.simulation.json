@@ -1,0 +1,9 @@
+{
+  "chainId": 5042002,
+  "chainSelectorName": "arc-testnet",
+  "adapter": "0x75CB3c7F1a89f1554A2705001dA930A3E3d31377",
+  "backendKey": "0x0000000000000000000000000000000000000005",
+  "githubTokenSecretId": "GITHUB_READ_TOKEN",
+  "sealKeySecretId": "RECORD_SEAL_KEY",
+  "gasLimit": "1500000"
+}

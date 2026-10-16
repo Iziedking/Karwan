@@ -1,0 +1,11 @@
+{
+  "schedule": "0 */2 * * * *",
+  "chainId": 5042002,
+  "chainSelectorName": "arc-testnet",
+  "families": ["0x5bEA31101fDd59AC72499B1A77E21bE13DFc9828"],
+  "adapter": "0x75CB3c7F1a89f1554A2705001dA930A3E3d31377",
+  "karwanApi": "https://localhost:8743",
+  "apiTokenSecretId": "CRE_WORKFLOW_TOKEN",
+  "gasLimit": "7000000",
+  "maxDeals": 3
+}

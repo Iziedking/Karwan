@@ -1,0 +1,9 @@
+{
+  "name": "karwan-replay-fixture",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Two agreed items for rehearsing the Karwan replay: a passes, b fails.",
+  "scripts": {
+    "test": "node test.js"
+  }
+}

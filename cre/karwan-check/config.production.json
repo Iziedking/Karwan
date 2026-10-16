@@ -17,6 +17,6 @@
   "gatewayKey": "0x0000000000000000000000000000000000000003",
   "gasLimit": "600000",
   "maxItems": 3,
-  "runnerRepo": "karwan-xyz/karwan-replay",
+  "runnerRepo": "Iziedking/karwan-replay",
   "fees": "0x0000000000000000000000000000000000000006"
 }

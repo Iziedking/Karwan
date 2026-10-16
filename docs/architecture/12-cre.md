@@ -246,13 +246,13 @@ The workflow starts a dry run only while its fee is held on Arc. Only a party's 
 | GitHub delivery check workflow on CRE, registered on the private registry | Built. Hosted runs blocked on a CRE enclave configuration issue raised with Chainlink |
 | Check verifiers with k-of-n signers in the contract suite | Built, not deployed |
 | CRE adapter: one contract for check results, facts and timeouts | Built, not deployed. Rehearsed on a fork of Arc Testnet through Chainlink's simulation forwarder: a check result started a deal's review, a timeout paid the seller, a fact reached the record |
-| karwan-check: replay of agreed items on the delivered commit | Built. Its report path is rehearsed on the fork; a run of the workflow in Chainlink's simulator is next |
+| karwan-check: replay of agreed items on the delivered commit | Built. Run in Chainlink's CRE simulator on a fork of Arc Testnet: a delivery started a GitHub replay, and the result reached the escrow through the simulation forwarder |
 | CRE deciding deal checks (`CRE_ENABLED`), with Karwan's checks as the fallback | Off. Turned on once Chainlink's hosted network runs the workflows end to end |
 | Acceptance policy fingerprinted on Arc | Built. The form where two people agree it is planned, with the suite's deal flow |
 | Automatic dispute proposals from the check evidence | Built as a rule. Used once the suite's deal flow is wired |
-| karwan-record: work facts from GitHub | Built. Its report path is rehearsed on the fork |
+| karwan-record: work facts from GitHub | Built. Run in Chainlink's CRE simulator; the proof and the published rule were checked, and the account tested did not reach level 1 |
 | Dry-run fees held by KarwanCreFees, released by a signed answer or refunded after an hour | Built, not deployed. Tested on a fork of Arc Testnet with Arc's own USDC |
-| karwan-risk: timeouts, outcome write retries and alerts | Built. Its report path is rehearsed on the fork; alerts reach Karwan's logs until the suite's deal flow names who to tell |
+| karwan-risk: timeouts, outcome write retries and alerts | Built. Run in Chainlink's CRE simulator on the fork; alerts reach Karwan's logs until the suite's deal flow names who to tell |
 | x402 dry runs and evidence for agents | Built, not yet served |
 | CRE on Arc mainnet | Not available. CRE supports Arc Testnet only |
 

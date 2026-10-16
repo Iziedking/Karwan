@@ -335,3 +335,60 @@ Fact path, same fork:
 - `getFact(0)` returned subject 1, level 1, issuer the adapter, and a one-year
   expiry.
 - An earlier attempt against an unbound kind was refused.
+
+## Replay runner rehearsal on GitHub, 15 October 2026
+
+The runner is published at `Iziedking/karwan-replay`, and `replay.yml` is
+pinned at blob `b81fbff8069df6028ed12dcce0c8261c4c59d43b`. The test target is
+`Iziedking/karwan-replay-fixture`, pull request #1, head
+`df41b5c1b3a8cb3aa1c7bb5e1e5f00da6614c6b9`.
+`cre/karwan-check/fixtures/scenario.json` holds the agreed policy, with
+fingerprint `0xd4a6ce8ccb59ae3c7f83b1dd44695d4904570f25a08a88abad5b273540707a03`.
+
+Run 38810858713 was dispatched with the inputs karwan-check sends:
+
+- `guard` passed. The inputs hash in the run name,
+  `840dd5d7f47303385596543e7df2af8d26dcf20c45a043db28fefef7beac66a2`,
+  matches the inputs the run was given;
+- `item:a` passed;
+- `item:b` failed, on purpose.
+
+Read back from GitHub's API and decided by `cre/shared/verdict.ts`, the run is
+accepted as the agreed run on the pinned runner, and the decision is FAIL: one
+of two required items passed. The evidence fingerprint is
+`0xbb5e82be0e99aaca765b2876b2c20d63bc6008f85dd8ebe96cfef504c48ff0f7`. This is a
+GitHub run checked by the workflow's own rules. It is not yet a CRE simulation.
+
+## CRE CLI simulations, 16 October 2026
+
+`cre workflow simulate` (CLI v1.38.0) ran all three workflows against a fork of
+Arc Testnet on node-services (`scripts/ops/arc-fork.sh`). Karwan's own CRE
+routes were served from the backend code over https by `scripts/ops/cre-sim.sh`.
+Each workflow has a `simulation-settings` target and a `config.simulation.json`
+naming the fork's contracts. The simulator signs every report with a placeholder
+workflow (id `0x11…11`, owner `0xaa…aa`), so the fork's adapter was deployed with
+that owner and each kind was bound to it.
+
+- **karwan-check, delivery trigger.** Started from the `Delivered` log of a
+  checked deal on the fork (deal `0x153f3b7f…7b00`). It read the terms from Arc,
+  fetched the policy and the delivery reference from Karwan and matched both to
+  their fingerprints on Arc, checked the runner and the pull request on GitHub,
+  and dispatched the replay: `{"outcome":"dispatched"}`.
+- **karwan-check, schedule.** It read the finished run, decided FAIL (item `b`
+  fails on purpose), and wrote the result through the simulation forwarder with
+  `--broadcast`: `{"outcome":"attested","decision":"FAIL"}`. On the fork, the
+  forwarder logged `ReportProcessed(true)`, the escrow recorded the failed check,
+  and `verdictOf` returns set, fail, evidence `0x8c58357e…e2d4`.
+- **karwan-risk, schedule.** It read the watch list from Karwan and the deal from
+  Arc. Nothing was due: `{"calls":0,"alerts":0,"written":false}`.
+- **karwan-record, HTTP trigger.** A public gist from `Iziedking` signed by a
+  throwaway fork wallet passed the owner and signature checks. The published
+  rule (`github-work-v1`) gave level 0 for that account, so no fact was written:
+  `{"outcome":"no-fact","level":0}`. The fact write itself is the one rehearsed
+  above through the deployed forwarder.
+
+Two defects found by these runs are fixed: CRE's log filter works by block range
+and ignores a block hash, so the `Delivered` log is now found by block number
+and checked against its hash; and the simulator reports a report the receiver
+refused as executed, so karwan-check now counts a write only when Arc shows its
+effect.
