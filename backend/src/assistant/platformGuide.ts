@@ -3,7 +3,7 @@
  * so the assistant cannot cite a screen or API that does not exist. Status is
  * repository behaviour per network; live account truth still comes from tools.
  */
-export const GUIDE_REVIEWED_AT = '2026-10-03';
+export const GUIDE_REVIEWED_AT = '2026-10-16';
 
 export type GuideStatus = 'testnet' | 'gated' | 'planned';
 /// invite: accounts and wallets by invitation. off: built but not enabled on
@@ -163,12 +163,12 @@ export const PLATFORM_GUIDE: readonly GuideEntry[] = [
   },
   {
     id: 'world', title: 'World ID checks', status: 'gated', mainnet: 'off', route: '/profile',
-    pages: ['/profile'],
-    api: ['GET /api/world-id/status', 'POST /api/world-id/verify'],
+    pages: ['/profile', '/seller'],
+    api: ['GET /api/world-id/status', 'POST /api/world-id/verify', 'POST /api/jobs/:jobId/world-check/request', 'POST /api/jobs/:jobId/world-check/verify', 'POST /api/jobs/:jobId/world-check/skip'],
     tools: ['get_deal_status'],
     keywords: 'world worldid identity human selfie verification bot scam agentkit agentbook',
-    summary: 'High-signal deals can require a selected party to verify with World ID before accepting or funding. Current deal verification uses agreement-bound World ID session/presence checks with a Selfie credential and replay protection. Required checks are not bypassed when unconfigured. This does not prove honesty, business registration, delivery or payment authorization. AgentKit/AgentBook eligibility is a separate integration; never infer registration from a deal proof.',
-    steps: ['When a deal requires it, the deal page asks the named party to verify.', 'Verification is bound to that agreement version.'],
+    summary: 'High-signal deals can require a selected party to verify with World ID before accepting or funding. Current deal verification uses agreement-bound World ID session/presence checks with a Selfie credential and replay protection. Required checks are not bypassed when unconfigured. This does not prove honesty, business registration, delivery or payment authorization. AgentKit/AgentBook eligibility is a separate integration; never infer registration from a deal proof. On an agent deal, Karwan\'s trust rules ask for World ID only on a first deal, a deal of 1,000 USDC or more, many deals from a new account in one day, or after a link the person sent was judged malicious. The buyer confirms when choosing an offer, and the seller confirms before escrow funds: the seller hears on the seller desk, by email and in chat, and escrow funds as soon as they pass. A person who already passed World ID is not asked again for a first deal. A price far from the market, a low score or a suspicious (not malicious) link never asks. On testnet the check can be skipped so testing is never blocked.',
+    steps: ['When a deal requires it, the deal page asks the named party to verify.', 'Verification is bound to that agreement version.', 'On an agent deal, the buyer confirms in the choose sheet and the seller confirms at the top of /seller.'],
     sources: ['backend/src/routes/worldId.ts', 'backend/src/worldid/sessionProof.ts', 'backend/src/deals/highSignalVerification.ts'],
   },
   {
@@ -192,12 +192,12 @@ export const PLATFORM_GUIDE: readonly GuideEntry[] = [
     sources: ['backend/src/verification/ladder.ts', 'backend/src/verification/evidence.ts', 'backend/src/routes/personVerification.ts', 'backend/src/routes/record.ts'],
   },
   {
-    id: 'shortlist', title: 'The shortlist and record checks', status: 'gated', mainnet: 'off', route: '/profile',
+    id: 'shortlist', title: 'The shortlist and record checks', status: 'testnet', mainnet: 'off', route: '/profile',
     pages: ['/profile', '/r/[tag]', '/developers'],
     api: ['GET /api/jobs/:jobId/shortlist', 'POST /api/jobs/:jobId/choose-offer', 'GET /api/x402/record/:subject', 'GET /api/me/reputation-sources', 'PUT /api/me/reputation-sources'],
     tools: ['list_offers_on_request', 'propose_choose_offer', 'ask_their_agent'],
     keywords: 'shortlist recommended recommendation choose pick verified unverified not verified score record check read agents pay consent who read my record reads balance record checks balance',
-    summary: 'After a request, agents bring the buyer a shortlist of up to five sellers: each shows Verified or Not verified, a 0 to 100 score, completed deals, on-time rate, disputes lost and the price. The agent negotiates with the one it recommends, always a seller within budget who is verified (on testnet, a seller with settled Karwan deals and no lost dispute can be recommended too, still shown as not verified); with no recommendation the list stays open for the buyer to choose until the request closes, and the buyer chooses anyone on the list; choosing someone unverified asks once more. Agents pay 0.01 USDC to read a full record, only when that person turned on Let agents check my record in Profile. Details are deleted after 24 hours; the person sees who read their record. Other platforms joining as record sources is planned.',
+    summary: 'After a request, agents bring the buyer a shortlist of up to five sellers: each shows Verified or Not verified, a 0 to 100 score, completed deals, on-time rate, disputes lost and the price. The agent negotiates with the one it recommends, always a seller within budget who is verified (on testnet, a seller with settled Karwan deals and no lost dispute can be recommended too, still shown as not verified); with no recommendation the list stays open for the buyer to choose until the request closes, and the buyer chooses anyone on the list; choosing someone unverified asks once more. Agents pay 0.01 USDC to read a full record, only when that person turned on Let agents check my record in Profile. Details are deleted after 24 hours; the person sees who read their record. A seller\'s agent does the same on the buyer before it bids: it passes on a buyer who lost more disputes than they completed, flags a new buyer on a large request for the seller to look at, and the seller desk shows what was paid and what it learned. A buyer who posts and leaves gets an email when the shortlist is ready. Other platforms joining as record sources is planned.',
     steps: ['Call list_offers_on_request for the ranked list.', 'Name the recommended seller and why.', 'Prepare the choice with propose_choose_offer; the person confirms.'],
     sources: ['backend/src/agents/shortlist.ts', 'backend/src/routes/jobs.ts', 'backend/src/routes/x402.ts', 'backend/src/reputation/consent.ts'],
   },
@@ -291,11 +291,21 @@ export const PLATFORM_GUIDE: readonly GuideEntry[] = [
     sources: ['README.md', 'docs/architecture/08-reputation.md', 'docs/reputation-model.md'],
   },
   {
+    id: 'research', title: 'Research survey', status: 'testnet', mainnet: 'invite', route: '/research',
+    pages: ['/research'],
+    api: ['POST /api/survey/research'],
+    tools: [],
+    keywords: 'research survey questionnaire feedback how do you decide who to trust online study',
+    summary: 'A public five-question survey at /research on how people decide who to trust online and what checks they run before a deal. Anyone can answer without signing in. Answers are kept without anything that identifies the sender unless they choose to leave a contact, bots are ignored, and the team sees totals. It shapes what Karwan builds next.',
+    steps: ['Open /research and answer the five questions.', 'Leave a contact only if you want to hear back.'],
+    sources: ['backend/src/routes/survey.ts', 'backend/src/db/researchAnswers.ts', 'frontend/app/research/page.tsx'],
+  },
+  {
     id: 'roadmap', title: 'Roadmap', status: 'planned', mainnet: 'planned', route: '/docs/roadmap',
     pages: ['/docs/roadmap'],
     api: [], tools: [],
     keywords: 'roadmap future next plan coming soon whatsapp telegram x twitter instagram bot mcp claude codex anywhere mobile app bank payout audit arbiter',
-    summary: 'In order, no dates: now, mainnet by invitation through the waitlist; next, deals on mainnet (escrow, deal board and stake contracts); then an arbiter for silent counterparties and an external audit of the money contracts; after that, trade from anywhere: start a protected deal and use your Karwan assistant from the place the trade began (starting with X, then chat apps, and AI tools through an MCP server), plus recurring deals; later, cash out to a local bank account, one country at a time. Also planned: mobile app after mainnet, paid data through x402, file delivery inside a deal, more languages. None of these is live today. The Karwan agent on Telegram is a separate free beta, switched on per network; WhatsApp is paused.',
+    summary: 'In order, no dates: now, mainnet by invitation through the waitlist; next, deals on mainnet (escrow, deal board and stake contracts); then an arbiter for silent counterparties and an external audit of the money contracts; after that, trade from anywhere: start a protected deal and use your Karwan assistant from the place the trade began (starting with X, then chat apps, and AI tools through an MCP server), plus recurring deals; later, cash out to a local bank account, one country at a time. Also planned: mobile app after mainnet, reputation lookups from connected social accounts (Telegram, X, Instagram, LinkedIn and others, optional, with the person\'s consent), file delivery inside a deal, more languages. In testing and not deployed: new escrow families for fixed-price, hourly and job or bounty work, and Chainlink CRE workflows for delivery checks and timeouts. None of these is live today. Paid record checks between agents over x402 already run on testnet (see the shortlist). The Karwan agent on Telegram is a separate free beta, switched on per network; WhatsApp is paused.',
     steps: [],
     sources: ['frontend/shared/i18n/messages/docsProduct.ts', 'frontend/app/docs/roadmap/page.tsx'],
   },

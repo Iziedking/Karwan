@@ -30,9 +30,35 @@ test('roadmap entries are discoverable but cannot be stated as live', () => {
   assert.deepEqual(findFacts({ q: 'local payout', liveOnly: true }), []);
 });
 
-test('canon version records the unified-reputation direction', () => {
-  assert.equal(canonVersion, '0.3.0');
-  assert.equal(canonUpdated, '2026-09-30');
+test('canon version records the Canteen window features', () => {
+  assert.equal(canonVersion, '0.4.0');
+  assert.equal(canonUpdated, '2026-10-16');
+});
+
+test('agent record checks and risk-based World ID are statable, with testnet named', () => {
+  for (const id of ['agent-record-checks', 'world-id-risk-checks']) {
+    const fact = findFacts().find((f) => f.id === id);
+    assert.ok(fact, id);
+    assert.equal(isStatable(fact), true, id);
+    assert.match(fact.summary, /Testnet/, id);
+  }
+});
+
+test('escrow families and social lookups are discoverable but never stated as live', () => {
+  for (const id of ['escrow-families-roadmap', 'social-lookups-roadmap']) {
+    const fact = findFacts().find((f) => f.id === id);
+    assert.ok(fact, id);
+    assert.equal(isStatable(fact), false, id);
+  }
+});
+
+test('the network fact names both mainnet contracts and says mainnet escrow is off', () => {
+  const [doc] = findDocs(['proof-network']);
+  assert.ok(doc);
+  const text = doc.body;
+  assert.match(text, /0xa8E41F941b44CA091E3Ab7b600fe1484838aE27D/);
+  assert.match(text, /0x69eA60B6EFd13A126Eb00d25aB0f21A4AfC636eF/);
+  assert.match(text, /Mainnet escrow is not enabled/);
 });
 
 test('the canon leads with unified reputation and keeps it off the live list', () => {
