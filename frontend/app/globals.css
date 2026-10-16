@@ -2603,26 +2603,5 @@ html[data-theme="dark"] .form-input::placeholder {
 /* A page that draws Back on its own content column hides the page-edge one. */
 main:has([data-own-back]) [data-shell-back] { display: none; }
 
-/* As a tile slides in from an edge it grows from slightly small and faint to
-   full, and eases back out as it leaves. Driven by the scroll itself, so it
-   follows a finger or an arrow exactly and never moves on its own. */
-@supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    .updates-track > .update-card {
-      animation: update-card-pass linear both;
-      animation-timeline: view(inline);
-      animation-range: entry 0% exit 100%;
-    }
-  }
-}
-/* Only the last stretch of a tile's way out (and first stretch in) eases it,
-   so a tile you can still read is always at full strength. */
-@keyframes update-card-pass {
-  entry 0% { opacity: 0.6; transform: scale(0.97); }
-  entry 40% { opacity: 1; transform: none; }
-  exit 60% { opacity: 1; transform: none; }
-  exit 100% { opacity: 0.6; transform: scale(0.97); }
-}
-
 /* The bottom nav pill slides from the start edge; in RTL that is the right. */
 html[dir="rtl"] [data-workspace-bottom-nav] { --nav-dir: -1; }

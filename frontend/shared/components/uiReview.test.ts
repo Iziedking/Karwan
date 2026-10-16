@@ -446,12 +446,9 @@ test('home Updates are media tiles with no generated art, a fixed media height, 
   assert.match(carousel, /lg:w-\[calc\(\(100%-48px\)\/3\)\]/);
 });
 
-test('Updates tiles ease in and out as they slide, following the scroll, and hold still for reduced motion', () => {
+test('Updates tiles always show at full strength: no scroll-driven fade that can dim a card in view', () => {
   const css = source('../../app/globals.css');
-  const block = css.slice(css.indexOf('@supports (animation-timeline: view())'));
-  assert.match(block, /prefers-reduced-motion: no-preference/);
-  assert.match(block, /\.updates-track > \.update-card[\s\S]*animation-timeline: view\(inline\)/);
-  assert.match(block, /animation-range: entry 0% exit 100%/);
+  assert.doesNotMatch(css, /update-card-pass|\.update-card[^{]*\{[^}]*animation/);
 });
 
 test('phones keep the 14px floor: no rule shrinks text below the size the code asks for', () => {
