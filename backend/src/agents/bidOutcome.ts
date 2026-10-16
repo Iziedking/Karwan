@@ -1,4 +1,7 @@
-export type BidOutcome = 'won' | 'lost' | 'withdrawn' | 'expired';
+import type { BuyerCheck } from './buyerCheck.js';
+
+/// `passed`: the agent read the buyer's record and chose not to bid.
+export type BidOutcome = 'won' | 'lost' | 'withdrawn' | 'expired' | 'passed';
 
 export interface BidOutcomeRecord {
   jobId: string;
@@ -7,6 +10,7 @@ export interface BidOutcomeRecord {
   outcome: BidOutcome;
   lastPrice: string;
   at: number;
+  buyerCheck?: BuyerCheck;
 }
 
 export interface DealParties {

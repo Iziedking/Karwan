@@ -55,7 +55,7 @@ import { getProfile } from '../db/profiles.js';
 import { researchMarket, getCachedMarketPrice, getCachedMarketRead } from '../x402/externalClient.js';
 import { recordExternalResearchFailure, recordExternalResearchPayment } from '../x402/researchAccounting.js';
 import { paidRecordRead, type PaidPassportSignal } from '../x402/buyerClient.js';
-import { shouldSkipBuyer } from './shortlist.js';
+import { assessBuyer, type BuyerCheck } from './buyerCheck.js';
 import { config } from '../config.js';
 import { evaluationStarted, evaluationFinished } from './evaluationTracker.js';
 import { cleanDealPartnersFor } from './workRecord.js';
@@ -113,6 +113,8 @@ interface ActiveBid {
    *  `proposeMatch` to attach a `new-buyer` riskFlag on the resulting
    *  MatchProposal so the human gets a heads-up before approving. */
   humanReview?: boolean;
+  /// What the agent learned from its paid read of the buyer before bidding.
+  buyerCheck?: BuyerCheck;
 }
 
 /// How far below the original bid the seller agent will steer on a profile-
@@ -365,6 +367,16 @@ export async function submitListingBid(
   // reverts BidExpired once it passes), not the delivery deadline (the brief's,
   // carried on the off-chain deal row). Keep the offer acceptable for the whole
   // job window so a seller approving the match minutes or hours later still funds.
+  const buyerCheck = await checkBuyer(seller, job);
+  if (buyerCheck?.verdict === 'pass') {
+    passOnBuyer(seller, job, buyerCheck);
+    return {
+      ok: false,
+      reason: 'buyer-record',
+      message: 'Your agent passed on this request: the buyer lost more disputes than they completed.',
+    };
+  }
+
   const deadlineUnix = job.deadlineUnix;
   const priceUsdc = listing.askingPriceUsdc.toString();
   const priceWei = parseUnits(priceUsdc, USDC_DECIMALS);
@@ -390,6 +402,7 @@ export async function submitListingBid(
       responding: false,
       listingAskingPriceUsdc: listing.askingPriceUsdc,
       listingFloorUsdc: listing.floorUsdc,
+      ...(buyerCheck ? { buyerCheck, humanReview: buyerCheck.verdict === 'review' } : {}),
     });
     scheduleActiveBidsPersist();
 
@@ -404,6 +417,7 @@ export async function submitListingBid(
         source: 'listing',
         listingFloorUsdc: listing.floorUsdc,
         txHash: txResult.txHash,
+        buyerChecked: !!buyerCheck,
       },
     });
     logger.info(
@@ -769,20 +783,41 @@ export function setSellerBuyerPassport(jobId: string, signal: PaidPassportSignal
 const BUYER_READ_TIMEOUT_MS = 10_000;
 
 /// Before bidding, the seller's agent pays to read the buyer's record and
-/// passes on a buyer who lost more disputes than they completed. A read that
-/// fails or is refused (the buyer has not allowed reads) never blocks the bid.
-async function skipsBuyerOnRecord(seller: SellerProfile, job: JobContext): Promise<boolean> {
+/// weighs it against this request. A read that fails or is refused (the buyer
+/// has not allowed reads) never blocks the bid. A read that lands after the
+/// agent stopped waiting was still paid for, so it is kept on the bid.
+async function checkBuyer(seller: SellerProfile, job: JobContext): Promise<BuyerCheck | null> {
+  if (!config.SHORTLIST_MODE || !config.RECORD_READS_ENABLED) return null;
   const poster = getBrief(job.jobId)?.postedBy;
   const owner = await findAgentWalletByAgentAddress(seller.address).catch(() => null);
-  if (!poster || !owner) return false;
+  if (!poster || !owner) return null;
+  const requestUsdc = Number(job.budgetUsdc) || 0;
+  const reading = paidRecordRead(seller.address, poster, { purpose: 'bid', ref: job.jobId, forAccount: owner.userAddress })
+    .then((r) => assessBuyer(r.read, requestUsdc, { paidUsdc: r.amountUsd, receipt: r.transaction || null, checkedAt: Date.now() }))
+    .catch(() => null);
   let timer: ReturnType<typeof setTimeout> | undefined;
-  const read = await Promise.race([
-    paidRecordRead(seller.address, poster, { purpose: 'bid', ref: job.jobId, forAccount: owner.userAddress }).catch(() => null),
-    new Promise<null>((resolve) => {
-      timer = setTimeout(() => resolve(null), BUYER_READ_TIMEOUT_MS);
+  const inTime = await Promise.race([
+    reading,
+    new Promise<'late'>((resolve) => {
+      timer = setTimeout(() => resolve('late'), BUYER_READ_TIMEOUT_MS);
     }),
   ]).finally(() => clearTimeout(timer));
-  if (!shouldSkipBuyer(read?.read.counts ?? null, false)) return false;
+  if (inTime !== 'late') return inTime;
+  void reading.then((check) => {
+    if (check) attachLateBuyerCheck(job.jobId, seller.address, check);
+  });
+  return null;
+}
+
+function attachLateBuyerCheck(jobId: string, sellerAddress: string, check: BuyerCheck): void {
+  const bid = activeBids.get(bidKey(jobId, sellerAddress));
+  if (!bid || bid.buyerCheck) return;
+  bid.buyerCheck = { ...check, late: true };
+  if (check.verdict !== 'bid') bid.humanReview = true;
+  scheduleActiveBidsPersist();
+}
+
+function passOnBuyer(seller: SellerProfile, job: JobContext, check: BuyerCheck): void {
   bus.emitEvent({
     type: 'agent.skipped',
     jobId: job.jobId,
@@ -793,7 +828,17 @@ async function skipsBuyerOnRecord(seller: SellerProfile, job: JobContext): Promi
       detail: 'The buyer lost more disputes than they completed.',
     },
   });
-  return true;
+  recordBidOutcomes([
+    {
+      jobId: job.jobId.toLowerCase(),
+      sellerAgent: seller.address,
+      title: requestTitle(job.briefText),
+      outcome: 'passed',
+      lastPrice: '0',
+      at: Date.now(),
+      buyerCheck: check,
+    },
+  ]);
 }
 
 async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
@@ -1206,12 +1251,16 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
     });
     return;
   }
-  if (config.SHORTLIST_MODE && config.RECORD_READS_ENABLED && (await skipsBuyerOnRecord(seller, job))) return;
+  const buyerCheck = await checkBuyer(seller, job);
+  if (buyerCheck?.verdict === 'pass') {
+    passOnBuyer(seller, job, buyerCheck);
+    return;
+  }
 
   const finalPrice = opening.toFixed(2);
-  // NEW buyers still raise a human-review flag so the seller can eyeball a fresh
-  // counterparty before any eventual match is approved.
-  const humanReview = buyerTier === 'new';
+  // NEW buyers, and buyers the record read sends to review, raise a
+  // human-review flag so the seller looks before any match is approved.
+  const humanReview = buyerTier === 'new' || buyerCheck?.verdict === 'review';
 
   // The on-chain bid deadline is the offer's acceptance validity (acceptBid
   // reverts BidExpired past it), not the delivery deadline (the brief's, kept on
@@ -1240,6 +1289,7 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
     finalized: false,
     responding: false,
     humanReview,
+    ...(buyerCheck ? { buyerCheck } : {}),
   });
   scheduleActiveBidsPersist();
 
@@ -1255,6 +1305,7 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
       txHash: txResult.txHash,
       buyerTier,
       humanReview,
+      buyerChecked: !!buyerCheck,
       // Whether the opening priced on an awaited (fresh) research read vs a
       // best-effort warm cache. Lets the audit trail (and the eval harness) tell
       // a research-grounded opening from one that raced the read.
@@ -1829,6 +1880,7 @@ export interface SellerActiveBidSnapshot {
   finalized: boolean;
   /// First line of the brief, never the buyer. Null when the brief was lost.
   title: string | null;
+  buyerCheck: BuyerCheck | null;
 }
 
 /// Returns the seller-side flags attached to a bid (currently just the
@@ -1938,6 +1990,7 @@ export function getSellerSnapshot(
       counterRounds: b.counterRounds,
       finalized: b.finalized,
       title: requestTitle(b.jobContext.briefText),
+      buyerCheck: b.buyerCheck ?? null,
     })),
   };
 }
