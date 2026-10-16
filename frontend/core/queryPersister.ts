@@ -40,9 +40,12 @@ const PERSISTABLE_PREFIXES = new Set([
   'activation',
 ]);
 
+/// Finished queries only, as TanStack's own default does. A query still
+/// loading carries its promise, which JSON turns into `{}`, and restoring that
+/// throws and throws away the whole cache.
 function isPersistable(query: Query): boolean {
   const root = query.queryKey[0];
-  return typeof root === 'string' && PERSISTABLE_PREFIXES.has(root);
+  return query.state.status === 'success' && typeof root === 'string' && PERSISTABLE_PREFIXES.has(root);
 }
 
 function browserStorage(): Storage | undefined {

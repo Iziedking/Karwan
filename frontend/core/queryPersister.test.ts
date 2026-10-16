@@ -1,7 +1,18 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { makeQueryPersister } from './queryPersister';
+import { QueryClient, dehydrate, hydrate } from '@tanstack/react-query';
+import { makeQueryPersister, persistOptions } from './queryPersister';
+
+test('a query still loading is never saved, so the next visit restores cleanly', async () => {
+  const client = new QueryClient();
+  client.setQueryData(['profile', '0xabc'], { name: 'Ada' });
+  void client.prefetchQuery({ queryKey: ['balances', '0xabc'], queryFn: () => new Promise(() => {}) });
+  const saved = JSON.parse(JSON.stringify(dehydrate(client, persistOptions.dehydrateOptions)));
+  assert.deepEqual(saved.queries.map((q: { queryKey: unknown[] }) => q.queryKey[0]), ['profile']);
+  assert.doesNotThrow(() => hydrate(new QueryClient(), saved));
+  client.clear();
+});
 
 test('the server gets a persister too, one that keeps nothing', async () => {
   const persister = makeQueryPersister();
