@@ -1,0 +1,75 @@
+{
+  "fuzzing": {
+    "workers": 8,
+    "workerResetLimit": 50,
+    "timeout": 0,
+    "testLimit": 0,
+    "callSequenceLength": 100,
+    "corpusDirectory": "corpus/medusa",
+    "coverageEnabled": true,
+    "targetContracts": [],
+    "predeployedContracts": {
+      "SettlementLib": "0x00000000000000000000000000000000000fa001",
+      "DisputeLib": "0x00000000000000000000000000000000000fa002",
+      "AgreementTermsLib": "0x00000000000000000000000000000000000fa003",
+      "AgreementDeliveryLib": "0x00000000000000000000000000000000000fa004",
+      "AgreementLib": "0x00000000000000000000000000000000000fa005",
+      "AgreementDisputeLib": "0x00000000000000000000000000000000000fa006",
+      "TimeLib": "0x00000000000000000000000000000000000fa007",
+      "TimeDisputeLib": "0x00000000000000000000000000000000000fa008",
+      "JobLib": "0x00000000000000000000000000000000000fa009",
+      "BountyLib": "0x00000000000000000000000000000000000fa00a",
+      "JobDisputeLib": "0x00000000000000000000000000000000000fa00b"
+    },
+    "deployerAddress": "0x30000",
+    "senderAddresses": [
+      "0x10000",
+      "0x20000",
+      "0x30000"
+    ],
+    "blockNumberDelayMax": 60480,
+    "blockTimestampDelayMax": 604800,
+    "transactionGasLimit": 30000000,
+    "blockGasLimit": 125000000,
+    "testing": {
+      "stopOnFailedTest": true,
+      "stopOnFailedContractMatching": false,
+      "testAllContracts": false,
+      "assertionTesting": {
+        "enabled": false
+      },
+      "propertyTesting": {
+        "enabled": true,
+        "testPrefixes": [
+          "property_"
+        ]
+      },
+      "optimizationTesting": {
+        "enabled": false
+      }
+    },
+    "chainConfig": {
+      "codeSizeCheckDisabled": true,
+      "cheatCodes": {
+        "cheatCodesEnabled": true,
+        "enableFFI": false
+      }
+    }
+  },
+  "compilation": {
+    "platform": "crytic-compile",
+    "platformConfig": {
+      "target": ".",
+      "solcVersion": "",
+      "exportDirectory": "",
+      "args": [
+        "--foundry-compile-all"
+      ]
+    }
+  },
+  "logging": {
+    "level": "info",
+    "logDirectory": "",
+    "noColor": true
+  }
+}

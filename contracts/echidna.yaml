@@ -1,0 +1,25 @@
+# Echidna runs the same property sets as Foundry and Medusa:
+#   scripts/ops/forge-remote.sh --echidna JobProps [seconds]
+testMode: property
+prefix: "property_"
+testLimit: 1000000000
+seqLen: 100
+shrinkLimit: 5000
+codeSize: 0xffffffff
+deployer: "0x30000"
+sender: ["0x10000", "0x20000", "0x30000"]
+workers: 8
+corpusDir: "corpus/echidna"
+cryticArgs: ["--foundry-compile-all"]
+deployContracts:
+  - ["0x00000000000000000000000000000000000fa001", "SettlementLib"]
+  - ["0x00000000000000000000000000000000000fa002", "DisputeLib"]
+  - ["0x00000000000000000000000000000000000fa003", "AgreementTermsLib"]
+  - ["0x00000000000000000000000000000000000fa004", "AgreementDeliveryLib"]
+  - ["0x00000000000000000000000000000000000fa005", "AgreementLib"]
+  - ["0x00000000000000000000000000000000000fa006", "AgreementDisputeLib"]
+  - ["0x00000000000000000000000000000000000fa007", "TimeLib"]
+  - ["0x00000000000000000000000000000000000fa008", "TimeDisputeLib"]
+  - ["0x00000000000000000000000000000000000fa009", "JobLib"]
+  - ["0x00000000000000000000000000000000000fa00a", "BountyLib"]
+  - ["0x00000000000000000000000000000000000fa00b", "JobDisputeLib"]

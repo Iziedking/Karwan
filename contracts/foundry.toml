@@ -22,6 +22,28 @@ remappings = [
     "forge-std/=lib/forge-std/src/"
 ]
 
+# Medusa and Echidna build only the suite and its tests, and deploy the linked
+# libraries themselves at these fixed addresses; forge test keeps linking them
+# on its own under the default profile.
+[profile.fuzz]
+src = "src/suite"
+test = "test/suite"
+# No such folder: the old scripts link libraries this profile does not.
+script = "test/suite/no-scripts"
+libraries = [
+    "src/suite/settlement/SettlementLib.sol:SettlementLib:0x00000000000000000000000000000000000fa001",
+    "src/suite/dispute/DisputeLib.sol:DisputeLib:0x00000000000000000000000000000000000fa002",
+    "src/suite/agreement/AgreementTermsLib.sol:AgreementTermsLib:0x00000000000000000000000000000000000fa003",
+    "src/suite/agreement/AgreementDeliveryLib.sol:AgreementDeliveryLib:0x00000000000000000000000000000000000fa004",
+    "src/suite/agreement/AgreementLib.sol:AgreementLib:0x00000000000000000000000000000000000fa005",
+    "src/suite/agreement/AgreementDisputeLib.sol:AgreementDisputeLib:0x00000000000000000000000000000000000fa006",
+    "src/suite/time/TimeLib.sol:TimeLib:0x00000000000000000000000000000000000fa007",
+    "src/suite/time/TimeDisputeLib.sol:TimeDisputeLib:0x00000000000000000000000000000000000fa008",
+    "src/suite/jobs/JobLib.sol:JobLib:0x00000000000000000000000000000000000fa009",
+    "src/suite/jobs/BountyLib.sol:BountyLib:0x00000000000000000000000000000000000fa00a",
+    "src/suite/jobs/JobDisputeLib.sol:JobDisputeLib:0x00000000000000000000000000000000000fa00b",
+]
+
 [fmt]
 line_length = 100
 tab_width = 4
