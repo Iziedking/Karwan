@@ -1956,6 +1956,8 @@ interface MessagesShape {
     saveFailed: string;
     /// Said under a field while it keeps Save off.
     needs: { name: string; offer: string; bio: string; price: string; days: string; buyerMax: string; split: string; };
+    /// Behind the info mark beside each agent limit.
+    tips: { offer: string; description: string; sellerPrice: string; sellerDays: string; buyerMax: string; buyerDays: string; split: string; };
   };
   /// Verified-business registration band.
   registerBusiness: {
@@ -7536,6 +7538,15 @@ export const en: MessagesShape = {
     custom: "Custom",
     saveFailed: "Could not save. Check the fields and try again.",
     needs: { name: "Add your name.", offer: "Add at least one thing you offer.", bio: "Add a short description buyers will see.", price: "The highest price must be above the lowest.", days: "The longest time must be at least the shortest.", buyerMax: "Set the most your buying agent may pay.", split: "The parts must add up to 100%." },
+    tips: {
+      offer: "List what you sell, separated by commas. Your selling agent offers on requests that ask for these.",
+      description: "Buyers read this with every offer your agent makes. Say what you do and how you work.",
+      sellerPrice: "Your selling agent only offers on requests whose budget falls inside this range.",
+      sellerDays: "Your selling agent only offers on requests that give you at least the shortest and at most the longest time.",
+      buyerMax: "The most your buying agent may agree to pay for one request. It never goes above this.",
+      buyerDays: "How long a seller may take. Your buying agent only accepts offers that deliver inside these days.",
+      split: "How the price is paid out. With 50% / 50%, half is released when you approve the first delivery and the rest when you approve the last.",
+    },
   },
   registerBusiness: {
     legalCompanyName: 'Legal company name',

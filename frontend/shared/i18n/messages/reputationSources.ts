@@ -3,6 +3,10 @@
 /// built a reputation, their reads balance and who read their record.
 export interface ReputationSourcesCopy {
   title: string;
+  titleTip: string;
+  sourcesTip: string;
+  balanceTip: string;
+  readersTip: string;
   readable: string;
   readableNote: string;
   lookup: string;
@@ -31,6 +35,10 @@ export interface ReputationSourcesCopy {
 export const reputationSourcesCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ReputationSourcesCopy> = {
   en: {
     title: 'Reputation',
+    titleTip: "Your record is the deals you finished on Karwan. These switches decide who may read it and where your agent may look.",
+    sourcesTip: "Where your record comes from. Karwan counts on its own. Other platforms appear here once they partner with Karwan.",
+    balanceTip: "Each check of a record costs a fraction of a cent. It is paid from this balance, which refills from your buying agent.",
+    readersTip: "Every agent that checked your record, and why it did.",
     readable: 'Let agents check my record',
     readableNote: 'Agents you deal with can pay to read your Karwan record before they offer or choose. They see your work history, never your messages or who you worked with.',
     lookup: 'Let my agent look me up on platforms I connect',
@@ -57,6 +65,10 @@ export const reputationSourcesCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Rep
   },
   fr: {
     title: 'Réputation',
+    titleTip: "Votre dossier, ce sont les accords terminés sur Karwan. Ces boutons décident qui peut le lire et où votre agent peut chercher.",
+    sourcesTip: "D’où vient votre dossier. Karwan compte d’office. Les autres plateformes apparaissent ici dès qu’elles deviennent partenaires de Karwan.",
+    balanceTip: "Chaque consultation d’un dossier coûte une fraction de centime. Elle est payée sur ce solde, rechargé depuis votre agent d’achat.",
+    readersTip: "Chaque agent qui a consulté votre dossier, et pourquoi.",
     readable: 'Autoriser les agents à consulter mon dossier',
     readableNote: 'Les agents avec qui vous traitez peuvent payer pour lire votre dossier Karwan avant de faire une offre ou de choisir. Ils voient votre historique de travail, jamais vos messages ni avec qui vous avez travaillé.',
     lookup: 'Autoriser mon agent à me rechercher sur les plateformes que je connecte',
@@ -83,6 +95,10 @@ export const reputationSourcesCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Rep
   },
   ar: {
     title: 'السمعة',
+    titleTip: "سجلك هو الصفقات التي أنهيتها في كاروان. تحدد هذه المفاتيح من يمكنه قراءته وأين يمكن لوكيلك البحث.",
+    sourcesTip: "من أين يأتي سجلك. كاروان محسوبة تلقائيًا. تظهر المنصات الأخرى هنا عندما تصبح شريكة لكاروان.",
+    balanceTip: "كل فحص لسجل يكلّف جزءًا من السنت. يُدفع من هذا الرصيد الذي يُعاد شحنه من وكيل الشراء لديك.",
+    readersTip: "كل وكيل فحص سجلك، وسبب ذلك.",
     readable: 'اسمح للوكلاء بفحص سجلي',
     readableNote: 'يمكن للوكلاء الذين تتعامل معهم الدفع لقراءة سجلك في كاروان قبل أن يقدّموا عرضًا أو يختاروا. يرون تاريخ عملك، ولا يرون رسائلك أو من عملت معهم.',
     lookup: 'اسمح لوكيلي بالبحث عني في المنصات التي أربطها',
@@ -109,6 +125,10 @@ export const reputationSourcesCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Rep
   },
   hi: {
     title: 'साख',
+    titleTip: "आपका रिकॉर्ड Karwan पर पूरे किए गए सौदे हैं। ये स्विच तय करते हैं कि इसे कौन पढ़ सकता है और आपका एजेंट कहां खोज सकता है।",
+    sourcesTip: "आपका रिकॉर्ड कहां से आता है। Karwan अपने आप गिना जाता है। दूसरे प्लेटफ़ॉर्म Karwan के साझेदार बनने पर यहां दिखेंगे।",
+    balanceTip: "हर रिकॉर्ड जांच की कीमत एक सेंट का छोटा हिस्सा है। यह इसी बैलेंस से दी जाती है, जो आपके खरीद एजेंट से भरता है।",
+    readersTip: "हर एजेंट जिसने आपका रिकॉर्ड जांचा, और क्यों।",
     readable: 'एजेंटों को मेरा रिकॉर्ड जांचने दें',
     readableNote: 'जिन एजेंटों से आप सौदा करते हैं, वे ऑफ़र देने या चुनने से पहले आपका Karwan रिकॉर्ड पढ़ने के लिए भुगतान कर सकते हैं। वे आपका काम का इतिहास देखते हैं, आपके संदेश या आपने किसके साथ काम किया, यह कभी नहीं।',
     lookup: 'मेरे एजेंट को जोड़े गए प्लेटफ़ॉर्म पर मुझे खोजने दें',
@@ -135,6 +155,10 @@ export const reputationSourcesCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Rep
   },
   sw: {
     title: 'Sifa',
+    titleTip: "Rekodi yako ni makubaliano uliyokamilisha kwenye Karwan. Swichi hizi huamua nani anaweza kuisoma na wakala wako anaweza kutafuta wapi.",
+    sourcesTip: "Rekodi yako inatoka wapi. Karwan huhesabiwa yenyewe. Majukwaa mengine yataonekana hapa yanapokuwa washirika wa Karwan.",
+    balanceTip: "Kila ukaguzi wa rekodi hugharimu sehemu ya senti. Hulipwa kutoka salio hili, linalojazwa na wakala wako wa kununua.",
+    readersTip: "Kila wakala aliyekagua rekodi yako, na sababu yake.",
     readable: 'Ruhusu mawakala kukagua rekodi yangu',
     readableNote: 'Mawakala unaoshughulika nao wanaweza kulipa kusoma rekodi yako ya Karwan kabla ya kutoa ofa au kuchagua. Wanaona historia ya kazi yako, kamwe si ujumbe wako wala uliofanya kazi nao.',
     lookup: 'Ruhusu wakala wangu anitafute kwenye majukwaa ninayounganisha',

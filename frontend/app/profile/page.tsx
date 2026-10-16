@@ -150,6 +150,7 @@ function ProfilePageInner() {
 
   const isBusiness = isBusinessWorkspace;
   const simple = t.simple;
+  const tips = messages.profileEdit.tips;
   const sectionTitle: Record<ProfileSection, string> = {
     wallets: simple.walletsTitle,
     'open-deals': simple.openDealsTitle,
@@ -162,6 +163,8 @@ function ProfilePageInner() {
   const usdcOrNotSet = (value: unknown) => (isAmount(value) ? `${whole(value)} USDC` : simple.notSet);
   const rangeOrNotSet = (min: unknown, max: unknown, template: string) =>
     isAmount(min) && isAmount(max) ? template.replace('{min}', whole(min)).replace('{max}', whole(max)) : simple.notSet;
+  // A limit's label with what it does behind the info mark, as on Edit profile.
+  const tipped = (label: string, tip: string) => <span className="inline-flex items-center gap-1.5">{label}<Hint>{tip}</Hint></span>;
   const editLink = (anchor: 'selling' | 'buying') => (
     <Link href={`/profile/edit#${anchor}`} className="inline-flex min-h-11 items-center rounded-full px-2 text-[14px] font-semibold text-[var(--lp-dark)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
       {simple.edit}
@@ -197,15 +200,15 @@ function ProfilePageInner() {
                 <RowGroup title={activation.agents?.sellerName || simple.sellingAgent} action={editLink('selling')}>
                   <Row label={isBusiness ? t.agentProfiles.rows.supplies : simple.whatYouOffer} value={profile.seller.skills?.length ? profile.seller.skills.join(', ') : simple.notSet} full />
                   <Row label={messages.profileEdit.offerDescription} value={profile.seller.bio?.trim() || simple.notSet} full />
-                  <Row label={simple.priceRange} value={rangeOrNotSet(profile.seller.minBudgetUsdc, profile.seller.maxBudgetUsdc, simple.usdcRange)} />
-                  <Row label={simple.deliveryTime} value={rangeOrNotSet(profile.seller.minDeadlineDays, profile.seller.maxDeadlineDays, simple.daysRange)} />
+                  <Row label={tipped(simple.priceRange, tips.sellerPrice)} value={rangeOrNotSet(profile.seller.minBudgetUsdc, profile.seller.maxBudgetUsdc, simple.usdcRange)} />
+                  <Row label={tipped(simple.deliveryTime, tips.sellerDays)} value={rangeOrNotSet(profile.seller.minDeadlineDays, profile.seller.maxDeadlineDays, simple.daysRange)} />
                 </RowGroup>
               ) : null}
               {profile.buyer ? (
                 <RowGroup title={activation.agents?.buyerName || simple.buyingAgent} action={editLink('buying')}>
-                  <Row label={simple.mostItMayPay} value={usdcOrNotSet(profile.buyer.maxBudgetUsdc)} />
-                  <Row label={simple.deliveryTime} value={rangeOrNotSet(profile.buyer.minDeadlineDays, profile.buyer.maxDeadlineDays, simple.daysRange)} />
-                  <Row label={simple.paymentSplit} value={profile.buyer.milestonePcts?.length ? profile.buyer.milestonePcts.map((pct) => `${pct}%`).join(' / ') : simple.notSet} />
+                  <Row label={tipped(simple.mostItMayPay, tips.buyerMax)} value={usdcOrNotSet(profile.buyer.maxBudgetUsdc)} />
+                  <Row label={tipped(simple.deliveryTime, tips.buyerDays)} value={rangeOrNotSet(profile.buyer.minDeadlineDays, profile.buyer.maxDeadlineDays, simple.daysRange)} />
+                  <Row label={tipped(simple.paymentSplit, tips.split)} value={profile.buyer.milestonePcts?.length ? profile.buyer.milestonePcts.map((pct) => `${pct}%`).join(' / ') : simple.notSet} />
                 </RowGroup>
               ) : null}
             </>

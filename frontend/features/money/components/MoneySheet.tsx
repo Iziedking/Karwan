@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Hint } from '@/shared/components/Hint';
 import { AnimatePresence, motion } from 'motion/react';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -9,6 +10,7 @@ import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotio
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { MoneyCopy } from '@/shared/i18n/messages/money';
 import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
+import { ProductBackLink } from '@/shared/components/ProductBackLink';
 import { dur } from '@/shared/motion/tokens';
 import { moneySounds } from '@/shared/sound/moneySounds';
 import { fill } from '@/features/deals/workspace/presentation';
@@ -447,12 +449,18 @@ function Frame({ layout, children, initialFocus, ...sheet }: {
   initialFocus: RefObject<HTMLInputElement | null>;
   children: ReactNode;
 }) {
+  const pathname = usePathname();
+  const { isAuthenticated } = useAuth();
   useEffect(() => {
     if (layout === 'page') initialFocus.current?.focus();
   }, [layout, initialFocus]);
   if (layout === 'sheet') return <ConfirmSheetShell {...sheet} initialFocus={initialFocus}>{children}</ConfirmSheetShell>;
   return (
-    <section aria-labelledby={sheet.labelledBy} className="mx-auto w-full max-w-[560px] px-4 py-10 sm:py-14">
+    <section aria-labelledby={sheet.labelledBy} className="mx-auto w-full max-w-[560px] px-4 pb-10 pt-2 sm:pb-14">
+      {/* Back sits on the form's column, not at the page edge. */}
+      <div data-own-back className="-ms-2 mb-6 empty:hidden">
+        <ProductBackLink pathname={pathname} isAuthenticated={isAuthenticated} />
+      </div>
       {children}
     </section>
   );

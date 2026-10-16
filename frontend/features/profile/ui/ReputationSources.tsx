@@ -53,7 +53,7 @@ export function ReputationSources({ address }: { address: string }) {
 
   return (
     <div data-guide="profile-reputation" className="space-y-7">
-      <RowGroup title={copy.title}>
+      <RowGroup title={copy.title} hint={copy.titleTip}>
         <ToggleRow
           label={copy.readable}
           note={copy.readableNote}
@@ -68,7 +68,7 @@ export function ReputationSources({ address }: { address: string }) {
         />
       </RowGroup>
 
-      <RowGroup title={copy.sources}>
+      <RowGroup title={copy.sources} hint={copy.sourcesTip}>
         <Row label={copy.karwan} value={copy.connected} />
         <Row label={copy.otherPlatforms} value={copy.noPartners} />
       </RowGroup>
@@ -103,7 +103,7 @@ export function ReputationSources({ address }: { address: string }) {
         </div>
       </div>
 
-      <RowGroup title={copy.balance}>
+      <RowGroup title={copy.balance} hint={copy.balanceTip}>
         <Row
           label={<span className="block"><span className="block">{copy.balance}</span><span className="block text-[14px] font-medium text-[var(--lp-text-sub)]">{copy.balanceNote}</span></span>}
           value={data.readsBalanceUsdc === null ? copy.balanceUnavailable : `${data.readsBalanceUsdc.toFixed(2)} USDC`}
@@ -111,7 +111,7 @@ export function ReputationSources({ address }: { address: string }) {
         <Row label={copy.fundAgent} href="/profile/agent-funds" />
       </RowGroup>
 
-      <RowGroup title={copy.readers}>
+      <RowGroup title={copy.readers} hint={copy.readersTip}>
         {data.readers.length ? (
           data.readers.map((r) => <Row key={`${r.tag ?? r.name}-${r.at}`} label={readerLine(r, copy, locale)} />)
         ) : (

@@ -29,12 +29,15 @@ export function ProfileFrame({ title, hint, children }: { title: ReactNode; hint
   );
 }
 
-export function RowGroup({ title, action, children }: { title?: string; action?: ReactNode; children: ReactNode }) {
+export function RowGroup({ title, hint, action, children }: { title?: string; hint?: ReactNode; action?: ReactNode; children: ReactNode }) {
   return (
     <section>
       {title ? (
         <div className="mb-1 flex min-h-11 items-end justify-between gap-3 px-1">
-          <h2 className="pb-1 text-[14px] font-semibold text-[var(--lp-text-sub)]">{title}</h2>
+          <h2 className="flex items-center gap-2 pb-1 text-[14px] font-semibold text-[var(--lp-text-sub)]">
+            {title}
+            {hint ? <Hint>{hint}</Hint> : null}
+          </h2>
           {action}
         </div>
       ) : null}

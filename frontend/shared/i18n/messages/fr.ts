@@ -2176,6 +2176,15 @@ export const fr: Messages = {
     custom: "Personnalisé",
     saveFailed: "Enregistrement impossible. Vérifiez les champs et réessayez.",
     needs: { name: "Ajoutez votre nom.", offer: "Ajoutez au moins une chose que vous proposez.", bio: "Ajoutez une courte description visible par les acheteurs.", price: "Le prix le plus haut doit dépasser le plus bas.", days: "Le délai le plus long doit être au moins égal au plus court.", buyerMax: "Indiquez le maximum que votre agent acheteur peut payer.", split: "Les parts doivent totaliser 100 %." },
+    tips: {
+      offer: "Indiquez ce que vous vendez, séparé par des virgules. Votre agent de vente fait des offres sur les demandes qui le recherchent.",
+      description: "Les acheteurs lisent ce texte avec chaque offre de votre agent. Dites ce que vous faites et comment vous travaillez.",
+      sellerPrice: "Votre agent de vente ne fait des offres que sur les demandes dont le budget est dans cette fourchette.",
+      sellerDays: "Votre agent de vente ne fait des offres que sur les demandes qui vous laissent au moins le délai le plus court et au plus le plus long.",
+      buyerMax: "Le maximum que votre agent d’achat peut accepter de payer pour une demande. Il ne le dépasse jamais.",
+      buyerDays: "Le temps qu’un vendeur peut prendre. Votre agent d’achat n’accepte que les offres livrées dans ces jours.",
+      split: "Comment le prix est versé. Avec 50% / 50%, la moitié est libérée quand vous approuvez la première livraison, le reste quand vous approuvez la dernière.",
+    },
   },
   registerBusiness: {
     legalCompanyName: 'Raison sociale',

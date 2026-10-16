@@ -2173,6 +2173,15 @@ export const sw: Messages = {
     custom: "Maalum",
     saveFailed: "Imeshindwa kuhifadhi. Kagua sehemu na ujaribu tena.",
     needs: { name: "Ongeza jina lako.", offer: "Ongeza angalau kitu kimoja unachotoa.", bio: "Ongeza maelezo mafupi wanunuzi wataona.", price: "Bei ya juu lazima iwe zaidi ya ya chini.", days: "Muda mrefu zaidi lazima uwe angalau sawa na mfupi zaidi.", buyerMax: "Weka kiwango cha juu wakala wako wa ununuzi anaweza kulipa.", split: "Sehemu lazima zifike 100%." },
+    tips: {
+      offer: "Orodhesha unachouza, ukitenganisha kwa koma. Wakala wako wa kuuza hutoa ofa kwa maombi yanayoyahitaji.",
+      description: "Wanunuzi husoma hili pamoja na kila ofa ya wakala wako. Sema unachofanya na jinsi unavyofanya kazi.",
+      sellerPrice: "Wakala wako wa kuuza hutoa ofa tu kwa maombi ambayo bajeti yake iko ndani ya kiwango hiki.",
+      sellerDays: "Wakala wako wa kuuza hutoa ofa tu kwa maombi yanayokupa angalau muda mfupi zaidi na zaidi muda mrefu zaidi.",
+      buyerMax: "Kiasi cha juu ambacho wakala wako wa kununua anaweza kukubali kulipa kwa ombi moja. Hakizidi kamwe.",
+      buyerDays: "Muda ambao muuzaji anaweza kuchukua. Wakala wako wa kununua hukubali tu ofa zinazowasilisha ndani ya siku hizi.",
+      split: "Jinsi bei inavyolipwa. Kwa 50% / 50%, nusu hutolewa unapoidhinisha uwasilishaji wa kwanza na iliyobaki unapoidhinisha wa mwisho.",
+    },
   },
   registerBusiness: {
     legalCompanyName: 'Jina rasmi la kampuni',

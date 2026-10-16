@@ -204,18 +204,18 @@ function ProfileEditInner() {
 
         {wantsSeller ? (
           <FormCard id="selling" title={simple.sellingAgent}>
-            <Field label={isBusiness ? t.agentProfiles.rows.supplies : simple.whatYouOffer} hint={simple.skillsHint}>
+            <Field label={isBusiness ? t.agentProfiles.rows.supplies : simple.whatYouOffer} hint={pe.tips.offer}>
               <input value={skills} onChange={(e) => setSkills(e.target.value)} placeholder={isBusiness ? 'textiles, woven cotton, apparel' : 'logo design, branding'} className="form-input" />
               <Need when={blocked('offer')}>{pe.needs.offer}</Need>
             </Field>
-            <Field label={pe.offerDescription}>
+            <Field label={pe.offerDescription} hint={pe.tips.description}>
               <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} className="form-input form-textarea" />
               <Need when={blocked('bio')}>{pe.needs.bio}</Need>
             </Field>
-            <RangeField label={simple.priceRange} unit="USDC" from={sellerMin} to={sellerMax} onFrom={setSellerMin} onTo={setSellerMax} fromAria={pe.from} toAria={pe.to}>
+            <RangeField label={simple.priceRange} hint={pe.tips.sellerPrice} unit="USDC" from={sellerMin} to={sellerMax} onFrom={setSellerMin} onTo={setSellerMax} fromAria={pe.from} toAria={pe.to}>
               <Need when={blocked('sellerPrice')}>{pe.needs.price}</Need>
             </RangeField>
-            <RangeField label={simple.deliveryTime} unit={pe.days} from={sellerMinDays} to={sellerMaxDays} onFrom={setSellerMinDays} onTo={setSellerMaxDays} fromAria={pe.from} toAria={pe.to}>
+            <RangeField label={simple.deliveryTime} hint={pe.tips.sellerDays} unit={pe.days} from={sellerMinDays} to={sellerMaxDays} onFrom={setSellerMinDays} onTo={setSellerMaxDays} fromAria={pe.from} toAria={pe.to}>
               <Need when={blocked('sellerDays')}>{pe.needs.days}</Need>
             </RangeField>
           </FormCard>
@@ -223,15 +223,18 @@ function ProfileEditInner() {
 
         {wantsBuyer ? (
           <FormCard id="buying" title={simple.buyingAgent}>
-            <Field label={simple.mostItMayPay}>
+            <Field label={simple.mostItMayPay} hint={pe.tips.buyerMax}>
               <UnitInput value={buyerMax} onChange={setBuyerMax} unit="USDC" />
               <Need when={blocked('buyerMax')}>{pe.needs.buyerMax}</Need>
             </Field>
-            <RangeField label={simple.deliveryTime} unit={pe.days} from={buyerMinDays} to={buyerMaxDays} onFrom={setBuyerMinDays} onTo={setBuyerMaxDays} fromAria={pe.from} toAria={pe.to}>
+            <RangeField label={simple.deliveryTime} hint={pe.tips.buyerDays} unit={pe.days} from={buyerMinDays} to={buyerMaxDays} onFrom={setBuyerMinDays} onTo={setBuyerMaxDays} fromAria={pe.from} toAria={pe.to}>
               <Need when={blocked('buyerDays')}>{pe.needs.days}</Need>
             </RangeField>
             <div role="group" aria-label={simple.paymentSplit}>
-              <p className="mb-2 text-[14px] font-semibold text-[var(--lp-dark)]">{simple.paymentSplit}</p>
+              <p className="mb-2 flex items-center gap-1.5 text-[14px] font-semibold text-[var(--lp-dark)]">
+                {simple.paymentSplit}
+                <Hint>{pe.tips.split}</Hint>
+              </p>
               <div className="grid grid-cols-3 gap-1 rounded-full bg-[var(--tint)] p-1">
                 {presetSplits.map((value) => (
                   <button
@@ -343,6 +346,7 @@ function UnitInput({ value, onChange, unit, ariaLabel }: { value: number; onChan
 /// A range on one line: from, to, then the unit once.
 function RangeField({
   label,
+  hint,
   unit,
   from,
   to,
@@ -353,6 +357,7 @@ function RangeField({
   children,
 }: {
   label: string;
+  hint?: string;
   unit: string;
   from: number;
   to: number;
@@ -364,7 +369,10 @@ function RangeField({
 }) {
   return (
     <div role="group" aria-label={label} className="space-y-2">
-      <p className="text-[14px] font-semibold text-[var(--lp-dark)]">{label}</p>
+      <p className="flex items-center gap-1.5 text-[14px] font-semibold text-[var(--lp-dark)]">
+        {label}
+        {hint ? <Hint>{hint}</Hint> : null}
+      </p>
       <div className="flex items-center gap-2">
         <NumberInput value={from} onChange={onFrom} ariaLabel={`${label}, ${fromAria}`} />
         <span aria-hidden className="text-[var(--ink-secondary)]">–</span>
