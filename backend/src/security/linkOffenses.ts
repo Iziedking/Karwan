@@ -17,6 +17,8 @@ export interface LinkOffense {
   count: number;
   lastAt: number;
   lastVerdict: 'suspicious' | 'malicious';
+  /// Offenses the scanner judged malicious. Absent on records written before it was counted.
+  malicious?: number;
   lastSurface: 'delivery' | 'chat';
   lastReasons: string[];
   /// Dedupe keys already counted, so the same blocked submission retried
@@ -78,6 +80,7 @@ export function recordLinkOffense(input: {
         seen: [],
       };
   next.count += 1;
+  if (input.verdict === 'malicious') next.malicious = (next.malicious ?? (existing ? maliciousCountOf(existing) : 0)) + 1;
   next.lastAt = Date.now();
   next.lastVerdict = input.verdict;
   next.lastSurface = input.surface;
@@ -85,6 +88,20 @@ export function recordLinkOffense(input: {
   next.seen = [...next.seen, key].slice(-200);
   store.set(address, next);
   persist();
+}
+
+/// Malicious offenses only. A record from before they were counted apart can
+/// prove at most one, and only when its last verdict was malicious.
+export function maliciousCountOf(entry: LinkOffense | undefined): number {
+  if (!entry) return 0;
+  if (typeof entry.malicious === 'number') return entry.malicious;
+  return entry.lastVerdict === 'malicious' ? 1 : 0;
+}
+
+/// What the trust engine counts: links the scanner judged malicious.
+export function getMaliciousLinkCount(address: string): number {
+  load();
+  return maliciousCountOf(store.get(address.toLowerCase()));
 }
 
 /// Number of distinct flagged-link offenses recorded against an address.

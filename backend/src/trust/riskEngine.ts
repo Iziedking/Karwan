@@ -36,12 +36,15 @@ export type TrustReason =
 
 export interface PartyFacts {
   settledDeals: number;
-  /// Passed World ID on an earlier Karwan deal.
+  /// Passed World ID before: a person check, an earlier deal or an agent deal.
   worldIdPassed: boolean;
+  /// When the latest pass happened. Null or absent when unknown.
+  worldIdPassedAt?: number | null;
   lostDisputes: number;
   dealsLastDay: number;
   /// Null when the account has no profile yet (an invited seller).
   accountAgeDays: number | null;
+  /// Links the scanner judged malicious. A suspicious verdict alone is not counted.
   linkOffenses: number;
 }
 
@@ -74,11 +77,13 @@ export interface TrustInput {
   now?: number;
 }
 
-function partyReasons(facts: PartyFacts): TrustReason[] {
+function partyReasons(facts: PartyFacts, now: number): TrustReason[] {
   const out: TrustReason[] = [];
   if (facts.settledDeals === 0 && !facts.worldIdPassed) out.push('first_deal');
   const isNew = facts.accountAgeDays !== null && facts.accountAgeDays < TRUST_LIMITS.newAccountDays;
-  if (isNew && facts.dealsLastDay >= TRUST_LIMITS.fastDeals) out.push('fast_new_account');
+  // A person who proved themselves inside the same window is not asked again for being busy.
+  const passedToday = facts.worldIdPassedAt != null && now - facts.worldIdPassedAt < TRUST_LIMITS.fastWindowMs;
+  if (isNew && facts.dealsLastDay >= TRUST_LIMITS.fastDeals && !passedToday) out.push('fast_new_account');
   if (facts.linkOffenses > 0) out.push('flagged_link_before');
   return out;
 }
@@ -91,7 +96,7 @@ export function decideTrust(input: TrustInput): TrustDecision {
   for (const role of ['buyer', 'seller'] as const) {
     const facts = input[role];
     if (!facts) continue;
-    const own = partyReasons(facts);
+    const own = partyReasons(facts, input.now ?? Date.now());
     for (const code of own) reasons.push({ code, role });
     const first = own[0] ?? (large ? 'large_deal' : undefined);
     if (first && input.worldIdAvailable) verify[role] = first;

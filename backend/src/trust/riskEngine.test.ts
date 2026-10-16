@@ -102,3 +102,12 @@ test('each side reads its own reasons; the other side only sees that a check is 
   assert.deepEqual(sellerView.verify, { buyer: 'first_deal', seller: 'flagged_link_before' });
   assert.deepEqual(sellerView.reasons, ['flagged_link_before', 'lost_disputes', 'off_market_price']);
 });
+
+test('a busy new account is not asked again inside a day of passing World ID', () => {
+  const now = 10 * TRUST_LIMITS.fastWindowMs;
+  const busy: PartyFacts = { ...seasoned, accountAgeDays: 2, dealsLastDay: TRUST_LIMITS.fastDeals };
+  const fresh = decideTrust({ buyer: { ...busy, worldIdPassedAt: now - 3_600_000 }, seller: seasoned, deal, worldIdAvailable: true, now });
+  assert.deepEqual(fresh.verify, {});
+  const stale = decideTrust({ buyer: { ...busy, worldIdPassedAt: now - 2 * TRUST_LIMITS.fastWindowMs }, seller: seasoned, deal, worldIdAvailable: true, now });
+  assert.deepEqual(stale.verify, { buyer: 'fast_new_account' });
+});
