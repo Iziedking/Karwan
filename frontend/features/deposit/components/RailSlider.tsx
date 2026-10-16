@@ -80,7 +80,7 @@ export function RailSlider({
                 {rail.state === 'soon' && (
                   <span
                     aria-hidden
-                    className="shrink-0 rounded-full px-1 text-[13px] leading-none"
+                    className="shrink-0 rounded-full px-1 text-[14px] leading-none"
                     style={{
                       background: current ? 'var(--tint)' : 'transparent',
                       color: current ? 'var(--canvas)' : 'var(--ink-secondary)',

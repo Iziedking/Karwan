@@ -162,14 +162,14 @@ export function BridgeActivityStrip({
   return (
     <div ref={stripRef} className="mt-7 pt-5 border-t border-[var(--lp-border-light)] scroll-mt-24">
       <div className="flex items-center justify-between gap-3">
-        <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+        <span className="text-[14px] text-[var(--ink-secondary)] font-medium">
           {msgs.bridgeCard.eyebrow.activity}
         </span>
         {clearableIds.length > 0 && (
           <button
             type="button"
             onClick={() => hidden.hideMany(clearableIds)}
-            className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+            className="text-[14px] text-[var(--ink-secondary)] hover:text-[var(--lp-dark)] transition-colors font-medium"
           >
             {msgs.bridgeOut.clearActivity}
           </button>
@@ -199,12 +199,12 @@ export function BridgeActivityStrip({
                     <span className="font-sans text-[16px] font-extrabold tabular-nums leading-none tracking-[-0.02em] text-[var(--lp-dark)]">
                       {formatUsdc(b.amountUsdc, { withSuffix: false })}
                     </span>
-                    <span className="text-[13px] mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-none">
+                    <span className="text-[14px] text-[var(--ink-secondary)] leading-none font-medium">
                       USDC
                     </span>
                   </div>
                   <p
-                    className="mt-1.5 mono text-[13px] uppercase tracking-[0.14em] leading-none inline-flex items-center gap-2"
+                    className="mt-1.5 text-[14px] leading-none inline-flex items-center gap-2 font-medium"
                     style={{ color: rail }}
                   >
                     {active && (

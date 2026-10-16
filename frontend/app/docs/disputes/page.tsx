@@ -93,14 +93,14 @@ export default function DocsDisputesPage() {
               animation: 'instrumentBlink 1.6s ease-in-out infinite',
             }}
           />
-          <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+          <span className="text-[14px] text-[var(--ink-secondary)] font-medium">
             {t.policy.liveTag}
           </span>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-5 divide-x divide-y sm:divide-y-0 divide-[var(--lp-border-light)]">
           {cells.map((cell) => (
             <div key={cell.label} className="px-4 py-3">
-              <p className="min-h-[2.75em] mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] leading-snug">
+              <p className="min-h-[2.75em] text-[14px] text-[var(--ink-secondary)] leading-snug font-medium">
                 {cell.label}
               </p>
               <p className="mt-1 mono text-[20px] font-semibold tabular-nums leading-none text-[var(--lp-dark)]">
@@ -110,7 +110,7 @@ export default function DocsDisputesPage() {
           ))}
         </div>
       </div>
-      <p className="mt-2 mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+      <p className="mt-2 text-[14px] text-[var(--ink-secondary)] font-medium">
         {t.policy.note}
       </p>
 

@@ -70,7 +70,7 @@ export function DocsListItem({ children }: { children: ReactNode }) {
 /// use inside content bands rather than at the top of a hero.
 export function DocsEyebrow({ children }: { children: ReactNode }) {
   return (
-    <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+    <p className="text-[14px] text-[var(--ink-secondary)] font-medium">
       {children}
     </p>
   );
@@ -109,7 +109,7 @@ export function DocsFigure({
               aria-hidden
               className="inline-block w-2 h-2 rounded-full bg-[var(--lp-accent)]"
             />
-            <span className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+            <span className="text-[14px] text-[var(--ink-secondary)] font-medium">
               {kind === 'video' ? t.figure.videoComingSoon : t.figure.screenshotComingSoon}
             </span>
           </div>

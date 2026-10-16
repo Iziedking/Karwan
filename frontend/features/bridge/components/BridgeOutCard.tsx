@@ -182,7 +182,7 @@ export function BridgeOutCard() {
   return (
     <div data-guide="bridge-out" style={CARD_STYLE} className="h-full flex flex-col overflow-hidden">
       <div className="px-6 pt-6 pb-4">
-        <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+        <span className="text-[14px] text-[var(--ink-secondary)] font-medium">
           {t.header.eyebrow}
         </span>
         <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
@@ -197,7 +197,7 @@ export function BridgeOutCard() {
         <form onSubmit={submit} className="space-y-5">
             {/* DESTINATION DROPDOWN */}
             <div className="relative">
-              <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+              <span className="text-[14px] text-[var(--ink-secondary)] font-medium">
                 {t.form.destinationEyebrow}
               </span>
               <button
@@ -275,20 +275,20 @@ export function BridgeOutCard() {
               }}
             >
               <div className="px-4 pt-3 pb-0.5 flex items-baseline justify-between">
-                <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+                <span className="text-[14px] text-[var(--ink-secondary)] font-medium">
                   {t.form.amountEyebrow}
                 </span>
                 {arcBalance != null && Number(arcBalance) > 0 ? (
                   <button
                     type="button"
                     onClick={() => setAmount(Number(arcBalance))}
-                    className="-my-2 inline-flex min-h-11 items-center mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+                    className="-my-2 inline-flex min-h-11 items-center text-[14px] text-[var(--ink-secondary)] hover:text-[var(--lp-dark)] transition-colors font-medium"
                     title={amountCopy.maxTitle}
                   >
                     {amountCopy.balanceMaxTemplate.replace('{amount}', formatUsdc(arcBalance, { withSuffix: false }))}
                   </button>
                 ) : (
-                  <span className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                  <span className="text-[14px] text-[var(--ink-secondary)] font-medium">
                     {amountCopy.balanceTemplate.replace(
                       '{amount}',
                       arcBalance != null ? formatUsdc(arcBalance, { withSuffix: false }) : '0',
@@ -322,7 +322,7 @@ export function BridgeOutCard() {
                   type="button"
                   onClick={runFaucet}
                   disabled={faucetBusy}
-                  className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] underline-offset-2 hover:underline disabled:opacity-50"
+                  className="text-[14px] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] underline-offset-2 hover:underline disabled:opacity-50 font-medium"
                 >
                   {faucetBusy ? t.form.faucetBusy : t.form.faucetCta}
                 </button>
@@ -352,14 +352,14 @@ export function BridgeOutCard() {
               }}
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+                <span className="text-[14px] text-[var(--ink-secondary)] font-medium">
                   {t.form.landsAtPrefix} {destShort.toUpperCase()}
                 </span>
                 {auth.address && (
                   <button
                     type="button"
                     onClick={() => setRecipient(auth.address as string)}
-                    className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] underline-offset-2 hover:underline transition-colors"
+                    className="text-[14px] text-[var(--ink-secondary)] hover:text-[var(--lp-dark)] underline-offset-2 hover:underline transition-colors font-medium"
                   >
                     {t.form.yourWallet}
                   </button>
@@ -374,7 +374,7 @@ export function BridgeOutCard() {
                 className="mt-1.5 w-full bg-transparent text-[14px] mono tabular-nums focus:outline-none text-[var(--lp-dark)] placeholder:text-[var(--lp-text-muted)]"
               />
               {recipient.trim() !== '' && !recipientValid && (
-                <p className="mt-1 mono text-[13px] uppercase tracking-[0.1em] text-[#b03d3a]">
+                <p className="mt-1 text-[14px] text-[#b03d3a] font-medium">
                   {t.form.addressInvalid}
                 </p>
               )}

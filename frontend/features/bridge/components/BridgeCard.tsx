@@ -679,7 +679,7 @@ export function BridgeCard({
   if (!identityAddress && !buyerAgent && !sellerAgent && !(prefillRecipient && isAddress(prefillRecipient))) {
     return (
       <div style={CARD_STYLE} className="p-6 h-full flex flex-col">
-        <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+        <span className="text-[14px] text-[var(--ink-secondary)] font-medium">
           {bc.eyebrow.bridge}
         </span>
         <p className="mt-3 text-[14px] text-[var(--lp-text-sub)] font-medium">
@@ -697,7 +697,7 @@ export function BridgeCard({
       <div className="px-6 pt-6 pb-4 flex items-start justify-end gap-4">
         {activeCount > 0 && (
           <span
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[13px] mono font-bold uppercase tracking-[0.14em] shrink-0"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[14px] font-bold shrink-0"
             style={{
               background: 'rgba(175, 201, 91,0.10)',
               color: 'var(--lp-dark)',
@@ -782,20 +782,20 @@ export function BridgeCard({
             }}
           >
             <div className="px-4 pt-3 pb-0.5 flex items-baseline justify-between">
-              <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+              <span className="text-[14px] text-[var(--ink-secondary)] font-medium">
                 {bc.eyebrow.amount}
               </span>
               {sourceBalance != null && Number(sourceBalance) > 0 ? (
                 <button
                   type="button"
                   onClick={() => setAmount(Number(sourceBalance))}
-                  className="-my-2 inline-flex min-h-11 items-center mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+                  className="-my-2 inline-flex min-h-11 items-center text-[14px] text-[var(--ink-secondary)] hover:text-[var(--lp-dark)] transition-colors font-medium"
                   title={bc.amount.maxTitle}
                 >
                   {bc.amount.balanceMaxTemplate.replace('{amount}', formatUsdc(sourceBalance, { withSuffix: false }))}
                 </button>
               ) : (
-                <span className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                <span className="text-[14px] text-[var(--ink-secondary)] font-medium">
                   {bc.amount.balanceTemplate.replace(
                     '{amount}',
                     sourceBalance != null ? formatUsdc(sourceBalance, { withSuffix: false }) : '0',
@@ -856,7 +856,7 @@ export function BridgeCard({
             >
               {mintRecipient && <WalletAvatar address={mintRecipient} size={24} />}
               <div className="flex-1 min-w-0">
-                <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+                <span className="text-[14px] text-[var(--ink-secondary)] font-medium">
                   {bc.eyebrow.mintsTo}
                 </span>
                 {/* The wallet, not a sentence about the wallet. "Lands in your
@@ -871,7 +871,7 @@ export function BridgeCard({
               <button
                 type="button"
                 onClick={() => setRecipientOpen(true)}
-                className="shrink-0 inline-flex min-h-11 items-center mono text-[13px] uppercase tracking-[0.12em] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity underline-offset-2 hover:underline"
+                className="shrink-0 inline-flex min-h-11 items-center text-[14px] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity underline-offset-2 hover:underline"
               >
                 {bc.recipient.sendElsewhere}
               </button>
@@ -958,7 +958,7 @@ export function BridgeCard({
               <button
                 type="button"
                 onClick={() => setDepositMode(false)}
-                className="mono text-[13px] uppercase tracking-[0.12em] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity underline-offset-2 hover:underline"
+                className="text-[14px] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity underline-offset-2 hover:underline"
               >
                 {bc.connect.useWallet}
               </button>
@@ -966,7 +966,7 @@ export function BridgeCard({
               <button
                 type="button"
                 onClick={() => setDepositMode(true)}
-                className="mono text-[13px] uppercase tracking-[0.12em] font-bold text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors underline-offset-2 hover:underline"
+                className="text-[14px] font-bold text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors underline-offset-2 hover:underline"
               >
                 {bc.connect.useDeposit}
               </button>
@@ -1060,7 +1060,7 @@ export function BridgeRow({
               <>
                 <span className="mx-1.5 text-[var(--lp-text-muted)]">·</span>
                 <span
-                  className="mono text-[13px] uppercase tracking-[0.14em] font-bold"
+                  className="text-[14px] font-bold"
                   style={{ color: TONE_HEX.warning }}
                 >
                   {copy.stale}
@@ -1342,7 +1342,7 @@ function BridgeSteps({
               />
             )}
             <span
-              className="relative shrink-0 inline-flex items-center justify-center w-[26px] h-[26px] mono text-[13px] font-bold tabular-nums"
+              className="relative shrink-0 inline-flex items-center justify-center w-[26px] h-[26px] text-[14px] font-bold tabular-nums"
               style={{
                 background: tileBg,
                 color: tileColor,
@@ -1406,7 +1406,7 @@ function ErrorBanner({
         style={{ background: TONE_HEX.critical }}
       >
         <span aria-hidden className="inline-block w-[5px] h-[5px] bg-white" />
-        <span className="mono text-[13px] font-bold uppercase tracking-[0.18em] text-white">
+        <span className="text-[14px] font-bold text-white">
           {copy.errorBadge}
         </span>
       </div>
@@ -1454,7 +1454,7 @@ function StatusPill({
         : 'rgba(175,201,91,0.50)';
   return (
     <span
-      className="shrink-0 inline-flex items-center mono text-[13px] font-bold uppercase tracking-[0.14em] leading-none px-2.5 py-1.5 whitespace-nowrap"
+      className="shrink-0 inline-flex items-center text-[14px] font-bold leading-none px-2.5 py-1.5 whitespace-nowrap"
       style={{
         background: bg,
         color: fg,
@@ -1505,7 +1505,7 @@ function PhaseChip({
         : 'var(--lp-accent)';
   return (
     <span
-      className="inline-flex items-stretch overflow-hidden mono text-[13px] font-bold uppercase tracking-[0.16em] leading-none"
+      className="inline-flex items-stretch overflow-hidden text-[14px] font-bold leading-none"
       style={{
         background: bg,
         color: fg,
@@ -1611,7 +1611,7 @@ function CircleSourceFundBanner({
       <div className="px-4 py-3 ps-5">
         <div className="flex items-center gap-3 flex-wrap">
           <span
-            className="inline-flex items-center gap-1.5 px-1.5 py-[3px] mono text-[13px] font-bold uppercase tracking-[0.16em] leading-none"
+            className="inline-flex items-center gap-1.5 px-1.5 py-[3px] text-[14px] font-bold leading-none"
             style={{
               background: funded ? 'rgba(175,201,91,0.12)' : empty ? 'rgba(178,84,37,0.12)' : 'rgba(175, 201, 91, 0.18)',
               color: funded ? TONE_HEX.positive : empty ? TONE_HEX.warning : 'var(--lp-band-dark)',
@@ -1622,7 +1622,7 @@ function CircleSourceFundBanner({
             <span aria-hidden className="inline-block w-[5px] h-[5px]" style={{ background: accent }} />
             {funded ? copy.badgeFunded : copy.badgeFundToBridge}
           </span>
-          <span className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+          <span className="text-[14px] text-[var(--ink-secondary)] font-medium">
             {statusLine}
           </span>
         </div>
@@ -1630,18 +1630,18 @@ function CircleSourceFundBanner({
         {/* LIVE BALANCE READOUT */}
         <div className="mt-3 flex items-baseline gap-4">
           <div>
-            <p className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+            <p className="text-[14px] text-[var(--ink-secondary)] font-medium">
               {copy.balanceHere}
             </p>
             <p className="mt-0.5 font-sans text-[18px] font-extrabold tabular-nums tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
               {wallet?.usdcBalance == null ? '—' : formatUsdc(wallet.usdcBalance, { withSuffix: false })}
-              <span className="ms-1 mono text-[13px] font-semibold uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+              <span className="ms-1 text-[14px] font-semibold text-[var(--ink-secondary)]">
                 USDC
               </span>
             </p>
           </div>
           <div>
-            <p className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+            <p className="text-[14px] text-[var(--ink-secondary)] font-medium">
               {copy.gas}
             </p>
             <p
@@ -1664,7 +1664,7 @@ function CircleSourceFundBanner({
             type="button"
             onClick={claimUsdc}
             disabled={!address || claiming}
-            className="mono min-h-11 text-[13px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2.5 py-1 disabled:opacity-50"
+            className="min-h-11 text-[14px] font-bold inline-flex items-center gap-1 px-2.5 py-1 disabled:opacity-50"
             style={{
               background: 'var(--lp-accent)',
               color: 'var(--lp-band-dark)',
@@ -1743,7 +1743,7 @@ function SolanaDepositBanner({
       <div className="px-4 py-3 ps-5">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+            <p className="text-[14px] text-[var(--ink-secondary)] font-medium">
               {copy.addressLabel}
             </p>
             <p
@@ -1757,7 +1757,7 @@ function SolanaDepositBanner({
             <button
               type="button"
               onClick={() => setAttempt((n) => n + 1)}
-              className="shrink-0 mono text-[13px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity px-2 py-1 border border-[var(--lp-outline)]"
+              className="shrink-0 text-[14px] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity px-2 py-1 border border-[var(--lp-outline)]"
               style={{
                 borderRadius: 6,
               }}
@@ -1769,7 +1769,7 @@ function SolanaDepositBanner({
               type="button"
               onClick={copyAddress}
               disabled={!address}
-              className="shrink-0 mono text-[13px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity disabled:opacity-50 px-2 py-1 border border-[var(--lp-outline)]"
+              className="shrink-0 text-[14px] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity disabled:opacity-50 px-2 py-1 border border-[var(--lp-outline)]"
               style={{
                 borderRadius: 6,
                 color: copied ? TONE_HEX.positive : undefined,
@@ -1785,7 +1785,7 @@ function SolanaDepositBanner({
             href="https://faucet.solana.com/"
             target="_blank"
             rel="noreferrer"
-            className="mono text-[13px] uppercase tracking-[0.16em] font-bold inline-flex items-center gap-1 text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+            className="text-[14px] font-bold inline-flex items-center gap-1 text-[var(--ink-secondary)] hover:text-[var(--lp-dark)] transition-colors"
           >
             {copy.faucet}
             <ExternalIcon />
@@ -1840,7 +1840,7 @@ function Web3FundHint({
       }}
     >
       <div className="flex items-center gap-2">
-        <p className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+        <p className="text-[14px] text-[var(--ink-secondary)] font-medium">
           {copy.eyebrowTemplate.replace('{chain}', source.shortName.toUpperCase())}
         </p>
         <LpHint side="bottom" align="start">
@@ -1855,7 +1855,7 @@ function Web3FundHint({
             type="button"
             onClick={() => void copyAndOpen(USDC_FAUCET!, 'usdc')}
             disabled={!fundAddress}
-            className="mono min-h-11 text-[13px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2.5 py-1 disabled:opacity-50"
+            className="min-h-11 text-[14px] font-bold inline-flex items-center gap-1 px-2.5 py-1 disabled:opacity-50"
             style={{
               background: 'var(--lp-accent)',
               color: 'var(--lp-band-dark)',
@@ -1874,7 +1874,7 @@ function Web3FundHint({
           }}
           hidden={!GAS_FAUCETS[source.key]}
           disabled={!fundAddress}
-          className="mono min-h-11 text-[13px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2.5 py-1 border disabled:opacity-50"
+          className="min-h-11 text-[14px] font-bold inline-flex items-center gap-1 px-2.5 py-1 border disabled:opacity-50"
           style={{
             borderColor: 'var(--lp-accent)',
             color: 'var(--lp-band-dark)',
@@ -1951,10 +1951,10 @@ function RecipientPicker({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
-        <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+        <span className="text-[14px] text-[var(--ink-secondary)] font-medium">
           {copy.eyebrowChoose}
         </span>
-        <div className="flex items-center gap-1.5 text-[13px] mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)] shrink-0">
+        <div className="flex items-center gap-1.5 text-[14px] text-[var(--ink-secondary)] shrink-0 font-medium">
           <ChainMark which="arc" size={14} />
           <span>{arcLabel}</span>
         </div>
@@ -1984,7 +1984,7 @@ function RecipientPicker({
               <p className="text-[14px] font-semibold leading-tight text-[var(--lp-dark)]">
                 {c.label}
               </p>
-              <p className="mt-0.5 mono text-[13px] tabular-nums text-[var(--lp-text-muted)] truncate">
+              <p className="mt-0.5 text-[14px] tabular-nums text-[var(--ink-secondary)] truncate font-medium">
                 {c.isCustom
                   ? '0x...'
                   : c.address
@@ -2029,7 +2029,7 @@ function RecipientPicker({
             <div className="flex items-center gap-3 flex-1 min-w-0">
               <WalletAvatar address={resolved} size={24} />
               <div className="flex-1 min-w-0">
-                <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+                <span className="text-[14px] text-[var(--ink-secondary)] font-medium">
                   {mintsToEyebrow}
                 </span>
                 <p className="mt-0.5 text-[14px] mono tabular-nums truncate text-[var(--lp-dark)]">
@@ -2043,7 +2043,7 @@ function RecipientPicker({
                 dominant mobile mint-to layout bug). On sm+ it sits inline
                 on the right edge as before. */}
             <span
-              className="self-start sm:self-auto inline-flex items-center gap-1.5 px-2 py-1 mono text-[13px] uppercase tracking-[0.14em] whitespace-nowrap"
+              className="self-start sm:self-auto inline-flex items-center gap-1.5 px-2 py-1 text-[14px] whitespace-nowrap font-medium"
               style={{
                 background: 'rgba(175, 201, 91, 0.12)',
                 color: 'var(--lp-accent)',
@@ -2182,7 +2182,7 @@ function SourceChainDropdown({
 
   return (
     <div data-guide="bridge-source" className="relative">
-      <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+      <span className="text-[14px] text-[var(--ink-secondary)] font-medium">
         {eyebrow}
       </span>
       <button
@@ -2204,7 +2204,7 @@ function SourceChainDropdown({
               {active.name}
             </span>
             <span
-              className="block mt-0.5 mono text-[13px] uppercase tracking-[0.12em]"
+              className="block mt-0.5 text-[14px] font-medium"
               style={{ color: 'var(--lp-text-muted)' }}
             >
               {active.meta}
@@ -2276,7 +2276,7 @@ function SourceChainDropdown({
                         </span>
                         {opt.disabled && opt.disabledTag && (
                           <span
-                            className="mono text-[13px] uppercase tracking-[0.14em] px-1.5 py-0.5 rounded-full"
+                            className="text-[14px] px-1.5 py-0.5 rounded-full font-medium"
                             style={{
                               color: 'var(--lp-text-muted)',
                               background: 'rgba(0,0,0,0.05)',
@@ -2287,7 +2287,7 @@ function SourceChainDropdown({
                         )}
                       </div>
                       <p
-                        className="mono text-[13px] mt-0.5 uppercase tracking-[0.12em]"
+                        className="text-[14px] mt-0.5 font-medium"
                         style={{ color: 'var(--lp-text-muted)' }}
                       >
                         {opt.meta}
