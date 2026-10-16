@@ -1,6 +1,6 @@
 import { SELLER_LINK_DETAIL, SELLER_NOT_BOUND, sellerAgentBinding, sellerBindingRefusal } from '../deals/sellerBinding.js';
 import { carriedGate } from './proposalCarry.js';
-import { offerToChoose, priceAsSeen, withAgreedPrice } from './chooseOffer.js';
+import { offerToChoose, priceAsSeen, withAgreedPrice, type OfferChoice } from './chooseOffer.js';
 import { sellerKey } from './sellerKey.js';
 import { bidsFromHistory } from './bidHistory.js';
 import { closedForOffers } from './offerWindow.js';
@@ -4249,6 +4249,24 @@ export async function proceedAgentNearMiss(
 /// The offer is taken at the seller's own price, so it proposes and funds in one
 /// step through the same path a near-miss proceed takes. A pending agent pick
 /// for another seller is declined first so that seller is told.
+/// The price the buyer would pay for this seller's offer right now, without
+/// choosing it. The World ID step is decided on this price.
+export async function quoteAgentOffer(
+  jobId: string,
+  sellerAgentAddress: string,
+): Promise<OfferChoice | { ok: false; code: 'NO_JOB_STATE'; message: string }> {
+  const state = jobs.get(jobId as `0x${string}`);
+  if (!state) {
+    return { ok: false, code: 'NO_JOB_STATE', message: 'This request is no longer open. Post it again to get new offers.' };
+  }
+  const existing = await dbGetMatchProposal(jobId);
+  return offerToChoose(withAgreedPrice([...state.bids.values()], existing), sellerAgentAddress, {
+    funded: state.escrowFunded,
+    approved: !!existing?.approvedAt,
+    closed: !!state.expired,
+  });
+}
+
 export async function chooseAgentOffer(
   jobId: string,
   sellerAgentAddress: string,

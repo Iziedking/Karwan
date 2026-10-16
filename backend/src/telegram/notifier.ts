@@ -81,6 +81,7 @@ function withLink(text: string, url: string | null): NotifySummary {
 
 export const RELEVANT = new Set([
   'request.shortlist',
+  'request.world_check',
   'deal.extension.requested',
   'deal.extension.approved',
   'deal.extension.declined',
@@ -205,6 +206,12 @@ export async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
   }
   // The shortlist goes to the person who posted the request, and only for the
   // updates marked worth a message.
+  // Only the seller, once the buyer confirmed and is waiting on the seller's check.
+  if (e.type === 'request.world_check') {
+    const seller = (e.payload?.seller as string | undefined)?.toLowerCase();
+    const waiting = e.payload?.waitingOn === 'seller' && e.payload?.buyerConfirmed === true;
+    return seller && waiting ? [{ address: seller, role: 'seller' }] : [];
+  }
   if (e.type === 'request.shortlist') {
     const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
     return buyer && e.payload?.notify === true ? [{ address: buyer, role: 'buyer' }] : [];
@@ -310,6 +317,14 @@ export function summaryFor(e: KarwanEvent, role: string, locale: UserLocale = 'e
   const url = dealUrl(e.jobId);
 
   switch (e.type) {
+    case 'request.world_check': {
+      const price = (e.payload?.priceUsdc as string | undefined) ?? '';
+      const base = config.FRONTEND_BASE_URL?.replace(/\/$/, '');
+      return withLink(
+        `*A buyer chose your offer${price ? ` at ${price} USDC` : ''}.* Before escrow is funded, confirm with World ID that you are a real person. Escrow funds as soon as you do.`,
+        base ? `${base}/seller` : null,
+      );
+    }
     case 'request.shortlist': {
       const entries = (e.payload?.entries as ShortlistEntry[] | undefined) ?? [];
       return withLink(

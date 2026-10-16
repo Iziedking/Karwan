@@ -70,6 +70,7 @@ export async function buyerJobIds(caller: string): Promise<Set<string>> {
 export const AUCTION_INTERNAL_TYPES: ReadonlySet<KarwanEventType> = new Set<KarwanEventType>([
   'bid.scored',
   'request.shortlist',
+  'request.world_check',
   'bid.submitted',
   'counter.issued',
   'counter.received',

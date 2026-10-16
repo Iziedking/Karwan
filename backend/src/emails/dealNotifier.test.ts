@@ -91,3 +91,13 @@ test('in shortlist mode a match tells the buyer they choose, not that escrow fun
   const toSeller = contentFor(matched, 'seller', 'service', undefined, { shortlistMode: true });
   assert.match(toSeller!.body, /The buyer is choosing from a shortlist/);
 });
+
+test('a buyer waiting on the seller World ID check emails the seller, and only the seller', () => {
+  const e = { type: 'request.world_check', jobId: '0xjob', actor: 'platform', ts: 0, payload: { buyer: '0xb', seller: '0xs', priceUsdc: '1200', waitingOn: 'seller', buyerConfirmed: true } } as unknown as KarwanEvent;
+  const c = contentFor(e, 'seller', 'service');
+  assert.match(c!.subject, /A buyer chose your offer/);
+  assert.match(c!.body, /confirm with World ID/);
+  assert.equal(contentFor(e, 'buyer', 'service'), null);
+  const notYet = { ...e, payload: { ...e.payload, waitingOn: 'buyer' } } as unknown as KarwanEvent;
+  assert.equal(contentFor(notYet, 'seller', 'service'), null);
+});

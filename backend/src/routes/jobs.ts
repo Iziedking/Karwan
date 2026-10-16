@@ -1,5 +1,5 @@
 import { prohibitedBody, prohibitedReason } from '../policy/prohibited.js';
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 import {
   encodeAbiParameters,
@@ -19,6 +19,7 @@ import {
   getBuyerSnapshot,
   getBuyerJob,
   getShortlist,
+  quoteAgentOffer,
   reseedJobFromChain,
   getMatchProposal,
   listMatchProposalsForUser,
@@ -55,6 +56,19 @@ import { findAgentWalletByAgentAddress, getAgentWallets } from '../db/agentWalle
 import { buyerFundingNeed } from '../agents/buyerFundingNeed.js';
 import { logger } from '../logger.js';
 import { invalidBodyMessage } from './invalidBody.js';
+import {
+  AGENT_WORLD_SKIP_ALLOWED,
+  publishWorldCheck,
+  skipWorldCheck,
+  waitOnSeller,
+  worldCheckView,
+  worldStepForChoice,
+} from '../agents/agentWorldGate.js';
+import { deleteHold, getHold } from '../db/agentWorldChecks.js';
+import { nextStep, type AgentWorldHold } from '../trust/agentWorldCheck.js';
+import { roleIn } from '../worldid/agentChecks.js';
+import { WorldSessionError } from '../worldid/dealSessions.js';
+import { worldIdAgentChecks, worldIdDealSessionsConfigured } from './worldId.js';
 import { enqueueLegacyReconsiderationShadow } from './jobsReengagement.js';
 import { publicJobStatus } from './jobPublicStatus.js';
 
@@ -649,8 +663,28 @@ jobsRoutes.get('/:jobId/shortlist', async (c) => {
   return c.json({
     entries: getShortlist(jobId) ?? [],
     closed: !job || !!job.expiredAt || !!job.escrowFunded,
+    worldCheck: worldCheckView(await getHold(jobId).catch(() => null)),
   });
 });
+
+/// Funds the buyer's held choice once every World ID check it needed is done.
+/// The buyer already confirmed it, at this seller and this price.
+async function fundHeldChoice(hold: AgentWorldHold): Promise<{ funded: boolean; code?: string }> {
+  if (!hold.buyerConfirmed || nextStep(hold, AGENT_WORLD_SKIP_ALLOWED).kind !== 'proceed') return { funded: false };
+  if (inFlight.has(hold.jobId)) return { funded: false, code: 'in-flight' };
+  inFlight.add(hold.jobId);
+  try {
+    const result = await chooseAgentOffer(hold.jobId, hold.sellerAgent, hold.priceUsdc);
+    if (!result.ok) {
+      logger.warn({ jobId: hold.jobId, code: result.code }, 'held choice could not fund after the World ID check');
+      return { funded: false, code: result.code };
+    }
+    await deleteHold(hold.jobId);
+    return { funded: true };
+  } finally {
+    inFlight.delete(hold.jobId);
+  }
+}
 
 /// The buyer chooses one of the offers on their request at that offer's price.
 /// Only the person who posted the request can, and it funds escrow in the same
@@ -690,6 +724,27 @@ jobsRoutes.post('/:jobId/choose-offer', async (c) => {
       return c.json({ error, code: check.code }, 409);
     }
   }
+  const quote = await quoteAgentOffer(jobId, body.seller);
+  if (quote.ok) {
+    const { hold, step } = await worldStepForChoice({
+      jobId,
+      buyerUser: body.caller,
+      sellerAgent: quote.seller,
+      priceUsdc: quote.priceUsdc,
+      acknowledgeUnverified: body.acknowledgeUnverified === true,
+    });
+    if (step.kind === 'buyer') {
+      refuse('world-id-buyer');
+      return c.json(
+        { error: 'Confirm with World ID before your agent funds this deal.', code: 'WORLD_ID_REQUIRED', reason: step.reason, skipAllowed: AGENT_WORLD_SKIP_ALLOWED },
+        409,
+      );
+    }
+    if (step.kind === 'seller' && hold) {
+      await waitOnSeller(hold);
+      return c.json({ accepted: false, code: 'SELLER_CHECK_PENDING', reason: step.reason, jobId }, 202);
+    }
+  }
   if (inFlight.has(jobId)) {
     refuse('in-flight');
     return c.json({ error: 'an action is already in progress for this job' }, 409);
@@ -703,10 +758,69 @@ jobsRoutes.post('/:jobId/choose-offer', async (c) => {
       const error = saysWhy(result.code) ? result.message : 'could not choose this offer';
       return c.json({ error, code: result.code, detail: result.message }, status);
     }
+    await deleteHold(jobId).catch(() => undefined);
     return c.json({ accepted: true, jobId, txHash: result.txHash }, 200);
   } finally {
     inFlight.delete(jobId);
   }
+});
+
+const worldCallerSchema = z.object({ caller: addrSchema });
+const worldVerifySchema = z.object({ caller: addrSchema, idkitResponse: z.record(z.string(), z.unknown()) });
+
+function worldCheckFailure(c: Context, error: unknown) {
+  if (error instanceof WorldSessionError) return c.json({ error: error.message, code: error.code }, error.status);
+  logger.error({ err: error instanceof Error ? error.message : 'unknown' }, 'agent World ID check unavailable');
+  return c.json({ error: 'World ID is unavailable. Try again shortly.', code: 'WORLD_ID_UNAVAILABLE' }, 503);
+}
+
+/// Starts the World ID check for whichever side of the request's open step the
+/// caller is on.
+jobsRoutes.post('/:jobId/world-check/request', async (c) => {
+  c.header('Cache-Control', 'no-store');
+  let body;
+  try { body = worldCallerSchema.parse(await c.req.json()); }
+  catch (err) { return c.json({ error: invalidBodyMessage(err) }, 400); }
+  if (!isSessionSelf(c, body.caller)) return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  if (!worldIdDealSessionsConfigured()) return c.json({ error: 'World ID is unavailable. Try again shortly.', code: 'WORLD_ID_UNAVAILABLE' }, 503);
+  try {
+    return c.json(await worldIdAgentChecks().request(c.req.param('jobId'), body.caller), 200);
+  } catch (error) { return worldCheckFailure(c, error); }
+});
+
+jobsRoutes.post('/:jobId/world-check/verify', async (c) => {
+  c.header('Cache-Control', 'no-store');
+  let body;
+  try { body = worldVerifySchema.parse(await c.req.json()); }
+  catch (err) { return c.json({ error: invalidBodyMessage(err) }, 400); }
+  if (!isSessionSelf(c, body.caller)) return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  if (!worldIdDealSessionsConfigured()) return c.json({ error: 'World ID is unavailable. Try again shortly.', code: 'WORLD_ID_UNAVAILABLE' }, 503);
+  try {
+    const { role, hold } = await worldIdAgentChecks().verify(c.req.param('jobId'), body.caller, body.idkitResponse);
+    logger.info({ jobId: hold.jobId, role }, 'agent deal World ID check passed');
+    publishWorldCheck(hold);
+    const funding = role === 'seller' ? await fundHeldChoice(hold) : { funded: false };
+    return c.json({ verified: true, role, ...funding, worldCheck: worldCheckView(funding.funded ? null : hold) }, 200);
+  } catch (error) { return worldCheckFailure(c, error); }
+});
+
+/// Testnet only: go on without the check. It is not a verification and never
+/// reads as one, and mainnet refuses it.
+jobsRoutes.post('/:jobId/world-check/skip', async (c) => {
+  c.header('Cache-Control', 'no-store');
+  if (!AGENT_WORLD_SKIP_ALLOWED) return c.json({ error: 'This check cannot be skipped on mainnet.', code: 'SKIP_NOT_ALLOWED' }, 403);
+  let body;
+  try { body = worldCallerSchema.parse(await c.req.json()); }
+  catch (err) { return c.json({ error: invalidBodyMessage(err) }, 400); }
+  if (!isSessionSelf(c, body.caller)) return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  const hold = await getHold(c.req.param('jobId'));
+  const role = roleIn(hold, body.caller);
+  if (!hold || !role) return c.json({ error: 'There is no World ID check for you on this request.', code: 'forbidden' }, 403);
+  const skipped = await skipWorldCheck(hold, role);
+  logger.info({ jobId: hold.jobId, role }, 'agent deal World ID check skipped on testnet');
+  publishWorldCheck(skipped);
+  const funding = role === 'seller' ? await fundHeldChoice(skipped) : { funded: false };
+  return c.json({ skipped: true, role, ...funding, worldCheck: worldCheckView(funding.funded ? null : skipped) }, 200);
 });
 
 /// Seller raises the agent-agreed price at the approval gate (they want more

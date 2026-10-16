@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { config } from '../config.js';
 import { pgEnabled, withPostgresTransaction } from '../db/client.js';
 import { createWorldAccountSessions, type WorldAccountSessions } from '../worldid/accountSessions.js';
+import { createWorldAgentChecks } from '../worldid/agentChecks.js';
 import { createWorldDealSessions } from '../worldid/dealSessions.js';
 import {
   createWorldIdRpSignature,
@@ -85,6 +86,16 @@ export function worldIdDealSessionsConfigured(): boolean {
 export function worldIdDealSessions() {
   if (!worldIdDealSessionsConfigured()) throw new Error('World ID deal sessions are unavailable');
   return createWorldDealSessions({
+    transaction: withPostgresTransaction, verifier: configuredVerifier,
+    rpId: config.WORLD_ID_RP_ID!, appId: config.WORLD_ID_APP_ID!,
+    signingKey: config.WORLD_ID_SIGNING_KEY!, environment: config.WORLD_ID_ENVIRONMENT,
+  });
+}
+
+/// The same World ID session, proved on an agent deal before escrow funds.
+export function worldIdAgentChecks() {
+  if (!worldIdDealSessionsConfigured()) throw new Error('World ID agent checks are unavailable');
+  return createWorldAgentChecks({
     transaction: withPostgresTransaction, verifier: configuredVerifier,
     rpId: config.WORLD_ID_RP_ID!, appId: config.WORLD_ID_APP_ID!,
     signingKey: config.WORLD_ID_SIGNING_KEY!, environment: config.WORLD_ID_ENVIRONMENT,

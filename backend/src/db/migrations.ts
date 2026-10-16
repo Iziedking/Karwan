@@ -1162,6 +1162,21 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       CREATE INDEX research_answers_created ON research_answers_v1 (created_at);
     `,
   },
+  {
+    version: 40,
+    name: 'agent_world_checks',
+    sql: `
+      -- One open World ID step per request: who must check before the buyer's
+      -- agent funds escrow, for one seller at one price.
+      CREATE TABLE agent_world_checks_v1 (
+        job_id TEXT PRIMARY KEY,
+        seller_user TEXT NOT NULL,
+        data JSONB NOT NULL,
+        updated_at BIGINT NOT NULL
+      );
+      CREATE INDEX agent_world_checks_seller ON agent_world_checks_v1 (seller_user);
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

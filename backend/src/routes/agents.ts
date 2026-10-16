@@ -12,6 +12,10 @@ import { withLlmRetry } from '../agents/llm-utils.js';
 import { logger } from '../logger.js';
 import { ARC } from '../chain/client.js';
 import { listBidOutcomes } from '../db/bidOutcomes.js';
+import { holdsWaitingOnSeller } from '../db/agentWorldChecks.js';
+import { getBrief } from '../db/briefs.js';
+import { requestTitle } from '../agents/bidOutcome.js';
+import { AGENT_WORLD_SKIP_ALLOWED } from '../agents/agentWorldGate.js';
 
 export const agentsRoutes = new Hono();
 
@@ -47,11 +51,20 @@ agentsRoutes.get('/buyer', async (c) => {
 agentsRoutes.get('/seller', async (c) => {
   const scope = await ownAgents(c);
   if ('error' in scope) return c.json({ error: scope.error }, scope.status);
-  if (!scope.agents) return c.json({ profile: null, activeBids: [], recentBids: [] });
+  if (!scope.agents) return c.json({ profile: null, activeBids: [], recentBids: [], worldChecks: [] });
+  // Buyers who chose this seller and are waiting on the seller's World ID check.
+  const holds = await holdsWaitingOnSeller(scope.agents.userAddress).catch(() => []);
   return c.json({
     profile: null,
     ...getSellerSnapshot(scope.agents.sellerAddress),
     recentBids: listBidOutcomes(scope.agents.sellerAddress),
+    worldChecks: holds.map((h) => ({
+      jobId: h.jobId,
+      title: requestTitle(getBrief(h.jobId)?.briefText),
+      priceUsdc: h.priceUsdc,
+      reason: h.need.seller ?? null,
+      skipAllowed: AGENT_WORLD_SKIP_ALLOWED,
+    })),
   });
 });
 

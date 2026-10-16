@@ -54,6 +54,7 @@ const EMAIL_RELEVANT = new Set([
   'deal.match.approved',
   'listing.matched',
   'request.shortlist',
+  'request.world_check',
   'deal.direct.created',
   'deal.seller-approved',
   'deal.direct.declined',
@@ -119,6 +120,11 @@ async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
   if (e.type === 'listing.matched') {
     const seller = (e.payload?.seller as string | undefined)?.toLowerCase();
     return seller ? [{ address: seller, role: 'seller' }] : [];
+  }
+  if (e.type === 'request.world_check') {
+    const seller = (e.payload?.seller as string | undefined)?.toLowerCase();
+    const waiting = e.payload?.waitingOn === 'seller' && e.payload?.buyerConfirmed === true;
+    return seller && waiting ? [{ address: seller, role: 'seller' }] : [];
   }
   if (e.type === 'request.shortlist') {
     // Only the poster, and only for the updates marked worth a message.
@@ -203,6 +209,19 @@ export function contentFor(
   const amountSuffix = amount ? ` (${amount} USDC)` : '';
 
   switch (e.type) {
+    case 'request.world_check': {
+      if (role !== 'seller' || e.payload?.waitingOn !== 'seller' || e.payload?.buyerConfirmed !== true) return null;
+      const price = (e.payload?.priceUsdc as string | undefined) ?? '';
+      const priceSuffix = price ? ` at ${price} USDC` : '';
+      return {
+        kicker: 'One step left',
+        subject: `A buyer chose your offer${priceSuffix}`,
+        heading: 'A buyer chose your offer',
+        body: `A buyer chose your offer${priceSuffix}. Before escrow is funded, confirm with World ID that you are a real person. It takes a minute in the World App. Escrow funds as soon as you do.`,
+        ctaLabel: 'Confirm with World ID',
+        ctaUrl: base() ? `${base()}/seller` : undefined,
+      };
+    }
     case 'request.shortlist': {
       const count = Number(e.payload?.count ?? 0);
       if (e.payload?.notify !== true || count < 1) return null;
