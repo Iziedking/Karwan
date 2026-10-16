@@ -12,8 +12,9 @@ export function folderDeals<T extends FeedDeal>(feed: T[] | undefined, origin?: 
     .slice(0, count);
 }
 
-export function agentShare(stats: { total: number; agent: number } | undefined): number | null {
+export function agentShare(stats: { total: number; agent: number; settled: number; direct: number } | undefined): number | null {
   if (!stats || !(stats.total > 0)) return null;
+  if (![stats.agent, stats.settled, stats.direct].every(Number.isSafeInteger)) return null;
   return Math.floor((stats.agent / stats.total) * 100);
 }
 

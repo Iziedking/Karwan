@@ -64,3 +64,9 @@ test('the read count comes from the public route and is left out when it fails',
   assert.match(section, /agentReadFigure\(/);
   assert.match(section, /liveReadsSince/);
 });
+
+test('a reply without the record shows the example sequence instead of breaking the page', () => {
+  for (const reply of [{}, { totals: { deals: 3 } }, { volumes: stats.volumes }, { totals: {}, volumes: stats.volumes }]) {
+    assert.equal(settlementFigures(reply as never), null, JSON.stringify(reply));
+  }
+});

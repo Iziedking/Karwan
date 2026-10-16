@@ -22,8 +22,8 @@ test('the agent folder holds only deals the feed says an agent matched', () => {
 });
 
 test('the agent share is whole percent of all deals, and absent without deals', () => {
-  assert.equal(agentShare({ total: 197, agent: 95 }), 48);
-  assert.equal(agentShare({ total: 0, agent: 0 }), null);
+  assert.equal(agentShare({ total: 197, agent: 95, settled: 190, direct: 102 }), 48);
+  assert.equal(agentShare({ total: 0, agent: 0, settled: 0, direct: 0 }), null);
   assert.equal(agentShare(undefined), null);
 });
 
@@ -61,4 +61,10 @@ test('the folders load with the rest of the record, not after it', () => {
   assert.doesNotMatch(folders, /useQuery/);
   assert.match(record, /api\.dealsStats\(\)/);
   assert.match(folders, /feedKnowsOrigin\(/);
+});
+
+test('the folders stay hidden unless every figure is a real count', () => {
+  assert.equal(agentShare({ total: 10 } as never), null);
+  assert.equal(agentShare({ total: 10, agent: 3, settled: 8 } as never), null);
+  assert.equal(agentShare({ total: 10, agent: 3, settled: 8, direct: 7 }), 30);
 });

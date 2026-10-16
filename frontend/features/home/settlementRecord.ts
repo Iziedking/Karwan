@@ -23,7 +23,8 @@ export interface SettlementFigures {
 /// The all-time record read from the contracts, or null when there is nothing
 /// real to show yet; the landing then shows the example sequence instead.
 export function settlementFigures(stats: LifetimeSlice | null | undefined): SettlementFigures | null {
-  if (!stats || !(stats.totals.deals > 0)) return null;
+  // Any reply without the record, the example sequence shows instead.
+  if (!stats?.totals || !stats.volumes || !(stats.totals.deals > 0)) return null;
   const funded = Number(stats.volumes.fundedUsdc);
   const released = Number(stats.volumes.releasedUsdc);
   const returned = Number(stats.volumes.refundedUsdc);
