@@ -41,7 +41,7 @@ Every control below names the check that pins it. A control without one is a gap
 | SC02 Price oracle manipulation | A moved price makes a deal pay out the wrong amount | Deals hold no prices. Only the yield pool values USYC, from the Teller's own redemption quote, and it never subscribes more than its margin covers | `YieldPool.t.sol`, the property "the pool covers what families parked" |
 | SC03 Logic errors | A sequence of valid steps leaves money stranded, double-paid or with the wrong person | Each family's books are written as properties and run by three fuzzers; the settlement base's books are proved for every amount along a fund, payout and fee sequence on one deal | The six property sets under Foundry, Medusa and Echidna; the Halmos proofs `check_the_books_balance` and `check_principal_can_always_be_withdrawn` |
 | SC04 Lack of input validation | Terms outside their bounds, or a payout above what a deal holds | Each family checks its terms against fixed bounds; the base refuses a payout above a deal's balance or a fee above its cap | `test_terms_out_of_bounds_are_refused`, the Agreement terms tests, `test_cannot_pay_more_than_the_deal_holds`, `test_fee_stays_within_the_snapshotted_rate`, `check_no_payout_beyond_the_deal` |
-| SC05 Reentrancy | A token or callee calls back mid-payout | Every entry point that moves money is non-reentrant; books are written before any transfer; every callee is fixed at deployment or through the timelock | Slither and Aderyn triage; the "books balance" property in every family |
+| SC05 Reentrancy | A token or callee calls back mid-payout | Every entry point that moves money is non-reentrant; books are written before any transfer; every callee is fixed at deployment or through the timelock | A test per guarded function in which a token calls back mid-payment and is refused (`*Reentrancy.t.sol`); Slither and Aderyn triage; the "books balance" property in every family |
 | SC06 Unchecked external calls | A failed transfer or record write is taken as done | Transfers use checked calls, and a refused payout becomes an owed balance; funding checks the amount that actually arrived; record writes and stake hooks that fail are kept for retry | The blocklist tests in every family, `test_a_token_that_delivers_less_is_refused`, `check_principal_can_always_be_withdrawn`, the pending-record tests |
 | SC07 Flash loans | Borrowed money inflates a value for one transaction | No deal reads a price or a share of a pool; funding must arrive as a real transfer | `test_a_token_that_delivers_less_is_refused`; the books properties. The only balance a deal path reads is that arrival check |
 | SC08 Integer overflow and underflow | Arithmetic wraps and pays the wrong amount | Checked arithmetic throughout; every narrowing cast takes a value bounded by its source | Aderyn triage of the casts; the Halmos proofs, for the settlement base's amounts |
@@ -66,7 +66,9 @@ Every control below names the check that pins it. A control without one is a gap
 | Two static analysers, every finding explained | Slither, Aderyn | `contracts/test/suite/SLITHER_TRIAGE.md`, `contracts/test/suite/ADERYN_TRIAGE.md`; the CRE contracts in `contracts/test/suite/cre/SLITHER_CRE.md`, their Aderyn findings still being triaged by the CRE build |
 | Branch coverage: every branch taken by a test, or explained | Foundry coverage, `scripts/ops/forge-remote.sh --coverage` | `contracts/test/suite/COVERAGE_TRIAGE.md` |
 | Fuzz tests over every money computation, 10,000 runs each | Foundry, release profile | `contracts/test/suite/**/*Fuzz.t.sol` |
-| Mutation testing: every mutant of every suite contract outside the CRE build, built and tested against the Foundry tests | slither-mutate's mutators, each replacement written over the exact expression it names, run by `scripts/ops/forge-remote.sh --campaign` | Every survivor is closed before deployment, and the campaign runs again on the frozen release. The Halmos proofs and the Arc fork tests run outside it |
+| Mutation testing: every mutant of every suite contract outside the CRE build, built and tested against the Foundry tests | slither-mutate's mutators, each replacement written over the exact expression it names, run by `scripts/ops/forge-remote.sh --campaign` | Every survivor is closed before deployment, by a test or under a rule in `contracts/test/suite/MUTATION_TRIAGE.md` that `scripts/ops/forge-remote.sh --campaign-triage` checks, and the campaign runs again on the frozen release. The Halmos proofs and the Arc fork tests run outside it |
+| Every reentrancy guard proven: each guarded function refuses a token that calls back mid-payment, and each test fails without its guard | Foundry | `contracts/test/suite/**/*Reentrancy.t.sol` |
+| Every event checked field by field, each topic and each data field | Foundry, `vm.expectEmit` and recorded logs | `contracts/test/suite/**/*Events.t.sol` and each contract's own tests |
 | Two rehearsals on Arc testnet | The deployment script | Before the single deployment |
 
 ## Status
@@ -79,5 +81,7 @@ Every control below names the check that pins it. A control without one is a gap
 | Aderyn and its triage | Built |
 | Full branch coverage, with every exception explained | Built |
 | Fuzz tests at 10,000 runs | Built |
-| Mutation testing | Campaign built; its survivors are closed before deployment |
+| Every reentrancy guard proven, one test each | Built |
+| Every event checked field by field | Built |
+| Mutation testing | Campaign running; its survivors are closed in batches as it finds them, all before deployment |
 | 24-hour fuzzing on the frozen release | Planned, at release |
