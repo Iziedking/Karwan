@@ -1,4 +1,5 @@
-﻿import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+﻿import type { PrivateLocation } from '../location/rules.js';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { eq, sql } from 'drizzle-orm';
 import { db, pgEnabled, withPostgresTransaction } from './client.js';
@@ -76,6 +77,9 @@ export interface Workspace {
 }
 
 export interface UserProfile {
+  /// Where the person is and delivers. Private: used by matching only; the
+  /// public profile shows the country (location/rules.ts publicLocation).
+  location?: PrivateLocation;
   address: string;
   role: Role;
   displayName: string;
@@ -321,6 +325,7 @@ const PRESERVE_WHEN_OMITTED = [
   'profileImageDataUrl',
   'settings',
   'reputationSources',
+  'location',
 ] as const;
 
 export async function upsertProfile(

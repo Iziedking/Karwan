@@ -158,6 +158,10 @@ const postJobSchema = z
      *  (db/briefs.ts) snapshots these alongside the brief text so the buyer
      *  agent + downstream surfaces can read them without re-querying chain. */
     tradeType: z.enum(['service', 'goods', 'mixed']).optional(),
+    deliveryKind: z.enum(['goods', 'in_person', 'remote']).optional(),
+    where: z
+      .object({ scope: z.enum(['near', 'country', 'anywhere']), country: z.string().regex(/^[A-Za-z]{2}$/).optional() })
+      .optional(),
     incoterms: z.enum(['EXW', 'FCA', 'FOB', 'CIF', 'DAP', 'DDP']).optional(),
     paymentTerms: z.enum(['immediate', 'net30', 'net60', 'net90']).optional(),
     counterpartyCompany: z
@@ -479,6 +483,8 @@ ${body.terms}` : body.brief));
     tradeLane: deriveJobLane(posterAccountType, body.tradeType),
     partyKind: posterAccountType,
     tradeType: body.tradeType,
+    deliveryKind: body.deliveryKind,
+    where: body.where ? { scope: body.where.scope, ...(body.where.country ? { country: body.where.country.toUpperCase() } : {}) } : undefined,
     incoterms: body.incoterms,
     paymentTerms: body.paymentTerms,
     counterpartyCompany: body.counterpartyCompany,

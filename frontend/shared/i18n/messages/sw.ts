@@ -13,6 +13,8 @@ import { notFoundCopy } from './pageStates';
 import { dealLiveCopy } from './dealLive';
 import { offerRosterCopy } from './offerRoster';
 import { shortlistCopy } from './shortlist';
+import { directMessagesCopy } from './directMessages';
+import { ratingsCopy } from './ratings';
 import { agentNudgesCopy } from './agentNudges';
 import { developersCopy } from './developers';
 import { reputationSourcesCopy } from './reputationSources';
@@ -43,6 +45,8 @@ export const sw: Messages = {
   pageNotFound: notFoundCopy.sw,
   offerRoster: offerRosterCopy.sw,
   shortlist: shortlistCopy.sw,
+  directMessages: directMessagesCopy.sw,
+  ratings: ratingsCopy.sw,
   agentNudges: agentNudgesCopy.sw,
   developers: developersCopy.sw,
   reputationSources: reputationSourcesCopy.sw,
@@ -5166,6 +5170,9 @@ export const sw: Messages = {
       q10: { q: "Karwan inawezaje kuweka uwasilishaji salama?", a: "Kila kiungo kilichowasilishwa hukaguliwa kwa usalama na dhidi ya ombi lililokubaliwa. Uwasilishaji unaoshindwa ukaguzi wowote husimamisha malipo. Ukaguzi hauwezi kuhakikisha ubora, kwa hivyo kagua kazi kabla ya kuachilia." },
       q11: { q: 'Je, naweza kuleta sifa yangu kutoka majukwaa mengine?', a: 'Bado. Karwan inajenga hili ili rekodi yako kwenye majukwaa mengine ihesabiwe hapa, kwa ruhusa yako na bila kuvujisha data yako. Leo sifa yako inatokana na biashara za Karwan zilizokamilika.' },
       q12: { q: "Ninalipwaje kwa kiungo cha malipo?", a: "Unda kiungo kwenye Omba na ukishiriki. Mlipaji hahitaji akaunti. Anaweza kulipa kutoka salio lake la Karwan, kutoka pochi iliyounganishwa, au kwa Tuma kutoka mnyororo wowote, inayoonyesha anwani ya minyororo ya EVM na moja ya Solana ili alipe kutoka soko la kubadilishana au pochi yoyote. Pesa inayotumwa hivyo hufika kwenye anwani yako kwenye Arc moja kwa moja. Kiasi kidogo huhesabiwa kama malipo ya sehemu na ukurasa unaonyesha kilichobaki. Kiasi kikubwa huweka kiungo kama kimelipwa na ziada ni yako." },
+      q13: { q: "Nani anaona nilipo?", a: "Nchi yako pekee ndiyo inaonekana kwenye rekodi yako. Mji na eneo lako vinabaki siri: mawakala huvitumia kukuunganisha na watu walio karibu nawe na wanunuzi unaoweza kuwafikishia, na hawavionyeshi kwa mtu yeyote. Maelezo ya kufikisha hukubaliwa kwenye mazungumzo na mtu unayefanya naye biashara." },
+      q14: { q: "Je, naweza kumtumia mtu ujumbe kabla ya mpango?", a: "Ndiyo. Mwombe wakala wako atume ujumbe kwa lebo yake ya Karwan, au fungua karwan.site/messages/lebo-yake. Anaupata kwenye mazungumzo yake ya Karwan pamoja na arifa kwenye Telegram na kwa barua pepe, na anaona lebo yako, nchi yako na kiwango chako. Mkikubaliana, anzisha mpango uliolindwa. Weka malipo ndani ya escrow ya Karwan na usilipe nje yake kamwe. Ujumbe huhifadhiwa siku 14." },
+      q15: { q: "Ukadiriaji hufanyaje kazi?", a: "Mpango ukishalipwa, wewe na mtu mwingine kila mmoja anaukadiria kutoka 1 hadi 5, pamoja na maoni ukipenda. Hakuna anayeona ukadiriaji wa mwenzake hadi nyote mkadirie au siku 14 zipite. Ukadiriaji wako wa umma ni wastani pamoja na idadi ya ukadiriaji, kwa mfano 4.8 kutoka mipango 23; chini ya ukadiriaji 3 unaonyesha Mpya. Ukadiriaji hufungwa siku 14 baada ya mpango kulipwa. Ukadiriaji kutoka mipango yenye mgogoro unahesabiwa kando ya namba, kwa mfano 3.7 kutoka mipango 3, 2 zenye mgogoro. Maoni yenye namba ya simu, barua pepe au kiungo yanabaki ya faragha. Ukadiriaji wako ni tofauti na alama yako ya sifa." },
     },
     videoGuides: { eyebrow: 'Miongozo ya video', title: 'Itazame ikifanya kazi', body: 'Video fupi za kila mtiririko zinakuja. Wakati zinaandaliwa, ziara ya ndani ya programu inakuongoza hatua kwa hatua kwenye kila ukurasa. Ifungue kutoka kitufe cha Ziara chini ya skrini.', badge: 'Inakuja hivi karibuni' },
     cta: { title: 'Anza kujenga rekodi yako', body: 'Kubaliana masharti, fadhili escrow ya USDC, na kila biashara iliyokamilika inaongeza kwenye sifa yako.', button: 'Zindua programu', chainPrefix: 'chenya' },
@@ -5245,7 +5252,7 @@ export const sw: Messages = {
         deadline: 'Tarehe ya mwisho iliyokosewa inayoishia kwa kurudisha fedha inarekodiwa kama kushindwa.',
         staking: 'Staking inachangia kiwango cha juu na inafanya kazi kama bima ya deal ambayo contract ya escrow inaweza kuchota kutoka kwake.',
       },
-      tail: 'Fomula kamili iko katika hati ya muundo wa sifa. Wakala husoma kiwango na hutumia tabia inayozingatia kiwango: kiwango cha juu hupata kipaumbele na kinaweza kuruka mnada katika baadhi ya mtiririko, akaunti mpya hulipa malipo ya ziada kwa deal za kwanza. Wakala kamwe haondoshi mipaka uliyoweka.',
+      tail: 'Fomula kamili iko katika hati ya muundo wa sifa. Wakala husoma kiwango na hutumia tabia inayozingatia kiwango: kiwango cha juu hupata kipaumbele na kinaweza kuruka mnada katika baadhi ya mtiririko, akaunti mpya hulipa malipo ya ziada kwa deal za kwanza. Wakala kamwe haondoshi mipaka uliyoweka. Baada ya mpango uliolipwa, watu wote wawili wanaweza kukadiriana kutoka 1 hadi 5; ukadiriaji wa umma uko mbali na alama na hauibadilishi.',
       agentWallet: 'Sifa inaandikwa dhidi ya akaunti iliyolipa deal. Kama unatumia wallet ya wakala, rekodi hufuata wallet hiyo.',
     },
     verification: {

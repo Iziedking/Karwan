@@ -256,9 +256,14 @@ export function createDispatcher<A extends ChatAccount>(deps: DispatchDeps<A>) {
     for (const a of kept) {
       if (a.kind === 'confirm') pendingActions[a.id] = { action: a, expiresAt: deps.now() + CARD_TTL_MS };
     }
+    // Notes Karwan wrote into the chat while the turn ran (an alert, a
+    // question) are kept, after the reply.
+    const before = account.history ?? [];
+    const fresh = await deps.getOrStart(m.from).catch(() => account);
+    const arrived = (fresh.history ?? []).filter((h) => !before.some((b) => b.role === h.role && b.content === h.content));
     await deps.saveAccount({
       ...account,
-      history: [...history, { role: 'assistant' as const, content: result.reply }].slice(-HISTORY_MAX),
+      history: [...history, { role: 'assistant' as const, content: result.reply }, ...arrived].slice(-HISTORY_MAX),
       pendingActions,
     });
     for (const out of renderTurn(result.reply, kept, deps.webBase)) await reply(out);

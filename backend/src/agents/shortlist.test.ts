@@ -17,6 +17,9 @@ const c = (over: Partial<ShortlistCandidate>): ShortlistCandidate => ({
   deliveryDays: 5,
   askedUsdc: 80,
   recordChecked: false,
+  locationFit: 1,
+  country: null,
+  rating: { kind: 'new', count: 0 },
   ...over,
 });
 
@@ -194,4 +197,61 @@ test('once records are sealed the assistant is told to describe people by tier a
   assert.doesNotMatch(assistantShortlistNote(true), /score|completed deals|on-time|disputes/);
   assert.match(assistantShortlistNote(true), /tier/);
   assert.match(assistantShortlistNote(false), /score/);
+});
+
+test('a nearby verified seller ranks above a far one in the same match band', () => {
+  const out = rankCandidates([
+    c({ seller: 'far', locationFit: 1, deterministicScore: 99 }),
+    c({ seller: 'near', locationFit: 3, deterministicScore: 10 }),
+  ]);
+  assert.deepEqual(out.map((x) => x.seller), ['near', 'far']);
+});
+
+test('skill band still beats location', () => {
+  const out = rankCandidates([c({ seller: 'near', matchBand: 2, locationFit: 4 }), c({ seller: 'fit', matchBand: 3, locationFit: 0 })]);
+  assert.equal(out[0]!.seller, 'fit');
+});
+
+test('a nearby recommendation says so, and entries carry country only', () => {
+  const ranked = rankCandidates([c({ seller: 'near', locationFit: 3, country: 'NG' })]);
+  const [entry] = toEntries(ranked, ranked[0]!, 100, null, []);
+  assert.ok(entry!.reasons.includes('nearby'));
+  assert.equal(entry!.country, 'NG');
+});
+
+test('no shortlist entry carries city or area', () => {
+  const ranked = rankCandidates([c({ seller: 'near', locationFit: 4, country: 'NG' })]);
+  const text = JSON.stringify(toEntries(ranked, null, 100, null, []));
+  for (const k of ['"city"', '"area"', '"reach"', '"locationFit"']) assert.equal(text.includes(k), false, k);
+});
+
+test('the shortlist ranks a 4.8 from 20 above a 4.9 from 2 at equal fit', () => {
+  const out = rankCandidates([
+    c({ seller: 'few', rating: { kind: 'new', count: 2 }, deterministicScore: 99 }),
+    c({ seller: 'many', rating: { kind: 'rated', value: 4.8, count: 20, disputed: 0 }, deterministicScore: 10 }),
+    c({ seller: 'lower', rating: { kind: 'rated', value: 4.1, count: 9, disputed: 0 }, deterministicScore: 50 }),
+  ]);
+  assert.deepEqual(out.map((x) => x.seller), ['many', 'lower', 'few']);
+});
+
+test('skill fit still beats a better rating', () => {
+  const out = rankCandidates([
+    c({ seller: 'rated', matchBand: 2, rating: { kind: 'rated', value: 5, count: 30, disputed: 0 } }),
+    c({ seller: 'fit', matchBand: 3 }),
+  ]);
+  assert.equal(out[0]!.seller, 'fit');
+});
+
+test('the rating is public, so it stays on sealed entries', () => {
+  const entries = toEntries([c({ seller: 'x', rating: { kind: 'rated', value: 4.6, count: 7, disputed: 0 } })], null, 100, null, []);
+  assert.deepEqual(sealEntries(entries)[0]!.rating, { kind: 'rated', value: 4.6, count: 7, disputed: 0 });
+  assert.deepEqual(assistantView(entries, true)[0]!.rating, '4.6 from 7 deals');
+});
+
+test('a poorly rated seller ranks below one who is still New', () => {
+  const out = rankCandidates([
+    c({ seller: 'poor', rating: { kind: 'rated', value: 1.2, count: 30, disputed: 0 } }),
+    c({ seller: 'new', rating: { kind: 'new', count: 0 } }),
+  ]);
+  assert.deepEqual(out.map((x) => x.seller), ['new', 'poor']);
 });

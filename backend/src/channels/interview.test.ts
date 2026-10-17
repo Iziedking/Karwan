@@ -73,3 +73,33 @@ test('typing at the role question asks again with the buttons', async () => {
 test('a step that is not the interview\'s is left alone', async () => {
   assert.equal(await iv.handle(at({ onboarding: { step: 'tag' } }), text('ada')), null);
 });
+
+test('with location saving on, the agent asks the country after the offer and saves it privately', async () => {
+  const saved: Array<{ country: string; city: string | null }> = [];
+  const withWhere = createInterview<ChatAccount>({ afterwards: [], saveLocation: async (_a, l) => void saved.push(l) });
+  let a = (await withWhere.enter(at())).account;
+  a = (await withWhere.handle(a, tap('ws:sell')))!.account;
+  const asked = await withWhere.handle(a, text('Owambe outfits'));
+  assert.match(bodyOf(asked?.out[0]), /Which country are you in/);
+  assert.match(bodyOf(asked?.out[0]), /Only your country is ever shown/);
+  const after = await withWhere.handle(asked!.account, text('Lagos, Nigeria'));
+  assert.deepEqual(saved, [{ country: 'NG', city: 'Lagos' }]);
+  assert.equal(after?.account.onboarding?.step, 'price');
+});
+
+test('an answer with no country is asked again, and skip moves on to the price', async () => {
+  const withWhere = createInterview<ChatAccount>({ afterwards: [], saveLocation: async () => {} });
+  const at2 = at({ onboarding: { step: 'where', role: 'sell', offer: 'x' } });
+  const again = await withWhere.handle(at2, text('somewhere nice'));
+  assert.equal(again?.account.onboarding?.step, 'where');
+  const skipped = await withWhere.handle(at2, text('skip'));
+  assert.equal(skipped?.account.onboarding?.step, 'price');
+});
+
+test('no or none at the country question moves on without saving anything', async () => {
+  const saved: unknown[] = [];
+  const withWhere = createInterview<ChatAccount>({ afterwards: [], saveLocation: async (_a, l) => void saved.push(l) });
+  const r = await withWhere.handle(at({ onboarding: { step: 'where', role: 'sell', offer: 'x' } }), text('no'));
+  assert.equal(r?.account.onboarding?.step, 'price');
+  assert.deepEqual(saved, []);
+});

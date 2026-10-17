@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api, ApiError, type AgentWorldCheckView, type ShortlistEntry, type WorldCheckReason } from '@/core/api';
 import { PersonAvatar } from '@/shared/components/PersonAvatar';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
+import { ratingText } from '@/features/ratings/ratingText';
 import { formatUsdc } from '@/shared/utils/format';
 import { ConfirmSheet } from '@/features/deals/workspace/ConfirmSheet';
 import { fill } from '@/features/deals/workspace/presentation';
@@ -163,6 +164,7 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordCh
 
 function ShortlistRow({ entry, canChoose, onChoose }: { entry: ShortlistEntry; canChoose: boolean; onChoose: () => void }) {
   const copy = useTranslations().shortlist;
+  const { locale, t: all } = useLocale();
   const v = shortlistRowView(entry, copy);
   const chooseLabel = `${copy.choose} ${entry.name}`;
   return (
@@ -178,6 +180,9 @@ function ShortlistRow({ entry, canChoose, onChoose }: { entry: ShortlistEntry; c
           <p className={`mt-0.5 text-[14px] font-semibold ${entry.verified ? 'text-[var(--color-positive)]' : 'text-[var(--lp-dark)]'}`}>
             {v.levelLine}
           </p>
+          {entry.rating ? (
+            <p className="mt-0.5 text-[14px] font-medium tabular-nums text-[var(--ink-secondary)]">{ratingText(entry.rating, all.ratings, locale)}</p>
+          ) : null}
           {entry.recommended ? <p className="mt-1 text-[14px] font-semibold text-[var(--lp-dark)]">{copy.recommended}</p> : null}
           {v.reasonLine ? <p className="mt-0.5 text-[14px] font-medium text-[var(--ink-secondary)]">{v.reasonLine}</p> : null}
         </div>

@@ -1,3 +1,4 @@
+import type { DeliveryKind, Where } from '../location/rules.js';
 import type { DealStepConfirm } from './dealActions.js';
 
 /// Stage 2 of the chat-native transaction surface: the ACTION ENVELOPE. An
@@ -46,6 +47,7 @@ export interface PostOfferPayload {
   askingPriceUsdc: number;
   negotiationMaxDecreasePct?: number;
   ttlDays?: number;
+  deliveryKind?: DeliveryKind;
 }
 
 export interface PostRequestPayload {
@@ -56,6 +58,9 @@ export interface PostRequestPayload {
   brief: string;
   budgetUsdc: number;
   deadlineDays: number;
+  deliveryKind?: DeliveryKind;
+  /// Where the buyer wants it done. Missing means anywhere.
+  where?: Where;
 }
 
 export interface ReleaseMilestonePayload {
@@ -563,6 +568,7 @@ export interface BuildPostOfferInput {
   askingPriceUsdc: number;
   negotiationMaxDecreasePct?: number;
   ttlDays?: number;
+  deliveryKind?: DeliveryKind;
 }
 
 /// Build a validated post-offer confirm card, or an `{ error }` the tool hands
@@ -611,6 +617,7 @@ export function buildPostOfferConfirm(input: BuildPostOfferInput): PostOfferConf
     askingPriceUsdc: input.askingPriceUsdc,
     ...(pct !== undefined ? { negotiationMaxDecreasePct: pct } : {}),
     ...(ttl !== undefined ? { ttlDays: ttl } : {}),
+    ...(input.deliveryKind ? { deliveryKind: input.deliveryKind } : {}),
   };
 
   return {
@@ -641,6 +648,8 @@ export interface BuildPostRequestInput {
   /// server resolved rather than a fractional day count. Falls back to a
   /// days-from-now string.
   deadlineLabel?: string;
+  deliveryKind?: DeliveryKind;
+  where?: Where;
 }
 
 /// Build a post-request (buyer desk) confirm card, or an `{ error }` the tool
@@ -685,7 +694,14 @@ export function buildPostRequestConfirm(
     title: 'Post this request',
     summary: `Posting authorises your buyer agent to match and fund a deal within your budget and saved spending settings after seller acceptance. Another buyer funding click may not be required. Review your settings on the buyer desk before posting if you are unsure. ${MARKET_READS_NOTE}`,
     fields,
-    payload: { posterAddress: i.caller, brief, budgetUsdc: i.budgetUsdc, deadlineDays: i.deadlineDays },
+    payload: {
+      posterAddress: i.caller,
+      brief,
+      budgetUsdc: i.budgetUsdc,
+      deadlineDays: i.deadlineDays,
+      ...(i.deliveryKind ? { deliveryKind: i.deliveryKind } : {}),
+      ...(i.where ? { where: i.where } : {}),
+    },
     confirmLabel: 'Post request',
     cancelLabel: 'Not now',
   };

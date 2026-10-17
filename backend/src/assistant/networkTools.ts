@@ -1,3 +1,4 @@
+import { locationOf, withBuyerLocations, withSellerLocations } from '../location/live.js';
 import { tool } from 'ai';
 import { z } from 'zod';
 import { getMarketplaceBriefs } from '../agents/buyer.js';
@@ -38,8 +39,9 @@ export function networkTools(address: string) {
           const now = Date.now();
           const enabled = config.VERIFIED_NETWORK_ONLY;
           if (side === 'sellers') {
-            const offers = listOpenListings().filter((l) => l.expiresAt > now && !prohibitedReason(l.title, l.description, l.terms));
-            const hits = searchMarket({ query: need, kind: 'offers', maxPriceUsdc: budgetUsdc, excludeSeller: address, limit: 15 }, offers, []);
+            const offers = await withSellerLocations(listOpenListings().filter((l) => l.expiresAt > now && !prohibitedReason(l.title, l.description, l.terms)));
+            const near = await locationOf(address);
+            const hits = searchMarket({ query: need, kind: 'offers', maxPriceUsdc: budgetUsdc, excludeSeller: address, limit: 15, near, where: near ? { scope: 'near' } : undefined }, offers, []);
             const people = [];
             for (const hit of hits) {
               if (hit.kind !== 'offer' || people.length >= 5) continue;
@@ -55,13 +57,14 @@ export function networkTools(address: string) {
                 level,
                 tier: passport.tier,
                 reasons: passport.reasons,
+                country: hit.country,
               });
             }
             return { count: people.length, people, next: people.length ? 'Offer to ask their agent about price, timeline or terms.' : 'No verified seller fits yet. Offer to post a request so verified sellers can offer.' };
           }
 
-          const briefs = getMarketplaceBriefs().filter((b) => !prohibitedReason(b.briefText));
-          const hits = searchMarket({ query: need, kind: 'requests', limit: 15 }, [], briefs);
+          const briefs = await withBuyerLocations(getMarketplaceBriefs().filter((b) => !prohibitedReason(b.briefText)));
+          const hits = searchMarket({ query: need, kind: 'requests', limit: 15, near: await locationOf(address) }, [], briefs);
           const customers = [];
           for (const hit of hits) {
             if (hit.kind !== 'request' || customers.length >= 5) continue;
@@ -78,6 +81,7 @@ export function networkTools(address: string) {
               due: new Date(hit.dueUnix * 1000).toISOString().slice(0, 10),
               name: profile?.displayName?.trim() || 'A Karwan buyer',
               level,
+              country: hit.country,
             });
           }
           return { count: customers.length, customers };

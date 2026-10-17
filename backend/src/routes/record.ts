@@ -1,5 +1,6 @@
 import { Hono, type Context } from 'hono';
 import { isOwnerView } from '../sealed/passport.js';
+import type { PublicRating } from '../ratings/rules.js';
 import type { Ladder } from '../verification/ladder.js';
 
 interface RecordFact {
@@ -13,7 +14,7 @@ interface RecordFact {
 export interface RecordDeps {
   now: () => number;
   addressOfTag: (tag: string) => Promise<string | null>;
-  passport: (address: string) => Promise<{ displayName: string | null; tag: string | null; tier: string; reasons: string[] }>;
+  passport: (address: string) => Promise<{ displayName: string | null; tag: string | null; tier: string; reasons: string[]; country?: string | null; rating?: PublicRating }>;
   level: (address: string) => Promise<Ladder>;
   facts: (address: string) => Promise<RecordFact[]>;
   credential: (address: string) => Promise<unknown | null>;
@@ -58,6 +59,8 @@ export function createRecordRoutes(deps: RecordDeps): Hono {
       level,
       tier: passport.tier,
       reasons: passport.reasons,
+      country: passport.country ?? null,
+      rating: passport.rating ?? { kind: 'new', count: 0 },
       ...(summary ? { score: summary.score, counts: summary.counts } : { sealed: true }),
       checks: valid.map((f) => ({ kind: f.kind, at: f.issuedAt })),
       sources: [{ id: 'karwan', status: 'connected' }],

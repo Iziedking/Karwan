@@ -36,7 +36,7 @@ export const recordDeps: RecordDeps = {
   addressOfTag: async (tag) => (await findProfileByHandle(tag))?.address?.toLowerCase() ?? null,
   passport: async (address) => {
     const p = await loadPublicPassport(address);
-    return { displayName: p.displayName, tag: p.tag, tier: p.tier, reasons: p.reasons };
+    return { displayName: p.displayName, tag: p.tag, tier: p.tier, reasons: p.reasons, country: p.country, rating: p.rating };
   },
   level: async (address) => {
     const now = Date.now();

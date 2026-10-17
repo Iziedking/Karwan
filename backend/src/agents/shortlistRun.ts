@@ -1,5 +1,7 @@
 import type { Ladder } from '../verification/ladder.js';
 import type { RecordCounts } from '../reputation/recordRead.js';
+import { locationFit, publicLocation, type DeliveryKind, type PrivateLocation, type Where } from '../location/rules.js';
+import type { PublicRating } from '../ratings/rules.js';
 import { SHORTLIST_MAX, type ShortlistCandidate } from './shortlist.js';
 
 /// Turns the buyer agent's ranked bids into shortlist candidates: a paid
@@ -19,6 +21,8 @@ export interface ShortlistDeps {
   level: (user: string) => Promise<Ladder>;
   engine: (user: string) => Promise<{ score: number; tier: string; counts: RecordCounts }>;
   profile: (user: string) => Promise<{ name: string | null; tag: string | null }>;
+  location: (user: string) => Promise<PrivateLocation | null>;
+  rating: (user: string) => Promise<PublicRating>;
   timeoutMs: number;
 }
 
@@ -41,17 +45,28 @@ function within<T>(p: Promise<T>, ms: number): Promise<T | null> {
 }
 
 export async function buildCandidates(
-  input: { jobId: string; buyerAgent: string; buyerUser: string; bids: readonly ShortlistBid[]; nowUnix: number },
+  input: {
+    jobId: string;
+    buyerAgent: string;
+    buyerUser: string;
+    bids: readonly ShortlistBid[];
+    nowUnix: number;
+    where?: Where;
+    deliveryKind?: DeliveryKind;
+    buyerLocation?: PrivateLocation | null;
+  },
   deps: ShortlistDeps,
 ): Promise<ShortlistCandidate[]> {
   return Promise.all(
     input.bids.slice(0, SHORTLIST_MAX).map(async (b) => {
       const user = b.sellerUserAddress ?? b.seller;
-      const [level, engine, profile, read] = await Promise.all([
+      const [level, engine, profile, read, location, rating] = await Promise.all([
         deps.level(user),
         deps.engine(user),
         deps.profile(user),
         within(deps.readRecord(input.buyerAgent, user, input.jobId, input.buyerUser), deps.timeoutMs),
+        deps.location(user).catch(() => null),
+        deps.rating(user).catch((): PublicRating => ({ kind: 'new', count: 0 })),
       ]);
       return {
         seller: b.seller,
@@ -68,6 +83,9 @@ export async function buildCandidates(
         deliveryDays: Math.max(1, Math.round((b.deadlineUnix - input.nowUnix) / DAY_S)),
         askedUsdc: Number(b.priceUsdc),
         recordChecked: !!read,
+        locationFit: locationFit(input.where, input.buyerLocation ?? null, location, input.deliveryKind),
+        country: publicLocation(location).country,
+        rating,
       };
     }),
   );

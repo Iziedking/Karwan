@@ -134,7 +134,11 @@ export interface ShortlistEntry {
   askedUsdc: number | null;
   recordChecked: boolean;
   recommended: boolean;
-  reasons: Array<'best_fit' | 'verified' | 'within_budget' | 'lower_price' | 'on_time_record'>;
+  reasons: Array<'best_fit' | 'verified' | 'within_budget' | 'lower_price' | 'on_time_record' | 'nearby'>;
+  /// Two-letter country of the seller; never anything finer.
+  country?: string | null;
+  /// Public: mean of revealed ratings, or New under three.
+  rating?: { kind: 'new'; count: number } | { kind: 'rated'; value: number; count: number; disputed?: number };
   state: 'negotiating' | 'ready' | 'unavailable';
   isNew: boolean;
 }
@@ -4126,7 +4130,27 @@ export const api = {
       sources?: { id: string; status: 'connected' }[];
       /// Records are sealed and this is not your own: no score or counts.
       sealed?: true;
+      country?: string | null;
+      rating?: { kind: 'new'; count: number } | { kind: 'rated'; value: number; count: number; disputed?: number };
     }>(`/api/r/${encodeURIComponent(tag)}`),
+  /// Whether the signed-in person already rated this settled deal.
+  dealRating: (jobId: string) => json<{ rated: boolean }>(`/api/deals/${encodeURIComponent(jobId)}/rating`),
+  rateDeal: (jobId: string, stars: number, note?: string) =>
+    json<{ saved: true; revealed: boolean; message: string }>(`/api/deals/${encodeURIComponent(jobId)}/rating`, {
+      method: 'POST',
+      body: JSON.stringify({ stars, ...(note ? { note } : {}) }),
+    }),
+  /// A conversation with someone by tag, before any deal. Signed in only.
+  directMessages: (tag: string) =>
+    json<{
+      with: { tag: string; country: string | null; tier: string };
+      messages: { from: string; text: string; at: string; warning?: string }[];
+    }>(`/api/messages/${encodeURIComponent(tag)}`),
+  sendDirectMessage: (tag: string, body: string) =>
+    json<{ sent: true; warning: string | null }>(`/api/messages/${encodeURIComponent(tag)}`, {
+      method: 'POST',
+      body: JSON.stringify({ body }),
+    }),
   reputationSources: (address: string) =>
     json<{
       sources: { outsideReadable: boolean; sourceLookup: boolean; interest: string; acceptedAt: number | null; copyVersion: string | null };

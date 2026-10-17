@@ -7,6 +7,8 @@ import { getProfile } from '../db/profiles.js';
 import { compute } from '../reputation/engine.js';
 import { loadInputs } from '../reputation/signals.js';
 import { buildPassport, sealedFactsFor, type PublicPassport } from './passport.js';
+import { publicLocation } from '../location/rules.js';
+import { loadPublicRating } from '../ratings/publicRating.js';
 import { factsFor, sealedExtras } from '../verification/evidence.js';
 import { evidenceDeps } from '../verification/live.js';
 
@@ -20,11 +22,12 @@ export async function loadPublicPassport(address: string): Promise<PublicPasspor
   const hit = passportCache.get(key);
   if (hit && now - hit.at < PASSPORT_CACHE_TTL_MS) return hit.value;
 
-  const [profile, deals, inputs, verified] = await Promise.all([
+  const [profile, deals, inputs, verified, rating] = await Promise.all([
     getProfile(key).catch(() => null),
     listDealsForAddress(key).catch(() => []),
     loadInputs(key),
     factsFor(key, evidenceDeps, now).catch(() => []),
+    loadPublicRating(key, now),
   ]);
   const result = compute(inputs);
   const dealFacts = sealedFactsFor(deals, key, inputs.failedCount);
@@ -35,6 +38,8 @@ export async function loadPublicPassport(address: string): Promise<PublicPasspor
     tag: profile?.handle ?? null,
     tier: result.tier,
     memberSince: profile?.createdAt ?? null,
+    country: publicLocation(profile?.location).country,
+    rating,
     facts: { ...dealFacts, ...extras, personVerified: dealFacts.personVerified || extras.personVerified },
   });
 

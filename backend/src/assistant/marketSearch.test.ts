@@ -41,3 +41,40 @@ test('every searched word has to match the start of a word, so accounting is not
   // A longer search may miss one word.
   assert.deepEqual(searchMarket({ query: 'logo design bakery', kind: 'offers', excludeSeller: '0xme' }, extra, requests).map((h) => (h.kind === 'offer' ? h.id : '')), ['l1']);
 });
+
+const loc = (country: string, city: string | null = null, reach: Record<string, { ships: boolean; days: number | null; answeredAt: number }> = {}) => ({ country, city, area: null, reach });
+const designers = [
+  { id: 'd1', sellerUser: '0xfar', title: 'Fashion designer', description: 'Owambe outfits', askingPriceUsdc: 100, postedAt: 9, deliveryKind: 'goods' as const, sellerLocation: loc('NG', 'Abuja') },
+  { id: 'd2', sellerUser: '0xnear', title: 'Fashion designer', description: 'Owambe outfits', askingPriceUsdc: 100, postedAt: 1, deliveryKind: 'goods' as const, sellerLocation: loc('NG', 'Lagos') },
+  { id: 'd3', sellerUser: '0xno', title: 'Fashion designer', description: 'Owambe outfits', askingPriceUsdc: 100, postedAt: 5, deliveryKind: 'goods' as const, sellerLocation: loc('GH', 'Accra', { NG: { ships: false, days: null, answeredAt: 1 } }) },
+  { id: 'd4', sellerUser: '0xbest', title: 'Fashion designer for owambe outfits', description: 'Owambe outfits and fashion', askingPriceUsdc: 100, postedAt: 2, deliveryKind: 'goods' as const, sellerLocation: loc('KE', 'Nairobi', { NG: { ships: true, days: 7, answeredAt: 1 } }) },
+];
+const buyer = loc('NG', 'Lagos');
+
+test('a nearby seller ranks above an equal one far away', () => {
+  const hits = searchMarket({ query: 'fashion designer', kind: 'offers', near: buyer, where: { scope: 'near' }, limit: 10 }, designers.slice(0, 2), []);
+  assert.deepEqual(hits.map((h) => (h.kind === 'offer' ? h.id : '')), ['d2', 'd1']);
+});
+
+test('skill fit still wins over location', () => {
+  const hits = searchMarket({ query: 'fashion designer owambe', kind: 'offers', near: buyer, where: { scope: 'near' }, limit: 10 }, [designers[1]!, designers[3]!], []);
+  assert.equal(hits[0]?.kind === 'offer' ? hits[0].id : '', 'd4');
+});
+
+test('a seller who said no to the buyer\'s country is not offered', () => {
+  const hits = searchMarket({ query: 'fashion designer', kind: 'offers', near: buyer, limit: 10 }, designers, []);
+  assert.equal(hits.some((h) => h.kind === 'offer' && h.id === 'd3'), false);
+});
+
+test('hits carry country only', () => {
+  const text = JSON.stringify(searchMarket({ query: 'fashion designer', kind: 'offers', near: buyer, limit: 10 }, designers, []));
+  assert.equal(text.includes('Lagos') || text.includes('Abuja') || text.includes('reach'), false);
+  const first = searchMarket({ query: 'fashion designer', kind: 'offers', near: buyer, where: { scope: 'near' }, limit: 1 }, designers.slice(0, 2), [])[0];
+  assert.equal(first?.kind === 'offer' ? first.country : undefined, 'NG');
+});
+
+test('without a location the order is as before', () => {
+  const plain = searchMarket({ query: 'logo', kind: 'offers', limit: 10 }, offers, []);
+  const withNear = searchMarket({ query: 'logo', kind: 'offers', near: buyer, limit: 10 }, offers, []);
+  assert.deepEqual(withNear.map((h) => (h.kind === 'offer' ? h.id : '')), plain.map((h) => (h.kind === 'offer' ? h.id : '')));
+});

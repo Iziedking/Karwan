@@ -2,6 +2,7 @@
 /// No tool directly executes a money action. The direct Anthropic model is the
 /// only provider allowed to receive private tool results or chat history.
 
+import { locationOf, withBuyerLocations, withSellerLocations } from '../location/live.js';
 import { getBrief } from '../db/briefs.js';
 import { prohibitedReason } from '../policy/prohibited.js';
 import { generateText, tool, stepCountIs } from 'ai';
@@ -36,6 +37,11 @@ import { lookupPlatformGuide } from './platformGuide.js';
 import { dealStepTools, dealStepPendingLines } from './dealTools.js';
 import { verificationTools } from './verificationTools.js';
 import { chatTools, liveChatToolDeps } from './chatTools.js';
+import { liveLocationToolDeps, locationTools } from './locationTools.js';
+import { messageTools } from './messageTools.js';
+import { liveMessageToolDeps } from '../messages/live.js';
+import { ratingTools } from './ratingTools.js';
+import { liveRatingToolDeps } from '../ratings/live.js';
 import { networkTools } from './networkTools.js';
 import { directDealTools } from './directDealTools.js';
 import { isRequestOwner } from '../agents/chooseOffer.js';
@@ -1549,9 +1555,10 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
         if (refused) return { refused: true, category: refused.category, message: refused.message, next: 'Tell the user this plainly in one or two sentences and do not suggest other places to get it.' };
         try {
           const now = Date.now();
-          const offers = listOpenListings().filter((l) => l.expiresAt > now && !prohibitedReason(l.title, l.description, l.terms));
-          const requests = getMarketplaceBriefs().filter((r) => !prohibitedReason(r.briefText));
-          const ranked = searchMarket({ query, kind, maxPriceUsdc, excludeSeller: address, limit: 10 }, offers, requests);
+          const offers = await withSellerLocations(listOpenListings().filter((l) => l.expiresAt > now && !prohibitedReason(l.title, l.description, l.terms)));
+          const requests = await withBuyerLocations(getMarketplaceBriefs().filter((r) => !prohibitedReason(r.briefText)));
+          const near = await locationOf(address);
+          const ranked = searchMarket({ query, kind, maxPriceUsdc, excludeSeller: address, limit: 10, near }, offers, requests);
           const results: Array<Record<string, unknown>> = [];
           for (const hit of ranked) {
             if (results.length >= 5) break;
@@ -1856,6 +1863,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
           .optional()
           .describe('Optional: how far, in percent, their agent may auto-negotiate below the asking price.'),
         ttlDays: z.number().min(0.0006).max(90).optional().describe('Optional: how many days the offer stays open. Defaults to 30.'),
+        deliveryKind: z.enum(['goods', 'in_person', 'remote']).optional().describe('goods (physical items to deliver), in_person (work done at a place), or remote (done online). Ask only if unclear.'),
       }),
       execute: async (args) => {
         // Pre-flight the SAME preconditions the listings route enforces, so the
@@ -1887,6 +1895,8 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
         // clock. Only use deadlineDays when the user states a duration directly.
         deadlineDays: z.number().min(0.0006).max(3650).optional().describe('Deadline as a number of days FROM NOW, only when the user gave a duration ("in 3 days", "two weeks").'),
         deadlineDate: z.string().optional().describe('Deadline as an absolute calendar date, normalised to YYYY-MM-DD. Pass this whenever the user gave a date ("before 22/07/2026" -> "2026-07-22"). The server converts it to days; do not compute days yourself.'),
+        deliveryKind: z.enum(['goods', 'in_person', 'remote']).optional().describe('goods (physical items to deliver), in_person (work done at a place), or remote (done online). Ask only if unclear.'),
+        where: z.object({ scope: z.enum(['near', 'country', 'anywhere']), country: z.string().length(2).optional() }).optional().describe('Where the buyer wants it done, for goods or in-person work only: near (near them), country (a two-letter country), or anywhere. Ask "near you, or anywhere?" once when unclear. Never for remote work.'),
       }),
       execute: async (args) => {
         // Pre-flight the SAME preconditions the jobs route enforces so the card
@@ -1924,6 +1934,8 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
           budgetUsdc: args.budgetUsdc,
           deadlineDays,
           ...(args.deadlineDate ? { deadlineLabel: `by ${args.deadlineDate.trim()}` } : {}),
+          ...(args.deliveryKind ? { deliveryKind: args.deliveryKind } : {}),
+          ...(args.where && args.deliveryKind !== 'remote' ? { where: { ...args.where, ...(args.where.country ? { country: args.where.country.toUpperCase() } : {}) } } : {}),
         });
         if ('error' in built) return built;
         if (!hasEquivalentConfirm(actions, built)) actions.push(built);
@@ -2333,6 +2345,9 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
     ...dealStepTools(address, actions),
     ...verificationTools(address),
     ...chatTools(address, liveChatToolDeps),
+    ...locationTools(address, liveLocationToolDeps),
+    ...messageTools(address, liveMessageToolDeps),
+    ...ratingTools(address, liveRatingToolDeps),
     ...networkTools(address),
     ...directDealTools(address, actions),
   };

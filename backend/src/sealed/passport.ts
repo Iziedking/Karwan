@@ -4,6 +4,7 @@
 
 import type { Tier } from '../reputation/config.js';
 import { PASSPORT_KEYS, assertOnlyKeys } from './allowlist.js';
+import type { PublicRating } from '../ratings/rules.js';
 import { reasonsFor, type ReasonCode, type SealedFacts } from './reasons.js';
 
 export interface PublicPassport {
@@ -14,6 +15,10 @@ export interface PublicPassport {
   tier: Tier;
   reasons: ReasonCode[];
   memberSince: number | null;
+  /// Two-letter country. The only location anyone else ever sees.
+  country: string | null;
+  /// Public by owner decision (17 Oct 2026): "4.8 from 23 deals", or New.
+  rating: PublicRating;
 }
 
 /// The deal fields the sealed facts read. `DirectDeal` satisfies it.
@@ -58,6 +63,8 @@ export function buildPassport(input: {
   tag: string | null;
   tier: Tier;
   memberSince: number | null;
+  country?: string | null;
+  rating?: PublicRating;
   facts: SealedFacts;
 }): PublicPassport {
   const passport: PublicPassport = {
@@ -68,6 +75,8 @@ export function buildPassport(input: {
     tier: input.tier,
     reasons: reasonsFor(input.facts),
     memberSince: input.memberSince,
+    country: input.country ?? null,
+    rating: input.rating ?? { kind: 'new', count: 0 },
   };
   assertOnlyKeys(passport, PASSPORT_KEYS);
   return passport;

@@ -8,6 +8,8 @@ const deps = (over: Partial<ShortlistDeps> = {}): ShortlistDeps => ({
   level: async () => 'work_verified',
   engine: async () => ({ score: 700, tier: 'STRONG', counts: zero }),
   profile: async () => ({ name: 'Ada', tag: 'ada' }),
+  location: async () => null,
+  rating: async () => ({ kind: 'new', count: 0 }),
   timeoutMs: 50,
   ...over,
 });
@@ -43,4 +45,24 @@ test('reads run for at most five bids', async () => {
   const out = await buildCandidates(input(Array.from({ length: 8 }, (_, i) => bid(`s${i}`))), counting);
   assert.equal(calls, 5);
   assert.equal(out.length, 5);
+});
+
+test('location fit and country come from the seller\'s private location and the request', async () => {
+  const lagos = { country: 'NG', city: 'Lagos', area: null, reach: {} };
+  const [c] = await buildCandidates(
+    { ...input([bid('s')]), where: { scope: 'near' as const }, deliveryKind: 'goods' as const, buyerLocation: lagos },
+    deps({ location: async () => ({ ...lagos }) }),
+  );
+  assert.equal(c!.locationFit, 3);
+  assert.equal(c!.country, 'NG');
+});
+
+test('without a where every seller fits the same', async () => {
+  const [c] = await buildCandidates(input([bid('s')]), deps({ location: async () => ({ country: 'GH', city: null, area: null, reach: {} }) }));
+  assert.equal(c!.locationFit, 1);
+});
+
+test('each candidate carries the seller\'s public rating', async () => {
+  const [c] = await buildCandidates(input([bid('s')]), deps({ rating: async () => ({ kind: 'rated', value: 4.5, count: 6 }) }));
+  assert.deepEqual(c!.rating, { kind: 'rated', value: 4.5, count: 6 });
 });

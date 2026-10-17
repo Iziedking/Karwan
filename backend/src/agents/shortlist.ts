@@ -1,11 +1,12 @@
 import type { Ladder } from '../verification/ladder.js';
+import { ratingLine, type PublicRating } from '../ratings/rules.js';
 import type { RecordCounts } from '../reputation/recordRead.js';
 
 /// The shortlist a buyer chooses from. Pure: skill fit first, verified above
 /// unverified inside a fit band, then the buyer agent's deterministic score.
 /// Only a verified seller inside the budget can be recommended.
 
-export type RecommendReason = 'best_fit' | 'verified' | 'within_budget' | 'lower_price' | 'on_time_record';
+export type RecommendReason = 'best_fit' | 'verified' | 'within_budget' | 'lower_price' | 'on_time_record' | 'nearby';
 
 export interface ShortlistCandidate {
   seller: string;
@@ -22,6 +23,12 @@ export interface ShortlistCandidate {
   deliveryDays: number;
   askedUsdc: number;
   recordChecked: boolean;
+  /// 0-4 from location/rules.ts locationFit. Read for ranking, never shown.
+  locationFit: number;
+  /// The only location that reaches the buyer.
+  country: string | null;
+  /// Public: mean of revealed ratings, or New under three.
+  rating: PublicRating;
 }
 
 export interface ShortlistEntry {
@@ -44,6 +51,8 @@ export interface ShortlistEntry {
   reasons: RecommendReason[];
   state: 'negotiating' | 'ready' | 'unavailable';
   isNew: boolean;
+  country: string | null;
+  rating: PublicRating;
 }
 
 export const SHORTLIST_MAX = 5;
@@ -54,11 +63,18 @@ export function isVerified(level: Ladder): boolean {
   return level === 'work_verified' || level === 'id_verified';
 }
 
+/// A rated person by their rating; anyone still New (under three) sits at a
+/// neutral 3.5, above a poor record and below a good one.
+const NEW_RANK = 3.5;
+const ratingRank = (r: PublicRating) => (r.kind === 'rated' ? r.value : NEW_RANK);
+
 export function rankCandidates(cands: readonly ShortlistCandidate[]): ShortlistCandidate[] {
   return [...cands].sort(
     (a, b) =>
       b.matchBand - a.matchBand ||
+      b.locationFit - a.locationFit ||
       Number(isVerified(b.level)) - Number(isVerified(a.level)) ||
+      ratingRank(b.rating) - ratingRank(a.rating) ||
       b.deterministicScore - a.deterministicScore ||
       a.askedUsdc - b.askedUsdc,
   );
@@ -90,6 +106,8 @@ export function unavailableSellers(entries: readonly ShortlistEntry[]): Set<stri
 function reasonsFor(rec: ShortlistCandidate, ranked: readonly ShortlistCandidate[], budgetUsdc: number): RecommendReason[] {
   const out: RecommendReason[] = [];
   if (ranked[0]?.seller === rec.seller) out.push('best_fit');
+  // Someone looking nearby cares about this before the rest.
+  if (rec.locationFit >= 2) out.push('nearby');
   if (isVerified(rec.level)) out.push('verified');
   if (rec.askedUsdc <= budgetUsdc) out.push('within_budget');
   if (ranked.length > 1 && ranked.every((c) => c.seller === rec.seller || c.askedUsdc > rec.askedUsdc)) out.push('lower_price');
@@ -130,6 +148,8 @@ export function toEntries(
       reasons: reasonsFor(c, ranked, budgetUsdc),
       state: was === 'unavailable' ? 'unavailable' : isRec && agreedPrice === null && was !== 'ready' ? 'negotiating' : 'ready',
       isNew: previous.length > 0 && !seen.has(c.seller.toLowerCase()),
+      country: c.country,
+      rating: c.rating,
     };
   });
 }
@@ -199,6 +219,7 @@ export function assistantView(entries: readonly ShortlistEntry[], sealed: boolea
       tag: e.tag,
       verified: e.verified,
       tier: e.tier,
+      rating: ratingLine(e.rating),
       ...(sealed
         ? {}
         : {

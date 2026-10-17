@@ -13,6 +13,8 @@ import { notFoundCopy } from './pageStates';
 import { dealLiveCopy } from './dealLive';
 import { offerRosterCopy } from './offerRoster';
 import { shortlistCopy } from './shortlist';
+import { directMessagesCopy } from './directMessages';
+import { ratingsCopy } from './ratings';
 import { agentNudgesCopy } from './agentNudges';
 import { developersCopy } from './developers';
 import { reputationSourcesCopy } from './reputationSources';
@@ -43,6 +45,8 @@ export const fr: Messages = {
   pageNotFound: notFoundCopy.fr,
   offerRoster: offerRosterCopy.fr,
   shortlist: shortlistCopy.fr,
+  directMessages: directMessagesCopy.fr,
+  ratings: ratingsCopy.fr,
   agentNudges: agentNudgesCopy.fr,
   developers: developersCopy.fr,
   reputationSources: reputationSourcesCopy.fr,
@@ -5169,6 +5173,9 @@ export const fr: Messages = {
       q10: { q: "Comment Karwan sécurise-t-il la livraison ?", a: "Chaque lien livré est contrôlé pour sa sécurité et vérifié par rapport à la demande convenue. Une livraison qui échoue à l'un de ces contrôles suspend le paiement. Les contrôles ne garantissent pas la qualité : examinez le travail avant de libérer." },
       q11: { q: 'Puis-je apporter ma réputation d’autres plateformes ?', a: 'Pas encore. Karwan construit cette fonction pour que votre historique sur d’autres plateformes compte ici, avec votre accord et sans divulguer vos données. Aujourd’hui, votre réputation vient des échanges Karwan conclus.' },
       q12: { q: "Comment être payé avec un lien de paiement ?", a: "Créez un lien dans Demander et partagez-le. Le payeur n'a pas besoin de compte. Il peut payer depuis son solde Karwan, depuis un portefeuille connecté, ou avec Envoyer depuis n'importe quelle chaîne, qui affiche une adresse pour les chaînes EVM et une pour Solana afin de payer depuis une plateforme d'échange ou tout portefeuille. L'argent envoyé ainsi arrive automatiquement à votre adresse sur Arc. Un montant inférieur compte comme paiement partiel et la page indique le reste. Un montant supérieur marque le lien comme payé et le surplus vous revient." },
+      q13: { q: "Qui voit où je me trouve ?", a: "Seul votre pays apparaît sur votre dossier. Votre ville et votre quartier restent privés : les agents s'en servent pour vous proposer des personnes proches et des acheteurs que vous pouvez livrer, sans jamais les montrer à personne. Les détails de livraison se règlent dans la discussion avec la personne concernée." },
+      q14: { q: "Puis-je écrire à quelqu'un avant un accord ?", a: "Oui. Demandez à votre agent d'envoyer un message à son tag Karwan, ou ouvrez karwan.site/messages/son-tag. La personne le reçoit dans sa discussion Karwan avec une alerte sur Telegram et par e-mail, et voit votre tag, votre pays et votre niveau. Une fois d'accord, lancez un accord protégé. Gardez le paiement dans l'escrow Karwan et ne payez jamais en dehors. Les messages sont conservés 14 jours." },
+      q15: { q: "Comment fonctionnent les notes ?", a: "Après un accord réglé, vous et l'autre personne le notez chacun de 1 à 5, avec un commentaire si vous voulez. Aucun de vous ne voit la note de l'autre avant que vous ayez noté tous les deux ou que 14 jours passent. Votre note publique est la moyenne avec le nombre de notes, par exemple 4,8 sur 23 accords ; en dessous de 3 notes, elle affiche Nouveau. Les notes se ferment 14 jours après le règlement. Les notes issues d'accords en litige sont comptées à côté du chiffre, par exemple 3,7 sur 3 accords, dont 2 en litige. Un commentaire avec un numéro de téléphone, un e-mail ou un lien reste privé. Votre note est distincte de votre score de réputation." },
     },
     videoGuides: { eyebrow: 'Guides vidéo', title: 'Voyez-le en action', body: 'De courtes vidéos de chaque flux arrivent bientôt. En attendant, la visite intégrée vous guide pas à pas sur chaque page. Ouvrez-la depuis le bouton Visite en bas de l\'écran.', badge: 'Bientôt' },
     cta: { title: 'Commencez à construire votre historique', body: 'Convenez des conditions, financez le séquestre en USDC, et chaque échange conclu renforce votre réputation.', button: 'Lancer l\'app', chainPrefix: 'chaîne' },
@@ -5248,7 +5255,7 @@ export const fr: Messages = {
         deadline: 'Un délai manqué qui finit en récupération est enregistré comme un échec.',
         staking: 'Le staking contribue à un tier supérieur et agit comme assurance de transaction dans laquelle le contrat de séquestre peut puiser.',
       },
-      tail: 'La formule complète vit dans le document du modèle de réputation. Les agents lisent le tier et appliquent un comportement adapté : un tier élevé obtient la priorité et peut sauter l\'enchère dans certains flux, un compte nouveau paye une prime sur les premières transactions. Un agent ne dépasse jamais les limites que vous avez fixées.',
+      tail: 'La formule complète vit dans le document du modèle de réputation. Les agents lisent le tier et appliquent un comportement adapté : un tier élevé obtient la priorité et peut sauter l\'enchère dans certains flux, un compte nouveau paye une prime sur les premières transactions. Un agent ne dépasse jamais les limites que vous avez fixées. Après un accord réglé, les deux personnes peuvent se noter de 1 à 5 ; la note publique est séparée du score et ne le modifie pas.',
       agentWallet: 'La réputation est écrite contre le compte qui a réglé la transaction. Si vous utilisez un wallet d\'agent, l\'enregistrement suit ce wallet.',
     },
     verification: {

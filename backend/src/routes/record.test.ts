@@ -94,3 +94,13 @@ test('a sealed answer varies by who is signed in', async () => {
   const res = await setup({ sealed: () => true, viewer: () => null }).request('/ada');
   assert.match(res.headers.get('vary') ?? '', /Cookie/);
 });
+
+test('the record shows the public rating and the country to anyone', async () => {
+  const app = setup({
+    sealed: () => true,
+    passport: async () => ({ displayName: 'Ada', tag: 'ada', tier: 'STRONG', reasons: [], country: 'NG', rating: { kind: 'rated', value: 4.8, count: 23 } }),
+  });
+  const body = (await (await app.request('/ada')).json()) as Record<string, unknown>;
+  assert.deepEqual(body.rating, { kind: 'rated', value: 4.8, count: 23 });
+  assert.equal(body.country, 'NG');
+});

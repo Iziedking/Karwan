@@ -1,5 +1,9 @@
 /// Ranking for the assistant's market search. Pure, so it is tested without a
 /// database: the caller passes the open offers and requests it read.
+/// Location is read here to rank and to leave out people who do not deliver to
+/// the caller; only the country ever goes out in a hit.
+
+import { kindOf, locationFit, publicLocation, servesCountry, type DeliveryKind, type PrivateLocation, type Where } from '../location/rules.js';
 
 export interface OfferRow {
   id: string;
@@ -9,6 +13,8 @@ export interface OfferRow {
   askingPriceUsdc: number;
   postedAt: number;
   readyInDays?: number;
+  deliveryKind?: DeliveryKind;
+  sellerLocation?: PrivateLocation | null;
 }
 
 export interface RequestRow {
@@ -17,6 +23,10 @@ export interface RequestRow {
   budgetUsdc: string;
   deadlineUnix: number;
   postedAt: number;
+  deliveryKind?: DeliveryKind;
+  tradeType?: string;
+  where?: Where;
+  buyerLocation?: PrivateLocation | null;
 }
 
 export interface MarketQuery {
@@ -26,11 +36,15 @@ export interface MarketQuery {
   /// The caller's own offers are left out; they cannot trade with themselves.
   excludeSeller?: string;
   limit?: number;
+  /// The caller's own private location. Used to rank and filter; never returned.
+  near?: PrivateLocation | null;
+  /// Where the caller wants offers from. Missing means anywhere.
+  where?: Where;
 }
 
 export type MarketHit =
-  | { kind: 'offer'; id: string; title: string; priceUsdc: number; sellerUser: string; readyInDays?: number; score: number }
-  | { kind: 'request'; jobId: string; title: string; budgetUsdc: number; dueUnix: number; score: number };
+  | { kind: 'offer'; id: string; title: string; priceUsdc: number; sellerUser: string; readyInDays?: number; score: number; fit: number; country: string | null }
+  | { kind: 'request'; jobId: string; title: string; budgetUsdc: number; dueUnix: number; score: number; fit: number; country: string | null };
 
 const STOP = new Set(['the', 'and', 'for', 'with', 'who', 'can', 'need', 'want', 'find', 'looking', 'someone', 'seller', 'sellers', 'buyer', 'buyers', 'offer', 'offers', 'request', 'requests', 'help', 'please', 'karwan', 'usdc', 'any', 'some', 'get', 'me', 'my']);
 
@@ -74,18 +88,25 @@ export function searchMarket(q: MarketQuery, offers: OfferRow[], requests: Reque
     for (const o of offers) {
       if (exclude && o.sellerUser.toLowerCase() === exclude) continue;
       if (q.maxPriceUsdc !== undefined && o.askingPriceUsdc > q.maxPriceUsdc) continue;
+      const kind = kindOf(o);
+      if (q.near && servesCountry(o.sellerLocation ?? null, q.near.country, kind) === 'no') continue;
       const s = score(terms, o.title, o.description);
-      if (s > 0) hits.push({ kind: 'offer', id: o.id, title: o.title, priceUsdc: o.askingPriceUsdc, sellerUser: o.sellerUser, readyInDays: o.readyInDays, score: s });
+      const fit = q.near ? locationFit(q.where, q.near, o.sellerLocation ?? null, kind) : 1;
+      if (s > 0) hits.push({ kind: 'offer', id: o.id, title: o.title, priceUsdc: o.askingPriceUsdc, sellerUser: o.sellerUser, readyInDays: o.readyInDays, score: s, fit, country: publicLocation(o.sellerLocation).country });
     }
   }
   if (q.kind !== 'offers') {
     for (const r of requests) {
       const budget = Number(r.budgetUsdc);
       if (q.maxPriceUsdc !== undefined && budget > q.maxPriceUsdc) continue;
+      const kind = kindOf(r);
+      if (q.near && servesCountry(q.near, r.buyerLocation?.country ?? null, kind) === 'no') continue;
       const s = score(terms, firstLine(r.briefText), r.briefText);
-      if (s > 0) hits.push({ kind: 'request', jobId: r.jobId, title: firstLine(r.briefText), budgetUsdc: budget, dueUnix: r.deadlineUnix, score: s });
+      const fit = q.near ? locationFit(r.where, r.buyerLocation ?? null, q.near, kind) : 1;
+      if (s > 0) hits.push({ kind: 'request', jobId: r.jobId, title: firstLine(r.briefText), budgetUsdc: budget, dueUnix: r.deadlineUnix, score: s, fit, country: publicLocation(r.buyerLocation).country });
     }
   }
   const posted = (h: MarketHit) => (h.kind === 'offer' ? offers.find((o) => o.id === h.id)?.postedAt : requests.find((r) => r.jobId === h.jobId)?.postedAt) ?? 0;
-  return hits.sort((a, b) => b.score - a.score || posted(b) - posted(a)).slice(0, limit);
+  // Skill fit first, then location fit, then the newest.
+  return hits.sort((a, b) => b.score - a.score || b.fit - a.fit || posted(b) - posted(a)).slice(0, limit);
 }

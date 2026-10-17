@@ -7,7 +7,10 @@ import { pgEnabled, postgresExecutor } from './client.js';
 ///   confirm    key = request id a past client's confirmation request
 ///   cac        key = request id a business registration waiting for review
 ///   rc         key = RC or BN   which account a business registration backs
-export type RecordKind = 'facts' | 'fp' | 'nullifier' | 'confirm' | 'cac' | 'rc';
+///   delivery-q key = address    countries a seller's agent will ask about
+///   dm-history key = address    who someone messaged first by tag, and who replied
+///   ratings-asked key = deal id who was asked to rate a deal, reminded, and told of the reveal
+export type RecordKind = 'facts' | 'fp' | 'nullifier' | 'confirm' | 'cac' | 'rc' | 'delivery-q' | 'dm-history' | 'ratings-asked';
 type UniqueKind = 'fp' | 'nullifier' | 'rc';
 
 const memory = new Map<string, unknown>();

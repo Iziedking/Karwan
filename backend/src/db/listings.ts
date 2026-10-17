@@ -3,6 +3,7 @@
 // when a brief is posted. Off-chain; the on-chain action when a match fires is
 // the seller's existing submitBid call.
 
+import type { DeliveryKind } from '../location/rules.js';
 import { randomBytes } from 'node:crypto';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -56,6 +57,9 @@ export interface Listing {
   /// The agreement text the offer is sold on, and the parts it was built from.
   terms?: string;
   termsDraft?: ListingTermsDraft;
+  /// Goods, in-person or remote work. Missing on older offers, which are
+  /// never gated by location (location/rules.ts kindOf).
+  deliveryKind?: DeliveryKind;
 }
 
 // Listings are off-chain and have no chain event to reseed from, so without

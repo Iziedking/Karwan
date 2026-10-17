@@ -42,6 +42,9 @@ import {
 } from './strategy.js';
 import { sellerDaysToDeadline, sellerOpeningBid as pureSellerOpeningBid } from './sellerPricing.js';
 import { getBrief } from '../db/briefs.js';
+import { deliveryQuestions, reachGate } from '../location/deliveryQuestions.js';
+import { locationOf } from '../location/live.js';
+import { kindOf } from '../location/rules.js';
 import { findPendingDirectOfferByAgent } from '../db/directOffers.js';
 import { actorSignalsFor, priceHistorySnapshot } from './signals.js';
 import { categoryPriceSnapshot } from '../db/priceObservations.js';
@@ -893,6 +896,39 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
         },
       });
       return;
+    }
+  }
+
+  // Goods and in-person work only go where the seller delivers. When the agent
+  // does not know yet, it stays out of this deal and asks the seller once.
+  const brief = getBrief(job.jobId);
+  const kind = brief ? kindOf(brief) : 'remote';
+  if (kind !== 'remote') {
+    const [sellerOwner, buyerOwner] = await Promise.all([
+      findAgentWalletByAgentAddress(seller.address).catch(() => null),
+      findAgentWalletByAgentAddress(job.buyer).catch(() => null),
+    ]);
+    if (sellerOwner && buyerOwner) {
+      const [sellerLoc, buyerLoc] = await Promise.all([locationOf(sellerOwner.userAddress), locationOf(buyerOwner.userAddress)]);
+      const buyerCountry = buyerLoc?.country ?? null;
+      const gate = (await deliveryQuestions.isUnreachable(sellerOwner.userAddress))
+        ? 'bid'
+        : reachGate({ kind, where: brief?.where, seller: sellerLoc, buyerCountry, now: Date.now() });
+      if (gate !== 'bid') {
+        const asked = brief?.where?.scope === 'country' ? brief.where.country?.toUpperCase() : buyerCountry;
+        if (gate === 'ask' && asked) await deliveryQuestions.queue(sellerOwner.userAddress, asked);
+        bus.emitEvent({
+          type: 'agent.skipped',
+          jobId: job.jobId,
+          actor: 'seller',
+          payload: {
+            seller: seller.address,
+            reason: gate === 'ask' ? 'delivery-unknown' : 'delivery-no',
+            detail: gate === 'ask' ? 'Asking the seller whether they deliver to the buyer\'s country first.' : 'The seller does not deliver to the buyer\'s country.',
+          },
+        });
+        return;
+      }
     }
   }
 

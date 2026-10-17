@@ -1192,6 +1192,24 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       );
     `,
   },
+  {
+    version: 42,
+    name: 'deal_ratings',
+    sql: `
+      -- One rating out of 5 per side of a settled deal, by the identity that
+      -- dealt. Kept apart from the reputation score.
+      CREATE TABLE deal_ratings_v1 (
+        deal_id TEXT NOT NULL,
+        rater TEXT NOT NULL,
+        ratee TEXT NOT NULL,
+        created_at BIGINT NOT NULL,
+        data JSONB NOT NULL,
+        PRIMARY KEY (deal_id, rater)
+      );
+      CREATE INDEX deal_ratings_ratee ON deal_ratings_v1 (ratee);
+      CREATE INDEX deal_ratings_rater ON deal_ratings_v1 (rater);
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

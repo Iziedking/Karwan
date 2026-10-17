@@ -68,6 +68,7 @@ import { dealRouteRecoveryKey } from '../dealRouteRecovery';
 import { HighSignalVerificationCard } from './HighSignalVerificationCard';
 import { SwipeToPay } from './SwipeToPay';
 import { Icon } from '@/shared/components/Icon';
+import { RatingCard } from '@/features/ratings/RatingCard';
 
 const ARC_EXPLORER_TX = (h: string) => `https://testnet.arcscan.app/tx/${h}`;
 
@@ -2600,6 +2601,7 @@ function ActionPanel({
             </span>
           </p>
         )}
+        {viewerIsBuyer || viewerIsSeller ? <RatingCard jobId={deal.jobId} /> : null}
         {viewerIsSeller && !financed && (!resolved || sellerBps > 0) && (
           <CTAPill href={`/cashout/${deal.jobId}`}>
             {copy.settled.cashoutTemplate.replace('{amount}', formatUsdc(deal.dealAmountUsdc, { withSuffix: false }))}

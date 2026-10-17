@@ -16,6 +16,8 @@ import { notFoundCopy, type NotFoundCopy } from './pageStates';
 import { dealLiveCopy, type DealLiveCopy } from './dealLive';
 import { offerRosterCopy, type OfferRosterCopy } from './offerRoster';
 import { shortlistCopy, type ShortlistCopy } from './shortlist';
+import { directMessagesCopy, type DirectMessagesCopy } from './directMessages';
+import { ratingsCopy, type RatingsCopy } from './ratings';
 import { agentNudgesCopy, type AgentNudgesCopy } from './agentNudges';
 import { developersCopy, type DevelopersCopy } from './developers';
 import { reputationSourcesCopy, type ReputationSourcesCopy } from './reputationSources';
@@ -45,6 +47,8 @@ interface MessagesShape {
   pageNotFound: NotFoundCopy;
   offerRoster: OfferRosterCopy;
   shortlist: ShortlistCopy;
+  directMessages: DirectMessagesCopy;
+  ratings: RatingsCopy;
   agentNudges: AgentNudgesCopy;
   developers: DevelopersCopy;
   reputationSources: ReputationSourcesCopy;
@@ -4725,6 +4729,9 @@ interface MessagesShape {
       q10: { q: string; a: string };
       q11: { q: string; a: string };
       q12: { q: string; a: string };
+      q13: { q: string; a: string };
+      q14: { q: string; a: string };
+      q15: { q: string; a: string };
     };
     videoGuides: { eyebrow: string; title: string; body: string; badge: string };
     cta: { title: string; body: string; button: string; chainPrefix: string };
@@ -5383,6 +5390,8 @@ export const en: MessagesShape = {
   pageNotFound: notFoundCopy.en,
   offerRoster: offerRosterCopy.en,
   shortlist: shortlistCopy.en,
+  directMessages: directMessagesCopy.en,
+  ratings: ratingsCopy.en,
   agentNudges: agentNudgesCopy.en,
   developers: developersCopy.en,
   reputationSources: reputationSourcesCopy.en,
@@ -10666,6 +10675,9 @@ export const en: MessagesShape = {
       q10: { q: "How does Karwan keep delivery safe?", a: "Every delivered link is checked for safety and checked against the agreed request. A delivery that fails either check pauses the payment. Checks cannot guarantee quality, so inspect the work before you release." },
       q11: { q: 'Can I bring my reputation from other platforms?', a: 'Not yet. Karwan is building this so your record from other platforms can count here, with your permission and without leaking your data. Today your reputation comes from completed Karwan deals.' },
       q12: { q: "How do I get paid with a payment link?", a: "Create a link on Request and share it. The payer needs no account. They can pay from their Karwan balance, from a connected wallet, or with Send from any chain, which shows an address for EVM chains and one for Solana so they can pay from an exchange or any wallet. Money sent that way reaches your own address on Arc automatically. Sending less counts as part payment and the page shows what is left. Sending more marks the link paid and the extra is yours." },
+      q13: { q: "Who sees where I am?", a: "Only your country shows on your record. Your city and area stay private: agents use them to match you with people near you and with buyers you can deliver to, and never show them to anyone. Delivery details are agreed in chat with the person you deal with." },
+      q14: { q: "Can I message someone before a deal?", a: "Yes. Ask your agent to send a message to their Karwan tag, or open karwan.site/messages/their-tag. They get it in their Karwan chat with an alert on Telegram and by email, and see your tag, country and tier. When you agree, start a protected deal. Keep payment in Karwan escrow and never pay outside it. Messages are kept 14 days." },
+      q15: { q: "How do ratings work?", a: "After a deal settles, you and the other person each rate it from 1 to 5, with a note if you like. Neither of you sees the other's rating until you both rate or 14 days pass. Your public rating is the average with how many ratings it comes from, for example 4.8 from 23 deals; under 3 ratings it shows New. Ratings close 14 days after the deal settles. Ratings from disputed deals are counted beside the number, for example 3.7 from 3 deals, 2 disputed. A note with a phone number, an email or a link is kept private. Your rating is separate from your reputation score." },
     },
     videoGuides: { eyebrow: 'Guided help', title: 'Know what to do next', body: 'Use the page tour on sensitive screens when you need context. It stays out of the way for returning users and can be opened again from the page control.', badge: 'In the app' },
     cta: { title: 'Start building your record', body: 'Agree the terms, fund USDC escrow, and every completed deal adds to your reputation.', button: 'Launch app', chainPrefix: 'chain' },
@@ -10745,7 +10757,7 @@ export const en: MessagesShape = {
         deadline: 'A missed deadline that ends in a reclaim is recorded as a failure.',
         staking: 'Staking contributes to a higher tier and acts as deal insurance the escrow contract can draw on.',
       },
-      tail: 'The full formula lives in the reputation model doc. Agents read the tier and apply tier-aware behaviour: a high tier gets priority and can skip the auction in some flows, a new account pays a premium on first deals. An agent never overrides the limits you set.',
+      tail: 'The full formula lives in the reputation model doc. Agents read the tier and apply tier-aware behaviour: a high tier gets priority and can skip the auction in some flows, a new account pays a premium on first deals. An agent never overrides the limits you set. After a settled deal both people can rate each other from 1 to 5; the public rating is kept apart from the score and does not change it.',
       agentWallet: 'Reputation is written against the account that settled the deal. If you use an agent wallet, the record follows that wallet.',
     },
     verification: {

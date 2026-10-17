@@ -21,7 +21,7 @@ export interface InboundMessage {
   messageRef?: string;
 }
 
-export type OnboardingStep = 'choose' | 'have' | 'email' | 'code' | 'terms' | 'tag' | 'role' | 'offer' | 'price' | 'done';
+export type OnboardingStep = 'choose' | 'have' | 'email' | 'code' | 'terms' | 'tag' | 'role' | 'offer' | 'where' | 'price' | 'done';
 
 /// Where someone is in signing in or up from a chat.
 export interface OnboardingState {

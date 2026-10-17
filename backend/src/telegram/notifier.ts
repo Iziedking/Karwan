@@ -143,6 +143,10 @@ export const RELEVANT = new Set([
   'reputation.tier-up',
   // Operator reply on a support ticket -> the user's Telegram.
   'support.reply',
+  // Rate a settled deal: the ask, one reminder, the reveal.
+  'rating.requested',
+  'rating.reminder',
+  'rating.revealed',
 ]);
 
 interface Recipient {
@@ -193,6 +197,11 @@ export async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     return owner ? [{ address: owner, role: 'self' }] : [];
   }
   // Reputation tier-up carries the subject address. Same shape as vault events.
+  // Rating asks name the one person they are for.
+  if (e.type.startsWith('rating.')) {
+    const owner = (e.payload?.address as string | undefined)?.toLowerCase();
+    return owner ? [{ address: owner, role: 'self' }] : [];
+  }
   if (e.type === 'reputation.tier-up') {
     const owner = (e.payload?.address as string | undefined)?.toLowerCase();
     return owner ? [{ address: owner, role: 'self' }] : [];
@@ -769,6 +778,10 @@ ${String(e.payload?.note ?? '').replace(/[*_`[\]]/g, '').slice(0, 300)}`, url)
           : '*A PO line defaulted.* The seller\'s repayment did not go through after several attempts.',
         url,
       );
+    case 'rating.requested':
+    case 'rating.reminder':
+    case 'rating.revealed':
+      return withLink(String(e.payload?.text ?? ''), dealUrl(e.payload?.dealId as string | undefined));
     case 'support.reply': {
       const body = (e.payload?.text as string | undefined) ?? '';
       const ticketId = (e.payload?.ticketId as string | undefined) ?? '';

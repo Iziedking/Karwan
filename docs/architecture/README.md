@@ -25,6 +25,7 @@ Karwan unifies online reputation with an agentic economic model. People join a n
 | 13 | [Portable reputation](13-portable-reputation.md) | How agents bring a buyer a shortlist of verified and unverified people, pay to check each record, and how other platforms join as paid record sources | Built, not deployed |
 | 14 | [Threat model](14-threat-model.md) | What the contracts protect, who can act on them and within what limits, and how each class of attack is checked | Written |
 | 15 | [Outside agents](15-outside-agents.md) | How an agent outside Karwan finds trusted people, opens and funds a protected deal for its person, and why only the person can release | Designed |
+| 16 | [Location, messages and ratings](16-feedback-and-location.md) | How agents match people near and far without showing where they live, how two people talk by tag before a deal, and how ratings stay apart from the reputation score | Designed |
 
 ## How to read a view
 

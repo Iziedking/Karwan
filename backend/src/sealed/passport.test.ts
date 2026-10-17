@@ -51,7 +51,8 @@ test('the passport carries exactly the allowed fields and no record numbers', ()
   });
   assert.deepEqual(Object.keys(passport).sort(), [...PASSPORT_KEYS].sort());
   assertOnlyKeys(passport, PASSPORT_KEYS);
-  const json = JSON.stringify({ ...passport, address: '', memberSince: null });
+  // The rating and its count are the one public number (owner decision, 17 Oct 2026).
+  const json = JSON.stringify({ ...passport, address: '', memberSince: null, rating: null });
   assert.ok(!/\d/.test(json), `passport leaked a number: ${json}`);
 });
 
@@ -64,4 +65,26 @@ test('owner view compares addresses without case and refuses no session', () => 
   assert.equal(isOwnerView(A, ME), false);
   assert.equal(isOwnerView(null, ME), false);
   assert.equal(isOwnerView(undefined, ME), false);
+});
+
+test('the passport carries the country and nothing finer', () => {
+  const passport = buildPassport({
+    address: ME, displayName: 'Ada', tag: 'ada', tier: 'STRONG', memberSince: null, country: 'NG',
+    facts: sealedFactsFor(deals, ME, 0),
+  });
+  assert.equal(passport.country, 'NG');
+  assert.equal(JSON.stringify(passport).includes('Lagos'), false);
+});
+
+test('a passport with no country says null', () => {
+  const passport = buildPassport({ address: ME, displayName: null, tag: null, tier: 'NEW', memberSince: null, facts: sealedFactsFor([], ME, 0) });
+  assert.equal(passport.country, null);
+});
+
+test('the passport carries the public rating, New when there is none', () => {
+  const base = { address: ME, displayName: 'Ada', tag: 'ada', tier: 'NEW' as const, memberSince: 1, facts: sealedFactsFor([], ME, 0) };
+  assert.deepEqual(buildPassport(base).rating, { kind: 'new', count: 0 });
+  const rated = buildPassport({ ...base, rating: { kind: 'rated', value: 4.8, count: 23 } });
+  assert.deepEqual(rated.rating, { kind: 'rated', value: 4.8, count: 23 });
+  assertOnlyKeys(rated, PASSPORT_KEYS);
 });

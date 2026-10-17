@@ -177,6 +177,11 @@ export type KarwanEventType =
   /// Operator reply on a support ticket, routed to the user's Telegram by the
   /// notifier. Kept OFF the public SSE feed (carries private reply text).
   | 'support.reply'
+  /// Asking someone to rate a settled deal, the one reminder, and the moment
+  /// the other person's rating of them shows. Payload names the one address.
+  | 'rating.requested'
+  | 'rating.reminder'
+  | 'rating.revealed'
   // SME trade-finance rail.
   | 'trade.document.anchored'
   | 'trade.pod.accepted'

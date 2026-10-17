@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { eq, lt } from 'drizzle-orm';
+import { and, eq, like, lt } from 'drizzle-orm';
 import { db, pgEnabled } from './client.js';
 import { messages } from './schema.js';
 
@@ -9,7 +9,7 @@ const STORE_PATH = resolve(process.cwd(), 'data', 'messages.json');
 export interface ChatMessage {
   id: string;
   jobId: string;
-  channel?: 'trade' | 'financing';
+  channel?: 'trade' | 'financing' | 'direct';
   channelKey?: string;
   financingKind?: 'factoring' | 'po';
   financingId?: string;
@@ -21,6 +21,8 @@ export interface ChatMessage {
   /// validated at the route boundary and expires with the message.
   imageDataUrl?: string;
   replyToId?: string;
+  /// Set on a direct message holding contact details before any deal.
+  warning?: string;
   eventType?: string;
   ts: number;
 }
@@ -39,7 +41,7 @@ export function normalizeChatMessage(message: ChatMessage): ChatMessage {
   };
 }
 
-export async function listMessages(jobId: string, channel: 'trade' | 'financing' = 'trade', channelKey = jobId): Promise<ChatMessage[]> {
+export async function listMessages(jobId: string, channel: 'trade' | 'financing' | 'direct' = 'trade', channelKey = jobId): Promise<ChatMessage[]> {
   if (pgEnabled) {
     const rows = await db().select().from(messages).where(eq(messages.jobId, jobId));
     return rows.map((r) => normalizeChatMessage(r.data)).filter((m) => isChatMessageRetained(m.ts, Date.now()) && m.channel === channel && m.channelKey === channelKey).sort((a, b) => a.ts - b.ts);
@@ -49,6 +51,37 @@ export async function listMessages(jobId: string, channel: 'trade' | 'financing'
     .map(normalizeChatMessage)
     .filter((m) => isChatMessageRetained(m.ts, Date.now()) && m.jobId === jobId && m.channel === channel && m.channelKey === channelKey)
     .sort((a, b) => a.ts - b.ts);
+}
+
+/// Every retained direct message one person is part of. Direct conversations
+/// are keyed "dm:<a>:<b>" with both addresses lowercased.
+export async function listDirectFor(owner: string): Promise<ChatMessage[]> {
+  const me = owner.toLowerCase();
+  if (!/^0x[0-9a-f]+$/.test(me)) return [];
+  const mine = (m: ChatMessage) =>
+    m.channel === 'direct' && isChatMessageRetained(m.ts, Date.now()) && (m.channelKey ?? m.jobId).split(':').slice(1).includes(me);
+  if (pgEnabled) {
+    const rows = await db()
+      .select()
+      .from(messages)
+      .where(and(like(messages.jobId, 'dm:%'), like(messages.jobId, `%${me}%`)));
+    return rows.map((r) => normalizeChatMessage(r.data)).filter(mine);
+  }
+  return Object.values(loadFile()).map(normalizeChatMessage).filter(mine);
+}
+
+/// Account deletion: every direct message one person sent or received.
+export async function deleteDirectMessagesFor(owner: string): Promise<number> {
+  const mine = await listDirectFor(owner);
+  if (mine.length === 0) return 0;
+  if (pgEnabled) {
+    for (const m of mine) await db().delete(messages).where(eq(messages.id, m.id));
+    return mine.length;
+  }
+  const store = loadFile();
+  for (const m of mine) delete store[m.id];
+  saveFile(store);
+  return mine.length;
 }
 
 export const CHAT_RETENTION_MS = 14 * 24 * 60 * 60 * 1000;

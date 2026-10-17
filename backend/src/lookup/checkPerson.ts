@@ -1,6 +1,7 @@
 import type { ReasonCode } from '../sealed/reasons.js';
 import type { PublicPassport } from '../sealed/passport.js';
 import type { Ladder } from '../verification/ladder.js';
+import { ratingLine } from '../ratings/rules.js';
 import { vetAdvice, type VetAdvice } from './advice.js';
 
 /// A lookup answers with the public record (D30: name, tag, tier, fixed
@@ -14,7 +15,7 @@ export interface CheckPersonDeps {
 }
 
 export type CheckPersonResult =
-  | { found: true; name: string; tag: string | null; tier: PublicPassport['tier']; reasons: ReasonCode[]; advice: VetAdvice }
+  | { found: true; name: string; tag: string | null; tier: PublicPassport['tier']; reasons: ReasonCode[]; advice: VetAdvice; country: string | null; rating: string }
   | { found: false; next: string };
 
 export async function checkPerson(handle: string, deps: CheckPersonDeps): Promise<CheckPersonResult> {
@@ -28,5 +29,7 @@ export async function checkPerson(handle: string, deps: CheckPersonDeps): Promis
     tier: passport.tier,
     reasons: passport.reasons,
     advice: vetAdvice({ tier: passport.tier, level }),
+    country: passport.country,
+    rating: ratingLine(passport.rating ?? { kind: 'new', count: 0 }),
   };
 }

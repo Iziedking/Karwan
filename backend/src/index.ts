@@ -114,6 +114,10 @@ import { accountDeletion, startAccountDeletionSweep } from './accountDeletion/li
 import { addVerifiedFact, claimNullifier, levelOf } from './verification/live.js';
 import { verificationServices } from './verification/services.js';
 import { createRecordRoutes } from './routes/record.js';
+import { createDirectMessageRoutes } from './routes/directMessages.js';
+import { liveMessageToolDeps } from './messages/live.js';
+import { createRatingRoutes } from './routes/ratings.js';
+import { liveRatingToolDeps, startRatingAsker } from './ratings/live.js';
 import { recordDeps } from './verification/recordLive.js';
 import { startFactPublisher } from './verification/publisherLive.js';
 import { partnersRoutes } from './routes/partners.js';
@@ -167,6 +171,7 @@ import { startTelegramAgent } from './telegram/agent/live.js';
 import { startTeamDaily } from './telegram/team.js';
 import { startTelegramNotifier } from './telegram/notifier.js';
 import { startChatRetentionSweep } from './chat/retention.js';
+import { startDeliveryQuestionSweep } from './location/deliveryQuestions.js';
 import { startEmailNotifier } from './emails/dealNotifier.js';
 import { registerDealTimeline } from './chat/dealTimeline.js';
 import { startXBroadcaster } from './notifiers/xBroadcaster.js';
@@ -523,6 +528,8 @@ app.route('/api/money-out', createMoneyOutRoutes({ ...moneyOutRouteDeps, session
 app.route('/api/admin/verification', adminVerificationRoutes);
 app.route('/api/admin/account-deletions', createAdminAccountDeletionRoutes(() => accountDeletion));
 app.route('/api/r', createRecordRoutes(recordDeps));
+app.route('/api/messages', createDirectMessageRoutes({ ...liveMessageToolDeps, viewer: sessionAddress }));
+app.route('/api/deals', createRatingRoutes({ ...liveRatingToolDeps, viewer: sessionAddress }));
 startFactPublisher();
 startAccountDeletionSweep();
 app.route('/api/partners', partnersRoutes);
@@ -575,6 +582,8 @@ const stopFns: Array<() => void> = [];
 // window. This worker is independent of agent flags so cleanup continues when
 // agents are intentionally disabled during maintenance or rollout.
 stopFns.push(startChatRetentionSweep());
+stopFns.push(startDeliveryQuestionSweep());
+stopFns.push(startRatingAsker());
 stopFns.push(startRecordReadSweep());
 
 // Any event that mutates on-chain escrow state has to bust the readEscrow

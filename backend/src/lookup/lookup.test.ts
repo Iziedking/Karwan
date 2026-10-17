@@ -58,6 +58,8 @@ const checkDeps = (over: Partial<CheckPersonDeps> = {}): CheckPersonDeps => ({
     tier: 'ESTABLISHED',
     reasons: ['HAS_COMPLETED_DEALS', 'USUALLY_ON_TIME'],
     memberSince: 1,
+    country: 'NG',
+    rating: { kind: 'rated', value: 4.8, count: 23 },
   }),
   level: async () => 'work_verified',
   ...over,
@@ -65,7 +67,7 @@ const checkDeps = (over: Partial<CheckPersonDeps> = {}): CheckPersonDeps => ({
 
 test('check_person returns only the public record and advice, never numbers or the address', async () => {
   const r = await checkPerson('@ada', checkDeps());
-  assert.deepEqual(Object.keys(r).sort(), ['advice', 'found', 'name', 'reasons', 'tag', 'tier']);
+  assert.deepEqual(Object.keys(r).sort(), ['advice', 'country', 'found', 'name', 'rating', 'reasons', 'tag', 'tier']);
   assert.deepEqual(r, {
     found: true,
     name: 'Ada Obi',
@@ -73,6 +75,8 @@ test('check_person returns only the public record and advice, never numbers or t
     tier: 'ESTABLISHED',
     reasons: ['HAS_COMPLETED_DEALS', 'USUALLY_ON_TIME'],
     advice: 'start_small',
+    country: 'NG',
+    rating: '4.8 from 23 deals',
   });
 });
 

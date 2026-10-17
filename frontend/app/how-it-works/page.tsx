@@ -148,6 +148,15 @@ export default function HowItWorksPage() {
           <Faq q={t.faq.q12.q}>
             {t.faq.q12.a}
           </Faq>
+          <Faq q={t.faq.q13.q}>
+            {t.faq.q13.a}
+          </Faq>
+          <Faq q={t.faq.q14.q}>
+            {t.faq.q14.a}
+          </Faq>
+          <Faq q={t.faq.q15.q}>
+            {t.faq.q15.a}
+          </Faq>
         </div>
       </section>
 

@@ -4,6 +4,7 @@
 // scoring and counter-evaluating. Persisted to a flat file so brief text
 // survives backend restarts (Postgres-backed in a future iteration).
 
+import type { DeliveryKind, Where } from '../location/rules.js';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { logger } from '../logger.js';
@@ -70,6 +71,10 @@ export interface Brief {
     kind: 'invoice' | 'po' | 'bol' | 'coo' | 'pod' | 'other';
     label?: string;
   }>;
+  /// Goods, in-person or remote work, and where the buyer wants it done.
+  /// Missing means anywhere (location/rules.ts kindOf).
+  deliveryKind?: DeliveryKind;
+  where?: Where;
 }
 
 const STORE_PATH = resolve(process.cwd(), 'data', 'briefs.json');

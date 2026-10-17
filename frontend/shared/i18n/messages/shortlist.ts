@@ -28,7 +28,7 @@ export interface ShortlistCopy {
   noneVerified: string;
   noneInBudget: string;
   unverifiedWarning: string;
-  reasons: { best_fit: string; verified: string; within_budget: string; lower_price: string; on_time_record: string };
+  reasons: { best_fit: string; verified: string; within_budget: string; lower_price: string; on_time_record: string; nearby: string };
   tiers: { NEW: string; COLD: string; ESTABLISHED: string; STRONG: string; ELITE: string };
 }
 
@@ -66,6 +66,7 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
       within_budget: 'Within budget',
       lower_price: 'Lower price',
       on_time_record: 'Delivers on time',
+      nearby: 'Near you',
     },
     tiers: { NEW: 'New', COLD: 'Building', ESTABLISHED: 'Established', STRONG: 'Strong', ELITE: 'Elite' },
   },
@@ -102,6 +103,7 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
       within_budget: 'Dans le budget',
       lower_price: 'Prix plus bas',
       on_time_record: 'Livre dans les délais',
+      nearby: 'Près de chez vous',
     },
     tiers: { NEW: 'Nouveau', COLD: 'En progression', ESTABLISHED: 'Établi', STRONG: 'Solide', ELITE: 'Élite' },
   },
@@ -138,6 +140,7 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
       within_budget: 'ضمن الميزانية',
       lower_price: 'سعر أقل',
       on_time_record: 'يسلّم في الموعد',
+      nearby: 'قريب منك',
     },
     tiers: { NEW: 'جديد', COLD: 'في البداية', ESTABLISHED: 'راسخ', STRONG: 'قوي', ELITE: 'نخبة' },
   },
@@ -174,6 +177,7 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
       within_budget: 'बजट में',
       lower_price: 'कम कीमत',
       on_time_record: 'समय पर डिलीवरी',
+      nearby: 'आपके पास',
     },
     tiers: { NEW: 'नया', COLD: 'बढ़ रहा', ESTABLISHED: 'स्थापित', STRONG: 'मज़बूत', ELITE: 'उत्कृष्ट' },
   },
@@ -210,6 +214,7 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
       within_budget: 'Ndani ya bajeti',
       lower_price: 'Bei nafuu zaidi',
       on_time_record: 'Hukabidhi kwa wakati',
+      nearby: 'Karibu nawe',
     },
     tiers: { NEW: 'Mpya', COLD: 'Anakua', ESTABLISHED: 'Imara', STRONG: 'Madhubuti', ELITE: 'Bora kabisa' },
   },

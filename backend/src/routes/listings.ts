@@ -73,6 +73,7 @@ const createSchema = z.object({
   readyInDays: z.number().int().min(1).max(180).optional(),
   terms: z.string().trim().max(4000).optional(),
   termsDraft: termsDraftSchema.optional(),
+  deliveryKind: z.enum(['goods', 'in_person', 'remote']).optional(),
 });
 
 const cancelSchema = z.object({ caller: addrSchema });
@@ -340,6 +341,7 @@ listingsRoutes.post('/', async (c) => {
     readyInDays: body.readyInDays,
     terms: body.terms || undefined,
     termsDraft: body.termsDraft,
+    deliveryKind: body.deliveryKind,
     tradeLane: deriveLane(sellerAccountType),
     partyKind: sellerAccountType,
   });

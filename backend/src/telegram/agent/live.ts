@@ -1,3 +1,4 @@
+import { liveLocationToolDeps } from '../../assistant/locationTools.js';
 import { createHash } from 'node:crypto';
 import type { AssistantAction } from '../../assistant/actions.js';
 import { ARC } from '../../chain/client.js';
@@ -154,7 +155,15 @@ export function startTelegramAgent(): boolean {
     passkeyAccount: async (email) => !!(await getModularAccountByEmail(email)),
   });
 
-  const interview = createInterview<TelegramAccount>({ afterwards: [READABLE_ASK] });
+  const interview = createInterview<TelegramAccount>({
+    afterwards: [READABLE_ASK],
+    // The same save the agent's set_location tool makes: private, country public.
+    saveLocation: (address, place) =>
+      liveLocationToolDeps.update(address, (current) => {
+        const base = current ?? { country: null, city: null, area: null, reach: {} };
+        return { ...base, country: place.country, city: place.city ?? base.city };
+      }),
+  });
 
   const tagStep = createTagStep<TelegramAccount>({
     check: checkKarwanTag,

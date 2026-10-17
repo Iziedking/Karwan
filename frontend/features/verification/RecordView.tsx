@@ -5,7 +5,8 @@ import { useEffect, useState } from 'react';
 import { api, ApiError } from '@/core/api';
 import { explorerTxUrl, settlementChain } from '@/core/arcNetwork';
 import { reasonLabels } from '@/features/reputation/sealed';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
+import { ratingText } from '@/features/ratings/ratingText';
 import type { RecordFactKind } from '@/shared/i18n/messages/record';
 import { recordNumbers } from './recordNumbers';
 
@@ -17,6 +18,7 @@ type RecordData = Awaited<ReturnType<typeof api.record>>;
 export function RecordView({ tag }: { tag: string }) {
   const t = useTranslations().record;
   const sealed = useTranslations().sealedRecord;
+  const { locale, t: all } = useLocale();
   const [record, setRecord] = useState<RecordData | null>(null);
   const [failure, setFailure] = useState<'missing' | 'error' | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -73,6 +75,10 @@ export function RecordView({ tag }: { tag: string }) {
         <div className="flex justify-between gap-4 border-b border-[var(--lp-line)] py-3">
           <dt className="text-[14px] text-[var(--lp-text-sub)]">{t.tier}</dt>
           <dd className="text-[14px] font-semibold text-[var(--lp-ink)]">{record.tier}</dd>
+        </div>
+        <div className="flex justify-between gap-4 border-b border-[var(--lp-line)] py-3">
+          <dt className="text-[14px] text-[var(--lp-text-sub)]">{all.ratings.label}</dt>
+          <dd className="text-[14px] font-semibold tabular-nums text-[var(--lp-ink)]">{ratingText(record.rating ?? { kind: 'new', count: 0 }, all.ratings, locale)}</dd>
         </div>
         {recordNumbers(record, t).map((row) => (
           <div key={row.label} className="flex justify-between gap-4 border-b border-[var(--lp-line)] py-3">

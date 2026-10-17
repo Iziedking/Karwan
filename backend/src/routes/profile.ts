@@ -13,6 +13,7 @@ import {
   deleteProfile,
 } from '../db/profiles.js';
 import type { UserProfile } from '../db/profiles.js';
+import { publicLocation } from '../location/rules.js';
 import { getAgentWallets } from '../db/agentWallets.js';
 import { deleteUser, getUserByAddress, getUserByEmail } from '../db/users.js';
 import { removeTelegramLink } from '../db/telegramLinks.js';
@@ -123,10 +124,10 @@ profileRoutes.get('/', async (c) => {
 /// document hash and the submitting tx; the financier eligibility snapshot,
 /// which is stake and reputation at approval time; the prepaid research credit;
 /// and the name-edit ledger.
-function publicView(p: UserProfile): Partial<UserProfile> & { skillCredentials?: PublicSkillCredential[] } {
+export function publicView(p: UserProfile): Partial<UserProfile> & { skillCredentials?: PublicSkillCredential[]; country: string | null } {
   const skills = publicSkillCredentials(p.skillVerifications);
   const sme = p.smeProfile
-    ? (({ taxIdEncrypted: _drop, ...rest }) => rest)(p.smeProfile)
+    ? (({ taxIdEncrypted: _drop, region: _region, primaryMarkets: _markets, ...rest }) => rest)(p.smeProfile)
     : undefined;
   return {
     address: p.address,
@@ -142,6 +143,8 @@ function publicView(p: UserProfile): Partial<UserProfile> & { skillCredentials?:
     accountKind: p.accountKind,
     accountType: p.accountType,
     seller: p.seller,
+    // Only the country leaves Karwan; city, area and reach are for matching.
+    country: publicLocation(p.location).country,
     ...(sme ? { smeProfile: sme } : {}),
     // Verification status is public; the evidence behind it is not.
     ...(p.business ? { business: { status: p.business.status, verifiedAt: p.business.verifiedAt } } : {}),

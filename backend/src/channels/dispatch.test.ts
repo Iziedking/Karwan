@@ -18,7 +18,7 @@ const card = {
   payload: {},
 } as unknown as AssistantAction;
 
-function setup(opts: { active?: boolean; chat?: DispatchDeps['chat']; execute?: DispatchDeps['executeConfirm']; acceptFails?: boolean; presentConfirm?: DispatchDeps['presentConfirm']; lastInboundAt?: number; extra?: Partial<DispatchDeps> } = {}) {
+function setup(opts: { active?: boolean; chat?: DispatchDeps['chat']; execute?: DispatchDeps['executeConfirm']; acceptFails?: boolean; presentConfirm?: DispatchDeps['presentConfirm']; lastInboundAt?: number; history?: Array<{ role: 'user' | 'assistant'; content: string }>; extra?: Partial<DispatchDeps> } = {}) {
   let account: WhatsappAccount = {
     numberHash: 'h1',
     to: '2348012345678',
@@ -28,6 +28,7 @@ function setup(opts: { active?: boolean; chat?: DispatchDeps['chat']; execute?: 
     lastInboundAt: opts.lastInboundAt ?? null,
     queue: [],
     activated: !!opts.active,
+    ...(opts.history ? { history: opts.history } : {}),
   };
   const sent: OutMessage[] = [];
   const chats: Array<{ role: string; content: string }[]> = [];
@@ -79,7 +80,7 @@ function setup(opts: { active?: boolean; chat?: DispatchDeps['chat']; execute?: 
         return { ok: true, summary: 'Released 250 USDC to Ada.', txHash: '0xfeed' };
       }),
   };
-  return { dispatch: createDispatcher(deps), sent, chats, executed, account: () => account, drained: () => drained, reads: () => reads, answers };
+  return { dispatch: createDispatcher(deps), save: deps.saveAccount, sent, chats, executed, account: () => account, drained: () => drained, reads: () => reads, answers };
 }
 
 const bodyOf = (m: OutMessage) => (m.kind === 'template' ? m.params.join(' ') : m.body);
@@ -126,6 +127,39 @@ test('text from an account runs one turn with the conversation so far', async ()
   assert.match(bodyOf(s.sent.at(-1)!), /Hello from the agent/);
 });
 
+test('a reply in Telegram reaches message_person as the account', async () => {
+  const alert = 'A message from @ada (Nigeria) arrived. Read it with read_my_messages before answering.';
+  const addresses: string[] = [];
+  const chats: Array<Array<{ role: string; content: string }>> = [];
+  const s = setup({
+    active: true,
+    history: [{ role: 'assistant', content: alert }],
+    chat: async (address, messages) => {
+      addresses.push(address);
+      chats.push(messages);
+      return { ok: true, reply: 'Sent to @ada.' };
+    },
+  });
+  await s.dispatch(msg({ id: 'r1', text: 'Yes, ready in 5 days' }));
+  assert.deepEqual(addresses, ['0xabc']);
+  assert.deepEqual(chats[0], [{ role: 'assistant', content: alert }, { role: 'user', content: 'Yes, ready in 5 days' }]);
+  assert.match(bodyOf(s.sent.at(-1)!), /Sent to @ada/);
+});
+
+test('a note added to the chat during a turn is kept when the turn saves', async () => {
+  const marker = 'A message from @ada (Nigeria) arrived. Read it with read_my_messages before answering.';
+  const s: ReturnType<typeof setup> = setup({
+    active: true,
+    chat: async () => {
+      const now = s.account();
+      await s.save({ ...now, history: [...(now.history ?? []), { role: 'assistant', content: marker }] });
+      return { ok: true, reply: 'Done.' };
+    },
+  });
+  await s.dispatch(msg({ id: 'mid', text: 'What is new?' }));
+  assert.deepEqual(s.account().history?.map((h) => h.content), ['What is new?', 'Done.', marker]);
+});
+
 test('history keeps the last 20 messages', async () => {
   const s = setup({ active: true });
   for (let i = 0; i < 15; i++) await s.dispatch(msg({ id: `x${i}`, text: `m${i}` }));
@@ -159,7 +193,8 @@ test('a step still confirming is never called done', async () => {
 test('the account is read again after the queue is drained, so drained messages are not written back', async () => {
   const s = setup({ active: true });
   await s.dispatch(msg({ text: 'hi' }));
-  assert.equal(s.reads(), 2);
+  // Once on arrival, once after the drain, once before saving the turn.
+  assert.equal(s.reads(), 3);
 });
 
 test('cancel runs nothing and says so', async () => {

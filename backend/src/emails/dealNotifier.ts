@@ -81,6 +81,9 @@ const EMAIL_RELEVANT = new Set([
   'po.repaid',
   'po.defaulted',
   'reputation.tier-up',
+  'rating.requested',
+  'rating.reminder',
+  'rating.revealed',
 ]);
 
 /// Financing events name their parties directly (seller, financier) and the
@@ -105,7 +108,7 @@ interface Recipient {
 }
 
 async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
-  if (e.type === 'reputation.tier-up') {
+  if (e.type === 'reputation.tier-up' || e.type.startsWith('rating.')) {
     const a = (e.payload?.address as string | undefined)?.toLowerCase();
     return a ? [{ address: a, role: 'self' }] : [];
   }
@@ -702,6 +705,25 @@ export function contentFor(
             ctaLabel: 'View the deal',
             ctaUrl: dealUrl(e.jobId),
           };
+    case 'rating.requested':
+    case 'rating.reminder':
+    case 'rating.revealed': {
+      const tag = e.payload?.withTag ? `@${String(e.payload.withTag)}` : 'a Karwan member';
+      const url = dealUrl(e.payload?.dealId as string | undefined);
+      if (e.type === 'rating.revealed') {
+        const who = e.payload?.withTag ? `@${String(e.payload.withTag)}'s` : 'Their';
+        return { kicker: 'Rating', subject: `${who} rating of you is in`, heading: `${who} rating of you is in`, body: 'It now shows on your Karwan record.', ctaLabel: 'View the deal', ctaUrl: url };
+      }
+      const first = e.type === 'rating.requested';
+      return {
+        kicker: 'Rating',
+        subject: first ? `How did your deal with ${tag} go?` : `Rate your deal with ${tag}`,
+        heading: first ? `How did your deal with ${tag} go?` : `Rate your deal with ${tag}`,
+        body: 'Rate it 1 to 5, and add a note if you like. Ratings show once you both rate, or 14 days after the deal settled.',
+        ctaLabel: 'Rate the deal',
+        ctaUrl: url,
+      };
+    }
     case 'reputation.tier-up': {
       const toTier = (e.payload?.toTier as string | undefined) ?? '';
       const addr = e.payload?.address as string | undefined;

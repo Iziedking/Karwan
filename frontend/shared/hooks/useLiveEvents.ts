@@ -42,6 +42,9 @@ const HIDDEN_FROM_TIMELINE = new Set<string>([
   'system.error',
   'chat.message',
   'support.reply',
+  'rating.requested',
+  'rating.reminder',
+  'rating.revealed',
 ]);
 
 function isTimelineEvent(event: ChainEvent): boolean {

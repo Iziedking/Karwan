@@ -1,3 +1,6 @@
+import { locationOf } from '../location/live.js';
+import { loadPublicRating } from '../ratings/publicRating.js';
+import { kindOf } from '../location/rules.js';
 import { SELLER_LINK_DETAIL, SELLER_NOT_BOUND, sellerAgentBinding, sellerBindingRefusal } from '../deals/sellerBinding.js';
 import { carriedGate } from './proposalCarry.js';
 import { offerToChoose, priceAsSeen, withAgreedPrice, type OfferChoice } from './chooseOffer.js';
@@ -2014,6 +2017,8 @@ function shortlistDeps(state: JobState): ShortlistDeps {
       const p = await getProfile(user).catch(() => null);
       return { name: p?.displayName?.trim() || null, tag: p?.handle ?? null };
     },
+    location: locationOf,
+    rating: (user) => loadPublicRating(user),
     timeoutMs: SHORTLIST_READ_TIMEOUT_MS,
   };
 }
@@ -2031,7 +2036,8 @@ async function publishShortlist(
   budget: number,
   opts: { counter: boolean },
 ) {
-  const buyerUser = getBrief(state.jobId)?.postedBy ?? state.context.buyer;
+  const brief = getBrief(state.jobId);
+  const buyerUser = brief?.postedBy ?? state.context.buyer;
   const before = state.shortlist?.find((e) => e.recommended)?.seller ?? null;
   const candidates = await buildCandidates(
     {
@@ -2040,6 +2046,9 @@ async function publishShortlist(
       buyerUser,
       bids: rankedEntries.map((e) => ({ ...e.bid, deterministicScore: e.deterministicScore })),
       nowUnix: Math.floor(Date.now() / 1000),
+      where: brief?.where,
+      deliveryKind: brief ? kindOf(brief) : undefined,
+      buyerLocation: await locationOf(buyerUser),
     },
     shortlistDeps(state),
   );
