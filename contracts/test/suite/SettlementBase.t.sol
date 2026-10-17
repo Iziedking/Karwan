@@ -6,6 +6,8 @@ import {KarwanSettlementBase} from "../../src/suite/KarwanSettlementBase.sol";
 import {DealAccount} from "../../src/suite/settlement/SettlementLib.sol";
 import {KarwanIdentityRegistry} from "../../src/suite/KarwanIdentityRegistry.sol";
 import {SkimToken} from "./mocks/BlocklistToken.sol";
+import {SettlementSenderFeeToken} from "./mocks/SettlementSenderFeeToken.sol";
+import {IKarwanHub, Outcome} from "../../src/suite/interfaces/IKarwanSuite.sol";
 
 contract SettlementBaseTest is SuiteFixture {
     address internal buyer;
@@ -55,6 +57,22 @@ contract SettlementBaseTest is SuiteFixture {
         vm.prank(buyer);
         vm.expectRevert(KarwanSettlementBase.NotOpen.selector);
         family.open(DEAL, address(usdc), _one(seller), uint64(block.timestamp + 1 days));
+    }
+
+    // The hub refuses a fee above 10% itself; the mock stands in for a hub that did not.
+    function test_open_refuses_a_fee_above_ten_percent_even_from_the_hub() public {
+        IKarwanHub.OpeningConfig memory cfg = hub.openingConfig(address(family), address(usdc));
+        bytes memory call = abi.encodeCall(IKarwanHub.openingConfig, (address(family), address(usdc)));
+        cfg.feeBps = 1_001;
+        vm.mockCall(address(hub), call, abi.encode(cfg));
+        vm.prank(buyer);
+        vm.expectRevert(KarwanSettlementBase.FeeTooHigh.selector);
+        family.open(DEAL, address(usdc), _one(seller), uint64(block.timestamp + 1 days));
+        cfg.feeBps = 1_000;
+        vm.mockCall(address(hub), call, abi.encode(cfg));
+        vm.prank(buyer);
+        family.open(DEAL, address(usdc), _one(seller), uint64(block.timestamp + 1 days));
+        assertEq(family.accountOf(DEAL).feeBps, 1_000);
     }
 
     function test_open_refuses_bad_parties() public {
@@ -170,6 +188,14 @@ contract SettlementBaseTest is SuiteFixture {
         vm.prank(stranger);
         vm.expectRevert(KarwanSettlementBase.NotParty.selector);
         family.fund(DEAL, 10e6);
+    }
+
+    function test_funding_nothing_is_refused() public {
+        vm.startPrank(buyer);
+        family.open(DEAL, address(usdc), _one(seller), uint64(block.timestamp + 30 days));
+        vm.expectRevert(KarwanSettlementBase.BadAmount.selector);
+        family.fund(DEAL, 0);
+        vm.stopPrank();
     }
 
     function test_per_deal_cap_is_snapshotted_total_cap_is_live() public {
@@ -298,6 +324,52 @@ contract SettlementBaseTest is SuiteFixture {
         family.withdrawOwed(address(usdc));
         assertEq(usdc.balanceOf(seller), 100e6);
         assertEq(family.owedTotal(address(usdc)), 0);
+    }
+
+    /// The family's cash falls below its books only if the asset takes more
+    /// from the family than it was asked to move.
+    function test_a_payout_neither_cash_nor_the_pool_covers_is_owed() public {
+        SettlementSenderFeeToken token = new SettlementSenderFeeToken();
+        hub.setAsset(address(token), true, 0);
+        hub.setCaps(address(family), address(token), PER_DEAL, TOTAL);
+        token.mint(buyer, 101e6);
+        vm.startPrank(buyer);
+        token.approve(address(family), type(uint256).max);
+        family.open(DEAL, address(token), _one(seller), uint64(block.timestamp + 30 days));
+        family.fund(DEAL, 100e6);
+        vm.stopPrank();
+        family.pay(DEAL, seller, 60e6);
+        family.pay(DEAL, buyer, 40e6);
+        assertEq(token.balanceOf(seller), 60e6);
+        assertEq(token.balanceOf(buyer), 0);
+        assertEq(family.owed(address(token), buyer), 40e6);
+        assertEq(family.accountOf(DEAL).balance, 0);
+        vm.prank(buyer);
+        vm.expectRevert(KarwanSettlementBase.PoolBusy.selector);
+        family.withdrawOwed(address(token));
+        assertEq(family.owed(address(token), buyer), 40e6);
+    }
+
+    function test_a_longstop_split_names_one_amount_per_payee() public {
+        _openAndFund(100e6);
+        uint64 horizon = family.accountOf(DEAL).horizon;
+        vm.warp(uint256(horizon) + 180 days);
+        uint256[] memory none = new uint256[](0);
+        uint256[] memory two = new uint256[](2);
+        two[0] = 100e6;
+        vm.startPrank(seniorSafe);
+        vm.expectRevert(KarwanSettlementBase.BadParties.selector);
+        family.longstopSplit(DEAL, 100e6, none);
+        vm.expectRevert(KarwanSettlementBase.BadParties.selector);
+        family.longstopSplit(DEAL, 0, two);
+        vm.stopPrank();
+        assertEq(family.accountOf(DEAL).balance, 100e6);
+    }
+
+    function test_an_outcome_for_a_party_the_deal_does_not_have_is_refused() public {
+        _openAndFund(10e6);
+        vm.expectRevert(KarwanSettlementBase.NotParty.selector);
+        family.recordOutcome(DEAL, 2, Outcome.COMPLETED, 0);
     }
 
     function test_close_needs_an_empty_deal() public {

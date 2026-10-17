@@ -61,4 +61,12 @@ contract AgreementSplitTest is AgreementFixture {
         assertEq(usdc.balanceOf(seller), PRICE - 0.5e6);
         assertEq(usdc.balanceOf(address(escrow)), 0);
     }
+
+    function test_a_split_above_the_whole_is_refused() public {
+        bytes32 id = _fundAccepted(_terms(), bytes32("s"));
+        vm.prank(buyer);
+        vm.expectRevert(AgreementLib.BadAmount.selector);
+        escrow.proposeSplit(id, 10_001);
+        assertFalse(escrow.splitOf(id).active);
+    }
 }

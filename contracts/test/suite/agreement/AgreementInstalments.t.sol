@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+import {Vm} from "forge-std/Vm.sol";
 import {AgreementFixture} from "./AgreementFixture.sol";
 import {AgreementTerms, AgreementState} from "../../../src/suite/agreement/AgreementTypes.sol";
 import {AgreementLib} from "../../../src/suite/agreement/AgreementLib.sol";
@@ -111,6 +112,19 @@ contract AgreementInstalmentsTest is AgreementFixture {
         escrow.cancelMissed(id);
         assertEq(usdc.balanceOf(seller), 0);
         assertEq(usdc.balanceOf(buyer), before + PART);
+    }
+
+    function test_an_unaccepted_plan_ends_on_the_buyers_record_alone() public {
+        bytes32 id = _fund(_plan(), bytes32("i"));
+        vm.warp(vm.getBlockTimestamp() + 9 days + 1);
+        vm.recordLogs();
+        escrow.cancelMissed(id);
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        for (uint256 i; i < logs.length; ++i) {
+            assertTrue(logs[i].topics[0] != SettlementLib.OutcomeUnrecorded.selector);
+        }
+        assertTrue(record.outcomeRecorded(record.outcomeKey(address(escrow), id, buyerId, 0)));
+        assertFalse(record.outcomeRecorded(record.outcomeKey(address(escrow), id, sellerId, 1)));
     }
 
     function test_the_fee_never_exceeds_what_was_paid() public {

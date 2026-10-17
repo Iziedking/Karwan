@@ -87,6 +87,15 @@ contract AgreementDisputeTest is AgreementFixture {
         escrow.dispute(late, bytes32("too late"));
     }
 
+    function test_the_seller_disputes_a_delivery_before_the_buyer_could_reclaim() public {
+        bytes32 id = _fundAccepted(_terms(), bytes32("d"));
+        _deliver(id);
+        vm.prank(seller);
+        escrow.dispute(id, bytes32("unanswered"));
+        assertEq(uint8(_state(id)), uint8(AgreementState.Disputed));
+        assertEq(escrow.disputeOf(id).opener, seller);
+    }
+
     // ------------------------------ Proposals -----------------------------
 
     function test_an_unappealed_proposal_applies_after_72_hours() public {

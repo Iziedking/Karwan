@@ -4,6 +4,8 @@ pragma solidity ^0.8.24;
 import {TimeFixture} from "./TimeFixture.sol";
 import {TimeTerms, TimeState} from "../../../src/suite/time/TimeTypes.sol";
 import {TimeLib} from "../../../src/suite/time/TimeLib.sol";
+import {TimeDisputeLib} from "../../../src/suite/time/TimeDisputeLib.sol";
+import {DisputeLib} from "../../../src/suite/dispute/DisputeLib.sol";
 import {SettlementLib} from "../../../src/suite/settlement/SettlementLib.sol";
 import {KarwanSettlementBase} from "../../../src/suite/KarwanSettlementBase.sol";
 import {KarwanRecord} from "../../../src/suite/KarwanRecord.sol";
@@ -17,6 +19,12 @@ contract TimeEscrowTest is TimeFixture {
 
     function setUp() public {
         _deployTime();
+    }
+
+    function _refused(TimeTerms memory t) internal {
+        vm.prank(employer);
+        vm.expectRevert(TimeLib.BadTerms.selector);
+        time.open(SALT, t);
     }
 
     // ------------------------------- Opening ------------------------------
@@ -73,6 +81,96 @@ contract TimeEscrowTest is TimeFixture {
         vm.prank(employer);
         vm.expectRevert(TimeLib.BadTerms.selector);
         time.open(SALT, t);
+    }
+
+    function test_terms_with_no_worker_rate_scale_or_cap_are_refused() public {
+        TimeTerms memory t = _terms();
+        t.worker = address(0);
+        _refused(t);
+        t = _terms();
+        t.rate = 0;
+        _refused(t);
+        t = _terms();
+        t.unitScale = 0;
+        _refused(t);
+        t = _terms();
+        t.unitScale = 10_001;
+        _refused(t);
+        t = _terms();
+        t.maxUnits = 0;
+        _refused(t);
+    }
+
+    function test_a_budget_of_nothing_or_past_the_ledger_limit_is_refused() public {
+        TimeTerms memory t = _terms();
+        t.rate = 1;
+        t.maxUnits = 1;
+        _refused(t);
+        t = _terms();
+        t.rate = type(uint128).max;
+        t.unitScale = 1;
+        t.maxUnits = 2;
+        _refused(t);
+    }
+
+    function test_an_offer_already_past_its_acceptance_time_is_refused() public {
+        TimeTerms memory t = _terms();
+        t.acceptBy = uint64(block.timestamp);
+        _refused(t);
+    }
+
+    function test_the_first_week_starts_within_90_days_and_is_accepted_before_it_ends() public {
+        uint256 t0 = vm.getBlockTimestamp();
+        TimeTerms memory t = _terms();
+        t.startsAt = uint64(t0 - 1);
+        _refused(t);
+        t = _terms();
+        t.startsAt = uint64(t0 + 90 days + 1);
+        _refused(t);
+        t = _terms();
+        t.acceptBy = t.startsAt + t.cycleSecs + 1;
+        _refused(t);
+    }
+
+    function test_a_high_value_engagement_is_judged_by_the_senior_reviewer_from_the_start() public {
+        TimeTerms memory t = _terms();
+        t.rate = 10e6;
+        t.cycles = 25;
+        bytes32 id = _active(t, SALT);
+        vm.warp(_start(t, 0) + 6 days);
+        _submit(id, 0, 16 * 60);
+        vm.warp(_end(t, 0) + t.claimGrace);
+        vm.prank(employer);
+        time.object(id, 0, 4 * 60, bytes32("hours"));
+        vm.prank(arbiter);
+        time.escalate(id, 0);
+        vm.prank(reviewSafe);
+        vm.expectRevert(DisputeLib.NotReviewer.selector);
+        time.rule(id, 0, 5_000, bytes32("half"));
+        vm.prank(seniorSafe);
+        time.rule(id, 0, 5_000, bytes32("half"));
+        assertEq(usdc.balanceOf(worker), _net(140e6));
+    }
+
+    function test_a_cancelled_offer_cannot_be_accepted() public {
+        TimeTerms memory t = _terms();
+        bytes32 id = _offer(t, SALT);
+        vm.prank(employer);
+        time.cancelOffer(id);
+        bytes32 h = time.termsHashOf(t);
+        vm.prank(worker);
+        vm.expectRevert(TimeLib.BadState.selector);
+        time.accept(id, h);
+        assertEq(uint8(_engagement(id).state), uint8(TimeState.Closed));
+    }
+
+    function test_an_accepted_offer_cannot_be_taken_back() public {
+        bytes32 id = _active(_terms(), SALT);
+        vm.prank(employer);
+        vm.expectRevert(TimeLib.BadState.selector);
+        time.cancelOffer(id);
+        assertEq(usdc.balanceOf(address(time)), WEEK_FUNDED);
+        assertEq(uint8(_engagement(id).state), uint8(TimeState.Active));
     }
 
     // ------------------------------- A week -------------------------------
@@ -176,6 +274,72 @@ contract TimeEscrowTest is TimeFixture {
         vm.warp(time.settleAtOf(id, 0));
         time.settle(id, 0);
         assertEq(usdc.balanceOf(worker), _net(128e6));
+    }
+
+    function test_silence_does_not_pay_objected_hours() public {
+        TimeTerms memory t = _terms();
+        bytes32 id = _active(t, SALT);
+        vm.warp(_start(t, 0) + 6 days);
+        _submit(id, 0, 16 * 60);
+        vm.warp(_end(t, 0) + t.claimGrace);
+        vm.prank(employer);
+        time.object(id, 0, 4 * 60, bytes32("hours"));
+        uint256 at = time.settleAtOf(id, 0);
+        vm.warp(at);
+        vm.expectRevert(TimeLib.BadState.selector);
+        time.settle(id, 0);
+        assertEq(usdc.balanceOf(worker), _net(96e6));
+    }
+
+    function test_an_objection_names_at_least_one_hour() public {
+        TimeTerms memory t = _terms();
+        bytes32 id = _active(t, SALT);
+        vm.warp(_start(t, 0) + 6 days);
+        _submit(id, 0, 16 * 60);
+        vm.warp(_end(t, 0) + t.claimGrace);
+        vm.prank(employer);
+        vm.expectRevert(TimeLib.BadUnits.selector);
+        time.object(id, 0, 0, bytes32("hours"));
+        assertEq(_cycle(id, 0).disputed, 0);
+    }
+
+    function test_an_objection_covers_only_hours_not_yet_approved() public {
+        TimeTerms memory t = _terms();
+        bytes32 id = _active(t, SALT);
+        vm.warp(_start(t, 0) + 6 days);
+        _submit(id, 0, 16 * 60);
+        vm.prank(employer);
+        time.approve(id, 0, 10 * 60);
+        vm.warp(_end(t, 0) + t.claimGrace);
+        vm.prank(employer);
+        vm.expectRevert(TimeLib.BadUnits.selector);
+        time.object(id, 0, 6 * 60 + 1, bytes32("hours"));
+        vm.prank(employer);
+        time.object(id, 0, 6 * 60, bytes32("hours"));
+        assertEq(_cycle(id, 0).disputed, 6 * 60);
+        assertEq(usdc.balanceOf(worker), _net(80e6));
+    }
+
+    function test_the_worker_cannot_approve_their_own_hours() public {
+        TimeTerms memory t = _terms();
+        bytes32 id = _active(t, SALT);
+        vm.warp(_start(t, 0) + 1 days);
+        _submit(id, 0, 60);
+        vm.prank(worker);
+        vm.expectRevert(TimeLib.BadCaller.selector);
+        time.approve(id, 0, 60);
+        assertEq(usdc.balanceOf(worker), 0);
+    }
+
+    function test_a_ruling_needs_objected_hours() public {
+        TimeTerms memory t = _terms();
+        bytes32 id = _active(t, SALT);
+        vm.warp(_start(t, 0) + 1 days);
+        _submit(id, 0, 60);
+        vm.prank(arbiter);
+        vm.expectRevert(TimeDisputeLib.NotDisputed.selector);
+        time.proposeRuling(id, 0, 10_000, bytes32("all"));
+        assertEq(time.disputeOf(id, 0).openedAt, 0);
     }
 
     function test_hours_are_submitted_only_in_their_window_and_within_the_cap() public {
@@ -570,6 +734,36 @@ contract TimeEscrowTest is TimeFixture {
         vm.prank(employer);
         vm.expectRevert(TimeLib.BadTerms.selector);
         time.proposeAmendment(id, n, 1);
+    }
+
+    function test_an_amendment_accepted_after_its_deadline_is_refused() public {
+        TimeTerms memory t = _terms();
+        bytes32 id = _active(t, SALT);
+        TimeTerms memory n = _terms();
+        n.rate = 10e6;
+        n.acceptBy = uint64(block.timestamp + 2 days);
+        vm.prank(employer);
+        time.proposeAmendment(id, n, 2);
+        vm.warp(uint256(n.acceptBy) + 1);
+        vm.prank(worker);
+        vm.expectRevert(TimeLib.Late.selector);
+        time.acceptAmendment(id, n, 2);
+        assertEq(_engagement(id).version, 0);
+    }
+
+    function test_notice_ends_a_pending_amendment() public {
+        TimeTerms memory t = _terms();
+        bytes32 id = _active(t, SALT);
+        TimeTerms memory n = _terms();
+        n.rate = 10e6;
+        vm.prank(employer);
+        time.proposeAmendment(id, n, 2);
+        vm.prank(worker);
+        time.giveNotice(id);
+        vm.prank(worker);
+        vm.expectRevert(TimeLib.BadState.selector);
+        time.acceptAmendment(id, n, 2);
+        assertEq(_engagement(id).version, 0);
     }
 
     function test_the_latest_amendment_applies_from_its_own_cycle() public {

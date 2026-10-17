@@ -84,6 +84,31 @@ contract TradeFinanceTest is AgreementFixture {
         assertEq(usdc.balanceOf(address(tf)), 0);
     }
 
+    function test_a_revoked_escrow_cannot_be_financed() public {
+        bytes32 id = _fundAccepted(_terms(), bytes32("f"));
+        (KarwanTradeFinance.Signed memory a, KarwanTradeFinance.StakeSig memory r) = _signed(id, financier, 50e6, 60e6, 10e6);
+        uint64 expiresAt = _expiresAt(id);
+        hub.revokeFamily(address(escrow));
+        uint256 sellerBefore = usdc.balanceOf(seller);
+        vm.prank(financier);
+        vm.expectRevert(KarwanTradeFinance.NotFamily.selector);
+        tf.open(address(escrow), id, 50e6, 60e6, 10e6, expiresAt, a, r);
+        assertEq(usdc.balanceOf(seller), sellerBefore);
+    }
+
+    function test_a_line_opens_once_on_the_same_terms() public {
+        bytes32 id = _fundAccepted(_terms(), bytes32("f"));
+        bytes32 lineId = _open(id, 50e6, 60e6, 10e6);
+        (KarwanTradeFinance.Signed memory a, KarwanTradeFinance.StakeSig memory r) = _signed(id, financier, 50e6, 60e6, 10e6);
+        uint64 expiresAt = _expiresAt(id);
+        uint256 sellerBefore = usdc.balanceOf(seller);
+        vm.prank(financier);
+        vm.expectRevert(KarwanTradeFinance.LineExists.selector);
+        tf.open(address(escrow), id, 50e6, 60e6, 10e6, expiresAt, a, r);
+        assertEq(usdc.balanceOf(seller), sellerBefore);
+        assertEq(tf.lineOf(lineId).state, 1);
+    }
+
     function test_an_unaccepted_deal_cannot_be_financed() public {
         bytes32 id = _fund(_terms(), bytes32("f"));
         (KarwanTradeFinance.Signed memory a, KarwanTradeFinance.StakeSig memory r) = _signed(id, financier, 50e6, 60e6, 10e6);
@@ -220,6 +245,28 @@ contract TradeFinanceTest is AgreementFixture {
         assertEq(vault.freeOf(sellerId, address(usdc)), 50e6);
         vm.expectRevert(KarwanTradeFinance.NotOpen.selector);
         tf.settle(lineId);
+    }
+
+    function test_a_repaid_line_cannot_be_waived() public {
+        bytes32 id = _fundAccepted(_terms(), bytes32("f"));
+        bytes32 lineId = _open(id, 50e6, 60e6, 10e6);
+        vm.prank(buyer);
+        escrow.release(id);
+        tf.settle(lineId);
+        vm.prank(financier);
+        vm.expectRevert(KarwanTradeFinance.NotOpen.selector);
+        tf.waive(lineId);
+        assertEq(tf.lineOf(lineId).state, 2);
+    }
+
+    function test_a_waived_line_keeps_no_stake() public {
+        bytes32 id = _fundAccepted(_terms(), bytes32("f"));
+        bytes32 lineId = _open(id, 50e6, 60e6, 10e6);
+        vm.prank(financier);
+        tf.waive(lineId);
+        vm.expectRevert(KarwanTradeFinance.NotOpen.selector);
+        tf.keepStake(lineId);
+        assertFalse(vault.reservationOf(address(tf), lineId).active);
     }
 
     function test_the_stake_follows_a_later_deal_horizon() public {

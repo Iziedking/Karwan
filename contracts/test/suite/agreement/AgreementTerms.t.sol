@@ -2,8 +2,9 @@
 pragma solidity ^0.8.24;
 
 import {AgreementFixture} from "./AgreementFixture.sol";
-import {AgreementTerms} from "../../../src/suite/agreement/AgreementTypes.sol";
+import {AgreementTerms, AgreementBounds} from "../../../src/suite/agreement/AgreementTypes.sol";
 import {AgreementTermsLib} from "../../../src/suite/agreement/AgreementTermsLib.sol";
+import {KarwanAgreementEscrow} from "../../../src/suite/KarwanAgreementEscrow.sol";
 
 contract AgreementTermsTest is AgreementFixture {
     function setUp() public {
@@ -188,5 +189,24 @@ contract AgreementTermsTest is AgreementFixture {
         AgreementTerms memory t = _terms();
         t.fallbackBps = 10_001;
         _refused(t);
+    }
+
+    function _badBounds(AgreementBounds memory b) internal {
+        vm.expectRevert(KarwanAgreementEscrow.BadBounds.selector);
+        new KarwanAgreementEscrow(address(hub), b);
+    }
+
+    function test_the_escrow_refuses_review_bounds_that_leave_no_window() public {
+        _badBounds(AgreementBounds(0, 30 days, 365 days));
+        _badBounds(AgreementBounds(30 days, 30 days, 365 days));
+        _badBounds(AgreementBounds(31 days, 30 days, 365 days));
+    }
+
+    function test_the_escrow_refuses_a_horizon_of_zero_or_past_the_base_limit() public {
+        uint64 limit = escrow.MAX_HORIZON();
+        _badBounds(AgreementBounds(1 hours, 30 days, 0));
+        _badBounds(AgreementBounds(1 hours, 30 days, limit + 1));
+        KarwanAgreementEscrow edge = new KarwanAgreementEscrow(address(hub), AgreementBounds(1 hours, 30 days, limit));
+        assertEq(edge.maxHorizon(), limit);
     }
 }

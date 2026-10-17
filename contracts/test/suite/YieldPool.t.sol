@@ -5,7 +5,7 @@ import {SuiteFixture} from "./SuiteFixture.sol";
 import {KarwanHub} from "../../src/suite/KarwanHub.sol";
 import {KarwanYieldPool} from "../../src/suite/KarwanYieldPool.sol";
 import {MockTeller} from "./mocks/MockTeller.sol";
-import {BlocklistToken} from "./mocks/BlocklistToken.sol";
+import {BlocklistToken, SkimToken} from "./mocks/BlocklistToken.sol";
 
 /// @notice The yield pool on its own: families park and take back exactly what
 ///         they parked, cash above a buffer earns, yield leaves only above a
@@ -62,6 +62,34 @@ contract YieldPoolTest is SuiteFixture {
         assertEq(pool.totalPrincipal(), 6_000e6);
     }
 
+    function test_parking_nothing_is_refused() public {
+        vm.prank(address(family));
+        vm.expectRevert(KarwanYieldPool.BadAmount.selector);
+        pool.deposit(0);
+    }
+
+    function test_taking_back_nothing_is_refused() public {
+        _park(10_000e6);
+        vm.prank(address(family));
+        vm.expectRevert(KarwanYieldPool.BadAmount.selector);
+        pool.withdraw(0);
+        assertEq(pool.principalOf(address(family)), 10_000e6);
+    }
+
+    function test_a_token_that_delivers_less_is_never_parked() public {
+        SkimToken skim = new SkimToken();
+        hub.setAsset(address(skim), true, 0);
+        KarwanYieldPool skimPool = new KarwanYieldPool(address(hub), address(skim));
+        hub.setYieldPool(address(skim), address(skimPool));
+        skim.mint(address(family), 100e6);
+        vm.startPrank(address(family));
+        skim.approve(address(skimPool), type(uint256).max);
+        vm.expectRevert(KarwanYieldPool.BadAmount.selector);
+        skimPool.deposit(100e6);
+        vm.stopPrank();
+        assertEq(skimPool.totalPrincipal(), 0);
+    }
+
     function test_rebalance_keeps_a_cash_buffer_and_subscribes_the_rest() public {
         _park(PARKED);
         pool.rebalance();
@@ -93,6 +121,33 @@ contract YieldPoolTest is SuiteFixture {
         assertGe(pool.value(), PARKED);
         _take(PARKED);
         assertEq(pool.totalPrincipal(), 0);
+    }
+
+    function test_a_pool_without_a_teller_keeps_everything_in_cash() public {
+        pool.setTeller(address(0));
+        _park(PARKED);
+        pool.rebalance();
+        assertEq(usdc.balanceOf(address(pool)), PARKED + 1e6);
+        assertEq(teller.share_().balanceOf(address(pool)), 0);
+    }
+
+    function test_a_pool_without_a_teller_is_worth_its_cash() public {
+        pool.setTeller(address(0));
+        _park(PARKED);
+        assertEq(pool.value(), PARKED + 1e6);
+        assertEq(pool.deficit(), 0);
+    }
+
+    /// The Teller still offers room but cannot take the cash.
+    function test_a_subscription_the_teller_refuses_leaves_the_cash_in_the_pool() public {
+        _park(PARKED);
+        usdc.setBlocked(address(teller), true);
+        vm.expectEmit(address(pool));
+        emit KarwanYieldPool.SubscribeFailed(PARKED + 1e6 - 10_000e6);
+        pool.rebalance();
+        assertEq(usdc.balanceOf(address(pool)), PARKED + 1e6);
+        assertEq(teller.share_().balanceOf(address(pool)), 0);
+        assertEq(usdc.allowance(address(pool), address(teller)), 0);
     }
 
     function test_an_unentitled_pool_stays_in_cash() public {
@@ -127,6 +182,18 @@ contract YieldPoolTest is SuiteFixture {
         assertEq(pool.principalOf(address(family)), 45_000e6);
     }
 
+    function test_a_teller_that_cannot_quote_a_withdrawal_pays_from_cash_and_refuses_the_rest() public {
+        _park(PARKED);
+        pool.rebalance();
+        vm.mockCallRevert(address(teller), abi.encodeWithSelector(MockTeller.previewWithdraw.selector), "");
+        _take(5_000e6);
+        vm.prank(address(family));
+        vm.expectRevert(KarwanYieldPool.Busy.selector);
+        pool.withdraw(50_000e6);
+        assertEq(pool.principalOf(address(family)), 95_000e6);
+        assertGt(teller.share_().balanceOf(address(pool)), 0);
+    }
+
     function test_a_revoked_family_still_takes_back_its_money() public {
         _park(10_000e6);
         hub.revokeFamily(address(family));
@@ -153,6 +220,12 @@ contract YieldPoolTest is SuiteFixture {
         assertGe(pool.value(), PARKED + pool.cushion());
         assertGe(usdc.balanceOf(address(pool)), pool.bufferTarget());
         assertEq(usdc.balanceOf(stranger), 0);
+    }
+
+    function test_a_backstop_of_nothing_is_refused() public {
+        vm.prank(feeSafe);
+        vm.expectRevert(KarwanYieldPool.BadAmount.selector);
+        pool.backstop(0);
     }
 
     function test_a_fall_in_price_stops_sweeping_until_the_treasury_backstops() public {
@@ -205,6 +278,40 @@ contract YieldPoolTest is SuiteFixture {
         pool.setTeller(address(next));
     }
 
+    function test_a_teller_for_another_asset_is_refused() public {
+        BlocklistToken other = new BlocklistToken(6);
+        MockTeller wrong = new MockTeller(other);
+        vm.expectRevert(KarwanYieldPool.BadTeller.selector);
+        pool.setTeller(address(wrong));
+        assertEq(address(pool.teller()), address(teller));
+    }
+
+    function test_a_teller_without_a_share_token_is_refused() public {
+        MockTeller next = new MockTeller(usdc);
+        vm.mockCall(address(next), abi.encodeWithSelector(MockTeller.share.selector), abi.encode(address(0)));
+        vm.expectRevert(KarwanYieldPool.BadTeller.selector);
+        pool.setTeller(address(next));
+        assertEq(address(pool.teller()), address(teller));
+    }
+
+    function test_shares_the_teller_cannot_price_block_a_teller_change_however_few() public {
+        _park(PARKED);
+        pool.rebalance();
+        pool.stop();
+        pool.rebalance();
+        address dusty = makeAddr("dusty");
+        teller.entitle(dusty, true);
+        usdc.mint(dusty, 10);
+        vm.startPrank(dusty);
+        usdc.approve(address(teller), 10);
+        teller.deposit(10, address(pool));
+        vm.stopPrank();
+        vm.mockCallRevert(address(teller), abi.encodeWithSelector(MockTeller.previewRedeem.selector), "");
+        vm.expectRevert(KarwanYieldPool.SharesHeld.selector);
+        pool.setTeller(address(0));
+        assertEq(address(pool.teller()), address(teller));
+    }
+
     function test_the_guardian_stops_subscriptions_and_only_the_owner_resumes() public {
         _park(PARKED);
         pool.rebalance();
@@ -245,6 +352,13 @@ contract YieldPoolTest is SuiteFixture {
     }
 
     // --------------------------------- Hub --------------------------------
+
+    function test_a_pool_needs_a_hub_and_an_asset() public {
+        vm.expectRevert(KarwanYieldPool.Zero.selector);
+        new KarwanYieldPool(address(0), address(usdc));
+        vm.expectRevert(KarwanYieldPool.Zero.selector);
+        new KarwanYieldPool(address(hub), address(0));
+    }
 
     function test_the_hub_points_at_one_pool_per_asset_once() public {
         KarwanYieldPool other = new KarwanYieldPool(address(hub), address(usdc));

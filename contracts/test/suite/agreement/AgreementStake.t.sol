@@ -8,6 +8,10 @@ import {AgreementCommon} from "../../../src/suite/agreement/AgreementCommon.sol"
 import {AgreementTermsLib} from "../../../src/suite/agreement/AgreementTermsLib.sol";
 import {KarwanStakeVault} from "../../../src/suite/KarwanStakeVault.sol";
 import {KarwanIdentityRegistry} from "../../../src/suite/KarwanIdentityRegistry.sol";
+import {KarwanHub} from "../../../src/suite/KarwanHub.sol";
+import {KarwanRecord} from "../../../src/suite/KarwanRecord.sol";
+import {BlocklistToken} from "../mocks/BlocklistToken.sol";
+import {AgreementRefusingVault} from "../mocks/AgreementRefusingVault.sol";
 
 /// @notice An optional seller stake behind an Agreement deal, for the buyer:
 ///         reserved at acceptance, slashed only by a ruling for the buyer, in
@@ -212,5 +216,103 @@ contract AgreementStakeTest is AgreementFixture {
         vm.prank(arbiter);
         escrow.escalate(id);
         assertGe(vault.reservationOf(address(escrow), id).expiresAt, escrow.accountOf(id).horizon + 180 days + 30 days);
+    }
+
+    function test_a_lapsed_reservation_never_blocks_a_later_deadline() public {
+        bytes32 id = _stakedDeal(_staked(), bytes32("s"));
+        uint64 lapsed = vault.reservationOf(address(escrow), id).expiresAt;
+        vm.warp(uint256(lapsed) + 1);
+        uint64 later = lapsed + 10 days;
+        vm.expectEmit(address(escrow));
+        emit AgreementCommon.StakeHookFailed(id, AgreementCommon.STAKE_KEEP);
+        vm.prank(buyer);
+        escrow.extendDeadline(id, later);
+        assertEq(_deal(id).deadline, later);
+        assertEq(vault.reservationOf(address(escrow), id).expiresAt, lapsed);
+    }
+
+    function test_accepting_with_a_stake_needs_terms_that_ask_for_one() public {
+        AgreementTerms memory t = _terms();
+        bytes32 id = _fund(t, bytes32("u"));
+        bytes32 h = escrow.termsHashOf(t);
+        vm.prank(seller);
+        vm.expectRevert(AgreementLib.BadState.selector);
+        escrow.acceptWithStake(id, h, block.timestamp + 1 hours, "");
+        assertEq(uint8(_state(id)), uint8(AgreementState.Funded));
+    }
+
+    function test_keeping_a_stake_needs_a_staked_deal() public {
+        bytes32 id = _fundAccepted(_terms(), bytes32("u"));
+        vm.expectRevert(AgreementLib.BadState.selector);
+        escrow.keepStake(id);
+    }
+
+    function test_keeping_a_stake_waits_for_the_sellers_acceptance() public {
+        bytes32 id = _fund(_staked(), bytes32("s"));
+        vm.expectRevert(AgreementLib.BadState.selector);
+        escrow.keepStake(id);
+    }
+
+    function test_keeping_a_stake_ends_with_the_deal() public {
+        bytes32 id = _stakedDeal(_staked(), bytes32("s"));
+        vm.prank(buyer);
+        escrow.release(id);
+        vm.expectRevert(AgreementLib.BadState.selector);
+        escrow.keepStake(id);
+    }
+}
+
+/// @notice The same staked deals against a vault that fails the escrow's
+///         calls: every exit and every deadline move still goes through.
+contract AgreementStakeRefusingVaultTest is AgreementFixture {
+    AgreementRefusingVault internal refusing;
+
+    function setUp() public {
+        _deployAgreement();
+    }
+
+    function _deploySuite() internal override {
+        hub = new KarwanHub(address(this));
+        identity = new KarwanIdentityRegistry(address(hub));
+        record = new KarwanRecord(address(hub));
+        refusing = new AgreementRefusingVault();
+        hub.wire(address(identity), address(record), address(refusing));
+        usdc = new BlocklistToken(6);
+        hub.setFeeRecipient(feeSafe);
+        hub.setGuardian(guardian);
+        hub.setReviewers(reviewSafe, seniorSafe);
+        hub.setAutoArbiter(arbiter);
+        hub.setAsset(address(usdc), true, 5_000e6);
+    }
+
+    function _stakedDeal() internal returns (bytes32 id, AgreementTerms memory t) {
+        t = _terms();
+        t.sellerStake = 20e6;
+        id = _fund(t, bytes32("v"));
+        bytes32 h = escrow.termsHashOf(t);
+        vm.prank(seller);
+        escrow.acceptWithStake(id, h, block.timestamp + 1 hours, "");
+    }
+
+    function test_a_vault_that_refuses_to_free_the_stake_never_blocks_completion() public {
+        (bytes32 id,) = _stakedDeal();
+        refusing.setRefusals(true, false);
+        vm.expectEmit(address(escrow));
+        emit AgreementCommon.StakeHookFailed(id, AgreementCommon.STAKE_RELEASE);
+        vm.prank(buyer);
+        escrow.release(id);
+        assertEq(uint8(_state(id)), uint8(AgreementState.Settled));
+        assertEq(usdc.balanceOf(seller), PRICE - 0.5e6);
+    }
+
+    function test_a_vault_that_cannot_report_the_expiry_never_blocks_a_later_deadline() public {
+        (bytes32 id, AgreementTerms memory t) = _stakedDeal();
+        refusing.setRefusals(false, true);
+        uint64 later = t.deliveryDeadline + 5 days;
+        vm.expectEmit(address(escrow));
+        emit AgreementCommon.StakeHookFailed(id, AgreementCommon.STAKE_KEEP);
+        vm.prank(buyer);
+        escrow.extendDeadline(id, later);
+        assertEq(_deal(id).deadline, later);
     }
 }

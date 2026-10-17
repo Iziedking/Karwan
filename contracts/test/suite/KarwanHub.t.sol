@@ -170,6 +170,96 @@ contract KarwanHubTest is Test {
         fresh.wire(address(1), address(2), address(3));
     }
 
+    function test_wire_refuses_a_zero_address() public {
+        KarwanHub fresh = new KarwanHub(address(this));
+        address identity = makeAddr("identity");
+        address record = makeAddr("record");
+        address stakeVault = makeAddr("stakeVault");
+        vm.expectRevert(KarwanHub.Zero.selector);
+        fresh.wire(address(0), record, stakeVault);
+        vm.expectRevert(KarwanHub.Zero.selector);
+        fresh.wire(identity, address(0), stakeVault);
+        vm.expectRevert(KarwanHub.Zero.selector);
+        fresh.wire(identity, record, address(0));
+        assertEq(fresh.identity(), address(0));
+        fresh.wire(identity, record, stakeVault);
+        assertEq(fresh.stakeVault(), stakeVault);
+    }
+
+    function test_a_zero_family_is_refused() public {
+        vm.expectRevert(KarwanHub.Zero.selector);
+        hub.registerFamily(address(0), 100);
+        (bool registered,,,,) = hub.families(address(0));
+        assertFalse(registered);
+    }
+
+    function test_a_zero_asset_is_refused() public {
+        vm.expectRevert(KarwanHub.Zero.selector);
+        hub.setAsset(address(0), true, 0);
+        assertFalse(hub.assetAllowed(address(0)));
+    }
+
+    function test_a_zero_yield_pool_is_refused() public {
+        vm.expectRevert(KarwanHub.Zero.selector);
+        hub.setYieldPool(address(usdc), address(0));
+        assertEq(hub.yieldPoolOf(address(usdc)), address(0));
+    }
+
+    function test_a_zero_fee_recipient_is_refused() public {
+        address feeSafe = hub.feeRecipient();
+        vm.expectRevert(KarwanHub.Zero.selector);
+        hub.setFeeRecipient(address(0));
+        assertEq(hub.feeRecipient(), feeSafe);
+    }
+
+    function test_a_zero_guardian_is_refused() public {
+        vm.expectRevert(KarwanHub.Zero.selector);
+        hub.setGuardian(address(0));
+        assertEq(hub.guardian(), guardian);
+    }
+
+    function test_zero_reviewers_are_refused() public {
+        address review = hub.reviewSafe();
+        address senior = hub.seniorSafe();
+        vm.expectRevert(KarwanHub.Zero.selector);
+        hub.setReviewers(address(0), senior);
+        vm.expectRevert(KarwanHub.Zero.selector);
+        hub.setReviewers(review, address(0));
+        assertEq(hub.reviewSafe(), review);
+        assertEq(hub.seniorSafe(), senior);
+    }
+
+    function test_a_zero_verifier_is_refused() public {
+        vm.expectRevert(KarwanHub.Zero.selector);
+        hub.setVerifier(address(0), true);
+        assertFalse(hub.isVerifier(address(0)));
+    }
+
+    function test_a_zero_issuer_is_refused() public {
+        vm.expectRevert(KarwanHub.Zero.selector);
+        hub.setIssuer(address(0), true);
+        assertFalse(hub.isIssuer(address(0)));
+    }
+
+    function test_an_unregistered_family_has_nothing_to_change() public {
+        address token = address(usdc);
+        vm.expectRevert(KarwanHub.UnknownFamily.selector);
+        hub.setFamilyFee(stranger, 100);
+        vm.expectRevert(KarwanHub.UnknownFamily.selector);
+        hub.retireFamily(stranger);
+        vm.expectRevert(KarwanHub.UnknownFamily.selector);
+        hub.revokeFamily(stranger);
+        vm.expectRevert(KarwanHub.UnknownFamily.selector);
+        hub.pauseFamily(stranger);
+        vm.expectRevert(KarwanHub.UnknownFamily.selector);
+        hub.resumeFamily(stranger);
+        vm.expectRevert(KarwanHub.UnknownFamily.selector);
+        hub.setCaps(stranger, token, 1, 1);
+        vm.expectRevert(KarwanHub.UnknownFamily.selector);
+        hub.setYieldShare(stranger, 1);
+        assertEq(hub.totalCapOf(stranger, token), 0);
+    }
+
     function test_every_setter_is_owner_only() public {
         vm.startPrank(stranger);
         bytes memory e = abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, stranger);

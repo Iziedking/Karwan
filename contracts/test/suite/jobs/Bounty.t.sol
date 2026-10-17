@@ -119,6 +119,14 @@ contract BountyTest is JobFixture {
         jobs.enter(id, keccak256("late"));
     }
 
+    function test_an_entry_needs_a_fingerprint_of_the_work() public {
+        uint256 id = _contest();
+        vm.prank(ann);
+        vm.expectRevert(JobLib.BadTerms.selector);
+        jobs.enter(id, bytes32(0));
+        assertEq(jobs.jobOf(id).entries, 0);
+    }
+
     function test_an_unawarded_bounty_goes_back_and_is_recorded() public {
         uint256 id = _contest();
         _enter(id, ann);
@@ -135,6 +143,17 @@ contract BountyTest is JobFixture {
         jobs.claimRefund(id);
         assertEq(usdc.balanceOf(client), before + CONTEST_FUNDED);
         assertEq(uint8(jobs.getJob(id).status), uint8(JobStatus.Expired));
+    }
+
+    function test_a_bounty_goes_back_only_once_its_award_deadline_passes() public {
+        uint256 t0 = vm.getBlockTimestamp();
+        uint256 id = _contest();
+        _enter(id, ann);
+        vm.warp(t0 + 10 days - 1);
+        vm.expectRevert(JobLib.Early.selector);
+        jobs.claimRefund(id);
+        assertEq(usdc.balanceOf(address(jobs)), CONTEST_FUNDED);
+        assertEq(uint8(jobs.getJob(id).status), uint8(JobStatus.Funded));
     }
 
     function test_the_client_takes_back_a_bounty_nobody_entered() public {
@@ -173,6 +192,46 @@ contract BountyTest is JobFixture {
         vm.prank(client);
         vm.expectRevert(JobLib.BadParties.selector);
         jobs.openBounty(t);
+    }
+
+    function test_a_bounty_with_no_prize_is_refused() public {
+        BountyTerms memory t = _contestTerms();
+        t.prize = 0;
+        vm.prank(client);
+        vm.expectRevert(JobLib.BadTerms.selector);
+        jobs.openBounty(t);
+        assertEq(jobs.jobCount(), 0);
+    }
+
+    function test_a_bounty_with_no_places_is_refused() public {
+        BountyTerms memory t = _contestTerms();
+        t.shares = new uint16[](0);
+        vm.prank(client);
+        vm.expectRevert(JobLib.BadTerms.selector);
+        jobs.openBounty(t);
+        assertEq(jobs.jobCount(), 0);
+    }
+
+    function test_every_place_needs_a_share() public {
+        BountyTerms memory t = _contestTerms();
+        t.shares = new uint16[](2);
+        t.shares[0] = 10_000;
+        vm.prank(client);
+        vm.expectRevert(JobLib.BadTerms.selector);
+        jobs.openBounty(t);
+        assertEq(jobs.jobCount(), 0);
+    }
+
+    function test_a_bounty_description_over_2048_bytes_is_refused() public {
+        BountyTerms memory t = _contestTerms();
+        t.description = string(new bytes(2_049));
+        vm.prank(client);
+        vm.expectRevert(JobLib.BadTerms.selector);
+        jobs.openBounty(t);
+        t.description = string(new bytes(2_048));
+        vm.prank(client);
+        uint256 id = jobs.openBounty(t);
+        assertEq(bytes(jobs.jobOf(id).description).length, 2_048);
     }
 
     function test_job_steps_do_not_apply_to_a_bounty() public {

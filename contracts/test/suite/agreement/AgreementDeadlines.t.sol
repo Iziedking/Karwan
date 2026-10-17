@@ -108,4 +108,45 @@ contract AgreementDeadlinesTest is AgreementFixture {
         escrow.extendDeadline(id, t.deliveryDeadline + 30 days);
         assertEq(escrow.accountOf(id).horizon, h + 30 days);
     }
+
+    function test_no_extension_request_before_the_seller_accepts() public {
+        AgreementTerms memory t = _terms();
+        bytes32 id = _fund(t, bytes32("d"));
+        vm.prank(seller);
+        vm.expectRevert(AgreementLib.BadState.selector);
+        escrow.requestExtension(id, t.deliveryDeadline + 1 days);
+    }
+
+    function test_an_extension_request_must_move_the_deadline_later() public {
+        AgreementTerms memory t = _terms();
+        bytes32 id = _fundAccepted(t, bytes32("d"));
+        vm.prank(seller);
+        vm.expectRevert(AgreementLib.BadState.selector);
+        escrow.requestExtension(id, t.deliveryDeadline);
+        assertEq(_deal(id).requestedDeadline, 0);
+    }
+
+    function test_the_buyer_cannot_move_the_deadline_before_the_seller_accepts() public {
+        AgreementTerms memory t = _terms();
+        bytes32 id = _fund(t, bytes32("d"));
+        vm.prank(buyer);
+        vm.expectRevert(AgreementLib.BadState.selector);
+        escrow.extendDeadline(id, t.deliveryDeadline + 1 days);
+    }
+
+    function test_an_approved_extension_waits_while_the_deal_is_disputed() public {
+        AgreementTerms memory t = _terms();
+        bytes32 id = _fundAccepted(t, bytes32("d"));
+        uint64 later = t.deliveryDeadline + 3 days;
+        vm.prank(seller);
+        escrow.requestExtension(id, later);
+        _deliver(id);
+        vm.prank(buyer);
+        escrow.dispute(id, bytes32("clause"));
+        vm.prank(buyer);
+        vm.expectRevert(AgreementLib.BadState.selector);
+        escrow.approveExtension(id, later);
+        assertEq(_deal(id).deadline, t.deliveryDeadline);
+        assertEq(_deal(id).requestedDeadline, later);
+    }
 }

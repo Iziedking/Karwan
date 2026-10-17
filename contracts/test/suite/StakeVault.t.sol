@@ -5,7 +5,7 @@ import {SuiteFixture} from "./SuiteFixture.sol";
 import {KarwanStakeVault} from "../../src/suite/KarwanStakeVault.sol";
 import {KarwanIdentityRegistry} from "../../src/suite/KarwanIdentityRegistry.sol";
 import {TestFamily} from "./mocks/TestFamily.sol";
-import {BlocklistToken} from "./mocks/BlocklistToken.sol";
+import {BlocklistToken, SkimToken} from "./mocks/BlocklistToken.sol";
 
 contract StakeVaultTest is SuiteFixture {
     address internal seller;
@@ -79,6 +79,18 @@ contract StakeVaultTest is SuiteFixture {
         vm.expectRevert(KarwanStakeVault.BadAmount.selector);
         vault.stake(address(other), 10e6);
         vm.stopPrank();
+    }
+
+    function test_a_token_that_delivers_less_is_never_staked() public {
+        SkimToken skim = new SkimToken();
+        hub.setAsset(address(skim), true, 0);
+        skim.mint(seller, 100e6);
+        vm.startPrank(seller);
+        skim.approve(address(vault), type(uint256).max);
+        vm.expectRevert(KarwanStakeVault.BadDelivery.selector);
+        vault.stake(address(skim), 100e6);
+        vm.stopPrank();
+        assertEq(vault.stakeOf(sellerId, address(skim)).active, 0);
     }
 
     function test_a_withdrawal_waits_seven_days_and_can_be_cancelled() public {
@@ -162,6 +174,26 @@ contract StakeVaultTest is SuiteFixture {
         vm.prank(address(family));
         vm.expectRevert(KarwanStakeVault.BadSignature.selector);
         vault.reserve(REF, seller, address(usdc), 10e6, stranger, expiresAt, deadline, forTen);
+    }
+
+    function test_a_reservation_of_nothing_is_refused() public {
+        uint64 expiresAt = _expiry();
+        uint256 deadline = block.timestamp + 1 hours;
+        bytes memory sig = _sigFor(sellerKey, address(family), REF, 0, expiresAt, deadline);
+        vm.prank(address(family));
+        vm.expectRevert(KarwanStakeVault.BadAmount.selector);
+        vault.reserve(REF, seller, address(usdc), 0, buyer, expiresAt, deadline, sig);
+    }
+
+    function test_a_reservation_needs_a_beneficiary() public {
+        uint64 expiresAt = _expiry();
+        uint256 deadline = block.timestamp + 1 hours;
+        bytes32 d = vault.reserveDigest(address(family), REF, address(usdc), 10e6, address(0), expiresAt, deadline);
+        bytes memory sig = _sig(sellerKey, d);
+        vm.prank(address(family));
+        vm.expectRevert(KarwanStakeVault.BadAmount.selector);
+        vault.reserve(REF, seller, address(usdc), 10e6, address(0), expiresAt, deadline, sig);
+        assertFalse(vault.reservationUsed(vault.keyOf(address(family), REF)));
     }
 
     function test_a_reservation_is_made_once_ever() public {

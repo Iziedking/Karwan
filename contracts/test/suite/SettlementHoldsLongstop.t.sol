@@ -43,6 +43,21 @@ contract SettlementHoldsLongstopTest is SuiteFixture {
         family.claim(DEAL, seller, 10e6);
     }
 
+    /// The hub owner is not the guardian, so it cannot lift a hold either.
+    function test_only_the_guardian_releases_a_hold() public {
+        vm.prank(guardian);
+        family.hold(DEAL, bytes32("scan"));
+        uint64 until = family.accountOf(DEAL).holdUntil;
+        vm.prank(buyer);
+        vm.expectRevert(KarwanSettlementBase.NotGuardian.selector);
+        family.releaseHold(DEAL);
+        vm.expectRevert(KarwanSettlementBase.NotGuardian.selector);
+        family.releaseHold(DEAL);
+        assertEq(family.accountOf(DEAL).holdUntil, until);
+        vm.expectRevert(KarwanSettlementBase.OnHold.selector);
+        family.claim(DEAL, seller, 10e6);
+    }
+
     function test_hold_budget_is_thirty_days_charged_in_full() public {
         for (uint256 i; i < 4; ++i) {
             vm.prank(guardian);

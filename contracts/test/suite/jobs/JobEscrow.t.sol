@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {JobFixture} from "./JobFixture.sol";
+import {KarwanJobEscrow} from "../../../src/suite/KarwanJobEscrow.sol";
 import {Job, JobStatus, JobTerms} from "../../../src/suite/jobs/JobTypes.sol";
 import {JobLib} from "../../../src/suite/jobs/JobLib.sol";
 import {IAgenticCommerce} from "../../../src/suite/interfaces/IAgenticCommerce.sol";
@@ -83,6 +84,34 @@ contract JobEscrowTest is JobFixture {
         vm.stopPrank();
     }
 
+    function test_an_escrow_needs_an_asset() public {
+        vm.expectRevert(KarwanJobEscrow.NoAsset.selector);
+        new KarwanJobEscrow(address(hub), address(0));
+    }
+
+    function test_a_description_over_2048_bytes_is_refused() public {
+        vm.prank(client);
+        vm.expectRevert(JobLib.BadTerms.selector);
+        jobs.createJob(provider, evaluator, block.timestamp + 10 days, string(new bytes(2_049)), address(0));
+        vm.prank(client);
+        uint256 id =
+            jobs.createJob(provider, evaluator, block.timestamp + 10 days, string(new bytes(2_048)), address(0));
+        assertEq(bytes(_core(id).description).length, 2_048);
+    }
+
+    function test_dispute_shares_stay_within_the_budget() public {
+        vm.startPrank(client);
+        vm.expectRevert(JobLib.BadTerms.selector);
+        jobs.createJobWithTerms(provider, evaluator, block.timestamp + 10 days, "x", JobTerms(5 days, 10_000, 0));
+        vm.expectRevert(JobLib.BadTerms.selector);
+        jobs.createJobWithTerms(provider, evaluator, block.timestamp + 10 days, "x", JobTerms(5 days, 0, 10_001));
+        uint256 id =
+            jobs.createJobWithTerms(provider, evaluator, block.timestamp + 10 days, "x", JobTerms(5 days, 9_999, 10_000));
+        vm.stopPrank();
+        assertEq(_core(id).partialBps, 9_999);
+        assertEq(_core(id).fallbackBps, 10_000);
+    }
+
     function test_the_provider_can_be_named_later() public {
         vm.prank(client);
         uint256 id = jobs.createJob(address(0), evaluator, block.timestamp + 10 days, "open call", address(0));
@@ -107,6 +136,44 @@ contract JobEscrowTest is JobFixture {
         assertEq(jobs.payeesOf(bytes32(id))[0], provider);
     }
 
+    function test_a_funded_budget_cannot_change() public {
+        uint256 id = _fundedJob();
+        vm.prank(provider);
+        vm.expectRevert(JobLib.BadState.selector);
+        jobs.setBudget(id, BUDGET * 2, "");
+        assertEq(jobs.getJob(id).budget, BUDGET);
+    }
+
+    function test_a_budget_past_the_ledger_limit_is_refused() public {
+        uint256 id = _job();
+        vm.prank(provider);
+        vm.expectRevert(JobLib.BadTerms.selector);
+        jobs.setBudget(id, uint256(type(uint128).max) + 1, "");
+        assertEq(jobs.getJob(id).budget, 0);
+    }
+
+    function test_only_the_client_funds_a_job() public {
+        uint256 id = _job();
+        vm.prank(provider);
+        jobs.setBudget(id, BUDGET, "");
+        vm.prank(stranger);
+        vm.expectRevert(JobLib.BadCaller.selector);
+        jobs.fund(id, BUDGET, "");
+        assertEq(uint8(jobs.getJob(id).status), uint8(JobStatus.Open));
+    }
+
+    function test_a_job_cannot_be_funded_once_it_expired() public {
+        uint256 t0 = vm.getBlockTimestamp();
+        uint256 id = _job();
+        vm.prank(provider);
+        jobs.setBudget(id, BUDGET, "");
+        vm.warp(t0 + 10 days);
+        vm.prank(client);
+        vm.expectRevert(JobLib.Late.selector);
+        jobs.fund(id, BUDGET, "");
+        assertEq(usdc.balanceOf(address(jobs)), 0);
+    }
+
     // ------------------------------ Silence -------------------------------
 
     function test_silence_pays_once_the_review_window_ends() public {
@@ -127,7 +194,7 @@ contract JobEscrowTest is JobFixture {
         jobs.setBudget(id, BUDGET, "");
         vm.prank(client);
         jobs.fund(id, BUDGET, "");
-        uint256 t0 = block.timestamp;
+        uint256 t0 = vm.getBlockTimestamp();
         vm.warp(t0 + 10 days - 1);
         vm.prank(provider);
         jobs.submit(id, keccak256("late but in time"), "");
@@ -143,7 +210,7 @@ contract JobEscrowTest is JobFixture {
 
     function test_a_rejection_of_submitted_work_waits_for_the_provider() public {
         uint256 id = _submitted();
-        uint256 t0 = block.timestamp;
+        uint256 t0 = vm.getBlockTimestamp();
         uint256 before = usdc.balanceOf(client);
         vm.prank(evaluator);
         jobs.reject(id, bytes32("off brief"), "");
@@ -172,9 +239,18 @@ contract JobEscrowTest is JobFixture {
         jobs.reject(id, bytes32("not mine to judge"), "");
     }
 
+    function test_only_the_evaluator_completes_submitted_work() public {
+        uint256 id = _submitted();
+        vm.prank(client);
+        vm.expectRevert(JobLib.BadCaller.selector);
+        jobs.complete(id, bytes32("good"), "");
+        assertEq(usdc.balanceOf(provider), 0);
+        assertEq(uint8(jobs.getJob(id).status), uint8(JobStatus.Submitted));
+    }
+
     function test_a_disputed_rejection_can_pay_part_of_the_budget() public {
         uint256 id = _submitted();
-        uint256 t0 = block.timestamp;
+        uint256 t0 = vm.getBlockTimestamp();
         vm.prank(evaluator);
         jobs.reject(id, bytes32("off brief"), "");
         vm.prank(stranger);
@@ -361,11 +437,20 @@ contract JobEscrowTest is JobFixture {
         jobs.fund(id, PER_DEAL, "");
     }
 
+    function test_a_job_that_was_never_created_takes_no_steps() public {
+        vm.prank(client);
+        vm.expectRevert(JobLib.BadState.selector);
+        jobs.reject(1, bytes32("x"), "");
+        vm.expectRevert(JobLib.BadState.selector);
+        jobs.claimRefund(1);
+        assertEq(jobs.jobCount(), 0);
+    }
+
     // --------------------------- Review findings --------------------------
 
     function test_erc_8183_events_name_the_jobs_evaluator() public {
         uint256 id = _submitted();
-        uint256 t0 = block.timestamp;
+        uint256 t0 = vm.getBlockTimestamp();
         vm.prank(evaluator);
         jobs.reject(id, bytes32("off brief"), "");
         vm.prank(provider);
@@ -401,7 +486,7 @@ contract JobEscrowTest is JobFixture {
         uint256 silent = _submitted();
         uint256 rejected = _submitted();
         uint256 bounty = _contest();
-        uint256 t0 = block.timestamp;
+        uint256 t0 = vm.getBlockTimestamp();
         vm.prank(evaluator);
         jobs.reject(rejected, bytes32("off brief"), "");
         vm.prank(guardian);

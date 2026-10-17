@@ -248,4 +248,106 @@ contract KarwanIdentityRegistryTest is Test {
         vm.expectRevert(KarwanIdentityRegistry.NotBound.selector);
         reg.setRecovery(other);
     }
+
+    /// Another person's wallet stays theirs even when it signs the binding.
+    function test_a_wallet_bound_elsewhere_cannot_be_bound() public {
+        (address bob, uint256 bobKey) = makeAddrAndKey("bob");
+        vm.prank(bob);
+        uint64 bobId = reg.register();
+        uint256 deadline = block.timestamp + 1 hours;
+        bytes32 d = reg.bindDigest(id, bob, KarwanIdentityRegistry.Kind.Wallet, 0, 0, 0, deadline);
+        bytes memory s = _sig(bobKey, d);
+        vm.prank(alice);
+        vm.expectRevert(KarwanIdentityRegistry.AlreadyBound.selector);
+        reg.bind(bob, KarwanIdentityRegistry.Kind.Wallet, 0, 0, 0, deadline, s);
+        assertEq(reg.identityOf(bob), bobId);
+    }
+
+    function test_an_agent_needs_a_future_expiry_and_limits_that_fit() public {
+        uint64 expiry = uint64(block.timestamp + 30 days);
+        uint64 nowTs = uint64(block.timestamp);
+        uint256 deadline = block.timestamp + 1 hours;
+        vm.startPrank(alice);
+        vm.expectRevert(KarwanIdentityRegistry.BadBinding.selector);
+        reg.bind(agent, KarwanIdentityRegistry.Kind.Agent, nowTs, 100e6, 500e6, deadline, "");
+        vm.expectRevert(KarwanIdentityRegistry.BadBinding.selector);
+        reg.bind(agent, KarwanIdentityRegistry.Kind.Agent, expiry, 0, 500e6, deadline, "");
+        vm.expectRevert(KarwanIdentityRegistry.BadBinding.selector);
+        reg.bind(agent, KarwanIdentityRegistry.Kind.Agent, expiry, 100e6, 99e6, deadline, "");
+        vm.stopPrank();
+        assertFalse(reg.isAgent(agent));
+    }
+
+    function test_a_wallet_carries_no_expiry_or_limits() public {
+        uint64 expiry = uint64(block.timestamp + 30 days);
+        uint256 deadline = block.timestamp + 1 hours;
+        vm.startPrank(alice);
+        vm.expectRevert(KarwanIdentityRegistry.BadBinding.selector);
+        reg.bind(phone, KarwanIdentityRegistry.Kind.Wallet, expiry, 0, 0, deadline, "");
+        vm.expectRevert(KarwanIdentityRegistry.BadBinding.selector);
+        reg.bind(phone, KarwanIdentityRegistry.Kind.Wallet, 0, 1, 0, deadline, "");
+        vm.expectRevert(KarwanIdentityRegistry.BadBinding.selector);
+        reg.bind(phone, KarwanIdentityRegistry.Kind.Wallet, 0, 0, 1, deadline, "");
+        vm.stopPrank();
+        assertEq(reg.identityOf(phone), 0);
+    }
+
+    function test_a_binding_is_a_wallet_or_an_agent() public {
+        uint256 deadline = block.timestamp + 1 hours;
+        bytes32 d = reg.bindDigest(id, phone, KarwanIdentityRegistry.Kind.None, 0, 0, 0, deadline);
+        bytes memory s = _sig(phoneKey, d);
+        vm.prank(alice);
+        vm.expectRevert(KarwanIdentityRegistry.BadBinding.selector);
+        reg.bind(phone, KarwanIdentityRegistry.Kind.None, 0, 0, 0, deadline, s);
+        assertEq(reg.identityOf(phone), 0);
+    }
+
+    function test_an_unbound_wallet_cannot_be_unbound() public {
+        vm.prank(alice);
+        vm.expectRevert(KarwanIdentityRegistry.NotBound.selector);
+        reg.unbind(phone);
+    }
+
+    function test_another_identity_cannot_unbind_a_wallet() public {
+        _bindWallet(phone, phoneKey);
+        address bob = makeAddr("bob");
+        vm.prank(bob);
+        reg.register();
+        vm.prank(bob);
+        vm.expectRevert(KarwanIdentityRegistry.NotController.selector);
+        reg.unbind(phone);
+        assertEq(reg.identityOf(phone), id);
+    }
+
+    function test_only_the_proposed_wallet_accepts_control() public {
+        _bindWallet(phone, phoneKey);
+        address outsider = makeAddr("outsider");
+        vm.prank(phone);
+        vm.expectRevert(KarwanIdentityRegistry.NotController.selector);
+        reg.acceptController();
+        vm.prank(outsider);
+        vm.expectRevert(KarwanIdentityRegistry.NotController.selector);
+        reg.acceptController();
+        assertEq(reg.controllerOf(id), alice);
+    }
+
+    function test_the_controller_is_not_its_own_recovery() public {
+        vm.prank(alice);
+        vm.expectRevert(KarwanIdentityRegistry.IsController.selector);
+        reg.setRecovery(alice);
+        assertEq(reg.recoveryOf(id), address(0));
+    }
+
+    function test_only_the_named_recovery_wallet_starts_recovery() public {
+        _bindWallet(phone, phoneKey);
+        address outsider = makeAddr("outsider");
+        vm.prank(phone);
+        vm.expectRevert(KarwanIdentityRegistry.NotController.selector);
+        reg.startRecovery();
+        vm.prank(outsider);
+        vm.expectRevert(KarwanIdentityRegistry.NotController.selector);
+        reg.startRecovery();
+        (address w,) = reg.recoveryRequestOf(id);
+        assertEq(w, address(0));
+    }
 }

@@ -160,6 +160,44 @@ contract AgreementFlowTest is AgreementFixture {
         assertEq(escrow.reviewEndOf(id), uint64(block.timestamp + 5 days));
     }
 
+    function test_more_review_time_waits_for_the_review_to_start() public {
+        AgreementTerms memory t = _terms();
+        t.reviewStarts = 1;
+        t.startLongstop = 5 days;
+        bytes32 id = _fundAccepted(t, bytes32("a"));
+        vm.prank(buyer);
+        vm.expectRevert(AgreementDeliveryLib.BadState.selector);
+        escrow.requestMoreTime(id);
+        _deliver(id);
+        vm.prank(buyer);
+        vm.expectRevert(AgreementDeliveryLib.BadState.selector);
+        escrow.requestMoreTime(id);
+        assertEq(_deal(id).extUsed, 0);
+    }
+
+    function test_no_more_review_time_during_a_dispute() public {
+        bytes32 id = _fundAccepted(_terms(), bytes32("a"));
+        _deliver(id);
+        vm.startPrank(buyer);
+        escrow.dispute(id, bytes32("clause"));
+        vm.expectRevert(AgreementDeliveryLib.BadState.selector);
+        escrow.requestMoreTime(id);
+        vm.stopPrank();
+    }
+
+    function test_the_review_end_is_zero_while_no_delivery_is_pending() public {
+        AgreementTerms memory t = _terms();
+        t.trancheBps[0] = 5_000;
+        t.trancheBps[1] = 5_000;
+        bytes32 id = _fundAccepted(t, bytes32("a"));
+        assertEq(escrow.reviewEndOf(id), 0);
+        _deliver(id);
+        assertGt(escrow.reviewEndOf(id), 0);
+        vm.prank(buyer);
+        escrow.release(id);
+        assertEq(escrow.reviewEndOf(id), 0);
+    }
+
     function test_hold_blocks_the_claim_and_extends_the_review() public {
         bytes32 id = _fundAccepted(_terms(), bytes32("a"));
         _deliver(id);
