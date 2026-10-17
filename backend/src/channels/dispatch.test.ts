@@ -344,3 +344,74 @@ test('after joining, the agent asks whether agents may check the record, then ab
   assert.deepEqual(consents[1], { sourceLookup: false });
   assert.match(sent.at(-1)!.kind === 'text' ? (sent.at(-1) as { body: string }).body : '', /change this any time in Profile/);
 });
+
+test('with onboarding wired, an account still signing in never reaches the assistant', async () => {
+  const s = setup({
+    extra: {
+      onboarding: { handle: async (a) => ({ account: { ...a, onboarding: { step: 'choose' } }, out: [{ kind: 'text', body: 'Choose.' }] }) },
+    },
+  });
+  await s.dispatch(msg({ text: 'hi' }));
+  assert.equal(s.chats.length, 0);
+  assert.equal(bodyOf(s.sent.at(-1)!), 'Choose.');
+  assert.equal(s.account().onboarding?.step, 'choose');
+});
+
+test('a hand-off from onboarding runs one assistant turn in the person\'s words', async () => {
+  const s = setup({
+    active: true,
+    extra: {
+      onboarding: { handle: async (a) => ({ account: a, out: [{ kind: 'text', body: 'Got it.' }], handOff: 'I sell: logos. Post this as my offer.' }) },
+    },
+  });
+  await s.dispatch(msg({ text: '50 USDC, 3 days' }));
+  assert.equal(s.chats.length, 1);
+  assert.equal(s.chats[0]!.at(-1)!.content, 'I sell: logos. Post this as my offer.');
+});
+
+test('a pass-through note is sent and the message still reaches the assistant', async () => {
+  const s = setup({
+    active: true,
+    extra: {
+      onboarding: { handle: async (a) => ({ account: { ...a, emailAsked: true }, out: [{ kind: 'text', body: 'Add your email.' }], passThrough: true }) },
+    },
+  });
+  await s.dispatch(msg({ text: 'find me a designer' }));
+  assert.equal(s.sent[0] && bodyOf(s.sent[0]), 'Add your email.');
+  assert.equal(s.chats.length, 1);
+  assert.equal(s.account().emailAsked, true);
+});
+
+const FINDABLE = { kind: 'buttons' as const, body: 'Can people find you here by your Telegram name?', buttons: [{ id: 'rc:findable:yes', title: 'Yes' }, { id: 'rc:findable:no', title: 'Not now' }] };
+
+test('after the lookup question the findable question follows', async () => {
+  const s = setup({ active: true, extra: { consent: async () => {}, findable: FINDABLE } });
+  await s.dispatch(msg({ kind: 'button', replyId: 'rc:lookup:yes' }));
+  assert.equal(bodyOf(s.sent.at(-1)!), FINDABLE.body);
+  assert.equal(s.account().findableAsked, true);
+});
+
+test('the findable answer is saved on the account', async () => {
+  const s = setup({ active: true, extra: { consent: async () => {}, findable: FINDABLE } });
+  await s.dispatch(msg({ kind: 'button', replyId: 'rc:findable:yes' }));
+  assert.equal(s.account().findable, true);
+  assert.equal(s.account().findableAsked, true);
+  await s.dispatch(msg({ kind: 'button', replyId: 'rc:findable:no' }));
+  assert.equal(s.account().findable, false);
+});
+
+test('an account that never answered is asked once, and its message still reaches the agent', async () => {
+  const s = setup({ active: true, extra: { consent: async () => {}, findable: FINDABLE } });
+  await s.dispatch(msg({ text: 'find me a designer' }));
+  assert.equal(bodyOf(s.sent[0]!), FINDABLE.body);
+  assert.equal(s.chats.length, 1);
+  const count = s.sent.length;
+  await s.dispatch(msg({ text: 'and a printer' }));
+  assert.equal(s.sent.slice(count).some((m) => bodyOf(m) === FINDABLE.body), false);
+});
+
+test('without the findable question wired nothing extra is asked', async () => {
+  const s = setup({ active: true, extra: { consent: async () => {} } });
+  await s.dispatch(msg({ text: 'hello' }));
+  assert.equal(s.sent.some((m) => bodyOf(m) === FINDABLE.body), false);
+});

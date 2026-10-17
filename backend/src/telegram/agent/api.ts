@@ -44,5 +44,9 @@ export function createTelegramApi(deps: { token: string; fetch: typeof fetch; ma
     }
   }
 
-  return { sendMessage, answerCallback, download };
+  async function deleteMessage(chatId: number, messageId: number): Promise<boolean> {
+    return (await call('deleteMessage', { chat_id: chatId, message_id: messageId })) !== null;
+  }
+
+  return { sendMessage, answerCallback, download, deleteMessage };
 }

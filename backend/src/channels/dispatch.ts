@@ -1,6 +1,7 @@
 import { isDeleteCommand } from '../accountDeletion/rules.js';
 import type { AssistantAction, ConfirmAction } from '../assistant/actions.js';
 import { renderTurn, type OutMessage } from './render.js';
+import type { OnboardingResult } from './onboarding.js';
 import type { ChatAccount, InboundMessage } from './types.js';
 
 export type ChatMessage = { role: 'user' | 'assistant'; content: string };
@@ -52,6 +53,12 @@ export interface DispatchDeps<A extends ChatAccount = ChatAccount> {
     command: (address: string) => Promise<OutMessage>;
     tap: (address: string, replyId: string) => Promise<OutMessage | null>;
   };
+  /// Signing in or up from the chat. When it takes a message, nothing else
+  /// below runs for it, unless it asks to pass the message through.
+  onboarding?: { handle: (account: A, m: InboundMessage) => Promise<OnboardingResult<A> | null> };
+  /// Where people can be found by their chat username: the question asked
+  /// after the lookup one, and once to anyone who never answered it.
+  findable?: OutMessage;
 }
 
 const HISTORY_MAX = 20;
@@ -60,7 +67,8 @@ const ACCEPT_ID = 'terms:accept';
 
 const text = (body: string): OutMessage => ({ kind: 'text', body });
 
-const READABLE_ASK: OutMessage = {
+/// The first of the questions asked after someone joins.
+export const READABLE_ASK: OutMessage = {
   kind: 'buttons',
   body: 'Agents from other apps can check your Karwan record too, if you allow it. Agents in the Karwan market already can when you post a request or an offer. Each check is paid and logged, and they never see your messages or who you worked with. Allow agents from other apps?',
   buttons: [
@@ -107,6 +115,18 @@ export function createDispatcher<A extends ChatAccount>(deps: DispatchDeps<A>) {
     let account = await deps.getOrStart(m.from);
     const reply = (msg: OutMessage) => deps.send(account.to, msg);
 
+    let handOff: string | undefined;
+    if (deps.onboarding) {
+      const ob = await deps.onboarding.handle(account, m);
+      if (ob) {
+        account = await deps.saveAccount(ob.account);
+        for (const out of ob.out) await reply(out);
+        if (!ob.passThrough && !ob.handOff) return;
+        handOff = ob.handOff;
+      }
+      if (!account.address || !account.activated) return;
+    }
+
     if (!account.address || !account.activated) {
       if (m.replyId !== ACCEPT_ID) {
         await reply(welcome());
@@ -125,6 +145,13 @@ export function createDispatcher<A extends ChatAccount>(deps: DispatchDeps<A>) {
     }
     const address = account.address;
 
+    const findableTap = /^rc:findable:(yes|no)$/.exec(m.replyId ?? '');
+    if (findableTap && deps.findable) {
+      account = await deps.saveAccount({ ...account, findable: findableTap[1] === 'yes', findableAsked: true });
+      await reply(text('Saved. You can change this any time by telling me.'));
+      return;
+    }
+
     const consentTap = /^rc:(readable|lookup):(yes|no)$/.exec(m.replyId ?? '');
     if (consentTap && deps.consent) {
       const yes = consentTap[2] === 'yes';
@@ -134,8 +161,18 @@ export function createDispatcher<A extends ChatAccount>(deps: DispatchDeps<A>) {
         await reply(text("That didn't save. Tap your answer again in a minute."));
         return;
       }
+      if (consentTap[1] === 'lookup' && deps.findable) {
+        account = await deps.saveAccount({ ...account, findableAsked: true });
+        await reply(deps.findable);
+        return;
+      }
       await reply(consentTap[1] === 'readable' ? LOOKUP_ASK : text('Saved. You can change this any time in Profile.'));
       return;
+    }
+
+    if (deps.findable && !account.findableAsked && !m.replyId) {
+      account = await deps.saveAccount({ ...account, findableAsked: true });
+      await reply(deps.findable);
     }
 
     if (deps.deletion) {
@@ -196,7 +233,7 @@ export function createDispatcher<A extends ChatAccount>(deps: DispatchDeps<A>) {
       return;
     }
 
-    const said = m.text?.trim();
+    const said = handOff ?? m.text?.trim();
     if (!said) return;
 
     const history: ChatMessage[] = [...(account.history ?? []), { role: 'user' as const, content: said }].slice(-HISTORY_MAX);

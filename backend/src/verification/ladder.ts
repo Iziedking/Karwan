@@ -12,7 +12,9 @@ export type FactKind =
   | 'cac_match'
   | 'github_work'
   | 'karwan_deal'
-  | 'id_check';
+  | 'id_check'
+  /// A link the person added to their own record. Always self-reported.
+  | 'shared_link';
 
 export interface Fact {
   kind: FactKind;

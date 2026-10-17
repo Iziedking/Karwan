@@ -45,3 +45,10 @@ test('a file is fetched through getFile, and one over the cap is refused before 
   assert.equal(await big.download('f2'), null);
   assert.equal(bigCalls.length, 1, 'nothing is downloaded past the cap');
 });
+
+test('a message is deleted by chat and message id', async () => {
+  const calls: string[] = [];
+  const api = createTelegramApi({ token: 't', maxFileBytes: 100, fetch: fakeFetch({ '/deleteMessage': { ok: true, result: true } }, calls) });
+  assert.equal(await api.deleteMessage(4242, 77), true);
+  assert.match(calls[0]!, /deleteMessage \{"chat_id":4242,"message_id":77\}/);
+});

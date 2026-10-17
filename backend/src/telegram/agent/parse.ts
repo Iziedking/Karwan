@@ -3,6 +3,7 @@ import type { InboundMessage } from '../../channels/types.js';
 interface TgUser {
   id: number;
   is_bot?: boolean;
+  username?: string;
 }
 interface TgChat {
   id: number;
@@ -34,7 +35,13 @@ export interface ParsedUpdate {
   chatId: number;
   /// Set on a button tap, which Telegram expects to be acknowledged.
   callbackId?: string;
+  /// The sender's Telegram username, lowercased, when they have one.
+  username: string | null;
+  /// The message id, so the bot can delete a message that holds a code.
+  messageId: number | null;
 }
+
+const usernameOf = (u: TgUser) => (u.username ? u.username.toLowerCase() : null);
 
 const area = (p: { file_size?: number; width?: number; height?: number }) => p.file_size ?? (p.width ?? 0) * (p.height ?? 0);
 
@@ -51,6 +58,8 @@ export function parseUpdate(update: TgUpdate): ParsedUpdate | null {
     return {
       chatId: chat.id,
       callbackId: tap.id,
+      username: usernameOf(tap.from),
+      messageId: null,
       inbound: { ...base, from: `tg:${tap.from.id}`, timestamp: Date.now(), kind: 'button', replyId: tap.data },
     };
   }
@@ -58,21 +67,24 @@ export function parseUpdate(update: TgUpdate): ParsedUpdate | null {
   const m = update.message;
   if (!m || m.chat.type !== 'private' || !m.from || m.from.is_bot) return null;
   const inbound: Omit<InboundMessage, 'kind'> = { ...base, from: `tg:${m.from.id}`, timestamp: m.date * 1000 };
+  const who = { username: usernameOf(m.from), messageId: m.message_id };
 
   if (typeof m.text === 'string') {
-    if (m.text.startsWith('/')) return null;
-    return { chatId: m.chat.id, inbound: { ...inbound, kind: 'text', text: m.text } };
+    // Commands are the bot's own, except a bare /start, which begins sign-up.
+    if (m.text.startsWith('/') && m.text.trim() !== '/start') return null;
+    return { chatId: m.chat.id, ...who, inbound: { ...inbound, kind: 'text', text: m.text } };
   }
   const caption = m.caption ? { text: m.caption } : {};
   if (m.photo?.length) {
     const largest = [...m.photo].sort((a, b) => area(b) - area(a))[0]!;
-    return { chatId: m.chat.id, inbound: { ...inbound, kind: 'media', mediaId: largest.file_id, mimeType: 'image/jpeg', ...caption } };
+    return { chatId: m.chat.id, ...who, inbound: { ...inbound, kind: 'media', mediaId: largest.file_id, mimeType: 'image/jpeg', ...caption } };
   }
   if (m.document) {
     return {
       chatId: m.chat.id,
+      ...who,
       inbound: { ...inbound, kind: 'media', mediaId: m.document.file_id, mimeType: m.document.mime_type ?? 'application/octet-stream', ...caption },
     };
   }
-  return { chatId: m.chat.id, inbound: { ...inbound, kind: 'other' } };
+  return { chatId: m.chat.id, ...who, inbound: { ...inbound, kind: 'other' } };
 }

@@ -35,6 +35,7 @@ import { readSolanaHolding } from '../chain/solanaBalances.js';
 import { lookupPlatformGuide } from './platformGuide.js';
 import { dealStepTools, dealStepPendingLines } from './dealTools.js';
 import { verificationTools } from './verificationTools.js';
+import { chatTools, liveChatToolDeps } from './chatTools.js';
 import { networkTools } from './networkTools.js';
 import { directDealTools } from './directDealTools.js';
 import { isRequestOwner } from '../agents/chooseOffer.js';
@@ -2331,6 +2332,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
 
     ...dealStepTools(address, actions),
     ...verificationTools(address),
+    ...chatTools(address, liveChatToolDeps),
     ...networkTools(address),
     ...directDealTools(address, actions),
   };

@@ -282,6 +282,11 @@ async function handleMessage(
   }
 
   if (text === '/start') {
+    // With the agent on, /start begins signing in or up in the chat.
+    if (agentHandler && message.chat.type === 'private') {
+      await agentHandler(update);
+      return;
+    }
     await sendTelegramMessage(
       chatId,
       "*Karwan*: open your profile in the app and click *Connect Telegram* to get a one-time link.",

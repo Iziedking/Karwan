@@ -9,6 +9,8 @@ export interface TelegramAccount extends ChatAccount {
   /// The agent runs as that account; Karwan does not hold its keys, so it is
   /// not a chat account for custody or the chat deal limits.
   linkedWebAccount?: boolean;
+  /// The person's current Telegram username, lowercased, without the @.
+  tgUsername?: string | null;
 }
 
 const seenInMemory = new Set<number>();
@@ -46,6 +48,38 @@ export async function findTelegramAccountByAddress(address: string): Promise<Tel
     [key],
   );
   return r.rows[0]?.data ?? null;
+}
+
+/// The account a Telegram username belongs to now. Only accounts that have a
+/// Karwan address are returned.
+export async function findTelegramAccountByUsername(username: string): Promise<TelegramAccount | null> {
+  const key = username.replace(/^@/, '').trim().toLowerCase();
+  if (!key) return null;
+  if (!pgEnabled) return [...accountsInMemory.values()].find((a) => a.tgUsername === key && a.address) ?? null;
+  const r = await postgresExecutor().query<{ data: TelegramAccount }>(
+    `SELECT data FROM telegram_accounts WHERE data->>'tgUsername' = $1 AND address IS NOT NULL LIMIT 1`,
+    [key],
+  );
+  return r.rows[0]?.data ?? null;
+}
+
+/// Telegram usernames are unique at any one time, so the account that showed
+/// a username last owns it: every other account loses it. Without this a
+/// renamed seller's old name, taken by someone else, would still find them.
+export async function claimTelegramUsername(numberHash: string, username: string): Promise<void> {
+  const key = username.replace(/^@/, '').trim().toLowerCase();
+  if (!key) return;
+  if (!pgEnabled) {
+    for (const [hash, a] of accountsInMemory) {
+      if (hash !== numberHash && a.tgUsername === key) accountsInMemory.set(hash, { ...a, tgUsername: null });
+    }
+    return;
+  }
+  await postgresExecutor().query(
+    `UPDATE telegram_accounts SET data = jsonb_set(data, '{tgUsername}', 'null'::jsonb)
+     WHERE data->>'tgUsername' = $1 AND user_hash <> $2`,
+    [key, numberHash],
+  );
 }
 
 /// Deletes the chat account at this address, when the account is deleted.

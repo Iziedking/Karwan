@@ -30,3 +30,8 @@ test('a link moved to another web account follows it', () => {
   const other = '0x00000000000000000000000000000000000000f6';
   assert.equal(withLinkedAccount(linked, other, 2_000)?.address, other);
 });
+
+test('a chat linked from the website profile is finished with sign-in', () => {
+  const linked = withLinkedAccount({ ...fresh, onboarding: { step: 'have' } }, '0x00000000000000000000000000000000000000e6', 1);
+  assert.equal(linked?.onboarding?.step, 'done');
+});

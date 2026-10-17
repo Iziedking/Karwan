@@ -1,9 +1,14 @@
 import { createHash } from 'node:crypto';
 import type { AssistantAction } from '../../assistant/actions.js';
 import { ARC } from '../../chain/client.js';
-import { createDispatcher } from '../../channels/dispatch.js';
+import { READABLE_ASK, createDispatcher } from '../../channels/dispatch.js';
+import { createInterview } from '../../channels/interview.js';
 import { createExecutor } from '../../channels/executor.js';
+import { createEmailAccounts } from '../../channels/emailAccounts.js';
 import { createIdentity } from '../../channels/identity.js';
+import { createOnboarding } from '../../channels/onboarding.js';
+import { createTagStep } from '../../channels/tagStep.js';
+import { checkKarwanTag } from '../../profile/karwanTag.js';
 import { MONEY_INTENTS, createMoneyStepPresenter } from '../../channels/moneySteps.js';
 import { callAsAccount } from '../../channels/inProcess.js';
 import { extractInvoice, MEDIA_MAX_BYTES } from '../../channels/invoiceExtract.js';
@@ -14,17 +19,21 @@ import { installChannelPorts, tellAccount } from '../../channels/sender.js';
 import { provisionUserIdentityWallet } from '../../circle/wallets.js';
 import { config } from '../../config.js';
 import { claimUnique } from '../../db/evidence.js';
-import { getProfile, updateProfile } from '../../db/profiles.js';
+import { getProfile, tagAvailableFor, updateProfile } from '../../db/profiles.js';
 import {
+  claimTelegramUsername,
   findTelegramAccountByAddress,
   getTelegramAccount,
   markTelegramUpdateProcessed,
   saveTelegramAccount,
   type TelegramAccount,
 } from '../../db/telegramAccounts.js';
-import { findAddressByChatId, saveTelegramLink } from '../../db/telegramLinks.js';
-import { createUser } from '../../db/users.js';
-import { telegramAccountEmail } from '../../emails/chatRecipients.js';
+import { findAddressByChatId, getTelegramLink, saveTelegramLink } from '../../db/telegramLinks.js';
+import { changeUserEmail, createUser, getUserByAddress, getUserByEmail } from '../../db/users.js';
+import { getModularAccountByEmail } from '../../db/modularAccounts.js';
+import { isInvited, joinWaitlist } from '../../db/waitlist.js';
+import { emailCodes, emailHash } from '../../routes/auth.js';
+import { isChatAccountEmail, telegramAccountEmail } from '../../emails/chatRecipients.js';
 import { logger } from '../../logger.js';
 import { addVerifiedFact, cacReview, clientConfirmations } from '../../verification/live.js';
 import { installVerificationServices } from '../../verification/services.js';
@@ -91,6 +100,11 @@ export function startTelegramAgent(): boolean {
     addFact: addVerifiedFact,
   });
 
+  const activate = async (address: string) => {
+    const r = await callAsAccount(address, 'POST', '/api/activation/activate', { address });
+    if (r.status !== 200) throw new Error(`activation answered ${r.status}`);
+  };
+
   const identity = createIdentity<TelegramAccount>({
     now: Date.now,
     keyOf,
@@ -102,10 +116,7 @@ export function startTelegramAgent(): boolean {
     createUser: (u) => {
       createUser(u);
     },
-    activate: async (address) => {
-      const r = await callAsAccount(address, 'POST', '/api/activation/activate', { address });
-      if (r.status !== 200) throw new Error(`activation answered ${r.status}`);
-    },
+    activate: (address) => activate(address),
   });
 
   // A new chat account is paired with its chat for notifications, so the
@@ -116,6 +127,62 @@ export function startTelegramAgent(): boolean {
     if (account.address) await saveTelegramLink({ address: account.address, chatId: chatIdOf(account.to), linkedAt: Date.now() });
     return account;
   };
+
+  const emailAccounts = createEmailAccounts<TelegramAccount>({
+    now: Date.now,
+    network: ARC.testnet ? 'testnet' : 'mainnet',
+    getUserByEmail,
+    getUserByAddress,
+    isInvited,
+    joinWaitlist: async (email) => {
+      await joinWaitlist(email, 'en');
+    },
+    refHash: emailHash,
+    provisionIdentity: (refHash) => provisionUserIdentityWallet(refHash, 'chat'),
+    createUser: (u) => {
+      createUser(u);
+    },
+    changeUserEmail: (address, email) => {
+      changeUserEmail(address, email);
+    },
+    isPlaceholder: isChatAccountEmail,
+    activate,
+    link: async (address, account) => {
+      await saveTelegramLink({ address, chatId: chatIdOf(account.to), username: account.tgUsername ?? undefined, linkedAt: Date.now() });
+    },
+    chatOf: async (address) => (await findTelegramAccountByAddress(address))?.numberHash ?? null,
+    passkeyAccount: async (email) => !!(await getModularAccountByEmail(email)),
+  });
+
+  const interview = createInterview<TelegramAccount>({ afterwards: [READABLE_ASK] });
+
+  const tagStep = createTagStep<TelegramAccount>({
+    check: checkKarwanTag,
+    available: tagAvailableFor,
+    // The website's own sign-up route; an account that already has a profile
+    // (made before tags) adds its tag through the tag route instead.
+    signup: async (address, tag) => {
+      let r = await callAsAccount(address, 'POST', '/api/signup', { tag, accountKind: 'person' });
+      if (r.status === 409 && r.json.code === 'account_exists') r = await callAsAccount(address, 'POST', '/api/signup/tag', { tag });
+      if (r.status === 200 || r.status === 201) return { ok: true };
+      return { ok: false, code: String(r.json.code ?? r.status) };
+    },
+    afterTag: (account) => interview.enter(account),
+  });
+
+  const onboarding = createOnboarding<TelegramAccount>({
+    webBase,
+    sendCode: async (email) => !(await emailCodes.request(email)).limited,
+    checkCode: emailCodes.verify,
+    emailAccounts,
+    tagOf: async (address) => (await getProfile(address))?.handle ?? null,
+    placeholderEmail: async (address) => isChatAccountEmail(getUserByAddress(address)?.email ?? ''),
+    enterTag: tagStep.enter,
+    later: async (account, m) => (await tagStep.handle(account, m)) ?? interview.handle(account, m),
+    deleteMessage: async (m) => {
+      if (m.messageRef) await api.deleteMessage(chatIdOf(m.from), Number(m.messageRef));
+    },
+  });
 
   const dispatch = createDispatcher<TelegramAccount>({
     now: Date.now,
@@ -146,6 +213,15 @@ export function startTelegramAgent(): boolean {
     }),
     moneyOut: moneyOutChat,
     deletion: accountDeletion,
+    onboarding,
+    findable: {
+      kind: 'buttons',
+      body: 'Can people find you here by your Telegram name, to check your Karwan record before they deal with you?',
+      buttons: [
+        { id: 'rc:findable:yes', title: 'Yes' },
+        { id: 'rc:findable:no', title: 'Not now' },
+      ],
+    },
     consent: async (address, patch) => {
       const saved = await updateProfile(address, (current) => ({
         ...current,
@@ -173,6 +249,17 @@ export function startTelegramAgent(): boolean {
     media: (account, m) => (account.address ? intake(account.address, m) : Promise.resolve([])),
   });
 
+  // The alert link row carries the username too, so it never goes stale.
+  const saveWithLinkUsername = async (account: TelegramAccount) => {
+    const saved = await saveTelegramAccount(account);
+    if (saved.address) {
+      const link = await getTelegramLink(saved.address);
+      const username = saved.tgUsername ?? undefined;
+      if (link && link.username !== username) await saveTelegramLink({ ...link, username });
+    }
+    return saved;
+  };
+
   setTelegramAgentHandler(
     createTelegramHandler({
       now: Date.now,
@@ -180,10 +267,11 @@ export function startTelegramAgent(): boolean {
       answerCallback: api.answerCallback,
       linkedAddress: findAddressByChatId,
       getOrStart: identity.getOrStart,
-      save: saveTelegramAccount,
+      save: saveWithLinkUsername,
       dispatch,
       question: clientConfirm.questionFor,
       send,
+      claimUsername: claimTelegramUsername,
     }),
   );
 

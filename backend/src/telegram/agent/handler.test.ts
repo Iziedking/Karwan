@@ -100,3 +100,26 @@ test('a closed or unknown confirmation link says so', async () => {
   assert.equal(sent[0]!.m.kind, 'text');
   assert.match((sent[0]!.m as { body: string }).body, /already answered|closed/);
 });
+
+test('the handler keeps the current Telegram username on the account', async () => {
+  const { handle, accounts } = setup();
+  await handle({ update_id: 30, message: { message_id: 1, from: { id: 4242, username: 'Ada_Shop' }, chat, date: 1, text: 'hi' } });
+  assert.equal(accounts.get('tg:4242')?.tgUsername, 'ada_shop');
+  await handle({ update_id: 31, message: { message_id: 2, from: { id: 4242, username: 'NewName' }, chat, date: 1, text: 'hi' } });
+  assert.equal(accounts.get('tg:4242')?.tgUsername, 'newname');
+});
+
+test('a text message reaches the dispatcher with its Telegram message id', async () => {
+  const { handle, dispatched } = setup();
+  await handle({ update_id: 40, message: { message_id: 77, from, chat, date: 1, text: '123456' } });
+  assert.equal(dispatched[0]?.messageRef, '77');
+});
+
+test('a new username is claimed from any other account before it is saved', async () => {
+  const claims: string[] = [];
+  const { handle } = setup({ claimUsername: async (hash, name) => {
+    claims.push(`${hash}:${name}`);
+  } });
+  await handle({ update_id: 50, message: { message_id: 1, from: { id: 4242, username: 'Shop' }, chat, date: 1, text: 'hi' } });
+  assert.deepEqual(claims, ['tg:4242:shop']);
+});

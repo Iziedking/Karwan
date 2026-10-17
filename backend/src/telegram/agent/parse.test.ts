@@ -9,6 +9,8 @@ test('private text becomes a text message from tg:<user id>', () => {
   const r = parseUpdate({ update_id: 1, message: { message_id: 9, from, chat, date: 1_760_000_000, text: 'I build websites' } });
   assert.deepEqual(r, {
     chatId: 555,
+    username: null,
+    messageId: 9,
     inbound: { id: 'tg-1', from: 'tg:4242', timestamp: 1_760_000_000_000, kind: 'text', text: 'I build websites' },
   });
 });
@@ -51,4 +53,21 @@ test('groups, commands and bots never reach the agent', () => {
   assert.equal(parseUpdate({ update_id: 7, message: { message_id: 1, from, chat, date: 1, text: '/start abc' } }), null);
   assert.equal(parseUpdate({ update_id: 8, message: { message_id: 1, from: { id: 1, is_bot: true }, chat, date: 1, text: 'hi' } }), null);
   assert.equal(parseUpdate({ update_id: 9 }), null);
+});
+
+test('a message carries the sender username lowercased and the message id', () => {
+  const r = parseUpdate({ update_id: 10, message: { message_id: 9, from: { id: 5, username: 'Ada_Shop' }, chat, date: 1, text: 'hi' } });
+  assert.equal(r?.username, 'ada_shop');
+  assert.equal(r?.messageId, 9);
+});
+
+test('a button tap carries the username of whoever tapped', () => {
+  const r = parseUpdate({ update_id: 11, callback_query: { id: 'cb', from: { id: 5, username: 'Ada' }, message: { message_id: 3, chat, date: 1 }, data: 'x' } });
+  assert.equal(r?.username, 'ada');
+});
+
+test('a bare /start reaches the agent as text so sign-up can begin', () => {
+  const r = parseUpdate({ update_id: 12, message: { message_id: 1, from, chat, date: 1, text: '/start' } });
+  assert.equal(r?.inbound.kind, 'text');
+  assert.equal(r?.inbound.text, '/start');
 });

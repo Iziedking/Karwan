@@ -21,5 +21,6 @@ export function withLinkedAccount(
     activated: true,
     history: [],
     pendingActions: {},
+    onboarding: { step: 'done' },
   };
 }

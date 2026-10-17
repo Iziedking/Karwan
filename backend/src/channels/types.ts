@@ -16,6 +16,21 @@ export interface InboundMessage {
   replyId?: string;
   mediaId?: string;
   mimeType?: string;
+  /// The channel's own id for this message, so it can be deleted (a message
+  /// that holds a sign-in code).
+  messageRef?: string;
+}
+
+export type OnboardingStep = 'choose' | 'have' | 'email' | 'code' | 'terms' | 'tag' | 'role' | 'offer' | 'price' | 'done';
+
+/// Where someone is in signing in or up from a chat.
+export interface OnboardingState {
+  step: OnboardingStep;
+  /// 'new' signs up; 'have' signs in to an existing account or adds an email.
+  mode?: 'new' | 'have';
+  email?: string;
+  role?: 'sell' | 'buy' | 'both';
+  offer?: string;
 }
 
 /// What the core reads and writes on a chat account, whichever channel holds
@@ -36,4 +51,11 @@ export interface ChatAccount {
   history?: { role: 'user' | 'assistant'; content: string }[];
   /// Confirm cards waiting for a button tap, by card id.
   pendingActions?: Record<string, { action: ConfirmAction; expiresAt: number }>;
+  onboarding?: OnboardingState;
+  /// An account opened before chat sign-in had an email was asked once to add one.
+  emailAsked?: boolean;
+  /// People may find this account by its chat username (Telegram name).
+  findable?: boolean;
+  /// The findable question was asked once.
+  findableAsked?: boolean;
 }

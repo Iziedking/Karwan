@@ -5,7 +5,10 @@ import { answerFromListing } from '../agentRail/sellerRules.js';
 import { config } from '../config.js';
 import { findAgentWalletByAgentAddress, getAgentWallets } from '../db/agentWallets.js';
 import { getListing, listOpenListings } from '../db/listings.js';
-import { getProfile } from '../db/profiles.js';
+import { findTelegramAccountByUsername } from '../db/telegramAccounts.js';
+import { checkPerson } from '../lookup/checkPerson.js';
+import { resolveLookup } from '../lookup/resolve.js';
+import { findProfileByHandle, getProfile } from '../db/profiles.js';
 import { logger } from '../logger.js';
 import { prohibitedReason } from '../policy/prohibited.js';
 import { loadPublicPassport } from '../sealed/passportLoader.js';
@@ -81,6 +84,31 @@ export function networkTools(address: string) {
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant find_verified_people failed');
           return { error: 'Could not search the network right now.' };
+        }
+      },
+    }),
+
+    check_person: tool({
+      description:
+        "Check someone before a deal, by Karwan tag or Telegram username (with or without @). Returns their public record: name, tag, tier and fixed reason codes, plus advice: 'good' (fine to deal as usual), 'start_small' (deal, but start with a small first milestone) or 'new' (little record yet; keep the first deal small and in escrow). Say the advice as one plain sentence. Never state, guess or ask for scores, counts or amounts. When found is false, offer to send them a Karwan deal link.",
+      inputSchema: z.object({ handle: z.string().min(1).max(64) }),
+      execute: async ({ handle }) => {
+        try {
+          return await checkPerson(handle, {
+            resolve: (raw) =>
+              resolveLookup(raw, {
+                byTag: async (tag) => (await findProfileByHandle(tag))?.address ?? null,
+                byTelegram: async (name) => {
+                  const account = await findTelegramAccountByUsername(name);
+                  return account?.address ? { address: account.address, findable: account.findable === true } : null;
+                },
+              }),
+            passport: loadPublicPassport,
+            level: (who) => levelOf(who),
+          });
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant check_person failed');
+          return { error: 'The check did not go through. Try again in a minute.' };
         }
       },
     }),

@@ -222,6 +222,36 @@ export function createUser(input: {
   return user;
 }
 
+/// Moves a user row to a new email. Used when a chat account that started
+/// with a placeholder email adds a real one; the wallet and everything keyed
+/// by address stay the same. Throws when another account has that email.
+export function changeUserEmail(address: string, email: string): KarwanUser | null {
+  load();
+  const addr = address.toLowerCase();
+  const old = store.byAddress[addr];
+  if (!old) return null;
+  const next = normEmail(email);
+  if (next === old) return store.byEmail[old] ?? null;
+  if (store.byEmail[next]) throw new Error(`user with email ${next} already exists`);
+  const user: KarwanUser = { ...store.byEmail[old]!, email: next, updatedAt: Date.now() };
+  delete store.byEmail[old];
+  store.byEmail[next] = user;
+  store.byAddress[addr] = next;
+  persist();
+  // One UPDATE, not a delete and an insert: the address is unique, so an
+  // insert racing ahead of the delete would be refused.
+  if (pgEnabled) {
+    void db()
+      .update(usersTable)
+      .set({ email: next, data: user })
+      .where(eq(usersTable.email, old))
+      .catch((err: Error) => {
+        logger.error({ err: err.message, email: next }, 'users pg email change FAILED');
+      });
+  }
+  return user;
+}
+
 /// True when the user has a real passkey, ignoring the legacy OTP placeholder
 /// and any empty-publicKey rows. Use this instead of `credentials.length > 0`.
 export function hasRealPasskey(user: KarwanUser): boolean {

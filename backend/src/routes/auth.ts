@@ -40,12 +40,7 @@ import {
 } from '../auth/session.js';
 import { logger } from '../logger.js';
 import { invalidBodyMessage } from './invalidBody.js';
-import {
-  checkOtpAttempt,
-  generateOtpCode,
-  hashOtpCode,
-  OTP_TTL_MS,
-} from '../auth/otp.js';
+import { createEmailCodes, type PendingEmailCode } from '../auth/otpStore.js';
 
 const emailSchema = z.string().trim().toLowerCase().email().max(254);
 
@@ -65,26 +60,22 @@ const PENDING_TTL_MS = 5 * 60 * 1000;
 
 // Email OTP fallback for devices without a WebAuthn authenticator. Hashed
 // 6-digit codes keyed by email, with a 10-minute TTL and an attempt counter
-// that blocks brute force after 5 wrong tries. Same pattern as the WebAuthn
-// challenge map; production swaps both to Redis.
-interface PendingOtp {
-  /// HMAC(code + email) so memory inspection cannot expose or cheaply
-  /// brute-force the short-lived code without the server secret.
-  codeHash: string;
-  email: string;
-  expiresAt: number;
-  attempts: number;
-}
-const otps = durableEphemeralMap<PendingOtp>('otp');
-function otpSecret(): string {
-  return config.SESSION_SECRET ?? 'karwan-development-otp-secret-not-for-production';
-}
-function purgeStaleOtps() {
-  const now = Date.now();
-  for (const [k, v] of otps.entries()) {
-    if (v.expiresAt < now) otps.delete(k);
-  }
-}
+// that blocks brute force after 5 wrong tries. The store is shared with the
+// chat bots (auth/otpStore.ts), so a code is checked the same way everywhere.
+export const emailCodes = createEmailCodes({
+  store: durableEphemeralMap<PendingEmailCode>('otp'),
+  secret: () => config.SESSION_SECRET ?? 'karwan-development-otp-secret-not-for-production',
+  send: async (email, code) => {
+    try {
+      return await sendOtpEmail(email, code);
+    } catch (err) {
+      // Detailed reason stays on the server log; do not leak it to the client.
+      logger.warn({ err: (err as Error).message, email }, 'otp send failed');
+      return { delivered: false };
+    }
+  },
+  devCodes: () => isDev(),
+});
 
 interface OtpSendResult {
   delivered: boolean;
@@ -195,7 +186,9 @@ function rp(): { id: string; name: string; origin: string[] } {
   };
 }
 
-function emailHash(email: string): string {
+/// The wallet reference for an email account. The chat bots use it too, so an
+/// email signs in to the same wallet from anywhere.
+export function emailHash(email: string): string {
   return createHash('sha256').update(email).digest('hex');
 }
 
@@ -768,31 +761,11 @@ authRoutes.post('/otp/request', rateLimit({ windowMs: 10 * 60 * 1000, max: 5, na
   } catch (err) {
     return c.json({ error: invalidBodyMessage(err) }, 400);
   }
-  purgeStaleOtps();
-  const code = generateOtpCode();
-  otps.set(body.email, {
-    codeHash: hashOtpCode(code, body.email, otpSecret()),
-    email: body.email,
-    expiresAt: Date.now() + OTP_TTL_MS,
-    attempts: 0,
-  });
-  let delivered = false;
-  try {
-    const r = await sendOtpEmail(body.email, code);
-    delivered = r.delivered;
-  } catch (err) {
-    logger.warn({ err: (err as Error).message, email: body.email }, 'otp send failed');
-    // Keep going. The user can retry; the code is already stored either way.
-    // Detailed reason stays on the server log; do not leak it to the client.
-  }
-  return c.json({
-    sent: true,
-    delivered,
-    // Surface the code in the response only when (a) we're in dev and (b)
-    // the send path didn't actually deliver email, typically because no
-    // RESEND_API_KEY is configured. Production stays mute regardless.
-    ...(isDev() && !delivered ? { devCode: code } : {}),
-  });
+  const { delivered, devCode, limited } = await emailCodes.request(body.email);
+  if (limited) return c.json({ error: 'too many codes for this email, wait 10 minutes and try again', code: 'otp_limited' }, 429);
+  // The code comes back only in dev when no email was delivered, typically
+  // because no RESEND_API_KEY is configured. Production stays mute regardless.
+  return c.json({ sent: true, delivered, ...(devCode ? { devCode } : {}) });
 });
 
 const otpVerifySchema = z.object({
@@ -807,23 +780,11 @@ authRoutes.post('/otp/verify', rateLimit({ windowMs: 10 * 60 * 1000, max: 15, na
   } catch (err) {
     return c.json({ error: invalidBodyMessage(err) }, 400);
   }
-  const entry = otps.get(body.email);
-  if (!entry) return c.json({ error: 'no code pending for this email' }, 400);
-  const result = checkOtpAttempt(entry, body.code, body.email, otpSecret());
-  if (result.status === 'expired') {
-    otps.delete(body.email);
-    return c.json({ error: 'code expired, request a fresh one' }, 400);
-  }
-  if (result.status === 'locked') {
-    otps.delete(body.email);
-    return c.json({ error: 'too many wrong attempts, request a fresh code' }, 429);
-  }
-  if (result.status === 'wrong') {
-    entry.attempts = result.attempts;
-    otps.set(body.email, entry);
-    return c.json({ error: 'wrong code' }, 400);
-  }
-  otps.delete(body.email);
+  const check = emailCodes.verify(body.email, body.code);
+  if (check === 'none') return c.json({ error: 'no code pending for this email' }, 400);
+  if (check === 'expired') return c.json({ error: 'code expired, request a fresh one' }, 400);
+  if (check === 'locked') return c.json({ error: 'too many wrong attempts, request a fresh code' }, 429);
+  if (check === 'wrong') return c.json({ error: 'wrong code' }, 400);
 
   // Where users hold their own keys (mainnet), the code only proves the email.
   // The passkey account the user creates next is linked to it at wallet
