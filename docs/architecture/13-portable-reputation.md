@@ -1,6 +1,6 @@
 # 13 · Portable reputation: agents find the right people and pay to check them
 
-A buyer says what they need. Agents find sellers, pay a fraction of a cent in USDC to check each seller's record, and negotiate. The buyer gets a short list that shows who is verified and who is not, each person's score and real numbers, the negotiated price, and one recommendation. They open any profile and choose. Sellers' agents check buyers the same way, so good sellers find good clients.
+A buyer says what they need. Agents find sellers, pay a fraction of a cent in USDC to check each seller's record, and negotiate. The buyer gets a short list that shows who is verified and who is not, each person's tier and plain reasons, the negotiated price, and one recommendation. Agents see the numbers; people do not. They open any profile and choose. Sellers' agents check buyers the same way, so good sellers find good clients.
 
 The record an agent checks is not only Karwan's. Platforms where people already built a reputation can serve the same record read, at a price they set, paid agent to agent. The person connects the platform and consents. The platform is paid on every read and keeps its data: machines read the outcomes, people see a score.
 
@@ -11,7 +11,7 @@ It builds on the record (view 06), the unified reputation (view 08) and the veri
 View 10 rules 5 and 11 read, from this view on:
 
 - **5. Everyone is listed; verification is always shown.** Agents list verified and unverified people. Inside the same skill fit, verified ranks first, and only a verified person can be recommended. Choosing someone unverified asks once more before money moves.
-- **11. Only what is needed, only with consent.** Other people see a person's score, tier and counts. They never see deal amounts, messages or who the deals were with. Machines read details only with the person's consent, and the details are deleted after 24 hours.
+- **11. Only what is needed, only with consent.** Posting a request or an offer lets the agents of people on that request read your record; it is said when you post. Reads by anyone outside the Karwan market need your yes. Other people see your tier and reasons, never your numbers, deal amounts, messages or who your deals were with. Machines keep the details for 24 hours at most.
 
 ## Participants
 
@@ -106,7 +106,7 @@ A read is a signed answer about one person, for one purpose, paid per call.
 
 It holds no names, messages, amounts or counterparties in the clear. The fingerprint lets a reader count repeat deals with the same party without learning who it was. Karwan signs its reads with the key published at `/.well-known/attestation-issuer.json`.
 
-Before charging, the reader must name the request it is reading for and the person it acts for, and the subject must have turned on "Let agents check my record". Otherwise the read is refused and nothing is paid.
+Before charging, the reader must name the request it is reading for and the person it acts for, and the subject must be the person who posted that request, a seller who bid on it, or the seller behind the listing. Taking part in the market is the consent; no switch is needed. Otherwise the read is refused and nothing is paid. Reads from outside the market are covered in view 15 and need the person's own switch.
 
 ## A platform joins as a record source
 
@@ -137,7 +137,7 @@ Outcomes from platforms are scored with the published model `external-reputation
 
 ## Who pays and what is kept
 
-- Each person's agent holds a small reads balance in USDC, refilled 0.10 USDC at a time from their buying agent when a read needs it. An empty balance stops paid reads; it never stops the request.
+- Each person's agent holds a small reads pool in USDC, refilled 0.10 USDC at a time from their buying agent when a read needs it. It is never shown as a balance of its own; the shortlist says once what the checks cost, for example "Your agent checked 3 records · 0.03 USDC". An empty pool stops paid reads; it never stops the request.
 - After a read, the reader keeps the score and a signed receipt: who read, for what, when, what it cost. The details are deleted after 24 hours.
 - A person sees who read their record. Deleting an account deletes its reads.
 
@@ -173,7 +173,8 @@ Outcomes from platforms are scored with the published model `external-reputation
 | Live agent notes on the request page and seller desk; shortlist-ready email | Built, not deployed |
 | World ID asked on agent deals by the trust rules, buyer at choose and seller before funding | Built, not deployed; skippable on testnet only |
 | More proof and ID checks asked from the record check | Planned |
-| Consent switches, reads balance and "who read my record" | Built, not deployed |
+| "Who read my record" | Built, not deployed |
+| In-market reads on by default, the outside-reads switch, sealed shortlist and the cost line | Planned (agentic market plan A) |
 | Scoring model for platform outcomes (`external-reputation-v1`) | Built |
 | Platforms serving record reads | Planned. No platform has joined; none is named until one has |
 | Mainnet | After testnet runs end to end |

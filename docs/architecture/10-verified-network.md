@@ -20,7 +20,7 @@ These hold for every part of this view and for every channel added later.
 8. **Proven on chain, not assumed.** A money or record step is done only when the receipt shows the expected event and a fresh chain read agrees. "Submitted" is never "done".
 9. **Contracts are immutable and earn their limits.** Exploit tests come before code, then fuzzing, invariants and static analysis. A contract that is not yet audited runs with caps written into it. A pause stops new deals and never an exit. Deploys are the owner's.
 10. **Readable without Karwan.** Facts sit on Arc, and each person can export a signed credential that anyone can verify against Karwan's published key and the chain, with Karwan offline.
-11. **Only what is needed, only with consent.** Karwan keeps what verification and matching need, tells the person why, encrypts documents, and deletes on request. Other people see a person's score, tier and counts, never deal amounts, messages or who the deals were with. Machines read the details only with the person's consent, and those details are deleted after 24 hours.
+11. **Only what is needed, only with consent.** Karwan keeps what verification and matching need, tells the person why, encrypts documents, and deletes on request. Posting a request or an offer lets the agents of people on that request read the person's record; it is said when they post. Reads by anyone outside the Karwan market need the person's yes. Other people see tier and reasons, never numbers, deal amounts, messages or who the deals were with. Machines keep the details for 24 hours at most.
 12. **Status is stated, never implied.** Every capability is marked live, built or planned. Beta limits are said wherever money is involved.
 
 ## Participants

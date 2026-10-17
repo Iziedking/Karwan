@@ -74,6 +74,10 @@ A buyer, employer or platform looks up a Karwan tag and sees one page: completed
 - What a partner platform needs to share a record safely, and what it gains.
 - How the agent is paid for the reads it makes, using Circle's agent payment tools, without charging the person for their own data.
 
+## Attested deals
+
+Every deal that settles from the day attestations are switched on leaves two signed public statements, one for the buyer and one for the seller: their role, the settle date, an amount band (never the exact amount), and whether it went through a dispute. Anyone can look them up by address and check the signature against Karwan's published key, and revoked ones are listed. Deals settled before switch-on are published only for people who ask. Turning off "Publish my settled deals" stops new ones. Each statement also comes as a W3C Verifiable Credential 2.0 at `/attestations/<id>/vc`, with the same claim and signature, so other platforms and wallets can carry it. Removing them all (Settings) revokes every statement and stops new ones. Statements are always about the person, never an agent wallet. How outside agents use the market is in view 15.
+
 ## Status
 
 | Part | Status |
@@ -84,3 +88,4 @@ A buyer, employer or platform looks up a Karwan tag and sees one page: completed
 | Reputation agent on Circle's agent stack | Designing |
 | Source connection, consent and withdrawal | Designing |
 | Partner platforms | Research; none named until an agreement exists |
+| Attested deals from switch-on day, opt-out, history on request, removal, W3C copy, passport list | Built, switched off (`ATTESTATION_ISSUANCE_ENABLED` and `ATTESTATION_START_AT`) |
