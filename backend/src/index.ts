@@ -22,6 +22,9 @@ import { profileRoutes } from './routes/profile.js';
 import { workspaceRoutes } from './routes/workspaces.js';
 import { newsletterRoutes } from './routes/newsletter.js';
 import { settingsRoutes } from './routes/settings.js';
+import { createMeAttestationRoutes, profileSettingsSaver } from './routes/meAttestations.js';
+import { listAttestationsForSubject, revokeAttestation } from './db/attestations.js';
+import { upsertProfile } from './db/profiles.js';
 import { termsRoutes } from './routes/terms.js';
 import { signupRoutes } from './routes/signup.js';
 import { tagRoutes } from './routes/tags.js';
@@ -417,6 +420,15 @@ app.route('/api/workspaces', workspaceRoutes);
 app.route('/api/paytag', paytagRoutes);
 app.route('/api/newsletter', newsletterRoutes);
 app.route('/api/settings', settingsRoutes);
+app.route(
+  '/api/me/attestations',
+  createMeAttestationRoutes({
+    session: (c) => sessionAddress(c),
+    list: listAttestationsForSubject,
+    revoke: revokeAttestation,
+    saveSettings: profileSettingsSaver(getProfile, upsertProfile),
+  }),
+);
 app.route('/api/bridge', bridgeRoutes);
 app.route('/api/gateway', gatewayRoutes);
 app.route('/api/reputation', reputationRoutes);

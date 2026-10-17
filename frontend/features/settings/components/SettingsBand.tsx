@@ -13,6 +13,7 @@ import { LOCALE_NAMES, type Locale } from '@/shared/i18n/locales';
 import { adoptPreferenceIfUnset, setThemePreference, useTheme } from '@/shared/hooks/useTheme';
 import { LanguagePicker } from './LanguagePicker';
 import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
+import { PublishDealsRows } from './PublishDealsRows';
 import { ThemeIcon } from '@/shared/components/ThemeControl';
 import { Row, RowGroup, ToggleRow } from '@/features/profile/ui/ProfileUi';
 import { sfx } from '@/shared/utils/sfx';
@@ -186,6 +187,7 @@ export function SettingsBand() {
           checked={settings.publicPassport !== false}
           onChange={(v) => save({ publicPassport: v })}
         />
+        <PublishDealsRows settings={settings} save={save} />
       </RowGroup>
 
       {method === 'circle' && email && (

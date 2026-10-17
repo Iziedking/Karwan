@@ -1,0 +1,105 @@
+import type { AttestationBand } from '../../../core/api';
+
+/// The settled deals Karwan has signed a public statement about, on a
+/// person's passport. Bands are the attestation bands, not the market's.
+export interface AttestedDealsCopy {
+  title: string;
+  buyer: string;
+  seller: string;
+  disputed: string;
+  check: string;
+  removed: string;
+  none: string;
+  download: string;
+  bands: Record<AttestationBand, string>;
+}
+
+type Locale = 'en' | 'fr' | 'ar' | 'hi' | 'sw';
+
+export const attestedDealsCopy: Record<Locale, AttestedDealsCopy> = {
+  en: {
+    title: 'Settled deals, attested by Karwan',
+    buyer: 'As buyer',
+    seller: 'As seller',
+    disputed: 'Went through a dispute',
+    check: 'Check this',
+    removed: 'Removed',
+    none: 'No attested deals yet.',
+    download: 'Download my attested deals',
+    bands: {
+      'under-100': 'Under 100 USDC',
+      '100-1k': '100 to 1,000 USDC',
+      '1k-10k': '1,000 to 10,000 USDC',
+      '10k-100k': '10,000 to 100,000 USDC',
+      'over-100k': 'Over 100,000 USDC',
+    },
+  },
+  fr: {
+    title: 'Transactions réglées, attestées par Karwan',
+    buyer: 'En tant qu’acheteur',
+    seller: 'En tant que vendeur',
+    disputed: 'Passée par un litige',
+    check: 'Vérifier',
+    removed: 'Retirée',
+    none: 'Aucune transaction attestée pour le moment.',
+    download: 'Télécharger mes transactions attestées',
+    bands: {
+      'under-100': 'Moins de 100 USDC',
+      '100-1k': '100 à 1 000 USDC',
+      '1k-10k': '1 000 à 10 000 USDC',
+      '10k-100k': '10 000 à 100 000 USDC',
+      'over-100k': 'Plus de 100 000 USDC',
+    },
+  },
+  ar: {
+    title: 'صفقات مكتملة، موثّقة من كاروان',
+    buyer: 'كمشترٍ',
+    seller: 'كبائع',
+    disputed: 'مرّت بنزاع',
+    check: 'تحقّق منها',
+    removed: 'أُزيلت',
+    none: 'لا توجد صفقات موثّقة بعد.',
+    download: 'نزّل صفقاتي الموثّقة',
+    bands: {
+      'under-100': 'أقل من 100 USDC',
+      '100-1k': 'من 100 إلى 1,000 USDC',
+      '1k-10k': 'من 1,000 إلى 10,000 USDC',
+      '10k-100k': 'من 10,000 إلى 100,000 USDC',
+      'over-100k': 'أكثر من 100,000 USDC',
+    },
+  },
+  hi: {
+    title: 'पूरे हुए सौदे, Karwan द्वारा प्रमाणित',
+    buyer: 'खरीदार के रूप में',
+    seller: 'विक्रेता के रूप में',
+    disputed: 'विवाद से होकर गुज़रा',
+    check: 'इसे जांचें',
+    removed: 'हटाया गया',
+    none: 'अभी कोई प्रमाणित सौदा नहीं।',
+    download: 'मेरे प्रमाणित सौदे डाउनलोड करें',
+    bands: {
+      'under-100': '100 USDC से कम',
+      '100-1k': '100 से 1,000 USDC',
+      '1k-10k': '1,000 से 10,000 USDC',
+      '10k-100k': '10,000 से 100,000 USDC',
+      'over-100k': '100,000 USDC से अधिक',
+    },
+  },
+  sw: {
+    title: 'Mikataba iliyokamilika, imethibitishwa na Karwan',
+    buyer: 'Kama mnunuzi',
+    seller: 'Kama muuzaji',
+    disputed: 'Ilipitia mzozo',
+    check: 'Kagua hii',
+    removed: 'Imeondolewa',
+    none: 'Bado hakuna mikataba iliyothibitishwa.',
+    download: 'Pakua mikataba yangu iliyothibitishwa',
+    bands: {
+      'under-100': 'Chini ya USDC 100',
+      '100-1k': 'USDC 100 hadi 1,000',
+      '1k-10k': 'USDC 1,000 hadi 10,000',
+      '10k-100k': 'USDC 10,000 hadi 100,000',
+      'over-100k': 'Zaidi ya USDC 100,000',
+    },
+  },
+};

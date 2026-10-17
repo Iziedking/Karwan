@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { z } from 'zod';
 import { effectiveReviewWindowMs, runtimeSafetyErrors } from './configSafety.js';
+import { startAtSchema } from './attestation/policy.js';
 
 /// An empty env var is an empty STRING, and a zod `.default()` only fires on
 /// `undefined`. Without this, `FOO=` in .env skips the default, hits the
@@ -910,6 +911,9 @@ const envSchema = z.object({
   /// Off by default: turning it on starts publishing signed statements about real
   /// counterparties, which is a decision an operator should make deliberately.
   ATTESTATION_ISSUANCE_ENABLED: envBool('ATTESTATION_ISSUANCE_ENABLED'),
+  /// Switch-on day for public deal statements, epoch ms. Deals settled before it
+  /// are published only for people who ask. Unset: nothing is published.
+  ATTESTATION_START_AT: startAtSchema,
 
   // Shared secret gating the admin surface (/api/admin/* and the feedback
   // list/status endpoints). Callers send it as the `X-Admin-Token` header.

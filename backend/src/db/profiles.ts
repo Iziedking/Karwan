@@ -19,6 +19,11 @@ export interface UserSettings {
   soundEnabled?: boolean;
   notificationsMuted?: boolean;
   publicPassport?: boolean;
+  /// Publish a signed statement for each deal settled from switch-on day. On
+  /// unless set to false.
+  publishDeals?: boolean;
+  /// Also publish deals settled before switch-on day. Off unless set to true.
+  publishHistory?: boolean;
 }
 
 export type WorkspaceKind = 'personal' | 'business';

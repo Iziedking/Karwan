@@ -353,3 +353,39 @@ export function issuerManifest(chainId: number, issuerAddress?: string | null) {
     },
   };
 }
+
+/// The same statement as a W3C Verifiable Credential 2.0, so wallets and other
+/// platforms that speak that format can carry it. It never says more than the
+/// signed statement: the claim is copied as is, and the proof is the same
+/// EIP-712 signature. The signature covers Karwan's DealSettled message, not the
+/// credential, so the proof is named as Karwan's own type and carries the exact
+/// signed message: rebuild the EIP-712 digest from `proof.eip712` and recover
+/// the issuer address.
+export function toVerifiableCredential(doc: DealSettledAttestation, revokedAt?: number): Record<string, unknown> {
+  return {
+    '@context': ['https://www.w3.org/ns/credentials/v2'],
+    type: ['VerifiableCredential', 'KarwanDealSettled'],
+    id: `${docBase()}/attestations/${doc.id}/vc`,
+    issuer: { id: `did:web:${doc.issuer.domain}`, name: doc.issuer.name, address: doc.issuer.address },
+    validFrom: doc.issuedAt,
+    credentialSubject: { id: `did:pkh:eip155:${doc.claim.chainId}:${doc.subject.address}`, ...doc.claim },
+    credentialStatus: { type: 'KarwanRevocationList', statusListCredential: statusListUrl(), revoked: revokedAt != null },
+    ...(doc.proof
+      ? {
+          proof: {
+            type: 'KarwanEip712Signature',
+            proofPurpose: 'assertionMethod',
+            verificationMethod: `did:web:${doc.issuer.domain}#${doc.issuer.address}`,
+            eip712: {
+              domain: doc.proof.domain,
+              primaryType: doc.proof.primaryType,
+              types: DEAL_SETTLED_EIP712_TYPES,
+              // chainId as a number so the copy is plain JSON; it is the same uint256.
+              message: { ...dealSettledMessage(doc.subject.address, doc.claim), chainId: doc.claim.chainId },
+            },
+            proofValue: doc.proof.signature,
+          },
+        }
+      : {}),
+  };
+}

@@ -5,6 +5,7 @@ import { useReputation } from '../hooks/useReputation';
 import { reasonLabels } from '../sealed';
 import { TIER_LABEL, tierBg, tierInk } from '../tierColors';
 import { CreditPassport } from './CreditPassport';
+import { AttestedDeals } from './AttestedDeals';
 
 export function PublicPassport({ address }: { address: string }) {
   const t = useTranslations();
@@ -43,6 +44,7 @@ export function PublicPassport({ address }: { address: string }) {
         </ul>
         {since ? <p className="mt-4 text-[14px] text-[var(--lp-text-sub)] font-medium">{t.passport.since.replace('{date}', since)}</p> : null}
       </section>
+      <AttestedDeals address={address} />
       <div className="mt-8 border-t border-[var(--lp-border-light)] pt-6">
         <Link
           href={`/buyer?seller=${address}`}

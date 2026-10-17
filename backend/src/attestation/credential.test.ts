@@ -8,7 +8,9 @@ import {
   dealRef,
   dealSettledSchema,
   issuerManifest,
+  dealSettledMessage,
   schemaUrl,
+  toVerifiableCredential,
 } from './credential.js';
 
 /// The schema IS the agreement, so these tests guard the agreement.
@@ -184,4 +186,51 @@ test('the type name carries its version', () => {
   // by fetching one document and never has to branch on content.
   assert.match(DEAL_SETTLED_TYPE, /\.v\d+$/);
   assert.match(schemaUrl(), /\/v1\.json$/);
+});
+
+const signed = () => ({
+  ...example(),
+  proof: { type: 'eip712' as const, domain: { name: 'Karwan', version: '1', chainId: 5042002 }, primaryType: 'DealSettled' as const, signature: '0xabc' as `0x${string}` },
+});
+
+test('the W3C copy carries the signed claim unchanged', () => {
+  const doc = signed();
+  const vc = toVerifiableCredential(doc);
+  assert.deepEqual(vc['@context'], ['https://www.w3.org/ns/credentials/v2']);
+  assert.deepEqual(vc.type, ['VerifiableCredential', 'KarwanDealSettled']);
+  assert.equal(vc.validFrom, doc.issuedAt);
+  const subject = vc.credentialSubject as Record<string, unknown>;
+  assert.equal(subject.id, `did:pkh:eip155:${doc.claim.chainId}:${doc.subject.address}`);
+  for (const [k, v] of Object.entries(doc.claim)) assert.deepEqual(subject[k], v, k);
+  const proof = vc.proof as Record<string, unknown>;
+  assert.equal(proof.proofValue, '0xabc');
+  assert.equal(proof.type, 'KarwanEip712Signature');
+  const eip712 = proof.eip712 as Record<string, unknown>;
+  assert.deepEqual(eip712.message, { ...dealSettledMessage(doc.subject.address, doc.claim), chainId: doc.claim.chainId });
+  assert.match(String(vc.id), /\/attestations\/karwan-att-000001\/vc$/);
+  assert.equal((vc.credentialStatus as Record<string, unknown>).revoked, false);
+});
+
+test('a revoked statement says so in its W3C copy', () => {
+  const vc = toVerifiableCredential(signed(), Date.UTC(2026, 9, 20));
+  assert.equal((vc.credentialStatus as Record<string, unknown>).revoked, true);
+});
+
+test('the W3C route is matched before the plain one', async () => {
+  const { readFileSync } = await import('node:fs');
+  const routes = readFileSync(new URL('../routes/attestation.ts', import.meta.url), 'utf8');
+  const vc = routes.indexOf("attestationRoutes.get('/attestations/:id/vc'");
+  assert.ok(vc > 0 && vc < routes.indexOf("attestationRoutes.get('/attestations/:id',"));
+});
+
+test('a statement whose removal date is empty reads as current', () => {
+  const vc = toVerifiableCredential(signed(), null as unknown as undefined);
+  assert.equal((vc.credentialStatus as Record<string, unknown>).revoked, false);
+});
+
+test('the W3C copy can be sent as JSON (no BigInt), with the chain id as a number', () => {
+  const vc = toVerifiableCredential(signed());
+  const text = JSON.stringify(vc);
+  const message = (JSON.parse(text).proof.eip712.message) as Record<string, unknown>;
+  assert.equal(message.chainId, 5042002);
 });

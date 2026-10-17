@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { DirectDeal } from '../db/deals.js';
-import { attestable, settledViaDispute } from './sweep.js';
+import { readFileSync } from 'node:fs';
+import { attestable, partiesToAttest, settingsReader, settledViaDispute } from './sweep.js';
 
 /// Which settlements we are willing to sign our name to.
 ///
@@ -85,4 +86,39 @@ test('a contested settlement is attestable, and marked as one', () => {
   const resolved = deal({ cancelKind: 'resolved', resolvedSellerBps: 6000 });
   assert.equal(attestable(resolved).ok, true);
   assert.equal(settledViaDispute(resolved), true);
+});
+
+test('both parties are attested from switch-on day by default', () => {
+  assert.deepEqual(partiesToAttest(deal({ settledAt: 20 }), 10, undefined, undefined), ['buyer', 'seller']);
+});
+
+test('a party who opted out is left out, the other is not', () => {
+  assert.deepEqual(partiesToAttest(deal({ settledAt: 20 }), 10, { publishDeals: false }, undefined), ['seller']);
+});
+
+test('a deal settled before switch-on is attested only for a party who asked for history', () => {
+  assert.deepEqual(partiesToAttest(deal({ settledAt: 5 }), 10, undefined, { publishHistory: true }), ['seller']);
+});
+
+test('the sweep asks the policy for each party before it signs', () => {
+  const src = readFileSync(new URL('./sweep.ts', import.meta.url), 'utf8');
+  const loop = src.slice(src.indexOf('for (const deal of candidates)'));
+  const ask = loop.indexOf('partiesToAttest(');
+  assert.ok(ask > 0 && ask < loop.indexOf('issueDealSettled('));
+});
+
+test('a failed read of publishing choices is an error, never a default yes', async () => {
+  const read = settingsReader(async () => {
+    throw new Error('db down');
+  });
+  await assert.rejects(read('0xada'), /db down/);
+  assert.equal(await settingsReader(async () => null)('0xada'), undefined);
+  assert.deepEqual(await settingsReader(async () => ({ settings: { publishDeals: false } }))('0xada'), { publishDeals: false });
+});
+
+test('when choices cannot be read, the sweep skips the deal this tick and signs nothing for it', () => {
+  const src = readFileSync(new URL('./sweep.ts', import.meta.url), 'utf8');
+  const loop = src.slice(src.indexOf('for (const deal of candidates)'));
+  const guard = loop.slice(0, loop.indexOf('issueDealSettled('));
+  assert.match(guard, /try \{[\s\S]*settingsFor\(deal\.buyer\)[\s\S]*\} catch[\s\S]*result\.failed\.push[\s\S]*continue;/);
 });

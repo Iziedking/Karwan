@@ -14,6 +14,8 @@ import { walletAmount } from '@/features/balances/walletFormat';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 import { WalletAvatar } from '@/shared/components/WalletAvatar';
+import { useAuth } from '@/shared/hooks/useAuth';
+import { AttestedDeals } from './AttestedDeals';
 
 const EXPLORER = 'https://testnet.arcscan.app';
 const ADDR_RE = /^0x[a-fA-F0-9]{40}$/;
@@ -33,6 +35,8 @@ export function CreditPassport({ address }: { address: string }) {
   const cp = t.creditPassport;
   const { locale } = useLocale();
   const valid = ADDR_RE.test(address);
+  const viewer = useAuth().address;
+  const isOwner = !!viewer && viewer.toLowerCase() === address.toLowerCase();
   const [rep, setRep] = useState<Reputation | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [stakeUsdc, setStakeUsdc] = useState<string>('0');
@@ -333,6 +337,7 @@ export function CreditPassport({ address }: { address: string }) {
         </div>
       </section>
 
+      <AttestedDeals address={address} downloadable={isOwner} />
       {SME_TRADES_ENABLED && <SmePassportBand sme={sme} />}
     </Shell>
   );

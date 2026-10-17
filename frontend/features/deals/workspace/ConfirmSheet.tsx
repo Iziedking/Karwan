@@ -3,7 +3,7 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
-export function ConfirmSheet({ open, title, consequence, irreversible, busy, error, onConfirm, onClose, children, confirmVariant = 'primary' }: {
+export function ConfirmSheet({ open, title, consequence, irreversible, busy, error, onConfirm, onClose, children, confirmVariant = 'primary', confirmLabel }: {
   open: boolean;
   title: string;
   consequence: string;
@@ -14,6 +14,8 @@ export function ConfirmSheet({ open, title, consequence, irreversible, busy, err
   onClose: () => void;
   children?: ReactNode;
   confirmVariant?: 'primary' | 'secondary';
+  /// What the button does, in words. Defaults to the generic Confirm.
+  confirmLabel?: string;
 }) {
   const copy = useTranslations().dealWorkspace.confirm;
   const confirmRef = useRef<HTMLButtonElement>(null);
@@ -49,7 +51,7 @@ export function ConfirmSheet({ open, title, consequence, irreversible, busy, err
             ? 'inline-flex min-h-12 items-center rounded-full bg-[var(--tint)] px-5 text-[15px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]'
             : 'inline-flex min-h-12 items-center rounded-full bg-[var(--action)] px-5 text-[15px] font-medium text-[var(--on-action)] transition-opacity duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:opacity-90 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]'}
         >
-          {busy ? copy.working : copy.confirm}
+          {busy ? copy.working : confirmLabel ?? copy.confirm}
         </button>
         <button
           type="button" onClick={onClose} disabled={busy}

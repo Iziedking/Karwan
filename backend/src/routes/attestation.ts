@@ -5,6 +5,7 @@ import {
   issuerManifest,
   subjectUrl,
   DEAL_SETTLED_TYPE,
+  toVerifiableCredential,
 } from '../attestation/credential.js';
 import { issuerAddress } from '../attestation/issuer.js';
 import {
@@ -102,6 +103,15 @@ attestationRoutes.get('/attestations/by-subject/:address', async (c) => {
       ...(r.revokedAt ? { revokedAt: new Date(r.revokedAt).toISOString() } : {}),
     })),
   });
+});
+
+/// The same statement as a W3C Verifiable Credential 2.0. Registered before
+/// the plain route so ':id' never swallows '/vc'.
+attestationRoutes.get('/attestations/:id/vc', async (c) => {
+  const row = await getAttestation(c.req.param('id'));
+  if (!row) return c.json({ error: 'unknown attestation' }, 404);
+  c.header('cache-control', CACHE);
+  return c.json(toVerifiableCredential(row.document, row.revokedAt));
 });
 
 /// One attestation by id, for a holder who has a document and wants to confirm we

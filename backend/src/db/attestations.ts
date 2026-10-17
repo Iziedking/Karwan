@@ -120,10 +120,11 @@ export async function countAttestations(): Promise<number> {
   return Object.keys(loadFile()).length;
 }
 
-/// Withdraw an attestation. Deliberately not exposed on a public route: this is
-/// an incident path, reached through the admin surface, because Paytag publishes
-/// a revocation count against the issuer and a workflow that revokes routinely
-/// is an issuer nobody should consume.
+/// Withdraw an attestation. Two paths reach it: the admin surface for
+/// incidents, and a person removing every statement about their own deals
+/// (routes/meAttestations.ts, session only, behind a confirm). Paytag publishes
+/// a revocation count against the issuer, so removal is deliberate and never a
+/// side effect of a settings toggle.
 export async function revokeAttestation(
   id: string,
   reason: string,

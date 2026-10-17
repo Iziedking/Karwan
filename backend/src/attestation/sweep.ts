@@ -4,7 +4,9 @@
 /// reputation reconciler is one: settlement is stamped in three places in
 /// dealWatcher plus the release routes, and a fourth caller added later would
 /// silently not attest. A sweep that re-reads every settled deal cannot be
-/// forgotten by a new code path, and it backfills history the first time it runs.
+/// forgotten by a new code path. Each party's own choice decides their own
+/// statement (policy.ts): from switch-on day by default, earlier deals only for
+/// people who asked, never after they opted out.
 ///
 /// Idempotency is the id, not the loop. `attestationId` is derived from the deal
 /// and the role, so re-issuing is a primary-key collision that the store absorbs.
@@ -17,6 +19,9 @@ import { arcChain } from '../chain/client.js';
 import { logger } from '../logger.js';
 import { recordHeartbeat } from '../ops/heartbeats.js';
 import { issueDealSettled, issuanceEnabled } from './issuer.js';
+import { partyMayPublish } from './policy.js';
+import { config } from '../config.js';
+import { getProfile, type UserSettings } from '../db/profiles.js';
 
 export interface SweepResult {
   /// Deals that reached settlement and are eligible to be attested.
@@ -39,7 +44,38 @@ export interface SweepOptions {
   /// lets an operator walk that in reviewable batches instead of publishing the
   /// whole back catalogue on a single boot.
   limit?: number;
+  /// Each party's publishing choices. Defaults to their profile settings.
+  settingsFor?: (address: string) => Promise<UserSettings | undefined>;
+  /// Switch-on day, epoch ms. Defaults to ATTESTATION_START_AT.
+  startAt?: number;
 }
+
+/// The roles whose statements may be published for one settled deal.
+export function partiesToAttest(
+  deal: DirectDeal,
+  startAt: number | undefined,
+  buyer: UserSettings | undefined,
+  seller: UserSettings | undefined,
+): Array<'buyer' | 'seller'> {
+  const settledAt = deal.settledAt ?? 0;
+  return (
+    [
+      ['buyer', buyer],
+      ['seller', seller],
+    ] as const
+  )
+    .filter(([, settings]) => partyMayPublish({ settledAt, startAt, settings }).ok)
+    .map(([role]) => role);
+}
+
+/// Reads one person's publishing choices. No profile means the defaults; a
+/// failed read is an error, never a default yes, so an outage cannot publish
+/// for someone who opted out.
+export function settingsReader(get: (address: string) => Promise<{ settings?: UserSettings } | null>) {
+  return async (address: string): Promise<UserSettings | undefined> => (await get(address))?.settings;
+}
+
+const profileSettings = settingsReader(getProfile);
 
 const ZERO = '0x0000000000000000000000000000000000000000';
 
@@ -82,7 +118,7 @@ export function settledViaDispute(deal: DirectDeal): boolean {
 /// One pass. Walks settled deals and issues the two attestations each one owes,
 /// one to the buyer and one to the seller, skipping any that already exist.
 export async function issueSettledOnce(opts: SweepOptions = {}): Promise<SweepResult> {
-  const { addressFilter = null, dryRun = false, limit } = opts;
+  const { addressFilter = null, dryRun = false, limit, settingsFor = profileSettings, startAt = config.ATTESTATION_START_AT } = opts;
 
   const result: SweepResult = {
     candidates: 0,
@@ -124,11 +160,27 @@ export async function issueSettledOnce(opts: SweepOptions = {}): Promise<SweepRe
 
     const amount = Number(deal.dealAmountUsdc);
     const viaDispute = settledViaDispute(deal);
+    let buyerSettings: UserSettings | undefined;
+    let sellerSettings: UserSettings | undefined;
+    try {
+      [buyerSettings, sellerSettings] = await Promise.all([settingsFor(deal.buyer), settingsFor(deal.seller)]);
+    } catch (err) {
+      result.failed.push({ jobId: deal.jobId, reason: `could not read publishing choices: ${(err as Error).message}` });
+      continue;
+    }
+    const allowed = partiesToAttest(deal, startAt, buyerSettings, sellerSettings);
+    for (const role of ['buyer', 'seller'] as const) {
+      if (!allowed.includes(role)) {
+        const reason = partyMayPublish({ settledAt: deal.settledAt!, startAt, settings: role === 'buyer' ? buyerSettings : sellerSettings });
+        if (!reason.ok) result.skipped.push({ jobId: deal.jobId, reason: `${role}: ${reason.reason}` });
+      }
+    }
 
     for (const [role, subject] of [
       ['buyer', deal.buyer],
       ['seller', deal.seller],
     ] as const) {
+      if (!allowed.includes(role)) continue;
       if (limit !== undefined && result.issued.length >= limit) break;
 
       try {

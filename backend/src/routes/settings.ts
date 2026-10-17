@@ -24,6 +24,8 @@ const settingsSchema = z.object({
     soundEnabled: z.boolean().optional(),
     notificationsMuted: z.boolean().optional(),
     publicPassport: z.boolean().optional(),
+    publishDeals: z.boolean().optional(),
+    publishHistory: z.boolean().optional(),
   }),
 });
 

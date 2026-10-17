@@ -430,6 +430,7 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "GET", path: "/api/yield/me" },
   { method: "GET", path: "/api/yield/protocol" },
   { method: "GET", path: "/attestations/:id" },
+  { method: "GET", path: "/attestations/:id/vc" },
   { method: "GET", path: "/attestations/by-subject/:address" },
   { method: "GET", path: "/attestations/revocations.json" },
   { method: "GET", path: "/health" },
