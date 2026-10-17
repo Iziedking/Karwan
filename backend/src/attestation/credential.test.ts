@@ -8,6 +8,7 @@ import {
   dealRef,
   dealSettledSchema,
   issuerManifest,
+  contextUrl,
   dealSettledMessage,
   schemaUrl,
   toVerifiableCredential,
@@ -196,7 +197,11 @@ const signed = () => ({
 test('the W3C copy carries the signed claim unchanged', () => {
   const doc = signed();
   const vc = toVerifiableCredential(doc);
-  assert.deepEqual(vc['@context'], ['https://www.w3.org/ns/credentials/v2']);
+  assert.deepEqual(vc['@context'], ['https://www.w3.org/ns/credentials/v2', contextUrl()]);
+  assert.match(contextUrl(), /\/schemas\/deal-settled\/v1\.context\.jsonld$/);
+  const status = vc.credentialStatus as Record<string, unknown>;
+  assert.equal(status.revocationList, 'https://karwan.site/attestations/revocations.json'.replace('https://karwan.site', new URL(contextUrl()).origin));
+  assert.ok(!('statusListCredential' in status));
   assert.deepEqual(vc.type, ['VerifiableCredential', 'KarwanDealSettled']);
   assert.equal(vc.validFrom, doc.issuedAt);
   const subject = vc.credentialSubject as Record<string, unknown>;

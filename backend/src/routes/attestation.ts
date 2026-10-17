@@ -5,6 +5,7 @@ import {
   issuerManifest,
   subjectUrl,
   DEAL_SETTLED_TYPE,
+  dealSettledContext,
   toVerifiableCredential,
 } from '../attestation/credential.js';
 import { issuerAddress } from '../attestation/issuer.js';
@@ -35,9 +36,19 @@ export const attestationRoutes = new Hono();
 /// every attestation should be served from a cache rather than our origin.
 const CACHE = 'public, max-age=300, stale-while-revalidate=86400';
 
+/// Statements about people and the revocation list change when someone removes
+/// theirs, so caches revalidate on every read and a removal shows at once.
+const FRESH = 'public, no-cache';
+
 attestationRoutes.get('/.well-known/attestation-issuer.json', (c) => {
   c.header('cache-control', CACHE);
   return c.json(issuerManifest(arcChain.id, issuerAddress()));
+});
+
+attestationRoutes.get('/schemas/deal-settled/v1.context.jsonld', (c) => {
+  c.header('cache-control', CACHE);
+  c.header('content-type', 'application/ld+json');
+  return c.body(JSON.stringify(dealSettledContext()));
 });
 
 attestationRoutes.get('/schemas/deal-settled/v1.json', (c) => {
@@ -57,7 +68,7 @@ attestationRoutes.get('/schemas/deal-settled/v1.json', (c) => {
 /// attested in the first place.
 attestationRoutes.get('/attestations/revocations.json', async (c) => {
   const rows = await listRevokedAttestations();
-  c.header('cache-control', CACHE);
+  c.header('cache-control', FRESH);
   return c.json({
     schemaVersion: 1,
     issuer: issuerManifest(arcChain.id, issuerAddress()).issuer.domain,
@@ -90,7 +101,7 @@ attestationRoutes.get('/attestations/by-subject/:address', async (c) => {
     return c.json({ error: 'not an address' }, 400);
   }
   const rows = await listAttestationsForSubject(raw);
-  c.header('cache-control', CACHE);
+  c.header('cache-control', FRESH);
   return c.json({
     schemaVersion: 1,
     subject: raw.toLowerCase(),
@@ -110,7 +121,7 @@ attestationRoutes.get('/attestations/by-subject/:address', async (c) => {
 attestationRoutes.get('/attestations/:id/vc', async (c) => {
   const row = await getAttestation(c.req.param('id'));
   if (!row) return c.json({ error: 'unknown attestation' }, 404);
-  c.header('cache-control', CACHE);
+  c.header('cache-control', FRESH);
   return c.json(toVerifiableCredential(row.document, row.revokedAt));
 });
 
@@ -120,7 +131,7 @@ attestationRoutes.get('/attestations/:id', async (c) => {
   const id = c.req.param('id').replace(/\.json$/, '');
   const row = await getAttestation(id);
   if (!row) return c.json({ error: 'unknown attestation' }, 404);
-  c.header('cache-control', CACHE);
+  c.header('cache-control', FRESH);
   return c.json({
     ...row.document,
     ...(row.revokedAt

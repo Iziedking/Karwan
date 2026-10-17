@@ -440,6 +440,7 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "POST", path: "/oauth/introspect" },
   { method: "POST", path: "/oauth/register" },
   { method: "POST", path: "/oauth/token" },
+  { method: "GET", path: "/schemas/deal-settled/v1.context.jsonld" },
   { method: "GET", path: "/schemas/deal-settled/v1.json" },
   { method: "GET", path: "/team" },
   { method: "GET", path: "/team/forgot" },

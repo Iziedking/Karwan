@@ -60,6 +60,38 @@ export function schemaUrl(): string {
   return `${docBase()}/schemas/deal-settled/v1.json`;
 }
 
+/// The JSON-LD context for the W3C copy, so every Karwan term maps to a
+/// Karwan IRI instead of an issuer-dependent default.
+export function contextUrl(): string {
+  return `${docBase()}/schemas/deal-settled/v1.context.jsonld`;
+}
+
+/// The context document behind contextUrl. Terms resolve under the schema URL,
+/// which is Karwan's own and stable.
+export function dealSettledContext(): Record<string, unknown> {
+  const vocab = `${schemaUrl()}#`;
+  const term = (name: string) => `${vocab}${name}`;
+  return {
+    '@context': {
+      '@protected': true,
+      KarwanDealSettled: term('KarwanDealSettled'),
+      KarwanRevocationList: term('KarwanRevocationList'),
+      KarwanEip712Signature: term('KarwanEip712Signature'),
+      dealRef: term('dealRef'),
+      role: term('role'),
+      settledAt: { '@id': term('settledAt'), '@type': 'http://www.w3.org/2001/XMLSchema#dateTime' },
+      amountBand: term('amountBand'),
+      currency: term('currency'),
+      chainId: { '@id': term('chainId'), '@type': 'http://www.w3.org/2001/XMLSchema#integer' },
+      viaDispute: { '@id': term('viaDispute'), '@type': 'http://www.w3.org/2001/XMLSchema#boolean' },
+      revocationList: { '@id': term('revocationList'), '@type': '@id' },
+      revoked: { '@id': term('revoked'), '@type': 'http://www.w3.org/2001/XMLSchema#boolean' },
+      address: term('address'),
+      eip712: { '@id': term('eip712'), '@type': '@json' },
+    },
+  };
+}
+
 export function manifestUrl(): string {
   return `${docBase()}/.well-known/attestation-issuer.json`;
 }
@@ -363,13 +395,13 @@ export function issuerManifest(chainId: number, issuerAddress?: string | null) {
 /// the issuer address.
 export function toVerifiableCredential(doc: DealSettledAttestation, revokedAt?: number): Record<string, unknown> {
   return {
-    '@context': ['https://www.w3.org/ns/credentials/v2'],
+    '@context': ['https://www.w3.org/ns/credentials/v2', contextUrl()],
     type: ['VerifiableCredential', 'KarwanDealSettled'],
     id: `${docBase()}/attestations/${doc.id}/vc`,
     issuer: { id: `did:web:${doc.issuer.domain}`, name: doc.issuer.name, address: doc.issuer.address },
     validFrom: doc.issuedAt,
     credentialSubject: { id: `did:pkh:eip155:${doc.claim.chainId}:${doc.subject.address}`, ...doc.claim },
-    credentialStatus: { type: 'KarwanRevocationList', statusListCredential: statusListUrl(), revoked: revokedAt != null },
+    credentialStatus: { type: 'KarwanRevocationList', revocationList: statusListUrl(), revoked: revokedAt != null },
     ...(doc.proof
       ? {
           proof: {
