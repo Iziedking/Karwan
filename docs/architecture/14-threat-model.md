@@ -64,8 +64,9 @@ Every control below names the check that pins it. A control without one is a gap
 | Properties, one set per family, run by three fuzzers | Foundry, Medusa, Echidna | `contracts/test/suite/**/*Props.sol`; 24 hours on the frozen release |
 | Proofs over every amount on the settlement base's fund, payout, fee and withdrawal path | Halmos | `contracts/test/suite/proofs` |
 | Two static analysers, every finding explained | Slither, Aderyn | `contracts/test/suite/SLITHER_TRIAGE.md`, `contracts/test/suite/ADERYN_TRIAGE.md`; the CRE contracts in `contracts/test/suite/cre/SLITHER_CRE.md`, their Aderyn findings still being triaged by the CRE build |
-| Branch coverage of every money path | Foundry coverage | Next release step |
-| Mutation testing | slither-mutate | Next release step, on the frozen release |
+| Branch coverage: every branch taken by a test, or explained | Foundry coverage, `scripts/ops/forge-remote.sh --coverage` | `contracts/test/suite/COVERAGE_TRIAGE.md` |
+| Fuzz tests over every money computation, 10,000 runs each | Foundry, release profile | `contracts/test/suite/**/*Fuzz.t.sol` |
+| Mutation testing: every mutant of every suite contract outside the CRE build, built and tested against the Foundry tests | slither-mutate's mutators, each replacement written over the exact expression it names, run by `scripts/ops/forge-remote.sh --campaign` | Every survivor is closed before deployment, and the campaign runs again on the frozen release. The Halmos proofs and the Arc fork tests run outside it |
 | Two rehearsals on Arc testnet | The deployment script | Before the single deployment |
 
 ## Status
@@ -76,5 +77,7 @@ Every control below names the check that pins it. A control without one is a gap
 | Property sets under three fuzzers | Built |
 | Halmos proofs of the settlement base's books | Built |
 | Aderyn and its triage | Built |
-| Full branch coverage and mutation testing | Planned, next |
+| Full branch coverage, with every exception explained | Built |
+| Fuzz tests at 10,000 runs | Built |
+| Mutation testing | Campaign built; its survivors are closed before deployment |
 | 24-hour fuzzing on the frozen release | Planned, at release |
