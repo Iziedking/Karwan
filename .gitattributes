@@ -1,0 +1,6 @@
+# Shell and Python scripts run on node-services and in Linux containers, and
+# the mutation campaign patches Solidity by byte offset, so all three keep LF
+# line endings on every checkout.
+*.sh text eol=lf
+*.py text eol=lf
+*.sol text eol=lf

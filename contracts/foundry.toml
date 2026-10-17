@@ -44,6 +44,23 @@ libraries = [
     "src/suite/jobs/JobDisputeLib.sol:JobDisputeLib:0x00000000000000000000000000000000000fa00b",
 ]
 
+# Mutation runs rebuild once per mutant, so they compile without the optimiser;
+# via-IR stays, since the escrows need it to compile at all.
+[profile.mutate]
+src = "src/suite"
+test = "test/suite"
+script = "test/suite/no-scripts"
+optimizer = false
+
+# One seed for every mutant, so a kill can be replayed and a fuzz test cannot
+# kill one mutant by luck and spare the next.
+[profile.mutate.fuzz]
+seed = "0x4b617277616e"
+
+# The release gate fuzzes every fuzz test 10,000 times; everyday runs keep 256.
+[profile.release.fuzz]
+runs = 10000
+
 [fmt]
 line_length = 100
 tab_width = 4

@@ -7,7 +7,10 @@
 #   scripts/ops/forge-remote.sh --medusa JobProps[,TimeProps] [seconds]
 #   scripts/ops/forge-remote.sh --halmos SettlementProofs [halmos options]
 #   scripts/ops/forge-remote.sh --aderyn
-#   scripts/ops/forge-remote.sh --mutate JobDisputeLib 'test/suite/jobs/*'
+#   scripts/ops/forge-remote.sh --coverage
+#   scripts/ops/forge-remote.sh --campaign contracts/test/suite/mutation-targets.txt [workers] [every]
+#   scripts/ops/forge-remote.sh --campaign-status
+#   scripts/ops/forge-remote.sh --campaign-stop
 #   scripts/ops/forge-remote.sh --clean [--force]
 set -euo pipefail
 H=node-services
@@ -34,10 +37,10 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 STATE="$HOME/.karwan-forge-remote-$(printf '%s' "$ROOT" | cksum | cut -d' ' -f1)"
 SSH="ssh -o BatchMode=yes $H"
 
-usage() { sed -n '3,11p' "$0" >&2; exit 64; }
+usage() { sed -n '3,14p' "$0" >&2; exit 64; }
 case "${1:-}" in
   --echidna|--medusa|--halmos|--arc) [ -n "${2:-}" ] || usage ;;
-  --mutate) [ -n "${2:-}" ] && [ -n "${3:-}" ] || usage ;;
+  --campaign) [ -f "${2:-}" ] || usage ;;
 esac
 
 if [ "${1:-}" = "--clean" ]; then
@@ -55,6 +58,30 @@ if [ "${1:-}" = "--clean" ]; then
       docker run --rm -u 0:0 -v $W:/w --entrypoint sh $TOOLBOX_IMAGE -c 'rm -rf /w/* /w/.[!.]*' 2>/dev/null; rm -rf $W" < /dev/null
   fi
   rm -f "$STATE"
+  exit 0
+fi
+
+if [ "${1:-}" = "--campaign-status" ]; then
+  # A running campaign holds the workspace, so this only reads its results.
+  [ -f "$STATE" ] || { echo "forge-remote: no workspace" >&2; exit 1; }
+  W=$(cat "$STATE")
+  $SSH "cd $W/m 2>/dev/null || exit 1; tail -3 campaign.log
+    cat done.jsonl results.[0-9]*.jsonl 2>/dev/null > /tmp/izie-results.\$\$
+    echo \"tested: \$(wc -l < /tmp/izie-results.\$\$) of \$(cat picked.jsonl 2>/dev/null | wc -l)\"
+    for st in killed survived no-compile timeout error stale; do echo \"\$st: \$(grep -c \"\\\"status\\\": \\\"\$st\\\"\" /tmp/izie-results.\$\$)\"; done
+    rm -f /tmp/izie-results.\$\$" < /dev/null
+  exit 0
+fi
+
+if [ "${1:-}" = "--campaign-stop" ]; then
+  # Ending the workers ends the launcher, which frees the lock; the results stay
+  # for RESUME=1. A launcher already gone, after a reboot, left its lock behind.
+  [ -f "$STATE" ] || { echo "forge-remote: no workspace" >&2; exit 1; }
+  W=$(cat "$STATE")
+  $SSH "docker ps -q --filter label=izie.ws=$W | xargs -r docker rm -f > /dev/null
+    for i in \$(seq 60); do kill -0 \$(cat $W/m/launcher.pid 2>/dev/null) 2>/dev/null || break; sleep 2; done
+    if kill -0 \$(cat $W/m/launcher.pid 2>/dev/null) 2>/dev/null; then echo 'forge-remote: the launcher is still running' >&2; exit 1; fi
+    rm -rf $W/.busy; tail -4 $W/m/campaign.log" < /dev/null
   exit 0
 fi
 
@@ -120,23 +147,70 @@ case "${1:-}" in
         rm -rf /keep/$TOOL-$T; if [ -d corpus ]; then mv corpus /keep/$TOOL-$T; fi
         rm -rf out cache crytic-export; exit \$R'" < /dev/null
     ;;
-  --mutate)
-    # Lists every mutant of the named contract and whether the given tests
-    # caught it. Read the survivors from the output: the exit status alone is
-    # not the gate.
-    C=$(printf '%q' "$2"); P=$3
+  --coverage)
+    # Branch coverage of the suite, then every branch no test takes, as
+    # file:line (block.branch). The size tests are left out: coverage builds
+    # without the optimiser. It fails when a test fails or when a branch no test
+    # takes is not explained in COVERAGE_TRIAGE.md.
+    $SSH "$DR --cpus=12 --memory=12g -v $W/c:/c -w /c --entrypoint sh $FOUNDRY_IMAGE -c \
+      'forge coverage --ir-minimum --match-path \"test/suite/*\" --no-match-path \"*Size*.t.sol\" --report summary --report lcov > coverage.log 2>&1; R=\$?
+       grep -E \"^\| (File|src/suite)|Ran [0-9]+ test suites|FAIL\" coverage.log
+       awk -F, '\''/^SF:/ { f = substr(\$0, 4) } /^BRDA:/ { split(\$1, a, \":\"); if (\$4 == \"-\" || \$4 == \"0\") print f \":\" a[2] \" (\" \$2 \".\" \$3 \")\" }'\'' lcov.info 2>/dev/null | grep \"^src/suite\" | grep -v Cre > untaken.txt
+       cat untaken.txt
+       while read -r b; do grep -qF \"\\\`\${b##*/}\\\`\" test/suite/COVERAGE_TRIAGE.md || { echo \"not in COVERAGE_TRIAGE.md: \$b\"; R=1; }; done < untaken.txt
+       rm -rf out cache lcov.info coverage.log untaken.txt; exit \$R'" < /dev/null
+    ;;
+  --campaign)
+    # Every mutant of the contracts in the targets file, each built and tested
+    # by forge in one of WORKERS parallel copies of the contracts. EVERY=k tests
+    # every k-th mutant only, for timing. RESUME=1 keeps what a stopped
+    # campaign already decided, killed, survived or not compiling, and skips
+    # it; timeouts, errors and stale mutants run again. Results: $W/m/results.jsonl.
+    TARGETS=$2; WORKERS=${3:-12}; EVERY=${4:-1}
+    NAMES=$(sed 's/#.*//' "$TARGETS" | awk 'NF { printf "%s ", $1 }')
     pinned_forge
-    $SSH "cat > $W/mutate.sh" <<EOF
-export PATH=/tools:\$PATH
-forge --version
-cd /c
-rm -rf out cache crytic-export mutation_campaign
-slither-mutate . --contract-names $C --test-cmd "forge test --match-path '$P'" --ignore-dirs lib,test,script,out,cache 2>&1
-R=\$?
-rm -rf out cache crytic-export
-exit \$R
+    # Workers write as root, so an earlier campaign's folder goes from inside a
+    # root container; a worker copied over a leftover would nest its tree.
+    if [ "${RESUME:-}" = 1 ]; then
+      $SSH "cat $W/m/done.jsonl $W/m/results.[0-9]*.jsonl 2>/dev/null | grep -E '\"status\": \"(killed|survived|no-compile)\"' > $W/done.jsonl; true" < /dev/null
+    fi
+    $SSH "$DR -u 0:0 -v $W:/w --entrypoint rm $TOOLBOX_IMAGE -rf /w/m && mkdir $W/m && if [ -s $W/done.jsonl ]; then mv $W/done.jsonl $W/m/done.jsonl; else rm -f $W/done.jsonl; fi" < /dev/null
+    for f in mutants.py mutant_worker.py; do $SSH "cat > $W/m/$f" < "$ROOT/scripts/ops/$f"; done
+    $SSH "cat > $W/m/targets.txt" < "$TARGETS"
+    $SSH "cat > $W/m/work.sh" <<'EOF'
+export PATH=/tools:$PATH
+exec python3 /m/mutant_worker.py "$@"
 EOF
-    $SSH "$DR --cpus=12 --memory=24g -v $W/c:/c -v $W/tools:/tools -v $W/mutate.sh:/mutate.sh $TOOLBOX_IMAGE sh /mutate.sh" < /dev/null
+    # Listing the mutants builds the whole project, minutes on its own, so it
+    # runs inside the launcher with everything else.
+    $SSH "cat > $W/m/launch.sh" <<EOF
+set -e
+trap 'rm -rf $W/.busy' EXIT
+cd $W/m
+echo \$\$ > launcher.pid
+$DR --cpus=12 --memory=24g -e FOUNDRY_PROFILE=mutate -v $W/c:/c -v $W/tools:/tools -v $W/m:/m -w /c $TOOLBOX_IMAGE \
+  sh -c 'export PATH=/tools:\$PATH; /root/.crytic/bin/python /m/mutants.py $NAMES > /m/all.jsonl 2> /m/generator.err' || { tail -20 generator.err; exit 1; }
+awk -v k=$EVERY 'k == 1 || NR % k == 0 || /"CONTROL"/' all.jsonl > picked.jsonl
+echo "mutants: \$(wc -l < all.jsonl), testing: \$(wc -l < picked.jsonl), workers: $WORKERS"
+split -n r/$WORKERS -d -a 2 picked.jsonl shard.
+for s in shard.*; do
+  i=\${s#shard.}
+  cp -a $W/c w\$i
+  $DR -d --cpus=2 --memory=8g -e FOUNDRY_PROFILE=mutate -v $W/m/w\$i:/c -v $W/tools:/tools -v $W/m:/m -w /c $TOOLBOX_IMAGE \
+    sh /m/work.sh /m/\$s /m/targets.txt /m/results.\$i.jsonl \$( [ -f done.jsonl ] && echo /m/done.jsonl ) > /dev/null
+done
+while [ -n "\$(docker ps -q --filter label=izie.ws=$W)" ]; do sleep 30; done
+cat \$( [ -f done.jsonl ] && echo done.jsonl ) results.[0-9]*.jsonl > results.jsonl
+# Counts by status and contract, and the survivors; it fails unless every
+# picked mutant was tested exactly once, every control survived and nothing is
+# left to run again.
+$DR -v $W/m:/m -w /m --entrypoint python3 $TOOLBOX_IMAGE mutant_worker.py --summary picked.jsonl results.jsonl
+EOF
+    # The campaign runs for hours, so it outlives this connection: the remote
+    # launcher keeps the workspace's lock and frees it when the last worker ends.
+    $SSH "cd $W/m || exit 1; setsid nohup sh launch.sh < /dev/null > campaign.log 2>&1 &" < /dev/null
+    trap - EXIT INT TERM HUP
+    echo "campaign started in $W/m; follow it with --campaign-status"
     ;;
   --aderyn)
     $SSH "set -e; mkdir -p $W/aderyn; cd $W/aderyn
@@ -180,6 +254,6 @@ EOF
     ;;
   *)
     ARGS=$(printf '%q ' "$@")
-    $SSH "$DR --cpus=12 --memory=12g -v $W/c:/c -w /c --entrypoint forge $FOUNDRY_IMAGE $ARGS" < /dev/null
+    $SSH "$DR --cpus=12 --memory=12g -e FOUNDRY_PROFILE=${FOUNDRY_PROFILE:-default} -v $W/c:/c -w /c --entrypoint forge $FOUNDRY_IMAGE $ARGS" < /dev/null
     ;;
 esac

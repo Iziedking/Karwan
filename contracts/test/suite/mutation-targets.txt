@@ -1,0 +1,27 @@
+# contract | its own tests | the tests that reach it from elsewhere, run when its own all pass
+# Any mutant still alive at the end is run once more against the whole suite.
+SettlementLib test/suite/Settlement* test/suite/*
+KarwanSettlementBase test/suite/Settlement* test/suite/*
+DisputeLib {test/suite/DisputeClock.t.sol,test/suite/agreement/AgreementDispute.t.sol} test/suite/*
+KarwanHub test/suite/KarwanHub.t.sol test/suite/*
+KarwanIdentityRegistry test/suite/KarwanIdentityRegistry.t.sol test/suite/*
+KarwanRecord test/suite/KarwanRecord.t.sol test/suite/*
+KarwanStakeVault test/suite/StakeVault* test/suite/*
+KarwanYieldPool test/suite/*Yield* test/suite/*
+KarwanTradeFinance test/suite/TradeFinance.t.sol test/suite/*
+KarwanCheckVerifier test/suite/agreement/AgreementCheck.t.sol test/suite/*
+KarwanTimelock test/suite/KarwanTimelock.t.sol test/suite/*
+SigCheck test/suite/SigCheck.t.sol test/suite/*
+AgreementCommon test/suite/agreement/* {test/suite/cre/*,test/suite/TradeFinance.t.sol,test/suite/SettlementFuzz.t.sol}
+AgreementTermsLib test/suite/agreement/* {test/suite/cre/*,test/suite/TradeFinance.t.sol,test/suite/SettlementFuzz.t.sol}
+AgreementDeliveryLib test/suite/agreement/* {test/suite/cre/*,test/suite/TradeFinance.t.sol,test/suite/SettlementFuzz.t.sol}
+AgreementLib test/suite/agreement/* {test/suite/cre/*,test/suite/TradeFinance.t.sol,test/suite/SettlementFuzz.t.sol}
+AgreementDisputeLib test/suite/agreement/* {test/suite/cre/*,test/suite/TradeFinance.t.sol,test/suite/SettlementFuzz.t.sol}
+KarwanAgreementEscrow test/suite/agreement/* {test/suite/cre/*,test/suite/TradeFinance.t.sol,test/suite/SettlementFuzz.t.sol}
+TimeLib test/suite/time/* test/suite/cre/*
+TimeDisputeLib test/suite/time/* test/suite/cre/*
+KarwanTimeEscrow test/suite/time/* test/suite/cre/*
+JobLib test/suite/jobs/* test/suite/cre/*
+BountyLib test/suite/jobs/* test/suite/cre/*
+JobDisputeLib test/suite/jobs/* test/suite/cre/*
+KarwanJobEscrow test/suite/jobs/* test/suite/cre/*
