@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { z } from 'zod';
 import { effectiveReviewWindowMs, runtimeSafetyErrors } from './configSafety.js';
-import { startAtSchema } from './attestation/policy.js';
+import { startAtSchema } from './attestation/startAt.js';
 
 /// An empty env var is an empty STRING, and a zod `.default()` only fires on
 /// `undefined`. Without this, `FOO=` in .env skips the default, hits the
