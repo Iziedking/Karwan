@@ -82,6 +82,7 @@ export function RecordView({ tag }: { tag: string }) {
         ))}
       </dl>
       {reasons.length ? <p className="mt-4 text-[15px] text-[var(--lp-ink)]">{reasons.join(' · ')}</p> : null}
+      {record.sealed ? <p className="mt-2 text-[14px] text-[var(--lp-text-sub)]">{sealed.noNumbers}</p> : null}
 
       <h2 className="mt-10 text-[18px] font-semibold text-[var(--lp-ink)]">{t.verifiedFacts}</h2>
       {record.facts.length === 0 ? (

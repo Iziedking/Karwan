@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { assistantView, unavailableSellers, markUnavailable, pickRecommended, rankCandidates, shortlistChoiceCheck, shouldSkipBuyer, toEntries, SHORTLIST_MAX, type ShortlistCandidate } from './shortlist.js';
+import { assistantShortlistNote, assistantView, sealEntries, unavailableSellers, markUnavailable, pickRecommended, rankCandidates, shortlistChoiceCheck, shouldSkipBuyer, toEntries, SHORTLIST_MAX, type ShortlistCandidate } from './shortlist.js';
 
 const c = (over: Partial<ShortlistCandidate>): ShortlistCandidate => ({
   seller: '0xs',
@@ -100,7 +100,7 @@ test('choosing from the shortlist: unavailable is refused, unverified needs the 
 
 test('the shortlist reaches the assistant in rank order with level, score and numbers, never addresses of people', () => {
   const ranked = rankCandidates([c({ seller: 'v', name: 'Ada' }), c({ seller: 'u', name: 'Kemi', level: 'registered' })]);
-  const out = assistantView(toEntries(ranked, pickRecommended(ranked, 100), 100, null, []));
+  const out = assistantView(toEntries(ranked, pickRecommended(ranked, 100), 100, null, []), false);
   assert.deepEqual(out.map((o) => o.rank), [1, 2]);
   assert.equal(out[0]!.name, 'Ada');
   assert.equal(out[0]!.verified, true);
@@ -163,4 +163,35 @@ test('a shortlist with no recommendation stays open for the buyer to choose', as
   const buyer = readFileSync(new URL('./buyer.ts', import.meta.url), 'utf8');
   assert.doesNotMatch(buyer, /markNegotiationEnded\(state, 'shortlist-no-recommendation'\)/);
   assert.match(buyer, /cleanRecordCounts: config\.ARC_NETWORK === 'testnet'/);
+});
+
+test('sealed shortlist entries keep tier and reasons and drop score and counts', () => {
+  const ranked = rankCandidates([c({ seller: 'v' })]);
+  const [e] = sealEntries(toEntries(ranked, pickRecommended(ranked, 100), 100, null, []));
+  assert.equal(e!.score, null);
+  assert.equal(e!.counts, null);
+  assert.equal(e!.tier, 'STRONG');
+  assert.ok(e!.reasons.length > 0);
+});
+
+test("the assistant never receives another person's numbers when records are sealed", () => {
+  const ranked = rankCandidates([c({ seller: 'v', name: 'Ada' })]);
+  const [o] = assistantView(toEntries(ranked, pickRecommended(ranked, 100), 100, null, []), true);
+  for (const k of ['score', 'completedDeals', 'onTimePercent', 'disputesLost']) assert.ok(!(k in o!), k);
+  assert.equal(o!.verified, true);
+  assert.equal(o!.tier, 'STRONG');
+});
+
+test('every row carries its reasons, not only the recommended one', () => {
+  const ranked = rankCandidates([c({ seller: 'a', deterministicScore: 90 }), c({ seller: 'b', askedUsdc: 60, deterministicScore: 10 })]);
+  const entries = toEntries(ranked, pickRecommended(ranked, 100), 100, null, []);
+  const other = entries.find((e) => !e.recommended)!;
+  assert.ok(other.reasons.length > 0);
+  assert.ok(other.reasons.includes('verified'));
+});
+
+test('once records are sealed the assistant is told to describe people by tier and reasons, never numbers', () => {
+  assert.doesNotMatch(assistantShortlistNote(true), /score|completed deals|on-time|disputes/);
+  assert.match(assistantShortlistNote(true), /tier/);
+  assert.match(assistantShortlistNote(false), /score/);
 });

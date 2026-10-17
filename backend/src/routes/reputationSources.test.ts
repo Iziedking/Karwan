@@ -23,16 +23,16 @@ function app(self: string) {
 test('another account cannot read or change consent', async () => {
   const { routes } = app(ADA);
   assert.equal((await routes.request(`/?address=${TUNDE}`)).status, 403);
-  const put = await routes.request('/', { method: 'PUT', body: JSON.stringify({ address: TUNDE, recordReadable: true }), headers: { 'content-type': 'application/json' } });
+  const put = await routes.request('/', { method: 'PUT', body: JSON.stringify({ address: TUNDE, outsideReadable: true }), headers: { 'content-type': 'application/json' } });
   assert.equal(put.status, 403);
 });
 
 test('the owner turns consent on and sees readers and balance', async () => {
   const { routes } = app(ADA);
-  const put = await routes.request('/', { method: 'PUT', body: JSON.stringify({ address: ADA, recordReadable: true }), headers: { 'content-type': 'application/json' } });
+  const put = await routes.request('/', { method: 'PUT', body: JSON.stringify({ address: ADA, outsideReadable: true }), headers: { 'content-type': 'application/json' } });
   assert.equal(put.status, 200);
   const body = await (await routes.request(`/?address=${ADA}`)).json();
-  assert.equal(body.sources.recordReadable, true);
+  assert.equal(body.sources.outsideReadable, true);
   assert.equal(body.sources.acceptedAt, 99);
   assert.deepEqual(body.connected, ['karwan']);
   assert.deepEqual(body.readers, [{ name: 'Tunde', tag: 'tunde', purpose: 'shortlist', at: 5 }]);

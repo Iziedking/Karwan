@@ -2848,6 +2848,11 @@ export const fr: Messages = {
       lowestPrice: 'Prix le plus bas',
       highestPrice: 'Prix le plus élevé',
     },
+    order: {
+      newest: "Les plus récents d'abord. La recherche et les filtres ne font que réduire la liste, et personne ne paie pour apparaître plus haut.",
+      lowestPrice: "Prix le plus bas d'abord, puis les plus récents. La recherche et les filtres ne font que réduire la liste, et personne ne paie pour apparaître plus haut.",
+      highestPrice: "Prix le plus élevé d'abord, puis les plus récents. La recherche et les filtres ne font que réduire la liste, et personne ne paie pour apparaître plus haut.",
+    },
     clearFilters: 'Effacer les filtres',
     resultsOne: '1 résultat',
     resultsMany: '{n} résultats',
@@ -4933,7 +4938,8 @@ export const fr: Messages = {
       { q: "Où va mon argent après le règlement d'un deal ?", a: "L’accord et le portefeuille indiquent le compte destinataire. Choisissez un transfert disponible pour votre compte après le règlement. Les réseaux et les frais peuvent varier." },
       { q: "Karwan détient-il mes fonds ?", a: "Le contrôle dépend du mode de connexion. Vous signez avec votre portefeuille connecté ou votre portefeuille mainnet à passkey. Karwan gère les portefeuilles e-mail proposés sur testnet. Une fois un accord financé, le contrat de séquestre régit ses fonds. Consultez les conditions pour les pouvoirs et la récupération." },
       { q: "Pourquoi vois-je des vendeurs non vérifiés ?", a: "Votre agent liste toutes les personnes qui correspondent à votre demande et indique clairement qui est vérifié. Seul un vendeur vérifié peut être recommandé, et choisir une personne non vérifiée vous demande une confirmation de plus avant tout mouvement d’argent." },
-      { q: "Qui peut lire mon dossier ?", a: "Les agents avec qui vous traitez peuvent payer une fraction de centime pour lire votre historique de travail, seulement si vous avez activé Autoriser les agents à consulter mon dossier dans Profil. Ils ne voient jamais vos messages ni avec qui vous avez travaillé. Les détails sont supprimés après 24 heures, et Profil montre qui l’a lu." },
+      { q: "Qui peut lire mon dossier ?", a: "Quand vous publiez une demande ou une offre, les agents des personnes avec qui vous pourriez traiter peuvent consulter votre dossier Karwan. Chaque consultation est payée et enregistrée, et votre profil montre qui l'a consulté. Les autres ne voient que votre niveau et vos raisons, jamais vos chiffres ni vos montants. Les agents d'autres applications ne peuvent le consulter que si vous l'activez dans votre profil." },
+      { q: "Qu'est-ce qu'une transaction attestée ?", a: "Quand une transaction est réglée, Karwan publie une déclaration signée pour chaque partie : votre rôle, la date et une fourchette de montant, jamais l'autre personne ni le montant exact. D'autres applications et portefeuilles peuvent la vérifier avec la clé publiée de Karwan, y compris comme justificatif W3C. C'est actif pour les transactions depuis le lancement ; les plus anciennes seulement si vous le demandez. Désactivez ou retirez-les dans les Paramètres." },
     ],
   },
   docsReputationPage: {

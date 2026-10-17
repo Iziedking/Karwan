@@ -105,3 +105,15 @@ test('a direct deal button carries only a checked tag, amount and short text', (
   assert.ok(!('error' in bare) && bare.href === '/buyer?mode=direct');
   assert.ok('error' in buildNavigateAction({ destination: 'offer', listingId: '../admin' }));
 });
+
+test('the guide says who can check a record: agents on a request you posted, outside agents only with your yes', () => {
+  const text = JSON.stringify(PLATFORM_GUIDE);
+  assert.match(text, /posting a request or an offer/i);
+  assert.match(text, /outside Karwan/);
+});
+
+test('the guide explains attested deals and how to remove them', () => {
+  const text = JSON.stringify(PLATFORM_GUIDE);
+  assert.match(text, /attested/i);
+  assert.match(text, /Remove my published deals/);
+});

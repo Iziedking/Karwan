@@ -3,6 +3,11 @@ import type { Listing, MarketplaceBrief, Partner } from '@/core/api';
 export type DiscoverySide = 'offer' | 'request';
 export type DiscoveryScope = 'all' | 'services' | 'business';
 export type DiscoverySort = 'newest' | 'price-asc' | 'price-desc';
+
+/// Which line tells people how the market is ordered for the chosen sort.
+export function orderNoteKey(sort: DiscoverySort): 'newest' | 'lowestPrice' | 'highestPrice' {
+  return sort === 'price-asc' ? 'lowestPrice' : sort === 'price-desc' ? 'highestPrice' : 'newest';
+}
 export type DiscoveryAudience = 'public' | 'person' | 'business';
 export type DiscoveryRail = 'personal' | 'hiring' | 'business';
 

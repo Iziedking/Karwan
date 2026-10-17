@@ -570,6 +570,10 @@ export interface BuildPostOfferInput {
 /// createSchema (title 3-120, description 5-500, price >0 and <=5,000,000, pct
 /// 0-50, ttl ~1min-90d); the route re-validates on confirm, so this is a friendly
 /// first pass, not the security boundary. Never throws.
+/// Posting in the market lets the agents of people on that request check the
+/// poster's record (agentic market spec, O1), so every post card says so.
+const MARKET_READS_NOTE = 'Agents of people you might deal with can check your Karwan record. They never see your messages or exact amounts.';
+
 export function buildPostOfferConfirm(input: BuildPostOfferInput): PostOfferConfirm | { error: string } {
   const title = input.title?.trim() ?? '';
   const description = input.description?.trim() ?? '';
@@ -614,7 +618,9 @@ export function buildPostOfferConfirm(input: BuildPostOfferInput): PostOfferConf
     id: `post_offer:${title.toLowerCase().slice(0, 40)}:${input.askingPriceUsdc}:${confirmNonce()}`,
     intent: 'post_offer',
     title: 'Post this offer',
-    summary: description,
+    summary: `${description}
+
+${MARKET_READS_NOTE}`,
     fields,
     payload,
     confirmLabel: 'Post offer',
@@ -677,7 +683,7 @@ export function buildPostRequestConfirm(
     id: `post_request:${brief.toLowerCase().slice(0, 40)}:${i.budgetUsdc}:${confirmNonce()}`,
     intent: 'post_request',
     title: 'Post this request',
-    summary: 'Posting authorises your buyer agent to match and fund a deal within your budget and saved spending settings after seller acceptance. Another buyer funding click may not be required. Review your settings on the buyer desk before posting if you are unsure.',
+    summary: `Posting authorises your buyer agent to match and fund a deal within your budget and saved spending settings after seller acceptance. Another buyer funding click may not be required. Review your settings on the buyer desk before posting if you are unsure. ${MARKET_READS_NOTE}`,
     fields,
     payload: { posterAddress: i.caller, brief, budgetUsdc: i.budgetUsdc, deadlineDays: i.deadlineDays },
     confirmLabel: 'Post request',

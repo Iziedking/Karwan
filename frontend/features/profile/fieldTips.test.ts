@@ -31,13 +31,24 @@ test('the tips exist in every language', () => {
 
 test('each Reputation section explains itself, in every language', () => {
   const view = read('./ui/ReputationSources.tsx');
-  for (const key of ['titleTip', 'sourcesTip', 'balanceTip', 'readersTip']) {
+  for (const key of ['titleTip', 'sourcesTip', 'readersTip']) {
     assert.match(view, new RegExp(`copy\\.${key}\\b`), key);
     for (const [locale, copy] of Object.entries(reputationSourcesCopy)) {
       const text = copy[key as 'titleTip'];
       assert.ok(text && text.length > 10, `${locale} ${key}`);
       assert.doesNotMatch(text, /—/, `${locale} ${key}: no em dash`);
     }
+  }
+});
+
+test('the record switch is about agents outside Karwan, and there is no second balance to fund', () => {
+  const view = read('./ui/ReputationSources.tsx');
+  assert.match(view, /checked=\{data\.sources\.outsideReadable\}/);
+  assert.match(view, /update\(\{ outsideReadable: next \}\)/);
+  assert.doesNotMatch(view, /copy\.balance|readsBalanceUsdc/);
+  assert.equal(reputationSourcesCopy.en.readable, 'Let agents outside Karwan check my record');
+  for (const [locale, copy] of Object.entries(reputationSourcesCopy)) {
+    assert.ok(!('balance' in copy), `${locale} still has a balance row`);
   }
 });
 

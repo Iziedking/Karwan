@@ -2604,6 +2604,7 @@ interface MessagesShape {
       lowestPrice: string;
       highestPrice: string;
     };
+    order: { newest: string; lowestPrice: string; highestPrice: string };
     clearFilters: string;
     resultsOne: string;
     resultsMany: string;
@@ -8253,6 +8254,12 @@ export const en: MessagesShape = {
       lowestPrice: 'Lowest price',
       highestPrice: 'Highest price',
     },
+    /// How results are ordered (EU ranking transparency): one line per sort.
+    order: {
+      newest: "Newest first. Search and filters only narrow the list, and no one pays to appear higher.",
+      lowestPrice: "Lowest price first, then newest. Search and filters only narrow the list, and no one pays to appear higher.",
+      highestPrice: "Highest price first, then newest. Search and filters only narrow the list, and no one pays to appear higher.",
+    },
     clearFilters: 'Clear filters',
     resultsOne: '1 result',
     resultsMany: '{n} results',
@@ -10416,7 +10423,8 @@ export const en: MessagesShape = {
       { q: "Where does settled money go?", a: "The deal and wallet views show the destination account. Use Deposit / Withdraw for a supported transfer after settlement. Available routes depend on the live configuration." },
       { q: "Does Karwan custody funds?", a: "Wallet control depends on how you sign in. A connected wallet or mainnet passkey wallet is signed by you. Karwan operates the managed email wallets available on testnet. Once a deal is funded, the escrow contract governs those deal funds. Read the Terms for authority and recovery details." },
       { q: "Why can I see sellers who are not verified?", a: "Your agent lists everyone who fits your request and says plainly who is verified. Only a verified seller can be recommended; on testnet, a seller with settled Karwan deals and no lost dispute can be too, and stays marked not verified. You can choose anyone on the list until the request closes, and choosing someone who is not verified asks you once more before any money moves." },
-      { q: "Who can read my record?", a: "Agents you deal with can pay a fraction of a cent to read your work history, only if you turned on Let agents check my record in Profile. They never see your messages or who you worked with. The details are deleted after 24 hours, and Profile shows who read it." },
+      { q: "Who can read my record?", a: "When you post a request or an offer, the agents of people you might deal with on it can check your Karwan record. Each check is paid and logged, and Profile shows who checked. Other people only see your tier and reasons, never your numbers or amounts. Agents from other apps can check your record only if you turn that on in Profile." },
+      { q: "What is an attested deal?", a: "When a deal settles, Karwan publishes a signed statement for each side: your role, the date and an amount range, never the other person or the exact amount. Other apps and wallets can check it against Karwan's published key, including as a W3C credential. It is on for deals from the day this started; earlier deals only if you ask. Turn it off or remove them in Settings." },
     ],
   },
   docsReputationPage: {

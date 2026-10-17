@@ -18,6 +18,7 @@ import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { PRIMARY, SECONDARY } from '@/shared/ui/controls';
 import { TRADE_ENTRY_COPY, tradeEntryRoutes } from '../tradeEntry';
 import { liveOffers, openRequests } from '../tradeHub';
+import { MarketReadsNotice } from '@/features/market/MarketReadsNote';
 
 /// The requests still looking for a seller: the list the Trade card counts.
 export function YourRequests() {
@@ -155,5 +156,10 @@ function TradeList({ title, state, empty, retry, onRetry, action, items }: {
       </>
     );
   }
-  return <ProfileFrame title={title}>{body}</ProfileFrame>;
+  return (
+    <ProfileFrame title={title}>
+      <MarketReadsNotice />
+      {body}
+    </ProfileFrame>
+  );
 }

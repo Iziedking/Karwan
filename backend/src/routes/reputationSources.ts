@@ -20,7 +20,7 @@ const addressSchema = z.string().regex(/^0x[a-fA-F0-9]{40}$/);
 
 const putSchema = z.object({
   address: addressSchema,
-  recordReadable: z.boolean().optional(),
+  outsideReadable: z.boolean().optional(),
   sourceLookup: z.boolean().optional(),
   interest: z.string().max(1000).optional(),
 });

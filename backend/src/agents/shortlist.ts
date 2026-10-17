@@ -127,7 +127,7 @@ export function toEntries(
       askedUsdc: agreedPrice !== null && agreedPrice !== c.askedUsdc ? c.askedUsdc : null,
       recordChecked: c.recordChecked,
       recommended: isRec,
-      reasons: isRec ? reasonsFor(c, ranked, budgetUsdc) : [],
+      reasons: reasonsFor(c, ranked, budgetUsdc),
       state: was === 'unavailable' ? 'unavailable' : isRec && agreedPrice === null && was !== 'ready' ? 'negotiating' : 'ready',
       isNew: previous.length > 0 && !seen.has(c.seller.toLowerCase()),
     };
@@ -167,9 +167,29 @@ export function shortlistChoiceCheck(
   return { ok: true };
 }
 
+/// How the assistant should present the shortlist to the person. Once records
+/// are sealed the rows carry no numbers, so it must not be asked for any.
+export function assistantShortlistNote(sealed: boolean): string {
+  const fields = sealed
+    ? 'name, Verified or Not verified, tier, their reasons, offer, days and price'
+    : 'name, Verified or Not verified, score, tier, completed deals, on-time percent, disputes lost, offer, days and price';
+  return `Show each person by rank: ${fields} (with the opening ask when it differs). Say which one is Recommended and why, from its reasons. Offer their profile at karwan.site/r/<tag>. The person chooses; to prepare it call propose_choose_offer with that row's seller value. Never show the seller value.`;
+}
+
+export type SealedShortlistEntry = Omit<ShortlistEntry, 'score' | 'counts'> & { score: null; counts: null };
+
+/// What a person sees once records are sealed: who, how verified, tier and
+/// reasons. Their agent used the numbers; the person never sees another
+/// person's (D30).
+export function sealEntries(entries: readonly ShortlistEntry[]): SealedShortlistEntry[] {
+  return entries.map((e) => ({ ...e, score: null, counts: null }));
+}
+
 /// What the assistant gets: enough to describe each person and to pass the
-/// chosen `seller` (an agent address, never shown) to the choose step.
-export function assistantView(entries: readonly ShortlistEntry[]) {
+/// chosen `seller` (an agent address, never shown) to the choose step. The
+/// assistant talks to the person, so once records are sealed it gets no
+/// numbers to repeat.
+export function assistantView(entries: readonly ShortlistEntry[], sealed: boolean) {
   return [...entries]
     .sort((a, b) => a.rank - b.rank)
     .map((e) => ({
@@ -178,11 +198,15 @@ export function assistantView(entries: readonly ShortlistEntry[]) {
       name: e.name,
       tag: e.tag,
       verified: e.verified,
-      score: e.score,
       tier: e.tier,
-      completedDeals: e.counts.completed,
-      onTimePercent: e.counts.onTimeRate,
-      disputesLost: e.counts.disputesLost,
+      ...(sealed
+        ? {}
+        : {
+            score: e.score,
+            completedDeals: e.counts.completed,
+            onTimePercent: e.counts.onTimeRate,
+            disputesLost: e.counts.disputesLost,
+          }),
       offer: e.offer,
       deliveryDays: e.deliveryDays,
       priceUsdc: e.priceUsdc,

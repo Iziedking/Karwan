@@ -33,3 +33,11 @@ test('every locale has the new keys and no em dash', () => {
     }
   }
 });
+
+test('a sealed record shows no numbers and says Karwan never shares them', async () => {
+  const { readFileSync } = await import('node:fs');
+  const view = readFileSync(new URL('./RecordView.tsx', import.meta.url), 'utf8');
+  assert.match(view, /record\.sealed \? <p[^>]*>\{sealed\.noNumbers\}<\/p>/);
+  const api = readFileSync(new URL('../../core/api.ts', import.meta.url), 'utf8');
+  assert.match(api, /record: \(tag: string\) =>[\s\S]*?sealed\?: true;[\s\S]*?\/api\/r\//);
+});

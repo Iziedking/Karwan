@@ -6,6 +6,7 @@ import { countPaidRead, type PaidReadEndpoint } from '../db/paidReads.js';
 import { loadInputs } from '../reputation/signals.js';
 import { compute } from '../reputation/engine.js';
 import { getProfile } from '../db/profiles.js';
+import { mayReadOutside } from '../reputation/consent.js';
 import { listDealsForAddress } from '../db/deals.js';
 import { listAnchorsForInvoice } from '../db/documentAnchors.js';
 import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
@@ -20,11 +21,10 @@ import { getListing } from '../db/listings.js';
 import { saveRecordRead } from '../db/recordReads.js';
 import { getBuyerJob } from '../agents/buyer.js';
 import { issuerAddress } from '../attestation/issuer.js';
-import { mayReadRecord } from '../reputation/consent.js';
 import { buildRecordRead } from '../reputation/recordRead.js';
 import { signRecordRead } from '../verification/recordReadSignature.js';
 import { levelOf } from '../verification/live.js';
-import { isPartyToRequest, paymentFromReader, recordReadGate } from '../x402/recordReadGate.js';
+import { inMarketReader, isPartyToRequest, paymentFromReader, recordReadGate, type RequestFacts } from '../x402/recordReadGate.js';
 
 /// Karwan's paid data endpoints. Financiers and external agents pay
 /// per-call in USDC over x402 (Circle Gateway batched settlement on Arc
@@ -160,6 +160,9 @@ x402Routes.get('/credit-passport/:address', async (c) => {
   if (!parsed.success) return c.json({ error: 'invalid address' }, 400);
   const subject = await resolveSubject(parsed.data);
   if (await passportHidden(subject)) return c.json({ error: 'passport not public' }, 404);
+  if (!(await passportReadAllowed(c, subject))) {
+    return c.json({ error: 'This person has not allowed reads from outside Karwan.' }, 403);
+  }
 
   const payment = await chargeRead(
     c,
@@ -203,7 +206,23 @@ const purposeSchema = z.enum(['shortlist', 'bid', 'question']);
 
 /// The facts isPartyToRequest decides on. `ref` is a request id for shortlist
 /// and bid reads, and a listing id for a question.
-function requestFacts(ref: string, subject: string) {
+/// Passport, repayment and concentration reads are not tied to a request by
+/// default, so they count as outside reads and need the person's switch (O2).
+/// A Karwan agent that names its own wallet and a request both people are on
+/// reads in-market instead (O1), as the match-time checks do.
+async function passportReadAllowed(c: Context, subject: string): Promise<boolean> {
+  if (mayReadOutside(await getProfile(subject).catch(() => null))) return true;
+  const ref = c.req.query('ref') ?? '';
+  const payerAgent = (c.req.header('x-karwan-payer-agent') ?? '').toLowerCase();
+  if (!ref || !payerAgent) return false;
+  const record = await findAgentWalletByAgentAddress(payerAgent).catch(() => null);
+  if (!record) return false;
+  const signature = c.req.header('payment-signature');
+  if (signature && !paymentFromReader(signature, record.x402Wallet?.address)) return false;
+  return inMarketReader({ readerAccount: record.userAddress.toLowerCase(), payerIsReadersAgent: true, subject }, requestFacts(ref, subject));
+}
+
+function requestFacts(ref: string, subject: string): RequestFacts {
   const brief = getBrief(ref);
   const job = brief ? getBuyerJob(ref) : null;
   const listing = brief ? null : getListing(ref);
@@ -211,6 +230,8 @@ function requestFacts(ref: string, subject: string) {
     briefPoster: brief?.postedBy ?? null,
     subjectBid: !!job?.bids.some((b) => (b.sellerUserAddress ?? '').toLowerCase() === subject.toLowerCase()),
     listingSeller: listing?.sellerUser ?? null,
+    briefOpen: !!job && !job.expiredAt && !job.escrowFunded,
+    listingLive: !!listing && listing.expiresAt > Date.now(),
   };
 }
 
@@ -238,7 +259,6 @@ x402Routes.get('/record/:subject', async (c) => {
   ]);
   const gate = recordReadGate({
     subjectExists: !!subject && !!subjectProfile,
-    subjectConsents: mayReadRecord(subjectProfile),
     readerAccount: forAccount,
     payerIsReadersAgent: payerRecord?.userAddress.toLowerCase() === forAccount,
     readerIsPartyToRef: !!subject && isPartyToRequest({ purpose: purpose.data, reader: forAccount, subject }, requestFacts(ref, subject)),
@@ -303,6 +323,9 @@ x402Routes.get('/repayment-behavior/:address', async (c) => {
   if (!parsed.success) return c.json({ error: 'invalid address' }, 400);
   const subject = await resolveSubject(parsed.data);
   if (await passportHidden(subject)) return c.json({ error: 'passport not public' }, 404);
+  if (!(await passportReadAllowed(c, subject))) {
+    return c.json({ error: 'This person has not allowed reads from outside Karwan.' }, 403);
+  }
 
   const payment = await chargeRead(
     c,
@@ -325,6 +348,9 @@ x402Routes.get('/concentration/:address', async (c) => {
   if (!parsed.success) return c.json({ error: 'invalid address' }, 400);
   const subject = await resolveSubject(parsed.data);
   if (await passportHidden(subject)) return c.json({ error: 'passport not public' }, 404);
+  if (!(await passportReadAllowed(c, subject))) {
+    return c.json({ error: 'This person has not allowed reads from outside Karwan.' }, 403);
+  }
 
   const payment = await chargeRead(
     c,

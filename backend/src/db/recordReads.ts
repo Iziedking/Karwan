@@ -156,3 +156,14 @@ export async function recordReadTotals(): Promise<RecordReadTotals> {
     since: row?.since == null ? null : Number(row.since),
   };
 }
+
+/// How many records one reader paid to check on one request, and what that
+/// cost in total, for the shortlist's one cost line.
+export async function readsForRef(ref: string, reader: string): Promise<{ count: number; usdc: number }> {
+  const r = reader.toLowerCase();
+  const rows = pgEnabled
+    ? (await db().select().from(recordReads).where(and(eq(recordReads.ref, ref), eq(recordReads.reader, r)))).map(fromRow)
+    : mem.filter((m) => m.ref === ref && m.reader === r);
+  const usdc = rows.reduce((sum, row) => sum + row.priceUsdc, 0);
+  return { count: rows.length, usdc: Math.round(usdc * 100) / 100 };
+}

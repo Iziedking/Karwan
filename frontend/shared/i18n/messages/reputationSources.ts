@@ -5,7 +5,6 @@ export interface ReputationSourcesCopy {
   title: string;
   titleTip: string;
   sourcesTip: string;
-  balanceTip: string;
   readersTip: string;
   readable: string;
   readableNote: string;
@@ -21,10 +20,6 @@ export interface ReputationSourcesCopy {
   elsewhereNote: string;
   save: string;
   saved: string;
-  balance: string;
-  balanceNote: string;
-  balanceUnavailable: string;
-  fundAgent: string;
   readers: string;
   noReaders: string;
   someone: string;
@@ -37,10 +32,9 @@ export const reputationSourcesCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Rep
     title: 'Reputation',
     titleTip: "Your record is the deals you finished on Karwan. These switches decide who may read it and where your agent may look.",
     sourcesTip: "Where your record comes from. Karwan counts on its own. Other platforms appear here once they partner with Karwan.",
-    balanceTip: "Each check of a record costs a fraction of a cent. It is paid from this balance, which refills from your buying agent.",
     readersTip: "Every agent that checked your record, and why it did.",
-    readable: 'Let agents check my record',
-    readableNote: 'Agents you deal with can pay to read your Karwan record before they offer or choose. They see your work history, never your messages or who you worked with.',
+    readable: "Let agents outside Karwan check my record",
+    readableNote: "Agents in the Karwan market already check the record of anyone who posts. This lets agents from other apps check it too, each time with a paid, logged read. They never see your messages or who you worked with.",
     lookup: 'Let my agent look me up on platforms I connect',
     lookupNote: 'Your agent pays a few cents to read your record on a platform you connect. Nothing is shared with people.',
     sources: 'Sources',
@@ -53,10 +47,6 @@ export const reputationSourcesCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Rep
     elsewhereNote: 'Only Karwan sees this. It does not change your score.',
     save: 'Save',
     saved: 'Saved',
-    balance: "Record checks balance",
-    balanceNote: "Pays for record checks, apart from market research credit. Refills 0.10 USDC at a time from your buying agent.",
-    balanceUnavailable: 'Not available right now',
-    fundAgent: "Top up your buying agent",
     readers: 'Who read your record',
     noReaders: 'No one has read your record yet.',
     someone: 'A Karwan member',
@@ -67,10 +57,9 @@ export const reputationSourcesCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Rep
     title: 'Réputation',
     titleTip: "Votre dossier, ce sont les accords terminés sur Karwan. Ces boutons décident qui peut le lire et où votre agent peut chercher.",
     sourcesTip: "D’où vient votre dossier. Karwan compte d’office. Les autres plateformes apparaissent ici dès qu’elles deviennent partenaires de Karwan.",
-    balanceTip: "Chaque consultation d’un dossier coûte une fraction de centime. Elle est payée sur ce solde, rechargé depuis votre agent d’achat.",
     readersTip: "Chaque agent qui a consulté votre dossier, et pourquoi.",
-    readable: 'Autoriser les agents à consulter mon dossier',
-    readableNote: 'Les agents avec qui vous traitez peuvent payer pour lire votre dossier Karwan avant de faire une offre ou de choisir. Ils voient votre historique de travail, jamais vos messages ni avec qui vous avez travaillé.',
+    readable: "Autoriser les agents hors de Karwan à consulter mon dossier",
+    readableNote: "Les agents du marché Karwan consultent déjà le dossier de toute personne qui publie. Ceci permet aussi aux agents d'autres applications de le consulter, chaque fois par une lecture payée et enregistrée. Ils ne voient jamais vos messages ni avec qui vous avez travaillé.",
     lookup: 'Autoriser mon agent à me rechercher sur les plateformes que je connecte',
     lookupNote: 'Votre agent paie quelques centimes pour lire votre dossier sur une plateforme que vous connectez. Rien n’est partagé avec des personnes.',
     sources: 'Sources',
@@ -83,10 +72,6 @@ export const reputationSourcesCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Rep
     elsewhereNote: 'Seul Karwan le voit. Cela ne change pas votre score.',
     save: 'Enregistrer',
     saved: 'Enregistré',
-    balance: "Solde des vérifications de dossier",
-    balanceNote: "Paie les vérifications de dossier, à part du crédit d’étude de marché. Se recharge de 0,10 USDC à la fois depuis votre agent d’achat.",
-    balanceUnavailable: 'Indisponible pour le moment',
-    fundAgent: "Approvisionner votre agent d’achat",
     readers: 'Qui a consulté votre dossier',
     noReaders: 'Personne n’a encore consulté votre dossier.',
     someone: 'Un membre de Karwan',
@@ -97,10 +82,9 @@ export const reputationSourcesCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Rep
     title: 'السمعة',
     titleTip: "سجلك هو الصفقات التي أنهيتها في كاروان. تحدد هذه المفاتيح من يمكنه قراءته وأين يمكن لوكيلك البحث.",
     sourcesTip: "من أين يأتي سجلك. كاروان محسوبة تلقائيًا. تظهر المنصات الأخرى هنا عندما تصبح شريكة لكاروان.",
-    balanceTip: "كل فحص لسجل يكلّف جزءًا من السنت. يُدفع من هذا الرصيد الذي يُعاد شحنه من وكيل الشراء لديك.",
     readersTip: "كل وكيل فحص سجلك، وسبب ذلك.",
-    readable: 'اسمح للوكلاء بفحص سجلي',
-    readableNote: 'يمكن للوكلاء الذين تتعامل معهم الدفع لقراءة سجلك في كاروان قبل أن يقدّموا عرضًا أو يختاروا. يرون تاريخ عملك، ولا يرون رسائلك أو من عملت معهم.',
+    readable: "اسمح للوكلاء من خارج كاروان بفحص سجلي",
+    readableNote: "وكلاء سوق كاروان يفحصون بالفعل سجل كل من ينشر. هذا يسمح لوكلاء التطبيقات الأخرى بفحصه أيضًا، في كل مرة بقراءة مدفوعة ومسجّلة. لا يرون رسائلك أو من عملت معهم أبدًا.",
     lookup: 'اسمح لوكيلي بالبحث عني في المنصات التي أربطها',
     lookupNote: 'يدفع وكيلك بضعة سنتات لقراءة سجلك في منصة تربطها. لا يُشارك شيء مع الأشخاص.',
     sources: 'المصادر',
@@ -113,10 +97,6 @@ export const reputationSourcesCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Rep
     elsewhereNote: 'كاروان وحدها ترى هذا. لا يغيّر نتيجتك.',
     save: 'حفظ',
     saved: 'تم الحفظ',
-    balance: "رصيد فحص السجلات",
-    balanceNote: "يدفع ثمن فحص السجلات، منفصل عن رصيد أبحاث السوق. يُعاد شحنه 0.10 USDC في كل مرة من وكيل الشراء لديك.",
-    balanceUnavailable: 'غير متاح الآن',
-    fundAgent: "موّل وكيل الشراء",
     readers: 'من قرأ سجلك',
     noReaders: 'لم يقرأ أحد سجلك بعد.',
     someone: 'عضو في كاروان',
@@ -127,10 +107,9 @@ export const reputationSourcesCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Rep
     title: 'साख',
     titleTip: "आपका रिकॉर्ड Karwan पर पूरे किए गए सौदे हैं। ये स्विच तय करते हैं कि इसे कौन पढ़ सकता है और आपका एजेंट कहां खोज सकता है।",
     sourcesTip: "आपका रिकॉर्ड कहां से आता है। Karwan अपने आप गिना जाता है। दूसरे प्लेटफ़ॉर्म Karwan के साझेदार बनने पर यहां दिखेंगे।",
-    balanceTip: "हर रिकॉर्ड जांच की कीमत एक सेंट का छोटा हिस्सा है। यह इसी बैलेंस से दी जाती है, जो आपके खरीद एजेंट से भरता है।",
     readersTip: "हर एजेंट जिसने आपका रिकॉर्ड जांचा, और क्यों।",
-    readable: 'एजेंटों को मेरा रिकॉर्ड जांचने दें',
-    readableNote: 'जिन एजेंटों से आप सौदा करते हैं, वे ऑफ़र देने या चुनने से पहले आपका Karwan रिकॉर्ड पढ़ने के लिए भुगतान कर सकते हैं। वे आपका काम का इतिहास देखते हैं, आपके संदेश या आपने किसके साथ काम किया, यह कभी नहीं।',
+    readable: "Karwan के बाहर के एजेंटों को मेरा रिकॉर्ड जांचने दें",
+    readableNote: "Karwan मार्केट के एजेंट पोस्ट करने वाले हर व्यक्ति का रिकॉर्ड पहले से जांचते हैं। इससे दूसरे ऐप के एजेंट भी इसे जांच सकते हैं, हर बार एक भुगतान वाली और दर्ज की गई जांच से। वे आपके संदेश या आपने किसके साथ काम किया, यह कभी नहीं देखते।",
     lookup: 'मेरे एजेंट को जोड़े गए प्लेटफ़ॉर्म पर मुझे खोजने दें',
     lookupNote: 'आपका एजेंट आपके जोड़े गए प्लेटफ़ॉर्म पर आपका रिकॉर्ड पढ़ने के लिए कुछ सेंट देता है। लोगों के साथ कुछ साझा नहीं होता।',
     sources: 'स्रोत',
@@ -143,10 +122,6 @@ export const reputationSourcesCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Rep
     elsewhereNote: 'इसे सिर्फ़ Karwan देखता है। इससे आपका स्कोर नहीं बदलता।',
     save: 'सहेजें',
     saved: 'सहेजा गया',
-    balance: "रिकॉर्ड जांच बैलेंस",
-    balanceNote: "रिकॉर्ड जांच का भुगतान करता है, मार्केट रिसर्च क्रेडिट से अलग। आपके खरीद एजेंट से एक बार में 0.10 USDC भरता है।",
-    balanceUnavailable: 'अभी उपलब्ध नहीं',
-    fundAgent: "अपने खरीद एजेंट में पैसे डालें",
     readers: 'किसने आपका रिकॉर्ड पढ़ा',
     noReaders: 'अभी किसी ने आपका रिकॉर्ड नहीं पढ़ा।',
     someone: 'एक Karwan सदस्य',
@@ -157,10 +132,9 @@ export const reputationSourcesCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Rep
     title: 'Sifa',
     titleTip: "Rekodi yako ni makubaliano uliyokamilisha kwenye Karwan. Swichi hizi huamua nani anaweza kuisoma na wakala wako anaweza kutafuta wapi.",
     sourcesTip: "Rekodi yako inatoka wapi. Karwan huhesabiwa yenyewe. Majukwaa mengine yataonekana hapa yanapokuwa washirika wa Karwan.",
-    balanceTip: "Kila ukaguzi wa rekodi hugharimu sehemu ya senti. Hulipwa kutoka salio hili, linalojazwa na wakala wako wa kununua.",
     readersTip: "Kila wakala aliyekagua rekodi yako, na sababu yake.",
-    readable: 'Ruhusu mawakala kukagua rekodi yangu',
-    readableNote: 'Mawakala unaoshughulika nao wanaweza kulipa kusoma rekodi yako ya Karwan kabla ya kutoa ofa au kuchagua. Wanaona historia ya kazi yako, kamwe si ujumbe wako wala uliofanya kazi nao.',
+    readable: "Ruhusu mawakala walio nje ya Karwan kukagua rekodi yangu",
+    readableNote: "Mawakala katika soko la Karwan tayari hukagua rekodi ya kila anayechapisha. Hii inaruhusu mawakala wa programu nyingine kuikagua pia, kila mara kwa usomaji uliolipiwa na kurekodiwa. Kamwe hawaoni ujumbe wako wala uliofanya kazi nao.",
     lookup: 'Ruhusu wakala wangu anitafute kwenye majukwaa ninayounganisha',
     lookupNote: 'Wakala wako hulipa senti chache kusoma rekodi yako kwenye jukwaa unalounganisha. Hakuna kinachoshirikiwa na watu.',
     sources: 'Vyanzo',
@@ -173,10 +147,6 @@ export const reputationSourcesCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Rep
     elsewhereNote: 'Karwan pekee ndiyo inaona hili. Halibadilishi alama yako.',
     save: 'Hifadhi',
     saved: 'Imehifadhiwa',
-    balance: "Salio la ukaguzi wa rekodi",
-    balanceNote: "Hulipia ukaguzi wa rekodi, tofauti na salio la utafiti wa soko. Hujazwa USDC 0.10 kila mara kutoka kwa wakala wako wa kununua.",
-    balanceUnavailable: 'Haipatikani kwa sasa',
-    fundAgent: "Ongeza pesa kwa wakala wako wa kununua",
     readers: 'Nani amesoma rekodi yako',
     noReaders: 'Bado hakuna aliyesoma rekodi yako.',
     someone: 'Mwanachama wa Karwan',

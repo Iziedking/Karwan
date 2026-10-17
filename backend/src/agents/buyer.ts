@@ -123,7 +123,7 @@ import { clearNearMiss, getPendingNearMiss, type NearMissApproval } from '../db/
 import { clearOutOfReach } from '../db/outOfReach.js';
 import { config } from '../config.js';
 import { paidCreditPassport, paidRecordRead, READS_BALANCE_EMPTY, type PaidPassportSignal } from '../x402/buyerClient.js';
-import { markUnavailable, pickRecommended, rankCandidates, toEntries, unavailableSellers, type ShortlistCandidate, type ShortlistEntry } from './shortlist.js';
+import { markUnavailable, pickRecommended, rankCandidates, sealEntries, toEntries, unavailableSellers, type ShortlistCandidate, type ShortlistEntry } from './shortlist.js';
 import { buildCandidates, type ShortlistDeps } from './shortlistRun.js';
 import { recentReadBy } from '../db/recordReads.js';
 import { countsFor } from '../reputation/recordRead.js';
@@ -1981,7 +1981,8 @@ function shortlistPayload(state: JobState, notify: boolean) {
     count: state.shortlist?.length ?? 0,
     recommended: rec?.sellerUser ?? null,
     readsBalanceEmpty: !!state.readsBalanceEmpty,
-    entries: state.shortlist ?? [],
+    // The event reaches the buyer, a person: sealed rows once records are sealed (D30).
+    entries: config.SEALED_RECORDS ? sealEntries(state.shortlist ?? []) : (state.shortlist ?? []),
     notify,
   };
 }

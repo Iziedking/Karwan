@@ -3,7 +3,7 @@
  * so the assistant cannot cite a screen or API that does not exist. Status is
  * repository behaviour per network; live account truth still comes from tools.
  */
-export const GUIDE_REVIEWED_AT = '2026-10-16';
+export const GUIDE_REVIEWED_AT = '2026-10-17';
 
 export type GuideStatus = 'testnet' | 'gated' | 'planned';
 /// invite: accounts and wallets by invitation. off: built but not enabled on
@@ -97,7 +97,7 @@ export const PLATFORM_GUIDE: readonly GuideEntry[] = [
     api: ['GET /api/listings', 'GET /api/jobs/marketplace', 'GET /api/deals/feed'],
     tools: ['search_market', 'get_my_market_activity'],
     keywords: 'karwan platform market buy sell services goods supply clients customers discover find browse search listings offers requests partners sellers suppliers freelancers',
-    summary: 'Karwan is an open market for people and businesses. Browse offers at /market, bring a known counterparty, or post a request and let your agent find sellers. Today the market covers services and digital work; trade in physical goods and business trade are coming soon. Deals settle in test USDC on Arc Testnet; deals are not enabled on mainnet yet.',
+    summary: 'Karwan is an open market for people and businesses. Browse offers at /market (newest first, or by price when chosen; search and filters only narrow the list, and no one pays to appear higher), bring a known counterparty, or post a request and let your agent find sellers. Today the market covers services and digital work; trade in physical goods and business trade are coming soon. Deals settle in test USDC on Arc Testnet; deals are not enabled on mainnet yet.',
     steps: ['Browse /market for offers; open one to see the seller and price.', 'To be found by customers, post an offer at /seller.', 'To find a seller, post a request at /buyer; agents bid on it.', 'Business partners are listed at /partners.', 'The assistant can search open offers and requests and open the best matches.'],
     sources: ['README.md', 'frontend/app/p2p/page.tsx', 'frontend/app/market/page.tsx'],
   },
@@ -187,7 +187,7 @@ export const PLATFORM_GUIDE: readonly GuideEntry[] = [
     api: ['POST /api/verification/person', 'GET /api/verification/me', 'POST /api/verification/cac', 'GET /api/r/:tag', 'GET /api/r/:tag/credential'],
     tools: ['my_verification', 'open_verification_step', 'ask_past_client_to_confirm', 'submit_business_registration', 'find_verified_people', 'ask_their_agent'],
     keywords: 'verify verified verification ladder level person work id cac invoice client confirm found discover discoverable record credential world id',
-    summary: 'A deterministic ladder: Registered, Person verified (a person check plus an owned account or a CAC match), Work verified (independent proof of work: a verified past client confirms, with or without an invoice, public GitHub work, or a settled Karwan deal), ID verified (needed for deals of 100 USDC and above). With the shortlist on, agents list verified and unverified sellers, labelled, and only a verified seller is recommended; otherwise only work-verified sellers are offered. Self-reported claims count for nothing. A language model never decides a level. Each person has a public record at /r/<tag> and a signed copy anyone can check against Karwan\'s published key and Arc.',
+    summary: 'A deterministic ladder: Registered, Person verified (a person check plus an owned account or a CAC match), Work verified (independent proof of work: a verified past client confirms, with or without an invoice, public GitHub work, or a settled Karwan deal), ID verified (needed for deals of 100 USDC and above). With the shortlist on, agents list verified and unverified sellers, labelled, and only a verified seller is recommended; otherwise only work-verified sellers are offered. Self-reported claims count for nothing. A language model never decides a level. Each person has a public record at /r/<tag> and a signed copy anyone can check against Karwan\'s published key and Arc. Once records are sealed, visitors see the verification level, tier and reasons there, and only the owner sees their score and counts.',
     steps: ['Ask my_verification for the level and what is missing.', 'Send the person check or X sign-in link with open_verification_step.', 'Ask a past client to confirm a job, send an invoice photo, or a CAC number.'],
     sources: ['backend/src/verification/ladder.ts', 'backend/src/verification/evidence.ts', 'backend/src/routes/personVerification.ts', 'backend/src/routes/record.ts'],
   },
@@ -247,7 +247,7 @@ export const PLATFORM_GUIDE: readonly GuideEntry[] = [
     api: ['GET /api/reputation', 'GET /api/vault/positions', 'GET /api/yield/me', 'POST /api/yield/claim'],
     tools: ['get_my_reputation', 'get_my_stake', 'get_my_skills', 'propose_stake', 'propose_claim_yield'],
     keywords: 'reputation score tier stake staking yield skills certificate research credit passport',
-    summary: 'Reputation reflects completed Karwan deals and has completion and concentration limits. Declared skills are not verified skills. Staking USDC backs your reputation as a security reserve. Any yield distributed to you shows on /stake and can be claimed there; yield is never guaranteed. Reputation is not proof of identity or honesty.',
+    summary: 'Reputation reflects completed Karwan deals and has completion and concentration limits. Posting a request or an offer lets the agents of people on that request check your record with a paid, logged read; agents outside Karwan can only if you allow it in Profile. Other people see your tier and reasons, never your numbers. Each deal that settles from the day it was switched on leaves a signed, attested statement for each side (role, date, amount range, never the other person); earlier deals only on request. Turn it off or use Remove my published deals in Settings. Declared skills are not verified skills. Staking USDC backs your reputation as a security reserve. Any yield distributed to you shows on /stake and can be claimed there; yield is never guaranteed. Reputation is not proof of identity or honesty.',
     steps: ['See your score on /profile; share your public record at /credit-passport/[address].', 'Stake at /stake; claim yield there when available.'],
     sources: ['backend/src/reputation/engine.ts', 'backend/src/verification/skillSummary.ts', 'frontend/app/stake/page.tsx'],
   },

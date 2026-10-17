@@ -433,6 +433,9 @@ export async function paidCreditPassport(
   payerAgentAddress: string,
   subjectAddress: string,
   dealRoomId?: string,
+  /// The request or listing both people are on, so the read counts as
+  /// in-market (it needs no outside switch). Defaults to the deal room.
+  ref: string | undefined = dealRoomId,
 ): Promise<PaidPassportSignal> {
   const record = await findAgentWalletByAgentAddress(payerAgentAddress);
   if (!record) throw new Error('no agent wallet record behind the paying agent');
@@ -470,7 +473,7 @@ export async function paidCreditPassport(
     disputedCount?: number;
     failedCount?: number;
     lifetimeVolumeUsdc?: number;
-  }>(`${base}/api/x402/credit-passport/${subjectAddress}`, x402);
+  }>(`${base}/api/x402/credit-passport/${subjectAddress}${ref ? `?ref=${encodeURIComponent(ref)}` : ''}`, x402, { 'x-karwan-payer-agent': payerAgentAddress });
 
   const d = result.data;
   const terminal =

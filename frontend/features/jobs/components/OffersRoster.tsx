@@ -45,7 +45,7 @@ export function OffersRoster({ jobId, bids, pickSeller, caller, choosable, open:
   const shortlist = useShortlist(jobId, caller);
 
   if (shortlist && caller) {
-    return <Shortlist jobId={jobId} caller={caller} entries={shortlist.entries} closed={shortlist.closed || !choosable} worldCheck={shortlist.worldCheck ?? null} onChosen={onChosen} />;
+    return <Shortlist jobId={jobId} caller={caller} entries={shortlist.entries} closed={shortlist.closed || !choosable} worldCheck={shortlist.worldCheck ?? null} recordChecks={shortlist.recordChecks} onChosen={onChosen} />;
   }
 
   const ranked = rankOffers(bids);

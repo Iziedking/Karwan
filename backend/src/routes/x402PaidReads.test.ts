@@ -19,6 +19,7 @@ const { x402Routes } = await import('./x402.js');
 const { facilitator } = await import('../x402/sellerFacilitator.js');
 const { paidReadTotals } = await import('../db/paidReads.js');
 const { ARC } = await import('../chain/client.js');
+const { upsertProfile } = await import('../db/profiles.js');
 
 let settles = true;
 Object.assign(facilitator, {
@@ -64,6 +65,8 @@ test('a settled skill-demand read counts', async () => {
 });
 
 test('a settled credit-passport read counts, the path the spike took', async () => {
+  // A passport read comes from outside the market, so the person must allow it.
+  await upsertProfile({ address: SUBJECT, role: 'seller', displayName: 'Ada', reputationSources: { outsideReadable: true } } as never);
   const res = await get(`/credit-passport/${SUBJECT}`);
   assert.equal(res.status, 200, await res.text());
   const totals = await paidReadTotals();

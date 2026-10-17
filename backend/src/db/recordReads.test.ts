@@ -3,7 +3,7 @@ import test from 'node:test';
 
 process.env.NODE_ENV = 'test';
 delete process.env.DATABASE_URL;
-const { saveRecordRead, readersOf, purgeReadDetails, recentReadBy, deleteReadsFor } = await import('./recordReads.js');
+const { saveRecordRead, readersOf, purgeReadDetails, recentReadBy, deleteReadsFor, readsForRef } = await import('./recordReads.js');
 
 const base = { purpose: 'shortlist' as const, ref: '0xjob', priceUsdc: 0.01, paymentTx: 'tx', scoreAtRead: 82, levelAtRead: 'work_verified' };
 const r = (id: string, reader: string, subject: string, createdAt: number) => ({ ...base, id, reader, subject, detail: { counts: {} }, createdAt });
@@ -36,4 +36,13 @@ test('deleting an account removes its reads both ways', async () => {
   await saveRecordRead(r('d2', '0xY', '0xGONE', 6));
   assert.equal(await deleteReadsFor('0xgone'), 2);
   assert.equal((await readersOf('0xgone')).length, 0);
+});
+
+test('the reads one reader paid for on one request are counted with their total cost', async () => {
+  await saveRecordRead({ ...r('c1', '0xR', '0xS1', 10), ref: 'job-1' });
+  await saveRecordRead({ ...r('c2', '0xR', '0xS2', 11), ref: 'job-1' });
+  await saveRecordRead({ ...r('c3', '0xR', '0xS3', 12), ref: 'job-2' });
+  await saveRecordRead({ ...r('c4', '0xOTHER', '0xS4', 13), ref: 'job-1' });
+  assert.deepEqual(await readsForRef('job-1', '0xr'), { count: 2, usdc: 0.02 });
+  assert.deepEqual(await readsForRef('job-9', '0xr'), { count: 0, usdc: 0 });
 });

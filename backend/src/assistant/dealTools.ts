@@ -6,7 +6,7 @@ import { getBrief } from '../db/briefs.js';
 import { getDeal, type DirectDeal } from '../db/deals.js';
 import { listMatchProposalsForUser } from '../db/matchProposals.js';
 import { getBuyerJob, getShortlist } from '../agents/buyer.js';
-import { assistantView, isVerified } from '../agents/shortlist.js';
+import { assistantShortlistNote, assistantView, isVerified } from '../agents/shortlist.js';
 import { levelOf } from '../verification/live.js';
 import { isRequestOwner } from '../agents/chooseOffer.js';
 import { statementWindowOpen } from '../deals/disputeJudge.js';
@@ -77,11 +77,11 @@ export function dealStepTools(address: string, actions: AssistantAction[]) {
           const job = getBuyerJob(jobId);
           if (!job) return { offers: [], note: 'This request is not collecting offers any more. It may have closed, matched or expired.' };
           if (config.SHORTLIST_MODE) {
-            const shortlist = assistantView(getShortlist(jobId) ?? []);
+            const shortlist = assistantView(getShortlist(jobId) ?? [], config.SEALED_RECORDS);
             return {
               shortlist,
               note: shortlist.length
-                ? 'Show each person by rank: name, Verified or Not verified, score, tier, completed deals, on-time percent, disputes lost, offer, days and price (with the opening ask when it differs). Say which one is Recommended and why, from its reasons. Offer their profile at karwan.site/r/<tag>. The person chooses; to prepare it call propose_choose_offer with that row\'s seller value. Never show the seller value.'
+                ? assistantShortlistNote(config.SEALED_RECORDS)
                 : 'No offers yet. The agent keeps looking until the request closes.',
             };
           }

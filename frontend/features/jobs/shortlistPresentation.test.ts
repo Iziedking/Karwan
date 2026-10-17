@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { ShortlistEntry } from '@/core/api';
 import { shortlistCopy } from '@/shared/i18n/messages/shortlist';
-import { shortlistNotice, shortlistRowView, shortlistState } from './shortlistPresentation';
+import { shortlistCostLine, shortlistNotice, shortlistRowView, shortlistState } from './shortlistPresentation';
 
 const copy = shortlistCopy.en;
 
@@ -13,9 +13,9 @@ const ada: ShortlistEntry = {
   state: 'ready', isNew: false,
 };
 
-test('a verified row reads level, tier and score, offer and days, and real numbers', () => {
+test('a verified row reads level and tier, never a score, with offer, days and the numbers the server sent', () => {
   const v = shortlistRowView(ada, copy);
-  assert.equal(v.levelLine, 'Verified · Strong · 82');
+  assert.equal(v.levelLine, 'Verified · Strong');
   assert.equal(v.offerLine, 'Landing page · 5 days');
   assert.equal(v.askedLine, 'asked 95');
   assert.equal(v.numbersLine, '12 completed deals · 92% on time · 0 disputes lost · Record checked');
@@ -26,7 +26,7 @@ test('a verified row reads level, tier and score, offer and days, and real numbe
 
 test('an unverified row with no history says so in words', () => {
   const v = shortlistRowView({ ...ada, verified: false, level: 'registered', tier: 'NEW', score: 12, recommended: false, reasons: [], counts: { completed: 0, onTimeRate: null, disputesLost: 0 }, askedUsdc: null, recordChecked: false }, copy);
-  assert.equal(v.levelLine, 'Not verified · New · 12');
+  assert.equal(v.levelLine, 'Not verified · New');
   assert.equal(v.numbersLine, 'No completed deals yet');
   assert.equal(v.askedLine, null);
   assert.equal(v.reasonLine, null);
@@ -67,4 +67,26 @@ test('shortlistState: a reply without an entries array falls back to the offers 
 test('shortlistState: a reply with entries passes through', () => {
   const reply = { entries: [ada], closed: false, worldCheck: null };
   assert.deepEqual(shortlistState(reply), reply);
+});
+
+test('a sealed row reads level and tier with reasons, and no numbers', () => {
+  const v = shortlistRowView({ ...ada, score: null, counts: null, recordChecked: false }, copy);
+  assert.equal(v.levelLine, 'Verified · Strong');
+  assert.equal(v.numbersLine, null);
+  assert.equal(v.reasonLine, 'Best skill match · Verified');
+});
+
+test('a sealed row that was checked says so without numbers', () => {
+  assert.equal(shortlistRowView({ ...ada, score: null, counts: null }, copy).numbersLine, 'Record checked');
+});
+
+test('reasons show on every row, not only the recommended one', () => {
+  assert.equal(shortlistRowView({ ...ada, recommended: false }, copy).reasonLine, 'Best skill match · Verified');
+});
+
+test('the cost line names how many records were checked and the total', () => {
+  assert.equal(shortlistCostLine({ count: 3, usdc: 0.03 }, copy), 'Your agent checked 3 records · 0.03 USDC');
+  assert.equal(shortlistCostLine({ count: 1, usdc: 0.01 }, copy), 'Your agent checked 1 record · 0.01 USDC');
+  assert.equal(shortlistCostLine({ count: 0, usdc: 0 }, copy), null);
+  assert.equal(shortlistCostLine(undefined, copy), null);
 });

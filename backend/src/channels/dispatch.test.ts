@@ -331,12 +331,12 @@ test('after joining, the agent asks whether agents may check the record, then ab
   };
   const { dispatch, sent } = setup({ extra: { consent } });
   await dispatch(msg({ replyId: 'terms:accept' }));
-  const ask = sent.find((m) => m.kind === 'buttons' && m.body.includes('check your Karwan record'));
+  const ask = sent.find((m) => m.kind === 'buttons' && m.body.includes('Agents from other apps'));
   assert.ok(ask && ask.kind === 'buttons');
   assert.deepEqual(ask.buttons.map((b) => b.id), ['rc:readable:yes', 'rc:readable:no']);
 
   await dispatch(msg({ replyId: 'rc:readable:yes' }));
-  assert.deepEqual(consents[0], { recordReadable: true });
+  assert.deepEqual(consents[0], { outsideReadable: true });
   const next = sent.at(-1)!;
   assert.ok(next.kind === 'buttons' && next.buttons[0]!.id === 'rc:lookup:yes');
 

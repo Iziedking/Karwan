@@ -45,7 +45,7 @@ export interface DispatchDeps<A extends ChatAccount = ChatAccount> {
   /// Saves the person's answer to the two reputation questions asked after
   /// they join: may agents check their record, may their agent look them up
   /// on platforms they connect.
-  consent?: (address: string, patch: { recordReadable?: boolean; sourceLookup?: boolean }) => Promise<void>;
+  consent?: (address: string, patch: { outsideReadable?: boolean; sourceLookup?: boolean }) => Promise<void>;
   /// Deleting the account: the /delete command and its buttons. Answered
   /// before the model runs, so a deletion never depends on it.
   deletion?: {
@@ -62,7 +62,7 @@ const text = (body: string): OutMessage => ({ kind: 'text', body });
 
 const READABLE_ASK: OutMessage = {
   kind: 'buttons',
-  body: 'May agents you deal with check your Karwan record? They pay a fraction of a cent to read your work history before they offer or choose. They never see your messages or who you worked with.',
+  body: 'Agents from other apps can check your Karwan record too, if you allow it. Agents in the Karwan market already can when you post a request or an offer. Each check is paid and logged, and they never see your messages or who you worked with. Allow agents from other apps?',
   buttons: [
     { id: 'rc:readable:yes', title: 'Yes' },
     { id: 'rc:readable:no', title: 'Not now' },
@@ -129,7 +129,7 @@ export function createDispatcher<A extends ChatAccount>(deps: DispatchDeps<A>) {
     if (consentTap && deps.consent) {
       const yes = consentTap[2] === 'yes';
       try {
-        await deps.consent(address, consentTap[1] === 'readable' ? { recordReadable: yes } : { sourceLookup: yes });
+        await deps.consent(address, consentTap[1] === 'readable' ? { outsideReadable: yes } : { sourceLookup: yes });
       } catch {
         await reply(text("That didn't save. Tap your answer again in a minute."));
         return;

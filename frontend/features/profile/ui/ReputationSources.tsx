@@ -29,7 +29,7 @@ export function ReputationSources({ address }: { address: string }) {
     if (loadedInterest !== undefined) setInterest(loadedInterest);
   }, [loadedInterest]);
 
-  async function update(patch: { recordReadable?: boolean; sourceLookup?: boolean; interest?: string }) {
+  async function update(patch: { outsideReadable?: boolean; sourceLookup?: boolean; interest?: string }) {
     setError(null);
     setSaved(false);
     try {
@@ -51,8 +51,8 @@ export function ReputationSources({ address }: { address: string }) {
         <ToggleRow
           label={copy.readable}
           note={copy.readableNote}
-          checked={data.sources.recordReadable}
-          onChange={(next) => void update({ recordReadable: next })}
+          checked={data.sources.outsideReadable}
+          onChange={(next) => void update({ outsideReadable: next })}
         />
         <ToggleRow
           label={copy.lookup}
@@ -96,14 +96,6 @@ export function ReputationSources({ address }: { address: string }) {
           {saved ? <span role="status" className="text-[14px] font-medium text-[var(--lp-text-sub)]">{copy.saved}</span> : null}
         </div>
       </div>
-
-      <RowGroup title={copy.balance} hint={copy.balanceTip}>
-        <Row
-          label={<span className="block text-[14px] font-medium text-[var(--lp-text-sub)]">{copy.balanceNote}</span>}
-          value={data.readsBalanceUsdc === null ? copy.balanceUnavailable : `${data.readsBalanceUsdc.toFixed(2)} USDC`}
-        />
-        <Row label={copy.fundAgent} href="/profile/agent-funds" />
-      </RowGroup>
 
       <RowGroup title={copy.readers} hint={copy.readersTip}>
         {data.readers.length ? (

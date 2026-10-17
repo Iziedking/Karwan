@@ -35,6 +35,7 @@ import { TERMS_COPY } from '@/features/deals/terms/termsCopy';
 import { useReportDealAmount } from '@/features/balances/dealAmount';
 import { walletAmount } from '@/features/balances/walletFormat';
 import { requestFunding } from '../requestFunding';
+import { MarketReadsNote } from '@/features/market/MarketReadsNote';
 
 // SME trade-finance constants. Hoisted to module scope per the Vercel
 // `rendering-hoist-jsx` rule: these never change, so re-creating the
@@ -893,6 +894,7 @@ export function PostJobForm() {
           {buttonLabel}
           {!submitting && <Icon name="send" size={16} directional />}
         </button>
+        <MarketReadsNote />
         {submitting && (
           <p className="text-[14px] text-[var(--lp-text-muted)] leading-snug max-w-[36ch]">
             {t.submit.pendingHelper}

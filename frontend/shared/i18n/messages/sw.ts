@@ -2845,6 +2845,11 @@ export const sw: Messages = {
       lowestPrice: 'Bei ya chini',
       highestPrice: 'Bei ya juu',
     },
+    order: {
+      newest: "Mpya zaidi kwanza. Utafutaji na vichujio hupunguza orodha tu, na hakuna anayelipa ili aonekane juu.",
+      lowestPrice: "Bei ya chini kwanza, kisha mpya zaidi. Utafutaji na vichujio hupunguza orodha tu, na hakuna anayelipa ili aonekane juu.",
+      highestPrice: "Bei ya juu kwanza, kisha mpya zaidi. Utafutaji na vichujio hupunguza orodha tu, na hakuna anayelipa ili aonekane juu.",
+    },
     clearFilters: 'Ondoa vichujio',
     resultsOne: 'Tokeo 1',
     resultsMany: 'Matokeo {n}',
@@ -4930,7 +4935,8 @@ export const sw: Messages = {
       { q: "Pesa zangu zinaenda wapi baada ya deal kukamilika?", a: "Makubaliano na pochi huonyesha akaunti inayopokea. Baada ya malipo, chagua uhamisho unaopatikana kwa akaunti yako. Mitandao na ada zinaweza kutofautiana." },
       { q: "Je, Karwan inashikilia fedha zangu?", a: "Udhibiti wa pochi hutegemea jinsi unavyoingia. Unasaini kwa pochi yako iliyounganishwa au pochi ya passkey ya mainnet. Karwan husimamia pochi za barua pepe zinazopatikana kwenye testnet. Baada ya kufadhili makubaliano, mkataba wa escrow huongoza fedha zake. Soma masharti kuhusu mamlaka na urejeshaji." },
       { q: "Kwa nini naona wauzaji ambao hawajathibitishwa?", a: "Wakala wako anaorodhesha kila mtu anayefaa ombi lako na anaeleza wazi nani amethibitishwa. Ni muuzaji aliyethibitishwa tu anayeweza kupendekezwa, na kuchagua mtu ambaye hajathibitishwa kunakuuliza mara moja zaidi kabla pesa hazijasonga." },
-      { q: "Nani anaweza kusoma rekodi yangu?", a: "Mawakala unaoshughulika nao wanaweza kulipa sehemu ya senti kusoma historia ya kazi yako, ikiwa tu umewasha Ruhusu mawakala kukagua rekodi yangu kwenye Wasifu. Hawaoni kamwe ujumbe wako wala uliofanya kazi nao. Maelezo hufutwa baada ya saa 24, na Wasifu unaonyesha nani aliisoma." },
+      { q: "Nani anaweza kusoma rekodi yangu?", a: "Unapochapisha ombi au ofa, mawakala wa watu unaoweza kushughulika nao wanaweza kukagua rekodi yako ya Karwan. Kila ukaguzi hulipiwa na kurekodiwa, na wasifu wako unaonyesha nani alikagua. Watu wengine huona kiwango chako na sababu tu, kamwe si nambari zako wala kiasi. Mawakala wa programu nyingine wanaweza kukagua rekodi yako tu ukiwasha hilo kwenye wasifu wako." },
+      { q: "Mkataba uliothibitishwa ni nini?", a: "Mkataba unapokamilika, Karwan huchapisha taarifa iliyosainiwa kwa kila upande: nafasi yako, tarehe na kiwango cha kiasi, kamwe si mtu mwingine wala kiasi kamili. Programu na pochi nyingine zinaweza kuikagua kwa ufunguo uliochapishwa wa Karwan, ikiwemo kama kitambulisho cha W3C. Kimewashwa kwa mikataba tangu siku kilipoanza; ya zamani tu ukiomba. Kizime au uziondoe kwenye Mipangilio." },
     ],
   },
   docsReputationPage: {

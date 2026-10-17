@@ -2,6 +2,7 @@ import { ARC } from '../chain/client.js';
 import { config } from '../config.js';
 import { findProfileByHandle } from '../db/profiles.js';
 import type { RecordDeps } from '../routes/record.js';
+import { readSession } from '../auth/session.js';
 import { loadPublicPassport } from '../sealed/passportLoader.js';
 import { buildRecordCredential } from './credential.js';
 import { factsFor } from './evidence.js';
@@ -30,6 +31,8 @@ async function recordFacts(address: string, now: number) {
 
 export const recordDeps: RecordDeps = {
   now: Date.now,
+  sealed: () => config.SEALED_RECORDS,
+  viewer: (c) => readSession(c)?.address ?? null,
   addressOfTag: async (tag) => (await findProfileByHandle(tag))?.address?.toLowerCase() ?? null,
   passport: async (address) => {
     const p = await loadPublicPassport(address);

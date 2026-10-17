@@ -13,6 +13,7 @@ import { levelOf } from '../verification/live.js';
 import { buyerVisible, sellerMayBid } from '../verification/networkGate.js';
 import { paidCreditPassport, paidRecordRead } from '../x402/buyerClient.js';
 import { searchMarket } from './marketSearch.js';
+import { paidReadView } from './paidReadView.js';
 
 /// The verified network from the assistant: find people agents may offer, and
 /// ask their agent about price, timeline and terms. Answers come from what the
@@ -103,7 +104,7 @@ export function networkTools(address: string) {
             const r = await paidRecordRead(wallets.buyerAddress, listing.sellerUser, { purpose: 'question', ref: listingId, forAccount: address });
             return {
               answer,
-              paidRecordRead: { score: r.read.score, completedDeals: r.read.counts.completed, onTimePercent: r.read.counts.onTimeRate, paidUsdc: r.amountUsd, proofTx: r.depositTxHash ?? null },
+              paidRecordRead: paidReadView(r.read, r.amountUsd, r.depositTxHash ?? null, config.SEALED_RECORDS),
             };
           } catch (err) {
             logger.warn({ err: (err as Error).message }, 'assistant ask_their_agent record read failed');
@@ -114,7 +115,7 @@ export function networkTools(address: string) {
         try {
           const wallets = await getAgentWallets(address);
           if (!wallets?.buyerAddress) return { answer, paidRecordRead: null };
-          const read = await paidCreditPassport(wallets.buyerAddress, listing.sellerUser);
+          const read = await paidCreditPassport(wallets.buyerAddress, listing.sellerUser, undefined, listingId);
           return {
             answer,
             paidRecordRead: { tier: read.tier, paidUsdc: read.amountUsd, proofTx: read.depositTxHash ?? null },

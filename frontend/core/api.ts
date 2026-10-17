@@ -124,9 +124,10 @@ export interface ShortlistEntry {
   tag: string | null;
   level: 'registered' | 'person_verified' | 'work_verified' | 'id_verified';
   verified: boolean;
-  score: number;
+  /// Null once records are sealed: people see tier and reasons, not numbers.
+  score: number | null;
   tier: string;
-  counts: { completed: number; onTimeRate: number | null; disputesLost: number };
+  counts: { completed: number; onTimeRate: number | null; disputesLost: number } | null;
   offer: string;
   deliveryDays: number;
   priceUsdc: number;
@@ -328,6 +329,10 @@ export interface UserSettings {
   soundEnabled?: boolean;
   notificationsMuted?: boolean;
   publicPassport?: boolean;
+  /// Publish a signed statement for each deal settled from switch-on day; on unless false.
+  publishDeals?: boolean;
+  /// Also publish deals settled before switch-on; off unless true.
+  publishHistory?: boolean;
 }
 
 export type WorkspaceKind = 'personal' | 'business';
@@ -683,6 +688,16 @@ export interface TrustCardView {
 }
 
 export type AmountBand = 'under_100' | '100_500' | '500_2000' | '2000_10000' | 'over_10000';
+
+/// The amount range on a public deal statement (backend attestation bands),
+/// not the market's AmountBand.
+export type AttestationBand = 'under-100' | '100-1k' | '1k-10k' | '10k-100k' | 'over-100k';
+
+export interface AttestedDeal {
+  id: string;
+  claim: { role: 'buyer' | 'seller'; settledAt: string; amountBand: AttestationBand; viaDispute: boolean };
+  revokedAt?: string;
+}
 
 /// A settled deal as the public feed publishes it: a value band, a time, and
 /// whether an agent found the match. Older servers leave `origin` out.
@@ -2455,7 +2470,7 @@ export const api = {
       },
     ),
   shortlist: (jobId: string, caller: string) =>
-    json<{ entries: ShortlistEntry[]; closed: boolean; worldCheck?: AgentWorldCheckView | null }>(`/api/jobs/${jobId}/shortlist?caller=${encodeURIComponent(caller)}`),
+    json<{ entries: ShortlistEntry[]; closed: boolean; worldCheck?: AgentWorldCheckView | null; recordChecks?: { count: number; usdc: number } }>(`/api/jobs/${jobId}/shortlist?caller=${encodeURIComponent(caller)}`),
   cancelBrief: (jobId: string, caller: string) =>
     json<{ accepted: boolean; jobId: string }>(
       `/api/jobs/${jobId}/cancel`,
@@ -4090,6 +4105,14 @@ export const api = {
   moneyOutRemoveAddress: (id: string) =>
     json<{ ok: true }>(`/api/money-out/addresses/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   moneyOutPause: () => json<{ ok: true; paused: true }>('/api/money-out/pause', { method: 'POST', body: '{}' }),
+  /// Removes every public statement about the signed-in person's deals.
+  removeMyAttestations: () => json<{ revoked: number }>('/api/me/attestations/revoke', { method: 'POST', body: '{}' }),
+  /// Public deal statements about one address, served by the site itself.
+  attestationsFor: async (address: string): Promise<{ count: number; attestations: AttestedDeal[] }> => {
+    const res = await fetch(`/attestations/by-subject/${address.toLowerCase()}.json`, { credentials: 'omit' });
+    if (!res.ok) throw new ApiError(res.status, `HTTP ${res.status}`);
+    return (await res.json()) as { count: number; attestations: AttestedDeal[] };
+  },
   record: (tag: string) =>
     json<{
       displayName: string | null;
@@ -4101,16 +4124,18 @@ export const api = {
       score?: number;
       counts?: { completed: number; onTimeRate: number | null; disputesLost: number };
       sources?: { id: string; status: 'connected' }[];
+      /// Records are sealed and this is not your own: no score or counts.
+      sealed?: true;
     }>(`/api/r/${encodeURIComponent(tag)}`),
   reputationSources: (address: string) =>
     json<{
-      sources: { recordReadable: boolean; sourceLookup: boolean; interest: string; acceptedAt: number | null; copyVersion: string | null };
+      sources: { outsideReadable: boolean; sourceLookup: boolean; interest: string; acceptedAt: number | null; copyVersion: string | null };
       connected: string[];
       readers: { name: string | null; tag: string | null; purpose: string; at: number }[];
       readsBalanceUsdc: number | null;
     }>(`/api/me/reputation-sources?address=${encodeURIComponent(address)}`),
-  updateReputationSources: (address: string, patch: { recordReadable?: boolean; sourceLookup?: boolean; interest?: string }) =>
-    json<{ sources: { recordReadable: boolean; sourceLookup: boolean; interest: string } }>(`/api/me/reputation-sources`, {
+  updateReputationSources: (address: string, patch: { outsideReadable?: boolean; sourceLookup?: boolean; interest?: string }) =>
+    json<{ sources: { outsideReadable: boolean; sourceLookup: boolean; interest: string } }>(`/api/me/reputation-sources`, {
       method: 'PUT',
       body: JSON.stringify({ address, ...patch }),
     }),

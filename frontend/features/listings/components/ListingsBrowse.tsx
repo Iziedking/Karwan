@@ -10,6 +10,7 @@ import {
   discoveryRail,
   filterDiscoveryCards,
   isVisibleToAudience,
+  orderNoteKey,
   type DiscoveryAudience,
   type DiscoveryCard,
   type DiscoveryScope,
@@ -225,6 +226,7 @@ export function ListingsBrowse() {
               </div>
             </div>
           </div>
+          <p data-market-order className="mt-3 text-[14px] font-medium text-[var(--ink-secondary)]">{copy.order[orderNoteKey(sort)]}</p>
         </div>
 
         {failedSources.length > 0 ? (

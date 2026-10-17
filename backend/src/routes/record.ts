@@ -1,4 +1,5 @@
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
+import { isOwnerView } from '../sealed/passport.js';
 import type { Ladder } from '../verification/ladder.js';
 
 interface RecordFact {
@@ -17,11 +18,15 @@ export interface RecordDeps {
   facts: (address: string) => Promise<RecordFact[]>;
   credential: (address: string) => Promise<unknown | null>;
   summary: (address: string) => Promise<{ score: number; counts: { completed: number; onTimeRate: number | null; disputesLost: number } }>;
+  /// SEALED_RECORDS: anyone but the owner sees who and how verified, never the numbers.
+  sealed: () => boolean;
+  viewer: (c: Context) => string | null;
 }
 
-/// The public record behind karwan.site/r/<tag>: who, how verified, the 0-100
-/// score and the counts, and the proof on Arc for each fact. Never an amount, a
-/// counterparty, a phone, a document or an evidence fingerprint.
+/// The public record behind karwan.site/r/<tag>: who, how verified, and the
+/// proof on Arc for each fact. The 0-100 score and the counts go to the owner
+/// only once records are sealed. Never an amount, a counterparty, a phone, a
+/// document or an evidence fingerprint.
 export function createRecordRoutes(deps: RecordDeps): Hono {
   const app = new Hono();
 
@@ -31,22 +36,29 @@ export function createRecordRoutes(deps: RecordDeps): Hono {
     const address = await resolve(c.req.param('tag'));
     if (!address) return c.json({ error: 'No Karwan record with that tag.' }, 404);
     const now = deps.now();
+    const sealed = deps.sealed();
+    const owner = isOwnerView(deps.viewer(c), address);
+    const showNumbers = !sealed || owner;
     const [passport, level, facts, summary] = await Promise.all([
       deps.passport(address),
       deps.level(address),
       deps.facts(address),
-      deps.summary(address),
+      showNumbers ? deps.summary(address) : null,
     ]);
     const valid = facts.filter((f) => f.expiresAt > now);
-    c.header('Cache-Control', 'public, max-age=60');
+    if (sealed) {
+      c.header('Vary', 'Cookie');
+      c.header('Cache-Control', owner ? 'private, no-store' : 'public, max-age=60');
+    } else {
+      c.header('Cache-Control', 'public, max-age=60');
+    }
     return c.json({
       displayName: passport.displayName,
       tag: passport.tag,
       level,
       tier: passport.tier,
       reasons: passport.reasons,
-      score: summary.score,
-      counts: summary.counts,
+      ...(summary ? { score: summary.score, counts: summary.counts } : { sealed: true }),
       checks: valid.map((f) => ({ kind: f.kind, at: f.issuedAt })),
       sources: [{ id: 'karwan', status: 'connected' }],
       facts: valid

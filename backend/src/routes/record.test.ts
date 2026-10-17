@@ -16,6 +16,8 @@ function setup(over: Partial<RecordDeps> = {}) {
     ],
     credential: async () => ({ type: 'karwan.record.v1', signed: true }),
     summary: async () => ({ score: 82, counts: { completed: 12, onTimeRate: 92, disputesLost: 0 } }),
+    sealed: () => false,
+    viewer: () => null,
     ...over,
   };
   return createRecordRoutes(deps);
@@ -60,4 +62,35 @@ test('the credential is served for a known tag and 503 when signing is off', asy
 
 test('tags are matched without the @ and case', async () => {
   assert.equal((await setup().request('/@ADA')).status, 200);
+});
+
+test('with sealed records on, a visitor sees who and how verified, never the score or the counts', async () => {
+  let summarised = false;
+  const app = setup({ sealed: () => true, viewer: () => '0xsomeoneelse', summary: async () => { summarised = true; return { score: 82, counts: { completed: 12, onTimeRate: 92, disputesLost: 0 } }; } });
+  const res = await app.request('/ada');
+  const body = (await res.json()) as Record<string, unknown>;
+  assert.equal(body.sealed, true);
+  assert.equal(body.level, 'work_verified');
+  assert.equal(body.tier, 'Established');
+  assert.ok(!('score' in body));
+  assert.ok(!('counts' in body));
+  assert.equal(summarised, false, 'the numbers are not even computed for a visitor');
+});
+
+test('a signed-out visitor gets the sealed record too', async () => {
+  const body = (await (await setup({ sealed: () => true, viewer: () => null }).request('/ada')).json()) as Record<string, unknown>;
+  assert.ok(!('score' in body));
+});
+
+test('the owner still sees their own score and counts, and that answer is never cached for others', async () => {
+  const res = await setup({ sealed: () => true, viewer: () => '0xADA' }).request('/ada');
+  const body = (await res.json()) as Record<string, unknown>;
+  assert.equal(body.score, 82);
+  assert.ok(!('sealed' in body));
+  assert.equal(res.headers.get('cache-control'), 'private, no-store');
+});
+
+test('a sealed answer varies by who is signed in', async () => {
+  const res = await setup({ sealed: () => true, viewer: () => null }).request('/ada');
+  assert.match(res.headers.get('vary') ?? '', /Cookie/);
 });

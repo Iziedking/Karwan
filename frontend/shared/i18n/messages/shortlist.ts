@@ -1,5 +1,5 @@
 /// The shortlist a buyer chooses from: who the agents found, verified or not,
-/// each person's score and numbers, and the one the agent recommends. {n},
+/// each person's tier and reasons, and the one the agent recommends. {n},
 /// {amount} and {name} are filled at render.
 export interface ShortlistCopy {
   title: string;
@@ -17,6 +17,8 @@ export interface ShortlistCopy {
   disputesLostMany: string;
   noDeals: string;
   recordChecked: string;
+  checkedCost: string;
+  checkedCostOne: string;
   viewProfile: string;
   choose: string;
   unavailable: string;
@@ -47,6 +49,8 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
     disputesLostMany: '{n} disputes lost',
     noDeals: 'No completed deals yet',
     recordChecked: 'Record checked',
+    checkedCost: 'Your agent checked {count} records · {amount} USDC',
+    checkedCostOne: 'Your agent checked 1 record · {amount} USDC',
     viewProfile: 'View profile',
     choose: 'Choose',
     unavailable: 'No longer available',
@@ -81,6 +85,8 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
     disputesLostMany: '{n} litiges perdus',
     noDeals: 'Aucune affaire terminée pour l’instant',
     recordChecked: 'Dossier vérifié',
+    checkedCost: 'Votre agent a vérifié {count} dossiers · {amount} USDC',
+    checkedCostOne: 'Votre agent a vérifié 1 dossier · {amount} USDC',
     viewProfile: 'Voir le profil',
     choose: 'Choisir',
     unavailable: 'Plus disponible',
@@ -115,6 +121,8 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
     disputesLostMany: '{n} نزاعات خاسرة',
     noDeals: 'لا صفقات مكتملة بعد',
     recordChecked: 'تم فحص السجل',
+    checkedCost: 'فحص وكيلك {count} سجلات · {amount} USDC',
+    checkedCostOne: 'فحص وكيلك سجلاً واحداً · {amount} USDC',
     viewProfile: 'عرض الملف',
     choose: 'اختيار',
     unavailable: 'لم يعد متاحًا',
@@ -149,6 +157,8 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
     disputesLostMany: '{n} विवाद हारे',
     noDeals: 'अभी कोई पूरा सौदा नहीं',
     recordChecked: 'रिकॉर्ड जांचा गया',
+    checkedCost: 'आपके एजेंट ने {count} रिकॉर्ड जांचे · {amount} USDC',
+    checkedCostOne: 'आपके एजेंट ने 1 रिकॉर्ड जांचा · {amount} USDC',
     viewProfile: 'प्रोफ़ाइल देखें',
     choose: 'चुनें',
     unavailable: 'अब उपलब्ध नहीं',
@@ -183,6 +193,8 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
     disputesLostMany: 'mizozo {n} aliyoshindwa',
     noDeals: 'Bado hakuna mpango uliokamilika',
     recordChecked: 'Rekodi imekaguliwa',
+    checkedCost: 'Wakala wako alikagua rekodi {count} · {amount} USDC',
+    checkedCostOne: 'Wakala wako alikagua rekodi 1 · {amount} USDC',
     viewProfile: 'Tazama wasifu',
     choose: 'Chagua',
     unavailable: 'Haipatikani tena',

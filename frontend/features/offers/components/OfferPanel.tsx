@@ -10,6 +10,7 @@ import { formatUsdc } from '@/shared/utils/format';
 import { splitRequestText } from '@/features/discovery/model';
 import { deliverByUnixFromDate, offerDefaults, offerErrorKey, type Offer } from '../model';
 import { Icon } from '@/shared/components/Icon';
+import { MarketReadsNote } from '@/features/market/MarketReadsNote';
 
 type View = Awaited<ReturnType<typeof api.offers>>;
 
@@ -258,6 +259,7 @@ function MakeOffer({
           <Button type="submit" size="lg" className="w-full rounded-full" loading={busy} disabled={noteLength > NOTE_MAX}>
             {busy ? t.sending : <>{t.send}<Icon name="send" size={16} directional /></>}
           </Button>
+          <MarketReadsNote />
         </form>
       </ConfirmSheetShell>
     </>

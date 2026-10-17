@@ -1,4 +1,6 @@
-import type { ShortlistEntry } from '../agents/shortlist.js';
+import type { SealedShortlistEntry, ShortlistEntry } from '../agents/shortlist.js';
+
+type Row = ShortlistEntry | SealedShortlistEntry;
 
 /// The shortlist as one chat message, for any channel. The person replies with
 /// a number and the assistant prepares the confirm step, so choosing in chat
@@ -12,7 +14,8 @@ const TIER_WORDS: Record<string, string> = {
   ELITE: 'Elite',
 };
 
-function numbersLine(e: ShortlistEntry): string {
+function numbersLine(e: Row): string | null {
+  if (!e.counts) return e.recordChecked ? 'Record checked' : null;
   const nums =
     e.counts.completed === 0
       ? 'No completed deals yet'
@@ -26,25 +29,27 @@ function numbersLine(e: ShortlistEntry): string {
   return e.recordChecked ? `${nums} · Record checked` : nums;
 }
 
-function row(e: ShortlistEntry, webBase: string): string {
+function row(e: Row, webBase: string): string {
   const head = `${e.rank}. ${e.name}${e.tag ? ` @${e.tag}` : ''}${e.recommended ? ' · Recommended' : ''}`;
-  const level = `${e.verified ? 'Verified' : 'Not verified'} · ${TIER_WORDS[e.tier] ?? e.tier} · ${e.score}`;
+  // People see tier and reasons; a score is for agents (D30).
+  const level = `${e.verified ? 'Verified' : 'Not verified'} · ${TIER_WORDS[e.tier] ?? e.tier}`;
   const offer = e.offer ? `${e.offer}, ` : '';
   const price = `${offer}${e.deliveryDays} days · ${e.priceUsdc} USDC${e.askedUsdc !== null ? ` (asked ${e.askedUsdc})` : ''}`;
-  const lines = [head, level, price, numbersLine(e)];
+  const numbers = numbersLine(e);
+  const lines = [head, level, price, ...(numbers ? [numbers] : [])];
   if (e.state === 'unavailable') lines.push('No longer available');
   if (e.tag) lines.push(`Profile: ${webBase.replace(/\/$/, '')}/r/${e.tag}`);
   return lines.join('\n');
 }
 
 export function shortlistText(
-  entries: readonly ShortlistEntry[],
+  entries: readonly Row[],
   webBase: string,
   opts: { readsBalanceEmpty: boolean },
 ): string {
   const parts: string[] = [];
   if (opts.readsBalanceEmpty) {
-    parts.push('Your record checks balance is empty, so this list uses free data. Top up your buying agent in Profile and your agent checks records again.');
+    parts.push('Your agent could not check records for this list, so it uses free data. Top up your buying agent in Profile and your agent checks records again.');
   }
   if (entries.length === 0) {
     parts.push('No one has offered yet. Your agent keeps looking until the request closes.');

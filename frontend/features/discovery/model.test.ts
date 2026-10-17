@@ -179,3 +179,18 @@ test('seeded example stock stays marked as an example on its card, and real rows
   assert.equal(byId.get('offer-open'), false);
   assert.equal(byId.get('request-example'), true);
 });
+
+test('the market says how results are ordered, for whichever sort is chosen', async () => {
+  const { orderNoteKey } = await import('./model');
+  assert.equal(orderNoteKey('newest'), 'newest');
+  assert.equal(orderNoteKey('price-asc'), 'lowestPrice');
+  assert.equal(orderNoteKey('price-desc'), 'highestPrice');
+  const { readFileSync } = await import('node:fs');
+  const browse = readFileSync(new URL('../listings/components/ListingsBrowse.tsx', import.meta.url), 'utf8');
+  assert.match(browse, /data-market-order[^>]*>\{copy\.order\[orderNoteKey\(sort\)\]\}/);
+  const { en } = await import('@/shared/i18n/messages/en');
+  for (const line of Object.values(en.listingsBrowse.order)) {
+    assert.match(line, /no one pays to appear higher/i);
+    assert.doesNotMatch(line, /—/);
+  }
+});

@@ -22,6 +22,7 @@ import { stepOneBlocker } from '../offerFlow';
 import { BUSINESS_ACCOUNTS_OPEN } from '@/features/account/businessOpen';
 import { cleanLines, composeTerms, termsIssues, type TermsDraft } from '@/features/deals/terms/composeTerms';
 import { TERMS_COPY } from '@/features/deals/terms/termsCopy';
+import { MarketReadsNote } from '@/features/market/MarketReadsNote';
 
 const READY_CHIPS = [1, 3, 7, 14] as const;
 const MAX_READY_DAYS = 180;
@@ -492,6 +493,7 @@ export function PostListingForm() {
             </button>
           )}
           {!reviewing && step === 2 ? <TermsBlockerNote terms={terms} /> : null}
+          {reviewing ? <MarketReadsNote /> : null}
           {stepOneMissing ? <p role="status" className="w-full text-[14px] font-medium text-[var(--lp-dark)]">{stepOneMissing}</p> : null}
         </div>
         {error && (

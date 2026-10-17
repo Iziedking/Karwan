@@ -43,7 +43,8 @@ import { resolveBuyerProfileForUser } from '../agents/agent-registry.js';
 import { createBrief, patchBrief, getBrief, deleteBrief, rekeyBrief } from '../db/briefs.js';
 import { approvalGate, isRequestOwner } from '../agents/chooseOffer.js';
 import { config } from '../config.js';
-import { isVerified, shortlistChoiceCheck } from '../agents/shortlist.js';
+import { isVerified, sealEntries, shortlistChoiceCheck } from '../agents/shortlist.js';
+import { readsForRef } from '../db/recordReads.js';
 import { levelOf } from '../verification/live.js';
 import { matchDecliner } from '../agents/matchDecline.js';
 import { accountTypeOf, deriveJobLane } from '../profile/accountType.js';
@@ -660,8 +661,10 @@ jobsRoutes.get('/:jobId/shortlist', async (c) => {
     return c.json({ error: 'Only the person who posted this request sees its shortlist.' }, 403);
   }
   const job = getBuyerJob(jobId);
+  const entries = getShortlist(jobId) ?? [];
   return c.json({
-    entries: getShortlist(jobId) ?? [],
+    entries: config.SEALED_RECORDS ? sealEntries(entries) : entries,
+    recordChecks: await readsForRef(jobId, caller).catch(() => ({ count: 0, usdc: 0 })),
     closed: !job || !!job.expiredAt || !!job.escrowFunded,
     worldCheck: worldCheckView(await getHold(jobId).catch(() => null)),
   });

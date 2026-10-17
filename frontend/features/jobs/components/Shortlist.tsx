@@ -8,7 +8,7 @@ import { formatUsdc } from '@/shared/utils/format';
 import { ConfirmSheet } from '@/features/deals/workspace/ConfirmSheet';
 import { fill } from '@/features/deals/workspace/presentation';
 import { chooseErrorKey } from '../chooseError';
-import { shortlistNotice, shortlistRowView, shortlistState, type ShortlistState } from '../shortlistPresentation';
+import { shortlistCostLine, shortlistNotice, shortlistRowView, shortlistState, type ShortlistState } from '../shortlistPresentation';
 import { AgentWorldCheck } from './AgentWorldCheck';
 import { worldStepFrom } from '../agentWorldStep';
 
@@ -49,12 +49,13 @@ export function useShortlist(jobId: string, caller: string | null) {
 
 /// Who the agents found for this request, verified or not, with each person's
 /// score and numbers and the one the agent recommends. The buyer chooses.
-export function Shortlist({ jobId, caller, entries, closed, worldCheck, onChosen }: {
+export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordChecks, onChosen }: {
   jobId: string;
   caller: string;
   entries: ShortlistEntry[];
   closed: boolean;
   worldCheck?: AgentWorldCheckView | null;
+  recordChecks?: { count: number; usdc: number };
   onChosen: () => void;
 }) {
   const t = useTranslations();
@@ -66,6 +67,7 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, onChosen
   const [worldStep, setWorldStep] = useState<{ reason: WorldCheckReason | null; skipAllowed: boolean } | null>(null);
   const world = t.agentNudges.world;
   const notice = shortlistNotice(entries, copy);
+  const cost = shortlistCostLine(recordChecks, copy);
   const waitingOn = worldCheck?.waitingOn === 'seller' && worldCheck.buyerConfirmed
     ? entries.find((e) => e.seller.toLowerCase() === worldCheck.sellerAgent.toLowerCase())?.name ?? null
     : null;
@@ -108,6 +110,7 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, onChosen
       <div className="py-4">
         <h2 className="text-[17px] font-semibold text-[var(--lp-dark)]">{copy.title}</h2>
         <p className="mt-1 text-[14px] font-medium text-[var(--ink-secondary)]">{copy.note}</p>
+        {cost ? <p className="mt-1 text-[14px] font-medium tabular-nums text-[var(--ink-secondary)]">{cost}</p> : null}
         {notice ? <p className="mt-2 text-[14px] font-semibold text-[var(--lp-dark)]">{notice}</p> : null}
         {waitingOn ? <p role="status" className="mt-2 text-[14px] font-semibold text-[var(--lp-dark)]">{fill(world.waiting, { name: waitingOn })}</p> : null}
       </div>
@@ -175,12 +178,8 @@ function ShortlistRow({ entry, canChoose, onChoose }: { entry: ShortlistEntry; c
           <p className={`mt-0.5 text-[14px] font-semibold ${entry.verified ? 'text-[var(--color-positive)]' : 'text-[var(--lp-dark)]'}`}>
             {v.levelLine}
           </p>
-          {entry.recommended ? (
-            <p className="mt-1 text-[14px] font-semibold text-[var(--lp-dark)]">
-              {copy.recommended}
-              {v.reasonLine ? <span className="font-medium text-[var(--ink-secondary)]"> · {v.reasonLine}</span> : null}
-            </p>
-          ) : null}
+          {entry.recommended ? <p className="mt-1 text-[14px] font-semibold text-[var(--lp-dark)]">{copy.recommended}</p> : null}
+          {v.reasonLine ? <p className="mt-0.5 text-[14px] font-medium text-[var(--ink-secondary)]">{v.reasonLine}</p> : null}
         </div>
         <p className="shrink-0 text-end tabular-nums">
           <span className="block text-[18px] font-semibold text-[var(--lp-dark)]">{price(entry.priceUsdc)} USDC</span>
@@ -189,7 +188,7 @@ function ShortlistRow({ entry, canChoose, onChoose }: { entry: ShortlistEntry; c
       </div>
       <div className="mt-2 ps-[52px] text-[14px] font-medium text-[var(--ink-secondary)]">
         <p dir="auto">{v.offerLine}</p>
-        <p className="mt-0.5">{v.numbersLine}</p>
+        {v.numbersLine ? <p className="mt-0.5">{v.numbersLine}</p> : null}
         {entry.state === 'negotiating' ? <p className="mt-0.5">{copy.negotiating}</p> : null}
         {entry.state === 'unavailable' ? <p className="mt-0.5 font-semibold text-[var(--lp-dark)]">{copy.unavailable}</p> : null}
       </div>
