@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { ChatAccount } from './types.js';
 
-export const CHAT_TERMS_VERSION = 'chat-2026-10-13';
+export const CHAT_TERMS_VERSION = 'chat-2026-10-17';
 
 /// Lookup key for a phone number. The number itself never becomes a key, so
 /// a leaked table does not list who uses Karwan.

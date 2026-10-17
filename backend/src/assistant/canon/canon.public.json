@@ -350,7 +350,7 @@
           "date": "2026-10-16"
         }
       ],
-      "body": "Karwan plans to let a person connect their social accounts, so an agent can\nfind their Karwan record by handle. A buyer could ask their agent to check a\nTelegram username and get back that person's tier, reasons and counts.\n\nConnecting an account will be optional, in the agent workspace, and only with\nthe person's consent. Ownership is proven by signing in where the network\noffers it, or by placing a code on the profile where it does not, so a link\nalone never claims someone else's account. A linked handle is not proof of\nidentity.\n\nThis is not built yet. No network is a partner, and none is named as one."
+      "body": "Karwan plans to let a person connect their social accounts, so an agent can\nfind their Karwan record by handle.\n\nThe first piece is built for the Karwan Telegram bot and is not live yet:\nanyone can ask the agent to check a Telegram username, and it answers with\nthat person's public record (name, tag, tier and fixed reasons) and one line\nof advice. Never a score or a count. A person is found by their Telegram\nname only if they allowed it.\n\nConnecting other accounts will be optional, in the agent workspace, and only\nwith the person's consent. Ownership is proven by signing in where the\nnetwork offers it, or by placing a code on the profile where it does not, so\na link alone never claims someone else's account. A linked handle is not\nproof of identity.\n\nNo network is a partner, and none is named as one."
     },
     {
       "id": "trade-anywhere-roadmap",
@@ -904,7 +904,7 @@
         "reputation",
         "agents"
       ],
-      "summary": "Karwan plans to let a person connect their social accounts, so an agent can find their Karwan record by handle. A buyer could ask their agent to check a Telegram username and get back that person's tier, reasons and counts.",
+      "summary": "Karwan plans to let a person connect their social accounts, so an agent can find their Karwan record by handle. Checking a Telegram username is built for the Karwan bot, not live yet, and answers with the public record and advice, never counts.",
       "sources": [
         {
           "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/13-portable-reputation.md",

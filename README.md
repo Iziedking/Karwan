@@ -159,7 +159,7 @@ Work from 27 September to 17 October 2026, during The Canteen's Tameion agents h
 - Delivery checks reported to both parties, offers and matching fixes, and a redesigned deal page.
 
 **Built in the repository, not yet deployed** ([architecture view 10](./docs/architecture/10-verified-network.md))
-- The Karwan agent on Telegram, on Karwan's existing bot: accounts created on accepting terms, the same assistant and routes as the app, and every step that moves money confirmed on Karwan from a one-time link. A WhatsApp adapter on the same core is built and paused.
+- The Karwan agent on Telegram, one bot per network: /start signs in or up with an email code (the same account as the website) or a one-time Connect wallet page, then a tag and three questions post a first offer or request. Lookups by Karwan tag or Telegram name (opt-in) return the public record with plain advice. Alerts come through the same bot. The same assistant and routes as the app, and every step that moves money confirmed on Karwan from a one-time link. A WhatsApp adapter on the same core is built and paused.
 - A verification ladder decided by published rules: invoices that cannot be reused, past clients confirming a job from a link they open, which counts only when the client is person verified, CAC review and a World ID person check. Deals of 100 USDC and above stay closed until an ID check exists.
 - `KarwanFacts`, an append-only contract of verified facts that can only be written to a person, a public record page and a signed copy anyone can check without Karwan.
 - Agents that offer only work-verified people and answer each other from what the seller set, with record reads paid over x402.
