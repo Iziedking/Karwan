@@ -135,4 +135,45 @@ contract KarwanRecordTest is SuiteFixture {
         vm.prank(writer);
         record.recordOutcome(bytes32("late"), aliceId, 0, Outcome.COMPLETED, 0, 0);
     }
+
+    // The caller is relayed, so msg.sender is not tx.origin.
+    address internal relayer = makeAddr("relayer");
+
+    function test_a_fact_and_its_revocation_are_announced_with_the_issuer() public {
+        uint64 expiresAt = uint64(vm.getBlockTimestamp() + 365 days);
+        uint256 next = record.factCount();
+        vm.expectEmit(true, true, true, true, address(record));
+        emit KarwanRecord.FactRecorded(next, aliceId, KIND, 2, issuer, SEAL, expiresAt);
+        vm.prank(issuer, relayer);
+        record.recordFact(alice, KIND, 2, SEAL, expiresAt);
+        vm.expectEmit(true, true, true, true, address(record));
+        emit KarwanRecord.FactRevoked(next, issuer);
+        vm.prank(issuer, relayer);
+        record.revoke(next);
+    }
+
+    function test_a_fact_keeps_the_time_it_was_issued_even_past_2106() public {
+        vm.warp(5_000_000_000);
+        uint256 fid = _fact();
+        assertEq(record.getFact(fid).issuedAt, 5_000_000_000);
+    }
+
+    function test_valid_facts_are_listed_by_id_in_order() public {
+        uint256 first = _fact();
+        uint256 second = _fact();
+        uint256 third = _fact();
+        vm.prank(issuer);
+        record.revoke(second);
+        uint256[] memory valid = record.validFactsOf(aliceId, uint64(vm.getBlockTimestamp()));
+        assertEq(valid.length, 2);
+        assertEq(valid[0], first);
+        assertEq(valid[1], third);
+    }
+
+    /// The key a deal's ending is recorded under is the ABI encoding of its
+    /// four parts, so anyone can check whether an ending was recorded.
+    function test_the_outcome_key_is_the_abi_encoding_of_its_four_parts() public view {
+        bytes32 deal = bytes32("deal-1");
+        assertEq(record.outcomeKey(writer, deal, aliceId, 1), keccak256(abi.encode(writer, deal, aliceId, uint8(1))));
+    }
 }

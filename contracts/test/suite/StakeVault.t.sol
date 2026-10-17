@@ -324,4 +324,88 @@ contract StakeVaultTest is SuiteFixture {
         vault.withdrawOwed(address(usdc));
         assertEq(usdc.balanceOf(buyer), 20e6);
     }
+
+    // The caller is relayed, so msg.sender is not tx.origin.
+    address internal relayer = makeAddr("relayer");
+
+    function test_a_withdrawal_is_announced_with_the_wallet_paid() public {
+        vm.prank(seller);
+        vault.requestWithdraw(address(usdc), 40e6);
+        vm.warp(vm.getBlockTimestamp() + 7 days);
+        vm.expectEmit(true, true, true, true, address(vault));
+        emit KarwanStakeVault.Withdrawn(sellerId, address(usdc), seller, 40e6);
+        vm.prank(seller, relayer);
+        vault.withdraw(address(usdc));
+    }
+
+    function test_a_slash_of_nothing_pays_and_announces_nothing() public {
+        _reserve(REF, 60e6);
+        vm.recordLogs();
+        vm.prank(address(family));
+        assertEq(vault.slash(REF, 0), 0);
+        assertEq(vm.getRecordedLogs().length, 0);
+        assertEq(vault.reservationOf(address(family), REF).amount, 60e6);
+    }
+
+    function test_a_reservation_that_does_not_exist_cannot_be_freed() public {
+        vm.prank(stranger);
+        vm.expectRevert(KarwanStakeVault.NotActive.selector);
+        vault.releaseStale(address(family), bytes32("none"));
+    }
+
+    function test_a_payout_kept_for_a_blocked_beneficiary_is_announced() public {
+        _reserve(REF, 60e6);
+        usdc.setBlocked(buyer, true);
+        vm.expectEmit(true, true, true, true, address(vault));
+        emit KarwanStakeVault.PayoutCredited(address(usdc), buyer, 20e6);
+        vm.prank(address(family));
+        vault.slash(REF, 20e6);
+    }
+
+    function test_staking_and_cooling_are_announced() public {
+        vm.expectEmit(address(vault));
+        emit KarwanStakeVault.Staked(sellerId, address(usdc), seller, 10e6);
+        vm.prank(seller, relayer);
+        vault.stake(address(usdc), 10e6);
+        uint64 claimableAt = uint64(vm.getBlockTimestamp()) + 7 days;
+        vm.expectEmit(address(vault));
+        emit KarwanStakeVault.WithdrawRequested(sellerId, address(usdc), 40e6, claimableAt);
+        vm.prank(seller);
+        vault.requestWithdraw(address(usdc), 40e6);
+        vm.expectEmit(address(vault));
+        emit KarwanStakeVault.WithdrawCancelled(sellerId, address(usdc));
+        vm.prank(seller);
+        vault.cancelWithdraw(address(usdc));
+    }
+
+    function test_a_reservation_is_announced_through_its_life() public {
+        uint64 expiresAt = _expiry();
+        vm.expectEmit(address(vault));
+        emit KarwanStakeVault.Reserved(address(family), REF, sellerId, address(usdc), 60e6, buyer, expiresAt);
+        _reserve(REF, 60e6);
+        vm.expectEmit(address(vault));
+        emit KarwanStakeVault.ReservationExtended(address(family), REF, expiresAt + 1 days);
+        vm.prank(address(family));
+        vault.extend(REF, expiresAt + 1 days);
+        vm.expectEmit(address(vault));
+        emit KarwanStakeVault.Slashed(address(family), REF, buyer, 20e6);
+        vm.prank(address(family));
+        vault.slash(REF, 20e6);
+        vm.expectEmit(address(vault));
+        emit KarwanStakeVault.ReservationReleased(address(family), REF, 40e6);
+        vm.prank(address(family));
+        vault.release(REF);
+    }
+
+    function test_withdrawing_an_owed_slash_is_announced() public {
+        _reserve(REF, 60e6);
+        usdc.setBlocked(buyer, true);
+        vm.prank(address(family));
+        vault.slash(REF, 20e6);
+        usdc.setBlocked(buyer, false);
+        vm.expectEmit(address(vault));
+        emit KarwanStakeVault.OwedWithdrawn(address(usdc), buyer, 20e6);
+        vm.prank(buyer, relayer);
+        vault.withdrawOwed(address(usdc));
+    }
 }

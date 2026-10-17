@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {AgreementFixture} from "./AgreementFixture.sol";
-import {AgreementTerms, AgreementState} from "../../../src/suite/agreement/AgreementTypes.sol";
+import {AgreementTerms, AgreementState, SplitOffer} from "../../../src/suite/agreement/AgreementTypes.sol";
 import {AgreementLib} from "../../../src/suite/agreement/AgreementLib.sol";
 import {KarwanRecord} from "../../../src/suite/KarwanRecord.sol";
 import {Outcome} from "../../../src/suite/interfaces/IKarwanSuite.sol";
@@ -68,5 +68,16 @@ contract AgreementSplitTest is AgreementFixture {
         vm.expectRevert(AgreementLib.BadAmount.selector);
         escrow.proposeSplit(id, 10_001);
         assertFalse(escrow.splitOf(id).active);
+    }
+
+    function test_a_split_offer_can_be_read_while_it_waits() public {
+        bytes32 id = _fundAccepted(_terms(), bytes32("s"));
+        vm.prank(buyer);
+        escrow.proposeSplit(id, 2_500);
+        SplitOffer memory o = escrow.splitOf(id);
+        assertEq(o.proposer, buyer);
+        assertEq(o.sellerBps, 2_500);
+        assertTrue(o.active);
+        assertEq(o.paid, 0);
     }
 }

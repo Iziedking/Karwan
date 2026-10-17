@@ -425,4 +425,29 @@ contract SettlementBaseTest is SuiteFixture {
         (ok,) = address(family).call{value: 1}("");
         assertFalse(ok);
     }
+
+    /// Every family publishes the limits the settlement rules hold it to.
+    function test_the_settlement_limits_are_published() public view {
+        assertEq(family.MAX_FEE_BPS(), 1_000);
+        assertEq(family.MAX_PAYEES(), 8);
+        assertEq(family.LONGSTOP(), 180 days);
+        assertEq(family.MAX_HORIZON(), 730 days);
+        assertEq(family.HOLD_STEP(), 7 days);
+        assertEq(family.HOLD_BUDGET(), 30 days);
+    }
+
+    function test_a_cancelled_nonce_is_announced_with_the_payee() public {
+        vm.expectEmit(true, true, true, true, address(family));
+        emit KarwanSettlementBase.NonceCancelled(seller, 7);
+        vm.prank(seller, makeAddr("relayer"));
+        family.cancelNonce(7);
+    }
+
+    function test_only_the_payer_and_the_payees_are_parties() public {
+        _openAndFund(500e6);
+        assertTrue(family.isParty(DEAL, buyer));
+        assertTrue(family.isParty(DEAL, seller));
+        assertFalse(family.isParty(DEAL, stranger));
+        assertFalse(family.isParty(bytes32("no-deal"), buyer));
+    }
 }

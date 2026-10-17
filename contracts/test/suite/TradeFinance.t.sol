@@ -379,4 +379,71 @@ contract TradeFinanceTest is AgreementFixture {
         assertEq(tf.lineOf(lineId).state, 3);
         assertEq(vault.freeOf(sellerId, address(usdc)), 50e6);
     }
+
+    // ------------------------------- Events -------------------------------
+
+    function test_opening_a_line_announces_it_and_the_line_it_replaces() public {
+        bytes32 id = _fundAccepted(_terms(), bytes32("f"));
+        bytes32 first = tf.lineIdFor(address(escrow), id, financier, 50e6, 60e6, 10e6);
+        vm.expectEmit(address(tf));
+        emit KarwanTradeFinance.LineOpened(first, address(escrow), id, seller, financier, 50e6, 60e6, 10e6);
+        _open(id, 50e6, 60e6, 10e6);
+        vm.prank(financier);
+        escrow.releaseAssignment(id, seller);
+        bytes32 second = tf.lineIdFor(address(escrow), id, financier, 40e6, 55e6, 10e6);
+        vm.expectEmit(address(tf));
+        emit KarwanTradeFinance.LineWaived(first);
+        vm.expectEmit(address(tf));
+        emit KarwanTradeFinance.LineOpened(second, address(escrow), id, seller, financier, 40e6, 55e6, 10e6);
+        _openN(id, 40e6, 55e6, 10e6, 8);
+    }
+
+    function test_a_repaid_line_announces_what_the_deal_paid() public {
+        bytes32 id = _fundAccepted(_terms(), bytes32("f"));
+        bytes32 lineId = _open(id, 50e6, 60e6, 10e6);
+        vm.prank(buyer);
+        escrow.release(id);
+        vm.expectEmit(address(tf));
+        emit KarwanTradeFinance.LineRepaid(lineId, 60e6);
+        tf.settle(lineId);
+    }
+
+    function test_a_defaulted_line_announces_the_shortfall_and_what_the_stake_covered() public {
+        bytes32 id = _fundAccepted(_terms(), bytes32("f"));
+        bytes32 lineId = _open(id, 50e6, 60e6, 10e6);
+        vm.prank(buyer);
+        escrow.proposeSplit(id, 0);
+        vm.prank(seller);
+        escrow.acceptSplit(id, 0);
+        vm.expectEmit(address(tf));
+        emit KarwanTradeFinance.LineDefaulted(lineId, 60e6, 10e6);
+        tf.settle(lineId);
+    }
+
+    function test_a_line_waived_by_its_financier_or_by_a_lost_assignment_is_announced() public {
+        bytes32 id = _fundAccepted(_terms(), bytes32("f"));
+        bytes32 lineId = _open(id, 50e6, 60e6, 10e6);
+        vm.expectEmit(address(tf));
+        emit KarwanTradeFinance.LineWaived(lineId);
+        vm.prank(financier);
+        tf.waive(lineId);
+
+        bytes32 other = _fundAccepted(_terms(), bytes32("g"));
+        bytes32 second = _openN(other, 50e6, 60e6, 10e6, 8);
+        vm.prank(financier);
+        escrow.releaseAssignment(other, seller);
+        vm.prank(buyer);
+        escrow.release(other);
+        vm.expectEmit(address(tf));
+        emit KarwanTradeFinance.LineWaived(second);
+        tf.settle(second);
+    }
+
+    function test_a_line_id_follows_its_published_encoding() public view {
+        bytes32 id = bytes32("deal");
+        assertEq(
+            tf.lineIdFor(address(escrow), id, financier, 50e6, 60e6, 10e6),
+            keccak256(abi.encode(block.chainid, address(tf), address(escrow), id, financier, uint128(50e6), uint128(60e6), uint128(10e6)))
+        );
+    }
 }

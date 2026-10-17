@@ -350,4 +350,234 @@ contract KarwanIdentityRegistryTest is Test {
         (address w,) = reg.recoveryRequestOf(id);
         assertEq(w, address(0));
     }
+
+    // ------------------------------- Events -------------------------------
+    // The caller is relayed, so msg.sender is not tx.origin.
+
+    address internal relayer = makeAddr("relayer");
+
+    function test_register_announces_the_identity_and_its_first_wallet() public {
+        address carol = makeAddr("carol");
+        vm.expectEmit(true, true, true, true, address(reg));
+        emit KarwanIdentityRegistry.Registered(id + 1, carol);
+        vm.expectEmit(true, true, true, true, address(reg));
+        emit KarwanIdentityRegistry.Bound(id + 1, carol, KarwanIdentityRegistry.Kind.Wallet, 0, 0, 0);
+        vm.prank(carol, relayer);
+        reg.register();
+    }
+
+    function test_binding_an_agent_announces_its_expiry_and_limits() public {
+        uint64 expiry = uint64(vm.getBlockTimestamp() + 30 days);
+        uint256 deadline = vm.getBlockTimestamp() + 1 hours;
+        bytes32 d = reg.bindDigest(id, agent, KarwanIdentityRegistry.Kind.Agent, expiry, 100e6, 500e6, deadline);
+        bytes memory s = _sig(agentKey, d);
+        vm.expectEmit(true, true, true, true, address(reg));
+        emit KarwanIdentityRegistry.Bound(id, agent, KarwanIdentityRegistry.Kind.Agent, expiry, 100e6, 500e6);
+        vm.prank(alice, relayer);
+        reg.bind(agent, KarwanIdentityRegistry.Kind.Agent, expiry, 100e6, 500e6, deadline, s);
+    }
+
+    function test_handing_over_control_and_leaving_are_announced() public {
+        _bindWallet(phone, phoneKey);
+        vm.expectEmit(true, true, true, true, address(reg));
+        emit KarwanIdentityRegistry.ControllerProposed(id, phone);
+        vm.prank(alice, relayer);
+        reg.proposeController(phone);
+        vm.expectEmit(true, true, true, true, address(reg));
+        emit KarwanIdentityRegistry.ControllerChanged(id, phone);
+        vm.prank(phone, relayer);
+        reg.acceptController();
+        vm.expectEmit(true, true, true, true, address(reg));
+        emit KarwanIdentityRegistry.Unbound(id, alice);
+        vm.prank(alice, relayer);
+        reg.unbind(alice);
+    }
+
+    function test_each_recovery_step_is_announced() public {
+        _bindWallet(phone, phoneKey);
+        vm.expectEmit(true, true, true, true, address(reg));
+        emit KarwanIdentityRegistry.RecoverySet(id, phone);
+        vm.prank(alice, relayer);
+        reg.setRecovery(phone);
+        uint64 readyAt = uint64(vm.getBlockTimestamp()) + 7 days;
+        vm.expectEmit(true, true, true, true, address(reg));
+        emit KarwanIdentityRegistry.RecoveryStarted(id, phone, readyAt);
+        vm.prank(phone, relayer);
+        reg.startRecovery();
+        vm.expectEmit(true, true, true, true, address(reg));
+        emit KarwanIdentityRegistry.RecoveryCancelled(id);
+        vm.prank(alice, relayer);
+        reg.cancelRecovery();
+    }
+
+    function test_an_agent_payment_is_announced_with_the_family_and_the_running_total() public {
+        _bindAgent(100e6, 500e6);
+        vm.startPrank(family, relayer);
+        reg.useAgentAllowance(agent, 30e6);
+        vm.expectEmit(true, true, true, true, address(reg));
+        emit KarwanIdentityRegistry.AgentAllowanceUsed(agent, family, 40e6, 70e6);
+        reg.useAgentAllowance(agent, 40e6);
+        vm.stopPrank();
+    }
+
+    // ------------------------------ Signatures ----------------------------
+
+    /// The digest a wallet signs is EIP-712 over the published Bind type, so a
+    /// wallet or a backend can build it without asking the contract.
+    function test_the_bind_digest_is_eip712_over_the_published_type() public view {
+        bytes32 typehash = keccak256(
+            "Bind(uint64 id,address wallet,uint8 kind,uint64 expiry,uint128 perPayment,uint128 total,uint256 nonce,uint256 deadline)"
+        );
+        assertEq(reg.BIND_TYPEHASH(), typehash);
+        bytes32 domain = keccak256(
+            abi.encode(
+                keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+                keccak256("KarwanIdentity"),
+                keccak256("1"),
+                block.chainid,
+                address(reg)
+            )
+        );
+        uint64 expiry = 2_000_000_000;
+        bytes32 structHash = keccak256(
+            abi.encode(
+                typehash, id, agent, uint8(2), expiry, uint128(100e6), uint128(500e6), reg.nonces(agent), 1_900_000_000
+            )
+        );
+        assertEq(
+            reg.bindDigest(id, agent, KarwanIdentityRegistry.Kind.Agent, expiry, 100e6, 500e6, 1_900_000_000),
+            keccak256(abi.encodePacked("\x19\x01", domain, structHash))
+        );
+    }
+
+    // ------------------------- Leaving an identity ------------------------
+
+    function test_an_agent_that_leaves_keeps_no_limits() public {
+        _bindAgent(100e6, 500e6);
+        vm.prank(family);
+        reg.useAgentAllowance(agent, 60e6);
+        vm.prank(alice);
+        reg.unbind(agent);
+        (uint128 perPayment, uint128 total, uint128 used) = reg.agentLimitOf(agent);
+        assertEq(perPayment, 0);
+        assertEq(total, 0);
+        assertEq(used, 0);
+    }
+
+    function test_another_wallet_leaving_keeps_the_proposal_and_the_recovery() public {
+        (address laptop, uint256 laptopKey) = makeAddrAndKey("laptop");
+        (address tablet, uint256 tabletKey) = makeAddrAndKey("tablet");
+        _bindWallet(phone, phoneKey);
+        _bindWallet(laptop, laptopKey);
+        _bindWallet(tablet, tabletKey);
+        vm.startPrank(alice);
+        reg.setRecovery(phone);
+        reg.proposeController(laptop);
+        vm.stopPrank();
+        vm.prank(phone);
+        reg.startRecovery();
+        vm.prank(tablet);
+        reg.unbind(tablet);
+        assertEq(reg.pendingControllerOf(id), laptop);
+        assertEq(reg.recoveryOf(id), phone);
+        (address w, uint64 readyAt) = reg.recoveryRequestOf(id);
+        assertEq(w, phone);
+        assertEq(readyAt, uint64(vm.getBlockTimestamp()) + 7 days);
+    }
+
+    // ------------------------------- Recovery -----------------------------
+
+    function test_recovery_is_cleared_with_zero_and_its_request_goes_with_it() public {
+        _bindWallet(phone, phoneKey);
+        vm.prank(alice);
+        reg.setRecovery(phone);
+        vm.prank(phone);
+        reg.startRecovery();
+        vm.prank(alice);
+        reg.setRecovery(address(0));
+        assertEq(reg.recoveryOf(id), address(0));
+        (address w,) = reg.recoveryRequestOf(id);
+        assertEq(w, address(0));
+        vm.warp(vm.getBlockTimestamp() + 7 days);
+        vm.prank(phone);
+        vm.expectRevert(KarwanIdentityRegistry.NoRequest.selector);
+        reg.finishRecovery();
+    }
+
+    function test_naming_another_recovery_wallet_ends_the_old_request() public {
+        (address laptop, uint256 laptopKey) = makeAddrAndKey("laptop");
+        _bindWallet(phone, phoneKey);
+        _bindWallet(laptop, laptopKey);
+        vm.prank(alice);
+        reg.setRecovery(phone);
+        vm.prank(phone);
+        reg.startRecovery();
+        vm.prank(alice);
+        reg.setRecovery(laptop);
+        assertEq(reg.recoveryOf(id), laptop);
+        vm.warp(vm.getBlockTimestamp() + 7 days);
+        vm.prank(phone);
+        vm.expectRevert(KarwanIdentityRegistry.NoRequest.selector);
+        reg.finishRecovery();
+        assertEq(reg.controllerOf(id), alice);
+    }
+
+    /// A hand-over ends a pending recovery and the accepted proposal, and keeps
+    /// the recovery wallet, which is not the new controller.
+    function test_a_hand_over_ends_pending_recovery_but_keeps_the_recovery_wallet() public {
+        (address laptop, uint256 laptopKey) = makeAddrAndKey("laptop");
+        _bindWallet(phone, phoneKey);
+        _bindWallet(laptop, laptopKey);
+        vm.startPrank(alice);
+        reg.setRecovery(phone);
+        reg.proposeController(laptop);
+        vm.stopPrank();
+        vm.prank(phone);
+        reg.startRecovery();
+        vm.prank(laptop);
+        reg.acceptController();
+        assertEq(reg.controllerOf(id), laptop);
+        assertEq(reg.pendingControllerOf(id), address(0));
+        assertEq(reg.recoveryOf(id), phone);
+        (address w,) = reg.recoveryRequestOf(id);
+        assertEq(w, address(0));
+        vm.warp(vm.getBlockTimestamp() + 7 days);
+        vm.prank(phone);
+        vm.expectRevert(KarwanIdentityRegistry.NoRequest.selector);
+        reg.finishRecovery();
+    }
+
+    /// The recovery wallet that takes control is no longer the recovery wallet,
+    /// and a proposal made before the takeover is gone.
+    function test_recovery_that_takes_control_ends_itself_and_any_proposal() public {
+        (address laptop, uint256 laptopKey) = makeAddrAndKey("laptop");
+        _bindWallet(phone, phoneKey);
+        _bindWallet(laptop, laptopKey);
+        vm.startPrank(alice);
+        reg.setRecovery(phone);
+        reg.proposeController(laptop);
+        vm.stopPrank();
+        vm.prank(phone);
+        reg.startRecovery();
+        vm.warp(vm.getBlockTimestamp() + 7 days);
+        vm.prank(phone);
+        reg.finishRecovery();
+        assertEq(reg.controllerOf(id), phone);
+        assertEq(reg.recoveryOf(id), address(0));
+        assertEq(reg.pendingControllerOf(id), address(0));
+        vm.prank(laptop);
+        vm.expectRevert(KarwanIdentityRegistry.NotController.selector);
+        reg.acceptController();
+    }
+
+    // ------------------------------- Limits -------------------------------
+
+    function test_an_agent_payment_above_64_bits_is_counted_in_full() public {
+        uint128 big = uint128(type(uint64).max) + 5;
+        _bindAgent(big, big * 2);
+        vm.prank(family);
+        reg.useAgentAllowance(agent, big);
+        (,, uint128 used) = reg.agentLimitOf(agent);
+        assertEq(used, big);
+    }
 }

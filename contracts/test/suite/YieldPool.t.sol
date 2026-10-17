@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+import {Vm} from "forge-std/Vm.sol";
 import {SuiteFixture} from "./SuiteFixture.sol";
 import {KarwanHub} from "../../src/suite/KarwanHub.sol";
 import {KarwanYieldPool} from "../../src/suite/KarwanYieldPool.sol";
@@ -438,5 +439,94 @@ contract YieldPoolTest is SuiteFixture {
         vm.prank(address(family));
         vm.expectRevert(KarwanYieldPool.NotFamily.selector);
         pool.deposit(1e6);
+    }
+
+    // ------------------------------- Events -------------------------------
+
+    /// The one log `emitter` wrote with this signature in the recorded logs.
+    function _onlyLog(address emitter, bytes32 sig) internal view returns (Vm.Log memory found) {
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        uint256 n;
+        for (uint256 i; i < logs.length; ++i) {
+            if (logs[i].emitter == emitter && logs[i].topics[0] == sig) {
+                found = logs[i];
+                ++n;
+            }
+        }
+        assertEq(n, 1);
+    }
+
+    function test_parking_and_taking_back_are_announced() public {
+        vm.expectEmit(address(pool));
+        emit KarwanYieldPool.Deposited(address(family), 10_000e6);
+        _park(10_000e6);
+        vm.expectEmit(address(pool));
+        emit KarwanYieldPool.Withdrawn(address(family), 4_000e6);
+        _take(4_000e6);
+    }
+
+    function test_a_subscription_announces_the_cash_paid_and_the_shares_got() public {
+        _park(PARKED);
+        uint256 cash = usdc.balanceOf(address(pool));
+        vm.recordLogs();
+        pool.rebalance();
+        Vm.Log memory l = _onlyLog(address(pool), KarwanYieldPool.Subscribed.selector);
+        (uint256 assets, uint256 shares) = abi.decode(l.data, (uint256, uint256));
+        assertGt(assets, 0);
+        assertEq(assets, cash - usdc.balanceOf(address(pool)));
+        assertEq(shares, teller.share_().balanceOf(address(pool)));
+    }
+
+    function test_stopping_redeems_and_announces_the_shares_sold_and_the_cash_got() public {
+        _park(PARKED);
+        pool.rebalance();
+        uint256 shares = teller.share_().balanceOf(address(pool));
+        uint256 cash = usdc.balanceOf(address(pool));
+        vm.expectEmit(address(pool));
+        emit KarwanYieldPool.Stopped(true, guardian);
+        vm.prank(guardian, stranger);
+        pool.stop();
+        vm.recordLogs();
+        pool.rebalance();
+        Vm.Log memory l = _onlyLog(address(pool), KarwanYieldPool.Redeemed.selector);
+        (uint256 sold, uint256 got) = abi.decode(l.data, (uint256, uint256));
+        assertEq(sold, shares);
+        assertEq(got, usdc.balanceOf(address(pool)) - cash);
+        vm.expectEmit(address(pool));
+        emit KarwanYieldPool.Stopped(false, address(this));
+        pool.resume();
+    }
+
+    function test_a_sweep_announces_the_fee_recipient_and_what_it_got() public {
+        _park(PARKED);
+        pool.rebalance();
+        teller.setPrice(1.1514e18);
+        uint256 before = usdc.balanceOf(feeSafe);
+        vm.recordLogs();
+        vm.prank(stranger);
+        pool.sweepYield();
+        Vm.Log memory l = _onlyLog(address(pool), KarwanYieldPool.YieldSwept.selector);
+        assertEq(address(uint160(uint256(l.topics[1]))), feeSafe);
+        assertEq(abi.decode(l.data, (uint256)), usdc.balanceOf(feeSafe) - before);
+    }
+
+    function test_a_backstop_and_each_setting_are_announced() public {
+        usdc.mint(feeSafe, 10e6);
+        vm.prank(feeSafe);
+        usdc.approve(address(pool), 10e6);
+        vm.expectEmit(address(pool));
+        emit KarwanYieldPool.Backstopped(feeSafe, 10e6);
+        vm.prank(feeSafe, stranger);
+        pool.backstop(10e6);
+        vm.expectEmit(address(pool));
+        emit KarwanYieldPool.BufferSet(2_000, 7_000e6);
+        pool.setBuffer(2_000, 7_000e6);
+        vm.expectEmit(address(pool));
+        emit KarwanYieldPool.CushionSet(300);
+        pool.setCushion(300);
+        MockTeller next = new MockTeller(usdc);
+        vm.expectEmit(address(pool));
+        emit KarwanYieldPool.TellerSet(address(next), next.share());
+        pool.setTeller(address(next));
     }
 }

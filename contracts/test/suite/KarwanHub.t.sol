@@ -307,4 +307,86 @@ contract KarwanHubTest is Test {
         tl.execute(address(governed), 0, data, bytes32(0), bytes32(0));
         assertEq(governed.guardian(), stranger);
     }
+
+    // ------------------------------- Events -------------------------------
+
+    function test_wiring_is_announced() public {
+        KarwanHub fresh = new KarwanHub(address(this));
+        address i = makeAddr("identity-2");
+        address r = makeAddr("record-2");
+        address v = makeAddr("vault-2");
+        vm.expectEmit(address(fresh));
+        emit KarwanHub.Wired(i, r, v);
+        fresh.wire(i, r, v);
+    }
+
+    function test_each_change_to_a_family_is_announced() public {
+        address next = makeAddr("next");
+        vm.expectEmit(address(hub));
+        emit KarwanHub.FamilySet(next, false, 50);
+        hub.registerFamily(next, 50);
+        vm.expectEmit(address(hub));
+        emit KarwanHub.FamilySet(next, false, 70);
+        hub.setFamilyFee(next, 70);
+        vm.expectEmit(address(hub));
+        emit KarwanHub.FamilyPaused(next, true, guardian);
+        vm.prank(guardian, stranger);
+        hub.pauseFamily(next);
+        vm.expectEmit(address(hub));
+        emit KarwanHub.FamilyPaused(next, false, address(this));
+        hub.resumeFamily(next);
+        vm.expectEmit(address(hub));
+        emit KarwanHub.FamilySet(next, true, 70);
+        hub.retireFamily(next);
+        vm.expectEmit(address(hub));
+        emit KarwanHub.FamilySet(next, true, 90);
+        hub.setFamilyFee(next, 90);
+        vm.expectEmit(address(hub));
+        emit KarwanHub.FamilyRevoked(next);
+        hub.revokeFamily(next);
+    }
+
+    function test_assets_caps_and_yield_settings_are_announced() public {
+        vm.expectEmit(address(hub));
+        emit KarwanHub.AssetSet(address(usdc), true, 9_000e6);
+        hub.setAsset(address(usdc), true, 9_000e6);
+        vm.expectEmit(address(hub));
+        emit KarwanHub.CapsSet(family, address(usdc), 500e6, 5_000e6);
+        hub.setCaps(family, address(usdc), 500e6, 5_000e6);
+        KarwanYieldPool pool = new KarwanYieldPool(address(hub), address(usdc));
+        vm.expectEmit(address(hub));
+        emit KarwanHub.YieldPoolSet(address(usdc), address(pool));
+        hub.setYieldPool(address(usdc), address(pool));
+        vm.expectEmit(address(hub));
+        emit KarwanHub.YieldShareSet(family, 4_000);
+        hub.setYieldShare(family, 4_000);
+    }
+
+    function test_roles_and_lists_are_announced() public {
+        address who = makeAddr("who");
+        address senior = makeAddr("senior");
+        vm.expectEmit(address(hub));
+        emit KarwanHub.RoleSet("feeRecipient", who);
+        hub.setFeeRecipient(who);
+        vm.expectEmit(address(hub));
+        emit KarwanHub.RoleSet("guardian", who);
+        hub.setGuardian(who);
+        vm.expectEmit(address(hub));
+        emit KarwanHub.RoleSet("reviewSafe", who);
+        vm.expectEmit(address(hub));
+        emit KarwanHub.RoleSet("seniorSafe", senior);
+        hub.setReviewers(who, senior);
+        vm.expectEmit(address(hub));
+        emit KarwanHub.RoleSet("autoArbiter", who);
+        hub.setAutoArbiter(who);
+        vm.expectEmit(address(hub));
+        emit KarwanHub.ListSet("verifier", who, true);
+        hub.setVerifier(who, true);
+        vm.expectEmit(address(hub));
+        emit KarwanHub.ListSet("issuer", who, true);
+        hub.setIssuer(who, true);
+        vm.expectEmit(address(hub));
+        emit KarwanHub.ListSet("issuer", who, false);
+        hub.setIssuer(who, false);
+    }
 }

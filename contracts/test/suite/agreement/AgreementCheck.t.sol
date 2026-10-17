@@ -240,4 +240,27 @@ contract AgreementCheckTest is AgreementFixture {
         vm.prank(seller);
         escrow.claim(id);
     }
+
+    /// A report is announced, and its revision is marked under the ABI encoding
+    /// of family, deal and revision, so anyone can check it was reported.
+    function test_a_report_is_announced_and_marked_under_its_abi_key() public {
+        bytes32 id = _fundAccepted(_checkedTerms(), bytes32("c"));
+        _deliver(id);
+        (address[] memory who, bytes[] memory sigs) = _signed(id, 1, true, 0, 2);
+        vm.expectEmit(true, true, true, true, address(verifier));
+        emit KarwanCheckVerifier.Reported(address(escrow), id, 1, true, keccak256("evidence"));
+        verifier.report(address(escrow), id, 1, true, keccak256("evidence"), who, sigs);
+        assertTrue(verifier.reported(keccak256(abi.encode(address(escrow), id, uint32(1)))));
+    }
+
+    function test_a_check_result_and_the_review_it_starts_are_announced() public {
+        bytes32 id = _fundAccepted(_checkedTerms(), bytes32("c"));
+        _deliver(id);
+        (address[] memory who, bytes[] memory sigs) = _signed(id, 1, true, 0, 2);
+        vm.expectEmit(address(escrow));
+        emit AgreementLib.CheckReported(id, 1, true, keccak256("evidence"));
+        vm.expectEmit(address(escrow));
+        emit AgreementLib.ReviewStarted(id, 0, uint64(vm.getBlockTimestamp() + 3 days));
+        verifier.report(address(escrow), id, 1, true, keccak256("evidence"), who, sigs);
+    }
 }

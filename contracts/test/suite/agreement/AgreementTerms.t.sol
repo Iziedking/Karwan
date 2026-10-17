@@ -209,4 +209,18 @@ contract AgreementTermsTest is AgreementFixture {
         KarwanAgreementEscrow edge = new KarwanAgreementEscrow(address(hub), AgreementBounds(1 hours, 30 days, limit));
         assertEq(edge.maxHorizon(), limit);
     }
+
+    /// The family's own minimum refuses a short review, with no extension
+    /// rule in the way, and the minimum itself is accepted.
+    function test_the_minimum_review_is_the_familys_own_bound() public {
+        assertEq(escrow.minReview(), 1 hours);
+        AgreementTerms memory t = _terms();
+        t.maxExtensions = 0;
+        t.extensionSecs = 0;
+        t.reviewWindow = 1 hours - 1;
+        _refused(t);
+        t.reviewWindow = 1 hours;
+        vm.prank(buyer);
+        escrow.fund(bytes32("at-the-minimum"), t);
+    }
 }

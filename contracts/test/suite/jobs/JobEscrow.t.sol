@@ -477,6 +477,7 @@ contract JobEscrowTest is JobFixture {
         jobs.longstopSplit(bytes32(id), FUNDED - 100e6, toPayees);
         assertEq(uint8(jobs.getJob(id).status), uint8(JobStatus.Expired));
         assertEq(jobs.disputeOf(id).openedAt, 0);
+        assertFalse(_core(id).disputed);
         vm.prank(evaluator);
         vm.expectRevert(JobLib.BadState.selector);
         jobs.complete(id, bytes32("late"), "");
@@ -498,5 +499,16 @@ contract JobEscrowTest is JobFixture {
         assertEq(uint8(jobs.getJob(silent).status), uint8(JobStatus.Completed));
         assertEq(uint8(jobs.getJob(rejected).status), uint8(JobStatus.Rejected));
         assertEq(uint8(jobs.getJob(bounty).status), uint8(JobStatus.Expired));
+    }
+
+    function test_the_job_count_and_a_contests_shares_can_be_read() public {
+        _job();
+        uint256 id = _contest();
+        assertEq(jobs.jobCount(), 2);
+        uint16[] memory shares = jobs.sharesOf(id);
+        assertEq(shares.length, 3);
+        assertEq(shares[0], 6_000);
+        assertEq(shares[1], 3_000);
+        assertEq(shares[2], 1_000);
     }
 }
