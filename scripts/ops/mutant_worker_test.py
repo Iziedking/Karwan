@@ -149,10 +149,73 @@ class SummaryTest(unittest.TestCase):
         self.assertNotEqual(r.returncode, 0)
         self.assertIn("the campaign is void", r.stdout)
 
+    def test_a_contract_tested_without_its_control_is_not_trusted(self):
+        r = self.summary([self.m], [dict(self.m, status="killed")])
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("no control for C", r.stdout)
+
     def test_a_timeout_or_error_leaves_the_campaign_unfinished(self):
         r = self.summary([self.control, self.m], [dict(self.control, status="survived"), dict(self.m, status="timeout")])
         self.assertNotEqual(r.returncode, 0)
         self.assertIn("1 to run again", r.stdout)
+
+
+class TriageTest(unittest.TestCase):
+    def triage(self, picked, results, listed):
+        d = tempfile.mkdtemp()
+        for name, rows in (("picked.jsonl", picked), ("results.jsonl", results)):
+            with open(os.path.join(d, name), "w") as f:
+                f.writelines(json.dumps(m) + "\n" for m in rows)
+        with open(os.path.join(d, "TRIAGE.md"), "w") as f:
+            f.write("# Triage\n\n| Mutant | Where |\n|---|---|\n")
+            f.writelines(f"| `{i}` | somewhere |\n" for i in listed)
+        return subprocess.run([sys.executable, WORKER, "--triage", "picked.jsonl", "results.jsonl", "TRIAGE.md"],
+                              cwd=d, capture_output=True, text=True)
+
+    def ident(self, m):
+        r = subprocess.run([sys.executable, "-c", f"import sys; sys.path.insert(0, {HERE!r}); "
+                            f"import mutant_worker, json; print(mutant_worker.mutant_id(json.loads(sys.argv[1])))",
+                            json.dumps(m)], capture_output=True, text=True)
+        return r.stdout.strip()
+
+    def setUp(self):
+        self.control = mutant(mutator="CONTROL", start=0, end=0, old="", new="", status="survived")
+        self.alive = mutant(status="survived")
+        self.dead = mutant(new="a < 1", status="killed")
+        self.later = mutant(new="a > 1")
+
+    def test_an_id_is_short_stable_and_names_the_mutant(self):
+        i = self.ident(self.alive)
+        self.assertRegex(i, r"^m-[0-9a-f]{10}$")
+        self.assertEqual(i, self.ident(dict(self.alive, status="killed", note="x")))
+        self.assertNotEqual(i, self.ident(self.dead))
+
+    def test_every_survivor_listed_passes(self):
+        picked = [self.control, self.alive, self.dead]
+        r = self.triage(picked, picked, [self.ident(self.alive)])
+        self.assertEqual(r.returncode, 0, r.stdout)
+
+    def test_a_survivor_not_listed_fails_and_is_named(self):
+        r = self.triage([self.control, self.alive], [self.control, self.alive], [])
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn(f"open {self.ident(self.alive)} src/C.sol:2 ROR", r.stdout)
+
+    def test_a_listed_mutant_that_was_killed_fails(self):
+        r = self.triage([self.control, self.dead], [self.control, self.dead], [self.ident(self.dead)])
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn(f"listed but killed {self.ident(self.dead)}", r.stdout)
+
+    def test_a_listed_mutant_the_campaign_never_picked_is_named_as_such(self):
+        r = self.triage([self.control], [self.control], [self.ident(self.alive)])
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn(f"listed but not in this campaign {self.ident(self.alive)}", r.stdout)
+
+    def test_a_mutant_not_yet_decided_fails_the_check(self):
+        picked = [self.control, self.alive, self.later]
+        for results in ([self.control, self.alive], [self.control, self.alive, dict(self.later, status="error")]):
+            r = self.triage(picked, results, [self.ident(self.alive)])
+            self.assertNotEqual(r.returncode, 0)
+            self.assertIn("1 not decided yet", r.stdout)
 
 
 if __name__ == "__main__":

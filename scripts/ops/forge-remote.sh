@@ -10,6 +10,7 @@
 #   scripts/ops/forge-remote.sh --coverage
 #   scripts/ops/forge-remote.sh --campaign contracts/test/suite/mutation-targets.txt [workers] [every]
 #   scripts/ops/forge-remote.sh --campaign-status
+#   scripts/ops/forge-remote.sh --campaign-triage
 #   scripts/ops/forge-remote.sh --campaign-stop
 #   scripts/ops/forge-remote.sh --clean [--force]
 set -euo pipefail
@@ -37,10 +38,18 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 STATE="$HOME/.karwan-forge-remote-$(printf '%s' "$ROOT" | cksum | cut -d' ' -f1)"
 SSH="ssh -o BatchMode=yes $H"
 
-usage() { sed -n '3,14p' "$0" >&2; exit 64; }
+usage() { sed -n '3,15p' "$0" >&2; exit 64; }
 case "${1:-}" in
   --echidna|--medusa|--halmos|--arc) [ -n "${2:-}" ] || usage ;;
-  --campaign) [ -f "${2:-}" ] || usage ;;
+  --campaign)
+    [ -f "${2:-}" ] || usage
+    # A retest names its mutants; check the file before an earlier campaign's
+    # results are cleared, and never skip any of them as already decided.
+    if [ -n "${MUTANTS:-}" ]; then
+      [ -f "$MUTANTS" ] || { echo "forge-remote: no such file: $MUTANTS" >&2; exit 64; }
+      [ "${RESUME:-}" != 1 ] || { echo "forge-remote: MUTANTS and RESUME=1 do not go together" >&2; exit 64; }
+    fi
+    ;;
 esac
 
 if [ "${1:-}" = "--clean" ]; then
@@ -71,6 +80,20 @@ if [ "${1:-}" = "--campaign-status" ]; then
     for st in killed survived no-compile timeout error stale; do echo \"\$st: \$(grep -c \"\\\"status\\\": \\\"\$st\\\"\" /tmp/izie-results.\$\$)\"; done
     rm -f /tmp/izie-results.\$\$" < /dev/null
   exit 0
+fi
+
+if [ "${1:-}" = "--campaign-triage" ]; then
+  # Every picked mutant must be decided, every survivor listed in
+  # MUTATION_TRIAGE.md, and every listed mutant must still survive. Like the
+  # status, it reads without the lock, with this checkout's worker, not the
+  # copy the campaign was launched with.
+  [ -f "$STATE" ] || { echo "forge-remote: no workspace" >&2; exit 1; }
+  W=$(cat "$STATE")
+  $SSH "cat > $W/m/MUTATION_TRIAGE.md" < "$ROOT/contracts/test/suite/MUTATION_TRIAGE.md"
+  $SSH "cat > $W/m/triage_worker.py" < "$ROOT/scripts/ops/mutant_worker.py"
+  $SSH "cd $W/m && cat done.jsonl results.[0-9]*.jsonl 2>/dev/null > triage-results.jsonl
+    docker run --rm -v $W/m:/m -w /m --entrypoint python3 $TOOLBOX_IMAGE triage_worker.py --triage picked.jsonl triage-results.jsonl MUTATION_TRIAGE.md" < /dev/null
+  exit $?
 fi
 
 if [ "${1:-}" = "--campaign-stop" ]; then
@@ -165,7 +188,9 @@ case "${1:-}" in
     # by forge in one of WORKERS parallel copies of the contracts. EVERY=k tests
     # every k-th mutant only, for timing. RESUME=1 keeps what a stopped
     # campaign already decided, killed, survived or not compiling, and skips
-    # it; timeouts, errors and stale mutants run again. Results: $W/m/results.jsonl.
+    # it; timeouts, errors and stale mutants run again. MUTANTS=file tests the
+    # mutants in that file, each contract's control among them, instead of
+    # listing them, to prove new tests kill known survivors. Results: $W/m/results.jsonl.
     TARGETS=$2; WORKERS=${3:-12}; EVERY=${4:-1}
     NAMES=$(sed 's/#.*//' "$TARGETS" | awk 'NF { printf "%s ", $1 }')
     pinned_forge
@@ -177,6 +202,7 @@ case "${1:-}" in
     $SSH "$DR -u 0:0 -v $W:/w --entrypoint rm $TOOLBOX_IMAGE -rf /w/m && mkdir $W/m && if [ -s $W/done.jsonl ]; then mv $W/done.jsonl $W/m/done.jsonl; else rm -f $W/done.jsonl; fi" < /dev/null
     for f in mutants.py mutant_worker.py; do $SSH "cat > $W/m/$f" < "$ROOT/scripts/ops/$f"; done
     $SSH "cat > $W/m/targets.txt" < "$TARGETS"
+    if [ -n "${MUTANTS:-}" ]; then $SSH "cat > $W/m/given.jsonl" < "$MUTANTS"; fi
     $SSH "cat > $W/m/work.sh" <<'EOF'
 export PATH=/tools:$PATH
 exec python3 /m/mutant_worker.py "$@"
@@ -188,8 +214,12 @@ set -e
 trap 'rm -rf $W/.busy' EXIT
 cd $W/m
 echo \$\$ > launcher.pid
-$DR --cpus=12 --memory=24g -e FOUNDRY_PROFILE=mutate -v $W/c:/c -v $W/tools:/tools -v $W/m:/m -w /c $TOOLBOX_IMAGE \
-  sh -c 'export PATH=/tools:\$PATH; /root/.crytic/bin/python /m/mutants.py $NAMES > /m/all.jsonl 2> /m/generator.err' || { tail -20 generator.err; exit 1; }
+if [ -f given.jsonl ]; then
+  mv given.jsonl all.jsonl
+else
+  $DR --cpus=12 --memory=24g -e FOUNDRY_PROFILE=mutate -v $W/c:/c -v $W/tools:/tools -v $W/m:/m -w /c $TOOLBOX_IMAGE \
+    sh -c 'export PATH=/tools:\$PATH; /root/.crytic/bin/python /m/mutants.py $NAMES > /m/all.jsonl 2> /m/generator.err' || { tail -20 generator.err; exit 1; }
+fi
 awk -v k=$EVERY 'k == 1 || NR % k == 0 || /"CONTROL"/' all.jsonl > picked.jsonl
 echo "mutants: \$(wc -l < all.jsonl), testing: \$(wc -l < picked.jsonl), workers: $WORKERS"
 split -n r/$WORKERS -d -a 2 picked.jsonl shard.

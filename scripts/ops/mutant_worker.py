@@ -11,8 +11,11 @@
 # the Arc fork tests are not forge test runs, so they are not part of it either.
 #   python mutant_worker.py mutants.jsonl targets.txt results.jsonl [done.jsonl]
 #   python mutant_worker.py --summary picked.jsonl results.jsonl
+#   python mutant_worker.py --triage picked.jsonl results.jsonl MUTATION_TRIAGE.md
 import collections
+import hashlib
 import json
+import re
 import subprocess
 import sys
 import time
@@ -52,6 +55,11 @@ def last(log):
 
 def key(m):
     return (m["contract"], m["mutator"], m["file"], m["start"], m["end"], m["new"])
+
+
+def mutant_id(m):
+    # Short and stable, so MUTATION_TRIAGE.md can name a mutant in a table.
+    return "m-" + hashlib.sha256(json.dumps(key(m)).encode("utf8")).hexdigest()[:10]
 
 
 def rows(path):
@@ -136,6 +144,10 @@ def summary(picked, results):
     if any(m["mutator"] == "CONTROL" and m["status"] != "survived" for m in got):
         print("a control mutant did not survive: the campaign is void")
         ok = False
+    controlled = {m["contract"] for m in got if m["mutator"] == "CONTROL"}
+    for c in sorted({m["contract"] for m in got} - controlled):
+        print(f"no control for {c}: its kills cannot be trusted")
+        ok = False
     again = sum(totals[st] for st in ("timeout", "error", "stale"))
     if again:
         print(f"{again} to run again with RESUME=1")
@@ -143,7 +155,41 @@ def summary(picked, results):
     return 0 if ok else 1
 
 
+def triage(picked, results, listing):
+    # Every picked mutant is decided, every survivor is listed in the triage
+    # under the rule that shows it cannot change behaviour, and every listed
+    # mutant still survives.
+    listed = set(re.findall(r"`(m-[0-9a-f]{10})`", open(listing, encoding="utf8").read()))
+    want = {mutant_id(m) for m in rows(picked) if m["mutator"] != "CONTROL"}
+    decided = {}
+    for m in rows(results):
+        if m["mutator"] != "CONTROL" and m["status"] in ("killed", "survived", "no-compile"):
+            decided[mutant_id(m)] = m
+    alive = {i: m for i, m in decided.items() if m["status"] == "survived"}
+    ok = True
+    for i, m in sorted(alive.items()):
+        if i not in listed:
+            print(f"open {i} {m['file']}:{m['line']} {m['mutator']} {m['old']!r} -> {m['new']!r}")
+            ok = False
+    for i in sorted(listed - set(alive)):
+        if i in decided:
+            print(f"listed but {decided[i]['status']} {i}")
+        elif i in want:
+            print(f"listed but not decided yet {i}")
+        else:
+            print(f"listed but not in this campaign {i}")
+        ok = False
+    undecided = len(want - set(decided))
+    if undecided:
+        print(f"{undecided} not decided yet")
+        ok = False
+    print(f"{len(alive)} survivors, {len(listed & set(alive))} listed")
+    return 0 if ok else 1
+
+
 if __name__ == "__main__":
     if sys.argv[1] == "--summary":
         sys.exit(summary(*sys.argv[2:4]))
+    if sys.argv[1] == "--triage":
+        sys.exit(triage(*sys.argv[2:5]))
     main(*sys.argv[1:5])
