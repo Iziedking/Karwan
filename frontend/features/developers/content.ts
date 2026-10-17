@@ -25,7 +25,7 @@ export const RECORD_READ_PRICE_USDC = '0.01';
 
 export const RECORD_READ_EXAMPLE = {
   version: 'karwan-record-v1',
-  issuer: '0x631e789f2d48068a8f17d74a28e2285ca5f7f6c6',
+  issuer: '0x57998927fb54f852af3e3f0593fb2b94ceb6ca73',
   subject: { tag: 'ada', address: '0x00000000000000000000000000000000000000aa' },
   level: 'work_verified',
   score: 82,
