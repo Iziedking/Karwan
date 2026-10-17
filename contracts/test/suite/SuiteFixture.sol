@@ -32,13 +32,18 @@ abstract contract SuiteFixture is Test {
     address internal arbiter = makeAddr("arbiter");
     address internal issuer = makeAddr("issuer");
 
+    /// The suite's USDC; the reentrancy tests swap in a token that calls back.
+    function _newToken() internal virtual returns (BlocklistToken) {
+        return new BlocklistToken(6);
+    }
+
     function _deploySuite() internal virtual {
         hub = new KarwanHub(address(this));
         identity = new KarwanIdentityRegistry(address(hub));
         record = new KarwanRecord(address(hub));
         vault = new KarwanStakeVault(address(hub));
         hub.wire(address(identity), address(record), address(vault));
-        usdc = new BlocklistToken(6);
+        usdc = _newToken();
         hub.setFeeRecipient(feeSafe);
         hub.setGuardian(guardian);
         hub.setReviewers(reviewSafe, seniorSafe);
