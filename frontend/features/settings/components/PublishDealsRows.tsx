@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { api, type UserSettings } from '@/core/api';
 import { ConfirmSheet } from '@/features/deals/workspace/ConfirmSheet';
 import { Row, ToggleRow } from '@/features/profile/ui/ProfileUi';
@@ -19,6 +20,7 @@ export function removedLine(n: number, copy: AttestationSettingsCopy): string {
 export function PublishDealsRows({ settings, save }: { settings: UserSettings; save: (patch: Partial<UserSettings>) => void }) {
   const { locale } = useLocale();
   const copy = attestationSettingsCopy[locale];
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +32,7 @@ export function PublishDealsRows({ settings, save }: { settings: UserSettings; s
     try {
       const { revoked } = await api.removeMyAttestations();
       setResult(removedLine(revoked, copy));
+      void queryClient.invalidateQueries({ queryKey: ['attested-deals'] });
       setOpen(false);
       save({ publishDeals: false });
     } catch {

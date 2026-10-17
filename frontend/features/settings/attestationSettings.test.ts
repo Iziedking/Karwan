@@ -34,3 +34,8 @@ test('the removal result reads correctly for none, one and many', async () => {
   assert.equal(removedLine(1, c), 'Removed 1 statement.');
   assert.equal(removedLine(3, c), 'Removed 3 statements.');
 });
+
+test('after a removal the passport list is refreshed at once, not after its cache runs out', () => {
+  const rows = read('./components/PublishDealsRows.tsx');
+  assert.match(rows, /queryClient\.invalidateQueries\(\{ queryKey: \['attested-deals'\] \}\)/);
+});
