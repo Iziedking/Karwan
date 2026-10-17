@@ -6,6 +6,7 @@ export const SITE_TITLE = 'Karwan · one reputation, starting with an open marke
 const SERVER_TITLED = [/^\/r\/[^/]+$/, /^\/credit-passport\/[^/]+$/, /^\/feedback$/, /^\/financier$/];
 
 const EXACT: Record<string, RouteTitleKey> = {
+  '/connect/telegram': 'connectTelegram',
   '/account': 'account',
   '/activity': 'activity',
   '/activity/all-time': 'activityAllTime',

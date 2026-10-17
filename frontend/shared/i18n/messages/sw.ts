@@ -22,6 +22,7 @@ import { escrowV3Copy } from './escrowV3';
 import { analyticsCopy } from './analytics';
 import { signupCopy } from './signup';
 import { payLinkCopy } from './payLink';
+import { connectTelegramCopy } from './connectTelegram';
 import { requestPageCopy } from './requestPage';
 import { passportCopy } from './passport';
 import { personCheckCopy } from './personCheck';
@@ -56,6 +57,7 @@ export const sw: Messages = {
   analytics: analyticsCopy.sw,
   signup: signupCopy.sw,
   payLink: payLinkCopy.sw,
+  connectTelegram: connectTelegramCopy.sw,
   requestPage: requestPageCopy.sw,
   passport: passportCopy.sw,
   personCheck: personCheckCopy.sw,

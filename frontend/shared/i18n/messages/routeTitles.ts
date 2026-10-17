@@ -1,6 +1,7 @@
 /// The browser tab title of each page, shown as "<title> · Karwan".
 export type RouteTitleKey =
   | 'account'
+  | 'connectTelegram'
   | 'activity'
   | 'activityAllTime'
   | 'app'
@@ -66,6 +67,7 @@ export type RouteTitleCopy = Record<RouteTitleKey, string>;
 
 const en: RouteTitleCopy = {
   account: 'Wallet',
+  connectTelegram: 'Link Telegram',
   activity: 'Activity',
   activityAllTime: 'All-time activity',
   app: 'Home',
@@ -130,6 +132,7 @@ const en: RouteTitleCopy = {
 
 const ar: RouteTitleCopy = {
   account: 'المحفظة',
+  connectTelegram: 'ربط تيليجرام',
   activity: 'النشاط',
   activityAllTime: 'النشاط منذ البداية',
   app: 'الرئيسية',
@@ -194,6 +197,7 @@ const ar: RouteTitleCopy = {
 
 const fr: RouteTitleCopy = {
   account: 'Portefeuille',
+  connectTelegram: 'Lier Telegram',
   activity: 'Activité',
   activityAllTime: 'Activité depuis le début',
   app: 'Accueil',
@@ -258,6 +262,7 @@ const fr: RouteTitleCopy = {
 
 const hi: RouteTitleCopy = {
   account: 'वॉलेट',
+  connectTelegram: 'Telegram जोड़ें',
   activity: 'गतिविधि',
   activityAllTime: 'शुरू से गतिविधि',
   app: 'होम',
@@ -322,6 +327,7 @@ const hi: RouteTitleCopy = {
 
 const sw: RouteTitleCopy = {
   account: 'Pochi',
+  connectTelegram: 'Unganisha Telegram',
   activity: 'Shughuli',
   activityAllTime: 'Shughuli tangu mwanzo',
   app: 'Nyumbani',

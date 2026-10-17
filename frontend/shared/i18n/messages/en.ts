@@ -25,6 +25,7 @@ import { escrowV3Copy, type EscrowV3Copy } from './escrowV3';
 import { analyticsCopy, type AnalyticsCopy } from './analytics';
 import { signupCopy, type SignupCopy } from './signup';
 import { payLinkCopy, type PayLinkCopy } from './payLink';
+import { connectTelegramCopy, type ConnectTelegramCopy } from './connectTelegram';
 import { requestPageCopy, type RequestPageCopy } from './requestPage';
 import { passportCopy, type PassportCopy } from './passport';
 import { personCheckCopy, type PersonCheckCopy } from './personCheck';
@@ -58,6 +59,7 @@ interface MessagesShape {
   analytics: AnalyticsCopy;
   signup: SignupCopy;
   payLink: PayLinkCopy;
+  connectTelegram: ConnectTelegramCopy;
   requestPage: RequestPageCopy;
   passport: PassportCopy;
   personCheck: PersonCheckCopy;
@@ -5395,6 +5397,7 @@ export const en: MessagesShape = {
   analytics: analyticsCopy.en,
   signup: signupCopy.en,
   payLink: payLinkCopy.en,
+  connectTelegram: connectTelegramCopy.en,
   requestPage: requestPageCopy.en,
   passport: passportCopy.en,
   personCheck: personCheckCopy.en,
