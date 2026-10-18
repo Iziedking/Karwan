@@ -155,7 +155,8 @@ async function sections(page: Page, locale: Locale, personal: number, hiring: nu
   }
 }
 
-async function layoutIsSound(page: Page, testInfo: TestInfo, primaryCount = 0) {
+// The market has one primary action on every screen: Start a trade, in Karwan green.
+async function layoutIsSound(page: Page, testInfo: TestInfo, primaryCount = 1) {
   const root = page.getByTestId('market');
   await expect(root).toBeVisible();
   await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
@@ -572,9 +573,9 @@ if (!mainnet) {
       expect(loading.placeholders.filter(placeholder => placeholder.height === 44)).toHaveLength(3);
       for (const placeholder of loading.placeholders) expect(placeholder.background).not.toBe('rgba(0, 0, 0, 0)');
       // The shared page-load bar belongs to the site chrome on every route;
-      // the market's own loading state must add no lime of its own.
-      expect(loading.marketLimeFills).toEqual([]);
-      expect(loading.primary).toEqual([]);
+      // while loading, the market's only lime is its one primary, Start a trade.
+      expect(loading.marketLimeFills).toHaveLength(1);
+      expect(loading.primary).toHaveLength(1);
       await page.screenshot({ path: testInfo.outputPath('loading.png'), fullPage: true });
     } finally {
       release();

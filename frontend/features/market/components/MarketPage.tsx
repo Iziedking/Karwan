@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { DiscoveryScope } from '@/features/discovery/model';
-import { quietButton } from '@/features/deals/workspace/Sheet';
 import { TRADE_ENTRY_COPY } from '@/features/home/tradeEntry';
 import { ListingsBrowse } from '@/features/listings/components/ListingsBrowse';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -43,7 +42,11 @@ export function MarketPage({ view, scope, list }: { view: MarketView; scope: Dis
       <ListingsBrowse
         initialScope={scope}
         action={
-          <button type="button" onClick={() => setStartOpen(true)} className={`${quietButton} sm:w-auto`}>
+          <button
+            type="button"
+            onClick={() => setStartOpen(true)}
+            className="inline-flex min-h-11 shrink-0 items-center rounded-full bg-[var(--action)] px-5 text-[15px] font-semibold text-[var(--on-action)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-offset-2"
+          >
             {TRADE_ENTRY_COPY[locale].title}
           </button>
         }

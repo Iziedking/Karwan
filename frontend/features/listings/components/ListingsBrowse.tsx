@@ -164,7 +164,7 @@ export function ListingsBrowse({
       ) : null}
 
       <Band tone="light" compact>
-        <div className="flex flex-wrap items-end justify-between gap-4 pt-2 sm:pt-3">
+        <div className="flex flex-wrap items-center justify-between gap-4 pt-2 sm:pt-3">
           <h1 className="text-[36px] font-medium leading-[1.1] tracking-[-0.015em] text-[var(--ink)] sm:text-[40px]">
             {copy.heroTitle}
           </h1>
@@ -255,7 +255,7 @@ export function ListingsBrowse({
               {copy.emptyAllBody}
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <Link href="/buyer" className="inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--action)] px-5 text-[14px] font-medium text-[var(--on-action)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)]">
+              <Link href="/buyer" className={quietAction}>
                 {copy.emptyPostRequest}
               </Link>
               <Link href="/seller#post-listing" className={quietAction}>
