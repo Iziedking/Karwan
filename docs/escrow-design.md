@@ -4,6 +4,9 @@ Status: design for review, 2026-09-23. Not deployed. This is the mainnet escrow 
 current `KarwanEscrow` at Stage B of the mainnet rollout. Nothing in it is live until it passes
 internal audit rounds 1 and 2 and the go/no-go review.
 
+Superseded 18 Oct 2026 by the endgame contract suite. Architecture view 11
+(`docs/architecture/11-contracts.md`) is the current design; where the two differ, view 11 holds.
+
 ## 1. Overview
 
 Two people agree terms. The terms are the deal: price, milestones, delivery date, how long the
@@ -23,8 +26,10 @@ configuration change), each with limits written into the contract.
 3. **Every deal can end without Karwan.** From any live state there is a path to a final state
    that uses only the two parties and time. Admin action can make it faster or fairer, never
    necessary.
-4. **Admin can pause or rule, never take.** No role can send deal money anywhere except to the
-   deal's own parties (or a financier the seller assigned, or the fee treasury).
+4. **Admin can pause or rule, never take.** Money leaves a deal only to its recorded parties, the
+   fee recipient fixed when the deal opens, an assignee the payee signed for, or the asset's one
+   yield pool. The owner sets that pool once, it must answer to the same hub, each deal's share
+   in it is fixed at opening, and what it holds pays back into the deal.
 5. **Exits never pause.** An emergency pause stops new deals. It never blocks a release, claim,
    refund or reclaim.
 6. **Money is exact and conserved.** USDC in equals USDC out, per deal and in total, at every
@@ -222,15 +227,17 @@ own both Safes.
   cannot receive (Arc reverts USDC transfers to blocklisted addresses), the amount is credited
   to `owed[recipient]` and the rest of the settlement completes. The recipient can later call
   `withdrawOwed(to)` to send it to their identity wallet.
-- **Caps for the guarded beta.** `dealCap` and `totalCap` are checked at funding. Proposed first
-  values: 1,000 USDC per deal and 25,000 USDC in total. Raised by the owner Safe through the
-  timelock after each clean period.
+- **Caps for the guarded beta.** The caps are checked when a deal opens. The suite launches with
+  1,000 USDC per deal and 10,000 USDC in total, per family and per currency (view 11). They rise
+  only through the timelock, and only after an independent audit and a public audit contest.
 - **Fees** are snapshotted per deal at funding, capped at 10% by an immutable constant, and split
   between buyer and seller as today.
-- **Financing** keeps the current assignment design: a financier assigned by an authorised
-  finance contract is paid first from the seller's side, once, irrevocably.
-- **No yield routing.** `sweepIdle`, the backstop and `atTreasury` are removed. This also frees
-  the bytecode room the terms need.
+- **Financing.** A financier is paid first from the seller's side only on the seller's typed
+  signature, which names the deal, the financier, the amount and an expiry. Trade finance
+  submits that signature in the same transaction as the advance (view 11).
+- **Yield.** `sweepIdle`, the backstop and `atTreasury` are removed. A share of a deal's money,
+  fixed when the deal opens, may sit in the asset's one yield pool. A payout draws it back from
+  the pool; if the pool cannot pay yet, the payee is owed it until it can (view 11).
 
 ## 10. What changes from the current escrow
 
@@ -399,8 +406,8 @@ shortens the buyer's rights: a pass starts the normal review, it does not skip i
 
 ## 14. Parameters requiring release review
 
-1. `highValue` threshold (proposed 5,000 USDC) and the guarded-beta caps (proposed 1,000 per deal,
-   25,000 total).
+1. `highValue` threshold (proposed 5,000 USDC) and the guarded-beta caps (1,000 USDC per deal,
+   10,000 total, per family and per currency, as view 11 sets them).
 2. Preset default clocks in section 5.
 3. The admin reviewer set and its separation from the owner Safe signers.
 4. Whether pre-accept deals get a seller-acceptance deadline on-chain (proposed yes: buyer can
