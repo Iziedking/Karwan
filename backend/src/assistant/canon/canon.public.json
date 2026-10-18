@@ -6,7 +6,7 @@
       "id": "agent-record-checks",
       "title": "Agents check each other before a deal",
       "status": "live",
-      "updated": "2026-10-16",
+      "updated": "2026-10-18",
       "tags": [
         "agents",
         "reputation",
@@ -20,7 +20,7 @@
           "date": "2026-10-16"
         }
       ],
-      "body": "On Arc Testnet, a Karwan agent pays 0.01 USD over x402 to read the other\nside's deal record before it commits. Payment settles through Circle Gateway.\nThe first live read ran on 16 October 2026.\n\nA buyer's agent reads each seller's record before building the shortlist, and\na seller's agent reads the buyer's record before it bids. The seller's agent\npasses on a buyer who has lost more disputes than they have completed, and\nflags a new buyer on a large request for the seller to look at. The seller desk\nshows what was paid and what the agent learned.\n\nA record is read only when its owner has turned on Let agents check my record.\nThe details of a read are deleted after 24 hours, and the owner sees who read\ntheir record. Others see a score, a tier and counts, never deal amounts or who\nsomeone traded with.\n\nMainnet escrow is not enabled, so these checks run on testnet only."
+      "body": "On Arc Testnet, a Karwan agent pays 0.01 USD over x402 to read the other\nside's deal record before it commits. Payment settles through Circle Gateway.\nThe first live read ran on 16 October 2026.\n\nA buyer's agent reads each seller's record before building the shortlist, and\na seller's agent reads the buyer's record before it bids. The seller's agent\npasses on a buyer who has lost more disputes than they have completed, and\nflags a new buyer on a large request for the seller to look at. The seller desk\nshows what was paid and what the agent learned.\n\nA record is read only when its owner has turned on Let agents check my record.\nThe details of a read are deleted after 24 hours, and the owner sees who read\ntheir record. People looking at a record see the rating and how many ratings it comes\nfrom, the tier, the verification level and the reasons. Only an agent acting\nfor someone on a live request or deal reads the score and counts, for that\none deal. Nobody sees deal amounts or who someone traded with.\n\nMainnet escrow is not enabled, so these checks run on testnet only."
     },
     {
       "id": "brand-colour",
@@ -469,6 +469,24 @@
         }
       ],
       "body": "After a deal settles on Karwan, each person's agent asks them to rate the\nother from 1 to 5, with an optional note, and reminds them once after three\ndays. Neither sees the other's rating until both rate or 14 days pass.\n\nEach person's public rating is the average of the ratings shown, with how\nmany there are, for example \"4.8 from 23 deals\". Under three ratings it shows\n\"New\". Only the two people in a settled deal can rate it, once each, within 14 days\nof it settling. Ratings from disputed deals are counted beside the number,\nfor example \"3.7 from 3 deals, 2 disputed\". A note with a phone number, an email\nor a link is kept private.\n\nThe rating is separate from the reputation score and does not change it.\nAgents use it when ranking people, after skill fit, location and\nverification.\n\nThis is built for testnet and not live."
+    },
+    {
+      "id": "how-karwan-is-built",
+      "title": "How Karwan is built",
+      "status": "live",
+      "updated": "2026-10-18",
+      "tags": [
+        "direction",
+        "roadmap"
+      ],
+      "path": "public/product/how-karwan-is-built.md",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/00-direction.md",
+          "date": "2026-10-18"
+        }
+      ],
+      "body": "Karwan is building one reputation for the internet, starting with its open\nmarket. In the open market, freelancers, people trading goods and services, and\nsmall businesses make agreements locally and across borders. Every agreement is\nprotected by escrow and leaves a record that travels with the person, and trade\nfinance (purchase-order financing and invoice factoring) sits on the same\nescrow. It starts in Nigeria, then the regions behind Karwan's five languages:\nAfrica, the Middle East and South Asia. It is meant to feel like a normal\nbanking app.\n\nThe work is organised in six tracks, built one roadmap item at a time: finding\nand agreeing a deal, protected deals, reputation that travels, trade finance,\nmoney that works like a bank account, and the channels where people talk to\ntheir agent. Each track is described in Karwan's public architecture views,\nwith what is live, built and planned.\n\nSome things wait until the core market works end to end: partner and developer\npages wait for unified reputation, and the newsletter waits for a full working\nproduct. Do not describe parked work as available."
     }
   ],
   "facts": [

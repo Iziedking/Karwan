@@ -4,12 +4,13 @@ Every idea gets an architecture view here before it is built. The view names eve
 
 ## What Karwan is for
 
-Karwan unifies online reputation with an agentic economic model. People join a new marketplace, job board or region and have to prove themselves from zero every time; Karwan is building one reputation that travels with them, so hidden talent becomes visible and opportunity follows. It starts with Karwan's own market: a seller gets found or shares a link, a buyer anywhere pays with what they already use, the money is held until the work arrives, the seller is paid out, and every completed deal becomes a record that earns them more reach and cheaper money over time. View 08 is the direction the other views serve.
+Karwan unifies online reputation with an agentic economic model. People join a new marketplace, job board or region and have to prove themselves from zero every time; Karwan is building one reputation that travels with them, so hidden talent becomes visible and opportunity follows. It starts with Karwan's own market: a seller gets found or shares a link, a buyer anywhere pays with what they already use, the money is held until the work arrives, the seller is paid out, and every completed deal becomes a record that earns them more reach and cheaper money over time. [View 00](00-direction.md) states the direction and the six tracks every other view serves.
 
 ## Views
 
 | # | View | What it answers | Status |
 |---|---|---|---|
+| 00 | [Direction](00-direction.md) | The one direction, the six tracks, and how work is chosen | Agreed |
 | 01 | [Workspace](01-workspace.md) | How the pieces fit: people, the workspace, the rails underneath | Direction agreed |
 | 02 | [Deal link](02-deal-link.md) | A seller creates a link, a buyer pays from anywhere, the money is held, the seller is paid | Partly live |
 | 03 | [Direct offers](03-direct-offers.md) | A seller finds a request and offers on it; the buyer compares and accepts | Built, not yet deployed |
@@ -25,7 +26,7 @@ Karwan unifies online reputation with an agentic economic model. People join a n
 | 13 | [Portable reputation](13-portable-reputation.md) | How agents bring a buyer a shortlist of verified and unverified people, pay to check each record, and how other platforms join as paid record sources | Built, not deployed |
 | 14 | [Threat model](14-threat-model.md) | What the contracts protect, who can act on them and within what limits, and how each class of attack is checked | Written |
 | 15 | [Outside agents](15-outside-agents.md) | How an agent outside Karwan finds trusted people, opens and funds a protected deal for its person, and why only the person can release | Designed |
-| 16 | [Location, messages and ratings](16-feedback-and-location.md) | How agents match people near and far without showing where they live, how two people talk by tag before a deal, and how ratings stay apart from the reputation score | Designed |
+| 16 | [Location, messages and ratings](16-feedback-and-location.md) | How agents match people near and far without showing where they live, how two people talk by tag before a deal, and how ratings stay apart from the reputation score | Built, not deployed |
 
 ## How to read a view
 
@@ -39,7 +40,7 @@ Karwan unifies online reputation with an agentic economic model. People join a n
 
 ## How we plan
 
-1. **Idea** in plain words: who has the problem and what changes for them.
+1. **Idea** in plain words: who has the problem, what changes for them, and which track and roadmap item it serves (view 00).
 2. **Architecture view** in this folder: actors, systems, providers, the order of events, and what fails where.
 3. **Spec**: decisions, screens, copy, what is out of scope.
 4. **Plan**: small tested tasks.
