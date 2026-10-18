@@ -1,4 +1,5 @@
 import { erc20Abi, formatUnits, parseEventLogs } from 'viem';
+import { repaymentProof, type EscrowPayout } from './repaymentProof.js';
 import { ARC, publicClient } from '../chain/client.js';
 import { assertValidTransactionHash } from '../chain/txs.js';
 import { config } from '../config.js';
@@ -252,18 +253,22 @@ export async function recordEscrowAssignedFinancingMovement(input: {
     .flatMap((movement) => movement.legs
       .filter((leg) => leg.attempt === movement.attempt && !!leg.txHash)
       .map((leg) => leg.txHash!));
+  // Every escrow-to-financier payment in the deal's transactions, in chain
+  // order. A deal released in several milestones repays its financier in parts.
+  const payouts: (EscrowPayout & { block: bigint; index: number })[] = [];
   for (const txHash of [...new Set(candidates)]) {
     const receipt = await publicClient.getTransactionReceipt({ hash: txHash as `0x${string}` });
     if (receipt.status !== 'success') continue;
-    const exactPayout = parseEventLogs({ abi: erc20Abi, eventName: 'Transfer', logs: receipt.logs, strict: false })
-      .find((entry) => {
-        if (entry.address.toLowerCase() !== usdcAddress.toLowerCase()) return false;
-        const args = entry.args as { from?: string; to?: string; value?: bigint };
-        return args.from?.toLowerCase() === escrowAddress.toLowerCase() &&
-          args.to?.toLowerCase() === input.financierAddress.toLowerCase() &&
-          args.value === input.amountMicros;
-      });
-    if (!exactPayout) continue;
+    for (const entry of parseEventLogs({ abi: erc20Abi, eventName: 'Transfer', logs: receipt.logs, strict: false })) {
+      if (entry.address.toLowerCase() !== usdcAddress.toLowerCase()) continue;
+      const args = entry.args as { from?: string; to?: string; value?: bigint };
+      if (args.from?.toLowerCase() !== escrowAddress.toLowerCase() || args.to?.toLowerCase() !== input.financierAddress.toLowerCase() || args.value === undefined) continue;
+      payouts.push({ txHash, value: args.value, block: receipt.blockNumber, index: entry.logIndex ?? 0 });
+    }
+  }
+  payouts.sort((a, b) => (a.block === b.block ? a.index - b.index : a.block < b.block ? -1 : 1));
+  const proof = repaymentProof(payouts, input.amountMicros);
+  if (proof) {
     const movement = await recordVerifiedFinancingMovement({
       operationKey: input.operationKey,
       kind: 'financing_repayment',
@@ -272,11 +277,11 @@ export async function recordEscrowAssignedFinancingMovement(input: {
       initiatedBy: input.initiatedBy,
       sourceAddress: escrowAddress,
       destinationAddress: input.financierAddress,
-      txHash,
+      txHash: proof.txHash,
       contractAddress: escrowAddress,
-      summary: input.summary,
+      summary: proof.parts > 1 ? `${input.summary}, paid across ${proof.parts} releases` : input.summary,
     });
-    return { movement, txHash };
+    return { movement, txHash: proof.txHash };
   }
-  throw new Error('escrow reports repayment but no exact escrow-to-financier payout proof is recorded');
+  throw new Error('escrow reports repayment but its escrow-to-financier payouts are not recorded');
 }
