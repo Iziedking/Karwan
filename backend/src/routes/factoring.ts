@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { readSession } from '../auth/session.js';
 import { getProfile, listProfiles } from '../db/profiles.js';
 import { isApprovedFinancier, financierSafeDeal } from '../profile/financier.js';
+import { isDealParty } from '../profile/dealParty.js';
 import {
   createFactoringOffer,
   getFactoringOffer,
@@ -224,7 +225,8 @@ factoringRoutes.post('/request', async (c) => {
   // This is a marketplace request, so every approved financier should hear
   // about it. Emit one private event per financier: the personal activity feed
   // routes on payload.financier without publishing the invoice globally.
-  const financiers = (await listProfiles()).filter(isApprovedFinancier);
+  // The deal's own buyer or seller may also be a financier; they never hear of it.
+  const financiers = (await listProfiles()).filter((p) => isApprovedFinancier(p) && !isDealParty(deal, p.address));
   for (const financier of financiers) {
     bus.emitEvent({
       type: 'factoring.requested',
@@ -338,7 +340,9 @@ factoringRoutes.get('/available', async (c) => {
       // had asked.
       isFactorable(d) &&
       !d.factoringOfferId &&
-      !financedInvoiceIds.has(d.jobId.toLowerCase()),
+      !financedInvoiceIds.has(d.jobId.toLowerCase()) &&
+      // A financier never sees or funds a deal they are a party to.
+      !isDealParty(d, session.address),
   );
   const pendingReceiptInvoiceIds = new Set(
     (await listPendingReceiptOffers()).map((offer) => offer.invoiceId.toLowerCase()),
@@ -433,6 +437,9 @@ factoringRoutes.post('/offer', async (c) => {
 
   const deal = await getDeal(body.invoiceId);
   if (!deal) return c.json({ error: 'unknown invoice' }, 404);
+  if (isDealParty(deal, session.address)) {
+    return c.json({ error: 'you cannot finance a deal you are part of', code: 'financier_is_party' }, 403);
+  }
   // Financing is not wired to the v3 escrow yet: its payouts can only be
   // assigned by assigners that escrow authorises, and the financing contracts
   // point at the v2 escrow. Refuse rather than take an advance that could not
