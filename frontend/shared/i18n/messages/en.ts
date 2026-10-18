@@ -1129,6 +1129,8 @@ interface MessagesShape {
     roleSeller: string;
     roleBuyer: string;
     balanceLabel: string;
+    balanceUnavailable: string;
+    balanceRetry: string;
     updating: string;
     current: string;
     available: string;
@@ -2062,6 +2064,20 @@ interface MessagesShape {
     placeholder: string;
     closedTitle: string;
     closedBody: string;
+    you: string;
+    seller: string;
+    financier: string;
+    reply: string;
+    replyingTo: string;
+    send: string;
+    sending: string;
+    attachImage: string;
+    removeImage: string;
+    imageOnly: string;
+    errImageType: string;
+    errImageSize: string;
+    errImageRead: string;
+    errSend: string;
   };
   financingWorkspace: {
     title: string;
@@ -2072,6 +2088,38 @@ interface MessagesShape {
     participants: string;
     dealProgress: string;
     currentStage: string;
+    back: string;
+    factoringTitle: string;
+    poTitle: string;
+    privateNote: string;
+    seller: string;
+    financier: string;
+    statusPending: string;
+    statusActive: string;
+    statusRepaid: string;
+    statusDeclined: string;
+    statusExpired: string;
+    statusReview: string;
+    detailPending: string;
+    detailActive: string;
+    detailRepaid: string;
+    detailDeclined: string;
+    detailExpired: string;
+    detailReview: string;
+    stepFactoring1: string;
+    stepFactoring2: string;
+    stepFactoring3: string;
+    stepFactoring4: string;
+    stepPo1: string;
+    stepPo2: string;
+    stepPo3: string;
+    stepPo4: string;
+    progressUnavailable: string;
+    progressSettled: string;
+    progressReview: string;
+    progressDelivered: string;
+    progressWorking: string;
+    progressAccepted: string;
   };
   a11y: {
     closeHistory: string;
@@ -6546,6 +6594,8 @@ export const en: MessagesShape = {
     roleSeller: 'Seller account',
     roleBuyer: 'Buyer account',
     balanceLabel: 'USDC balance',
+    balanceUnavailable: 'Your balance could not be loaded.',
+    balanceRetry: 'Try again',
     updating: 'Updating',
     current: 'Current',
     available: 'USDC available',
@@ -7593,9 +7643,9 @@ export const en: MessagesShape = {
   financeSoon: {
     title: "Finance",
     when: "Opens after the business pilot. Nothing here moves money yet.",
-    factoringTitle: "Invoice factoring",
+    factoringTitle: 'Invoice factoring',
     factoringBody: "Get paid early on an accepted invoice. A financier advances the money and is repaid when the deal settles.",
-    poTitle: "Purchase-order financing",
+    poTitle: 'Purchase-order financing',
     poBody: "Working capital against a purchase order, released to the supplier once delivery is confirmed.",
     roadmap: "See the roadmap",
   },
@@ -7660,6 +7710,20 @@ export const en: MessagesShape = {
     placeholder: 'Write a private message\u2026',
     closedTitle: 'Conversation closed.',
     closedBody: 'The full record remains available to the seller and financier.',
+    you: 'You',
+    seller: 'Seller',
+    financier: 'Financier',
+    reply: 'Reply',
+    replyingTo: 'Replying to {who}',
+    send: 'Send',
+    sending: 'Sending',
+    attachImage: 'Attach an image',
+    removeImage: 'Remove image',
+    imageOnly: 'Add a message, or send the image alone',
+    errImageType: 'Use a PNG, JPEG or WebP image.',
+    errImageSize: 'Use an image under 750 KB.',
+    errImageRead: 'That image could not be read.',
+    errSend: 'Not sent. Try again.',
   },
   financingWorkspace: {
     title: 'Private financing workspace',
@@ -7670,6 +7734,38 @@ export const en: MessagesShape = {
     participants: 'Participants',
     dealProgress: 'Deal progress',
     currentStage: 'Current stage',
+    back: 'Financing desk',
+    factoringTitle: 'Invoice early payment',
+    poTitle: 'Purchase order financing',
+    privateNote: 'Only the seller and the financier see this.',
+    seller: 'Seller',
+    financier: 'Financier',
+    statusPending: 'Offer pending',
+    statusActive: 'Active',
+    statusRepaid: 'Repaid',
+    statusDeclined: 'Declined',
+    statusExpired: 'Expired',
+    statusReview: 'Needs review',
+    detailPending: 'Waiting for the seller to decide.',
+    detailActive: 'Paid out. The escrow repays the financier first when the buyer releases.',
+    detailRepaid: 'The financier has been repaid.',
+    detailDeclined: 'The seller did not accept this offer.',
+    detailExpired: 'This offer expired.',
+    detailReview: 'The repayment needs attention.',
+    stepFactoring1: 'Early payment sent',
+    stepFactoring2: 'Delivered',
+    stepFactoring3: 'Buyer releases',
+    stepFactoring4: 'Financier repaid',
+    stepPo1: 'Advance sent',
+    stepPo2: 'Seller fulfils the order',
+    stepPo3: 'Buyer releases',
+    stepPo4: 'Financier repaid',
+    progressUnavailable: 'Deal details unavailable',
+    progressSettled: 'Settled',
+    progressReview: 'Under review',
+    progressDelivered: 'Delivered',
+    progressWorking: 'In progress',
+    progressAccepted: 'Accepted',
   },
   a11y: {
     closeHistory: 'Close history',
@@ -10543,7 +10639,7 @@ export const en: MessagesShape = {
     title: "World ID · Selfie Check",
     verified: "Selfie Check recorded",
     buyer: "Verify before funding this deal.",
-    seller: "Verify before accepting this deal.",
+    seller: 'Verify before accepting this deal.',
     body: "Complete a camera check in World ID App. Karwan receives a proof, not your selfie.",
     limit: "This is a liveness signal, not a guarantee of identity, trustworthiness or delivery. It does not approve a payment.",
     start: "Verify with World ID",

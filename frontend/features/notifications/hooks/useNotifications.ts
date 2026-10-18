@@ -21,6 +21,7 @@ import {
 } from '@/shared/utils/notificationStore';
 // Re-export so existing call sites can keep importing from the hook module.
 export { purgeStoredNotifications } from '@/shared/utils/notificationStore';
+import { financeHref } from '../financeHref';
 import {
   ACTION_TYPES,
   BRIDGE_TYPES,
@@ -192,9 +193,6 @@ function financeRoleFor(
   return null;
 }
 
-function financeHref(jobId: string): string {
-  return jobId ? `/deals/${jobId}` : '/financier';
-}
 
 /// The payload with the deal's trade type filled in when the event did not
 /// carry one. Events replayed from chain logs hold only what the log held, and
@@ -390,7 +388,7 @@ export function useNotifications() {
             summary: summaryFor(e.type, e.payload, financeRole, bell),
             ts: e.ts,
             read: readIdsRef.current.has(id),
-            href: financeHref(e.jobId ?? ''),
+            href: financeHref({ role: financeRole, jobId: e.jobId ?? '', payload: e.payload }),
           });
           continue;
         }
@@ -563,7 +561,7 @@ export function useNotifications() {
           summary: summaryFor(e.type, e.payload, financeRole, bell),
           ts: e.ts,
           read: readIdsRef.current.has(id),
-          href: financeHref(e.jobId ?? ''),
+          href: financeHref({ role: financeRole, jobId: e.jobId ?? '', payload: e.payload }),
           toast: TOAST_TYPES.has(e.type),
         };
         setNotifications((list) => {

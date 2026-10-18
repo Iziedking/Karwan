@@ -1,31 +1,34 @@
 'use client';
 
-import Link from 'next/link';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { DirectDeal } from '@/core/api';
+import { BackButton } from '@/shared/components/BackButton';
 import { FinancingChatPanel } from '@/features/chat/components/FinancingChatPanel';
 import { shortAddress } from '@/shared/utils/format';
 
 type Status = 'pending' | 'active' | 'repaid' | 'declined' | 'expired' | 'review';
+type Copy = ReturnType<typeof useTranslations>['financingWorkspace'];
 
-const STATUS: Record<Status, { label: string; detail: string; tone: string }> = {
-  pending: { label: 'Offer pending', detail: 'Waiting for the seller to decide', tone: '#9a641f' },
-  active: { label: 'Active', detail: 'Financing is active and linked to settlement', tone: '#276b85' },
-  repaid: { label: 'Repaid', detail: 'The financier has been repaid', tone: 'var(--lp-accent)' },
-  declined: { label: 'Declined', detail: 'The financing offer was not accepted', tone: '#6b6b6b' },
-  expired: { label: 'Expired', detail: 'The financing offer expired', tone: '#6b6b6b' },
-  review: { label: 'Needs review', detail: 'Repayment needs attention', tone: '#a33a32' },
+const STATUS_COPY: Record<Status, [keyof Copy, keyof Copy]> = {
+  pending: ['statusPending', 'detailPending'],
+  active: ['statusActive', 'detailActive'],
+  repaid: ['statusRepaid', 'detailRepaid'],
+  declined: ['statusDeclined', 'detailDeclined'],
+  expired: ['statusExpired', 'detailExpired'],
+  review: ['statusReview', 'detailReview'],
 };
 
-function dealProgress(deal: DirectDeal | null): { label: string; step: number } {
-  if (!deal) return { label: 'Deal details unavailable', step: 1 };
-  if (deal.settledAt) return { label: 'Settlement completed', step: 4 };
-  if (deal.disputed) return { label: 'Deal under review', step: 3 };
-  if (deal.delivered) return { label: 'Delivery submitted', step: 3 };
-  if (deal.fundTxHash) return { label: 'Work in progress', step: 2 };
-  return { label: 'Deal accepted', step: 1 };
+function dealProgress(deal: DirectDeal | null): { label: keyof Copy; step: number } {
+  if (!deal) return { label: 'progressUnavailable', step: 1 };
+  if (deal.settledAt) return { label: 'progressSettled', step: 4 };
+  if (deal.disputed) return { label: 'progressReview', step: 3 };
+  if (deal.delivered) return { label: 'progressDelivered', step: 3 };
+  if (deal.fundTxHash) return { label: 'progressWorking', step: 2 };
+  return { label: 'progressAccepted', step: 1 };
 }
 
+/// One financing position, private to its seller and financier: what was paid
+/// out, what comes back first, where the deal is, and their conversation.
 export function FinancingPositionWorkspace(props: {
   kind: 'factoring' | 'po';
   positionId: string;
@@ -38,85 +41,71 @@ export function FinancingPositionWorkspace(props: {
   protectionUsdc?: string;
 }) {
   const fw = useTranslations().financingWorkspace;
-  const status = STATUS[props.status];
+  const [statusKey, detailKey] = STATUS_COPY[props.status];
   const progress = dealProgress(props.deal);
-  const steps = props.kind === 'po'
-    ? ['Advance funded', 'Seller fulfils order', 'Buyer releases escrow', 'Financier repaid']
-    : ['Early payment funded', 'Delivery accepted', 'Buyer releases escrow', 'Financier repaid'];
+  const steps: (keyof Copy)[] = props.kind === 'po'
+    ? ['stepPo1', 'stepPo2', 'stepPo3', 'stepPo4']
+    : ['stepFactoring1', 'stepFactoring2', 'stepFactoring3', 'stepFactoring4'];
+  const rows: [string, string][] = [
+    [fw.amountFinanced, `${props.advanceUsdc} USDC`],
+    [fw.expectedRepayment, `${props.expectedReturnUsdc} USDC`],
+    ...(props.protectionUsdc ? [[fw.sellerProtectionReserved, `${props.protectionUsdc} USDC`] as [string, string]] : []),
+    [fw.seller, shortAddress(props.seller)],
+    [fw.financier, shortAddress(props.financier)],
+  ];
 
   return (
-    <main className="min-h-screen bg-[var(--lp-bg)] px-4 py-6 sm:px-6 sm:py-10">
-      <div className="mx-auto w-full max-w-6xl">
-        <Link href="/financier" className="mono text-[13px] font-bold uppercase tracking-[0.14em] text-[var(--lp-text-sub)] underline underline-offset-4">
-          ← Back to financing desk
-        </Link>
+    <main className="product-surface mx-auto w-full max-w-[640px] px-4 pb-16 pt-4 sm:px-6">
+      <div className="-ms-2 mb-4">
+        <BackButton tone="adaptive" fallbackHref="/financier" />
+      </div>
 
-        <header className="mt-5 border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5 sm:p-7" style={{ borderRadius: 18 }}>
-          <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
-            <div className="max-w-2xl">
-              <p className="mono text-[13px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">{fw.title}</p>
-              <h1 className="mt-2 text-2xl font-semibold text-[var(--lp-dark)] sm:text-3xl">
-                {props.kind === 'po' ? 'Purchase order financing' : 'Invoice early payment'}
-              </h1>
-              <p className="mt-2 text-sm leading-6 text-[var(--lp-text-sub)]">
-                Private between the seller and financier. The buyer cannot view this position or conversation.
-              </p>
-            </div>
-            <div className="md:text-right">
-              <span className="mono inline-flex px-2.5 py-1.5 text-[13px] font-bold uppercase tracking-[0.14em]" style={{ color: status.tone, background: `color-mix(in srgb, ${status.tone} 12%, transparent)` }}>
-                {status.label}
-              </span>
-              <p className="mt-2 text-[14px] text-[var(--lp-text-sub)] font-medium">{status.detail}</p>
-            </div>
+      <h1 className="text-[28px] font-semibold text-[var(--ink)]">{props.kind === 'po' ? fw.poTitle : fw.factoringTitle}</h1>
+      <p className="mt-1 text-[15px] text-[var(--lp-text-sub)]">{fw.privateNote}</p>
+
+      <p className="mt-6 text-[17px] font-medium text-[var(--ink)]">
+        <span className={props.status === 'review' ? 'text-[var(--color-critical)]' : ''}>{fw[statusKey]}</span>
+      </p>
+      <p className="mt-1 text-[15px] text-[var(--lp-text-sub)]">{fw[detailKey]}</p>
+
+      <dl className="mt-6 divide-y divide-[var(--line)] border-y border-[var(--line)]">
+        {rows.map(([label, value]) => (
+          <div key={label} className="flex items-baseline justify-between gap-4 py-3">
+            <dt className="text-[15px] text-[var(--lp-text-sub)]">{label}</dt>
+            <dd className="text-[15px] font-medium tabular-nums text-[var(--ink)]">{value}</dd>
           </div>
-        </header>
+        ))}
+      </dl>
 
-        <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-          <div className="space-y-4">
-            <section className="border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5 sm:p-6" style={{ borderRadius: 16 }}>
-              <h2 className="text-lg font-semibold text-[var(--lp-dark)]">{fw.positionSummary}</h2>
-              <dl className="mt-4 grid grid-cols-2 gap-3">
-                <div className="border border-[var(--lp-border-light)] bg-white/45 p-3">
-                  <dt className="mono text-[13px] uppercase tracking-[0.13em] text-[var(--lp-text-muted)]">{fw.amountFinanced}</dt>
-                  <dd className="mt-1 text-lg font-semibold tabular-nums text-[var(--lp-dark)]">{props.advanceUsdc} USDC</dd>
-                </div>
-                <div className="border border-[var(--lp-border-light)] bg-white/45 p-3">
-                  <dt className="mono text-[13px] uppercase tracking-[0.13em] text-[var(--lp-text-muted)]">{fw.expectedRepayment}</dt>
-                  <dd className="mt-1 text-lg font-semibold tabular-nums text-[var(--lp-dark)]">{props.expectedReturnUsdc} USDC</dd>
-                </div>
-                {props.protectionUsdc ? <div className="col-span-2 border border-[var(--lp-border-light)] bg-white/45 p-3">
-                  <dt className="mono text-[13px] uppercase tracking-[0.13em] text-[var(--lp-text-muted)]">{fw.sellerProtectionReserved}</dt>
-                  <dd className="mt-1 font-semibold tabular-nums text-[var(--lp-dark)]">{props.protectionUsdc} USDC</dd>
-                </div> : null}
-              </dl>
-              <div className="mt-5 border-t border-[var(--lp-border-light)] pt-4">
-                <p className="mono text-[13px] uppercase tracking-[0.13em] text-[var(--lp-text-muted)]">{fw.participants}</p>
-                <div className="mt-2 grid gap-2 text-sm sm:grid-cols-2">
-                  <p><span className="text-[var(--lp-text-muted)]">Seller</span><br /><span className="font-semibold text-[var(--lp-dark)]">{shortAddress(props.seller)}</span></p>
-                  <p><span className="text-[var(--lp-text-muted)]">Financier</span><br /><span className="font-semibold text-[var(--lp-dark)]">{shortAddress(props.financier)}</span></p>
-                </div>
-              </div>
-            </section>
-
-            <section className="border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5 sm:p-6" style={{ borderRadius: 16 }}>
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="text-lg font-semibold text-[var(--lp-dark)]">{fw.dealProgress}</h2>
-                <span className="text-[14px] font-medium text-[var(--lp-text-sub)]">{progress.label}</span>
-              </div>
-              <ol className="mt-5 space-y-4">
-                {steps.map((step, index) => {
-                  const complete = index + 1 <= progress.step;
-                  return <li key={step} className="flex gap-3">
-                    <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[13px] font-bold" style={{ background: complete ? 'var(--lp-dark)' : 'transparent', color: complete ? 'white' : 'var(--lp-text-muted)', border: '1px solid var(--lp-border-light)' }}>{complete ? '✓' : index + 1}</span>
-                    <div><p className="text-sm font-medium text-[var(--lp-dark)]">{step}</p>{index + 1 === progress.step && props.status === 'active' ? <p className="mt-0.5 text-[14px] text-[var(--lp-text-muted)]">{fw.currentStage}</p> : null}</div>
-                  </li>;
-                })}
-              </ol>
-            </section>
-          </div>
-
-          <FinancingChatPanel kind={props.kind} positionId={props.positionId} seller={props.seller} financier={props.financier} />
+      <section aria-labelledby="financing-progress" className="mt-8">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 id="financing-progress" className="text-[17px] font-medium text-[var(--ink)]">{fw.dealProgress}</h2>
+          <span className="text-[15px] text-[var(--lp-text-sub)]">{fw[progress.label]}</span>
         </div>
+        <ol className="mt-4 space-y-3">
+          {steps.map((step, index) => {
+            const done = index + 1 < progress.step || (index + 1 === progress.step && progress.step === 4);
+            const current = index + 1 === progress.step && !done;
+            return (
+              <li key={step} className="flex items-center gap-3">
+                <span
+                  aria-hidden
+                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold tabular-nums ${
+                    done ? 'bg-[var(--ink)] text-[var(--lp-bg)]' : current ? 'border-2 border-[var(--ink)] text-[var(--ink)]' : 'border border-[var(--line)] text-[var(--lp-text-sub)]'
+                  }`}
+                >
+                  {done ? '✓' : index + 1}
+                </span>
+                <span className={`text-[15px] ${done || current ? 'font-medium text-[var(--ink)]' : 'text-[var(--lp-text-sub)]'}`}>{fw[step]}</span>
+                {current ? <span className="sr-only">{fw.currentStage}</span> : null}
+              </li>
+            );
+          })}
+        </ol>
+      </section>
+
+      <div className="mt-8">
+        <FinancingChatPanel kind={props.kind} positionId={props.positionId} seller={props.seller} financier={props.financier} />
       </div>
     </main>
   );
