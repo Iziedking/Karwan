@@ -47,12 +47,12 @@ test('a rating sent as the agent address is saved for the identity, once', async
   assert.equal(s.store.length, 1);
 });
 
-test('after rating, the answer says it shows when they rate too or in 14 days', async () => {
+test('after rating, the answer is just saved, and the rating shows at once', async () => {
   const s = setup();
   const r = await s.ratings.rateDeal('0xb', 'd1', 4, 'Careful work');
-  assert.deepEqual(r, { ok: true, revealed: false, message: 'Saved. It shows when they rate too, or in 14 days.' });
+  assert.deepEqual(r, { ok: true, revealed: true, message: 'Saved.' });
   const both = await s.ratings.rateDeal('0xs', 'd1', 5);
-  assert.deepEqual(both, { ok: true, revealed: true, message: 'Saved. Both ratings now show.' });
+  assert.deepEqual(both, { ok: true, revealed: true, message: 'Saved.' });
   assert.deepEqual(s.rated, ['d1', 'd1']);
 });
 

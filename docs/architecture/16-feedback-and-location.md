@@ -14,7 +14,7 @@ It builds on portable reputation (view 13), attested deals (view 08) and outside
 - **Two public numbers, kept apart.**
   - **Rating** comes only from ratings and feedback after completed Karwan deals.
   - **Reputation score** can also take in work done elsewhere, calculated with care, and shows lines like "Completed 400 jobs on Upwork" only when the person chooses to share them and that platform has joined as a partner.
-- **Ratings only from a settled deal**, one per side, blind until both answer or 14 days pass. Disputes keep their outcome. Nothing is hidden for being negative.
+- **Ratings only from a settled deal**, one per side, shown as soon as it is given (changed 18 Oct 2026 by the owner; ratings were blind until both answered). Disputes keep their outcome. Nothing is hidden for being negative.
 
 ## Participants
 
@@ -94,7 +94,7 @@ sequenceDiagram
   K->>A: ask Ada to rate the buyer
   BA->>K: rate_deal (rating, note)
   A->>K: rate_deal (rating, note)
-  K->>K: both answered (or 14 days): reveal, update both ratings
+  K->>K: show the rating at once, tell the person rated, update their rating
 ```
 
 ## What fails where
@@ -111,7 +111,7 @@ sequenceDiagram
 | Messages | Three messages in a row with no answer | The sender waits for a reply |
 | Messages | Sender has no Karwan tag, or the link scanner flags a link | Not sent, with the reason |
 | Ratings | Someone rates a deal they were not part of | Refused |
-| Ratings | One side never rates | The other side's rating shows after 14 days |
+| Ratings | One side never rates | The other side's rating already shows; rating closes 14 days after settling |
 
 ## Status
 

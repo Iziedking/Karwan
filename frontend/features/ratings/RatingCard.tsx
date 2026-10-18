@@ -4,8 +4,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { api } from '@/core/api';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
-/// Rate a settled deal from 1 to 5 with an optional note. Blind: it shows
-/// once the other person rates too, or 14 days after the deal settled.
+/// Rate a settled deal from 1 to 5 with an optional note. It shows at once.
 export function RatingCard({ jobId }: { jobId: string }) {
   const t = useTranslations().ratings;
   const [state, setState] = useState<'loading' | 'open' | 'done' | 'hidden'>('loading');

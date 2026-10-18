@@ -14,7 +14,7 @@ function setup() {
   const deps: RatingToolDeps = {
     rateDeal: async (caller, dealId, stars, note) => {
       calls.push([caller, dealId, stars, note]);
-      return { ok: true, revealed: false, message: 'Saved. It shows when they rate too, or in 14 days.' };
+      return { ok: true, revealed: true, message: 'Saved.' };
     },
     waiting: async () => [{ dealId: 'd1', withTag: 'ada', settledAt: 1_760_000_000_000 }],
     hasRated: async (_caller, dealId) => dealId === 'done',

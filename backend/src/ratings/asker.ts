@@ -44,7 +44,7 @@ const name = (tag: string | null) => (tag ? `@${tag}` : 'a Karwan member');
 
 const TEXT = {
   requested: (tag: string | null) => `How did your deal with ${name(tag)} go? Rate it 1 to 5, and add a note if you like.`,
-  reminder: (tag: string | null) => `A reminder to rate your deal with ${name(tag)} from 1 to 5. Ratings show once you both rate, or 14 days after the deal settled.`,
+  reminder: (tag: string | null) => `A reminder to rate your deal with ${name(tag)} from 1 to 5.`,
   revealed: (tag: string | null) => `${tag ? `@${tag}'s` : 'Their'} rating of you is in.`,
 };
 

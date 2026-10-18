@@ -30,10 +30,9 @@ test('one rating per side', () => {
   assert.deepEqual(mayRate(deal, '0xs', first), { ok: true, ratee: '0xb' });
 });
 
-test('nothing is revealed until both rated or 14 days passed', () => {
+test('a rating shows as soon as it is given', () => {
   const one = [rating('0xb', '0xs', 5)];
-  assert.equal(isRevealed(one, SETTLED, SETTLED + 13 * DAY), false);
-  assert.equal(isRevealed(one, SETTLED, SETTLED + 14 * DAY), true);
+  assert.equal(isRevealed(one, SETTLED, SETTLED + DAY), true);
   assert.equal(isRevealed([...one, rating('0xs', '0xb', 4)], SETTLED, SETTLED + DAY), true);
   assert.equal(isRevealed([], SETTLED, SETTLED + DAY), false);
 });
@@ -61,11 +60,11 @@ test('a note with a phone number or link is held', () => {
   assert.equal(holdNote('Fast, careful work. Would buy again.'), false);
 });
 
-test('the record shows only revealed ratings', () => {
+test('the record shows every rating given', () => {
   const blind = rating('0xb', '0xs', 1, { dealId: 'd1' });
   const both = [rating('0xc', '0xs', 5, { dealId: 'd2' }), rating('0xs', '0xc', 4, { dealId: 'd2' })];
   const old = rating('0xd', '0xs', 3, { dealId: 'd3', settledAt: SETTLED - 20 * DAY });
   const byDeal = new Map([['d1', [blind]], ['d2', both], ['d3', [old]]]);
   const shown = revealedAbout([blind, both[0]!, old], byDeal, SETTLED + DAY);
-  assert.deepEqual(shown.map((r) => r.dealId).sort(), ['d2', 'd3']);
+  assert.deepEqual(shown.map((r) => r.dealId).sort(), ['d1', 'd2', 'd3']);
 });

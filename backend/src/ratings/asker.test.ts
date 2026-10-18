@@ -64,28 +64,19 @@ test('one reminder after three days, never two, and only to who has not rated', 
   assert.deepEqual(s.sent.filter((n) => n.kind === 'reminder').map((n) => n.address), ['0xs']);
 });
 
-test('the reveal goes to both when the second rating lands', async () => {
+test('each person is told when the other rates them, once, as soon as it lands', async () => {
   const s = setup();
   await s.asker.sweep();
   s.rate('0xb', '0xs');
   await s.asker.check('d1');
-  assert.equal(s.sent.filter((n) => n.kind === 'revealed').length, 0);
+  assert.deepEqual(s.sent.filter((n) => n.kind === 'revealed').map((n) => n.address), ['0xs']);
   s.rate('0xs', '0xb');
   await s.asker.check('d1');
   await s.asker.check('d1');
   assert.deepEqual(
     s.sent.filter((n) => n.kind === 'revealed').map((n) => [n.address, n.text]),
-    [['0xb', "@ada's rating of you is in."], ['0xs', "@bola's rating of you is in."]],
+    [['0xs', "@bola's rating of you is in."], ['0xb', "@ada's rating of you is in."]],
   );
-});
-
-test('after 14 days a single rating shows, and only the person rated is told', async () => {
-  const s = setup();
-  await s.asker.sweep();
-  s.rate('0xb', '0xs');
-  s.advance(14 * DAY);
-  await s.asker.sweep();
-  assert.deepEqual(s.sent.filter((n) => n.kind === 'revealed').map((n) => n.address), ['0xs']);
 });
 
 test('a deal settled more than three days before the first sweep is never newly asked, so a launch or restart floods no one', async () => {

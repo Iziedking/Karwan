@@ -65,7 +65,7 @@ export function createRatings(deps: RatingDeps) {
     await deps.onRated(deal.jobId).catch(() => {});
     const revealed = isRevealed(await deps.ratingsForDeal(deal.jobId), deal.settledAt!, now);
     const held = noteHeld ? ' Your note has contact details, so it stays private.' : '';
-    return { ok: true, revealed, message: `${revealed ? 'Saved. Both ratings now show.' : 'Saved. It shows when they rate too, or in 14 days.'}${held}` };
+    return { ok: true, revealed, message: `Saved.${held}` };
   }
 
   async function waiting(caller: string): Promise<Array<{ dealId: string; withTag: string | null; settledAt: number }>> {

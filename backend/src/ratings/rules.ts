@@ -41,9 +41,9 @@ export function mayRate(
 }
 
 /// Blind until both sides rated, or 14 days after settlement.
-export function isRevealed(dealRatings: DealRating[], settledAt: number, now: number): boolean {
-  if (dealRatings.length === 0) return false;
-  return new Set(dealRatings.map((r) => r.rater.toLowerCase())).size >= 2 || now - settledAt >= REVEAL_AFTER_MS;
+/// A rating shows as soon as it is given; it never waits for the other side.
+export function isRevealed(dealRatings: DealRating[], _settledAt: number, _now: number): boolean {
+  return dealRatings.length > 0;
 }
 
 export function publicRating(revealed: DealRating[]): PublicRating {
