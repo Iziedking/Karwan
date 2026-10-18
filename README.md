@@ -8,7 +8,7 @@ Karwan lets your reputation travel with you, and lets your agent use that reputa
 
 ## How it works
 
-Karwan has two sides that grow together.
+Karwan has two sides that grow together. The direction and the six tracks it is built in, Nigeria first, are stated in [architecture view 00](docs/architecture/00-direction.md).
 
 **The reputation layer is the direction.** Karwan aggregates the reputation people have already earned. Agents work with data a person already owns, only with their permission. Nothing is leaked, sold or scraped. Other platforms join as partners: we contact them when the real working model is designed with them, never by taking people's data along the way. The reputation layer is being built on Circle's agent stack. The design is drawn before it is built in [architecture view 08](./docs/architecture/08-reputation.md).
 
@@ -172,7 +172,7 @@ Work from 27 September to 17 October 2026, during The Canteen's Tameion agents h
 - [Circle integration](./CIRCLE.md)
 - [Agent workflows](./docs/agent-workflows.md)
 - [Reputation model](./docs/reputation-model.md)
-- [Work verification](./docs/work-verification.md)
+- [Trust engine: verification and delivery checks](./docs/architecture/09-trust-engine.md)
 - [Why Karwan](./docs/why-karwan.md)
 - [Terms and conditions](./docs/terms-and-conditions.md)
 - [Contract development](./contracts/README.md)

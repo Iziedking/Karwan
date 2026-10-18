@@ -1,10 +1,12 @@
 # Architecture
 
-Last reviewed: 2026-09-30
+Last reviewed: 2026-10-18
 
 Karwan unifies online reputation, starting with an open market for local and
-cross-border trade. The direction, one reputation that travels with a person
-across platforms, is designed in [architecture view 08](./architecture/08-reputation.md).
+cross-border trade. The direction and the six tracks it is built in are stated
+in [architecture view 00](./architecture/00-direction.md); one reputation that
+travels with a person across platforms is designed in
+[architecture view 08](./architecture/08-reputation.md).
 This document describes the market that runs today. The current build
 uses one person identity, one login, and optional workspaces under that
 identity. A personal workspace is the default. An owner can add one business
@@ -178,7 +180,7 @@ Karwan uses separate seams for separate claims:
 
 The same shape works for a GitHub commit, a signed file, a carrier event, a
 buyer acceptance, or another source with a clear scope and freshness rule. See
-[work-verification.md](./work-verification.md) for evidence handling.
+[architecture view 09](./architecture/09-trust-engine.md) for evidence handling.
 
 ## Settlement and transfer rails
 
@@ -218,4 +220,4 @@ are roadmap work and must not be described as live capability.
 Completed trade outcomes feed the current reputation model. Evidence coverage,
 trade history, and stake are shown separately so a score is not presented as
 an all-purpose safety guarantee. See [reputation-model.md](./reputation-model.md)
-and [work-verification.md](./work-verification.md).
+and [architecture view 09](./architecture/09-trust-engine.md).

@@ -1,6 +1,9 @@
 # Why Karwan
 
-Last reviewed: 2026-10-08
+Last reviewed: 2026-10-18
+
+The direction and the six tracks Karwan is built in are stated once, in
+[architecture view 00](./architecture/00-direction.md). This page explains why.
 
 Karwan lets your reputation travel with you, and lets your agent use that
 reputation to find, negotiate with, and transact with the right people. It
@@ -172,7 +175,7 @@ and deployment prove them.
 - [Architecture](./architecture.md) for the system shape and data boundaries.
 - [Agent workflows](./agent-workflows.md) for the approval and reconciliation
   boundary.
-- [Work verification](./work-verification.md) for evidence handling.
+- [Trust engine](./architecture/09-trust-engine.md) for evidence handling.
 - [Reputation model](./reputation-model.md) for score inputs and limits.
 - [Terms and conditions](./terms-and-conditions.md) for the legal product
   description.

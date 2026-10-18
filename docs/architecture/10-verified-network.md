@@ -311,11 +311,11 @@ sequenceDiagram
 | Verification rules, ladder, evidence checks | Built, not deployed |
 | Facts contract on Arc and signed credential | Built, not deployed |
 | Discovery limited to verified people | Built, not deployed. Replaced by the shortlist when `SHORTLIST_MODE` is on (view 13) |
-| Agent-to-agent questions paid with x402 | Planned |
+| Agent-to-agent record checks paid with x402 | Built, not deployed (view 13, `RECORD_READS_ENABLED`) |
 | Direct deals with someone you already know (in the app) | Live on testnet |
 | Direct deals created, accepted and funded from chat | Built, not deployed |
 | Delivery checks: safety, match to the milestone, software evidence, signed result on the escrow | Built, testnet |
-| Delivery checks run in Chainlink CRE behind `CRE_ENABLED` | Planned. Waiting on the workflow being fully wired for deals |
+| Delivery checks run in Chainlink CRE behind `CRE_ENABLED` | Built and simulated on an Arc testnet fork, not deployed (view 12) |
 | Escrow on Arc mainnet for chat deals: beta, capped at 1,000 USDC per deal and 10,000 USDC in total, unaudited, replaced by the audited deployment at launch | Built, not deployed |
 | ID check for deals from 100 USDC | Planned. Provider to be chosen |
 | Funding from a bank or USSD | Planned. Provider to be chosen |
