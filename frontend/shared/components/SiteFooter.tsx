@@ -88,7 +88,7 @@ export function SiteFooter() {
                 <FooterContact label={t.productLinks.contact} />
               </FooterCol>
               <FooterCol title={t.columns.network}>
-                <FooterLink href="https://docs.arc.network" external>
+                <FooterLink href="https://docs.arc.io" external>
                   {t.networkLinks.arcDocs}
                 </FooterLink>
                 <FooterLink href="https://developers.circle.com" external>
