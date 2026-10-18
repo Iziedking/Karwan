@@ -14,7 +14,7 @@ import { invalidBodyMessage } from './invalidBody.js';
 const localeSchema = z.enum(['en', 'ar', 'fr', 'hi', 'sw']);
 const themeSchema = z.enum(['light', 'dark', 'system']);
 
-const settingsSchema = z.object({
+export const settingsSchema = z.object({
   // Deprecated: the profile keyed is the signed session, not this field. Kept
   // optional so existing clients that still send it don't 400.
   address: z.string().optional(),
@@ -26,6 +26,7 @@ const settingsSchema = z.object({
     publicPassport: z.boolean().optional(),
     publishDeals: z.boolean().optional(),
     publishHistory: z.boolean().optional(),
+    tradesAs: z.enum(['self', 'business']).optional(),
   }),
 });
 

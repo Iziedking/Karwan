@@ -25,6 +25,9 @@ export interface UserSettings {
   publishDeals?: boolean;
   /// Also publish deals settled before switch-on day. Off unless set to true.
   publishHistory?: boolean;
+  /// The one-time answer at the market's entry (view 17): trading for
+  /// themselves or for a business.
+  tradesAs?: 'self' | 'business';
 }
 
 export type WorkspaceKind = 'personal' | 'business';
