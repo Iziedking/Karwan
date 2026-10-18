@@ -12,7 +12,7 @@ function excerpt(value: string) {
 
 /// The private conversation between the seller and the financier of one
 /// financing position. Theme tokens throughout, so it reads in light and dark.
-export function FinancingChatPanel({ kind, positionId, seller, financier }: { kind: 'factoring' | 'po'; positionId: string; seller: string; financier: string }) {
+export function FinancingChatPanel({ kind, positionId, seller, financier, bare = false }: { kind: 'factoring' | 'po'; positionId: string; seller: string; financier: string; bare?: boolean }) {
   const fc = useTranslations().financingChat;
   const { locale } = useLocale();
   const auth = useAuth();
@@ -85,9 +85,9 @@ export function FinancingChatPanel({ kind, positionId, seller, financier }: { ki
   }
 
   return (
-    <section aria-labelledby="financing-chat-title" className="border-t border-[var(--line)] pt-6">
-      <h2 id="financing-chat-title" className="text-[17px] font-medium text-[var(--ink)]">{fc.privateConversation}</h2>
-      <p className="mt-1 text-[15px] text-[var(--lp-text-sub)]">{fc.coordinateBody}</p>
+    <section aria-labelledby={bare ? undefined : 'financing-chat-title'} className={bare ? '' : 'border-t border-[var(--line)] pt-6'}>
+      {bare ? null : <h2 id="financing-chat-title" className="text-[17px] font-medium text-[var(--ink)]">{fc.privateConversation}</h2>}
+      <p className={`${bare ? '' : 'mt-1 '}text-[15px] text-[var(--lp-text-sub)]`}>{fc.coordinateBody}</p>
 
       <div className="mt-4 max-h-[min(60vh,520px)] min-h-[200px] space-y-3 overflow-y-auto">
         {messages.length === 0 ? <p className="py-8 text-center text-[15px] text-[var(--lp-text-sub)]">{fc.startBody}</p> : null}

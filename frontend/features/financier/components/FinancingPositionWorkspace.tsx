@@ -1,8 +1,13 @@
 'use client';
 
+import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { DirectDeal } from '@/core/api';
-import { BackButton } from '@/shared/components/BackButton';
+import { ProductBackLink } from '@/shared/components/ProductBackLink';
+import { useAuth } from '@/shared/hooks/useAuth';
+import { Icon } from '@/shared/components/Icon';
+import { Sheet } from '@/features/deals/workspace/Sheet';
 import { FinancingChatPanel } from '@/features/chat/components/FinancingChatPanel';
 import { shortAddress } from '@/shared/utils/format';
 
@@ -41,6 +46,10 @@ export function FinancingPositionWorkspace(props: {
   protectionUsdc?: string;
 }) {
   const fw = useTranslations().financingWorkspace;
+  const fc = useTranslations().financingChat;
+  const [messagesOpen, setMessagesOpen] = useState(false);
+  const pathname = usePathname();
+  const auth = useAuth();
   const [statusKey, detailKey] = STATUS_COPY[props.status];
   const progress = dealProgress(props.deal);
   const steps: (keyof Copy)[] = props.kind === 'po'
@@ -56,11 +65,21 @@ export function FinancingPositionWorkspace(props: {
 
   return (
     <main className="product-surface mx-auto w-full max-w-[640px] px-4 pb-16 pt-4 sm:px-6">
-      <div className="-ms-2 mb-4">
-        <BackButton tone="adaptive" fallbackHref="/financier" />
+      <div data-own-back className="-ms-2 mb-4 empty:hidden">
+        <ProductBackLink pathname={pathname} isAuthenticated={auth.isAuthenticated} />
       </div>
 
-      <h1 className="text-[28px] font-semibold text-[var(--ink)]">{props.kind === 'po' ? fw.poTitle : fw.factoringTitle}</h1>
+      <div className="flex items-start justify-between gap-3">
+        <h1 className="text-[28px] font-semibold text-[var(--ink)]">{props.kind === 'po' ? fw.poTitle : fw.factoringTitle}</h1>
+        <button
+          type="button"
+          onClick={() => setMessagesOpen(true)}
+          aria-label={fc.privateConversation}
+          className="grid size-11 shrink-0 place-items-center rounded-full border border-[var(--line)] text-[var(--ink)] hover:bg-[var(--tint)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
+        >
+          <Icon name="messages" size={20} />
+        </button>
+      </div>
       <p className="mt-1 text-[15px] text-[var(--lp-text-sub)]">{fw.privateNote}</p>
 
       <p className="mt-6 text-[17px] font-medium text-[var(--ink)]">
@@ -104,9 +123,9 @@ export function FinancingPositionWorkspace(props: {
         </ol>
       </section>
 
-      <div className="mt-8">
-        <FinancingChatPanel kind={props.kind} positionId={props.positionId} seller={props.seller} financier={props.financier} />
-      </div>
+      <Sheet open={messagesOpen} title={fc.privateConversation} onClose={() => setMessagesOpen(false)}>
+        <FinancingChatPanel bare kind={props.kind} positionId={props.positionId} seller={props.seller} financier={props.financier} />
+      </Sheet>
     </main>
   );
 }

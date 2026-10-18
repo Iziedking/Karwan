@@ -24,3 +24,16 @@ test('financing screens carry no hard-coded English', () => {
     assert.doesNotMatch(src, /'(only png|image must be|we could not read|Offer pending|Invoice early payment)/i, f);
   }
 });
+
+test('the private conversation opens from a message button, like the deal page, not inline', () => {
+  const page = readFileSync('features/financier/components/FinancingPositionWorkspace.tsx', 'utf8');
+  assert.match(page, /<Icon name="messages"/);
+  assert.match(page, /<Sheet[^>]*open=\{messagesOpen\}/);
+  assert.match(page, /<FinancingChatPanel[^>]*bare/);
+});
+
+test('the position page shows one back control, hiding the app frame copy like the deal page', () => {
+  const page = readFileSync('features/financier/components/FinancingPositionWorkspace.tsx', 'utf8');
+  assert.match(page, /<div data-own-back[^>]*>\s*<ProductBackLink/);
+  assert.doesNotMatch(page, /<BackButton/);
+});
