@@ -2,7 +2,7 @@
 
 Track T1, roadmap item T1.1 ([view 00](00-direction.md)). Karwan has one open market. Whether a person trades for themselves or for a business changes what they see in it, not where they go.
 
-## Today
+## Before this change (to 18 Oct)
 
 Five ways in, split by account type:
 
@@ -72,12 +72,12 @@ Every old place redirects, so links in emails, chats and bookmarks keep working:
 
 | Step | Status |
 |---|---|
-| Find, Your trades and Start in one `/market` | Planned |
-| Business details as a lens on the same listings, "Business" label, Businesses filter | Planned |
-| One offer form and one request form with business fields | Planned (the pieces exist in `/supply` and `BusinessTradeDesk`) |
-| Navigation without the Trades tab | Planned |
-| The one-time "for yourself or for a business" question | Planned (business setup exists) |
-| Redirects from the old places | Planned |
-| Agent links and the guide entry | Planned |
+| Find, Your trades and Start in one `/market` | Built, not deployed |
+| Business details as a lens on the same listings, "Business" label, Businesses filter | Built, not deployed (every account sees personal and business cards) |
+| One offer form and one request form with business fields | Built, not deployed (`/buyer` and `/seller` serve every account; `/supply` and `BusinessTradeDesk` removed) |
+| Navigation without the Trades tab | Built, not deployed |
+| The one-time "for yourself or for a business" question | Built, not deployed (saved as the `tradesAs` setting, changeable in Settings; business setup returns to the market) |
+| Redirects from the old places | Built, not deployed (307, `frontend/shared/utils/marketRedirects.mjs`) |
+| Agent links and the guide entry | Built, not deployed |
 
 Notes: the routes live in `frontend/shared/utils/routes.ts`, `frontend/shared/components/WorkspaceBottomNav.tsx` and `TopNav.tsx`; the workspace comes from `useWorkspaceContext`. No contract, chain or money path changes, so this does not wait on the contract suite.

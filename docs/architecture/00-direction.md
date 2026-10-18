@@ -22,7 +22,7 @@ The direction is built in six tracks, one roadmap item at a time. Each track lis
 
 | Track | What a person gets | Views | Status |
 |---|---|---|---|
-| **T1 Find and agree** | Find the right person or request, talk by tag, agree a price and the kind of deal | [02](02-deal-link.md), [03](03-direct-offers.md), [13](13-portable-reputation.md), [16](16-feedback-and-location.md), [17](17-one-market.md) | Live on testnet; shortlist, location and messages built, not deployed |
+| **T1 Find and agree** | Find the right person or request, talk by tag, agree a price and the kind of deal | [02](02-deal-link.md), [03](03-direct-offers.md), [13](13-portable-reputation.md), [16](16-feedback-and-location.md), [17](17-one-market.md) | Live on testnet; shortlist, location, messages and one market built, not deployed |
 | **T2 Protected deals** | Money held until the work or goods arrive, checked delivery, fair disputes, one contract family for every kind of deal | [07](07-escrow.md), [09](09-trust-engine.md), [11](11-contracts.md), [12](12-cre.md), [14](14-threat-model.md) | Escrow live on testnet; contract family and delivery checks built, not deployed; mainnet escrow not enabled |
 | **T3 Reputation that travels** | A record of completed work, a rating, verification, and agents that can check it with consent | [06](06-record.md), [08](08-reputation.md), [13](13-portable-reputation.md), [15](15-outside-agents.md), [16](16-feedback-and-location.md) | Record and tiers live on testnet; record reads and ratings built, not deployed; partner platforms not contacted |
 | **T4 Trade finance** | Get paid early on a funded deal; finance a purchase order against the record | A view is written before further trade finance work | Built on testnet, not working end to end |

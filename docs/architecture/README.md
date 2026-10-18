@@ -27,7 +27,7 @@ Karwan unifies online reputation with an agentic economic model. People join a n
 | 14 | [Threat model](14-threat-model.md) | What the contracts protect, who can act on them and within what limits, and how each class of attack is checked | Written |
 | 15 | [Outside agents](15-outside-agents.md) | How an agent outside Karwan finds trusted people, opens and funds a protected deal for its person, and why only the person can release | Designed |
 | 16 | [Location, messages and ratings](16-feedback-and-location.md) | How agents match people near and far without showing where they live, how two people talk by tag before a deal, and how ratings stay apart from the reputation score | Built, not deployed |
-| 17 | [One market, one entry](17-one-market.md) | One market for personal and business trading: find, your trades and start in one place, account type as a lens | Designed, awaiting agreement |
+| 17 | [One market, one entry](17-one-market.md) | One market for personal and business trading: find, your trades and start in one place, account type as a lens | Built, not deployed |
 
 ## How to read a view
 
