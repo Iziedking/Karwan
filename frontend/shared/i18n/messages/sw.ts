@@ -2768,6 +2768,7 @@ export const sw: Messages = {
     amount: {
       label: 'Kiasi cha kuongeza',
       note: 'Imejazwa kutoka kwenye dili hili. Rekebisha kiasi kabla ya kuendelea.',
+      shortNote: 'Kinachohitajika bado kwa dili hili baada ya pesa iliyo tayari kwenye akaunti yako.',
       invalid: 'Weka kiasi kikubwa kuliko sufuri.',
     },
     wallet: {
@@ -3349,7 +3350,8 @@ export const sw: Messages = {
       requestedTitle: "Malipo ya mapema yameombwa",
       requestedBody: "Wafadhili wanaweza kuona oda hii na kutoa ofa. Hakuna kinachobadilika kwa mnunuzi.",
       withdraw: "Ondoa ombi",
-      offerLine: "{advance} USDC sasa, {repay} USDC hulipwa kutoka mpango huu",
+      offerNow: "{advance} USDC sasa",
+      offerRepay: "{repay} USDC hulipwa kutoka mpango huu",
       review: "Kagua",
       acceptTitle: "Pata {advance} USDC sasa",
       consequence: "Unapata {advance} USDC sasa. Mnunuzi anapotoa malipo, {repay} USDC za mpango huu huenda kwa mfadhili kwanza na kilichobaki huja kwako. Hili haliwezi kutenduliwa.",

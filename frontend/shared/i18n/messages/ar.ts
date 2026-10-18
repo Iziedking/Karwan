@@ -2771,6 +2771,7 @@ export const ar: Messages = {
     amount: {
       label: 'المبلغ المراد إضافته',
       note: 'معبأ مسبقًا من هذه الصفقة. عدّل المبلغ قبل المتابعة.',
+      shortNote: 'ما تحتاجه هذه الصفقة بعد المال الموجود في حسابك.',
       invalid: 'أدخل مبلغًا أكبر من صفر.',
     },
     wallet: {
@@ -3352,7 +3353,8 @@ export const ar: Messages = {
       requestedTitle: "تم طلب الدفع المبكر",
       requestedBody: "يمكن للممولين رؤية هذا الطلب وتقديم عروض. لا شيء يتغير للمشتري.",
       withdraw: "اسحب الطلب",
-      offerLine: "{advance} USDC الآن، و{repay} USDC تُسدَّد من هذه الصفقة",
+      offerNow: "{advance} USDC الآن",
+      offerRepay: "{repay} USDC تُسدَّد من هذه الصفقة",
       review: "مراجعة",
       acceptTitle: "احصل على {advance} USDC الآن",
       consequence: "تحصل على {advance} USDC الآن. عندما يفرج المشتري عن المبلغ، يذهب {repay} USDC من هذه الصفقة إلى الممول أولًا ويأتيك الباقي. لا يمكن التراجع عن ذلك.",

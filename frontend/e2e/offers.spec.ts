@@ -239,14 +239,15 @@ for (const theme of ['light', 'dark'] as const) {
       await topUp.click();
       await expect(page.getByRole('dialog')).toHaveCount(1);
       await expect(dialog.getByLabel(copy.fundAgentOptions.amount.label, { exact: true })).toHaveValue('5.01');
-      await expect(dialog.getByRole('button', { name: copy.fundAgentOptions.gateway.label, exact: true })).toBeVisible();
+      await expect(dialog.getByRole('radio', { name: copy.fundAgentOptions.chain.label, exact: true })).toBeVisible();
+      await expect(dialog.getByRole('radio', { name: copy.fundAgentOptions.wallet.label, exact: true })).toHaveAttribute('aria-checked', 'true');
       await expect(dialog).not.toContainText(/Gateway|\bpool\b|pooled|unified/i);
       await noProtocolWords(page);
       expect(world.acceptCalls()).toBe(1);
       expect(world.fundingCalls).toHaveLength(0);
       await expect(dialog.getByTestId('offer-top-up')).toBeVisible();
-      await captureTopUpScreen(page, testInfo, 'offer-chooser', { root: dialog, primary: 0, wholePagePrimary: 0 });
-      await dialog.getByRole('button', { name: copy.fundAgentOptions.wallet.label, exact: true }).click();
+      await captureTopUpScreen(page, testInfo, 'offer-chooser', { root: dialog, primary: 1, wholePagePrimary: 1 });
+      await dialog.getByRole('radio', { name: copy.fundAgentOptions.wallet.label, exact: true }).click();
       const fund = dialog.getByRole('button', { name: copy.gatewayTopUp.fundPool, exact: true });
       await checkTopUpKeyboardFocus(page, fund, testInfo, 'offer-fund');
       await captureTopUpScreen(page, testInfo, 'offer-funding-ready', { root: dialog, primary: 1, wholePagePrimary: 1 });
@@ -259,8 +260,8 @@ for (const theme of ['light', 'dark'] as const) {
         await expect(dialog.getByRole('button', { name: copy.offers.cancel, exact: true })).toBeDisabled();
         const chooser = dialog.getByTestId('offer-top-up');
         await expect(chooser.getByLabel(copy.fundAgentOptions.amount.label, { exact: true })).toBeDisabled();
-        const routes = chooser.locator('button[aria-pressed]');
-        await expect(routes).toHaveCount(4);
+        const routes = chooser.locator('[role="radio"]');
+        await expect(routes).toHaveCount(3);
         for (const route of await routes.all()) await expect(route).toBeDisabled();
         await page.keyboard.press('Escape');
         await expect(dialog).toBeVisible();
@@ -330,7 +331,7 @@ for (const appearance of [{ theme: 'light', locale: 'en' }, { theme: 'dark', loc
     await dialog.getByRole('button', { name: acceptName, exact: true }).click();
     await dialog.getByRole('button', { name: copy.offers.topUpCta.replace('{amount}', '5.01'), exact: true }).click();
     const chooser = dialog.getByTestId('offer-top-up');
-    await chooser.getByRole('button', { name: copy.fundAgentOptions.wallet.label, exact: true }).click();
+    await chooser.getByRole('radio', { name: copy.fundAgentOptions.wallet.label, exact: true }).click();
     const retry = chooser.getByRole('button', { name: copy.gatewayTopUp.fundPool, exact: true });
     await retry.click();
     await expect(chooser.getByText(copy.chainErrors.generic, { exact: true })).toBeVisible();
@@ -340,7 +341,7 @@ for (const appearance of [{ theme: 'light', locale: 'en' }, { theme: 'dark', loc
     await expect(dialog.getByRole('button', { name: copy.offers.cancel, exact: true })).toBeEnabled();
     await expect(chooser.getByLabel(copy.fundAgentOptions.amount.label, { exact: true })).toBeEnabled();
     await expect(chooser.getByLabel(copy.fundAgentOptions.amount.label, { exact: true })).toHaveValue('5.01');
-    for (const route of await chooser.locator('button[aria-pressed]').all()) await expect(route).toBeEnabled();
+    for (const route of await chooser.locator('[role="radio"]').all()) await expect(route).toBeEnabled();
     await expect(dialog.getByRole('button', { name: acceptName, exact: true })).toHaveCount(0);
     expect(world.fundingCalls).toHaveLength(1);
     expect(world.acceptCalls()).toBe(1);

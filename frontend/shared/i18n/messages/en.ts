@@ -2535,7 +2535,7 @@ interface MessagesShape {
   };
   fundAgentOptions: {
     eyebrow: string;
-    amount: { label: string; note: string; invalid: string };
+    amount: { label: string; note: string; shortNote: string; invalid: string };
     wallet: { label: string; tooltip: string; web3Note: string };
     otherAgent: { labelSeller: string; labelBuyer: string; tooltip: string };
     gateway: { label: string; tooltip: string; fundCta: string; noRecipient: string };
@@ -3091,7 +3091,8 @@ interface MessagesShape {
       requestedTitle: string;
       requestedBody: string;
       withdraw: string;
-      offerLine: string;
+      offerNow: string;
+      offerRepay: string;
       review: string;
       acceptTitle: string;
       consequence: string;
@@ -8195,6 +8196,7 @@ export const en: MessagesShape = {
     amount: {
       label: 'Amount to add',
       note: 'Prefilled from this deal. Adjust the amount before continuing.',
+      shortNote: 'What this deal still needs after the money already in your account.',
       invalid: 'Enter an amount greater than zero.',
     },
     wallet: {
@@ -8788,7 +8790,8 @@ export const en: MessagesShape = {
       requestedTitle: "Early payment requested",
       requestedBody: "Financiers can see this order and make offers. Nothing changes for the buyer.",
       withdraw: "Withdraw request",
-      offerLine: "{advance} USDC now, {repay} USDC repaid from this deal",
+      offerNow: "{advance} USDC now",
+      offerRepay: "{repay} USDC repaid from this deal",
       review: "Review",
       acceptTitle: "Get {advance} USDC now",
       consequence: "You get {advance} USDC now. When the buyer releases, {repay} USDC of this deal goes to the financier first and the rest comes to you. This cannot be undone.",

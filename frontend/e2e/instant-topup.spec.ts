@@ -310,20 +310,22 @@ test('deal recovery keeps the outer confirmation locked until child funding fini
   await confirm.click();
   await expect(dialog.getByRole('alert')).toHaveText(copy.directDealDetail.errors.insufficientBalanceTitle);
   const chooser = dialog.getByTestId('deal-funding-recovery');
-  await expect(chooser.getByLabel(copy.fundAgentOptions.amount.label, { exact: true })).toHaveValue('1209');
-  await captureTopUpScreen(page, testInfo, 'deal-funding-chooser', { root: dialog, primary: 0, wholePagePrimary: 0 });
-  await chooser.getByRole('button', { name: copy.fundAgentOptions.wallet.label, exact: true }).click();
+  // The buyer agent already holds 91.72, so only the shortfall is asked for.
+  await expect(chooser.getByLabel(copy.fundAgentOptions.amount.label, { exact: true })).toHaveValue('1117.28');
+  await expect(chooser.getByRole('radio', { name: copy.fundAgentOptions.wallet.label, exact: true })).toHaveAttribute('aria-checked', 'true');
+  await captureTopUpScreen(page, testInfo, 'deal-funding-chooser', { root: dialog, primary: 1, wholePagePrimary: 1 });
+  await chooser.getByRole('radio', { name: copy.fundAgentOptions.wallet.label, exact: true }).click();
   await captureTopUpScreen(page, testInfo, 'deal-funding-ready', { root: dialog, primary: 1, wholePagePrimary: 1 });
   try {
     await chooser.getByRole('button', { name: copy.gatewayTopUp.fundPool, exact: true }).click();
     await expect.poll(() => world.fundCalls.length).toBe(1);
-    expect(world.fundCalls[0]).toMatchObject({ agent: 'buyer', amountUsdc: 1209 });
+    expect(world.fundCalls[0]).toMatchObject({ agent: 'buyer', amountUsdc: 1117.28 });
     expect(world.fundCalls[0].requestId).toBeTruthy();
     await expect(chooser.getByRole('button', { name: copy.gatewayTopUp.moving, exact: true })).toBeDisabled();
     await expect(confirm).toBeDisabled();
     await expect(dialog.getByRole('button', { name: copy.dealWorkspace.confirm.cancel, exact: true })).toBeDisabled();
     await expect(chooser.getByLabel(copy.fundAgentOptions.amount.label, { exact: true })).toBeDisabled();
-    for (const route of await chooser.locator('button[aria-pressed]').all()) await expect(route).toBeDisabled();
+    for (const route of await chooser.locator('[role="radio"]').all()) await expect(route).toBeDisabled();
     await page.keyboard.press('Escape');
     await expect(dialog).toBeVisible();
     const panel = await dialog.boundingBox();

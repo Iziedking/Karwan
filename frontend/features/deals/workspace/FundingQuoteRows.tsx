@@ -3,6 +3,7 @@ import Link from 'next/link';
 import type { DirectDealFundingQuote } from '@/core/api';
 import { FundAgentOptions } from '@/features/deposit/components/FundAgentOptions';
 import { useActivation } from '@/shared/hooks/useActivation';
+import { useMoneyBalances } from '@/features/money/hooks/useMoneyBalances';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { formatFeeRate } from '../fundingPresentation';
@@ -12,7 +13,7 @@ function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-3 border-t border-[var(--line)] py-2 first:border-t-0 first:pt-0">
       <span className="text-[14px] text-[var(--ink-secondary)] font-medium">{label}</span>
-      <span className="mono tabular-nums text-[14px] font-medium text-[var(--ink)]">{value}</span>
+      <span className="tabular-nums text-[14px] font-medium text-[var(--ink)]">{value}</span>
     </div>
   );
 }
@@ -34,6 +35,7 @@ export function FundingQuoteRows({ quote, errorCode, viewerIsBuyer, onFunded, on
   const auth = useAuth();
   const { agents } = useActivation();
   const buyerAgent = agents?.buyer ?? null;
+  const money = useMoneyBalances();
 
   return (
     <div>
@@ -57,6 +59,7 @@ export function FundingQuoteRows({ quote, errorCode, viewerIsBuyer, onFunded, on
                 recipient={buyerAgent}
                 otherAgentAddress={agents?.seller ?? null}
                 amountUsdc={quote ? Number(quote.fundedAmountUsdc) : 0}
+                inPlaceUsdc={money.buyer}
                 circleAccount={auth.method === 'circle'}
                 onFunded={onFunded}
                 onBusyChange={onBusyChange}

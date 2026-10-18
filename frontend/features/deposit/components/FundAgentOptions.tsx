@@ -1,28 +1,25 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type KeyboardEvent } from 'react';
 import { api } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { Hint } from '@/shared/components/Hint';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { cn } from '@/shared/utils/cn';
 import { Icon } from '@/shared/components/Icon';
 import { FundAgentFromBalance } from './FundAgentFromBalance';
 import { FundAgentFromWallet } from './FundAgentFromWallet';
 import { TopUpFromGateway } from '@/features/gateway/TopUpFromGateway';
+import { useMoneyBalances } from '@/features/money/hooks/useMoneyBalances';
+import { defaultFundRoute, fundingShortfall, type FundSource } from '../fundingPlan';
 
-/// Where the money comes from, as a choice.
+/// Where the money comes from, as a choice already made.
 ///
-/// The agent being short of USDC used to pick a route FOR the user: the Circle
-/// path for an email account, the pooled path for a web3 account, and a link to
-/// the bridge for everyone else. One route, no explanation, and no way to reach
-/// the money that was sitting somewhere else.
-///
-/// A bank asks which account to pay from. So does this: four routes, each an
-/// icon and a short label with its explanation a tap away, and the action for
-/// the chosen one appears underneath. Nothing here moves money on its own; each
-/// route is the component that already owns that movement, including its own
-/// balance check and its own error.
-export type FundRoute = 'wallet' | 'otherAgent' | 'gateway' | 'chain';
+/// A bank asks which account to pay from and suggests one. So does this: the
+/// amount is what the deal still needs, the sources are one list with their
+/// balances and a line saying what each does, and the first source that covers
+/// the amount is picked, so its action is the one obvious next step. Nothing
+/// here moves money on its own; each source is the component that already owns
+/// that movement, including its own balance check and its own error.
+export type FundRoute = FundSource;
 
 export function FundAgentOptions({
   /// The agent that needs the money.
@@ -34,6 +31,9 @@ export function FundAgentOptions({
   /// The agent wallet the money has to land in, for the agent-to-agent move.
   recipient,
   amountUsdc,
+  /// What the paying agent already holds. Given, the amount asked for is only
+  /// the shortfall.
+  inPlaceUsdc,
   /// True for a Circle (email) account: the identity wallet holds the balance
   /// and the backend signs, so funding from it is one press and no chain switch.
   circleAccount,
@@ -44,13 +44,17 @@ export function FundAgentOptions({
   otherAgentAddress?: string | null;
   recipient?: string | null;
   amountUsdc: number;
+  inPlaceUsdc?: number | null;
   circleAccount: boolean;
   onFunded?: () => void;
   onBusyChange?: (busy: boolean) => void;
 }) {
   const copy = useTranslations().fundAgentOptions;
-  const [route, setRoute] = useState<FundRoute | null>(null);
-  const [amountInput, setAmountInput] = useState(() => String(amountUsdc));
+  const { locale } = useLocale();
+  const money = useMoneyBalances();
+  const needed = inPlaceUsdc === undefined ? amountUsdc : fundingShortfall(amountUsdc, inPlaceUsdc);
+  const [chosen, setChosen] = useState<FundRoute | null>(null);
+  const [amountInput, setAmountInput] = useState(() => String(needed));
   const [fundingBusy, setFundingBusy] = useState(false);
   const reportBusy = useCallback((busy: boolean) => {
     setFundingBusy(busy);
@@ -58,34 +62,41 @@ export function FundAgentOptions({
   }, [onBusyChange]);
 
   useEffect(() => {
-    setAmountInput(String(amountUsdc));
-  }, [amountUsdc]);
+    setAmountInput(String(needed));
+  }, [needed]);
 
   const parsedAmount = Number(amountInput);
   const validAmount = Number.isFinite(parsedAmount) && parsedAmount > 0;
   const fundingAmount = validAmount ? parsedAmount : 0;
+  const hasOtherAgent = !!(otherAgentAddress && recipient);
+  const otherAgentBalance = hasOtherAgent ? (agent === 'buyer' ? money.seller : money.buyer) : null;
+  const route = chosen ?? defaultFundRoute(fundingAmount, { wallet: money.balance, otherAgent: otherAgentBalance });
+  const usdc = (value: number | null) => (value === null ? null : `${value.toLocaleString(locale, { maximumFractionDigits: 2 })} USDC`);
 
-  const routes: Array<{ id: FundRoute; label: string; tooltip: string }> = [
-    { id: 'wallet', label: copy.wallet.label, tooltip: copy.wallet.tooltip },
-    ...(otherAgentAddress && recipient
-      ? [
-          {
-            id: 'otherAgent' as const,
-            label: agent === 'buyer' ? copy.otherAgent.labelSeller : copy.otherAgent.labelBuyer,
-            tooltip: copy.otherAgent.tooltip,
-          },
-        ]
+  const routes: Array<{ id: FundRoute; label: string; detail: string; balance: string | null }> = [
+    { id: 'wallet', label: copy.wallet.label, detail: copy.wallet.tooltip, balance: usdc(money.balance) },
+    ...(hasOtherAgent
+      ? [{
+          id: 'otherAgent' as const,
+          label: agent === 'buyer' ? copy.otherAgent.labelSeller : copy.otherAgent.labelBuyer,
+          detail: copy.otherAgent.tooltip,
+          balance: usdc(otherAgentBalance),
+        }]
       : []),
-    { id: 'gateway', label: copy.gateway.label, tooltip: copy.gateway.tooltip },
-    { id: 'chain', label: copy.chain.label, tooltip: copy.chain.tooltip },
+    { id: 'chain', label: copy.chain.label, detail: copy.chain.tooltip, balance: null },
   ];
 
-  return (
-    <div className="space-y-3">
-      <p className="text-[14px] text-[var(--ink-secondary)] font-medium">
-        {copy.eyebrow}
-      </p>
+  function onArrow(event: KeyboardEvent<HTMLButtonElement>, index: number) {
+    if (!['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+    event.preventDefault();
+    const step = event.key === 'ArrowDown' || event.key === 'ArrowRight' ? 1 : -1;
+    const next = routes[(index + step + routes.length) % routes.length]!;
+    setChosen(next.id);
+    document.getElementById(`fund-route-${agent}-${next.id}`)?.focus();
+  }
 
+  return (
+    <div className="space-y-4">
       <div className="space-y-1.5">
         <label
           htmlFor={`fund-agent-amount-${agent}`}
@@ -113,7 +124,7 @@ export function FundAgentOptions({
           </span>
         </div>
         <p id={`fund-agent-amount-note-${agent}`} className="text-[14px] leading-snug text-[var(--ink-secondary)] font-medium">
-          {copy.amount.note}
+          {inPlaceUsdc === undefined ? copy.amount.note : copy.amount.shortNote}
         </p>
         {amountInput.trim() !== '' && !validAmount && (
           <p className="text-[14px] leading-snug text-[var(--color-critical)]">
@@ -122,36 +133,54 @@ export function FundAgentOptions({
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        {routes.map((option) => {
-          const active = route === option.id;
-          return (
-            <div key={option.id} className="relative">
+      <div className="space-y-2">
+        <p id={`fund-from-${agent}`} className="text-[14px] font-medium text-[var(--ink)]">
+          {copy.eyebrow}
+        </p>
+        <div role="radiogroup" aria-labelledby={`fund-from-${agent}`} className="divide-y divide-[var(--line)] overflow-hidden rounded-[14px] border border-[var(--line)]">
+          {routes.map((option, index) => {
+            const active = route === option.id;
+            return (
               <button
+                key={option.id}
+                id={`fund-route-${agent}-${option.id}`}
                 type="button"
-                onClick={() => setRoute(active ? null : option.id)}
-                disabled={fundingBusy}
-                aria-pressed={active}
+                role="radio"
+                aria-checked={active}
+                aria-labelledby={`fund-route-${agent}-${option.id}-label`}
+                aria-describedby={`fund-route-${agent}-${option.id}-detail`}
+                tabIndex={active ? 0 : -1}
+                onClick={() => { if (!fundingBusy) setChosen(option.id); }}
+                onKeyDown={(event) => { if (!fundingBusy) onArrow(event, index); }}
+                /* aria-disabled, not disabled: while money moves the chosen source
+                   stays focusable, so the sheet never has nothing to focus. */
+                aria-disabled={fundingBusy}
                 className={cn(
-                  'flex min-h-12 w-full items-center rounded-full py-3 ps-4 pe-12 text-start text-[14px] font-medium transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]',
-                  active
-                    ? 'bg-[var(--ink)] text-[var(--canvas)]'
-                    : 'bg-[var(--tint)] text-[var(--ink)] hover:bg-[var(--line)]',
+                  'flex w-full items-start gap-3 px-4 py-3 text-start transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none aria-disabled:opacity-60',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--action)]',
+                  active ? 'bg-[var(--tint)]' : 'hover:bg-[var(--tint)]',
                 )}
               >
-                {option.label}
+                <span
+                  aria-hidden
+                  className={cn(
+                    'mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border-2',
+                    active ? 'border-[var(--ink)]' : 'border-[var(--line)]',
+                  )}
+                >
+                  {active ? <span className="size-2.5 rounded-full bg-[var(--ink)]" /> : null}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-baseline justify-between gap-3">
+                    <span id={`fund-route-${agent}-${option.id}-label`} className="text-[15px] font-medium text-[var(--ink)]">{option.label}</span>
+                    {option.balance ? <span className="shrink-0 text-[14px] font-medium tabular-nums text-[var(--ink-secondary)]">{option.balance}</span> : null}
+                  </span>
+                  <span id={`fund-route-${agent}-${option.id}-detail`} className="mt-0.5 block text-[14px] leading-snug text-[var(--ink-secondary)]">{option.detail}</span>
+                </span>
               </button>
-              {/* The explanation, one tap away, out of the button so pressing it
-                  chooses the route rather than opening the tooltip. */}
-              <span className="absolute end-2 top-1/2 -translate-y-1/2">
-                <Hint side="bottom" align="end">
-                  {option.tooltip}
-                </Hint>
-              </span>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
       {route === 'wallet' && circleAccount && validAmount && (
@@ -166,6 +195,11 @@ export function FundAgentOptions({
           onBusyChange={reportBusy}
         />
       )}
+      {/* The Circle path is the only one that needs no wallet at all, so say so
+          once, under the action it applies to. */}
+      {!circleAccount && route === 'wallet' && (
+        <p className="text-[14px] leading-snug text-[var(--ink-secondary)] font-medium">{copy.wallet.web3Note}</p>
+      )}
       {route === 'otherAgent' && otherAgentAddress && recipient && validAmount && (
         <MoveFromOtherAgent
           from={agent === 'buyer' ? 'seller' : 'buyer'}
@@ -175,24 +209,11 @@ export function FundAgentOptions({
           onBusyChange={reportBusy}
         />
       )}
-      {route === 'gateway' && recipient && validAmount && (
+      {route === 'chain' && recipient && validAmount && (
         <TopUpFromGateway recipient={recipient} amount={fundingAmount} onFunded={onFunded} onBusyChange={reportBusy} primary />
-      )}
-      {route === 'gateway' && !recipient && (
-        <FundGatewayCallout
-          label={copy.gateway.fundCta}
-          note={copy.gateway.noRecipient}
-          rail="gateway"
-        />
       )}
       {route === 'chain' && (
         <FundGatewayCallout label={copy.chain.cta} note={copy.chain.note} rail="cctp" />
-      )}
-
-      {/* The Circle path is the only one that needs no wallet at all, so say so
-          once rather than repeating it in four tooltips. */}
-      {!circleAccount && route === 'wallet' && (
-        <p className="text-[14px] leading-snug text-[var(--ink-secondary)] font-medium">{copy.wallet.web3Note}</p>
       )}
     </div>
   );

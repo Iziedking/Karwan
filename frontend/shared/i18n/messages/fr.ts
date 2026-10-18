@@ -2771,6 +2771,7 @@ export const fr: Messages = {
     amount: {
       label: 'Montant à ajouter',
       note: 'Prérempli depuis cette transaction. Ajustez le montant avant de continuer.',
+      shortNote: 'Ce qu’il manque à cette transaction, après l’argent déjà sur votre compte.',
       invalid: 'Saisissez un montant supérieur à zéro.',
     },
     wallet: {
@@ -3352,7 +3353,8 @@ export const fr: Messages = {
       requestedTitle: "Paiement anticipé demandé",
       requestedBody: "Les financeurs voient cette commande et peuvent faire des offres. Rien ne change pour l’acheteur.",
       withdraw: "Retirer la demande",
-      offerLine: "{advance} USDC maintenant, {repay} USDC remboursés sur cette transaction",
+      offerNow: "{advance} USDC maintenant",
+      offerRepay: "{repay} USDC remboursés sur cette transaction",
       review: "Examiner",
       acceptTitle: "Recevoir {advance} USDC maintenant",
       consequence: "Vous recevez {advance} USDC maintenant. Quand l’acheteur libère les fonds, {repay} USDC de cette transaction vont d’abord au financeur et le reste vous revient. C’est irréversible.",

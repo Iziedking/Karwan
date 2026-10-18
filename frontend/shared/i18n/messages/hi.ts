@@ -2769,6 +2769,7 @@ export const hi: Messages = {
     amount: {
       label: 'जोड़ने की राशि',
       note: 'इस सौदे से पहले से भरा है। आगे बढ़ने से पहले राशि बदलें।',
+      shortNote: 'आपके खाते में पहले से मौजूद पैसे के बाद इस सौदे को जितना और चाहिए।',
       invalid: 'शून्य से अधिक राशि दर्ज करें।',
     },
     wallet: {
@@ -3350,7 +3351,8 @@ export const hi: Messages = {
       requestedTitle: "जल्दी भुगतान का अनुरोध भेजा गया",
       requestedBody: "फाइनेंसर इस ऑर्डर को देख सकते हैं और ऑफ़र दे सकते हैं। खरीदार के लिए कुछ नहीं बदलता।",
       withdraw: "अनुरोध वापस लें",
-      offerLine: "अभी {advance} USDC, इस डील से {repay} USDC चुकाए जाएंगे",
+      offerNow: "अभी {advance} USDC",
+      offerRepay: "इस डील से {repay} USDC चुकाए जाएंगे",
       review: "देखें",
       acceptTitle: "अभी {advance} USDC पाएं",
       consequence: "आपको अभी {advance} USDC मिलते हैं। जब खरीदार राशि जारी करता है, तो इस डील के {repay} USDC पहले फाइनेंसर को जाते हैं और बाकी आपको। इसे वापस नहीं लिया जा सकता।",
