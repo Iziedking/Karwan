@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/core/api';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
@@ -34,9 +35,9 @@ export function AttestedDeals({ address, downloadable = false }: { address: stri
               {r.removed ? (
                 <span className="text-[14px] font-medium text-[var(--lp-text-sub)]">{copy.removed}</span>
               ) : (
-                <a href={r.href} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--lp-dark)] underline underline-offset-4">
+                <Link href={r.href} className="inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--lp-dark)] underline underline-offset-4">
                   {copy.check}
-                </a>
+                </Link>
               )}
             </li>
           ))}

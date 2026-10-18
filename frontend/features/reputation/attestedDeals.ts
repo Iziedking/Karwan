@@ -25,7 +25,7 @@ export function attestedRows(list: readonly AttestedDeal[], copy: AttestedDealsC
       ]
         .filter(Boolean)
         .join(' · '),
-      href: `/attestations/${encodeURIComponent(d.id)}/vc`,
+      href: `/attested/${encodeURIComponent(d.id)}`,
       removed: !!d.revokedAt,
     }));
 }

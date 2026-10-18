@@ -36,7 +36,7 @@ export function isPublicEditorialRoute(pathname: string | null | undefined): boo
  */
 export function isPublicDiscoveryRoute(pathname: string | null | undefined): boolean {
   if (!pathname) return false;
-  return ['/market', '/listings', '/credit-passport'].some((route) => matchesRoute(pathname, route));
+  return ['/market', '/listings', '/credit-passport', '/attested'].some((route) => matchesRoute(pathname, route));
 }
 
 /**
@@ -154,6 +154,7 @@ const DEAL_ROUTES = [
   '/legacy',
   '/business',
   '/credit-passport',
+  '/attested',
   '/x402',
   '/profile/open-deals',
   '/profile/agent-funds',

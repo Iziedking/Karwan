@@ -705,6 +705,13 @@ export interface AttestedDeal {
   revokedAt?: string;
 }
 
+/// One attested deal as Karwan publishes it, with who signed it and when.
+export interface AttestedDealDocument extends AttestedDeal {
+  issuer: { name: string; domain: string; address: string };
+  issuedAt: string;
+  proof?: { signature: string };
+}
+
 /// A settled deal as the public feed publishes it: a value band, a time, and
 /// whether an agent found the match. Older servers leave `origin` out.
 export interface PublicFeedDeal {
@@ -4114,6 +4121,11 @@ export const api = {
   /// Removes every public statement about the signed-in person's deals.
   removeMyAttestations: () => json<{ revoked: number }>('/api/me/attestations/revoke', { method: 'POST', body: '{}' }),
   /// Public deal statements about one address, served by the site itself.
+  attestation: async (id: string): Promise<AttestedDealDocument> => {
+    const res = await fetch(`/attestations/${encodeURIComponent(id)}`, { credentials: 'omit' });
+    if (!res.ok) throw new ApiError(res.status, `HTTP ${res.status}`);
+    return (await res.json()) as AttestedDealDocument;
+  },
   attestationsFor: async (address: string): Promise<{ count: number; attestations: AttestedDeal[] }> => {
     const res = await fetch(`/attestations/by-subject/${address.toLowerCase()}.json`, { credentials: 'omit' });
     if (!res.ok) throw new ApiError(res.status, `HTTP ${res.status}`);

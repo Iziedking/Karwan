@@ -6,6 +6,7 @@ import { reasonLabels } from '../sealed';
 import { TIER_LABEL, tierBg, tierInk } from '../tierColors';
 import { CreditPassport } from './CreditPassport';
 import { AttestedDeals } from './AttestedDeals';
+import { BackButton } from '@/shared/components/BackButton';
 
 export function PublicPassport({ address }: { address: string }) {
   const t = useTranslations();
@@ -26,7 +27,10 @@ export function PublicPassport({ address }: { address: string }) {
     : null;
 
   return (
-    <article className="mx-auto max-w-[720px] px-4 py-10">
+    <article className="mx-auto max-w-[720px] px-4 py-6 sm:py-10">
+      <div className="-ms-2 mb-4">
+        <BackButton tone="adaptive" showOnPublic fallbackHref="/market" />
+      </div>
       <h1 className="text-[28px] font-semibold text-[var(--lp-dark)]">{name}</h1>
       {sealed.tag && sealed.displayName ? (
         <p className="mt-1 text-[15px] text-[var(--lp-text-sub)]">@{sealed.tag}</p>

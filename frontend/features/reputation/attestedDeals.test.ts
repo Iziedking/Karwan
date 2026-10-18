@@ -16,7 +16,7 @@ test('rows read date, role and band, newest first, and link to the W3C copy', ()
   assert.deepEqual(rows.map((r) => r.id), ['x2', 'x1']);
   assert.match(rows[0]!.line, /As buyer · Under 100 USDC$/);
   assert.match(rows[1]!.line, /As seller · 100 to 1,000 USDC$/);
-  assert.equal(rows[0]!.href, '/attestations/x2/vc');
+  assert.equal(rows[0]!.href, '/attested/x2');
   assert.equal(rows[0]!.removed, false);
 });
 
