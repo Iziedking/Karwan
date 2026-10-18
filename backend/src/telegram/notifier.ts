@@ -779,7 +779,11 @@ ${String(e.payload?.note ?? '').replace(/[*_`[\]]/g, '').slice(0, 300)}`, url)
         url,
       );
     case 'rating.requested':
-    case 'rating.reminder':
+    case 'rating.reminder': {
+      // Straight to the rating on the deal page, not the top of an ended deal.
+      const url = dealUrl(e.payload?.dealId as string | undefined);
+      return withLink(String(e.payload?.text ?? ''), url ? `${url}#rate` : null);
+    }
     case 'rating.revealed':
       return withLink(String(e.payload?.text ?? ''), dealUrl(e.payload?.dealId as string | undefined));
     case 'support.reply': {

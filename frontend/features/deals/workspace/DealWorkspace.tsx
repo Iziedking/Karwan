@@ -18,6 +18,7 @@ import { V3EscrowPanel } from '../v3/V3EscrowPanel';
 import { HighSignalVerificationCard } from '../components/HighSignalVerificationCard';
 import { ProtectionSection } from './ProtectionSection';
 import { GetPaidNow } from './GetPaidNow';
+import { RatingCard } from '@/features/ratings/RatingCard';
 
 const SOFT = 'bg-[var(--lp-workspace-soft)] motion-safe:animate-pulse motion-reduce:animate-none rounded-[10px]';
 
@@ -156,6 +157,11 @@ export function DealWorkspace({ jobId }: { jobId: string }) {
         viewerIsSeller={!!address && deal.seller.toLowerCase() === address.toLowerCase()}
         onChanged={() => { void refresh(); }}
       />
+      {deal.settledAt && address && [deal.buyer, deal.seller].some((p) => p.toLowerCase() === address.toLowerCase()) ? (
+        <section id="rate" className="mt-8 scroll-mt-24 empty:hidden">
+          <RatingCard jobId={deal.jobId} />
+        </section>
+      ) : null}
       <ProtectionSection deal={deal} viewerIsBuyer={actions.viewerIsBuyer} />
       <div className="mt-6 empty:hidden">
         <V3EscrowPanel deal={deal} address={address} onChanged={() => { void refresh(); }} />

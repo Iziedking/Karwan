@@ -34,6 +34,9 @@ export interface AskerDeps {
 
 const DAY = 24 * 60 * 60 * 1000;
 const REMIND_AFTER = 3 * DAY;
+/// First asks go out only this soon after settling, so turning ratings on, or a
+/// restart, never floods people about deals from days ago.
+const ASK_WITHIN = 3 * DAY;
 /// A day past the reveal, so a lone rating's reveal is still announced.
 const WINDOW = REVEAL_AFTER_MS + DAY;
 
@@ -62,11 +65,11 @@ export function createRatingAsker(deps: AskerDeps) {
     };
     let changed = false;
 
-    if (!state.askedAt) {
+    if (!state.askedAt && now - deal.settledAt <= ASK_WITHIN) {
       for (const p of parties) if (!rated.has(p)) await tell('requested', p);
       state.askedAt = now;
       changed = true;
-    } else if (!state.remindedAt && rated.size < 2 && now - deal.settledAt >= REMIND_AFTER && now - state.askedAt >= REMIND_AFTER) {
+    } else if (state.askedAt !== undefined && !state.remindedAt && rated.size < 2 && now - deal.settledAt >= REMIND_AFTER && now - state.askedAt >= REMIND_AFTER) {
       for (const p of parties) if (!rated.has(p)) await tell('reminder', p);
       state.remindedAt = now;
       changed = true;

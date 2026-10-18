@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 process.env.NODE_ENV = 'test';
+process.env.FRONTEND_BASE_URL = 'https://testnet.karwan.site';
 const { recipientsFor, summaryFor, RELEVANT } = await import('./notifier.js');
 const { contentFor } = await import('../emails/dealNotifier.js');
 
@@ -26,4 +27,9 @@ test('the rating email asks the same question and opens the deal', () => {
   const mail = contentFor(ask, 'self', 'service');
   assert.equal(mail?.subject, 'How did your deal with @ada go?');
   assert.match(mail?.body ?? '', /Rate it 1 to 5/);
+});
+
+test('a rating ask opens the rating on the deal, not just the ended deal', () => {
+  assert.equal(summaryFor(ask, 'self')?.url, 'https://testnet.karwan.site/deals/0xdeal#rate');
+  assert.equal(summaryFor({ ...ask, type: 'rating.reminder' as const }, 'self')?.url, 'https://testnet.karwan.site/deals/0xdeal#rate');
 });

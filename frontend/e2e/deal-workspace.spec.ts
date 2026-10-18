@@ -242,3 +242,11 @@ test('the buyer never sees the seller’s early payment', async ({ page }) => {
   await page.goto(`/deals/${JOB}`);
   await expect(page.getByRole('heading', { name: en.dealWorkspace.getPaid.requestedTitle })).toHaveCount(0);
 });
+
+test('a rating link opens the rating on a settled deal', async ({ page }) => {
+  await serveDeal(page, { ...deliveredDeal, settledAt: Date.UTC(2026, 9, 18) } as DirectDeal, BUYER);
+  await page.route(`${API}/api/deals/${JOB}/rating`, (route) => route.fulfill({ json: { rated: false } }));
+  await page.goto(`/deals/${JOB}#rate`);
+  await expect(page.locator('#rate').getByRole('heading', { name: 'Rate this deal' })).toBeVisible();
+  await expect(page.locator('#rate').getByRole('radio')).toHaveCount(5);
+});

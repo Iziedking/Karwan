@@ -87,3 +87,10 @@ test('after 14 days a single rating shows, and only the person rated is told', a
   await s.asker.sweep();
   assert.deepEqual(s.sent.filter((n) => n.kind === 'revealed').map((n) => n.address), ['0xs']);
 });
+
+test('a deal settled more than three days before the first sweep is never newly asked, so a launch or restart floods no one', async () => {
+  const s = setup();
+  s.advance(4 * DAY);
+  await s.asker.sweep();
+  assert.deepEqual(s.sent.filter((n) => n.kind === 'requested'), []);
+});
