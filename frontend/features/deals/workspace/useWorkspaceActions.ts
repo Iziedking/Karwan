@@ -52,7 +52,7 @@ export function useWorkspaceActions(
     const next = deal?.view?.next;
     if (!deal || !address || !next?.action) return;
     if ((HANDOFF as readonly string[]).includes(next.action)) {
-      window.location.assign(`/deals/${deal.jobId}?workspace=v1#deal-actions`);
+      window.location.assign(`/deals/${deal.jobId}?workspace=v1&handoff=1#deal-actions`);
       return;
     }
     const snapshot = snapshotDeal(deal);

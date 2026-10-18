@@ -51,7 +51,7 @@ test('attested deals show on the passport, each checkable, a removed one marked 
   await page.goto(`/credit-passport/${SUBJECT}`);
   await expect(page.getByRole('heading', { name: 'Settled deals, attested by Karwan' })).toBeVisible();
   await expect(page.getByText(/As seller · 100 to 1,000 USDC/)).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Check this' })).toHaveAttribute('href', '/attestations/att-new/vc');
+  await expect(page.getByRole('link', { name: 'Check this' })).toHaveAttribute('href', '/attested/att-new');
   await expect(page.getByText('Removed', { exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Download my attested deals' })).toHaveCount(0);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);

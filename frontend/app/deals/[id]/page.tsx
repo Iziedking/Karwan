@@ -11,8 +11,10 @@ export default async function DirectDealPage({
 }) {
   const { id } = await params;
   const query = await searchParams;
-  const forced = typeof query.workspace === 'string' ? `?workspace=${query.workspace}` : '';
-  return workspaceEnabled(process.env.NEXT_PUBLIC_DEAL_WORKSPACE_V2, forced)
+  const forced = new URLSearchParams(
+    Object.entries({ workspace: query.workspace, handoff: query.handoff }).filter((e): e is [string, string] => typeof e[1] === 'string'),
+  ).toString();
+  return workspaceEnabled(process.env.NEXT_PUBLIC_DEAL_WORKSPACE_V2, forced ? `?${forced}` : '')
     ? <DealWorkspace jobId={id} />
     : <DirectDealDetail jobId={id} />;
 }
