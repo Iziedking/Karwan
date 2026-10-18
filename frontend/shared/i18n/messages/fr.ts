@@ -3312,7 +3312,6 @@ export const fr: Messages = {
       paidTitle: "Payé en avance",
       paidBody: "Quand l’acheteur libère les fonds, l’escrow rembourse d’abord le financeur et vous verse le reste.",
       viewFinancing: "Voir le financement",
-      errWallet: "Connectez votre portefeuille pour accepter cette offre.",
       errAuthorization: "L’offre du financeur a expiré ou a été refusée. Demandez-lui d’en envoyer une nouvelle.",
       errReconcile: "Le paiement vous est parvenu. Acceptez encore une fois pour finaliser le reçu ; rien n’est payé deux fois.",
       errAlreadyAssigned: "Cette commande a déjà un financeur. Actualisez pour voir les offres.",

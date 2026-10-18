@@ -3309,7 +3309,6 @@ export const sw: Messages = {
       paidTitle: "Umelipwa mapema",
       paidBody: "Mnunuzi anapotoa malipo, escrow humlipa mfadhili kwanza na kukulipa kilichobaki.",
       viewFinancing: "Ona ufadhili",
-      errWallet: "Unganisha pochi yako ili kukubali ofa hii.",
       errAuthorization: "Ofa ya mfadhili imeisha muda au imekataliwa. Mwombe atume mpya.",
       errReconcile: "Malipo yamekufikia. Kubali mara moja zaidi ili kukamilisha risiti; hakuna kinacholipwa mara mbili.",
       errAlreadyAssigned: "Oda hii tayari ina mfadhili. Onyesha upya ili kuona ofa.",

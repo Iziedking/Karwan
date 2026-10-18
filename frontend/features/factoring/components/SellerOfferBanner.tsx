@@ -2,7 +2,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import Link from 'next/link';
-import { useWalletClient } from 'wagmi';
 import {
   api,
   ApiError,
@@ -10,7 +9,6 @@ import {
   type FactoringOffer,
   type FactoringQualification,
 } from '@/core/api';
-import { useAuth } from '@/shared/hooks/useAuth';
 import { formatUsdc } from '@/shared/utils/format';
 import { cn } from '@/shared/utils/cn';
 import { useDialog } from '@/shared/components/Dialog';
@@ -18,7 +16,7 @@ import {
   factoringOfferable,
   poFinancingOfferable,
 } from '@/shared/deals/financingEligibility';
-import { acceptErrorKind, acceptOfferOnChain, rawAcceptError, WalletNeededError, type AcceptErrorKind } from '../acceptOffer';
+import { acceptErrorKind, acceptOffer, rawAcceptError, type AcceptErrorKind } from '../acceptOffer';
 
 const ACCEPT_ERRORS: Record<AcceptErrorKind, string> = {
   authorization: 'The financier authorization was rejected or expired. Ask the financier to re-price the offer, then try again.',
@@ -322,8 +320,6 @@ function OffersModal({
   onClose: () => void;
   onAccepted: (offer: FactoringOffer) => void;
 }) {
-  const auth = useAuth();
-  const { data: walletClient } = useWalletClient();
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [qual, setQual] = useState<FactoringQualification | null>(null);
@@ -346,19 +342,13 @@ function OffersModal({
     };
   }, []);
 
-  const isCircleUser = auth.method === 'circle';
 
   async function accept(offer: FactoringOffer) {
     setAcceptingId(offer.id);
     setError(null);
     try {
-      onAccepted(await acceptOfferOnChain({ offer, isCircleUser, walletClient, address: auth.address }));
+      onAccepted(await acceptOffer(offer));
     } catch (e) {
-      if (e instanceof WalletNeededError) {
-        setError('Connect your wallet to accept this offer.');
-        setAcceptingId(null);
-        return;
-      }
       const raw = rawAcceptError(e);
       const kind = acceptErrorKind(raw);
       const friendly = kind ? ACCEPT_ERRORS[kind] : raw;

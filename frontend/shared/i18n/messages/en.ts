@@ -3051,7 +3051,6 @@ interface MessagesShape {
       paidTitle: string;
       paidBody: string;
       viewFinancing: string;
-      errWallet: string;
       errAuthorization: string;
       errReconcile: string;
       errAlreadyAssigned: string;
@@ -8701,7 +8700,6 @@ export const en: MessagesShape = {
       paidTitle: "Paid early",
       paidBody: "When the buyer releases, the escrow repays the financier first and pays you the rest.",
       viewFinancing: "See the financing",
-      errWallet: "Connect your wallet to accept this offer.",
       errAuthorization: "The financier’s offer expired or was rejected. Ask them to send a new one.",
       errReconcile: "The payment reached you. Accept once more to finish the receipt; nothing is paid twice.",
       errAlreadyAssigned: "This order already has a financier. Refresh to see the offers.",

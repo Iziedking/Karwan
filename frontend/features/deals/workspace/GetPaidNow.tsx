@@ -1,12 +1,10 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useWalletClient } from 'wagmi';
 import { ApiError, api, type DirectDeal, type FactoringOffer } from '@/core/api';
-import { useAuth } from '@/shared/hooks/useAuth';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { factoringOfferable } from '@/shared/deals/financingEligibility';
-import { acceptErrorKind, acceptOfferOnChain, rawAcceptError, WalletNeededError, type AcceptErrorKind } from '@/features/factoring/acceptOffer';
+import { acceptErrorKind, acceptOffer, rawAcceptError, type AcceptErrorKind } from '@/features/factoring/acceptOffer';
 import { fill, formatUsdcAmount } from './presentation';
 import { Sheet, fieldLabel, primaryButton, quietButton } from './Sheet';
 
@@ -16,8 +14,6 @@ import { Sheet, fieldLabel, primaryButton, quietButton } from './Sheet';
 export function GetPaidNow({ deal, viewerIsSeller, onChanged }: { deal: DirectDeal; viewerIsSeller: boolean; onChanged: () => void }) {
   const g = useTranslations().dealWorkspace.getPaid;
   const { locale } = useLocale();
-  const auth = useAuth();
-  const { data: walletClient } = useWalletClient();
   const eligible = factoringOfferable(deal, viewerIsSeller);
   const [requestedAt, setRequestedAt] = useState(deal.factoringRequestedAt);
   const [offers, setOffers] = useState<FactoringOffer[]>([]);
@@ -104,24 +100,20 @@ export function GetPaidNow({ deal, viewerIsSeller, onChanged }: { deal: DirectDe
     setBusy(true);
     setError(null);
     try {
-      await acceptOfferOnChain({ offer, isCircleUser: auth.method === 'circle', walletClient, address: auth.address });
+      await acceptOffer(offer);
       setReviewing(null);
       onChanged();
     } catch (e) {
-      if (e instanceof WalletNeededError) {
-        setError(g.errWallet);
-      } else {
-        const raw = rawAcceptError(e);
-        const kind = acceptErrorKind(raw);
-        const words: Record<AcceptErrorKind, string> = {
-          authorization: g.errAuthorization,
-          reconcile: g.errReconcile,
-          alreadyAssigned: g.errAlreadyAssigned,
-          windowClosed: g.errWindowClosed,
-          notAccepted: g.errNotAccepted,
-        };
-        setError(kind ? words[kind] : raw);
-      }
+      const raw = rawAcceptError(e);
+      const kind = acceptErrorKind(raw);
+      const words: Record<AcceptErrorKind, string> = {
+        authorization: g.errAuthorization,
+        reconcile: g.errReconcile,
+        alreadyAssigned: g.errAlreadyAssigned,
+        windowClosed: g.errWindowClosed,
+        notAccepted: g.errNotAccepted,
+      };
+      setError(kind ? words[kind] : raw);
     } finally {
       setBusy(false);
     }
