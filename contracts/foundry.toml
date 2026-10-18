@@ -69,5 +69,7 @@ bracket_spacing = false
 [rpc_endpoints]
 arc_testnet = "${ARC_TESTNET_RPC_URL}"
 
-[etherscan]
-arc_testnet = { key = "${ARCSCAN_API_KEY}", url = "https://testnet.arcscan.app/api" }
+# No [etherscan] entry for Arc: its explorers run Blockscout, which needs no key,
+# and an entry that names an unset variable makes `forge script --verify` fail
+# before it submits anything. Verify with
+#   --verifier blockscout --verifier-url https://explorer.testnet.arc.io/api/
