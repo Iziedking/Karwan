@@ -43,6 +43,9 @@ async function open(page: Page, account: Account, { locale = 'en', theme = 'ligh
   let settings: Record<string, unknown> = {};
   await page.context().addCookies([{ name: 'karwan-locale', value: locale, domain: '127.0.0.1', path: '/' }]);
   await page.addInitScript((value) => localStorage.setItem('karwan-theme', value), theme);
+  if (account === 'business') {
+    await page.addInitScript(([key, id]) => localStorage.setItem(key, id), [`karwan:active-workspace:${ME.toLowerCase()}`, business.id]);
+  }
   await serveSearch(page, { balances: funded });
   await page.route('**/*', async (route) => {
     const host = new URL(route.request().url()).hostname;

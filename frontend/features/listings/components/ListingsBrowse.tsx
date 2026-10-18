@@ -24,6 +24,7 @@ import { PageTour } from '@/shared/guide/PageTour';
 import { MARKET_BIZ_TOUR_ID, MARKET_TOUR_ID, buildMarketSteps } from '@/shared/guide/tours';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
+import { marketSectionPlan } from '@/features/market/marketSections';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 import { formatUsdc, relativeTime } from '@/shared/utils/format';
@@ -328,52 +329,16 @@ function buildSections(
   audience: DiscoveryAudience,
   copy: Messages['listingsBrowse'],
 ): MarketSection[] {
-  const personal = cards.filter((card) => discoveryRail(card) === 'personal');
-  const hiring = cards.filter((card) => discoveryRail(card) === 'hiring');
-  const business = cards.filter((card) => discoveryRail(card) === 'business');
-
-  if (audience === 'business') {
-    return [
-      {
-        key: 'b2b',
-        title: copy.sections.businessTitle,
-        note: copy.sections.businessNote,
-        cards: business,
-        variant: 'default',
-      },
-      {
-        key: 'hiring',
-        title: copy.sections.hiringTitle,
-        note: copy.sections.hiringNote,
-        cards: hiring,
-        variant: 'hiring',
-      },
-    ];
-  }
-
-  return [
-    {
-      key: 'p2p',
-      title: copy.sections.personalTitle,
-      note: copy.sections.personalNote,
-      cards: personal,
-      variant: 'default',
-    },
-    {
-      key: 'hiring',
-      title: copy.sections.hiringTitle,
-      note: copy.sections.hiringNote,
-      cards: hiring,
-      variant: 'hiring',
-    },
-    {
-      key: 'b2b',
+  const byKey = {
+    p2p: { title: copy.sections.personalTitle, note: copy.sections.personalNote, cards: cards.filter((card) => discoveryRail(card) === 'personal') },
+    hiring: { title: copy.sections.hiringTitle, note: copy.sections.hiringNote, cards: cards.filter((card) => discoveryRail(card) === 'hiring') },
+    b2b: {
       title: copy.sections.businessTitle,
       note: audience === 'person' ? copy.sections.businessViewOnlyNote : copy.sections.businessNote,
-      cards: business,
-      variant: 'summary',
+      cards: cards.filter((card) => discoveryRail(card) === 'business'),
     },
-  ];
+  };
+  return marketSectionPlan(audience).map(({ key, variant }) => ({ key, variant, ...byKey[key] }));
 }
 
 function DegradedNotice({
