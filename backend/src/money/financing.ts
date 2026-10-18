@@ -1,11 +1,11 @@
 import { erc20Abi, formatUnits, parseEventLogs } from 'viem';
-import { repaymentProof, type EscrowPayout } from './repaymentProof.js';
+import { closesWholeRecord, repaymentProof, type EscrowPayout } from './repaymentProof.js';
 import { ARC, publicClient } from '../chain/client.js';
 import { assertValidTransactionHash } from '../chain/txs.js';
 import { config } from '../config.js';
-import { listMoneyMovementsForJob, ensureMoneyMovement, findMoneyMovementByTransfer } from '../db/moneyMovements.js';
+import { listMoneyMovementsForJob, ensureMoneyMovement, findMoneyMovementByTransfer, getMoneyMovementByOperationKey, updateMoneyMovement } from '../db/moneyMovements.js';
 import { appendActivity, fillActivityGaps, listActivityForAddress, type ActivityKind } from '../db/activityLog.js';
-import { formatUsdcMicros, parseUsdcMicros, type MoneyMovement } from './model.js';
+import { formatUsdcMicros, parseUsdcMicros, transitionMoneyMovement, type MoneyMovement } from './model.js';
 import { completeMoneyMovement, prepareMoneyMovementContractLeg, verifyMoneyMovementLeg } from './service.js';
 
 export type FinancingMovementKind = 'financing_advance' | 'financing_repayment';
@@ -269,19 +269,29 @@ export async function recordEscrowAssignedFinancingMovement(input: {
   payouts.sort((a, b) => (a.block === b.block ? a.index - b.index : a.block < b.block ? -1 : 1));
   const proof = repaymentProof(payouts, input.amountMicros);
   if (proof) {
-    const movement = await recordVerifiedFinancingMovement({
-      operationKey: input.operationKey,
-      kind: 'financing_repayment',
-      positionId: input.positionId,
-      amountUsdc: formatUnits(input.amountMicros, 6),
-      initiatedBy: input.initiatedBy,
-      sourceAddress: escrowAddress,
-      destinationAddress: input.financierAddress,
-      txHash: proof.txHash,
-      contractAddress: escrowAddress,
-      summary: proof.parts > 1 ? `${input.summary}, paid across ${proof.parts} releases` : input.summary,
-    });
-    return { movement, txHash: proof.txHash };
+    // Each release is verified against its own receipt at its own amount; the
+    // movement of the release that completed the repayment is returned.
+    let movement: MoneyMovement | undefined;
+    for (const [index, payment] of proof.payments.entries()) {
+      movement = await recordVerifiedFinancingMovement({
+        operationKey: proof.parts > 1 ? `${input.operationKey}:part${index + 1}` : input.operationKey,
+        kind: 'financing_repayment',
+        positionId: input.positionId,
+        amountUsdc: formatUnits(payment.value, 6),
+        initiatedBy: input.initiatedBy,
+        sourceAddress: escrowAddress,
+        destinationAddress: input.financierAddress,
+        txHash: payment.txHash,
+        contractAddress: escrowAddress,
+        summary: proof.parts > 1 ? `${input.summary}, part ${index + 1} of ${proof.parts}` : input.summary,
+      });
+    }
+    const whole = await getMoneyMovementByOperationKey(input.operationKey);
+    if (whole && closesWholeRecord(whole.state, proof.parts)) {
+      await updateMoneyMovement(whole.reference, (current) =>
+        closesWholeRecord(current.state, proof.parts) ? transitionMoneyMovement(current, 'cancelled', { nextActor: 'none' }) : current);
+    }
+    return { movement: movement!, txHash: proof.txHash };
   }
   throw new Error('escrow reports repayment but its escrow-to-financier payouts are not recorded');
 }
