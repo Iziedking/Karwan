@@ -27,6 +27,7 @@ export type RouteTitleKey =
   | 'poFinancing'
   | 'howItWorks'
   | 'invite'
+  | 'messages'
   | 'request'
   | 'legacy'
   | 'offers'
@@ -93,6 +94,7 @@ const en: RouteTitleCopy = {
   poFinancing: 'Purchase order financing',
   howItWorks: 'How it works',
   invite: 'Invitation',
+  messages: 'Messages',
   request: 'Request',
   legacy: 'Older positions',
   offers: 'Offers',
@@ -158,6 +160,7 @@ const ar: RouteTitleCopy = {
   poFinancing: 'تمويل أمر شراء',
   howItWorks: 'كيف يعمل',
   invite: 'دعوة',
+  messages: 'الرسائل',
   request: 'طلب',
   legacy: 'مراكز سابقة',
   offers: 'العروض',
@@ -223,6 +226,7 @@ const fr: RouteTitleCopy = {
   poFinancing: 'Financement de bon de commande',
   howItWorks: 'Comment ça marche',
   invite: 'Invitation',
+  messages: 'Messages',
   request: 'Demande',
   legacy: 'Anciennes positions',
   offers: 'Offres',
@@ -288,6 +292,7 @@ const hi: RouteTitleCopy = {
   poFinancing: 'खरीद आदेश फ़ाइनेंसिंग',
   howItWorks: 'यह कैसे काम करता है',
   invite: 'आमंत्रण',
+  messages: 'संदेश',
   request: 'अनुरोध',
   legacy: 'पुरानी पोज़ीशन',
   offers: 'ऑफ़र',
@@ -353,6 +358,7 @@ const sw: RouteTitleCopy = {
   poFinancing: 'Ufadhili wa agizo la ununuzi',
   howItWorks: 'Jinsi inavyofanya kazi',
   invite: 'Mwaliko',
+  messages: 'Ujumbe',
   request: 'Ombi',
   legacy: 'Nafasi za zamani',
   offers: 'Ofa',
