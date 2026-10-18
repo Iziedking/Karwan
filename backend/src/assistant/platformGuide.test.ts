@@ -117,3 +117,14 @@ test('the guide explains attested deals and how to remove them', () => {
   assert.match(text, /attested/i);
   assert.match(text, /Remove my published deals/);
 });
+
+test('the guide and the assistant send people to one market (view 17)', () => {
+  const market = PLATFORM_GUIDE.find((entry) => entry.id === 'market')!;
+  assert.equal(market.route, '/market');
+  for (const entry of PLATFORM_GUIDE) {
+    for (const page of [entry.route, ...entry.pages]) assert.doesNotMatch(page, /^\/(p2p|b2b|partners|supply)(\/|$)/, `${entry.id}: ${page}`);
+  }
+  const business = buildNavigateAction({ destination: 'partners' });
+  assert.ok('href' in business);
+  assert.equal(business.href, '/market?scope=business');
+});

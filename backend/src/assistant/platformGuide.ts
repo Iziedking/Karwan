@@ -3,7 +3,7 @@
  * so the assistant cannot cite a screen or API that does not exist. Status is
  * repository behaviour per network; live account truth still comes from tools.
  */
-export const GUIDE_REVIEWED_AT = '2026-10-17';
+export const GUIDE_REVIEWED_AT = '2026-10-18';
 
 export type GuideStatus = 'testnet' | 'gated' | 'planned';
 /// invite: accounts and wallets by invitation. off: built but not enabled on
@@ -92,24 +92,24 @@ export const PLATFORM_GUIDE: readonly GuideEntry[] = [
     sources: ['backend/src/routes/cashout.ts', 'backend/src/routes/bridge.ts', 'frontend/app/bridge/page.tsx'],
   },
   {
-    id: 'market', title: 'Buy, sell and find a counterparty', status: 'testnet', mainnet: 'off', route: '/p2p',
-    pages: ['/p2p', '/market', '/listings', '/listings/[id]', '/partners', '/b2b'],
+    id: 'market', title: 'Buy, sell and find a counterparty', status: 'testnet', mainnet: 'off', route: '/market',
+    pages: ['/market', '/listings/[id]'],
     api: ['GET /api/listings', 'GET /api/jobs/marketplace', 'GET /api/deals/feed'],
     tools: ['search_market', 'get_my_market_activity'],
     keywords: 'karwan platform market buy sell services goods supply clients customers discover find browse search listings offers requests partners sellers suppliers freelancers',
-    summary: 'Karwan is an open market for people and businesses. Browse offers at /market (newest first, or by price when chosen; search and filters only narrow the list, and no one pays to appear higher), bring a known counterparty, or post a request and let your agent find sellers. Today the market covers services and digital work; trade in physical goods and business trade are coming soon. Deals settle in test USDC on Arc Testnet; deals are not enabled on mainnet yet.',
-    steps: ['Browse /market for offers; open one to see the seller and price.', 'To be found by customers, post an offer at /seller.', 'To find a seller, post a request at /buyer; agents bid on it.', 'Business partners are listed at /partners.', 'The assistant can search open offers and requests and open the best matches.'],
-    sources: ['README.md', 'frontend/app/p2p/page.tsx', 'frontend/app/market/page.tsx'],
+    summary: 'Karwan is one open market for people and businesses. /market holds Start a trade, Your trades (your requests and offers, when signed in) and Find. The first visit asks once whether you trade for yourself or for a business; you can change it in Settings. Business offers carry a Business label and a Businesses filter (/market?scope=business). Find lists offers newest first, or by price when chosen; search and filters only narrow the list, and no one pays to appear higher. You can also bring a known counterparty, or post a request and let your agent find sellers. Today the market covers services and digital work; trade in physical goods and business trade are coming soon. Deals settle in test USDC on Arc Testnet; deals are not enabled on mainnet yet.',
+    steps: ['Browse /market for offers; open one to see the seller and price.', 'To be found by customers, post an offer at /seller.', 'To find a seller, post a request at /buyer; agents bid on it.', 'Your own requests and offers are under Your trades at /market?view=yours.', 'Business offers are under the Businesses filter at /market?scope=business.', 'The assistant can search open offers and requests and open the best matches.'],
+    sources: ['README.md', 'frontend/app/market/page.tsx', 'docs/architecture/17-one-market.md'],
   },
   {
     id: 'sell', title: 'Get customers: post an offer', status: 'testnet', mainnet: 'off', route: '/seller',
-    pages: ['/seller', '/supply', '/listings/[id]', '/profile/open-deals'],
+    pages: ['/seller', '/listings/[id]', '/profile/open-deals'],
     api: ['POST /api/listings', 'GET /api/listings/mine', 'POST /api/listings/:id/edit', 'POST /api/listings/:id/cancel', 'GET /api/agents/seller'],
     tools: ['propose_post_offer', 'propose_take_down', 'get_my_market_activity', 'get_my_skills'],
     keywords: 'get customers find clients sell offer listing advertise service seller agent bid supply grow business more buyers',
     summary: 'Customers find you through your offers and your seller agent. An offer is a public listing with a title, description and asking price in USDC. Your seller agent also reads new requests and bids for you when the work matches your skills; you approve the deal it brings. A completed deal adds to your reputation, which ranks you in later matches. There is no guarantee of orders.',
-    steps: ['Post an offer at /seller (businesses: /supply), or ask the assistant to draft one.', 'Add your skills on your profile so your seller agent bids on the right requests.', 'Share your offer link with people you already know.', 'Watch bids and matches at /seller; approve or decline what the agent brings.'],
-    sources: ['frontend/app/seller/page.tsx', 'frontend/app/supply/page.tsx', 'backend/src/agents/seller.ts'],
+    steps: ['Post an offer at /seller, for yourself or your business, or ask the assistant to draft one.', 'Add your skills on your profile so your seller agent bids on the right requests.', 'Share your offer link with people you already know.', 'Watch bids and matches at /seller; approve or decline what the agent brings.'],
+    sources: ['frontend/app/seller/page.tsx', 'backend/src/agents/seller.ts'],
   },
   {
     id: 'direct', title: 'Trade with someone you know', status: 'testnet', mainnet: 'off', route: '/buyer?mode=direct',

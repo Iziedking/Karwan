@@ -480,7 +480,7 @@ const DESTINATIONS: Record<NavigateDestination, DestSpec> = {
   },
   new_offer: { label: 'Post an offer', build: () => '/seller' },
   market: { label: 'Browse the market', build: () => '/market' },
-  partners: { label: 'Find partners', build: () => '/partners' },
+  partners: { label: 'Business offers in the market', build: () => '/market?scope=business' },
   financier: { label: 'Financier desk', build: () => '/financier' },
   open_deal: {
     label: 'Open the deal',
