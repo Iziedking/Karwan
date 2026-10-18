@@ -3,8 +3,6 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { api, type BuyerJob } from '@/core/api';
-import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
-import { BusinessTradeDesk } from '@/features/buyer/components/BusinessTradeDesk';
 import { JobsTable } from '@/features/buyer/components/JobsTable';
 import { openRequestCount } from '@/features/buyer/requestCounts';
 import { NewDealPanel } from '@/features/deals/components/NewDealPanel';
@@ -30,10 +28,8 @@ export default function BuyerPage() {
 }
 
 function BuyerPageInner() {
-  const { isBusinessWorkspace } = useWorkspaceContext();
   const v2 = useSearchV2();
   const search = useSearchParams();
-  if (isBusinessWorkspace) return <BusinessTradeDesk />;
   if (!v2) return <PersonalBuyerDesk />;
   const direct = search.get('mode') === 'direct' || !!search.get('seller') || !!search.get('sellerEmail');
   return direct ? <DirectDealOnly /> : <FindSellerPage />;

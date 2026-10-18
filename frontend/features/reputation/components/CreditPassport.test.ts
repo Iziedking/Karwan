@@ -5,7 +5,7 @@ import test from 'node:test';
 test('the passport shows a public back control and positions the ladder from the held tier', () => {
   const source = readFileSync(new URL('./CreditPassport.tsx', import.meta.url), 'utf8');
 
-  assert.match(source, /<BackButton tone="adaptive" showOnPublic fallbackHref="\/partners" \/>/);
+  assert.match(source, /<BackButton tone="adaptive" showOnPublic fallbackHref="\/market" \/>/);
   assert.match(source, /const rung = TIER_LADDER\.indexOf\(tier\)/);
   assert.doesNotMatch(source, /\(score \/ 1000\) \* 100/);
 });

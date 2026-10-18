@@ -93,12 +93,18 @@ test('filters support search, side, scope, audience, and deterministic price sor
   );
   assert.deepEqual(personOffers.map((card) => card.id), ['offer-open', 'offer-business']);
 
+  // One market: a business sees every card; the Businesses filter narrows.
   const businessView = filterDiscoveryCards(
     cards,
     { query: '', side: 'all', scope: 'all', sort: 'price-desc' },
     'business',
   );
-  assert.deepEqual(businessView.map((card) => card.id), ['request-finance', 'offer-business']);
+  const everyone = filterDiscoveryCards(cards, { query: '', side: 'all', scope: 'all', sort: 'price-desc' }, 'person');
+  assert.deepEqual(businessView.map((card) => card.id), everyone.map((card) => card.id));
+  assert.ok(businessView.length > 2, 'personal cards are included');
+
+  const businessesOnly = filterDiscoveryCards(cards, { query: '', side: 'all', scope: 'business', sort: 'price-desc' }, 'business');
+  assert.deepEqual(businessesOnly.map((card) => card.id), ['request-finance', 'offer-business']);
 });
 
 test('rail classification separates personal, hiring, and business trades', () => {

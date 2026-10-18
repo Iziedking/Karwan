@@ -50,7 +50,7 @@ export function QuickStartBand() {
     {
       n: activated ? '01' : '02',
       ...t.steps.post,
-      href: '/p2p',
+      href: '/market',
     },
     {
       n: activated ? '02' : '03',

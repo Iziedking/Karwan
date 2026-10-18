@@ -406,9 +406,9 @@ if (!mainnet) {
     }
   }
 
-  test('signed-out /listings retains the market and its account entry', async ({ page }, testInfo) => {
+  test('signed-out /listings lands on the one market with its account entry', async ({ page }, testInfo) => {
     await open(page, { route: '/listings', world: { signedOut: true } });
-    await expect(page).toHaveURL(/\/listings$/);
+    await expect(page).toHaveURL(/\/market$/);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(en.listingsBrowse.heroTitle);
     await sideCounts(page, 'en', 25, 13, 12);
     await expect(page.locator('.market-card')).toHaveCount(20);

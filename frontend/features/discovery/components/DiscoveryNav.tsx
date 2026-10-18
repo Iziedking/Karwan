@@ -18,7 +18,7 @@ export function DiscoveryNav({
   const quiet = appearance === 'quiet';
   const items = [
     { key: 'market' as const, href: '/market', label: copy.requestsAndOffers },
-    { key: 'partners' as const, href: '/partners', label: copy.businesses },
+    { key: 'partners' as const, href: '/market?scope=business', label: copy.businesses },
   ];
 
   return (

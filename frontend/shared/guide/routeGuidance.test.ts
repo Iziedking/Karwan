@@ -5,7 +5,7 @@ import { guidanceKind, GUIDE_COPY, routeGuidance } from './routeGuidance';
 import { isNoTourRoute } from './routes';
 
 test('sensitive standalone pages have manual guidance in every locale', () => {
-  const paths = ['/profile', '/profile/contact', '/profile/setup', '/profile/wallets', '/profile/agent-funds', '/profile/business', '/profile/business/setup', '/business/verification', '/settings', '/account', '/p2p', '/b2b', '/cashout', '/cashout/example-deal'];
+  const paths = ['/profile', '/profile/contact', '/profile/setup', '/profile/wallets', '/profile/agent-funds', '/profile/business', '/profile/business/setup', '/business/verification', '/settings', '/account', '/market', '/cashout', '/cashout/example-deal'];
   for (const path of paths) {
     assert.ok(guidanceKind(path), path);
     assert.equal(isNoTourRoute(path), false, path);

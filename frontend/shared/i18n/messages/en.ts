@@ -115,29 +115,14 @@ interface MessagesShape {
     bridge: string;
     topUpWithdraw: string;
     topUpBlurb: string;
-    smeTrades: string;
-    trades: string;
-    tradesGroupEyebrow: string;
     soonBadge: string;
     hints: {
       home: string;
       market: string;
       bridge: string;
-      smeTrades: string;
       activity: string;
       stake: string;
       profile: string;
-    };
-    tradesDropdown: {
-      buyerTitle: string;
-      buyerSub: string;
-      sellerTitle: string;
-      sellerSub: string;
-    };
-    p2pHub: {
-      eyebrow: string;
-      title: string;
-      lede: string;
     };
     menuOpenAria: string;
     menuCloseAria: string;
@@ -1211,19 +1196,6 @@ interface MessagesShape {
       headlinePrefix: string;
       headlineAccent: string;
     };
-  };
-  businessTradeDesk: {
-    eyebrow: string;
-    title: string;
-    description: string;
-    findSupply: string;
-    findSupplySub: string;
-    postOffer: string;
-    postOfferSub: string;
-    bringDeal: string;
-    bringDealSub: string;
-    openDeal: string;
-    openDealDescription: string;
   };
   profileEmail: {
     headlineIndividual: string;
@@ -4047,19 +4019,6 @@ interface MessagesShape {
       buttonLabel: string;
     };
   };
-  supplyPage: {
-    signInGate: { tag: string; body: string };
-    tag: string;
-    notBusiness: { headline: string; cta: string };
-    hero: {
-      headlinePrefix: string;
-      headlineAccent: string;
-      lede: string;
-      ctaPost: string;
-      ctaPartners: string;
-    };
-    matchesHeadline: string;
-  };
   sellerHub: {
     signInGate: { tag: string; body: string };
     hero: {
@@ -5469,29 +5428,14 @@ export const en: MessagesShape = {
     bridge: 'Bridge',
     topUpWithdraw: 'Deposit / Withdraw',
     topUpBlurb: 'Move USDC in and out of Arc.',
-    smeTrades: 'SME trades',
-    trades: 'Trade',
-    tradesGroupEyebrow: 'P2P trades',
     soonBadge: 'soon',
     hints: {
       home: 'Your home base. Deals, activity, and what to do next.',
       market: 'Browse open requests and offers from others.',
       bridge: 'Move USDC from another chain onto Arc.',
-      smeTrades: 'Invoice factoring and PO financing on Arc. Opens to financiers after the first pilot.',
       activity: 'Live feed of every deal and settlement.',
       stake: 'Lock USDC to raise your reputation tier.',
       profile: 'Your wallets, agents, and reputation.',
-    },
-    tradesDropdown: {
-      buyerTitle: 'Buyer desk',
-      buyerSub: 'Post a request. Agents bring you offers.',
-      sellerTitle: 'Seller desk',
-      sellerSub: 'Post an offer. Take incoming deals.',
-    },
-    p2pHub: {
-      eyebrow: 'P2P trades',
-      title: 'Pick a desk',
-      lede: 'Two ways in. Post a request and let agents bring you offers, or post an offer and take incoming deals.',
     },
     menuOpenAria: 'Open menu',
     menuCloseAria: 'Close menu',
@@ -6644,20 +6588,6 @@ export const en: MessagesShape = {
       headlinePrefix: 'Your ',
       headlineAccent: 'deal history',
     },
-  },
-  businessTradeDesk: {
-    eyebrow: 'Business trade desk',
-    title: 'Trade through your business.',
-    description:
-      'Find supply, show what your company can provide, or bring a deal from anywhere. Karwan keeps the terms, delivery, and settlement together.',
-    findSupply: 'Find supply',
-    findSupplySub: 'Browse goods and services from businesses ready to trade.',
-    postOffer: 'Post what we offer',
-    postOfferSub: 'Keep a simple record of what your company can supply.',
-    bringDeal: 'Bring a deal',
-    bringDealSub: 'Name a counterparty and agree the trade in one place.',
-    openDeal: 'Open a deal',
-    openDealDescription: 'Start with the counterparty, amount, delivery terms, and payment plan.',
   },
   profileEmail: {
     headlineIndividual: 'Email',
@@ -9801,19 +9731,6 @@ export const en: MessagesShape = {
       body: 'Sign in to the account this deal settled on to withdraw.',
       buttonLabel: 'Sign in',
     },
-  },
-  supplyPage: {
-    signInGate: { tag: 'Supply', body: 'Sign in to publish what your company supplies.' },
-    tag: 'Supply',
-    notBusiness: { headline: 'This is the company desk', cta: 'Your seller desk' },
-    hero: {
-      headlinePrefix: 'Publish what you ',
-      headlineAccent: 'supply',
-      lede: 'Buyers find you, or your agent finds them.',
-      ctaPost: 'Post an offer',
-      ctaPartners: 'Find partners →',
-    },
-    matchesHeadline: 'Matches waiting on you',
   },
   sellerHub: {
     signInGate: { tag: 'Seller desk', body: 'Your offers are tied to your wallet. Sign in to set up your seller agent.' },

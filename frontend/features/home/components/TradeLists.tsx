@@ -13,7 +13,6 @@ import { LINE_COPY } from '@/features/search/requestLineCopy';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { Icon } from '@/shared/components/Icon';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { PRIMARY, SECONDARY } from '@/shared/ui/controls';
 import { TRADE_ENTRY_COPY, tradeEntryRoutes } from '../tradeEntry';
@@ -36,7 +35,6 @@ function YourRequestsInner() {
   const entry = TRADE_ENTRY_COPY[locale];
   const hub = entry.desk.hub;
   const t = useTranslations().search;
-  const { isBusinessWorkspace } = useWorkspaceContext();
   const me = useAuth().address?.toLowerCase() ?? '';
   // Same key as the Trade card, so the count and the list come from one answer.
   const requests = useQuery({ queryKey: ['search', 'myRequests', me], queryFn: () => api.buyer(me).then((r) => r.jobs), enabled: !!me, staleTime: 15_000 });
@@ -50,7 +48,7 @@ function YourRequestsInner() {
       empty={hub.noneOpen}
       retry={entry.desk.tryAgain}
       onRetry={() => void requests.refetch()}
-      action={{ href: tradeEntryRoutes(isBusinessWorkspace).buy, label: hub.postRequest }}
+      action={{ href: tradeEntryRoutes().buy, label: hub.postRequest }}
       items={open.map((job) => ({
         key: job.jobId,
         href: `/jobs/${job.jobId}`,
@@ -77,7 +75,6 @@ function YourOffersInner() {
   const { locale } = useLocale();
   const entry = TRADE_ENTRY_COPY[locale];
   const hub = entry.desk.hub;
-  const { isBusinessWorkspace } = useWorkspaceContext();
   const me = useAuth().address?.toLowerCase() ?? '';
   const listings = useQuery({ queryKey: ['trade-hub', 'listings', me], queryFn: () => api.listingsForSeller(me).then((r) => r.listings), enabled: !!me, staleTime: 15_000 });
   const live = liveOffers(listings.data ?? [], Date.now());
@@ -89,7 +86,7 @@ function YourOffersInner() {
       empty={hub.noneLive}
       retry={entry.desk.tryAgain}
       onRetry={() => void listings.refetch()}
-      action={{ href: tradeEntryRoutes(isBusinessWorkspace).sell, label: hub.postOffer }}
+      action={{ href: tradeEntryRoutes().sell, label: hub.postOffer }}
       items={live.map((l) => ({
         key: l.id,
         href: `/listings/${l.id}`,

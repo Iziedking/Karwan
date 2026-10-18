@@ -417,25 +417,3 @@ export const FINANCIER_DESK_STEPS: TourStep[] = [
     target: 'financier-offer',
   },
 ];
-
-/// Supply desk, business accounts only. Short on purpose: the desk is one job,
-/// publish what the company sells, and the value a supplier without partners
-/// needs to understand is that the agent works the other direction too.
-export const SUPPLY_TOUR_ID = 'supply-v1';
-export const SUPPLY_STEPS: TourStep[] = [
-  {
-    title: 'Publish your supply',
-    body: 'List what your company sells, including price and terms, so buyers can find it.',
-    target: 'supply-post',
-  },
-  {
-    title: 'Let your agent match',
-    body: 'Your agent watches relevant business requests and brings back matches.',
-    target: 'supply-agent',
-  },
-  {
-    title: 'Find partners',
-    body: 'Browse companies by sector and region when you want to reach out directly.',
-    target: 'supply-partners',
-  },
-];

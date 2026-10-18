@@ -28,7 +28,7 @@ for (const route of publicEditorial) {
   assert.equal(getShellSurface(route, true), 'public', `${route} stays public after sign-in`);
 }
 
-for (const route of ['/market', '/listings/example', '/partners', '/credit-passport/0x123']) {
+for (const route of ['/market', '/listings/example', '/credit-passport/0x123']) {
   assert.equal(isPublicDiscoveryRoute(route), true, `${route} must support public discovery`);
   assert.equal(isPublicAccessRoute(route), true, `${route} must not force authentication`);
   assert.equal(getShellSurface(route, false), 'public', `${route} is public before sign-in`);

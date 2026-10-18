@@ -1,4 +1,5 @@
 import { PHASE_PRODUCTION_BUILD } from 'next/constants.js';
+import { MARKET_REDIRECTS } from './shared/utils/marketRedirects.mjs';
 
 /** @type {import('next').NextConfig} */
 
@@ -38,6 +39,9 @@ const nextConfig = {
   // build lint would read eslint-disable comments for rules this config does
   // not load and fail the deploy on them.
   eslint: { ignoreDuringBuilds: true },
+  async redirects() {
+    return MARKET_REDIRECTS;
+  },
   async rewrites() {
     return [
       {

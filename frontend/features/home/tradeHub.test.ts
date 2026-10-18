@@ -74,11 +74,10 @@ test('the lists hold exactly what the cards count, newest first', () => {
   assert.equal(summary.offers.live, liveOffers(listings, now).length);
 });
 
-test('each card opens its own list, never a form or the whole activity feed', () => {
-  const desk = readFileSync(new URL('./components/TradeDesk.tsx', import.meta.url), 'utf8');
-  for (const href of ['/profile/open-deals', '/p2p/requests', '/p2p/offers']) assert.match(desk, new RegExp(`href="${href}"`), href);
-  assert.equal(getProductBackHref('/p2p/requests'), '/p2p');
-  assert.equal(getProductBackHref('/p2p/offers'), '/p2p');
-  assert.equal(routeTitleKey('/p2p/requests'), 'yourRequests');
-  assert.equal(routeTitleKey('/p2p/offers'), 'yourOffers');
+test('each card in Your trades opens its own list, never a form or the whole activity feed', () => {
+  const yours = readFileSync(new URL('../market/components/YourTrades.tsx', import.meta.url), 'utf8');
+  assert.match(yours, /href="\/profile\/open-deals"/);
+  assert.match(yours, /marketViewHref\('yours', 'requests'\)/);
+  assert.match(yours, /marketViewHref\('yours', 'offers'\)/);
+  assert.doesNotMatch(yours, /\/p2p/);
 });

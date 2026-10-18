@@ -36,7 +36,6 @@ export type RouteTitleKey =
   | 'newsletter'
   | 'onboarding'
   | 'trade'
-  | 'businesses'
   | 'profile'
   | 'agentFunds'
   | 'business'
@@ -45,8 +44,6 @@ export type RouteTitleKey =
   | 'editProfile'
   | 'openDeals'
   | 'profileSetup'
-  | 'yourRequests'
-  | 'yourOffers'
   | 'wallets'
   | 'cancelRecovery'
   | 'requestMoney'
@@ -56,7 +53,6 @@ export type RouteTitleKey =
   | 'settings'
   | 'stake'
   | 'signIn'
-  | 'supply'
   | 'terms'
   | 'chatTerms'
   | 'personCheck'
@@ -103,7 +99,6 @@ const en: RouteTitleCopy = {
   newsletter: 'Newsletter',
   onboarding: 'Set up your account',
   trade: 'Trade',
-  businesses: 'Businesses',
   profile: 'Profile',
   agentFunds: 'Agent funds',
   business: 'Business',
@@ -112,8 +107,6 @@ const en: RouteTitleCopy = {
   editProfile: 'Edit profile',
   openDeals: 'Open deals',
   profileSetup: 'Agent workspace',
-  yourRequests: 'Your requests',
-  yourOffers: 'Your offers',
   wallets: 'Wallets',
   cancelRecovery: 'Cancel recovery',
   requestMoney: 'Request money',
@@ -123,7 +116,6 @@ const en: RouteTitleCopy = {
   settings: 'Settings',
   stake: 'Stake',
   signIn: 'Sign in',
-  supply: 'Sell to businesses',
   terms: 'Terms',
   chatTerms: 'Chat terms',
   personCheck: 'Person check',
@@ -169,7 +161,6 @@ const ar: RouteTitleCopy = {
   newsletter: 'النشرة',
   onboarding: 'إعداد حسابك',
   trade: 'التداول',
-  businesses: 'الشركات',
   profile: 'الملف الشخصي',
   agentFunds: 'أموال الوكلاء',
   business: 'النشاط التجاري',
@@ -178,8 +169,6 @@ const ar: RouteTitleCopy = {
   editProfile: 'تعديل الملف',
   openDeals: 'الصفقات المفتوحة',
   profileSetup: 'مساحة عمل الوكلاء',
-  yourRequests: 'طلباتك',
-  yourOffers: 'عروضك',
   wallets: 'المحافظ',
   cancelRecovery: 'إلغاء الاسترداد',
   requestMoney: 'طلب مال',
@@ -189,7 +178,6 @@ const ar: RouteTitleCopy = {
   settings: 'الإعدادات',
   stake: 'الرهن',
   signIn: 'تسجيل الدخول',
-  supply: 'البيع للشركات',
   terms: 'الشروط',
   chatTerms: 'شروط المحادثة',
   personCheck: 'فحص الشخص',
@@ -235,7 +223,6 @@ const fr: RouteTitleCopy = {
   newsletter: 'Lettre d’information',
   onboarding: 'Configurer votre compte',
   trade: 'Échanger',
-  businesses: 'Entreprises',
   profile: 'Profil',
   agentFunds: 'Fonds des agents',
   business: 'Entreprise',
@@ -244,8 +231,6 @@ const fr: RouteTitleCopy = {
   editProfile: 'Modifier le profil',
   openDeals: 'Deals ouverts',
   profileSetup: 'Espace des agents',
-  yourRequests: 'Vos demandes',
-  yourOffers: 'Vos offres',
   wallets: 'Portefeuilles',
   cancelRecovery: 'Annuler la récupération',
   requestMoney: 'Demander de l’argent',
@@ -255,7 +240,6 @@ const fr: RouteTitleCopy = {
   settings: 'Paramètres',
   stake: 'Staking',
   signIn: 'Se connecter',
-  supply: 'Vendre aux entreprises',
   terms: 'Conditions',
   chatTerms: 'Conditions du chat',
   personCheck: 'Vérification de personne',
@@ -301,7 +285,6 @@ const hi: RouteTitleCopy = {
   newsletter: 'न्यूज़लेटर',
   onboarding: 'अपना खाता सेट करें',
   trade: 'व्यापार',
-  businesses: 'व्यवसाय',
   profile: 'प्रोफ़ाइल',
   agentFunds: 'एजेंट फ़ंड',
   business: 'व्यवसाय',
@@ -310,8 +293,6 @@ const hi: RouteTitleCopy = {
   editProfile: 'प्रोफ़ाइल संपादित करें',
   openDeals: 'खुली डील',
   profileSetup: 'एजेंट वर्कस्पेस',
-  yourRequests: 'आपके अनुरोध',
-  yourOffers: 'आपके ऑफ़र',
   wallets: 'वॉलेट',
   cancelRecovery: 'रिकवरी रद्द करें',
   requestMoney: 'पैसे का अनुरोध',
@@ -321,7 +302,6 @@ const hi: RouteTitleCopy = {
   settings: 'सेटिंग्स',
   stake: 'स्टेक',
   signIn: 'साइन इन',
-  supply: 'व्यवसायों को बेचें',
   terms: 'शर्तें',
   chatTerms: 'चैट की शर्तें',
   personCheck: 'व्यक्ति जाँच',
@@ -367,7 +347,6 @@ const sw: RouteTitleCopy = {
   newsletter: 'Jarida',
   onboarding: 'Andaa akaunti yako',
   trade: 'Biashara',
-  businesses: 'Biashara',
   profile: 'Wasifu',
   agentFunds: 'Fedha za mawakala',
   business: 'Biashara',
@@ -376,8 +355,6 @@ const sw: RouteTitleCopy = {
   editProfile: 'Hariri wasifu',
   openDeals: 'Mikataba iliyo wazi',
   profileSetup: 'Eneo la kazi la mawakala',
-  yourRequests: 'Maombi yako',
-  yourOffers: 'Ofa zako',
   wallets: 'Pochi',
   cancelRecovery: 'Ghairi urejeshaji',
   requestMoney: 'Omba pesa',
@@ -387,7 +364,6 @@ const sw: RouteTitleCopy = {
   settings: 'Mipangilio',
   stake: 'Weka dhamana',
   signIn: 'Ingia',
-  supply: 'Uza kwa biashara',
   terms: 'Masharti',
   chatTerms: 'Masharti ya mazungumzo',
   personCheck: 'Ukaguzi wa mtu',

@@ -118,12 +118,13 @@ export function discoveryRail(card: DiscoveryCard): DiscoveryRail {
   return 'personal';
 }
 
+/// One market for everyone (view 17): every account sees every card. The
+/// audience only shapes how a card is worded; the Businesses filter narrows.
 export function isVisibleToAudience(
-  card: DiscoveryCard,
-  audience: DiscoveryAudience,
+  _card: DiscoveryCard,
+  _audience: DiscoveryAudience,
 ): boolean {
-  if (audience !== 'business') return true;
-  return discoveryRail(card) !== 'personal';
+  return true;
 }
 
 export function filterDiscoveryCards(

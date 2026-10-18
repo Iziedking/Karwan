@@ -2,9 +2,9 @@ import type { Locale } from '@/shared/i18n/locales';
 
 // Shared by Home and the no-network verification suite.
 export const CAPABILITIES = [
-  { id: 'anywhere', href: '/p2p' },
+  { id: 'anywhere', href: '/market' },
   { id: 'market', href: '/market' },
-  { id: 'research', href: '/partners' },
+  { id: 'research', href: '/market?scope=business' },
   { id: 'settlement', href: '/account' },
   { id: 'reputation', href: '/stake' },
 ] as const;

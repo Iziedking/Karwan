@@ -1,10 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { api, type Listing, type MarketplaceBrief } from '@/core/api';
 import { FilterButton, FilterGroup, SortMenu } from '@/features/discovery/components/FilterBar';
-import { DiscoveryNav } from '@/features/discovery/components/DiscoveryNav';
 import {
   buildDiscoveryCards,
   discoveryRail,
@@ -44,7 +43,13 @@ interface MarketSection {
   variant: CardVariant;
 }
 
-export function ListingsBrowse() {
+/// The market's Find part (view 17). `action` sits beside the heading (the one
+/// primary action, Start a trade) and `beforeSearch` holds Your trades.
+export function ListingsBrowse({
+  initialScope = 'all',
+  action,
+  beforeSearch,
+}: { initialScope?: DiscoveryScope; action?: ReactNode; beforeSearch?: ReactNode } = {}) {
   const translations = useTranslations();
   const copy = translations.listingsBrowse;
   const { address, isAuthenticated } = useAuth();
@@ -63,7 +68,7 @@ export function ListingsBrowse() {
   const [reloadToken, setReloadToken] = useState(0);
   const [query, setQuery] = useState('');
   const [side, setSide] = useState<'all' | DiscoverySide>('all');
-  const [scope, setScope] = useState<DiscoveryScope>('all');
+  const [scope, setScope] = useState<DiscoveryScope>(initialScope);
   const [sort, setSort] = useState<DiscoverySort>('newest');
   const [pages, setPages] = useState<Record<string, number>>({});
 
@@ -158,12 +163,13 @@ export function ListingsBrowse() {
       ) : null}
 
       <Band tone="light" compact>
-        <div className="pt-2 sm:pt-3">
+        <div className="flex flex-wrap items-end justify-between gap-4 pt-2 sm:pt-3">
           <h1 className="text-[36px] font-medium leading-[1.1] tracking-[-0.015em] text-[var(--ink)] sm:text-[40px]">
             {copy.heroTitle}
           </h1>
-          <DiscoveryNav active="market" tone="light" appearance="quiet" />
+          {action}
         </div>
+        {beforeSearch}
 
         <div className="py-6" role="search" aria-label={copy.searchLabel}>
           <label className="block">

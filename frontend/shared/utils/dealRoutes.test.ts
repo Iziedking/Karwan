@@ -10,7 +10,7 @@ test('on mainnet a deal’s own page opens, so a chat money link lands on it', (
 });
 
 test('on mainnet everything else in the deal rail stays closed', () => {
-  for (const path of ['/deals', '/deals/0xabc', `/deals/${DEAL}/extra`, `/jobs/${DEAL}`, '/market', '/app', '/stake', '/p2p']) {
+  for (const path of ['/deals', '/deals/0xabc', `/deals/${DEAL}/extra`, `/jobs/${DEAL}`, '/market', '/app', '/stake', '/buyer']) {
     assert.equal(dealRouteBlocked(path, false), true, path);
   }
 });
@@ -28,7 +28,7 @@ test('wallet surfaces stay open on a wallet-only deployment', () => {
 });
 
 test('deal surfaces, including their detail pages, are gated', () => {
-  for (const path of ['/app', '/p2p', '/b2b', '/deals/0xabc', '/jobs/12', '/market', '/listings/x', '/financier', '/stake', '/cashout/0xabc', '/invite/t', '/profile/open-deals', '/profile/agent-funds', '/profile/business']) {
+  for (const path of ['/app', '/buyer', '/seller', '/deals/0xabc', '/jobs/12', '/market', '/listings/x', '/financier', '/stake', '/cashout/0xabc', '/invite/t', '/profile/open-deals', '/profile/agent-funds', '/profile/business']) {
     assert.equal(isDealRoute(path), true, path);
   }
   assert.equal(isDealRoute('/apple-icon.png'), false, 'prefix match is by path segment');

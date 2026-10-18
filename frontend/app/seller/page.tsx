@@ -12,16 +12,12 @@ import { ActivateAgentsNotice } from '@/shared/components/ActivateAgentsNotice';
 import {
   FullBleed,
   Band,
-  GridOverlay,
   SectionTag,
   HeroHeadline,
   Punc,
-  Accent,
-  CTAPill,
   PageCard,
 } from '@/shared/components/Bands';
 import { Hint } from '@/shared/components/Hint';
-import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { TRADE_ENTRY_COPY } from '@/features/home/tradeEntry';
 import { useSearchV2 } from '@/features/search/useSearchV2';
@@ -43,7 +39,6 @@ function SellerPageInner() {
   const entry = TRADE_ENTRY_COPY[locale];
   const auth = useAuth();
   const address = auth.address;
-  const { isBusinessWorkspace } = useWorkspaceContext();
   const { activated } = useActivation();
   const [activeBids, setActiveBids] = useState<SellerActiveBid[]>([]);
   const [fetchState, setFetchState] = useState<FetchState>('idle');
@@ -74,34 +69,7 @@ function SellerPageInner() {
   }, [address]);
 
 
-  // The P2P seller desk is the personal workspace lane. A business workspace
-  // publishes through Supply so the selected context is explicit and the
-  // availability record stays attached to the business workspace.
-  if (isBusinessWorkspace) {
-    return (
-      <FullBleed>
-        <Band tone="dark" compact overlay={<GridOverlay />}>
-          <div className="max-w-[46ch]">
-            <SectionTag tone="dark">SUPPLY</SectionTag>
-            <HeroHeadline size="md">
-              Your selling lives on <Accent>Supply</Accent>
-              <Punc>.</Punc>
-            </HeroHeadline>
-            <div className="mt-7 flex flex-wrap items-center gap-3">
-              <CTAPill href="/supply" tone="dark">
-                Go to Supply
-              </CTAPill>
-              <CTAPill href="/buyer" variant="secondary" tone="dark">
-                Your B2B desk
-              </CTAPill>
-            </div>
-          </div>
-        </Band>
-      </FullBleed>
-    );
-  }
-
-  if (v2) return <SellerDesk />;
+if (v2) return <SellerDesk />;
 
   return (
     <FullBleed>

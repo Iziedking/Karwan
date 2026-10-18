@@ -17,6 +17,7 @@ import { PublishDealsRows } from './PublishDealsRows';
 import { ThemeIcon } from '@/shared/components/ThemeControl';
 import { Row, RowGroup, ToggleRow } from '@/features/profile/ui/ProfileUi';
 import { sfx } from '@/shared/utils/sfx';
+import { TRADE_ENTRY_COPY } from '@/features/home/tradeEntry';
 
 type Saver = (patch: UserSettings) => Promise<void>;
 
@@ -172,6 +173,11 @@ export function SettingsBand() {
             sfx.setMuted(!on);
             if (on) sfx.tap();
           }}
+        />
+        <ToggleRow
+          label={TRADE_ENTRY_COPY[locale].entry.settingsLabel}
+          checked={settings.tradesAs === 'business'}
+          onChange={(on) => save({ tradesAs: on ? 'business' : 'self' })}
         />
       </RowGroup>
 

@@ -36,7 +36,7 @@ export function isPublicEditorialRoute(pathname: string | null | undefined): boo
  */
 export function isPublicDiscoveryRoute(pathname: string | null | undefined): boolean {
   if (!pathname) return false;
-  return ['/market', '/listings', '/partners', '/credit-passport'].some((route) => matchesRoute(pathname, route));
+  return ['/market', '/listings', '/credit-passport'].some((route) => matchesRoute(pathname, route));
 }
 
 /**
@@ -44,7 +44,7 @@ export function isPublicDiscoveryRoute(pathname: string | null | undefined): boo
  * detail and settings views recoverable without guessing browser history,
  * which may point outside Karwan after a shared link is opened.
  */
-const SIDEBAR_ROOTS = new Set(['/p2p', '/b2b', '/market', '/partners', '/financier', '/activity', '/profile']);
+const SIDEBAR_ROOTS = new Set(['/market', '/financier', '/activity', '/profile']);
 
 export function getProductBackHref(
   pathname: string | null | undefined,
@@ -57,13 +57,11 @@ export function getProductBackHref(
   if (pathname === '/docs' || pathname === '/how-it-works') return isAuthenticated ? '/app' : '/';
   if (matchesRoute(pathname, '/docs')) return '/docs';
   if (matchesRoute(pathname, '/settings')) return '/profile';
-  if (pathname === '/p2p/requests' || pathname === '/p2p/offers') return '/p2p';
   if (pathname === '/profile') return '/app';
   if (matchesRoute(pathname, '/profile/business/setup')) return '/profile/business';
   if (matchesRoute(pathname, '/business/verification')) return '/profile/business';
   if (matchesRoute(pathname, '/profile')) return '/profile';
   if (matchesRoute(pathname, '/listings')) return '/market';
-  if (matchesRoute(pathname, '/partners')) return '/market';
   if (matchesRoute(pathname, '/market')) return isAuthenticated ? '/app' : '/';
   if (matchesRoute(pathname, '/onboarding')) return '/';
   if (matchesRoute(pathname, '/cashout')) return isAuthenticated ? '/app' : '/';
@@ -73,18 +71,15 @@ export function getProductBackHref(
     '/activity',
     '/bridge',
     '/business',
-    '/b2b',
     '/buyer',
     '/deals',
     '/financier',
     '/jobs',
     '/legacy',
-    '/p2p',
     '/request',
     '/seller',
     '/send',
     '/stake',
-    '/supply',
   ];
   if (appParents.some((route) => matchesRoute(pathname, route))) return '/app';
   return null;
@@ -146,18 +141,14 @@ export function isLandingRoute(pathname: string | null | undefined): boolean {
 /// which is all a wallet-only deployment offers: balances, deposits, bridging.
 const DEAL_ROUTES = [
   '/app',
-  '/b2b',
-  '/p2p',
   '/buyer',
   '/seller',
-  '/supply',
   '/deals',
   '/jobs',
   '/cashout',
   '/invite',
   '/market',
   '/listings',
-  '/partners',
   '/financier',
   '/stake',
   '/legacy',

@@ -40,9 +40,9 @@ test('rotation supports every interruption and wraps safely at a slow reading pa
 });
 
 test('the real entry is separate from the phone, with no sample money or terms in the URL', () => {
-  assert.equal(tradeEntryRoutes(false).agreement, '/buyer?mode=direct#new-deal');
+  assert.equal(tradeEntryRoutes().agreement, '/buyer?mode=direct#new-deal');
   const component = read('./components/SocialTradeSection.tsx');
-  assert.match(component, /href=\{tradeEntryRoutes\(false\).agreement\}/);
+  assert.match(component, /href=\{tradeEntryRoutes\(\).agreement\}/);
   assert.equal((component.match(/<Link\s/g) || []).length, 1);
   assert.doesNotMatch(component, /api\.|fetch\(|sourceRef|amount=|terms=/);
 });

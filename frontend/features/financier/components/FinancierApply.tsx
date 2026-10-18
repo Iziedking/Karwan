@@ -52,7 +52,7 @@ export function FinancierApply({
       ok: eligibility.repOk,
       value: eligibility.repTier,
       need: 'Reach at least the COLD tier through settled deals.',
-      fix: { href: '/p2p', label: 'Trade to build it' },
+      fix: { href: '/market', label: 'Trade to build it' },
     },
   ];
 

@@ -9,7 +9,7 @@ export function guidanceKind(path: string): GuidanceKind | null {
   if (path === '/account' || path === '/profile/wallets') return 'balance';
   if (path === '/profile/agent-funds' || path === '/cashout' || path.startsWith('/cashout/')) return 'funds';
   if (path === '/business/verification' || path === '/profile/business' || path === '/profile/business/setup') return 'business';
-  if (path === '/p2p' || path === '/b2b') return 'trade';
+  if (path === '/market') return 'trade';
   if (path === '/profile' || path.startsWith('/profile/')) return 'profile';
   return null;
 }

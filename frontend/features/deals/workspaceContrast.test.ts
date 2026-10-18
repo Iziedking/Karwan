@@ -5,8 +5,10 @@ import test from 'node:test';
 
 const THEME_AWARE_WORKSPACES = [
   './components/SettlementRecord.tsx',
-  '../../app/b2b/page.tsx',
-  '../../app/p2p/page.tsx',
+  '../market/components/MarketPage.tsx',
+  '../market/components/YourTrades.tsx',
+  '../market/components/EntryQuestion.tsx',
+  '../market/components/StartTradeSheet.tsx',
   '../../app/settings/page.tsx',
   '../../app/business/verification/page.tsx',
   '../../app/onboarding/page.tsx',

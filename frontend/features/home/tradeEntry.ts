@@ -1,12 +1,16 @@
 import type { Locale } from '@/shared/i18n/locales';
 
-export const tradeEntryRoutes = (business: boolean) => ({
-  sell: business ? '/supply' : '/seller#post-listing',
-  buy: business ? '/partners' : '/buyer?mode=managed#new-deal',
-  agreement: business ? '/buyer?mode=direct#bring-a-deal' : '/buyer?mode=direct#new-deal',
+/// One way to start a trade for every account (view 17). A business sees the
+/// business wording inside the same forms.
+export const tradeEntryRoutes = () => ({
+  buy: '/buyer?mode=managed#new-deal',
+  sell: '/seller#post-listing',
+  agreement: '/buyer?mode=direct#new-deal',
 });
 
-type Copy = { startHere: string; title: string; body: string; sell: string; sellBody: string; buy: string; buyBody: string;
+type Copy = { startHere: string; find: string;
+  entry: { question: string; note: string; self: string; business: string; settingsLabel: string; saveError: string };
+  title: string; body: string; sell: string; sellBody: string; buy: string; buyBody: string;
   agreement: string; options: string; buyTitle: string; sellTitle: string; businessBuyBody: string;
   journey: { brief: string; match: string; agree: string; settle: string };
   desk: {
@@ -24,6 +28,8 @@ type Copy = { startHere: string; title: string; body: string; sell: string; sell
 
 export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
   en: {
+    entry: { question: 'Do you trade for yourself or for a business?', note: 'This changes the details you see. You can change it in Settings.', self: 'For myself', business: 'For a business', settingsLabel: 'I trade for a business', saveError: 'Your answer was not saved. Try again.' },
+    find: 'Find',
     startHere: 'Start here',
     options: 'Optional request settings',
     title: 'Start a trade',
@@ -44,10 +50,12 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
       bringAgreement: 'I already agreed with someone', bringAgreementBody: 'Start with someone you already know.',
       active: 'Active agreements', emptyTitle: 'Nothing active yet',
       emptyBody: 'Choose a path above and your agreement will stay here.', open: 'Open agreement',
-      hub: { yours: 'Your trading', trades: 'Active trades', yourMove: '{n} waiting on you', noMove: 'Nothing waiting on you', requests: 'Your requests', noneOpen: 'Nothing open', offersIn: '{n} offers in', offersInOne: '1 offer in', noOffers: 'No offers yet', offers: 'Your offers', live: 'Live on the market', noneLive: 'Nothing live', postRequest: 'Post a request', postOffer: 'Post an offer' },
+      hub: { yours: 'Your trades', trades: 'Active trades', yourMove: '{n} waiting on you', noMove: 'Nothing waiting on you', requests: 'Your requests', noneOpen: 'Nothing open', offersIn: '{n} offers in', offersInOne: '1 offer in', noOffers: 'No offers yet', offers: 'Your offers', live: 'Live on the market', noneLive: 'Nothing live', postRequest: 'Post a request', postOffer: 'Post an offer' },
     },
   },
   fr: {
+    entry: { question: 'Vous échangez pour vous-même ou pour une entreprise ?', note: 'Cela change les détails affichés. Vous pouvez le modifier dans les paramètres.', self: 'Pour moi', business: 'Pour une entreprise', settingsLabel: 'J’échange pour une entreprise', saveError: 'Votre réponse n’a pas été enregistrée. Réessayez.' },
+    find: 'Trouver',
     startHere: 'Commencez ici',
     options: 'Réglages facultatifs de la demande',
     title: 'Commencer un échange',
@@ -72,6 +80,8 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
     },
   },
   ar: {
+    entry: { question: 'هل تتاجر لنفسك أم لشركة؟', note: 'يغيّر هذا التفاصيل التي تراها. يمكنك تغييره من الإعدادات.', self: 'لنفسي', business: 'لشركة', settingsLabel: 'أتاجر لصالح شركة', saveError: 'لم تُحفظ إجابتك. حاول مرة أخرى.' },
+    find: 'ابحث',
     startHere: 'ابدأ هنا',
     options: 'إعدادات الطلب الاختيارية',
     title: 'ابدأ صفقة',
@@ -96,6 +106,8 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
     },
   },
   hi: {
+    entry: { question: 'आप अपने लिए व्यापार करते हैं या किसी व्यवसाय के लिए?', note: 'इससे आपको दिखने वाली जानकारी बदलती है। आप इसे सेटिंग्स में बदल सकते हैं।', self: 'अपने लिए', business: 'व्यवसाय के लिए', settingsLabel: 'मेरा व्यापार एक व्यवसाय के लिए है', saveError: 'आपका जवाब सेव नहीं हुआ। फिर से कोशिश करें।' },
+    find: 'खोजें',
     startHere: 'यहाँ से शुरू करें',
     options: 'अनुरोध की वैकल्पिक सेटिंग',
     title: 'व्यापार शुरू करें',
@@ -120,6 +132,8 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
     },
   },
   sw: {
+    entry: { question: 'Unafanya biashara kwa ajili yako au kwa ajili ya kampuni?', note: 'Hii hubadilisha maelezo unayoona. Unaweza kuibadilisha kwenye Mipangilio.', self: 'Kwa ajili yangu', business: 'Kwa ajili ya kampuni', settingsLabel: 'Ninafanya biashara kwa ajili ya kampuni', saveError: 'Jibu lako halijahifadhiwa. Jaribu tena.' },
+    find: 'Tafuta',
     startHere: 'Anza hapa',
     options: 'Mipangilio ya hiari ya ombi',
     title: 'Anza biashara',

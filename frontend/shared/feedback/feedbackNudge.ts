@@ -9,7 +9,6 @@ const SAFE_WORKSPACE_HUBS = [
   '/seller',
   '/market',
   '/listings',
-  '/partners',
   '/activity',
   '/profile',
 ] as const;

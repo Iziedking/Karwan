@@ -764,11 +764,8 @@ export function PostJobForm() {
             {t.intentWarning.bodyMiddle}
             <span className="font-bold">{t.intentWarning.bodyNeed}</span>
             {t.intentWarning.bodyAfter}
-            {/* A company that meant to post an offer belongs on /supply.
-                /seller is the individual lane and would drop its offer into
-                the person-to-person pool. */}
             <Link
-              href={isBusiness ? '/supply' : '/seller'}
+              href="/seller"
               className="underline underline-offset-2 hover:opacity-80"
             >
               {t.intentWarning.bodyLink}

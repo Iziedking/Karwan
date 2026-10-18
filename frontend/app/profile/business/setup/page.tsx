@@ -12,6 +12,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { LpHint } from '@/shared/components/LpHint';
 import { BUSINESS_ACCOUNTS_OPEN } from '@/features/account/businessOpen';
+import { afterBusinessSetup } from '@/features/market/entryQuestion';
 
 export default function BusinessSetupPage() {
   const t = useTranslations().businessProfilePage;
@@ -59,7 +60,7 @@ function BusinessSetupForm({ profile }: { profile: UserProfile }) {
       queryClient.setQueryData(qk.workspaces.me(profile.address), (current: { workspaces?: UserProfile['workspaces'] } | undefined) => current ? { ...current, workspaces: [...(current.workspaces ?? []), ...(current.workspaces?.some((workspace) => workspace.id === result.workspace.id) ? [] : [result.workspace])] } : { workspaces: [result.workspace] });
       switchWorkspace(result.workspace.id);
       window.dispatchEvent(new Event(PROFILE_SAVED_EVENT));
-      router.push('/business/verification');
+      router.push(afterBusinessSetup(new URLSearchParams(window.location.search).get('next')));
     } catch (err) {
       setError(err instanceof ApiError && err.code === 'name_taken' ? t.nameTaken : t.error);
       setSaving(false);

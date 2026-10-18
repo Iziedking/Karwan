@@ -65,7 +65,7 @@ export default function BusinessProfilePage() {
             <Row label={messages.profile.hub.workspaces}><WorkspaceSwitcher /></Row>
           </RowGroup>
           <RowGroup>
-            <Row label={t.findTitle} href="/partners" />
+            <Row label={t.findTitle} href="/market?scope=business" />
             <Row label={t.dealTitle} href="/market" />
             <Row label={t.payTitle} href="/buyer" />
             <Row label={t.recordTitle} href="/activity" />

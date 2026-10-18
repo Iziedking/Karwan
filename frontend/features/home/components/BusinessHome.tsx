@@ -109,8 +109,8 @@ export function BusinessHome({
               {/* A business's primary action is its own B2B trade (agent-matched
                   via /buyer, or a direct deal). The financier desk, where they
                   fund other businesses' invoices, is a secondary capability. */}
-              <CTAPill href="/partners">Find supply</CTAPill>
-              <CTAPill href="/supply" variant="secondary" tone="dark">
+              <CTAPill href="/market?scope=business">Find supply</CTAPill>
+              <CTAPill href="/seller" variant="secondary" tone="dark">
                 Post what we offer
               </CTAPill>
               <CTAPill href="/buyer?mode=direct" variant="secondary" tone="dark">

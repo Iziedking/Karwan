@@ -127,14 +127,6 @@ test('workspace width is column-bound and tablet navigation fills the rail gap',
   assert.match(source('./WorkspaceBottomNav.tsx'), /lg:hidden/);
 });
 
-test('signed-in business trade is a rail-bound action list, not three landing cards', () => {
-  const page = source('../../app/b2b/page.tsx');
-  assert.doesNotMatch(page, /FullBleed|<Band|DeskCard/);
-  assert.match(page, /max-w-\[1100px\]/);
-  assert.match(page, /<nav aria-label=\{bt\.eyebrow\}/);
-  for (const route of ['/partners', '/supply', '/buyer?mode=direct']) assert.ok(page.includes(route));
-});
-
 test('signed-in home splits only when the content column has room', () => {
   const css = source('../../app/globals.css');
   const home = source('../../features/home/components/AccountHome.tsx');
@@ -435,7 +427,9 @@ test('a profile row that is not ready says so plainly, not only on hover, and is
 });
 
 test('the trade chooser draws its arrows as icons', () => {
-  assert.doesNotMatch(source('../../features/home/components/TradeDesk.tsx'), /→/);
+  for (const file of ['StartTradeSheet.tsx', 'YourTrades.tsx']) {
+    assert.doesNotMatch(source(`../../features/market/components/${file}`), /→/, file);
+  }
 });
 
 test('home Updates are media tiles with no generated art, a fixed media height, three to the column, and never move on their own', () => {

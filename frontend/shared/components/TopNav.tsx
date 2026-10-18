@@ -17,7 +17,6 @@ import { DEALS_AVAILABLE } from '@/core/arcNetwork';
 import { useOpenDeals } from '@/features/notifications/hooks/useOpenDeals';
 import type { UserProfile } from '@/core/api';
 import { WalletAvatar } from './WalletAvatar';
-import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { LanguagePicker } from './LanguagePicker';
 import { ThemeControl, ThemeIcon, useThemeCycle } from './ThemeControl';
 import { Tooltip } from './Tooltip';
@@ -26,6 +25,7 @@ import { isAlwaysDarkRoute } from '@/shared/hooks/useTheme';
 import { PublicMenu } from './PublicMenu';
 import { Brand } from './Brand';
 import { Icon } from './Icon';
+import { MARKET_HREF, isMarketRoute } from './marketNav';
 
 export function TopNav() {
   const a11y = useTranslations().a11y;
@@ -40,12 +40,6 @@ export function TopNav() {
   const { unreadCount } = useNotifications();
   const openDeals = useOpenDeals();
   const { profile, address: profileAddress } = useUserProfile();
-  // The selected workspace controls the home/trade context. Personal and
-  // business workspaces share this identity and wallet; the switcher makes the
-  // context visible before a consequential action. The Financier desk remains
-  // available to both workspaces.
-  const { isBusinessWorkspace } = useWorkspaceContext();
-  const biz = isBusinessWorkspace;
   const shell = getShellSurface(pathname, isAuthenticated);
   const publicSurface = shell === 'public';
   const workspaceSurface = shell === 'workspace' || shell === 'admin';
@@ -55,19 +49,7 @@ export function TopNav() {
   // The full chrome returns once setup is complete.
   const showFullChrome = workspaceSurface && isAuthenticated;
 
-  const tradesActive =
-    pathname.startsWith('/p2p') ||
-    pathname.startsWith('/b2b') ||
-    pathname.startsWith('/supply') ||
-    pathname.startsWith('/buyer') ||
-    pathname.startsWith('/seller') ||
-    pathname.startsWith('/jobs') ||
-    pathname.startsWith('/deals');
-  const discoverHref = biz ? '/partners' : '/market';
-  const discoverActive =
-    pathname.startsWith('/market') ||
-    pathname.startsWith('/listings') ||
-    pathname.startsWith('/partners');
+  const discoverActive = isMarketRoute(pathname);
 
   // The landing sizes its rows against the real chrome (see globals.css
   // "Landing panels"), so the bar publishes its own height instead of the page
@@ -176,9 +158,7 @@ export function TopNav() {
     {showFullChrome ? (
       <WorkspaceRail
         pathname={pathname}
-        tradeHref={biz ? '/b2b' : '/p2p'}
-        discoverHref={discoverHref}
-        tradesActive={tradesActive}
+        discoverHref={MARKET_HREF}
         discoverActive={discoverActive}
         financeEnabled={SME_TRADES_ENABLED}
         unread={unreadCount > 0}
@@ -192,9 +172,7 @@ export function TopNav() {
 
 function WorkspaceRail({
   pathname,
-  tradeHref,
   discoverHref,
-  tradesActive,
   discoverActive,
   financeEnabled,
   unread,
@@ -202,9 +180,7 @@ function WorkspaceRail({
   soonLabel,
 }: {
   pathname: string;
-  tradeHref: string;
   discoverHref: string;
-  tradesActive: boolean;
   discoverActive: boolean;
   financeEnabled: boolean;
   unread: boolean;
@@ -299,9 +275,6 @@ function WorkspaceRail({
         </RailLink>
         {DEALS_AVAILABLE && (
         <>
-        <RailLink href={tradeHref} active={tradesActive} icon="trade" collapsed={collapsed} ariaLabel={t.trades}>
-          {t.trades}
-        </RailLink>
         <RailLink href={discoverHref} active={discoverActive} icon="discover" collapsed={collapsed} ariaLabel={t.market}>
           {t.market}
         </RailLink>

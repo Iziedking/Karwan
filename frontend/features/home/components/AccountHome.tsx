@@ -102,7 +102,7 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
             ) : null}
             <Link
               data-guide="home-start"
-              href={accountKind === 'business' ? '/b2b' : '/p2p'}
+              href="/market?view=yours"
               className="group mt-3 flex min-h-12 items-center justify-between gap-3 rounded-[16px] border border-[var(--lp-border-light)] px-4 text-[15px] font-semibold text-[var(--lp-dark)] transition-colors hover:border-[var(--lp-outline-strong)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
             >
               {home.tradeNow}

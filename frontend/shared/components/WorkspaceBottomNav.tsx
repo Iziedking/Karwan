@@ -3,11 +3,11 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useNotifications } from '@/features/notifications/hooks/useNotifications';
 import { useOpenDeals } from '@/features/notifications/hooks/useOpenDeals';
 import { ActionBeacon } from './ActionBeacon';
+import { MARKET_HREF, isMarketRoute } from './marketNav';
 import { PersonAvatar } from './PersonAvatar';
 import { cn } from '@/shared/utils/cn';
 import { getShellSurface, WALLET_HOME } from '@/shared/utils/routes';
@@ -34,43 +34,13 @@ export function WorkspaceBottomNav() {
   const { unreadCount } = useNotifications();
   const openDeals = useOpenDeals();
   const t = useTranslations().nav;
-  const { isBusinessWorkspace: business } = useWorkspaceContext();
   const shell = getShellSurface(pathname, auth.isAuthenticated);
 
   if (!auth.isAuthenticated || shell !== 'workspace') return null;
 
-  const tradeHref = business ? '/b2b' : '/p2p';
-  const discoverHref = business ? '/partners' : '/market';
-  const tradeActive = [
-    '/p2p',
-    '/b2b',
-    '/supply',
-    '/buyer',
-    '/seller',
-    '/jobs',
-    '/deals',
-    '/cashout',
-  ].some((route) => pathname === route || pathname.startsWith(`${route}/`));
-  const discoverActive = ['/market', '/listings', '/partners'].some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`),
-  );
-
   const homeHref = DEALS_AVAILABLE ? '/app' : WALLET_HOME;
   const dealItems: BottomNavItem[] = DEALS_AVAILABLE
-    ? [
-        {
-          href: tradeHref,
-          label: business ? t.smeTrades : t.trades,
-          icon: 'trade',
-          active: tradeActive,
-        },
-        {
-          href: discoverHref,
-          label: t.market,
-          icon: 'discover',
-          active: discoverActive,
-        },
-      ]
+    ? [{ href: MARKET_HREF, label: t.market, icon: 'discover', active: isMarketRoute(pathname) }]
     : [];
   const items: BottomNavItem[] = [
     { href: homeHref, label: t.home, icon: 'home', active: pathname === homeHref },

@@ -56,7 +56,7 @@ export function makeProposal(over: Record<string, unknown> = {}) {
   };
 }
 
-const PROFILE = {
+export const PROFILE = {
   address: ME,
   role: 'both',
   displayName: 'Me',

@@ -57,7 +57,7 @@ export function SocialTradeSection() {
           <p className={styles.label}><img src="/brand/karwan-mark-lime.svg" alt="" width={24} height={28} />{t.label}</p>
           <h2 id="social-trade-title" className={styles.headline}>{t.title}</h2>
           <p className={styles.body}>{t.body}</p>
-          <Link href={tradeEntryRoutes(false).agreement} className={styles.cta}>{t.action}<span aria-hidden className="rtl-flip">→</span></Link>
+          <Link href={tradeEntryRoutes().agreement} className={styles.cta}>{t.action}<span aria-hidden className="rtl-flip">→</span></Link>
 
           <div className={styles.exampleControls}>
             <p className={styles.controlsLabel}>{t.controls}</p>

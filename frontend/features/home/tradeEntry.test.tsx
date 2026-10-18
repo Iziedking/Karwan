@@ -2,13 +2,15 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { TRADE_ENTRY_COPY, tradeEntryRoutes } from './tradeEntry';
 
-test('entry routes reach real personal and business surfaces without changing workspace', () => {
-  assert.equal(tradeEntryRoutes(false).buy, '/buyer?mode=managed#new-deal');
-  assert.equal(tradeEntryRoutes(false).sell, '/seller#post-listing');
-  assert.equal(tradeEntryRoutes(true).sell, '/supply');
-  assert.equal(tradeEntryRoutes(true).buy, '/partners');
-  assert.equal(tradeEntryRoutes(true).agreement, '/buyer?mode=direct#bring-a-deal');
-  assert.equal(tradeEntryRoutes(false).agreement, '/buyer?mode=direct#new-deal');
+test('one way to start a trade for every account (view 17)', () => {
+  assert.deepEqual(tradeEntryRoutes(), {
+    buy: '/buyer?mode=managed#new-deal',
+    sell: '/seller#post-listing',
+    agreement: '/buyer?mode=direct#new-deal',
+  });
+  for (const href of Object.values(tradeEntryRoutes())) {
+    assert.doesNotMatch(href, /\/(supply|partners|p2p|b2b)/, href);
+  }
 });
 
 test('every supported language includes all entry labels, none empty', () => {
