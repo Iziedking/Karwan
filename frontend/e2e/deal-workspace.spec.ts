@@ -229,7 +229,8 @@ test('the seller of a delivered business order gets paid now on the same page', 
   });
   await page.goto(`/deals/${JOB}`);
   await expect(page.getByRole('heading', { name: g.requestedTitle })).toBeVisible();
-  await expect(page.getByText('480 USDC now, 504 USDC repaid from this deal')).toBeVisible();
+  await expect(page.getByText('480 USDC now', { exact: true })).toBeVisible();
+  await expect(page.getByText('504 USDC repaid from this deal', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: g.review }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toContainText('You get 480 USDC now. When the buyer releases, 504 USDC of this deal goes to the financier first');

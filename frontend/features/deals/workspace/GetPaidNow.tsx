@@ -131,11 +131,12 @@ export function GetPaidNow({ deal, viewerIsSeller, onChanged }: { deal: DirectDe
       {sorted.length ? (
         <ul className="mt-4 divide-y divide-[var(--lp-border-light)] border-y border-[var(--lp-border-light)]">
           {sorted.map((offer) => (
-            <li key={offer.id} className="flex min-h-14 items-center justify-between gap-3 py-2">
-              <span className="text-[15px] tabular-nums text-[var(--lp-dark)]">
-                {fill(g.offerLine, { advance: usdc(offer.offeredAdvanceUsdc), repay: usdc(offer.expectedReturnUsdc) })}
-              </span>
-              <button type="button" onClick={() => { setError(null); setReviewing(offer); }} className={`${quietButton} w-auto shrink-0`}>
+            <li key={offer.id} className="flex items-center justify-between gap-4 py-3">
+              <div className="min-w-0">
+                <p className="text-[17px] font-semibold tabular-nums text-[var(--lp-dark)]">{fill(g.offerNow, { advance: usdc(offer.offeredAdvanceUsdc) })}</p>
+                <p className="mt-0.5 text-[14px] tabular-nums text-[var(--lp-text-sub)]">{fill(g.offerRepay, { repay: usdc(offer.expectedReturnUsdc) })}</p>
+              </div>
+              <button type="button" onClick={() => { setError(null); setReviewing(offer); }} className="inline-flex min-h-11 shrink-0 items-center rounded-full bg-[var(--tint)] px-5 text-[15px] font-semibold text-[var(--ink)] transition-colors hover:bg-[var(--line)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">
                 {g.review}
               </button>
             </li>
