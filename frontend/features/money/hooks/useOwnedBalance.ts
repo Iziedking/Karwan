@@ -7,7 +7,7 @@ import { useMoneyBalances } from './useMoneyBalances';
 
 /// The one balance Home and the profile show, with its parts. Reads the same
 /// sources as the balance page, so the numbers agree everywhere.
-export function useOwnedBalance(): Owned & { loading: boolean } {
+export function useOwnedBalance(): Owned & { loading: boolean; failed: boolean; retry: () => void } {
   const money = useMoneyBalances();
   const { address } = useAuth();
   const chains = useChainBalances(address as `0x${string}` | undefined, !!address);
@@ -16,5 +16,6 @@ export function useOwnedBalance(): Owned & { loading: boolean } {
     ? null
     : others.reduce((sum, q) => sum + (q.data ? Number(formatUnits(q.data.value, q.data.decimals)) : 0), 0);
   const owned = ownedBalance({ wallet: money.balance, pool: money.pool, otherChains, buyer: money.buyer, seller: money.seller });
-  return { ...owned, loading: money.loading };
+  // The wallet read failed and nothing came back: say so rather than show a dash.
+  return { ...owned, loading: money.loading, failed: money.error && owned.total === null, retry: money.refetch };
 }

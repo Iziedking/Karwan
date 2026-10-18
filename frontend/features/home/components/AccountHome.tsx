@@ -71,12 +71,21 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="rtl:-scale-x-100"><path d="m9 18 6-6-6-6" /></svg>
               </Link>
             </div>
-            <p className="mt-1.5 flex items-baseline gap-2">
-              <span className={`text-[40px] font-bold leading-none tabular-nums tracking-[-0.03em] text-[var(--lp-dark)] sm:text-[48px] ${owned.loading && totalBalance == null ? 'motion-safe:animate-pulse' : ''}`}>
-                {totalBalance == null ? '-' : totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </span>
-              <span className="text-[17px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
-            </p>
+            {owned.failed ? (
+              <p role="alert" className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[15px] text-[var(--lp-dark)]">
+                {home.balanceUnavailable}
+                <button type="button" onClick={owned.retry} className="inline-flex min-h-11 items-center font-semibold underline underline-offset-4">
+                  {home.balanceRetry}
+                </button>
+              </p>
+            ) : (
+              <p className="mt-1.5 flex items-baseline gap-2">
+                <span className={`text-[40px] font-bold leading-none tabular-nums tracking-[-0.03em] text-[var(--lp-dark)] sm:text-[48px] ${owned.loading && totalBalance == null ? 'motion-safe:animate-pulse' : ''}`}>
+                  {totalBalance == null ? '-' : totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+                <span className="text-[17px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
+              </p>
+            )}
             <p className="mt-0.5 text-[15px] font-medium text-[var(--lp-text-sub)]">
               {activeDeals.length === 1 ? home.activeTradesOne : fill(home.activeTrades, { n: activeDeals.length })}
             </p>

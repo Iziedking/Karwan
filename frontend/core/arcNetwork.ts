@@ -60,9 +60,15 @@ const EXTRA_PUBLIC_RPCS: Record<ArcNetworkName, readonly string[]> = {
 /// Every Arc RPC the browser may use, in order: the dedicated endpoint
 /// (NEXT_PUBLIC_ARC_RPC_URL) first, then the public ones, so the site stays on
 /// chain when the dedicated one is down.
+/// The setting may hold several URLs separated by commas (http allowed for a
+/// local node); each is used on its own, and hosts on the retired arc.network
+/// domain (stopped 15 Oct 2026) are dropped.
 export function arcRpcPool(name: ArcNetworkName, dedicated: string | undefined): string[] {
-  const pool = [dedicated?.trim(), publicRpcFor(name), ...EXTRA_PUBLIC_RPCS[name]];
-  return [...new Set(pool.filter((u): u is string => !!u))];
+  const own = (dedicated ?? '')
+    .split(',')
+    .map((u) => u.trim())
+    .filter((u) => /^https?:\/\/\S+$/.test(u) && !new URL(u).hostname.endsWith('.arc.network'));
+  return [...new Set([...own, publicRpcFor(name), ...EXTRA_PUBLIC_RPCS[name]])];
 }
 
 export const ARC_NETWORK: ArcNetworkName = parseArcNetwork(process.env.NEXT_PUBLIC_ARC_NETWORK);

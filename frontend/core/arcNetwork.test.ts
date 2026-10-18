@@ -63,3 +63,15 @@ test('a wallet adding the network gets the RPC and explorer Arc documents, not t
   assert.equal(chainFor('testnet').id, 5042002);
   assert.equal(chainFor('mainnet').id, 5042);
 });
+
+test('a dedicated setting holding several URLs is split, and dead arc.network hosts are dropped', () => {
+  assert.deepEqual(
+    arcRpcPool('testnet', 'https://rpc.testnet.arc-node.example/v1/key, https://rpc.testnet.arc.network ,https://rpc.quicknode.testnet.arc.network'),
+    ['https://rpc.testnet.arc-node.example/v1/key', 'https://rpc.testnet.arc.io', 'https://rpc.drpc.testnet.arc.io'],
+  );
+  assert.deepEqual(arcRpcPool('testnet', 'not-a-url'), ['https://rpc.testnet.arc.io', 'https://rpc.drpc.testnet.arc.io']);
+});
+
+test('a local RPC over http stays usable, for development and browser tests', () => {
+  assert.deepEqual(arcRpcPool('testnet', 'http://127.0.0.1:3198'), ['http://127.0.0.1:3198', 'https://rpc.testnet.arc.io', 'https://rpc.drpc.testnet.arc.io']);
+});
