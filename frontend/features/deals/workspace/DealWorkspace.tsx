@@ -17,6 +17,7 @@ import { registerDealTools } from './webmcp';
 import { V3EscrowPanel } from '../v3/V3EscrowPanel';
 import { HighSignalVerificationCard } from '../components/HighSignalVerificationCard';
 import { ProtectionSection } from './ProtectionSection';
+import { GetPaidNow } from './GetPaidNow';
 
 const SOFT = 'bg-[var(--lp-workspace-soft)] motion-safe:animate-pulse motion-reduce:animate-none rounded-[10px]';
 
@@ -150,6 +151,11 @@ export function DealWorkspace({ jobId }: { jobId: string }) {
           <HighSignalVerificationCard deal={deal} caller={address} onRefresh={() => { void refresh(); }} />
         </div>
       ) : null}
+      <GetPaidNow
+        deal={deal}
+        viewerIsSeller={!!address && deal.seller.toLowerCase() === address.toLowerCase()}
+        onChanged={() => { void refresh(); }}
+      />
       <ProtectionSection deal={deal} viewerIsBuyer={actions.viewerIsBuyer} />
       <div className="mt-6 empty:hidden">
         <V3EscrowPanel deal={deal} address={address} onChanged={() => { void refresh(); }} />

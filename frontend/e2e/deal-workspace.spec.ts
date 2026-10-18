@@ -184,3 +184,61 @@ test('Arabic renders right to left without overflow', async ({ page, context }) 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(0);
 });
+
+const API = 'http://127.0.0.1:3199';
+
+test('a goods order is shipped from the same page with its carrier and tracking number', async ({ page }) => {
+  await serveDeal(page, { ...awaitingDelivery, tradeType: 'goods', tradeLane: 'finance' }, SELLER);
+  await page.route(`${API}/api/deals/carriers`, (route) =>
+    route.fulfill({ json: { carriers: [{ slug: 'dhl', name: 'DHL', needsUrl: false }, { slug: 'other', name: 'Other carrier', needsUrl: true }] } }),
+  );
+  const delivered = capture(page, 'delivered');
+  await page.goto(`/deals/${JOB}`);
+  await page.getByRole('button', { name: en.dealWorkspace.actions.deliver }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toContainText(s.shipTitle);
+  const submit = dialog.getByRole('button', { name: s.deliverSubmit });
+  await expect(submit).toBeDisabled();
+  await dialog.getByRole('radio', { name: 'DHL' }).click();
+  await dialog.getByLabel(s.trackingLabel).fill('JD014600006');
+  await submit.click();
+  await expect.poll(() => delivered.body).toEqual({ caller: SELLER, shipment: { carrier: 'dhl', trackingNumber: 'JD014600006' } });
+  await expect(page).not.toHaveURL(/workspace=v1/);
+});
+
+test('the seller of a delivered business order gets paid now on the same page', async ({ page }) => {
+  const g = en.dealWorkspace.getPaid;
+  const deal: DirectDeal = {
+    ...deliveredDeal,
+    tradeType: 'goods',
+    tradeLane: 'finance',
+    shipment: { carrier: 'dhl', trackingNumber: 'JD014600006', trackingUrl: 'https://www.dhl.com/track?id=JD014600006' },
+    factoringRequestedAt: Date.UTC(2026, 9, 18),
+  } as DirectDeal;
+  await serveDeal(page, deal, SELLER);
+  const offer = {
+    id: '6f1c2a3b-0000-4000-8000-000000000001', invoiceId: JOB, financier: '0x5555555555555555555555555555555555555555', seller: SELLER,
+    status: 'offered', offeredAdvanceUsdc: '480', expectedReturnUsdc: '504', faceValueUsdc: '600', discountBps: 400,
+    offeredAt: Date.now(), expiresAt: Date.now() + 86_400_000, createdAt: Date.now(), updatedAt: Date.now(),
+  };
+  await page.route(`${API}/api/factoring/offers/${JOB}`, (route) => route.fulfill({ json: { offers: [offer] } }));
+  const accepted: { body: unknown } = { body: null };
+  await page.route(`${API}/api/factoring/accept`, async (route) => {
+    accepted.body = route.request().postDataJSON();
+    await route.fulfill({ json: { offer: { ...offer, status: 'accepted' } } });
+  });
+  await page.goto(`/deals/${JOB}`);
+  await expect(page.getByRole('heading', { name: g.requestedTitle })).toBeVisible();
+  await expect(page.getByText('480 USDC now, 504 USDC repaid from this deal')).toBeVisible();
+  await page.getByRole('button', { name: g.review }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toContainText('You get 480 USDC now. When the buyer releases, 504 USDC of this deal goes to the financier first');
+  await dialog.getByRole('button', { name: g.accept }).click();
+  await expect.poll(() => accepted.body).toEqual({ offerId: offer.id });
+});
+
+test('the buyer never sees the seller’s early payment', async ({ page }) => {
+  await serveDeal(page, { ...deliveredDeal, tradeType: 'goods', tradeLane: 'finance', factoringRequestedAt: Date.UTC(2026, 9, 18) } as DirectDeal, BUYER);
+  await page.goto(`/deals/${JOB}`);
+  await expect(page.getByRole('heading', { name: en.dealWorkspace.getPaid.requestedTitle })).toHaveCount(0);
+});

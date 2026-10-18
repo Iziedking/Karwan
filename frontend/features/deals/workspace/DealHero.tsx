@@ -73,7 +73,6 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   const name = card?.name || shortAddress(counterparty);
   const facts = card ? (card.isNew ? s.newHere : trustFactParts(card, copy, locale).slice(0, 2).join(' · ')) : null;
   const problems = problemOptions(deal, viewer, Date.now());
-  const isGoods = deal.tradeType === 'goods' || deal.tradeType === 'mixed';
   const declined = view.stage === 'awaiting-acceptance' && !!deal.sellerDeclinedAt;
   const label = actionLabel(view.next, copy, locale);
   const automatic = automaticLine(view, copy, locale, viewerIsBuyer ? dl : undefined);
@@ -85,7 +84,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
 
   function primary() {
     const action = view.next.action;
-    if (action === 'deliver' && !isGoods) setPanel('deliver');
+    if (action === 'deliver') setPanel('deliver');
     else if (action === 'respond-extension') setPanel('answerTime');
     else if (action === 'respond-cancel' && answersCancelHere(deal)) setPanel('answerCancel');
     else if (action === 'dispute') setPanel('problem');

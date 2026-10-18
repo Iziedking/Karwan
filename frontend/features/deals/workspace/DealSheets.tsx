@@ -1,9 +1,10 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ApiError, api, type DirectDeal } from '@/core/api';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { fill } from './presentation';
 import type { Problem } from './problems';
+import { deliveryNeedsShipment, deliveryReady, type Shipment } from './delivery';
 import { Sheet, fieldLabel, primaryButton, quietButton } from './Sheet';
 
 const DAY_S = 86_400;
@@ -38,22 +39,113 @@ const textArea = 'form-input mt-1.5 block min-h-[96px] font-normal';
 
 type SheetProps = { open: boolean; deal: DirectDeal; caller: string; name: string; onClose: () => void; onDone: () => void };
 
+type Carrier = { slug: string; name: string; needsUrl: boolean };
+
+/// Goods and mixed orders state who carries them and under what reference, so
+/// the buyer can follow the shipment; a service hands over its proof.
 export function DeliverSheet({ open, deal, caller, onClose, onDone }: SheetProps) {
   const s = useTranslations().dealWorkspace.simple;
+  const placeholder = useTranslations().pageBits.dealDetail.containerRefPlaceholder;
+  const ships = deliveryNeedsShipment(deal.tradeType);
   const [proof, setProof] = useState('');
+  const [shipment, setShipment] = useState<Shipment>({ carrier: '', trackingNumber: '', trackingUrl: '' });
+  const [carriers, setCarriers] = useState<Carrier[]>([]);
   const move = useMove(onDone);
+  const carrier = carriers.find((c) => c.slug === shipment.carrier);
+
+  useEffect(() => {
+    if (!open || !ships || carriers.length) return;
+    let live = true;
+    api.listCarriers().then((r) => { if (live) setCarriers(r.carriers); }).catch(() => {});
+    return () => { live = false; };
+  }, [open, ships, carriers.length]);
+
+  const submit = () =>
+    void move.run(() =>
+      api.markDelivered(
+        deal.jobId,
+        caller,
+        proof.trim() || undefined,
+        ships
+          ? {
+              carrier: shipment.carrier,
+              trackingNumber: shipment.trackingNumber.trim(),
+              ...(shipment.trackingUrl.trim() ? { trackingUrl: shipment.trackingUrl.trim() } : {}),
+            }
+          : undefined,
+      ),
+    );
+
   return (
-    <Sheet open={open} title={s.deliverTitle} onClose={onClose} busy={move.busy}>
-      <label className={fieldLabel}>
-        {s.proofLabel}
-        <textarea value={proof} onChange={(e) => setProof(e.target.value)} dir="auto" maxLength={2000} className={textArea} />
-      </label>
+    <Sheet open={open} title={ships ? s.shipTitle : s.deliverTitle} onClose={onClose} busy={move.busy}>
+      {ships ? (
+        <>
+          <fieldset>
+            <legend className={fieldLabel}>{s.carrierLabel}</legend>
+            <div role="radiogroup" className="mt-2 flex flex-wrap gap-2">
+              {carriers.map((c) => {
+                const on = c.slug === shipment.carrier;
+                return (
+                  <button
+                    key={c.slug}
+                    type="button"
+                    role="radio"
+                    aria-checked={on}
+                    onClick={() => setShipment({ ...shipment, carrier: c.slug })}
+                    className={`min-h-11 rounded-full border px-4 text-[15px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] ${
+                      on
+                        ? 'border-[var(--lp-dark)] bg-[var(--lp-dark)] text-[var(--lp-light)]'
+                        : 'border-[var(--lp-border-light)] text-[var(--lp-dark)]'
+                    }`}
+                  >
+                    {c.name}
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+          <label className={`${fieldLabel} mt-4 block`}>
+            {s.trackingLabel}
+            <input
+              value={shipment.trackingNumber}
+              onChange={(e) => setShipment({ ...shipment, trackingNumber: e.target.value })}
+              maxLength={60}
+              placeholder={placeholder}
+              className="form-input mt-1.5 block font-normal"
+            />
+          </label>
+          {carrier?.needsUrl ? (
+            <label className={`${fieldLabel} mt-4 block`}>
+              {s.trackingUrlLabel}
+              <input
+                value={shipment.trackingUrl}
+                onChange={(e) => setShipment({ ...shipment, trackingUrl: e.target.value })}
+                maxLength={400}
+                inputMode="url"
+                dir="ltr"
+                placeholder="https://"
+                className="form-input mt-1.5 block font-normal"
+              />
+              <span className="mt-1.5 block text-[14px] font-normal text-[var(--lp-text-sub)]">{s.trackingUrlNote}</span>
+            </label>
+          ) : null}
+          <label className={`${fieldLabel} mt-4 block`}>
+            {s.shipNoteLabel}
+            <textarea value={proof} onChange={(e) => setProof(e.target.value)} dir="auto" maxLength={2000} className={textArea} />
+          </label>
+        </>
+      ) : (
+        <label className={fieldLabel}>
+          {s.proofLabel}
+          <textarea value={proof} onChange={(e) => setProof(e.target.value)} dir="auto" maxLength={2000} className={textArea} />
+        </label>
+      )}
       <MoveError error={move.error} />
       <div className="mt-6">
         <button
           type="button"
-          disabled={move.busy || !proof.trim()}
-          onClick={() => void move.run(() => api.markDelivered(deal.jobId, caller, proof.trim()))}
+          disabled={move.busy || !deliveryReady({ tradeType: deal.tradeType, proof, shipment, carrier })}
+          onClick={submit}
           className={primaryButton}
         >
           {s.deliverSubmit}

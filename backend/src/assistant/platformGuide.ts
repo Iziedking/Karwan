@@ -258,7 +258,7 @@ export const PLATFORM_GUIDE: readonly GuideEntry[] = [
     tools: ['get_my_financing'],
     keywords: 'finance financing invoice factoring purchase order financier credit loan advance',
     summary: 'The build includes invoice factoring, purchase-order financing and a financier desk. Access depends on configuration, eligible businesses and the particular Karwan-originated trade. Financing is opt-in, not a guaranteed loan or support for arbitrary external invoices. Do not invent rates or promise approval.',
-    steps: ['Eligible accepted invoices show an early-payment option on the deal.', 'Financiers apply and bid at /financier.'],
+    steps: ['Early payment is for goods or mixed orders between two verified businesses.', 'Once the seller marks the order delivered with its shipment tracking number, the deal page shows Get paid now: the seller asks for early payment, reviews financiers’ offers and accepts one there.', 'The seller is paid at once; when the buyer releases, the escrow repays the financier first and pays the seller the rest.', 'Financiers apply and make offers at /financier.'],
     sources: ['backend/src/routes/factoring.ts', 'backend/src/db/poFinancing.ts', 'frontend/app/financier/page.tsx'],
   },
   {

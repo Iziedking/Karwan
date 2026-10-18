@@ -18,6 +18,15 @@ import {
   factoringOfferable,
   poFinancingOfferable,
 } from '@/shared/deals/financingEligibility';
+import { acceptErrorKind, acceptOfferOnChain, rawAcceptError, WalletNeededError, type AcceptErrorKind } from '../acceptOffer';
+
+const ACCEPT_ERRORS: Record<AcceptErrorKind, string> = {
+  authorization: 'The financier authorization was rejected or expired. Ask the financier to re-price the offer, then try again.',
+  reconcile: 'The advance reached the seller agent wallet. Retry acceptance once to finish the Karwan receipt; no second advance will be submitted.',
+  alreadyAssigned: 'This invoice has already been assigned to a financier. Refresh the offer list before trying again.',
+  windowClosed: 'This invoice has moved past the factoring window and cannot be assigned.',
+  notAccepted: 'The offer could not be accepted. No assignment was recorded and the offer is still open. Try again, or ask the financier to send a new offer.',
+};
 
 /// Seller-side factoring CTA on the deal detail page. Polls
 /// /api/factoring/offers/:invoiceId when the viewer is the deal's seller
@@ -301,26 +310,6 @@ export function SellerOfferBanner({
 
 /// registry.assignReceivable: the seller relays the financier's signed advance
 /// and assigns the receivable in one call.
-const assignReceivableAbi = [
-  {
-    type: 'function',
-    name: 'assignReceivable',
-    stateMutability: 'nonpayable',
-    inputs: [
-      { name: 'invoiceId', type: 'bytes32' },
-      { name: 'financier', type: 'address' },
-      { name: 'repayUsdc', type: 'uint128' },
-      { name: 'advanceUsdc', type: 'uint256' },
-      { name: 'validAfter', type: 'uint256' },
-      { name: 'validBefore', type: 'uint256' },
-      { name: 'nonce', type: 'bytes32' },
-      { name: 'v', type: 'uint8' },
-      { name: 'r', type: 'bytes32' },
-      { name: 's', type: 'bytes32' },
-    ],
-    outputs: [],
-  },
-] as const;
 
 function OffersModal({
   deal,
@@ -363,69 +352,16 @@ function OffersModal({
     setAcceptingId(offer.id);
     setError(null);
     try {
-      // Accepting is one on-chain call: the registry relays the financier's
-      // signed advance to the seller and assigns the receivable to them in the
-      // same transaction. Neither half can happen without the other, so there
-      // is no moment where the seller is unpaid but already assigned.
-      //
-      // The call is seller-gated on chain, so a web3 seller sends it. Circle
-      // sellers have it signed from their identity wallet by the backend and
-      // never see a prompt. No repayment signature is collected any more: the
-      // escrow pays the financier out of the settlement.
-      let assignTxHash: string | undefined;
-      // A previous accept may have completed the on-chain assignment but
-      // stopped while recording its Karwan receipt. Reuse that hash instead of
-      // submitting a second assignReceivable call.
-      if (offer.advanceTxHash) {
-        assignTxHash = offer.advanceTxHash;
-      } else if (!isCircleUser) {
-        if (!walletClient || !auth.address) {
-          setError('Connect your wallet to accept this offer.');
-          setAcceptingId(null);
-          return;
-        }
-        const p = await api.factoringAssignmentParams(offer.id);
-        assignTxHash = await walletClient.writeContract({
-          address: p.registry,
-          abi: assignReceivableAbi,
-          functionName: 'assignReceivable',
-          args: [
-            p.invoiceId,
-            p.financier,
-            BigInt(p.repayUsdc),
-            BigInt(p.advanceUsdc),
-            BigInt(p.validAfter),
-            BigInt(p.validBefore),
-            p.nonce,
-            p.v,
-            p.r,
-            p.s,
-          ],
-          chain: walletClient.chain,
-          account: auth.address as `0x${string}`,
-        });
-      }
-      const r = await api.acceptFactoringOffer({
-        offerId: offer.id,
-        assignTxHash,
-      });
-      onAccepted(r.offer);
+      onAccepted(await acceptOfferOnChain({ offer, isCircleUser, walletClient, address: auth.address }));
     } catch (e) {
-      const raw = e instanceof ApiError
-        ? `${e.message}${typeof e.detail === 'string' ? `: ${e.detail}` : ''}`
-        : (e as Error).message;
-      const lower = raw.toLowerCase();
-      const friendly = lower.includes('authorization') || lower.includes('transferwithauthorization')
-        ? 'The financier authorization was rejected or expired. Ask the financier to re-price the offer, then try again.'
-        : lower.includes('receipt-reconciliation-required') || lower.includes('receipt still needs reconciliation')
-          ? 'The advance reached the seller agent wallet. Retry acceptance once to finish the Karwan receipt; no second advance will be submitted.'
-        : lower.includes('alreadyassigned') || lower.includes('already assigned')
-          ? 'This invoice has already been assigned to a financier. Refresh the offer list before trying again.'
-          : lower.includes('podlocked') || lower.includes('delivery')
-            ? 'This invoice has moved past the factoring window and cannot be assigned.'
-            : lower.includes('tx failed') || lower.includes('assignreceivable') || lower.includes('advance and assignment failed')
-              ? 'The offer could not be accepted. No assignment was recorded and the offer is still open. Try again, or ask the financier to send a new offer.'
-              : raw;
+      if (e instanceof WalletNeededError) {
+        setError('Connect your wallet to accept this offer.');
+        setAcceptingId(null);
+        return;
+      }
+      const raw = rawAcceptError(e);
+      const kind = acceptErrorKind(raw);
+      const friendly = kind ? ACCEPT_ERRORS[kind] : raw;
       setError(friendly);
       setAcceptingId(null);
     }

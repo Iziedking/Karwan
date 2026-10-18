@@ -3032,6 +3032,33 @@ interface MessagesShape {
     };
   };
   dealWorkspace: {
+    getPaid: {
+      title: string;
+      body: string;
+      ask: string;
+      amountLabel: string;
+      amountNote: string;
+      amountInvalid: string;
+      request: string;
+      requestedTitle: string;
+      requestedBody: string;
+      withdraw: string;
+      offerLine: string;
+      review: string;
+      acceptTitle: string;
+      consequence: string;
+      accept: string;
+      paidTitle: string;
+      paidBody: string;
+      viewFinancing: string;
+      errWallet: string;
+      errAuthorization: string;
+      errReconcile: string;
+      errAlreadyAssigned: string;
+      errWindowClosed: string;
+      errNotAccepted: string;
+      errRequest: string;
+    };
     checkPaused: { title: string; stays: string; saw: string; noWallet: string; reasons: Record<"security-hold" | "off-request" | "evidence-mismatch" | "check-pending" | "check-expired" | "terms-changed" | "delivery-replaced" | "link-unverifiable", string>; sellerHold: string; sellerOff: string };
     checkLive: { checking: string; checkingBody: string; passed: string; passedBuyer: string; passedSeller: string; unverified: string; unverifiedBuyer: string; unverifiedSeller: string };
     protection: { title: string; escrow: string; you: string; buyer: string; seller: string; reasons: { first_deal: string; large_deal: string; fast_new_account: string; flagged_link_before: string }; stake: string; github: string; offMarket: string; belowMarket: string; cashOut: string };
@@ -3052,6 +3079,12 @@ interface MessagesShape {
       deliverTitle: string;
       proofLabel: string;
       deliverSubmit: string;
+      shipTitle: string;
+      carrierLabel: string;
+      trackingLabel: string;
+      trackingUrlLabel: string;
+      trackingUrlNote: string;
+      shipNoteLabel: string;
       moreTimeTitle: string;
       daysLabel: string;
       reasonLabel: string;
@@ -8649,6 +8682,33 @@ export const en: MessagesShape = {
     },
   },
   dealWorkspace: {
+    getPaid: {
+      title: "Get paid now",
+      body: "A financier pays you part of this order now. When the buyer releases, the escrow repays the financier first and pays you the rest.",
+      ask: "Ask for early payment",
+      amountLabel: "How much do you need now?",
+      amountNote: "Up to {max} USDC.",
+      amountInvalid: "Enter an amount between 0 and {max} USDC.",
+      request: "Ask financiers",
+      requestedTitle: "Early payment requested",
+      requestedBody: "Financiers can see this order and make offers. Nothing changes for the buyer.",
+      withdraw: "Withdraw request",
+      offerLine: "{advance} USDC now, {repay} USDC repaid from this deal",
+      review: "Review",
+      acceptTitle: "Get {advance} USDC now",
+      consequence: "You get {advance} USDC now. When the buyer releases, {repay} USDC of this deal goes to the financier first and the rest comes to you. This cannot be undone.",
+      accept: "Accept and get paid",
+      paidTitle: "Paid early",
+      paidBody: "When the buyer releases, the escrow repays the financier first and pays you the rest.",
+      viewFinancing: "See the financing",
+      errWallet: "Connect your wallet to accept this offer.",
+      errAuthorization: "The financier’s offer expired or was rejected. Ask them to send a new one.",
+      errReconcile: "The payment reached you. Accept once more to finish the receipt; nothing is paid twice.",
+      errAlreadyAssigned: "This order already has a financier. Refresh to see the offers.",
+      errWindowClosed: "This order can no longer be financed.",
+      errNotAccepted: "The offer was not accepted and is still open. Try again, or ask for a new offer.",
+      errRequest: "The request was not sent. Try again.",
+    },
     checkPaused: { title: "Payment is paused", stays: "Your money stays in escrow until this is resolved.", saw: "What the check saw", noWallet: "Automatic release cannot run for this deal. Release it yourself from here.", reasons: { "security-hold": "The delivery link was flagged as unsafe, so it is hidden from you.", "off-request": "The check found the delivery does not match what you asked for.", "evidence-mismatch": "The delivery evidence does not match the agreed terms.", "check-pending": "The automatic check has not returned a result yet.", "check-expired": "The check result expired before payment was released.", "terms-changed": "The terms changed after the check ran, so it has to run again.", "delivery-replaced": "A newer delivery was submitted, so the check has to run again.", "link-unverifiable": "The delivery link could not be opened to check it." }, sellerHold: "Your delivery link was flagged as unsafe and is hidden from the buyer. Send a corrected link.", sellerOff: "The check found your delivery may not match the request. Send the right link." },
     checkLive: { checking: "Checking the delivery", checkingBody: "A guard agent is comparing it with the request. Payment waits for the result.", passed: "Delivery check passed", passedBuyer: "Review the work, then release.", passedSeller: "{name} reviews the work next.", unverified: "The link could not be checked", unverifiedBuyer: "Review the work yourself before you release.", unverifiedSeller: "{name} reviews the work themselves." },
     protection: { title: "Protection on this deal", escrow: "Money held in escrow until release", you: "You verify with World ID", buyer: "The buyer verifies with World ID", seller: "The seller verifies with World ID", reasons: { first_deal: "first deal", large_deal: "large deal", fast_new_account: "many new deals today", flagged_link_before: "a flagged link on record" }, stake: "Seller holds {pct}% stake", github: "Delivery checked on GitHub", offMarket: "Price is well above similar deals", belowMarket: "Price is well below similar deals" , cashOut: "Cash out" },
@@ -8669,6 +8729,12 @@ export const en: MessagesShape = {
       deliverTitle: "Deliver the work",
       proofLabel: "Link to the work",
       deliverSubmit: "Mark delivered",
+      shipTitle: "Ship the order",
+      carrierLabel: "Carrier",
+      trackingLabel: "Tracking number",
+      trackingUrlLabel: "Tracking page",
+      trackingUrlNote: "The buyer opens this to follow the shipment.",
+      shipNoteLabel: "Note for the buyer (optional)",
       moreTimeTitle: "Ask for more time",
       daysLabel: "Extra days",
       reasonLabel: "Reason",
