@@ -301,7 +301,7 @@
       "path": "public/proof/network.md",
       "sources": [
         {
-          "url": "https://testnet.arcscan.app",
+          "url": "https://explorer.testnet.arc.io",
           "date": "2026-07-27"
         },
         {
@@ -900,7 +900,7 @@
       "summary": "Karwan runs on Arc Testnet, chain 5042002, where USDC is the gas token.",
       "sources": [
         {
-          "url": "https://testnet.arcscan.app",
+          "url": "https://explorer.testnet.arc.io",
           "date": "2026-07-27"
         },
         {

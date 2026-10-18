@@ -31,7 +31,7 @@ ARC_TARBALL=arc-foundry-$ARC_FOUNDRY-x86_64-unknown-linux-gnu.tar.gz
 ARC_TARBALL_SHA256=088bdb96a84418b757f9825d491e702792f1d1d1e29a9145af305a6600a79556
 # Arc testnet seeds the blocklisted test address; a blank local Arc node does not.
 # The fork is pinned to one block so the pack does not depend on live state.
-ARC_TESTNET_RPC=https://rpc.testnet.arc.network
+ARC_TESTNET_RPC=https://rpc.testnet.arc.io
 ARC_FORK_BLOCK=66719638
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 # One remote workspace per checkout, so separate checkouts never share files.

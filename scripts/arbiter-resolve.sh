@@ -17,7 +17,7 @@
 # DisputeResolved. rulingHash is a bytes32 reference to the written ruling.
 set -euo pipefail
 
-RPC="${ARC_RPC:-https://rpc.testnet.arc.network}"
+RPC="${ARC_RPC:-https://rpc.testnet.arc.io}"
 ESCROW="${KARWAN_ESCROW_ADDR:-0x0262A4dFec0E057cAf80F124BfD2847581E82B63}"
 SAFE="${KARWAN_ARBITER_SAFE:-0x31eb50b81758c1fB75410C9eCd03B866BdDC342f}"
 

@@ -5,6 +5,7 @@ import type { MoneyMovementState, MoneyMovementView } from '@/core/api';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { Skeleton } from '@/shared/components/Skeleton';
 import { PortableReceipt, type PortableReceiptItem } from '@/features/activity/components/PortableReceipt';
+import { settlementExplorer } from '@/core/arcNetwork';
 
 export type SettlementRecordFetchState = 'loading' | 'ready' | 'error' | 'unavailable';
 
@@ -334,7 +335,7 @@ export function SettlementRecord({
             {legacyReceipts.map((receipt) => (
               <a
                 key={`${receipt.key}:${receipt.txHash}`}
-                href={`https://testnet.arcscan.app/tx/${receipt.txHash}`}
+                href={`${settlementExplorer}/tx/${receipt.txHash}`}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex min-h-11 items-center gap-2 mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)] transition-colors hover:text-[var(--lp-accent)]"

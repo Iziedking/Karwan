@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { api, ApiError, type BuyerJob } from '@/core/api';
+import { settlementExplorer } from '@/core/arcNetwork';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
 import { PAGE_REFRESH_EVENT } from '@/shared/utils/pageRefresh';
@@ -126,7 +127,7 @@ export function JobPageClient({ jobId }: { jobId: string }) {
           setState({ kind: 'private', status: job.status ?? 'open' });
           return;
         }
-        const explorer = status?.chain.explorer ?? 'https://testnet.arcscan.app';
+        const explorer = status?.chain.explorer ?? settlementExplorer;
         shownFor.current = jobId;
         setState({ kind: 'ready', job, explorer });
       },

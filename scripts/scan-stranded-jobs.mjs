@@ -24,7 +24,7 @@ const RPC =
   process.env.RPC_URL ||
   (process.env.ARC_TESTNET_RPC_URLS || '').split(',')[0] ||
   process.env.ARC_TESTNET_RPC_URL ||
-  'https://rpc.testnet.arc.network';
+  'https://rpc.testnet.arc.io';
 
 const JOB_BOARD = process.env.KARWAN_JOBBOARD_ADDR;
 const ESCROW = process.env.KARWAN_ESCROW_ADDR;

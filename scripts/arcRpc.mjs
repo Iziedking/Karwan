@@ -13,7 +13,7 @@
 
 import { fallback, http } from 'viem';
 
-export const PUBLIC_ARC_RPC = 'https://rpc.testnet.arc.network';
+export const PUBLIC_ARC_RPC = 'https://rpc.testnet.arc.io';
 export const ARC_CHAIN_ID = 5042002;
 
 /// Primary first, then ARC_TESTNET_RPC_URLS, then the public endpoint last so a

@@ -6,7 +6,7 @@ import {
   polygonAmoy,
 } from 'viem/chains';
 import { arcChain } from '@/core/wagmi';
-import { ARC_NETWORK, type ArcNetworkName } from '@/core/arcNetwork';
+import { ARC_NETWORK, settlementExplorer, type ArcNetworkName } from '@/core/arcNetwork';
 import type { ChainKey } from '@/shared/components/ChainLogo';
 
 // CCTP V2 deploys one canonical TokenMessenger on every testnet and another on
@@ -544,8 +544,7 @@ export const ARC_CCTP = {
   chainId: arcChain.id,
   domain: 26,
   usdc: '0x3600000000000000000000000000000000000000' as const,
-  explorerTx: (h: string) =>
-    ARC_NETWORK === 'testnet' ? `https://testnet.arcscan.app/tx/${h}` : `https://explorer.arc.io/tx/${h}`,
+  explorerTx: (h: string) => `${settlementExplorer}/tx/${h}`,
 };
 
 // CCTP V2 minFinalityThreshold for Fast Transfer. Per Circle: 1000 = fast (soft

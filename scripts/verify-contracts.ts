@@ -2,7 +2,7 @@
 /// API. Run from the repo root:
 ///
 ///   VERIFY_RUN=1 \
-///   VERIFIER_URL=https://testnet.arcscan.app/api/ \
+///   VERIFIER_URL=https://explorer.testnet.arc.io/api/ \
 ///   ETHERSCAN_API_KEY=any \
 ///   npx tsx scripts/verify-contracts.ts
 ///
@@ -42,7 +42,7 @@ const BROADCAST_DIR = join(CONTRACTS_DIR, 'broadcast');
 const OUT_DIR = join(CONTRACTS_DIR, 'out');
 
 const CHAIN_ID = process.env.CHAIN_ID ?? '5042002';
-const VERIFIER_URL = process.env.VERIFIER_URL ?? 'https://testnet.arcscan.app/api/';
+const VERIFIER_URL = process.env.VERIFIER_URL ?? 'https://explorer.testnet.arc.io/api/';
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY ?? 'any';
 const VERIFY_RUN = process.env.VERIFY_RUN === '1';
 const FILTER = (process.env.CONTRACTS ?? '')

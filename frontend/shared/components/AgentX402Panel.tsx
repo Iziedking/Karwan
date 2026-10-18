@@ -3,13 +3,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { api, type ChainEvent } from '@/core/api';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
 import { Hint } from '@/shared/components/Hint';
+import { settlementExplorer } from '@/core/arcNetwork';
 
 /// Live, interactive x402 panel: each nanopayment an agent makes for this deal
 /// streams in as it happens — internal reputation pulls on Arc, off-platform
 /// market research on Base — with the amount and on-chain proof. UI copy frames
 /// it as "agents paying for data"; the x402 term stays in docs.
 
-const ARC_EXPLORER = 'https://testnet.arcscan.app';
+const ARC_EXPLORER = settlementExplorer;
 
 interface Payment {
   id: string;

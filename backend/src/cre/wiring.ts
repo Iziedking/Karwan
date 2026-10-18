@@ -108,7 +108,7 @@ export async function x402CreRoutesFromEnv(env: Record<string, string | undefine
   ) return null;
   const { requirePayment } = await import('../x402/sellerFacilitator.js');
   const store = await storeFor();
-  const rpc = settings.arcRpcUrl ?? 'https://rpc.testnet.arc.network';
+  const rpc = settings.arcRpcUrl ?? 'https://rpc.testnet.arc.io';
   const chain = defineChain({
     id: ARC_TESTNET_ID,
     name: 'Arc Testnet',
@@ -170,7 +170,7 @@ export async function creRoutesFromEnv(env: Record<string, string | undefined> =
   const settings: CreSettings = parseCreSettings(env);
   if (!settings.suiteEnabled) return null;
   const store = await storeFor();
-  const arc = createPublicClient({ transport: http(settings.arcRpcUrl ?? 'https://rpc.testnet.arc.network') });
+  const arc = createPublicClient({ transport: http(settings.arcRpcUrl ?? 'https://rpc.testnet.arc.io') });
   const abi = [...agreementAbi, ...adapterAbi];
   const read: ReadContract = (input) =>
     arc.readContract({ address: input.address as Address, abi, functionName: input.functionName as 'getTerms', args: input.args as [Hex] });

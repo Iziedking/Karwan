@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { api, type AdminEventEntry } from '@/core/api';
+import { settlementExplorer } from '@/core/arcNetwork';
 
 /// Admin payments log: every agent-to-agent x402 payment on Karwan. These are
 /// the `agent.paid` events the agents emit when they pay for data mid-deal — the
@@ -9,7 +10,7 @@ import { api, type AdminEventEntry } from '@/core/api';
 /// on-chain artifact exists; Arc nanopayments settle in Gateway batches so a
 /// single read often has no per-call hash (shown as "batched").
 
-const ARC_SCAN = 'https://testnet.arcscan.app';
+const ARC_SCAN = settlementExplorer;
 const BASE_SCAN = 'https://sepolia.basescan.org';
 
 function isHash(v: unknown): v is string {

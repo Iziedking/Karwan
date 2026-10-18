@@ -12,7 +12,7 @@ import { config } from '../config.js';
 ///
 ///   npm run usyc:prove   (from backend/)
 
-const EXPLORER = 'https://testnet.arcscan.app';
+const EXPLORER = 'https://explorer.testnet.arc.io';
 const HASHNOTE_PRICE_URL = 'https://usyc.dev.hashnote.com/api/price';
 
 const cfg = config as unknown as Record<string, string | undefined>;

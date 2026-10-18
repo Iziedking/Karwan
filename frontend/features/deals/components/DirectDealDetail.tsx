@@ -69,8 +69,9 @@ import { HighSignalVerificationCard } from './HighSignalVerificationCard';
 import { SwipeToPay } from './SwipeToPay';
 import { Icon } from '@/shared/components/Icon';
 import { RatingCard } from '@/features/ratings/RatingCard';
+import { settlementExplorer } from '@/core/arcNetwork';
 
-const ARC_EXPLORER_TX = (h: string) => `https://testnet.arcscan.app/tx/${h}`;
+const ARC_EXPLORER_TX = (h: string) => `${settlementExplorer}/tx/${h}`;
 
 /// v2b escrow live: unlocks the seller "Claim now" safety net (force the payout
 /// after the buyer's review window elapses). Off = current v1 behaviour (the

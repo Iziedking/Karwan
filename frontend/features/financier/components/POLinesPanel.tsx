@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { api, type POFinancingLine } from '@/core/api';
 import Link from 'next/link';
+import { settlementExplorer } from '@/core/arcNetwork';
 
 /// The user's purchase-order financing lines, as financier and as seller, with
 /// live status and on-chain proof. The advance reaches the seller in the
@@ -10,7 +11,7 @@ import Link from 'next/link';
 /// pays the financier back ahead of the seller. This panel is where both sides
 /// watch that happen and click through to the transactions.
 
-const ARC_EXPLORER = 'https://testnet.arcscan.app';
+const ARC_EXPLORER = settlementExplorer;
 
 function isTxHash(h?: string): boolean {
   return !!h && /^0x[0-9a-fA-F]{64}$/.test(h);

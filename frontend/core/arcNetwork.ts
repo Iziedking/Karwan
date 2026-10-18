@@ -13,17 +13,33 @@ export function parseArcNetwork(raw: string | undefined): ArcNetworkName {
   throw new Error(`NEXT_PUBLIC_ARC_NETWORK must be "testnet" or "mainnet", got "${raw}"`);
 }
 
-/// viem's Arc mainnet chain leaves `testnet` and `blockExplorers` unset; set
-/// both so the app never presents mainnet as an unknown network or links to
-/// nowhere.
+/// Endpoints as Arc documents them (docs.arc.io, references/rpc-endpoints).
+/// viem's own definitions can't be trusted here: its arcTestnet names hosts
+/// that stopped resolving in October 2026 and its arc has no RPC at all, and
+/// these lists are what a wallet receives when the app asks it to add Arc.
+const ENDPOINTS: Record<ArcNetworkName, { http: string; ws: string; explorer: string; explorerName: string }> = {
+  testnet: {
+    http: 'https://rpc.testnet.arc.io',
+    ws: 'wss://rpc.testnet.arc.io',
+    explorer: 'https://explorer.testnet.arc.io',
+    explorerName: 'Arc Testnet Explorer',
+  },
+  mainnet: {
+    http: 'https://rpc.mainnet.arc.io',
+    ws: 'wss://rpc.mainnet.arc.io',
+    explorer: 'https://explorer.arc.io',
+    explorerName: 'Arc Explorer',
+  },
+};
+
 export function chainFor(name: ArcNetworkName): Chain {
-  return name === 'mainnet'
-    ? {
-        ...arc,
-        testnet: false as const,
-        blockExplorers: { default: { name: 'Arc Explorer', url: 'https://explorer.arc.io' } },
-      }
-    : arcTestnet;
+  const e = ENDPOINTS[name];
+  return {
+    ...(name === 'mainnet' ? arc : arcTestnet),
+    testnet: name === 'testnet',
+    rpcUrls: { default: { http: [e.http], webSocket: [e.ws] } },
+    blockExplorers: { default: { name: e.explorerName, url: e.explorer, apiUrl: `${e.explorer}/api` } },
+  };
 }
 
 export function explorerTxUrl(chain: Chain, hash: string): string {
@@ -31,13 +47,13 @@ export function explorerTxUrl(chain: Chain, hash: string): string {
 }
 
 export function publicRpcFor(name: ArcNetworkName): string {
-  return name === 'mainnet' ? 'https://rpc.mainnet.arc.io' : 'https://rpc.testnet.arc.network';
+  return ENDPOINTS[name].http;
 }
 
 /// Keyless RPCs a browser may call, after the network's own public endpoint.
 /// dRPC backs up the public testnet RPC, which has gone dark on its own before.
 const EXTRA_PUBLIC_RPCS: Record<ArcNetworkName, readonly string[]> = {
-  testnet: ['https://arc-testnet.drpc.org'],
+  testnet: ['https://rpc.drpc.testnet.arc.io'],
   mainnet: [],
 };
 
@@ -54,6 +70,7 @@ export const ARC_NETWORK: ArcNetworkName = parseArcNetwork(process.env.NEXT_PUBL
 // Branding is independent of this choice; changing a label must never switch
 // payment infrastructure. Only NEXT_PUBLIC_ARC_NETWORK does.
 export const settlementChain = chainFor(ARC_NETWORK);
+export const settlementExplorer = ENDPOINTS[ARC_NETWORK].explorer;
 
 /// Karwan's deal contracts are live on testnet only. Mainnet is wallet-only
 /// (balances, deposits, bridging) until the contract suite deploys there.

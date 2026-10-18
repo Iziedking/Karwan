@@ -28,7 +28,7 @@ cd "$(dirname "$0")/../.."
 
 RPC="${RPC:-http://127.0.0.1:8545}"
 ACCOUNT="${DEPLOYER_ACCOUNT:-karwan-mainnet-deployer}"
-# CHAIN=5042002 with RPC=https://rpc.testnet.arc.network rehearses the whole
+# CHAIN=5042002 with RPC=https://rpc.testnet.arc.io rehearses the whole
 # sequence on Arc testnet first. Anything else is refused.
 CHAIN="${CHAIN:-5042}"
 case "$CHAIN" in 5042|5042002) ;; *) echo "STOP: CHAIN must be 5042 or 5042002" >&2; exit 1 ;; esac

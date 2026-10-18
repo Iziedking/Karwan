@@ -9,6 +9,7 @@ import { TIER_HUE } from '@/features/reputation/tierColors';
 import { useReputation } from '@/features/reputation/hooks/useReputation';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { shortenEvidenceId } from '../paidEvidencePresentation';
+import { settlementExplorer } from '@/core/arcNetwork';
 
 interface Props {
   open: boolean;
@@ -291,7 +292,7 @@ const OUTCOME_HUE: Record<string, string> = {
   failed: '#b03d3a',
 };
 
-const ARCSCAN = 'https://testnet.arcscan.app';
+const ARCSCAN = settlementExplorer;
 
 /// Only link a payment tx when it looks like a real 32-byte hash. The internal
 /// Arc x402 settlement rides Circle Gateway batching, so the receipt sometimes

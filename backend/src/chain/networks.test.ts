@@ -2,11 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { resolveArcNetwork } from './networks.js';
 
-test('an unset network is testnet with the endpoints the backend has always used', () => {
+test('an unset network is testnet with the endpoints Arc documents', () => {
   const n = resolveArcNetwork({ ARC_NETWORK: 'testnet' });
   assert.equal(n.chainId, 5042002);
-  assert.deepEqual(n.rpcUrls, ['https://rpc.testnet.arc.network']);
-  assert.equal(n.explorer, 'https://testnet.arcscan.app');
+  assert.deepEqual(n.rpcUrls, ['https://rpc.testnet.arc.io']);
+  assert.deepEqual(n.wssUrls, ['wss://rpc.testnet.arc.io']);
+  assert.equal(n.explorer, 'https://explorer.testnet.arc.io');
   assert.equal(n.circleBlockchain, 'ARC-TESTNET');
   assert.equal(n.caip2, 'eip155:5042002');
 });
@@ -23,7 +24,7 @@ test('testnet still honours the ARC_TESTNET_* variables, deduped in order', () =
 test('mainnet never falls back to a testnet endpoint', () => {
   const n = resolveArcNetwork({
     ARC_NETWORK: 'mainnet',
-    ARC_TESTNET_RPC_URL: 'https://rpc.testnet.arc.network',
+    ARC_TESTNET_RPC_URL: 'https://rpc.testnet.arc.io',
     ARC_CIRCLE_BLOCKCHAIN: 'ARC',
   });
   assert.equal(n.chainId, 5042);

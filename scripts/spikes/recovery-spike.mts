@@ -23,7 +23,7 @@ const STATE = 'spike-state.json';
 const { toCircleSmartAccount, toModularTransport, recoveryActions, modularWalletActions } = await import('@circle-fin/modular-wallets-core');
 
 const chain = NETWORK === 'mainnet' ? { ...arc, testnet: false } : arcTestnet;
-const rpc = NETWORK === 'mainnet' ? 'https://rpc.mainnet.arc.io' : 'https://rpc.testnet.arc.network';
+const rpc = NETWORK === 'mainnet' ? 'https://rpc.mainnet.arc.io' : 'https://rpc.testnet.arc.io';
 const transport = toModularTransport(`https://modular-sdk.circle.com/v1/rpc/w3s/buidl/${NETWORK === 'mainnet' ? 'arc' : 'arcTestnet'}`, process.env.K!);
 const client = createClient({ chain, transport });
 const pc = createPublicClient({ chain, transport: http(rpc) });

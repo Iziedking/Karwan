@@ -48,7 +48,7 @@ an environment variable any more.
 
 ```bash
 forge script script/Deploy.s.sol \
-  --rpc-url https://rpc.testnet.arc.network \
+  --rpc-url https://rpc.testnet.arc.io \
   --account karwan-deployer \
   --sender <YOUR_DEPLOYER_ADDRESS> \
   --broadcast

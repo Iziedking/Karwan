@@ -11,7 +11,7 @@ ARC_FOUNDRY=v0.8.0-2
 ARC_TARBALL=arc-foundry-$ARC_FOUNDRY-x86_64-unknown-linux-gnu.tar.gz
 # Same release and hash as forge-remote.sh, recorded on 2026-10-11.
 ARC_TARBALL_SHA256=088bdb96a84418b757f9825d491e702792f1d1d1e29a9145af305a6600a79556
-ARC_TESTNET_RPC=https://rpc.testnet.arc.network
+ARC_TESTNET_RPC=https://rpc.testnet.arc.io
 ARC_FORK_BLOCK=${ARC_FORK_BLOCK:-66719638}
 PORT=8548
 W=/tmp/karwan-arc-fork

@@ -130,7 +130,7 @@ const envSchema = z.object({
 
   ARC_TESTNET_RPC_URL: z.preprocess(
     blankToUndefined,
-    z.string().url().default('https://rpc.testnet.arc.network'),
+    z.string().url().default('https://rpc.testnet.arc.io'),
   ),
   /// Optional comma-separated list of fallback RPC URLs. viem's fallback
   /// transport rotates to the next URL when one returns an error (e.g.
@@ -140,17 +140,17 @@ const envSchema = z.object({
   ARC_TESTNET_RPC_URLS: z.string().optional(),
   ARC_TESTNET_WSS_URL: z.preprocess(
     blankToUndefined,
-    z.string().default('wss://rpc.testnet.arc.network'),
+    z.string().default('wss://rpc.testnet.arc.io'),
   ),
   /// Optional comma-separated fallback WSS URLs. Same shape as
   /// ARC_TESTNET_RPC_URLS: the ws client rotates to the next endpoint when the
   /// primary websocket errors or drops, so a dedicated-endpoint blip doesn't
   /// strand the event watchers. Example:
-  ///   ARC_TESTNET_WSS_URLS=wss://rpc.testnet.arc.network
+  ///   ARC_TESTNET_WSS_URLS=wss://rpc.testnet.arc.io
   ARC_TESTNET_WSS_URLS: z.string().optional(),
   ARC_TESTNET_EXPLORER_URL: z.preprocess(
     blankToUndefined,
-    z.string().url().default('https://testnet.arcscan.app'),
+    z.string().url().default('https://explorer.testnet.arc.io'),
   ),
 
   IDENTITY_REGISTRY_ADDR: z
