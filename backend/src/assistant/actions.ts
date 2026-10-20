@@ -1,4 +1,5 @@
 import type { DeliveryKind, Where } from '../location/rules.js';
+import type { BriefAnswers } from '../agents/agentBriefLines.js';
 import type { DealStepConfirm } from './dealActions.js';
 
 /// Stage 2 of the chat-native transaction surface: the ACTION ENVELOPE. An
@@ -344,7 +345,13 @@ export interface FundDirectDealConfirm extends ConfirmActionBase {
 }
 
 /// Discriminated on `intent`, which also tells the frontend which route to call.
+export interface SaveSetupConfirm extends ConfirmActionBase {
+  intent: 'save_setup';
+  payload: { answers: BriefAnswers };
+}
+
 export type ConfirmAction =
+  | SaveSetupConfirm
   | PostOfferConfirm
   | PostRequestConfirm
   | ReleaseConfirm
@@ -1285,5 +1292,22 @@ export function buildFundAgentWeb3Confirm(i: {
     payload: { agent: i.agent, toAddress: i.toAddress, amountUsdc: i.amountUsdc },
     confirmLabel: 'Sign and send',
     cancelLabel: 'Not now',
+  };
+}
+
+/// "Here's your Karwan" (view 19): the setup answers as the server read them,
+/// saved only when the person says it looks right. Saving settings moves no
+/// money, so there is no warning.
+export function buildSaveSetupConfirm(answers: BriefAnswers, lines: string[]): SaveSetupConfirm {
+  return {
+    kind: 'confirm',
+    id: `save_setup:${confirmNonce()}`,
+    intent: 'save_setup',
+    title: "Here's your Karwan",
+    summary: 'Check it. Nothing is saved until you say it looks right.',
+    fields: lines.map((value) => ({ label: '', value })),
+    payload: { answers },
+    confirmLabel: 'Looks right',
+    cancelLabel: 'Change something',
   };
 }

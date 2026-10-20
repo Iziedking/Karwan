@@ -25,7 +25,9 @@ export function backendEndpoints(): Set<string> {
     const file = imports.get(m[2]!);
     if (!file) continue;
     const source = readFileSync(join(SRC, 'routes', `${file}.ts`), 'utf8');
-    const re = new RegExp(`${m[2]}\\.(get|post|put|patch|delete)\\(\\s*'([^']*)'`, 'g');
+    // `export const xRoutes = createXRoutes(...)` registers on the factory's local `app`.
+    const built = new RegExp(`export const ${m[2]} = create\\w+\\(`).test(source);
+    const re = new RegExp(`\\b${built ? 'app' : m[2]}\\.(get|post|put|patch|delete)\\(\\s*'([^']*)'`, 'g');
     for (const r of source.matchAll(re)) {
       const path = r[2] === '/' ? prefix || '/' : `${prefix}${r[2]}`;
       out.add(`${r[1]!.toUpperCase()} ${path}`);

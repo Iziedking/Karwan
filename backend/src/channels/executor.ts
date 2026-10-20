@@ -17,6 +17,7 @@ type Step = { method: 'GET' | 'POST'; path: string; body?: unknown };
 /// authorization and idempotency are the app's, not a second copy.
 const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAction) => Step>> = {
   post_offer: (p) => ({ method: 'POST', path: '/api/listings', body: p }),
+  save_setup: (p) => ({ method: 'POST', path: '/api/setup/save', body: { answers: p.answers } }),
   create_direct_deal: (p) => ({
     method: 'POST',
     path: '/api/deals/direct',
@@ -144,6 +145,7 @@ const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAction) =
 
 const DONE: Partial<Record<ConfirmAction['intent'], string>> = {
   post_offer: 'Your offer is live.',
+  save_setup: 'Saved. Your agents now work this way.',
   create_direct_deal: 'Deal sent. The seller is asked to accept the terms; you pay into escrow after that.',
   fund_direct_deal: 'Paid into escrow. The seller can start the work.',
   post_request: 'Request posted. Your agent is looking now.',

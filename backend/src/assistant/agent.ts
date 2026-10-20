@@ -26,6 +26,9 @@ import { activeStakeSummary } from '../reputation/stake.js';
 import { readOwnedBalance } from '../money/ownedBalance.js';
 import { financedStage, positionHref } from '../financial/dealFinanciers.js';
 import { firstTradeSteps, readFirstTradeFacts } from './firstTrade.js';
+import { mergeSetupAnswers } from './setupTool.js';
+import { readBrief } from '../agents/agentBrief.js';
+import { answersSchema as setupAnswersSchema } from '../routes/setup.js';
 import { readStakerYield } from '../routes/yield.js';
 import { loadInputs } from '../reputation/signals.js';
 import { compute as computeReputation } from '../reputation/engine.js';
@@ -34,7 +37,8 @@ import { getBuyerSnapshot } from '../agents/buyer.js';
 import { getSellerSnapshot } from '../agents/seller.js';
 import { listOffersBySeller, listOffersByFinancier } from '../db/factoring.js';
 import { listLinesBySeller, listLinesByFinancier } from '../db/poFinancing.js';
-import { getProfile } from '../db/profiles.js';
+import { getProfile, type UserLocale } from '../db/profiles.js';
+import { extractKeywords } from '../llm/keywords.js';
 import { readSourceUsdcBalance } from '../chain/cctpClients.js';
 import { readSolanaHolding } from '../chain/solanaBalances.js';
 import { lookupPlatformGuide } from './platformGuide.js';
@@ -71,6 +75,7 @@ import {
   buildMarkDeliveredConfirm,
   buildCancelRequestConfirm,
   buildCancelListingConfirm,
+  buildSaveSetupConfirm,
   buildStakeConfirm,
   buildClaimYieldConfirm,
   buildFundAgentConfirm,
@@ -935,6 +940,42 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant get_my_financing failed');
           return { error: 'Could not read the financing position right now. Try again shortly.' };
+        }
+      },
+    }),
+
+    set_up_my_agents: tool({
+      description:
+        "Set up or change how this person's agents work, from what they say: what they want Karwan to do (goals), what they do or sell, their usual price and delivery time, what they buy and their budget, their business name, where they already work, whether they have clients already or want Karwan to find them, whether the agent makes offers on its own or asks first, how to reach them, and where they are. Pass only what they said; the rest is kept from what was saved. Shows a Here's your Karwan card; nothing is saved until they confirm it. Use for 'set up my agent', 'change my price to 25 to 45', 'stop making offers for me', 'I sell shea butter now'.",
+      inputSchema: z.object({
+        goals: z.array(z.enum(['work', 'sell', 'buy', 'business', 'record'])).optional(),
+        what: z.string().optional(),
+        price: z.string().optional(),
+        buy: z.string().optional(),
+        business: z.string().optional(),
+        places: z.string().optional(),
+        clients: z.enum(['own', 'find', 'both']).optional(),
+        own: z.enum(['offers', 'ask']).optional(),
+        reach: z.enum(['telegram', 'email', 'both']).optional(),
+        where: z.string().optional(),
+      }),
+      execute: async (change) => {
+        try {
+          const saved = await getProfile(address);
+          if (!saved) return { error: 'They have no profile yet. They need to finish signing up first.' };
+          const answers = mergeSetupAnswers(saved, change);
+          const parsed = setupAnswersSchema.safeParse(answers);
+          if (!parsed.success) return { error: 'Some of those answers are too long. Ask them to say it in a line.' };
+          const read = await readBrief(parsed.data, saved, { keywords: (text) => extractKeywords(text, 'setup') }, (saved.settings?.locale ?? 'en') as UserLocale);
+          if (read.needs.includes('price')) {
+            return { needs: 'price', note: 'Their price could not be read. Ask once for a typical price in USDC, for example 20 to 40 USDC, then call this again with retried context in price.' };
+          }
+          const card = buildSaveSetupConfirm(parsed.data, read.lines);
+          if (!hasEquivalentConfirm(actions, card)) actions.push(card);
+          return { ok: true, shown: card.title, lines: read.lines };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant set_up_my_agents failed');
+          return { error: 'Could not read that just now. Try again shortly.' };
         }
       },
     }),

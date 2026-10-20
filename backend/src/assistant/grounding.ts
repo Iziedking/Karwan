@@ -32,6 +32,7 @@ const subjects: Array<[RegExp, string[]]> = [
   [/\bprofile\b/i, ['get_my_profile']],
   [/\b(?:anything pending|everything|attention)\b/i, ['whats_pending']],
   [/\b(?:get(?:ting)? started|first (?:trade|deal)|where do i start|how do i start|what (?:should|do) i do (?:first|next|now))\b/i, ['get_first_trade_steps', 'whats_pending']],
+  [/\b(?:set ?up my agents?|change my (?:price|agent|offer|budget)|stop making offers|ask me first)\b/i, ['set_up_my_agents', 'get_my_profile']],
 ];
 
 function successful(output: unknown): boolean {
