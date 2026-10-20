@@ -1,6 +1,6 @@
 # 19 · Simple Karwan: say what you want
 
-Tracks T1 and T6, roadmap items T1.1 (one market, one entry) and T6.2 (website assistant parity), and the Milestone 1 rule "no crypto words in the path" ([view 00](00-direction.md)). Draft for the owner to agree, 20 Oct 2026; onboarding reframed for the whole open market the same day. Nothing here is built yet except where the status table says so.
+Tracks T1 and T6, roadmap items T1.1 (one market, one entry) and T6.2 (website assistant parity), and the Milestone 1 rule "no crypto words in the path" ([view 00](00-direction.md)). Draft for the owner to agree, 20 Oct 2026; onboarding reframed for the whole open market the same day. What is built is in the status table.
 
 ## Who this is for
 
@@ -220,11 +220,11 @@ English first, with French, Arabic, Hindi and Swahili as today. Local Nigerian l
 
 | Part | Status |
 |---|---|
-| Telegram interview (sell, buy or both, what, where, price and pace) | Live on testnet; answers become a first post, not settings |
+| Telegram interview | Live on testnet as sell, buy or both, then a first post. The new interview (the setup questions, Here's your Karwan, then "Post this as your first offer?") is built 20 Oct 2026, not deployed |
 | First-trade checklist on Home and in the assistant | Built 20 Oct 2026, not deployed ([view 01](01-workspace.md#the-first-trade)) |
-| Onboarding conversation after activation, shared agent brief, assistant action to change settings | Planned |
-| Agent on or off and "ask me first" limits | Planned; no such setting exists today |
-| Business start and trade-as answer from onboarding | Planned; `tradesAs` exists (view 17) |
+| Onboarding conversation after activation, shared agent brief, assistant action to change settings | Built 20 Oct 2026, not deployed: `/setup`, the Telegram interview and `set_up_my_agents` all save through `POST /api/setup/save` |
+| Agent on or off and "ask me first" limits | Saved by setup (`agentPrefs`); the agents do not read it yet |
+| Business start and trade-as answer from onboarding | The answer is kept (`businessDraft`); opening the business form from it is planned. `tradesAs` exists (view 17) |
 | Ask box on Home | Planned |
 | Assistant mode switch, round profile button, plain-words pass | Planned; designed on the canvas |
 | Help (support with "Talk to a person") in place of Ask | Planned; the human handoff is live, the rename and focus are not |
