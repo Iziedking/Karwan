@@ -159,10 +159,14 @@ export function FirstTrade({ deals, dealsState }: {
 
       <div className="mt-2 border-t border-[var(--lp-border-light)] pt-3">
         <p className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{t.flowTitle}</p>
-        <ol className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[14px] font-medium text-[var(--lp-dark)]">
+        <ol className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[15px] font-medium text-[var(--lp-dark)]">
           {t.flow.map((line, i) => (
-            <li key={line} className="flex items-center gap-2">
-              {i > 0 ? <span aria-hidden className="text-[var(--lp-text-sub)] rtl:rotate-180">→</span> : null}
+            <li key={line} className="flex items-center gap-2.5 whitespace-nowrap">
+              {i > 0 ? (
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden className="shrink-0 text-[var(--lp-text-sub)] rtl:-scale-x-100">
+                  <path d="M2.5 8h10M9 4.5 12.5 8 9 11.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              ) : null}
               {line}
             </li>
           ))}

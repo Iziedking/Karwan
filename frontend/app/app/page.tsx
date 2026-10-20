@@ -70,7 +70,7 @@ function HomeSkeleton() {
   return (
     <div aria-busy="true" className="product-surface mx-auto w-full max-w-[1180px] pb-12">
       <div className={`mt-4 h-4 w-40 ${soft}`} />
-      <div className="mt-4 w-full rounded-[22px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-4 sm:rounded-[24px] sm:p-6 lg:max-w-[520px]">
+      <div className="mt-4 w-full rounded-[22px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-4 sm:rounded-[24px] sm:p-6 lg:max-w-[460px]">
         <div className={`h-4 w-24 ${soft}`} />
         <div className={`mt-3 h-11 w-48 ${soft}`} />
         <div className={`mt-3 h-3.5 w-64 max-w-full ${soft}`} />
