@@ -70,6 +70,20 @@ Two kinds of financier from the start: a test financier that Karwan runs, so eve
 - **The financier never opens the line.** Nothing moves; the signatures expire and the stake is never held.
 - **What the record keeps.** A line repaid on time counts for the seller. A line that defaulted counts against them, with the reason. Financiers' agents acting on a live deal read the full record for that deal only, logged and deleted after 24 hours (track T3).
 
+## While the financed deal runs
+
+A financier's repayment depends on the deal underneath, so the financier follows it like a party to it, without acting on it.
+
+| What happens on the deal | What the financier is told | Why |
+|---|---|---|
+| The seller delivers | Delivered, the buyer is reviewing | Repayment is now one release away |
+| A milestone is released | Released; what came back to them, if any | The escrow pays the financier first |
+| A dispute opens | Disputed, and that money is frozen until it is decided | Repayment may be smaller or later |
+| The buyer is refunded or cancels | Refunded; the stake covers them first | The shortfall path starts |
+| The delivery deadline passes | Missed deadline, the buyer can take money back | Risk of a refund |
+
+The same alert goes to the bell, email and Telegram. Profile, Open deals lists **Deals you financed**: the advance, what is expected back, the deal's stage in plain words and **Needs you** when there is a step for them. The assistant lists the same positions, so "how are my financed deals?" works in Telegram.
+
 ## What the record changes
 
 Each repaid line is proof that the seller delivers and that money advanced to them comes back. Over time this gives a seller faster offers and a smaller payback, and that is how Karwan's record turns into cheaper money. The seller's record shows the count of financed deals repaid. It never shows financier names or amounts to the public.
@@ -97,6 +111,7 @@ The older factoring and purchase-order routes stay readable for past deals and s
 | Contract mechanics: advance, assignment, repaid first, stake held | Built and tested; proven in the Arc Testnet rehearsal |
 | Contract family deployed once on testnet | Planned (track T2, item 1), after the audit gates, expected by 24 Oct 2026 |
 | App connected to the suite: offers, signatures, line in step with chain | Planned (T4.2, T4.3) |
+| Financier follows the deal: Open deals list and deal alerts | Built 20 Oct 2026, not deployed |
 | Get paid now on the deal page | Built on the current escrow (invoice factoring), not deployed; the new deal page also takes the goods delivery with its tracking number, so a business order no longer drops to the old page. Moves to the suite after the audit |
 | Get paid now in Telegram | Planned (T4.3) |
 | Financier desk to UI law v2 | Planned (T4.3) |

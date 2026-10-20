@@ -1,3 +1,4 @@
+import { FINANCED_DEAL_TYPES } from './financedDeal';
 export type Role = 'buyer' | 'seller' | 'financier';
 
 // Events worth bubbling into the bell. Split into agent-deal (route to
@@ -130,6 +131,8 @@ export const NOTIFY_TYPES = new Set([
   'trend.match',
   // A seller answered the viewer's request. Routed to the poster by payload.
   'offer.created',
+  // The deal under a position the viewer financed (financedDeal.ts).
+  ...FINANCED_DEAL_TYPES,
 ]);
 
 // High-signal events that should also trigger a toast. Cooldown finishing is

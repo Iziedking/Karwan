@@ -22,6 +22,7 @@ import {
 // Re-export so existing call sites can keep importing from the hook module.
 export { purgeStoredNotifications } from '@/shared/utils/notificationStore';
 import { financeHref } from '../financeHref';
+import { financedNotice, financedPositions } from '../financedDeal';
 import {
   ACTION_TYPES,
   BRIDGE_TYPES,
@@ -270,6 +271,9 @@ export function useNotifications() {
   const jobIdsRef = useRef<Set<string>>(new Set());
   const roleByJobRef = useRef<Map<string, Role>>(new Map());
   const tradeByJobRef = useRef<Map<string, string>>(new Map());
+  // Deals this person financed, each with their position page. They are not a
+  // party to those deals, so the role map above never holds them.
+  const financedRef = useRef<Map<string, string>>(new Map());
   const initialHydrateRef = useRef(false);
   // Tracks notification ids we've already routed to listeners + sound this
   // session. Lets the SSE handler dedupe BEFORE calling setState, so the
@@ -316,6 +320,19 @@ export function useNotifications() {
       /* keep whatever we have */
     }
   }, [address, qc]);
+
+  const refreshFinanced = useCallback(async () => {
+    if (!address) return;
+    try {
+      const [offers, lines] = await Promise.all([
+        api.listMyFactoringOffers().then((r) => r.asFinancier).catch(() => []),
+        api.listMyPOLines().then((r) => r.asFinancier).catch(() => []),
+      ]);
+      financedRef.current = financedPositions(offers, lines);
+    } catch {
+      /* keep whatever we have */
+    }
+  }, [address]);
 
   // Backfill historical events on hydrate so notifications that fired while
   // the user was offline (a match landed, a brief expired) still surface in
@@ -440,6 +457,14 @@ export function useNotifications() {
           continue;
         }
         if (!e.jobId) continue;
+        const financed = roleByJobRef.current.has(e.jobId.toLowerCase())
+          ? null
+          : financedNotice(e.type, e.jobId, financedRef.current, bell);
+        if (financed) {
+          const id = `${e.jobId}-${e.type}-${e.ts}-financier`;
+          fresh.push({ id, jobId: e.jobId, type: e.type, summary: financed.summary, ts: e.ts, read: readIdsRef.current.has(id), href: financed.href });
+          continue;
+        }
         const role = roleForEvent(e.payload, me, e.jobId, roleByJobRef.current);
         if (!shouldNotify(e.type, role, e.payload)) continue;
         const id = `${e.jobId}-${e.type}-${e.ts}`;
@@ -472,6 +497,7 @@ export function useNotifications() {
       jobIdsRef.current = new Set();
       roleByJobRef.current = new Map();
       tradeByJobRef.current = new Map();
+      financedRef.current = new Map();
       initialHydrateRef.current = false;
       seenNotificationIdsRef.current = new Set();
       readIdsRef.current = new Set();
@@ -489,8 +515,8 @@ export function useNotifications() {
     seenNotificationIdsRef.current = new Set(stored.map((n) => n.id));
     setHydratedFor(me);
     // Build the role map first so backfill routes correctly, then backfill.
-    void refreshJobIds().then(() => backfill(me));
-  }, [address, isConnected, refreshJobIds, backfill]);
+    void Promise.all([refreshJobIds(), refreshFinanced()]).then(() => backfill(me));
+  }, [address, isConnected, refreshJobIds, refreshFinanced, backfill]);
 
   // Persist after hydration completes.
   useEffect(() => {
@@ -547,6 +573,10 @@ export function useNotifications() {
       if (FINANCE_TYPES.has(e.type)) {
         const financeRole = financeRoleFor(e.type, e.payload, me);
         if (!financeRole) return;
+        // A position just opened: follow its deal from now on.
+        if (financeRole === 'financier' && e.jobId && (e.type === 'factoring.accepted' || e.type === 'po.funded')) {
+          financedRef.current.set(e.jobId.toLowerCase(), financeHref({ role: financeRole, jobId: e.jobId, payload: e.payload }));
+        }
         const ref =
           (e.payload?.offerId as string | undefined) ??
           (e.payload?.lineId as string | undefined) ??
@@ -715,6 +745,18 @@ export function useNotifications() {
           jobIdsRef.current.add(j);
           roleByJobRef.current.set(j, 'seller');
         }
+      }
+
+      const financed = roleByJobRef.current.has(e.jobId.toLowerCase())
+        ? null
+        : financedNotice(e.type, e.jobId, financedRef.current, bell);
+      if (financed) {
+        const id = `${e.jobId}-${e.type}-${e.ts}-financier`;
+        if (seenNotificationIdsRef.current.has(id)) return;
+        seenNotificationIdsRef.current.add(id);
+        const next: AppNotification = { id, jobId: e.jobId, type: e.type, summary: financed.summary, ts: e.ts, read: readIdsRef.current.has(id), href: financed.href };
+        setNotifications((list) => (list.some((n) => n.id === id) ? list : [next, ...list].slice(0, MAX_STORED)));
+        return;
       }
 
       const role = roleForEvent(e.payload, me, e.jobId, roleByJobRef.current);

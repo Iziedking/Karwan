@@ -36,6 +36,8 @@ export interface NotifyCopy {
   poReleasedBuyer: string; poRepaidSeller: string; poRepaidFinancier: string; poDefaultedSeller: string; poDefaulted: string;
   agentFunded: string; agentSeeded: string; agentWithdrawal: string; agents: { buyer: string; seller: string; agent: string };
   tierUpFrom: string; tierUp: string; tierUpPlain: string; fallback: string;
+  /// What a financier is told about the deal under their position.
+  financed: { delivered: string; released: string; settled: string; disputed: string; disputeClosed: string; refunded: string; deadline: string };
 }
 
 const en: NotifyCopy = {
@@ -157,6 +159,7 @@ const en: NotifyCopy = {
   tierUp: 'Tier up. You reached {to}.',
   tierUpPlain: 'You reached a new reputation tier.',
   fallback: 'Deal update',
+  financed: { delivered: 'Delivered on a deal you financed. The buyer is reviewing.', released: 'A payment was released on a deal you financed. You are paid first.', settled: 'A deal you financed is complete.', disputed: 'A deal you financed is in dispute. The money in escrow is frozen.', disputeClosed: 'The dispute on a deal you financed closed.', refunded: 'A deal you financed was refunded to the buyer.', deadline: 'A deal you financed missed its delivery deadline.' },
 };
 
 const fr: NotifyCopy = {
@@ -278,6 +281,7 @@ const fr: NotifyCopy = {
   tierUp: 'Nouveau palier. Vous avez atteint {to}.',
   tierUpPlain: 'Vous avez atteint un nouveau palier de réputation.',
   fallback: 'Mise à jour de la transaction',
+  financed: { delivered: 'Livraison sur un accord que vous financez. L’acheteur vérifie.', released: 'Un paiement a été versé sur un accord que vous financez. Vous êtes payé en premier.', settled: 'Un accord que vous financez est terminé.', disputed: 'Un accord que vous financez est en litige. L’argent en séquestre est gelé.', disputeClosed: 'Le litige sur un accord que vous financez est clos.', refunded: 'Un accord que vous financez a été remboursé à l’acheteur.', deadline: 'Un accord que vous financez a dépassé son délai de livraison.' },
 };
 
 const ar: NotifyCopy = {
@@ -399,6 +403,7 @@ const ar: NotifyCopy = {
   tierUp: 'ترقية. وصلت إلى {to}.',
   tierUpPlain: 'وصلت إلى مستوى سمعة جديد.',
   fallback: 'تحديث الصفقة',
+  financed: { delivered: 'تم التسليم في صفقة موّلتها. المشتري يراجع.', released: 'صُرفت دفعة في صفقة موّلتها. تُدفع لك أولًا.', settled: 'اكتملت صفقة موّلتها.', disputed: 'صفقة موّلتها في نزاع. المال في الضمان مجمّد.', disputeClosed: 'أُغلق النزاع في صفقة موّلتها.', refunded: 'أُعيد مال صفقة موّلتها إلى المشتري.', deadline: 'فاتت صفقة موّلتها موعد التسليم.' },
 };
 
 const hi: NotifyCopy = {
@@ -520,6 +525,7 @@ const hi: NotifyCopy = {
   tierUp: 'टियर ऊपर। आप {to} पर पहुँचे।',
   tierUpPlain: 'आप एक नए प्रतिष्ठा टियर पर पहुँचे।',
   fallback: 'डील अपडेट',
+  financed: { delivered: 'आपके फ़ाइनेंस किए सौदे में डिलीवरी हुई। खरीदार जाँच रहा है।', released: 'आपके फ़ाइनेंस किए सौदे में भुगतान जारी हुआ। आपको पहले मिलता है।', settled: 'आपका फ़ाइनेंस किया सौदा पूरा हुआ।', disputed: 'आपके फ़ाइनेंस किए सौदे में विवाद है। एस्क्रो का पैसा रुका है।', disputeClosed: 'आपके फ़ाइनेंस किए सौदे का विवाद बंद हुआ।', refunded: 'आपके फ़ाइनेंस किए सौदे का पैसा खरीदार को लौटा।', deadline: 'आपके फ़ाइनेंस किए सौदे की डिलीवरी समय सीमा निकल गई।' },
 };
 
 const sw: NotifyCopy = {
@@ -641,6 +647,7 @@ const sw: NotifyCopy = {
   tierUp: 'Daraja limepanda. Umefikia {to}.',
   tierUpPlain: 'Umefikia daraja jipya la sifa.',
   fallback: 'Taarifa ya mpango',
+  financed: { delivered: 'Imewasilishwa kwenye makubaliano uliyofadhili. Mnunuzi anakagua.', released: 'Malipo yametolewa kwenye makubaliano uliyofadhili. Unalipwa kwanza.', settled: 'Makubaliano uliyofadhili yamekamilika.', disputed: 'Makubaliano uliyofadhili yana mzozo. Pesa za escrow zimesimamishwa.', disputeClosed: 'Mzozo kwenye makubaliano uliyofadhili umefungwa.', refunded: 'Makubaliano uliyofadhili yamerejeshwa kwa mnunuzi.', deadline: 'Makubaliano uliyofadhili yamepita tarehe ya kuwasilisha.' },
 };
 
 export const notifyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', NotifyCopy> = { en, ar, fr, hi, sw };

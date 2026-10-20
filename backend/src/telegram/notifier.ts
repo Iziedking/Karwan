@@ -9,6 +9,7 @@ import { shortlistText } from '../channels/shortlistText.js';
 import type { ShortlistEntry } from '../agents/shortlist.js';
 import { closesLabel } from '../deals/disputeJudge.js';
 import { tg } from '../i18n/telegram.js';
+import { FINANCIER_FOLLOWS, financierAlert, financiersOfDeal } from '../financial/dealFinanciers.js';
 import { walletPlainName } from '../money/observedDeposit.js';
 import {
   deliverableNoun,
@@ -108,6 +109,12 @@ export const RELEVANT = new Set([
   'deal.cancel.proposed',
   'deal.cancel.declined',
   'deal.fund.insufficient',
+  // Told only to the financier of the deal; buyer and seller have no copy.
+  'deal.delivered.onchain',
+  'deal.deadline.passed',
+  'deal.dispute.auto_resolved',
+  'escrow.refunded',
+  'escrow.reclaimed',
   'bid.accepted',
   'reputation.recorded',
   // Financing lifecycle. The financier is not a deal party, so these route
@@ -151,8 +158,11 @@ export const RELEVANT = new Set([
 
 interface Recipient {
   address: string;
-  /// 'buyer' | 'seller' | 'self' (for non-deal events, just the linked party)
+  /// 'buyer' | 'seller' | 'self' (for non-deal events, just the linked party),
+  /// or 'financier' for whoever is waiting to be repaid from the deal.
   role: string;
+  /// A financier's own position page, which their alert links to.
+  href?: string;
 }
 
 /// Which payload addresses hear about each financing event. Mirrors the email
@@ -306,16 +316,29 @@ export async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     }
     return out;
   }
-  // Deal lifecycle events: notify both parties.
+  // Deal lifecycle events: notify both parties, plus whoever financed the
+  // deal for the events that change their repayment.
   if (e.jobId) {
     const deal = await getDeal(e.jobId);
     if (!deal) return [];
-    return [
+    const parties: Recipient[] = [
       { address: deal.buyer, role: 'buyer' },
       { address: deal.seller, role: 'seller' },
     ];
+    if (!FINANCIER_FOLLOWS.has(e.type)) return parties;
+    const financiers = await financiersOfDeal(e.jobId).catch(() => []);
+    return [...parties, ...financiers.map((f) => ({ address: f.financier, role: 'financier', href: f.href }))];
   }
   return [];
+}
+
+/// A financier's alert about the deal under their position. Plain words with a
+/// bold title, and the button opens their position.
+export function financierSummaryFor(e: KarwanEvent, href: string | undefined, locale: UserLocale = 'en'): NotifySummary | null {
+  const alert = financierAlert(e.type, locale);
+  if (!alert) return null;
+  const base = config.FRONTEND_BASE_URL ? config.FRONTEND_BASE_URL.replace(/\/$/, '') : '';
+  return withLink(`*${alert.title}*\n${alert.body}`, base && href ? `${base}${href}` : financierUrl());
 }
 
 export function summaryFor(e: KarwanEvent, role: string, locale: UserLocale = 'en'): NotifySummary | null {
@@ -821,7 +844,7 @@ export function startTelegramNotifier(): () => void {
         const profile = await getProfile(r.address);
         if (profile?.settings?.notificationsMuted) continue;
         const locale = (profile?.settings?.locale ?? 'en') as UserLocale;
-        const summary = summaryFor(e, r.role, locale);
+        const summary = r.role === 'financier' ? financierSummaryFor(e, r.href, locale) : summaryFor(e, r.role, locale);
         if (!summary) continue;
         const buttons = summary.url
           ? [{ text: tg('openInKarwan', locale), url: summary.url }]

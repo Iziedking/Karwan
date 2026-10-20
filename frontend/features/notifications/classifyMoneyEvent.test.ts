@@ -28,6 +28,11 @@ const CASES: Case[] = [
   { type: 'gateway.cashed.out', expect: 'out' },
   { type: 'cashout.arc.completed', role: 'seller', expect: 'out' },
   { type: 'bridge.minted', expect: 'in' },
+  // A financier is told about the deal under their position; no money of theirs moves.
+  { type: 'deal.delivered.onchain', expect: null },
+  { type: 'deal.dispute.auto_resolved', expect: null },
+  { type: 'escrow.refunded', expect: null },
+  { type: 'escrow.reclaimed', expect: null },
   { type: 'bridge.minted', payload: { direction: 'out' }, expect: null },
   { type: 'bridge.minted', payload: { destChainKey: 'baseSepolia' }, expect: null },
   { type: 'yield.credited', expect: 'in' },

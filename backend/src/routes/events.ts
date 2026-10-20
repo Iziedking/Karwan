@@ -21,6 +21,7 @@ import {
   isBriefPoster,
   AUCTION_INTERNAL_TYPES,
 } from '../auth/partyScope.js';
+import { FINANCIER_FOLLOWS, financedJobIds } from '../financial/dealFinanciers.js';
 
 export const eventsRoutes = new Hono();
 
@@ -129,6 +130,12 @@ function pulse(e: KarwanEvent): KarwanEvent {
   return { type: e.type, actor: e.actor, ts: e.ts, payload: {} };
 }
 
+/// What a financier sees of the deal under their position: which deal and what
+/// happened, nothing else. No parties, amounts, proofs or text.
+function financierView(e: KarwanEvent): KarwanEvent {
+  return { type: e.type, actor: e.actor, ts: e.ts, jobId: e.jobId, payload: {} };
+}
+
 /// Project one event for a caller: full detail when it is their deal (a party
 /// event, a follow-up on a deal they are tracked on, or an event on a brief
 /// they posted), else a pulse. `callerJobs` accumulates the caller's deal ids
@@ -144,6 +151,9 @@ export function projectFor(
   callerJobs: Set<string>,
   buyerJobs: Set<string>,
   callerBridges: Set<string> = new Set(),
+  /// Deals the caller financed. Only the lifecycle events that change their
+  /// repayment reach them, as a financier view.
+  financedJobs: Set<string> = new Set(),
 ): KarwanEvent {
   if (!caller) return pulse(e);
   // Their own money moving, outside any deal. Nothing about a deal to scope, so
@@ -165,6 +175,7 @@ export function projectFor(
     if (!isBuyerOfJob && AUCTION_INTERNAL_TYPES.has(e.type)) return pulse(e);
     return e;
   }
+  if (jobKey && financedJobs.has(jobKey) && FINANCIER_FOLLOWS.has(e.type)) return financierView(e);
   return pulse(e);
 }
 
@@ -332,9 +343,9 @@ eventsRoutes.get('/replay', async (c) => {
 
 eventsRoutes.get('/', async (c) => {
   const caller = readSession(c)?.address?.toLowerCase() ?? null;
-  const [callerJobs, buyerJobs, callerBridges] = caller
-    ? await Promise.all([seedCallerJobs(caller), buyerJobIds(caller), seedCallerBridges(caller)])
-    : [new Set<string>(), new Set<string>(), new Set<string>()];
+  const [callerJobs, buyerJobs, callerBridges, financedJobs] = caller
+    ? await Promise.all([seedCallerJobs(caller), buyerJobIds(caller), seedCallerBridges(caller), financedJobIds(caller).catch(() => new Set<string>())])
+    : [new Set<string>(), new Set<string>(), new Set<string>(), new Set<string>()];
 
   const dealRoomId = c.req.query('dealRoomId');
   if (dealRoomId && !durableEventStore) {
@@ -451,6 +462,11 @@ eventsRoutes.get('/', async (c) => {
         while (queue.length > 0) {
           const e = queue.shift()!;
           id += 1;
+          // A position opened while this stream is live: follow its deal now
+          // rather than from the next reconnect.
+          if (caller && e.jobId && (e.type === 'factoring.accepted' || e.type === 'po.funded')) {
+            if ((e.payload?.financier as string | undefined)?.toLowerCase() === caller) financedJobs.add(e.jobId.toLowerCase());
+          }
           // All data events ride ONE fixed SSE name; the real type is inside the
           // JSON payload (`.type`), and the client dispatches on that. Sending
           // per-type named events required the client to pre-register a listener
@@ -461,7 +477,7 @@ eventsRoutes.get('/', async (c) => {
           await stream.writeSSE({
             id: String(id),
             event: 'karwan',
-            data: JSON.stringify(projectFor(e, caller, callerJobs, buyerJobs, callerBridges)),
+            data: JSON.stringify(projectFor(e, caller, callerJobs, buyerJobs, callerBridges, financedJobs)),
           });
         }
         await stream.writeSSE({ event: 'ping', data: String(Date.now()) });

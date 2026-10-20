@@ -3,7 +3,9 @@
 import type { MatchProposal } from '@/core/api';
 import { presentMatchingState } from '@/features/jobs/matchingPresentation';
 import { labelFor } from '../dealNextStep';
-import type { OpenDirectDeal } from '../hooks/useOpenDeals';
+import type { OpenDirectDeal, OpenFinancedDeal } from '../hooks/useOpenDeals';
+import { financedStage } from '../openDealsModel';
+import { stageOf } from '@/features/deals/components/DirectDealList';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { Button } from '@/shared/components/Button';
 import { cn } from '@/shared/utils/cn';
@@ -13,12 +15,14 @@ export function ProfileOpenDealsPanel({
   address,
   matches,
   directDeals,
+  financed = [],
   fetchState,
   onRetry,
 }: {
   address: string;
   matches: MatchProposal[];
   directDeals: OpenDirectDeal[];
+  financed?: OpenFinancedDeal[];
   fetchState: 'idle' | 'loading' | 'success' | 'partial-error' | 'error';
   onRetry: () => void;
 }) {
@@ -65,6 +69,22 @@ export function ProfileOpenDealsPanel({
     );
   });
 
+  // A financier waits on the deal; nothing on it is their move.
+  const financedRows = financed.map((item) => (
+    <OpenDealRow
+      key={`${item.kind}-${item.id}`}
+      href={item.href}
+      role={t.financed.role}
+      amount={item.advanced}
+      unit={t.card.unit}
+      status={t.financed.stages[item.deal ? financedStage(stageOf(item.deal), item.deal.deadlineUnix) : 'delivering']}
+      yourMove={false}
+      next={t.financed.backTemplate.replace('{amount}', item.back)}
+      due={item.deal?.deadlineUnix ? t.card.dueTemplate.replace('{date}', shortDate(item.deal.deadlineUnix, locale)) : undefined}
+    />
+  ));
+  const sections = [matchRows.length, dealRows.length, financedRows.length].filter((n) => n > 0).length;
+
   return (
     <div className="px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
       {showError ? (
@@ -74,21 +94,28 @@ export function ProfileOpenDealsPanel({
         </div>
       ) : null}
 
-      {!showError && fetchState === 'success' && matches.length === 0 && directDeals.length === 0 ? (
-        <p className="py-8 text-[15px] font-medium text-[var(--lp-text-sub)]">No open deals.</p>
+      {!showError && fetchState === 'success' && matches.length === 0 && directDeals.length === 0 && financed.length === 0 ? (
+        <p className="py-8 text-[15px] font-medium text-[var(--lp-text-sub)]">{t.empty}</p>
       ) : null}
 
       {matchRows.length > 0 ? (
         <section aria-label={t.matches.sectionTag}>
-          {dealRows.length > 0 ? <h3 className="pb-1 pt-2 text-[15px] font-semibold text-[var(--lp-dark)]">{t.matches.sectionTag}</h3> : null}
+          {sections > 1 ? <h3 className="pb-1 pt-2 text-[15px] font-semibold text-[var(--lp-dark)]">{t.matches.sectionTag}</h3> : null}
           <ul className="divide-y divide-[var(--lp-border-light)]">{matchRows}</ul>
         </section>
       ) : null}
 
       {dealRows.length > 0 ? (
         <section aria-label={t.deals.sectionTag} className={cn(matchRows.length > 0 && 'mt-6')}>
-          {matchRows.length > 0 ? <h3 className="pb-1 pt-2 text-[15px] font-semibold text-[var(--lp-dark)]">{t.deals.sectionTag}</h3> : null}
+          {sections > 1 ? <h3 className="pb-1 pt-2 text-[15px] font-semibold text-[var(--lp-dark)]">{t.deals.sectionTag}</h3> : null}
           <ul className="divide-y divide-[var(--lp-border-light)]">{dealRows}</ul>
+        </section>
+      ) : null}
+
+      {financedRows.length > 0 ? (
+        <section aria-label={t.financed.sectionTag} className={cn((matchRows.length > 0 || dealRows.length > 0) && 'mt-6')}>
+          {sections > 1 ? <h3 className="pb-1 pt-2 text-[15px] font-semibold text-[var(--lp-dark)]">{t.financed.sectionTag}</h3> : null}
+          <ul className="divide-y divide-[var(--lp-border-light)]">{financedRows}</ul>
         </section>
       ) : null}
     </div>

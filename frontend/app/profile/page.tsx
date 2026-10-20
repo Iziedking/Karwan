@@ -232,6 +232,7 @@ function ProfilePageInner() {
               address={address}
               matches={openDeals.matches}
               directDeals={openDeals.directDeals}
+              financed={openDeals.financed}
               fetchState={openDeals.fetchState}
               onRetry={openDeals.refresh}
             />

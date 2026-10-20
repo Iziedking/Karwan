@@ -4,6 +4,7 @@ import { listAllBriefs } from '../db/briefs.js';
 import { listAllDeals } from '../db/deals.js';
 import { sessionAddress } from '../auth/session.js';
 import { callerJobIds, buyerJobIds, AUCTION_INTERNAL_TYPES } from '../auth/partyScope.js';
+import { FINANCIER_FOLLOWS, financedJobIds } from '../financial/dealFinanciers.js';
 import { listActivityForAddress } from '../db/activityLog.js';
 import { listMoneyMovementsForAddress } from '../db/moneyMovements.js';
 import { listBridgesForUser } from '../db/bridges.js';
@@ -185,20 +186,29 @@ activityRoutes.get('/', async (c) => {
   // plus a payload scan of this window. Auction-phase events carry only agent
   // addresses, so without the durable seed a buyer's own live auction would
   // filter to nothing here.
-  const [callerJobs, buyerJobs] = await Promise.all([
+  const [callerJobs, buyerJobs, financedJobs] = await Promise.all([
     callerJobIds(caller),
     buyerJobIds(caller),
+    financedJobIds(caller).catch(() => new Set<string>()),
   ]);
   for (const e of base) {
     if (isParty(e, caller) && e.jobId) callerJobs.add(e.jobId.toLowerCase());
   }
-  const events = base.filter((e) => {
+  const events = base.flatMap((e): KarwanEvent[] => (inCallerFeed(e) ? [e] : financierView(e)));
+  function financierView(e: KarwanEvent): KarwanEvent[] {
+    // The deal under a position they financed: which deal and what happened,
+    // never its parties, amounts or text (same view as the live stream).
+    const jobKey = e.jobId?.toLowerCase();
+    if (!jobKey || !financedJobs.has(jobKey) || !FINANCIER_FOLLOWS.has(e.type)) return [];
+    return [{ type: e.type, actor: e.actor, ts: e.ts, jobId: e.jobId, payload: {} }];
+  }
+  function inCallerFeed(e: KarwanEvent): boolean {
     if (e.type === 'chat.message' && e.payload?.channel === 'financing') {
-      return matchesKey(e, caller, ['sender', 'recipient']);
+      return matchesKey(e, caller!, ['sender', 'recipient']);
     }
     const inScope =
-      isParty(e, caller) ||
-      isOwnMoney(e, caller) ||
+      isParty(e, caller!) ||
+      isOwnMoney(e, caller!) ||
       (!!e.jobId && callerJobs.has(e.jobId.toLowerCase()));
     if (!inScope) return false;
     // Seller-side privacy: the caller is a party to this job but not its buyer,
@@ -209,7 +219,7 @@ activityRoutes.get('/', async (c) => {
     const isBuyerOfJob = !!jobKey && buyerJobs.has(jobKey);
     if (!isBuyerOfJob && AUCTION_INTERNAL_TYPES.has(e.type)) return false;
     return true;
-  });
+  }
 
   return c.json({ events: events.slice(0, limit) });
 });

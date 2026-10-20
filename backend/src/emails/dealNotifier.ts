@@ -10,6 +10,7 @@
 // the same notificationsMuted toggle the Telegram path honors. No-op when
 // RESEND_API_KEY is unset.
 import { deliveryCheckReason, type DeliveryCheckDetail } from '../deals/deliveryCheck.js';
+import { FINANCIER_FOLLOWS, financierAlert, financiersOfDeal } from '../financial/dealFinanciers.js';
 import { bus, type KarwanEvent } from '../events.js';
 import { config } from '../config.js';
 import { getDeal } from '../db/deals.js';
@@ -71,6 +72,11 @@ const EMAIL_RELEVANT = new Set([
   'deal.deadline.passed',
   'deal.delivered.onchain',
   'deal.match.raised',
+  // Told only to the financier of the deal; buyer and seller copy is null.
+  'escrow.milestone.released',
+  'escrow.refunded',
+  'escrow.reclaimed',
+  'deal.cancelled',
   'factoring.requested',
   'factoring.offered',
   'factoring.accepted',
@@ -104,7 +110,9 @@ const FINANCE_RECIPIENTS: Record<string, ReadonlyArray<'seller' | 'financier'>> 
 
 interface Recipient {
   address: string;
-  role: 'buyer' | 'seller' | 'self';
+  role: 'buyer' | 'seller' | 'self' | 'financier';
+  /// A financier's own position page, which their alert links to.
+  href?: string;
 }
 
 async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
@@ -161,16 +169,36 @@ async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
     return buyer ? [{ address: buyer, role: 'buyer' }] : [];
   }
-  // Remaining events carry a jobId and notify both parties.
+  // Remaining events carry a jobId and notify both parties, plus whoever
+  // financed the deal for the events that change their repayment.
   if (e.jobId) {
     const deal = await getDeal(e.jobId);
     if (!deal) return [];
-    return [
+    const parties: Recipient[] = [
       { address: deal.buyer, role: 'buyer' },
       { address: deal.seller, role: 'seller' },
     ];
+    if (!FINANCIER_FOLLOWS.has(e.type)) return parties;
+    const financiers = await financiersOfDeal(e.jobId).catch(() => []);
+    return [...parties, ...financiers.map((f) => ({ address: f.financier, role: 'financier' as const, href: f.href }))];
   }
   return [];
+}
+
+/// A financier's alert about the deal under their position, with the button
+/// opening that position rather than the deal they are not a party to.
+export function financierContentFor(e: KarwanEvent, href?: string): EmailContent | null {
+  const alert = financierAlert(e.type);
+  if (!alert) return null;
+  const b = base();
+  return {
+    kicker: 'Deal you financed',
+    subject: alert.title,
+    heading: alert.title,
+    body: alert.body,
+    ctaLabel: alert.open,
+    ctaUrl: b && href ? `${b}${href}` : financierUrl(),
+  };
 }
 
 interface EmailContent {
@@ -784,7 +812,7 @@ export function startEmailNotifier(): () => void {
         const privateNote = e.type === 'deal.release.blocked' && r.role === 'buyer' && e.jobId
           ? (await getDeal(e.jobId).catch(() => null))?.deliveryMatch?.reason
           : undefined;
-        const content = contentFor(e, r.role, trade, privateNote);
+        const content = r.role === 'financier' ? financierContentFor(e, r.href) : contentFor(e, r.role, trade, privateNote);
         if (!content) continue;
         await sendDealEventEmail({ to: profile.email, ...content, amount: amountFor(e) });
       }
