@@ -3,6 +3,7 @@ import { useState } from 'react';
 import type { DirectDeal } from '@/core/api';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { fill, formatDealDate, formatUsdcAmount } from './presentation';
+import { agreementBlocks, type AgreementBlock, type AgreementPart } from './agreementBlocks';
 
 const MICROS = 1_000_000n;
 
@@ -25,7 +26,7 @@ export function AgreementSection({ deal, bare = false }: { deal: DirectDeal; bar
   return (
     <section aria-labelledby={bare ? undefined : 'deal-agreement'} className="space-y-3">
       {bare ? null : <h2 id="deal-agreement" className="text-[20px] font-semibold text-[var(--lp-dark)]">{copy.agreement.title}</h2>}
-      <p className="max-w-[62ch] whitespace-pre-wrap text-[15px] leading-relaxed text-[var(--lp-dark)]">{deal.terms}</p>
+      <AgreementText terms={deal.terms} />
       <p className="text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">
         {[
           payments === 1 ? copy.agreement.paymentsOne : fill(copy.agreement.paymentsTemplate, { n: payments }),
@@ -51,5 +52,50 @@ export function AgreementSection({ deal, bare = false }: { deal: DirectDeal; bar
         </div>
       ) : null}
     </section>
+  );
+}
+
+/// The signed text laid out to be read: each "Label: text" line as a labelled
+/// fact, milestones as their own rows. The words are exactly what was signed.
+function AgreementText({ terms }: { terms: string }) {
+  const blocks = agreementBlocks(terms);
+  return (
+    <div className="max-w-[62ch] divide-y divide-[var(--lp-border-light)] border-y border-[var(--lp-border-light)]">
+      {blocks.map((block, i) => (
+        <AgreementBlockView key={i} block={block} />
+      ))}
+    </div>
+  );
+}
+
+function AgreementBlockView({ block }: { block: AgreementBlock }) {
+  if (block.kind === 'text') {
+    return <p dir="auto" className="py-3 text-[15px] leading-relaxed text-[var(--lp-dark)]">{block.body}</p>;
+  }
+  if (block.kind === 'list') {
+    return <div className="py-3"><Parts parts={block.parts} /></div>;
+  }
+  return (
+    <div className="py-3">
+      <p className="text-[14px] font-medium text-[var(--lp-text-sub)]">{block.label}</p>
+      {block.body ? <p dir="auto" className="mt-0.5 text-[15px] leading-relaxed text-[var(--lp-dark)]">{block.body}</p> : null}
+      {block.parts ? <Parts parts={block.parts} /> : null}
+    </div>
+  );
+}
+
+function Parts({ parts }: { parts: AgreementPart[] }) {
+  return (
+    <ol className="mt-3 space-y-3">
+      {parts.map((part, i) => (
+        <li key={i} className="border-s-2 border-[var(--lp-border-light)] ps-3">
+          <p className="flex flex-wrap items-baseline justify-between gap-x-3">
+            <span className="text-[15px] font-semibold text-[var(--lp-dark)]">{part.title}</span>
+            {part.detail ? <span className="text-[14px] font-medium tabular-nums text-[var(--lp-text-sub)]">{part.detail}</span> : null}
+          </p>
+          {part.body ? <p dir="auto" className="mt-0.5 text-[15px] leading-relaxed text-[var(--lp-dark)]">{part.body}</p> : null}
+        </li>
+      ))}
+    </ol>
   );
 }
