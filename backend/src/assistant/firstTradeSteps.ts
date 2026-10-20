@@ -12,16 +12,20 @@ export interface FirstTradeFacts {
   settledTrade: boolean;
 }
 
-/// Where each step is done on the website.
-export const FIRST_TRADE_ROUTE: Record<FirstTradeStep, string> = {
-  wallets: '/profile/agent-funds',
-  money: '/bridge?direction=in',
-  telegram: '/profile',
-  deal: '/market',
-  finish: '/activity',
-};
+/// Where each step is done on the website. On testnet nobody holds USDC
+/// yet, so adding money starts at the faucet.
+export function firstTradeRoute(step: FirstTradeStep, network: 'testnet' | 'mainnet'): string {
+  const routes: Record<FirstTradeStep, string> = {
+    wallets: '/profile/agent-funds',
+    money: network === 'testnet' ? '/profile/wallets' : '/bridge?direction=in',
+    telegram: '/profile',
+    deal: '/market',
+    finish: '/activity',
+  };
+  return routes[step];
+}
 
-export function firstTradeSteps(facts: FirstTradeFacts) {
+export function firstTradeSteps(facts: FirstTradeFacts, network: 'testnet' | 'mainnet' = 'testnet') {
   const steps: Array<{ key: FirstTradeStep; done: boolean }> = [
     { key: 'wallets', done: facts.activated },
     { key: 'money', done: facts.balance > 0 },
@@ -31,7 +35,7 @@ export function firstTradeSteps(facts: FirstTradeFacts) {
   ];
   return {
     complete: facts.settledTrade,
-    steps: steps.map((s) => ({ ...s, route: FIRST_TRADE_ROUTE[s.key] })),
+    steps: steps.map((s) => ({ ...s, route: firstTradeRoute(s.key, network) })),
     next: steps.find((s) => !s.done)?.key ?? null,
   };
 }

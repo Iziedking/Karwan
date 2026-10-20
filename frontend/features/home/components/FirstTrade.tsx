@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/core/api';
+import { ARC_NETWORK } from '@/core/arcNetwork';
 import { stageOf } from '@/features/deals/components/DirectDealList';
 import type { useDirectDeals } from '@/features/deals/hooks/useDirectDeals';
 import { useOwnedBalance } from '@/features/money/hooks/useOwnedBalance';
@@ -68,7 +69,18 @@ export function FirstTrade({ deals, dealsState }: {
   const routes = tradeEntryRoutes();
   const action = (key: FirstTradeStep) => {
     if (key === 'wallets') return <Link href="/profile/agent-funds" className={PRIMARY}>{t.steps.wallets.action}</Link>;
-    if (key === 'money') return <Link href="/bridge?direction=in" className={PRIMARY}>{t.steps.money.action}</Link>;
+    if (key === 'money') {
+      // On testnet nobody holds USDC yet, so the faucet comes first.
+      if (ARC_NETWORK === 'testnet') {
+        return (
+          <div className="flex flex-wrap gap-2">
+            <Link href="/profile/wallets" className={PRIMARY}>{t.steps.money.faucet}</Link>
+            <Link href="/bridge?direction=in" className={SECONDARY}>{t.steps.money.fromWallet}</Link>
+          </div>
+        );
+      }
+      return <Link href="/bridge?direction=in" className={PRIMARY}>{t.steps.money.action}</Link>;
+    }
     if (key === 'telegram') return <TelegramConnectButton address={me || undefined} tone="light" />;
     if (key === 'deal') {
       return (
@@ -82,7 +94,7 @@ export function FirstTrade({ deals, dealsState }: {
     return null;
   };
   const note = (key: FirstTradeStep) =>
-    key === 'money' ? t.steps.money.note : key === 'telegram' ? t.steps.telegram.note : null;
+    key === 'money' ? (ARC_NETWORK === 'testnet' ? t.steps.money.testnetNote : t.steps.money.note) : key === 'telegram' ? t.steps.telegram.note : null;
 
   return (
     <section aria-labelledby="first-trade" className="rounded-[22px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-4 sm:rounded-[24px] sm:p-6">

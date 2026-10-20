@@ -10,7 +10,8 @@ test('the assistant gives the same next step as Home', () => {
   const view = firstTradeSteps(fresh);
   assert.equal(view.next, 'money');
   assert.deepEqual(view.steps.map((s) => s.key), ['wallets', 'money', 'telegram', 'deal', 'finish']);
-  assert.equal(view.steps[1]!.route, '/bridge?direction=in');
+  assert.equal(view.steps[1]!.route, '/profile/wallets', 'testnet starts at the faucet');
+  assert.equal(firstTradeSteps(fresh, 'mainnet').steps[1]!.route, '/bridge?direction=in');
 });
 
 test('Telegram is left out where the bot is not set up, and the list completes with a finished deal', () => {

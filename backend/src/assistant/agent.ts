@@ -945,7 +945,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
       inputSchema: z.object({}),
       execute: async () => {
         try {
-          const view = firstTradeSteps(await readFirstTradeFacts(address));
+          const view = firstTradeSteps(await readFirstTradeFacts(address), config.ARC_NETWORK);
           return {
             ...view,
             note: view.complete
