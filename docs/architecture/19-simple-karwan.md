@@ -223,9 +223,10 @@ English first, with French, Arabic, Hindi and Swahili as today. Local Nigerian l
 | Telegram interview | Live on testnet as sell, buy or both, then a first post. The new interview (the setup questions, Here's your Karwan, then "Post this as your first offer?") is built 20 Oct 2026, not deployed |
 | First-trade checklist on Home and in the assistant | Built 20 Oct 2026, not deployed ([view 01](01-workspace.md#the-first-trade)) |
 | Onboarding conversation after activation, shared agent brief, assistant action to change settings | Built 20 Oct 2026, not deployed: `/setup`, the Telegram interview and `set_up_my_agents` all save through `POST /api/setup/save` |
-| Agent on or off and "ask me first" limits | Saved by setup (`agentPrefs`); the agents do not read it yet |
+| Agent on or off and "ask me first" limits | Built 20 Oct 2026, not deployed: "I have clients" only keeps the selling agent out of the market sweep (its live deals keep working); "Ask me first" turns a bid into `agent.suggestion` to the owner only (bell, email, Telegram), once per request. Bids from an offer the seller posted themselves still go out |
+| How we reach you | Built 20 Oct 2026, not deployed: Telegram, email or both, from setup or Settings; Telegram without a linked chat falls back to email (`channels/notifyVia.ts`) |
 | Business start and trade-as answer from onboarding | The answer is kept (`businessDraft`); opening the business form from it is planned. `tradesAs` exists (view 17) |
-| Ask box on Home | Planned |
+| Ask box on Home | Built 20 Oct 2026, not deployed: "What do you want to do? Ask your assistant" on the balance card opens assistant mode |
 | Assistant mode switch, round profile button, plain-words pass | Switch, `/assistant` with saved conversations and the round photo-or-initials button built 20 Oct 2026, not deployed. Attach and deleting a conversation are not built yet. The plain-words pass is planned |
 | Help in place of Ask | Built 20 Oct 2026, not deployed: ? Help answers from the account first; a person joins automatically when asked for or when the assistant cannot do it, with no button first (owner, 20 Oct) |
 | Me in plain words | Planned |

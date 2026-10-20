@@ -79,7 +79,7 @@ Under the steps, the money flow in one line: you pay into escrow, they deliver, 
 
 ## Setting up the account
 
-After agent wallets activate, Set up my Karwan (`/setup`) asks what the person wants Karwan to do and only the questions those answers need. The server reads the answers into the agents' settings (`POST /api/setup/preview`, then `POST /api/setup/save` on "Looks right"). The Telegram interview after the tag asks the same questions with buttons for the choices and ends with the same summary as a confirm card; the assistant's `set_up_my_agents` tool changes one answer at a time from any conversation. The whole flow is [view 19](19-simple-karwan.md).
+After agent wallets activate, Set up my Karwan (`/setup`) asks what the person wants Karwan to do and only the questions those answers need. The server reads the answers into the agents' settings (`POST /api/setup/preview`, then `POST /api/setup/save` on "Looks right"). The Telegram interview after the tag asks the same questions with buttons for the choices and ends with the same summary as a confirm card; the assistant's `set_up_my_agents` tool changes one answer at a time from any conversation. The answers change the agents: someone who only works with their own clients is kept out of the market sweep, "Ask me first" turns the selling agent's bids into a suggestion to its owner, and alerts go by Telegram, email or both as they chose. The whole flow is [view 19](19-simple-karwan.md).
 
 ## Status
 
