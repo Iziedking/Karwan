@@ -21,6 +21,8 @@ import {
   type TradeType,
 } from '../deals/tradeVocabulary.js';
 import { getProfile } from '../db/profiles.js';
+import { getTelegramLink } from '../db/telegramLinks.js';
+import { channelsFor } from '../channels/notifyVia.js';
 import { resendClient } from './resend.js';
 import { sendDealEventEmail } from './dealEventEmail.js';
 import { logger } from '../logger.js';
@@ -48,6 +50,7 @@ function financierUrl(): string | undefined {
 
 // High-signal events only. Keep this list short on purpose.
 const EMAIL_RELEVANT = new Set([
+  'agent.suggestion',
   'deal.extension.requested',
   'deal.dispute.statement',
   'deal.dispute.statement.due',
@@ -158,6 +161,11 @@ async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     // review clock started without a delivery through Karwan.
     const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
     return buyer ? [{ address: buyer, role: 'buyer' }] : [];
+  }
+  if (e.type === 'agent.suggestion') {
+    // "Ask me first": only the owner of the selling agent.
+    const owner = (e.payload?.sellerUser as string | undefined)?.toLowerCase();
+    return owner ? [{ address: owner, role: 'seller' }] : [];
   }
   if (e.type === 'offer.created') {
     // A request is not a deal yet, so the poster is named on the event.
@@ -390,6 +398,19 @@ export function contentFor(
             ctaLabel: 'Open the deal',
             ctaUrl: dealUrl(e.jobId),
           };
+    }
+    case 'agent.suggestion': {
+      if (role !== 'seller') return null;
+      const title = (e.payload?.title as string | undefined) ?? '';
+      const price = (e.payload?.priceUsdc as string | undefined) ?? '';
+      return {
+        kicker: 'Your agent',
+        subject: 'Your agent found a request that fits. Make an offer?',
+        heading: 'A request that fits',
+        body: `${title ? `${title}. ` : ''}Your agent would offer${price ? ` ${price} USDC` : ''}. You asked to decide yourself, so nothing was sent. Open the request to make an offer.`,
+        ctaLabel: 'Open the request',
+        ctaUrl: jobUrl(e.payload?.jobId as string | undefined),
+      };
     }
     case 'offer.created': {
       const price = (e.payload?.priceUsdc as string | number | undefined) ?? '';
@@ -809,6 +830,11 @@ export function startEmailNotifier(): () => void {
         // Only verified contact emails, and respect the mute toggle.
         if (!profile?.email || !profile.emailVerified) continue;
         if (profile.settings?.notificationsMuted) continue;
+        // "How should we reach you": Telegram only skips email while a chat is linked.
+        if (profile.settings?.notifyVia === 'telegram') {
+          const linked = !!(await getTelegramLink(r.address).catch(() => null));
+          if (!channelsFor(profile.settings, linked).email) continue;
+        }
         const privateNote = e.type === 'deal.release.blocked' && r.role === 'buyer' && e.jobId
           ? (await getDeal(e.jobId).catch(() => null))?.deliveryMatch?.reason
           : undefined;

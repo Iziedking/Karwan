@@ -15,6 +15,8 @@ export interface SellerProfile {
   /** Canonical match tags extracted from skills+bio at profile-save time.
    *  Used to gate bidding when the brief is in an unrelated topic. */
   keywords: string[];
+  /** 'ask' suggests a fitting request to the owner instead of bidding (view 19). */
+  agentMode?: 'offers' | 'ask';
   /** Existing issuer records carried into read-only matching snapshots. */
   skillVerifications?: Array<{
     skillId: string;

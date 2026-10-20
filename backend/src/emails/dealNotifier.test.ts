@@ -101,3 +101,16 @@ test('a buyer waiting on the seller World ID check emails the seller, and only t
   const notYet = { ...e, payload: { ...e.payload, waitingOn: 'buyer' } } as unknown as KarwanEvent;
   assert.equal(contentFor(notYet, 'seller', 'service'), null);
 });
+
+test('ask me first emails the seller a link to the request, and nobody else', () => {
+  const suggestion = {
+    type: 'agent.suggestion', actor: 'seller', ts: 0,
+    payload: { sellerUser: '0xowner', jobId: '0xjob', priceUsdc: '35.00', title: 'Logo for a bakery' },
+  } as unknown as KarwanEvent;
+  const toSeller = contentFor(suggestion, 'seller', 'service');
+  assert.ok(toSeller);
+  assert.equal(toSeller.subject, 'Your agent found a request that fits. Make an offer?');
+  assert.match(toSeller.body, /Logo for a bakery/);
+  assert.match(toSeller.body, /35\.00 USDC/);
+  assert.equal(contentFor(suggestion, 'buyer', 'service'), null);
+});

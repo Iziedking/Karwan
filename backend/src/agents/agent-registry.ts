@@ -4,7 +4,7 @@ import {
   findAgentWalletByAgentAddress,
   type AgentWallets,
 } from '../db/agentWallets.js';
-import { getProfile, type UserProfile } from '../db/profiles.js';
+import { agentPrefsOf, getProfile, type UserProfile } from '../db/profiles.js';
 import type { BuyerProfile } from './buyer-profile.js';
 import type { SellerProfile } from './seller-profile.js';
 
@@ -41,7 +41,13 @@ function toBuyerProfile(agents: AgentWallets, profile: UserProfile): BuyerProfil
   };
 }
 
-function toSellerProfile(agents: AgentWallets, profile: UserProfile): SellerProfile | null {
+/// Whether this person's selling agent looks for clients on the market. Off when
+/// they said they only work with clients they already have (view 19).
+export function joinsMarket(profile: UserProfile): boolean {
+  return agentPrefsOf(profile).findClients !== false;
+}
+
+export function toSellerProfile(agents: AgentWallets, profile: UserProfile): SellerProfile | null {
   const s = profile.seller;
   if (!s) return null;
   return {
@@ -57,6 +63,7 @@ function toSellerProfile(agents: AgentWallets, profile: UserProfile): SellerProf
     maxDeadlineDays: s.maxDeadlineDays,
     confidenceThreshold: DEFAULT_CONFIDENCE_THRESHOLD,
     keywords: s.keywords ?? [],
+    agentMode: agentPrefsOf(profile).agentMode,
     skillVerifications: profile.skillVerifications?.map(({ skillId, status, issuer, expiresAt }) => ({
       skillId,
       status,
@@ -112,7 +119,7 @@ export async function resolveAllSellerProfiles(): Promise<SellerProfile[]> {
   const out: SellerProfile[] = [];
   for (const agents of all) {
     const profile = await getProfile(agents.userAddress);
-    if (!profile) continue;
+    if (!profile || !joinsMarket(profile)) continue;
     const sp = toSellerProfile(agents, profile);
     if (sp) out.push(sp);
   }

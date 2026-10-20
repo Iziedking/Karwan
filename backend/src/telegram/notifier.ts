@@ -1,5 +1,6 @@
 import { bus, type KarwanEvent } from '../events.js';
 import { config } from '../config.js';
+import { channelsFor } from '../channels/notifyVia.js';
 import { getDeal } from '../db/deals.js';
 import { getProfile, type UserLocale } from '../db/profiles.js';
 import { getTelegramLink } from '../db/telegramLinks.js';
@@ -82,6 +83,7 @@ function withLink(text: string, url: string | null): NotifySummary {
 // subscribes on boot and is a no-op when the bot isn't configured.
 
 export const RELEVANT = new Set([
+  'agent.suggestion',
   'request.shortlist',
   'request.world_check',
   'deal.extension.requested',
@@ -227,6 +229,11 @@ export async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
   // The shortlist goes to the person who posted the request, and only for the
   // updates marked worth a message.
   // Only the seller, once the buyer confirmed and is waiting on the seller's check.
+  // "Ask me first": only the owner of the selling agent.
+  if (e.type === 'agent.suggestion') {
+    const owner = (e.payload?.sellerUser as string | undefined)?.toLowerCase();
+    return owner ? [{ address: owner, role: 'seller' }] : [];
+  }
   if (e.type === 'request.world_check') {
     const seller = (e.payload?.seller as string | undefined)?.toLowerCase();
     const waiting = e.payload?.waitingOn === 'seller' && e.payload?.buyerConfirmed === true;
@@ -350,6 +357,15 @@ export function summaryFor(e: KarwanEvent, role: string, locale: UserLocale = 'e
   const url = dealUrl(e.jobId);
 
   switch (e.type) {
+    case 'agent.suggestion': {
+      if (role !== 'seller') return null;
+      const title = (e.payload?.title as string | undefined) ?? '';
+      const price = (e.payload?.priceUsdc as string | undefined) ?? '';
+      return withLink(
+        `*Your agent found a request that fits. Make an offer?*${title ? `\n${title}` : ''}${price ? `\nYour agent would offer ${price} USDC.` : ''}`,
+        jobUrl(e.payload?.jobId as string | undefined),
+      );
+    }
     case 'request.world_check': {
       const price = (e.payload?.priceUsdc as string | undefined) ?? '';
       const base = config.FRONTEND_BASE_URL?.replace(/\/$/, '');
@@ -843,6 +859,7 @@ export function startTelegramNotifier(): () => void {
         // existing means they connected Telegram; the mute is a soft pause.
         const profile = await getProfile(r.address);
         if (profile?.settings?.notificationsMuted) continue;
+        if (!channelsFor(profile?.settings, true).telegram) continue;
         const locale = (profile?.settings?.locale ?? 'en') as UserLocale;
         const summary = r.role === 'financier' ? financierSummaryFor(e, r.href, locale) : summaryFor(e, r.role, locale);
         if (!summary) continue;

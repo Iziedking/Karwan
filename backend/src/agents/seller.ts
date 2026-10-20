@@ -27,6 +27,7 @@ import {
 import { logger } from '../logger.js';
 import { reportError } from '../errorTracker.js';
 import { bus } from '../events.js';
+import { alreadySuggested, shouldSuggest, suggestionEvent } from './suggestion.js';
 import type { SellerProfile } from './seller-profile.js';
 import {
   MAX_COUNTER_ROUNDS,
@@ -76,6 +77,9 @@ import { recordBidOutcomes } from '../db/bidOutcomes.js';
 // ERC-20 USDC on Arc uses 6 decimals (native gas interface uses 18). Bid amounts
 // ride the ERC-20 rail because escrow.transferFrom is ERC-20.
 const USDC_DECIMALS = 6;
+/// How far back "ask me first" looks for a suggestion it already sent: the
+/// whole in-memory event ring, which is reloaded from Postgres on boot.
+const HISTORY_SCAN = 500;
 
 /// How many seller evaluations run at once in the JobPosted sweep. Each one is
 /// an LLM call plus a bounded research await, so serial was 60-90s end to end.
@@ -1290,6 +1294,20 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
   const buyerCheck = await checkBuyer(seller, job);
   if (buyerCheck?.verdict === 'pass') {
     passOnBuyer(seller, job, buyerCheck);
+    return;
+  }
+
+  // "Ask me first": tell the owner about the request at this price, once, and
+  // let them make the offer themselves.
+  const step = shouldSuggest(
+    seller.agentMode ?? 'offers',
+    alreadySuggested(bus.recent(HISTORY_SCAN), job.jobId, seller.userAddress),
+  );
+  if (step !== 'bid') {
+    if (step === 'suggest') {
+      bus.emitEvent(suggestionEvent({ sellerUser: seller.userAddress, jobId: job.jobId, priceUsdc: opening.toFixed(2), title: requestTitle(job.briefText) ?? '' }));
+      logger.info({ jobId: job.jobId, seller: seller.address }, 'ask me first: suggested to the owner, no bid');
+    }
     return;
   }
 

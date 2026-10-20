@@ -129,6 +129,8 @@ export const NOTIFY_TYPES = new Set([
   ...BRIDGE_TYPES,
   // Trend nudge: no jobId, routed to the seller-user like the wallet events.
   'trend.match',
+  // "Ask me first": the viewer's own agent found a request (no jobId on the event).
+  'agent.suggestion',
   // A seller answered the viewer's request. Routed to the poster by payload.
   'offer.created',
   // The deal under a position the viewer financed (financedDeal.ts).
@@ -139,6 +141,7 @@ export const NOTIFY_TYPES = new Set([
 // the rare actionable money event, so it earns a toast; the rest of the vault
 // and agent events sit quietly in the bell.
 export const TOAST_TYPES = new Set([
+  'agent.suggestion',
   'deal.matched',
   'deal.match.approved',
   'deal.seller-approved',
@@ -182,6 +185,7 @@ export const RECIPIENT: Record<string, Role | 'both'> = {
   'job.expired': 'buyer',
   'listing.matched': 'seller',
   'trend.match': 'seller', // rising-demand nudge, addressed to the matching seller
+  'agent.suggestion': 'seller', // ask me first: the seller decides on the offer
   'agent.declined': 'buyer',
   // Direct flow.
   'deal.direct.created': 'seller', // buyer just created it; the seller must act

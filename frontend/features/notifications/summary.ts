@@ -60,6 +60,8 @@ export function summaryFor(
       return c.jobExpired;
     case 'listing.matched':
       return pick(c.listingMatchedPrice, c.listingMatched, { price: str('askingPriceUsdc') });
+    case 'agent.suggestion':
+      return pick(c.suggestionTitle, c.suggestion, { title: str('title') });
     case 'trend.match':
       return pick(c.trendKeyword, c.trend, { keyword: str('keyword') });
     case 'agent.declined':

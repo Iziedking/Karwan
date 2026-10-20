@@ -60,3 +60,11 @@ test('money notes name the wallet by its role, with no plus or minus sign', () =
     assert.doesNotMatch(copy.credited + copy.debited, /^[+-]|identity/);
   }
 });
+
+test('ask me first says the agent found a request and asks for an offer', () => {
+  assert.equal(
+    summaryFor('agent.suggestion', { title: 'Logo for a bakery', priceUsdc: '35.00' }, 'seller', en),
+    'Your agent found a request that fits: Logo for a bakery. Make an offer?',
+  );
+  assert.equal(summaryFor('agent.suggestion', {}, 'seller', en), 'Your agent found a request that fits. Make an offer?');
+});

@@ -15,3 +15,10 @@ test('trading for yourself or for a business is saved as a setting', () => {
 test('any other answer is refused', () => {
   assert.throws(() => settingsSchema.parse({ settings: { tradesAs: 'both' } }));
 });
+
+test('how we reach you saves as telegram, email or both, and nothing else', () => {
+  for (const notifyVia of ['telegram', 'email', 'both']) {
+    assert.equal(settingsSchema.safeParse({ settings: { notifyVia } }).success, true);
+  }
+  assert.equal(settingsSchema.safeParse({ settings: { notifyVia: 'sms' } }).success, false);
+});

@@ -7,7 +7,7 @@ export interface NotifyCopy {
   matchedSellerPrice: string; matchedSeller: string; matchedBuyerPrice: string; matchedBuyer: string;
   approvedSellerPrice: string; approvedSeller: string; approvedBuyerPrice: string; approvedBuyer: string;
   declinedSeller: string; declinedBuyer: string; raisedPrice: string; raised: string; jobExpired: string;
-  listingMatchedPrice: string; listingMatched: string; trendKeyword: string; trend: string;
+  listingMatchedPrice: string; listingMatched: string; trendKeyword: string; trend: string; suggestionTitle: string; suggestion: string;
   agentDeclinedReason: string; agentDeclined: string;
   nearMissBuyerPrice: string; nearMissSellerPrice: string; nearMissBuyer: string; nearMissSeller: string;
   directCreatedAmount: string; directCreated: string; inviteClaimedAmount: string; inviteClaimed: string;
@@ -57,6 +57,8 @@ const en: NotifyCopy = {
   listingMatchedPrice: 'Karwan matched your offer to a request at {price} USDC.',
   listingMatched: 'Karwan matched your offer to an open request.',
   trendKeyword: 'Requests for {keyword} are up this week. Your offer matches.',
+  suggestionTitle: "Your agent found a request that fits: {title}. Make an offer?",
+  suggestion: "Your agent found a request that fits. Make an offer?",
   trend: 'A skill you offer is in rising demand this week.',
   agentDeclinedReason: 'Your agent ended the negotiation: {reason}',
   agentDeclined: 'Your agent ended the negotiation.',
@@ -179,6 +181,8 @@ const fr: NotifyCopy = {
   listingMatchedPrice: 'Karwan a associé votre offre à une demande à {price} USDC.',
   listingMatched: 'Karwan a associé votre offre à une demande ouverte.',
   trendKeyword: 'Les demandes pour {keyword} augmentent cette semaine. Votre offre correspond.',
+  suggestionTitle: "Votre agent a trouvé une demande qui vous correspond : {title}. Faire une offre ?",
+  suggestion: "Votre agent a trouvé une demande qui vous correspond. Faire une offre ?",
   trend: 'Une compétence que vous proposez est de plus en plus demandée cette semaine.',
   agentDeclinedReason: 'Votre agent a mis fin à la négociation : {reason}',
   agentDeclined: 'Votre agent a mis fin à la négociation.',
@@ -301,6 +305,8 @@ const ar: NotifyCopy = {
   listingMatchedPrice: 'طابق Karwan عرضك مع طلب بسعر {price} USDC.',
   listingMatched: 'طابق Karwan عرضك مع طلب مفتوح.',
   trendKeyword: 'الطلبات على {keyword} في ازدياد هذا الأسبوع. عرضك مطابق.',
+  suggestionTitle: "وجد وكيلك طلبًا يناسبك: {title}. هل تقدم عرضًا؟",
+  suggestion: "وجد وكيلك طلبًا يناسبك. هل تقدم عرضًا؟",
   trend: 'مهارة تقدّمها يزداد الطلب عليها هذا الأسبوع.',
   agentDeclinedReason: 'أنهى وكيلك التفاوض: {reason}',
   agentDeclined: 'أنهى وكيلك التفاوض.',
@@ -423,6 +429,8 @@ const hi: NotifyCopy = {
   listingMatchedPrice: 'Karwan ने आपका ऑफ़र {price} USDC के एक अनुरोध से मिलाया।',
   listingMatched: 'Karwan ने आपका ऑफ़र एक खुले अनुरोध से मिलाया।',
   trendKeyword: 'इस हफ़्ते {keyword} के अनुरोध बढ़े हैं। आपका ऑफ़र मेल खाता है।',
+  suggestionTitle: "आपके एजेंट को एक उपयुक्त अनुरोध मिला: {title}। ऑफ़र करें?",
+  suggestion: "आपके एजेंट को एक उपयुक्त अनुरोध मिला। ऑफ़र करें?",
   trend: 'आपकी एक स्किल की माँग इस हफ़्ते बढ़ रही है।',
   agentDeclinedReason: 'आपके एजेंट ने बातचीत ख़त्म की: {reason}',
   agentDeclined: 'आपके एजेंट ने बातचीत ख़त्म की।',
@@ -545,6 +553,8 @@ const sw: NotifyCopy = {
   listingMatchedPrice: 'Karwan imelinganisha ofa yako na ombi kwa {price} USDC.',
   listingMatched: 'Karwan imelinganisha ofa yako na ombi lililo wazi.',
   trendKeyword: 'Maombi ya {keyword} yameongezeka wiki hii. Ofa yako inalingana.',
+  suggestionTitle: "Wakala wako amepata ombi linalokufaa: {title}. Toa ofa?",
+  suggestion: "Wakala wako amepata ombi linalokufaa. Toa ofa?",
   trend: 'Ujuzi unaotoa unazidi kuhitajika wiki hii.',
   agentDeclinedReason: 'Wakala wako amemaliza mazungumzo: {reason}',
   agentDeclined: 'Wakala wako amemaliza mazungumzo.',

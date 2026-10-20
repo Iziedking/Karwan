@@ -14,7 +14,8 @@ const THEM = '0xbbbb000000000000000000000000000000000002';
 const ev = (type: string, payload: Record<string, unknown>): KarwanEvent =>
   ({ type, actor: 'buyer', ts: Date.now(), payload }) as KarwanEvent;
 
-const cases: Array<{ name: string; e: KarwanEvent; caller: string | null; bridges: string[]; full: boolean }> = [
+/// `jobs`: deals the caller is a party to or posted, for the tracked-deal pass.
+const cases: Array<{ name: string; e: KarwanEvent; caller: string | null; bridges: string[]; full: boolean; jobs?: string[] }> = [
   // The regression this was written for: bridge events name no party, so they
   // used to reach their own owner stripped to {}.
   { name: 'my bridge, seeded', e: ev('bridge.burned', { bridgeId: 'b1', sourceTxHash: '0xdead' }), caller: ME, bridges: ['b1'], full: true },
@@ -61,11 +62,16 @@ const cases: Array<{ name: string; e: KarwanEvent; caller: string | null; bridge
   { name: 'my gateway cash-out', e: ev('gateway.cashed.out', { address: ME, amountUsdc: '60' }), caller: ME, bridges: [], full: true },
   { name: "another user's gateway deposit", e: ev('gateway.deposited', { address: THEM, amountUsdc: '100' }), caller: ME, bridges: [], full: false },
   { name: "another user's gateway cash-out", e: ev('gateway.cashed.out', { address: THEM, amountUsdc: '60' }), caller: ME, bridges: [], full: false },
+  // "Ask me first" carries the seller's own price. Only that seller sees it;
+  // the buyer who posted the request must not, even with the deal tracked.
+  { name: 'my agent suggestion', e: ev('agent.suggestion', { sellerUser: ME, jobId: '0xjob', priceUsdc: '35' }), caller: ME, bridges: [], full: true },
+  { name: "the buyer of that request", e: ev('agent.suggestion', { sellerUser: THEM, jobId: '0xjob', priceUsdc: '35' }), caller: ME, bridges: [], full: false, jobs: ['0xjob'] },
+  { name: "another seller's suggestion", e: ev('agent.suggestion', { sellerUser: THEM, jobId: '0xjob', priceUsdc: '35' }), caller: ME, bridges: [], full: false },
 ];
 
 let failed = 0;
 for (const c of cases) {
-  const out = projectFor(c.e, c.caller, new Set<string>(), new Set<string>(), new Set(c.bridges));
+  const out = projectFor(c.e, c.caller, new Set<string>(c.jobs ?? []), new Set<string>(c.jobs ?? []), new Set(c.bridges));
   const isFull = Object.keys(out.payload ?? {}).length > 0;
   const ok = isFull === c.full;
   if (!ok) failed++;

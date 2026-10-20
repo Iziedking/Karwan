@@ -11,6 +11,7 @@ import { fill } from '@/features/deals/workspace/presentation';
 import { bridgeDirection, classifyMoneyEvent, soundKeysFor } from '../classifyMoneyEvent';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
 import { safeNotificationHref } from '../notificationRouting';
+import { sellerNudge } from '../notificationKind';
 import { mergeNotifications, plainSavedSummary } from '../groupNotifications';
 import {
   NOTIFICATION_STORAGE_PREFIX,
@@ -424,11 +425,13 @@ export function useNotifications() {
           });
           continue;
         }
-        // Trend nudge: no jobId, addressed to the seller-user in the payload.
-        if (e.type === 'trend.match') {
+        // Seller nudges (trend, ask me first): no jobId, addressed to the
+        // seller-user in the payload.
+        const nudge = sellerNudge(e.type, e.payload as Record<string, unknown> | undefined, e.ts);
+        if (nudge) {
           const seller = (e.payload?.sellerUser as string | undefined)?.toLowerCase();
           if (seller !== me) continue;
-          const id = `trend.match-${e.ts}`;
+          const id = nudge.id;
           fresh.push({
             id,
             jobId: '',
@@ -436,7 +439,7 @@ export function useNotifications() {
             summary: summaryFor(e.type, e.payload, null, bell),
             ts: e.ts,
             read: readIdsRef.current.has(id),
-            href: hrefForType(e.type, ''),
+            href: nudge.href,
           });
           continue;
         }
@@ -669,12 +672,13 @@ export function useNotifications() {
         return;
       }
 
-      // Trend nudge: no jobId, addressed to the seller-user. Same shape as the
-      // wallet/money branches above.
-      if (e.type === 'trend.match') {
+      // Seller nudges (trend, ask me first): no jobId, addressed to the
+      // seller-user. Same shape as the wallet/money branches above.
+      const nudge = sellerNudge(e.type, e.payload as Record<string, unknown> | undefined, e.ts);
+      if (nudge) {
         const seller = (e.payload?.sellerUser as string | undefined)?.toLowerCase();
         if (seller !== me) return;
-        const id = `trend.match-${e.ts}`;
+        const id = nudge.id;
         if (seenNotificationIdsRef.current.has(id)) return;
         seenNotificationIdsRef.current.add(id);
         const next: AppNotification = {
@@ -684,7 +688,7 @@ export function useNotifications() {
           summary: summaryFor(e.type, e.payload, null, bell),
           ts: e.ts,
           read: readIdsRef.current.has(id),
-          href: hrefForType(e.type, ''),
+          href: nudge.href,
           toast: TOAST_TYPES.has(e.type),
         };
         setNotifications((list) => {

@@ -30,6 +30,8 @@ export interface SetupCopy {
   /// The button after activation, and the row under Me.
   start: string;
   meChange: string;
+  /// The Settings row for the reach answer.
+  reachSetting: string;
 }
 
 export const setupCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', SetupCopy> = {
@@ -69,6 +71,7 @@ export const setupCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', SetupCopy> = {
     buttons: { back: 'Back', skip: 'Skip', next: 'Next' },
     saveError: "That didn't save. Try again in a moment.",
     start: 'Set up my Karwan', meChange: 'Change how your agents work',
+    reachSetting: 'How we reach you',
   },
   fr: {
     later: 'Je le ferai plus tard',
@@ -106,6 +109,7 @@ export const setupCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', SetupCopy> = {
     buttons: { back: 'Retour', skip: 'Passer', next: 'Suivant' },
     saveError: 'L’enregistrement a échoué. Réessayez dans un instant.',
     start: 'Configurer mon Karwan', meChange: 'Changer le travail de vos agents',
+    reachSetting: 'Comment vous joindre',
   },
   ar: {
     later: 'سأفعل هذا لاحقًا',
@@ -143,6 +147,7 @@ export const setupCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', SetupCopy> = {
     buttons: { back: 'رجوع', skip: 'تخطٍّ', next: 'التالي' },
     saveError: 'لم يُحفظ ذلك. حاول بعد لحظة.',
     start: 'إعداد Karwan الخاص بي', meChange: 'غيّر طريقة عمل وكلائك',
+    reachSetting: 'كيف نتواصل معك',
   },
   hi: {
     later: 'मैं यह बाद में करूँगा',
@@ -180,6 +185,7 @@ export const setupCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', SetupCopy> = {
     buttons: { back: 'वापस', skip: 'छोड़ें', next: 'आगे' },
     saveError: 'सेव नहीं हुआ। थोड़ी देर में फिर कोशिश करें।',
     start: 'मेरा Karwan सेट करें', meChange: 'अपने एजेंटों के काम का तरीका बदलें',
+    reachSetting: 'हम आपसे कैसे संपर्क करें',
   },
   sw: {
     later: 'Nitafanya hivi baadaye',
@@ -217,5 +223,6 @@ export const setupCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', SetupCopy> = {
     buttons: { back: 'Rudi', skip: 'Ruka', next: 'Endelea' },
     saveError: 'Haikuhifadhiwa. Jaribu tena baada ya muda mfupi.',
     start: 'Weka Karwan yangu', meChange: 'Badilisha jinsi mawakala wako wanavyofanya kazi',
+    reachSetting: 'Jinsi tunavyokufikia',
   },
 };

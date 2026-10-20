@@ -21,7 +21,19 @@ const MONEY_PREFIXES = ['wallet.', 'vault.', 'agent.funded', 'agent.withdrawal',
 export function notificationKind(type: string): NotificationKind {
   if (ATTENTION.has(type)) return 'attention';
   if (DONE.has(type)) return 'done';
-  if (type.startsWith('deal.match') || type === 'deal.matched' || type === 'listing.matched' || type === 'negotiation.near-miss' || type === 'trend.match' || type === 'agent.declined') return 'match';
+  if (type.startsWith('deal.match') || type === 'deal.matched' || type === 'listing.matched' || type === 'negotiation.near-miss' || type === 'trend.match' || type === 'agent.suggestion' || type === 'agent.declined') return 'match';
   if (MONEY_PREFIXES.some((prefix) => type.startsWith(prefix))) return 'money';
   return 'deal';
+}
+
+/// The two notices addressed to a seller by payload, with no deal on the
+/// event: a rising-demand nudge (to the market) and "ask me first" (to the
+/// request, once per request). Null for anything else.
+export function sellerNudge(type: string, payload: Record<string, unknown> | undefined, ts: number): { id: string; href: string } | null {
+  if (type === 'trend.match') return { id: `trend.match-${ts}`, href: '/market' };
+  if (type === 'agent.suggestion') {
+    const jobId = typeof payload?.jobId === 'string' ? payload.jobId : '';
+    return jobId ? { id: `agent.suggestion-${jobId}`, href: `/jobs/${jobId}` } : null;
+  }
+  return null;
 }

@@ -32,7 +32,7 @@ export function SettingsBand() {
   const { address, isAuthenticated, method, email, hasPasskey, refresh, signOut } = useAuth();
   const { locale, t } = useLocale();
   const { preference, mounted } = useTheme();
-  const [sheet, setSheet] = useState<null | 'language' | 'theme' | 'delete'>(null);
+  const [sheet, setSheet] = useState<null | 'language' | 'theme' | 'reach' | 'delete'>(null);
   const titleId = useId();
   const deleteInput = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -157,6 +157,10 @@ export function SettingsBand() {
     { value: 'light', label: t.settings.themeLight },
     { value: 'dark', label: t.settings.themeDark },
   ];
+  // How we reach you: the same three answers as the setup question (view 19).
+  const reach = t.setup.choices.reach;
+  const reachNow = settings.notifyVia ?? 'both';
+  const reachOptions = (Object.entries(reach.options) as Array<[NonNullable<UserSettings['notifyVia']>, { label: string; note: string }]>);
   const themeNow = mounted ? preference : 'system';
   const themeLabel = themeOptions.find((o) => o.value === themeNow)?.label ?? t.settings.themeSystem;
 
@@ -188,6 +192,7 @@ export function SettingsBand() {
           checked={!settings.notificationsMuted}
           onChange={(on) => save({ notificationsMuted: !on })}
         />
+        <Row label={t.setup.reachSetting} value={reach.options[reachNow].label} onClick={() => setSheet('reach')} />
         <ToggleRow
           label={t.settings.privacyPublicPassport}
           checked={settings.publicPassport !== false}
@@ -234,6 +239,34 @@ export function SettingsBand() {
               <span aria-hidden className="grid size-5 place-items-center text-[var(--lp-text-sub)]"><ThemeIcon preference={o.value} /></span>
               <span className="flex-1">{o.label}</span>
               {themeNow === o.value ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0 text-[var(--lp-accent-on-light)]"><path d="m5 12 5 5 9-10" /></svg>
+              ) : null}
+            </button>
+          ))}
+        </div>
+      </ConfirmSheetShell>
+
+      <ConfirmSheetShell open={sheet === 'reach'} labelledBy={`${titleId}-reach`} busy={false} onClose={() => setSheet(null)}>
+        <h2 id={`${titleId}-reach`} className="text-[20px] font-semibold text-[var(--lp-dark)]">{reach.title}</h2>
+        <p className="mt-1 mb-4 text-[14px] font-medium text-[var(--lp-text-sub)]">{reach.help}</p>
+        <div role="radiogroup" aria-labelledby={`${titleId}-reach`} className="divide-y divide-[var(--lp-border-light)] overflow-hidden rounded-[18px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
+          {reachOptions.map(([value, o]) => (
+            <button
+              key={value}
+              type="button"
+              role="radio"
+              aria-checked={reachNow === value}
+              onClick={() => {
+                save({ notifyVia: value });
+                setSheet(null);
+              }}
+              className="flex min-h-[64px] w-full items-center gap-3 px-4 py-2.5 text-start transition-colors hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)]"
+            >
+              <span className="min-w-0 flex-1">
+                <span className="block text-[15px] font-semibold text-[var(--lp-dark)]">{o.label}</span>
+                <span className="mt-0.5 block text-[14px] font-medium text-[var(--lp-text-sub)]">{o.note}</span>
+              </span>
+              {reachNow === value ? (
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0 text-[var(--lp-accent-on-light)]"><path d="m5 12 5 5 9-10" /></svg>
               ) : null}
             </button>

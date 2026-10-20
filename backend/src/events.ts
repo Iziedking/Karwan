@@ -112,6 +112,9 @@ export type KarwanEventType =
   | 'agent.funded'
   | 'agent.withdrawal'
   | 'agent.skipped'
+  /// "Ask me first": the selling agent found a request that fits and asks its
+  /// owner instead of offering. Party: `sellerUser` only (agents/suggestion.ts).
+  | 'agent.suggestion'
   | 'agent.declined'
   | 'agent.error'
   | 'agent.fallback'
