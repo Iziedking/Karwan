@@ -29,6 +29,7 @@ Karwan unifies online reputation with an agentic economic model. People join a n
 | 16 | [Location, messages and ratings](16-feedback-and-location.md) | How agents match people near and far without showing where they live, how two people talk by tag before a deal, and how ratings stay apart from the reputation score | Built, not deployed |
 | 17 | [One market, one entry](17-one-market.md) | One market for personal and business trading: find, your trades and start in one place, account type as a lens | Built, not deployed |
 | 18 | [Trade finance](18-trade-finance.md) | How a seller with a funded deal gets paid now, how the financier is repaid first, and what the record changes | Agreed, not built |
+| 19 | [Simple Karwan](19-simple-karwan.md) | How a trader who knows nothing about escrow or agents says what they want, has the agent set up their account the way they want to use it, and runs it all by talking to the assistant | Draft |
 
 ## How to read a view
 
