@@ -34,7 +34,9 @@ test('public analytics and workspace notices avoid API internals and repeat main
   assert.match(analyticsCopy, /Every figure is read from Karwan's contracts on Arc\./);
   assert.match(networkContext, /network\.environment !== 'mainnet'/);
   assert.match(networkContext, /network\.environment !== 'mainnet' &&/);
-  assert.match(nudge, /grid-cols-\[auto_minmax\(0,1fr\)_auto\]/);
+  // The setup card sits on the page column, never as a strip against the rail.
+  assert.match(nudge, /max-w-\[var\(--workspace-measure\)\] rounded-\[18px\]/);
+  assert.doesNotMatch(nudge, /border-b border-\[var\(--lp-border-light\)\]/);
   assert.match(nudge, /stepTwo/);
   assert.match(history, /width: 'min\(640px, 100vw\)'/);
   assert.match(history, /var\(--ink-secondary\)/);

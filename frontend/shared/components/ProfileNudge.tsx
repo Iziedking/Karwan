@@ -118,25 +118,25 @@ export function ProfileNudge() {
           animate={{ opacity: 1, y: 0 }}
           exit={reduce ? { opacity: 0 } : { opacity: 0, y: -8 }}
           transition={{ duration: reduce ? dur.micro : dur.fast, ease: ease.out }}
-          className="border-b border-[var(--lp-border-light)] bg-[var(--lp-card)]"
+          className="mx-auto max-w-[var(--workspace-measure)] rounded-[18px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]"
           aria-label={copy.title}
         >
-          <div className="mx-auto grid max-w-6xl grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2 px-4 py-4 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:gap-x-6 sm:px-6">
-            <span className="mono row-span-2 shrink-0 text-[14px] font-semibold tracking-[0.04em] text-[var(--lp-accent-on-light)] sm:row-span-1">
-                {copy.step}
-            </span>
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-3 p-4 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center sm:p-5">
             <div className="min-w-0">
-              <p className="text-[15px] font-semibold leading-snug text-[var(--lp-dark)]">{copy.title}</p>
+              <p className="text-[14px] font-semibold text-[var(--lp-accent-on-light)]">{copy.step}</p>
+              <p className="mt-0.5 text-[16px] font-semibold leading-snug text-[var(--lp-dark)]">{copy.title}</p>
               <p className="mt-1 max-w-[68ch] text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{copy.body}</p>
             </div>
-            <div className="col-start-2 flex items-center gap-2 sm:col-start-auto">
+            <div className="col-span-2 row-start-2 flex items-center gap-2 sm:col-span-1 sm:row-start-auto">
               <Link
                 href={copy.href}
                 className="inline-flex min-h-11 items-center gap-2 rounded-[10px] bg-[var(--lp-accent)] px-4 text-[14px] font-semibold text-[var(--accent-ink)] transition-colors hover:brightness-95"
               >
                 {copy.cta}
-                <span aria-hidden>→</span>
+                <span aria-hidden className="rtl:rotate-180">→</span>
               </Link>
+            </div>
+            <div className="col-start-2 row-start-1 -me-2 -mt-2 self-start sm:col-start-auto sm:row-start-auto sm:m-0 sm:self-center">
               <button
                 type="button"
                 onClick={dismiss}
