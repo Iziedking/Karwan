@@ -19,6 +19,7 @@ import {
   type MoneyRailProviderEvent,
 } from '../money/railIntent.js';
 import { logger } from '../logger.js';
+import { readOwnedBalance } from '../money/ownedBalance.js';
 
 export const moneyRoutes = new Hono();
 
@@ -113,6 +114,14 @@ function publicIntent(intent: Awaited<ReturnType<typeof getMoneyRailIntent>>) {
     cancelledAt: intent.cancelledAt ?? null,
   };
 }
+
+/// The person's balance with its parts, the same figures the assistant quotes.
+/// Session-scoped and never `?address=`: it is the account's whole holding.
+moneyRoutes.get('/balance', async (c) => {
+  const address = sessionAddress(c);
+  if (!address) return c.json({ error: 'unauthorized' }, 401);
+  return c.json({ balance: await readOwnedBalance(address) });
+});
 
 moneyRoutes.get('/capabilities', (c) => {
   return c.json({

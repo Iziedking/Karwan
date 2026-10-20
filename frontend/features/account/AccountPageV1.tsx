@@ -1,6 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/core/api';
+import { ProductBackLink } from '@/shared/components/ProductBackLink';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { Icon } from '@/shared/components/Icon';
 import { ARC_NETWORK } from '@/core/arcNetwork';
 import { BalancesCard } from '@/features/balances/components/BalancesCard';
@@ -23,7 +28,8 @@ function AccountPageInner() {
   const t = messages.account.page;
   return (
     <div className="product-surface mx-auto w-full max-w-[1040px] pb-14">
-      <header className="mt-5">
+      <OwnBack />
+      <header className="mt-2">
         <div>
           <div className="flex items-center"><h1 className="text-[28px] font-semibold tracking-[-0.02em] text-[var(--lp-dark)]">{messages.accountHome.balanceLabel}</h1><NetworkHint /></div>
         </div>
@@ -86,12 +92,31 @@ function ActionIcon({ icon }: { icon: 'add' | 'move' | 'send' }) {
   return <Icon name="send" size={20} />;
 }
 
+/// Back on the content column, level with the title it leaves.
+function OwnBack() {
+  const pathname = usePathname();
+  const { isAuthenticated } = useAuth();
+  return (
+    <div data-own-back className="-ms-2 empty:hidden">
+      <ProductBackLink pathname={pathname} isAuthenticated={isAuthenticated} />
+    </div>
+  );
+}
+
 /// The same total as Home, and where it sits. Home shows only the total; the
 /// split lives here, next to the per-chain detail.
 function BalanceSummary() {
   const t = useTranslations().balanceSummary;
   const owned = useOwnedBalance();
   const money = useMoneyBalances();
+  const { address } = useAuth();
+  // The stake the assistant names, read from the same server figure.
+  const staked = useQuery({
+    queryKey: ['money', 'balance', address?.toLowerCase()],
+    queryFn: () => api.moneyBalance().then((r) => r.balance.staked),
+    enabled: !!address,
+    staleTime: 30_000,
+  }).data ?? 0;
   const fmt = (n: number | null | undefined) =>
     n == null ? '-' : n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const rows: Array<{ label: string; value: number | null; sub?: Array<{ label: string; value: number | null }> }> = [
@@ -133,6 +158,15 @@ function BalanceSummary() {
           </div>
         ))}
       </dl>
+      {staked > 0 ? (
+        <div className="mt-2 border-t border-[var(--lp-border-light)] pt-3">
+          <div className="flex items-baseline justify-between gap-4">
+            <Link href="/stake" className="text-[16px] font-medium text-[var(--lp-dark)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">{t.staked}</Link>
+            <span className="text-[16px] font-semibold tabular-nums text-[var(--lp-dark)]">{fmt(staked)} USDC</span>
+          </div>
+          <p className="mt-1 text-[14px] font-medium text-[var(--lp-text-sub)]">{t.stakedNote}</p>
+        </div>
+      ) : null}
     </section>
   );
 }

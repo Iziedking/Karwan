@@ -301,6 +301,7 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "POST", path: "/api/listings/:id/edit" },
   { method: "GET", path: "/api/listings/mine" },
   { method: "POST", path: "/api/milestones/release" },
+  { method: "GET", path: "/api/money/balance" },
   { method: "GET", path: "/api/money/capabilities" },
   { method: "GET", path: "/api/money/intents" },
   { method: "POST", path: "/api/money/intents" },

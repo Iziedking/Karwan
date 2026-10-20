@@ -22,6 +22,7 @@ import { listBridgesForUser } from '../db/bridges.js';
 import { bridgeStanding } from './bridgeStanding.js';
 import { listMatchProposalsForUser } from '../db/matchProposals.js';
 import { activeStakeSummary } from '../reputation/stake.js';
+import { readOwnedBalance } from '../money/ownedBalance.js';
 import { readStakerYield } from '../routes/yield.js';
 import { loadInputs } from '../reputation/signals.js';
 import { compute as computeReputation } from '../reputation/engine.js';
@@ -208,40 +209,32 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
   return {
     get_my_balance: tool({
       description:
-        "Read the signed-in user's money on Arc testnet: their wallet balance, their buyer and seller agent wallets (USDC + address), gas, and any stake. Use this whenever they ask what their balance is, where their money is, how much USDC they have, what their agent wallet addresses are, or whether they can afford something. Never guess a number.",
+        "Read the signed-in user's balance on Arc testnet exactly as their balance page shows it: the total, and where it sits (their wallet on Arc, other chains, their buying and selling agents), plus any stake and gas. Use this whenever they ask what their balance is, where their money is, how much USDC they have, what their agent wallet addresses are, or whether they can afford something. Never guess a number.",
       inputSchema: z.object({}),
       execute: async () => {
         try {
-          const [spendable, gas, record, stake] = await Promise.all([
-            readSpendable(address),
+          const [owned, gas, record] = await Promise.all([
+            readOwnedBalance(address),
             publicClient.getBalance({ address: address as Address }),
             getAgentWallets(address),
-            activeStakeSummary(address),
-          ]);
-          const agentBal = async (addr?: string) =>
-            addr ? formatUnits(await readUsdcBalance(addr), USDC_DECIMALS) : null;
-          const [buyerUsdc, sellerUsdc] = await Promise.all([
-            agentBal(record?.buyerAddress),
-            agentBal(record?.sellerAddress),
           ]);
           return {
-            wallet: {
-              address,
-              // ONE number. Some of it may physically sit in the Gateway pool
-              // rather than the Arc wallet, but that is plumbing the user never
-              // sees: it spends the same, and the backend picks the rail. Never
-              // break this out or mention a second balance.
-              usdc: spendable.totalUsd.toFixed(2),
-              gas: formatUnits(gas, NATIVE_DECIMALS),
+            totalUsdc: owned.total.toFixed(2),
+            parts: {
+              walletOnArcUsdc: owned.wallet.toFixed(2),
+              otherChainsUsdc: owned.otherChains.toFixed(2),
+              agentsUsdc: owned.agents.toFixed(2),
             },
             buyerAgent: record?.buyerAddress
-              ? { address: record.buyerAddress, usdc: buyerUsdc }
+              ? { address: record.buyerAddress, usdc: owned.buyer?.toFixed(2) ?? null }
               : null,
             sellerAgent: record?.sellerAddress
-              ? { address: record.sellerAddress, usdc: sellerUsdc }
+              ? { address: record.sellerAddress, usdc: owned.seller?.toFixed(2) ?? null }
               : null,
-            stakedUsdc: stake && stake.stakeUsdc > 0 ? stake.stakeUsdc.toFixed(2) : null,
-            note: 'wallet.usdc is their whole spendable balance — quote it as one number and never describe it as split across places. Agents trade from the agent wallets. Sale proceeds land in the seller agent; refunds in the buyer agent. stakedUsdc is USDC locked in the stake vault (null when they have no stake) — use get_my_stake for the full staking picture including yield.',
+            stakedUsdc: owned.staked > 0 ? owned.staked.toFixed(2) : null,
+            gas: formatUnits(gas, NATIVE_DECIMALS),
+            partial: owned.partial,
+            note: `totalUsdc is the balance on their balance page: give it first, as their balance. Name parts only in the page's words: "in your wallet on Arc", "on other chains", "with your agents" (for buying, for selling). walletOnArcUsdc is what they can send or pay from directly. stakedUsdc is locked in the stake vault behind their deals and is NOT part of the total: if you mention it, say it is locked and not counted in the balance, and do not claim it earns yield unless get_my_stake shows yield. Never mention a pooled or unified balance. If partial is true, say one place could not be read just now, so the total may be low.`,
           };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant get_my_balance failed');

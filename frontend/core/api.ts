@@ -5087,6 +5087,21 @@ export const api = {
   // the user deposits. Session-scoped, so no address argument.
   getGatewayBalance: () =>
     json<{ balance: GatewayBalance; stale?: boolean }>('/api/gateway/balance'),
+  /// The balance with its parts, read on the server the way the assistant reads
+  /// it. The page takes the stake from here, so both name the same figure.
+  moneyBalance: () =>
+    json<{
+      balance: {
+        total: number;
+        wallet: number;
+        otherChains: number;
+        agents: number;
+        buyer: number | null;
+        seller: number | null;
+        staked: number;
+        partial: boolean;
+      };
+    }>('/api/money/balance'),
   /// Provider-neutral money movement orchestration. The API records intent and
   /// capability truth; the existing wallet/Gateway/CCTP actions remain the
   /// execution surfaces until a provider checkout is configured.

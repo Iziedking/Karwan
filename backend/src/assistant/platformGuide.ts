@@ -44,10 +44,10 @@ export const PLATFORM_GUIDE: readonly GuideEntry[] = [
   {
     id: 'account', title: 'Your wallet home', status: 'testnet', mainnet: 'invite', route: '/account',
     pages: ['/account', '/app', '/profile/wallets', '/profile/agent-funds'],
-    api: ['GET /api/balances', 'GET /api/activation/status', 'GET /api/activation/wallets'],
+    api: ['GET /api/balances', 'GET /api/money/balance', 'GET /api/activation/status', 'GET /api/activation/wallets'],
     tools: ['get_my_balance', 'list_bridge_sources'],
     keywords: 'wallet home account balance money usdc agent funds buyer seller agent gas where is my money',
-    summary: 'The product shows one wallet and one USDC balance. Behind it are distinct ledgers: the sign-in (identity) wallet, the buyer agent wallet that funds purchases, and the seller agent wallet that receives proceeds. Never add them together without reading them. /account is the money home; /app is the trading home on testnet.',
+    summary: 'The product shows one wallet and one USDC balance. Behind it are distinct ledgers: the sign-in (identity) wallet, the buyer agent wallet that funds purchases, and the seller agent wallet that receives proceeds. Never add them together without reading them. /account is the money home: the total balance, then where it sits (in your wallet on Arc, on other chains, with your agents for buying and for selling), and any stake below it, locked and not part of the total. get_my_balance returns the same figures. /app is the trading home on testnet.',
     steps: ['Open /account to see the balance and the Add money, Send and Request buttons.', 'Agent balances are under /profile/agent-funds.', 'Ask the assistant for a live balance read before moving money.'],
     sources: ['frontend/app/account/page.tsx', 'frontend/app/profile/agent-funds/page.tsx'],
   },
