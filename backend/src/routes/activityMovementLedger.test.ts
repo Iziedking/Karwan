@@ -219,3 +219,99 @@ test('a send reads as sent for the sender and received for the recipient', () =>
   assert.deepEqual(recipientRow.params, { t: 'received', amount: '100', who: '@ada' });
   assert.equal(recipientRow.refId, 'KWN-3KPH-3EA6-DQWC');
 });
+
+function bridgeMovement(opts: { initiatedBy: string; recipient: string; inbound: boolean }) {
+  const base = createMoneyMovement(
+    'KWN-7BRG-ABCD-EFGH',
+    {
+      operationKey: 'bridge:circle-bridge:x:1',
+      kind: 'bridge',
+      amountMicros: '2000000000',
+      initiatedBy: opts.initiatedBy,
+      participants: [
+        { address: opts.initiatedBy, role: 'owner' },
+        { address: opts.recipient, role: 'recipient' },
+      ],
+      summary: 'Sent 2000 USDC from Base to @someone',
+      nextActor: 'karwan',
+    },
+    1_000,
+  );
+  const leg = (key: string, label: string) => ({
+    id: `0:${key}`,
+    key,
+    attempt: 0,
+    label,
+    rail: 'cctp' as const,
+    state: 'verified' as const,
+    idempotencyKey: `${key}-key`,
+    createdAt: 1_100,
+  });
+  return {
+    ...base,
+    legs: opts.inbound
+      ? [leg('burn', 'Source-chain burn'), leg('mint', 'Arc destination mint')]
+      : [leg('burn', 'Arc source burn'), leg('mint', 'Destination-chain mint')],
+  };
+}
+
+test('a payment request paid from another network reads as received for the person paid', () => {
+  const paid = bridgeMovement({ initiatedBy: buyer, recipient: seller, inbound: true });
+  const names = new Map([[buyer, 'gulftextiles']]);
+  const item = movementToPersonalLedgerItem(paid, seller, names);
+  assert.equal(item.kind, 'transfer_in');
+  assert.deepEqual(item.params, { t: 'received', amount: '2000', who: '@gulftextiles' });
+});
+
+test('the payer of that request sees it sent to the person, not sent to another network', () => {
+  const paid = bridgeMovement({ initiatedBy: buyer, recipient: seller, inbound: true });
+  const item = movementToPersonalLedgerItem(paid, buyer);
+  assert.equal(item.kind, 'transfer_out');
+  assert.equal(item.params?.t, 'sent');
+});
+
+test('money brought onto Arc into your own wallet or agent is a top up', () => {
+  const own = bridgeMovement({ initiatedBy: buyer, recipient: buyer, inbound: true });
+  assert.equal(movementToPersonalLedgerItem(own, buyer).kind, 'top_up');
+  const agent = `0x${'3'.repeat(40)}`;
+  const toAgent = bridgeMovement({ initiatedBy: buyer, recipient: agent, inbound: true });
+  assert.equal(movementToPersonalLedgerItem(toAgent, buyer, undefined, { ownWallets: new Set([agent]) }).kind, 'top_up');
+});
+
+test('money moved off Arc is a cash out, and the bridge store names the chain', () => {
+  const out = bridgeMovement({ initiatedBy: buyer, recipient: buyer, inbound: false });
+  const item = movementToPersonalLedgerItem(out, buyer, undefined, {
+    bridges: new Map([['KWN-7BRG-ABCD-EFGH', { direction: 'out' as const, chain: 'Base' }]]),
+  });
+  assert.equal(item.kind, 'cash_out');
+  assert.deepEqual(item.params, { t: 'bridgeOut', amount: '2000', chain: 'Base' });
+});
+
+test('the bridge store direction wins over the leg labels', () => {
+  const recorded = bridgeMovement({ initiatedBy: buyer, recipient: buyer, inbound: false });
+  const item = movementToPersonalLedgerItem(recorded, buyer, undefined, {
+    bridges: new Map([['KWN-7BRG-ABCD-EFGH', { direction: 'in' as const, chain: 'Base' }]]),
+  });
+  assert.equal(item.kind, 'top_up');
+});
+
+test('funding a deal reads as deal funded for the buyer, never as released', () => {
+  assert.equal(movementToPersonalLedgerItem(movement('completed'), buyer).kind, 'escrow_funding');
+});
+
+test("the buyer's funding is not money out of the seller's account", () => {
+  const rows = mergeMovementLedger([], [movement('completed')], 10, seller);
+  assert.deepEqual(rows, []);
+  const buyerRows = mergeMovementLedger([], [movement('completed')], 10, buyer);
+  assert.equal(buyerRows.length, 1);
+});
+
+test("hiding the seller's copy of a funding still drops its legacy projection", () => {
+  const rows = mergeMovementLedger(
+    [legacy({ id: 'projection', refId: 'KWN-2345-ABCD-EFGH', kind: 'escrow_funding' })],
+    [movement('completed')],
+    10,
+    seller,
+  );
+  assert.deepEqual(rows, []);
+});

@@ -357,11 +357,28 @@ activityRoutes.get('/me', async (c) => {
   for (const movement of movements) {
     const transfer = transferCounterparty(movement);
     if (transfer) for (const party of [transfer.from, transfer.to]) if (party !== address.toLowerCase()) counterparties.add(party);
+    // A payment request paid from another network names the other person too.
+    if (movement.kind === 'bridge') {
+      for (const party of [movement.initiatedBy, ...movement.participants.filter((p) => p.role === 'recipient').map((p) => p.address)]) {
+        if (party.toLowerCase() !== address.toLowerCase()) counterparties.add(party.toLowerCase());
+      }
+    }
   }
   await Promise.all([...counterparties].map(async (party) => {
     const handle = (await getProfile(party).catch(() => null))?.handle;
     if (handle) names.set(party, handle);
   }));
+
+  const bridgeFacts = new Map<string, { direction: 'in' | 'out'; chain: string | null }>();
+  for (const b of bridges) {
+    if (!b.movementReference) continue;
+    const out = b.direction === 'out';
+    const chain = (out ? b.destChainKey : b.sourceChainKey) ?? null;
+    bridgeFacts.set(b.movementReference.toUpperCase(), { direction: out ? 'out' : 'in', chain: chain ? chainLabel(chain) : null });
+  }
+  const ownWallets = new Set(
+    [wallets?.buyerAddress, wallets?.sellerAddress].filter((a): a is string => !!a).map((a) => a.toLowerCase()),
+  );
 
   const mergedLedger = mergeMovementLedger(
     legacyItems,
@@ -369,6 +386,7 @@ activityRoutes.get('/me', async (c) => {
     limit + bridgeItems.length,
     address,
     names,
+    { bridges: bridgeFacts, ownWallets },
   );
   const durableReferences = new Set(
     movements.map((movement) => movement.reference.toUpperCase()),

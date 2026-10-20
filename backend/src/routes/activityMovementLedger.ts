@@ -51,10 +51,35 @@ export function transferCounterparty(movement: MoneyMovement): { from: string; t
   return { from: movement.initiatedBy.toLowerCase(), to: leg.destinationAddress.toLowerCase() };
 }
 
+/// What the route knows beyond the movement itself.
+export interface LedgerContext {
+  /// The bridge store's record of a bridge movement, keyed by upper-case
+  /// reference: its direction and the other network's name.
+  bridges?: ReadonlyMap<string, { direction: 'in' | 'out'; chain: string | null }>;
+  /// The viewer's other wallets, their buying and selling agents.
+  ownWallets?: ReadonlySet<string>;
+}
+
+/// Which way a bridge moved. The bridge store knows; without it, the legs do:
+/// every inbound path plans its mint as the Arc destination mint.
+export function bridgeDirection(movement: MoneyMovement, known?: 'in' | 'out'): 'in' | 'out' {
+  if (known) return known;
+  return movement.legs.some((leg) => leg.key === 'mint' && leg.label === 'Arc destination mint') ? 'in' : 'out';
+}
+
+/// A deal's funding is the buyer's money out. The seller is a participant so
+/// the record names them, but nothing left their account.
+function belongsInLedger(movement: MoneyMovement, viewer?: string): boolean {
+  if (!viewer || movement.kind !== 'escrow_funding') return true;
+  if (movement.initiatedBy.toLowerCase() === viewer) return true;
+  return movement.participants.some((party) => party.address.toLowerCase() === viewer && party.role === 'buyer');
+}
+
 export function movementToPersonalLedgerItem(
   movement: MoneyMovement,
   viewerAddress?: string,
   names?: ReadonlyMap<string, string>,
+  context?: LedgerContext,
 ): PersonalLedgerItem {
   const viewer = viewerAddress?.toLowerCase();
   let kind: string = movement.kind;
@@ -89,11 +114,28 @@ export function movementToPersonalLedgerItem(
     );
     if (party?.role === 'recipient') kind = 'payout';
     else if (party?.role === 'buyer') kind = 'release';
-  } else if (movement.kind === 'escrow_funding' && viewer) {
-    const party = movement.participants.find(
-      (candidate) => candidate.address.toLowerCase() === viewer,
-    );
-    if (party?.role === 'buyer') kind = 'release';
+  } else if (movement.kind === 'bridge' && viewer) {
+    // One bridge, up to two readers. Paying someone's payment request from
+    // another network mints on Arc straight to them: the payer sent it, the
+    // person paid received it. Without this every bridge read as money out.
+    const facts = context?.bridges?.get(movement.reference.toUpperCase());
+    const initiator = movement.initiatedBy.toLowerCase();
+    const recipient = movement.participants.find((party) => party.role === 'recipient')?.address.toLowerCase();
+    const amount = formatUsdcMicros(movement.amountMicros);
+    const chain = facts?.chain ?? null;
+    if (bridgeDirection(movement, facts?.direction) === 'out') {
+      kind = 'cash_out';
+      params = chain ? { t: 'bridgeOut', amount, chain } : null;
+    } else if (viewer !== initiator) {
+      kind = 'transfer_in';
+      params = { t: 'received', amount, who: counterpartyLabel(initiator, names) };
+    } else if (!recipient || recipient === viewer || context?.ownWallets?.has(recipient)) {
+      kind = 'top_up';
+      params = chain ? { t: 'bridgeIn', amount, chain } : null;
+    } else {
+      kind = 'transfer_out';
+      params = { t: 'sent', amount, who: counterpartyLabel(recipient, names) };
+    }
   } else if (movement.kind === 'escrow_refund' && viewer) {
     const party = movement.participants.find(
       (candidate) => candidate.address.toLowerCase() === viewer,
@@ -129,6 +171,7 @@ export function mergeMovementLedger(
   limit: number,
   viewerAddress?: string,
   names?: ReadonlyMap<string, string>,
+  context?: LedgerContext,
 ): PersonalLedgerItem[] {
   const safeLimit = Math.min(200, Math.max(1, Math.floor(limit) || 100));
   const references = new Set(
@@ -137,7 +180,11 @@ export function mergeMovementLedger(
   const preserved = legacy.filter(
     (item) => !item.refId || !references.has(item.refId.toUpperCase()),
   );
-  return [...preserved, ...movements.map((movement) => movementToPersonalLedgerItem(movement, viewerAddress, names))]
+  const viewer = viewerAddress?.toLowerCase();
+  const own = movements
+    .filter((movement) => belongsInLedger(movement, viewer))
+    .map((movement) => movementToPersonalLedgerItem(movement, viewerAddress, names, context));
+  return [...preserved, ...own]
     .sort((a, b) => b.ts - a.ts)
     .slice(0, safeLimit);
 }
