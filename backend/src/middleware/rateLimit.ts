@@ -22,7 +22,9 @@ function clientIp(c: Context): string {
 /// Fixed-window, in-memory rate limiter keyed by client IP. One store per
 /// limiter instance, so call this once per route at registration. Single
 /// backend instance today; swap to a shared store (Redis) when we shard.
-export function rateLimit(opts: { windowMs: number; max: number; name: string }) {
+/// `max` may be read from the request, for a route that allows a signed-in
+/// session more than an anonymous caller.
+export function rateLimit(opts: { windowMs: number; max: number | ((c: Context) => number); name: string }) {
   const store = new Map<string, Bucket>();
 
   return async (c: Context, next: Next): Promise<Response | void> => {
@@ -39,7 +41,7 @@ export function rateLimit(opts: { windowMs: number; max: number; name: string })
       store.set(key, { count: 1, resetAt: now + opts.windowMs });
     } else {
       bucket.count += 1;
-      if (bucket.count > opts.max) {
+      if (bucket.count > (typeof opts.max === 'function' ? opts.max(c) : opts.max)) {
         const retryAfter = Math.ceil((bucket.resetAt - now) / 1000);
         c.header('Retry-After', String(retryAfter));
         return c.json(

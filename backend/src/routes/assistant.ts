@@ -1,11 +1,11 @@
 import { Hono } from 'hono';
-import { z } from 'zod';
 import { generateText } from 'ai';
 import { config } from '../config.js';
 import { bedrockModel } from '../llm/client.js';
 import { logger } from '../logger.js';
 import { KARWAN_ASSISTANT_SYSTEM } from '../assistant/knowledge.js';
 import { rateLimit } from '../middleware/rateLimit.js';
+import { chatBodySchema } from '../assistant/chatBody.js';
 import { readSession } from '../auth/session.js';
 import { runAssistantTurn } from '../assistant/turn.js';
 import { consumeAssistantQuota } from '../db/assistantUsage.js';
@@ -230,22 +230,13 @@ export async function pingAssistantProviders(): Promise<
   return out;
 }
 
-const bodySchema = z.object({
-  messages: z
-    .array(
-      z.object({
-        role: z.enum(['user', 'assistant']),
-        content: z.string().min(1).max(4000),
-      }),
-    )
-    .min(1)
-    .max(40),
-});
+const bodySchema = chatBodySchema;
 
-// Keep both the IP burst limit and the signed-in account quota.
+// Keep both the IP burst limit and the signed-in account quota. A signed-in
+// session gets 60 per 10 minutes, enough to run the account from /assistant.
 assistantRoutes.post(
   '/chat',
-  rateLimit({ windowMs: 10 * 60 * 1000, max: 20, name: 'assistant-chat' }),
+  rateLimit({ windowMs: 10 * 60 * 1000, max: (c) => (readSession(c) ? 60 : 20), name: 'assistant-chat' }),
   async (c) => {
   // Sign-in required. The assistant spends real model budget per message and
   // previously answered anonymously, so anyone could run it indefinitely with
@@ -309,7 +300,7 @@ assistantRoutes.post(
   // parameter. Only generic help can fall back, and only through a direct
   // provider; account history never reaches a proxy or tool-less model.
   const result = await runAssistantTurn(
-    { address: session.address, method: session.method, messages },
+    { address: session.address, method: session.method, messages, mode: body.mode },
     async (fallbackMessages) => {
       let lastTimeout = false;
       for (const p of provs) {

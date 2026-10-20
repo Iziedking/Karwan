@@ -24,7 +24,7 @@ const STATE_UNAVAILABLE: AssistantTurnResult = {
 };
 
 export async function runAssistantTurn(
-  input: { address: string; method: string; messages: AssistantChatMessage[] },
+  input: { address: string; method: string; messages: AssistantChatMessage[]; mode?: 'help' | 'assistant' },
   fallback: FallbackReply,
 ): Promise<AssistantTurnResult> {
   // Stateful prompts fail closed rather than falling through to an ungrounded
@@ -36,6 +36,7 @@ export async function runAssistantTurn(
         address: input.address.toLowerCase(),
         method: input.method,
         messages: input.messages,
+        mode: input.mode,
       });
       // Confirmation cards retain their existing authorization gates. Discard
       // generated prose here so it cannot call a merely prepared action done.

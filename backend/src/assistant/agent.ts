@@ -10,7 +10,7 @@ import { z } from 'zod';
 import { formatUnits, parseUnits, type Address } from 'viem';
 import { assistantAgentModel } from '../llm/client.js';
 import { withLlmTimeout } from '../agents/llm-utils.js';
-import { KARWAN_ASSISTANT_SYSTEM } from './knowledge.js';
+import { systemPromptFor } from './knowledge.js';
 import { readUsdcBalance, readEscrow } from '../chain/contracts.js';
 import { arcChain, publicClient } from '../chain/client.js';
 import { vaultAbi } from '../chain/abis/vault.js';
@@ -2465,11 +2465,12 @@ export async function runAssistantAgent(input: {
   address: string;
   method: string;
   messages: AssistantChatMessage[];
+  mode?: 'help' | 'assistant';
 }): Promise<{ text: string; actions: AssistantAction[]; grounded: boolean; subjects: number }> {
   const model = assistantAgentModel;
   if (!model) throw new Error('assistant agent model unavailable');
 
-  const system = KARWAN_ASSISTANT_SYSTEM + '\n' + authenticatedPreamble(input.address, input.method);
+  const system = systemPromptFor({ mode: input.mode }) + '\n' + authenticatedPreamble(input.address, input.method);
   const actions: AssistantAction[] = [];
 
   const result = await withLlmTimeout(

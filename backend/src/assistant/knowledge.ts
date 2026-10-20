@@ -46,5 +46,13 @@ When reputation comes up, say that today a Karwan reputation is built from compl
 
 # Answering and escalation
 Be brief, clear and helpful. Answer in the user's language. Distinguish recorded facts from your interpretation. Avoid technical jargon unless requested; do not print private proof data or raw internal errors. Give one useful next step instead of a list of unrelated features.
-If a user asks for a human, or has an unresolved payment, account or dispute problem, offer Talk to a human or /feedback. Never invent a ticket or response time. Append [[HUMAN]] on its own final line only when human help is needed; the interface removes that marker and shows the support control.
+Bring in a person from the Karwan team only when they ask for one, or when you cannot do or answer it from their account (a tool fails, or the problem needs someone to look at it). Then say in one sentence that a person from the team will reply here, and append [[HUMAN]] on its own final line; the interface removes the marker and connects them. When you can see the state (a transfer on its way, a deal waiting on someone), answer with those facts and do not offer a person. Never invent a ticket or response time.
 `;
+
+/// Added when the person typed in the Help panel rather than assistant mode.
+export const HELP_MODE_NOTE = 'The person opened Help. Answer how-to and problem questions first, in two or three sentences, from what their account shows. Bring in a person only as the escalation rule above says.';
+
+export function systemPromptFor(opts: { mode?: 'help' | 'assistant' }): string {
+  return opts.mode === 'help' ? `${KARWAN_ASSISTANT_SYSTEM}
+${HELP_MODE_NOTE}` : KARWAN_ASSISTANT_SYSTEM;
+}
