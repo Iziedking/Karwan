@@ -81,6 +81,7 @@ const EMAIL_RELEVANT = new Set([
   'escrow.reclaimed',
   'deal.cancelled',
   'factoring.requested',
+  'factoring.funding_needed',
   'factoring.offered',
   'factoring.accepted',
   'factoring.settled',
@@ -101,6 +102,7 @@ const EMAIL_RELEVANT = new Set([
 /// addresses should hear about it.
 const FINANCE_RECIPIENTS: Record<string, ReadonlyArray<'seller' | 'financier'>> = {
   'factoring.requested': ['financier'],
+  'factoring.funding_needed': ['financier'],
   'factoring.offered': ['seller'],
   'factoring.accepted': ['financier'],
   'factoring.settled': ['seller', 'financier'],
@@ -609,6 +611,17 @@ export function contentFor(
             ctaUrl: dealUrl(e.jobId),
           }
         : null;
+    case 'factoring.funding_needed': {
+      const short = (e.payload?.shortfallUsdc as string | undefined) ?? '';
+      return {
+        kicker: 'Invoice financing',
+        subject: `Add ${short} USDC so the seller can take your offer`,
+        heading: 'Your offer needs its advance',
+        body: `A seller tried to accept your financing offer, but your wallet does not hold the advance yet. Add ${short} USDC and they can accept it. Nothing has moved.`,
+        ctaLabel: 'Open financier desk',
+        ctaUrl: financierUrl(),
+      };
+    }
     case 'factoring.requested': {
       const face = (e.payload?.faceValueUsdc as string | undefined) ?? '';
       return {

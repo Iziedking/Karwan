@@ -188,6 +188,9 @@ export type KarwanEventType =
   // SME trade-finance rail.
   | 'trade.document.anchored'
   | 'trade.pod.accepted'
+  /// A seller tried to accept an offer the financier's wallet no longer covers.
+  /// Party: `financier` only; the invoice rides in the payload.
+  | 'factoring.funding_needed'
   | 'factoring.requested'
   | 'factoring.offered'
   | 'factoring.accepted'

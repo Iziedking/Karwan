@@ -30,7 +30,9 @@ import {
   splitSignature,
   signTransferAuthorizationWithCircle,
 } from '../chain/usdc3009.js';
-import { vault, readEscrow } from '../chain/contracts.js';
+import { vault, readEscrow, readUsdcBalance } from '../chain/contracts.js';
+import { acceptRefusal, offerRefusal } from './factoringFunding.js';
+import { rankFinancingOffers } from './factoringRanking.js';
 import { claimableUsdc, claimableForDeals } from '../deals/claimable.js';
 import { actorSignalsFor, type RepTier } from '../agents/signals.js';
 import { parseUnits, formatUnits, type Address, type Hex } from 'viem';
@@ -569,6 +571,13 @@ factoringRoutes.post('/offer', async (c) => {
   const now = Date.now();
   const expiresAt = now + body.expiresInHours * 60 * 60 * 1000;
 
+  // The advance is paid from this wallet when the seller accepts. An offer it
+  // cannot cover would fail on chain at accept, so it does not go out.
+  const fundedMicros = await readUsdcBalance(financier).catch(() => null);
+  if (fundedMicros === null) return c.json({ error: 'could not read your wallet balance, try again' }, 503);
+  const unfunded = offerRefusal(fundedMicros, BigInt(atomicUsdc(body.offeredAdvanceUsdc)));
+  if (unfunded) return c.json(unfunded, 409);
+
   // The advance leg needs a settlement instrument before the offer is
   // worth anything. Circle financiers: backend signs from their identity
   // wallet at accept time, nothing to capture. Web3 financiers: an
@@ -691,7 +700,28 @@ factoringRoutes.get('/offers/:invoiceId', async (c) => {
   const offers = (await listOffersForInvoice(parsed.data)).filter(
     (o) => o.seller.toLowerCase() === me || o.financier.toLowerCase() === me,
   );
-  return c.json({ offers });
+  if (!offers.some((o) => o.seller.toLowerCase() === me)) return c.json({ offers });
+  // The seller sees their offers ranked: payable now, then the financier's
+  // tier, then price, with the best one Recommended (factoringRanking.ts).
+  // Only offers the seller can still take are ranked; the rest keep their
+  // history and are never Recommended.
+  const now = Date.now();
+  const open = offers.filter((o) => o.status === 'offered' && now < o.expiresAt);
+  const closed = offers.filter((o) => !open.includes(o)).map((o) => ({ ...o, recommended: false }));
+  const ranked = rankFinancingOffers(
+    await Promise.all(
+      open.map(async (o) => {
+        const [tier, wallet] = await Promise.all([
+          actorSignalsFor(o.financier).then((s) => s.repTier).catch((): RepTier => 'new'),
+          readUsdcBalance(o.financier).catch(() => null),
+        ]);
+        const advance = BigInt(o.advanceAuthorization?.value ?? atomicUsdc(o.offeredAdvanceUsdc));
+        // An unreadable balance is not proof of a shortfall; accept checks again.
+        return { ...o, tier, funded: wallet === null || wallet >= advance };
+      }),
+    ),
+  );
+  return c.json({ offers: [...ranked.map(({ tier, ...o }) => ({ ...o, financierTier: tier })), ...closed] });
 });
 
 /// GET /api/factoring/mine: offers belonging to the signed-in user as
@@ -754,6 +784,42 @@ factoringRoutes.get('/open', async (c) => {
 /// and it carries the financier's signed authorization. Returning those
 /// arguments here rather than widening the offer payload keeps the signature
 /// out of every listing and scoped to the one party entitled to submit it.
+/// GET /api/factoring/funding?advanceUsdc=: what the signed-in financier's
+/// wallet holds against an advance, so the offer panel can say what to add
+/// before Send offer.
+factoringRoutes.get('/funding', async (c) => {
+  const session = readSession(c);
+  if (!session) return c.json({ error: 'not authenticated' }, 401);
+  const advance = c.req.query('advanceUsdc') ?? '0';
+  if (!/^\d+(\.\d{1,6})?$/.test(advance)) return c.json({ error: 'invalid advanceUsdc' }, 400);
+  const wallet = await readUsdcBalance(session.address).catch(() => null);
+  if (wallet === null) return c.json({ error: 'could not read your wallet balance' }, 503);
+  const refusal = offerRefusal(wallet, BigInt(atomicUsdc(advance)));
+  return c.json({ walletUsdc: formatUnits(wallet, USDC_DECIMALS), shortfallUsdc: refusal?.shortfallUsdc ?? '0' });
+});
+
+/// The financier's wallet no longer covers an offer the seller tried to take:
+/// refuse before the chain, and tell the financier once.
+async function financierNotFunded(offer: { id: string; invoiceId: string; financier: string; seller: string; advanceAuthorization?: { value: string } }) {
+  const advance = BigInt(offer.advanceAuthorization?.value ?? '0');
+  const wallet = await readUsdcBalance(offer.financier).catch(() => null);
+  // An unreadable balance is not proof of a shortfall; the chain call decides.
+  if (wallet === null) return null;
+  const refusal = acceptRefusal(wallet, advance);
+  if (!refusal) return null;
+  const told = bus.recent(500).some((e) => e.type === 'factoring.funding_needed' && (e.payload as Record<string, unknown> | undefined)?.offerId === offer.id);
+  if (!told) {
+    // No jobId on the event: the seller is a party to the deal, and the
+    // financier's wallet is not theirs to see.
+    bus.emitEvent({
+      type: 'factoring.funding_needed',
+      actor: 'platform',
+      payload: { offerId: offer.id, invoiceId: offer.invoiceId, financier: offer.financier, shortfallUsdc: refusal.shortfallUsdc },
+    });
+  }
+  return refusal;
+}
+
 factoringRoutes.get('/offers/:offerId/assignment', async (c) => {
   const session = readSession(c);
   if (!session) return c.json({ error: 'not authenticated' }, 401);
@@ -772,6 +838,8 @@ factoringRoutes.get('/offers/:offerId/assignment', async (c) => {
   if (!config.KARWAN_INVOICE_REGISTRY_ADDR) {
     return c.json({ error: 'invoice registry not configured' }, 503);
   }
+  const notFunded = await financierNotFunded(offer);
+  if (notFunded) return c.json(notFunded, 409);
 
   const auth = offer.advanceAuthorization;
   const { v, r, s } = splitSignature(auth.signature);
@@ -960,6 +1028,13 @@ factoringRoutes.post('/accept', async (c) => {
       persistedHash: offer.advanceTxHash,
       submittedHash: body.assignTxHash,
     });
+    // Before Karwan sends the assignment, the financier's wallet must still
+    // hold the advance; otherwise the chain refuses it and the seller sees a
+    // failure that is not theirs.
+    if (!advanceTxHash) {
+      const notFunded = await financierNotFunded(offer);
+      if (notFunded) return c.json(notFunded, 409);
+    }
     if (advanceTxHash) {
       // Web3 seller: they signed and sent it, we record it. The chain already
       // enforced the seller gate, the atomicity and the single-sale rule.

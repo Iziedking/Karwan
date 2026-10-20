@@ -114,3 +114,14 @@ test('ask me first emails the seller a link to the request, and nobody else', ()
   assert.match(toSeller.body, /35\.00 USDC/);
   assert.equal(contentFor(suggestion, 'buyer', 'service'), null);
 });
+
+test('a financier whose offer is short hears how much to add', () => {
+  const short = {
+    type: 'factoring.funding_needed', actor: 'platform', ts: 0,
+    payload: { offerId: 'o1', invoiceId: '0xjob', financier: '0xf', shortfallUsdc: '569.03' },
+  } as unknown as KarwanEvent;
+  const toFinancier = contentFor(short, 'self', 'service');
+  assert.ok(toFinancier);
+  assert.equal(toFinancier.subject, 'Add 569.03 USDC so the seller can take your offer');
+  assert.match(toFinancier.body, /Nothing has moved/);
+});

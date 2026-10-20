@@ -122,6 +122,7 @@ export const RELEVANT = new Set([
   // Financing lifecycle. The financier is not a deal party, so these route
   // from the payload rather than the deal lookup.
   'factoring.requested',
+  'factoring.funding_needed',
   'factoring.offered',
   'factoring.accepted',
   'factoring.settled',
@@ -171,6 +172,7 @@ interface Recipient {
 /// notifier's map; keep the two in step.
 const FINANCE_RECIPIENTS: Record<string, ReadonlyArray<'seller' | 'financier'>> = {
   'factoring.requested': ['financier'],
+  'factoring.funding_needed': ['financier'],
   'factoring.offered': ['seller'],
   'factoring.accepted': ['financier'],
   'factoring.settled': ['seller', 'financier'],
@@ -742,6 +744,13 @@ ${String(e.payload?.note ?? '').replace(/[*_`[\]]/g, '').slice(0, 300)}`, url)
         ? `*Tier up. you reached ${toTier} on Karwan.*\n${blurb}`
         : `*Tier up.* You reached ${toTier} on Karwan.`;
       return withLink(body, passportUrl(addr));
+    }
+    case 'factoring.funding_needed': {
+      const short = (e.payload?.shortfallUsdc as string | undefined) ?? '';
+      return withLink(
+        `*A seller tried to take your financing offer.* Your wallet does not hold the advance yet. Add ${short} USDC and they can accept it. Nothing has moved.`,
+        financierUrl(),
+      );
     }
     case 'factoring.requested': {
       const face = (e.payload?.faceValueUsdc as string | undefined) ?? '';

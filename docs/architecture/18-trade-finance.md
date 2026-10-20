@@ -112,6 +112,7 @@ The older factoring and purchase-order routes stay readable for past deals and s
 | Contract family deployed once on testnet | Planned (track T2, item 1), after the audit gates, expected by 24 Oct 2026 |
 | App connected to the suite: offers, signatures, line in step with chain | Planned (T4.2, T4.3) |
 | Financier follows the deal: Open deals list and deal alerts | Built 20 Oct 2026, not deployed |
+| Offer funded before it goes out; accept checks the financier's money first; offers ranked by financier reputation, then price, with one Recommended | Built 20 Oct 2026, not deployed. Found from a seller whose accept failed: the financier's wallet held 310.97 USDC against offers of 880 and 815 (`routes/factoringFunding.ts`, `routes/factoringRanking.ts`) |
 | Get paid now on the deal page | Built on the current escrow (invoice factoring), not deployed; the new deal page also takes the goods delivery with its tracking number, so a business order no longer drops to the old page. Moves to the suite after the audit |
 | Get paid now in Telegram | Planned (T4.3) |
 | Financier desk to UI law v2 | Planned (T4.3) |

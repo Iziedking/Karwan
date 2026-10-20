@@ -67,6 +67,9 @@ const cases: Array<{ name: string; e: KarwanEvent; caller: string | null; bridge
   { name: 'my agent suggestion', e: ev('agent.suggestion', { sellerUser: ME, jobId: '0xjob', priceUsdc: '35' }), caller: ME, bridges: [], full: true },
   { name: "the buyer of that request", e: ev('agent.suggestion', { sellerUser: THEM, jobId: '0xjob', priceUsdc: '35' }), caller: ME, bridges: [], full: false, jobs: ['0xjob'] },
   { name: "another seller's suggestion", e: ev('agent.suggestion', { sellerUser: THEM, jobId: '0xjob', priceUsdc: '35' }), caller: ME, bridges: [], full: false },
+  // A financier's shortfall is theirs alone, never the seller's who tried to accept.
+  { name: 'my offer needs its advance', e: ev('factoring.funding_needed', { financier: ME, invoiceId: '0xjob', shortfallUsdc: '569.03' }), caller: ME, bridges: [], full: true },
+  { name: 'the seller of that invoice', e: ev('factoring.funding_needed', { financier: THEM, invoiceId: '0xjob', shortfallUsdc: '569.03' }), caller: ME, bridges: [], full: false, jobs: ['0xjob'] },
 ];
 
 let failed = 0;
