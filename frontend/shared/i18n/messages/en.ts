@@ -8,6 +8,8 @@ import { balanceSummaryCopy, type BalanceSummaryCopy } from './balanceSummary';
 import { firstTradeCopy, type FirstTradeCopy } from './firstTrade';
 import { setupCopy, type SetupCopy } from './setup';
 import { assistantModeCopy, type AssistantModeCopy } from './assistantMode';
+import { walletPanelCopy, type WalletPanelCopy } from './walletPanel';
+import { plainMoneyCopy, type PlainMoneyCopy } from './plainMoney';
 import { disputeJudgeCopy, type DisputeJudgeCopy } from './disputeJudge';
 import { networkCopy, type NetworkCopy } from './network';
 import { escrowDocsCopy, type EscrowDocsCopy } from './escrowDocs';
@@ -61,6 +63,8 @@ interface MessagesShape {
   firstTrade: FirstTradeCopy;
   setup: SetupCopy;
   assistantMode: AssistantModeCopy;
+  walletPanel: WalletPanelCopy;
+  plainMoney: PlainMoneyCopy;
   requestList: RequestListCopy;
   cashoutFlow: CashoutFlowCopy;
   search: SearchCopy;
@@ -2234,6 +2238,8 @@ interface MessagesShape {
       fundingSummaryTemplate: string;
       sellerFloor: string;
       belowFloor: string;
+      fundFirst: string;
+      fundFirstCta: string;
       nothingToAdvance: string;
       openFor: string;
       replaceOffer: string;
@@ -3113,6 +3119,9 @@ interface MessagesShape {
       errAlreadyAssigned: string;
       errWindowClosed: string;
       errNotAccepted: string;
+      errFinancierNotFunded: string;
+      recommended: string;
+      waitingOnFinancier: string;
       errRequest: string;
     };
     checkPaused: { title: string; stays: string; saw: string; noWallet: string; reasons: Record<"security-hold" | "off-request" | "evidence-mismatch" | "check-pending" | "check-expired" | "terms-changed" | "delivery-replaced" | "link-unverifiable", string>; sellerHold: string; sellerOff: string };
@@ -5456,6 +5465,8 @@ export const en: MessagesShape = {
   firstTrade: firstTradeCopy.en,
   setup: setupCopy.en,
   assistantMode: assistantModeCopy.en,
+  walletPanel: walletPanelCopy.en,
+  plainMoney: plainMoneyCopy.en,
   requestList: requestListCopy.en,
   cashoutFlow: cashoutFlowCopy.en,
   search: searchCopy.en,
@@ -7892,6 +7903,8 @@ export const en: MessagesShape = {
       fundingSummaryTemplate: 'You advance {advance} USDC now in exchange for the assigned {settlement} USDC after the buyer confirms delivery. Only this portion of the invoice is assigned to you.',
       sellerFloor: 'Seller will not go below',
       belowFloor: 'Below the seller minimum. Lower the discount to offer at least {amount} USDC.',
+      fundFirst: "Your wallet holds {wallet} USDC. Add {amount} USDC to send this offer.",
+      fundFirstCta: "Add {amount} USDC",
       nothingToAdvance: 'Nothing on this invoice can be advanced. No money is left in escrow to assign to you.',
       openFor: 'Your offer stays open for 24 hours.',
       replaceOffer: 'Replace offer',
@@ -8823,6 +8836,9 @@ export const en: MessagesShape = {
       errAlreadyAssigned: "This order already has a financier. Refresh to see the offers.",
       errWindowClosed: "This order can no longer be financed.",
       errNotAccepted: "The offer was not accepted and is still open. Try again, or ask for a new offer.",
+      errFinancierNotFunded: "The financier's money is not ready yet. We've told them. The offer stays here, and nothing has moved.",
+      recommended: "Recommended",
+      waitingOnFinancier: "Waiting on the financier's money",
       errRequest: "The request was not sent. Try again.",
     },
     checkPaused: { title: "Payment is paused", stays: "Your money stays in escrow until this is resolved.", saw: "What the check saw", noWallet: "Automatic release cannot run for this deal. Release it yourself from here.", reasons: { "security-hold": "The delivery link was flagged as unsafe, so it is hidden from you.", "off-request": "The check found the delivery does not match what you asked for.", "evidence-mismatch": "The delivery evidence does not match the agreed terms.", "check-pending": "The automatic check has not returned a result yet.", "check-expired": "The check result expired before payment was released.", "terms-changed": "The terms changed after the check ran, so it has to run again.", "delivery-replaced": "A newer delivery was submitted, so the check has to run again.", "link-unverifiable": "The delivery link could not be opened to check it." }, sellerHold: "Your delivery link was flagged as unsafe and is hidden from the buyer. Send a corrected link.", sellerOff: "The check found your delivery may not match the request. Send the right link." },

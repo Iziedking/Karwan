@@ -230,3 +230,6 @@ English first, with French, Arabic, Hindi and Swahili as today. Local Nigerian l
 | Assistant mode switch, round profile button, plain-words pass | Switch, `/assistant` with saved conversations and the round photo-or-initials button built 20 Oct 2026, not deployed. Attach and deleting a conversation are not built yet. The plain-words pass is planned |
 | Help in place of Ask | Built 20 Oct 2026, not deployed: ? Help answers from the account first; a person joins automatically when asked for or when the assistant cannot do it, with no button first (owner, 20 Oct) |
 | Me in plain words | Planned |
+| Each wallet's own actions on the balance page | Built 20 Oct 2026, not deployed: button tiles for the selected wallet; your wallet adds, withdraws, sends and makes a payment request; each agent tops up or moves money back |
+| Add and withdraw in plain steps | Built 20 Oct 2026, not deployed: one question first, the ways that work for an email or a wallet account, card and bank shown as coming soon; links to a specific route still open it directly |
+| Telegram logo on Connect Telegram | Built 20 Oct 2026, not deployed |

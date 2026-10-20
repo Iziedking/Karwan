@@ -14,7 +14,8 @@ import { arcIncludingPool, emptyChainsLabel } from '../chainRows';
 
 const CARD = 'flex h-full flex-col rounded-[22px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-dark)]';
 
-type View = 'you' | 'buyer' | 'seller';
+export type BalanceView = 'you' | 'buyer' | 'seller';
+type View = BalanceView;
 
 /// USDC per chain for one wallet. Funded chains are listed; empty chains fold
 /// into one row, so eight lines of 0.00 never bury the one number that matters.
@@ -25,18 +26,28 @@ export function BalancesCard({
   openByDefault = false,
   title,
   subtitle,
+  view: viewProp,
+  onViewChange,
 }: {
   buyerAgent?: string;
   sellerAgent?: string;
   openByDefault?: boolean;
   title?: string;
   subtitle?: string;
+  /// Controlled wallet tab, when the page shows that wallet's actions beside it.
+  view?: BalanceView;
+  onViewChange?: (view: BalanceView) => void;
 } = {}) {
   // Source of truth is the unified auth hook. covers both wagmi-connected
   // web3 users and Circle passkey/email users (their identity DCW address).
   const auth = useAuth();
   const address = auth.address as `0x${string}` | undefined;
-  const [view, setView] = useState<View>('you');
+  const [ownView, setOwnView] = useState<View>('you');
+  const view = viewProp ?? ownView;
+  const setView = (next: View) => {
+    setOwnView(next);
+    onViewChange?.(next);
+  };
   // Folded shut by default where it is secondary, so it never crowds the page
   // or exposes balances on a demo recording. Not persisted.
   const [open, setOpen] = useState(openByDefault);

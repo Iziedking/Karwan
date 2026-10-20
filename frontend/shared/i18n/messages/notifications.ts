@@ -30,7 +30,7 @@ export interface NotifyCopy {
   credited: string; debited: string; wallets: { wallet: string; buyerAgent: string; sellerAgent: string };
   staked: string; cooldownStartedAmount: string; cooldownStarted: string; cooldownCancelledAmount: string;
   cooldownCancelled: string; claimedAmount: string; claimed: string; cooldownDoneAmount: string; cooldownDone: string;
-  cashedOut: string; factoringRequested: string; factoringOfferedAt: string; factoringOffered: string;
+  cashedOut: string; factoringRequested: string; factoringFundingNeeded: string; factoringOfferedAt: string; factoringOffered: string;
   factoringOfferedPlain: string; factoringAccepted: string; factoringSettledSeller: string; factoringSettledFinancier: string;
   factoringDefaultedSeller: string; factoringDefaulted: string; poFunded: string; poReleasedSeller: string;
   poReleasedBuyer: string; poRepaidSeller: string; poRepaidFinancier: string; poDefaultedSeller: string; poDefaulted: string;
@@ -138,6 +138,7 @@ const en: NotifyCopy = {
   cooldownDone: 'Cooldown finished. Your position is ready to claim.',
   cashedOut: 'Cashed out {amount} USDC to your wallet.',
   factoringRequested: 'A seller opened an invoice for early payout. Review it on the financier desk.',
+  factoringFundingNeeded: "A seller tried to take your offer. Add {amount} USDC so they can.",
   factoringOfferedAt: 'A financier offered {amount} USDC now at {pct}% on your invoice.',
   factoringOffered: 'A financier offered {amount} USDC now on your invoice.',
   factoringOfferedPlain: 'A financier offered early payout on your invoice.',
@@ -262,6 +263,7 @@ const fr: NotifyCopy = {
   cooldownDone: 'Période d’attente terminée. Votre position est prête à être récupérée.',
   cashedOut: '{amount} USDC retirés vers votre portefeuille.',
   factoringRequested: 'Un vendeur a ouvert une facture pour un paiement anticipé. Examinez-la sur le bureau financier.',
+  factoringFundingNeeded: "Un vendeur a voulu prendre votre offre. Ajoutez {amount} USDC pour qu’il le puisse.",
   factoringOfferedAt: 'Un financeur propose {amount} USDC maintenant à {pct} % sur votre facture.',
   factoringOffered: 'Un financeur propose {amount} USDC maintenant sur votre facture.',
   factoringOfferedPlain: 'Un financeur propose un paiement anticipé sur votre facture.',
@@ -386,6 +388,7 @@ const ar: NotifyCopy = {
   cooldownDone: 'انتهت فترة الانتظار. مركزك جاهز للاسترداد.',
   cashedOut: 'تم سحب {amount} USDC إلى محفظتك.',
   factoringRequested: 'فتح بائع فاتورة لدفع مبكر. راجعها في مكتب التمويل.',
+  factoringFundingNeeded: "حاول بائع قبول عرضك. أضف {amount} USDC ليتمكن من ذلك.",
   factoringOfferedAt: 'عرض ممول {amount} USDC الآن بنسبة {pct}% على فاتورتك.',
   factoringOffered: 'عرض ممول {amount} USDC الآن على فاتورتك.',
   factoringOfferedPlain: 'عرض ممول دفعًا مبكرًا على فاتورتك.',
@@ -510,6 +513,7 @@ const hi: NotifyCopy = {
   cooldownDone: 'कूलडाउन पूरा हुआ। आपकी पोज़िशन निकालने के लिए तैयार है।',
   cashedOut: '{amount} USDC आपके वॉलेट में कैश आउट हुए।',
   factoringRequested: 'एक विक्रेता ने जल्दी भुगतान के लिए इनवॉइस खोला। फ़ाइनेंसर डेस्क पर देखें।',
+  factoringFundingNeeded: "एक विक्रेता ने आपका ऑफ़र लेना चाहा। उनके लिए {amount} USDC जोड़ें।",
   factoringOfferedAt: 'एक फ़ाइनेंसर ने आपके इनवॉइस पर अभी {amount} USDC, {pct}% पर ऑफ़र किए।',
   factoringOffered: 'एक फ़ाइनेंसर ने आपके इनवॉइस पर अभी {amount} USDC ऑफ़र किए।',
   factoringOfferedPlain: 'एक फ़ाइनेंसर ने आपके इनवॉइस पर जल्दी भुगतान ऑफ़र किया।',
@@ -634,6 +638,7 @@ const sw: NotifyCopy = {
   cooldownDone: 'Muda wa kusubiri umeisha. Nafasi yako iko tayari kudaiwa.',
   cashedOut: 'Umetoa {amount} USDC kwenda kwenye pochi yako.',
   factoringRequested: 'Muuzaji amefungua ankara kwa malipo ya mapema. Ikague kwenye dawati la mfadhili.',
+  factoringFundingNeeded: "Muuzaji alijaribu kuchukua ofa yako. Ongeza USDC {amount} ili aweze.",
   factoringOfferedAt: 'Mfadhili ametoa {amount} USDC sasa kwa {pct}% kwenye ankara yako.',
   factoringOffered: 'Mfadhili ametoa {amount} USDC sasa kwenye ankara yako.',
   factoringOfferedPlain: 'Mfadhili ametoa malipo ya mapema kwenye ankara yako.',

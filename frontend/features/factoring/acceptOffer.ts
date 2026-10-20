@@ -1,6 +1,6 @@
 import { api, ApiError, type FactoringOffer } from '@/core/api';
 
-export type AcceptErrorKind = 'authorization' | 'reconcile' | 'alreadyAssigned' | 'windowClosed' | 'notAccepted';
+export type AcceptErrorKind = 'authorization' | 'reconcile' | 'alreadyAssigned' | 'windowClosed' | 'notAccepted' | 'financierNotFunded';
 
 type AcceptCall = (body: { offerId: string; assignTxHash?: string }) => Promise<{ offer: FactoringOffer }>;
 
@@ -20,8 +20,12 @@ export function rawAcceptError(e: unknown): string {
   return e instanceof ApiError ? `${e.message}${typeof e.detail === 'string' ? `: ${e.detail}` : ''}` : (e as Error).message;
 }
 
-export function acceptErrorKind(raw: string): AcceptErrorKind | null {
+/// `code` is the server's error code when there is one.
+export function acceptErrorKind(raw: string, code?: string): AcceptErrorKind | null {
   const lower = raw.toLowerCase();
+  // Checked before anything reaches the chain: the financier's wallet does not
+  // hold the advance yet (routes/factoringFunding.ts).
+  if (code === 'FINANCIER_NOT_FUNDED' || lower.includes('financier has not added the money')) return 'financierNotFunded';
   if (lower.includes('authorization') || lower.includes('transferwithauthorization')) return 'authorization';
   if (lower.includes('receipt-reconciliation-required') || lower.includes('receipt still needs reconciliation')) return 'reconcile';
   if (lower.includes('alreadyassigned') || lower.includes('already assigned')) return 'alreadyAssigned';

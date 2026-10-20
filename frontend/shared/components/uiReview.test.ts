@@ -262,10 +262,12 @@ test('market cards are quiet: no tinted surface, no decorative category icon, an
 });
 
 test('account action is Withdraw, the route out that works for every account', () => {
-  const account = source('../../features/account/AccountPageV1.tsx');
+  // The balance page's actions come from walletActions (one tile per action).
+  const account = source('../../features/account/walletActions.ts');
   const transfer = source('../../app/bridge/page.tsx');
   assert.equal(en.accountHome.withdraw, 'Withdraw');
-  assert.match(account, /href="\/bridge\?direction=out" label=\{messages\.accountHome\.withdraw\}/);
+  assert.equal(en.walletPanel.label.withdraw, 'Withdraw');
+  assert.match(account, /key: 'withdraw'[^}]*go: \{ href: '\/bridge\?direction=out' \}/);
   assert.doesNotMatch(account, /Withdraw from Gateway/);
   assert.match(transfer, /outIntent === 'move' \? header\.titleMove/);
   assert.equal(en.bridge.header.titleMove, 'Move USDC');
@@ -454,12 +456,16 @@ test('phones keep the 14px floor: no rule shrinks text below the size the code a
 });
 
 test('every balance surface offers Withdraw, the route out that works for every account, never the pooled Move', () => {
-  for (const file of ['../../features/home/components/AccountHome.tsx', '../../features/money/components/MoneyHome.tsx', '../../features/account/AccountPageV1.tsx']) {
+  for (const file of ['../../features/home/components/AccountHome.tsx', '../../features/money/components/MoneyHome.tsx']) {
     const src = source(file);
     assert.doesNotMatch(src, /intent=move/, file);
     assert.match(src, /\/bridge\?direction=out"/, file);
     assert.match(src, /\.withdraw\b/, file);
   }
+  // The balance page's tiles live in walletActions.
+  const tiles = source('../../features/account/walletActions.ts');
+  assert.doesNotMatch(tiles, /intent=move/);
+  assert.match(tiles, /'\/bridge\?direction=out'/);
 });
 
 test('Send says what Available counts, so it is never read as a wrong balance', () => {

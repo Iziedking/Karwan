@@ -565,6 +565,12 @@ export interface FactoringOffer {
   lastSettleError?: string;
   createdAt: number;
   updatedAt: number;
+  /// Seller's view only (GET /api/factoring/offers/:invoiceId): the financier's
+  /// reputation tier, whether their wallet holds the advance now, and the one
+  /// offer Karwan recommends (reputation, then price).
+  financierTier?: 'new' | 'cold' | 'established' | 'strong' | 'elite';
+  funded?: boolean;
+  recommended?: boolean;
 }
 
 /// Purchase-order financing line (Phase 2 Track 2). Mirrors backend
@@ -4859,6 +4865,9 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+  /// What the signed-in financier's wallet holds against an advance.
+  factoringFunding: (advanceUsdc: string) =>
+    json<{ walletUsdc: string; shortfallUsdc: string }>(`/api/factoring/funding?advanceUsdc=${encodeURIComponent(advanceUsdc)}`),
   listOffersForInvoice: (invoiceId: string) =>
     json<{ offers: FactoringOffer[] }>(`/api/factoring/offers/${invoiceId}`),
   myFactoringQualification: () =>

@@ -5,6 +5,8 @@ import { balanceSummaryCopy } from './balanceSummary';
 import { firstTradeCopy } from './firstTrade';
 import { setupCopy } from './setup';
 import { assistantModeCopy } from './assistantMode';
+import { walletPanelCopy } from './walletPanel';
+import { plainMoneyCopy } from './plainMoney';
 import { disputeJudgeCopy } from './disputeJudge';
 import { networkCopy } from './network';
 import { escrowDocsCopy } from './escrowDocs';
@@ -59,6 +61,8 @@ export const hi: Messages = {
   firstTrade: firstTradeCopy.hi,
   setup: setupCopy.hi,
   assistantMode: assistantModeCopy.hi,
+  walletPanel: walletPanelCopy.hi,
+  plainMoney: plainMoneyCopy.hi,
   requestList: requestListCopy.hi,
   cashoutFlow: cashoutFlowCopy.hi,
   search: searchCopy.hi,
@@ -2453,6 +2457,8 @@ export const hi: Messages = {
       fundingSummaryTemplate: 'आप अभी {advance} USDC अग्रिम देते हैं, बदले में खरीदार के डिलीवरी की पुष्टि करने के बाद सौंपे गए {settlement} USDC पाते हैं। इनवॉइस का केवल यही हिस्सा आपको सौंपा जाता है।',
       sellerFloor: 'विक्रेता इससे नीचे नहीं जाएगा',
       belowFloor: 'विक्रेता की न्यूनतम सीमा से कम। कम से कम {amount} USDC देने के लिए छूट घटाएँ।',
+      fundFirst: "आपके वॉलेट में {wallet} USDC हैं। यह ऑफ़र भेजने के लिए {amount} USDC जोड़ें।",
+      fundFirstCta: "{amount} USDC जोड़ें",
       nothingToAdvance: 'इस इनवॉइस पर कुछ भी अग्रिम नहीं दिया जा सकता। एस्क्रो में आपको सौंपने के लिए कोई राशि नहीं बची है।',
       openFor: 'आपका ऑफ़र 24 घंटे खुला रहता है।',
       replaceOffer: 'ऑफ़र बदलें',
@@ -3372,6 +3378,9 @@ export const hi: Messages = {
       errAlreadyAssigned: "इस ऑर्डर का पहले से एक फाइनेंसर है। ऑफ़र देखने के लिए रीफ्रेश करें।",
       errWindowClosed: "इस ऑर्डर को अब फाइनेंस नहीं किया जा सकता।",
       errNotAccepted: "ऑफ़र स्वीकार नहीं हुआ और अभी भी खुला है। फिर से कोशिश करें या नया ऑफ़र मांगें।",
+      errFinancierNotFunded: "फाइनेंसर का पैसा अभी तैयार नहीं है। हमने उन्हें बता दिया है। ऑफ़र यहीं रहेगा, और कुछ नहीं हुआ है।",
+      recommended: "सुझाया गया",
+      waitingOnFinancier: "फाइनेंसर के पैसे का इंतज़ार",
       errRequest: "अनुरोध नहीं भेजा गया। फिर से कोशिश करें।",
     },
     checkPaused: { title: "भुगतान रुका हुआ है", stays: "इसके हल होने तक आपका पैसा एस्क्रो में रहता है।", saw: "जांच ने क्या देखा", noWallet: "इस डील के लिए स्वचालित रिलीज़ नहीं चल सकती। यहां से खुद भुगतान रिलीज़ करें।", reasons: { "security-hold": "डिलीवरी लिंक को असुरक्षित बताया गया है, इसलिए यह आपसे छिपा है।", "off-request": "जांच में पाया गया कि डिलीवरी आपकी मांग से मेल नहीं खाती।", "evidence-mismatch": "डिलीवरी का प्रमाण तय शर्तों से मेल नहीं खाता।", "check-pending": "स्वचालित जांच का नतीजा अभी नहीं आया है।", "check-expired": "भुगतान रिलीज़ होने से पहले जांच का नतीजा समाप्त हो गया।", "terms-changed": "जांच के बाद शर्तें बदलीं, इसलिए इसे फिर से चलाना होगा।", "delivery-replaced": "नई डिलीवरी भेजी गई है, इसलिए जांच फिर से चलानी होगी।", "link-unverifiable": "जांच के लिए डिलीवरी लिंक नहीं खुल सका।" }, sellerHold: "आपके डिलीवरी लिंक को असुरक्षित बताया गया है और यह खरीदार से छिपा है। सही लिंक भेजें।", sellerOff: "जाँच में पाया गया कि आपकी डिलीवरी शायद अनुरोध से मेल नहीं खाती। सही लिंक भेजें।" },

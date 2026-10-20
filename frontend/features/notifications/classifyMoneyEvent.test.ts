@@ -70,7 +70,7 @@ const CASES: Case[] = [
     'deal.delivered', 'deal.delivery.flagged', 'deal.delivery.cleared', 'deal.release.blocked', 'deal.fund.insufficient',
     'deal.review.started', 'deal.review.heartbeat', 'deal.deadline.passed', 'deal.disputed',
     'deal.cancel.proposed', 'deal.cancel.declined', 'factoring.requested', 'factoring.offered',
-    'factoring.defaulted', 'po.funded', 'po.defaulted', 'trend.match', 'offer.created', 'agent.suggestion',
+    'factoring.defaulted', 'po.funded', 'po.defaulted', 'trend.match', 'offer.created', 'agent.suggestion', 'factoring.funding_needed',
     'deal.extension.requested', 'deal.extension.approved', 'deal.extension.declined',
     'deal.dispute.statement', 'deal.dispute.statement.due',
   ].map((type): Case => ({ type, role: 'buyer', expect: null })),

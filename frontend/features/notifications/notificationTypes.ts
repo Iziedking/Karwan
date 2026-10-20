@@ -63,6 +63,7 @@ export const WALLET_TYPES = new Set(['wallet.credited', 'wallet.debited']);
 // to the deal. Mirrors FINANCE_RECIPIENTS in the email + Telegram notifiers.
 export const FINANCE_RECIPIENT_KEYS: Record<string, ReadonlyArray<'seller' | 'financier'>> = {
   'factoring.requested': ['financier'],
+  'factoring.funding_needed': ['financier'],
   'factoring.offered': ['seller'],
   'factoring.accepted': ['financier'],
   'factoring.settled': ['seller', 'financier'],
@@ -141,6 +142,7 @@ export const NOTIFY_TYPES = new Set([
 // the rare actionable money event, so it earns a toast; the rest of the vault
 // and agent events sit quietly in the bell.
 export const TOAST_TYPES = new Set([
+  'factoring.funding_needed',
   'agent.suggestion',
   'deal.matched',
   'deal.match.approved',

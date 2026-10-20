@@ -1,14 +1,15 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/core/api';
 import { ProductBackLink } from '@/shared/components/ProductBackLink';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { Icon } from '@/shared/components/Icon';
 import { ARC_NETWORK } from '@/core/arcNetwork';
-import { BalancesCard } from '@/features/balances/components/BalancesCard';
+import { BalancesCard, type BalanceView } from '@/features/balances/components/BalancesCard';
+import { WalletPanel } from './WalletPanel';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { NetworkHint } from '@/shared/components/NetworkContext';
 import { useActivation } from '@/shared/hooks/useActivation';
@@ -26,6 +27,7 @@ function AccountPageInner() {
   const { agents } = useActivation();
   const messages = useTranslations();
   const t = messages.account.page;
+  const [view, setView] = useState<BalanceView>('you');
   return (
     <div className="product-surface mx-auto w-full max-w-[1040px] pb-14">
       <OwnBack />
@@ -37,29 +39,24 @@ function AccountPageInner() {
 
       <BalanceSummary />
 
-      {/* Both cards stretch to the row height, so they always line up. */}
-      <section className="mt-7 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]" aria-label={t.byChain}>
+      {/* Both cards stretch to the row height, so they always line up. The
+          panel follows the wallet selected in the card beside it. */}
+      <section className="mt-7 grid gap-5 lg:grid-cols-2" aria-label={t.byChain}>
         <div className="min-w-0">
-          <BalancesCard buyerAgent={agents?.buyer} sellerAgent={agents?.seller} openByDefault title={t.byChain} subtitle={t.byChainHelp} />
+          <BalancesCard buyerAgent={agents?.buyer} sellerAgent={agents?.seller} openByDefault title={t.byChain} subtitle={t.byChainHelp} view={view} onViewChange={setView} />
         </div>
 
-        <aside className="account-launcher" aria-label={t.actionsAria}>
-          <h2 className="text-[22px] font-semibold tracking-[-0.035em] text-[var(--lp-dark)]">{t.manage}</h2>
-          <nav className="mt-5 divide-y divide-[var(--lp-border-light)]">
-            <AccountAction href="/bridge?direction=in" label={t.add} description={t.addHelp} icon="add" primary />
-            <AccountAction href="/bridge?direction=out" label={messages.accountHome.withdraw} description={t.withdrawHelp} icon="move" />
-            <AccountAction href="/send" label={t.send} description={t.sendHelp} icon="send" />
-          </nav>
-          {ARC_NETWORK === 'testnet' ? (
+        <aside className="flex min-w-0 flex-col gap-4" aria-label={t.actionsAria}>
+          <WalletPanel tab={view} />
+          {view === 'you' && ARC_NETWORK === 'testnet' ? (
             <Link
               href="/profile/wallets"
-              className="mt-5 flex min-h-11 items-center justify-between gap-3 rounded-[16px] border border-dashed border-[var(--lp-border-light)] px-4 py-3 transition-colors hover:border-[var(--lp-outline-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+              className="flex min-h-11 items-center justify-between gap-3 rounded-[16px] border border-dashed border-[var(--lp-border-light)] px-4 py-3 transition-colors hover:border-[var(--lp-outline-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
             >
               <span className="min-w-0">
                 <span className="block text-[15px] font-semibold text-[var(--lp-dark)]">{t.faucetTitle}</span>
                 <span className="mt-0.5 block text-[14px] text-[var(--lp-text-sub)] font-medium">{t.faucetBody}</span>
               </span>
-              <Icon name="chevron-right" size={20} directional className="shrink-0 text-[var(--lp-text-sub)]" />
             </Link>
           ) : null}
           <RecoveryRow />
@@ -68,28 +65,6 @@ function AccountPageInner() {
 
     </div>
   );
-}
-
-function AccountAction({ href, label, description, icon, primary = false }: {
-  href: string;
-  label: string;
-  description: string;
-  icon: 'add' | 'move' | 'send';
-  primary?: boolean;
-}) {
-  return (
-    <Link href={href} className="group grid min-h-[88px] grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 py-3 transition-colors hover:text-[var(--lp-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-inset">
-      <span className={`grid size-10 place-items-center rounded-full ${primary ? 'bg-[var(--lp-accent)] text-[var(--accent-ink)]' : 'bg-[var(--lp-light)] text-[var(--lp-dark)]'}`} aria-hidden><ActionIcon icon={icon} /></span>
-      <span><span className="block text-[15px] font-bold text-[var(--lp-dark)]">{label}</span><span className="mt-1 block text-[14px] leading-5 text-[var(--lp-text-sub)] font-medium">{description}</span></span>
-      <Icon name="chevron-right" size={20} directional className="text-[var(--lp-text-muted)] transition-transform duration-200 group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5 motion-reduce:transition-none" />
-    </Link>
-  );
-}
-
-function ActionIcon({ icon }: { icon: 'add' | 'move' | 'send' }) {
-  if (icon === 'add') return <Icon name="plus" size={20} />;
-  if (icon === 'move') return <Icon name="arrow-up-right" size={20} />;
-  return <Icon name="send" size={20} />;
 }
 
 /// Back on the content column, level with the title it leaves.

@@ -15,6 +15,11 @@ test('known accept failures are recognised', () => {
   assert.equal(acceptErrorKind('advance and assignment failed'), 'notAccepted');
 });
 
+test("a financier who has not added the advance is named as the reason, by code or by words", () => {
+  assert.equal(acceptErrorKind('anything', 'FINANCIER_NOT_FUNDED'), 'financierNotFunded');
+  assert.equal(acceptErrorKind('The financier has not added the money for this offer yet.'), 'financierNotFunded');
+});
+
 test('anything else is shown as it came', () => {
   assert.equal(acceptErrorKind('network down'), null);
 });

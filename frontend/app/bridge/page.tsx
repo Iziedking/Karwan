@@ -13,6 +13,10 @@ import { NetworkHint } from '@/shared/components/NetworkContext';
 import { RailSlider } from '@/features/deposit/components/RailSlider';
 import { PageTour } from '@/shared/guide/PageTour';
 import { BRIDGE_TOUR_ID, buildBridgeSteps } from '@/shared/guide/tours';
+import { ARC_NETWORK } from '@/core/arcNetwork';
+import { ExchangePanel, PlainChooser } from '@/features/deposit/components/PlainChooser';
+import { addOptions, withdrawOptions, type AddOptionId, type PlainOption, type WithdrawOptionId } from '@/features/deposit/plainSteps';
+import type { IconName } from '@/shared/components/Icon';
 import {
   defaultRail,
   railsFor,
@@ -103,7 +107,8 @@ function BridgePageInner() {
   const messages = useTranslations();
   const c = messages.bridgeChooser;
   const { agents } = useActivation();
-  const { method } = useAuth();
+  const { method, address } = useAuth();
+  const plain = messages.plainMoney;
   const params = useSearchParams();
   const requestedDirection = params.get('direction');
   const requestedIntent = params.get('intent');
@@ -144,6 +149,15 @@ function BridgePageInner() {
     setRail((current) => reconcileRail(current, rails));
   }, [rails]);
 
+  // One plain question first (view 19, Money board). A deep link to a rail, an
+  // intent or a payment link goes straight to its panel as before.
+  const account = method === 'circle' ? 'email' : 'wallet';
+  const [picked, setPicked] = useState<PlainOption<AddOptionId> | PlainOption<WithdrawOptionId> | null>(null);
+  const asksFirst = !moneyIntent && !params.get('rail') && !publicPayment;
+  const pickedRail = picked?.opens && 'rail' in picked.opens ? picked.opens.rail : null;
+  // Add and Withdraw share this page; a choice made on one never carries over.
+  useEffect(() => setPicked(null), [direction]);
+
   const header = messages.bridge.header;
   const pageTitle = direction === 'in'
     ? messages.account.page.add
@@ -171,16 +185,54 @@ function BridgePageInner() {
           </div>
 
           <div data-guide="bridge-rails">
-            <RailSlider rails={rails} active={rail} onChange={setRail} direction={direction}>
-              <RailPanel
-                rail={rail}
-                direction={direction}
-                state={rails.find((option) => option.id === rail)?.state ?? 'ready'}
-                agents={agents ?? undefined}
-                prefillRecipient={requestedRecipient}
-                prefillAmount={requestedAmount}
-              />
-            </RailSlider>
+            {asksFirst && !picked ? (
+              direction === 'in' ? (
+                <PlainChooser
+                  question={plain.addQuestion}
+                  options={addOptions(account, ARC_NETWORK === 'testnet' ? 'testnet' : 'mainnet')}
+                  words={(id) => plain.add[id]}
+                  icons={ADD_ICONS}
+                  onPick={setPicked}
+                />
+              ) : (
+                <PlainChooser
+                  question={plain.withdrawQuestion}
+                  options={withdrawOptions(account)}
+                  words={(id) => (id === 'ownWallet' ? (account === 'email' ? plain.withdraw.ownWalletEmail : plain.withdraw.ownWalletConnected) : plain.withdraw[id])}
+                  icons={WITHDRAW_ICONS}
+                  onPick={setPicked}
+                />
+              )
+            ) : asksFirst && picked ? (
+              <>
+                <button type="button" onClick={() => setPicked(null)} className="mb-4 inline-flex min-h-11 items-center px-1 text-[15px] font-semibold text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+                  {plain.back}
+                </button>
+                {pickedRail ? (
+                  <RailPanel
+                    rail={pickedRail}
+                    direction={direction}
+                    state={rails.find((option) => option.id === pickedRail)?.state ?? 'ready'}
+                    agents={agents ?? undefined}
+                    prefillRecipient={requestedRecipient}
+                    prefillAmount={requestedAmount}
+                  />
+                ) : address ? (
+                  <ExchangePanel address={address} />
+                ) : null}
+              </>
+            ) : (
+              <RailSlider rails={rails} active={rail} onChange={setRail} direction={direction}>
+                <RailPanel
+                  rail={rail}
+                  direction={direction}
+                  state={rails.find((option) => option.id === rail)?.state ?? 'ready'}
+                  agents={agents ?? undefined}
+                  prefillRecipient={requestedRecipient}
+                  prefillAmount={requestedAmount}
+                />
+              </RailSlider>
+            )}
           </div>
         </div>
       </Band>
@@ -190,6 +242,20 @@ function BridgePageInner() {
     </div>
   );
 }
+
+const ADD_ICONS: Record<AddOptionId, IconName> = {
+  faucet: 'coins',
+  address: 'arrow-down-left',
+  card: 'wallet',
+  fromWallet: 'wallet',
+  fromExchange: 'arrow-down-left',
+};
+
+const WITHDRAW_ICONS: Record<WithdrawOptionId, IconName> = {
+  ownWallet: 'arrow-up-right',
+  someone: 'send',
+  bank: 'wallet',
+};
 
 /// The panel for one rail. Every branch is a component that already owns that
 /// movement, including its own balance reads and its own errors; nothing is

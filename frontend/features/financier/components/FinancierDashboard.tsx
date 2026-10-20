@@ -592,6 +592,22 @@ function OfferSheet({
   /// The seller named a floor when they asked for early payout. The backend
   /// refuses anything under it, so say so here rather than round-trip a 409.
   const sellerFloor = deal.factoringMinAdvanceUsdc ? Number(deal.factoringMinAdvanceUsdc) : null;
+
+  // The advance is paid from this wallet when the seller accepts, so the offer
+  // only goes out once the wallet holds it (backend routes/factoringFunding.ts).
+  const [funding, setFunding] = useState<{ walletUsdc: string; shortfallUsdc: string } | null>(null);
+  useEffect(() => {
+    if (!isAuthed || !(Number(quote.advanceUsdc) > 0)) return;
+    let live = true;
+    const timer = window.setTimeout(() => {
+      api.factoringFunding(quote.advanceUsdc).then((r) => { if (live) setFunding(r); }).catch(() => { if (live) setFunding(null); });
+    }, 250);
+    return () => {
+      live = false;
+      window.clearTimeout(timer);
+    };
+  }, [isAuthed, quote.advanceUsdc]);
+  const shortfall = funding && Number(funding.shortfallUsdc) > 0 ? funding.shortfallUsdc : null;
   const belowSellerFloor = sellerFloor !== null && advance < sellerFloor;
   const nothingToAdvance = advance <= 0;
 
@@ -649,6 +665,10 @@ function OfferSheet({
       });
       onPosted(r.offer);
     } catch (e) {
+      if (e instanceof ApiError && e.code === 'ADVANCE_NOT_FUNDED') {
+        api.factoringFunding(quote.advanceUsdc).then(setFunding).catch(() => {});
+        return;
+      }
       setError(friendlyError(e, chainCopy, t.declined, t.offer.error));
     } finally {
       setSubmitting(false);
@@ -761,13 +781,23 @@ function OfferSheet({
             {t.offer.belowFloor.replace('{amount}', sellerFloor!.toFixed(2))}
           </p>
         ) : null}
+        {shortfall && funding ? (
+          <div role="status" className="rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-4">
+            <p className="text-[15px] text-[var(--lp-dark)]">
+              {t.offer.fundFirst.replace('{wallet}', formatUsdc(funding.walletUsdc, { withSuffix: false })).replace('{amount}', formatUsdc(shortfall, { withSuffix: false }))}
+            </p>
+            <Link href="/bridge?direction=in" className={cn(SECONDARY, 'mt-3 w-full')}>
+              {t.offer.fundFirstCta.replace('{amount}', formatUsdc(shortfall, { withSuffix: false }))}
+            </Link>
+          </div>
+        ) : null}
         {error ? (
           <p role="alert" className={ALERT}>
             {error}
           </p>
         ) : null}
 
-        <button type="button" onClick={submit} disabled={submitting || belowSellerFloor || nothingToAdvance} className={cn(PRIMARY, 'w-full')}>
+        <button type="button" onClick={submit} disabled={submitting || belowSellerFloor || nothingToAdvance || !!shortfall} className={cn(PRIMARY, 'w-full')}>
           {submitting
             ? t.offer.posting
             : !isAuthed

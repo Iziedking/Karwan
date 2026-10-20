@@ -162,6 +162,8 @@ export function summaryFor(
       return pick(c.cooldownDoneAmount, c.cooldownDone, { amount: trimUsdc(str('principalUsdc')) });
     case 'cashout.arc.completed':
       return fill(c.cashedOut, { amount: trimUsdc(str('amountUsdc') || '0') });
+    case 'factoring.funding_needed':
+      return fill(c.factoringFundingNeeded, { amount: str('shortfallUsdc') });
     case 'factoring.requested':
       return c.factoringRequested;
     case 'factoring.offered': {

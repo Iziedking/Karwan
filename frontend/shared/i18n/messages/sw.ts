@@ -5,6 +5,8 @@ import { balanceSummaryCopy } from './balanceSummary';
 import { firstTradeCopy } from './firstTrade';
 import { setupCopy } from './setup';
 import { assistantModeCopy } from './assistantMode';
+import { walletPanelCopy } from './walletPanel';
+import { plainMoneyCopy } from './plainMoney';
 import { disputeJudgeCopy } from './disputeJudge';
 import { networkCopy } from './network';
 import { escrowDocsCopy } from './escrowDocs';
@@ -59,6 +61,8 @@ export const sw: Messages = {
   firstTrade: firstTradeCopy.sw,
   setup: setupCopy.sw,
   assistantMode: assistantModeCopy.sw,
+  walletPanel: walletPanelCopy.sw,
+  plainMoney: plainMoneyCopy.sw,
   requestList: requestListCopy.sw,
   cashoutFlow: cashoutFlowCopy.sw,
   search: searchCopy.sw,
@@ -2452,6 +2456,8 @@ export const sw: Messages = {
       fundingSummaryTemplate: 'Unatanguliza USDC {advance} sasa kwa kubadilishana na USDC {settlement} ulizokabidhiwa baada ya mnunuzi kuthibitisha uwasilishaji. Ni sehemu hii tu ya ankara unayokabidhiwa.',
       sellerFloor: 'Muuzaji hatakubali chini ya',
       belowFloor: 'Chini ya kiwango cha chini cha muuzaji. Punguza punguzo ili utoe angalau USDC {amount}.',
+      fundFirst: "Pochi yako ina USDC {wallet}. Ongeza USDC {amount} ili kutuma ofa hii.",
+      fundFirstCta: "Ongeza USDC {amount}",
       nothingToAdvance: 'Hakuna kinachoweza kutangulizwa kwenye ankara hii. Hakuna pesa iliyobaki kwenye escrow ya kukabidhiwa kwako.',
       openFor: 'Ofa yako inabaki wazi kwa saa 24.',
       replaceOffer: 'Badilisha ofa',
@@ -3371,6 +3377,9 @@ export const sw: Messages = {
       errAlreadyAssigned: "Oda hii tayari ina mfadhili. Onyesha upya ili kuona ofa.",
       errWindowClosed: "Oda hii haiwezi tena kufadhiliwa.",
       errNotAccepted: "Ofa haikukubaliwa na bado iko wazi. Jaribu tena, au omba ofa mpya.",
+      errFinancierNotFunded: "Pesa za mfadhili bado hazijawa tayari. Tumemwambia. Ofa inabaki hapa, na hakuna kilichohamishwa.",
+      recommended: "Inapendekezwa",
+      waitingOnFinancier: "Inasubiri pesa za mfadhili",
       errRequest: "Ombi halikutumwa. Jaribu tena.",
     },
     checkPaused: { title: "Malipo yamesimamishwa", stays: "Pesa zako zinabaki kwenye escrow hadi hili litatuliwe.", saw: "Ukaguzi uliona nini", noWallet: "Uachiliaji wa kiotomatiki hauwezi kufanya kazi kwa dili hili. Achilia malipo mwenyewe hapa.", reasons: { "security-hold": "Kiungo cha uwasilishaji kimeripotiwa kuwa si salama, kwa hiyo kimefichwa kwako.", "off-request": "Ukaguzi umeona uwasilishaji haulingani na ulichoomba.", "evidence-mismatch": "Ushahidi wa uwasilishaji haulingani na masharti yaliyokubaliwa.", "check-pending": "Ukaguzi wa kiotomatiki bado haujarudisha matokeo.", "check-expired": "Matokeo ya ukaguzi yaliisha kabla malipo hayajaachiliwa.", "terms-changed": "Masharti yalibadilika baada ya ukaguzi, kwa hiyo lazima ufanyike tena.", "delivery-replaced": "Uwasilishaji mpya umetumwa, kwa hiyo ukaguzi lazima ufanyike tena.", "link-unverifiable": "Kiungo cha uwasilishaji hakikuweza kufunguliwa ili kukagua." }, sellerHold: "Kiungo chako cha uwasilishaji kimeripotiwa kuwa si salama na kimefichwa kwa mnunuzi. Tuma kiungo kilichosahihishwa.", sellerOff: "Ukaguzi umeona kuwa uwasilishaji wako huenda haulingani na ombi. Tuma kiungo sahihi." },

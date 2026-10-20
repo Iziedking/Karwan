@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import Link from 'next/link';
 import {
@@ -24,6 +24,7 @@ const ACCEPT_ERRORS: Record<AcceptErrorKind, string> = {
   alreadyAssigned: 'This invoice has already been assigned to a financier. Refresh the offer list before trying again.',
   windowClosed: 'This invoice has moved past the factoring window and cannot be assigned.',
   notAccepted: 'The offer could not be accepted. No assignment was recorded and the offer is still open. Try again, or ask the financier to send a new offer.',
+  financierNotFunded: "The financier's money is not ready yet. We've told them. The offer stays here, and nothing has moved.",
 };
 
 /// Seller-side factoring CTA on the deal detail page. Polls
@@ -153,14 +154,9 @@ export function SellerOfferBanner({
     };
   }, [factoringEligible, deal.jobId]);
 
-  // Sort once per offers update, derive during render per
-  // `rerender-derived-state-no-effect`.
-  const sortedOffers = useMemo(() => {
-    if (!offers) return [];
-    return [...offers].sort(
-      (a, b) => Number(b.offeredAdvanceUsdc) - Number(a.offeredAdvanceUsdc),
-    );
-  }, [offers]);
+  // The server ranks the seller's offers: payable now, then the financier's
+  // reputation, then price (backend routes/factoringRanking.ts). Keep its order.
+  const sortedOffers = offers ?? [];
 
   // Financing is private between the seller and financier. Request fields are
   // present on the shared deal record, so explicitly stop buyers before any
@@ -350,7 +346,7 @@ function OffersModal({
       onAccepted(await acceptOffer(offer));
     } catch (e) {
       const raw = rawAcceptError(e);
-      const kind = acceptErrorKind(raw);
+      const kind = acceptErrorKind(raw, e instanceof ApiError ? e.code : undefined);
       const friendly = kind ? ACCEPT_ERRORS[kind] : raw;
       setError(friendly);
       setAcceptingId(null);
@@ -415,7 +411,7 @@ function OffersModal({
               <OfferRow
                 key={o.id}
                 offer={o}
-                isBest={i === 0}
+                isBest={!!o.recommended}
                 acceptingId={acceptingId}
                 onAccept={accept}
                 qual={qual}
@@ -478,7 +474,7 @@ function OfferRow({
         <div className="min-w-0">
           {isBest ? (
             <span className="inline-block mono text-[13px] uppercase tracking-[0.18em] font-bold px-1.5 py-0.5 mb-2 bg-[var(--lp-accent)] text-[var(--accent-ink)]">
-              BEST
+              RECOMMENDED
             </span>
           ) : null}
           <p className="serif text-[22px] tabular-nums leading-none tracking-[-0.02em] text-[var(--lp-dark)]">
@@ -493,6 +489,9 @@ function OfferRow({
           <p className="mt-0.5 mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] tabular-nums">
             Expires in {expiresInHours}h
           </p>
+          {offer.funded === false ? (
+            <p className="mt-0.5 text-[14px] text-[var(--lp-text-sub)]">Waiting on the financier&apos;s money</p>
+          ) : null}
           {requiredStake > 0 ? (
             <p
               className="mt-0.5 mono text-[13px] uppercase tracking-[0.14em] tabular-nums text-[var(--lp-text-muted)]"

@@ -5,6 +5,8 @@ import { balanceSummaryCopy } from './balanceSummary';
 import { firstTradeCopy } from './firstTrade';
 import { setupCopy } from './setup';
 import { assistantModeCopy } from './assistantMode';
+import { walletPanelCopy } from './walletPanel';
+import { plainMoneyCopy } from './plainMoney';
 import { disputeJudgeCopy } from './disputeJudge';
 import { networkCopy } from './network';
 import { escrowDocsCopy } from './escrowDocs';
@@ -59,6 +61,8 @@ export const ar: Messages = {
   firstTrade: firstTradeCopy.ar,
   setup: setupCopy.ar,
   assistantMode: assistantModeCopy.ar,
+  walletPanel: walletPanelCopy.ar,
+  plainMoney: plainMoneyCopy.ar,
   requestList: requestListCopy.ar,
   cashoutFlow: cashoutFlowCopy.ar,
   search: searchCopy.ar,
@@ -2455,6 +2459,8 @@ export const ar: Messages = {
       fundingSummaryTemplate: 'تقدّم {advance} USDC الآن مقابل {settlement} USDC المحالة إليك بعد أن يؤكد المشتري التسليم. هذا الجزء وحده من الفاتورة محال إليك.',
       sellerFloor: 'لن يقبل البائع بأقل من',
       belowFloor: 'أقل من الحد الأدنى للبائع. خفّض الخصم لتعرض {amount} USDC على الأقل.',
+      fundFirst: "تحتوي محفظتك على {wallet} USDC. أضف {amount} USDC لإرسال هذا العرض.",
+      fundFirstCta: "أضف {amount} USDC",
       nothingToAdvance: 'لا يمكن تقديم أي جزء من هذه الفاتورة. لم يبقَ مال في الضمان ليُحال إليك.',
       openFor: 'يبقى عرضك مفتوحًا 24 ساعة.',
       replaceOffer: 'استبدل العرض',
@@ -3374,6 +3380,9 @@ export const ar: Messages = {
       errAlreadyAssigned: "لهذا الطلب ممول بالفعل. حدّث الصفحة لرؤية العروض.",
       errWindowClosed: "لم يعد بالإمكان تمويل هذا الطلب.",
       errNotAccepted: "لم يُقبل العرض وما زال مفتوحًا. حاول مرة أخرى أو اطلب عرضًا جديدًا.",
+      errFinancierNotFunded: "أموال المموّل ليست جاهزة بعد. أخبرناه. يبقى العرض هنا ولم يتحرك شيء.",
+      recommended: "موصى به",
+      waitingOnFinancier: "بانتظار أموال المموّل",
       errRequest: "لم يُرسل الطلب. حاول مرة أخرى.",
     },
     checkPaused: { title: "الدفع متوقف مؤقتًا", stays: "تبقى أموالك في الضمان حتى يتم حل الأمر.", saw: "ما الذي رصده الفحص", noWallet: "لا يمكن تشغيل الإفراج التلقائي لهذه الصفقة. أفرج عن الدفعة بنفسك من هنا.", reasons: { "security-hold": "تم الإبلاغ عن رابط التسليم على أنه غير آمن، لذلك هو مخفي عنك.", "off-request": "وجد الفحص أن التسليم لا يطابق ما طلبته.", "evidence-mismatch": "دليل التسليم لا يطابق الشروط المتفق عليها.", "check-pending": "لم يُرجع الفحص التلقائي نتيجة بعد.", "check-expired": "انتهت صلاحية نتيجة الفحص قبل الإفراج عن الدفعة.", "terms-changed": "تغيرت الشروط بعد إجراء الفحص، لذا يجب إعادته.", "delivery-replaced": "تم إرسال تسليم أحدث، لذا يجب إعادة الفحص.", "link-unverifiable": "تعذر فتح رابط التسليم لفحصه." }, sellerHold: "تم الإبلاغ عن رابط التسليم الخاص بك على أنه غير آمن وهو مخفي عن المشتري. أرسل رابطًا مصححًا.", sellerOff: "وجد الفحص أن تسليمك قد لا يطابق الطلب. أرسل الرابط الصحيح." },

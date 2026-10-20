@@ -11,10 +11,15 @@ test('the money is louder than the page title', () => {
   assert.ok(size < 40, 'the 40px total stays the largest type');
 });
 
-test('actions use the icon set, not typed characters', () => {
-  assert.doesNotMatch(page, />\+<\/span>|>↔<\/span>|>↑<\/span>|>→<\/span>/);
-  assert.match(page, /<Icon name="plus"/);
-  assert.match(page, /<Icon name="arrow-up-right"/);
-  assert.match(page, /<Icon name="send"/);
-  assert.match(page, /<Icon name="chevron-right"[^>]*directional/);
+test('actions are button tiles from the icon set, never typed characters or chevrons (owner, 20 Oct 2026)', () => {
+  const panel = readFileSync(new URL('./WalletPanel.tsx', import.meta.url), 'utf8');
+  for (const src of [page, panel]) {
+    assert.doesNotMatch(src, />\+<\/span>|>↔<\/span>|>↑<\/span>|>→<\/span>/);
+    assert.doesNotMatch(src, /chevron-right/);
+  }
+  assert.match(panel, /plus: 'plus'/);
+  assert.match(panel, /out: 'arrow-up-right'/);
+  assert.match(panel, /send: 'send'/);
+  assert.match(panel, /<Icon name=\{ICON\[action\.icon\]\}/);
+  assert.match(page, /<WalletPanel tab=\{view\} \/>/);
 });

@@ -5,6 +5,8 @@ import { balanceSummaryCopy } from './balanceSummary';
 import { firstTradeCopy } from './firstTrade';
 import { setupCopy } from './setup';
 import { assistantModeCopy } from './assistantMode';
+import { walletPanelCopy } from './walletPanel';
+import { plainMoneyCopy } from './plainMoney';
 import { disputeJudgeCopy } from './disputeJudge';
 import { networkCopy } from './network';
 import { escrowDocsCopy } from './escrowDocs';
@@ -59,6 +61,8 @@ export const fr: Messages = {
   firstTrade: firstTradeCopy.fr,
   setup: setupCopy.fr,
   assistantMode: assistantModeCopy.fr,
+  walletPanel: walletPanelCopy.fr,
+  plainMoney: plainMoneyCopy.fr,
   requestList: requestListCopy.fr,
   cashoutFlow: cashoutFlowCopy.fr,
   search: searchCopy.fr,
@@ -2455,6 +2459,8 @@ export const fr: Messages = {
       fundingSummaryTemplate: 'Vous avancez {advance} USDC maintenant en échange des {settlement} USDC cédés après que l’acheteur a confirmé la livraison. Seule cette part de la facture vous est cédée.',
       sellerFloor: 'Le vendeur n’ira pas en dessous de',
       belowFloor: 'En dessous du minimum du vendeur. Baissez la remise pour offrir au moins {amount} USDC.',
+      fundFirst: "Votre wallet contient {wallet} USDC. Ajoutez {amount} USDC pour envoyer cette offre.",
+      fundFirstCta: "Ajouter {amount} USDC",
       nothingToAdvance: 'Rien sur cette facture ne peut être avancé. Il ne reste aucun montant en escrow à vous céder.',
       openFor: 'Votre offre reste ouverte 24 heures.',
       replaceOffer: 'Remplacer l’offre',
@@ -3374,6 +3380,9 @@ export const fr: Messages = {
       errAlreadyAssigned: "Cette commande a déjà un financeur. Actualisez pour voir les offres.",
       errWindowClosed: "Cette commande ne peut plus être financée.",
       errNotAccepted: "L’offre n’a pas été acceptée et reste ouverte. Réessayez ou demandez une nouvelle offre.",
+      errFinancierNotFunded: "L'argent du financeur n'est pas encore prêt. Nous l'avons prévenu. L'offre reste ici et rien n'a bougé.",
+      recommended: "Recommandée",
+      waitingOnFinancier: "En attente de l'argent du financeur",
       errRequest: "La demande n’a pas été envoyée. Réessayez.",
     },
     checkPaused: { title: "Le paiement est en pause", stays: "Votre argent reste en séquestre jusqu’à la résolution.", saw: "Ce que la vérification a vu", noWallet: "La libération automatique ne peut pas s’exécuter pour ce deal. Libérez le paiement vous-même ici.", reasons: { "security-hold": "Le lien de livraison a été signalé comme dangereux, il vous est donc masqué.", "off-request": "La vérification a trouvé que la livraison ne correspond pas à votre demande.", "evidence-mismatch": "Les preuves de livraison ne correspondent pas aux conditions convenues.", "check-pending": "La vérification automatique n’a pas encore donné de résultat.", "check-expired": "Le résultat de la vérification a expiré avant la libération du paiement.", "terms-changed": "Les conditions ont changé après la vérification, elle doit donc être refaite.", "delivery-replaced": "Une livraison plus récente a été envoyée, la vérification doit donc être refaite.", "link-unverifiable": "Le lien de livraison n’a pas pu être ouvert pour la vérification." }, sellerHold: "Votre lien de livraison a été signalé comme dangereux et est masqué à l’acheteur. Envoyez un lien corrigé.", sellerOff: "La vérification indique que votre livraison ne correspond peut-être pas à la demande. Envoyez le bon lien." },

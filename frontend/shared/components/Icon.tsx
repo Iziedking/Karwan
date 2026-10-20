@@ -1,9 +1,9 @@
 import React, { type SVGProps } from 'react';
 import {
-  Activity, ArrowLeftRight, Bell, CircleAlert, ArrowRight, ArrowUpRight, Bot, BriefcaseBusiness, Calculator,
+  Activity, ArrowDownLeft, ArrowLeftRight, Bell, CircleAlert, ArrowRight, ArrowUpRight, Bot, BriefcaseBusiness, Calculator,
   ChartColumn, Check, ChevronLeft, ChevronRight, Clapperboard, Code, Coins, FileText, Globe,
   GraduationCap, ImagePlus, Languages, Link, List, LoaderCircle, Megaphone, MessagesSquare,
-  Package, PenLine, PenTool, Plus, Reply, Search, Send, Shirt, Smartphone, UserRound, Wallet, X,
+  Package, PenLine, PenTool, Plus, Receipt, Reply, Search, Send, Shirt, Smartphone, UserRound, Wallet, X,
 } from 'lucide-react';
 
 const icons = {
@@ -13,6 +13,8 @@ const icons = {
   'arrow-left-right': ArrowLeftRight,
   'arrow-right': ArrowRight,
   'arrow-up-right': ArrowUpRight,
+  'arrow-down-left': ArrowDownLeft,
+  receipt: Receipt,
   briefcase: BriefcaseBusiness,
   check: Check,
   'chevron-left': ChevronLeft,

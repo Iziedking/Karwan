@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ApiError, api, type DirectDeal, type FactoringOffer } from '@/core/api';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -45,7 +45,9 @@ export function GetPaidNow({ deal, viewerIsSeller, onChanged }: { deal: DirectDe
     };
   }, [eligible, deal.jobId]);
 
-  const sorted = useMemo(() => [...offers].sort((a, b) => Number(b.offeredAdvanceUsdc) - Number(a.offeredAdvanceUsdc)), [offers]);
+  // The server ranks the seller's offers: payable now, then the financier's
+  // reputation, then price (routes/factoringRanking.ts). Keep its order.
+  const sorted = offers;
 
   if (!viewerIsSeller || deal.tradeLane !== 'finance') return null;
 
@@ -105,13 +107,14 @@ export function GetPaidNow({ deal, viewerIsSeller, onChanged }: { deal: DirectDe
       onChanged();
     } catch (e) {
       const raw = rawAcceptError(e);
-      const kind = acceptErrorKind(raw);
+      const kind = acceptErrorKind(raw, e instanceof ApiError ? e.code : undefined);
       const words: Record<AcceptErrorKind, string> = {
         authorization: g.errAuthorization,
         reconcile: g.errReconcile,
         alreadyAssigned: g.errAlreadyAssigned,
         windowClosed: g.errWindowClosed,
         notAccepted: g.errNotAccepted,
+        financierNotFunded: g.errFinancierNotFunded,
       };
       setError(kind ? words[kind] : raw);
     } finally {
@@ -133,8 +136,14 @@ export function GetPaidNow({ deal, viewerIsSeller, onChanged }: { deal: DirectDe
           {sorted.map((offer) => (
             <li key={offer.id} className="flex items-center justify-between gap-4 py-3">
               <div className="min-w-0">
-                <p className="text-[17px] font-semibold tabular-nums text-[var(--lp-dark)]">{fill(g.offerNow, { advance: usdc(offer.offeredAdvanceUsdc) })}</p>
+                <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[17px] font-semibold tabular-nums text-[var(--lp-dark)]">
+                  {fill(g.offerNow, { advance: usdc(offer.offeredAdvanceUsdc) })}
+                  {offer.recommended ? (
+                    <span className="rounded-full bg-[var(--lp-accent)] px-2.5 py-0.5 text-[13px] font-semibold text-[var(--accent-ink)]">{g.recommended}</span>
+                  ) : null}
+                </p>
                 <p className="mt-0.5 text-[14px] tabular-nums text-[var(--lp-text-sub)]">{fill(g.offerRepay, { repay: usdc(offer.expectedReturnUsdc) })}</p>
+                {offer.funded === false ? <p className="mt-0.5 text-[14px] text-[var(--lp-text-sub)]">{g.waitingOnFinancier}</p> : null}
               </div>
               <button type="button" onClick={() => { setError(null); setReviewing(offer); }} className="inline-flex min-h-11 shrink-0 items-center rounded-full bg-[var(--tint)] px-5 text-[15px] font-semibold text-[var(--ink)] transition-colors hover:bg-[var(--line)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">
                 {g.review}

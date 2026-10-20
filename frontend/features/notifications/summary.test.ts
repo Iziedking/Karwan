@@ -68,3 +68,10 @@ test('ask me first says the agent found a request and asks for an offer', () => 
   );
   assert.equal(summaryFor('agent.suggestion', {}, 'seller', en), 'Your agent found a request that fits. Make an offer?');
 });
+
+test('a financier whose offer is short is told how much to add', () => {
+  assert.equal(
+    summaryFor('factoring.funding_needed', { shortfallUsdc: '569.03' }, 'financier', en),
+    'A seller tried to take your offer. Add 569.03 USDC so they can.',
+  );
+});
