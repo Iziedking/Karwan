@@ -30,6 +30,7 @@ import { readUserGatewayBalance } from '../gateway/balance.js';
 import { logger } from '../logger.js';
 import { liveDirect } from '../messages/live.js';
 import { scrubNotesBy } from '../db/ratings.js';
+import { deleteConversationsOf } from '../db/assistantConversations.js';
 import { moneyOutStore } from '../moneyOut/live.js';
 import { deleteConversationsFor } from '../support/store.js';
 import { evidenceDeps } from '../verification/live.js';
@@ -179,6 +180,7 @@ const eraser: Eraser = {
     { name: 'record reads', run: async (address) => { await deleteReadsFor(address); } },
     { name: 'direct messages', run: (address) => liveDirect.forget(address) },
     { name: 'rating notes', run: (address) => scrubNotesBy(address) },
+    { name: 'assistant conversations', run: (address) => deleteConversationsOf(address) },
     { name: 'delivery questions', run: (address) => deleteRecord('delivery-q', address.toLowerCase()) },
   ],
   dropChatAccount: async (address) => {

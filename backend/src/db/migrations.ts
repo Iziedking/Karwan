@@ -1210,6 +1210,21 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       CREATE INDEX deal_ratings_rater ON deal_ratings_v1 (rater);
     `,
   },
+  {
+    version: 43,
+    name: 'assistant_conversations',
+    sql: `
+      -- Assistant conversations saved to the account (view 19), at most 50
+      -- per address. Past confirm cards are stored without id or payload.
+      CREATE TABLE assistant_conversations_v1 (
+        id TEXT PRIMARY KEY,
+        address TEXT NOT NULL,
+        updated_at BIGINT NOT NULL,
+        data JSONB NOT NULL
+      );
+      CREATE INDEX assistant_conversations_address_updated ON assistant_conversations_v1 (address, updated_at DESC);
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;
