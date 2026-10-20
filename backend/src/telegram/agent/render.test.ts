@@ -52,3 +52,25 @@ test('a money step becomes a link button, not a Mini App and not a callback', ()
   assert.deepEqual(msg!.reply_markup, { inline_keyboard: [[{ text: 'Open in Karwan', url: 'https://testnet.karwan.site/x' }]] });
   assert.equal(JSON.stringify(msg).includes('web_app'), false);
 });
+
+test('bold the model wrote with double asterisks arrives as bold, never as raw asterisks', () => {
+  const [msg] = toTelegram({ kind: 'text', body: 'Your balance is **1,621.21 USDC**.\n\nStaked: **7,050 USDC** 🔒' })!;
+  assert.equal(msg!.text, 'Your balance is 1,621.21 USDC.\n\nStaked: 7,050 USDC 🔒');
+  assert.deepEqual(msg!.entities, [
+    { type: 'bold', offset: 16, length: 13 },
+    { type: 'bold', offset: 40, length: 10 },
+  ]);
+  assert.equal(msg!.parse_mode, undefined);
+});
+
+test('entity offsets count UTF-16 units, so an emoji before the bold does not shift it', () => {
+  const [msg] = toTelegram({ kind: 'text', body: '🎉 **Paid**' })!;
+  assert.equal(msg!.text, '🎉 Paid');
+  assert.deepEqual(msg!.entities, [{ type: 'bold', offset: 3, length: 4 }]);
+});
+
+test('text without bold carries no entities and a lone asterisk stays as typed', () => {
+  const [msg] = toTelegram({ kind: 'text', body: 'Price is 5 * 2 USDC' })!;
+  assert.equal(msg!.text, 'Price is 5 * 2 USDC');
+  assert.equal(msg!.entities, undefined);
+});

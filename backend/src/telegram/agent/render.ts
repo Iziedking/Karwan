@@ -10,6 +10,7 @@ const HASHED = 'h:';
 export interface TelegramSend {
   text: string;
   parse_mode?: never;
+  entities?: { type: 'bold'; offset: number; length: number }[];
   link_preview_options: { is_disabled: true };
   reply_markup?: { inline_keyboard: ({ text: string; callback_data: string } | { text: string; url: string })[][] };
 }
@@ -28,15 +29,32 @@ export function resolveTap(data: string, pendingButtonIds: readonly string[]): s
   return pendingButtonIds.find((id) => tapData(id) === data) ?? data;
 }
 
+/// The model writes bold as **text**. Telegram gets plain text plus a bold
+/// entity for each, so the reader sees bold and never the asterisks. Offsets
+/// are UTF-16 units, which is what JavaScript string indices already count.
+export function boldEntities(body: string): Pick<TelegramSend, 'text' | 'entities'> {
+  const entities: { type: 'bold'; offset: number; length: number }[] = [];
+  let text = '';
+  let last = 0;
+  for (const match of body.matchAll(/\*\*([^*\n]+?)\*\*/g)) {
+    text += body.slice(last, match.index);
+    entities.push({ type: 'bold', offset: text.length, length: match[1]!.length });
+    text += match[1];
+    last = match.index! + match[0].length;
+  }
+  text += body.slice(last);
+  return entities.length ? { text, entities } : { text };
+}
+
 /// Model output is sent as plain text: no parse mode, so a stray asterisk or
-/// underscore can never break a message. The bold title WhatsApp shows is
-/// unwrapped instead.
+/// underscore can never break a message. Bold travels as entities, and the
+/// bold title WhatsApp shows is unwrapped.
 export function toTelegram(out: OutMessage): TelegramSend[] | null {
   const base = { link_preview_options: { is_disabled: true as const } };
-  if (out.kind === 'text') return [{ ...base, text: out.body }];
+  if (out.kind === 'text') return [{ ...base, ...boldEntities(out.body) }];
   // A plain URL button opens in Telegram's own browser on phones. It is not a
   // Mini App: Telegram requires Mini Apps with crypto features to use TON only.
-  if (out.kind === 'link') return [{ ...base, text: out.body, reply_markup: { inline_keyboard: [[{ text: out.label, url: out.url }]] } }];
+  if (out.kind === 'link') return [{ ...base, ...boldEntities(out.body), reply_markup: { inline_keyboard: [[{ text: out.label, url: out.url }]] } }];
   if (out.kind === 'buttons') {
     const text = out.body.replace(/^\*([^*\n]+)\*/, '$1');
     return [
