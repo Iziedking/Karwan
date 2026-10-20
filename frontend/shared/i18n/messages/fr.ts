@@ -4,6 +4,7 @@ import { cashoutFlowCopy } from './cashoutFlow';
 import { balanceSummaryCopy } from './balanceSummary';
 import { firstTradeCopy } from './firstTrade';
 import { setupCopy } from './setup';
+import { assistantModeCopy } from './assistantMode';
 import { disputeJudgeCopy } from './disputeJudge';
 import { networkCopy } from './network';
 import { escrowDocsCopy } from './escrowDocs';
@@ -57,6 +58,7 @@ export const fr: Messages = {
   balanceSummary: balanceSummaryCopy.fr,
   firstTrade: firstTradeCopy.fr,
   setup: setupCopy.fr,
+  assistantMode: assistantModeCopy.fr,
   requestList: requestListCopy.fr,
   cashoutFlow: cashoutFlowCopy.fr,
   search: searchCopy.fr,
@@ -652,13 +654,13 @@ export const fr: Messages = {
     offline: 'Hors ligne',
   },
   assistant: {
-    launcherLabel: 'Demander',
-    launcherAria: 'Demander à l\'assistant Karwan',
-    title: 'Assistant Karwan',
-    subtitle: 'Posez vos questions sur Karwan',
-    placeholder: 'Posez une question…',
+    launcherLabel: "Aide",
+    launcherAria: "Ouvrir l'aide",
+    title: "Aide",
+    subtitle: "Des réponses tirées de votre compte, et une personne quand il le faut.",
+    placeholder: "Posez une question, ou demandez une personne",
     send: 'Envoyer',
-    greeting: 'Bonjour. Posez-moi une question, ou dites-moi simplement quoi faire.',
+    greeting: "Demandez comment ça marche, ou dites-nous ce qui ne va pas. Demandez une personne à tout moment.",
     error: 'Une erreur est survenue. Réessayez.',
     disclaimer: 'Aide uniquement. L\'assistant ne peut pas déplacer de fonds ni agir sur votre compte.',
     humanButton: 'Parler à un humain',
@@ -669,7 +671,7 @@ export const fr: Messages = {
     endChat: 'Terminer la conversation',
     backToAssistant: 'Retour à l\'assistant',
     operatorName: 'Support',
-    suggestions: ["Quel est mon solde ?", "Trouver un vendeur", "Comment fonctionne le séquestre ?"],
+    suggestions: ["Où est mon argent ?", "Comment fonctionne le séquestre ?", "Je veux parler à une personne"],
     confirmNote: "Rien ne bouge sans votre confirmation.",
   },
   countdown: {

@@ -109,6 +109,12 @@ function isFocusedForEveryone(pathname: string | null | undefined): boolean {
   return !!pathname && (matchesRoute(pathname, '/onboarding') || matchesRoute(pathname, '/setup') || matchesRoute(pathname, '/profile/business/setup'));
 }
 
+/// Assistant mode: a workspace page with the rail, the bottom bar and the Help
+/// launcher taken away, so the conversation has the whole window (view 19).
+export function isAssistantRoute(pathname: string | null | undefined): boolean {
+  return !!pathname && matchesRoute(pathname.split('?')[0]!, '/assistant');
+}
+
 /** First-contact invitation pages own their complete page shell. */
 export function isBareRoute(pathname: string | null | undefined): boolean {
   return !!pathname && matchesRoute(pathname, '/invite');

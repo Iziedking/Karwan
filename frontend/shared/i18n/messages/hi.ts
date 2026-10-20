@@ -4,6 +4,7 @@ import { cashoutFlowCopy } from './cashoutFlow';
 import { balanceSummaryCopy } from './balanceSummary';
 import { firstTradeCopy } from './firstTrade';
 import { setupCopy } from './setup';
+import { assistantModeCopy } from './assistantMode';
 import { disputeJudgeCopy } from './disputeJudge';
 import { networkCopy } from './network';
 import { escrowDocsCopy } from './escrowDocs';
@@ -57,6 +58,7 @@ export const hi: Messages = {
   balanceSummary: balanceSummaryCopy.hi,
   firstTrade: firstTradeCopy.hi,
   setup: setupCopy.hi,
+  assistantMode: assistantModeCopy.hi,
   requestList: requestListCopy.hi,
   cashoutFlow: cashoutFlowCopy.hi,
   search: searchCopy.hi,
@@ -650,13 +652,13 @@ export const hi: Messages = {
     offline: 'ऑफ़लाइन',
   },
   assistant: {
-    launcherLabel: 'पूछें',
-    launcherAria: 'Karwan असिस्टेंट से पूछें',
-    title: 'Karwan असिस्टेंट',
-    subtitle: 'Karwan के बारे में कुछ भी पूछें',
-    placeholder: 'कोई प्रश्न पूछें…',
+    launcherLabel: "मदद",
+    launcherAria: "मदद खोलें",
+    title: "मदद",
+    subtitle: "आपके खाते से जवाब, और ज़रूरत हो तो एक व्यक्ति।",
+    placeholder: "कुछ भी पूछें, या किसी व्यक्ति से बात करें",
     send: 'भेजें',
-    greeting: 'नमस्ते. मुझसे कुछ भी पूछें, या बस बताएं कि क्या करना है.',
+    greeting: "पूछें कि कुछ कैसे काम करता है, या बताएँ क्या गलत हुआ। कभी भी किसी व्यक्ति को माँगें।",
     error: 'कुछ गलत हो गया। फिर कोशिश करें।',
     disclaimer: 'केवल मार्गदर्शन. असिस्टेंट फंड नहीं ले जा सकता या आपके खाते पर कार्य नहीं कर सकता.',
     humanButton: 'किसी व्यक्ति से बात करें',
@@ -667,7 +669,7 @@ export const hi: Messages = {
     endChat: 'चैट समाप्त करें',
     backToAssistant: 'असिस्टेंट पर वापस',
     operatorName: 'सहायता',
-    suggestions: ["मेरा बैलेंस कितना है?", "विक्रेता खोजें", "एस्क्रो कैसे काम करता है?"],
+    suggestions: ["मेरा पैसा कहाँ है?", "एस्क्रो कैसे काम करता है?", "मुझे किसी व्यक्ति से बात करनी है"],
     confirmNote: "आपकी पुष्टि के बिना कुछ नहीं होता।",
   },
   countdown: {

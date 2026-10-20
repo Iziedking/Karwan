@@ -9,6 +9,7 @@ const EXACT: Record<string, RouteTitleKey> = {
   '/connect/telegram': 'connectTelegram',
   '/account': 'account',
   '/activity': 'activity',
+  '/assistant': 'assistant',
   '/activity/all-time': 'activityAllTime',
   '/app': 'app',
   '/brand': 'brand',

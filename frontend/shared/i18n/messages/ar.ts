@@ -4,6 +4,7 @@ import { cashoutFlowCopy } from './cashoutFlow';
 import { balanceSummaryCopy } from './balanceSummary';
 import { firstTradeCopy } from './firstTrade';
 import { setupCopy } from './setup';
+import { assistantModeCopy } from './assistantMode';
 import { disputeJudgeCopy } from './disputeJudge';
 import { networkCopy } from './network';
 import { escrowDocsCopy } from './escrowDocs';
@@ -57,6 +58,7 @@ export const ar: Messages = {
   balanceSummary: balanceSummaryCopy.ar,
   firstTrade: firstTradeCopy.ar,
   setup: setupCopy.ar,
+  assistantMode: assistantModeCopy.ar,
   requestList: requestListCopy.ar,
   cashoutFlow: cashoutFlowCopy.ar,
   search: searchCopy.ar,
@@ -652,13 +654,13 @@ export const ar: Messages = {
     offline: 'غير متصل',
   },
   assistant: {
-    launcherLabel: 'اسأل',
-    launcherAria: 'اسأل مساعد Karwan',
-    title: 'مساعد Karwan',
-    subtitle: 'اسأل أي شيء عن Karwan',
-    placeholder: 'اطرح سؤالاً…',
+    launcherLabel: "مساعدة",
+    launcherAria: "افتح المساعدة",
+    title: "مساعدة",
+    subtitle: "إجابات من حسابك، وشخص حين تحتاجه.",
+    placeholder: "اسأل أي شيء، أو اطلب شخصًا",
     send: 'إرسال',
-    greeting: 'مرحباً. اسألني أي شيء، أو أخبرني ببساطة بما تريد فعله.',
+    greeting: "اسأل كيف يعمل شيء ما، أو أخبرنا بما حدث. اطلب شخصًا في أي وقت.",
     error: 'حدث خطأ ما. حاول مرة أخرى.',
     disclaimer: 'إرشاد فقط. لا يستطيع المساعد تحريك الأموال أو التصرف في حسابك.',
     humanButton: 'التحدث إلى شخص',
@@ -669,7 +671,7 @@ export const ar: Messages = {
     endChat: 'إنهاء المحادثة',
     backToAssistant: 'العودة إلى المساعد',
     operatorName: 'الدعم',
-    suggestions: ["ما رصيدي؟", "ابحث عن بائع", "كيف يعمل الضمان؟"],
+    suggestions: ["أين أموالي؟", "كيف يعمل الضمان؟", "أريد التحدث إلى شخص"],
     confirmNote: "لا يتحرك شيء دون تأكيدك.",
   },
   countdown: {

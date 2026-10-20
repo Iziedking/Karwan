@@ -1,0 +1,219 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { AnimatePresence, motion } from 'motion/react';
+import { api } from '@/core/api';
+import { AssistantThread } from '@/shared/assistant/AssistantThread';
+import { callPerson } from '@/shared/assistant/openHelp';
+import { useAssistantChat } from '@/shared/assistant/useAssistantChat';
+import { AuthGuard } from '@/shared/components/AuthGuard';
+import { Icon } from '@/shared/components/Icon';
+import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
+import { useUserProfile } from '@/shared/hooks/useUserProfile';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { ease } from '@/shared/motion/tokens';
+import { greetingKey } from './conversationGroups';
+import { ConversationList } from './ConversationList';
+import { takeReturn } from './assistantReturn';
+
+const LIST_KEY = ['assistant-conversations'];
+
+/// Assistant mode (view 19): the account run from one conversation, with the
+/// saved conversations beside it. The same thread and cards as Help.
+export function AssistantMode() {
+  const t = useTranslations().profile.signInGate;
+  return (
+    <AuthGuard gateTag={t.tag} gateBody={t.body}>
+      <AssistantPage />
+    </AuthGuard>
+  );
+}
+
+function AssistantPage() {
+  const messages = useTranslations();
+  const t = messages.assistantMode;
+  const router = useRouter();
+  const reduce = useHydratedReducedMotion();
+  const queryClient = useQueryClient();
+  const { profile } = useUserProfile();
+  const chat = useAssistantChat({
+    persist: true,
+    mode: 'assistant',
+    onNeedsHuman: (transcript) => callPerson(transcript.map((m) => ({ role: m.role, content: m.content }))),
+  });
+  const [input, setInput] = useState('');
+  const [listOpen, setListOpen] = useState(false);
+  const [openError, setOpenError] = useState(false);
+  const endRef = useRef<HTMLDivElement>(null);
+  const list = useQuery({ queryKey: LIST_KEY, queryFn: () => api.assistantConversations().then((r) => r.conversations) });
+
+  // A newly saved conversation joins the column.
+  useEffect(() => {
+    if (chat.conversationId) void queryClient.invalidateQueries({ queryKey: LIST_KEY });
+  }, [chat.conversationId, queryClient]);
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ block: 'end', behavior: reduce ? 'auto' : 'smooth' });
+  }, [chat.messages.length, chat.busy, reduce]);
+
+  // Escape switches assistant mode off, back to where it was switched on.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !listOpen) router.push(takeReturn());
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [router, listOpen]);
+
+  const name = profile?.handle ? `@${profile.handle}` : (profile?.displayName ?? '').trim().split(/\s+/)[0] ?? '';
+  const template = t[greetingKey(new Date().getHours())];
+  // Without a name the greeting drops it with its comma.
+  const greeting = name ? template.replace('{name}', name) : template.replace(/[,،]\s*\{name\}/, '');
+
+  async function send(text: string) {
+    const question = text.trim();
+    if (!question || chat.busy) return;
+    setInput('');
+    await chat.send(question);
+  }
+
+  async function openConversation(id: string) {
+    setListOpen(false);
+    setOpenError(false);
+    try {
+      await chat.open(id);
+    } catch {
+      setOpenError(true);
+    }
+    void queryClient.invalidateQueries({ queryKey: LIST_KEY });
+  }
+
+  async function startNew() {
+    setListOpen(false);
+    setOpenError(false);
+    await chat.startNew();
+    void queryClient.invalidateQueries({ queryKey: LIST_KEY });
+  }
+
+  const column = (
+    <ConversationList list={list.data ?? []} currentId={chat.conversationId} onNew={() => void startNew()} onOpen={(id) => void openConversation(id)} />
+  );
+  const empty = chat.messages.length === 0;
+
+  return (
+    <div className="flex min-h-[calc(100svh-var(--lp-nav-h,68px))] w-full text-[var(--lp-dark)]">
+      <aside className="hidden w-[300px] shrink-0 border-e border-[var(--lp-border-light)] px-4 py-5 lg:block">
+        <div className="sticky top-[calc(var(--lp-nav-h,72px)+20px)]">{column}</div>
+      </aside>
+
+      <section className="flex min-w-0 flex-1 flex-col">
+        <div className="flex items-center justify-between gap-2 px-4 pt-3 lg:hidden">
+          <button type="button" onClick={() => setListOpen(true)} className="inline-flex min-h-11 items-center gap-2 rounded-full px-2 text-[15px] font-semibold text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden><path d="M4 7h16M4 12h16M4 17h10" /></svg>
+            {t.conversations}
+          </button>
+          <button type="button" onClick={() => void startNew()} aria-label={t.newConversation} className="grid size-11 place-items-center rounded-full text-[var(--lp-dark)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
+          </button>
+        </div>
+
+        <div className="mx-auto flex w-full max-w-[760px] flex-1 flex-col gap-3 px-4 pb-4 pt-6 sm:px-6 sm:pt-8">
+          {empty ? (
+            <motion.div initial={reduce ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: ease.out }} className="pt-6 sm:pt-12">
+              <h1 className="text-[28px] font-bold tracking-[-0.03em] sm:text-[32px]">{greeting}</h1>
+              <p className="mt-2 max-w-[52ch] text-[17px] font-medium text-[var(--lp-text-sub)]">{t.greetingBody}</p>
+            </motion.div>
+          ) : (
+            <AssistantThread messages={chat.messages} busy={chat.busy} onNavigate={() => undefined} />
+          )}
+          {openError ? <p role="alert" className="border-s-2 border-[var(--color-critical)] ps-3 text-[14px]">{t.loadError}</p> : null}
+          {chat.error ? <p role="alert" className="border-s-2 border-[var(--color-critical)] ps-3 text-[14px]">{chat.error}</p> : null}
+          <div ref={endRef} />
+        </div>
+
+        <div className="sticky bottom-0 bg-[var(--lp-bg)] px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 sm:px-6">
+          <div className="mx-auto max-w-[760px]">
+            {empty ? (
+              <div className="mb-3 flex gap-2 overflow-x-auto pb-1 sm:flex-wrap">
+                {t.chips.map((chip) => (
+                  <button
+                    key={chip}
+                    type="button"
+                    onClick={() => void send(chip)}
+                    disabled={chat.busy}
+                    className="min-h-11 shrink-0 rounded-full border border-[var(--lp-outline-strong)] px-4 text-[14px] font-semibold text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-light)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+                  >
+                    {chip}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void send(input);
+              }}
+              className="flex items-end gap-2 rounded-[20px] border border-[var(--lp-outline-strong)] bg-[var(--lp-card)] py-2 pe-2 ps-4 focus-within:border-[var(--lp-accent)]"
+            >
+              <label htmlFor="assistant-ask" className="sr-only">{t.placeholder}</label>
+              <textarea
+                id="assistant-ask"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    void send(input);
+                  }
+                }}
+                rows={1}
+                dir="auto"
+                placeholder={t.placeholder}
+                className="max-h-36 min-h-11 flex-1 resize-none bg-transparent py-2.5 text-[16px] text-[var(--lp-dark)] outline-none placeholder:text-[var(--lp-text-muted)]"
+              />
+              <button
+                type="submit"
+                disabled={chat.busy || !input.trim()}
+                aria-label={messages.assistant.send}
+                className="grid size-11 shrink-0 place-items-center rounded-[12px] bg-[var(--lp-accent)] text-[var(--accent-ink)] transition-opacity disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]"
+              >
+                <Icon name="send" size={20} />
+              </button>
+            </form>
+            <p className="mt-2 text-center text-[14px] text-[var(--lp-text-sub)]">{t.confirmNote}</p>
+          </div>
+        </div>
+      </section>
+
+      <AnimatePresence>
+        {listOpen ? (
+          <motion.div
+            key="list"
+            className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: reduce ? 0 : 0.2 }}
+            onClick={() => setListOpen(false)}
+          >
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-label={t.conversations}
+              className="absolute inset-x-0 bottom-0 max-h-[80svh] overflow-y-auto rounded-t-[22px] bg-[var(--lp-card)] p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
+              initial={reduce ? false : { y: 40 }}
+              animate={{ y: 0 }}
+              exit={reduce ? undefined : { y: 40 }}
+              transition={{ duration: 0.26, ease: ease.out }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {column}
+            </motion.div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </div>
+  );
+}

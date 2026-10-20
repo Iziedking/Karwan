@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {
   getShellSurface,
   getProductBackHref,
+  isAssistantRoute,
   isBareRoute,
   isFocusedRoute,
   isPublicAccessRoute,
@@ -47,6 +48,12 @@ for (const route of ['/onboarding', '/onboarding?step=profile']) {
 for (const signedIn of [false, true]) {
   assert.equal(getShellSurface('/setup', signedIn), 'focused', 'setup is focused');
 }
+
+// Assistant mode is a workspace page without the rail or the bottom bar (view 19).
+assert.equal(getShellSurface('/assistant', true), 'workspace', 'assistant is a workspace page');
+assert.equal(isAssistantRoute('/assistant'), true);
+assert.equal(isAssistantRoute('/assistant?c=1'), true);
+assert.equal(isAssistantRoute('/app'), false);
 
 // Cashout is focused only for someone who has no app to navigate. A signed-in
 // person cashing out their own deal keeps their nav; taking it away left them

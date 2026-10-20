@@ -1,6 +1,7 @@
 /// The browser tab title of each page, shown as "<title> · Karwan".
 export type RouteTitleKey =
   | 'account'
+  | 'assistant'
   | 'connectTelegram'
   | 'activity'
   | 'activityAllTime'
@@ -115,6 +116,7 @@ const en: RouteTitleCopy = {
   seller: 'Sell',
   send: 'Send',
   setUp: 'Set up my Karwan',
+  assistant: 'Assistant',
   settings: 'Settings',
   stake: 'Stake',
   signIn: 'Sign in',
@@ -178,6 +180,7 @@ const ar: RouteTitleCopy = {
   seller: 'بيع',
   send: 'إرسال',
   setUp: 'إعداد Karwan الخاص بي',
+  assistant: 'المساعد',
   settings: 'الإعدادات',
   stake: 'الرهن',
   signIn: 'تسجيل الدخول',
@@ -241,6 +244,7 @@ const fr: RouteTitleCopy = {
   seller: 'Vendre',
   send: 'Envoyer',
   setUp: 'Configurer mon Karwan',
+  assistant: 'Assistant',
   settings: 'Paramètres',
   stake: 'Staking',
   signIn: 'Se connecter',
@@ -304,6 +308,7 @@ const hi: RouteTitleCopy = {
   seller: 'बेचें',
   send: 'भेजें',
   setUp: 'मेरा Karwan सेट करें',
+  assistant: 'सहायक',
   settings: 'सेटिंग्स',
   stake: 'स्टेक',
   signIn: 'साइन इन',
@@ -367,6 +372,7 @@ const sw: RouteTitleCopy = {
   seller: 'Uza',
   send: 'Tuma',
   setUp: 'Weka Karwan yangu',
+  assistant: 'Msaidizi',
   settings: 'Mipangilio',
   stake: 'Weka dhamana',
   signIn: 'Ingia',

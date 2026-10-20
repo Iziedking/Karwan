@@ -1863,6 +1863,31 @@ export interface AssistantConfirmAction {
 
 export type AssistantAction = AssistantNavigateAction | AssistantConfirmAction;
 
+/// A card from a saved conversation: what was shown, never something to run.
+export interface PastAssistantAction {
+  kind: string;
+  title?: string;
+  label?: string;
+  status: 'done' | 'expired';
+}
+
+export interface SavedAssistantMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  actions?: PastAssistantAction[];
+}
+
+export interface AssistantConversationSummary {
+  id: string;
+  title: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface AssistantConversation extends AssistantConversationSummary {
+  messages: SavedAssistantMessage[];
+}
+
 async function json<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = { 'content-type': 'application/json', ...(init?.headers ?? {}) };
   const res = await fetch(`${BASE}${path}`, {
@@ -5120,6 +5145,17 @@ export const api = {
     json<{ lines: string[]; needs: Array<'price'> }>('/api/setup/preview', { method: 'POST', body: JSON.stringify({ answers }) }),
   setupSave: (answers: SetupAnswers) =>
     json<{ profile: UserProfile }>('/api/setup/save', { method: 'POST', body: JSON.stringify({ answers }) }),
+  /// Assistant conversations saved to the account (view 19).
+  assistantConversations: () => json<{ conversations: AssistantConversationSummary[] }>('/api/assistant/conversations'),
+  assistantConversation: (id: string) =>
+    json<{ conversation: AssistantConversation }>(`/api/assistant/conversations/${encodeURIComponent(id)}`),
+  saveAssistantMessages: (id: string | null, messages: Array<{ role: 'user' | 'assistant'; content: string; actions?: Array<Record<string, unknown>> }>) =>
+    json<{ conversation: AssistantConversation }>('/api/assistant/conversations', {
+      method: 'POST',
+      body: JSON.stringify({ ...(id ? { id } : {}), messages }),
+    }),
+  deleteAssistantConversation: (id: string) =>
+    json<{ ok: true }>(`/api/assistant/conversations/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   /// Provider-neutral money movement orchestration. The API records intent and
   /// capability truth; the existing wallet/Gateway/CCTP actions remain the
   /// execution surfaces until a provider checkout is configured.
@@ -5230,10 +5266,11 @@ export const api = {
   },
 
   // In-app support assistant. Sends the recent turns and gets one reply back.
-  assistantChat: (messages: Array<{ role: 'user' | 'assistant'; content: string }>) =>
+  /// `mode` says where the person is typing: the Help panel or assistant mode.
+  assistantChat: (messages: Array<{ role: 'user' | 'assistant'; content: string }>, mode?: 'help' | 'assistant') =>
     json<{ reply: string; actions?: AssistantAction[] }>('/api/assistant/chat', {
       method: 'POST',
-      body: JSON.stringify({ messages }),
+      body: JSON.stringify({ messages, ...(mode ? { mode } : {}) }),
     }),
 
   // Live support handoff. The widget escalates from the AI to a human; the

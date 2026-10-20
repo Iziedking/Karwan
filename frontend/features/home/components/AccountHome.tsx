@@ -7,6 +7,7 @@ import type { UserProfile } from '@/core/api';
 import { stageOf, type DealStage } from '@/features/deals/components/DirectDealList';
 import { useDirectDeals } from '@/features/deals/hooks/useDirectDeals';
 import { FirstTrade } from './FirstTrade';
+import { rememberReturn } from '@/features/assistant/assistantReturn';
 import { pickCurrentDeal } from '@/features/home/currentDeal';
 import { useOwnedBalance } from '@/features/money/hooks/useOwnedBalance';
 import { fill } from '@/features/deals/workspace/presentation';
@@ -56,13 +57,13 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
           {translations.businessHome.hero.welcomeBack} {firstName}
         </h1>
 
-        <div className="mt-4 grid items-start gap-5 lg:grid-cols-[minmax(0,520px)_minmax(0,1fr)]">
+        <div className="mt-4 grid items-start gap-5 lg:grid-cols-[minmax(0,460px)_minmax(0,1fr)]">
           <motion.div
             data-guide="home-money"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.48, ease: [0.16, 1, 0.3, 1] }}
-            className="w-full rounded-[22px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-4 sm:rounded-[24px] sm:p-6 lg:max-w-[520px]"
+            className="w-full rounded-[22px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-4 sm:rounded-[24px] sm:p-6 lg:max-w-[460px]"
             aria-label={home.balanceLabel}
           >
             <div className="flex items-center justify-between gap-3">
@@ -96,6 +97,14 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
               <QuickAction href="/send">{home.send}</QuickAction>
               <QuickAction href="/request">{payLink.short}</QuickAction>
             </div>
+            <Link
+              href="/assistant"
+              onClick={() => rememberReturn('/app')}
+              className="mt-3 flex min-h-[52px] items-center gap-3 rounded-[16px] border border-[var(--lp-border-light)] px-4 text-[15px] font-medium text-[var(--lp-text-sub)] transition-colors hover:border-[var(--lp-outline-strong)] hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--lp-accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0"><path d="M4 5h16v11H9l-5 4z" /></svg>
+              <span className="min-w-0 flex-1">{translations.assistantMode.askHome}</span>
+            </Link>
             {ARC_NETWORK === 'testnet' ? (
               <Link
                 href="/profile/wallets"

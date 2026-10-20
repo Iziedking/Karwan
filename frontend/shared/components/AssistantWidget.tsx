@@ -1,45 +1,20 @@
 'use client';
-import { HELP_OPEN_EVENT } from '@/shared/assistant/openHelp';
+import { HELP_OPEN_EVENT, type HelpOpenDetail } from '@/shared/assistant/openHelp';
+import { AssistantThread, Bubble, Dot, confirmOutcomes } from '@/shared/assistant/AssistantThread';
+import { useAssistantChat } from '@/shared/assistant/useAssistantChat';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useAccount, useChainId, usePublicClient, useSwitchChain, useWalletClient } from 'wagmi';
-import { erc20Abi, parseUnits } from 'viem';
-import { GATEWAY_CHAINS } from '@/features/bridge/config';
-import { useConnectModal } from '@rainbow-me/rainbowkit';
-import { useBridges, type BridgeStartResult } from '@/features/bridge/hooks/useBridge';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import {
-  api,
-  ApiError,
-  type AssistantAction,
-  type AssistantNavigateAction,
-  type AssistantConfirmAction,
-} from '@/core/api';
-import type { SetupAnswers } from '@/features/setup/setupSteps';
+import { usePathname } from 'next/navigation';
+import { api, ApiError } from '@/core/api';
 import { stripMarkdown } from '@/shared/utils/format';
-import { tidyAssistantText } from '@/shared/utils/assistantText';
-import { confirmTransaction } from '@/shared/chain/confirmTx';
-import {
-  ARC_EXPLORER_TX,
-  ARC_CHAIN_ID,
-  ARC_USDC_ADDRESS,
-  ARC_USDC_DECIMALS,
-} from '@/features/profile/config';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import {
   useFloatingClearance,
   floatingClearanceStyle,
 } from '@/shared/hooks/useFloatingClearance';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { isPublicEditorialRoute } from '@/shared/utils/routes';
+import { isAssistantRoute, isPublicEditorialRoute } from '@/shared/utils/routes';
 import { Icon } from '@/shared/components/Icon';
-
-interface Turn {
-  role: 'user' | 'assistant';
-  content: string;
-  /// Navigate buttons the authenticated assistant attached to this reply.
-  actions?: AssistantAction[];
-}
 
 interface LiveMsg {
   role: 'user' | 'assistant' | 'operator' | 'system';
@@ -72,14 +47,19 @@ export function AssistantWidget() {
   const clearance = useFloatingClearance('end');
   const [expanded, setExpanded] = useState(false);
   const auth = useAuth();
-  const [turns, setTurns] = useState<Turn[]>([]);
   const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [liveLoading, setLiveLoading] = useState(false);
+  const [liveError, setLiveError] = useState<string | null>(null);
   const [handoffEnabled, setHandoffEnabled] = useState<boolean | null>(null);
-  // Only true once the assistant itself decides the issue needs a person, so
-  // the handoff button stays hidden during ordinary Q&A and can't be spammed.
+  // True once the person asked for someone or the assistant cannot do it
+  // (owner, 20 Oct 2026). A person is then brought in without a button.
   const [humanSuggested, setHumanSuggested] = useState(false);
+  const autoTriedRef = useRef(false);
+  const suggestHuman = useCallback(() => setHumanSuggested(true), []);
+  const chat = useAssistantChat({ onNeedsHuman: suggestHuman, mode: 'help' });
+  const turns = chat.messages;
+  const loading = liveLoading || chat.busy;
+  const error = liveError ?? chat.error;
   const [convoId, setConvoId] = useState<string | null>(null);
   const [live, setLive] = useState<LiveMsg[]>([]);
   const [liveClosed, setLiveClosed] = useState(false);
@@ -89,9 +69,14 @@ export function AssistantWidget() {
   // Any screen can open Help, with a question already typed (shared/assistant/openHelp.ts).
   useEffect(() => {
     const onOpen = (e: Event) => {
-      const prefill = (e as CustomEvent<{ prefill?: string }>).detail?.prefill;
+      const detail = (e as CustomEvent<HelpOpenDetail>).detail ?? {};
       setOpen(true);
-      if (prefill) setInput(prefill);
+      if (detail.prefill) setInput(detail.prefill);
+      // Assistant mode asked for a person: carry its conversation over.
+      if (detail.person) {
+        if (detail.transcript?.length) chat.reset(detail.transcript);
+        setHumanSuggested(true);
+      }
     };
     window.addEventListener(HELP_OPEN_EVENT, onOpen);
     return () => window.removeEventListener(HELP_OPEN_EVENT, onOpen);
@@ -115,8 +100,8 @@ export function AssistantWidget() {
     const next = auth.address?.toLowerCase() ?? null;
     if (prevAddressRef.current !== null && prevAddressRef.current !== next) {
       confirmOutcomes.clear();
-      setTurns([]);
-      setError(null);
+      chat.reset();
+      setLiveError(null);
     }
     prevAddressRef.current = next;
   }, [auth.address]);
@@ -184,10 +169,19 @@ export function AssistantWidget() {
     return () => clearInterval(id);
   }, [open, convoId, liveClosed, pollLive]);
 
+  // Bring a person in as soon as it is needed and the channel is known to be on.
+  // One automatic try; a failure shows the button to try again.
+  useEffect(() => {
+    if (!humanSuggested || handoffEnabled !== true || convoId !== null || loading || autoTriedRef.current) return;
+    autoTriedRef.current = true;
+    void startHandoff();
+  });
+
   async function startHandoff() {
     if (loading || convoId) return;
-    setError(null);
-    setLoading(true);
+    setLiveError(null);
+    chat.setError(null);
+    setLiveLoading(true);
     try {
       const transcript = turns.map((m) => ({ role: m.role, content: m.content }));
       const res = await api.supportStart(transcript);
@@ -199,9 +193,9 @@ export function AssistantWidget() {
         window.localStorage.setItem(SUPPORT_STORAGE_KEY, res.conversationId);
       }
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : t.error);
+      setLiveError(e instanceof ApiError ? e.message : t.error);
     } finally {
-      setLoading(false);
+      setLiveLoading(false);
     }
   }
 
@@ -217,6 +211,7 @@ export function AssistantWidget() {
   }
 
   function resetToAssistant() {
+    autoTriedRef.current = false;
     setConvoId(null);
     setLive([]);
     setLiveClosed(false);
@@ -235,55 +230,23 @@ export function AssistantWidget() {
     if (convoId) {
       if (liveClosed) return;
       setInput('');
-      setError(null);
-      setLoading(true);
+      setLiveError(null);
+      setLiveLoading(true);
       try {
         await api.supportSend(convoId, text);
         await pollLive();
       } catch (e) {
-        setError(e instanceof ApiError ? e.message : t.error);
+        setLiveError(e instanceof ApiError ? e.message : t.error);
       } finally {
-        setLoading(false);
+        setLiveLoading(false);
       }
       return;
     }
 
     // AI mode.
-    const next = [...turns, { role: 'user' as const, content: text }];
-    setTurns(next);
     setInput('');
-    setError(null);
-    setLoading(true);
-    try {
-      const { reply, actions } = await api.assistantChat(next);
-      // The assistant appends [[HUMAN]] only when it judges the issue needs a
-      // person. Strip the marker from what we show and reveal the handoff.
-      const needsHuman = /\[\[HUMAN\]\]/i.test(reply);
-      const clean = reply.replace(/\[\[HUMAN\]\]/gi, '').trim();
-      setTurns([...next, { role: 'assistant', content: clean, actions }]);
-      if (needsHuman) setHumanSuggested(true);
-    } catch (e) {
-      // Map the backend's error codes to a human line instead of showing the
-      // raw "assistant-error" string. The human fallback is revealed below.
-      const code = e instanceof ApiError ? e.message : '';
-      const reason = e instanceof ApiError ? e.code : undefined;
-      setError(
-        reason === 'assistant_state_unavailable'
-          ? 'I could not verify your live account state, so I have not claimed that anything happened. Try again shortly, or talk to a human below.'
-          : code === 'assistant-timeout'
-          ? 'The assistant took too long. Try again, or talk to a human below.'
-          : code === 'assistant-unavailable'
-            ? 'The assistant is offline right now. You can talk to a human below.'
-            : code === 'assistant-error'
-              ? 'The assistant hit a snag. Try again, or talk to a human below.'
-              : t.error,
-      );
-      // A failed assistant call leaves the user stuck; offer a human as a
-      // fallback so they aren't stranded.
-      setHumanSuggested(true);
-    } finally {
-      setLoading(false);
-    }
+    setLiveError(null);
+    await chat.send(text);
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -294,7 +257,10 @@ export function AssistantWidget() {
   }
 
   const isLive = convoId !== null;
-  const showHandoffButton = handoffEnabled === true && !isLive && humanSuggested;
+  // The automatic start already ran and did not connect: let them try again.
+  const showHandoffButton = handoffEnabled === true && !isLive && humanSuggested && autoTriedRef.current && !loading;
+  // No live support channel: the feedback page is how a person is reached.
+  const showFeedbackLink = handoffEnabled === false && humanSuggested;
 
   // The Ask launcher never shows on the landing/marketing pages, and never
   // before sign-in: the assistant answers from the caller's own balances and
@@ -303,7 +269,10 @@ export function AssistantWidget() {
   // isLoading avoids flashing the launcher during the web3 reconnect window
   // and then pulling it away. Hooks above all run either way so the poll state
   // stays intact once the user does sign in.
+  // Assistant mode is the assistant, so its launcher would sit over the
+  // composer; the panel still opens there when the assistant asks for a person.
   if (isPublicEditorialRoute(pathname)) return null;
+  if (isAssistantRoute(pathname) && !open) return null;
   if (auth.isLoading || !auth.isAuthenticated) return null;
 
   return (
@@ -329,9 +298,7 @@ export function AssistantWidget() {
               1
             </span>
           )}
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
-            <path d="M8 1.5c-3.6 0-6.5 2.4-6.5 5.4 0 1.7.9 3.2 2.4 4.2-.1.8-.5 1.7-1.2 2.5 1.3-.1 2.5-.5 3.4-1.1.6.1 1.2.2 1.9.2 3.6 0 6.5-2.4 6.5-5.4S11.6 1.5 8 1.5z" />
-          </svg>
+          <span aria-hidden className="-ms-1.5 grid size-[26px] place-items-center rounded-full bg-[var(--lp-light)] text-[15px] font-bold leading-none text-[var(--lp-dark)]">?</span>
           <span>
             {unread ? a11y.newReply : t.launcherLabel}
           </span>
@@ -412,20 +379,7 @@ export function AssistantWidget() {
                 ))}
               </div>
             ) : null}
-            {turns.map((m, i) => (
-              <div key={i} className="space-y-2">
-                <Bubble role={m.role}>
-                  {m.role === 'assistant' ? (
-                    <RichText text={m.content} onNavigate={() => setOpen(false)} />
-                  ) : (
-                    m.content
-                  )}
-                </Bubble>
-                {m.role === 'assistant' && m.actions && m.actions.length > 0 && (
-                  <ActionButtons actions={m.actions} onNavigate={() => setOpen(false)} />
-                )}
-              </div>
-            ))}
+            <AssistantThread messages={turns} busy={false} onNavigate={() => setOpen(false)} />
             {isLive && (
               <>
                 <div className="flex items-center gap-2 pt-1">
@@ -480,6 +434,14 @@ export function AssistantWidget() {
 
           {/* input */}
           <div className="p-3 border-t border-[var(--lp-border-light)]">
+            {showFeedbackLink && (
+              <Link
+                href="/feedback"
+                className="mb-2 flex min-h-11 w-full items-center justify-center rounded-full border border-[var(--lp-border-light)] px-4 text-[14px] font-medium text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-light)]"
+              >
+                {t.humanButton}
+              </Link>
+            )}
             {showHandoffButton && (
               <button
                 type="button"
@@ -552,1104 +514,3 @@ export function AssistantWidget() {
   );
 }
 
-/// Renders the structured actions the authenticated assistant attached to a
-/// reply, dispatching by kind: a navigate button routes to a screen, a confirm
-/// card proposes a reversible write the user must approve.
-function ActionButtons({
-  actions,
-  onNavigate,
-}: {
-  actions: AssistantAction[];
-  onNavigate: () => void;
-}) {
-  return (
-    <div className="flex flex-col gap-2 ps-1">
-      {actions.map((a) =>
-        a.kind === 'confirm' ? (
-          <ConfirmCard key={a.id} action={a} onNavigate={onNavigate} />
-        ) : (
-          <NavigateButton key={a.id} action={a} onNavigate={onNavigate} />
-        ),
-      )}
-    </div>
-  );
-}
-
-/// A navigate button. The href is allowlist-built on the backend, but the click
-/// still guards for a single-slash internal path so a malformed value can never
-/// trigger an external navigation.
-function NavigateButton({
-  action,
-  onNavigate,
-}: {
-  action: AssistantNavigateAction;
-  onNavigate: () => void;
-}) {
-  const router = useRouter();
-  const go = () => {
-    const href = action.href;
-    if (!href.startsWith('/') || href.startsWith('//')) return;
-    onNavigate();
-    router.push(href);
-  };
-  return (
-    <button
-      type="button"
-      onClick={go}
-      className="group flex min-h-12 w-full items-center gap-3 rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3.5 py-2.5 text-start text-[var(--lp-dark)] transition-colors hover:border-[var(--lp-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
-    >
-      <span className="min-w-0 flex-1">
-        <span className="line-clamp-2 text-[14px] font-semibold leading-snug">{action.label}</span>
-        {action.description ? (
-          <span className="mt-0.5 block truncate text-[14px] text-[var(--lp-text-sub)] font-medium">{action.description}</span>
-        ) : null}
-      </span>
-      <span aria-hidden className="grid size-7 shrink-0 place-items-center rounded-full bg-[var(--lp-light)] text-[var(--lp-text-sub)] transition-colors group-hover:bg-[var(--lp-accent)] group-hover:text-[var(--accent-ink)]">
-        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className="rtl:-scale-x-100">
-          <path d="M3 8h9M8 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </span>
-    </button>
-  );
-}
-
-/// Confirm outcomes persisted for the page session, keyed by action.id (ids are
-/// server-nonced, so two separately proposed actions never collide). The chat
-/// panel unmounts its cards when it closes (and the "view" button closes it on
-/// the way out), which would otherwise reset a completed card back to its
-/// confirmable state on the next open — re-showing the button (a double-submit:
-/// a second post is a DUPLICATE deal) and dropping the receipt. Recording the
-/// outcome here, outside the component tree, makes 'done' and 'dismissed' survive
-/// remounts and navigation, so a card that already ran can never run again. The
-/// 'running' sentinel closes the remaining race: two mounted cards for the same
-/// id can't both fire, because confirm() re-checks the store before executing.
-/// Cleared on account change so one user's outcomes never leak to the next.
-const confirmOutcomes = new Map<string, ConfirmResult | 'dismissed' | 'running'>();
-
-interface ConfirmResult {
-  /// The outcome is authoritative. A resolved promise is not enough because
-  /// wallet SDKs can resolve after recording a failed bridge.
-  state?: 'completed' | 'pending';
-  successText: string;
-  viewHref: string;
-  viewLabel: string;
-  /// On-chain Arc tx hash for the settled move, shown as a verifiable receipt
-  /// linking to the Arc explorer. Present for the intents that settle in one
-  /// Arc tx (release, withdraw, deposit).
-  txHash?: string;
-  /// Gateway transfer reference when the spend has no single Arc tx hash to
-  /// link (unified-balance spends return a transferId, not a tx hash).
-  refId?: string;
-}
-
-/// Poll a just-started bridge for its source-side burn hash. The bridge-out
-/// route accepts (202) and signs the Arc burn in the background, so the hash
-/// exists a beat later. Bounded so a slow burn never hangs the card: returns
-/// null and the caller falls back to "track it on /bridge".
-/// What actually happened to a bridge we just queued.
-///
-/// Three outcomes, and they must stay distinguishable. The previous version
-/// returned `string | undefined` and collapsed "it failed" into the same
-/// `undefined` as "not confirmed yet", so the caller reported success for a
-/// bridge the backend had already marked errored. The failure carries the
-/// backend's own reason, because "something went wrong" tells a user holding
-/// money nothing they can act on.
-type BridgeOutcome =
-  | { state: 'burned'; txHash: string }
-  | { state: 'failed'; reason: string | null }
-  | { state: 'pending' };
-
-function movementOutcome(state: unknown): 'completed' | 'pending' | 'failed' {
-  if (state === 'needs_attention' || state === 'cancelled' || state === 'failed' || state === 'error') {
-    return 'failed';
-  }
-  if (state === 'completed' || state === 'settled' || state === 'succeeded') return 'completed';
-  return 'pending';
-}
-
-async function pollBridgeOutcome(bridgeId: string, attempts = 6): Promise<BridgeOutcome> {
-  for (let i = 0; i < attempts; i++) {
-    await new Promise((r) => setTimeout(r, 1500));
-    try {
-      const s = await api.bridgeStatus(bridgeId);
-      if (s.status === 'error') return { state: 'failed', reason: s.error };
-      if (s.status === 'minted') {
-        const hash = s.sourceTxHash ?? s.mintTxHash;
-        if (hash) return { state: 'burned', txHash: hash };
-      }
-      if (s.sourceTxHash) return { state: 'burned', txHash: s.sourceTxHash };
-    } catch {
-      // Record not visible yet, or a transient read failure. Keep waiting.
-    }
-  }
-  return { state: 'pending' };
-}
-
-/// Run a confirm action against the SAME session-gated route the UI uses. Each
-/// intent maps to one existing api method; nothing here signs — for release the
-/// backend's buyer-agent Circle wallet signs, gated by the session. Returns what
-/// to show on success.
-/// Client-side executors a confirm intent may need. Every other intent calls a
-/// session-gated backend route; the web3 top-up is the exception, because the
-/// user signs it in their own wallet and no backend can do that for them.
-interface ConfirmDeps {
-  startWeb3TopUp?: (input: {
-    sourceChainKey: string;
-    amountUsdc: number;
-    mintRecipient: `0x${string}`;
-  }) => Promise<BridgeStartResult>;
-  startWeb3CashOut?: (input: {
-    destChainKey: string;
-    recipient: `0x${string}`;
-    amountUsdc: number;
-  }) => Promise<BridgeStartResult>;
-  /// Pooling into the unified balance is signed by the user's own EOA (Gateway
-  /// rejects an SCA's EIP-1271), so it runs client-side like the two above.
-  startGatewayDeposit?: (input: { sourceChainKey: string; amountUsdc: number }) => Promise<void>;
-  startFundAgentWeb3?: (input: {
-    agent: 'buyer' | 'seller';
-    toAddress: string;
-    amountUsdc: number;
-    requestId: string;
-  }) => Promise<void>;
-}
-
-async function runConfirmIntent(
-  action: AssistantConfirmAction,
-  deps: ConfirmDeps = {},
-): Promise<ConfirmResult> {
-  if (action.intent === 'top_up_web3') {
-    const p = action.payload as {
-      sourceChainKey: string;
-      amountUsdc: number;
-      mintRecipient: string;
-    };
-    if (!deps.startWeb3TopUp) {
-      throw new Error('Open the Add money screen to run this transfer.');
-    }
-    // Opens the wallet. It resolves once the burn is signed and submitted; the
-    // forwarder mints on Arc after that, tracked on the bridge screen.
-    const outcome = await deps.startWeb3TopUp({
-      sourceChainKey: p.sourceChainKey,
-      amountUsdc: p.amountUsdc,
-      mintRecipient: p.mintRecipient as `0x${string}`,
-    });
-    if (outcome.state === 'failed') {
-      throw new Error(outcome.error ?? 'The transfer did not complete. Your USDC has not moved.');
-    }
-    return {
-      state: outcome.state === 'completed' ? 'completed' : 'pending',
-      successText: outcome.state === 'completed'
-        ? 'Transfer submitted. Check the bridge status before counting on the funds.'
-        : 'Transfer is still confirming. It is not marked complete yet.',
-      viewHref: '/bridge',
-      viewLabel: 'Track it',
-      ...(outcome.txHash ? { txHash: outcome.txHash } : {}),
-    };
-  }
-  if (action.intent === 'pool_usdc_web3') {
-    const p = action.payload as { sourceChainKey: string; amountUsdc: number };
-    if (!deps.startGatewayDeposit) {
-      throw new Error('Open the Add money screen to pool this USDC.');
-    }
-    await deps.startGatewayDeposit({
-      sourceChainKey: p.sourceChainKey,
-      amountUsdc: p.amountUsdc,
-    });
-    // Gateway indexes the deposit a beat after the source tx lands, so the new
-    // figure appears on the rail rather than instantly here.
-    return {
-      successText: 'Pooled. It shows in your unified balance shortly.',
-      viewHref: '/bridge?rail=gateway',
-      viewLabel: 'Your balance',
-    };
-  }
-  if (action.intent === 'fund_agent_web3') {
-    const p = action.payload as { agent: string; toAddress: string; amountUsdc: number };
-    if (!deps.startFundAgentWeb3) {
-      throw new Error('Open your profile to move USDC into your agent.');
-    }
-    // A plain USDC transfer on Arc, signed by the user because they self-custody
-    // the source wallet. The agent wallet is a Circle DCW, so nothing else here
-    // needs a signature.
-    await deps.startFundAgentWeb3({
-      agent: p.agent === 'seller' ? 'seller' : 'buyer',
-      toAddress: p.toAddress,
-      amountUsdc: p.amountUsdc,
-      requestId: action.id,
-    });
-    return {
-      successText: `Sent. Your ${p.agent} agent is funded.`,
-      viewHref: '/profile/wallets',
-      viewLabel: 'Your wallets',
-    };
-  }
-  if (action.intent === 'cash_out_web3') {
-    const p = action.payload as {
-      destChainKey: string;
-      recipient: string;
-      amountUsdc: number;
-    };
-    if (!deps.startWeb3CashOut) {
-      throw new Error('Open the Cash out screen to run this transfer.');
-    }
-    // Opens the wallet for the Arc burn; the forwarder mints on the destination
-    // chain. Resolves once signed and submitted.
-    const outcome = await deps.startWeb3CashOut({
-      destChainKey: p.destChainKey,
-      recipient: p.recipient as `0x${string}`,
-      amountUsdc: p.amountUsdc,
-    });
-    if (outcome.state === 'failed') {
-      throw new Error(outcome.error ?? 'The transfer did not complete. Your USDC has not moved.');
-    }
-    return {
-      state: outcome.state === 'completed' ? 'completed' : 'pending',
-      successText: outcome.state === 'completed'
-        ? 'Transfer submitted. Check the bridge status before counting on the funds.'
-        : 'Transfer is still confirming. It is not marked complete yet.',
-      viewHref: '/bridge',
-      viewLabel: 'Track it',
-      ...(outcome.txHash ? { txHash: outcome.txHash } : {}),
-    };
-  }
-  if (action.intent === 'post_offer') {
-    await api.postListing(action.payload as Parameters<typeof api.postListing>[0]);
-    return { successText: 'Your offer is live.', viewHref: '/market', viewLabel: 'View on the market' };
-  }
-  if (action.intent === 'post_request') {
-    const p = action.payload as { posterAddress: string; brief: string; budgetUsdc: number; deadlineDays: number };
-    const r = await api.postJob({
-      posterAddress: p.posterAddress,
-      brief: p.brief,
-      budgetUsdc: p.budgetUsdc,
-      // deadlineDays is often fractional (server-computed from a calendar
-      // date); the route's deadlineDays field is integer-only, so always send
-      // the seconds shape, clamped to the route's own bounds (60s..90d).
-      deadlineSeconds: Math.min(90 * 86_400, Math.max(60, Math.round(p.deadlineDays * 86_400))),
-    });
-    return {
-      successText: 'Request posted. Your agent is finding developers now.',
-      viewHref: `/jobs/${r.jobId}`,
-      viewLabel: 'Track matching',
-      txHash: r.txHash,
-    };
-  }
-  if (action.intent === 'release_milestone') {
-    const p = action.payload as { jobId: string; caller: string };
-    const r = await api.releaseDirectDeal(p.jobId, p.caller);
-    // Settlement-speed line: the route measures approval-to-verified itself.
-    const settleLine =
-      r.settledInMs != null
-        ? ` Settled on chain in ${r.settledInMs < 10_000 ? (r.settledInMs / 1000).toFixed(1) : Math.round(r.settledInMs / 1000)}s.`
-        : '';
-    return {
-      successText: `Payment released.${settleLine}`,
-      viewHref: `/deals/${p.jobId}`,
-      viewLabel: 'Open the deal',
-      txHash: r.txHash,
-    };
-  }
-  if (action.intent === 'withdraw_proceeds') {
-    const r = await api.withdrawFromAgent(action.payload as Parameters<typeof api.withdrawFromAgent>[0]);
-    const outcome = movementOutcome(r.movementState);
-    if (outcome === 'failed') {
-      throw new Error('Withdrawal needs attention. No completion was confirmed; check your activity and try again.');
-    }
-    return {
-      state: outcome,
-      successText: outcome === 'completed'
-        ? 'Withdrawal completed. Check your wallet before counting on the funds.'
-        : 'Withdrawal is being confirmed. It is not complete yet.',
-      viewHref: '/profile/agent-funds',
-      viewLabel: 'View your wallets',
-      txHash: r.txHash,
-    };
-  }
-  if (action.intent === 'cash_out') {
-    const p = action.payload as {
-      address: string;
-      destChainKey: string;
-      amountUsdc: number;
-      recipient: string;
-      sourceKind: 'identity';
-      route: 'wallet' | 'unified';
-    };
-    // Same user-facing action, two rails. The backend picked the one that fits
-    // where the money sits; a Gateway spend settles in under a second, so when
-    // it is available the copy can promise a faster arrival.
-    if (p.route === 'unified') {
-      const r = await api.gatewayCashOut(
-        p.destChainKey as Parameters<typeof api.gatewayCashOut>[0],
-        p.recipient,
-        p.amountUsdc,
-        crypto.randomUUID(),
-      );
-      if (r.movementState === 'needs_attention' || r.movementState === 'cancelled') {
-        throw new Error('Cash out needs attention. No completion was confirmed; check your activity and try again.');
-      }
-      const completed = r.movementState === 'completed';
-      return {
-        state: completed ? 'completed' : 'pending',
-        successText: completed
-          ? 'Cash out completed. Check the destination wallet before counting on the funds.'
-          : 'Cash out is being confirmed. It is not complete yet, so check the bridge status before counting on the funds.',
-        viewHref: '/bridge',
-        viewLabel: 'Track it',
-        // Prefer the mined hash so the card links a verifiable receipt. The
-        // transfer id is a Circle-internal reference that resolves nowhere, and
-        // showing it alone was what made a completed transfer look unprovable.
-        ...(r.txHash ? { txHash: r.txHash } : { refId: r.transferId }),
-      };
-    }
-    // Deterministic bridge id per CARD (action ids are server-nonced, so this is
-    // unique per proposed cash-out but STABLE across retries). If the first POST
-    // reaches the backend and only the response is lost, "Try again" re-submits
-    // under the same id and the backend's per-bridgeId idempotency absorbs it —
-    // a fresh id per attempt could double-burn.
-    const bridgeId = `chat-${action.id.replace(/[^a-zA-Z0-9._-]/g, '-')}`.slice(0, 120);
-    await api.bridgeOut({
-      bridgeId,
-      address: p.address,
-      destChainKey: p.destChainKey as Parameters<typeof api.bridgeOut>[0]['destChainKey'],
-      amountUsdc: p.amountUsdc,
-      recipient: p.recipient,
-      sourceKind: p.sourceKind,
-    });
-    // The route returns 202 and burns in the background, so there is no hash to
-    // show yet. Wait briefly for the Arc burn to land so the card carries a real
-    // verifiable receipt like every other intent. If it hasn't landed in time
-    // the cash-out is still running fine — the card just points at /bridge.
-    const outcome = await pollBridgeOutcome(bridgeId);
-    if (outcome.state === 'failed') {
-      throw new Error(outcome.reason ?? 'The cash-out failed before the Arc burn. Your USDC has not moved.');
-    }
-    return {
-      successText: outcome.state === 'burned'
-        ? 'Cash out started. The Arc burn is confirmed; the destination mint follows in a few minutes.'
-        // Queued, not yet confirmed. Say that, rather than promising an arrival
-        // we have no evidence of.
-        : 'Cash out queued. It has not confirmed yet, so check it before you count on it.',
-      viewHref: '/bridge',
-      viewLabel: 'Track it',
-      ...(outcome.state === 'burned' ? { txHash: outcome.txHash } : {}),
-    };
-  }
-  if (action.intent === 'approve_match') {
-    const p = action.payload as { jobId: string; caller: string };
-    const r = await api.approveMatch(p.jobId, p.caller);
-    return {
-      successText: 'Match approved. The deal is funded and live.',
-      viewHref: `/deals/${p.jobId}`,
-      viewLabel: 'Open the deal',
-      txHash: r.txHash,
-    };
-  }
-  if (action.intent === 'decline_match') {
-    const p = action.payload as { jobId: string; caller: string; reason?: string };
-    await api.declineMatch(p.jobId, p.caller, p.reason);
-    return {
-      successText: 'Declined. Your agent keeps looking.',
-      viewHref: `/jobs/${p.jobId}`,
-      viewLabel: 'View the request',
-    };
-  }
-  if (action.intent === 'accept_deal') {
-    const p = action.payload as { jobId: string; caller: string };
-    // Acceptance is bound to the exact terms the assistant just showed. Read
-    // the current snapshot first so a stale assistant card cannot approve a
-    // later edit, and let the backend enforce the digest under its lock.
-    const { deal } = await api.directDeal(p.jobId, p.caller);
-    if (deal.agreementVersion == null || !deal.agreementDigest) {
-      throw new Error('The current agreement could not be verified. Refresh the deal and try again.');
-    }
-    await api.acceptDirectDeal(p.jobId, {
-      caller: p.caller,
-      expectedAgreementVersion: deal.agreementVersion,
-      expectedAgreementDigest: deal.agreementDigest,
-    });
-    return {
-      successText: 'Terms agreed. The buyer will review the exact total and fund escrow next.',
-      viewHref: `/deals/${p.jobId}`,
-      viewLabel: 'Open the deal',
-    };
-  }
-  if (action.intent === 'mark_delivered') {
-    const p = action.payload as { jobId: string; caller: string; deliveryProof?: string };
-    await api.markDelivered(p.jobId, p.caller, p.deliveryProof);
-    return {
-      successText: 'Marked delivered. The buyer has been notified to review and release.',
-      viewHref: `/deals/${p.jobId}`,
-      viewLabel: 'Open the deal',
-    };
-  }
-  if (action.intent === 'cancel_request') {
-    const p = action.payload as { jobId: string; caller: string };
-    await api.cancelBrief(p.jobId, p.caller);
-    return {
-      successText: 'Request cancelled.',
-      viewHref: '/jobs',
-      viewLabel: 'Your requests',
-    };
-  }
-  if (action.intent === 'cancel_listing') {
-    const p = action.payload as { listingId: string; caller: string };
-    await api.cancelListing(p.listingId, p.caller);
-    return {
-      successText: 'Offer taken down.',
-      viewHref: '/market',
-      viewLabel: 'The market',
-    };
-  }
-  if (action.intent === 'save_setup') {
-    const p = action.payload as { answers: SetupAnswers };
-    await api.setupSave(p.answers);
-    return {
-      successText: 'Your agents now work this way.',
-      viewHref: '/setup?edit=1',
-      viewLabel: 'See your setup',
-    };
-  }
-  if (action.intent === 'stake_usdc') {
-    const p = action.payload as { address: string; amountUsdc: number };
-    const r = await api.vaultDeposit({
-      address: p.address,
-      amountUsdc: p.amountUsdc,
-      requestId: crypto.randomUUID(),
-    });
-    const outcome = movementOutcome(r.movementState);
-    if (outcome === 'failed') {
-      throw new Error('Staking needs attention. No completion was confirmed; check your activity and try again.');
-    }
-    return {
-      state: outcome,
-      successText: outcome === 'completed'
-        ? 'Stake completed. Yield starts from the next daily credit.'
-        : 'Your stake is being confirmed. It is not complete yet.',
-      viewHref: '/stake',
-      viewLabel: 'Your stake',
-      ...(r.depositTxHash ? { txHash: r.depositTxHash } : {}),
-    };
-  }
-  if (action.intent === 'claim_yield') {
-    const p = action.payload as { address: string };
-    const r = await api.yieldClaim({ address: p.address });
-    return {
-      successText: 'Yield claimed. It is in your wallet.',
-      viewHref: '/stake',
-      viewLabel: 'Your stake',
-      ...(r.txHash ? { txHash: r.txHash } : {}),
-    };
-  }
-  if (action.intent === 'fund_agent') {
-    const p = action.payload as {
-      address: string;
-      agent: 'buyer' | 'seller';
-      amountUsdc: number;
-      route: 'wallet' | 'unified';
-    };
-    // One "fund my agent" for the user; the backend chose which pocket it comes
-    // out of. Both land the same USDC in the same agent wallet.
-    if (p.route === 'unified') {
-      const r = await api.gatewayFundAgent(p.agent, p.amountUsdc, crypto.randomUUID());
-      if (r.movementState === 'needs_attention' || r.movementState === 'cancelled') {
-        throw new Error('Agent funding needs attention. No completion was confirmed; check your activity and try again.');
-      }
-      const completed = r.movementState === 'completed';
-      return {
-        state: completed ? 'completed' : 'pending',
-        successText: completed
-          ? `Your ${p.agent} agent is funded.`
-          : `Your ${p.agent} agent funding is being confirmed. It is not complete yet.`,
-        viewHref: '/profile/agent-funds',
-        viewLabel: 'Your wallets',
-        ...(r.txHash ? { txHash: r.txHash } : { refId: r.transferId }),
-      };
-    }
-    const r = await api.fundAgent({
-      address: p.address,
-      agent: p.agent,
-      amountUsdc: p.amountUsdc,
-      requestId: crypto.randomUUID(),
-    });
-    const outcome = movementOutcome(r.movementState);
-    if (outcome === 'failed') {
-      throw new Error('Agent funding needs attention. No completion was confirmed; check your activity and try again.');
-    }
-    return {
-      state: outcome,
-      successText: outcome === 'completed'
-        ? `Your ${p.agent} agent is funded.`
-        : `Your ${p.agent} agent funding is being confirmed. It is not complete yet.`,
-      viewHref: '/profile/agent-funds',
-      viewLabel: 'Your wallets',
-      txHash: r.txHash,
-      refId: r.reference,
-    };
-  }
-  if (action.intent === 'top_up_to_arc') {
-    const p = action.payload as {
-      address: string;
-      sourceChainKey: string;
-      amountUsdc: number;
-      mintRecipient: string;
-      sourceKind: 'identity' | 'buyerAgent' | 'sellerAgent';
-    };
-    const bridgeId = `chat-${action.id.replace(/[^a-zA-Z0-9._-]/g, '-')}`.slice(0, 120);
-    await api.bridgeCircle({
-      bridgeId,
-      address: p.address,
-      sourceChainKey: p.sourceChainKey as Parameters<typeof api.bridgeCircle>[0]['sourceChainKey'],
-      amountUsdc: p.amountUsdc,
-      mintRecipient: p.mintRecipient,
-      sourceKind: p.sourceKind,
-    });
-    // Same async shape as cash-out, but the source pipeline runs approve THEN
-    // burn, so allow longer before falling back to the no-hash copy.
-    const outcome = await pollBridgeOutcome(bridgeId, 10);
-    if (outcome.state === 'failed') {
-      throw new Error(outcome.reason ?? 'The bridge failed before the burn. Your USDC has not moved.');
-    }
-    return {
-      successText: outcome.state === 'burned'
-        ? 'On its way. The burn is confirmed; your USDC lands on Arc in a few minutes.'
-        : 'Queued. It has not confirmed yet, so check it before you count on it.',
-      viewHref: '/bridge',
-      viewLabel: 'Track it',
-      ...(outcome.state === 'burned' ? { txHash: outcome.txHash } : {}),
-    };
-  }
-  if (action.intent === 'choose_offer') {
-    const p = action.payload as { jobId: string; caller: string; seller: string };
-    const r = await api.chooseOffer(p.jobId, p.caller, p.seller);
-    return {
-      successText: 'Offer chosen. The escrow is funded and the deal is live.',
-      viewHref: `/deals/${p.jobId}`,
-      viewLabel: 'Open the deal',
-      txHash: r.txHash,
-    };
-  }
-  if (action.intent === 'edit_request') {
-    const p = action.payload as { jobId: string; caller: string; briefText?: string; negotiationMaxIncreasePct?: number };
-    await api.editBrief(p.jobId, {
-      caller: p.caller,
-      ...(p.briefText ? { briefText: p.briefText } : {}),
-      ...(p.negotiationMaxIncreasePct !== undefined ? { negotiationMaxIncreasePct: p.negotiationMaxIncreasePct } : {}),
-    });
-    return { successText: 'Request updated. Your agent uses the new details from now on.', viewHref: `/jobs/${p.jobId}`, viewLabel: 'View the request' };
-  }
-  if (action.intent === 'raise_offer') {
-    const p = action.payload as { jobId: string; caller: string; priceUsdc: string };
-    await api.raiseMatchOffer(p.jobId, p.caller, p.priceUsdc);
-    return { successText: `Asked for ${p.priceUsdc} USDC. The buyer approves or declines.`, viewHref: `/jobs/${p.jobId}`, viewLabel: 'View the match' };
-  }
-  if (action.intent === 'request_extension') {
-    const p = action.payload as { jobId: string; caller: string; additionalSeconds: number; reason?: string };
-    await api.requestExtension({ jobId: p.jobId, caller: p.caller, additionalSeconds: p.additionalSeconds, ...(p.reason ? { reason: p.reason } : {}) });
-    return { successText: 'Request sent. The current deadline stands until the buyer answers.', viewHref: `/deals/${p.jobId}`, viewLabel: 'Open the deal' };
-  }
-  if (action.intent === 'respond_extension') {
-    const p = action.payload as { jobId: string; caller: string; decision: 'approved' | 'declined' };
-    await api.respondExtension({ jobId: p.jobId, caller: p.caller, decision: p.decision });
-    return {
-      successText: p.decision === 'approved' ? 'More time given. The new deadline is on the deal.' : 'Declined. The deadline stays as it was.',
-      viewHref: `/deals/${p.jobId}`,
-      viewLabel: 'Open the deal',
-    };
-  }
-  if (action.intent === 'cancel_deal') {
-    const p = action.payload as { jobId: string; caller: string; step: 'propose' | 'accept' | 'decline'; reason?: string };
-    if (p.step === 'propose') {
-      await api.proposeCancelDirectDeal(p.jobId, p.caller, p.reason ?? '');
-      return { successText: 'Proposal sent. Nothing changes until the other side accepts.', viewHref: `/deals/${p.jobId}`, viewLabel: 'Open the deal' };
-    }
-    if (p.step === 'accept') {
-      const r = await api.acceptCancelDirectDeal(p.jobId, p.caller);
-      return { successText: 'Deal cancelled.', viewHref: `/deals/${p.jobId}`, viewLabel: 'Open the deal', ...(r.txHash ? { txHash: r.txHash } : {}) };
-    }
-    await api.declineCancelDirectDeal(p.jobId, p.caller);
-    return { successText: 'Cancellation declined. The deal continues.', viewHref: `/deals/${p.jobId}`, viewLabel: 'Open the deal' };
-  }
-  if (action.intent === 'dispute_statement') {
-    const p = action.payload as { jobId: string; caller: string; received: string; missing: string; late: string; links: string[] };
-    await api.submitDisputeStatement(p.jobId, p.caller, { received: p.received, missing: p.missing, late: p.late, links: p.links });
-    return { successText: 'Statement submitted.', viewHref: `/deals/${p.jobId}`, viewLabel: 'Open the deal' };
-  }
-  if (action.intent === 'escalate_dispute') {
-    const p = action.payload as { jobId: string; caller: string };
-    const r = await api.escalateDealDispute(p.jobId, p.caller);
-    return { successText: 'Sent to review. A Karwan reviewer will rule.', viewHref: `/deals/${p.jobId}`, viewLabel: 'Open the deal', txHash: r.txHash };
-  }
-  if (action.intent === 'decline_deal') {
-    const p = action.payload as { jobId: string; caller: string; note: string };
-    await api.declineDirectDeal(p.jobId, { caller: p.caller, note: p.note });
-    return { successText: 'Deal turned down. The buyer has your note.', viewHref: `/deals/${p.jobId}`, viewLabel: 'Open the deal' };
-  }
-  throw new Error('Unknown action');
-}
-
-/// A propose->confirm card for a reversible write. Nothing happens until the user
-/// taps Confirm; then it calls the intent's existing route. The card is
-/// single-shot: once posted it collapses to a success line so it can't re-submit.
-const DEAL_STEP_BUSY: Partial<Record<AssistantConfirmAction['intent'], string>> = {
-  choose_offer: 'Choosing…',
-  edit_request: 'Saving…',
-  raise_offer: 'Sending…',
-  request_extension: 'Sending…',
-  respond_extension: 'Saving…',
-  cancel_deal: 'Sending…',
-  dispute_statement: 'Submitting…',
-  escalate_dispute: 'Sending…',
-  decline_deal: 'Sending…',
-};
-
-function ConfirmCard({
-  action,
-  onNavigate,
-}: {
-  action: AssistantConfirmAction;
-  onNavigate: () => void;
-}) {
-  const pb = useTranslations().pageBits;
-  const router = useRouter();
-  const { startAppKitBridge, startWeb3Out } = useBridges();
-  const { address: wagmiAddress, connector } = useAccount();
-  const chainId = useChainId();
-  const { switchChainAsync } = useSwitchChain();
-  const { data: walletClient } = useWalletClient();
-  const arcPublicClient = usePublicClient({ chainId: ARC_CHAIN_ID });
-  const { openConnectModal } = useConnectModal();
-  // Only the web3 top-up needs a client-side executor: the user signs the burn
-  // in their own wallet, which no backend route can do for them. Connecting is
-  // part of the action, not a precondition to bounce them on.
-  const startWeb3TopUp = useCallback(
-    async (input: { sourceChainKey: string; amountUsdc: number; mintRecipient: `0x${string}` }): Promise<BridgeStartResult> => {
-      if (!wagmiAddress || !connector) {
-        openConnectModal?.();
-        throw new Error('Connect your wallet, then confirm again.');
-      }
-      return startAppKitBridge({
-        sourceChainKey: input.sourceChainKey as Parameters<typeof startAppKitBridge>[0]['sourceChainKey'],
-        amountUsdc: input.amountUsdc,
-        mintRecipient: input.mintRecipient,
-        getEvmProvider: () => connector.getProvider() as Promise<unknown>,
-      });
-    },
-    [wagmiAddress, connector, openConnectModal, startAppKitBridge],
-  );
-  // The mirror: an Arc burn signed in their own wallet, forwarder mints on the
-  // destination chain. Same connect-as-part-of-the-action shape.
-  const startWeb3CashOut = useCallback(
-    async (input: { destChainKey: string; recipient: `0x${string}`; amountUsdc: number }): Promise<BridgeStartResult> => {
-      if (!wagmiAddress || !connector) {
-        openConnectModal?.();
-        throw new Error('Connect your wallet, then confirm again.');
-      }
-      return startWeb3Out({
-        destChainKey: input.destChainKey as Parameters<typeof startWeb3Out>[0]['destChainKey'],
-        amountUsdc: input.amountUsdc,
-        recipient: input.recipient,
-        userAddress: wagmiAddress,
-        getEvmProvider: () => connector.getProvider() as Promise<unknown>,
-      });
-    },
-    [wagmiAddress, connector, openConnectModal, startWeb3Out],
-  );
-  // Pooling into the unified balance. Same shape again, but the deposit is signed
-  // ON the source chain rather than relayed, so the wallet has to be switched
-  // there first or Gateway signs against the wrong chain's USDC.
-  // Funding an agent from a web3 user's own Arc wallet. The product rail uses
-  // Arc's six-decimal USDC ERC-20 interface, while the backend allocates the
-  // KWN reference before signing and verifies the receipt before completion.
-  const startFundAgentWeb3 = useCallback(
-    async (input: {
-      agent: 'buyer' | 'seller';
-      toAddress: string;
-      amountUsdc: number;
-      requestId: string;
-    }) => {
-      if (!wagmiAddress || !connector) {
-        openConnectModal?.();
-        throw new Error('Connect your wallet, then confirm again.');
-      }
-      const amountUsdc = String(input.amountUsdc);
-      const intent = await api.fundAgentWeb3Intent({
-        address: wagmiAddress,
-        agent: input.agent,
-        amountUsdc,
-        requestId: input.requestId,
-      });
-      if (intent.alreadyRecorded && intent.txHash) return;
-      if (chainId !== ARC_CHAIN_ID) {
-        await switchChainAsync({ chainId: ARC_CHAIN_ID });
-      }
-      if (!walletClient || !arcPublicClient) throw new Error('Wallet client unavailable');
-      const amountMicros = parseUnits(amountUsdc, ARC_USDC_DECIMALS);
-      const balance = (await arcPublicClient.readContract({
-        address: ARC_USDC_ADDRESS,
-        abi: erc20Abi,
-        functionName: 'balanceOf',
-        args: [wagmiAddress],
-      })) as bigint;
-      if (balance < amountMicros) throw new Error('Not enough USDC on Arc');
-      const txHash = await walletClient.writeContract({
-        address: ARC_USDC_ADDRESS,
-        abi: erc20Abi,
-        functionName: 'transfer',
-        args: [input.toAddress as `0x${string}`, amountMicros],
-        chain: walletClient.chain,
-        account: wagmiAddress,
-      });
-      // A confirmation that has not arrived is not a rejection. The transfer is
-      // on chain and the backend verifies it from the hash, so hand the hash
-      // over either way; only a revert stops here. The 60 second wait used to
-      // throw its own timeout, which reported a landed transfer as failed.
-      const outcome = await confirmTransaction(arcPublicClient, txHash);
-      if (outcome.state === 'reverted') throw new Error('The network rejected this transfer.');
-      await api.fundAgentWeb3Complete({
-        address: wagmiAddress,
-        agent: input.agent,
-        amountUsdc,
-        requestId: input.requestId,
-        txHash,
-      });
-    },
-    [
-      wagmiAddress,
-      connector,
-      openConnectModal,
-      chainId,
-      switchChainAsync,
-      walletClient,
-      arcPublicClient,
-    ],
-  );
-  const startGatewayDeposit = useCallback(
-    async (input: { sourceChainKey: string; amountUsdc: number }) => {
-      if (!wagmiAddress || !connector) {
-        openConnectModal?.();
-        throw new Error('Connect your wallet, then confirm again.');
-      }
-      const cfg = GATEWAY_CHAINS.find((c) => c.key === input.sourceChainKey);
-      if (!cfg) throw new Error('That chain cannot be pooled from.');
-      if (chainId !== cfg.chainId) {
-        await switchChainAsync({ chainId: cfg.chainId });
-      }
-      const provider = await connector.getProvider();
-      if (!provider) throw new Error('Wallet provider unavailable');
-      const { gatewayDeposit } = await import('@/features/gateway/lib');
-      await gatewayDeposit({
-        provider,
-        amount: String(input.amountUsdc),
-        chain: cfg.appKit,
-      });
-      // The read is cached, so drop it or the rail keeps serving the pre-deposit
-      // figure after the user follows the card's link.
-      await api.refreshGatewayBalance().catch(() => {});
-    },
-    [wagmiAddress, connector, openConnectModal, chainId, switchChainAsync],
-  );
-  // Seed from the durable store so a card that already ran (or was dismissed)
-  // stays in that state across panel close/open and navigation — never reverting
-  // to a re-submittable button. A stale 'running' (in-flight when the panel
-  // unmounted) seeds as idle; the confirm() store re-check still blocks a
-  // second execution while the original request is genuinely in flight.
-  const persisted = confirmOutcomes.get(action.id);
-  const [status, setStatus] = useState<'idle' | 'running' | 'done' | 'error' | 'dismissed'>(
-    persisted === 'dismissed' ? 'dismissed' : persisted && persisted !== 'running' ? 'done' : 'idle',
-  );
-  const [errMsg, setErrMsg] = useState('');
-  const [result, setResult] = useState<ConfirmResult | null>(
-    persisted && persisted !== 'dismissed' && persisted !== 'running' ? persisted : null,
-  );
-  const busyLabel =
-    DEAL_STEP_BUSY[action.intent] ??
-    (action.intent === 'release_milestone'
-      ? 'Releasing…'
-      : action.intent === 'withdraw_proceeds'
-        ? 'Withdrawing…'
-        : action.intent === 'cash_out'
-          ? 'Cashing out…'
-          : action.intent === 'pool_usdc_web3'
-            ? 'Pooling…'
-            : action.intent === 'fund_agent_web3'
-            ? 'Funding…'
-            : action.intent === 'top_up_to_arc' ||
-                action.intent === 'top_up_web3' ||
-                action.intent === 'cash_out_web3'
-              ? 'Moving…'
-            : action.intent === 'approve_match'
-              ? 'Approving…'
-              : action.intent === 'decline_match'
-                ? 'Declining…'
-                : action.intent === 'accept_deal'
-                  ? 'Recording agreement…'
-                  : action.intent === 'mark_delivered'
-                    ? 'Marking…'
-                    : action.intent === 'cancel_request' || action.intent === 'cancel_listing'
-                      ? 'Cancelling…'
-                      : action.intent === 'save_setup'
-                        ? 'Saving…'
-                      : action.intent === 'stake_usdc'
-                        ? 'Staking…'
-                        : action.intent === 'claim_yield'
-                          ? 'Claiming…'
-                          : action.intent === 'fund_agent'
-                            ? 'Funding…'
-                            : 'Posting…');
-
-  async function confirm() {
-    if (status === 'running' || status === 'done') return;
-    // Re-check the durable store: another mounted card with this id may have
-    // already run (or be running). Adopt its outcome instead of executing the
-    // intent a second time — this is the double-submit guard for money moves.
-    const existing = confirmOutcomes.get(action.id);
-    if (existing === 'running') return;
-    if (existing && existing !== 'dismissed') {
-      setResult(existing);
-      setStatus('done');
-      return;
-    }
-    confirmOutcomes.set(action.id, 'running');
-    setStatus('running');
-    setErrMsg('');
-    try {
-      const r = await runConfirmIntent(action, {
-        startWeb3TopUp,
-        startWeb3CashOut,
-        startGatewayDeposit,
-        startFundAgentWeb3,
-      });
-      confirmOutcomes.set(action.id, r);
-      setResult(r);
-      setStatus('done');
-    } catch (e) {
-      // Clear the sentinel so a genuine failure stays retryable.
-      confirmOutcomes.delete(action.id);
-      setErrMsg(e instanceof ApiError ? e.message : 'Could not complete that. Try again.');
-      setStatus('error');
-    }
-  }
-
-  if (status === 'dismissed') return null;
-
-  if (status === 'done' && result) {
-    return (
-      <div className="border border-[var(--lp-border-light)] bg-[var(--lp-bg)] p-3" style={{ borderRadius: 12 }}>
-        <p className={`mono text-[13px] uppercase tracking-[0.12em] font-bold ${result.state === 'pending' ? 'text-[var(--lp-text-muted)]' : 'text-[var(--lp-accent)]'}`}>
-          {result.state === 'pending' ? 'In flight' : 'Completed'}
-        </p>
-        <p className="text-[14px] text-[var(--lp-dark)] mt-1">{result.successText}</p>
-        {result.txHash ? (
-          <a
-            href={ARC_EXPLORER_TX(result.txHash)}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-2 flex items-baseline justify-between gap-3 group"
-            title={result.txHash}
-          >
-            <span className="shrink-0 mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">Receipt</span>
-            <span className="min-w-0 mono text-[14px] text-[var(--lp-dark)] tabular-nums truncate underline decoration-[var(--lp-accent)] decoration-2 underline-offset-2 group-hover:opacity-80">
-              {result.txHash.slice(0, 8)}…{result.txHash.slice(-6)} ↗
-            </span>
-          </a>
-        ) : result.refId ? (
-          <div className="mt-2 flex items-baseline justify-between gap-3" title={result.refId}>
-            <span className="shrink-0 mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">{pb.assistant.transferRef}</span>
-            <span className="min-w-0 mono text-[14px] text-[var(--lp-dark)] tabular-nums truncate">
-              {result.refId.slice(0, 8)}…{result.refId.slice(-6)}
-            </span>
-          </div>
-        ) : null}
-        <button
-          type="button"
-          onClick={() => {
-            onNavigate();
-            router.push(result.viewHref);
-          }}
-          className="mt-2 mono text-[13px] uppercase tracking-[0.1em] font-bold text-[var(--lp-dark)] underline decoration-[var(--lp-accent)] decoration-2 underline-offset-2 hover:opacity-80"
-        >
-          {result.viewLabel}
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="border border-[var(--lp-border-light)] bg-[var(--lp-bg)] p-3" style={{ borderRadius: 12 }}>
-      <p className="font-sans text-[14px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">{action.title}</p>
-      {action.summary && (
-        <p className="text-[14px] leading-snug text-[var(--lp-text-sub)] mt-1 font-medium">{action.summary}</p>
-      )}
-      <dl className="mt-2 space-y-1.5">
-        {action.fields.map((f, i) => (
-          <div key={i} className="flex items-baseline justify-between gap-3">
-            <dt className="shrink-0 mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">{f.label}</dt>
-            <dd className="min-w-0 text-[14px] text-[var(--lp-dark)] text-end break-all tabular-nums">{f.value}</dd>
-          </div>
-        ))}
-      </dl>
-      {action.warning && (
-        <p className="flex items-start gap-1.5 mono text-[13px] leading-snug text-[var(--lp-critical)] mt-2.5">
-          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden className="shrink-0 mt-px">
-            <path d="M8 1.5l6.5 11.5H1.5L8 1.5zm0 4.2v3.4m0 1.7v.1" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
-          </svg>
-          <span>{action.warning}</span>
-        </p>
-      )}
-      {status === 'error' && <p className="mono text-[13px] text-[var(--lp-critical)] mt-2">{errMsg}</p>}
-      <div className="flex gap-2 mt-3">
-        <button
-          type="button"
-          onClick={confirm}
-          disabled={status === 'running'}
-          className="flex-1 mono text-[13px] uppercase tracking-[0.1em] font-bold px-3 py-2 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] disabled:opacity-60 hover:brightness-105 transition"
-          style={{ borderRadius: 10 }}
-        >
-          {status === 'running' ? busyLabel : status === 'error' ? 'Try again' : action.confirmLabel ?? 'Confirm'}
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            confirmOutcomes.set(action.id, 'dismissed');
-            setStatus('dismissed');
-          }}
-          disabled={status === 'running'}
-          className="mono text-[13px] uppercase tracking-[0.1em] font-bold px-3 py-2 border border-[var(--lp-border-light)] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] disabled:opacity-60 transition"
-          style={{ borderRadius: 10 }}
-        >
-          {action.cancelLabel ?? 'Not now'}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function Bubble({ role, children }: { role: 'user' | 'assistant'; children: React.ReactNode }) {
-  const isUser = role === 'user';
-  return (
-    <div className={isUser ? 'flex justify-end' : 'flex items-start justify-start gap-2'}>
-      {isUser ? null : <img src="/brand/karwan-mark-lime.svg" alt="" aria-hidden width={22} height={22} className="mt-0.5 size-[22px] shrink-0" />}
-      <div
-        className={
-          isUser
-            ? 'max-w-[85%] min-w-0 break-words rounded-[16px] rounded-ee-[4px] bg-[#E7F0CF] px-3.5 py-2.5 text-[15px] leading-relaxed text-[#1f2a0b]'
-            : 'max-w-[88%] min-w-0 break-words py-0.5 text-[15px] leading-relaxed text-[var(--lp-dark)]'
-        }
-      >
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function Dot() {
-  return (
-    <span
-      className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--lp-text-muted)] animate-pulse motion-reduce:animate-none"
-    />
-  );
-}
-
-// One match is either a markdown link [label](href) or **bold** text.
-const INLINE_RE = /\[([^\]]+)\]\(([^)]+)\)|\*\*([^*]+)\*\*/g;
-
-/// Turns one line of reply text into nodes, resolving markdown links and bold.
-/// Internal paths (starting with "/") become in-app links that close the panel;
-/// external links open in a new tab. No raw HTML is injected.
-function renderInline(line: string, onNavigate: () => void): React.ReactNode[] {
-  const parts: React.ReactNode[] = [];
-  let last = 0;
-  let key = 0;
-  INLINE_RE.lastIndex = 0;
-  let m: RegExpExecArray | null;
-  while ((m = INLINE_RE.exec(line)) !== null) {
-    if (m.index > last) parts.push(line.slice(last, m.index));
-    if (m[1] !== undefined && m[2] !== undefined) {
-      const label = m[1];
-      const href = m[2];
-      // Assistant replies are LLM output: only in-app paths and https render
-      // as links. A prompt-injected javascript:/data: URI, or a
-      // protocol-relative //host, falls through to plain text.
-      const isInternal = href.startsWith('/') && !href.startsWith('//');
-      const isHttps = href.startsWith('https://');
-      if (isInternal) {
-        parts.push(
-          <Link
-            key={`k${key}`}
-            href={href}
-            onClick={onNavigate}
-            className="font-semibold text-[var(--lp-dark)] underline decoration-[var(--lp-accent)] decoration-2 underline-offset-2 hover:opacity-80"
-          >
-            {label}
-          </Link>,
-        );
-      } else if (isHttps) {
-        parts.push(
-          <a
-            key={`k${key}`}
-            href={href}
-            target="_blank"
-            rel="noreferrer noopener"
-            className="font-semibold underline decoration-[var(--lp-accent)] decoration-2 underline-offset-2 hover:opacity-80"
-          >
-            {label}
-          </a>,
-        );
-      } else {
-        parts.push(label);
-      }
-    } else if (m[3] !== undefined) {
-      parts.push(
-        <strong key={`k${key}`} className="font-bold text-[var(--lp-dark)]">
-          {m[3]}
-        </strong>,
-      );
-    }
-    last = m.index + m[0].length;
-    key += 1;
-  }
-  if (last < line.length) parts.push(line.slice(last));
-  return parts;
-}
-
-/// Renders the assistant reply: line breaks preserved, dash bullets shown with a
-/// lime marker, markdown links and bold resolved.
-function RichText({ text, onNavigate }: { text: string; onNavigate: () => void }) {
-  const lines = tidyAssistantText(text).split('\n');
-  return (
-    <div className="space-y-2">
-      {lines.map((raw, li) => {
-        if (raw.trim() === '' || /^\s*([-*_])\1{2,}\s*$/.test(raw)) return null;
-        const step = /^\s*(\d{1,2})[.)]\s+(.*)$/.exec(raw);
-        if (step) {
-          return (
-            <div key={li} className="flex gap-2.5">
-              <span
-                aria-hidden
-                className="mt-[3px] inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--lp-accent)] px-1 text-[14px] font-bold tabular-nums text-[var(--lp-band-dark)]"
-              >
-                {step[1]}
-              </span>
-              <p className="flex-1">{renderInline(step[2], onNavigate)}</p>
-            </div>
-          );
-        }
-        const isBullet = /^\s*[-*]\s+/.test(raw);
-        const line = isBullet ? raw.replace(/^\s*[-*]\s+/, '') : raw;
-        const inline = renderInline(line, onNavigate);
-        if (isBullet) {
-          return (
-            <div key={li} className="flex gap-2">
-              <span aria-hidden className="text-[var(--lp-accent)] leading-relaxed">
-                •
-              </span>
-              <p className="flex-1">{inline}</p>
-            </div>
-          );
-        }
-        return <p key={li}>{inline}</p>;
-      })}
-    </div>
-  );
-}

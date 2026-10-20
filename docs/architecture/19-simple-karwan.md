@@ -163,7 +163,7 @@ Decided by the owner, 20 Oct 2026, after seeing the proposal:
 - **The profile button in the top bar is the round photo only.** No name and no arrow. Without a photo it shows the first two letters of the name (KI for Kingizie). It opens Me.
 - **Use assistant.** A switch in the top bar, beside the bell, turns the whole app into assistant mode, the way Claude desktop works: past conversations on the left, the conversation in the middle, a composer at the bottom with suggestions, and the person runs their account by saying what they want. Answers come back as cards, the same cards as everywhere (balance, an offer to post, a payment request, deals that need them), and money still moves only when they confirm a card. Switching back returns to the page they were on. On a phone the switch sits in the top bar and the bottom bar hides while it is on.
 - The ask line on Home ("What do you want to do? Ask your assistant") opens assistant mode.
-- **Help replaces Ask.** The floating button bottom right reads "? Help" and becomes support: how something works, or what went wrong. "Talk to a person" hands the conversation to the Karwan team with the transcript, so nobody repeats themselves; the person's reply comes back into the same panel. This is the existing live-support handoff (`backend/src/routes/support.ts`, operator over Telegram), renamed and focused. Running the account lives in assistant mode, so Help never has to.
+- **Help replaces Ask.** The floating button bottom right reads "? Help" and becomes support: how something works, or what went wrong. It answers from what the account shows first: a transfer on its way is answered with where it is, not with a person. A person from the Karwan team joins only when someone asks for one, or when the assistant cannot do it, and then without a button to press: the conversation goes to them with its transcript, so nobody repeats themselves, and their reply comes back into the same panel. This is the existing live-support handoff (`backend/src/routes/support.ts`, operator over Telegram), renamed and focused. Running the account lives in assistant mode, so Help never has to.
 
 The design is on the canvas "Karwan assistant mode and onboarding": desktop app and assistant mode, the onboarding flow, and the phone.
 
@@ -226,6 +226,6 @@ English first, with French, Arabic, Hindi and Swahili as today. Local Nigerian l
 | Agent on or off and "ask me first" limits | Saved by setup (`agentPrefs`); the agents do not read it yet |
 | Business start and trade-as answer from onboarding | The answer is kept (`businessDraft`); opening the business form from it is planned. `tradesAs` exists (view 17) |
 | Ask box on Home | Planned |
-| Assistant mode switch, round profile button, plain-words pass | Planned; designed on the canvas |
-| Help (support with "Talk to a person") in place of Ask | Planned; the human handoff is live, the rename and focus are not |
+| Assistant mode switch, round profile button, plain-words pass | Switch, `/assistant` with saved conversations and the round photo-or-initials button built 20 Oct 2026, not deployed. Attach and deleting a conversation are not built yet. The plain-words pass is planned |
+| Help in place of Ask | Built 20 Oct 2026, not deployed: ? Help answers from the account first; a person joins automatically when asked for or when the assistant cannot do it, with no button first (owner, 20 Oct) |
 | Me in plain words | Planned |

@@ -4,6 +4,7 @@ import { cashoutFlowCopy } from './cashoutFlow';
 import { balanceSummaryCopy } from './balanceSummary';
 import { firstTradeCopy } from './firstTrade';
 import { setupCopy } from './setup';
+import { assistantModeCopy } from './assistantMode';
 import { disputeJudgeCopy } from './disputeJudge';
 import { networkCopy } from './network';
 import { escrowDocsCopy } from './escrowDocs';
@@ -57,6 +58,7 @@ export const sw: Messages = {
   balanceSummary: balanceSummaryCopy.sw,
   firstTrade: firstTradeCopy.sw,
   setup: setupCopy.sw,
+  assistantMode: assistantModeCopy.sw,
   requestList: requestListCopy.sw,
   cashoutFlow: cashoutFlowCopy.sw,
   search: searchCopy.sw,
@@ -649,13 +651,13 @@ export const sw: Messages = {
     offline: 'Nje ya mtandao',
   },
   assistant: {
-    launcherLabel: 'Uliza',
-    launcherAria: 'Uliza msaidizi wa Karwan',
-    title: 'Msaidizi wa Karwan',
-    subtitle: 'Uliza chochote kuhusu Karwan',
-    placeholder: 'Uliza swali…',
+    launcherLabel: "Msaada",
+    launcherAria: "Fungua Msaada",
+    title: "Msaada",
+    subtitle: "Majibu kutoka akaunti yako, na mtu unapomhitaji.",
+    placeholder: "Uliza chochote, au omba mtu",
     send: 'Tuma',
-    greeting: 'Habari. Niulize chochote, au niambie tu unachotaka kufanya.',
+    greeting: "Uliza jinsi kitu kinavyofanya kazi, au tuambie kilichoharibika. Omba mtu wakati wowote.",
     error: 'Hitilafu imetokea. Jaribu tena.',
     disclaimer: 'Mwongozo tu. Msaidizi hawezi kuhamisha fedha au kutenda kwenye akaunti yako.',
     humanButton: 'Ongea na mtu',
@@ -666,7 +668,7 @@ export const sw: Messages = {
     endChat: 'Maliza mazungumzo',
     backToAssistant: 'Rudi kwa msaidizi',
     operatorName: 'Msaada',
-    suggestions: ["Salio langu ni kiasi gani?", "Tafuta muuzaji", "Escrow inafanyaje kazi?"],
+    suggestions: ["Pesa yangu iko wapi?", "Escrow inafanyaje kazi?", "Nataka kuzungumza na mtu"],
     confirmNote: "Hakuna kinachosonga bila uthibitisho wako.",
   },
   countdown: {

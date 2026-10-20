@@ -12,11 +12,12 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { useEntryHref } from '@/shared/auth/useEntryHref';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
-import { getShellSurface, START_ROUTE, WALLET_HOME } from '@/shared/utils/routes';
+import { getShellSurface, isAssistantRoute, START_ROUTE, WALLET_HOME } from '@/shared/utils/routes';
+import { AssistantModeSwitch } from './AssistantModeSwitch';
 import { DEALS_AVAILABLE } from '@/core/arcNetwork';
 import { useOpenDeals } from '@/features/notifications/hooks/useOpenDeals';
 import type { UserProfile } from '@/core/api';
-import { WalletAvatar } from './WalletAvatar';
+import { getProfileInitials } from './profileInitials';
 import { LanguagePicker } from './LanguagePicker';
 import { ThemeControl, ThemeIcon, useThemeCycle } from './ThemeControl';
 import { Tooltip } from './Tooltip';
@@ -114,11 +115,12 @@ export function TopNav() {
             </>
           ) : showAppChrome ? (
               <>
+                {showFullChrome ? <AssistantModeSwitch /> : null}
                 <NotificationBell />
                 {/* Where the bottom bar shows, its Profile tab is the one
                     profile entry; the header pill returns on desktop. */}
                 <ProfileLink
-                  hideBelowLg={shell === 'workspace'}
+                  hideBelowLg={shell === 'workspace' && !isAssistantRoute(pathname)}
                   profileActionCount={openDeals.actionCount}
                   profile={profile}
                   identityName={profile?.displayName ?? authEmail?.split('@')[0] ?? ''}
@@ -155,7 +157,7 @@ export function TopNav() {
         </div>
       </div>
     </header>
-    {showFullChrome ? (
+    {showFullChrome && !isAssistantRoute(pathname) ? (
       <WorkspaceRail
         pathname={pathname}
         discoverHref={MARKET_HREF}
@@ -576,55 +578,33 @@ function ProfileLink({
   const messages = useTranslations();
   const t = messages.nav;
   const [imageFailed, setImageFailed] = useState(false);
-  const xImage = !imageFailed ? (profile?.profileImageDataUrl || profile?.xProfileImageUrl)?.trim() : undefined;
+  const photo = !imageFailed ? (profile?.profileImageDataUrl || profile?.xProfileImageUrl)?.trim() : undefined;
   const initials = getProfileInitials(identityName ?? '', identityAddress ?? null);
 
   useEffect(() => {
     setImageFailed(false);
   }, [profile?.profileImageDataUrl, profile?.xProfileImageUrl]);
 
+  const label = identityName ? t.profileOf.replace('{name}', identityName) : t.profile;
+
   return (
     <Link
       href="/profile"
-      aria-label={t.profile}
-      className={`group relative ${hideBelowLg ? 'hidden lg:inline-flex' : 'inline-flex'} h-9 max-w-[min(220px,calc(100vw-112px))] shrink-0 items-center gap-1.5 rounded-full border border-[var(--color-line-strong)] py-0.5 ps-0.5 pe-2 before:absolute before:-inset-1 before:content-[''] text-[var(--color-ink-dim)] transition-colors hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] sm:max-w-[min(220px,45vw)]`}
+      aria-label={label}
+      className={`relative ${hideBelowLg ? 'hidden lg:grid' : 'grid'} size-10 shrink-0 place-items-center rounded-full border border-[var(--color-line-strong)] bg-[var(--color-surface)] text-[14px] font-semibold tracking-[0.04em] text-[var(--color-ink)] transition-colors hover:bg-[var(--color-surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]`}
     >
-        <span className="relative grid shrink-0 place-items-center overflow-visible rounded-full bg-[var(--color-surface)] text-[13px] font-semibold tracking-[0.04em] text-[var(--color-ink)] size-8">
-          <span className="grid size-full place-items-center overflow-hidden rounded-full">
-            {xImage ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={xImage}
-                alt=""
-                width={40}
-                height={40}
-                className="size-full object-cover"
-                onError={() => setImageFailed(true)}
-              />
-            ) : identityAddress ? (
-              <WalletAvatar address={identityAddress} size={40} />
-            ) : (
-              initials
-            )}
-          </span>
-          {/* The dot rests on the whole photo: no backing disc cutting into it. */}
-          {profileActionCount > 0 ? (
-            <span aria-hidden className="pointer-events-none absolute -end-0.5 -top-0.5 z-10 size-2.5 rounded-full bg-[var(--lp-accent)] shadow-[0_0_0_1.5px_var(--color-surface)]" />
-          ) : null}
-        </span>
-        <span className="hidden min-w-0 max-w-[160px] truncate text-[14px] font-medium tracking-[-0.01em] text-[var(--color-ink)] sm:inline">
-          {identityName}
-        </span>
-        <svg
-          width="13"
-          height="13"
-          viewBox="0 0 18 18"
-          fill="none"
-          aria-hidden
-          className="shrink-0 transition-transform duration-200 group-hover:translate-x-0.5"
-        >
-          <path d="M3 9h11m-4-4 4 4-4 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+      <span className="grid size-full place-items-center overflow-hidden rounded-full">
+        {photo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={photo} alt="" width={40} height={40} className="size-full object-cover" onError={() => setImageFailed(true)} />
+        ) : (
+          initials
+        )}
+      </span>
+      {/* The dot rests on the whole photo: no backing disc cutting into it. */}
+      {profileActionCount > 0 ? (
+        <span aria-hidden className="pointer-events-none absolute -end-0.5 -top-0.5 z-10 size-2.5 rounded-full bg-[var(--lp-accent)] shadow-[0_0_0_1.5px_var(--color-surface)]" />
+      ) : null}
     </Link>
   );
 }
@@ -669,13 +649,4 @@ function LaunchAppCTA() {
       <Icon name="arrow-right" size={16} directional />
     </Link>
   );
-}
-
-function getProfileInitials(name: string, address: string | null): string {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  if (words.length >= 2) return `${words[0][0]}${words[1][0]}`.toUpperCase();
-  const compact = name.replace(/[^\p{L}\p{N}]/gu, '');
-  if (compact.length >= 2) return compact.slice(0, 2).toUpperCase();
-  if (address) return address.replace(/^0x/i, '').slice(0, 2).toUpperCase();
-  return 'KW';
 }

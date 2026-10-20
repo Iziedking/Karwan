@@ -7,6 +7,7 @@ import { cashoutFlowCopy, type CashoutFlowCopy } from './cashoutFlow';
 import { balanceSummaryCopy, type BalanceSummaryCopy } from './balanceSummary';
 import { firstTradeCopy, type FirstTradeCopy } from './firstTrade';
 import { setupCopy, type SetupCopy } from './setup';
+import { assistantModeCopy, type AssistantModeCopy } from './assistantMode';
 import { disputeJudgeCopy, type DisputeJudgeCopy } from './disputeJudge';
 import { networkCopy, type NetworkCopy } from './network';
 import { escrowDocsCopy, type EscrowDocsCopy } from './escrowDocs';
@@ -59,6 +60,7 @@ interface MessagesShape {
   balanceSummary: BalanceSummaryCopy;
   firstTrade: FirstTradeCopy;
   setup: SetupCopy;
+  assistantMode: AssistantModeCopy;
   requestList: RequestListCopy;
   cashoutFlow: CashoutFlowCopy;
   search: SearchCopy;
@@ -5453,6 +5455,7 @@ export const en: MessagesShape = {
   balanceSummary: balanceSummaryCopy.en,
   firstTrade: firstTradeCopy.en,
   setup: setupCopy.en,
+  assistantMode: assistantModeCopy.en,
   requestList: requestListCopy.en,
   cashoutFlow: cashoutFlowCopy.en,
   search: searchCopy.en,
@@ -6058,16 +6061,16 @@ export const en: MessagesShape = {
     offline: 'Offline',
   },
   assistant: {
-    launcherLabel: 'Ask',
-    launcherAria: 'Ask the Karwan assistant',
-    title: 'Karwan assistant',
-    subtitle: 'Ask anything about Karwan',
-    placeholder: 'Ask a question…',
+    launcherLabel: "Help",
+    launcherAria: "Open Help",
+    title: "Help",
+    subtitle: "Answers from your account, and a person when you need one.",
+    placeholder: "Ask anything, or ask for a person",
     send: 'Send',
-    greeting: 'I can help you find supply, bring a deal, check your trade record, or move through Karwan.',
+    greeting: "Ask how something works, or tell us what went wrong. Ask for a person any time.",
     error: 'Something went wrong. Try again.',
     disclaimer: 'Guidance only. The assistant cannot move funds or act on your account.',
-    humanButton: 'Talk to a human',
+    humanButton: 'Talk to a person',
     liveHeader: 'Live support',
     liveBanner: 'Connected to support. A person will reply here, usually within a few minutes.',
     liveClosed: 'This support chat is closed. The transcript was emailed to you.',
@@ -6075,7 +6078,7 @@ export const en: MessagesShape = {
     endChat: 'End chat',
     backToAssistant: 'Back to assistant',
     operatorName: 'Support',
-    suggestions: ["What is my balance?", "Find a seller", "How does escrow work?"],
+    suggestions: ["Where is my money?", "How does escrow work?", "I want to talk to a person"],
     confirmNote: "Nothing moves without your confirmation.",
   },
   countdown: {
