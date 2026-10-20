@@ -1,4 +1,5 @@
 import type { ConfirmAction } from '../assistant/actions.js';
+import type { BriefAnswers } from '../agents/agentBriefLines.js';
 
 /// One message a person sent the Karwan agent on a chat channel, reduced to
 /// what Karwan reads. Each channel adapter parses its own payload into this.
@@ -21,7 +22,18 @@ export interface InboundMessage {
   messageRef?: string;
 }
 
-export type OnboardingStep = 'choose' | 'have' | 'email' | 'code' | 'terms' | 'tag' | 'role' | 'offer' | 'where' | 'price' | 'done';
+/// 'role' and 'offer' are the old interview's steps, kept so a stored account
+/// left there is moved onto the setup questions.
+export type OnboardingStep =
+  | 'choose' | 'have' | 'email' | 'code' | 'terms' | 'tag'
+  | 'role' | 'offer'
+  | SetupQuestion | 'confirm' | 'post' | 'done';
+
+/// The setup questions in chat, in the order /setup asks them.
+export type SetupQuestion = 'goals' | 'what' | 'price' | 'buy' | 'business' | 'places' | 'clients' | 'own' | 'reach' | 'where';
+
+/// How long a confirm card waits for its tap.
+export const CARD_TTL_MS = 30 * 60_000;
 
 /// Where someone is in signing in or up from a chat.
 export interface OnboardingState {
@@ -31,6 +43,8 @@ export interface OnboardingState {
   email?: string;
   role?: 'sell' | 'buy' | 'both';
   offer?: string;
+  /// The setup answers so far, the same shape /setup sends.
+  answers?: BriefAnswers;
 }
 
 /// What the core reads and writes on a chat account, whichever channel holds

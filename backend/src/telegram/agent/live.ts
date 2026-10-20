@@ -1,4 +1,3 @@
-import { liveLocationToolDeps } from '../../assistant/locationTools.js';
 import { createHash } from 'node:crypto';
 import type { AssistantAction } from '../../assistant/actions.js';
 import { ARC } from '../../chain/client.js';
@@ -155,14 +154,20 @@ export function startTelegramAgent(): boolean {
     passkeyAccount: async (email) => !!(await getModularAccountByEmail(email)),
   });
 
+  const executeConfirm = createExecutor({ call: callAsAccount, refuse: MONEY_INTENTS });
+  // The website's setup route reads and saves the answers, so chat and /setup
+  // set up the same account.
   const interview = createInterview<TelegramAccount>({
     afterwards: [READABLE_ASK],
-    // The same save the agent's set_location tool makes: private, country public.
-    saveLocation: (address, place) =>
-      liveLocationToolDeps.update(address, (current) => {
-        const base = current ?? { country: null, city: null, area: null, reach: {} };
-        return { ...base, country: place.country, city: place.city ?? base.city };
-      }),
+    preview: async (address, answers) => {
+      const r = await callAsAccount(address, 'POST', '/api/setup/preview', { answers });
+      if (r.status !== 200) throw new Error(`setup preview ${r.status}`);
+      return { lines: (r.json.lines as string[]) ?? [], needs: (r.json.needs as Array<'price'>) ?? [] };
+    },
+    save: async (address, card) => {
+      const r = await executeConfirm({ address }, card);
+      return r.ok ? { ok: true } : { ok: false, message: r.message };
+    },
   });
 
   const tagStep = createTagStep<TelegramAccount>({
@@ -209,7 +214,7 @@ export function startTelegramAgent(): boolean {
       }
       return { ok: false, error: String(r.json.error ?? 'assistant-unavailable'), code: r.json.code as string | undefined };
     },
-    executeConfirm: createExecutor({ call: callAsAccount, refuse: MONEY_INTENTS }),
+    executeConfirm,
     // A web account that linked Telegram signs in on the page as usual; links
     // are for accounts Karwan holds the keys of.
     presentConfirm: createMoneyStepPresenter({

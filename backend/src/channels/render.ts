@@ -35,7 +35,7 @@ export function renderTurn(reply: string, actions: AssistantAction[] | undefined
 export function renderConfirm(a: ConfirmAction): OutMessage {
   const lines = [`*${a.title}*`];
   if (a.summary) lines.push(a.summary);
-  if (a.fields.length) lines.push('', ...a.fields.map((f) => `${f.label}: ${f.value}`));
+  if (a.fields.length) lines.push('', ...a.fields.map((f) => (f.label ? `${f.label}: ${f.value}` : f.value)));
   if (a.warning) lines.push('', a.warning);
   return {
     kind: 'buttons',

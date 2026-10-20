@@ -2,7 +2,7 @@ import { isDeleteCommand } from '../accountDeletion/rules.js';
 import type { AssistantAction, ConfirmAction } from '../assistant/actions.js';
 import { renderTurn, type OutMessage } from './render.js';
 import type { OnboardingResult } from './onboarding.js';
-import type { ChatAccount, InboundMessage } from './types.js';
+import { CARD_TTL_MS, type ChatAccount, type InboundMessage } from './types.js';
 
 export type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
@@ -62,7 +62,6 @@ export interface DispatchDeps<A extends ChatAccount = ChatAccount> {
 }
 
 const HISTORY_MAX = 20;
-const CARD_TTL_MS = 30 * 60_000;
 const ACCEPT_ID = 'terms:accept';
 
 const text = (body: string): OutMessage => ({ kind: 'text', body });
