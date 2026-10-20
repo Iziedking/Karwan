@@ -107,6 +107,7 @@ import { businessRoutes, businessAdminRoutes } from './routes/business.js';
 import { verificationRoutes } from './routes/verification.js';
 import { createPersonVerificationRoutes } from './routes/personVerification.js';
 import { createMoneyOutRoutes } from './routes/moneyOut.js';
+import { setupRoutes } from './routes/setup.js';
 import { moneyOutRouteDeps } from './moneyOut/live.js';
 import { adminVerificationRoutes } from './routes/adminVerification.js';
 import { createAdminAccountDeletionRoutes } from './routes/adminAccountDeletion.js';
@@ -444,6 +445,7 @@ app.route('/api/network', networkRoutes);
 app.route('/api/activation', activationRoutes);
 app.route('/api/deposit', depositRoutes);
 app.route('/api/money', moneyRoutes);
+app.route('/api/setup', setupRoutes);
 // Root-mounted on purpose: a verifier derives /.well-known and /schemas from the
 // issuer domain, so they cannot live under /api.
 app.route('/', attestationRoutes);

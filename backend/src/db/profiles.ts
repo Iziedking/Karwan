@@ -28,6 +28,29 @@ export interface UserSettings {
   /// The one-time answer at the market's entry (view 17): trading for
   /// themselves or for a business.
   tradesAs?: 'self' | 'business';
+  /// How Karwan reaches them (view 19). Absent means both.
+  notifyVia?: 'telegram' | 'email' | 'both';
+  /// When they finished the setup conversation after activation.
+  setupDoneAt?: number;
+}
+
+/// What a person told the setup conversation they want Karwan to do (view 19).
+export type Goal = 'work' | 'sell' | 'buy' | 'business' | 'record';
+
+/// How their agents behave. Kept outside `seller` and `buyer` because a
+/// profile save replaces those objects whole, and an edit form would wipe it.
+export interface AgentPrefs {
+  /// Absent means true: the selling agent joins the market.
+  findClients?: boolean;
+  /// Absent means offers: the agent offers within the price range.
+  agentMode?: 'offers' | 'ask';
+  /// False when the person's price or budget could not be read.
+  sellerPriceSet?: boolean;
+  buyerPriceSet?: boolean;
+}
+
+export function agentPrefsOf(profile: Pick<UserProfile, 'agentPrefs'> | null | undefined): Required<AgentPrefs> {
+  return { findClients: true, agentMode: 'offers', sellerPriceSet: true, buyerPriceSet: true, ...(profile?.agentPrefs ?? {}) };
 }
 
 export type WorkspaceKind = 'personal' | 'business';
@@ -83,6 +106,16 @@ export interface UserProfile {
   /// Where the person is and delivers. Private: used by matching only; the
   /// public profile shows the country (location/rules.ts publicLocation).
   location?: PrivateLocation;
+  /// The setup conversation's answers (view 19). The person's own words are
+  /// kept beside the settings read from them, so a buyer sees what they wrote.
+  goals?: Goal[];
+  agentPrefs?: AgentPrefs;
+  ownWords?: { what?: string; price?: string; buy?: string; business?: string };
+  /// Where they already work or sell. Private context, never counted toward
+  /// the record.
+  workPlaces?: string;
+  /// Prefills the business setup; no workspace is created from it.
+  businessDraft?: { name: string; trades: string };
   address: string;
   role: Role;
   displayName: string;
@@ -329,6 +362,11 @@ const PRESERVE_WHEN_OMITTED = [
   'settings',
   'reputationSources',
   'location',
+  'goals',
+  'agentPrefs',
+  'ownWords',
+  'workPlaces',
+  'businessDraft',
 ] as const;
 
 export async function upsertProfile(

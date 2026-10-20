@@ -126,7 +126,10 @@ export function parsePlace(text: string): { country: string | null; city: string
   const folded = fold(raw);
   const hit = COUNTRY_BY_NAME.find(([name]) => folded.includes(name));
   if (!hit) return { country: null, city: null };
-  const first = raw.includes(',') ? raw.split(',')[0]!.trim() : '';
-  const city = first && fold(first) !== hit[0] ? first.slice(0, 80) : null;
+  // "Lagos, Nigeria" or "Nigeria, Lagos": the city is the part that is not
+  // the country, whichever side it is on.
+  const parts = raw.includes(',') ? raw.split(',').map((part) => part.trim()).filter(Boolean) : [];
+  const other = parts.find((part) => !fold(part).includes(hit[0]));
+  const city = other ? other.slice(0, 80) : null;
   return { country: hit[1], city };
 }

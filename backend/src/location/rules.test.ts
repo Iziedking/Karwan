@@ -102,3 +102,10 @@ test('names with hyphens, accents and common short forms are read', async () => 
   assert.equal(parsePlace('Niamey, Niger').country, 'NE');
   assert.equal(parsePlace('Malabo, Equatorial Guinea').country, 'GQ');
 });
+
+test('a place reads in either order, country first or city first', async () => {
+  const { parsePlace } = await import('./rules.js');
+  assert.deepEqual(parsePlace('Nigeria, Lagos'), { country: 'NG', city: 'Lagos' });
+  assert.deepEqual(parsePlace('Lagos, Nigeria'), { country: 'NG', city: 'Lagos' });
+  assert.deepEqual(parsePlace('Nigeria'), { country: 'NG', city: null });
+});
