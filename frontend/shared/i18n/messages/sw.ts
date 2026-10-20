@@ -2,6 +2,7 @@ import type { Messages } from './en';
 import { requestListCopy } from './requestList';
 import { cashoutFlowCopy } from './cashoutFlow';
 import { balanceSummaryCopy } from './balanceSummary';
+import { firstTradeCopy } from './firstTrade';
 import { disputeJudgeCopy } from './disputeJudge';
 import { networkCopy } from './network';
 import { escrowDocsCopy } from './escrowDocs';
@@ -53,6 +54,7 @@ export const sw: Messages = {
   dealLive: dealLiveCopy.sw,
   disputeJudge: disputeJudgeCopy.sw,
   balanceSummary: balanceSummaryCopy.sw,
+  firstTrade: firstTradeCopy.sw,
   requestList: requestListCopy.sw,
   cashoutFlow: cashoutFlowCopy.sw,
   search: searchCopy.sw,
@@ -5642,8 +5644,8 @@ export const sw: Messages = {
     },
   },
   profileNudge: {
-    stepOne: 'Hatua ya 01/02',
-    stepTwo: 'Hatua ya 02/02',
+    stepOne: 'Hatua ya 1 kati ya 2',
+    stepTwo: 'Hatua ya 2 kati ya 2',
     titleFragment: 'Anzisha wasifu',
     bodyFragment: 'kupata jina la kuonyesha na kujenga sifa haraka. Bado ni hiari. Unaweza kufanya biashara bila kuwa nao.',
     cta: 'Anzisha wasifu',
@@ -5673,6 +5675,13 @@ export const sw: Messages = {
       open: 'Fungua',
       dueTemplate: 'Mwisho {date}',
     },
+    financed: {
+      sectionTag: 'Makubaliano uliyofadhili',
+      role: 'Umefadhili',
+      backTemplate: 'USDC {amount} zinarudi',
+      stages: { delivering: 'Muuzaji anawasilisha', overdue: 'Tarehe imepita', reviewing: 'Mnunuzi anakagua', disputed: 'Kwenye mzozo', complete: 'Imekamilika', refunded: 'Imerejeshwa' },
+    },
+    empty: 'Hakuna makubaliano yaliyo wazi.',
     chips: {
       acceptToFund: 'Kagua mechi',
       agreeTerms: 'Kubali masharti',
@@ -5704,9 +5713,9 @@ export const sw: Messages = {
     },
     gate: {
       loading: "Tunakagua mawakala wako",
-      title: 'Anzisha ili kufungua biashara za moja kwa moja',
-      body: "Mikataba ya moja kwa moja inahitaji mawakala wako. Wawashe mara moja: mmoja ananunua kwa niaba yako, mwingine anauza.",
-      cta: 'Anzisha mawakala',
+      title: 'Washa mikoba ya mawakala wako uanze kufanya biashara',
+      body: "Kila makubaliano yanapitia humo. Mmoja analipa unaponunua, mwingine analipwa unapouza. Unaiwasha mara moja tu.",
+      cta: 'Washa mikoba ya mawakala',
     },
     modal: {
       eyebrow: "Mpangilio wa mara moja",

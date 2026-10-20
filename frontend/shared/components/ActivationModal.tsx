@@ -36,6 +36,7 @@ export function ActivationModal({
   agents,
 }: ActivationModalProps) {
   const t = useTranslations().activation.modal;
+  const flowCopy = useTranslations().firstTrade;
   const [buyerName, setBuyerName] = useState('');
   const [sellerName, setSellerName] = useState('');
   const [saved, setSaved] = useState(false);
@@ -189,7 +190,20 @@ export function ActivationModal({
                 <p className="border-s border-[var(--color-line-strong)] ps-3 text-[14px] leading-relaxed text-[var(--color-ink-faint)]">
                   {t.setupHint}
                 </p>
-              ) : null}
+              ) : (
+                // Once active, the one thing to know before the first deal.
+                <div className="border-t border-[var(--color-line)] pt-4">
+                  <p className="text-[14px] font-semibold text-[var(--color-ink-dim)]">{flowCopy.flowTitle}</p>
+                  <ol className="mt-2 space-y-1.5">
+                    {flowCopy.flow.map((line, i) => (
+                      <li key={line} className="flex items-baseline gap-2.5 text-[15px] font-medium text-[var(--color-ink)]">
+                        <span aria-hidden className="w-4 shrink-0 text-[14px] tabular-nums text-[var(--color-ink-dim)]">{i + 1}</span>
+                        {line}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
               {error ? (
                 <FormError>{activated ? t.errorSavePrefix : t.errorActivatePrefix}</FormError>
               ) : null}

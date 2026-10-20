@@ -6,6 +6,7 @@ import { motion } from 'motion/react';
 import type { UserProfile } from '@/core/api';
 import { stageOf, type DealStage } from '@/features/deals/components/DirectDealList';
 import { useDirectDeals } from '@/features/deals/hooks/useDirectDeals';
+import { FirstTrade } from './FirstTrade';
 import { pickCurrentDeal } from '@/features/home/currentDeal';
 import { useOwnedBalance } from '@/features/money/hooks/useOwnedBalance';
 import { fill } from '@/features/deals/workspace/presentation';
@@ -55,7 +56,7 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
           {translations.businessHome.hero.welcomeBack} {firstName}
         </h1>
 
-        <div className="mt-4">
+        <div className="mt-4 grid items-start gap-5 lg:grid-cols-[minmax(0,520px)_minmax(0,1fr)]">
           <motion.div
             data-guide="home-money"
             initial={{ opacity: 0, y: 12 }}
@@ -118,7 +119,7 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="transition-transform duration-200 group-hover:translate-x-0.5 rtl:-scale-x-100 motion-reduce:transition-none"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
             </Link>
           </motion.div>
-
+          <FirstTrade deals={deals} dealsState={fetchState} />
         </div>
 
         <UpdatesCarousel />

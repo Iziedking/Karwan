@@ -2,6 +2,7 @@ import type { Messages } from './en';
 import { requestListCopy } from './requestList';
 import { cashoutFlowCopy } from './cashoutFlow';
 import { balanceSummaryCopy } from './balanceSummary';
+import { firstTradeCopy } from './firstTrade';
 import { disputeJudgeCopy } from './disputeJudge';
 import { networkCopy } from './network';
 import { escrowDocsCopy } from './escrowDocs';
@@ -53,6 +54,7 @@ export const hi: Messages = {
   dealLive: dealLiveCopy.hi,
   disputeJudge: disputeJudgeCopy.hi,
   balanceSummary: balanceSummaryCopy.hi,
+  firstTrade: firstTradeCopy.hi,
   requestList: requestListCopy.hi,
   cashoutFlow: cashoutFlowCopy.hi,
   search: searchCopy.hi,
@@ -5643,8 +5645,8 @@ export const hi: Messages = {
     },
   },
   profileNudge: {
-    stepOne: 'चरण 01/02',
-    stepTwo: 'चरण 02/02',
+    stepOne: 'चरण 1 / 2',
+    stepTwo: 'चरण 2 / 2',
     titleFragment: 'प्रोफ़ाइल सेट करें',
     bodyFragment: 'डिस्प्ले नाम पाने और तेज़ी से प्रतिष्ठा बनाने के लिए। यह वैकल्पिक है। बिना इसके भी आप डील कर सकते हैं।',
     cta: 'प्रोफ़ाइल सेट करें',
@@ -5674,6 +5676,13 @@ export const hi: Messages = {
       open: 'खोलें',
       dueTemplate: 'देय {date}',
     },
+    financed: {
+      sectionTag: 'आपके फ़ाइनेंस किए सौदे',
+      role: 'आपने फ़ाइनेंस किया',
+      backTemplate: '{amount} USDC वापस',
+      stages: { delivering: 'विक्रेता डिलीवर कर रहा है', overdue: 'समय सीमा निकल गई', reviewing: 'खरीदार जाँच रहा है', disputed: 'विवाद में', complete: 'पूरा', refunded: 'पैसा लौटाया गया' },
+    },
+    empty: 'कोई खुला सौदा नहीं।',
     chips: {
       acceptToFund: 'मैच की समीक्षा करें',
       agreeTerms: 'शर्तों से सहमत हों',
@@ -5705,9 +5714,9 @@ export const hi: Messages = {
     },
     gate: {
       loading: "आपके एजेंट जाँचे जा रहे हैं",
-      title: 'सीधे डील खोलने के लिए सक्रिय करें',
-      body: "सीधे सौदों के लिए आपके एजेंट चाहिए। उन्हें एक बार सक्रिय करें: एक आपके लिए खरीदता है, एक बेचता है।",
-      cta: 'एजेंट सक्रिय करें',
+      title: 'व्यापार शुरू करने के लिए अपने एजेंट वॉलेट सक्रिय करें',
+      body: "हर सौदा इन्हीं से होकर जाता है। खरीदते समय एक भुगतान करता है, बेचते समय दूसरे को भुगतान मिलता है। इन्हें बस एक बार सक्रिय करना है।",
+      cta: 'एजेंट वॉलेट सक्रिय करें',
     },
     modal: {
       eyebrow: "एक बार का सेटअप",

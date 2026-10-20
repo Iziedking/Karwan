@@ -2,6 +2,7 @@ import type { Messages } from './en';
 import { requestListCopy } from './requestList';
 import { cashoutFlowCopy } from './cashoutFlow';
 import { balanceSummaryCopy } from './balanceSummary';
+import { firstTradeCopy } from './firstTrade';
 import { disputeJudgeCopy } from './disputeJudge';
 import { networkCopy } from './network';
 import { escrowDocsCopy } from './escrowDocs';
@@ -53,6 +54,7 @@ export const fr: Messages = {
   dealLive: dealLiveCopy.fr,
   disputeJudge: disputeJudgeCopy.fr,
   balanceSummary: balanceSummaryCopy.fr,
+  firstTrade: firstTradeCopy.fr,
   requestList: requestListCopy.fr,
   cashoutFlow: cashoutFlowCopy.fr,
   search: searchCopy.fr,
@@ -5645,8 +5647,8 @@ export const fr: Messages = {
     },
   },
   profileNudge: {
-    stepOne: 'Étape 01/02',
-    stepTwo: 'Étape 02/02',
+    stepOne: 'Étape 1 sur 2',
+    stepTwo: 'Étape 2 sur 2',
     titleFragment: 'Configurer un profil',
     bodyFragment: 'pour obtenir un nom d’affichage et bâtir votre réputation plus vite. Reste optionnel. Vous pouvez sécuriser des deals sans.',
     cta: 'Configurer le profil',
@@ -5676,6 +5678,13 @@ export const fr: Messages = {
       open: 'Ouvrir',
       dueTemplate: 'Échéance {date}',
     },
+    financed: {
+      sectionTag: 'Accords que vous financez',
+      role: 'Vous financez',
+      backTemplate: '{amount} USDC en retour',
+      stages: { delivering: 'Le vendeur livre', overdue: 'Délai dépassé', reviewing: 'L’acheteur vérifie', disputed: 'En litige', complete: 'Terminé', refunded: 'Remboursé' },
+    },
+    empty: 'Aucun accord en cours.',
     chips: {
       acceptToFund: 'Examiner le match',
       agreeTerms: 'Accepter les conditions',
@@ -5707,9 +5716,9 @@ export const fr: Messages = {
     },
     gate: {
       loading: "Vérification de vos agents",
-      title: 'Activer pour ouvrir des deals directs',
-      body: "Les transactions directes ont besoin de vos agents. Activez-les une fois : l’un achète pour vous, l’autre vend pour vous.",
-      cta: 'Activer les agents',
+      title: 'Activez vos portefeuilles d’agent pour commencer à échanger',
+      body: "Chaque accord passe par eux. L’un paie quand vous achetez, l’autre est payé quand vous vendez. Vous les activez une seule fois.",
+      cta: 'Activer les portefeuilles d’agent',
     },
     modal: {
       eyebrow: "Configuration unique",

@@ -11,6 +11,7 @@ const accountTools = new Set([
   'check_top_up_sources', 'get_my_workspaces', 'get_my_deposit_addresses',
   'create_payment_link', 'list_my_payment_links', 'cancel_payment_link',
   'find_karwan_tag', 'propose_send_to_tag', 'search_market', 'propose_direct_deal',
+  'get_first_trade_steps',
 ]);
 const subjects: Array<[RegExp, string[]]> = [
   [/(?:\b(?:balance|solde|salio)\b|رصيد|शेष)/iu, ['get_my_balance', 'list_bridge_sources', 'check_top_up_sources', 'propose_send_to_tag']],
@@ -30,6 +31,7 @@ const subjects: Array<[RegExp, string[]]> = [
   [/\b(?:(?<!request )money|funds|paid|landed|arrived?|received?)\b/i, ['get_my_balance', 'recall_activity', 'list_my_payment_links', 'propose_send_to_tag']],
   [/\bprofile\b/i, ['get_my_profile']],
   [/\b(?:anything pending|everything|attention)\b/i, ['whats_pending']],
+  [/\b(?:get(?:ting)? started|first (?:trade|deal)|where do i start|how do i start|what (?:should|do) i do (?:first|next|now))\b/i, ['get_first_trade_steps', 'whats_pending']],
 ];
 
 function successful(output: unknown): boolean {

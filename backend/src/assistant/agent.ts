@@ -16,6 +16,7 @@ import { arcChain, publicClient } from '../chain/client.js';
 import { vaultAbi } from '../chain/abis/vault.js';
 import { config } from '../config.js';
 import { listDealsForAddress, getDeal, type DirectDeal } from '../db/deals.js';
+import { stageOf } from '../deals/dealView.js';
 import { getAgentWallets } from '../db/agentWallets.js';
 import { listActivityForAddress } from '../db/activityLog.js';
 import { listBridgesForUser } from '../db/bridges.js';
@@ -23,6 +24,8 @@ import { bridgeStanding } from './bridgeStanding.js';
 import { listMatchProposalsForUser } from '../db/matchProposals.js';
 import { activeStakeSummary } from '../reputation/stake.js';
 import { readOwnedBalance } from '../money/ownedBalance.js';
+import { financedStage, positionHref } from '../financial/dealFinanciers.js';
+import { firstTradeSteps, readFirstTradeFacts } from './firstTrade.js';
 import { readStakerYield } from '../routes/yield.js';
 import { loadInputs } from '../reputation/signals.js';
 import { compute as computeReputation } from '../reputation/engine.js';
@@ -233,8 +236,8 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
               : null,
             stakedUsdc: owned.staked > 0 ? owned.staked.toFixed(2) : null,
             gas: formatUnits(gas, NATIVE_DECIMALS),
-            partial: owned.partial,
-            note: `totalUsdc is the balance on their balance page: give it first, as their balance. Name parts only in the page's words: "in your wallet on Arc", "on other chains", "with your agents" (for buying, for selling). walletOnArcUsdc is what they can send or pay from directly. stakedUsdc is locked in the stake vault behind their deals and is NOT part of the total: if you mention it, say it is locked and not counted in the balance, and do not claim it earns yield unless get_my_stake shows yield. Never mention a pooled or unified balance. If partial is true, say one place could not be read just now, so the total may be low.`,
+            someSourcesUnread: owned.partial,
+            note: `totalUsdc is the balance on their balance page: give it first, as their balance. Name parts only in the page's words: "in your wallet on Arc", "on other chains", "with your agents" (for buying, for selling). walletOnArcUsdc is what they can send or pay from directly. stakedUsdc is locked in the stake vault behind their deals and is NOT part of the total: if you mention it, say it is locked and not counted in the balance, and do not claim it earns yield unless get_my_stake shows yield. Never mention a pooled or unified balance. If someSourcesUnread is true, say one place could not be read just now, so the total may be low.`,
           };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant get_my_balance failed');
@@ -878,7 +881,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
 
     get_my_financing: tool({
       description:
-        "The signed-in user's SME trade-finance position, both sides: factoring offers on their invoices (as a seller getting early payout) and offers they made (as a financier), plus PO-financing lines funded for them or by them. Use for 'my factoring offers', 'my financing', 'what am I owed', 'what did I fund'. Empty results are normal for pure P2P users.",
+        "The signed-in user's SME trade-finance position, both sides: factoring offers on their invoices (as a seller getting early payout) and offers they made (as a financier), plus PO-financing lines funded for them or by them, and how each deal they financed is going. Use for 'my factoring offers', 'my financing', 'what am I owed', 'what did I fund', 'how are my financed deals'. Empty results are normal for pure P2P users.",
       inputSchema: z.object({}),
       execute: async () => {
         try {
@@ -905,16 +908,53 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
             state: l.state,
             fundedAt: new Date(l.fundedAt).toISOString(),
           });
+          // The deals this person financed and is still waiting on, read from
+          // their side: how each deal is going and where their position lives.
+          const owed = [
+            ...asFinancierOffers
+              .filter((o) => o.status === 'accepted' || o.status === 'pending_receipt')
+              .map((o) => ({ invoiceId: o.invoiceId, advancedUsdc: o.offeredAdvanceUsdc, backUsdc: o.expectedReturnUsdc, href: positionHref('factoring', o.id) })),
+            ...financierLines
+              .filter((l) => l.state === 'outstanding' || l.state === 'funded' || l.state === 'released')
+              .map((l) => ({ invoiceId: l.invoiceId, advancedUsdc: l.principalUsdc, backUsdc: l.repayUsdc, href: positionHref('po', l.id) })),
+          ].slice(0, 10);
+          const dealsIFinanced = await Promise.all(
+            owed.map(async (p) => {
+              const deal = await getDeal(p.invoiceId).catch(() => null);
+              return { ...p, dealStage: deal ? financedStage(stageOf(deal), deal.deadlineUnix) : 'delivering' };
+            }),
+          );
           return {
             factoringOffersOnMyInvoices: asSellerOffers.slice(0, 10).map(offer),
             factoringOffersIMade: asFinancierOffers.slice(0, 10).map(offer),
             poLinesFundingMe: sellerLines.slice(0, 10).map(line),
             poLinesIFunded: financierLines.slice(0, 10).map(line),
-            note: 'Factoring advances pay sellers early against an accepted invoice; repayment auto-pulls when the deal settles. PO financing fronts the purchase before delivery. Both live on the financing surfaces under /jobs and the financier desk.',
+            dealsIFinanced,
+            note: `Factoring advances pay sellers early against an accepted invoice; repayment auto-pulls when the deal settles. PO financing fronts the purchase before delivery. dealsIFinanced is what this person is still owed, with each deal's stage from their side (delivering, overdue, reviewing, disputed, complete, refunded) and the page for that position; the same list is under Profile, Open deals, "Deals you financed". A financier takes no action on the deal itself. They are told when it is delivered, released, disputed, refunded or misses its deadline.`,
           };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant get_my_financing failed');
           return { error: 'Could not read the financing position right now. Try again shortly.' };
+        }
+      },
+    }),
+
+    get_first_trade_steps: tool({
+      description:
+        "Where this person is on their way to a first finished trade, the same checklist Home shows: agent wallets active, USDC added, Telegram connected, a deal started, a deal finished. Each step is ticked from what is true. Use for 'how do I start', 'what should I do first', 'what next', or when a new person seems unsure.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        try {
+          const view = firstTradeSteps(await readFirstTradeFacts(address));
+          return {
+            ...view,
+            note: view.complete
+              ? 'They have finished a deal, so the first-trade checklist is done. Help with what they ask next.'
+              : 'Give the next step only, in one or two plain sentences, with what it does for them, and offer to do it here when you can (top up, post a request or an offer, open a deal with someone they know). The money flow in one line if useful: you pay into escrow, they deliver, you release, both rate. Never list all steps unless asked.',
+          };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant get_first_trade_steps failed');
+          return { error: 'Could not read their setup right now. Try again shortly.' };
         }
       },
     }),

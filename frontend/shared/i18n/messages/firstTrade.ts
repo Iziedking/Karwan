@@ -1,0 +1,88 @@
+/// The first-trade checklist on Home and the money flow shown with it.
+export interface FirstTradeCopy {
+  title: string;
+  progress: string;
+  hide: string;
+  steps: {
+    wallets: { label: string; action: string };
+    money: { label: string; note: string; action: string };
+    telegram: { label: string; note: string };
+    deal: { label: string; buy: string; sell: string; agreement: string };
+    finish: { label: string };
+  };
+  flowTitle: string;
+  flow: [string, string, string, string];
+}
+
+export const firstTradeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', FirstTradeCopy> = {
+  en: {
+    title: 'Your first trade',
+    progress: '{done} of {total}',
+    hide: 'Hide',
+    steps: {
+      wallets: { label: 'Agent wallets active', action: 'Activate agent wallets' },
+      money: { label: 'Add USDC', note: 'Every deal is paid in USDC.', action: 'Add USDC' },
+      telegram: { label: 'Connect Telegram', note: 'Your agent works for you there.' },
+      deal: { label: 'Start a deal', buy: 'I want to buy', sell: 'I want to sell', agreement: 'I already have a buyer or seller' },
+      finish: { label: 'Finish it. Every deal builds your record.' },
+    },
+    flowTitle: 'How money moves',
+    flow: ['You pay into escrow', 'They deliver', 'You release', 'Both rate'],
+  },
+  fr: {
+    title: 'Votre premier échange',
+    progress: '{done} sur {total}',
+    hide: 'Masquer',
+    steps: {
+      wallets: { label: 'Portefeuilles d’agent actifs', action: 'Activer les portefeuilles d’agent' },
+      money: { label: 'Ajouter des USDC', note: 'Chaque accord se paie en USDC.', action: 'Ajouter des USDC' },
+      telegram: { label: 'Connecter Telegram', note: 'Votre agent y travaille pour vous.' },
+      deal: { label: 'Lancer un accord', buy: 'Je veux acheter', sell: 'Je veux vendre', agreement: 'J’ai déjà un acheteur ou un vendeur' },
+      finish: { label: 'Terminez-le. Chaque accord construit votre historique.' },
+    },
+    flowTitle: 'Comment l’argent circule',
+    flow: ['Vous payez en séquestre', 'Ils livrent', 'Vous versez', 'Chacun note'],
+  },
+  ar: {
+    title: 'صفقتك الأولى',
+    progress: '{done} من {total}',
+    hide: 'إخفاء',
+    steps: {
+      wallets: { label: 'محافظ الوكلاء مفعّلة', action: 'تفعيل محافظ الوكلاء' },
+      money: { label: 'أضف USDC', note: 'كل صفقة تُدفع بعملة USDC.', action: 'أضف USDC' },
+      telegram: { label: 'اربط Telegram', note: 'وكيلك يعمل لك هناك.' },
+      deal: { label: 'ابدأ صفقة', buy: 'أريد أن أشتري', sell: 'أريد أن أبيع', agreement: 'لدي مشترٍ أو بائع بالفعل' },
+      finish: { label: 'أكملها. كل صفقة تبني سجلك.' },
+    },
+    flowTitle: 'كيف ينتقل المال',
+    flow: ['تدفع إلى الضمان', 'يسلّمون', 'تصرف الدفعة', 'يقيّم الطرفان'],
+  },
+  hi: {
+    title: 'आपका पहला व्यापार',
+    progress: '{total} में से {done}',
+    hide: 'छिपाएँ',
+    steps: {
+      wallets: { label: 'एजेंट वॉलेट सक्रिय', action: 'एजेंट वॉलेट सक्रिय करें' },
+      money: { label: 'USDC जोड़ें', note: 'हर सौदे का भुगतान USDC में होता है।', action: 'USDC जोड़ें' },
+      telegram: { label: 'Telegram जोड़ें', note: 'आपका एजेंट वहाँ आपके लिए काम करता है।' },
+      deal: { label: 'सौदा शुरू करें', buy: 'मुझे खरीदना है', sell: 'मुझे बेचना है', agreement: 'मेरे पास पहले से खरीदार या विक्रेता है' },
+      finish: { label: 'इसे पूरा करें। हर सौदा आपका रिकॉर्ड बनाता है।' },
+    },
+    flowTitle: 'पैसा कैसे चलता है',
+    flow: ['आप एस्क्रो में भुगतान करते हैं', 'वे डिलीवर करते हैं', 'आप भुगतान जारी करते हैं', 'दोनों रेटिंग देते हैं'],
+  },
+  sw: {
+    title: 'Biashara yako ya kwanza',
+    progress: '{done} kati ya {total}',
+    hide: 'Ficha',
+    steps: {
+      wallets: { label: 'Mikoba ya mawakala imewashwa', action: 'Washa mikoba ya mawakala' },
+      money: { label: 'Ongeza USDC', note: 'Kila makubaliano yanalipwa kwa USDC.', action: 'Ongeza USDC' },
+      telegram: { label: 'Unganisha Telegram', note: 'Wakala wako anakufanyia kazi huko.' },
+      deal: { label: 'Anza makubaliano', buy: 'Nataka kununua', sell: 'Nataka kuuza', agreement: 'Tayari nina mnunuzi au muuzaji' },
+      finish: { label: 'Yakamilishe. Kila makubaliano yanajenga rekodi yako.' },
+    },
+    flowTitle: 'Jinsi pesa zinavyosonga',
+    flow: ['Unalipa kwenye escrow', 'Wanawasilisha', 'Unatoa malipo', 'Wote wanatoa tathmini'],
+  },
+};

@@ -2,6 +2,7 @@ import type { Messages } from './en';
 import { requestListCopy } from './requestList';
 import { cashoutFlowCopy } from './cashoutFlow';
 import { balanceSummaryCopy } from './balanceSummary';
+import { firstTradeCopy } from './firstTrade';
 import { disputeJudgeCopy } from './disputeJudge';
 import { networkCopy } from './network';
 import { escrowDocsCopy } from './escrowDocs';
@@ -53,6 +54,7 @@ export const ar: Messages = {
   dealLive: dealLiveCopy.ar,
   disputeJudge: disputeJudgeCopy.ar,
   balanceSummary: balanceSummaryCopy.ar,
+  firstTrade: firstTradeCopy.ar,
   requestList: requestListCopy.ar,
   cashoutFlow: cashoutFlowCopy.ar,
   search: searchCopy.ar,
@@ -5645,8 +5647,8 @@ export const ar: Messages = {
     },
   },
   profileNudge: {
-    stepOne: 'الخطوة 01/02',
-    stepTwo: 'الخطوة 02/02',
+    stepOne: 'الخطوة 1 من 2',
+    stepTwo: 'الخطوة 2 من 2',
     titleFragment: 'أنشئ ملفًا شخصيًا',
     bodyFragment: 'لتحصل على اسم عرض وتبني سمعتك أسرع. يبقى اختياريًا. يمكنك إجراء الصفقات بدونه.',
     cta: 'أنشئ الملف',
@@ -5676,6 +5678,13 @@ export const ar: Messages = {
       open: 'فتح',
       dueTemplate: 'الموعد {date}',
     },
+    financed: {
+      sectionTag: 'صفقات موّلتها',
+      role: 'موّلتها',
+      backTemplate: '{amount} USDC عائدة',
+      stages: { delivering: 'البائع يسلّم', overdue: 'فات الموعد', reviewing: 'المشتري يراجع', disputed: 'في نزاع', complete: 'مكتملة', refunded: 'مُستردة' },
+    },
+    empty: 'لا توجد صفقات مفتوحة.',
     chips: {
       acceptToFund: 'راجع المطابقة',
       agreeTerms: 'وافق على الشروط',
@@ -5707,9 +5716,9 @@ export const ar: Messages = {
     },
     gate: {
       loading: "جارٍ التحقق من وكلائك",
-      title: 'فعِّل لفتح الصفقات المباشرة',
-      body: "الصفقات المباشرة تحتاج إلى وكلائك. فعّلهم مرة واحدة: واحد يشتري لك وآخر يبيع لك.",
-      cta: 'تفعيل الوكلاء',
+      title: 'فعّل محافظ وكلائك لتبدأ التداول',
+      body: "كل صفقة تمر عبرها. واحدة تدفع عندما تشتري، والأخرى تستلم عندما تبيع. تفعّلها مرة واحدة فقط.",
+      cta: 'تفعيل محافظ الوكلاء',
     },
     modal: {
       eyebrow: "إعداد لمرة واحدة",

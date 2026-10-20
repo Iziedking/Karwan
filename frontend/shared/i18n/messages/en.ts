@@ -5,6 +5,7 @@ import type { LandingEditorialCopy } from './editorial';
 import { requestListCopy, type RequestListCopy } from './requestList';
 import { cashoutFlowCopy, type CashoutFlowCopy } from './cashoutFlow';
 import { balanceSummaryCopy, type BalanceSummaryCopy } from './balanceSummary';
+import { firstTradeCopy, type FirstTradeCopy } from './firstTrade';
 import { disputeJudgeCopy, type DisputeJudgeCopy } from './disputeJudge';
 import { networkCopy, type NetworkCopy } from './network';
 import { escrowDocsCopy, type EscrowDocsCopy } from './escrowDocs';
@@ -55,6 +56,7 @@ interface MessagesShape {
   dealLive: DealLiveCopy;
   disputeJudge: DisputeJudgeCopy;
   balanceSummary: BalanceSummaryCopy;
+  firstTrade: FirstTradeCopy;
   requestList: RequestListCopy;
   cashoutFlow: CashoutFlowCopy;
   search: SearchCopy;
@@ -5218,6 +5220,13 @@ interface MessagesShape {
       open: string;
       dueTemplate: string;
     };
+    financed: {
+      sectionTag: string;
+      role: string;
+      backTemplate: string;
+      stages: { delivering: string; overdue: string; reviewing: string; disputed: string; complete: string; refunded: string };
+    };
+    empty: string;
     chips: {
       acceptToFund: string;
       agreeTerms: string;
@@ -5438,6 +5447,7 @@ export const en: MessagesShape = {
   dealLive: dealLiveCopy.en,
   disputeJudge: disputeJudgeCopy.en,
   balanceSummary: balanceSummaryCopy.en,
+  firstTrade: firstTradeCopy.en,
   requestList: requestListCopy.en,
   cashoutFlow: cashoutFlowCopy.en,
   search: searchCopy.en,
@@ -6026,8 +6036,8 @@ export const en: MessagesShape = {
     switchFailed: 'Could not switch role',
   },
   profileNudge: {
-    stepOne: 'Step 01/02',
-    stepTwo: 'Step 02/02',
+    stepOne: 'Step 1 of 2',
+    stepTwo: 'Step 2 of 2',
     titleFragment: 'Set up a profile',
     bodyFragment: 'to get a display name and build reputation faster. It stays optional. You can secure deals without one.',
     cta: 'Set up profile',
@@ -11211,6 +11221,13 @@ export const en: MessagesShape = {
       open: 'Open',
       dueTemplate: 'Due {date}',
     },
+    financed: {
+      sectionTag: 'Deals you financed',
+      role: 'You financed',
+      backTemplate: '{amount} USDC back',
+      stages: { delivering: 'Seller delivering', overdue: 'Missed deadline', reviewing: 'Buyer reviewing', disputed: 'In dispute', complete: 'Complete', refunded: 'Refunded' },
+    },
+    empty: 'No open deals.',
     chips: {
       acceptToFund: 'Review match',
       agreeTerms: 'Agree to terms',
@@ -11242,9 +11259,9 @@ export const en: MessagesShape = {
     },
     gate: {
       loading: "Checking your agents",
-      title: 'Activate to open direct deals',
-      body: "Direct deals need your agents. Activate them once: one buys for you, one sells for you.",
-      cta: 'Activate agents',
+      title: 'Activate your agent wallets to start trading',
+      body: "Every deal runs through them. One pays when you buy, the other is paid when you sell. You activate them once.",
+      cta: 'Activate agent wallets',
     },
     modal: {
       eyebrow: "One-time setup",

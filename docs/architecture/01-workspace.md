@@ -63,6 +63,18 @@ flowchart LR
 
 The top of the loop (hold and release) is infrastructure nobody pays for directly. The bottom (record and unlocks) is why a seller keeps coming back.
 
+## The first trade
+
+A new account has a wallet, agent wallets and nothing else. Home shows **Your first trade** until the first deal settles. Each step ticks itself from what is true, never from a click:
+
+1. Agent wallets active.
+2. Add USDC (ticks when the balance is above zero).
+3. Connect Telegram, where the agent works for them.
+4. Start a deal: I want to buy, I want to sell, or I already have a buyer or seller.
+5. Finish it. Every finished deal builds the record.
+
+Under the steps, the money flow in one line: you pay into escrow, they deliver, you release, both rate. The assistant reads the same checklist, so a person who starts in Telegram is told the same next step.
+
 ## Status
 
 | Part | Status | Where |
@@ -71,6 +83,7 @@ The top of the loop (hold and release) is infrastructure nobody pays for directl
 | Escrow, release, disputes | Live | `contracts/`, `backend/src/agents/dealWatcher.ts` |
 | Passkey accounts (mainnet) and agent wallets | Live | `frontend/features/modularWallet`, `backend/src/db/agentWallets.ts` |
 | Direct offers on requests | Built | [03](03-direct-offers.md) |
+| First-trade checklist on Home and in the assistant | Built 20 Oct 2026, not deployed | `frontend/features/home`, `backend/src/assistant` |
 | Workspace tabs (Today, Sales, Money, Record, Customers) | Planned | spec: seller workspace |
 | Local pay-in and payout partners | Planned | chosen per country, see research log |
 | Messaging receipts and nudges | Planned | |
