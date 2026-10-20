@@ -3,6 +3,7 @@ import { requestListCopy } from './requestList';
 import { cashoutFlowCopy } from './cashoutFlow';
 import { balanceSummaryCopy } from './balanceSummary';
 import { firstTradeCopy } from './firstTrade';
+import { setupCopy } from './setup';
 import { disputeJudgeCopy } from './disputeJudge';
 import { networkCopy } from './network';
 import { escrowDocsCopy } from './escrowDocs';
@@ -55,6 +56,7 @@ export const fr: Messages = {
   disputeJudge: disputeJudgeCopy.fr,
   balanceSummary: balanceSummaryCopy.fr,
   firstTrade: firstTradeCopy.fr,
+  setup: setupCopy.fr,
   requestList: requestListCopy.fr,
   cashoutFlow: cashoutFlowCopy.fr,
   search: searchCopy.fr,
@@ -118,6 +120,7 @@ export const fr: Messages = {
     activity: 'Activité',
     stake: 'Mise',
     profile: 'Profil',
+    profileOf: 'Votre profil, {name}',
     deals: 'Transactions',
     market: 'Découvrir',
     finance: 'Financement',

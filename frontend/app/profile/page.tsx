@@ -179,6 +179,11 @@ function ProfilePageInner() {
         <div data-guide="profile-identity" className="space-y-7">
           <TierCelebration address={address} />
           {address ? <ReputationSources address={address} /> : null}
+          {AGENTS_AVAILABLE && activation.activated ? (
+            <RowGroup>
+              <Row label={messages.setup.meChange} href="/setup?edit=1" />
+            </RowGroup>
+          ) : null}
           {AGENTS_AVAILABLE ? (
             <RowGroup>
               <Row label={<span className="inline-flex items-center gap-1">{simple.agents}<Hint side="bottom">{simple.agentsHint}</Hint></span>} value={activation.loading ? undefined : activation.activated ? simple.on : undefined}>

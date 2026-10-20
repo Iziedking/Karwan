@@ -43,6 +43,11 @@ for (const route of ['/onboarding', '/onboarding?step=profile']) {
   assert.equal(getShellSurface(normalized, true), 'focused', `${normalized} stays focused`);
 }
 
+// The setup conversation after activation is focused for everyone (view 19).
+for (const signedIn of [false, true]) {
+  assert.equal(getShellSurface('/setup', signedIn), 'focused', 'setup is focused');
+}
+
 // Cashout is focused only for someone who has no app to navigate. A signed-in
 // person cashing out their own deal keeps their nav; taking it away left them
 // on a page inside the product with no way through it.

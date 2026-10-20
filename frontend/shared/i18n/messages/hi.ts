@@ -3,6 +3,7 @@ import { requestListCopy } from './requestList';
 import { cashoutFlowCopy } from './cashoutFlow';
 import { balanceSummaryCopy } from './balanceSummary';
 import { firstTradeCopy } from './firstTrade';
+import { setupCopy } from './setup';
 import { disputeJudgeCopy } from './disputeJudge';
 import { networkCopy } from './network';
 import { escrowDocsCopy } from './escrowDocs';
@@ -55,6 +56,7 @@ export const hi: Messages = {
   disputeJudge: disputeJudgeCopy.hi,
   balanceSummary: balanceSummaryCopy.hi,
   firstTrade: firstTradeCopy.hi,
+  setup: setupCopy.hi,
   requestList: requestListCopy.hi,
   cashoutFlow: cashoutFlowCopy.hi,
   search: searchCopy.hi,
@@ -116,6 +118,7 @@ export const hi: Messages = {
     activity: 'गतिविधि',
     stake: 'स्टेक',
     profile: 'प्रोफ़ाइल',
+    profileOf: 'आपकी प्रोफ़ाइल, {name}',
     deals: 'सौदे',
     market: 'खोजें',
     finance: 'वित्त',

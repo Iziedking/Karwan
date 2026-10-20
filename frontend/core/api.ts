@@ -1,3 +1,4 @@
+import type { Goal, SetupAnswers } from '@/features/setup/setupSteps';
 import type {
   PublicKeyCredentialCreationOptionsJSON,
   PublicKeyCredentialRequestOptionsJSON,
@@ -339,6 +340,10 @@ export interface UserSettings {
   publishHistory?: boolean;
   /// The one-time answer at the market's entry: for myself or for a business.
   tradesAs?: 'self' | 'business';
+  /// How Karwan reaches them (view 19). Absent means both.
+  notifyVia?: 'telegram' | 'email' | 'both';
+  /// When they finished the setup conversation after activation.
+  setupDoneAt?: number;
 }
 
 export type WorkspaceKind = 'personal' | 'business';
@@ -382,6 +387,12 @@ export interface Workspace {
 }
 
 export interface UserProfile {
+  /// The setup conversation's answers (view 19).
+  goals?: Goal[];
+  agentPrefs?: { findClients?: boolean; agentMode?: 'offers' | 'ask'; sellerPriceSet?: boolean; buyerPriceSet?: boolean };
+  ownWords?: { what?: string; price?: string; buy?: string; business?: string };
+  workPlaces?: string;
+  businessDraft?: { name: string; trades: string };
   address: string;
   role: UserRole;
   displayName: string;
@@ -1825,6 +1836,7 @@ export interface AssistantConfirmAction {
     | 'mark_delivered'
     | 'cancel_request'
     | 'cancel_listing'
+    | 'save_setup'
     | 'stake_usdc'
     | 'claim_yield'
     | 'fund_agent'
@@ -5102,6 +5114,12 @@ export const api = {
         partial: boolean;
       };
     }>('/api/money/balance'),
+  /// The setup conversation after activation: read the answers on the server
+  /// (preview) or read and save them. The server never trusts a client result.
+  setupPreview: (answers: SetupAnswers) =>
+    json<{ lines: string[]; needs: Array<'price'> }>('/api/setup/preview', { method: 'POST', body: JSON.stringify({ answers }) }),
+  setupSave: (answers: SetupAnswers) =>
+    json<{ profile: UserProfile }>('/api/setup/save', { method: 'POST', body: JSON.stringify({ answers }) }),
   /// Provider-neutral money movement orchestration. The API records intent and
   /// capability truth; the existing wallet/Gateway/CCTP actions remain the
   /// execution surfaces until a provider checkout is configured.

@@ -3,6 +3,7 @@ import { listAllBriefs } from '../db/briefs.js';
 import { listDealsForAddress } from '../db/deals.js';
 import { listListingsForSeller } from '../db/listings.js';
 import { getTelegramLink } from '../db/telegramLinks.js';
+import { getProfile } from '../db/profiles.js';
 import { stageOf } from '../deals/dealView.js';
 import { readOwnedBalance } from '../money/ownedBalance.js';
 import { telegramEnabled } from '../telegram/bot.js';
@@ -20,7 +21,13 @@ export async function readFirstTradeFacts(address: string): Promise<FirstTradeFa
   ]);
   const postedRequest = listAllBriefs().some((brief) => brief.postedBy === key);
   const postedOffer = listListingsForSeller(key).length > 0;
+  const profile = await getProfile(key).catch(() => null);
+  const goals = profile?.goals ?? [];
   return {
+    setupDone: !!profile?.settings?.setupDoneAt,
+    goals,
+    ownClients: profile?.agentPrefs?.findClients === false && goals.some((g) => g === 'work' || g === 'sell'),
+    connected: !!profile?.xHandle,
     activated: !!wallets?.buyerAddress && !!wallets?.sellerAddress,
     balance: owned?.total ?? 0,
     telegram: link ? 'linked' : telegramEnabled() ? 'unlinked' : 'unavailable',

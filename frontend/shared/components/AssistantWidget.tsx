@@ -1,4 +1,5 @@
 'use client';
+import { HELP_OPEN_EVENT } from '@/shared/assistant/openHelp';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAccount, useChainId, usePublicClient, useSwitchChain, useWalletClient } from 'wagmi';
 import { erc20Abi, parseUnits } from 'viem';
@@ -14,6 +15,7 @@ import {
   type AssistantNavigateAction,
   type AssistantConfirmAction,
 } from '@/core/api';
+import type { SetupAnswers } from '@/features/setup/setupSteps';
 import { stripMarkdown } from '@/shared/utils/format';
 import { tidyAssistantText } from '@/shared/utils/assistantText';
 import { confirmTransaction } from '@/shared/chain/confirmTx';
@@ -83,6 +85,17 @@ export function AssistantWidget() {
   const [liveClosed, setLiveClosed] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [unread, setUnread] = useState(false);
+
+  // Any screen can open Help, with a question already typed (shared/assistant/openHelp.ts).
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      const prefill = (e as CustomEvent<{ prefill?: string }>).detail?.prefill;
+      setOpen(true);
+      if (prefill) setInput(prefill);
+    };
+    window.addEventListener(HELP_OPEN_EVENT, onOpen);
+    return () => window.removeEventListener(HELP_OPEN_EVENT, onOpen);
+  }, []);
   const lastTsRef = useRef(0);
   const pollBusyRef = useRef(false);
   const openRef = useRef(open);
@@ -988,6 +1001,15 @@ async function runConfirmIntent(
       viewLabel: 'The market',
     };
   }
+  if (action.intent === 'save_setup') {
+    const p = action.payload as { answers: SetupAnswers };
+    await api.setupSave(p.answers);
+    return {
+      successText: 'Your agents now work this way.',
+      viewHref: '/setup?edit=1',
+      viewLabel: 'See your setup',
+    };
+  }
   if (action.intent === 'stake_usdc') {
     const p = action.payload as { address: string; amountUsdc: number };
     const r = await api.vaultDeposit({
@@ -1366,6 +1388,8 @@ function ConfirmCard({
                     ? 'Marking…'
                     : action.intent === 'cancel_request' || action.intent === 'cancel_listing'
                       ? 'Cancelling…'
+                      : action.intent === 'save_setup'
+                        ? 'Saving…'
                       : action.intent === 'stake_usdc'
                         ? 'Staking…'
                         : action.intent === 'claim_yield'

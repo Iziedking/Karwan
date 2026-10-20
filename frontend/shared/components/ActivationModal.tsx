@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -37,6 +38,7 @@ export function ActivationModal({
 }: ActivationModalProps) {
   const t = useTranslations().activation.modal;
   const flowCopy = useTranslations().firstTrade;
+  const setupCopy = useTranslations().setup;
   const [buyerName, setBuyerName] = useState('');
   const [sellerName, setSellerName] = useState('');
   const [saved, setSaved] = useState(false);
@@ -193,6 +195,9 @@ export function ActivationModal({
               ) : (
                 // Once active, the one thing to know before the first deal.
                 <div className="border-t border-[var(--color-line)] pt-4">
+                  <Link href="/setup" onClick={onClose} className="mb-5 flex min-h-12 w-full items-center justify-center rounded-[10px] bg-[var(--lp-accent)] px-5 text-[15px] font-semibold text-[var(--accent-ink)] transition-colors hover:bg-[var(--lp-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2">
+                    {setupCopy.start}
+                  </Link>
                   <p className="text-[14px] font-semibold text-[var(--color-ink-dim)]">{flowCopy.flowTitle}</p>
                   <ol className="mt-2 space-y-1.5">
                     {flowCopy.flow.map((line, i) => (

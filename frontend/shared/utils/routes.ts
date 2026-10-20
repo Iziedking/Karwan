@@ -93,7 +93,7 @@ export function isPublicAccessRoute(pathname: string | null | undefined): boolea
 /** Task flows that keep identity controls but remove navigation distractions. */
 export function isFocusedRoute(pathname: string | null | undefined): boolean {
   if (!pathname) return false;
-  return matchesRoute(pathname, '/onboarding') || matchesRoute(pathname, '/cashout') || matchesRoute(pathname, '/profile/business/setup');
+  return matchesRoute(pathname, '/onboarding') || matchesRoute(pathname, '/setup') || matchesRoute(pathname, '/cashout') || matchesRoute(pathname, '/profile/business/setup');
 }
 
 /**
@@ -106,7 +106,7 @@ export function isFocusedRoute(pathname: string | null | undefined): boolean {
  * with their navigation taken away and no reason given.
  */
 function isFocusedForEveryone(pathname: string | null | undefined): boolean {
-  return !!pathname && (matchesRoute(pathname, '/onboarding') || matchesRoute(pathname, '/profile/business/setup'));
+  return !!pathname && (matchesRoute(pathname, '/onboarding') || matchesRoute(pathname, '/setup') || matchesRoute(pathname, '/profile/business/setup'));
 }
 
 /** First-contact invitation pages own their complete page shell. */

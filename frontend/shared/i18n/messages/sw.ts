@@ -3,6 +3,7 @@ import { requestListCopy } from './requestList';
 import { cashoutFlowCopy } from './cashoutFlow';
 import { balanceSummaryCopy } from './balanceSummary';
 import { firstTradeCopy } from './firstTrade';
+import { setupCopy } from './setup';
 import { disputeJudgeCopy } from './disputeJudge';
 import { networkCopy } from './network';
 import { escrowDocsCopy } from './escrowDocs';
@@ -55,6 +56,7 @@ export const sw: Messages = {
   disputeJudge: disputeJudgeCopy.sw,
   balanceSummary: balanceSummaryCopy.sw,
   firstTrade: firstTradeCopy.sw,
+  setup: setupCopy.sw,
   requestList: requestListCopy.sw,
   cashoutFlow: cashoutFlowCopy.sw,
   search: searchCopy.sw,
@@ -115,6 +117,7 @@ export const sw: Messages = {
     activity: 'Shughuli',
     stake: 'Dhamana',
     profile: 'Wasifu',
+    profileOf: 'Wasifu wako, {name}',
     deals: 'Mikataba',
     market: 'Gundua',
     finance: 'Ufadhili',

@@ -6,6 +6,7 @@ import { requestListCopy, type RequestListCopy } from './requestList';
 import { cashoutFlowCopy, type CashoutFlowCopy } from './cashoutFlow';
 import { balanceSummaryCopy, type BalanceSummaryCopy } from './balanceSummary';
 import { firstTradeCopy, type FirstTradeCopy } from './firstTrade';
+import { setupCopy, type SetupCopy } from './setup';
 import { disputeJudgeCopy, type DisputeJudgeCopy } from './disputeJudge';
 import { networkCopy, type NetworkCopy } from './network';
 import { escrowDocsCopy, type EscrowDocsCopy } from './escrowDocs';
@@ -57,6 +58,7 @@ interface MessagesShape {
   disputeJudge: DisputeJudgeCopy;
   balanceSummary: BalanceSummaryCopy;
   firstTrade: FirstTradeCopy;
+  setup: SetupCopy;
   requestList: RequestListCopy;
   cashoutFlow: CashoutFlowCopy;
   search: SearchCopy;
@@ -110,6 +112,8 @@ interface MessagesShape {
     activity: string;
     stake: string;
     profile: string;
+    /// The round profile button's label: whose profile it opens.
+    profileOf: string;
     deals: string;
     market: string;
     finance: string;
@@ -5448,6 +5452,7 @@ export const en: MessagesShape = {
   disputeJudge: disputeJudgeCopy.en,
   balanceSummary: balanceSummaryCopy.en,
   firstTrade: firstTradeCopy.en,
+  setup: setupCopy.en,
   requestList: requestListCopy.en,
   cashoutFlow: cashoutFlowCopy.en,
   search: searchCopy.en,
@@ -5512,6 +5517,7 @@ export const en: MessagesShape = {
     activity: 'Activity',
     stake: 'Stake',
     profile: 'Profile',
+    profileOf: 'Your profile, {name}',
     deals: 'Deals',
     market: 'Discover',
     finance: 'Finance',

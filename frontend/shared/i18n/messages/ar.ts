@@ -3,6 +3,7 @@ import { requestListCopy } from './requestList';
 import { cashoutFlowCopy } from './cashoutFlow';
 import { balanceSummaryCopy } from './balanceSummary';
 import { firstTradeCopy } from './firstTrade';
+import { setupCopy } from './setup';
 import { disputeJudgeCopy } from './disputeJudge';
 import { networkCopy } from './network';
 import { escrowDocsCopy } from './escrowDocs';
@@ -55,6 +56,7 @@ export const ar: Messages = {
   disputeJudge: disputeJudgeCopy.ar,
   balanceSummary: balanceSummaryCopy.ar,
   firstTrade: firstTradeCopy.ar,
+  setup: setupCopy.ar,
   requestList: requestListCopy.ar,
   cashoutFlow: cashoutFlowCopy.ar,
   search: searchCopy.ar,
@@ -118,6 +120,7 @@ export const ar: Messages = {
     activity: 'النشاط',
     stake: 'الإيداع',
     profile: 'الملف',
+    profileOf: 'ملفك، {name}',
     deals: 'الصفقات',
     market: 'استكشاف',
     finance: 'التمويل',

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { firstTrade } from './firstTrade';
 
-const fresh = { activated: true, balance: 0, telegram: 'unlinked' as const, startedTrade: false, settledTrade: false };
+const fresh = { activated: true, balance: 0, telegram: 'unlinked' as const, startedTrade: false, settledTrade: false, setupDone: true, goals: [] as Array<'record'>, ownClients: false };
 
 test('a new account sees the steps, with the first unfinished one as its next move', () => {
   const view = firstTrade(fresh);
@@ -35,4 +35,24 @@ test('the checklist goes away after the first finished deal, and waits while any
   assert.equal(firstTrade({ ...fresh, settledTrade: true }).visible, false);
   assert.equal(firstTrade({ ...fresh, balance: null }).visible, false);
   assert.equal(firstTrade({ ...fresh, telegram: null }).visible, false);
+});
+
+test('a fresh account starts by telling its agent about its work', () => {
+  const view = firstTrade({ ...fresh, setupDone: false });
+  assert.equal(view.steps[0]!.key, 'setup');
+  assert.equal(view.next, 'setup');
+});
+
+test('wanting a record adds a step to connect the places you work', () => {
+  const keys = firstTrade({ ...fresh, goals: ['record'] }).steps.map((s) => s.key);
+  assert.ok(keys.indexOf('connect') === keys.indexOf('telegram') + 1);
+});
+
+test('a person with their own clients starts a deal with a payment request', () => {
+  assert.equal(firstTrade({ ...fresh, ownClients: true }).dealAction, 'paymentRequest');
+  assert.equal(firstTrade(fresh).dealAction, 'market');
+});
+
+test('setup still loading keeps the checklist hidden', () => {
+  assert.equal(firstTrade({ ...fresh, setupDone: null }).visible, false);
 });

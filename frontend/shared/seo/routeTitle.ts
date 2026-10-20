@@ -46,6 +46,7 @@ const EXACT: Record<string, RouteTitleKey> = {
   '/seller': 'seller',
   '/send': 'send',
   '/settings': 'settings',
+  '/setup': 'setUp',
   '/stake': 'stake',
   '/start': 'signIn',
   '/terms': 'terms',

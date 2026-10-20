@@ -50,6 +50,7 @@ export type RouteTitleKey =
   | 'research'
   | 'seller'
   | 'send'
+  | 'setUp'
   | 'settings'
   | 'stake'
   | 'signIn'
@@ -113,6 +114,7 @@ const en: RouteTitleCopy = {
   research: 'Research',
   seller: 'Sell',
   send: 'Send',
+  setUp: 'Set up my Karwan',
   settings: 'Settings',
   stake: 'Stake',
   signIn: 'Sign in',
@@ -175,6 +177,7 @@ const ar: RouteTitleCopy = {
   research: 'بحث',
   seller: 'بيع',
   send: 'إرسال',
+  setUp: 'إعداد Karwan الخاص بي',
   settings: 'الإعدادات',
   stake: 'الرهن',
   signIn: 'تسجيل الدخول',
@@ -237,6 +240,7 @@ const fr: RouteTitleCopy = {
   research: 'Recherche',
   seller: 'Vendre',
   send: 'Envoyer',
+  setUp: 'Configurer mon Karwan',
   settings: 'Paramètres',
   stake: 'Staking',
   signIn: 'Se connecter',
@@ -299,6 +303,7 @@ const hi: RouteTitleCopy = {
   research: 'शोध',
   seller: 'बेचें',
   send: 'भेजें',
+  setUp: 'मेरा Karwan सेट करें',
   settings: 'सेटिंग्स',
   stake: 'स्टेक',
   signIn: 'साइन इन',
@@ -361,6 +366,7 @@ const sw: RouteTitleCopy = {
   research: 'Utafiti',
   seller: 'Uza',
   send: 'Tuma',
+  setUp: 'Weka Karwan yangu',
   settings: 'Mipangilio',
   stake: 'Weka dhamana',
   signIn: 'Ingia',

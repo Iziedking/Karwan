@@ -11,6 +11,7 @@ import { useOwnedBalance } from '@/features/money/hooks/useOwnedBalance';
 import { TelegramConnectButton } from '@/features/telegram/components/TelegramConnectButton';
 import { useTelegramLink } from '@/features/telegram/hooks/useTelegramLink';
 import { useActivation } from '@/shared/hooks/useActivation';
+import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { PRIMARY, SECONDARY } from '@/shared/ui/controls';
@@ -31,6 +32,7 @@ export function FirstTrade({ deals, dealsState }: {
   const activation = useActivation();
   const owned = useOwnedBalance();
   const telegram = useTelegramLink(me || undefined);
+  const { profile, fetchState: profileState } = useUserProfile();
   // The same keys the market's own lists use, so this costs no extra reads.
   const requests = useQuery({ queryKey: ['search', 'myRequests', me], queryFn: () => api.buyer(me).then((r) => r.jobs), enabled: !!me, staleTime: 15_000 });
   const listings = useQuery({ queryKey: ['trade-hub', 'listings', me], queryFn: () => api.listingsForSeller(me).then((r) => r.listings), enabled: !!me, staleTime: 15_000 });
@@ -53,6 +55,11 @@ export function FirstTrade({ deals, dealsState }: {
       ? null
       : deals.length > 0 || (requests.data?.length ?? 0) > 0 || (listings.data?.length ?? 0) > 0,
     settledTrade: dealsLoaded ? deals.some((deal) => stageOf(deal) === 'settled') : null,
+    setupDone: profileState === 'success' ? !!profile?.settings?.setupDoneAt : null,
+    goals: profile?.goals ?? [],
+    ownClients: profile?.agentPrefs?.findClients === false && (profile?.goals ?? []).some((g) => g === 'work' || g === 'sell'),
+    // X is connected through sign-in with X, so it is proven.
+    connected: !!profile?.xHandle,
   });
 
   if (!view.visible || hidden) return null;
@@ -68,6 +75,8 @@ export function FirstTrade({ deals, dealsState }: {
 
   const routes = tradeEntryRoutes();
   const action = (key: FirstTradeStep) => {
+    if (key === 'setup') return <Link href="/setup" className={PRIMARY}>{t.steps.setup.action}</Link>;
+    if (key === 'connect') return <Link href="/profile/setup" className={PRIMARY}>{t.steps.connect.action}</Link>;
     if (key === 'wallets') return <Link href="/profile/agent-funds" className={PRIMARY}>{t.steps.wallets.action}</Link>;
     if (key === 'money') {
       // On testnet nobody holds USDC yet, so the faucet comes first.
@@ -82,6 +91,14 @@ export function FirstTrade({ deals, dealsState }: {
       return <Link href="/bridge?direction=in" className={PRIMARY}>{t.steps.money.action}</Link>;
     }
     if (key === 'telegram') return <TelegramConnectButton address={me || undefined} tone="light" />;
+    if (key === 'deal' && view.dealAction === 'paymentRequest') {
+      return (
+        <div className="flex flex-wrap gap-2">
+          <Link href="/request" className={PRIMARY}>{t.steps.deal.paymentRequest}</Link>
+          <Link href={routes.agreement} className={SECONDARY}>{t.steps.deal.agreement}</Link>
+        </div>
+      );
+    }
     if (key === 'deal') {
       return (
         <div className="flex flex-wrap gap-2">
@@ -94,7 +111,7 @@ export function FirstTrade({ deals, dealsState }: {
     return null;
   };
   const note = (key: FirstTradeStep) =>
-    key === 'money' ? (ARC_NETWORK === 'testnet' ? t.steps.money.testnetNote : t.steps.money.note) : key === 'telegram' ? t.steps.telegram.note : null;
+    key === 'money' ? (ARC_NETWORK === 'testnet' ? t.steps.money.testnetNote : t.steps.money.note) : key === 'telegram' ? t.steps.telegram.note : key === 'connect' ? t.steps.connect.note : null;
 
   return (
     <section aria-labelledby="first-trade" className="rounded-[22px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-4 sm:rounded-[24px] sm:p-6">
