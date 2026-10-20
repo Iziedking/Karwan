@@ -10,15 +10,19 @@ export function ProductBackLink({
   isAuthenticated,
   className,
   shell = false,
+  fallbackHref,
 }: {
   pathname: string | null;
   isAuthenticated: boolean;
   className?: string;
+  /// Where Back goes when the route itself has no parent: a view inside a
+  /// top-level page, such as a list opened from the market.
+  fallbackHref?: string;
   /// The page-edge copy the app frame draws. A page that draws Back on its own
   /// content column hides this one (globals.css, data-own-back).
   shell?: boolean;
 }) {
-  const href = getProductBackHref(pathname, isAuthenticated);
+  const href = getProductBackHref(pathname, isAuthenticated) ?? fallbackHref ?? null;
   const t = useTranslations();
   const router = useRouter();
 

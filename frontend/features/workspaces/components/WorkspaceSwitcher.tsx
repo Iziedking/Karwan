@@ -42,14 +42,14 @@ export function WorkspaceSwitcher({ compact = false }: { compact?: boolean }) {
   }
 
   return (
-    <div ref={rootRef} className="relative z-40">
+    <div ref={rootRef} className="relative z-40 min-w-0 max-w-full">
       <button
         type="button"
         aria-label={`${activeKindLabel}: ${activeWorkspace.name}`}
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
         className={cn(
-          'inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--color-line-strong)] px-3 text-[14px] font-semibold text-[var(--color-ink)] transition-colors hover:bg-[var(--color-surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]',
+          'inline-flex min-h-11 max-w-full items-center gap-2 rounded-full border border-[var(--color-line-strong)] px-3 text-[14px] font-semibold text-[var(--color-ink)] transition-colors hover:bg-[var(--color-surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]',
           compact && 'max-w-[150px] px-2.5 sm:max-w-[220px]',
         )}
       >

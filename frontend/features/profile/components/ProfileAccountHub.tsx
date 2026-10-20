@@ -121,7 +121,7 @@ export function ProfileAccountHub({
             <span aria-hidden className="absolute -bottom-0.5 -end-0.5 grid size-6 place-items-center rounded-full border border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[14px] text-[var(--lp-dark)]">+</span>
           </PhotoMenu>
           <span className="min-w-0">
-            <span className="block truncate">{displayName}</span>
+            <span className="line-clamp-2 break-words text-[24px] leading-tight sm:text-[28px]">{displayName}</span>
             <span className="block truncate text-[14px] font-normal tracking-normal text-[var(--lp-text-sub)]">
               {[profile.handle ? `@${profile.handle}` : contact, business ? hub.businessAccount : hub.personalAccount].join(' · ')}
             </span>

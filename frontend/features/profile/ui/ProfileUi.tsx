@@ -9,7 +9,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
 
 /// Every profile page: one plain title, an optional note behind an info mark,
 /// and the content at the same width and edge.
-export function ProfileFrame({ title, hint, children }: { title: ReactNode; hint?: ReactNode; children: ReactNode }) {
+export function ProfileFrame({ title, hint, backHref, children }: { title: ReactNode; hint?: ReactNode; backHref?: string; children: ReactNode }) {
   const pathname = usePathname();
   const { isAuthenticated } = useAuth();
   return (
@@ -17,7 +17,7 @@ export function ProfileFrame({ title, hint, children }: { title: ReactNode; hint
       <div className="mx-auto max-w-[640px]">
         {/* Back sits on this column, beside what it leaves, not at the page edge. */}
         <div data-own-back className="-ms-2 mb-3 empty:hidden">
-          <ProductBackLink pathname={pathname} isAuthenticated={isAuthenticated} />
+          <ProductBackLink pathname={pathname} isAuthenticated={isAuthenticated} fallbackHref={backHref} />
         </div>
         <h1 className="flex items-center gap-2 text-[28px] font-semibold tracking-[-0.02em] text-[var(--lp-dark)]">
           {title}
@@ -69,6 +69,19 @@ export function Row({ label, value, href, onClick, soon, full = false, children 
       <div className={rowBase}>
         <span className="min-w-0 flex-1 font-medium text-[var(--lp-text-sub)]">{label}</span>
         <span className="shrink-0 rounded-full bg-[var(--lp-light)] px-2.5 py-1 text-[14px] font-semibold text-[var(--lp-text-sub)]">{soon}</span>
+      </div>
+    );
+  }
+  // A row with its own controls: the label and value keep one line, and the
+  // controls drop under them when a phone has no room for both.
+  if (children != null && !href && !onClick) {
+    return (
+      <div className={`${rowBase} flex-wrap py-2.5`}>
+        <span className="flex min-w-0 flex-1 basis-[11rem] items-baseline justify-between gap-3">
+          <span className="min-w-0 break-words font-medium text-[var(--lp-dark)]">{label}</span>
+          {value != null ? <span className="shrink-0 whitespace-nowrap text-end text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">{value}</span> : null}
+        </span>
+        <span className="ms-auto flex min-w-0 max-w-full flex-wrap justify-end gap-2">{children}</span>
       </div>
     );
   }
