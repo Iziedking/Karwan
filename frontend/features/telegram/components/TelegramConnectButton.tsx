@@ -7,26 +7,16 @@ import { useTelegramLink } from '../hooks/useTelegramLink';
 
 const TG_BLUE = '#229ED9';
 
-function TelegramGlyph({ size = 14 }: { size?: number }) {
+/// Telegram's own round logo, so the button reads as Telegram at a glance.
+export function TelegramGlyph({ size = 20 }: { size?: number }) {
   return (
-    <span
-      aria-hidden
-      className="inline-flex items-center justify-center rounded-[5px] shrink-0"
-      style={{ background: TG_BLUE, width: size + 4, height: size + 4 }}
-    >
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
-        <path
-          d="M3.5 10.6L20 4.2c.9-.3 1.7.5 1.4 1.4l-3.1 13.7c-.2 1-1.3 1.2-2 .5l-4.4-4-2.4 2.3c-.4.4-1 .2-1.1-.4l-.9-3.8L3 12.3c-.7-.3-.7-1.3.5-1.7z"
-          fill="#fff"
-        />
-        <path
-          d="M9.6 14.7l8-7.4c.2-.2-.1-.5-.4-.3l-9.7 5.9"
-          stroke={TG_BLUE}
-          strokeWidth="0.8"
-          strokeLinecap="round"
-        />
-      </svg>
-    </span>
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden className="shrink-0">
+      <circle cx="12" cy="12" r="12" fill={TG_BLUE} />
+      <path
+        d="M5.5 11.7 16.9 7.3c.6-.2 1.1.1.9 1l-1.9 9c-.1.6-.6.8-1.1.5l-2.9-2.1-1.4 1.4c-.2.2-.3.3-.6.3l.2-3 5.4-4.9c.2-.2 0-.3-.3-.1l-6.7 4.2-2.9-.9c-.6-.2-.6-.6.1-.9z"
+        fill="#fff"
+      />
+    </svg>
   );
 }
 
@@ -162,7 +152,7 @@ function TelegramConnectModal({
         <div className="pb-3 flex items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2.5">
-              <TelegramGlyph size={16} />
+              <TelegramGlyph size={22} />
               <span className="text-[14px] text-[var(--lp-text-muted)]">
                 {copy.modal.eyebrow}
               </span>
@@ -208,7 +198,6 @@ function TelegramConnectModal({
                 }}
               >
                 {copy.modal.generateCta}
-                <span aria-hidden>→</span>
               </button>
             </>
           )}
@@ -230,8 +219,8 @@ function TelegramConnectModal({
                   boxShadow: '0 4px 0 rgba(0,0,0,0.22)',
                 }}
               >
+                <TelegramGlyph size={20} />
                 {copy.modal.openTelegramCta}
-                <span aria-hidden>↗</span>
               </a>
               <ModalNote tone="info">
                 <p className="font-semibold text-[14px]">
