@@ -1883,6 +1883,11 @@ export interface SavedAssistantMessage {
   actions?: PastAssistantAction[];
 }
 
+export interface AssistantMemoryView {
+  enabled: boolean;
+  notes: Array<{ id: string; text: string; at: number }>;
+}
+
 export interface AssistantConversationSummary {
   id: string;
   title: string;
@@ -5191,6 +5196,13 @@ export const api = {
   },
   deleteAssistantConversation: (id: string) =>
     json<{ ok: true }>(`/api/assistant/conversations/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  /// What the assistant remembers about this account (view 20), newest first.
+  assistantMemory: () => json<AssistantMemoryView>('/api/assistant/memory'),
+  setAssistantMemory: (on: boolean) =>
+    json<AssistantMemoryView>('/api/assistant/memory/enabled', { method: 'POST', body: JSON.stringify({ on }) }),
+  deleteAssistantMemoryNote: (id: string) =>
+    json<AssistantMemoryView>(`/api/assistant/memory/notes/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  forgetAssistantMemory: () => json<AssistantMemoryView>('/api/assistant/memory', { method: 'DELETE' }),
   /// Provider-neutral money movement orchestration. The API records intent and
   /// capability truth; the existing wallet/Gateway/CCTP actions remain the
   /// execution surfaces until a provider checkout is configured.

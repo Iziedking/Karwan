@@ -5,6 +5,7 @@ import { balanceSummaryCopy } from './balanceSummary';
 import { firstTradeCopy } from './firstTrade';
 import { setupCopy } from './setup';
 import { assistantModeCopy } from './assistantMode';
+import { assistantMemoryCopy } from './assistantMemory';
 import { walletPanelCopy } from './walletPanel';
 import { plainMoneyCopy } from './plainMoney';
 import { disputeJudgeCopy } from './disputeJudge';
@@ -61,6 +62,7 @@ export const fr: Messages = {
   firstTrade: firstTradeCopy.fr,
   setup: setupCopy.fr,
   assistantMode: assistantModeCopy.fr,
+  assistantMemory: assistantMemoryCopy.fr,
   walletPanel: walletPanelCopy.fr,
   plainMoney: plainMoneyCopy.fr,
   requestList: requestListCopy.fr,
@@ -5345,7 +5347,7 @@ export const fr: Messages = {
       store: {
         addresses: 'Les adresses, l\'activité on-chain, et les enregistrements de transactions off-chain indexés par adresse.',
         email: 'Votre e-mail si vous vous connectez par e-mail ou passkey, ou si vous en vérifiez un. Votre handle X et votre compte Telegram si vous les connectez.',
-        chats: 'Les transcriptions de négociation, les messages de transaction, les conversations avec l\'assistant, et les tickets de support.',
+        chats: 'Les transcriptions de négociation, les messages de transaction, les conversations avec l\'assistant, et les tickets de support, ainsi que de courtes notes que l\'assistant garde sur vos échanges, que vous pouvez supprimer ou désactiver dans les Paramètres.',
         reputation: 'Les entrées de réputation : nombre de transactions réglées, nombre de litiges, solde staké, date d\'inscription.',
         business: 'Les informations d\'entreprise que vous soumettez à l\'enregistrement, y compris un hash de tout document que vous téléversez. Le document lui-même est hashé dans votre navigateur et ne nous est pas envoyé.',
       },

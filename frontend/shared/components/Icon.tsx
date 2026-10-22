@@ -3,7 +3,7 @@ import {
   Activity, ArrowDownLeft, ArrowLeftRight, Bell, CircleAlert, ArrowRight, ArrowUpRight, Bot, BriefcaseBusiness, Calculator,
   ChartColumn, Check, ChevronLeft, ChevronRight, Clapperboard, Code, Coins, FileText, Globe,
   GraduationCap, ImagePlus, Languages, Link, List, LoaderCircle, Megaphone, MessagesSquare,
-  Package, PenLine, PenTool, Plus, Receipt, Reply, Search, Send, Shirt, Smartphone, UserRound, Wallet, X,
+  Package, PenLine, PenTool, Plus, Receipt, Reply, Search, Send, Shirt, Smartphone, Trash2, UserRound, Wallet, X,
 } from 'lucide-react';
 
 const icons = {
@@ -47,6 +47,7 @@ const icons = {
   'pen-tool': PenTool,
   shirt: Shirt,
   smartphone: Smartphone,
+  trash: Trash2,
 } as const;
 
 export type IconName = keyof typeof icons;

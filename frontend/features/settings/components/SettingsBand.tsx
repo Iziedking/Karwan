@@ -14,6 +14,7 @@ import { adoptPreferenceIfUnset, setThemePreference, useTheme } from '@/shared/h
 import { LanguagePicker } from './LanguagePicker';
 import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
 import { PublishDealsRows } from './PublishDealsRows';
+import { AssistantMemoryRows } from './AssistantMemoryRows';
 import { ThemeIcon } from '@/shared/components/ThemeControl';
 import { Row, RowGroup, ToggleRow } from '@/features/profile/ui/ProfileUi';
 import { sfx } from '@/shared/utils/sfx';
@@ -200,6 +201,8 @@ export function SettingsBand() {
         />
         <PublishDealsRows settings={settings} save={save} />
       </RowGroup>
+
+      <AssistantMemoryRows />
 
       {method === 'circle' && email && (
         <RowGroup title={t.settings.groups.security}>

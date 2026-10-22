@@ -5,6 +5,7 @@ import { balanceSummaryCopy } from './balanceSummary';
 import { firstTradeCopy } from './firstTrade';
 import { setupCopy } from './setup';
 import { assistantModeCopy } from './assistantMode';
+import { assistantMemoryCopy } from './assistantMemory';
 import { walletPanelCopy } from './walletPanel';
 import { plainMoneyCopy } from './plainMoney';
 import { disputeJudgeCopy } from './disputeJudge';
@@ -61,6 +62,7 @@ export const ar: Messages = {
   firstTrade: firstTradeCopy.ar,
   setup: setupCopy.ar,
   assistantMode: assistantModeCopy.ar,
+  assistantMemory: assistantMemoryCopy.ar,
   walletPanel: walletPanelCopy.ar,
   plainMoney: plainMoneyCopy.ar,
   requestList: requestListCopy.ar,
@@ -5345,7 +5347,7 @@ export const ar: Messages = {
       store: {
         addresses: 'العناوين، والنشاط على السلسلة، وسجلات الصفقات خارج السلسلة المفهرسة بالعنوان.',
         email: 'بريدك الإلكتروني إذا سجلت الدخول بالبريد أو بـ passkey، أو إذا وثّقت بريداً. اسمك على X وحسابك على Telegram إذا ربطتهما.',
-        chats: 'نسخ التفاوض، ورسائل الصفقات، ومحادثات المساعد، وتذاكر الدعم.',
+        chats: 'نسخ التفاوض، ورسائل الصفقات، ومحادثات المساعد، وتذاكر الدعم، وملاحظات قصيرة يحتفظ بها المساعد عمّا ناقشتموه، يمكنك حذفها أو إيقافها من الإعدادات.',
         reputation: 'مدخلات السمعة: عدد الصفقات المسواة، وعدد النزاعات، والرصيد المرهون، ووقت التسجيل.',
         business: 'بيانات الشركة التي تقدمها للتسجيل، بما فيها هاش أي مستند ترفعه. المستند نفسه يُحسب هاشه في متصفحك ولا يُرسل إلينا.',
       },

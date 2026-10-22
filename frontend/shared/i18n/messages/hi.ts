@@ -5,6 +5,7 @@ import { balanceSummaryCopy } from './balanceSummary';
 import { firstTradeCopy } from './firstTrade';
 import { setupCopy } from './setup';
 import { assistantModeCopy } from './assistantMode';
+import { assistantMemoryCopy } from './assistantMemory';
 import { walletPanelCopy } from './walletPanel';
 import { plainMoneyCopy } from './plainMoney';
 import { disputeJudgeCopy } from './disputeJudge';
@@ -61,6 +62,7 @@ export const hi: Messages = {
   firstTrade: firstTradeCopy.hi,
   setup: setupCopy.hi,
   assistantMode: assistantModeCopy.hi,
+  assistantMemory: assistantMemoryCopy.hi,
   walletPanel: walletPanelCopy.hi,
   plainMoney: plainMoneyCopy.hi,
   requestList: requestListCopy.hi,
@@ -5343,7 +5345,7 @@ export const hi: Messages = {
       store: {
         addresses: 'एड्रेस, ऑन-चेन गतिविधि, और एड्रेस द्वारा कीड ऑफ़-चेन डील रिकॉर्ड.',
         email: 'आपका ईमेल यदि आप ईमेल या passkey से साइन इन करते हैं, या यदि आप कोई सत्यापित करते हैं. आपका X हैंडल और आपका Telegram खाता यदि आप उन्हें जोड़ते हैं.',
-        chats: 'बातचीत के ट्रांसक्रिप्ट, डील संदेश, सहायक वार्तालाप, और सपोर्ट टिकट.',
+        chats: 'बातचीत के ट्रांसक्रिप्ट, डील संदेश, सहायक वार्तालाप, और सपोर्ट टिकट, साथ ही आपकी बातचीत के बारे में सहायक के छोटे नोट, जिन्हें आप सेटिंग्स में हटा या बंद कर सकते हैं.',
         reputation: 'प्रतिष्ठा इनपुट: निपटाई गई डील की गणना, विवाद गणना, स्टेक्ड बैलेंस, पंजीकरण समय.',
         business: 'पंजीकरण के लिए आपके द्वारा जमा किए गए व्यवसाय विवरण, जिसमें आपके अपलोड किए गए किसी भी दस्तावेज़ का हैश शामिल है. दस्तावेज़ स्वयं आपके ब्राउज़र में हैश होता है और हमें नहीं भेजा जाता.',
       },

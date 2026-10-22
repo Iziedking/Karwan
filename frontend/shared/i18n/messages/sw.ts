@@ -5,6 +5,7 @@ import { balanceSummaryCopy } from './balanceSummary';
 import { firstTradeCopy } from './firstTrade';
 import { setupCopy } from './setup';
 import { assistantModeCopy } from './assistantMode';
+import { assistantMemoryCopy } from './assistantMemory';
 import { walletPanelCopy } from './walletPanel';
 import { plainMoneyCopy } from './plainMoney';
 import { disputeJudgeCopy } from './disputeJudge';
@@ -61,6 +62,7 @@ export const sw: Messages = {
   firstTrade: firstTradeCopy.sw,
   setup: setupCopy.sw,
   assistantMode: assistantModeCopy.sw,
+  assistantMemory: assistantMemoryCopy.sw,
   walletPanel: walletPanelCopy.sw,
   plainMoney: plainMoneyCopy.sw,
   requestList: requestListCopy.sw,
@@ -5342,7 +5344,7 @@ export const sw: Messages = {
       store: {
         addresses: 'Anwani, shughuli za on-chain, na rekodi za deal nje ya chain zilizopangwa kwa anwani.',
         email: 'Barua pepe yako kama unaingia kwa barua pepe au passkey, au kama unathibitisha moja. Handle yako ya X na akaunti yako ya Telegram kama unaziunganisha.',
-        chats: 'Nakala za mazungumzo, ujumbe wa deal, mazungumzo na msaidizi, na tiketi za msaada.',
+        chats: 'Nakala za mazungumzo, ujumbe wa deal, mazungumzo na msaidizi, na tiketi za msaada, pamoja na maelezo mafupi ambayo msaidizi huweka kuhusu mliyozungumza, unayoweza kufuta au kuzima kwenye Mipangilio.',
         reputation: 'Pembejeo za sifa: hesabu za deal zilizolipwa, hesabu za migogoro, salio lililowekewa stake, wakati wa usajili.',
         business: 'Taarifa za biashara unazowasilisha kwa usajili, ikiwa ni pamoja na hash ya hati yoyote unayopakia. Hati yenyewe hufanyiwa hash kwenye kivinjari chako na haitumwi kwetu.',
       },

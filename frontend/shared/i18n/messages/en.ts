@@ -8,6 +8,7 @@ import { balanceSummaryCopy, type BalanceSummaryCopy } from './balanceSummary';
 import { firstTradeCopy, type FirstTradeCopy } from './firstTrade';
 import { setupCopy, type SetupCopy } from './setup';
 import { assistantModeCopy, type AssistantModeCopy } from './assistantMode';
+import { assistantMemoryCopy, type AssistantMemoryCopy } from './assistantMemory';
 import { walletPanelCopy, type WalletPanelCopy } from './walletPanel';
 import { plainMoneyCopy, type PlainMoneyCopy } from './plainMoney';
 import { disputeJudgeCopy, type DisputeJudgeCopy } from './disputeJudge';
@@ -63,6 +64,7 @@ interface MessagesShape {
   firstTrade: FirstTradeCopy;
   setup: SetupCopy;
   assistantMode: AssistantModeCopy;
+  assistantMemory: AssistantMemoryCopy;
   walletPanel: WalletPanelCopy;
   plainMoney: PlainMoneyCopy;
   requestList: RequestListCopy;
@@ -5465,6 +5467,7 @@ export const en: MessagesShape = {
   firstTrade: firstTradeCopy.en,
   setup: setupCopy.en,
   assistantMode: assistantModeCopy.en,
+  assistantMemory: assistantMemoryCopy.en,
   walletPanel: walletPanelCopy.en,
   plainMoney: plainMoneyCopy.en,
   requestList: requestListCopy.en,
@@ -10906,7 +10909,7 @@ export const en: MessagesShape = {
       store: {
         addresses: 'Addresses, on-chain activity, and off-chain deal records keyed by address.',
         email: 'Your email if you sign in by email or passkey, or if you verify one. Your X handle and your Telegram account if you connect them.',
-        chats: 'Negotiation transcripts, deal messages, assistant conversations, and support tickets.',
+        chats: 'Negotiation transcripts, deal messages, assistant conversations, and support tickets, plus short notes the assistant keeps about what you discussed, which you can delete or switch off in Settings.',
         reputation: 'Reputation inputs: settled deal counts, dispute counts, staked balance, registration time.',
         business: 'Business details you submit for registration, including a hash of any document you upload. The document itself is hashed in your browser and is not sent to us.',
       },
