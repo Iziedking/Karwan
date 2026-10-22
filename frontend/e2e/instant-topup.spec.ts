@@ -243,7 +243,7 @@ test('adding money keeps the pending approval visible and reports its receipt', 
   const copy = topUpMessages.en;
   let release!: () => void;
   const hold = new Promise<void>(resolve => { release = resolve; });
-  const world = await open(page, '/bridge?money=v1', 'light', 'en', {
+  const world = await open(page, '/bridge?money=v1&rail=gateway', 'light', 'en', {
     deposit: async route => {
       await hold;
       await route.fulfill({ json: { ok: true, gatewayAddress: ME, amountUsd: 4.25, source: 'identity',
@@ -272,7 +272,7 @@ test('adding money keeps the pending approval visible and reports its receipt', 
 test('an unknown add-money error keeps its recovery copy free of protocol words', async ({ page }, testInfo) => {
   test.skip(topUpBefore, 'After-only error-copy coverage.');
   const copy = topUpMessages.en;
-  const world = await open(page, '/bridge?money=v1', 'dark', 'en', {
+  const world = await open(page, '/bridge?money=v1&rail=gateway', 'dark', 'en', {
     deposit: route => route.fulfill({ status: 502, json: { error: 'Provider response could not be confirmed', code: 'unavailable' } }),
   });
   await page.getByRole('tab', { name: copy.depositRails.gateway.tab, exact: true }).click();
