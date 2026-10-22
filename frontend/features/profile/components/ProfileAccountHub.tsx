@@ -17,6 +17,7 @@ import { WorkspaceSwitcher } from '@/features/workspaces/components/WorkspaceSwi
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { DEALS_AVAILABLE } from '@/core/arcNetwork';
 import { useAddPasskey } from '@/features/settings/components/SettingsBand';
+import { accountRows } from '../accountRows';
 
 type ProfileAccountHubProps = {
   profile: UserProfile;
@@ -98,6 +99,18 @@ export function ProfileAccountHub({
   const balanceFacts = { balance: money.balance, pool: money.pool, loading: money.loading, error: money.error };
   const agentTotal = money.buyer != null || money.seller != null ? (money.buyer ?? 0) + (money.seller ?? 0) : null;
   const usdc = (value: number | null) => (value == null ? undefined : `${formatBalance(value, locale)} USDC`);
+  // What setup already filled in, instead of "Set up" (accountRows.ts).
+  const rows = accountRows(
+    {
+      email: profile.email,
+      ownWords: profile.ownWords,
+      settings: profile.settings,
+      businessDraft: profile.businessDraft,
+      companyName: profile.smeProfile?.companyName,
+      hasBusiness: business || hasBusinessWorkspace,
+    },
+    { setUp: simple.setUp, telegram: messages.setup.choices.reach.options.telegram.label },
+  );
 
   return (
     <ProfileFrame
@@ -156,14 +169,14 @@ export function ProfileAccountHub({
 
       <RowGroup title={hub.account}>
         <Row label={hub.editProfile} href="/profile/edit" />
-        {DEALS_AVAILABLE ? <Row label={simple.agentsTitle} href="/profile/setup" /> : null}
-        <Row label={simple.contactTitle} value={profile.email ?? simple.setUp} href="/profile/contact" />
+        {DEALS_AVAILABLE ? <Row label={simple.agentsTitle} value={rows.agents} href={profile.settings?.setupDoneAt ? '/profile/setup' : '/setup'} /> : null}
+        <Row label={simple.contactTitle} value={rows.contact} href="/profile/contact" />
         <Row label={simple.walletsTitle} href="/profile/wallets" />
         <Row label={messages.payLink.create.title} href="/request" />
         {DEALS_AVAILABLE ? (
           <Row
             label={business || hasBusinessWorkspace ? businessCopy.label : businessCopy.open}
-            value={business ? profile.smeProfile?.companyName : hasBusinessWorkspace ? undefined : simple.setUp}
+            value={rows.business}
             href="/profile/business"
           />
         ) : null}

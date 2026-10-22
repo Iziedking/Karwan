@@ -46,7 +46,8 @@ function BusinessSetupForm({ profile }: { profile: UserProfile }) {
   const queryClient = useQueryClient();
   const { workspaces, switchWorkspace } = useWorkspaceContext();
   const existingBusiness = workspaces.find((workspace) => workspace.kind === 'business');
-  const [name, setName] = useState(existingBusiness?.name ?? '');
+  // Setup asked for the business name already; start from it.
+  const [name, setName] = useState(existingBusiness?.name ?? profile.businessDraft?.name ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
