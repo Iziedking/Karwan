@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { createContext, createElement, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { api, type ChainEvent, type DirectDeal } from '@/core/api';
@@ -254,7 +254,11 @@ export function subscribeToToasts(fn: ToastListener) {
   };
 }
 
-export function useNotifications() {
+/// The notification state for the signed-in account. It runs once, in
+/// NotificationsProvider: every bell, nav badge and toast reads the same copy,
+/// so the backfill, the financing reads and the live subscription happen once
+/// per page instead of once per component.
+function useNotificationsSource() {
   const auth = useAuth();
   const qc = useQueryClient();
   const translations = useTranslations();
@@ -858,4 +862,25 @@ export function useNotifications() {
   const unreadCount = notifications.reduce((n, x) => n + (x.read ? 0 : 1), 0);
 
   return { notifications, unreadCount, markRead, markAllRead, clearAll };
+}
+
+type NotificationsValue = ReturnType<typeof useNotificationsSource>;
+
+const NotificationsContext = createContext<NotificationsValue | null>(null);
+
+const NONE: NotificationsValue = {
+  notifications: [],
+  unreadCount: 0,
+  markRead: () => {},
+  markAllRead: () => {},
+  clearAll: () => {},
+};
+
+export function NotificationsProvider({ children }: { children: ReactNode }) {
+  return createElement(NotificationsContext.Provider, { value: useNotificationsSource() }, children);
+}
+
+/// Outside the provider (admin, tests) there are no notifications.
+export function useNotifications(): NotificationsValue {
+  return useContext(NotificationsContext) ?? NONE;
 }

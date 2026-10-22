@@ -26,6 +26,7 @@ import {
   CTAPill,
   PageCard,
 } from '@/shared/components/Bands';
+import { Icon } from '@/shared/components/Icon';
 
 type BusinessStatus = 'none' | 'submitted' | 'verified' | 'rejected';
 
@@ -332,7 +333,7 @@ function StatusChip({
       className="inline-flex min-h-11 items-center gap-2 px-3 py-2 rounded-full border border-[var(--lp-workspace-border)] mono text-[13px] font-bold uppercase tracking-[0.16em] text-[var(--lp-workspace-muted)] hover:text-[var(--lp-workspace-ink)] hover:border-[var(--lp-workspace-ink)] transition-colors"
     >
       {bh.status.finishVerification}
-      <span aria-hidden>→</span>
+      <Icon name="arrow-right" size={16} directional />
     </Link>
   );
 }

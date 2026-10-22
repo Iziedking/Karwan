@@ -68,7 +68,7 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
           >
             <div className="flex items-center justify-between gap-3">
               <p className="text-[15px] font-semibold text-[var(--lp-text-sub)]">{home.balanceLabel}</p>
-              <Link href="/account" className="-me-1 inline-flex min-h-9 items-center gap-1 rounded-full px-1 text-[15px] font-semibold text-[var(--lp-dark)] hover:text-[var(--lp-accent-on-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+              <Link href="/account" className="-me-1 inline-flex min-h-11 items-center gap-1 rounded-full px-1 text-[15px] font-semibold text-[var(--lp-dark)] hover:text-[var(--lp-accent-on-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
                 {home.details}
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="rtl:-scale-x-100"><path d="m9 18 6-6-6-6" /></svg>
               </Link>

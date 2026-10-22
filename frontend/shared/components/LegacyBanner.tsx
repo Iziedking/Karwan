@@ -5,6 +5,7 @@ import { api } from '@/core/api';
 import { AUTH_CHANGED_EVENT } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { Countdown } from './Countdown';
+import { Icon } from '@/shared/components/Icon';
 
 interface WindowState {
   open: boolean;
@@ -126,7 +127,7 @@ export function LegacyBanner() {
             }}
           >
             {t.openRecovery}
-            <span aria-hidden>→</span>
+            <Icon name="arrow-right" size={16} directional />
           </Link>
           <button
             type="button"

@@ -26,6 +26,7 @@ import {
   hasRequiredBusinessProfile,
   type BusinessProfileMinimum,
 } from '@/features/profile/businessVerificationModel';
+import { Icon } from '@/shared/components/Icon';
 
 export default function BusinessVerificationPage() {
   const t = useTranslations().registerBusiness.page;
@@ -65,7 +66,7 @@ function BusinessVerificationPageInner() {
           href="/profile/business"
           className="inline-flex min-h-11 items-center gap-2 mono text-[14px] font-bold uppercase tracking-[0.12em] text-[var(--lp-workspace-muted)] transition-colors hover:text-[var(--lp-workspace-ink)]"
         >
-          <span aria-hidden>←</span>
+          <Icon name="arrow-left" size={16} directional />
           {t.backToProfile}
         </Link>
         <div className="mt-7 max-w-[760px]">

@@ -5,6 +5,7 @@ import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
 import { Accent, Band, HeroHeadline, Punc, SectionTag } from '@/shared/components/Bands';
 import { DataMetric, RotatingDataPanel } from '@/shared/components/RotatingDataPanel';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { Icon } from '@/shared/components/Icon';
 
 export interface LiveNetworkStats {
   deals: number;
@@ -79,7 +80,7 @@ export function LiveNetworkBand({ stats }: { stats: LiveNetworkStats | null }) {
             className="group -mx-2 mt-7 inline-flex min-h-11 items-center gap-1.5 px-2 mono text-[14px] uppercase tracking-[0.08em] text-[var(--lp-workspace-muted)] transition-colors hover:text-[var(--lp-workspace-ink)]"
           >
             {t.fullFeed}
-            <span aria-hidden className="transition-transform duration-200 group-hover:translate-x-0.5">→</span>
+            <Icon name="arrow-right" size={16} directional className="transition-transform duration-200 group-hover:translate-x-0.5" />
           </Link>
         </div>
 

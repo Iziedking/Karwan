@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { DOCS_SECTIONS, useDocsSectionLabel } from './DocsSidebar';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { Icon } from '@/shared/components/Icon';
 
 /// Prev/next pager at the foot of every docs page. Lets a reader (especially on
 /// mobile) move to the adjacent section without scrolling back up to the
@@ -29,7 +30,7 @@ export function DocsPager() {
           style={{ borderRadius: 12, borderBottomLeftRadius: 3 }}
         >
           <span className="text-[14px] text-[var(--ink-secondary)] inline-flex items-center gap-1 font-medium">
-            <span aria-hidden className="transition-transform duration-200 group-hover:-translate-x-0.5">←</span>
+            <Icon name="arrow-left" size={16} directional className="transition-transform duration-200 group-hover:-translate-x-0.5" />
             {t.pager.previous}
           </span>
           <span className="font-sans text-[15px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
@@ -47,7 +48,7 @@ export function DocsPager() {
         >
           <span className="text-[14px] text-[var(--ink-secondary)] inline-flex items-center gap-1 justify-end font-medium">
             {t.pager.next}
-            <span aria-hidden className="transition-transform duration-200 group-hover:translate-x-0.5">→</span>
+            <Icon name="arrow-right" size={16} directional className="transition-transform duration-200 group-hover:translate-x-0.5" />
           </span>
           <span className="font-sans text-[15px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
             {labelFor(next.key)}

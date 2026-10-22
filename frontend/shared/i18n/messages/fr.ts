@@ -279,7 +279,7 @@ export const fr: Messages = {
       connectedAs: 'Connecté en tant que',
       secureAccount: 'Compte Karwan sécurisé',
       description: 'Comment allez-vous utiliser Karwan le plus souvent ? Choisissez une option. Vous pourrez changer plus tard.',
-      continueArrow: 'Continuer →',
+      continueArrow: 'Continuer',
       backArrow: 'Retour',
       cards: {
         seller: {
@@ -365,7 +365,7 @@ export const fr: Messages = {
         milestonePresetsHint: 'Choisissez la répartition souhaitée pour vos futurs deals. 50 % · 50 % signifie deux versements du total. L’acheteur finance d’abord le montant convenu ; chaque deal définit ses règles de versement.',
       },
       saving: 'Enregistrement…',
-      submit: 'Enregistrer le profil →',
+      submit: 'Enregistrer le profil',
       error: 'Impossible d’enregistrer votre profil. Vérifiez votre connexion et réessayez.',
       defaultDisplayName: 'Utilisateur Karwan {shortAddress}',
     },
@@ -386,7 +386,7 @@ export const fr: Messages = {
       ready: "Vos agents sont prêts.",
       activationError: "Impossible de créer vos agents. Réessayez ou terminez plus tard depuis votre profil.",
       retry: "Réessayer",
-      continue: "Voir le profil →",
+      continue: "Voir le profil",
       error: "Impossible de charger votre profil. Réessayez avant de continuer.",
     },
     validation: {
@@ -458,7 +458,7 @@ export const fr: Messages = {
         available: 'Disponible',
         verificationRequired: 'Vérification requise',
       },
-      reviewBusiness: 'Examiner la vérification entreprise →',
+      reviewBusiness: 'Examiner la vérification entreprise',
       publicPassport: 'Voir le passeport public',
     },
     page: {
@@ -841,6 +841,7 @@ export const fr: Messages = {
       emptyIn: "Aucune entrée pour l'instant.",
       emptyOut: "Aucune sortie pour l'instant.",
       repeated: "{n} fois",
+      repeatedEach: "{n} fois, {amount} chacun",
       showAll: 'Voir tout',
       showLess: 'Voir moins',
     },
@@ -1029,7 +1030,7 @@ export const fr: Messages = {
     hero: {
       sectionTag: 'Profil',
       fallbackName: 'Votre wallet',
-      publicPassport: 'Passeport public ↗',
+      publicPassport: 'Passeport public',
     },
     activation: {
       cta: 'Activer les agents',
@@ -1095,17 +1096,17 @@ export const fr: Messages = {
     hero: {
       welcomeBack: 'Bon retour,',
       description: 'Les agents tiennent l’enchère. Vous validez les conditions.',
-      postRequestCta: 'Publier une demande →',
-      postOfferCta: 'Publier une offre →',
-      viewActivityCta: 'Voir l’activité →',
+      postRequestCta: 'Publier une demande',
+      postOfferCta: 'Publier une offre',
+      viewActivityCta: 'Voir l’activité',
     },
     quickStart: {
       eyebrow: 'Nouveau ici',
       title: 'Trois étapes vers votre premier deal',
       dismissAria: 'Masquer le démarrage rapide',
       steps: {
-        activate: { title: 'Activez vos agents', body: 'Donnez à vos agents acheteur et vendeur une petite autorisation de dépense. Ils ne financent aucun deal et ne libèrent aucun fonds sans votre accord.', cta: 'Activer →' },
-        post: { title: 'Publiez une demande ou une offre', body: 'Dites ce dont vous avez besoin ou ce que vous fournissez. Votre agent négocie et rapporte un match.', cta: 'Ouvrir les bureaux →' },
+        activate: { title: 'Activez vos agents', body: 'Donnez à vos agents acheteur et vendeur une petite autorisation de dépense. Ils ne financent aucun deal et ne libèrent aucun fonds sans votre accord.', cta: 'Activer' },
+        post: { title: 'Publiez une demande ou une offre', body: 'Dites ce dont vous avez besoin ou ce que vous fournissez. Votre agent négocie et rapporte un match.', cta: 'Ouvrir les bureaux' },
         settle: { title: 'Approuvez, puis réglez', body: 'Approuvez le match trouvé par votre agent. L’argent est libéré par jalons après votre validation du travail.' },
       },
     },
@@ -1738,7 +1739,7 @@ export const fr: Messages = {
     },
     approvedEyebrow: 'Vendeur a accepté',
     approvedBody: 'Le vendeur a accepté votre deal. Le séquestre est financé. Ouverture du deal en direct.',
-    approvedCta: 'Ouvrir le deal →',
+    approvedCta: 'Ouvrir le deal',
     declinedEyebrow: 'Match refusé',
     declinedSellerView: 'Vous avez refusé ce match. La demande reste fermée, et l\'acheteur peut en publier une nouvelle.',
     buyerChoosing: 'L’acheteur choisit dans une sélection. Vous serez prévenu de son choix.',
@@ -1820,9 +1821,9 @@ export const fr: Messages = {
       summaryTemplate: '{total} transactions · {clean} propres · {disputed} en litige · moyenne {avg}',
       receiptTemplate: "L'agent a payé {amount} sur Arc pour cette lecture",
       receiptRail: 'Les petits paiements peuvent partager un même enregistrement de règlement. Un enregistrement distinct peut ne pas être disponible.',
-      receiptView: 'voir ↗',
-      receiptDeposit: 'financement ↗',
-      receiptWallet: 'portefeuille ↗',
+      receiptView: 'voir',
+      receiptDeposit: 'financement',
+      receiptWallet: 'portefeuille',
       receiptProvider: 'fournisseur',
       receiptClaim: 'revendication',
       receiptImpact: 'correspondance historique inchangée',
@@ -1921,7 +1922,7 @@ export const fr: Messages = {
     errors: {
       postFailedTemplate: "Impossible de publier : {error}",
       activating: 'Activation…',
-      activateCta: 'Activez vos agents ici →',
+      activateCta: 'Activez vos agents ici',
     },
     yourOffers: {
       eyebrow: 'Vos offres',
@@ -1987,7 +1988,7 @@ export const fr: Messages = {
     },
     jobLabelCard: 'Job',
     jobLabelTimeline: 'job',
-    openLink: 'Ouvrir →',
+    openLink: 'Ouvrir',
     explorerTitle: "Ouvrir sur l'explorateur Arc Testnet",
     chipLabels: {
       price: 'Prix',
@@ -2707,7 +2708,7 @@ export const fr: Messages = {
     },
     footer: {
       disclaimer: "Composite de l'historique des deals, de la mise et de l'ancienneté. La réputation est enregistrée sur Arc et suit le wallet d'un deal à l'autre.",
-      verifiedLink: 'Vérifié sur Arc ↗',
+      verifiedLink: 'Vérifié sur Arc',
     },
   },
   feedback: {
@@ -3734,7 +3735,7 @@ export const fr: Messages = {
         autoReleased: 'Réglée. La fenêtre de revue est passée, le jalon final a donc été libéré automatiquement. La réputation est enregistrée on-chain.',
         normal: 'Réglée. Le vendeur a été payé en totalité et la réputation est enregistrée on-chain.',
         financed: 'Réglée. La créance cédée a été payée au financeur et le dossier de financement a été clôturé on-chain.',
-        cashoutTemplate: 'Encaisser {amount} USDC →',
+        cashoutTemplate: 'Encaisser {amount} USDC',
         settleTimeEyebrow: 'réglé on-chain en',
         repeatDeal: 'Refaire ce deal',
       },
@@ -4133,7 +4134,7 @@ export const fr: Messages = {
     scoreMaxTemplate: '/ {max}',
     unratedLabel: 'non noté',
     compositeFootnote: 'Calculé à partir de l\'historique des deals, du stake et de l\'ancienneté sur Karwan. Enregistré sur Arc.',
-    creditPassportLink: 'Passeport de crédit ↗',
+    creditPassportLink: 'Passeport de crédit',
     stats: {
       success: 'Réussies',
       disputed: 'Contestées',
@@ -4317,7 +4318,7 @@ export const fr: Messages = {
       title: 'Ouvrez votre premier deal en environ une minute.',
       body: 'Direct ou piloté par agent, à vous de voir. Règlement en minutes, pas en semaines.',
       ctaPrimary: "Ouvrir Karwan ↓",
-      ctaSecondary: 'Lire comment ça marche →',
+      ctaSecondary: 'Lire comment ça marche',
     },
   },
   legacyPage: {
@@ -4815,7 +4816,7 @@ export const fr: Messages = {
         bridge: { title: 'Dépôt / Retrait', blurb: 'Déplacer des USDC vers Arc et depuis Arc avec Circle CCTP.' },
         roadmap: { title: 'Roadmap', blurb: 'Ce qui est live aujourd\'hui et ce qui arrive ensuite.' },
         faq: { title: 'FAQ', blurb: 'Réponses rapides aux questions que les nouveaux utilisateurs posent en premier.' },
-        x402: { title: 'Points de données payants', blurb: "Accès payant prévu aux historiques commerciaux. Le service x402 n’est pas actif." },
+        x402: { title: 'Points de données payants', blurb: "Accès payant aux historiques commerciaux, actif sur le réseau de test. Chaque appel se paie en USDC de test via x402." },
       },
     },
   },
@@ -4886,7 +4887,7 @@ export const fr: Messages = {
   x402Page: {
     eyebrow: 'API de données payantes',
     title: 'Données de souscription, payées à l\'appel',
-    intro: "L’API de données payantes est implémentée mais inactive. Cette référence décrit les points d’accès et le paiement prévus sur le réseau de test. Ne déposez pas de fonds pour ce service avant l’annonce de sa disponibilité.",
+    intro: "L’API de données payantes est active sur Arc Testnet. Chaque appel se paie en USDC de test via x402, réglé par Circle Gateway. Elle n’est pas encore ouverte sur le réseau principal.",
     endpoints: {
       heading: 'Points d\'accès',
       body: 'Les prix sont en USDC par appel. Le point d\'accès annuaire est gratuit et lisible par machine, un agent peut donc découvrir le catalogue avant de payer.',
@@ -4996,7 +4997,7 @@ export const fr: Messages = {
       { q: "Que se passe-t-il si le vendeur ne livre pas ?", a: "Utilisez l’action de recours ou de litige affichée dans l’accord. Les possibilités de remboursement, de versement et de décision dépendent du contrat. Ouvrir un litige ne déclenche pas un remboursement automatique." },
       { q: "Que se passe-t-il si l'acheteur tarde à libérer ?", a: "Vérifiez le délai de vérification. Le vendeur peut pouvoir réclamer une étape admissible après son expiration, y compris la dernière. Examinez la livraison ou demandez une prolongation ou un litige avant l’échéance." },
       { q: "Que se passe-t-il si le vendeur dépasse l'échéance ?", a: "Consultez les actions et délais applicables dans l’accord. Une échéance manquée peut affecter le dossier du vendeur si le contrat enregistre cet échec ; elle ne garantit pas un remboursement automatique." },
-      { q: "Les agents paient-ils quelque chose pendant qu'ils travaillent ?", a: "Les agents ne financent pas les accords de leur propre initiative. La recherche payante via x402 n’est pas disponible. Un futur service devra préciser son budget, ses frais et les données reçues." },
+      { q: "Les agents paient-ils quelque chose pendant qu'ils travaillent ?", a: "Les agents ne financent pas les accords de leur propre initiative. Sur le réseau de test, la recherche de marché via x402 est active : après les rapports gratuits du jour, chaque rapport est payé avec votre crédit de recherche, et le prix et le solde apparaissent dans Fonds des agents." },
       { q: "Quelle est la différence entre les côtés Individuel et Business ?", a: "Un compte personnel permet d’agir en son nom ; un espace professionnel représente une entreprise. Les fonctions de financement peuvent être désactivées ou limitées. Vérifiez les fonctions disponibles pour votre compte." },
       { q: "Les compétences individuelles sont-elles vérifiées ?", a: "Les compétences sont déclarées par leur titulaire, sauf résultat de vérification précis affiché. Examinez les travaux et l’historique avant d’accepter un accord." },
       { q: "Que signifie la vérification d’une entreprise ?", a: "Lorsqu’elle est proposée, l’entreprise peut soumettre des justificatifs d’immatriculation ou fiscaux. Une vérification ne garantit ni solvabilité, ni qualité, ni sécurité. Elle peut expirer ou être retirée." },
@@ -5070,7 +5071,7 @@ export const fr: Messages = {
       title: "Fonctions commerciales sur le réseau de test",
       items: {
         match: { title: 'Appariement et négociation agentique.', body: "Les agents acheteur et vendeur sont classés d'abord par adéquation de compétence, négociant en plusieurs tours dans les plages fixées par chaque partie. Chaque partie peut lire chaque contre-proposition sur la chronologie de la transaction." },
-        negotiation: { title: 'Intelligence de négociation.', body: "Les agents comparent les offres selon vos limites. La recherche payante via x402 n’est pas active." },
+        negotiation: { title: 'Intelligence de négociation.', body: "Les agents comparent les offres selon vos limites. Sur le réseau de test, ils peuvent aussi acheter de la recherche de marché via x402, payée avec votre crédit de recherche." },
         stake: { title: 'Mise en garantie de la transaction.', body: "Une partie de la mise libre du vendeur est réservée pour chaque transaction acceptée. Un litige perdu transfère cette réserve à l'acheteur." },
         passport: { title: 'Passeport de crédit public.', body: "Partagez l’historique visible sur votre passeport de crédit. Vos réglages de confidentialité déterminent ce que les autres peuvent lire." },
         shareable: { title: 'Liens de transaction partageables.', body: "Invitez une contrepartie par e-mail. Elle se connecte et examine l’accord avant d’accepter." },
@@ -5158,7 +5159,7 @@ export const fr: Messages = {
       title: 'Quand il vous faut un agent pour en trouver une',
       body: 'Publiez une demande et les agents mènent l\'enchère et la négociation pour vous.',
       step1: { title: 'Publier une demande', bodyA: 'Sur ', bodyB: ', choisissez "Trouvez-moi un vendeur". Écrivez ce dont vous avez besoin, fixez un budget et une échéance. Une transaction ', bodyC: ' arrive sur Arc en quelques secondes.' },
-      step2: { title: 'Les agents négocient', bodyA: 'L\'agent vendeur évalue la demande et appelle ', bodyB: ". L’agent acheteur compare l’offre et négocie selon vos limites. Vous examinez les conditions avant de financer. La recherche payante via x402 est inactive." },
+      step2: { title: 'Les agents négocient', bodyA: 'L\'agent vendeur évalue la demande et appelle ', bodyB: ". L’agent acheteur compare l’offre et négocie selon vos limites. Vous examinez les conditions avant de financer. Sur le réseau de test, les agents peuvent payer de la recherche de marché via x402 avec votre crédit de recherche." },
       step3: { title: 'Régler la transaction', body: "Examinez et approuvez les conditions avant de financer le séquestre. Après livraison, vérifiez chaque étape et les actions de paiement ou de litige disponibles." },
     },
     direction: {
@@ -5445,7 +5446,7 @@ export const fr: Messages = {
         default: 'Seul l\'acheteur qui a publié cette demande peut voir ses offres. Publiez votre propre demande, ou listez ce que vous offrez et laissez les acheteurs venir à vous.',
       },
       browseCta: 'Parcourir le marché',
-      postCta: 'Publier une requête →',
+      postCta: 'Publier une requête',
     },
     error: {
       notFoundTag: 'Requête pas encore suivie',
@@ -5455,7 +5456,7 @@ export const fr: Messages = {
       notFoundBody: "Cette demande est introuvable. Si vous venez de la publier, patientez puis actualisez. Sinon, vérifiez le lien.",
       errorBody: "Impossible de charger cette demande. Actualisez la page ou vérifiez le lien.",
       backCta: "Retour au bureau de l'acheteur",
-      activityCta: "Voir l'activité →",
+      activityCta: "Voir l'activité",
     },
   },
   postJob: {
@@ -5464,7 +5465,7 @@ export const fr: Messages = {
       eyebrow: 'Profil acheteur',
       title: 'Configurez un profil acheteur.',
       body: 'Votre agent s’en sert pour scorer et contrer les offres dans vos marges.',
-      cta: 'Configurer le profil →',
+      cta: 'Configurer le profil',
     },
     preview: {
       eyebrow: 'Aperçu du deal',
@@ -5522,10 +5523,10 @@ export const fr: Messages = {
     errors: {
       insufficientBalanceTitle: 'Agent acheteur à court d’USDC.',
       insufficientBalanceFallback: 'L’agent acheteur est à court d’USDC.',
-      topUpCta: 'Recharger via CCTP →',
+      topUpCta: 'Recharger via CCTP',
       postFailedPrefix: 'Publication impossible :',
       activatingButton: 'Activation…',
-      activateCta: 'Activez vos agents ici →',
+      activateCta: 'Activez vos agents ici',
     },
     deadlineUnitAria: 'Unité du délai',
     unitPickerLabels: {
@@ -5546,7 +5547,7 @@ export const fr: Messages = {
       destinationEyebrow: 'Destination',
       amountEyebrow: 'Montant',
       fromArcCaption: 'Depuis Arc',
-      faucetCta: 'Besoin d’USDC Arc ? Faucet →',
+      faucetCta: 'Besoin d’USDC Arc ? Faucet',
       faucetBusy: 'Demande',
       faucetSuccess: 'Faucet demandé. Environ 20 USDC arrivent sur votre wallet Arc dans une minute.',
       landsAtPrefix: 'Arrive sur ·',

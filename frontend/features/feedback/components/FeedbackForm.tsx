@@ -15,6 +15,7 @@ import {
   PageCard,
 } from '@/shared/components/Bands';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { Icon } from '@/shared/components/Icon';
 
 type Category = 'bug' | 'improvement' | 'other' | 'praise';
 
@@ -409,7 +410,7 @@ export function FeedbackForm() {
                     }}
                   >
                     {busy ? fb.submit.sending : fb.submit.cta}
-                    {!busy && <span aria-hidden>→</span>}
+                    {!busy && <Icon name="arrow-right" size={16} directional />}
                   </button>
                   <span className="text-[14px] text-[var(--lp-text-muted)]">
                     {fb.submit.noAccountNeeded}

@@ -1221,7 +1221,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                           onClick={() => openSection('actions')}
                           className="mt-4 inline-flex min-h-11 items-center rounded-full bg-[var(--lp-accent)] px-4 text-[14px] font-bold text-[var(--accent-ink)] transition-colors hover:bg-[var(--lp-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]"
                         >
-                          Open next step <span className="ms-2" aria-hidden>→</span>
+                          Open next step <Icon name="arrow-right" size={16} directional className="ms-2" />
                         </button>
                       ) : null}
                     </div>
@@ -1305,7 +1305,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               }}
             >
               {dd.legacyBanner.cta}
-              <span aria-hidden>→</span>
+              <Icon name="arrow-right" size={16} directional />
             </Link>
           </div>
         </Band>
@@ -3925,7 +3925,7 @@ function CancelProposalBanner({
               }}
             >
               {copy.legacyCta}
-              <span aria-hidden>→</span>
+              <Icon name="arrow-right" size={16} directional />
             </Link>
             <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
               {copy.legacyNote}
@@ -4138,7 +4138,7 @@ function EvidenceReceiptCard({
       <ol className="flex flex-wrap items-center gap-x-3 gap-y-2 px-5 pt-5 md:px-6 text-[14px] text-[var(--lp-text-muted)]" aria-label={copy.label}>
         {steps.map((step, index) => (
           <li key={step} aria-current={step === progress || (step === 'result' && progress === 'confirming') ? 'step' : undefined} className="flex items-center gap-3 aria-[current=step]:font-bold aria-[current=step]:text-[var(--lp-dark)]">
-            {index > 0 && <span aria-hidden="true">→</span>}
+            {index > 0 && <Icon name="arrow-right" size={16} directional />}
             <span>{step === 'result' ? copy.resultLabel : copy.execution[step].label}</span>
           </li>
         ))}

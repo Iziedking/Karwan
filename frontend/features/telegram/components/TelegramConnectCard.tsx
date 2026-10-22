@@ -2,6 +2,7 @@
 import type { ReactNode } from 'react';
 import { useTelegramLink } from '../hooks/useTelegramLink';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { Icon } from '@/shared/components/Icon';
 
 const CARD_STYLE = {
   background: 'var(--lp-card)',
@@ -108,7 +109,7 @@ export function TelegramConnectCard({ address }: { address?: string }) {
               }}
             >
               {tc.connectCta}
-              <span aria-hidden>→</span>
+              <Icon name="arrow-right" size={16} directional />
             </button>
           </>
         )}
@@ -132,7 +133,7 @@ export function TelegramConnectCard({ address }: { address?: string }) {
                 }}
               >
                 {tc.openTelegramCta}
-                <span aria-hidden>↗</span>
+                <Icon name="arrow-up-right" size={16} directional />
               </a>
               <button
                 type="button"

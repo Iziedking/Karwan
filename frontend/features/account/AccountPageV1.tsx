@@ -43,7 +43,7 @@ function AccountPageInner() {
           panel follows the wallet selected in the card beside it. */}
       <section className="mt-7 grid gap-5 lg:grid-cols-2" aria-label={t.byChain}>
         <div className="min-w-0">
-          <BalancesCard buyerAgent={agents?.buyer} sellerAgent={agents?.seller} openByDefault title={t.byChain} subtitle={t.byChainHelp} view={view} onViewChange={setView} />
+          <BalancesCard buyerAgent={agents?.buyer} sellerAgent={agents?.seller} title={t.byChain} subtitle={t.byChainHelp} view={view} onViewChange={setView} />
         </div>
 
         <aside className="flex min-w-0 flex-col gap-4" aria-label={t.actionsAria}>

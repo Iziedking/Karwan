@@ -1,37 +1,31 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
-import { api, type GatewayBalance } from '@/core/api';
+import { useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { api } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 
-/// The caller's pooled Gateway balance. Session-scoped on the backend, cached
-/// 30s there, so several surfaces mounting this at once cost one upstream read.
+/// The caller's pooled Gateway balance, read once and shared: every surface
+/// that mounts this reads the same query, so a page with four balance panels
+/// makes one request, not four. Cached 30s on the backend as well.
 ///
 /// `confirmed` is what can actually be spent. Pending deposits are visible but
 /// not yet spendable, so never gate a top-up button on confirmed + pending.
 export function useGatewayBalance() {
   const auth = useAuth();
-  const [balance, setBalance] = useState<GatewayBalance | null>(null);
-  const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
+  const address = auth.address?.toLowerCase() ?? null;
+  const key = ['gateway-balance', address] as const;
+
+  const query = useQuery({
+    queryKey: key,
+    queryFn: () => api.getGatewayBalance().then((r) => r.balance).catch(() => null),
+    enabled: !!address,
+    staleTime: 30_000,
+  });
 
   const reload = useCallback(async () => {
-    if (!auth.address) {
-      setBalance(null);
-      setLoading(false);
-      return;
-    }
-    try {
-      const { balance: b } = await api.getGatewayBalance();
-      setBalance(b);
-    } catch {
-      setBalance(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [auth.address]);
-
-  useEffect(() => {
-    void reload();
-  }, [reload]);
+    await qc.invalidateQueries({ queryKey: ['gateway-balance', address] });
+  }, [qc, address]);
 
   /// Drop the server cache, then re-read. Call right after a spend or deposit so
   /// the panel stops serving the pre-move figure.
@@ -40,11 +34,13 @@ export function useGatewayBalance() {
     await reload();
   }, [reload]);
 
+  const balance = query.data ?? null;
   return {
     balance,
     confirmed: Number(balance?.confirmed ?? 0),
     pending: Number(balance?.pending ?? 0),
-    loading,
+    /// True until the first read lands; a figure that adds the pool waits for it.
+    loading: !!address && query.isPending,
     reload,
     refresh,
   };

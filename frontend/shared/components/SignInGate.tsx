@@ -13,6 +13,7 @@ import {
   Punc,
 } from '@/shared/components/Bands';
 import styles from './SignInGate.module.css';
+import { Icon } from '@/shared/components/Icon';
 
 /// The account entry has its own composition. Other private routes keep a
 /// compact gate so a link to a specific task does not become a second landing.
@@ -46,7 +47,7 @@ export function SignInGate({
             <p className={styles.lede}>{body ?? copy.heroBody}</p>
             <button type="button" className={styles.entryAction} onClick={() => router.push(START_ROUTE)}>
               {resolvedButton}
-              <span aria-hidden className="rtl-flip">→</span>
+              <Icon name="arrow-right" size={16} directional />
             </button>
             <p className={styles.notice}>{copy.heroNote}</p>
             {DEALS_AVAILABLE && (
@@ -90,7 +91,7 @@ export function SignInGate({
               className="group inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--lp-accent)] px-[18px] py-[11px] text-[14px] font-semibold text-[var(--accent-ink)] transition-colors hover:bg-[var(--lp-accent-hover)]"
             >
               {resolvedButton}
-              <span aria-hidden className="rtl-flip">→</span>
+              <Icon name="arrow-right" size={16} directional />
             </button>
           </div>
         </div>

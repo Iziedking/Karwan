@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { api, type Reputation, type UserProfile } from '@/core/api';
+import { api, type Reputation, type UserProfile, profilePhotoOf } from '@/core/api';
 import {
   TIER_HUE,
   TIER_LABEL,
@@ -234,7 +234,7 @@ export function CreditPassport({ address }: { address: string }) {
     <Shell>
       <section className="rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5 sm:p-7">
         <div className="flex flex-wrap items-center gap-4">
-          <PassportPhoto src={profile?.profileImageDataUrl || profile?.xProfileImageUrl} address={address} />
+          <PassportPhoto src={profilePhotoOf(profile)} address={address} />
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-[22px] font-semibold text-[var(--lp-dark)] sm:text-[26px]">{profile?.displayName || cp.fallbackName}</h1>
             <p className="mt-0.5 text-[14px] text-[var(--lp-text-sub)] font-medium">
@@ -242,17 +242,13 @@ export function CreditPassport({ address }: { address: string }) {
             </p>
           </div>
         </div>
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[14px] text-[var(--lp-text-sub)] font-medium">
-          <button type="button" onClick={copyAddress} className="inline-flex min-h-11 items-center gap-1.5 tabular-nums hover:text-[var(--lp-dark)]">
-            {shortAddress(address)}
-            <span className="text-[14px]">{copied ? cp.copyAddressDone : cp.copyAddressIdle}</span>
-          </button>
-          {profile?.xHandle && (
+        {profile?.xHandle && (
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[14px] text-[var(--lp-text-sub)] font-medium">
             <a href={`https://x.com/${profile.xHandle.replace(/^@/, '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center hover:text-[var(--lp-dark)]">
               @{profile.xHandle.replace(/^@/, '')}
             </a>
-          )}
-        </div>
+          </div>
+        )}
 
         <div className="mt-6 border-t border-[var(--lp-border-light)] pt-5">
           <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{pc.standing}</p>
@@ -331,9 +327,16 @@ export function CreditPassport({ address }: { address: string }) {
               </div>
             </details>
           ) : null}
-          <a href={`${EXPLORER}/address/${address}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 items-center text-[14px] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] font-medium">
-            {pc.proof}
-          </a>
+          {/* The wallet address is proof, not identity: it sits with the link to Arc. */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[14px] text-[var(--lp-text-sub)] font-medium">
+            <a href={`${EXPLORER}/address/${address}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 items-center hover:text-[var(--lp-dark)]">
+              {pc.proof}
+            </a>
+            <button type="button" onClick={copyAddress} className="inline-flex min-h-11 items-center gap-1.5 tabular-nums hover:text-[var(--lp-dark)]">
+              {shortAddress(address)}
+              <span>{copied ? cp.copyAddressDone : cp.copyAddressIdle}</span>
+            </button>
+          </div>
         </div>
       </section>
 

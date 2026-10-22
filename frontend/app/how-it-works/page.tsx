@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { DEALS_AVAILABLE } from '@/core/arcNetwork';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { WALLET_HOME, dealHref } from '@/shared/utils/routes';
+import { Icon } from '@/shared/components/Icon';
 
 const SECTION_LABEL = 'text-[14px] font-medium text-[var(--color-ink-dim)]';
 
@@ -83,7 +84,7 @@ export default function HowItWorksPage() {
       <section className="border-y border-[var(--color-line)] py-6">
         <h2 className="text-[22px] font-semibold">{t.managedDeal.title}</h2>
         <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-[var(--color-ink-dim)] font-medium">{t.managedDeal.body}</p>
-        <Link href={dealHref('/market', DEALS_AVAILABLE)} className="mt-3 inline-flex min-h-11 items-center gap-2 font-semibold underline">{t.managedDeal.eyebrow}<span aria-hidden>→</span></Link>
+        <Link href={dealHref('/market', DEALS_AVAILABLE)} className="mt-3 inline-flex min-h-11 items-center gap-2 font-semibold underline">{t.managedDeal.eyebrow}<Icon name="arrow-right" size={16} directional /></Link>
       </section>
 
       {/* TRUST AND PROOF */}
@@ -117,7 +118,7 @@ export default function HowItWorksPage() {
           {t.trust.boundary}
         </p>
         <Link href="/docs" className="inline-flex min-h-11 items-center gap-2 text-[14px] font-semibold underline">
-          {t.header.eyebrow}<span aria-hidden className="rtl-flip">→</span>
+          {t.header.eyebrow}<Icon name="arrow-right" size={16} directional />
         </Link>
       </section>
 
@@ -172,7 +173,7 @@ export default function HowItWorksPage() {
             className="min-h-11 px-5 py-2.5 rounded-[10px] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] text-[14px] font-semibold hover:bg-[var(--lp-accent-hover)] transition-colors inline-flex items-center gap-2"
           >
             {messages.nav.openApp}
-            <span aria-hidden className="rtl-flip">→</span>
+            <Icon name="arrow-right" size={16} directional />
           </Link>
         </div>
         <p className="text-[14px] text-[var(--color-ink-faint)] pt-2">

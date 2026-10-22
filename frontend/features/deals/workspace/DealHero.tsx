@@ -218,7 +218,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
           {copy.money[LINE_KEY[view.money.line]]}
         </p>
         <h1 id="deal-amount" className="mt-3 flex items-baseline gap-2 tabular-nums">
-          <span className="text-[56px] font-bold leading-none tracking-[-0.035em] text-[var(--lp-dark)] sm:text-[72px]">{formatUsdcAmount(deal.dealAmountUsdc, locale)}</span>
+          <span className="text-[56px] font-bold leading-none tracking-[-0.035em] text-[var(--lp-dark)] sm:text-[72px]">{formatUsdcAmount(deal.dealAmountUsdc, locale)}</span>{' '}
           <span className="text-[18px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
         </h1>
         {moment ? <div className="mt-3 max-w-[52ch]">{moment}</div> : null}

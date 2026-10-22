@@ -111,7 +111,7 @@ if (v2) return <SellerDesk />;
               </SectionTag>
               <Hint glow side="bottom" align="start">{sh.activeBids.lede}</Hint>
             </div>
-            <HeroHeadline size="md">
+            <HeroHeadline size="md" as="h2">
               {sh.activeBids.headline}
               {activeBids.length > 0 && (
                 <>

@@ -21,6 +21,7 @@ import { MoneyOutNotice } from '@/features/moneyOut/MoneyOutNotice';
 import { moneyOutRefusalOf, type MoneyOutRefusal } from '@/features/moneyOut/refusal';
 import { parseRecipient, stepForBridgeStatus } from './recipient';
 import { cashoutErrorKey } from './cashoutError';
+import { Icon } from '@/shared/components/Icon';
 
 const PRIMARY =
   'flex min-h-14 w-full items-center justify-center rounded-full bg-[var(--lp-accent)] px-5 text-[16px] font-bold text-[#10170b] transition-opacity disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]';
@@ -69,7 +70,7 @@ export function CashoutView({ jobId }: { jobId: string }) {
     <main className="product-surface min-h-[calc(100vh-7rem)]">
       <div className="mx-auto max-w-[480px] px-4 pb-16 pt-8 sm:px-6">
         <Link href={`/deals/${jobId}`} className="inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)]">
-          <span aria-hidden className="me-1.5 rtl:-scale-x-100">←</span>{copy.back}
+          <Icon name="arrow-left" size={16} directional className="me-1.5" />{copy.back}
         </Link>
         {failed ? <p role="alert" className="mt-6 text-[15px] text-[var(--lp-dark)]">{copy.loadError}</p> : null}
         {!info && !failed ? <div aria-busy className="mt-6 h-[420px] rounded-[24px] bg-[var(--lp-card)] motion-safe:animate-pulse" /> : null}

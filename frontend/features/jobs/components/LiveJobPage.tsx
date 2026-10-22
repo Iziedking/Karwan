@@ -28,6 +28,7 @@ import { ResearchButton } from './ResearchButton';
 import { requestRef, requestStep } from '../requestRef';
 import { splitRequestText } from '@/features/discovery/model';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
+import { Icon } from '@/shared/components/Icon';
 
 type StatusTone = 'positive' | 'warning' | 'accent' | 'default' | 'critical';
 
@@ -426,7 +427,7 @@ function SettleSection({
           }}
         >
           {s.escrowLive.cta}
-          <span aria-hidden>→</span>
+          <Icon name="arrow-right" size={16} directional />
         </Link>
       </SettleCard>
     );

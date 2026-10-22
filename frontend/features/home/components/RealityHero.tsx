@@ -8,6 +8,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { dur, ease } from '@/shared/motion/tokens';
 import { nextTradeIntentIndex, TRADE_INTENT_INTERVAL_MS } from '../tradeIntentRotation';
 import { PlatformMark } from './PlatformMark';
+import { Icon } from '@/shared/components/Icon';
 
 const tradeIntents = [
   {
@@ -163,7 +164,7 @@ export function RealityHero() {
             {lp.hero.body}
           </p>
           <Link href="/app" className="landing-action landing-action-primary mt-8">
-            {lp.hero.ctaPrimary}<span aria-hidden className="landing-action-arrow">→</span>
+            {lp.hero.ctaPrimary}<Icon name="arrow-right" size={16} directional className="landing-action-arrow" />
           </Link>
           <p className="mt-7 text-[14px] text-[var(--lp-text-sub)] font-medium">{lp.hero.footnote}</p>
         </motion.div>

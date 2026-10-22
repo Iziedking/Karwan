@@ -801,6 +801,8 @@ interface MessagesShape {
       emptyIn: string;
       emptyOut: string;
       repeated: string;
+      /// A merged run of identical rows: {n} rows of {amount} each.
+      repeatedEach: string;
       showAll: string;
       showLess: string;
     };
@@ -5694,7 +5696,7 @@ export const en: MessagesShape = {
       connectedAs: 'Signed in as',
       secureAccount: 'Secure Karwan account',
       description: 'Choose what you want to do first. You can enable the other role later from your profile.',
-      continueArrow: 'Continue →',
+      continueArrow: 'Continue',
       backArrow: 'Back',
       cards: {
         seller: {
@@ -5780,7 +5782,7 @@ export const en: MessagesShape = {
         milestonePresetsHint: 'Choose your preferred split for future deals. 50% · 50% means two releases of the total. The buyer funds the agreed amount first; each deal sets its release rules.',
       },
       saving: 'Saving…',
-      submit: 'Save profile →',
+      submit: 'Save profile',
       error: 'We could not save your profile. Check your connection and try again.',
       defaultDisplayName: 'Karwan user {shortAddress}',
     },
@@ -5801,7 +5803,7 @@ export const en: MessagesShape = {
       ready: "Your agents are ready.",
       activationError: "Your agents could not be created. Try again, or finish setup later from your profile.",
       retry: "Try again",
-      continue: "View profile →",
+      continue: "View profile",
       error: "Your profile could not be loaded. Try again before continuing.",
     },
     validation: {
@@ -5869,7 +5871,7 @@ export const en: MessagesShape = {
         available: 'Available',
         verificationRequired: 'Verification required',
       },
-      reviewBusiness: 'Review business verification →',
+      reviewBusiness: 'Review business verification',
       publicPassport: 'View public passport',
     },
     page: {
@@ -6260,6 +6262,7 @@ export const en: MessagesShape = {
       emptyIn: "No money in yet.",
       emptyOut: "No money out yet.",
       repeated: "{n} times",
+      repeatedEach: "{n} times, {amount} each",
       showAll: 'See all',
       showLess: 'Show less',
     },
@@ -6448,7 +6451,7 @@ export const en: MessagesShape = {
     hero: {
       sectionTag: 'Account',
       fallbackName: 'Your account',
-      publicPassport: 'Public passport ↗',
+      publicPassport: 'Public passport',
     },
     activation: {
       cta: 'Activate agents',
@@ -6514,9 +6517,9 @@ export const en: MessagesShape = {
     hero: {
       welcomeBack: 'Welcome back,',
       description: 'Your settlement desk for requests, offers, approvals, and payments.',
-      postRequestCta: 'Post a request →',
-      postOfferCta: 'Post an offer →',
-      viewActivityCta: 'View activity →',
+      postRequestCta: 'Post a request',
+      postOfferCta: 'Post an offer',
+      viewActivityCta: 'View activity',
     },
     quickStart: {
       eyebrow: 'New here',
@@ -6526,12 +6529,12 @@ export const en: MessagesShape = {
         activate: {
           title: 'Activate your agents',
           body: 'Give your buyer and seller agents a small spend allowance. They never fund a deal or release money without your approval.',
-          cta: 'Activate →',
+          cta: 'Activate',
         },
         post: {
           title: 'Post a request or an offer',
           body: 'Say what you need or what you supply. Your agent negotiates and brings back a match.',
-          cta: 'Open the desks →',
+          cta: 'Open the desks',
         },
         settle: {
           title: 'Approve, then settle',
@@ -7149,7 +7152,7 @@ export const en: MessagesShape = {
   matchBanner: {
     approvedEyebrow: 'Seller accepted',
     approvedBody: 'The seller accepted your deal. Escrow is funded. Opening the live deal.',
-    approvedCta: 'Open deal →',
+    approvedCta: 'Open deal',
     declinedEyebrow: 'Match declined',
     declinedSellerView: 'You declined this match. The request stays closed, and the buyer can post a new one.',
     buyerChoosing: 'The buyer is choosing from a shortlist. You will hear when they pick.',
@@ -7250,9 +7253,9 @@ export const en: MessagesShape = {
       summaryTemplate: '{total} deals · {clean} clean · {disputed} disputed · avg {avg}',
       receiptTemplate: 'Agent paid {amount} on Arc for this read',
       receiptRail: 'Small payments may share a settlement record. A separate payment record may not be available.',
-      receiptView: 'view ↗',
-      receiptDeposit: 'funding ↗',
-      receiptWallet: 'wallet ↗',
+      receiptView: 'view',
+      receiptDeposit: 'funding',
+      receiptWallet: 'wallet',
       receiptProvider: 'provider',
       receiptClaim: 'claim',
       receiptImpact: 'legacy match unchanged',
@@ -7356,7 +7359,7 @@ export const en: MessagesShape = {
     errors: {
       postFailedTemplate: "Couldn't post: {error}",
       activating: 'Activating…',
-      activateCta: 'Activate your agents here →',
+      activateCta: 'Activate your agents here',
     },
     yourOffers: {
       eyebrow: 'Your offers',
@@ -7422,7 +7425,7 @@ export const en: MessagesShape = {
     },
     jobLabelCard: 'Job',
     jobLabelTimeline: 'job',
-    openLink: 'Open →',
+    openLink: 'Open',
     explorerTitle: 'Open on Arc Testnet explorer',
     chipLabels: {
       price: 'Price',
@@ -8156,7 +8159,7 @@ export const en: MessagesShape = {
     },
     footer: {
       disclaimer: 'Composite of deal history, stake, and tenure. Reputation is recorded on Arc and travels with the wallet across deals.',
-      verifiedLink: 'Verified on Arc ↗',
+      verifiedLink: 'Verified on Arc',
     },
   },
   feedback: {
@@ -9226,7 +9229,7 @@ export const en: MessagesShape = {
         autoReleased: 'Settled. The review window passed, so the final milestone released automatically and the trade history was updated.',
         normal: 'Settled. The seller has been paid in full and both trade histories were updated.',
         financed: 'Settled. The assigned receivable was paid to the financier and the financing record was closed.',
-        cashoutTemplate: 'Cash out {amount} USDC →',
+        cashoutTemplate: 'Cash out {amount} USDC',
         settleTimeEyebrow: 'settled in',
         repeatDeal: 'Repeat this deal',
       },
@@ -9625,7 +9628,7 @@ export const en: MessagesShape = {
     scoreMaxTemplate: '/ {max}',
     unratedLabel: 'unrated',
     compositeFootnote: 'Built from deal history, stake and time on Karwan. Recorded on Arc.',
-    creditPassportLink: 'Credit passport ↗',
+    creditPassportLink: 'Credit passport',
     stats: {
       success: 'Success',
       disputed: 'Disputed',
@@ -10343,7 +10346,7 @@ export const en: MessagesShape = {
         bridge: { title: 'Deposit / Withdraw', blurb: 'Move USDC in and out of Arc.' },
         roadmap: { title: 'Roadmap', blurb: 'What is live today and what is shipping next.' },
         faq: { title: 'FAQs', blurb: 'Quick answers to the questions new users ask first.' },
-        x402: { title: 'Paid data endpoints', blurb: "Planned paid access to trade records. The x402 service is not live." },
+        x402: { title: 'Paid data endpoints', blurb: "Paid access to trade records, live on testnet. Each call is paid in test USDC through x402." },
       },
     },
   },
@@ -10426,7 +10429,7 @@ export const en: MessagesShape = {
   x402Page: {
     eyebrow: 'Paid data API',
     title: 'Underwriting data, paid per call',
-    intro: "Karwan’s paid-data API is implemented but not live. The reference below describes the intended testnet endpoints and payment flow. Do not deposit funds to use this service until availability is announced.",
+    intro: "Karwan’s paid-data API is live on Arc Testnet. Each call is paid in test USDC through x402, settled through Circle Gateway. It is not open on mainnet yet.",
     endpoints: {
       heading: 'Endpoints',
       body: 'Prices are in USDC per call. The directory endpoint is free and machine-readable, so an agent can discover the catalogue before paying.',
@@ -10551,7 +10554,7 @@ export const en: MessagesShape = {
       { q: "What if the seller does not deliver?", a: "Use the recovery or dispute action shown on the deal. The available refund, release, timeout, and stake outcome depend on the contract state and current configuration." },
       { q: "What if the buyer is slow to release?", a: "Check the review deadline. The seller may be able to claim an eligible milestone after it expires, including the final one. Review the delivery or use an available extension or dispute action before the deadline." },
       { q: "What happens after a missed deadline?", a: "The deal page shows the actions and grace period that apply. A deadline miss can affect the seller record when the contract records a failed outcome." },
-      { q: "Do agents spend money?", a: "Agents do not fund deals on their own. Paid research through x402 is not live. A future service must show its budget, charges and resulting data." },
+      { q: "Do agents spend money?", a: "Agents do not fund deals on their own. On testnet, market research through x402 is live: after the free reports for the day, each report is paid from your research credit, and the price and balance show in Agent funds." },
       { q: "What is the difference between Individual and Business accounts?", a: "Individual accounts use the Buyer and Seller desks. Business accounts use B2B Trades with Buyer Desk and Supply Desk. Business finance capabilities can be feature-gated." },
       { q: "Are individual skills verified?", a: "Skills are self-declared unless a specific verification result is shown. Review the seller’s work samples and trade history before agreeing to a deal." },
       { q: "What does business verification mean?", a: "Where enabled, a business can submit registration or tax evidence through the business review path. A verified state does not prove licensing, solvency, performance, or safety. It can expire or be revoked." },
@@ -10625,7 +10628,7 @@ export const en: MessagesShape = {
       title: "Trade features on testnet",
       items: {
         match: { title: 'Agent-assisted matching.', body: 'Buyer and seller flows can compare matches and negotiate inside account limits. Users review the resulting terms before funding.' },
-        negotiation: { title: 'Market context for negotiation.', body: "Agents compare offers within your limits. Paid research through x402 is not live." },
+        negotiation: { title: 'Market context for negotiation.', body: "Agents compare offers within your limits. On testnet they can also buy market research through x402, paid from your research credit." },
         stake: { title: 'Stake as deal insurance.', body: "An eligible deal can reserve part of the seller’s stake as collateral. The agreement shows the amount and the conditions for release or loss." },
         passport: { title: "Credit passport.", body: "Share the trade history visible on your credit passport. Your privacy settings control what other people can read." },
         shareable: { title: 'Shareable deal links.', body: "Invite a counterparty by email. They sign in and review the agreement before accepting." },
@@ -10720,7 +10723,7 @@ export const en: MessagesShape = {
       title: 'When you need a counterparty',
       body: 'Post what you need or publish what you offer. The market and bounded agents help compare candidates and prepare a proposal for your review.',
       step1: { title: 'Post a request', bodyA: 'On ', bodyB: ', pick "Find me a seller". Write what you need, set a budget and deadline. A ', bodyC: ' transaction lands on Arc in a few seconds.' },
-      step2: { title: 'Agents negotiate', bodyA: 'The seller agent scores the request and calls ', bodyB: ". The buyer agent compares the offer and negotiates within your limits. You review the proposed terms before funding. Paid research through x402 is not live." },
+      step2: { title: 'Agents negotiate', bodyA: 'The seller agent scores the request and calls ', bodyB: ". The buyer agent compares the offer and negotiates within your limits. You review the proposed terms before funding. On testnet, agents can pay for market research through x402 from your research credit." },
       step3: { title: 'Settle the deal', body: "Review and approve the agreed terms before funding escrow. After delivery, review each milestone and the available release or dispute actions." },
     },
     direction: {
@@ -11012,7 +11015,7 @@ export const en: MessagesShape = {
         default: 'Only the buyer who posted this request can see its offers. Post your own request, or list what you offer and let buyers come to you.',
       },
       browseCta: 'Browse the market',
-      postCta: 'Post a request →',
+      postCta: 'Post a request',
     },
     error: {
       notFoundTag: 'Request not tracked yet',
@@ -11022,7 +11025,7 @@ export const en: MessagesShape = {
       notFoundBody: "We could not find this request. If you just posted it, wait a moment and refresh. Otherwise, check the link.",
       errorBody: "This request could not be loaded. Refresh the page or check the link.",
       backCta: 'Back to buyer desk',
-      activityCta: 'See activity →',
+      activityCta: 'See activity',
     },
   },
   postJob: {
@@ -11031,7 +11034,7 @@ export const en: MessagesShape = {
       eyebrow: 'Buyer profile',
       title: 'Set up a buyer profile.',
       body: 'Your agent uses it to score offers and counter inside your ranges.',
-      cta: 'Set up profile →',
+      cta: 'Set up profile',
     },
     preview: {
       eyebrow: 'Deal preview',
@@ -11089,10 +11092,10 @@ export const en: MessagesShape = {
     errors: {
       insufficientBalanceTitle: 'Buyer agent short on USDC.',
       insufficientBalanceFallback: 'Buyer agent is short on USDC.',
-      topUpCta: 'Deposit →',
+      topUpCta: 'Deposit',
       postFailedPrefix: "Couldn't post:",
       activatingButton: 'Activating…',
-      activateCta: 'Activate your agents here →',
+      activateCta: 'Activate your agents here',
     },
     deadlineUnitAria: 'Deadline unit',
     unitPickerLabels: {
@@ -11113,7 +11116,7 @@ export const en: MessagesShape = {
       destinationEyebrow: 'Destination',
       amountEyebrow: 'Amount',
       fromArcCaption: 'From Arc',
-      faucetCta: 'Need Arc USDC? Faucet →',
+      faucetCta: 'Need Arc USDC? Faucet',
       faucetBusy: 'Requesting',
       faucetSuccess: 'Faucet requested. About 20 USDC lands on your Arc wallet in a minute.',
       landsAtPrefix: 'Lands at ·',

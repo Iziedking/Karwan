@@ -54,8 +54,10 @@ const interactive = 'transition-colors hover:bg-[var(--lp-light)] focus-visible:
 /// A fact or a way in: label on the left, its value (or a control) on the
 /// right. With `href` or `onClick` the whole row opens it. `soon` shows a row
 /// that is not built yet, never clickable.
-export function Row({ label, value, href, onClick, soon, full = false, children }: {
+export function Row({ label, value, href, onClick, soon, full = false, inline = false, children }: {
   label: ReactNode;
+  /// Label and a compact control on one line, never wrapped under each other.
+  inline?: boolean;
   value?: ReactNode;
   /// Show the whole value, wrapping, instead of two lines then cut.
   full?: boolean;
@@ -74,6 +76,14 @@ export function Row({ label, value, href, onClick, soon, full = false, children 
   }
   // A row with its own controls: the label and value keep one line, and the
   // controls drop under them when a phone has no room for both.
+  if (children != null && !href && !onClick && inline) {
+    return (
+      <div className={rowBase}>
+        <span className="min-w-0 flex-1 truncate font-medium text-[var(--lp-dark)]">{label}</span>
+        <span className="flex shrink-0 items-center">{children}</span>
+      </div>
+    );
+  }
   if (children != null && !href && !onClick) {
     return (
       <div className={`${rowBase} flex-wrap py-2.5`}>

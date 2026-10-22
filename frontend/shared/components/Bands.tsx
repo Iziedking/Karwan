@@ -6,6 +6,7 @@ import { Reveal } from './Reveal';
 import { withoutTrailingArrow } from './CtaArrow';
 import { LpHint } from './LpHint';
 import { stripMechanicalTags } from '@/shared/i18n/uiCopy';
+import { Icon } from '@/shared/components/Icon';
 
 /// Phantom-grade landing primitives for the in-app routes. Full-bleed band
 /// sections, uppercase extrabold display headlines with lime-accent punctuation,
@@ -233,7 +234,7 @@ export function CTAPill({
     return (
       <Link href={href} style={corners} className={className}>
         {label}
-        <span aria-hidden className="cta-arrow transition-transform duration-200 group-hover:translate-x-1">↗</span>
+        <Icon name="arrow-up-right" size={16} directional className="cta-arrow transition-transform duration-200 group-hover:translate-x-1" />
       </Link>
     );
   }
@@ -250,7 +251,7 @@ export function CTAPill({
       {busy ? (
         <span aria-hidden className="cta-busy-dot" />
       ) : (
-        <span aria-hidden className="cta-arrow transition-transform duration-200 group-hover:translate-x-1">↗</span>
+        <Icon name="arrow-up-right" size={16} directional className="cta-arrow transition-transform duration-200 group-hover:translate-x-1" />
       )}
     </button>
   );

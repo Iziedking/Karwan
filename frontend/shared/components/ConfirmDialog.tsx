@@ -2,6 +2,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { Icon } from '@/shared/components/Icon';
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -147,7 +148,7 @@ export function ConfirmDialog({
             }}
           >
             {confirmLabel}
-            <span aria-hidden>→</span>
+            <Icon name="arrow-right" size={16} directional />
           </button>
         </div>
       </div>

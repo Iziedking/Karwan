@@ -13,6 +13,7 @@ import {
 import { isOwnEvent } from '../types';
 import { publicizeEvents } from '../publicFeed';
 import { MyMoneyLedger } from './MyMoneyLedger';
+import { Icon } from '@/shared/components/Icon';
 
 const PAGE_SIZE = 20;
 
@@ -141,7 +142,7 @@ export function ActivityView({ explorer }: { explorer: string }) {
             className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-[var(--lp-border-light)] px-4 text-[14px] font-medium text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
           >
             {activePanel === 'money' ? t.streamEyebrow : t.moneyTitle}
-            <span aria-hidden className="rtl:rotate-180">→</span>
+            <Icon name="chevron-right" size={16} directional />
           </button>
         </div>
 

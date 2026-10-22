@@ -3,7 +3,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { api, type UserProfile } from '@/core/api';
+import { api, type UserProfile, profilePhotoOf } from '@/core/api';
 import { cn } from '@/shared/utils/cn';
 import { WalletAvatar } from './WalletAvatar';
 import { ActionBeacon } from './ActionBeacon';
@@ -46,7 +46,7 @@ export function ProfileAvatar({ actionCount = 0 }: { actionCount?: number }) {
 
   if (!isAuthenticated || !address) return null;
 
-  const xImage = imageOk ? profile?.profileImageDataUrl || profile?.xProfileImageUrl : undefined;
+  const xImage = imageOk ? profilePhotoOf(profile) : undefined;
   const identityName =
     profile?.displayName?.trim() ||
     email?.split('@')[0]?.trim() ||

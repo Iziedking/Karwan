@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState, type PointerEvent } from 'react';
+import { Icon } from '@/shared/components/Icon';
 
 type SwipeToPayProps = {
   disabled?: boolean;
@@ -74,7 +75,7 @@ export function SwipeToPay({ disabled = false, label, onConfirm }: SwipeToPayPro
         />
         <span className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center px-14 text-center text-[14px] font-semibold text-[var(--lp-workspace-ink)]">
           {label}
-          <span className="ms-2 text-[16px]" aria-hidden>→</span>
+          <Icon name="arrow-right" size={16} directional className="ms-2" />
         </span>
         <button
           type="button"

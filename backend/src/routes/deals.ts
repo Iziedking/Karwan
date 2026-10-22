@@ -158,6 +158,7 @@ import { releaseBlockReasonForDelivery } from '../deals/releaseBlock.js';
 import { dealOrigin, publicFeedDeal } from '../deals/publicFeed.js';
 import { manualReviewActive, manualReviewEligibility } from '../deals/evidenceManualReview.js';
 import { reviewForParty } from '../deals/deliveryReview.js';
+import { recordSettlement } from '../deals/recordSettlement.js';
 import { dealView, type DealViewInput } from '../deals/dealView.js';
 import { loadTrustCard } from '../trust/loadTrustCard.js';
 import { readEvidenceReceipt } from '../chain/evidenceReceipt.js';
@@ -1564,9 +1565,11 @@ dealsRoutes.get('/direct', async (c) => {
     if (!names.has(key)) names.set(key, getProfile(key).then(partyLabel).catch(() => null));
     return names.get(key)!;
   };
+  // One read of the deal table for the whole list, not one per deal.
+  const pairHistory = buildPairHistory(await listAllDeals());
   const enriched = await Promise.all(
     deals.map(async (d) => {
-      const deal = await enrich(d);
+      const deal = await enrichForList(d, { pairHistory });
       const counterpartyName = await nameOf(d.buyer.toLowerCase() === viewer ? d.seller : d.buyer);
       // Attach only the signed-in party's durable movement references. The
       // deal list must never fall back to wallet addresses or raw tx hashes.
@@ -3629,7 +3632,15 @@ dealsRoutes.post('/direct/:jobId/claim', async (c) => {
   try {
     const index = account.milestonesReleased;
     const txHash = await dealEscrowOps.claim(deal, index, deal.sellerAgentWalletId);
-    await dealEscrowOps.finalizeIfSettled(deal);
+    // A claimed deal is settled on the record exactly like a released one.
+    await recordSettlement(deal, Date.now(), {
+      finalize: (d) => dealEscrowOps.finalizeIfSettled(d),
+      patch: patchDeal,
+      settleFinancing: (id) => {
+        void settleFactoringForDeal(id);
+        void settlePOFinancingForDeal(id);
+      },
+    });
     return c.json({ accepted: true, jobId, milestoneIndex: index, txHash }, 200);
   } catch (err) {
     const info = classifyAgentError(err);
@@ -5628,7 +5639,29 @@ async function partyView(enriched: Awaited<ReturnType<typeof enrich>>, viewer: '
   return { view: dealView(input, viewer, pendingMovement, Date.now()), counterpartyTrust };
 }
 
-async function enrich(deal: DirectDeal) {
+/// Context a list passes so each deal does not re-read the whole deal table.
+interface EnrichContext {
+  pairHistory?: ReturnType<typeof buildPairHistory>;
+}
+
+/// A settled or cancelled deal's chain state cannot change, so its enriched
+/// view is kept until its record changes. Open deals are always read fresh.
+const closedEnrichCache = new Map<string, { at: number; value: Awaited<ReturnType<typeof enrich>> }>();
+const CLOSED_ENRICH_TTL_MS = 10 * 60_000;
+const CLOSED_ENRICH_MAX = 5_000;
+
+async function enrichForList(deal: DirectDeal, ctx: EnrichContext) {
+  if (!deal.settledAt && !deal.cancelledAt) return enrich(deal, ctx);
+  const key = `${deal.jobId.toLowerCase()}:${deal.updatedAt ?? 0}`;
+  const hit = closedEnrichCache.get(key);
+  if (hit && Date.now() - hit.at < CLOSED_ENRICH_TTL_MS) return hit.value;
+  const value = await enrich(deal, ctx);
+  closedEnrichCache.set(key, { at: Date.now(), value });
+  if (closedEnrichCache.size > CLOSED_ENRICH_MAX) closedEnrichCache.delete(closedEnrichCache.keys().next().value!);
+  return value;
+}
+
+async function enrich(deal: DirectDeal, ctx: EnrichContext = {}) {
   const evidenceReceipt = deal.delivered
     ? await readEvidenceReceipt(deal.jobId, deal.agreementVersion ?? 1, {
         evidenceRevision: deal.deliveryRevision,
@@ -5706,7 +5739,7 @@ async function enrich(deal: DirectDeal) {
     let releaseEligibleAtMs: number | null = null;
     if (deal.delivered) {
       try {
-        const pairHistory = buildPairHistory(await listAllDeals());
+        const pairHistory = ctx.pairHistory ?? buildPairHistory(await listAllDeals());
         releaseEligibleAtMs = releaseEligibleAt(
           deal,
           account.milestonesReleased,

@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { Icon } from '@/shared/components/Icon';
 
 /// Env-gated infra-migration banner. Surfaces on /app whenever
 /// `NEXT_PUBLIC_MIGRATION_NOTICE` is set in Vercel env. The value IS the
@@ -70,7 +71,7 @@ export function MigrationBanner() {
             }}
           >
             {t.openProfile}
-            <span aria-hidden>→</span>
+            <Icon name="arrow-right" size={16} directional />
           </Link>
           <button
             type="button"

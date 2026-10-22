@@ -548,7 +548,8 @@ test('the desktop rail ends with Settings and Sign out, pinned to its foot, sign
 
 test('current trade and recent trades share one heading line and end together', () => {
   const home = source('../../features/home/components/AccountHome.tsx');
-  assert.equal(home.match(/flex min-h-11 items-center[^"]*px-1/g)?.length, 2);
+  // Two heading-line links plus Details, which is now 44px tall too.
+  assert.equal(home.match(/flex min-h-11 items-center[^"]*px-1/g)?.length, 3);
   assert.match(home, /trade-route mt-3 flex flex-1 flex-col/);
   assert.match(home, /trade-book flex-1/);
 });

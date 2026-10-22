@@ -9,6 +9,7 @@ import { SOCIAL_TRADE_EXAMPLES, SOCIAL_EXAMPLE_INTERVAL_MS } from '../socialTrad
 import { tradeEntryRoutes } from '../tradeEntry';
 import { PlatformMark } from './PlatformMark';
 import styles from './SocialTradeSection.module.css';
+import { Icon } from '@/shared/components/Icon';
 
 export function SocialTradeSection() {
   const { t: messages, locale } = useLocale();
@@ -57,7 +58,7 @@ export function SocialTradeSection() {
           <p className={styles.label}><img src="/brand/karwan-mark-lime.svg" alt="" width={24} height={28} />{t.label}</p>
           <h2 id="social-trade-title" className={styles.headline}>{t.title}</h2>
           <p className={styles.body}>{t.body}</p>
-          <Link href={tradeEntryRoutes().agreement} className={styles.cta}>{t.action}<span aria-hidden className="rtl-flip">→</span></Link>
+          <Link href={tradeEntryRoutes().agreement} className={styles.cta}>{t.action}<Icon name="arrow-right" size={16} directional /></Link>
 
           <div className={styles.exampleControls}>
             <p className={styles.controlsLabel}>{t.controls}</p>
@@ -102,7 +103,7 @@ export function SocialTradeSection() {
                         <li><span className={styles.ordinal} aria-hidden="true">1</span><span>{copy.first}</span><bdi>30%</bdi></li>
                         <li><span className={styles.ordinal} aria-hidden="true">2</span><span>{copy.final}</span><bdi>70%</bdi></li>
                       </ol>
-                      <p className={styles.review}><span aria-hidden>↗</span>{t.review}</p>
+                      <p className={styles.review}><Icon name="arrow-up-right" size={16} directional />{t.review}</p>
                     </div>
                   </div>
                 </div>

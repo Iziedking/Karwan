@@ -1,9 +1,9 @@
-﻿'use client';
+'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { api, ApiError, type MatchProposal, type UserProfile, type Reputation } from '@/core/api';
+import { api, ApiError, type MatchProposal, type UserProfile, type Reputation, profilePhotoOf } from '@/core/api';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
 import { useReputation } from '@/features/reputation/hooks/useReputation';
 import { reasonLine } from '@/features/reputation/sealed';
@@ -16,6 +16,7 @@ import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 import { presentPaidEvidenceReceipt } from '../paidEvidencePresentation';
 import { buttonClasses } from '@/shared/components/Button';
+import { Icon } from '@/shared/components/Icon';
 
 interface Props {
   proposal: MatchProposal;
@@ -647,7 +648,7 @@ function CounterpartySignal({
     };
   }, [address]);
 
-  const avatarUrl = (profile?.profileImageDataUrl || profile?.xProfileImageUrl)?.trim() || null;
+  const avatarUrl = profilePhotoOf(profile)?.trim() || null;
   const xHandle = profile?.xHandle?.replace(/^@/, '') || null;
   const passportHref = `/credit-passport/${address}`;
   const xHref = xHandle ? `https://x.com/${xHandle}` : null;
@@ -764,7 +765,7 @@ function CounterpartySignal({
             }}
           >
             {copy.creditPassport}
-            <span aria-hidden>↗</span>
+            <Icon name="arrow-up-right" size={16} directional />
           </Link>
           {xHref && (
             <a

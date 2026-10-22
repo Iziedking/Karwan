@@ -6,6 +6,7 @@ import { motion, useInView } from 'motion/react';
 import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { CAPABILITIES, CAPABILITY_COPY, canRotateStory, STORY_INTERVAL_MS } from '../capabilityStory';
+import { Icon } from '@/shared/components/Icon';
 
 /** One explanation of Karwan for the landing page and the signed-in workspace. */
 export function CapabilityIntro({ landing = false }: { landing?: boolean }) {
@@ -53,12 +54,12 @@ export function CapabilityIntro({ landing = false }: { landing?: boolean }) {
               <p className="capability-body">{text.body}</p>
               <div className="capability-handoff">
                 <span>{text.from}</span>
-                <span className="capability-handoff-line" aria-hidden><span>→</span></span>
+                <span className="capability-handoff-line" aria-hidden><Icon name="arrow-right" size={16} directional /></span>
                 <span>{text.to}</span>
               </div>
               <div className="capability-actions">
-                <Link href={scene.href} className="capability-action-primary">{text.action}<span aria-hidden>↗</span></Link>
-                <Link href="/how-it-works" className="capability-action-secondary">{copy.guide}<span aria-hidden>→</span></Link>
+                <Link href={scene.href} className="capability-action-primary">{text.action}<Icon name="arrow-up-right" size={16} directional /></Link>
+                <Link href="/how-it-works" className="capability-action-secondary">{copy.guide}<Icon name="arrow-right" size={16} directional /></Link>
               </div>
             </motion.section>
           );

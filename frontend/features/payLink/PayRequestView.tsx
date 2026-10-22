@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { erc20Abi } from 'viem';
 import { useAccount, useChainId, useReadContract, useReadContracts, useSwitchChain } from 'wagmi';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
-import { api, type DepositRequestPublic, type Reputation, type SealedReputation } from '@/core/api';
+import { api, type DepositRequestPublic, type Reputation, type SealedReputation, profilePhotoOf } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { moneySounds } from '@/shared/sound/moneySounds';
@@ -90,7 +90,7 @@ function Requester({ recipient }: { recipient: string }) {
   const copy = t.payLink.pay;
   const { profile, name, reputation } = useRequester(recipient);
   const [failed, setFailed] = useState(false);
-  const photo = profile?.profileImageDataUrl || profile?.xProfileImageUrl;
+  const photo = profilePhotoOf(profile);
   const sealed: SealedReputation | null = reputation && isSealedReputation(reputation) ? reputation : null;
   const open: Reputation | null = reputation && !isSealedReputation(reputation) ? reputation : null;
   const settled = open?.successCount ?? 0;

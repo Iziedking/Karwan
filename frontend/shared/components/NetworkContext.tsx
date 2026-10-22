@@ -4,6 +4,7 @@ import { settlementChain } from '@/core/arcNetwork';
 import { networkPresentation } from '@/shared/chain/networkPresentation';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { Hint } from '@/shared/components/Hint';
+import { Icon } from '@/shared/components/Icon';
 
 /// The testnet note as an info mark beside a page title. Nothing on mainnet.
 export function NetworkHint() {
@@ -34,8 +35,8 @@ export function NetworkContext({ disclosure = false }: { disclosure?: boolean })
         <>
           <p>{t.chainId}: <bdi>{network.chainId}</bdi></p>
           <div className="flex flex-wrap gap-x-5 gap-y-1">
-            {network.explorerUrl && <a className="inline-flex min-h-[44px] items-center underline underline-offset-4" href={network.explorerUrl} target="_blank" rel="noreferrer">{t.explorer}<span aria-hidden> ↗</span></a>}
-            {network.faucetUrl && <a className="inline-flex min-h-[44px] items-center underline underline-offset-4" href={network.faucetUrl} target="_blank" rel="noreferrer">{t.faucet}<span aria-hidden> ↗</span></a>}
+            {network.explorerUrl && <a className="inline-flex min-h-[44px] items-center underline underline-offset-4" href={network.explorerUrl} target="_blank" rel="noreferrer">{t.explorer}<Icon name="arrow-up-right" size={16} directional /></a>}
+            {network.faucetUrl && <a className="inline-flex min-h-[44px] items-center underline underline-offset-4" href={network.faucetUrl} target="_blank" rel="noreferrer">{t.faucet}<Icon name="arrow-up-right" size={16} directional /></a>}
           </div>
         </>
       )}

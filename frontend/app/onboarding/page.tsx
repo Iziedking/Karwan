@@ -41,6 +41,7 @@ import {
   toggleSkill,
   type MatchingRange,
 } from '@/features/onboarding/sellerSetup';
+import { Icon } from '@/shared/components/Icon';
 
 /// `bg-white` here was a literal, while the text beside it was `--lp-dark`, which
 /// inverts to #ededed under the dark theme. So every onboarding input rendered
@@ -652,7 +653,7 @@ function ConnectStep({ onLogin, onBack }: { onLogin: () => void; onBack: () => v
             }}
           >
             {t.loginButton}
-            <span aria-hidden>→</span>
+            <Icon name="arrow-right" size={16} directional />
           </button>
         </div>
         <p className="mt-6 mono text-[14px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">

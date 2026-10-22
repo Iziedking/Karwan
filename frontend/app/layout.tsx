@@ -1,6 +1,6 @@
 ﻿import type { Metadata } from 'next';
 import localFont from 'next/font/local';
-import { Manrope, Noto_Sans_Arabic, Noto_Sans_Devanagari } from 'next/font/google';
+import { Inter, Noto_Sans_Arabic, Noto_Sans_Devanagari } from 'next/font/google';
 import { DEFAULT_LOCALE } from '@/shared/i18n/locales';
 import './globals.css';
 import { TopNav } from '@/shared/components/TopNav';
@@ -45,15 +45,17 @@ const generalSans = localFont({
   adjustFontFallback: 'Arial',
 });
 
-// Manrope is the product face: open, rounded shapes with clear figures for
-// money. next/font fetches it at build time and serves it from this origin.
-const manrope = Manrope({
+// Inter is the product face (owner, 22 Oct 2026). Variable weight and optical
+// size: large amounts draw from the display cut, so they read crisp rather than
+// heavy. next/font fetches it at build time and serves it from this origin.
+const inter = Inter({
   subsets: ['latin', 'latin-ext'],
-  variable: '--font-manrope',
+  axes: ['opsz'],
+  variable: '--font-inter',
   display: 'swap',
 });
 
-// Manrope has no Arabic or Devanagari letters. These carry Arabic and Hindi at
+// Inter has no Arabic or Devanagari letters. These carry Arabic and Hindi at
 // the same weight and size, instead of a thin system fallback. Not preloaded:
 // only a reader in that language downloads them.
 const notoArabic = Noto_Sans_Arabic({
@@ -133,7 +135,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang={DEFAULT_LOCALE}
       dir="ltr"
-      className={`${generalSans.variable} ${manrope.variable} ${notoArabic.variable} ${notoDevanagari.variable}`}
+      className={`${generalSans.variable} ${inter.variable} ${notoArabic.variable} ${notoDevanagari.variable}`}
       suppressHydrationWarning
     >
       <head>

@@ -17,6 +17,7 @@ import {
   type LedgerFilter,
 } from '../ledgerPresentation';
 import { PortableReceipt, type PortableReceiptItem } from './PortableReceipt';
+import { Icon } from '@/shared/components/Icon';
 
 /// The user's own money, as a statement: one list, grouped by day, each
 /// movement said once with its amount in its own column.
@@ -278,7 +279,9 @@ export function MyMoneyLedger({
                                     </span>
                                   </>
                                 )}
-                                {repeat > 1 && ` · ${t.repeated.replace('{n}', String(repeat))}`}
+                                {repeat > 1 && ` · ${amount
+                                  ? t.repeatedEach.replace('{n}', String(repeat)).replace('{amount}', amount.replace(/^[+\-−]\s?/, ''))
+                                  : t.repeated.replace('{n}', String(repeat))}`}
                               </span>
                             </span>
                             {amount ? (
@@ -319,7 +322,7 @@ export function MyMoneyLedger({
               aria-label={translations.activity.view.prevAria}
               className="inline-flex min-h-11 min-w-11 items-center justify-center border border-[var(--lp-border-light)] mono text-[14px] text-[var(--lp-text-sub)] transition-colors disabled:cursor-not-allowed disabled:opacity-40 enabled:hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] font-medium"
             >
-              <span aria-hidden className="rtl:rotate-180">←</span>
+              <Icon name="arrow-left" size={16} directional />
             </button>
             <span className="min-w-16 text-center mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
               {safePage} / {totalPages}
@@ -331,7 +334,7 @@ export function MyMoneyLedger({
               aria-label={translations.activity.view.nextAria}
               className="inline-flex min-h-11 min-w-11 items-center justify-center border border-[var(--lp-border-light)] mono text-[14px] text-[var(--lp-text-sub)] transition-colors disabled:cursor-not-allowed disabled:opacity-40 enabled:hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] font-medium"
             >
-              <span aria-hidden className="rtl:rotate-180">→</span>
+              <Icon name="arrow-right" size={16} directional />
             </button>
           </div>
         </nav>

@@ -30,6 +30,10 @@ import type { Messages } from '@/shared/i18n/messages/en';
 import { formatUsdc, relativeTime } from '@/shared/utils/format';
 import { pageItems, pageWindow } from '../pagination';
 
+/// Counts are real listings only. Example stock still shows, labelled, but a
+/// number that included it would overstate the market.
+const realCount = (cards: ReadonlyArray<{ example?: boolean }>) => cards.filter((card) => !card.example).length;
+
 type CardVariant = 'default' | 'summary' | 'hiring';
 type SourceName = 'offers' | 'requests';
 
@@ -190,13 +194,13 @@ export function ListingsBrowse({
           <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
             <FilterGroup label={copy.typeFilterLabel} segmented>
               <FilterButton segmented pressed={side === 'all'} onClick={() => setSide('all')}>
-                {copy.filters.all} <span className="tabular-nums">{loading ? <Skeleton className="h-4 w-4" /> : visibleCards.length}</span>
+                {copy.filters.all} <span className="tabular-nums">{loading ? <Skeleton className="h-4 w-4" /> : realCount(visibleCards)}</span>
               </FilterButton>
               <FilterButton segmented pressed={side === 'request'} onClick={() => setSide('request')}>
-                {copy.filters.briefs} <span className="tabular-nums">{loading ? <Skeleton className="h-4 w-4" /> : visibleCards.filter((card) => card.side === 'request').length}</span>
+                {copy.filters.briefs} <span className="tabular-nums">{loading ? <Skeleton className="h-4 w-4" /> : realCount(visibleCards.filter((card) => card.side === 'request'))}</span>
               </FilterButton>
               <FilterButton segmented pressed={side === 'offer'} onClick={() => setSide('offer')}>
-                {copy.filters.offers} <span className="tabular-nums">{loading ? <Skeleton className="h-4 w-4" /> : visibleCards.filter((card) => card.side === 'offer').length}</span>
+                {copy.filters.offers} <span className="tabular-nums">{loading ? <Skeleton className="h-4 w-4" /> : realCount(visibleCards.filter((card) => card.side === 'offer'))}</span>
               </FilterButton>
             </FilterGroup>
 
@@ -291,7 +295,7 @@ export function ListingsBrowse({
                       <h2 className="text-[20px] font-medium tracking-[-0.015em] text-[var(--ink)]">
                         {section.title}
                         <span className="ms-2 text-[14px] font-normal tabular-nums text-[var(--ink-secondary)]">
-                          {section.cards.length}
+                          {realCount(section.cards)}
                         </span>
                       </h2>
                       <p className="text-[14px] text-[var(--ink-secondary)] sm:max-w-[48ch] sm:text-end font-medium">{section.note}</p>

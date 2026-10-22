@@ -7,6 +7,7 @@ import { useActivation } from '@/shared/hooks/useActivation';
 import { useDirectDeals } from '@/features/deals/hooks/useDirectDeals';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { Band, SectionTag, HeroHeadline, Punc } from './Bands';
+import { Icon } from '@/shared/components/Icon';
 
 const DISMISS_KEY = 'karwan.quickstart.dismissed';
 
@@ -112,7 +113,7 @@ export function QuickStartBand() {
                 </span>
                 {s.cta ? (
                   <span className="shrink-0 mono text-[14px] font-bold uppercase tracking-[0.1em] text-[var(--lp-dark)] transition-transform group-hover:translate-x-1">
-                    {s.cta} <span aria-hidden>→</span>
+                    {s.cta} <Icon name="arrow-right" size={16} directional />
                   </span>
                 ) : null}
               </>

@@ -276,7 +276,7 @@ export const sw: Messages = {
       connectedAs: 'Umeingia kama',
       secureAccount: 'Akaunti salama ya Karwan',
       description: 'Utatumiaje Karwan zaidi? Chagua moja. Unaweza kubadilisha baadaye.',
-      continueArrow: 'Endelea →',
+      continueArrow: 'Endelea',
       backArrow: 'Rudi',
       cards: {
         seller: {
@@ -362,7 +362,7 @@ export const sw: Messages = {
         milestonePresetsHint: 'Chagua mgawanyo unaopendelea kwa dili zijazo. 50% · 50% ni malipo mawili ya jumla. Mnunuzi huweka kiasi kilichokubaliwa kwanza; kila dili huweka masharti ya kutoa malipo.',
       },
       saving: 'Inahifadhi…',
-      submit: 'Hifadhi wasifu →',
+      submit: 'Hifadhi wasifu',
       error: 'Hatukuweza kuhifadhi wasifu wako. Angalia muunganisho na ujaribu tena.',
       defaultDisplayName: 'Mtumiaji wa Karwan {shortAddress}',
     },
@@ -383,7 +383,7 @@ export const sw: Messages = {
       ready: "Mawakala wako wako tayari.",
       activationError: "Mawakala wako hawakuweza kuundwa. Jaribu tena au kamilisha usanidi baadaye kutoka kwenye wasifu wako.",
       retry: "Jaribu tena",
-      continue: "Tazama wasifu →",
+      continue: "Tazama wasifu",
       error: "Wasifu wako haukuweza kupakiwa. Jaribu tena kabla ya kuendelea.",
     },
     validation: {
@@ -455,7 +455,7 @@ export const sw: Messages = {
         available: 'Inapatikana',
         verificationRequired: 'Uthibitishaji unahitajika',
       },
-      reviewBusiness: 'Kagua uthibitishaji wa biashara →',
+      reviewBusiness: 'Kagua uthibitishaji wa biashara',
       publicPassport: 'Tazama pasi ya umma',
     },
     page: {
@@ -838,6 +838,7 @@ export const sw: Messages = {
       emptyIn: "Bado hakuna pesa zilizoingia.",
       emptyOut: "Bado hakuna pesa zilizotoka.",
       repeated: "mara {n}",
+      repeatedEach: "mara {n}, {amount} kila mara",
       showAll: 'Ona zote',
       showLess: 'Ona pungufu',
     },
@@ -1026,7 +1027,7 @@ export const sw: Messages = {
     hero: {
       sectionTag: 'Wasifu',
       fallbackName: 'Pochi yako',
-      publicPassport: 'Pasipoti ya umma ↗',
+      publicPassport: 'Pasipoti ya umma',
     },
     activation: {
       cta: 'Washa mawakala',
@@ -1092,17 +1093,17 @@ export const sw: Messages = {
     hero: {
       welcomeBack: 'Karibu tena,',
       description: 'Mawakala wanaendesha mnada. Wewe unaidhinisha masharti.',
-      postRequestCta: 'Tuma ombi →',
-      postOfferCta: 'Tuma offa →',
-      viewActivityCta: 'Tazama shughuli →',
+      postRequestCta: 'Tuma ombi',
+      postOfferCta: 'Tuma offa',
+      viewActivityCta: 'Tazama shughuli',
     },
     quickStart: {
       eyebrow: 'Mpya hapa',
       title: 'Hatua tatu hadi biashara yako ya kwanza',
       dismissAria: 'Ondoa mwongozo wa haraka',
       steps: {
-        activate: { title: 'Washa mawakala wako', body: 'Wape mawakala wako wa mnunuzi na muuzaji kikomo kidogo cha matumizi. Hawafadhili biashara wala kutoa pesa bila idhini yako.', cta: 'Washa →' },
-        post: { title: 'Tuma ombi au ofa', body: 'Sema unachohitaji au unachosambaza. Wakala wako hujadiliana na kuleta mechi.', cta: 'Fungua madawati →' },
+        activate: { title: 'Washa mawakala wako', body: 'Wape mawakala wako wa mnunuzi na muuzaji kikomo kidogo cha matumizi. Hawafadhili biashara wala kutoa pesa bila idhini yako.', cta: 'Washa' },
+        post: { title: 'Tuma ombi au ofa', body: 'Sema unachohitaji au unachosambaza. Wakala wako hujadiliana na kuleta mechi.', cta: 'Fungua madawati' },
         settle: { title: 'Idhinisha, kisha malizia', body: 'Idhinisha mechi aliyoipata wakala wako. Pesa hutolewa kwa hatua baada ya wewe kuidhinisha kazi.' },
       },
     },
@@ -1735,7 +1736,7 @@ export const sw: Messages = {
     },
     approvedEyebrow: 'Muuzaji amekubali',
     approvedBody: 'Muuzaji amekubali biashara yako. Esokrau imefadhiliwa. Inafungua biashara ya moja kwa moja.',
-    approvedCta: 'Fungua biashara →',
+    approvedCta: 'Fungua biashara',
     declinedEyebrow: 'Ujumbe umekataliwa',
     declinedSellerView: 'Umekataa ulinganifu huu. Ombi linabaki limefungwa, na mnunuzi anaweza kutuma jipya.',
     buyerChoosing: 'Mnunuzi anachagua kutoka orodha fupi. Utaarifiwa atakapochagua.',
@@ -1817,9 +1818,9 @@ export const sw: Messages = {
       summaryTemplate: 'Mikataba {total} · {clean} safi · {disputed} yenye mzozo · wastani {avg}',
       receiptTemplate: 'Wakala alilipa {amount} kwenye Arc kwa usomaji huu',
       receiptRail: 'Malipo madogo yanaweza kushiriki rekodi moja ya ukamilishaji. Rekodi tofauti ya kila malipo inaweza isipatikane.',
-      receiptView: 'tazama ↗',
-      receiptDeposit: 'ufadhili ↗',
-      receiptWallet: 'pochi ↗',
+      receiptView: 'tazama',
+      receiptDeposit: 'ufadhili',
+      receiptWallet: 'pochi',
       receiptProvider: 'mtoa huduma',
       receiptClaim: 'dai',
       receiptImpact: 'ulinganishaji wa zamani haujabadilika',
@@ -1918,7 +1919,7 @@ export const sw: Messages = {
     errors: {
       postFailedTemplate: 'Imeshindwa kuchapisha: {error}',
       activating: 'Inafanya kazi…',
-      activateCta: 'Wezesha wakala wako hapa →',
+      activateCta: 'Wezesha wakala wako hapa',
     },
     yourOffers: {
       eyebrow: 'Ofa zako',
@@ -1984,7 +1985,7 @@ export const sw: Messages = {
     },
     jobLabelCard: 'Kazi',
     jobLabelTimeline: 'kazi',
-    openLink: 'Fungua →',
+    openLink: 'Fungua',
     explorerTitle: 'Fungua kwenye Arc Testnet explorer',
     chipLabels: {
       price: 'Bei',
@@ -2704,7 +2705,7 @@ export const sw: Messages = {
     },
     footer: {
       disclaimer: 'Mchanganyiko wa historia ya biashara, dhamana, na urefu wa muda. Sifa imerekodiwa kwenye Arc na inasafiri na pochi katika biashara.',
-      verifiedLink: 'Imethibitishwa kwenye Arc ↗',
+      verifiedLink: 'Imethibitishwa kwenye Arc',
     },
   },
   feedback: {
@@ -3731,7 +3732,7 @@ export const sw: Messages = {
         autoReleased: 'Imekamilika. Dirisha la mapitio limepita, hivyo hatua ya mwisho imetolewa kiotomatiki. Sifa imeandikwa kwenye chain.',
         normal: 'Imekamilika. Muuzaji amelipwa kabisa na sifa imeandikwa kwenye chain.',
         financed: 'Imekamilika. Deni lililokabidhiwa limelipwa kwa mfadhili na rekodi ya ufadhili imefungwa kwenye chain.',
-        cashoutTemplate: 'Toa pesa {amount} USDC →',
+        cashoutTemplate: 'Toa pesa {amount} USDC',
         settleTimeEyebrow: 'imekamilika kwenye mnyororo kwa',
         repeatDeal: 'Rudia deal hii',
       },
@@ -4130,7 +4131,7 @@ export const sw: Messages = {
     scoreMaxTemplate: '/ {max}',
     unratedLabel: 'haijapimwa',
     compositeFootnote: 'Imetokana na historia ya mikataba, dhamana na muda kwenye Karwan. Imerekodiwa kwenye Arc.',
-    creditPassportLink: 'Pasi ya mkopo ↗',
+    creditPassportLink: 'Pasi ya mkopo',
     stats: {
       success: 'Imefanikiwa',
       disputed: 'Imepingwa',
@@ -4314,7 +4315,7 @@ export const sw: Messages = {
       title: 'Fungua makubaliano yako ya kwanza ndani ya dakika moja hivi.',
       body: 'Moja kwa moja au kupitia wakala, uamuzi ni wako. Malipo kwa dakika, si majuma.',
       ctaPrimary: 'Fungua Karwan ↓',
-      ctaSecondary: 'Soma jinsi inavyofanya kazi →',
+      ctaSecondary: 'Soma jinsi inavyofanya kazi',
     },
   },
   legacyPage: {
@@ -4812,7 +4813,7 @@ export const sw: Messages = {
         bridge: { title: 'Weka / Toa', blurb: 'Kuhamisha USDC kuingia na kutoka Arc kwa kutumia Circle CCTP.' },
         roadmap: { title: 'Ramani ya Njia', blurb: 'Kilicho hai leo na kinachofuata.' },
         faq: { title: 'Maswali Yanayoulizwa Mara kwa Mara', blurb: 'Majibu ya haraka kwa maswali ambayo watumiaji wapya wanauliza kwanza.' },
-        x402: { title: 'Sehemu za data zinazolipiwa', blurb: "Ufikiaji wa kulipia wa rekodi za biashara umepangwa. Huduma ya x402 haijaanza." },
+        x402: { title: 'Sehemu za data zinazolipiwa', blurb: "Ufikiaji wa kulipia wa rekodi za biashara, unafanya kazi kwenye testnet. Kila wito hulipwa kwa USDC ya majaribio kupitia x402." },
       },
     },
   },
@@ -4883,7 +4884,7 @@ export const sw: Messages = {
   x402Page: {
     eyebrow: 'API ya data ya kulipia',
     title: 'Data ya tathmini ya mikopo, lipa kwa kila wito',
-    intro: "API ya data ya kulipia imejengwa lakini haijaanza. Maelezo yafuatayo yanaeleza huduma na malipo yaliyopangwa kwa majaribio. Usiweke fedha kwa huduma hii kabla upatikanaji haujatangazwa.",
+    intro: "API ya data ya kulipia inafanya kazi kwenye Arc Testnet. Kila wito hulipwa kwa USDC ya majaribio kupitia x402, na hulipwa kupitia Circle Gateway. Bado haijafunguliwa kwenye mainnet.",
     endpoints: {
       heading: 'Vituo vya huduma',
       body: 'Bei ziko kwa USDC kwa kila wito. Kituo cha orodha ni bure na kinasomeka kwa mashine, hivyo wakala anaweza kuona katalogi kabla ya kulipa.',
@@ -4993,7 +4994,7 @@ export const sw: Messages = {
       { q: "Nini kama muuzaji hatoi bidhaa?", a: "Tumia hatua ya urejeshaji au mgogoro inayoonyeshwa kwenye makubaliano. Njia za kurejesha, kulipa na kuamua hutegemea mkataba. Kufungua mgogoro hakurudishi fedha moja kwa moja." },
       { q: "Nini kama mnunuzi yuko polepole kutoa pesa?", a: "Angalia muda wa ukaguzi. Muuzaji anaweza kudai malipo ya hatua inayostahili baada ya muda kuisha, pamoja na ya mwisho. Kagua uwasilishaji au omba muda zaidi au fungua mgogoro kabla ya muda kuisha." },
       { q: "Nini hutokea kama muuzaji avunja tarehe ya mwisho?", a: "Kagua hatua na muda unaotumika kwenye makubaliano. Kuchelewa kunaweza kuathiri rekodi ya muuzaji kama mkataba unaandika kushindwa. Hakuhakikishi marejesho ya moja kwa moja." },
-      { q: "Je, mawakala hulipia chochote wakati wanafanya kazi?", a: "Mawakala hawaweki fedha kwenye makubaliano kwa uamuzi wao wenyewe. Utafiti unaolipiwa kupitia x402 haupatikani. Huduma ya baadaye itahitaji kuonyesha bajeti, ada na taarifa zinazopokelewa." },
+      { q: "Je, mawakala hulipia chochote wakati wanafanya kazi?", a: "Mawakala hawaweki fedha kwenye makubaliano kwa uamuzi wao wenyewe. Kwenye testnet, utafiti wa soko kupitia x402 unafanya kazi: baada ya ripoti za bure za siku, kila ripoti hulipwa kutoka kwa salio lako la utafiti, na bei na salio huonekana kwenye Fedha za mawakala." },
       { q: "Kuna tofauti gani kati ya upande wa Mtu Binafsi na upande wa Biashara?", a: "Akaunti binafsi hukuwakilisha wewe; eneo la biashara huwakilisha kampuni. Vipengele vya ufadhili vinaweza kuzimwa au kuwekwa mipaka. Kagua vinavyopatikana kwa akaunti yako." },
       { q: "Je, ujuzi wa mtu umethibitishwa?", a: "Ujuzi hutajwa na mwenyewe isipokuwa matokeo maalumu ya uthibitishaji yaonyeshwe. Kagua mifano ya kazi na rekodi kabla ya kukubali makubaliano." },
       { q: "Uthibitishaji wa biashara unamaanisha nini?", a: "Ukipatikana, kampuni inaweza kuwasilisha hati za usajili au kodi. Uthibitishaji hauhakikishi uwezo wa kulipa, utendaji au usalama. Unaweza kuisha au kuondolewa." },
@@ -5067,7 +5068,7 @@ export const sw: Messages = {
       title: "Vipengele vya biashara kwenye mtandao wa majaribio",
       items: {
         match: { title: 'Ulinganishaji na mazungumzo ya wakala.', body: 'Mawakala wa mnunuzi na muuzaji wamepangwa kwanza kwa ufaafu wa ujuzi, wakijadiliana katika raundi nyingi ndani ya safu zilizowekwa na kila upande. Upande wowote unaweza kusoma kila pinga kwenye ratiba ya mkataba.' },
-        negotiation: { title: 'Akili ya mazungumzo.', body: "Wakala hulinganisha ofa ndani ya mipaka yako. Utafiti wa kulipia kupitia x402 haujaanza." },
+        negotiation: { title: 'Akili ya mazungumzo.', body: "Wakala hulinganisha ofa ndani ya mipaka yako. Kwenye testnet wanaweza pia kununua utafiti wa soko kupitia x402, unaolipwa kutoka kwa salio lako la utafiti." },
         stake: { title: 'Hisa kama bima ya mkataba.', body: 'Sehemu ya hisa huru ya muuzaji huhifadhiwa dhidi ya kila mkataba uliokubaliwa. Mgogoro ulioshindwa hukata akiba hiyo kwa mnunuzi.' },
         passport: { title: 'Pasipoti ya Mkopo ya Umma.', body: "Shiriki historia ya biashara inayoonekana kwenye wasifu wako wa mikopo. Mipangilio yako ya faragha huamua wengine wanaweza kusoma nini." },
         shareable: { title: 'Viungo vya mkataba vinavyoweza kushirikishwa.', body: "Mwalike mshirika kwa barua pepe. Ataingia na kukagua makubaliano kabla ya kuyakubali." },
@@ -5155,7 +5156,7 @@ export const sw: Messages = {
       title: 'Pale unahitaji wakala akupatie mmoja',
       body: 'Tuma ombi na mawakala wanaendesha mnada na mazungumzo kwa niaba yako.',
       step1: { title: 'Tuma ombi', bodyA: 'Kwenye ', bodyB: ', chagua "Nipatie muuzaji". Andika unachohitaji, weka bajeti na tarehe ya mwisho. Muamala wa ', bodyC: ' unatua Arc ndani ya sekunde chache.' },
-      step2: { title: 'Mawakala wanazungumza', bodyA: 'Wakala wa muuzaji anapima ombi na anaita ', bodyB: ". Wakala wa mnunuzi hulinganisha ofa na kujadiliana ndani ya mipaka yako. Unakagua masharti kabla ya kuweka fedha. Utafiti wa kulipia kupitia x402 haujaanza." },
+      step2: { title: 'Mawakala wanazungumza', bodyA: 'Wakala wa muuzaji anapima ombi na anaita ', bodyB: ". Wakala wa mnunuzi hulinganisha ofa na kujadiliana ndani ya mipaka yako. Unakagua masharti kabla ya kuweka fedha. Kwenye testnet, mawakala wanaweza kulipia utafiti wa soko kupitia x402 kutoka kwa salio lako la utafiti." },
       step3: { title: 'Kamilisha deal', body: "Kagua na ukubali masharti kabla ya kufadhili escrow. Baada ya uwasilishaji, kagua kila hatua na vitendo vya malipo au mgogoro vinavyopatikana." },
     },
     direction: {
@@ -5442,7 +5443,7 @@ export const sw: Messages = {
         default: 'Mnunuzi aliyetuma ombi hili tu ndiye anaweza kuona ofa zake. Tuma ombi lako mwenyewe, au orodhesha unachotoa na waache wanunuzi waje kwako.',
       },
       browseCta: 'Vinjari soko',
-      postCta: 'Tuma ombi →',
+      postCta: 'Tuma ombi',
     },
     error: {
       notFoundTag: 'Ombi halijafuatiliwa bado',
@@ -5452,7 +5453,7 @@ export const sw: Messages = {
       notFoundBody: "Ombi hili halijapatikana. Ikiwa umelichapisha sasa, subiri kisha pakia upya. Vinginevyo, angalia kiungo.",
       errorBody: "Ombi halijapakiwa. Pakia ukurasa upya au angalia kiungo.",
       backCta: 'Rudi kwa dawati la mnunuzi',
-      activityCta: 'Tazama shughuli →',
+      activityCta: 'Tazama shughuli',
     },
   },
   postJob: {
@@ -5461,7 +5462,7 @@ export const sw: Messages = {
       eyebrow: 'Wasifu wa mnunuzi',
       title: 'Anzisha wasifu wa mnunuzi.',
       body: 'Wakala wako anaitumia kupima na kujibu ofa ndani ya mipaka yako.',
-      cta: 'Anzisha wasifu →',
+      cta: 'Anzisha wasifu',
     },
     preview: {
       eyebrow: 'Tangulio la biashara',
@@ -5519,10 +5520,10 @@ export const sw: Messages = {
     errors: {
       insufficientBalanceTitle: 'Wakala wa mnunuzi haina USDC ya kutosha.',
       insufficientBalanceFallback: 'Wakala wa mnunuzi haina USDC ya kutosha.',
-      topUpCta: 'Ongeza fedha kupitia CCTP →',
+      topUpCta: 'Ongeza fedha kupitia CCTP',
       postFailedPrefix: 'Imeshindikana kuchapisha:',
       activatingButton: 'Inawasha…',
-      activateCta: 'Washa mawakala wako hapa →',
+      activateCta: 'Washa mawakala wako hapa',
     },
     deadlineUnitAria: 'Kitengo cha muda',
     unitPickerLabels: {
@@ -5543,7 +5544,7 @@ export const sw: Messages = {
       destinationEyebrow: 'Mahali pa kwenda',
       amountEyebrow: 'Kiasi',
       fromArcCaption: 'Kutoka Arc',
-      faucetCta: 'Unahitaji USDC ya Arc? Faucet →',
+      faucetCta: 'Unahitaji USDC ya Arc? Faucet',
       faucetBusy: 'Inaomba',
       faucetSuccess: 'Faucet imeombwa. Karibu USDC 20 zitafika kwenye pochi yako ya Arc ndani ya dakika moja.',
       landsAtPrefix: 'Itafikia ·',

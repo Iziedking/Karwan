@@ -6,6 +6,7 @@ import { api, type VerificationEligibilityResponse } from '@/core/api';
 import { PageCard, SectionTag } from '@/shared/components/Bands';
 import { Hint } from '@/shared/components/Hint';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { Icon } from '@/shared/components/Icon';
 
 type VerificationStatus = VerificationEligibilityResponse['verification']['status'];
 
@@ -116,12 +117,7 @@ export function VerificationStatusCard({ address }: { address: string }) {
               </span>
               {t.publicPassport}
             </span>
-            <span
-              aria-hidden
-              className="mono text-[14px] text-[var(--lp-accent)] transition-transform group-hover:translate-x-0.5"
-            >
-              ↗
-            </span>
+            <Icon name="arrow-up-right" size={16} directional className="mono text-[var(--lp-accent)] transition-transform group-hover:translate-x-0.5" />
           </a>
         </div>
 

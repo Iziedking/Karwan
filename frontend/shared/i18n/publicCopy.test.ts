@@ -13,7 +13,9 @@ test('English public guides distinguish the mainnet wallet from testnet trading'
   assert.match(MESSAGES.en.docsIndexPage.intro, /mainnet escrow is not yet available/);
   assert.match(MESSAGES.en.docsRoadmapPage.intro, /contract release comes next/);
   assert.doesNotMatch(MESSAGES.en.docsRoadmapPage.intro, /20\d\d/);
-  assert.match(MESSAGES.en.x402Page.intro, /not live/);
+  // Owner, 22 Oct 2026: paid data and research are live on testnet, not mainnet.
+  assert.match(MESSAGES.en.x402Page.intro, /live on Arc Testnet/);
+  assert.match(MESSAGES.en.x402Page.intro, /not open on mainnet/);
   assert.match(MESSAGES.en.howItWorksPage.stack.gateway, /Availability depends on the account and network/);
   assert.doesNotMatch(MESSAGES.en.howItWorksPage.stack.gateway, /current demo|code only/);
 });
@@ -63,7 +65,7 @@ test('translated FAQ arrays carry the same subjects and retire stale live-paymen
     assert.match(items[17]!.a, /testnet|Testnet|شبكة الاختبار|टेस्टनेट/, locale);
     assert.ok(items[11]!.q && items[12]!.q, locale);
   }
-  assert.match(MESSAGES.en.docsFaqPage.items[9]!.a, /not live/);
+  assert.match(MESSAGES.en.docsFaqPage.items[9]!.a, /On testnet, market research through x402 is live/);
 });
 
 test('final milestone copy does not imply that silence prevents a seller claim', () => {

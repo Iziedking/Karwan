@@ -18,6 +18,7 @@ import dynamic from 'next/dynamic';
 import { SiweGate } from '@/shared/components/SiweGate';
 import { GlobalLoadingSplash } from '@/shared/components/GlobalLoadingSplash';
 import { WorkspaceProvider } from '@/shared/hooks/useWorkspaceContext';
+import { NotificationsProvider } from '@/features/notifications/hooks/useNotifications';
 import type { Locale } from '@/shared/i18n/locales';
 
 /// The Help panel is a launcher until it is opened, so its code (the chat
@@ -79,10 +80,12 @@ export function AppProviders({
         </>
       )}
       <WorkspaceProvider>
-        <GuideProvider>
-          {children}
-          <AssistantWidget />
-        </GuideProvider>
+        <NotificationsProvider>
+          <GuideProvider>
+            {children}
+            <AssistantWidget />
+          </GuideProvider>
+        </NotificationsProvider>
       </WorkspaceProvider>
     </RainbowKitProvider>
   );

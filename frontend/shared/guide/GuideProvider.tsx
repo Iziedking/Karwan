@@ -11,6 +11,7 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
+import { Icon } from '@/shared/components/Icon';
 import { usePathname } from 'next/navigation';
 import { isNoTourRoute } from './routes';
 import { GUIDE_COPY } from './routeGuidance';
@@ -616,7 +617,7 @@ function GuideStepOverlay() {
                 }}
               >
                 {isLast ? copy.done : copy.next}
-                {secondsLeft > 0 ? <span>{copy.wait.replace('{seconds}', String(secondsLeft))}</span> : !isLast && <span aria-hidden className="rtl-flip">→</span>}
+                {secondsLeft > 0 ? <span>{copy.wait.replace('{seconds}', String(secondsLeft))}</span> : !isLast && <Icon name="chevron-right" size={16} directional />}
               </button>
             </div>
           </div>

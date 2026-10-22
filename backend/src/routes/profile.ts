@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { decodePhoto, photoPath } from '../profile/photo.js';
 import { z } from 'zod';
 import { formatUnits } from 'viem';
 import {
@@ -78,6 +79,20 @@ const profileSchema = z.object({
 
 export const profileRoutes = new Hono();
 
+/// The profile photo as an image. Public, like the photo on the passport. The
+/// link carries the profile version, so it can be cached hard.
+profileRoutes.get('/photo/:address', async (c) => {
+  const parsed = addrSchema.safeParse(c.req.param('address'));
+  if (!parsed.success) return c.json({ error: 'invalid address' }, 400);
+  const photo = decodePhoto((await getProfile(parsed.data))?.profileImageDataUrl);
+  if (!photo) return c.json({ error: 'no photo' }, 404);
+  return c.body(new Uint8Array(photo.bytes), 200, {
+    'Content-Type': photo.contentType,
+    'Cache-Control': 'public, max-age=86400, immutable',
+    'X-Content-Type-Options': 'nosniff',
+  });
+});
+
 profileRoutes.get('/', async (c) => {
   const address = c.req.query('address');
   if (!address) return c.json({ error: 'address query param required' }, 400);
@@ -124,7 +139,7 @@ profileRoutes.get('/', async (c) => {
 /// document hash and the submitting tx; the financier eligibility snapshot,
 /// which is stake and reputation at approval time; the prepaid research credit;
 /// and the name-edit ledger.
-export function publicView(p: UserProfile): Partial<UserProfile> & { skillCredentials?: PublicSkillCredential[]; country: string | null } {
+export function publicView(p: UserProfile): Partial<UserProfile> & { skillCredentials?: PublicSkillCredential[]; country: string | null; profileImageUrl?: string } {
   const skills = publicSkillCredentials(p.skillVerifications);
   const sme = p.smeProfile
     ? (({ taxIdEncrypted: _drop, region: _region, primaryMarkets: _markets, ...rest }) => rest)(p.smeProfile)
@@ -139,7 +154,8 @@ export function publicView(p: UserProfile): Partial<UserProfile> & { skillCreden
     xHandle: p.xHandle,
     xUserId: p.xUserId,
     xProfileImageUrl: p.xProfileImageUrl,
-    profileImageDataUrl: p.profileImageDataUrl,
+    // A link, not the image: lists of people stay small and the photo caches.
+    ...(decodePhoto(p.profileImageDataUrl) ? { profileImageUrl: photoPath(p.address, p.updatedAt) } : {}),
     accountKind: p.accountKind,
     accountType: p.accountType,
     seller: p.seller,

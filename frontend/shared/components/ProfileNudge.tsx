@@ -12,6 +12,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { DEALS_AVAILABLE } from '@/core/arcNetwork';
 import { dur, ease } from '@/shared/motion/tokens';
 import { chooseWorkspaceNudge, workspaceNudgeDismissed } from './workspaceNudge';
+import { Icon } from '@/shared/components/Icon';
 
 const DISMISS_PREFIX = 'karwan:workspace-nudge-dismissed:';
 
@@ -133,7 +134,7 @@ export function ProfileNudge() {
                 className="inline-flex min-h-11 items-center gap-2 rounded-[10px] bg-[var(--lp-accent)] px-4 text-[14px] font-semibold text-[var(--accent-ink)] transition-colors hover:brightness-95"
               >
                 {copy.cta}
-                <span aria-hidden className="rtl:rotate-180">→</span>
+                <Icon name="arrow-right" size={16} directional />
               </Link>
             </div>
             <div className="col-start-2 row-start-1 -me-2 -mt-2 self-start sm:col-start-auto sm:row-start-auto sm:m-0 sm:self-center">

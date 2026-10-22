@@ -10,6 +10,7 @@ import {
   shouldOfferFeedbackNudge,
 } from '@/shared/feedback/feedbackNudge';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { Icon } from '@/shared/components/Icon';
 
 /**
  * A quiet, frequency-capped product nudge. Public pages already carry feedback
@@ -91,7 +92,7 @@ export function PageFeedbackPrompt() {
           className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[var(--lp-band-dark)] px-4 py-2.5 font-sans text-[14px] font-bold uppercase tracking-[0.08em] text-[var(--lp-accent)] transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-12px_rgba(0,0,0,0.45)] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
         >
           {t.cta}
-          <span aria-hidden className="ms-2">→</span>
+          <Icon name="arrow-right" size={16} directional className="ms-2" />
         </Link>
       </div>
     </aside>

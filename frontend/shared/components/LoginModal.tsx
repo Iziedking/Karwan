@@ -18,6 +18,7 @@ import { MODULAR_WALLETS_ENABLED } from '@/features/modularWallet/config';
 import { PasskeySignIn } from '@/features/modularWallet/components/PasskeySignIn';
 import { EmailSuggestion } from '@/shared/components/EmailSuggestion';
 import { PASSKEY_CONNECTOR_ID } from '@/features/modularWallet/connector';
+import { Icon } from '@/shared/components/Icon';
 
 interface Props {
   open: boolean;
@@ -544,7 +545,7 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
                     <WalletIcon />
                     {walletActionLabel}
                   </span>
-                  <span aria-hidden>→</span>
+                  <Icon name="arrow-right" size={16} directional />
                 </button>
               )}
             </ConnectButton.Custom>

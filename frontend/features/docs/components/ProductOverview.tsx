@@ -9,6 +9,7 @@ import { DOCS_SECTIONS, useDocsSectionLabel } from './DocsSidebar';
 import { DocsH2 } from './Prose';
 import { RoadmapTimeline } from './RoadmapTimeline';
 import styles from './ProductOverview.module.css';
+import { Icon } from '@/shared/components/Icon';
 
 const TESTNET_START = 'https://testnet.karwan.site/start?mode=signup';
 
@@ -311,7 +312,7 @@ function Explore() {
                   {s.key === 'escrow' ? m.docsEscrowPage.nav.blurb : m.docsShell.sidebar.sections[s.key].blurb}
                 </span>
               </span>
-              <span aria-hidden className="text-[var(--lp-text-sub)] transition-transform group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1">→</span>
+              <Icon name="arrow-right" size={16} directional className="text-[var(--lp-text-sub)] transition-transform group-hover:translate-x-1 rtl:group-hover:-translate-x-1" />
             </Link>
           </li>
         ))}

@@ -1,4 +1,10 @@
 @theme inline {
+  /* Inter, a touch lighter than the stock weights (owner, 22 Oct 2026): every
+     font-medium, font-semibold and font-bold in the app reads from these. */
+  --font-weight-medium: 480;
+  --font-weight-semibold: 560;
+  --font-weight-bold: 640;
+  --font-weight-extrabold: 720;
   --color-white: #FFFFFF;
   --color-black: #000000;
   --color-bg: var(--canvas);
@@ -23,8 +29,8 @@
   --shadow-card: none;
   --shadow-card-hover: none;
   --shadow-pop: var(--sheet-shadow);
-  --font-sans: var(--font-manrope), var(--font-general-sans), ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
-  --font-display: var(--font-general-sans), var(--font-manrope), ui-sans-serif, sans-serif;
+  --font-sans: var(--font-inter), var(--font-general-sans), ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  --font-display: var(--font-general-sans), var(--font-inter), ui-sans-serif, sans-serif;
   --font-body: var(--font-sans);
   --font-mono: var(--font-sans);
   --font-serif: var(--font-sans);
@@ -32,8 +38,8 @@
 
 :root {
   /* Runtime readers must not depend on Tailwind emitting a matching utility. */
-  --font-sans: var(--font-manrope), var(--font-general-sans), ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
-  --font-display: var(--font-general-sans), var(--font-manrope), ui-sans-serif, sans-serif;
+  --font-sans: var(--font-inter), var(--font-general-sans), ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  --font-display: var(--font-general-sans), var(--font-inter), ui-sans-serif, sans-serif;
   --font-body: var(--font-sans);
   --font-mono: var(--font-sans);
   --font-serif: var(--font-sans);
@@ -225,10 +231,10 @@ html[data-theme="dark"] {
   }
 }
 
-/* Arabic and Hindi read in their own face; Latin words inside stay in Manrope. */
+/* Arabic and Hindi read in their own face; Latin words inside stay in Inter. */
 html:lang(ar) {
-  --font-sans: var(--font-manrope), var(--font-arabic), ui-sans-serif, sans-serif;
+  --font-sans: var(--font-inter), var(--font-arabic), ui-sans-serif, sans-serif;
 }
 html:lang(hi) {
-  --font-sans: var(--font-manrope), var(--font-devanagari), ui-sans-serif, sans-serif;
+  --font-sans: var(--font-inter), var(--font-devanagari), ui-sans-serif, sans-serif;
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { Icon } from '@/shared/components/Icon';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { api, type UserProfile } from '@/core/api';
 import { PROFILE_SAVED_EVENT } from '@/shared/hooks/useUserProfile';
@@ -10,7 +11,9 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { formatBalance, heroAmount } from '@/features/money/balanceModel';
 import { useMoneyBalances } from '@/features/money/hooks/useMoneyBalances';
 import { useOwnedBalance } from '@/features/money/hooks/useOwnedBalance';
-import { ProfileFrame, Row, RowGroup } from '../ui/ProfileUi';
+import { ProfileFrame, Row, RowGroup, ToggleRow } from '../ui/ProfileUi';
+import { useRouter } from 'next/navigation';
+import { rememberReturn } from '@/features/assistant/assistantReturn';
 import { ProfileSignOut } from './ProfileSignOut';
 import { PhotoMenu } from './PhotoMenu';
 import { WorkspaceSwitcher } from '@/features/workspaces/components/WorkspaceSwitcher';
@@ -40,6 +43,7 @@ export function ProfileAccountHub({
   const [photoError, setPhotoError] = useState('');
   const photoInput = useRef<HTMLInputElement>(null);
   const messages = useTranslations();
+  const router = useRouter();
   const nav = messages.nav;
   const businessCopy = messages.businessProfilePage;
   const hub = messages.profile.hub;
@@ -131,7 +135,7 @@ export function ProfileAccountHub({
             ) : (
               <WalletAvatar address={address} size={56} />
             )}
-            <span aria-hidden className="absolute -bottom-0.5 -end-0.5 grid size-6 place-items-center rounded-full border border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[14px] text-[var(--lp-dark)]">+</span>
+            <span aria-hidden className="absolute -bottom-0.5 -end-0.5 grid size-6 place-items-center rounded-full border border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-dark)]"><Icon name="plus" size={16} /></span>
           </PhotoMenu>
           <span className="min-w-0">
             <span className="line-clamp-2 break-words text-[24px] leading-tight sm:text-[28px]">{displayName}</span>
@@ -149,9 +153,27 @@ export function ProfileAccountHub({
         </div>
       ) : null}
 
+      {/* On a phone the top bar has no room for it, so the assistant switch
+          leads the profile; on a wide screen it stays in the top bar. */}
+      {DEALS_AVAILABLE ? (
+        <div className="lg:hidden">
+          <RowGroup>
+            <ToggleRow
+              label={messages.assistantMode.use}
+              note={messages.assistantMode.greetingBody}
+              checked={false}
+              onChange={() => {
+                rememberReturn('/profile');
+                router.push('/assistant');
+              }}
+            />
+          </RowGroup>
+        </div>
+      ) : null}
+
       {DEALS_AVAILABLE && hasBusinessWorkspace ? (
         <RowGroup>
-          <Row label={hub.workspaces}><WorkspaceSwitcher /></Row>
+          <Row inline label={hub.workspaces}><WorkspaceSwitcher /></Row>
         </RowGroup>
       ) : null}
 

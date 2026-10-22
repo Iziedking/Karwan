@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { api } from '@/core/api';
+import { api, profilePhotoOf } from '@/core/api';
 import { qk } from '@/core/queryKeys';
 import { PROFILE_SAVED_EVENT } from '@/shared/hooks/useUserProfile';
 
@@ -24,7 +24,7 @@ export function PersonAvatar({ address, name, size = 40 }: { address?: string; n
   }, [queryClient]);
   const [failed, setFailed] = useState(false);
   // A new photo gets a fresh chance to load after an earlier one failed.
-  const image0 = profile.data?.profile?.profileImageDataUrl || profile.data?.profile?.xProfileImageUrl;
+  const image0 = profilePhotoOf(profile.data?.profile);
   useEffect(() => setFailed(false), [image0]);
   const image = failed ? undefined : image0;
   if (image) {

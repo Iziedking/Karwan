@@ -7,6 +7,7 @@ import { Tag, StatusDot } from '@/shared/components/Tag';
 import { useDismissed } from '@/shared/hooks/useDismissed';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { shortHash, formatUsdc } from '@/shared/utils/format';
+import { Icon } from '@/shared/components/Icon';
 
 export function BidsTable({
   bids,
@@ -111,7 +112,7 @@ export function BidsTable({
                   href={href}
                   className="inline-flex min-h-11 items-center gap-1.5 px-2 mono text-[13px] font-bold uppercase tracking-[0.12em] text-[var(--lp-accent)]"
                 >
-                  {bt.row.open}<span aria-hidden>→</span>
+                  {bt.row.open}<Icon name="arrow-right" size={16} directional />
                 </Link>
               </div>
             </article>
@@ -217,12 +218,7 @@ export function BidsTable({
                       style={{ color: 'var(--lp-accent)' }}
                     >
                       {bt.row.open}
-                      <span
-                        aria-hidden
-                        className="inline-block transition-transform duration-200 group-hover:translate-x-0.5"
-                      >
-                        →
-                      </span>
+                      <Icon name="arrow-right" size={16} directional className="inline-block transition-transform duration-200 group-hover:translate-x-0.5" />
                     </span>
                   </span>
                 </td>

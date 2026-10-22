@@ -115,7 +115,13 @@ export function TopNav() {
             </>
           ) : showAppChrome ? (
               <>
-                {showFullChrome ? <AssistantModeSwitch /> : null}
+                {/* On a phone the switch lives at the top of Profile; it stays here
+                    while assistant mode is on, as the way back out. */}
+                {showFullChrome ? (
+                  <span className={shell === 'workspace' && !isAssistantRoute(pathname) ? 'hidden lg:contents' : 'contents'}>
+                    <AssistantModeSwitch />
+                  </span>
+                ) : null}
                 <NotificationBell />
                 {/* Where the bottom bar shows, its Profile tab is the one
                     profile entry; the header pill returns on desktop. */}

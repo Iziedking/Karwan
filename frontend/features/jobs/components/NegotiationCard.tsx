@@ -7,6 +7,7 @@ import { EventList } from './EventList';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { formatMatchingTimestamp, presentMatchingState } from '../matchingPresentation';
 import { latestStructuredOffer } from '../structuredOfferPresentation';
+import { Icon } from '@/shared/components/Icon';
 
 // Mirrors the backend default NEGOTIATION_MAX_ROUNDS_PER_SIDE. Display-only:
 // a soft cap shown beside the round counter, not enforced here.
@@ -161,9 +162,7 @@ export function NegotiationCard({
               return (
                 <div key={i} className="flex items-end gap-2">
                   {i > 0 && (
-                    <span aria-hidden className="mono text-[14px] text-[var(--lp-text-muted)] pb-5">
-                      →
-                    </span>
+                    <Icon name="arrow-right" size={16} directional className="mono text-[var(--lp-text-muted)] pb-5" />
                   )}
                   <div className="flex flex-col items-start gap-1">
                     <span

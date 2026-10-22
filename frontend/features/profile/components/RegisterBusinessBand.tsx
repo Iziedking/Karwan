@@ -9,6 +9,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { SectionTag, HeroHeadline, Punc, PageCard } from '@/shared/components/Bands';
 import { Reveal } from '@/shared/components/Reveal';
+import { Icon } from '@/shared/components/Icon';
 
 const REGISTRY_ABI = [
   {
@@ -269,7 +270,7 @@ export function RegisterBusinessBand({
                   className="inline-flex min-h-11 items-center justify-between gap-3 rounded-full bg-[var(--lp-accent)] px-4 py-2 text-[14px] font-bold text-[var(--lp-band-dark)] transition-transform hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
                 >
                   <span>{status === 'rejected' ? t.actions.resubmit : t.actions.openWorkflow}</span>
-                  <span aria-hidden>→</span>
+                  <Icon name="arrow-right" size={16} directional />
                 </Link>
               ) : mode === 'summary' && status === 'verified' ? (
                 <Link

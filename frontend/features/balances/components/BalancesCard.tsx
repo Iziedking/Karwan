@@ -62,7 +62,7 @@ export function BalancesCard({
   const youBal = useChainBalances(address, open && view === 'you');
   const buyerBal = useChainBalances(buyer, open && view === 'buyer');
   const sellerBal = useChainBalances(seller, open && view === 'seller');
-  const { pool } = useMoneyBalances();
+  const { pool, poolLoaded } = useMoneyBalances();
 
   if (!auth.isAuthenticated || !address) {
     return (
@@ -95,7 +95,8 @@ export function BalancesCard({
   const rows = ROW_KEYS.map((key) => {
     const q = active.bal[key];
     const read = q.isLoading || !q.data ? null : Number(formatUnits(q.data.value, q.data.decimals));
-    const amount = view === 'you' && key === 'arc' ? arcIncludingPool(read, pool) : read;
+    // Your Arc row includes the pool; it waits for the pool rather than show a smaller figure first.
+    const amount = view === 'you' && key === 'arc' ? (poolLoaded ? arcIncludingPool(read, pool) : null) : read;
     return { key, amount };
   });
   const settled = rows.every((r) => r.amount !== null);
@@ -157,7 +158,7 @@ export function BalancesCard({
                       onClick={() => !t.disabled && setView(t.key)}
                       disabled={t.disabled}
                       className={cn(
-                        'min-h-9 rounded-full px-3.5 text-[14px] font-semibold transition-colors',
+                        'min-h-11 rounded-full px-3.5 text-[14px] font-semibold transition-colors',
                         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]',
                         selected
                           ? 'bg-[var(--lp-control-active-bg)] text-[var(--lp-control-active-ink)]'
@@ -224,7 +225,7 @@ export function BalancesCard({
               onClick={refreshAll}
               disabled={busy}
               aria-busy={busy}
-              className="inline-flex min-h-9 items-center gap-1.5 rounded-full px-2 text-[14px] font-semibold text-[var(--lp-text-sub)] transition-colors hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] disabled:cursor-wait disabled:opacity-60"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 text-[14px] font-semibold text-[var(--lp-text-sub)] transition-colors hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] disabled:cursor-wait disabled:opacity-60"
             >
               <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden className={busy ? 'animate-spin motion-reduce:animate-none' : ''}>
                 <path d="M14 8a6 6 0 1 1-1.76-4.24M14 3v3h-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />

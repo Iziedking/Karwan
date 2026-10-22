@@ -5,6 +5,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ActivationModal } from './ActivationModal';
 import { Button } from './Button';
 import { Skeleton, SkeletonText } from './Skeleton';
+import { Icon } from '@/shared/components/Icon';
 
 /// Wraps a flow that needs the connected wallet's agent wallets provisioned.
 /// Renders children once activated; otherwise shows a locked card that opens
@@ -56,7 +57,7 @@ export function ActivationGate({ children }: { children: ReactNode }) {
         </div>
         <Button type="button" onClick={() => setOpen(true)} className="mt-5">
           {t.cta}
-          <span aria-hidden>→</span>
+          <Icon name="arrow-right" size={16} directional />
         </Button>
       </section>
       <ActivationModal
