@@ -11,3 +11,11 @@ export function sendAvailable(wallet: number | null, pool: number, poolLoaded: b
   if (wallet === null) return null;
   return poolLoaded ? Math.round((wallet + pool) * 1e6) / 1e6 : wallet;
 }
+
+/// What to move from the pool so `shortfall` lands in the wallet: Circle's
+/// forwarder takes its fee from the minted amount, so it goes on top, rounded
+/// up to the cent (docs.arc.io app-kit unified-balance-fees, read 22 Oct 2026).
+export function topUpWithFees(shortfall: number, fees: ReadonlyArray<{ type: string; amount: string }>): number {
+  const forwarder = fees.filter((f) => f.type === 'forwarder').reduce((sum, f) => sum + Number(f.amount || 0), 0);
+  return Math.ceil(Math.round((shortfall + forwarder) * 1e6) / 1e4) / 100;
+}

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { sendAvailable, sendShortfall } from './sendFromWhole';
+import { sendAvailable, sendShortfall, topUpWithFees } from './sendFromWhole';
 
 ///   npx tsx --test features/money/sendFromWhole.test.ts
 
@@ -19,4 +19,14 @@ test('a send can reach the wallet and the pool together once the pool is read', 
   assert.equal(sendAvailable(109.51, 50, true), 159.51);
   assert.equal(sendAvailable(109.51, 50, false), 109.51);
   assert.equal(sendAvailable(null, 50, true), null);
+});
+
+test('the top-up adds the forwarder fee so the whole shortfall lands', () => {
+  const fees = [
+    { type: 'forwarder', amount: '0.12' },
+    { type: 'gasFee', amount: '0.002' },
+  ];
+  assert.equal(topUpWithFees(30.49, fees), 30.61);
+  assert.equal(topUpWithFees(5, []), 5);
+  assert.equal(topUpWithFees(0.1, [{ type: 'forwarder', amount: '0.000001' }]), 0.11);
 });

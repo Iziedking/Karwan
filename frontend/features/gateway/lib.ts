@@ -92,6 +92,24 @@ export async function gatewaySpend(input: {
   };
 }
 
+/// The fees a spend would take, read before it is signed. Same parameters as
+/// gatewaySpend, so the estimate is for exactly the spend that follows.
+export async function gatewayEstimateSpend(input: {
+  provider: unknown;
+  amount: string;
+  recipientAddress: string;
+  chain?: string;
+}): Promise<Array<{ type: string; amount: string }>> {
+  const { kit, adapter } = await loadGatewayKit(input.provider);
+  const res = (await kit.unifiedBalance.estimateSpend({
+    from: { adapter },
+    to: { chain: input.chain ?? ARC_APPKIT_CHAIN, recipientAddress: input.recipientAddress, useForwarder: true },
+    amount: input.amount,
+    token: 'USDC',
+  } as never)) as { fees?: Array<{ type: string; amount: string }> };
+  return res?.fees ?? [];
+}
+
 /// Deposit into the pool, reporting the tx once it lands.
 ///
 /// Deposit has no step events (it is a plain approve + deposit), but its result

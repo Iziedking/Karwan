@@ -67,7 +67,7 @@ export const PLATFORM_GUIDE: readonly GuideEntry[] = [
     api: ['GET /api/tags/:tag', 'POST /api/cashout/arc-send', 'POST /api/gateway/to-wallet'],
     tools: ['find_karwan_tag', 'propose_send_to_tag'],
     keywords: 'send pay transfer tag handle @ username friend person another user tip pay someone',
-    summary: 'Send USDC on Arc to another person by their Karwan tag (@handle) or an Arc address. The send screen shows the recipient’s name and tag, then pays the address the tag resolves to at the moment you confirm. You cannot send to your own tag. Send can spend your whole balance: when the wallet alone is short, the missing amount first moves from your pooled deposits into your own wallet, then the send goes out. Sends are final once confirmed.',
+    summary: 'Send USDC on Arc to another person by their Karwan tag (@handle) or an Arc address. The send screen shows the recipient’s name and tag, then pays the address the tag resolves to at the moment you confirm. You cannot send to your own tag. Send can spend your whole balance: when the wallet alone is short, the missing amount first moves from your pooled deposits into your own wallet (a wallet account confirms that step in its wallet), then the send goes out. Sends are final once confirmed.',
     steps: ['Open /send, or /send?to=@tag&amount=10 to prefill.', 'Check the name shown for the tag before you confirm.', 'Confirm with your sign-in method (wallet signature or email/passkey account).', 'The send appears in /activity.', 'The assistant can look a tag up and open the send screen filled in; it never sends without your confirmation.'],
     sources: ['backend/src/routes/tags.ts', 'backend/src/profile/tagRecipient.ts', 'frontend/app/send/page.tsx'],
   },

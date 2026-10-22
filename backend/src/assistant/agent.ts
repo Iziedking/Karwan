@@ -64,6 +64,7 @@ import { policyFlags, verificationPolicyVersion, businessVerificationState } fro
 import { depositWalletsByChainKey, type CctpChainKey } from '../chain/cctpChains.js';
 import { resolveSellerProfile, resolveBuyerProfileForUser } from '../agents/agent-registry.js';
 import { readSpendable, pickRoute, gatewayCanReach, insufficientMessage } from '../gateway/router.js';
+import { readPooledBalance } from '../gateway/pooledBalance.js';
 import { diagnoseUserError } from '../llm/supervisor.js';
 import {
   buildNavigateAction,
@@ -1857,12 +1858,16 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
         const check = checkKarwanTag(tag.replace(/^@/, ''));
         if (!check.ok) return { ok: true, sendable: false, reason: 'That is not a valid Karwan tag.' };
         try {
-          // The wallet and the pool together, as the Send screen counts them (view 22).
-          const [profile, spendable] = await Promise.all([findProfileByHandle(check.tag), readSpendable(address)]);
+          // The wallet and the sign-in wallet's pool together, the figure the Send screen counts (view 22).
+          const [profile, spendable, pooled] = await Promise.all([
+            findProfileByHandle(check.tag),
+            readSpendable(address),
+            readPooledBalance(address).catch(() => null),
+          ]);
           const found = tagRecipient(check.tag, profile, address);
           if (!found.found) return { ok: true, sendable: false, reason: `No Karwan account has the tag @${check.tag}.` };
           if (found.self) return { ok: true, sendable: false, reason: 'That tag is yours. You cannot send to yourself.' };
-          const walletUsdc = Math.round(spendable.totalUsd * 100) / 100;
+          const walletUsdc = Math.round((spendable.walletUsd + Number(pooled?.balance.confirmed ?? 0)) * 100) / 100;
           if (walletUsdc < amountUsdc) {
             return { ok: true, sendable: false, reason: `The balance is ${walletUsdc.toFixed(2)} USDC, less than ${amountUsdc}. Add money first.`, walletUsdc };
           }

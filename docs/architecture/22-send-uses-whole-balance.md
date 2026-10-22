@@ -1,6 +1,6 @@
 # 22 · Send uses your whole balance
 
-Track T5, money like a bank account. A draft for the owner, 22 Oct 2026. Nothing is built yet.
+Track T5, money like a bank account. Approved and built 22 Oct 2026; corrected the same day after the first live send failed on who signs the top-up.
 
 ## What is wrong today
 
@@ -27,8 +27,10 @@ Send 140 USDC to @ada                      wallet 109.51, pool 50.00
   └─ no, short by 30.49
        1. top up own wallet from the pool    POST /api/gateway/to-wallet {amount: 30.49, requestId}
           same chain (Arc to Arc): no Gateway fee
-          backend-signed by the account's Gateway signer, for every account type
-          (the same App Kit unifiedBalance.spend used today to fund an agent)
+          signed by whoever deposited: the pool belongs to the sign-in wallet,
+          so a wallet account signs in the browser (App Kit unifiedBalance.spend,
+          as the agent top-up from the pool already does); POST /api/gateway/to-wallet
+          serves only an account with a server-held Gateway wallet (none today)
        2. wait until the wallet's USDC on Arc shows the top-up
        3. send 140 to @ada exactly as today
           (a web3 account signs in its own wallet; an email or passkey account is signed by the backend)

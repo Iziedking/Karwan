@@ -11,7 +11,8 @@ import { useBridges } from '@/features/bridge/hooks/useBridge';
 import { startedRecord } from '@/features/bridge/crossChainIntent';
 import { moneyOutRefusalOf } from '@/features/moneyOut/refusal';
 import { formatUnits } from 'viem';
-import { sendShortfall } from '../sendFromWhole';
+import { sendShortfall, topUpWithFees } from '../sendFromWhole';
+import { gatewayEstimateSpend, gatewaySpend } from '@/features/gateway/lib';
 import {
   afterRecheck,
   driverFor,
@@ -160,7 +161,16 @@ export function useMoneyMove() {
         const shortfall = sendShortfall(request.amount, request.walletBalance ?? null);
         if (shortfall > 0) {
           try {
-            await api.gatewayToWallet(shortfall, crypto.randomUUID());
+            if (walletSigned && account.connector) {
+              // The pool belongs to the sign-in wallet, and Gateway takes only
+              // its own signature on a spend: the wallet tops itself up.
+              const provider = await account.connector.getProvider();
+              const self = auth.address;
+              const fees = await gatewayEstimateSpend({ provider, amount: String(shortfall), recipientAddress: self });
+              await gatewaySpend({ provider, amount: String(topUpWithFees(shortfall, fees)), recipientAddress: self });
+            } else {
+              await api.gatewayToWallet(shortfall, crypto.randomUUID());
+            }
             await walletReaches(request.amount);
           } catch {
             setActive(null);
@@ -178,7 +188,7 @@ export function useMoneyMove() {
       setActive({ driver: 'call', request, requestId });
       await call(request, requestId, false);
     },
-    [auth.address, walletSigned, account.isConnected, walletClient, walletTopUp, startArcSend, startWeb3ArcSend, call, refreshMoney, walletReaches],
+    [auth.address, walletSigned, account.isConnected, account.connector, walletClient, walletTopUp, startArcSend, startWeb3ArcSend, call, refreshMoney, walletReaches],
   );
 
   const checkAgain = useCallback(async () => {
