@@ -16,6 +16,7 @@ import {
   RESEARCH_SIGNALS,
   saveResearchAnswer,
 } from '../db/researchAnswers.js';
+import { formLimitsOn } from '../db/formLimits.js';
 import { rateLimit } from '../middleware/rateLimit.js';
 import { invalidBodyMessage } from './invalidBody.js';
 
@@ -38,7 +39,7 @@ const researchSchema = z.object({
   website: z.string().optional(),
 });
 
-surveyRoutes.post('/research', rateLimit({ windowMs: 60 * 60 * 1000, max: 5, name: 'survey-research' }), async (c) => {
+surveyRoutes.post('/research', rateLimit({ windowMs: 60 * 60 * 1000, max: 5, name: 'survey-research', enabled: formLimitsOn }), async (c) => {
   let body;
   try {
     body = researchSchema.parse(await c.req.json());

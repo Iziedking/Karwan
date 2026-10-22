@@ -41,6 +41,7 @@ import {
 } from '../llm/supervisor.js';
 import { logger } from '../logger.js';
 import { requireAdmin } from '../middleware/adminAuth.js';
+import { formLimitsState, setFormLimits } from '../db/formLimits.js';
 import { addInvites, ENV_INVITES, listInvites, listWaitlist, markInviteEmailed, removeInvite } from '../db/waitlist.js';
 import { listResearchAnswers, summarizeResearchAnswers } from '../db/researchAnswers.js';
 import { sendMainnetAccessEmail } from '../emails/mainnetAccess.js';
@@ -1193,6 +1194,20 @@ adminRoutes.get('/research', async (c) => {
 });
 
 // --- Mainnet waitlist and invites ------------------------------------------
+
+/// The per-IP limits on the survey and the waitlist forms. Off while sign-ups
+/// arrive from shared carrier IPs; on again restores them as they were.
+adminRoutes.get('/form-limits', async (c) => c.json(await formLimitsState()));
+
+adminRoutes.post('/form-limits', async (c) => {
+  let body;
+  try {
+    body = z.object({ on: z.boolean() }).parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: invalidBodyMessage(err) }, 400);
+  }
+  return c.json(await setFormLimits(body.on, 'admin'));
+});
 
 adminRoutes.get('/waitlist', async (c) => {
   const [waitlist, invites] = await Promise.all([listWaitlist(), listInvites()]);

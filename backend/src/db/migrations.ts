@@ -1225,6 +1225,19 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       CREATE INDEX assistant_conversations_address_updated ON assistant_conversations_v1 (address, updated_at DESC);
     `,
   },
+  {
+    version: 44,
+    name: 'platform_settings',
+    sql: `
+      -- Settings an admin changes at runtime, one row per key. First use: the
+      -- switch for the per-IP limits on the survey and the waitlist.
+      CREATE TABLE platform_settings_v1 (
+        key TEXT PRIMARY KEY,
+        data JSONB NOT NULL,
+        updated_at BIGINT NOT NULL
+      );
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

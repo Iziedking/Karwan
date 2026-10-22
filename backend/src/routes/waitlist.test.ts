@@ -31,3 +31,25 @@ test('a verified join returns an answer token that lets the person say what they
   assert.equal((await post('/use-case', { token: 'x'.repeat(32), useCases: ['buy_goods'] })).status, 400);
   assert.equal((await post('/use-case', { token: joined.answerToken, useCases: ['buy_goods', 'sell_services'] })).status, 200);
 });
+
+test('one email gets at most four codes in 15 minutes, with the IP limits switched off', async () => {
+  const { setFormLimits } = await import('../db/formLimits.js');
+  await setFormLimits(false, 'test');
+  try {
+    for (let i = 0; i < 4; i++) assert.equal((await post('/request', { email: 'eve@example.com', locale: 'en' })).status, 200);
+    const fifth = await post('/request', { email: 'eve@example.com', locale: 'en' });
+    assert.equal(fifth.status, 429);
+    const body = (await fifth.json()) as { code: string; retryAfterSeconds: number };
+    assert.equal(body.code, 'too_many_codes');
+    assert.ok(body.retryAfterSeconds > 0);
+    assert.equal((await post('/request', { email: 'frank@example.com', locale: 'en' })).status, 200);
+  } finally {
+    await setFormLimits(true, 'test');
+  }
+});
+
+test('the IP limit on code requests counts again once the switch is back on', async () => {
+  let last = 0;
+  for (let i = 0; i < 8; i++) last = (await post('/request', { email: `ip${i}@example.com`, locale: 'en' })).status;
+  assert.equal(last, 429);
+});

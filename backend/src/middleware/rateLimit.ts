@@ -23,11 +23,22 @@ function clientIp(c: Context): string {
 /// limiter instance, so call this once per route at registration. Single
 /// backend instance today; swap to a shared store (Redis) when we shard.
 /// `max` may be read from the request, for a route that allows a signed-in
-/// session more than an anonymous caller.
-export function rateLimit(opts: { windowMs: number; max: number | ((c: Context) => number); name: string }) {
+/// session more than an anonymous caller. While `enabled` returns false every
+/// request passes and nothing is counted, so turning it back on resumes the
+/// limit as it stood.
+export function rateLimit(opts: {
+  windowMs: number;
+  max: number | ((c: Context) => number);
+  name: string;
+  enabled?: () => boolean;
+}) {
   const store = new Map<string, Bucket>();
 
   return async (c: Context, next: Next): Promise<Response | void> => {
+    if (opts.enabled && !opts.enabled()) {
+      await next();
+      return;
+    }
     const now = Date.now();
 
     // Opportunistic prune so the map can't grow unbounded across many IPs.

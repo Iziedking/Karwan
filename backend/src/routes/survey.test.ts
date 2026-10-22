@@ -83,3 +83,15 @@ test('the summary counts each answer, and multi-pick checks count once per perso
   assert.equal(summary.easiestFake.reviews, 2);
   assert.equal(summary.withContact, 1);
 });
+
+test('one connection can answer as often as it likes while the limits are switched off', async () => {
+  const { setFormLimits } = await import('../db/formLimits.js');
+  await setFormLimits(false, 'test');
+  try {
+    for (let i = 0; i < 7; i++) assert.equal((await post(answer, '10.9.9.9')).status, 200);
+  } finally {
+    await setFormLimits(true, 'test');
+  }
+  for (let i = 0; i < 5; i++) assert.equal((await post(answer, '10.9.9.9')).status, 200);
+  assert.equal((await post(answer, '10.9.9.9')).status, 429);
+});

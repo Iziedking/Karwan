@@ -13,6 +13,7 @@ import { z } from 'zod';
 import { checkOtpAttempt, generateOtpCode, hashOtpCode, OTP_TTL_MS } from '../auth/otp.js';
 import { config } from '../config.js';
 import { durableEphemeralMap } from '../db/ephemeral.js';
+import { formLimitsOn } from '../db/formLimits.js';
 import { isInvited, joinWaitlist, setWaitlistUseCases, WAITLIST_USE_CASES, waitlistPosition } from '../db/waitlist.js';
 import { sendWaitlistJoinedEmail } from '../emails/waitlistJoined.js';
 import { logger } from '../logger.js';
@@ -33,6 +34,11 @@ const codes = durableEphemeralMap<PendingCode>('waitlist-otp');
 /// Proves the answer comes from the person who just verified this email.
 const answerTokens = durableEphemeralMap<{ email: string; expiresAt: number }>('waitlist-answer');
 const ANSWER_TTL_MS = 60 * 60 * 1000;
+/// Codes sent to one address, so nobody can fill a stranger's inbox. Always on,
+/// whatever the switch for the per-IP limits says.
+const sendsPerEmail = durableEphemeralMap<{ count: number; expiresAt: number }>('waitlist-email-sends');
+const EMAIL_CODE_MAX = 4;
+const EMAIL_CODE_WINDOW_MS = 15 * 60 * 1000;
 
 let codeSink: ((code: string) => void) | null = null;
 export const __test = { setCodeSink: (f: (code: string) => void) => { codeSink = f; } };
@@ -43,13 +49,23 @@ function secret(): string {
   return `waitlist:${config.SESSION_SECRET ?? 'karwan-development-otp-secret-not-for-production'}`;
 }
 
-waitlistRoutes.post('/request', rateLimit({ windowMs: 10 * 60 * 1000, max: 5, name: 'waitlist-request' }), async (c) => {
+waitlistRoutes.post('/request', rateLimit({ windowMs: 10 * 60 * 1000, max: 5, name: 'waitlist-request', enabled: formLimitsOn }), async (c) => {
   let body;
   try {
     body = z.object({ email: emailSchema, locale: z.enum(LOCALES).catch('en') }).parse(await c.req.json());
   } catch (err) {
     return c.json({ error: invalidBodyMessage(err) }, 400);
   }
+  const now = Date.now();
+  const sends = sendsPerEmail.get(body.email);
+  if (sends && sends.count >= EMAIL_CODE_MAX) {
+    const retryAfterSeconds = Math.ceil((sends.expiresAt - now) / 1000);
+    c.header('Retry-After', String(retryAfterSeconds));
+    return c.json({ error: 'too_many_codes', code: 'too_many_codes', retryAfterSeconds }, 429);
+  }
+  sendsPerEmail.set(body.email, sends
+    ? { count: sends.count + 1, expiresAt: sends.expiresAt }
+    : { count: 1, expiresAt: now + EMAIL_CODE_WINDOW_MS });
   const code = generateOtpCode();
   codes.set(body.email, {
     codeHash: hashOtpCode(code, body.email, secret()),
@@ -69,7 +85,7 @@ waitlistRoutes.post('/request', rateLimit({ windowMs: 10 * 60 * 1000, max: 5, na
   return c.json({ sent: true });
 });
 
-waitlistRoutes.post('/verify', rateLimit({ windowMs: 10 * 60 * 1000, max: 15, name: 'waitlist-verify' }), async (c) => {
+waitlistRoutes.post('/verify', rateLimit({ windowMs: 10 * 60 * 1000, max: 15, name: 'waitlist-verify', enabled: formLimitsOn }), async (c) => {
   let body;
   try {
     body = z.object({ email: emailSchema, code: z.string().trim().regex(/^\d{6}$/) }).parse(await c.req.json());
@@ -99,7 +115,7 @@ waitlistRoutes.post('/verify', rateLimit({ windowMs: 10 * 60 * 1000, max: 15, na
   return c.json({ joined: true, alreadyJoined: !created, joinedAt: joined.joinedAt, invited, position, answerToken });
 });
 
-waitlistRoutes.post('/use-case', rateLimit({ windowMs: 10 * 60 * 1000, max: 20, name: 'waitlist-use-case' }), async (c) => {
+waitlistRoutes.post('/use-case', rateLimit({ windowMs: 10 * 60 * 1000, max: 20, name: 'waitlist-use-case', enabled: formLimitsOn }), async (c) => {
   let body;
   try {
     body = z.object({
