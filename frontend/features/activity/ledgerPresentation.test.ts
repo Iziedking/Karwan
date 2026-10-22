@@ -159,3 +159,9 @@ test('a row names the other side when the record carries it, and nothing raw', (
   assert.equal(ledgerContext({ params: { t: 'sent', who: '0x64a5' } }), null);
   assert.equal(ledgerContext({ params: null }), null);
 });
+
+test('money the escrow paid your financier from your deal is a note: no sign, in neither filter', () => {
+  assert.equal(ledgerDirection('financing_paid_from_deal'), 'flat');
+  assert.equal(ledgerAmountLabel('992.5', 'financing_paid_from_deal'), '992.50 USDC');
+  assert.deepEqual(filterByDirection([{ kind: 'financing_paid_from_deal' }], 'in'), []);
+});

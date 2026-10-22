@@ -828,6 +828,7 @@ export const hi: Messages = {
         financing_repaid: "एडवांस चुकाया",
         financing_repayment: "एडवांस की किस्त",
         financing_repayment_sent: "एडवांस चुकाया",
+        financing_paid_from_deal: "आपके फाइनेंसर को चुकाया गया",
       },
       today: "आज",
       yesterday: "कल",

@@ -790,7 +790,7 @@ interface MessagesShape {
       justNow: string;
       /// What happened, in a word or two, keyed by the movement kind. The amount
       /// sits in its own column, so the title never repeats it.
-      kind: Record<'deposit' | 'top_up' | 'transfer_in' | 'transfer_out' | 'payout' | 'release' | 'escrow_funding' | 'yield' | 'yield_claim' | 'refund' | 'stake' | 'unstake' | 'withdraw' | 'cash_out' | 'bridge' | 'agent_seed' | 'agent_topup' | 'agent_funding' | 'agent_spend' | 'gateway_deposit' | 'gateway_fund_agent' | 'gateway_cash_out' | 'financing_funded' | 'financing_received' | 'financing_repaid' | 'financing_repayment' | 'financing_repayment_sent', string>;
+      kind: Record<'deposit' | 'top_up' | 'transfer_in' | 'transfer_out' | 'payout' | 'release' | 'escrow_funding' | 'yield' | 'yield_claim' | 'refund' | 'stake' | 'unstake' | 'withdraw' | 'cash_out' | 'bridge' | 'agent_seed' | 'agent_topup' | 'agent_funding' | 'agent_spend' | 'gateway_deposit' | 'gateway_fund_agent' | 'gateway_cash_out' | 'financing_funded' | 'financing_received' | 'financing_repaid' | 'financing_repayment' | 'financing_repayment_sent' | 'financing_paid_from_deal', string>;
       today: string;
       yesterday: string;
       filter: { all: string; in: string; out: string; aria: string };
@@ -6244,6 +6244,7 @@ export const en: MessagesShape = {
         financing_repaid: "Advance repaid",
         financing_repayment: "Advance repayment",
         financing_repayment_sent: "Advance repaid",
+        financing_paid_from_deal: "Repaid to your financier",
       },
       today: "Today",
       yesterday: "Yesterday",

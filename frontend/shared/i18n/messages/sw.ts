@@ -827,6 +827,7 @@ export const sw: Messages = {
         financing_repaid: "Mkopo wa awali umelipwa",
         financing_repayment: "Malipo ya mkopo wa awali",
         financing_repayment_sent: "Mkopo wa awali umelipwa",
+        financing_paid_from_deal: "Imelipwa kwa mfadhili wako",
       },
       today: "Leo",
       yesterday: "Jana",

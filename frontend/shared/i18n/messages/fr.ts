@@ -830,6 +830,7 @@ export const fr: Messages = {
         financing_repaid: "Avance remboursée",
         financing_repayment: "Remboursement d'avance",
         financing_repayment_sent: "Avance remboursée",
+        financing_paid_from_deal: "Remboursé à votre financeur",
       },
       today: "Aujourd'hui",
       yesterday: "Hier",

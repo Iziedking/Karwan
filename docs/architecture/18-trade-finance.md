@@ -114,6 +114,7 @@ The older factoring and purchase-order routes stay readable for past deals and s
 | Financier follows the deal: Open deals list and deal alerts | Built 20 Oct 2026, not deployed |
 | Offer funded before it goes out; accept checks the financier's money first; offers ranked by financier reputation, then price, with one Recommended | Built 20 Oct 2026, not deployed. Found from a seller whose accept failed: the financier's wallet held 310.97 USDC against offers of 880 and 815 (`routes/factoringFunding.ts`, `routes/factoringRanking.ts`) |
 | Get paid now on the deal page | Built on the current escrow (invoice factoring), not deployed; the new deal page also takes the goods delivery with its tracking number, so a business order no longer drops to the old page. Moves to the suite after the audit |
+| Seller's Activity on a financed deal adds up | Built 22 Oct 2026, not deployed: each deal payment shows what reached the seller and the financier's part reads Repaid to your financier, unsigned. Found on deal 0x756b…: the seller's list showed about 3,865 USDC in against 1,865 received (`routes/activityMovementLedger.ts` netOfFinancierRepayments) |
 | Get paid now in Telegram | Planned (T4.3) |
 | Financier desk to UI law v2 | Planned (T4.3) |
 | Record counts financed and repaid lines | Planned |

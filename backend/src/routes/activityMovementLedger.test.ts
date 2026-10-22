@@ -315,3 +315,38 @@ test("hiding the seller's copy of a funding still drops its legacy projection", 
   );
   assert.deepEqual(rows, []);
 });
+
+/// A financed deal: the seller took an 880 USDC advance, so the escrow pays the
+/// financier first. Release 1 (992.50) went all to the financier; release 2
+/// went 7.50 to the financier and 985 to the seller. The seller's statement
+/// shows only what reached them, and the repayment as an unsigned note.
+test('on a financed deal the seller sees what reached them, and the repayment as a note', () => {
+  const escrow = `0x${'e'.repeat(40)}`;
+  const financier = `0x${'f'.repeat(40)}`;
+  const mv = (reference: string, kind: string, micros: string, tx: string, ts: number, extra: Record<string, unknown>) =>
+    ({
+      reference, kind, amountMicros: micros, state: 'completed', attempt: 1, version: 1, createdAt: ts, updatedAt: ts, completedAt: ts,
+      summary: kind, jobId: 'job-9', initiatedBy: seller, participants: [], nextActor: 'none',
+      legs: [{ key: 'transfer', label: kind, attempt: 1, txHash: tx, verifiedAt: ts, ...extra }],
+      ...extra,
+    }) as never;
+  const movements = [
+    mv('KWN-ADV', 'financing_advance', '880000000', '0xa1', 1, { sourceAddress: financier, destinationAddress: seller }),
+    mv('KWN-PAY1', 'milestone_payout', '992500000', '0xr1', 2, { participants: [{ address: seller, role: 'recipient' }, { address: buyer, role: 'buyer' }] }),
+    mv('KWN-REP1', 'financing_repayment', '992500000', '0xr1', 2, { sourceAddress: escrow, destinationAddress: financier }),
+    mv('KWN-PAY2', 'milestone_payout', '992500000', '0xr2', 3, { participants: [{ address: seller, role: 'recipient' }, { address: buyer, role: 'buyer' }] }),
+    mv('KWN-REP2', 'financing_repayment', '7500000', '0xr2', 3, { sourceAddress: escrow, destinationAddress: financier }),
+  ];
+  const rows = mergeMovementLedger([], movements, 50, seller);
+  const view = rows.map((r) => [r.kind, r.amountUsdc]).sort();
+  assert.deepEqual(view, [
+    ['financing_paid_from_deal', '7.5'],
+    ['financing_paid_from_deal', '992.5'],
+    ['financing_received', '880'],
+    ['payout', '985'],
+  ]);
+
+  // The financier's statement is unchanged: both parts of the repayment in.
+  const theirs = mergeMovementLedger([], movements, 50, financier).filter((r) => r.kind.startsWith('financing'));
+  assert.deepEqual(theirs.map((r) => [r.kind, r.amountUsdc]).sort(), [['financing_funded', '880'], ['financing_repaid', '7.5'], ['financing_repaid', '992.5']]);
+});

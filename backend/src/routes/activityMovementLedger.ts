@@ -91,6 +91,9 @@ export function movementToPersonalLedgerItem(
     // The durable kind names the rail; the UI kind names the user's view.
     if (viewer === destination) kind = 'financing_repaid';
     else if (viewer === source) kind = 'financing_repayment_sent';
+    // The escrow paid the seller's financier straight from the deal: nothing
+    // reached or left the seller's wallet, so it reads as a note, unsigned.
+    else kind = 'financing_paid_from_deal';
   } else if (movement.kind === 'cash_out' && viewer && transferCounterparty(movement)) {
     // One transfer, two readers: the sender sent it, the recipient received it.
     const transfer = transferCounterparty(movement)!;
@@ -160,6 +163,40 @@ export function movementToPersonalLedgerItem(
   };
 }
 
+/// On a financed deal the escrow repays the financier from the seller's
+/// release, in the same transaction. A seller's payout row shows the release
+/// minus what went to the financier, and goes when all of it did, so the
+/// statement adds up to what reached the wallet. Verified repayment parts carry
+/// the release's transaction, which is how they are matched.
+export function netOfFinancierRepayments(
+  rows: readonly PersonalLedgerItem[],
+  movements: readonly MoneyMovement[],
+  viewer?: string,
+): PersonalLedgerItem[] {
+  if (!viewer) return [...rows];
+  const repaidByTx = new Map<string, bigint>();
+  for (const movement of movements) {
+    if (movement.kind !== 'financing_repayment' || movement.state !== 'completed') continue;
+    const leg = movement.legs.find((candidate) => candidate.attempt === movement.attempt);
+    if (leg?.destinationAddress?.toLowerCase() === viewer) continue;
+    const tx = receiptHash(movement)?.toLowerCase();
+    if (!tx) continue;
+    repaidByTx.set(tx, (repaidByTx.get(tx) ?? 0n) + BigInt(movement.amountMicros));
+  }
+  if (repaidByTx.size === 0) return [...rows];
+  const out: PersonalLedgerItem[] = [];
+  for (const row of rows) {
+    const repaid = row.kind === 'payout' && row.txHash ? repaidByTx.get(row.txHash.toLowerCase()) : undefined;
+    if (repaid === undefined || !row.amountUsdc) {
+      out.push(row);
+      continue;
+    }
+    const left = BigInt(Math.round(Number(row.amountUsdc) * 1_000_000)) - repaid;
+    if (left > 0n) out.push({ ...row, amountUsdc: formatUsdcMicros(left.toString()) });
+  }
+  return out;
+}
+
 /**
  * Movement projections were written to activity_log during the migration.
  * Remove only rows carrying the same immutable reference, then add the
@@ -184,7 +221,7 @@ export function mergeMovementLedger(
   const own = movements
     .filter((movement) => belongsInLedger(movement, viewer))
     .map((movement) => movementToPersonalLedgerItem(movement, viewerAddress, names, context));
-  return [...preserved, ...own]
+  return netOfFinancierRepayments([...preserved, ...own], movements, viewer)
     .sort((a, b) => b.ts - a.ts)
     .slice(0, safeLimit);
 }
