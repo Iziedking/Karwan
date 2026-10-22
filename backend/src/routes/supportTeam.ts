@@ -19,6 +19,50 @@ export const supportTeamRoutes = new Hono();
 
 supportTeamRoutes.use('*', requireSupport);
 
+/// A delivery the link check holds, as the reviewer needs it: the link as
+/// text (never a clickable link here; open it in a safe browser), what the
+/// scanner saw, and any review already started. Registered before /:id so a
+/// ticket id never shadows it.
+supportTeamRoutes.get('/deliveries/:jobId', async (c) => {
+  const { getDeal } = await import('../db/deals.js');
+  const { reviewOpenFor } = await import('../deals/deliveryReview.js');
+  const deal = await getDeal(c.req.param('jobId'));
+  if (!deal) return c.json({ error: 'deal not found' }, 404);
+  return c.json({
+    jobId: deal.jobId,
+    buyer: deal.buyer,
+    seller: deal.seller,
+    amountUsdc: deal.dealAmountUsdc,
+    delivered: deal.delivered === true,
+    closed: Boolean(deal.settledAt || deal.cancelledAt),
+    deliveryRevision: deal.deliveryRevision ?? 0,
+    deliveryProof: deal.deliveryProof ?? null,
+    verificationStatus: deal.verificationStatus ?? null,
+    verificationReasons: deal.verificationReasons ?? [],
+    review: reviewOpenFor(deal),
+  });
+});
+
+const reviewSchema = z.object({ decision: z.enum(['safe', 'unsafe']), reason: z.string().min(1).max(1000) });
+
+/// Clear a flagged delivery link or keep it blocked. The credential decides
+/// the reviewer role, so a link rated malicious needs both tokens.
+supportTeamRoutes.post('/deliveries/:jobId/review', async (c) => {
+  const role = tokenRole(c);
+  if (!role) return c.json({ error: 'unauthorized' }, 401);
+  const parsed = reviewSchema.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: 'decision must be safe or unsafe, with a reason' }, 400);
+  const { applyDeliveryReview, liveDeliveryReviewDeps } = await import('../deals/deliveryReviewService.js');
+  const out = await applyDeliveryReview(c.req.param('jobId'), { role, ...parsed.data }, await liveDeliveryReviewDeps());
+  if (!out.ok) {
+    const status = out.code === 'not-found' ? 404 : out.code === 'reason-required' ? 400 : 409;
+    return c.json({ error: out.message, code: out.code }, status);
+  }
+  const { logger } = await import('../logger.js');
+  logger.info({ jobId: c.req.param('jobId'), role, decision: parsed.data.decision, outcome: out.review.decision }, 'support: delivery review');
+  return c.json({ review: out.review, cleared: out.clears });
+});
+
 /// Lets the frontend know which token it holds, so a support-only token sees
 /// only the tickets nav and never the rest of the admin page.
 supportTeamRoutes.get('/whoami', (c) => c.json({ role: tokenRole(c) }));
@@ -51,6 +95,7 @@ supportTeamRoutes.get('/:id', (c) => {
     email: convo.email ?? null,
     status: convo.status,
     messages: convo.messages,
+    dealIds: convo.dealIds ?? [],
   });
 });
 

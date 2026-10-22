@@ -167,6 +167,8 @@ export interface DirectDeal {
   // check. verificationReasons explains a non-clean verdict in plain language.
   verificationStatus?: 'clean' | 'suspicious' | 'malicious' | 'unverifiable';
   verificationReasons?: string[];
+  /// A person's check of a flagged delivery link (deals/deliveryReview.ts).
+  deliveryReview?: import('../deals/deliveryReview.js').DeliveryReview;
   /// Security agent's verdict on the MATCH itself (distinct from the delivery-
   /// proof verificationStatus above), set at match persist when
   /// SECURITY_MATCH_GATE_ENABLED. 'flag' surfaces a risk banner; 'hold' also
@@ -710,6 +712,16 @@ export function recordDeliveryRevision(snapshot: DirectDeal, patch: Partial<Dire
       || (current.agreementVersion ?? 1) !== (snapshot.agreementVersion ?? 1)
       || (current.deliveryRevision ?? 0) !== (snapshot.deliveryRevision ?? 0)
       || patch.deliveryRevision !== (current.deliveryRevision ?? 0) + 1) return null;
+    return { ...current, ...patch, updatedAt: Date.now() };
+  });
+}
+
+/** A support review applies only to the delivery that was reviewed. */
+export function recordDeliveryReview(snapshot: DirectDeal, patch: Partial<DirectDeal>): Promise<DirectDeal | null> {
+  return mutateLockedDeal(snapshot.jobId, (current) => {
+    if (!current || current.cancelledAt || current.settledAt
+      || (current.deliveryRevision ?? 0) !== (snapshot.deliveryRevision ?? 0)
+      || current.verificationStatus !== snapshot.verificationStatus) return null;
     return { ...current, ...patch, updatedAt: Date.now() };
   });
 }

@@ -7,6 +7,7 @@ import { config } from '../config.js';
 import { rateLimit } from '../middleware/rateLimit.js';
 import {
   appendUserMessage,
+  attachDeal,
   closeConversation,
   createConversation,
   createEmailConversation,
@@ -38,9 +39,19 @@ const startSchema = z.object({
     .max(40)
     .default([]),
   email: z.string().email().max(200).optional(),
+  dealId: z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional(),
 });
 
-const messageSchema = z.object({ text: z.string().min(1).max(4000) });
+const messageSchema = z.object({ text: z.string().min(1).max(4000), dealId: z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional() });
+
+/// A deal is attached to a ticket only for one of its two parties.
+async function partyDeal(address: string | undefined, dealId: string | undefined): Promise<string | null> {
+  if (!address || !dealId) return null;
+  const { getDeal } = await import('../db/deals.js');
+  const deal = await getDeal(dealId);
+  const me = address.toLowerCase();
+  return deal && (deal.buyer.toLowerCase() === me || deal.seller.toLowerCase() === me) ? deal.jobId : null;
+}
 
 /// Whether the human-handoff button should show at all. The widget hides it
 /// when no operator channel is configured.
@@ -62,6 +73,8 @@ supportRoutes.post(
   }
   const address = viewerAddress(c) ?? undefined;
   const convo = createConversation({ address, email: body.email, transcript: body.messages });
+  const dealId = await partyDeal(address, body.dealId);
+  if (dealId) attachDeal(convo.id, dealId);
   try {
     await sendSupportRequestToOperator(convo);
   } catch (err) {
@@ -93,6 +106,8 @@ supportRoutes.post(
   }
   const convo = appendUserMessage(id, body.text);
   if (!convo) return c.json({ error: 'not-open' }, 404);
+  const dealId = await partyDeal(viewerAddress(c) ?? undefined, body.dealId);
+  if (dealId && convo.address && convo.address === viewerAddress(c)?.toLowerCase()) attachDeal(convo.id, dealId);
   try {
     await relaySupportUserMessage(convo, body.text);
   } catch (err) {

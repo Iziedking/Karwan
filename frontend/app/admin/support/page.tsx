@@ -5,6 +5,7 @@ import { CopyId } from '@/shared/components/CopyId';
 import { useDialog } from '@/shared/components/Dialog';
 import { stripMarkdown } from '@/shared/utils/format';
 import { AdminPageHeader } from '@/features/admin/AdminPageHeader';
+import { DeliveryReviewPanel } from '@/features/admin/DeliveryReviewPanel';
 
 /// Admin support tickets: the third operator channel (with Telegram + email).
 /// Pick up an open ticket and reply here; the reply relays to the user's chat
@@ -22,6 +23,7 @@ export default function AdminSupport() {
   const [tickets, setTickets] = useState<AdminTicketRow[] | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [messages, setMessages] = useState<TicketMsg[]>([]);
+  const [dealIds, setDealIds] = useState<string[]>([]);
   const [reply, setReply] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -53,6 +55,7 @@ export default function AdminSupport() {
     try {
       const r = await api.adminSupportGet(id);
       if (selectedRef.current !== id) return;
+      setDealIds((prev) => (prev.join() === (r.dealIds ?? []).join() ? prev : r.dealIds ?? []));
       // Only replace the array when it actually changed, so a background poll
       // doesn't re-render the thread and wipe a text selection mid-copy.
       setMessages((prev) => {
@@ -78,6 +81,7 @@ export default function AdminSupport() {
   function open(id: string) {
     setSelected(id);
     setMessages([]);
+    setDealIds([]);
     void loadThread(id);
   }
 
@@ -174,6 +178,7 @@ export default function AdminSupport() {
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                {dealIds.map((d) => <DeliveryReviewPanel key={d} jobId={d} />)}
                 {messages.map((m, i) => (
                   <div
                     key={i}

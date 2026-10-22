@@ -90,6 +90,28 @@ export function recordLinkOffense(input: {
   persist();
 }
 
+/// A person at Karwan found the flagged link was safe: the offense it
+/// recorded comes off the seller's record. Nothing happens if it was never
+/// counted, so a retry cannot take off more than one.
+export function withdrawLinkOffense(input: {
+  address: string;
+  jobId: string;
+  surface: 'delivery' | 'chat';
+  verdict: 'suspicious' | 'malicious';
+}): boolean {
+  load();
+  const address = input.address.toLowerCase();
+  const key = `${input.jobId.toLowerCase()}:${input.surface}`;
+  const existing = store.get(address);
+  if (!existing?.seen.includes(key)) return false;
+  const next: LinkOffense = { ...existing, count: Math.max(0, existing.count - 1), seen: existing.seen.filter((k) => k !== key) };
+  if (input.verdict === 'malicious') next.malicious = Math.max(0, maliciousCountOf(existing) - 1);
+  if (next.count === 0) store.delete(address);
+  else store.set(address, next);
+  persist();
+  return true;
+}
+
 /// Malicious offenses only. A record from before they were counted apart can
 /// prove at most one, and only when its last verdict was malicious.
 export function maliciousCountOf(entry: LinkOffense | undefined): number {

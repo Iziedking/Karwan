@@ -2,11 +2,20 @@
 /// The panel (shared/components/AssistantWidget.tsx) listens for this event.
 export const HELP_OPEN_EVENT = 'karwan:help-open';
 
+type Turn = { role: 'user' | 'assistant'; content: string };
+
 export interface HelpOpenDetail {
   prefill?: string;
-  /// Bring in a person straight away, with this conversation for context.
+  /// Bring in a person straight away.
   person?: boolean;
-  transcript?: Array<{ role: 'user' | 'assistant'; content: string }>;
+  /// What the person already said elsewhere, such as assistant mode. It goes
+  /// to the person joining as context; Help keeps its own conversation.
+  context?: Turn[];
+  /// A first message for the person joining, sent and shown in Help. Goes
+  /// into an open ticket when there is one.
+  message?: string;
+  /// A deal this is about, so support opens it without asking.
+  dealId?: string;
 }
 
 export function openHelp(prefill?: string): void {
@@ -15,8 +24,8 @@ export function openHelp(prefill?: string): void {
 }
 
 /// The assistant could not do it, or the person asked for one: Help opens and
-/// connects them to the team with the conversation so far.
-export function callPerson(transcript: HelpOpenDetail['transcript']): void {
+/// connects them to the team, with what was said so far as context.
+export function callPerson(context: Turn[], options: { message?: string; dealId?: string } = {}): void {
   if (typeof window === 'undefined') return;
-  window.dispatchEvent(new CustomEvent<HelpOpenDetail>(HELP_OPEN_EVENT, { detail: { person: true, transcript } }));
+  window.dispatchEvent(new CustomEvent<HelpOpenDetail>(HELP_OPEN_EVENT, { detail: { person: true, context, ...options } }));
 }

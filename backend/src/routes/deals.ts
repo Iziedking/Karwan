@@ -157,6 +157,7 @@ import { fundingAgreementBlock } from '../deals/fundingAgreement.js';
 import { releaseBlockReasonForDelivery } from '../deals/releaseBlock.js';
 import { dealOrigin, publicFeedDeal } from '../deals/publicFeed.js';
 import { manualReviewActive, manualReviewEligibility } from '../deals/evidenceManualReview.js';
+import { reviewForParty } from '../deals/deliveryReview.js';
 import { dealView, type DealViewInput } from '../deals/dealView.js';
 import { loadTrustCard } from '../trust/loadTrustCard.js';
 import { readEvidenceReceipt } from '../chain/evidenceReceipt.js';
@@ -5666,6 +5667,10 @@ async function enrich(deal: DirectDeal) {
     termsFloorMs: termsFloorMs(deal),
     delayAppealResponseWindowMs: config.DEAL_DELAY_APPEAL_RESPONSE_MS,
     delayAppealGraceMs: config.DEAL_DELAY_APPEAL_GRACE_MS,
+    // Every party-facing deal goes through here: the reviewers' notes never
+    // leave, and each party sees only where the check stands.
+    deliveryReview: undefined,
+    deliveryReviewState: reviewForParty(deal),
   };
   // No escrow exists on chain until the seller agrees and the buyer funds.
   if (!deal.acceptedAt) return { ...base, onChain: null };

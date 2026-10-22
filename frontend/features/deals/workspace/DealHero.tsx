@@ -99,7 +99,8 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   // A hold from the verdict shows at once, before the watcher records a detail.
   const heldDetail = paused ? deal.releaseBlockedDetail ?? (deal.releaseBlockedReason ? undefined : 'off-request') : undefined;
   const held = paused ? heldMove(heldDetail, viewerIsBuyer) : null;
-  const askPerson = () => callPerson([{ role: 'user', content: fill(copy.checkPaused.supportMessage, { path: `/deals/${deal.jobId}` }) }]);
+  const review = deal.deliveryReviewState?.state;
+  const askPerson = () => callPerson([], { message: fill(copy.checkPaused.supportMessage, { path: `/deals/${deal.jobId}` }), dealId: deal.jobId });
   const proof = deal.deliveryProof?.trim();
   const seeDelivery = viewerIsBuyer && proof && isLink(proof) ? (
     <a href={proof} target="_blank" rel="noreferrer noopener" className="font-semibold underline underline-offset-4">{s.seeDelivery}</a>
@@ -108,6 +109,10 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
     const detail = heldDetail;
     const reason = !detail
       ? paused.noWallet
+      : !viewerIsBuyer && detail === 'security-hold' && review === 'unsafe'
+        ? paused.reviewUnsafe
+      : !viewerIsBuyer && detail === 'security-hold' && review === 'checking'
+        ? paused.reviewChecking
       : !viewerIsBuyer && detail === 'security-hold'
         ? paused.sellerHold
         : !viewerIsBuyer && detail === 'off-request'
@@ -155,6 +160,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
             {viewerIsBuyer
               ? passed ? live.passedBuyer : live.unverifiedBuyer
               : fill(passed ? live.passedSeller : live.unverifiedSeller, { name })}{' '}
+            {review === 'safe' ? `${copy.checkPaused.reviewedSafe} ` : null}
             {seeDelivery}
           </span>
         </span>
@@ -240,10 +246,10 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
             <button type="button" onClick={() => setPanel('deliver')} disabled={busy} className="inline-flex min-h-14 w-full items-center justify-center rounded-full bg-[var(--action)] px-6 text-[16px] font-semibold text-[var(--on-action)] transition-opacity hover:opacity-90 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-offset-2">
               {copy.checkPaused.sendNewLink}
             </button>
-            <button type="button" onClick={askPerson} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-[var(--lp-border-light)] px-6 text-[15px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+            {review ? null : <button type="button" onClick={askPerson} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-[var(--lp-border-light)] px-6 text-[15px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
               <Icon name="user" size={20} />
               {copy.checkPaused.askPerson}
-            </button>
+            </button>}
           </>
         ) : held === 'wait-seller' ? (
           <p className="flex min-h-14 w-full items-center justify-center rounded-full bg-[var(--tint)] px-6 text-[15px] font-medium text-[var(--lp-text-sub)]">
@@ -313,6 +319,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
       </Sheet>
       <Sheet open={panel === 'receipts'} title={s.receipts} onClose={close}>
         <SettlementRecord
+          bare
           movements={movements}
           fetchState={recordState}
           fundTxHash={deal.fundTxHash}

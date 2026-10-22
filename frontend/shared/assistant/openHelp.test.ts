@@ -22,7 +22,16 @@ test('assistant mode hands its conversation to a person through Help', () => {
   target.addEventListener(HELP_OPEN_EVENT, (e) => { got = (e as CustomEvent).detail; });
   const transcript = [{ role: 'user' as const, content: 'My payment is stuck' }];
   callPerson(transcript);
-  assert.deepEqual(got, { person: true, transcript });
+  assert.deepEqual(got, { person: true, context: transcript });
+});
+
+test('a deal page asks for a person with its own message and the deal attached', () => {
+  const target = new EventTarget();
+  (globalThis as { window?: unknown }).window = target;
+  let got: unknown = null;
+  target.addEventListener(HELP_OPEN_EVENT, (e) => { got = (e as CustomEvent).detail; });
+  callPerson([], { message: 'My link was flagged but it is safe.', dealId: '0xabc' });
+  assert.deepEqual(got, { person: true, context: [], message: 'My link was flagged but it is safe.', dealId: '0xabc' });
 });
 
 test('opening Help without a browser does nothing', () => {

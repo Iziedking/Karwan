@@ -34,6 +34,9 @@ export interface SupportConversation {
   createdAt: number;
   updatedAt: number;
   closedAt?: number;
+  /// Deals this ticket is about, attached by the person from the deal page. The
+  /// support console opens the flagged-delivery review for each.
+  dealIds?: string[];
 }
 
 const STORE_PATH = resolve(process.cwd(), 'data', 'support.json');
@@ -171,6 +174,19 @@ function append(id: string, role: SupportRole, text: string): SupportConversatio
 
 export function appendUserMessage(id: string, text: string): SupportConversation | null {
   return append(id, 'user', text);
+}
+
+/// Attach a deal the person raised, once. Only the route that checked the
+/// person is a party to the deal calls this.
+export function attachDeal(id: string, jobId: string): SupportConversation | null {
+  const convo = conversations.get(id);
+  if (!convo) return null;
+  const key = jobId.toLowerCase();
+  if (!(convo.dealIds ?? []).includes(key)) {
+    convo.dealIds = [...(convo.dealIds ?? []), key].slice(-5);
+    schedulePersist();
+  }
+  return convo;
 }
 
 export function appendOperatorMessage(id: string, text: string): SupportConversation | null {

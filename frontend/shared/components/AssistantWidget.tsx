@@ -54,6 +54,10 @@ export function AssistantWidget() {
   // True once the person asked for someone or the assistant cannot do it
   // (owner, 20 Oct 2026). A person is then brought in without a button.
   const [humanSuggested, setHumanSuggested] = useState(false);
+  // A request for a person from another screen: what was said there goes to
+  // support as context, and its message (if any) is sent and shown here. Help
+  // keeps its own conversation; it never takes over the other one.
+  const [handoff, setHandoff] = useState<Pick<HelpOpenDetail, 'context' | 'message' | 'dealId'> | null>(null);
   const autoTriedRef = useRef(false);
   const suggestHuman = useCallback(() => setHumanSuggested(true), []);
   const chat = useAssistantChat({ onNeedsHuman: suggestHuman, mode: 'help' });
@@ -63,6 +67,7 @@ export function AssistantWidget() {
   const [convoId, setConvoId] = useState<string | null>(null);
   const [live, setLive] = useState<LiveMsg[]>([]);
   const [liveClosed, setLiveClosed] = useState(false);
+  const [fromElsewhere, setFromElsewhere] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [unread, setUnread] = useState(false);
 
@@ -72,9 +77,8 @@ export function AssistantWidget() {
       const detail = (e as CustomEvent<HelpOpenDetail>).detail ?? {};
       setOpen(true);
       if (detail.prefill) setInput(detail.prefill);
-      // Assistant mode asked for a person: carry its conversation over.
       if (detail.person) {
-        if (detail.transcript?.length) chat.reset(detail.transcript);
+        setHandoff({ context: detail.context, message: detail.message, dealId: detail.dealId });
         setHumanSuggested(true);
       }
     };
@@ -169,6 +173,24 @@ export function AssistantWidget() {
     return () => clearInterval(id);
   }, [open, convoId, liveClosed, pollLive]);
 
+  // A ticket is already open: the new request goes into it, not into a thread
+  // that only this screen can see.
+  useEffect(() => {
+    if (!convoId || liveClosed || !handoff) return;
+    const pending = handoff;
+    setHandoff(null);
+    const message = pending.message?.trim();
+    if (!message) return;
+    void (async () => {
+      try {
+        await api.supportSend(convoId, message, pending.dealId);
+        await pollLive();
+      } catch (e) {
+        setLiveError(e instanceof ApiError ? e.message : t.error);
+      }
+    })();
+  }, [convoId, liveClosed, handoff, pollLive, t.error]);
+
   // Bring a person in as soon as it is needed and the channel is known to be on.
   // One automatic try; a failure shows the button to try again.
   useEffect(() => {
@@ -183,10 +205,18 @@ export function AssistantWidget() {
     chat.setError(null);
     setLiveLoading(true);
     try {
-      const transcript = turns.map((m) => ({ role: m.role, content: m.content }));
-      const res = await api.supportStart(transcript);
+      const own = turns.map((m) => ({ role: m.role, content: m.content }));
+      const message = handoff?.message?.trim();
+      const transcript = [
+        ...(handoff?.context?.length ? handoff.context : own),
+        ...(message ? [{ role: 'user' as const, content: message }] : []),
+      ].slice(-40);
+      const res = await api.supportStart(transcript, undefined, handoff?.dealId);
       lastTsRef.current = res.at;
-      setLive([]);
+      // The opening message is part of the ticket; show it as the first line here.
+      setLive(message ? [{ role: 'user', text: message, ts: res.at }] : []);
+      setFromElsewhere(Boolean(handoff?.context?.length));
+      setHandoff(null);
       setLiveClosed(false);
       setConvoId(res.conversationId);
       if (typeof window !== 'undefined') {
@@ -398,6 +428,7 @@ export function AssistantWidget() {
                   <p className="mono text-[13px] leading-snug text-[var(--lp-text-sub)] px-1">
                     {t.liveBanner ??
                       'Connected to support. A person will reply here, usually within a few minutes.'}
+                    {fromElsewhere ? ` ${t.handoffContext}` : null}
                   </p>
                 )}
                 {live.map((m, i) => (
@@ -490,7 +521,7 @@ export function AssistantWidget() {
                     aria-label={t.send}
                     className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--lp-accent)] text-[#10170b] transition-opacity disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]"
                   >
-                    <Icon name="send" size={20} />
+                    <Icon name="return" size={20} directional />
                   </button>
                 </div>
                 {!isLive && auth.isAuthenticated ? (

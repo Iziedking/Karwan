@@ -416,7 +416,8 @@ export async function sendSupportRequestToOperator(convo: SupportConversation): 
     .slice(-12)
     .map((m) => `${roleTag(m.role)}: ${truncate(m.text, 600)}`);
   const who = convo.address ? short(convo.address) : 'a guest';
-  const head = `Live support request from ${who}\n${convo.id}`;
+  const deals = (convo.dealIds ?? []).map((d) => `Deal ${d}: review the flagged delivery on the admin support page.`);
+  const head = [`Live support request from ${who}`, convo.id, ...deals].join('\n');
   const tail =
     `Reply to this message to respond. Or: /r ${convo.id} your reply  •  /close ${convo.id} to end + email it.`;
   await sendTelegramMessage(
