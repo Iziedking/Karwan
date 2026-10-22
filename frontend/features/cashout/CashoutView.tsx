@@ -69,7 +69,7 @@ export function CashoutView({ jobId }: { jobId: string }) {
   return (
     <main className="product-surface min-h-[calc(100vh-7rem)]">
       <div className="mx-auto max-w-[480px] px-4 pb-16 pt-8 sm:px-6">
-        <Link href={`/deals/${jobId}`} className="inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)]">
+        <Link data-own-back href={`/deals/${jobId}`} className="inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)]">
           <Icon name="arrow-left" size={16} directional className="me-1.5" />{copy.back}
         </Link>
         {failed ? <p role="alert" className="mt-6 text-[15px] text-[var(--lp-dark)]">{copy.loadError}</p> : null}

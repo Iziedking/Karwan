@@ -1,7 +1,7 @@
 'use client';
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { DepositCard } from '@/features/deposit/components/DepositCard';
@@ -10,6 +10,7 @@ import { BridgeHistoryModal } from '@/features/bridge/components/BridgeHistorySe
 import { GatewayBalanceCard } from '@/features/bridge/components/GatewayBalanceCard';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { NetworkHint } from '@/shared/components/NetworkContext';
+import { ProductBackLink } from '@/shared/components/ProductBackLink';
 import { RailSlider } from '@/features/deposit/components/RailSlider';
 import { PageTour } from '@/shared/guide/PageTour';
 import { BRIDGE_TOUR_ID, buildBridgeSteps } from '@/shared/guide/tours';
@@ -107,7 +108,8 @@ function BridgePageInner() {
   const messages = useTranslations();
   const c = messages.bridgeChooser;
   const { agents } = useActivation();
-  const { method, address } = useAuth();
+  const { method, address, isAuthenticated } = useAuth();
+  const pathname = usePathname();
   const plain = messages.plainMoney;
   const params = useSearchParams();
   const requestedDirection = params.get('direction');
@@ -172,13 +174,20 @@ function BridgePageInner() {
           lands on Direct. */}
       <PageTour id={BRIDGE_TOUR_ID} steps={buildBridgeSteps({ direction, rail })} />
       <Band tone="light" compact>
-        <header className="max-w-[620px] pb-5">
+        {/* One Back, on the content column: inside an opened option it returns
+            to the question, otherwise it leaves the page. */}
+        <div data-own-back className="-ms-2 mb-4 empty:hidden">
+          <ProductBackLink
+            pathname={pathname}
+            isAuthenticated={isAuthenticated}
+            onBack={asksFirst && picked ? () => setPicked(null) : undefined}
+          />
+        </div>
+        <header className="max-w-[620px] pb-6">
           <p className="text-[14px] text-[var(--ink-secondary)] font-medium">{messages.accountHome.balanceLabel}</p>
           <div className="mt-1 flex items-center"><h1 className="text-[32px] sm:text-[40px] font-medium leading-[1.1] tracking-[-0.015em] text-[var(--ink)]">{pageTitle}</h1><NetworkHint /></div>
         </header>
-      </Band>
 
-      <Band tone="light" compact className="!pt-0 md:!pt-0">
         <div className="max-w-xl">
           <div data-guide="bridge-history" className="mb-6">
             <HistoryButton onClick={() => setHistoryOpen(true)} label={c.transferHistory} />
@@ -205,9 +214,6 @@ function BridgePageInner() {
               )
             ) : asksFirst && picked ? (
               <>
-                <button type="button" onClick={() => setPicked(null)} className="mb-4 inline-flex min-h-11 items-center px-1 text-[15px] font-semibold text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
-                  {plain.back}
-                </button>
                 {pickedRail ? (
                   <RailPanel
                     rail={pickedRail}

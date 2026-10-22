@@ -13,7 +13,6 @@ export interface PlainMoneyCopy {
     ownWalletConnected: { label: string; note: string };
   };
   soon: string;
-  back: string;
   exchangeTitle: string;
   exchangeBody: string;
   copy: string;
@@ -38,7 +37,6 @@ export const plainMoneyCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', PlainMoney
       bank: { label: 'To a bank account', note: 'Not available yet.' },
     },
     soon: 'Coming soon',
-    back: 'Back',
     exchangeTitle: 'Send from an exchange',
     exchangeBody: 'Withdraw USDC on the Arc network to this address. Only send USDC.',
     copy: 'Copy',
@@ -61,7 +59,6 @@ export const plainMoneyCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', PlainMoney
       bank: { label: 'Vers un compte bancaire', note: 'Pas encore disponible.' },
     },
     soon: 'Bientôt',
-    back: 'Retour',
     exchangeTitle: 'Envoyer depuis une plateforme',
     exchangeBody: 'Retirez des USDC sur le réseau Arc vers cette adresse. N’envoyez que des USDC.',
     copy: 'Copier',
@@ -84,7 +81,6 @@ export const plainMoneyCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', PlainMoney
       bank: { label: 'إلى حساب بنكي', note: 'غير متاح بعد.' },
     },
     soon: 'قريبًا',
-    back: 'رجوع',
     exchangeTitle: 'أرسل من منصة تداول',
     exchangeBody: 'اسحب USDC على شبكة Arc إلى هذا العنوان. أرسل USDC فقط.',
     copy: 'نسخ',
@@ -107,7 +103,6 @@ export const plainMoneyCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', PlainMoney
       bank: { label: 'बैंक खाते में', note: 'अभी उपलब्ध नहीं।' },
     },
     soon: 'जल्द आ रहा है',
-    back: 'वापस',
     exchangeTitle: 'किसी एक्सचेंज से भेजें',
     exchangeBody: 'Arc नेटवर्क पर USDC इस पते पर निकालें। केवल USDC भेजें।',
     copy: 'कॉपी करें',
@@ -130,7 +125,6 @@ export const plainMoneyCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', PlainMoney
       bank: { label: 'Kwenye akaunti ya benki', note: 'Bado haipatikani.' },
     },
     soon: 'Inakuja hivi karibuni',
-    back: 'Rudi',
     exchangeTitle: 'Tuma kutoka soko la kubadilisha',
     exchangeBody: 'Toa USDC kwenye mtandao wa Arc kwenda anwani hii. Tuma USDC tu.',
     copy: 'Nakili',

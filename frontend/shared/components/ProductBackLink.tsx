@@ -11,6 +11,7 @@ export function ProductBackLink({
   className,
   shell = false,
   fallbackHref,
+  onBack,
 }: {
   pathname: string | null;
   isAuthenticated: boolean;
@@ -21,17 +22,24 @@ export function ProductBackLink({
   /// The page-edge copy the app frame draws. A page that draws Back on its own
   /// content column hides this one (globals.css, data-own-back).
   shell?: boolean;
+  /// A step inside the page goes back to the page's previous step first.
+  onBack?: () => void;
 }) {
   const href = getProductBackHref(pathname, isAuthenticated) ?? fallbackHref ?? null;
   const t = useTranslations();
   const router = useRouter();
 
-  if (!href) return null;
+  if (!href && !onBack) return null;
 
   return (
     <button
       type="button"
       onClick={() => {
+        if (onBack) {
+          onBack();
+          return;
+        }
+        if (!href) return;
         const documentation = pathname === '/how-it-works' || pathname?.startsWith('/docs');
         if (!documentation && window.history.length > 1) {
           router.back();

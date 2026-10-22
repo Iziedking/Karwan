@@ -63,6 +63,7 @@ function BusinessVerificationPageInner() {
     <FullBleed>
       <Band tone="dark" compact overlay={<GridOverlay />}>
         <Link
+          data-own-back
           href="/profile/business"
           className="inline-flex min-h-11 items-center gap-2 mono text-[14px] font-bold uppercase tracking-[0.12em] text-[var(--lp-workspace-muted)] transition-colors hover:text-[var(--lp-workspace-ink)]"
         >

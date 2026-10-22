@@ -295,3 +295,38 @@ test('when the top-up from the pool fails, nothing is sent', async ({ page }) =>
   await page.waitForTimeout(1500);
   expect(sent).toEqual([]);
 });
+
+test('add money has one Back: inside an answer it returns to the question', async ({ page }) => {
+  await serveMoney(page, { balances: funded });
+  // The live site shows the question first (money v1).
+  await page.goto('/bridge?direction=in&money=v1');
+  const back = page.getByRole('button', { name: 'Go back', exact: true }).filter({ visible: true });
+  const question = page.getByRole('heading', { name: 'How do you want to add money?' });
+  await expect(question).toBeVisible();
+  await expect(back).toHaveCount(1);
+
+  await page.getByRole('button', { name: /Send from an app or exchange/ }).click();
+  await expect(question).toHaveCount(0);
+  await expect(back).toHaveCount(1);
+  await expect(page.getByRole('button', { name: 'Back', exact: true })).toHaveCount(0);
+
+  await back.click();
+  await expect(question).toBeVisible();
+  await expect(page).toHaveURL(/\/bridge\?direction=in&money=v1/);
+});
+
+test('no page draws two Back controls', async ({ page }) => {
+  test.setTimeout(180_000);
+  await serveMoney(page, { balances: funded });
+  const routes = [
+    '/account', '/bridge?direction=in', '/bridge?direction=in&money=v1', '/bridge?direction=out&money=v1', '/send', '/activity', '/profile', '/profile/wallets',
+    '/profile/edit', '/settings', '/stake', '/financier', '/market', '/p2p/requests', '/p2p/offers', '/profile/open-deals',
+  ];
+  const backs = page.getByRole('link', { name: /^(←\s*)?Back\b/ }).or(page.getByRole('button', { name: /^(Go back|Back\b)/ })).filter({ visible: true });
+  for (const route of routes) {
+    await page.goto(route);
+    await page.waitForLoadState('load');
+    await page.waitForTimeout(700);
+    expect(await backs.count(), route).toBeLessThanOrEqual(1);
+  }
+});
