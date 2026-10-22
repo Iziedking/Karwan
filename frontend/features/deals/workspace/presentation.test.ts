@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { en } from '../../../shared/i18n/messages/en.js';
-import { actionLabel, actorLabel, automaticLine, fill, formatUsdcAmount, trustFactParts } from './presentation.js';
+import { actionLabel, actorLabel, automaticLine, fill, formatUsdcAmount, heldMove, trustFactParts } from './presentation.js';
 import type { TrustCardView } from '../../../core/api.js';
 
 const copy = en.dealWorkspace;
@@ -25,6 +25,17 @@ test('whose move it is, in words', () => {
   assert.equal(actorLabel({ action: 'fund', actor: 'you', amountUsdc: '1' }, 'Amina', copy), 'Your move');
   assert.equal(actorLabel({ action: null, actor: 'counterparty', amountUsdc: null }, 'Amina', copy), 'Waiting on Amina');
   assert.equal(actorLabel({ action: null, actor: 'nobody', amountUsdc: null }, 'Amina', copy), 'No action needed');
+});
+
+test('a held delivery the seller can correct is their move, never "no action needed"', () => {
+  for (const detail of ['security-hold', 'off-request', 'evidence-mismatch', 'link-unverifiable'] as const) {
+    assert.equal(heldMove(detail, false), 'redeliver', detail);
+    assert.equal(heldMove(detail, true), 'wait-seller', detail);
+  }
+  for (const detail of ['check-pending', 'check-expired', 'terms-changed', 'delivery-replaced', undefined] as const) {
+    assert.equal(heldMove(detail, false), null, String(detail));
+    assert.equal(heldMove(detail, true), null, String(detail));
+  }
 });
 
 test('trust facts show what exists and hide what does not apply', () => {

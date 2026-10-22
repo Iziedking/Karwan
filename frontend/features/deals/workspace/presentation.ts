@@ -82,6 +82,19 @@ export function actorLabel(next: DealView['next'], counterpartyName: string, cop
   return copy.actor.nobody;
 }
 
+type HeldDetail = NonNullable<import('@/core/api').DirectDeal['releaseBlockedDetail']>;
+
+/// Holds the seller clears by sending a corrected delivery. The server takes a
+/// correction for exactly these (routes/deals.ts, correctionRequested).
+const SELLER_FIXES: ReadonlySet<HeldDetail> = new Set(['security-hold', 'off-request', 'evidence-mismatch', 'link-unverifiable']);
+
+/// Whose move a held delivery is. The deal view reports nobody while the
+/// check holds payment, but the seller has a real step to take.
+export function heldMove(detail: HeldDetail | undefined, viewerIsBuyer: boolean): 'redeliver' | 'wait-seller' | null {
+  if (!detail || !SELLER_FIXES.has(detail)) return null;
+  return viewerIsBuyer ? 'wait-seller' : 'redeliver';
+}
+
 export function trustFactParts(card: TrustCardView, copy: Copy, locale: string): string[] {
   if (!card.facts) return [];
   const parts = [fill(copy.trust.settledTemplate, { n: card.facts.settled })];

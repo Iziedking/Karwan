@@ -122,11 +122,12 @@ function AssistantPage() {
 
   return (
     <div className="flex min-h-[calc(100svh-var(--lp-nav-h,68px))] w-full text-[var(--lp-dark)]">
-      <aside className="hidden w-[300px] shrink-0 border-e border-[var(--lp-border-light)] px-4 py-5 lg:block">
+      <aside className="hidden w-[264px] shrink-0 border-e border-[var(--lp-border-light)] px-4 py-5 lg:block">
         <div className="sticky top-[calc(var(--lp-nav-h,72px)+20px)]">{column}</div>
       </aside>
 
-      <section className="flex min-w-0 flex-1 flex-col">
+      {/* On wide screens the column sits in the middle of the window, not just beside the list. */}
+      <section className="flex min-w-0 flex-1 flex-col xl:pe-[264px]">
         <div className="flex items-center justify-between gap-2 px-4 pt-3 lg:hidden">
           <button type="button" onClick={() => setListOpen(true)} className="inline-flex min-h-11 items-center gap-2 rounded-full px-2 text-[15px] font-semibold text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden><path d="M4 7h16M4 12h16M4 17h10" /></svg>
@@ -138,14 +139,22 @@ function AssistantPage() {
         </div>
 
         <div className="mx-auto flex w-full max-w-[760px] flex-1 flex-col gap-3 px-4 pb-4 pt-6 sm:px-6 sm:pt-8">
-          {chat.conversationId ? (
-            <div className="flex justify-end">
+          <div className="flex flex-wrap justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => callPerson(chat.messages.map((m) => ({ role: m.role, content: m.content })))}
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--lp-border-light)] px-4 text-[14px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+            >
+              <Icon name="user" size={20} />
+              {messages.assistant.humanButton}
+            </button>
+            {chat.conversationId ? (
               <button type="button" onClick={() => { setRemoveError(false); setConfirmRemove(true); }} className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-[14px] font-semibold text-[var(--lp-text-sub)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" /></svg>
                 {t.remove}
               </button>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
           {empty ? (
             <motion.div initial={reduce ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: ease.out }} className="pt-6 sm:pt-12">
               <h1 className="text-[28px] font-bold tracking-[-0.03em] sm:text-[32px]">{greeting}</h1>

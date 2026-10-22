@@ -12,7 +12,8 @@ import { EditDealModal } from '../components/EditDealModal';
 import { SettlementRecord, type SettlementRecordFetchState } from '../components/SettlementRecord';
 import { AgreementSection } from './AgreementSection';
 import { AnswerCancelSheet, AnswerTimeSheet, DeliverSheet, ProblemSheet, TurnDownSheet } from './DealSheets';
-import { actionLabel, actorLabel, automaticLine, fill, formatDealDate, formatUsdcAmount, trustFactParts } from './presentation';
+import { actionLabel, actorLabel, automaticLine, fill, formatDealDate, formatUsdcAmount, heldMove, trustFactParts } from './presentation';
+import { callPerson } from '@/shared/assistant/openHelp';
 import { answersCancelHere, problemOptions } from './problems';
 import { deliveryCheckStatus } from './checkStatus';
 import { Sheet } from './Sheet';
@@ -95,13 +96,16 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   const check = deliveryCheckStatus(deal, view.stage);
   const live = copy.checkLive;
   const paused = check === 'held' ? copy.checkPaused : null;
+  // A hold from the verdict shows at once, before the watcher records a detail.
+  const heldDetail = paused ? deal.releaseBlockedDetail ?? (deal.releaseBlockedReason ? undefined : 'off-request') : undefined;
+  const held = paused ? heldMove(heldDetail, viewerIsBuyer) : null;
+  const askPerson = () => callPerson([{ role: 'user', content: fill(copy.checkPaused.supportMessage, { path: `/deals/${deal.jobId}` }) }]);
   const proof = deal.deliveryProof?.trim();
   const seeDelivery = viewerIsBuyer && proof && isLink(proof) ? (
     <a href={proof} target="_blank" rel="noreferrer noopener" className="font-semibold underline underline-offset-4">{s.seeDelivery}</a>
   ) : null;
   if (paused) {
-    // A hold from the verdict shows at once, before the watcher records a detail.
-    const detail = deal.releaseBlockedDetail ?? (deal.releaseBlockedReason ? undefined : 'off-request');
+    const detail = heldDetail;
     const reason = !detail
       ? paused.noWallet
       : !viewerIsBuyer && detail === 'security-hold'
@@ -231,7 +235,21 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
       </section>
 
       <div className="space-y-3 pb-6">
-        {label ? (
+        {held === 'redeliver' && address ? (
+          <>
+            <button type="button" onClick={() => setPanel('deliver')} disabled={busy} className="inline-flex min-h-14 w-full items-center justify-center rounded-full bg-[var(--action)] px-6 text-[16px] font-semibold text-[var(--on-action)] transition-opacity hover:opacity-90 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-offset-2">
+              {copy.checkPaused.sendNewLink}
+            </button>
+            <button type="button" onClick={askPerson} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-[var(--lp-border-light)] px-6 text-[15px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+              <Icon name="user" size={20} />
+              {copy.checkPaused.askPerson}
+            </button>
+          </>
+        ) : held === 'wait-seller' ? (
+          <p className="flex min-h-14 w-full items-center justify-center rounded-full bg-[var(--tint)] px-6 text-[15px] font-medium text-[var(--lp-text-sub)]">
+            {fill(copy.actor.waitingTemplate, { name })}
+          </p>
+        ) : label ? (
           <button type="button" onClick={primary} disabled={busy} className="inline-flex min-h-14 w-full items-center justify-center rounded-full bg-[var(--action)] px-6 text-[16px] font-semibold text-[var(--on-action)] transition-opacity hover:opacity-90 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-offset-2">
             {label}
           </button>

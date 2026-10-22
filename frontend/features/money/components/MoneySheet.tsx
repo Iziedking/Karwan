@@ -363,28 +363,35 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
             </button>
           </motion.div>
         ) : state.kind === 'confirmed' ? (
-          <motion.div key="confirmed" {...fade} className="mt-6 space-y-4">
-            <p className="flex items-center gap-3 text-[18px] font-semibold text-[var(--lp-dark)]">
-              <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--accent)] text-[15px] text-[var(--accent-ink)]">✓</span>
-              {fill(doneLine, { amount: formatAmount(moved, locale), tag: paidTag?.tag ?? '', name: otherAgentName.toLowerCase() })}
-            </p>
-            <dl className="space-y-1 text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">
-              <div className="flex justify-between gap-3">
-                <dt>{t.sheet.yourBalance}</dt>
-                <dd>{balances.balance === null ? '' : `${formatBalance(balances.balance, locale)} USDC`}</dd>
+          <motion.div key="confirmed" {...fade} className="mt-6 space-y-5">
+            <div className="flex flex-col items-center gap-4 pt-2 text-center">
+              <span aria-hidden className="grid size-16 place-items-center rounded-full bg-[var(--color-accent-soft)]">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <motion.path d="M5 12.5 10 17.5 19 7" initial={reduce ? false : { pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.3, delay: 0.1 }} />
+                </svg>
+              </span>
+              <p className="text-[20px] font-semibold tracking-[-0.01em] text-[var(--lp-dark)]">
+                {fill(doneLine, { amount: formatAmount(moved, locale), tag: paidTag?.tag ?? '', name: otherAgentName.toLowerCase() })}
+              </p>
+            </div>
+            <dl className="rounded-[20px] bg-[var(--lp-card)] px-5 text-[15px] tabular-nums">
+              <div className="flex justify-between gap-3 border-b border-[var(--lp-border-light)] py-3.5 last:border-b-0">
+                <dt className="text-[var(--lp-text-sub)]">{t.sheet.yourBalance}</dt>
+                <dd className="font-medium text-[var(--lp-dark)]">{balances.balance === null ? '' : `${formatBalance(balances.balance, locale)} USDC`}</dd>
               </div>
               {move !== 'send' ? (
-                <div className="flex justify-between gap-3">
-                  <dt>{agentName}</dt>
-                  <dd>{agentBalance === null ? '' : `${formatBalance(agentBalance, locale)} USDC`}</dd>
+                <div className="flex justify-between gap-3 border-b border-[var(--lp-border-light)] py-3.5 last:border-b-0">
+                  <dt className="text-[var(--lp-text-sub)]">{agentName}</dt>
+                  <dd className="font-medium text-[var(--lp-dark)]">{agentBalance === null ? '' : `${formatBalance(agentBalance, locale)} USDC`}</dd>
+                </div>
+              ) : null}
+              {state.reference ? (
+                <div className="flex justify-between gap-3 py-3.5">
+                  <dt className="text-[var(--lp-text-sub)]">{t.sheet.reference}</dt>
+                  <dd className="mono text-[13px] tracking-[0.04em] text-[var(--lp-dark)]">{state.reference}</dd>
                 </div>
               ) : null}
             </dl>
-            {state.reference ? (
-              <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">
-                {t.sheet.reference} <span className="mono tabular-nums text-[var(--lp-dark)]">{state.reference}</span>
-              </p>
-            ) : null}
             <button type="button" onClick={finish} className={`${PRIMARY} w-full`}>{t.sheet.done}</button>
           </motion.div>
         ) : state.kind === 'guarded' ? (

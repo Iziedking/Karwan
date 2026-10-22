@@ -1,6 +1,6 @@
 ﻿import type { Metadata } from 'next';
 import localFont from 'next/font/local';
-import { Inter, Noto_Sans_Arabic, Noto_Sans_Devanagari } from 'next/font/google';
+import { Manrope, Noto_Sans_Arabic, Noto_Sans_Devanagari } from 'next/font/google';
 import { DEFAULT_LOCALE } from '@/shared/i18n/locales';
 import './globals.css';
 import { TopNav } from '@/shared/components/TopNav';
@@ -53,15 +53,15 @@ const generalSans = localFont({
   adjustFontFallback: 'Arial',
 });
 
-// Inter is the product face: built for screens, it stays crisp at 14px.
-// next/font fetches it at build time and serves it from this origin.
-const inter = Inter({
+// Manrope is the product face: open, rounded shapes with clear figures for
+// money. next/font fetches it at build time and serves it from this origin.
+const manrope = Manrope({
   subsets: ['latin', 'latin-ext'],
-  variable: '--font-inter',
+  variable: '--font-manrope',
   display: 'swap',
 });
 
-// Inter has no Arabic or Devanagari letters. These carry Arabic and Hindi at
+// Manrope has no Arabic or Devanagari letters. These carry Arabic and Hindi at
 // the same weight and size, instead of a thin system fallback. Not preloaded:
 // only a reader in that language downloads them.
 const notoArabic = Noto_Sans_Arabic({
@@ -141,7 +141,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang={DEFAULT_LOCALE}
       dir="ltr"
-      className={`${geist.variable} ${generalSans.variable} ${inter.variable} ${notoArabic.variable} ${notoDevanagari.variable}`}
+      className={`${geist.variable} ${generalSans.variable} ${manrope.variable} ${notoArabic.variable} ${notoDevanagari.variable}`}
       suppressHydrationWarning
     >
       <head>

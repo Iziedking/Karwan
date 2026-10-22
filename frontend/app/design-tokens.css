@@ -23,8 +23,8 @@
   --shadow-card: none;
   --shadow-card-hover: none;
   --shadow-pop: var(--sheet-shadow);
-  --font-sans: var(--font-inter), var(--font-general-sans), var(--font-geist), ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
-  --font-display: var(--font-general-sans), var(--font-inter), ui-sans-serif, sans-serif;
+  --font-sans: var(--font-manrope), var(--font-general-sans), var(--font-geist), ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  --font-display: var(--font-general-sans), var(--font-manrope), ui-sans-serif, sans-serif;
   --font-body: var(--font-sans);
   --font-mono: var(--font-sans);
   --font-serif: var(--font-sans);
@@ -32,8 +32,8 @@
 
 :root {
   /* Runtime readers must not depend on Tailwind emitting a matching utility. */
-  --font-sans: var(--font-inter), var(--font-general-sans), var(--font-geist), ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
-  --font-display: var(--font-general-sans), var(--font-inter), ui-sans-serif, sans-serif;
+  --font-sans: var(--font-manrope), var(--font-general-sans), var(--font-geist), ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  --font-display: var(--font-general-sans), var(--font-manrope), ui-sans-serif, sans-serif;
   --font-body: var(--font-sans);
   --font-mono: var(--font-sans);
   --font-serif: var(--font-sans);
@@ -225,10 +225,10 @@ html[data-theme="dark"] {
   }
 }
 
-/* Arabic and Hindi read in their own face; Latin words inside stay in Inter. */
+/* Arabic and Hindi read in their own face; Latin words inside stay in Manrope. */
 html:lang(ar) {
-  --font-sans: var(--font-inter), var(--font-arabic), ui-sans-serif, sans-serif;
+  --font-sans: var(--font-manrope), var(--font-arabic), ui-sans-serif, sans-serif;
 }
 html:lang(hi) {
-  --font-sans: var(--font-inter), var(--font-devanagari), ui-sans-serif, sans-serif;
+  --font-sans: var(--font-manrope), var(--font-devanagari), ui-sans-serif, sans-serif;
 }

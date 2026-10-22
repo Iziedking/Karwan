@@ -17,11 +17,12 @@ function productFiles(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-test('the product reads in Inter with solid secondary ink', () => {
+test('the product reads in Manrope with solid secondary ink', () => {
   const tokens = read('app/design-tokens.css');
-  assert.match(tokens, /--font-sans: var\(--font-inter\)/);
+  assert.match(tokens, /--font-sans: var\(--font-manrope\)/);
+  assert.doesNotMatch(tokens, /--font-inter/);
   assert.doesNotMatch(tokens, /--ink-secondary: color-mix/);
-  assert.match(read('app/layout.tsx'), /Inter\(/);
+  assert.match(read('app/layout.tsx'), /Manrope\(/);
 });
 
 test('no product text is smaller than 13px, and only references sit at 13px', () => {
