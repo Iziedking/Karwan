@@ -49,6 +49,7 @@ import { liveLocationToolDeps, locationTools } from './locationTools.js';
 import { messageTools } from './messageTools.js';
 import { liveMessageToolDeps } from '../messages/live.js';
 import { ratingTools } from './ratingTools.js';
+import { counterpartyTools } from './counterpartyTools.js';
 import { liveRatingToolDeps } from '../ratings/live.js';
 import { networkTools } from './networkTools.js';
 import { directDealTools } from './directDealTools.js';
@@ -2422,6 +2423,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
     ...locationTools(address, liveLocationToolDeps),
     ...messageTools(address, liveMessageToolDeps),
     ...ratingTools(address, liveRatingToolDeps),
+    ...counterpartyTools(address, { deals: listDealsForAddress, profile: getProfile }),
     ...networkTools(address),
     ...directDealTools(address, actions),
   };
