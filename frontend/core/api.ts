@@ -2325,6 +2325,13 @@ export interface AdminAgentRuntimeTasksResponse {
   tasks: AdminAgentTask[];
 }
 
+/// The switch for the per-IP limits on the survey and the waitlist forms.
+export interface AdminFormLimits {
+  on: boolean;
+  updatedAt: number | null;
+  updatedBy: string | null;
+}
+
 export interface AdminAgentRuntimeRolloutResponse {
   mode: 'read-only-rollout-gate';
   authoritativeRoutes: 'legacy';
@@ -3392,6 +3399,14 @@ export const api = {
     json<{ removed: boolean }>(`/api/admin/waitlist/invites/${encodeURIComponent(email)}`, {
       method: 'DELETE',
       headers: adminHeaders(),
+    }),
+  adminFormLimits: () =>
+    json<AdminFormLimits>('/api/admin/form-limits', { headers: adminHeaders() }),
+  adminSetFormLimits: (on: boolean) =>
+    json<AdminFormLimits>('/api/admin/form-limits', {
+      method: 'POST',
+      headers: adminHeaders(),
+      body: JSON.stringify({ on }),
     }),
   signupTagCheck: (tag: string) =>
     json<{ tag: string; available: boolean; reason?: 'too_short' | 'too_long' | 'invalid' | 'reserved' | 'taken' }>(

@@ -109,6 +109,7 @@ export interface SignupCopy {
     wrongCode: string;
     expired: string;
     sendFailed: string;
+    tooMany: string;
   };
   errors: {
     generic: string;
@@ -253,6 +254,7 @@ const en: SignupCopy = {
     wrongCode: "That code did not work. Check it and try again.",
     expired: "The code expired. Send a new one.",
     sendFailed: "We could not send the code. Try again.",
+    tooMany: "Too many tries. Wait a few minutes and try again.",
   },
   errors: {
     generic: 'Something went wrong. Try again.',
@@ -397,6 +399,7 @@ const ar: SignupCopy = {
     wrongCode: "الرمز غير صحيح. تحقق منه وحاول مرة أخرى.",
     expired: "انتهت صلاحية الرمز. أرسل رمزًا جديدًا.",
     sendFailed: "تعذر إرسال الرمز. حاول مرة أخرى.",
+    tooMany: "محاولات كثيرة جدًا. انتظر بضع دقائق ثم حاول مرة أخرى.",
   },
   errors: {
     generic: 'حدث خطأ. حاول مرة أخرى.',
@@ -541,6 +544,7 @@ const fr: SignupCopy = {
     wrongCode: "Ce code ne fonctionne pas. Vérifiez-le et réessayez.",
     expired: "Le code a expiré. Demandez-en un nouveau.",
     sendFailed: "Impossible d’envoyer le code. Réessayez.",
+    tooMany: "Trop de tentatives. Attendez quelques minutes, puis réessayez.",
   },
   errors: {
     generic: 'Une erreur est survenue. Réessayez.',
@@ -685,6 +689,7 @@ const hi: SignupCopy = {
     wrongCode: "यह कोड काम नहीं किया। जाँचकर फिर कोशिश करें।",
     expired: "कोड की समय सीमा खत्म हो गई। नया कोड भेजें।",
     sendFailed: "कोड नहीं भेजा जा सका। फिर से कोशिश करें।",
+    tooMany: "बहुत ज़्यादा कोशिशें। कुछ मिनट रुककर फिर कोशिश करें।",
   },
   errors: {
     generic: 'कुछ गलत हुआ। फिर से कोशिश करें।',
@@ -829,6 +834,7 @@ const sw: SignupCopy = {
     wrongCode: "Msimbo huo haukufanya kazi. Ukague ujaribu tena.",
     expired: "Msimbo umeisha muda. Tuma mpya.",
     sendFailed: "Hatukuweza kutuma msimbo. Jaribu tena.",
+    tooMany: "Majaribio mengi mno. Subiri dakika chache kisha ujaribu tena.",
   },
   errors: {
     generic: 'Kuna tatizo. Jaribu tena.',

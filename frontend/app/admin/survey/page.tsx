@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, ApiError } from '@/core/api';
+import { FormLimitsSwitch } from '@/features/admin/FormLimitsSwitch';
 import {
   checksLabel,
   newestFirst,
@@ -57,6 +58,8 @@ export default function AdminSurveyPage() {
       <p className="mt-2 max-w-[72ch] text-[13px] text-white/55">
         Answers to the public survey at /research on this network. Contact is optional and only for asking about the answers.
       </p>
+
+      <FormLimitsSwitch />
 
       {error && (
         <div className="mt-5 rounded-lg border border-[#e0794f]/30 bg-[#e0794f]/10 px-3 py-2 text-[12px] text-[#e0794f]">

@@ -37,8 +37,8 @@ export function WaitlistCard({ onSignIn, onCreate }: { onSignIn: () => void; onC
       setEmail(clean);
       setCode('');
       setStep('code');
-    } catch {
-      setError(t.sendFailed);
+    } catch (err) {
+      setError(err instanceof ApiError && err.status === 429 ? t.tooMany : t.sendFailed);
     } finally {
       setBusy(null);
     }
@@ -58,7 +58,8 @@ export function WaitlistCard({ onSignIn, onCreate }: { onSignIn: () => void; onC
       setStep('done');
     } catch (err) {
       const reason = err instanceof ApiError ? err.code : undefined;
-      setError(reason === 'code_expired' || reason === 'no_code' ? t.expired : t.wrongCode);
+      if (err instanceof ApiError && err.status === 429) setError(t.tooMany);
+      else setError(reason === 'code_expired' || reason === 'no_code' ? t.expired : t.wrongCode);
     } finally {
       setBusy(null);
     }

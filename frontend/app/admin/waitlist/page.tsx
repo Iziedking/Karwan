@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, ApiError, type WaitlistUseCase } from '@/core/api';
+import { FormLimitsSwitch } from '@/features/admin/FormLimitsSwitch';
 
 const labelClass = 'mono text-[10px] uppercase tracking-[0.12em] text-white/40';
 type Data = Awaited<ReturnType<typeof api.adminWaitlist>>;
@@ -102,6 +103,8 @@ export default function AdminWaitlistPage() {
           {error} <button type="button" onClick={() => void load()} className="ml-2 underline">Retry</button>
         </div>
       )}
+
+      <FormLimitsSwitch />
 
       <section className="mt-6 grid gap-3 sm:grid-cols-3">
         {[

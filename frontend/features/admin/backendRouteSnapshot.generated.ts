@@ -57,6 +57,8 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "GET", path: "/api/admin/events" },
   { method: "POST", path: "/api/admin/events/backfill" },
   { method: "GET", path: "/api/admin/events/backfill/status" },
+  { method: "GET", path: "/api/admin/form-limits" },
+  { method: "POST", path: "/api/admin/form-limits" },
   { method: "GET", path: "/api/admin/health" },
   { method: "GET", path: "/api/admin/jobs" },
   { method: "POST", path: "/api/admin/market-seed/apply" },
