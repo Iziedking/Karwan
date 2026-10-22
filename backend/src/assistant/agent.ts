@@ -50,6 +50,9 @@ import { messageTools } from './messageTools.js';
 import { liveMessageToolDeps } from '../messages/live.js';
 import { ratingTools } from './ratingTools.js';
 import { counterpartyTools } from './counterpartyTools.js';
+import { memoryPreamble, memoryTools } from './memoryTools.js';
+import { addNotes, deleteNotes, getMemory, type AssistantMemory } from '../db/assistantMemory.js';
+import { conversationsMentioning } from '../db/assistantConversations.js';
 import { liveRatingToolDeps } from '../ratings/live.js';
 import { networkTools } from './networkTools.js';
 import { directDealTools } from './directDealTools.js';
@@ -2424,6 +2427,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
     ...messageTools(address, liveMessageToolDeps),
     ...ratingTools(address, liveRatingToolDeps),
     ...counterpartyTools(address, { deals: listDealsForAddress, profile: getProfile }),
+    ...memoryTools(address, { memory: getMemory, add: addNotes, remove: deleteNotes, conversations: conversationsMentioning }),
     ...networkTools(address),
     ...directDealTools(address, actions),
   };
@@ -2468,11 +2472,14 @@ export async function runAssistantAgent(input: {
   method: string;
   messages: AssistantChatMessage[];
   mode?: 'help' | 'assistant';
+  /// What the assistant remembers about this person; absent when it could not be read.
+  memory?: AssistantMemory;
 }): Promise<{ text: string; actions: AssistantAction[]; grounded: boolean; subjects: number }> {
   const model = assistantAgentModel;
   if (!model) throw new Error('assistant agent model unavailable');
 
-  const system = systemPromptFor({ mode: input.mode }) + '\n' + authenticatedPreamble(input.address, input.method);
+  const system = systemPromptFor({ mode: input.mode }) + '\n' + authenticatedPreamble(input.address, input.method)
+    + (input.memory ? '\n' + memoryPreamble(input.memory) : '');
   const actions: AssistantAction[] = [];
 
   const result = await withLlmTimeout(

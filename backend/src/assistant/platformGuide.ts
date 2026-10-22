@@ -282,6 +282,16 @@ export const PLATFORM_GUIDE: readonly GuideEntry[] = [
     sources: ['frontend/features/assistant/AssistantMode.tsx', 'backend/src/routes/assistantConversations.ts'],
   },
   {
+    id: 'memory', title: 'What the assistant remembers', status: 'testnet', mainnet: 'invite', route: '/settings',
+    pages: ['/settings'],
+    api: ['GET /api/assistant/memory', 'POST /api/assistant/memory/enabled', 'DELETE /api/assistant/memory/notes/:id', 'DELETE /api/assistant/memory'],
+    tools: ['recall_conversations', 'remember_this', 'forget_memory'],
+    keywords: 'memory remember forget what do you remember earlier conversation last time we talked continue where we left off notes privacy switch off',
+    summary: 'One memory per account, shared by the website assistant, Help and the Telegram agent. After a reply, the assistant keeps short notes about what matters for next time: what the person wants to buy or sell, preferences such as budget, language or delivery place, and open threads. It reads them at the start of every conversation, and can search earlier saved conversations by topic. It never keeps passwords, codes, card, bank or phone numbers, wallet addresses or emails, nor anything said after "don\'t remember this". Balances, deals and money always come from a fresh read, never from memory. Settings, under What Karwan remembers, lists every note with its date, deletes any of them or all of them, and switches memory off; off stops reading and writing at once and keeps the notes until deleted. In chat, "remember that..." keeps a note and "forget that" removes one. Notes are private to the account and removed when the account is deleted. At most 50 notes are kept, oldest first to go.',
+    steps: ['Open /settings, then What Karwan remembers.', 'Tap Notes to see or delete them, or switch Remember our conversations off.'],
+    sources: ['backend/src/assistant/memoryTools.ts', 'backend/src/assistant/memoryWriter.ts', 'backend/src/assistant/memoryRules.ts', 'frontend/features/settings/components/AssistantMemoryRows.tsx'],
+  },
+  {
     id: 'network', title: 'Testnet and mainnet', status: 'testnet', mainnet: 'invite', route: '/docs/roadmap',
     pages: ['/docs/roadmap', '/waitlist', '/docs/numbers'],
     api: ['GET /api/network/contracts'],

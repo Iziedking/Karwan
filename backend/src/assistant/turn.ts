@@ -7,6 +7,8 @@ import { logger } from '../logger.js';
 import type { AssistantAction } from './actions.js';
 import { assistantAgentEnabled, runAssistantAgent, type AssistantChatMessage } from './agent.js';
 import { mayAnswer, proposalReply, requiresLiveAccountState, staticFallbackMessages } from './safety.js';
+import { getMemory, type AssistantMemory } from '../db/assistantMemory.js';
+import { liveMemoryWriterDeps, writeMemoryNotes } from './memoryWriter.js';
 
 export type AssistantTurnResult =
   | { ok: true; reply: string; actions?: AssistantAction[] }
@@ -32,20 +34,40 @@ export async function runAssistantTurn(
   const needsLiveState = requiresLiveAccountState(input.messages);
   if (assistantAgentEnabled()) {
     try {
+      const address = input.address.toLowerCase();
+      // Memory is background: a failed read answers without it, never fails the turn.
+      const memory = await getMemory(address).catch((err: Error): AssistantMemory | undefined => {
+        logger.warn({ err: err.message }, 'assistant memory: read failed, answering without it');
+        return undefined;
+      });
       const { text, actions, grounded, subjects } = await runAssistantAgent({
-        address: input.address.toLowerCase(),
+        address,
         method: input.method,
         messages: input.messages,
         mode: input.mode,
+        memory,
       });
+      // Notes are written after the reply goes out, never holding it up.
+      const remember = (reply: string) => {
+        if (!memory?.enabled) return;
+        const userText = [...input.messages].reverse().find((m) => m.role === 'user')?.content;
+        if (!userText) return;
+        void liveMemoryWriterDeps().then((deps) => writeMemoryNotes({ address, userText, reply }, deps));
+      };
       // Confirmation cards retain their existing authorization gates. Discard
       // generated prose here so it cannot call a merely prepared action done.
       const preparedReply = proposalReply(actions);
-      if (preparedReply) return { ok: true, reply: preparedReply, actions };
+      if (preparedReply) {
+        remember(preparedReply);
+        return { ok: true, reply: preparedReply, actions };
+      }
       // Never let a tool-less model answer a stateful prompt. The only safe
       // response when the account read model was not consulted is an honest
       // retry message, not an optimistic status.
-      if (text && mayAnswer({ needsLiveState, grounded, subjects })) return { ok: true, reply: text, actions };
+      if (text && mayAnswer({ needsLiveState, grounded, subjects })) {
+        remember(text);
+        return { ok: true, reply: text, actions };
+      }
       if (needsLiveState) {
         logger.warn('assistant: stateful answer was not grounded by a fresh account read');
         return STATE_UNAVAILABLE;

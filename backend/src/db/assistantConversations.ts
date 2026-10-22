@@ -119,6 +119,27 @@ export async function appendToConversation(address: string, id: string | null, m
   return next;
 }
 
+/// For the assistant's recall_conversations: up to 20 conversations whose text
+/// contains any of the terms, newest first. Terms are matched as plain text.
+export async function conversationsMentioning(address: string, terms: readonly string[]): Promise<AssistantConversation[]> {
+  const a = low(address);
+  const want = terms.map((t) => t.toLowerCase()).filter(Boolean);
+  if (!want.length) return [];
+  if (!pgEnabled) {
+    return [...mem.values()]
+      .filter((c) => c.address === a && want.some((t) => JSON.stringify(c).toLowerCase().includes(t)))
+      .sort((x, y) => y.updatedAt - x.updatedAt)
+      .slice(0, 20);
+  }
+  const patterns = want.map((t) => `%${t.replace(/[\\%_]/g, (ch) => `\\${ch}`)}%`);
+  const res = await postgresExecutor().query<{ data: AssistantConversation }>(
+    `SELECT data FROM assistant_conversations_v1 WHERE address = $1 AND data::text ILIKE ANY($2::text[])
+     ORDER BY updated_at DESC LIMIT 20`,
+    [a, patterns],
+  );
+  return res.rows.map((row) => row.data);
+}
+
 export async function deleteConversation(address: string, id: string): Promise<boolean> {
   const a = low(address);
   if (!pgEnabled) {

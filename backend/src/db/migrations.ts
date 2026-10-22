@@ -1238,6 +1238,19 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       );
     `,
   },
+  {
+    version: 45,
+    name: 'assistant_memory',
+    sql: `
+      -- What the assistant remembers about an account (view 20): an on/off
+      -- switch and at most 50 short notes, one row per address.
+      CREATE TABLE assistant_memory_v1 (
+        address TEXT PRIMARY KEY,
+        updated_at BIGINT NOT NULL,
+        data JSONB NOT NULL
+      );
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;
