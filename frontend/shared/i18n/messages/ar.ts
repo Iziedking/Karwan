@@ -5406,9 +5406,8 @@ export const ar: Messages = {
     hide: 'إخفاء',
     total: 'في هذه المحفظة',
     zeroChainsTemplate: 'لا يوجد USDC على {n} شبكات',
-    zeroOtherChainsTemplate: 'لا يوجد USDC على {n} شبكات أخرى',
-    zeroChainOne: 'لا يوجد USDC على شبكة واحدة',
-    zeroOtherChainOne: 'لا يوجد USDC على شبكة أخرى واحدة',
+    fundedChainsTemplate: 'USDC على {n} من {total} شبكات',
+    fundedChainOne: 'USDC على شبكة واحدة من {total}',
     tabs: {
       you: 'أنت',
       buyer: 'وكيل الشراء',

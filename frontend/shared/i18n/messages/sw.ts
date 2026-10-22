@@ -5403,9 +5403,8 @@ export const sw: Messages = {
     hide: 'Ficha',
     total: 'Kwenye pochi hii',
     zeroChainsTemplate: 'Hakuna USDC kwenye minyororo {n}',
-    zeroOtherChainsTemplate: 'Hakuna USDC kwenye minyororo mingine {n}',
-    zeroChainOne: 'Hakuna USDC kwenye mnyororo 1',
-    zeroOtherChainOne: 'Hakuna USDC kwenye mnyororo mwingine 1',
+    fundedChainsTemplate: 'USDC kwenye minyororo {n} kati ya {total}',
+    fundedChainOne: 'USDC kwenye mnyororo 1 kati ya {total}',
     tabs: {
       you: 'Wewe',
       buyer: 'Wakala wa ununuzi',

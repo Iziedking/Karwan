@@ -4956,9 +4956,8 @@ interface MessagesShape {
     hide: string;
     total: string;
     zeroChainsTemplate: string;
-    zeroOtherChainsTemplate: string;
-    zeroChainOne: string;
-    zeroOtherChainOne: string;
+    fundedChainsTemplate: string;
+    fundedChainOne: string;
     tabs: {
       you: string;
       buyer: string;
@@ -10975,9 +10974,8 @@ export const en: MessagesShape = {
     hide: 'Hide',
     total: 'On this wallet',
     zeroChainsTemplate: 'No USDC on {n} chains',
-    zeroOtherChainsTemplate: 'No USDC on {n} other chains',
-    zeroChainOne: 'No USDC on 1 chain',
-    zeroOtherChainOne: 'No USDC on 1 other chain',
+    fundedChainsTemplate: 'USDC on {n} of {total} chains',
+    fundedChainOne: 'USDC on 1 of {total} chains',
     tabs: {
       you: 'You',
       buyer: 'For buying',

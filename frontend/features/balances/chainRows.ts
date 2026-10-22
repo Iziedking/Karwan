@@ -5,11 +5,12 @@ export function arcIncludingPool(arc: number | null, pool: number): number | nul
   return Math.round((arc + pool) * 1e6) / 1e6;
 }
 
-export function emptyChainsLabel(
-  count: number,
-  othersListed: boolean,
-  copy: { zeroChainsTemplate: string; zeroOtherChainsTemplate: string; zeroChainOne: string; zeroOtherChainOne: string },
+/// The one line every wallet tab shows in place of its chain list.
+export function chainsSummaryLabel(
+  funded: number,
+  total: number,
+  copy: { zeroChainsTemplate: string; fundedChainsTemplate: string; fundedChainOne: string },
 ): string {
-  if (count === 1) return othersListed ? copy.zeroOtherChainOne : copy.zeroChainOne;
-  return (othersListed ? copy.zeroOtherChainsTemplate : copy.zeroChainsTemplate).replace('{n}', String(count));
+  if (funded === 0) return copy.zeroChainsTemplate.replace('{n}', String(total));
+  return (funded === 1 ? copy.fundedChainOne : copy.fundedChainsTemplate).replace('{n}', String(funded)).replace('{total}', String(total));
 }

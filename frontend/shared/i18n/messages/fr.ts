@@ -5406,9 +5406,8 @@ export const fr: Messages = {
     hide: 'Masquer',
     total: 'Sur ce portefeuille',
     zeroChainsTemplate: 'Aucun USDC sur {n} réseaux',
-    zeroOtherChainsTemplate: 'Aucun USDC sur {n} autres réseaux',
-    zeroChainOne: 'Aucun USDC sur 1 réseau',
-    zeroOtherChainOne: 'Aucun USDC sur 1 autre réseau',
+    fundedChainsTemplate: 'USDC sur {n} réseaux sur {total}',
+    fundedChainOne: 'USDC sur 1 réseau sur {total}',
     tabs: {
       you: 'Vous',
       buyer: 'Agent acheteur',
