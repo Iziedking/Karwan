@@ -42,6 +42,8 @@ export function useMoneyBalances() {
   return {
     balance: amountOf(identity.data),
     pool: gateway.confirmed,
+    /// The pool is read; until then a figure that adds it would read low.
+    poolLoaded: !gateway.loading,
     buyer: amountOf(buyer.data),
     seller: amountOf(seller.data),
     agents,

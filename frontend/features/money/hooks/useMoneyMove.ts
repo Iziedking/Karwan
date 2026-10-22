@@ -10,6 +10,8 @@ import { useArcFund } from '@/features/profile/hooks/useArcFund';
 import { useBridges } from '@/features/bridge/hooks/useBridge';
 import { startedRecord } from '@/features/bridge/crossChainIntent';
 import { moneyOutRefusalOf } from '@/features/moneyOut/refusal';
+import { formatUnits } from 'viem';
+import { sendShortfall } from '../sendFromWhole';
 import {
   afterRecheck,
   driverFor,
@@ -36,6 +38,9 @@ export interface MoveRequest {
   toAddress?: `0x${string}`;
   /// Top-up only: where planTopUp said the money comes from.
   source?: 'balance' | 'pool';
+  /// Send only: the wallet's USDC on Arc when the send was pressed. A send
+  /// larger than it draws the rest from the pooled balance first (view 22).
+  walletBalance?: number | null;
 }
 
 type Active =
@@ -115,6 +120,19 @@ export function useMoneyMove() {
     [auth.address, refreshMoney],
   );
 
+  /// Waits until the wallet holds `amount` on Arc, so the send that follows a
+  /// top-up from the pool never goes out short. Gives up after 45 seconds.
+  const walletReaches = useCallback(async (amount: number) => {
+    if (!arcClient || !auth.address) throw new Error('no Arc client');
+    const deadline = Date.now() + 45_000;
+    while (Date.now() < deadline) {
+      const raw = await arcClient.getBalance({ address: auth.address as `0x${string}` }).catch(() => null);
+      if (raw !== null && Number(formatUnits(raw, arcChain.nativeCurrency.decimals)) >= amount) return;
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+    }
+    throw new Error('the wallet did not show the top-up in time');
+  }, [arcClient, auth.address]);
+
   const start = useCallback(
     async (request: MoveRequest) => {
       if (!auth.address) return;
@@ -137,6 +155,20 @@ export function useMoneyMove() {
       }
       if (driver === 'send' && request.recipient) {
         setActive({ driver: 'send', since });
+        // One send to the person: the top-up from the pool, when needed, has
+        // no step of its own on screen.
+        const shortfall = sendShortfall(request.amount, request.walletBalance ?? null);
+        if (shortfall > 0) {
+          try {
+            await api.gatewayToWallet(shortfall, crypto.randomUUID());
+            await walletReaches(request.amount);
+          } catch {
+            setActive(null);
+            setCallState({ kind: 'failed', declined: false });
+            refreshMoney();
+            return;
+          }
+        }
         const input = { amountUsdc: request.amount, recipient: request.recipient, userAddress: auth.address };
         await (walletSigned ? startWeb3ArcSend(input) : startArcSend(input));
         refreshMoney();
@@ -146,7 +178,7 @@ export function useMoneyMove() {
       setActive({ driver: 'call', request, requestId });
       await call(request, requestId, false);
     },
-    [auth.address, walletSigned, account.isConnected, walletClient, walletTopUp, startArcSend, startWeb3ArcSend, call, refreshMoney],
+    [auth.address, walletSigned, account.isConnected, walletClient, walletTopUp, startArcSend, startWeb3ArcSend, call, refreshMoney, walletReaches],
   );
 
   const checkAgain = useCallback(async () => {

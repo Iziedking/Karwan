@@ -1848,7 +1848,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
 
     propose_send_to_tag: tool({
       description:
-        'Prepare sending USDC to another person by Karwan tag. It checks the tag and the user’s wallet balance, then shows a button that opens the send screen filled in; the user confirms there. It never sends by itself. Use when the user asks to send, pay or transfer USDC to @someone.',
+        'Prepare sending USDC to another person by Karwan tag. It checks the tag and the user’s balance (wallet plus pooled deposits), then shows a button that opens the send screen filled in; the user confirms there. It never sends by itself. Use when the user asks to send, pay or transfer USDC to @someone.',
       inputSchema: z.object({
         tag: z.string().max(40),
         amountUsdc: z.number().positive().max(1_000_000),
@@ -1857,13 +1857,14 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
         const check = checkKarwanTag(tag.replace(/^@/, ''));
         if (!check.ok) return { ok: true, sendable: false, reason: 'That is not a valid Karwan tag.' };
         try {
-          const [profile, walletWei] = await Promise.all([findProfileByHandle(check.tag), readUsdcBalance(address as Address)]);
+          // The wallet and the pool together, as the Send screen counts them (view 22).
+          const [profile, spendable] = await Promise.all([findProfileByHandle(check.tag), readSpendable(address)]);
           const found = tagRecipient(check.tag, profile, address);
           if (!found.found) return { ok: true, sendable: false, reason: `No Karwan account has the tag @${check.tag}.` };
           if (found.self) return { ok: true, sendable: false, reason: 'That tag is yours. You cannot send to yourself.' };
-          const walletUsdc = Number(formatUnits(walletWei, USDC_DECIMALS));
+          const walletUsdc = Math.round(spendable.totalUsd * 100) / 100;
           if (walletUsdc < amountUsdc) {
-            return { ok: true, sendable: false, reason: `The wallet holds ${walletUsdc.toFixed(2)} USDC, less than ${amountUsdc}. Add money first.`, walletUsdc };
+            return { ok: true, sendable: false, reason: `The balance is ${walletUsdc.toFixed(2)} USDC, less than ${amountUsdc}. Add money first.`, walletUsdc };
           }
           const built = buildNavigateAction({
             destination: 'send',

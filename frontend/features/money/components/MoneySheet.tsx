@@ -16,6 +16,7 @@ import { moneySounds } from '@/shared/sound/moneySounds';
 import { fill } from '@/features/deals/workspace/presentation';
 import { planTopUp } from '@/features/bridge/routePlan';
 import { formatAmount, formatBalance } from '../balanceModel';
+import { sendAvailable } from '../sendFromWhole';
 import { useMoneyBalances } from '../hooks/useMoneyBalances';
 import { useMoneyMove } from '../hooks/useMoneyMove';
 import {
@@ -130,7 +131,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
         ? null
         : move === 'topUp'
           ? Math.max(balances.balance, balances.pool)
-          : balances.balance;
+          : sendAvailable(balances.balance, balances.pool, balances.poolLoaded);
   const max = available === null ? null : spendable(available, move, walletSigned && !fromPool);
 
   // A Karwan tag is looked up by name; anything else is checked as an address.
@@ -204,6 +205,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
       recipient: move !== 'send' ? undefined : paidTag ? (paidTag.address as `0x${string}`) : recipientCheck.normalized ?? undefined,
       source: route?.kind === 'pool' ? 'pool' : 'balance',
       toAddress: withdrawToAgent ? otherAgentAddress : undefined,
+      walletBalance: balances.balance,
     });
   }
 

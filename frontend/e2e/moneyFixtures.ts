@@ -47,6 +47,10 @@ export interface MoneyWorld {
   events?: () => string;
   /// Same-chain send from the account's own wallet.
   arcSend?: (route: Route) => Promise<void>;
+  /// USDC pooled in Gateway, counted in the balance Send can use.
+  pool?: number;
+  /// Moves a send's shortfall from the pool into the account's own wallet.
+  toWallet?: (route: Route) => Promise<void>;
   /// Every /api/money-out/* call: status, World ID checks, remove, pause.
   moneyOut?: (route: Route, path: string) => Promise<void>;
 }
@@ -111,7 +115,7 @@ export async function serveMoney(page: Page, world: MoneyWorld) {
       return route.fulfill({ json: { activated: true, agents: { buyer: BUYER_AGENT, seller: SELLER_AGENT } } });
     }
     if (path === '/api/gateway/balance') {
-      return route.fulfill({ json: { balance: { address: ME, confirmed: '0', pending: '0', chains: [], fetchedAt: 0 } } });
+      return route.fulfill({ json: { balance: { address: ME, confirmed: (world.pool ?? 0).toFixed(6), pending: '0', chains: [], fetchedAt: 0 } } });
     }
     if (path === '/api/activity/me') return route.fulfill({ json: { items: world.activity ?? recentActivity } });
     if (path === '/api/bridge/list') return route.fulfill({ json: { bridges: [] } });
@@ -124,6 +128,7 @@ export async function serveMoney(page: Page, world: MoneyWorld) {
     if (path === '/api/activation/withdraw' && world.withdraw) return world.withdraw(route);
     if (path === '/api/bridge/circle-bridge-out' && world.bridgeOut) return world.bridgeOut(route);
     if (path === '/api/cashout/arc-send' && world.arcSend) return world.arcSend(route);
+    if (path === '/api/gateway/to-wallet' && world.toWallet) return world.toWallet(route);
     if (path.startsWith('/api/money-out/') && world.moneyOut) return world.moneyOut(route, path);
     if (path === '/api/events') {
       return route.fulfill({

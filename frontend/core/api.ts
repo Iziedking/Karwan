@@ -412,6 +412,8 @@ export interface UserProfile {
   xUserId?: string;
   xProfileImageUrl?: string;
   profileImageDataUrl?: string;
+  /// Someone else's photo arrives as a link (a public read); your own arrives inline.
+  profileImageUrl?: string;
   /// Verified contact email. Email-login users get it auto-filled at sign-in;
   /// wallet (web3) users add and verify it from the profile email band. Drives
   /// deal alerts + Karwan product updates. Business accounts label it as the
@@ -1914,6 +1916,14 @@ export interface AssistantMemoryView {
 }
 
 /// An older backend, a proxy page or a test stub must not crash Settings.
+/// The photo to show for a profile: your own inline copy, someone else's photo
+/// link, or the X photo they connected.
+export function profilePhotoOf(profile: Pick<UserProfile, 'profileImageDataUrl' | 'profileImageUrl' | 'xProfileImageUrl'> | null | undefined): string | undefined {
+  if (!profile) return undefined;
+  const link = profile.profileImageUrl?.startsWith('/api/') ? `${BASE}${profile.profileImageUrl}` : undefined;
+  return profile.profileImageDataUrl || link || profile.xProfileImageUrl || undefined;
+}
+
 export function memoryView(raw: Partial<AssistantMemoryView> | null | undefined): AssistantMemoryView {
   const notes = Array.isArray(raw?.notes)
     ? raw.notes.filter((n) => n && typeof n.id === 'string' && typeof n.text === 'string' && typeof n.at === 'number')
@@ -5324,6 +5334,13 @@ export const api = {
     }>(
       '/api/gateway/fund-agent',
       { method: 'POST', body: JSON.stringify({ agent, amountUsdc, requestId }) },
+    ),
+  /// Send uses the whole balance (view 22): move the shortfall from the pooled
+  /// balance into your own wallet before a send. Same request id, same movement.
+  gatewayToWallet: (amountUsdc: number, requestId: string) =>
+    json<{ ok: true; shortfallUsd: number; movedUsd: number; txHash?: string; reference: string }>(
+      '/api/gateway/to-wallet',
+      { method: 'POST', body: JSON.stringify({ amountUsdc, requestId }) },
     ),
   // Cash out from the pooled balance to another chain (cross-chain Gateway spend,
   // backend-signed). Works for every account type. Session-scoped.
