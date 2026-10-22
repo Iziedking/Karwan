@@ -15,7 +15,7 @@
 # ============================================================================
 
 # ============ builder ============
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -37,7 +37,7 @@ COPY backend/src backend/src
 RUN npm --prefix backend run build
 
 # ============ runtime ============
-FROM node:20-alpine AS runtime
+FROM node:22-alpine AS runtime
 
 WORKDIR /app
 
@@ -84,7 +84,7 @@ RUN mkdir -p backend/data && chown -R node:node /app
 # chowned above.
 USER node
 
-# wget ships in node:20-alpine. Used by HEALTHCHECK + Caddy probes.
+# wget ships in node:22-alpine. Used by HEALTHCHECK + Caddy probes.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD wget -qO- http://127.0.0.1:${PORT}/health > /dev/null || exit 1
 
