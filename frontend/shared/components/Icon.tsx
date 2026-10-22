@@ -1,7 +1,7 @@
 import React, { type SVGProps } from 'react';
 import {
   Activity, ArrowDownLeft, ArrowLeftRight, Bell, CircleAlert, ArrowRight, ArrowUpRight, Bot, BriefcaseBusiness, Calculator,
-  ChartColumn, Check, ChevronLeft, ChevronRight, Clapperboard, Code, Coins, FileText, Globe,
+  ChartColumn, Check, ChevronLeft, ChevronRight, Clapperboard, Code, Coins, Copy, CornerDownLeft, FileText, Globe,
   GraduationCap, ImagePlus, Languages, Link, List, LoaderCircle, Megaphone, MessagesSquare,
   Package, PenLine, PenTool, Plus, Receipt, Reply, Search, Send, Shirt, Smartphone, Trash2, UserRound, Wallet, X,
 } from 'lucide-react';
@@ -20,6 +20,7 @@ const icons = {
   'chevron-left': ChevronLeft,
   'chevron-right': ChevronRight,
   coins: Coins,
+  copy: Copy,
   'file-text': FileText,
   'image-plus': ImagePlus,
   plus: Plus,
@@ -30,6 +31,8 @@ const icons = {
   reply: Reply,
   search: Search,
   send: Send,
+  /// The assistant composers send with Enter, so their button shows the Enter key.
+  return: CornerDownLeft,
   user: UserRound,
   wallet: Wallet,
   close: X,

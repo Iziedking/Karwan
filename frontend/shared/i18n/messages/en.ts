@@ -643,6 +643,8 @@ interface MessagesShape {
     /// the English inlined at the call site, silently and forever. Required
     /// makes tsc the thing that notices.
     humanButton: string;
+    /// Under the live banner when the person came from assistant mode.
+    handoffContext: string;
     liveHeader: string;
     liveBanner: string;
     liveClosed: string;
@@ -3126,7 +3128,7 @@ interface MessagesShape {
       waitingOnFinancier: string;
       errRequest: string;
     };
-    checkPaused: { title: string; stays: string; saw: string; noWallet: string; reasons: Record<"security-hold" | "off-request" | "evidence-mismatch" | "check-pending" | "check-expired" | "terms-changed" | "delivery-replaced" | "link-unverifiable", string>; sellerHold: string; sellerOff: string; sendNewLink: string; askPerson: string; supportMessage: string };
+    checkPaused: { title: string; stays: string; saw: string; noWallet: string; reasons: Record<"security-hold" | "off-request" | "evidence-mismatch" | "check-pending" | "check-expired" | "terms-changed" | "delivery-replaced" | "link-unverifiable", string>; sellerHold: string; sellerOff: string; sendNewLink: string; askPerson: string; supportMessage: string; reviewChecking: string; reviewUnsafe: string; reviewedSafe: string };
     checkLive: { checking: string; checkingBody: string; passed: string; passedBuyer: string; passedSeller: string; unverified: string; unverifiedBuyer: string; unverifiedSeller: string };
     protection: { title: string; escrow: string; you: string; buyer: string; seller: string; reasons: { first_deal: string; large_deal: string; fast_new_account: string; flagged_link_before: string }; stake: string; github: string; offMarket: string; belowMarket: string; cashOut: string };
     simple: {
@@ -3370,6 +3372,8 @@ interface MessagesShape {
         cancelled: string;
       };
       nextLabel: string;
+      dateLabel: string;
+      referenceLabel: string;
       next: {
         buyer: string;
         seller: string;
@@ -6085,6 +6089,7 @@ export const en: MessagesShape = {
     error: 'Something went wrong. Try again.',
     disclaimer: 'Guidance only. The assistant cannot move funds or act on your account.',
     humanButton: 'Talk to a person',
+    handoffContext: 'They can see what you asked the assistant.',
     liveHeader: 'Live support',
     liveBanner: 'Connected to support. A person will reply here, usually within a few minutes.',
     liveClosed: 'This support chat is closed. The transcript was emailed to you.',
@@ -8845,7 +8850,7 @@ export const en: MessagesShape = {
       waitingOnFinancier: "Waiting on the financier's money",
       errRequest: "The request was not sent. Try again.",
     },
-    checkPaused: { title: "Payment is paused", stays: "Your money stays in escrow until this is resolved.", saw: "What the check saw", noWallet: "Automatic release cannot run for this deal. Release it yourself from here.", reasons: { "security-hold": "The delivery link was flagged as unsafe, so it is hidden from you.", "off-request": "The check found the delivery does not match what you asked for.", "evidence-mismatch": "The delivery evidence does not match the agreed terms.", "check-pending": "The automatic check has not returned a result yet.", "check-expired": "The check result expired before payment was released.", "terms-changed": "The terms changed after the check ran, so it has to run again.", "delivery-replaced": "A newer delivery was submitted, so the check has to run again.", "link-unverifiable": "The delivery link could not be opened to check it." }, sellerHold: "Your delivery link was flagged as unsafe and is hidden from the buyer. Send a corrected link.", sellerOff: "The check found your delivery may not match the request. Send the right link.", sendNewLink: "Send a new delivery link", askPerson: "My link is safe. Ask a person to check", supportMessage: "My delivery link on {path} was flagged as unsafe, but it is safe. Please check it." },
+    checkPaused: { title: "Payment is paused", stays: "Your money stays in escrow until this is resolved.", saw: "What the check saw", noWallet: "Automatic release cannot run for this deal. Release it yourself from here.", reasons: { "security-hold": "The delivery link was flagged as unsafe, so it is hidden from you.", "off-request": "The check found the delivery does not match what you asked for.", "evidence-mismatch": "The delivery evidence does not match the agreed terms.", "check-pending": "The automatic check has not returned a result yet.", "check-expired": "The check result expired before payment was released.", "terms-changed": "The terms changed after the check ran, so it has to run again.", "delivery-replaced": "A newer delivery was submitted, so the check has to run again.", "link-unverifiable": "The delivery link could not be opened to check it." }, sellerHold: "Your delivery link was flagged as unsafe and is hidden from the buyer. Send a corrected link.", sellerOff: "The check found your delivery may not match the request. Send the right link.", sendNewLink: "Send a new delivery link", askPerson: "My link is safe. Ask a person to check", supportMessage: "My delivery link on {path} was flagged as unsafe, but it is safe. Please check it.", reviewChecking: "A person at Karwan is checking your link.", reviewUnsafe: "Karwan support checked your link and kept it blocked. Send a new delivery link.", reviewedSafe: "Checked by Karwan support." },
     checkLive: { checking: "Checking the delivery", checkingBody: "A guard agent is comparing it with the request. Payment waits for the result.", passed: "Delivery check passed", passedBuyer: "Review the work, then release.", passedSeller: "{name} reviews the work next.", unverified: "The link could not be checked", unverifiedBuyer: "Review the work yourself before you release.", unverifiedSeller: "{name} reviews the work themselves." },
     protection: { title: "Protection on this deal", escrow: "Money held in escrow until release", you: "You verify with World ID", buyer: "The buyer verifies with World ID", seller: "The seller verifies with World ID", reasons: { first_deal: "first deal", large_deal: "large deal", fast_new_account: "many new deals today", flagged_link_before: "a flagged link on record" }, stake: "Seller holds {pct}% stake", github: "Delivery checked on GitHub", offMarket: "Price is well above similar deals", belowMarket: "Price is well below similar deals" , cashOut: "Cash out" },
     simple: {
@@ -9183,6 +9188,8 @@ export const en: MessagesShape = {
         cancelled: 'Cancelled',
       },
       nextLabel: 'Next',
+      dateLabel: 'Date',
+      referenceLabel: 'Reference',
       next: {
         buyer: 'Buyer action required',
         seller: 'Seller action required',

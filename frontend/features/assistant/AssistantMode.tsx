@@ -47,7 +47,8 @@ function AssistantPage() {
   const [input, setInput] = useState('');
   const [listOpen, setListOpen] = useState(false);
   const [openError, setOpenError] = useState(false);
-  const [confirmRemove, setConfirmRemove] = useState(false);
+  /// The conversation waiting for a delete confirmation: the open one or any in the list.
+  const [removeId, setRemoveId] = useState<string | null>(null);
   const [removing, setRemoving] = useState(false);
   const [removeError, setRemoveError] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
@@ -98,8 +99,10 @@ function AssistantPage() {
     setRemoving(true);
     setRemoveError(false);
     try {
-      await chat.remove();
-      setConfirmRemove(false);
+      // The open conversation also clears the screen; another one only leaves the list.
+      if (removeId === chat.conversationId) await chat.remove();
+      else if (removeId) await api.deleteAssistantConversation(removeId);
+      setRemoveId(null);
       void queryClient.invalidateQueries({ queryKey: LIST_KEY });
     } catch {
       setRemoveError(true);
@@ -116,7 +119,7 @@ function AssistantPage() {
   }
 
   const column = (
-    <ConversationList list={list.data ?? []} currentId={chat.conversationId} onNew={() => void startNew()} onOpen={(id) => void openConversation(id)} />
+    <ConversationList list={list.data ?? []} currentId={chat.conversationId} onNew={() => void startNew()} onOpen={(id) => void openConversation(id)} onRemove={(id) => { setListOpen(false); setRemoveError(false); setRemoveId(id); }} />
   );
   const empty = chat.messages.length === 0;
 
@@ -149,7 +152,7 @@ function AssistantPage() {
               {messages.assistant.humanButton}
             </button>
             {chat.conversationId ? (
-              <button type="button" onClick={() => { setRemoveError(false); setConfirmRemove(true); }} className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-[14px] font-semibold text-[var(--lp-text-sub)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+              <button type="button" onClick={() => { setRemoveError(false); setRemoveId(chat.conversationId); }} className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-[14px] font-semibold text-[var(--lp-text-sub)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" /></svg>
                 {t.remove}
               </button>
@@ -229,7 +232,7 @@ function AssistantPage() {
                 aria-label={messages.assistant.send}
                 className="grid size-11 shrink-0 place-items-center rounded-[12px] bg-[var(--lp-accent)] text-[var(--accent-ink)] transition-opacity disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]"
               >
-                <Icon name="send" size={20} />
+                <Icon name="return" size={20} directional />
               </button>
             </form>
             <p className="mt-2 text-center text-[14px] text-[var(--lp-text-sub)]">{t.confirmNote}</p>
@@ -237,7 +240,7 @@ function AssistantPage() {
         </div>
       </section>
 
-      <ConfirmSheetShell open={confirmRemove} labelledBy="remove-conversation" busy={removing} onClose={() => setConfirmRemove(false)}>
+      <ConfirmSheetShell open={removeId !== null} labelledBy="remove-conversation" busy={removing} onClose={() => setRemoveId(null)}>
         <h2 id="remove-conversation" className="text-[20px] font-semibold text-[var(--lp-dark)]">{t.removeTitle}</h2>
         <p className="mt-2 text-[15px] leading-relaxed text-[var(--lp-text-sub)]">{t.removeBody}</p>
         {removeError ? <p role="alert" className="mt-3 text-[14px] font-medium text-[var(--color-critical)]">{t.removeFailed}</p> : null}
@@ -245,7 +248,7 @@ function AssistantPage() {
           <button type="button" disabled={removing} onClick={() => void removeConversation()} className="min-h-12 rounded-full bg-[var(--color-critical)] px-5 text-[15px] font-semibold text-white disabled:opacity-50">
             {t.remove}
           </button>
-          <button type="button" disabled={removing} onClick={() => setConfirmRemove(false)} className="min-h-12 rounded-full border border-[var(--lp-border-light)] px-5 text-[15px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)] disabled:opacity-50">
+          <button type="button" disabled={removing} onClick={() => setRemoveId(null)} className="min-h-12 rounded-full border border-[var(--lp-border-light)] px-5 text-[15px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)] disabled:opacity-50">
             {t.removeKeep}
           </button>
         </div>

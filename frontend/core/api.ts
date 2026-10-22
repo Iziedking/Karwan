@@ -889,6 +889,8 @@ export interface DirectDeal {
     | 'no-agent-wallet';
   releaseBlockedAt?: number;
   /// Which check paused the release; both parties see it.
+  /// A person at Karwan checked the flagged link (view 21). Only where it stands, never their notes.
+  deliveryReviewState?: { state: 'checking' | 'safe' | 'unsafe' };
   releaseBlockedDetail?: 'security-hold' | 'off-request' | 'evidence-mismatch' | 'check-pending' | 'check-expired' | 'terms-changed' | 'delivery-replaced' | 'link-unverifiable';
   /// The required delivery check stalled long enough for the buyer to review
   /// the delivery themselves, and whether they already chose to.
@@ -1883,9 +1885,40 @@ export interface SavedAssistantMessage {
   actions?: PastAssistantAction[];
 }
 
+export interface AdminDeliveryReview {
+  deliveryRevision: number;
+  originalVerdict: 'suspicious' | 'malicious';
+  reasons: string[];
+  decision: 'safe' | 'unsafe' | 'pending-approval';
+  steps: Array<{ role: 'admin' | 'support'; decision: 'safe' | 'unsafe'; reason: string; at: number }>;
+  decidedAt?: number;
+}
+
+export interface AdminDeliveryReviewView {
+  jobId: string;
+  buyer: string;
+  seller: string;
+  amountUsdc: string;
+  delivered: boolean;
+  closed: boolean;
+  deliveryRevision: number;
+  deliveryProof: string | null;
+  verificationStatus: 'clean' | 'suspicious' | 'malicious' | 'unverifiable' | null;
+  verificationReasons: string[];
+  review: AdminDeliveryReview | null;
+}
+
 export interface AssistantMemoryView {
   enabled: boolean;
   notes: Array<{ id: string; text: string; at: number }>;
+}
+
+/// An older backend, a proxy page or a test stub must not crash Settings.
+export function memoryView(raw: Partial<AssistantMemoryView> | null | undefined): AssistantMemoryView {
+  const notes = Array.isArray(raw?.notes)
+    ? raw.notes.filter((n) => n && typeof n.id === 'string' && typeof n.text === 'string' && typeof n.at === 'number')
+    : [];
+  return { enabled: raw?.enabled !== false, notes };
 }
 
 export interface AssistantConversationSummary {
@@ -2952,7 +2985,18 @@ export const api = {
       email: string | null;
       status: 'open' | 'closed';
       messages: Array<{ role: 'user' | 'assistant' | 'operator' | 'system'; text: string; ts: number }>;
+      /// Deals the person attached from a deal page.
+      dealIds?: string[];
     }>(`/api/admin/support/${id}`, { headers: adminHeaders() }),
+  /// A delivery the link check holds, for a support review (view 21).
+  adminDeliveryGet: (jobId: string) =>
+    json<AdminDeliveryReviewView>(`/api/admin/support/deliveries/${encodeURIComponent(jobId)}`, { headers: adminHeaders() }),
+  adminDeliveryReview: (jobId: string, decision: 'safe' | 'unsafe', reason: string) =>
+    json<{ review: AdminDeliveryReview; cleared: boolean }>(`/api/admin/support/deliveries/${encodeURIComponent(jobId)}/review`, {
+      method: 'POST',
+      headers: adminHeaders(),
+      body: JSON.stringify({ decision, reason }),
+    }),
   adminSupportReply: (id: string, text: string) =>
     json<{ ok: true }>(`/api/admin/support/${id}/reply`, {
       method: 'POST',
@@ -5197,12 +5241,12 @@ export const api = {
   deleteAssistantConversation: (id: string) =>
     json<{ ok: true }>(`/api/assistant/conversations/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   /// What the assistant remembers about this account (view 20), newest first.
-  assistantMemory: () => json<AssistantMemoryView>('/api/assistant/memory'),
+  assistantMemory: () => json<Partial<AssistantMemoryView>>('/api/assistant/memory').then(memoryView),
   setAssistantMemory: (on: boolean) =>
-    json<AssistantMemoryView>('/api/assistant/memory/enabled', { method: 'POST', body: JSON.stringify({ on }) }),
+    json<Partial<AssistantMemoryView>>('/api/assistant/memory/enabled', { method: 'POST', body: JSON.stringify({ on }) }).then(memoryView),
   deleteAssistantMemoryNote: (id: string) =>
-    json<AssistantMemoryView>(`/api/assistant/memory/notes/${encodeURIComponent(id)}`, { method: 'DELETE' }),
-  forgetAssistantMemory: () => json<AssistantMemoryView>('/api/assistant/memory', { method: 'DELETE' }),
+    json<Partial<AssistantMemoryView>>(`/api/assistant/memory/notes/${encodeURIComponent(id)}`, { method: 'DELETE' }).then(memoryView),
+  forgetAssistantMemory: () => json<Partial<AssistantMemoryView>>('/api/assistant/memory', { method: 'DELETE' }).then(memoryView),
   /// Provider-neutral money movement orchestration. The API records intent and
   /// capability truth; the existing wallet/Gateway/CCTP actions remain the
   /// execution surfaces until a provider checkout is configured.
@@ -5326,15 +5370,16 @@ export const api = {
   supportStart: (
     messages: Array<{ role: 'user' | 'assistant'; content: string }>,
     email?: string,
+    dealId?: string,
   ) =>
     json<{ conversationId: string; at: number }>(withCaller('/api/support/start'), {
       method: 'POST',
-      body: JSON.stringify({ messages, ...(email ? { email } : {}) }),
+      body: JSON.stringify({ messages, ...(email ? { email } : {}), ...(dealId ? { dealId } : {}) }),
     }),
-  supportSend: (id: string, text: string) =>
+  supportSend: (id: string, text: string, dealId?: string) =>
     json<{ ok: boolean }>(`/api/support/${id}/message`, {
       method: 'POST',
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text, ...(dealId ? { dealId } : {}) }),
     }),
   supportPoll: (id: string, since: number) =>
     json<{

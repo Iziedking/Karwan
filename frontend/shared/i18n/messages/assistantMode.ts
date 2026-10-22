@@ -29,6 +29,8 @@ export interface AssistantModeCopy {
   errOffline: string;
   errSnag: string;
   remove: string;
+  /// Accessible name of a history row's delete button: {title}.
+  removeNamed: string;
   removeTitle: string;
   removeBody: string;
   removeKeep: string;
@@ -68,6 +70,7 @@ export const assistantModeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Assista
     errOffline: "The assistant is offline right now. A person from the team is joining.",
     errSnag: "Something went wrong on our side. Try again.",
     remove: "Delete conversation",
+    removeNamed: "Delete conversation: {title}",
     removeTitle: "Delete this conversation?",
     removeBody: "It is removed from your account and cannot be brought back. Nothing you confirmed in it is undone.",
     removeKeep: "Keep it",
@@ -104,6 +107,7 @@ export const assistantModeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Assista
     errOffline: "L’assistant est hors ligne pour le moment. Une personne de l’équipe arrive.",
     errSnag: "Un problème est survenu de notre côté. Réessayez.",
     remove: "Supprimer la conversation",
+    removeNamed: "Supprimer la conversation : {title}",
     removeTitle: "Supprimer cette conversation ?",
     removeBody: "Elle est retirée de votre compte et ne peut pas être récupérée. Rien de ce que vous y avez confirmé n’est annulé.",
     removeKeep: "La garder",
@@ -140,6 +144,7 @@ export const assistantModeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Assista
     errOffline: "المساعد غير متصل الآن. شخص من الفريق ينضم إليك.",
     errSnag: "حدث خطأ من جهتنا. حاول مرة أخرى.",
     remove: "احذف المحادثة",
+    removeNamed: "احذف المحادثة: {title}",
     removeTitle: "هل تحذف هذه المحادثة؟",
     removeBody: "تُزال من حسابك ولا يمكن استعادتها. لا يُلغى أي شيء أكدته فيها.",
     removeKeep: "أبقها",
@@ -176,6 +181,7 @@ export const assistantModeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Assista
     errOffline: "सहायक अभी ऑफ़लाइन है। टीम का एक व्यक्ति जुड़ रहा है।",
     errSnag: "हमारी ओर से कुछ गलत हुआ। फिर से कोशिश करें।",
     remove: "बातचीत हटाएँ",
+    removeNamed: "बातचीत हटाएँ: {title}",
     removeTitle: "यह बातचीत हटाएँ?",
     removeBody: "यह आपके खाते से हट जाएगी और वापस नहीं लाई जा सकती। इसमें जो आपने पुष्टि की, वह रद्द नहीं होता।",
     removeKeep: "रहने दें",
@@ -212,6 +218,7 @@ export const assistantModeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Assista
     errOffline: "Msaidizi hayupo mtandaoni sasa. Mtu wa timu anajiunga.",
     errSnag: "Kuna hitilafu upande wetu. Jaribu tena.",
     remove: "Futa mazungumzo",
+    removeNamed: "Futa mazungumzo: {title}",
     removeTitle: "Ufute mazungumzo haya?",
     removeBody: "Yanaondolewa kwenye akaunti yako na hayawezi kurudishwa. Chochote ulichothibitisha ndani yake hakibatilishwi.",
     removeKeep: "Yabaki",

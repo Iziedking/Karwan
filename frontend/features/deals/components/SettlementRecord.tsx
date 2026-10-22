@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import type { MoneyMovementState, MoneyMovementView } from '@/core/api';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
+import { Icon } from '@/shared/components/Icon';
 import { Skeleton } from '@/shared/components/Skeleton';
 import { PortableReceipt, type PortableReceiptItem } from '@/features/activity/components/PortableReceipt';
 import { settlementExplorer } from '@/core/arcNetwork';
@@ -14,36 +15,28 @@ interface LegacyReceipt {
   txHash: string;
 }
 
-const STATUS_TONE: Record<MoneyMovementState, { dot: string; className: string }> = {
-  created: {
-    dot: 'var(--lp-workspace-muted)',
-    className: 'border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-soft)] text-[var(--lp-workspace-muted)]',
-  },
-  preparing: { dot: 'var(--info)', className: 'border-[color:var(--info)]/25 bg-[color:var(--info)]/10 text-[var(--lp-workspace-ink)]' },
-  submitted: { dot: 'var(--warn)', className: 'border-[color:var(--warn)]/25 bg-[color:var(--warn)]/10 text-[var(--lp-workspace-ink)]' },
-  verifying: { dot: 'var(--info)', className: 'border-[color:var(--info)]/25 bg-[color:var(--info)]/10 text-[var(--lp-workspace-ink)]' },
-  completed: { dot: 'var(--pos)', className: 'border-[color:var(--pos)]/25 bg-[color:var(--pos)]/10 text-[var(--lp-workspace-ink)]' },
-  needs_attention: { dot: 'var(--warn)', className: 'border-[color:var(--warn)]/30 bg-[color:var(--warn)]/10 text-[var(--lp-workspace-ink)]' },
-  cancelled: {
-    dot: 'var(--lp-workspace-muted)',
-    className: 'border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-soft)] text-[var(--lp-workspace-muted)]',
-  },
+/// One dot colour per state; the label beside it carries the meaning.
+const STATUS_DOT: Record<MoneyMovementState, string> = {
+  created: 'var(--lp-workspace-muted)',
+  preparing: 'var(--info)',
+  submitted: 'var(--warn)',
+  verifying: 'var(--info)',
+  completed: 'var(--pos)',
+  needs_attention: 'var(--warn)',
+  cancelled: 'var(--lp-workspace-muted)',
 };
 
-function utcStamp(value: number): string {
-  const date = new Date(value);
-  const time = new Intl.DateTimeFormat('en-GB', {
+function utcStamp(value: number, locale: string): string {
+  const stamp = new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
     timeZone: 'UTC',
-  }).format(date);
-  const day = new Intl.DateTimeFormat('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    timeZone: 'UTC',
-  }).format(date);
-  return `${time} UTC · ${day}`;
+  }).format(new Date(value));
+  return `${stamp} UTC`;
 }
 
 const MICROS = 1_000_000n;
@@ -95,7 +88,10 @@ export function SettlementRecord({
   canShareReceipts = true,
   dealAmountUsdc,
   milestonePcts = [],
+  bare = false,
 }: {
+  /// Inside the Receipts sheet, which already names the section.
+  bare?: boolean;
   dealAmountUsdc?: string;
   milestonePcts?: number[];
   movements: MoneyMovementView[];
@@ -106,6 +102,7 @@ export function SettlementRecord({
   canShareReceipts?: boolean;
 }) {
   const translations = useTranslations();
+  const { locale } = useLocale();
   const copy = translations.directDealDetail.settlementRecord;
   const receiptCopy = translations.activity.myMoney;
   const [openReference, setOpenReference] = useState<string | null>(null);
@@ -140,18 +137,21 @@ export function SettlementRecord({
 
   return (
     <section
-      aria-labelledby="settlement-record-heading"
+      aria-labelledby={bare ? undefined : 'settlement-record-heading'}
       data-float-guard
-      className="mt-7 border-t border-[var(--lp-workspace-border)] pt-7"
+      aria-label={bare ? copy.title : undefined}
+      className={bare ? '' : 'mt-7 border-t border-[var(--lp-workspace-border)] pt-7'}
     >
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <h3 id="settlement-record-heading" className="font-display text-[23px] font-semibold tracking-[-0.035em] text-[var(--lp-workspace-ink)]">
-          {copy.title}
-        </h3>
-        <p className="max-w-[44ch] text-[14px] leading-relaxed text-[var(--lp-workspace-muted)] sm:text-end">
-          {copy.body}
-        </p>
-      </div>
+      {bare ? null : (
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <h3 id="settlement-record-heading" className="font-display text-[23px] font-semibold tracking-[-0.035em] text-[var(--lp-workspace-ink)]">
+            {copy.title}
+          </h3>
+          <p className="max-w-[44ch] text-[14px] leading-relaxed text-[var(--lp-workspace-muted)] sm:text-end">
+            {copy.body}
+          </p>
+        </div>
+      )}
 
       {fetchState === 'loading' && (
         <div className="mt-5 space-y-3" aria-label={copy.loadingLabel} aria-busy="true">
@@ -172,7 +172,7 @@ export function SettlementRecord({
           <button
             type="button"
             onClick={onRetry}
-            className="mt-2 inline-flex min-h-11 items-center mono text-[14px] uppercase tracking-[0.15em] text-[var(--lp-workspace-ink)] transition-colors hover:text-[var(--lp-accent)]"
+            className="mt-2 inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--lp-workspace-ink)] underline underline-offset-4 transition-colors hover:text-[var(--lp-accent)]"
           >
             {copy.retry}
           </button>
@@ -185,14 +185,14 @@ export function SettlementRecord({
           {[...movements].sort((a, b) => a.createdAt - b.createdAt).map((movement, index) => {
             const breakdown = paymentBreakdown(movement, dealAmountUsdc, milestonePcts);
             const expanded = openReference === movement.reference;
-            const tone = STATUS_TONE[movement.state];
             const stateLabel = copy.states[movement.state];
             const kindLabel =
               movement.kind === 'escrow_funding'
                 ? copy.kinds.escrow_funding
                 : copy.kinds.milestone_payout;
-            const nextAction = movement.nextActor === 'none'
-              ? copy.next.none
+            // A finished payment has no next step to name.
+            const nextAction = movement.state === 'completed' || movement.nextActor === 'none'
+              ? null
               : copy.next[movement.nextActor];
             const receiptItem: PortableReceiptItem = {
               ts: movement.completedAt ?? movement.updatedAt,
@@ -207,64 +207,71 @@ export function SettlementRecord({
                   ? 'failed'
                   : 'pending',
             };
-            const proofHref = movement.legs.find((leg) => leg.explorerUrl && leg.txHash)?.explorerUrl ?? null;
+            const provable = movement.legs.some((leg) => leg.explorerUrl && leg.txHash);
+            const row = 'flex items-center justify-between gap-4 border-t border-[var(--lp-workspace-border)] py-3 text-[14px]';
             return (
               <article
                 key={movement.reference}
-                className="group rounded-[12px] border border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-raised)] p-4 transition-colors duration-200 hover:border-[var(--lp-accent)]/45 focus-within:border-[var(--lp-accent)]/45 sm:p-5"
+                className="rounded-[20px] border border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-raised)] px-5 pb-4 pt-5"
               >
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0">
-                    <p className="text-[14px] font-semibold text-[var(--lp-workspace-muted)]">
-                      {copy.paymentTemplate.replace('{n}', String(index + 1))} · {kindLabel}
-                    </p>
-                    <p className="mt-2 text-[26px] font-semibold leading-none tabular-nums text-[var(--lp-workspace-ink)]">
-                      {movement.amountUsdc} <span className="text-[14px] font-medium text-[var(--lp-workspace-muted)]">USDC</span>
-                    </p>
-                    {breakdown ? (
-                      <p className="mt-1.5 text-[14px] tabular-nums text-[var(--lp-workspace-muted)]">
-                        {(movement.kind === 'escrow_funding' ? copy.fundingBreakdown : copy.payoutBreakdown)
-                          .replace('{deal}', breakdown.base)
-                          .replace('{share}', breakdown.base)
-                          .replace('{fee}', breakdown.fee)}
-                      </p>
-                    ) : null}
-                    <button
-                      type="button"
-                      onClick={() => copyReference(movement.reference)}
-                      aria-label={copy.copyReference.replace('{reference}', movement.reference)}
-                      className="mt-1 inline-flex min-h-11 max-w-full items-center gap-2 font-mono text-[14px] text-[var(--lp-workspace-muted)] transition-colors hover:text-[var(--lp-workspace-ink)]"
-                    >
-                      <span className="break-all text-start">{movement.reference}</span>
-                      <span aria-hidden>{copiedReference === movement.reference ? '✓' : '⧉'}</span>
-                    </button>
-                  </div>
-                  <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
-                    <span className={`inline-flex min-h-7 items-center gap-2 rounded-full border px-3 text-[14px] font-semibold ${tone.className}`}>
-                      <span aria-hidden className="size-1.5 rounded-full" style={{ background: tone.dot }} />
-                      {stateLabel}
-                    </span>
-                    <span className="text-[14px] tabular-nums text-[var(--lp-workspace-faint)]">
-                      {utcStamp(movement.completedAt ?? movement.updatedAt)}
-                    </span>
-                  </div>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[14px] font-medium text-[var(--lp-workspace-muted)]">
+                    {movements.length > 1 ? `${copy.paymentTemplate.replace('{n}', String(index + 1))} · ` : ''}{kindLabel}
+                  </p>
+                  <span className="inline-flex items-center gap-2 text-[14px] font-semibold text-[var(--lp-workspace-ink)]">
+                    <span aria-hidden className="size-2 rounded-full" style={{ background: STATUS_DOT[movement.state] }} />
+                    {stateLabel}
+                  </span>
                 </div>
+                <p className="mt-3 flex items-baseline gap-2 tabular-nums">
+                  <span className="text-[34px] font-bold leading-none tracking-[-0.03em] text-[var(--lp-workspace-ink)]">{movement.amountUsdc}</span>
+                  <span className="text-[16px] font-semibold text-[var(--lp-workspace-muted)]">USDC</span>
+                </p>
+                {breakdown ? (
+                  <p className="mt-2 text-[14px] tabular-nums text-[var(--lp-workspace-muted)]">
+                    {(movement.kind === 'escrow_funding' ? copy.fundingBreakdown : copy.payoutBreakdown)
+                      .replace('{deal}', breakdown.base)
+                      .replace('{share}', breakdown.base)
+                      .replace('{fee}', breakdown.fee)}
+                  </p>
+                ) : null}
 
-                <div className="mt-4 grid gap-3 border-t border-[var(--lp-workspace-border)] pt-4 sm:grid-cols-[1fr_auto] sm:items-center">
-                  <div>
-                    <p className="text-[14px] leading-relaxed text-[var(--lp-workspace-ink)]">{stateLabel}</p>
-                    <p className="mt-1 text-[14px] leading-relaxed text-[var(--lp-workspace-muted)]">
-                      {copy.nextLabel}: {nextAction}
-                    </p>
+                <dl className="mt-4">
+                  <div className={row}>
+                    <dt className="text-[var(--lp-workspace-muted)]">{copy.dateLabel}</dt>
+                    <dd className="text-end tabular-nums text-[var(--lp-workspace-ink)]">{utcStamp(movement.completedAt ?? movement.updatedAt, locale)}</dd>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedReceipt(receiptItem)}
-                      className="inline-flex min-h-11 items-center rounded-full bg-[var(--lp-workspace-ink)] px-4 text-[14px] font-semibold text-[var(--lp-workspace-raised)] transition-opacity hover:opacity-90"
-                    >
-                      {receiptCopy.viewReceipt}
-                    </button>
+                  <div className={row}>
+                    <dt className="text-[var(--lp-workspace-muted)]">{copy.referenceLabel}</dt>
+                    <dd className="min-w-0">
+                      <button
+                        type="button"
+                        onClick={() => copyReference(movement.reference)}
+                        aria-label={copy.copyReference.replace('{reference}', movement.reference)}
+                        className="-me-2 inline-flex min-h-11 max-w-full items-center gap-2 rounded-[10px] px-2 mono text-[13px] tracking-[0.04em] text-[var(--lp-workspace-ink)] transition-colors hover:bg-[var(--lp-workspace-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+                      >
+                        <span className="truncate">{movement.reference}</span>
+                        <Icon name={copiedReference === movement.reference ? 'check' : 'copy'} size={16} className="shrink-0 text-[var(--lp-workspace-muted)]" />
+                      </button>
+                    </dd>
+                  </div>
+                  {nextAction ? (
+                    <div className={row}>
+                      <dt className="text-[var(--lp-workspace-muted)]">{copy.nextLabel}</dt>
+                      <dd className="text-end text-[var(--lp-workspace-ink)]">{nextAction}</dd>
+                    </div>
+                  ) : null}
+                </dl>
+
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedReceipt(receiptItem)}
+                    className="inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--lp-workspace-ink)] px-5 text-[15px] font-semibold text-[var(--lp-workspace-raised)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
+                  >
+                    {receiptCopy.viewReceipt}
+                  </button>
+                  {provable ? (
                     <button
                       type="button"
                       aria-expanded={expanded}
@@ -274,52 +281,41 @@ export function SettlementRecord({
                           current === movement.reference ? null : movement.reference,
                         )
                       }
-                      className="inline-flex min-h-11 items-center justify-between gap-3 rounded-full border border-[var(--lp-workspace-border)] px-4 text-[14px] font-semibold text-[var(--lp-workspace-muted)] transition-colors hover:border-[var(--lp-accent)] hover:text-[var(--lp-workspace-ink)]"
+                      className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-[var(--lp-workspace-border)] px-5 text-[15px] font-semibold text-[var(--lp-workspace-ink)] transition-colors hover:bg-[var(--lp-workspace-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
                     >
                       {expanded ? copy.hideProof : copy.showProof}
-                      <span aria-hidden className={`transition-transform duration-200 motion-reduce:transition-none ${expanded ? 'rotate-90' : ''}`}>›</span>
+                      <Icon name="chevron-right" size={16} directional className={`transition-transform duration-200 motion-reduce:transition-none ${expanded ? 'rotate-90' : ''}`} />
                     </button>
-                  </div>
+                  ) : null}
                 </div>
 
                 {expanded && (
-                  <div id={`proof-${movement.reference}`} className="mt-4 border-t border-[var(--lp-workspace-border)] pt-4">
-                    <p className="text-[14px] font-semibold text-[var(--lp-workspace-faint)]">Payment proof</p>
-                    <ol className="mt-3 space-y-3">
-                      {movement.legs.map((leg, legIndex) => (
-                        <li key={`${movement.reference}:${leg.key}`} className="grid gap-2 border-s border-[var(--lp-workspace-border)] ps-3 sm:grid-cols-[1fr_auto] sm:items-start">
-                          <div className="min-w-0">
-                            <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-workspace-faint)]">
-                              Step {legIndex + 1} · {copy.legStates[leg.state]}
+                  <ol id={`proof-${movement.reference}`} className="mt-3">
+                    {movement.legs.map((leg) => (
+                      <li key={`${movement.reference}:${leg.key}`} className="flex items-center justify-between gap-3 border-t border-[var(--lp-workspace-border)] py-3">
+                        <div className="min-w-0">
+                          <p className="text-[14px] text-[var(--lp-workspace-ink)]">{leg.label}</p>
+                          <p className="text-[14px] text-[var(--lp-workspace-muted)]">{copy.legStates[leg.state]}</p>
+                          {leg.providerId && (
+                            <p className="mt-0.5 break-all mono text-[13px] tabular-nums text-[var(--lp-workspace-faint)]">
+                              {copy.providerReference}: {shortProof(leg.providerId)}
                             </p>
-                            <p className="mt-1 text-[14px] text-[var(--lp-workspace-ink)]">{leg.label}</p>
-                            {leg.providerId && (
-                              <p className="mt-1 break-all mono text-[13px] tabular-nums text-[var(--lp-workspace-faint)]">
-                                {copy.providerReference}: {shortProof(leg.providerId)}
-                              </p>
-                            )}
-                          </div>
-                          {leg.explorerUrl && leg.txHash && (
-                            <a
-                              href={leg.explorerUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex min-h-11 items-center mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)] transition-colors hover:text-[var(--lp-accent)]"
-                            >
-                              {copy.openProof} ↗
-                            </a>
                           )}
-                        </li>
-                      ))}
-                    </ol>
-                    <button
-                      type="button"
-                      onClick={() => setOpenReference(null)}
-                      className="mt-4 inline-flex min-h-11 items-center rounded-[10px] border border-[var(--lp-workspace-border)] px-4 mono text-[14px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)] transition-colors hover:border-[var(--lp-accent)] hover:text-[var(--lp-workspace-ink)]"
-                    >
-                      {copy.hideProof} ↑
-                    </button>
-                  </div>
+                        </div>
+                        {leg.explorerUrl && leg.txHash && (
+                          <a
+                            href={leg.explorerUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-3 text-[14px] font-semibold text-[var(--lp-workspace-ink)] transition-colors hover:bg-[var(--lp-workspace-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+                          >
+                            {copy.openProof}
+                            <Icon name="arrow-up-right" size={16} directional />
+                          </a>
+                        )}
+                      </li>
+                    ))}
+                  </ol>
                 )}
               </article>
             );
@@ -338,11 +334,11 @@ export function SettlementRecord({
                 href={`${settlementExplorer}/tx/${receipt.txHash}`}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex min-h-11 items-center gap-2 mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)] transition-colors hover:text-[var(--lp-accent)]"
+                className="inline-flex min-h-11 items-center gap-2 text-[14px] font-semibold text-[var(--lp-workspace-ink)] transition-colors hover:text-[var(--lp-accent)]"
               >
                 {receipt.key === 'funding' ? copy.legacyFunding : copy.legacyRefund}
-                <span className="tabular-nums">{shortProof(receipt.txHash)}</span>
-                <span aria-hidden>↗</span>
+                <span className="mono text-[13px] font-normal tabular-nums text-[var(--lp-workspace-muted)]">{shortProof(receipt.txHash)}</span>
+                <Icon name="arrow-up-right" size={16} directional />
               </a>
             ))}
           </div>

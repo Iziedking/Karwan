@@ -13,6 +13,7 @@ test('the sounds switch mutes money sounds on this device', async ({ page }) => 
       return route.fulfill({ json: { user: { address: ME, method: 'circle', hasPasskey: true }, profile: null } });
     }
     if (path.startsWith('/api/client-errors')) return route.fulfill({ status: 204, body: '' });
+    if (path === '/api/assistant/memory') return route.fulfill({ json: { enabled: true, notes: [] } });
     return route.fulfill({ json: { items: [], events: [], movements: [], messages: [], bridges: [] } });
   });
   await page.goto('/settings');
