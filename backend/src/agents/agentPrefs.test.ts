@@ -3,7 +3,7 @@ import test from 'node:test';
 import type { AgentWallets } from '../db/agentWallets.js';
 import type { UserProfile } from '../db/profiles.js';
 import { joinsMarket, toSellerProfile } from './agent-registry.js';
-import { alreadySuggested, shouldSuggest, suggestionEvent } from './suggestion.js';
+import { alreadySuggested, paysForResearch, shouldSuggest, suggestionEvent, suggestionKey } from './suggestion.js';
 import type { KarwanEvent } from '../events.js';
 
 /// What the setup answers change in the selling agent (view 19): "Find clients
@@ -54,4 +54,13 @@ test('a suggestion already in the history is not sent again after a restart', ()
   ] as unknown as KarwanEvent[];
   assert.equal(alreadySuggested(history, '0xJOB', '0xOwner'), true);
   assert.equal(alreadySuggested(history, '0xjob2', '0xowner'), false);
+});
+
+test('ask me first pays for no market research: the suggestion prices on what is cached', () => {
+  assert.equal(paysForResearch('offers'), true);
+  assert.equal(paysForResearch('ask'), false);
+});
+
+test('the durable suggestion record is keyed by owner and request, whatever the case', () => {
+  assert.equal(suggestionKey('0xOWNER', '0xJob'), '0xowner|0xjob');
 });

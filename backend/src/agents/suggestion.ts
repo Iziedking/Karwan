@@ -32,3 +32,15 @@ export function alreadySuggested(history: readonly KarwanEvent[], jobId: string,
     return String(p?.jobId ?? '').toLowerCase() === job && String(p?.sellerUser ?? '').toLowerCase() === owner;
   });
 }
+
+/// "Ask me first" makes no paid market read: the suggestion prices on what is
+/// already cached, and the owner decides the real price.
+export function paysForResearch(mode: AgentMode): boolean {
+  return mode !== 'ask';
+}
+
+/// The durable record that this owner was told about this request, so a
+/// request older than the event ring is still suggested only once.
+export function suggestionKey(sellerUser: string, jobId: string): string {
+  return `${sellerUser.toLowerCase()}|${jobId.toLowerCase()}`;
+}

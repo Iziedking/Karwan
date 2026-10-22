@@ -181,6 +181,13 @@ const eraser: Eraser = {
     { name: 'direct messages', run: (address) => liveDirect.forget(address) },
     { name: 'rating notes', run: (address) => scrubNotesBy(address) },
     { name: 'assistant conversations', run: (address) => deleteConversationsOf(address) },
+    {
+      name: 'agent suggestions',
+      run: async (address) => {
+        const owner = `${address.toLowerCase()}|`;
+        for (const r of await listRecords('suggested')) if (r.key.startsWith(owner)) await deleteRecord('suggested', r.key);
+      },
+    },
     { name: 'delivery questions', run: (address) => deleteRecord('delivery-q', address.toLowerCase()) },
   ],
   dropChatAccount: async (address) => {

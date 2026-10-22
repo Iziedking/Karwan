@@ -27,7 +27,8 @@ import {
 import { logger } from '../logger.js';
 import { reportError } from '../errorTracker.js';
 import { bus } from '../events.js';
-import { alreadySuggested, shouldSuggest, suggestionEvent } from './suggestion.js';
+import { alreadySuggested, paysForResearch, shouldSuggest, suggestionEvent, suggestionKey } from './suggestion.js';
+import { getRecord, putRecord } from '../db/evidence.js';
 import type { SellerProfile } from './seller-profile.js';
 import {
   MAX_COUNTER_ROUNDS,
@@ -1232,12 +1233,14 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
   // lands during the collection window and tunes the counter rounds. This is the
   // opening-bid half of review #3 (opening prices before research arrives).
   let researchAwaited = false;
-  if (config.RESEARCH_AWAIT_ENABLED && dealKeywords.length > 0) {
+  // "Ask me first" pays for no research; the owner sets the real price.
+  const research = paysForResearch(seller.agentMode ?? 'offers');
+  if (research && config.RESEARCH_AWAIT_ENABLED && dealKeywords.length > 0) {
     researchAwaited = await settledWithin(
       maybeSellerResearch(seller, dealKeywords, job.jobId),
       RESEARCH_AWAIT_DEADLINE_MS,
     );
-  } else {
+  } else if (research) {
     void maybeSellerResearch(seller, dealKeywords, job.jobId);
   }
   // Counterparty verification is paid at MATCH, not during the auction: the
@@ -1299,12 +1302,15 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
 
   // "Ask me first": tell the owner about the request at this price, once, and
   // let them make the offer themselves.
-  const step = shouldSuggest(
-    seller.agentMode ?? 'offers',
-    alreadySuggested(bus.recent(HISTORY_SCAN), job.jobId, seller.userAddress),
+  const mode = seller.agentMode ?? 'offers';
+  const told = mode === 'ask' && (
+    alreadySuggested(bus.recent(HISTORY_SCAN), job.jobId, seller.userAddress) ||
+    !!(await getRecord('suggested', suggestionKey(seller.userAddress, job.jobId)).catch(() => null))
   );
+  const step = shouldSuggest(mode, told);
   if (step !== 'bid') {
     if (step === 'suggest') {
+      await putRecord('suggested', suggestionKey(seller.userAddress, job.jobId), { at: Date.now() }).catch(() => {});
       bus.emitEvent(suggestionEvent({ sellerUser: seller.userAddress, jobId: job.jobId, priceUsdc: opening.toFixed(2), title: requestTitle(job.briefText) ?? '' }));
       logger.info({ jobId: job.jobId, seller: seller.address }, 'ask me first: suggested to the owner, no bid');
     }
