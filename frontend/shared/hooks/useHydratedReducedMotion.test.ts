@@ -36,5 +36,6 @@ test('animations are reduced from the first frame and render-time reads are gone
   assert.match(source('shared/components/AppProviders.tsx'), /<MotionConfig reducedMotion="user">/);
   assert.doesNotMatch(source('shared/components/ProfileDeck.tsx'), /matchMedia\('\(prefers-reduced-motion/);
   assert.match(source('app/stake/page.tsx'), /const \[n, setN\] = useState\(0\);/);
-  assert.match(source('shared/components/RouteStage.tsx'), /motion-reduce:hidden/);
+  // A route change has no animation at all, so there is nothing to reduce.
+  assert.doesNotMatch(source('shared/components/RouteStage.tsx'), /from 'motion\/react'/);
 });

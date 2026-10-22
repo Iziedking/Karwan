@@ -3,7 +3,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import test from 'node:test';
-import { MESSAGES } from './messages';
+import { MESSAGES } from './messages/all';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const read = (file: string) => readFileSync(path.join(root, file), 'utf8');

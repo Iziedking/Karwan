@@ -345,7 +345,9 @@ test('signed-out entry is a focused account-access page, not a second landing', 
   const gate = source('./SignInGate.tsx');
   const css = source('./SignInGate.module.css');
   assert.match(gate, /<h1 className=\{styles\.headline\}>/);
-  assert.match(gate, /window\.location\.assign\(START_ROUTE\)/);
+  // Sign-in opens in place: a full reload would start a second cold splash.
+  assert.match(gate, /router\.push\(START_ROUTE\)/);
+  assert.doesNotMatch(gate, /window\.location\.assign/);
   assert.doesNotMatch(gate, /LoginModal/);
   assert.match(gate, /<Link href="\/market">\{copy\.browseLink\}<\/Link>/);
   assert.doesNotMatch(gate, /<figure|example\.note|agreementSubject/);

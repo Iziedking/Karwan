@@ -103,7 +103,7 @@ export function HeroFlow() {
         />
 
         {/* Stage labels on the top track. */}
-        <g fontSize="9.5" fill={SUB} fontFamily="var(--font-geist, sans-serif)" textAnchor="middle">
+        <g fontSize="9.5" fill={SUB} fontFamily="var(--font-sans, sans-serif)" textAnchor="middle">
           <text x="105" y="128">{t.stages.request}</text>
           <text x="160" y="128">{t.stages.bid}</text>
           <text x="215" y="128">{t.stages.counter}</text>
@@ -266,7 +266,7 @@ function Node({
         fontSize="12"
         fontWeight="700"
         fill={INK_ACTIVE}
-        fontFamily="var(--font-geist, sans-serif)"
+        fontFamily="var(--font-sans, sans-serif)"
       >
         {label}
       </text>
@@ -276,7 +276,7 @@ function Node({
         textAnchor={labelAnchor}
         fontSize="9.5"
         fill={SUB}
-        fontFamily="var(--font-geist, sans-serif)"
+        fontFamily="var(--font-sans, sans-serif)"
       >
         {sublabel}
       </text>

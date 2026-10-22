@@ -43,3 +43,31 @@ export function subscribeSplashRequest(listener: () => void): () => void {
 export function getSplashActiveServer(): boolean {
   return false;
 }
+
+/// A hold keeps the splash up past its usual "data settled" moment, for a
+/// handoff the splash cannot see: after sign-in, the server decides where the
+/// person goes, and the page they signed in on must not show again in between.
+/// Each hold returns its own release; the splash lifts once none are left.
+let holds = 0;
+const holdListeners = new Set<() => void>();
+
+export function holdSplash(): () => void {
+  holds += 1;
+  for (const l of holdListeners) l();
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    holds -= 1;
+    for (const l of holdListeners) l();
+  };
+}
+
+export function getSplashHeld(): boolean {
+  return holds > 0;
+}
+
+export function subscribeSplashHold(listener: () => void): () => void {
+  holdListeners.add(listener);
+  return () => holdListeners.delete(listener);
+}

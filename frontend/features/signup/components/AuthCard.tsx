@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { startAuthentication, browserSupportsWebAuthn } from '@simplewebauthn/browser';
@@ -24,6 +26,7 @@ import { RecoverFlow } from '@/features/recovery/components/RecoverFlow';
 import { RecoveryPasswordStep } from '@/features/recovery/components/RecoveryPasswordStep';
 import { START_CARD, START_TITLE } from '@/features/signup/components/cardStyles';
 import { passkeyFallback } from '../passkeyFallback';
+import { holdSplash, subscribeSplashRequest } from '@/shared/utils/splashSignal';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const HOME = DEALS_AVAILABLE ? '/app' : WALLET_HOME;
@@ -69,14 +72,48 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
   const recoveringRef = useRef(false);
   recoveringRef.current = recovering;
 
-  const goHome = useCallback(() => window.location.assign(HOME), []);
+  // One splash from sign-in to home. A sign-in raises the splash; it stays up,
+  // held, while the server decides where the person goes, so this card never
+  // shows again in between. Home opens in place: a full reload would start a
+  // second cold splash.
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const splashHold = useRef<(() => void) | null>(null);
+  const releaseSplash = useCallback(() => {
+    splashHold.current?.();
+    splashHold.current = null;
+  }, []);
+  useEffect(() => {
+    let safety: ReturnType<typeof setTimeout> | undefined;
+    const off = subscribeSplashRequest(() => {
+      splashHold.current ??= holdSplash();
+      // A sign-in that never resolves must not hold the splash for good.
+      clearTimeout(safety);
+      safety = setTimeout(releaseSplash, 15_000);
+    });
+    return () => {
+      off();
+      clearTimeout(safety);
+      releaseSplash();
+    };
+  }, [releaseSplash]);
+
+  const goHome = useCallback(() => {
+    splashHold.current ??= holdSplash();
+    // Queries read while signed out must not show on the signed-in home.
+    void queryClient.invalidateQueries();
+    router.replace(HOME);
+  }, [queryClient, router]);
 
   // Once a session exists, the server decides what happens next: an account
   // goes home, a session without one finishes sign-up at the tag or kind step.
   useEffect(() => {
     if (auth.isLoading || !auth.isAuthenticated || !auth.address) return;
     // A recovery signs in partway through; it finishes on its own screen.
-    if (recoveringRef.current) return;
+    if (recoveringRef.current) {
+      releaseSplash();
+      return;
+    }
     const key = auth.address.toLowerCase();
     if (resolvedFor.current === key) return;
     resolvedFor.current = key;
@@ -95,6 +132,7 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
       setAwaitingAuth(false);
       setBusy(null);
       setAuthedWithoutAccount(true);
+      releaseSplash();
       setMode('signup');
       setUpStep(normalizeTag(tag) && tagState === 'available' ? 'kind' : 'tag');
     })();
@@ -103,7 +141,7 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
       // An interrupted check runs again instead of leaving the card empty.
       if (!settled) resolvedFor.current = null;
     };
-  }, [auth.isLoading, auth.isAuthenticated, auth.address, goHome, tag, tagState]);
+  }, [auth.isLoading, auth.isAuthenticated, auth.address, goHome, releaseSplash, tag, tagState]);
 
   // A wallet the person chose to connect here signs in straight away.
   useEffect(() => {

@@ -28,14 +28,6 @@ import { SITE_TITLE } from '@/shared/seo/routeTitle';
 // application errors in the console.
 const SPEED_INSIGHTS_AVAILABLE = process.env.VERCEL === '1';
 
-// Geist is self-hosted as a fallback (woff2 in ./fonts) instead of pulled from
-// next/font/google. General Sans carries the landing headlines.
-const geist = localFont({
-  src: [{ path: './fonts/Geist-Variable.woff2', weight: '100 900', style: 'normal' }],
-  variable: '--font-geist',
-  display: 'swap',
-});
-
 // General Sans, self-hosted. Previously pulled from Fontshare via a
 // render-blocking third-party stylesheet with no metric-matched fallback, which
 // reflowed every headline + paragraph on swap (the dominant CLS source).
@@ -141,7 +133,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang={DEFAULT_LOCALE}
       dir="ltr"
-      className={`${geist.variable} ${generalSans.variable} ${manrope.variable} ${notoArabic.variable} ${notoDevanagari.variable}`}
+      className={`${generalSans.variable} ${manrope.variable} ${notoArabic.variable} ${notoDevanagari.variable}`}
       suppressHydrationWarning
     >
       <head>

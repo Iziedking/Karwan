@@ -1,5 +1,5 @@
 'use client';
-
+import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/core/api';
@@ -17,6 +17,7 @@ export default function AppHome() {
   const { profile, isConnected, loading, fetchState } = useUserProfile();
   const { activeWorkspace, isBusinessWorkspace } = useWorkspaceContext();
   const { isLoading: authLoading } = useAuth();
+  const router = useRouter();
   const statusQuery = useQuery({
     queryKey: qk.status(),
     queryFn: () => api.status(),
@@ -24,9 +25,9 @@ export default function AppHome() {
   });
   useEffect(() => {
     if (isConnected && fetchState === 'success' && !profile) {
-      window.location.assign('/start?mode=signup');
+      router.replace('/start?mode=signup');
     }
-  }, [fetchState, isConnected, profile]);
+  }, [fetchState, isConnected, profile, router]);
 
   if (authLoading) return <HomeSkeleton />;
   if (!isConnected) return <SignInGate variant="hero" />;

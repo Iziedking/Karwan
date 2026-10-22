@@ -1,5 +1,6 @@
 'use client';
 import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { DEALS_AVAILABLE } from '@/core/arcNetwork';
 import { isChatAccountEmail } from '@/shared/auth/chatAccount';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -13,13 +14,14 @@ import { useUserProfile } from '@/shared/hooks/useUserProfile';
 export function ProfileGate() {
   const { profile, isConnected, fetchState } = useUserProfile();
   const { email } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     if (DEALS_AVAILABLE || isChatAccountEmail(email)) return;
     if (isConnected && fetchState === 'success' && !profile) {
-      window.location.assign('/start?mode=signup');
+      router.replace('/start?mode=signup');
     }
-  }, [email, fetchState, isConnected, profile]);
+  }, [email, fetchState, isConnected, profile, router]);
 
   return null;
 }

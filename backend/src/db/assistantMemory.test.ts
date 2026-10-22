@@ -40,3 +40,9 @@ test('one note, every note, or the whole account can be forgotten', async () => 
   await deleteMemoryOf('0xa');
   assert.equal((await getMemory('0xa')).enabled, true);
 });
+
+test('replies finishing together each keep their notes', async () => {
+  __resetMemoryForTest();
+  await Promise.all(['One', 'Two', 'Three', 'Four'].map((t) => addNotes('0xa', { add: [t], replace: [] })));
+  assert.deepEqual((await getMemory('0xa')).notes.map((n) => n.text).sort(), ['Four', 'One', 'Three', 'Two']);
+});

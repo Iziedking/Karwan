@@ -1,9 +1,9 @@
 'use client';
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { usePathname } from 'next/navigation';
 import { useIsFetching } from '@tanstack/react-query';
 import { isLandingRoute } from '@/shared/utils/routes';
-import { setSplashActive, subscribeSplashRequest } from '@/shared/utils/splashSignal';
+import { getSplashHeld, setSplashActive, subscribeSplashHold, subscribeSplashRequest } from '@/shared/utils/splashSignal';
 
 // Layout effect on the client (runs before the browser paints), plain effect on
 // the server (where layout effects no-op + warn). Used so the splash arms and
@@ -22,13 +22,14 @@ const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : use
 /// lifts and the page's own skeleton takes over.
 ///
 /// Landing routes never show it.
-const MIN_MS = 600; // floor: let the new page's queries start; avoid a flicker
+const MIN_MS = 300; // floor: long enough for the page's queries to start, short enough not to be felt
 const MAX_MS = 5000; // cap: never hold longer than this, even on a slow page
 const STALL_MS = 12_000;
 
 export function GlobalLoadingSplash() {
   const pathname = usePathname();
   const isFetching = useIsFetching();
+  const held = useSyncExternalStore(subscribeSplashHold, getSplashHeld, () => false);
   const [active, setActive] = useState(() => !isLandingRoute(pathname));
   const [stalled, setStalled] = useState(false);
   const [mounted, setMounted] = useState(() => !isLandingRoute(pathname));
@@ -49,7 +50,8 @@ export function GlobalLoadingSplash() {
     startRef.current = Date.now();
     if (timersRef.current.cap) clearTimeout(timersRef.current.cap);
     if (timersRef.current.stall) clearTimeout(timersRef.current.stall);
-    timersRef.current.cap = setTimeout(() => setActive(false), MAX_MS);
+    // A held splash outlives the cap: lifting would show the page being left.
+    timersRef.current.cap = setTimeout(() => { if (!getSplashHeld()) setActive(false); }, MAX_MS);
     timersRef.current.stall = setTimeout(() => setStalled(true), STALL_MS);
   }, []);
 
@@ -108,12 +110,20 @@ export function GlobalLoadingSplash() {
   // Hide as soon as the incoming page's data has settled (nothing fetching)
   // past the MIN floor. Re-arms automatically if a new fetch starts before the
   // floor, so the splash waits for the page's real queries rather than a guess.
+  // When the last hold goes (the next page has mounted), the floor restarts so
+  // that page's own queries get to begin before the splash decides it is done.
+  const wasHeld = useRef(false);
   useEffect(() => {
-    if (!active || isFetching > 0) return;
+    if (wasHeld.current && !held) startRef.current = Date.now();
+    wasHeld.current = held;
+  }, [held]);
+
+  useEffect(() => {
+    if (!active || held || isFetching > 0) return;
     const wait = Math.max(0, MIN_MS - (Date.now() - startRef.current));
     const id = setTimeout(() => setActive(false), wait);
     return () => clearTimeout(id);
-  }, [active, isFetching]);
+  }, [active, held, isFetching]);
 
   // Fade out, then drop from the tree.
   useEffect(() => {

@@ -9,7 +9,7 @@ import {
   useState,
 } from 'react';
 import { DEFAULT_LOCALE, isLocale, isRtl, type Locale } from './locales';
-import { MESSAGES, type Messages } from './messages';
+import { EN_MESSAGES, loadMessages, type Messages } from './messages';
 import { cleanUiMessages } from './uiCopy';
 
 const LOCALE_COOKIE = 'karwan-locale';
@@ -39,6 +39,23 @@ function writeCookieLocale(locale: Locale) {
   document.cookie = `${LOCALE_COOKIE}=${encodeURIComponent(locale)}; path=/; max-age=${LOCALE_COOKIE_MAX_AGE}; samesite=lax`;
 }
 
+/// Cleaning walks the whole message tree, so each language is cleaned once.
+const cleaned = new WeakMap<Messages, Messages>();
+function clean(messages: Messages): Messages {
+  let out = cleaned.get(messages);
+  if (!out) {
+    out = cleanUiMessages(messages);
+    cleaned.set(messages, out);
+  }
+  return out;
+}
+
+/// A reader of another language starts fetching it while the page hydrates,
+/// not after the first render.
+const cookieAtBoot = readCookieLocale();
+const earlyLoad: Partial<Record<Locale, Promise<Messages>>> =
+  cookieAtBoot && cookieAtBoot !== 'en' ? { [cookieAtBoot]: loadMessages(cookieAtBoot) } : {};
+
 export function LocaleProvider({
   initialLocale,
   children,
@@ -47,6 +64,24 @@ export function LocaleProvider({
   children: React.ReactNode;
 }) {
   const [locale, setLocaleState] = useState<Locale>(initialLocale ?? DEFAULT_LOCALE);
+  // The copy on screen and its locale move together, once the chunk arrives,
+  // so text, number formats and direction never disagree.
+  const [shown, setShown] = useState<{ locale: Locale; messages: Messages }>({ locale: 'en', messages: EN_MESSAGES });
+
+  useEffect(() => {
+    if (shown.locale === locale) return;
+    let live = true;
+    const pending = earlyLoad[locale] ?? loadMessages(locale);
+    delete earlyLoad[locale];
+    pending
+      .then((messages) => {
+        if (live) startTransition(() => setShown({ locale, messages }));
+      })
+      .catch(() => {
+        // A failed chunk keeps the current language; the next change retries.
+      });
+    return () => { live = false; };
+  }, [locale, shown.locale]);
 
   // After hydration, prefer the cookie value (covers the case where the
   // server-rendered default was English but the client has a saved preference).
@@ -69,9 +104,9 @@ export function LocaleProvider({
   /// direction.
   useEffect(() => {
     if (typeof document === 'undefined') return;
-    document.documentElement.lang = locale;
-    document.documentElement.dir = isRtl(locale) ? 'rtl' : 'ltr';
-  }, [locale]);
+    document.documentElement.lang = shown.locale;
+    document.documentElement.dir = isRtl(shown.locale) ? 'rtl' : 'ltr';
+  }, [shown.locale]);
 
   /// Wrap the state flip in startTransition so the locale swap doesn't block
   /// the click that fired it. The MESSAGES slice change re-renders every
@@ -87,8 +122,8 @@ export function LocaleProvider({
   }, []);
 
   const value = useMemo<LocaleContextValue>(
-    () => ({ locale, setLocale, t: cleanUiMessages(MESSAGES[locale]) }),
-    [locale, setLocale],
+    () => ({ locale: shown.locale, setLocale, t: clean(shown.messages) }),
+    [shown, setLocale],
   );
 
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
@@ -99,7 +134,7 @@ export function useLocale(): LocaleContextValue {
   if (!ctx) {
     // Fallback rather than throw, so any component used in a test or storybook
     // without the provider still renders English copy instead of crashing.
-    return { locale: DEFAULT_LOCALE, setLocale: () => {}, t: cleanUiMessages(MESSAGES[DEFAULT_LOCALE]) };
+    return { locale: DEFAULT_LOCALE, setLocale: () => {}, t: clean(EN_MESSAGES) };
   }
   return ctx;
 }

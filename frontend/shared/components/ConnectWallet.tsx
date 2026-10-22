@@ -1,6 +1,7 @@
 ﻿'use client';
 import { useEffect, useState, type ReactNode } from 'react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useRouter } from 'next/navigation';
 import { useBalance, useSwitchChain } from 'wagmi';
 import { formatUnits } from 'viem';
 import { arcChain } from '@/core/wagmi';
@@ -142,6 +143,7 @@ export function ConnectWalletButton({
   variant?: keyof typeof SIGN_IN_STYLE;
 } = {}) {
   const auth = useAuth();
+  const router = useRouter();
   const t = useTranslations().auth.walletPill;
   const [accountOpen, setAccountOpen] = useState(false);
   // Karwan runs on Arc. The bridge source chains (Base, Sepolia, OP, Arb,
@@ -239,7 +241,7 @@ export function ConnectWalletButton({
                   }
                   return (
                     <button
-                      onClick={() => window.location.assign(START_ROUTE)}
+                      onClick={() => router.push(START_ROUTE)}
                       type="button"
                       suppressHydrationWarning
                       className={SIGN_IN_STYLE[variant]}
@@ -277,7 +279,7 @@ export function ConnectWalletButton({
                 if (!auth.isAuthenticated) {
                   return (
                     <button
-                      onClick={() => window.location.assign(START_ROUTE)}
+                      onClick={() => router.push(START_ROUTE)}
                       type="button"
                       suppressHydrationWarning
                       className={SIGN_IN_STYLE[variant]}

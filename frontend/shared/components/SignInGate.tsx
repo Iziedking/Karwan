@@ -1,6 +1,7 @@
 ﻿'use client';
 import { type ReactNode } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { START_ROUTE } from '@/shared/utils/routes';
 import { DEALS_AVAILABLE } from '@/core/arcNetwork';
@@ -28,6 +29,7 @@ export function SignInGate({
   body?: ReactNode;
   buttonLabel?: string;
 }) {
+  const router = useRouter();
   const t = useTranslations();
   const isHero = variant === 'hero';
   const copy = t.auth.signInGate;
@@ -42,7 +44,7 @@ export function SignInGate({
             <p className={styles.eyebrow}>{resolvedTag}</p>
             <h1 className={styles.headline}>{title ?? copy.heroTitle}</h1>
             <p className={styles.lede}>{body ?? copy.heroBody}</p>
-            <button type="button" className={styles.entryAction} onClick={() => window.location.assign(START_ROUTE)}>
+            <button type="button" className={styles.entryAction} onClick={() => router.push(START_ROUTE)}>
               {resolvedButton}
               <span aria-hidden className="rtl-flip">→</span>
             </button>
@@ -84,7 +86,7 @@ export function SignInGate({
           <div className="fade-up fade-up-3 mt-7">
             <button
               type="button"
-              onClick={() => window.location.assign(START_ROUTE)}
+              onClick={() => router.push(START_ROUTE)}
               className="group inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--lp-accent)] px-[18px] py-[11px] text-[14px] font-semibold text-[var(--accent-ink)] transition-colors hover:bg-[var(--lp-accent-hover)]"
             >
               {resolvedButton}

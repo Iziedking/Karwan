@@ -23,7 +23,7 @@
   --shadow-card: none;
   --shadow-card-hover: none;
   --shadow-pop: var(--sheet-shadow);
-  --font-sans: var(--font-manrope), var(--font-general-sans), var(--font-geist), ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  --font-sans: var(--font-manrope), var(--font-general-sans), ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
   --font-display: var(--font-general-sans), var(--font-manrope), ui-sans-serif, sans-serif;
   --font-body: var(--font-sans);
   --font-mono: var(--font-sans);
@@ -32,7 +32,7 @@
 
 :root {
   /* Runtime readers must not depend on Tailwind emitting a matching utility. */
-  --font-sans: var(--font-manrope), var(--font-general-sans), var(--font-geist), ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  --font-sans: var(--font-manrope), var(--font-general-sans), ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
   --font-display: var(--font-general-sans), var(--font-manrope), ui-sans-serif, sans-serif;
   --font-body: var(--font-sans);
   --font-mono: var(--font-sans);

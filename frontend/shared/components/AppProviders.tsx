@@ -14,11 +14,15 @@ import { LiveCallerSync } from '@/shared/components/LiveCallerSync';
 import { LocaleProvider } from '@/shared/i18n/LocaleProvider';
 import { RouteTitle } from '@/shared/components/RouteTitle';
 import { GuideProvider } from '@/shared/guide/GuideProvider';
-import { AssistantWidget } from '@/shared/components/AssistantWidget';
+import dynamic from 'next/dynamic';
 import { SiweGate } from '@/shared/components/SiweGate';
 import { GlobalLoadingSplash } from '@/shared/components/GlobalLoadingSplash';
 import { WorkspaceProvider } from '@/shared/hooks/useWorkspaceContext';
 import type { Locale } from '@/shared/i18n/locales';
+
+/// The Help panel is a launcher until it is opened, so its code (the chat
+/// thread, cards and live support) loads after the page instead of with it.
+const AssistantWidget = dynamic(() => import('@/shared/components/AssistantWidget').then((m) => m.AssistantWidget), { ssr: false });
 
 type Mode = 'light' | 'dark';
 

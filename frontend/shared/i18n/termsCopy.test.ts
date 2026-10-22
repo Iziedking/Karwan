@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { MESSAGES } from './messages';
+import { MESSAGES } from './messages/all';
 import { TERMS_DISPLAY_VERSION } from '../components/TermsContent';
 
 test('the terms describe mainnet with real USDC and passkey recovery, not a testnet-only product', () => {
