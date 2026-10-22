@@ -22,6 +22,23 @@ export interface AssistantModeCopy {
   pastClosed: string;
   loadError: string;
   askHome: string;
+  /// Why a reply did not come. Slow or failed: try again; offline or the
+  /// account unreadable: a person is joining.
+  errNoAccount: string;
+  errSlow: string;
+  errOffline: string;
+  errSnag: string;
+  remove: string;
+  removeTitle: string;
+  removeBody: string;
+  removeKeep: string;
+  removeFailed: string;
+  attach: string;
+  /// The line shown as your message when a file is added: {name}.
+  attached: string;
+  attachWrongType: string;
+  attachTooBig: string;
+  attachTooMany: string;
 }
 
 export const assistantModeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', AssistantModeCopy> = {
@@ -46,6 +63,20 @@ export const assistantModeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Assista
     pastClosed: 'Shown earlier. Check Activity to see whether it went through.',
     loadError: "That conversation didn't open. Try again in a moment.",
     askHome: 'What do you want to do? Ask your assistant',
+    errNoAccount: "I could not check your account just now, so I have not said anything happened. A person from the team is joining.",
+    errSlow: "That took too long. Try again.",
+    errOffline: "The assistant is offline right now. A person from the team is joining.",
+    errSnag: "Something went wrong on our side. Try again.",
+    remove: "Delete conversation",
+    removeTitle: "Delete this conversation?",
+    removeBody: "It is removed from your account and cannot be brought back. Nothing you confirmed in it is undone.",
+    removeKeep: "Keep it",
+    removeFailed: "That didn't delete. Try again in a moment.",
+    attach: "Add an invoice photo or PDF",
+    attached: "Added {name}",
+    attachWrongType: "Send a photo or a PDF.",
+    attachTooBig: "That file is over 10 MB.",
+    attachTooMany: "Too many files for now. Try again in a few minutes.",
   },
   fr: {
     use: "Utiliser l'assistant",
@@ -68,6 +99,20 @@ export const assistantModeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Assista
     pastClosed: 'Proposé plus tôt. Vérifiez dans Activité si c’est passé.',
     loadError: "Cette conversation ne s'est pas ouverte. Réessayez dans un instant.",
     askHome: 'Que voulez-vous faire ? Demandez à votre assistant',
+    errNoAccount: "Je n’ai pas pu vérifier votre compte à l’instant, donc je n’ai rien affirmé. Une personne de l’équipe arrive.",
+    errSlow: "Cela a pris trop de temps. Réessayez.",
+    errOffline: "L’assistant est hors ligne pour le moment. Une personne de l’équipe arrive.",
+    errSnag: "Un problème est survenu de notre côté. Réessayez.",
+    remove: "Supprimer la conversation",
+    removeTitle: "Supprimer cette conversation ?",
+    removeBody: "Elle est retirée de votre compte et ne peut pas être récupérée. Rien de ce que vous y avez confirmé n’est annulé.",
+    removeKeep: "La garder",
+    removeFailed: "La suppression a échoué. Réessayez dans un instant.",
+    attach: "Ajouter une photo ou un PDF de facture",
+    attached: "Ajouté : {name}",
+    attachWrongType: "Envoyez une photo ou un PDF.",
+    attachTooBig: "Ce fichier dépasse 10 Mo.",
+    attachTooMany: "Trop de fichiers pour le moment. Réessayez dans quelques minutes.",
   },
   ar: {
     use: 'استخدم المساعد',
@@ -90,6 +135,20 @@ export const assistantModeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Assista
     pastClosed: 'عُرض سابقًا. راجع النشاط لترى إن تم.',
     loadError: 'لم تُفتح تلك المحادثة. حاول بعد قليل.',
     askHome: 'ماذا تريد أن تفعل؟ اسأل مساعدك',
+    errNoAccount: "لم أتمكن من التحقق من حسابك الآن، لذلك لم أقل إن شيئًا حدث. شخص من الفريق ينضم إليك.",
+    errSlow: "استغرق ذلك وقتًا طويلًا. حاول مرة أخرى.",
+    errOffline: "المساعد غير متصل الآن. شخص من الفريق ينضم إليك.",
+    errSnag: "حدث خطأ من جهتنا. حاول مرة أخرى.",
+    remove: "احذف المحادثة",
+    removeTitle: "هل تحذف هذه المحادثة؟",
+    removeBody: "تُزال من حسابك ولا يمكن استعادتها. لا يُلغى أي شيء أكدته فيها.",
+    removeKeep: "أبقها",
+    removeFailed: "لم يتم الحذف. حاول بعد قليل.",
+    attach: "أضف صورة فاتورة أو ملف PDF",
+    attached: "أُضيف {name}",
+    attachWrongType: "أرسل صورة أو ملف PDF.",
+    attachTooBig: "هذا الملف أكبر من 10 ميغابايت.",
+    attachTooMany: "ملفات كثيرة الآن. حاول بعد بضع دقائق.",
   },
   hi: {
     use: 'सहायक का उपयोग करें',
@@ -112,6 +171,20 @@ export const assistantModeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Assista
     pastClosed: 'पहले दिखाया गया था। गतिविधि में देखें कि यह पूरा हुआ या नहीं।',
     loadError: 'वह बातचीत नहीं खुली। थोड़ी देर में फिर कोशिश करें।',
     askHome: 'आप क्या करना चाहते हैं? अपने सहायक से पूछें',
+    errNoAccount: "मैं अभी आपका खाता नहीं देख सका, इसलिए मैंने कुछ होने की बात नहीं कही। टीम का एक व्यक्ति जुड़ रहा है।",
+    errSlow: "इसमें बहुत समय लगा। फिर से कोशिश करें।",
+    errOffline: "सहायक अभी ऑफ़लाइन है। टीम का एक व्यक्ति जुड़ रहा है।",
+    errSnag: "हमारी ओर से कुछ गलत हुआ। फिर से कोशिश करें।",
+    remove: "बातचीत हटाएँ",
+    removeTitle: "यह बातचीत हटाएँ?",
+    removeBody: "यह आपके खाते से हट जाएगी और वापस नहीं लाई जा सकती। इसमें जो आपने पुष्टि की, वह रद्द नहीं होता।",
+    removeKeep: "रहने दें",
+    removeFailed: "हटाया नहीं जा सका। थोड़ी देर में फिर कोशिश करें।",
+    attach: "इनवॉइस की फ़ोटो या PDF जोड़ें",
+    attached: "{name} जोड़ा गया",
+    attachWrongType: "फ़ोटो या PDF भेजें।",
+    attachTooBig: "यह फ़ाइल 10 MB से बड़ी है।",
+    attachTooMany: "अभी बहुत सारी फ़ाइलें। कुछ मिनट में फिर कोशिश करें।",
   },
   sw: {
     use: 'Tumia msaidizi',
@@ -134,5 +207,19 @@ export const assistantModeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Assista
     pastClosed: 'Ilionyeshwa awali. Angalia Shughuli kuona kama ilikamilika.',
     loadError: 'Mazungumzo hayo hayakufunguka. Jaribu tena baada ya muda mfupi.',
     askHome: 'Unataka kufanya nini? Muulize msaidizi wako',
+    errNoAccount: "Sikuweza kuangalia akaunti yako sasa hivi, kwa hiyo sijasema kwamba kuna kilichotokea. Mtu wa timu anajiunga.",
+    errSlow: "Hilo limechukua muda mrefu. Jaribu tena.",
+    errOffline: "Msaidizi hayupo mtandaoni sasa. Mtu wa timu anajiunga.",
+    errSnag: "Kuna hitilafu upande wetu. Jaribu tena.",
+    remove: "Futa mazungumzo",
+    removeTitle: "Ufute mazungumzo haya?",
+    removeBody: "Yanaondolewa kwenye akaunti yako na hayawezi kurudishwa. Chochote ulichothibitisha ndani yake hakibatilishwi.",
+    removeKeep: "Yabaki",
+    removeFailed: "Hayakufutwa. Jaribu tena baada ya muda mfupi.",
+    attach: "Ongeza picha au PDF ya ankara",
+    attached: "Imeongezwa: {name}",
+    attachWrongType: "Tuma picha au PDF.",
+    attachTooBig: "Faili hilo linazidi MB 10.",
+    attachTooMany: "Faili nyingi kwa sasa. Jaribu tena baada ya dakika chache.",
   },
 };

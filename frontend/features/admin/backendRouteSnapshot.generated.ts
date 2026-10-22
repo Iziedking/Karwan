@@ -134,6 +134,7 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "GET", path: "/api/agents/seller" },
   { method: "POST", path: "/api/agents/seller/bids/abandon" },
   { method: "GET", path: "/api/agents/status" },
+  { method: "POST", path: "/api/assistant/attach" },
   { method: "POST", path: "/api/assistant/chat" },
   { method: "GET", path: "/api/assistant/conversations" },
   { method: "POST", path: "/api/assistant/conversations" },

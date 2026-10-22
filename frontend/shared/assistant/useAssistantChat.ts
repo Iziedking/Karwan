@@ -9,7 +9,9 @@ import { savedAction } from './savedAction';
 /// and the reply's actions. The help panel and the assistant page share it;
 /// the page also saves it to the account (`persist`).
 export function useAssistantChat(opts: { onNeedsHuman?: (transcript: Turn[]) => void; persist?: boolean; mode?: 'help' | 'assistant' } = {}) {
-  const t = useTranslations().assistant;
+  const copy = useTranslations();
+  const t = copy.assistant;
+  const m = copy.assistantMode;
   const [messages, setMessages] = useState<Turn[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -83,13 +85,13 @@ export function useAssistantChat(opts: { onNeedsHuman?: (transcript: Turn[]) => 
         const cannot = reason === 'assistant_state_unavailable' || code === 'assistant-unavailable';
         setError(
           reason === 'assistant_state_unavailable'
-            ? 'I could not check your account just now, so I have not said anything happened. A person from the team is joining.'
+            ? m.errNoAccount
             : code === 'assistant-timeout'
-              ? 'That took too long. Try again.'
+              ? m.errSlow
               : code === 'assistant-unavailable'
-                ? 'The assistant is offline right now. A person from the team is joining.'
+                ? m.errOffline
                 : code === 'assistant-error'
-                  ? 'Something went wrong on our side. Try again.'
+                  ? m.errSnag
                   : t.error,
         );
         if (cannot) onNeedsHuman?.(next);
@@ -97,7 +99,7 @@ export function useAssistantChat(opts: { onNeedsHuman?: (transcript: Turn[]) => 
         setBusy(false);
       }
     },
-    [busy, messages, onNeedsHuman, t.error, flush, mode],
+    [busy, messages, onNeedsHuman, t.error, m, flush, mode],
   );
 
   const reset = useCallback((to: Turn[] = []) => {
@@ -126,5 +128,38 @@ export function useAssistantChat(opts: { onNeedsHuman?: (transcript: Turn[]) => 
     [flush, reset],
   );
 
-  return { messages, send, busy, error, setError, reset, conversationId, open, startNew, flush };
+  /// A photo or PDF, read like one sent to the agent on Telegram: an invoice
+  /// for your own work. It shows as your message, and the reply as the agent's.
+  const attach = useCallback(
+    async (file: File) => {
+      if (busy) return;
+      void flush();
+      const next = [...messages, { role: 'user' as const, content: m.attached.replace('{name}', file.name) }];
+      setMessages(next);
+      setError(null);
+      setBusy(true);
+      try {
+        const { reply } = await api.assistantAttach(file);
+        setMessages([...next, { role: 'assistant', content: reply }]);
+      } catch (e) {
+        const status = e instanceof ApiError ? e.status : 0;
+        setError(status === 415 ? m.attachWrongType : status === 413 ? m.attachTooBig : status === 429 ? m.attachTooMany : m.errSnag);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [busy, messages, flush, m],
+  );
+
+  /// Deletes the open conversation from the account and starts an empty one.
+  /// Nothing on screen is saved first: that would bring it back.
+  const remove = useCallback(async () => {
+    const id = live.current.conversationId;
+    if (id) await api.deleteAssistantConversation(id);
+    live.current = { messages: [], conversationId: null, savedUpTo: 0 };
+    setConversationId(null);
+    reset();
+  }, [reset]);
+
+  return { messages, send, attach, busy, error, setError, reset, conversationId, open, startNew, flush, remove };
 }

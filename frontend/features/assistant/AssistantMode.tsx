@@ -9,6 +9,7 @@ import { AssistantThread } from '@/shared/assistant/AssistantThread';
 import { callPerson } from '@/shared/assistant/openHelp';
 import { useAssistantChat } from '@/shared/assistant/useAssistantChat';
 import { AuthGuard } from '@/shared/components/AuthGuard';
+import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
 import { Icon } from '@/shared/components/Icon';
 import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
@@ -46,6 +47,9 @@ function AssistantPage() {
   const [input, setInput] = useState('');
   const [listOpen, setListOpen] = useState(false);
   const [openError, setOpenError] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const [removeError, setRemoveError] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const list = useQuery({ queryKey: LIST_KEY, queryFn: () => api.assistantConversations().then((r) => r.conversations) });
 
@@ -90,6 +94,20 @@ function AssistantPage() {
     void queryClient.invalidateQueries({ queryKey: LIST_KEY });
   }
 
+  async function removeConversation() {
+    setRemoving(true);
+    setRemoveError(false);
+    try {
+      await chat.remove();
+      setConfirmRemove(false);
+      void queryClient.invalidateQueries({ queryKey: LIST_KEY });
+    } catch {
+      setRemoveError(true);
+    } finally {
+      setRemoving(false);
+    }
+  }
+
   async function startNew() {
     setListOpen(false);
     setOpenError(false);
@@ -120,6 +138,14 @@ function AssistantPage() {
         </div>
 
         <div className="mx-auto flex w-full max-w-[760px] flex-1 flex-col gap-3 px-4 pb-4 pt-6 sm:px-6 sm:pt-8">
+          {chat.conversationId ? (
+            <div className="flex justify-end">
+              <button type="button" onClick={() => { setRemoveError(false); setConfirmRemove(true); }} className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-[14px] font-semibold text-[var(--lp-text-sub)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" /></svg>
+                {t.remove}
+              </button>
+            </div>
+          ) : null}
           {empty ? (
             <motion.div initial={reduce ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: ease.out }} className="pt-6 sm:pt-12">
               <h1 className="text-[28px] font-bold tracking-[-0.03em] sm:text-[32px]">{greeting}</h1>
@@ -155,8 +181,23 @@ function AssistantPage() {
                 e.preventDefault();
                 void send(input);
               }}
-              className="flex items-end gap-2 rounded-[20px] border border-[var(--lp-outline-strong)] bg-[var(--lp-card)] py-2 pe-2 ps-4 focus-within:border-[var(--lp-accent)]"
+              className="flex items-end gap-2 rounded-[20px] border border-[var(--lp-outline-strong)] bg-[var(--lp-card)] py-2 pe-2 ps-2 focus-within:border-[var(--lp-accent)]"
             >
+              <label className="mb-0.5 grid size-11 shrink-0 cursor-pointer place-items-center rounded-[12px] text-[var(--lp-text-sub)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)] focus-within:ring-2 focus-within:ring-[var(--lp-accent)]">
+                <span className="sr-only">{t.attach}</span>
+                <Icon name="image-plus" size={20} />
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,application/pdf"
+                  className="sr-only"
+                  disabled={chat.busy}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = '';
+                    if (file) void chat.attach(file);
+                  }}
+                />
+              </label>
               <label htmlFor="assistant-ask" className="sr-only">{t.placeholder}</label>
               <textarea
                 id="assistant-ask"
@@ -186,6 +227,20 @@ function AssistantPage() {
           </div>
         </div>
       </section>
+
+      <ConfirmSheetShell open={confirmRemove} labelledBy="remove-conversation" busy={removing} onClose={() => setConfirmRemove(false)}>
+        <h2 id="remove-conversation" className="text-[20px] font-semibold text-[var(--lp-dark)]">{t.removeTitle}</h2>
+        <p className="mt-2 text-[15px] leading-relaxed text-[var(--lp-text-sub)]">{t.removeBody}</p>
+        {removeError ? <p role="alert" className="mt-3 text-[14px] font-medium text-[var(--color-critical)]">{t.removeFailed}</p> : null}
+        <div className="mt-5 grid gap-2">
+          <button type="button" disabled={removing} onClick={() => void removeConversation()} className="min-h-12 rounded-full bg-[var(--color-critical)] px-5 text-[15px] font-semibold text-white disabled:opacity-50">
+            {t.remove}
+          </button>
+          <button type="button" disabled={removing} onClick={() => setConfirmRemove(false)} className="min-h-12 rounded-full border border-[var(--lp-border-light)] px-5 text-[15px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)] disabled:opacity-50">
+            {t.removeKeep}
+          </button>
+        </div>
+      </ConfirmSheetShell>
 
       <AnimatePresence>
         {listOpen ? (

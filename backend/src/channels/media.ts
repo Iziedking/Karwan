@@ -10,7 +10,7 @@ const READABLE = /^(image\/(jpeg|png|webp)|application\/pdf)$/;
 export interface IntakeDeps {
   now: () => number;
   /// The channel the file arrived on, recorded as the fact's source.
-  channel: 'whatsapp' | 'telegram';
+  channel: 'whatsapp' | 'telegram' | 'web';
   /// The file the channel holds for this message, or null when it is missing
   /// or too large. `mimeType` is the type the channel reported with the
   /// message, for channels whose file lookup does not return one. Nothing is

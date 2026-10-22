@@ -101,3 +101,10 @@ test('only images and PDFs are read', async () => {
   assert.equal(facts.length, 0);
   assert.match(body(out), /photo or a PDF/i);
 });
+
+test('an invoice added from the website assistant is recorded as from the web, with the same next step as Telegram', async () => {
+  const { intake, facts } = setup({ channel: 'web' });
+  const out = await intake('0xada', media);
+  assert.equal(facts[0]!.source, 'web');
+  assert.match(body(out), /Ask me for a confirmation link and send it to them\./);
+});

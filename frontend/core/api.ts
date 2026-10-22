@@ -5163,6 +5163,17 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ ...(id ? { id } : {}), messages }),
     }),
+  /// A photo or PDF added in assistant mode, read as an invoice for your own
+  /// work, like one sent to the agent on Telegram. Multipart, so it does not
+  /// go through `json`, which would send it as JSON.
+  assistantAttach: async (file: File): Promise<{ reply: string }> => {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch(`${BASE}/api/assistant/attach`, { method: 'POST', body: form, credentials: 'include', cache: 'no-store' });
+    const body = (await res.json().catch(() => null)) as { reply?: string; error?: string } | null;
+    if (!res.ok || typeof body?.reply !== 'string') throw new ApiError(res.status, body?.error ?? res.statusText, undefined, undefined, body);
+    return { reply: body.reply };
+  },
   deleteAssistantConversation: (id: string) =>
     json<{ ok: true }>(`/api/assistant/conversations/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   /// Provider-neutral money movement orchestration. The API records intent and
