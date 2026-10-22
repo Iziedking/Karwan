@@ -1,12 +1,12 @@
 {
   "canonVersion": "0.4.0",
-  "canonUpdated": "2026-10-16",
+  "canonUpdated": "2026-10-20",
   "docs": [
     {
       "id": "agent-record-checks",
       "title": "Agents check each other before a deal",
       "status": "live",
-      "updated": "2026-10-18",
+      "updated": "2026-10-16",
       "tags": [
         "agents",
         "reputation",
@@ -20,7 +20,26 @@
           "date": "2026-10-16"
         }
       ],
-      "body": "On Arc Testnet, a Karwan agent pays 0.01 USD over x402 to read the other\nside's deal record before it commits. Payment settles through Circle Gateway.\nThe first live read ran on 16 October 2026.\n\nA buyer's agent reads each seller's record before building the shortlist, and\na seller's agent reads the buyer's record before it bids. The seller's agent\npasses on a buyer who has lost more disputes than they have completed, and\nflags a new buyer on a large request for the seller to look at. The seller desk\nshows what was paid and what the agent learned.\n\nA record is read only when its owner has turned on Let agents check my record.\nThe details of a read are deleted after 24 hours, and the owner sees who read\ntheir record. People looking at a record see the rating and how many ratings it comes\nfrom, the tier, the verification level and the reasons. Only an agent acting\nfor someone on a live request or deal reads the score and counts, for that\none deal. Nobody sees deal amounts or who someone traded with.\n\nMainnet escrow is not enabled, so these checks run on testnet only."
+      "body": "On Arc Testnet, a Karwan agent pays 0.01 USD over x402 to read the other\nside's deal record before it commits. Payment settles through Circle Gateway.\nThe first live read ran on 16 October 2026.\n\nA buyer's agent reads each seller's record before building the shortlist, and\na seller's agent reads the buyer's record before it bids. The seller's agent\npasses on a buyer who has lost more disputes than they have completed, and\nflags a new buyer on a large request for the seller to look at. The seller desk\nshows what was paid and what the agent learned.\n\nA record is read only when its owner has turned on Let agents check my record.\nThe details of a read are deleted after 24 hours, and the owner sees who read\ntheir record. Others see a score, a tier and counts, never deal amounts or who\nsomeone traded with.\n\nMainnet escrow is not enabled, so these checks run on testnet only."
+    },
+    {
+      "id": "assistant-mode-and-help",
+      "title": "Assistant mode and Help",
+      "status": "roadmap",
+      "updated": "2026-10-20",
+      "tags": [
+        "agents",
+        "assistant",
+        "testnet"
+      ],
+      "path": "public/product/assistant-mode-and-help.md",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/19-simple-karwan.md",
+          "date": "2026-10-20"
+        }
+      ],
+      "body": "With Use assistant switched on, the whole account runs from one\nconversation. You say what you want, your agent prepares it as a card, and\nnothing moves until you confirm the card. Conversations are kept on your\naccount. A card from an earlier conversation shows whether it was done and\ncan never be confirmed again.\n\nHelp answers how things work and what went wrong, from what your account\nshows. A person from the Karwan team joins the same conversation when you\nask for one, or when the assistant cannot do it, with the conversation so\nfar, so you do not repeat yourself.\n\nThis is built for testnet and not live yet."
     },
     {
       "id": "brand-colour",
@@ -199,6 +218,24 @@
       "body": "**Escrow.** A contract that holds the buyer's money while the work happens. It\nreleases against delivery, in milestones, and nobody can pull funds out of turn.\n\n**Milestone.** One slice of a deal. A deal splits into two to five. The last one\nalways needs the buyer to click.\n\n**Credit passport.** A public page built from a business's settled deals and\nrepayment behaviour. It belongs to the wallet, so it moves with the business\nrather than living on the platform.\n\n**Factoring.** Selling an invoice for less than face to be paid now instead of on\nsettlement. The discount is the cost of the wait.\n\n**Purchase-order financing.** Working capital advanced before delivery, against a\npurchase order whose escrow is already funded.\n\n**Receivable assignment.** Recording, on the escrow, that a financier is paid\nahead of the supplier at settlement. It is what makes financing non-recourse: the\nfinancier is repaid by the contract rather than by chasing the supplier.\n\n**x402.** A payment standard for machine-to-machine calls, used here so an agent\ncan pay a fraction of a cent for a single piece of data.\n\n**USYC.** A tokenised T-bill fund. Idle balance is parked in it so capital earns\nwhile it waits."
     },
     {
+      "id": "how-karwan-is-built",
+      "title": "How Karwan is built",
+      "status": "live",
+      "updated": "2026-10-18",
+      "tags": [
+        "direction",
+        "roadmap"
+      ],
+      "path": "public/product/how-karwan-is-built.md",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/00-direction.md",
+          "date": "2026-10-18"
+        }
+      ],
+      "body": "Karwan is building one reputation for the internet, starting with its open\nmarket. In the open market, freelancers, people trading goods and services, and\nsmall businesses make agreements locally and across borders. Every agreement is\nprotected by escrow and leaves a record that travels with the person, and trade\nfinance (purchase-order financing and invoice factoring) sits on the same\nescrow. It starts in Nigeria, then the regions behind Karwan's five languages:\nAfrica, the Middle East and South Asia. It is meant to feel like a normal\nbanking app.\n\nThe work is organised in six tracks, built one roadmap item at a time: finding\nand agreeing a deal, protected deals, reputation that travels, trade finance,\nmoney that works like a bank account, and the channels where people talk to\ntheir agent. Each track is described in Karwan's public architecture views,\nwith what is live, built and planned.\n\nSome things wait until the core market works end to end: partner and developer\npages wait for unified reputation, and the newsletter waits for a full working\nproduct. Do not describe parked work as available."
+    },
+    {
       "id": "invoice-factoring",
       "title": "Invoice factoring",
       "status": "live",
@@ -234,6 +271,25 @@
         }
       ],
       "body": "Local bank payout corridors are planned and are not live in the current Arc\nTestnet release. A local trade can be created today, but its present settlement\nuses test USDC.\n\nKarwan plans to keep USDC as the cross-border settlement layer while approved\npayout infrastructure converts to local currency. Each corridor must pass\navailability, compliance, recipient, fee, foreign-exchange, reconciliation,\nrefund and support gates before launch."
+    },
+    {
+      "id": "messages-by-tag",
+      "title": "Message anyone by their Karwan tag",
+      "status": "roadmap",
+      "updated": "2026-10-17",
+      "tags": [
+        "agents",
+        "chat",
+        "testnet"
+      ],
+      "path": "public/product/messages-by-tag.md",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/16-feedback-and-location.md",
+          "date": "2026-10-17"
+        }
+      ],
+      "body": "A person can ask their agent to message someone by Karwan tag before any\ndeal, for example \"send @ada a message: do you make agbada?\". Ada gets it in\nher Karwan chat, with an alert on Telegram and by email, and sees the sender's\ntag, country and tier. She answers with her agent's help.\n\nWhen they agree, either agent starts the protected deal. Money never moves\nfrom a message. A message with a phone number, an email or a link, sent\nbefore any deal between the two, carries a warning to keep payment in Karwan\nescrow. Someone whose first messages to five people in a day all go\nunanswered is paused from writing to anyone new for a day, and three messages\nin a row with no answer wait for a reply. Only someone with a Karwan tag can\nmessage, and a message with a link Karwan flags is not sent. Messages are kept\n14 days.\n\nThis is built for testnet and not live."
     },
     {
       "id": "milestone-escrow",
@@ -301,7 +357,7 @@
       "path": "public/proof/network.md",
       "sources": [
         {
-          "url": "https://explorer.testnet.arc.io",
+          "url": "https://testnet.arcscan.app",
           "date": "2026-07-27"
         },
         {
@@ -314,6 +370,25 @@
         }
       ],
       "body": "Karwan runs on Arc Testnet, chain 5042002, where USDC is the gas token.\n\nEvery contract in the live bundle is verified on the explorer. The escrow's\narbiter is a 2-of-3 Safe, so a disputed escrow cannot be resolved by one key.\n\nContract addresses are published and readable by anyone. Treat the explorer as\nthe source of truth on any disagreement with a document: the chain is the record,\nand a page describing it is a copy.\n\nOn Arc mainnet, chain 5042, two Karwan contracts are live and verified on\nSourcify, both owned by a 2-of-3 Safe: KarwanReputation at\n0xa8E41F941b44CA091E3Ab7b600fe1484838aE27D, which records completed deal\noutcomes, and KarwanBusinessRegistry at\n0x69eA60B6EFd13A126Eb00d25aB0f21A4AfC636eF, which records that a business's\ndocuments were checked, storing only a document hash. Neither holds customer\nmoney. Mainnet escrow is not enabled until the contracts and backend pass an\nexternal audit."
+    },
+    {
+      "id": "ratings-after-deals",
+      "title": "Ratings after a settled deal",
+      "status": "roadmap",
+      "updated": "2026-10-17",
+      "tags": [
+        "reputation",
+        "agents",
+        "testnet"
+      ],
+      "path": "public/product/ratings-after-deals.md",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/16-feedback-and-location.md",
+          "date": "2026-10-17"
+        }
+      ],
+      "body": "After a deal settles on Karwan, each person's agent asks them to rate the\nother from 1 to 5, with an optional note, and reminds them once after three\ndays. A rating shows as soon as it is given.\n\nEach person's public rating is the average of the ratings shown, with how\nmany there are, for example \"4.8 from 23 deals\". Under three ratings it shows\n\"New\". Only the two people in a settled deal can rate it, once each, within 14 days\nof it settling. Ratings from disputed deals are counted beside the number,\nfor example \"3.7 from 3 deals, 2 disputed\". A note with a phone number, an email\nor a link is kept private.\n\nThe rating is separate from the reputation score and does not change it.\nAgents use it when ranking people, after skill fit, location and\nverification.\n\nThis is built for testnet and not live."
     },
     {
       "id": "release-timing",
@@ -334,6 +409,25 @@
       "body": "The review window is not one fixed number.\n\nIt grows with the size of the deal and shrinks as two parties build a settled\nhistory together. On a goods deal it cannot expire while the shipment is still in\ntransit, and agreed Net terms hold it open for the full term. Marking goods\ndelivered means dispatched, not arrived.\n\nThe same window governs the unattended release and the seller's own claim. When\nthose two disagreed, the protection was one button wide: a Net 30 deal held off\nthe automatic release for thirty days while the seller could force the payout on\nday one.\n\nNothing in the window keys off quality. The contract cannot observe whether the\nwork was any good, and a timer that pretended to would be a slower way of\nguessing."
     },
     {
+      "id": "setup-and-agent-choices",
+      "title": "Setting up Karwan the way you use it",
+      "status": "roadmap",
+      "updated": "2026-10-20",
+      "tags": [
+        "agents",
+        "onboarding",
+        "testnet"
+      ],
+      "path": "public/product/setup-and-agent-choices.md",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/19-simple-karwan.md",
+          "date": "2026-10-20"
+        }
+      ],
+      "body": "After agent wallets are active, Karwan asks what you want it to do: get paid\nfor your work, sell products, buy or hire, run business deals, or build a\nrecord clients trust. It then asks only what those answers need, such as\nwhat you do, your usual price and how fast you deliver, and where you are.\nIt shows the result as \"Here's your Karwan\" and saves nothing until you\nsay it looks right. The same questions run on the website, in Telegram, and\nfrom a conversation with your agent.\n\nThree answers change what your agents do. If you only work with clients you\nalready have, your selling agent stays off the market. If you choose \"Ask me\nfirst\", it does not make offers on its own: it tells you about a request that\nfits and you decide. \"How should we reach you\" picks Telegram, email or both.\nMoney never moves without your confirmation.\n\nThis is built for testnet and not live yet."
+    },
+    {
       "id": "social-lookups-roadmap",
       "title": "Reputation lookups from connected social accounts",
       "status": "roadmap",
@@ -350,7 +444,7 @@
           "date": "2026-10-16"
         }
       ],
-      "body": "Karwan plans to let a person connect their social accounts, so an agent can\nfind their Karwan record by handle.\n\nThe first piece is built for the Karwan Telegram bot and is not live yet:\nanyone can ask the agent to check a Telegram username, and it answers with\nthat person's public record (name, tag, tier and fixed reasons) and one line\nof advice. Never a score or a count. A person is found by their Telegram\nname only if they allowed it.\n\nConnecting other accounts will be optional, in the agent workspace, and only\nwith the person's consent. Ownership is proven by signing in where the\nnetwork offers it, or by placing a code on the profile where it does not, so\na link alone never claims someone else's account. A linked handle is not\nproof of identity.\n\nLocation works the same way. A person tells their agent where they are; only\nthe country is ever shown, and city and area are used to match them with\npeople near them. This is built for testnet and not live.\n\nNo network is a partner, and none is named as one."
+      "body": "Karwan plans to let a person connect their social accounts, so an agent can\nfind their Karwan record by handle. A buyer could ask their agent to check a\nTelegram username and get back that person's tier, reasons and counts.\n\nConnecting an account will be optional, in the agent workspace, and only with\nthe person's consent. Ownership is proven by signing in where the network\noffers it, or by placing a code on the profile where it does not, so a link\nalone never claims someone else's account. A linked handle is not proof of\nidentity.\n\nThis is not built yet. No network is a partner, and none is named as one."
     },
     {
       "id": "trade-anywhere-roadmap",
@@ -431,100 +525,6 @@
         }
       ],
       "body": "On an agent deal on Arc Testnet, Karwan's trust rules ask a person to confirm\nwith World ID only for one of four reasons: their first deal, a deal of 1,000\nUSDC or more, many deals from a new account in one day, or a link they sent\nearlier that was judged malicious.\n\nThe buyer confirms when choosing an offer. The seller confirms before escrow\nfunds, and escrow funds as soon as they pass. A person who already passed World\nID anywhere on Karwan is not asked again for a first deal.\n\nA price far from the market, a low score or a link judged only suspicious never\nasks for World ID. Replayed over 197 testnet deals, these rules asked on 55\ndeals, down from 97 under the earlier rules.\n\nOn testnet the check can be skipped so testing is never blocked. World ID is\nnot configured on mainnet, where escrow is not enabled yet."
-    },
-    {
-      "id": "messages-by-tag",
-      "title": "Message anyone by their Karwan tag",
-      "status": "roadmap",
-      "updated": "2026-10-17",
-      "tags": [
-        "agents",
-        "chat",
-        "testnet"
-      ],
-      "path": "public/product/messages-by-tag.md",
-      "sources": [
-        {
-          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/16-feedback-and-location.md",
-          "date": "2026-10-17"
-        }
-      ],
-      "body": "A person can ask their agent to message someone by Karwan tag before any\ndeal, for example \"send @ada a message: do you make agbada?\". Ada gets it in\nher Karwan chat, with an alert on Telegram and by email, and sees the sender's\ntag, country and tier. She answers with her agent's help.\n\nWhen they agree, either agent starts the protected deal. Money never moves\nfrom a message. A message with a phone number, an email or a link, sent\nbefore any deal between the two, carries a warning to keep payment in Karwan\nescrow. Someone whose first messages to five people in a day all go\nunanswered is paused from writing to anyone new for a day, and three messages\nin a row with no answer wait for a reply. Only someone with a Karwan tag can\nmessage, and a message with a link Karwan flags is not sent. Messages are kept\n14 days.\n\nThis is built for testnet and not live."
-    },
-    {
-      "id": "ratings-after-deals",
-      "title": "Ratings after a settled deal",
-      "status": "roadmap",
-      "updated": "2026-10-17",
-      "tags": [
-        "reputation",
-        "agents",
-        "testnet"
-      ],
-      "path": "public/product/ratings-after-deals.md",
-      "sources": [
-        {
-          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/16-feedback-and-location.md",
-          "date": "2026-10-17"
-        }
-      ],
-      "body": "After a deal settles on Karwan, each person's agent asks them to rate the\nother from 1 to 5, with an optional note, and reminds them once after three\ndays. A rating shows as soon as it is given.\n\nEach person's public rating is the average of the ratings shown, with how\nmany there are, for example \"4.8 from 23 deals\". Under three ratings it shows\n\"New\". Only the two people in a settled deal can rate it, once each, within 14 days\nof it settling. Ratings from disputed deals are counted beside the number,\nfor example \"3.7 from 3 deals, 2 disputed\". A note with a phone number, an email\nor a link is kept private.\n\nThe rating is separate from the reputation score and does not change it.\nAgents use it when ranking people, after skill fit, location and\nverification.\n\nThis is built for testnet and not live."
-    },
-    {
-      "id": "how-karwan-is-built",
-      "title": "How Karwan is built",
-      "status": "live",
-      "updated": "2026-10-18",
-      "tags": [
-        "direction",
-        "roadmap"
-      ],
-      "path": "public/product/how-karwan-is-built.md",
-      "sources": [
-        {
-          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/00-direction.md",
-          "date": "2026-10-18"
-        }
-      ],
-      "body": "Karwan is building one reputation for the internet, starting with its open\nmarket. In the open market, freelancers, people trading goods and services, and\nsmall businesses make agreements locally and across borders. Every agreement is\nprotected by escrow and leaves a record that travels with the person, and trade\nfinance (purchase-order financing and invoice factoring) sits on the same\nescrow. It starts in Nigeria, then the regions behind Karwan's five languages:\nAfrica, the Middle East and South Asia. It is meant to feel like a normal\nbanking app.\n\nThe work is organised in six tracks, built one roadmap item at a time: finding\nand agreeing a deal, protected deals, reputation that travels, trade finance,\nmoney that works like a bank account, and the channels where people talk to\ntheir agent. Each track is described in Karwan's public architecture views,\nwith what is live, built and planned.\n\nSome things wait until the core market works end to end: partner and developer\npages wait for unified reputation, and the newsletter waits for a full working\nproduct. Do not describe parked work as available."
-    },
-    {
-      "id": "setup-and-agent-choices",
-      "title": "Setting up Karwan the way you use it",
-      "status": "roadmap",
-      "updated": "2026-10-20",
-      "tags": [
-        "agents",
-        "onboarding",
-        "testnet"
-      ],
-      "path": "public/product/setup-and-agent-choices.md",
-      "sources": [
-        {
-          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/19-simple-karwan.md",
-          "date": "2026-10-20"
-        }
-      ],
-      "body": "After agent wallets are active, Karwan asks what you want it to do: get paid\nfor your work, sell products, buy or hire, run business deals, or build a\nrecord clients trust. It then asks only what those answers need, such as\nwhat you do, your usual price and how fast you deliver, and where you are.\nIt shows the result as \"Here's your Karwan\" and saves nothing until you\nsay it looks right. The same questions run on the website, in Telegram, and\nfrom a conversation with your agent.\n\nThree answers change what your agents do. If you only work with clients you\nalready have, your selling agent stays off the market. If you choose \"Ask me\nfirst\", it does not make offers on its own: it tells you about a request that\nfits and you decide. \"How should we reach you\" picks Telegram, email or both.\nMoney never moves without your confirmation.\n\nThis is built for testnet and not live yet."
-    },
-    {
-      "id": "assistant-mode-and-help",
-      "title": "Assistant mode and Help",
-      "status": "roadmap",
-      "updated": "2026-10-20",
-      "tags": [
-        "agents",
-        "assistant",
-        "testnet"
-      ],
-      "path": "public/product/assistant-mode-and-help.md",
-      "sources": [
-        {
-          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/19-simple-karwan.md",
-          "date": "2026-10-20"
-        }
-      ],
-      "body": "With Use assistant switched on, the whole account runs from one\nconversation. You say what you want, your agent prepares it as a card, and\nnothing moves until you confirm the card. Conversations are kept on your\naccount. A card from an earlier conversation shows whether it was done and\ncan never be confirmed again.\n\nHelp answers how things work and what went wrong, from what your account\nshows. A person from the Karwan team joins the same conversation when you\nask for one, or when the assistant cannot do it, with the conversation so\nfar, so you do not repeat yourself.\n\nThis is built for testnet and not live yet."
     }
   ],
   "facts": [
@@ -556,6 +556,30 @@
       },
       "updated": "2026-10-16",
       "path": "public/product/agent-record-checks.md"
+    },
+    {
+      "id": "assistant-mode-and-help",
+      "title": "Assistant mode and Help",
+      "status": "roadmap",
+      "publishable": false,
+      "blockedBy": "not-live",
+      "capability": true,
+      "audience": "all",
+      "tags": [
+        "agents",
+        "assistant",
+        "testnet"
+      ],
+      "summary": "With Use assistant switched on, the whole account runs from one conversation. You say what you want, your agent prepares it as a card, and nothing moves until you confirm the card. Conversations are kept on your account. A card from an earlier conversation shows whether it was done and can never be confirmed again.",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/19-simple-karwan.md",
+          "date": "2026-10-20"
+        }
+      ],
+      "check": null,
+      "updated": "2026-10-20",
+      "path": "public/product/assistant-mode-and-help.md"
     },
     {
       "id": "brand-colour",
@@ -796,6 +820,33 @@
       "path": "public/glossary/terms.md"
     },
     {
+      "id": "how-karwan-is-built",
+      "title": "How Karwan is built",
+      "status": "live",
+      "publishable": true,
+      "blockedBy": "",
+      "capability": true,
+      "audience": "all",
+      "tags": [
+        "direction",
+        "roadmap"
+      ],
+      "summary": "Karwan is building one reputation for the internet, starting with its open market. In the open market, freelancers, people trading goods and services, and small businesses make agreements locally and across borders. Every agreement is protected by escrow and leaves a record that travels with the person, and trade finance (purchase-order financing and invoice factoring) sits on the same escrow. It starts in Nigeria, then the regions behind Karwan's five languages: Africa, the Middle East and South Asia. It is meant to feel like a normal banking app.",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/00-direction.md",
+          "date": "2026-10-18"
+        }
+      ],
+      "check": {
+        "kind": "manual",
+        "note": "How Karwan is built and its direction, from docs/architecture/00-direction.md; read against that file.",
+        "lastVerified": "2026-10-22"
+      },
+      "updated": "2026-10-18",
+      "path": "public/product/how-karwan-is-built.md"
+    },
+    {
       "id": "invoice-factoring",
       "title": "Invoice factoring",
       "status": "live",
@@ -845,6 +896,30 @@
       "check": null,
       "updated": "2026-09-01",
       "path": "public/product/local-payout-roadmap.md"
+    },
+    {
+      "id": "messages-by-tag",
+      "title": "Message anyone by their Karwan tag",
+      "status": "roadmap",
+      "publishable": false,
+      "blockedBy": "not-live",
+      "capability": true,
+      "audience": "all",
+      "tags": [
+        "agents",
+        "chat",
+        "testnet"
+      ],
+      "summary": "A person can ask their agent to message someone by Karwan tag before any deal, for example \"send @ada a message: do you make agbada?\". Ada gets it in her Karwan chat, with an alert on Telegram and by email, and sees the sender's tag, country and tier. She answers with her agent's help.",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/16-feedback-and-location.md",
+          "date": "2026-10-17"
+        }
+      ],
+      "check": null,
+      "updated": "2026-10-17",
+      "path": "public/product/messages-by-tag.md"
     },
     {
       "id": "milestone-escrow",
@@ -938,7 +1013,7 @@
       "summary": "Karwan runs on Arc Testnet, chain 5042002, where USDC is the gas token.",
       "sources": [
         {
-          "url": "https://explorer.testnet.arc.io",
+          "url": "https://testnet.arcscan.app",
           "date": "2026-07-27"
         },
         {
@@ -957,6 +1032,30 @@
       },
       "updated": "2026-10-16",
       "path": "public/proof/network.md"
+    },
+    {
+      "id": "ratings-after-deals",
+      "title": "Ratings after a settled deal",
+      "status": "roadmap",
+      "publishable": false,
+      "blockedBy": "not-live",
+      "capability": true,
+      "audience": "all",
+      "tags": [
+        "reputation",
+        "agents",
+        "testnet"
+      ],
+      "summary": "After a deal settles on Karwan, each person's agent asks them to rate the other from 1 to 5, with an optional note, and reminds them once after three days. A rating shows as soon as it is given.",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/16-feedback-and-location.md",
+          "date": "2026-10-17"
+        }
+      ],
+      "check": null,
+      "updated": "2026-10-17",
+      "path": "public/product/ratings-after-deals.md"
     },
     {
       "id": "release-timing",
@@ -986,6 +1085,30 @@
       "path": "public/product/release-timing.md"
     },
     {
+      "id": "setup-and-agent-choices",
+      "title": "Setting up Karwan the way you use it",
+      "status": "roadmap",
+      "publishable": false,
+      "blockedBy": "not-live",
+      "capability": true,
+      "audience": "all",
+      "tags": [
+        "agents",
+        "onboarding",
+        "testnet"
+      ],
+      "summary": "After agent wallets are active, Karwan asks what you want it to do: get paid for your work, sell products, buy or hire, run business deals, or build a record clients trust. It then asks only what those answers need, such as what you do, your usual price and how fast you deliver, and where you are. It shows the result as \"Here's your Karwan\" and saves nothing until you say it looks right. The same questions run on the website, in Telegram, and from a conversation with your agent.",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/19-simple-karwan.md",
+          "date": "2026-10-20"
+        }
+      ],
+      "check": null,
+      "updated": "2026-10-20",
+      "path": "public/product/setup-and-agent-choices.md"
+    },
+    {
       "id": "social-lookups-roadmap",
       "title": "Reputation lookups from connected social accounts",
       "status": "roadmap",
@@ -998,7 +1121,7 @@
         "reputation",
         "agents"
       ],
-      "summary": "Karwan plans to let a person connect their social accounts, so an agent can find their Karwan record by handle. Checking a Telegram username is built for the Karwan bot, not live yet, and answers with the public record and advice, never counts.",
+      "summary": "Karwan plans to let a person connect their social accounts, so an agent can find their Karwan record by handle. A buyer could ask their agent to check a Telegram username and get back that person's tier, reasons and counts.",
       "sources": [
         {
           "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/13-portable-reputation.md",
