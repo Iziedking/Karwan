@@ -34,7 +34,8 @@ const dealUrl = 'https://karwan.site/deals/0x46094ce6ea8b83421db3c59386cb2e52ea5
 write('otp', otpEmailHtml('447301'));
 write('confirm-email', verifyEmailHtml('582914'));
 write('deal-invite', dealInviteHtml({
-  to: 'ada@example.com', claimUrl, dealAmountUsdc: '1200', inviterMasked: '0xb19f…e97a',
+  to: 'ada@example.com', claimUrl, dealAmountUsdc: '1200', inviterMasked: '0xb19f…e97a', inviterName: 'Bola Ade · @bola_designs',
+  what: 'Brand kit: logo, colours and a one-page guide',
   expiresLabel: 'Expires in 7 days', acceptanceLabel: '24 hours', deliveryLabel: '14 days',
 }));
 write('deal-invite-existing-account', dealInviteHtml({
@@ -49,13 +50,16 @@ write('deal-updated', dealUpdateHtml({
 write('deal-cancelled', dealCancelledHtml({
   to: 'ada@example.com', dealAmountUsdc: '1200', inviterMasked: '0xb19f…e97a', reason: 'We found a supplier closer to home.',
 }));
+const dealFacts: Array<[string, string]> = [['With', 'Bola Ade · @bola_designs'], ['For', 'Brand kit: logo, colours and a one-page guide']];
 write('deal-event-funded', dealEventHtml({
-  kicker: 'Escrow funded', subject: 'Escrow funded (1200 USDC)', heading: 'Escrow is funded', amount: '1200',
-  body: 'The escrow is funded and the seller can start the work.', ctaLabel: 'Open the deal', ctaUrl: dealUrl,
+  kicker: 'Deal funded', subject: 'Deal funded (1,200.00 USDC)', heading: 'The money is held safely', amount: '1200',
+  body: 'The payment is held in escrow and the seller can start the work. It is released only when the work is accepted.', ctaLabel: 'Open the deal', ctaUrl: dealUrl,
+  facts: dealFacts,
 }));
 write('deal-event-dispute', dealEventHtml({
-  kicker: 'Dispute', subject: 'A Karwan deal moved to dispute', heading: 'Deal moved to dispute',
-  body: 'This deal is now in dispute. Either party can still propose a mutual cancel for a full refund.', ctaLabel: 'Open the deal', ctaUrl: dealUrl,
+  kicker: 'Dispute', subject: 'A Karwan deal moved to dispute', heading: 'Deal moved to dispute', amount: '1200',
+  body: 'The money stays held until the dispute is settled. Add your side on the deal page. Either of you can still agree to cancel for a full refund.', ctaLabel: 'Open the deal', ctaUrl: dealUrl,
+  facts: dealFacts,
 }));
 write('waitlist-joined', waitlistJoinedEmail(42).html);
 write('mainnet-access', mainnetAccessEmail().html);

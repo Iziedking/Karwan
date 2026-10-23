@@ -12,8 +12,8 @@ export type DealStage =
   | 'settled'
   | 'cancelled'
   | 'disputed';
-export type MoneyLine = 'not-funded' | 'held' | 'sending' | 'paused' | 'released' | 'refunding' | 'refunded';
-export type ProgressStep = 'agreed' | 'funded' | 'delivered' | 'checked' | 'released';
+export type MoneyLine = 'not-funded' | 'held' | 'sending' | 'paused' | 'released' | 'refunding' | 'refunded' | 'cancelled';
+export type ProgressStep = 'agreed' | 'funded' | 'delivered' | 'checked' | 'released' | 'cancelled' | 'refunded';
 export type NextAction =
   | 'accept'
   | 'fund'
@@ -128,7 +128,8 @@ function paused(deal: DealViewInput): boolean {
 function moneyLine(deal: DealViewInput, stage: DealStage, pendingMovement: boolean): MoneyLine {
   if (stage === 'disputed') return 'paused';
   if (stage === 'cancelled') {
-    if (!deal.acceptedAt) return 'not-funded';
+    // Nothing was paid in, so nothing is owed back: the deal is simply over.
+    if (!deal.acceptedAt) return 'cancelled';
     return deal.onChain?.state === 5 ? 'refunded' : 'refunding';
   }
   if (stage === 'settled') return 'released';
@@ -144,23 +145,40 @@ function checkedDone(deal: DealViewInput, stage: DealStage): boolean {
   return (deal.onChain?.milestonesReleased ?? 0) >= 1 || !!deal.firstAutoReleased;
 }
 
+/// A cancelled deal shows what happened, not the path it never took: the
+/// steps it reached, the cancellation, and the refund when money was paid in.
+function cancelledProgress(deal: DealViewInput): DealView['progress'] {
+  const rows: DealView['progress'] = [];
+  const agreedAt = deal.sellerApprovedAt;
+  if (agreedAt || deal.acceptedAt) rows.push({ step: 'agreed', state: 'done', ...(agreedAt ? { at: agreedAt } : {}) });
+  if (deal.acceptedAt) rows.push({ step: 'funded', state: 'done', at: deal.acceptedAt });
+  rows.push({ step: 'cancelled', state: 'done', ...(deal.cancelledAt ? { at: deal.cancelledAt } : {}) });
+  if (deal.acceptedAt) {
+    const refunded = deal.onChain?.state === 5;
+    rows.push({ step: 'refunded', state: refunded ? 'done' : 'current', ...(refunded && deal.cancelledAt ? { at: deal.cancelledAt } : {}) });
+  }
+  return rows;
+}
+
 function progress(deal: DealViewInput, stage: DealStage): DealView['progress'] {
-  const done: Record<ProgressStep, boolean> = {
+  if (stage === 'cancelled') return cancelledProgress(deal);
+  type PathStep = Exclude<ProgressStep, 'cancelled' | 'refunded'>;
+  const done: Record<PathStep, boolean> = {
     agreed: !!deal.sellerApprovedAt || !!deal.acceptedAt,
     funded: !!deal.acceptedAt,
     delivered: !!(deal.delivered || deal.deliveredAt),
     checked: checkedDone(deal, stage),
     released: stage === 'settled',
   };
-  const at: Partial<Record<ProgressStep, number>> = {
+  const at: Partial<Record<PathStep, number>> = {
     agreed: deal.sellerApprovedAt,
     funded: deal.acceptedAt,
     delivered: deal.deliveredAt,
     checked: deal.checkedAt,
     released: deal.settledAt ?? deal.autoReleasedAt,
   };
-  const steps: ProgressStep[] = ['agreed', 'funded', 'delivered', 'checked', 'released'];
-  const firstOpen = stage === 'cancelled' ? -1 : steps.findIndex((step) => !done[step]);
+  const steps: PathStep[] = ['agreed', 'funded', 'delivered', 'checked', 'released'];
+  const firstOpen = steps.findIndex((step) => !done[step]);
   return steps.map((step, index) => ({
     step,
     state: done[step] ? 'done' : index === firstOpen ? 'current' : 'upcoming',

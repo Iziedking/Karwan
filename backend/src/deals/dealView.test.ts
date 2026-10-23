@@ -105,7 +105,7 @@ test('a cancelled funded deal reads as refunding until the chain confirms the re
   const cancelled = { ...funded, cancelledAt: NOW - 1000 };
   assert.equal(dealView(cancelled, 'buyer', false, NOW).money.line, 'refunding');
   assert.equal(dealView({ ...cancelled, onChain: { state: 5, milestonesReleased: 0, milestonePcts: [50, 50] } }, 'buyer', false, NOW).money.line, 'refunded');
-  assert.equal(dealView({ ...base, cancelledAt: NOW }, 'buyer', false, NOW).money.line, 'not-funded');
+  assert.equal(dealView({ ...base, cancelledAt: NOW }, 'buyer', false, NOW).money.line, 'cancelled');
 });
 
 test('pending proposals put the answer on the other party', () => {
@@ -183,4 +183,16 @@ test('the agreed split is used before the chain has one', () => {
   assert.deepEqual(dealView(split, 'buyer', false, NOW).next, { action: 'release', actor: 'you', amountUsdc: '720' });
   const one: DealViewInput = { ...split, firstReleasePct: 100, milestonePcts: undefined };
   assert.deepEqual(dealView(one, 'buyer', false, NOW).next, { action: 'release', actor: 'you', amountUsdc: '1200' });
+});
+
+test('a cancelled deal shows what happened, not the path it never took', () => {
+  const neverFunded = dealView({ ...base, sellerApprovedAt: NOW - 5000, cancelledAt: NOW - 1000 }, 'buyer', false, NOW);
+  assert.deepEqual(neverFunded.progress.map((p) => [p.step, p.state]), [['agreed', 'done'], ['cancelled', 'done']]);
+  assert.equal(neverFunded.progress[1]!.at, NOW - 1000);
+
+  const cancelled = { ...funded, cancelledAt: NOW - 1000 };
+  const refunding = dealView(cancelled, 'buyer', false, NOW);
+  assert.deepEqual(refunding.progress.map((p) => [p.step, p.state]), [['agreed', 'done'], ['funded', 'done'], ['cancelled', 'done'], ['refunded', 'current']]);
+  const refunded = dealView({ ...cancelled, onChain: { state: 5, milestonesReleased: 0, milestonePcts: [50, 50] } }, 'buyer', false, NOW);
+  assert.equal(refunded.progress.at(-1)!.state, 'done');
 });

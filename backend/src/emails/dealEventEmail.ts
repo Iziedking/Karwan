@@ -6,7 +6,7 @@
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { resendClient } from './resend.js';
-import { brandedEmailHtml, emailAmount, emailButton, emailHeading, emailText, LOGO_BUFFER, LOGO_CID } from './brand.js';
+import { brandedEmailHtml, emailAmount, emailButton, emailFacts, emailHeading, emailText, LOGO_BUFFER, LOGO_CID } from './brand.js';
 
 export interface DealEventEmailInput {
   /// Lower-cased recipient email.
@@ -26,6 +26,8 @@ export interface DealEventEmailInput {
   /// event has no useful destination (e.g. a decline).
   ctaLabel?: string;
   ctaUrl?: string;
+  /// Who the deal is with and what it is for, so the email stands on its own.
+  facts?: Array<[label: string, value: string]>;
 }
 
 /// "1200.5" -> "1,200.50". Invalid input is shown as given.
@@ -39,6 +41,7 @@ export function dealEventInnerHtml(input: Omit<DealEventEmailInput, 'to'>): stri
     emailHeading({ kicker: input.kicker, title: input.heading }) +
     (input.amount ? emailAmount(formatEmailUsdc(input.amount)) : '') +
     emailText(input.body) +
+    (input.facts?.length ? emailFacts(input.facts) : '') +
     (input.ctaLabel && input.ctaUrl ? emailButton(input.ctaLabel, input.ctaUrl) : '')
   );
 }
@@ -60,7 +63,13 @@ export async function sendDealEventEmail(input: DealEventEmailInput): Promise<bo
     return false;
   }
   const html = dealEventHtml(input);
-  const textLines = [input.heading, ...(input.amount ? ['', `${formatEmailUsdc(input.amount)} USDC`] : []), '', input.body];
+  const textLines = [
+    input.heading,
+    ...(input.amount ? ['', `${formatEmailUsdc(input.amount)} USDC`] : []),
+    '',
+    input.body,
+    ...(input.facts?.length ? ['', ...input.facts.map(([label, value]) => `${label}: ${value}`)] : []),
+  ];
   if (input.ctaLabel && input.ctaUrl) {
     textLines.push('', `${input.ctaLabel}: ${input.ctaUrl}`);
   }

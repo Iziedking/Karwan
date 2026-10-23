@@ -61,16 +61,18 @@ function stripMd(s: string): string {
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1');
 }
 
+/// The transcript goes to the person who asked, so they are "You".
 const ROLE_LABEL: Record<SupportRole, string> = {
-  user: 'User',
-  assistant: 'Assistant',
-  operator: 'Support',
-  system: 'System',
+  user: 'You',
+  assistant: 'Karwan assistant',
+  operator: 'Karwan support',
+  system: 'Karwan',
 };
 
+/// "30 Sep 2026, 09:12 UTC": a date people read, with the zone said once.
 function fmtTime(ts: number): string {
   try {
-    return new Date(ts).toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+    return new Date(ts).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }) + ' UTC';
   } catch {
     return String(ts);
   }

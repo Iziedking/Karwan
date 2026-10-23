@@ -704,6 +704,11 @@ dealsRoutes.post('/direct', async (c) => {
     // deal is waiting and WHICH wallet to open it with, because an email that
     // maps to a wallet is exactly the case where someone reaches for the wrong
     // sign-in and ends up with a second account.
+    // The inviter by name and Karwan tag, never their wallet (owner, 23 Oct).
+    const inviterProfile = resolvedEmailAddress || inviteUrl ? await getProfile(body.buyerAddress).catch(() => null) : null;
+    const inviterName = inviterProfile?.handle
+      ? [inviterProfile.displayName?.trim(), `@${inviterProfile.handle}`].filter(Boolean).join(' · ')
+      : undefined;
     if (resolvedEmailAddress && body.sellerEmail) {
       const base = (config.FRONTEND_BASE_URL ?? '').replace(/\/$/, '');
       void sendDealInviteEmail({
@@ -713,6 +718,8 @@ dealsRoutes.post('/direct', async (c) => {
         signInVia: emailOwnerVia ?? 'wallet',
         dealAmountUsdc: body.dealAmountUsdc.toString(),
         inviterMasked: mask(body.buyerAddress),
+        inviterName,
+        what: body.terms,
         expiresLabel: formatExpiresLabel(acceptanceDeadlineUnix * 1000),
         acceptanceLabel: formatWindowLabel({ hours: body.acceptanceWindowHours }),
         deliveryLabel: formatWindowLabel({
@@ -732,6 +739,8 @@ dealsRoutes.post('/direct', async (c) => {
         claimUrl: inviteUrl,
         dealAmountUsdc: body.dealAmountUsdc.toString(),
         inviterMasked: mask(body.buyerAddress),
+        inviterName,
+        what: body.terms,
         expiresLabel: formatExpiresLabel(inviteExpiresAt),
         /// Two-deadline block on the email: how long they have to ACCEPT
         /// the deal, and how long the SELLER then has to DELIVER.

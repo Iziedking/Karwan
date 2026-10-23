@@ -70,14 +70,14 @@ export function brandedEmailHtml({ title, inner, footerNote = DEFAULT_FOOTER_NOT
     .k-card { background: #131a22 !important; border-color: #26303b !important; }
     .k-ink { color: #f4f4f1 !important; }
     .k-sub { color: #c4c7cc !important; }
-    .k-muted { color: #8b9096 !important; }
+    .k-muted { color: #a3a8ae !important; }
     .k-line { border-color: #26303b !important; }
     .k-tint { background: #1b232d !important; }
     .k-link { color: #f4f4f1 !important; }
   }
   [data-ogsc] .k-ink, [data-ogsc] .k-link { color: #f4f4f1 !important; }
   [data-ogsc] .k-sub { color: #c4c7cc !important; }
-  [data-ogsc] .k-muted { color: #8b9096 !important; }
+  [data-ogsc] .k-muted { color: #a3a8ae !important; }
   [data-ogsb] .k-canvas { background: #0b0f14 !important; }
   [data-ogsb] .k-card { background: #131a22 !important; }
   [data-ogsb] .k-tint { background: #1b232d !important; }
@@ -108,8 +108,8 @@ ${inner}
           <tr>
             <td class="k-pad" style="padding:28px ${PAD} 24px ${PAD};">
               <div class="k-line" style="border-top:1px solid ${C.line};padding-top:18px;">
-                <p class="k-muted" style="margin:0;font-size:12px;line-height:1.6;color:${C.muted};">${escapeHtml(footerNote)}</p>
-                <p class="k-muted" style="margin:8px 0 0 0;font-size:12px;line-height:1.6;color:${C.muted};">Karwan &middot; One reputation for the internet &middot; <a href="mailto:support@karwan.site" class="k-link" style="color:${C.sub};">support@karwan.site</a></p>
+                <p class="k-muted" style="margin:0;font-size:13px;line-height:1.6;color:${C.muted};">${escapeHtml(footerNote)}</p>
+                <p class="k-muted" style="margin:8px 0 0 0;font-size:13px;line-height:1.6;color:${C.muted};">Karwan &middot; One reputation for the internet &middot; <a href="mailto:support@karwan.site" class="k-link" style="color:${C.sub};">support@karwan.site</a></p>
               </div>
             </td>
           </tr>
@@ -225,7 +225,7 @@ export function emailThread(messages: Array<{ who: string; when: string; text: s
     .map(
       (m) => `<tr>
                   <td class="k-line" style="padding:12px 0;border-bottom:1px solid ${C.line};">
-                    <p class="k-muted" style="margin:0 0 4px 0;font-size:12px;color:${C.muted};">${escapeHtml(m.who)} &middot; ${escapeHtml(m.when)}</p>
+                    <p class="k-muted" style="margin:0 0 4px 0;font-size:13px;color:${C.muted};">${escapeHtml(m.who)} &middot; ${escapeHtml(m.when)}</p>
                     <p class="k-ink" style="margin:0;font-size:14px;line-height:1.55;white-space:pre-wrap;color:${C.ink};">${escapeHtml(m.text)}</p>
                   </td>
                 </tr>`,
@@ -250,7 +250,7 @@ export function emailCode(code: string): string {
 /// inline span it is widely ignored and the link widens the card off a phone.
 export function emailUrlFallback(url: string, label = 'If the button does not work, paste this link into your browser:'): string {
   return `          <tr>
-            <td class="k-pad k-muted" style="padding:18px ${PAD} 0 ${PAD};font-size:12px;line-height:1.55;color:${C.muted};word-break:break-all;">${escapeHtml(label)}<br />${escapeHtml(url)}</td>
+            <td class="k-pad k-muted" style="padding:18px ${PAD} 0 ${PAD};font-size:13px;line-height:1.55;color:${C.muted};word-break:break-all;">${escapeHtml(label)}<br />${escapeHtml(url)}</td>
           </tr>
 `;
 }

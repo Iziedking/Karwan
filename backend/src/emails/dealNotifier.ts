@@ -456,10 +456,10 @@ export function contentFor(
         : null;
     case 'deal.accepted':
       return {
-        kicker: 'Escrow funded',
-        subject: `Escrow funded${amountSuffix}`,
-        heading: 'Escrow is funded',
-        body: `The escrow is funded and the seller can ${startPhrase(trade)}.`,
+        kicker: 'Deal funded',
+        subject: `Deal funded${amountSuffix}`,
+        heading: 'The money is held safely',
+        body: `The payment is held in escrow and the seller can ${startPhrase(trade)}. It is released only when the work is accepted.`,
         ctaLabel: 'Open the deal',
         ctaUrl: dealUrl(e.jobId),
       };
@@ -526,7 +526,7 @@ export function contentFor(
         kicker: 'Dispute',
         subject: 'A Karwan deal moved to dispute',
         heading: 'Deal moved to dispute',
-        body: 'This deal is now in dispute. Either party can still propose a mutual cancel for a full refund.',
+        body: 'The money stays held until the dispute is settled. Add your side on the deal page. Either of you can still agree to cancel for a full refund.',
         ctaLabel: 'Open the deal',
         ctaUrl: dealUrl(e.jobId),
       };
@@ -830,6 +830,20 @@ export function amountFor(e: KarwanEvent): string | undefined {
   return /^\d+(\.\d+)?$/.test(text) ? text : undefined;
 }
 
+/// Who a deal email is with and what the deal is for, read once from the deal.
+/// People are named by name and Karwan tag, never a wallet (owner, 23 Oct).
+async function dealContext(jobId: string | undefined, role: 'buyer' | 'seller') {
+  if (!jobId) return null;
+  const deal = await getDeal(jobId).catch(() => null);
+  if (!deal) return null;
+  const other = await getProfile(role === 'buyer' ? deal.seller : deal.buyer).catch(() => null);
+  const facts: Array<[string, string]> = [];
+  if (other?.handle) facts.push(['With', [other.displayName?.trim(), `@${other.handle}`].filter(Boolean).join(' · ')]);
+  const what = (deal.terms ?? '').split('\n')[0]!.trim().slice(0, 120);
+  if (what) facts.push(['For', what]);
+  return { facts, amount: deal.dealAmountUsdc };
+}
+
 export function startEmailNotifier(): () => void {
   // No Resend key means no transactional email at all; skip subscribing.
   if (!resendClient()) return () => {};
@@ -853,7 +867,13 @@ export function startEmailNotifier(): () => void {
           : undefined;
         const content = r.role === 'financier' ? financierContentFor(e, r.href) : contentFor(e, r.role, trade, privateNote);
         if (!content) continue;
-        await sendDealEventEmail({ to: profile.email, ...content, amount: amountFor(e) });
+        const context = r.role === 'buyer' || r.role === 'seller' ? await dealContext(e.jobId, r.role) : null;
+        await sendDealEventEmail({
+          to: profile.email,
+          ...content,
+          amount: amountFor(e) ?? (e.type === 'deal.disputed' ? context?.amount : undefined),
+          ...(context?.facts.length ? { facts: context.facts } : {}),
+        });
       }
     } catch (err) {
       logger.warn({ err: (err as Error).message, type: e.type }, 'email notifier error');

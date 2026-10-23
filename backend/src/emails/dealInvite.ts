@@ -18,6 +18,7 @@ import {
   LOGO_BUFFER,
   LOGO_CID,
 } from './brand.js';
+import { formatEmailUsdc } from './dealEventEmail.js';
 
 export interface DealInviteEmailInput {
   /// Lower-cased recipient email address. Same address the invite is keyed to.
@@ -29,6 +30,11 @@ export interface DealInviteEmailInput {
   /// Buyer wallet shortened to "0xab12…cdef". A typoed invite should not
   /// reveal the full buyer address to the wrong recipient.
   inviterMasked: string;
+  /// The inviter as people know them: "Ada Obi · @ada". When set it replaces
+  /// the masked wallet everywhere in the email (owner, 23 Oct).
+  inviterName?: string;
+  /// What the deal is for, as the buyer wrote it. The first line is shown.
+  what?: string;
   /// Pre-formatted relative or absolute expiry string ("Expires in 7 days").
   /// Kept for backward compat; the new acceptance/delivery labels below
   /// drive the visible "two deadlines" block.
@@ -57,9 +63,15 @@ export interface SendResult {
   reason?: string;
 }
 
+/// Who sent it, by name and tag when known, else the masked wallet.
+const from = (input: DealInviteEmailInput) => input.inviterName ?? input.inviterMasked;
+const firstLine = (what?: string) => (what ?? '').split('\n')[0]!.trim().slice(0, 120);
+
 function inviteInnerHtml(input: DealInviteEmailInput): string {
   const hasTwoDeadlines = !!input.acceptanceLabel || !!input.deliveryLabel;
-  const facts: Array<[string, string]> = [['From', input.inviterMasked]];
+  const facts: Array<[string, string]> = [['From', from(input)]];
+  const what = firstLine(input.what);
+  if (what) facts.push(['For', what]);
   if (hasTwoDeadlines) {
     facts.push(['Agree within', input.acceptanceLabel ?? 'Not set'], ['Deliver within', input.deliveryLabel ?? 'Open-ended']);
   }
@@ -78,9 +90,9 @@ function inviteInnerHtml(input: DealInviteEmailInput): string {
   return (
     emailHeading({
       kicker: input.signInWallet ? 'Deal waiting' : 'Deal to review',
-      title: 'Someone opened a deal with you on Karwan',
+      title: input.inviterName ? `${input.inviterName.split(' · ')[0]} opened a deal with you on Karwan` : 'Someone opened a deal with you on Karwan',
     }) +
-    emailAmount(input.dealAmountUsdc) +
+    emailAmount(formatEmailUsdc(input.dealAmountUsdc)) +
     emailText('Agreeing does not move any money. After you agree, the buyer puts the money into escrow before work starts.') +
     wallet +
     emailFacts(facts) +
@@ -120,7 +132,7 @@ export function formatWindowLabel(opts: { days?: number; hours?: number }): stri
 export function dealInviteHtml(input: DealInviteEmailInput): string {
   return brandedEmailHtml({
     title: 'You have a Karwan deal to review',
-    preheader: `${input.inviterMasked} opened a ${input.dealAmountUsdc} USDC deal with you.`,
+    preheader: `${from(input)} opened a ${formatEmailUsdc(input.dealAmountUsdc)} USDC deal with you.`,
     inner: inviteInnerHtml(input),
     footerNote:
       "Not expecting this invite? Ignore the email. Nothing is agreed until you sign in and accept.",
@@ -139,7 +151,7 @@ export async function sendDealInviteEmail(
     return { delivered: false };
   }
   const html = dealInviteHtml(input);
-  const subject = `You have a Karwan deal to review (${input.dealAmountUsdc} USDC)`;
+  const subject = `You have a Karwan deal to review (${formatEmailUsdc(input.dealAmountUsdc)} USDC)`;
   const signInLine = input.signInWallet
     ? input.signInVia === 'login'
       ? `Sign in with this email as usual. The deal is already addressed to your account ${input.signInWallet}.\n\n`
@@ -150,7 +162,8 @@ export async function sendDealInviteEmail(
       ? `Agree within: ${input.acceptanceLabel ?? 'Not set'}\nDeliver within: ${input.deliveryLabel ?? 'Open-ended'}\n\n`
       : '';
   const text =
-    `${input.inviterMasked} opened a Karwan deal with you for ${input.dealAmountUsdc} USDC.\n\n` +
+    `${from(input)} opened a Karwan deal with you for ${formatEmailUsdc(input.dealAmountUsdc)} USDC.\n\n` +
+    (firstLine(input.what) ? `For: ${firstLine(input.what)}\n\n` : '') +
     `${input.signInWallet ? 'Open the deal' : 'Review the deal'}: ${input.claimUrl}\n\n` +
     signInLine +
     deadlineLines +
