@@ -44,3 +44,13 @@ contract SkimToken is BlocklistToken {
         super._update(from, to, value);
     }
 }
+
+/// @notice Delivers 1% more than it was asked to move.
+contract BonusToken is BlocklistToken {
+    constructor() BlocklistToken(6) {}
+
+    function _update(address from, address to, uint256 value) internal override {
+        super._update(from, to, value);
+        if (from != address(0) && to != address(0)) super._update(address(0), to, value / 100);
+    }
+}

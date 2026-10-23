@@ -5,7 +5,7 @@ import {SuiteFixture} from "./SuiteFixture.sol";
 import {KarwanStakeVault} from "../../src/suite/KarwanStakeVault.sol";
 import {KarwanIdentityRegistry} from "../../src/suite/KarwanIdentityRegistry.sol";
 import {TestFamily} from "./mocks/TestFamily.sol";
-import {BlocklistToken, SkimToken} from "./mocks/BlocklistToken.sol";
+import {BlocklistToken, SkimToken, BonusToken} from "./mocks/BlocklistToken.sol";
 
 contract StakeVaultTest is SuiteFixture {
     address internal seller;
@@ -407,5 +407,191 @@ contract StakeVaultTest is SuiteFixture {
         emit KarwanStakeVault.OwedWithdrawn(address(usdc), buyer, 20e6);
         vm.prank(buyer, relayer);
         vault.withdrawOwed(address(usdc));
+    }
+
+    // ------------------------------ Outcomes ------------------------------
+
+    uint256 internal constant NOW = 1_800_000_000;
+
+    function _reserveTo(bytes32 ref, uint128 amount, address beneficiary, uint64 expiresAt) internal {
+        uint256 deadline = block.timestamp + 1 hours;
+        bytes32 digest =
+            vault.reserveDigest(address(family), ref, address(usdc), amount, beneficiary, expiresAt, deadline);
+        bytes memory sig = _sig(sellerKey, digest);
+        vm.prank(address(family));
+        vault.reserve(ref, seller, address(usdc), amount, beneficiary, expiresAt, deadline, sig);
+    }
+
+    /// The digest and the key follow their published encodings, so a wallet
+    /// can show the staker exactly what they sign.
+    function test_the_reservation_digest_and_key_follow_their_published_encodings() public view {
+        bytes32 typeHash = keccak256(
+            "Reserve(address family,bytes32 ref,address asset,uint128 amount,address beneficiary,uint64 expiresAt,uint256 deadline)"
+        );
+        bytes32 domain = keccak256(
+            abi.encode(
+                keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+                keccak256("KarwanStakeVault"),
+                keccak256("1"),
+                block.chainid,
+                address(vault)
+            )
+        );
+        bytes32 inner = keccak256(abi.encode(typeHash, address(family), REF, address(usdc), uint128(10e6), buyer, uint64(7), uint256(9)));
+        assertEq(
+            vault.reserveDigest(address(family), REF, address(usdc), 10e6, buyer, 7, 9),
+            keccak256(abi.encodePacked("\x19\x01", domain, inner))
+        );
+        assertEq(vault.keyOf(address(family), REF), keccak256(abi.encode(address(family), REF)));
+    }
+
+    function test_staking_or_cooling_nothing_is_refused() public {
+        vm.startPrank(seller);
+        vm.expectRevert(KarwanStakeVault.BadAmount.selector);
+        vault.stake(address(usdc), 0);
+        vm.expectRevert(KarwanStakeVault.BadAmount.selector);
+        vault.requestWithdraw(address(usdc), 0);
+        vm.expectRevert(KarwanStakeVault.BadAmount.selector);
+        vault.withdraw(address(usdc));
+        vm.stopPrank();
+    }
+
+    function test_a_token_that_delivers_more_than_asked_is_never_staked() public {
+        BonusToken bonus = new BonusToken();
+        hub.setAsset(address(bonus), true, 0);
+        bonus.mint(seller, 100e6);
+        vm.startPrank(seller);
+        bonus.approve(address(vault), type(uint256).max);
+        vm.expectRevert(KarwanStakeVault.BadDelivery.selector);
+        vault.stake(address(bonus), 100e6);
+        vm.stopPrank();
+    }
+
+    function test_withdrawal_requests_add_up_and_restart_the_cooldown() public {
+        vm.startPrank(seller);
+        vault.requestWithdraw(address(usdc), 30e6);
+        vm.warp(vm.getBlockTimestamp() + 2 days);
+        vault.requestWithdraw(address(usdc), 50e6);
+        vm.stopPrank();
+        assertEq(vault.stakeOf(sellerId, address(usdc)).cooling, 80e6);
+        assertEq(vault.stakeOf(sellerId, address(usdc)).coolUntil, vm.getBlockTimestamp() + 7 days);
+    }
+
+    /// Amounts beyond 64 bits are staked, reserved, slashed and taken out whole.
+    function test_amounts_beyond_64_bits_are_kept_whole() public {
+        uint256 big = (uint256(1) << 65) + 7;
+        usdc.mint(seller, big);
+        vm.prank(seller);
+        vault.stake(address(usdc), big);
+        assertEq(vault.stakeOf(sellerId, address(usdc)).active, 100e6 + big);
+        uint128 reserved = uint128((uint256(1) << 64) + 3);
+        _reserveTo(REF, reserved, buyer, _expiry());
+        vm.prank(address(family));
+        assertEq(vault.slash(REF, reserved), reserved);
+        assertEq(vault.reservationOf(address(family), REF).amount, 0);
+        assertEq(vault.stakeOf(sellerId, address(usdc)).reserved, 0);
+        assertEq(vault.stakeOf(sellerId, address(usdc)).active, 100e6 + big - reserved);
+        uint256 out = (uint256(1) << 64) + 1;
+        vm.prank(seller);
+        vault.requestWithdraw(address(usdc), out);
+        assertEq(vault.stakeOf(sellerId, address(usdc)).cooling, out);
+        vm.warp(vm.getBlockTimestamp() + 7 days);
+        vm.prank(seller);
+        vault.withdraw(address(usdc));
+        assertEq(vault.stakeOf(sellerId, address(usdc)).active, 100e6 + big - reserved - out);
+    }
+
+    function test_a_cooldown_after_2106_still_lasts_seven_days() public {
+        vm.warp((uint256(1) << 32) + 100);
+        vm.prank(seller);
+        vault.requestWithdraw(address(usdc), 10e6);
+        assertEq(vault.stakeOf(sellerId, address(usdc)).coolUntil, vm.getBlockTimestamp() + 7 days);
+    }
+
+    function test_cooled_stake_can_be_taken_out_any_time_after_the_cooldown() public {
+        vm.prank(seller);
+        vault.requestWithdraw(address(usdc), 10e6);
+        vm.warp(vm.getBlockTimestamp() + 8 days);
+        vm.prank(seller);
+        vault.withdraw(address(usdc));
+        assertEq(vault.stakeOf(sellerId, address(usdc)).active, 90e6);
+    }
+
+    function test_a_reservation_term_is_bounded_at_both_ends() public {
+        vm.warp(NOW);
+        uint256 deadline = NOW;
+        uint64 past = uint64(NOW - 1);
+        bytes memory sig = _sigFor(sellerKey, address(family), REF, 10e6, past, deadline);
+        vm.prank(address(family));
+        vm.expectRevert(KarwanStakeVault.BadTerm.selector);
+        vault.reserve(REF, seller, address(usdc), 10e6, buyer, past, deadline, sig);
+        uint64 over = uint64(NOW + 1_095 days + 1);
+        sig = _sigFor(sellerKey, address(family), REF, 10e6, over, deadline);
+        vm.prank(address(family));
+        vm.expectRevert(KarwanStakeVault.BadTerm.selector);
+        vault.reserve(REF, seller, address(usdc), 10e6, buyer, over, deadline, sig);
+        uint64 longest = uint64(NOW + 1_095 days);
+        sig = _sigFor(sellerKey, address(family), REF, 10e6, longest, deadline);
+        vm.prank(address(family));
+        vault.reserve(REF, seller, address(usdc), 10e6, buyer, longest, deadline, sig);
+        assertEq(vault.reservationOf(address(family), REF).expiresAt, longest);
+    }
+
+    function test_an_extension_is_bounded_and_allowed_up_to_the_last_second() public {
+        vm.warp(NOW);
+        uint64 expiresAt = uint64(NOW + 30 days);
+        _reserveTo(REF, 10e6, buyer, expiresAt);
+        vm.warp(expiresAt);
+        vm.startPrank(address(family));
+        vm.expectRevert(KarwanStakeVault.BadTerm.selector);
+        vault.extend(REF, expiresAt - 1);
+        vm.expectRevert(KarwanStakeVault.BadTerm.selector);
+        vault.extend(REF, uint64(expiresAt + 1_095 days + 1));
+        vault.extend(REF, uint64(expiresAt + 1_095 days));
+        vm.stopPrank();
+        assertEq(vault.reservationOf(address(family), REF).expiresAt, expiresAt + 1_095 days);
+    }
+
+    function test_a_slash_is_allowed_up_to_the_last_second_and_stale_release_only_after() public {
+        uint64 expiresAt = _expiry();
+        _reserveTo(REF, 10e6, buyer, expiresAt);
+        vm.warp(expiresAt);
+        vm.expectRevert(KarwanStakeVault.Early.selector);
+        vault.releaseStale(address(family), REF);
+        vm.prank(address(family));
+        assertEq(vault.slash(REF, 4e6), 4e6);
+    }
+
+    /// Two beneficiaries are owed; one takes theirs through a relayer.
+    function test_withdrawing_an_owed_slash_clears_only_that_beneficiarys_debt() public {
+        address other = makeAddr("other");
+        _reserveTo(REF, 30e6, buyer, _expiry());
+        _reserveTo(bytes32("deal-2"), 50e6, other, _expiry());
+        usdc.setBlocked(buyer, true);
+        usdc.setBlocked(other, true);
+        vm.startPrank(address(family));
+        vault.slash(REF, 30e6);
+        vault.slash(bytes32("deal-2"), 50e6);
+        vm.stopPrank();
+        usdc.setBlocked(buyer, false);
+        vm.prank(buyer, relayer);
+        vault.withdrawOwed(address(usdc));
+        assertEq(vault.owed(address(usdc), buyer), 0);
+        assertEq(vault.owedTotal(address(usdc)), 50e6);
+        vm.prank(buyer);
+        vm.expectRevert(KarwanStakeVault.NothingOwed.selector);
+        vault.withdrawOwed(address(usdc));
+    }
+
+    function test_a_released_reservation_shows_no_expiry_or_amount_and_releasing_again_is_silent() public {
+        _reserve(REF, 60e6);
+        vm.prank(address(family));
+        vault.release(REF);
+        assertEq(vault.expiryOf(address(family), REF), 0);
+        assertEq(vault.reservationOf(address(family), REF).amount, 0);
+        vm.recordLogs();
+        vm.prank(address(family));
+        vault.release(REF);
+        assertEq(vm.getRecordedLogs().length, 0);
     }
 }

@@ -5,8 +5,8 @@ import {Vm} from "forge-std/Vm.sol";
 import {SuiteFixture} from "./SuiteFixture.sol";
 import {KarwanHub} from "../../src/suite/KarwanHub.sol";
 import {KarwanYieldPool} from "../../src/suite/KarwanYieldPool.sol";
-import {MockTeller} from "./mocks/MockTeller.sol";
-import {BlocklistToken, SkimToken} from "./mocks/BlocklistToken.sol";
+import {MockTeller, MockShare} from "./mocks/MockTeller.sol";
+import {BlocklistToken, SkimToken, BonusToken} from "./mocks/BlocklistToken.sol";
 
 /// @notice The yield pool on its own: families park and take back exactly what
 ///         they parked, cash above a buffer earns, yield leaves only above a
@@ -528,5 +528,384 @@ contract YieldPoolTest is SuiteFixture {
         vm.expectEmit(address(pool));
         emit KarwanYieldPool.TellerSet(address(next), next.share());
         pool.setTeller(address(next));
+    }
+
+    // ------------------------------ Outcomes ------------------------------
+
+    function _shares() internal view returns (uint256) {
+        return teller.share_().balanceOf(address(pool));
+    }
+
+    function _cash() internal view returns (uint256) {
+        return usdc.balanceOf(address(pool));
+    }
+
+    function test_a_token_that_delivers_more_than_asked_is_never_parked() public {
+        BonusToken bonus = new BonusToken();
+        hub.setAsset(address(bonus), true, 0);
+        KarwanYieldPool bonusPool = new KarwanYieldPool(address(hub), address(bonus));
+        hub.setYieldPool(address(bonus), address(bonusPool));
+        bonus.mint(address(family), 100e6);
+        vm.startPrank(address(family));
+        bonus.approve(address(bonusPool), type(uint256).max);
+        vm.expectRevert(KarwanYieldPool.BadAmount.selector);
+        bonusPool.deposit(100e6);
+        vm.stopPrank();
+    }
+
+    /// Cash below the buffer is topped up by redeeming the shares for the gap,
+    /// rounded up by the Teller, and no more.
+    function test_rebalance_tops_the_buffer_up_by_redeeming_just_the_gap() public {
+        _park(PARKED);
+        pool.rebalance();
+        _take(5_000e6);
+        uint256 cash = _cash();
+        uint256 shares = _shares();
+        uint256 want = teller.previewWithdraw(pool.bufferTarget() - cash);
+        uint256 got = teller.previewRedeem(want);
+        pool.rebalance();
+        assertEq(_shares(), shares - want);
+        assertEq(_cash(), cash + got);
+        assertGe(_cash(), pool.bufferTarget());
+    }
+
+    /// A withdrawal of exactly the cash on hand is paid from it, with no
+    /// redemption asked of the Teller.
+    function test_a_withdrawal_of_exactly_the_cash_on_hand_needs_no_redemption() public {
+        _park(PARKED);
+        pool.rebalance();
+        uint256 cash = _cash();
+        vm.expectCall(address(teller), abi.encodeWithSelector(MockTeller.redeem.selector), 0);
+        _take(cash);
+        assertEq(_cash(), 0);
+    }
+
+    /// A Teller that cannot quote the gap is not asked to redeem at all.
+    function test_rebalance_below_the_buffer_redeems_nothing_when_the_gap_cannot_be_quoted() public {
+        _park(PARKED);
+        pool.rebalance();
+        _take(5_000e6);
+        uint256 shares = _shares();
+        vm.mockCallRevert(address(teller), abi.encodeWithSelector(MockTeller.previewWithdraw.selector), "");
+        vm.expectCall(address(teller), abi.encodeWithSelector(MockTeller.redeem.selector), 0);
+        pool.rebalance();
+        assertEq(_shares(), shares);
+    }
+
+    /// With no shares the pool's value is its cash, whatever the Teller would
+    /// quote for none.
+    function test_with_no_shares_the_value_is_cash_whatever_the_teller_quotes_for_none() public {
+        _park(PARKED);
+        vm.mockCall(
+            address(teller), abi.encodeWithSelector(MockTeller.previewRedeem.selector, uint256(0)), abi.encode(5e6)
+        );
+        assertEq(pool.value(), _cash());
+    }
+
+    /// With no shares the Teller can change, whatever it would quote for none.
+    function test_with_no_shares_a_teller_change_ignores_a_quote_for_none() public {
+        vm.mockCall(
+            address(teller), abi.encodeWithSelector(MockTeller.previewRedeem.selector, uint256(0)), abi.encode(5e6)
+        );
+        MockTeller next = new MockTeller(usdc);
+        pool.setTeller(address(next));
+        assertEq(address(pool.share()), address(next.share_()));
+    }
+
+    /// At a buffer exactly met nothing is redeemed, whatever the Teller would
+    /// quote for a gap of none.
+    function test_rebalance_at_the_buffer_redeems_nothing_whatever_the_teller_quotes_for_no_gap() public {
+        _park(PARKED);
+        pool.rebalance();
+        assertEq(_cash(), pool.bufferTarget());
+        vm.mockCall(
+            address(teller), abi.encodeWithSelector(MockTeller.previewWithdraw.selector, uint256(0)), abi.encode(1)
+        );
+        vm.expectCall(address(teller), abi.encodeWithSelector(MockTeller.redeem.selector), 0);
+        pool.rebalance();
+    }
+
+    /// A stopped pool that redeems its only share in one go does not try again
+    /// for half of it.
+    function test_a_stopped_pool_redeems_its_only_share_once() public {
+        _park(PARKED);
+        usdc.mint(address(teller), 10e6);
+        MockShare share = teller.share_();
+        vm.prank(address(teller));
+        share.mint(address(pool), 1);
+        pool.stop();
+        vm.recordLogs();
+        pool.rebalance();
+        _onlyLog(address(pool), KarwanYieldPool.Redeemed.selector);
+        assertEq(_shares(), 0);
+    }
+
+    function test_rebalance_redeems_every_share_when_the_buffer_needs_more_than_they_are_worth() public {
+        _park(PARKED);
+        pool.rebalance();
+        pool.setBuffer(1_000, 200_000e6);
+        pool.rebalance();
+        assertEq(_shares(), 0);
+        assertApproxEqAbs(_cash(), PARKED + 1e6, 2);
+    }
+
+    function test_a_stopped_pool_holding_no_shares_does_nothing() public {
+        _park(PARKED);
+        pool.stop();
+        vm.recordLogs();
+        pool.rebalance();
+        assertEq(vm.getRecordedLogs().length, 0);
+        assertEq(_cash(), PARKED + 1e6);
+    }
+
+    /// Enough cash for the buffer and the yield: the sweep sells no shares.
+    function test_a_sweep_paid_from_cash_redeems_no_shares() public {
+        _park(PARKED);
+        pool.rebalance();
+        _park(50_000e6);
+        teller.setPrice(1.16e18);
+        uint256 shares = _shares();
+        uint256 amount = pool.value() - pool.totalPrincipal() - pool.cushion();
+        pool.sweepYield();
+        assertEq(_shares(), shares);
+        assertEq(usdc.balanceOf(feeSafe), amount);
+    }
+
+    /// Short of cash, a sweep sells just enough for the yield and the buffer.
+    function test_a_sweep_redeems_only_what_the_yield_and_the_buffer_need() public {
+        _park(PARKED);
+        pool.rebalance();
+        teller.setPrice(1.16e18);
+        uint256 keep = pool.bufferTarget();
+        uint256 amount = pool.value() - pool.totalPrincipal() - pool.cushion();
+        uint256 want = teller.previewWithdraw(keep + amount - _cash());
+        uint256 shares = _shares();
+        pool.sweepYield();
+        assertEq(_shares(), shares - want);
+        assertApproxEqAbs(_cash(), keep, 2);
+        assertApproxEqAbs(usdc.balanceOf(feeSafe), amount, 2);
+    }
+
+    /// Value far above what is parked, all of it cash: the sweep pays out only
+    /// what sits above the buffer, and asks the Teller for nothing.
+    function test_a_sweep_never_dips_into_the_buffer() public {
+        _park(1_000e6);
+        usdc.mint(feeSafe, 11_000e6);
+        vm.startPrank(feeSafe);
+        usdc.approve(address(pool), 11_000e6);
+        pool.backstop(11_000e6);
+        vm.stopPrank();
+        assertEq(_cash(), 12_001e6);
+        assertEq(pool.bufferTarget(), 5_000e6);
+        vm.recordLogs();
+        pool.sweepYield();
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        for (uint256 i; i < logs.length; ++i) {
+            assertTrue(logs[i].topics[0] != KarwanYieldPool.Redeemed.selector);
+        }
+        assertEq(usdc.balanceOf(feeSafe), 7_001e6);
+        assertEq(_cash(), 5_000e6);
+    }
+
+    function test_a_sweep_below_the_buffer_with_a_paused_teller_finds_no_yield() public {
+        _park(PARKED);
+        pool.rebalance();
+        _take(1_000e6);
+        teller.setPrice(1.16e18);
+        teller.setPaused(true);
+        assertLt(_cash(), pool.bufferTarget());
+        vm.expectRevert(KarwanYieldPool.NoYield.selector);
+        pool.sweepYield();
+    }
+
+    function test_settings_accept_their_bounds() public {
+        pool.setBuffer(5_000, 7_000e6);
+        assertEq(pool.bufferBps(), 5_000);
+        assertEq(pool.bufferFloor(), 7_000e6);
+        pool.setCushion(10);
+        assertEq(pool.cushionBps(), 10);
+        pool.setCushion(500);
+        assertEq(pool.cushionBps(), 500);
+    }
+
+    /// 1,001 units buy 878 shares, which the Teller values at exactly the margin.
+    function test_shares_worth_exactly_the_margin_still_let_the_teller_change() public {
+        address dusty = makeAddr("dusty");
+        teller.entitle(dusty, true);
+        usdc.mint(dusty, 1_001);
+        vm.startPrank(dusty);
+        usdc.approve(address(teller), 1_001);
+        teller.deposit(1_001, address(pool));
+        vm.stopPrank();
+        assertEq(teller.previewRedeem(_shares()), pool.MIN_MARGIN());
+        pool.setTeller(address(0));
+        assertEq(address(pool.teller()), address(0));
+    }
+
+    function test_the_deficit_is_exactly_what_the_value_falls_short() public {
+        _park(PARKED);
+        pool.rebalance();
+        teller.setPrice(1.1286e18);
+        assertEq(pool.deficit(), pool.totalPrincipal() - pool.value());
+    }
+
+    /// A crash to less than half of what is parked: the deficit is still the
+    /// whole shortfall.
+    function test_the_deficit_after_a_crash_below_half_is_the_whole_shortfall() public {
+        _park(PARKED);
+        pool.rebalance();
+        teller.setPrice(0.5e18);
+        assertLt(pool.value(), PARKED / 2);
+        assertEq(pool.deficit(), PARKED - pool.value());
+    }
+
+    function test_a_subscription_takes_no_more_than_the_teller_has_room_for() public {
+        _park(PARKED);
+        vm.mockCall(address(teller), abi.encodeWithSelector(MockTeller.maxDeposit.selector), abi.encode(uint256(20_000e6)));
+        uint256 cash = _cash();
+        pool.rebalance();
+        assertEq(_cash(), cash - 20_000e6);
+        assertEq(_shares(), teller.previewDeposit(20_000e6));
+    }
+
+    function _scaledSubscription(uint256 spread) internal {
+        teller.setSpread(spread);
+        _park(PARKED);
+        uint256 cash = _cash();
+        uint256 excess = cash - pool.bufferTarget();
+        uint256 margin = pool.value() - pool.totalPrincipal() - pool.MIN_MARGIN();
+        uint256 cost = excess - teller.previewRedeem(teller.previewDeposit(excess));
+        assertGt(cost, margin);
+        uint256 paid = (excess * margin) / cost;
+        pool.rebalance();
+        assertEq(_cash(), cash - paid);
+        assertGe(pool.value(), PARKED);
+    }
+
+    /// The subscription is cut to exactly what the margin pays for.
+    function test_a_subscription_is_scaled_to_exactly_what_the_margin_pays_for() public {
+        _scaledSubscription(4);
+    }
+
+    function test_a_subscription_at_a_steep_spread_is_scaled_the_same_way() public {
+        _scaledSubscription(10_000);
+    }
+
+    function test_a_teller_quoting_a_gain_on_entry_takes_the_whole_excess() public {
+        _park(PARKED);
+        vm.mockCall(address(teller), abi.encodeWithSelector(MockTeller.previewRedeem.selector), abi.encode(uint256(1e30)));
+        pool.rebalance();
+        assertEq(_cash(), pool.bufferTarget());
+    }
+
+    function test_a_teller_that_cannot_quote_a_deposit_is_given_nothing() public {
+        _park(PARKED);
+        vm.mockCallRevert(address(teller), abi.encodeWithSelector(MockTeller.previewDeposit.selector), "");
+        vm.recordLogs();
+        pool.rebalance();
+        assertEq(vm.getRecordedLogs().length, 0);
+        assertEq(_cash(), PARKED + 1e6);
+    }
+
+    function test_a_withdrawal_beyond_cash_redeems_just_the_gap() public {
+        _park(PARKED);
+        pool.rebalance();
+        uint256 cash = _cash();
+        uint256 shares = _shares();
+        uint256 want = teller.previewWithdraw(60_000e6 - cash);
+        uint256 got = teller.previewRedeem(want);
+        _take(60_000e6);
+        assertEq(_shares(), shares - want);
+        assertEq(_cash(), cash + got - 60_000e6);
+    }
+
+    /// Shares the Teller no longer values let it be removed; what cash cannot
+    /// then pay is refused as busy.
+    function test_a_pool_left_without_a_teller_refuses_what_its_cash_cannot_pay() public {
+        _park(PARKED);
+        pool.rebalance();
+        teller.setPrice(1);
+        pool.setTeller(address(0));
+        vm.prank(address(family));
+        vm.expectRevert(KarwanYieldPool.Busy.selector);
+        pool.withdraw(PARKED);
+    }
+
+    /// Worth just over twice what is parked: the margin is everything above
+    /// what is parked, never a remainder of it.
+    function _worthTwiceWhatIsParked() internal {
+        _park(PARKED);
+        uint256 line = PARKED + pool.MIN_MARGIN();
+        uint256 extra = 2 * line + 1e6 - _cash();
+        usdc.mint(feeSafe, extra);
+        vm.startPrank(feeSafe);
+        usdc.approve(address(pool), extra);
+        pool.backstop(extra);
+        vm.stopPrank();
+        assertEq(pool.value() % line, 1e6);
+    }
+
+    function test_a_rich_pool_subscribes_its_whole_excess_when_the_margin_pays_for_it() public {
+        teller.setSpread(4);
+        _worthTwiceWhatIsParked();
+        pool.rebalance();
+        assertEq(_cash(), pool.bufferTarget());
+    }
+
+    function test_a_rich_pool_scales_a_ruinous_subscription_to_its_whole_margin() public {
+        teller.setSpread(1_000_000);
+        _worthTwiceWhatIsParked();
+        uint256 cash = _cash();
+        uint256 excess = cash - pool.bufferTarget();
+        uint256 margin = pool.value() - pool.totalPrincipal() - pool.MIN_MARGIN();
+        uint256 cost = excess - teller.previewRedeem(teller.previewDeposit(excess));
+        assertGt(cost, margin);
+        pool.rebalance();
+        assertEq(_cash(), cash - (excess * margin) / cost);
+        assertGe(pool.value(), PARKED);
+    }
+}
+
+/// The pool with no seed, for the two cases where its value sits exactly on a
+/// line: worth exactly the margin above what is parked, and a subscription that
+/// leaves it worth exactly what is parked.
+contract YieldPoolEdgeTest is SuiteFixture {
+    function setUp() public {
+        _deploySuite();
+        _deployYieldBare(address(family), 9_000);
+        usdc.mint(address(family), 1_000_000e6);
+        vm.prank(address(family));
+        usdc.approve(address(pool), type(uint256).max);
+    }
+
+    function _seed(uint256 amount) internal {
+        usdc.mint(feeSafe, amount);
+        vm.startPrank(feeSafe);
+        usdc.approve(address(pool), amount);
+        pool.backstop(amount);
+        vm.stopPrank();
+    }
+
+    /// Worth exactly the margin above what is parked, the pool subscribes
+    /// nothing, even an amount that would cost nothing to enter.
+    function test_a_pool_worth_exactly_the_margin_above_what_is_parked_subscribes_nothing() public {
+        _seed(pool.MIN_MARGIN());
+        vm.prank(address(family));
+        pool.deposit(100_000_000_002);
+        uint256 excess = usdc.balanceOf(address(pool)) - pool.bufferTarget();
+        assertEq(teller.previewRedeem(teller.previewDeposit(excess)), excess);
+        pool.rebalance();
+        assertEq(teller.share_().balanceOf(address(pool)), 0);
+    }
+
+    /// A subscription that leaves the pool worth exactly what is parked stands.
+    function test_a_subscription_leaving_exactly_what_is_parked_stands() public {
+        _seed(1_500_152);
+        vm.prank(address(family));
+        pool.deposit(20_000e6);
+        teller.setShort(1);
+        pool.rebalance();
+        assertGt(teller.share_().balanceOf(address(pool)), 0);
+        assertEq(pool.value(), 20_000e6);
     }
 }

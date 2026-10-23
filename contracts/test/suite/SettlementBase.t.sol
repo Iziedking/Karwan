@@ -450,4 +450,23 @@ contract SettlementBaseTest is SuiteFixture {
         assertFalse(family.isParty(DEAL, stranger));
         assertFalse(family.isParty(bytes32("no-deal"), buyer));
     }
+
+    // ------------------------------ Outcomes ------------------------------
+
+    function test_lifting_a_hold_ends_it_now_even_after_2106() public {
+        _openAndFund(100e6);
+        vm.warp((uint256(1) << 32) + 50);
+        vm.prank(guardian);
+        family.hold(DEAL, bytes32("scan"));
+        vm.prank(guardian);
+        family.releaseHold(DEAL);
+        assertEq(family.accountOf(DEAL).holdUntil, vm.getBlockTimestamp());
+    }
+
+    function test_the_payer_and_the_payees_are_parties_and_no_one_else_is() public {
+        _openAndFund(100e6);
+        assertTrue(family.isParty(DEAL, buyer));
+        assertTrue(family.isParty(DEAL, seller));
+        assertFalse(family.isParty(DEAL, stranger));
+    }
 }

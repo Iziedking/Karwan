@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+import {Vm} from "forge-std/Vm.sol";
 import {AgreementFixture} from "./agreement/AgreementFixture.sol";
 import {AgreementTerms} from "../../src/suite/agreement/AgreementTypes.sol";
 import {KarwanTradeFinance} from "../../src/suite/KarwanTradeFinance.sol";
@@ -445,5 +446,145 @@ contract TradeFinanceTest is AgreementFixture {
             tf.lineIdFor(address(escrow), id, financier, 50e6, 60e6, 10e6),
             keccak256(abi.encode(block.chainid, address(tf), address(escrow), id, financier, uint128(50e6), uint128(60e6), uint128(10e6)))
         );
+    }
+
+    // ------------------------------ Outcomes ------------------------------
+
+    function _openAt(bytes32 id, uint128 advance, uint128 repay, uint128 stake, uint64 expiresAt, uint256 nonce)
+        internal
+        returns (bytes32 lineId)
+    {
+        uint256 deadline = block.timestamp + 1 hours;
+        bytes32 a = escrow.assignDigest(id, seller, financier, repay, address(tf), nonce, deadline);
+        lineId = tf.lineIdFor(address(escrow), id, financier, advance, repay, stake);
+        bytes32 r = vault.reserveDigest(address(tf), lineId, address(usdc), stake, financier, expiresAt, deadline);
+        vm.prank(financier);
+        tf.open(
+            address(escrow),
+            id,
+            advance,
+            repay,
+            stake,
+            expiresAt,
+            KarwanTradeFinance.Signed(nonce, deadline, _sig(sellerKey, a)),
+            KarwanTradeFinance.StakeSig(deadline, _sig(sellerKey, r))
+        );
+    }
+
+    /// The stake has to outlast the deal's long-stop by the whole 30-day
+    /// settling window, to the second; a later end is fine.
+    function test_the_stake_must_outlast_the_long_stop_by_the_whole_settling_window() public {
+        bytes32 id = _fundAccepted(_terms(), bytes32("f"));
+        (KarwanTradeFinance.Signed memory a, KarwanTradeFinance.StakeSig memory r) = _signed(id, financier, 50e6, 60e6, 10e6);
+        uint64 least = escrow.accountOf(id).horizon + 180 days + 30 days;
+        vm.prank(financier);
+        vm.expectRevert(KarwanTradeFinance.BadTerms.selector);
+        tf.open(address(escrow), id, 50e6, 60e6, 10e6, least - 1, a, r);
+        bytes32 lineId = _openAt(id, 50e6, 60e6, 10e6, least + 1 days, 7);
+        assertEq(vault.expiryOf(address(tf), lineId), least + 1 days);
+    }
+
+    function test_an_advance_of_nothing_is_refused() public {
+        bytes32 id = _fundAccepted(_terms(), bytes32("f"));
+        (KarwanTradeFinance.Signed memory a, KarwanTradeFinance.StakeSig memory r) = _signed(id, financier, 0, 60e6, 10e6);
+        uint64 expiresAt = _expiresAt(id);
+        vm.prank(financier);
+        vm.expectRevert(KarwanTradeFinance.BadTerms.selector);
+        tf.open(address(escrow), id, 0, 60e6, 10e6, expiresAt, a, r);
+    }
+
+    function test_a_stake_of_exactly_ten_percent_of_the_advance_is_enough() public {
+        bytes32 id = _fundAccepted(_terms(), bytes32("f"));
+        bytes32 lineId = _open(id, 50e6, 60e6, 5e6);
+        assertEq(tf.lineOf(lineId).stake, 5e6);
+    }
+
+    /// A stake near the top of its type is weighed without overflowing.
+    function test_a_very_large_stake_is_weighed_without_overflow() public {
+        uint128 huge = uint128(1) << 127;
+        usdc.mint(seller, huge);
+        vm.prank(seller);
+        vault.stake(address(usdc), huge);
+        bytes32 id = _fundAccepted(_terms(), bytes32("f"));
+        bytes32 lineId = _open(id, 50e6, 60e6, huge);
+        assertEq(tf.lineOf(lineId).stake, huge);
+    }
+
+    /// Each deal is its own seat: a line on one deal never replaces a line on
+    /// another, and the seat follows its published encoding.
+    function test_lines_on_two_deals_keep_their_own_seats() public {
+        bytes32 a = _fundAccepted(_terms(), bytes32("f"));
+        bytes32 b = _fundAccepted(_terms(), bytes32("g"));
+        bytes32 first = _open(a, 50e6, 60e6, 10e6);
+        bytes32 second = _openN(b, 50e6, 60e6, 10e6, 8);
+        assertEq(tf.lineOf(first).state, 1);
+        assertEq(tf.lineOf(second).state, 1);
+        assertEq(tf.lineOfSeat(keccak256(abi.encode(address(escrow), a, seller))), first);
+        assertEq(tf.lineOfSeat(keccak256(abi.encode(address(escrow), b, seller))), second);
+    }
+
+    /// Only an open line is replaced: a first line, or one after a waived
+    /// line, announces no waiver.
+    function test_only_an_open_line_is_replaced() public {
+        bytes32 id = _fundAccepted(_terms(), bytes32("f"));
+        vm.recordLogs();
+        bytes32 first = _open(id, 50e6, 60e6, 10e6);
+        _noWaiver();
+        vm.startPrank(financier);
+        tf.waive(first);
+        escrow.releaseAssignment(id, seller);
+        vm.stopPrank();
+        vm.recordLogs();
+        _openN(id, 20e6, 25e6, 5e6, 8);
+        _noWaiver();
+        assertEq(tf.lineOf(first).state, 4);
+    }
+
+    function _noWaiver() internal {
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        for (uint256 i; i < logs.length; ++i) {
+            assertTrue(logs[i].topics[0] != KarwanTradeFinance.LineWaived.selector);
+        }
+    }
+
+    function test_a_line_that_does_not_exist_cannot_be_settled_waived_or_kept() public {
+        bytes32 nothing = bytes32("nothing");
+        vm.expectRevert(KarwanTradeFinance.NotOpen.selector);
+        tf.settle(nothing);
+        vm.expectRevert(KarwanTradeFinance.NotOpen.selector);
+        tf.waive(nothing);
+        vm.expectRevert(KarwanTradeFinance.NotOpen.selector);
+        tf.keepStake(nothing);
+    }
+
+    /// The seller assigns the payout to the same financier for more than the
+    /// line: it is no longer the line's assignment, so the line is waived.
+    function test_an_assignment_for_a_different_amount_waives_the_line() public {
+        bytes32 id = _fundAccepted(_terms(), bytes32("f"));
+        bytes32 lineId = _open(id, 50e6, 60e6, 10e6);
+        vm.prank(financier);
+        escrow.releaseAssignment(id, seller);
+        vm.prank(seller);
+        escrow.assignPayout(id, seller, financier, 60e6 + 1, 0, 0, "");
+        vm.prank(buyer);
+        escrow.release(id);
+        tf.settle(lineId);
+        assertEq(tf.lineOf(lineId).state, 4);
+        assertEq(vault.freeOf(sellerId, address(usdc)), 50e6);
+    }
+
+    /// Settled in the reservation's last second, a default is still covered by
+    /// the stake.
+    function test_a_default_settled_in_the_reservations_last_second_takes_the_stake() public {
+        AgreementTerms memory t = _terms();
+        bytes32 id = _fundAccepted(t, bytes32("f"));
+        bytes32 lineId = _open(id, 50e6, 60e6, 10e6);
+        vm.warp(uint256(t.deliveryDeadline) + t.reclaimGrace + 1);
+        escrow.reclaim(id);
+        vm.warp(vault.expiryOf(address(tf), lineId));
+        uint256 financierBefore = usdc.balanceOf(financier);
+        tf.settle(lineId);
+        assertEq(tf.lineOf(lineId).state, 3);
+        assertEq(usdc.balanceOf(financier), financierBefore + 10e6);
     }
 }
