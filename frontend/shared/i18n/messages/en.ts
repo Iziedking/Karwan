@@ -38,6 +38,7 @@ import { requestPageCopy, type RequestPageCopy } from './requestPage';
 import { passportCopy, type PassportCopy } from './passport';
 import { personCheckCopy, type PersonCheckCopy } from './personCheck';
 import { moneyOutCopy, type MoneyOutCopy } from './moneyOut';
+import { confirmPresenceCopy, type ConfirmPresenceCopy } from './confirmPresence';
 import { recordCopy, type RecordCopy } from './record';
 import { routeTitlesCopy, type RouteTitleCopy } from './routeTitles';
 import { chatTermsCopy, type ChatTermsCopy } from './chatTerms';
@@ -80,6 +81,7 @@ interface MessagesShape {
   passport: PassportCopy;
   personCheck: PersonCheckCopy;
   moneyOut: MoneyOutCopy;
+  confirmPresence: ConfirmPresenceCopy;
   record: RecordCopy;
   routeTitles: RouteTitleCopy;
   chatTerms: ChatTermsCopy;
@@ -4795,6 +4797,7 @@ interface MessagesShape {
       q13: { q: string; a: string };
       q14: { q: string; a: string };
       q15: { q: string; a: string };
+      q16: { q: string; a: string };
     };
     videoGuides: { eyebrow: string; title: string; body: string; badge: string };
     cta: { title: string; body: string; button: string; chainPrefix: string };
@@ -5486,6 +5489,7 @@ export const en: MessagesShape = {
   passport: passportCopy.en,
   personCheck: personCheckCopy.en,
   moneyOut: moneyOutCopy.en,
+  confirmPresence: confirmPresenceCopy.en,
   record: recordCopy.en,
   routeTitles: routeTitlesCopy.en,
   chatTerms: chatTermsCopy.en,
@@ -10803,6 +10807,7 @@ export const en: MessagesShape = {
       q13: { q: "Who sees where I am?", a: "Only your country shows on your record. Your city and area stay private: agents use them to match you with people near you and with buyers you can deliver to, and never show them to anyone. Delivery details are agreed in chat with the person you deal with." },
       q14: { q: "Can I message someone before a deal?", a: "Yes. Ask your agent to send a message to their Karwan tag, or open karwan.site/messages/their-tag. They get it in their Karwan chat with an alert on Telegram and by email, and see your tag, country and tier. When you agree, start a protected deal. Keep payment in Karwan escrow and never pay outside it. Messages are kept 14 days." },
       q15: { q: "How do ratings work?", a: "After a deal settles, you and the other person each rate it from 1 to 5, with a note if you like. Neither of you sees the other's rating until you both rate or 14 days pass. Your public rating is the average with how many ratings it comes from, for example 4.8 from 23 deals; under 3 ratings it shows New. Ratings close 14 days after the deal settles. Ratings from disputed deals are counted beside the number, for example 3.7 from 3 deals, 2 disputed. A note with a phone number, an email or a link is kept private. Your rating is separate from your reputation score." },
+      q16: { q: "When does Karwan ask me to confirm it is me?", a: "Only for three things: setting up your Karwan record and your buying agent's limits, putting up deal insurance, and money leaving Karwan for an address that is not one of your own Karwan wallets. You confirm with a passkey, your phone's face or fingerprint check, or a 6-digit Karwan PIN. Your agents pay, accept, deliver and release inside the limits you set without asking. Five wrong PINs lock it for 15 minutes, and Forgot PIN resets it with an email code. A PIN is never asked in a chat; the agent sends a one-time Karwan link." },
     },
     videoGuides: { eyebrow: 'Guided help', title: 'Know what to do next', body: 'Use the page tour on sensitive screens when you need context. It stays out of the way for returning users and can be opened again from the page control.', badge: 'In the app' },
     cta: { title: 'Start building your record', body: 'Agree the terms, fund USDC escrow, and every completed deal adds to your reputation.', button: 'Launch app', chainPrefix: 'chain' },

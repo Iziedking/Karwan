@@ -35,6 +35,7 @@ import { requestPageCopy } from './requestPage';
 import { passportCopy } from './passport';
 import { personCheckCopy } from './personCheck';
 import { moneyOutCopy } from './moneyOut';
+import { confirmPresenceCopy } from './confirmPresence';
 import { recordCopy } from './record';
 import { routeTitlesCopy } from './routeTitles';
 import { chatTermsCopy } from './chatTerms';
@@ -78,6 +79,7 @@ export const fr: Messages = {
   passport: passportCopy.fr,
   personCheck: personCheckCopy.fr,
   moneyOut: moneyOutCopy.fr,
+  confirmPresence: confirmPresenceCopy.fr,
   record: recordCopy.fr,
   routeTitles: routeTitlesCopy.fr,
   chatTerms: chatTermsCopy.fr,
@@ -5238,6 +5240,7 @@ export const fr: Messages = {
       q13: { q: "Qui voit où je me trouve ?", a: "Seul votre pays apparaît sur votre dossier. Votre ville et votre quartier restent privés : les agents s'en servent pour vous proposer des personnes proches et des acheteurs que vous pouvez livrer, sans jamais les montrer à personne. Les détails de livraison se règlent dans la discussion avec la personne concernée." },
       q14: { q: "Puis-je écrire à quelqu'un avant un accord ?", a: "Oui. Demandez à votre agent d'envoyer un message à son tag Karwan, ou ouvrez karwan.site/messages/son-tag. La personne le reçoit dans sa discussion Karwan avec une alerte sur Telegram et par e-mail, et voit votre tag, votre pays et votre niveau. Une fois d'accord, lancez un accord protégé. Gardez le paiement dans l'escrow Karwan et ne payez jamais en dehors. Les messages sont conservés 14 jours." },
       q15: { q: "Comment fonctionnent les notes ?", a: "Après un accord réglé, vous et l'autre personne le notez chacun de 1 à 5, avec un commentaire si vous voulez. Aucun de vous ne voit la note de l'autre avant que vous ayez noté tous les deux ou que 14 jours passent. Votre note publique est la moyenne avec le nombre de notes, par exemple 4,8 sur 23 accords ; en dessous de 3 notes, elle affiche Nouveau. Les notes se ferment 14 jours après le règlement. Les notes issues d'accords en litige sont comptées à côté du chiffre, par exemple 3,7 sur 3 accords, dont 2 en litige. Un commentaire avec un numéro de téléphone, un e-mail ou un lien reste privé. Votre note est distincte de votre score de réputation." },
+      q16: { q: "Quand Karwan me demande-t-il de confirmer que c'est moi ?", a: "Pour trois choses seulement : créer votre dossier Karwan et les limites de votre agent d'achat, déposer une assurance de transaction, et quand de l'argent quitte Karwan vers une adresse qui n'est pas l'un de vos portefeuilles Karwan. Vous confirmez avec une clé d'accès, la reconnaissance du visage ou de l'empreinte de votre téléphone, ou un code Karwan à 6 chiffres. Vos agents paient, acceptent, livrent et libèrent dans les limites que vous avez fixées, sans vous demander. Cinq codes faux le bloquent 15 minutes, et Code oublié le réinitialise avec un code reçu par e-mail. Le code n'est jamais demandé dans une discussion ; l'agent envoie un lien Karwan à usage unique." },
     },
     videoGuides: { eyebrow: 'Guides vidéo', title: 'Voyez-le en action', body: 'De courtes vidéos de chaque flux arrivent bientôt. En attendant, la visite intégrée vous guide pas à pas sur chaque page. Ouvrez-la depuis le bouton Visite en bas de l\'écran.', badge: 'Bientôt' },
     cta: { title: 'Commencez à construire votre historique', body: 'Convenez des conditions, financez le séquestre en USDC, et chaque échange conclu renforce votre réputation.', button: 'Lancer l\'app', chainPrefix: 'chaîne' },

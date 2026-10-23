@@ -19,6 +19,7 @@ import { SiweGate } from '@/shared/components/SiweGate';
 import { GlobalLoadingSplash } from '@/shared/components/GlobalLoadingSplash';
 import { WorkspaceProvider } from '@/shared/hooks/useWorkspaceContext';
 import { NotificationsProvider } from '@/features/notifications/hooks/useNotifications';
+import { ConfirmPresenceProvider } from '@/features/confirm/ConfirmPresenceProvider';
 import type { Locale } from '@/shared/i18n/locales';
 
 /// The Help panel is a launcher until it is opened, so its code (the chat
@@ -84,6 +85,7 @@ export function AppProviders({
           <GuideProvider>
             {children}
             <AssistantWidget />
+            <ConfirmPresenceProvider />
           </GuideProvider>
         </NotificationsProvider>
       </WorkspaceProvider>

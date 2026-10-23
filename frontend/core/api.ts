@@ -1949,7 +1949,74 @@ export interface AssistantConversation extends AssistantConversationSummary {
   messages: SavedAssistantMessage[];
 }
 
+export type PresenceMethod = 'pin' | 'passkey' | 'wallet';
+
+/// One of the actions a person confirms before it happens: setting up their
+/// record, putting up deal insurance, sending money out of Karwan, or changing
+/// how they confirm.
+export interface PresenceAction {
+  kind: 'record_setup' | 'deal_insurance' | 'move_out' | 'factor_change';
+  wallet: string;
+  amountMicros: string | null;
+  recipient: string | null;
+  detail: Record<string, string>;
+}
+
+/// The 428 the backend answers with when that action needs the person.
+export interface ConfirmRequired {
+  code: 'CONFIRM_REQUIRED';
+  challengeId: string;
+  action: PresenceAction;
+  text: string;
+  methods: PresenceMethod[];
+  pinSet: boolean;
+  pinLockedUntil: number | null;
+  passkeys: number;
+  enrol: 'email_code' | 'open_link' | 'add_email' | null;
+}
+
+/// Opens the confirmation sheet and resolves with the grant, or null when the
+/// person closes it.
+export type ConfirmHandler = (required: ConfirmRequired) => Promise<string | null>;
+
+export class ConfirmCancelled extends Error {
+  constructor() {
+    super('confirmation cancelled');
+  }
+}
+
+let confirmHandler: ConfirmHandler | null = null;
+
+export function setConfirmHandler(handler: ConfirmHandler | null): void {
+  confirmHandler = handler;
+}
+
+const CONFIRM_HEADER = 'X-Karwan-Confirm';
+/// A request is asked again when what it moves changed meanwhile; three asks is
+/// already a loop, not a person.
+const MAX_CONFIRMS = 3;
+
+function confirmRequiredOf(err: unknown): ConfirmRequired | null {
+  if (!(err instanceof ApiError) || err.status !== 428) return null;
+  const body = err.body as Partial<ConfirmRequired> | undefined;
+  return body?.code === 'CONFIRM_REQUIRED' && typeof body.challengeId === 'string' ? (body as ConfirmRequired) : null;
+}
+
 async function json<T>(path: string, init?: RequestInit): Promise<T> {
+  for (let asked = 0; ; asked++) {
+    try {
+      return await jsonOnce<T>(path, init);
+    } catch (err) {
+      const required = confirmRequiredOf(err);
+      if (!required || !confirmHandler || asked >= MAX_CONFIRMS) throw err;
+      const grant = await confirmHandler(required);
+      if (!grant) throw new ConfirmCancelled();
+      init = { ...init, headers: { ...(init?.headers as Record<string, string> | undefined), [CONFIRM_HEADER]: grant } };
+    }
+  }
+}
+
+async function jsonOnce<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = { 'content-type': 'application/json', ...(init?.headers ?? {}) };
   const res = await fetch(`${BASE}${path}`, {
     cache: 'no-store',
@@ -4228,6 +4295,22 @@ export const api = {
     json<{ callerStatus: 'skipped' | 'verified' | null }>(`/api/deals/direct/${jobId}/high-signal/skip`, {
       method: 'POST', body: JSON.stringify({ caller }),
     }),
+  confirmStatus: () =>
+    json<{ methods: PresenceMethod[]; pinSet: boolean; pinLockedUntil: number | null; passkeys: number; hasEmail: boolean }>('/api/confirm/status'),
+  /// Confirms one challenge with a PIN, a passkey assertion or a wallet signature.
+  confirmPresence: (challengeId: string, proof: { pin: string } | { passkey: unknown } | { signature: string }) =>
+    json<{ grant: string }>('/api/confirm', { method: 'POST', body: JSON.stringify({ challengeId, ...proof }) }),
+  confirmPasskeyOptions: (challengeId: string) =>
+    json<Record<string, unknown>>('/api/confirm/options', { method: 'POST', body: JSON.stringify({ challengeId }) }),
+  confirmEmailCode: () => json<{ sent: boolean; devCode?: string }>('/api/confirm/email-code', { method: 'POST' }),
+  setConfirmPin: (pin: string, emailCode?: string) =>
+    json<{ ok: true }>('/api/confirm/pin', { method: 'POST', body: JSON.stringify({ pin, emailCode }) }),
+  resetConfirmPin: (pin: string, emailCode: string) =>
+    json<{ ok: true }>('/api/confirm/pin/reset', { method: 'POST', body: JSON.stringify({ pin, emailCode }) }),
+  confirmPasskeyRegistrationOptions: (emailCode?: string) =>
+    json<Record<string, unknown>>('/api/confirm/passkey/options', { method: 'POST', body: JSON.stringify({ emailCode }) }),
+  registerConfirmPasskey: (response: unknown) =>
+    json<{ ok: true }>('/api/confirm/passkey/register', { method: 'POST', body: JSON.stringify({ response }) }),
   moneyOutStatus: () => json<MoneyOutStatus>('/api/money-out/status'),
   moneyOutSessionRequest: (purpose: MoneyOutCheck) =>
     json<{ request: WorldSessionRequest }>('/api/money-out/session/request', {

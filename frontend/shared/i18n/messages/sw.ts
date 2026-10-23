@@ -35,6 +35,7 @@ import { requestPageCopy } from './requestPage';
 import { passportCopy } from './passport';
 import { personCheckCopy } from './personCheck';
 import { moneyOutCopy } from './moneyOut';
+import { confirmPresenceCopy } from './confirmPresence';
 import { recordCopy } from './record';
 import { routeTitlesCopy } from './routeTitles';
 import { chatTermsCopy } from './chatTerms';
@@ -78,6 +79,7 @@ export const sw: Messages = {
   passport: passportCopy.sw,
   personCheck: personCheckCopy.sw,
   moneyOut: moneyOutCopy.sw,
+  confirmPresence: confirmPresenceCopy.sw,
   record: recordCopy.sw,
   routeTitles: routeTitlesCopy.sw,
   chatTerms: chatTermsCopy.sw,
@@ -5235,6 +5237,7 @@ export const sw: Messages = {
       q13: { q: "Nani anaona nilipo?", a: "Nchi yako pekee ndiyo inaonekana kwenye rekodi yako. Mji na eneo lako vinabaki siri: mawakala huvitumia kukuunganisha na watu walio karibu nawe na wanunuzi unaoweza kuwafikishia, na hawavionyeshi kwa mtu yeyote. Maelezo ya kufikisha hukubaliwa kwenye mazungumzo na mtu unayefanya naye biashara." },
       q14: { q: "Je, naweza kumtumia mtu ujumbe kabla ya mpango?", a: "Ndiyo. Mwombe wakala wako atume ujumbe kwa lebo yake ya Karwan, au fungua karwan.site/messages/lebo-yake. Anaupata kwenye mazungumzo yake ya Karwan pamoja na arifa kwenye Telegram na kwa barua pepe, na anaona lebo yako, nchi yako na kiwango chako. Mkikubaliana, anzisha mpango uliolindwa. Weka malipo ndani ya escrow ya Karwan na usilipe nje yake kamwe. Ujumbe huhifadhiwa siku 14." },
       q15: { q: "Ukadiriaji hufanyaje kazi?", a: "Mpango ukishalipwa, wewe na mtu mwingine kila mmoja anaukadiria kutoka 1 hadi 5, pamoja na maoni ukipenda. Hakuna anayeona ukadiriaji wa mwenzake hadi nyote mkadirie au siku 14 zipite. Ukadiriaji wako wa umma ni wastani pamoja na idadi ya ukadiriaji, kwa mfano 4.8 kutoka mipango 23; chini ya ukadiriaji 3 unaonyesha Mpya. Ukadiriaji hufungwa siku 14 baada ya mpango kulipwa. Ukadiriaji kutoka mipango yenye mgogoro unahesabiwa kando ya namba, kwa mfano 3.7 kutoka mipango 3, 2 zenye mgogoro. Maoni yenye namba ya simu, barua pepe au kiungo yanabaki ya faragha. Ukadiriaji wako ni tofauti na alama yako ya sifa." },
+      q16: { q: "Karwan inaniomba lini kuthibitisha kuwa ni mimi?", a: "Kwa mambo matatu tu: kufungua rekodi yako ya Karwan na mipaka ya wakala wako wa kununua, kuweka bima ya mikataba, na pesa zinapotoka Karwan kwenda anwani isiyo moja ya pochi zako za Karwan. Unathibitisha kwa passkey, yaani ukaguzi wa uso au alama ya kidole wa simu yako, au kwa PIN ya Karwan ya tarakimu 6. Mawakala wako hulipa, hukubali, huwasilisha na huachilia malipo ndani ya mipaka uliyoweka bila kukuuliza. PIN tano zisizo sahihi huifunga kwa dakika 15, na Nimesahau PIN huiweka upya kwa msimbo wa barua pepe. PIN haiulizwi kamwe kwenye mazungumzo; wakala hutuma kiungo cha Karwan kinachofanya kazi mara moja." },
     },
     videoGuides: { eyebrow: 'Miongozo ya video', title: 'Itazame ikifanya kazi', body: 'Video fupi za kila mtiririko zinakuja. Wakati zinaandaliwa, ziara ya ndani ya programu inakuongoza hatua kwa hatua kwenye kila ukurasa. Ifungue kutoka kitufe cha Ziara chini ya skrini.', badge: 'Inakuja hivi karibuni' },
     cta: { title: 'Anza kujenga rekodi yako', body: 'Kubaliana masharti, fadhili escrow ya USDC, na kila biashara iliyokamilika inaongeza kwenye sifa yako.', button: 'Zindua programu', chainPrefix: 'chenya' },
