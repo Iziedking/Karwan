@@ -34,6 +34,8 @@ ARC_TARBALL_SHA256=088bdb96a84418b757f9825d491e702792f1d1d1e29a9145af305a6600a79
 ARC_TESTNET_RPC=https://rpc.testnet.arc.io
 ARC_FORK_BLOCK=66719638
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+# Git Bash may spell the same checkout C:/Users/... or /c/Users/...; one key for both.
+case "$ROOT" in [A-Za-z]:/*) ROOT="/$(printf %s "${ROOT%%:*}" | tr A-Z a-z)${ROOT#?:}" ;; esac
 # One remote workspace per checkout, so separate checkouts never share files.
 STATE="$HOME/.karwan-forge-remote-$(printf '%s' "$ROOT" | cksum | cut -d' ' -f1)"
 SSH="ssh -o BatchMode=yes $H"
@@ -191,7 +193,8 @@ case "${1:-}" in
     # it; timeouts, errors and stale mutants run again. MUTANTS=file tests the
     # mutants in that file, each contract's control among them, instead of
     # listing them, to prove new tests kill known survivors. Results: $W/m/results.jsonl.
-    TARGETS=$2; WORKERS=${3:-12}; EVERY=${4:-1}
+    # CAMPAIGN_PROFILE=default builds each mutant as deployed, for the size test.
+    TARGETS=$2; WORKERS=${3:-12}; EVERY=${4:-1}; PROFILE=${CAMPAIGN_PROFILE:-mutate}
     NAMES=$(sed 's/#.*//' "$TARGETS" | awk 'NF { printf "%s ", $1 }')
     pinned_forge
     # Workers write as root, so an earlier campaign's folder goes from inside a
@@ -226,7 +229,7 @@ split -n r/$WORKERS -d -a 2 picked.jsonl shard.
 for s in shard.*; do
   i=\${s#shard.}
   cp -a $W/c w\$i
-  $DR -d --cpus=2 --memory=8g -e FOUNDRY_PROFILE=mutate -v $W/m/w\$i:/c -v $W/tools:/tools -v $W/m:/m -w /c $TOOLBOX_IMAGE \
+  $DR -d --cpus=2 --memory=8g -e FOUNDRY_PROFILE=$PROFILE -v $W/m/w\$i:/c -v $W/tools:/tools -v $W/m:/m -w /c $TOOLBOX_IMAGE \
     sh /m/work.sh /m/\$s /m/targets.txt /m/results.\$i.jsonl \$( [ -f done.jsonl ] && echo /m/done.jsonl ) > /dev/null
 done
 while [ -n "\$(docker ps -q --filter label=izie.ws=$W)" ]; do sleep 30; done
