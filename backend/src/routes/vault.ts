@@ -6,6 +6,8 @@ import { config } from '../config.js';
 import { alertIfClaimLiquidityShort } from '../chain/claimLiquidityAlert.js';
 import { publicClient } from '../chain/client.js';
 import { usdc as usdcAddress } from '../chain/contracts.js';
+import { presenceAction } from '../presence/action.js';
+import { requirePresence } from '../presence/live.js';
 import { executeContractCall } from '../chain/txs.js';
 import {
   getPositionsByOwner,
@@ -410,6 +412,20 @@ vaultRoutes.post('/deposit', async (c) => {
       409,
     );
   }
+
+  let stakeMicros: bigint;
+  try {
+    stakeMicros = parseVaultStakeHint(body.amountUsdc);
+  } catch {
+    return c.json({ error: 'stake amount must be a valid USDC amount', code: 'invalid-amount' }, 400);
+  }
+  // Putting up deal insurance is the consent that lets the selling agent back
+  // buyer protection and advances later without asking again (view 27).
+  const unconfirmed = await requirePresence(
+    c,
+    presenceAction({ kind: 'deal_insurance', wallet: body.address, amountMicros: stakeMicros.toString(), recipient: vault }),
+  );
+  if (unconfirmed) return unconfirmed;
 
   const requestKey = body.requestId ?? c.req.header('Idempotency-Key') ?? randomUUID();
   const key = `${body.address.toLowerCase()}:deposit`;

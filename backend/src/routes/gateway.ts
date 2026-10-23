@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { parseUnits } from 'viem';
 import { readSession, sessionAddress } from '../auth/session.js';
 import { moneyOutGuard } from '../moneyOut/live.js';
+import { confirmMoveOut } from '../presence/moveOut.js';
 import { refusalBody } from '../moneyOut/refusal.js';
 import { getUserByAddress } from '../db/users.js';
 import { appendActivity } from '../db/activityLog.js';
@@ -325,6 +326,8 @@ gatewayRoutes.post('/cash-out', async (c) => {
   } as const;
   const early = await moneyOutGuard.check(outgoing, { reserve: false });
   if (!early.ok) return c.json(refusalBody(early.refusal), 409);
+  const unconfirmed = await confirmMoveOut(c, outgoing);
+  if (unconfirmed) return unconfirmed;
 
   if (spendInFlight.has(address)) {
     return c.json({ error: 'a transfer is already in progress', code: 'in_flight' }, 409);

@@ -25,6 +25,7 @@ import { readSession } from '../auth/session.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
 import { moneyOutGuard } from '../moneyOut/live.js';
+import { confirmMoveOut } from '../presence/moveOut.js';
 import { refusalBody } from '../moneyOut/refusal.js';
 import { invalidBodyMessage } from './invalidBody.js';
 import { ARC } from '../chain/client.js';
@@ -135,6 +136,8 @@ cashoutRoutes.post('/arc-withdraw', async (c) => {
   } as const;
   const early = await moneyOutGuard.check(outgoing, { reserve: false });
   if (!early.ok) return c.json(refusalBody(early.refusal), 409);
+  const unconfirmed = await confirmMoveOut(c, outgoing);
+  if (unconfirmed) return unconfirmed;
 
   const deal = await getDeal(body.jobId);
   if (!deal) return c.json({ error: 'deal not found' }, 404);
@@ -373,6 +376,8 @@ cashoutRoutes.post('/arc-send', async (c) => {
   } as const;
   const early = await moneyOutGuard.check(outgoing, { reserve: false });
   if (!early.ok) return c.json(refusalBody(early.refusal), 409);
+  const unconfirmed = await confirmMoveOut(c, outgoing);
+  if (unconfirmed) return unconfirmed;
 
   const user = getUserByAddress(session.address);
   if (!user?.circleIdentityWalletId) {

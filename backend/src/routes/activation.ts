@@ -56,6 +56,7 @@ import {
 } from '../money/agentFunding.js';
 import { parseUsdcMicros } from '../money/model.js';
 import { moneyOutGuard } from '../moneyOut/live.js';
+import { confirmMoveOut } from '../presence/moveOut.js';
 import { refusalBody } from '../moneyOut/refusal.js';
 import { invalidBodyMessage } from './invalidBody.js';
 
@@ -677,6 +678,8 @@ activationRoutes.post('/withdraw', async (c) => {
   } as const;
   const early = await moneyOutGuard.check(outgoing, { reserve: false });
   if (!early.ok) return c.json(refusalBody(early.refusal), 409);
+  const unconfirmed = await confirmMoveOut(c, outgoing, { agent: body.agent });
+  if (unconfirmed) return unconfirmed;
 
   const wallets = await getAgentWallets(userAddress);
   if (!wallets) {

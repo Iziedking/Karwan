@@ -56,6 +56,7 @@ import { ensureBridgeMovement } from '../money/bridge.js';
 import { sourceClients } from '../chain/cctpClients.js';
 import { USER_DCW_WALLETS } from '../chain/cctpChains.js';
 import { isOwnArcWallet, moneyOutGuard } from '../moneyOut/live.js';
+import { confirmMoveOut } from '../presence/moveOut.js';
 import { refusalBody } from '../moneyOut/refusal.js';
 import { invalidBodyMessage } from './invalidBody.js';
 
@@ -2365,6 +2366,8 @@ bridgeRoutes.post('/circle-bridge-out', async (c) => {
   } as const;
   const early = await moneyOutGuard.check(outgoing, { reserve: false });
   if (!early.ok) return c.json(refusalBody(early.refusal), 409);
+  const unconfirmed = await confirmMoveOut(c, outgoing);
+  if (unconfirmed) return unconfirmed;
   const user = getUserByAddress(userAddress);
 
   // Decide which wallet on Arc will burn. The identity source is custodial only
