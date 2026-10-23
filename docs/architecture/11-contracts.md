@@ -276,6 +276,34 @@ sequenceDiagram
   OS->>TL: Queue it again as protected: waits 7 days, only the owner can cancel
 ```
 
+## How the suite is deployed
+
+One reviewed script, `contracts/script/DeployEndgame.s.sol`, reads a config naming the Safes and the beta values. The hub is owned by the timelock from its constructor, so the deployer key never holds an owner power. Its only act on the hub is the one wiring call the hub allows, once. Every setting after that is one batch the owner Safe queues through the timelock, in public for the full delay, and a check script reads the chain back after each phase.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant DEP as Deployer key
+  participant TL as Timelock
+  participant HUB as Hub
+  participant FAM as Families and verifier
+  participant OS as Owner Safe
+  participant CHK as Check script
+
+  DEP->>TL: Create: owner Safe proposes, executes, cancels; guardian Safe cancels
+  DEP->>HUB: Create, owned by the timelock
+  DEP->>HUB: Wire identity, record and stake vault, once
+  DEP->>FAM: Create the four families and the k of n verifier
+  CHK->>HUB: Timelock owns the hub, the deployer holds no role
+  OS->>TL: Queue the first settings: roles, USDC, families, caps, verifier, issuers
+  Note over TL: Public for the whole delay
+  OS->>TL: Execute after the delay
+  TL->>HUB: Settings applied
+  CHK->>HUB: Every role and value matches the config
+```
+
+The delay is 24 hours on testnet and 48 hours on mainnet. Libraries are created through Arc's CREATE2 factory, so a library whose code has not changed keeps its address from one deploy to the next.
+
 ## Who can do what
 
 | Role | Can | Cannot |
@@ -318,7 +346,7 @@ Every release passes, in order. The threat model behind these steps is [view 14]
 7. Machine-checked proofs that the books balance and that principal can always be withdrawn.
 8. Two full rehearsals on Arc testnet, including a drill that pauses a family and settles every open deal.
 
-The suite launches on mainnet after step 8 with beta limits written into it: 1,000 USDC per deal and 10,000 USDC in total, per family and per currency. The limits rise only through the timelock, and only after an independent audit and a public audit contest. A bug bounty and a safe-harbour policy for people who rescue funds during an attack start at deployment.
+The suite launches on mainnet after step 8 with beta limits written into it: deals up to 1,000 USDC and 10,000 USDC in total, per family and per currency. The per-deal cap is set at 1,005 USDC because it counts the buyer's half of the fee, so a 1,000 USDC deal fits. The limits rise only through the timelock, and only after an independent audit and a public audit contest. A bug bounty and a safe-harbour policy for people who rescue funds during an attack start at deployment.
 
 ## What fails where
 
@@ -359,22 +387,22 @@ The suite launches on mainnet after step 8 with beta limits written into it: 1,0
 |---|---|
 | Escrow for today's deals (v2b) | Live on testnet |
 | Terms-driven escrow (v3): terms hash, clocks, checks, disputes with appeal, splits, owed balances, caps | Built, not deployed. Its rules carry into the Agreement family |
-| Stake vault | Built, not deployed: stake per person, reservations only by the staker's own signature, slashes only to the named beneficiary |
+| Stake vault | On Arc Testnet since 23 October, not on mainnet: stake per person, reservations only by the staker's own signature, slashes only to the named beneficiary |
 | Yield pool | Built, not deployed: one pool per asset, deal money parked by each family's share, payouts taken from it or owed, yield above a cushion to the fee recipient. Tested against Circle's USYC Teller on an Arc testnet fork |
-| Shared settlement base and hub | Built, not deployed |
-| Agreement family | Built, not deployed: tranches, review on delivery, arrival or a check, extensions, signed release at handover, instalments, deposits, deadlines, agreed splits, disputes with appeal and a fallback, and an optional seller stake for the buyer, slashed only by a ruling or the dispute fallback and kept reserved for as long as the deal can run |
-| Trade finance family | Built, not deployed: purchase-order financing and factoring against Agreement deals |
-| Time family | Built, not deployed: hourly, daily and unit work and retainers, cycle by cycle, with objections to some units, notice and signed amendments |
-| Jobs and bounties family, ERC-8183 interface | Built, not deployed: ERC-8183 jobs where the evaluator's silence pays and a rejection of submitted work can be disputed, and bounties and contests paying up to 8 winners from the entries |
-| Identity registry with succession and recovery | Built, not deployed |
-| Record contract (one, replacing the reputation registry and the facts contract) | Built, not deployed |
-| Verifiers with k of n signatures | Built, not deployed |
-| Governance: timelock with a 24-hour floor and guardian cancel | Built, not deployed. The Safes are set up at deployment |
+| Shared settlement base and hub | On Arc Testnet since 23 October, not on mainnet. The hub is owned by the timelock |
+| Agreement family | On Arc Testnet since 23 October, not on mainnet: tranches, review on delivery, arrival or a check, extensions, signed release at handover, instalments, deposits, deadlines, agreed splits, disputes with appeal and a fallback, and an optional seller stake for the buyer, slashed only by a ruling or the dispute fallback and kept reserved for as long as the deal can run |
+| Trade finance family | On Arc Testnet since 23 October, not on mainnet: purchase-order financing and factoring against Agreement deals |
+| Time family | On Arc Testnet since 23 October, not on mainnet: hourly, daily and unit work and retainers, cycle by cycle, with objections to some units, notice and signed amendments |
+| Jobs and bounties family, ERC-8183 interface | On Arc Testnet since 23 October, not on mainnet: ERC-8183 jobs where the evaluator's silence pays and a rejection of submitted work can be disputed, and bounties and contests paying up to 8 winners from the entries |
+| Identity registry with succession and recovery | On Arc Testnet since 23 October, not on mainnet |
+| Record contract (one, replacing the reputation registry and the facts contract) | On Arc Testnet since 23 October, not on mainnet |
+| Verifiers with k of n signatures | On Arc Testnet since 23 October, not on mainnet, with three checkers and a threshold of two |
+| Governance: timelock with a 24-hour floor and guardian cancel | On Arc Testnet since 23 October, not on mainnet. The timelock owns the hub; owner Safe 3 of 5, guardian Safe 2 of 3, review Safe 1 of 4, senior review Safe 2 of 4. The first settings are queued and can be executed from 24 October |
 | ERC-8004 mirror of the record | Later |
 | Yield on deal money | Built, off at launch until Circle entitles the pool to hold USYC |
 | Reputation registry already on mainnet | Live, holds no deals and no records; stays as it is, with a public note pointing to the record contract |
 | Business registry already on mainnet | Live; its approvals carry into the record contract as business facts |
-| Assurance: the threat model, one property set per family run by Foundry, Medusa and Echidna, Halmos proofs of the settlement base's books, Slither and Aderyn with every finding explained except the CRE contracts' Aderyn findings, which the CRE build is triaging | Built, with every branch covered or explained, fuzz tests at 10,000 runs, every reentrancy guard proven, every event checked, and every mutant the campaign made killed by a test, refused by the compiler or explained in `contracts/test/suite/MUTATION_TRIAGE.md`. The 24-hour fuzz runs on the frozen release come next |
+| Assurance: the threat model, one property set per family run by Foundry, Medusa and Echidna, Halmos proofs of the settlement base's books, Slither and Aderyn with every finding explained except the CRE contracts' Aderyn findings, which the CRE build is triaging | Built, with every branch covered or explained, fuzz tests at 10,000 runs, every reentrancy guard proven, every event checked, and every mutant the campaign made killed by a test, refused by the compiler or explained in `contracts/test/suite/MUTATION_TRIAGE.md`. The 24-hour fuzz runs on the frozen release started on 23 October |
 | Independent audit and audit contest | Planned, before the beta limits rise |
 
-Contract notes: proposed names are `KarwanSettlementBase` (abstract), `KarwanHub`, `KarwanAgreementEscrow`, `KarwanTimeEscrow`, `KarwanJobEscrow`, `KarwanTradeFinance`, `KarwanIdentityRegistry`, `KarwanRecord`, `KarwanStakeVault`, `KarwanTimelock`, `KarwanCheckVerifier` and `KarwanYieldPool`, with the fixed libraries `SettlementLib`, `DisputeLib`, `AgreementLib`, `AgreementDisputeLib`, `AgreementDeliveryLib`, `AgreementTermsLib`, `TimeLib`, `TimeDisputeLib`, `JobLib`, `BountyLib` and `JobDisputeLib`. Every family's runtime code is measured against Arc's 24,576-byte limit in CI. All contracts are deployed at deterministic addresses from one reviewed script, and ownership goes to the timelock in the same run, so the deployer key holds nothing afterwards.
+Contract notes: the names are `KarwanSettlementBase` (abstract), `KarwanHub`, `KarwanAgreementEscrow`, `KarwanTimeEscrow`, `KarwanJobEscrow`, `KarwanTradeFinance`, `KarwanIdentityRegistry`, `KarwanRecord`, `KarwanStakeVault`, `KarwanTimelock`, `KarwanCheckVerifier` and `KarwanYieldPool`, with the fixed libraries `SettlementLib`, `DisputeLib`, `AgreementLib`, `AgreementDisputeLib`, `AgreementDeliveryLib`, `AgreementTermsLib`, `TimeLib`, `TimeDisputeLib`, `JobLib`, `BountyLib` and `JobDisputeLib`. Every family's runtime code is measured against Arc's 24,576-byte limit in CI. All contracts are deployed from one reviewed script, with the hub owned by the timelock from its constructor, so the deployer key holds nothing afterwards. The testnet addresses are in `contracts/deployments/endgame-5042002.json`.
