@@ -56,32 +56,35 @@ library EndgameDeploy {
         pure
         returns (address[] memory targets, uint256[] memory values, bytes[] memory payloads)
     {
-        uint256 n = 4 + 1 + 4 + 3 + (address(d.verifier) == address(0) ? 0 : 1) + c.issuers.length;
-        targets = new address[](n);
-        values = new uint256[](n);
-        payloads = new bytes[](n);
+        payloads = _payloads(d, c);
+        targets = new address[](payloads.length);
+        values = new uint256[](payloads.length);
+        for (uint256 i; i < payloads.length; ++i) {
+            targets[i] = address(d.hub);
+        }
+    }
+
+    function _payloads(EndgameDeployment memory d, EndgameConfig memory c) private pure returns (bytes[] memory p) {
+        p = new bytes[](4 + 1 + 4 + 3 + (address(d.verifier) == address(0) ? 0 : 1) + c.issuers.length);
         uint256 k;
-        payloads[k++] = abi.encodeCall(KarwanHub.setGuardian, (c.guardianSafe));
-        payloads[k++] = abi.encodeCall(KarwanHub.setReviewers, (c.reviewSafe, c.seniorSafe));
-        payloads[k++] = abi.encodeCall(KarwanHub.setFeeRecipient, (c.feeRecipient));
-        payloads[k++] = abi.encodeCall(KarwanHub.setAutoArbiter, (c.autoArbiter));
-        payloads[k++] = abi.encodeCall(KarwanHub.setAsset, (c.usdc, true, c.highValue));
+        p[k++] = abi.encodeCall(KarwanHub.setGuardian, (c.guardianSafe));
+        p[k++] = abi.encodeCall(KarwanHub.setReviewers, (c.reviewSafe, c.seniorSafe));
+        p[k++] = abi.encodeCall(KarwanHub.setFeeRecipient, (c.feeRecipient));
+        p[k++] = abi.encodeCall(KarwanHub.setAutoArbiter, (c.autoArbiter));
+        p[k++] = abi.encodeCall(KarwanHub.setAsset, (c.usdc, true, c.highValue));
         address[3] memory money = [address(d.agreement), address(d.time), address(d.jobs)];
         for (uint256 i; i < 3; ++i) {
-            payloads[k++] = abi.encodeCall(KarwanHub.registerFamily, (money[i], c.feeBps));
+            p[k++] = abi.encodeCall(KarwanHub.registerFamily, (money[i], c.feeBps));
         }
-        payloads[k++] = abi.encodeCall(KarwanHub.registerFamily, (address(d.tradeFinance), uint16(0)));
+        p[k++] = abi.encodeCall(KarwanHub.registerFamily, (address(d.tradeFinance), uint16(0)));
         for (uint256 i; i < 3; ++i) {
-            payloads[k++] = abi.encodeCall(KarwanHub.setCaps, (money[i], c.usdc, c.perDealCap, c.totalCap));
+            p[k++] = abi.encodeCall(KarwanHub.setCaps, (money[i], c.usdc, c.perDealCap, c.totalCap));
         }
         if (address(d.verifier) != address(0)) {
-            payloads[k++] = abi.encodeCall(KarwanHub.setVerifier, (address(d.verifier), true));
+            p[k++] = abi.encodeCall(KarwanHub.setVerifier, (address(d.verifier), true));
         }
         for (uint256 i; i < c.issuers.length; ++i) {
-            payloads[k++] = abi.encodeCall(KarwanHub.setIssuer, (c.issuers[i], true));
-        }
-        for (uint256 i; i < n; ++i) {
-            targets[i] = address(d.hub);
+            p[k++] = abi.encodeCall(KarwanHub.setIssuer, (c.issuers[i], true));
         }
     }
 }

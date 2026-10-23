@@ -56,6 +56,7 @@ library EndgameConfigLib {
         require(c.reviewSafe != address(0) && c.seniorSafe != address(0), "config: reviewer Safes unset");
         require(c.feeRecipient != address(0), "config: fee recipient unset");
         require(c.minDelay >= 24 hours, "config: delay below the 24-hour floor");
+        require(block.chainid != 5_042 || c.minDelay >= 48 hours, "config: Arc mainnet needs a 48-hour delay");
         require(c.perDealCap <= c.totalCap, "config: per-deal cap above the total");
     }
 

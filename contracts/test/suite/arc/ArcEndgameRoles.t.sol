@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import {Test} from "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {KarwanCheckVerifier} from "../../../src/suite/KarwanCheckVerifier.sol";
-import {AgreementState} from "../../../src/suite/agreement/AgreementTypes.sol";
+import {AgreementTerms, AgreementState} from "../../../src/suite/agreement/AgreementTypes.sol";
 import {EndgameConfig} from "../../../script/suite/EndgameConfig.sol";
 import {EndgameDeploy, EndgameDeployment} from "../../../script/suite/EndgameDeploy.sol";
 import {EndgameRoles} from "../../../script/suite/EndgameRoles.sol";
@@ -83,6 +83,29 @@ contract ArcEndgameRolesTest is Test, EndgameRoles {
         assertEq(id, o.disputed);
         assertEq(USDC.balanceOf(address(d.agreement)), 0);
         assertGt(USDC.balanceOf(seller), 19.9e6);
+    }
+
+    /// A run cut off after the checked deal was paid finishes from where it
+    /// stopped, and a second run changes nothing.
+    function test_stage_one_finishes_a_half_finished_run_and_reruns_as_a_no_op() public {
+        address seller = vm.addr(k.seller);
+        AgreementTerms memory t = _checkedTerms(d, address(USDC), seller);
+        vm.startPrank(vm.addr(k.buyer));
+        USDC.approve(address(d.agreement), type(uint256).max);
+        d.agreement.fund(CHECKED_SALT, t);
+        vm.stopPrank();
+
+        Opened memory o = _openStage(d, k);
+        assertEq(uint8(d.agreement.getDeal(o.checked).state), uint8(AgreementState.Settled));
+        assertEq(uint8(d.agreement.getDeal(o.disputed).state), uint8(AgreementState.Disputed));
+        uint256 sellerHas = USDC.balanceOf(seller);
+
+        Opened memory again = _openStage(d, k);
+        assertEq(again.factId, o.factId);
+        assertEq(again.checked, o.checked);
+        assertEq(again.disputed, o.disputed);
+        assertEq(d.record.factsOf(d.identity.identityOf(seller)).length, 1);
+        assertEq(USDC.balanceOf(seller), sellerHas);
     }
 
     /// One checker alone cannot pass a delivery; the verifier needs two.

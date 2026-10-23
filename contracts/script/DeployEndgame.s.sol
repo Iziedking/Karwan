@@ -17,7 +17,13 @@ import {EndgameCheck} from "./suite/EndgameCheck.sol";
 ///   forge script script/DeployEndgame.s.sol --rpc-url $RPC --broadcast
 contract DeployEndgame is Script {
     function run() external {
-        EndgameConfig memory c = EndgameConfigLib.load(vm, vm.envString("CONFIG"));
+        deploy(vm.envString("CONFIG"));
+    }
+
+    function deploy(string memory configPath) public {
+        EndgameConfig memory c = EndgameConfigLib.load(vm, configPath);
+        string memory base = string.concat("deployments/endgame-", vm.toString(block.chainid));
+        require(!vm.exists(string.concat(base, ".json")), "a deployment is already recorded for this chain");
 
         vm.startBroadcast();
         (, address deployer,) = vm.readCallers();
@@ -26,9 +32,18 @@ contract DeployEndgame is Script {
 
         EndgameCheck.deployed(d, c, deployer);
 
-        string memory base = string.concat("deployments/endgame-", vm.toString(block.chainid));
         _addressBook(d, deployer, string.concat(base, ".json"));
 
+        _safeFiles(d, c, base);
+
+        console.log("timelock", address(d.timelock));
+        console.log("hub", address(d.hub));
+        console.log("written", base);
+    }
+
+    /// @notice The two Safe Transaction Builder files: the first batch
+    ///         scheduled, then executed.
+    function _safeFiles(EndgameDeployment memory d, EndgameConfig memory c, string memory base) internal {
         (address[] memory t, uint256[] memory v, bytes[] memory p) = EndgameDeploy.firstSettings(d, c);
         bytes memory schedule =
             abi.encodeCall(TimelockController.scheduleBatch, (t, v, p, bytes32(0), EndgameDeploy.SALT, c.minDelay));
@@ -49,10 +64,6 @@ contract DeployEndgame is Script {
             address(d.timelock),
             execute
         );
-
-        console.log("timelock", address(d.timelock));
-        console.log("hub", address(d.hub));
-        console.log("written", base);
     }
 
     function _addressBook(EndgameDeployment memory d, address deployer, string memory path) internal {

@@ -11,6 +11,7 @@ import {EndgameConfig, EndgameConfigLib} from "../../../script/suite/EndgameConf
 import {EndgameDeploy, EndgameDeployment} from "../../../script/suite/EndgameDeploy.sol";
 import {EndgameCheck} from "../../../script/suite/EndgameCheck.sol";
 import {DeployEndgame} from "../../../script/DeployEndgame.s.sol";
+import {CheckEndgame} from "../../../script/CheckEndgame.s.sol";
 
 /// @notice The suite as it deploys: owned by the timelock from the first block,
 ///         set up by one batch from the owner Safe, and nothing left to the
@@ -221,6 +222,7 @@ contract EndgameDeployTest is Test {
     /// A config with a Safe left unset never gets as far as a deploy.
     function test_a_config_with_an_unset_safe_is_refused() public {
         string memory path = "deployments/endgame-unset.config.json";
+        if (vm.exists(path)) vm.removeFile(path);
         string memory j = vm.readFile("deployments/endgame-5042002.config.json");
         vm.writeFile(path, vm.replace(j, "0xF253E02048FB2F89FFD3E3c931aa3ea14A857556", vm.toString(address(0))));
         vm.expectRevert(bytes("config: owner or guardian Safe unset"));
@@ -232,6 +234,7 @@ contract EndgameDeployTest is Test {
     /// would otherwise load as 100.
     function test_a_value_too_big_for_its_field_is_refused() public {
         string memory path = "deployments/endgame-wide.config.json";
+        if (vm.exists(path)) vm.removeFile(path);
         string memory j = vm.readFile("deployments/endgame-5042002.config.json");
         vm.writeFile(path, vm.replace(j, "\"feeBps\": 100", "\"feeBps\": 65636"));
         vm.expectRevert(bytes("config: feeBps out of range"));
@@ -246,7 +249,70 @@ contract EndgameDeployTest is Test {
     /// The script end to end: the Safe files it writes, sent as written by the
     /// owner Safe, leave the suite exactly as the config says.
     function test_the_deploy_script_writes_files_the_owner_safe_can_send() public {
-        string memory config = "deployments/endgame-test.config.json";
+        vm.chainId(31_001);
+        (string memory base, string memory book) = _runDeployScript();
+        KarwanHub hub = KarwanHub(vm.parseJsonAddress(book, ".hub"));
+        address timelock = vm.parseJsonAddress(book, ".timelock");
+        assertEq(hub.owner(), timelock);
+        _sendAsOwnerSafe(string.concat(base, ".schedule.json"), timelock);
+        vm.warp(block.timestamp + c.minDelay);
+        _sendAsOwnerSafe(string.concat(base, ".execute.json"), timelock);
+        assertEq(hub.guardian(), guardianSafe);
+        (uint128 perDeal,) = hub.capsOf(vm.parseJsonAddress(book, ".agreement"), c.usdc);
+        assertEq(perDeal, c.perDealCap);
+        assertTrue(hub.isVerifier(vm.parseJsonAddress(book, ".verifier")));
+        _removeTempFiles();
+    }
+
+    /// A chain that already has a recorded deployment is never deployed over.
+    function test_the_deploy_script_refuses_to_overwrite_a_recorded_deployment() public {
+        vm.chainId(31_002);
+        _removeTempFiles();
+        _writeTestConfig();
+        vm.writeFile(string.concat(_base(), ".json"), "{}");
+        DeployEndgame script = new DeployEndgame();
+        vm.expectRevert(bytes("a deployment is already recorded for this chain"));
+        script.deploy(_testConfig());
+        _removeTempFiles();
+    }
+
+    /// Arc mainnet runs the 48-hour delay; a shorter one is refused there.
+    function test_arc_mainnet_needs_the_48_hour_delay() public {
+        vm.chainId(5_042);
+        vm.expectRevert(bytes("config: Arc mainnet needs a 48-hour delay"));
+        this.loadFrom("deployments/endgame-5042002.config.json");
+    }
+
+    /// The configured check reruns the deploy checks, so a role granted to the
+    /// deployer after the deploy is still caught.
+    function test_the_configured_check_also_reruns_the_deploy_checks() public {
+        vm.chainId(31_003);
+        (string memory base, string memory book) = _runDeployScript();
+        KarwanTimelock timelock = KarwanTimelock(payable(vm.parseJsonAddress(book, ".timelock")));
+        _sendAsOwnerSafe(string.concat(base, ".schedule.json"), address(timelock));
+        vm.warp(block.timestamp + c.minDelay);
+        _sendAsOwnerSafe(string.concat(base, ".execute.json"), address(timelock));
+        CheckEndgame check = new CheckEndgame();
+        check.check(_testConfig(), true);
+
+        bytes memory grant = abi.encodeCall(
+            IAccessControl.grantRole, (timelock.PROPOSER_ROLE(), vm.parseJsonAddress(book, ".deployer"))
+        );
+        vm.prank(ownerSafe);
+        timelock.schedule(address(timelock), 0, grant, bytes32(0), bytes32("grant"), c.minDelay);
+        vm.warp(block.timestamp + c.minDelay);
+        vm.prank(ownerSafe);
+        timelock.execute(address(timelock), 0, grant, bytes32(0), bytes32("grant"));
+        vm.expectRevert(bytes("deployer holds a timelock role"));
+        check.check(_testConfig(), true);
+        _removeTempFiles();
+    }
+
+    function _base() internal view returns (string memory) {
+        return string.concat("deployments/endgame-", vm.toString(block.chainid));
+    }
+
+    function _writeTestConfig() internal {
         string memory k = "cfg";
         vm.serializeAddress(k, "usdc", c.usdc);
         vm.serializeUint(k, "minDelay", c.minDelay);
@@ -265,28 +331,35 @@ contract EndgameDeployTest is Test {
         vm.serializeUint(k, "maxHorizon", c.maxHorizon);
         vm.serializeAddress(k, "checkers", c.checkers);
         vm.serializeUint(k, "checkerThreshold", c.checkerThreshold);
-        vm.writeJson(vm.serializeAddress(k, "issuers", c.issuers), config);
-        vm.setEnv("CONFIG", config);
+        vm.writeJson(vm.serializeAddress(k, "issuers", c.issuers), _testConfig());
+    }
 
-        new DeployEndgame().run();
+    function _runDeployScript() internal returns (string memory base, string memory book) {
+        _removeTempFiles();
+        _writeTestConfig();
+        new DeployEndgame().deploy(_testConfig());
+        base = _base();
+        book = vm.readFile(string.concat(base, ".json"));
+    }
 
-        string memory base = string.concat("deployments/endgame-", vm.toString(block.chainid));
-        string memory book = vm.readFile(string.concat(base, ".json"));
-        KarwanHub hub = KarwanHub(vm.parseJsonAddress(book, ".hub"));
-        address timelock = vm.parseJsonAddress(book, ".timelock");
-        assertEq(hub.owner(), timelock);
-        _sendAsOwnerSafe(string.concat(base, ".schedule.json"), timelock);
-        vm.warp(block.timestamp + c.minDelay);
-        _sendAsOwnerSafe(string.concat(base, ".execute.json"), timelock);
-        assertEq(hub.guardian(), guardianSafe);
-        (uint128 perDeal,) = hub.capsOf(vm.parseJsonAddress(book, ".agreement"), c.usdc);
-        assertEq(perDeal, c.perDealCap);
-        assertTrue(hub.isVerifier(vm.parseJsonAddress(book, ".verifier")));
+    function _testConfig() internal view returns (string memory) {
+        return string.concat("deployments/endgame-test-", vm.toString(block.chainid), ".config.json");
+    }
 
-        vm.removeFile(config);
-        vm.removeFile(string.concat(base, ".json"));
-        vm.removeFile(string.concat(base, ".schedule.json"));
-        vm.removeFile(string.concat(base, ".execute.json"));
+    /// Each script test runs on its own chain id, so the files it writes are
+    /// its own while forge runs tests side by side. It clears them before it
+    /// starts, so a run that failed halfway leaves nothing that trips the next.
+    function _removeTempFiles() internal {
+        string memory base = _base();
+        string[4] memory paths = [
+            _testConfig(),
+            string.concat(base, ".json"),
+            string.concat(base, ".schedule.json"),
+            string.concat(base, ".execute.json")
+        ];
+        for (uint256 i; i < 4; ++i) {
+            if (vm.exists(paths[i])) vm.removeFile(paths[i]);
+        }
     }
 
     function _sendAsOwnerSafe(string memory path, address timelock) internal {

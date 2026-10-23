@@ -16,15 +16,20 @@ import {EndgameConfig, EndgameConfigLib} from "./suite/EndgameConfig.sol";
 import {EndgameDeployment} from "./suite/EndgameDeploy.sol";
 import {EndgameCheck} from "./suite/EndgameCheck.sol";
 
-/// @notice Reads a deployed suite back against its config. Without PHASE it
-///         checks the state right after the deploy; PHASE=configured checks
-///         the state after the owner Safe executed the first batch.
+/// @notice Reads a deployed suite back against its config. It always checks
+///         the state the deploy left (the timelock owns the hub, the deployer
+///         holds nothing); PHASE=configured also checks every setting the
+///         owner Safe's first batch made.
 ///
 ///   CONFIG=deployments/endgame-5042002.config.json [PHASE=configured] \
 ///   forge script script/CheckEndgame.s.sol --rpc-url $RPC
 contract CheckEndgame is Script {
     function run() external view {
-        EndgameConfig memory c = EndgameConfigLib.load(vm, vm.envString("CONFIG"));
+        check(vm.envString("CONFIG"), keccak256(bytes(vm.envOr("PHASE", string("deployed")))) == keccak256("configured"));
+    }
+
+    function check(string memory configPath, bool configured) public view {
+        EndgameConfig memory c = EndgameConfigLib.load(vm, configPath);
         string memory j = vm.readFile(string.concat("deployments/endgame-", vm.toString(block.chainid), ".json"));
         EndgameDeployment memory d;
         d.timelock = KarwanTimelock(payable(vm.parseJsonAddress(j, ".timelock")));
@@ -38,12 +43,11 @@ contract CheckEndgame is Script {
         d.tradeFinance = KarwanTradeFinance(vm.parseJsonAddress(j, ".tradeFinance"));
         d.verifier = KarwanCheckVerifier(vm.parseJsonAddress(j, ".verifier"));
 
-        if (keccak256(bytes(vm.envOr("PHASE", string("deployed")))) == keccak256("configured")) {
+        EndgameCheck.deployed(d, c, vm.parseJsonAddress(j, ".deployer"));
+        console.log("deployed: the timelock owns the hub and the deployer holds nothing");
+        if (configured) {
             EndgameCheck.configured(d, c);
             console.log("configured: every role and value matches the config");
-        } else {
-            EndgameCheck.deployed(d, c, vm.parseJsonAddress(j, ".deployer"));
-            console.log("deployed: the timelock owns the hub and the deployer holds nothing");
         }
         console.log("timelock", address(d.timelock));
         console.log("hub", address(d.hub));
