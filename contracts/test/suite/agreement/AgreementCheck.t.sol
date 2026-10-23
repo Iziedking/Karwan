@@ -83,6 +83,21 @@ contract AgreementCheckTest is AgreementFixture {
         assertEq(uint8(_state(id)), uint8(AgreementState.Settled));
     }
 
+    /// The same on a realistic clock, where the longstop counts from the
+    /// delivery's own time.
+    function test_a_fail_after_the_silence_longstop_cannot_block_the_claim_on_a_real_clock() public {
+        vm.warp(1_800_000_000);
+        bytes32 id = _fundAccepted(_checkedTerms(), bytes32("c"));
+        _deliver(id);
+        vm.warp(vm.getBlockTimestamp() + 14 days);
+        (address[] memory who, bytes[] memory sigs) = _signed(id, 1, false, 0, 1);
+        vm.expectRevert(AgreementDeliveryLib.Late.selector);
+        verifier.report(address(escrow), id, 1, false, keccak256("evidence"), who, sigs);
+        vm.prank(seller);
+        escrow.claim(id);
+        assertEq(uint8(_state(id)), uint8(AgreementState.Settled));
+    }
+
     function test_verifier_needs_a_sane_threshold() public {
         address[] memory list = new address[](2);
         list[0] = checkers[0];
@@ -262,5 +277,172 @@ contract AgreementCheckTest is AgreementFixture {
         vm.expectEmit(address(escrow));
         emit AgreementLib.ReviewStarted(id, 0, uint64(vm.getBlockTimestamp() + 3 days));
         verifier.report(address(escrow), id, 1, true, keccak256("evidence"), who, sigs);
+    }
+
+    // ------------------------------ Outcomes ------------------------------
+
+    function _many(uint256 n) internal pure returns (address[] memory list) {
+        list = new address[](n);
+        for (uint256 i; i < n; ++i) {
+            list[i] = address(uint160(i + 1));
+        }
+    }
+
+    /// A verifier holds at most 255 checkers.
+    function test_a_verifier_takes_up_to_255_checkers() public {
+        KarwanCheckVerifier v = new KarwanCheckVerifier(_many(255), 1);
+        assertEq(v.signerCount(), 255);
+        vm.expectRevert(KarwanCheckVerifier.BadSigners.selector);
+        new KarwanCheckVerifier(_many(256), 1);
+    }
+
+    /// Every signer needs exactly one signature, and more signers than the
+    /// threshold are welcome.
+    function test_signers_and_signatures_must_pair_up_and_extra_signers_count() public {
+        bytes32 id = _fundAccepted(_checkedTerms(), bytes32("c"));
+        _deliver(id);
+        bytes32 d = verifier.reportDigest(address(escrow), id, 1, true, keccak256("evidence"));
+        address[] memory three = new address[](3);
+        bytes[] memory threeSigs = new bytes[](3);
+        for (uint256 i; i < 3; ++i) {
+            three[i] = checkers[i];
+            threeSigs[i] = _sig(checkerKeys[i], d);
+        }
+        address[] memory two = new address[](2);
+        bytes[] memory twoSigs = new bytes[](2);
+        two[0] = checkers[0];
+        two[1] = checkers[1];
+        twoSigs[0] = threeSigs[0];
+        twoSigs[1] = threeSigs[1];
+        vm.expectRevert(KarwanCheckVerifier.NotEnough.selector);
+        verifier.report(address(escrow), id, 1, true, keccak256("evidence"), two, threeSigs);
+        vm.expectRevert(KarwanCheckVerifier.NotEnough.selector);
+        verifier.report(address(escrow), id, 1, true, keccak256("evidence"), three, twoSigs);
+        verifier.report(address(escrow), id, 1, true, keccak256("evidence"), three, threeSigs);
+        assertTrue(_deal(id).checkPassed);
+    }
+
+    // ----------------------------- Check edges ----------------------------
+
+    function test_a_check_result_before_any_delivery_is_refused() public {
+        bytes32 id = _fundAccepted(_checkedTerms(), bytes32("c"));
+        (address[] memory who, bytes[] memory sigs) = _signed(id, 0, true, 0, 1);
+        vm.expectRevert(AgreementDeliveryLib.BadState.selector);
+        verifier.report(address(escrow), id, 0, true, keccak256("evidence"), who, sigs);
+    }
+
+    /// After a failed check the buyer may review it themselves; that clears the
+    /// failure, so the seller is paid when the review ends.
+    function test_the_buyers_own_review_after_a_failed_check_lets_the_seller_claim() public {
+        bytes32 id = _fundAccepted(_checkedTerms(), bytes32("c"));
+        _deliver(id);
+        _report(id, 1, false, 0, 1);
+        assertTrue(_deal(id).checkFailed);
+        vm.prank(buyer);
+        escrow.startReview(id);
+        assertFalse(_deal(id).checkFailed);
+        vm.warp(escrow.reviewEndOf(id));
+        escrow.claim(id);
+        assertEq(uint8(_state(id)), uint8(AgreementState.Settled));
+    }
+
+    function test_a_fail_long_after_the_silence_longstop_is_refused() public {
+        AgreementTerms memory t = _checkedTerms();
+        bytes32 id = _fundAccepted(t, bytes32("c"));
+        _deliver(id);
+        vm.warp(uint256(_deal(id).deliveredAt) + t.silentLongstop + 1 days);
+        (address[] memory who, bytes[] memory sigs) = _signed(id, 1, false, 0, 1);
+        vm.expectRevert(AgreementDeliveryLib.Late.selector);
+        verifier.report(address(escrow), id, 1, false, keccak256("evidence"), who, sigs);
+    }
+
+    /// A 7-day guardian hold gives a failed check 7 more days to arrive.
+    function test_a_hold_gives_a_failed_check_more_time() public {
+        AgreementTerms memory t = _checkedTerms();
+        bytes32 id = _fundAccepted(t, bytes32("c"));
+        _deliver(id);
+        vm.prank(guardian);
+        escrow.hold(id, bytes32("scan"));
+        vm.warp(uint256(_deal(id).deliveredAt) + t.silentLongstop + 1 days);
+        _report(id, 1, false, 0, 1);
+        assertTrue(_deal(id).checkFailed);
+    }
+
+    function test_a_pass_after_the_buyers_own_review_leaves_the_review_clock_alone() public {
+        bytes32 id = _fundAccepted(_checkedTerms(), bytes32("c"));
+        _deliver(id);
+        vm.warp(vm.getBlockTimestamp() + 1 days);
+        vm.prank(buyer);
+        escrow.startReview(id);
+        uint64 end = _deal(id).reviewEnd;
+        vm.warp(vm.getBlockTimestamp() + 1 days);
+        _report(id, 1, true, 0, 1);
+        assertEq(_deal(id).reviewEnd, end);
+    }
+
+    function test_silence_pays_the_seller_any_time_after_the_longstop() public {
+        AgreementTerms memory t = _checkedTerms();
+        bytes32 id = _fundAccepted(t, bytes32("c"));
+        _deliver(id);
+        vm.warp(uint256(_deal(id).deliveredAt) + t.silentLongstop + 2 days);
+        escrow.claim(id);
+        assertEq(uint8(_state(id)), uint8(AgreementState.Settled));
+    }
+
+    /// A hold moves the silence longstop too: a day after it, with 7 held
+    /// days, the seller still waits.
+    function test_a_hold_moves_the_silence_longstop() public {
+        AgreementTerms memory t = _checkedTerms();
+        bytes32 id = _fundAccepted(t, bytes32("c"));
+        _deliver(id);
+        vm.prank(guardian);
+        escrow.hold(id, bytes32("scan"));
+        vm.warp(uint256(_deal(id).deliveredAt) + t.silentLongstop + 1 days);
+        vm.expectRevert(AgreementDeliveryLib.Early.selector);
+        escrow.claim(id);
+    }
+
+    function test_a_delivered_checked_deal_without_a_failed_check_is_not_reclaimed() public {
+        AgreementTerms memory t = _checkedTerms();
+        bytes32 id = _fundAccepted(t, bytes32("c"));
+        _deliver(id);
+        vm.warp(uint256(t.deliveryDeadline) + t.reclaimGrace + 1);
+        vm.expectRevert(AgreementDeliveryLib.NotAllowed.selector);
+        escrow.reclaim(id);
+    }
+
+    /// Each tranche's check result belongs to that tranche alone.
+    function test_a_paid_tranche_clears_its_check_results() public {
+        AgreementTerms memory t = _checkedTerms();
+        t.trancheBps[0] = 4_000;
+        t.trancheBps[1] = 3_000;
+        t.trancheBps[2] = 3_000;
+        bytes32 id = _fundAccepted(t, bytes32("c"));
+        _deliver(id);
+        _report(id, 1, true, 0, 1);
+        assertTrue(_deal(id).checkPassed);
+        vm.prank(buyer);
+        escrow.release(id);
+        assertFalse(_deal(id).checkPassed);
+        _deliver(id);
+        _report(id, 2, false, 0, 1);
+        assertTrue(_deal(id).checkFailed);
+        vm.prank(buyer);
+        escrow.release(id);
+        assertFalse(_deal(id).checkFailed);
+    }
+
+    /// With 7 held days, a fail arriving after the silence longstop and the
+    /// hold together is too late.
+    function test_a_fail_after_the_silence_longstop_and_the_hold_is_refused() public {
+        AgreementTerms memory t = _checkedTerms();
+        bytes32 id = _fundAccepted(t, bytes32("c"));
+        _deliver(id);
+        vm.prank(guardian);
+        escrow.hold(id, bytes32("scan"));
+        vm.warp(uint256(_deal(id).deliveredAt) + t.silentLongstop + 7 days + 1 days);
+        (address[] memory who, bytes[] memory sigs) = _signed(id, 1, false, 0, 1);
+        vm.expectRevert(AgreementDeliveryLib.Late.selector);
+        verifier.report(address(escrow), id, 1, false, keccak256("evidence"), who, sigs);
     }
 }

@@ -223,4 +223,161 @@ contract AgreementTermsTest is AgreementFixture {
         vm.prank(buyer);
         escrow.fund(bytes32("at-the-minimum"), t);
     }
+
+    // ------------------------------ Boundaries ----------------------------
+
+    /// A realistic clock, so a bound written as `now + limit` cannot pass for
+    /// `now * limit`. The escrow's bounds: review 1 hour to 30 days, horizon
+    /// 365 days.
+    uint256 internal constant NOW = 1_800_000_000;
+    uint256 internal salt;
+
+    function _ok(AgreementTerms memory t) internal {
+        vm.prank(buyer);
+        escrow.fund(bytes32(++salt), t);
+    }
+
+    function _at() internal returns (AgreementTerms memory t) {
+        vm.warp(NOW);
+        t = _terms();
+    }
+
+    function test_a_tranche_after_a_gap_is_refused_even_when_the_first_make_the_whole() public {
+        AgreementTerms memory t = _at();
+        t.trancheBps[2] = 1;
+        _refused(t);
+    }
+
+    function test_tranches_adding_up_to_more_than_the_whole_are_refused() public {
+        AgreementTerms memory t = _at();
+        t.trancheBps[0] = 6_000;
+        t.trancheBps[1] = 6_000;
+        _refused(t);
+    }
+
+    function test_an_accept_deadline_already_past_is_refused() public {
+        AgreementTerms memory t = _at();
+        t.acceptBy = uint64(NOW - 1);
+        _refused(t);
+    }
+
+    function test_the_review_window_takes_its_bounds_and_nothing_outside_them() public {
+        AgreementTerms memory t = _at();
+        t.extensionSecs = 1 hours;
+        t.reviewWindow = 1 hours;
+        _ok(t);
+        t.reviewWindow = 1 hours - 1;
+        t.extensionSecs = 1 hours - 1;
+        _refused(t);
+        t = _at();
+        t.reviewWindow = 30 days;
+        t.silentLongstop = 40 days;
+        _ok(t);
+        t.reviewWindow = 30 days + 1;
+        _refused(t);
+    }
+
+    /// Each policy code is checked on its own; the deal is otherwise valid.
+    function test_each_policy_code_is_bounded_on_its_own() public {
+        AgreementTerms memory t = _at();
+        t.startLongstop = 1 days;
+        t.reviewStarts = 3;
+        _refused(t);
+        t = _at();
+        t.finalRelease = 2;
+        _refused(t);
+        t = _at();
+        t.silenceOutcome = 2;
+        _refused(t);
+        t = _at();
+        t.maxExtensions = 4;
+        t.silentLongstop = 30 days;
+        _refused(t);
+        t.maxExtensions = 3;
+        _ok(t);
+    }
+
+    function test_a_checked_deal_needs_both_a_verifier_and_a_policy() public {
+        AgreementTerms memory t = _at();
+        t.reviewStarts = 2;
+        t.startLongstop = 4 days;
+        t.verifier = makeAddr("verifier");
+        _refused(t);
+        t.verifier = address(0);
+        t.checkPolicy = keccak256("policy");
+        _refused(t);
+    }
+
+    function test_a_deal_reviewed_without_a_check_names_no_verifier() public {
+        AgreementTerms memory t = _at();
+        t.verifier = makeAddr("verifier");
+        _refused(t);
+    }
+
+    function test_extensions_and_the_reclaim_grace_take_their_bounds() public {
+        AgreementTerms memory t = _at();
+        t.extensionSecs = 3 days;
+        _ok(t);
+        t = _at();
+        t.reclaimGrace = 30 days;
+        _ok(t);
+        t.reclaimGrace = 30 days + 1;
+        _refused(t);
+    }
+
+    /// The silence longstop must cover the review and every extension, to the
+    /// second, and stay inside the horizon.
+    function test_the_silence_longstop_covers_review_and_extensions_to_the_second() public {
+        AgreementTerms memory t = _at();
+        t.silentLongstop = 3 days + 2 * 1 days;
+        _ok(t);
+        t.silentLongstop = 3 days + 2 * 1 days - 1;
+        _refused(t);
+        t = _at();
+        t.silentLongstop = 365 days;
+        _ok(t);
+        t.silentLongstop = 365 days + 1;
+        _refused(t);
+    }
+
+    function test_the_delivery_deadline_may_fall_on_the_horizon_and_no_later() public {
+        AgreementTerms memory t = _at();
+        t.deliveryDeadline = uint64(NOW + 365 days);
+        _ok(t);
+        t.deliveryDeadline = uint64(NOW + 365 days + 1);
+        _refused(t);
+    }
+
+    function test_a_partial_share_above_the_whole_is_refused() public {
+        AgreementTerms memory t = _at();
+        t.partialBps = 10_001;
+        _refused(t);
+    }
+
+    /// At exactly the high-value line, a deal needs the buyer to release the
+    /// last part and a check to start the review; with no line, any deal funds.
+    function test_the_high_value_line_applies_from_the_line_itself() public {
+        AgreementTerms memory t = _at();
+        hub.setAsset(address(usdc), true, PRICE);
+        _refused(t);
+        t.finalRelease = 1;
+        t.reviewStarts = 1;
+        t.startLongstop = 4 days;
+        _refused(t);
+        t = _at();
+        t.reviewStarts = 2;
+        t.startLongstop = 4 days;
+        t.verifier = makeAddr("verifier");
+        t.checkPolicy = keccak256("policy");
+        _refused(t);
+        hub.setAsset(address(usdc), true, 0);
+        _ok(_at());
+    }
+
+    function test_a_plan_whose_deadline_falls_inside_its_schedule_is_refused() public {
+        vm.warp(NOW);
+        AgreementTerms memory t = _plan();
+        t.deliveryDeadline = uint64(NOW + uint256(t.parts - 1) * t.partEvery + t.reclaimGrace - 1);
+        _refused(t);
+    }
 }
