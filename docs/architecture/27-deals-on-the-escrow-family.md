@@ -30,9 +30,8 @@ New deals open on the family and deals already open finish where they started. E
 
 ## Who signs
 
-- **Website accounts** with a connected wallet or a passkey sign every money step themselves, as view 11 sets out.
-- **Chat accounts** are signed for by Karwan's servers with the account's own wallets, only inside limits the person signed once on chain: an amount per payment, a total and an expiry. The person can revoke them at any time.
-- **Release is a signature.** The buyer signs the release and Karwan submits it, so a buyer can pay out without holding gas.
+- **Buyers** pay, release and dispute through their buying agent, a wallet Karwan's servers sign for, only inside limits the person signed once on chain: an amount per payment, a total and an expiry. The person can revoke them at any time. This is what lets a matched deal be paid while the buyer is away.
+- **Sellers** accept and deliver from their own wallet, the one the deal pays. A seller's stake and a financier's advance can be signed only by the person, never by an agent, so the seller's wallet has to be the payee. A website wallet signs in the browser; for accounts whose wallet Karwan holds (email sign-in and chat), Karwan signs for them, as it does for everything else on those accounts.
 
 ## The first deal: one identity
 
@@ -72,7 +71,7 @@ sequenceDiagram
 
   B->>A: Confirms the deal card (what, price, kind of deal, days)
   A->>K: Terms for the kind of deal
-  B->>AE: Approve and pay the price plus half the fee
+  B->>AE: The buying agent approves and pays the price plus half the fee
   K->>AE: Read back: funded, terms fingerprint
   K-->>S: "New deal for you"
   S->>AE: Accept the exact terms
@@ -82,8 +81,8 @@ sequenceDiagram
     K->>AE: Submit the signed check
   end
   Note over AE: The buyer's review window runs
-  B->>K: Sign the release
-  K->>AE: Submit the signed release
+  B->>K: Release
+  K->>AE: The buying agent releases
   AE->>S: Price less half the fee
   AE->>R: Settled, on both identities
   K->>AE: Receipt event and a fresh read agree
@@ -100,7 +99,7 @@ How each kind of deal from view 26 maps onto the terms:
 | Goods | Review starts when the buyer confirms arrival, or by itself after a longstop, with the tracking number as the proof |
 | Deposit | A refundable deposit: if the buyer says nothing, the money goes back to the buyer |
 
-Notes: `KarwanAgreementEscrow.fund`, `accept`, `markDelivered`, `releaseBySig`; `KarwanCheckVerifier.report`. The fee is 1%, half from each side, and the beta caps are 1,005 USDC per deal and 10,000 USDC in total per family, so the largest deal is 1,000 USDC.
+Notes: `KarwanAgreementEscrow.fund`, `accept`, `markDelivered`, `release`; `KarwanCheckVerifier.report`. The fee is 1%, half from each side, and the beta caps are 1,005 USDC per deal and 10,000 USDC in total per family, so the largest deal is 1,000 USDC.
 
 ## A dispute
 
@@ -155,7 +154,7 @@ A seller with a funded deal can take an advance from a financier, as view 18 set
 Before any code, and logged in `docs/arc-circle-checks.md`:
 
 - Circle developer-controlled wallets: contract execution for register, bind, approve, fund, accept and deliver, and typed-data signing for the release, against the installed SDK and a read-only call.
-- Circle modular wallets (passkey): whether approve and pay go in one batch, and whether the smart account's signature verifies for the signed release.
+- Circle smart accounts: whether the buying agent's signature verifies on chain for the identity binding (ERC-1271).
 - Arc: the deployed suite read back with the check script, and the event signatures the watcher listens for.
 
 ## What it does not do
@@ -165,12 +164,12 @@ Before any code, and logged in `docs/arc-circle-checks.md`:
 - Go to mainnet.
 - Run delivery checks through Chainlink CRE; that is roadmap item T2.2.
 
-## Questions for the owner
+## Decided by the owner, 23 Oct 2026
 
-1. **When does a person register?** Recommended: at their first money step, so people who only browse never pay for it.
-2. **Chat account limits.** Recommended: per payment up to the beta cap (1,005 USDC), a 10,000 USDC total and a one-year expiry, all shown on the card before the person confirms.
-3. **Switch-over.** Recommended: all new testnet deals move at once, with the current escrow kept for deals already open.
-4. **Checkers.** Recommended for testnet: Karwan runs the three checker keys; outside checkers join through the timelock later.
+1. **A person registers at their first money step**, so people who only browse never pay for it.
+2. **Chat account limits:** up to 1,005 USDC per payment, 10,000 USDC in total and a one-year expiry, all shown on the card before the person confirms.
+3. **Switch-over:** all new testnet deals move to the family at once; the current escrow keeps only the deals already open on it.
+4. **Checkers:** Karwan runs the three checker keys on testnet; outside checkers join later through the timelock.
 
 ## Status
 
@@ -180,7 +179,6 @@ Before any code, and logged in `docs/arc-circle-checks.md`:
 | Every role used once on testnet (fact, two-of-three check, arbiter proposal) | Built and proven on an Arc fork; runs on testnet after the first settings |
 | App opens new deals on the family | Planned |
 | One identity per person, set up at the first money step | Planned |
-| Signed release | Planned |
 | Automatic arbiter on the family | Planned; the table is built for the terms-driven escrow and switched off |
 | Getting paid early on the family | Planned (T4.2) |
 | Time and Jobs families in the app | Later |
