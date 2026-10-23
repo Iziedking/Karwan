@@ -218,7 +218,7 @@ async function layoutIsSound(page: Page, testInfo: TestInfo, primaryCount = 1) {
   expect(metrics.overflow).toBeLessThanOrEqual(0);
   expect(metrics.primary).toHaveLength(primaryCount);
   expect(metrics.textArrows).toEqual([]);
-  for (const heading of metrics.headings) expect(heading.weight, heading.text).toBeLessThanOrEqual(500);
+  for (const heading of metrics.headings) expect(heading.weight, heading.text).toBeLessThanOrEqual(600);
   for (const card of metrics.cards) {
     expect(card.radius).toBe('20px');
     // A quiet white card: one hairline, never a tint or a shadow.

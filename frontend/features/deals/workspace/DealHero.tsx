@@ -100,6 +100,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   // A hold from the verdict shows at once, before the watcher records a detail.
   const heldDetail = paused ? deal.releaseBlockedDetail ?? (deal.releaseBlockedReason ? undefined : 'off-request') : undefined;
   const held = paused ? heldMove(heldDetail, viewerIsBuyer) : null;
+  const yourMove = !!address && (held === 'redeliver' || (!held && !!label) || (declined && viewerIsBuyer));
   const review = deal.deliveryReviewState?.state;
   const askPerson = () => callPerson([], { message: fill(copy.checkPaused.supportMessage, { path: `/deals/${deal.jobId}` }), dealId: deal.jobId });
   const proof = deal.deliveryProof?.trim();
@@ -189,7 +190,9 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   }
 
   return (
-    <div>
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:items-start lg:gap-5">
+      <div className="min-w-0 space-y-4">
+      <section aria-labelledby="deal-amount" className="rounded-[24px] border border-[var(--lp-border-light)] bg-[linear-gradient(115deg,var(--hero-from),var(--hero-to)_70%)] p-5 shadow-[var(--hero-shadow)] sm:p-6">
       <header className="flex items-center gap-3">
         <button type="button" onClick={() => setPanel('record')} disabled={!card} className="flex min-w-0 items-center gap-3 rounded-[14px] py-1 pe-2 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
           <PersonAvatar address={counterparty} name={name} />
@@ -213,35 +216,19 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
         ) : null}
       </header>
 
-      <section aria-labelledby="deal-amount" className="pb-8 pt-10">
-        <p role="status" aria-live="polite" className="inline-flex items-center gap-2 text-[14px] font-medium text-[var(--lp-text-sub)]">
+        <p role="status" aria-live="polite" className="mt-5 inline-flex items-center gap-2 text-[14px] font-medium text-[var(--lp-text-sub)]">
           <span aria-hidden className="size-2 rounded-full" style={{ background: LINE_TONE[view.money.line] }} />
           {copy.money[LINE_KEY[view.money.line]]}
         </p>
-        <h1 id="deal-amount" className="mt-3 flex items-baseline gap-2 tabular-nums">
-          <span className="text-[56px] font-bold leading-none tracking-[-0.035em] text-[var(--lp-dark)] sm:text-[72px]">{formatUsdcAmount(deal.dealAmountUsdc, locale)}</span>{' '}
-          {' '}<span className="text-[18px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
+        <h1 id="deal-amount" className="mt-2 flex items-baseline gap-2 tabular-nums">
+          <span className="text-[34px] font-bold leading-none tracking-[-0.03em] text-[var(--lp-dark)] sm:text-[40px]">{formatUsdcAmount(deal.dealAmountUsdc, locale)}</span>{' '}
+          {' '}<span className="text-[15px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
         </h1>
         {moment ? <div className="mt-3 max-w-[52ch]">{moment}</div> : null}
-        <DealTimeline
-          progress={view.progress}
-          viewerIsBuyer={viewerIsBuyer}
-          name={name}
-          check={check}
-          dueAt={deal.deadlineUnix ? deal.deadlineUnix * 1000 : null}
-        />
-        {view.stage === 'settled' ? (
-          <div className="mt-6 rounded-[20px] bg-[var(--lp-card)] p-5">
-            <p className="flex items-center gap-2 text-[16px] font-semibold text-[var(--lp-dark)]">
-              <Icon name="check" size={20} className="text-[var(--color-positive)]" />
-              {dl.completeTitle}
-            </p>
-            <p className="mt-1.5 text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{dl.completeBody}</p>
-          </div>
-        ) : null}
       </section>
 
-      <div className="space-y-3 pb-6">
+      <div className={cn('space-y-3 empty:hidden', yourMove && 'rounded-[20px] border border-[color-mix(in_srgb,var(--lp-accent)_45%,transparent)] bg-[var(--lp-card)] p-5')}>
+        {yourMove ? <p className="text-[13px] font-bold text-[var(--lp-accent-on-light)]">{copy.actor.you}</p> : null}
         {held === 'redeliver' && address ? (
           <>
             <button type="button" onClick={() => setPanel('deliver')} disabled={busy} className="inline-flex min-h-14 w-full items-center justify-center rounded-full bg-[var(--action)] px-6 text-[16px] font-semibold text-[var(--on-action)] transition-opacity hover:opacity-90 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-offset-2">
@@ -286,10 +273,30 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
         ) : null}
         {automatic ? <p className="text-center text-[14px] text-[var(--lp-text-sub)] font-medium">{automatic}</p> : null}
       </div>
-
       {deal.dispute && address ? (
         <DisputePanel jobId={deal.jobId} dispute={deal.dispute} viewerIsBuyer={viewerIsBuyer} caller={address} name={name} myName={displayName} onChanged={onChanged} />
       ) : null}
+      </div>
+
+      <div className="min-w-0 space-y-4">
+      <section className="rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-5 py-4 [&>ol]:mt-0">
+        <DealTimeline
+          progress={view.progress}
+          viewerIsBuyer={viewerIsBuyer}
+          name={name}
+          check={check}
+          dueAt={deal.deadlineUnix ? deal.deadlineUnix * 1000 : null}
+        />
+      </section>
+        {view.stage === 'settled' ? (
+          <div className="rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5">
+            <p className="flex items-center gap-2 text-[16px] font-semibold text-[var(--lp-dark)]">
+              <Icon name="check" size={20} className="text-[var(--color-positive)]" />
+              {dl.completeTitle}
+            </p>
+            <p className="mt-1.5 text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{dl.completeBody}</p>
+          </div>
+        ) : null}
 
       {address ? <DealLatest jobId={deal.jobId} caller={address} name={name} onOpen={() => setPanel('messages')} /> : null}
 
@@ -310,6 +317,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
           </button>
         ))}
       </nav>
+      </div>
 
       <Sheet open={panel === 'record'} title={s.record} onClose={close}>
         {card ? <TrustCard bare card={card} onOpenPassport={() => router.push(`/credit-passport/${counterparty}`)} /> : null}

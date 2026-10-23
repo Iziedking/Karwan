@@ -9,7 +9,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
 
 /// Every profile page: one plain title, an optional note behind an info mark,
 /// and the content at the same width and edge.
-export function ProfileFrame({ title, hint, backHref, children }: { title: ReactNode; hint?: ReactNode; backHref?: string; children: ReactNode }) {
+export function ProfileFrame({ title, hint, backHref, hero = false, children }: { title: ReactNode; hint?: ReactNode; backHref?: string; hero?: boolean; children: ReactNode }) {
   const pathname = usePathname();
   const { isAuthenticated } = useAuth();
   return (
@@ -19,7 +19,7 @@ export function ProfileFrame({ title, hint, backHref, children }: { title: React
         <div data-own-back className="-ms-2 mb-3 empty:hidden">
           <ProductBackLink pathname={pathname} isAuthenticated={isAuthenticated} fallbackHref={backHref} />
         </div>
-        <h1 className="flex items-center gap-2 text-[28px] font-semibold tracking-[-0.02em] text-[var(--lp-dark)]">
+        <h1 className={hero ? 'rounded-[24px] border border-[var(--lp-border-light)] bg-[linear-gradient(115deg,var(--hero-from),var(--hero-to)_70%)] p-5 shadow-[var(--hero-shadow)] sm:p-6 flex items-center gap-2 text-[20px] font-semibold tracking-[-0.02em] text-[var(--lp-dark)]' : 'flex items-center gap-2 text-[22px] font-semibold tracking-[-0.02em] text-[var(--lp-dark)]'}>
           {title}
           {hint ? <Hint side="bottom">{hint}</Hint> : null}
         </h1>
@@ -34,14 +34,14 @@ export function RowGroup({ title, hint, action, children }: { title?: string; hi
     <section>
       {title ? (
         <div className="mb-1 flex min-h-11 items-center justify-between gap-3 pe-2 ps-4">
-          <h2 className="flex items-center gap-2 text-[14px] font-semibold text-[var(--lp-text-sub)]">
+          <h2 className="flex items-center gap-2 text-[15px] font-semibold text-[var(--lp-dark)]">
             {title}
             {hint ? <Hint>{hint}</Hint> : null}
           </h2>
           {action}
         </div>
       ) : null}
-      <div className="divide-y divide-[var(--lp-border-light)] overflow-hidden rounded-[18px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
+      <div className="divide-y divide-[var(--lp-border-light)] overflow-hidden rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
         {children}
       </div>
     </section>

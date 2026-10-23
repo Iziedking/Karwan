@@ -169,7 +169,7 @@ export function ListingsBrowse({
 
       <Band tone="light" compact>
         <div className="flex flex-wrap items-center justify-between gap-4 pt-2 sm:pt-3">
-          <h1 className="text-[36px] font-medium leading-[1.1] tracking-[-0.015em] text-[var(--ink)] sm:text-[40px]">
+          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-[var(--ink)]">
             {copy.heroTitle}
           </h1>
           {action}
@@ -185,7 +185,7 @@ export function ListingsBrowse({
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={copy.searchPlaceholder}
-                className="min-h-[52px] w-full rounded-[14px] border-0 bg-[var(--tint)] ps-12 pe-4 text-[15px] text-[var(--ink)] placeholder:text-[var(--ink-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
+                className="min-h-[52px] w-full rounded-full border border-[var(--lp-border-light)] bg-[var(--lp-card)] ps-12 pe-5 text-[15px] text-[var(--ink)] placeholder:text-[var(--ink-secondary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-[var(--action)]"
                 maxLength={120}
               />
             </span>
@@ -252,7 +252,7 @@ export function ListingsBrowse({
 
         {emptyMarket ? (
           <div className="border-t border-[var(--line)] py-8 sm:py-10">
-            <h2 className="text-[22px] font-medium leading-tight tracking-[-0.015em] text-[var(--ink)]">
+            <h2 className="text-[17px] font-semibold leading-tight text-[var(--ink)]">
               {copy.emptyAllTag}
             </h2>
             <p className="mt-3 max-w-[58ch] text-[15px] leading-relaxed text-[var(--ink-secondary)]">
@@ -271,7 +271,7 @@ export function ListingsBrowse({
 
         {emptyFilter ? (
           <div className="border-t border-[var(--line)] py-8 sm:py-10">
-            <h2 className="text-[22px] font-medium leading-tight tracking-[-0.015em] text-[var(--ink)]">
+            <h2 className="text-[17px] font-semibold leading-tight text-[var(--ink)]">
               {copy.emptyFilteredTitle}
             </h2>
             <p className="mt-3 max-w-[58ch] text-[15px] leading-relaxed text-[var(--ink-secondary)]">
@@ -292,7 +292,7 @@ export function ListingsBrowse({
                 return (
                   <section key={section.key} id={`market-${section.key}`} data-guide={`market-${section.key}`} className="scroll-mt-24">
                     <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
-                      <h2 className="text-[20px] font-medium tracking-[-0.015em] text-[var(--ink)]">
+                      <h2 className="text-[17px] font-semibold text-[var(--ink)]">
                         {section.title}
                         <span className="ms-2 text-[14px] font-normal tabular-nums text-[var(--ink-secondary)]">
                           {realCount(section.cards)}
@@ -300,7 +300,7 @@ export function ListingsBrowse({
                       </h2>
                       <p className="text-[14px] text-[var(--ink-secondary)] sm:max-w-[48ch] sm:text-end font-medium">{section.note}</p>
                     </div>
-                    <div className="market-grid grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    <div className="market-grid grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                       {paged.items.map((card) => (
                         <MarketCard key={`${card.side}-${card.id}`} card={card} copy={copy.card} offerCopy={translations.offers} variant={section.variant} />
                       ))}
@@ -371,7 +371,7 @@ function MarketSkeleton() {
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       {[0, 1, 2].map((index) => (
-        <div key={index} className="rounded-[20px] bg-[var(--surface)] p-5 sm:p-6">
+        <div key={index} className="rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5 sm:p-6">
           <Skeleton className="h-3 w-20" />
           <Skeleton className="mt-5 h-6 w-3/4" />
           <SkeletonText lines={2} className="mt-4" />
@@ -504,7 +504,7 @@ function MarketCard({
         {/* Two title lines and one body line always take the same room, so
             every card in a row keeps its footer on the same line. */}
         <div className="mt-3 h-20 shrink-0 overflow-hidden">
-          <h3 dir="auto" className="line-clamp-2 text-[18px] font-medium leading-[1.3] tracking-[-0.015em] text-[var(--ink)]">
+          <h3 dir="auto" className="line-clamp-2 text-[16px] font-semibold leading-[1.35] text-[var(--ink)]">
             {card.title}
           </h3>
           {card.body ? <p dir="auto" className="mt-1 line-clamp-1 text-[14px] leading-5 text-[var(--ink-secondary)] font-medium">{card.body}</p> : null}
@@ -523,7 +523,7 @@ function MarketCard({
       </div>
       <div data-market-footer className="mx-5 shrink-0 border-t border-[var(--lp-border-light)] py-4">
         <p className="flex items-baseline gap-1.5">
-        <span className="text-[24px] font-bold leading-none tracking-[-0.02em] text-[var(--ink)] tabular-nums">
+        <span className="text-[20px] font-bold leading-none tracking-[-0.02em] text-[var(--ink)] tabular-nums">
           {formatUsdc(card.priceUsdc, { withSuffix: false })}
         </span>
         <span className="whitespace-nowrap text-[14px] text-[var(--ink-secondary)] font-medium">
@@ -546,7 +546,7 @@ function MarketCard({
     <Link
       href={card.href}
       data-market-side={card.side}
-      className={`${shell} transition-colors hover:border-[var(--lp-outline-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)]`}
+      className={`${shell} transition-colors hover:border-[color-mix(in_srgb,var(--lp-accent)_45%,transparent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)]`}
     >
       {content}
     </Link>

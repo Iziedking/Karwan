@@ -73,9 +73,11 @@ test('Back sits on the deal column, not at the edge of a wide screen', async ({ 
   await expect(amount).toContainText('1,200');
   const back = page.getByRole('button', { name: en.nav.backAria, exact: true }).filter({ visible: true });
   await expect(back).toHaveCount(1);
+  // The amount sits inside the deal's hero card; Back lines up with that card.
+  const card = page.locator('section[aria-labelledby="deal-amount"]');
   const backBox = await back.boundingBox();
-  const amountBox = await amount.boundingBox();
-  expect(Math.abs(backBox!.x - amountBox!.x)).toBeLessThan(24);
+  const cardBox = await card.boundingBox();
+  expect(Math.abs(backBox!.x - cardBox!.x)).toBeLessThan(24);
 });
 
 test('a new counterparty is described neutrally', async ({ page }) => {

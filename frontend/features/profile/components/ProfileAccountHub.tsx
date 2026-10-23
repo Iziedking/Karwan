@@ -118,6 +118,7 @@ export function ProfileAccountHub({
 
   return (
     <ProfileFrame
+      hero
       title={
         <span className="flex min-w-0 items-center gap-4">
           <input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" tabIndex={-1} aria-label={savedPhoto ? hub.changePhoto : hub.addPhoto} onChange={(event) => void choosePhoto(event)} />
@@ -138,7 +139,7 @@ export function ProfileAccountHub({
             <span aria-hidden className="absolute -bottom-0.5 -end-0.5 grid size-6 place-items-center rounded-full border border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-dark)]"><Icon name="plus" size={16} /></span>
           </PhotoMenu>
           <span className="min-w-0">
-            <span className="line-clamp-2 break-words text-[24px] leading-tight sm:text-[28px]">{displayName}</span>
+            <span className="line-clamp-2 break-words text-[20px] leading-tight">{displayName}</span>
             <span className="block truncate text-[14px] font-normal tracking-normal text-[var(--lp-text-sub)]">
               {[profile.handle ? `@${profile.handle}` : contact, business ? hub.businessAccount : hub.personalAccount].join(' · ')}
             </span>

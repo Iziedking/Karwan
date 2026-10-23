@@ -421,7 +421,8 @@ test('activity is a statement: one count, rows under their day, a money in and o
   assert.match(ledger, /filterByDirection\(items, filter\)/);
   assert.doesNotMatch(ledger, /t\.count/);
   const page = source('../../app/activity/page.tsx');
-  assert.match(page, /text-\[36px\] font-medium/);
+  assert.match(page, /text-\[22px\] font-semibold/);
+  assert.match(source('../../features/listings/components/ListingsBrowse.tsx'), /<h1 className="text-\[22px\] font-semibold/);
   assert.doesNotMatch(page, /Your records|clamp\(2\.8rem/);
 });
 

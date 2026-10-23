@@ -197,8 +197,8 @@ function AssistantPage() {
           </div>
           {empty ? (
             <motion.div initial={reduce ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: ease.out }} className="pt-6 sm:pt-12">
-              <h1 className="text-[28px] font-bold tracking-[-0.03em] sm:text-[32px]">{greeting}</h1>
-              <p className="mt-2 max-w-[52ch] text-[17px] font-medium text-[var(--lp-text-sub)]">{t.greetingBody}</p>
+              <h1 className="text-[24px] font-semibold tracking-[-0.02em] sm:text-[28px]">{greeting}</h1>
+              <p className="mt-2 max-w-[52ch] text-[15px] font-medium text-[var(--lp-text-sub)]">{t.greetingBody}</p>
             </motion.div>
           ) : (
             <div ref={threadRef}>
@@ -231,7 +231,7 @@ function AssistantPage() {
                     type="button"
                     onClick={() => void send(chip)}
                     disabled={chat.busy}
-                    className="min-h-11 shrink-0 rounded-full border border-[var(--lp-outline-strong)] px-4 text-[14px] font-semibold text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-light)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+                    className="min-h-11 shrink-0 rounded-full border border-[var(--lp-border-light)] bg-[var(--tint)] px-4 text-[14px] font-semibold text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-light)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
                   >
                     {chip}
                   </button>
@@ -243,9 +243,9 @@ function AssistantPage() {
                 e.preventDefault();
                 void send(input);
               }}
-              className="flex items-end gap-2 rounded-[20px] border border-[var(--lp-outline-strong)] bg-[var(--lp-card)] py-2 pe-2 ps-2 focus-within:border-[var(--lp-accent)]"
+              className="flex items-end gap-2 rounded-[28px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] py-1.5 pe-1.5 ps-2 focus-within:border-[color-mix(in_srgb,var(--lp-accent)_60%,transparent)]"
             >
-              <label className="mb-0.5 grid size-11 shrink-0 cursor-pointer place-items-center rounded-[12px] text-[var(--lp-text-sub)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)] focus-within:ring-2 focus-within:ring-[var(--lp-accent)]">
+              <label className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-full text-[var(--lp-text-sub)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)] focus-within:ring-2 focus-within:ring-[var(--lp-accent)]">
                 <span className="sr-only">{t.attach}</span>
                 <Icon name="image-plus" size={20} />
                 <input
@@ -280,12 +280,12 @@ function AssistantPage() {
                 type="submit"
                 disabled={chat.busy || !input.trim()}
                 aria-label={messages.assistant.send}
-                className="grid size-11 shrink-0 place-items-center rounded-[12px] bg-[var(--lp-accent)] text-[var(--accent-ink)] transition-opacity disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]"
+                className="grid size-11 shrink-0 place-items-center rounded-full bg-[var(--lp-accent)] text-[var(--accent-ink)] transition-opacity disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]"
               >
                 <Icon name="return" size={20} directional />
               </button>
             </form>
-            <p className="mt-2 text-center text-[14px] text-[var(--lp-text-sub)]">{t.confirmNote}</p>
+            <p className="mt-2 text-center text-[13px] text-[var(--lp-text-sub)]">{t.confirmNote}</p>
           </div>
         </div>
       </section>

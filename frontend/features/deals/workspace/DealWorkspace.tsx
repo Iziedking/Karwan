@@ -129,7 +129,7 @@ export function DealWorkspace({ jobId }: { jobId: string }) {
   }
 
   return (
-    <div className="product-surface mx-auto max-w-[560px] px-4 pb-16 pt-4 sm:px-6">
+    <div className="product-surface mx-auto max-w-[560px] px-4 pb-16 pt-4 sm:px-6 lg:max-w-[1040px]">
       <div data-own-back className="-ms-2 mb-4 empty:hidden">
         <ProductBackLink pathname={pathname} isAuthenticated={auth.isAuthenticated} />
       </div>

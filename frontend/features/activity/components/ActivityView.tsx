@@ -153,7 +153,7 @@ export function ActivityView({ explorer }: { explorer: string }) {
         ) : (
           <div id="activity-events-panel" className="min-w-0 space-y-4 p-3 sm:p-4" data-guide="activity-stream">
         <div ref={streamTopRef} className="flex items-baseline justify-end gap-3 scroll-mt-24">
-          <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+          <p className="text-[13px] font-medium tabular-nums text-[var(--ink-secondary)]">
             {filtered.length === 0
               ? t.countZero
               : t.countRange
@@ -184,10 +184,10 @@ export function ActivityView({ explorer }: { explorer: string }) {
               type="button"
               onClick={() => setOnlyMine(v)}
               aria-pressed={onlyMine === v}
-              className={`inline-flex min-h-11 items-center mono text-[13px] uppercase tracking-[0.12em] px-3 py-1.5 rounded-md border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] ${
+              className={`inline-flex min-h-11 items-center rounded-full border px-4 text-[14px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] ${
                 onlyMine === v
-                  ? 'bg-[var(--lp-control-active-bg)] text-[var(--lp-control-active-ink)] border-[var(--lp-control-active-border)] font-bold'
-                  : 'border-[var(--lp-border-light)] text-[var(--lp-text-muted)] hover:text-[var(--lp-ink)]'
+                  ? 'border-[var(--lp-dark)] bg-[var(--lp-dark)] font-bold text-[var(--lp-light)]'
+                  : 'border-[var(--lp-border-light)] bg-[var(--tint)] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)]'
               }`}
             >
               {v ? t.onlyMine : t.everyone}
@@ -312,10 +312,7 @@ function Pager({
   }
 
   const radius = {
-    borderTopLeftRadius: 7,
-    borderTopRightRadius: 7,
-    borderBottomLeftRadius: 7,
-    borderBottomRightRadius: 7,
+    borderRadius: 999,
   } as const;
 
   return (
@@ -329,7 +326,7 @@ function Pager({
         onClick={() => onPage(page - 1)}
         disabled={page <= 1}
         aria-label={t.prevAria}
-        className="inline-flex min-h-11 min-w-11 items-center justify-center mono text-[14px] px-2.5 py-1.5 border transition-colors disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-[14px] font-semibold px-2.5 py-1.5 border transition-colors disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
         style={{ borderColor: 'var(--lp-border-light)', color: 'var(--lp-text-sub)', ...radius }}
       >
         ←
@@ -350,7 +347,7 @@ function Pager({
             type="button"
             onClick={() => onPage(it)}
             aria-current={it === page ? 'page' : undefined}
-            className="inline-flex min-h-11 min-w-11 items-center justify-center mono text-[14px] tabular-nums px-3 py-1.5 border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-[14px] font-semibold tabular-nums px-3 py-1.5 border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
             style={
               it === page
                 ? { background: 'var(--lp-accent)', borderColor: 'var(--lp-accent)', color: 'var(--accent-ink)', ...radius }
@@ -367,7 +364,7 @@ function Pager({
         onClick={() => onPage(page + 1)}
         disabled={page >= totalPages}
         aria-label={t.nextAria}
-        className="inline-flex min-h-11 min-w-11 items-center justify-center mono text-[14px] px-2.5 py-1.5 border transition-colors disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-[14px] font-semibold px-2.5 py-1.5 border transition-colors disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
         style={{ borderColor: 'var(--lp-border-light)', color: 'var(--lp-text-sub)', ...radius }}
       >
         →

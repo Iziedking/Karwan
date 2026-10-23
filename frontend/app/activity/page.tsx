@@ -47,7 +47,7 @@ function ActivityPageInner({
       <PageTour id={ACTIVITY_TOUR_ID} steps={ACTIVITY_STEPS} />
       <Band tone="light" compact>
         <header className="pt-2 pb-5 sm:pt-3">
-          <h1 className="text-[36px] font-medium leading-[1.1] tracking-[-0.015em] text-[var(--ink)] sm:text-[40px]">{t.pageTitle}</h1>
+          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-[var(--ink)]">{t.pageTitle}</h1>
         </header>
         <div className="fade-up fade-up-1">
           <ActivityView explorer={explorer} />
