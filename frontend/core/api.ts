@@ -687,8 +687,8 @@ export interface DealDisputeView {
 export interface DealView {
   stage: 'awaiting-acceptance' | 'awaiting-funding' | 'awaiting-delivery' | 'awaiting-first-release'
     | 'awaiting-final-release' | 'settled' | 'cancelled' | 'disputed';
-  money: { line: 'not-funded' | 'held' | 'sending' | 'paused' | 'released' | 'refunding' | 'refunded' };
-  progress: Array<{ step: 'agreed' | 'funded' | 'delivered' | 'checked' | 'released'; state: 'done' | 'current' | 'upcoming'; at?: number }>;
+  money: { line: 'not-funded' | 'held' | 'sending' | 'paused' | 'released' | 'refunding' | 'refunded' | 'cancelled' };
+  progress: Array<{ step: 'agreed' | 'funded' | 'delivered' | 'checked' | 'released' | 'cancelled' | 'refunded'; state: 'done' | 'current' | 'upcoming'; at?: number }>;
   next: {
     action: 'accept' | 'fund' | 'deliver' | 'release' | 'claim' | 'review-manually' | 'respond-extension' | 'respond-cancel' | 'dispute' | null;
     actor: 'you' | 'counterparty' | 'nobody';
@@ -726,6 +726,8 @@ export interface AttestedDeal {
 
 /// One attested deal as Karwan publishes it, with who signed it and when.
 export interface AttestedDealDocument extends AttestedDeal {
+  /// Who the statement is about. Shown by name and Karwan tag, never this address.
+  subject: { address: string };
   issuer: { name: string; domain: string; address: string };
   issuedAt: string;
   proof?: { signature: string };

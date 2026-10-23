@@ -54,7 +54,8 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
       <PageTour id={HOME_TOUR_ID} steps={HOME_STEPS} />
       <section aria-labelledby="home-heading" className="border-b border-[var(--lp-border-light)] pb-7">
         <h1 id="home-heading" className="pt-3 text-[14px] font-semibold text-[var(--lp-text-sub)] sm:pt-4">
-          {translations.businessHome.hero.welcomeBack} {firstName}
+          {/* bdi keeps a tag such as @lawful whole in right-to-left text. */}
+          {translations.businessHome.hero.welcomeBack} <bdi>{firstName}</bdi>
         </h1>
 
         <div className="mt-4 grid items-start gap-5 lg:grid-cols-[minmax(0,460px)_minmax(0,1fr)]">

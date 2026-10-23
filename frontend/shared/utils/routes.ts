@@ -44,16 +44,13 @@ export function isPublicDiscoveryRoute(pathname: string | null | undefined): boo
  * detail and settings views recoverable without guessing browser history,
  * which may point outside Karwan after a shared link is opened.
  */
-const SIDEBAR_ROOTS = new Set(['/market', '/financier', '/activity', '/profile']);
-
 export function getProductBackHref(
   pathname: string | null | undefined,
   isAuthenticated = true,
 ): string | null {
   if (!pathname || pathname === '/app') return null;
-  // The sidebar's own destinations sit side by side, so there is nothing to
-  // go back to from one of them; the pages under them keep their Back.
-  if (isAuthenticated && SIDEBAR_ROOTS.has(pathname)) return null;
+  // Every page but Home has a Back, the sidebar's own sections included, so
+  // nobody is left looking for the way home (owner, 23 Oct).
   if (pathname === '/docs' || pathname === '/how-it-works') return isAuthenticated ? '/app' : '/';
   if (matchesRoute(pathname, '/docs')) return '/docs';
   if (matchesRoute(pathname, '/settings')) return '/profile';
@@ -76,6 +73,7 @@ export function getProductBackHref(
     '/financier',
     '/jobs',
     '/legacy',
+    '/messages',
     '/request',
     '/seller',
     '/send',

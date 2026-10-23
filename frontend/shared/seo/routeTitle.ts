@@ -3,7 +3,7 @@ import type { RouteTitleKey } from '@/shared/i18n/messages/routeTitles';
 export const SITE_TITLE = 'Karwan · one reputation, starting with an open market';
 
 /// Pages whose title is set on the server, with the record or offer it shows.
-const SERVER_TITLED = [/^\/r\/[^/]+$/, /^\/credit-passport\/[^/]+$/, /^\/attested\/[^/]+$/, /^\/feedback$/, /^\/financier$/];
+const SERVER_TITLED = [/^\/r\/[^/]+$/, /^\/credit-passport\/[^/]+$/, /^\/attested\/[^/]+$/, /^\/feedback$/];
 
 const EXACT: Record<string, RouteTitleKey> = {
   '/connect/telegram': 'connectTelegram',
@@ -56,6 +56,7 @@ const EXACT: Record<string, RouteTitleKey> = {
   '/waitlist': 'waitlist',
   '/x402': 'dataApi',
   '/developers': 'developers',
+  '/financier': 'finance',
 };
 
 const PATTERNS: [RegExp, RouteTitleKey][] = [

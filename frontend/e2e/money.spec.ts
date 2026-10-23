@@ -54,6 +54,9 @@ test('a top-up confirms in place with its reference', async ({ page }) => {
   await sheet.getByRole('button', { name: 'Top up 50.00 USDC' }).click();
   await expect(sheet).toContainText('50.00 USDC is with your buying agent.');
   await expect(sheet).toContainText('KWN-2026-0100');
+  // The result replaces the form: no stale amount or "Available" above it.
+  await expect(sheet.getByLabel('Amount')).toHaveCount(0);
+  await expect(sheet).not.toContainText('Available');
   await sheet.getByRole('button', { name: 'Done', exact: true }).click();
   await expect(sheet).toBeHidden();
 });
@@ -236,7 +239,7 @@ test('send is its own page and finds a person by Karwan tag before paying', asyn
 
   await to.fill('@ada');
   await expect(sheet).toContainText('Ada Obi · @ada');
-  await expect(sheet).toContainText('0x2222…2222');
+  await expect(sheet).not.toContainText('0x2222');
   await expect(sheet).toContainText('25.00 USDC goes to @ada.');
   await expect(sheet.getByRole('button', { name: 'Send 25.00 USDC' })).toBeEnabled();
 });

@@ -1,9 +1,9 @@
 'use client';
+import { useTierLabels } from '@/features/reputation/useTierLabels';
 import { useEffect, useState } from 'react';
 import { api, type Reputation, type UserProfile, profilePhotoOf } from '@/core/api';
 import {
   TIER_HUE,
-  TIER_LABEL,
   type CompositeTier,
 } from '@/features/reputation/tierColors';
 import { shortAddress } from '@/shared/utils/format';
@@ -31,6 +31,7 @@ type TermKey = (typeof TERM_KEYS)[number];
 type FetchState = 'idle' | 'loading' | 'ready' | 'error';
 
 export function CreditPassport({ address }: { address: string }) {
+  const TIER_LABEL = useTierLabels();
   const t = useTranslations();
   const cp = t.creditPassport;
   const { locale } = useLocale();

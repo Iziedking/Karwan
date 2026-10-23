@@ -3,7 +3,8 @@ import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api, type TrendingCategory, type UpdateCard } from '@/core/api';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
+import { localizeSeedCard } from '../seedUpdates';
 import { cn } from '@/shared/utils/cn';
 
 /// Home Updates: published media tiles about the tech Karwan runs on, market
@@ -118,8 +119,10 @@ function clock(seconds: number): string {
   return `${m}:${String(seconds % 60).padStart(2, '0')}`;
 }
 
-export function UpdateTile({ card, trending, index, total }: { card: UpdateCard; trending: TrendingCategory[]; index: number; total: number }) {
+export function UpdateTile({ card: raw, trending, index, total }: { card: UpdateCard; trending: TrendingCategory[]; index: number; total: number }) {
   const t = useTranslations().accountHome;
+  const { locale } = useLocale();
+  const card = localizeSeedCard(raw, locale);
   const external = card.href.startsWith('https://');
   const ground = { '--g': `var(--update-${card.ground})`, '--g-deep': `var(--update-${card.ground}-deep)` } as CSSProperties;
   const video = card.kind === 'video';

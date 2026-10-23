@@ -221,6 +221,10 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
     reset();
   }
 
+  /// The balance shown after a move: for a send, the same spendable figure
+  /// "Available" used, so the two can never disagree.
+  const balanceAfter = move === 'send' ? sendAvailable(balances.balance, balances.pool, balances.poolLoaded) : balances.balance;
+
   function finish() {
     onClose();
     onDone?.();
@@ -245,6 +249,9 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
         </button>}
       </div>
 
+      {/* Once the money has moved, the form gives way to the result: a stale
+          amount and "Available" above it would read as a second balance. */}
+      {state.kind === 'confirmed' ? null : (<>
       {move === 'send' ? (
         <div className="mt-6">
           <label htmlFor={recipientId} className="text-[14px] font-medium text-[var(--lp-text-sub)]">{t.sheet.recipientLabel}</label>
@@ -339,6 +346,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
       </div>
 
       <p className="mt-4 text-[14px] text-[var(--lp-text-sub)] font-medium">{t.sheet.timeSeconds}</p>
+      </>)}
 
       <AnimatePresence mode="wait" initial={false}>
         {state.kind === 'editing' ? (
@@ -379,7 +387,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
             <dl className="rounded-[20px] bg-[var(--lp-card)] px-5 text-[15px] tabular-nums">
               <div className="flex justify-between gap-3 border-b border-[var(--lp-border-light)] py-3.5 last:border-b-0">
                 <dt className="text-[var(--lp-text-sub)]">{t.sheet.yourBalance}</dt>
-                <dd className="font-medium text-[var(--lp-dark)]">{balances.balance === null ? '' : `${formatBalance(balances.balance, locale)} USDC`}</dd>
+                <dd className="font-medium text-[var(--lp-dark)]">{balanceAfter === null ? '' : `${formatBalance(balanceAfter, locale)} USDC`}</dd>
               </div>
               {move !== 'send' ? (
                 <div className="flex justify-between gap-3 border-b border-[var(--lp-border-light)] py-3.5 last:border-b-0">
@@ -491,8 +499,8 @@ function Place({ label, name, amount, locale, end = false }: {
   );
 }
 
-/// Who a tag pays: their name and tag, with the address shortened so the person
-/// can still compare it with one they were given.
+/// Who a tag pays: their name and Karwan tag. People are known by their tag,
+/// never by a wallet address (owner, 23 Oct).
 function TagLine({ lookup, copy }: { lookup: TagLookup; copy: MoneyCopy['sheet'] }) {
   if (lookup.state === 'checking') return <p className="mt-2 text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.recipientChecking}</p>;
   if (lookup.state === 'error') return <p className="mt-2 text-[14px] text-[var(--color-critical)]">{copy.tagError}</p>;
@@ -502,7 +510,6 @@ function TagLine({ lookup, copy }: { lookup: TagLookup; copy: MoneyCopy['sheet']
   return (
     <p className="mt-2 flex flex-wrap items-baseline gap-x-2 text-[14px]">
       <span className="font-semibold text-[var(--lp-dark)]">{fill(copy.tagFound, { name: result.displayName, tag: result.tag })}</span>
-      <span dir="ltr" className="tabular-nums text-[var(--lp-text-sub)]">{`${result.address.slice(0, 6)}…${result.address.slice(-4)}`}</span>
     </p>
   );
 }

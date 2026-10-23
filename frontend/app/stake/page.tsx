@@ -1,4 +1,5 @@
 'use client';
+import { useTierLabels } from '@/features/reputation/useTierLabels';
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
@@ -15,7 +16,7 @@ import { YieldClaimPanel } from '@/features/reputation/components/YieldClaimPane
 import { LegacyStakeNudge } from '@/features/reputation/components/LegacyStakeNudge';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useReputation } from '@/features/reputation/hooks/useReputation';
-import { TIER_HUE, TIER_LABEL, tierInk } from '@/features/reputation/tierColors';
+import { TIER_HUE, tierInk } from '@/features/reputation/tierColors';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { tierProgress, tierProgressLabel } from '@/features/reputation/tierProgressLabel';
 
@@ -82,6 +83,7 @@ export default function StakePage() {
 }
 
 function StakePageInner() {
+  const TIER_LABEL = useTierLabels();
   const pb = useTranslations().pageBits;
   const { address } = useAuth();
   const { data } = useReputation(address);

@@ -39,7 +39,7 @@ export const setupCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', SetupCopy> = {
     later: "I'll do this later",
     progressLabel: 'Setting up your Karwan',
     progress: '{index} of {total}',
-    welcome: { title: 'Your agent wallets are ready', body: "I'm your Karwan agent. Answer a few quick questions and I'll set up Karwan the way you want to use it. About a minute.", start: "Let's go" },
+    welcome: { title: "Let's set up Karwan for you", body: "I'm your Karwan agent. Answer a few quick questions and I'll set up Karwan the way you want to use it. About a minute.", start: "Let's go" },
     goals: {
       title: 'What do you want Karwan to do for you?',
       help: 'Pick all that fit. You can change this any time.',
@@ -77,7 +77,7 @@ export const setupCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', SetupCopy> = {
     later: 'Je le ferai plus tard',
     progressLabel: 'Configuration de votre Karwan',
     progress: '{index} sur {total}',
-    welcome: { title: 'Vos portefeuilles d’agent sont prêts', body: 'Je suis votre agent Karwan. Répondez à quelques questions et je configure Karwan comme vous voulez l’utiliser. Environ une minute.', start: 'C’est parti' },
+    welcome: { title: "Configurons Karwan pour vous", body: 'Je suis votre agent Karwan. Répondez à quelques questions et je configure Karwan comme vous voulez l’utiliser. Environ une minute.', start: 'C’est parti' },
     goals: {
       title: 'Que voulez-vous que Karwan fasse pour vous ?',
       help: 'Choisissez tout ce qui vous correspond. Vous pourrez changer à tout moment.',
@@ -115,7 +115,7 @@ export const setupCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', SetupCopy> = {
     later: 'سأفعل هذا لاحقًا',
     progressLabel: 'إعداد Karwan الخاص بك',
     progress: '{index} من {total}',
-    welcome: { title: 'محافظ وكلائك جاهزة', body: 'أنا وكيلك في Karwan. أجب عن بضعة أسئلة سريعة وسأعدّ Karwan بالطريقة التي تريد استخدامه بها. نحو دقيقة واحدة.', start: 'لنبدأ' },
+    welcome: { title: "لنُعِدّ Karwan لك", body: 'أنا وكيلك في Karwan. أجب عن بضعة أسئلة سريعة وسأعدّ Karwan بالطريقة التي تريد استخدامه بها. نحو دقيقة واحدة.', start: 'لنبدأ' },
     goals: {
       title: 'ماذا تريد أن يفعل Karwan لك؟',
       help: 'اختر كل ما يناسبك. يمكنك التغيير في أي وقت.',
@@ -153,7 +153,7 @@ export const setupCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', SetupCopy> = {
     later: 'मैं यह बाद में करूँगा',
     progressLabel: 'आपका Karwan सेट हो रहा है',
     progress: '{total} में से {index}',
-    welcome: { title: 'आपके एजेंट वॉलेट तैयार हैं', body: 'मैं आपका Karwan एजेंट हूँ। कुछ छोटे सवालों के जवाब दें और मैं Karwan को आपके इस्तेमाल के तरीके से सेट कर दूँगा। लगभग एक मिनट।', start: 'शुरू करें' },
+    welcome: { title: "चलिए Karwan आपके लिए सेट करें", body: 'मैं आपका Karwan एजेंट हूँ। कुछ छोटे सवालों के जवाब दें और मैं Karwan को आपके इस्तेमाल के तरीके से सेट कर दूँगा। लगभग एक मिनट।', start: 'शुरू करें' },
     goals: {
       title: 'आप Karwan से क्या करवाना चाहते हैं?',
       help: 'जो भी लागू हो, सब चुनें। आप कभी भी बदल सकते हैं।',
@@ -191,7 +191,7 @@ export const setupCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', SetupCopy> = {
     later: 'Nitafanya hivi baadaye',
     progressLabel: 'Kuweka Karwan yako',
     progress: '{index} kati ya {total}',
-    welcome: { title: 'Mikoba ya mawakala wako iko tayari', body: 'Mimi ni wakala wako wa Karwan. Jibu maswali machache ya haraka nami nitaweka Karwan jinsi unavyotaka kuitumia. Takriban dakika moja.', start: 'Tuanze' },
+    welcome: { title: "Tuweke Karwan tayari kwako", body: 'Mimi ni wakala wako wa Karwan. Jibu maswali machache ya haraka nami nitaweka Karwan jinsi unavyotaka kuitumia. Takriban dakika moja.', start: 'Tuanze' },
     goals: {
       title: 'Unataka Karwan ikufanyie nini?',
       help: 'Chagua yote yanayofaa. Unaweza kubadilisha wakati wowote.',

@@ -7,12 +7,15 @@ import { cashoutOpen } from './cashoutOpen';
 
 export function ProtectionSection({ deal, viewerIsBuyer }: { deal: DirectDeal; viewerIsBuyer: boolean }) {
   const copy = useTranslations().dealWorkspace.protection;
-  const lines = protectionLines(deal.trust, viewerIsBuyer ? 'buyer' : 'seller', copy, deal.requireStake ? deal.requireStakePct : undefined);
+  const finished = !!(deal.settledAt || deal.cancelledAt);
+  const lines = protectionLines(deal.trust, viewerIsBuyer ? 'buyer' : 'seller', copy, deal.requireStake ? deal.requireStakePct : undefined, finished);
+  const cashOut = cashoutOpen(deal, !viewerIsBuyer);
+  if (lines.length === 0 && !cashOut) return null;
   return (
     <section aria-labelledby="deal-protection" className="mt-6 border-t border-[var(--lp-border-light)] pt-5">
       <div className="flex items-center justify-between gap-3">
         <h2 id="deal-protection" className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{copy.title}</h2>
-        {cashoutOpen(deal, !viewerIsBuyer) ? (
+        {cashOut ? (
           <Link
             href={`/cashout/${deal.jobId}`}
             className="inline-flex min-h-11 shrink-0 items-center rounded-full border border-[var(--lp-border-light)] px-4 text-[14px] font-semibold text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"

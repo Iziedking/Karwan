@@ -2,6 +2,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
+import { useTierLabels } from '@/features/reputation/useTierLabels';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 import { useReputation } from '../hooks/useReputation';
@@ -116,6 +117,7 @@ export function ReputationBadge({
   textTemplate?: string;
 }) {
   const rb = useTranslations().reputationBadge;
+  const tierWords = useTierLabels();
   const sr = useTranslations().sealedRecord;
   const { data, sealed, fetchState } = useReputation(address);
   const [open, setOpen] = useState(false);
@@ -209,13 +211,13 @@ export function ReputationBadge({
   if (appearance === 'text') {
     const tierKey = sealed?.tier ?? (data?.tier ?? null);
     if (!tierKey) return null;
-    const word = TIER_STYLES[tierKey].label;
+    const word = tierWords[tierKey];
     return <span className="whitespace-nowrap">{textTemplate ? textTemplate.replace('{tier}', word) : word}</span>;
   }
 
   if (sealed) {
     const style = TIER_STYLES[sealed.tier];
-    const label = `${style.label}. ${reasonLine(sealed.reasons, sr)}`;
+    const label = `${tierWords[sealed.tier]}. ${reasonLine(sealed.reasons, sr)}`;
     return (
       <Link
         href={`/credit-passport/${address}`}
@@ -225,7 +227,7 @@ export function ReputationBadge({
       >
         <span aria-hidden className="w-[3px]" style={{ background: style.color }} />
         <span className={`uppercase tracking-[0.18em] ${cellPad} ${labelSize}`} style={{ color: style.ink ?? style.color }}>
-          {style.label}
+          {tierWords[sealed.tier]}
         </span>
       </Link>
     );
@@ -267,11 +269,12 @@ export function ReputationBadge({
   // Composite score is meaningful from day one (stake + time terms), so show it
   // whenever we have it; legacy bps only made sense with settled deals.
   const showScore = useComposite ? true : data.totalDeals > 0;
-  const accessibleLabel = badgeAccessibleLabel(tier.label, data.totalDeals, rb);
+  const tierWord = useComposite ? tierWords[data.tier!] : tier.label;
+  const accessibleLabel = badgeAccessibleLabel(tierWord, data.totalDeals, rb);
   const dealCount = dealCountLine(data.totalDeals, rb);
   const badgeCells = quiet ? (
     <>
-      <span>{tier.label}</span>
+      <span>{tierWord}</span>
     </>
   ) : (
     <>
@@ -280,7 +283,7 @@ export function ReputationBadge({
         className={`flex items-center ${cellPad} mono uppercase tracking-[0.18em] font-semibold ${labelSize}`}
         style={{ color: tier.ink ?? tier.color }}
       >
-        {tier.label}
+        {tierWord}
       </span>
     </>
   );

@@ -468,8 +468,6 @@ export const sw: Messages = {
       withdrawHelp: "Toa USDC kwenda wallet kwenye mtandao mwingine.",
       send: 'Tuma USDC',
       sendHelp: 'Lipa tagi ya Karwan au anwani ya Arc.',
-      faucetTitle: "Pata USDC za majaribio",
-      faucetBody: "USDC za bure za testnet kwa kila pochi yako.",
     },
   },
   banners: {
@@ -3442,6 +3440,7 @@ export const sw: Messages = {
     privateTermsPreview: 'Thibitisha kuwa ni wewe ili kuona masharti.',
     money: {
       notFunded: "Bado haijalipiwa",
+      cancelled: "Imeghairiwa. Hakuna pesa iliyohamishwa",
       held: "Imeshikiliwa kwenye escrow",
       sending: "Inatumwa",
       paused: "Imesimamishwa",
@@ -3469,7 +3468,7 @@ export const sw: Messages = {
       claimTemplate: '{amount} USDC zinakuja kwako. Muda wa kukagua umekwisha.',
       reviewManually: 'Unakagua uwasilishaji mwenyewe. Muda wako wa kukagua unaanza sasa, na bado unaweza kupinga.',
     },
-    progress: { title: 'Maendeleo', agreed: 'Imekubaliwa', funded: 'Imefadhiliwa', delivered: 'Imewasilishwa', checked: 'Imekaguliwa', released: 'Imetolewa' },
+    progress: { title: 'Maendeleo', agreed: 'Imekubaliwa', funded: 'Imefadhiliwa', delivered: 'Imewasilishwa', checked: 'Imekaguliwa', released: 'Imetolewa', cancelled: 'Imeghairiwa', refunded: 'Imerejeshwa' },
     automatic: {
       autoReleaseTemplate: 'Inatolewa yenyewe tarehe {date} isipokuwa mnunuzi apinge.',
       deadlineReclaimTemplate: 'Kama hakuna kilichowasilishwa, mnunuzi anaweza kurudisha pesa kuanzia {date}.',
@@ -4484,7 +4483,7 @@ export const sw: Messages = {
   invitePage: {
     eyebrow: 'Mwaliko',
     loading: { headline: 'Inapakia' },
-    unavailable: { headline: 'Haipatikani', fallback: 'Mwaliko huu hauwezi tena kutumika.' },
+    unavailable: { headline: "Kiungo hiki cha mwaliko hakifanyi kazi", fallback: "Huenda muda wake umeisha au kimeshatumika. Muombe aliyekituma kiungo kipya.", loadFailed: "Hatukuweza kupakia mwaliko huu. Angalia muunganisho wako ujaribu tena.", retry: "Jaribu tena", home: "Nenda Karwan" },
     hero: {
       headlineBefore: 'Mkataba ',
       headlineAccent: 'unakusubiri',

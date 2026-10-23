@@ -112,10 +112,10 @@ test('documentation returns to a useful internal destination', () => {
   assert.equal(getProductBackHref('/how-it-works', true), '/app');
 });
 
-test('sidebar destinations are siblings, so a signed-in person sees no Back on them, only on the pages under them', () => {
-  // Profile is a tab in the phone's bottom bar, beside the others.
-  for (const root of ['/app', '/p2p', '/b2b', '/market', '/partners', '/financier', '/activity', '/profile']) {
-    assert.equal(getProductBackHref(root, true), null, root);
+test('every signed-in page but Home has a Back (owner, 23 Oct)', () => {
+  assert.equal(getProductBackHref('/app', true), null);
+  for (const root of ['/market', '/financier', '/activity', '/profile', '/messages/ada']) {
+    assert.notEqual(getProductBackHref(root, true), null, root);
   }
   assert.equal(getProductBackHref('/profile/wallets', true), '/profile');
   assert.equal(getProductBackHref('/market', false), '/');

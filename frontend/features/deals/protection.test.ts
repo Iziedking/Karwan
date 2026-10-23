@@ -43,3 +43,11 @@ test('a price well below similar deals says below, not just far', () => {
   assert.ok(lines.includes('Price is well below similar deals'));
   assert.ok(!lines.includes('Price is well above similar deals'));
 });
+
+test('a finished deal drops the money held and the price check', () => {
+  const view = { verify: {}, stakeRequired: true, delivery: 'plain' as const, reasons: ['off_market_price' as const] };
+  const lines = protectionLines(view, 'buyer', copy, 50, true);
+  assert.ok(!lines.includes(copy.escrow));
+  assert.ok(!lines.includes('Price is well above similar deals'));
+  assert.deepEqual(lines, ['Seller holds 50% stake']);
+});

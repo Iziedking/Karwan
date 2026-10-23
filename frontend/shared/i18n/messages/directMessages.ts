@@ -11,6 +11,8 @@ export interface DirectMessagesCopy {
   sendFailed: string;
   warning: string;
   note: string;
+  /// Opens the deal form with this person already filled in.
+  startDeal: string;
   notFound: string;
   unavailable: string;
   retry: string;
@@ -31,6 +33,7 @@ export const directMessagesCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Direct
     sendFailed: 'Not sent. Try again.',
     warning: 'Keep payment in Karwan escrow. Never pay outside it.',
     note: 'When you agree, start a protected deal. Money never moves from a message.',
+    startDeal: 'Start a protected deal',
     notFound: 'No one on Karwan has that tag.',
     unavailable: 'Messages are not available right now.',
     retry: 'Try again',
@@ -48,6 +51,7 @@ export const directMessagesCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Direct
     sendFailed: 'Non envoyé. Réessayez.',
     warning: 'Gardez le paiement dans l’escrow Karwan. Ne payez jamais en dehors.',
     note: 'Une fois d’accord, lancez un accord protégé. L’argent ne bouge jamais depuis un message.',
+    startDeal: 'Lancer un accord protégé',
     notFound: 'Personne sur Karwan n’a ce tag.',
     unavailable: 'Les messages ne sont pas disponibles pour le moment.',
     retry: 'Réessayer',
@@ -65,6 +69,7 @@ export const directMessagesCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Direct
     sendFailed: 'لم تُرسل. حاول مرة أخرى.',
     warning: 'أبقِ الدفع داخل ضمان Karwan. لا تدفع خارجه أبدًا.',
     note: 'عندما تتفقان، ابدأ صفقة محمية. لا تنتقل الأموال من رسالة أبدًا.',
+    startDeal: 'ابدأ صفقة محمية',
     notFound: 'لا يوجد أحد على Karwan بهذا الوسم.',
     unavailable: 'الرسائل غير متاحة الآن.',
     retry: 'حاول مرة أخرى',
@@ -82,6 +87,7 @@ export const directMessagesCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Direct
     sendFailed: 'नहीं भेजा गया। फिर से कोशिश करें।',
     warning: 'भुगतान Karwan एस्क्रो में ही रखें। इसके बाहर कभी भुगतान न करें।',
     note: 'सहमति होने पर सुरक्षित डील शुरू करें। पैसा कभी संदेश से नहीं जाता।',
+    startDeal: 'सुरक्षित डील शुरू करें',
     notFound: 'Karwan पर इस टैग वाला कोई नहीं है।',
     unavailable: 'संदेश अभी उपलब्ध नहीं हैं।',
     retry: 'फिर से कोशिश करें',
@@ -99,6 +105,7 @@ export const directMessagesCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Direct
     sendFailed: 'Haukutumwa. Jaribu tena.',
     warning: 'Weka malipo ndani ya escrow ya Karwan. Usilipe nje yake kamwe.',
     note: 'Mkikubaliana, anzisha mpango uliolindwa. Pesa haihami kamwe kutoka kwa ujumbe.',
+    startDeal: 'Anzisha mpango uliolindwa',
     notFound: 'Hakuna mtu kwenye Karwan mwenye lebo hiyo.',
     unavailable: 'Ujumbe haupatikani kwa sasa.',
     retry: 'Jaribu tena',

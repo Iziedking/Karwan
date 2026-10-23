@@ -1,14 +1,16 @@
 'use client';
+import { useTierLabels } from '@/features/reputation/useTierLabels';
 import Link from 'next/link';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useReputation } from '../hooks/useReputation';
 import { reasonLabels } from '../sealed';
-import { TIER_LABEL, tierBg, tierInk } from '../tierColors';
+import { tierBg, tierInk } from '../tierColors';
 import { CreditPassport } from './CreditPassport';
 import { AttestedDeals } from './AttestedDeals';
 import { BackButton } from '@/shared/components/BackButton';
 
 export function PublicPassport({ address }: { address: string }) {
+  const TIER_LABEL = useTierLabels();
   const t = useTranslations();
   const sr = t.sealedRecord;
   const { locale } = useLocale();

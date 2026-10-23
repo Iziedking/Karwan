@@ -13,3 +13,8 @@ test('the public numbers page never asks a visitor to sign in, at its docs home 
 test('the personal activity page stays behind sign-in', () => {
   assert.equal(isPublicAccessRoute('/activity'), false);
 });
+
+test('every page but Home has a Back, the sidebar sections included', () => {
+  assert.equal(getProductBackHref('/app'), null);
+  for (const page of ['/activity', '/market', '/financier', '/profile']) assert.equal(getProductBackHref(page), '/app', page);
+});

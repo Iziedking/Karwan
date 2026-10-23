@@ -1,23 +1,38 @@
 'use client';
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { api, ApiError } from '@/core/api';
+import { PersonAvatar } from '@/shared/components/PersonAvatar';
+import { ProductBackLink } from '@/shared/components/ProductBackLink';
+import { useAuth } from '@/shared/hooks/useAuth';
+import { useTierLabels } from '@/features/reputation/useTierLabels';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { refusalText } from './refusal';
 
 type Conversation = Awaited<ReturnType<typeof api.directMessages>>;
-type TierKey = keyof ReturnType<typeof useLocale>['t']['shortlist']['tiers'];
 
 /// One conversation with someone by their Karwan tag, before any deal. The
 /// other person shows as tag, country and tier; never a city or an address.
 export function ConversationView({ tag }: { tag: string }) {
   const { locale, t: all } = useLocale();
+  const tierNames = useTierLabels();
   const t = all.directMessages;
   const [data, setData] = useState<Conversation | null>(null);
   const [failure, setFailure] = useState<'missing' | 'error' | null>(null);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  const pathname = usePathname();
+  const { isAuthenticated } = useAuth();
+  // Who the tag belongs to, for the name and photo: the same lookup Send uses.
+  const person = useQuery({
+    queryKey: ['karwan-tag', tag.toLowerCase()],
+    queryFn: () => api.resolveKarwanTag(tag),
+    staleTime: 60_000,
+  });
 
   const load = useCallback(() => {
     api
@@ -68,13 +83,22 @@ export function ConversationView({ tag }: { tag: string }) {
   if (!data) return <main className="mx-auto w-full max-w-[720px] px-4 py-12" aria-busy="true" />;
 
   const country = data.with.country ? regionName(locale, data.with.country) : null;
-  const tier = all.shortlist.tiers[data.with.tier.toUpperCase() as TierKey] ?? data.with.tier;
+  const found = person.data?.found ? person.data : null;
+  const tier = tierNames[data.with.tier.toUpperCase() as keyof typeof tierNames] ?? data.with.tier;
   const time = (iso: string) => new Date(iso).toLocaleString(locale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
   return (
-    <main className="mx-auto w-full max-w-[720px] px-4 py-12 sm:py-16">
-      <h1 className="text-[28px] font-semibold leading-tight text-[var(--lp-ink)]">{data.with.tag}</h1>
-      <p className="mt-1 text-[15px] text-[var(--lp-text-sub)]">{[country, tier].filter(Boolean).join(' · ')}</p>
+    <main className="mx-auto w-full max-w-[720px] px-4 py-6 sm:py-10">
+      <div data-own-back className="-ms-2 mb-4 empty:hidden">
+        <ProductBackLink pathname={pathname} isAuthenticated={isAuthenticated} />
+      </div>
+      <div className="flex items-center gap-4">
+        <PersonAvatar address={found?.address} name={found?.displayName || data.with.tag} size={56} />
+        <div className="min-w-0">
+          <h1 className="truncate text-[24px] font-semibold leading-tight text-[var(--lp-ink)]">{found?.displayName || data.with.tag}</h1>
+          <p className="mt-1 text-[15px] text-[var(--lp-text-sub)]">{[found?.displayName ? data.with.tag : null, country, tier].filter(Boolean).join(' · ')}</p>
+        </div>
+      </div>
 
       <ol className="mt-8 border-t border-[var(--lp-line)]">
         {data.messages.length === 0 ? <li className="py-4 text-[15px] text-[var(--lp-text-sub)]">{t.empty}</li> : null}
@@ -111,6 +135,13 @@ export function ConversationView({ tag }: { tag: string }) {
         ) : null}
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <p className="text-[14px] text-[var(--lp-text-sub)]">{t.note}</p>
+          <div className="flex flex-wrap gap-3">
+          <Link
+            href={`/buyer?mode=direct&seller=${encodeURIComponent(data.with.tag)}`}
+            className="inline-flex min-h-12 items-center rounded-[10px] border border-[var(--lp-line)] px-5 text-[15px] font-semibold text-[var(--lp-ink)] hover:bg-[var(--lp-light)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)]"
+          >
+            {t.startDeal}
+          </Link>
           <button
             type="submit"
             disabled={sending || !draft.trim()}
@@ -118,6 +149,7 @@ export function ConversationView({ tag }: { tag: string }) {
           >
             {sending ? t.sending : t.send}
           </button>
+          </div>
         </div>
       </form>
     </main>

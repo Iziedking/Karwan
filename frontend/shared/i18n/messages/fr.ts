@@ -471,8 +471,6 @@ export const fr: Messages = {
       withdrawHelp: "Retirez des USDC vers un portefeuille sur un autre réseau.",
       send: 'Envoyer des USDC',
       sendHelp: 'Payez un tag Karwan ou une adresse Arc.',
-      faucetTitle: "Obtenir des USDC de test",
-      faucetBody: "Des USDC de testnet gratuits pour chacun de vos portefeuilles.",
     },
   },
   banners: {
@@ -3445,6 +3443,7 @@ export const fr: Messages = {
     privateTermsPreview: 'Confirmez votre identité pour voir les conditions.',
     money: {
       notFunded: "Pas encore financé",
+      cancelled: "Annulée. Aucun argent n'a bougé",
       held: "En séquestre",
       sending: "Envoi en cours",
       paused: "En pause",
@@ -3472,7 +3471,7 @@ export const fr: Messages = {
       claimTemplate: '{amount} USDC vous reviennent. Le délai d\'examen est terminé.',
       reviewManually: 'Vous examinez la livraison vous-même. Votre délai d\'examen commence maintenant, et vous pouvez toujours contester.',
     },
-    progress: { title: 'Avancement', agreed: 'Convenu', funded: 'Financé', delivered: 'Livré', checked: 'Vérifié', released: 'Libéré' },
+    progress: { title: 'Avancement', agreed: 'Convenu', funded: 'Financé', delivered: 'Livré', checked: 'Vérifié', released: 'Libéré', cancelled: 'Annulée', refunded: 'Remboursée' },
     automatic: {
       autoReleaseTemplate: 'Libération automatique le {date} sauf contestation de l\'acheteur.',
       deadlineReclaimTemplate: 'Sans livraison, l\'acheteur peut reprendre les fonds à partir du {date}.',
@@ -4487,7 +4486,7 @@ export const fr: Messages = {
   invitePage: {
     eyebrow: 'Invitation',
     loading: { headline: 'Chargement' },
-    unavailable: { headline: 'Indisponible', fallback: "Cette invitation n'est plus valide." },
+    unavailable: { headline: "Ce lien d'invitation ne fonctionne pas", fallback: "Il a peut-être expiré ou déjà été utilisé. Demandez un nouveau lien à la personne qui l'a envoyé.", loadFailed: "Impossible de charger cette invitation. Vérifiez votre connexion et réessayez.", retry: "Réessayer", home: "Aller sur Karwan" },
     hero: {
       headlineBefore: 'Un deal vous ',
       headlineAccent: 'attend',

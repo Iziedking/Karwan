@@ -30,8 +30,12 @@ test('every page has its own tab title, or sets one on the server', () => {
   assert.deepEqual(untitled, []);
 });
 
+test('the finance desk is titled in the reader’s language', () => {
+  assert.equal(routeTitleKey('/financier'), 'finance');
+});
+
 test('a page with server metadata is left to its own title', () => {
-  for (const path of ['/r/sample', '/credit-passport/sample', '/feedback', '/financier']) {
+  for (const path of ['/r/sample', '/credit-passport/sample', '/feedback']) {
     assert.equal(routeTitleKey(path), 'server', path);
     const page = readFileSync(join(APP, path.replace('sample', path.startsWith('/r/') ? '[tag]' : '[address]'), 'page.tsx'), 'utf8');
     assert.match(page, /metadata|generateMetadata/, `${path} sets its title on the server`);

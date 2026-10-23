@@ -1,11 +1,12 @@
 'use client';
+import { useTierLabels } from '@/features/reputation/useTierLabels';
 import type { TrustCardView } from '@/core/api';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { reasonLine } from '@/features/reputation/sealed';
-import { TIER_LABEL } from '@/features/reputation/tierColors';
 import { fill, formatUsdcAmount, trustFactParts } from './presentation';
 
 export function TrustCard({ card, onOpenPassport, bare = false }: { card: TrustCardView; onOpenPassport: () => void; bare?: boolean }) {
+  const TIER_LABEL = useTierLabels();
   const copy = useTranslations().dealWorkspace;
   const sr = useTranslations().sealedRecord;
   const { locale } = useLocale();

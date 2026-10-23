@@ -471,8 +471,6 @@ export const ar: Messages = {
       withdrawHelp: "اسحب USDC إلى محفظة على شبكة أخرى.",
       send: 'إرسال USDC',
       sendHelp: 'ادفع إلى وسم Karwan أو عنوان على Arc.',
-      faucetTitle: "احصل على USDC تجريبية",
-      faucetBody: "USDC مجانية على الشبكة التجريبية لكل محفظة لديك.",
     },
   },
   banners: {
@@ -3445,6 +3443,7 @@ export const ar: Messages = {
     privateTermsPreview: 'أكّد هويتك لرؤية الشروط.',
     money: {
       notFunded: "لم يُموَّل بعد",
+      cancelled: "أُلغيت. لم يتحرك أي مال",
       held: "محفوظ في الضمان",
       sending: "جارٍ الإرسال",
       paused: "متوقف مؤقتًا",
@@ -3472,7 +3471,7 @@ export const ar: Messages = {
       claimTemplate: 'يصلك {amount} USDC. انتهت مدة المراجعة.',
       reviewManually: 'تراجع التسليم بنفسك. يبدأ وقت المراجعة الآن، ويمكنك الاعتراض لاحقاً.',
     },
-    progress: { title: 'التقدم', agreed: 'متفق عليها', funded: 'مموّلة', delivered: 'مُسلَّمة', checked: 'مُراجَعة', released: 'مصروفة' },
+    progress: { title: 'التقدم', agreed: 'متفق عليها', funded: 'مموّلة', delivered: 'مُسلَّمة', checked: 'مُراجَعة', released: 'مصروفة', cancelled: 'أُلغيت', refunded: 'أُعيد المال' },
     automatic: {
       autoReleaseTemplate: 'تُصرف تلقائياً في {date} ما لم يعترض المشتري.',
       deadlineReclaimTemplate: 'إن لم يُسلَّم شيء، يمكن للمشتري استرداد المال اعتباراً من {date}.',
@@ -4487,7 +4486,7 @@ export const ar: Messages = {
   invitePage: {
     eyebrow: 'دعوة',
     loading: { headline: 'جارٍ التحميل' },
-    unavailable: { headline: 'غير متاحة', fallback: 'لم تعد هذه الدعوة صالحة.' },
+    unavailable: { headline: "رابط الدعوة هذا لا يعمل", fallback: "ربما انتهت صلاحيته أو استُخدم من قبل. اطلب رابطًا جديدًا من الشخص الذي أرسله.", loadFailed: "تعذّر تحميل هذه الدعوة. تحقّق من اتصالك وحاول مرة أخرى.", retry: "حاول مرة أخرى", home: "اذهب إلى Karwan" },
     hero: {
       headlineBefore: 'هناك صفقة ',
       headlineAccent: 'بانتظارك',

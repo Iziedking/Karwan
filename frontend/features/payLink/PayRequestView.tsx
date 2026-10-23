@@ -1,6 +1,7 @@
 'use client';
+import { useTierLabels } from '@/features/reputation/useTierLabels';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { erc20Abi } from 'viem';
 import { useAccount, useChainId, useReadContract, useReadContracts, useSwitchChain } from 'wagmi';
@@ -19,7 +20,6 @@ import { routeSpeed, stepForPhase, walletSources } from '@/features/bridge/route
 import { TransferProgress } from '@/features/bridge/components/TransferProgress';
 import { requestViewState } from '@/features/deposit/requestViewState';
 import { isSealedReputation } from '@/features/reputation/sealed';
-import { TIER_LABEL } from '@/features/reputation/tierColors';
 import { ShareLink } from './ShareLink';
 import { FundToPay } from './FundToPay';
 import { AnyChainPay } from './AnyChainPay';
@@ -30,7 +30,7 @@ import { ReceiptCard } from '@/features/receipt/ReceiptCard';
 import { downloadReceiptImage } from '@/features/activity/receiptPresentation';
 import { ARC_NETWORK } from '@/core/arcNetwork';
 import { LoginModal } from '@/shared/components/LoginModal';
-import { BackButton } from '@/shared/components/BackButton';
+import { ProductBackLink } from '@/shared/components/ProductBackLink';
 
 type Source = 'arc' | CctpChainKey;
 /// How the payer pays: their Karwan balance, a connected wallet, or an address for any chain.
@@ -86,6 +86,7 @@ function useRequester(recipient: string) {
 }
 
 function Requester({ recipient }: { recipient: string }) {
+  const TIER_LABEL = useTierLabels();
   const t = useTranslations();
   const copy = t.payLink.pay;
   const { profile, name, reputation } = useRequester(recipient);
@@ -127,14 +128,29 @@ function Amount({ value }: { value: string | null }) {
 
 function OwnRequest({ request }: { request: DepositRequestPublic }) {
   const copy = useTranslations().payLink.pay;
+  const { locale } = useLocale();
+  const pathname = usePathname();
+  const { isAuthenticated } = useAuth();
   const url = typeof window !== 'undefined' ? window.location.href : '';
+  const paidOn = request.status === 'matched' && request.paidAt
+    ? new Date(request.paidAt).toLocaleString(locale, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    : null;
   return (
     <section className="space-y-6">
-      <BackButton tone="adaptive" showOnPublic fallbackHref="/request" />
+      {/* The same Back as every other page, on the content column. */}
+      <div data-own-back className="-ms-2 empty:hidden">
+        <ProductBackLink pathname={pathname} isAuthenticated={isAuthenticated} fallbackHref="/request" />
+      </div>
       <p className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{copy.tag}</p>
       <Amount value={request.amountUsdc} />
       {request.purpose ? <p className="text-[15px] text-[var(--lp-dark)]">{fill(copy.forTemplate, { purpose: request.purpose })}</p> : null}
       <p className="text-[15px] text-[var(--lp-text-sub)]">{request.status === 'matched' ? copy.paidAlready : request.status === 'expired' ? copy.expired : request.status === 'cancelled' ? copy.cancelled : copy.yours}</p>
+      {paidOn ? (
+        <dl className="flex justify-between gap-3 border-y border-[var(--lp-border-light)] py-3.5 text-[15px] tabular-nums">
+          <dt className="text-[var(--lp-text-sub)]">{copy.receiptDate}</dt>
+          <dd className="font-medium text-[var(--lp-dark)]">{paidOn}</dd>
+        </dl>
+      ) : null}
       {request.status === 'open' ? <ShareLink url={url} /> : null}
     </section>
   );

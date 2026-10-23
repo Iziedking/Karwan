@@ -264,7 +264,8 @@ export function MyMoneyLedger({
                                 {title}
                               </span>
                               <span className="mt-0.5 block line-clamp-2 break-words text-[14px] text-[var(--ink-secondary)] font-medium tabular-nums">
-                                {timeLabel(item.ts)}
+                                {/* Each part isolated, so in right to left the dots fall between them. */}
+                                <bdi>{timeLabel(item.ts)}</bdi>
                                 {context ? (
                                   <>
                                     {' · '}
@@ -279,9 +280,16 @@ export function MyMoneyLedger({
                                     </span>
                                   </>
                                 )}
-                                {repeat > 1 && ` · ${amount
-                                  ? t.repeatedEach.replace('{n}', String(repeat)).replace('{amount}', amount.replace(/^[+\-−]\s?/, ''))
-                                  : t.repeated.replace('{n}', String(repeat))}`}
+                                {repeat > 1 ? (
+                                  <>
+                                    {' · '}
+                                    <bdi>
+                                      {amount
+                                        ? t.repeatedEach.replace('{n}', String(repeat)).replace('{amount}', amount.replace(/^[+\-−]\s?/, ''))
+                                        : t.repeated.replace('{n}', String(repeat))}
+                                    </bdi>
+                                  </>
+                                ) : null}
                               </span>
                             </span>
                             {amount ? (

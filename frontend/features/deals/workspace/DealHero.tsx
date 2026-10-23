@@ -32,10 +32,11 @@ const LINE_TONE: Record<DealView['money']['line'], string> = {
   released: 'var(--color-positive)',
   refunding: 'var(--lp-text-sub)',
   refunded: 'var(--lp-text-sub)',
+  cancelled: 'var(--lp-text-sub)',
 };
 const LINE_KEY = {
   'not-funded': 'notFunded', held: 'held', sending: 'sending', paused: 'paused',
-  released: 'released', refunding: 'refunding', refunded: 'refunded',
+  released: 'released', refunding: 'refunding', refunded: 'refunded', cancelled: 'cancelled',
 } as const;
 
 const isLink = (text: string) => /^https?:\/\/\S+$/i.test(text.trim());
@@ -263,8 +264,10 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
           <button type="button" onClick={() => setEditing(true)} className="inline-flex min-h-14 w-full items-center justify-center rounded-full bg-[var(--action)] px-6 text-[16px] font-semibold text-[var(--on-action)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-offset-2">
             {declineCopy.editTermsCta}
           </button>
-        ) : view.next.actor !== 'you' ? (
-          <p className="flex min-h-14 w-full items-center justify-center rounded-full bg-[var(--tint)] px-6 text-[15px] font-medium text-[var(--lp-text-sub)]">
+        ) : view.next.actor !== 'you' && view.stage !== 'settled' && view.stage !== 'cancelled' ? (
+          // Whose move it is, as a plain line: a filled pill read as a button
+          // nobody could press. A finished deal needs no line at all.
+          <p className="flex min-h-11 w-full items-center justify-center text-[15px] font-medium text-[var(--lp-text-sub)]">
             {check === 'checking' ? live.checking : actorLabel(view.next, displayName, copy)}
           </p>
         ) : null}

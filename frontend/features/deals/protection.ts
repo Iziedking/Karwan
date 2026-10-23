@@ -15,13 +15,15 @@ export interface ProtectionCopy {
 
 /// The lines under "Protection on this deal", in the order a person reads
 /// them: the money, who proves they are a person and why, then the checks.
+/// A finished deal holds no money and needs no price check, so those go.
 export function protectionLines(
   view: TrustView | undefined,
   viewer: 'buyer' | 'seller',
   copy: ProtectionCopy,
   stakePct?: number,
+  finished = false,
 ): string[] {
-  const lines = [copy.escrow];
+  const lines = finished ? [] : [copy.escrow];
   for (const role of ['buyer', 'seller'] as const) {
     const reason = view?.verify[role];
     if (!reason) continue;
@@ -30,7 +32,7 @@ export function protectionLines(
   }
   if (stakePct) lines.push(copy.stake.replace('{pct}', String(stakePct)));
   if (view?.delivery === 'github') lines.push(copy.github);
-  if (view?.reasons.includes('off_market_price')) lines.push(copy.offMarket);
-  if (view?.reasons.includes('below_market_price')) lines.push(copy.belowMarket);
+  if (!finished && view?.reasons.includes('off_market_price')) lines.push(copy.offMarket);
+  if (!finished && view?.reasons.includes('below_market_price')) lines.push(copy.belowMarket);
   return lines;
 }

@@ -24,6 +24,7 @@ export type RouteTitleKey =
   | 'docsNumbers'
   | 'docsReputation'
   | 'docsRoadmap'
+  | 'finance'
   | 'financingOffer'
   | 'poFinancing'
   | 'howItWorks'
@@ -88,6 +89,7 @@ const en: RouteTitleCopy = {
   docsNumbers: 'Numbers',
   docsReputation: 'Reputation',
   docsRoadmap: 'Roadmap',
+  finance: 'Finance',
   financingOffer: 'Financing offer',
   poFinancing: 'Purchase order financing',
   howItWorks: 'How it works',
@@ -152,6 +154,7 @@ const ar: RouteTitleCopy = {
   docsNumbers: 'الأرقام',
   docsReputation: 'السمعة',
   docsRoadmap: 'خارطة الطريق',
+  finance: 'التمويل',
   financingOffer: 'عرض تمويل',
   poFinancing: 'تمويل أمر شراء',
   howItWorks: 'كيف يعمل',
@@ -216,6 +219,7 @@ const fr: RouteTitleCopy = {
   docsNumbers: 'Chiffres',
   docsReputation: 'Réputation',
   docsRoadmap: 'Feuille de route',
+  finance: 'Financement',
   financingOffer: 'Offre de financement',
   poFinancing: 'Financement de bon de commande',
   howItWorks: 'Comment ça marche',
@@ -280,6 +284,7 @@ const hi: RouteTitleCopy = {
   docsNumbers: 'आँकड़े',
   docsReputation: 'प्रतिष्ठा',
   docsRoadmap: 'रोडमैप',
+  finance: 'वित्त',
   financingOffer: 'फ़ाइनेंसिंग ऑफ़र',
   poFinancing: 'खरीद आदेश फ़ाइनेंसिंग',
   howItWorks: 'यह कैसे काम करता है',
@@ -344,6 +349,7 @@ const sw: RouteTitleCopy = {
   docsNumbers: 'Takwimu',
   docsReputation: 'Sifa',
   docsRoadmap: 'Ramani ya njia',
+  finance: 'Ufadhili',
   financingOffer: 'Ofa ya ufadhili',
   poFinancing: 'Ufadhili wa agizo la ununuzi',
   howItWorks: 'Jinsi inavyofanya kazi',

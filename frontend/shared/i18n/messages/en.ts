@@ -424,8 +424,6 @@ interface MessagesShape {
       withdrawHelp: string;
       send: string;
       sendHelp: string;
-      faucetTitle: string;
-      faucetBody: string;
     };
   };
   banners: {
@@ -3183,7 +3181,7 @@ interface MessagesShape {
     cancelDeal: { cta: string; title: string; consequence: string };
     privateDeal: string;
     privateTermsPreview: string;
-    money: { notFunded: string; held: string; sending: string; paused: string; released: string; refunding: string; refunded: string };
+    money: { notFunded: string; held: string; sending: string; paused: string; released: string; refunding: string; refunded: string; cancelled: string };
     actor: { you: string; waitingTemplate: string; nobody: string };
     counterparty: { seller: string; buyer: string };
     actions: {
@@ -3191,7 +3189,7 @@ interface MessagesShape {
       reviewManually: string; respondExtension: string; respondCancel: string; dispute: string;
     };
     consequence: { accept: string; fundTemplate: string; releaseTemplate: string; claimTemplate: string; reviewManually: string };
-    progress: { title: string; agreed: string; funded: string; delivered: string; checked: string; released: string };
+    progress: { title: string; agreed: string; funded: string; delivered: string; checked: string; released: string; cancelled: string; refunded: string };
     automatic: { autoReleaseTemplate: string; deadlineReclaimTemplate: string; acceptanceExpiryTemplate: string };
     trust: {
       title: string; asSeller: string; asBuyer: string; verifiedBusiness: string; verifiedPerson: string;
@@ -4176,7 +4174,7 @@ interface MessagesShape {
   invitePage: {
     eyebrow: string;
     loading: { headline: string };
-    unavailable: { headline: string; fallback: string };
+    unavailable: { headline: string; fallback: string; loadFailed: string; retry: string; home: string };
     hero: {
       headlineBefore: string;
       headlineAccent: string;
@@ -5883,8 +5881,6 @@ export const en: MessagesShape = {
       withdrawHelp: "Withdraw USDC to a wallet on another network.",
       send: 'Send USDC',
       sendHelp: 'Pay a Karwan tag or an Arc address.',
-      faucetTitle: "Get test USDC",
-      faucetBody: "Free testnet USDC for each of your wallets.",
     },
   },
   banners: {
@@ -8907,6 +8903,7 @@ export const en: MessagesShape = {
     privateTermsPreview: 'Confirm it is you to see the terms.',
     money: {
       notFunded: "Not funded yet",
+      cancelled: "Cancelled. No money moved",
       held: "Held in escrow",
       sending: "Sending",
       paused: "Paused",
@@ -8934,7 +8931,7 @@ export const en: MessagesShape = {
       claimTemplate: '{amount} USDC comes to you. The review window has ended.',
       reviewManually: 'You review the delivery yourself. Your review time starts now, and you can still dispute.',
     },
-    progress: { title: 'Progress', agreed: 'Agreed', funded: 'Funded', delivered: 'Delivered', checked: 'Checked', released: 'Released' },
+    progress: { title: 'Progress', agreed: 'Agreed', funded: 'Funded', delivered: 'Delivered', checked: 'Checked', released: 'Released', cancelled: 'Cancelled', refunded: 'Refunded' },
     automatic: {
       autoReleaseTemplate: 'Releases automatically on {date} unless the buyer disputes.',
       deadlineReclaimTemplate: 'If nothing is delivered, the buyer can take the money back from {date}.',
@@ -9994,7 +9991,7 @@ export const en: MessagesShape = {
   invitePage: {
     eyebrow: 'Invite',
     loading: { headline: 'Loading' },
-    unavailable: { headline: 'Not available', fallback: 'This invite is no longer valid.' },
+    unavailable: { headline: "This invite link doesn't work", fallback: "It may have expired or already been used. Ask the person who sent it for a new link.", loadFailed: "We couldn't load this invite. Check your connection and try again.", retry: "Try again", home: "Go to Karwan" },
     hero: {
       headlineBefore: 'A deal is ',
       headlineAccent: 'waiting',

@@ -41,7 +41,9 @@ export default function InvitePage() {
 
   const [data, setData] = useState<InviteResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  /// Why the invite could not be shown: gone (expired, used, unknown) or the
+  /// read itself failed. The server's own wording never reaches the screen.
+  const [loadError, setLoadError] = useState<'gone' | 'failed' | null>(null);
   const [stage, setStage] = useState<
     'review' | 'send-code' | 'verify-code' | 'ready-to-claim' | 'claiming'
   >('review');
@@ -70,13 +72,7 @@ export default function InvitePage() {
             return;
           }
         }
-        const msg =
-          err instanceof ApiError && err.detail
-            ? typeof err.detail === 'string'
-              ? err.detail
-              : (err.detail as { error?: string }).error ?? err.message
-            : (err as Error).message;
-        setLoadError(msg);
+        setLoadError(err instanceof ApiError && err.status > 0 && err.status < 500 ? 'gone' : 'failed');
       })
       .finally(() => {
         if (alive) setLoading(false);
@@ -193,13 +189,20 @@ export default function InvitePage() {
     return (
       <FullBleed>
         <Band tone="dark" overlay={<GridOverlay />}>
-          <SectionTag tone="dark">{ip.eyebrow}</SectionTag>
-          <HeroHeadline size="md">
-            {ip.unavailable.headline}<Punc>.</Punc>
-          </HeroHeadline>
-          <p className="mt-6 text-[15px] text-[var(--lp-text-muted)] leading-relaxed max-w-[58ch]">
-            {loadError ?? ip.unavailable.fallback}
+          <h1 className="max-w-[24ch] text-[28px] font-semibold leading-tight tracking-[-0.02em] sm:text-[32px]">{ip.unavailable.headline}</h1>
+          <p className="mt-4 max-w-[52ch] text-[16px] leading-relaxed text-[var(--lp-text-muted)]">
+            {loadError === 'failed' ? ip.unavailable.loadFailed : ip.unavailable.fallback}
           </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            {loadError === 'failed' ? (
+              <button type="button" onClick={() => loadInvite()} className="inline-flex min-h-12 items-center rounded-full bg-[var(--lp-accent)] px-6 text-[15px] font-semibold text-[var(--accent-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+                {ip.unavailable.retry}
+              </button>
+            ) : null}
+            <a href={auth.isAuthenticated ? '/app' : '/'} className={cn('inline-flex min-h-12 items-center rounded-full px-6 text-[15px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]', loadError === 'failed' ? 'border border-[var(--lp-border-light)]' : 'bg-[var(--lp-accent)] text-[var(--accent-ink)]')}>
+              {ip.unavailable.home}
+            </a>
+          </div>
         </Band>
       </FullBleed>
     );

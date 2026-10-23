@@ -7,7 +7,6 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/core/api';
 import { ProductBackLink } from '@/shared/components/ProductBackLink';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { ARC_NETWORK } from '@/core/arcNetwork';
 import { BalancesCard, type BalanceView } from '@/features/balances/components/BalancesCard';
 import { WalletPanel } from './WalletPanel';
 import { AuthGuard } from '@/shared/components/AuthGuard';
@@ -48,17 +47,6 @@ function AccountPageInner() {
 
         <aside className="flex min-w-0 flex-col gap-4" aria-label={t.actionsAria}>
           <WalletPanel tab={view} />
-          {view === 'you' && ARC_NETWORK === 'testnet' ? (
-            <Link
-              href="/profile/wallets"
-              className="flex min-h-11 items-center justify-between gap-3 rounded-[16px] border border-dashed border-[var(--lp-border-light)] px-4 py-3 transition-colors hover:border-[var(--lp-outline-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
-            >
-              <span className="min-w-0">
-                <span className="block text-[15px] font-semibold text-[var(--lp-dark)]">{t.faucetTitle}</span>
-                <span className="mt-0.5 block text-[14px] text-[var(--lp-text-sub)] font-medium">{t.faucetBody}</span>
-              </span>
-            </Link>
-          ) : null}
           <RecoveryRow />
         </aside>
       </section>

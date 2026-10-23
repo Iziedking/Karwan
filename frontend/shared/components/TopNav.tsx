@@ -371,7 +371,8 @@ function RailLink({
 }
 
 /// Theme in the rail: the same cycle as the top bar's button, named, with
-/// the current choice beside it.
+/// the icon showing the current choice. The name of the choice is read out,
+/// not printed, so the row stays one plain word.
 function RailTheme({ collapsed }: { collapsed: boolean }) {
   const theme = useThemeCycle();
   const button = (
@@ -389,7 +390,6 @@ function RailTheme({ collapsed }: { collapsed: boolean }) {
         <ThemeIcon preference={theme.current} />
       </span>
       <span className={cn('min-w-0 flex-1 truncate text-start', collapsed && 'sr-only')}>{theme.title}</span>
-      {collapsed ? null : <span className="shrink-0 text-[14px] text-[var(--color-ink-dim)]">{theme.currentLabel}</span>}
     </button>
   );
   return collapsed ? <Tooltip label={theme.label} side="end" className="w-full">{button}</Tooltip> : button;

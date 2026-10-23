@@ -469,8 +469,6 @@ export const hi: Messages = {
       withdrawHelp: "USDC को किसी दूसरे नेटवर्क के वॉलेट में निकालें.",
       send: 'USDC भेजें',
       sendHelp: 'किसी Karwan टैग या Arc पते पर भुगतान करें।',
-      faucetTitle: "टेस्ट USDC पाएँ",
-      faucetBody: "आपके हर वॉलेट के लिए मुफ़्त टेस्टनेट USDC।",
     },
   },
   banners: {
@@ -3443,6 +3441,7 @@ export const hi: Messages = {
     privateTermsPreview: 'शर्तें देखने के लिए पुष्टि करें कि यह आप हैं।',
     money: {
       notFunded: "अभी फंड नहीं हुआ",
+      cancelled: "रद्द. कोई पैसा नहीं गया",
       held: "एस्क्रो में सुरक्षित",
       sending: "भेजा जा रहा है",
       paused: "रुका हुआ",
@@ -3470,7 +3469,7 @@ export const hi: Messages = {
       claimTemplate: '{amount} USDC आपको मिलता है। समीक्षा अवधि खत्म हो गई है।',
       reviewManually: 'आप डिलीवरी खुद जाँचेंगे। आपका समीक्षा समय अभी शुरू होता है, और आप फिर भी विवाद कर सकते हैं।',
     },
-    progress: { title: 'प्रगति', agreed: 'सहमति', funded: 'फंडेड', delivered: 'डिलीवर', checked: 'जाँचा गया', released: 'जारी' },
+    progress: { title: 'प्रगति', agreed: 'सहमति', funded: 'फंडेड', delivered: 'डिलीवर', checked: 'जाँचा गया', released: 'जारी', cancelled: 'रद्द', refunded: 'रिफ़ंड हुआ' },
     automatic: {
       autoReleaseTemplate: '{date} को अपने आप जारी होगा, जब तक खरीदार विवाद न करे।',
       deadlineReclaimTemplate: 'अगर कुछ डिलीवर नहीं हुआ, तो खरीदार {date} से पैसा वापस ले सकता है।',
@@ -4485,7 +4484,7 @@ export const hi: Messages = {
   invitePage: {
     eyebrow: 'आमंत्रण',
     loading: { headline: 'लोड हो रहा है' },
-    unavailable: { headline: 'उपलब्ध नहीं', fallback: 'यह आमंत्रण अब वैध नहीं है.' },
+    unavailable: { headline: "यह आमंत्रण लिंक काम नहीं कर रहा", fallback: "हो सकता है इसकी अवधि खत्म हो गई हो या इसका इस्तेमाल हो चुका हो. भेजने वाले से नया लिंक माँगें.", loadFailed: "यह आमंत्रण लोड नहीं हो सका. अपना कनेक्शन जाँचें और फिर कोशिश करें.", retry: "फिर कोशिश करें", home: "Karwan पर जाएँ" },
     hero: {
       headlineBefore: 'एक डील ',
       headlineAccent: 'इंतज़ार',

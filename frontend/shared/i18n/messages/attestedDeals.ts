@@ -18,6 +18,10 @@ export interface AttestedDealsCopy {
   disputeLabel: string;
   signedOn: string;
   signedBy: string;
+  /// The person the statement is about, by name and Karwan tag.
+  whoLabel: string;
+  /// The fold holding the signing address and the signed credential.
+  proofLabel: string;
   stands: string;
   withdrawn: string;
   openCredential: string;
@@ -45,6 +49,8 @@ export const attestedDealsCopy: Record<Locale, AttestedDealsCopy> = {
     disputeLabel: "Through a dispute",
     signedOn: "Signed by Karwan",
     signedBy: "Signing address",
+    whoLabel: "Person",
+    proofLabel: "Proof",
     stands: "Karwan still stands behind this statement.",
     withdrawn: "Karwan withdrew this statement on {date}.",
     openCredential: "Open the signed credential",
@@ -74,6 +80,8 @@ export const attestedDealsCopy: Record<Locale, AttestedDealsCopy> = {
     disputeLabel: "Par un litige",
     signedOn: "Signée par Karwan",
     signedBy: "Adresse de signature",
+    whoLabel: "Personne",
+    proofLabel: "Preuve",
     stands: "Karwan maintient cette déclaration.",
     withdrawn: "Karwan a retiré cette déclaration le {date}.",
     openCredential: "Ouvrir l’attestation signée",
@@ -103,6 +111,8 @@ export const attestedDealsCopy: Record<Locale, AttestedDealsCopy> = {
     disputeLabel: "عبر نزاع",
     signedOn: "وقّعتها Karwan",
     signedBy: "عنوان التوقيع",
+    whoLabel: "الشخص",
+    proofLabel: "الإثبات",
     stands: "ما زالت Karwan تؤيد هذا البيان.",
     withdrawn: "سحبت Karwan هذا البيان في {date}.",
     openCredential: "افتح الشهادة الموقعة",
@@ -132,6 +142,8 @@ export const attestedDealsCopy: Record<Locale, AttestedDealsCopy> = {
     disputeLabel: "विवाद के ज़रिए",
     signedOn: "Karwan ने हस्ताक्षर किए",
     signedBy: "हस्ताक्षर पता",
+    whoLabel: "व्यक्ति",
+    proofLabel: "प्रमाण",
     stands: "Karwan अब भी इस कथन के साथ है।",
     withdrawn: "Karwan ने यह कथन {date} को वापस लिया।",
     openCredential: "हस्ताक्षरित प्रमाणपत्र खोलें",
@@ -161,6 +173,8 @@ export const attestedDealsCopy: Record<Locale, AttestedDealsCopy> = {
     disputeLabel: "Kupitia mgogoro",
     signedOn: "Ulisainiwa na Karwan",
     signedBy: "Anwani ya kusaini",
+    whoLabel: "Mtu",
+    proofLabel: "Uthibitisho",
     stands: "Karwan bado inasimamia taarifa hii.",
     withdrawn: "Karwan iliondoa taarifa hii tarehe {date}.",
     openCredential: "Fungua cheti kilichosainiwa",

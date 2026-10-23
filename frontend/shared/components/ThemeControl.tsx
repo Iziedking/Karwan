@@ -22,7 +22,6 @@ export function useThemeCycle(onChange?: (next: ThemePreference) => void) {
   return {
     current,
     title: t.settings.theme,
-    currentLabel,
     label: `${t.settings.theme}: ${currentLabel}`,
     cycle: () => {
       const next = nextPreference[preference];
