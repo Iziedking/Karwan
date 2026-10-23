@@ -34,7 +34,7 @@ contract EndgameDeployTest is Test {
         c.autoArbiter = makeAddr("autoArbiter");
         c.feeBps = 100;
         c.highValue = 5_000e6;
-        c.perDealCap = 1_000e6;
+        c.perDealCap = 1_005e6;
         c.totalCap = 10_000e6;
         c.minReview = 1 hours;
         c.maxReview = 30 days;

@@ -45,7 +45,7 @@ contract ArcDeployRehearsalTest is Test {
         c.autoArbiter = makeAddr("autoArbiter");
         c.feeBps = 100;
         c.highValue = 5_000e6;
-        c.perDealCap = 1_000e6;
+        c.perDealCap = 1_005e6;
         c.totalCap = 10_000e6;
         c.minReview = 1 hours;
         c.maxReview = 30 days;
@@ -90,14 +90,14 @@ contract ArcDeployRehearsalTest is Test {
         assertEq(d.hub.owner(), address(d.timelock));
     }
 
-    /// The per-deal cap counts the buyer's half of the fee, so under a
-    /// 1,000 USDC cap the largest round deal is 990 USDC.
+    /// The per-deal cap counts the buyer's half of the fee, so the 1,005 USDC
+    /// cap is what lets a 1,000 USDC deal open, and nothing larger.
     function test_a_deal_settles_on_arc_usdc_within_the_beta_cap() public {
         vm.prank(buyer);
         vm.expectRevert(SettlementLib.OverCap.selector);
-        d.agreement.fund(bytes32("too-big"), _terms(1_000e6));
+        d.agreement.fund(bytes32("too-big"), _terms(1_001e6));
 
-        AgreementTerms memory t = _terms(990e6);
+        AgreementTerms memory t = _terms(1_000e6);
         vm.prank(buyer);
         bytes32 id = d.agreement.fund(bytes32("rehearsal"), t);
         bytes32 h = d.agreement.termsHashOf(t);
@@ -107,8 +107,8 @@ contract ArcDeployRehearsalTest is Test {
         d.agreement.markDelivered(id, keccak256("delivered"));
         vm.prank(buyer);
         d.agreement.release(id);
-        assertEq(USDC.balanceOf(seller), 985.05e6);
-        assertEq(USDC.balanceOf(c.feeRecipient), 9.9e6);
+        assertEq(USDC.balanceOf(seller), 995e6);
+        assertEq(USDC.balanceOf(c.feeRecipient), 10e6);
         assertEq(USDC.balanceOf(address(d.agreement)), 0);
     }
 
