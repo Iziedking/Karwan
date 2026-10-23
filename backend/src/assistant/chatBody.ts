@@ -13,4 +13,7 @@ export const chatBodySchema = z.object({
     .min(1)
     .max(40),
   mode: z.enum(['help', 'assistant']).optional(),
+  /// The saved conversation this turn belongs to, so a deal sent from it can
+  /// offer its payment there later (view 24).
+  conversationId: z.string().min(1).max(64).optional(),
 });

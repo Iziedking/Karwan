@@ -26,7 +26,7 @@ const STATE_UNAVAILABLE: AssistantTurnResult = {
 };
 
 export async function runAssistantTurn(
-  input: { address: string; method: string; messages: AssistantChatMessage[]; mode?: 'help' | 'assistant' },
+  input: { address: string; method: string; messages: AssistantChatMessage[]; mode?: 'help' | 'assistant'; conversationId?: string },
   fallback: FallbackReply,
 ): Promise<AssistantTurnResult> {
   // Stateful prompts fail closed rather than falling through to an ungrounded
@@ -46,6 +46,7 @@ export async function runAssistantTurn(
         messages: input.messages,
         mode: input.mode,
         memory,
+        conversationId: input.conversationId,
       });
       // Notes are written after the reply goes out, never holding it up.
       const remember = (reply: string) => {

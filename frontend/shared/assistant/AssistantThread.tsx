@@ -362,6 +362,41 @@ async function runConfirmIntent(
       txHash: r.txHash,
     };
   }
+  if (action.intent === 'create_direct_deal') {
+    // The card carries the exact body the deal form sends, validated on the server (view 24).
+    const r = await api.createDirectDeal(action.payload as Parameters<typeof api.createDirectDeal>[0]);
+    return {
+      successText: r.invite
+        ? `Deal sent. ${r.invite.email} gets a link to accept; you pay into escrow after that.`
+        : 'Deal sent. They are asked to accept the terms; you pay into escrow after that.',
+      viewHref: `/deals/${r.deal.jobId}`,
+      viewLabel: 'Open the deal',
+    };
+  }
+  if (action.intent === 'fund_direct_deal') {
+    const p = action.payload as { jobId: string; caller: string; maxFundedAmountUsdc: string };
+    // A fresh quote and the current terms, never more than the card showed.
+    const [{ deal }, { quote }] = await Promise.all([api.directDeal(p.jobId, p.caller), api.directDealFundingQuote(p.jobId, p.caller)]);
+    if (deal.agreementVersion == null || !deal.agreementDigest) throw new Error('The terms could not be confirmed. Open the deal to pay.');
+    if (Number(quote.fundedAmountUsdc) > Number(p.maxFundedAmountUsdc)) {
+      throw new Error(`The total is now ${quote.fundedAmountUsdc} USDC. Ask me for a new payment card.`);
+    }
+    const r = await api.fundDirectDeal(p.jobId, {
+      caller: p.caller,
+      expectedFeeBps: quote.feeBps,
+      maxFundedAmountUsdc: quote.fundedAmountUsdc,
+      quoteFingerprint: quote.quoteFingerprint,
+      expectedAgreementVersion: deal.agreementVersion,
+      expectedAgreementDigest: deal.agreementDigest,
+    });
+    return {
+      state: r.receiptPending ? 'pending' : 'completed',
+      successText: r.receiptPending ? 'Payment sent to escrow. It is being confirmed.' : 'Paid into escrow. The seller can start the work.',
+      viewHref: `/deals/${p.jobId}`,
+      viewLabel: 'Open the deal',
+      ...(r.txHash ? { txHash: r.txHash } : {}),
+    };
+  }
   if (action.intent === 'release_milestone') {
     const p = action.payload as { jobId: string; caller: string };
     const r = await api.releaseDirectDeal(p.jobId, p.caller);

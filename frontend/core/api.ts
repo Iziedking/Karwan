@@ -1860,7 +1860,9 @@ export interface AssistantConfirmAction {
     | 'cancel_deal'
     | 'dispute_statement'
     | 'escalate_dispute'
-    | 'decline_deal';
+    | 'decline_deal'
+    | 'create_direct_deal'
+    | 'fund_direct_deal';
   title: string;
   summary?: string;
   /// Stark line for irreversible/money-moving actions (release). Absent on post_offer.
@@ -5337,13 +5339,6 @@ export const api = {
     ),
   /// Send uses the whole balance (view 22): move the shortfall from the pooled
   /// balance into your own wallet before a send. Same request id, same movement.
-  gatewayToWallet: (amountUsdc: number, requestId: string) =>
-    json<{ ok: true; shortfallUsd: number; movedUsd: number; txHash?: string; reference: string }>(
-      '/api/gateway/to-wallet',
-      { method: 'POST', body: JSON.stringify({ amountUsdc, requestId }) },
-    ),
-  // Cash out from the pooled balance to another chain (cross-chain Gateway spend,
-  // backend-signed). Works for every account type. Session-scoped.
   gatewayCashOut: (
     destChainKey: 'baseSepolia' | 'arbitrumSepolia' | 'optimismSepolia' | 'sepolia' | 'polygonAmoy',
     recipient: string,
@@ -5375,10 +5370,15 @@ export const api = {
 
   // In-app support assistant. Sends the recent turns and gets one reply back.
   /// `mode` says where the person is typing: the Help panel or assistant mode.
-  assistantChat: (messages: Array<{ role: 'user' | 'assistant'; content: string }>, mode?: 'help' | 'assistant') =>
+  assistantChat: (
+    messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+    mode?: 'help' | 'assistant',
+    /// The saved conversation, so a deal sent from it offers its payment there later.
+    conversationId?: string | null,
+  ) =>
     json<{ reply: string; actions?: AssistantAction[] }>('/api/assistant/chat', {
       method: 'POST',
-      body: JSON.stringify({ messages, ...(mode ? { mode } : {}) }),
+      body: JSON.stringify({ messages, ...(mode ? { mode } : {}), ...(conversationId ? { conversationId } : {}) }),
     }),
 
   // Live support handoff. The widget escalates from the AI to a human; the

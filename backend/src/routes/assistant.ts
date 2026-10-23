@@ -300,7 +300,7 @@ assistantRoutes.post(
   // parameter. Only generic help can fall back, and only through a direct
   // provider; account history never reaches a proxy or tool-less model.
   const result = await runAssistantTurn(
-    { address: session.address, method: session.method, messages, mode: body.mode },
+    { address: session.address, method: session.method, messages, mode: body.mode, conversationId: body.conversationId },
     async (fallbackMessages) => {
       let lastTimeout = false;
       for (const p of provs) {

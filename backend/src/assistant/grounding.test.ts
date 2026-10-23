@@ -53,9 +53,9 @@ test('a market search grounds finding sellers and buyers', () => {
 });
 
 test('a checked deal proposal grounds opening a deal with a tag', () => {
-  const ok = result('propose_direct_deal', { ok: true, readyToReview: true });
+  const ok = result('start_protected_deal', { ok: true, readyToReview: true });
   assert.equal(assessGrounding(messages('open a deal with @ada_designs for 150 usdc'), ok).grounded, true);
-  assert.equal(assessGrounding(messages('open a deal with @ada_designs'), result('propose_direct_deal', { error: 'No Karwan account has the tag @ada_designs.' })).grounded, false);
+  assert.equal(assessGrounding(messages('open a deal with @ada_designs'), result('start_protected_deal', { error: 'No Karwan account has the tag @ada_designs.' })).grounded, false);
 });
 
 test('a follow-up that touches no account topic has nothing to ground', () => {

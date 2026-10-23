@@ -53,7 +53,7 @@ export function counterpartyTools(address: string, deps: CounterpartyToolDeps) {
   return {
     list_people_i_traded_with: tool({
       description:
-        "The people the signed-in user finished deals with, most recent first: their name and Karwan tag, what was traded last, the amount, how many deals, and a link to start a new deal with them. Use when the user wants someone they traded with before ('the seller I bought from last month', 'buy again from the same person', 'who did I work with') and does not remember the tag. Answer with these people before searching the market.",
+        "The people the signed-in user finished deals with, most recent first: their name and Karwan tag, what was traded last, the amount, how many deals, and a link to start a new deal with them. Use when the user wants someone they traded with before ('the seller I bought from last month', 'buy again from the same person', 'who did I work with') and does not remember the tag. Answer with these people before searching the market. To deal with one of them again, use start_protected_deal with their tag.",
       inputSchema: z.object({}),
       execute: async () => {
         const people = pastCounterparties(await deps.deals(address), address).slice(0, 20);

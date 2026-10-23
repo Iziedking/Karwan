@@ -67,7 +67,7 @@ export function useAssistantChat(opts: { onNeedsHuman?: (transcript: Turn[]) => 
       setError(null);
       setBusy(true);
       try {
-        const { reply, actions } = await api.assistantChat(next.map((m) => ({ role: m.role, content: m.content })), mode);
+        const { reply, actions } = await api.assistantChat(next.map((m) => ({ role: m.role, content: m.content })), mode, live.current.conversationId);
         // The assistant appends [[HUMAN]] when the person asked for one or it
         // cannot do it. Strip the marker and bring a person in.
         const needsHuman = /\[\[HUMAN\]\]/i.test(reply);

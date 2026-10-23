@@ -1,3 +1,4 @@
+import type { CreateDirectDealBody } from '../deals/createSchema.js';
 import type { DeliveryKind, Where } from '../location/rules.js';
 import type { BriefAnswers } from '../agents/agentBriefLines.js';
 import type { DealStepConfirm } from './dealActions.js';
@@ -319,14 +320,9 @@ export interface Web3FundAgentConfirm extends ConfirmActionBase {
   payload: Web3FundAgentPayload;
 }
 
-/// A protected deal with someone the buyer already knows, from chat.
-export interface CreateDirectDealPayload {
-  buyerAddress: string;
-  sellerAddress: string;
-  dealAmountUsdc: number;
-  terms: string;
-  deadlineDays: number;
-}
+/// A protected deal the assistant built from the person's answers (view 24):
+/// exactly the body POST /api/deals/direct takes, already validated by it.
+export type CreateDirectDealPayload = CreateDirectDealBody;
 export interface CreateDirectDealConfirm extends ConfirmActionBase {
   intent: 'create_direct_deal';
   payload: CreateDirectDealPayload;
@@ -338,6 +334,8 @@ export interface FundDirectDealPayload {
   caller: string;
   seller: string;
   amountUsdc: number;
+  /// The total shown on the card, fee included. A live quote above it is refused.
+  maxFundedAmountUsdc: string;
 }
 export interface FundDirectDealConfirm extends ConfirmActionBase {
   intent: 'fund_direct_deal';

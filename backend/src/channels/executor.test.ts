@@ -133,8 +133,18 @@ test('create_direct_deal opens the deal through the app route with the agreed te
   assert.deepEqual(calls[0], {
     method: 'POST',
     path: '/api/deals/direct',
-    body: { buyerAddress: ME, sellerAddress: '0xada', dealAmountUsdc: 80, terms: 'Logo, two rounds', deadlineDays: 5, firstReleasePct: 100 },
+    body: { buyerAddress: ME, sellerAddress: '0xada', dealAmountUsdc: 80, terms: 'Logo, two rounds', deadlineDays: 5 },
   });
+});
+
+test('fund_direct_deal never pays more than the card showed', async () => {
+  const { execute, calls } = setup((c) => {
+    if (c.path.includes('funding-quote')) return { status: 200, json: { quote: { feeBps: 300, fundedAmountUsdc: '81.2', quoteFingerprint: `0x${'ab'.repeat(32)}` } } };
+    return { status: 200, json: { deal: { agreementVersion: 2, agreementDigest: 'cd'.repeat(32) } } };
+  });
+  const r = await execute({ address: ME }, action('fund_direct_deal', { jobId: '0xd', caller: ME, seller: '0xada', amountUsdc: 80, maxFundedAmountUsdc: '80.4' }, 'd4'));
+  assert.equal(r.ok, false);
+  assert.ok(!calls.some((c) => c.path.endsWith('/fund')));
 });
 
 test('fund_direct_deal funds against a fresh quote and the current agreement', async () => {

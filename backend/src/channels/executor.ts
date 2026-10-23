@@ -18,18 +18,8 @@ type Step = { method: 'GET' | 'POST'; path: string; body?: unknown };
 const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAction) => Step>> = {
   post_offer: (p) => ({ method: 'POST', path: '/api/listings', body: p }),
   save_setup: (p) => ({ method: 'POST', path: '/api/setup/save', body: { answers: p.answers } }),
-  create_direct_deal: (p) => ({
-    method: 'POST',
-    path: '/api/deals/direct',
-    body: {
-      buyerAddress: p.buyerAddress,
-      sellerAddress: p.sellerAddress,
-      dealAmountUsdc: p.dealAmountUsdc,
-      terms: p.terms,
-      deadlineDays: p.deadlineDays,
-      firstReleasePct: 100,
-    },
-  }),
+  // The card carries the exact body the deal form sends, already validated (view 24).
+  create_direct_deal: (p) => ({ method: 'POST', path: '/api/deals/direct', body: p }),
   post_request: (p) => ({
     method: 'POST',
     path: '/api/jobs',
@@ -229,6 +219,10 @@ async function fundDirect(call: Call, address: string, p: P): Promise<{ status: 
   const quote = quoted.json.quote as { feeBps?: number; fundedAmountUsdc?: string; quoteFingerprint?: string } | undefined;
   if (quoted.status !== 200 || quote?.feeBps == null || !quote.fundedAmountUsdc || !quote.quoteFingerprint) {
     return { status: 409, json: { error: typeof quoted.json.error === 'string' ? quoted.json.error : 'The deal is not ready to pay yet.' } };
+  }
+  // Never pay more than the card showed: a higher live total needs a new card.
+  if (p.maxFundedAmountUsdc !== undefined && Number(quote.fundedAmountUsdc) > Number(p.maxFundedAmountUsdc)) {
+    return { status: 409, json: { error: `The total is now ${quote.fundedAmountUsdc} USDC. Ask me for a new payment card.` } };
   }
   return call(address, 'POST', `/api/deals/direct/${p.jobId}/fund`, {
     caller: p.caller,

@@ -1,84 +1,144 @@
 import { tool } from 'ai';
 import { z } from 'zod';
+import { formatUnits, parseUnits } from 'viem';
 import { config } from '../config.js';
-import { getDeal } from '../db/deals.js';
+import { computeFunding, getEscrowFeeBps } from '../chain/contracts.js';
+import { getDeal, type DirectDeal } from '../db/deals.js';
 import { findProfileByHandle, getProfile } from '../db/profiles.js';
-import { isChatAccount } from '../channels/accountsLive.js';
 import { getWhatsappAccount } from '../db/whatsapp.js';
 import { logger } from '../logger.js';
 import { hashNumber } from '../channels/identity.js';
 import { messageNumber } from '../channels/sender.js';
 import { confirmNonce, hasEquivalentConfirm, type AssistantAction, type ConfirmAction } from './actions.js';
+import { conversationReference, dealBody, dealCardFields, type Counterparty } from './dealDraft.js';
 
-/// A protected deal with someone the person already knows, started and paid
-/// from chat. Only chat accounts get these; the app has its own deal form.
-export function directDealTools(address: string, actions: AssistantAction[]) {
+const USDC_DECIMALS = 6;
+
+export type FeeBps = () => Promise<number>;
+
+/// What the buyer pays into escrow for this amount: the deal plus their half of the fee.
+async function buyerPays(amountUsdc: number | string, feeBps: FeeBps): Promise<string> {
+  const { fundedAmount } = computeFunding(parseUnits(String(amountUsdc), USDC_DECIMALS), await feeBps());
+  return formatUnits(fundedAmount, USDC_DECIMALS);
+}
+
+/// The card that pays an accepted deal into escrow. Built in one place for the
+/// assistant's tool, a reopened web conversation and the chat push when the
+/// seller accepts (view 24), so all three show the same total.
+export async function payCardFor(deal: DirectDeal, address: string, feeBps: FeeBps = getEscrowFeeBps): Promise<ConfirmAction | { error: string }> {
+  if (deal.buyer.toLowerCase() !== address.toLowerCase()) return { error: 'No deal of yours with that id.' };
+  if (deal.acceptedAt || deal.fundTxHash) return { error: 'That deal is already paid into escrow.' };
+  if (deal.cancelledAt) return { error: 'That deal was cancelled.' };
+  if (!deal.sellerApprovedAt) return { error: 'The seller has not accepted the terms yet.' };
+  const amountUsdc = Number(deal.dealAmountUsdc);
+  const total = await buyerPays(deal.dealAmountUsdc, feeBps).catch(() => null);
+  if (!total) return { error: 'The fee could not be read right now. Open the deal to pay.' };
+  const sellerLabel = (await getProfile(deal.seller).catch(() => null))?.displayName?.trim() || 'the seller';
+  return {
+    kind: 'confirm',
+    id: `fund_direct_deal:${deal.jobId}:${confirmNonce()}`,
+    intent: 'fund_direct_deal',
+    title: `Pay ${total} USDC into escrow`,
+    summary: `${sellerLabel} accepted your deal. It stays in escrow until you release it.`,
+    warning: 'This moves money from your buying balance into escrow on Arc. Escrow on Arc mainnet is in beta, up to 1,000 USDC per deal.',
+    fields: [
+      { label: 'Deal', value: `${amountUsdc} USDC` },
+      { label: 'You pay, with the fee', value: `${total} USDC` },
+      { label: 'Seller', value: sellerLabel },
+    ],
+    payload: { jobId: deal.jobId, caller: address, seller: deal.seller, amountUsdc, maxFundedAmountUsdc: total },
+    confirmLabel: `Pay ${total} USDC`,
+    cancelLabel: 'Not now',
+  };
+}
+
+/// A protected deal, built and paid from the assistant on the website and in
+/// every chat channel (view 24). Every field the deal form has can be answered
+/// in conversation; sending the deal is one card, paying it is another.
+export function directDealTools(address: string, actions: AssistantAction[], conversationId?: string, feeBps: FeeBps = getEscrowFeeBps) {
   const push = (card: ConfirmAction) => {
+    // A changed draft replaces the card it changes, never sits beside it.
+    for (let i = actions.length - 1; i >= 0; i--) {
+      const a = actions[i]!;
+      if (a.kind === 'confirm' && a.intent === card.intent && card.intent === 'create_direct_deal') actions.splice(i, 1);
+    }
     if (!hasEquivalentConfirm(actions, card)) actions.push(card);
   };
-  const isChat = () => isChatAccount(address);
 
-  async function resolveSeller(who: string): Promise<{ address: string; label: string } | { number: string } | null> {
+  async function resolveSeller(who: string): Promise<{ party: Counterparty; label: string } | { number: string } | null> {
     const trimmed = who.trim();
+    if (/^0x[a-fA-F0-9]{40}$/.test(trimmed)) {
+      const profile = await getProfile(trimmed.toLowerCase()).catch(() => null);
+      return { party: { sellerAddress: trimmed.toLowerCase() }, label: profile?.displayName?.trim() || `${trimmed.slice(0, 6)}…${trimmed.slice(-4)}` };
+    }
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return { party: { sellerEmail: trimmed.toLowerCase() }, label: trimmed.toLowerCase() };
     if (/^\+?[\d\s-]{7,20}$/.test(trimmed)) {
       const digits = trimmed.replace(/\D/g, '');
       const pepper = config.CHAT_NUMBER_PEPPER;
       const account = pepper ? await getWhatsappAccount(hashNumber(digits, pepper)) : null;
       if (account?.address && account.activated) {
         const profile = await getProfile(account.address).catch(() => null);
-        return { address: account.address, label: profile?.displayName?.trim() || 'your contact' };
+        return { party: { sellerAddress: account.address.toLowerCase() }, label: profile?.displayName?.trim() || 'your contact' };
       }
       return { number: digits };
     }
     const profile = await findProfileByHandle(trimmed.replace(/^@/, '')).catch(() => null);
-    return profile ? { address: profile.address.toLowerCase(), label: profile.displayName?.trim() || `@${profile.handle}` } : null;
+    if (!profile) return null;
+    const name = profile.displayName?.trim();
+    return { party: { sellerAddress: profile.address.toLowerCase() }, label: name ? `${name} · @${profile.handle}` : `@${profile.handle}` };
   }
 
   return {
     start_protected_deal: tool({
       description:
-        "Start a protected deal with someone the user already knows, by their Karwan tag: the amount, what it is for and the days to deliver. Shows a Confirm card; on Confirm the seller is asked to accept, and the user pays into escrow after that. A WhatsApp number works only while WhatsApp sending is running; otherwise ask for the person's Karwan tag.",
+        "Build a protected deal with someone the user names (Karwan tag, email or wallet address) and show one card with every term; on Confirm the deal is sent and the seller is asked to accept. No money moves until they accept and the user confirms payment with pay_into_escrow. Ask only for what is missing, one short question at a time: what it is for, the amount, and when it is due. Then say the defaults in one line (one payment on delivery, 24 hours for them to accept) and ask if they want to change any, split the payment, require stake, or add goods terms. Never guess an answer the user did not give. For a calendar date pass deliverBy and never convert it yourself. If the user changes a term, call this again; the new card replaces the old one.",
       inputSchema: z.object({
-        who: z.string().min(2).max(40).describe('Karwan tag like @ada. A WhatsApp number with country code only while WhatsApp sending is running.'),
-        amountUsdc: z.number().positive().max(1_000),
-        what: z.string().min(3).max(400).describe('What the deal is for, in the words both sides agreed.'),
-        deadlineDays: z.number().int().min(1).max(180),
+        who: z.string().min(2).max(120).describe('Karwan tag like @ada, an email, or a 0x wallet address.'),
+        what: z.string().min(3).max(4000).describe('What the deal is for, in the words both sides agreed.'),
+        amountUsdc: z.number().positive().max(1_000_000),
+        deliverInDays: z.number().int().min(1).max(180).optional(),
+        deliverBy: z.string().max(10).optional().describe('Due date as YYYY-MM-DD when the user gave a date.'),
+        payments: z.array(z.number().int().min(1).max(100)).min(1).max(5).optional().describe('Payment parts in percent, adding to 100, e.g. [50, 50]. Omit for one payment.'),
+        reviewDays: z.number().int().min(1).max(90).optional().describe('Days the buyer has to check each delivery, only if the user set it.'),
+        acceptWithinHours: z.number().min(0.25).max(720).optional().describe('Hours the seller has to accept. Omit for the default 24.'),
+        tradeType: z.enum(['service', 'goods', 'mixed']).optional(),
+        incoterms: z.enum(['EXW', 'FCA', 'FOB', 'CIF', 'DAP', 'DDP']).optional().describe('Goods only.'),
+        paymentTerms: z.enum(['immediate', 'net30', 'net60', 'net90']).optional().describe('Goods only.'),
+        company: z.object({ name: z.string().max(120).optional(), sector: z.string().max(40).optional(), region: z.string().max(80).optional() }).optional().describe("Goods only: the seller's company."),
+        stakePct: z.number().int().min(50).max(100).optional().describe('Only when the user wants the seller to back the deal with stake.'),
+        evidenceRequired: z.boolean().optional(),
+        personCheck: z.boolean().optional().describe('True only when the user wants the seller to pass the person check.'),
       }),
-      execute: async ({ who, amountUsdc, what, deadlineDays }) => {
-        if (!(await isChat())) return { error: 'Use the deal form in the app for this.' };
+      execute: async ({ who, ...answers }) => {
         try {
           const seller = await resolveSeller(who);
-          if (!seller) return { error: `No Karwan account matches ${who}.` };
+          if (!seller) return { error: `No Karwan account matches ${who}. Ask for their Karwan tag, email or wallet address.` };
           if ('number' in seller) {
             const me = (await getProfile(address).catch(() => null))?.displayName?.trim() || 'Someone';
             const invited = await messageNumber(seller.number, {
               kind: 'template',
               name: 'deal_update',
-              params: [`${me} wants to start a protected deal with you for ${amountUsdc} USDC: ${what.slice(0, 80)}`],
+              params: [`${me} wants to start a protected deal with you for ${answers.amountUsdc} USDC: ${answers.what.slice(0, 80)}`],
             });
-            if (!invited) {
-              return { error: 'I can only find people here by their Karwan tag. Ask them for it, or for them to join Karwan first.' };
-            }
+            if (!invited) return { error: 'I can only find people here by their Karwan tag, email or wallet address. Ask them for one.' };
             return { invited: true, note: 'They are not on Karwan yet. They got an invitation; start the deal again once they join.' };
           }
-          if (seller.address === address.toLowerCase()) return { error: 'A deal needs another person.' };
+          if ('sellerAddress' in seller.party && seller.party.sellerAddress === address.toLowerCase()) return { error: 'A deal needs another person.' };
+          const built = dealBody(address, seller.party, answers, Date.now());
+          if (!built.ok) return { error: built.message };
+          if (conversationId) built.body.sourceContext = { channel: 'karwan', reference: conversationReference(conversationId) };
           push({
             kind: 'confirm',
-            id: `create_direct_deal:${seller.address}:${confirmNonce()}`,
+            id: `create_direct_deal:${'sellerAddress' in seller.party ? seller.party.sellerAddress : seller.party.sellerEmail}:${confirmNonce()}`,
             intent: 'create_direct_deal',
-            title: `Start a protected deal with ${seller.label}`,
-            summary: 'They are asked to accept these terms. Nothing is paid until you confirm payment after that.',
-            fields: [
-              { label: 'With', value: seller.label },
-              { label: 'Amount', value: `${amountUsdc} USDC` },
-              { label: 'For', value: what },
-              { label: 'Deliver within', value: `${deadlineDays} days` },
-            ],
-            payload: { buyerAddress: address, sellerAddress: seller.address, dealAmountUsdc: amountUsdc, terms: what, deadlineDays },
+            title: `Send a protected deal to ${seller.label}`,
+            summary: 'They are asked to accept these terms. Nothing is paid until they accept and you confirm payment.',
+            fields: dealCardFields(built.body, seller.label, await buyerPays(built.body.dealAmountUsdc, feeBps).catch(() => null)),
+            payload: built.body,
             confirmLabel: 'Send the deal',
             cancelLabel: 'Not now',
           });
-          return { ok: true, shown: 'deal card' };
+          return { ok: true, shown: 'deal card', terms: built.body };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant start_protected_deal failed');
           return { error: 'Could not prepare that deal right now.' };
@@ -88,32 +148,14 @@ export function directDealTools(address: string, actions: AssistantAction[]) {
 
     pay_into_escrow: tool({
       description:
-        "Pay the buyer's accepted direct deal into escrow from their buying balance. Only after the seller accepted the terms. Shows a Confirm card with the amount; the money stays in escrow until the buyer releases it.",
+        "Pay the buyer's accepted protected deal into escrow from their buying balance. Only after the seller accepted the terms. Shows a Confirm card with the exact total, fee included; the money stays in escrow until the buyer releases it.",
       inputSchema: z.object({ jobId: z.string().min(10).max(80) }),
       execute: async ({ jobId }) => {
-        if (!(await isChat())) return { error: 'Pay from the deal page in the app.' };
         const deal = await getDeal(jobId).catch(() => null);
-        if (!deal || deal.buyer.toLowerCase() !== address.toLowerCase()) return { error: 'No deal of yours with that id.' };
-        if (deal.acceptedAt || deal.fundTxHash) return { error: 'That deal is already paid into escrow.' };
-        if (deal.cancelledAt) return { error: 'That deal was cancelled.' };
-        if (!deal.sellerApprovedAt) return { error: 'The seller has not accepted the terms yet.' };
-        const amountUsdc = Number(deal.dealAmountUsdc);
-        const sellerLabel = (await getProfile(deal.seller).catch(() => null))?.displayName?.trim() || 'the seller';
-        push({
-          kind: 'confirm',
-          id: `fund_direct_deal:${jobId}:${confirmNonce()}`,
-          intent: 'fund_direct_deal',
-          title: `Pay ${amountUsdc} USDC into escrow`,
-          summary: `For your deal with ${sellerLabel}. It stays in escrow until you release it.`,
-          warning: 'This moves money from your buying balance into escrow on Arc. Escrow on Arc mainnet is in beta, up to 1,000 USDC per deal.',
-          fields: [
-            { label: 'To escrow', value: `${amountUsdc} USDC, plus the fee shown at payment` },
-            { label: 'Seller', value: sellerLabel },
-          ],
-          payload: { jobId, caller: address, seller: deal.seller, amountUsdc },
-          confirmLabel: `Pay ${amountUsdc} USDC`,
-          cancelLabel: 'Not now',
-        });
+        if (!deal) return { error: 'No deal of yours with that id.' };
+        const card = await payCardFor(deal, address, feeBps);
+        if ('error' in card) return card;
+        push(card);
         return { ok: true, shown: 'payment card' };
       },
     }),

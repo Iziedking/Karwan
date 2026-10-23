@@ -59,3 +59,21 @@ test('a bad body is refused', async () => {
   assert.equal((await app.request('/', json('POST', { messages: [{ role: 'system', content: 'x' }] }))).status, 400);
   assert.equal((await app.request('/', json('POST', { messages: Array.from({ length: 41 }, () => ({ role: 'user', content: 'x' })) }))).status, 400);
 });
+
+test('a live pay card joins the conversation when it is opened, and is never stored', async () => {
+  const card = { kind: 'confirm', intent: 'fund_direct_deal', id: 'fund_direct_deal:0xd:1', payload: { jobId: '0xd' } };
+  const live = createAssistantConversationRoutes({
+    sessionAddress: () => who,
+    list: store.listConversations,
+    get: store.getConversation,
+    append: store.appendToConversation,
+    remove: store.deleteConversation,
+    pending: async () => [{ role: 'assistant', content: 'Ada accepted your deal for 50 USDC.', actions: [card] }],
+  });
+  const created = (await (await live.request('/', json('POST', { messages: [{ role: 'user', content: 'Deal with @ada' }] }))).json()) as { conversation: { id: string } };
+  const opened = (await (await live.request(`/${created.conversation.id}`)).json()) as { conversation: { messages: Array<{ content: string; actions?: unknown[] }> } };
+  assert.equal(opened.conversation.messages.length, 2);
+  assert.deepEqual(opened.conversation.messages[1]!.actions, [card]);
+  const stored = await store.getConversation('0xada', created.conversation.id);
+  assert.equal(stored!.messages.length, 1);
+});

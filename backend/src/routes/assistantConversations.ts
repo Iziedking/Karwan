@@ -15,6 +15,10 @@ export interface ConversationRouteDeps {
   get: (address: string, id: string) => Promise<AssistantConversation | null>;
   append: (address: string, id: string | null, messages: readonly IncomingMessage[]) => Promise<AssistantConversation>;
   remove: (address: string, id: string) => Promise<boolean>;
+  /// Live turns for this conversation, built fresh on every read and never
+  /// stored: a pay card for each deal made here that the seller has accepted
+  /// and that is not paid yet (view 24).
+  pending?: (address: string, id: string) => Promise<Array<{ role: 'assistant'; content: string; actions: unknown[] }>>;
 }
 
 /// The store keeps the last 40 of a conversation; one post never carries more.
@@ -53,7 +57,9 @@ export function createAssistantConversationRoutes(deps: ConversationRouteDeps): 
     const address = await who(c);
     if (!address) return c.json({ error: 'not authenticated' }, 401);
     const conversation = await deps.get(address, c.req.param('id'));
-    return conversation ? c.json({ conversation }) : notFound(c);
+    if (!conversation) return notFound(c);
+    const live = deps.pending ? await deps.pending(address, conversation.id).catch(() => []) : [];
+    return c.json({ conversation: live.length ? { ...conversation, messages: [...conversation.messages, ...live] } : conversation });
   });
 
   app.post('/', async (c) => {
@@ -88,4 +94,5 @@ export const assistantConversationRoutes = createAssistantConversationRoutes({
   get: async (address, id) => (await store()).getConversation(address, id),
   append: async (address, id, messages) => (await store()).appendToConversation(address, id, messages),
   remove: async (address, id) => (await store()).deleteConversation(address, id),
+  pending: async (address, id) => (await import('../assistant/conversationPayCards.js')).payCardsForConversation(address, id),
 });

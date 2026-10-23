@@ -218,7 +218,7 @@ export function summarizeDeal(deal: DirectDeal, viewer: string): Record<string, 
 /// data; `propose_navigation` pushes a validated navigate action into `actions`.
 /// Tools return plain objects (including `{ error }`) rather than throwing, so the
 /// model can explain a failure to the user instead of the loop aborting.
-function buildTools(address: string, method: string, actions: AssistantAction[]) {
+function buildTools(address: string, method: string, actions: AssistantAction[], conversationId?: string) {
   return {
     get_my_balance: tool({
       description:
@@ -1814,42 +1814,9 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
       },
     }),
 
-    propose_direct_deal: tool({
-      description:
-        'Prepare a direct deal with a person the user names by Karwan tag: it checks the tag, then shows a button that opens the deal form filled in (seller, amount, what it is for). The user reviews and sends it; nothing is created or paid here. Use when the user wants to open, start or offer a deal to @someone, or hire or pay a known person for work.',
-      inputSchema: z.object({
-        tag: z.string().max(40),
-        amountUsdc: z.number().positive().max(1_000_000).optional(),
-        what: z.string().max(200).optional().describe('What the deal is for, in a few words.'),
-      }),
-      execute: async ({ tag, amountUsdc, what }) => {
-        const check = checkKarwanTag(tag.replace(/^@/, ''));
-        if (!check.ok) return { error: 'That is not a valid Karwan tag.' };
-        try {
-          const found = tagRecipient(check.tag, await findProfileByHandle(check.tag), address);
-          if (!found.found) return { error: `No Karwan account has the tag @${check.tag}.` };
-          if (found.self) return { error: 'That tag is yours. A deal needs another person.' };
-          const built = buildNavigateAction({
-            destination: 'direct_deal',
-            to: found.tag,
-            amountUsdc,
-            terms: what,
-            label: `Review a deal with @${found.tag}`,
-            description: `With ${found.displayName}. Nothing is sent until you confirm.`,
-          });
-          if ('error' in built) return built;
-          if (!actions.some((a) => a.id === built.id)) actions.push(built);
-          return { ok: true, readyToReview: true, seller: { tag: `@${found.tag}`, displayName: found.displayName }, amountUsdc: amountUsdc ?? null };
-        } catch (err) {
-          logger.warn({ err: (err as Error).message }, 'assistant propose_direct_deal failed');
-          return { error: 'Could not prepare that deal right now.' };
-        }
-      },
-    }),
-
     propose_send_to_tag: tool({
       description:
-        'Prepare sending USDC to another person by Karwan tag. It checks the tag and the user’s balance (wallet plus pooled deposits), then shows a button that opens the send screen filled in; the user confirms there. It never sends by itself. Use when the user asks to send, pay or transfer USDC to @someone.',
+        'Prepare sending USDC to another person by Karwan tag. It checks the tag and the user’s balance (the wallet, plus a web3 wallet account’s own pooled deposits), then shows a button that opens the send screen filled in; the user confirms there. It never sends by itself. Use when the user asks to send, pay or transfer USDC to @someone.',
       inputSchema: z.object({
         tag: z.string().max(40),
         amountUsdc: z.number().positive().max(1_000_000),
@@ -1858,11 +1825,13 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
         const check = checkKarwanTag(tag.replace(/^@/, ''));
         if (!check.ok) return { ok: true, sendable: false, reason: 'That is not a valid Karwan tag.' };
         try {
-          // The wallet and the sign-in wallet's pool together, the figure the Send screen counts (view 22).
+          // The figure the Send screen counts: the wallet, plus the sign-in wallet's
+          // own pool for a wallet account. Email accounts hold no pool (23 Oct).
+          const walletAccount = method !== 'circle';
           const [profile, spendable, pooled] = await Promise.all([
             findProfileByHandle(check.tag),
             readSpendable(address),
-            readPooledBalance(address).catch(() => null),
+            walletAccount ? readPooledBalance(address).catch(() => null) : Promise.resolve(null),
           ]);
           const found = tagRecipient(check.tag, profile, address);
           if (!found.found) return { ok: true, sendable: false, reason: `No Karwan account has the tag @${check.tag}.` };
@@ -2435,7 +2404,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
     ...counterpartyTools(address, { deals: listDealsForAddress, profile: getProfile }),
     ...memoryTools(address, { memory: getMemory, add: addNotes, remove: deleteNotes, conversations: conversationsMentioning }),
     ...networkTools(address),
-    ...directDealTools(address, actions),
+    ...directDealTools(address, actions, conversationId),
   };
 }
 
@@ -2450,7 +2419,7 @@ function authenticatedPreamble(address: string, method: string): string {
     'Your tools are account-scoped reads, confirmation-card proposals and payment links, not unlimited platform access.',
     'Payment links -> create_payment_link (give the full url), list_my_payment_links, cancel_payment_link. Deposit addresses -> get_my_deposit_addresses.',
     'Find sellers, offers, suppliers, buyers or requests on the market -> search_market, then present the real results.',
-    'Start a deal with @someone -> propose_direct_deal. Send to a Karwan tag -> propose_send_to_tag. Who is @tag -> find_karwan_tag. How-to and navigation -> get_product_facts, then propose_navigation.',
+    'Start a deal with @someone -> start_protected_deal (ask what is missing first); pay an accepted one -> pay_into_escrow. Send to a Karwan tag -> propose_send_to_tag. Who is @tag -> find_karwan_tag. How-to and navigation -> get_product_facts, then propose_navigation.',
     'Product behaviour -> get_product_facts. Balances -> get_my_balance. Cross-chain source inventory -> list_bridge_sources.',
     'Specific deal, World ID or CRE recorded status -> get_deal_status. Other deals -> list_my_deals.',
     'Past money moves and bridges -> recall_activity. Stake/yield -> get_my_stake. Reputation -> get_my_reputation.',
@@ -2480,6 +2449,7 @@ export async function runAssistantAgent(input: {
   mode?: 'help' | 'assistant';
   /// What the assistant remembers about this person; absent when it could not be read.
   memory?: AssistantMemory;
+  conversationId?: string;
 }): Promise<{ text: string; actions: AssistantAction[]; grounded: boolean; subjects: number }> {
   const model = assistantAgentModel;
   if (!model) throw new Error('assistant agent model unavailable');
@@ -2494,7 +2464,7 @@ export async function runAssistantAgent(input: {
       model,
       system,
       messages: input.messages,
-      tools: buildTools(input.address, input.method, actions),
+      tools: buildTools(input.address, input.method, actions, input.conversationId),
       // Allow a few reasoning+tool rounds (e.g. whats_pending, then read one
       // deal, then propose a button), then force a final text answer.
       stopWhen: stepCountIs(6),
