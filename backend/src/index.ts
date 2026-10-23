@@ -110,6 +110,8 @@ import { businessRoutes, businessAdminRoutes } from './routes/business.js';
 import { verificationRoutes } from './routes/verification.js';
 import { createPersonVerificationRoutes } from './routes/personVerification.js';
 import { createMoneyOutRoutes } from './routes/moneyOut.js';
+import { createConfirmRoutes } from './routes/confirm.js';
+import { confirmRouteDeps } from './presence/live.js';
 import { setupRoutes } from './routes/setup.js';
 import { moneyOutRouteDeps } from './moneyOut/live.js';
 import { adminVerificationRoutes } from './routes/adminVerification.js';
@@ -350,7 +352,7 @@ app.use(
     // which surfaces as a generic "could not do that" with no status to chase,
     // while the same call over curl succeeds and makes it look like a UI fault.
     allowMethods: ['GET', 'POST', 'OPTIONS', 'DELETE', 'PUT', 'PATCH'],
-    allowHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-Admin-Token', 'X-Correlation-ID'],
+    allowHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-Admin-Token', 'X-Correlation-ID', 'X-Karwan-Confirm'],
     exposeHeaders: ['X-Correlation-ID'],
     // Cache the CORS preflight for a day so the browser stops firing an OPTIONS
     // round-trip before every cross-origin API call. The allowed methods and
@@ -533,6 +535,7 @@ app.route(
   }),
 );
 app.route('/api/money-out', createMoneyOutRoutes({ ...moneyOutRouteDeps, sessionAddress }));
+app.route('/api/confirm', createConfirmRoutes(confirmRouteDeps));
 app.route('/api/admin/verification', adminVerificationRoutes);
 app.route('/api/admin/account-deletions', createAdminAccountDeletionRoutes(() => accountDeletion));
 app.route('/api/r', createRecordRoutes(recordDeps));

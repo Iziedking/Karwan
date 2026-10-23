@@ -1251,6 +1251,45 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       );
     `,
   },
+  {
+    version: 46,
+    name: 'confirm_presence',
+    sql: `
+      -- A person confirms with a passkey or a Karwan PIN before setting up
+      -- their record, putting up deal insurance or moving money out (view 27).
+      -- The PIN is kept only as a slow salted hash; a confirmation is spent once.
+      CREATE TABLE confirm_pins_v1 (
+        wallet TEXT PRIMARY KEY,
+        hash TEXT NOT NULL,
+        failures INTEGER NOT NULL DEFAULT 0,
+        locked_until BIGINT,
+        updated_at BIGINT NOT NULL
+      );
+      CREATE TABLE confirm_passkeys_v1 (
+        credential_id TEXT PRIMARY KEY,
+        wallet TEXT NOT NULL,
+        public_key TEXT NOT NULL,
+        counter BIGINT NOT NULL DEFAULT 0,
+        transports JSONB NOT NULL DEFAULT '[]',
+        created_at BIGINT NOT NULL
+      );
+      CREATE INDEX confirm_passkeys_wallet ON confirm_passkeys_v1 (wallet);
+      CREATE TABLE confirm_challenges_v1 (
+        id TEXT PRIMARY KEY,
+        wallet TEXT NOT NULL,
+        digest TEXT NOT NULL,
+        action JSONB NOT NULL,
+        webauthn_challenge TEXT NOT NULL,
+        created_at BIGINT NOT NULL,
+        expires_at BIGINT NOT NULL,
+        confirmed_at BIGINT,
+        method TEXT,
+        used_at BIGINT
+      );
+      CREATE INDEX confirm_challenges_wallet ON confirm_challenges_v1 (wallet);
+      CREATE INDEX confirm_challenges_expires ON confirm_challenges_v1 (expires_at);
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

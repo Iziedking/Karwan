@@ -3,7 +3,7 @@
 // what is sent.
 import { brandedEmailHtml, emailCode, emailHeading, emailNote, emailText } from './brand.js';
 
-export type OtpPurpose = 'sign-in' | 'waitlist' | 'recovery';
+export type OtpPurpose = 'sign-in' | 'waitlist' | 'recovery' | 'confirm';
 
 /// HTML body for the OTP email. Uses the shared brand shell. Digits sit in a
 /// monospace block with a calm letter-spacing, no manual &nbsp; padding,
@@ -12,6 +12,7 @@ export const OTP_COPY: Record<OtpPurpose, { word: string; line: string; kicker: 
   'sign-in': { word: 'sign-in', kicker: 'Sign in', title: 'Your Karwan sign-in code', line: 'Enter this code where you started signing in.' },
   waitlist: { word: 'waitlist', kicker: 'Waitlist', title: 'Your Karwan waitlist code', line: 'Enter this code to join the Karwan waitlist.' },
   recovery: { word: 'recovery', kicker: 'Wallet recovery', title: 'Your Karwan recovery code', line: 'Use this code to recover your wallet.' },
+  confirm: { word: 'confirmation', kicker: "Confirm it's you", title: 'Your Karwan confirmation code', line: 'Enter this code to set or reset your Karwan PIN or passkey.' },
 };
 
 export function otpEmailHtml(code: string, purpose: OtpPurpose = 'sign-in'): string {

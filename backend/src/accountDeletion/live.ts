@@ -33,6 +33,7 @@ import { scrubNotesBy } from '../db/ratings.js';
 import { deleteConversationsOf } from '../db/assistantConversations.js';
 import { deleteMemoryOf } from '../db/assistantMemory.js';
 import { moneyOutStore } from '../moneyOut/live.js';
+import { presenceStore } from '../presence/live.js';
 import { deleteConversationsFor } from '../support/store.js';
 import { evidenceDeps } from '../verification/live.js';
 import { revokeFact } from '../verification/evidence.js';
@@ -154,6 +155,7 @@ const eraser: Eraser = {
       },
     },
     { name: 'saved addresses', run: (address) => moneyOutStore.forget(address) },
+    { name: 'PIN and confirmation passkeys', run: (address) => presenceStore.forget(address) },
     { name: 'activity', run: deleteActivityFor },
     { name: 'assistant usage', run: deleteAssistantUsage },
     {

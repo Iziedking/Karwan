@@ -24,6 +24,10 @@ export interface SessionPayload {
   /// The Arc chain the session was issued for. Absent on sessions issued before
   /// mainnet existed.
   chainId?: number;
+  /// Set on the half-hour session a chat's one-time link opens.
+  via?: 'open_link';
+  /// Issued at, seconds since epoch. Absent on sessions from before it was recorded.
+  iat?: number;
   /// Expiry in seconds since epoch. Checked server-side on every read.
   exp: number;
 }
@@ -81,13 +85,15 @@ function sign(body: string): string {
 export function signSession(
   payload: Omit<SessionPayload, 'exp'> & { ttlDays?: number; ttlSecs?: number },
 ): string {
-  const exp =
-    Math.floor(Date.now() / 1000) + (payload.ttlSecs ?? (payload.ttlDays ?? DEFAULT_TTL_DAYS) * 86_400);
+  const iat = Math.floor(Date.now() / 1000);
+  const exp = iat + (payload.ttlSecs ?? (payload.ttlDays ?? DEFAULT_TTL_DAYS) * 86_400);
   const full: SessionPayload = {
     address: payload.address.toLowerCase(),
     method: payload.method,
     email: payload.email,
     chainId: ARC.chainId,
+    ...(payload.via ? { via: payload.via } : {}),
+    iat,
     exp,
   };
   const body = b64url(JSON.stringify(full));
