@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'motion/react';
@@ -52,6 +52,12 @@ function AssistantPage() {
   const [removing, setRemoving] = useState(false);
   const [removeError, setRemoveError] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+  const threadRef = useRef<HTMLDivElement>(null);
+  /// The reader is at the newest message. While they are, a growing reply keeps
+  /// them there; once they scroll up, nothing pulls them back and the jump
+  /// button appears instead.
+  const [atLatest, setAtLatest] = useState(true);
+  const atLatestRef = useRef(true);
   const list = useQuery({ queryKey: LIST_KEY, queryFn: () => api.assistantConversations().then((r) => r.conversations) });
 
   // A newly saved conversation joins the column.
@@ -59,9 +65,40 @@ function AssistantPage() {
     if (chat.conversationId) void queryClient.invalidateQueries({ queryKey: LIST_KEY });
   }, [chat.conversationId, queryClient]);
 
+  const toLatest = useCallback((smooth: boolean) => {
+    endRef.current?.scrollIntoView({ block: 'end', behavior: smooth && !reduce ? 'smooth' : 'auto' });
+  }, [reduce]);
+
   useEffect(() => {
-    endRef.current?.scrollIntoView({ block: 'end', behavior: reduce ? 'auto' : 'smooth' });
-  }, [chat.messages.length, chat.busy, reduce]);
+    const end = endRef.current;
+    if (!end) return;
+    const seen = new IntersectionObserver(([entry]) => {
+      const visible = !!entry?.isIntersecting;
+      atLatestRef.current = visible;
+      setAtLatest(visible);
+    });
+    seen.observe(end);
+    return () => seen.disconnect();
+  }, []);
+
+  // A message you just sent is always brought into view; a new reply only when
+  // you were already at the newest message.
+  const last = chat.messages[chat.messages.length - 1];
+  const hasThread = chat.messages.length > 0;
+  useEffect(() => {
+    if (last?.role === 'user' || atLatestRef.current) toLatest(true);
+  }, [chat.messages.length, chat.busy, last?.role, toLatest]);
+
+  // A reply that grows after it lands (cards, images) keeps a reader at the bottom.
+  useEffect(() => {
+    const thread = threadRef.current;
+    if (!thread) return;
+    const grow = new ResizeObserver(() => {
+      if (atLatestRef.current) toLatest(false);
+    });
+    grow.observe(thread);
+    return () => grow.disconnect();
+  }, [toLatest, hasThread]);
 
   // Escape switches assistant mode off, back to where it was switched on.
   useEffect(() => {
@@ -164,15 +201,28 @@ function AssistantPage() {
               <p className="mt-2 max-w-[52ch] text-[17px] font-medium text-[var(--lp-text-sub)]">{t.greetingBody}</p>
             </motion.div>
           ) : (
-            <AssistantThread messages={chat.messages} busy={chat.busy} onNavigate={() => undefined} />
+            <div ref={threadRef}>
+              <AssistantThread messages={chat.messages} busy={chat.busy} onNavigate={() => undefined} />
+            </div>
           )}
           {openError ? <p role="alert" className="border-s-2 border-[var(--color-critical)] ps-3 text-[14px]">{t.loadError}</p> : null}
           {chat.error ? <p role="alert" className="border-s-2 border-[var(--color-critical)] ps-3 text-[14px]">{chat.error}</p> : null}
-          <div ref={endRef} />
+          {/* Clears the composer, so the newest line is never under it. */}
+          <div ref={endRef} className="scroll-mb-40" />
         </div>
 
         <div className="sticky bottom-0 bg-[var(--lp-bg)] px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 sm:px-6">
-          <div className="mx-auto max-w-[760px]">
+          <div className="relative mx-auto max-w-[760px]">
+            {!empty && !atLatest ? (
+              <button
+                type="button"
+                onClick={() => toLatest(true)}
+                aria-label={t.jumpLatest}
+                className="absolute -top-14 start-1/2 grid size-11 -translate-x-1/2 place-items-center rounded-full border border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-dark)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rtl:translate-x-1/2"
+              >
+                <Icon name="arrow-down" size={20} />
+              </button>
+            ) : null}
             {empty ? (
               <div className="mb-3 flex gap-2 overflow-x-auto pb-1 sm:flex-wrap">
                 {t.chips.map((chip) => (

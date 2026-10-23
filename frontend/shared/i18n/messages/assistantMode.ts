@@ -29,6 +29,8 @@ export interface AssistantModeCopy {
   errOffline: string;
   errSnag: string;
   remove: string;
+  /// The round button that jumps to the newest message.
+  jumpLatest: string;
   /// Accessible name of a history row's delete button: {title}.
   removeNamed: string;
   removeTitle: string;
@@ -70,6 +72,7 @@ export const assistantModeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Assista
     errOffline: "The assistant is offline right now. A person from the team is joining.",
     errSnag: "Something went wrong on our side. Try again.",
     remove: "Delete conversation",
+    jumpLatest: "Go to latest message",
     removeNamed: "Delete conversation: {title}",
     removeTitle: "Delete this conversation?",
     removeBody: "It is removed from your account and cannot be brought back. Nothing you confirmed in it is undone.",
@@ -107,6 +110,7 @@ export const assistantModeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Assista
     errOffline: "L’assistant est hors ligne pour le moment. Une personne de l’équipe arrive.",
     errSnag: "Un problème est survenu de notre côté. Réessayez.",
     remove: "Supprimer la conversation",
+    jumpLatest: "Aller au dernier message",
     removeNamed: "Supprimer la conversation : {title}",
     removeTitle: "Supprimer cette conversation ?",
     removeBody: "Elle est retirée de votre compte et ne peut pas être récupérée. Rien de ce que vous y avez confirmé n’est annulé.",
@@ -144,6 +148,7 @@ export const assistantModeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Assista
     errOffline: "المساعد غير متصل الآن. شخص من الفريق ينضم إليك.",
     errSnag: "حدث خطأ من جهتنا. حاول مرة أخرى.",
     remove: "احذف المحادثة",
+    jumpLatest: "انتقل إلى آخر رسالة",
     removeNamed: "احذف المحادثة: {title}",
     removeTitle: "هل تحذف هذه المحادثة؟",
     removeBody: "تُزال من حسابك ولا يمكن استعادتها. لا يُلغى أي شيء أكدته فيها.",
@@ -181,6 +186,7 @@ export const assistantModeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Assista
     errOffline: "सहायक अभी ऑफ़लाइन है। टीम का एक व्यक्ति जुड़ रहा है।",
     errSnag: "हमारी ओर से कुछ गलत हुआ। फिर से कोशिश करें।",
     remove: "बातचीत हटाएँ",
+    jumpLatest: "नवीनतम संदेश पर जाएँ",
     removeNamed: "बातचीत हटाएँ: {title}",
     removeTitle: "यह बातचीत हटाएँ?",
     removeBody: "यह आपके खाते से हट जाएगी और वापस नहीं लाई जा सकती। इसमें जो आपने पुष्टि की, वह रद्द नहीं होता।",
@@ -218,6 +224,7 @@ export const assistantModeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Assista
     errOffline: "Msaidizi hayupo mtandaoni sasa. Mtu wa timu anajiunga.",
     errSnag: "Kuna hitilafu upande wetu. Jaribu tena.",
     remove: "Futa mazungumzo",
+    jumpLatest: "Nenda kwenye ujumbe wa mwisho",
     removeNamed: "Futa mazungumzo: {title}",
     removeTitle: "Ufute mazungumzo haya?",
     removeBody: "Yanaondolewa kwenye akaunti yako na hayawezi kurudishwa. Chochote ulichothibitisha ndani yake hakibatilishwi.",

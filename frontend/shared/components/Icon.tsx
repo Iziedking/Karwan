@@ -1,6 +1,6 @@
 import React, { type SVGProps } from 'react';
 import {
-  Activity, ArrowDownLeft, ArrowLeft, ArrowLeftRight, Bell, CircleAlert, ArrowRight, ArrowUpRight, Bot, BriefcaseBusiness, Calculator,
+  Activity, ArrowDown, ArrowDownLeft, ArrowLeft, ArrowLeftRight, Bell, CircleAlert, ArrowRight, ArrowUpRight, Bot, BriefcaseBusiness, Calculator,
   ChartColumn, Check, ChevronLeft, ChevronRight, Clapperboard, Code, Coins, Copy, CornerDownLeft, FileText, Globe,
   GraduationCap, ImagePlus, Languages, Link, List, LoaderCircle, Megaphone, MessagesSquare,
   Package, PenLine, PenTool, Plus, Receipt, Reply, Search, Send, Shirt, Smartphone, Trash2, UserRound, Wallet, X,
@@ -13,6 +13,7 @@ const icons = {
   'arrow-left-right': ArrowLeftRight,
   'arrow-right': ArrowRight,
   'arrow-up-right': ArrowUpRight,
+  'arrow-down': ArrowDown,
   'arrow-down-left': ArrowDownLeft,
   receipt: Receipt,
   briefcase: BriefcaseBusiness,
