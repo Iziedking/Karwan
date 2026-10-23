@@ -172,7 +172,7 @@
       "id": "escrow-families-roadmap",
       "title": "Escrow families for every kind of trade",
       "status": "shipping",
-      "updated": "2026-10-16",
+      "updated": "2026-10-23",
       "tags": [
         "escrow",
         "contracts",
@@ -182,10 +182,10 @@
       "sources": [
         {
           "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/11-contracts.md",
-          "date": "2026-10-16"
+          "date": "2026-10-23"
         }
       ],
-      "body": "Karwan's next escrow contracts are in testing and not deployed on any network.\n\nArc limits each contract to 24,576 bytes, so escrow is split into families,\neach holding only its own deals' money, so a fault in one cannot reach another\nfamily's balance. Agreement covers fixed-price goods and services with up to 12\ntranches, instalment plans and disputes that freeze only the disputed part.\nTime covers hourly, daily and retainer work, cycle by cycle. Jobs covers\nERC-8183 jobs, bounties and contests.\n\nShared pieces sit behind them: a hub that holds no money, an identity registry\nwith 7-day recovery, one dispute clock, a stake vault and a timelock. Chainlink\nCRE workflows for delivery checks and timeouts run end to end in the CRE\nsimulator on an Arc fork and are not deployed either.\n\nThese contracts go live on testnet first, and on mainnet only after an external\naudit."
+      "body": "Karwan's next escrow contracts are deployed on Arc Testnet and not on mainnet.\nA timelock owns them, so every rule change waits a day in public, queued by a\nmulti-signature owner. The Karwan app does not use them yet.\n\nArc limits each contract to 24,576 bytes, so escrow is split into families,\neach holding only its own deals' money, so a fault in one cannot reach another\nfamily's balance. Agreement covers fixed-price goods and services with up to 12\ntranches, instalment plans and disputes that freeze only the disputed part.\nTime covers hourly, daily and retainer work, cycle by cycle. Jobs covers\nERC-8183 jobs, bounties and contests.\n\nShared pieces sit behind them: a hub that holds no money, an identity registry\nwith 7-day recovery, one dispute clock, a stake vault and a timelock. Chainlink\nCRE workflows for delivery checks and timeouts run end to end in the CRE\nsimulator on an Arc fork and are not deployed.\n\nThey go live on mainnet only after an external audit."
     },
     {
       "id": "faq-money-safe",
@@ -791,15 +791,15 @@
         "contracts",
         "roadmap"
       ],
-      "summary": "Karwan's next escrow contracts are in testing and not deployed on any network.",
+      "summary": "Karwan's next escrow contracts are deployed on Arc Testnet and not on mainnet. A timelock owns them, so every rule change waits a day in public, queued by a multi-signature owner. The Karwan app does not use them yet.",
       "sources": [
         {
           "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/11-contracts.md",
-          "date": "2026-10-16"
+          "date": "2026-10-23"
         }
       ],
       "check": null,
-      "updated": "2026-10-16",
+      "updated": "2026-10-23",
       "path": "public/product/escrow-families-roadmap.md"
     },
     {
