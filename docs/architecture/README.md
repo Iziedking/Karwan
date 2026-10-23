@@ -32,6 +32,7 @@ Karwan unifies online reputation with an agentic economic model. People join a n
 | 19 | [Simple Karwan](19-simple-karwan.md) | How a trader who knows nothing about escrow or agents says what they want, has the agent set up their account the way they want to use it, and runs it all by talking to the assistant | Draft |
 | 25 | [Pay strangers safely](25-pay-strangers-safely.md) | How any agent checks a seller before paying, and how a seller offers payments that wait in escrow until the delivery is accepted, signed once like any x402 payment | Draft |
 | 26 | [Agents for every kind of deal](26-agents-for-every-deal.md) | The ways a person deals (one-time, milestones, goods, deposit, then each escrow family as it deploys), asked in plain words, so agents match and draft terms for the right shape | Draft |
+| 27 | [Deals on the escrow family](27-deals-on-the-escrow-family.md) | New deals open on the escrow family deployed on testnet, one identity per person set up at the first money step, signed release, disputes with an appeal window, and getting paid early on the same deals | Draft |
 
 ## How to read a view
 
