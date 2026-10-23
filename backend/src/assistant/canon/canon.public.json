@@ -1,6 +1,6 @@
 {
   "canonVersion": "0.4.0",
-  "canonUpdated": "2026-10-20",
+  "canonUpdated": "2026-10-23",
   "docs": [
     {
       "id": "agent-record-checks",
@@ -579,10 +579,14 @@
         {
           "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/19-simple-karwan.md",
           "date": "2026-10-20"
+        },
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/24-assistant-builds-the-deal.md",
+          "date": "2026-10-23"
         }
       ],
       "check": null,
-      "updated": "2026-10-20",
+      "updated": "2026-10-23",
       "path": "public/product/assistant-mode-and-help.md"
     },
     {
