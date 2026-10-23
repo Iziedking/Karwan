@@ -52,6 +52,14 @@ export function requiresLiveAccountState(messages: AssistantSafetyMessage[]): bo
   // read from blocking an answer that is not about the account.
   const marketAction = /\b(?:find|browse|search|look for|post|create|make|list|sell|buy|hire|get)\b/.test(text)
     && /\b(?:sellers?|buyers?|customers?|clients?|suppliers?|freelancers?|market|marketplace|offers?|requests?|listings?|services?|payment links?|pay links?)\b/.test(text);
+  // "Open a deal with @lawful for 3 logo designs": building a deal is a
+  // conversation, and its first replies are questions (how much, by when).
+  // Nothing is claimed about the account and nothing moves until the person
+  // confirms the card, so the questions are answered. Asking about a deal
+  // that already exists is still personal or an outcome, and stays stateful.
+  const dealStart = /\b(?:open|start|create|make|set ?up|draft|begin|send)\b(?:\s+\S+){0,3}?\s+(?:deals?|agreements?|contracts?)\b/.test(text)
+    && /\b(?:with|for|to)\b/.test(text);
+  if (dealStart && !outcomeOrAttention && !personalContext) return false;
   return moneyOrAccount || outcomeOrAttention || personalContext || !(genericHelp || marketAction);
 }
 

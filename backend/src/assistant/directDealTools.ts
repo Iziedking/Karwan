@@ -91,11 +91,11 @@ export function directDealTools(address: string, actions: AssistantAction[], con
   return {
     start_protected_deal: tool({
       description:
-        "Build a protected deal with someone the user names (Karwan tag, email or wallet address) and show one card with every term; on Confirm the deal is sent and the seller is asked to accept. No money moves until they accept and the user confirms payment with pay_into_escrow. Ask only for what is missing, one short question at a time: what it is for, the amount, and when it is due. Then say the defaults in one line (one payment on delivery, 24 hours for them to accept) and ask if they want to change any, split the payment, require stake, or add goods terms. Never guess an answer the user did not give. For a calendar date pass deliverBy and never convert it yourself. If the user changes a term, call this again; the new card replaces the old one.",
+        "Build a protected deal with someone the user names (Karwan tag, email or wallet address) and show one card with every term; on Confirm the deal is sent and the seller is asked to accept. No money moves until they accept and the user confirms payment with pay_into_escrow. Call it as soon as the user names the person, even before the terms are known: it checks who they are and returns what is still missing. Ask only for what is missing, one short question at a time: what it is for, the amount, and when it is due. Then say the defaults in one line (one payment on delivery, 24 hours for them to accept) and ask if they want to change any, split the payment, require stake, or add goods terms. Never guess an answer the user did not give. For a calendar date pass deliverBy and never convert it yourself. If the user changes a term, call this again; the new card replaces the old one.",
       inputSchema: z.object({
         who: z.string().min(2).max(120).describe('Karwan tag like @ada, an email, or a 0x wallet address.'),
-        what: z.string().min(3).max(4000).describe('What the deal is for, in the words both sides agreed.'),
-        amountUsdc: z.number().positive().max(1_000_000),
+        what: z.string().min(3).max(4000).optional().describe('What the deal is for, in the words both sides agreed.'),
+        amountUsdc: z.number().positive().max(1_000_000).optional(),
         deliverInDays: z.number().int().min(1).max(180).optional(),
         deliverBy: z.string().max(10).optional().describe('Due date as YYYY-MM-DD when the user gave a date.'),
         payments: z.array(z.number().int().min(1).max(100)).min(1).max(5).optional().describe('Payment parts in percent, adding to 100, e.g. [50, 50]. Omit for one payment.'),
@@ -109,10 +109,17 @@ export function directDealTools(address: string, actions: AssistantAction[], con
         evidenceRequired: z.boolean().optional(),
         personCheck: z.boolean().optional().describe('True only when the user wants the seller to pass the person check.'),
       }),
-      execute: async ({ who, ...answers }) => {
+      execute: async ({ who, what, amountUsdc, ...rest }) => {
         try {
           const seller = await resolveSeller(who);
           if (!seller) return { error: `No Karwan account matches ${who}. Ask for their Karwan tag, email or wallet address.` };
+          const missing = [...(what ? [] : ['what']), ...(amountUsdc ? [] : ['amountUsdc'])];
+          if (missing.length) {
+            if ('number' in seller) return { ok: true, seller: 'a phone number', missing };
+            if ('sellerAddress' in seller.party && seller.party.sellerAddress === address.toLowerCase()) return { error: 'A deal needs another person.' };
+            return { ok: true, seller: seller.label, missing };
+          }
+          const answers = { ...rest, what: what!, amountUsdc: amountUsdc! };
           if ('number' in seller) {
             const me = (await getProfile(address).catch(() => null))?.displayName?.trim() || 'Someone';
             const invited = await messageNumber(seller.number, {

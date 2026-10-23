@@ -68,3 +68,18 @@ test('terms the deal route would refuse never become a card', async () => {
   assert.match(out.error ?? '', /add up to 100/);
   assert.equal(actions.length, 0);
 });
+
+test('before the terms are complete it checks who the person is and says what is still missing', async () => {
+  await upsertProfile({ address: BOLA, role: 'seller', displayName: 'Bola Ade', handle: 'bola_designs' } as never);
+  const actions: AssistantAction[] = [];
+  const tools = directDealTools(ADA, actions, 'conv-2', fee);
+  const out = (await tools.start_protected_deal.execute!({ who: '@bola_designs', what: '3 logo designs' }, call)) as {
+    ok?: boolean; seller?: string; missing?: string[];
+  };
+  assert.equal(out.ok, true);
+  assert.equal(out.seller, 'Bola Ade · @bola_designs');
+  assert.deepEqual(out.missing, ['amountUsdc']);
+  assert.equal(actions.length, 0);
+  const nobody = (await tools.start_protected_deal.execute!({ who: '@nobody_here' }, call)) as { error?: string };
+  assert.match(nobody.error ?? '', /No Karwan account/);
+});

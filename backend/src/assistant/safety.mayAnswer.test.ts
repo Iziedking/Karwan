@@ -37,3 +37,20 @@ test('an instruction to act on what was just said is not blocked as an account q
   assert.equal(requiresLiveAccountState(after('did my request post?')), true);
   assert.equal(requiresLiveAccountState(after('what is my balance')), true);
 });
+
+test('asking to open a deal with someone is an instruction, so the questions that build it are answered', async () => {
+  const { requiresLiveAccountState } = await import('./safety.js');
+  const ask = (content: string) => [{ role: 'user' as const, content }];
+  for (const text of [
+    'open a deal with @lawful for 3 logo designs',
+    'start a protected deal with @ada',
+    'create a deal with bola@example.com for a brand kit',
+    'I want to make a deal with @tunde',
+    'set up an escrow deal with @kingizie for 80 usdc',
+  ]) {
+    assert.equal(requiresLiveAccountState(ask(text)), false, text);
+  }
+  // Questions about deals that already exist still need a fresh read.
+  assert.equal(requiresLiveAccountState(ask('what is the status of my deal with @lawful?')), true);
+  assert.equal(requiresLiveAccountState(ask('did the deal with @ada go through?')), true);
+});
