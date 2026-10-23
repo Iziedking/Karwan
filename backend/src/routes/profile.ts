@@ -32,6 +32,7 @@ import { durableEphemeralMap } from '../db/ephemeral.js';
 import { rateLimit } from '../middleware/rateLimit.js';
 import { checkOtpAttempt, generateOtpCode, hashOtpCode, OTP_TTL_MS } from '../auth/otp.js';
 import { isValidProfileImage } from './profileImage.js';
+import { reconcileWays } from '../agents/ways.js';
 
 const USDC_DECIMALS = 6;
 
@@ -267,6 +268,7 @@ profileRoutes.post('/', async (c) => {
     ...carryProfile(existing, ['role', 'displayName', 'buyer', 'seller']),
     ...body,
     seller: sellerWithKeywords,
+    ...(existing?.agentWays ? { agentWays: reconcileWays(existing.agentWays, sellerWithKeywords, body.buyer) } : {}),
   });
 
   // Email-login (Circle) users proved their email at sign-in, so auto-fill it

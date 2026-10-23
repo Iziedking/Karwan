@@ -1,4 +1,5 @@
 import type { CreateDirectDealBody } from '../deals/createSchema.js';
+import type { AgentWays } from '../agents/ways.js';
 import type { DeliveryKind, Where } from '../location/rules.js';
 import type { BriefAnswers } from '../agents/agentBriefLines.js';
 import type { DealStepConfirm } from './dealActions.js';
@@ -348,8 +349,15 @@ export interface SaveSetupConfirm extends ConfirmActionBase {
   payload: { answers: BriefAnswers };
 }
 
+/// The ways a person deals (view 26), saved whole once confirmed.
+export interface SaveWaysConfirm extends ConfirmActionBase {
+  intent: 'save_ways';
+  payload: { ways: AgentWays };
+}
+
 export type ConfirmAction =
   | SaveSetupConfirm
+  | SaveWaysConfirm
   | PostOfferConfirm
   | PostRequestConfirm
   | ReleaseConfirm
@@ -1290,6 +1298,22 @@ export function buildFundAgentWeb3Confirm(i: {
     payload: { agent: i.agent, toAddress: i.toAddress, amountUsdc: i.amountUsdc },
     confirmLabel: 'Sign and send',
     cancelLabel: 'Not now',
+  };
+}
+
+/// How their agents deal, one line per way, saved only on their yes. Moves no
+/// money, so there is no warning.
+export function buildSaveWaysConfirm(ways: AgentWays, lines: string[]): SaveWaysConfirm {
+  return {
+    kind: 'confirm',
+    id: `save_ways:${confirmNonce()}`,
+    intent: 'save_ways',
+    title: 'How your agents deal',
+    summary: 'Check it. Nothing is saved until you say it looks right.',
+    fields: lines.map((value) => ({ label: '', value })),
+    payload: { ways },
+    confirmLabel: 'Looks right',
+    cancelLabel: 'Change something',
   };
 }
 

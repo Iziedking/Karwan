@@ -72,3 +72,16 @@ test('own clients, reach, business and places each land in their own place', asy
   assert.equal(r.patch.workPlaces?.length, 200);
   assert.deepEqual(r.place, { country: 'NG', city: 'Lagos' });
 });
+
+test('how clients pay becomes the selling way the agent starts with', async () => {
+  const goods = await readBrief({ goals: ['sell'], what: 'Ankara fabric', price: '30 to 60 USDC, 2 to 4 days', paid: 'goods', where: 'Kano, Nigeria' }, null, deps, 'en');
+  assert.deepEqual(goods.patch.agentWays?.sell, [
+    { shape: 'goods', what: 'Ankara fabric', priceMin: 30, priceMax: 60, shipsTo: 'Kano, Nigeria', arriveDaysMin: 2, arriveDaysMax: 4 },
+  ]);
+  assert.equal(goods.patch.seller?.tradeType, 'goods');
+  assert.ok(goods.lines.includes('Paid when the buyer has the goods'));
+  const stages = await readBrief({ goals: ['work'], what: 'Websites', price: '200 to 900 USDC, 14 to 30 days', paid: 'milestones' }, null, deps, 'en');
+  assert.equal(stages.patch.agentWays?.sell[0]?.shape, 'milestones');
+  const unsaid = await readBrief({ goals: ['work'], what: 'Logos', price: '20 to 40 USDC' }, null, deps, 'en');
+  assert.equal(unsaid.patch.agentWays, undefined);
+});

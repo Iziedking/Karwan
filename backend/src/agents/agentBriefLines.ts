@@ -16,6 +16,8 @@ export interface BriefAnswers {
   own?: 'offers' | 'ask';
   reach?: 'telegram' | 'email' | 'both';
   where?: string;
+  /// How clients usually pay: the selling way setup starts with (view 26).
+  paid?: 'one_time' | 'milestones' | 'goods';
   /// True when the price question was asked a second time.
   retried?: boolean;
 }
@@ -48,6 +50,7 @@ interface Copy {
   reach: Record<'telegram' | 'email' | 'both', string>;
   near: string;
   held: string;
+  paid: Record<'one_time' | 'milestones' | 'goods', string>;
 }
 
 const COPY: Record<UserLocale, Copy> = {
@@ -61,6 +64,7 @@ const COPY: Record<UserLocale, Copy> = {
     agentOffers: 'Your agent makes offers within your price, and asks before any deal', agentAsks: 'Your agent suggests, and asks you every time',
     reach: { telegram: 'We tell you on Telegram', email: 'We tell you by email', both: 'We tell you on Telegram, with email as backup' },
     near: 'Looks for people near {place} first', held: "Every client's payment is held until you deliver",
+    paid: { one_time: 'Paid all at once when the work is done', milestones: 'Paid in stages, as each one is approved', goods: 'Paid when the buyer has the goods' },
   },
   fr: {
     offers: 'Votre agent propose {what}', yourWork: 'votre travail', yourProducts: 'vos produits',
@@ -72,6 +76,7 @@ const COPY: Record<UserLocale, Copy> = {
     agentOffers: 'Votre agent fait des offres dans votre prix et vous demande avant tout accord', agentAsks: 'Votre agent suggère et vous demande à chaque fois',
     reach: { telegram: 'Nous vous prévenons sur Telegram', email: 'Nous vous prévenons par e-mail', both: 'Nous vous prévenons sur Telegram, avec l’e-mail en secours' },
     near: 'Cherche d’abord des personnes près de {place}', held: 'Chaque paiement client est retenu jusqu’à votre livraison',
+    paid: { one_time: 'Payé en une fois quand le travail est fait', milestones: 'Payé par étapes, à chaque étape approuvée', goods: 'Payé quand l’acheteur a la marchandise' },
   },
   ar: {
     offers: 'وكيلك يعرض {what}', yourWork: 'عملك', yourProducts: 'منتجاتك',
@@ -83,6 +88,7 @@ const COPY: Record<UserLocale, Copy> = {
     agentOffers: 'وكيلك يقدّم عروضًا ضمن سعرك، ويسألك قبل أي صفقة', agentAsks: 'وكيلك يقترح، ويسألك في كل مرة',
     reach: { telegram: 'نخبرك عبر Telegram', email: 'نخبرك بالبريد الإلكتروني', both: 'نخبرك عبر Telegram، والبريد الإلكتروني احتياطًا' },
     near: 'يبحث أولًا عن أشخاص قرب {place}', held: 'كل دفعة من عميل تُحجز حتى تسلّم',
+    paid: { one_time: 'يُدفع لك دفعة واحدة عند إنجاز العمل', milestones: 'يُدفع لك على مراحل، مع اعتماد كل مرحلة', goods: 'يُدفع لك حين يستلم المشتري البضاعة' },
   },
   hi: {
     offers: 'आपका एजेंट {what} पेश करता है', yourWork: 'आपका काम', yourProducts: 'आपके उत्पाद',
@@ -94,6 +100,7 @@ const COPY: Record<UserLocale, Copy> = {
     agentOffers: 'आपका एजेंट आपकी कीमत में ऑफ़र देता है, और किसी भी सौदे से पहले पूछता है', agentAsks: 'आपका एजेंट सुझाव देता है, और हर बार आपसे पूछता है',
     reach: { telegram: 'हम आपको Telegram पर बताते हैं', email: 'हम आपको ईमेल से बताते हैं', both: 'हम आपको Telegram पर बताते हैं, ईमेल बैकअप के रूप में' },
     near: 'पहले {place} के पास लोगों को ढूँढता है', held: 'हर ग्राहक का भुगतान आपकी डिलीवरी तक रोका जाता है',
+    paid: { one_time: 'काम पूरा होने पर एक बार में भुगतान', milestones: 'चरणों में भुगतान, हर चरण मंज़ूर होने पर', goods: 'खरीदार के पास सामान पहुँचने पर भुगतान' },
   },
   sw: {
     offers: 'Wakala wako anatoa {what}', yourWork: 'kazi yako', yourProducts: 'bidhaa zako',
@@ -105,6 +112,7 @@ const COPY: Record<UserLocale, Copy> = {
     agentOffers: 'Wakala wako anatoa ofa ndani ya bei yako, na anakuuliza kabla ya makubaliano yoyote', agentAsks: 'Wakala wako anapendekeza, na anakuuliza kila mara',
     reach: { telegram: 'Tunakujulisha kwenye Telegram', email: 'Tunakujulisha kwa barua pepe', both: 'Tunakujulisha kwenye Telegram, barua pepe kama akiba' },
     near: 'Anatafuta watu karibu na {place} kwanza', held: 'Kila malipo ya mteja yanashikiliwa hadi uwasilishe',
+    paid: { one_time: 'Unalipwa mara moja kazi ikikamilika', milestones: 'Unalipwa kwa hatua, kila hatua ikikubaliwa', goods: 'Unalipwa mnunuzi akipata bidhaa' },
   },
 };
 
@@ -122,6 +130,7 @@ export function briefLines(a: BriefAnswers, r: BriefRead, locale: UserLocale): s
       const base = r.price.min === r.price.max ? fill(c.priceOne, { min: r.price.min }) : fill(c.price, { min: r.price.min, max: r.price.max });
       const pace = !r.pace ? '' : r.pace.minDays === r.pace.maxDays ? fill(c.pace, { days: r.pace.minDays }) : fill(c.paceRange, { min: r.pace.minDays, max: r.pace.maxDays });
       lines.push(base + pace);
+      if (a.paid) lines.push(c.paid[a.paid]);
     } else {
       lines.push(c.noPrice);
     }

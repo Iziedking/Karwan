@@ -30,7 +30,7 @@ export type OnboardingStep =
   | SetupQuestion | 'confirm' | 'post' | 'done';
 
 /// The setup questions in chat, in the order /setup asks them.
-export type SetupQuestion = 'goals' | 'what' | 'price' | 'buy' | 'business' | 'places' | 'clients' | 'own' | 'reach' | 'where';
+export type SetupQuestion = 'goals' | 'what' | 'price' | 'paid' | 'buy' | 'business' | 'places' | 'clients' | 'own' | 'reach' | 'where';
 
 /// How long a confirm card waits for its tap.
 export const CARD_TTL_MS = 30 * 60_000;

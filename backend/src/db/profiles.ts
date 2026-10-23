@@ -110,6 +110,9 @@ export interface UserProfile {
   /// kept beside the settings read from them, so a buyer sees what they wrote.
   goals?: Goal[];
   agentPrefs?: AgentPrefs;
+  /// The ways this person deals, one per escrow shape (view 26). Absent until
+  /// they save; read through `waysOf`, which falls back to `seller` and `buyer`.
+  agentWays?: import('../agents/ways.js').AgentWays;
   ownWords?: { what?: string; price?: string; buy?: string; business?: string };
   /// Where they already work or sell. Private context, never counted toward
   /// the record.
@@ -364,6 +367,7 @@ const PRESERVE_WHEN_OMITTED = [
   'location',
   'goals',
   'agentPrefs',
+  'agentWays',
   'ownWords',
   'workPlaces',
   'businessDraft',

@@ -31,7 +31,7 @@ const GOALS: Array<[Goal, string]> = [
 ];
 
 type TextQuestion = 'what' | 'price' | 'buy' | 'business' | 'places' | 'where';
-type ChoiceQuestion = 'clients' | 'own' | 'reach';
+type ChoiceQuestion = 'paid' | 'clients' | 'own' | 'reach';
 
 const ASK: Record<TextQuestion, string> = {
   what: 'What do you do? One line in your own words. Your agent uses it to find clients. For example: Logo and brand design.',
@@ -45,6 +45,10 @@ const SELL_WHAT = 'What do you sell? One line in your own words. Your agent uses
 const PRICE_AGAIN = "I couldn't read a price there. What do you usually charge, in USDC? For example: 20 to 40 USDC.";
 
 const CHOICES: Record<ChoiceQuestion, { body: string; options: Array<[string, string]> }> = {
+  paid: {
+    body: 'How do clients usually pay you? Your agent offers deals this way. You can add other ways later.',
+    options: [['one_time', 'All at once'], ['milestones', 'In stages'], ['goods', 'I send goods']],
+  },
   clients: {
     body: 'Do you have clients already, or should Karwan find them?',
     options: [['own', 'I have clients'], ['find', 'Find clients for me'], ['both', 'Both']],
@@ -68,7 +72,7 @@ export function interviewQuestions(goals: readonly Goal[]): SetupQuestion[] {
   const selling = has('work') || has('sell');
   return [
     'goals',
-    ...(selling ? (['what', 'price'] as const) : []),
+    ...(selling ? (['what', 'price', 'paid'] as const) : []),
     ...(has('buy') ? (['buy'] as const) : []),
     ...(has('business') ? (['business'] as const) : []),
     ...(has('record') ? (['places'] as const) : []),
@@ -110,7 +114,7 @@ function firstPost(a: BriefAnswers): { kind: 'offer' | 'request'; handOff: strin
   return null;
 }
 
-const STEPS = new Set<string>(['role', 'offer', 'goals', 'what', 'price', 'buy', 'business', 'places', 'clients', 'own', 'reach', 'where', 'confirm', 'post']);
+const STEPS = new Set<string>(['role', 'offer', 'goals', 'what', 'price', 'paid', 'buy', 'business', 'places', 'clients', 'own', 'reach', 'where', 'confirm', 'post']);
 
 export function createInterview<A extends ChatAccount>(deps: InterviewDeps) {
   const now = deps.now ?? Date.now;

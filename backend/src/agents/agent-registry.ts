@@ -64,6 +64,7 @@ export function toSellerProfile(agents: AgentWallets, profile: UserProfile): Sel
     confidenceThreshold: DEFAULT_CONFIDENCE_THRESHOLD,
     keywords: s.keywords ?? [],
     agentMode: agentPrefsOf(profile).agentMode,
+    ...(profile.agentWays ? { ways: profile.agentWays.sell } : {}),
     skillVerifications: profile.skillVerifications?.map(({ skillId, status, issuer, expiresAt }) => ({
       skillId,
       status,

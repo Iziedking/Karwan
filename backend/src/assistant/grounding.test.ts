@@ -85,3 +85,11 @@ test('asking to send money is grounded by the send check, which reads the wallet
   assert.equal(assessGrounding(asked, result('propose_send_to_tag', { ok: true, sendable: false, reason: 'no_such_tag' })).grounded, true);
   assert.equal(assessGrounding(asked, result('propose_send_to_tag', { error: 'Could not prepare that send right now.' })).grounded, false);
 });
+
+test('a way of dealing is grounded by the tool that sets it (view 26)', () => {
+  // A card is not evidence; the profile read behind it is, as for set_up_my_agents.
+  const ask = messages('I also sell wigs, I ship anywhere in Nigeria');
+  assert.equal(assessGrounding(ask, result('get_my_profile', { displayName: 'Ada' })).grounded, true);
+  assert.equal(assessGrounding(ask, result('set_way_i_deal', { ok: true })).grounded, false);
+  assert.equal(assessGrounding(messages('how do I deposit from Base?'), result('get_my_deposit_addresses', { supported: true })).grounded, true);
+});

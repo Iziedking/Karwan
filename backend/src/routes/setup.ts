@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { BriefResult, ProfilePatch } from '../agents/agentBrief.js';
 import type { BriefAnswers } from '../agents/agentBriefLines.js';
 import type { UserLocale, UserProfile } from '../db/profiles.js';
+import { legacyFromWays, waysSchema, wayLines } from '../agents/ways.js';
 
 /// The setup conversation after activation (view 19). The answers are read on
 /// the server: preview shows what they set up, save stores what the server
@@ -21,6 +22,7 @@ export const answersSchema = z.object({
   own: z.enum(['offers', 'ask']).optional(),
   reach: z.enum(['telegram', 'email', 'both']).optional(),
   where: text(120),
+  paid: z.enum(['one_time', 'milestones', 'goods']).optional(),
   retried: z.boolean().optional(),
 });
 
@@ -82,6 +84,34 @@ export function createSetupRoutes(deps: SetupRouteDeps): Hono {
     if (!profile) return c.json({ error: 'profile not found' }, 404);
     if (r.result.place) await deps.saveLocation(r.address, r.result.place);
     return c.json({ profile });
+  });
+
+  /// The ways this person deals (view 26), saved whole. Moves no money and
+  /// calls no model; the older seller and buyer settings follow the ways.
+  app.post('/ways', async (c) => {
+    const address = (await deps.sessionAddress(c))?.toLowerCase();
+    if (!address) return c.json({ error: 'not authenticated' }, 401);
+    const parsed = z.object({ ways: waysSchema }).safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: 'invalid ways', issues: parsed.error.issues.map((i) => i.message) }, 400);
+    if (!allowed(address)) return c.json({ error: 'too many tries, wait a few minutes' }, 429);
+    const current = await deps.current(address);
+    if (!current) return c.json({ error: 'profile not found' }, 404);
+    const { ways } = parsed.data;
+    const { seller, buyer } = legacyFromWays(ways, current);
+    const patch: ProfilePatch = {
+      agentWays: ways,
+      seller,
+      buyer,
+      role: seller && buyer ? 'both' : seller ? 'seller' : 'buyer',
+      agentPrefs: {
+        ...(current.agentPrefs ?? {}),
+        ...(ways.sell.length ? { sellerPriceSet: true } : {}),
+        ...(ways.buy.length ? { buyerPriceSet: true } : {}),
+      },
+    };
+    const profile = await deps.save(address, patch);
+    if (!profile) return c.json({ error: 'profile not found' }, 404);
+    return c.json({ profile, lines: wayLines(ways) });
   });
 
   return app;

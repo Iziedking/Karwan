@@ -73,3 +73,30 @@ test('one account gets 20 readings in ten minutes', async () => {
   h.tick(10 * 60 * 1000 + 1);
   assert.equal((await h.post('/preview', { answers })).status, 200);
 });
+
+const ways = {
+  sell: [{ shape: 'goods', what: 'Wigs', priceMin: 80, priceMax: 300, shipsTo: 'Nigeria', arriveDaysMin: 2, arriveDaysMax: 5 }],
+  buy: [{ shape: 'one_time', maxPrice: 200, needDays: 7 }],
+};
+
+test('ways are saved with the older settings in step', async () => {
+  const h = harness();
+  const res = await h.post('/ways', { ways });
+  assert.equal(res.status, 200);
+  const body = (await res.json()) as { lines: string[] };
+  assert.equal(body.lines.length, 2);
+  const patch = h.saved[0]!;
+  assert.deepEqual(patch.agentWays, ways);
+  assert.equal(patch.role, 'both');
+  assert.equal(patch.seller?.tradeType, 'goods');
+  assert.equal(patch.seller?.maxBudgetUsdc, 300);
+  assert.equal(patch.buyer?.maxBudgetUsdc, 200);
+  assert.equal(patch.agentPrefs?.sellerPriceSet, true);
+});
+
+test('ways outside the live shapes, or without a session, are refused', async () => {
+  assert.equal((await harness({ sessionAddress: () => null }).post('/ways', { ways })).status, 401);
+  const h = harness();
+  assert.equal((await h.post('/ways', { ways: { sell: [{ shape: 'retainer', monthly: 100 }], buy: [] } })).status, 400);
+  assert.equal(h.saved.length, 0);
+});

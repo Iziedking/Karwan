@@ -17,6 +17,8 @@ export interface SellerProfile {
   keywords: string[];
   /** 'ask' suggests a fitting request to the owner instead of bidding (view 19). */
   agentMode?: 'offers' | 'ask';
+  /** Saved ways to sell (view 26). Absent when the person never saved any. */
+  ways?: import('./ways.js').SellWay[];
   /** Existing issuer records carried into read-only matching snapshots. */
   skillVerifications?: Array<{
     skillId: string;

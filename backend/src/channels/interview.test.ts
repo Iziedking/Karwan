@@ -47,6 +47,7 @@ async function toCard(iv: ReturnType<typeof make>['iv']) {
   a = (await iv.handle(a, tap('ws:goals:done')))!.account;
   a = (await iv.handle(a, text('Logo design')))!.account;
   a = (await iv.handle(a, text('20 to 40 USDC, 3 days')))!.account;
+  a = (await iv.handle(a, tap('ws:paid:one_time')))!.account;
   a = (await iv.handle(a, tap('ws:clients:own')))!.account;
   a = (await iv.handle(a, tap('ws:own:offers')))!.account;
   a = (await iv.handle(a, tap('ws:reach:telegram')))!.account;
@@ -83,7 +84,9 @@ test('only the questions the goals need are asked, text in free words and choice
   assert.match(bodyOf(what?.out[0]), /What do you sell/);
   const price = await iv.handle(what!.account, text('Ankara fabric'));
   assert.match(bodyOf(price?.out[0]), /usual price/);
-  const clients = await iv.handle(price!.account, text('About 30 USDC a piece'));
+  const paid = await iv.handle(price!.account, text('About 30 USDC a piece'));
+  assert.deepEqual(idsOf(paid?.out[0]), ['ws:paid:one_time', 'ws:paid:milestones', 'ws:paid:goods']);
+  const clients = await iv.handle(paid!.account, tap('ws:paid:goods'));
   assert.deepEqual(idsOf(clients?.out[0]), ['ws:clients:own', 'ws:clients:find', 'ws:clients:both']);
   const own = await iv.handle(clients!.account, tap('ws:clients:find'));
   assert.deepEqual(idsOf(own?.out[0]), ['ws:own:offers', 'ws:own:ask']);
@@ -92,7 +95,7 @@ test('only the questions the goals need are asked, text in free words and choice
   const where = await iv.handle(reach!.account, tap('ws:reach:both'));
   assert.match(bodyOf(where?.out[0]), /Where are you/);
   assert.deepEqual(where?.account.onboarding?.answers, {
-    goals: ['sell'], what: 'Ankara fabric', price: 'About 30 USDC a piece', clients: 'find', own: 'ask', reach: 'both',
+    goals: ['sell'], what: 'Ankara fabric', price: 'About 30 USDC a piece', paid: 'goods', clients: 'find', own: 'ask', reach: 'both',
   });
 });
 
@@ -149,7 +152,7 @@ test('the last message is the Here\'s your Karwan card, kept for the tap', async
   assert.equal(kept.expiresAt, 1_000 + 30 * 60_000);
   assert.equal(r!.account.onboarding?.step, 'confirm');
   assert.deepEqual(previewed.at(-1), {
-    goals: ['work'], what: 'Logo design', price: '20 to 40 USDC, 3 days', clients: 'own', own: 'offers', reach: 'telegram', where: 'Lagos, Nigeria',
+    goals: ['work'], what: 'Logo design', price: '20 to 40 USDC, 3 days', paid: 'one_time', clients: 'own', own: 'offers', reach: 'telegram', where: 'Lagos, Nigeria',
   });
 });
 

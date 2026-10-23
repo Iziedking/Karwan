@@ -28,6 +28,7 @@ import { financedStage, positionHref } from '../financial/dealFinanciers.js';
 import { firstTradeSteps, readFirstTradeFacts } from './firstTrade.js';
 import { mergeSetupAnswers } from './setupTool.js';
 import { readBrief } from '../agents/agentBrief.js';
+import { buyWaySchema, LIVE_SHAPES, sellWaySchema, waysOf, waysSchema, wayLines, withWay } from '../agents/ways.js';
 import { answersSchema as setupAnswersSchema } from '../routes/setup.js';
 import { readStakerYield } from '../routes/yield.js';
 import { loadInputs } from '../reputation/signals.js';
@@ -81,6 +82,7 @@ import {
   buildCancelRequestConfirm,
   buildCancelListingConfirm,
   buildSaveSetupConfirm,
+  buildSaveWaysConfirm,
   buildStakeConfirm,
   buildClaimYieldConfirm,
   buildFundAgentConfirm,
@@ -963,6 +965,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
         own: z.enum(['offers', 'ask']).optional(),
         reach: z.enum(['telegram', 'email', 'both']).optional(),
         where: z.string().optional(),
+        paid: z.enum(['one_time', 'milestones', 'goods']).optional(),
       }),
       execute: async (change) => {
         try {
@@ -980,6 +983,54 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
           return { ok: true, shown: card.title, lines: read.lines };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant set_up_my_agents failed');
+          return { error: 'Could not read that just now. Try again shortly.' };
+        }
+      },
+    }),
+
+    set_way_i_deal: tool({
+      description:
+        "Add, change or remove one way this person deals, for selling or for buying (view 26). Shapes: one_time (a single job or item), milestones (paid in stages), goods (sent to the buyer, review starts on arrival), deposit (held and returned, like a rental). Selling asks: one_time and milestones a price range and days (milestones also 2 to 5 stages); goods what, a price range, where they ship and how many days it takes to arrive; deposit what, the deposit and the period in days. Buying asks: one_time the most they pay and days; milestones the same plus pay at the end or by stage; goods the most they pay, where it comes to and how long they can wait; deposit the most deposit they will hold. Pass only what they said for that one way; ask for anything missing before calling. Shows a card; nothing is saved until they confirm. Use for 'I also sell wigs, I ship anywhere in Nigeria', 'I rent cameras with a 200 USDC deposit', 'stop selling one-off jobs'.",
+      inputSchema: z.object({
+        side: z.enum(['sell', 'buy']),
+        shape: z.enum(LIVE_SHAPES),
+        remove: z.boolean().optional(),
+        what: z.string().optional(),
+        priceMin: z.number().optional(),
+        priceMax: z.number().optional(),
+        daysMin: z.number().int().optional(),
+        daysMax: z.number().int().optional(),
+        stages: z.number().int().optional(),
+        shipsTo: z.string().optional(),
+        arriveDaysMin: z.number().int().optional(),
+        arriveDaysMax: z.number().int().optional(),
+        deposit: z.number().optional(),
+        periodDays: z.number().int().optional(),
+        maxPrice: z.number().optional(),
+        needDays: z.number().int().optional(),
+        pay: z.enum(['end', 'stages']).optional(),
+        deliverTo: z.string().optional(),
+        waitDays: z.number().int().optional(),
+        maxDeposit: z.number().optional(),
+      }),
+      execute: async ({ side, shape, remove, ...answers }) => {
+        try {
+          const saved = await getProfile(address);
+          if (!saved) return { error: 'They have no profile yet. They need to finish signing up first.' };
+          let way = null;
+          if (!remove) {
+            const read = (side === 'sell' ? sellWaySchema : buyWaySchema).safeParse({ shape, ...answers });
+            if (!read.success) return { needs: read.error.issues.map((i) => i.path.join('.') || i.message), note: 'Ask for what is missing or does not add up, then call this again.' };
+            way = read.data;
+          }
+          const next = waysSchema.safeParse(withWay(waysOf(saved), side, shape, way));
+          if (!next.success) return { error: 'That way could not be saved. Ask them to say it again in plain words.' };
+          const lines = wayLines(next.data);
+          const card = buildSaveWaysConfirm(next.data, lines);
+          if (!hasEquivalentConfirm(actions, card)) actions.push(card);
+          return { ok: true, shown: card.title, lines };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant set_way_i_deal failed');
           return { error: 'Could not read that just now. Try again shortly.' };
         }
       },

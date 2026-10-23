@@ -416,7 +416,7 @@
       "id": "setup-and-agent-choices",
       "title": "Setting up Karwan the way you use it",
       "status": "roadmap",
-      "updated": "2026-10-20",
+      "updated": "2026-10-23",
       "tags": [
         "agents",
         "onboarding",
@@ -429,7 +429,7 @@
           "date": "2026-10-20"
         }
       ],
-      "body": "After agent wallets are active, Karwan asks what you want it to do: get paid\nfor your work, sell products, buy or hire, run business deals, or build a\nrecord clients trust. It then asks only what those answers need, such as\nwhat you do, your usual price and how fast you deliver, and where you are.\nIt shows the result as \"Here's your Karwan\" and saves nothing until you\nsay it looks right. The same questions run on the website, in Telegram, and\nfrom a conversation with your agent.\n\nThree answers change what your agents do. If you only work with clients you\nalready have, your selling agent stays off the market. If you choose \"Ask me\nfirst\", it does not make offers on its own: it tells you about a request that\nfits and you decide. \"How should we reach you\" picks Telegram, email or both.\nMoney never moves without your confirmation.\n\nThis is built for testnet and not live yet."
+      "body": "After agent wallets are active, Karwan asks what you want it to do: get paid\nfor your work, sell products, buy or hire, run business deals, or build a\nrecord clients trust. It then asks only what those answers need, such as\nwhat you do, your usual price and how fast you deliver, how your clients\nusually pay you, and where you are.\nIt shows the result as \"Here's your Karwan\" and saves nothing until you\nsay it looks right. The same questions run on the website, in Telegram, and\nfrom a conversation with your agent.\n\nThree answers change what your agents do. If you only work with clients you\nalready have, your selling agent stays off the market. If you choose \"Ask me\nfirst\", it does not make offers on its own: it tells you about a request that\nfits and you decide. \"How should we reach you\" picks Telegram, email or both.\nMoney never moves without your confirmation.\n\nThis is built for testnet and not live yet."
     },
     {
       "id": "social-lookups-roadmap",
@@ -489,6 +489,25 @@
         }
       ],
       "body": "Karwan is building one reputation that travels with a person across platforms.\nThis is the direction the rest of the product serves, and it is not live in the\ncurrent Arc Testnet release.\n\nPeople join a new marketplace, job board or region and vet themselves from zero\nevery time, because their record is split across platforms that do not talk to\neach other. Unified reputation brings that record together: easy to track, easy\nto look up, hard to fake. It starts with Karwan's market, whose completed\ndeals are the first and most heavily weighted input.\n\nAgents will work only with data a person already owns, after they connect a\nsource and agree. Nothing is leaked, sold or scraped, and consent can be\nwithdrawn. Other platforms join as partners once the working model is designed\nwith them; none is named until an agreement exists. The reputation layer is\nbeing built on Circle's agent stack, while escrow, staking and Circle's payment\ntools bring the market on chain.\n\nToday a person's Karwan reputation comes only from completed Karwan deals."
+    },
+    {
+      "id": "ways-you-deal",
+      "title": "The ways you deal",
+      "status": "roadmap",
+      "updated": "2026-10-23",
+      "tags": [
+        "agents",
+        "escrow",
+        "testnet"
+      ],
+      "path": "public/product/ways-you-deal.md",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/26-agents-for-every-deal.md",
+          "date": "2026-10-23"
+        }
+      ],
+      "body": "Your agents work from the ways you deal, for selling and for buying. Each way\nis one kind of deal with its own price and time: one-time, milestones paid in\nstages, goods with delivery, where review starts when the item arrives, and a\nrefundable deposit, like a rental. A goods way also says where you ship and\nhow long it takes to arrive. Other kinds of escrow are added as they go live.\n\nYour selling agent offers on a request inside the way of its kind. When a\nbuyer asks for a kind of deal you have not listed, the agent does not offer\non its own: it tells you about the request and you decide.\n\nSetup starts you with one way, from how your clients usually pay you. You\nadd, change or remove ways on your profile or by telling your agent, and\nnothing is saved until you confirm. Money never moves without your\nconfirmation.\n\nThis is built for testnet and not live yet."
     },
     {
       "id": "what-karwan-is",
@@ -1105,7 +1124,7 @@
         "onboarding",
         "testnet"
       ],
-      "summary": "After agent wallets are active, Karwan asks what you want it to do: get paid for your work, sell products, buy or hire, run business deals, or build a record clients trust. It then asks only what those answers need, such as what you do, your usual price and how fast you deliver, and where you are. It shows the result as \"Here's your Karwan\" and saves nothing until you say it looks right. The same questions run on the website, in Telegram, and from a conversation with your agent.",
+      "summary": "After agent wallets are active, Karwan asks what you want it to do: get paid for your work, sell products, buy or hire, run business deals, or build a record clients trust. It then asks only what those answers need, such as what you do, your usual price and how fast you deliver, how your clients usually pay you, and where you are. It shows the result as \"Here's your Karwan\" and saves nothing until you say it looks right. The same questions run on the website, in Telegram, and from a conversation with your agent.",
       "sources": [
         {
           "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/19-simple-karwan.md",
@@ -1113,7 +1132,7 @@
         }
       ],
       "check": null,
-      "updated": "2026-10-20",
+      "updated": "2026-10-23",
       "path": "public/product/setup-and-agent-choices.md"
     },
     {
@@ -1189,6 +1208,30 @@
       "check": null,
       "updated": "2026-09-30",
       "path": "public/product/unified-reputation-roadmap.md"
+    },
+    {
+      "id": "ways-you-deal",
+      "title": "The ways you deal",
+      "status": "roadmap",
+      "publishable": false,
+      "blockedBy": "not-live",
+      "capability": true,
+      "audience": "all",
+      "tags": [
+        "agents",
+        "escrow",
+        "testnet"
+      ],
+      "summary": "Your agents work from the ways you deal, for selling and for buying. Each way is one kind of deal with its own price and time: one-time, milestones paid in stages, goods with delivery, where review starts when the item arrives, and a refundable deposit, like a rental. A goods way also says where you ship and how long it takes to arrive. Other kinds of escrow are added as they go live.",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/26-agents-for-every-deal.md",
+          "date": "2026-10-23"
+        }
+      ],
+      "check": null,
+      "updated": "2026-10-23",
+      "path": "public/product/ways-you-deal.md"
     },
     {
       "id": "what-karwan-is",

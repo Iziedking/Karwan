@@ -44,6 +44,7 @@ import {
 } from './strategy.js';
 import { sellerDaysToDeadline, sellerOpeningBid as pureSellerOpeningBid } from './sellerPricing.js';
 import { getBrief } from '../db/briefs.js';
+import { sellerForRequest } from './ways.js';
 import { deliveryQuestions, reachGate } from '../location/deliveryQuestions.js';
 import { locationOf } from '../location/live.js';
 import { kindOf } from '../location/rules.js';
@@ -849,7 +850,8 @@ function passOnBuyer(seller: SellerProfile, job: JobContext, check: BuyerCheck):
   ]);
 }
 
-async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
+async function evaluateAndBid(profile: SellerProfile, job: JobContext) {
+  const seller = sellerForRequest(profile, getBrief(job.jobId)?.tradeType);
   const mismatch = profileMismatchReason(seller, job);
   if (mismatch) {
     logger.info({ jobId: job.jobId, seller: seller.address, reason: mismatch.reason }, 'skipping job');

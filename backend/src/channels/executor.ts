@@ -18,6 +18,7 @@ type Step = { method: 'GET' | 'POST'; path: string; body?: unknown };
 const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAction) => Step>> = {
   post_offer: (p) => ({ method: 'POST', path: '/api/listings', body: p }),
   save_setup: (p) => ({ method: 'POST', path: '/api/setup/save', body: { answers: p.answers } }),
+  save_ways: (p) => ({ method: 'POST', path: '/api/setup/ways', body: { ways: p.ways } }),
   // The card carries the exact body the deal form sends, already validated (view 24).
   create_direct_deal: (p) => ({ method: 'POST', path: '/api/deals/direct', body: p }),
   post_request: (p) => ({
@@ -136,6 +137,7 @@ const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAction) =
 const DONE: Partial<Record<ConfirmAction['intent'], string>> = {
   post_offer: 'Your offer is live.',
   save_setup: 'Saved. Your agents now work this way.',
+  save_ways: 'Saved. Your agents now deal this way.',
   create_direct_deal: 'Deal sent. The seller is asked to accept the terms; you pay into escrow after that.',
   fund_direct_deal: 'Paid into escrow. The seller can start the work.',
   post_request: 'Request posted. Your agent is looking now.',

@@ -2,13 +2,14 @@ import type { AgentPrefs, UserLocale, UserProfile, UserSettings } from '../db/pr
 import { parsePlace } from '../location/rules.js';
 import { parseBriefPrice } from './agentBriefParse.js';
 import { briefLines, type BriefAnswers, type BriefRead } from './agentBriefLines.js';
+import { legacyFromWays, waysOf, withWay, type SellWay } from './ways.js';
 
 /// The setup conversation's answers, read into the account's settings (view
 /// 19). Shared by the website, the Telegram interview and the assistant, so
 /// every channel sets an account up the same way. Nothing is saved here.
 
 export type ProfilePatch = Pick<UserProfile, 'goals' | 'agentPrefs' | 'ownWords' | 'workPlaces' | 'businessDraft'> &
-  Partial<Pick<UserProfile, 'role' | 'seller' | 'buyer'>> & { settings?: Partial<UserSettings> };
+  Partial<Pick<UserProfile, 'role' | 'seller' | 'buyer' | 'agentWays'>> & { settings?: Partial<UserSettings> };
 
 export interface BriefResult {
   patch: ProfilePatch;
@@ -75,6 +76,24 @@ export async function readBrief(
       maxDeadlineDays: days.maxDays,
     };
     prefs.sellerPriceSet = !!price;
+    // How clients pay becomes the selling way the agent starts with (view 26).
+    // Goods need somewhere to ship to, read from where they are.
+    const shipsTo = clip(a.where, 120);
+    const way: SellWay | null = !a.paid || !price
+      ? null
+      : a.paid === 'goods'
+        ? shipsTo
+          ? { shape: 'goods', what: (what || skills[0] || 'Goods').slice(0, 120), priceMin: range.min, priceMax: range.max, shipsTo, arriveDaysMin: days.minDays, arriveDaysMax: days.maxDays }
+          : null
+        : a.paid === 'milestones'
+          ? { shape: 'milestones', priceMin: range.min, priceMax: range.max, daysMin: days.minDays, daysMax: days.maxDays, stages: 2 }
+          : { shape: 'one_time', priceMin: range.min, priceMax: range.max, daysMin: days.minDays, daysMax: days.maxDays };
+    if (way) {
+      const base = current?.agentWays ?? { sell: [], buy: waysOf({ buyer: current?.buyer }).buy };
+      const ways = withWay(base, 'sell', way.shape, way);
+      patch.agentWays = ways;
+      patch.seller = legacyFromWays(ways, { seller: patch.seller }).seller;
+    }
     if (a.clients) prefs.findClients = a.clients !== 'own';
     prefs.agentMode = !price ? 'ask' : a.own ?? prefs.agentMode ?? 'offers';
   } else if (current?.seller) {
