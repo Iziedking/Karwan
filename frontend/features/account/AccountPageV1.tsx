@@ -32,7 +32,7 @@ function AccountPageInner() {
       <OwnBack />
       <header className="mt-2">
         <div>
-          <div className="flex items-center"><h1 className="text-[28px] font-semibold tracking-[-0.02em] text-[var(--lp-dark)]">{messages.accountHome.balanceLabel}</h1><NetworkHint /></div>
+          <div className="flex items-center"><h1 className="text-[22px] font-semibold tracking-[-0.02em] text-[var(--lp-dark)]">{messages.accountHome.balanceLabel}</h1><NetworkHint /></div>
         </div>
       </header>
 
@@ -84,7 +84,8 @@ function BalanceSummary() {
     n == null ? '-' : n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const rows: Array<{ label: string; value: number | null; sub?: Array<{ label: string; value: number | null }> }> = [
     { label: t.onArc, value: owned.total == null ? null : owned.wallet },
-    { label: t.otherChains, value: owned.total == null ? null : owned.otherChains },
+    // Money on other networks shows only when there is some.
+    ...(owned.otherChains > 0 ? [{ label: t.otherChains, value: owned.total == null ? null : owned.otherChains }] : []),
     {
       label: t.agents,
       value: owned.total == null ? null : owned.agents,
@@ -95,18 +96,18 @@ function BalanceSummary() {
     },
   ];
   return (
-    <section aria-label={t.total} className="mt-7 rounded-[22px] bg-[var(--lp-card)] p-5 sm:p-6">
-      <p className="text-[15px] font-semibold text-[var(--lp-text-sub)]">{t.total}</p>
+    <section aria-label={t.total} className="mt-5 rounded-[24px] border border-[var(--lp-border-light)] bg-[linear-gradient(115deg,var(--hero-from),var(--hero-to)_70%)] p-5 shadow-[var(--hero-shadow)] sm:p-6">
+      <p className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{t.total}</p>
       <p className="mt-1 flex items-baseline gap-2">
-        <span className="text-[40px] font-bold leading-none tracking-[-0.03em] tabular-nums text-[var(--lp-dark)]">{fmt(owned.total)}</span>
-        {' '}<span className="text-[17px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
+        <span className="text-[34px] font-bold leading-none tracking-[-0.03em] tabular-nums text-[var(--lp-dark)] sm:text-[40px]">{fmt(owned.total)}</span>
+        {' '}<span className="text-[15px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
       </p>
       <dl className="mt-5 divide-y divide-[var(--lp-border-light)] border-t border-[var(--lp-border-light)]">
         {rows.map((row) => (
           <div key={row.label} className="py-3">
             <div className="flex items-baseline justify-between gap-4">
-              <dt className="text-[16px] font-medium text-[var(--lp-dark)]">{row.label}</dt>
-              <dd className="text-[16px] font-semibold tabular-nums text-[var(--lp-dark)]">{fmt(row.value)} USDC</dd>
+              <dt className="text-[15px] font-medium text-[var(--lp-text-sub)]">{row.label}</dt>
+              <dd className="text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">{fmt(row.value)} USDC</dd>
             </div>
             {row.sub ? (
               <div className="mt-1.5 space-y-1 ps-4">

@@ -249,7 +249,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
             stakedUsdc: owned.staked > 0 ? owned.staked.toFixed(2) : null,
             gas: formatUnits(gas, NATIVE_DECIMALS),
             someSourcesUnread: owned.partial,
-            note: `totalUsdc is the balance on their balance page: give it first, as their balance. Name parts only in the page's words: "in your wallet on Arc", "on other chains", "with your agents" (for buying, for selling). walletOnArcUsdc is what they can send or pay from directly. stakedUsdc is locked in the stake vault behind their deals and is NOT part of the total: if you mention it, say it is locked and not counted in the balance, and do not claim it earns yield unless get_my_stake shows yield. Never mention a pooled or unified balance. If someSourcesUnread is true, say one place could not be read just now, so the total may be low.`,
+            note: `totalUsdc is the balance on their balance page: give it first, as their balance. Name parts only in the page's words: "ready to send", "on other networks", "with your agents" (for buying, for selling). Never say chains. walletOnArcUsdc is what they can send or pay from directly. stakedUsdc is locked in the stake vault behind their deals and is NOT part of the total: if you mention it, say it is locked and not counted in the balance, and do not claim it earns yield unless get_my_stake shows yield. Never mention a pooled or unified balance. If someSourcesUnread is true, say one place could not be read just now, so the total may be low.`,
           };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant get_my_balance failed');

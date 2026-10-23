@@ -41,6 +41,7 @@ import { useTagRecipient } from '../hooks/useTagRecipient';
 import { AddressText } from './AddressText';
 import { CHIP, PRIMARY, SECONDARY } from '@/shared/ui/controls';
 import { Icon } from '@/shared/components/Icon';
+import { PersonAvatar } from '@/shared/components/PersonAvatar';
 import { MoneyOutNotice } from '@/features/moneyOut/MoneyOutNotice';
 
 export interface MoneySheetProps {
@@ -234,7 +235,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
     <Frame layout={layout} open={open} labelledBy={titleId} busy={busy} onClose={onClose} initialFocus={amountRef}>
       <div className="flex items-start justify-between gap-4">
         {layout === 'page' ? (
-          <h1 id={titleId} className="text-[28px] font-semibold tracking-[-0.01em] text-[var(--lp-dark)] sm:text-[32px]">{title}</h1>
+          <h1 id={titleId} className="text-[22px] font-semibold tracking-[-0.02em] text-[var(--lp-dark)]">{title}</h1>
         ) : (
           <h2 id={titleId} className="text-[20px] font-semibold text-[var(--lp-dark)]">{title}</h2>
         )}
@@ -264,7 +265,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
             spellCheck={false}
             autoComplete="off"
             dir="ltr"
-            className="mt-2 min-h-12 w-full rounded-[10px] border border-[var(--lp-outline-strong)] bg-transparent px-3 text-[15px] text-[var(--lp-dark)] placeholder:text-[var(--lp-text-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            className="mt-2 min-h-[50px] w-full rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--tint)] px-4 text-[15px] font-medium text-[var(--lp-dark)] placeholder:text-[var(--lp-text-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           />
           {tagLookup ? (
             <TagLine lookup={tagLookup} copy={t.sheet} />
@@ -307,7 +308,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
 
       <div className="mt-6">
         <label htmlFor={amountId} className="text-[14px] font-medium text-[var(--lp-text-sub)]">{t.sheet.amountLabel}</label>
-        <div className="mt-2 flex items-baseline gap-2 border-b-2 border-[var(--lp-dark)] pb-2 focus-within:border-[var(--accent)]">
+        <div className="mt-2 flex items-baseline gap-2 border-b-2 border-[var(--lp-accent)] pb-2 focus-within:border-[var(--lp-accent-on-light)]">
           <input
             id={amountId}
             ref={amountRef}
@@ -318,9 +319,9 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
             autoComplete="off"
             placeholder="0"
             dir="ltr"
-            className="min-w-0 flex-1 bg-transparent text-[40px] font-semibold leading-none tracking-[-0.03em] tabular-nums text-[var(--lp-dark)] outline-none placeholder:text-[var(--lp-text-muted)]"
+            className="amount-input min-w-0 flex-1 bg-transparent text-[36px] font-bold leading-none tracking-[-0.03em] tabular-nums text-[var(--lp-dark)] outline-none placeholder:text-[var(--lp-text-muted)]"
           />
-          {' '}<span className="text-[18px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
+          {' '}<span className="text-[15px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
         </div>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
           <p className="inline-flex items-center gap-1.5 text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">
@@ -384,7 +385,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
                 {fill(doneLine, { amount: formatAmount(moved, locale), tag: paidTag?.tag ?? '', name: otherAgentName.toLowerCase() })}
               </p>
             </div>
-            <dl className="rounded-[20px] bg-[var(--lp-card)] px-5 text-[15px] tabular-nums">
+            <dl className="rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-5 text-[15px] tabular-nums">
               <div className="flex justify-between gap-3 border-b border-[var(--lp-border-light)] py-3.5 last:border-b-0">
                 <dt className="text-[var(--lp-text-sub)]">{t.sheet.yourBalance}</dt>
                 <dd className="font-medium text-[var(--lp-dark)]">{balanceAfter === null ? '' : `${formatBalance(balanceAfter, locale)} USDC`}</dd>
@@ -473,12 +474,13 @@ function Frame({ layout, children, initialFocus, ...sheet }: {
   }, [layout, initialFocus]);
   if (layout === 'sheet') return <ConfirmSheetShell {...sheet} initialFocus={initialFocus}>{children}</ConfirmSheetShell>;
   return (
-    <section aria-labelledby={sheet.labelledBy} className="mx-auto w-full max-w-[560px] px-4 pb-10 pt-2 sm:pb-14">
+    <section aria-labelledby={sheet.labelledBy} className="mx-auto w-full max-w-[560px] pb-10 pt-2 sm:px-4 sm:pb-14">
       {/* Back sits on the form's column, not at the page edge. */}
-      <div data-own-back className="-ms-2 mb-6 empty:hidden">
+      <div data-own-back className="-ms-2 mb-4 empty:hidden">
         <ProductBackLink pathname={pathname} isAuthenticated={isAuthenticated} />
       </div>
-      {children}
+      {/* The form sits on one card, as in the drawer. */}
+      <div className="rounded-[24px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5 shadow-[var(--hero-shadow)] sm:p-7">{children}</div>
     </section>
   );
 }
@@ -508,8 +510,10 @@ function TagLine({ lookup, copy }: { lookup: TagLookup; copy: MoneyCopy['sheet']
   if (!result.found) return <p className="mt-2 text-[14px] text-[var(--color-critical)]">{fill(copy.tagNotFound, { tag: result.tag })}</p>;
   if (result.self) return <p className="mt-2 text-[14px] text-[var(--color-critical)]">{copy.tagSelf}</p>;
   return (
-    <p className="mt-2 flex flex-wrap items-baseline gap-x-2 text-[14px]">
-      <span className="font-semibold text-[var(--lp-dark)]">{fill(copy.tagFound, { name: result.displayName, tag: result.tag })}</span>
+    <p className="mt-3 flex items-center gap-3 rounded-[16px] bg-[color-mix(in_srgb,var(--accent)_16%,transparent)] p-3 text-[14px]">
+      <PersonAvatar address={result.address} name={result.displayName} size={40} />
+      <span className="min-w-0 flex-1 font-semibold text-[var(--lp-dark)]">{fill(copy.tagFound, { name: result.displayName, tag: result.tag })}</span>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--lp-accent-on-light)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0"><path d="M5 12l5 5L19 7" /></svg>
     </p>
   );
 }

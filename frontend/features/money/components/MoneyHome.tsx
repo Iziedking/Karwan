@@ -83,7 +83,7 @@ function MoneyHomeInner() {
               <button type="button" onClick={balances.refetch} className={SECONDARY}>{t.home.tryAgain}</button>
             </div>
           ) : (
-            <>
+            <div className="space-y-4 rounded-[24px] border border-[var(--lp-border-light)] bg-[linear-gradient(115deg,var(--hero-from),var(--hero-to)_70%)] p-5 shadow-[var(--hero-shadow)] sm:p-6">
               <div className="-mb-2 flex justify-end"><NetworkHint /></div>
               <h1 id="money-balance" className="space-y-2">
                 <span className="block text-[14px] font-semibold text-[var(--lp-text-sub)]">{t.home.balanceLabel}</span>
@@ -94,11 +94,11 @@ function MoneyHomeInner() {
                     initial={{ opacity: reduce ? 0 : 1 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: dur.fast }}
-                    className="text-[44px] font-semibold leading-none tracking-[-0.03em] text-[var(--lp-dark)] sm:text-[56px]"
+                    className="text-[34px] font-bold leading-none tracking-[-0.03em] text-[var(--lp-dark)] sm:text-[40px]"
                   >
                     <AnimatedNumber value={hero} format={(value) => formatBalance(value, locale)} />
                   </motion.span>
-                  {' '}<span className="text-[18px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
+                  {' '}<span className="text-[15px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
                 </span>
               </h1>
               <p role="status" aria-live="polite" className="flex items-start gap-2 text-[15px] leading-relaxed text-[var(--lp-dark)]">
@@ -115,13 +115,13 @@ function MoneyHomeInner() {
                 <Link href="/send" className={SECONDARY}>{t.home.send}</Link>
                 <Link href="/request" className={SECONDARY}>{payLink.short}</Link>
               </div>
-            </>
+            </div>
           )}
         </section>
 
         <section id="agents" aria-labelledby="money-agents" className="scroll-mt-24 space-y-4">
           <div>
-            <h2 id="money-agents" className="text-[20px] font-semibold text-[var(--lp-dark)]">{t.home.agentsTitle}</h2>
+            <h2 id="money-agents" className="text-[17px] font-semibold text-[var(--lp-dark)]">{t.home.agentsTitle}</h2>
             <p className="mt-1 text-[14px] text-[var(--lp-text-sub)] font-medium">{t.home.agentsLine}</p>
           </div>
           {balances.activationLoading ? (
@@ -206,7 +206,7 @@ function Disclosure({ id, title, open, onToggle, children }: {
           aria-expanded={open}
           aria-controls={`${id}-body`}
           onClick={onToggle}
-          className="flex min-h-11 w-full items-center justify-between gap-3 text-start text-[20px] font-semibold text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          className="flex min-h-11 w-full items-center justify-between gap-3 text-start text-[17px] font-semibold text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         >
           {title}
           <span aria-hidden className={`text-[16px] text-[var(--lp-text-sub)] transition-transform duration-200 motion-reduce:transition-none ${open ? 'rotate-180' : ''}`}>⌄</span>
