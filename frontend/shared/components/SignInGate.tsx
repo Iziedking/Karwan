@@ -1,25 +1,13 @@
 ﻿'use client';
-import { type ReactNode } from 'react';
-import Link from 'next/link';
+import { useEffect, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { START_ROUTE } from '@/shared/utils/routes';
-import { DEALS_AVAILABLE } from '@/core/arcNetwork';
-import {
-  FullBleed,
-  Band,
-  SectionTag,
-  HeroHeadline,
-  Punc,
-} from '@/shared/components/Bands';
-import styles from './SignInGate.module.css';
-import { Icon } from '@/shared/components/Icon';
 
-/// The account entry has its own composition. Other private routes keep a
-/// compact gate so a link to a specific task does not become a second landing.
+/// A signed-out visit to a private page goes straight to sign in, so the app
+/// has one sign-in screen. A shared link that needs its own words first (a
+/// cash-out) passes a title and gets a short card on the way.
 export function SignInGate({
-  variant = 'page',
-  tag,
   title,
   body,
   buttonLabel,
@@ -31,71 +19,28 @@ export function SignInGate({
   buttonLabel?: string;
 }) {
   const router = useRouter();
-  const t = useTranslations();
-  const isHero = variant === 'hero';
-  const copy = t.auth.signInGate;
-  const resolvedTag = tag ?? (isHero ? copy.heroTag : copy.defaultTag);
-  const resolvedButton = buttonLabel ?? (isHero ? copy.heroButton : copy.button);
+  const copy = useTranslations().auth.signInGate;
+  const redirect = !title;
 
-  if (isHero) {
-    return (
-      <FullBleed>
-        <section data-auth-gate="hero" className={styles.hero}>
-          <div className={styles.inner}>
-            <p className={styles.eyebrow}>{resolvedTag}</p>
-            <h1 className={styles.headline}>{title ?? copy.heroTitle}</h1>
-            <p className={styles.lede}>{body ?? copy.heroBody}</p>
-            <button type="button" className={styles.entryAction} onClick={() => router.push(START_ROUTE)}>
-              {resolvedButton}
-              <Icon name="arrow-right" size={16} directional />
-            </button>
-            <p className={styles.notice}>{copy.heroNote}</p>
-            {DEALS_AVAILABLE && (
-              <div className={styles.browse}>
-                <span>{copy.browseIntro}</span>
-                <Link href="/market">{copy.browseLink}</Link>
-              </div>
-            )}
-          </div>
-        </section>
-      </FullBleed>
-    );
-  }
+  useEffect(() => {
+    if (redirect) router.replace(START_ROUTE);
+  }, [redirect, router]);
 
-  const titleNode: ReactNode = title ?? <>{copy.pageTitle}<Punc>.</Punc></>;
-  const bodyText: ReactNode = body ?? copy.pageBody;
+  if (redirect) return <div data-auth-gate="redirect" className="min-h-[60vh]" aria-hidden />;
 
   return (
-    <FullBleed>
-      <Band
-        tone="dark"
-      >
-        <div className="max-w-[52ch]">
-          <div className="fade-up">
-            <SectionTag tone="dark">
-              {resolvedTag}
-            </SectionTag>
-          </div>
-          <div className="fade-up fade-up-1">
-            <HeroHeadline size="md">{titleNode}</HeroHeadline>
-          </div>
-          <p
-            className="fade-up fade-up-2 mt-5 max-w-[44ch] text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)]"
-          >
-            {bodyText}
-          </p>
-          <div className="fade-up fade-up-3 mt-7">
-            <button
-              type="button"
-              onClick={() => router.push(START_ROUTE)}
-              className="group inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--lp-accent)] px-[18px] py-[11px] text-[14px] font-semibold text-[var(--accent-ink)] transition-colors hover:bg-[var(--lp-accent-hover)]"
-            >
-              {resolvedButton}
-              <Icon name="arrow-right" size={16} directional />
-            </button>
-          </div>
-        </div>
-      </Band>
-    </FullBleed>
+    <div data-auth-gate="card" className="mx-auto w-full max-w-[440px] px-4 py-16">
+      <section className="rounded-[24px] border border-[var(--lp-border-light)] bg-[linear-gradient(115deg,var(--hero-from),var(--hero-to)_70%)] p-6 shadow-[var(--hero-shadow)]">
+        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-[var(--lp-dark)]">{title}</h1>
+        {body ? <p className="mt-2 text-[15px] leading-relaxed text-[var(--lp-text-sub)]">{body}</p> : null}
+        <button
+          type="button"
+          onClick={() => router.push(START_ROUTE)}
+          className="mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[var(--action)] px-6 text-[15px] font-semibold text-[var(--on-action)] hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-offset-2"
+        >
+          {buttonLabel ?? copy.button}
+        </button>
+      </section>
+    </div>
   );
 }

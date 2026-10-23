@@ -17,6 +17,7 @@ import {
   type DiscoverySort,
 } from '@/features/discovery/model';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
+import { Hint } from '@/shared/components/Hint';
 import { Icon } from '@/shared/components/Icon';
 import { Skeleton, SkeletonText } from '@/shared/components/Skeleton';
 import { Band, FullBleed } from '@/shared/components/Bands';
@@ -234,10 +235,10 @@ export function ListingsBrowse({
                   ]}
                   onChange={setSort}
                 />
+                <Hint side="bottom" align="end"><span data-market-order>{copy.order[orderNoteKey(sort)]}</span></Hint>
               </div>
             </div>
           </div>
-          <p data-market-order className="mt-3 text-[14px] font-medium text-[var(--ink-secondary)]">{copy.order[orderNoteKey(sort)]}</p>
         </div>
 
         {failedSources.length > 0 ? (

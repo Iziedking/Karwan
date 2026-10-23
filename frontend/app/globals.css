@@ -78,6 +78,11 @@
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
+  /* Nothing may widen a phone page sideways; iOS zooms the whole page out
+     when one element pokes past the edge. Clip keeps sticky headers working. */
+  body {
+    overflow-x: clip;
+  }
 
   /* The product shell owns reading copy. Public and landing pages stay on the
      established brand typography, while explicit font utilities still win for

@@ -341,24 +341,12 @@ test('dark sign-in card uses slate surfaces and reserves brand green for an avai
   assert.match(modal, /bg-\[var\(--lp-accent\)\] text-\[var\(--accent-ink\)\]/);
 });
 
-test('signed-out entry is a focused account-access page, not a second landing', () => {
+test('signed out, a private page goes straight to the one sign-in screen, never an older gate', () => {
   const gate = source('./SignInGate.tsx');
-  const css = source('./SignInGate.module.css');
-  assert.match(gate, /<h1 className=\{styles\.headline\}>/);
-  // Sign-in opens in place: a full reload would start a second cold splash.
-  assert.match(gate, /router\.push\(START_ROUTE\)/);
-  assert.doesNotMatch(gate, /window\.location\.assign/);
-  assert.doesNotMatch(gate, /LoginModal/);
-  assert.match(gate, /<Link href="\/market">\{copy\.browseLink\}<\/Link>/);
-  assert.doesNotMatch(gate, /<figure|example\.note|agreementSubject/);
-  assert.doesNotMatch(gate, /setInterval|motion\.div/);
-  assert.match(css, /min-height: calc\(100svh - var\(--lp-nav-h, 72px\)\)/);
-  assert.match(css, /width: min\(100%, 650px\)/);
-  assert.match(css, /margin-inline-start: calc\(50% - 50vw\)/);
-  assert.doesNotMatch(gate, /left-1\/2 w-bleed -translate-x-1\/2/);
-  assert.match(css, /background-color: var\(--karwan-canvas\)/);
-  assert.match(css, /background-image: url\('\/brand\/karwan-matte-grain\.svg'\)/);
-  assert.doesNotMatch(en.auth.signInGate.heroBody, /\u2014/);
+  // In place, not a reload: a full reload would start a second cold splash.
+  assert.match(gate, /router\.replace\(START_ROUTE\)/);
+  assert.doesNotMatch(gate, /window\.location\.assign|LoginModal|Bands|module\.css/);
+  assert.doesNotMatch(source('./AuthGuard.tsx'), /Band|GridOverlay/);
 });
 
 test('footer keeps the canonical brand and treats its motion as optional decoration', () => {

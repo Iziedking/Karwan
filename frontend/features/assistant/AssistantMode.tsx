@@ -285,7 +285,6 @@ function AssistantPage() {
                 <Icon name="return" size={20} directional />
               </button>
             </form>
-            <p className="mt-2 text-center text-[13px] text-[var(--lp-text-sub)]">{t.confirmNote}</p>
           </div>
         </div>
       </section>

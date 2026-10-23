@@ -66,7 +66,7 @@ export function WorkspaceBottomNav() {
   return (
     <nav
       data-workspace-bottom-nav
-      className="fixed inset-x-3 bottom-0 z-40 rounded-[22px] border border-[var(--color-line)] bg-[var(--nav-float)] px-2 py-1 text-[var(--color-ink)] shadow-[var(--hero-shadow)] backdrop-blur-[14px] lg:hidden"
+      className="fixed inset-x-3 bottom-0 z-40 rounded-[22px] border border-[var(--color-line)] bg-[var(--nav-float)] px-2 py-1 text-[var(--color-ink)] shadow-[var(--hero-shadow)] transform-gpu lg:hidden"
       style={{ marginBottom: 'max(12px, env(safe-area-inset-bottom))' }}
     >
       <div

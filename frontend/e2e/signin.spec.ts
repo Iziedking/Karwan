@@ -70,15 +70,13 @@ async function open(page: Page, {
 }
 
 async function layoutIsSound(page: Page, testInfo: TestInfo) {
-  const panel = page.getByTestId('signin-media');
-  await expect(panel).toHaveCount(1);
+  // The flow lines are decoration behind the card on every width, never content.
+  const lines = page.locator('main canvas');
+  await expect(lines).toHaveCount(1);
+  await expect(lines).toHaveAttribute('aria-hidden', 'true');
   await expect(page.locator('main')).toHaveCount(1);
   await expect(page.locator('#site-footer')).toHaveCount(0);
-  if (page.viewportSize()!.width >= 1024) await expect(panel).toBeVisible();
-  else await expect(panel).toBeHidden();
-  // The owner-approved film has not been produced; the current panel is SVG art.
-  await expect(panel.locator('video')).toHaveCount(0);
-  await expect(panel.locator('svg')).toHaveAttribute('aria-hidden', 'true');
+  await expect(page.locator('main video')).toHaveCount(0);
   await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
   await expect(page.locator('body')).not.toContainText(/[→←↗]/);
   const metrics = await page.evaluate(() => {
@@ -105,13 +103,16 @@ async function layoutIsSound(page: Page, testInfo: TestInfo) {
   await testInfo.attach('layout', { body: JSON.stringify({ ...metrics, violations: axe.violations }, null, 2), contentType: 'application/json' });
   expect(metrics.overflow).toBeLessThanOrEqual(0);
   expect(metrics.primary).toHaveLength(1);
-  const card = page.getByRole('heading', { level: 1 }).locator('..');
+  const card = page.getByRole('heading', { level: 1 }).locator('xpath=ancestor::div[contains(@class, "rounded-[24px]")][1]');
   const cardStyle = await card.evaluate(el => {
     const style = getComputedStyle(el);
     return { radius: style.borderRadius, border: style.borderTopWidth, shadow: style.boxShadow };
   });
-  expect(cardStyle).toEqual({ radius: '20px', border: '0px', shadow: 'none' });
-  for (const heading of metrics.headings) expect(heading.weight, heading.text).toBeLessThanOrEqual(500);
+  // The approved glass card: 24px corners, one hairline, a soft lift.
+  expect(cardStyle.radius).toBe('24px');
+  expect(cardStyle.border).toBe('1px');
+  expect(cardStyle.shadow).not.toBe('none');
+  for (const heading of metrics.headings) expect(heading.weight, heading.text).toBeLessThanOrEqual(600);
   expect(axe.violations.filter(v => v.impact === 'serious' || v.impact === 'critical')).toEqual([]);
 }
 

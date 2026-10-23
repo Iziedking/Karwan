@@ -161,7 +161,6 @@ export function ProfileAccountHub({
           <RowGroup>
             <ToggleRow
               label={messages.assistantMode.use}
-              note={messages.assistantMode.greetingBody}
               checked={false}
               onChange={() => {
                 rememberReturn('/profile');

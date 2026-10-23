@@ -78,7 +78,7 @@ export function TopNav() {
       ref={barRef}
       data-chrome="nav"
       className={cn(
-        'sticky top-0 z-30 border-b border-[var(--color-line)] bg-[var(--lp-workspace-band)]',
+        'sticky top-0 z-30 transform-gpu border-b border-[var(--color-line)] bg-[var(--lp-workspace-band)]',
         'product-surface',
       )}
     >
@@ -158,7 +158,9 @@ export function TopNav() {
               {pathname === START_ROUTE ? null : <LaunchAppCTA />}
             </>
           )}
-          {isAlwaysDarkRoute(pathname) ? null : <ThemeControl className={showFullChrome ? 'lg:hidden' : ''} />}
+          {/* With the assistant switch in the bar a phone has no room for theme too;
+              it stays in Settings. */}
+          {isAlwaysDarkRoute(pathname) ? null : <ThemeControl className={showFullChrome && isAssistantRoute(pathname) ? 'hidden' : showFullChrome ? 'lg:hidden' : ''} />}
           {publicSurface ? <PublicMenu /> : null}
         </div>
       </div>

@@ -158,7 +158,6 @@ export function ConversationView({ tag }: { tag: string }) {
               {sendError}
             </p>
           ) : null}
-          <p className="mt-2 px-2 text-[13px] text-[var(--lp-text-sub)]">{t.note}</p>
         </form>
       </section>
     </main>
