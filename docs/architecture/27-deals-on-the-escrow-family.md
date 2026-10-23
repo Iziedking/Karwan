@@ -28,10 +28,13 @@ New deals open on the family and deals already open finish where they started. E
 | Trade finance | A financier's advance against a funded deal, repaid first when it settles |
 | Record | The outcome of every deal, written to both people's identities |
 
-## Who signs
+## Who signs (owner, 24 Oct 2026)
 
-- **Buyers** pay, release and dispute through their buying agent, a wallet Karwan's servers sign for, only inside limits the person signed once on chain: an amount per payment, a total and an expiry. The person can revoke them at any time. This is what lets a matched deal be paid while the buyer is away.
-- **Sellers** accept and deliver from their own wallet, the one the deal pays. A seller's stake and a financier's advance can be signed only by the person, never by an agent, so the seller's wallet has to be the payee. A website wallet signs in the browser; for accounts whose wallet Karwan holds (email sign-in and chat), Karwan signs for them, as it does for everything else on those accounts.
+- **The sign-in wallet is the identity wallet.** A person's record and facts attach to it, and it is where their money ends up. A web3 account's sign-in wallet is the person's own and they hold its keys; an email or passkey account's is a wallet Karwan holds for them.
+- **Two agents run every deal, end to end.** The buying agent and the selling agent are wallets Karwan's servers sign for. They pay, accept, deliver, release and dispute, so a deal keeps moving while the person is away. Both are attached to the person's identity, so every deal they run counts on that person's record.
+- **The buying agent pays only inside limits the person set once:** an amount per payment, a total and an expiry, enforced by the contract. The person can revoke them at any time.
+- **A person is asked to be present only where it matters:** setting up their record and the buying agent's limits, putting up a stake, taking an advance from a financier, and moving money out of Karwan. Then the agent acts only after the person confirms with a passkey, their face or fingerprint, or a PIN. That check is made by Karwan's servers, not by the contract.
+- **A seller's earnings** land with the selling agent and move on to the identity wallet.
 
 ## The first deal: one identity
 
@@ -47,14 +50,16 @@ sequenceDiagram
   A->>K: Prepare the step
   K->>ID: Does this wallet belong to an identity?
   ID-->>K: No
-  A-->>P: One card: "Set up your Karwan record", a few cents
-  P->>ID: Register (website: own wallet; chat: Karwan signs with the identity wallet)
-  Note over K,ID: Chat accounts also attach the buying wallet as an agent with the limits the person confirmed
-  K->>ID: Read back the identity
+  A-->>P: One card: "Set up your Karwan record", with the buying agent's limits
+  P->>K: Confirms with a passkey, face or fingerprint, or a PIN
+  P->>ID: The identity wallet registers (web3: the person signs; others: Karwan signs)
+  P->>ID: The identity wallet attaches the buying agent, with its limits
+  P->>ID: The identity wallet attaches the selling agent
+  K->>ID: Read back the identity and both agents
   A-->>P: Continue with the money step
 ```
 
-Notes: `KarwanIdentityRegistry.register` and `bind` (agent limits signed by the agent wallet). A deal can be funded without an identity, but its outcome then counts on nobody's record, so the core asks first.
+Notes: `KarwanIdentityRegistry.register` and `bind`. The buying agent is bound as an agent with limits; the selling agent is bound as one of the person's wallets, because the contracts let only a person's wallet put up a stake or take an advance. Each binding carries the agent wallet's own signature. A deal can be funded without an identity, but its outcome then counts on nobody's record, so the core asks first.
 
 ## A deal from agreement to payout
 
@@ -74,8 +79,8 @@ sequenceDiagram
   B->>AE: The buying agent approves and pays the price plus half the fee
   K->>AE: Read back: funded, terms fingerprint
   K-->>S: "New deal for you"
-  S->>AE: Accept the exact terms
-  S->>AE: Mark delivered, with a proof fingerprint
+  S->>AE: The selling agent accepts the exact terms
+  S->>AE: The selling agent marks delivered, with a proof fingerprint
   opt Deal reviewed on a check
     C-->>K: Two of three checkers sign a pass
     K->>AE: Submit the signed check
@@ -83,7 +88,8 @@ sequenceDiagram
   Note over AE: The buyer's review window runs
   B->>K: Release
   K->>AE: The buying agent releases
-  AE->>S: Price less half the fee
+  AE->>S: Price less half the fee, to the selling agent
+  Note over S: The selling agent moves it on to the identity wallet
   AE->>R: Settled, on both identities
   K->>AE: Receipt event and a fresh read agree
   K-->>B: Paid, with the receipt
@@ -128,13 +134,13 @@ Notes: `dispute`, `proposeRuling`, `escalate`, `rule`, `executeRuling`. The arbi
 
 ## Getting paid early
 
-A seller with a funded deal can take an advance from a financier, as view 18 sets out. On the family the advance is against an Agreement deal, the escrow repays the financier first when the deal settles, and the seller receives the rest. The deal page and Telegram call the same core functions.
+A seller with a funded deal can take an advance from a financier, as view 18 sets out. On the family the advance is against an Agreement deal: the seller confirms with a passkey, face or fingerprint, or a PIN, the selling agent signs the payout assignment and the stake behind it, the escrow repays the financier first when the deal settles, and the seller receives the rest. The deal page and Telegram call the same core functions.
 
 ## Moving over
 
 - **Per network, testnet first.** Once switched on, every new deal opens on the family. A deal keeps the escrow it opened on, so deals already open finish on the current escrow and no money moves between contracts.
 - **Mainnet waits** for the audit steps in view 11.
-- **The settings are on chain.** The automatic arbiter and the checkers are test keys today; Karwan's own wallets replace them through the timelock, in public for the full delay, before the app goes live.
+- **The settings are on chain.** The automatic arbiter, the three checkers and the issuer named in the first settings are Karwan's testnet keys, kept in its servers' secret store. Mainnet gets its own keys, set through the timelock.
 
 ## What fails where
 
