@@ -204,15 +204,32 @@ contract EndgameDeployTest is Test {
         EndgameCheck.configured(d, c);
     }
 
-    /// The testnet config ships with every Safe unset, so no deploy can start
-    /// from it until the owner fills them in.
-    function test_the_shipped_testnet_config_is_refused_until_filled() public {
-        vm.expectRevert(bytes("config: owner or guardian Safe unset"));
-        this.loadShipped();
+    /// The testnet config names the owner's Safes and the beta values.
+    function test_the_testnet_config_loads_with_the_owner_safes_and_beta_values() public view {
+        EndgameConfig memory t = this.loadFrom("deployments/endgame-5042002.config.json");
+        assertEq(t.ownerSafe, 0xF253E02048FB2F89FFD3E3c931aa3ea14A857556);
+        assertEq(t.guardianSafe, 0x1E791901A48EA728887E9c0b83842ef0593EeedD);
+        assertEq(t.minDelay, 24 hours);
+        assertEq(t.perDealCap, 1_005e6);
+        assertEq(t.totalCap, 10_000e6);
+        assertEq(t.feeBps, 100);
+        assertEq(t.checkers.length, 3);
+        assertEq(t.checkerThreshold, 2);
+        assertEq(t.issuers.length, 1);
     }
 
-    function loadShipped() external view returns (EndgameConfig memory) {
-        return EndgameConfigLib.load(vm, "deployments/endgame-5042002.config.json");
+    /// A config with a Safe left unset never gets as far as a deploy.
+    function test_a_config_with_an_unset_safe_is_refused() public {
+        string memory path = "deployments/endgame-unset.config.json";
+        string memory j = vm.readFile("deployments/endgame-5042002.config.json");
+        vm.writeFile(path, vm.replace(j, "0xF253E02048FB2F89FFD3E3c931aa3ea14A857556", vm.toString(address(0))));
+        vm.expectRevert(bytes("config: owner or guardian Safe unset"));
+        this.loadFrom(path);
+        vm.removeFile(path);
+    }
+
+    function loadFrom(string memory path) external view returns (EndgameConfig memory) {
+        return EndgameConfigLib.load(vm, path);
     }
 
     /// The script end to end: the Safe files it writes, sent as written by the
