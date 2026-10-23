@@ -7,7 +7,7 @@ import { questionProgress, setupSteps } from './setupSteps';
 ///   npx tsx --test features/setup/setupSteps.test.ts
 
 test('a freelancer is asked about their work and price', () => {
-  assert.deepEqual(setupSteps(['work']), ['welcome', 'goals', 'what', 'price', 'clients', 'own', 'reach', 'where', 'reading', 'summary']);
+  assert.deepEqual(setupSteps(['work']), ['welcome', 'goals', 'what', 'price', 'paid', 'clients', 'own', 'reach', 'where', 'reading', 'summary']);
 });
 
 test('buying with a record skips the selling questions', () => {
@@ -25,7 +25,7 @@ test('a business is asked its name', () => {
 test('progress counts only the questions', () => {
   const steps = setupSteps(['work']);
   assert.equal(questionProgress(steps, 'welcome'), null);
-  assert.deepEqual(questionProgress(steps, 'goals'), { index: 1, total: 7 });
-  assert.deepEqual(questionProgress(steps, 'where'), { index: 7, total: 7 });
+  assert.deepEqual(questionProgress(steps, 'goals'), { index: 1, total: 8 });
+  assert.deepEqual(questionProgress(steps, 'where'), { index: 8, total: 8 });
   assert.equal(questionProgress(steps, 'summary'), null);
 });

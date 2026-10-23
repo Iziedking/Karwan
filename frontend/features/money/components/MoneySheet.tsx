@@ -320,7 +320,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
             dir="ltr"
             className="min-w-0 flex-1 bg-transparent text-[40px] font-semibold leading-none tracking-[-0.03em] tabular-nums text-[var(--lp-dark)] outline-none placeholder:text-[var(--lp-text-muted)]"
           />
-          <span className="text-[18px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
+          {' '}<span className="text-[18px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
         </div>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
           <p className="inline-flex items-center gap-1.5 text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">

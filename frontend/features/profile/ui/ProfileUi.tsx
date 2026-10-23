@@ -33,8 +33,8 @@ export function RowGroup({ title, hint, action, children }: { title?: string; hi
   return (
     <section>
       {title ? (
-        <div className="mb-1 flex min-h-11 items-end justify-between gap-3 px-1">
-          <h2 className="flex items-center gap-2 pb-1 text-[14px] font-semibold text-[var(--lp-text-sub)]">
+        <div className="mb-1 flex min-h-11 items-center justify-between gap-3 pe-2 ps-4">
+          <h2 className="flex items-center gap-2 text-[14px] font-semibold text-[var(--lp-text-sub)]">
             {title}
             {hint ? <Hint>{hint}</Hint> : null}
           </h2>
@@ -94,6 +94,21 @@ export function Row({ label, value, href, onClick, soon, full = false, inline = 
         <span className="ms-auto flex min-w-0 max-w-full flex-wrap justify-end gap-2">{children}</span>
       </div>
     );
+  }
+  // A long answer (what you offer, your description) reads under its label,
+  // not squeezed against the right edge.
+  if (full && value != null && !onClick && children == null) {
+    const stacked = (
+      <>
+        <span className="flex min-w-0 flex-1 flex-col gap-1">
+          <span className="font-medium text-[var(--lp-dark)]">{label}</span>
+          <span className="break-words text-[14px] font-medium tabular-nums text-[var(--lp-text-sub)]">{value}</span>
+        </span>
+        {href ? <Icon name="chevron-right" size={16} directional className="shrink-0 text-[var(--lp-text-sub)]" /> : null}
+      </>
+    );
+    const cls = 'flex w-full items-center gap-3 px-4 py-3 text-start text-[15px]';
+    return href ? <Link href={href} className={`${cls} ${interactive}`}>{stacked}</Link> : <div className={cls}>{stacked}</div>;
   }
   const content = (
     <>

@@ -27,6 +27,10 @@ export interface AttestedDealsCopy {
   openCredential: string;
   notFound: string;
   yes: string;
+  /// "6 to 10 of 29".
+  range: string;
+  newer: string;
+  older: string;
   bands: Record<AttestationBand, string>;
 }
 
@@ -56,6 +60,9 @@ export const attestedDealsCopy: Record<Locale, AttestedDealsCopy> = {
     openCredential: "Open the signed credential",
     notFound: "This statement could not be found.",
     yes: "Yes",
+    range: "{from} to {to} of {total}",
+    newer: "Newer",
+    older: "Older",
     bands: {
       'under-100': 'Under 100 USDC',
       '100-1k': '100 to 1,000 USDC',
@@ -87,6 +94,9 @@ export const attestedDealsCopy: Record<Locale, AttestedDealsCopy> = {
     openCredential: "Ouvrir l’attestation signée",
     notFound: "Cette déclaration est introuvable.",
     yes: "Oui",
+    range: "{from} à {to} sur {total}",
+    newer: "Plus récentes",
+    older: "Plus anciennes",
     bands: {
       'under-100': 'Moins de 100 USDC',
       '100-1k': '100 à 1 000 USDC',
@@ -118,6 +128,9 @@ export const attestedDealsCopy: Record<Locale, AttestedDealsCopy> = {
     openCredential: "افتح الشهادة الموقعة",
     notFound: "تعذر العثور على هذا البيان.",
     yes: "نعم",
+    range: "{from} إلى {to} من {total}",
+    newer: "الأحدث",
+    older: "الأقدم",
     bands: {
       'under-100': 'أقل من 100 USDC',
       '100-1k': 'من 100 إلى 1,000 USDC',
@@ -149,6 +162,9 @@ export const attestedDealsCopy: Record<Locale, AttestedDealsCopy> = {
     openCredential: "हस्ताक्षरित प्रमाणपत्र खोलें",
     notFound: "यह कथन नहीं मिला।",
     yes: "हाँ",
+    range: "{total} में से {from} से {to}",
+    newer: "नई",
+    older: "पुरानी",
     bands: {
       'under-100': '100 USDC से कम',
       '100-1k': '100 से 1,000 USDC',
@@ -180,6 +196,9 @@ export const attestedDealsCopy: Record<Locale, AttestedDealsCopy> = {
     openCredential: "Fungua cheti kilichosainiwa",
     notFound: "Taarifa hii haikupatikana.",
     yes: "Ndiyo",
+    range: "{from} hadi {to} kati ya {total}",
+    newer: "Mpya zaidi",
+    older: "Za zamani",
     bands: {
       'under-100': 'Chini ya USDC 100',
       '100-1k': 'USDC 100 hadi 1,000',

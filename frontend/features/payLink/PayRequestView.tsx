@@ -121,7 +121,7 @@ function Amount({ value }: { value: string | null }) {
   return (
     <p className="text-[56px] font-semibold leading-none tracking-[-0.03em] tabular-nums text-[var(--lp-dark)]">
       {value ?? '0'}
-      <span className="ms-2 text-[20px] font-medium tracking-normal text-[var(--lp-text-sub)]">USDC</span>
+      <span className="ms-1 text-[20px] font-medium tracking-normal text-[var(--lp-text-sub)]"> USDC</span>
     </p>
   );
 }

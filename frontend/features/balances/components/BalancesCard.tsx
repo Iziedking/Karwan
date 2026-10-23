@@ -114,7 +114,7 @@ export function BalancesCard({
         <span className="block text-[14px] text-[var(--lp-text-muted)]">{bc.total}</span>
         <span className="mono mt-0.5 block text-[24px] font-semibold leading-none tracking-[-0.03em]">
           {total === null ? '-' : <AnimatedNumber value={total} decimals={2} />}
-          <span className="ms-1 text-[14px] font-medium text-[var(--lp-text-sub)]">USDC</span>
+          <span className="ms-1 text-[14px] font-medium text-[var(--lp-text-sub)]"> USDC</span>
         </span>
       </span>
     </>
@@ -226,7 +226,7 @@ function ChainRow({ rowKey, amount, muted = false }: { rowKey: RowKey; amount: n
       </span>
       <span className={cn('mono text-end font-semibold tabular-nums', muted ? 'text-[14px] text-[var(--lp-text-muted)]' : 'text-[18px] tracking-[-0.02em]')}>
         {amount === null ? '-' : <AnimatedNumber value={amount} decimals={2} />}
-        <span className="ms-1 text-[14px] font-medium text-[var(--lp-text-muted)]">USDC</span>
+        <span className="ms-1 text-[14px] font-medium text-[var(--lp-text-muted)]"> USDC</span>
       </span>
     </li>
   );

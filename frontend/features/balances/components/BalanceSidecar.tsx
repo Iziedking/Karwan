@@ -47,7 +47,7 @@ export function BalanceSidecar({ agent = 'buyer' }: { agent?: 'buyer' | 'seller'
           ) : (
             <p className="mt-1 flex items-baseline gap-1.5 tabular-nums">
               <span className="text-[28px] font-semibold tracking-[-0.02em] text-[var(--lp-dark)]">{formatBalance(amount, locale)}</span>
-              <span className="text-[14px] font-medium text-[var(--lp-text-sub)]">USDC</span>
+              {' '}<span className="text-[14px] font-medium text-[var(--lp-text-sub)]">USDC</span>
             </p>
           )}
           {gap > 0 ? (

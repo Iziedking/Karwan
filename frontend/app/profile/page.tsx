@@ -18,7 +18,9 @@ import { ProfileEmailButton } from '@/features/profile/components/ProfileEmailBu
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import { ProfileOpenDealsPanel } from '@/features/notifications/components/ProfileOpenDealsPanel';
 import { useOpenDeals } from '@/features/notifications/hooks/useOpenDeals';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
+import { waysCopy } from '@/shared/i18n/messages/ways';
+import { waysOf, waySummary } from '@/features/profile/ways';
 import { type UserProfile } from '@/core/api';
 import {
   FullBleed,
@@ -86,6 +88,7 @@ export default function ProfilePage() {
 
 function ProfilePageInner() {
   const messages = useTranslations();
+  const { locale } = useLocale();
   const t = messages.profile;
   const router = useRouter();
   const pathname = usePathname();
@@ -150,7 +153,6 @@ function ProfilePageInner() {
 
   const isBusiness = isBusinessWorkspace;
   const simple = t.simple;
-  const tips = messages.profileEdit.tips;
   const sectionTitle: Record<ProfileSection, string> = {
     wallets: simple.walletsTitle,
     'open-deals': simple.openDealsTitle,
@@ -158,14 +160,14 @@ function ProfilePageInner() {
     identity: simple.agentsTitle,
     preferences: simple.contactTitle,
   };
-  // Amounts read as they do everywhere else: grouped, "5,000 USDC".
-  const whole = (value: number) => value.toLocaleString('en-US');
-  const usdcOrNotSet = (value: unknown) => (isAmount(value) ? `${whole(value)} USDC` : simple.notSet);
-  const rangeOrNotSet = (min: unknown, max: unknown, template: string) =>
-    isAmount(min) && isAmount(max) ? template.replace('{min}', whole(min)).replace('{max}', whole(max)) : simple.notSet;
-  // A limit's label with what it does behind the info mark, as on Edit profile.
-  const tipped = (label: string, tip: string) => <span className="inline-flex items-center gap-1.5">{label}<Hint>{tip}</Hint></span>;
-  const editLink = (anchor: 'selling' | 'buying') => (
+  const ways = waysOf(profile);
+  const waysText = waysCopy[locale as keyof typeof waysCopy] ?? waysCopy.en;
+  const waysLink = (
+    <Link href="/profile/ways" className="inline-flex min-h-11 items-center rounded-full px-2 text-[14px] font-semibold text-[var(--lp-dark)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+      {simple.edit}
+    </Link>
+  );
+  const editLink = (anchor: 'selling') => (
     <Link href={`/profile/edit#${anchor}`} className="inline-flex min-h-11 items-center rounded-full px-2 text-[14px] font-semibold text-[var(--lp-dark)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
       {simple.edit}
     </Link>
@@ -205,15 +207,18 @@ function ProfilePageInner() {
                 <RowGroup title={activation.agents?.sellerName || simple.sellingAgent} action={editLink('selling')}>
                   <Row label={isBusiness ? t.agentProfiles.rows.supplies : simple.whatYouOffer} value={profile.seller.skills?.length ? profile.seller.skills.join(', ') : simple.notSet} full />
                   <Row label={messages.profileEdit.offerDescription} value={profile.seller.bio?.trim() || simple.notSet} full />
-                  <Row label={tipped(simple.priceRange, tips.sellerPrice)} value={rangeOrNotSet(profile.seller.minBudgetUsdc, profile.seller.maxBudgetUsdc, simple.usdcRange)} />
-                  <Row label={tipped(simple.deliveryTime, tips.sellerDays)} value={rangeOrNotSet(profile.seller.minDeadlineDays, profile.seller.maxDeadlineDays, simple.daysRange)} />
+                  {ways.sell.map((w) => (
+                    <Row key={w.shape} label={waysText.shapes[w.shape]} value={waySummary('sell', w, waysText)} href="/profile/ways" full />
+                  ))}
+                  <Row label={`+ ${waysText.add}`} href="/profile/ways" />
                 </RowGroup>
               ) : null}
               {profile.buyer ? (
-                <RowGroup title={activation.agents?.buyerName || simple.buyingAgent} action={editLink('buying')}>
-                  <Row label={tipped(simple.mostItMayPay, tips.buyerMax)} value={usdcOrNotSet(profile.buyer.maxBudgetUsdc)} />
-                  <Row label={tipped(simple.deliveryTime, tips.buyerDays)} value={rangeOrNotSet(profile.buyer.minDeadlineDays, profile.buyer.maxDeadlineDays, simple.daysRange)} />
-                  <Row label={tipped(simple.paymentSplit, tips.split)} value={profile.buyer.milestonePcts?.length ? profile.buyer.milestonePcts.map((pct) => `${pct}%`).join(' / ') : simple.notSet} />
+                <RowGroup title={activation.agents?.buyerName || simple.buyingAgent} hint={waysText.hint} action={waysLink}>
+                  {ways.buy.map((w) => (
+                    <Row key={w.shape} label={waysText.shapes[w.shape]} value={waySummary('buy', w, waysText)} href="/profile/ways" full />
+                  ))}
+                  <Row label={`+ ${waysText.add}`} href="/profile/ways" />
                 </RowGroup>
               ) : null}
             </>
@@ -341,4 +346,3 @@ const ACCENT_PILL =
 const QUIET_PILL =
   'inline-flex min-h-11 items-center rounded-full bg-[var(--tint)] px-5 text-[14px] font-semibold text-[var(--ink)] hover:bg-[var(--line)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]';
 
-const isAmount = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);

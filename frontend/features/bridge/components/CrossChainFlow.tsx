@@ -443,7 +443,7 @@ function CrossChainFlow({ intent }: { intent: CrossChainIntent }) {
                   dir="ltr"
                   className="min-h-[52px] min-w-0 flex-1 rounded-[14px] bg-transparent text-[32px] font-medium leading-none tracking-normal tabular-nums text-[var(--ink)] outline-none placeholder:text-[var(--ink-secondary)] focus-visible:ring-2 focus-visible:ring-[var(--action)]"
                 />
-                <span className="text-[14px] text-[var(--ink-secondary)] font-medium">USDC</span>
+                {' '}<span className="text-[14px] text-[var(--ink-secondary)] font-medium">USDC</span>
               </div>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">

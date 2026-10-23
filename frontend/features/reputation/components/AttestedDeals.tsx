@@ -1,17 +1,19 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/core/api';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { attestedDealsCopy } from '@/shared/i18n/messages/attestedDeals';
-import { attestedRows } from '../attestedDeals';
+import { attestedPage, attestedRows } from '../attestedDeals';
 
 /// The deals Karwan has signed a public statement about, each checkable as a
 /// W3C credential. The owner can download all of theirs.
 export function AttestedDeals({ address, downloadable = false }: { address: string; downloadable?: boolean }) {
   const { locale } = useLocale();
   const copy = attestedDealsCopy[locale];
+  const [page, setPage] = useState(0);
   const query = useQuery({
     queryKey: ['attested-deals', address.toLowerCase()],
     queryFn: () => api.attestationsFor(address),
@@ -21,6 +23,7 @@ export function AttestedDeals({ address, downloadable = false }: { address: stri
   if (query.isError) return null;
   if (!query.data) return <div aria-hidden className="mt-8 h-[96px] border-t border-[var(--lp-border-light)]" />;
   const rows = attestedRows(query.data.attestations, copy, locale);
+  const shown = attestedPage(rows, page);
 
   return (
     <section aria-labelledby="attested-deals" className="mt-8 border-t border-[var(--lp-border-light)] pt-6">
@@ -29,7 +32,7 @@ export function AttestedDeals({ address, downloadable = false }: { address: stri
         <p className="mt-3 text-[15px] text-[var(--lp-text-sub)]">{copy.none}</p>
       ) : (
         <ul className="mt-3 divide-y divide-[var(--lp-border-light)]">
-          {rows.map((r) => (
+          {shown.rows.map((r) => (
             <li key={r.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-3">
               <span className="min-w-0 text-[15px] tabular-nums text-[var(--lp-dark)]">{r.line}</span>
               {r.removed ? (
@@ -43,6 +46,31 @@ export function AttestedDeals({ address, downloadable = false }: { address: stri
           ))}
         </ul>
       )}
+      {shown.pages > 1 ? (
+        <nav aria-label={copy.title} className="mt-2 flex items-center justify-between gap-3 border-t border-[var(--lp-border-light)] pt-3">
+          <span aria-live="polite" className="text-[14px] tabular-nums text-[var(--lp-text-sub)]">
+            {copy.range.replace('{from}', String(shown.from)).replace('{to}', String(shown.to)).replace('{total}', String(rows.length))}
+          </span>
+          <span className="flex gap-2">
+            <button
+              type="button"
+              disabled={shown.page === 0}
+              onClick={() => setPage(shown.page - 1)}
+              className="min-h-11 rounded-full border border-[var(--lp-border-light)] px-4 text-[14px] font-semibold text-[var(--lp-dark)] transition-opacity disabled:opacity-40"
+            >
+              {copy.newer}
+            </button>
+            <button
+              type="button"
+              disabled={shown.page >= shown.pages - 1}
+              onClick={() => setPage(shown.page + 1)}
+              className="min-h-11 rounded-full border border-[var(--lp-border-light)] px-4 text-[14px] font-semibold text-[var(--lp-dark)] transition-opacity disabled:opacity-40"
+            >
+              {copy.older}
+            </button>
+          </span>
+        </nav>
+      ) : null}
       {downloadable && rows.length > 0 ? (
         <a
           href={`/attestations/by-subject/${address.toLowerCase()}.json`}

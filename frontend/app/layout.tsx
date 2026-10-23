@@ -21,7 +21,7 @@ import { WorkspaceBottomNav } from '@/shared/components/WorkspaceBottomNav';
 import { PageFeedbackPrompt } from '@/shared/components/PageFeedbackPrompt';
 import { RouteTrail } from '@/shared/components/BackButton';
 import { SpeedInsights } from '@vercel/speed-insights/next'
-import { SITE_TITLE } from '@/shared/seo/routeTitle';
+import { SITE_TITLE, titlePrepaintScript } from '@/shared/seo/routeTitle';
 
 // The Vercel script is only served inside a Vercel deployment. Rendering it
 // during an optimized local run creates a guaranteed 404 and obscures real
@@ -154,6 +154,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
+        {/* After the head's own <title>, so this one wins until hydration. */}
+        <script dangerouslySetInnerHTML={{ __html: titlePrepaintScript() }} />
         <AppProviders initialLocale={DEFAULT_LOCALE}>
           <ScrollbarWidthProbe />
           <ScrollReset />

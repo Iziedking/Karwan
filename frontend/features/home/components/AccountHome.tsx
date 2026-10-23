@@ -86,7 +86,7 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
                 <span className={`text-[40px] font-bold leading-none tabular-nums tracking-[-0.03em] text-[var(--lp-dark)] sm:text-[48px] ${owned.loading && totalBalance == null ? 'motion-safe:animate-pulse' : ''}`}>
                   {totalBalance == null ? '-' : totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
-                <span className="text-[17px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
+                {' '}<span className="text-[17px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
               </p>
             )}
             <p className="mt-0.5 text-[15px] font-medium text-[var(--lp-text-sub)]">
@@ -190,7 +190,7 @@ function CurrentTrade({ deal }: { deal: NonNullable<ReturnType<typeof pickCurren
 
       <p className="mt-6 flex items-baseline gap-2">
         <span className="text-[36px] font-bold leading-none tabular-nums tracking-[-0.03em] text-[var(--lp-dark)]">{formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}</span>
-        <span className="text-[16px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
+        {' '}<span className="text-[16px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
       </p>
       <p className="mt-2 flex items-center gap-2 text-[15px] font-semibold text-[var(--lp-dark)]">
         <span aria-hidden className={`size-2 shrink-0 rounded-full ${yours ? 'bg-[var(--lp-accent)]' : 'bg-[var(--lp-text-sub)]'}`} />

@@ -378,6 +378,7 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "POST", path: "/api/settings" },
   { method: "POST", path: "/api/setup/preview" },
   { method: "POST", path: "/api/setup/save" },
+  { method: "POST", path: "/api/setup/ways" },
   { method: "POST", path: "/api/signals/ingest" },
   { method: "POST", path: "/api/signup" },
   { method: "GET", path: "/api/signup/tag" },

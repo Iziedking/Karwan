@@ -12,11 +12,9 @@ test('every agent limit on the edit form says what it does', () => {
   assert.doesNotMatch(form, /<[a-z]+\b[^>]*\stitle=/, 'no browser tooltip');
 });
 
-test('the agent summary on Profile carries the same tips', () => {
+test('the agent summary on Profile says what the ways do (view 26)', () => {
   const page = read('../../app/profile/page.tsx');
-  for (const key of TIP_KEYS.filter((k) => k !== 'description' && k !== 'offer')) {
-    assert.match(page, new RegExp(`tips\\.${key}\\b`), key);
-  }
+  assert.match(page, /hint=\{waysText\.hint\}/);
 });
 
 test('the tips exist in every language', () => {

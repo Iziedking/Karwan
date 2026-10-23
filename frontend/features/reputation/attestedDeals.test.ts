@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import type { AttestationBand } from '@/core/api';
 import { attestedDealsCopy } from '@/shared/i18n/messages/attestedDeals';
-import { attestedRows } from './attestedDeals';
+import { attestedPage, attestedRows } from './attestedDeals';
 
 const copy = attestedDealsCopy.en;
 const a = (id: string, date: string, role: 'buyer' | 'seller', amountBand: AttestationBand, viaDispute = false) => ({
@@ -50,4 +50,12 @@ test('the FAQ explains attested deals, the amount range and where to turn them o
   assert.ok(item);
   assert.match(item!.a, /amount range/);
   assert.match(item!.a, /Settings/);
+});
+
+test('a long record shows five at a time', () => {
+  const rows = Array.from({ length: 12 }, (_, i) => i);
+  assert.deepEqual(attestedPage(rows, 0), { rows: [0, 1, 2, 3, 4], page: 0, pages: 3, from: 1, to: 5 });
+  assert.deepEqual(attestedPage(rows, 2).rows, [10, 11]);
+  assert.equal(attestedPage(rows, 9).page, 2);
+  assert.equal(attestedPage([], 0).pages, 1);
 });

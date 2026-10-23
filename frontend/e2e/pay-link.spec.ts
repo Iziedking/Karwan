@@ -161,7 +161,8 @@ test('send from any chain: the request address, the exact amount, part payment, 
   await page.getByRole('radio', { name: new RegExp(copy.pay.optChain) }).click();
   await expect(page.getByText(RECEIVING)).toBeVisible();
   expect(asked).toBe(1);
-  await expect(page.getByText('10 USDC', { exact: true })).toBeVisible();
+  // The headline amount and the exact amount to send both read "10 USDC"; the second is the one to copy.
+  await expect(page.getByText('10 USDC', { exact: true }).last()).toBeVisible();
   await expect(page.getByText(copy.pay.watching)).toBeVisible();
   await page.getByRole('radio', { name: copy.pay.solanaTab }).click();
   await expect(page.getByText(SOLANA)).toBeVisible();

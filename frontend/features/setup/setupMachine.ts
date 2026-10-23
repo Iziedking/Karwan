@@ -17,7 +17,7 @@ export type SetupEvent =
   | { type: 'start' }
   | { type: 'toggleGoal'; goal: Goal }
   | { type: 'answer'; step: Answerable; value: string }
-  | { type: 'pick'; step: 'clients' | 'own' | 'reach'; value: string }
+  | { type: 'pick'; step: 'paid' | 'clients' | 'own' | 'reach'; value: string }
   | { type: 'next' }
   | { type: 'back' }
   | { type: 'skip' }

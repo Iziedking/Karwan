@@ -390,6 +390,8 @@ export interface UserProfile {
   /// The setup conversation's answers (view 19).
   goals?: Goal[];
   agentPrefs?: { findClients?: boolean; agentMode?: 'offers' | 'ask'; sellerPriceSet?: boolean; buyerPriceSet?: boolean };
+  /// The ways this person deals, one per kind of deal (view 26). Absent until saved.
+  agentWays?: import('@/features/profile/ways').AgentWays;
   ownWords?: { what?: string; price?: string; buy?: string; business?: string };
   workPlaces?: string;
   businessDraft?: { name: string; trades: string };
@@ -1849,6 +1851,7 @@ export interface AssistantConfirmAction {
     | 'cancel_request'
     | 'cancel_listing'
     | 'save_setup'
+    | 'save_ways'
     | 'stake_usdc'
     | 'claim_yield'
     | 'fund_agent'
@@ -5232,6 +5235,9 @@ export const api = {
     json<{ lines: string[]; needs: Array<'price'> }>('/api/setup/preview', { method: 'POST', body: JSON.stringify({ answers }) }),
   setupSave: (answers: SetupAnswers) =>
     json<{ profile: UserProfile }>('/api/setup/save', { method: 'POST', body: JSON.stringify({ answers }) }),
+  /// The ways the person deals, saved whole (view 26).
+  saveWays: (ways: import('@/features/profile/ways').AgentWays) =>
+    json<{ profile: UserProfile; lines: string[] }>('/api/setup/ways', { method: 'POST', body: JSON.stringify({ ways }) }),
   /// Assistant conversations saved to the account (view 19).
   assistantConversations: () => json<{ conversations: AssistantConversationSummary[] }>('/api/assistant/conversations'),
   assistantConversation: (id: string) =>

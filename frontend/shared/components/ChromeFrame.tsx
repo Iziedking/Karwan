@@ -111,7 +111,7 @@ function CustomerChromeFrame({
   const mainClass = assistantMode
     ? 'flex min-h-0 w-full min-w-0 flex-1 flex-col'
     : workspaceWithRail
-    ? 'workspace-main flex-1 mx-auto min-w-0 min-h-[calc(100svh-var(--lp-nav-h,68px))] w-full max-w-[1600px] px-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] pt-5 sm:px-6 sm:pt-7 lg:py-8'
+    ? 'workspace-main flex-1 mx-auto min-w-0 min-h-[calc(100svh-var(--lp-nav-h,68px))] w-full max-w-[1600px] px-4 pb-[calc(10rem+env(safe-area-inset-bottom))] pt-5 sm:px-6 sm:pt-7 lg:py-8'
     : pathname === '/' || pathname === '/start' || pathname === '/waitlist' ? 'w-full min-w-0 flex-1' : 'flex-1 mx-auto min-h-[calc(100svh-var(--lp-nav-h,68px))] w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-10';
   const platformCopy = workspace || focused;
   return (

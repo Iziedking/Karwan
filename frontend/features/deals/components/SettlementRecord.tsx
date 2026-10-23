@@ -225,7 +225,7 @@ export function SettlementRecord({
                 </div>
                 <p className="mt-3 flex items-baseline gap-2 tabular-nums">
                   <span className="text-[34px] font-bold leading-none tracking-[-0.03em] text-[var(--lp-workspace-ink)]">{movement.amountUsdc}</span>
-                  <span className="text-[16px] font-semibold text-[var(--lp-workspace-muted)]">USDC</span>
+                  {' '}<span className="text-[16px] font-semibold text-[var(--lp-workspace-muted)]">USDC</span>
                 </p>
                 {breakdown ? (
                   <p className="mt-2 text-[14px] tabular-nums text-[var(--lp-workspace-muted)]">

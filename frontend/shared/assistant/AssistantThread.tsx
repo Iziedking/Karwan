@@ -16,6 +16,7 @@ import {
   type PastAssistantAction,
 } from '@/core/api';
 import type { SetupAnswers } from '@/features/setup/setupSteps';
+import type { AgentWays } from '@/features/profile/ways';
 import { tidyAssistantText } from '@/shared/utils/assistantText';
 import { confirmTransaction } from '@/shared/chain/confirmTx';
 import {
@@ -572,6 +573,15 @@ async function runConfirmIntent(
       viewLabel: 'See your setup',
     };
   }
+  if (action.intent === 'save_ways') {
+    const p = action.payload as { ways: AgentWays };
+    await api.saveWays(p.ways);
+    return {
+      successText: 'Your agents now deal this way.',
+      viewHref: '/profile/ways',
+      viewLabel: 'See how you deal',
+    };
+  }
   if (action.intent === 'stake_usdc') {
     const p = action.payload as { address: string; amountUsdc: number };
     const r = await api.vaultDeposit({
@@ -950,7 +960,7 @@ function ConfirmCard({
                     ? 'Marking…'
                     : action.intent === 'cancel_request' || action.intent === 'cancel_listing'
                       ? 'Cancelling…'
-                      : action.intent === 'save_setup'
+                      : action.intent === 'save_setup' || action.intent === 'save_ways'
                         ? 'Saving…'
                       : action.intent === 'stake_usdc'
                         ? 'Staking…'

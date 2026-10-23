@@ -18,6 +18,7 @@ export interface SetupCopy {
   };
   priceAgain: string;
   choices: {
+    paid: { title: string; help: string; options: Record<'one_time' | 'milestones' | 'goods', Option> };
     clients: { title: string; help: string; options: Record<'own' | 'find' | 'both', Option> };
     own: { title: string; help: string; options: Record<'offers' | 'ask', Option> };
     reach: { title: string; help: string; options: Record<'telegram' | 'email' | 'both', Option> };
@@ -61,6 +62,7 @@ export const setupCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', SetupCopy> = {
     },
     priceAgain: "I couldn't read a price there. What do you usually charge, in USDC? For example: 20 to 40 USDC.",
     choices: {
+      paid: { title: 'How do clients usually pay you?', help: 'Your agent offers deals this way. Add other ways later on your profile.', options: { one_time: { label: 'All at once', note: 'Paid when the work is done' }, milestones: { label: 'In stages', note: 'A part is paid as each stage is approved' }, goods: { label: 'I send goods', note: 'Paid when the buyer has the item' } } },
       clients: { title: 'Do you have clients already, or should Karwan find them?', help: 'This decides what Home puts first for you.', options: { own: { label: 'I have clients', note: 'Send them payment requests and protected deals' }, find: { label: 'Find clients for me', note: 'Your agent looks for matching requests' }, both: { label: 'Both', note: 'Your own clients, and new ones from the market' } } },
       own: { title: 'How much should your agent do on its own?', help: 'Money never moves without your confirmation.', options: { offers: { label: 'Make offers within my price', note: 'It offers for you, then asks before any deal' }, ask: { label: 'Ask me first', note: 'It suggests, you decide every time' } } },
       reach: { title: 'How should we reach you?', help: 'For new offers, payments and anything that needs you.', options: { telegram: { label: 'Telegram', note: 'Your agent works for you there too' }, email: { label: 'Email', note: 'A short note when something needs you' }, both: { label: 'Both', note: 'Telegram first, email as backup' } } },
@@ -99,6 +101,7 @@ export const setupCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', SetupCopy> = {
     },
     priceAgain: 'Je n’ai pas pu lire un prix. Combien demandez-vous d’habitude, en USDC ? Par exemple : 20 à 40 USDC.',
     choices: {
+      paid: { title: 'Comment vos clients vous paient-ils d’habitude ?', help: 'Votre agent propose des accords de cette façon. Ajoutez-en d’autres plus tard sur votre profil.', options: { one_time: { label: 'En une fois', note: 'Payé quand le travail est fait' }, milestones: { label: 'Par étapes', note: 'Une part est payée à chaque étape approuvée' }, goods: { label: 'J’envoie des marchandises', note: 'Payé quand l’acheteur a l’article' } } },
       clients: { title: 'Avez-vous déjà des clients, ou Karwan doit-il en trouver ?', help: 'Cela décide de ce que l’accueil met en premier.', options: { own: { label: 'J’ai des clients', note: 'Envoyez-leur des demandes de paiement et des accords protégés' }, find: { label: 'Trouvez-moi des clients', note: 'Votre agent cherche des demandes qui vous correspondent' }, both: { label: 'Les deux', note: 'Vos clients, et de nouveaux venus du marché' } } },
       own: { title: 'Que doit faire votre agent seul ?', help: 'L’argent ne bouge jamais sans votre confirmation.', options: { offers: { label: 'Faire des offres dans mon prix', note: 'Il propose pour vous, puis demande avant tout accord' }, ask: { label: 'Me demander d’abord', note: 'Il suggère, vous décidez à chaque fois' } } },
       reach: { title: 'Comment vous joindre ?', help: 'Pour les nouvelles offres, les paiements et tout ce qui a besoin de vous.', options: { telegram: { label: 'Telegram', note: 'Votre agent y travaille aussi pour vous' }, email: { label: 'E-mail', note: 'Un petit mot quand quelque chose a besoin de vous' }, both: { label: 'Les deux', note: 'Telegram d’abord, l’e-mail en secours' } } },
@@ -137,6 +140,7 @@ export const setupCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', SetupCopy> = {
     },
     priceAgain: 'لم أستطع قراءة سعر. كم تتقاضى عادةً بعملة USDC؟ مثلًا: 20 إلى 40 USDC.',
     choices: {
+      paid: { title: 'كيف يدفع لك عملاؤك عادةً؟', help: 'وكيلك يعرض الصفقات بهذه الطريقة. أضف طرقًا أخرى لاحقًا من ملفك.', options: { one_time: { label: 'دفعة واحدة', note: 'يُدفع عند إنجاز العمل' }, milestones: { label: 'على مراحل', note: 'يُدفع جزء مع اعتماد كل مرحلة' }, goods: { label: 'أرسل بضائع', note: 'يُدفع حين يستلم المشتري السلعة' } } },
       clients: { title: 'هل لديك عملاء، أم يجدهم Karwan لك؟', help: 'هذا يحدد ما تضعه الصفحة الرئيسية أولًا.', options: { own: { label: 'لدي عملاء', note: 'أرسل لهم طلبات دفع وصفقات محمية' }, find: { label: 'جد لي عملاء', note: 'وكيلك يبحث عن طلبات تناسبك' }, both: { label: 'كلاهما', note: 'عملاؤك، وعملاء جدد من السوق' } } },
       own: { title: 'ما الذي يفعله وكيلك وحده؟', help: 'لا يتحرك المال أبدًا دون تأكيدك.', options: { offers: { label: 'يقدّم عروضًا ضمن سعري', note: 'يعرض نيابة عنك، ثم يسألك قبل أي صفقة' }, ask: { label: 'اسألني أولًا', note: 'يقترح، وأنت تقرر كل مرة' } } },
       reach: { title: 'كيف نتواصل معك؟', help: 'للعروض الجديدة والمدفوعات وكل ما يحتاجك.', options: { telegram: { label: 'Telegram', note: 'وكيلك يعمل لك هناك أيضًا' }, email: { label: 'البريد الإلكتروني', note: 'رسالة قصيرة عند الحاجة إليك' }, both: { label: 'كلاهما', note: 'Telegram أولًا، والبريد احتياطًا' } } },
@@ -175,6 +179,7 @@ export const setupCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', SetupCopy> = {
     },
     priceAgain: 'मैं वहाँ कीमत नहीं पढ़ पाया। आप आमतौर पर USDC में कितना लेते हैं? उदाहरण: 20 से 40 USDC।',
     choices: {
+      paid: { title: 'ग्राहक आपको आमतौर पर कैसे भुगतान करते हैं?', help: 'आपका एजेंट इसी तरह डील पेश करता है। बाकी तरीके बाद में अपनी प्रोफ़ाइल पर जोड़ें।', options: { one_time: { label: 'एक बार में', note: 'काम पूरा होने पर भुगतान' }, milestones: { label: 'चरणों में', note: 'हर चरण मंज़ूर होने पर एक हिस्सा' }, goods: { label: 'मैं सामान भेजता हूँ', note: 'खरीदार के पास सामान पहुँचने पर भुगतान' } } },
       clients: { title: 'क्या आपके पास पहले से ग्राहक हैं, या Karwan उन्हें ढूँढे?', help: 'इससे तय होता है कि होम पर सबसे पहले क्या दिखे।', options: { own: { label: 'मेरे पास ग्राहक हैं', note: 'उन्हें भुगतान अनुरोध और सुरक्षित सौदे भेजें' }, find: { label: 'मेरे लिए ग्राहक ढूँढें', note: 'आपका एजेंट मेल खाते अनुरोध ढूँढता है' }, both: { label: 'दोनों', note: 'आपके ग्राहक, और बाज़ार से नए' } } },
       own: { title: 'आपका एजेंट खुद कितना करे?', help: 'आपकी पुष्टि के बिना पैसा कभी नहीं हिलता।', options: { offers: { label: 'मेरी कीमत में ऑफ़र दे', note: 'यह आपके लिए ऑफ़र देता है, फिर सौदे से पहले पूछता है' }, ask: { label: 'पहले मुझसे पूछे', note: 'यह सुझाव देता है, आप हर बार तय करते हैं' } } },
       reach: { title: 'हम आप तक कैसे पहुँचें?', help: 'नए ऑफ़र, भुगतान और जिस भी चीज़ में आपकी ज़रूरत हो।', options: { telegram: { label: 'Telegram', note: 'आपका एजेंट वहाँ भी आपके लिए काम करता है' }, email: { label: 'ईमेल', note: 'ज़रूरत पड़ने पर एक छोटा संदेश' }, both: { label: 'दोनों', note: 'पहले Telegram, ईमेल बैकअप के रूप में' } } },
@@ -213,6 +218,7 @@ export const setupCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', SetupCopy> = {
     },
     priceAgain: 'Sikuweza kusoma bei hapo. Kwa kawaida unatoza kiasi gani kwa USDC? Kwa mfano: USDC 20 hadi 40.',
     choices: {
+      paid: { title: 'Wateja wako hukulipa vipi kwa kawaida?', help: 'Wakala wako anatoa makubaliano kwa njia hii. Ongeza njia nyingine baadaye kwenye wasifu wako.', options: { one_time: { label: 'Mara moja', note: 'Unalipwa kazi ikikamilika' }, milestones: { label: 'Kwa hatua', note: 'Sehemu hulipwa kila hatua ikikubaliwa' }, goods: { label: 'Natuma bidhaa', note: 'Unalipwa mnunuzi akipata bidhaa' } } },
       clients: { title: 'Una wateja tayari, au Karwan ikutafutie?', help: 'Hili linaamua kile Mwanzo kinaweka kwanza.', options: { own: { label: 'Nina wateja', note: 'Watumie maombi ya malipo na makubaliano yaliyolindwa' }, find: { label: 'Nitafutie wateja', note: 'Wakala wako anatafuta maombi yanayofaa' }, both: { label: 'Vyote viwili', note: 'Wateja wako, na wapya kutoka sokoni' } } },
       own: { title: 'Wakala wako afanye kiasi gani peke yake?', help: 'Pesa haisogei kamwe bila uthibitisho wako.', options: { offers: { label: 'Toa ofa ndani ya bei yangu', note: 'Anatoa ofa kwa niaba yako, kisha anauliza kabla ya makubaliano' }, ask: { label: 'Niulize kwanza', note: 'Anapendekeza, wewe unaamua kila mara' } } },
       reach: { title: 'Tukufikie vipi?', help: 'Kwa ofa mpya, malipo na chochote kinachokuhitaji.', options: { telegram: { label: 'Telegram', note: 'Wakala wako anakufanyia kazi huko pia' }, email: { label: 'Barua pepe', note: 'Ujumbe mfupi kitu kinapokuhitaji' }, both: { label: 'Vyote viwili', note: 'Telegram kwanza, barua pepe kama akiba' } } },

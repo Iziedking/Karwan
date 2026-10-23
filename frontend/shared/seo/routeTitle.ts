@@ -1,11 +1,11 @@
-import type { RouteTitleKey } from '@/shared/i18n/messages/routeTitles';
+import { routeTitlesCopy, type RouteTitleKey } from '@/shared/i18n/messages/routeTitles';
 
 export const SITE_TITLE = 'Karwan · one reputation, starting with an open market';
 
 /// Pages whose title is set on the server, with the record or offer it shows.
-const SERVER_TITLED = [/^\/r\/[^/]+$/, /^\/credit-passport\/[^/]+$/, /^\/attested\/[^/]+$/, /^\/feedback$/];
+export const SERVER_TITLED = [/^\/r\/[^/]+$/, /^\/credit-passport\/[^/]+$/, /^\/attested\/[^/]+$/, /^\/feedback$/];
 
-const EXACT: Record<string, RouteTitleKey> = {
+export const EXACT: Record<string, RouteTitleKey> = {
   '/connect/telegram': 'connectTelegram',
   '/account': 'account',
   '/activity': 'activity',
@@ -41,6 +41,7 @@ const EXACT: Record<string, RouteTitleKey> = {
   '/profile/open-deals': 'openDeals',
   '/profile/setup': 'profileSetup',
   '/profile/wallets': 'wallets',
+  '/profile/ways': 'ways',
   '/recover/cancel': 'cancelRecovery',
   '/request': 'requestMoney',
   '/research': 'research',
@@ -59,7 +60,7 @@ const EXACT: Record<string, RouteTitleKey> = {
   '/financier': 'finance',
 };
 
-const PATTERNS: [RegExp, RouteTitleKey][] = [
+export const PATTERNS: [RegExp, RouteTitleKey][] = [
   [/^\/cashout\/[^/]+$/, 'cashout'],
   [/^\/deals\/[^/]+$/, 'deal'],
   [/^\/deposit\/request\/[^/]+$/, 'paymentRequest'],
@@ -82,4 +83,17 @@ export function routeTitleKey(pathname: string): RouteTitleKey | 'server' | null
 
 export function documentTitle(title: string): string {
   return `${title} · Karwan`;
+}
+
+/// Runs before the page draws, so the tab never shows the site name while a
+/// page loads: the same route list and titles, in the reader's language from
+/// the karwan-locale cookie. RouteTitle takes over after hydration.
+export function titlePrepaintScript(): string {
+  const data = {
+    s: SERVER_TITLED.map((re) => re.source),
+    e: EXACT,
+    p: PATTERNS.map(([re, key]) => [re.source, key]),
+    t: routeTitlesCopy,
+  };
+  return `(function(){try{var d=${JSON.stringify(data).replace(/</g, '\\u003c')};var p=location.pathname;if(p.length>1)p=p.replace(/\\/+$/,'');for(var i=0;i<d.s.length;i++)if(new RegExp(d.s[i]).test(p))return;var k=d.e[p];for(var j=0;!k&&j<d.p.length;j++)if(new RegExp(d.p[j][0]).test(p))k=d.p[j][1];if(!k)return;var m=document.cookie.match(/(?:^|; )karwan-locale=([^;]+)/);var l=m?decodeURIComponent(m[1]):'en';var t=(d.t[l]||d.t.en)[k];if(t)document.title=t+' · Karwan';}catch(e){}})();`;
 }

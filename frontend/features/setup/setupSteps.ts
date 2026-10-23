@@ -9,6 +9,7 @@ export type SetupStep =
   | 'goals'
   | 'what'
   | 'price'
+  | 'paid'
   | 'buy'
   | 'business'
   | 'places'
@@ -30,11 +31,12 @@ export interface SetupAnswers {
   own?: 'offers' | 'ask';
   reach?: 'telegram' | 'email' | 'both';
   where?: string;
+  paid?: 'one_time' | 'milestones' | 'goods';
   retried?: boolean;
 }
 
 export const TEXT_STEPS = ['what', 'price', 'buy', 'business', 'places', 'where'] as const;
-export const CHOICE_STEPS = ['clients', 'own', 'reach'] as const;
+export const CHOICE_STEPS = ['paid', 'clients', 'own', 'reach'] as const;
 export type TextStep = (typeof TEXT_STEPS)[number];
 export type ChoiceStep = (typeof CHOICE_STEPS)[number];
 
@@ -44,7 +46,7 @@ export function setupSteps(goals: readonly Goal[]): SetupStep[] {
   return [
     'welcome',
     'goals',
-    ...(selling ? (['what', 'price'] as const) : []),
+    ...(selling ? (['what', 'price', 'paid'] as const) : []),
     ...(has('buy') ? (['buy'] as const) : []),
     ...(has('business') ? (['business'] as const) : []),
     ...(has('record') ? (['places'] as const) : []),

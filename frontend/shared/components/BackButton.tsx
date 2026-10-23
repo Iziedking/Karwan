@@ -1,7 +1,7 @@
 'use client';
 import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { isLandingRoute } from '@/shared/utils/routes';
+import { isLandingRoute, isPublicEditorialRoute } from '@/shared/utils/routes';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 /// A back control in the top nav. It returns the user to the route they actually
@@ -35,12 +35,14 @@ function writeStack(stack: string[]): void {
 
 /// Records every in-app route as it is entered, mounted once at the root so a
 /// page without its own back control still counts as where the user came from.
-/// Landing routes never enter the stack, so back can never hand the user to
-/// the marketing site, and a repeated path is not pushed twice.
+/// The marketing site never enters the stack, so back can never hand the user
+/// to it. Public discovery pages (market, passports, statements) do: a person
+/// who opened a statement from a passport goes back to that passport.
+/// A repeated path is not pushed twice.
 export function RouteTrail() {
   const pathname = usePathname();
   useEffect(() => {
-    if (!pathname || isLandingRoute(pathname)) return;
+    if (!pathname || isPublicEditorialRoute(pathname)) return;
     const stack = readStack();
     if (stack[stack.length - 1] === pathname) return;
     writeStack([...stack, pathname]);
@@ -72,7 +74,7 @@ export function BackButton({
     let i = stack.length - 1;
     while (i >= 0 && stack[i] === pathname) i--;
     const target = i >= 0 ? stack[i] : null;
-    if (target && !isLandingRoute(target)) {
+    if (target && !isPublicEditorialRoute(target)) {
       writeStack(stack.slice(0, i)); // pop past the target so the next back steps again
       router.push(target);
     } else {

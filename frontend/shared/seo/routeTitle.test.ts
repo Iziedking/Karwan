@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { routeTitlesCopy } from '../i18n/messages/routeTitles';
-import { documentTitle, routeTitleKey } from './routeTitle';
+import { documentTitle, routeTitleKey, titlePrepaintScript } from './routeTitle';
 
 const APP = fileURLToPath(new URL('../../app', import.meta.url));
 
@@ -57,4 +57,17 @@ test('titles are short and never use an em dash', () => {
       assert.doesNotMatch(title, /—/, `${locale}.${key}`);
     }
   }
+});
+
+test('the tab is titled before the page draws, in the reader’s language', () => {
+  const run = (path: string, cookie: string) => {
+    const doc = { title: 'site', cookie };
+    new Function('location', 'document', titlePrepaintScript())({ pathname: path }, doc);
+    return doc.title;
+  };
+  assert.equal(run('/send', ''), 'Send · Karwan');
+  assert.equal(run('/financier', 'karwan-locale=ar'), 'التمويل · Karwan');
+  assert.equal(run('/deals/0xabc', 'x=1; karwan-locale=fr'), `${routeTitlesCopy.fr.deal} · Karwan`);
+  assert.equal(run('/r/ada', ''), 'site');
+  assert.equal(run('/', ''), 'site');
 });

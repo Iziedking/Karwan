@@ -25,6 +25,7 @@ export type RouteTitleKey =
   | 'docsReputation'
   | 'docsRoadmap'
   | 'finance'
+  | 'ways'
   | 'financingOffer'
   | 'poFinancing'
   | 'howItWorks'
@@ -90,6 +91,7 @@ const en: RouteTitleCopy = {
   docsReputation: 'Reputation',
   docsRoadmap: 'Roadmap',
   finance: 'Finance',
+  ways: 'How you deal',
   financingOffer: 'Financing offer',
   poFinancing: 'Purchase order financing',
   howItWorks: 'How it works',
@@ -155,6 +157,7 @@ const ar: RouteTitleCopy = {
   docsReputation: 'السمعة',
   docsRoadmap: 'خارطة الطريق',
   finance: 'التمويل',
+  ways: 'طريقة تعاملك',
   financingOffer: 'عرض تمويل',
   poFinancing: 'تمويل أمر شراء',
   howItWorks: 'كيف يعمل',
@@ -220,6 +223,7 @@ const fr: RouteTitleCopy = {
   docsReputation: 'Réputation',
   docsRoadmap: 'Feuille de route',
   finance: 'Financement',
+  ways: 'Comment vous traitez',
   financingOffer: 'Offre de financement',
   poFinancing: 'Financement de bon de commande',
   howItWorks: 'Comment ça marche',
@@ -285,6 +289,7 @@ const hi: RouteTitleCopy = {
   docsReputation: 'प्रतिष्ठा',
   docsRoadmap: 'रोडमैप',
   finance: 'वित्त',
+  ways: 'आप कैसे सौदा करते हैं',
   financingOffer: 'फ़ाइनेंसिंग ऑफ़र',
   poFinancing: 'खरीद आदेश फ़ाइनेंसिंग',
   howItWorks: 'यह कैसे काम करता है',
@@ -350,6 +355,7 @@ const sw: RouteTitleCopy = {
   docsReputation: 'Sifa',
   docsRoadmap: 'Ramani ya njia',
   finance: 'Ufadhili',
+  ways: 'Jinsi unavyofanya biashara',
   financingOffer: 'Ofa ya ufadhili',
   poFinancing: 'Ufadhili wa agizo la ununuzi',
   howItWorks: 'Jinsi inavyofanya kazi',

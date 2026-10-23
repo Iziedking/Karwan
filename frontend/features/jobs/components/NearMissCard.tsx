@@ -103,7 +103,7 @@ export function NearMissCard({ nearMiss, onChange }: Props) {
 
       <p className="mt-3 text-[34px] font-semibold leading-none tabular-nums tracking-[-0.02em] text-[var(--lp-dark)]">
         {formatUsdc(nearMiss.proceedPriceUsdc, { withSuffix: false })}
-        <span className="ms-1.5 text-[15px] font-medium tracking-normal text-[var(--lp-text-sub)]">USDC</span>
+        <span className="ms-1 text-[15px] font-medium tracking-normal text-[var(--lp-text-sub)]"> USDC</span>
       </p>
 
       <p className="mt-3 text-[15px] leading-relaxed text-[var(--lp-text-sub)]">

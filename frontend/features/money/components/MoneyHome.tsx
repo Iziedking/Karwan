@@ -98,7 +98,7 @@ function MoneyHomeInner() {
                   >
                     <AnimatedNumber value={hero} format={(value) => formatBalance(value, locale)} />
                   </motion.span>
-                  <span className="text-[18px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
+                  {' '}<span className="text-[18px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
                 </span>
               </h1>
               <p role="status" aria-live="polite" className="flex items-start gap-2 text-[15px] leading-relaxed text-[var(--lp-dark)]">

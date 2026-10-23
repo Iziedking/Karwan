@@ -99,7 +99,7 @@ function BalanceSummary() {
       <p className="text-[15px] font-semibold text-[var(--lp-text-sub)]">{t.total}</p>
       <p className="mt-1 flex items-baseline gap-2">
         <span className="text-[40px] font-bold leading-none tracking-[-0.03em] tabular-nums text-[var(--lp-dark)]">{fmt(owned.total)}</span>
-        <span className="text-[17px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
+        {' '}<span className="text-[17px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
       </p>
       <dl className="mt-5 divide-y divide-[var(--lp-border-light)] border-t border-[var(--lp-border-light)]">
         {rows.map((row) => (
