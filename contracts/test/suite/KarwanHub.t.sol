@@ -389,4 +389,25 @@ contract KarwanHubTest is Test {
         emit KarwanHub.ListSet("issuer", who, false);
         hub.setIssuer(who, false);
     }
+
+    // ------------------------------ Outcomes ------------------------------
+
+    function test_a_family_fee_of_exactly_the_maximum_is_accepted() public {
+        address f = makeAddr("maxFee");
+        hub.registerFamily(f, 1_000);
+        hub.setFamilyFee(f, 1_000);
+        hub.setCaps(f, address(usdc), 1_000e6, 10_000e6);
+        assertEq(hub.openingConfig(f, address(usdc)).feeBps, 1_000);
+    }
+
+    function test_a_token_with_fewer_than_six_decimals_is_refused() public {
+        BlocklistToken two = new BlocklistToken(2);
+        vm.expectRevert(KarwanHub.BadAsset.selector);
+        hub.setAsset(address(two), true, 0);
+    }
+
+    function test_no_yield_share_is_copied_for_an_asset_without_a_pool() public {
+        hub.setYieldShare(family, 5_000);
+        assertEq(hub.openingConfig(family, address(usdc)).yieldBps, 0);
+    }
 }

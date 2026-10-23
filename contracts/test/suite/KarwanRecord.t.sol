@@ -176,4 +176,28 @@ contract KarwanRecordTest is SuiteFixture {
         bytes32 deal = bytes32("deal-1");
         assertEq(record.outcomeKey(writer, deal, aliceId, 1), keccak256(abi.encode(writer, deal, aliceId, uint8(1))));
     }
+
+    // ------------------------------ Outcomes ------------------------------
+
+    function test_a_fact_whose_expiry_has_passed_is_refused() public {
+        vm.warp(1_800_000_000);
+        vm.prank(issuer);
+        vm.expectRevert(KarwanRecord.BadFact.selector);
+        record.recordFact(alice, KIND, 1, SEAL, uint64(block.timestamp - 1));
+    }
+
+    function test_a_fact_id_far_past_the_end_is_unknown() public {
+        _fact();
+        vm.expectRevert(KarwanRecord.UnknownFact.selector);
+        record.getFact(5);
+        vm.prank(issuer);
+        vm.expectRevert(KarwanRecord.UnknownFact.selector);
+        record.revoke(5);
+    }
+
+    function test_a_fact_is_not_valid_any_time_after_it_expires() public {
+        uint256 fid = _fact();
+        uint64 later = record.getFact(fid).expiresAt + 1 days;
+        assertEq(record.validFactsOf(aliceId, later).length, 0);
+    }
 }

@@ -121,4 +121,22 @@ contract KarwanTimelockTest is Test {
         assertFalse(tl.hasRole(tl.DEFAULT_ADMIN_ROLE(), ownerSafe));
         assertTrue(tl.hasRole(tl.DEFAULT_ADMIN_ROLE(), address(tl)));
     }
+
+    // ------------------------------ Outcomes ------------------------------
+
+    function test_a_delay_of_exactly_the_floor_is_accepted() public {
+        KarwanTimelock t = new KarwanTimelock(24 hours, ownerSafe, guardianSafe);
+        assertEq(t.getMinDelay(), 24 hours);
+    }
+
+    /// With a minimum delay longer than the protected one, a protected change
+    /// waits the longer of the two.
+    function test_a_protected_change_waits_the_minimum_delay_when_it_is_longer() public {
+        KarwanTimelock t = new KarwanTimelock(10 days, ownerSafe, guardianSafe);
+        bytes memory data = abi.encodeCall(TimelockController.updateDelay, (12 days));
+        bytes32 opId = t.hashOperation(address(t), 0, data, bytes32(0), bytes32("p"));
+        vm.prank(ownerSafe);
+        t.scheduleProtected(address(t), 0, data, bytes32(0), bytes32("p"));
+        assertEq(t.getTimestamp(opId), block.timestamp + 10 days);
+    }
 }

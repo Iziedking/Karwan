@@ -580,4 +580,79 @@ contract KarwanIdentityRegistryTest is Test {
         (,, uint128 used) = reg.agentLimitOf(agent);
         assertEq(used, big);
     }
+
+    // ------------------------------ Outcomes ------------------------------
+
+    function test_an_agent_binding_whose_expiry_has_passed_is_refused() public {
+        vm.warp(1_800_000_000);
+        uint64 expiry = uint64(block.timestamp - 1);
+        uint256 deadline = block.timestamp + 1 hours;
+        bytes32 d = reg.bindDigest(id, agent, KarwanIdentityRegistry.Kind.Agent, expiry, 1e6, 1e6, deadline);
+        bytes memory s = _sig(agentKey, d);
+        vm.prank(alice);
+        vm.expectRevert(KarwanIdentityRegistry.BadBinding.selector);
+        reg.bind(agent, KarwanIdentityRegistry.Kind.Agent, expiry, 1e6, 1e6, deadline, s);
+    }
+
+    function test_a_binding_is_accepted_up_to_its_deadline_second() public {
+        uint256 deadline = block.timestamp;
+        bytes32 d = reg.bindDigest(id, phone, KarwanIdentityRegistry.Kind.Wallet, 0, 0, 0, deadline);
+        bytes memory s = _sig(phoneKey, d);
+        vm.prank(alice);
+        reg.bind(phone, KarwanIdentityRegistry.Kind.Wallet, 0, 0, 0, deadline, s);
+        assertEq(reg.identityOf(phone), id);
+    }
+
+    function test_recovery_finishes_any_time_after_the_wait() public {
+        _bindWallet(phone, phoneKey);
+        vm.prank(alice);
+        reg.setRecovery(phone);
+        vm.prank(phone);
+        reg.startRecovery();
+        vm.warp(block.timestamp + 8 days);
+        vm.prank(phone);
+        reg.finishRecovery();
+        assertEq(reg.controllerOf(id), phone);
+    }
+
+    function test_an_agent_long_past_its_expiry_spends_nothing_and_belongs_to_no_one() public {
+        _bindAgent(10e6, 100e6);
+        vm.warp(block.timestamp + 31 days);
+        vm.prank(family);
+        vm.expectRevert(KarwanIdentityRegistry.Expired.selector);
+        reg.useAgentAllowance(agent, 1e6);
+        assertEq(reg.identityOf(agent), 0);
+        assertFalse(reg.isAgent(agent));
+    }
+
+    function test_an_agent_pays_up_to_exactly_its_total() public {
+        _bindAgent(10e6, 20e6);
+        vm.startPrank(family);
+        reg.useAgentAllowance(agent, 10e6);
+        reg.useAgentAllowance(agent, 10e6);
+        vm.expectRevert(KarwanIdentityRegistry.OverLimit.selector);
+        reg.useAgentAllowance(agent, 1);
+        vm.stopPrank();
+    }
+
+    function test_an_agent_pays_exactly_its_per_payment_limit() public {
+        _bindAgent(10e6, 100e6);
+        vm.prank(family);
+        reg.useAgentAllowance(agent, 10e6);
+        (,, uint128 used) = reg.agentLimitOf(agent);
+        assertEq(used, 10e6);
+    }
+
+    /// A later identity cannot name an earlier identity's wallet as its
+    /// recovery wallet.
+    function test_a_wallet_of_an_earlier_identity_cannot_be_named_recovery() public {
+        _bindWallet(phone, phoneKey);
+        address bob = makeAddr("bob");
+        vm.prank(bob);
+        uint64 bobId = reg.register();
+        assertGt(bobId, id);
+        vm.prank(bob);
+        vm.expectRevert(KarwanIdentityRegistry.NotBound.selector);
+        reg.setRecovery(phone);
+    }
 }
