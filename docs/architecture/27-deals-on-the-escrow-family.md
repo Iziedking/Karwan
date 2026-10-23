@@ -185,6 +185,7 @@ Before any code, and logged in `docs/arc-circle-checks.md`:
 | Escrow family on Arc Testnet | Deployed 23 Oct 2026, owned by the timelock; the first settings can be executed from 24 Oct |
 | Every role used once on testnet (fact, two-of-three check, arbiter proposal) | Built and proven on an Arc fork; runs on testnet after the first settings |
 | App opens new deals on the family | Planned |
+| Confirmation by passkey or Karwan PIN for setup, deal insurance and money out | Built, not deployed (view 05) |
 | One identity per person, set up at the first money step | Planned |
 | Automatic arbiter on the family | Planned; the table is built for the terms-driven escrow and switched off |
 | Getting paid early on the family | Planned (T4.2) |

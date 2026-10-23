@@ -23,6 +23,7 @@ Every control below names the check that pins it. A control without one is a gap
 | Parties to a deal | Act on their own deal: fund, deliver, review, release, dispute, claim, reclaim | Act on another deal, or take more than the terms give them |
 | Evaluator of a job | Complete or reject submitted work | Be paid. A rejection of submitted work can be disputed |
 | Agents | Act for a person within the per-payment and total limits that person signed | Spend past those limits, or after the binding expires |
+| Someone holding a person's signed-in session | Run that person's agents' deal steps within the limits the person set | Send money out of Karwan, put up deal insurance or set up the record without the person's passkey or Karwan PIN, checked by Karwan's servers (view 05) |
 | Automatic arbiter | Propose a ruling from the outcomes the terms allow | Rule outside them; any party escalates |
 | Reviewer Safes | Rule on an escalated dispute, within its amount, between the deal's parties | Touch undisputed money or pay anyone else |
 | Guardian Safe | Pause new money into a family, hold a deal 7 days at a time and 30 days at most, cancel a queued timelock change | Stop an exit for good, or move money |

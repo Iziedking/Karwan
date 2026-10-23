@@ -128,3 +128,20 @@ test('the guide and the assistant send people to one market (view 17)', () => {
   assert.ok('href' in business);
   assert.equal(business.href, '/market?scope=business');
 });
+
+test('the guide says how a person confirms and the three things that ask (view 27)', () => {
+  assert.equal(lookupPlatformGuide('how do I confirm with a passkey').facts[0]?.id, 'confirm');
+  assert.equal(lookupPlatformGuide('I forgot my PIN').facts[0]?.id, 'confirm');
+  assert.equal(lookupPlatformGuide('why was I not asked to confirm paying a deal').facts[0]?.id, 'confirm');
+  const entry = PLATFORM_GUIDE.find((e) => e.id === 'confirm')!;
+  assert.ok(entry.api.includes('POST /api/confirm') && entry.api.includes('POST /api/confirm/pin/reset'));
+  assert.match(entry.summary, /passkey/);
+  assert.match(entry.summary, /6-digit Karwan PIN/);
+  assert.match(entry.summary, /set up your Karwan record/);
+  assert.match(entry.summary, /deal insurance/);
+  assert.match(entry.summary, /money leaves Karwan/);
+  assert.match(entry.summary, /15 minutes/);
+  assert.match(entry.summary, /never asked in a chat/i);
+  assert.match(entry.summary, /Paying into a deal, accepting, delivering and releasing are not asked/);
+  assert.doesNotMatch(entry.summary, /\bstake|yield|vault|—/i);
+});
