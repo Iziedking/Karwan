@@ -33,8 +33,10 @@ ARC_TARBALL=arc-foundry-$ARC_FOUNDRY-x86_64-unknown-linux-gnu.tar.gz
 ARC_TARBALL_SHA256=088bdb96a84418b757f9825d491e702792f1d1d1e29a9145af305a6600a79556
 # Arc testnet seeds the blocklisted test address; a blank local Arc node does not.
 # The fork is pinned to one block so the pack does not depend on live state.
+# The public RPC drops full state for old blocks (66719638 stopped serving
+# nonces and code by 23 Oct), so move the pin forward when the fork fails to start.
 ARC_TESTNET_RPC=https://rpc.testnet.arc.io
-ARC_FORK_BLOCK=66719638
+ARC_FORK_BLOCK=68661248
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 # Git Bash may spell the same checkout C:/Users/... or /c/Users/...; one key for both.
 case "$ROOT" in [A-Za-z]:/*) ROOT="/$(printf %s "${ROOT%%:*}" | tr A-Z a-z)${ROOT#?:}" ;; esac
