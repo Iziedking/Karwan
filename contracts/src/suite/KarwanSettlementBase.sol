@@ -278,10 +278,6 @@ abstract contract KarwanSettlementBase is ReentrancyGuard, EIP712 {
         SettlementLib.recordOutcome(_s, hub, dealId, party, outcome, detail);
     }
 
-    function _account(bytes32 dealId) internal view returns (DealAccount storage) {
-        return _s.accounts[dealId];
-    }
-
     /// @dev A family marks its own state final before a long-stop pays out.
     function _onLongstop(bytes32 dealId) internal virtual;
 }
