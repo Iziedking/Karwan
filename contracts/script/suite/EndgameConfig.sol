@@ -41,15 +41,15 @@ library EndgameConfigLib {
         c.seniorSafe = vm.parseJsonAddress(j, ".seniorSafe");
         c.feeRecipient = vm.parseJsonAddress(j, ".feeRecipient");
         c.autoArbiter = vm.parseJsonAddress(j, ".autoArbiter");
-        c.feeBps = uint16(vm.parseJsonUint(j, ".feeBps"));
-        c.highValue = uint128(vm.parseJsonUint(j, ".highValue"));
-        c.perDealCap = uint128(vm.parseJsonUint(j, ".perDealCap"));
-        c.totalCap = uint128(vm.parseJsonUint(j, ".totalCap"));
-        c.minReview = uint64(vm.parseJsonUint(j, ".minReview"));
-        c.maxReview = uint64(vm.parseJsonUint(j, ".maxReview"));
-        c.maxHorizon = uint64(vm.parseJsonUint(j, ".maxHorizon"));
+        c.feeBps = uint16(_upTo(vm, j, "feeBps", type(uint16).max));
+        c.highValue = uint128(_upTo(vm, j, "highValue", type(uint128).max));
+        c.perDealCap = uint128(_upTo(vm, j, "perDealCap", type(uint128).max));
+        c.totalCap = uint128(_upTo(vm, j, "totalCap", type(uint128).max));
+        c.minReview = uint64(_upTo(vm, j, "minReview", type(uint64).max));
+        c.maxReview = uint64(_upTo(vm, j, "maxReview", type(uint64).max));
+        c.maxHorizon = uint64(_upTo(vm, j, "maxHorizon", type(uint64).max));
         c.checkers = vm.parseJsonAddressArray(j, ".checkers");
-        c.checkerThreshold = uint8(vm.parseJsonUint(j, ".checkerThreshold"));
+        c.checkerThreshold = uint8(_upTo(vm, j, "checkerThreshold", type(uint8).max));
         c.issuers = vm.parseJsonAddressArray(j, ".issuers");
         require(c.usdc != address(0), "config: usdc unset");
         require(c.ownerSafe != address(0) && c.guardianSafe != address(0), "config: owner or guardian Safe unset");
@@ -57,5 +57,11 @@ library EndgameConfigLib {
         require(c.feeRecipient != address(0), "config: fee recipient unset");
         require(c.minDelay >= 24 hours, "config: delay below the 24-hour floor");
         require(c.perDealCap <= c.totalCap, "config: per-deal cap above the total");
+    }
+
+    /// @dev A value wider than its field is refused rather than wrapped.
+    function _upTo(Vm vm, string memory j, string memory key, uint256 max) private pure returns (uint256 v) {
+        v = vm.parseJsonUint(j, string.concat(".", key));
+        require(v <= max, string.concat("config: ", key, " out of range"));
     }
 }

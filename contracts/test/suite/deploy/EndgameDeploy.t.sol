@@ -228,6 +228,17 @@ contract EndgameDeployTest is Test {
         vm.removeFile(path);
     }
 
+    /// A number too big for its field is refused, never wrapped: 65,636 bps
+    /// would otherwise load as 100.
+    function test_a_value_too_big_for_its_field_is_refused() public {
+        string memory path = "deployments/endgame-wide.config.json";
+        string memory j = vm.readFile("deployments/endgame-5042002.config.json");
+        vm.writeFile(path, vm.replace(j, "\"feeBps\": 100", "\"feeBps\": 65636"));
+        vm.expectRevert(bytes("config: feeBps out of range"));
+        this.loadFrom(path);
+        vm.removeFile(path);
+    }
+
     function loadFrom(string memory path) external view returns (EndgameConfig memory) {
         return EndgameConfigLib.load(vm, path);
     }
