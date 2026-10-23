@@ -5,6 +5,8 @@
 #   scripts/ops/forge-remote.sh --arc test/suite/arc
 #   scripts/ops/forge-remote.sh --echidna JobProps [seconds]
 #   scripts/ops/forge-remote.sh --medusa JobProps[,TimeProps] [seconds]
+#   scripts/ops/forge-remote.sh --fuzz-campaign SettlementProps,JobProps [seconds] [cpus]
+#   scripts/ops/forge-remote.sh --fuzz-status
 #   scripts/ops/forge-remote.sh --halmos SettlementProofs [halmos options]
 #   scripts/ops/forge-remote.sh --aderyn
 #   scripts/ops/forge-remote.sh --coverage
@@ -40,7 +42,7 @@ case "$ROOT" in [A-Za-z]:/*) ROOT="/$(printf %s "${ROOT%%:*}" | tr A-Z a-z)${ROO
 STATE="$HOME/.karwan-forge-remote-$(printf '%s' "$ROOT" | cksum | cut -d' ' -f1)"
 SSH="ssh -o BatchMode=yes $H"
 
-usage() { sed -n '3,15p' "$0" >&2; exit 64; }
+usage() { sed -n '3,17p' "$0" >&2; exit 64; }
 case "${1:-}" in
   --echidna|--medusa|--halmos|--arc) [ -n "${2:-}" ] || usage ;;
   --campaign)
@@ -81,6 +83,18 @@ if [ "${1:-}" = "--campaign-status" ]; then
     echo \"tested: \$(wc -l < /tmp/izie-results.\$\$) of \$(cat picked.jsonl 2>/dev/null | wc -l)\"
     for st in killed survived no-compile timeout error stale; do echo \"\$st: \$(grep -c \"\\\"status\\\": \\\"\$st\\\"\" /tmp/izie-results.\$\$)\"; done
     rm -f /tmp/izie-results.\$\$" < /dev/null
+  exit 0
+fi
+
+if [ "${1:-}" = "--fuzz-status" ]; then
+  # Each fuzz run: still running, or the fuzzer's exit code, and its last lines.
+  [ -f "$STATE" ] || { echo "forge-remote: no workspace" >&2; exit 1; }
+  W=$(cat "$STATE")
+  $SSH "cd $W/f 2>/dev/null || exit 1; tail -2 fuzz.log 2>/dev/null
+    for d in */; do r=\${d%/}
+      if [ -f \$r/exit ]; then s=\"exit \$(cat \$r/exit)\"; else s=running; fi
+      echo \"== \$r: \$s\"; tail -3 \$r/run.log 2>/dev/null | cut -c1-160
+    done" < /dev/null
   exit 0
 fi
 
@@ -171,6 +185,40 @@ case "${1:-}" in
       sh -c 'rm -rf out cache crytic-export corpus; $RUN 2>&1; R=\$?
         rm -rf /keep/$TOOL-$T; if [ -d corpus ]; then mv corpus /keep/$TOOL-$T; fi
         rm -rf out cache crytic-export; exit \$R'" < /dev/null
+    ;;
+  --fuzz-campaign)
+    # Echidna and Medusa on every property set given, all at once, each in its
+    # own copy of the contracts on CPUS cores with one worker, for the release
+    # gate's long runs. Like the mutation campaign it outlives this connection;
+    # follow it with --fuzz-status and stop it with --campaign-stop. Each run
+    # keeps its log, exit code and corpus in $W/f/<fuzzer>-<set>.
+    SETS=$2; SECS=${3:-86400}; CPUS=${4:-1}
+    $SSH "$DR -u 0:0 -v $W:/w --entrypoint rm $TOOLBOX_IMAGE -rf /w/f && mkdir $W/f" < /dev/null
+    $SSH "cat > $W/f/launch.sh" <<EOF
+trap 'rm -rf $W/.busy' EXIT
+cd $W/f
+echo \$\$ > launcher.pid
+for t in \$(echo $SETS | tr , ' '); do
+  for tool in echidna medusa; do
+    r=\$tool-\$t
+    cp -a $W/c \$r
+    if [ \$tool = echidna ]; then
+      run="echidna . --contract \$t --config echidna.yaml --timeout $SECS --workers 1"
+    else
+      run="medusa fuzz --config medusa.json --target-contracts \$t --timeout $SECS --workers 1"
+    fi
+    $DR -d --cpus=$CPUS --memory=8g -e FOUNDRY_PROFILE=fuzz -v $W/f/\$r:/c -w /c $TOOLBOX_IMAGE \
+      sh -c "rm -rf out cache crytic-export corpus; \$run > run.log 2>&1; echo \\\$? > exit" > /dev/null
+  done
+done
+echo "runs: \$(ls -d */ | wc -l), seconds: $SECS, cpus each: $CPUS, started \$(date -u +%FT%TZ)"
+while [ -n "\$(docker ps -q --filter label=izie.ws=$W)" ]; do sleep 60; done
+for r in */; do echo "\${r%/}: exit \$(cat \${r}exit 2>/dev/null || echo none)"; done
+echo "ended \$(date -u +%FT%TZ)"
+EOF
+    $SSH "cd $W/f || exit 1; setsid nohup sh launch.sh < /dev/null > fuzz.log 2>&1 &" < /dev/null
+    trap - EXIT INT TERM HUP
+    echo "fuzz campaign started in $W/f; follow it with --fuzz-status"
     ;;
   --coverage)
     # Branch coverage of the suite, then every branch no test takes, as
