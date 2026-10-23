@@ -66,7 +66,7 @@ Every control below names the check that pins it. A control without one is a gap
 | Two static analysers, every finding explained | Slither, Aderyn | `contracts/test/suite/SLITHER_TRIAGE.md`, `contracts/test/suite/ADERYN_TRIAGE.md`; the CRE contracts in `contracts/test/suite/cre/SLITHER_CRE.md`, their Aderyn findings still being triaged by the CRE build |
 | Branch coverage: every branch taken by a test, or explained | Foundry coverage, `scripts/ops/forge-remote.sh --coverage` | `contracts/test/suite/COVERAGE_TRIAGE.md` |
 | Fuzz tests over every money computation, 10,000 runs each | Foundry, release profile | `contracts/test/suite/**/*Fuzz.t.sol` |
-| Mutation testing: every mutant of every suite contract outside the CRE build, built and tested against the Foundry tests | slither-mutate's mutators, each replacement written over the exact expression it names, run by `scripts/ops/forge-remote.sh --campaign` | Every survivor is closed before deployment, by a test or under a rule in `contracts/test/suite/MUTATION_TRIAGE.md` that `scripts/ops/forge-remote.sh --campaign-triage` checks, and the campaign runs again on the frozen release. The Halmos proofs and the Arc fork tests run outside it |
+| Mutation testing: every mutant of every suite contract outside the CRE build, built and tested against the Foundry tests | slither-mutate's mutators, each replacement written over the exact expression it names, run by `scripts/ops/forge-remote.sh --campaign` | Every survivor is closed before deployment, by a test or under a rule in `contracts/test/suite/MUTATION_TRIAGE.md` that `scripts/ops/forge-remote.sh --campaign-triage` checks, and the campaign runs again on the frozen release. Each survivor is confirmed once more against every test that can run its code, apart from the invariant tests, which the 24-hour fuzz runs cover. The Halmos proofs and the Arc fork tests run outside it |
 | Every reentrancy guard proven: each guarded function refuses a token that calls back mid-payment, and each test fails without its guard | Foundry | `contracts/test/suite/**/*Reentrancy.t.sol` |
 | Every event checked field by field, each topic and each data field | Foundry, `vm.expectEmit` and recorded logs | `contracts/test/suite/**/*Events.t.sol` and each contract's own tests |
 | Two rehearsals on Arc testnet | The deployment script | Before the single deployment |
@@ -83,5 +83,5 @@ Every control below names the check that pins it. A control without one is a gap
 | Fuzz tests at 10,000 runs | Built |
 | Every reentrancy guard proven, one test each | Built |
 | Every event checked field by field | Built |
-| Mutation testing | Campaign running; its survivors are closed in batches as it finds them, all before deployment |
+| Mutation testing | Done: 12,988 mutants; every survivor killed by a test or listed under one of 16 rules with its reason, confirmed against every test that can run its code. Runs again on the frozen release |
 | 24-hour fuzzing on the frozen release | Planned, at release |
