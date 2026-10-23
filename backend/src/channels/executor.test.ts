@@ -196,3 +196,16 @@ test('choose_offer passes the unverified acknowledgement to the route', async ()
   await execute({ address: ME }, action('choose_offer', { jobId: '0xj', caller: ME, seller: '0xs', acknowledgeUnverified: true }));
   assert.deepEqual(calls[0]!.body, { caller: ME, seller: '0xs', acknowledgeUnverified: true });
 });
+
+test('a_confirmed_action_from_chat_answers_with_the_one_time_link', async () => {
+  const { execute } = setup(() => ({ status: 428, json: { code: 'CONFIRM_REQUIRED', challengeId: 'c1', text: 'Karwan confirmation' } }));
+  const r = await execute({ address: ME }, action('cash_out', { route: 'unified', destChainKey: 'baseSepolia', recipient: ME, amountUsdc: 5 }));
+  assert.deepEqual(r, { ok: false, reason: 'refused', message: 'This step is confirmed on Karwan. Ask me again and I will send you the link.' });
+});
+
+test('a_pin_is_never_asked_in_the_chat', async () => {
+  const { execute } = setup(() => ({ status: 428, json: { code: 'CONFIRM_REQUIRED', challengeId: 'c1' } }));
+  const r = await execute({ address: ME }, action('stake_usdc', { address: ME, amountUsdc: 5 }));
+  assert.equal(r.ok, false);
+  if (!r.ok) assert.doesNotMatch(r.message, /PIN|passkey/i);
+});

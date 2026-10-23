@@ -14,6 +14,7 @@ import { callAsAccount } from '../../channels/inProcess.js';
 import { extractInvoice, MEDIA_MAX_BYTES } from '../../channels/invoiceExtract.js';
 import { createEvidenceIntake } from '../../channels/media.js';
 import { chatOpenLinks, chatOpenUrl } from '../../channels/openLinksLive.js';
+import { openLinkAllowed } from '../../channels/openLink.js';
 import type { OutMessage } from '../../channels/render.js';
 import { installChannelPorts, tellAccount } from '../../channels/sender.js';
 import { provisionUserIdentityWallet } from '../../circle/wallets.js';
@@ -215,13 +216,12 @@ export function startTelegramAgent(): boolean {
       return { ok: false, error: String(r.json.error ?? 'assistant-unavailable'), code: r.json.code as string | undefined };
     },
     executeConfirm,
-    // A web account that linked Telegram signs in on the page as usual; links
-    // are for accounts Karwan holds the keys of.
+    // One-time links follow openLinkAllowed: a browser wallet account signs in on the page.
     presentConfirm: createMoneyStepPresenter({
       webBase,
       openLink: async (address, path) => {
         const account = await findTelegramAccountByAddress(address);
-        const token = account && !account.linkedWebAccount ? await chatOpenLinks.mint(address, path) : null;
+        const token = openLinkAllowed(account, getUserByAddress(address)) ? await chatOpenLinks.mint(address, path) : null;
         return token ? chatOpenUrl(token) : null;
       },
     }),
@@ -294,11 +294,10 @@ export function startTelegramAgent(): boolean {
       const account = await findTelegramAccountByAddress(address);
       return account ? (await send(account.to, m)).sent : false;
     },
-    // A linked web account signs in on the web; links are for accounts
-    // Karwan holds the keys of.
+    // One-time links follow openLinkAllowed: a browser wallet account signs in on the page.
     openLink: async (address, path) => {
       const account = await findTelegramAccountByAddress(address);
-      if (!account || account.linkedWebAccount) return null;
+      if (!openLinkAllowed(account, getUserByAddress(address))) return null;
       const linkToken = await chatOpenLinks.mint(address, path);
       return linkToken ? chatOpenUrl(linkToken) : null;
     },

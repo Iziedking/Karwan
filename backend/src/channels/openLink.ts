@@ -1,3 +1,5 @@
+import { isChatAccountEmail } from '../emails/chatRecipients.js';
+
 /// A chat account has no browser session, so the steps that need a page open
 /// from a one-time link the agent sends in chat: the person check, signing in
 /// to X, and every step that moves money, which is always confirmed on Karwan
@@ -52,4 +54,22 @@ export function createOpenLinks(deps: OpenLinkDeps) {
   }
 
   return { mint, redeem };
+}
+
+/// Who gets a one-time signed-in link: an account Karwan holds the keys of,
+/// a chat-only account or an email account linked to the chat. A browser
+/// wallet account signs in on the page with its own wallet.
+export function openLinkAllowed(
+  account: { linkedWebAccount?: boolean } | null,
+  user: { circleIdentityWalletId?: string } | null,
+): boolean {
+  if (!account) return false;
+  return !account.linkedWebAccount || !!user?.circleIdentityWalletId;
+}
+
+/// The half-hour session a link opens. It carries the account's email when it
+/// has a real one, so a PIN can be reset by email code on that page.
+export function openLinkSession(address: string, user: { email?: string } | null, chainId: number) {
+  const email = user?.email && !isChatAccountEmail(user.email) ? user.email.trim().toLowerCase() : undefined;
+  return { address, method: 'circle' as const, chainId, via: 'open_link' as const, ...(email ? { email } : {}) };
 }

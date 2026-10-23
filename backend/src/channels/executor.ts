@@ -163,6 +163,8 @@ const DONE: Partial<Record<ConfirmAction['intent'], string>> = {
 // Intents whose response carries a money-movement state.
 const MOVEMENTS = new Set<ConfirmAction['intent']>(['withdraw_proceeds', 'cash_out', 'stake_usdc', 'fund_agent']);
 
+const ON_KARWAN = 'This step is confirmed on Karwan. Ask me again and I will send you the link.';
+
 function stableBridgeId(actionId: string): string {
   // Stable per card, so a retried request is absorbed by the route's
   // per-bridge idempotency instead of burning twice.
@@ -180,9 +182,7 @@ export function createExecutor(deps: {
   const used = new Set<string>();
 
   return async function executeConfirm(account: { address: string }, action: ConfirmAction): Promise<ExecuteResult> {
-    if (deps.refuse?.has(action.intent)) {
-      return { ok: false, reason: 'refused', message: 'This step is confirmed on Karwan. Ask me again and I will send you the link.' };
-    }
+    if (deps.refuse?.has(action.intent)) return { ok: false, reason: 'refused', message: ON_KARWAN };
     if (used.has(action.id)) return { ok: false, reason: 'reused', message: 'That is already done.' };
     const p = action.payload as unknown as P;
 
@@ -241,6 +241,8 @@ function finish(action: ConfirmAction, res: { status: number; json: Record<strin
   const error = typeof res.json.error === 'string' ? res.json.error : undefined;
 
   if (res.json.code === 'CHAT_DEAL_LIMIT' && error) return { ok: false, reason: 'refused', message: error };
+  // A PIN or passkey is never asked in a chat: the person confirms on Karwan.
+  if (res.status === 428 && res.json.code === 'CONFIRM_REQUIRED') return { ok: false, reason: 'refused', message: ON_KARWAN };
   if (res.status >= 400 && res.status < 500) {
     return { ok: false, reason: 'stale', message: error ?? 'Things changed since I prepared this. Ask me again for the current step.' };
   }
