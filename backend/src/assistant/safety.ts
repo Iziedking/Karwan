@@ -52,15 +52,25 @@ export function requiresLiveAccountState(messages: AssistantSafetyMessage[]): bo
   // read from blocking an answer that is not about the account.
   const marketAction = /\b(?:find|browse|search|look for|post|create|make|list|sell|buy|hire|get)\b/.test(text)
     && /\b(?:sellers?|buyers?|customers?|clients?|suppliers?|freelancers?|market|marketplace|offers?|requests?|listings?|services?|payment links?|pay links?)\b/.test(text);
-  // "Open a deal with @lawful for 3 logo designs": building a deal is a
-  // conversation, and its first replies are questions (how much, by when).
-  // Nothing is claimed about the account and nothing moves until the person
-  // confirms the card, so the questions are answered. Asking about a deal
-  // that already exists is still personal or an outcome, and stays stateful.
-  const dealStart = /\b(?:open|start|create|make|set ?up|draft|begin|send)\b(?:\s+\S+){0,3}?\s+(?:deals?|agreements?|contracts?)\b/.test(text)
-    && /\b(?:with|for|to)\b/.test(text);
-  if (dealStart && !outcomeOrAttention && !personalContext) return false;
+  // A deal being built is answered (see startsDeal). The answers that follow
+  // ("20 usdc", "next friday") belong to the same build while the assistant's
+  // last reply asked for them.
+  const users = messages.filter((m) => m.role === 'user');
+  const lastReply = messages.filter((m) => m.role === 'assistant').at(-1)?.content.trim() ?? '';
+  const replying = messages.at(-1)?.role === 'user' && messages.at(-2)?.role === 'assistant' && lastReply.endsWith('?');
+  const building = replying && users.slice(0, -1).some((m) => startsDeal(m.content.toLowerCase()));
+  if ((startsDeal(text) || building) && !outcomeOrAttention && !personalContext) return false;
   return moneyOrAccount || outcomeOrAttention || personalContext || !(genericHelp || marketAction);
+}
+
+/// "Open a deal with @lawful for 3 logo designs": building a deal is a
+/// conversation, and its replies are questions (how much, by when). Nothing is
+/// claimed about the account and nothing moves until the person confirms the
+/// card. Asking about a deal that already exists is personal or an outcome,
+/// and stays stateful.
+function startsDeal(text: string): boolean {
+  return /\b(?:open|start|create|make|set ?up|draft|begin|send)\b(?:\s+\S+){0,3}?\s+(?:deals?|agreements?|contracts?)\b/.test(text)
+    && /\b(?:with|for|to)\b/.test(text);
 }
 
 /** Never forward previous assistant replies/account history to a fallback. */
@@ -85,10 +95,28 @@ export function proposalReply(actions: ReadonlyArray<{ kind: string }>): string 
   return null;
 }
 
-/// A reply is held back only when it touches the account (balance, deals,
-/// payments, transfers and the like) and no fresh read backs it. A question
-/// with no account topic, such as a clarification about the market, is
-/// answered: there is no account claim in it to check.
-export function mayAnswer(input: { needsLiveState: boolean; grounded: boolean; subjects: number }): boolean {
-  return !input.needsLiveState || input.grounded || input.subjects === 0;
+/// Whether a reply states something about this person's account: what they
+/// hold, what moved, where a deal or request stands, what is pending. Questions
+/// back to the person, explanations of how Karwan works and "found them" from
+/// a tag check claim nothing about the account and need no read behind them.
+export function claimsAccountState(reply: string): boolean {
+  const statements = reply
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim().toLowerCase())
+    .filter((s) => s && !s.endsWith('?'));
+  return statements.some((s) =>
+    /\byour\s+(?:balance|wallet|account|deals?|requests?|offers?|payments?|transfers?|stake|reputation|tier|funds|money|agents?|links?)\b(?!\s+(?:here|on karwan)\b)/.test(s)
+    || /\byou\s+(?:have|hold|own|received|got|sent|paid|owe|earned|are owed)\b/.test(s)
+    || /\b(?:went through|was (?:sent|paid|received|released|refunded|funded|cancelled)|were (?:sent|paid|received)|is (?:funded|released|pending|live|settled|complete|completed|paid|stuck|on its way)|has (?:been )?(?:paid|sent|arrived|landed|settled|failed|cleared))\b/.test(s)
+    || /\b(?:nothing|no(?:thing)?\s+\w+)\s+is\s+pending\b/.test(s)
+    || /\b\d[\d,]*(?:\.\d+)?\s*(?:usdc|usd)\b.*\b(?:balance|available|received|sent|paid|pending|held|in escrow|on arc)\b/.test(s)
+    || /\b(?:balance|available|received|sent|paid|held)\b.*\b\d[\d,]*(?:\.\d+)?\s*(?:usdc|usd)\b/.test(s));
+}
+
+/// A reply is held back only when it states something about the account
+/// (see claimsAccountState) and no fresh read backs it. Questions, how-to and
+/// a prepared card's wording are answered as they are.
+export function mayAnswer(input: { needsLiveState: boolean; grounded: boolean; subjects: number; reply?: string }): boolean {
+  if (!input.needsLiveState || input.grounded || input.subjects === 0) return true;
+  return input.reply !== undefined && !claimsAccountState(input.reply);
 }

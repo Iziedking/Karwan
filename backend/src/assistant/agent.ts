@@ -2501,12 +2501,16 @@ export async function runAssistantAgent(input: {
   /// What the assistant remembers about this person; absent when it could not be read.
   memory?: AssistantMemory;
   conversationId?: string;
+  /// A second try after a reply stated account facts without reading them:
+  /// the first step must call a tool, so the answer rests on a fresh read.
+  forceRead?: boolean;
 }): Promise<{ text: string; actions: AssistantAction[]; grounded: boolean; subjects: number }> {
   const model = assistantAgentModel;
   if (!model) throw new Error('assistant agent model unavailable');
 
   const system = systemPromptFor({ mode: input.mode }) + '\n' + authenticatedPreamble(input.address, input.method)
-    + (input.memory ? '\n' + memoryPreamble(input.memory) : '');
+    + (input.memory ? '\n' + memoryPreamble(input.memory) : '')
+    + (input.forceRead ? '\nRead the account with the tool for what the person asked about before you answer. State only what that read returned.' : '');
   const actions: AssistantAction[] = [];
 
   const result = await withLlmTimeout(
@@ -2519,6 +2523,7 @@ export async function runAssistantAgent(input: {
       // Allow a few reasoning+tool rounds (e.g. whats_pending, then read one
       // deal, then propose a button), then force a final text answer.
       stopWhen: stepCountIs(6),
+      ...(input.forceRead ? { prepareStep: ({ stepNumber }: { stepNumber: number }) => (stepNumber === 0 ? { toolChoice: 'required' as const } : undefined) } : {}),
       maxOutputTokens: 900,
     }),
     30_000,

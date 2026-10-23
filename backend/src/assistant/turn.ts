@@ -40,14 +40,24 @@ export async function runAssistantTurn(
         logger.warn({ err: err.message }, 'assistant memory: read failed, answering without it');
         return undefined;
       });
-      const { text, actions, grounded, subjects } = await runAssistantAgent({
+      const ask = (forceRead: boolean) => runAssistantAgent({
         address,
         method: input.method,
         messages: input.messages,
         mode: input.mode,
         memory,
         conversationId: input.conversationId,
+        forceRead,
       });
+      let { text, actions, grounded, subjects } = await ask(false);
+      // A reply that states account facts without reading them gets one more
+      // try that must read first. A person is called only if that fails too.
+      const unread = text && !proposalReply(actions) && !mayAnswer({ needsLiveState, grounded, subjects, reply: text });
+      const silent = !text && !actions.length && needsLiveState;
+      if (unread || silent) {
+        logger.info('assistant: unread account claim, retrying with a required read');
+        ({ text, actions, grounded, subjects } = await ask(true));
+      }
       // Notes are written after the reply goes out, never holding it up.
       const remember = (reply: string) => {
         if (!memory?.enabled) return;
@@ -65,7 +75,7 @@ export async function runAssistantTurn(
       // Never let a tool-less model answer a stateful prompt. The only safe
       // response when the account read model was not consulted is an honest
       // retry message, not an optimistic status.
-      if (text && mayAnswer({ needsLiveState, grounded, subjects })) {
+      if (text && mayAnswer({ needsLiveState, grounded, subjects, reply: text })) {
         remember(text);
         return { ok: true, reply: text, actions };
       }

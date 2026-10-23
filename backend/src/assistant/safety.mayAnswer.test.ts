@@ -54,3 +54,49 @@ test('asking to open a deal with someone is an instruction, so the questions tha
   assert.equal(requiresLiveAccountState(ask('what is the status of my deal with @lawful?')), true);
   assert.equal(requiresLiveAccountState(ask('did the deal with @ada go through?')), true);
 });
+
+test('a short answer while a deal is being built is part of building it', async () => {
+  const { requiresLiveAccountState } = await import('./safety.js');
+  const build = (...turns: string[]) => turns.map((content, i) => ({ role: (i % 2 ? 'assistant' : 'user') as 'user' | 'assistant', content }));
+  const asked = ['Open a deal with grachi for delivery of books', 'Found them: @grachidefi. What is the budget in USDC and when do you need them?'];
+  for (const answer of ['20 usdc', '20', 'next friday', 'in 5 days', '@grachidefi', 'two payments']) {
+    assert.equal(requiresLiveAccountState(build(...asked, answer)), false, answer);
+  }
+  // Asking about the account mid-build still needs a fresh read.
+  assert.equal(requiresLiveAccountState(build(...asked, 'what is my balance?')), true);
+  assert.equal(requiresLiveAccountState(build(...asked, 'did it go through?')), true);
+  // Without a question pending, an old deal request does not relax later turns.
+  assert.equal(requiresLiveAccountState(build('Open a deal with grachi for books', 'Sent. Anything else?', 'ok', 'Done.', '20 usdc')), true);
+});
+
+test('only a reply that states something about the account needs a fresh read behind it', async () => {
+  const { claimsAccountState } = await import('./safety.js');
+  for (const reply of [
+    "Found them: @grachidefi (grachi). What's the budget in USDC and when do you need the books delivered?",
+    'When do you need it delivered?',
+    'Sure. What is it for, and how much?',
+    'A protected deal holds the money in escrow until you release it.',
+    'I can start that. Who is it with?',
+  ]) {
+    assert.equal(claimsAccountState(reply), false, reply);
+  }
+  for (const reply of [
+    'Your balance is 120 USDC.',
+    'You have 3 open deals.',
+    'The payment went through.',
+    'Tunde was paid 50 USDC yesterday.',
+    'Your deal with @ada is funded and waiting on delivery.',
+    'You received 20.00 USDC from @lawful.',
+    'Nothing is pending on your account.',
+    'Your request is live.',
+  ]) {
+    assert.equal(claimsAccountState(reply), true, reply);
+  }
+});
+
+test('an unchecked reply is held back only when it claims something about the account', async () => {
+  const { mayAnswer } = await import('./safety.js');
+  assert.equal(mayAnswer({ needsLiveState: true, grounded: false, subjects: 2, reply: 'How much should it be?' }), true);
+  assert.equal(mayAnswer({ needsLiveState: true, grounded: false, subjects: 2, reply: 'Your balance is 40 USDC.' }), false);
+  assert.equal(mayAnswer({ needsLiveState: true, grounded: true, subjects: 2, reply: 'Your balance is 40 USDC.' }), true);
+});
