@@ -280,3 +280,15 @@ export function driverFor(
   if (!request.agentAddress) return null;
   return walletSigned ? 'walletTopUp' : 'accountTopUp';
 }
+
+/// A pool spend the connected wallet signed in the browser. A mint hash means
+/// the money landed. A declined signature moved nothing. Any other error may
+/// come after Gateway accepted the signed intent, so it waits rather than
+/// claims nothing moved.
+export function fromWalletPoolSpend(outcome: { txHash?: string } | { error: unknown }): SheetState {
+  if ('error' in outcome) {
+    const message = outcome.error instanceof Error ? outcome.error.message : String(outcome.error ?? '');
+    return DECLINED.test(message) ? { kind: 'failed', declined: true } : { kind: 'slow', reference: null, txHash: null };
+  }
+  return outcome.txHash ? { kind: 'confirmed', reference: null, txHash: outcome.txHash } : { kind: 'slow', reference: null, txHash: null };
+}

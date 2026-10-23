@@ -272,7 +272,6 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "POST", path: "/api/gateway/fund-agent" },
   { method: "POST", path: "/api/gateway/refresh" },
   { method: "POST", path: "/api/gateway/sweep" },
-  { method: "POST", path: "/api/gateway/to-wallet" },
   { method: "GET", path: "/api/gateway/unified" },
   { method: "GET", path: "/api/jobs" },
   { method: "POST", path: "/api/jobs" },

@@ -13,7 +13,7 @@ import {
   readUserGatewayBalance,
   sweepToUnifiedBalance,
 } from '../gateway/balance.js';
-import { GatewaySpendError, fundAgentFromGateway, cashOutFromGateway, topUpWalletFromGateway } from '../gateway/spend.js';
+import { GatewaySpendError, fundAgentFromGateway, cashOutFromGateway } from '../gateway/spend.js';
 import { logger } from '../logger.js';
 import { forgetPooledBalance, readPooledBalance } from '../gateway/pooledBalance.js';
 import { invalidBodyMessage } from './invalidBody.js';
@@ -213,39 +213,6 @@ const fundAgentSchema = z.object({
 
 // One spend at a time per user, so a double-click can't fire two burn intents.
 const spendInFlight = new Set<string>();
-
-const toWalletSchema = z.object({
-  amountUsdc: z.number().positive().max(5_000_000),
-  requestId: z.string().trim().min(8).max(128),
-});
-
-/// Send uses the whole balance (architecture view 22): when the wallet alone
-/// is short of a send, move the shortfall from the pooled balance into the
-/// person's own wallet first. The send itself then runs as usual. No activity
-/// row of its own: to the person it is one send, and the receipt is the send's.
-gatewayRoutes.post('/to-wallet', async (c) => {
-  const address = sessionAddress(c);
-  if (!address) return c.json({ error: 'unauthorized' }, 401);
-  const parsed = toWalletSchema.safeParse(await c.req.json().catch(() => null));
-  if (!parsed.success) return c.json({ error: invalidBodyMessage(parsed.error) }, 400);
-  if (spendInFlight.has(address)) {
-    return c.json({ error: 'a transfer is already in progress', code: 'in_flight' }, 409);
-  }
-  spendInFlight.add(address);
-  try {
-    const result = await topUpWalletFromGateway(address, parsed.data.amountUsdc, parsed.data.requestId);
-    forgetPooledBalance(address);
-    return c.json({ ok: true, requestId: parsed.data.requestId, ...result });
-  } catch (err) {
-    logger.warn({ address, err: (err as Error).message }, 'gateway to-wallet failed');
-    if (err instanceof GatewaySpendError) {
-      return c.json({ error: err.message, code: 'needs_attention', reference: err.reference }, 502);
-    }
-    return c.json({ error: (err as Error).message, code: 'not_moved' }, 400);
-  } finally {
-    spendInFlight.delete(address);
-  }
-});
 
 /// Fund one of the caller's agent wallets from their unified Gateway balance.
 /// Same-chain Arc spend, using the configured owner path for this account.

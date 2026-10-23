@@ -1,6 +1,6 @@
 # 22 · Send uses your whole balance
 
-Track T5, money like a bank account. Approved and built 22 Oct 2026; corrected the same day after the first live send failed on who signs the top-up.
+Track T5, money like a bank account. Approved and built 22 Oct 2026. Corrected 23 Oct: only a web3 wallet account has a pool, and it signs the top-up in its own wallet; email and passkey accounts hold no pool (view 23, dropped), so their Send counts the wallet alone. The server route `POST /api/gateway/to-wallet` was removed.
 
 ## What is wrong today
 

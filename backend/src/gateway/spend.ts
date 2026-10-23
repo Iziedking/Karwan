@@ -17,7 +17,6 @@ import {
 } from '../money/service.js';
 import { recordCashoutLeg } from '../money/cashout.js';
 import { parseUsdcMicros, type MoneyMovement } from '../money/model.js';
-import { topUpAmount } from './walletTopUp.js';
 
 /// Karwan's unified Gateway balance — SPEND side (autonomy Stage 3).
 ///
@@ -453,105 +452,6 @@ export async function cashOutFromGateway(
     ...(effectiveTxHash ? { txHash: effectiveTxHash } : {}),
     ...(effectiveExplorerUrl ? { explorerUrl: effectiveExplorerUrl } : {}),
     transferId: result?.transferId,
-    reference: finalized.reference,
-    movementState: finalized.state,
-  };
-}
-
-export interface WalletTopUpResult {
-  /// What arrived in the wallet: the shortfall asked for.
-  shortfallUsd: number;
-  /// What left the pool for it, the forwarding fee included.
-  movedUsd: number;
-  txHash?: string;
-  reference: string;
-  movementState: MoneyMovement['state'];
-}
-
-/// Send uses the whole balance (architecture view 22): move just enough from
-/// the pooled balance into the person's own Arc wallet that `shortfallUsd`
-/// arrives there, so the send that follows can go out from the wallet as usual.
-/// Same chain, so no Gateway transfer fee; the Forwarding Service fee comes out
-/// of the minted amount, so it is estimated first and added on top. One
-/// movement per request id, so a retry never moves twice.
-export async function topUpWalletFromGateway(
-  userAddress: string,
-  shortfallUsd: number,
-  requestId: string,
-): Promise<WalletTopUpResult> {
-  if (!(shortfallUsd > 0)) throw new Error('amount must be greater than 0');
-  const key = userAddress.toLowerCase();
-  const record = await getAgentWallets(key);
-  const gw = record?.gatewayWallet;
-  if (!gw) throw new Error('you have no pooled balance to draw on');
-
-  const operationKey = `gateway:wallet-top-up:${key}:${requestId}`;
-  const ensured = await ensureGatewaySpendMovement({
-    operationKey,
-    kind: 'deposit',
-    amountUsdc: shortfallUsd.toString(),
-    initiatedBy: key,
-    sourceAddress: gw.address,
-    destinationAddress: key,
-    summary: `Moved ${shortfallUsd} USDC into your wallet to send`,
-  });
-  const existing = await currentMoneyMovement(ensured.movement.reference);
-  const existingLeg = existing.legs.find((leg) => leg.attempt === existing.attempt && leg.key === 'gateway_mint');
-  if (existing.state === 'completed' || existing.state === 'needs_attention' || existingLeg?.providerId) {
-    return {
-      shortfallUsd,
-      movedUsd: shortfallUsd,
-      ...(existingLeg?.txHash ? { txHash: existingLeg.txHash } : {}),
-      reference: existing.reference,
-      movementState: existing.state,
-    };
-  }
-
-  const { kit, circleAdapter } = requireAppKit();
-  const pool = await gatewayAvailableUsd(gw.address);
-  const estimate = (await kit.unifiedBalance.estimateSpend(
-    buildSpendParams({ adapter: circleAdapter, gatewayAddress: gw.address, recipientAddress: key, amountUsd: shortfallUsd }) as never,
-  )) as { fees?: Array<{ type: string; amount: string }> };
-  const plan = topUpAmount(shortfallUsd, estimate.fees ?? [], pool);
-  if (!plan.ok) {
-    throw new Error(`Your balance is ${pool.toFixed(2)} USDC in the pool, not enough to cover ${shortfallUsd} USDC with its fees.`);
-  }
-
-  await prepareGatewaySpendMovement(ensured.movement.reference, {
-    sourceAddress: gw.address,
-    destinationAddress: key,
-    amountMicros: parseUsdcMicros(plan.amount.toString()),
-    destinationChain: ARC_APP_KIT_CHAIN,
-  });
-  let result: SpendOutcome;
-  try {
-    result = (await kit.unifiedBalance.spend(
-      buildSpendParams({ adapter: circleAdapter, gatewayAddress: gw.address, recipientAddress: key, amountUsd: plan.amount }) as never,
-    )) as SpendOutcome;
-  } catch (error) {
-    // The intent may already be accepted: keep the attempt for reconciliation
-    // rather than retry blind and move twice.
-    const attention = await markMoneyMovementNeedsAttention(ensured.movement.reference, 'GATEWAY_SPEND_UNKNOWN_OUTCOME');
-    throw new GatewaySpendError(
-      error instanceof Error ? error.message : 'Gateway spend outcome is unknown',
-      attention.reference,
-      attention.state,
-    );
-  }
-  const mintStep = result.steps?.find((step) => step.name === 'mint' && step.state === 'success');
-  const txHash = result.txHash ?? mintStep?.txHash;
-  const explorerUrl = result.explorerUrl ?? mintStep?.explorerUrl;
-  const finalized = await recordCashoutLeg(ensured.movement.reference, 'gateway_mint', {
-    submitted: true,
-    ...(result.transferId ? { providerId: result.transferId } : {}),
-    ...(txHash ? { txHash } : {}),
-    ...(explorerUrl ? { explorerUrl } : {}),
-  });
-  logger.info({ userAddress: key, shortfallUsd, movedUsd: plan.amount, txHash }, 'gateway: topped up wallet from pooled balance');
-  return {
-    shortfallUsd,
-    movedUsd: plan.amount,
-    ...(txHash ? { txHash } : {}),
     reference: finalized.reference,
     movementState: finalized.state,
   };

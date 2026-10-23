@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { erc20Abi } from 'viem';
 import { useAccount, useChainId, useReadContracts, useSwitchChain } from 'wagmi';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
-import { api, ApiError } from '@/core/api';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { NetworkHint } from '@/shared/components/NetworkContext';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -16,16 +15,18 @@ import { DepositCard } from '@/features/deposit/components/DepositCard';
 import { AddressText } from '@/features/money/components/AddressText';
 import { formatAmount, formatBalance } from '@/features/money/balanceModel';
 import { useMoneyBalances } from '@/features/money/hooks/useMoneyBalances';
-import { chipAmount, groupAddress, parseAmount, shortfall, spendable } from '@/features/money/moneySheetModel';
+import { chipAmount, fromWalletPoolSpend, groupAddress, parseAmount, shortfall, spendable, type SheetState } from '@/features/money/moneySheetModel';
+import { topUpWithFees } from '@/features/money/sendFromWhole';
+import { gatewayEstimateSpend, gatewaySpend } from '@/features/gateway/lib';
 import { toMicros } from '@/features/money/usdc';
 import { SOURCE_CHAINS, SOURCE_CHAIN_KEYS, USDC_FAUCET, WITHDRAW_DEST_KEYS, type CctpChainKey } from '../config';
 import { amountFromParams, intentFromParams, resumableRecord, startedRecord, willNotifyOnArrival, type CrossChainIntent } from '../crossChainIntent';
 import { bridgeChainMeta, useBridges } from '../hooks/useBridge';
-import { outAvailable, planOut, poolOutcome, routeSpeed, stepForPhase, walletSources, type TransferStep } from '../routePlan';
+import { outAvailable, planOut, routeSpeed, stepForPhase, walletSources, type TransferStep } from '../routePlan';
 import { BridgeHistoryModal } from './BridgeHistorySection';
 import { TransferProgress } from './TransferProgress';
 import { MoneyOutNotice } from '@/features/moneyOut/MoneyOutNotice';
-import { moneyOutRefusalOf, type MoneyOutRefusal } from '@/features/moneyOut/refusal';
+import type { MoneyOutRefusal } from '@/features/moneyOut/refusal';
 
 const PRIMARY =
   'inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[var(--action)] px-5 text-[15px] font-medium text-[var(--on-action)] transition-opacity duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:opacity-90 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]';
@@ -39,8 +40,6 @@ const OPTION =
   'flex min-h-12 cursor-pointer items-center justify-between gap-3 rounded-full bg-[var(--tint)] px-4 text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none has-[:checked]:bg-[var(--ink)] has-[:checked]:text-[var(--canvas)] has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[var(--action)]';
 const SOFT = 'bg-[var(--tint)] motion-safe:animate-pulse motion-reduce:animate-none rounded-full';
 const ADDRESS = /^0x[a-fA-F0-9]{40}$/;
-
-type PoolDestination = Parameters<typeof api.gatewayCashOut>[0];
 
 type Started =
   | { kind: 'bridge'; since: number; direction: 'in' | 'out'; chainKey: string }
@@ -189,7 +188,7 @@ function CrossChainFlow({ intent }: { intent: CrossChainIntent }) {
       return;
     }
     if (!auth.address || route === null || route.kind === 'short') return;
-    if (wallet && route.kind === 'cctp' && (!account.isConnected || !account.connector)) {
+    if (wallet && (!account.isConnected || !account.connector)) {
       openConnectModal?.();
       return;
     }
@@ -215,31 +214,37 @@ function CrossChainFlow({ intent }: { intent: CrossChainIntent }) {
     }
   }
 
-  /// Ask the backend about a Gateway cash-out. A re-ask uses the same request
-  /// id, so it reports on the movement already made instead of making another.
+  /// Cash out from the connected wallet's own pool. Only that wallet's
+  /// signature can spend it, so the browser signs; the forwarder's fee goes on
+  /// top so the whole amount lands. There is no backend record to re-ask, and
+  /// asking the wallet again would sign a second spend, so a re-check does
+  /// nothing here.
   async function askPool(
     pool: { kind: 'pool'; startedAt: number; chainKey: CctpChainKey; to: `0x${string}`; amount: number; requestId: string },
     recheck: boolean,
   ) {
-    let outcome: { step: TransferStep | 'failed'; leftSource: boolean };
+    if (recheck) return;
+    let state: SheetState;
     let keys: { ids: Array<string | null | undefined> } = { ids: [] };
     try {
-      const result = await api.gatewayCashOut(pool.chainKey as PoolDestination, pool.to, pool.amount, pool.requestId);
-      outcome = poolOutcome(result);
-      keys = { ids: [result.reference, result.txHash] };
-    } catch (err) {
-      const refusal = moneyOutRefusalOf(err);
-      if (refusal) {
-        setStarted({ ...pool, step: 'failed', leftSource: false, refusal });
-        return;
-      }
-      const named = err instanceof ApiError ? (err.body as { reference?: unknown } | null)?.reference : null;
-      outcome = poolOutcome({ status: err instanceof ApiError ? err.status : null, reference: typeof named === 'string' ? named : null });
+      const connector = account.connector;
+      if (!connector) throw new Error('no wallet to sign the cash-out');
+      const provider = await connector.getProvider();
+      const chain = SOURCE_CHAINS[pool.chainKey].appKit;
+      const fees = await gatewayEstimateSpend({ provider, amount: String(pool.amount), recipientAddress: pool.to, chain });
+      const spent = await gatewaySpend({ provider, amount: String(topUpWithFees(pool.amount, fees)), recipientAddress: pool.to, chain });
+      state = fromWalletPoolSpend({ txHash: spent.txHash });
+      keys = { ids: [spent.txHash] };
+    } catch (error) {
+      state = fromWalletPoolSpend({ error });
     }
-    if (recheck && outcome.step === 'failed') return;
+    const outcome: { step: TransferStep | 'failed'; leftSource: boolean } =
+      state.kind === 'confirmed' ? { step: 'arrived', leftSource: true }
+        : state.kind === 'failed' ? { step: 'failed', leftSource: false }
+          : { step: 'arriving', leftSource: true };
     setStarted({ ...pool, ...outcome });
     if (outcome.step === 'arrived') moneySounds.outcome('success', keys);
-    else moneySounds.claim(keys);
+    else if (outcome.step !== 'failed') moneySounds.claim(keys);
   }
 
   function reset() {

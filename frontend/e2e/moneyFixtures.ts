@@ -47,10 +47,8 @@ export interface MoneyWorld {
   events?: () => string;
   /// Same-chain send from the account's own wallet.
   arcSend?: (route: Route) => Promise<void>;
-  /// USDC pooled in Gateway, counted in the balance Send can use.
+  /// USDC pooled in Gateway under the sign-in address. Only a wallet account counts it.
   pool?: number;
-  /// Moves a send's shortfall from the pool into the account's own wallet.
-  toWallet?: (route: Route) => Promise<void>;
   /// Every /api/money-out/* call: status, World ID checks, remove, pause.
   moneyOut?: (route: Route, path: string) => Promise<void>;
 }
@@ -128,7 +126,6 @@ export async function serveMoney(page: Page, world: MoneyWorld) {
     if (path === '/api/activation/withdraw' && world.withdraw) return world.withdraw(route);
     if (path === '/api/bridge/circle-bridge-out' && world.bridgeOut) return world.bridgeOut(route);
     if (path === '/api/cashout/arc-send' && world.arcSend) return world.arcSend(route);
-    if (path === '/api/gateway/to-wallet' && world.toWallet) return world.toWallet(route);
     if (path.startsWith('/api/money-out/') && world.moneyOut) return world.moneyOut(route, path);
     if (path === '/api/events') {
       return route.fulfill({

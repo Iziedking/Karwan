@@ -6,17 +6,10 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { chainErrorMessage } from '@/shared/utils/chainError';
 import { useMoneyRefresh } from '@/shared/hooks/useMoneyRefresh';
 
-/// One click to fund the agent that is short, from the balance the user has.
-///
-/// The existing button funded from the Gateway pooled balance, and fell back to
-/// opening the Gateway rail in a new tab when the pool could not cover it. Two
-/// problems with that for an email account: the pool is a separate address most
-/// of them have never funded, and the rail is the plumbing the deposit work
-/// exists to keep off their screen.
-///
-/// The money is already in the user's confirmed pooled balance. Funding an
-/// agent is one session-scoped Gateway spend to Arc, with no bridge, no chain
-/// to pick and no wallet signature prompt.
+/// One click to fund the agent that is short, from the email account's own
+/// wallet on Arc. The backend signs, so there is no wallet prompt and no chain
+/// to pick. Email accounts hold no pooled balance (view 23, dropped 23 Oct), so
+/// this never touches Gateway.
 export function FundAgentFromBalance({
   agent,
   amountUsdc,
@@ -48,7 +41,7 @@ export function FundAgentFromBalance({
     setError(null);
     try {
       requestIdRef.current ??= crypto.randomUUID();
-      await api.gatewayFundAgent(agent, amountUsdc, requestIdRef.current);
+      await api.fundAgent({ address, agent, amountUsdc, requestId: requestIdRef.current });
       requestIdRef.current = null;
       setPhase('done');
       refreshMoney();

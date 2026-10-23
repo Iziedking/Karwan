@@ -22,6 +22,7 @@ import {
   fromFundingResponse,
   fromMovementError,
   fromMovementResponse,
+  fromWalletPoolSpend,
   type AgentKey,
   type MoneyMove,
   type SheetState,
@@ -98,8 +99,6 @@ export function useMoneyMove() {
               requestId,
             }),
           );
-        } else if (request.source === 'pool') {
-          next = fromMovementResponse(await api.gatewayFundAgent(request.agent, request.amount, requestId));
         } else {
           next = fromFundingResponse(
             await api.fundAgent({ address: auth.address, agent: request.agent, amountUsdc: request.amount, requestId }),
@@ -111,7 +110,7 @@ export function useMoneyMove() {
         const refusal = moneyOutRefusalOf(err);
         if (refusal) next = { kind: 'guarded', refusal };
         else if (!(err instanceof ApiError)) next = { kind: 'slow', reference: null, txHash: null };
-        else if (request.move === 'topUp' && request.source !== 'pool') next = fromFundingError(err.status, err.code);
+        else if (request.move === 'topUp') next = fromFundingError(err.status, err.code);
         else next = fromMovementError(err.status, err.message, err.body);
       } finally {
         refreshMoney();
@@ -161,16 +160,13 @@ export function useMoneyMove() {
         const shortfall = sendShortfall(request.amount, request.walletBalance ?? null);
         if (shortfall > 0) {
           try {
-            if (walletSigned && account.connector) {
-              // The pool belongs to the sign-in wallet, and Gateway takes only
-              // its own signature on a spend: the wallet tops itself up.
-              const provider = await account.connector.getProvider();
-              const self = auth.address;
-              const fees = await gatewayEstimateSpend({ provider, amount: String(shortfall), recipientAddress: self });
-              await gatewaySpend({ provider, amount: String(topUpWithFees(shortfall, fees)), recipientAddress: self });
-            } else {
-              await api.gatewayToWallet(shortfall, crypto.randomUUID());
-            }
+            // Only a wallet account has a pool, and only its own signature can
+            // spend it: the wallet tops itself up.
+            if (!walletSigned || !account.connector) throw new Error('no wallet to sign the top-up');
+            const provider = await account.connector.getProvider();
+            const self = auth.address;
+            const fees = await gatewayEstimateSpend({ provider, amount: String(shortfall), recipientAddress: self });
+            await gatewaySpend({ provider, amount: String(topUpWithFees(shortfall, fees)), recipientAddress: self });
             await walletReaches(request.amount);
           } catch {
             setActive(null);
@@ -186,6 +182,22 @@ export function useMoneyMove() {
       }
       const requestId = crypto.randomUUID();
       setActive({ driver: 'call', request, requestId });
+      if (request.source === 'pool') {
+        // The pool belongs to the connected wallet; only its signature spends it.
+        // The forwarder's fee goes on top so the agent receives the whole amount.
+        setCallState({ kind: 'sent' });
+        try {
+          if (!walletSigned || !account.connector || !request.agentAddress) throw new Error('no wallet to sign the top-up');
+          const provider = await account.connector.getProvider();
+          const fees = await gatewayEstimateSpend({ provider, amount: String(request.amount), recipientAddress: request.agentAddress });
+          const spent = await gatewaySpend({ provider, amount: String(topUpWithFees(request.amount, fees)), recipientAddress: request.agentAddress });
+          setCallState(fromWalletPoolSpend({ txHash: spent.txHash }));
+        } catch (error) {
+          setCallState(fromWalletPoolSpend({ error }));
+        }
+        refreshMoney();
+        return;
+      }
       await call(request, requestId, false);
     },
     [auth.address, walletSigned, account.isConnected, account.connector, walletClient, walletTopUp, startArcSend, startWeb3ArcSend, call, refreshMoney, walletReaches],
@@ -200,6 +212,12 @@ export function useMoneyMove() {
       return;
     }
     if (active.driver === 'call') {
+      // A wallet-signed pool spend has no backend record to ask, and asking the
+      // wallet again would sign a second spend: only the balances refresh.
+      if (active.request.source === 'pool') {
+        refreshMoney();
+        return;
+      }
       // Same request id: the backend answers for the movement it already has.
       await call(active.request, active.requestId, true);
       return;

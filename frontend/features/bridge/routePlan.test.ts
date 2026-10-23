@@ -6,9 +6,7 @@ import {
   outAvailable,
   planOut,
   planTopUp,
-  poolOutcome,
   routeSpeed,
-  stepForMovementState,
   stepForPhase,
   transferView,
   walletSources,
@@ -43,16 +41,6 @@ test('every pipeline phase maps to a step, and no wait maps to failure', () => {
   assert.equal(stepForPhase('minting'), 'arriving');
   assert.equal(stepForPhase('done'), 'arrived');
   assert.equal(stepForPhase('error'), 'failed');
-});
-
-test('a Gateway cash-out steps by its movement state, and needing attention is still a wait', () => {
-  assert.equal(stepForMovementState('created'), 'signed');
-  assert.equal(stepForMovementState('preparing'), 'signed');
-  assert.equal(stepForMovementState('submitted'), 'arriving');
-  assert.equal(stepForMovementState('verifying'), 'arriving');
-  assert.equal(stepForMovementState('needs_attention'), 'arriving');
-  assert.equal(stepForMovementState('completed'), 'arrived');
-  assert.equal(stepForMovementState('cancelled'), 'failed');
 });
 
 test('timing comes from the route, and slow means past the usual', () => {
@@ -91,13 +79,4 @@ test('a failure after the money left the source reads as on its way, never as fa
   assert.deepEqual(transferView('failed', true), { kind: 'stuck' });
   assert.deepEqual(transferView('failed', false), { kind: 'failed' });
   assert.deepEqual(transferView('leaving', false), { kind: 'moving', step: 'leaving' });
-});
-
-test('a Gateway cash-out answer maps to a step; a refusal fails, anything unclear waits', () => {
-  assert.deepEqual(poolOutcome({ movementState: 'completed' }), { step: 'arrived', leftSource: true });
-  assert.deepEqual(poolOutcome({ movementState: 'verifying' }), { step: 'arriving', leftSource: true });
-  assert.deepEqual(poolOutcome({ status: 400, reference: null }), { step: 'failed', leftSource: false });
-  assert.deepEqual(poolOutcome({ status: 409, reference: null }), { step: 'failed', leftSource: true });
-  assert.deepEqual(poolOutcome({ status: 502, reference: 'KRW-1' }), { step: 'failed', leftSource: true });
-  assert.deepEqual(poolOutcome({ status: null, reference: null }), { step: 'failed', leftSource: true });
 });

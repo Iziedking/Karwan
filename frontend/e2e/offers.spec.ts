@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { BUYER_AGENT, funded, API, RPC, TX, watchHydration } from './moneyFixtures';
+import { BUYER_AGENT, ME, funded, API, RPC, TX, watchHydration } from './moneyFixtures';
 import { JOB, makeJob, serveSearch } from './searchFixtures';
 import type { Offer } from '../features/offers/model';
 import {
@@ -79,7 +79,7 @@ async function open(page: Page, world: World, theme: 'light' | 'dark' = 'light',
   let offers = [...world.offers];
   let acceptCalls = 0;
   let fundedInSheet = false;
-  let confirmed = world.confirmed ?? '100';
+  const confirmed = world.confirmed ?? '100';
   let buyerReads = 0;
   page.on('request', request => {
     if (request.url().startsWith(RPC) && request.postData()?.toLowerCase().includes(BUYER_AGENT.slice(2).toLowerCase())) buyerReads += 1;
@@ -94,14 +94,15 @@ async function open(page: Page, world: World, theme: 'light' | 'dark' = 'light',
       return route.fulfill({ status: 503, json: { error: 'Activation metadata unavailable', code: 'unavailable' } });
     }
     if (path === '/api/gateway/balance') return route.fulfill({ json: { balance: gatewayBalance(confirmed, world.pending) } });
-    if (path === '/api/gateway/fund-agent' && method === 'POST') {
+    // An email account funds its agent from its own Arc wallet (no pool, 23 Oct).
+    if (path === '/api/activation/fund-agent' && method === 'POST') {
       const body = route.request().postDataJSON() as { agent: string; amountUsdc: number; requestId: string };
       const balanceBeforeFunding = balances[BUYER_AGENT.toLowerCase()];
       fundingCalls.push(body);
       if (balanceBeforeFunding === undefined) {
         return route.fulfill({ status: 503, json: { error: 'Agent balance unavailable', code: 'unavailable' } });
       }
-      if (body.agent !== 'buyer' || !(body.amountUsdc > 0) || Number(confirmed) < body.amountUsdc) {
+      if (body.agent !== 'buyer' || !(body.amountUsdc > 0) || (balances[ME.toLowerCase()] ?? 0) < body.amountUsdc) {
         return route.fulfill({ status: 409, json: { error: 'Insufficient confirmed USDC', code: 'insufficient_balance' } });
       }
       if (world.funding?.refuseFirst && fundingCalls.length === 1) {
@@ -114,10 +115,9 @@ async function open(page: Page, world: World, theme: 'light' | 'dark' = 'light',
         return route.fulfill({ status: world.funding.status, json: { error: 'Transfer could not be confirmed', code: world.funding.code ?? 'unavailable' } });
       }
       balances[BUYER_AGENT.toLowerCase()] = balanceBeforeFunding + body.amountUsdc;
-      confirmed = String(Number(confirmed) - body.amountUsdc);
+      balances[ME.toLowerCase()] = (balances[ME.toLowerCase()] ?? 0) - body.amountUsdc;
       fundedInSheet = true;
-      return route.fulfill({ json: { ok: true, agent: body.agent, recipientAddress: BUYER_AGENT, amountUsd: body.amountUsdc,
-        txHash: TX, reference: 'KWN-2026-TOPUP-0001', movementState: 'completed' } });
+      return route.fulfill({ json: { accepted: true, txHash: TX, agentAddress: BUYER_AGENT, reference: 'KWN-2026-TOPUP-0001' } });
     }
     if (path === `/api/jobs/${JOB}/offers` && method === 'GET') {
       return route.fulfill({

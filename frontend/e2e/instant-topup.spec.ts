@@ -57,7 +57,7 @@ async function open(page: Page, path: string, theme: TopUpTheme, locale: TopUpLo
   await blockTopUpProviders(page);
   await serveTopUpTokenBalances(page, balances);
   let acceptCalls = 0;
-  let confirmed = world.confirmed ?? '40';
+  const confirmed = world.confirmed ?? '40';
   let deal = world.deal;
   const depositCalls: Record<string, unknown>[] = [];
   const fundCalls: Record<string, unknown>[] = [];
@@ -98,20 +98,20 @@ async function open(page: Page, path: string, theme: TopUpTheme, locale: TopUpLo
       return route.fulfill({ json: { ok: true, gatewayAddress: ME, amountUsd: 4.25, source: 'identity',
         depositTxHash: TX, reference: 'KWN-2026-ADD-0001', movementState: 'submitted' } });
     }
-    if (url.pathname === '/api/gateway/fund-agent' && method === 'POST') {
+    // An email account funds its agent from its own Arc wallet (no pool, 23 Oct).
+    if (url.pathname === '/api/activation/fund-agent' && method === 'POST') {
       const body = route.request().postDataJSON() as { agent: string; amountUsdc: number; requestId: string };
       fundCalls.push(body);
       if (world.fund) return world.fund(route);
       const buyerBalance = balances[BUYER_AGENT.toLowerCase()];
       if (buyerBalance === undefined) return route.fulfill({ status: 503, json: { error: 'Agent balance unavailable', code: 'unavailable' } });
-      if (body.agent !== 'buyer' || !(body.amountUsdc > 0) || Number(confirmed) < body.amountUsdc) {
-        return route.fulfill({ status: 409, json: { error: 'Insufficient confirmed USDC', code: 'insufficient_balance' } });
+      if (body.agent !== 'buyer' || !(body.amountUsdc > 0) || (balances[ME.toLowerCase()] ?? 0) < body.amountUsdc) {
+        return route.fulfill({ status: 409, json: { error: 'Insufficient USDC', code: 'insufficient_balance' } });
       }
       if (world.fundHold) await world.fundHold;
       balances[BUYER_AGENT.toLowerCase()] = buyerBalance + body.amountUsdc;
-      confirmed = String(Number(confirmed) - body.amountUsdc);
-      return route.fulfill({ json: { ok: true, agent: 'buyer', recipientAddress: BUYER_AGENT, amountUsd: body.amountUsdc,
-        txHash: TX, reference: 'KWN-2026-TOPUP-0002', movementState: 'completed' } });
+      balances[ME.toLowerCase()] = (balances[ME.toLowerCase()] ?? 0) - body.amountUsdc;
+      return route.fulfill({ json: { accepted: true, txHash: TX, agentAddress: BUYER_AGENT, reference: 'KWN-2026-TOPUP-0002' } });
     }
     if (deal && url.pathname === `/api/deals/direct/${deal.jobId}`) return route.fulfill({ json: { deal } });
     if (deal && url.pathname === `/api/deals/direct/${deal.jobId}/movements`) return route.fulfill({ json: { movements: [] } });

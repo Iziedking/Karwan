@@ -15,7 +15,7 @@ export function planTopUp(input: { amount: number; balance: number; pool: number
   return { kind: 'short', shortfall: fromMicros(need - best) };
 }
 
-/// The destinations the backend Gateway cash-out accepts (api.gatewayCashOut).
+/// The destinations a cash-out from the wallet's own pool can reach.
 export const POOL_DESTINATIONS: ReadonlySet<CctpChainKey> = new Set<CctpChainKey>([
   'baseSepolia',
   'arbitrumSepolia',
@@ -64,15 +64,6 @@ export function stepForPhase(phase: BridgePhase): TransferStep | 'failed' {
     case 'error':
       return 'failed';
   }
-}
-
-/// A Gateway cash-out answers with its movement state rather than a phase. A
-/// movement that needs attention is still waiting, not failed.
-export function stepForMovementState(state: string): TransferStep | 'failed' {
-  if (state === 'completed') return 'arrived';
-  if (state === 'cancelled') return 'failed';
-  if (state === 'submitted' || state === 'verifying' || state === 'needs_attention') return 'arriving';
-  return 'signed';
 }
 
 export type Speed = 'seconds' | 'underMinute';
@@ -137,13 +128,3 @@ export function transferView(step: TransferStep | 'failed', leftSource: boolean)
   return { kind: 'moving', step };
 }
 
-/// A Gateway cash-out's answer, or its failure, as a step. A plain refusal (4xx
-/// other than 409) moved nothing. A 409 means one is already in flight; a 5xx,
-/// a named movement or no answer may have moved money, so it waits.
-export function poolOutcome(
-  answer: { movementState: string } | { status: number | null; reference: string | null },
-): { step: TransferStep | 'failed'; leftSource: boolean } {
-  if ('movementState' in answer) return { step: stepForMovementState(answer.movementState), leftSource: true };
-  const refused = answer.status !== null && answer.status < 500 && answer.status !== 409 && !answer.reference;
-  return { step: 'failed', leftSource: !refused };
-}

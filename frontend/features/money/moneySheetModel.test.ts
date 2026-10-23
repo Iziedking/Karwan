@@ -9,6 +9,7 @@ import {
   fromArcFund,
   fromFundingError,
   fromFundingResponse,
+  fromWalletPoolSpend,
   isAmbiguousFailure,
   fromArcSend,
   fromCircleFund,
@@ -205,4 +206,11 @@ test('a send the money-out guard kept in shows its reason, not a failure', () =>
   const refusal = { code: 'ADDRESS_NOT_SAVED' as const };
   assert.deepEqual(fromArcSend({ phase: 'error', error: 'Add this address', refusal }, 'account'), { kind: 'guarded', refusal });
   assert.equal(sheetProgress({ kind: 'guarded', refusal }), null);
+});
+
+test('a wallet-signed pool spend: landed, declined, or waiting', () => {
+  assert.deepEqual(fromWalletPoolSpend({ txHash: '0xab' }), { kind: 'confirmed', reference: null, txHash: '0xab' });
+  assert.deepEqual(fromWalletPoolSpend({ error: new Error('User rejected the request.') }), { kind: 'failed', declined: true });
+  assert.deepEqual(fromWalletPoolSpend({ error: new Error('attestation timed out') }), { kind: 'slow', reference: null, txHash: null });
+  assert.deepEqual(fromWalletPoolSpend({}), { kind: 'slow', reference: null, txHash: null });
 });

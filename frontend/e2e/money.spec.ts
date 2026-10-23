@@ -241,59 +241,16 @@ test('send is its own page and finds a person by Karwan tag before paying', asyn
   await expect(sheet.getByRole('button', { name: 'Send 25.00 USDC' })).toBeEnabled();
 });
 
-test('a send larger than the wallet alone first tops the wallet up from the pool, then sends once', async ({ page }) => {
-  const toWallet: unknown[] = [];
-  const sent: unknown[] = [];
-  const balances = { ...funded, [ME.toLowerCase()]: 100 };
-  await serveMoney(page, {
-    balances,
-    pool: 50,
-    tags: { ada: { displayName: 'Ada Obi', address: '0x2222222222222222222222222222222222222222' } },
-    toWallet: async (route) => {
-      toWallet.push(route.request().postDataJSON());
-      balances[ME.toLowerCase()] = 140;
-      await route.fulfill({ json: { ok: true, shortfallUsd: 40, movedUsd: 40, reference: 'KWN-TOPUP', movementState: 'submitted' } });
-    },
-    arcSend: async (route) => {
-      sent.push(route.request().postDataJSON());
-      await route.fulfill({ json: { ok: true, txHash: TX } });
-    },
-  });
-  await page.goto('/send');
-  const sheet = page.getByRole('region', { name: 'Send USDC' });
-  await expect(sheet).toContainText('150.00');
-  await sheet.getByLabel('Amount').fill('140');
-  await sheet.getByLabel('Send to').fill('@ada');
-  await expect(sheet).toContainText('Ada Obi · @ada');
-  await sheet.getByRole('button', { name: 'Send 140.00 USDC' }).click();
-
-  await expect.poll(() => sent.length, { timeout: 15_000 }).toBe(1);
-  expect(toWallet).toHaveLength(1);
-  expect(toWallet[0]).toMatchObject({ amountUsdc: 40 });
-  expect(sent[0]).toMatchObject({ amountUsdc: 140, recipient: '0x2222222222222222222222222222222222222222' });
-});
-
-test('when the top-up from the pool fails, nothing is sent', async ({ page }) => {
-  const sent: unknown[] = [];
+test('an email account sends from its own wallet; a pool is never counted', async ({ page }) => {
   await serveMoney(page, {
     balances: { ...funded, [ME.toLowerCase()]: 100 },
     pool: 50,
     tags: { ada: { displayName: 'Ada Obi', address: '0x2222222222222222222222222222222222222222' } },
-    toWallet: (route) => route.fulfill({ status: 400, json: { error: 'not enough', code: 'not_moved' } }),
-    arcSend: async (route) => {
-      sent.push(route.request().postDataJSON());
-      await route.fulfill({ json: { ok: true, txHash: TX } });
-    },
   });
   await page.goto('/send');
   const sheet = page.getByRole('region', { name: 'Send USDC' });
-  await sheet.getByLabel('Amount').fill('140');
-  await sheet.getByLabel('Send to').fill('@ada');
-  await expect(sheet).toContainText('Ada Obi · @ada');
-  await sheet.getByRole('button', { name: 'Send 140.00 USDC' }).click();
-  await expect(sheet.getByRole('button', { name: 'Send 140.00 USDC' })).toHaveCount(0);
-  await page.waitForTimeout(1500);
-  expect(sent).toEqual([]);
+  await expect(sheet).toContainText('Available 100.00 USDC');
+  await expect(sheet).not.toContainText('150.00');
 });
 
 test('add money has one Back: inside an answer it returns to the question', async ({ page }) => {

@@ -23,7 +23,7 @@ export interface GatewayDepositMovementInput {
 
 export interface GatewaySpendMovementInput {
   operationKey: string;
-  kind: 'agent_funding' | 'cash_out' | 'deposit';
+  kind: 'agent_funding' | 'cash_out';
   amountUsdc: string;
   initiatedBy: string;
   sourceAddress: string;
