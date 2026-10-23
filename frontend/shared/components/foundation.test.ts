@@ -10,7 +10,7 @@ const css = () => readFileSync(new URL('../../app/design-tokens.css', import.met
 
 test('canonical theme has approved palettes, shapes and inline aliases', () => {
   const source = css();
-  for (const value of ['#EEF2F7', '#0E141B', '#FFFFFF', '#16202A', '#AFC95B', '#F8FAFC', '#0F161D', '#151E27']) {
+  for (const value of ['#F3F4EF', '#0E141B', '#FFFFFF', '#12171C', '#AFC95B', '#0E1216', '#151A1F']) {
     assert.ok(source.includes(value), value);
   }
   for (const declaration of [

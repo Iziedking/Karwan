@@ -43,9 +43,11 @@
   --font-body: var(--font-sans);
   --font-mono: var(--font-sans);
   --font-serif: var(--font-sans);
-  --canvas: #EEF2F7;
-  --surface: var(--palette-mist);
-  --ink: #16202A;
+  /* The dark glass look, approved 23 Oct 2026: a warm neutral ground, white
+     cards, and a hero card with a soft light falling across it. */
+  --canvas: #F3F4EF;
+  --surface: #FFFFFF;
+  --ink: #12171C;
   /* Solid secondary ink: 7.6 to 1 on white, never see-through. */
   --ink-secondary: #4A5561;
   --ink-muted: #5B6672;
@@ -194,14 +196,21 @@
   --update-lilac: #ECE8F5; --update-lilac-deep: #D7CFEC; --update-lilac-ring: #ADA1D6;
   --update-paper: #F4F2EC; --update-paper-deep: #E4DFD2; --update-paper-ring: #C9C0A8;
   --faucet-strip: #EEF4DE; --faucet-strip-line: #DCE7BF;
+  --glass-card: rgba(255, 255, 255, 0.97);
+  --hero-from: #FFFFFF;
+  --hero-to: #F7F8F3;
+  --hero-shadow: 0 18px 40px rgba(18, 23, 28, 0.08);
+  --nav-float: rgba(255, 255, 255, 0.96);
+  --flow-line: rgba(18, 23, 28, 0.10);
+  --flow-dot: 94, 116, 38;
 }
 
 html[data-theme="dark"] {
   --ink-secondary: #B9C3CD;
   --ink-muted: #A3AFBB;
-  --canvas: #0F161D;
-  --surface: #151E27;
-  --ink: #EEF2F7;
+  --canvas: #0E1216;
+  --surface: #151A1F;
+  --ink: #F3F4EF;
   --tint: color-mix(in srgb, var(--ink) 8%, transparent);
   --offer: #C5DB7E;
   --request: #A9BCD9;
@@ -222,6 +231,13 @@ html[data-theme="dark"] {
   --update-lilac: #242136; --update-lilac-deep: #332E4D; --update-lilac-ring: #554F7E;
   --update-paper: #25241F; --update-paper-deep: #36342B; --update-paper-ring: #55513E;
   --faucet-strip: #232B16; --faucet-strip-line: #364320;
+  --glass-card: rgba(24, 30, 36, 0.92);
+  --hero-from: rgba(30, 37, 44, 0.95);
+  --hero-to: rgba(14, 18, 22, 0.98);
+  --hero-shadow: 0 24px 48px rgba(0, 0, 0, 0.40);
+  --nav-float: rgba(20, 25, 30, 0.94);
+  --flow-line: rgba(175, 201, 91, 0.16);
+  --flow-dot: 198, 219, 122;
 }
 
 @media (prefers-reduced-motion: reduce) {

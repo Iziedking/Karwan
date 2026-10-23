@@ -66,8 +66,8 @@ export function WorkspaceBottomNav() {
   return (
     <nav
       data-workspace-bottom-nav
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-line)] bg-[var(--lp-workspace-band)] px-2 pt-1.5 text-[var(--color-ink)] lg:hidden"
-      style={{ paddingBottom: 'max(6px, env(safe-area-inset-bottom))' }}
+      className="fixed inset-x-3 bottom-0 z-40 rounded-[22px] border border-[var(--color-line)] bg-[var(--nav-float)] px-2 py-1 text-[var(--color-ink)] shadow-[var(--hero-shadow)] backdrop-blur-[14px] lg:hidden"
+      style={{ marginBottom: 'max(12px, env(safe-area-inset-bottom))' }}
     >
       <div
         className="relative mx-auto grid max-w-lg"
@@ -93,7 +93,7 @@ export function WorkspaceBottomNav() {
             className={cn(
               'relative flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 px-1 py-1.5',
               'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--lp-accent)]',
-              item.active ? 'text-[var(--color-ink)]' : 'text-[var(--color-ink-faint)] hover:text-[var(--color-ink)]',
+              item.active ? 'text-[var(--lp-accent-on-light)]' : 'text-[var(--color-ink-faint)] hover:text-[var(--color-ink)]',
             )}
           >
             <span
@@ -104,14 +104,14 @@ export function WorkspaceBottomNav() {
             >
               {item.icon === 'account' && auth.address ? (
                 // Your own photo marks Profile; the accent ring marks it open.
-                <span className={cn('block rounded-full', item.active && 'ring-2 ring-[var(--lp-accent-on-light)] ring-offset-1 ring-offset-[var(--lp-workspace-band)]')}>
+                <span className={cn('block rounded-full', item.active && 'ring-2 ring-[var(--lp-accent-on-light)] ring-offset-1 ring-offset-[var(--surface)]')}>
                   <PersonAvatar address={auth.address} name={t.profile} size={22} />
                 </span>
               ) : (
                 <NavIcon name={item.icon} active={item.active} />
               )}
             </span>
-            <span className={cn('inline-flex max-w-full items-center gap-1 truncate text-[14px] transition-[font-weight] duration-200', item.active ? 'font-bold' : 'font-medium')}>
+            <span className={cn('inline-flex max-w-full items-center gap-1 truncate text-[13px] transition-[font-weight] duration-200', item.active ? 'font-bold' : 'font-semibold')}>
               <span className="truncate">{item.label}</span>
               {item.signal ? <ActionBeacon /> : null}
             </span>

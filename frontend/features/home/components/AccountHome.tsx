@@ -21,6 +21,7 @@ import { PageTour } from '@/shared/guide/PageTour';
 import { HOME_TOUR_ID, HOME_STEPS } from '@/shared/guide/tours';
 import { dealHeadline } from '@/features/home/dealHeadline';
 import { labelFor } from '@/features/notifications/dealNextStep';
+import { useGreeting } from '@/features/home/greeting';
 
 type AccountKind = 'person' | 'business';
 
@@ -34,6 +35,7 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
   const payLink = translations.payLink.create;
   const { address } = useAuth();
   const { deals, fetchState } = useDirectDeals();
+  const greeting = useGreeting();
 
   // The same total and parts as the profile and the balance page.
   const owned = useOwnedBalance();
@@ -55,7 +57,7 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
       <section aria-labelledby="home-heading" className="border-b border-[var(--lp-border-light)] pb-7">
         <h1 id="home-heading" className="pt-3 text-[14px] font-semibold text-[var(--lp-text-sub)] sm:pt-4">
           {/* bdi keeps a tag such as @lawful whole in right-to-left text. */}
-          {translations.businessHome.hero.welcomeBack} <bdi>{firstName}</bdi>
+          {greeting ?? translations.businessHome.hero.welcomeBack} <bdi>{firstName}</bdi>
         </h1>
 
         <div className="mt-4 grid items-start gap-5 lg:grid-cols-[minmax(0,460px)_minmax(0,1fr)]">
@@ -64,11 +66,11 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.48, ease: [0.16, 1, 0.3, 1] }}
-            className="w-full rounded-[22px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-4 sm:rounded-[24px] sm:p-6 lg:max-w-[460px]"
+            className="w-full rounded-[24px] border border-[var(--lp-border-light)] bg-[linear-gradient(115deg,var(--hero-from),var(--hero-to)_70%)] p-5 shadow-[var(--hero-shadow)] sm:p-6 lg:max-w-[460px]"
             aria-label={home.balanceLabel}
           >
             <div className="flex items-center justify-between gap-3">
-              <p className="text-[15px] font-semibold text-[var(--lp-text-sub)]">{home.balanceLabel}</p>
+              <p className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{home.balanceLabel}</p>
               <Link href="/account" className="-me-1 inline-flex min-h-11 items-center gap-1 rounded-full px-1 text-[15px] font-semibold text-[var(--lp-dark)] hover:text-[var(--lp-accent-on-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
                 {home.details}
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="rtl:-scale-x-100"><path d="m9 18 6-6-6-6" /></svg>
@@ -83,28 +85,31 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
               </p>
             ) : (
               <p className="mt-1.5 flex items-baseline gap-2">
-                <span className={`text-[40px] font-bold leading-none tabular-nums tracking-[-0.03em] text-[var(--lp-dark)] sm:text-[48px] ${owned.loading && totalBalance == null ? 'motion-safe:animate-pulse' : ''}`}>
+                <span className={`text-[34px] font-bold leading-none tabular-nums tracking-[-0.03em] text-[var(--lp-dark)] sm:text-[40px] ${owned.loading && totalBalance == null ? 'motion-safe:animate-pulse' : ''}`}>
                   {totalBalance == null ? '-' : totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
-                {' '}<span className="text-[17px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
+                {' '}<span className="text-[15px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
               </p>
             )}
-            <p className="mt-0.5 text-[15px] font-medium text-[var(--lp-text-sub)]">
+            <p className="mt-1 text-[14px] font-medium text-[var(--lp-text-sub)]">
               {activeDeals.length === 1 ? home.activeTradesOne : fill(home.activeTrades, { n: activeDeals.length })}
             </p>
-            <div className="mt-3.5 grid grid-cols-4 gap-2">
-              <QuickAction href="/bridge?direction=in">{home.add}</QuickAction>
-              <QuickAction href="/bridge?direction=out">{home.withdraw}</QuickAction>
-              <QuickAction href="/send">{home.send}</QuickAction>
-              <QuickAction href="/request">{payLink.short}</QuickAction>
+            <div className="mt-5 grid grid-cols-4 gap-2">
+              <QuickAction href="/bridge?direction=in" icon="add" primary>{home.add}</QuickAction>
+              <QuickAction href="/send" icon="send">{home.send}</QuickAction>
+              <QuickAction href="/request" icon="request">{payLink.short}</QuickAction>
+              <QuickAction href="/bridge?direction=out" icon="withdraw">{home.withdraw}</QuickAction>
             </div>
             <Link
               href="/assistant"
               onClick={() => rememberReturn('/app')}
-              className="mt-3 flex min-h-[52px] items-center gap-3 rounded-[16px] border border-[var(--lp-border-light)] px-4 text-[15px] font-medium text-[var(--lp-text-sub)] transition-colors hover:border-[var(--lp-outline-strong)] hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+              className="mt-4 flex min-h-[52px] items-center gap-3 rounded-full border border-[var(--lp-border-light)] bg-[var(--lp-card)] py-1.5 pe-1.5 ps-4 text-[14px] font-semibold text-[var(--lp-text-sub)] transition-colors hover:border-[var(--lp-outline-strong)] hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--lp-accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0"><path d="M4 5h16v11H9l-5 4z" /></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--lp-accent-on-light)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0"><path d="M4 5h16v11H9l-5 4z" /></svg>
               <span className="min-w-0 flex-1">{translations.assistantMode.askHome}</span>
+              <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--lp-accent)] text-[var(--accent-ink)]">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="rtl:-scale-x-100"><path d="M5 12h12M13 7l5 5-5 5" /></svg>
+              </span>
             </Link>
             {ARC_NETWORK === 'testnet' ? (
               <Link
@@ -143,7 +148,7 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
           className="flex min-w-0 flex-col"
         >
           <div className="flex min-h-11 items-center px-1">
-            <h2 className="text-[23px] font-semibold tracking-[-0.035em] text-[var(--lp-dark)]">{home.currentTrade}</h2>
+            <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-[var(--lp-dark)]">{home.currentTrade}</h2>
           </div>
           <CurrentTrade deal={currentDeal} />
         </motion.div> : null}
@@ -155,7 +160,7 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
           className="flex min-w-0 flex-col"
         >
           <div className="flex min-h-11 items-center justify-between gap-4 px-1">
-            <h2 className="text-[23px] font-semibold tracking-[-0.035em] text-[var(--lp-dark)]">{home.recentTrades}</h2>
+            <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-[var(--lp-dark)]">{home.recentTrades}</h2>
             <Link href="/activity" className="inline-flex min-h-11 shrink-0 items-center text-[14px] font-bold text-[var(--lp-dark)] hover:text-[var(--lp-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] gap-1">{home.allActivity}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="rtl:-scale-x-100"><path d="m9 18 6-6-6-6" /></svg></Link>
           </div>
           <div className="mt-3 flex flex-1 flex-col"><TradeBook deals={recentDeals} fetchState={fetchState} /></div>
@@ -189,7 +194,7 @@ function CurrentTrade({ deal }: { deal: NonNullable<ReturnType<typeof pickCurren
       </div>
 
       <p className="mt-6 flex items-baseline gap-2">
-        <span className="text-[36px] font-bold leading-none tabular-nums tracking-[-0.03em] text-[var(--lp-dark)]">{formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}</span>
+        <span className="text-[30px] font-bold leading-none tabular-nums tracking-[-0.03em] text-[var(--lp-dark)]">{formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}</span>
         {' '}<span className="text-[16px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
       </p>
       <p className="mt-2 flex items-center gap-2 text-[15px] font-semibold text-[var(--lp-dark)]">
@@ -207,7 +212,7 @@ function CurrentTrade({ deal }: { deal: NonNullable<ReturnType<typeof pickCurren
         />
         <Link
           href={`/deals/${deal.jobId}`}
-          className="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-full bg-[var(--lp-dark)] px-5 text-[15px] font-semibold text-[var(--lp-card)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
+          className={`mt-5 inline-flex min-h-12 w-full items-center justify-center gap-1.5 rounded-full px-5 text-[15px] font-semibold transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 ${yours ? 'bg-[var(--lp-accent)] text-[var(--accent-ink)]' : 'border border-[var(--lp-border-light)] bg-[var(--tint)] text-[var(--lp-dark)]'}`}
         >
           {yours && next ? next.text : home.tradeDetails}
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="rtl:-scale-x-100"><path d="m9 18 6-6-6-6" /></svg>
@@ -273,10 +278,24 @@ function DealFlow({ stage, delivered, labels, progressLabel, states }: {
   );
 }
 
-const QUICK_ACTION = 'inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--lp-border-light)] px-2 text-[14px] font-semibold text-[var(--lp-dark)] transition-[background-color,border-color,transform] duration-200 hover:-translate-y-0.5 hover:border-[var(--lp-outline-strong)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] motion-reduce:hover:translate-y-0';
+const QUICK_ICONS = {
+  add: <path d="M12 5v14M5 12h14" />,
+  send: <path d="M7 17 17 7M9 7h8v8" />,
+  request: <path d="M17 7 7 17M15 17H7V9" />,
+  withdraw: <path d="M12 4v12M7 11l5 5 5-5M5 20h14" />,
+} as const;
 
-function QuickAction({ href, children }: { href: string; children: string }) {
-  return <Link href={href} className={QUICK_ACTION}>{children}</Link>;
+/// A round button with its word under it, as on a banking app. Add is the one
+/// filled in lime; the others sit quietly beside it.
+function QuickAction({ href, icon, primary = false, children }: { href: string; icon: keyof typeof QUICK_ICONS; primary?: boolean; children: string }) {
+  return (
+    <Link href={href} className="group flex min-h-11 flex-col items-center gap-1.5 rounded-[16px] py-1 text-[13px] font-semibold text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+      <span aria-hidden className={`grid size-12 place-items-center rounded-full transition-transform duration-200 group-hover:-translate-y-0.5 motion-reduce:group-hover:translate-y-0 ${primary ? 'bg-[var(--lp-accent)] text-[var(--accent-ink)]' : 'border border-[var(--lp-border-light)] bg-[var(--tint)] text-[var(--lp-dark)]'}`}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{QUICK_ICONS[icon]}</svg>
+      </span>
+      <span className="max-w-full truncate">{children}</span>
+    </Link>
+  );
 }
 
 function TradeBook({ deals, fetchState }: { deals: ReturnType<typeof useDirectDeals>['deals']; fetchState: ReturnType<typeof useDirectDeals>['fetchState'] }) {

@@ -31,6 +31,9 @@ export interface SignupCopy {
     mainnetWaitlist: string;
     signUp: string;
     browsePrompt: string;
+    /// Under the sign-in card: what signing in can and cannot do.
+    trustNoMoney: string;
+    trustEscrow: string;
     browse: string;
   };
   signUp: {
@@ -171,6 +174,8 @@ const en: SignupCopy = {
     mainnetWaitlist: 'Join the mainnet waitlist',
     signUp: 'Sign up',
     browsePrompt: 'Just looking around?',
+    trustNoMoney: 'Signing in never moves money',
+    trustEscrow: 'Payments held in escrow until you approve',
     browse: 'Browse the market first',
   },
   signUp: {
@@ -316,6 +321,8 @@ const ar: SignupCopy = {
     mainnetWaitlist: 'انضم إلى قائمة انتظار الشبكة الرئيسية',
     signUp: 'أنشئ حسابًا',
     browsePrompt: 'تتصفح فقط؟',
+    trustNoMoney: 'تسجيل الدخول لا يحرّك أي مال',
+    trustEscrow: 'المدفوعات محفوظة في الضمان حتى توافق',
     browse: 'تصفح السوق أولًا',
   },
   signUp: {
@@ -461,6 +468,8 @@ const fr: SignupCopy = {
     mainnetWaitlist: 'Rejoindre la liste d’attente du mainnet',
     signUp: 'S’inscrire',
     browsePrompt: 'Vous jetez juste un œil ?',
+    trustNoMoney: 'Se connecter ne déplace jamais d’argent',
+    trustEscrow: 'Les paiements restent sous séquestre jusqu’à votre accord',
     browse: 'Parcourir le marché d’abord',
   },
   signUp: {
@@ -606,6 +615,8 @@ const hi: SignupCopy = {
     mainnetWaitlist: 'मेननेट प्रतीक्षा सूची में शामिल हों',
     signUp: 'साइन अप करें',
     browsePrompt: 'बस देख रहे हैं?',
+    trustNoMoney: 'साइन इन करने से कभी पैसा नहीं हिलता',
+    trustEscrow: 'आपकी मंज़ूरी तक भुगतान एस्क्रो में रहते हैं',
     browse: 'पहले बाज़ार देखें',
   },
   signUp: {
@@ -751,6 +762,8 @@ const sw: SignupCopy = {
     mainnetWaitlist: 'Jiunge na orodha ya kusubiri ya mainnet',
     signUp: 'Jisajili',
     browsePrompt: 'Unaangalia tu?',
+    trustNoMoney: 'Kuingia hakusogezi pesa kamwe',
+    trustEscrow: 'Malipo yanashikiliwa kwenye escrow hadi ukubali',
     browse: 'Tazama soko kwanza',
   },
   signUp: {

@@ -409,12 +409,16 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
     <div className={card}>
       {mode === 'signin' ? (
         <>
-          <h1 className={START_TITLE}>
-            {inStep === 'code' ? t.signIn.codeTitle : inStep === 'passkey' ? t.signIn.passkeyTitle : t.signIn.title}
-          </h1>
-          {inStep === 'email' && (
-            <p className="mt-2 text-[15px] leading-[1.5] text-[var(--ink-secondary)]">{t.welcome.tagline}</p>
-          )}
+          <div className="flex flex-col items-center text-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/karwan-app-icon.svg" alt="" width="44" height="44" className="mb-4 size-11" />
+            <h1 className={START_TITLE}>
+              {inStep === 'code' ? t.signIn.codeTitle : inStep === 'passkey' ? t.signIn.passkeyTitle : t.signIn.title}
+            </h1>
+            {inStep === 'email' && (
+              <p className="mt-1.5 text-[14px] leading-[1.45] font-medium text-[var(--ink-secondary)]">{t.welcome.tagline}</p>
+            )}
+          </div>
 
           {inStep === 'email' && (
             <form onSubmit={signInLookup} className="mt-6 space-y-3">
@@ -473,7 +477,7 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
 
           <ErrorLine error={error} />
 
-          <div className="mt-5 space-y-2 border-t border-[var(--line)] pt-4 text-[14px] text-[var(--ink-secondary)] sm:mt-7 sm:pt-5 font-medium">
+          <div className="mt-5 space-y-1 border-t border-[var(--line)] pt-4 text-center text-[14px] text-[var(--ink-secondary)] sm:mt-6 sm:pt-5 font-medium">
             {onWaitlist ? (
               <p>
                 <button type="button" onClick={onWaitlist} className="inline-flex min-h-11 items-center rounded-full font-medium text-[var(--ink)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">
@@ -629,7 +633,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function Primary(props: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button type="button" {...props}
-      className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[var(--action)] px-5 text-[15px] font-medium text-[var(--on-action)] transition-opacity duration-[var(--dur-small)] ease-[var(--ease-ui)] enabled:hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)] disabled:cursor-not-allowed disabled:opacity-50" />
+      className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[var(--action)] px-5 text-[15px] font-semibold text-[var(--on-action)] transition-opacity duration-[var(--dur-small)] ease-[var(--ease-ui)] enabled:hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)] disabled:cursor-not-allowed disabled:opacity-50" />
   );
 }
 
@@ -648,9 +652,9 @@ function WalletButton({ label, disabled, onStart }: { label: string; disabled: b
     <ConnectButton.Custom>
       {({ openConnectModal, mounted }) => (
         <button type="button" disabled={!mounted || disabled} onClick={() => onStart(openConnectModal)}
-          className="inline-flex min-h-12 w-full items-center justify-between gap-3 rounded-full bg-[var(--tint)] px-5 text-[15px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] enabled:hover:bg-[color-mix(in_srgb,var(--ink)_12%,var(--surface))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] disabled:cursor-not-allowed disabled:opacity-50">
+          className="inline-flex min-h-12 w-full items-center justify-center gap-2.5 rounded-full border border-[var(--line)] bg-[var(--tint)] px-5 text-[15px] font-semibold text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] enabled:hover:bg-[color-mix(in_srgb,var(--ink)_12%,var(--surface))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] disabled:cursor-not-allowed disabled:opacity-50">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="3" y="6" width="18" height="13" rx="3" /><path d="M3 10h18" /><circle cx="16.5" cy="14.5" r="1.2" fill="currentColor" /></svg>
           {label}
-          <Icon name="arrow-right" size={16} directional />
         </button>
       )}
     </ConnectButton.Custom>

@@ -50,15 +50,9 @@ export function LanguagePicker() {
         aria-controls={listId}
         aria-label={`${label}: ${LOCALE_NAMES[locale]}`}
         onClick={() => setOpen((value) => !value)}
-        className="inline-flex h-11 w-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--color-line)] px-3 text-[var(--color-ink)] transition-colors hover:border-[var(--color-line-strong)] hover:bg-[var(--color-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] sm:w-[112px]"
+        className="inline-flex h-11 min-w-11 items-center justify-center rounded-full border border-[var(--color-line)] px-3 text-[13px] font-bold tracking-[0.04em] text-[var(--color-ink)] transition-colors hover:border-[var(--color-line-strong)] hover:bg-[var(--color-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
       >
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <path d="M4 7h9M8 4v3c0 4-1.6 7.4-4 9m2-4c1.7 1.8 3.7 3 6 3M14 5l6 14m-2-5h-8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-        <span className="hidden font-sans text-[14px] font-semibold uppercase tracking-[0.02em] sm:inline">{locale}</span>
-        <svg className={`ms-auto hidden transition-transform duration-200 sm:block ${open ? 'rotate-180' : ''}`} width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+        {locale.toUpperCase()}
       </button>
       {open ? (
         <ul
