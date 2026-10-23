@@ -34,8 +34,8 @@ sequenceDiagram
   S->>K: "Get paid now" on the deal, or asks the agent in Telegram
   K->>F: Shows the deal to approved financiers: amount, terms, the seller's record
   F->>K: Offers an advance and a payback amount (120 now, 126 paid back)
-  K-->>S: Plain offer: 120 now; 126 of the buyer's 150 goes to the financier first; 12 of your stake held until it is repaid
-  S-->>K: Signs the payout over to the financier, up to 126, and the stake hold
+  K-->>S: Plain offer: 120 now; 126 of the buyer's 150 goes to the financier first; 12 of your deal insurance backs it until it is repaid
+  S-->>K: Taps the offer; the selling agent signs the payout over to the financier, up to 126, and the stake hold
   F->>TF: Opens the line with the seller's two signatures, from the financier's own wallet
   TF->>AG: Records the assignment
   TF->>SV: Holds the seller's stake for the financier (at least 10% of the advance)
@@ -53,7 +53,7 @@ Numbers are the ones the rehearsal used on Arc Testnet: order 150, advance 120, 
 
 | Who | What they do | What they never do |
 |---|---|---|
-| Seller | Asks to be paid now, compares offers, signs the payout assignment and the stake hold | Pay the financier back by hand. The escrow does it |
+| Seller | Asks to be paid now, compares offers, takes one with a tap; their selling agent signs the payout assignment and the stake hold under the consent given when their deal insurance went up | Pay the financier back by hand. The escrow does it |
 | Buyer | Funds and releases the order as on any deal | Learn anything new or carry new risk. Their protection and review window are unchanged |
 | Financier | Applies once (account age on Karwan, some stake, a reputation of at least Cold), sees qualifying deals, makes offers, opens the line from their own wallet | Take money from the escrow before the buyer releases, or touch more than the assigned payback |
 | Karwan | Matches deals with financiers, shows offers in plain words, keeps the line in step with the chain, writes the outcome to the record | Hold the advance or the repayment. Money moves wallet to wallet and escrow to wallet |
