@@ -173,7 +173,7 @@
       "id": "deposit-and-withdraw",
       "title": "Deposit and withdraw",
       "status": "live",
-      "updated": "2026-08-05",
+      "updated": "2026-10-24",
       "tags": [
         "money",
         "deposit"
@@ -185,7 +185,7 @@
           "date": "2026-08-05"
         }
       ],
-      "body": "Money moves in and out of Arc on one screen. What that screen asks for depends on\nwho holds the funds, and the difference is the point rather than an inconsistency.\n\nAn account that signs in with email or a passkey gets one address. Copy it, send\nUSDC from Ethereum, Base, Arbitrum or Polygon, and the balance updates itself.\nThere is no chain to choose, no amount to declare and no wallet to connect,\nbecause Circle derives every deposit wallet from that user's identity anchor, so\nthe same address serves all four. Solana has its own address on the same screen: a\ndifferent signature curve cannot share one.\n\nAn account that connects its own wallet keeps the explicit flow. It holds the\nfunds, so it picks the chain the USDC is on and signs the transfer.\n\nWithdrawals reach Ethereum, Base, Arbitrum, Optimism, Polygon and Solana, and\nnever require that chain's gas token to receive.\n\nThe word for this is Deposit and Withdraw. Not top up, not add money, not cash\nout, and never the name of the transfer protocol underneath: which rail carries a\nmove is not something a person sending money needs to hold in their head."
+      "body": "Money moves in and out of Arc on one screen. What that screen asks for depends on\nwho holds the funds, and the difference is the point rather than an inconsistency.\n\nAn account that signs in with email or a passkey gets one address. Copy it, send\nUSDC from Ethereum, Base, Arbitrum, Optimism, Polygon, Avalanche or Unichain,\nand the balance updates itself.\nThere is no chain to choose, no amount to declare and no wallet to connect,\nbecause Circle derives every deposit wallet from that user's identity anchor, so\nthe same address serves all seven. Solana has its own address on the same screen: a\ndifferent signature curve cannot share one.\n\nAn account that connects its own wallet keeps the explicit flow. It holds the\nfunds, so it picks the chain the USDC is on and signs the transfer.\n\nWithdrawals reach Ethereum, Base, Arbitrum, Optimism, Polygon and Solana, and\nnever require that chain's gas token to receive.\n\nThe word for this is Deposit and Withdraw. Not top up, not add money, not cash\nout, and never the name of the transfer protocol underneath: which rail carries a\nmove is not something a person sending money needs to hold in their head."
     },
     {
       "id": "escrow-families-roadmap",
@@ -605,6 +605,25 @@
       "body": "Karwan unifies online reputation, starting with an open market for secure local\nand cross-border trade. People join a new marketplace, job board or region and\nhave to vet themselves from zero every time; Karwan is building one reputation\nthat travels with a person, so hidden talent becomes visible and opportunity\nfollows. It starts with Karwan's market, where every completed deal is\nprotected in escrow and recorded.\n\nPeople and businesses can buy or sell services, goods, supplies and eligible\nbusiness orders. A trade may be local, with both parties in the same country,\nor cross-border, with parties in different countries.\n\nTrade can start as a direct deal with a known counterparty, an email invite, an\nopen buyer request, an open seller offer, a verified business connection or an\nagent-assisted match. The parties agree the commercial terms before test USDC\nmoves into milestone escrow on Arc Testnet. Money sits in the escrow contract,\nnot with Karwan or the counterparty, and releases against the agreed outcome.\n\nIndividual and business trade use the same protection layer. Business accounts\ncan also build a portable credit record from settled trade and request financing\nfor eligible Karwan-originated accepted invoices or purchase orders. Financing\nis opt-in: approved financiers quote terms and the supplier chooses. Direct deals\nremain available without verification, while agent matching, verified-business\nfeatures and financing may have eligibility gates.\n\nThe current release is testnet software. Local trade does not mean local-currency\npayment is live. Unified reputation across platforms, browser capture, mainnet\nsettlement and local bank payout are planned expansion, not current capabilities."
     },
     {
+      "id": "when-the-buyer-is-silent",
+      "title": "When a buyer does not respond after delivery",
+      "status": "roadmap",
+      "updated": "2026-10-24",
+      "tags": [
+        "escrow",
+        "disputes",
+        "testnet"
+      ],
+      "path": "public/product/when-the-buyer-is-silent.md",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/27-deals-on-the-escrow-family.md",
+          "date": "2026-10-24"
+        }
+      ],
+      "body": "On deals held by Karwan's escrow family, no payment goes to a seller only\nbecause the buyer's review time ran out, since a buyer may simply be away.\n\nWhen review time ends without the buyer releasing the payment or raising a\nproblem, the seller is asked whether to ask for payment, in one tap on the\ndeal page or from their assistant in any chat. If they have not asked\nwithin 24 hours, their selling agent asks for them and tells them.\n\nThe buyer then has 72 hours to answer by saying what is wrong with the\ndelivery. An answer sends the case to a person on Karwan's review team,\nwho rules within 5 days; if they do not, the deal's agreed fallback share\napplies. With no answer, that payment goes to the seller. This works the\nsame for a milestone and for the final payment.\n\nA buyer opens a dispute while their review time runs; after it ends they\nanswer the seller's instead.\n\nOn Arc Testnet this is how Karwan runs these deals once new deals are\nswitched over to the escrow family. The contract itself will carry the\nrule in the mainnet release, before its external audit."
+    },
+    {
       "id": "world-id-risk-checks",
       "title": "World ID only when the risk calls for it",
       "status": "live",
@@ -894,7 +913,7 @@
         "note": "Returns at most two DISTINCT addresses and no Circle blockchain code, so the chain vocabulary cannot reach a user.",
         "lastVerified": ""
       },
-      "updated": "2026-08-05",
+      "updated": "2026-10-24",
       "path": "public/product/deposit-and-withdraw.md"
     },
     {
@@ -1447,6 +1466,30 @@
       "check": null,
       "updated": "2026-09-30",
       "path": "public/product/what-karwan-is.md"
+    },
+    {
+      "id": "when-the-buyer-is-silent",
+      "title": "When a buyer does not respond after delivery",
+      "status": "roadmap",
+      "publishable": false,
+      "blockedBy": "not-live",
+      "capability": true,
+      "audience": "all",
+      "tags": [
+        "escrow",
+        "disputes",
+        "testnet"
+      ],
+      "summary": "On deals held by Karwan's escrow family, no payment goes to a seller only because the buyer's review time ran out, since a buyer may simply be away.",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/27-deals-on-the-escrow-family.md",
+          "date": "2026-10-24"
+        }
+      ],
+      "check": null,
+      "updated": "2026-10-24",
+      "path": "public/product/when-the-buyer-is-silent.md"
     },
     {
       "id": "world-id-risk-checks",

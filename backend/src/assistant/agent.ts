@@ -1765,7 +1765,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
 
     get_my_deposit_addresses: tool({
       description:
-        "Read where this account receives USDC from other chains: one address for Ethereum, Base, Arbitrum and Polygon, and a separate Solana address. Use it when the user asks how to add money, deposit, fund from an exchange, or for their deposit address. Only USDC, only on the named chain. Wallet accounts have no deposit addresses; they bridge from their wallet at /bridge.",
+        "Read where this account receives USDC from other chains: one address for Ethereum, Base, Arbitrum, Optimism, Polygon, Avalanche and Unichain, and a separate Solana address. Use it when the user asks how to add money, deposit, fund from an exchange, or for their deposit address. Only USDC, only on the named chain. Wallet accounts have no deposit addresses; they bridge from their wallet at /bridge.",
       inputSchema: z.object({}),
       execute: async () => {
         try {

@@ -76,6 +76,12 @@ export function routeDepositToArc(input: DepositRoute): void {
   );
 }
 
+/// The same route, awaited, for a script that must not exit mid-route (the
+/// stranded-deposit recovery in scripts/backfill-deposit-wallets.ts).
+export async function routeDepositToArcNow(input: DepositRoute): Promise<void> {
+  await route(input);
+}
+
 function isCctpChainKey(key: string): key is CctpChainKey {
   return (CCTP_CHAIN_KEYS as readonly string[]).includes(key);
 }

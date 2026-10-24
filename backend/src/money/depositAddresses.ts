@@ -1,5 +1,6 @@
 /// Where this account receives USDC from other chains. One EVM address serves
-/// Ethereum, Base, Arbitrum and Polygon; Solana has its own. Shared by the
+/// Ethereum, Base, Arbitrum, Optimism, Polygon, Avalanche and Unichain; Solana
+/// has its own. Shared by the
 /// deposit card and the assistant so both name the same watched addresses.
 
 import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
@@ -10,7 +11,10 @@ import {
   BASE_SEPOLIA_BLOCKCHAIN,
   ETH_SEPOLIA_BLOCKCHAIN,
   ARB_SEPOLIA_BLOCKCHAIN,
+  OP_SEPOLIA_BLOCKCHAIN,
   POLYGON_AMOY_BLOCKCHAIN,
+  AVAX_FUJI_BLOCKCHAIN,
+  UNI_SEPOLIA_BLOCKCHAIN,
   SOL_DEVNET_BLOCKCHAIN,
   type BridgeBlockchain,
 } from '../circle/wallets.js';
@@ -23,13 +27,20 @@ import {
 } from '../chain/cctpChains.js';
 import { logger } from '../logger.js';
 
-/// The chains the deposit card offers. Solana last, because it is the one that
-/// needs its own address and reads as the exception.
-const DEPOSIT_CHAINS: BridgeBlockchain[] = [
+/// The chains the deposit card offers: every chain activation provisions
+/// (`eagerBridgeChains` in routes/activation.ts), so a chain that failed then is
+/// healed here and money sent on it is watched. Avalanche, Optimism and
+/// Unichain were provisioned but never healed or offered, so a deposit on
+/// Avalanche to an account whose Avalanche wallet failed sat unwatched.
+/// Solana last, because it needs its own address and reads as the exception.
+export const DEPOSIT_CHAINS: BridgeBlockchain[] = [
   ETH_SEPOLIA_BLOCKCHAIN,
   BASE_SEPOLIA_BLOCKCHAIN,
   ARB_SEPOLIA_BLOCKCHAIN,
+  OP_SEPOLIA_BLOCKCHAIN,
   POLYGON_AMOY_BLOCKCHAIN,
+  AVAX_FUJI_BLOCKCHAIN,
+  UNI_SEPOLIA_BLOCKCHAIN,
   SOL_DEVNET_BLOCKCHAIN,
 ];
 
