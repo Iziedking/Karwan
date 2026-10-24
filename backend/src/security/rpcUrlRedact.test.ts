@@ -101,3 +101,26 @@ test('a log line written through the stream never carries a key', async () => {
 test('nothing configured means text passes through unchanged', () => {
   assert.equal(redactRpcUrls(`URL: ${ALCHEMY}`, []), `URL: ${ALCHEMY}`);
 });
+
+test('karwan platform keys never reach a log line, with or without 0x, in any case', async () => {
+  const { platformKeySecrets } = await import('./rpcUrlRedact.js');
+  const a = `0x${'1a'.repeat(32)}`;
+  const b = `0x${'2b'.repeat(32)}`;
+  const c = `0x${'3c'.repeat(32)}`;
+  const arb = `0x${'4d'.repeat(32)}`;
+  const iss = `0x${'5e'.repeat(32)}`;
+  const keys = platformKeySecrets({ SUITE_CHECKER_KEYS: `${a}, ${b},${c}`, SUITE_ARBITER_KEY: arb, SUITE_ISSUER_KEY: iss });
+  assert.equal(keys.length, 5);
+  const lines: string[] = [];
+  const sink = new Writable({
+    write(chunk, _enc, done) {
+      lines.push(String(chunk));
+      done();
+    },
+  });
+  const stream = redactingStream(sink, [], keys);
+  const line = JSON.stringify({ msg: `${a} ${b.slice(2).toUpperCase()} ${c} ${arb} ${iss.slice(2)}` }) + '\n';
+  await new Promise<void>((resolve) => stream.write(line, () => resolve()));
+  const out = lines.join('').toLowerCase();
+  for (const k of [a, b, c, arb, iss]) assert.equal(out.includes(k.slice(2)), false, out);
+});

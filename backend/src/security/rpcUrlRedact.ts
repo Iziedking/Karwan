@@ -68,12 +68,33 @@ export function redactErrorUrls<T>(err: T, urls: readonly string[]): T {
   return err;
 }
 
+const PLATFORM_KEY_ENV = ['SUITE_CHECKER_KEYS', 'SUITE_ARBITER_KEY', 'SUITE_ISSUER_KEY'] as const;
+
+/// The hex bodies of Karwan's checker, arbiter and issuer keys, so a log line
+/// loses them however they are spelled.
+export function platformKeySecrets(env: Record<string, string | undefined>): string[] {
+  const out = new Set<string>();
+  for (const name of PLATFORM_KEY_ENV) {
+    for (const raw of (env[name] ?? '').split(',')) {
+      const body = raw.trim().replace(/^0x/i, '').toLowerCase();
+      if (/^[0-9a-f]{64}$/.test(body)) out.add(body);
+    }
+  }
+  return [...out];
+}
+
+function redactKeys(text: string, keys: readonly string[]): string {
+  let out = text;
+  for (const key of keys) out = out.replace(new RegExp(`(0x)?${key}`, 'gi'), '[redacted key]');
+  return out;
+}
+
 /// A pass-through for log lines: anything written lands in `dest` with every
-/// configured RPC URL cut to its host.
-export function redactingStream(dest: Writable, urls: readonly string[]): Writable {
+/// configured RPC URL cut to its host and every platform key removed.
+export function redactingStream(dest: Writable, urls: readonly string[], keys: readonly string[] = []): Writable {
   return new Writable({
     write(chunk, _enc, done) {
-      dest.write(redactRpcUrls(String(chunk), urls), done);
+      dest.write(redactKeys(redactRpcUrls(String(chunk), urls), keys), done);
     },
   });
 }

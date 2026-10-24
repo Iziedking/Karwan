@@ -697,6 +697,23 @@ const envSchema = z.object({
   // before the automatic arbiter proposes a ruling or escalates it.
   V3_ARBITER_COOL_OFF_MS: z.coerce.number().int().positive().default(3_600_000),
 
+  // The escrow family (view 27): new deals open on its Agreement escrow when
+  // this is on, all six addresses are set and the boot check agrees with the
+  // chain. Deals already open finish on the escrow they started on.
+  SUITE_ENABLED: envBool('SUITE_ENABLED'),
+  KARWAN_SUITE_HUB_ADDR: optionalAddr,
+  KARWAN_SUITE_IDENTITY_ADDR: optionalAddr,
+  KARWAN_SUITE_RECORD_ADDR: optionalAddr,
+  KARWAN_SUITE_AGREEMENT_ADDR: optionalAddr,
+  KARWAN_SUITE_VERIFIER_ADDR: optionalAddr,
+  KARWAN_SUITE_TRADE_FINANCE_ADDR: optionalAddr,
+  // Karwan's own keys on the escrow family: three checkers (comma separated,
+  // any two sign a check), the arbiter and the record issuer. Secrets: the
+  // logger strips them from every line.
+  SUITE_CHECKER_KEYS: optionalString,
+  SUITE_ARBITER_KEY: z.preprocess(blankToUndefined, z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional()),
+  SUITE_ISSUER_KEY: z.preprocess(blankToUndefined, z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional()),
+
   // --- Paytag (@handle counterparties) ---
   // Lets a P2P buyer name their counterparty by Paytag handle instead of an
   // email or a raw address. P2P ONLY: the finance lane (SME) still requires a

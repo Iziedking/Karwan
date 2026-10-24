@@ -26,6 +26,7 @@ export type KarwanEventType =
   | 'escrow.refunded'
   | 'escrow.reclaimed'
   | 'escrow.split'
+  | 'escrow.seller.paid'
   | 'escrow.ruling.proposed'
   | 'escrow.owed.withdrawn'
   | 'security.hold'
