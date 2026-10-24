@@ -1341,6 +1341,8 @@ async function handleJobPosted(log: Log, opts?: { silent?: boolean }) {
     escrowFunded: recoveredEscrowFunded,
     expired: isExpired,
     expiredAt: brief?.expiredAt,
+    // The shortlist the buyer was looking at before a restart.
+    ...(brief?.shortlist?.length ? { shortlist: brief.shortlist } : {}),
     counterScheduleVersion: 0,
     shadowRevision: 0,
     negotiationShadowRevision: 0,
@@ -1984,6 +1986,10 @@ const READ_REUSE_MS = 600_000;
 /// `notify` marks the updates worth a chat message: the first list, a new
 /// recommendation, and an agreed price. Other refreshes only update screens.
 function shortlistPayload(state: JobState, notify: boolean) {
+  // Every published or changed shortlist goes through here: keep a copy with
+  // the request, so a restart brings it back instead of an empty list (the
+  // record checks behind it are paid for once).
+  patchBrief(state.jobId, { shortlist: state.shortlist ?? [] });
   const rec = state.shortlist?.find((e) => e.recommended) ?? null;
   return {
     buyer: getBrief(state.jobId)?.postedBy ?? null,

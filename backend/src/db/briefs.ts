@@ -5,6 +5,7 @@
 // survives backend restarts (Postgres-backed in a future iteration).
 
 import type { DeliveryKind, Where } from '../location/rules.js';
+import type { ShortlistEntry } from '../agents/shortlist.js';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { logger } from '../logger.js';
@@ -84,6 +85,9 @@ export interface Brief {
   /// The seller agent the agent last agreed with for the buyer, so the
   /// Telegram line goes out once per agreement.
   agreedFor?: string;
+  /// The last shortlist published for this request. The agent keeps it in
+  /// memory; this copy brings it back after a restart.
+  shortlist?: ShortlistEntry[];
 }
 
 const STORE_PATH = resolve(process.cwd(), 'data', 'briefs.json');

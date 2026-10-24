@@ -962,7 +962,10 @@ jobsRoutes.post('/:jobId/edit', async (c) => {
       });
   }
 
-  return c.json({ brief: next });
+  // The stored shortlist carries the agent's numbers; a person sees sealed rows
+  // from the shortlist route, never these (D30).
+  const { shortlist: _agentCopy, ...visible } = next ?? ({} as NonNullable<typeof next>);
+  return c.json({ brief: next ? visible : next });
 });
 
 jobsRoutes.post('/:jobId/cancel', async (c) => {

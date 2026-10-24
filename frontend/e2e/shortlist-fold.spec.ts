@@ -50,3 +50,21 @@ test('the shortlist arrives folded and opens on Show', async ({ page }) => {
   await expect(fold).toHaveAttribute('aria-expanded', 'true');
   await expect(page.getByRole('button', { name: 'Choose' })).toHaveCount(3);
 });
+
+test('an empty shortlist next to offers shows the offers, never "no one has offered"', async ({ page }) => {
+  await serveSearch(page, {
+    balances: funded,
+    job: makeJob({
+      budgetUsdc: '100',
+      bids: [{
+        seller: `0x${'2'.repeat(40)}`, priceUsdc: '90', deadlineUnix: Math.floor(Date.now() / 1000) + 6 * 86_400, score: 70,
+        suggestedCounterPrice: null, suggestedCounterDeadlineDays: null, sellerTier: 'new',
+        sellerUserAddress: null, sellerDisplayName: 'Pamcollins', topicalMatch: 80,
+      }],
+    }),
+    shortlist: { entries: [], closed: false },
+  });
+  await page.goto(`/jobs/${JOB}`);
+  await expect(page.getByText('1 offer so far').first()).toBeVisible();
+  await expect(page.getByText(/No one has offered yet/)).toHaveCount(0);
+});

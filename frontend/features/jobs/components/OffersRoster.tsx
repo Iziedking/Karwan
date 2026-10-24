@@ -44,7 +44,9 @@ export function OffersRoster({ jobId, bids, pickSeller, caller, choosable, open:
   const [worldStep, setWorldStep] = useState<{ reason: WorldCheckReason | null; skipAllowed: boolean } | null>(null);
   const shortlist = useShortlist(jobId, caller);
 
-  if (shortlist && caller) {
+  // An empty shortlist next to offers means it has not been rebuilt yet (a
+  // restart, a late offer): the offers are shown so the buyer can still choose.
+  if (shortlist && caller && (shortlist.entries.length > 0 || bids.length === 0)) {
     return <Shortlist jobId={jobId} caller={caller} entries={shortlist.entries} closed={shortlist.closed || !choosable} worldCheck={shortlist.worldCheck ?? null} recordChecks={shortlist.recordChecks} onChosen={onChosen} />;
   }
 
