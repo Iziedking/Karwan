@@ -17,6 +17,7 @@ import { sendSupportTranscriptEmail } from '../emails/supportTranscript.js';
 import type { TgUpdate } from './agent/parse.js';
 import { isAgentUpdate, startPayload, textGoesToAgent } from './agent/routing.js';
 import { notifyUserOfReply } from '../support/notify.js';
+import { personNameOf } from '../channels/personName.js';
 
 // Minimal Telegram Bot API client. Direct HTTP calls (no SDK), long-polling
 // getUpdates so we don't need a public webhook in dev. When the token is
@@ -254,7 +255,7 @@ async function handleMessage(
     if (ownerAddr && ownerAddr !== link.address) {
       await sendTelegramMessage(
         chatId,
-        `*Karwan*: this Telegram is already linked to \`${short(ownerAddr)}\`. Unlink it from that account first, then connect this wallet.`,
+        `*Karwan*: this Telegram is already linked to ${await personNameOf(ownerAddr)}. Unlink it from that account first, then connect this one.`,
       );
       return;
     }
@@ -272,7 +273,7 @@ async function handleMessage(
     });
     await sendTelegramMessage(
       chatId,
-      `*Karwan*: linked to \`${short(link.address)}\`. You'll get alerts here for deals, chat messages, and bridge updates.`,
+      `*Karwan*: linked to ${await personNameOf(link.address)}. You'll get alerts here for deals, messages and money.`,
     );
     // Catch the user up on anything that already happened for this wallet
     // before they linked. Events fire forward-only, so without this a deal
@@ -297,7 +298,7 @@ async function handleMessage(
   if (text === '/status') {
     const known = await findLinkedAddressForChat(chatId);
     if (known) {
-      await sendTelegramMessage(chatId, `*Karwan*: linked to \`${short(known)}\`.`);
+      await sendTelegramMessage(chatId, `*Karwan*: linked to ${await personNameOf(known)}.`);
     } else {
       await sendTelegramMessage(chatId, '*Karwan*: this chat is not linked to a wallet yet.');
     }

@@ -11,6 +11,9 @@ import { hashNumber } from '../channels/identity.js';
 import { messageNumber } from '../channels/sender.js';
 import { confirmNonce, hasEquivalentConfirm, type AssistantAction, type ConfirmAction } from './actions.js';
 import { conversationReference, dealBody, dealCardFields, type Counterparty } from './dealDraft.js';
+import { personName, shortAddress } from '../channels/personName.js';
+import { suiteIdentity } from '../identity/suiteIdentityLive.js';
+import { recordSetupCard } from './recordCard.js';
 
 const USDC_DECIMALS = 6;
 
@@ -33,7 +36,7 @@ export async function payCardFor(deal: DirectDeal, address: string, feeBps: FeeB
   const amountUsdc = Number(deal.dealAmountUsdc);
   const total = await buyerPays(deal.dealAmountUsdc, feeBps).catch(() => null);
   if (!total) return { error: 'The fee could not be read right now. Open the deal to pay.' };
-  const sellerLabel = (await getProfile(deal.seller).catch(() => null))?.displayName?.trim() || 'the seller';
+  const sellerLabel = personName(await getProfile(deal.seller).catch(() => null), 'the seller');
   return {
     kind: 'confirm',
     id: `fund_direct_deal:${deal.jobId}:${confirmNonce()}`,
@@ -69,7 +72,7 @@ export function directDealTools(address: string, actions: AssistantAction[], con
     const trimmed = who.trim();
     if (/^0x[a-fA-F0-9]{40}$/.test(trimmed)) {
       const profile = await getProfile(trimmed.toLowerCase()).catch(() => null);
-      return { party: { sellerAddress: trimmed.toLowerCase() }, label: profile?.displayName?.trim() || `${trimmed.slice(0, 6)}…${trimmed.slice(-4)}` };
+      return { party: { sellerAddress: trimmed.toLowerCase() }, label: personName(profile, shortAddress(trimmed)) };
     }
     if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return { party: { sellerEmail: trimmed.toLowerCase() }, label: trimmed.toLowerCase() };
     if (/^\+?[\d\s-]{7,20}$/.test(trimmed)) {
@@ -78,7 +81,7 @@ export function directDealTools(address: string, actions: AssistantAction[], con
       const account = pepper ? await getWhatsappAccount(hashNumber(digits, pepper)) : null;
       if (account?.address && account.activated) {
         const profile = await getProfile(account.address).catch(() => null);
-        return { party: { sellerAddress: account.address.toLowerCase() }, label: profile?.displayName?.trim() || 'your contact' };
+        return { party: { sellerAddress: account.address.toLowerCase() }, label: personName(profile, 'your contact') };
       }
       return { number: digits };
     }
@@ -121,7 +124,7 @@ export function directDealTools(address: string, actions: AssistantAction[], con
           }
           const answers = { ...rest, what: what!, amountUsdc: amountUsdc! };
           if ('number' in seller) {
-            const me = (await getProfile(address).catch(() => null))?.displayName?.trim() || 'Someone';
+            const me = personName(await getProfile(address).catch(() => null), 'Someone');
             const invited = await messageNumber(seller.number, {
               kind: 'template',
               name: 'deal_update',
@@ -149,6 +152,25 @@ export function directDealTools(address: string, actions: AssistantAction[], con
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant start_protected_deal failed');
           return { error: 'Could not prepare that deal right now.' };
+        }
+      },
+    }),
+
+    set_up_record: tool({
+      description:
+        "Set up the person's Karwan record before their first payment or their first accepted deal on the new escrow, or renew their buying agent after its year. Use when a deal step answers record_setup_needed or agent_renewal_needed, or when they ask. Shows one card with the limits; they confirm it is them on Karwan. Moves no money.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        if (!suiteIdentity) return { error: 'Records are not open on this network yet. Deals here run as before.' };
+        try {
+          const status = await suiteIdentity.identityStatus(address);
+          const card = recordSetupCard(address, status, Math.floor(Date.now() / 1000));
+          if (!card) return { ok: true, complete: true, note: 'Your Karwan record is already set up.' };
+          push(card);
+          return { ok: true, shown: 'record card' };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant set_up_record failed');
+          return { error: 'Could not read your record right now.' };
         }
       },
     }),

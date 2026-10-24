@@ -12,6 +12,7 @@ import { closesLabel } from '../deals/disputeJudge.js';
 import { tg } from '../i18n/telegram.js';
 import { FINANCIER_FOLLOWS, financierAlert, financiersOfDeal } from '../financial/dealFinanciers.js';
 import { walletPlainName } from '../money/observedDeposit.js';
+import { personNames, shortAddress } from '../channels/personName.js';
 import {
   deliverableNoun,
   startPhrase,
@@ -166,6 +167,8 @@ interface Recipient {
   role: string;
   /// A financier's own position page, which their alert links to.
   href?: string;
+  /// The other party, for a message echoed back to the person who sent it.
+  counterparty?: string;
 }
 
 /// Which payload addresses hear about each financing event. Mirrors the email
@@ -309,8 +312,8 @@ export async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     // useful as a sent-confirmation when away from the app. The role helps
     // the summary phrase it from each side's perspective.
     const out: Recipient[] = [];
-    out.push({ address: deal.buyer, role: deal.buyer === sender ? 'self' : 'buyer' });
-    out.push({ address: deal.seller, role: deal.seller === sender ? 'self' : 'seller' });
+    out.push({ address: deal.buyer, role: deal.buyer === sender ? 'self' : 'buyer', counterparty: deal.seller });
+    out.push({ address: deal.seller, role: deal.seller === sender ? 'self' : 'seller', counterparty: deal.buyer });
     return out;
   }
   // Financing events name their parties directly. The financier is never a
@@ -350,10 +353,17 @@ export function financierSummaryFor(e: KarwanEvent, href: string | undefined, lo
   return withLink(`*${alert.title}*\n${alert.body}`, base && href ? `${base}${href}` : financierUrl());
 }
 
-export function summaryFor(e: KarwanEvent, role: string, locale: UserLocale = 'en'): NotifySummary | null {
-  const short = (a: unknown) => {
+/// People are named by their Karwan tag, looked up before the summary is
+/// written (`personNames`); a wallet nobody has named reads as a short address.
+export interface SummaryNames {
+  names?: ReadonlyMap<string, string>;
+  counterparty?: string;
+}
+
+export function summaryFor(e: KarwanEvent, role: string, locale: UserLocale = 'en', { names, counterparty }: SummaryNames = {}): NotifySummary | null {
+  const who = (a: unknown) => {
     const s = typeof a === 'string' ? a : '';
-    return s ? `\`${s.slice(0, 6)}…${s.slice(-4)}\`` : '';
+    return s ? names?.get(s.toLowerCase()) ?? shortAddress(s) : '';
   };
   const amount = (e.payload?.dealAmountUsdc as string | undefined) ?? '';
   const url = dealUrl(e.jobId);
@@ -461,7 +471,7 @@ export function summaryFor(e: KarwanEvent, role: string, locale: UserLocale = 'e
       return withLink(
         role === 'seller'
           ? `*A buyer opened a deal with you*${amount ? ` at ${amount} USDC` : ''}. Review and agree to the terms. The buyer funds afterward.`
-          : `*Deal opened* with ${short(e.payload?.seller)}${amount ? ` at ${amount} USDC` : ''}. Waiting for them to agree.`,
+          : `*Deal opened* with ${who(e.payload?.seller)}${amount ? ` at ${amount} USDC` : ''}. Waiting for them to agree.`,
         url,
       );
     case 'deal.invite.claimed':
@@ -640,9 +650,10 @@ ${String(e.payload?.note ?? '').replace(/[*_`[\]]/g, '').slice(0, 300)}`, url)
       );
     case 'chat.message': {
       const body = (e.payload?.body as string | undefined) ?? '';
-      const sender = short(e.payload?.sender);
       const trimmed = body.length > 200 ? `${body.slice(0, 197)}…` : body;
-      const header = role === 'self' ? '*You sent*' : `*Message* from ${sender}`;
+      const header = role !== 'self'
+        ? `*Message from ${who(e.payload?.sender)}*`
+        : counterparty ? `*You wrote to ${who(counterparty)}*` : '*You wrote*';
       return withLink(`${header}\n${trimmed}`, url);
     }
     case 'bridge.minted':
@@ -861,6 +872,9 @@ export function startTelegramNotifier(): () => void {
     if (!RELEVANT.has(e.type)) return;
     try {
       const recipients = await recipientsFor(e);
+      const named = [e.payload?.seller, e.payload?.buyer, e.payload?.sender, ...recipients.map((r) => r.counterparty)]
+        .filter((a): a is string => typeof a === 'string' && /^0x[0-9a-fA-F]{40}$/.test(a));
+      const names = named.length ? await personNames(named) : undefined;
       for (const r of recipients) {
         const link = await getTelegramLink(r.address);
         if (!link) continue;
@@ -870,7 +884,7 @@ export function startTelegramNotifier(): () => void {
         if (profile?.settings?.notificationsMuted) continue;
         if (!channelsFor(profile?.settings, true).telegram) continue;
         const locale = (profile?.settings?.locale ?? 'en') as UserLocale;
-        const summary = r.role === 'financier' ? financierSummaryFor(e, r.href, locale) : summaryFor(e, r.role, locale);
+        const summary = r.role === 'financier' ? financierSummaryFor(e, r.href, locale) : summaryFor(e, r.role, locale, { names, counterparty: r.counterparty });
         if (!summary) continue;
         const buttons = summary.url
           ? [{ text: tg('openInKarwan', locale), url: summary.url }]

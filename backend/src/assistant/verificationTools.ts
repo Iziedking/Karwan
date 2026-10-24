@@ -7,6 +7,7 @@ import { isDiscoverable, ladderFor, nextSteps } from '../verification/ladder.js'
 import { evidenceDeps } from '../verification/live.js';
 import { verificationServices } from '../verification/services.js';
 import { openLinkFor } from '../channels/sender.js';
+import { personName } from '../channels/personName.js';
 
 /// Getting verified, from chat or the app. The level and the missing steps
 /// come from the published rules; the model only explains them.
@@ -48,7 +49,7 @@ export function verificationTools(address: string) {
         const services = verificationServices();
         if (!services) return { error: 'Client confirmations are not available right now.' };
         try {
-          const name = (await getProfile(address))?.displayName || 'A Karwan user';
+          const name = personName(await getProfile(address), 'A Karwan user');
           let invoiceFactId: string | undefined;
           if (aboutLatestInvoice) {
             const stored = await evidenceDeps.getStored(address.toLowerCase());

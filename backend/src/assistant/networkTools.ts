@@ -18,6 +18,7 @@ import { buyerVisible, sellerMayBid } from '../verification/networkGate.js';
 import { paidCreditPassport, paidRecordRead } from '../x402/buyerClient.js';
 import { searchMarket } from './marketSearch.js';
 import { paidReadView } from './paidReadView.js';
+import { personName } from '../channels/personName.js';
 
 /// The verified network from the assistant: find people agents may offer, and
 /// ask their agent about price, timeline and terms. Answers come from what the
@@ -79,7 +80,7 @@ export function networkTools(address: string) {
               request: hit.title,
               budgetUsdc: hit.budgetUsdc,
               due: new Date(hit.dueUnix * 1000).toISOString().slice(0, 10),
-              name: profile?.displayName?.trim() || 'A Karwan buyer',
+              name: personName(profile, 'A Karwan buyer'),
               level,
               country: hit.country,
             });

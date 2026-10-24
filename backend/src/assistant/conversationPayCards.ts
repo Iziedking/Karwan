@@ -2,6 +2,7 @@ import { listDealsForAddress, type DirectDeal } from '../db/deals.js';
 import { getProfile } from '../db/profiles.js';
 import { payCardFor } from './directDealTools.js';
 import { conversationReference } from './dealDraft.js';
+import { personName } from '../channels/personName.js';
 
 export { conversationReference };
 
@@ -25,7 +26,7 @@ export async function payCardsForConversation(address: string, conversationId: s
   for (const deal of deals) {
     const card = await payCardFor(deal, address);
     if ('error' in card) continue;
-    const seller = (await getProfile(deal.seller).catch(() => null))?.displayName?.trim() || 'The seller';
+    const seller = personName(await getProfile(deal.seller).catch(() => null), 'The seller');
     turns.push({ role: 'assistant', content: `${seller} accepted your deal for ${Number(deal.dealAmountUsdc)} USDC. Pay it into escrow when you are ready.`, actions: [card] });
   }
   return turns;
