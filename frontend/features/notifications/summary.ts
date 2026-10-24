@@ -152,6 +152,9 @@ export function summaryFor(
       const role = str('walletRole');
       // The role decides: older events carry an internal label people do not know.
       const label = (role === 'buyerAgent' ? c.wallets.buyerAgent : role === 'sellerAgent' ? c.wallets.sellerAgent : c.wallets.wallet);
+      if (type === 'wallet.credited' && str('bridgeId') && str('chainName')) {
+        return fill(c.creditedMoving, { amount: trimUsdc(str('amountUsdc') || '0'), chain: str('chainName') });
+      }
       return fill(type === 'wallet.credited' ? c.credited : c.debited, { amount: trimUsdc(str('amountUsdc') || '0'), label });
     }
     case 'vault.deposit':

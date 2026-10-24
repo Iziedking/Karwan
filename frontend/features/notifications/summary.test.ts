@@ -33,6 +33,8 @@ test('every language has a line for the same event, and the bell speaks it', () 
 
 test('a bell amount reads to the cent, and a small one keeps its digits', () => {
   assert.equal(summaryFor('wallet.credited', { amountUsdc: '9.954921', walletRole: 'identity' }, 'buyer', en), '9.95 USDC arrived in your balance.');
+  // Money that lands on another chain is on its way; the bridge says when it is in the balance.
+  assert.equal(summaryFor('wallet.credited', { amountUsdc: '20', chain: 'BASE-SEPOLIA', chainName: 'Base', bridgeId: 'deposit-1', source: 'deposit' }, 'buyer', en), '20 USDC arrived on Base. Moving it to your balance.');
   assert.equal(summaryFor('wallet.credited', { amountUsdc: '0.043785', walletRole: 'identity' }, 'buyer', en), '0.0438 USDC arrived in your balance.');
 });
 

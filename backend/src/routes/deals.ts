@@ -1,3 +1,4 @@
+import { releaseLeg } from '../deals/payoutLeg.js';
 import { SELLER_LINK_DETAIL, sellerAgentBinding, sellerBindingRefusal } from '../deals/sellerBinding.js';
 import { prohibitedBody } from '../policy/prohibited.js';
 import { addrSchema, createSchema, milestonePctsSchema } from '../deals/createSchema.js';
@@ -4002,15 +4003,10 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
       );
     }
 
-    const payout = await prepareMoneyMovementContractLeg(movementReference, {
-      key: 'release',
-      label: `Pay milestone ${releasedIndex + 1}`,
-      rail: 'circle_wallets',
-      walletId: deal.buyerAgentWalletId,
-      sourceAddress: escrowAddressOf(deal),
-      contractAddress: escrowAddressOf(deal),
-      amountMicros: expectedAmount,
-    });
+    const payout = await prepareMoneyMovementContractLeg(
+      movementReference,
+      releaseLeg(deal, escrowAddressOf(deal), releasedIndex, expectedAmount),
+    );
     // Approval-to-verified duration. releaseMilestone re-reads escrow state
     // after the tx lands, so the stamp means "money verifiably moved on Arc",
     // not "request submitted". Persisted per deal and returned to the client:

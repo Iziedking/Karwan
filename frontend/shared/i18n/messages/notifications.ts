@@ -29,7 +29,7 @@ export interface NotifyCopy {
   disputed: string; resolved: string; resolvedRefund: string; resolvedSeller: string; resolvedSplit: string;
   cancelled: string; cancelProposedReason: string; cancelProposed: string; cancelDeclined: string;
   extensionAskedOne: string; extensionAskedMany: string; extensionApproved: string; extensionDeclined: string; statementGivenBuyer: string; statementGivenSeller: string; statementDue: string;
-  credited: string; debited: string; wallets: { wallet: string; buyerAgent: string; sellerAgent: string };
+  credited: string; creditedMoving: string; debited: string; wallets: { wallet: string; buyerAgent: string; sellerAgent: string };
   staked: string; cooldownStartedAmount: string; cooldownStarted: string; cooldownCancelledAmount: string;
   cooldownCancelled: string; claimedAmount: string; claimed: string; cooldownDoneAmount: string; cooldownDone: string;
   cashedOut: string; factoringRequested: string; factoringFundingNeeded: string; factoringOfferedAt: string; factoringOffered: string;
@@ -132,6 +132,7 @@ const en: NotifyCopy = {
   statementGivenSeller: "The seller gave their account of the dispute. Give yours before the window closes.",
   statementDue: "Your dispute statement is still missing. Give it before the window closes, or the dispute goes against you.",
   credited: '{amount} USDC arrived in your {label}.',
+  creditedMoving: '{amount} USDC arrived on {chain}. Moving it to your balance.',
   debited: '{amount} USDC left your {label}.',
   wallets: { wallet: 'balance', buyerAgent: 'buying agent', sellerAgent: 'selling agent' },
   staked: 'Staked {amount} USDC.',
@@ -262,6 +263,7 @@ const fr: NotifyCopy = {
   statementGivenSeller: "Le vendeur a donné sa version du litige. Donnez la vôtre avant la fermeture du délai.",
   statementDue: "Votre version du litige manque encore. Donnez-la avant la fermeture du délai, sinon le litige tournera contre vous.",
   credited: '{amount} USDC sont arrivés sur votre {label}.',
+  creditedMoving: '{amount} USDC sont arrivés sur {chain}. Nous les transférons sur votre solde.',
   debited: '{amount} USDC ont quitté votre {label}.',
   wallets: { wallet: 'solde', buyerAgent: 'agent acheteur', sellerAgent: 'agent vendeur' },
   staked: '{amount} USDC mis en jeu.',
@@ -392,6 +394,7 @@ const ar: NotifyCopy = {
   statementGivenSeller: "قدّم البائع روايته للنزاع. قدّم روايتك قبل انتهاء المهلة.",
   statementDue: "روايتك للنزاع ما زالت ناقصة. قدّمها قبل انتهاء المهلة، وإلا يُحسم النزاع ضدك.",
   credited: 'وصلت {amount} USDC إلى {label}.',
+  creditedMoving: 'وصلت {amount} USDC على {chain}. ننقلها إلى رصيدك.',
   debited: 'خرجت {amount} USDC من {label}.',
   wallets: { wallet: 'رصيدك', buyerAgent: 'وكيل الشراء', sellerAgent: 'وكيل البيع' },
   staked: 'تم رهن {amount} USDC.',
@@ -522,6 +525,7 @@ const hi: NotifyCopy = {
   statementGivenSeller: "विक्रेता ने विवाद पर अपना पक्ष दे दिया है। समय खत्म होने से पहले अपना पक्ष दें।",
   statementDue: "विवाद पर आपका पक्ष अभी बाकी है। समय खत्म होने से पहले दें, वरना विवाद आपके ख़िलाफ़ जाएगा।",
   credited: '{amount} USDC आपके {label} में आए।',
+  creditedMoving: '{amount} USDC {chain} पर आए। हम इन्हें आपके बैलेंस में ला रहे हैं।',
   debited: '{amount} USDC आपके {label} से गए।',
   wallets: { wallet: 'बैलेंस', buyerAgent: 'ख़रीद एजेंट', sellerAgent: 'बिक्री एजेंट' },
   staked: '{amount} USDC स्टेक किए।',
@@ -652,6 +656,7 @@ const sw: NotifyCopy = {
   statementGivenSeller: "Muuzaji ametoa maelezo yake ya mzozo. Toa yako kabla muda haujaisha.",
   statementDue: "Maelezo yako ya mzozo bado hayajatolewa. Yatoe kabla muda haujaisha, la sivyo mzozo utaamuliwa dhidi yako.",
   credited: 'USDC {amount} zimeingia kwenye {label} yako.',
+  creditedMoving: 'USDC {amount} zimefika kwenye {chain}. Tunazihamishia kwenye salio lako.',
   debited: 'USDC {amount} zimetoka kwenye {label} yako.',
   wallets: { wallet: 'salio', buyerAgent: 'wakala wa kununua', sellerAgent: 'wakala wa kuuza' },
   staked: 'Umeweka dhamana ya {amount} USDC.',

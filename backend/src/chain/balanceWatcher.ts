@@ -12,6 +12,7 @@ import {
   walletPlainName,
 } from '../money/observedDeposit.js';
 import { findMoneyMovementByTransferProof } from '../db/moneyMovements.js';
+import { createAnnouncedTransfers } from './announcedTransfers.js';
 
 // USDC on Arc is exposed both as a 6-decimal ERC-20 and an 18-decimal native
 // asset. Transfer events emit at 6 decimals on the ERC-20 surface, which is
@@ -130,6 +131,9 @@ function observedRole(role: WalletRole): 'identity' | 'buyerAgent' | 'sellerAgen
   return role;
 }
 
+const announced = createAnnouncedTransfers();
+let unsubscribeAnnounced: (() => void) | null = null;
+
 async function processWindow(fromBlock: bigint, toBlock: bigint): Promise<void> {
   if (fromBlock > toBlock) return;
   const reg = await refreshRegistry();
@@ -195,7 +199,8 @@ async function processWindow(fromBlock: bigint, toBlock: bigint): Promise<void> 
       // Do not notify twice for a route that already emits agent.funded or a
       // deal-specific event.  External/platform credits still get the normal
       // wallet notification.
-      if (!intraUserTransfer && notifyable && rememberTransfer(`credit:${dedupeKey}`)) {
+      // Nor for a deposit landing on Arc or a deal payment its own event already announced.
+      if (!intraUserTransfer && notifyable && !announced.has(txHash) && rememberTransfer(`credit:${dedupeKey}`)) {
         bus.emitEvent({
           type: 'wallet.credited',
           actor: 'platform',
@@ -348,6 +353,7 @@ async function tick(): Promise<void> {
 
 export function startBalanceWatcher(): () => void {
   if (pollTimer) return stopBalanceWatcher;
+  unsubscribeAnnounced = bus.subscribe((e) => announced.note(e));
   void refreshRegistry(true);
   // Fire once on boot so a credit landing during a restart still surfaces,
   // then settle into the regular cadence.
@@ -368,6 +374,8 @@ export function stopBalanceWatcher(): void {
     clearInterval(pollTimer);
     pollTimer = null;
   }
+  unsubscribeAnnounced?.();
+  unsubscribeAnnounced = null;
 }
 
 export type { TrackedWallet, WalletRole };
