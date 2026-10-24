@@ -23,7 +23,7 @@ import { logger } from '../logger.js';
 import { invalidBodyMessage } from './invalidBody.js';
 import {
   parseVaultStakeHint,
-  proveVaultStake,
+  proveVaultStake, receiptParties,
   recordVaultStakeMovement,
   executeCircleVaultStake,
   vaultDepositEventAbi,
@@ -753,13 +753,12 @@ vaultRoutes.post('/record-stake', async (c) => {
     eventName: 'Deposited',
     logs: receipt.logs,
     strict: false,
-  }).map((entry) => entry.args as { owner?: string; principal?: bigint; positionId?: bigint });
+  }).map((entry) => ({ ...(entry.args as { owner?: string; principal?: bigint; positionId?: bigint }), emitter: entry.address }));
 
   let proof;
   try {
     proof = proveVaultStake({
-      receiptTo: receipt.to,
-      receiptFrom: receipt.from,
+      ...receiptParties(receipt, body.address),
       vaultAddress: vault,
       ownerAddress: body.address,
       usdcAddress,

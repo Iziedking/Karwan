@@ -4,8 +4,10 @@ import {
   proveVaultStake,
   proveVaultStakeApproval,
   parseVaultStakeHint,
+  receiptParties,
   vaultStakeIntentOperationKey,
 } from './vaultStake.js';
+import { encodeAbiParameters, encodeEventTopics } from 'viem';
 
 const OWNER = '0x0000000000000000000000000000000000000001';
 const VAULT = '0x0000000000000000000000000000000000000002';
@@ -110,4 +112,56 @@ test('rejects a Circle approval for a different spender or amount', () => {
       }),
     /unique allowance/,
   );
+});
+
+// An email account's stake, shaped as on Arc Testnet on 24 Oct 2026 (approval
+// tx 0x842e2aea…2221): the receipt goes to the EntryPoint from the bundler,
+// and the user operation event names the wallet as sender.
+const ENTRY_POINT = '0x5ff137d4b0fdcd49dca30c7cf57e578a026d2789';
+const BUNDLER = '0xf18c33c9a6f4b1ac83490a145ad52ed63c77f3f3';
+const userOpLog = (sender: string, success: boolean) => ({
+  address: ENTRY_POINT,
+  topics: encodeEventTopics({ abi: userOpAbi, eventName: 'UserOperationEvent', args: { userOpHash: `0x${'31'.repeat(32)}`, sender, paymaster: '0x0000000000000000000000000000000000000000' } }) as string[],
+  data: encodeAbiParameters([{ type: 'uint256' }, { type: 'bool' }, { type: 'uint256' }, { type: 'uint256' }], [120n, success, 1n, 1n]),
+});
+const userOpAbi = [{
+  type: 'event', name: 'UserOperationEvent', inputs: [
+    { name: 'userOpHash', type: 'bytes32', indexed: true }, { name: 'sender', type: 'address', indexed: true }, { name: 'paymaster', type: 'address', indexed: true },
+    { name: 'nonce', type: 'uint256', indexed: false }, { name: 'success', type: 'bool', indexed: false }, { name: 'actualGasCost', type: 'uint256', indexed: false }, { name: 'actualGasUsed', type: 'uint256', indexed: false },
+  ],
+}] as const;
+
+test('a smart account stake is proved by its user operation and the token and vault events', () => {
+  const parties = receiptParties({ to: ENTRY_POINT, from: BUNDLER, logs: [userOpLog(OWNER, true)] }, OWNER);
+  assert.deepEqual(parties, { receiptTo: null, receiptFrom: OWNER, smartAccount: true });
+  assert.doesNotThrow(() =>
+    proveVaultStakeApproval({ ...parties, usdcAddress: USDC, ownerAddress: OWNER, vaultAddress: VAULT, expectedAmountMicros: 50_000_000n, approvals: [{ tokenAddress: USDC, owner: OWNER, spender: VAULT, value: 50_000_000n }] }),
+  );
+  const proof = proveVaultStake({
+    ...parties, vaultAddress: VAULT, ownerAddress: OWNER, usdcAddress: USDC, expectedAmountMicros: 50_000_000n,
+    transfers: [{ tokenAddress: USDC, from: OWNER, to: VAULT, value: 50_000_000n }],
+    deposits: [{ positionId: 9n, owner: OWNER, principal: 50_000_000n, emitter: VAULT }],
+  });
+  assert.deepEqual(proof, { amountMicros: 50_000_000n, positionId: 9n });
+});
+
+test('a user operation that failed, or ran for someone else, proves nothing', () => {
+  const failed = receiptParties({ to: ENTRY_POINT, from: BUNDLER, logs: [userOpLog(OWNER, false)] }, OWNER);
+  assert.equal(failed.receiptFrom, BUNDLER);
+  assert.throws(() => proveVaultStakeApproval({ ...failed, usdcAddress: USDC, ownerAddress: OWNER, vaultAddress: VAULT, expectedAmountMicros: 1n, approvals: [{ tokenAddress: USDC, owner: OWNER, spender: VAULT, value: 1n }] }), /sender does not match/);
+  const other = receiptParties({ to: ENTRY_POINT, from: BUNDLER, logs: [userOpLog(VAULT, true)] }, OWNER);
+  assert.equal(other.receiptFrom, BUNDLER);
+});
+
+test('from a smart account, a Deposited event from any contract but the vault does not count', () => {
+  const parties = receiptParties({ to: ENTRY_POINT, from: BUNDLER, logs: [userOpLog(OWNER, true)] }, OWNER);
+  assert.throws(() => proveVaultStake({
+    ...parties, vaultAddress: VAULT, ownerAddress: OWNER, usdcAddress: USDC, expectedAmountMicros: 50_000_000n,
+    transfers: [{ tokenAddress: USDC, from: OWNER, to: VAULT, value: 50_000_000n }],
+    deposits: [{ positionId: 9n, owner: OWNER, principal: 50_000_000n, emitter: USDC }],
+  }), /no unique vault deposit event/);
+});
+
+test('a plain wallet transaction keeps the receipt checks', () => {
+  assert.deepEqual(receiptParties({ to: VAULT, from: OWNER, logs: [] }, OWNER), { receiptTo: VAULT, receiptFrom: OWNER, smartAccount: false });
 });

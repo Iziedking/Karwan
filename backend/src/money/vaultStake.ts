@@ -34,6 +34,52 @@ export interface VaultStakeDepositProof {
   owner?: string;
   principal?: bigint;
   positionId?: bigint;
+  /// The contract that emitted the event. Required to be the vault when the
+  /// call came from a smart account, whose receipt does not name the vault.
+  emitter?: string;
+}
+
+/// ERC-4337 EntryPoints (v0.6, v0.7, v0.8). An email account's wallet is a
+/// Circle smart account: its calls arrive as user operations, so the receipt's
+/// `to` is the EntryPoint and `from` is the bundler, never the wallet or the
+/// contract it called (checked on Arc Testnet, 24 Oct 2026).
+export const ENTRY_POINTS = new Set([
+  '0x5ff137d4b0fdcd49dca30c7cf57e578a026d2789',
+  '0x0000000071727de22e5e9d8baf0edac6f37da032',
+  '0x4337084d9e255ff0702461cf8895ce9e3b5ff108',
+]);
+
+const userOperationEventAbi = [
+  {
+    type: 'event',
+    name: 'UserOperationEvent',
+    inputs: [
+      { name: 'userOpHash', type: 'bytes32', indexed: true },
+      { name: 'sender', type: 'address', indexed: true },
+      { name: 'paymaster', type: 'address', indexed: true },
+      { name: 'nonce', type: 'uint256', indexed: false },
+      { name: 'success', type: 'bool', indexed: false },
+      { name: 'actualGasCost', type: 'uint256', indexed: false },
+      { name: 'actualGasUsed', type: 'uint256', indexed: false },
+    ],
+  },
+] as const;
+
+/// Who really made the call in this receipt. A plain transaction is sent by the
+/// wallet itself. A user operation counts as sent by the wallet only when the
+/// EntryPoint reports it succeeded with the wallet as sender; the target is
+/// then proved by the token and vault events instead of the receipt.
+export function receiptParties(
+  receipt: { to: string | null | undefined; from: string | null | undefined; logs: readonly { address: string; topics: readonly string[]; data: string }[] },
+  ownerAddress: string,
+): { receiptTo: string | null; receiptFrom: string | null; smartAccount: boolean } {
+  const to = receipt.to?.toLowerCase() ?? null;
+  if (!to || !ENTRY_POINTS.has(to)) return { receiptTo: to, receiptFrom: receipt.from?.toLowerCase() ?? null, smartAccount: false };
+  const owner = ownerAddress.toLowerCase();
+  const ran = parseEventLogs({ abi: userOperationEventAbi, eventName: 'UserOperationEvent', logs: receipt.logs as never, strict: false }).some(
+    (e) => ENTRY_POINTS.has(e.address.toLowerCase()) && (e.args.sender as string | undefined)?.toLowerCase() === owner && e.args.success === true,
+  );
+  return { receiptTo: null, receiptFrom: ran ? owner : receipt.from?.toLowerCase() ?? null, smartAccount: true };
 }
 
 export interface VaultStakeProofInput {
@@ -45,6 +91,9 @@ export interface VaultStakeProofInput {
   expectedAmountMicros?: bigint;
   transfers: readonly VaultStakeTransferProof[];
   deposits: readonly VaultStakeDepositProof[];
+  /// A user operation: the USDC transfer into the vault and the vault's own
+  /// Deposited event prove the target.
+  smartAccount?: boolean;
 }
 
 export interface VaultStakeProof {
@@ -67,10 +116,12 @@ export function proveVaultStakeApproval(input: {
   vaultAddress: string;
   expectedAmountMicros: bigint;
   approvals: readonly VaultStakeApprovalProof[];
+  /// A user operation: the USDC Approval event proves the target.
+  smartAccount?: boolean;
 }): void {
   const owner = input.ownerAddress.toLowerCase();
   const vault = input.vaultAddress.toLowerCase();
-  if ((input.receiptTo ?? '').toLowerCase() !== input.usdcAddress.toLowerCase()) {
+  if (!input.smartAccount && (input.receiptTo ?? '').toLowerCase() !== input.usdcAddress.toLowerCase()) {
     throw new Error('approval receipt target does not match USDC');
   }
   if ((input.receiptFrom ?? '').toLowerCase() !== owner) {
@@ -98,7 +149,7 @@ export function proveVaultStake(input: VaultStakeProofInput): VaultStakeProof {
   const vault = input.vaultAddress.toLowerCase();
   const owner = input.ownerAddress.toLowerCase();
   const usdc = input.usdcAddress.toLowerCase();
-  if ((input.receiptTo ?? '').toLowerCase() !== vault) {
+  if (!input.smartAccount && (input.receiptTo ?? '').toLowerCase() !== vault) {
     throw new Error('stake receipt target does not match the vault');
   }
   if ((input.receiptFrom ?? '').toLowerCase() !== owner) {
@@ -124,7 +175,8 @@ export function proveVaultStake(input: VaultStakeProofInput): VaultStakeProof {
   const deposits = input.deposits.filter(
     (entry) =>
       entry.owner?.toLowerCase() === owner &&
-      entry.principal === amountMicros,
+      entry.principal === amountMicros &&
+      (entry.emitter === undefined ? !input.smartAccount : entry.emitter.toLowerCase() === vault),
   );
   if (deposits.length !== 1) {
     throw new Error('stake receipt has no unique vault deposit event');
@@ -222,8 +274,7 @@ export async function completeWeb3VaultStake(input: {
     const approvals = parseEventLogs({ abi: erc20Abi, eventName: 'Approval', logs: approvalReceipt.logs, strict: false })
       .map((entry) => ({ tokenAddress: entry.address, ...(entry.args as { owner?: string; spender?: string; value?: bigint }) }));
     proveVaultStakeApproval({
-      receiptTo: approvalReceipt.to,
-      receiptFrom: approvalReceipt.from,
+      ...receiptParties(approvalReceipt, input.ownerAddress),
       usdcAddress: input.usdcAddress,
       ownerAddress: input.ownerAddress,
       vaultAddress: input.vaultAddress,
@@ -245,8 +296,8 @@ export async function completeWeb3VaultStake(input: {
     const transfers = parseEventLogs({ abi: erc20Abi, eventName: 'Transfer', logs: depositReceipt.logs, strict: false })
       .map((entry) => ({ tokenAddress: entry.address, ...(entry.args as { from?: string; to?: string; value?: bigint }) }));
     const deposits = parseEventLogs({ abi: vaultDepositEventAbi, eventName: 'Deposited', logs: depositReceipt.logs, strict: false })
-      .map((entry) => entry.args as { owner?: string; principal?: bigint; positionId?: bigint });
-    const proof = proveVaultStake({ receiptTo: depositReceipt.to, receiptFrom: depositReceipt.from, vaultAddress: input.vaultAddress, ownerAddress: input.ownerAddress, usdcAddress: input.usdcAddress, expectedAmountMicros: input.amountMicros, transfers, deposits });
+      .map((entry) => ({ ...(entry.args as { owner?: string; principal?: bigint; positionId?: bigint }), emitter: entry.address }));
+    const proof = proveVaultStake({ ...receiptParties(depositReceipt, input.ownerAddress), vaultAddress: input.vaultAddress, ownerAddress: input.ownerAddress, usdcAddress: input.usdcAddress, expectedAmountMicros: input.amountMicros, transfers, deposits });
     const depositPlan = await prepareMoneyMovementContractLeg(input.reference, {
       key: 'deposit', label: 'Browser wallet vault USDC deposit', rail: 'arc_contract',
       signerAddress: input.ownerAddress, sourceAddress: input.ownerAddress,
@@ -340,8 +391,7 @@ async function verifyCircleApproval(input: {
     ...(entry.args as { owner?: string; spender?: string; value?: bigint }),
   }));
   proveVaultStakeApproval({
-    receiptTo: receipt.to,
-    receiptFrom: receipt.from,
+    ...receiptParties(receipt, input.ownerAddress),
     usdcAddress: input.usdcAddress,
     ownerAddress: input.ownerAddress,
     vaultAddress: input.vaultAddress,
@@ -375,10 +425,9 @@ async function verifyCircleDeposit(input: {
     eventName: 'Deposited',
     logs: receipt.logs,
     strict: false,
-  }).map((entry) => entry.args as { owner?: string; principal?: bigint; positionId?: bigint });
+  }).map((entry) => ({ ...(entry.args as { owner?: string; principal?: bigint; positionId?: bigint }), emitter: entry.address }));
   const proof = proveVaultStake({
-    receiptTo: receipt.to,
-    receiptFrom: receipt.from,
+    ...receiptParties(receipt, input.ownerAddress),
     vaultAddress: input.vaultAddress,
     ownerAddress: input.ownerAddress,
     usdcAddress: input.usdcAddress,
