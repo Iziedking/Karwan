@@ -6,6 +6,7 @@
 import { z } from 'zod';
 import { logger } from '../logger.js';
 import { updateInputSchema, type UpdateCard } from './model.js';
+import { UPDATE_IMAGE_PATH } from './images.js';
 
 const publicCard = updateInputSchema.omit({ active: true, startsAt: true, endsAt: true }).extend({
   id: z.string().max(40),
@@ -29,8 +30,11 @@ export async function sourcedCards(url: string | undefined, fetcher: typeof fetc
     if (!res.ok) throw new Error(`status ${res.status}`);
     const parsed = sourceResponse.safeParse(await res.json());
     if (!parsed.success) throw new Error('unexpected shape');
-    cached = { at: Date.now(), url, cards: parsed.data.cards };
-    return parsed.data.cards;
+    // A picture uploaded there lives there: its path becomes a full link.
+    const origin = url.replace(/\/$/, '');
+    const cards = parsed.data.cards.map((card) => (card.image?.startsWith(UPDATE_IMAGE_PATH) ? { ...card, image: `${origin}${card.image}` } : card));
+    cached = { at: Date.now(), url, cards };
+    return cards;
   } catch (err) {
     logger.warn({ err: (err as Error).message, url }, 'updates: source unreachable, using this server\'s own cards');
     return null;

@@ -3177,6 +3177,9 @@ export const api = {
     json<{ card: AdminUpdateCard }>('/api/admin/updates', { method: 'POST', headers: adminHeaders(), body: JSON.stringify(input) }),
   adminPatchUpdate: (id: string, patch: Partial<UpdateInput>) =>
     json<{ card: AdminUpdateCard }>(`/api/admin/updates/${encodeURIComponent(id)}`, { method: 'PATCH', headers: adminHeaders(), body: JSON.stringify(patch) }),
+  /// A designer's picture for a card; the path goes in the card's image field.
+  adminUploadUpdateImage: (dataUrl: string) =>
+    json<{ image: string; width: number; height: number }>('/api/admin/updates/images', { method: 'POST', headers: adminHeaders(), body: JSON.stringify({ dataUrl }) }),
   adminDeleteUpdate: (id: string) =>
     json<{ ok: true }>(`/api/admin/updates/${encodeURIComponent(id)}`, { method: 'DELETE', headers: adminHeaders() }),
   adminReorderUpdates: (ids: string[]) =>

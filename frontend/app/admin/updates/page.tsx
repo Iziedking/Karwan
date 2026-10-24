@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, ApiError, type AdminUpdateCard, type TrendingCategory, type UpdateGround, type UpdateInput, type UpdateKind } from '@/core/api';
 import { useDialog } from '@/shared/components/Dialog';
 import { UpdateTile } from '@/features/home/components/UpdatesCarousel';
@@ -25,6 +25,8 @@ const EMPTY: UpdateInput = { kind: 'post', tag: '', title: '', body: '', ctaLabe
 
 const inputClass = 'mt-1.5 w-full bg-[#0e0e0e] border border-white/15 rounded-lg px-3 py-2.5 text-[14px] focus:border-white/40 outline-none';
 const labelClass = 'text-[12px] font-semibold text-white/55';
+const MAX_PICTURE_BYTES = 4_000_000;
+
 const smallButton = 'min-h-9 rounded-lg border border-white/15 px-3 text-[12px] font-semibold text-white/80 hover:border-white/40 disabled:opacity-30';
 
 export default function AdminUpdatesPage() {
@@ -36,6 +38,9 @@ export default function AdminUpdatesPage() {
   const [editing, setEditing] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [picture, setPicture] = useState<{ width: number; height: number } | null>(null);
+  const file = useRef<HTMLInputElement>(null);
 
   const load = useCallback(() => {
     api.adminListUpdates()
@@ -61,6 +66,30 @@ export default function AdminUpdatesPage() {
       setErr(e instanceof ApiError ? e.message : 'Could not save this card');
     } finally {
       setSaving(false);
+    }
+  }
+
+  /// A designer's file goes straight to the server; the card keeps its path.
+  async function upload(picked: File | undefined) {
+    if (!picked) return;
+    setErr(null);
+    if (picked.size > MAX_PICTURE_BYTES) { setErr('That picture is too large. Use one under 4 MB; a 1600x900 WebP is usually under 300 KB.'); return; }
+    setUploading(true);
+    try {
+      const dataUrl = await new Promise<string>((done, fail) => {
+        const reader = new FileReader();
+        reader.onload = () => done(String(reader.result));
+        reader.onerror = () => fail(reader.error);
+        reader.readAsDataURL(picked);
+      });
+      const r = await api.adminUploadUpdateImage(dataUrl);
+      set('image', r.image);
+      setPicture({ width: r.width, height: r.height });
+    } catch (e) {
+      setErr(e instanceof ApiError ? e.message : 'Could not upload this picture');
+    } finally {
+      setUploading(false);
+      if (file.current) file.current.value = '';
     }
   }
 
@@ -110,7 +139,7 @@ export default function AdminUpdatesPage() {
     <div>
       <h1 className="font-sans text-[24px] font-extrabold">Home updates</h1>
       <p className="mt-2 max-w-[68ch] text-[13px] text-white/55">
-        Cards in the Updates row on every signed-in home page, in this order. Link to a Karwan page like /how-it-works or an https address such as an Arc House post or a video. Use real product screenshots or video frames, never stock art. Keep figures real: a Trending card fills itself from this week&apos;s requests.
+        Cards in the Updates row on every signed-in home page, in this order. Link to a Karwan page like /how-it-works or an https address such as an Arc House post or a video. Upload a designer's 1600x900 picture (JPEG, PNG or WebP, under 4 MB) or use a real product screenshot or video frame, never stock art. Keep figures real: a Trending card fills itself from this week&apos;s requests.
       </p>
       {source ? (
         <p role="note" className="mt-4 rounded-lg border border-[#AFC95B]/40 bg-[#AFC95B]/10 px-3 py-2 text-[13px] text-white/85">
@@ -147,9 +176,18 @@ export default function AdminUpdatesPage() {
             </label>
           </div>
           {form.kind !== 'trending' ? (
-            <label className="mt-3 block"><span className={labelClass}>Picture, 16:9 (optional{form.kind === 'video' ? '; a YouTube or Vimeo link shows its own frame' : ''})</span>
-              <input value={form.image ?? ''} onChange={(e) => set('image', e.target.value.trim())} maxLength={500} placeholder="/media/updates/arc.jpg or https://…" className={inputClass} />
-            </label>
+            <div className="mt-3">
+              <label className="block"><span className={labelClass}>Picture, 1600x900 (optional{form.kind === 'video' ? '; a YouTube or Vimeo link shows its own frame' : ''})</span>
+                <span className="mt-1.5 flex gap-2">
+                  <input value={form.image ?? ''} onChange={(e) => { set('image', e.target.value.trim()); setPicture(null); }} maxLength={500} placeholder="Upload a file, or /media/updates/arc.webp or https://…" className={inputClass.replace("mt-1.5 ", "")} />
+                  <button type="button" onClick={() => file.current?.click()} disabled={uploading} className={`${smallButton} min-h-11 shrink-0 px-4 text-[13px]`}>
+                    {uploading ? 'Uploading' : 'Upload'}
+                  </button>
+                </span>
+              </label>
+              <input ref={file} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => upload(e.target.files?.[0])} />
+              {picture ? <PictureNote {...picture} /> : null}
+            </div>
           ) : null}
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <fieldset><legend className={labelClass}>Colour (behind text, charts and missing pictures)</legend>
@@ -201,6 +239,17 @@ export default function AdminUpdatesPage() {
         ))}
       </ul>
     </div>
+  );
+}
+
+/// The tile shows the picture at about 16:9 and trims the rest.
+function PictureNote({ width, height }: { width: number; height: number }) {
+  const ratio = width / height;
+  const fits = Math.abs(ratio - 16 / 9) < 0.05;
+  return (
+    <p className={`mt-1.5 text-[13px] ${fits ? 'text-white/55' : 'text-[#e0b84f]'}`}>
+      Uploaded, {width}x{height}.{fits ? ' Fits the tile.' : ' Not 16:9, so the tile trims it. Check the preview, or ask for 1600x900.'}
+    </p>
   );
 }
 

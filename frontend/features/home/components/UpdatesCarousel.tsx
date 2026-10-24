@@ -6,6 +6,7 @@ import { api, type TrendingCategory, type UpdateCard } from '@/core/api';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { localizeSeedCard } from '../seedUpdates';
 import { cn } from '@/shared/utils/cn';
+import { photoSrc } from '@/features/listings/photos';
 
 /// Home Updates: published media tiles about the tech Karwan runs on, market
 /// news, videos and what people are asking for. Three fit the column on a wide
@@ -134,7 +135,7 @@ export function UpdateTile({ card: raw, trending, index, total }: { card: Update
   if (card.image) {
     media = (
       <>
-        <img src={card.image} alt="" loading="lazy" decoding="async" draggable={false} className="size-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100" />
+        <img src={card.image.startsWith('/api/') ? photoSrc(card.image) : card.image} alt="" loading="lazy" decoding="async" draggable={false} className="size-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100" />
         {video ? (
           <span className="absolute bottom-3 start-3 inline-flex h-8 items-center gap-1.5 rounded-full bg-[var(--lp-dark)] px-3 text-[14px] font-semibold tabular-nums text-[var(--lp-card)]">
             <PlayIcon />

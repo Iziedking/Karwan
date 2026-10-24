@@ -18,3 +18,13 @@ test('no source, a failing source or an unsafe card means use the local list', a
   __resetSourceCacheForTests();
   assert.equal(await sourcedCards('https://bad.example', respond({ cards: [{ ...card, href: 'javascript:alert(1)' }] })), null);
 });
+
+test('a picture uploaded on the source is loaded from the source', async () => {
+  __resetSourceCacheForTests();
+  const cards = await sourcedCards('https://mainnet-api.example/', respond({ cards: [
+    { ...card, id: 'upd_2', image: '/api/updates/images/0123456789abcdef01234567.webp' },
+    { ...card, id: 'upd_3', image: '/media/updates/arc.webp' },
+  ] }));
+  assert.equal(cards?.[0]?.image, 'https://mainnet-api.example/api/updates/images/0123456789abcdef01234567.webp');
+  assert.equal(cards?.[1]?.image, '/media/updates/arc.webp');
+});

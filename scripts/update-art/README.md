@@ -36,7 +36,9 @@ from `frontend`):
 node scripts/update-art/render.mjs my-cards.json
 ```
 
-Images land in `frontend/public/media/updates/<name>.webp`; put
-`/media/updates/<name>.webp` in the image field on /admin/updates. A crop preview
+Images land in `frontend/public/media/updates/<name>.webp`. Either commit them
+and put `/media/updates/<name>.webp` in the image field on /admin/updates, or
+skip the commit and use Upload on that page, the same way a designer's file goes
+live. A crop preview
 for each card lands in `scripts/update-art/previews/` (not published). `--guides`
 draws the safe area; `--out <dir>` writes somewhere else.
