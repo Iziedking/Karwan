@@ -68,3 +68,38 @@ test('an empty shortlist next to offers shows the offers, never "no one has offe
   await expect(page.getByText('1 offer so far').first()).toBeVisible();
   await expect(page.getByText(/No one has offered yet/)).toHaveCount(0);
 });
+
+test('choosing a seller who is not verified says so, then goes ahead on Confirm', async ({ page }) => {
+  const sent: Array<{ acknowledgeUnverified?: boolean }> = [];
+  await serveSearch(page, {
+    balances: funded,
+    job: makeJob({
+      budgetUsdc: '100',
+      bids: [{
+        seller: `0x${'2'.repeat(40)}`, priceUsdc: '90', deadlineUnix: Math.floor(Date.now() / 1000) + 6 * 86_400, score: 70,
+        suggestedCounterPrice: null, suggestedCounterDeadlineDays: null, sellerTier: 'new',
+        sellerUserAddress: null, sellerDisplayName: 'Pamcollins', topicalMatch: 80,
+      }],
+    }),
+    shortlist: { entries: [], closed: false },
+    chooseOffer: async (route) => {
+      const body = route.request().postDataJSON() as { acknowledgeUnverified?: boolean };
+      sent.push(body);
+      if (!body.acknowledgeUnverified) {
+        return route.fulfill({ status: 409, json: { error: 'This seller is not verified. Confirm that you want to go ahead.', code: 'unverified-needs-ack' } });
+      }
+      return route.fulfill({ json: { accepted: true, jobId: JOB } });
+    },
+  });
+  await page.goto(`/jobs/${JOB}`);
+  await page.getByText('1 offer so far').first().click();
+  await page.getByRole('button', { name: /Pamcollins/ }).first().click();
+  await page.getByRole('button', { name: 'Choose Pamcollins for 90 USDC' }).click();
+  await page.getByRole('button', { name: 'Confirm', exact: true }).click();
+
+  await expect(page.getByRole('note').filter({ hasText: 'Pamcollins is not verified' })).toBeVisible();
+  await expect(page.getByText('This offer could not be chosen')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Confirm', exact: true }).click();
+  await expect.poll(() => sent.length).toBe(2);
+  expect(sent[1]?.acknowledgeUnverified).toBe(true);
+});

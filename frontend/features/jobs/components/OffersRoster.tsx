@@ -34,7 +34,8 @@ export function OffersRoster({ jobId, bids, pickSeller, caller, choosable, open:
   open?: boolean;
   onChosen: () => void;
 }) {
-  const copy = useTranslations().offerRoster;
+  const t = useTranslations();
+  const copy = t.offerRoster;
   const [open, setOpen] = useState(openInitially);
   const [page, setPage] = useState(1);
   const [viewing, setViewing] = useState<BuyerBid | null>(null);
@@ -42,6 +43,9 @@ export function OffersRoster({ jobId, bids, pickSeller, caller, choosable, open:
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [worldStep, setWorldStep] = useState<{ reason: WorldCheckReason | null; skipAllowed: boolean } | null>(null);
+  /// The server said this seller is not verified: the sheet says so, and the
+  /// next Confirm goes ahead knowingly.
+  const [unverified, setUnverified] = useState(false);
   const shortlist = useShortlist(jobId, caller);
 
   // An empty shortlist next to offers means it has not been rebuilt yet (a
@@ -68,15 +72,20 @@ export function OffersRoster({ jobId, bids, pickSeller, caller, choosable, open:
     setBusy(true);
     setError(null);
     try {
-      await api.chooseOffer(jobId, caller, viewing.seller, { expectedPriceUsdc: viewing.priceUsdc });
+      await api.chooseOffer(jobId, caller, viewing.seller, { expectedPriceUsdc: viewing.priceUsdc, acknowledgeUnverified: unverified });
       setWorldStep(null);
       setConfirming(false);
       setViewing(null);
+      setUnverified(false);
       onChosen();
     } catch (err) {
       const step = worldStepFrom(err);
       if (step) {
         setWorldStep(step);
+        return;
+      }
+      if (err instanceof ApiError && err.code === 'unverified-needs-ack') {
+        setUnverified(true);
         return;
       }
       setError(copy[chooseErrorKey(err instanceof ApiError ? err.status : 0, err instanceof ApiError ? err.code : undefined)]);
@@ -178,8 +187,14 @@ export function OffersRoster({ jobId, bids, pickSeller, caller, choosable, open:
           if (busy) return;
           setConfirming(false);
           setWorldStep(null);
+          setUnverified(false);
         }}
       >
+        {viewing && unverified && !worldStep ? (
+          <p role="note" className="border-s-2 border-[var(--lp-outline-strong)] ps-3 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+            {fill(t.shortlist.unverifiedWarning, { name: nameOf(viewing) })}
+          </p>
+        ) : null}
         {viewing && caller && worldStep ? (
           <AgentWorldCheck
             jobId={jobId}
