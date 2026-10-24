@@ -3,6 +3,7 @@ import type { AssistantAction, ConfirmAction } from '../assistant/actions.js';
 import { renderTurn, type OutMessage } from './render.js';
 import type { OnboardingResult } from './onboarding.js';
 import { CARD_TTL_MS, type ChatAccount, type InboundMessage } from './types.js';
+import { expandNumberReply } from './numberReply.js';
 
 export type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
@@ -232,8 +233,10 @@ export function createDispatcher<A extends ChatAccount>(deps: DispatchDeps<A>) {
       return;
     }
 
-    const said = handOff ?? m.text?.trim();
-    if (!said) return;
+    const typed = handOff ?? m.text?.trim();
+    if (!typed) return;
+    // A bare number answers the last numbered list Karwan sent (a shortlist).
+    const said = (handOff ? null : expandNumberReply(typed, account.choices, deps.now())) ?? typed;
 
     const history: ChatMessage[] = [...(account.history ?? []), { role: 'user' as const, content: said }].slice(-HISTORY_MAX);
     const result = await deps.chat(address, history);

@@ -450,3 +450,16 @@ test('without the findable question wired nothing extra is asked', async () => {
   await s.dispatch(msg({ text: 'hello' }));
   assert.equal(s.sent.some((m) => bodyOf(m) === FINDABLE.body), false);
 });
+
+test('a number replied to a shortlist reaches the assistant as that choice, not a rating', async () => {
+  const s = setup({ active: true });
+  await s.save({
+    ...s.account(),
+    choices: { kind: 'shortlist', jobId: '0xjob', at: NOW - 33 * 60_000, options: [{ n: 5, seller: '0xseller5', name: 'grachi @grachidefi', priceUsdc: 114.95 }] },
+  });
+  await s.dispatch(msg({ text: '5' }));
+  const last = s.chats.at(-1)?.at(-1)?.content ?? '';
+  assert.match(last, /^I choose number 5 on my shortlist for request 0xjob: grachi @grachidefi at 114\.95 USDC \(seller 0xseller5\)/);
+  await s.dispatch(msg({ text: 'rate my deal with @lawful 5 stars' }));
+  assert.equal(s.chats.at(-1)?.at(-1)?.content, 'rate my deal with @lawful 5 stars');
+});

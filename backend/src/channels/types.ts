@@ -1,5 +1,6 @@
 import type { ConfirmAction } from '../assistant/actions.js';
 import type { BriefAnswers } from '../agents/agentBriefLines.js';
+import type { ChatChoices } from './numberReply.js';
 
 /// One message a person sent the Karwan agent on a chat channel, reduced to
 /// what Karwan reads. Each channel adapter parses its own payload into this.
@@ -72,4 +73,7 @@ export interface ChatAccount {
   findable?: boolean;
   /// The findable question was asked once.
   findableAsked?: boolean;
+  /// The last numbered list Karwan sent (a shortlist), so a bare number in
+  /// reply chooses from it (channels/numberReply.ts).
+  choices?: ChatChoices;
 }

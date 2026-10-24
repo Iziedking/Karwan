@@ -64,5 +64,5 @@ test('the deal page learns whether you rated already', async () => {
 test('the agent can list the deals waiting for a rating, by tag', async () => {
   const s = setup();
   const out = await ratingTools('0xb', s.deps).my_ratings_to_give.execute!({}, call);
-  assert.deepEqual(out, { waiting: [{ dealId: 'd1', with: '@ada', settled: new Date(1_760_000_000_000).toISOString() }] });
+  assert.deepEqual(out, { waiting: [{ dealId: 'd1', with: '@ada', settled: new Date(1_760_000_000_000).toISOString().slice(0, 10) }] });
 });

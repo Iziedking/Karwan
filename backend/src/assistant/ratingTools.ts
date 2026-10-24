@@ -29,13 +29,13 @@ export function ratingTools(address: string, deps: RatingToolDeps) {
 
     my_ratings_to_give: tool({
       description:
-        "List the user's settled deals they have not rated yet, with the other person's tag. Use when they ask what to rate, or before rate_deal when they did not say which deal.",
+        "List the user's settled deals they have not rated yet, with the other person's tag and the day it settled. Use when they ask what to rate, or before rate_deal when they did not say which deal. Name each deal by the person and that day (\"@lawful, 20 Oct\"), never by its id; keep the id only to pass to rate_deal.",
       inputSchema: z.object({}),
       execute: async () => ({
         waiting: (await deps.waiting(address)).map((w) => ({
           dealId: w.dealId,
           with: w.withTag ? `@${w.withTag}` : 'A Karwan member',
-          settled: new Date(w.settledAt).toISOString(),
+          settled: new Date(w.settledAt).toISOString().slice(0, 10),
         })),
       }),
     }),
