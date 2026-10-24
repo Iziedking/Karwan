@@ -8,6 +8,8 @@ import type { OfferRosterCopy } from '@/shared/i18n/messages/offerRoster';
 import { formatUsdc, shortAddress } from '@/shared/utils/format';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
 import { useReputation } from '@/features/reputation/hooks/useReputation';
+import { cn } from '@/shared/utils/cn';
+import { reasonLabels } from '@/features/reputation/sealed';
 import { ConfirmSheet } from '@/features/deals/workspace/ConfirmSheet';
 import { Sheet } from '@/features/deals/workspace/Sheet';
 import { fill } from '@/features/deals/workspace/presentation';
@@ -262,7 +264,10 @@ function OfferDetail({ bid, pick, copy, canChoose, onChoose }: {
   onChoose: () => void;
 }) {
   const { locale } = useLocale();
-  const { data } = useReputation(bid.seller);
+  // Someone else's record is sealed (D30): their tier and reasons, never counts.
+  const { data, sealed } = useReputation(bid.seller);
+  const sr = useTranslations().sealedRecord;
+  const reasons = sealed ? reasonLabels(sealed.reasons, sr) : [];
   const level = fitLevel(bid.topicalMatch);
   const settled = data ? data.successCount + data.disputedCount + data.failedCount : null;
   const by = bid.deadlineUnix ? new Date(bid.deadlineUnix * 1000).toLocaleDateString(locale, { day: 'numeric', month: 'short' }) : '-';
@@ -279,20 +284,31 @@ function OfferDetail({ bid, pick, copy, canChoose, onChoose }: {
           <span className="block text-[14px] font-medium text-[var(--lp-text-sub)]">USDC</span>
         </p>
       </div>
-      <dl className="grid grid-cols-3 gap-2">
-        <div className="rounded-[14px] bg-[var(--lp-light)] p-3">
-          <dt className="text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.settled}</dt>
-          <dd className="mt-0.5 text-[17px] font-semibold tabular-nums text-[var(--lp-dark)]">{settled ?? '-'}</dd>
-        </div>
-        <div className="rounded-[14px] bg-[var(--lp-light)] p-3">
-          <dt className="text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.disputes}</dt>
-          <dd className="mt-0.5 text-[17px] font-semibold tabular-nums text-[var(--lp-dark)]">{data ? data.disputedCount : '-'}</dd>
-        </div>
+      <dl className={cn('grid gap-2', data ? 'grid-cols-3' : 'grid-cols-1')}>
+        {data ? (
+          <>
+            <div className="rounded-[14px] bg-[var(--lp-light)] p-3">
+              <dt className="text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.settled}</dt>
+              <dd className="mt-0.5 text-[17px] font-semibold tabular-nums text-[var(--lp-dark)]">{settled}</dd>
+            </div>
+            <div className="rounded-[14px] bg-[var(--lp-light)] p-3">
+              <dt className="text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.disputes}</dt>
+              <dd className="mt-0.5 text-[17px] font-semibold tabular-nums text-[var(--lp-dark)]">{data.disputedCount}</dd>
+            </div>
+          </>
+        ) : null}
         <div className="rounded-[14px] bg-[var(--lp-light)] p-3">
           <dt className="text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.deliverBy}</dt>
           <dd className="mt-0.5 text-[17px] font-semibold text-[var(--lp-dark)]">{by}</dd>
         </div>
       </dl>
+      {reasons.length ? (
+        <ul aria-label={sr.record} className="divide-y divide-[var(--lp-border-light)] border-y border-[var(--lp-border-light)]">
+          {reasons.map((label) => (
+            <li key={label} className="py-2.5 text-[15px] text-[var(--lp-dark)]">{label}</li>
+          ))}
+        </ul>
+      ) : null}
       {level || settled === 0 ? (
         <p className="flex flex-wrap gap-2 text-[14px]">
           {level ? <span className="rounded-full bg-[var(--lp-light)] px-3 py-1.5 text-[var(--lp-dark)]"><FitMark level={level} copy={copy} /></span> : null}

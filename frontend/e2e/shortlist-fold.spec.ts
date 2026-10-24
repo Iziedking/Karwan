@@ -103,3 +103,31 @@ test('choosing a seller who is not verified says so, then goes ahead on Confirm'
   await expect.poll(() => sent.length).toBe(2);
   expect(sent[1]?.acknowledgeUnverified).toBe(true);
 });
+
+test("an offer shows the seller's sealed record as reasons, never empty count boxes", async ({ page }) => {
+  await serveSearch(page, {
+    balances: funded,
+    job: makeJob({
+      budgetUsdc: '100',
+      bids: [{
+        seller: `0x${'2'.repeat(40)}`, priceUsdc: '100', deadlineUnix: Math.floor(Date.now() / 1000) + 6 * 86_400, score: 70,
+        suggestedCounterPrice: null, suggestedCounterDeadlineDays: null, sellerTier: 'established',
+        sellerUserAddress: null, sellerDisplayName: 'Lawfuldlaw', topicalMatch: 80,
+      }],
+    }),
+    shortlist: { entries: [], closed: false },
+  });
+  await page.route('**/api/reputation?**', (route) => route.fulfill({ json: {
+    sealed: true, address: `0x${'2'.repeat(40)}`, displayName: 'Lawfuldlaw', tag: 'lawfuldlaw', tier: 'ESTABLISHED',
+    reasons: ['HAS_COMPLETED_DEALS', 'USUALLY_ON_TIME', 'NO_LOST_DISPUTES'], memberSince: 1_700_000_000_000,
+  } }));
+  await page.goto(`/jobs/${JOB}`);
+  await page.getByText('1 offer so far').first().click();
+  await page.getByRole('button', { name: /Lawfuldlaw/ }).first().click();
+  const record = page.getByRole('list', { name: 'Record' });
+  await expect(record).toContainText('Has completed deals on Karwan');
+  await expect(record).toContainText('Usually delivers on time');
+  await expect(record).toContainText('No lost disputes');
+  await expect(page.getByText('Deals settled')).toHaveCount(0);
+  await expect(page.getByText('Delivers by')).toBeVisible();
+});
