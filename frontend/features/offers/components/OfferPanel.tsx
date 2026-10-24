@@ -24,7 +24,9 @@ function shortDate(unix: number, locale: string): string {
 /// seller's way in. Returns null when the request is not open to offers, so the
 /// caller can fall back to its own closed or private view.
 export function OfferPanel({ jobId, fallback }: { jobId: string; fallback: React.ReactNode }) {
-  const t = useTranslations().offers;
+  const all = useTranslations();
+  const t = all.offers;
+  const opensNewTab = all.accountHome.opensNewTab;
   const { locale } = useLocale();
   const auth = useAuth();
   const [view, setView] = useState<View | null | 'failed'>(null);
@@ -65,12 +67,17 @@ export function OfferPanel({ jobId, fallback }: { jobId: string; fallback: React
           <div className="flex items-center justify-between gap-4 py-4">
             <dt className="text-[15px] text-[var(--lp-text-sub)]">{t.postedBy}</dt>
             <dd className="min-w-0">
+              {/* The record opens beside the request, so the request is still
+                  there to offer on after reading who posted it. */}
               <Link
                 href={`/credit-passport/${view.poster.address}`}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex min-h-11 items-center gap-1.5 truncate text-[15px] font-medium text-[var(--lp-dark)] underline underline-offset-4 hover:text-[var(--lp-accent-on-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
               >
                 {view.poster.handle ? `@${view.poster.handle}` : view.poster.name ?? `${view.poster.address.slice(0, 6)}…${view.poster.address.slice(-4)}`}
-                <Icon name="arrow-right" size={16} directional />
+                <span className="sr-only"> ({opensNewTab})</span>
+                <Icon name="arrow-up-right" size={16} />
               </Link>
             </dd>
           </div>

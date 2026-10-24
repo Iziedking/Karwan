@@ -1,6 +1,5 @@
 'use client';
 import { useEffect, useState, type ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
 import type { DealView, DirectDeal, MoneyMovementView } from '@/core/api';
 import { ChatPanel } from '@/features/chat/components/ChatPanel';
 import { Icon } from '@/shared/components/Icon';
@@ -61,7 +60,6 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   const s = copy.simple;
   const declineCopy = useTranslations().directDealDetail.actionPanel.awaitingAcceptance;
   const { locale } = useLocale();
-  const router = useRouter();
   const [panel, setPanel] = useState<Panel>(null);
   const chat = useChatUnread(deal.jobId, address);
   const { markSeen } = chat;
@@ -320,7 +318,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
       </div>
 
       <Sheet open={panel === 'record'} title={s.record} onClose={close}>
-        {card ? <TrustCard bare card={card} onOpenPassport={() => router.push(`/credit-passport/${counterparty}`)} /> : null}
+        {card ? <TrustCard bare card={card} onOpenPassport={() => window.open(`/credit-passport/${counterparty}`, '_blank', 'noopener,noreferrer')} /> : null}
       </Sheet>
       <Sheet open={panel === 'agreement'} title={s.agreement} onClose={close}>
         <AgreementSection bare deal={deal} />

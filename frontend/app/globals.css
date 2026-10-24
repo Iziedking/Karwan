@@ -1345,7 +1345,8 @@ html[data-theme="dark"] .product-surface {
 }
 
 html[data-theme="dark"] [data-chrome="nav"] {
-  background: rgba(10, 13, 11, 0.94);
+  /* Opaque: a translucent bar let the page's own lines show through it. */
+  background: rgb(10, 13, 11);
   box-shadow: 0 1px 0 rgba(255,255,255,0.025);
 }
 

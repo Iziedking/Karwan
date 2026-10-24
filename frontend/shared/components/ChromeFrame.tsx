@@ -128,7 +128,9 @@ function CustomerChromeFrame({
         </div>}
         {pathname === '/' ? children : <RouteStage pathname={pathname}>{children}</RouteStage>}
       </main>
-      {shell === 'public' && pathname !== '/start' && pathname !== '/waitlist' ? footer : null}
+      {/* A passport is a record someone was sent to check, not a page of the
+          site to browse on from: it ends with the record. */}
+      {shell === 'public' && pathname !== '/start' && pathname !== '/waitlist' && !pathname.startsWith('/credit-passport') ? footer : null}
       {workspaceWithRail ? feedback : null}
       {workspace && !assistantMode ? bottomNav : null}
       {workspace || focused ? notifications : null}

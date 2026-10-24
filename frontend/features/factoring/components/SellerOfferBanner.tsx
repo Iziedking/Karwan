@@ -503,6 +503,7 @@ function OfferRow({
           <Link
             href={`/credit-passport/${offer.financier}`}
             target="_blank"
+            rel="noopener noreferrer"
             className="inline-block mt-2 mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
           >
             Financier passport ↗

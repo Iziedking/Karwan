@@ -5,7 +5,10 @@ import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useReputation } from '../hooks/useReputation';
 import { reasonLabels } from '../sealed';
 import { tierBg, tierInk } from '../tierColors';
-import { CreditPassport } from './CreditPassport';
+import { useQuery } from '@tanstack/react-query';
+import { api, profilePhotoOf } from '@/core/api';
+import { qk } from '@/core/queryKeys';
+import { CreditPassport, PassportPhoto } from './CreditPassport';
 import { AttestedDeals } from './AttestedDeals';
 import { BackButton } from '@/shared/components/BackButton';
 
@@ -15,6 +18,8 @@ export function PublicPassport({ address }: { address: string }) {
   const sr = t.sealedRecord;
   const { locale } = useLocale();
   const { data, sealed, fetchState } = useReputation(address);
+  // The photo the person chose, public like the passport; their wallet mark if none.
+  const photo = useQuery({ queryKey: qk.profile.byAddress(address), queryFn: () => api.getProfile(address), staleTime: 60_000 });
 
   // Records not sealed on this backend yet: show the existing passport.
   if (data) return <CreditPassport address={address} />;
@@ -33,10 +38,15 @@ export function PublicPassport({ address }: { address: string }) {
       <div className="-ms-2 mb-4">
         <BackButton tone="adaptive" showOnPublic fallbackHref="/market" />
       </div>
-      <h1 className="text-[28px] font-semibold text-[var(--lp-dark)]">{name}</h1>
-      {sealed.tag && sealed.displayName ? (
-        <p className="mt-1 text-[15px] text-[var(--lp-text-sub)]">@{sealed.tag}</p>
-      ) : null}
+      <div className="flex items-center gap-4">
+        <PassportPhoto src={profilePhotoOf(photo.data?.profile)} address={address} />
+        <div className="min-w-0">
+          <h1 className="truncate text-[28px] font-semibold text-[var(--lp-dark)]">{name}</h1>
+          {sealed.tag && sealed.displayName ? (
+            <p className="mt-1 text-[15px] text-[var(--lp-text-sub)]">@{sealed.tag}</p>
+          ) : null}
+        </div>
+      </div>
       <p className="mt-4 inline-flex items-center gap-2 text-[15px] font-medium text-[var(--lp-dark)]">
         <span className="text-[var(--lp-text-sub)]">{sr.tier}</span>
         <span className="rounded-full px-2.5 py-0.5 font-semibold" style={{ background: tierBg(sealed.tier), color: tierInk(sealed.tier) }}>{TIER_LABEL[sealed.tier]}</span>

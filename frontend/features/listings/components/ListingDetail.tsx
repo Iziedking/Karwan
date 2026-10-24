@@ -226,7 +226,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
       <OfferGallery urls={(listing as Listing & WithPhotos).photoUrls ?? []} title={listing.title} />
 
       <Link
-        href={`/credit-passport/${listing.sellerUser}`}
+        href={`/credit-passport/${listing.sellerUser}`} target="_blank" rel="noopener noreferrer"
         className="mt-5 flex items-center gap-3 rounded-[16px] py-1 pe-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
       >
         <PersonAvatar address={listing.sellerUser} name={sellerName} />

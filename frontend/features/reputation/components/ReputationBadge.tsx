@@ -220,7 +220,7 @@ export function ReputationBadge({
     const label = `${tierWords[sealed.tier]}. ${reasonLine(sealed.reasons, sr)}`;
     return (
       <Link
-        href={`/credit-passport/${address}`}
+        href={`/credit-passport/${address}`} target="_blank" rel="noopener noreferrer"
         aria-label={label}
         className="inline-flex min-h-6 items-stretch border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         style={{ borderRadius: 2, borderColor: quiet ? 'transparent' : style.border, background: quiet ? 'transparent' : style.bg }}
@@ -369,7 +369,7 @@ export function ReputationBadge({
             </p>
             {address && (
               <Link
-                href={`/credit-passport/${address}`}
+                href={`/credit-passport/${address}`} target="_blank" rel="noopener noreferrer"
                 className="mt-2 inline-flex items-center gap-1 text-[13px] mono uppercase tracking-[0.12em] text-[var(--color-accent)] hover:underline"
               >
                 {rb.creditPassportLink}

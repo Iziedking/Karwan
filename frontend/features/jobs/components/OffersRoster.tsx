@@ -292,7 +292,7 @@ function OfferDetail({ bid, pick, copy, canChoose, onChoose }: {
         </button>
       ) : null}
       {bid.sellerUserAddress ? (
-        <a href={`/credit-passport/${bid.sellerUserAddress}`} className="block text-center text-[14px] font-semibold text-[var(--lp-dark)] underline underline-offset-4">
+        <a href={`/credit-passport/${bid.sellerUserAddress}`} target="_blank" rel="noopener noreferrer" className="block text-center text-[14px] font-semibold text-[var(--lp-dark)] underline underline-offset-4">
           {copy.record}
         </a>
       ) : null}

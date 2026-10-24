@@ -471,7 +471,7 @@ function InvoiceRow({
           </p>
         ) : null}
         <Link
-          href={`/credit-passport/${deal.seller}`}
+          href={`/credit-passport/${deal.seller}`} target="_blank" rel="noopener noreferrer"
           className={LINK}
           data-guide="financier-passport"
         >
@@ -515,7 +515,7 @@ function OrderList({
               <button type="button" onClick={() => onOpenFund(deal)} className={SECONDARY}>
                 {t.po.fundLine}
               </button>
-              <Link href={`/credit-passport/${deal.seller}`} className={LINK}>
+              <Link href={`/credit-passport/${deal.seller}`} target="_blank" rel="noopener noreferrer" className={LINK}>
                 {t.open.record}
               </Link>
             </div>

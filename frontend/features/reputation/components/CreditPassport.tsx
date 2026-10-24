@@ -592,7 +592,7 @@ function CheckGlyph() {
   );
 }
 
-function PassportPhoto({ src, address }: { src?: string; address: string }) {
+export function PassportPhoto({ src, address }: { src?: string; address: string }) {
   const [failed, setFailed] = useState(false);
   if (src && !failed) {
     return <img src={src} alt="" width={56} height={56} className="size-14 shrink-0 rounded-full object-cover" onError={() => setFailed(true)} />;

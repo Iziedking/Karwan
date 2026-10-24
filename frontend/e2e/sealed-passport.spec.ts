@@ -57,3 +57,14 @@ test('attested deals show on the passport, each checkable, a removed one marked 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
   expect(overflow).toBe(false);
 });
+
+test('a visitor sees the photo the person chose, and the passport ends with the record, no site footer', async ({ page }) => {
+  const photo = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAEUlEQVR4nGOIqjiBFTEMLQkA8ZFmgc2UfccAAAAASUVORK5CYII=', 'base64');
+  await servePassport(page, { displayName: 'Ada Obi', tag: 'ada', tier: 'ESTABLISHED', reasons: ['HAS_COMPLETED_DEALS'], memberSince: 1_700_000_000_000 });
+  await page.route(`${API}/api/profile**`, (route) => route.fulfill({ json: { profile: { address: SUBJECT, displayName: 'Ada Obi', handle: 'ada', profileImageUrl: `/api/profile/photo/${SUBJECT}?v=1` } } }));
+  await page.route(`${API}/api/profile/photo/**`, (route) => route.fulfill({ body: photo, contentType: 'image/png' }));
+  await page.goto(`/credit-passport/${SUBJECT}`);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Ada Obi');
+  await expect(page.locator(`img[src*="/api/profile/photo/${SUBJECT}"]`)).toBeVisible();
+  await expect(page.locator('#site-footer')).toHaveCount(0);
+});

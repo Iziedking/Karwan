@@ -298,7 +298,7 @@ function PartnerCard({
           </Link>
         ) : null}
         <Link
-          href={`/credit-passport/${partner.address}`}
+          href={`/credit-passport/${partner.address}`} target="_blank" rel="noopener noreferrer"
           className="inline-flex min-h-11 items-center gap-1 rounded-full px-1 text-[14px] font-semibold text-[var(--ink)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)]"
         >
           {copy.viewTrustProfile}
