@@ -160,7 +160,7 @@ export function TopNav() {
           )}
           {/* With the assistant switch in the bar a phone has no room for theme too;
               it stays in Settings. */}
-          {isAlwaysDarkRoute(pathname) ? null : <ThemeControl className={showFullChrome && isAssistantRoute(pathname) ? 'hidden' : showFullChrome ? 'lg:hidden' : ''} />}
+          {isAlwaysDarkRoute(pathname) ? null : <ThemeControl className={isAssistantRoute(pathname) ? 'max-lg:hidden' : showFullChrome ? 'lg:hidden' : ''} />}
           {publicSurface ? <PublicMenu /> : null}
         </div>
       </div>

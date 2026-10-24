@@ -1057,7 +1057,7 @@ function ConfirmCard({
         {action.fields.map((f, i) => (
           <div key={i} className="flex items-baseline justify-between gap-3">
             <dt className="shrink-0 mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">{f.label}</dt>
-            <dd className="min-w-0 text-[14px] text-[var(--lp-dark)] text-end break-all tabular-nums">{f.value}</dd>
+            <dd className="min-w-0 text-[14px] text-[var(--lp-dark)] text-end [overflow-wrap:anywhere] tabular-nums">{f.value}</dd>
           </div>
         ))}
       </dl>

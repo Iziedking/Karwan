@@ -3,6 +3,7 @@ import { HELP_OPEN_EVENT, type HelpOpenDetail } from '@/shared/assistant/openHel
 import { AssistantThread, Bubble, Dot, confirmOutcomes } from '@/shared/assistant/AssistantThread';
 import { useAssistantChat } from '@/shared/assistant/useAssistantChat';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useAutoGrow } from '@/shared/hooks/useAutoGrow';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { api, ApiError } from '@/core/api';
@@ -48,6 +49,7 @@ export function AssistantWidget() {
   const [expanded, setExpanded] = useState(false);
   const auth = useAuth();
   const [input, setInput] = useState('');
+  const inputBoxRef = useAutoGrow(input);
   const [liveLoading, setLiveLoading] = useState(false);
   const [liveError, setLiveError] = useState<string | null>(null);
   const [handoffEnabled, setHandoffEnabled] = useState<boolean | null>(null);
@@ -506,6 +508,7 @@ export function AssistantWidget() {
               <>
                 <div className="flex items-end gap-2 rounded-[22px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] py-1.5 pe-1.5 ps-4 focus-within:border-[var(--lp-outline-strong)]">
                   <textarea
+                    ref={inputBoxRef}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={onKeyDown}

@@ -2,14 +2,14 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { confirmSignOut } from './signOutFlow';
 
-test('confirmed sign-out returns to the signed-out app, not the marketing landing', async () => {
+test('confirmed sign-out lands on the sign-in screen, not the marketing landing', async () => {
   const destinations: string[] = [];
   await confirmSignOut({
     confirm: async () => true,
     signOut: async () => {},
     leave: (destination) => { destinations.push(destination); },
   });
-  assert.deepEqual(destinations, ['/app']);
+  assert.deepEqual(destinations, ['/start']);
 });
 
 test('cancelling sign out leaves the session and route untouched', async () => {

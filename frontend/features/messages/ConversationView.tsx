@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useAutoGrow } from '@/shared/hooks/useAutoGrow';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
@@ -24,6 +25,7 @@ export function ConversationView({ tag }: { tag: string }) {
   const [data, setData] = useState<Conversation | null>(null);
   const [failure, setFailure] = useState<'missing' | 'error' | null>(null);
   const [draft, setDraft] = useState('');
+  const draftRef = useAutoGrow(draft);
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const pathname = usePathname();
@@ -136,6 +138,7 @@ export function ConversationView({ tag }: { tag: string }) {
           </label>
           <div className="flex items-end gap-2 rounded-[26px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] py-1.5 pe-1.5 ps-4">
             <textarea
+              ref={draftRef}
               id="dm-draft"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}

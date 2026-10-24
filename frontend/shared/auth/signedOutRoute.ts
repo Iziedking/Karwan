@@ -1,2 +1,2 @@
-// Explicit sign-out returns to the app entry, not the marketing landing page.
-export const SIGNED_OUT_ROUTE = '/app';
+// Explicit sign-out lands on the sign-in screen, not the marketing landing page.
+export const SIGNED_OUT_ROUTE = '/start';

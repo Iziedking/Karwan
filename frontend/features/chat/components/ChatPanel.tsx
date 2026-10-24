@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useAutoGrow } from '@/shared/hooks/useAutoGrow';
 import { cn } from '@/shared/utils/cn';
 import { ApiError, type ChatMessage } from '@/core/api';
 import { Icon } from '@/shared/components/Icon';
@@ -25,7 +26,7 @@ export function ChatPanel({ jobId, caller, counterpartyLabel, counterpartyAddres
   const me = caller.toLowerCase();
   const [shown, setShown] = useState(MESSAGES_PER_PAGE);
   const listRef = useRef<HTMLDivElement | null>(null);
-  const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const inputRef = useAutoGrow(draft);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const byId = useMemo(() => new Map(messages.map((message) => [message.id, message])), [messages]);
   const canSend = writable && !sending && (!!draft.trim() || !!imageDataUrl);
@@ -190,7 +191,7 @@ export function ChatPanel({ jobId, caller, counterpartyLabel, counterpartyAddres
               rows={1}
               maxLength={2000}
               dir="auto"
-              className="min-w-0 flex-1 resize-none self-center bg-transparent py-2.5 text-[15px] leading-6 text-[var(--lp-dark)] placeholder:text-[var(--lp-text-sub)] focus:outline-none"
+              className="max-h-32 min-w-0 flex-1 resize-none self-center bg-transparent py-2.5 text-[15px] leading-6 text-[var(--lp-dark)] placeholder:text-[var(--lp-text-sub)] focus:outline-none"
             />
             <button
               type="submit"
