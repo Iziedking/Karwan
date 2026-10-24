@@ -1,0 +1,127 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1600px; height: 900px; overflow: hidden; }
+  body { position: relative; background: var(--ground); -webkit-font-smoothing: antialiased; font-family: 'General Sans', sans-serif; }
+  .abs { position: absolute; }
+  .ring { position: absolute; border-radius: 50%; border: 3px solid var(--ring); }
+  .disc { position: absolute; border-radius: 50%; background: var(--deep); }
+  .tile { position: absolute; display: grid; place-items: center; border-radius: 44px; background: var(--tile); border: 3px solid var(--ring); }
+  .tile img { width: 64%; height: 64%; object-fit: contain; display: block; }
+  .mark { position: absolute; display: block; }
+  .shot { position: absolute; display: block; border-radius: 28px; border: 3px solid var(--ring); background: var(--tile); object-fit: cover; object-position: top center; }
+  .figure { position: absolute; left: 170px; top: 196px; color: var(--ink); font-weight: 600; font-size: 330px; line-height: 0.86; letter-spacing: -0.05em; font-feature-settings: 'tnum' 1; white-space: nowrap; }
+  .unit { position: absolute; left: 182px; top: 520px; color: var(--muted); font-weight: 500; font-size: 64px; letter-spacing: -0.01em; white-space: nowrap; }
+  .bar { position: absolute; bottom: 0; width: 120px; border-radius: 18px 18px 0 0; }
+  .joint { position: absolute; height: 8px; background: var(--ink); border-radius: 4px; }
+  .knot { position: absolute; width: 36px; height: 36px; background: #AFC95B; border-radius: 8px; }
+  .guide { position: absolute; top: 0; bottom: 0; border-left: 2px dashed #E5484D; }
+</style>
+</head>
+<body>
+<script>
+/// One update image, 1600x900, no words: the tile's tag, title and button are
+/// live text under it. Everything that matters stays inside x 150 to 1450,
+/// because the home strip crops the sides on tablet and desktop widths.
+const GROUNDS = {
+  light: {
+    mist:  ['#E5EDF4', '#C9DAEA', '#9DB9D4'],
+    sage:  ['#E9F0DA', '#D3E2B0', '#A9C46A'],
+    blush: ['#F5E8E2', '#EBCFC3', '#D9A893'],
+    lilac: ['#ECE8F5', '#D7CFEC', '#ADA1D6'],
+    paper: ['#F4F2EC', '#E4DFD2', '#C9C0A8'],
+  },
+  dark: {
+    mist:  ['#1C2631', '#263749', '#3D5770'],
+    sage:  ['#20281A', '#313F1E', '#57702E'],
+    blush: ['#2C2220', '#432F2A', '#6B4A40'],
+    lilac: ['#242136', '#332E4D', '#554F7E'],
+    paper: ['#25241F', '#36342B', '#55513E'],
+  },
+};
+const INK = { light: ['#16202A', '#4A5763'], dark: ['#F3F4EF', '#B9C3CD'] };
+
+const a = window.ART;
+const [ground, deep, ring] = GROUNDS[a.theme][a.ground];
+const root = document.documentElement.style;
+root.setProperty('--ground', ground);
+root.setProperty('--deep', deep);
+root.setProperty('--ring', ring);
+root.setProperty('--ink', INK[a.theme][0]);
+root.setProperty('--muted', INK[a.theme][1]);
+root.setProperty('--tile', a.tile === 'dark' ? '#16202A' : '#FFFFFF');
+if (a.fontCss) document.head.insertAdjacentHTML('beforeend', `<style>${a.fontCss}</style>`);
+
+// Mirrored art puts the weight on the other side, so neighbouring tiles differ.
+const X = (x, w = 0) => (a.mirror ? 1600 - x - w : x);
+
+function el(cls, box, html = '') {
+  const n = document.createElement(cls === 'img' ? 'img' : 'div');
+  if (cls !== 'img') n.className = cls;
+  Object.assign(n.style, Object.fromEntries(Object.entries(box).map(([k, v]) => [k, typeof v === 'number' ? `${v}px` : v])));
+  if (html) n.innerHTML = html;
+  document.body.appendChild(n);
+  return n;
+}
+function circle(cls, cx, cy, r) { return el(cls, { left: X(cx - r, r * 2), top: cy - r, width: r * 2, height: r * 2 }); }
+function image(src, cls, box) { const i = el('img', box); i.className = cls; i.src = src; i.alt = ''; return i; }
+function tile(cx, cy, size, src) {
+  const t = el('tile', { left: X(cx - size / 2, size), top: cy - size / 2, width: size, height: size });
+  const i = document.createElement('img');
+  i.src = src; i.alt = '';
+  t.appendChild(i);
+  return t;
+}
+
+if (a.layout === 'logo') {
+  el('disc', { left: 0, right: 0, top: 360, height: 180, borderRadius: 0 });
+  circle('ring', 800, 450, 300);
+  circle('ring', 800, 450, 420);
+  tile(800, 450, 380, a.logo);
+}
+
+if (a.layout === 'pair') {
+  circle('ring', 520, 450, 260);
+  circle('ring', 1080, 450, 260);
+  el('joint', { left: 520, width: 560, top: 446 });
+  el('knot', { left: 782, top: 432 });
+  tile(520, 450, 300, a.mark);
+  tile(1080, 450, 300, a.logo);
+}
+
+if (a.layout === 'screen') {
+  circle('disc', 1000, 520, 400);
+  circle('ring', 1000, 520, 520);
+  image(a.mark, 'mark', { left: X(170, 72), top: 96, width: 72, height: 72 });
+  // A phone screen stands tall and bleeds off the bottom; a desktop screen
+  // sits wide and centred under the mark and bleeds off the bottom.
+  if (a.screenRatio < 1) image(a.screen, 'shot', { left: X(760, 480), top: 120, width: 480, height: 900 });
+  else image(a.screen, 'shot', { left: 260, top: 220, width: 1080, height: Math.round(1080 / a.screenRatio) });
+}
+
+if (a.layout === 'figure') {
+  if (a.mirror) document.body.style.direction = 'rtl';
+  const fig = el('figure', { left: a.mirror ? 'auto' : 170, right: a.mirror ? 170 : 'auto' });
+  fig.textContent = a.figure;
+  // A long figure shrinks to stay clear of the bars. The renderer calls this
+  // again once the fonts have loaded.
+  window.fit = () => {
+    for (let size = 330; size >= 120; size -= 10) {
+      fig.style.fontSize = `${size}px`;
+      if (fig.offsetWidth <= 690) break;
+    }
+  };
+  window.fit();
+  if (a.unit) el('unit', { left: a.mirror ? 'auto' : 182, right: a.mirror ? 182 : 'auto' }).textContent = a.unit;
+  const bars = [[180, 'var(--deep)'], [300, 'var(--deep)'], [430, 'var(--ring)'], [600, '#AFC95B']];
+  bars.forEach(([h, c], i) => el('bar', { left: X(900 + i * 136, 112), height: h, background: c, width: 112 }));
+  image(a.mark, 'mark', { left: X(170, 72), top: 732, width: 72, height: 72 });
+}
+
+if (a.guides) [150, 1450].forEach((x) => el('guide', { left: x }));
+</script>
+</body>
+</html>

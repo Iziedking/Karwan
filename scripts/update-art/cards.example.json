@@ -1,0 +1,8 @@
+{
+  "cards": [
+    { "name": "example-logo", "layout": "logo", "ground": "mist", "logo": "../../frontend/public/brand/kaba/kaba-walking.svg" },
+    { "name": "example-pair", "layout": "pair", "ground": "sage", "logo": "../../frontend/public/brand/kaba/kaba-delivered.svg" },
+    { "name": "example-figure", "layout": "figure", "ground": "paper", "figure": "1,200", "unit": "USDC" },
+    { "name": "example-figure-mirrored", "layout": "figure", "ground": "lilac", "figure": "48", "mirror": true }
+  ]
+}
