@@ -1,6 +1,6 @@
 import { test, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, rmSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -26,6 +26,11 @@ process.env.SIGNALS_STORE_PATH = STORE_PATH;
 const { addSignal, listSignals, dismissSignal, normaliseUrl, dedupeKeyFor, clampExcerpt, EXCERPT_MAX } =
   await import('./signals.js');
 const { parseReleaseNotes, ingestReleaseNotes } = await import('../agents/releaseWatcher.js');
+
+/// The real file is read as it ships, on the day of its newest release, so
+/// these never turn red just because the calendar moved past the cutoff.
+const shippedNotes = [join(process.cwd(), 'RELEASE_NOTES.md'), join(process.cwd(), '..', 'RELEASE_NOTES.md')].find(existsSync);
+const newestRelease = shippedNotes ? Math.max(...parseReleaseNotes(readFileSync(shippedNotes, 'utf8')).map((i) => i.publishedAt)) : Date.now();
 
 beforeEach(() => {
   if (existsSync(STORE_PATH)) rmSync(STORE_PATH);
@@ -194,12 +199,12 @@ Older body.
 
 test('ingesting the real release notes twice adds nothing the second time', async () => {
   // The definition of done, against the file that actually ships.
-  const first = await ingestReleaseNotes();
+  const first = await ingestReleaseNotes(newestRelease);
   assert.ok(first.found > 0, 'no release notes were found, so this proves nothing');
   assert.ok(first.added > 0, 'nothing recent enough to ingest; widen RELEASE_SIGNAL_MAX_AGE_DAYS');
 
   const before = (await listSignals()).length;
-  const second = await ingestReleaseNotes();
+  const second = await ingestReleaseNotes(newestRelease);
 
   assert.equal(second.added, 0, 'a repeat ingest created new rows');
   assert.equal(second.duplicate, first.added);
@@ -220,7 +225,7 @@ test('all three sources land in one shape', async () => {
     title: 'A docs change',
     externalId: 'docs-1',
   });
-  await ingestReleaseNotes();
+  await ingestReleaseNotes(newestRelease);
 
   const all = await listSignals();
   const origins = new Set(all.map((s) => s.origin));

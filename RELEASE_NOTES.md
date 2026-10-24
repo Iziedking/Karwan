@@ -1,5 +1,171 @@
 # Release notes
 
+## October 1 to October 24, 2026
+
+October turned Karwan from a market with an assistant beside it into a market
+you can run from the assistant, on the website or in Telegram. Records became
+sealed: other people see a person's tier and a few plain reasons, never their
+numbers. Everything below runs on Arc Testnet unless it says otherwise.
+
+### Agents shortlist the sellers and the buyer chooses
+
+- A buying agent now pays to check each seller's record, then lists the sellers
+  it found, verified or not, with one it recommends. The buyer chooses; nothing
+  is funded on the agent's word alone.
+- The shortlist arrives folded into one row and opens on Show. It survives a
+  server restart, and if it has not been rebuilt yet the offers show instead.
+- A seller's agent pays to read the buyer before it bids, and passes on a buyer
+  who lost more disputes than they completed, unless the seller takes such
+  buyers.
+- When the trust rules call for it, a deal asks for World ID: the buyer when
+  choosing, the seller before escrow is funded. Someone who already passed is
+  not asked again.
+- Choosing a seller who is not verified says so first, from the shortlist, the
+  offers list and the assistant alike.
+- Agent moves pop up on the request page as they happen, each piece of news
+  once.
+
+### Run your account from the assistant
+
+- One switch hands the whole account to the assistant. It can post requests
+  and offers, choose offers, raise a price, extend or cancel a deal, write a
+  dispute statement, and build any deal from a conversation.
+- A request posted in the assistant is followed in that same conversation and
+  on Telegram, with milestone updates only. Agree for me is opt-in, and even
+  then the buyer taps once to lock the money in escrow.
+- Conversations are saved to the account and reopen where you left off. The
+  assistant keeps a memory you can search, delete or switch off in Settings.
+- Help brings in a person when you ask for one or when the assistant cannot do
+  what you need.
+
+### Telegram
+
+- Sign in or sign up from the bot with an email code, pick a Karwan tag, post a
+  first offer, and look people up by tag.
+- The setup interview in the chat sets up the same account as the website.
+- Every money step from the chat opens a one-time Karwan page, so money never
+  moves on a chat button. Email accounts included.
+- Replying with a number to a shortlist chooses that offer.
+
+### Sealed records and a passport you can share
+
+- Your own passport shows your full record. Everyone else sees your name, tag,
+  tier and up to three fixed reasons, never counts or amounts.
+- The public deal feed shows settled deals as value bands, without parties or
+  deal ids.
+- You can share your full record with one person, or with anyone holding the
+  link, for 24 hours or 7 days, and stop sharing at any time.
+- Settled deals publish signed statements from the day you switch them on, and
+  each person can turn that off.
+- Before your first money step you set up your Karwan record once, from the
+  website or any chat.
+
+### Deals that protect both sides
+
+- Nothing pays out on review time alone. When a buyer goes quiet after a
+  delivery, the seller can ask for a decision and the buyer has 72 hours to
+  answer.
+- Disputes: the judge reads both accounts, the delivery check and the chat,
+  and proposes a split that a reviewer confirms. Either side can propose a full
+  refund while a dispute is open.
+- Funding a deal asks only for the shortfall, from one list of sources with
+  their balances.
+- A passkey or a Karwan PIN confirms money leaving Karwan, putting up deal
+  insurance, and account setup, in one confirm sheet.
+
+### Market, offers and messages
+
+- Up to four photos on an offer, from the form or sent to the assistant.
+  Reported photos are reviewed by the team.
+- Matching weighs location, and messages reach people by their Karwan tag.
+- Read and answer messages in the app, with an inbox and a count in the bell.
+- Ratings open after a settled deal and show as soon as they are given.
+- An offer's sheet shows the seller's sealed record as reasons.
+
+### Money
+
+- Pay links take payment from a Karwan balance, a wallet or another network,
+  and the receipt saves as an image.
+- Send uses your whole balance, and sends read as sent or received with the
+  other person's tag.
+- Email accounts receive deposits on every supported network and land on Arc;
+  a deposit that got stuck can be moved to Arc.
+- Saved addresses, a daily limit and a pause guard money leaving a wallet that
+  Karwan holds.
+
+### The contract suite, rehearsed
+
+- The new contract suite (a hub holding no money, an identity registry, one
+  record for facts and outcomes, the Agreement escrow, trade finance, the stake
+  vault and the yield pool, under a timelock) was deployed and run through one
+  financed trade on Arc Testnet.
+- New deals stay on the current escrow until the suite has been audited; the
+  switch to move them is built and off.
+- The three Chainlink CRE workflows run end to end in the CRE simulator on an
+  Arc fork, against Karwan's own routes.
+
+### Look and feel
+
+- A calmer design across sign in, home, money, deals, activity, discover,
+  profile, messages and the assistant, in light and dark and five languages.
+- The landing page moves calmly, and the page glides under a mouse wheel on
+  desktop. Phones and anyone who asks for less motion keep native scrolling.
+- Home Updates cards take a picture uploaded from the admin page.
+
+### Verification
+
+- Backend tests: 2,946 passing, 47 intentionally skipped.
+- Frontend tests: 1,173 passing.
+- Browser tests run on every push in CI.
+
+## September 10 to September 30, 2026
+
+September opened Arc mainnet for sign-in and wallets, behind an invite-only
+waitlist, while deals kept running on Arc Testnet.
+
+### Arc mainnet, invite only
+
+- One setting switches the app between Arc Testnet and Arc mainnet, with a
+  check at boot that the chain matches.
+- Email sign-in on mainnet uses Circle passkey wallets. Passkey recovery takes
+  a password and a 48-hour wait that the owner can cancel.
+- Access is by invitation: join the waitlist with an email code, see your place
+  in line, and get an email when you are let in.
+- The no-custody registries are live on Arc mainnet under a 2-of-3 Safe.
+  Deals are not open on mainnet yet.
+- The mainnet database has an encrypted daily backup, and a restore has been
+  tested.
+
+### Sign-up, tags and sending
+
+- Three-step sign-up with a unique Karwan tag.
+- Send USDC to a Karwan tag, from its own page.
+- One box takes an email, a Karwan tag or a Paytag when you start a deal, and
+  shows who it belongs to before anything is sent.
+
+### Requests, offers and terms
+
+- Sellers make offers on requests, and buyers compare them and accept one.
+- Post a request in three steps, with dates and milestone rows.
+- A terms builder for requests and direct deals, with split presets or any
+  custom split. The seller can turn the terms down with a note before agreeing.
+- The agreed check window holds escrow release, and request terms reach the
+  deal and its fingerprint.
+
+### Deals
+
+- A one-page deal workspace, with trade progress as a dated timeline and a
+  trust card that measures the other side.
+- The buyer can take over a delivery check that never answers.
+- A buyer's refund that never landed, on a deal the seller never accepted, can
+  now finish.
+
+### Email and the site
+
+- A calm Karwan email system: amounts first, shared blocks, a real dark theme.
+- How it works and the docs lead with one reputation that travels with you.
+- A public analytics page with weekly charts across contract versions.
+
 ## ETHOnline 2026 build window: September 5 to September 9, 2026
 
 This build window focused Karwan on one demonstrable trade loop: a buyer or
