@@ -2641,3 +2641,10 @@ main:has([data-own-back]) [data-shell-back] { display: none; }
 
 /* The bottom nav pill slides from the start edge; in RTL that is the right. */
 html[dir="rtl"] [data-workspace-bottom-nav] { --nav-dir: -1; }
+
+/* Smooth wheel scrolling on desktop (SmoothScroll.tsx, lenis). The page keeps
+   native scrolling everywhere else; these are the library's own rules. */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-stopped { overflow: clip; }

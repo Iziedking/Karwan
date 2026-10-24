@@ -14,6 +14,7 @@ import { TermsModal } from '@/shared/components/TermsModal';
 import { TagPrompt } from '@/features/signup/components/TagPrompt';
 import { ScrollbarWidthProbe } from '@/shared/components/ScrollbarWidthProbe';
 import { ScrollReset } from '@/shared/components/ScrollReset';
+import { SmoothScroll } from '@/shared/components/SmoothScroll';
 import { ThemeRouteSync } from '@/shared/components/ThemeRouteSync';
 import { THEME_PREPAINT_SCRIPT } from '@/shared/hooks/themePrepaintScript';
 import { DialogProvider } from '@/shared/components/Dialog';
@@ -159,6 +160,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AppProviders initialLocale={DEFAULT_LOCALE}>
           <ScrollbarWidthProbe />
           <ScrollReset />
+          <SmoothScroll />
           <RouteTrail />
           <ThemeRouteSync />
           {/* No overflow clip here on purpose: full-bleed sections use the
