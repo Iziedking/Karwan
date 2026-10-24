@@ -20,6 +20,8 @@ export interface TermsBuilderCopy {
   other: string;
   otherDays: string;
   reviewRule: string;
+  /// The same rule on the escrow family, where the seller asks first.
+  reviewRuleAsk: string;
   agreement: string;
   agreementNote: string;
   ready: string;
@@ -36,6 +38,7 @@ export const TERMS_COPY: Record<Locale, TermsBuilderCopy> = {
     addPart: "Add a milestone", removeLine: 'Remove', total: 'Adds up to {sum}%', needs100: 'Adds up to {sum}%, needs 100%',
     review: 'Time to check each delivery', day: '1 day', days: '{n} days', other: 'Other', otherDays: 'Days to check',
     reviewRule: 'If the buyer does not reply in this time, that part is paid to the seller.',
+    reviewRuleAsk: 'If the buyer does not reply in this time, the seller can ask for payment. The buyer then has 72 hours to say what is wrong, or that part is paid to the seller.',
     agreement: 'The agreement both sides sign', agreementNote: 'If the two sides disagree, this is what gets checked.',
     ready: "Ready. Every milestone says what it delivers, so it can be checked.",
     split: 'The parts add up to {sum}%. They need to make 100%.',
@@ -48,6 +51,8 @@ export const TERMS_COPY: Record<Locale, TermsBuilderCopy> = {
       part: "• {name}, {pct}% ({amount} USDC): {what}", partNoPrice: "• {name}, {pct}%: {what}", partName: 'Milestone {n}',
       review: 'Time to check: {n} days after each delivery. If the buyer does not reply in that time, that part is paid to the seller.',
       reviewOne: 'Time to check: 1 day after each delivery. If the buyer does not reply in that time, that part is paid to the seller.',
+      reviewAsk: 'Time to check: {n} days after each delivery. If the buyer does not reply in that time, the seller can ask for payment. The buyer then has 72 hours to say what is wrong, or that part is paid to the seller.',
+      reviewAskOne: 'Time to check: 1 day after each delivery. If the buyer does not reply in that time, the seller can ask for payment. The buyer then has 72 hours to say what is wrong, or that part is paid to the seller.',
       late: 'Late: if nothing is delivered by the deadline, unpaid parts return to the buyer.',
     },
   },
@@ -58,6 +63,7 @@ export const TERMS_COPY: Record<Locale, TermsBuilderCopy> = {
     addPart: "Ajouter une étape", removeLine: 'Retirer', total: 'Total de {sum} %', needs100: 'Total de {sum} %, il faut 100 %',
     review: 'Temps pour vérifier chaque livraison', day: '1 jour', days: '{n} jours', other: 'Autre', otherDays: 'Jours pour vérifier',
     reviewRule: 'Si l’acheteur ne répond pas dans ce délai, cette partie est payée au vendeur.',
+    reviewRuleAsk: 'Si l’acheteur ne répond pas dans ce délai, le vendeur peut demander le paiement. L’acheteur a alors 72 heures pour dire ce qui ne va pas, sinon cette partie est payée au vendeur.',
     agreement: 'L’accord signé par les deux parties', agreementNote: 'En cas de désaccord, c’est ce texte qui est vérifié.',
     ready: "Prêt. Chaque étape dit ce qu’elle livre, elle peut donc être vérifiée.",
     split: 'Les parties font {sum} %. Elles doivent faire 100 %.',
@@ -70,6 +76,8 @@ export const TERMS_COPY: Record<Locale, TermsBuilderCopy> = {
       part: "• {name}, {pct} % ({amount} USDC) : {what}", partNoPrice: "• {name}, {pct} % : {what}", partName: 'Étape {n}',
       review: 'Délai de vérification : {n} jours après chaque livraison. Si l’acheteur ne répond pas dans ce délai, cette partie est payée au vendeur.',
       reviewOne: 'Délai de vérification : 1 jour après chaque livraison. Si l’acheteur ne répond pas dans ce délai, cette partie est payée au vendeur.',
+      reviewAsk: 'Délai de vérification : {n} jours après chaque livraison. Si l’acheteur ne répond pas dans ce délai, le vendeur peut demander le paiement. L’acheteur a alors 72 heures pour dire ce qui ne va pas, sinon cette partie est payée au vendeur.',
+      reviewAskOne: 'Délai de vérification : 1 jour après chaque livraison. Si l’acheteur ne répond pas dans ce délai, le vendeur peut demander le paiement. L’acheteur a alors 72 heures pour dire ce qui ne va pas, sinon cette partie est payée au vendeur.',
       late: 'Retard : si rien n’est livré avant la date limite, les parties non payées reviennent à l’acheteur.',
     },
   },
@@ -80,6 +88,7 @@ export const TERMS_COPY: Record<Locale, TermsBuilderCopy> = {
     addPart: "أضف مرحلة", removeLine: 'إزالة', total: 'المجموع {sum}%', needs100: 'المجموع {sum}%، والمطلوب 100%',
     review: 'مدة فحص كل تسليم', day: 'يوم واحد', days: '{n} أيام', other: 'أخرى', otherDays: 'أيام الفحص',
     reviewRule: 'إن لم يردّ المشتري خلال هذه المدة، يُدفع ذلك الجزء للبائع.',
+    reviewRuleAsk: 'إن لم يردّ المشتري خلال هذه المدة، يمكن للبائع طلب الدفع. ثم أمام المشتري 72 ساعة ليوضح ما الخطأ، وإلا يُدفع ذلك الجزء للبائع.',
     agreement: 'الاتفاق الذي يوقّعه الطرفان', agreementNote: 'إذا اختلف الطرفان، فهذا ما يُراجَع.',
     ready: "جاهز. كل مرحلة تذكر ما تسلّمه، لذا يمكن التحقق منها.",
     split: 'مجموع الأجزاء {sum}%. يجب أن يكون 100%.',
@@ -92,6 +101,8 @@ export const TERMS_COPY: Record<Locale, TermsBuilderCopy> = {
       part: "• {name}، {pct}% ({amount} USDC): {what}", partNoPrice: "• {name}، {pct}%: {what}", partName: 'المرحلة {n}',
       review: 'مدة الفحص: {n} أيام بعد كل تسليم. إن لم يردّ المشتري خلالها، يُدفع ذلك الجزء للبائع.',
       reviewOne: 'مدة الفحص: يوم واحد بعد كل تسليم. إن لم يردّ المشتري خلاله، يُدفع ذلك الجزء للبائع.',
+      reviewAsk: 'مدة الفحص: {n} أيام بعد كل تسليم. إن لم يردّ المشتري خلالها، يمكن للبائع طلب الدفع. ثم أمام المشتري 72 ساعة ليوضح ما الخطأ، وإلا يُدفع ذلك الجزء للبائع.',
+      reviewAskOne: 'مدة الفحص: يوم واحد بعد كل تسليم. إن لم يردّ المشتري خلاله، يمكن للبائع طلب الدفع. ثم أمام المشتري 72 ساعة ليوضح ما الخطأ، وإلا يُدفع ذلك الجزء للبائع.',
       late: 'التأخير: إن لم يُسلَّم شيء قبل الموعد النهائي، تعود الأجزاء غير المدفوعة إلى المشتري.',
     },
   },
@@ -102,6 +113,7 @@ export const TERMS_COPY: Record<Locale, TermsBuilderCopy> = {
     addPart: "पड़ाव जोड़ें", removeLine: 'हटाएँ', total: 'कुल {sum}%', needs100: 'कुल {sum}%, 100% चाहिए',
     review: 'हर डिलीवरी जाँचने का समय', day: '1 दिन', days: '{n} दिन', other: 'अन्य', otherDays: 'जाँच के दिन',
     reviewRule: 'अगर खरीदार इस समय में जवाब नहीं देता, तो वह हिस्सा विक्रेता को मिल जाता है।',
+    reviewRuleAsk: 'अगर खरीदार इस समय में जवाब नहीं देता, तो विक्रेता भुगतान माँग सकता है। फिर खरीदार के पास यह बताने के लिए 72 घंटे होते हैं कि क्या ग़लत है, वरना वह हिस्सा विक्रेता को मिल जाता है।',
     agreement: 'दोनों पक्षों का समझौता', agreementNote: 'अगर दोनों पक्षों में असहमति हो, तो इसी की जाँच होती है।',
     ready: "तैयार। हर पड़ाव बताता है कि वह क्या देता है, इसलिए उसकी जाँच हो सकती है।",
     split: 'हिस्सों का कुल {sum}% है। इसे 100% होना चाहिए।',
@@ -114,6 +126,8 @@ export const TERMS_COPY: Record<Locale, TermsBuilderCopy> = {
       part: "• {name}, {pct}% ({amount} USDC): {what}", partNoPrice: "• {name}, {pct}%: {what}", partName: 'पड़ाव {n}',
       review: 'जाँच का समय: हर डिलीवरी के बाद {n} दिन। अगर खरीदार इस समय में जवाब नहीं देता, तो वह हिस्सा विक्रेता को मिल जाता है।',
       reviewOne: 'जाँच का समय: हर डिलीवरी के बाद 1 दिन। अगर खरीदार इस समय में जवाब नहीं देता, तो वह हिस्सा विक्रेता को मिल जाता है।',
+      reviewAsk: 'जाँच का समय: हर डिलीवरी के बाद {n} दिन। अगर खरीदार इस समय में जवाब नहीं देता, तो विक्रेता भुगतान माँग सकता है। फिर खरीदार के पास यह बताने के लिए 72 घंटे होते हैं कि क्या ग़लत है, वरना वह हिस्सा विक्रेता को मिल जाता है।',
+      reviewAskOne: 'जाँच का समय: हर डिलीवरी के बाद 1 दिन। अगर खरीदार इस समय में जवाब नहीं देता, तो विक्रेता भुगतान माँग सकता है। फिर खरीदार के पास यह बताने के लिए 72 घंटे होते हैं कि क्या ग़लत है, वरना वह हिस्सा विक्रेता को मिल जाता है।',
       late: 'देरी: अगर समय सीमा तक कुछ डिलीवर नहीं होता, तो बिना भुगतान वाले हिस्से खरीदार को लौटते हैं।',
     },
   },
@@ -124,6 +138,7 @@ export const TERMS_COPY: Record<Locale, TermsBuilderCopy> = {
     addPart: "Ongeza hatua", removeLine: 'Ondoa', total: 'Jumla {sum}%', needs100: 'Jumla {sum}%, inahitaji 100%',
     review: 'Muda wa kukagua kila uwasilishaji', day: 'Siku 1', days: 'Siku {n}', other: 'Nyingine', otherDays: 'Siku za kukagua',
     reviewRule: 'Mnunuzi asipojibu ndani ya muda huu, sehemu hiyo inalipwa kwa muuzaji.',
+    reviewRuleAsk: 'Mnunuzi asipojibu ndani ya muda huu, muuzaji anaweza kuomba malipo. Kisha mnunuzi ana saa 72 kueleza kilichoharibika, la sivyo sehemu hiyo inalipwa kwa muuzaji.',
     agreement: 'Makubaliano wanayosaini pande zote', agreementNote: 'Pande mbili zikitofautiana, hiki ndicho kinachokaguliwa.',
     ready: "Tayari. Kila hatua inaeleza inachowasilisha, hivyo inaweza kukaguliwa.",
     split: 'Sehemu zinajumlisha {sum}%. Zinahitaji kufikia 100%.',
@@ -136,6 +151,8 @@ export const TERMS_COPY: Record<Locale, TermsBuilderCopy> = {
       part: "• {name}, {pct}% (USDC {amount}): {what}", partNoPrice: "• {name}, {pct}%: {what}", partName: 'Hatua {n}',
       review: 'Muda wa kukagua: siku {n} baada ya kila uwasilishaji. Mnunuzi asipojibu ndani ya muda huo, sehemu hiyo inalipwa kwa muuzaji.',
       reviewOne: 'Muda wa kukagua: siku 1 baada ya kila uwasilishaji. Mnunuzi asipojibu ndani ya muda huo, sehemu hiyo inalipwa kwa muuzaji.',
+      reviewAsk: 'Muda wa kukagua: siku {n} baada ya kila uwasilishaji. Mnunuzi asipojibu ndani ya muda huo, muuzaji anaweza kuomba malipo. Kisha mnunuzi ana saa 72 kueleza kilichoharibika, la sivyo sehemu hiyo inalipwa kwa muuzaji.',
+      reviewAskOne: 'Muda wa kukagua: siku 1 baada ya kila uwasilishaji. Mnunuzi asipojibu ndani ya muda huo, muuzaji anaweza kuomba malipo. Kisha mnunuzi ana saa 72 kueleza kilichoharibika, la sivyo sehemu hiyo inalipwa kwa muuzaji.',
       late: 'Kuchelewa: kama hakuna kilichowasilishwa kabla ya tarehe ya mwisho, sehemu ambazo hazijalipwa zinarudi kwa mnunuzi.',
     },
   },

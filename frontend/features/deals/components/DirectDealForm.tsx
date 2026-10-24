@@ -15,6 +15,7 @@ import { TermsBuilder, TermsBlockerNote, DEFAULT_TERMS, chip, chipOn, chipOff } 
 import { durationText } from '../durationText';
 import { composeTerms, termsIssues, type TermsDraft } from '../terms/composeTerms';
 import { TERMS_COPY } from '../terms/termsCopy';
+import { useBuyerSilence } from '../terms/useBuyerSilence';
 import { DueChips } from './DueChips';
 import { CreationReview } from './CreationReview';
 import { validAmount, validWhole } from '../creationValidation';
@@ -92,6 +93,7 @@ export function DirectDealForm() {
   const c = t.dealCreation;
   const rs = c.requestSteps;
   const { locale } = useLocale();
+  const buyerSilence = useBuyerSilence();
   const [reviewing, setReviewing] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const inFlight = useRef(false);
@@ -338,7 +340,7 @@ export function DirectDealForm() {
     totalSeconds > 0
       ? new Date(Date.now() + totalSeconds * 1000).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
       : null;
-  const agreementText = composeTerms(terms, { priceUsdc: amountValid ? (amount as number) : null, dueLabel }, TERMS_COPY[locale].text);
+  const agreementText = composeTerms(terms, { priceUsdc: amountValid ? (amount as number) : null, dueLabel, buyerSilence }, TERMS_COPY[locale].text);
   const recipient =
     contactMatch?.kind === 'karwan'
       ? contactMatch.displayName

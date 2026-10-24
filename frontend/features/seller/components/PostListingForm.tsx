@@ -22,6 +22,7 @@ import { stepOneBlocker } from '../offerFlow';
 import { BUSINESS_ACCOUNTS_OPEN } from '@/features/account/businessOpen';
 import { cleanLines, composeTerms, termsIssues, type TermsDraft } from '@/features/deals/terms/composeTerms';
 import { TERMS_COPY } from '@/features/deals/terms/termsCopy';
+import { useBuyerSilence } from '@/features/deals/terms/useBuyerSilence';
 import { MarketReadsNote } from '@/features/market/MarketReadsNote';
 import { OfferPhotosField } from '@/features/listings/components/OfferPhotosField';
 
@@ -44,6 +45,7 @@ export function PostListingForm() {
   const f = pl.flow;
   const offer = t.offerFlow;
   const { locale } = useLocale();
+  const buyerSilence = useBuyerSilence();
   const auth = useAuth();
   const address = auth.address;
   const isConnected = auth.isAuthenticated;
@@ -125,7 +127,7 @@ export function PostListingForm() {
   const floorInvalid =
     floorPrice !== '' && (!priceValue || floorPrice <= 0 || floorPrice > priceValue || (floorDropPct ?? 0) > MAX_FLOOR_DROP_PCT);
   const readyValid = typeof readyInDays === 'number' && readyInDays >= 1 && readyInDays <= MAX_READY_DAYS;
-  const agreementText = composeTerms(terms, { priceUsdc: priceValue, dueLabel: null }, TERMS_COPY[locale].text);
+  const agreementText = composeTerms(terms, { priceUsdc: priceValue, dueLabel: null, buyerSilence }, TERMS_COPY[locale].text);
   const stepReady =
     step === 0
       ? title.trim().length >= 3 && description.trim().length >= 5

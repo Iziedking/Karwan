@@ -1872,6 +1872,9 @@ export interface AssistantConfirmAction {
     | 'save_ways'
     | 'stake_usdc'
     | 'claim_yield'
+    | 'insurance_take_out'
+    | 'insurance_cancel_take_out'
+    | 'insurance_collect'
     | 'fund_agent'
     | 'pool_usdc_web3'
     | 'fund_agent_web3'
@@ -4563,6 +4566,7 @@ export const api = {
       delayAppealResponseMs: number;
       deadlineReclaimGraceMs: number;
       disputeTimeoutMs: number;
+      buyerSilence: 'pays_seller' | 'seller_asks';
     }>('/api/network/dispute-policy'),
   /// v2b seller claim: after the buyer's review window elapses on a marked
   /// delivery, the seller forces the next milestone payout. The contract

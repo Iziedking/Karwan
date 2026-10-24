@@ -32,6 +32,7 @@ import { TermsBuilder, TermsBlockerNote, DEFAULT_TERMS, chip, chipOn, chipOff } 
 import { durationText } from '@/features/deals/durationText';
 import { composeTerms, termsIssues, type TermsDraft } from '@/features/deals/terms/composeTerms';
 import { TERMS_COPY } from '@/features/deals/terms/termsCopy';
+import { useBuyerSilence } from '@/features/deals/terms/useBuyerSilence';
 import { useReportDealAmount } from '@/features/balances/dealAmount';
 import { walletAmount } from '@/features/balances/walletFormat';
 import { requestFunding } from '../requestFunding';
@@ -166,6 +167,7 @@ function OptionTick({
 
 export function PostJobForm() {
   const { locale } = useLocale();
+  const buyerSilence = useBuyerSilence();
   const t = useTranslations().postJob;
   const c = useTranslations().dealCreation;
   const dt = useTranslations();
@@ -356,7 +358,7 @@ export function PostJobForm() {
     typeof deadlineValue === 'number' && deadlineValue > 0
       ? new Date(Date.now() + deadlineToSeconds(deadlineValue, deadlineUnit) * 1000).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
       : null;
-  const agreementText = composeTerms(terms, { priceUsdc: typeof budget === 'number' ? budget : null, dueLabel }, TERMS_COPY[locale].text);
+  const agreementText = composeTerms(terms, { priceUsdc: typeof budget === 'number' ? budget : null, dueLabel, buyerSilence }, TERMS_COPY[locale].text);
   const maxDeadline = deadlineUnit === 'min' ? 1440 : deadlineUnit === 'hr' ? 72 : MAX_DEADLINE_DAYS;
   const stepReady =
     step === 0 ? brief.trim().length > 0 : step === 1 ? validAmount(budget, 5_000_000) && validWhole(deadlineValue, 1, maxDeadline) : true;
