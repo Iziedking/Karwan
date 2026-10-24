@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ChainEvent } from '@/core/api';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { newNudges, nudgeKey } from '../agentNudges';
+import { newNudges, toldKeys } from '../agentNudges';
 
 const SHOW_MS = 6_000;
 const MAX_SHOWN = 3;
@@ -67,7 +67,8 @@ export function NudgeStack({ items }: { items: { key: string; text: string }[] }
 }
 
 /// Agent moves on one request, as they arrive. Events already on the page when
-/// it opened are history, so they never pop up.
+/// it opened are history, so they never pop up, and neither does a shortlist or
+/// match the page has already told.
 export function AgentNudges({ events }: { events: readonly ChainEvent[] }) {
   const copy = useTranslations().agentNudges;
   const seen = useRef<Set<string> | null>(null);
@@ -75,7 +76,7 @@ export function AgentNudges({ events }: { events: readonly ChainEvent[] }) {
 
   useEffect(() => {
     if (!seen.current) {
-      seen.current = new Set(events.map(nudgeKey));
+      seen.current = toldKeys(events);
       return;
     }
     const fresh = newNudges(events, seen.current, copy);

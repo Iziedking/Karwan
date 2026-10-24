@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { ChainEvent } from '@/core/api';
-import { agentNudgeFor, nudgeKey, newNudges } from './agentNudges';
+import { agentNudgeFor, nudgeKey, newNudges, toldKeys } from './agentNudges';
 import { agentNudgesCopy } from '@/shared/i18n/messages/agentNudges';
 
 const copy = agentNudgesCopy.en;
@@ -54,4 +54,19 @@ test('only events that arrive after the page opened become nudges', () => {
   );
   assert.deepEqual(fresh.map((n) => n.text), ["A seller's agent offered 120 USDC"]);
   assert.equal(seen.size, 2);
+});
+
+test('a shortlist republished on each new offer pops once, and a match once per seller', () => {
+  const list = (n: number, ts: number) => ev('request.shortlist', { count: n, entries: [] }, 'buyer', ts);
+  const match = (seller: string, ts: number) => ev('deal.matched', { sellerAgent: seller }, 'buyer', ts);
+  const seen = new Set<string>();
+  const first = newNudges([list(3, 1), match('0xA', 2)], seen, copy);
+  assert.equal(first.length, 2);
+  const again = newNudges([list(3, 1), match('0xA', 2), list(4, 3), list(5, 4), match('0xa', 5), match('0xB', 6)], seen, copy);
+  assert.deepEqual(again.map((n) => n.text), ['Your agent found a match']);
+});
+
+test('a shortlist already on the page when it opened never pops when republished', () => {
+  const seen = toldKeys([ev('request.shortlist', { count: 3, entries: [] }, 'buyer', 1)]);
+  assert.deepEqual(newNudges([ev('request.shortlist', { count: 4, entries: [] }, 'buyer', 2)], seen, copy), []);
 });

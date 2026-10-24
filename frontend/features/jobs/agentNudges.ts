@@ -18,6 +18,27 @@ export function nudgeKey(e: ChainEvent): string {
   return e.eventId ?? `${e.type}:${e.ts}:${str(e.payload.seller) ?? ''}`;
 }
 
+/// News that is told once per request however often the agent re-sends it:
+/// the shortlist is republished on every new offer or counter, and a match can
+/// be proposed again with the same seller. Everything else is its own news.
+export function onceKey(e: ChainEvent): string | null {
+  if (e.type === 'request.shortlist') return 'once:shortlist';
+  if (e.type === 'deal.matched') return `once:matched:${(str(e.payload?.sellerAgent) ?? str(e.payload?.seller) ?? '').toLowerCase()}`;
+  return null;
+}
+
+/// Everything an event marks as already told, for the events on the page when
+/// it opened.
+export function toldKeys(events: readonly ChainEvent[]): Set<string> {
+  const told = new Set<string>();
+  for (const e of events) {
+    told.add(nudgeKey(e));
+    const once = onceKey(e);
+    if (once) told.add(once);
+  }
+  return told;
+}
+
 export function agentNudgeFor(e: ChainEvent, copy: AgentNudgesCopy): Omit<AgentNudge, 'key'> | null {
   const p = e.payload ?? {};
   const mine = (text: string) => ({ text, side: 'mine' as const });
@@ -60,15 +81,20 @@ export function agentNudgeFor(e: ChainEvent, copy: AgentNudgesCopy): Omit<AgentN
 }
 
 /// The nudges for events not seen before, in arrival order. Marks every event
-/// it looks at as seen, so a nudge never repeats.
+/// it looks at as seen, so a nudge never repeats, and news told once (onceKey)
+/// is never told again.
 export function newNudges(events: readonly ChainEvent[], seen: Set<string>, copy: AgentNudgesCopy): AgentNudge[] {
   const out: AgentNudge[] = [];
   for (const e of [...events].sort((a, b) => a.ts - b.ts)) {
     const key = nudgeKey(e);
     if (seen.has(key)) continue;
     seen.add(key);
+    const once = onceKey(e);
+    if (once && seen.has(once)) continue;
     const n = agentNudgeFor(e, copy);
-    if (n) out.push({ key, ...n });
+    if (!n) continue;
+    if (once) seen.add(once);
+    out.push({ key, ...n });
   }
   return out;
 }
