@@ -20,6 +20,8 @@ import { ease } from '@/shared/motion/tokens';
 import { greetingKey } from './conversationGroups';
 import { ConversationList } from './ConversationList';
 import { takeReturn } from './assistantReturn';
+import { conversationToResume, NEW_CHAT, readOpenConversation, rememberOpenConversation } from './resumeConversation';
+import { useAuth } from '@/shared/hooks/useAuth';
 
 const LIST_KEY = ['assistant-conversations'];
 
@@ -70,6 +72,20 @@ function AssistantPage() {
   useEffect(() => {
     if (chat.conversationId) void queryClient.invalidateQueries({ queryKey: LIST_KEY });
   }, [chat.conversationId, queryClient]);
+
+  // Coming back reopens the conversation you were in; a new chat is your call.
+  const { address } = useAuth();
+  const resumed = useRef(false);
+  const chatOpen = chat.open;
+  useEffect(() => {
+    if (resumed.current || !list.data || chat.conversationId || chat.messages.length > 0) return;
+    resumed.current = true;
+    const id = conversationToResume(list.data, readOpenConversation(address));
+    if (id) void chatOpen(id).catch(() => setOpenError(true));
+  }, [list.data, address, chat.conversationId, chat.messages.length, chatOpen]);
+  useEffect(() => {
+    if (chat.conversationId) rememberOpenConversation(address, chat.conversationId);
+  }, [address, chat.conversationId]);
 
   const toLatest = useCallback((smooth: boolean) => {
     endRef.current?.scrollIntoView({ block: 'end', behavior: smooth && !reduce ? 'smooth' : 'auto' });
@@ -158,6 +174,7 @@ function AssistantPage() {
     setListOpen(false);
     setOpenError(false);
     await chat.startNew();
+    rememberOpenConversation(address, NEW_CHAT);
     void queryClient.invalidateQueries({ queryKey: LIST_KEY });
   }
 
