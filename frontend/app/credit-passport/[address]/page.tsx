@@ -39,9 +39,12 @@ export async function generateMetadata({
 
 export default async function CreditPassportPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ address: string }>;
+  searchParams: Promise<{ share?: string | string[] }>;
 }) {
   const { address } = await params;
-  return <PassportGate address={address} />;
+  const { share } = await searchParams;
+  return <PassportGate address={address} share={typeof share === 'string' && share ? share : undefined} />;
 }

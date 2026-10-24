@@ -645,3 +645,25 @@ export const newsletterIssues = pgTable(
     sentAtIdx: index('newsletter_issues_sent_at_idx').on(t.sentAt),
   }),
 );
+
+/// A person's full passport shown to one viewer, or anyone with the link, until
+/// it expires or the owner stops it (view 29). Only the token's hash is kept.
+export const passportShares = pgTable(
+  'passport_shares_v1',
+  {
+    id: text('id').primaryKey(),
+    subject: text('subject').notNull(),
+    viewer: text('viewer'),
+    viewerTag: text('viewer_tag'),
+    tokenHash: text('token_hash').notNull(),
+    createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+    expiresAt: bigint('expires_at', { mode: 'number' }).notNull(),
+    stoppedAt: bigint('stopped_at', { mode: 'number' }),
+    views: integer('views').notNull().default(0),
+    lastViewedAt: bigint('last_viewed_at', { mode: 'number' }),
+  },
+  (t) => ({
+    tokenIdx: uniqueIndex('passport_shares_token').on(t.tokenHash),
+    subjectIdx: index('passport_shares_subject').on(t.subject, t.expiresAt),
+  }),
+);

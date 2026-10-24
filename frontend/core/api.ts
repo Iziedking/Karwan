@@ -697,6 +697,8 @@ export interface DealView {
     amountUsdc: string | null;
   };
   automatic: { kind: 'auto-release' | 'deadline-reclaim' | 'acceptance-expiry'; at: number } | null;
+  /// Escrow-family deals only: the outcome is on both sides' records.
+  onBothRecords?: boolean;
 }
 
 /// Mirrors backend/src/trust/trustCard.ts.
@@ -1641,6 +1643,18 @@ export interface SealedReputation {
 
 export type ReputationResponse = Reputation | SealedReputation;
 
+/// One live share of the owner's full passport (view 29). The token is only
+/// ever in the link, never in this view.
+export interface PassportShare {
+  id: string;
+  with: string | null;
+  until: number;
+  views: number;
+  createdAt: number;
+}
+
+const shareParam = (share?: string) => (share ? `&share=${encodeURIComponent(share)}` : '');
+
 export interface Reputation {
   address: string;
   /// Legacy bps score (0..10000). Kept for backward-compatible badge UI.
@@ -1677,6 +1691,9 @@ export interface Reputation {
   /// Present + within the 48h window when the user just crossed into a higher
   /// tier. Drives the profile congrats card.
   tierCelebration?: { tier: 'NEW' | 'COLD' | 'ESTABLISHED' | 'STRONG' | 'ELITE'; until: number } | null;
+  /// Present when this read was opened by the owner's share link: who shared it
+  /// (their tag) and when the share ends.
+  shared?: { by: string; until: number } | null;
   modelVersion?: number;
   /// Raw inputs the engine fed into the formula. Used by the credit passport
   /// to display tenure days, the chain-vs-DB settlement gap, lifetime volume,
@@ -1867,7 +1884,8 @@ export interface AssistantConfirmAction {
     | 'escalate_dispute'
     | 'decline_deal'
     | 'create_direct_deal'
-    | 'fund_direct_deal';
+    | 'fund_direct_deal'
+    | 'set_up_record';
   title: string;
   summary?: string;
   /// Stark line for irreversible/money-moving actions (release). Absent on post_offer.
@@ -3636,8 +3654,19 @@ export const api = {
       events: ChainEvent[];
     }>(`/api/events/replay?${q.toString()}`);
   },
-  reputation: (address: string, fresh = false) =>
-    json<ReputationResponse>(`/api/reputation?address=${address}${fresh ? '&fresh=1' : ''}`),
+  /// `share` is a share link's token (view 29): it opens the full passport to
+  /// the person the owner shared it with.
+  reputation: (address: string, fresh = false, share?: string) =>
+    json<ReputationResponse>(`/api/reputation?address=${address}${fresh ? '&fresh=1' : ''}${shareParam(share)}`),
+  passportShares: () => json<{ shares: PassportShare[] }>('/api/reputation/shares'),
+  sharePassport: (body: { with?: string | null; hours: 24 | 168 }) =>
+    json<{ share: PassportShare; link: string }>('/api/reputation/shares', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }),
+  stopPassportShare: (id: string) =>
+    json<{ stopped: boolean }>(`/api/reputation/shares/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   activationStatus: (address: string) =>
     json<ActivationStatus>(`/api/activation/status?address=${address}`),
   agentBinding: (address: string) =>
@@ -3873,7 +3902,7 @@ export const api = {
   /// `fresh=true` after a web3 deposit/withdraw lands so the backend force-
   /// scans before serving; otherwise the 5-minute periodic scan cadence
   /// makes the new position invisible for several minutes.
-  vaultPositions: (address: string, fresh?: boolean) =>
+  vaultPositions: (address: string, fresh?: boolean, share?: string) =>
     json<{
       vaultAddress: string | null;
       positions: Array<{
@@ -3905,7 +3934,7 @@ export const api = {
       /// `true` for back-compat.
       synced?: boolean;
     }>(
-      `/api/vault/positions?address=${address}${fresh ? '&refresh=1' : ''}`,
+      `/api/vault/positions?address=${address}${fresh ? '&refresh=1' : ''}${shareParam(share)}`,
     ),
   /// KarwanYieldDistributor: this address's claimable + lifetime totals.
   /// Lifetime credited and claimed come from event scans (YieldCredited /
@@ -4295,6 +4324,20 @@ export const api = {
     json<{ callerStatus: 'skipped' | 'verified' | null }>(`/api/deals/direct/${jobId}/high-signal/skip`, {
       method: 'POST', body: JSON.stringify({ caller }),
     }),
+  /// The person's record on the escrow family, set up once before their first money step.
+  recordSetupStatus: () =>
+    json<{
+      available: boolean;
+      complete?: boolean;
+      identityId?: string;
+      buyerBound?: boolean;
+      sellerBound?: boolean;
+      buyerExpiresAt?: number;
+      limits?: { perPayment: string; total: string; days: number };
+      /// Web3 accounts: the calls still to send from their own wallet, in order.
+      calls?: Array<{ to: `0x${string}`; data: `0x${string}` }>;
+    }>('/api/record/setup'),
+  recordSetup: () => json<{ complete: boolean }>('/api/record/setup', { method: 'POST' }),
   confirmStatus: () =>
     json<{ methods: PresenceMethod[]; pinSet: boolean; pinLockedUntil: number | null; passkeys: number; hasEmail: boolean }>('/api/confirm/status'),
   /// Confirms one challenge with a PIN, a passkey assertion or a wallet signature.
@@ -5208,7 +5251,7 @@ export const api = {
   // SME profile (Phase 2 Track 2). Public passport read (no auth) +
   // authenticated self-edit. taxId is never round-tripped through this
   // API; the public route strips it from responses.
-  getSmeProfile: (address: string) =>
+  getSmeProfile: (address: string, share?: string) =>
     json<{
       smeProfile: {
         companyName?: string;
@@ -5237,7 +5280,7 @@ export const api = {
         financingsDefaulted: number;
         computedAt: number;
       } | null;
-    }>(`/api/sme/profile/${address}`),
+    }>(`/api/sme/profile/${address}${share ? `?share=${encodeURIComponent(share)}` : ''}`),
   updateSmeProfile: (body: {
     address: string;
     smeProfile: {

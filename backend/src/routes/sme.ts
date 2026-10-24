@@ -8,6 +8,7 @@ import { listDealsForAddress } from '../db/deals.js';
 import { listOffersBySeller } from '../db/factoring.js';
 import { listLinesBySeller } from '../db/poFinancing.js';
 import { logger } from '../logger.js';
+import { shareGrant } from '../sealed/passportShareLive.js';
 
 /// SME profile routes. Public passport read (no auth) + authenticated
 /// upsert. taxId never round-trips, the profile route stores an
@@ -79,7 +80,7 @@ smeRoutes.get('/profile/:address', async (c) => {
 
   const { taxIdEncrypted: _ignore, ...publicProfile } = profile.smeProfile;
   const repaymentBehavior =
-    config.SEALED_RECORDS && !isSessionSelf(c, parsed.data) ? null : await computeRepaymentBehavior(parsed.data);
+    config.SEALED_RECORDS && !isSessionSelf(c, parsed.data) && !(await shareGrant(c, parsed.data)) ? null : await computeRepaymentBehavior(parsed.data);
   return c.json({ smeProfile: publicProfile, repaymentBehavior });
 });
 

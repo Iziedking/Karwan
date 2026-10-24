@@ -50,6 +50,9 @@ import { chatTools, liveChatToolDeps } from './chatTools.js';
 import { liveLocationToolDeps, locationTools } from './locationTools.js';
 import { messageTools } from './messageTools.js';
 import { liveMessageToolDeps } from '../messages/live.js';
+import { passportShareTools } from './passportShareTools.js';
+import { liveShareDeps } from '../sealed/passportShareLive.js';
+import { stopShare } from '../db/passportShares.js';
 import { ratingTools } from './ratingTools.js';
 import { counterpartyTools } from './counterpartyTools.js';
 import { memoryPreamble, memoryTools } from './memoryTools.js';
@@ -134,6 +137,7 @@ import { checkKarwanTag } from '../profile/karwanTag.js';
 import { tagRecipient } from '../profile/tagRecipient.js';
 import { findProfileByHandle } from '../db/profiles.js';
 import { ARC } from '../chain/client.js';
+import { personName } from '../channels/personName.js';
 
 /// Absolute so a link works when pasted anywhere, including outside the app.
 function paymentLinkUrl(token: string): string {
@@ -1697,7 +1701,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
               const seller = await getProfile(hit.sellerUser).catch(() => null);
               results.push({
                 kind: 'offer', id: hit.id, title: hit.title, priceUsdc: hit.priceUsdc,
-                seller: seller?.displayName?.trim() || (seller?.handle ? `@${seller.handle}` : 'A Karwan seller'),
+                seller: personName(seller, 'A Karwan seller'),
                 sellerTag: seller?.handle ? `@${seller.handle}` : null,
                 readyInDays: hit.readyInDays ?? null, link: `/listings/${hit.id}`,
               });
@@ -2453,6 +2457,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
     ...chatTools(address, liveChatToolDeps),
     ...locationTools(address, liveLocationToolDeps),
     ...messageTools(address, liveMessageToolDeps),
+    ...passportShareTools(address, { ...liveShareDeps, stop: stopShare }),
     ...ratingTools(address, liveRatingToolDeps),
     ...counterpartyTools(address, { deals: listDealsForAddress, profile: getProfile }),
     ...memoryTools(address, { memory: getMemory, add: addNotes, remove: deleteNotes, conversations: conversationsMentioning }),

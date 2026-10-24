@@ -16,6 +16,8 @@ import type { Messages } from '@/shared/i18n/messages/en';
 import { WalletAvatar } from '@/shared/components/WalletAvatar';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { AttestedDeals } from './AttestedDeals';
+import { PassportSharePanel } from './PassportSharePanel';
+import { passportShareCopy } from '@/shared/i18n/messages/passportShare';
 
 const EXPLORER = 'https://testnet.arcscan.app';
 const ADDR_RE = /^0x[a-fA-F0-9]{40}$/;
@@ -30,7 +32,10 @@ type TermKey = (typeof TERM_KEYS)[number];
 
 type FetchState = 'idle' | 'loading' | 'ready' | 'error';
 
-export function CreditPassport({ address }: { address: string }) {
+/// `share` is a share link's token (view 29): the owner opened their full
+/// passport to this viewer. When the share has ended the backend answers with
+/// the sealed passport and `onSealed` hands the page back to it.
+export function CreditPassport({ address, share, onSealed }: { address: string; share?: string; onSealed?: () => void }) {
   const TIER_LABEL = useTierLabels();
   const t = useTranslations();
   const cp = t.creditPassport;
@@ -38,6 +43,7 @@ export function CreditPassport({ address }: { address: string }) {
   const valid = ADDR_RE.test(address);
   const viewer = useAuth().address;
   const isOwner = !!viewer && viewer.toLowerCase() === address.toLowerCase();
+  const sc = passportShareCopy[locale];
   const [rep, setRep] = useState<Reputation | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [stakeUsdc, setStakeUsdc] = useState<string>('0');
@@ -67,12 +73,12 @@ export function CreditPassport({ address }: { address: string }) {
 
     async function load() {
       const [repRes, profRes, vaultRes, smeRes] = await Promise.allSettled([
-        api.reputation(address),
+        api.reputation(address, false, share),
         api.getProfile(address),
-        api.vaultPositions(address),
+        api.vaultPositions(address, undefined, share),
         // The SME profile only matters when the trade rail is live; skip
         // the call otherwise.
-        SME_TRADES_ENABLED ? api.getSmeProfile(address) : Promise.resolve(null),
+        SME_TRADES_ENABLED ? api.getSmeProfile(address, share) : Promise.resolve(null),
       ]);
       if (cancelled) return;
       if (smeRes.status === 'fulfilled' && smeRes.value) {
@@ -89,7 +95,8 @@ export function CreditPassport({ address }: { address: string }) {
         return;
       }
       if ('sealed' in repRes.value) {
-        setFetchState('error');
+        if (onSealed) onSealed();
+        else setFetchState('error');
         return;
       }
       setRep(repRes.value);
@@ -136,7 +143,7 @@ export function CreditPassport({ address }: { address: string }) {
       cancelled = true;
       if (pollId) clearTimeout(pollId);
     };
-  }, [address, valid]);
+  }, [address, valid, share, onSealed]);
 
   if (!valid) {
     return (
@@ -225,14 +232,21 @@ export function CreditPassport({ address }: { address: string }) {
       ? (rep.dealsToNextTier === 1 ? pc.heldDealsOne : pc.heldDeals).replace('{tier}', tierName).replace('{n}', String(rep.dealsToNextTier))
       : null;
   // Deals with the same few people count for less; say how much, and what lifts it.
+  // The owner reads how to raise it; someone they shared it with reads the fact.
   const breadthLine =
     breadth != null && breadth < 1 && settled > 0 && counterparties
-      ? (counterparties === 1 ? pc.breadthNoteOne : pc.breadthNote).replace('{n}', String(counterparties)).replace('{pct}', String(Math.round(breadth * 100)))
+      ? (isOwner ? (counterparties === 1 ? pc.breadthNoteOne : pc.breadthNote) : counterparties === 1 ? sc.breadthOne : sc.breadth)
+          .replace('{n}', String(counterparties))
+          .replace('{pct}', String(Math.round(breadth * 100)))
       : null;
+  const sharedLine = !isOwner && rep.shared
+    ? sc.sharedBy.replace('{who}', rep.shared.by).replace('{date}', new Date(rep.shared.until).toLocaleString(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))
+    : null;
   const rung = TIER_LADDER.indexOf(tier);
 
   return (
     <Shell>
+      {sharedLine ? <p className="mb-3 text-[14px] font-medium text-[var(--lp-text-sub)]">{sharedLine}</p> : null}
       <section className="rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5 sm:p-7">
         <div className="flex flex-wrap items-center gap-4">
           <PassportPhoto src={profilePhotoOf(profile)} address={address} />
@@ -315,7 +329,7 @@ export function CreditPassport({ address }: { address: string }) {
 
         <div className="mt-6 flex flex-wrap items-start justify-between gap-x-6 border-t border-[var(--lp-border-light)] pt-1">
           {termRows.length > 0 ? (
-            <details className="group min-w-0 flex-1">
+            <details className="group min-w-[14rem] flex-1">
               <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 text-[14px] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] [&::-webkit-details-marker]:hidden font-medium">
                 {pc.how}
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0 transition-transform group-open:rotate-180"><path d="m6 9 6 6 6-6" /></svg>
@@ -341,6 +355,7 @@ export function CreditPassport({ address }: { address: string }) {
         </div>
       </section>
 
+      {isOwner ? <PassportSharePanel /> : null}
       <AttestedDeals address={address} downloadable={isOwner} />
       {SME_TRADES_ENABLED && <SmePassportBand sme={sme} />}
     </Shell>

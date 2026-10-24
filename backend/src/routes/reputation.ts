@@ -11,6 +11,10 @@ import { readSession } from '../auth/session.js';
 import { config } from '../config.js';
 import { isOwnerView } from '../sealed/passport.js';
 import { loadPublicPassport } from '../sealed/passportLoader.js';
+import { shareGrant, liveShareDeps } from '../sealed/passportShareLive.js';
+import { createShare, shareView } from '../sealed/passportShares.js';
+import { liveSharesOf, stopShare } from '../db/passportShares.js';
+import { personNameOf } from '../channels/personName.js';
 
 const addrSchema = z
   .string()
@@ -104,16 +108,20 @@ reputationRoutes.get('/', async (c) => {
 
     // Anyone but the owner gets the public passport: tier and fixed reasons.
     // The check runs on the resolved owner, so an agent address cannot leak it.
-    if (config.SEALED_RECORDS && !isOwnerView(readSession(c)?.address, repAddr)) {
+    // A share the owner made (view 29) opens the full record to its viewer.
+    const owner = isOwnerView(readSession(c)?.address, repAddr);
+    const share = owner || !c.req.query('share') ? null : await shareGrant(c, repAddr, { countView: true });
+    if (config.SEALED_RECORDS && !owner && !share) {
       return c.json(await loadPublicPassport(repAddr));
     }
+    const sharedBy = share ? { by: await personNameOf(repAddr), until: share.expiresAt } : null;
 
     const cacheKey = repAddr.toLowerCase();
     const wantsFresh = c.req.query('fresh') === '1';
     if (!wantsFresh) {
       const hit = repCache.get(cacheKey);
       if (hit && Date.now() - hit.ts < REP_CACHE_TTL_MS) {
-        return c.json(hit.body);
+        return c.json(sharedBy ? { ...hit.body, tierCelebration: null, shared: sharedBy } : hit.body);
       }
     }
 
@@ -160,11 +168,41 @@ reputationRoutes.get('/', async (c) => {
         result.inputs.failedCount,
     };
     repCache.set(cacheKey, { body, ts: Date.now() });
-    return c.json(body);
+    return c.json(sharedBy ? { ...body, tierCelebration: null, shared: sharedBy } : body);
   } catch (err) {
     return c.json(
       { error: 'reputation read failed', detail: (err as Error).message },
       502,
     );
   }
+});
+
+/// The owner's shares of their full passport (view 29). Signed in as the owner.
+reputationRoutes.get('/shares', async (c) => {
+  const me = readSession(c)?.address?.toLowerCase();
+  if (!me) return c.json({ error: 'Sign in to see who can open your passport.' }, 401);
+  const shares = await liveSharesOf(me, Date.now());
+  return c.json({ shares: shares.map(shareView) });
+});
+
+const shareBody = z.object({
+  with: z.string().trim().max(40).optional().nullable(),
+  hours: z.union([z.literal(24), z.literal(168)]),
+});
+
+reputationRoutes.post('/shares', async (c) => {
+  const me = readSession(c)?.address?.toLowerCase();
+  if (!me) return c.json({ error: 'Sign in to share your passport.' }, 401);
+  const parsed = shareBody.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: 'A share lasts 24 hours or 7 days.' }, 400);
+  const r = await createShare(me, { withTag: parsed.data.with, hours: parsed.data.hours }, liveShareDeps);
+  if (!r.ok) return c.json({ error: r.error }, 400);
+  return c.json({ share: shareView(r.share), link: r.link });
+});
+
+reputationRoutes.delete('/shares/:id', async (c) => {
+  const me = readSession(c)?.address?.toLowerCase();
+  if (!me) return c.json({ error: 'Sign in to stop a share.' }, 401);
+  const stopped = await stopShare(me, c.req.param('id'), Date.now());
+  return stopped ? c.json({ stopped: true }) : c.json({ error: 'That share has already ended.' }, 404);
 });

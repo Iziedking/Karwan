@@ -9,7 +9,7 @@ import { privateAssistantProviders, staticFallbackMessages, requiresLiveAccountS
 
 test('guide cites only sources, pages, endpoints and tools that exist', () => {
   const endpoints = backendEndpoints();
-  const agent = ['./agent.ts', './dealTools.ts', './verificationTools.ts', './networkTools.ts', './directDealTools.ts', './chatTools.ts', './locationTools.ts', './messageTools.ts', './ratingTools.ts', './counterpartyTools.ts', './memoryTools.ts'].map((f) => readFileSync(new URL(f, import.meta.url), 'utf8')).join('\n');
+  const agent = ['./agent.ts', './dealTools.ts', './verificationTools.ts', './networkTools.ts', './directDealTools.ts', './chatTools.ts', './locationTools.ts', './messageTools.ts', './ratingTools.ts', './counterpartyTools.ts', './memoryTools.ts', './passportShareTools.ts'].map((f) => readFileSync(new URL(f, import.meta.url), 'utf8')).join('\n');
   const agentTools =new Set([...agent.matchAll(/^    (\w+): tool\(\{/gm)].map((m) => m[1]!));
   assert.ok(agentTools.size > 30, 'tool parse');
   for (const entry of PLATFORM_GUIDE) {

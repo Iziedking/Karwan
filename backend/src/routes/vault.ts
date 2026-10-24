@@ -39,6 +39,7 @@ import {
   prepareWeb3VaultActionIntent,
   completeWeb3VaultAction,
 } from '../money/vaultActions.js';
+import { shareGrant } from '../sealed/passportShareLive.js';
 
 /// USDC is exposed as a 6-decimal ERC-20 on Arc. Same scale the escrow uses.
 const USDC_DECIMALS = 6;
@@ -219,7 +220,7 @@ vaultRoutes.get('/positions', async (c) => {
   if (!address) return c.json({ error: 'address query param required' }, 400);
   const parsed = addrSchema.safeParse(address);
   if (!parsed.success) return c.json({ error: 'invalid address' }, 400);
-  if (config.SEALED_RECORDS && !isSessionSelf(c, parsed.data)) {
+  if (config.SEALED_RECORDS && !isSessionSelf(c, parsed.data) && !(await shareGrant(c, parsed.data))) {
     return c.json({ error: 'Only the owner can see stake positions.', code: 'sealed' }, 403);
   }
 

@@ -334,6 +334,24 @@
       "body": "A broader quote market for eligible Karwan-originated receivables and purchase\norders is planned. Invoice factoring, purchase-order financing and the financier\ndesk exist in the current testnet build, while the broader open market does not.\n\nThe supplier will compare the advance, repayment, spread, expiry, recourse and\nconcentration controls, then choose whether to accept. Karwan does not finance\narbitrary outside invoices and does not guarantee an advance."
     },
     {
+      "id": "passport-sharing",
+      "title": "Sharing your full passport",
+      "status": "roadmap",
+      "updated": "2026-10-24",
+      "tags": [
+        "reputation",
+        "testnet"
+      ],
+      "path": "public/product/passport-sharing.md",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/29-share-full-passport.md",
+          "date": "2026-10-24"
+        }
+      ],
+      "body": "Your passport is sealed: other people see your standing and a few plain\nreasons, never your numbers. When someone asks to see your record before a\ndeal, you can show them the full passport you see yourself, amounts and the\nmoney held as a reserve included.\n\nOpen your passport and tap Share full record, or ask your assistant on the\nwebsite, Telegram or WhatsApp. Choose one person by their Karwan tag, who must\nbe signed in to open it, or a link anyone can open, for someone not on Karwan\nyet. Choose 24 hours or 7 days.\n\nYour passport lists each live share, who it is for, until when and how often it\nwas opened. Stop any of them at any time; the link then shows the sealed\npassport again. At most five shares are live at once.\n\nThis is built for testnet and not live yet."
+    },
+    {
       "id": "photos-on-offers",
       "title": "Photos on offers",
       "status": "roadmap",
@@ -1018,6 +1036,29 @@
       "check": null,
       "updated": "2026-09-01",
       "path": "public/product/open-trade-finance-roadmap.md"
+    },
+    {
+      "id": "passport-sharing",
+      "title": "Sharing your full passport",
+      "status": "roadmap",
+      "publishable": false,
+      "blockedBy": "not-live",
+      "capability": true,
+      "audience": "all",
+      "tags": [
+        "reputation",
+        "testnet"
+      ],
+      "summary": "You can show your full passport, amounts included, to one person by Karwan tag or to anyone with a link, for 24 hours or 7 days, and stop it any time.",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/29-share-full-passport.md",
+          "date": "2026-10-24"
+        }
+      ],
+      "check": null,
+      "updated": "2026-10-24",
+      "path": "public/product/passport-sharing.md"
     },
     {
       "id": "photos-on-offers",

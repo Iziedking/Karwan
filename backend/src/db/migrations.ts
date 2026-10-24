@@ -1290,6 +1290,29 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       CREATE INDEX confirm_challenges_expires ON confirm_challenges_v1 (expires_at);
     `,
   },
+  {
+    version: 47,
+    name: 'passport_shares',
+    sql: `
+      -- A person shows their full passport to one viewer, or anyone with the
+      -- link, until it expires or they stop it (view 29). Only the token's
+      -- hash is kept; the link carries the token.
+      CREATE TABLE passport_shares_v1 (
+        id TEXT PRIMARY KEY,
+        subject TEXT NOT NULL,
+        viewer TEXT,
+        viewer_tag TEXT,
+        token_hash TEXT NOT NULL,
+        created_at BIGINT NOT NULL,
+        expires_at BIGINT NOT NULL,
+        stopped_at BIGINT,
+        views INTEGER NOT NULL DEFAULT 0,
+        last_viewed_at BIGINT
+      );
+      CREATE UNIQUE INDEX passport_shares_token ON passport_shares_v1 (token_hash);
+      CREATE INDEX passport_shares_subject ON passport_shares_v1 (subject, expires_at);
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;
