@@ -13,6 +13,9 @@ export interface DealLiveCopy {
   you: string;
   completeTitle: string;
   completeBody: string;
+  /// Escrow-family deals: once the record holds both sides' outcomes, and before.
+  onBothRecords: string;
+  recordPending: string;
   again: string;
   autoReleaseYou: string;
   reclaimYou: string;
@@ -31,6 +34,8 @@ export const dealLiveCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealLiveCopy
     you: 'You',
     completeTitle: 'Deal complete',
     completeBody: 'It now counts on both of your records.',
+    onBothRecords: 'Paid. On both your records.',
+    recordPending: 'Your records update once the network confirms.',
     again: 'Start another deal with {name}',
     autoReleaseYou: "Releases automatically on {date} unless you raise a problem.",
     reclaimYou: "If nothing is delivered, you can take your money back from {date}.",
@@ -47,6 +52,8 @@ export const dealLiveCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealLiveCopy
     you: 'Vous',
     completeTitle: 'Accord terminé',
     completeBody: 'Il compte désormais dans vos deux historiques.',
+    onBothRecords: 'Payé. Inscrit dans vos deux historiques.',
+    recordPending: 'Vos historiques se mettent à jour dès que le réseau confirme.',
     again: 'Nouvel accord avec {name}',
     autoReleaseYou: "Libération automatique le {date}, sauf si vous signalez un problème.",
     reclaimYou: "Sans livraison, vous pouvez reprendre votre argent à partir du {date}.",
@@ -63,6 +70,8 @@ export const dealLiveCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealLiveCopy
     you: 'أنت',
     completeTitle: 'اكتملت الصفقة',
     completeBody: 'أصبحت تُحتسب الآن في سجلّيكما.',
+    onBothRecords: 'تم الدفع. مُسجّل في سجلّيكما.',
+    recordPending: 'يُحدَّث سجلّاكما حين تؤكد الشبكة.',
     again: 'صفقة جديدة مع {name}',
     autoReleaseYou: "تُصرف تلقائيًا في {date} ما لم تُبلغ عن مشكلة.",
     reclaimYou: "إن لم يُسلَّم شيء، يمكنك استرداد مالك اعتبارًا من {date}.",
@@ -79,6 +88,8 @@ export const dealLiveCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealLiveCopy
     you: 'आप',
     completeTitle: 'सौदा पूरा हुआ',
     completeBody: 'अब यह आप दोनों के रिकॉर्ड में गिना जाता है।',
+    onBothRecords: 'भुगतान हुआ। आप दोनों के रिकॉर्ड में दर्ज।',
+    recordPending: 'नेटवर्क की पुष्टि होते ही आपके रिकॉर्ड अपडेट होंगे।',
     again: '{name} के साथ नया सौदा',
     autoReleaseYou: "{date} को अपने आप जारी होगा, जब तक आप कोई समस्या न बताएँ।",
     reclaimYou: "अगर कुछ डिलीवर नहीं हुआ, तो आप {date} से अपना पैसा वापस ले सकते हैं।",
@@ -95,6 +106,8 @@ export const dealLiveCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealLiveCopy
     you: 'Wewe',
     completeTitle: 'Mkataba umekamilika',
     completeBody: 'Sasa unahesabiwa kwenye rekodi zenu zote mbili.',
+    onBothRecords: 'Imelipwa. Imo kwenye rekodi zenu zote mbili.',
+    recordPending: 'Rekodi zenu zitasasishwa mtandao ukithibitisha.',
     again: 'Mkataba mpya na {name}',
     autoReleaseYou: "Inatolewa yenyewe tarehe {date} usipoibua tatizo.",
     reclaimYou: "Kama hakuna kilichowasilishwa, unaweza kurudisha pesa zako kuanzia {date}.",

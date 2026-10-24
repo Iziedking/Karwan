@@ -37,3 +37,8 @@ test('closed deals, v3 deals and deals without a buyer agent are left alone', ()
   assert.equal(shouldResumePendingRefund({ ...stuck, deal: { ...stuck.deal, escrowVersion: 'v3' } }), false);
   assert.equal(shouldResumePendingRefund({ ...stuck, deal: { ...stuck.deal, buyerAgentWalletId: undefined } }), false);
 });
+
+test('a deal on the escrow family is never resumed through the v2 refund path', () => {
+  assert.equal(shouldResumePendingRefund({ ...stuck, deal: { ...stuck.deal, escrowVersion: 'suite' } }), false);
+  assert.equal(shouldResumePendingRefund({ ...stuck, escrow: { ...stuck.escrow, version: 'suite' } }), false);
+});

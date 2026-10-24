@@ -435,8 +435,8 @@ export interface DirectDeal {
   /// Which escrow holds this deal's money. Absent reads as 'v2' (the escrow in
   /// KARWAN_ESCROW_ADDR). Stamped before any transaction and never changed, so a
   /// deal always finishes on the escrow it started on.
-  escrowVersion?: 'v2' | 'v3';
-  /// v3 only (KarwanDealEscrow). The escrow derives its own deal id from the
+  escrowVersion?: 'v2' | 'v3' | 'suite';
+  /// v3 (KarwanDealEscrow) and suite (the escrow family's Agreement escrow). The escrow derives its own deal id from the
   /// buyer wallet and a salt, so it differs from this deal's jobId, which stays
   /// the id in share links and timelines.
   escrowAddress?: string;
@@ -444,8 +444,13 @@ export interface DirectDeal {
   escrowSalt?: string;
   /// The exact terms funded on-chain (bigints as strings) and their hash, which
   /// the seller accepts by.
-  escrowTerms?: import('../deals/fundDirectV3.js').StoredTermsV3;
+  escrowTerms?: import('../deals/fundDirectV3.js').StoredTermsV3 | import('../chain/agreementTerms.js').StoredAgreementTerms;
   escrowTermsHash?: string;
+  /// suite: each payout's move from the selling agent to the seller's identity
+  /// wallet, keyed by tranche (deals/suiteEarnings.ts).
+  suiteEarnings?: Record<string, import('../deals/suiteEarnings.js').EarningsMove>;
+  /// suite: when both sides' outcomes were first read back from the record.
+  onBothRecordsAt?: number;
   /// Set when a fund landed under an id other than escrowDealId (the signing
   /// wallet was not the buyer agent on file). Needs reconciliation.
   escrowFundedUnderId?: string;

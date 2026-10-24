@@ -697,8 +697,9 @@ export interface DealView {
     amountUsdc: string | null;
   };
   automatic: { kind: 'auto-release' | 'deadline-reclaim' | 'acceptance-expiry'; at: number } | null;
-  /// Escrow-family deals only: the outcome is on both sides' records.
-  onBothRecords?: boolean;
+  /// Settled escrow-family deals only: on both sides' records (true), waiting
+  /// for the record (false), or a side had no record when it was paid in (null).
+  onBothRecords?: boolean | null;
 }
 
 /// Mirrors backend/src/trust/trustCard.ts.

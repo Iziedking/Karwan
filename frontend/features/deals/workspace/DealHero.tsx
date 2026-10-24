@@ -290,9 +290,13 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
           <div className="rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5">
             <p className="flex items-center gap-2 text-[16px] font-semibold text-[var(--lp-dark)]">
               <Icon name="check" size={20} className="text-[var(--color-positive)]" />
-              {dl.completeTitle}
+              {view.onBothRecords ? dl.onBothRecords : dl.completeTitle}
             </p>
-            <p className="mt-1.5 text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{dl.completeBody}</p>
+            {view.onBothRecords || view.onBothRecords === null ? null : (
+              <p className="mt-1.5 text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
+                {view.onBothRecords === false ? dl.recordPending : dl.completeBody}
+              </p>
+            )}
           </div>
         ) : null}
 

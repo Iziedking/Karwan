@@ -25,7 +25,9 @@ import {
 import { ESCROW_FUNDED, buildFundEscrowCall } from '../chain/settlement.js';
 import { v3FundingEnabled } from '../chain/dealEscrowV3Live.js';
 import { fundAgentMatchV3, type V3DealRecord } from './fundAgentMatchV3.js';
-import { fundAgentMatchV3Deps } from '../deals/fundDirectV3Live.js';
+import { fundAgentMatchSuiteDeps, fundAgentMatchV3Deps } from '../deals/fundDirectV3Live.js';
+import { fundAgentMatchSuite, type SuiteDealRecord } from './fundAgentMatchSuite.js';
+import { suiteFundingEnabled } from '../chain/suiteConfig.js';
 import { chatFundingRefusal } from '../deals/chatDealGate.js';
 import { chatFundingDeps } from '../deals/chatFundingLive.js';
 import { moneyOutGuard } from '../moneyOut/live.js';
@@ -353,9 +355,10 @@ interface JobState {
   negotiationEndedAt?: number;
   negotiationEndReason?: string;
   escrowFunded: boolean;
-  /// Set when this job's escrow was funded on KarwanDealEscrow (v3), so the
-  /// deal row records the same escrow deal and deadline the chain holds.
-  escrowV3?: V3DealRecord & { deadlineUnix: number | null };
+  /// Set when this job's escrow was funded on KarwanDealEscrow (v3) or the
+  /// escrow family, so the deal row records the same escrow deal and deadline
+  /// the chain holds.
+  escrowV3?: (V3DealRecord | SuiteDealRecord) & { deadlineUnix: number | null };
   /// Set by the jobExpiryWatcher when deadline passes with no accepted bid
   /// and no approved match proposal. Treated as a terminal state by the
   /// listings cross-match scanner and bid handlers.
@@ -4158,7 +4161,7 @@ export async function approveAgentMatch(
   });
 
   const priceWei = parseUnits(proposal.agreedPriceUsdc, USDC_DECIMALS);
-  const fundRes = await fundEscrow(state, seller, priceWei, proposal.deadlineUnix);
+  const fundRes = await fundEscrow(state, seller, priceWei, proposal.deadlineUnix, { buyerUser: proposal.buyerUser, sellerUser: proposal.sellerUser });
   if (!fundRes.ok) {
     // Funding did not confirm on chain. Do NOT persist the deal or mark the
     // proposal approved, otherwise we'd create an "accepted" deal sitting on an
@@ -4495,7 +4498,7 @@ ${brief.terms}`
       origin: 'agent',
       ...(state.escrowV3
         ? {
-            escrowVersion: 'v3' as const,
+            escrowVersion: state.escrowV3.escrowVersion,
             escrowAddress: state.escrowV3.escrowAddress,
             escrowDealId: state.escrowV3.escrowDealId,
             escrowSalt: state.escrowV3.escrowSalt,
@@ -4617,16 +4620,18 @@ function effectiveMilestonePcts(state: JobState): number[] {
   return splitFor(state.context.milestonePcts, state.buyer.milestonePcts);
 }
 
-/// A job funds on v3 only with the flag on and nothing on the v2 escrow for
-/// its id. A failed read keeps it on v2, where earlier attempts would be.
-async function fundsOnV3(state: JobState): Promise<boolean> {
-  if (state.escrowV3) return true;
-  if (!v3FundingEnabled()) return false;
+/// Which escrow a job funds on: the one it already funded on; else the escrow
+/// family when it is ready, or v3 with its flag on, and only with nothing on the
+/// v2 escrow for its id. A failed read keeps it on v2, where earlier attempts would be.
+async function fundingEscrowForJob(state: JobState): Promise<'suite' | 'v3' | null> {
+  if (state.escrowV3) return state.escrowV3.escrowVersion;
+  const next = suiteFundingEnabled() ? 'suite' : v3FundingEnabled() ? 'v3' : null;
+  if (!next) return null;
   try {
     invalidateEscrowCache(state.jobId);
-    return (await readEscrow(state.jobId)).state === ESCROW_STATE.None;
+    return (await readEscrow(state.jobId)).state === ESCROW_STATE.None ? next : null;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -4654,14 +4659,44 @@ async function fundEscrow(
   seller: `0x${string}`,
   priceWei: bigint,
   negotiatedDeadlineUnix: number,
+  parties: { buyerUser: string; sellerUser: string },
 ): Promise<{ ok: boolean; reason?: string }> {
   if (state.escrowFunded) return { ok: true };
   const linkRefusal = await sellerLinkRefusal(state, seller);
   if (linkRefusal) return { ok: false, reason: linkRefusal.code };
   const buyer = state.buyer;
   const milestonePcts = effectiveMilestonePcts(state);
+  const onEscrow = await fundingEscrowForJob(state);
 
-  if (await fundsOnV3(state)) {
+  if (onEscrow === 'suite') {
+    const sellerWallets = await findAgentWalletByAgentAddress(seller);
+    if (!sellerWallets) return { ok: false, reason: 'NO_SELLER_WALLET' };
+    const deadlineUnix = reanchoredDealDeadline(state.jobId, negotiatedDeadlineUnix, Date.now());
+    const result = await fundAgentMatchSuite(fundAgentMatchSuiteDeps(), {
+      jobId: state.jobId,
+      buyerUser: parties.buyerUser,
+      sellerUser: parties.sellerUser,
+      buyerAgent: { walletId: buyer.walletId, address: buyer.address as `0x${string}` },
+      sellerAgent: { walletId: sellerWallets.sellerWalletId, address: seller },
+      priceUnits: priceWei,
+      milestonePcts,
+      deadlineUnix,
+      tradeType: getBrief(state.jobId)?.tradeType ?? null,
+      agreementHash: state.context.termsHash as `0x${string}`,
+      reviewFloorSecs: (getBrief(state.jobId)?.reviewWindowDays ?? 0) * 86_400,
+    });
+    if (!result.ok) {
+      logger.error({ jobId: state.jobId, reason: result.reason, detail: result.message }, 'suite escrow funding not confirmed');
+      emitAgentChainError(state, seller, 'fund.suite', new Error(result.message ?? result.reason));
+      return { ok: false, reason: result.reason };
+    }
+    state.escrowV3 = { ...result.record, deadlineUnix };
+    state.escrowFunded = true;
+    logger.info({ jobId: state.jobId, escrowDealId: result.record.escrowDealId, accepted: result.accepted, fundTxHash: result.fundTxHash }, 'escrow funded on the escrow family');
+    return { ok: true };
+  }
+
+  if (onEscrow === 'v3') {
     const sellerWallets = await findAgentWalletByAgentAddress(seller);
     if (!sellerWallets) return { ok: false, reason: 'NO_SELLER_WALLET' };
     const deadlineUnix = reanchoredDealDeadline(state.jobId, negotiatedDeadlineUnix, Date.now());

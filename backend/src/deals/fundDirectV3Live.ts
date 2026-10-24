@@ -15,7 +15,13 @@ import {
   verifyMoneyMovementLeg,
 } from '../money/service.js';
 import type { FundDirectV3Deps } from './fundDirectV3.js';
+import type { FundDirectSuiteDeps } from './fundDirectSuite.js';
+import { readAgreementLimits } from '../chain/agreementEscrowReads.js';
+import { agreementEscrow, readAgreementView } from '../chain/agreementEscrowLive.js';
+import { suiteAddresses } from '../chain/suiteConfig.js';
+import { suiteIdentity } from '../identity/suiteIdentityLive.js';
 import type { FundAgentMatchV3Deps } from '../agents/fundAgentMatchV3.js';
+import type { FundAgentMatchSuiteDeps } from '../agents/fundAgentMatchSuite.js';
 
 const stakeVaultReadAbi = [
   {
@@ -79,7 +85,19 @@ export function fundDirectV3Deps(): FundDirectV3Deps {
         `usdc.approve(dealEscrowV3, ${input.amount})`,
       );
     },
-    movements: {
+    movements: liveFundingMovements,
+    async patchDeal(jobId, patch) {
+      await patchDeal(jobId, patch as Partial<DirectDeal>);
+    },
+    emit(e) {
+      bus.emitEvent({ type: e.type as Parameters<typeof bus.emitEvent>[0]['type'], jobId: e.jobId, actor: e.actor, payload: e.payload });
+    },
+    now: () => Date.now(),
+  };
+}
+
+/// The escrow-funding ledger both escrows' direct funding writes to.
+const liveFundingMovements: FundDirectV3Deps['movements'] = {
       async ensure(input) {
         const { movement } = await ensureMoneyMovement({
           operationKey: input.operationKey,
@@ -109,7 +127,43 @@ export function fundDirectV3Deps(): FundDirectV3Deps {
       async complete(reference, patch) {
         await completeMoneyMovement(reference, patch);
       },
+};
+
+
+/// The live dependencies for fundDirectDealSuite. Throws when the escrow family
+/// is not set up on this network, so a caller cannot reach it by accident.
+export function fundDirectSuiteDeps(): FundDirectSuiteDeps {
+  const addrs = suiteAddresses();
+  if (!addrs || !agreementEscrow || !suiteIdentity) throw new Error('the escrow family is not set up on this network');
+  const identity = suiteIdentity;
+  const escrowAddress = addrs.agreement;
+  return {
+    escrow: agreementEscrow,
+    asset: usdc as `0x${string}`,
+    verifier: addrs.verifier,
+    readView: (id) => readAgreementView(escrowAddress, id),
+    readLimits: () => readAgreementLimits(publicClient, addrs.hub, escrowAddress, usdc as `0x${string}`),
+    settings: {
+      baseReviewSecs: Math.floor(config.DEAL_REVIEW_WINDOW_MS / 1000),
+      reclaimGraceSecs: Math.floor(config.DEAL_DEADLINE_RECLAIM_GRACE_MS / 1000),
     },
+    requireIdentity: (user, role) => identity.requireIdentity(user, role),
+    readUsdcBalance: (owner) => readUsdcBalance(owner),
+    readUsdcAllowance: (owner, spender) => readUsdcAllowance(owner, spender),
+    async approveUsdc(input) {
+      await executeContractCall(
+        {
+          walletId: input.walletId,
+          contractAddress: usdc,
+          abiFunctionSignature: 'approve(address,uint256)',
+          abiParameters: [input.spender, input.amount.toString()],
+          idempotencyKey: input.idempotencyKey,
+          lifecycle: input.lifecycle,
+        },
+        `usdc.approve(agreementEscrow, ${input.amount})`,
+      );
+    },
+    movements: liveFundingMovements,
     async patchDeal(jobId, patch) {
       await patchDeal(jobId, patch as Partial<DirectDeal>);
     },
@@ -133,6 +187,23 @@ export function fundAgentMatchV3Deps(): FundAgentMatchV3Deps {
     readUsdcAllowance: d.readUsdcAllowance,
     approveUsdc: (input) =>
       d.approveUsdc({ ...input, idempotencyKey: input.idempotencyKey ?? crypto.randomUUID() }),
+    now: d.now,
+  };
+}
+
+/// The live dependencies for fundAgentMatchSuite: the same chain, limits and
+/// approval as a direct suite deal, without the money-movement ledger.
+export function fundAgentMatchSuiteDeps(): FundAgentMatchSuiteDeps {
+  const d = fundDirectSuiteDeps();
+  return {
+    escrow: d.escrow,
+    asset: d.asset,
+    readView: d.readView,
+    readLimits: d.readLimits,
+    settings: d.settings,
+    requireIdentity: d.requireIdentity,
+    readUsdcAllowance: d.readUsdcAllowance,
+    approveUsdc: (input) => d.approveUsdc({ ...input, idempotencyKey: input.idempotencyKey ?? crypto.randomUUID() }),
     now: d.now,
   };
 }

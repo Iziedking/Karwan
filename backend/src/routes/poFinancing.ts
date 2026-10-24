@@ -35,6 +35,7 @@ import {
   recordEscrowAssignedFinancingMovement,
   recordVerifiedFinancingMovement,
 } from '../money/financing.js';
+import { onOwnIdEscrow } from '../deals/dealEscrowOps.js';
 
 const USDC_DECIMALS = 6;
 
@@ -118,7 +119,7 @@ poFinancingRoutes.post('/request', async (c) => {
   // assigned by assigners that escrow authorises, and the financing contracts
   // point at the v2 escrow. Refuse rather than take an advance that could not
   // be repaid from settlement.
-  if (deal.escrowVersion === 'v3') {
+  if (onOwnIdEscrow(deal)) {
     return c.json({ error: 'financing is not available on this deal yet', code: 'FINANCING_NOT_ON_V3' }, 409);
   }
   if (session.address.toLowerCase() !== deal.seller.toLowerCase()) return c.json({ error: 'only the seller can request fulfilment capital' }, 403);
@@ -323,7 +324,7 @@ poFinancingRoutes.post('/fund', async (c) => {
   // assigned by assigners that escrow authorises, and the financing contracts
   // point at the v2 escrow. Refuse rather than take an advance that could not
   // be repaid from settlement.
-  if (deal.escrowVersion === 'v3') {
+  if (onOwnIdEscrow(deal)) {
     return c.json({ error: 'financing is not available on this deal yet', code: 'FINANCING_NOT_ON_V3' }, 409);
   }
   if (deal.tradeLane !== 'finance') {
@@ -517,7 +518,7 @@ poFinancingRoutes.post('/fund-circle', async (c) => {
   // assigned by assigners that escrow authorises, and the financing contracts
   // point at the v2 escrow. Refuse rather than take an advance that could not
   // be repaid from settlement.
-  if (deal.escrowVersion === 'v3') {
+  if (onOwnIdEscrow(deal)) {
     return c.json({ error: 'financing is not available on this deal yet', code: 'FINANCING_NOT_ON_V3' }, 409);
   }
   if (deal.tradeLane !== 'finance') {

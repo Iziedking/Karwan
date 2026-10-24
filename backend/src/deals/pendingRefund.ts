@@ -15,7 +15,8 @@ const RESUMABLE: ReadonlySet<MoneyMovementState> = new Set(['created', 'needs_at
 
 export function shouldResumePendingRefund({ deal, escrow, refund }: PendingRefundCheck): boolean {
   if (deal.cancelledAt || deal.settledAt || !deal.buyerAgentWalletId) return false;
-  if (deal.escrowVersion === 'v3' || escrow.version === 'v3') return false;
+  const ownId = (v?: string) => v === 'v3' || v === 'suite';
+  if (ownId(deal.escrowVersion) || ownId(escrow.version)) return false;
   if (!escrow.disputed || escrow.wasAccepted !== false) return false;
   if (!refund || !RESUMABLE.has(refund.state)) return false;
   return refund.initiatedBy.toLowerCase() === deal.buyer.toLowerCase();

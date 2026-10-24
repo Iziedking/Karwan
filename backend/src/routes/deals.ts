@@ -23,13 +23,19 @@ import {
 import { executeContractCall } from '../chain/txs.js';
 import { readDisputeClocksV3, requireDealEscrowV3, v3FundingEnabled } from '../chain/dealEscrowV3Live.js';
 import { DEAL_STATE } from '../chain/dealEscrowV3.js';
-import { chooseFundingEscrow, fundDirectDealV3, type EscrowVersion } from '../deals/fundDirectV3.js';
-import { fundDirectV3Deps } from '../deals/fundDirectV3Live.js';
+import { chooseFundingEscrow, fundDirectDealV3, type EscrowVersion, type StoredTermsV3 } from '../deals/fundDirectV3.js';
+import { fundDirectDealSuite } from '../deals/fundDirectSuite.js';
+import type { StoredAgreementTerms } from '../chain/agreementTerms.js';
+import { suiteFundingEnabled } from '../chain/suiteConfig.js';
+import { IdentityNeeded } from '../identity/suiteIdentity.js';
+import { suiteOnBothRecords } from '../deals/suiteRecordStatusLive.js';
+import { fundDirectSuiteDeps, fundDirectV3Deps } from '../deals/fundDirectV3Live.js';
 import { chatFundingRefusal } from '../deals/chatDealGate.js';
 import { chatFundingDeps } from '../deals/chatFundingLive.js';
 import { moneyOutGuard } from '../moneyOut/live.js';
 import { refusalBody } from '../moneyOut/refusal.js';
 import { dealEscrowOps, escrowAddressOf } from '../deals/dealEscrowOpsLive.js';
+import { NothingDelivered } from '../deals/dealEscrowOps.js';
 import { splitMicros } from '../deals/arbiterV3.js';
 import {
   acceptEscrow as acceptEscrowOnChain,
@@ -249,7 +255,7 @@ async function fundingEscrowFor(deal: DirectDeal, jobId: string): Promise<Escrow
   } catch (err) {
     logger.warn({ jobId, err: (err as Error).message }, 'v2 escrow read failed; keeping the deal on v2');
   }
-  return chooseFundingEscrow(deal, { v3Enabled: v3FundingEnabled(), v2EscrowExists, priorAttempt });
+  return chooseFundingEscrow(deal, { suiteEnabled: suiteFundingEnabled(), v3Enabled: v3FundingEnabled(), v2EscrowExists, priorAttempt });
 }
 const payoutMovementKey = (jobId: string, milestoneIndex: number) =>
   `escrow_release:${jobId.toLowerCase()}:${milestoneIndex}`;
@@ -1762,10 +1768,13 @@ dealsRoutes.get('/direct/:jobId/funding-quote', async (c) => {
     );
   }
 
+  const fundingEscrow = await fundingEscrowFor(deal, jobId);
   const feeBps =
-    (await fundingEscrowFor(deal, jobId)) === 'v3'
-      ? await fundDirectV3Deps().readFeeBps()
-      : await getEscrowFeeBps({ fresh: true });
+    fundingEscrow === 'suite'
+      ? (await fundDirectSuiteDeps().readLimits()).feeBps
+      : fundingEscrow === 'v3'
+        ? await fundDirectV3Deps().readFeeBps()
+        : await getEscrowFeeBps({ fresh: true });
   return c.json({
     quote: buildDirectDealFundingQuote({ jobId, dealAmountUsdc: deal.dealAmountUsdc, feeBps }),
   });
@@ -2178,7 +2187,27 @@ dealsRoutes.post('/direct/:jobId/fund', async (c) => {
 
     const pass = await moneyOutGuard.check(outgoing);
     if (!pass.ok) return c.json(refusalBody(pass.refusal), 409);
-    if ((await fundingEscrowFor(latestDeal, jobId)) === 'v3') {
+    const fundingEscrow = await fundingEscrowFor(latestDeal, jobId);
+    if (fundingEscrow === 'suite') {
+      const deps = fundDirectSuiteDeps();
+      const suiteQuote = buildDirectDealFundingQuote({ jobId, dealAmountUsdc: latestDeal.dealAmountUsdc, feeBps: (await deps.readLimits()).feeBps });
+      if (!latestDeal.escrowDealId && !fundingAuthorizationMatches(suiteQuote, body)) {
+        return c.json({ error: 'the funding total changed before confirmation', code: 'QUOTE_CHANGED', quote: suiteQuote }, 409);
+      }
+      const result = await fundDirectDealSuite(deps, {
+        jobId,
+        // This branch is the escrow family only, so any stored terms are its terms.
+        deal: { ...latestDeal, escrowTerms: latestDeal.escrowTerms as StoredAgreementTerms | undefined, agreementDigest: agreementDigest(latestDeal) },
+        buyerAgent: { walletId: latestDeal.buyerAgentWalletId!, address: latestDeal.buyerAgentAddress! as `0x${string}` },
+        sellerAgent: { walletId: sellerAgents.sellerWalletId, address: sellerAgents.sellerAddress as `0x${string}` },
+        milestonePcts,
+        authorizedTotalMicros: parseUnits(body.maxFundedAmountUsdc, USDC_DECIMALS),
+        operationKey,
+      });
+      movementReference = typeof result.body.reference === 'string' ? result.body.reference : movementReference;
+      return c.json(result.body, result.status);
+    }
+    if (fundingEscrow === 'v3') {
       const deps = fundDirectV3Deps();
       const v3Quote = buildDirectDealFundingQuote({
         jobId,
@@ -2193,7 +2222,8 @@ dealsRoutes.post('/direct/:jobId/fund', async (c) => {
       }
       const result = await fundDirectDealV3(deps, {
         jobId,
-        deal: { ...latestDeal, agreementDigest: agreementDigest(latestDeal) },
+        // This branch is the v3 escrow only, so any stored terms are v3 terms.
+        deal: { ...latestDeal, escrowTerms: latestDeal.escrowTerms as StoredTermsV3 | undefined, agreementDigest: agreementDigest(latestDeal) },
         buyerAgent: {
           walletId: latestDeal.buyerAgentWalletId!,
           address: latestDeal.buyerAgentAddress! as `0x${string}`,
@@ -3045,6 +3075,9 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
       account = await dealEscrowOps.read(deal);
       logger.info({ jobId }, 'deliver self-healed Funded -> Accepted via acceptEscrow');
     } catch (err) {
+      if (err instanceof IdentityNeeded) {
+        return c.json({ error: err.message, code: err.code }, 409);
+      }
       const message = (err as Error).message;
       const lower = message.toLowerCase();
       const isInsufficientStake =
@@ -3844,6 +3877,9 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
       account = await dealEscrowOps.read(deal);
       logger.info({ jobId }, 'release self-healed Funded -> Accepted via acceptEscrow');
     } catch (err) {
+      if (err instanceof IdentityNeeded) {
+        return c.json({ error: 'The seller sets up their Karwan record before this deal can go on.', code: 'seller_record_needed' }, 409);
+      }
       const message = (err as Error).message;
       const lower = message.toLowerCase();
       const isInsufficientStake =
@@ -4618,6 +4654,7 @@ dealsRoutes.post('/direct/:jobId/appeal', async (c) => {
     notifyOperatorOfDispute(jobId, deal, callerRole);
     return c.json({ accepted: true, jobId, txHash: disputeTxHash }, 200);
   } catch (err) {
+    if (err instanceof NothingDelivered) return c.json({ error: err.message, code: 'NOT_DELIVERED' }, 409);
     const info = classifyAgentError(err);
     logger.error({ jobId, code: info.code, err: info.raw }, 'appeal failed');
     return c.json({ error: 'appeal failed', code: info.code, detail: info.message }, 502);
@@ -5532,7 +5569,24 @@ async function partyView(enriched: Awaited<ReturnType<typeof enrich>>, viewer: '
     logger.warn({ jobId: enriched.jobId, err: (err as Error).message }, 'counterparty trust card unavailable');
     return null;
   });
-  return { view: dealView(input, viewer, pendingMovement, Date.now()), counterpartyTrust };
+  const view = dealView(input, viewer, pendingMovement, Date.now());
+  return { view: { ...view, ...(await onBothRecordsOf(enriched, view.stage)) }, counterpartyTrust };
+}
+
+/// A settled suite deal reads "on both your records" once the record holds both
+/// sides' outcomes (true), waiting while an outcome is held back (false), and
+/// makes no claim when a side had no record when the deal was paid in (null).
+/// The first "both" read is kept so later views skip the chain.
+async function onBothRecordsOf(deal: DirectDeal, stage: string): Promise<{ onBothRecords?: boolean | null }> {
+  if (deal.escrowVersion !== 'suite' || !deal.escrowDealId) return {};
+  if (deal.onBothRecordsAt) return { onBothRecords: true };
+  if (stage !== 'settled') return {};
+  const outcome = await suiteOnBothRecords(deal.escrowDealId as `0x${string}`).catch((err) => {
+    logger.warn({ jobId: deal.jobId, err: (err as Error).message }, 'record read for a settled deal failed');
+    return 'pending' as const;
+  });
+  if (outcome === 'both') await patchDeal(deal.jobId, { onBothRecordsAt: Date.now() });
+  return { onBothRecords: outcome === 'both' ? true : outcome === 'pending' ? false : null };
 }
 
 /// Context a list passes so each deal does not re-read the whole deal table.

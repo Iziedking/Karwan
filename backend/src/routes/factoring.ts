@@ -50,6 +50,7 @@ import {
   isFactoringReceiptRetry,
   selectFactoringAdvanceTxHash,
 } from './factoringAcceptance.js';
+import { onOwnIdEscrow } from '../deals/dealEscrowOps.js';
 export { factoringAdvanceRecipient } from './factoringRecipient.js';
 
 /// Invoice factoring routes.
@@ -180,7 +181,7 @@ factoringRoutes.post('/request', async (c) => {
   // assigned by assigners that escrow authorises, and the financing contracts
   // point at the v2 escrow. Refuse rather than take an advance that could not
   // be repaid from settlement.
-  if (deal.escrowVersion === 'v3') {
+  if (onOwnIdEscrow(deal)) {
     return c.json({ error: 'financing is not available on this deal yet', code: 'FINANCING_NOT_ON_V3' }, 409);
   }
 
@@ -270,7 +271,7 @@ factoringRoutes.post('/withdraw-request', async (c) => {
   // assigned by assigners that escrow authorises, and the financing contracts
   // point at the v2 escrow. Refuse rather than take an advance that could not
   // be repaid from settlement.
-  if (deal.escrowVersion === 'v3') {
+  if (onOwnIdEscrow(deal)) {
     return c.json({ error: 'financing is not available on this deal yet', code: 'FINANCING_NOT_ON_V3' }, 409);
   }
   if (session.address.toLowerCase() !== deal.seller.toLowerCase()) {
@@ -446,7 +447,7 @@ factoringRoutes.post('/offer', async (c) => {
   // assigned by assigners that escrow authorises, and the financing contracts
   // point at the v2 escrow. Refuse rather than take an advance that could not
   // be repaid from settlement.
-  if (deal.escrowVersion === 'v3') {
+  if (onOwnIdEscrow(deal)) {
     return c.json({ error: 'financing is not available on this deal yet', code: 'FINANCING_NOT_ON_V3' }, 409);
   }
   // Finance-lane only. A P2P service deal between two persons is private and
@@ -913,7 +914,7 @@ factoringRoutes.post('/accept', async (c) => {
   // assigned by assigners that escrow authorises, and the financing contracts
   // point at the v2 escrow. Refuse rather than take an advance that could not
   // be repaid from settlement.
-  if (deal.escrowVersion === 'v3') {
+  if (onOwnIdEscrow(deal)) {
     return c.json({ error: 'financing is not available on this deal yet', code: 'FINANCING_NOT_ON_V3' }, 409);
   }
   // The registry pays the seller party stored in escrow. For managed SME

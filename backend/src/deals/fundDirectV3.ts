@@ -35,17 +35,19 @@ const BPS = 10_000n;
 /// version 1). A new check pipeline gets a new id; deals keep the one they funded with.
 export const CHECK_POLICY_V1: Hex = keccak256(toBytes('karwan-delivery-check:v1'));
 
-export type EscrowVersion = 'v2' | 'v3';
+export type EscrowVersion = 'v2' | 'v3' | 'suite';
 
 /// Which escrow a deal funds on. A deal never changes escrow once anything
 /// happened on one: a stamped version wins, and an unstamped deal with a v2
-/// escrow or an earlier attempt stays on v2 (v3 always stamps before it acts).
+/// escrow or an earlier attempt stays on v2 (v3 and the suite stamp before they
+/// act). New deals open on the escrow family when it is ready (view 27).
 export function chooseFundingEscrow(
   deal: { escrowVersion?: EscrowVersion },
-  ctx: { v3Enabled: boolean; v2EscrowExists: boolean; priorAttempt: boolean },
+  ctx: { suiteEnabled?: boolean; v3Enabled: boolean; v2EscrowExists: boolean; priorAttempt: boolean },
 ): EscrowVersion {
   if (deal.escrowVersion) return deal.escrowVersion;
   if (ctx.v2EscrowExists || ctx.priorAttempt) return 'v2';
+  if (ctx.suiteEnabled) return 'suite';
   return ctx.v3Enabled ? 'v3' : 'v2';
 }
 

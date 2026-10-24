@@ -103,7 +103,7 @@ import { supportRoutes, startSupportSweeper } from './routes/support.js';
 import { configureAgentKitResearch, configureResearchScoutEvidenceShadow, researchRoutes } from './routes/research.js';
 import { configureWorldIdProof, createPostgresWorldIdNullifierStore, verifyConfiguredWorldId, worldIdRoutes } from './routes/worldId.js';
 import type { IdKitResponseShape } from './worldid/idkitProof.js';
-import { isSessionSelf, sessionAddress } from './auth/session.js';
+import { isSessionSelf, readSession, sessionAddress } from './auth/session.js';
 import { getProfile, updateProfile } from './db/profiles.js';
 import { diagnoseRoutes } from './routes/diagnose.js';
 import { businessRoutes, businessAdminRoutes } from './routes/business.js';
@@ -111,6 +111,10 @@ import { verificationRoutes } from './routes/verification.js';
 import { createPersonVerificationRoutes } from './routes/personVerification.js';
 import { createMoneyOutRoutes } from './routes/moneyOut.js';
 import { createConfirmRoutes } from './routes/confirm.js';
+import { bootSuiteCheck } from './chain/suiteConfig.js';
+import { createRecordSetupRoutes } from './routes/recordSetup.js';
+import { suiteIdentity } from './identity/suiteIdentityLive.js';
+import { requirePresence } from './presence/live.js';
 import { confirmRouteDeps } from './presence/live.js';
 import { setupRoutes } from './routes/setup.js';
 import { moneyOutRouteDeps } from './moneyOut/live.js';
@@ -160,6 +164,7 @@ import { startFactoringWatcher } from './agents/factoringWatcher.js';
 import { startPOWatcher } from './agents/poWatcher.js';
 import { startJobExpiryWatcher } from './agents/jobExpiryWatcher.js';
 import { startReleaseWatcher } from './agents/releaseWatcher.js';
+import { startSuiteEarnings } from './deals/suiteEarningsLive.js';
 import { startCreEvidenceReconciler } from './evidence/creEvidenceReconciler.js';
 import { startCreAutoPublisher } from './evidence/creAutoPublication.js';
 import { startTrendScout } from './agents/trendScout.js';
@@ -536,6 +541,7 @@ app.route(
 );
 app.route('/api/money-out', createMoneyOutRoutes({ ...moneyOutRouteDeps, sessionAddress }));
 app.route('/api/confirm', createConfirmRoutes(confirmRouteDeps));
+app.route('/api/record', createRecordSetupRoutes({ identity: suiteIdentity, session: readSession, requirePresence }));
 app.route('/api/admin/verification', adminVerificationRoutes);
 app.route('/api/admin/account-deletions', createAdminAccountDeletionRoutes(() => accountDeletion));
 app.route('/api/r', createRecordRoutes(recordDeps));
@@ -691,6 +697,11 @@ function bootAgents() {
     stopFns.push(startReleaseWatcher());
   } catch (err) {
     appLogger.warn({ err: (err as Error).message }, 'release watcher not started');
+  }
+  try {
+    stopFns.push(startSuiteEarnings());
+  } catch (err) {
+    appLogger.warn({ err: (err as Error).message }, 'suite earnings mover not started');
   }
   try {
     if (config.CRE_EVIDENCE_RECONCILER_ENABLED) {
@@ -1404,6 +1415,9 @@ async function boot() {
 }
 
 void boot();
+
+/// New deals open on the escrow family only once its addresses check out on chain.
+void bootSuiteCheck();
 
 /// A wrong chain id is fatal in production (see chain/networkGuard.ts).
 void checkChain(() => publicClient.getChainId(), ARC.chainId).then((result) => {

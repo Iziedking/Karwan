@@ -69,6 +69,9 @@ export interface DealView {
   progress: Array<{ step: ProgressStep; state: 'done' | 'current' | 'upcoming'; at?: number }>;
   next: { action: NextAction; actor: Actor; amountUsdc: string | null };
   automatic: AutomaticOutcome;
+  /// Settled suite deals only: on both sides' records (true), waiting for the
+  /// record (false), or a side had no record when it was paid in (null).
+  onBothRecords?: boolean | null;
 }
 
 const MICROS = 1_000_000n;

@@ -3,6 +3,9 @@ import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { escrow, invalidateEscrowCache, readEscrow } from '../chain/contracts.js';
 import { dealEscrowV3, dealEscrowV3Address, readDealV3, readReviewEndV3 } from '../chain/dealEscrowV3Live.js';
+import { agreementEscrow, agreementEscrowAddress, readAgreementReviewEnd, readAgreementView } from '../chain/agreementEscrowLive.js';
+import { platformSigners } from '../chain/platformSignersLive.js';
+import { suiteIdentity } from '../identity/suiteIdentityLive.js';
 import {
   acceptEscrow,
   claimMilestone,
@@ -27,6 +30,21 @@ function v3Address(): Address {
 
 /// The escrow operations every route and watcher uses for a deal.
 export const dealEscrowOps = createDealEscrowOps({
+  suite:
+    agreementEscrow && agreementEscrowAddress
+      ? {
+          escrow: agreementEscrow,
+          readView: (id) => readAgreementView(agreementEscrowAddress!, id),
+          readReviewEnd: (id) => readAgreementReviewEnd(agreementEscrowAddress!, id),
+          ...(suiteIdentity ? { requireIdentity: suiteIdentity.requireIdentity } : {}),
+          ...(platformSigners
+            ? {
+                submitCheck: async (dealId, revision, pass, evidenceHash) =>
+                  (await platformSigners!.submitCheck({ dealId, revision, pass, evidenceHash })).txHash,
+              }
+            : {}),
+        }
+      : null,
   v3: dealEscrowV3,
   readV3: (id) => readDealV3(v3Address(), id),
   readV3ReviewEnd: (id) => readReviewEndV3(v3Address(), id),
