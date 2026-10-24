@@ -29,6 +29,9 @@ import { reportError } from '../errorTracker.js';
 import { bus } from '../events.js';
 import { alreadySuggested, paysForResearch, shouldSuggest, suggestionEvent, suggestionKey } from './suggestion.js';
 import { getRecord, putRecord } from '../db/evidence.js';
+import { createOfferRecordGate } from './offerRecordGate.js';
+import { suiteFundingEnabled } from '../chain/suiteConfig.js';
+import { suiteIdentity } from '../identity/suiteIdentityLive.js';
 import type { SellerProfile } from './seller-profile.js';
 import {
   MAX_COUNTER_ROUNDS,
@@ -252,6 +255,19 @@ export async function hydrateActiveBids(): Promise<void> {
 type DirectOfferLookup = (jobId: string, sellerAgent: string) => Promise<{ id: string } | null>;
 let directOfferLookup: DirectOfferLookup = findPendingDirectOfferByAgent;
 
+/// Selling agents offer only for owners with a Karwan record while new deals
+/// open on the escrow family; the owner is told once a day (offerRecordGate.ts).
+const offerRecordGate = createOfferRecordGate({
+  enabled: () => suiteFundingEnabled() && !!suiteIdentity,
+  requireIdentity: (user, role) => suiteIdentity!.requireIdentity(user, role),
+  lastTold: async (user) => (await getRecord<{ at: number }>('record-nudge', user).catch(() => null))?.at ?? null,
+  markTold: async (user, at) => {
+    await putRecord('record-nudge', user, { at }).catch(() => {});
+  },
+  emit: (e) => bus.emitEvent({ type: e.type, actor: 'platform', payload: e.payload }),
+  now: Date.now,
+});
+
 export const __listingBidTest = {
   setDirectOfferLookup(fn: DirectOfferLookup) {
     directOfferLookup = fn;
@@ -325,6 +341,9 @@ export async function submitListingBid(
   const key = bidKey(job.jobId, seller.address);
   if (activeBids.has(key)) {
     return { ok: false, reason: 'already-bid', message: 'This offer is already on the board.' };
+  }
+  if (!(await offerRecordGate.canOffer(seller.userAddress))) {
+    return { ok: false, reason: 'record-setup-needed', message: 'Set up your Karwan record first, so your deals count on it.' };
   }
   // The seller already named their own price on this request; a listing bid
   // from the same agent would overwrite it on chain.
@@ -1316,6 +1335,11 @@ async function evaluateAndBid(profile: SellerProfile, job: JobContext) {
       bus.emitEvent(suggestionEvent({ sellerUser: seller.userAddress, jobId: job.jobId, priceUsdc: opening.toFixed(2), title: requestTitle(job.briefText) ?? '' }));
       logger.info({ jobId: job.jobId, seller: seller.address }, 'ask me first: suggested to the owner, no bid');
     }
+    return;
+  }
+
+  if (!(await offerRecordGate.canOffer(seller.userAddress))) {
+    logger.info({ jobId: job.jobId, seller: seller.address }, 'no Karwan record yet: the owner was asked to set it up, no bid');
     return;
   }
 

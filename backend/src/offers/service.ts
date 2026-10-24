@@ -18,6 +18,9 @@ import {
 } from '../db/matchProposals.js';
 import { approveAgentMatch, getBuyerJob, getMarketplaceBriefs } from '../agents/buyer.js';
 import { abandonBid, submitDirectOfferBid } from '../agents/seller.js';
+import { suiteFundingEnabled } from '../chain/suiteConfig.js';
+import { IdentityNeeded } from '../identity/suiteIdentity.js';
+import { suiteIdentity } from '../identity/suiteIdentityLive.js';
 import { computeFunding, getEscrowFeeBps } from '../chain/contracts.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
@@ -52,6 +55,9 @@ export type OfferDeps = {
   withdrawAgentBid: (jobId: string, sellerAgent: string) => boolean;
   /// Price plus the buyer's share of the fee, as funded on chain.
   fundedUsdc: (priceUsdc: string) => Promise<string>;
+  /// False while new deals open on the escrow family and the seller has no
+  /// Karwan record yet: the deal would not count on it. Absent means ready.
+  recordReady?: (sellerUser: string) => Promise<boolean>;
 };
 
 const low = (s: string) => s.toLowerCase();
@@ -88,6 +94,16 @@ export const defaultDeps: OfferDeps = {
     const { fundedAmount } = computeFunding(parseUnits(priceUsdc, 6), await getEscrowFeeBps());
     return formatUnits(fundedAmount, 6);
   },
+  recordReady: async (sellerUser) => {
+    if (!suiteFundingEnabled() || !suiteIdentity) return true;
+    return suiteIdentity.requireIdentity(sellerUser, 'seller').then(
+      () => true,
+      (err) => {
+        if (err instanceof IdentityNeeded) return false;
+        throw err;
+      },
+    );
+  },
 };
 
 type Fail<S extends number> = { ok: false; status: S; code: string; message?: string };
@@ -112,6 +128,9 @@ export async function createOffer(
   if (!rule.ok) return { ok: false, status: 400, code: rule.code };
   const w = await deps.wallets(low(sellerUser));
   if (!w?.sellerWalletId || !w.sellerAddress) return { ok: false, status: 409, code: 'NEEDS_ACTIVATION' };
+  if (deps.recordReady && !(await deps.recordReady(low(sellerUser)))) {
+    return { ok: false, status: 409, code: 'record_setup_needed', message: 'Set up your Karwan record first, so this deal counts on it. It takes one confirmation.' };
+  }
   // One offer per seller per request. The seller's own price replaces their
   // agent's bid: the agent stops negotiating first, then this offer takes its
   // place on chain (same agent, so submitBid overwrites the old bid).

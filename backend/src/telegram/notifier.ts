@@ -85,6 +85,7 @@ function withLink(text: string, url: string | null): NotifySummary {
 
 export const RELEVANT = new Set([
   'agent.suggestion',
+  'record.setup_needed',
   'request.shortlist',
   'request.world_check',
   'deal.extension.requested',
@@ -235,7 +236,7 @@ export async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
   // updates marked worth a message.
   // Only the seller, once the buyer confirmed and is waiting on the seller's check.
   // "Ask me first": only the owner of the selling agent.
-  if (e.type === 'agent.suggestion') {
+  if (e.type === 'agent.suggestion' || e.type === 'record.setup_needed') {
     const owner = (e.payload?.sellerUser as string | undefined)?.toLowerCase();
     return owner ? [{ address: owner, role: 'seller' }] : [];
   }
@@ -369,6 +370,19 @@ export function summaryFor(e: KarwanEvent, role: string, locale: UserLocale = 'e
   const url = dealUrl(e.jobId);
 
   switch (e.type) {
+    case 'record.setup_needed': {
+      if (role !== 'seller') return null;
+      if (e.payload?.reason === 'deal') {
+        return withLink(
+          '*The buyer paid. Set up your Karwan record.*\nThe deal was paid in before your record was set up, so it will not count on your record; your next ones will. Reply "set up my record" and confirm on Karwan.',
+          dealUrl(e.jobId),
+        );
+      }
+      return withLink(
+        '*Set up your Karwan record so your agent can make offers.*\nEvery deal you take then counts on it. Reply "set up my record" and confirm on Karwan.',
+        null,
+      );
+    }
     case 'agent.suggestion': {
       if (role !== 'seller') return null;
       const title = (e.payload?.title as string | undefined) ?? '';

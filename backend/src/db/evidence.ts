@@ -11,7 +11,7 @@ import { pgEnabled, postgresExecutor } from './client.js';
 ///   dm-history key = address    who someone messaged first by tag, and who replied
 ///   ratings-asked key = deal id who was asked to rate a deal, reminded, and told of the reveal
 ///   suggested  key = owner|request  "ask me first" already told this owner about this request
-export type RecordKind = 'facts' | 'fp' | 'nullifier' | 'confirm' | 'cac' | 'rc' | 'delivery-q' | 'dm-history' | 'ratings-asked' | 'suggested';
+export type RecordKind = 'facts' | 'fp' | 'nullifier' | 'confirm' | 'cac' | 'rc' | 'delivery-q' | 'dm-history' | 'ratings-asked' | 'suggested' | 'record-nudge';
 type UniqueKind = 'fp' | 'nullifier' | 'rc';
 
 const memory = new Map<string, unknown>();

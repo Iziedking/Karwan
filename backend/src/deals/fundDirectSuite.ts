@@ -309,7 +309,7 @@ async function activate(
     await deps.requireIdentity(deal.seller, 'seller');
   } catch (err) {
     if (!(err instanceof IdentityNeeded)) throw err;
-    deps.emit({ type: 'deal.seller_record_needed', jobId, actor: 'platform', payload: { seller: deal.seller, escrowDealId: s.escrowDealId } });
+    deps.emit({ type: 'record.setup_needed', jobId, actor: 'platform', payload: { sellerUser: deal.seller.toLowerCase(), reason: 'deal', jobId, escrowDealId: s.escrowDealId } });
     return {
       status: 200,
       body: { accepted: false, jobId, status: 'funded', escrowDealId: s.escrowDealId, reference: s.reference, sellerRecordNeeded: true, ...(s.fundTxHash ? { txHash: s.fundTxHash } : {}) },

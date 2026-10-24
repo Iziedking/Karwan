@@ -126,6 +126,9 @@ import { findProfileByEmail, getProfile } from '../db/profiles.js';
 import { partyLabel } from '../deals/partyLabel.js';
 import { deliveryCheckState } from '../deals/deliveryCheckState.js';
 import { provisionUserAgentWallets } from '../circle/wallets.js';
+import { ensureUserAgentWallets } from '../circle/userAgents.js';
+import { sellerRecordNeeded } from '../deals/sellerRecordGate.js';
+import { suiteIdentity } from '../identity/suiteIdentityLive.js';
 import { seedAgentFromOperator } from '../chain/agentSeed.js';
 import { bus, recentEventsByType } from '../events.js';
 import { addSystemMessage } from '../chat/systemMessages.js';
@@ -1971,34 +1974,18 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
   if (deal.sellerApprovedAt) {
     return c.json({ accepted: true, jobId, status: 'seller-approved' as const }, 200);
   }
+  const recordNeeded = await sellerRecordNeeded(deal, {
+    fundsOnSuite: async () => (await fundingEscrowFor(deal, jobId)) === 'suite',
+    requireIdentity: (user, role) => suiteIdentity!.requireIdentity(user, role),
+  });
+  if (recordNeeded) return c.json(recordNeeded, 409);
   if (inFlight.has(jobId)) {
     return c.json({ error: 'an action is already in progress for this deal' }, 409);
   }
 
   inFlight.add(jobId);
   try {
-    let sellerAgents = await getAgentWallets(deal.seller);
-    if (!sellerAgents) {
-      const provisioned = await provisionUserAgentWallets(deal.seller);
-      sellerAgents = await saveAgentWallets({ userAddress: deal.seller, ...provisioned });
-      void seedAgentFromOperator(sellerAgents.buyerAddress, {
-        owner: sellerAgents.userAddress,
-        agent: 'buyer',
-      });
-      void seedAgentFromOperator(sellerAgents.sellerAddress, {
-        owner: sellerAgents.userAddress,
-        agent: 'seller',
-      });
-      bus.emitEvent({
-        type: 'agent.activated',
-        actor: 'platform',
-        payload: {
-          user: deal.seller,
-          buyer: sellerAgents.buyerAddress,
-          seller: sellerAgents.sellerAddress,
-        },
-      });
-    }
+    const sellerAgents = await ensureUserAgentWallets(deal.seller);
 
     const sellerApprovedAt = Date.now();
     const approval = await approveSellerAgreement(

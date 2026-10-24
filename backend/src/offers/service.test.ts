@@ -101,6 +101,15 @@ test('seller without agent wallets is told to activate', async () => {
   assert.deepEqual(!r.ok && { s: r.status, c: r.code }, { s: 409, c: 'NEEDS_ACTIVATION' });
 });
 
+test('a_seller_without_a_record_sets_it_up_before_their_offer_goes_on_the_board', async () => {
+  __resetDirectOffersForTest();
+  const d = deps({ recordReady: async () => false });
+  const r = await createOffer('0xseller', JOB, input, d);
+  assert.deepEqual(!r.ok && { s: r.status, c: r.code }, { s: 409, c: 'record_setup_needed' });
+  assert.deepEqual(d.calls, [], 'no offer goes on chain');
+  assert.equal((await listDirectOffers(JOB)).length, 0);
+});
+
 test('rule violations come back as 400 with the rule code', async () => {
   __resetDirectOffersForTest();
   const r = await createOffer('0xbuyer', JOB, input, deps());

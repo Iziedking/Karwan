@@ -115,6 +115,17 @@ test('ask me first emails the seller a link to the request, and nobody else', ()
   assert.equal(contentFor(suggestion, 'buyer', 'service'), null);
 });
 
+test('a seller asked to set up their record gets one plain email, and nobody else', () => {
+  const offers = { type: 'record.setup_needed', actor: 'platform', ts: 0, payload: { sellerUser: '0xowner', reason: 'offers' } } as unknown as KarwanEvent;
+  const toSeller = contentFor(offers, 'seller', 'service');
+  assert.ok(toSeller);
+  assert.equal(toSeller.subject, 'Set up your Karwan record so your agent can make offers');
+  assert.doesNotMatch(toSeller.body, /stake|vault|yield|escrow family|—/i);
+  assert.equal(contentFor(offers, 'buyer', 'service'), null);
+  const paidFirst = { type: 'record.setup_needed', jobId: '0xdeal', actor: 'platform', ts: 0, payload: { sellerUser: '0xowner', reason: 'deal' } } as unknown as KarwanEvent;
+  assert.match(contentFor(paidFirst, 'seller', 'service')!.body, /will not count on your record/);
+});
+
 test('a financier whose offer is short hears how much to add', () => {
   const short = {
     type: 'factoring.funding_needed', actor: 'platform', ts: 0,

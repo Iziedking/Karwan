@@ -51,6 +51,7 @@ function financierUrl(): string | undefined {
 // High-signal events only. Keep this list short on purpose.
 const EMAIL_RELEVANT = new Set([
   'agent.suggestion',
+  'record.setup_needed',
   'deal.extension.requested',
   'deal.dispute.statement',
   'deal.dispute.statement.due',
@@ -164,8 +165,8 @@ async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
     return buyer ? [{ address: buyer, role: 'buyer' }] : [];
   }
-  if (e.type === 'agent.suggestion') {
-    // "Ask me first": only the owner of the selling agent.
+  if (e.type === 'agent.suggestion' || e.type === 'record.setup_needed') {
+    // "Ask me first", and the record reminder: only the seller it is about.
     const owner = (e.payload?.sellerUser as string | undefined)?.toLowerCase();
     return owner ? [{ address: owner, role: 'seller' }] : [];
   }
@@ -400,6 +401,28 @@ export function contentFor(
             ctaLabel: 'Open the deal',
             ctaUrl: dealUrl(e.jobId),
           };
+    }
+    case 'record.setup_needed': {
+      if (role !== 'seller') return null;
+      const b = base();
+      if (e.payload?.reason === 'deal') {
+        return {
+          kicker: 'Your deal',
+          subject: 'The buyer paid. Set up your Karwan record',
+          heading: 'One step on your side',
+          body: 'The buyer paid this deal in before your Karwan record was set up. Set it up and carry on: this deal will not count on your record, and your next ones will. Ask the assistant to set up your record; it takes one confirmation.',
+          ctaLabel: 'Open the deal',
+          ctaUrl: dealUrl(e.jobId),
+        };
+      }
+      return {
+        kicker: 'Your agent',
+        subject: 'Set up your Karwan record so your agent can make offers',
+        heading: 'One step before your agent offers',
+        body: 'Your selling agent makes offers once your Karwan record is set up, so every deal you take counts on it. Ask the assistant to set up your record; it takes one confirmation.',
+        ctaLabel: 'Open the assistant',
+        ctaUrl: b ? `${b}/assistant` : undefined,
+      };
     }
     case 'agent.suggestion': {
       if (role !== 'seller') return null;

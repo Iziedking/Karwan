@@ -186,5 +186,5 @@ test('a_seller_without_a_record_leaves_the_deal_funded_and_is_asked', async () =
   assert.equal(r.status, 200);
   assert.equal(r.body.sellerRecordNeeded, true);
   assert.deepEqual(w.calls, ['approve', 'fund']);
-  assert.ok(w.events.includes('deal.seller_record_needed'));
+  assert.ok(w.events.includes('record.setup_needed'));
 });

@@ -16,6 +16,8 @@ export interface DealLiveCopy {
   /// Escrow-family deals: once the record holds both sides' outcomes, and before.
   onBothRecords: string;
   recordPending: string;
+  /// The seller's agree sheet when their Karwan record is set up first.
+  recordFirst: string;
   again: string;
   autoReleaseYou: string;
   reclaimYou: string;
@@ -36,6 +38,7 @@ export const dealLiveCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealLiveCopy
     completeBody: 'It now counts on both of your records.',
     onBothRecords: 'Paid. On both your records.',
     recordPending: 'Your records update once the network confirms.',
+    recordFirst: 'Your Karwan record is set up first, so this deal counts on it. Your buying agent can then pay up to 1,005 USDC at a time and 10,000 USDC in total for one year.',
     again: 'Start another deal with {name}',
     autoReleaseYou: "Releases automatically on {date} unless you raise a problem.",
     reclaimYou: "If nothing is delivered, you can take your money back from {date}.",
@@ -54,6 +57,7 @@ export const dealLiveCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealLiveCopy
     completeBody: 'Il compte désormais dans vos deux historiques.',
     onBothRecords: 'Payé. Inscrit dans vos deux historiques.',
     recordPending: 'Vos historiques se mettent à jour dès que le réseau confirme.',
+    recordFirst: 'Votre historique Karwan est d’abord créé, pour que cet accord y compte. Votre agent d’achat pourra ensuite payer jusqu’à 1 005 USDC par paiement et 10 000 USDC au total pendant un an.',
     again: 'Nouvel accord avec {name}',
     autoReleaseYou: "Libération automatique le {date}, sauf si vous signalez un problème.",
     reclaimYou: "Sans livraison, vous pouvez reprendre votre argent à partir du {date}.",
@@ -72,6 +76,7 @@ export const dealLiveCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealLiveCopy
     completeBody: 'أصبحت تُحتسب الآن في سجلّيكما.',
     onBothRecords: 'تم الدفع. مُسجّل في سجلّيكما.',
     recordPending: 'يُحدَّث سجلّاكما حين تؤكد الشبكة.',
+    recordFirst: 'يُنشأ سجلّك في كاروان أولاً، لتُحتسب هذه الصفقة فيه. بعدها يستطيع وكيل الشراء الدفع حتى 1,005 USDC في كل مرة و10,000 USDC إجمالاً لمدة سنة.',
     again: 'صفقة جديدة مع {name}',
     autoReleaseYou: "تُصرف تلقائيًا في {date} ما لم تُبلغ عن مشكلة.",
     reclaimYou: "إن لم يُسلَّم شيء، يمكنك استرداد مالك اعتبارًا من {date}.",
@@ -90,6 +95,7 @@ export const dealLiveCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealLiveCopy
     completeBody: 'अब यह आप दोनों के रिकॉर्ड में गिना जाता है।',
     onBothRecords: 'भुगतान हुआ। आप दोनों के रिकॉर्ड में दर्ज।',
     recordPending: 'नेटवर्क की पुष्टि होते ही आपके रिकॉर्ड अपडेट होंगे।',
+    recordFirst: 'पहले आपका Karwan रिकॉर्ड बनता है, ताकि यह सौदा उसमें गिना जाए। फिर आपका ख़रीद एजेंट एक बार में 1,005 USDC तक और एक साल में कुल 10,000 USDC तक भुगतान कर सकता है।',
     again: '{name} के साथ नया सौदा',
     autoReleaseYou: "{date} को अपने आप जारी होगा, जब तक आप कोई समस्या न बताएँ।",
     reclaimYou: "अगर कुछ डिलीवर नहीं हुआ, तो आप {date} से अपना पैसा वापस ले सकते हैं।",
@@ -108,6 +114,7 @@ export const dealLiveCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealLiveCopy
     completeBody: 'Sasa unahesabiwa kwenye rekodi zenu zote mbili.',
     onBothRecords: 'Imelipwa. Imo kwenye rekodi zenu zote mbili.',
     recordPending: 'Rekodi zenu zitasasishwa mtandao ukithibitisha.',
+    recordFirst: 'Rekodi yako ya Karwan inaundwa kwanza, ili mkataba huu uhesabiwe humo. Kisha wakala wako wa ununuzi anaweza kulipa hadi USDC 1,005 kwa mara moja na USDC 10,000 kwa jumla kwa mwaka mmoja.',
     again: 'Mkataba mpya na {name}',
     autoReleaseYou: "Inatolewa yenyewe tarehe {date} usipoibua tatizo.",
     reclaimYou: "Kama hakuna kilichowasilishwa, unaweza kurudisha pesa zako kuanzia {date}.",

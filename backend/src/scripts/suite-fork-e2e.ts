@@ -197,6 +197,18 @@ async function full(): Promise<void> {
         seller: { address: accounts[p.seller]!.address, walletId: p.seller },
       };
     },
+    // The fork's agents are plain key wallets: always able to sign, nothing to deploy.
+    ensureWallets: async (user) => {
+      const p = people[user.toLowerCase()];
+      if (!p) return null;
+      return {
+        identity: { address: accounts[p.identity]!.address, walletId: p.identity },
+        buyer: { address: accounts[p.buyer]!.address, walletId: p.buyer },
+        seller: { address: accounts[p.seller]!.address, walletId: p.seller },
+      };
+    },
+    isDeployed: async () => true,
+    deployAgent: async () => undefined,
     signTypedData: (walletId, typed) => accounts[walletId]!.signTypedData!(typed),
     execute: async (walletId, fn, args) => ({ txHash: await sendAs(walletId, D.identity!, registryAbi, fn, args) }),
   });

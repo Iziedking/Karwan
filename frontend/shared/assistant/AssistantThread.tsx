@@ -19,6 +19,8 @@ import type { SetupAnswers } from '@/features/setup/setupSteps';
 import type { AgentWays } from '@/features/profile/ways';
 import { tidyAssistantText } from '@/shared/utils/assistantText';
 import { confirmTransaction } from '@/shared/chain/confirmTx';
+import { runRecordSetup } from '@/features/record/runRecordSetup';
+import { useWalletCalls } from '@/features/record/useWalletCalls';
 import {
   ARC_EXPLORER_TX,
   ARC_CHAIN_ID,
@@ -378,22 +380,8 @@ async function runConfirmIntent(
     };
   }
   if (action.intent === 'set_up_record') {
-    // A held wallet: Karwan signs after the person confirms it is them (the
-    // confirmation sheet opens from the request). Their own wallet: they sign
-    // the prepared calls; the bindings are prepared only once the record exists.
-    for (let round = 0; round < 3; round++) {
-      const status = await api.recordSetupStatus();
-      if (!status.available) throw new Error('Records are not open on this network yet.');
-      if (status.complete) return { successText: 'Your Karwan record is set up.', viewHref: '/profile', viewLabel: 'Your profile' };
-      if (!status.calls) {
-        const r = await api.recordSetup();
-        if (r.complete) return { successText: 'Your Karwan record is set up.', viewHref: '/profile', viewLabel: 'Your profile' };
-        throw new Error('Waiting for the network to confirm. Try again in a moment.');
-      }
-      if (!deps.sendWalletCalls) throw new Error('Open Karwan in your browser to sign this in your wallet.');
-      await deps.sendWalletCalls(status.calls);
-    }
-    throw new Error('Waiting for the network to confirm. Try again in a moment.');
+    await runRecordSetup(deps.sendWalletCalls);
+    return { successText: 'Your Karwan record is set up.', viewHref: '/profile', viewLabel: 'Your profile' };
   }
   if (action.intent === 'fund_direct_deal') {
     const p = action.payload as { jobId: string; caller: string; maxFundedAmountUsdc: string };
@@ -917,25 +905,7 @@ function ConfirmCard({
       arcPublicClient,
     ],
   );
-  // Setting up a Karwan record from a wallet the person holds: the backend
-  // prepares each call, the wallet signs it on Arc, and each waits to land.
-  const sendWalletCalls = useCallback(
-    async (calls: Array<{ to: `0x${string}`; data: `0x${string}` }>) => {
-      if (!wagmiAddress || !connector) {
-        openConnectModal?.();
-        throw new Error('Connect your wallet, then confirm again.');
-      }
-      if (chainId !== ARC_CHAIN_ID) await switchChainAsync({ chainId: ARC_CHAIN_ID });
-      if (!walletClient || !arcPublicClient) throw new Error('Wallet client unavailable');
-      for (const call of calls) {
-        const txHash = await walletClient.sendTransaction({ to: call.to, data: call.data, chain: walletClient.chain, account: wagmiAddress });
-        const outcome = await confirmTransaction(arcPublicClient, txHash);
-        if (outcome.state === 'reverted') throw new Error('The network rejected this step. Nothing else was sent.');
-        if (outcome.state === 'pending') throw new Error('Waiting for the network to confirm. Try again in a moment.');
-      }
-    },
-    [wagmiAddress, connector, openConnectModal, chainId, switchChainAsync, walletClient, arcPublicClient],
-  );
+  const sendWalletCalls = useWalletCalls();
   const startGatewayDeposit = useCallback(
     async (input: { sourceChainKey: string; amountUsdc: number }) => {
       if (!wagmiAddress || !connector) {

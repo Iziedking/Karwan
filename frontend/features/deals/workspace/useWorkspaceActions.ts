@@ -1,6 +1,8 @@
 'use client';
 import { useCallback, useRef, useState } from 'react';
-import { api, ApiError, type DirectDeal, type DirectDealFundingQuote } from '@/core/api';
+import { api, ApiError, ConfirmCancelled, type DirectDeal, type DirectDealFundingQuote } from '@/core/api';
+import { recordSetupNeeded, runRecordSetup } from '@/features/record/runRecordSetup';
+import { useWalletCalls } from '@/features/record/useWalletCalls';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { classifyConfirmError, dealMovedSinceSnapshot, snapshotDeal, type ConfirmSnapshot } from './confirmLogic';
@@ -22,6 +24,9 @@ export interface SheetState {
   /// freshly refetched one, so the total the buyer approved is the total that
   /// gets authorized.
   quote: DirectDealFundingQuote | null;
+  /// Accept only: the seller's Karwan record is set up first (deals on the
+  /// escrow family count on a record only if it exists before payment).
+  recordFirst?: boolean;
 }
 
 const HANDOFF: readonly Handoff[] = ['deliver', 'respond-extension', 'respond-cancel', 'dispute'];
@@ -38,6 +43,8 @@ export function useWorkspaceActions(
   const { locale } = useLocale();
   const { activated } = useActivation();
   const fundingQuote = useFundingQuote(jobId);
+  const live = useTranslations().dealLive;
+  const sendWalletCalls = useWalletCalls();
   const [sheet, setSheet] = useState<SheetState | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -89,13 +96,20 @@ export function useWorkspaceActions(
     }
 
     if (next.action === 'accept') {
-      setSheet({
+      const base: SheetState = {
         action: 'accept',
         title: activated ? copy.actions.accept : dd.acceptConsentModal.title,
         consequence: activated ? copy.consequence.accept : dd.acceptConsentModal.body,
         irreversible: false,
         snapshot,
         quote: null,
+      };
+      setSheet(base);
+      void recordSetupNeeded().then((needed) => {
+        if (!needed) return;
+        setSheet((current) => (current?.action === 'accept'
+          ? { ...current, recordFirst: true, consequence: `${base.consequence} ${live.recordFirst}` }
+          : current));
       });
       return;
     }
@@ -108,7 +122,7 @@ export function useWorkspaceActions(
       snapshot,
       quote: null,
     });
-  }, [deal, address, locale, copy, dd, displayName, activated, fundingQuote]);
+  }, [deal, address, locale, copy, dd, live, displayName, activated, fundingQuote]);
 
   const confirm = useCallback(async () => {
     if (!deal || !address || !sheet || busyRef.current) return;
@@ -127,11 +141,20 @@ export function useWorkspaceActions(
         return;
       }
       if (sheet.action === 'accept') {
-        await api.acceptDirectDeal(deal.jobId, {
+        const accept = () => api.acceptDirectDeal(deal.jobId, {
           caller: address,
-          expectedAgreementVersion: deal.agreementVersion,
-          expectedAgreementDigest: deal.agreementDigest,
+          expectedAgreementVersion: deal.agreementVersion!,
+          expectedAgreementDigest: deal.agreementDigest!,
         });
+        if (sheet.recordFirst) await runRecordSetup(sendWalletCalls);
+        try {
+          await accept();
+        } catch (err) {
+          // The record was needed after all (set up elsewhere and undone, or not read in time).
+          if (!(err instanceof ApiError && err.code === 'record_setup_needed')) throw err;
+          await runRecordSetup(sendWalletCalls);
+          await accept();
+        }
       } else if (sheet.action === 'fund') {
         if (!sheet.quote) return;
         await api.fundDirectDeal(deal.jobId, {
@@ -189,7 +212,9 @@ export function useWorkspaceActions(
           setError(message?.trim() ? message : copy.confirm.failed);
         }
       } else if (sheet.action === 'accept') {
-        setError(message?.trim() ? message : dd.errors.approvalFailed);
+        // Closing the confirmation sheet is a choice, not a failure.
+        if (err instanceof ConfirmCancelled) return;
+        setError(message?.trim() ? message : err instanceof Error && err.message ? err.message : dd.errors.approvalFailed);
       } else {
         setError(message?.trim() ? message : dd.actionPanel.releaseBlocked.skipFailed);
       }
@@ -197,7 +222,7 @@ export function useWorkspaceActions(
       busyRef.current = false;
       setBusy(false);
     }
-  }, [deal, address, sheet, refresh, copy, dd, fundingQuote, locale, viewerIsBuyer]);
+  }, [deal, address, sheet, refresh, copy, dd, fundingQuote, locale, viewerIsBuyer, sendWalletCalls]);
 
   const close = useCallback(() => {
     if (busy) return;

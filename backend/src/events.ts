@@ -116,6 +116,8 @@ export type KarwanEventType =
   /// "Ask me first": the selling agent found a request that fits and asks its
   /// owner instead of offering. Party: `sellerUser` only (agents/suggestion.ts).
   | 'agent.suggestion'
+  /// A seller is asked to set up their Karwan record: their agent waits to offer, or a deal was paid in before they had one.
+  | 'record.setup_needed'
   | 'agent.declined'
   | 'agent.error'
   | 'agent.fallback'

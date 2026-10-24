@@ -1,7 +1,8 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import type { DirectDeal } from '../core/api';
 import { dealLiveCopy } from '../shared/i18n/messages/dealLive';
-import { JOB, deliveredDeal, serveDeal } from './fixtures';
+import { en } from '../shared/i18n/messages/en';
+import { JOB, SELLER, deliveredDeal, serveDeal } from './fixtures';
 import { API, funded, serveMoney } from './moneyFixtures';
 
 /// The escrow family's two new surfaces (plan 2, Task 14 step 1): the record
@@ -107,3 +108,42 @@ for (const [theme, locale] of [['light', 'en'], ['dark', 'en'], ['light', 'ar'],
     }
   });
 }
+
+test('the seller sets up their record before agreeing, and the buyer pays as usual after', async ({ page }) => {
+  const awaitingAcceptance = {
+    ...deliveredDeal,
+    delivered: false,
+    deliveredAt: undefined,
+    sellerApprovedAt: undefined,
+    acceptedAt: undefined,
+    onChain: undefined,
+    view: {
+      stage: 'awaiting-acceptance',
+      money: { line: 'not-funded' },
+      progress: [{ step: 'agreed', state: 'current' }, { step: 'funded', state: 'upcoming' }, { step: 'released', state: 'upcoming' }],
+      next: { action: 'accept', actor: 'you', amountUsdc: null },
+      automatic: null,
+    },
+  } as unknown as DirectDeal;
+  await serveDeal(page, awaitingAcceptance, SELLER);
+  const order: string[] = [];
+  let recordDone = false;
+  await page.route(`${API}/api/record/setup`, async (route) => {
+    if (route.request().method() === 'POST') {
+      order.push('record');
+      recordDone = true;
+      return route.fulfill({ json: { complete: true } });
+    }
+    return route.fulfill({ json: { available: true, complete: recordDone } });
+  });
+  await page.route(`${API}/api/deals/direct/${JOB}/accept`, async (route) => {
+    order.push('agree');
+    return route.fulfill({ json: { accepted: true, jobId: JOB, status: 'seller-approved' } });
+  });
+  await page.goto(`/deals/${JOB}`);
+  await page.getByRole('button', { name: en.dealWorkspace.actions.accept, exact: true }).click();
+  const sheet = page.getByRole('dialog');
+  await expect(sheet).toContainText(dealLiveCopy.en.recordFirst);
+  await sheet.getByRole('button', { name: en.dealWorkspace.confirm.confirm, exact: true }).click();
+  await expect.poll(() => order).toEqual(['record', 'agree']);
+});

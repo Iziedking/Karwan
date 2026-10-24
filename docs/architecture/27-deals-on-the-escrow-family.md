@@ -47,10 +47,11 @@ sequenceDiagram
   participant K as Karwan backend
   participant ID as Identity registry
 
-  P->>A: First money step (pay, or accept a deal)
+  P->>A: First money step (pay), or agreeing to a deal's terms as the seller
   A->>K: Prepare the step
   K->>ID: Does this wallet belong to an identity?
   ID-->>K: No
+  K->>K: An agent wallet never used yet makes one harmless call first, so it can sign
   A-->>P: One card: "Set up your Karwan record", with the buying agent's limits
   P->>K: Confirms with a passkey, face or fingerprint, or a PIN
   P->>ID: The identity wallet registers (web3: the person signs; others: Karwan signs)
@@ -148,6 +149,9 @@ A seller with a funded deal can take an advance from a financier, as view 18 set
 | Where | What fails | What happens |
 |---|---|---|
 | First money step | The wallet has no identity | The core asks the person to set up their record first; nothing is paid until it exists |
+| A seller agrees to a deal's terms | The seller has no record yet | They set it up first, then agree; the buyer pays as usual. A deal paid in before the seller has a record still runs, but does not count on the seller's record, because the escrow notes each side's record when the money goes in |
+| A matched request | The seller has no record yet | Their selling agent does not offer on new requests and tells them once to set up their record |
+| Record setup | An agent wallet has never been used | It makes one harmless call first, because a wallet provider cannot sign for a wallet that is not yet on chain |
 | Paying | Over the per-deal cap, the family paused, or not enough USDC | Refused before anything is signed, with the reason and the limit in words |
 | Any transaction | A wallet provider reports done but the call reverted inside | The step is done only when the receipt shows the expected event and a fresh read agrees; otherwise it is flagged and retried from the chain state |
 | Accepting | The seller sees terms that differ from the ones paid for | The escrow refuses: acceptance is for the exact terms fingerprint |
@@ -177,6 +181,10 @@ Before any code, and logged in `docs/arc-circle-checks.md`:
 2. **Chat account limits:** up to 1,005 USDC per payment, 10,000 USDC in total and a one-year expiry, all shown on the card before the person confirms.
 3. **Switch-over:** all new testnet deals move to the family at once; the current escrow keeps only the deals already open on it.
 4. **Checkers:** Karwan runs the three checker keys on testnet; outside checkers join later through the timelock.
+
+## Decided by the owner, 24 Oct 2026
+
+5. **A seller sets up their record before their first deal is paid in:** when they agree to a deal's terms, and before their selling agent offers on a request. The escrow notes each side's record when the money goes in, so this is how every deal a seller takes counts on their record. A deal paid in before the seller has a record stays possible as a fallback; it runs normally but does not count on the seller's record.
 
 ## Status
 

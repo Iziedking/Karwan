@@ -132,6 +132,8 @@ export const NOTIFY_TYPES = new Set([
   'trend.match',
   // "Ask me first": the viewer's own agent found a request (no jobId on the event).
   'agent.suggestion',
+  // The viewer is asked to set up their Karwan record (addressed by sellerUser).
+  'record.setup_needed',
   // A seller answered the viewer's request. Routed to the poster by payload.
   'offer.created',
   // The deal under a position the viewer financed (financedDeal.ts).
@@ -188,6 +190,7 @@ export const RECIPIENT: Record<string, Role | 'both'> = {
   'listing.matched': 'seller',
   'trend.match': 'seller', // rising-demand nudge, addressed to the matching seller
   'agent.suggestion': 'seller', // ask me first: the seller decides on the offer
+  'record.setup_needed': 'seller', // the seller sets up their Karwan record
   'agent.declined': 'buyer',
   // Direct flow.
   'deal.direct.created': 'seller', // buyer just created it; the seller must act

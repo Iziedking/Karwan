@@ -21,28 +21,43 @@ const YEAR = 365 * 86_400;
 
 interface Binding { id: bigint; kind: number; expiry: bigint }
 
-function harness(opts: { custodial?: boolean } = {}) {
+function harness(opts: { custodial?: boolean; undeployed?: Hex[]; neverDeploys?: boolean; noAgentsYet?: boolean } = {}) {
   const bindings = new Map<string, Binding>();
   const nonces = new Map<string, bigint>();
   const sent: Array<{ walletId: string; fn: string; args: unknown[] }> = [];
   const signed: Array<{ walletId: string; digest: Hex }> = [];
   let count = 0n;
   let revertNext = false;
+  const deployed = new Set([BUYER, SELLER].filter((a) => !(opts.undeployed ?? []).includes(a)));
+  const deploys: string[] = [];
+  let agentsMade = !opts.noAgentsYet;
+  const person = (user: string) =>
+    user.toLowerCase() === PERSON && agentsMade
+      ? {
+          identity: { address: PERSON, walletId: opts.custodial === false ? null : 'identity-w' },
+          buyer: { address: BUYER, walletId: 'buyer-w' },
+          seller: { address: SELLER, walletId: 'seller-w' },
+        }
+      : null;
   const ports: IdentityPorts = {
     registry: REGISTRY,
     chainId: 5042002,
     now: () => NOW,
     binding: async (w) => bindings.get(w.toLowerCase()) ?? { id: 0n, kind: 0, expiry: 0n },
     nonce: async (w) => nonces.get(w.toLowerCase()) ?? 0n,
-    wallets: async (user) =>
-      user.toLowerCase() === PERSON
-        ? {
-            identity: { address: PERSON, walletId: opts.custodial === false ? null : 'identity-w' },
-            buyer: { address: BUYER, walletId: 'buyer-w' },
-            seller: { address: SELLER, walletId: 'seller-w' },
-          }
-        : null,
+    wallets: async (user) => person(user),
+    ensureWallets: async (user) => {
+      if (user.toLowerCase() === PERSON) agentsMade = true;
+      return person(user);
+    },
+    isDeployed: async (address) => deployed.has(address),
+    deployAgent: async (walletId, address) => {
+      deploys.push(walletId);
+      if (!opts.neverDeploys) deployed.add(address);
+    },
     signTypedData: async (walletId, typed) => {
+      // Circle cannot sign for a smart account before its first transaction.
+      if (!deployed.has(typed.message.wallet as Hex)) throw new Error('wallet not deployed');
       signed.push({ walletId, digest: hashTypedData(typed as never) });
       return `0x${'51'.repeat(65)}` as Hex;
     },
@@ -62,7 +77,7 @@ function harness(opts: { custodial?: boolean } = {}) {
       return { txHash: `0x${'01'.repeat(32)}` };
     },
   };
-  return { ports, bindings, nonces, sent, signed, identity: createSuiteIdentity(ports), revert: () => { revertNext = true; } };
+  return { ports, bindings, nonces, sent, signed, deploys, identity: createSuiteIdentity(ports), revert: () => { revertNext = true; } };
 }
 
 test('status_reads_identity_and_both_bindings', async () => {
@@ -166,4 +181,27 @@ test('require_identity_names_what_is_missing', async () => {
   await assert.rejects(h.identity.requireIdentity(PERSON, 'buyer'), (e: unknown) => e instanceof IdentityNeeded && e.code === 'record_setup_needed');
   await assert.rejects(h.identity.requireIdentity(PERSON, 'seller'), (e: unknown) => e instanceof IdentityNeeded && e.code === 'record_setup_needed');
   await assert.rejects(h.identity.requireIdentity(`0x${'cc'.repeat(20)}`, 'buyer'), (e: unknown) => e instanceof IdentityNeeded && e.code === 'record_setup_needed');
+});
+
+test('a_new_agent_is_deployed_before_it_signs', async () => {
+  const h = harness({ undeployed: [SELLER] });
+  await h.identity.setUpIdentityForCustodial(PERSON);
+  assert.deepEqual(h.deploys, ['seller-w']);
+  assert.deepEqual(h.signed.map((s) => s.walletId), ['buyer-w', 'seller-w']);
+  const s = await h.identity.identityStatus(PERSON);
+  assert.ok(s.buyerBound && s.sellerBound);
+});
+
+test('an_agent_that_stays_undeployed_stops_setup_plainly', async () => {
+  const h = harness({ undeployed: [BUYER], neverDeploys: true });
+  await assert.rejects(h.identity.setUpIdentityForCustodial(PERSON), /buying agent could not be set up/);
+  assert.deepEqual(h.sent.filter((x) => x.fn === 'bind'), [], 'nothing is bound with a signature that could not be made');
+});
+
+test('setup_provisions_agents_for_a_new_account', async () => {
+  const h = harness({ noAgentsYet: true });
+  await h.identity.setUpIdentityForCustodial(PERSON);
+  assert.deepEqual(h.sent.map((x) => x.fn), ['register', 'bind', 'bind']);
+  const web3 = harness({ noAgentsYet: true, custodial: false });
+  assert.equal((await web3.identity.preparedSetupCalls(PERSON)).length, 1, 'register first, agents made on the way');
 });

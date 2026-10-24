@@ -16,4 +16,6 @@ test('a seller nudge opens the request it is about, once per request', () => {
   assert.deepEqual(sellerNudge('agent.suggestion', { jobId: '0xjob' }, 5), { id: 'agent.suggestion-0xjob', href: '/jobs/0xjob' });
   assert.deepEqual(sellerNudge('trend.match', {}, 5), { id: 'trend.match-5', href: '/market' });
   assert.equal(sellerNudge('deal.matched', {}, 5), null);
+  assert.deepEqual(sellerNudge('record.setup_needed', { reason: 'offers' }, 7), { id: 'record.setup_needed-7', href: '/assistant' });
+  assert.deepEqual(sellerNudge('record.setup_needed', { reason: 'deal', jobId: '0xdeal' }, 7), { id: 'record.setup_needed-0xdeal', href: '/deals/0xdeal' });
 });

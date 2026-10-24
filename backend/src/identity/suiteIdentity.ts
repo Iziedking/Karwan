@@ -39,6 +39,12 @@ export interface AgentWalletRef {
   walletId: string;
 }
 
+export interface PersonWallets {
+  identity: { address: Hex; walletId: string | null };
+  buyer: AgentWalletRef;
+  seller: AgentWalletRef;
+}
+
 export interface IdentityPorts {
   registry: Hex;
   chainId: number;
@@ -46,7 +52,15 @@ export interface IdentityPorts {
   binding: (wallet: Hex) => Promise<{ id: bigint; kind: number; expiry: bigint }>;
   nonce: (wallet: Hex) => Promise<bigint>;
   /// The person's identity wallet (walletId null when they hold it themselves) and agents.
-  wallets: (userAddress: string) => Promise<{ identity: { address: Hex; walletId: string | null }; buyer: AgentWalletRef; seller: AgentWalletRef } | null>;
+  wallets: (userAddress: string) => Promise<PersonWallets | null>;
+  /// The same, making the person's agents first when they have none. Only the
+  /// setup paths call it, so reading a status never creates wallets.
+  ensureWallets: (userAddress: string) => Promise<PersonWallets | null>;
+  /// Whether a smart account is on chain yet. Circle deploys one at its first
+  /// transaction and cannot sign for it before then.
+  isDeployed: (address: Hex) => Promise<boolean>;
+  /// One harmless call from the agent, which puts its account on chain.
+  deployAgent: (walletId: string, address: Hex) => Promise<void>;
   signTypedData: (walletId: string, typedData: ReturnType<typeof bindingTypedData>) => Promise<Hex>;
   execute: (walletId: string, fn: 'register' | 'bind' | 'unbind', args: unknown[]) => Promise<{ txHash: string }>;
 }
@@ -113,12 +127,16 @@ export function createSuiteIdentity(ports: IdentityPorts) {
     const t = now();
     const deadline = t + BigInt(DEADLINE_SECS);
     const out: Array<{ args: unknown[] }> = [];
-    const plan: Array<{ agent: AgentWalletRef; kind: number; expiry: bigint; perPayment: bigint; total: bigint }> = [];
+    const plan: Array<{ agent: AgentWalletRef; role: string; kind: number; expiry: bigint; perPayment: bigint; total: bigint }> = [];
     if (!status.buyerBound || status.buyerExpiresAt <= t) {
-      plan.push({ agent: w.buyer, kind: KIND.Agent, expiry: t + BigInt(YEAR_SECS), perPayment: BUYING_AGENT_LIMITS.perPayment, total: BUYING_AGENT_LIMITS.total });
+      plan.push({ agent: w.buyer, role: 'buying', kind: KIND.Agent, expiry: t + BigInt(YEAR_SECS), perPayment: BUYING_AGENT_LIMITS.perPayment, total: BUYING_AGENT_LIMITS.total });
     }
-    if (!status.sellerBound) plan.push({ agent: w.seller, kind: KIND.Wallet, expiry: 0n, perPayment: 0n, total: 0n });
+    if (!status.sellerBound) plan.push({ agent: w.seller, role: 'selling', kind: KIND.Wallet, expiry: 0n, perPayment: 0n, total: 0n });
     for (const p of plan) {
+      if (!(await ports.isDeployed(p.agent.address))) {
+        await ports.deployAgent(p.agent.walletId, p.agent.address);
+        if (!(await ports.isDeployed(p.agent.address))) throw new Error(`your ${p.role} agent could not be set up on chain yet; try again in a moment`);
+      }
       const typed = bindingTypedData({
         registry: ports.registry,
         chainId: ports.chainId,
@@ -140,7 +158,7 @@ export function createSuiteIdentity(ports: IdentityPorts) {
   /// Karwan signs from the identity wallet it holds: register, unbind an expired
   /// buying agent, bind both agents. Any step already on chain is skipped.
   async function setUpIdentityForCustodial(userAddress: string): Promise<void> {
-    const w = await ports.wallets(userAddress);
+    const w = await ports.ensureWallets(userAddress);
     if (!w || !w.identity.walletId) throw new Error('this account signs its own record setup');
     const walletId = w.identity.walletId;
     let me = await ports.binding(w.identity.address);
@@ -165,7 +183,7 @@ export function createSuiteIdentity(ports: IdentityPorts) {
   /// from the browser. Register comes alone first, because the bindings name the
   /// identity it creates. An expired buying agent is unbound before it is bound.
   async function preparedSetupCalls(userAddress: string): Promise<Array<{ to: Hex; data: Hex }>> {
-    const w = await ports.wallets(userAddress);
+    const w = await ports.ensureWallets(userAddress);
     if (!w) return [];
     const me = await ports.binding(w.identity.address);
     if (me.id === 0n) return [{ to: ports.registry, data: encodeFunctionData({ abi: registryAbi, functionName: 'register' }) }];

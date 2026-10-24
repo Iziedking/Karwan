@@ -47,6 +47,10 @@ import { lookupPlatformGuide } from './platformGuide.js';
 import { dealStepTools, dealStepPendingLines } from './dealTools.js';
 import { verificationTools } from './verificationTools.js';
 import { chatTools, liveChatToolDeps } from './chatTools.js';
+import { recordSetupCard } from './recordCard.js';
+import { suiteIdentity } from '../identity/suiteIdentityLive.js';
+import { IdentityNeeded } from '../identity/suiteIdentity.js';
+import { suiteFundingEnabled } from '../chain/suiteConfig.js';
 import { liveLocationToolDeps, locationTools } from './locationTools.js';
 import { messageTools } from './messageTools.js';
 import { liveMessageToolDeps } from '../messages/live.js';
@@ -1440,6 +1444,22 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
             return { error: 'They already agreed to that deal. It is waiting for the buyer to fund.' };
           }
           if (deal.cancelledAt) return { error: 'That deal was cancelled.' };
+          // A deal opening on the escrow family counts on the seller's record only
+          // if the record exists before the money goes in, so it is set up first.
+          let recordFirst = false;
+          if (suiteIdentity && suiteFundingEnabled() && (deal.escrowVersion ?? 'suite') === 'suite') {
+            const recordCard = await suiteIdentity
+              .requireIdentity(address, 'seller')
+              .then(() => null)
+              .catch(async (err) => {
+                if (!(err instanceof IdentityNeeded)) throw err;
+                return recordSetupCard(address, await suiteIdentity!.identityStatus(address), Math.floor(Date.now() / 1000));
+              });
+            if (recordCard && !hasEquivalentConfirm(actions, recordCard)) {
+              actions.push(recordCard);
+              recordFirst = true;
+            }
+          }
           const built = buildAcceptDealConfirm({
             caller: address,
             jobId,
@@ -1451,7 +1471,9 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
           });
           if ('error' in built) return built;
           if (!hasEquivalentConfirm(actions, built)) actions.push(built);
-          return { ok: true, shown: built.title };
+          return recordFirst
+            ? { ok: true, shown: ['record card', built.title], note: 'They set up their Karwan record first, with the first card, then agree with the second.' }
+            : { ok: true, shown: built.title };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant propose_accept_deal failed');
           return { error: 'Could not prepare that right now. Try again shortly.' };
@@ -1996,7 +2018,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
 
     propose_post_request: tool({
       description:
-        "Prepare a confirm card to post the user's REQUEST for work or goods they NEED (the agent-mediated path, aka the buyer desk). Use this when they want the platform to find someone for them — e.g. \"find me a developer\", \"I need X built\", \"let the platform look for one\" — and they have given what they need, a budget in USDC, and a deadline. On confirm it posts as themselves and authorises matching and funding within the request budget and saved spending settings after seller acceptance. Another buyer funding click may not be required. Price exceptions require approval. Do not describe this as a payment-free draft. Do NOT use propose_post_offer for this (that advertises what they SELL); this is for what they want to BUY.",
+        "Prepare a confirm card to post the user's REQUEST for work or goods they NEED (the agent-mediated path, aka the buyer desk). Use this when they want the platform to find someone for them — e.g. \"find me a developer\", \"I need X built\", \"let the platform look for one\" — and they have given what they need, a budget in USDC, and a deadline. On confirm it posts as themselves and authorises matching and funding within the request budget and saved spending settings after seller acceptance. Another buyer funding click may not be required. Price exceptions require approval. Do not describe this as a payment-free draft. Do NOT use propose_post_offer for this (that advertises what they SELL); this is for what they want to BUY. Ask once whether they want Agree for me: their agent agrees with the seller it recommends, within budget, while they are away, and they tap once to lock the money (agreeForMe). After posting, tell them they can close the chat: updates arrive in this conversation and on Telegram.",
       inputSchema: z.object({
         brief: z.string().min(5).max(500).describe('What they need, plainly. e.g. "web3 developer to build a trading bot". Max 500 characters.'),
         budgetUsdc: z.number().positive().max(5_000_000).describe('Budget in USDC.'),
@@ -2007,6 +2029,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
         deadlineDate: z.string().optional().describe('Deadline as an absolute calendar date, normalised to YYYY-MM-DD. Pass this whenever the user gave a date ("before 22/07/2026" -> "2026-07-22"). The server converts it to days; do not compute days yourself.'),
         deliveryKind: z.enum(['goods', 'in_person', 'remote']).optional().describe('goods (physical items to deliver), in_person (work done at a place), or remote (done online). Ask only if unclear.'),
         where: z.object({ scope: z.enum(['near', 'country', 'anywhere']), country: z.string().length(2).optional() }).optional().describe('Where the buyer wants it done, for goods or in-person work only: near (near them), country (a two-letter country), or anywhere. Ask "near you, or anywhere?" once when unclear. Never for remote work.'),
+        agreeForMe: z.boolean().optional().describe('True when they want Agree for me: the agent agrees with the seller it recommends, within budget, and they tap once to lock the money. Off unless they said yes.'),
       }),
       execute: async (args) => {
         // Pre-flight the SAME preconditions the jobs route enforces so the card
@@ -2046,6 +2069,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
           ...(args.deadlineDate ? { deadlineLabel: `by ${args.deadlineDate.trim()}` } : {}),
           ...(args.deliveryKind ? { deliveryKind: args.deliveryKind } : {}),
           ...(args.where && args.deliveryKind !== 'remote' ? { where: { ...args.where, ...(args.where.country ? { country: args.where.country.toUpperCase() } : {}) } } : {}),
+          ...(args.agreeForMe ? { agreeForMe: true } : {}),
         });
         if ('error' in built) return built;
         if (!hasEquivalentConfirm(actions, built)) actions.push(built);

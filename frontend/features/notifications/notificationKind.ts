@@ -26,14 +26,19 @@ export function notificationKind(type: string): NotificationKind {
   return 'deal';
 }
 
-/// The two notices addressed to a seller by payload, with no deal on the
-/// event: a rising-demand nudge (to the market) and "ask me first" (to the
-/// request, once per request). Null for anything else.
+/// The notices addressed to a seller by payload, with no deal on the event: a
+/// rising-demand nudge (to the market), "ask me first" (to the request, once
+/// per request) and the record reminder. Null for anything else.
 export function sellerNudge(type: string, payload: Record<string, unknown> | undefined, ts: number): { id: string; href: string } | null {
   if (type === 'trend.match') return { id: `trend.match-${ts}`, href: '/market' };
   if (type === 'agent.suggestion') {
     const jobId = typeof payload?.jobId === 'string' ? payload.jobId : '';
     return jobId ? { id: `agent.suggestion-${jobId}`, href: `/jobs/${jobId}` } : null;
+  }
+  // The record reminder: to the deal it is about, or to the assistant, which sets the record up.
+  if (type === 'record.setup_needed') {
+    const jobId = typeof payload?.jobId === 'string' ? payload.jobId : '';
+    return jobId ? { id: `record.setup_needed-${jobId}`, href: `/deals/${jobId}` } : { id: `record.setup_needed-${ts}`, href: '/assistant' };
   }
   return null;
 }

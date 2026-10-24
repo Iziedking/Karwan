@@ -193,6 +193,7 @@ const eraser: Eraser = {
       },
     },
     { name: 'delivery questions', run: (address) => deleteRecord('delivery-q', address.toLowerCase()) },
+    { name: 'record setup reminders', run: (address) => deleteRecord('record-nudge', address.toLowerCase()) },
   ],
   dropChatAccount: async (address) => {
     await removeTelegramLink(address);

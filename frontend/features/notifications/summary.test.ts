@@ -69,6 +69,12 @@ test('ask me first says the agent found a request and asks for an offer', () => 
   assert.equal(summaryFor('agent.suggestion', {}, 'seller', en), 'Your agent found a request that fits. Make an offer?');
 });
 
+test('a seller asked to set up their record reads why, in the bell', () => {
+  assert.equal(summaryFor('record.setup_needed', { reason: 'offers' }, 'seller', en), en.recordNeededOffers);
+  assert.equal(summaryFor('record.setup_needed', { reason: 'deal' }, 'seller', en), en.recordNeededDeal);
+  assert.match(en.recordNeededOffers, /Karwan record/);
+});
+
 test('a financier whose offer is short is told how much to add', () => {
   assert.equal(
     summaryFor('factoring.funding_needed', { shortfallUsdc: '569.03' }, 'financier', en),
