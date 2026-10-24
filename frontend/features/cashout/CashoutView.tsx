@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAccount } from 'wagmi';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
-import { api, type BridgeChainKey, type MoneyOutDestination } from '@/core/api';
+import { api, ConfirmCancelled, type BridgeChainKey, type MoneyOutDestination } from '@/core/api';
 import { useBridges, type BridgeRecord } from '@/features/bridge/hooks/useBridge';
 import { SOURCE_CHAINS, SOURCE_CHAIN_KEYS, ARC_CCTP, type CctpChainKey } from '@/features/bridge/config';
 import { routeSpeed, stepForPhase, type TransferStep } from '@/features/bridge/routePlan';
@@ -213,6 +213,7 @@ function CashoutForm({ info, jobId }: { info: CashoutInfo; jobId: string }) {
       setMoving({ kind: 'bridge', bridgeId: r.bridgeId, reference: r.reference });
     } catch (err) {
       setMoving(null);
+      if (err instanceof ConfirmCancelled) return;
       const guard = moneyOutRefusalOf(err);
       if (guard) setRefusal({ refusal: guard, destination });
       else setError(copy[cashoutErrorKey(err)]);

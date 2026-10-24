@@ -8,7 +8,7 @@ import {
   useSwitchChain,
   useWalletClient,
 } from 'wagmi';
-import { api, ApiError, type ChainEvent, type AppKitBridgeChainKey } from '@/core/api';
+import { api, ApiError, ConfirmCancelled, type ChainEvent, type AppKitBridgeChainKey } from '@/core/api';
 import {
   confirmTransaction,
   isConfirmationPending,
@@ -1299,6 +1299,11 @@ export function useBridges() {
         });
         patch(id, (b) => ({ ...b, phase: 'burning', error: undefined }));
       } catch (err) {
+        // The person closed the confirmation: nothing was sent, so the row goes.
+        if (err instanceof ConfirmCancelled) {
+          setBridges((list) => list.filter((b) => b.id !== id));
+          return;
+        }
         if (typeof console !== 'undefined') {
           // eslint-disable-next-line no-console
           console.warn('[bridge.startCircleOut]', errorToString(err));
@@ -1648,6 +1653,10 @@ export function useBridges() {
         }));
         moneySounds.outcome('success', { ids: [id, r.txHash] });
       } catch (err) {
+        if (err instanceof ConfirmCancelled) {
+          setBridges((list) => list.filter((b) => b.id !== id));
+          return;
+        }
         // No answer, or a server error, cannot say whether the send went out.
         // Keep it in flight rather than offer a second send.
         if (isAmbiguousFailure(err instanceof ApiError ? err.status : null)) {

@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { useBalance, useWalletClient, usePublicClient, useChainId, useSwitchChain } from 'wagmi';
 import { formatUnits, parseUnits } from 'viem';
-import { api } from '@/core/api';
+import { api, ConfirmCancelled } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useReputation } from '../hooks/useReputation';
 import { useVaultPositions } from '../hooks/useVaultPositions';
@@ -349,7 +349,10 @@ export function StakeCard() {
       recordAction('stake-deposit');
       deposited = true;
     } catch (err) {
-      if (isConfirmationPending(err)) {
+      if (err instanceof ConfirmCancelled) {
+        // Nothing was put up: drop the row instead of showing a failure.
+        setLog((prev) => prev.filter((l) => l.id !== logId));
+      } else if (isConfirmationPending(err)) {
         // Not a failure. The transaction is on chain and its confirmation has
         // not been seen yet, so the row keeps its pending status and gains the
         // hash. Marking it failed here is a lie that outlives the transaction:

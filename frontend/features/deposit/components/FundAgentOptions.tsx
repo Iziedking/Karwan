@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useState, type KeyboardEvent } from 'react';
-import { api } from '@/core/api';
+import { api, ConfirmCancelled } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { cn } from '@/shared/utils/cn';
@@ -261,6 +261,7 @@ function MoveFromOtherAgent({
       onFunded?.();
     } catch (err) {
       setState('idle');
+      if (err instanceof ConfirmCancelled) return;
       setError(err instanceof Error ? err.message : copy.moveFailed);
     }
   }

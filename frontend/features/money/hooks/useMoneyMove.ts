@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useMemo, useState } from 'react';
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
-import { api, ApiError } from '@/core/api';
+import { api, ApiError, ConfirmCancelled } from '@/core/api';
 import { arcChain } from '@/core/wagmi';
 import { confirmTransaction } from '@/shared/chain/confirmTx';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -108,7 +108,9 @@ export function useMoneyMove() {
         // An answer from the backend says what happened. No answer at all (the
         // connection dropped) cannot say, so it waits.
         const refusal = moneyOutRefusalOf(err);
-        if (refusal) next = { kind: 'guarded', refusal };
+        // Closing the confirmation sends nothing: back to the form.
+        if (err instanceof ConfirmCancelled) next = { kind: 'editing' };
+        else if (refusal) next = { kind: 'guarded', refusal };
         else if (!(err instanceof ApiError)) next = { kind: 'slow', reference: null, txHash: null };
         else if (request.move === 'topUp') next = fromFundingError(err.status, err.code);
         else next = fromMovementError(err.status, err.message, err.body);
