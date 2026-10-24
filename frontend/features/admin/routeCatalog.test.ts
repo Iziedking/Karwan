@@ -14,6 +14,13 @@ test('generated snapshot captures a unique mounted backend inventory', () => {
   assert.ok(SOURCE_ROUTE_SNAPSHOT.some((route) => route.path === '/api/circle/webhook'));
 });
 
+test('routers built by a factory call where they are mounted are listed too', () => {
+  const ids = new Set(SOURCE_ROUTE_SNAPSHOT.map((route) => route.id));
+  for (const id of ['GET /api/money-out/status', 'POST /api/money-out/pause', 'GET /api/confirm/status', 'POST /api/confirm', 'POST /api/confirm/pin/reset']) {
+    assert.ok(ids.has(id), id);
+  }
+});
+
 test('route classification is honest about access and mutation risk', () => {
   assert.equal(normalizeAdminRoute('GET', '/health').access, 'public');
   assert.equal(normalizeAdminRoute('POST', '/api/circle/webhook').risk, 'ingress');

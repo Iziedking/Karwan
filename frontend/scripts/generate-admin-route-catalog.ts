@@ -77,8 +77,11 @@ function factoryRouteReceivers(file: ts.SourceFile, exportedName: string): Set<s
       }
     }
   }
-  if (!factoryName) return new Set();
+  return factoryName ? honoReceiversIn(file, factoryName) : new Set();
+}
 
+/// The Hono apps a factory function builds and returns.
+function honoReceiversIn(file: ts.SourceFile, factoryName: string): Set<string> {
   const receivers = new Set<string>();
   for (const statement of file.statements) {
     if (!ts.isFunctionDeclaration(statement) || statement.name?.text !== factoryName || !statement.body) continue;
@@ -143,7 +146,20 @@ function discoverRoutes(): RouteEntry[] {
     if (operation === 'route') {
       const prefix = stringValue(node.arguments[0]);
       const router = node.arguments[1];
-      if (prefix === null || !router || !ts.isIdentifier(router)) return;
+      if (prefix === null || !router) return;
+      // A router built where it is mounted: app.route('/api/x', createXRoutes(deps)).
+      if (ts.isCallExpression(router) && ts.isIdentifier(router.expression)) {
+        const binding = imports.get(router.expression.text);
+        if (!binding) throw new Error(`Missing import binding for router factory ${router.expression.text}`);
+        const file = sourceFile(binding.sourcePath);
+        const receivers = honoReceiversIn(file, binding.importedName);
+        if (receivers.size === 0) throw new Error(`No Hono app built by ${binding.importedName} in ${binding.sourcePath}`);
+        for (const route of routeCalls(file).filter((r) => r.receiver && receivers.has(r.receiver))) {
+          routes.push({ method: route.method, path: joinRoute(prefix, route.path) });
+        }
+        return;
+      }
+      if (!ts.isIdentifier(router)) return;
       const binding = imports.get(router.text);
       if (!binding) throw new Error(`Missing import binding for mounted router ${router.text}`);
       for (const route of mountedRoutes(binding)) {
