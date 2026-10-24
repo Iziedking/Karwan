@@ -306,6 +306,11 @@ export interface DirectDeal {
   /// timer — that case escalates to the human arbiter instead. Absent on deals
   /// disputed before this field existed.
   disputedBy?: 'buyer' | 'seller';
+  /// suite: a dispute the seller (or their agent) raised because the buyer did
+  /// not respond after the review period (deals/buyerSilence.ts).
+  disputeKind?: 'buyer-silent';
+  /// suite: the buyer-silence prompt for one delivery and payment, and who raised it.
+  buyerSilence?: { revision: number; paid: number; promptedAt: number; raisedAt?: number; raisedBy?: 'seller' | 'agent' };
   /// Each side's answers to the three dispute questions, taken inside the
   /// statement window. Shown to the other side only once both are in or the
   /// window has closed (deals/disputeJudge.ts disputeViewFor).

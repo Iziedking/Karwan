@@ -147,3 +147,30 @@ test('the seller sets up their record before agreeing, and the buyer pays as usu
   await sheet.getByRole('button', { name: en.dealWorkspace.confirm.confirm, exact: true }).click();
   await expect.poll(() => order).toEqual(['record', 'agree']);
 });
+
+test('after a silent review the seller asks for payment in one tap, and the page says the buyer has 72 hours', async ({ page }) => {
+  const reviewEnded = {
+    ...deliveredDeal,
+    escrowVersion: 'suite',
+    view: {
+      stage: 'awaiting-first-release',
+      money: { line: 'held' },
+      progress: [{ step: 'agreed', state: 'done' }, { step: 'funded', state: 'done' }, { step: 'delivered', state: 'done' }, { step: 'released', state: 'upcoming' }],
+      next: { action: 'ask-payment', actor: 'you', amountUsdc: '600' },
+      automatic: { kind: 'review-ends', at: Date.UTC(2026, 9, 20, 9, 0) },
+    },
+  } as unknown as DirectDeal;
+  await serveDeal(page, reviewEnded, SELLER);
+  let asked: unknown = null;
+  await page.route(`${API}/api/deals/direct/${JOB}/appeal`, async (route) => {
+    asked = route.request().postDataJSON();
+    return route.fulfill({ json: { accepted: true, jobId: JOB, txHash: '0x01' } });
+  });
+  await page.goto(`/deals/${JOB}`);
+  await expect(page.getByText(/automatically/)).toHaveCount(0);
+  await page.getByRole('button', { name: dealLiveCopy.en.askPayment, exact: true }).click();
+  const sheet = page.getByRole('dialog');
+  await expect(sheet).toContainText('72 hours');
+  await sheet.getByRole('button', { name: en.dealWorkspace.confirm.confirm, exact: true }).click();
+  await expect.poll(() => asked).toEqual({ caller: SELLER });
+});

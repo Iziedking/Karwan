@@ -379,6 +379,15 @@ async function runConfirmIntent(
       viewLabel: 'Open the deal',
     };
   }
+  if (action.intent === 'ask_for_payment') {
+    const p = action.payload as { jobId: string; caller: string };
+    await api.appealDeal(p.jobId, p.caller);
+    return {
+      successText: 'Asked for payment. The buyer has 72 hours to answer; if they do not, the payment is yours.',
+      viewHref: `/deals/${p.jobId}`,
+      viewLabel: 'Open the deal',
+    };
+  }
   if (action.intent === 'set_up_record') {
     await runRecordSetup(deps.sendWalletCalls);
     return { successText: 'Your Karwan record is set up.', viewHref: '/profile', viewLabel: 'Your profile' };

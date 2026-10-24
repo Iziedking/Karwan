@@ -85,6 +85,7 @@ function withLink(text: string, url: string | null): NotifySummary {
 
 export const RELEVANT = new Set([
   'agent.suggestion',
+  'deal.buyer_silent',
   'record.setup_needed',
   'request.shortlist',
   'request.world_check',
@@ -236,6 +237,19 @@ export async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
   // updates marked worth a message.
   // Only the seller, once the buyer confirmed and is waiting on the seller's check.
   // "Ask me first": only the owner of the selling agent.
+  if (e.type === 'deal.buyer_silent') {
+    // The seller is asked, and told when their agent asked; the buyer is told when to answer.
+    const stage = e.payload?.stage;
+    if (stage === 'answer') {
+      const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
+      return buyer ? [{ address: buyer, role: 'buyer' }] : [];
+    }
+    if (stage === 'prompt' || (stage === 'raised' && e.payload?.by === 'agent')) {
+      const seller = (e.payload?.seller as string | undefined)?.toLowerCase();
+      return seller ? [{ address: seller, role: 'seller' }] : [];
+    }
+    return [];
+  }
   if (e.type === 'agent.suggestion' || e.type === 'record.setup_needed') {
     const owner = (e.payload?.sellerUser as string | undefined)?.toLowerCase();
     return owner ? [{ address: owner, role: 'seller' }] : [];
@@ -370,6 +384,24 @@ export function summaryFor(e: KarwanEvent, role: string, locale: UserLocale = 'e
   const url = dealUrl(e.jobId);
 
   switch (e.type) {
+    case 'deal.buyer_silent': {
+      const stage = e.payload?.stage;
+      if (stage === 'answer') {
+        if (role !== 'buyer') return null;
+        return withLink(
+          `*The seller asked for payment.*\nYour review time ended without a release or a problem raised. If something is wrong, say what by ${closesLabel(e.payload?.answerBy)}; otherwise the payment goes to the seller.`,
+          dealUrl(e.jobId),
+        );
+      }
+      if (role !== 'seller') return null;
+      if (stage === 'raised') {
+        return withLink('*Your agent asked for payment.*\nThe buyer did not respond after review. They have 72 hours to answer; if they do not, the payment is yours.', dealUrl(e.jobId));
+      }
+      return withLink(
+        '*The buyer has not responded.*\nTheir review time ended. Ask for payment: they then have 72 hours to answer, and if they do not, the payment is yours. Reply "ask for payment", or your agent asks for you in 24 hours.',
+        dealUrl(e.jobId),
+      );
+    }
     case 'record.setup_needed': {
       if (role !== 'seller') return null;
       if (e.payload?.reason === 'deal') {

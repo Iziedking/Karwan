@@ -24,7 +24,7 @@ export interface ArbiterInput {
 }
 
 export type ArbiterRuling =
-  | { kind: 'propose'; sellerBps: 0 | 10_000; ruleId: 'R1-no-delivery' | 'R2-checked-delivery' | 'R3-check-failed'; reason: string }
+  | { kind: 'propose'; sellerBps: 0 | 10_000; ruleId: 'R1-no-delivery' | 'R2-checked-delivery' | 'R3-check-failed' | 'R5-buyer-silent'; reason: string }
   | { kind: 'escalate'; ruleId: 'R4-refer'; reason: string }
   | { kind: 'wait'; reason: string };
 

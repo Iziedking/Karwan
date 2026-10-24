@@ -148,6 +148,12 @@ function shouldNotify(
     const by: Role = payload?.countered ? 'seller' : 'buyer';
     return !!role && role !== by;
   }
+  // Buyer silence: the answer-by notice is the buyer's; asking, and the agent
+  // asking for them, are the seller's; a seller who asked themselves needs no notice.
+  if (type === 'deal.buyer_silent') {
+    if (payload?.stage === 'answer') return role === 'buyer';
+    return role === 'seller' && (payload?.stage === 'prompt' || payload?.by === 'agent');
+  }
   // A statement is news to the other side; a reminder is for the side named.
   if (type === 'deal.dispute.statement') {
     const side = payload?.side as Role | undefined;

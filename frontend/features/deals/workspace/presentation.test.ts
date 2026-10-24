@@ -78,3 +78,18 @@ test('a sealed card has no fact parts', () => {
   };
   assert.deepEqual(trustFactParts(sealedCard, copy, 'en'), []);
 });
+
+test('on the escrow family nothing reads as releasing on its own, and the seller asks for payment', () => {
+  const live = en.dealLive;
+  const at = Date.UTC(2026, 9, 19, 9, 0);
+  const view = (kind: 'review-ends' | 'silence-payout') => ({
+    stage: 'awaiting-first-release' as const, money: { line: 'held' as const }, progress: [],
+    next: { action: null, actor: 'counterparty' as const, amountUsdc: null }, automatic: { kind, at },
+  });
+  assert.equal(automaticLine(view('review-ends'), copy, 'en', live, live), fill(live.reviewEndsYou, { date: '19 Oct 2026' }));
+  assert.equal(automaticLine(view('review-ends'), copy, 'en', undefined, live), fill(live.reviewEnds, { date: '19 Oct 2026' }));
+  assert.equal(automaticLine(view('silence-payout'), copy, 'en', live, live), fill(live.silencePayoutYou, { date: '19 Oct 2026' }));
+  assert.equal(automaticLine(view('silence-payout'), copy, 'en', undefined, live), fill(live.silencePayout, { date: '19 Oct 2026' }));
+  assert.equal(actionLabel({ action: 'ask-payment', actor: 'you', amountUsdc: '600' }, copy, 'en', live), live.askPayment);
+  for (const line of [live.reviewEndsYou, live.reviewEnds, live.silencePayoutYou, live.silencePayout]) assert.doesNotMatch(line, /automatically|—/);
+});

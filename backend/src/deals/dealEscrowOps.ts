@@ -394,6 +394,14 @@ export function createDealEscrowOps(deps: DealEscrowOpsDeps) {
       return (await f.escrow.dispute({ walletId, jobId: f.id, reasonHash: hash, dealKey: f.dealKey })).txHash;
     },
 
+    /// A party sends an open dispute to people: on the escrow family, the buyer's
+    /// answer to a proposal inside its 72 hours.
+    async escalate(deal: DealEscrowRef, walletId: string): Promise<string> {
+      if (!isV3(deal)) throw new Error(`deal ${deal.jobId} is not on an escrow with escalation`);
+      const f = familyOf(deal);
+      return (await f.escrow.escalate({ walletId, jobId: f.id, dealKey: f.dealKey })).txHash;
+    },
+
     async lapseDispute(deal: DealEscrowRef, walletId: string): Promise<string> {
       if (!isV3(deal)) return deps.v2.lapseDispute(deal.jobId, walletId);
       if (isSuite(deal)) throw new Error(`deal ${deal.jobId} is on the escrow family, where a dispute ends by a ruling, not by lapsing`);

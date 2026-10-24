@@ -134,6 +134,7 @@ const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAction) =
     body: { caller: p.caller, received: p.received, missing: p.missing, late: p.late, links: p.links },
   }),
   escalate_dispute: (p) => ({ method: 'POST', path: `/api/deals/direct/${p.jobId}/dispute/escalate`, body: { caller: p.caller } }),
+  ask_for_payment: (p) => ({ method: 'POST', path: `/api/deals/direct/${p.jobId}/appeal`, body: { caller: p.caller } }),
   decline_deal: (p) => ({ method: 'POST', path: `/api/deals/direct/${p.jobId}/decline`, body: { caller: p.caller, note: p.note } }),
 };
 
@@ -161,6 +162,7 @@ const DONE: Partial<Record<ConfirmAction['intent'], string>> = {
   respond_extension: 'Answer recorded.',
   dispute_statement: 'Statement submitted.',
   escalate_dispute: 'Sent to review. A Karwan reviewer will rule.',
+  ask_for_payment: 'Asked for payment. The buyer has 72 hours to answer; if they do not, the payment is yours.',
   decline_deal: 'Deal turned down. The buyer has your note.',
 };
 

@@ -196,3 +196,18 @@ test('a cancelled deal shows what happened, not the path it never took', () => {
   const refunded = dealView({ ...cancelled, onChain: { state: 5, milestonesReleased: 0, milestonePcts: [50, 50] } }, 'buyer', false, NOW);
   assert.equal(refunded.progress.at(-1)!.state, 'done');
 });
+
+test('on the escrow family a seller asks for payment after review instead of claiming, and nothing says it releases on its own', () => {
+  const suite = { ...delivered, escrowVersion: 'suite' as const };
+  const open = { ...suite, releaseEligibleAtMs: NOW + 3_600_000 };
+  assert.deepEqual(dealView(open, 'buyer', false, NOW).automatic, { kind: 'review-ends', at: NOW + 3_600_000 });
+  const ended = { ...suite, releaseEligibleAtMs: NOW - 1 };
+  assert.deepEqual(dealView(ended, 'seller', false, NOW).next, { action: 'ask-payment', actor: 'you', amountUsdc: '600' });
+  assert.notEqual(dealView(ended, 'buyer', false, NOW).automatic?.kind, 'auto-release');
+});
+
+test('a buyer-silence dispute shows when the payment goes to the seller unless the buyer answers', () => {
+  const silent = { ...delivered, escrowVersion: 'suite' as const, disputed: true, silenceAnswerByMs: NOW + 72 * 3_600_000 };
+  assert.deepEqual(dealView(silent, 'buyer', false, NOW).automatic, { kind: 'silence-payout', at: NOW + 72 * 3_600_000 });
+  assert.equal(dealView({ ...silent, silenceAnswerByMs: undefined }, 'buyer', false, NOW).automatic, null);
+});

@@ -10,6 +10,7 @@ import {
   buildDisputeStatementConfirm,
   buildEscalateDisputeConfirm,
   buildDeclineDealConfirm,
+  buildAskForPaymentConfirm,
 } from './dealActions.js';
 
 const caller = '0x' + 'a'.repeat(40);
@@ -118,4 +119,15 @@ test('choosing an unverified seller says so on the card and carries the acknowle
   assert.equal(card.payload.acknowledgeUnverified, true);
   const verified = ok(buildChooseOfferConfirm({ caller, jobId, seller, sellerLabel: 'Ada', priceUsdc: '80' }));
   assert.equal(verified.payload.acknowledgeUnverified, undefined);
+});
+
+test('asking for payment is one card that says the buyer gets 72 hours', () => {
+  const card = buildAskForPaymentConfirm({ caller: '0xseller', jobId: '0xdeal', amountUsdc: '600' });
+  assert.ok(!('error' in card));
+  if ('error' in card) return;
+  assert.equal(card.intent, 'ask_for_payment');
+  assert.equal(card.title, 'Ask for payment');
+  assert.match(card.summary ?? '', /72 hours/);
+  assert.deepEqual(card.payload, { jobId: '0xdeal', caller: '0xseller' });
+  assert.deepEqual(buildAskForPaymentConfirm({ caller: '0xseller', jobId: '', amountUsdc: '600' }), { error: 'Missing the deal id.' });
 });

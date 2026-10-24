@@ -74,8 +74,8 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   const facts = card ? (card.isNew ? s.newHere : trustFactParts(card, copy, locale).slice(0, 2).join(' · ')) : null;
   const problems = problemOptions(deal, viewer, Date.now());
   const declined = view.stage === 'awaiting-acceptance' && !!deal.sellerDeclinedAt;
-  const label = actionLabel(view.next, copy, locale);
-  const automatic = automaticLine(view, copy, locale, viewerIsBuyer ? dl : undefined);
+  const label = actionLabel(view.next, copy, locale, dl);
+  const automatic = automaticLine(view, copy, locale, viewerIsBuyer ? dl : undefined, dl);
   const close = () => setPanel(null);
   const done = () => {
     setPanel(null);

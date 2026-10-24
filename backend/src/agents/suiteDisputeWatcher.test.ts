@@ -107,6 +107,29 @@ test('a_dispute_outside_the_table_is_escalated_by_the_arbiter', async () => {
   assert.ok(s.events.includes('deal.dispute.needs_arbiter'));
 });
 
+test('a_buyer_silence_dispute_is_proposed_for_the_seller_at_once_and_the_buyer_told_when_to_answer', async () => {
+  // Raised a minute ago: no cool-off for silence, the buyer already had their review time.
+  const s = setup(view({ deliveredAt: BigInt(NOW - 5 * DAY), disputedAt: BigInt(NOW - 60) }));
+  const d = deal({ disputedBy: 'seller', disputeKind: 'buyer-silent' });
+  const told: Array<{ type: string; payload: Record<string, unknown> }> = [];
+  s.deps.emit = (e) => {
+    told.push(e);
+  };
+  await runSuiteDispute(s.deps, d, NOW_MS);
+  assert.equal(s.sent[0]!.fn, 'proposeRuling');
+  assert.deepEqual(s.sent[0]!.args.slice(0, 2), [ID, 10_000]);
+  assert.equal(s.patches[0]!.v3Ruling?.ruleId, 'R5-buyer-silent');
+  const answer = told.find((e) => e.type === 'deal.buyer_silent');
+  assert.equal(answer?.payload.stage, 'answer');
+  assert.equal(answer?.payload.answerBy, NOW_MS + 72 * 3_600_000);
+});
+
+test('a_buyer_silence_dispute_after_a_failed_check_goes_to_people', async () => {
+  const s = setup(view({ deliveredAt: BigInt(NOW - 5 * DAY), disputedAt: BigInt(NOW - 60) }));
+  await runSuiteDispute(s.deps, deal({ disputedBy: 'seller', disputeKind: 'buyer-silent', v3CheckFailedRevision: 1 }), NOW_MS);
+  assert.deepEqual(s.sent.map((x) => x.fn), ['escalate']);
+});
+
 test('executes_after_the_appeal_window', async () => {
   const open = setup(view({ proposal: true, proposedBps: 0, proposedAt: BigInt(NOW - 71 * 3600) }));
   await runSuiteDispute(open.deps, deal(), NOW_MS);

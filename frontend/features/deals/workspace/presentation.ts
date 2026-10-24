@@ -2,6 +2,7 @@ import type { DealView, TrustCardView } from '@/core/api';
 import type { Messages } from '@/shared/i18n/messages/en';
 
 type Copy = Messages['dealWorkspace'];
+type DealLiveCopy = import('@/shared/i18n/messages/dealLive').DealLiveCopy;
 
 function formatEnglishDateParts(ms: number, options: Intl.DateTimeFormatOptions): string {
   const parts = new Intl.DateTimeFormat('en-US', { ...options, timeZone: 'UTC' }).formatToParts(ms);
@@ -41,9 +42,10 @@ function formatMonth(ms: number, locale: string): string {
   return new Intl.DateTimeFormat(locale, { month: 'short', year: 'numeric', timeZone: 'UTC' }).format(ms);
 }
 
-export function actionLabel(next: DealView['next'], copy: Copy, locale: string): string | null {
+export function actionLabel(next: DealView['next'], copy: Copy, locale: string, live?: Pick<DealLiveCopy, 'askPayment'>): string | null {
   const amount = next.amountUsdc ? formatUsdcAmount(next.amountUsdc, locale) : '';
   switch (next.action) {
+    case 'ask-payment': return live?.askPayment ?? null;
     case 'accept': return copy.actions.accept;
     case 'fund': return fill(copy.actions.fundTemplate, { amount });
     case 'deliver': return copy.actions.deliver;
@@ -113,10 +115,13 @@ export function automaticLine(
   copy: Copy,
   locale: string,
   you?: { autoReleaseYou: string; reclaimYou: string },
+  live?: Pick<DealLiveCopy, 'reviewEndsYou' | 'reviewEnds' | 'silencePayoutYou' | 'silencePayout'>,
 ): string | null {
   if (!view.automatic) return null;
   const date = formatDealDate(view.automatic.at, locale);
   switch (view.automatic.kind) {
+    case 'review-ends': return live ? fill(you ? live.reviewEndsYou : live.reviewEnds, { date }) : null;
+    case 'silence-payout': return live ? fill(you ? live.silencePayoutYou : live.silencePayout, { date }) : null;
     case 'auto-release': return fill(you?.autoReleaseYou ?? copy.automatic.autoReleaseTemplate, { date });
     case 'deadline-reclaim': return fill(you?.reclaimYou ?? copy.automatic.deadlineReclaimTemplate, { date });
     case 'acceptance-expiry': return fill(copy.automatic.acceptanceExpiryTemplate, { date });

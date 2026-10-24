@@ -288,6 +288,14 @@ test('a_suite_dispute_before_delivery_is_refused_without_a_call', async () => {
   assert.deepEqual(s.suiteCalls, []);
 });
 
+test('a_suite_escalation_goes_to_the_suite_escrow_from_the_party_agent', async () => {
+  const s = setup(view({ state: DEAL_STATE.Disputed, deliveredAt: 5n, proposal: true }));
+  const escalate = s.ops.escalate(SUITE_DEAL, 'buyer-agent');
+  await assert.rejects(escalate); // the harness escrow never flips escalated, so the proof fails, but the call went to the suite
+  assert.deepEqual(s.suiteCalls.map((c) => [c.name, c.walletId]), [['escalate', 'buyer-agent']]);
+  assert.deepEqual(s.v3Calls, []);
+});
+
 test('suite_settle_by_split_proposes_then_accepts', async () => {
   const s = setup();
   await s.ops.settleBySplit(SUITE_DEAL, 'buyer-agent', 'seller-agent', 4000);

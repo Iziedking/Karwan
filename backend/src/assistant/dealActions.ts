@@ -44,6 +44,12 @@ export interface EscalateDisputeConfirm extends ConfirmActionBase {
   intent: 'escalate_dispute';
   payload: { jobId: string; caller: string };
 }
+/// Escrow family: the seller asks for payment after the buyer let review time
+/// pass in silence (view 27 decision 7); the buyer then has 72 hours to answer.
+export interface AskForPaymentConfirm extends ConfirmActionBase {
+  intent: 'ask_for_payment';
+  payload: { jobId: string; caller: string };
+}
 export interface DeclineDealConfirm extends ConfirmActionBase {
   intent: 'decline_deal';
   payload: { jobId: string; caller: string; note: string };
@@ -58,6 +64,7 @@ export type DealStepConfirm =
   | CancelDealConfirm
   | DisputeStatementConfirm
   | EscalateDisputeConfirm
+  | AskForPaymentConfirm
   | DeclineDealConfirm;
 
 export function buildChooseOfferConfirm(i: {
@@ -323,6 +330,28 @@ export function buildEscalateDisputeConfirm(i: {
     ],
     payload: { jobId: i.jobId, caller: i.caller },
     confirmLabel: 'Send to review',
+    cancelLabel: 'Not now',
+  };
+}
+
+export function buildAskForPaymentConfirm(i: {
+  caller: string;
+  jobId: string;
+  amountUsdc: string;
+}): AskForPaymentConfirm | { error: string } {
+  if (!i.jobId) return { error: 'Missing the deal id.' };
+  return {
+    kind: 'confirm',
+    id: `ask_for_payment:${i.jobId}:${confirmNonce()}`,
+    intent: 'ask_for_payment',
+    title: 'Ask for payment',
+    summary: 'The buyer did not respond after their review time. They get 72 hours to answer; if they do not, the payment is yours.',
+    fields: [
+      { label: 'Deal', value: shortId(i.jobId) },
+      { label: 'Amount', value: `${i.amountUsdc} USDC` },
+    ],
+    payload: { jobId: i.jobId, caller: i.caller },
+    confirmLabel: 'Ask for payment',
     cancelLabel: 'Not now',
   };
 }

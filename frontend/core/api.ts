@@ -692,11 +692,11 @@ export interface DealView {
   money: { line: 'not-funded' | 'held' | 'sending' | 'paused' | 'released' | 'refunding' | 'refunded' | 'cancelled' };
   progress: Array<{ step: 'agreed' | 'funded' | 'delivered' | 'checked' | 'released' | 'cancelled' | 'refunded'; state: 'done' | 'current' | 'upcoming'; at?: number }>;
   next: {
-    action: 'accept' | 'fund' | 'deliver' | 'release' | 'claim' | 'review-manually' | 'respond-extension' | 'respond-cancel' | 'dispute' | null;
+    action: 'accept' | 'fund' | 'deliver' | 'release' | 'claim' | 'ask-payment' | 'review-manually' | 'respond-extension' | 'respond-cancel' | 'dispute' | null;
     actor: 'you' | 'counterparty' | 'nobody';
     amountUsdc: string | null;
   };
-  automatic: { kind: 'auto-release' | 'deadline-reclaim' | 'acceptance-expiry'; at: number } | null;
+  automatic: { kind: 'auto-release' | 'deadline-reclaim' | 'acceptance-expiry' | 'review-ends' | 'silence-payout'; at: number } | null;
   /// Settled escrow-family deals only: on both sides' records (true), waiting
   /// for the record (false), or a side had no record when it was paid in (null).
   onBothRecords?: boolean | null;
@@ -1886,7 +1886,8 @@ export interface AssistantConfirmAction {
     | 'decline_deal'
     | 'create_direct_deal'
     | 'fund_direct_deal'
-    | 'set_up_record';
+    | 'set_up_record'
+    | 'ask_for_payment';
   title: string;
   summary?: string;
   /// Stark line for irreversible/money-moving actions (release). Absent on post_offer.

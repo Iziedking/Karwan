@@ -21,7 +21,10 @@ import {
   buildDisputeStatementConfirm,
   buildEscalateDisputeConfirm,
   buildDeclineDealConfirm,
+  buildAskForPaymentConfirm,
 } from './dealActions.js';
+import { agreementEscrowAddress, readAgreementReviewEnd } from '../chain/agreementEscrowLive.js';
+import { reviewOpenUntil } from '../deals/buyerSilence.js';
 
 /// Tools for every step after a request or deal is posted. Each one reads the
 /// live record, refuses when it is not this person's move, and only prepares a
@@ -298,6 +301,30 @@ export function dealStepTools(address: string, actions: AssistantAction[]) {
           const { deal } = found;
           if (!deal.disputed || deal.settledAt || deal.cancelledAt) return { error: 'That deal has no open dispute.' };
           return offer(actions, buildEscalateDisputeConfirm({ caller: address, jobId, amountUsdc: deal.dealAmountUsdc }));
+        }),
+    }),
+
+    propose_ask_for_payment: tool({
+      description:
+        "Prepare a confirm card for the SELLER to ask for payment on a deal held by the new escrow, once the buyer's review time has ended without a release or a problem raised. The buyer then has 72 hours to answer; with no answer the payment goes to the seller. Use for 'ask for payment', 'the buyer is not answering', 'get my money'.",
+      inputSchema: z.object({ jobId: jobIdField.describe('The deal id.') }),
+      execute: async ({ jobId }) =>
+        guarded('propose_ask_for_payment', async () => {
+          const found = await partyDeal(jobId, address);
+          if ('error' in found) return found;
+          const { deal, side } = found;
+          if (side !== 'seller') return { error: 'Only the seller asks for payment. The buyer releases it from the deal page.' };
+          if (deal.escrowVersion !== 'suite') return { error: 'This deal pays out on its own timer; nothing to ask for.' };
+          if (!deal.delivered) return { error: 'Mark the work delivered first.' };
+          if (deal.disputed) return { error: 'This deal already has an open dispute.' };
+          if (deal.settledAt || deal.cancelledAt) return { error: 'That deal is no longer open.' };
+          if (agreementEscrowAddress && deal.escrowDealId) {
+            const openUntil = reviewOpenUntil(await readAgreementReviewEnd(agreementEscrowAddress, deal.escrowDealId as `0x${string}`), Date.now());
+            if (openUntil !== null) {
+              return { error: Number.isFinite(openUntil) ? `The buyer still has review time until ${new Date(openUntil).toUTCString()}.` : 'The buyer has not started reviewing yet.' };
+            }
+          }
+          return offer(actions, buildAskForPaymentConfirm({ caller: address, jobId, amountUsdc: deal.dealAmountUsdc }));
         }),
     }),
 

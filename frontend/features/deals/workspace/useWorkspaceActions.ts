@@ -9,7 +9,7 @@ import { classifyConfirmError, dealMovedSinceSnapshot, snapshotDeal, type Confir
 import { actionConsequence, actionLabel, fill, formatUsdcAmount, isIrreversibleAction } from './presentation';
 import { useFundingQuote } from './useFundingQuote';
 
-type SheetAction = 'accept' | 'fund' | 'release' | 'claim' | 'review-manually';
+type SheetAction = 'accept' | 'fund' | 'release' | 'claim' | 'ask-payment' | 'review-manually';
 type Handoff = 'deliver' | 'respond-extension' | 'respond-cancel' | 'dispute';
 
 export interface SheetState {
@@ -114,6 +114,18 @@ export function useWorkspaceActions(
       return;
     }
 
+    if (next.action === 'ask-payment') {
+      setSheet({
+        action: 'ask-payment',
+        title: live.askPayment,
+        consequence: fill(live.askPaymentConsequence, { amount: next.amountUsdc ? formatUsdcAmount(next.amountUsdc, locale) : '' }),
+        irreversible: false,
+        snapshot,
+        quote: null,
+      });
+      return;
+    }
+
     setSheet({
       action: next.action as SheetAction,
       title: actionLabel(next, copy, locale) ?? '',
@@ -169,6 +181,9 @@ export function useWorkspaceActions(
         await api.releaseDirectDeal(deal.jobId, address);
       } else if (sheet.action === 'claim') {
         await api.claimDirectDeal(deal.jobId, address);
+      } else if (sheet.action === 'ask-payment') {
+        // The seller's dispute about buyer silence; the buyer then has 72 hours to answer.
+        await api.appealDeal(deal.jobId, address);
       } else {
         await api.reviewDeliveryManually(deal.jobId, address);
       }

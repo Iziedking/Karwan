@@ -31,6 +31,8 @@ import { runV3Attestation, runV3Dispute } from './v3DisputeWatcher.js';
 import { v3WatcherDeps } from './v3DisputeWatcherLive.js';
 import { runSuiteCheck, runSuiteDispute } from './suiteDisputeWatcher.js';
 import { suiteWatcherDeps } from './suiteDisputeWatcherLive.js';
+import { runBuyerSilence } from '../deals/buyerSilence.js';
+import { buyerSilenceDeps } from '../deals/buyerSilenceLive.js';
 import { logger } from '../logger.js';
 import {
   releaseBlockReasonForDelivery,
@@ -243,6 +245,21 @@ async function runSuiteDisputeSafely(deal: DirectDeal, now: number) {
     await runSuiteDispute(deps, deal, now);
   } catch (err) {
     logger.warn({ jobId: deal.jobId, err: (err as Error).message }, 'suite dispute step failed (retried next tick)');
+  } finally {
+    processing.delete(deal.jobId);
+  }
+}
+
+/// Review ended with the buyer silent on an escrow-family deal: ask the seller,
+/// then let their agent raise it after 24 hours. A failure retries next tick.
+async function runBuyerSilenceSafely(deal: DirectDeal, now: number) {
+  const deps = buyerSilenceDeps();
+  if (!deps || processing.has(deal.jobId)) return;
+  processing.add(deal.jobId);
+  try {
+    await runBuyerSilence(deps, deal, now);
+  } catch (err) {
+    logger.warn({ jobId: deal.jobId, err: (err as Error).message }, 'buyer silence step failed (retried next tick)');
   } finally {
     processing.delete(deal.jobId);
   }
@@ -853,6 +870,14 @@ async function tick() {
           { jobId: deal.jobId, deliveredAt: outOfBand.deliveredAtMs, claimableAt: outOfBand.claimableAtMs },
           'delivery marked on the escrow outside Karwan; buyer alerted',
         );
+      }
+
+      // The escrow family pays nothing on review time alone (view 27 decision 7):
+      // a silent buyer gets a seller dispute and 72 hours to answer instead of
+      // the release ladder below.
+      if (account.version === 'suite') {
+        await runBuyerSilenceSafely(deal, now);
+        continue;
       }
 
       // Two reasons the agent refuses to run the release clock:

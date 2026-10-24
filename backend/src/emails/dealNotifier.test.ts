@@ -126,6 +126,19 @@ test('a seller asked to set up their record gets one plain email, and nobody els
   assert.match(contentFor(paidFirst, 'seller', 'service')!.body, /will not count on your record/);
 });
 
+test('buyer silence emails the seller to ask, and the buyer when to answer', () => {
+  const ev = (payload: Record<string, unknown>) =>
+    ({ type: 'deal.buyer_silent', jobId: '0xdeal', actor: 'platform', ts: 0, payload: { buyer: '0xb', seller: '0xs', ...payload } }) as unknown as KarwanEvent;
+  const prompt = contentFor(ev({ stage: 'prompt' }), 'seller', 'service');
+  assert.equal(prompt!.subject, 'The buyer has not responded. Ask for payment?');
+  assert.match(prompt!.body, /72 hours/);
+  assert.equal(contentFor(ev({ stage: 'prompt' }), 'buyer', 'service'), null);
+  const answer = contentFor(ev({ stage: 'answer', answerBy: Date.UTC(2026, 9, 27, 9, 0) }), 'buyer', 'service');
+  assert.match(answer!.subject, /the payment goes to the seller/);
+  assert.equal(contentFor(ev({ stage: 'answer', answerBy: 1 }), 'seller', 'service'), null);
+  assert.match(contentFor(ev({ stage: 'raised', by: 'agent' }), 'seller', 'service')!.subject, /Your agent asked for payment/);
+});
+
 test('a financier whose offer is short hears how much to add', () => {
   const short = {
     type: 'factoring.funding_needed', actor: 'platform', ts: 0,

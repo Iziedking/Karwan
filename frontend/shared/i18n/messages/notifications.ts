@@ -9,6 +9,7 @@ export interface NotifyCopy {
   declinedSeller: string; declinedBuyer: string; raisedPrice: string; raised: string; jobExpired: string;
   listingMatchedPrice: string; listingMatched: string; trendKeyword: string; trend: string; suggestionTitle: string; suggestion: string;
   recordNeededOffers: string; recordNeededDeal: string;
+  buyerSilentPrompt: string; buyerSilentRaised: string; buyerSilentAnswer: string;
   agentDeclinedReason: string; agentDeclined: string;
   nearMissBuyerPrice: string; nearMissSellerPrice: string; nearMissBuyer: string; nearMissSeller: string;
   directCreatedAmount: string; directCreated: string; inviteClaimedAmount: string; inviteClaimed: string;
@@ -61,6 +62,9 @@ const en: NotifyCopy = {
   suggestionTitle: "Your agent found a request that fits: {title}. Make an offer?",
   suggestion: "Your agent found a request that fits. Make an offer?",
   recordNeededOffers: "Set up your Karwan record so your agent can make offers.",
+  buyerSilentPrompt: "The buyer has not responded after review. Ask for payment?",
+  buyerSilentRaised: "The buyer did not respond, so your agent asked for payment for you.",
+  buyerSilentAnswer: "The seller asked for payment. Answer within 72 hours with what is wrong, or the payment goes to them.",
   recordNeededDeal: "The buyer paid. Set up your Karwan record; this deal will not count on it, your next ones will.",
   trend: 'A skill you offer is in rising demand this week.',
   agentDeclinedReason: 'Your agent ended the negotiation: {reason}',
@@ -188,6 +192,9 @@ const fr: NotifyCopy = {
   suggestionTitle: "Votre agent a trouvé une demande qui vous correspond : {title}. Faire une offre ?",
   suggestion: "Votre agent a trouvé une demande qui vous correspond. Faire une offre ?",
   recordNeededOffers: "Créez votre historique Karwan pour que votre agent puisse faire des offres.",
+  buyerSilentPrompt: "L’acheteur n’a pas répondu après la période d’examen. Demander le paiement ?",
+  buyerSilentRaised: "L’acheteur n’a pas répondu, votre agent a donc demandé le paiement pour vous.",
+  buyerSilentAnswer: "Le vendeur a demandé le paiement. Expliquez ce qui ne va pas sous 72 heures, sinon le paiement lui revient.",
   recordNeededDeal: "L’acheteur a payé. Créez votre historique Karwan ; cet accord n’y comptera pas, les suivants oui.",
   trend: 'Une compétence que vous proposez est de plus en plus demandée cette semaine.',
   agentDeclinedReason: 'Votre agent a mis fin à la négociation : {reason}',
@@ -315,6 +322,9 @@ const ar: NotifyCopy = {
   suggestionTitle: "وجد وكيلك طلبًا يناسبك: {title}. هل تقدم عرضًا؟",
   suggestion: "وجد وكيلك طلبًا يناسبك. هل تقدم عرضًا؟",
   recordNeededOffers: "أنشئ سجلّك في كاروان ليتمكن وكيلك من تقديم العروض.",
+  buyerSilentPrompt: "لم يرد المشتري بعد انتهاء مدة المراجعة. هل تطلب الدفع؟",
+  buyerSilentRaised: "لم يرد المشتري، فطلب وكيلك الدفع نيابة عنك.",
+  buyerSilentAnswer: "طلب البائع الدفع. رد خلال 72 ساعة بما هو خطأ، وإلا ذهبت الدفعة إليه.",
   recordNeededDeal: "دفع المشتري. أنشئ سجلّك في كاروان؛ لن تُحتسب هذه الصفقة فيه، وستُحتسب الصفقات التالية.",
   trend: 'مهارة تقدّمها يزداد الطلب عليها هذا الأسبوع.',
   agentDeclinedReason: 'أنهى وكيلك التفاوض: {reason}',
@@ -442,6 +452,9 @@ const hi: NotifyCopy = {
   suggestionTitle: "आपके एजेंट को एक उपयुक्त अनुरोध मिला: {title}। ऑफ़र करें?",
   suggestion: "आपके एजेंट को एक उपयुक्त अनुरोध मिला। ऑफ़र करें?",
   recordNeededOffers: "अपना Karwan रिकॉर्ड बनाएँ ताकि आपका एजेंट ऑफ़र कर सके।",
+  buyerSilentPrompt: "समीक्षा के बाद ख़रीदार ने जवाब नहीं दिया। भुगतान माँगें?",
+  buyerSilentRaised: "ख़रीदार ने जवाब नहीं दिया, इसलिए आपके एजेंट ने आपकी ओर से भुगतान माँगा।",
+  buyerSilentAnswer: "विक्रेता ने भुगतान माँगा है। 72 घंटे में बताएँ कि क्या ग़लत है, वरना भुगतान उन्हें जाएगा।",
   recordNeededDeal: "ख़रीदार ने भुगतान कर दिया। अपना Karwan रिकॉर्ड बनाएँ; यह सौदा उसमें नहीं गिना जाएगा, अगले सौदे गिने जाएँगे।",
   trend: 'आपकी एक स्किल की माँग इस हफ़्ते बढ़ रही है।',
   agentDeclinedReason: 'आपके एजेंट ने बातचीत ख़त्म की: {reason}',
@@ -569,6 +582,9 @@ const sw: NotifyCopy = {
   suggestionTitle: "Wakala wako amepata ombi linalokufaa: {title}. Toa ofa?",
   suggestion: "Wakala wako amepata ombi linalokufaa. Toa ofa?",
   recordNeededOffers: "Unda rekodi yako ya Karwan ili wakala wako aweze kutoa ofa.",
+  buyerSilentPrompt: "Mnunuzi hajajibu baada ya muda wa ukaguzi. Uombe malipo?",
+  buyerSilentRaised: "Mnunuzi hakujibu, kwa hiyo wakala wako ameomba malipo kwa niaba yako.",
+  buyerSilentAnswer: "Muuzaji ameomba malipo. Jibu ndani ya saa 72 ukieleza kilichoharibika, la sivyo malipo yanaenda kwake.",
   recordNeededDeal: "Mnunuzi amelipa. Unda rekodi yako ya Karwan; mkataba huu hautahesabiwa humo, inayofuata itahesabiwa.",
   trend: 'Ujuzi unaotoa unazidi kuhitajika wiki hii.',
   agentDeclinedReason: 'Wakala wako amemaliza mazungumzo: {reason}',

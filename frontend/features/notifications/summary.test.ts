@@ -75,6 +75,12 @@ test('a seller asked to set up their record reads why, in the bell', () => {
   assert.match(en.recordNeededOffers, /Karwan record/);
 });
 
+test('buyer silence reads plainly in the bell for each side', () => {
+  assert.equal(summaryFor('deal.buyer_silent', { stage: 'prompt' }, 'seller', en), en.buyerSilentPrompt);
+  assert.equal(summaryFor('deal.buyer_silent', { stage: 'raised', by: 'agent' }, 'seller', en), en.buyerSilentRaised);
+  assert.equal(summaryFor('deal.buyer_silent', { stage: 'answer' }, 'buyer', en), en.buyerSilentAnswer);
+});
+
 test('a financier whose offer is short is told how much to add', () => {
   assert.equal(
     summaryFor('factoring.funding_needed', { shortfallUsdc: '569.03' }, 'financier', en),

@@ -15,6 +15,8 @@ export type DealStage =
 export type MoneyLine = 'not-funded' | 'held' | 'sending' | 'paused' | 'released' | 'refunding' | 'refunded' | 'cancelled';
 export type ProgressStep = 'agreed' | 'funded' | 'delivered' | 'checked' | 'released' | 'cancelled' | 'refunded';
 export type NextAction =
+  /// Escrow family: the seller asks for payment once the buyer's review time is over.
+  | 'ask-payment'
   | 'accept'
   | 'fund'
   | 'deliver'
@@ -26,7 +28,9 @@ export type NextAction =
   | 'dispute'
   | null;
 export type Actor = 'you' | 'counterparty' | 'nobody';
-export type AutomaticOutcome = { kind: 'auto-release' | 'deadline-reclaim' | 'acceptance-expiry'; at: number } | null;
+/// 'review-ends' and 'silence-payout' are the escrow family's: nothing releases on
+/// review time alone; after it the seller may ask, and an unanswered ask pays out.
+export type AutomaticOutcome = { kind: 'auto-release' | 'deadline-reclaim' | 'acceptance-expiry' | 'review-ends' | 'silence-payout'; at: number } | null;
 
 export interface DealViewInput {
   buyer: string;
@@ -61,6 +65,9 @@ export interface DealViewInput {
   cancellationProposal?: { proposedBy: 'buyer' | 'seller' };
   extensionRequest?: { requestedBy: 'seller' };
   onChain?: { state: number; milestonesReleased: number; milestonePcts: number[] } | null;
+  escrowVersion?: 'v2' | 'v3' | 'suite';
+  /// Escrow family, a buyer-silence dispute: when the proposal to pay the seller takes effect.
+  silenceAnswerByMs?: number;
 }
 
 export interface DealView {
@@ -221,7 +228,9 @@ function next(deal: DealViewInput, stage: DealStage, viewer: 'buyer' | 'seller',
     return none('nobody');
   }
   if (viewer === 'buyer') return you('release', nextShareUsdc(deal));
-  if (deal.releaseEligibleAtMs != null && deal.releaseEligibleAtMs <= now) return you('claim', nextShareUsdc(deal));
+  if (deal.releaseEligibleAtMs != null && deal.releaseEligibleAtMs <= now) {
+    return you(deal.escrowVersion === 'suite' ? 'ask-payment' : 'claim', nextShareUsdc(deal));
+  }
   return none('counterparty');
 }
 
@@ -232,8 +241,11 @@ function automatic(deal: DealViewInput, stage: DealStage): AutomaticOutcome {
   if (stage === 'awaiting-delivery' && deal.deadlineUnix) {
     return { kind: 'deadline-reclaim', at: deal.deadlineUnix * 1000 + (deal.deadlineReclaimGraceMs ?? 0) };
   }
+  if (stage === 'disputed' && deal.escrowVersion === 'suite' && deal.silenceAnswerByMs != null) {
+    return { kind: 'silence-payout', at: deal.silenceAnswerByMs };
+  }
   if ((stage === 'awaiting-first-release' || stage === 'awaiting-final-release') && !paused(deal) && deal.releaseEligibleAtMs != null) {
-    return { kind: 'auto-release', at: deal.releaseEligibleAtMs };
+    return { kind: deal.escrowVersion === 'suite' ? 'review-ends' : 'auto-release', at: deal.releaseEligibleAtMs };
   }
   return null;
 }

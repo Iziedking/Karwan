@@ -6,7 +6,8 @@ import { DEAL_STATE, type DealV3View } from '../chain/dealEscrowV3.js';
 import type { EvidenceReceiptView } from '../chain/evidenceReceipt.js';
 import type { PlatformSigners } from '../chain/platformSigners.js';
 import type { DirectDeal } from '../db/deals.js';
-import { attestationFor, decideRuling, rulingRecord } from '../deals/arbiterV3.js';
+import { attestationFor, decideRuling, rulingRecord, type ArbiterRuling } from '../deals/arbiterV3.js';
+import { BUYER_ANSWER_MS } from '../deals/buyerSilence.js';
 
 /// The deal watcher's escrow-family half: delivery checks signed by two of
 /// Karwan's three checkers, and the dispute table of 25 Sep on the Agreement
@@ -106,7 +107,9 @@ export async function runSuiteDispute(deps: SuiteWatcherDeps, deal: DirectDeal, 
     return;
   }
 
-  const step = suiteDisputeStep(view, view.escalated ? await deps.readEscalatedAt(deal) : 0n, nowSecs, deps.coolOffSecs);
+  // A buyer-silence dispute has no cool-off: the buyer already had their review time.
+  const silent = deal.disputeKind === 'buyer-silent';
+  const step = suiteDisputeStep(view, view.escalated ? await deps.readEscalatedAt(deal) : 0n, nowSecs, silent ? 0 : deps.coolOffSecs);
   switch (step) {
     case 'decide': {
       if (!deps.arbiter) return;
@@ -117,11 +120,20 @@ export async function runSuiteDispute(deps: SuiteWatcherDeps, deal: DirectDeal, 
         disputedBy: deal.disputedBy ?? null,
         checkFailedRevision: deal.v3CheckFailedRevision,
       };
-      const ruling = decideRuling(input);
+      const ruling: ArbiterRuling = silent ? silenceRuling(deal, view) : decideRuling(input);
       if (ruling.kind === 'wait') return;
       const record = rulingRecord(ruling, input, deal.jobId);
       if (ruling.kind === 'propose') {
         await deps.arbiter.arbiterSend('proposeRuling', [id, ruling.sellerBps, record.rulingHash]);
+        if (silent) {
+          // The contract's appeal window is the buyer's time to answer with a reason.
+          deps.emit({
+            type: 'deal.buyer_silent',
+            jobId: deal.jobId,
+            actor: 'platform',
+            payload: { buyer: deal.buyer, seller: deal.seller, stage: 'answer', answerBy: nowMs + BUYER_ANSWER_MS },
+          });
+        }
       } else {
         await deps.arbiter.arbiterSend('escalate', [id]);
         await deps.alertOperator(deal, `Dispute on deal ${deal.jobId.slice(0, 10)}… needs the review Safe: ${ruling.reason}.`);
@@ -157,6 +169,16 @@ export async function runSuiteDispute(deps: SuiteWatcherDeps, deal: DirectDeal, 
     default:
       return;
   }
+}
+
+/// Rule R5 (owner, 24 Oct 2026): a seller asked for payment after the buyer let
+/// the review period pass in silence. Paid to the seller unless the buyer answers
+/// within 72 hours; a failed check on that delivery goes to people instead.
+function silenceRuling(deal: DirectDeal, view: DealV3View): ArbiterRuling {
+  if (deal.v3CheckFailedRevision === view.revision) {
+    return { kind: 'escalate', ruleId: 'R4-refer', reason: 'the seller asked for payment on a delivery whose check failed' };
+  }
+  return { kind: 'propose', sellerBps: 10_000, ruleId: 'R5-buyer-silent', reason: 'the buyer did not respond after the review period' };
 }
 
 export type SuiteRuleCall =
