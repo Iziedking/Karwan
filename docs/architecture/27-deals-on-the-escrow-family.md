@@ -185,6 +185,7 @@ Before any code, and logged in `docs/arc-circle-checks.md`:
 ## Decided by the owner, 24 Oct 2026
 
 5. **A seller sets up their record before their first deal is paid in:** when they agree to a deal's terms, and before their selling agent offers on a request. The escrow notes each side's record when the money goes in, so this is how every deal a seller takes counts on their record. A deal paid in before the seller has a record stays possible as a fallback; it runs normally but does not count on the seller's record.
+6. **Network fees for wallets Karwan holds** (identity wallets and agents, including an agent's first transaction) are paid through a Circle gas policy, on testnet and on mainnet, so those people never hold gas. People who sign in with their own wallet pay their own small fee in that wallet. The copy says so only once the mainnet policy is set up.
 
 ## Status
 
