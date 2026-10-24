@@ -14,6 +14,8 @@ import type { PresenceChallenge, PresenceMethod, PresencePasskey, PresenceStore 
 export type { PresenceMethod } from './store.js';
 
 export const CHALLENGE_TTL_MS = 5 * 60_000;
+/// How often asking for a confirmation also cleans out spent and expired ones.
+const PURGE_EVERY_MS = 10 * 60_000;
 export const CONFIRM_HEADER = 'x-karwan-confirm';
 /// A chat's one-time page may set the first PIN or passkey this soon after it opened.
 export const OPEN_LINK_ENROL_SECS = 10 * 60;
@@ -68,9 +70,15 @@ export function createPresenceService(deps: PresenceDeps) {
     return { own, login };
   };
 
+  let purgedAt = 0;
+
   async function challengeFor(session: SessionPayload, action: PresenceAction): Promise<ConfirmRequired> {
     if (action.wallet !== session.address.toLowerCase()) throw new Error('confirmation asked for an account that is not the signed-in account');
     const now = deps.now();
+    if (now - purgedAt >= PURGE_EVERY_MS) {
+      purgedAt = now;
+      await deps.store.purgeExpired(now).catch(() => 0);
+    }
     const id = newId();
     const nonce = newId();
     await deps.store.createChallenge({

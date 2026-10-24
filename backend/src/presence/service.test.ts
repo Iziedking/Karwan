@@ -225,3 +225,11 @@ test('a_wallet_signature_confirms_only_the_challenge_it_was_made_for', async () 
   await h.svc.confirmWallet(web3(), second.challengeId, '0x5167');
   assert.equal(h.signatures.at(-1)?.message, second.text, 'the second challenge is checked against its own text');
 });
+
+test('asking_for_a_confirmation_cleans_out_old_challenges_now_and_then', async () => {
+  const h = harness();
+  const old = await h.svc.challengeFor(circle(), cashOut());
+  h.clock.now += 60 * 60_000;
+  await h.svc.challengeFor(circle(), cashOut());
+  assert.equal(await h.store.challenge(old.challengeId), null);
+});

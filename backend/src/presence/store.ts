@@ -46,6 +46,8 @@ export interface PresenceStore {
   consume: (id: string, wallet: string, digest: string, now: number) => Promise<ConsumeResult>;
   /// One PIN check at a time per account, so parallel guesses cannot skip the count.
   withPinLock: <T>(wallet: string, fn: () => Promise<T>) => Promise<T>;
+  /// Removes challenges no grant can use any more; returns how many.
+  purgeExpired: (now: number) => Promise<number>;
   forget: (wallet: string) => Promise<void>;
 }
 
@@ -207,6 +209,12 @@ export function createPostgresPresenceStore(transaction: Transaction): PresenceS
         return fn();
       }),
 
+    purgeExpired: (now) =>
+      transaction(async (tx) => {
+        const r = await tx.query(`DELETE FROM confirm_challenges_v1 WHERE expires_at + ${GRANT_WINDOW_MS} < $1 RETURNING id`, [now]);
+        return r.rows.length;
+      }),
+
     forget: (wallet) =>
       transaction(async (tx) => {
         const key = wallet.toLowerCase();
@@ -275,6 +283,16 @@ export function createMemoryPresenceStore(): PresenceStore {
       const run = (locks.get(key) ?? Promise.resolve()).then(fn);
       locks.set(key, run.catch(() => undefined));
       return run;
+    },
+    purgeExpired: async (now) => {
+      let removed = 0;
+      for (const [id, c] of challenges) {
+        if (c.expiresAt + GRANT_WINDOW_MS < now) {
+          challenges.delete(id);
+          removed += 1;
+        }
+      }
+      return removed;
     },
     forget: async (wallet) => {
       const key = wallet.toLowerCase();

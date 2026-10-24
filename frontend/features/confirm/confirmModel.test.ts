@@ -2,7 +2,14 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { ConfirmRequired } from '@/core/api';
 import { confirmPresenceCopy } from '@/shared/i18n/messages/confirmPresence';
-import { actionLines, confirmView, formatMicros, shortAddress } from './confirmModel';
+import { actionLines as rawLines, confirmView, formatMicros, shortAddress } from './confirmModel';
+
+/// The bidi isolates and word joiners are invisible; compare what a person reads.
+const plain = (s: string) => s.replace(/[\u2060\u2066\u2069]/g, '');
+const actionLines = (...args: Parameters<typeof rawLines>) => {
+  const r = rawLines(...args);
+  return { headline: plain(r.headline), lines: r.lines.map(plain) };
+};
 
 const copy = confirmPresenceCopy.en;
 const NOW = 1_800_000_000_000;
@@ -49,8 +56,14 @@ test('amounts_and_addresses_format', () => {
   assert.equal(formatMicros('50000000'), '50');
   assert.equal(formatMicros('1250000'), '1.25');
   assert.equal(formatMicros('1'), '0.000001');
-  assert.equal(shortAddress('0x1234567890abcdef1234567890abcdef1234abcd'), '0x1234…abcd');
-  assert.equal(shortAddress('7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU'), '7xKX…gAsU');
+  assert.equal(plain(shortAddress('0x1234567890abcdef1234567890abcdef1234abcd')), '0x1234…abcd');
+  assert.equal(plain(shortAddress('7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU')), '7xKX…gAsU');
+});
+
+test('an_address_stays_one_left_to_right_piece_in_arabic', () => {
+  const short = shortAddress('0x1234567890abcdef1234567890abcdef1234abcd');
+  assert.ok(short.startsWith('\u2066') && short.endsWith('\u2069'), 'isolated from the sentence around it');
+  assert.match(short, /\u2060…\u2060/, 'never broken at the ellipsis');
 });
 
 test('each_action_reads_as_its_consequence', () => {

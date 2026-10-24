@@ -59,6 +59,14 @@ async function presenceStoreContract(store: PresenceStore) {
   assert.equal(await store.confirm('c4', 'pin', 101), false);
   assert.equal(await store.consume('c4', A, '0xd1', 102), 'missing');
 
+  // expired_challenges_are_cleaned_out_once_no_grant_can_use_them
+  await store.createChallenge(challenge({ id: 'old', expiresAt: 1_000 }));
+  await store.createChallenge(challenge({ id: 'young', expiresAt: 1_000 + GRANT_WINDOW_MS }));
+  assert.equal(await store.purgeExpired(1_000 + GRANT_WINDOW_MS + 1), 2, 'this one and c4 from above');
+  assert.equal(await store.challenge('old'), null);
+  assert.equal(await store.challenge('c4'), null);
+  assert.ok(await store.challenge('young'), 'a challenge whose grant could still be spent stays');
+
   // PINs and passkeys
   assert.equal(await store.pin(A), null);
   await store.savePin(A, { hash: 'h1', failures: 2, lockedUntil: 900 });

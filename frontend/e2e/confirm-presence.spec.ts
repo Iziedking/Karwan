@@ -1,6 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 import { SELLER } from './fixtures';
 import { en } from '../shared/i18n/messages/en';
+import { ar } from '../shared/i18n/messages/ar';
+import { assertTopUpAppearance, prepareTopUpAppearance } from './instantTopUpFixtures';
 
 const API = 'http://127.0.0.1:3199';
 const JOB = '0x' + 'c'.repeat(64);
@@ -92,7 +94,7 @@ test('a first send sets a PIN with the email code, confirms it, and the money go
   const world = await mock(page);
   await startSend(page);
   const sheet = page.getByRole('dialog');
-  await expect(sheet.getByRole('heading', { name: 'Send 56.25 USDC to 0x8f3a…c41e' })).toBeVisible();
+  await expect(sheet.getByRole('heading', { name: /Send 56\.25 USDC to .*0x8f3a.*c41e/ })).toBeVisible();
   await sheet.getByRole('button', { name: copy.sendCode }).click();
   await expect.poll(() => world.codes).toBe(1);
   await sheet.getByLabel(copy.emailCode).fill('135790');
@@ -128,4 +130,44 @@ test('closing the sheet moves nothing', async ({ page }) => {
   await page.waitForTimeout(500);
   expect(world.outs).toHaveLength(1);
   expect(world.confirms).toHaveLength(0);
+  // A quiet cancel: no error line, and the send can start again.
+  // Next.js keeps an empty route announcer with the alert role; any alert with words is an error line.
+  await expect(page.getByRole('alert').filter({ hasText: /\S/ })).toHaveCount(0);
+  await expect(page.getByText(/confirmation cancelled/i)).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Send 56.25 USDC to Base/ })).toBeEnabled();
 });
+
+for (const [theme, locale] of [['dark', 'en'], ['light', 'ar'], ['dark', 'ar']] as const) {
+  test(`the sheet reads right in ${theme} ${locale}`, async ({ page }, testInfo) => {
+    await prepareTopUpAppearance(page, theme, locale);
+    await page.route(`${API}/**`, async (route) => {
+      const { pathname } = new URL(route.request().url());
+      if (pathname === '/api/auth/bootstrap') return route.fulfill({ json: { user: { address: SELLER, method: 'circle', hasPasskey: true }, profile: null } });
+      if (pathname === `/api/cashout/${JOB}`) return route.fulfill({ json: info });
+      if (pathname === '/api/bridge/circle-bridge-out') return route.fulfill({ status: 428, json: required({ pinSet: true, enrol: null, passkeys: 1 }) });
+      if (route.request().method() !== 'GET') return route.fulfill({ status: 403, body: '' });
+      return route.fulfill({ json: { items: [], events: [], movements: [], messages: [] } });
+    });
+    await page.goto(`/cashout/${JOB}`);
+    await assertTopUpAppearance(page, theme, locale);
+    const flow = locale === 'ar' ? ar.cashoutFlow : cash;
+    await page.getByRole('radio', { name: new RegExp(flow.optWallet) }).click();
+    await page.getByRole('radio', { name: /Base Sepolia/ }).click();
+    await page.getByLabel(flow.address).fill(OTHER);
+    await page.getByRole('button', { name: /Base Sepolia/ }).click();
+    const sheet = page.getByRole('dialog');
+    const words = locale === 'ar' ? ar.confirmPresence : copy;
+    await expect(sheet.getByText(words.title)).toBeVisible();
+    await expect(sheet.getByRole('button', { name: words.usePasskey })).toBeVisible();
+    await expect(sheet.getByLabel(words.pinLabel)).toBeVisible();
+    const fit = await sheet.evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      return { left: r.left, right: r.right, width: window.innerWidth, scroll: el.scrollWidth - el.clientWidth, page: document.documentElement.scrollWidth - window.innerWidth };
+    });
+    expect(fit.left).toBeGreaterThanOrEqual(0);
+    expect(fit.right).toBeLessThanOrEqual(fit.width + 1);
+    expect(fit.scroll).toBeLessThanOrEqual(1);
+    expect(fit.page).toBeLessThanOrEqual(1);
+    await page.screenshot({ path: testInfo.outputPath(`confirm-${theme}-${locale}.png`) });
+  });
+}

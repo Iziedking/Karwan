@@ -33,9 +33,12 @@ export function formatMicros(micros: string): string {
   return fraction ? `${whole}.${fraction}` : whole;
 }
 
+/// A shortened address that stays one left-to-right piece inside any
+/// sentence: isolated from the text around it (Arabic included) and never
+/// broken at the ellipsis.
 export function shortAddress(address: string): string {
-  if (address.length <= 12) return address;
-  return `${address.slice(0, address.startsWith('0x') ? 6 : 4)}…${address.slice(-4)}`;
+  const short = address.length <= 12 ? address : `${address.slice(0, address.startsWith('0x') ? 6 : 4)}\u2060…\u2060${address.slice(-4)}`;
+  return `\u2066${short}\u2069`;
 }
 
 /// The consequence in words, then any line the person should read before confirming.
