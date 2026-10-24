@@ -18,7 +18,8 @@ interface TypedDataParams {
 /// EIP-1271 signatures (per the Gateway technical guide), so the agent SCAs
 /// can't sign x402 payments themselves. This EOA owns the Gateway deposit
 /// and produces plain ECDSA signatures the facilitator accepts.
-export function dcwEvmSigner(walletId: string, address: Address) {
+/// `memo` names the purpose in Circle's console.
+export function dcwEvmSigner(walletId: string, address: Address, memo = 'Karwan x402 payment authorization') {
   return {
     address,
     async signTypedData(params: TypedDataParams): Promise<Hex> {
@@ -45,7 +46,7 @@ export function dcwEvmSigner(walletId: string, address: Address) {
       const res = await circleWalletsClient().signTypedData({
         walletId,
         data,
-        memo: 'Karwan x402 payment authorization',
+        memo,
       });
       const signature = res.data?.signature;
       if (!signature) throw new Error('Circle signTypedData returned no signature');

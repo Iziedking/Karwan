@@ -71,6 +71,8 @@ const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAction) =
   claim_yield: (p) => ({ method: 'POST', path: '/api/yield/claim', body: { address: p.address } }),
   // Placeholder so the route table knows the intent; fundDirect runs it.
   fund_direct_deal: (p) => ({ method: 'POST', path: `/api/deals/direct/${p.jobId}/fund` }),
+  // A held wallet needs the person to confirm it is them, which happens on Karwan.
+  set_up_record: () => ({ method: 'POST', path: '/api/record/setup' }),
   fund_agent: (p) =>
     p.route === 'unified'
       ? { method: 'POST', path: '/api/gateway/fund-agent', body: { agent: p.agent, amountUsdc: p.amountUsdc, requestId: randomUUID() } }
@@ -140,6 +142,7 @@ const DONE: Partial<Record<ConfirmAction['intent'], string>> = {
   save_ways: 'Saved. Your agents now deal this way.',
   create_direct_deal: 'Deal sent. The seller is asked to accept the terms; you pay into escrow after that.',
   fund_direct_deal: 'Paid into escrow. The seller can start the work.',
+  set_up_record: 'Your Karwan record is set up.',
   post_request: 'Request posted. Your agent is looking now.',
   release_milestone: 'Payment released.',
   approve_match: 'Match approved. The deal is funded and live.',

@@ -345,6 +345,14 @@ export interface FundDirectDealConfirm extends ConfirmActionBase {
   payload: FundDirectDealPayload;
 }
 
+/// The person's record on the escrow family, set up once before their first
+/// money step (view 27). Karwan signs for a wallet it holds once they confirm
+/// it is them; a person who holds their own wallet signs the calls in it.
+export interface SetUpRecordConfirm extends ConfirmActionBase {
+  intent: 'set_up_record';
+  payload: { address: string };
+}
+
 /// Discriminated on `intent`, which also tells the frontend which route to call.
 export interface SaveSetupConfirm extends ConfirmActionBase {
   intent: 'save_setup';
@@ -381,7 +389,8 @@ export type ConfirmAction =
   | Web3FundAgentConfirm
   | DealStepConfirm
   | CreateDirectDealConfirm
-  | FundDirectDealConfirm;
+  | FundDirectDealConfirm
+  | SetUpRecordConfirm;
 
 /// Stage 2 shipped `navigate`; Stages 3-4 add `confirm`. The envelope + renderer
 /// carry the union unchanged as new variants land.
