@@ -20,6 +20,7 @@ export default function HomePage() {
   const messages = useTranslations();
   const t = messages.landingEditorial;
   const videoRef = useRef<HTMLVideoElement>(null);
+  const pageRef = useRef<HTMLDivElement>(null);
   const openHref = useEntryHref();
 
   useEffect(() => {
@@ -39,8 +40,39 @@ export default function HomePage() {
     return () => { observer.disconnect(); document.removeEventListener('visibilitychange', sync); preference.removeEventListener('change', sync); video.pause(); };
   }, []);
 
+  // Each section after the hero eases up once as it comes into view. Turned on
+  // only here, so the page reads complete without script or with less motion.
+  useEffect(() => {
+    const page = pageRef.current;
+    if (!page || typeof IntersectionObserver === 'undefined') return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const sections = Array.from(page.querySelectorAll<HTMLElement>(':scope > section')).slice(1);
+    const seen = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        (entry.target as HTMLElement).dataset.shown = '';
+        seen.unobserve(entry.target);
+      }
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.06 });
+    for (const section of sections) {
+      // Already on screen (a reload part-way down) shows at once.
+      if (section.getBoundingClientRect().top < window.innerHeight * 0.9) section.dataset.shown = '';
+      section.dataset.reveal = '';
+      seen.observe(section);
+    }
+    page.dataset.motion = '';
+    return () => {
+      seen.disconnect();
+      delete page.dataset.motion;
+      for (const section of sections) {
+        delete section.dataset.reveal;
+        delete section.dataset.shown;
+      }
+    };
+  }, []);
+
   return (
-    <div className={styles.page}>
+    <div ref={pageRef} className={styles.page}>
       <section className={styles.hero} aria-labelledby="landing-title">
         <div className={styles.heroContent}>
           <p className={styles.kicker}>{t.kicker}</p>

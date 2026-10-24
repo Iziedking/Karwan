@@ -111,3 +111,25 @@
 @media (prefers-reduced-motion: no-preference) { .liveSkeleton { animation: livePulse 1.6s ease-in-out infinite; } }
 @keyframes livePulse { 50% { opacity: .55; } }
 @media (max-width: 640px) { .closingActions { justify-content: flex-start; } .liveFigures { gap: 18px 20px; } }
+
+/* Motion (owner, 24 Oct 2026): calm movement that explains the page, nothing
+   that changes what it says. The hero rises in on load; each section after it
+   eases up once as it comes into view. Applied only once the page has turned
+   it on (data-motion, set by script when motion is allowed), so without script
+   or with reduced motion everything simply shows. */
+@keyframes landingRise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+@keyframes landingSettle { from { transform: scale(1.045); } to { transform: none; } }
+.page[data-motion] .heroContent > * { animation: landingRise .9s cubic-bezier(.2,.7,.2,1) both; }
+.page[data-motion] .heroContent > :nth-child(2) { animation-delay: .08s; }
+.page[data-motion] .heroContent > :nth-child(3) { animation-delay: .18s; }
+.page[data-motion] .heroContent > :nth-child(4) { animation-delay: .28s; }
+.page[data-motion] .heroContent > :nth-child(5) { animation-delay: .36s; }
+.page[data-motion] .hero h1 span { animation: landingRise .9s cubic-bezier(.2,.7,.2,1) both; }
+.page[data-motion] .hero h1 span + span { animation-delay: .12s; }
+.page[data-motion] .media video { animation: landingSettle 2.4s cubic-bezier(.2,.7,.2,1) both; }
+.page[data-motion] > section[data-reveal] { opacity: 0; transform: translateY(28px); transition: opacity .8s cubic-bezier(.2,.7,.2,1), transform .9s cubic-bezier(.2,.7,.2,1); }
+.page[data-motion] > section[data-reveal][data-shown] { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce), print {
+  .page[data-motion] .heroContent > *, .page[data-motion] .hero h1 span, .page[data-motion] .media video { animation: none; }
+  .page[data-motion] > section[data-reveal] { opacity: 1; transform: none; transition: none; }
+}

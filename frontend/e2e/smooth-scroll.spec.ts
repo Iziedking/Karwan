@@ -29,6 +29,8 @@ test.describe('with motion allowed', () => {
     await open(page);
     await expect(page.locator('html')).toHaveClass(/\blenis\b/);
     await page.mouse.move(640, 300);
+    // Smooth scrolling loads just after the page; let it settle before the wheel.
+    await page.waitForTimeout(600);
     await page.mouse.wheel(0, 400);
     await page.waitForTimeout(60);
     const early = await page.evaluate(() => window.scrollY);

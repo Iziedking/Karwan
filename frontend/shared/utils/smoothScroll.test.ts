@@ -9,15 +9,15 @@ function win({ fine = true, reduced = false, snap = false } = {}) {
   };
 }
 
-test('the page glides on a desktop pointer, on product pages', () => {
+test('the page glides on a desktop pointer, the landing page included', () => {
+  assert.equal(smoothScrollAllowed('/', win()), true);
   assert.equal(smoothScrollAllowed('/market', win()), true);
   assert.equal(smoothScrollAllowed('/credit-passport/0x1', win()), true);
 });
 
-test('never on a phone, never with reduced motion, never on the landing page or the console', () => {
+test('never on a phone, never with reduced motion, never with panel scrolling or on the console', () => {
   assert.equal(smoothScrollAllowed('/market', win({ fine: false })), false);
   assert.equal(smoothScrollAllowed('/market', win({ reduced: true })), false);
-  assert.equal(smoothScrollAllowed('/', win()), false);
   assert.equal(smoothScrollAllowed('/how-it-works', win({ snap: true })), false);
   assert.equal(smoothScrollAllowed('/admin/waitlist', win()), false);
   assert.equal(smoothScrollAllowed(null, win()), false);
