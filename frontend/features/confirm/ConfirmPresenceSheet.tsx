@@ -29,6 +29,7 @@ export function ConfirmPresenceSheet({ required, onDone, onClose }: {
   const [pin, setPin] = useState('');
   const [code, setCode] = useState('');
   const [codeSent, setCodeSent] = useState(false);
+  const [resent, setResent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const pinRef = useRef<HTMLInputElement>(null);
@@ -53,8 +54,12 @@ export function ConfirmPresenceSheet({ required, onDone, onClose }: {
       if (view.step === 'confirm') setView({ ...view, pinLockedUntil: body.until });
     } else if (body?.code === 'PIN_TOO_SIMPLE') setError(copy.tooSimple);
     else if (body?.code === 'CHALLENGE_EXPIRED') setError(copy.expired);
+    else if (body?.code === 'EMAIL_CODE_WRONG') setError(copy.codeWrong);
+    else if (body?.code === 'EMAIL_CODE_LIMIT') setError(copy.codeLimit);
+    else if (body?.code === 'PIN_FORMAT') setError(copy.pinFormat);
     else setError(copy.failed);
-    setPin('');
+    // A wrong or used-up email code says nothing about the new PIN, so it stays.
+    if (body?.code !== 'EMAIL_CODE_WRONG' && body?.code !== 'EMAIL_CODE_LIMIT') setPin('');
   };
 
   const run = async (step: () => Promise<void>) => {
@@ -78,8 +83,11 @@ export function ConfirmPresenceSheet({ required, onDone, onClose }: {
     });
   const sendCode = () =>
     run(async () => {
+      const again = codeSent;
       await api.confirmEmailCode();
       setCodeSent(true);
+      setCode('');
+      setResent(again);
     });
   const enrolPin = (emailCode?: string) =>
     run(async () => {
@@ -135,7 +143,15 @@ export function ConfirmPresenceSheet({ required, onDone, onClose }: {
         {needsCode && !codeSent ? (
           <button type="button" className={SECONDARY} disabled={busy} onClick={sendCode}>{copy.sendCode}</button>
         ) : null}
-        {needsCode && codeSent ? codeField : null}
+        {needsCode && codeSent ? (
+          <>
+            {codeField}
+            <div className="flex flex-wrap items-center gap-3">
+              <button type="button" className={LINK} disabled={busy} onClick={sendCode}>{copy.resendCode}</button>
+              {resent ? <p role="status" className="text-[14px] text-[var(--lp-dark)]">{copy.codeResent}</p> : null}
+            </div>
+          </>
+        ) : null}
         {!needsCode || codeSent ? (
           <>
             <PinField id="confirm-new-pin" label={copy.setHint} value={pin} onChange={setPin} disabled={busy} />

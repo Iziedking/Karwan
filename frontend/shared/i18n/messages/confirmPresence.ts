@@ -28,6 +28,11 @@ export interface ConfirmPresenceCopy {
   done: string;
   expired: string;
   failed: string;
+  codeWrong: string;
+  codeLimit: string;
+  resendCode: string;
+  codeResent: string;
+  pinFormat: string;
 }
 
 const en: ConfirmPresenceCopy = {
@@ -58,6 +63,11 @@ const en: ConfirmPresenceCopy = {
   done: 'Confirmed',
   expired: 'This took too long. Try again.',
   failed: "That didn't work. Try again.",
+  codeWrong: 'That code is not right. Use the newest code we sent, or send a new one.',
+  codeLimit: 'Too many codes. Try again in a few minutes.',
+  resendCode: 'Send a new code',
+  codeResent: 'We sent a new code to your email.',
+  pinFormat: 'A PIN is 6 digits.',
 };
 
 const ar: ConfirmPresenceCopy = {
@@ -88,6 +98,11 @@ const ar: ConfirmPresenceCopy = {
   done: 'تم التأكيد',
   expired: 'استغرق هذا وقتًا طويلًا. حاول مرة أخرى.',
   failed: 'لم ينجح ذلك. حاول مرة أخرى.',
+  codeWrong: 'هذا الرمز غير صحيح. استخدم أحدث رمز أرسلناه، أو اطلب رمزًا جديدًا.',
+  codeLimit: 'رموز كثيرة جدًا. حاول بعد بضع دقائق.',
+  resendCode: 'أرسل رمزًا جديدًا',
+  codeResent: 'أرسلنا رمزًا جديدًا إلى بريدك.',
+  pinFormat: 'الرمز السري 6 أرقام.',
 };
 
 const fr: ConfirmPresenceCopy = {
@@ -118,6 +133,11 @@ const fr: ConfirmPresenceCopy = {
   done: 'Confirmé',
   expired: 'Cela a pris trop de temps. Réessayez.',
   failed: 'Cela n’a pas marché. Réessayez.',
+  codeWrong: 'Ce code n’est pas bon. Utilisez le dernier code envoyé, ou demandez-en un nouveau.',
+  codeLimit: 'Trop de codes. Réessayez dans quelques minutes.',
+  resendCode: 'Envoyer un nouveau code',
+  codeResent: 'Nous avons envoyé un nouveau code à votre e-mail.',
+  pinFormat: 'Un code PIN a 6 chiffres.',
 };
 
 const hi: ConfirmPresenceCopy = {
@@ -148,6 +168,11 @@ const hi: ConfirmPresenceCopy = {
   done: 'पुष्टि हो गई',
   expired: 'इसमें बहुत समय लगा। फिर से कोशिश करें।',
   failed: 'यह काम नहीं किया। फिर से कोशिश करें।',
+  codeWrong: 'यह कोड सही नहीं है। हमारा भेजा सबसे नया कोड डालें, या नया कोड मँगाएँ।',
+  codeLimit: 'बहुत सारे कोड। कुछ मिनट बाद फिर कोशिश करें।',
+  resendCode: 'नया कोड भेजें',
+  codeResent: 'हमने आपके ईमेल पर नया कोड भेजा है।',
+  pinFormat: 'PIN 6 अंकों का होता है।',
 };
 
 const sw: ConfirmPresenceCopy = {
@@ -178,6 +203,11 @@ const sw: ConfirmPresenceCopy = {
   done: 'Imethibitishwa',
   expired: 'Hii imechukua muda mrefu. Jaribu tena.',
   failed: 'Haikufanya kazi. Jaribu tena.',
+  codeWrong: 'Msimbo huo si sahihi. Tumia msimbo mpya zaidi tuliotuma, au omba mpya.',
+  codeLimit: 'Misimbo mingi mno. Jaribu tena baada ya dakika chache.',
+  resendCode: 'Tuma msimbo mpya',
+  codeResent: 'Tumetuma msimbo mpya kwenye barua pepe yako.',
+  pinFormat: 'PIN ina tarakimu 6.',
 };
 
 export const confirmPresenceCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', ConfirmPresenceCopy> = { en, ar, fr, hi, sw };

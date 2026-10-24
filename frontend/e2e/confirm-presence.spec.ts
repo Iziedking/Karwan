@@ -43,9 +43,10 @@ interface World {
   codes: number;
 }
 
-async function mock(page: Page, opts: { pinSet?: boolean; wrongPins?: number } = {}): Promise<World> {
+async function mock(page: Page, opts: { pinSet?: boolean; wrongPins?: number; wrongCodes?: number } = {}): Promise<World> {
   const world: World = { outs: [], pins: [], confirms: [], codes: 0 };
   let wrong = opts.wrongPins ?? 0;
+  let wrongCodes = opts.wrongCodes ?? 0;
   await page.addInitScript(() => localStorage.setItem('karwan:guide:disabled', '1'));
   await page.route(`${API}/**`, async (route) => {
     const { pathname } = new URL(route.request().url());
@@ -65,6 +66,10 @@ async function mock(page: Page, opts: { pinSet?: boolean; wrongPins?: number } =
     }
     if (pathname === '/api/confirm/pin' && method === 'POST') {
       world.pins.push(route.request().postDataJSON());
+      if (wrongCodes > 0) {
+        wrongCodes -= 1;
+        return route.fulfill({ status: 400, json: { error: 'That code is not right.', code: 'EMAIL_CODE_WRONG' } });
+      }
       return route.fulfill({ json: { ok: true } });
     }
     if (pathname === '/api/confirm' && method === 'POST') {
@@ -106,6 +111,25 @@ test('a first send sets a PIN with the email code, confirms it, and the money go
   await expect(sheet.getByText(copy.done)).toBeVisible();
   await expect.poll(() => world.outs.map((o) => o.confirm)).toEqual([null, 'grant-1']);
   await expect(page.getByRole('button', { name: en.money.cross.done, exact: true })).toBeVisible({ timeout: 20_000 });
+});
+
+test('a wrong email code says so, keeps the new PIN, and a new code can be sent', async ({ page }) => {
+  const world = await mock(page, { wrongCodes: 1 });
+  await startSend(page);
+  const sheet = page.getByRole('dialog');
+  await sheet.getByRole('button', { name: copy.sendCode }).click();
+  await sheet.getByLabel(copy.emailCode).fill('111111');
+  await sheet.getByLabel(copy.setHint).fill(PIN);
+  await sheet.getByTestId('confirm-set-pin').click();
+  await expect(sheet.getByRole('alert')).toHaveText(copy.codeWrong);
+  await expect(sheet.getByLabel(copy.setHint)).toHaveValue(PIN);
+  await sheet.getByRole('button', { name: copy.resendCode }).click();
+  await expect.poll(() => world.codes).toBe(2);
+  await expect(sheet.getByRole('status')).toHaveText(copy.codeResent);
+  await sheet.getByLabel(copy.emailCode).fill('246802');
+  await sheet.getByTestId('confirm-set-pin').click();
+  await expect.poll(() => world.pins.at(-1)).toEqual({ pin: PIN, emailCode: '246802' });
+  await expect(sheet.getByLabel(copy.pinLabel)).toBeVisible();
 });
 
 test('a wrong PIN says how many tries are left, then the right one sends', async ({ page }) => {
