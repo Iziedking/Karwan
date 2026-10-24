@@ -75,6 +75,15 @@ export interface Brief {
   /// Missing means anywhere (location/rules.ts kindOf).
   deliveryKind?: DeliveryKind;
   where?: Where;
+  /// The assistant conversation the request was posted from; its milestones
+  /// are written back there (view 30).
+  conversationId?: string;
+  /// "Agree for me": the buyer let their agent agree with the seller it
+  /// recommends, within budget. The money still waits for the buyer's tap.
+  agreeForMe?: boolean;
+  /// The seller agent the agent last agreed with for the buyer, so the
+  /// Telegram line goes out once per agreement.
+  agreedFor?: string;
 }
 
 const STORE_PATH = resolve(process.cwd(), 'data', 'briefs.json');

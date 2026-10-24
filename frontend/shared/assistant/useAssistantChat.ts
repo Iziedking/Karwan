@@ -13,7 +13,9 @@ export function useAssistantChat(opts: { onNeedsHuman?: (transcript: Turn[]) => 
   const copy = useTranslations();
   const t = copy.assistant;
   const m = copy.assistantMode;
-  const [messages, setMessages] = useState<Turn[]>([]);
+  /// Live turns (where a request or deal made here stands) are read from the
+  /// server and replaced on each read; they are never saved with the rest.
+  const [messages, setMessages] = useState<Array<Turn & { live?: boolean }>>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -24,9 +26,11 @@ export function useAssistantChat(opts: { onNeedsHuman?: (transcript: Turn[]) => 
   live.current.messages = messages;
   live.current.conversationId = conversationId;
 
-  /// Saves the turns not yet saved. Returns the conversation id.
+  /// Saves the turns not yet saved. Returns the conversation id. `savedUpTo`
+  /// counts the conversation's own turns; live ones are never saved.
   const flush = useCallback(async (): Promise<string | null> => {
-    const { messages: all, conversationId: id, savedUpTo } = live.current;
+    const { conversationId: id, savedUpTo } = live.current;
+    const all = live.current.messages.filter((m) => !m.live);
     if (!persist || savedUpTo >= all.length) return id;
     const fresh = all.slice(savedUpTo).map((m) => {
       const actions = (m.actions ?? []).map((a) => savedAction(a, (id) => confirmOutcomes.get(id))).filter((a): a is Record<string, unknown> => a !== null);
@@ -121,8 +125,8 @@ export function useAssistantChat(opts: { onNeedsHuman?: (transcript: Turn[]) => 
     async (id: string) => {
       await flush();
       const { conversation } = await api.assistantConversation(id);
-      const turns: Turn[] = conversation.messages.map((m) => ({ role: m.role, content: m.content, actions: m.actions }));
-      live.current = { messages: turns, conversationId: conversation.id, savedUpTo: turns.length };
+      const turns = conversation.messages.map((m) => ({ role: m.role, content: m.content, actions: m.actions, ...(m.live ? { live: true } : {}) }));
+      live.current = { messages: turns, conversationId: conversation.id, savedUpTo: turns.filter((m) => !m.live).length };
       setConversationId(conversation.id);
       reset(turns);
     },
@@ -164,5 +168,23 @@ export function useAssistantChat(opts: { onNeedsHuman?: (transcript: Turn[]) => 
     reset();
   }, [reset]);
 
-  return { messages, send, attach, busy, error, setError, reset, conversationId, open, startNew, flush, remove };
+  /// Reads where the requests and deals made in this conversation stand now
+  /// and puts that at the end, replacing the previous read (view 30).
+  const refreshLive = useCallback(async () => {
+    const id = live.current.conversationId;
+    if (!id || !persist) return;
+    try {
+      const { turns } = await api.assistantLiveTurns(id);
+      if (live.current.conversationId !== id) return;
+      setMessages((prev) => {
+        const next = [...prev.filter((m) => !m.live), ...turns.map((t) => ({ role: t.role, content: t.content, actions: t.actions, live: true }))];
+        live.current.messages = next;
+        return next;
+      });
+    } catch {
+      /* the next read tries again */
+    }
+  }, [persist]);
+
+  return { messages, send, attach, busy, error, setError, reset, conversationId, open, startNew, flush, remove, refreshLive };
 }

@@ -50,7 +50,10 @@ test('the deposit address reads on one line, never below 13px, never cut short',
   }));
   expect(fit.size).toBeGreaterThanOrEqual(13);
   expect(fit.text).toBe(ME);
-  if (fit.nowrap) expect(fit.fits).toBe(true);
+  // The size is worked out after layout; on one line it ends up fitting.
+  await expect
+    .poll(() => address.evaluate((el) => getComputedStyle(el).whiteSpace !== 'nowrap' || el.scrollWidth <= el.clientWidth + 1))
+    .toBe(true);
 });
 
 test('coming back to the assistant reopens the conversation you were in', async ({ page }) => {

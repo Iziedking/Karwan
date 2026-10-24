@@ -148,6 +148,7 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "POST", path: "/api/assistant/conversations" },
   { method: "DELETE", path: "/api/assistant/conversations/:id" },
   { method: "GET", path: "/api/assistant/conversations/:id" },
+  { method: "GET", path: "/api/assistant/conversations/:id/live" },
   { method: "DELETE", path: "/api/assistant/memory" },
   { method: "GET", path: "/api/assistant/memory" },
   { method: "POST", path: "/api/assistant/memory/enabled" },

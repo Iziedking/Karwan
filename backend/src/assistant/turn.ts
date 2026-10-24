@@ -9,6 +9,7 @@ import { assistantAgentEnabled, runAssistantAgent, type AssistantChatMessage } f
 import { mayAnswer, proposalReply, requiresLiveAccountState, staticFallbackMessages } from './safety.js';
 import { getMemory, type AssistantMemory } from '../db/assistantMemory.js';
 import { liveMemoryWriterDeps, writeMemoryNotes } from './memoryWriter.js';
+import { noteRequestCards } from './requestLinks.js';
 
 export type AssistantTurnResult =
   | { ok: true; reply: string; actions?: AssistantAction[] }
@@ -67,6 +68,8 @@ export async function runAssistantTurn(
       };
       // Confirmation cards retain their existing authorization gates. Discard
       // generated prose here so it cannot call a merely prepared action done.
+      // A request card remembers this conversation for its updates (view 30).
+      noteRequestCards(address, input.conversationId, actions);
       const preparedReply = proposalReply(actions);
       if (preparedReply) {
         remember(preparedReply);

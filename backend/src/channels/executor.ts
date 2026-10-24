@@ -31,6 +31,7 @@ const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAction) =
       deadlineSeconds: Math.min(90 * 86_400, Math.max(60, Math.round(Number(p.deadlineDays) * 86_400))),
       ...(p.deliveryKind ? { deliveryKind: p.deliveryKind } : {}),
       ...(p.where ? { where: p.where } : {}),
+      ...(p.agreeForMe === true ? { agreeForMe: true } : {}),
     },
   }),
   release_milestone: (p) => ({ method: 'POST', path: `/api/deals/direct/${p.jobId}/release`, body: { caller: p.caller } }),

@@ -87,6 +87,22 @@ function AssistantPage() {
     if (chat.conversationId) rememberOpenConversation(address, chat.conversationId);
   }, [address, chat.conversationId]);
 
+  // Where the requests posted here stand, read again while the page is open, so
+  // an agreed deal or a ready shortlist shows up without reloading (view 30).
+  const refreshLive = chat.refreshLive;
+  useEffect(() => {
+    if (!chat.conversationId) return;
+    const tick = () => {
+      if (document.visibilityState === 'visible') void refreshLive();
+    };
+    const timer = setInterval(tick, 20_000);
+    document.addEventListener('visibilitychange', tick);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', tick);
+    };
+  }, [chat.conversationId, refreshLive]);
+
   const toLatest = useCallback((smooth: boolean) => {
     endRef.current?.scrollIntoView({ block: 'end', behavior: smooth && !reduce ? 'smooth' : 'auto' });
   }, [reduce]);

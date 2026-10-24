@@ -37,7 +37,8 @@ import {
 import { getPendingNearMiss, upsertNearMiss } from '../db/nearMiss.js';
 import { getMarketAdvisory } from '../db/marketAdvisory.js';
 import { getOutOfReach } from '../db/outOfReach.js';
-import { endNearMissOnDecline, reRaiseNearMissFromPassed } from '../agents/nearMiss.js';
+import { endNearMissOnDecline, inBudgetAlternative, reRaiseNearMissFromPassed } from '../agents/nearMiss.js';
+import { takeRequestLink } from '../assistant/requestLinks.js';
 import { bus, recentEventsByType } from '../events.js';
 import { resolveBuyerProfileForUser } from '../agents/agent-registry.js';
 import { createBrief, patchBrief, getBrief, deleteBrief, rekeyBrief } from '../db/briefs.js';
@@ -141,6 +142,9 @@ const postJobSchema = z
      *  and stake above price, and gates bids on the seller's free stake covering
      *  the deal's insurance reservation. For higher-value or one-shot deals. */
     trustedMatch: z.boolean().optional(),
+    /** "Agree for me" (view 30): the agent may agree with the seller it
+     *  recommends, within budget; locking the money still waits for the buyer. */
+    agreeForMe: z.boolean().optional(),
     /** Per-brief milestone split the buyer stated in the request ("30% then
      *  70%"). Percentages must sum to 100. Overrides the buyer profile default
      *  at escrow funding. One part (100) is a single payment; both escrows
@@ -471,6 +475,9 @@ ${body.terms}` : body.brief));
   // (the existing P2P flow); only a verified business posting goods/mixed lands
   // 'finance'. Matching filters on this so the two pools never cross.
   const posterAccountType = await accountTypeOf(body.posterAddress);
+  // A request confirmed from an assistant card carries its conversation and
+  // the Agree for me choice made there.
+  const link = takeRequestLink(body.posterAddress, body.brief, body.budgetUsdc);
   createBrief({
     jobId,
     briefText: body.brief,
@@ -489,6 +496,8 @@ ${body.terms}` : body.brief));
     paymentTerms: body.paymentTerms,
     counterpartyCompany: body.counterpartyCompany,
     documentRefs: body.documentRefs,
+    ...(link?.conversationId ? { conversationId: link.conversationId } : {}),
+    ...(body.agreeForMe ?? link?.agreeForMe ? { agreeForMe: true } : {}),
   });
 
   // Extract canonical match keywords from the brief. Fire-and-forget; if the
@@ -1019,6 +1028,11 @@ jobsRoutes.get('/:jobId/near-miss', (c) => {
   const isParty =
     !!caller && (caller === nm.buyerUser || caller === nm.sellerUser);
   if (!isParty) return c.json({ nearMiss: null });
+  // A buyer is never shown an ask to stretch while an offer within their budget
+  // is live or on their shortlist; the in-budget offer is the decision to make.
+  if (nm.askedSide === 'buyer' && inBudgetAlternative(jobId, Number(nm.buyerCeilingUsdc), nm.sellerAgent)) {
+    return c.json({ nearMiss: null });
+  }
   return c.json({ nearMiss: nm });
 });
 

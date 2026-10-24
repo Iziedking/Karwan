@@ -182,6 +182,8 @@ import { startTelegramBot } from './telegram/bot.js';
 import { startTelegramAgent } from './telegram/agent/live.js';
 import { startTeamDaily } from './telegram/team.js';
 import { startTelegramNotifier } from './telegram/notifier.js';
+import { startAgreedForYou } from './assistant/agreedForYou.js';
+import { startShortlistChoices } from './channels/shortlistChoices.js';
 import { startChatRetentionSweep } from './chat/retention.js';
 import { startDeliveryQuestionSweep } from './location/deliveryQuestions.js';
 import { startEmailNotifier } from './emails/dealNotifier.js';
@@ -1350,6 +1352,10 @@ async function boot() {
   } catch (err) {
     appLogger.warn({ err: (err as Error).message }, 'telegram not started');
   }
+  // "Agree for me" (view 30): one Telegram line when the agent agrees for the buyer.
+  stopFns.push(startAgreedForYou());
+  // A number replied to a shortlist in chat chooses from that shortlist.
+  stopFns.push(startShortlistChoices());
   // Live-support housekeeping: prune closed conversations, archive abandoned
   // ones. No-op-safe regardless of whether the handoff is configured.
   stopFns.push(startSupportSweeper());

@@ -17,8 +17,9 @@ export interface ConversationRouteDeps {
   remove: (address: string, id: string) => Promise<boolean>;
   /// Live turns for this conversation, built fresh on every read and never
   /// stored: a pay card for each deal made here that the seller has accepted
-  /// and that is not paid yet (view 24).
-  pending?: (address: string, id: string) => Promise<Array<{ role: 'assistant'; content: string; actions: unknown[] }>>;
+  /// and that is not paid yet (view 24), and where each request posted here
+  /// stands (view 30). Marked live so the page replaces them, never saves them.
+  pending?: (address: string, id: string) => Promise<Array<{ role: 'assistant'; content: string; actions: unknown[]; live?: true }>>;
 }
 
 /// The store keeps the last 40 of a conversation; one post never carries more.
@@ -62,6 +63,16 @@ export function createAssistantConversationRoutes(deps: ConversationRouteDeps): 
     return c.json({ conversation: live.length ? { ...conversation, messages: [...conversation.messages, ...live] } : conversation });
   });
 
+  /// Only the live turns, read again by an open conversation so an update
+  /// appears without reloading it.
+  app.get('/:id/live', async (c) => {
+    const address = await who(c);
+    if (!address) return c.json({ error: 'not authenticated' }, 401);
+    const conversation = await deps.get(address, c.req.param('id'));
+    if (!conversation) return notFound(c);
+    return c.json({ turns: deps.pending ? await deps.pending(address, conversation.id).catch(() => []) : [] });
+  });
+
   app.post('/', async (c) => {
     const address = await who(c);
     if (!address) return c.json({ error: 'not authenticated' }, 401);
@@ -94,5 +105,11 @@ export const assistantConversationRoutes = createAssistantConversationRoutes({
   get: async (address, id) => (await store()).getConversation(address, id),
   append: async (address, id, messages) => (await store()).appendToConversation(address, id, messages),
   remove: async (address, id) => (await store()).deleteConversation(address, id),
-  pending: async (address, id) => (await import('../assistant/conversationPayCards.js')).payCardsForConversation(address, id),
+  pending: async (address, id) => {
+    const [pay, requests] = await Promise.all([
+      import('../assistant/conversationPayCards.js').then((m) => m.payCardsForConversation(address, id)).catch(() => []),
+      import('../assistant/requestUpdatesLive.js').then((m) => m.requestTurnsForConversation(address, id)).catch(() => []),
+    ]);
+    return [...pay.map((t) => ({ ...t, live: true as const })), ...requests];
+  },
 });

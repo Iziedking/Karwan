@@ -1911,6 +1911,9 @@ export interface SavedAssistantMessage {
   role: 'user' | 'assistant';
   content: string;
   actions?: PastAssistantAction[];
+  /// Built fresh on each read, never stored: where a request or deal made in
+  /// this conversation stands now (views 24 and 30).
+  live?: boolean;
 }
 
 export interface AdminDeliveryReview {
@@ -5373,6 +5376,8 @@ export const api = {
   assistantConversations: () => json<{ conversations: AssistantConversationSummary[] }>('/api/assistant/conversations'),
   assistantConversation: (id: string) =>
     json<{ conversation: AssistantConversation }>(`/api/assistant/conversations/${encodeURIComponent(id)}`),
+  assistantLiveTurns: (id: string) =>
+    json<{ turns: SavedAssistantMessage[] }>(`/api/assistant/conversations/${encodeURIComponent(id)}/live`),
   saveAssistantMessages: (id: string | null, messages: Array<{ role: 'user' | 'assistant'; content: string; actions?: Array<Record<string, unknown>> }>) =>
     json<{ conversation: AssistantConversation }>('/api/assistant/conversations', {
       method: 'POST',

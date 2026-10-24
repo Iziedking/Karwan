@@ -66,6 +66,8 @@ export interface PostRequestPayload {
   deliveryKind?: DeliveryKind;
   /// Where the buyer wants it done. Missing means anywhere.
   where?: Where;
+  /// The agent may agree with the seller it recommends, within budget (view 30).
+  agreeForMe?: boolean;
 }
 
 export interface ReleaseMilestonePayload {
@@ -678,6 +680,9 @@ export interface BuildPostRequestInput {
   deadlineLabel?: string;
   deliveryKind?: DeliveryKind;
   where?: Where;
+  /// "Agree for me" (view 30): the agent may agree with the seller it
+  /// recommends, within budget. Locking the money still waits for a tap.
+  agreeForMe?: boolean;
 }
 
 /// Build a post-request (buyer desk) confirm card, or an `{ error }` the tool
@@ -714,6 +719,12 @@ export function buildPostRequestConfirm(
     { label: 'Budget', value: `${i.budgetUsdc} USDC` },
     { label: 'Deadline', value: deadlineLabel },
     { label: 'Matching', value: 'Your agent compares matching sellers and offers' },
+    {
+      label: 'Agree for me',
+      value: i.agreeForMe
+        ? 'On: your agent agrees with the seller it recommends, within budget. You tap once to lock the money.'
+        : 'Off: you choose from the shortlist',
+    },
   ];
   return {
     kind: 'confirm',
@@ -729,6 +740,7 @@ export function buildPostRequestConfirm(
       deadlineDays: i.deadlineDays,
       ...(i.deliveryKind ? { deliveryKind: i.deliveryKind } : {}),
       ...(i.where ? { where: i.where } : {}),
+      ...(i.agreeForMe ? { agreeForMe: true } : {}),
     },
     confirmLabel: 'Post request',
     cancelLabel: 'Not now',
