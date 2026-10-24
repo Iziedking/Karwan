@@ -7,6 +7,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
 import { useMoneyRefresh } from '@/shared/hooks/useMoneyRefresh';
+import { FitLine } from '@/shared/components/FitLine';
 
 const PRIMARY =
   'inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--action)] px-5 text-[15px] font-medium text-[var(--on-action)] transition-opacity duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:opacity-90 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]';
@@ -189,15 +190,10 @@ export function DepositCard() {
           <span className="text-[14px] font-medium text-[var(--ink-secondary)]">
             {t.addressLabel}
           </span>
-          {/* The whole address, wrapped, never truncated. A shortened address is
-              fine as a reference and useless as a destination, and this one is a
-              destination. */}
-          <p
-            className="mt-2 text-[14px] leading-[1.6] font-medium text-[var(--ink)] break-all select-all"
-            style={{ fontVariantNumeric: 'tabular-nums' }}
-          >
-            {shown}
-          </p>
+          {/* The whole address on one line where it fits, never truncated. A
+              shortened address is fine as a reference and useless as a
+              destination, and this one is a destination. */}
+          {shown ? <FitLine text={shown} className="mt-2 leading-[1.6] font-medium text-[var(--ink)]" /> : null}
 
           <button
             type="button"

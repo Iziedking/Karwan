@@ -277,12 +277,17 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
               copy={t.sheet}
             />
           )}
-          <Link
-            href="/bridge?intent=send"
-            className="mt-2 inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--lp-dark)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-          >
-            {t.sheet.otherNetwork}
-          </Link>
+          {/* Only a connected wallet can hold USDC on another network to send
+              from; an email account's money is already on Arc, and Withdraw
+              covers other networks. The person typed here is carried over. */}
+          {walletSigned ? (
+            <Link
+              href={fromOtherNetworkHref(paidTag?.address ?? (recipientCheck.normalized && recipientStatus === 'ok' ? recipientCheck.normalized : null), amount)}
+              className="mt-2 inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--lp-dark)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            >
+              {t.sheet.otherNetwork}
+            </Link>
+          ) : null}
         </div>
       ) : (
         <div className="mt-6 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-y border-[var(--lp-border-light)] py-4">
@@ -537,4 +542,13 @@ function RecipientLine({ status, kind, grouped, copy }: {
       {kind === 'contract' ? <p className="text-[var(--color-warning)]">{copy.recipientContract}</p> : null}
     </div>
   );
+}
+
+/// The bridge, paying this person on Arc from the wallet's USDC on another
+/// network, with the amount when one is typed.
+export function fromOtherNetworkHref(address: string | null, amount: number | null): string {
+  if (!address) return '/bridge';
+  const q = new URLSearchParams({ recipient: address });
+  if (amount && amount > 0) q.set('amount', String(amount));
+  return `/bridge?${q.toString()}`;
 }
