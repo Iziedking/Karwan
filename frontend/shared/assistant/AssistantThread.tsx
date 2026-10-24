@@ -1080,7 +1080,7 @@ function ConfirmCard({
             onNavigate();
             router.push(result.viewHref);
           }}
-          className="mt-2 mono text-[13px] uppercase tracking-[0.1em] font-bold text-[var(--lp-dark)] underline decoration-[var(--lp-accent)] decoration-2 underline-offset-2 hover:opacity-80"
+          className="mt-2 inline-flex min-h-11 items-center mono text-[13px] uppercase tracking-[0.1em] font-bold text-[var(--lp-dark)] underline decoration-[var(--lp-accent)] decoration-2 underline-offset-2 hover:opacity-80"
         >
           {result.viewLabel}
         </button>
@@ -1090,15 +1090,16 @@ function ConfirmCard({
 
   return (
     <div className="border border-[var(--lp-border-light)] bg-[var(--lp-bg)] p-3" style={{ borderRadius: 12 }}>
-      <p className="font-sans text-[14px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">{action.title}</p>
+      {/* Card copy comes in English from the server, so each line keeps its own direction inside an Arabic page. */}
+      <p dir="auto" className="font-sans text-[14px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">{action.title}</p>
       {action.summary && (
-        <p className="text-[14px] leading-snug text-[var(--lp-text-sub)] mt-1 font-medium">{action.summary}</p>
+        <p dir="auto" className="text-[14px] leading-snug text-[var(--lp-text-sub)] mt-1 font-medium">{action.summary}</p>
       )}
       <dl className="mt-2 space-y-1.5">
         {action.fields.map((f, i) => (
           <div key={i} className="flex items-baseline justify-between gap-3">
-            <dt className="shrink-0 mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">{f.label}</dt>
-            <dd className="min-w-0 text-[14px] text-[var(--lp-dark)] text-end [overflow-wrap:anywhere] tabular-nums">{f.value}</dd>
+            <dt dir="auto" className="shrink-0 mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">{f.label}</dt>
+            <dd dir="auto" className="min-w-0 text-[14px] text-[var(--lp-dark)] text-end [overflow-wrap:anywhere] tabular-nums">{f.value}</dd>
           </div>
         ))}
       </dl>
@@ -1107,7 +1108,7 @@ function ConfirmCard({
           <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden className="shrink-0 mt-px">
             <path d="M8 1.5l6.5 11.5H1.5L8 1.5zm0 4.2v3.4m0 1.7v.1" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
           </svg>
-          <span>{action.warning}</span>
+          <span dir="auto">{action.warning}</span>
         </p>
       )}
       {status === 'error' && <p className="mono text-[13px] text-[var(--lp-critical)] mt-2">{errMsg}</p>}
@@ -1116,7 +1117,7 @@ function ConfirmCard({
           type="button"
           onClick={confirm}
           disabled={status === 'running'}
-          className="flex-1 mono text-[13px] uppercase tracking-[0.1em] font-bold px-3 py-2 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] disabled:opacity-60 hover:brightness-105 transition"
+          className="flex-1 min-h-11 mono text-[13px] uppercase tracking-[0.1em] font-bold px-3 py-2 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] disabled:opacity-60 hover:brightness-105 transition"
           style={{ borderRadius: 10 }}
         >
           {status === 'running' ? busyLabel : status === 'error' ? 'Try again' : action.confirmLabel ?? 'Confirm'}
@@ -1128,7 +1129,7 @@ function ConfirmCard({
             setStatus('dismissed');
           }}
           disabled={status === 'running'}
-          className="mono text-[13px] uppercase tracking-[0.1em] font-bold px-3 py-2 border border-[var(--lp-border-light)] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] disabled:opacity-60 transition"
+          className="min-h-11 mono text-[13px] uppercase tracking-[0.1em] font-bold px-3 py-2 border border-[var(--lp-border-light)] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] disabled:opacity-60 transition"
           style={{ borderRadius: 10 }}
         >
           {action.cancelLabel ?? 'Not now'}
