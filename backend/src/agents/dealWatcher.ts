@@ -29,6 +29,8 @@ import { settlePOFinancingForDeal } from './poWatcher.js';
 import { dealEscrowOps, escrowAddressOf } from '../deals/dealEscrowOpsLive.js';
 import { runV3Attestation, runV3Dispute } from './v3DisputeWatcher.js';
 import { v3WatcherDeps } from './v3DisputeWatcherLive.js';
+import { runSuiteCheck, runSuiteDispute } from './suiteDisputeWatcher.js';
+import { suiteWatcherDeps } from './suiteDisputeWatcherLive.js';
 import { logger } from '../logger.js';
 import {
   releaseBlockReasonForDelivery,
@@ -218,6 +220,7 @@ async function syncResolvedElsewhere(deal: DirectDeal, chainState: number) {
 /// window, lapse after the timeout. One step per tick; a failure retries next
 /// tick and never blocks other deals.
 async function runV3DisputeSafely(deal: DirectDeal, now: number) {
+  if (dealEscrowOps.isSuite(deal)) return runSuiteDisputeSafely(deal, now);
   const deps = v3WatcherDeps();
   if (!deps || processing.has(deal.jobId)) return;
   processing.add(deal.jobId);
@@ -225,6 +228,21 @@ async function runV3DisputeSafely(deal: DirectDeal, now: number) {
     await runV3Dispute(deps, deal, now);
   } catch (err) {
     logger.warn({ jobId: deal.jobId, err: (err as Error).message }, 'v3 dispute step failed (retried next tick)');
+  } finally {
+    processing.delete(deal.jobId);
+  }
+}
+
+/// Escrow-family disputes: the 25 Sep table by Karwan's arbiter key, the
+/// proposal carried out after the appeal window, the review Safe for the rest.
+async function runSuiteDisputeSafely(deal: DirectDeal, now: number) {
+  const deps = suiteWatcherDeps();
+  if (!deps || processing.has(deal.jobId)) return;
+  processing.add(deal.jobId);
+  try {
+    await runSuiteDispute(deps, deal, now);
+  } catch (err) {
+    logger.warn({ jobId: deal.jobId, err: (err as Error).message }, 'suite dispute step failed (retried next tick)');
   } finally {
     processing.delete(deal.jobId);
   }
@@ -803,6 +821,13 @@ async function tick() {
         if (v3Deps) {
           await runV3Attestation(v3Deps, deal).catch((err) =>
             logger.warn({ jobId: deal.jobId, err: (err as Error).message }, 'v3 attestation failed (retried next tick)'),
+          );
+        }
+      } else if (account.version === 'suite') {
+        const suiteDeps = suiteWatcherDeps();
+        if (suiteDeps) {
+          await runSuiteCheck(suiteDeps, deal).catch((err) =>
+            logger.warn({ jobId: deal.jobId, err: (err as Error).message }, 'suite check report failed (retried next tick)'),
           );
         }
       }

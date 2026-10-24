@@ -13,6 +13,9 @@ import { ESCROW_STATE, invalidateEscrowCache, legacyGenerations, readEscrow, rea
 import { dealEscrowV3Abi } from '../chain/abis/dealEscrowV3.js';
 import { DEAL_STATE } from '../chain/dealEscrowV3.js';
 import { readDealV3 } from '../chain/dealEscrowV3Live.js';
+import { sellerShareMicros } from '../chain/agreementEscrow.js';
+import { decodeAgreementLogs, readAgreementPanel, readAgreementView } from '../chain/agreementEscrowLive.js';
+import { suiteRuleCall } from '../agents/suiteDisputeWatcher.js';
 import type { DirectDeal } from '../db/deals.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
@@ -80,6 +83,16 @@ type RulingTarget =
   | { ok: false; status: 404 | 409 | 503; error: string; code?: string };
 
 async function rulingTarget(deal: DirectDeal, sellerBps: number, rulingHash: `0x${string}`): Promise<RulingTarget> {
+  if (deal.escrowVersion === 'suite') {
+    // The deal's own review Safe rules on the Agreement escrow, once escalated.
+    const escrow = deal.escrowAddress as Address | undefined;
+    const id = deal.escrowDealId as `0x${string}` | undefined;
+    if (!escrow || !id) return { ok: false, status: 409, error: 'suite deal has no escrow deal id on record' };
+    const [view, panel] = await Promise.all([readAgreementView(escrow, id), readAgreementPanel(escrow, id)]);
+    const call = suiteRuleCall({ view, reviewer: panel.reviewer, agreement: escrow, dealId: id, sellerBps, rulingHash });
+    if (!call.ok) return call;
+    return { ...call, landed: async () => (await readAgreementView(escrow, id)).state !== DEAL_STATE.Disputed };
+  }
   if (deal.escrowVersion === 'v3') {
     const escrow = deal.escrowAddress as Address | undefined;
     const id = deal.escrowDealId as `0x${string}` | undefined;
@@ -160,10 +173,11 @@ adminDisputeRoutes.get('/', async (c) => {
   const withVenue = await Promise.all(
     disputed.map(async (d) => {
       try {
-        if (d.escrowVersion === 'v3') {
+        if (d.escrowVersion === 'v3' || d.escrowVersion === 'suite') {
           const full = await getDeal(d.jobId);
+          const read = d.escrowVersion === 'suite' ? readAgreementView : readDealV3;
           const view = full?.escrowAddress && full.escrowDealId
-            ? await readDealV3(full.escrowAddress as Address, full.escrowDealId as `0x${string}`)
+            ? await read(full.escrowAddress as Address, full.escrowDealId as `0x${string}`)
             : null;
           const escalated = view?.escalated === true;
           return { ...d, rulable: escalated, escalated, venue: null };
@@ -202,6 +216,20 @@ adminDisputeRoutes.get('/', async (c) => {
 const prepareSchema = z.object({
   sellerBps: z.number().int().min(0).max(10_000),
   rulingReason: z.string().min(1).max(2000),
+});
+
+/// GET /api/admin/disputes/:jobId/safe-call: the ruling call itself, for a
+/// Safe owner who checks it in their own tools. Prepared here, never signed.
+adminDisputeRoutes.get('/:jobId/safe-call', async (c) => {
+  const jobId = jobIdSchema.safeParse(c.req.param('jobId'));
+  if (!jobId.success) return c.json({ error: 'invalid job id' }, 400);
+  const body = prepareSchema.safeParse({ sellerBps: Number(c.req.query('sellerBps')), rulingReason: c.req.query('rulingReason') });
+  if (!body.success) return c.json({ error: 'sellerBps and rulingReason are needed' }, 400);
+  const deal = await getDeal(jobId.data);
+  if (!deal) return c.json({ error: 'unknown deal' }, 404);
+  const target = await rulingTarget(deal, body.data.sellerBps, keccak256(toBytes(body.data.rulingReason)));
+  if (!target.ok) return c.json({ error: target.error, code: target.code }, target.status);
+  return c.json({ safe: target.safe, to: target.to, data: target.data });
 });
 
 /// POST /api/admin/disputes/:jobId/prepare: the exact thing an owner signs.
@@ -497,14 +525,22 @@ adminDisputeRoutes.post('/:jobId/execute', async (c) => {
 
     const ruled = await getDeal(jobId.data);
     const proposal = reviewedProposal(ruled?.judgeProposal, body.sellerBps);
+    // On the escrow family a ruling on an earlier tranche pays it and the deal carries on.
+    const carriesOn = execDeal.escrowVersion === 'suite' && (await readAgreementView(escrow, execDeal.escrowDealId as `0x${string}`)).state === DEAL_STATE.Accepted;
     await patchDeal(jobId.data, {
-      settledAt: Date.now(),
-      cancelKind: 'resolved',
-      cancelReason: body.rulingReason,
+      ...(carriesOn ? { disputed: false, disputedAt: undefined, disputedBy: undefined } : { settledAt: Date.now(), cancelKind: 'resolved' as const, cancelReason: body.rulingReason }),
       resolvedSellerBps: body.sellerBps,
       disputeLoser: body.sellerBps >= 5000 ? 'buyer' : 'seller',
       ...(proposal ? { judgeProposal: proposal } : {}),
     });
+    if (execDeal.escrowVersion === 'suite') {
+      // The seller's share leaves the selling agent for their identity wallet (deals/suiteEarnings.ts).
+      const receipt = await publicClient.getTransactionReceipt({ hash: r.txHash as `0x${string}` });
+      const micros = sellerShareMicros(decodeAgreementLogs(escrow, receipt.logs), execDeal.escrowDealId as `0x${string}`);
+      if (micros > 0n) {
+        bus.emitEvent({ type: 'escrow.seller.paid', jobId: jobId.data, actor: 'platform', payload: { sellerMicros: micros.toString(), payoutKey: `ruling:${r.txHash}`, txHash: r.txHash } });
+      }
+    }
     await clearSignatures(jobId.data);
 
     bus.emitEvent({
