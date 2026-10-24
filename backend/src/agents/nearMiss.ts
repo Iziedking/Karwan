@@ -60,6 +60,28 @@ export function setInBudgetProbe(probe: InBudgetProbe | null): void {
   inBudgetProbe = probe;
 }
 
+/// A live offer within the buyer's ceiling from someone other than the near-miss
+/// seller, from the bid book or the published shortlist. While one exists the
+/// buyer is never asked to stretch, and a pending ask is not shown.
+export function inBudgetAlternative(jobId: string, ceilingUsdc: number, excludeSeller: string): { seller: string; priceUsdc: number } | null {
+  return inBudgetProbe?.(jobId, ceilingUsdc, excludeSeller) ?? null;
+}
+
+/// The cheapest shortlisted offer at or under the ceiling, from another seller.
+export function inBudgetShortlistEntry(
+  shortlist: readonly { seller: string; priceUsdc: number }[] | null | undefined,
+  ceilingUsdc: number,
+  excludeSeller: string,
+): { seller: string; priceUsdc: number } | null {
+  let best: { seller: string; priceUsdc: number } | null = null;
+  for (const e of shortlist ?? []) {
+    if (e.seller.toLowerCase() === excludeSeller.toLowerCase()) continue;
+    if (!Number.isFinite(e.priceUsdc) || e.priceUsdc <= 0 || e.priceUsdc > ceilingUsdc) continue;
+    if (!best || e.priceUsdc < best.priceUsdc) best = { seller: e.seller, priceUsdc: e.priceUsdc };
+  }
+  return best;
+}
+
 function windowExpiry(deadlineUnix: number, now = Date.now()): number {
   const deadlineMs = deadlineUnix * 1000;
   const fromWindow = now + WINDOW_MS;
@@ -109,7 +131,7 @@ export async function maybeRaiseNearMiss(input: NearMissInput): Promise<boolean>
   }
   // A request that already has a live offer within budget never needs the buyer
   // to stretch: the agent should take the in-budget offer, not ask about a pricier one.
-  const alternative = inBudgetProbe?.(jobId, buyerCeilingUsdc, input.sellerAgent) ?? null;
+  const alternative = inBudgetAlternative(jobId, buyerCeilingUsdc, input.sellerAgent);
   if (alternative) {
     emitSkipped(jobId, 'in-budget-alternative', {
       buyerCeilingUsdc: round2(buyerCeilingUsdc),

@@ -123,7 +123,7 @@ import {
   type RepTier,
 } from './signals.js';
 import { classifyAgentError } from '../chain/errors.js';
-import { maybeRaiseNearMiss, setInBudgetProbe } from './nearMiss.js';
+import { inBudgetShortlistEntry, maybeRaiseNearMiss, setInBudgetProbe } from './nearMiss.js';
 import { clearNearMiss, getPendingNearMiss, type NearMissApproval } from '../db/nearMiss.js';
 import { clearOutOfReach } from '../db/outOfReach.js';
 import { config } from '../config.js';
@@ -438,7 +438,10 @@ export function inBudgetBidOf(
 
 setInBudgetProbe((jobId, ceilingUsdc, excludeSeller) => {
   const state = jobs.get(jobId.toLowerCase() as `0x${string}`) ?? jobs.get(jobId as `0x${string}`);
-  return state ? inBudgetBidOf(state, ceilingUsdc, excludeSeller) : null;
+  if (!state) return null;
+  // The shortlist the buyer is looking at counts too: an offer listed there
+  // within budget is the answer, not a stretch past it.
+  return inBudgetBidOf(state, ceilingUsdc, excludeSeller) ?? inBudgetShortlistEntry(state.shortlist, ceilingUsdc, excludeSeller);
 });
 const handledEvents = new Set<string>();
 let buyerTimerShadowObserver: BuyerTimerShadowObserver | null = null;

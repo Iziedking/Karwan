@@ -57,3 +57,16 @@ test('the same seller is not raised again at the price the buyer already passed'
   assert.equal(raised, false);
   assert.equal(seen.at(-1)?.reason, 'already-passed');
 });
+
+test('an offer on the shortlist within budget counts, from anyone but the stretching seller', async () => {
+  const { inBudgetShortlistEntry } = await import('./nearMiss.js');
+  const list = [
+    { seller: SELLER, priceUsdc: 90 },
+    { seller: OTHER, priceUsdc: 116.06 },
+    { seller: BUYER, priceUsdc: 99 },
+  ];
+  assert.deepEqual(inBudgetShortlistEntry(list, 100, OTHER), { seller: SELLER, priceUsdc: 90 });
+  assert.deepEqual(inBudgetShortlistEntry(list, 100, SELLER.toUpperCase().replace('0X', '0x')), { seller: BUYER, priceUsdc: 99 });
+  assert.equal(inBudgetShortlistEntry(list, 80, OTHER), null);
+  assert.equal(inBudgetShortlistEntry(null, 100, OTHER), null);
+});

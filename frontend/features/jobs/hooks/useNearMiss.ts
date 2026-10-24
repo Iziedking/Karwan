@@ -11,6 +11,9 @@ export function useNearMiss(jobId: string) {
     queryKey: qk.job.nearMiss(jobId, address),
     queryFn: () => api.nearMiss(jobId, address).then((r) => r.nearMiss),
     staleTime: 15_000,
+    // An offer within budget can land after the ask was raised; the backend then
+    // stops returning it, and this re-check takes the card away.
+    refetchInterval: 20_000,
   });
 
   return {

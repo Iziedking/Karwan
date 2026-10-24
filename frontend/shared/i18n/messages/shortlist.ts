@@ -4,6 +4,11 @@
 export interface ShortlistCopy {
   title: string;
   note: string;
+  /// The folded row: {n} offers and the lowest {amount}, then Show or Hide.
+  foldOne: string;
+  fold: string;
+  show: string;
+  hide: string;
   recommended: string;
   verified: string;
   notVerified: string;
@@ -36,6 +41,10 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
   en: {
     title: 'Your shortlist',
     note: 'Your agent checked each record and recommends one. You choose.',
+    foldOne: '1 offer, {amount} USDC',
+    fold: '{n} offers, from {amount} USDC',
+    show: 'Show',
+    hide: 'Hide',
     recommended: 'Recommended',
     verified: 'Verified',
     notVerified: 'Not verified',
@@ -73,6 +82,10 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
   fr: {
     title: 'Votre sélection',
     note: 'Votre agent a vérifié chaque dossier et en recommande un. Vous choisissez.',
+    foldOne: '1 offre, {amount} USDC',
+    fold: '{n} offres, à partir de {amount} USDC',
+    show: 'Afficher',
+    hide: 'Masquer',
     recommended: 'Recommandé',
     verified: 'Vérifié',
     notVerified: 'Non vérifié',
@@ -110,6 +123,10 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
   ar: {
     title: 'قائمتك المختصرة',
     note: 'راجع وكيلك سجل كل شخص ويوصي بواحد. القرار لك.',
+    foldOne: 'عرض واحد، {amount} USDC',
+    fold: '{n} عروض، ابتداءً من {amount} USDC',
+    show: 'عرض',
+    hide: 'إخفاء',
     recommended: 'موصى به',
     verified: 'موثّق',
     notVerified: 'غير موثّق',
@@ -147,6 +164,10 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
   hi: {
     title: 'आपकी शॉर्टलिस्ट',
     note: 'आपके एजेंट ने हर रिकॉर्ड जांचा और एक की सिफ़ारिश की है। फ़ैसला आपका है।',
+    foldOne: '1 ऑफ़र, {amount} USDC',
+    fold: '{n} ऑफ़र, {amount} USDC से',
+    show: 'दिखाएँ',
+    hide: 'छिपाएँ',
     recommended: 'सुझाया गया',
     verified: 'सत्यापित',
     notVerified: 'सत्यापित नहीं',
@@ -184,6 +205,10 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
   sw: {
     title: 'Orodha yako fupi',
     note: 'Wakala wako amekagua rekodi ya kila mmoja na anapendekeza mmoja. Wewe ndiye unachagua.',
+    foldOne: 'Ofa 1, {amount} USDC',
+    fold: 'Ofa {n}, kuanzia {amount} USDC',
+    show: 'Onyesha',
+    hide: 'Ficha',
     recommended: 'Anapendekezwa',
     verified: 'Amethibitishwa',
     notVerified: 'Hajathibitishwa',

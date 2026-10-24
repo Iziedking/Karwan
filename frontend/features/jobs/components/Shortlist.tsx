@@ -66,6 +66,10 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordCh
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [worldStep, setWorldStep] = useState<{ reason: WorldCheckReason | null; skipAllowed: boolean } | null>(null);
+  /// Folded until the buyer opens it: one row with who offered and the lowest
+  /// price, so the list never crowds the page while agents are still at work.
+  const [open, setOpen] = useState(false);
+  const lowest = entries.length ? Math.min(...entries.map((e) => e.priceUsdc)) : null;
   const world = t.agentNudges.world;
   const notice = shortlistNotice(entries, copy);
   const cost = shortlistCostLine(recordChecks, copy);
@@ -116,7 +120,30 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordCh
         {waitingOn ? <p role="status" className="mt-2 text-[14px] font-semibold text-[var(--lp-dark)]">{fill(world.waiting, { name: waitingOn })}</p> : null}
       </div>
       {entries.length ? (
-        <ul className="divide-y divide-[var(--lp-border-light)] border-t border-[var(--lp-border-light)]">
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={`shortlist-${jobId}`}
+          onClick={() => setOpen((o) => !o)}
+          className="flex min-h-14 w-full items-center gap-3 border-t border-[var(--lp-border-light)] py-3 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent)]"
+        >
+          <span aria-hidden className="flex shrink-0 -space-x-2 rtl:space-x-reverse">
+            {entries.slice(0, 4).map((e) => (
+              <span key={e.seller} className="rounded-full ring-2 ring-[var(--lp-card)]">
+                <PersonAvatar address={e.sellerUser} name={e.name} size={28} />
+              </span>
+            ))}
+          </span>
+          <span className="min-w-0 flex-1 truncate text-[15px] font-medium tabular-nums text-[var(--ink-secondary)]">
+            {entries.length === 1
+              ? fill(copy.foldOne, { amount: price(lowest ?? 0) })
+              : fill(copy.fold, { n: entries.length, amount: price(lowest ?? 0) })}
+          </span>
+          <span className="shrink-0 text-[15px] font-semibold text-[var(--lp-dark)]">{open ? copy.hide : copy.show}</span>
+        </button>
+      ) : null}
+      {entries.length && open ? (
+        <ul id={`shortlist-${jobId}`} className="divide-y divide-[var(--lp-border-light)] border-t border-[var(--lp-border-light)]">
           {entries.map((e) => (
             <li key={e.seller}>
               <ShortlistRow
