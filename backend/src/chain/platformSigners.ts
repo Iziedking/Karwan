@@ -51,6 +51,25 @@ export interface PlatformSigners {
   addresses(): { checkers: Hex[]; arbiter: Hex; issuer: Hex };
 }
 
+/// The signers from configured keys, or the reason there are none. A bad or
+/// missing key keeps new deals off the escrow family; it never stops the
+/// backend, and the reason names the key, never its value.
+export function loadPlatformSigners(
+  keys: { checkerKeys: readonly string[]; arbiterKey?: string; issuerKey?: string },
+  ports: PlatformSignerPorts,
+): { signers: PlatformSigners | null; problem: string | null } {
+  if (keys.checkerKeys.length === 0 && !keys.arbiterKey && !keys.issuerKey) {
+    return { signers: null, problem: 'the checker, arbiter and issuer keys are not set' };
+  }
+  try {
+    const signers = createPlatformSigners({ checkerKeys: keys.checkerKeys, arbiterKey: keys.arbiterKey ?? '', issuerKey: keys.issuerKey ?? '' }, ports);
+    return { signers, problem: null };
+  } catch (err) {
+    if (err instanceof PlatformKeysError) return { signers: null, problem: err.message };
+    throw err;
+  }
+}
+
 function accountOf(key: string, role: string): LocalAccount {
   if (!KEY.test(key)) throw new PlatformKeysError(`the ${role} key is not a private key`);
   return privateKeyToAccount(key as Hex);

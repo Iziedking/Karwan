@@ -711,8 +711,10 @@ const envSchema = z.object({
   // any two sign a check), the arbiter and the record issuer. Secrets: the
   // logger strips them from every line.
   SUITE_CHECKER_KEYS: optionalString,
-  SUITE_ARBITER_KEY: z.preprocess(blankToUndefined, z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional()),
-  SUITE_ISSUER_KEY: z.preprocess(blankToUndefined, z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional()),
+  // Checked when the signers load, so a bad value keeps new deals off the
+  // family instead of stopping the backend.
+  SUITE_ARBITER_KEY: optionalString,
+  SUITE_ISSUER_KEY: optionalString,
 
   // --- Paytag (@handle counterparties) ---
   // Lets a P2P buyer name their counterparty by Paytag handle instead of an

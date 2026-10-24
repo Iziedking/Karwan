@@ -721,6 +721,17 @@ export function recordDeliveryRevision(snapshot: DirectDeal, patch: Partial<Dire
   });
 }
 
+/** One payout's earnings move, under the row lock, so two moves of one deal never overwrite each other. */
+export function recordEarningsMove(
+  jobId: string,
+  key: string,
+  move: import('../deals/suiteEarnings.js').EarningsMove,
+): Promise<DirectDeal | null> {
+  return mutateLockedDeal(jobId, (current) =>
+    current ? { ...current, suiteEarnings: { ...(current.suiteEarnings ?? {}), [key]: move }, updatedAt: Date.now() } : null,
+  );
+}
+
 /** A support review applies only to the delivery that was reviewed. */
 export function recordDeliveryReview(snapshot: DirectDeal, patch: Partial<DirectDeal>): Promise<DirectDeal | null> {
   return mutateLockedDeal(snapshot.jobId, (current) => {

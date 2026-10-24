@@ -112,6 +112,7 @@ import { createPersonVerificationRoutes } from './routes/personVerification.js';
 import { createMoneyOutRoutes } from './routes/moneyOut.js';
 import { createConfirmRoutes } from './routes/confirm.js';
 import { bootSuiteCheck } from './chain/suiteConfig.js';
+import { platformSignersProblem } from './chain/platformSignersLive.js';
 import { createRecordSetupRoutes } from './routes/recordSetup.js';
 import { suiteIdentity } from './identity/suiteIdentityLive.js';
 import { requirePresence } from './presence/live.js';
@@ -1417,7 +1418,7 @@ async function boot() {
 void boot();
 
 /// New deals open on the escrow family only once its addresses check out on chain.
-void bootSuiteCheck();
+void bootSuiteCheck(undefined, platformSignersProblem);
 
 /// A wrong chain id is fatal in production (see chain/networkGuard.ts).
 void checkChain(() => publicClient.getChainId(), ARC.chainId).then((result) => {

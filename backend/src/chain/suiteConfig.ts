@@ -83,19 +83,27 @@ function liveReads(hub: Hex): SuiteReads {
 
 let suiteChecked = false;
 
+/// Whether new deals can open on the family: the chain agrees with the
+/// addresses, and Karwan's checker, arbiter and issuer keys loaded, since checks
+/// and disputes on its deals need them.
+export async function suiteReady(addrs: SuiteAddresses, reads: SuiteReads, signersProblem: string | null): Promise<{ ready: boolean; reason: string | null }> {
+  try {
+    await checkSuiteOnChain(addrs, reads);
+  } catch (err) {
+    return { ready: false, reason: err instanceof SuiteConfigError ? err.check : (err as Error).message };
+  }
+  return signersProblem ? { ready: false, reason: signersProblem } : { ready: true, reason: null };
+}
+
 /// Runs once at startup. A failed check leaves new deals on the current escrow;
 /// deals already on the family keep finishing there.
-export async function bootSuiteCheck(reads?: SuiteReads): Promise<boolean> {
+export async function bootSuiteCheck(reads?: SuiteReads, signersProblem: string | null = null): Promise<boolean> {
   const addrs = suiteAddresses();
   if (!addrs) return false;
-  try {
-    await checkSuiteOnChain(addrs, reads ?? liveReads(addrs.hub));
-    suiteChecked = true;
-    logger.info({ agreement: addrs.agreement }, 'suite boot check passed; new deals open on the escrow family');
-  } catch (err) {
-    suiteChecked = false;
-    logger.error({ err: (err as Error).message }, 'suite boot check failed; new deals stay on the current escrow');
-  }
+  const { ready, reason } = await suiteReady(addrs, reads ?? liveReads(addrs.hub), signersProblem);
+  suiteChecked = ready;
+  if (ready) logger.info({ agreement: addrs.agreement }, 'suite boot check passed; new deals open on the escrow family');
+  else logger.error({ reason }, 'suite boot check failed; new deals stay on the current escrow');
   return suiteChecked;
 }
 

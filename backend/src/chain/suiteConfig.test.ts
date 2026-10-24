@@ -85,3 +85,10 @@ test('funding_on_the_suite_waits_for_the_boot_check', async () => {
   assert.equal(await bootSuiteCheck(chain()), false);
   assert.equal(suiteFundingEnabled(), false);
 });
+
+test('new_deals_stay_put_while_karwan_keys_are_missing', async () => {
+  const { suiteReady } = await import('./suiteConfig.js');
+  assert.deepEqual(await suiteReady(DEPLOYED, chain(), 'the arbiter key is not a private key'), { ready: false, reason: 'the arbiter key is not a private key' });
+  assert.deepEqual(await suiteReady(DEPLOYED, chain(), null), { ready: true, reason: null });
+  assert.deepEqual(await suiteReady(DEPLOYED, chain({ isFamily: async () => false }), null), { ready: false, reason: 'agreement-family' });
+});

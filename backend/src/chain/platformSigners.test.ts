@@ -94,3 +94,17 @@ test('keys_never_appear_in_log_output', async () => {
   }
   assert.ok(logs.length > 0, 'the failures were logged, without keys');
 });
+
+test('a_bad_or_missing_key_is_reported_without_stopping_the_backend', async () => {
+  const { loadPlatformSigners } = await import('./platformSigners.js');
+  const { p } = ports();
+  const bad = loadPlatformSigners({ checkerKeys: [K1, K2, K3], arbiterKey: '0x1234', issuerKey: ISSUER }, p);
+  assert.equal(bad.signers, null);
+  assert.equal(bad.problem, 'the arbiter key is not a private key');
+  const unset = loadPlatformSigners({ checkerKeys: [], arbiterKey: undefined, issuerKey: undefined }, p);
+  assert.equal(unset.signers, null);
+  assert.match(unset.problem ?? '', /not set/);
+  const good = loadPlatformSigners(keys, p);
+  assert.ok(good.signers);
+  assert.equal(good.problem, null);
+});

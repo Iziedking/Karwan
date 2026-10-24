@@ -3,7 +3,7 @@ import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { publicClient } from '../chain/client.js';
 import { transferFromCircleWallet } from '../chain/usdc3009.js';
-import { getDeal, listAllDeals, patchDeal } from '../db/deals.js';
+import { getDeal, listAllDeals, recordEarningsMove } from '../db/deals.js';
 import { bus } from '../events.js';
 import { createSuiteEarnings, type TransferProof } from './suiteEarnings.js';
 
@@ -34,9 +34,7 @@ async function transferProof(txHash: string, move: { from: string; to: string; a
 export const suiteEarnings = createSuiteEarnings({
   getDeal,
   saveMove: async (jobId, key, move) => {
-    const deal = await getDeal(jobId);
-    if (!deal) return;
-    await patchDeal(jobId, { suiteEarnings: { ...(deal.suiteEarnings ?? {}), [key]: move } });
+    await recordEarningsMove(jobId, key, move);
   },
   listDeals: async () =>
     (await listAllDeals()).filter((d) => d.escrowVersion === 'suite' && Object.values(d.suiteEarnings ?? {}).some((m) => m.state === 'pending')),

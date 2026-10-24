@@ -4,7 +4,7 @@ import { logger } from '../logger.js';
 import { agreementEscrowAbi } from './abis/agreementEscrow.js';
 import { readAgreementView } from './agreementEscrowLive.js';
 import { arcChain, arcTransport, publicClient } from './client.js';
-import { createPlatformSigners, type PlatformSigners, type PlatformTarget } from './platformSigners.js';
+import { loadPlatformSigners, type PlatformSigners, type PlatformTarget } from './platformSigners.js';
 import { suiteAddresses } from './suiteConfig.js';
 
 export const checkVerifierAbi = parseAbi([
@@ -18,16 +18,16 @@ export const recordIssuerAbi = parseAbi([
   'function revoke(uint256 id)',
 ]);
 
-function build(): PlatformSigners | null {
+function build(): { signers: PlatformSigners | null; problem: string | null } {
   const addrs = suiteAddresses();
+  if (!addrs) return { signers: null, problem: 'the escrow family is not set up here' };
   const checkerKeys = (config.SUITE_CHECKER_KEYS ?? '').split(',').map((k) => k.trim()).filter(Boolean);
-  if (!addrs || !config.SUITE_ARBITER_KEY || !config.SUITE_ISSUER_KEY || checkerKeys.length === 0) return null;
   const targets: Record<PlatformTarget, { address: Hex; abi: Abi }> = {
     verifier: { address: addrs.verifier, abi: checkVerifierAbi },
     escrow: { address: addrs.agreement, abi: agreementEscrowAbi as Abi },
     record: { address: addrs.record, abi: recordIssuerAbi },
   };
-  return createPlatformSigners(
+  return loadPlatformSigners(
     { checkerKeys, arbiterKey: config.SUITE_ARBITER_KEY, issuerKey: config.SUITE_ISSUER_KEY },
     {
       family: addrs.agreement,
@@ -65,5 +65,10 @@ function build(): PlatformSigners | null {
   );
 }
 
-/// Null until the escrow family's addresses and all five keys are configured.
-export const platformSigners: PlatformSigners | null = build();
+const loaded = build();
+if (loaded.problem && suiteAddresses()) logger.error({ component: 'platform-signers' }, `escrow family keys: ${loaded.problem}`);
+
+/// Null until the escrow family's addresses and all five keys are configured and valid.
+export const platformSigners: PlatformSigners | null = loaded.signers;
+/// Why there are no signers, for the boot check. Names a key, never its value.
+export const platformSignersProblem: string | null = loaded.problem;
