@@ -61,6 +61,10 @@ export function Section({
     <motion.section
       id={id}
       initial={reduced ? false : 'hidden'}
+      // The first render does not know the preference yet and starts hidden;
+      // reduced motion then shows the section at once instead of leaving it
+      // waiting for a reveal that never comes.
+      animate={reduced ? 'visible' : undefined}
       whileInView={reduced ? undefined : 'visible'}
       viewport={{ once: true, amount: 0.15 }}
       variants={sectionReveal}
