@@ -23,6 +23,17 @@ export interface DevelopersCopy {
   status: { karwan: string; karwanState: string; platforms: string; platformsState: string };
   contactHeading: string;
   contactBody: string;
+  /// The developer docs around these pages: the sidebar, its search and the overview.
+  nav: {
+    overviewTitle: string;
+    overviewIntro: string;
+    overview: string;
+    statusContact: string;
+    search: string;
+    noResults: string;
+    menu: string;
+    groups: { start: string; records: string; agents: string; help: string };
+  };
 }
 
 export const developersCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DevelopersCopy> = {
@@ -82,6 +93,16 @@ export const developersCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Developers
     },
     contactHeading: 'Talk to us',
     contactBody: 'To join as a record source, write to {email}.',
+    nav: {
+      overviewTitle: 'Build on Karwan',
+      overviewIntro: 'Read a person’s Karwan record, pay for data per call in USDC on Arc, or join as a record source. Each page has the format, the price and the rules.',
+      overview: 'Overview',
+      statusContact: 'Status and contact',
+      search: 'Search developer docs',
+      noResults: 'Nothing matches.',
+      menu: 'Menu',
+      groups: { start: 'Introduction', records: 'Record source', agents: 'Agents', help: 'Help' },
+    },
   },
   fr: {
     eyebrow: 'Pour les plateformes',
@@ -139,6 +160,16 @@ export const developersCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Developers
     },
     contactHeading: 'Nous écrire',
     contactBody: 'Pour devenir source de dossiers, écrivez à {email}.',
+    nav: {
+      overviewTitle: 'Construire sur Karwan',
+      overviewIntro: 'Lisez le dossier Karwan d’une personne, payez des données à l’appel en USDC sur Arc, ou devenez source de dossiers. Chaque page donne le format, le prix et les règles.',
+      overview: 'Vue d’ensemble',
+      statusContact: 'Statut et contact',
+      search: 'Rechercher dans la documentation',
+      noResults: 'Aucun résultat.',
+      menu: 'Menu',
+      groups: { start: 'Introduction', records: 'Source de dossiers', agents: 'Agents', help: 'Aide' },
+    },
   },
   ar: {
     eyebrow: 'للمنصات',
@@ -196,6 +227,16 @@ export const developersCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Developers
     },
     contactHeading: 'تواصل معنا',
     contactBody: 'للانضمام كمصدر للسجلات، اكتب إلى {email}.',
+    nav: {
+      overviewTitle: 'البناء على Karwan',
+      overviewIntro: 'اقرأ سجل شخص على Karwan، وادفع مقابل البيانات لكل طلب بعملة USDC على Arc، أو انضم كمصدر للسجلات. كل صفحة فيها الصيغة والسعر والقواعد.',
+      overview: 'نظرة عامة',
+      statusContact: 'الحالة والتواصل',
+      search: 'ابحث في وثائق المطورين',
+      noResults: 'لا توجد نتائج.',
+      menu: 'القائمة',
+      groups: { start: 'مقدمة', records: 'مصدر السجلات', agents: 'الوكلاء', help: 'مساعدة' },
+    },
   },
   hi: {
     eyebrow: 'प्लेटफ़ॉर्म के लिए',
@@ -253,6 +294,16 @@ export const developersCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Developers
     },
     contactHeading: 'हमसे बात करें',
     contactBody: 'रिकॉर्ड स्रोत बनने के लिए {email} पर लिखें।',
+    nav: {
+      overviewTitle: 'Karwan पर बनाएँ',
+      overviewIntro: 'किसी व्यक्ति का Karwan रिकॉर्ड पढ़ें, Arc पर USDC में हर कॉल के हिसाब से डेटा का भुगतान करें, या रिकॉर्ड स्रोत बनें। हर पेज पर फ़ॉर्मैट, कीमत और नियम हैं।',
+      overview: 'परिचय पेज',
+      statusContact: 'स्थिति और संपर्क',
+      search: 'डेवलपर दस्तावेज़ खोजें',
+      noResults: 'कुछ नहीं मिला।',
+      menu: 'मेन्यू',
+      groups: { start: 'परिचय', records: 'रिकॉर्ड स्रोत', agents: 'एजेंट', help: 'मदद' },
+    },
   },
   sw: {
     eyebrow: 'Kwa majukwaa',
@@ -310,5 +361,15 @@ export const developersCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Developers
     },
     contactHeading: 'Wasiliana nasi',
     contactBody: 'Kujiunga kama chanzo cha rekodi, andika kwa {email}.',
+    nav: {
+      overviewTitle: 'Jenga juu ya Karwan',
+      overviewIntro: 'Soma rekodi ya mtu kwenye Karwan, lipia data kwa kila ombi kwa USDC kwenye Arc, au jiunge kama chanzo cha rekodi. Kila ukurasa una muundo, bei na kanuni.',
+      overview: 'Muhtasari',
+      statusContact: 'Hali na mawasiliano',
+      search: 'Tafuta kwenye nyaraka za wasanidi',
+      noResults: 'Hakuna kinacholingana.',
+      menu: 'Menyu',
+      groups: { start: 'Utangulizi', records: 'Chanzo cha rekodi', agents: 'Mawakala', help: 'Msaada' },
+    },
   },
 };

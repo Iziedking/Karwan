@@ -62,6 +62,7 @@ export const EXACT: Record<string, RouteTitleKey> = {
 
 export const PATTERNS: [RegExp, RouteTitleKey][] = [
   [/^\/cashout\/[^/]+$/, 'cashout'],
+  [/^\/developers\/[^/]+$/, 'developers'],
   [/^\/deals\/[^/]+$/, 'deal'],
   [/^\/deposit\/request\/[^/]+$/, 'paymentRequest'],
   [/^\/financier\/factoring\/[^/]+$/, 'financingOffer'],
