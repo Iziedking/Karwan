@@ -54,6 +54,17 @@ test('the deposit address reads on one line, never below 13px, never cut short',
   await expect
     .poll(() => address.evaluate((el) => getComputedStyle(el).whiteSpace !== 'nowrap' || el.scrollWidth <= el.clientWidth + 1))
     .toBe(true);
+  // Once fitted it holds still: the page scrollbar coming and going must not
+  // set it resizing every frame.
+  const sizes = await address.evaluate(async (el) => {
+    const seen = new Set<string>();
+    for (let i = 0; i < 30; i++) {
+      seen.add(`${getComputedStyle(el).fontSize} ${getComputedStyle(el).whiteSpace}`);
+      await new Promise((done) => requestAnimationFrame(done));
+    }
+    return [...seen];
+  });
+  expect(sizes).toHaveLength(1);
 });
 
 test('coming back to the assistant reopens the conversation you were in', async ({ page }) => {

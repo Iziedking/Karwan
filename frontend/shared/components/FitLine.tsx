@@ -1,6 +1,7 @@
 'use client';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { cn } from '@/shared/utils/cn';
+import { needsRefit } from '@/shared/utils/fitLine';
 
 const MAX = 16;
 const MIN = 13;
@@ -16,7 +17,10 @@ export function FitLine({ text, className }: { text: string; className?: string 
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
+    const column = el.parentElement ?? el;
+    let fittedWidth = 0;
     const fit = () => {
+      fittedWidth = column.clientWidth;
       // Measured at full size on one line, then put back as it was until the
       // new size renders.
       const before = { size: el.style.fontSize, space: el.style.whiteSpace };
@@ -31,8 +35,10 @@ export function FitLine({ text, className }: { text: string; className?: string 
       setWrap(next < MIN);
     };
     fit();
-    const observer = new ResizeObserver(fit);
-    observer.observe(el.parentElement ?? el);
+    const observer = new ResizeObserver(() => {
+      if (needsRefit(fittedWidth, column.clientWidth)) fit();
+    });
+    observer.observe(column);
     return () => observer.disconnect();
   }, [text]);
 
