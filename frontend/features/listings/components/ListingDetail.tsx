@@ -10,6 +10,9 @@ import { CTAPill } from '@/shared/components/Bands';
 import { PersonAvatar } from '@/shared/components/PersonAvatar';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { TERMS_COPY } from '@/features/deals/terms/termsCopy';
+import { OfferGallery } from './OfferGallery';
+import { ReportOffer } from './ReportOffer';
+import type { WithPhotos } from '../photos';
 
 type FetchState = 'loading' | 'ok' | 'error';
 
@@ -220,6 +223,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
         {listing.title}
       </h1>
       <p dir="auto" className="mt-2 whitespace-pre-wrap text-[15px] leading-relaxed text-[var(--lp-text-sub)]">{listing.description}</p>
+      <OfferGallery urls={(listing as Listing & WithPhotos).photoUrls ?? []} title={listing.title} />
 
       <Link
         href={`/credit-passport/${listing.sellerUser}`}
@@ -270,6 +274,8 @@ export function ListingDetail({ listingId }: { listingId: string }) {
           <p dir="auto" className="whitespace-pre-wrap pb-4 text-[14px] leading-6 text-[var(--lp-text-sub)] font-medium">{listing.terms}</p>
         </details>
       ) : null}
+
+      {address && !viewerIsOwner ? <ReportOffer listingId={listing.id} hasPhotos={!!(listing as Listing & WithPhotos).photoUrls?.length} /> : null}
 
       {showEdit ? (
         <EditListingModal

@@ -28,6 +28,8 @@ export interface DiscoveryCard {
   /// Example stock Karwan seeded; the card says so.
   example: boolean;
   bidsCount?: number;
+  /// The offer's first photo link, when it has one (view 28).
+  photo?: string;
 }
 
 export interface DiscoveryFilters {
@@ -62,6 +64,7 @@ export function buildDiscoveryCards(
       partyIsYou: !!viewer && listing.sellerUser.toLowerCase() === viewer,
       matchedBefore: !!listing.matchedAt,
       example: listing.example === true,
+      ...((listing as { photoUrls?: string[] }).photoUrls?.[0] ? { photo: (listing as { photoUrls?: string[] }).photoUrls![0] } : {}),
     }));
 
   const requests: DiscoveryCard[] = briefs

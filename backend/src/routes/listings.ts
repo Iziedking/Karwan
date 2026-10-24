@@ -16,8 +16,14 @@ import {
   markListingMatched,
   listingFloor,
   patchListing,
+  setListingPhotos,
   type Listing,
 } from '../db/listings.js';
+import { MAX_OFFER_PHOTOS, decodePhotoDataUrl, offerPhotos, photoUrls, type Photo } from '../listings/photos.js';
+import { requireAdmin } from '../middleware/adminAuth.js';
+import { rateLimit } from '../middleware/rateLimit.js';
+import { createFeedback } from '../db/feedback.js';
+import { notifyOperator } from './feedback.js';
 import { resolveSellerProfile } from '../agents/agent-registry.js';
 import { actorSignalsFor } from '../agents/signals.js';
 import { listOpenJobContexts } from '../agents/buyer.js';
@@ -74,7 +80,25 @@ const createSchema = z.object({
   terms: z.string().trim().max(4000).optional(),
   termsDraft: termsDraftSchema.optional(),
   deliveryKind: z.enum(['goods', 'in_person', 'remote']).optional(),
+  /// Up to four photos as data URLs, resized on the device (view 28).
+  photos: z.array(z.string().max(2_100_000)).max(MAX_OFFER_PHOTOS).optional(),
+  /// Add the photos the seller sent to the assistant in the last hour. Set by
+  /// the assistant's confirm card, never by the form.
+  heldPhotos: z.boolean().optional(),
 });
+
+/// Every photo decoded and checked before anything is saved.
+function decodePhotos(list: string[] | undefined): Photo[] | { error: string } {
+  const out: Photo[] = [];
+  for (const dataUrl of list ?? []) {
+    const photo = decodePhotoDataUrl(dataUrl);
+    if ('error' in photo) return photo;
+    out.push(photo);
+  }
+  return out;
+}
+
+const withPhotoUrls = (listing: Listing) => ({ ...listing, photoUrls: photoUrls(listing) });
 
 const cancelSchema = z.object({ caller: addrSchema });
 
@@ -91,6 +115,13 @@ const editSchema = z.object({
   askingPriceUsdc: z.number().positive().max(5_000_000).optional(),
   negotiationMaxDecreasePct: z.number().min(0).max(50).optional(),
   ttlDays: z.number().min(0.0006).max(90).optional(),
+  /// The offer's full photo set after the edit, in order. An empty list removes them.
+  photos: z.array(z.string().max(2_100_000)).max(MAX_OFFER_PHOTOS).optional(),
+});
+
+const reportSchema = z.object({
+  reason: z.enum(['photo', 'listing']),
+  note: z.string().trim().max(500).optional(),
 });
 
 const matchDecisionSchema = z.object({
@@ -152,7 +183,7 @@ listingsRoutes.get('/mine', (c) => {
   if (!isSessionSelf(c, parsed.data)) {
     return c.json({ error: 'sign in as this address to read your listings' }, 403);
   }
-  return c.json({ listings: listListingsForSeller(parsed.data) });
+  return c.json({ listings: listListingsForSeller(parsed.data).map(withPhotoUrls) });
 });
 
 /// Detail of one listing. `floor` and `negotiationMaxDecreasePct` are agent-
@@ -170,14 +201,70 @@ listingsRoutes.get('/:id', (c) => {
   const status = listingStatus(listing);
   if (isOwner) {
     return c.json({
-      listing,
+      listing: withPhotoUrls(listing),
       floor: listingFloor(listing),
       viewerIsOwner: true,
       status,
     });
   }
   const { negotiationMaxDecreasePct: _drop, seedKey, ...visible } = listing;
-  return c.json({ listing: { ...visible, example: Boolean(seedKey) }, viewerIsOwner: false, status });
+  return c.json({ listing: { ...visible, example: Boolean(seedKey), photoUrls: photoUrls(listing) }, viewerIsOwner: false, status });
+});
+
+/// One photo of an offer. Public, like the offer; cached for a year because
+/// the link carries the version (listings/photos.ts photoUrls).
+listingsRoutes.get('/:id/photos/:n', (c) => {
+  const listing = getListing(c.req.param('id') ?? '');
+  if (!listing?.photos?.length) return c.json({ error: 'no photo' }, 404);
+  const photo = offerPhotos.read(listing.id, Number(c.req.param('n')));
+  if (!photo) return c.json({ error: 'no photo' }, 404);
+  return c.body(new Uint8Array(photo.bytes), 200, {
+    'Content-Type': photo.contentType,
+    'Cache-Control': 'public, max-age=31536000, immutable',
+    'X-Content-Type-Options': 'nosniff',
+  });
+});
+
+/// Anyone signed in may report an offer or its photos. The report goes to the
+/// team's feedback inbox with the photos attached, and the team decides
+/// (view 28: photos are reviewed when reported).
+listingsRoutes.post('/:id/report', rateLimit({ windowMs: 60 * 60 * 1000, max: 10, name: 'listing-report' }), async (c) => {
+  const caller = sessionAddress(c);
+  if (!caller) return c.json({ error: 'sign in to report an offer' }, 401);
+  const listing = getListing(c.req.param('id') ?? '');
+  if (!listing) return c.json({ error: 'listing not found' }, 404);
+  const parsed = reportSchema.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: invalidBodyMessage(parsed.error) }, 400);
+  const images = parsed.data.reason === 'photo'
+    ? (listing.photos ?? []).flatMap((_p, i) => {
+        const photo = offerPhotos.read(listing.id, i);
+        if (!photo) return [];
+        const ext = photo.contentType === 'image/png' ? 'png' : photo.contentType === 'image/webp' ? 'webp' : 'jpg';
+        return [{ buffer: Buffer.from(photo.bytes), mime: photo.contentType, ext }];
+      })
+    : [];
+  const fb = createFeedback(
+    {
+      category: 'other',
+      title: `Offer reported: ${listing.title}`.slice(0, 140),
+      message: `${parsed.data.reason === 'photo' ? 'The photos' : 'The offer'} on ${listing.id} were reported.${parsed.data.note ? `\n\n${parsed.data.note}` : ''}`,
+      context: { url: `/listings/${listing.id}`, wallet: caller },
+    },
+    images,
+  );
+  void notifyOperator(fb).catch((err) => logger.warn({ err: (err as Error).message, id: fb.id }, 'listing report notify failed'));
+  logger.info({ listingId: listing.id, reason: parsed.data.reason, feedbackId: fb.id }, 'listing reported');
+  return c.json({ ok: true });
+});
+
+/// The team removes an offer's photos after a report. The offer itself stays.
+listingsRoutes.post('/:id/photos/clear', requireAdmin, (c) => {
+  const listing = getListing(c.req.param('id') ?? '');
+  if (!listing) return c.json({ error: 'listing not found' }, 404);
+  offerPhotos.clear(listing.id);
+  setListingPhotos(listing.id, []);
+  logger.info({ listingId: listing.id }, 'listing photos cleared by admin');
+  return c.json({ ok: true });
 });
 
 /// Seller cancels their own listing. Allowed only when it hasn't matched yet
@@ -280,16 +367,24 @@ listingsRoutes.post('/:id/edit', async (c) => {
     patch.expiresAt = Date.now() + body.ttlDays * 86_400_000;
   }
 
-  if (Object.keys(patch).length === 0) {
+  let photos: Photo[] | undefined;
+  if (body.photos !== undefined) {
+    const decoded = decodePhotos(body.photos);
+    if ('error' in decoded) return c.json({ error: decoded.error }, 400);
+    photos = decoded;
+  }
+
+  if (Object.keys(patch).length === 0 && photos === undefined) {
     return c.json({ error: 'no editable fields provided' }, 400);
   }
 
-  const next = patchListing(id, patch);
+  let next = Object.keys(patch).length ? patchListing(id, patch) : listing;
+  if (photos !== undefined) next = setListingPhotos(id, offerPhotos.save(id, photos, Date.now()));
   logger.info(
-    { listingId: id, seller: listing.sellerUser, changed: Object.keys(patch) },
+    { listingId: id, seller: listing.sellerUser, changed: [...Object.keys(patch), ...(photos !== undefined ? ['photos'] : [])] },
     'listing edited by seller',
   );
-  return c.json({ listing: next });
+  return c.json({ listing: next ? withPhotoUrls(next) : next });
 });
 
 /// Post a new seller listing and immediately scan in-memory open buyer briefs
@@ -304,6 +399,8 @@ listingsRoutes.post('/', async (c) => {
   }
   const prohibited = prohibitedBody(body);
   if (prohibited) return c.json(prohibited, 422);
+  const formPhotos = decodePhotos(body.photos);
+  if ('error' in formPhotos) return c.json({ error: formPhotos.error }, 400);
   // Authorization: a Circle session may only post a listing as its own wallet.
   // Matches the gate on jobs/deals/profile writes; web3 users have no session
   // yet, so this is a no-op for them (see auth/session.ts).
@@ -345,6 +442,10 @@ listingsRoutes.post('/', async (c) => {
     tradeLane: deriveLane(sellerAccountType),
     partyKind: sellerAccountType,
   });
+  const now = Date.now();
+  const held = body.heldPhotos ? offerPhotos.takeHeld(body.sellerUser.toLowerCase(), now) : [];
+  const photos = [...formPhotos, ...held].slice(0, MAX_OFFER_PHOTOS);
+  const posted = photos.length ? setListingPhotos(listing.id, offerPhotos.save(listing.id, photos, now)) ?? listing : listing;
 
   bus.emitEvent({
     type: 'listing.posted',
@@ -376,7 +477,7 @@ listingsRoutes.post('/', async (c) => {
       ),
     );
 
-  return c.json({ listing }, 201);
+  return c.json({ listing: withPhotoUrls(posted) }, 201);
 });
 
 /// Cache of confirmed listing↔brief topical matches, keyed jobId → listingId →

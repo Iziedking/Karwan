@@ -200,3 +200,10 @@ test('the market says how results are ordered, behind a tip by the sort, for whi
     assert.doesNotMatch(line, /—/);
   }
 });
+
+test('an offer card carries its first photo link; one without photos carries none', () => {
+  const withPhoto = { ...listings[0]!, photoUrls: ['/api/listings/offer-open/photos/0?v=1', '/api/listings/offer-open/photos/1?v=1'] } as Listing;
+  const cards = buildDiscoveryCards([withPhoto, ...listings.slice(1)], briefs, { now: NOW });
+  assert.equal(cards.find((c) => c.id === 'offer-open')?.photo, '/api/listings/offer-open/photos/0?v=1');
+  assert.ok(cards.filter((c) => c.id !== 'offer-open').every((c) => c.photo === undefined));
+});

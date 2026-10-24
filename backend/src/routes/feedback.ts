@@ -203,7 +203,7 @@ const CATEGORY_LABEL: Record<Feedback['category'], string> = {
 /// Pushes a new submission to the operator's Telegram chat: a text summary,
 /// then each screenshot as a photo (when the public API base is set so Telegram
 /// can fetch the URL). No-ops cleanly when the chat id or bot isn't configured.
-async function notifyOperator(fb: Feedback): Promise<void> {
+export async function notifyOperator(fb: Feedback): Promise<void> {
   const chatId = config.FEEDBACK_TELEGRAM_CHAT_ID;
   if (!chatId || !telegramEnabled()) return;
 

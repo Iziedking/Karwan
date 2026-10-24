@@ -1,6 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useAutoGrow } from '@/shared/hooks/useAutoGrow';
+import { offerPhotosCopy } from '@/shared/i18n/messages/offerPhotos';
 import { useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'motion/react';
@@ -13,7 +15,7 @@ import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
 import { Icon } from '@/shared/components/Icon';
 import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ease } from '@/shared/motion/tokens';
 import { greetingKey } from './conversationGroups';
 import { ConversationList } from './ConversationList';
@@ -45,6 +47,10 @@ function AssistantPage() {
     onNeedsHuman: (transcript) => callPerson(transcript.map((m) => ({ role: m.role, content: m.content }))),
   });
   const [input, setInput] = useState('');
+  const askRef = useAutoGrow(input);
+  const [photoChoice, setPhotoChoice] = useState<File | null>(null);
+  const { locale } = useLocale();
+  const photoCopy = offerPhotosCopy[locale];
   const [listOpen, setListOpen] = useState(false);
   const [openError, setOpenError] = useState(false);
   /// The conversation waiting for a delete confirmation: the open one or any in the list.
@@ -238,6 +244,24 @@ function AssistantPage() {
                 ))}
               </div>
             ) : null}
+            {photoChoice ? (
+              <div role="group" aria-label={photoCopy.chooseTitle} className="mb-3 rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-3">
+                <div className="flex items-center gap-2">
+                  <p className="min-w-0 flex-1 px-1 text-[14px] font-semibold text-[var(--lp-dark)]">{photoCopy.chooseTitle}</p>
+                  <button type="button" onClick={() => setPhotoChoice(null)} aria-label={photoCopy.cancel} className="grid size-11 shrink-0 place-items-center rounded-full text-[var(--lp-text-sub)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+                    <Icon name="close" size={20} />
+                  </button>
+                </div>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  <button type="button" disabled={chat.busy} onClick={() => { const file = photoChoice; setPhotoChoice(null); void chat.attach(file, 'offer'); }} className="inline-flex min-h-11 items-center rounded-full border border-[var(--lp-border-light)] bg-[var(--tint)] px-4 text-[14px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+                    {photoCopy.forOffer}
+                  </button>
+                  <button type="button" disabled={chat.busy} onClick={() => { const file = photoChoice; setPhotoChoice(null); void chat.attach(file, 'invoice'); }} className="inline-flex min-h-11 items-center rounded-full border border-[var(--lp-border-light)] bg-[var(--tint)] px-4 text-[14px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+                    {photoCopy.asInvoice}
+                  </button>
+                </div>
+              </div>
+            ) : null}
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -256,12 +280,15 @@ function AssistantPage() {
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     e.target.value = '';
-                    if (file) void chat.attach(file);
+                    // A photo may be for an offer or an invoice; a PDF is an invoice.
+                    if (file?.type.startsWith('image/')) setPhotoChoice(file);
+                    else if (file) void chat.attach(file);
                   }}
                 />
               </label>
               <label htmlFor="assistant-ask" className="sr-only">{t.placeholder}</label>
               <textarea
+                ref={askRef}
                 id="assistant-ask"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}

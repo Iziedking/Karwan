@@ -32,7 +32,7 @@ test('roadmap entries are discoverable but cannot be stated as live', () => {
 
 test('canon version records the Canteen window features', () => {
   assert.equal(canonVersion, '0.4.0');
-  assert.equal(canonUpdated, '2026-10-23');
+  assert.equal(canonUpdated, '2026-10-24');
 });
 
 test('agent record checks and risk-based World ID are statable, with testnet named', () => {

@@ -51,6 +51,8 @@ export interface PostOfferPayload {
   negotiationMaxDecreasePct?: number;
   ttlDays?: number;
   deliveryKind?: DeliveryKind;
+  /// Add the photos the seller sent in chat in the last hour (view 28).
+  heldPhotos?: boolean;
 }
 
 export interface PostRequestPayload {
@@ -582,6 +584,8 @@ export interface BuildPostOfferInput {
   negotiationMaxDecreasePct?: number;
   ttlDays?: number;
   deliveryKind?: DeliveryKind;
+  /// How many photos the seller has sent in chat for this offer, if any.
+  heldPhotos?: number;
 }
 
 /// Build a validated post-offer confirm card, or an `{ error }` the tool hands
@@ -631,7 +635,9 @@ export function buildPostOfferConfirm(input: BuildPostOfferInput): PostOfferConf
     ...(pct !== undefined ? { negotiationMaxDecreasePct: pct } : {}),
     ...(ttl !== undefined ? { ttlDays: ttl } : {}),
     ...(input.deliveryKind ? { deliveryKind: input.deliveryKind } : {}),
+    ...(input.heldPhotos ? { heldPhotos: true } : {}),
   };
+  if (input.heldPhotos) fields.push({ label: 'Photos', value: String(input.heldPhotos) });
 
   return {
     kind: 'confirm',

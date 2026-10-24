@@ -18,6 +18,7 @@ import {
 } from '@/features/discovery/model';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
 import { Hint } from '@/shared/components/Hint';
+import { photoSrc } from '@/features/listings/photos';
 import { Icon } from '@/shared/components/Icon';
 import { Skeleton, SkeletonText } from '@/shared/components/Skeleton';
 import { Band, FullBleed } from '@/shared/components/Bands';
@@ -504,11 +505,19 @@ function MarketCard({
         </div>
         {/* Two title lines and one body line always take the same room, so
             every card in a row keeps its footer on the same line. */}
-        <div className="mt-3 h-20 shrink-0 overflow-hidden">
-          <h3 dir="auto" className="line-clamp-2 text-[16px] font-semibold leading-[1.35] text-[var(--ink)]">
-            {card.title}
-          </h3>
-          {card.body ? <p dir="auto" className="mt-1 line-clamp-1 text-[14px] leading-5 text-[var(--ink-secondary)] font-medium">{card.body}</p> : null}
+        <div className="mt-3 flex shrink-0 gap-3">
+          <div className="h-20 min-w-0 flex-1 overflow-hidden">
+            <h3 dir="auto" className="line-clamp-2 text-[16px] font-semibold leading-[1.35] text-[var(--ink)]">
+              {card.title}
+            </h3>
+            {card.body ? <p dir="auto" className="mt-1 line-clamp-1 text-[14px] leading-5 text-[var(--ink-secondary)] font-medium">{card.body}</p> : null}
+          </div>
+          {/* The first photo sits beside the words at the same height, so a
+              row of cards keeps its footers on one line with or without one. */}
+          {card.photo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={photoSrc(card.photo)} alt="" loading="lazy" className="size-20 shrink-0 rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--tint)] object-cover" />
+          ) : null}
         </div>
         {/* Facts sit on fixed lines, so a separator never starts a line:
             when and where it stands, then for an offer who sells it. */}

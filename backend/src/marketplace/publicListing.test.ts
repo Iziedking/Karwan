@@ -17,3 +17,10 @@ test('seeded stock is marked as an example and real listings are not', () => {
   assert.equal(publicListing({ ...base, seedKey: 'mk1-offer-3' }).example, true);
   assert.equal(publicListing(base).example, false);
 });
+
+test('the public view links to the photos and never carries the images', () => {
+  const view = publicListing({ ...base, photos: [{ contentType: 'image/jpeg', size: 1200, at: 9 }] });
+  assert.deepEqual(view.photoUrls, ['/api/listings/lst_1/photos/0?v=9']);
+  assert.equal(JSON.stringify(view).includes('base64'), false);
+  assert.deepEqual(publicListing(base).photoUrls, []);
+});

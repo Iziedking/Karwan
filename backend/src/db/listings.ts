@@ -8,6 +8,7 @@ import { randomBytes } from 'node:crypto';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { logger } from '../logger.js';
+import { offerPhotos, type ListingPhoto } from '../listings/photos.js';
 
 /// The terms an offer is sold on, in the shape the deal forms build them, so a
 /// buyer who starts a deal from the offer starts from the same parts.
@@ -60,6 +61,9 @@ export interface Listing {
   /// Goods, in-person or remote work. Missing on older offers, which are
   /// never gated by location (location/rules.ts kindOf).
   deliveryKind?: DeliveryKind;
+  /// Up to four photos (view 28). The images live in data/listing-photos;
+  /// this keeps their type, size and when they were saved.
+  photos?: ListingPhoto[];
 }
 
 // Listings are off-chain and have no chain event to reseed from, so without
@@ -128,6 +132,7 @@ export function createListing(
     readyInDays: input.readyInDays,
     terms: input.terms,
     termsDraft: input.termsDraft,
+    deliveryKind: input.deliveryKind,
   };
   store.set(id, listing);
   persist();
@@ -171,6 +176,7 @@ export function deleteListingsBySeller(addressLower: string, keep: (l: Listing) 
   for (const [k, v] of store.entries()) {
     if (v.sellerUser === target && !keep(v)) {
       store.delete(k);
+      offerPhotos.clear(k);
       removed += 1;
     }
   }
@@ -209,6 +215,18 @@ export function patchListing(
 
 /// Seller-initiated cancel. Caller checks ownership BEFORE calling.
 /// Idempotent: cancelling an already-cancelled listing is a no-op.
+/// Replaces the offer's photo list. The images themselves are saved by
+/// listings/photos.ts first.
+export function setListingPhotos(id: string, photos: ListingPhoto[]): Listing | null {
+  const l = store.get(id);
+  if (!l) return null;
+  if (photos.length) l.photos = photos;
+  else delete l.photos;
+  store.set(id, l);
+  persist();
+  return l;
+}
+
 export function cancelListing(id: string): Listing | null {
   const l = store.get(id);
   if (!l) return null;

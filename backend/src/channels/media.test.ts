@@ -108,3 +108,19 @@ test('an invoice added from the website assistant is recorded as from the web, w
   assert.equal(facts[0]!.source, 'web');
   assert.match(body(out), /Ask me for a confirmation link and send it to them\./);
 });
+
+test('a chat photo captioned for an offer is held for it and never read as an invoice', async () => {
+  const held: string[] = [];
+  const { intake, facts } = setup({
+    extract: async () => { throw new Error('the invoice reader must not run'); },
+    holdForOffer: async (address) => { held.push(address); return 'Photo added for your next offer (1 of 4).'; },
+  });
+  const out = await intake('0xada', { ...media, text: 'selling this wig, for my offer' });
+  assert.equal(body(out), 'Photo added for your next offer (1 of 4).');
+  assert.deepEqual(held, ['0xada']);
+  assert.equal(facts.length, 0);
+  // Without such a caption the photo is still read as an invoice.
+  const plain = setup({ holdForOffer: async () => { throw new Error('must not hold'); } });
+  await plain.intake('0xada', media);
+  assert.equal(plain.facts.length, 1);
+});

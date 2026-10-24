@@ -18,6 +18,7 @@ import { config } from '../config.js';
 import { listDealsForAddress, getDeal, type DirectDeal } from '../db/deals.js';
 import { stageOf } from '../deals/dealView.js';
 import { getAgentWallets } from '../db/agentWallets.js';
+import { offerPhotos } from '../listings/photos.js';
 import { listActivityForAddress } from '../db/activityLog.js';
 import { listBridgesForUser } from '../db/bridges.js';
 import { bridgeStanding } from './bridgeStanding.js';
@@ -1955,7 +1956,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
 
     propose_post_offer: tool({
       description:
-        "Prepare a confirm card to post the user's standing OFFER to supply work or goods (a listing on the marketplace). This does NOT post it: it shows the user a card they must approve, then it posts as themselves. Use it when they clearly want to advertise what they sell and have given a title, a short description, and an asking price in USDC. Nothing moves money and the offer can be cancelled later. Do NOT use this for posting a REQUEST for work they need (that funds an auction) — send them to the request desk with propose_navigation instead.",
+        "Prepare a confirm card to post the user's standing OFFER to supply work or goods (a listing on the marketplace). This does NOT post it: it shows the user a card they must approve, then it posts as themselves. Use it when they clearly want to advertise what they sell and have given a title, a short description, and an asking price in USDC. Nothing moves money and the offer can be cancelled later. Photos the user sent in this chat in the last hour go on the offer automatically (up to four); for goods, invite them to send photos first. Do NOT use this for posting a REQUEST for work they need (that funds an auction) — send them to the request desk with propose_navigation instead.",
       inputSchema: z.object({
         title: z.string().min(3).max(120).describe('Short offer title, e.g. "Arabic-English contract translation".'),
         description: z.string().min(5).max(500).describe('What they supply, plainly. One or two sentences.'),
@@ -1981,7 +1982,8 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
         if (!sellerProfile) {
           return { error: 'They need a seller profile first. Offer a button to the seller desk (destination "new_offer").' };
         }
-        const built = buildPostOfferConfirm({ caller: address, ...args });
+        const heldPhotos = offerPhotos.heldCount(address, Date.now());
+        const built = buildPostOfferConfirm({ caller: address, ...args, ...(heldPhotos ? { heldPhotos } : {}) });
         if ('error' in built) return built;
         if (!hasEquivalentConfirm(actions, built)) actions.push(built);
         return { ok: true, shown: built.title };

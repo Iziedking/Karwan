@@ -50,3 +50,13 @@ test('the request sent to the jobs route carries kind and where', async () => {
   assert.equal(body.deliveryKind, 'goods');
   assert.deepEqual(body.where, { scope: 'country', country: 'GH' });
 });
+
+test('an offer card shows the photos sent in chat and asks the route to add them', () => {
+  const card = buildPostOfferConfirm({ caller: ADA, title: 'Human hair wig', description: 'Brazilian straight, 18 inch', askingPriceUsdc: 120, deliveryKind: 'goods', heldPhotos: 3 });
+  assert.ok(!('error' in card));
+  if ('error' in card) return;
+  assert.equal(card.payload.heldPhotos, true);
+  assert.ok(card.fields.some((f) => f.label === 'Photos' && f.value === '3'));
+  const none = buildPostOfferConfirm({ caller: ADA, title: 'Logo design', description: 'Logos in three days', askingPriceUsdc: 60 });
+  assert.ok(!('error' in none) && none.payload.heldPhotos === undefined);
+});

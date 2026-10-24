@@ -3,6 +3,7 @@ import type { StoredFact } from '../verification/evidence.js';
 import { checkInvoice, type ExtractedInvoice } from '../verification/invoice.js';
 import type { OutMessage } from './render.js';
 import type { InboundMessage } from './types.js';
+import { holdForOffer, isOfferPhotoCaption } from '../listings/photos.js';
 
 const TWO_YEARS_MS = 2 * 365 * 24 * 3_600_000;
 const READABLE = /^(image\/(jpeg|png|webp)|application\/pdf)$/;
@@ -21,6 +22,9 @@ export interface IntakeDeps {
   displayNameOf: (address: string) => Promise<string>;
   claimFingerprint: (fingerprint: string, address: string) => Promise<boolean>;
   addFact: (address: string, fact: StoredFact) => Promise<boolean>;
+  /// A photo captioned for an offer ("selling this", "for my offer") is held
+  /// for the person's next offer instead of read as an invoice (view 28).
+  holdForOffer?: (address: string, file: { bytes: Uint8Array; mimeType: string }) => Promise<string>;
 }
 
 const text = (body: string): OutMessage => ({ kind: 'text', body });
@@ -34,6 +38,9 @@ export function createEvidenceIntake(deps: IntakeDeps) {
     const file = await deps.download(m.mediaId, m.mimeType);
     if (!file) return [text("I couldn't open that file. Please send it again, under 10 MB.")];
     if (!READABLE.test(file.mimeType)) return [text('Please send the invoice as a photo or a PDF.')];
+    if (file.mimeType.startsWith('image/') && isOfferPhotoCaption(m.text)) {
+      return [text(await (deps.holdForOffer ?? holdForOffer)(address, file))];
+    }
 
     let fields: ExtractedInvoice;
     try {

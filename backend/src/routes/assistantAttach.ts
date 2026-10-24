@@ -14,6 +14,8 @@ export interface AttachRouteDeps {
   sessionAddress: (c: Context) => string | null | Promise<string | null>;
   /// The intake's reply, one line per message it would send in chat.
   intake: (address: string, file: { bytes: Uint8Array; mimeType: string }) => Promise<string[]>;
+  /// A photo the person added for an offer: held for their next offer (view 28).
+  holdForOffer?: (address: string, file: { bytes: Uint8Array; mimeType: string }) => Promise<string>;
   now?: () => number;
 }
 
@@ -43,6 +45,11 @@ export function createAssistantAttachRoutes(deps: AttachRouteDeps): Hono {
     if (!READABLE.test(file.type)) return c.json({ error: 'send a photo or a PDF' }, 415);
     if (file.size > ATTACH_MAX_BYTES) return c.json({ error: 'the file is over 10 MB' }, 413);
     if (!allowed(address)) return c.json({ error: 'too many files, wait a few minutes' }, 429);
+    if (form?.purpose === 'offer') {
+      if (!file.type.startsWith('image/')) return c.json({ error: 'send a photo for an offer' }, 415);
+      const hold = deps.holdForOffer ?? (await import('../listings/photos.js')).holdForOffer;
+      return c.json({ reply: await hold(address, { bytes: new Uint8Array(await file.arrayBuffer()), mimeType: file.type }) });
+    }
     const lines = await deps.intake(address, { bytes: new Uint8Array(await file.arrayBuffer()), mimeType: file.type });
     return c.json({ reply: lines.join('\n\n') });
   });

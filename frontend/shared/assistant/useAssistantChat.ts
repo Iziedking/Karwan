@@ -4,6 +4,7 @@ import { api, ApiError } from '@/core/api';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { confirmOutcomes, type Turn } from './AssistantThread';
 import { savedAction } from './savedAction';
+import { attachForOffer } from '@/features/listings/photos';
 
 /// One conversation with the assistant: the turns, sending the next question
 /// and the reply's actions. The help panel and the assistant page share it;
@@ -130,8 +131,10 @@ export function useAssistantChat(opts: { onNeedsHuman?: (transcript: Turn[]) => 
 
   /// A photo or PDF, read like one sent to the agent on Telegram: an invoice
   /// for your own work. It shows as your message, and the reply as the agent's.
+  /// A photo or PDF added in chat. `offer` keeps a photo for the person's next
+  /// offer (view 28); otherwise it is read as an invoice.
   const attach = useCallback(
-    async (file: File) => {
+    async (file: File, purpose: 'offer' | 'invoice' = 'invoice') => {
       if (busy) return;
       void flush();
       const next = [...messages, { role: 'user' as const, content: m.attached.replace('{name}', file.name) }];
@@ -139,7 +142,7 @@ export function useAssistantChat(opts: { onNeedsHuman?: (transcript: Turn[]) => 
       setError(null);
       setBusy(true);
       try {
-        const { reply } = await api.assistantAttach(file);
+        const { reply } = purpose === 'offer' ? await attachForOffer(file) : await api.assistantAttach(file);
         setMessages([...next, { role: 'assistant', content: reply }]);
       } catch (e) {
         const status = e instanceof ApiError ? e.status : 0;

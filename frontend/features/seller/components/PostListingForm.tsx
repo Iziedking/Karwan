@@ -23,6 +23,7 @@ import { BUSINESS_ACCOUNTS_OPEN } from '@/features/account/businessOpen';
 import { cleanLines, composeTerms, termsIssues, type TermsDraft } from '@/features/deals/terms/composeTerms';
 import { TERMS_COPY } from '@/features/deals/terms/termsCopy';
 import { MarketReadsNote } from '@/features/market/MarketReadsNote';
+import { OfferPhotosField } from '@/features/listings/components/OfferPhotosField';
 
 const READY_CHIPS = [1, 3, 7, 14] as const;
 const MAX_READY_DAYS = 180;
@@ -73,6 +74,7 @@ export function PostListingForm() {
   const [customReady, setCustomReady] = useState(false);
   const [openDays, setOpenDays] = useState<number>(30);
   const [terms, setTerms] = useState<TermsDraft>(DEFAULT_TERMS);
+  const [photos, setPhotos] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [recent, setRecent] = useState<Listing[]>([]);
@@ -147,6 +149,7 @@ export function PostListingForm() {
     setError(null);
     try {
       const r = await api.postListing({
+        ...(photos.length ? { photos } : {}),
         sellerUser: address,
         title: title.trim(),
         description: description.trim(),
@@ -161,7 +164,7 @@ export function PostListingForm() {
           parts: terms.parts,
           reviewWindowDays: terms.reviewWindowDays,
         },
-      });
+      } as Parameters<typeof api.postListing>[0]);
       setRecent((prev) => [r.listing, ...prev]);
       setWatchingForListingId(r.listing.id);
       setMatchedJobId(null);
@@ -182,6 +185,7 @@ export function PostListingForm() {
     setReadyInDays('');
     setCustomReady(false);
     setTerms(DEFAULT_TERMS);
+    setPhotos([]);
     setReviewing(false);
     setStep(0);
     setIntentWarned(false);
@@ -280,6 +284,11 @@ export function PostListingForm() {
                 className="form-input form-textarea"
               />
             </Field>
+          </div>
+          {/* Its own block, after the words: the photos are optional and never
+              mix with the fields the first step checks. */}
+          <div hidden={step !== 0}>
+            <OfferPhotosField value={photos} onChange={setPhotos} title={title.trim()} />
           </div>
 
           <div hidden={step !== 1} className="space-y-6">
