@@ -197,3 +197,19 @@ export const MAINNET_ORIGIN = 'https://karwan.site';
 export function dealHref(path: string, dealsAvailable: boolean): string {
   return dealsAvailable ? path : `${TESTNET_ORIGIN}${path}`;
 }
+
+/// One page whatever case its wallet address was written in: a passport linked
+/// as 0xA045… and as 0xa045… is the same page.
+function samePage(a: string, b: string): boolean {
+  return a.toLowerCase() === b.toLowerCase();
+}
+
+/// Where Back goes from the tab's route trail: the last page that is not this
+/// one, and the trail left behind it. Null when there is none, or when it is the
+/// marketing site, so the caller falls back to the page's parent.
+export function previousRoute(stack: string[], pathname: string): { route: string; rest: string[] } | null {
+  let i = stack.length - 1;
+  while (i >= 0 && samePage(stack[i], pathname)) i--;
+  if (i < 0 || isPublicEditorialRoute(stack[i])) return null;
+  return { route: stack[i], rest: stack.slice(0, i) };
+}

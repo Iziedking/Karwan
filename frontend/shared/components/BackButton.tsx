@@ -1,7 +1,7 @@
 'use client';
 import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { isLandingRoute, isPublicEditorialRoute } from '@/shared/utils/routes';
+import { isLandingRoute, isPublicEditorialRoute, previousRoute } from '@/shared/utils/routes';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 /// A back control in the top nav. It returns the user to the route they actually
@@ -44,7 +44,7 @@ export function RouteTrail() {
   useEffect(() => {
     if (!pathname || isPublicEditorialRoute(pathname)) return;
     const stack = readStack();
-    if (stack[stack.length - 1] === pathname) return;
+    if (stack.length && stack[stack.length - 1].toLowerCase() === pathname.toLowerCase()) return;
     writeStack([...stack, pathname]);
   }, [pathname]);
   return null;
@@ -68,15 +68,10 @@ export function BackButton({
   if ((isLandingRoute(pathname) && !showOnPublic) || pathname === '/app') return null;
 
   function goBack() {
-    const stack = readStack();
-    // Drop the current route, then walk back past any repeats of it to the last
-    // genuinely different in-app route.
-    let i = stack.length - 1;
-    while (i >= 0 && stack[i] === pathname) i--;
-    const target = i >= 0 ? stack[i] : null;
-    if (target && !isPublicEditorialRoute(target)) {
-      writeStack(stack.slice(0, i)); // pop past the target so the next back steps again
-      router.push(target);
+    const target = previousRoute(readStack(), pathname ?? '');
+    if (target) {
+      writeStack(target.rest); // pop past the target so the next back steps again
+      router.push(target.route);
     } else {
       writeStack([]);
       router.push(fallbackHref);
