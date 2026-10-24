@@ -3,10 +3,11 @@ import { join } from 'node:path';
 import { ImageResponse } from 'next/og';
 
 // The link preview for karwan.site, also used for X (twitter-image re-exports
-// it). Karwan ink, the real mark, General Sans, and the same deal art as the
-// sign-in panel: two parties, the escrow pill with its lime line, the payment,
-// and the record writing itself. Fonts are TTF copies of the self-hosted
-// General Sans because the image renderer cannot read woff2.
+// it). Karwan ink, the real mark, General Sans, and a line sketch of a deal:
+// a seller hands over the goods, a buyer pays from a phone, the money waits in
+// the escrow pill with its lime line, and the record below gets its tick.
+// Fonts are TTF copies of the self-hosted General Sans because the image
+// renderer cannot read woff2.
 export const runtime = 'nodejs';
 export const alt = 'Karwan · one reputation, starting with an open market';
 export const size = { width: 1200, height: 630 };
@@ -19,6 +20,40 @@ const MUTED = '#A0A6AD';
 const LIME = '#AFC95B';
 
 const asset = (...parts: string[]) => readFile(join(process.cwd(), 'public', ...parts));
+
+/// Two people dealing, drawn as one sketch in the panel's 488 by 518 box.
+const DEAL_SKETCH = `<svg xmlns="http://www.w3.org/2000/svg" width="488" height="518" viewBox="0 0 488 518" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <g stroke="${PAPER}" stroke-width="3" opacity="0.9">
+    <circle cx="112" cy="176" r="30"/>
+    <path d="M84 168 Q88 140 114 142 Q138 144 141 166"/>
+    <path d="M112 206 V216"/>
+    <path d="M80 226 Q112 212 144 226 L152 336 Q112 344 72 336 Z"/>
+    <path d="M140 232 L176 268 L204 254"/>
+    <path d="M84 232 L72 290 L80 326"/>
+    <path d="M92 338 L88 436 M132 338 L136 436 M80 436 H98 M128 436 H146"/>
+    <rect x="198" y="218" width="42" height="36" rx="4"/>
+    <path d="M198 230 H240 M219 218 V230"/>
+    <circle cx="376" cy="176" r="30"/>
+    <circle cx="394" cy="144" r="11"/>
+    <path d="M376 206 V216"/>
+    <path d="M408 226 Q376 212 344 226 L336 336 Q376 344 416 336 Z"/>
+    <path d="M348 232 L312 268 L286 256"/>
+    <path d="M404 232 L416 290 L408 326"/>
+    <path d="M396 338 L400 436 M356 338 L352 436 M408 436 H390 M360 436 H342"/>
+    <rect x="266" y="222" width="24" height="40" rx="5"/>
+    <path d="M274 255 H282"/>
+  </g>
+  <g stroke="${PAPER}" stroke-width="2.5" stroke-dasharray="2 9" opacity="0.6">
+    <path d="M219 212 Q190 160 176 124"/>
+    <path d="M278 216 Q300 160 312 124"/>
+  </g>
+  <rect x="172" y="88" width="144" height="56" rx="28" fill="${PAPER}"/>
+  <path d="M196 116 H292" stroke="${LIME}" stroke-width="4"/>
+  <rect x="186" y="368" width="116" height="88" rx="12" stroke="${PAPER}" stroke-width="3" opacity="0.9"/>
+  <path d="M204 394 L212 402 L226 386" stroke="${LIME}" stroke-width="4"/>
+  <path d="M238 394 H284 M204 418 H284 M204 438 H256" stroke="${PAPER}" stroke-width="3" opacity="0.6"/>
+</svg>`;
+const DEAL_SKETCH_SRC = `data:image/svg+xml;base64,${Buffer.from(DEAL_SKETCH).toString('base64')}`;
 
 export default async function OpengraphImage() {
   const [medium, semibold, mark] = await Promise.all([
@@ -56,16 +91,8 @@ export default async function OpengraphImage() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', position: 'relative', flex: 1, background: PANEL, borderRadius: 28, overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', left: 58, top: 62, width: 150, height: 100, borderRadius: 16, background: PAPER, opacity: 0.35, transform: 'rotate(-8deg)' }} />
-          <div style={{ position: 'absolute', left: 250, top: 88, width: 150, height: 100, borderRadius: 16, background: PAPER, opacity: 0.25, transform: 'rotate(6deg)' }} />
-          <div style={{ position: 'absolute', left: 50, top: 222, width: 250, height: 132, borderRadius: 66, background: PAPER, opacity: 0.95, display: 'flex', alignItems: 'center' }}>
-            <div style={{ display: 'flex', width: '100%', height: 4, background: LIME }} />
-          </div>
-          <div style={{ position: 'absolute', left: 328, top: 300, width: 88, height: 88, borderRadius: 44, background: PAPER, opacity: 0.85 }} />
-          {[0.2, 0.3, 0.4, 0.5, 0.6].map((opacity, i) => (
-            <div key={i} style={{ position: 'absolute', left: 258, top: 404 + i * 22, width: 150, height: 16, borderRadius: 8, background: PAPER, opacity }} />
-          ))}
+        <div style={{ display: 'flex', flex: 1, background: PANEL, borderRadius: 28, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
+          <img src={DEAL_SKETCH_SRC} width={488} height={518} alt="" />
         </div>
       </div>
     ),

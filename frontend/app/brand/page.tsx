@@ -12,6 +12,7 @@ import {
 } from '@/shared/components/skill';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { brandPalette } from '@/shared/brand/palette';
+import { PRESS_BOILERPLATE, PRESS_TAGLINES } from '@/shared/brand/press';
 
 /// Public brand page. Press, partners, and anyone embedding Karwan in their
 /// own materials can download the logo set, copy the brand colors, and read
@@ -145,6 +146,48 @@ export default function BrandPage() {
                 {t.partner.partnerLabel}
               </span>
             </div>
+          </div>
+        </div>
+      </Section>
+
+      {/* PRESS KIT */}
+      <Section tone="light" compact>
+        <BracketTag onDark={false}>{t.press.tag}</BracketTag>
+        <h2 className="mt-4 text-[clamp(34px,4vw,56px)] font-medium leading-[1.08] tracking-[-0.045em] text-[var(--lp-dark)]">{t.press.headline}.</h2>
+        <p className="mt-6 max-w-[60ch] text-[17px] leading-[1.55] text-[var(--lp-text-sub)]">{t.press.body}</p>
+
+        <div className="mt-10 grid gap-5 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+          <div className="rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-6 md:p-7">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{t.press.boilerplateLabel}</p>
+              <CopyButton text={PRESS_BOILERPLATE} label={t.press.copy} done={t.press.copied} />
+            </div>
+            <p lang="en" dir="ltr" className="mt-4 text-[16px] leading-[1.65] text-[var(--lp-dark)]">{PRESS_BOILERPLATE}</p>
+          </div>
+          <div className="rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-6 md:p-7">
+            <p className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{t.press.taglinesLabel}</p>
+            <ul className="mt-2 divide-y divide-[var(--lp-border-light)]">
+              {PRESS_TAGLINES.map((line) => (
+                <li key={line} className="flex items-center justify-between gap-3 py-3">
+                  <span lang="en" dir="ltr" className="text-[17px] font-medium text-[var(--lp-dark)]">{line}</span>
+                  <CopyButton text={line} label={t.press.copy} done={t.press.copied} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        <div className="mt-5 overflow-hidden rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/opengraph-image" alt="" width={1200} height={630} className="block h-auto w-full" />
+          <div className="flex flex-wrap items-center justify-between gap-3 p-5 md:p-6">
+            <div className="min-w-0">
+              <p className="text-[16px] font-semibold text-[var(--lp-dark)]">{t.press.previewLabel}</p>
+              <p className="mt-1 max-w-[60ch] text-[15px] leading-[1.5] text-[var(--lp-text-sub)]">{t.press.previewBody}</p>
+            </div>
+            <a href="/opengraph-image" download="karwan-link-preview.png" className="inline-flex min-h-11 items-center rounded-full border border-[var(--lp-outline-strong)] px-4 text-[14px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)]">
+              {t.press.download}
+            </a>
           </div>
         </div>
       </Section>
@@ -310,5 +353,23 @@ function ColorChip({
         </div>
       </div>
     </div>
+  );
+}
+
+function CopyButton({ text, label, done }: { text: string; label: string; done: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        void navigator.clipboard?.writeText(text).then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        }).catch(() => {});
+      }}
+      className="inline-flex min-h-11 shrink-0 items-center rounded-full border border-[var(--lp-border-light)] px-4 text-[14px] font-semibold text-[var(--lp-dark)] hover:border-[var(--lp-outline-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+    >
+      {copied ? done : label}
+    </button>
   );
 }

@@ -84,7 +84,7 @@
       "id": "brand-principles",
       "title": "Brand principles",
       "status": "live",
-      "updated": "2026-09-30",
+      "updated": "2026-10-24",
       "tags": [
         "brand"
       ],
@@ -95,7 +95,7 @@
           "date": "2026-09-30"
         }
       ],
-      "body": "Six rules, in order of how often they get broken.\n\n**Calm and legible.** Karwan is where strangers put money in escrow with each\nother, so the interface earns trust: calm like a good financial product, never\na generated template. One job and one primary action per screen.\n\n**Money is the loudest thing.** The amount is the largest line, in tabular\nfigures with the currency written out: `1,200.00 USDC`, never `$1,200`. Next\nloudest is the next action and whose move it is.\n\n**One accent, used once.** Lime is for the one primary action and positive\nmoney state. A page with three lime elements has no primary action.\n\n**Sentence case, plain words.** No shouting labels. Brackets and mono are only\nfor technical metadata such as references and proof rows. Request and offer,\nnever brief or bid. No em dashes.\n\n**Hairlines, not stacked cards.** Facts sit in label and value rows separated by\nthin lines. Forms stay in a narrow reading column.\n\n**Honest states and no internals.** Sending is never shown as failed. Chain ids,\naddresses and protocol names stay behind \"Proof on Arc\". Motion only explains\nchange and respects reduced motion."
+      "body": "Six rules, in order of how often they get broken.\n\n**Calm and legible.** Karwan is where strangers put money in escrow with each\nother, so the interface earns trust: calm like a good financial product, never\na generated template. One job and one primary action per screen.\n\n**Money is the loudest thing.** The amount is the largest line, in tabular\nfigures with the currency written out: `1,200.00 USDC`, never `$1,200`. Next\nloudest is the next action and whose move it is.\n\n**One accent, used once.** Lime is for the one primary action and positive\nmoney state. A page with three lime elements has no primary action.\n\n**Sentence case, plain words.** No shouting labels. Brackets and mono are only\nfor technical metadata such as references and proof rows. Request and offer,\nnever brief or bid. No em dashes.\n\n**Hairlines, not stacked cards.** Facts sit in label and value rows separated by\nthin lines. Forms stay in a narrow reading column.\n\n**Honest states and no internals.** Sending is never shown as failed. Chain ids,\naddresses and protocol names stay behind \"Proof on Arc\". Motion only explains\nchange and respects reduced motion. On desktop a mouse wheel glides the page to\na stop; phones keep their own scrolling.\n\n**Line drawings, not stock.** Pictures are pencil or line drawings of real\ntrade: two people dealing, goods, the money held between them, the record that\nfollows. No stock photos, generated imagery, gradients or mixed styles."
     },
     {
       "id": "brand-typography",
@@ -709,7 +709,7 @@
         }
       ],
       "check": null,
-      "updated": "2026-09-30",
+      "updated": "2026-10-24",
       "path": "public/brand/principles.md"
     },
     {

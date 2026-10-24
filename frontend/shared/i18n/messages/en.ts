@@ -4821,6 +4821,7 @@ interface MessagesShape {
       wordsWeAvoidLabel: string; wordsWeAvoidBody: string;
     };
     partner: { tag: string; headline: string; body: string; partnerLabel: string };
+    press: { tag: string; headline: string; body: string; boilerplateLabel: string; taglinesLabel: string; copy: string; copied: string; previewLabel: string; previewBody: string; download: string; };
     contact: { tag: string; headlineLead: string; headlineAccent: string; body: string; backHome: string };
   };
   termsPage: {
@@ -10818,6 +10819,7 @@ export const en: MessagesShape = {
     palette: { tag: 'Palette', headline: 'The Karwan palette', body: 'Four foundation colors set the mark, ink and light surfaces. Supporting interface colors keep text readable in both themes.', brandLime: 'Karwan green', brandInk: 'Karwan ink', creamSurface: 'Blue-grey canvas', cardWhite: 'Mist card', darkRaised: 'Dark raised surface', darkInset: 'Dark inset surface', lightInset: 'Light inset surface', lightSecondary: 'Secondary ink on light', darkSecondary: 'Secondary ink on dark', greenOnLight: 'Green text on light', interfaceHeadline: 'Supporting interface colors', interfaceBody: 'Use these for surface depth and readable supporting text. Status colors are separate and must always be paired with words.', interfaceLabel: 'Interface', brandLabel: 'Brand', copy: 'Copy', copied: 'Copied' },
     voice: { tag: 'Voice', headline: 'Lead with reputation, be exact about today', body: 'Say with confidence where Karwan is going: one reputation that travels with a person. Say exactly what runs today: the market, milestone escrow in USDC and the record of completed deals. Keep limitations beside the claim they qualify.', wordsWeUseLabel: 'Use plain terms', wordsWeUseBody: 'Buyer, seller, agreement, milestone, delivery, review, payment held, release, dispute, refund, trade record.', wordsWeAvoidLabel: 'Avoid unproven claims', wordsWeAvoidBody: 'Never call an unaudited flow guaranteed, insured, instant or risk-free. Do not describe example trades as live activity or agent suggestions as decisions.' },
     partner: { tag: 'Partner co-mark', headline: 'Pair, do not enclose', body: 'Use an organisation’s mark only with its approval. Align both wordmarks on one baseline with a fine divider, and keep their original proportions.', partnerLabel: 'Partner' },
+    press: { tag: 'Press kit', headline: 'About Karwan', body: 'Use the boilerplate as written. Shorten it from the end, never rewrite the claims.', boilerplateLabel: 'Boilerplate, in English', taglinesLabel: 'Taglines', copy: 'Copy', copied: 'Copied', previewLabel: 'Link preview', previewBody: 'The card people see when karwan.site is shared: two people dealing, the money held in escrow between them, and the record that follows.', download: 'Download the card (PNG)' },
     contact: { tag: 'Press and partners', headlineLead: 'Reach', headlineAccent: 'out', body: 'Want a higher-resolution asset, a co-mark configuration we have not published, or a quote? Send a note.', backHome: 'Back home' },
   },
   termsPage: {
