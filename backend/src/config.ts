@@ -483,6 +483,11 @@ const envSchema = z.object({
   // skips its out-of-gas precheck. The sponsorship is the console policy; this
   // flag just tells the code to trust it. See todo #181.
   CIRCLE_GAS_STATION_ENABLED: envBool('CIRCLE_GAS_STATION_ENABLED'),
+  // Set true on a network once its Circle gas policy covers the Arc wallets
+  // Karwan holds (identity wallets and agents). Testnet has Circle's default
+  // policy; mainnet is set up in the console first. Only then does the record
+  // card tell people Karwan pays the network fee.
+  CIRCLE_ARC_GAS_POLICY: envBool('CIRCLE_ARC_GAS_POLICY'),
   // Comma-separated CCTP source-chain keys that the Gas Station policy actually
   // sponsors. The Console policy is per-chain (task #181 sponsored baseSepolia
   // + sepolia only), but the ENABLED flag above is a single bool. Without this

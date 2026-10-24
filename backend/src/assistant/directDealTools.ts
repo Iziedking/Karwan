@@ -2,6 +2,7 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import { formatUnits, parseUnits } from 'viem';
 import { config } from '../config.js';
+import { getUserByAddress } from '../db/users.js';
 import { computeFunding, getEscrowFeeBps } from '../chain/contracts.js';
 import { getDeal, type DirectDeal } from '../db/deals.js';
 import { findProfileByHandle, getProfile } from '../db/profiles.js';
@@ -164,7 +165,10 @@ export function directDealTools(address: string, actions: AssistantAction[], con
         if (!suiteIdentity) return { error: 'Records are not open on this network yet. Deals here run as before.' };
         try {
           const status = await suiteIdentity.identityStatus(address);
-          const card = recordSetupCard(address, status, Math.floor(Date.now() / 1000));
+          const card = recordSetupCard(address, status, Math.floor(Date.now() / 1000), {
+            gasPolicy: config.CIRCLE_ARC_GAS_POLICY,
+            karwanHoldsWallet: !!getUserByAddress(address)?.circleIdentityWalletId,
+          });
           if (!card) return { ok: true, complete: true, note: 'Your Karwan record is already set up.' };
           push(card);
           return { ok: true, shown: 'record card' };

@@ -26,3 +26,12 @@ test('a_complete_record_shows_no_card_and_an_expired_agent_asks_for_renewal', ()
   assert.ok(renew && 'intent' in renew);
   if (renew && 'intent' in renew) assert.equal(renew.title, 'Renew your buying agent');
 });
+
+test('the network fee line says Karwan pays only where the gas policy is on and Karwan holds the wallet', () => {
+  const fee = (opts: Parameters<typeof recordSetupCard>[3]) =>
+    recordSetupCard(ME, none, NOW, opts)!.fields.find((f) => f.label === 'Network fee')?.value;
+  assert.equal(fee({ gasPolicy: true, karwanHoldsWallet: true }), 'Paid by Karwan');
+  assert.equal(fee({ gasPolicy: true, karwanHoldsWallet: false }), 'A small fee, in your own wallet');
+  assert.equal(fee({ gasPolicy: false, karwanHoldsWallet: true }), undefined, 'no claim until the policy is set up');
+  assert.equal(fee(undefined), undefined);
+});

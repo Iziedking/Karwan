@@ -15,6 +15,7 @@ import { readUsdcBalance, readEscrow } from '../chain/contracts.js';
 import { arcChain, publicClient } from '../chain/client.js';
 import { vaultAbi } from '../chain/abis/vault.js';
 import { config } from '../config.js';
+import { getUserByAddress } from '../db/users.js';
 import { listDealsForAddress, getDeal, type DirectDeal } from '../db/deals.js';
 import { stageOf } from '../deals/dealView.js';
 import { getAgentWallets } from '../db/agentWallets.js';
@@ -1453,7 +1454,10 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
               .then(() => null)
               .catch(async (err) => {
                 if (!(err instanceof IdentityNeeded)) throw err;
-                return recordSetupCard(address, await suiteIdentity!.identityStatus(address), Math.floor(Date.now() / 1000));
+                return recordSetupCard(address, await suiteIdentity!.identityStatus(address), Math.floor(Date.now() / 1000), {
+                  gasPolicy: config.CIRCLE_ARC_GAS_POLICY,
+                  karwanHoldsWallet: !!getUserByAddress(address)?.circleIdentityWalletId,
+                });
               });
             if (recordCard && !hasEquivalentConfirm(actions, recordCard)) {
               actions.push(recordCard);
