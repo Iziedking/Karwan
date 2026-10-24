@@ -76,6 +76,13 @@ test('failed_sweep_is_retried_and_shown', async () => {
   assert.deepEqual(earnings.pendingFor(w.deals.get('deal-1')!), { micros: 0n, count: 0 });
 });
 
+test('circle_receives_a_uuid_idempotency_key', async () => {
+  // Circle refuses any idempotency key that is not a UUID ("API parameter invalid").
+  const w = world();
+  await createSuiteEarnings(w.deps).onPayout(payout);
+  assert.match(w.transfers[0]!.idempotencyKey, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+});
+
 test('a_reverted_move_is_sent_again_as_a_new_request', async () => {
   const w = world({ failFirst: 'reverted' });
   const earnings = createSuiteEarnings(w.deps);

@@ -1,3 +1,5 @@
+import { deterministicIdempotencyKey } from '../chain/txs.js';
+
 /// Earnings on the escrow family land on the selling agent, the deal's payee.
 /// After each payout the selling agent sends exactly what that payout paid on to
 /// the seller's identity wallet, where their record lives. Until the move is
@@ -68,7 +70,7 @@ export function createSuiteEarnings(deps: SuiteEarningsDeps) {
         walletId: input.sellerAgent.walletId,
         to: input.identityWallet,
         amountMicros: input.releasedMicros,
-        idempotencyKey: `earnings:${input.jobId}:${input.payoutKey}:${attempt}`,
+        idempotencyKey: deterministicIdempotencyKey(`earnings:${input.jobId}:${input.payoutKey}:${attempt}`),
       });
       const proof = await deps.transferProof(txHash, { from: input.sellerAgent.address, to: input.identityWallet, amountMicros: input.releasedMicros });
       if (proof === 'landed') {
