@@ -42,7 +42,7 @@ export function messageTools(address: string, deps: MessageToolDeps) {
   return {
     message_person: tool({
       description:
-        "Send a message to someone on Karwan by their tag (for example @ada), before any deal. Use when the user asks to message, ask or contact someone by tag. They get it in their Karwan chat with an alert on Telegram and by email. Never put money in a message: when the two agree, start a protected deal. If the result has a warning, tell the user plainly.",
+        "Send a message to someone on Karwan by their tag (for example @ada), before any deal. Use when the user asks to message, ask or contact someone by tag. They read it in Karwan under Messages (/messages) and get an alert on Telegram and by email if those are on. Never put money in a message: when the two agree, start a protected deal. If the result has a warning, tell the user plainly.",
       inputSchema: z.object({
         tag: z.string().min(1).max(60),
         text: z.string().min(1).max(2000),
@@ -54,7 +54,7 @@ export function messageTools(address: string, deps: MessageToolDeps) {
           sent: true,
           to: `@${tag.replace(/^@/, '')}`,
           ...(r.warning ? { warning: r.warning } : {}),
-          next: 'They get it on Telegram and by email. When you agree on the work, start a protected deal.',
+          next: 'They see it in Karwan under Messages, with an alert on Telegram and by email if they turned those on. When you agree on the work, start a protected deal.',
         };
       },
     }),

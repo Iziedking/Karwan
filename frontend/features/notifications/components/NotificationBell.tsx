@@ -12,12 +12,18 @@ import { relativeTime } from '@/shared/utils/format';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { requestPageRefresh } from '@/shared/utils/pageRefresh';
 import { KindIcon } from './KindIcon';
+import Link from 'next/link';
+import { useMessageInbox } from '@/features/messages/useMessageInbox';
 
 export function NotificationBell() {
   const { locale } = useLocale();
   const { isAuthenticated: isConnected } = useAuth();
   const { notifications, unreadCount, markRead, markAllRead, clearAll } = useNotifications();
-  const t = useTranslations().notifications.bell;
+  const all = useTranslations();
+  const t = all.notifications.bell;
+  const inbox = all.directMessages.inbox;
+  const messages = useMessageInbox();
+  const badge = unreadCount + messages.waiting;
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   // Panel renders via portal so a transformed ancestor (.fade-up bands) cannot
@@ -63,17 +69,17 @@ export function NotificationBell() {
         <button
           type="button"
           onClick={() => setOpen((s) => !s)}
-          aria-label={unreadCount > 0 ? `${t.aria}, ${unreadCount} unread` : t.aria}
+          aria-label={badge > 0 ? `${t.aria}, ${badge} unread` : t.aria}
           aria-expanded={open}
           className="relative inline-flex size-9 items-center justify-center rounded-full text-[var(--color-ink-dim)] before:absolute before:-inset-1 before:content-[''] transition-colors hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
         >
           <Icon name="bell" size={20} />
-          {unreadCount > 0 ? (
+          {badge > 0 ? (
             <span
               aria-hidden
               className="absolute -end-1.5 -top-1 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[var(--lp-accent)] px-[5px] text-[13px] font-semibold tabular-nums leading-none tracking-[-0.02em] text-[var(--accent-ink)] shadow-[0_0_0_1.5px_var(--color-surface)]"
             >
-              {unreadCount > 9 ? '9+' : unreadCount}
+              {badge > 9 ? '9+' : badge}
             </span>
           ) : null}
         </button>
@@ -96,6 +102,21 @@ export function NotificationBell() {
                   </button>
                 ) : null}
               </header>
+
+              {/* Messages people sent by tag live in their own inbox; this row says
+                  how many wait for an answer and opens it. */}
+              {messages.conversations.length > 0 ? (
+                <Link
+                  href="/messages"
+                  onClick={() => setOpen(false)}
+                  className="mx-2 mb-1 flex min-h-12 items-center justify-between gap-3 rounded-[16px] px-3 text-start transition-colors hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)]"
+                >
+                  <span className="text-[15px] font-semibold text-[var(--lp-dark)]">{inbox.title}</span>
+                  <span className={`text-[14px] ${messages.waiting > 0 ? 'font-semibold text-[var(--lp-dark)]' : 'font-medium text-[var(--lp-text-sub)]'}`}>
+                    {messages.waiting === 0 ? inbox.noneWaiting : messages.waiting === 1 ? inbox.waitingOne : inbox.waiting.replace('{n}', String(messages.waiting))}
+                  </span>
+                </Link>
+              ) : null}
 
               {notifications.length === 0 ? (
                 <div className="px-5 pb-8 pt-6 text-center">

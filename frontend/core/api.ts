@@ -4405,6 +4405,10 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ stars, ...(note ? { note } : {}) }),
     }),
+  /// Everyone the signed-in person is talking to by tag, newest first, and
+  /// whether it is their turn to answer.
+  messageInbox: () =>
+    json<{ conversations: { with: string; last: string; at: string; yourTurn: boolean }[] }>('/api/messages'),
   /// A conversation with someone by tag, before any deal. Signed in only.
   directMessages: (tag: string) =>
     json<{

@@ -18,6 +18,8 @@ export interface DirectMessagesCopy {
   label: string;
   /// {hours} and {tag} are filled at render.
   refused: { paused: string; wait_reply: string; no_tag: string; link_blocked: string; self: string };
+  /// The inbox at /messages and its row in the alerts panel. {n} is filled at render.
+  inbox: { title: string; empty: string; yourTurn: string; waitingOne: string; waiting: string; noneWaiting: string; member: string };
 }
 
 export const directMessagesCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DirectMessagesCopy> = {
@@ -37,6 +39,7 @@ export const directMessagesCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Direct
     retry: 'Try again',
     label: 'Message',
     refused: { paused: "You can write to someone new in about {hours} hours.", wait_reply: "Wait for {tag} to reply before you write again.", no_tag: "Pick a Karwan tag first so they can answer you.", link_blocked: "Karwan flagged a link in this message and will not send it.", self: "That is your own tag." },
+    inbox: { title: "Messages", empty: "No messages yet. When someone writes to you by your Karwan tag, it shows here.", yourTurn: "Your turn", waitingOne: "1 waiting for your reply", waiting: "{n} waiting for your reply", noneWaiting: "Nothing waiting", member: "A Karwan member" },
   },
   fr: {
     gateTag: 'Messages',
@@ -54,6 +57,7 @@ export const directMessagesCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Direct
     retry: 'Réessayer',
     label: 'Message',
     refused: { paused: "Vous pourrez écrire à quelqu’un de nouveau dans environ {hours} heures.", wait_reply: "Attendez la réponse de {tag} avant d’écrire à nouveau.", no_tag: "Choisissez d’abord un tag Karwan pour qu’on puisse vous répondre.", link_blocked: "Karwan a signalé un lien dans ce message et ne l’enverra pas.", self: "C’est votre propre tag." },
+    inbox: { title: "Messages", empty: "Aucun message pour l’instant. Quand quelqu’un vous écrit par votre tag Karwan, il apparaît ici.", yourTurn: "À vous", waitingOne: "1 attend votre réponse", waiting: "{n} attendent votre réponse", noneWaiting: "Rien en attente", member: "Un membre Karwan" },
   },
   ar: {
     gateTag: 'الرسائل',
@@ -71,6 +75,7 @@ export const directMessagesCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Direct
     retry: 'حاول مرة أخرى',
     label: 'رسالة',
     refused: { paused: "يمكنك مراسلة شخص جديد بعد نحو {hours} ساعات.", wait_reply: "انتظر رد {tag} قبل أن تكتب مرة أخرى.", no_tag: "اختر وسم Karwan أولًا ليتمكنوا من الرد عليك.", link_blocked: "رصد Karwan رابطًا في هذه الرسالة ولن يرسلها.", self: "هذا وسمك أنت." },
+    inbox: { title: "الرسائل", empty: "لا توجد رسائل بعد. عندما يراسلك أحد عبر وسمك على Karwan تظهر هنا.", yourTurn: "دورك", waitingOne: "رسالة واحدة تنتظر ردك", waiting: "{n} تنتظر ردك", noneWaiting: "لا شيء ينتظر", member: "عضو في Karwan" },
   },
   hi: {
     gateTag: 'संदेश',
@@ -88,6 +93,7 @@ export const directMessagesCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Direct
     retry: 'फिर से कोशिश करें',
     label: 'संदेश',
     refused: { paused: "आप लगभग {hours} घंटे में किसी नए व्यक्ति को लिख सकेंगे।", wait_reply: "फिर से लिखने से पहले {tag} के जवाब का इंतज़ार करें।", no_tag: "पहले एक Karwan टैग चुनें ताकि वे आपको जवाब दे सकें।", link_blocked: "Karwan ने इस संदेश में एक लिंक को चिह्नित किया है और इसे नहीं भेजेगा।", self: "यह आपका अपना टैग है।" },
+    inbox: { title: "संदेश", empty: "अभी कोई संदेश नहीं। जब कोई आपके Karwan टैग से आपको लिखेगा, वह यहाँ दिखेगा।", yourTurn: "आपकी बारी", waitingOne: "1 आपके जवाब का इंतज़ार कर रहा है", waiting: "{n} आपके जवाब का इंतज़ार कर रहे हैं", noneWaiting: "कुछ इंतज़ार में नहीं", member: "एक Karwan सदस्य" },
   },
   sw: {
     gateTag: 'Ujumbe',
@@ -105,5 +111,6 @@ export const directMessagesCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Direct
     retry: 'Jaribu tena',
     label: 'Ujumbe',
     refused: { paused: "Utaweza kumwandikia mtu mpya baada ya takriban saa {hours}.", wait_reply: "Subiri {tag} ajibu kabla ya kuandika tena.", no_tag: "Chagua lebo ya Karwan kwanza ili wakujibu.", link_blocked: "Karwan imeona kiungo katika ujumbe huu na haitautuma.", self: "Hiyo ni lebo yako mwenyewe." },
+    inbox: { title: "Ujumbe", empty: "Bado hakuna ujumbe. Mtu akikuandikia kwa lebo yako ya Karwan, utaonekana hapa.", yourTurn: "Zamu yako", waitingOne: "1 unasubiri jibu lako", waiting: "{n} vinasubiri jibu lako", noneWaiting: "Hakuna kinachosubiri", member: "Mwanachama wa Karwan" },
   },
 };

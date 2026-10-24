@@ -70,7 +70,7 @@ export const PATTERNS: [RegExp, RouteTitleKey][] = [
   [/^\/invite\/[^/]+$/, 'invite'],
   [/^\/jobs\/[^/]+$/, 'request'],
   [/^\/listings\/[^/]+$/, 'offer'],
-  [/^\/messages\/[^/]+$/, 'messages'],
+  [/^\/messages(\/[^/]+)?$/, 'messages'],
   [/^\/newsletter\/[^/]+$/, 'newsletter'],
 ];
 
