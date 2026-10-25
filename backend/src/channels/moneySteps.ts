@@ -24,6 +24,7 @@ export const MONEY_INTENTS: ReadonlySet<ConfirmAction['intent']> = new Set<Confi
   'accept_offer',
   'near_miss_proceed',
   'pay_payment_link',
+  'add_research_credit',
 ]);
 
 const JOB_ID = /^0x[0-9a-fA-F]{64}$/;
@@ -55,6 +56,8 @@ export function moneyStepPath(action: ConfirmAction): string | null {
       return '/bridge?direction=out';
     case 'top_up_to_arc':
       return '/bridge?direction=in';
+    case 'add_research_credit':
+      return '/profile/agent-funds';
     case 'pay_payment_link': {
       const token = (action.payload as { token?: unknown }).token;
       return typeof token === 'string' && /^[0-9a-f-]{36}$/.test(token) ? `/deposit/request/${token}` : null;

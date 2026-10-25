@@ -114,3 +114,22 @@ test('paying a payment link from the assistant sends from the balance, then mark
   expect(sent).toEqual([{ recipient: ADA, amountUsdc: 25, bridgeId: `pay-pay_payment_link-${TOKEN}-n1` }]);
   expect(reported).toEqual([{ txHash: TX, chain: 'Arc' }]);
 });
+
+test('a settings card from the assistant saves only what it names', async ({ page }) => {
+  const ME = `0x${'a'.repeat(40)}`;
+  const saved: unknown[] = [];
+  await serveMoney(page, { balances: funded });
+  await page.route(`${API}/api/settings`, (route) => {
+    if (route.request().method() !== 'POST') return route.fallback();
+    saved.push(route.request().postDataJSON());
+    return route.fulfill({ json: { settings: { locale: 'en', notificationsMuted: true } } });
+  });
+  await assistantWith(page, {
+    kind: 'confirm', id: 'change_settings:notificationsMuted:n1', intent: 'change_settings', title: 'Change your settings',
+    summary: 'This changes only what is listed.', fields: [{ label: 'Alerts', value: 'Off' }],
+    payload: { address: ME, settings: { notificationsMuted: true } }, confirmLabel: 'Save', cancelLabel: 'Keep as is',
+  });
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.getByText('Settings saved.')).toBeVisible();
+  expect(saved).toEqual([{ address: ME, settings: { notificationsMuted: true } }]);
+});

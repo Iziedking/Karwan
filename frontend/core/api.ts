@@ -1922,7 +1922,25 @@ export interface AssistantConfirmAction {
     | 'cancel_money_move'
     | 'recheck_payout'
     | 'pause_money_out'
-    | 'remove_payout_address';
+    | 'remove_payout_address'
+    | 'change_settings'
+    | 'edit_profile'
+    | 'set_x_handle'
+    | 'remove_email'
+    | 'join_newsletter'
+    | 'unlink_telegram'
+    | 'set_memory'
+    | 'remove_published_deals'
+    | 'set_outside_reads'
+    | 'send_feedback'
+    | 'set_up_agents'
+    | 'rename_agents'
+    | 'add_research_credit'
+    | 'create_business'
+    | 'rename_business'
+    | 'save_trade_line'
+    | 'remove_trade_line'
+    | 'edit_company_card';
   title: string;
   summary?: string;
   /// Stark line for irreversible/money-moving actions (release). Absent on post_offer.

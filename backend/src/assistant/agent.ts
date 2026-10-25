@@ -47,6 +47,8 @@ import { readSolanaHolding } from '../chain/solanaBalances.js';
 import { lookupPlatformGuide } from './platformGuide.js';
 import { dealStepTools, dealStepPendingLines } from './dealTools.js';
 import { moneyTools } from './moneyTools.js';
+import { accountTools, type StoredProfile } from './accountTools.js';
+import { listAttestationsForSubject } from '../db/attestations.js';
 import { personNameOf } from '../channels/personName.js';
 import { verificationTools } from './verificationTools.js';
 import { chatTools, liveChatToolDeps } from './chatTools.js';
@@ -2583,6 +2585,14 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
       testnet: config.ARC_NETWORK === 'testnet',
       walletUsdc: () => readUsdcBalance(address).then((b) => Number(formatUnits(b, USDC_DECIMALS))).catch(() => null),
       nameOf: (who) => personNameOf(who),
+    }),
+    ...accountTools(address, actions, {
+      call: callAsAccount,
+      profile: async (who) => (await getProfile(who)) as unknown as StoredProfile | null,
+      loginEmail: (who) => getUserByAddress(who)?.email ?? null,
+      agentsActive: async (who) => !!(await getAgentWallets(who)),
+      publishedDeals: async (who) => (await listAttestationsForSubject(who)).filter((a) => !a.revokedAt).length,
+      businessOpen: config.BUSINESS_ACCOUNTS_OPEN,
     }),
     ...verificationTools(address),
     ...chatTools(address, liveChatToolDeps),

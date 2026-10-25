@@ -15,7 +15,7 @@ export function installApp(a: AppLike): void {
 
 export async function callAsAccount(
   address: string,
-  method: 'GET' | 'POST' | 'DELETE',
+  method: 'GET' | 'POST' | 'DELETE' | 'PUT' | 'PATCH',
   path: string,
   body?: unknown,
 ): Promise<{ status: number; json: Record<string, unknown> }> {

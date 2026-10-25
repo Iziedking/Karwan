@@ -4,13 +4,13 @@ import type { ExecuteResult } from './dispatch.js';
 
 type Call = (
   address: string,
-  method: 'GET' | 'POST' | 'DELETE',
+  method: 'GET' | 'POST' | 'DELETE' | 'PUT' | 'PATCH',
   path: string,
   body?: unknown,
 ) => Promise<{ status: number; json: Record<string, unknown> }>;
 
 type P = Record<string, unknown>;
-type Step = { method: 'GET' | 'POST' | 'DELETE'; path: string; body?: unknown };
+type Step = { method: 'GET' | 'POST' | 'DELETE' | 'PUT' | 'PATCH'; path: string; body?: unknown };
 
 /// What each confirm card does, as the web app's own calls (AssistantWidget's
 /// executor and core/api.ts). Chat runs these exact routes, so validation,
@@ -163,6 +163,30 @@ export const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAc
   delay_appeal: (p) => ({ method: 'POST', path: `/api/deals/direct/${p.jobId}/delay-appeal`, body: { caller: p.caller } }),
   answer_delay_appeal: (p) => ({ method: 'POST', path: `/api/deals/direct/${p.jobId}/delay-appeal-respond`, body: { caller: p.caller, reason: p.reason } }),
   take_back_deal: (p) => ({ method: 'POST', path: `/api/deals/direct/${p.jobId}/cancel`, body: { caller: p.caller } }),
+  change_settings: (p) => ({ method: 'POST', path: '/api/settings', body: { settings: p.settings } }),
+  edit_profile: (p) => ({ method: 'POST', path: '/api/profile', body: p }),
+  set_x_handle: (p) => ({ method: 'POST', path: '/api/profile/x-handle', body: { address: p.address, handle: p.handle } }),
+  remove_email: (p) => ({ method: 'POST', path: '/api/profile/email/remove', body: { address: p.address } }),
+  join_newsletter: (p) => ({ method: 'POST', path: '/api/newsletter/subscribe', body: { email: p.email } }),
+  unlink_telegram: (p) => ({ method: 'POST', path: '/api/telegram/link/remove', body: { address: p.address } }),
+  set_memory: (p) => ({ method: 'POST', path: '/api/assistant/memory/enabled', body: { on: p.on } }),
+  remove_published_deals: () => ({ method: 'POST', path: '/api/me/attestations/revoke', body: {} }),
+  set_outside_reads: (p) => ({ method: 'PUT', path: '/api/me/reputation-sources', body: { address: p.address, outsideReadable: p.outsideReadable } }),
+  send_feedback: (p) => ({ method: 'POST', path: '/api/feedback', body: { category: p.category, title: p.title, message: p.message } }),
+  set_up_agents: (p) => ({ method: 'POST', path: '/api/activation/activate', body: p }),
+  rename_agents: (p) => ({ method: 'POST', path: '/api/activation/agent-names', body: p }),
+  add_research_credit: () => ({ method: 'POST', path: '/api/research/activate', body: {} }),
+  create_business: (p) => ({ method: 'POST', path: '/api/workspaces/business', body: { name: p.name } }),
+  rename_business: (p) => ({ method: 'PATCH', path: `/api/workspaces/${encodeURIComponent(String(p.workspaceId))}`, body: { name: p.name } }),
+  save_trade_line: (p) => {
+    const { workspaceId, ...body } = p;
+    return { method: 'POST', path: `/api/workspaces/${encodeURIComponent(String(workspaceId))}/availability`, body };
+  },
+  remove_trade_line: (p) => ({
+    method: 'DELETE',
+    path: `/api/workspaces/${encodeURIComponent(String(p.workspaceId))}/availability/${encodeURIComponent(String(p.availabilityId))}`,
+  }),
+  edit_company_card: (p) => ({ method: 'POST', path: '/api/sme/profile', body: { address: p.address, smeProfile: p.smeProfile } }),
   test_usdc: (p) => ({ method: 'POST', path: '/api/activation/faucet', body: { address: p.address, target: p.target } }),
   test_usdc_on_chain: (p) => ({ method: 'POST', path: '/api/activation/fund-source', body: { address: p.address, chain: p.chain } }),
   recheck_money_move: (p) => ({
@@ -233,6 +257,24 @@ const DONE: Partial<Record<ConfirmAction['intent'], string>> = {
   change_deal_terms: 'Sent. The other side sees the new terms.',
   make_offer: 'Offer sent. The buyer sees it now.',
   edit_listing: 'Offer updated.',
+  change_settings: 'Settings saved.',
+  edit_profile: 'Profile updated.',
+  set_x_handle: 'Saved.',
+  remove_email: 'Email removed.',
+  join_newsletter: 'Signed up. The first email says how to stop them.',
+  unlink_telegram: 'Telegram unlinked.',
+  set_memory: 'Saved.',
+  remove_published_deals: 'Withdrawn. Your record on Karwan stays.',
+  set_outside_reads: 'Saved.',
+  send_feedback: 'Sent. Thank you; the team reads every note.',
+  set_up_agents: 'Your agents are set up.',
+  rename_agents: 'Names saved.',
+  add_research_credit: 'Research credit added.',
+  create_business: 'Business added. Switch to it from your profile.',
+  rename_business: 'Renamed.',
+  save_trade_line: 'Saved on your company card.',
+  remove_trade_line: 'Removed from your company card.',
+  edit_company_card: 'Company card updated.',
   test_usdc: 'Asked the faucet. Test USDC usually lands within a minute.',
   test_usdc_on_chain: 'Asked the faucet. Test USDC usually lands within a minute.',
   recheck_money_move: 'Checked again. I will tell you when it arrives.',

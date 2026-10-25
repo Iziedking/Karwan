@@ -340,3 +340,23 @@ test('money steps run their page routes, and removing an address is a DELETE', a
   ]);
   assert.deepEqual(removed, { ok: true, summary: 'Address removed.' });
 });
+
+test('account steps run their page routes with the methods the pages use', async () => {
+  const { execute, calls } = setup(() => ({ status: 200, json: { ok: true } }));
+  await execute({ address: ME }, action('change_settings', { settings: { locale: 'fr' } }));
+  await execute({ address: ME }, action('set_outside_reads', { address: ME, outsideReadable: false }));
+  await execute({ address: ME }, action('rename_business', { workspaceId: 'ws-1', name: 'Ada Foods' }));
+  await execute({ address: ME }, action('save_trade_line', { workspaceId: 'ws-1', tradeType: 'goods', title: 'Rice', active: true }));
+  await execute({ address: ME }, action('remove_trade_line', { workspaceId: 'ws-1', availabilityId: 'av-1' }));
+  await execute({ address: ME }, action('edit_company_card', { address: ME, smeProfile: { region: 'Lagos' } }));
+  await execute({ address: ME }, action('set_memory', { on: false }));
+  assert.deepEqual(calls, [
+    { method: 'POST', path: '/api/settings', body: { settings: { locale: 'fr' } } },
+    { method: 'PUT', path: '/api/me/reputation-sources', body: { address: ME, outsideReadable: false } },
+    { method: 'PATCH', path: '/api/workspaces/ws-1', body: { name: 'Ada Foods' } },
+    { method: 'POST', path: '/api/workspaces/ws-1/availability', body: { tradeType: 'goods', title: 'Rice', active: true } },
+    { method: 'DELETE', path: '/api/workspaces/ws-1/availability/av-1', body: undefined },
+    { method: 'POST', path: '/api/sme/profile', body: { address: ME, smeProfile: { region: 'Lagos' } } },
+    { method: 'POST', path: '/api/assistant/memory/enabled', body: { on: false } },
+  ]);
+});

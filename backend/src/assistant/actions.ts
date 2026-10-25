@@ -4,6 +4,7 @@ import type { DeliveryKind, Where } from '../location/rules.js';
 import type { BriefAnswers } from '../agents/agentBriefLines.js';
 import type { DealStepConfirm } from './dealActions.js';
 import type { MoneyStepConfirm } from './moneyActions.js';
+import type { AccountStepConfirm } from './accountActions.js';
 import type { InsuranceCancelTakeOutConfirm, InsuranceCollectConfirm, InsuranceTakeOutConfirm } from './insurance.js';
 import type { FinanceAcceptConfirm, FinanceApplyConfirm, FinanceAskConfirm, FinanceOfferConfirm, FinanceRejectConfirm, FinanceStopAskingConfirm } from './finance.js';
 
@@ -396,6 +397,7 @@ export type ConfirmAction =
   | Web3FundAgentConfirm
   | DealStepConfirm
   | MoneyStepConfirm
+  | AccountStepConfirm
   | CreateDirectDealConfirm
   | FundDirectDealConfirm
   | SetUpRecordConfirm

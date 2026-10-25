@@ -30,7 +30,7 @@ import {
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { runWalletVaultAction, runWalletVaultDeposit, type VaultPositionAction } from '@/features/reputation/walletVaultAction';
 import { buildTransferAuthorization, serializeAuthorization } from '@/features/factoring/usdcAuthorization';
-import type { UsdcAuthorization } from '@/core/api';
+import type { UsdcAuthorization, UserSettings } from '@/core/api';
 
 
 export interface Turn {
@@ -893,6 +893,11 @@ async function runConfirmIntent(
     }
     return { successText: 'Paid. They see it on their payment link.', viewHref: `/deposit/request/${p.token}`, viewLabel: 'Open the payment link', txHash: sent.txHash };
   }
+  if (ACCOUNT_STEP[action.intent]) {
+    await ACCOUNT_STEP[action.intent]!(action.payload);
+    const [done, href] = ACCOUNT_STEP_DONE[action.intent]!;
+    return { successText: done, viewHref: href, viewLabel: 'Open it' };
+  }
   if (MONEY_STEP[action.intent]) {
     const r = await MONEY_STEP[action.intent]!(action.payload);
     const txHash = (r as { txHash?: string } | undefined)?.txHash;
@@ -971,6 +976,55 @@ const DEAL_PAGE_DONE: Partial<Record<AssistantConfirmAction['intent'], string>> 
   answer_delay_appeal: 'Reason sent. The payment stays held until you release it.',
   take_back_deal: 'Deal taken back. Anything you paid in comes back to you.',
   change_deal_terms: 'Sent. The other side sees the new terms.',
+};
+
+type P = Record<string, unknown>;
+const str = (v: unknown) => String(v ?? '');
+
+/// Account steps (view 31 phase E), each the call its own page makes.
+const ACCOUNT_STEP: Partial<Record<AssistantConfirmAction['intent'], (p: P) => Promise<unknown>>> = {
+  change_settings: (p) => api.saveSettings(str(p.address), p.settings as UserSettings),
+  edit_profile: (p) => api.saveProfile(p as unknown as Parameters<typeof api.saveProfile>[0]),
+  set_x_handle: (p) => api.setXHandle(str(p.address), (p.handle as string | null) ?? null),
+  remove_email: (p) => api.removeEmail(str(p.address)),
+  join_newsletter: (p) => api.subscribeNewsletter(str(p.email)),
+  unlink_telegram: (p) => api.telegramLinkRemove(str(p.address)),
+  set_memory: (p) => api.setAssistantMemory(p.on === true),
+  remove_published_deals: () => api.removeMyAttestations(),
+  set_outside_reads: (p) => api.updateReputationSources(str(p.address), { outsideReadable: p.outsideReadable === true }),
+  send_feedback: (p) => api.submitFeedback({ category: p.category as 'bug' | 'improvement' | 'other' | 'praise', title: str(p.title), message: str(p.message) }),
+  set_up_agents: (p) => api.activate(str(p.address), { ...(p.buyerName ? { buyerName: str(p.buyerName) } : {}), ...(p.sellerName ? { sellerName: str(p.sellerName) } : {}) }),
+  rename_agents: (p) => api.setAgentNames(str(p.address), { ...(p.buyerName ? { buyerName: str(p.buyerName) } : {}), ...(p.sellerName ? { sellerName: str(p.sellerName) } : {}) }),
+  add_research_credit: () => api.researchActivate(),
+  create_business: (p) => api.createBusinessWorkspace(str(p.name)),
+  rename_business: (p) => api.updateWorkspace(str(p.workspaceId), { name: str(p.name) }),
+  save_trade_line: (p) => {
+    const { workspaceId, ...line } = p;
+    return api.saveTradeAvailability(str(workspaceId), line as unknown as Parameters<typeof api.saveTradeAvailability>[1]);
+  },
+  remove_trade_line: (p) => api.removeTradeAvailability(str(p.workspaceId), str(p.availabilityId)),
+  edit_company_card: (p) => api.updateSmeProfile({ address: str(p.address), smeProfile: p.smeProfile as Parameters<typeof api.updateSmeProfile>[0]['smeProfile'] }),
+};
+
+const ACCOUNT_STEP_DONE: Partial<Record<AssistantConfirmAction['intent'], [string, string]>> = {
+  change_settings: ['Settings saved.', '/settings'],
+  edit_profile: ['Profile updated.', '/profile'],
+  set_x_handle: ['Saved.', '/profile'],
+  remove_email: ['Email removed.', '/profile'],
+  join_newsletter: ['Signed up. The first email says how to stop them.', '/profile'],
+  unlink_telegram: ['Telegram unlinked.', '/account'],
+  set_memory: ['Saved.', '/assistant'],
+  remove_published_deals: ['Withdrawn. Your record on Karwan stays.', '/profile'],
+  set_outside_reads: ['Saved.', '/profile'],
+  send_feedback: ['Sent. Thank you; the team reads every note.', '/'],
+  set_up_agents: ['Your agents are set up.', '/profile'],
+  rename_agents: ['Names saved.', '/profile'],
+  add_research_credit: ['Research credit added.', '/profile/agent-funds'],
+  create_business: ['Business added. Switch to it from your profile.', '/profile'],
+  rename_business: ['Renamed.', '/profile'],
+  save_trade_line: ['Saved on your company card.', '/profile'],
+  remove_trade_line: ['Removed from your company card.', '/profile'],
+  edit_company_card: ['Company card updated.', '/profile'],
 };
 
 /// Money steps outside a deal (view 31 phase D), each one page route.
@@ -1053,6 +1107,24 @@ const DEAL_STEP_BUSY: Partial<Record<AssistantConfirmAction['intent'], string>> 
   make_offer: 'Sending…',
   edit_listing: 'Saving…',
   pay_payment_link: 'Paying…',
+  change_settings: 'Saving…',
+  edit_profile: 'Saving…',
+  set_x_handle: 'Saving…',
+  remove_email: 'Removing…',
+  join_newsletter: 'Signing up…',
+  unlink_telegram: 'Unlinking…',
+  set_memory: 'Saving…',
+  remove_published_deals: 'Withdrawing…',
+  set_outside_reads: 'Saving…',
+  send_feedback: 'Sending…',
+  set_up_agents: 'Setting up…',
+  rename_agents: 'Saving…',
+  add_research_credit: 'Adding…',
+  create_business: 'Adding…',
+  rename_business: 'Saving…',
+  save_trade_line: 'Saving…',
+  remove_trade_line: 'Removing…',
+  edit_company_card: 'Saving…',
   test_usdc: 'Asking…',
   test_usdc_on_chain: 'Asking…',
   recheck_money_move: 'Checking…',
