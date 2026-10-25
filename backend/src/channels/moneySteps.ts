@@ -16,6 +16,9 @@ export const MONEY_INTENTS: ReadonlySet<ConfirmAction['intent']> = new Set<Confi
   'top_up_to_arc',
   'stake_usdc',
   'claim_yield',
+  'insurance_collect',
+  'finance_accept',
+  'finance_offer',
 ]);
 
 const JOB_ID = /^0x[0-9a-fA-F]{64}$/;
@@ -29,7 +32,10 @@ export function moneyStepPath(action: ConfirmAction): string | null {
     case 'fund_direct_deal':
     case 'release_milestone':
     case 'cancel_deal':
+    case 'finance_accept':
       return job ? `/deals/${job}` : null;
+    case 'finance_offer':
+      return '/financier';
     case 'approve_match':
     case 'choose_offer':
       return job ? `/jobs/${job}` : null;
@@ -42,6 +48,7 @@ export function moneyStepPath(action: ConfirmAction): string | null {
       return '/bridge?direction=in';
     case 'stake_usdc':
     case 'claim_yield':
+    case 'insurance_collect':
       return '/stake';
     default:
       return null;

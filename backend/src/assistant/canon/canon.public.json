@@ -1,6 +1,6 @@
 {
   "canonVersion": "0.4.0",
-  "canonUpdated": "2026-10-24",
+  "canonUpdated": "2026-10-25",
   "docs": [
     {
       "id": "agent-record-checks",
@@ -26,7 +26,7 @@
       "id": "assistant-mode-and-help",
       "title": "Assistant mode and Help",
       "status": "roadmap",
-      "updated": "2026-10-23",
+      "updated": "2026-10-24",
       "tags": [
         "agents",
         "assistant",
@@ -41,9 +41,13 @@
         {
           "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/24-assistant-builds-the-deal.md",
           "date": "2026-10-23"
+        },
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/31-assistant-does-everything.md",
+          "date": "2026-10-24"
         }
       ],
-      "body": "With Use assistant switched on, the whole account runs from one\nconversation. You say what you want, your agent prepares it as a card, and\nnothing moves until you confirm the card. Conversations are kept on your\naccount. A card from an earlier conversation shows whether it was done and\ncan never be confirmed again.\n\nA deal is built the same way. Name the person and say what the deal is\nfor; the agent asks only for what is missing, such as the amount and when it\nis due, says the usual terms in one line, and shows one card with every term,\ngoods terms included. Sending it moves no money. Once the other person\naccepts, the payment card appears in the same conversation and in your\nalerts, and the money moves only when you confirm it.\n\nHelp answers how things work and what went wrong, from what your account\nshows. A person from the Karwan team joins the same conversation when you\nask for one, or when the assistant cannot do it, with the conversation so\nfar, so you do not repeat yourself.\n\nThis is built for testnet and not live yet."
+      "body": "With Use assistant switched on, the whole account runs from one\nconversation. You say what you want, your agent prepares it as a card, and\nnothing moves until you confirm the card. Conversations are kept on your\naccount. A card from an earlier conversation shows whether it was done and\ncan never be confirmed again.\n\nA deal is built the same way. Name the person and say what the deal is\nfor; the agent asks only for what is missing, such as the amount and when it\nis due, says the usual terms in one line, and shows one card with every term,\ngoods terms included. Sending it moves no money. Once the other person\naccepts, the payment card appears in the same conversation and in your\nalerts, and the money moves only when you confirm it.\n\nDeal insurance works the same way. Ask to take it out and the card shows the\namount, the 7-day wait and the day you can collect it; while it waits it no\nlonger protects your deals. You can ask to cancel the wait, and to collect it\nonce the wait ends. Karwan is adding every other action in the app to the\nassistant the same way, so anything you can do on a page you can ask for.\nThe few steps that need your own device, such as a passkey, your Karwan PIN\nor a World ID check, open their page instead.\n\nA picture or PDF can be picked, pasted or dragged into the message box. It\nwaits there until you send, and shows in your message with the words you\ntyped beside it.\n\nHelp answers how things work and what went wrong, from what your account\nshows. A person from the Karwan team joins the same conversation when you\nask for one, or when the assistant cannot do it, with the conversation so\nfar, so you do not repeat yourself.\n\nThis is built for testnet and not live yet."
     },
     {
       "id": "brand-colour",
@@ -262,7 +266,7 @@
       "id": "invoice-factoring",
       "title": "Invoice factoring",
       "status": "live",
-      "updated": "2026-07-27",
+      "updated": "2026-10-25",
       "tags": [
         "financing"
       ],
@@ -271,9 +275,13 @@
         {
           "url": "https://karwan.site/financier",
           "date": "2026-07-27"
+        },
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/31-assistant-does-everything.md",
+          "date": "2026-10-25"
         }
       ],
-      "body": "The supplier asks to be paid early, naming a floor if they want one. Financiers\nthen bid a discount against the supplier's reputation tier, and the supplier\naccepts one or ignores them all.\n\nNothing reaches a financier until that request exists. An invoice is never listed\nfor funding on the strength of the supplier having opened a deal, because that\nwould publish their counterparty, amount and timing to every approved financier\nwithout anybody asking to be funded.\n\nOffers are priced against what the escrow can still pay, not the invoice face.\nFace includes the platform fee and every tranche already released, and the\nfinancier is only ever repaid out of what is left. On settlement the escrow pays\nthe financier ahead of the supplier, so repayment is not something anyone chases."
+      "body": "The supplier asks to be paid early, naming a floor if they want one. Financiers\nthen bid a discount against the supplier's reputation tier, and the supplier\naccepts one or ignores them all.\n\nNothing reaches a financier until that request exists. An invoice is never listed\nfor funding on the strength of the supplier having opened a deal, because that\nwould publish their counterparty, amount and timing to every approved financier\nwithout anybody asking to be funded.\n\nOffers are priced against what the escrow can still pay, not the invoice face.\nFace includes the platform fee and every tranche already released, and the\nfinancier is only ever repaid out of what is left. On settlement the escrow pays\nthe financier ahead of the supplier, so repayment is not something anyone chases.\n\nAll of it can also be done by asking the Karwan assistant, on the website or in\nTelegram: the supplier asks to be paid early, reads the offers ranked as the deal\npage ranks them, and takes or turns one down; a financier sees the requests they\nmay fund and makes an offer, which is refused before anything moves if their\nwallet does not hold the advance. Taking an offer and making one are confirmed on\nKarwan, where every figure is shown before money moves.\n\nBeing paid early is not yet open on deals made on Karwan's new escrow. Deals made\nbefore it can use it now."
     },
     {
       "id": "local-payout-roadmap",
@@ -406,7 +414,7 @@
           "date": "2026-10-24"
         }
       ],
-      "body": "An offer on Karwan's market can carry up to four photos, so a buyer sees the\nitem before agreeing a deal. The first photo shows on the market card and all\nof them on the offer page.\n\nYou add photos on the offer form, or send them to your assistant before it\ndrafts the offer. On the website you choose that the photo is for an offer.\nIn Telegram or WhatsApp you say so in the caption, for example \"for my\noffer\". The assistant's offer card shows how many photos it adds, and nothing\nis posted until you confirm.\n\nPhotos are resized on your device before they are sent, which also drops the\nlocation data a phone camera adds. Anyone signed in can report an offer or\nits photos from the offer page, and the team reviews every report.\n\nThis is built for testnet and not live yet."
+      "body": "An offer on Karwan's market can carry up to four photos, so a buyer sees the\nitem before agreeing a deal. The first photo shows on the market card and all\nof them on the offer page.\n\nYou add photos on the offer form, or send them to your assistant before it\ndrafts the offer. You say so in the words you send with it, for example\n\"selling this\" or \"for my offer\", on the website or in Telegram. On the\nwebsite a photo sent with no words asks whether it is for an offer. The assistant's offer card shows how many photos it adds, and nothing\nis posted until you confirm.\n\nPhotos are resized on your device before they are sent, which also drops the\nlocation data a phone camera adds. Anyone signed in can report an offer or\nits photos from the offer page, and the team reviews every report.\n\nThis is built for testnet and not live yet."
     },
     {
       "id": "po-financing",
@@ -716,10 +724,14 @@
         {
           "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/24-assistant-builds-the-deal.md",
           "date": "2026-10-23"
+        },
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/31-assistant-does-everything.md",
+          "date": "2026-10-24"
         }
       ],
       "check": null,
-      "updated": "2026-10-23",
+      "updated": "2026-10-24",
       "path": "public/product/assistant-mode-and-help.md"
     },
     {
@@ -1027,6 +1039,10 @@
         {
           "url": "https://karwan.site/financier",
           "date": "2026-07-27"
+        },
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/31-assistant-does-everything.md",
+          "date": "2026-10-25"
         }
       ],
       "check": {
@@ -1034,7 +1050,7 @@
         "note": "An invoice reaches no financier until the seller has asked.",
         "lastVerified": ""
       },
-      "updated": "2026-07-27",
+      "updated": "2026-10-25",
       "path": "public/product/invoice-factoring.md"
     },
     {

@@ -209,3 +209,52 @@ test('a_pin_is_never_asked_in_the_chat', async () => {
   assert.equal(r.ok, false);
   if (!r.ok) assert.doesNotMatch(r.message, /PIN|passkey/i);
 });
+
+test('taking out deal insurance starts the wait on each position on the card, as the stake page does', async () => {
+  const { execute, calls } = setup(() => ({ status: 200, json: { txHash: '0xcool' } }));
+  const r = await execute({ address: ME }, action('insurance_take_out', { address: ME, positionIds: ['7', '9'], amountUsdc: '50.00', signer: 'karwan' }));
+  assert.deepEqual(calls.map((c) => [c.method, c.path, (c.body as { positionId: string }).positionId]), [
+    ['POST', '/api/vault/request-withdraw', '7'],
+    ['POST', '/api/vault/request-withdraw', '9'],
+  ]);
+  assert.deepEqual(r, { ok: true, summary: 'The wait has started. Ask me to collect it when it ends.', txHash: '0xcool' });
+});
+
+test('a failed position stops the rest, and a wallet-signed card is sent to the app', async () => {
+  const { execute, calls } = setup(() => ({ status: 409, json: { error: 'a vault action is already in progress for this position' } }));
+  const r = await execute({ address: ME }, action('insurance_collect', { address: ME, positionIds: ['1', '2'], amountUsdc: '9.00', signer: 'karwan' }));
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].path, '/api/vault/claim');
+  assert.equal(r.ok, false);
+
+  const wallet = setup(() => ({ status: 200, json: {} }));
+  const w = await wallet.execute({ address: ME }, action('insurance_cancel_take_out', { address: ME, positionIds: ['1'], amountUsdc: '9.00', signer: 'wallet' }, 'w1'));
+  assert.equal(wallet.calls.length, 0);
+  assert.equal(w.ok, false);
+});
+
+test('getting paid early runs the deal page and financier desk routes with their bodies', async () => {
+  const JOB = `0x${'1'.repeat(64)}`;
+  const OFFER = '5f0c1f8e-3f5c-4a52-9a1b-2b5b9f6f0d11';
+  const { execute, calls } = setup(() => ({ status: 200, json: { ok: true } }));
+  await execute({ address: ME }, action('finance_ask', { invoiceId: JOB, requestedAdvanceUsdc: '400', minAdvanceUsdc: '380' }));
+  await execute({ address: ME }, action('finance_stop_asking', { invoiceId: JOB }));
+  await execute({ address: ME }, action('finance_reject', { offerId: OFFER }));
+  const offered = await execute({ address: ME }, action('finance_offer', { invoiceId: JOB, offeredAdvanceUsdc: '465.5', expectedReturnUsdc: '490', expiresInHours: 24, signer: 'karwan', advanceRecipient: ME }));
+  await execute({ address: ME }, action('finance_apply', {}));
+  assert.deepEqual(calls, [
+    { method: 'POST', path: '/api/factoring/request', body: { invoiceId: JOB, requestedAdvanceUsdc: '400', minAdvanceUsdc: '380' } },
+    { method: 'POST', path: '/api/factoring/withdraw-request', body: { invoiceId: JOB } },
+    { method: 'POST', path: '/api/factoring/reject', body: { offerId: OFFER } },
+    { method: 'POST', path: '/api/factoring/offer', body: { invoiceId: JOB, offeredAdvanceUsdc: '465.5', expectedReturnUsdc: '490', expiresInHours: 24 } },
+    { method: 'POST', path: '/api/financier/apply', body: {} },
+  ]);
+  assert.deepEqual(offered, { ok: true, summary: 'Offer made. The seller sees it now.' });
+});
+
+test("a wallet financier's offer is never made from a chat", async () => {
+  const { execute, calls } = setup(() => ({ status: 200, json: {} }));
+  const r = await execute({ address: ME }, action('finance_offer', { invoiceId: `0x${'1'.repeat(64)}`, offeredAdvanceUsdc: '1', expectedReturnUsdc: '2', expiresInHours: 24, signer: 'wallet', advanceRecipient: ME }, 'fw'));
+  assert.equal(calls.length, 0);
+  assert.equal(r.ok, false);
+});

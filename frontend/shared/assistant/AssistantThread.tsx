@@ -28,6 +28,9 @@ import {
   ARC_USDC_DECIMALS,
 } from '@/features/profile/config';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { runWalletVaultAction, type VaultPositionAction } from '@/features/reputation/walletVaultAction';
+import { buildTransferAuthorization, serializeAuthorization } from '@/features/factoring/usdcAuthorization';
+import type { UsdcAuthorization } from '@/core/api';
 
 
 export interface Turn {
@@ -36,6 +39,11 @@ export interface Turn {
   /// Navigate buttons and confirm cards the authenticated assistant attached to
   /// this reply; a saved conversation brings its cards back as past ones.
   actions?: Array<AssistantAction | PastAssistantAction>;
+  /// A picture sent with this turn, shown in the bubble for this visit. Only
+  /// the words are saved; a reopened conversation shows the file's name.
+  image?: string;
+  /// The turn is the picture alone, so its saved name is not shown under it.
+  imageOnly?: boolean;
 }
 
 const isPast = (a: AssistantAction | PastAssistantAction): a is PastAssistantAction => 'status' in a;
@@ -49,7 +57,8 @@ export function AssistantThread({ messages, busy, onNavigate }: { messages: read
       {messages.map((m, i) => (
         <div key={i} className="space-y-2">
           <Bubble role={m.role}>
-            {m.role === 'assistant' ? <RichText text={m.content} onNavigate={onNavigate} /> : m.content}
+            {m.image ? <img src={m.image} alt="" className={`max-h-60 w-auto max-w-full rounded-[12px] object-contain${m.imageOnly ? '' : ' mb-1.5'}`} /> : null}
+            {m.role === 'assistant' ? <RichText text={m.content} onNavigate={onNavigate} /> : m.imageOnly ? null : m.content}
           </Bubble>
           {m.role === 'assistant' && m.actions?.some((a) => !isPast(a)) && (
             <ActionButtons actions={m.actions.filter((a): a is AssistantAction => !isPast(a))} onNavigate={onNavigate} />
@@ -245,7 +254,18 @@ interface ConfirmDeps {
   /// Sends prepared Arc calls from the person's own wallet, one at a time, each
   /// waited on before the next.
   sendWalletCalls?: (calls: Array<{ to: `0x${string}`; data: `0x${string}` }>) => Promise<void>;
+  /// One deal insurance step on one position, signed by the person's own wallet.
+  runVaultStep?: (positionId: string, action: VaultPositionAction) => Promise<{ txHash: `0x${string}` }>;
+  /// A wallet financier's signature on the advance (USDC EIP-3009), as the
+  /// financier desk asks for it: no gas, nothing moves until the seller accepts.
+  signAdvance?: (input: { to: `0x${string}`; valueUsdc: string; validForSeconds: number }) => Promise<UsdcAuthorization>;
 }
+
+const INSURANCE_STEP = {
+  insurance_take_out: { karwan: api.vaultRequestWithdraw, wallet: 'requestWithdraw', done: 'The wait has started. Ask me to collect it when it ends.' },
+  insurance_cancel_take_out: { karwan: api.vaultCancelWithdraw, wallet: 'cancelWithdraw', done: 'Kept. It protects your deals again.' },
+  insurance_collect: { karwan: api.vaultClaim, wallet: 'claim', done: 'Collected. It is back in your wallet.' },
+} as const;
 
 async function runConfirmIntent(
   action: AssistantConfirmAction,
@@ -621,6 +641,84 @@ async function runConfirmIntent(
       ...(r.depositTxHash ? { txHash: r.depositTxHash } : {}),
     };
   }
+  if (action.intent === 'insurance_take_out' || action.intent === 'insurance_cancel_take_out' || action.intent === 'insurance_collect') {
+    const p = action.payload as { address: string; positionIds: string[]; signer: 'karwan' | 'wallet' };
+    const step = INSURANCE_STEP[action.intent];
+    let txHash: string | undefined;
+    // The vault acts on whole positions, one after another; a failure stops
+    // the rest, as on the deal insurance page.
+    for (const positionId of p.positionIds) {
+      if (p.signer === 'wallet') {
+        if (!deps.runVaultStep) throw new Error('Open Deal insurance to sign this in your wallet.');
+        txHash = (await deps.runVaultStep(positionId, step.wallet)).txHash;
+      } else {
+        txHash = (await step.karwan({ address: p.address, positionId, requestId: crypto.randomUUID() })).txHash ?? txHash;
+      }
+    }
+    return { successText: step.done, viewHref: '/stake', viewLabel: 'Deal insurance', ...(txHash ? { txHash } : {}) };
+  }
+  if (action.intent === 'finance_ask') {
+    const p = action.payload as { invoiceId: string; requestedAdvanceUsdc: string; minAdvanceUsdc?: string };
+    await api.requestFactoring(p);
+    return { successText: 'Asked. Financiers can make offers now.', viewHref: `/deals/${p.invoiceId}`, viewLabel: 'Open the deal' };
+  }
+  if (action.intent === 'finance_stop_asking') {
+    const p = action.payload as { invoiceId: string };
+    await api.withdrawFactoringRequest(p);
+    return { successText: 'Stopped. Financiers no longer see this deal.', viewHref: `/deals/${p.invoiceId}`, viewLabel: 'Open the deal' };
+  }
+  if (action.intent === 'finance_accept') {
+    const p = action.payload as { offerId: string; jobId: string };
+    // Karwan sends it from the seller's agent wallet, the seller the escrow records (acceptOffer.ts).
+    const r = await api.acceptFactoringOffer({ offerId: p.offerId });
+    return {
+      successText: 'Done. The advance is on its way to you.',
+      viewHref: `/financier/factoring/${p.offerId}`,
+      viewLabel: 'Your financing',
+      ...(r.offer.advanceTxHash ? { txHash: r.offer.advanceTxHash } : {}),
+    };
+  }
+  if (action.intent === 'finance_reject') {
+    const p = action.payload as { offerId: string; jobId: string };
+    await api.rejectFactoringOffer({ offerId: p.offerId });
+    return { successText: 'Turned down. The financier has been told.', viewHref: `/deals/${p.jobId}`, viewLabel: 'Open the deal' };
+  }
+  if (action.intent === 'finance_offer') {
+    const p = action.payload as {
+      invoiceId: string;
+      offeredAdvanceUsdc: string;
+      expectedReturnUsdc: string;
+      expiresInHours: number;
+      signer: 'karwan' | 'wallet';
+      advanceRecipient: string;
+    };
+    let advanceAuthorization: UsdcAuthorization | undefined;
+    if (p.signer === 'wallet') {
+      if (!deps.signAdvance) throw new Error('Open the financier desk to sign this offer in your wallet.');
+      // The signature covers the offer window plus a margin, as on the desk.
+      advanceAuthorization = await deps.signAdvance({
+        to: p.advanceRecipient as `0x${string}`,
+        valueUsdc: p.offeredAdvanceUsdc,
+        validForSeconds: (p.expiresInHours + 4) * 3600,
+      });
+    }
+    await api.postFactoringOffer({
+      invoiceId: p.invoiceId,
+      offeredAdvanceUsdc: p.offeredAdvanceUsdc,
+      expectedReturnUsdc: p.expectedReturnUsdc,
+      expiresInHours: p.expiresInHours,
+      advanceAuthorization,
+    });
+    return { successText: 'Offer made. The seller sees it now.', viewHref: '/financier', viewLabel: 'Financier desk' };
+  }
+  if (action.intent === 'finance_apply') {
+    const r = await api.financierApply();
+    return {
+      successText: r.status === 'approved' ? 'Approved. The financier desk is open to you.' : 'Applied. You are told when the financier desk opens for you.',
+      viewHref: '/financier',
+      viewLabel: 'Financier desk',
+    };
+  }
   if (action.intent === 'claim_yield') {
     const p = action.payload as { address: string };
     const r = await api.yieldClaim({ address: p.address });
@@ -915,6 +1013,32 @@ function ConfirmCard({
     ],
   );
   const sendWalletCalls = useWalletCalls();
+  const revertedText = useTranslations().chainErrors.reverted;
+  const signAdvance = useCallback(
+    async (input: { to: `0x${string}`; valueUsdc: string; validForSeconds: number }) => {
+      if (!wagmiAddress || !connector) {
+        openConnectModal?.();
+        throw new Error('Connect your wallet, then confirm again.');
+      }
+      if (!walletClient) throw new Error('Wallet client unavailable');
+      const typed = buildTransferAuthorization({ from: wagmiAddress, to: input.to, valueUsdc: input.valueUsdc, validForSeconds: input.validForSeconds });
+      const signature = await walletClient.signTypedData({ account: wagmiAddress, ...typed });
+      return serializeAuthorization(typed.message, signature);
+    },
+    [wagmiAddress, connector, openConnectModal, walletClient],
+  );
+  const runVaultStep = useCallback(
+    async (positionId: string, action: VaultPositionAction) => {
+      if (!wagmiAddress || !connector) {
+        openConnectModal?.();
+        throw new Error('Connect your wallet, then confirm again.');
+      }
+      if (chainId !== ARC_CHAIN_ID) await switchChainAsync({ chainId: ARC_CHAIN_ID });
+      if (!walletClient || !arcPublicClient) throw new Error('Wallet client unavailable');
+      return runWalletVaultAction({ address: wagmiAddress, positionId, action, walletClient, arcClient: arcPublicClient, revertedText });
+    },
+    [wagmiAddress, connector, openConnectModal, chainId, switchChainAsync, walletClient, arcPublicClient, revertedText],
+  );
   const startGatewayDeposit = useCallback(
     async (input: { sourceChainKey: string; amountUsdc: number }) => {
       if (!wagmiAddress || !connector) {
@@ -1011,6 +1135,8 @@ function ConfirmCard({
         startGatewayDeposit,
         startFundAgentWeb3,
         sendWalletCalls,
+        runVaultStep,
+        signAdvance,
       });
       confirmOutcomes.set(action.id, r);
       setResult(r);

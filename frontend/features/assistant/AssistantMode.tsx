@@ -22,6 +22,10 @@ import { ConversationList } from './ConversationList';
 import { takeReturn } from './assistantReturn';
 import { conversationToResume, NEW_CHAT, readOpenConversation, rememberOpenConversation } from './resumeConversation';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { pastedFile } from '@/shared/utils/pastedFile';
+import { isOfferCaption } from '@/shared/assistant/offerCaption';
+
+const ATTACHABLE = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 
 const LIST_KEY = ['assistant-conversations'];
 
@@ -51,6 +55,17 @@ function AssistantPage() {
   const [input, setInput] = useState('');
   const askRef = useAutoGrow(input);
   const [photoChoice, setPhotoChoice] = useState<File | null>(null);
+  // A chosen, pasted or dropped file waits in the box, like a picture in a
+  // chat app, and goes with the words on Send.
+  const [staged, setStaged] = useState<File | null>(null);
+  const [stagedUrl, setStagedUrl] = useState<string | null>(null);
+  const take = (file: File) => setStaged(file);
+  useEffect(() => {
+    if (!staged?.type.startsWith('image/')) { setStagedUrl(null); return; }
+    const url = URL.createObjectURL(staged);
+    setStagedUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [staged]);
   const { locale } = useLocale();
   const photoCopy = offerPhotosCopy[locale];
   const [listOpen, setListOpen] = useState(false);
@@ -154,7 +169,21 @@ function AssistantPage() {
 
   async function send(text: string) {
     const question = text.trim();
-    if (!question || chat.busy) return;
+    if (chat.busy) return;
+    if (staged) {
+      const file = staged;
+      setStaged(null);
+      setInput('');
+      // Words about selling make it an offer photo; any other words read it as
+      // an invoice and are answered. A photo alone asks which it is; a PDF is
+      // an invoice.
+      if (!file.type.startsWith('image/')) await chat.attach(file, 'invoice', question);
+      else if (isOfferCaption(question)) await chat.attach(file, 'offer', question);
+      else if (question) await chat.attach(file, 'invoice', question);
+      else setPhotoChoice(file);
+      return;
+    }
+    if (!question) return;
     setInput('');
     await chat.send(question);
   }
@@ -295,10 +324,31 @@ function AssistantPage() {
                 </div>
               </div>
             ) : null}
+            {staged ? (
+              <div className="mb-2 flex items-center gap-2 px-1">
+                {stagedUrl ? (
+                  <img src={stagedUrl} alt={staged.name} className="size-16 rounded-[12px] border border-[var(--lp-border-light)] object-cover" />
+                ) : (
+                  <span className="inline-flex min-h-11 max-w-[60%] items-center gap-2 rounded-[12px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 text-[14px] font-medium text-[var(--lp-dark)]">
+                    <span className="truncate">{staged.name}</span>
+                  </span>
+                )}
+                <button type="button" onClick={() => setStaged(null)} aria-label={photoCopy.removeTemplate.replace('{n}', '1')} className="grid size-11 place-items-center rounded-full text-[var(--lp-text-sub)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+                  <Icon name="close" size={16} />
+                </button>
+              </div>
+            ) : null}
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 void send(input);
+              }}
+              onDragOver={(e) => { if (e.dataTransfer.types.includes('Files')) e.preventDefault(); }}
+              onDrop={(e) => {
+                const i = pastedFile(e.dataTransfer, ATTACHABLE, { preferText: false });
+                if (i === null) return;
+                e.preventDefault();
+                take(e.dataTransfer.files[i]!);
               }}
               className="flex items-end gap-2 rounded-[28px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] py-1.5 pe-1.5 ps-2 focus-within:border-[color-mix(in_srgb,var(--lp-accent)_60%,transparent)]"
             >
@@ -307,15 +357,14 @@ function AssistantPage() {
                 <Icon name="image-plus" size={20} />
                 <input
                   type="file"
-                  accept="image/jpeg,image/png,image/webp,application/pdf"
+                  accept={ATTACHABLE.join(',')}
                   className="sr-only"
                   disabled={chat.busy}
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     e.target.value = '';
-                    // A photo may be for an offer or an invoice; a PDF is an invoice.
-                    if (file?.type.startsWith('image/')) setPhotoChoice(file);
-                    else if (file) void chat.attach(file);
+                    if (file) take(file);
+                    askRef.current?.focus();
                   }}
                 />
               </label>
@@ -325,6 +374,13 @@ function AssistantPage() {
                 id="assistant-ask"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
+                onPaste={(e) => {
+                  if (chat.busy) return;
+                  const i = pastedFile(e.clipboardData, ATTACHABLE);
+                  if (i === null) return;
+                  e.preventDefault();
+                  take(e.clipboardData.files[i]!);
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -338,7 +394,7 @@ function AssistantPage() {
               />
               <button
                 type="submit"
-                disabled={chat.busy || !input.trim()}
+                disabled={chat.busy || (!input.trim() && !staged)}
                 aria-label={messages.assistant.send}
                 className="grid size-11 shrink-0 place-items-center rounded-full bg-[var(--lp-accent)] text-[var(--accent-ink)] transition-opacity disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]"
               >

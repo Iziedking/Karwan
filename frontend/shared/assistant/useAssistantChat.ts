@@ -62,22 +62,16 @@ export function useAssistantChat(opts: { onNeedsHuman?: (transcript: Turn[]) => 
     };
   }, [persist, flush]);
 
-  const send = useCallback(
-    async (question: string) => {
-      const text = question.trim();
-      if (!text || busy) return;
-      void flush();
-      const next = [...messages, { role: 'user' as const, content: text }];
-      setMessages(next);
-      setError(null);
-      setBusy(true);
+  /// Asks the assistant with `history` and puts its reply after `shown`.
+  const answer = useCallback(
+    async (history: Array<{ role: 'user' | 'assistant'; content: string }>, shown: Turn[]) => {
       try {
-        const { reply, actions } = await api.assistantChat(next.map((m) => ({ role: m.role, content: m.content })), mode, live.current.conversationId);
+        const { reply, actions } = await api.assistantChat(history, mode, live.current.conversationId);
         // The assistant appends [[HUMAN]] when the person asked for one or it
         // cannot do it. Strip the marker and bring a person in.
         const needsHuman = /\[\[HUMAN\]\]/i.test(reply);
         const clean = reply.replace(/\[\[HUMAN\]\]/gi, '').trim();
-        const answered = [...next, { role: 'assistant' as const, content: clean, actions }];
+        const answered = [...shown, { role: 'assistant' as const, content: clean, actions }];
         setMessages(answered);
         if (needsHuman) onNeedsHuman?.(answered);
       } catch (e) {
@@ -99,12 +93,28 @@ export function useAssistantChat(opts: { onNeedsHuman?: (transcript: Turn[]) => 
                   ? m.errSnag
                   : t.error,
         );
-        if (cannot) onNeedsHuman?.(next);
+        if (cannot) onNeedsHuman?.(shown);
+      }
+    },
+    [onNeedsHuman, t.error, m, mode],
+  );
+
+  const send = useCallback(
+    async (question: string) => {
+      const text = question.trim();
+      if (!text || busy) return;
+      void flush();
+      const next = [...messages, { role: 'user' as const, content: text }];
+      setMessages(next);
+      setError(null);
+      setBusy(true);
+      try {
+        await answer(next.map((m) => ({ role: m.role, content: m.content })), next);
       } finally {
         setBusy(false);
       }
     },
-    [busy, messages, onNeedsHuman, t.error, m, flush, mode],
+    [busy, messages, flush, answer],
   );
 
   const reset = useCallback((to: Turn[] = []) => {
@@ -133,21 +143,31 @@ export function useAssistantChat(opts: { onNeedsHuman?: (transcript: Turn[]) => 
     [flush, reset],
   );
 
-  /// A photo or PDF, read like one sent to the agent on Telegram: an invoice
-  /// for your own work. It shows as your message, and the reply as the agent's.
-  /// A photo or PDF added in chat. `offer` keeps a photo for the person's next
-  /// offer (view 28); otherwise it is read as an invoice.
+  /// A photo or PDF sent in chat, with the words typed beside it, as one
+  /// message that shows the picture. `offer` keeps a photo for the person's
+  /// next offer (view 28); otherwise it is read as an invoice, like one sent on
+  /// Telegram. The words are then answered with the file in view.
   const attach = useCallback(
-    async (file: File, purpose: 'offer' | 'invoice' = 'invoice') => {
+    async (file: File, purpose: 'offer' | 'invoice' = 'invoice', words = '') => {
       if (busy) return;
       void flush();
-      const next = [...messages, { role: 'user' as const, content: m.attached.replace('{name}', file.name) }];
+      const text = words.trim();
+      const label = m.attached.replace('{name}', file.name);
+      const picture = file.type.startsWith('image/') ? { image: URL.createObjectURL(file), imageOnly: !text } : {};
+      const next: Turn[] = [...messages, { role: 'user', content: text || label, ...picture }];
       setMessages(next);
       setError(null);
       setBusy(true);
       try {
         const { reply } = purpose === 'offer' ? await attachForOffer(file) : await api.assistantAttach(file);
-        setMessages([...next, { role: 'assistant', content: reply }]);
+        // An offer photo sent with words needs no "photo added" note: the
+        // answer to the words says what happens with it.
+        const shown: Turn[] = purpose === 'offer' && text ? next : [...next, { role: 'assistant', content: reply }];
+        setMessages(shown);
+        if (text) {
+          const before = messages.map((x) => ({ role: x.role, content: x.content }));
+          await answer([...before, { role: 'user', content: label }, { role: 'assistant', content: reply }, { role: 'user', content: text }], shown);
+        }
       } catch (e) {
         const status = e instanceof ApiError ? e.status : 0;
         setError(status === 415 ? m.attachWrongType : status === 413 ? m.attachTooBig : status === 429 ? m.attachTooMany : m.errSnag);
@@ -155,7 +175,7 @@ export function useAssistantChat(opts: { onNeedsHuman?: (transcript: Turn[]) => 
         setBusy(false);
       }
     },
-    [busy, messages, flush, m],
+    [busy, messages, flush, m, answer],
   );
 
   /// Deletes the open conversation from the account and starts an empty one.

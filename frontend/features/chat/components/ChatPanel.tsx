@@ -8,6 +8,9 @@ import { Icon } from '@/shared/components/Icon';
 import { PersonAvatar } from '@/shared/components/PersonAvatar';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useChat } from '../hooks/useChat';
+import { pastedFile } from '@/shared/utils/pastedFile';
+
+const CHAT_IMAGES = ['image/png', 'image/jpeg', 'image/webp'];
 
 /// A deal-scoped conversation. Replies keep their context, images are the only
 /// attachment type, and the server enforces the retention window.
@@ -174,7 +177,16 @@ export function ChatPanel({ jobId, caller, counterpartyLabel, counterpartyAddres
               </button>
             </div>
           ) : null}
-          <div className="flex items-end gap-1.5 rounded-[24px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] p-1 focus-within:border-[var(--lp-outline-strong)]">
+          <div
+            onDragOver={(event) => { if (event.dataTransfer.types.includes('Files')) event.preventDefault(); }}
+            onDrop={(event) => {
+              const i = pastedFile(event.dataTransfer, CHAT_IMAGES, { preferText: false });
+              if (i === null) return;
+              event.preventDefault();
+              onImageSelected(event.dataTransfer.files[i]);
+            }}
+            className="flex items-end gap-1.5 rounded-[24px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] p-1 focus-within:border-[var(--lp-outline-strong)]"
+          >
             <input ref={fileRef} type="file" aria-label={cp.attachImage} accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(event) => { onImageSelected(event.target.files?.[0]); event.currentTarget.value = ''; }} />
             <button type="button" onClick={() => fileRef.current?.click()} aria-label={cp.attachImage} className="grid size-11 shrink-0 place-items-center rounded-full text-[var(--lp-text-sub)] hover:bg-[var(--lp-card)] hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
               <Icon name="image-plus" size={20} />
@@ -183,6 +195,12 @@ export function ChatPanel({ jobId, caller, counterpartyLabel, counterpartyAddres
               ref={inputRef}
               value={draft}
               onChange={(event) => { setDraft(event.target.value); if (sendError) setSendError(null); }}
+              onPaste={(event) => {
+                const i = pastedFile(event.clipboardData, CHAT_IMAGES);
+                if (i === null) return;
+                event.preventDefault();
+                onImageSelected(event.clipboardData.files[i]);
+              }}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void submit(); }
               }}

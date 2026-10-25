@@ -38,7 +38,7 @@ import { compute as computeReputation } from '../reputation/engine.js';
 import { listListingsForSeller, listingStatus } from '../db/listings.js';
 import { getBuyerSnapshot } from '../agents/buyer.js';
 import { getSellerSnapshot } from '../agents/seller.js';
-import { listOffersBySeller, listOffersByFinancier } from '../db/factoring.js';
+import { getFactoringOffer, listOffersBySeller, listOffersByFinancier } from '../db/factoring.js';
 import { listLinesBySeller, listLinesByFinancier } from '../db/poFinancing.js';
 import { getProfile, type UserLocale } from '../db/profiles.js';
 import { extractKeywords } from '../llm/keywords.js';
@@ -143,6 +143,14 @@ import { tagRecipient } from '../profile/tagRecipient.js';
 import { findProfileByHandle } from '../db/profiles.js';
 import { ARC } from '../chain/client.js';
 import { personName } from '../channels/personName.js';
+import { getPositionsByOwner } from '../chain/vaultScanCache.js';
+import { buildCancelTakeOutConfirm, buildCollectConfirm, buildTakeOutConfirm, type InsurancePosition } from './insurance.js';
+import { financeTools } from './financeTools.js';
+import type { FinanceDeal } from './finance.js';
+import { callAsAccount } from '../channels/inProcess.js';
+import { isFactorable } from '../deals/deliveryEvidence.js';
+import { claimableUsdc } from '../deals/claimable.js';
+import { financierEligibility } from '../profile/financier.js';
 
 /// Absolute so a link works when pasted anywhere, including outside the app.
 function paymentLinkUrl(token: string): string {
@@ -176,6 +184,28 @@ const NATIVE_DECIMALS = arcChain.nativeCurrency.decimals;
 
 /// Whether the authenticated tool-calling assistant can run. False when no
 /// Anthropic key is set (privacy boundary: this path is direct-Anthropic-only).
+/// The vault's wait before deal insurance can be collected, in days.
+async function vaultWaitDays(): Promise<number> {
+  try {
+    if (!config.KARWAN_VAULT_ADDR) return 7;
+    const days = await publicClient.readContract({ address: config.KARWAN_VAULT_ADDR as `0x${string}`, abi: vaultAbi, functionName: 'COOLDOWN_DAYS' });
+    return Number(days);
+  } catch {
+    return 7;
+  }
+}
+
+/// Their deal insurance positions, from the vault scan the stake page reads.
+async function insurancePositions(owner: string): Promise<InsurancePosition[]> {
+  const { positions } = await getPositionsByOwner(owner);
+  return positions.map((p) => ({
+    positionId: p.positionId,
+    amountUsdc: Number(formatUnits(BigInt(p.principalWei), USDC_DECIMALS)),
+    state: p.state,
+    claimableAt: p.claimableAt,
+  }));
+}
+
 export function assistantAgentEnabled(): boolean {
   return assistantAgentModel !== null;
 }
@@ -607,15 +637,21 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
       inputSchema: z.object({}),
       execute: async () => {
         try {
-          const [stake, yieldSnap] = await Promise.all([
+          const [stake, yieldSnap, positions] = await Promise.all([
             activeStakeSummary(address),
             readStakerYield(address),
+            insurancePositions(address).catch(() => []),
           ]);
+          const now = Math.floor(Date.now() / 1000);
           return {
             stakedUsdc: stake.stakeUsdc.toFixed(2),
             freeStakeUsdc: stake.freeStakeUsdc.toFixed(2),
             reservedForDealsUsdc: stake.reservedUsdc.toFixed(2),
             longestPositionDays: Math.round(stake.stakeDays),
+            // Insurance being taken out: offer propose_insurance_collect for what is ready, propose_insurance_cancel_take_out to keep it.
+            waitingToTakeOut: positions
+              .filter((p) => p.state === 2 && p.amountUsdc > 0)
+              .map((p) => ({ amountUsdc: p.amountUsdc.toFixed(2), readyOn: new Date(p.claimableAt * 1000).toISOString().slice(0, 10), ready: p.claimableAt <= now })),
             yield:
               yieldSnap && yieldSnap.configured
                 ? {
@@ -1581,15 +1617,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
             caller: address,
             amountUsdc,
             walletAfterUsdc: (balance - amountUsdc).toFixed(2),
-            cooldownLabel: await (async () => {
-              try {
-                if (!config.KARWAN_VAULT_ADDR) return '3 day';
-                const days = await publicClient.readContract({ address: config.KARWAN_VAULT_ADDR as `0x${string}`, abi: vaultAbi, functionName: 'COOLDOWN_DAYS' });
-                return `${Number(days)} day`;
-              } catch {
-                return '3 day';
-              }
-            })(),
+            cooldownLabel: `${await vaultWaitDays()} day`,
           });
           if ('error' in built) return built;
           if (!hasEquivalentConfirm(actions, built)) actions.push(built);
@@ -1621,6 +1649,74 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant propose_claim_yield failed');
           return { error: 'Could not prepare that right now. Try again shortly.' };
+        }
+      },
+    }),
+
+    propose_insurance_take_out: tool({
+      description:
+        "Prepare a card to take out deal insurance (money put up in the vault behind their deals). It starts the vault's wait; the money is collected when the wait ends. Use for 'take out my insurance', 'unstake', 'withdraw my stake', 'I want my insurance money back'. Leave amountUsdc out to take out everything that is not protecting an open deal.",
+      inputSchema: z.object({
+        amountUsdc: z.number().positive().max(1_000_000).optional().describe('How much to take out. Omit for all that is free.'),
+      }),
+      execute: async ({ amountUsdc }) => {
+        try {
+          const [positions, stake, waitDays] = await Promise.all([insurancePositions(address), activeStakeSummary(address), vaultWaitDays()]);
+          const built = buildTakeOutConfirm({
+            address,
+            positions,
+            freeUsdc: stake.freeStakeUsdc,
+            reservedUsdc: stake.reservedUsdc,
+            ...(amountUsdc !== undefined ? { amountUsdc } : {}),
+            waitDays,
+            nowUnix: Math.floor(Date.now() / 1000),
+            signer: method === 'circle' ? 'karwan' : 'wallet',
+          });
+          if ('error' in built) return built;
+          if (!hasEquivalentConfirm(actions, built)) actions.push(built);
+          return { ok: true, shown: built.title };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant propose_insurance_take_out failed');
+          return { error: 'Could not read their deal insurance right now. Try again shortly.' };
+        }
+      },
+    }),
+
+    propose_insurance_cancel_take_out: tool({
+      description:
+        "Prepare a card to stop the wait on deal insurance they started taking out, so it protects their deals again. Use for 'cancel the unstake', 'keep my insurance', 'I changed my mind about taking it out'.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        try {
+          const built = buildCancelTakeOutConfirm({ address, positions: await insurancePositions(address), signer: method === 'circle' ? 'karwan' : 'wallet' });
+          if ('error' in built) return built;
+          if (!hasEquivalentConfirm(actions, built)) actions.push(built);
+          return { ok: true, shown: built.title };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant propose_insurance_cancel_take_out failed');
+          return { error: 'Could not read their deal insurance right now. Try again shortly.' };
+        }
+      },
+    }),
+
+    propose_insurance_collect: tool({
+      description:
+        "Prepare a card to collect deal insurance whose wait has ended, back into their wallet. Use for 'collect my insurance', 'claim my unstaked money', or when get_my_stake shows insurance ready to collect.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        try {
+          const built = buildCollectConfirm({
+            address,
+            positions: await insurancePositions(address),
+            nowUnix: Math.floor(Date.now() / 1000),
+            signer: method === 'circle' ? 'karwan' : 'wallet',
+          });
+          if ('error' in built) return built;
+          if (!hasEquivalentConfirm(actions, built)) actions.push(built);
+          return { ok: true, shown: built.title };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant propose_insurance_collect failed');
+          return { error: 'Could not read their deal insurance right now. Try again shortly.' };
         }
       },
     }),
@@ -2491,6 +2587,16 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
     ...memoryTools(address, { memory: getMemory, add: addNotes, remove: deleteNotes, conversations: conversationsMentioning }),
     ...networkTools(address),
     ...directDealTools(address, actions, conversationId),
+    ...financeTools(address, method === 'circle' ? 'karwan' : 'wallet', actions, {
+      call: callAsAccount,
+      getDeal: async (jobId) => (await getDeal(jobId)) as FinanceDeal | null,
+      isFactorable: (deal) => isFactorable(deal as unknown as DirectDeal),
+      claimable: claimableUsdc,
+      getOffer: getFactoringOffer,
+      eligibility: financierEligibility,
+      financierStatus: async (who) => (await getProfile(who))?.financier?.status ?? 'none',
+      now: () => Date.now(),
+    }),
   };
 }
 
@@ -2510,6 +2616,7 @@ function authenticatedPreamble(address: string, method: string): string {
     'Specific deal, World ID or CRE recorded status -> get_deal_status. Other deals -> list_my_deals.',
     'Past money moves and bridges -> recall_activity. Stake/yield -> get_my_stake. Reputation -> get_my_reputation.',
     'Offers, requests and bids -> get_my_market_activity. Pending work -> whats_pending. Finance -> get_my_financing.',
+    'Getting paid early: the seller asks with propose_get_paid_early, reads offers with list_early_payment_offers, then propose_take_early_payment or propose_turn_down_early_payment. A financier reads list_requests_i_can_fund and offers with propose_early_payment_offer.',
     'Profile -> get_my_profile. Skills and eligibility -> get_my_skills. Business registration/workspaces -> get_my_workspaces.',
     'Read each subject the user asks about, not a convenient unrelated tool. Always re-read named deals.',
     'For money execution requests, use the corresponding propose_ tool and let the existing card request confirmation.',

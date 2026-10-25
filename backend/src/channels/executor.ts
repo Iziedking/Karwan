@@ -15,7 +15,7 @@ type Step = { method: 'GET' | 'POST'; path: string; body?: unknown };
 /// What each confirm card does, as the web app's own calls (AssistantWidget's
 /// executor and core/api.ts). Chat runs these exact routes, so validation,
 /// authorization and idempotency are the app's, not a second copy.
-const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAction) => Step>> = {
+export const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAction) => Step>> = {
   post_offer: (p) => ({ method: 'POST', path: '/api/listings', body: p }),
   save_setup: (p) => ({ method: 'POST', path: '/api/setup/save', body: { answers: p.answers } }),
   save_ways: (p) => ({ method: 'POST', path: '/api/setup/ways', body: { ways: p.ways } }),
@@ -70,6 +70,26 @@ const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAction) =
   cancel_listing: (p) => ({ method: 'POST', path: `/api/listings/${p.listingId}/cancel`, body: { caller: p.caller } }),
   stake_usdc: (p) => ({ method: 'POST', path: '/api/vault/deposit', body: { address: p.address, amountUsdc: p.amountUsdc, requestId: randomUUID() } }),
   claim_yield: (p) => ({ method: 'POST', path: '/api/yield/claim', body: { address: p.address } }),
+  // Deal insurance acts on whole positions: the runner calls these once per
+  // position on the card (view 31, phase A).
+  insurance_take_out: (p) => ({ method: 'POST', path: '/api/vault/request-withdraw', body: { address: p.address, positionId: p.positionId, requestId: randomUUID() } }),
+  insurance_cancel_take_out: (p) => ({ method: 'POST', path: '/api/vault/cancel-withdraw', body: { address: p.address, positionId: p.positionId, requestId: randomUUID() } }),
+  insurance_collect: (p) => ({ method: 'POST', path: '/api/vault/claim', body: { address: p.address, positionId: p.positionId, requestId: randomUUID() } }),
+  // Getting paid early (view 31, phase B), the deal page's and the financier desk's calls.
+  finance_ask: (p) => ({
+    method: 'POST',
+    path: '/api/factoring/request',
+    body: { invoiceId: p.invoiceId, requestedAdvanceUsdc: p.requestedAdvanceUsdc, ...(p.minAdvanceUsdc ? { minAdvanceUsdc: p.minAdvanceUsdc } : {}) },
+  }),
+  finance_stop_asking: (p) => ({ method: 'POST', path: '/api/factoring/withdraw-request', body: { invoiceId: p.invoiceId } }),
+  finance_accept: (p) => ({ method: 'POST', path: '/api/factoring/accept', body: { offerId: p.offerId } }),
+  finance_reject: (p) => ({ method: 'POST', path: '/api/factoring/reject', body: { offerId: p.offerId } }),
+  finance_offer: (p) => ({
+    method: 'POST',
+    path: '/api/factoring/offer',
+    body: { invoiceId: p.invoiceId, offeredAdvanceUsdc: p.offeredAdvanceUsdc, expectedReturnUsdc: p.expectedReturnUsdc, expiresInHours: p.expiresInHours },
+  }),
+  finance_apply: () => ({ method: 'POST', path: '/api/financier/apply', body: {} }),
   // Placeholder so the route table knows the intent; fundDirect runs it.
   fund_direct_deal: (p) => ({ method: 'POST', path: `/api/deals/direct/${p.jobId}/fund` }),
   // A held wallet needs the person to confirm it is them, which happens on Karwan.
@@ -164,7 +184,18 @@ const DONE: Partial<Record<ConfirmAction['intent'], string>> = {
   escalate_dispute: 'Sent to review. A Karwan reviewer will rule.',
   ask_for_payment: 'Asked for payment. The buyer has 72 hours to answer; if they do not, the payment is yours.',
   decline_deal: 'Deal turned down. The buyer has your note.',
+  insurance_take_out: 'The wait has started. Ask me to collect it when it ends.',
+  insurance_cancel_take_out: 'Kept. It protects your deals again.',
+  insurance_collect: 'Collected. It is back in your wallet.',
+  finance_ask: 'Asked. Financiers can make offers now; I will tell you when one comes in.',
+  finance_stop_asking: 'Stopped. Financiers no longer see this deal.',
+  finance_accept: 'Done. The advance is on its way to you.',
+  finance_reject: 'Turned down. The financier has been told.',
+  finance_offer: 'Offer made. The seller sees it now.',
+  finance_apply: 'Applied. You are told when the financier desk opens for you.',
 };
+
+const BY_POSITION = new Set<ConfirmAction['intent']>(['insurance_take_out', 'insurance_cancel_take_out', 'insurance_collect']);
 
 // Intents whose response carries a money-movement state.
 const MOVEMENTS = new Set<ConfirmAction['intent']>(['withdraw_proceeds', 'cash_out', 'stake_usdc', 'fund_agent']);
@@ -208,6 +239,23 @@ export function createExecutor(deps: {
 
     const route = ROUTES[action.intent];
     if (!route) return { ok: false, reason: 'refused', message: 'This step needs a wallet signature, so it has to be done in the Karwan app.' };
+
+    // A wallet financier signs the advance in their own wallet, which a chat cannot do.
+    if (action.intent === 'finance_offer' && p.signer === 'wallet') {
+      return { ok: false, reason: 'refused', message: 'Your own wallet signs this offer, so it is made in the Karwan app. Ask me there.' };
+    }
+    if (BY_POSITION.has(action.intent)) {
+      // The person's own wallet signs these, which a chat cannot do.
+      if (p.signer === 'wallet') return { ok: false, reason: 'refused', message: 'Your own wallet signs this, so it is done in the Karwan app. Ask me there.' };
+      used.add(action.id);
+      let last: { status: number; json: Record<string, unknown> } = { status: 400, json: { error: 'Nothing to do on this card.' } };
+      for (const positionId of Array.isArray(p.positionIds) ? (p.positionIds as string[]) : []) {
+        const step = route({ ...p, positionId }, action);
+        last = await deps.call(account.address, step.method, step.path, step.body);
+        if (last.status >= 400) break;
+      }
+      return finish(action, last);
+    }
 
     used.add(action.id);
     if (action.intent === 'fund_direct_deal') return finish(action, await fundDirect(deps.call, account.address, p));

@@ -3,6 +3,8 @@ import type { AgentWays } from '../agents/ways.js';
 import type { DeliveryKind, Where } from '../location/rules.js';
 import type { BriefAnswers } from '../agents/agentBriefLines.js';
 import type { DealStepConfirm } from './dealActions.js';
+import type { InsuranceCancelTakeOutConfirm, InsuranceCollectConfirm, InsuranceTakeOutConfirm } from './insurance.js';
+import type { FinanceAcceptConfirm, FinanceApplyConfirm, FinanceAskConfirm, FinanceOfferConfirm, FinanceRejectConfirm, FinanceStopAskingConfirm } from './finance.js';
 
 /// Stage 2 of the chat-native transaction surface: the ACTION ENVELOPE. An
 /// assistant reply can carry structured actions the chat UI renders as prominent
@@ -392,7 +394,16 @@ export type ConfirmAction =
   | DealStepConfirm
   | CreateDirectDealConfirm
   | FundDirectDealConfirm
-  | SetUpRecordConfirm;
+  | SetUpRecordConfirm
+  | InsuranceTakeOutConfirm
+  | InsuranceCancelTakeOutConfirm
+  | InsuranceCollectConfirm
+  | FinanceAskConfirm
+  | FinanceStopAskingConfirm
+  | FinanceAcceptConfirm
+  | FinanceRejectConfirm
+  | FinanceOfferConfirm
+  | FinanceApplyConfirm;
 
 /// Stage 2 shipped `navigate`; Stages 3-4 add `confirm`. The envelope + renderer
 /// carry the union unchanged as new variants land.

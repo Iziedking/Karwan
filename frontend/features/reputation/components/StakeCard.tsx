@@ -13,6 +13,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useMoneyRefresh } from '@/shared/hooks/useMoneyRefresh';
 import { isConfirmationPending, requireConfirmedTx } from '@/shared/chain/confirmTx';
 import { AgentStakeBinding } from './AgentStakeBinding';
+import { runWalletVaultAction, vaultAbi } from '../walletVaultAction';
 import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
 import { Hint } from '@/shared/components/Hint';
 import type { Messages } from '@/shared/i18n/messages/en';
@@ -63,37 +64,6 @@ const usdcAbi = [
       { name: 'spender', type: 'address' },
     ],
     outputs: [{ name: '', type: 'uint256' }],
-  },
-] as const;
-
-const vaultAbi = [
-  {
-    type: 'function',
-    name: 'deposit',
-    stateMutability: 'nonpayable',
-    inputs: [{ name: 'amount', type: 'uint256' }],
-    outputs: [{ name: '', type: 'uint256' }],
-  },
-  {
-    type: 'function',
-    name: 'requestWithdraw',
-    stateMutability: 'nonpayable',
-    inputs: [{ name: 'positionId', type: 'uint256' }],
-    outputs: [],
-  },
-  {
-    type: 'function',
-    name: 'cancelWithdraw',
-    stateMutability: 'nonpayable',
-    inputs: [{ name: 'positionId', type: 'uint256' }],
-    outputs: [],
-  },
-  {
-    type: 'function',
-    name: 'claim',
-    stateMutability: 'nonpayable',
-    inputs: [{ name: 'positionId', type: 'uint256' }],
-    outputs: [],
   },
 ] as const;
 
@@ -494,20 +464,16 @@ export function StakeCard() {
           patchLog(logId, { status: 'done', txHash: r.txHash, reference: r.reference });
         } else {
           if (!walletClient || !arcClient) throw new Error(sc.errors.walletNotReady);
-          const requestId = crypto.randomUUID();
-          const intent = await api.vaultActionIntent({ address, positionId: p.positionId, action: 'requestWithdraw', requestId });
-          patchLog(logId, { reference: intent.reference });
-          const hash = await walletClient.writeContract({
-            address: KARWAN_VAULT_ADDRESS,
-            abi: vaultAbi,
-            functionName: 'requestWithdraw',
-            args: [BigInt(p.positionId)],
-            chain: walletClient.chain,
-            account: address,
+          const done = await runWalletVaultAction({
+            address,
+            positionId: p.positionId,
+            action: 'requestWithdraw',
+            walletClient,
+            arcClient,
+            revertedText: chainCopy.reverted,
+            onReference: (reference) => patchLog(logId, { reference }),
           });
-          await requireConfirmedTx(arcClient, hash, chainCopy.reverted);
-          const completed = await api.vaultActionComplete({ address, positionId: p.positionId, action: 'requestWithdraw', requestId, txHash: hash });
-          patchLog(logId, { status: 'done', txHash: hash, reference: completed.reference });
+          patchLog(logId, { status: 'done', txHash: done.txHash, reference: done.reference });
         }
       } catch (err) {
         if (isConfirmationPending(err)) {
@@ -564,22 +530,16 @@ export function StakeCard() {
           patchLog(logId, { status: 'done', txHash: r.txHash, reference: r.reference });
         } else {
           if (!walletClient || !arcClient) throw new Error(sc.errors.walletNotReady);
-          const requestId = crypto.randomUUID();
-          const intent = await api.vaultActionIntent({ address, positionId, action: kind === 'request' ? 'requestWithdraw' : kind === 'cancel' ? 'cancelWithdraw' : 'claim', requestId });
-          patchLog(logId, { reference: intent.reference });
-          const fnName =
-            kind === 'request' ? 'requestWithdraw' : kind === 'cancel' ? 'cancelWithdraw' : 'claim';
-          const hash = await walletClient.writeContract({
-            address: KARWAN_VAULT_ADDRESS,
-            abi: vaultAbi,
-            functionName: fnName,
-            args: [BigInt(positionId)],
-            chain: walletClient.chain,
-            account: address,
+          const done = await runWalletVaultAction({
+            address,
+            positionId,
+            action: kind === 'request' ? 'requestWithdraw' : kind === 'cancel' ? 'cancelWithdraw' : 'claim',
+            walletClient,
+            arcClient,
+            revertedText: chainCopy.reverted,
+            onReference: (reference) => patchLog(logId, { reference }),
           });
-          await requireConfirmedTx(arcClient, hash, chainCopy.reverted);
-          const completed = await api.vaultActionComplete({ address, positionId, action: kind === 'request' ? 'requestWithdraw' : kind === 'cancel' ? 'cancelWithdraw' : 'claim', requestId, txHash: hash });
-          patchLog(logId, { status: 'done', txHash: hash, reference: completed.reference });
+          patchLog(logId, { status: 'done', txHash: done.txHash, reference: done.reference });
         }
       } catch (err) {
         if (isConfirmationPending(err)) {
