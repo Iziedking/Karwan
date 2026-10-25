@@ -13,6 +13,7 @@ import {
 } from '../money/observedDeposit.js';
 import { findMoneyMovementByTransferProof } from '../db/moneyMovements.js';
 import { createAnnouncedTransfers } from './announcedTransfers.js';
+import { nativeOnlyTransfers, SYSTEM_EMITTER, type RawTransfer } from './nativeTransfers.js';
 
 // USDC on Arc is exposed both as a 6-decimal ERC-20 and an 18-decimal native
 // asset. Transfer events emit at 6 decimals on the ERC-20 surface, which is
@@ -141,15 +142,28 @@ async function processWindow(fromBlock: bigint, toBlock: bigint): Promise<void> 
 
   // Pull every USDC Transfer in the window and filter against the registry
   // client-side. Per-address filters would need one getLogs call per wallet,
-  // which is wasteful when the registry is small.
-  let logs;
+  // which is wasteful when the registry is small. The ERC-20 contract logs
+  // token transfers; Arc's system emitter also logs plain native sends, which
+  // the token contract never sees.
+  let transfers: RawTransfer[];
   try {
-    logs = await publicClient.getLogs({
-      address: USDC_ADDR,
-      event: TRANSFER_EVENT,
-      fromBlock,
-      toBlock,
-    });
+    const logsAt = (address: `0x${string}`) => publicClient.getLogs({ address, event: TRANSFER_EVENT, fromBlock, toBlock });
+    // The native-send read is extra: when it fails, token transfers still go through.
+    const [tokenLogs, systemLogs] = await Promise.all([
+      logsAt(USDC_ADDR),
+      logsAt(SYSTEM_EMITTER as `0x${string}`).catch((err: Error) => {
+        logger.warn({ err: err.message, fromBlock: fromBlock.toString(), toBlock: toBlock.toString() }, 'balance watcher: native transfer read failed');
+        return [];
+      }),
+    ]);
+    const raw = (logs: typeof tokenLogs): RawTransfer[] =>
+      logs.flatMap((log) => {
+        const args = log.args as { from?: `0x${string}`; to?: `0x${string}`; value?: bigint };
+        if (!args.from || !args.to || !log.transactionHash) return [];
+        return [{ from: args.from, to: args.to, value: args.value ?? 0n, txHash: log.transactionHash, logIndex: log.logIndex ?? 0 }];
+      });
+    const token = raw(tokenLogs);
+    transfers = [...token, ...nativeOnlyTransfers(token, raw(systemLogs))];
   } catch (err) {
     logger.warn(
       { err: (err as Error).message, fromBlock: fromBlock.toString(), toBlock: toBlock.toString() },
@@ -158,12 +172,11 @@ async function processWindow(fromBlock: bigint, toBlock: bigint): Promise<void> 
     return;
   }
 
-  for (const log of logs) {
-    const args = log.args as { from?: `0x${string}`; to?: `0x${string}`; value?: bigint };
-    const from = args.from?.toLowerCase();
-    const to = args.to?.toLowerCase();
-    const value = args.value ?? 0n;
-    if (!from || !to || value === 0n) continue;
+  for (const transfer of transfers) {
+    const from = transfer.from.toLowerCase();
+    const to = transfer.to.toLowerCase();
+    const value = transfer.value;
+    if (value === 0n) continue;
 
     const recipient = reg.byAddress.get(to);
     const sender = reg.byAddress.get(from);
@@ -190,9 +203,8 @@ async function processWindow(fromBlock: bigint, toBlock: bigint): Promise<void> 
 
     // A receipt hash is mandatory for a completed MoneyMovement. A malformed
     // provider log without one is not safe to project as a Karwan receipt.
-    const txHash = log.transactionHash;
-    if (!txHash) continue;
-    const logIndex = log.logIndex ?? 0;
+    const txHash = transfer.txHash as Hex;
+    const logIndex = transfer.logIndex;
     const dedupeKey = `${txHash}:${logIndex}`;
 
     if (recipient) {
