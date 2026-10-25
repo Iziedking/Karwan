@@ -31,7 +31,7 @@ test('a deal step without a valid deal id has no page', () => {
 });
 
 test('chat keeps the steps that move no money', () => {
-  for (const intent of ['accept_deal', 'create_direct_deal', 'mark_delivered', 'request_extension', 'dispute_statement', 'post_request']) {
+  for (const intent of ['accept_deal', 'create_direct_deal', 'mark_delivered', 'request_extension', 'dispute_statement', 'post_request', 'goods_arrived', 'still_reviewing', 'delay_appeal', 'answer_delay_appeal', 'change_deal_terms', 'review_delivery_myself']) {
     assert.equal(MONEY_INTENTS.has(intent as ConfirmAction['intent']), false, intent);
   }
 });

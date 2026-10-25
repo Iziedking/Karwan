@@ -19,6 +19,10 @@ export const MONEY_INTENTS: ReadonlySet<ConfirmAction['intent']> = new Set<Confi
   'insurance_collect',
   'finance_accept',
   'finance_offer',
+  'claim_payment',
+  'take_back_deal',
+  'accept_offer',
+  'near_miss_proceed',
 ]);
 
 const JOB_ID = /^0x[0-9a-fA-F]{64}$/;
@@ -33,11 +37,15 @@ export function moneyStepPath(action: ConfirmAction): string | null {
     case 'release_milestone':
     case 'cancel_deal':
     case 'finance_accept':
+    case 'claim_payment':
+    case 'take_back_deal':
       return job ? `/deals/${job}` : null;
     case 'finance_offer':
       return '/financier';
     case 'approve_match':
     case 'choose_offer':
+    case 'accept_offer':
+    case 'near_miss_proceed':
       return job ? `/jobs/${job}` : null;
     case 'withdraw_proceeds':
     case 'fund_agent':

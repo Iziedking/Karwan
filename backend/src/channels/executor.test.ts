@@ -258,3 +258,59 @@ test("a wallet financier's offer is never made from a chat", async () => {
   assert.equal(calls.length, 0);
   assert.equal(r.ok, false);
 });
+
+test('deal steps run the deal page routes with their bodies, and a change of terms is an edit or a counter by side', async () => {
+  const JOB = `0x${'2'.repeat(64)}`;
+  const { execute, calls } = setup(() => ({ status: 200, json: { ok: true } }));
+  for (const intent of ['goods_arrived', 'review_delivery_myself', 'claim_payment', 'still_reviewing', 'delay_appeal', 'take_back_deal']) {
+    await execute({ address: ME }, action(intent, { jobId: JOB, caller: ME }));
+  }
+  await execute({ address: ME }, action('answer_delay_appeal', { jobId: JOB, caller: ME, reason: 'Checking the last part' }));
+  await execute({ address: ME }, action('change_deal_terms', { jobId: JOB, caller: ME, as: 'buyer', dealAmountUsdc: 250 }));
+  const countered = await execute({ address: ME }, action('change_deal_terms', { jobId: JOB, caller: ME, as: 'seller', terms: 'Two logos' }, 'ct2'));
+  const path = (end: string) => `/api/deals/direct/${JOB}/${end}`;
+  assert.deepEqual(calls, [
+    { method: 'POST', path: path('arrived'), body: { caller: ME } },
+    { method: 'POST', path: path('evidence/manual-review'), body: { caller: ME } },
+    { method: 'POST', path: path('claim'), body: { caller: ME } },
+    { method: 'POST', path: path('still-reviewing'), body: { caller: ME } },
+    { method: 'POST', path: path('delay-appeal'), body: { caller: ME } },
+    { method: 'POST', path: path('cancel'), body: { caller: ME } },
+    { method: 'POST', path: path('delay-appeal-respond'), body: { caller: ME, reason: 'Checking the last part' } },
+    { method: 'POST', path: path('edit'), body: { caller: ME, dealAmountUsdc: 250 } },
+    { method: 'POST', path: path('counter'), body: { caller: ME, terms: 'Two logos' } },
+  ]);
+  assert.deepEqual(countered, { ok: true, summary: 'Sent. The other side sees the new terms.' });
+});
+
+test('offers on a request and near matches run the request page routes', async () => {
+  const JOB = `0x${'3'.repeat(64)}`;
+  const { execute, calls } = setup(() => ({ status: 200, json: { ok: true } }));
+  await execute({ address: ME }, action('make_offer', { jobId: JOB, priceUsdc: '80', deliverByUnix: 1_800_000_000, note: 'Two drafts' }));
+  await execute({ address: ME }, action('withdraw_offer', { jobId: JOB, offerId: 'o1' }));
+  await execute({ address: ME }, action('accept_offer', { jobId: JOB, offerId: 'o2' }));
+  await execute({ address: ME }, action('near_miss_proceed', { jobId: JOB, caller: ME }));
+  await execute({ address: ME }, action('near_miss_pass', { jobId: JOB, caller: ME }));
+  await execute({ address: ME }, action('reconsider_offer', { jobId: JOB, caller: ME }));
+  assert.deepEqual(calls, [
+    { method: 'POST', path: `/api/jobs/${JOB}/offers`, body: { priceUsdc: '80', deliverByUnix: 1_800_000_000, note: 'Two drafts' } },
+    { method: 'POST', path: `/api/jobs/${JOB}/offers/o1/withdraw`, body: {} },
+    { method: 'POST', path: `/api/jobs/${JOB}/offers/o2/accept`, body: {} },
+    { method: 'POST', path: `/api/jobs/${JOB}/near-miss`, body: { caller: ME, action: 'proceed' } },
+    { method: 'POST', path: `/api/jobs/${JOB}/near-miss`, body: { caller: ME, action: 'decline' } },
+    { method: 'POST', path: `/api/jobs/${JOB}/reconsider`, body: { caller: ME } },
+  ]);
+});
+
+test('editing an offer, stopping a bid and confirming goods received run the page routes', async () => {
+  const JOB = `0x${'4'.repeat(64)}`;
+  const { execute, calls } = setup(() => ({ status: 200, json: { ok: true } }));
+  await execute({ address: ME }, action('edit_listing', { listingId: 'lst_1', caller: ME, askingPriceUsdc: 65 }));
+  await execute({ address: ME }, action('stop_agent_bid', { jobId: JOB }));
+  await execute({ address: ME }, action('confirm_goods_received', { address: ME, invoiceId: JOB, podHash: '0xab' }));
+  assert.deepEqual(calls, [
+    { method: 'POST', path: '/api/listings/lst_1/edit', body: { caller: ME, askingPriceUsdc: 65 } },
+    { method: 'POST', path: '/api/agents/seller/bids/abandon', body: { jobId: JOB } },
+    { method: 'POST', path: '/api/trade/pod/accept-circle', body: { address: ME, invoiceId: JOB, podHash: '0xab' } },
+  ]);
+});

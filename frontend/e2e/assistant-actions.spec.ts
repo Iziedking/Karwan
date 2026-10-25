@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { API, funded, serveMoney } from './moneyFixtures';
 
 /// Cards the assistant prepares run the page's own routes when confirmed
-/// (view 31): deal insurance, getting paid early.
+/// (view 31): deal insurance, getting paid early, deal steps.
 
 async function assistantWith(page: Page, card: Record<string, unknown>) {
   await page.route(`${API}/api/assistant/**`, (route) => {
@@ -50,4 +50,41 @@ test('asking to be paid early from the assistant sends the deal page request', a
   await page.getByRole('button', { name: 'Ask financiers' }).click();
   await expect(page.getByText('Asked. Financiers can make offers now.')).toBeVisible();
   expect(sent).toEqual([{ invoiceId: JOB, requestedAdvanceUsdc: '400', minAdvanceUsdc: '380' }]);
+});
+
+test('a counter from the assistant goes to the counter route, without the side', async ({ page }) => {
+  const JOB = `0x${'2'.repeat(64)}`;
+  const ME = `0x${'a'.repeat(40)}`;
+  const sent: unknown[] = [];
+  await serveMoney(page, { balances: funded });
+  await page.route(`${API}/api/deals/direct/${JOB}/counter`, (route) => {
+    sent.push(route.request().postDataJSON());
+    return route.fulfill({ json: { accepted: true, jobId: JOB, deal: { jobId: JOB } } });
+  });
+  await assistantWith(page, {
+    kind: 'confirm', id: `change_deal_terms:${JOB}:n1`, intent: 'change_deal_terms', title: 'Send a counter',
+    summary: 'The buyer sees your terms and agrees or answers.', fields: [{ label: 'New price', value: '250 USDC' }],
+    payload: { jobId: JOB, caller: ME, as: 'seller', dealAmountUsdc: 250 }, confirmLabel: 'Send counter', cancelLabel: 'Keep as is',
+  });
+  await page.getByRole('button', { name: 'Send counter' }).click();
+  await expect(page.getByText('Sent. The other side sees the new terms.')).toBeVisible();
+  expect(sent).toEqual([{ caller: ME, dealAmountUsdc: 250 }]);
+});
+
+test("taking a seller's own offer from the assistant runs the request page route", async ({ page }) => {
+  const JOB = `0x${'3'.repeat(64)}`;
+  let accepted = 0;
+  await serveMoney(page, { balances: funded });
+  await page.route(`${API}/api/jobs/${JOB}/offers/o-1/accept`, (route) => {
+    accepted += 1;
+    return route.fulfill({ json: { ok: true, txHash: `0x${'d'.repeat(64)}` } });
+  });
+  await assistantWith(page, {
+    kind: 'confirm', id: 'accept_offer:o-1:n1', intent: 'accept_offer', title: "Take @ada's offer",
+    summary: '81.6 USDC goes into escrow from your buying agent and the deal starts.', fields: [{ label: 'Price', value: '80 USDC' }],
+    payload: { jobId: JOB, offerId: 'o-1' }, confirmLabel: 'Take it and pay 81.6 USDC', cancelLabel: 'Not now',
+  });
+  await page.getByRole('button', { name: 'Take it and pay 81.6 USDC' }).click();
+  await expect(page.getByText('Offer taken. The escrow is paid and the deal is live.')).toBeVisible();
+  expect(accepted).toBe(1);
 });

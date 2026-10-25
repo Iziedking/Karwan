@@ -156,6 +156,29 @@ export const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAc
   escalate_dispute: (p) => ({ method: 'POST', path: `/api/deals/direct/${p.jobId}/dispute/escalate`, body: { caller: p.caller } }),
   ask_for_payment: (p) => ({ method: 'POST', path: `/api/deals/direct/${p.jobId}/appeal`, body: { caller: p.caller } }),
   decline_deal: (p) => ({ method: 'POST', path: `/api/deals/direct/${p.jobId}/decline`, body: { caller: p.caller, note: p.note } }),
+  goods_arrived: (p) => ({ method: 'POST', path: `/api/deals/direct/${p.jobId}/arrived`, body: { caller: p.caller } }),
+  review_delivery_myself: (p) => ({ method: 'POST', path: `/api/deals/direct/${p.jobId}/evidence/manual-review`, body: { caller: p.caller } }),
+  claim_payment: (p) => ({ method: 'POST', path: `/api/deals/direct/${p.jobId}/claim`, body: { caller: p.caller } }),
+  still_reviewing: (p) => ({ method: 'POST', path: `/api/deals/direct/${p.jobId}/still-reviewing`, body: { caller: p.caller } }),
+  delay_appeal: (p) => ({ method: 'POST', path: `/api/deals/direct/${p.jobId}/delay-appeal`, body: { caller: p.caller } }),
+  answer_delay_appeal: (p) => ({ method: 'POST', path: `/api/deals/direct/${p.jobId}/delay-appeal-respond`, body: { caller: p.caller, reason: p.reason } }),
+  take_back_deal: (p) => ({ method: 'POST', path: `/api/deals/direct/${p.jobId}/cancel`, body: { caller: p.caller } }),
+  edit_listing: (p) => {
+    const { listingId, ...body } = p;
+    return { method: 'POST', path: `/api/listings/${listingId}/edit`, body };
+  },
+  stop_agent_bid: (p) => ({ method: 'POST', path: '/api/agents/seller/bids/abandon', body: { jobId: p.jobId } }),
+  confirm_goods_received: (p) => ({ method: 'POST', path: '/api/trade/pod/accept-circle', body: { address: p.address, invoiceId: p.invoiceId, podHash: p.podHash } }),
+  make_offer: (p) => ({ method: 'POST', path: `/api/jobs/${p.jobId}/offers`, body: { priceUsdc: p.priceUsdc, deliverByUnix: p.deliverByUnix, note: p.note } }),
+  withdraw_offer: (p) => ({ method: 'POST', path: `/api/jobs/${p.jobId}/offers/${p.offerId}/withdraw`, body: {} }),
+  accept_offer: (p) => ({ method: 'POST', path: `/api/jobs/${p.jobId}/offers/${p.offerId}/accept`, body: {} }),
+  near_miss_proceed: (p) => ({ method: 'POST', path: `/api/jobs/${p.jobId}/near-miss`, body: { caller: p.caller, action: 'proceed' } }),
+  near_miss_pass: (p) => ({ method: 'POST', path: `/api/jobs/${p.jobId}/near-miss`, body: { caller: p.caller, action: 'decline' } }),
+  reconsider_offer: (p) => ({ method: 'POST', path: `/api/jobs/${p.jobId}/reconsider`, body: { caller: p.caller } }),
+  change_deal_terms: (p) => {
+    const { jobId, as, ...body } = p;
+    return { method: 'POST', path: `/api/deals/direct/${jobId}/${as === 'seller' ? 'counter' : 'edit'}`, body };
+  },
 };
 
 const DONE: Partial<Record<ConfirmAction['intent'], string>> = {
@@ -184,6 +207,23 @@ const DONE: Partial<Record<ConfirmAction['intent'], string>> = {
   escalate_dispute: 'Sent to review. A Karwan reviewer will rule.',
   ask_for_payment: 'Asked for payment. The buyer has 72 hours to answer; if they do not, the payment is yours.',
   decline_deal: 'Deal turned down. The buyer has your note.',
+  goods_arrived: 'Arrival recorded. Your review time has started.',
+  review_delivery_myself: 'Done. You review this delivery yourself; your review time has started.',
+  claim_payment: 'Payment claimed. It is on its way to you.',
+  still_reviewing: 'Review time added. The seller sees you are still checking.',
+  delay_appeal: 'Sent. The buyer has to answer or the payment is released to you.',
+  answer_delay_appeal: 'Reason sent. The payment stays held until you release it.',
+  take_back_deal: 'Deal taken back. Anything you paid in comes back to you.',
+  change_deal_terms: 'Sent. The other side sees the new terms.',
+  make_offer: 'Offer sent. The buyer sees it now.',
+  edit_listing: 'Offer updated.',
+  stop_agent_bid: 'Your agent stopped bidding on that request.',
+  confirm_goods_received: 'Confirmed on the trade record.',
+  withdraw_offer: 'Offer withdrawn.',
+  accept_offer: 'Offer taken. The escrow is paid and the deal is live.',
+  near_miss_proceed: 'Done. The deal starts at that price.',
+  near_miss_pass: 'Passed. The request stays open for other offers.',
+  reconsider_offer: 'Brought back. Say go ahead when you are ready.',
   insurance_take_out: 'The wait has started. Ask me to collect it when it ends.',
   insurance_cancel_take_out: 'Kept. It protects your deals again.',
   insurance_collect: 'Collected. It is back in your wallet.',

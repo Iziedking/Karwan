@@ -11,6 +11,23 @@ import {
   buildEscalateDisputeConfirm,
   buildDeclineDealConfirm,
   buildAskForPaymentConfirm,
+  buildGoodsArrivedConfirm,
+  buildReviewDeliveryMyselfConfirm,
+  buildClaimPaymentConfirm,
+  buildStillReviewingConfirm,
+  buildDelayAppealConfirm,
+  buildAnswerDelayAppealConfirm,
+  buildTakeBackDealConfirm,
+  buildChangeDealTermsConfirm,
+  durationText,
+  buildMakeOfferConfirm,
+  buildWithdrawOfferConfirm,
+  buildAcceptSellerOfferConfirm,
+  buildNearMissConfirm,
+  buildReconsiderOfferConfirm,
+  buildEditListingConfirm,
+  buildStopAgentBidConfirm,
+  buildConfirmGoodsReceivedConfirm,
 } from './dealActions.js';
 
 const caller = '0x' + 'a'.repeat(40);
@@ -130,4 +147,105 @@ test('asking for payment is one card that says the buyer gets 72 hours', () => {
   assert.match(card.summary ?? '', /72 hours/);
   assert.deepEqual(card.payload, { jobId: '0xdeal', caller: '0xseller' });
   assert.deepEqual(buildAskForPaymentConfirm({ caller: '0xseller', jobId: '', amountUsdc: '600' }), { error: 'Missing the deal id.' });
+});
+
+test('durations read in minutes on testnet windows and in hours or days on real ones', () => {
+  assert.equal(durationText(300_000), '5 minutes');
+  assert.equal(durationText(600_000), '10 minutes');
+  assert.equal(durationText(3 * 3_600_000), '3 hours');
+  assert.equal(durationText(72 * 3_600_000), '3 days');
+  assert.equal(durationText(24 * 3_600_000), '1 day');
+});
+
+test('goods arrived, reviewing it myself and claiming carry only the caller to the page route', () => {
+  for (const card of [
+    ok(buildGoodsArrivedConfirm({ caller, jobId, amountUsdc: '200', carrier: 'DHL' })),
+    ok(buildReviewDeliveryMyselfConfirm({ caller, jobId, amountUsdc: '200' })),
+    ok(buildClaimPaymentConfirm({ caller, jobId, amountUsdc: '200' })),
+    ok(buildDelayAppealConfirm({ caller, jobId, amountUsdc: '200', responseMs: 300_000 })),
+    ok(buildTakeBackDealConfirm({ caller, jobId, amountUsdc: '200', paidIn: true })),
+  ]) {
+    assert.deepEqual(card.payload, { jobId, caller });
+  }
+  assert.match(ok(buildGoodsArrivedConfirm({ caller, jobId, amountUsdc: '200' })).summary ?? '', /does not pay the seller/);
+  assert.match(ok(buildClaimPaymentConfirm({ caller, jobId, amountUsdc: '200' })).warning ?? '', /cannot be undone/);
+  assert.match(ok(buildDelayAppealConfirm({ caller, jobId, amountUsdc: '200', responseMs: 300_000 })).summary ?? '', /5 minutes/);
+});
+
+test('taking a deal back says whether money comes back', () => {
+  assert.match(ok(buildTakeBackDealConfirm({ caller, jobId, amountUsdc: '200', paidIn: true })).summary ?? '', /200 USDC comes back/);
+  assert.match(ok(buildTakeBackDealConfirm({ caller, jobId, amountUsdc: '200', paidIn: false })).summary ?? '', /no money has moved/);
+  assert.match(ok(buildTakeBackDealConfirm({ caller, jobId, amountUsdc: '200', paidIn: true, missedDeadline: true })).summary ?? '', /deadline passed with nothing delivered/);
+});
+
+test('more review time says how much and refuses once used up', () => {
+  const card = ok(buildStillReviewingConfirm({ caller, jobId, stepMs: 24 * 3_600_000, left: 2 }));
+  assert.match(card.summary ?? '', /1 day/);
+  assert.ok(card.fields.some((f) => f.label === 'Left after this' && f.value === '1'));
+  assert.match((buildStillReviewingConfirm({ caller, jobId, stepMs: 600_000, left: 0 }) as { error: string }).error, /used all/);
+});
+
+test('answering a delay appeal needs a reason the seller sees', () => {
+  assert.deepEqual(ok(buildAnswerDelayAppealConfirm({ caller, jobId, reason: '  Checking the last part  ' })).payload, { jobId, caller, reason: 'Checking the last part' });
+  assert.ok('error' in buildAnswerDelayAppealConfirm({ caller, jobId, reason: '   ' }));
+  assert.ok('error' in buildAnswerDelayAppealConfirm({ caller, jobId, reason: 'x'.repeat(601) }));
+});
+
+test('changing terms is an edit for the buyer and a counter for the seller, and refuses nothing to change', () => {
+  const edit = ok(buildChangeDealTermsConfirm({ caller, jobId, as: 'buyer', currentAmountUsdc: '200', amountUsdc: 250, deadlineDays: 7 }));
+  assert.deepEqual(edit.payload, { jobId, caller, as: 'buyer', dealAmountUsdc: 250, deadlineDays: 7 });
+  assert.equal(edit.title, 'Change the deal');
+  const counter = ok(buildChangeDealTermsConfirm({ caller: seller, jobId, as: 'seller', currentAmountUsdc: '200', terms: ' Two logos ' }));
+  assert.deepEqual(counter.payload, { jobId, caller: seller, as: 'seller', terms: 'Two logos' });
+  assert.equal(counter.title, 'Send a counter');
+  assert.match((buildChangeDealTermsConfirm({ caller, jobId, as: 'buyer', currentAmountUsdc: '200' }) as { error: string }).error, /Say what to change/);
+  assert.ok('error' in buildChangeDealTermsConfirm({ caller, jobId, as: 'buyer', currentAmountUsdc: '200', deadlineDays: 0 }));
+  assert.ok('error' in buildChangeDealTermsConfirm({ caller, jobId, as: 'buyer', currentAmountUsdc: '200', amountUsdc: -1 }));
+});
+
+const NOW = 1_800_000_000;
+const request = { me: seller, jobId, buyerUser: caller, briefText: 'Logo for a bakery', budgetUsdc: '100', requestDeadlineUnix: NOW + 20 * 86_400, jobOpen: true, nowUnix: NOW };
+
+test("a seller's own offer carries the request page body and the request's rules", () => {
+  const card = ok(buildMakeOfferConfirm({ ...request, priceUsdc: 80, deliverInDays: 5, note: ' Two drafts ' }));
+  assert.deepEqual(card.payload, { jobId, priceUsdc: '80', deliverByUnix: NOW + 5 * 86_400, note: 'Two drafts' });
+  const refuse = (over: object) => (buildMakeOfferConfirm({ ...request, priceUsdc: 80, deliverInDays: 5, note: '', ...over }) as { error: string }).error;
+  assert.match(refuse({ me: caller }), /their own request/);
+  assert.match(refuse({ jobOpen: false }), /no longer taking offers/);
+  assert.match(refuse({ priceUsdc: 5000 }), /far above the budget/);
+  assert.match(refuse({ deliverInDays: 90 }), /too long after/);
+  assert.match(refuse({ note: 'x'.repeat(281) }), /280 characters/);
+});
+
+test('withdrawing and taking a seller offer name the offer only by id', () => {
+  assert.deepEqual(ok(buildWithdrawOfferConfirm({ jobId, offerId: 'o1', priceUsdc: '80' })).payload, { jobId, offerId: 'o1' });
+  const take = ok(buildAcceptSellerOfferConfirm({ jobId, offerId: 'o1', sellerLabel: '@ada', priceUsdc: '80', fundedUsdc: '81.6', deliverByUnix: NOW }));
+  assert.deepEqual(take.payload, { jobId, offerId: 'o1' });
+  assert.equal(take.confirmLabel, 'Take it and pay 81.6 USDC');
+  assert.ok(take.fields.some((f) => f.label === 'Paid in with the fee'));
+});
+
+test('a near match goes ahead or passes, and a passed price can be brought back', () => {
+  const go = ok(buildNearMissConfirm({ caller, jobId, decision: 'proceed', askedSide: 'buyer', priceUsdc: '120' }));
+  assert.equal(go.intent, 'near_miss_proceed');
+  assert.match(go.summary ?? '', /outside the limits you set/);
+  const pass = ok(buildNearMissConfirm({ caller, jobId, decision: 'pass', askedSide: 'buyer', priceUsdc: '120' }));
+  assert.equal(pass.intent, 'near_miss_pass');
+  assert.deepEqual(pass.payload, { jobId, caller });
+  assert.deepEqual(ok(buildReconsiderOfferConfirm({ caller, jobId, priceUsdc: '120' })).payload, { jobId, caller });
+});
+
+test('editing an offer sends only what changes, within the offer form limits', () => {
+  const card = ok(buildEditListingConfirm({ caller: seller, listingId: 'lst_1', currentTitle: 'Logos', currentPriceUsdc: '50', askingPriceUsdc: 65 }));
+  assert.deepEqual(card.payload, { listingId: 'lst_1', caller: seller, askingPriceUsdc: 65 });
+  assert.ok(card.fields.some((f) => f.value === '50 to 65 USDC'));
+  assert.match((buildEditListingConfirm({ caller: seller, listingId: 'lst_1', currentTitle: 'Logos', currentPriceUsdc: '50' }) as { error: string }).error, /Say what to change/);
+  assert.ok('error' in buildEditListingConfirm({ caller: seller, listingId: 'lst_1', currentTitle: 'Logos', currentPriceUsdc: '50', title: 'ab' }));
+});
+
+test('stopping an agent bid and confirming goods received carry the page bodies', () => {
+  assert.deepEqual(ok(buildStopAgentBidConfirm({ jobId, briefText: 'Logo' })).payload, { jobId });
+  const pod = ok(buildConfirmGoodsReceivedConfirm({ address: caller, jobId, amountUsdc: '300', podHash: '0x' + '9'.repeat(64) }));
+  assert.deepEqual(pod.payload, { address: caller, invoiceId: jobId, podHash: '0x' + '9'.repeat(64) });
+  assert.match(pod.summary ?? '', /does not pay the seller/);
 });

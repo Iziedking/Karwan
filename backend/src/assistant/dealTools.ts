@@ -22,7 +22,32 @@ import {
   buildEscalateDisputeConfirm,
   buildDeclineDealConfirm,
   buildAskForPaymentConfirm,
+  buildGoodsArrivedConfirm,
+  buildReviewDeliveryMyselfConfirm,
+  buildClaimPaymentConfirm,
+  buildStillReviewingConfirm,
+  buildDelayAppealConfirm,
+  buildAnswerDelayAppealConfirm,
+  buildTakeBackDealConfirm,
+  buildChangeDealTermsConfirm,
+  buildMakeOfferConfirm,
+  buildWithdrawOfferConfirm,
+  buildAcceptSellerOfferConfirm,
+  buildNearMissConfirm,
+  buildReconsiderOfferConfirm,
+  buildEditListingConfirm,
+  buildStopAgentBidConfirm,
+  buildConfirmGoodsReceivedConfirm,
 } from './dealActions.js';
+import { viewOffers } from '../offers/service.js';
+import { listDirectOffers } from '../db/directOffers.js';
+import { getPendingNearMiss } from '../db/nearMiss.js';
+import { getOutOfReach } from '../db/outOfReach.js';
+import { personNames } from '../channels/personName.js';
+import { keccak256, toHex } from 'viem';
+import { listListingsForSeller } from '../db/listings.js';
+import { getAgentWallets } from '../db/agentWallets.js';
+import { getSellerBidFlags } from '../agents/seller.js';
 import { agreementEscrowAddress, readAgreementReviewEnd } from '../chain/agreementEscrowLive.js';
 import { reviewOpenUntil } from '../deals/buyerSilence.js';
 
@@ -66,8 +91,93 @@ async function guarded<T>(name: string, run: () => Promise<T>): Promise<T | { er
 
 const dayOf = (unix?: number) => (unix ? new Date(unix * 1000).toISOString().slice(0, 10) : 'not set');
 
-export function dealStepTools(address: string, actions: AssistantAction[]) {
+/// How the person signs, and the in-process call that writes as them.
+export interface DealStepDeps {
+  signer: 'karwan' | 'wallet';
+  call: (address: string, method: 'GET' | 'POST', path: string, body?: unknown) => Promise<{ status: number; json: Record<string, unknown> }>;
+}
+
+export function dealStepTools(address: string, actions: AssistantAction[], deps: DealStepDeps) {
   return {
+    propose_edit_offer: tool({
+      description:
+        "Prepare a confirm card for a SELLER to change one of their own live offers on the market: the title, the description or the asking price. Use for 'change my offer price to 60', 'update the description of my logo offer'. Call get_my_market_activity first if you need the listingId.",
+      inputSchema: z.object({
+        listingId: z.string().min(1).max(120),
+        title: z.string().max(120).optional(),
+        description: z.string().max(500).optional(),
+        askingPriceUsdc: z.number().positive().max(5_000_000).optional(),
+      }),
+      execute: async ({ listingId, title, description, askingPriceUsdc }) =>
+        guarded('propose_edit_offer', async () => {
+          const mine = listListingsForSeller(address).find((l) => l.id === listingId);
+          if (!mine) return { error: 'That offer is not one of theirs.' };
+          if (mine.cancelledAt) return { error: 'That offer is taken down.' };
+          if (mine.matchedAt) return { error: 'That offer already matched into a deal. Change the deal instead.' };
+          if (mine.expiresAt < Date.now()) return { error: 'That offer has expired. Offer to post it again.' };
+          return offer(actions, buildEditListingConfirm({
+            caller: address,
+            listingId,
+            currentTitle: mine.title,
+            currentPriceUsdc: String(mine.askingPriceUsdc),
+            ...(title ? { title } : {}),
+            ...(description ? { description } : {}),
+            ...(askingPriceUsdc !== undefined ? { askingPriceUsdc } : {}),
+          }));
+        }),
+    }),
+
+    propose_stop_agent_bid: tool({
+      description:
+        "Prepare a confirm card for a SELLER to make their seller agent stop negotiating on one request. Use for 'stop bidding on that', 'tell my agent to drop that request'.",
+      inputSchema: z.object({ jobId: jobIdField.describe('The request id.') }),
+      execute: async ({ jobId }) =>
+        guarded('propose_stop_agent_bid', async () => {
+          const wallets = await getAgentWallets(address);
+          if (!wallets?.sellerAddress || !getSellerBidFlags(jobId, wallets.sellerAddress)) {
+            return { error: 'Their agent is not bidding on that request.' };
+          }
+          return offer(actions, buildStopAgentBidConfirm({ jobId, briefText: getBrief(jobId)?.briefText ?? jobId.slice(0, 10) }));
+        }),
+    }),
+
+    propose_confirm_goods_received: tool({
+      description:
+        "Prepare a confirm card for the BUYER of a goods deal to record on the trade record that the goods reached them, once the seller marked it delivered. It does not pay the seller. Use for 'I got the goods, confirm it', 'sign that I received them'.",
+      inputSchema: z.object({ jobId: jobIdField.describe('The deal id.') }),
+      execute: async ({ jobId }) =>
+        guarded('propose_confirm_goods_received', async () => {
+          const found = await partyDeal(jobId, address);
+          if ('error' in found) return found;
+          const { deal, side } = found;
+          if (side !== 'buyer') return { error: 'Only the buyer confirms the goods were received.' };
+          if (deal.tradeType !== 'goods') return { error: 'This is not a goods deal.' };
+          if (!deal.acceptedAt || !deal.delivered) return { error: 'The seller has not marked the goods delivered yet.' };
+          if (deal.deliveredAt) return { error: 'It is already confirmed on the trade record.' };
+          if (!config.KARWAN_INVOICE_REGISTRY_ADDR) return { error: 'The trade record is not open on this network.' };
+          if (deps.signer === 'wallet') return { error: 'Their own wallet signs this. Offer a button to the deal page, where they confirm it.' };
+          const podHash = keccak256(toHex(`pod:${deal.jobId}:${Date.now()}`));
+          return offer(actions, buildConfirmGoodsReceivedConfirm({ address, jobId, amountUsdc: deal.dealAmountUsdc, podHash }));
+        }),
+    }),
+
+    message_in_deal: tool({
+      description:
+        "Write in the chat of one of their deals, to the other side. Use for 'tell the seller it arrived', 'ask the buyer for the address', 'reply to them on the deal'. A message never moves money or changes the deal. If the chat is closed, say so.",
+      inputSchema: z.object({
+        jobId: jobIdField.describe('The deal id.'),
+        text: z.string().min(1).max(2000),
+      }),
+      execute: async ({ jobId, text }) =>
+        guarded('message_in_deal', async () => {
+          const found = await partyDeal(jobId, address);
+          if ('error' in found) return found;
+          const r = await deps.call(address, 'POST', `/api/chat/${jobId}`, { body: text });
+          if (r.status >= 400) return { sent: false, error: typeof r.json.error === 'string' ? r.json.error : 'The message was not sent.' };
+          return { sent: true, next: 'They see it in the deal chat, with an alert if they turned those on.' };
+        }),
+    }),
+
     list_offers_on_request: tool({
       description:
         "List the offers sellers' agents have made on ONE of the user's own requests: seller name, price and reputation tier. Call this before propose_choose_offer, and whenever they ask 'who offered', 'show me the offers', 'any bids on my request'. Only the request's owner sees offers.",
@@ -325,6 +435,280 @@ export function dealStepTools(address: string, actions: AssistantAction[]) {
             }
           }
           return offer(actions, buildAskForPaymentConfirm({ caller: address, jobId, amountUsdc: deal.dealAmountUsdc }));
+        }),
+    }),
+
+    list_sellers_own_offers: tool({
+      description:
+        "List the offers sellers made THEMSELVES on a request (price, delivery date, note), as the request page shows them. The request's owner sees every live one with what they would pay in; a seller sees only their own. Call before propose_accept_offer or propose_withdraw_offer. Agent bids are listed by list_offers_on_request instead.",
+      inputSchema: z.object({ jobId: jobIdField.describe('The request id.') }),
+      execute: async ({ jobId }) =>
+        guarded('list_sellers_own_offers', async () => {
+          const view = await viewOffers(address, jobId);
+          if (view.role === 'visitor') return { error: 'Sign in to see offers.' };
+          const names = await personNames(view.offers.map((o) => o.sellerUser));
+          return {
+            role: view.role,
+            offers: view.offers.map((o) => ({
+              offerId: o.id,
+              seller: names.get(o.sellerUser) ?? 'A Karwan seller',
+              priceUsdc: o.priceUsdc,
+              ...(o.fundedUsdc ? { paidInWithFeeUsdc: o.fundedUsdc } : {}),
+              deliverBy: new Date(o.deliverByUnix * 1000).toISOString().slice(0, 10),
+              note: o.note,
+            })),
+            note: view.offers.length ? 'Never show offerId. Use it with propose_accept_offer or propose_withdraw_offer.' : 'No live offers from sellers on this request.',
+          };
+        }),
+    }),
+
+    propose_make_offer: tool({
+      description:
+        "Prepare a confirm card for a SELLER to make their own offer on someone else's open request: a price in USDC, how many days to deliver, and a short note to the buyer (280 characters at most). It replaces any bid their agent made there. Use for 'offer 120 on that request', 'I can do it for 80 in 5 days'.",
+      inputSchema: z.object({
+        jobId: jobIdField.describe('The request id.'),
+        priceUsdc: z.number().positive().max(1_000_000),
+        deliverInDays: z.number().int().min(1).max(180).describe('Whole days from now to deliver.'),
+        note: z.string().max(280).default('').describe('Short note to the buyer.'),
+      }),
+      execute: async ({ jobId, priceUsdc, deliverInDays, note }) =>
+        guarded('propose_make_offer', async () => {
+          const brief = getBrief(jobId);
+          const job = getBuyerJob(jobId);
+          if (!brief || !job) return { error: `No open request found with id ${jobId}.` };
+          return offer(actions, buildMakeOfferConfirm({
+            me: address,
+            jobId,
+            buyerUser: brief.postedBy,
+            briefText: brief.briefText,
+            budgetUsdc: job.budgetUsdc,
+            requestDeadlineUnix: job.deadlineUnix,
+            jobOpen: !job.escrowFunded && !job.cancelledAt && !job.expiredAt,
+            priceUsdc,
+            deliverInDays,
+            note,
+            nowUnix: Math.floor(Date.now() / 1000),
+          }));
+        }),
+    }),
+
+    propose_withdraw_offer: tool({
+      description: "Prepare a confirm card for a SELLER to withdraw their own live offer on a request. Use for 'take back my offer', 'withdraw my bid on that'.",
+      inputSchema: z.object({ jobId: jobIdField.describe('The request id.') }),
+      execute: async ({ jobId }) =>
+        guarded('propose_withdraw_offer', async () => {
+          const mine = (await listDirectOffers(jobId)).find((o) => o.sellerUser === address.toLowerCase() && o.state === 'pending');
+          if (!mine) return { error: 'They have no live offer of their own on this request.' };
+          return offer(actions, buildWithdrawOfferConfirm({ jobId, offerId: mine.id, priceUsdc: mine.priceUsdc }));
+        }),
+    }),
+
+    propose_accept_offer: tool({
+      description:
+        "Prepare a confirm card for the BUYER to take an offer a seller made themselves on their request. Confirming pays the escrow from their buying agent and starts the deal. Call list_sellers_own_offers first for the offerId.",
+      inputSchema: z.object({
+        jobId: jobIdField.describe('The request id.'),
+        offerId: z.string().min(1).max(80).describe('The offerId from list_sellers_own_offers.'),
+      }),
+      execute: async ({ jobId, offerId }) =>
+        guarded('propose_accept_offer', async () => {
+          const brief = getBrief(jobId);
+          if (!brief || !isRequestOwner(address, brief)) return { error: 'Only the person who posted the request takes an offer on it.' };
+          const view = await viewOffers(address, jobId);
+          const o = view.offers.find((x) => x.id === offerId);
+          if (!o) return { error: 'That offer is no longer open. Call list_sellers_own_offers again.' };
+          const names = await personNames([o.sellerUser]);
+          return offer(actions, buildAcceptSellerOfferConfirm({
+            jobId,
+            offerId,
+            sellerLabel: names.get(o.sellerUser) ?? 'the seller',
+            priceUsdc: o.priceUsdc,
+            ...(o.fundedUsdc ? { fundedUsdc: o.fundedUsdc } : {}),
+            deliverByUnix: o.deliverByUnix,
+          }));
+        }),
+    }),
+
+    propose_near_match: tool({
+      description:
+        "A near match: the agents got close but outside the limits, and this person is asked whether to go ahead at the price reached. 'proceed' starts the deal and pays the escrow at that price; 'pass' declines and keeps the request open. 'bring_back' is for a BUYER who passed: the same price comes back so they can go ahead after all. Use for 'go ahead at that price', 'no, keep looking', 'actually I'll take the one I passed'.",
+      inputSchema: z.object({
+        jobId: jobIdField.describe('The request id.'),
+        decision: z.enum(['proceed', 'pass', 'bring_back']),
+      }),
+      execute: async ({ jobId, decision }) =>
+        guarded('propose_near_match', async () => {
+          const me = address.toLowerCase();
+          if (decision === 'bring_back') {
+            const rec = getOutOfReach(jobId);
+            if (!rec?.passed) return { error: 'There is no passed price on this request to bring back.' };
+            if (rec.passed.buyerUser.toLowerCase() !== me) return { error: 'Only the buyer can bring back the price they passed.' };
+            if (getPendingNearMiss(jobId)) return { error: 'A near match is already waiting. Answer it with proceed or pass.' };
+            return offer(actions, buildReconsiderOfferConfirm({ caller: address, jobId, priceUsdc: rec.passed.proceedPriceUsdc }));
+          }
+          const nm = getPendingNearMiss(jobId);
+          if (!nm) return { error: 'There is no near match waiting on this request.' };
+          if (nm.askedUser !== me) return { error: 'This near match is waiting on the other side, not them.' };
+          return offer(actions, buildNearMissConfirm({ caller: address, jobId, decision, askedSide: nm.askedSide, priceUsdc: nm.proceedPriceUsdc }));
+        }),
+    }),
+
+    propose_goods_arrived: tool({
+      description:
+        "Prepare a confirm card for the BUYER to say the goods on a shipped deal have arrived. It starts their review time; it does not pay the seller. Use for 'the goods came', 'it arrived', 'I got the package'.",
+      inputSchema: z.object({ jobId: jobIdField.describe('The deal id.') }),
+      execute: async ({ jobId }) =>
+        guarded('propose_goods_arrived', async () => {
+          const found = await partyDeal(jobId, address);
+          if ('error' in found) return found;
+          const { deal, side } = found;
+          if (side !== 'buyer') return { error: 'Only the buyer says the goods arrived.' };
+          if (deal.settledAt || deal.cancelledAt) return { error: 'That deal is closed.' };
+          if (!deal.shipment) return { error: 'This deal has no shipment yet. The seller adds it when they send the goods.' };
+          if (deal.shipment.arrivedAt) return { error: 'Arrival is already recorded on this deal.' };
+          return offer(actions, buildGoodsArrivedConfirm({ caller: address, jobId, amountUsdc: deal.dealAmountUsdc, ...(deal.shipment.carrierName ? { carrier: deal.shipment.carrierName } : {}) }));
+        }),
+    }),
+
+    propose_review_delivery_myself: tool({
+      description:
+        "Prepare a confirm card for the BUYER to check a delivery themselves when Karwan's delivery check has not answered, so the deal is not stuck. It skips the check for this delivery only and starts their review time. Use for 'the check is stuck', 'let me review it myself'.",
+      inputSchema: z.object({ jobId: jobIdField.describe('The deal id.') }),
+      execute: async ({ jobId }) =>
+        guarded('propose_review_delivery_myself', async () => {
+          const found = await partyDeal(jobId, address);
+          if ('error' in found) return found;
+          const { deal, side } = found;
+          if (side !== 'buyer') return { error: 'Only the buyer can review the delivery themselves.' };
+          if (deal.settledAt || deal.cancelledAt) return { error: 'That deal is closed.' };
+          if (!deal.delivered) return { error: 'The seller has not marked the work delivered yet.' };
+          if (deal.releaseBlockedReason !== 'evidence-unavailable') return { error: 'The delivery check is not stuck on this deal, so there is nothing to take over.' };
+          return offer(actions, buildReviewDeliveryMyselfConfirm({ caller: address, jobId, amountUsdc: deal.dealAmountUsdc }));
+        }),
+    }),
+
+    propose_claim_payment: tool({
+      description:
+        "Prepare a confirm card for the SELLER to claim the next payment on a deal held by the earlier escrow, once the buyer's review time ended with no release and no problem raised. On a deal held by the new escrow use propose_ask_for_payment instead. Use for 'claim my payment', 'the buyer never released'.",
+      inputSchema: z.object({ jobId: jobIdField.describe('The deal id.') }),
+      execute: async ({ jobId }) =>
+        guarded('propose_claim_payment', async () => {
+          const found = await partyDeal(jobId, address);
+          if ('error' in found) return found;
+          const { deal, side } = found;
+          if (side !== 'seller') return { error: 'Only the seller claims a payment. The buyer releases it.' };
+          if (deal.escrowVersion === 'suite') return { error: 'This deal is on the new escrow. Use propose_ask_for_payment.' };
+          if (deal.settledAt || deal.cancelledAt) return { error: 'That deal is closed.' };
+          if (deal.disputed) return { error: 'This deal has an open dispute, so nothing can be claimed.' };
+          if (!deal.delivered) return { error: 'Mark the work delivered first.' };
+          return offer(actions, buildClaimPaymentConfirm({ caller: address, jobId, amountUsdc: deal.dealAmountUsdc }));
+        }),
+    }),
+
+    propose_more_review_time: tool({
+      description:
+        "Prepare a confirm card for the BUYER to add review time on a delivered deal because they are still checking it. Each deal allows a few additions. Use for 'I need more time to check', 'I'm still reviewing'.",
+      inputSchema: z.object({ jobId: jobIdField.describe('The deal id.') }),
+      execute: async ({ jobId }) =>
+        guarded('propose_more_review_time', async () => {
+          const found = await partyDeal(jobId, address);
+          if ('error' in found) return found;
+          const { deal, side } = found;
+          if (side !== 'buyer') return { error: 'Only the buyer adds review time.' };
+          if (deal.settledAt || deal.cancelledAt) return { error: 'That deal is closed.' };
+          if (!deal.reviewWindowStartedAt) return { error: 'Their review time has not started on this deal.' };
+          const terms = deal.escrowVersion === 'v3' || deal.escrowVersion === 'suite'
+            ? (deal.escrowTerms as { maxExtensions?: number; extensionSecs?: number } | undefined)
+            : undefined;
+          const max = terms?.maxExtensions ?? config.DEAL_MAX_REVIEW_EXTENSIONS;
+          const stepMs = terms?.extensionSecs !== undefined ? terms.extensionSecs * 1000 : config.DEAL_REVIEW_EXTENSION_MS;
+          return offer(actions, buildStillReviewingConfirm({ caller: address, jobId, stepMs, left: max - (deal.reviewExtensionCount ?? 0) }));
+        }),
+    }),
+
+    propose_delay_appeal: tool({
+      description:
+        "The buyer is sitting on a release. SELLER: action 'raise' asks the buyer to release; with no answer in the response window the payment is released to the seller. BUYER: action 'answer' replies to an open appeal with a reason, which keeps the payment held. Use for 'the buyer is not releasing', 'tell them why I'm waiting'.",
+      inputSchema: z.object({
+        jobId: jobIdField.describe('The deal id.'),
+        action: z.enum(['raise', 'answer']),
+        reason: z.string().max(600).optional().describe("The buyer's reason; 'answer' only."),
+      }),
+      execute: async ({ jobId, action, reason }) =>
+        guarded('propose_delay_appeal', async () => {
+          const found = await partyDeal(jobId, address);
+          if ('error' in found) return found;
+          const { deal, side } = found;
+          if (deal.settledAt || deal.cancelledAt || deal.disputed) return { error: 'That deal is closed or in dispute.' };
+          const open = (deal.delayAppealRaisedAt ?? 0) > (deal.delayAppealRespondedAt ?? 0);
+          if (action === 'raise') {
+            if (side !== 'seller') return { error: 'Only the seller asks the buyer to release.' };
+            if (!deal.reviewWindowStartedAt) return { error: 'No payment has been released yet, so there is nothing to appeal.' };
+            if (open) return { error: 'An appeal is already waiting on the buyer.' };
+            const eligibleAt = (deal.lastReleaseAt ?? deal.reviewWindowStartedAt) + config.DEAL_DELAY_APPEAL_GRACE_MS;
+            if (Date.now() < eligibleAt) return { error: `Too early. The buyer has until ${new Date(eligibleAt).toUTCString()} first.` };
+            return offer(actions, buildDelayAppealConfirm({ caller: address, jobId, amountUsdc: deal.dealAmountUsdc, responseMs: config.DEAL_DELAY_APPEAL_RESPONSE_MS }));
+          }
+          if (side !== 'buyer') return { error: 'Only the buyer answers an appeal.' };
+          if (!open) return { error: 'There is no appeal waiting on this deal.' };
+          if (Date.now() > (deal.delayAppealRaisedAt ?? 0) + config.DEAL_DELAY_APPEAL_RESPONSE_MS) return { error: 'The time to answer has passed.' };
+          return offer(actions, buildAnswerDelayAppealConfirm({ caller: address, jobId, reason: reason ?? '' }));
+        }),
+    }),
+
+    propose_take_back_deal: tool({
+      description:
+        "Prepare a confirm card for the BUYER to take back a direct deal the seller has not accepted, or one whose delivery deadline passed with nothing delivered. Any money they paid in comes back. Use for 'take it back', 'I changed my mind', 'they never delivered, I want my money back'. While the seller is working within the deadline, use propose_cancel_deal.",
+      inputSchema: z.object({ jobId: jobIdField.describe('The deal id.') }),
+      execute: async ({ jobId }) =>
+        guarded('propose_take_back_deal', async () => {
+          const found = await partyDeal(jobId, address);
+          if ('error' in found) return found;
+          const { deal, side } = found;
+          if (side !== 'buyer') return { error: 'Only the buyer takes a deal back. The seller can turn it down with propose_decline_deal.' };
+          if (deal.cancelledAt || deal.settledAt || deal.disputed) return { error: 'That deal is no longer open.' };
+          if (deal.delivered) return { error: 'The seller already delivered. Release it, or raise a problem.' };
+          const missedDeadline = !!deal.acceptedAt && !!deal.deadlineUnix && Date.now() >= deal.deadlineUnix * 1000;
+          const onEscrowFamily = deal.escrowVersion === 'v3' || deal.escrowVersion === 'suite';
+          if (deal.acceptedAt && !missedDeadline && !onEscrowFamily) {
+            return { error: 'The seller is working on it and the deadline has not passed. Propose cancelling with propose_cancel_deal instead.' };
+          }
+          return offer(actions, buildTakeBackDealConfirm({
+            caller: address,
+            jobId,
+            amountUsdc: deal.dealAmountUsdc,
+            paidIn: !!deal.acceptedAt || !!deal.escrowDealId,
+            missedDeadline,
+          }));
+        }),
+    }),
+
+    propose_change_deal_terms: tool({
+      description:
+        "Change a direct deal before anything is paid in. The BUYER edits their deal; the SELLER sends a counter. Any of: the price in USDC, what is delivered, the days to deliver from now. Use for 'make it 250', 'counter with 3 logos', 'give me 10 days'.",
+      inputSchema: z.object({
+        jobId: jobIdField.describe('The deal id.'),
+        amountUsdc: z.number().positive().max(1_000_000).optional().describe('The new price in USDC.'),
+        terms: z.string().max(4000).optional().describe('The full new description of what is delivered.'),
+        deadlineDays: z.number().int().min(1).max(180).optional().describe('Days to deliver, counted from now.'),
+      }),
+      execute: async ({ jobId, amountUsdc, terms, deadlineDays }) =>
+        guarded('propose_change_deal_terms', async () => {
+          const found = await partyDeal(jobId, address);
+          if ('error' in found) return found;
+          const { deal, side } = found;
+          if (deal.acceptedAt) return { error: 'Money is already in this deal, so its terms are locked.' };
+          if (deal.cancelledAt || deal.settledAt) return { error: 'That deal is no longer open.' };
+          if (side === 'seller' && deal.pendingCounterparty) return { error: 'Accept the invite to this deal first.' };
+          return offer(actions, buildChangeDealTermsConfirm({
+            caller: address,
+            jobId,
+            as: side,
+            currentAmountUsdc: deal.dealAmountUsdc,
+            ...(amountUsdc !== undefined ? { amountUsdc } : {}),
+            ...(terms ? { terms } : {}),
+            ...(deadlineDays !== undefined ? { deadlineDays } : {}),
+          }));
         }),
     }),
 

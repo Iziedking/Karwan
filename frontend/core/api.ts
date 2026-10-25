@@ -1896,7 +1896,24 @@ export interface AssistantConfirmAction {
     | 'create_direct_deal'
     | 'fund_direct_deal'
     | 'set_up_record'
-    | 'ask_for_payment';
+    | 'ask_for_payment'
+    | 'goods_arrived'
+    | 'review_delivery_myself'
+    | 'claim_payment'
+    | 'still_reviewing'
+    | 'delay_appeal'
+    | 'answer_delay_appeal'
+    | 'take_back_deal'
+    | 'change_deal_terms'
+    | 'make_offer'
+    | 'withdraw_offer'
+    | 'accept_offer'
+    | 'near_miss_proceed'
+    | 'near_miss_pass'
+    | 'reconsider_offer'
+    | 'edit_listing'
+    | 'stop_agent_bid'
+    | 'confirm_goods_received';
   title: string;
   summary?: string;
   /// Stark line for irreversible/money-moving actions (release). Absent on post_offer.

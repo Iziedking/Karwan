@@ -2576,7 +2576,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
       },
     }),
 
-    ...dealStepTools(address, actions),
+    ...dealStepTools(address, actions, { signer: method === 'circle' ? 'karwan' : 'wallet', call: callAsAccount }),
     ...verificationTools(address),
     ...chatTools(address, liveChatToolDeps),
     ...locationTools(address, liveLocationToolDeps),

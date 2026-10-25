@@ -26,7 +26,7 @@
       "id": "assistant-mode-and-help",
       "title": "Assistant mode and Help",
       "status": "roadmap",
-      "updated": "2026-10-24",
+      "updated": "2026-10-25",
       "tags": [
         "agents",
         "assistant",
@@ -44,10 +44,10 @@
         },
         {
           "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/31-assistant-does-everything.md",
-          "date": "2026-10-24"
+          "date": "2026-10-25"
         }
       ],
-      "body": "With Use assistant switched on, the whole account runs from one\nconversation. You say what you want, your agent prepares it as a card, and\nnothing moves until you confirm the card. Conversations are kept on your\naccount. A card from an earlier conversation shows whether it was done and\ncan never be confirmed again.\n\nA deal is built the same way. Name the person and say what the deal is\nfor; the agent asks only for what is missing, such as the amount and when it\nis due, says the usual terms in one line, and shows one card with every term,\ngoods terms included. Sending it moves no money. Once the other person\naccepts, the payment card appears in the same conversation and in your\nalerts, and the money moves only when you confirm it.\n\nDeal insurance works the same way. Ask to take it out and the card shows the\namount, the 7-day wait and the day you can collect it; while it waits it no\nlonger protects your deals. You can ask to cancel the wait, and to collect it\nonce the wait ends. Karwan is adding every other action in the app to the\nassistant the same way, so anything you can do on a page you can ask for.\nThe few steps that need your own device, such as a passkey, your Karwan PIN\nor a World ID check, open their page instead.\n\nA picture or PDF can be picked, pasted or dragged into the message box. It\nwaits there until you send, and shows in your message with the words you\ntyped beside it.\n\nHelp answers how things work and what went wrong, from what your account\nshows. A person from the Karwan team joins the same conversation when you\nask for one, or when the assistant cannot do it, with the conversation so\nfar, so you do not repeat yourself.\n\nThis is built for testnet and not live yet."
+      "body": "With Use assistant switched on, the whole account runs from one\nconversation. You say what you want, your agent prepares it as a card, and\nnothing moves until you confirm the card. Conversations are kept on your\naccount. A card from an earlier conversation shows whether it was done and\ncan never be confirmed again.\n\nA deal is built the same way. Name the person and say what the deal is\nfor; the agent asks only for what is missing, such as the amount and when it\nis due, says the usual terms in one line, and shows one card with every term,\ngoods terms included. Sending it moves no money. Once the other person\naccepts, the payment card appears in the same conversation and in your\nalerts, and the money moves only when you confirm it.\n\nDeal insurance works the same way. Ask to take it out and the card shows the\namount, the 7-day wait and the day you can collect it; while it waits it no\nlonger protects your deals. You can ask to cancel the wait, and to collect it\nonce the wait ends.\n\nEvery step of a deal after it starts works the same way. You can change a\ndeal or counter it before money is in, take back a deal the seller has not\naccepted, say the goods arrived, add review time, check a delivery yourself\nwhen the delivery check has not answered, claim a payment the buyer left in\nsilence, ask a buyer to release, or answer that ask. On requests you can\nmake your own offer, withdraw it, take a seller's offer, and go ahead or pass\non a near match. You can edit your offer on the market, stop your agent\nbidding on a request, and write in a deal's chat. In Telegram, the steps\nthat pay out or pay in open the Karwan page, where you confirm them.\n\nKarwan is adding the remaining money and account actions to the assistant\nthe same way, so anything you can do on a page you can ask for.\nThe few steps that need your own device, such as a passkey, your Karwan PIN\nor a World ID check, open their page instead.\n\nA picture or PDF can be picked, pasted or dragged into the message box. It\nwaits there until you send, and shows in your message with the words you\ntyped beside it.\n\nHelp answers how things work and what went wrong, from what your account\nshows. A person from the Karwan team joins the same conversation when you\nask for one, or when the assistant cannot do it, with the conversation so\nfar, so you do not repeat yourself.\n\nThis is built for testnet and not live yet."
     },
     {
       "id": "brand-colour",
@@ -727,11 +727,11 @@
         },
         {
           "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/31-assistant-does-everything.md",
-          "date": "2026-10-24"
+          "date": "2026-10-25"
         }
       ],
       "check": null,
-      "updated": "2026-10-24",
+      "updated": "2026-10-25",
       "path": "public/product/assistant-mode-and-help.md"
     },
     {

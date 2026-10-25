@@ -873,8 +873,102 @@ async function runConfirmIntent(
     await api.declineDirectDeal(p.jobId, { caller: p.caller, note: p.note });
     return { successText: 'Deal turned down. The buyer has your note.', viewHref: `/deals/${p.jobId}`, viewLabel: 'Open the deal' };
   }
+  if (action.intent === 'edit_listing') {
+    const p = action.payload as { listingId: string; caller: string; title?: string; description?: string; askingPriceUsdc?: number };
+    const { listingId, caller, ...patch } = p;
+    await api.editListing(listingId, caller, patch);
+    return { successText: 'Offer updated.', viewHref: '/seller', viewLabel: 'Your offers' };
+  }
+  if (action.intent === 'stop_agent_bid') {
+    const p = action.payload as { jobId: string };
+    await api.abandonBid(p.jobId);
+    return { successText: 'Your agent stopped bidding on that request.', viewHref: '/seller', viewLabel: 'Your bids' };
+  }
+  if (action.intent === 'confirm_goods_received') {
+    const p = action.payload as { address: string; invoiceId: string; podHash: string };
+    const r = await api.acceptTradePodCircle({ address: p.address as `0x${string}`, invoiceId: p.invoiceId, podHash: p.podHash as `0x${string}` });
+    return { successText: 'Confirmed on the trade record.', viewHref: `/deals/${p.invoiceId}`, viewLabel: 'Open the deal', txHash: r.txHash };
+  }
+  if (REQUEST_PAGE_STEP[action.intent]) {
+    const p = action.payload as RequestStepPayload;
+    const r = await REQUEST_PAGE_STEP[action.intent]!(p);
+    const txHash = (r as { txHash?: string }).txHash;
+    return {
+      successText: REQUEST_PAGE_DONE[action.intent]!,
+      viewHref: `/jobs/${p.jobId}`,
+      viewLabel: 'Open the request',
+      ...(txHash ? { txHash } : {}),
+    };
+  }
+  if (DEAL_PAGE_STEP[action.intent]) {
+    const p = action.payload as { jobId: string; caller: string; reason?: string; as?: 'buyer' | 'seller' } & Record<string, unknown>;
+    const r = await DEAL_PAGE_STEP[action.intent]!(p);
+    const txHash = (r as { txHash?: string }).txHash;
+    return {
+      successText: DEAL_PAGE_DONE[action.intent]!,
+      viewHref: `/deals/${p.jobId}`,
+      viewLabel: 'Open the deal',
+      ...(txHash ? { txHash } : {}),
+    };
+  }
   throw new Error('Unknown action');
 }
+
+type DealStepPayload = { jobId: string; caller: string; reason?: string; as?: 'buyer' | 'seller' } & Record<string, unknown>;
+
+/// Deal page steps the assistant runs as they are: one route, the caller, and
+/// for a change of terms the side decides edit or counter.
+const DEAL_PAGE_STEP: Partial<Record<AssistantConfirmAction['intent'], (p: DealStepPayload) => Promise<unknown>>> = {
+  goods_arrived: (p) => api.confirmGoodsArrived(p.jobId, p.caller),
+  review_delivery_myself: (p) => api.reviewDeliveryManually(p.jobId, p.caller),
+  claim_payment: (p) => api.claimDirectDeal(p.jobId, p.caller),
+  still_reviewing: (p) => api.stillReviewing(p.jobId, p.caller),
+  delay_appeal: (p) => api.raiseDelayAppeal(p.jobId, p.caller),
+  answer_delay_appeal: (p) => api.respondToDelayAppeal(p.jobId, p.caller, p.reason ?? ''),
+  take_back_deal: (p) => api.cancelDirectDeal(p.jobId, p.caller),
+  change_deal_terms: (p) => {
+    const body = {
+      caller: p.caller,
+      ...(typeof p.dealAmountUsdc === 'number' ? { dealAmountUsdc: p.dealAmountUsdc } : {}),
+      ...(typeof p.terms === 'string' ? { terms: p.terms } : {}),
+      ...(typeof p.deadlineDays === 'number' ? { deadlineDays: p.deadlineDays } : {}),
+    };
+    return p.as === 'seller' ? api.counterDirectDeal(p.jobId, body) : api.editDirectDeal(p.jobId, body);
+  },
+};
+
+const DEAL_PAGE_DONE: Partial<Record<AssistantConfirmAction['intent'], string>> = {
+  goods_arrived: 'Arrival recorded. Your review time has started.',
+  review_delivery_myself: 'Done. You review this delivery yourself; your review time has started.',
+  claim_payment: 'Payment claimed. It is on its way to you.',
+  still_reviewing: 'Review time added. The seller sees you are still checking.',
+  delay_appeal: 'Sent. The buyer has to answer or the payment is released to you.',
+  answer_delay_appeal: 'Reason sent. The payment stays held until you release it.',
+  take_back_deal: 'Deal taken back. Anything you paid in comes back to you.',
+  change_deal_terms: 'Sent. The other side sees the new terms.',
+};
+
+type RequestStepPayload = { jobId: string; caller?: string; offerId?: string; priceUsdc?: string; deliverByUnix?: number; note?: string };
+
+/// Steps on a request page: a seller's own offer, the buyer taking one, and
+/// answering a near match.
+const REQUEST_PAGE_STEP: Partial<Record<AssistantConfirmAction['intent'], (p: RequestStepPayload) => Promise<unknown>>> = {
+  make_offer: (p) => api.createOffer(p.jobId, { priceUsdc: p.priceUsdc ?? '', deliverByUnix: p.deliverByUnix ?? 0, note: p.note ?? '' }),
+  withdraw_offer: (p) => api.withdrawOffer(p.jobId, p.offerId ?? ''),
+  accept_offer: (p) => api.acceptOffer(p.jobId, p.offerId ?? ''),
+  near_miss_proceed: (p) => api.proceedNearMiss(p.jobId, p.caller ?? ''),
+  near_miss_pass: (p) => api.declineNearMiss(p.jobId, p.caller ?? ''),
+  reconsider_offer: (p) => api.reconsiderPassed(p.jobId, p.caller ?? ''),
+};
+
+const REQUEST_PAGE_DONE: Partial<Record<AssistantConfirmAction['intent'], string>> = {
+  make_offer: 'Offer sent. The buyer sees it now.',
+  withdraw_offer: 'Offer withdrawn.',
+  accept_offer: 'Offer taken. The escrow is paid and the deal is live.',
+  near_miss_proceed: 'Done. The deal starts at that price.',
+  near_miss_pass: 'Passed. The request stays open for other offers.',
+  reconsider_offer: 'Brought back. Say go ahead when you are ready.',
+};
 
 /// A propose->confirm card for a reversible write. Nothing happens until the user
 /// taps Confirm; then it calls the intent's existing route. The card is
@@ -889,6 +983,23 @@ const DEAL_STEP_BUSY: Partial<Record<AssistantConfirmAction['intent'], string>> 
   dispute_statement: 'Submitting…',
   escalate_dispute: 'Sending…',
   decline_deal: 'Sending…',
+  goods_arrived: 'Saving…',
+  review_delivery_myself: 'Saving…',
+  claim_payment: 'Claiming…',
+  still_reviewing: 'Saving…',
+  delay_appeal: 'Sending…',
+  answer_delay_appeal: 'Sending…',
+  take_back_deal: 'Sending…',
+  change_deal_terms: 'Sending…',
+  make_offer: 'Sending…',
+  edit_listing: 'Saving…',
+  stop_agent_bid: 'Saving…',
+  confirm_goods_received: 'Confirming…',
+  withdraw_offer: 'Withdrawing…',
+  accept_offer: 'Paying in…',
+  near_miss_proceed: 'Starting…',
+  near_miss_pass: 'Saving…',
+  reconsider_offer: 'Saving…',
 };
 
 function ConfirmCard({
