@@ -88,3 +88,29 @@ test("taking a seller's own offer from the assistant runs the request page route
   await expect(page.getByText('Offer taken. The escrow is paid and the deal is live.')).toBeVisible();
   expect(accepted).toBe(1);
 });
+
+test('paying a payment link from the assistant sends from the balance, then marks the link paid', async ({ page }) => {
+  const TOKEN = '6f1c2a3b-0000-4000-8000-000000000000';
+  const ADA = `0x${'b'.repeat(40)}`;
+  const TX = `0x${'e'.repeat(64)}`;
+  const sent: unknown[] = [];
+  const reported: unknown[] = [];
+  await serveMoney(page, { balances: funded });
+  await page.route(`${API}/api/cashout/arc-send`, (route) => {
+    sent.push(route.request().postDataJSON());
+    return route.fulfill({ json: { ok: true, txHash: TX, explorerUrl: '', reference: 'KWN-1', movementState: 'completed' } });
+  });
+  await page.route(`${API}/api/deposit/requests/${TOKEN}/paid`, (route) => {
+    reported.push(route.request().postDataJSON());
+    return route.fulfill({ json: { request: { requestId: TOKEN, status: 'matched' } } });
+  });
+  await assistantWith(page, {
+    kind: 'confirm', id: `pay_payment_link:${TOKEN}:n1`, intent: 'pay_payment_link', title: 'Pay @ada 25.00 USDC',
+    summary: 'Paid from your balance straight to them. This is not a protected deal.', fields: [{ label: 'Amount', value: '25.00 USDC' }],
+    payload: { token: TOKEN, recipient: ADA, amountUsdc: 25 }, confirmLabel: 'Pay 25.00 USDC', cancelLabel: 'Not now',
+  });
+  await page.getByRole('button', { name: 'Pay 25.00 USDC' }).click();
+  await expect(page.getByText('Paid. They see it on their payment link.')).toBeVisible();
+  expect(sent).toEqual([{ recipient: ADA, amountUsdc: 25, bridgeId: `pay-pay_payment_link-${TOKEN}-n1` }]);
+  expect(reported).toEqual([{ txHash: TX, chain: 'Arc' }]);
+});

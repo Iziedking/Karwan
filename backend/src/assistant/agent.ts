@@ -46,6 +46,8 @@ import { readSourceUsdcBalance } from '../chain/cctpClients.js';
 import { readSolanaHolding } from '../chain/solanaBalances.js';
 import { lookupPlatformGuide } from './platformGuide.js';
 import { dealStepTools, dealStepPendingLines } from './dealTools.js';
+import { moneyTools } from './moneyTools.js';
+import { personNameOf } from '../channels/personName.js';
 import { verificationTools } from './verificationTools.js';
 import { chatTools, liveChatToolDeps } from './chatTools.js';
 import { recordSetupCard } from './recordCard.js';
@@ -1606,9 +1608,6 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
       }),
       execute: async ({ amountUsdc }) => {
         try {
-          if (method !== 'circle') {
-            return { error: 'Staking moves their own identity wallet, which they self-custody, so they sign it themselves. Send them to the stake screen with propose_navigation (destination "stake") and frame it as them keeping custody.' };
-          }
           const balance = Number(formatUnits(await readUsdcBalance(address), USDC_DECIMALS));
           if (balance < amountUsdc) {
             return { error: `Their wallet holds ${balance.toFixed(2)} USDC, less than the ${amountUsdc} they want to stake. Tell them the real balance and offer to bring more over (check_top_up_sources).` };
@@ -1618,6 +1617,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
             amountUsdc,
             walletAfterUsdc: (balance - amountUsdc).toFixed(2),
             cooldownLabel: `${await vaultWaitDays()} day`,
+            signer: method === 'circle' ? 'karwan' : 'wallet',
           });
           if ('error' in built) return built;
           if (!hasEquivalentConfirm(actions, built)) actions.push(built);
@@ -2577,6 +2577,13 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
     }),
 
     ...dealStepTools(address, actions, { signer: method === 'circle' ? 'karwan' : 'wallet', call: callAsAccount }),
+    ...moneyTools(address, actions, {
+      call: callAsAccount,
+      signer: method === 'circle' ? 'karwan' : 'wallet',
+      testnet: config.ARC_NETWORK === 'testnet',
+      walletUsdc: () => readUsdcBalance(address).then((b) => Number(formatUnits(b, USDC_DECIMALS))).catch(() => null),
+      nameOf: (who) => personNameOf(who),
+    }),
     ...verificationTools(address),
     ...chatTools(address, liveChatToolDeps),
     ...locationTools(address, liveLocationToolDeps),

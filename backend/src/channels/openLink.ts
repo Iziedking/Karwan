@@ -17,6 +17,7 @@ const OPENABLE: readonly RegExp[] = [
   /^\/account$/,
   /^\/stake$/,
   /^\/financier$/,
+  /^\/deposit\/request\/[0-9a-f-]{36}$/,
   /^\/bridge\?direction=(in|out)$/,
   new RegExp(`^/deals/${ID}$`),
   new RegExp(`^/jobs/${ID}$`),

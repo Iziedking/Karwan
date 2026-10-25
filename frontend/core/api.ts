@@ -1913,7 +1913,16 @@ export interface AssistantConfirmAction {
     | 'reconsider_offer'
     | 'edit_listing'
     | 'stop_agent_bid'
-    | 'confirm_goods_received';
+    | 'confirm_goods_received'
+    | 'pay_payment_link'
+    | 'test_usdc'
+    | 'test_usdc_on_chain'
+    | 'recheck_money_move'
+    | 'retry_money_move'
+    | 'cancel_money_move'
+    | 'recheck_payout'
+    | 'pause_money_out'
+    | 'remove_payout_address';
   title: string;
   summary?: string;
   /// Stark line for irreversible/money-moving actions (release). Absent on post_offer.

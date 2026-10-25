@@ -314,3 +314,29 @@ test('editing an offer, stopping a bid and confirming goods received run the pag
     { method: 'POST', path: '/api/trade/pod/accept-circle', body: { address: ME, invoiceId: JOB, podHash: '0xab' } },
   ]);
 });
+
+test('money steps run their page routes, and removing an address is a DELETE', async () => {
+  const JOB = `0x${'5'.repeat(64)}`;
+  const { execute, calls } = setup(() => ({ status: 200, json: { ok: true } }));
+  await execute({ address: ME }, action('test_usdc', { address: ME, target: 'buyer' }));
+  await execute({ address: ME }, action('test_usdc_on_chain', { address: ME, chain: 'baseSepolia' }));
+  await execute({ address: ME }, action('recheck_money_move', { bridgeId: 'b-1', step: 'recheck' }));
+  await execute({ address: ME }, action('recheck_money_move', { bridgeId: 'b-2', step: 'resume' }, 'rm2'));
+  await execute({ address: ME }, action('retry_money_move', { intentId: 'i-1' }));
+  await execute({ address: ME }, action('cancel_money_move', { intentId: 'i-2' }));
+  await execute({ address: ME }, action('recheck_payout', { jobId: JOB, caller: ME, reference: 'KWN-1' }));
+  await execute({ address: ME }, action('pause_money_out', {}));
+  const removed = await execute({ address: ME }, action('remove_payout_address', { addressId: 'a-1' }));
+  assert.deepEqual(calls, [
+    { method: 'POST', path: '/api/activation/faucet', body: { address: ME, target: 'buyer' } },
+    { method: 'POST', path: '/api/activation/fund-source', body: { address: ME, chain: 'baseSepolia' } },
+    { method: 'POST', path: '/api/bridge/b-1/recheck', body: {} },
+    { method: 'POST', path: '/api/bridge/circle-bridge/b-2/resume', body: {} },
+    { method: 'POST', path: '/api/money/intents/i-1/retry', body: {} },
+    { method: 'POST', path: '/api/money/intents/i-2/cancel', body: {} },
+    { method: 'POST', path: `/api/deals/direct/${JOB}/payouts/KWN-1/reconcile`, body: { caller: ME } },
+    { method: 'POST', path: '/api/money-out/pause', body: {} },
+    { method: 'DELETE', path: '/api/money-out/addresses/a-1', body: undefined },
+  ]);
+  assert.deepEqual(removed, { ok: true, summary: 'Address removed.' });
+});

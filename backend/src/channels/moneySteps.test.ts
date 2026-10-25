@@ -11,7 +11,7 @@ const card = (intent: string, payload: Record<string, unknown> = {}) => ({ kind:
 test('every money step has a page, and each page can be opened by a one-time link', async () => {
   const links = createOpenLinks({ now: () => 0, newToken: () => 'tok', put: async () => {}, take: async () => null });
   for (const intent of MONEY_INTENTS) {
-    const path = moneyStepPath(card(intent, { jobId: JOB }));
+    const path = moneyStepPath(card(intent, { jobId: JOB, token: '6f1c2a3b-0000-4000-8000-000000000000' }));
     assert.ok(path, intent);
     assert.ok(await links.mint('0xada', path), `${intent} -> ${path}`);
   }

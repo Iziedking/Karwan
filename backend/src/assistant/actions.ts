@@ -3,6 +3,7 @@ import type { AgentWays } from '../agents/ways.js';
 import type { DeliveryKind, Where } from '../location/rules.js';
 import type { BriefAnswers } from '../agents/agentBriefLines.js';
 import type { DealStepConfirm } from './dealActions.js';
+import type { MoneyStepConfirm } from './moneyActions.js';
 import type { InsuranceCancelTakeOutConfirm, InsuranceCollectConfirm, InsuranceTakeOutConfirm } from './insurance.js';
 import type { FinanceAcceptConfirm, FinanceApplyConfirm, FinanceAskConfirm, FinanceOfferConfirm, FinanceRejectConfirm, FinanceStopAskingConfirm } from './finance.js';
 
@@ -147,6 +148,8 @@ export interface CancelListingPayload {
 export interface StakePayload {
   address: string;
   amountUsdc: number;
+  /// Set when the person's own wallet signs the deposit (view 31 phase D).
+  signer?: 'wallet';
 }
 export interface ClaimYieldPayload {
   address: string;
@@ -392,6 +395,7 @@ export type ConfirmAction =
   | GatewayDepositConfirm
   | Web3FundAgentConfirm
   | DealStepConfirm
+  | MoneyStepConfirm
   | CreateDirectDealConfirm
   | FundDirectDealConfirm
   | SetUpRecordConfirm
@@ -1135,6 +1139,7 @@ export function buildStakeConfirm(i: {
   amountUsdc: number;
   walletAfterUsdc: string;
   cooldownLabel: string;
+  signer?: 'karwan' | 'wallet';
 }): StakeConfirm | { error: string } {
   if (!(i.amountUsdc > 0)) return { error: 'The stake amount must be greater than 0.' };
   return {
@@ -1146,11 +1151,11 @@ export function buildStakeConfirm(i: {
     warning: `Staked USDC is not instantly spendable. Unstaking takes a ${i.cooldownLabel} cooldown, and stake reserved against an open deal cannot be withdrawn until that deal settles.`,
     fields: [
       { label: 'Amount', value: `${i.amountUsdc} USDC` },
-      { label: 'From', value: 'Your wallet' },
+      { label: 'From', value: i.signer === 'wallet' ? 'Your own wallet, which asks you to sign twice' : 'Your wallet' },
       { label: 'Wallet after', value: `${i.walletAfterUsdc} USDC` },
       { label: 'Unstake takes', value: i.cooldownLabel },
     ],
-    payload: { address: i.caller, amountUsdc: i.amountUsdc },
+    payload: { address: i.caller, amountUsdc: i.amountUsdc, ...(i.signer === 'wallet' ? { signer: 'wallet' as const } : {}) },
     confirmLabel: 'Stake',
     cancelLabel: 'Not now',
   };

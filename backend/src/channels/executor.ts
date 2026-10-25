@@ -4,13 +4,13 @@ import type { ExecuteResult } from './dispatch.js';
 
 type Call = (
   address: string,
-  method: 'GET' | 'POST',
+  method: 'GET' | 'POST' | 'DELETE',
   path: string,
   body?: unknown,
 ) => Promise<{ status: number; json: Record<string, unknown> }>;
 
 type P = Record<string, unknown>;
-type Step = { method: 'GET' | 'POST'; path: string; body?: unknown };
+type Step = { method: 'GET' | 'POST' | 'DELETE'; path: string; body?: unknown };
 
 /// What each confirm card does, as the web app's own calls (AssistantWidget's
 /// executor and core/api.ts). Chat runs these exact routes, so validation,
@@ -163,6 +163,22 @@ export const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAc
   delay_appeal: (p) => ({ method: 'POST', path: `/api/deals/direct/${p.jobId}/delay-appeal`, body: { caller: p.caller } }),
   answer_delay_appeal: (p) => ({ method: 'POST', path: `/api/deals/direct/${p.jobId}/delay-appeal-respond`, body: { caller: p.caller, reason: p.reason } }),
   take_back_deal: (p) => ({ method: 'POST', path: `/api/deals/direct/${p.jobId}/cancel`, body: { caller: p.caller } }),
+  test_usdc: (p) => ({ method: 'POST', path: '/api/activation/faucet', body: { address: p.address, target: p.target } }),
+  test_usdc_on_chain: (p) => ({ method: 'POST', path: '/api/activation/fund-source', body: { address: p.address, chain: p.chain } }),
+  recheck_money_move: (p) => ({
+    method: 'POST',
+    path: p.step === 'resume' ? `/api/bridge/circle-bridge/${encodeURIComponent(String(p.bridgeId))}/resume` : `/api/bridge/${encodeURIComponent(String(p.bridgeId))}/recheck`,
+    body: {},
+  }),
+  retry_money_move: (p) => ({ method: 'POST', path: `/api/money/intents/${encodeURIComponent(String(p.intentId))}/retry`, body: {} }),
+  cancel_money_move: (p) => ({ method: 'POST', path: `/api/money/intents/${encodeURIComponent(String(p.intentId))}/cancel`, body: {} }),
+  recheck_payout: (p) => ({
+    method: 'POST',
+    path: `/api/deals/direct/${p.jobId}/payouts/${encodeURIComponent(String(p.reference))}/reconcile`,
+    body: { caller: p.caller },
+  }),
+  pause_money_out: () => ({ method: 'POST', path: '/api/money-out/pause', body: {} }),
+  remove_payout_address: (p) => ({ method: 'DELETE', path: `/api/money-out/addresses/${encodeURIComponent(String(p.addressId))}` }),
   edit_listing: (p) => {
     const { listingId, ...body } = p;
     return { method: 'POST', path: `/api/listings/${listingId}/edit`, body };
@@ -217,6 +233,14 @@ const DONE: Partial<Record<ConfirmAction['intent'], string>> = {
   change_deal_terms: 'Sent. The other side sees the new terms.',
   make_offer: 'Offer sent. The buyer sees it now.',
   edit_listing: 'Offer updated.',
+  test_usdc: 'Asked the faucet. Test USDC usually lands within a minute.',
+  test_usdc_on_chain: 'Asked the faucet. Test USDC usually lands within a minute.',
+  recheck_money_move: 'Checked again. I will tell you when it arrives.',
+  retry_money_move: 'Started again.',
+  cancel_money_move: 'Cancelled.',
+  recheck_payout: 'Checked. The deal now shows the payment.',
+  pause_money_out: 'Paused. No money can leave until you resume it with World ID.',
+  remove_payout_address: 'Address removed.',
   stop_agent_bid: 'Your agent stopped bidding on that request.',
   confirm_goods_received: 'Confirmed on the trade record.',
   withdraw_offer: 'Offer withdrawn.',

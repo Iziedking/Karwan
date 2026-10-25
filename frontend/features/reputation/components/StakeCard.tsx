@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { useBalance, useWalletClient, usePublicClient, useChainId, useSwitchChain } from 'wagmi';
-import { formatUnits, parseUnits } from 'viem';
+import { formatUnits } from 'viem';
 import { api, ConfirmCancelled } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useReputation } from '../hooks/useReputation';
@@ -11,18 +11,15 @@ import { formatUsdc } from '@/shared/utils/format';
 import { useGuide } from '@/shared/guide/GuideProvider';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useMoneyRefresh } from '@/shared/hooks/useMoneyRefresh';
-import { isConfirmationPending, requireConfirmedTx } from '@/shared/chain/confirmTx';
+import { isConfirmationPending } from '@/shared/chain/confirmTx';
 import { AgentStakeBinding } from './AgentStakeBinding';
-import { runWalletVaultAction, vaultAbi } from '../walletVaultAction';
+import { runWalletVaultAction, runWalletVaultDeposit } from '../walletVaultAction';
 import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
 import { Hint } from '@/shared/components/Hint';
 import type { Messages } from '@/shared/i18n/messages/en';
 import {
   ARC_CHAIN_ID,
   ARC_EXPLORER_TX,
-  ARC_USDC_ADDRESS,
-  ARC_USDC_DECIMALS,
-  KARWAN_VAULT_ADDRESS,
 } from '../../profile/config';
 
 /// SKILL-grade staking surface. Reads positions from /api/vault/positions
@@ -43,29 +40,6 @@ interface ActionLog {
   status: 'pending' | 'done' | 'failed';
   error?: string;
 }
-
-const usdcAbi = [
-  {
-    type: 'function',
-    name: 'approve',
-    stateMutability: 'nonpayable',
-    inputs: [
-      { name: 'spender', type: 'address' },
-      { name: 'amount', type: 'uint256' },
-    ],
-    outputs: [{ name: '', type: 'bool' }],
-  },
-  {
-    type: 'function',
-    name: 'allowance',
-    stateMutability: 'view',
-    inputs: [
-      { name: 'owner', type: 'address' },
-      { name: 'spender', type: 'address' },
-    ],
-    outputs: [{ name: '', type: 'uint256' }],
-  },
-] as const;
 
 const CARD_STYLE = {
   background: 'var(--lp-card)',
@@ -253,7 +227,6 @@ export function StakeCard() {
       return;
     }
     const amountUsdc = depositAmount;
-    const amountWei = parseUnits(amountUsdc.toString(), ARC_USDC_DECIMALS);
 
     setBusyKind({ kind: 'deposit' });
     const logId = pushLog({
@@ -277,44 +250,15 @@ export function StakeCard() {
         });
       } else {
         if (!walletClient || !arcClient) throw new Error(sc.errors.walletNotReady);
-        // Allocate the durable receipt before either browser signature. A
-        // rejected approval or a dropped deposit can now be recovered by the
-        // same request id instead of leaving an on-chain movement anonymous.
-        const requestId = crypto.randomUUID();
-        const intent = await api.vaultDepositIntent({
+        const done = await runWalletVaultDeposit({
           address,
           amountUsdc: depositAmount,
-          requestId,
+          walletClient,
+          arcClient,
+          revertedText: chainCopy.reverted,
+          onReference: (reference) => patchLog(logId, { reference }),
         });
-        patchLog(logId, { reference: intent.reference });
-        // Always create a fresh exact allowance receipt. This keeps the
-        // two-leg intent provable even when an older allowance already exists.
-        const approvalTxHash = await walletClient.writeContract({
-          address: ARC_USDC_ADDRESS,
-          abi: usdcAbi,
-          functionName: 'approve',
-          args: [KARWAN_VAULT_ADDRESS, amountWei],
-          chain: walletClient.chain,
-          account: address,
-        });
-        await requireConfirmedTx(arcClient, approvalTxHash, chainCopy.reverted);
-        const depositHash = await walletClient.writeContract({
-          address: KARWAN_VAULT_ADDRESS,
-          abi: vaultAbi,
-          functionName: 'deposit',
-          args: [amountWei],
-          chain: walletClient.chain,
-          account: address,
-        });
-        await requireConfirmedTx(arcClient, depositHash, chainCopy.reverted);
-        const completed = await api.vaultDepositComplete({
-          address,
-          amountUsdc: depositAmount,
-          requestId,
-          approvalTxHash,
-          depositTxHash: depositHash,
-        });
-        patchLog(logId, { status: 'done', txHash: depositHash, reference: completed.reference });
+        patchLog(logId, { status: 'done', txHash: done.txHash, reference: done.reference });
       }
       recordAction('stake-deposit');
       deposited = true;

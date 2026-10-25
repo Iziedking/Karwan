@@ -28,7 +28,7 @@ import {
   ARC_USDC_DECIMALS,
 } from '@/features/profile/config';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { runWalletVaultAction, type VaultPositionAction } from '@/features/reputation/walletVaultAction';
+import { runWalletVaultAction, runWalletVaultDeposit, type VaultPositionAction } from '@/features/reputation/walletVaultAction';
 import { buildTransferAuthorization, serializeAuthorization } from '@/features/factoring/usdcAuthorization';
 import type { UsdcAuthorization } from '@/core/api';
 
@@ -254,6 +254,8 @@ interface ConfirmDeps {
   /// Sends prepared Arc calls from the person's own wallet, one at a time, each
   /// waited on before the next.
   sendWalletCalls?: (calls: Array<{ to: `0x${string}`; data: `0x${string}` }>) => Promise<void>;
+  /// Putting money into deal insurance from the person's own wallet.
+  runVaultDeposit?: (amountUsdc: number) => Promise<{ txHash: `0x${string}` }>;
   /// One deal insurance step on one position, signed by the person's own wallet.
   runVaultStep?: (positionId: string, action: VaultPositionAction) => Promise<{ txHash: `0x${string}` }>;
   /// A wallet financier's signature on the advance (USDC EIP-3009), as the
@@ -620,6 +622,12 @@ async function runConfirmIntent(
       viewLabel: 'See how you deal',
     };
   }
+  if (action.intent === 'stake_usdc' && (action.payload as { signer?: string }).signer === 'wallet') {
+    const p = action.payload as { amountUsdc: number };
+    if (!deps.runVaultDeposit) throw new Error('Open Deal insurance to sign this in your wallet.');
+    const r = await deps.runVaultDeposit(p.amountUsdc);
+    return { state: 'completed', successText: 'Put up. It protects your deals now.', viewHref: '/stake', viewLabel: 'Deal insurance', txHash: r.txHash };
+  }
   if (action.intent === 'stake_usdc') {
     const p = action.payload as { address: string; amountUsdc: number };
     const r = await api.vaultDeposit({
@@ -873,6 +881,23 @@ async function runConfirmIntent(
     await api.declineDirectDeal(p.jobId, { caller: p.caller, note: p.note });
     return { successText: 'Deal turned down. The buyer has your note.', viewHref: `/deals/${p.jobId}`, viewLabel: 'Open the deal' };
   }
+  if (action.intent === 'pay_payment_link') {
+    const p = action.payload as { token: string; recipient: string; amountUsdc: number };
+    const sent = await api.cashoutArcSend({ recipient: p.recipient, amountUsdc: p.amountUsdc, bridgeId: `pay-${action.id.replace(/[^a-zA-Z0-9._-]/g, '-')}`.slice(0, 120) });
+    // The link is marked paid once Karwan sees the transfer; a receipt not yet
+    // visible is asked for again, as the payment link page does.
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const r = await api.confirmRequestPaid(p.token, sent.txHash, 'Arc');
+      if (r.request.status === 'matched') break;
+      await new Promise((resolve) => window.setTimeout(resolve, 3000));
+    }
+    return { successText: 'Paid. They see it on their payment link.', viewHref: `/deposit/request/${p.token}`, viewLabel: 'Open the payment link', txHash: sent.txHash };
+  }
+  if (MONEY_STEP[action.intent]) {
+    const r = await MONEY_STEP[action.intent]!(action.payload);
+    const txHash = (r as { txHash?: string } | undefined)?.txHash;
+    return { successText: MONEY_STEP_DONE[action.intent]!, viewHref: MONEY_STEP_VIEW[action.intent]!(action.payload), viewLabel: 'Open it', ...(txHash ? { txHash } : {}) };
+  }
   if (action.intent === 'edit_listing') {
     const p = action.payload as { listingId: string; caller: string; title?: string; description?: string; askingPriceUsdc?: number };
     const { listingId, caller, ...patch } = p;
@@ -948,6 +973,40 @@ const DEAL_PAGE_DONE: Partial<Record<AssistantConfirmAction['intent'], string>> 
   change_deal_terms: 'Sent. The other side sees the new terms.',
 };
 
+/// Money steps outside a deal (view 31 phase D), each one page route.
+const MONEY_STEP: Partial<Record<AssistantConfirmAction['intent'], (p: Record<string, unknown>) => Promise<unknown>>> = {
+  test_usdc: (p) => api.faucet(String(p.address), p.target as 'identity' | 'buyer' | 'seller'),
+  test_usdc_on_chain: (p) => api.fundSource(String(p.address), p.chain as Parameters<typeof api.fundSource>[1]),
+  recheck_money_move: (p) => (p.step === 'resume' ? api.bridgeCircleResume(String(p.bridgeId)) : api.bridgeRecheck(String(p.bridgeId))),
+  retry_money_move: (p) => api.retryMoneyIntent(String(p.intentId)),
+  cancel_money_move: (p) => api.cancelMoneyIntent(String(p.intentId)),
+  recheck_payout: (p) => api.reconcileDirectDealPayout(String(p.jobId), String(p.reference), String(p.caller)),
+  pause_money_out: () => api.moneyOutPause(),
+  remove_payout_address: (p) => api.moneyOutRemoveAddress(String(p.addressId)),
+};
+
+const MONEY_STEP_DONE: Partial<Record<AssistantConfirmAction['intent'], string>> = {
+  test_usdc: 'Asked the faucet. Test USDC usually lands within a minute.',
+  test_usdc_on_chain: 'Asked the faucet. Test USDC usually lands within a minute.',
+  recheck_money_move: 'Checked again. I will tell you when it arrives.',
+  retry_money_move: 'Started again.',
+  cancel_money_move: 'Cancelled.',
+  recheck_payout: 'Checked. The deal now shows the payment.',
+  pause_money_out: 'Paused. No money can leave until you resume it with World ID.',
+  remove_payout_address: 'Address removed.',
+};
+
+const MONEY_STEP_VIEW: Partial<Record<AssistantConfirmAction['intent'], (p: Record<string, unknown>) => string>> = {
+  test_usdc: () => '/account',
+  test_usdc_on_chain: () => '/bridge',
+  recheck_money_move: () => '/bridge',
+  retry_money_move: () => '/account',
+  cancel_money_move: () => '/account',
+  recheck_payout: (p) => `/deals/${String(p.jobId)}`,
+  pause_money_out: () => '/account',
+  remove_payout_address: () => '/account',
+};
+
 type RequestStepPayload = { jobId: string; caller?: string; offerId?: string; priceUsdc?: string; deliverByUnix?: number; note?: string };
 
 /// Steps on a request page: a seller's own offer, the buyer taking one, and
@@ -993,6 +1052,15 @@ const DEAL_STEP_BUSY: Partial<Record<AssistantConfirmAction['intent'], string>> 
   change_deal_terms: 'Sending…',
   make_offer: 'Sending…',
   edit_listing: 'Saving…',
+  pay_payment_link: 'Paying…',
+  test_usdc: 'Asking…',
+  test_usdc_on_chain: 'Asking…',
+  recheck_money_move: 'Checking…',
+  retry_money_move: 'Starting…',
+  cancel_money_move: 'Cancelling…',
+  recheck_payout: 'Checking…',
+  pause_money_out: 'Pausing…',
+  remove_payout_address: 'Removing…',
   stop_agent_bid: 'Saving…',
   confirm_goods_received: 'Confirming…',
   withdraw_offer: 'Withdrawing…',
@@ -1150,6 +1218,18 @@ function ConfirmCard({
     },
     [wagmiAddress, connector, openConnectModal, chainId, switchChainAsync, walletClient, arcPublicClient, revertedText],
   );
+  const runVaultDeposit = useCallback(
+    async (amountUsdc: number) => {
+      if (!wagmiAddress || !connector) {
+        openConnectModal?.();
+        throw new Error('Connect your wallet, then confirm again.');
+      }
+      if (chainId !== ARC_CHAIN_ID) await switchChainAsync({ chainId: ARC_CHAIN_ID });
+      if (!walletClient || !arcPublicClient) throw new Error('Wallet client unavailable');
+      return runWalletVaultDeposit({ address: wagmiAddress, amountUsdc, walletClient, arcClient: arcPublicClient, revertedText });
+    },
+    [wagmiAddress, connector, openConnectModal, chainId, switchChainAsync, walletClient, arcPublicClient, revertedText],
+  );
   const startGatewayDeposit = useCallback(
     async (input: { sourceChainKey: string; amountUsdc: number }) => {
       if (!wagmiAddress || !connector) {
@@ -1247,6 +1327,7 @@ function ConfirmCard({
         startFundAgentWeb3,
         sendWalletCalls,
         runVaultStep,
+        runVaultDeposit,
         signAdvance,
       });
       confirmOutcomes.set(action.id, r);
