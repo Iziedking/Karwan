@@ -32,7 +32,15 @@ test('roadmap entries are discoverable but cannot be stated as live', () => {
 
 test('canon version records the Canteen window features', () => {
   assert.equal(canonVersion, '0.4.0');
-  assert.equal(canonUpdated, '2026-10-25');
+  assert.equal(canonUpdated, '2026-10-26');
+});
+
+test('the delivery date is in the canon, held back from the present tense until it is live', () => {
+  const fact = findFacts().find((f) => f.id === 'when-the-delivery-date-passes');
+  assert.ok(fact);
+  assert.equal(fact.status, 'shipping');
+  assert.equal(isStatable(fact), false);
+  assert.match(fact.summary, /reminds the seller/);
 });
 
 test('agent record checks and risk-based World ID are statable, with testnet named', () => {

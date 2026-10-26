@@ -10,5 +10,7 @@ export function deliveryCheckStatus(
 ): CheckStatus | null {
   if (stage === 'settled' || stage === 'cancelled') return null;
   if (deal.releaseBlockedReason) return 'held';
+  // Nothing is delivered for the step in hand; a check shown now would be the last milestone's.
+  if (stage === 'awaiting-delivery') return null;
   return deal.deliveryCheck ?? null;
 }

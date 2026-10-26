@@ -1,5 +1,7 @@
 import { releaseLeg } from '../deals/payoutLeg.js';
 import { MAX_REVIEW_DAYS, reviewHasStarted } from '../deals/reviewClock.js';
+import { approvedDeadline, sellerMayAskMoreTime } from '../deals/deliveryDeadline.js';
+import { awaitingNextDelivery } from '../deals/milestoneDelivery.js';
 import { SELLER_LINK_DETAIL, sellerAgentBinding, sellerBindingRefusal } from '../deals/sellerBinding.js';
 import { prohibitedBody } from '../policy/prohibited.js';
 import { addrSchema, createSchema, milestonePctsSchema } from '../deals/createSchema.js';
@@ -2906,7 +2908,13 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
     || deal.releaseBlockedReason === 'evidence-unavailable'
     || Boolean(deal.creAutoPublication?.error)
     || Boolean(deal.creEvidenceReceipt && deal.creEvidenceReceipt.decisionCode !== 1);
-  if (deal.delivered && !correctionRequested) {
+  // On escrows that take a delivery per milestone, a paid milestone opens the
+  // next one for delivery.
+  const nextMilestoneDue =
+    deal.delivered && dealEscrowOps.isV3(deal)
+      ? awaitingNextDelivery(deal, (await dealEscrowOps.read(deal)).milestonesReleased)
+      : false;
+  if (deal.delivered && !correctionRequested && !nextMilestoneDue) {
     return c.json({ error: 'deal already marked delivered' }, 409);
   }
   if (deal.delivered && (deal.cancelledAt || deal.settledAt)) {
@@ -3160,7 +3168,7 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
   }
 
   const nowHeld = verificationStatus === 'suspicious' || verificationStatus === 'malicious';
-  const isRedelivery = deal.delivered === true;
+  const isRedelivery = deal.delivered === true && !nextMilestoneDue;
   const deliveryRevision = (deal.deliveryRevision ?? (isRedelivery ? 1 : 0)) + 1;
   const deliveryEvidenceCommitment = keccak256(
     toBytes(JSON.stringify({ deliveryProof: body.deliveryProof ?? null, shipment: shipment ?? null })),
@@ -3216,6 +3224,7 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
 
   const recordedDelivery = await recordDeliveryRevision(deal, {
     delivered: true,
+    ...(dealEscrowOps.isV3(deal) ? { deliveredMilestone: account.milestonesReleased } : {}),
     deliveryRevision,
     deliveryEvidenceCommitment,
     deliveryHistory,
@@ -3250,15 +3259,19 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
     logger.warn({ jobId }, 'CRE automatic publication deferred to recovery');
   });
 
-  // First delivery announces "delivered"; a re-delivery doesn't re-announce it.
+  // Each delivery (and each milestone's) announces "delivered"; a correction
+  // of the same one does not.
   if (!isRedelivery) {
-    await addSystemMessage({ jobId, channel: 'trade', channelKey: jobId, eventType: 'deal.delivered', occurrenceKey: String(Date.now()), body: body.deliveryProof ? 'The seller submitted delivery proof and marked the deal delivered.' : 'The seller marked the deal delivered.' });
+    const milestone = nextMilestoneDue ? account.milestonesReleased + 1 : null;
+    const said = milestone ? `milestone ${milestone} delivered` : 'the deal delivered';
+    await addSystemMessage({ jobId, channel: 'trade', channelKey: jobId, eventType: 'deal.delivered', occurrenceKey: String(Date.now()), body: body.deliveryProof ? `The seller submitted delivery proof and marked ${said}.` : `The seller marked ${said}.` });
     bus.emitEvent({
       type: 'deal.delivered',
       jobId,
       actor: 'seller',
       payload: {
         seller: deal.seller,
+        ...(milestone ? { milestone } : {}),
         firstReleasePct: deal.firstReleasePct,
         tradeType: deal.tradeType,
         verificationStatus,
@@ -3962,6 +3975,16 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
       409,
     );
   }
+  // Each milestone is paid for its own delivery on these escrows.
+  if (awaitingNextDelivery(deal, account.milestonesReleased)) {
+    return c.json(
+      {
+        error: `The seller has not delivered milestone ${account.milestonesReleased + 1} yet. You can release it once they do.`,
+        code: 'milestone-not-delivered',
+      },
+      409,
+    );
+  }
 
   inFlight.add(jobId);
   let movementReference: string | undefined;
@@ -4164,10 +4187,11 @@ dealsRoutes.post('/direct/:jobId/still-reviewing', async (c) => {
   return c.json({ accepted: true, jobId, reviewExtensionMs }, 200);
 });
 
-/// Seller asks the buyer for more delivery time. Off-chain only: the on-chain
-/// escrow doesn't track deadlines, so this is a structured handshake stored
-/// on the deal. Buyer responds via the matching /extension/respond route.
-/// One pending request at a time; a second call replaces the first.
+/// Seller asks the buyer for more delivery time. The request is stored on the
+/// deal; the buyer's approval moves the deadline on chain through the matching
+/// /extension/respond route. One pending request at a time; a second call
+/// replaces the first. After the date the seller asks once, while the grace
+/// runs, and an unanswered request holds the deadline refund (deliveryDeadline).
 const extensionRequestSchema = z.object({
   caller: addrSchema,
   additionalSeconds: z.number().int().positive().max(30 * 86400),
@@ -4194,20 +4218,38 @@ dealsRoutes.post('/direct/:jobId/extension/request', async (c) => {
   if (!deal.acceptedAt) {
     return c.json({ error: 'deal not accepted yet' }, 409);
   }
-  if (deal.delivered) {
+  // The seller can ask for more time for the next milestone too.
+  const nextMilestoneDue =
+    deal.delivered && dealEscrowOps.isV3(deal)
+      ? awaitingNextDelivery(deal, (await dealEscrowOps.read(deal)).milestonesReleased)
+      : false;
+  if (deal.delivered && !nextMilestoneDue) {
     return c.json({ error: 'already delivered' }, 409);
   }
   if (deal.cancelledAt || deal.disputed) {
     return c.json({ error: 'deal is closed' }, 409);
   }
-  if (deal.deadlineUnix == null) {
+  const requestedAt = Date.now();
+  const mayAsk = sellerMayAskMoreTime(deal, requestedAt, config.DEAL_DEADLINE_RECLAIM_GRACE_MS);
+  if (mayAsk === 'no-deadline') {
     return c.json(
       { error: 'this deal has no delivery deadline, so nothing to extend' },
       409,
     );
   }
+  if (mayAsk === 'too-late') {
+    return c.json(
+      { error: 'The time to deliver has run out, so the buyer is being refunded.', code: 'too-late' },
+      409,
+    );
+  }
+  if (mayAsk === 'already-asked') {
+    return c.json(
+      { error: 'You already asked for more time after the delivery date. Deliver before the time runs out.', code: 'already-asked' },
+      409,
+    );
+  }
 
-  const requestedAt = Date.now();
   await patchDeal(jobId, {
     extensionRequest: {
       requestedBy: 'seller',
@@ -4282,7 +4324,7 @@ dealsRoutes.post('/direct/:jobId/extension/respond', async (c) => {
   };
 
   if (body.decision === 'approved') {
-    const newDeadline = deal.deadlineUnix + req.additionalSeconds;
+    const newDeadline = approvedDeadline(deal.deadlineUnix, Math.floor(decidedAt / 1000), req.additionalSeconds);
     // v2b: push the new deadline on chain first so the on-chain reclaim clock
     // tracks the agreed extension. Buyer-only on chain, signed by the buyer
     // agent. Do this BEFORE the off-chain patch so a chain revert (e.g. the
@@ -4299,6 +4341,8 @@ dealsRoutes.post('/direct/:jobId/extension/respond', async (c) => {
       }
     }
     patch.deadlineUnix = newDeadline;
+    // The new date gets its own "passed" notice if it is missed too.
+    patch.deadlineAlertedAt = undefined;
     historyEntry.newDeadlineUnix = newDeadline;
   }
 
@@ -4817,7 +4861,12 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
   if (body.caller.toLowerCase() !== deal.buyer) {
     return c.json({ error: 'only the buyer can cancel this deal' }, 403);
   }
-  if (deal.delivered) {
+  // A paid milestone whose next one never came counts as not delivered.
+  const nextMilestoneDue =
+    deal.delivered && dealEscrowOps.isV3(deal)
+      ? awaitingNextDelivery(deal, (await dealEscrowOps.read(deal)).milestonesReleased)
+      : false;
+  if (deal.delivered && !nextMilestoneDue) {
     return c.json({ error: 'the seller already marked the work delivered' }, 409);
   }
   if (deal.cancelledAt || deal.disputed) {
@@ -5711,6 +5760,7 @@ async function enrich(deal: DirectDeal, ctx: EnrichContext = {}) {
           }
         : {}),
       releaseEligibleAtMs,
+      awaitingNextDelivery: awaitingNextDelivery(deal, account.milestonesReleased),
       onChain: {
         state: account.state,
         milestonePcts: account.milestonePcts,

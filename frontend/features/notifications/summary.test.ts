@@ -45,6 +45,23 @@ test('an extension ask tells the buyer how many days and what to do', () => {
   assert.match(summaryFor('deal.extension.declined', {}, 'seller', en), /kept the deadline/);
 });
 
+test('the delivery date speaks to each side, and an open request holds the money', () => {
+  assert.match(summaryFor('deal.deadline.soon', {}, 'seller', en), /due soon.*ask the buyer for more time/);
+  assert.match(summaryFor('deal.deadline.passed', { askedForMoreTime: false }, 'buyer', en), /comes back to you/);
+  assert.match(summaryFor('deal.deadline.passed', { askedForMoreTime: false }, 'seller', en), /goes back to the buyer/);
+  assert.match(summaryFor('deal.deadline.passed', { askedForMoreTime: true }, 'buyer', en), /stays in the deal until you do/);
+  assert.match(summaryFor('deal.deadline.passed', { askedForMoreTime: true }, 'seller', en), /with the buyer/);
+  assert.match(summaryFor('deal.extension.waiting', { reminder: 2 }, 'buyer', en), /waiting for your answer/);
+  assert.match(summaryFor('deal.extension.waiting', { reminder: 1 }, 'seller', en), /has not answered/);
+  assert.match(summaryFor('deal.review.ending', {}, 'buyer', en), /review ends soon.*goes to the seller/);
+  for (const locale of ['ar', 'fr', 'hi', 'sw'] as const) {
+    for (const [type, role] of [['deal.deadline.soon', 'seller'], ['deal.deadline.passed', 'buyer'], ['deal.extension.waiting', 'buyer']] as const) {
+      assert.notEqual(summaryFor(type, {}, role, notifyCopy[locale]), summaryFor(type, {}, role, en), `${type} ${locale}`);
+    }
+  }
+  for (const line of Object.values(en)) if (typeof line === 'string') assert.doesNotMatch(line, /Reclaim your funds/);
+});
+
 test('a dispute statement prompts the side that still owes one', () => {
   assert.match(summaryFor('deal.dispute.statement', { side: 'buyer' }, 'seller', en), /^The buyer gave their account.*Give yours/);
   assert.match(summaryFor('deal.dispute.statement', { side: 'seller' }, 'buyer', en), /^The seller gave their account/);

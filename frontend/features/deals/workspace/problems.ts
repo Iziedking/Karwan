@@ -14,9 +14,16 @@ export function problemOptions(deal: DirectDeal, viewer: 'buyer' | 'seller' | nu
     return viewer === 'buyer' && !deal.fundTxHash ? ['cancel'] : [];
   }
   if (stage === 'awaiting-delivery') {
-    if (viewer === 'seller') return deal.extensionRequest ? [] : ['moreTime'];
-    if (!deal.deadlineUnix || deal.deadlineRecovery?.state === 'running') return [];
-    const reclaimAt = deal.deadlineUnix * 1000 + (deal.deadlineReclaimGraceMs ?? DAY_MS);
+    const dueMs = deal.deadlineUnix ? deal.deadlineUnix * 1000 : null;
+    const reclaimAt = dueMs === null ? null : dueMs + (deal.deadlineReclaimGraceMs ?? DAY_MS);
+    if (viewer === 'seller') {
+      if (deal.extensionRequest || dueMs === null || reclaimAt === null) return [];
+      // After the date the seller asks once, while the grace runs (deals/deliveryDeadline.ts).
+      if (now <= dueMs) return ['moreTime'];
+      if (now > reclaimAt || (deal.extensionHistory ?? []).some((h) => h.requestedAt > dueMs)) return [];
+      return ['moreTime'];
+    }
+    if (reclaimAt === null || deal.deadlineRecovery?.state === 'running') return [];
     return now >= reclaimAt ? ['reclaim'] : [];
   }
   if (stage === 'awaiting-first-release' || stage === 'awaiting-final-release') {

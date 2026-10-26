@@ -696,7 +696,7 @@ export interface DealView {
     actor: 'you' | 'counterparty' | 'nobody';
     amountUsdc: string | null;
   };
-  automatic: { kind: 'auto-release' | 'deadline-reclaim' | 'acceptance-expiry'; at: number } | null;
+  automatic: { kind: 'auto-release' | 'deadline-reclaim' | 'reclaim-waits' | 'acceptance-expiry'; at: number } | null;
   /// Settled escrow-family deals only: on both sides' records (true), waiting
   /// for the record (false), or a side had no record when it was paid in (null).
   onBothRecords?: boolean | null;
@@ -1139,6 +1139,9 @@ export interface DirectDeal {
     additionalSeconds: number;
     reason?: string;
   };
+  /// A milestone was paid and the seller has not delivered the next one yet;
+  /// on the escrow family each milestone is paid for its own delivery.
+  awaitingNextDelivery?: boolean;
   /// Settled extension activity. Each entry is a finalized request the buyer
   /// either approved (deadlineUnix bumped) or declined.
   extensionHistory?: {

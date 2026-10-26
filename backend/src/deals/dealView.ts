@@ -26,7 +26,7 @@ export type NextAction =
   | 'dispute'
   | null;
 export type Actor = 'you' | 'counterparty' | 'nobody';
-export type AutomaticOutcome = { kind: 'auto-release' | 'deadline-reclaim' | 'acceptance-expiry'; at: number } | null;
+export type AutomaticOutcome = { kind: 'auto-release' | 'deadline-reclaim' | 'reclaim-waits' | 'acceptance-expiry'; at: number } | null;
 
 export interface DealViewInput {
   buyer: string;
@@ -60,6 +60,9 @@ export interface DealViewInput {
   releaseEligibleAtMs?: number | null;
   cancellationProposal?: { proposedBy: 'buyer' | 'seller' };
   extensionRequest?: { requestedBy: 'seller' };
+  /// A milestone was paid and the next one waits for its own delivery
+  /// (deals/milestoneDelivery.ts).
+  awaitingNextDelivery?: boolean;
   onChain?: { state: number; milestonesReleased: number; milestonePcts: number[] } | null;
 }
 
@@ -109,6 +112,8 @@ export function stageOf(deal: DealViewInput): DealStage {
   const released = deal.onChain?.milestonesReleased ?? 0;
   const total = milestonePcts(deal).length;
   if (deal.settledAt || state === 3 || released >= total || deal.autoReleasedAt) return 'settled';
+  // Each milestone is delivered before it is paid: the next one is the seller's turn.
+  if (deal.awaitingNextDelivery) return 'awaiting-delivery';
   // Release stages begin with a delivery or a payment; a single-payment deal
   // goes straight to its final release once delivered.
   const started = !!(deal.delivered || deal.deliveredAt || released >= 1 || deal.firstAutoReleased);
@@ -169,8 +174,8 @@ function progress(deal: DealViewInput, stage: DealStage): DealView['progress'] {
   const done: Record<PathStep, boolean> = {
     agreed: !!deal.sellerApprovedAt || !!deal.acceptedAt,
     funded: !!deal.acceptedAt,
-    delivered: !!(deal.delivered || deal.deliveredAt),
-    checked: checkedDone(deal, stage),
+    delivered: !!(deal.delivered || deal.deliveredAt) && !deal.awaitingNextDelivery,
+    checked: checkedDone(deal, stage) && !deal.awaitingNextDelivery,
     released: stage === 'settled',
   };
   const at: Partial<Record<PathStep, number>> = {
@@ -230,7 +235,9 @@ function automatic(deal: DealViewInput, stage: DealStage): AutomaticOutcome {
     return { kind: 'acceptance-expiry', at: deal.acceptanceDeadlineUnix * 1000 };
   }
   if (stage === 'awaiting-delivery' && deal.deadlineUnix) {
-    return { kind: 'deadline-reclaim', at: deal.deadlineUnix * 1000 + (deal.deadlineReclaimGraceMs ?? 0) };
+    // An unanswered request for more time holds the refund until the buyer answers.
+    const kind = deal.extensionRequest ? 'reclaim-waits' : 'deadline-reclaim';
+    return { kind, at: deal.deadlineUnix * 1000 + (deal.deadlineReclaimGraceMs ?? 0) };
   }
   if ((stage === 'awaiting-first-release' || stage === 'awaiting-final-release') && !paused(deal) && deal.releaseEligibleAtMs != null) {
     return { kind: 'auto-release', at: deal.releaseEligibleAtMs };

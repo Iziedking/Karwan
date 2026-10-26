@@ -44,6 +44,14 @@ milestonesRoutes.post('/release', async (c) => {
       409,
     );
   }
+  // These escrows pay each milestone for its own delivery, so they are never
+  // released in one batch (deals/milestoneDelivery.ts).
+  if (dealEscrowOps.isV3(ref)) {
+    return c.json(
+      { error: 'This deal pays each milestone after its own delivery. Release it from the deal page.', code: 'release-per-milestone' },
+      409,
+    );
+  }
 
   // Releasing a milestone pays the seller. Only the human who owns the on-chain
   // buyer agent may trigger it. Resolve that owner from the funded escrow's

@@ -36,6 +36,30 @@ test('turning down terms is the seller session only and cannot move money', asyn
   assert.equal(/dealEscrowOps|cancelledAt:/.test(route), false);
 });
 
+test('a request for more time follows the delivery-date rules, and an approval counts from now when late', async () => {
+  const source = await (await import('node:fs/promises')).readFile(new URL('./deals.ts', import.meta.url), 'utf8');
+  const ask = source.slice(source.indexOf("dealsRoutes.post('/direct/:jobId/extension/request'"), source.indexOf('const extensionRespondSchema'));
+  assert.match(ask, /sellerMayAskMoreTime\(deal, requestedAt, config\.DEAL_DEADLINE_RECLAIM_GRACE_MS\)/);
+  assert.match(ask, /code: 'too-late'/);
+  assert.match(ask, /code: 'already-asked'/);
+  const answer = source.slice(source.indexOf("dealsRoutes.post('/direct/:jobId/extension/respond'"));
+  assert.match(answer.slice(0, 4000), /approvedDeadline\(deal\.deadlineUnix, Math\.floor\(decidedAt \/ 1000\), req\.additionalSeconds\)/);
+  assert.match(answer.slice(0, 4000), /patch\.deadlineAlertedAt = undefined/);
+});
+
+test('each milestone on the escrow family is released only after its own delivery', async () => {
+  const source = await (await import('node:fs/promises')).readFile(new URL('./deals.ts', import.meta.url), 'utf8');
+  const release = source.slice(source.indexOf("dealsRoutes.post('/direct/:jobId/release'"));
+  const gate = release.indexOf('awaitingNextDelivery(deal, account.milestonesReleased)');
+  assert.ok(gate > 0 && gate < release.indexOf('inFlight.add(jobId)'), 'the release route refuses before anything is sent');
+  assert.match(release.slice(0, gate + 400), /code: 'milestone-not-delivered'/);
+  const deliver = source.slice(source.indexOf("dealsRoutes.post('/direct/:jobId/delivered'"), source.indexOf("dealsRoutes.post('/direct/:jobId/release'"));
+  assert.match(deliver, /if \(deal\.delivered && !correctionRequested && !nextMilestoneDue\)/);
+  assert.match(deliver, /deliveredMilestone: account\.milestonesReleased/);
+  const milestones = await (await import('node:fs/promises')).readFile(new URL('./milestones.ts', import.meta.url), 'utf8');
+  assert.match(milestones, /code: 'release-per-milestone'/);
+});
+
 test('a direct deal is one to five milestones that add up to 100', async () => {
   const { milestonePctsSchema } = await import('./deals.js');
   assert.equal(milestonePctsSchema.safeParse([20, 30, 50]).success, true);

@@ -114,9 +114,13 @@ export const RELEVANT = new Set([
   'deal.cancel.proposed',
   'deal.cancel.declined',
   'deal.fund.insufficient',
+  // The delivery date: the seller before it, both sides when it passes (and the
+  // financier), and the buyer while their answer holds the refund.
+  'deal.deadline.soon',
+  'deal.deadline.passed',
+  'deal.extension.waiting',
   // Told only to the financier of the deal; buyer and seller have no copy.
   'deal.delivered.onchain',
-  'deal.deadline.passed',
   'deal.dispute.auto_resolved',
   'escrow.refunded',
   'escrow.reclaimed',
@@ -241,6 +245,24 @@ export async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     // The buyer's choices before their review ends are the buyer's alone.
     const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
     return buyer ? [{ address: buyer, role: 'buyer' }] : [];
+  }
+  if (e.type === 'deal.deadline.soon') {
+    // The seller's own delivery date.
+    const seller = (e.payload?.seller as string | undefined)?.toLowerCase();
+    return seller ? [{ address: seller, role: 'seller' }] : [];
+  }
+  if (e.type === 'deal.deadline.passed' || e.type === 'deal.extension.waiting') {
+    // Both sides at the missed date, plus whoever financed the deal; while the
+    // buyer's answer holds the refund, the buyer each time and the seller once.
+    const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
+    const seller = (e.payload?.seller as string | undefined)?.toLowerCase();
+    const passed = e.type === 'deal.deadline.passed';
+    const out: Recipient[] = [];
+    if (buyer) out.push({ address: buyer, role: 'buyer' });
+    if (seller && (passed || e.payload?.reminder === 1)) out.push({ address: seller, role: 'seller' });
+    if (!passed || !e.jobId) return out;
+    const financiers = await financiersOfDeal(e.jobId).catch(() => []);
+    return [...out, ...financiers.map((f) => ({ address: f.financier, role: 'financier', href: f.href }))];
   }
   if (e.type === 'agent.suggestion' || e.type === 'record.setup_needed') {
     const owner = (e.payload?.sellerUser as string | undefined)?.toLowerCase();
@@ -599,6 +621,43 @@ ${String(e.payload?.note ?? '').replace(/[*_`[\]]/g, '').slice(0, 300)}`, url)
       const days = Math.max(1, Math.round(Number(e.payload?.additionalSeconds ?? 0) / 86_400));
       const reason = String(e.payload?.reason ?? '').replace(/[*_`[\]]/g, '').slice(0, 200);
       return withLink(`*The seller asked for ${days} more day${days === 1 ? '' : 's'}.*${reason ? `\n${reason}` : ''}\nApprove or decline on the deal.`, url);
+    }
+    case 'deal.deadline.soon':
+      if (role !== 'seller') return null;
+      return withLink(
+        `*Your delivery is due ${closesLabel(e.payload?.dueAt)}.*\nDeliver on the deal, or ask the buyer for more time before then. If nothing is delivered by ${closesLabel(e.payload?.refundAt)}, the money goes back to the buyer.`,
+        url,
+      );
+    case 'deal.deadline.passed': {
+      const asked = e.payload?.askedForMoreTime === true;
+      const days = Math.max(1, Math.round(Number(e.payload?.additionalSeconds ?? 0) / 86_400));
+      const refund = closesLabel(e.payload?.refundAt);
+      if (role === 'buyer') {
+        return withLink(
+          asked
+            ? `*The delivery date passed.* The seller asked for ${days} more day${days === 1 ? '' : 's'}. Approve, or decline and your money comes back to you. It stays in the deal until you answer.`
+            : `*The delivery date passed with nothing delivered.* If nothing is delivered by ${refund}, your money comes back to you automatically.`,
+          url,
+        );
+      }
+      if (role !== 'seller') return null;
+      return withLink(
+        asked
+          ? '*The delivery date passed.* Your request for more time is with the buyer. The money stays in the deal until they answer.'
+          : `*The delivery date passed.* Deliver by ${refund}, or the money goes back to the buyer. You can still ask for more time before then.`,
+        url,
+      );
+    }
+    case 'deal.extension.waiting': {
+      const days = Math.max(1, Math.round(Number(e.payload?.additionalSeconds ?? 0) / 86_400));
+      if (role === 'buyer') {
+        return withLink(
+          `*The seller is waiting for your answer.* They asked for ${days} more day${days === 1 ? '' : 's'} and the delivery date has passed. Approve, or decline and your money comes back to you.`,
+          url,
+        );
+      }
+      if (role !== 'seller') return null;
+      return withLink('*The buyer has not answered your request yet.* The money stays in the deal until they answer. If they decline, it goes back to them.', url);
     }
     case 'deal.extension.approved':
     case 'deal.extension.declined':

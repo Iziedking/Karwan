@@ -103,7 +103,7 @@ How each kind of deal from view 26 maps onto the terms:
 | Kind of deal | Terms |
 |---|---|
 | One-time | One payment, review starts at delivery |
-| Milestones | Two to five payments in the app (the contract holds up to twelve), each reviewed on its own |
+| Milestones | Two to five payments in the app (the contract holds up to twelve), each delivered and reviewed on its own: paying one clears the delivery on chain, so the next can be released only after the seller delivers it |
 | Goods | Review starts when the buyer confirms arrival, or by itself after a longstop, with the tracking number as the proof |
 | Deposit | A refundable deposit: if the buyer says nothing, the money goes back to the buyer |
 
@@ -158,6 +158,7 @@ A seller with a funded deal can take an advance from a financier, as view 18 set
 | A check | Fewer than two checkers sign | No check is recorded; the review starts anyway at the longstop the terms set |
 | A dispute | The arbiter does not propose | After 5 days either side escalates to the review Safe |
 | A ruling | The review Safe misses its 5 days | The fallback share in the terms applies |
+| The delivery date | Passes with nothing delivered | Both sides are told; after the grace the buyer is refunded, unless a request for more time waits on the buyer, which holds the refund until they answer |
 | A settings change | Queued while deals are open | It reaches new deals only; open deals keep the rules they opened with |
 
 ## Checks before code (rule 14)
@@ -187,6 +188,10 @@ Before any code, and logged in `docs/arc-circle-checks.md`:
 5. **A seller sets up their record before their first deal is paid in:** when they agree to a deal's terms, and before their selling agent offers on a request. The escrow notes each side's record when the money goes in, so this is how every deal a seller takes counts on their record. A deal paid in before the seller has a record stays possible as a fallback; it runs normally but does not count on the seller's record.
 6. **Network fees for wallets Karwan holds** (identity wallets and agents, including an agent's first transaction) are paid through a Circle gas policy, on testnet and on mainnet, so those people never hold gas. People who sign in with their own wallet pay their own small fee in that wallet. The copy says so only once the mainnet policy is set up.
 7. **Review, then pay** (replaced on 25 Oct 2026; the 24 Oct version had the seller ask and the buyer answer within 72 hours). The buyer has the review time the deal set, at most 30 days, the most the escrow takes. They can release, ask once for more time, or raise a problem. Karwan reminds them a day before review ends. When it ends with no release and no problem raised, the payment goes to the seller: the contract allows the claim then, and Karwan sends it. The 72 hours apply inside a dispute: once either side raises a problem, each has 72 hours to give their side, and a side that stays silent loses. No contract change is needed.
+
+## Decided by the owner, 26 Oct 2026
+
+8. **The delivery date.** Karwan reminds the seller a day before the delivery date, or halfway when the whole delivery time is under two days. When the date passes with nothing delivered, both sides are told: the seller has one more day (the grace the contract sets) to deliver, then the buyer's money goes back to them. The seller can ask for more time before the date, and once more after it while the grace runs. A request for more time that the buyer has not answered holds the refund: the money stays in the deal until the buyer approves or declines, and Karwan reminds the buyer up to three times, a day apart. A decline sends the refund on; an approval counts the extra days from the later of the old date and the moment of approval. No contract change is needed: the escrow takes a later deadline at any time before the money is taken back.
 
 ## Status
 

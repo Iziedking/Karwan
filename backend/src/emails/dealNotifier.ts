@@ -74,7 +74,9 @@ const EMAIL_RELEVANT = new Set([
   'deal.dispute.auto_resolved',
   'deal.cancel.proposed',
   'deal.fund.insufficient',
+  'deal.deadline.soon',
   'deal.deadline.passed',
+  'deal.extension.waiting',
   'deal.delivered.onchain',
   'deal.match.raised',
   // Told only to the financier of the deal; buyer and seller copy is null.
@@ -115,14 +117,14 @@ const FINANCE_RECIPIENTS: Record<string, ReadonlyArray<'seller' | 'financier'>> 
   'po.defaulted': ['seller', 'financier'],
 };
 
-interface Recipient {
+export interface Recipient {
   address: string;
   role: 'buyer' | 'seller' | 'self' | 'financier';
   /// A financier's own position page, which their alert links to.
   href?: string;
 }
 
-async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
+export async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
   if (e.type === 'reputation.tier-up' || e.type.startsWith('rating.')) {
     const a = (e.payload?.address as string | undefined)?.toLowerCase();
     return a ? [{ address: a, role: 'self' }] : [];
@@ -160,11 +162,26 @@ async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     }
     return out;
   }
-  if (e.type === 'deal.deadline.passed' || e.type === 'deal.delivered.onchain') {
-    // Only the buyer needs these: their funds are reclaimable now, or their
-    // review clock started without a delivery through Karwan.
+  if (e.type === 'deal.delivered.onchain') {
+    // Only the buyer: their review clock started without a delivery through Karwan.
     const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
     return buyer ? [{ address: buyer, role: 'buyer' }] : [];
+  }
+  if (e.type === 'deal.deadline.soon') {
+    // The seller's own delivery date.
+    const seller = (e.payload?.seller as string | undefined)?.toLowerCase();
+    return seller ? [{ address: seller, role: 'seller' }] : [];
+  }
+  if (e.type === 'deal.deadline.passed' || e.type === 'deal.extension.waiting') {
+    // Both sides at the missed date; while the buyer's answer holds the
+    // refund, the buyer each time and the seller only the first time.
+    const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
+    const seller = (e.payload?.seller as string | undefined)?.toLowerCase();
+    const sellerToo = e.type === 'deal.deadline.passed' || e.payload?.reminder === 1;
+    const out: Recipient[] = [];
+    if (buyer) out.push({ address: buyer, role: 'buyer' });
+    if (seller && sellerToo) out.push({ address: seller, role: 'seller' });
+    return out;
   }
   if (e.type === 'deal.review.ending') {
     // The buyer's choices before their review ends are the buyer's alone.
@@ -572,17 +589,83 @@ export function contentFor(
         ctaLabel: 'Open the deal',
         ctaUrl: dealUrl(e.jobId),
       };
-    case 'deal.deadline.passed':
-      return role === 'buyer'
+    case 'deal.deadline.soon': {
+      if (role !== 'seller') return null;
+      const due = closesLabel(e.payload?.dueAt);
+      return {
+        kicker: 'Your deal',
+        subject: `Your delivery is due ${due}`,
+        heading: 'Deliver before the date',
+        body: `This deal is due ${due}. Deliver on the deal, or ask the buyer for more time before then. If nothing is delivered by ${closesLabel(e.payload?.refundAt)}, the money goes back to the buyer and the deal counts against your record.`,
+        ctaLabel: 'Open the deal',
+        ctaUrl: dealUrl(e.jobId),
+      };
+    }
+    case 'deal.deadline.passed': {
+      const refund = closesLabel(e.payload?.refundAt);
+      const asked = e.payload?.askedForMoreTime === true;
+      const days = Math.max(1, Math.round(Number(e.payload?.additionalSeconds ?? 0) / 86_400));
+      const more = `${days} more day${days === 1 ? '' : 's'}`;
+      if (role === 'buyer') {
+        return asked
+          ? {
+              kicker: 'Delivery date passed',
+              subject: 'The delivery date passed. The seller asked for more time',
+              heading: 'Answer the request for more time',
+              body: `The delivery date passed and nothing is delivered. The seller asked for ${more}. Approve to give them the time, or decline and your money comes back to you. Your money stays in the deal until you answer.`,
+              ctaLabel: 'Answer the request',
+              ctaUrl: dealUrl(e.jobId),
+            }
+          : {
+              kicker: 'Delivery date passed',
+              subject: 'The delivery date passed with nothing delivered',
+              heading: 'Nothing delivered by the date',
+              body: `The delivery date passed and the seller has not delivered. If nothing is delivered by ${refund}, your money comes back to you automatically.`,
+              ctaLabel: 'Open the deal',
+              ctaUrl: dealUrl(e.jobId),
+            };
+      }
+      if (role !== 'seller') return null;
+      return asked
         ? {
-            kicker: 'Deadline passed',
-            subject: 'Your deadline passed. You can reclaim your funds',
-            heading: 'Deadline passed without delivery',
-            body: 'The delivery deadline passed and the seller has not delivered. You can reclaim your escrowed funds now, or grant an extension if you want to wait. If you do nothing and the seller still does not deliver, Karwan reclaims the funds to you automatically.',
-            ctaLabel: 'Reclaim or extend',
+            kicker: 'Delivery date passed',
+            subject: 'The delivery date passed. Your request is with the buyer',
+            heading: 'Your request is with the buyer',
+            body: 'The delivery date passed. Your request for more time is with the buyer, and the money stays in the deal until they answer. If they decline, it goes back to them.',
+            ctaLabel: 'Open the deal',
             ctaUrl: dealUrl(e.jobId),
           }
-        : null; // the seller missed their own deadline; no email to them
+        : {
+            kicker: 'Delivery date passed',
+            subject: `The delivery date passed. Deliver by ${refund}`,
+            heading: 'Deliver now, or the buyer is refunded',
+            body: `The delivery date passed. Deliver by ${refund}, or the money goes back to the buyer and the deal counts against your record. You can still ask the buyer for more time before then.`,
+            ctaLabel: 'Open the deal',
+            ctaUrl: dealUrl(e.jobId),
+          };
+    }
+    case 'deal.extension.waiting': {
+      const days = Math.max(1, Math.round(Number(e.payload?.additionalSeconds ?? 0) / 86_400));
+      if (role === 'buyer') {
+        return {
+          kicker: 'Waiting on you',
+          subject: 'The seller is waiting for your answer',
+          heading: 'Answer the request for more time',
+          body: `The seller asked for ${days} more day${days === 1 ? '' : 's'} to deliver, and the delivery date has passed. Approve to give them the time, or decline and your money comes back to you. Nothing moves until you answer.`,
+          ctaLabel: 'Answer the request',
+          ctaUrl: dealUrl(e.jobId),
+        };
+      }
+      if (role !== 'seller') return null;
+      return {
+        kicker: 'Your deal',
+        subject: 'The buyer has not answered your request yet',
+        heading: 'Waiting on the buyer',
+        body: 'The time to deliver has run out, and the buyer has not answered your request for more time. The money stays in the deal until they answer. If they decline, it goes back to them.',
+        ctaLabel: 'Open the deal',
+        ctaUrl: dealUrl(e.jobId),
+      };
+    }
     case 'deal.delivered.onchain':
       return role === 'buyer'
         ? {

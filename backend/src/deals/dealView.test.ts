@@ -18,6 +18,19 @@ const funded: DealViewInput = {
 };
 const delivered: DealViewInput = { ...funded, delivered: true, deliveredAt: NOW - 86_400_000 };
 
+test('after a milestone is paid, the next one waits for its own delivery before the buyer can release', () => {
+  const paidOne: DealViewInput = { ...delivered, onChain: { state: 2, milestonesReleased: 1, milestonePcts: [50, 50] }, awaitingNextDelivery: true };
+  const view = dealView(paidOne, 'buyer', false, NOW);
+  assert.equal(view.stage, 'awaiting-delivery');
+  assert.deepEqual(view.next, { action: null, actor: 'counterparty', amountUsdc: null });
+  assert.deepEqual(dealView(paidOne, 'seller', false, NOW).next, { action: 'deliver', actor: 'you', amountUsdc: null });
+  assert.equal(view.progress.find((p) => p.step === 'delivered')?.state, 'current');
+  // Once the seller delivers milestone 2, the buyer releases it.
+  const deliveredTwo = { ...paidOne, awaitingNextDelivery: false };
+  assert.equal(dealView(deliveredTwo, 'buyer', false, NOW).stage, 'awaiting-final-release');
+  assert.deepEqual(dealView(deliveredTwo, 'buyer', false, NOW).next, { action: 'release', actor: 'you', amountUsdc: '600' });
+});
+
 test('milestone amounts use exact 6-decimal math', () => {
   assert.equal(milestoneAmountUsdc('1200', 50), '600');
   assert.equal(milestoneAmountUsdc('100.5', 33), '33.165');
@@ -121,6 +134,8 @@ test('automatic outcomes carry their dates', () => {
   assert.deepEqual(dealView(offer, 'buyer', false, NOW).automatic, { kind: 'acceptance-expiry', at: 1_790_100_000_000 });
   const waitingDelivery = { ...funded, deadlineUnix: 1_790_200_000, deadlineReclaimGraceMs: 3_600_000 };
   assert.deepEqual(dealView(waitingDelivery, 'buyer', false, NOW).automatic, { kind: 'deadline-reclaim', at: 1_790_200_000_000 + 3_600_000 });
+  const askedForTime = { ...waitingDelivery, extensionRequest: { requestedBy: 'seller' as const } };
+  assert.deepEqual(dealView(askedForTime, 'seller', false, NOW).automatic, { kind: 'reclaim-waits', at: 1_790_200_000_000 + 3_600_000 });
   const reviewing = { ...delivered, releaseEligibleAtMs: NOW + 5000 };
   assert.deepEqual(dealView(reviewing, 'buyer', false, NOW).automatic, { kind: 'auto-release', at: NOW + 5000 });
   assert.equal(dealView({ ...reviewing, releaseBlockedReason: 'security-hold' }, 'buyer', false, NOW).automatic, null);

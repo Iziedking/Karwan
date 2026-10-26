@@ -11,6 +11,9 @@ import { levelOf } from '../verification/live.js';
 import { isRequestOwner } from '../agents/chooseOffer.js';
 import { statementWindowOpen } from '../deals/disputeJudge.js';
 import { reviewHasStarted } from '../deals/reviewClock.js';
+import { approvedDeadline, sellerMayAskMoreTime } from '../deals/deliveryDeadline.js';
+import { awaitingNextDelivery } from '../deals/milestoneDelivery.js';
+import { dealEscrowOps } from '../deals/dealEscrowOpsLive.js';
 import { hasEquivalentConfirm, type AssistantAction, type ConfirmAction } from './actions.js';
 import {
   buildChooseOfferConfirm,
@@ -315,17 +318,22 @@ export function dealStepTools(address: string, actions: AssistantAction[], deps:
           if (action === 'request') {
             if (side !== 'seller') return { error: 'Only the seller asks for more time. The buyer approves or declines.' };
             if (deal.extensionRequest) return { error: 'An extension request is already waiting on the buyer.' };
-            if (!deal.deadlineUnix) return { error: 'This deal has no delivery deadline to extend.' };
+            const now = Date.now();
+            const mayAsk = sellerMayAskMoreTime(deal, now, config.DEAL_DEADLINE_RECLAIM_GRACE_MS);
+            if (mayAsk === 'no-deadline' || !deal.deadlineUnix) return { error: 'This deal has no delivery deadline to extend.' };
+            if (mayAsk === 'too-late') return { error: 'The time to deliver has run out, so the buyer is being refunded.' };
+            if (mayAsk === 'already-asked') return { error: 'You already asked for more time after the delivery date. Deliver before the time runs out.' };
             if (!days) return { error: 'Ask them how many extra days they need.' };
             return offer(
               actions,
-              buildRequestExtensionConfirm({ caller: address, jobId, days, currentDeadlineUnix: deal.deadlineUnix, ...(reason ? { reason } : {}) }),
+              buildRequestExtensionConfirm({ caller: address, jobId, days, currentDeadlineUnix: deal.deadlineUnix, nowUnix: Math.floor(now / 1000), ...(reason ? { reason } : {}) }),
             );
           }
           if (side !== 'buyer') return { error: 'Only the buyer answers an extension request.' };
           const ask = deal.extensionRequest;
           if (!ask) return { error: 'There is no extension request waiting on this deal.' };
           const askedDays = Math.max(1, Math.round(ask.additionalSeconds / 86_400));
+          const nowUnix = Math.floor(Date.now() / 1000);
           return offer(
             actions,
             buildRespondExtensionConfirm({
@@ -333,7 +341,9 @@ export function dealStepTools(address: string, actions: AssistantAction[], deps:
               jobId,
               decision: action,
               days: askedDays,
-              ...(deal.deadlineUnix ? { newDeadlineUnix: deal.deadlineUnix + ask.additionalSeconds } : {}),
+              ...(deal.deadlineUnix
+                ? { newDeadlineUnix: approvedDeadline(deal.deadlineUnix, nowUnix, ask.additionalSeconds), deadlinePassed: nowUnix > deal.deadlineUnix }
+                : {}),
             }),
           );
         }),
@@ -664,7 +674,10 @@ export function dealStepTools(address: string, actions: AssistantAction[], deps:
           const { deal, side } = found;
           if (side !== 'buyer') return { error: 'Only the buyer takes a deal back. The seller can turn it down with propose_decline_deal.' };
           if (deal.cancelledAt || deal.settledAt || deal.disputed) return { error: 'That deal is no longer open.' };
-          if (deal.delivered) return { error: 'The seller already delivered. Release it, or raise a problem.' };
+          const nextDue = deal.delivered && dealEscrowOps.isV3(deal)
+            ? awaitingNextDelivery(deal, (await dealEscrowOps.read(deal)).milestonesReleased)
+            : false;
+          if (deal.delivered && !nextDue) return { error: 'The seller already delivered. Release it, or raise a problem.' };
           const missedDeadline = !!deal.acceptedAt && !!deal.deadlineUnix && Date.now() >= deal.deadlineUnix * 1000;
           const onEscrowFamily = deal.escrowVersion === 'v3' || deal.escrowVersion === 'suite';
           if (deal.acceptedAt && !missedDeadline && !onEscrowFamily) {

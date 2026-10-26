@@ -422,10 +422,20 @@ export interface DirectDeal {
   };
   // Agent auto-released the final milestone after the window expired silently.
   autoReleasedAt?: number;
-  // When the watcher first alerted the buyer that the delivery deadline passed
-  // without delivery (so the alert fires once). The buyer can reclaim from then;
-  // the watcher auto-reclaims after DEAL_DEADLINE_RECLAIM_GRACE_MS if they don't.
+  // When the watcher told both sides that the delivery deadline passed without
+  // delivery (so the alert fires once per date; an approved request clears it).
+  // The watcher refunds the buyer after DEAL_DEADLINE_RECLAIM_GRACE_MS unless a
+  // request for more time is still waiting on the buyer.
   deadlineAlertedAt?: number;
+  /// Which milestone (0-based) the current delivery is for, on escrows where
+  /// each milestone is delivered on its own (deals/milestoneDelivery).
+  deliveredMilestone?: number;
+  /// The delivery date (unix seconds) the seller was last reminded about, so a
+  /// new date after an approved request gets its own reminder.
+  deadlineRemindedFor?: number;
+  /// Reminders to the buyer while their answer to a request for more time
+  /// holds the deadline refund, counted per request (deals/deliveryDeadline).
+  extensionWaitReminder?: { requestedAt: number; count: number; lastAt: number };
   /// The on-chain deliveredAt (ms) we last alerted the buyer about, for a
   /// delivery marked on the escrow outside Karwan. See deals/onChainDelivery.
   onChainDeliveryAlertedAt?: number;

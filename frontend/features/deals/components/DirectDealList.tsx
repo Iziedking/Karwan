@@ -50,6 +50,8 @@ export function stageOf(deal: DirectDeal): DealStage {
   ) {
     return 'settled';
   }
+  // On the escrow family each milestone is delivered before it is paid.
+  if (deal.awaitingNextDelivery) return 'awaiting-delivery';
   if (released >= 1 || deal.firstAutoReleased) return 'awaiting-final-release';
   if (deal.delivered || deal.deliveredAt) return 'awaiting-first-release';
   if (deal.acceptedAt) return 'awaiting-delivery';

@@ -84,6 +84,19 @@ test('answering an extension maps approve and decline to the route values', () =
   assert.deepEqual(yes.payload, { jobId, caller, decision: 'approved' });
   const no = ok(buildRespondExtensionConfirm({ caller, jobId, decision: 'decline', days: 2 }));
   assert.deepEqual(no.payload, { jobId, caller, decision: 'declined' });
+  assert.match(no.summary, /current deadline/);
+  const lateNo = ok(buildRespondExtensionConfirm({ caller, jobId, decision: 'decline', days: 2, deadlinePassed: true }));
+  assert.match(lateNo.summary, /money comes back to you/);
+});
+
+test('a request after the delivery date shows the date an approval now gives, and that the money waits', () => {
+  const deadline = 1_800_000_000;
+  const now = deadline + 3_600;
+  const card = ok(buildRequestExtensionConfirm({ caller, jobId, days: 2, currentDeadlineUnix: deadline, nowUnix: now }));
+  assert.ok(card.fields.some((f) => f.label === 'New deadline' && f.value === new Date((now + 2 * 86_400) * 1000).toISOString().slice(0, 10)));
+  assert.match(card.summary, /money stays in the deal until they answer/);
+  const early = ok(buildRequestExtensionConfirm({ caller, jobId, days: 2, currentDeadlineUnix: deadline, nowUnix: deadline - 60 }));
+  assert.match(early.summary, /current deadline stands/);
 });
 
 test('cancelling a deal: propose needs a reason, accept warns about the refund', () => {

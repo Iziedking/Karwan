@@ -72,6 +72,7 @@ const CASES: Case[] = [
     'deal.cancel.proposed', 'deal.cancel.declined', 'factoring.requested', 'factoring.offered',
     'factoring.defaulted', 'po.funded', 'po.defaulted', 'trend.match', 'offer.created', 'agent.suggestion', 'record.setup_needed', 'factoring.funding_needed',
     'deal.extension.requested', 'deal.extension.approved', 'deal.extension.declined',
+    'deal.deadline.soon', 'deal.extension.waiting', 'deal.review.ending',
     'deal.dispute.statement', 'deal.dispute.statement.due',
   ].map((type): Case => ({ type, role: 'buyer', expect: null })),
 ];

@@ -27,6 +27,12 @@ test('seller agreement creates a distinct unfunded stage', () => {
   assert.equal(stageOf(deal({ sellerApprovedAt: 2, acceptedAt: 3 })), 'awaiting-delivery');
 });
 
+test('a paid milestone whose next one is not delivered goes back to the seller', () => {
+  const onChain = { state: 2, milestonesReleased: 1, milestonePcts: [50, 50] } as DirectDeal['onChain'];
+  assert.equal(stageOf(deal({ acceptedAt: 3, delivered: true, onChain, awaitingNextDelivery: true })), 'awaiting-delivery');
+  assert.equal(stageOf(deal({ acceptedAt: 3, delivered: true, onChain })), 'awaiting-final-release');
+});
+
 test('terminal states still take priority over funding states', () => {
   assert.equal(
     stageOf(deal({ sellerApprovedAt: 2, acceptedAt: 3, cancelledAt: 4 })),

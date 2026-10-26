@@ -31,8 +31,10 @@ test('the email alert opens the same position', () => {
   assert.equal(content?.ctaUrl, 'https://testnet.karwan.site/financier/po/line-1');
 });
 
+/// A missed delivery date is told to buyer and seller too since 26 Oct 2026
+/// (notifier.deadline.test.ts), so it is not in this list.
 test('the events added for financiers send nothing new to buyer or seller', () => {
-  for (const type of ['deal.delivered.onchain', 'deal.deadline.passed', 'deal.dispute.auto_resolved', 'escrow.refunded', 'escrow.reclaimed']) {
+  for (const type of ['deal.delivered.onchain', 'deal.dispute.auto_resolved', 'escrow.refunded', 'escrow.reclaimed']) {
     for (const role of ['buyer', 'seller']) {
       assert.equal(summaryFor(event(type) as never, role), null, `${type} ${role}`);
     }

@@ -29,14 +29,30 @@ test('before funding only the buyer can walk away, and only while nothing is hel
 });
 
 test('during delivery the seller asks for time once; the buyer reclaims only after the grace period', () => {
-  assert.deepEqual(problemOptions(deal('awaiting-delivery'), 'seller', NOW), ['moreTime']);
-  const asked = deal('awaiting-delivery', { extensionRequest: { requestedBy: 'seller', requestedAt: NOW, additionalSeconds: 86_400 } });
+  const later = Math.floor((NOW + 3 * DAY) / 1000);
+  assert.deepEqual(problemOptions(deal('awaiting-delivery', { deadlineUnix: later }), 'seller', NOW), ['moreTime']);
+  // The route refuses a request on a deal with no date, so the page does not offer one.
+  assert.deepEqual(problemOptions(deal('awaiting-delivery'), 'seller', NOW), []);
+  const asked = deal('awaiting-delivery', { deadlineUnix: later, extensionRequest: { requestedBy: 'seller', requestedAt: NOW, additionalSeconds: 86_400 } });
   assert.deepEqual(problemOptions(asked, 'seller', NOW), []);
   const due = Math.floor((NOW - 2 * DAY) / 1000);
   assert.deepEqual(problemOptions(deal('awaiting-delivery', { deadlineUnix: due }), 'buyer', NOW), ['reclaim']);
   const justDue = Math.floor((NOW - DAY / 2) / 1000);
   assert.deepEqual(problemOptions(deal('awaiting-delivery', { deadlineUnix: justDue }), 'buyer', NOW), []);
   assert.deepEqual(problemOptions(deal('awaiting-delivery'), 'buyer', NOW), []);
+});
+
+test('after the date the seller asks once while the grace runs, and not after it', () => {
+  const dueMs = NOW - DAY / 2;
+  const due = Math.floor(dueMs / 1000);
+  assert.deepEqual(problemOptions(deal('awaiting-delivery', { deadlineUnix: due }), 'seller', NOW), ['moreTime']);
+  const declinedAfter = deal('awaiting-delivery', {
+    deadlineUnix: due,
+    extensionHistory: [{ requestedBy: 'seller', requestedAt: dueMs + 1000, additionalSeconds: 86_400, decidedAt: dueMs + 2000, decision: 'declined' }],
+  });
+  assert.deepEqual(problemOptions(declinedAfter, 'seller', NOW), []);
+  const pastGrace = Math.floor((NOW - 2 * DAY) / 1000);
+  assert.deepEqual(problemOptions(deal('awaiting-delivery', { deadlineUnix: pastGrace }), 'seller', NOW), []);
 });
 
 test('after delivery either side can dispute or propose cancelling, unless a proposal is open', () => {

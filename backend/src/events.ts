@@ -64,6 +64,8 @@ export type KarwanEventType =
   | 'deal.release.blocked'
   | 'deal.release.unblocked'
   | 'deal.acceptance.expired'
+  /// The delivery date is near and nothing is delivered: the seller is reminded.
+  | 'deal.deadline.soon'
   | 'deal.deadline.passed'
   | 'deal.delivered.onchain'
   | 'deal.invite.created'
@@ -74,6 +76,9 @@ export type KarwanEventType =
   | 'deal.extension.requested'
   | 'deal.extension.approved'
   | 'deal.extension.declined'
+  /// The time to deliver ran out and the buyer has not answered the seller's
+  /// request for more time, which holds the refund. The buyer is reminded.
+  | 'deal.extension.waiting'
   | 'deal.auto_released'
   | 'deal.disputed'
   /// Buyer confirmed physical goods arrived. Distinct from a release: it lifts
@@ -118,7 +123,7 @@ export type KarwanEventType =
   | 'agent.suggestion'
   /// A seller is asked to set up their Karwan record: their agent waits to offer, or a deal was paid in before they had one.
   | 'record.setup_needed'
-  /// suite: review ended with the buyer silent: the seller is asked, the agent raised it, or the buyer has 72 hours to answer.
+  /// suite: the buyer's review ends within a day; the buyer is reminded.
   | 'deal.review.ending'
   | 'agent.declined'
   | 'agent.error'

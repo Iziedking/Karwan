@@ -32,6 +32,10 @@ export const DIRECT_TYPES = new Set([
   'escrow.milestone.released',
   'deal.review.started',
   'deal.review.heartbeat',
+  // The buyer's review ends within a day.
+  'deal.review.ending',
+  // The delivery date: the seller before it, both sides when it passes.
+  'deal.deadline.soon',
   'deal.deadline.passed',
   'deal.auto_released',
   'escrow.settled',
@@ -40,6 +44,7 @@ export const DIRECT_TYPES = new Set([
   'deal.extension.requested',
   'deal.extension.approved',
   'deal.extension.declined',
+  'deal.extension.waiting',
   'deal.dispute.statement',
   'deal.dispute.statement.due',
   // An arbiter splitting the escrow is the single most consequential thing that
@@ -114,7 +119,10 @@ export const ACTION_TYPES = new Set([
   'deal.release.blocked',
   'deal.review.started',
   'deal.fund.insufficient',
+  'deal.review.ending',
+  'deal.deadline.soon',
   'deal.deadline.passed',
+  'deal.extension.waiting',
 ]);
 
 /// A cross-chain transfer that finished. It names no deal, and not every path
@@ -160,7 +168,10 @@ export const TOAST_TYPES = new Set([
   'deal.release.blocked',
   'negotiation.near-miss',
   'job.expired',
+  'deal.review.ending',
+  'deal.deadline.soon',
   'deal.deadline.passed',
+  'deal.extension.waiting',
   'deal.match.raised',
   'wallet.credited',
   'wallet.debited',
@@ -206,7 +217,9 @@ export const RECIPIENT: Record<string, Role | 'both'> = {
   'deal.fund.insufficient': 'buyer',
   'escrow.milestone.released': 'both',
   'deal.review.started': 'buyer',
-  'deal.deadline.passed': 'buyer', // the seller missed it; the buyer can reclaim
+  'deal.review.ending': 'buyer', // the buyer releases, asks once for more time, or raises a problem
+  'deal.deadline.soon': 'seller', // the seller's delivery date is near
+  'deal.deadline.passed': 'both', // role-aware: the refund time, or the request waiting on the buyer
   'deal.review.heartbeat': 'seller', // the buyer extended; the seller cares
   'deal.auto_released': 'both',
   'escrow.settled': 'both',
@@ -214,6 +227,7 @@ export const RECIPIENT: Record<string, Role | 'both'> = {
   'deal.extension.requested': 'buyer', // the seller asked; the buyer answers
   'deal.extension.approved': 'seller',
   'deal.extension.declined': 'seller',
+  'deal.extension.waiting': 'both', // special-cased: the buyer each time, the seller once
   'deal.dispute.statement': 'both', // special-cased to the side that has not given one
   'deal.dispute.statement.due': 'both', // special-cased to the side named in the payload
   'escrow.resolved': 'both',

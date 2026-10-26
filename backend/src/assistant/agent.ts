@@ -11,7 +11,10 @@ import { formatUnits, parseUnits, type Address } from 'viem';
 import { assistantAgentModel } from '../llm/client.js';
 import { withLlmTimeout } from '../agents/llm-utils.js';
 import { systemPromptFor } from './knowledge.js';
-import { readUsdcBalance, readEscrow } from '../chain/contracts.js';
+import { readUsdcBalance } from '../chain/contracts.js';
+import { dealEscrowOps } from '../deals/dealEscrowOpsLive.js';
+import { awaitingNextDelivery } from '../deals/milestoneDelivery.js';
+import { dealPendingLines, proposalPendingLines } from './pendingLines.js';
 import { arcChain, publicClient } from '../chain/client.js';
 import { vaultAbi } from '../chain/abis/vault.js';
 import { config } from '../config.js';
@@ -778,23 +781,10 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
           const waitingOnOthers: string[] = [];
           const inFlight: string[] = [];
 
-          for (const p of proposals) {
-            if (p.approvedAt || p.declinedAt) continue;
-            const myRole = p.buyerUser === address ? 'buyer' : 'seller';
-            const awaiting = p.awaitingParty ?? 'seller';
-            const price = p.raisedPriceUsdc ?? p.agreedPriceUsdc;
-            if (awaiting === myRole) {
-              actionNeeded.push(
-                `Match proposal on job ${p.jobId} at ${price} USDC is waiting for YOUR approval or decline.`,
-              );
-            } else {
-              waitingOnOthers.push(
-                `Match proposal on job ${p.jobId} at ${price} USDC is waiting for the ${awaiting} to approve.`,
-              );
-            }
-          }
-
           const now = Date.now();
+          const proposalLines = proposalPendingLines(address, proposals, now);
+          actionNeeded.push(...proposalLines.actionNeeded);
+          waitingOnOthers.push(...proposalLines.waitingOnOthers);
           const proposalJobs = new Set(proposals.map((p) => p.jobId));
           for (const job of getBuyerSnapshot().jobs) {
             if (!job.bids.length || proposalJobs.has(job.jobId)) continue;
@@ -807,56 +797,17 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
           const steps = dealStepPendingLines(address, deals, now);
           actionNeeded.push(...steps.actionNeeded);
           waitingOnOthers.push(...steps.waitingOnOthers);
-          for (const d of deals) {
-            if (d.settledAt || d.cancelledAt) continue;
-            const isBuyer = d.buyer === address;
-            if (d.disputed) {
-              actionNeeded.push(
-                `Deal ${d.jobId} (${d.dealAmountUsdc} USDC) is in dispute — the process and timelines are on /docs/disputes.`,
-              );
-            } else if (d.delivered && isBuyer) {
-              actionNeeded.push(
-                `Deal ${d.jobId}: delivery is recorded. Review the work and remaining payment on the deal page. Existing release and evidence gates still apply.`,
-              );
-            } else if (d.delivered && !isBuyer) {
-              waitingOnOthers.push(
-                `Deal ${d.jobId}: delivery is recorded; review the remaining milestone and current release state on the deal page.`,
-              );
-            } else if (d.sellerApprovedAt && !d.acceptedAt && isBuyer) {
-              actionNeeded.push(
-                d.origin === 'agent'
-                  ? `Deal ${d.jobId}: seller agreement is recorded; agent funding may proceed under the request's prior authorization. Read the deal before taking another funding action.`
-                  : `Deal ${d.jobId} (${d.dealAmountUsdc} USDC): the seller agreed. Review the current fee and exact total before funding escrow.`,
-              );
-            } else if (d.sellerApprovedAt && !d.acceptedAt && !isBuyer) {
-              waitingOnOthers.push(
-                d.origin === 'agent'
-                  ? `Deal ${d.jobId}: agreement is recorded; check the deal for agent funding progress.`
-                  : `Deal ${d.jobId} (${d.dealAmountUsdc} USDC): you agreed to the terms. Waiting for the buyer to review and fund escrow.`,
-              );
-            } else if (!d.acceptedAt && !isBuyer && !d.pendingCounterparty) {
-              actionNeeded.push(
-                `Deal ${d.jobId} (${d.dealAmountUsdc} USDC) is waiting for you to agree to the terms. Buyer funding happens afterward.`,
-              );
-            } else if (
-              !isBuyer &&
-              d.deadlineUnix &&
-              d.deadlineUnix * 1000 - now < 3 * 86_400_000 &&
-              d.deadlineUnix * 1000 > now
-            ) {
-              const daysLeft = Math.max(1, Math.ceil((d.deadlineUnix * 1000 - now) / 86_400_000));
-              actionNeeded.push(
-                `Deal ${d.jobId}: the delivery deadline is in about ${daysLeft} day${daysLeft === 1 ? '' : 's'}. Deliver on time — missing it lets the buyer reclaim and costs reputation.`,
-              );
-            } else {
-              inFlight.push(`Deal ${d.jobId} (${d.dealAmountUsdc} USDC) is in progress.`);
-            }
-          }
+          const dealLines = dealPendingLines(address, deals, now);
+          actionNeeded.push(...dealLines.actionNeeded);
+          waitingOnOthers.push(...dealLines.waitingOnOthers);
+          inFlight.push(...dealLines.inFlight);
 
           const userBridges = await listBridgesForUser({
             owner: address,
             sourceWalletsByChain: depositWalletsByChainKey(record?.bridgeWallets),
           });
+          // Repeated tries of one transfer read as one line, not twenty.
+          const notThrough = new Map<string, number>();
           for (const b of userBridges) {
             // What to say depends on whether a burn is on chain, not on the
             // status. A transfer declined at the wallet never becomes `error`
@@ -883,15 +834,20 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
               continue;
             }
             if (standing.kind === 'failed_before_burn') {
-              actionNeeded.push(
-                `Transfer of ${b.amountUsdc} USDC did not go through. Nothing left the wallet. Start it again on /bridge.`,
-              );
+              notThrough.set(String(b.amountUsdc), (notThrough.get(String(b.amountUsdc)) ?? 0) + 1);
               continue;
             }
             // Money left and did not arrive. Never soften this into "in
             // progress": it is the one case that needs a person.
             actionNeeded.push(
               `Transfer of ${b.amountUsdc} USDC left the wallet and has not arrived. Open /bridge and use Feedback so support can trace it.`,
+            );
+          }
+          for (const [amount, count] of notThrough) {
+            actionNeeded.push(
+              count === 1
+                ? `Transfer of ${amount} USDC did not go through. Nothing left the wallet. Start it again on /bridge.`
+                : `${count} tries to move ${amount} USDC did not go through. Nothing left the wallet. Start it again on /bridge.`,
             );
           }
 
@@ -1545,7 +1501,11 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
             return { error: 'Only the seller marks work delivered. They are the buyer on this one — they RELEASE payment instead (propose_release).' };
           }
           if (!deal.acceptedAt) return { error: 'They have not accepted that deal yet, so there is nothing to deliver. Offer propose_accept_deal.' };
-          if (deal.delivered) return { error: 'That deal is already marked delivered; the buyer is reviewing.' };
+          // On the escrow family a paid milestone opens the next one for delivery.
+          const nextDue = deal.delivered && dealEscrowOps.isV3(deal)
+            ? awaitingNextDelivery(deal, (await dealEscrowOps.read(deal)).milestonesReleased)
+            : false;
+          if (deal.delivered && !nextDue) return { error: 'That deal is already marked delivered; the buyer is reviewing.' };
           const built = buildMarkDeliveredConfirm({
             caller: address,
             jobId,
@@ -2207,7 +2167,8 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
         }
         let escrow;
         try {
-          escrow = await readEscrow(jobId);
+          // The deal's own escrow: the family and v3 deals are not on the escrow keyed by job id.
+          escrow = await dealEscrowOps.read(deal);
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant propose_release escrow read failed');
           return { error: "Could not read this deal's escrow right now. Try again shortly." };
@@ -2216,6 +2177,9 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
         const idx = escrow.milestonesReleased; // next milestone to release, 0-based
         if (total === 0) return { error: "Could not read this deal's milestones. Open the deal to release it." };
         if (idx >= total) return { error: 'Every milestone on this deal is already released.' };
+        if (awaitingNextDelivery(deal, idx)) {
+          return { error: `The seller has not delivered milestone ${idx + 1} yet. It can be released once they do.` };
+        }
         const pct = escrow.milestonePcts[idx] ?? 0;
         if (pct <= 0) return { error: 'Could not determine the next milestone amount for this deal.' };
 

@@ -46,6 +46,26 @@ contract AgreementDeadlinesTest is AgreementFixture {
         escrow.markDelivered(id, bytes32(0));
     }
 
+    /// The app holds the deadline refund while the seller's request for more time
+    /// waits on the buyer, so a buyer may answer after the grace has run out.
+    function test_a_late_approval_after_the_grace_lets_the_seller_deliver() public {
+        AgreementTerms memory t = _terms();
+        bytes32 id = _fundAccepted(t, bytes32("d"));
+        uint256 late = uint256(t.deliveryDeadline) + t.reclaimGrace + 10 days;
+        vm.warp(late);
+        uint64 later = uint64(late + 3 days);
+        vm.prank(buyer);
+        escrow.extendDeadline(id, later);
+        assertEq(_deal(id).deadline, later);
+        vm.prank(buyer);
+        vm.expectRevert(AgreementDeliveryLib.Early.selector);
+        escrow.reclaim(id);
+        vm.prank(seller);
+        escrow.markDelivered(id, bytes32(0));
+        assertGt(_deal(id).deliveredAt, 0);
+        assertFalse(_deal(id).lateMark);
+    }
+
     function test_deposit_comes_back_at_the_deadline_and_the_seller_cannot_claim() public {
         AgreementTerms memory t = _terms();
         t.silenceOutcome = 1;

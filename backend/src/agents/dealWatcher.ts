@@ -65,6 +65,8 @@ import {
   failDeadlineRecovery,
   recordDeadlineRecoveryMovement,
 } from '../deals/deadlineRecovery.js';
+import { deadlineReminderDue, waitingReminderDue } from '../deals/deliveryDeadline.js';
+import { currentMilestoneDelivered } from '../deals/milestoneDelivery.js';
 import type { FinancialCommandShadowObserver } from './financialCommandShadow.js';
 import { buildLegacySettlementObservation } from './financialCommandProjection.js';
 import { onChainDeliveryAlert } from '../deals/onChainDelivery.js';
@@ -265,11 +267,11 @@ async function runSuiteReviewEndSafely(deal: DirectDeal, now: number) {
   }
 }
 
-/// Deadline passed without delivery. The buyer's money is sitting in escrow
-/// and the seller never delivered. First detection alerts the buyer (bell,
-/// email, activity feed) that they can reclaim now or grant an extension.
-/// If they take no action and the seller still has not delivered after the
-/// grace window, auto-reclaim so the money is never stuck. The seller can
+/// The delivery date (owner, 26 Oct 2026). Before it, the seller is reminded
+/// once. When it passes with nothing delivered, both sides are told. After the
+/// grace window the buyer is refunded so the money is never stuck, unless the
+/// seller's request for more time is still waiting on the buyer: then the
+/// refund waits for their answer and the buyer is reminded. The seller can
 /// still deliver during grace, which clears this branch (deal.delivered).
 ///
 /// Runs on Accepted escrows and on Funded ones the seller never accepted on
@@ -283,18 +285,31 @@ async function maybeReclaimAfterDeadline(
   account: Awaited<ReturnType<typeof dealEscrowOps.read>>,
   now: number,
 ): Promise<boolean> {
-  if (!deal.deadlineUnix || deal.delivered || now <= deal.deadlineUnix * 1000) return false;
+  // A paid milestone whose next one is not delivered counts as not delivered.
+  const delivered = currentMilestoneDelivered(deal, account.milestonesReleased);
+  if (!deal.deadlineUnix || delivered) return false;
+  const refundAt = deadlineRecoveryReadyAt(deal.deadlineUnix, config.DEAL_DEADLINE_RECLAIM_GRACE_MS);
+  if (now <= deal.deadlineUnix * 1000) {
+    if (deadlineReminderDue({ ...deal, delivered }, now)) {
+      await patchDeal(deal.jobId, { deadlineRemindedFor: deal.deadlineUnix });
+      bus.emitEvent({
+        type: 'deal.deadline.soon',
+        jobId: deal.jobId,
+        actor: 'platform',
+        payload: { buyer: deal.buyer, seller: deal.seller, dueAt: deal.deadlineUnix * 1000, refundAt },
+      });
+    }
+    return false;
+  }
   const buyerWalletId = deal.buyerAgentWalletId!;
   const onChainReclaim = dealEscrowOps.usesOnChainClock(deal) && account.state === ESCROW_ACCEPTED;
   const recovery = await ensureDeadlineRecovery({
     jobId: deal.jobId,
     deadlineUnix: deal.deadlineUnix,
-    availableAt: deadlineRecoveryReadyAt(
-      deal.deadlineUnix,
-      config.DEAL_DEADLINE_RECLAIM_GRACE_MS,
-    ),
+    availableAt: refundAt,
     now,
   });
+  const ask = deal.extensionRequest;
   if (!deal.deadlineAlertedAt) {
     await patchDeal(deal.jobId, { deadlineAlertedAt: now });
     bus.emitEvent({
@@ -306,12 +321,28 @@ async function maybeReclaimAfterDeadline(
         seller: deal.seller,
         deadlineUnix: deal.deadlineUnix,
         graceMs: config.DEAL_DEADLINE_RECLAIM_GRACE_MS,
+        refundAt,
+        askedForMoreTime: !!ask,
+        ...(ask ? { additionalSeconds: ask.additionalSeconds } : {}),
       },
     });
     logger.info(
       { jobId: deal.jobId, deadlineUnix: deal.deadlineUnix },
-      'delivery deadline passed without delivery, alerted buyer to reclaim',
+      'delivery deadline passed without delivery, told both sides',
     );
+    return true;
+  }
+  if (ask) {
+    const reminder = waitingReminderDue(deal, now, config.DEAL_DEADLINE_RECLAIM_GRACE_MS);
+    if (reminder !== null) {
+      await patchDeal(deal.jobId, { extensionWaitReminder: { requestedAt: ask.requestedAt, count: reminder, lastAt: now } });
+      bus.emitEvent({
+        type: 'deal.extension.waiting',
+        jobId: deal.jobId,
+        actor: 'platform',
+        payload: { buyer: deal.buyer, seller: deal.seller, additionalSeconds: ask.additionalSeconds, reminder },
+      });
+    }
     return true;
   }
   const recoveryLease =
@@ -952,7 +983,7 @@ async function tick() {
       // Timer ladder. The first milestone and any intermediate one auto-release
       // once their window elapses; each window is double the one before it. The
       // FINAL milestone is never on this ladder — see the delay-appeal branch.
-      if (deal.delivered && deal.deliveredAt && !nextIsFinal) {
+      if (currentMilestoneDelivered(deal, nextIndex) && deal.deliveredAt && !nextIsFinal) {
         const anchor = milestoneWindowAnchor(deal, nextIndex) ?? deal.deliveredAt;
         const windowMs = autoReleaseWindowMs(
           deal,
@@ -1018,6 +1049,7 @@ async function tick() {
       if (
         nextIndex >= 1 &&
         nextIsFinal &&
+        currentMilestoneDelivered(deal, nextIndex) &&
         responseDeadline !== null &&
         now > responseDeadline
       ) {

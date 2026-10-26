@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { amountFor, contentFor } from './dealNotifier.js';
+import { amountFor, contentFor, recipientsFor } from './dealNotifier.js';
 import type { KarwanEvent } from '../events.js';
 
 const edited = (actor: 'buyer' | 'seller'): KarwanEvent => ({
@@ -139,6 +139,46 @@ test('the buyer is reminded a day before review ends, with the three choices; th
   assert.equal(contentFor(ending, 'seller', 'service'), null);
   const used = { ...ending, payload: { ...ending.payload, canAskMoreTime: false } } as unknown as KarwanEvent;
   assert.doesNotMatch(contentFor(used, 'buyer', 'service')!.body, /more time/i);
+});
+
+const deadlineEvent = (type: string, payload: Record<string, unknown>) =>
+  ({ type, jobId: '0xdeal', actor: 'platform', ts: 0, payload: { buyer: '0xb', seller: '0xs', ...payload } }) as unknown as KarwanEvent;
+
+test('the seller is reminded before the delivery date; the buyer is not', async () => {
+  const soon = deadlineEvent('deal.deadline.soon', { dueAt: Date.UTC(2026, 9, 27, 9, 0), refundAt: Date.UTC(2026, 9, 28, 9, 0) });
+  assert.deepEqual(await recipientsFor(soon), [{ address: '0xs', role: 'seller' }]);
+  const mail = contentFor(soon, 'seller', 'service');
+  assert.ok(mail);
+  assert.match(mail.subject, /due 27 Oct, 09:00 UTC/);
+  assert.match(mail.body, /ask the buyer for more time/);
+  assert.match(mail.body, /28 Oct, 09:00 UTC/);
+  assert.doesNotMatch(mail.body, /—|escrow/i);
+  assert.equal(contentFor(soon, 'buyer', 'service'), null);
+});
+
+test('a missed delivery date reaches both sides with the refund time, and says the money waits on an open request', async () => {
+  const refundAt = Date.UTC(2026, 9, 28, 9, 0);
+  const passed = deadlineEvent('deal.deadline.passed', { refundAt, askedForMoreTime: false });
+  assert.deepEqual(await recipientsFor(passed), [{ address: '0xb', role: 'buyer' }, { address: '0xs', role: 'seller' }]);
+  const toBuyer = contentFor(passed, 'buyer', 'service')!;
+  assert.match(toBuyer.body, /comes back to you automatically/);
+  assert.match(toBuyer.body, /28 Oct, 09:00 UTC/);
+  assert.doesNotMatch(toBuyer.body + toBuyer.subject, /reclaim|escrow|—/i);
+  const toSeller = contentFor(passed, 'seller', 'service')!;
+  assert.match(toSeller.body, /goes back to the buyer/);
+  assert.match(toSeller.body, /ask the buyer for more time/);
+  const asked = deadlineEvent('deal.deadline.passed', { refundAt, askedForMoreTime: true, additionalSeconds: 2 * 86_400 });
+  assert.match(contentFor(asked, 'buyer', 'service')!.body, /2 more days.*stays in the deal until you answer/);
+  assert.match(contentFor(asked, 'seller', 'service')!.body, /stays in the deal until they answer/);
+});
+
+test('while an answer holds the refund the buyer is reminded each time; the seller hears once', async () => {
+  const first = deadlineEvent('deal.extension.waiting', { additionalSeconds: 86_400, reminder: 1 });
+  assert.deepEqual(await recipientsFor(first), [{ address: '0xb', role: 'buyer' }, { address: '0xs', role: 'seller' }]);
+  assert.match(contentFor(first, 'buyer', 'service')!.body, /1 more day.*decline and your money comes back to you/);
+  assert.match(contentFor(first, 'seller', 'service')!.body, /has not answered/);
+  const third = deadlineEvent('deal.extension.waiting', { additionalSeconds: 86_400, reminder: 3 });
+  assert.deepEqual(await recipientsFor(third), [{ address: '0xb', role: 'buyer' }]);
 });
 
 test('a financier whose offer is short hears how much to add', () => {

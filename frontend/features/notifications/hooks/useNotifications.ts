@@ -156,6 +156,10 @@ function shouldNotify(
   if (type === 'deal.dispute.statement.due') {
     return !!role && payload?.side === role;
   }
+  // While the buyer's answer holds the refund: the buyer each time, the seller once.
+  if (type === 'deal.extension.waiting') {
+    return role === 'buyer' || (role === 'seller' && payload?.reminder === 1);
+  }
   if (type === 'deal.cancel.declined') {
     const by = payload?.proposedBy as Role | undefined;
     return !!role && !!by && role === by; // only the proposer hears the decline

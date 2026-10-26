@@ -110,8 +110,13 @@ export function summaryFor(
       return seller ? c.releasedSeller : c.released;
     case 'deal.review.started':
       return c.reviewStarted;
+    case 'deal.deadline.soon':
+      return c.deadlineSoon;
+    case 'deal.review.ending':
+      return c.reviewEnding;
     case 'deal.deadline.passed':
-      return c.deadlinePassed;
+      if (payload?.askedForMoreTime === true) return seller ? c.deadlinePassedAskedSeller : c.deadlinePassedAsked;
+      return seller ? c.deadlinePassedSeller : c.deadlinePassed;
     case 'deal.review.heartbeat':
       return c.heartbeat;
     case 'deal.auto_released':
@@ -141,6 +146,8 @@ export function summaryFor(
       return c.extensionApproved;
     case 'deal.extension.declined':
       return c.extensionDeclined;
+    case 'deal.extension.waiting':
+      return seller ? c.extensionWaitingSeller : c.extensionWaiting;
     case 'deal.dispute.statement':
       return str('side') === 'seller' ? c.statementGivenSeller : c.statementGivenBuyer;
     case 'deal.dispute.statement.due':

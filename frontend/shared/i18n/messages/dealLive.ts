@@ -21,6 +21,7 @@ export interface DealLiveCopy {
   again: string;
   autoReleaseYou: string;
   reclaimYou: string;
+  reclaimWaitsYou: string;
 }
 
 export const dealLiveCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealLiveCopy> = {
@@ -42,6 +43,7 @@ export const dealLiveCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealLiveCopy
     again: 'Start another deal with {name}',
     autoReleaseYou: "Releases automatically on {date} unless you raise a problem.",
     reclaimYou: "If nothing is delivered, you can take your money back from {date}.",
+    reclaimWaitsYou: "The seller asked for more time. Your money stays in the deal until you answer.",
   },
   fr: {
     working: '{name} travaille dessus',
@@ -61,6 +63,7 @@ export const dealLiveCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealLiveCopy
     again: 'Nouvel accord avec {name}',
     autoReleaseYou: "Libération automatique le {date}, sauf si vous signalez un problème.",
     reclaimYou: "Sans livraison, vous pouvez reprendre votre argent à partir du {date}.",
+    reclaimWaitsYou: "Le vendeur a demandé plus de temps. Votre argent reste dans l’accord jusqu’à votre réponse.",
   },
   ar: {
     working: '{name} يعمل عليه',
@@ -80,6 +83,7 @@ export const dealLiveCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealLiveCopy
     again: 'صفقة جديدة مع {name}',
     autoReleaseYou: "تُصرف تلقائيًا في {date} ما لم تُبلغ عن مشكلة.",
     reclaimYou: "إن لم يُسلَّم شيء، يمكنك استرداد مالك اعتبارًا من {date}.",
+    reclaimWaitsYou: "طلب البائع مزيدًا من الوقت. يبقى مالك في الصفقة حتى تردّ.",
   },
   hi: {
     working: '{name} इस पर काम कर रहे हैं',
@@ -99,6 +103,7 @@ export const dealLiveCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealLiveCopy
     again: '{name} के साथ नया सौदा',
     autoReleaseYou: "{date} को अपने आप जारी होगा, जब तक आप कोई समस्या न बताएँ।",
     reclaimYou: "अगर कुछ डिलीवर नहीं हुआ, तो आप {date} से अपना पैसा वापस ले सकते हैं।",
+    reclaimWaitsYou: "विक्रेता ने और समय माँगा है। जब तक आप जवाब नहीं देते, आपका पैसा सौदे में रहता है।",
   },
   sw: {
     working: '{name} anaifanyia kazi',
@@ -118,5 +123,6 @@ export const dealLiveCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealLiveCopy
     again: 'Mkataba mpya na {name}',
     autoReleaseYou: "Inatolewa yenyewe tarehe {date} usipoibua tatizo.",
     reclaimYou: "Kama hakuna kilichowasilishwa, unaweza kurudisha pesa zako kuanzia {date}.",
+    reclaimWaitsYou: "Muuzaji ameomba muda zaidi. Pesa zako zinabaki kwenye mkataba hadi ujibu.",
   },
 };

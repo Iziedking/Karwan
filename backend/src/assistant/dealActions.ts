@@ -1,5 +1,6 @@
 import { confirmNonce, type ConfirmActionBase } from './actions.js';
 import { parseStatement } from '../deals/disputeJudge.js';
+import { approvedDeadline } from '../deals/deliveryDeadline.js';
 import { checkOffer, type OfferRuleError } from '../offers/rules.js';
 
 /// Confirm cards for the steps of a request or deal after it is posted:
@@ -272,6 +273,8 @@ export function buildRequestExtensionConfirm(i: {
   jobId: string;
   days: number;
   currentDeadlineUnix: number;
+  /// Now, so a request after the date shows the date an approval now would give.
+  nowUnix?: number;
   reason?: string;
 }): RequestExtensionConfirm | { error: string } {
   if (!i.jobId) return { error: 'Missing the deal id.' };
@@ -280,16 +283,19 @@ export function buildRequestExtensionConfirm(i: {
   }
   const additionalSeconds = i.days * DAY_SECONDS;
   const reason = i.reason?.trim();
+  const passed = i.nowUnix !== undefined && i.nowUnix > i.currentDeadlineUnix;
   return {
     kind: 'confirm',
     id: `request_extension:${i.jobId}:${i.days}:${confirmNonce()}`,
     intent: 'request_extension',
     title: 'Ask for more time',
-    summary: `The buyer approves or declines. Until then the current deadline stands.`,
+    summary: passed
+      ? 'The buyer approves or declines. The money stays in the deal until they answer.'
+      : 'The buyer approves or declines. Until then the current deadline stands.',
     fields: [
       { label: 'Extra time', value: `${i.days} day${i.days === 1 ? '' : 's'}` },
       { label: 'Current deadline', value: isoDay(i.currentDeadlineUnix) },
-      { label: 'New deadline', value: isoDay(i.currentDeadlineUnix + additionalSeconds) },
+      { label: 'New deadline', value: isoDay(approvedDeadline(i.currentDeadlineUnix, i.nowUnix ?? i.currentDeadlineUnix, additionalSeconds)) },
       ...(reason ? [{ label: 'Reason', value: reason }] : []),
     ],
     payload: { jobId: i.jobId, caller: i.caller, additionalSeconds, ...(reason ? { reason } : {}) },
@@ -304,6 +310,8 @@ export function buildRespondExtensionConfirm(i: {
   decision: 'approve' | 'decline';
   days: number;
   newDeadlineUnix?: number;
+  /// The delivery date has passed: a decline lets the refund go ahead.
+  deadlinePassed?: boolean;
 }): RespondExtensionConfirm | { error: string } {
   if (!i.jobId) return { error: 'Missing the deal id.' };
   const approve = i.decision === 'approve';
@@ -314,7 +322,9 @@ export function buildRespondExtensionConfirm(i: {
     title: approve ? 'Give more time' : 'Keep the deadline',
     summary: approve
       ? `The seller gets ${i.days} more day${i.days === 1 ? '' : 's'} to deliver.`
-      : 'The seller delivers by the current deadline.',
+      : i.deadlinePassed
+        ? 'The delivery date has passed. Your money comes back to you unless the seller delivers in the time left.'
+        : 'The seller delivers by the current deadline.',
     fields: [
       { label: 'Extra time asked', value: `${i.days} day${i.days === 1 ? '' : 's'}` },
       ...(approve && i.newDeadlineUnix ? [{ label: 'New deadline', value: isoDay(i.newDeadlineUnix) }] : []),
