@@ -3,7 +3,7 @@ import { prohibitedBody, prohibitedReason } from '../policy/prohibited.js';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { generateObject } from 'ai';
-import { lightModel } from '../llm/client.js';
+import { llmModel } from '../llm/client.js';
 import { singleFlight } from '../llm/singleFlight.js';
 import { withLlmRetry } from '../agents/llm-utils.js';
 import {
@@ -125,7 +125,11 @@ const reportSchema = z.object({
   note: z.string().trim().max(500).optional(),
 });
 
-const matchDecisionSchema = z.object({
+/// The model names both deliverables before it decides, so a shared field or
+/// audience ("for developers") cannot pass for the thing the buyer needs.
+export const matchDecisionSchema = z.object({
+  briefNeeds: z.string().optional(),
+  listingDelivers: z.string().optional(),
   match: z.boolean(),
   confidence: z.number().min(0).max(1),
   reasoning: z.string(),
@@ -746,7 +750,8 @@ async function tryMatchListingToJobLegacy(
       const result = await singleFlight(listingMatchInflight, `${job.jobId}:${listing.id}:${basis}`, () =>
         withLlmRetry(`listingMatch(${listing.id}:${job.jobId})`, () =>
           generateObject({
-            model: lightModel,
+            // Whether a seller bids is not a tagging call: the standard model, not the light one.
+            model: llmModel,
             schema: matchDecisionSchema,
             prompt: buildListingMatchPrompt(listing, job),
           }),
@@ -915,10 +920,10 @@ async function tryMatchListingToJobLegacy(
   return true;
 }
 
-function buildListingMatchPrompt(listing: Listing, job: { briefText?: string; budgetUsdc: string; termsHash: string }): string {
+export function buildListingMatchPrompt(listing: Listing, job: { briefText?: string; budgetUsdc: string; termsHash: string }): string {
   const brief = job.briefText ?? `(opaque, only terms hash ${job.termsHash})`;
   return [
-    'You are a marketplace matcher. Decide whether a seller listing matches an open buyer brief.',
+    'You are a marketplace matcher. A seller posted the listing below as something they sell. Decide whether it gives the buyer what their brief asks for.',
     '',
     'Seller listing:',
     `- Title: ${listing.title}`,
@@ -929,21 +934,16 @@ function buildListingMatchPrompt(listing: Listing, job: { briefText?: string; bu
     `- Text: ${brief}`,
     `- Budget: ${job.budgetUsdc} USDC`,
     '',
-    'Direction check (apply FIRST):',
-    '- A listing must describe a service or deliverable that is BEING SOLD (e.g. "I sell X", "X for sale", "I build Y").',
-    '- A brief must describe something the buyer NEEDS to acquire (e.g. "Need a backend engineer", "Looking for translation").',
-    '- If the listing reads as a request ("I need", "Looking for", "Hiring") rather than an offer, return match=false with confidence 0.9 and reasoning "listing is mis-posted as a request, not an offer". Do NOT match it to a brief even if topics align.',
-    '- If the brief reads as an offer ("I sell", "Available for"), return match=false with confidence 0.9 and reasoning "brief is mis-posted as an offer".',
+    'Steps:',
+    '1. briefNeeds: in a few words, the thing the buyer wants delivered (a person to do a job, a piece of work, an item).',
+    '2. listingDelivers: in a few words, the thing this listing delivers.',
+    '3. match=true only if the listing would deliver the thing the brief asks for: the same kind of work or item, so the buyer could take this seller and be done. Match on synonyms and abbreviations ("WL" = "whitelist", "ES to AR" = "Spanish to Arabic").',
+    '4. match=false when the listing only shares a field, an audience or a keyword with the brief. Examples: an email sequence for developers does not fulfill a request for a backend engineer; a logo does not fulfill a website build; a course about trading does not fulfill a request for a trader.',
+    '5. match=false, with reasoning "listing is a request, not an offer", only if the listing plainly asks to buy or hire ("I need", "Looking for", "Hiring"). Otherwise treat it as an offer.',
     '',
-    'Topical match (apply SECOND, only if direction is correct):',
-    '- Decide if the brief and the listing describe the SAME service or deliverable.',
-    '- Match generously on synonyms and abbreviations (e.g. "WL" ≈ "whitelist", "ES→AR" ≈ "Spanish to Arabic").',
-    "- Match=true only if the listing's offer can clearly fulfill the brief. Price differences are OK — negotiation handles those.",
+    'Price differences do not matter here; negotiation handles them.',
     '',
-    'Output:',
-    '- match: true | false',
-    '- confidence: 0..1',
-    '- reasoning: one sentence on why match=true or false',
+    'Output: briefNeeds, listingDelivers, match (true | false), confidence (0 to 1), reasoning (one sentence).',
   ].join('\n');
 }
 
