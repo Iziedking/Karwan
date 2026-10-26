@@ -346,6 +346,7 @@ activationRoutes.post(
   // so it must be the caller's own account: otherwise it is an unauthenticated
   // agent-address disclosure on top of a faucet.
   if (!isSessionSelf(c, body.address)) {
+    logger.warn({ target: body.target }, 'faucet claim refused: not the signed-in account');
     return c.json({ error: 'You can only claim test funds for your own account.', code: 'forbidden' }, 403);
   }
   const userAddress = body.address.toLowerCase();
@@ -353,7 +354,10 @@ activationRoutes.post(
   let target = userAddress; // identity = the logged-in wallet, funded on Arc
   if (body.target !== 'identity') {
     const wallets = await getAgentWallets(userAddress);
-    if (!wallets) return c.json({ error: 'no agent wallets — activate first' }, 409);
+    if (!wallets) {
+      logger.warn({ address: userAddress, target: body.target }, 'faucet claim refused: no agent wallets');
+      return c.json({ error: 'Set up your agents first, then claim test USDC for them.' }, 409);
+    }
     target = body.target === 'buyer' ? wallets.buyerAddress : wallets.sellerAddress;
   }
 

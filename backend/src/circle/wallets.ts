@@ -361,6 +361,8 @@ export interface DripResult {
 export async function dripTestnetUsdc(address: string, opts: DripOptions = {}): Promise<DripResult> {
   const key = config.CIRCLE_API_KEY;
   if (!ARC.testnet || !key || !key.startsWith('TEST_API_KEY')) {
+    // Said out loud: a refusal here used to leave no trace when a claim failed.
+    logger.warn({ address, testnet: ARC.testnet, testKey: !!key && key.startsWith('TEST_API_KEY') }, 'testnet drip refused: not a testnet setup');
     return { ok: false, detail: 'faucet is only available on testnet' };
   }
   const blockchain = opts.blockchain ?? ARC_BLOCKCHAIN;

@@ -1,4 +1,5 @@
 import type { Context, Next } from 'hono';
+import { logger } from '../logger.js';
 
 interface Bucket {
   count: number;
@@ -54,6 +55,10 @@ export function rateLimit(opts: {
       bucket.count += 1;
       if (bucket.count > (typeof opts.max === 'function' ? opts.max(c) : opts.max)) {
         const retryAfter = Math.ceil((bucket.resetAt - now) / 1000);
+        // Once per window, so a refused action leaves a trace without flooding the log.
+        if (bucket.count === (typeof opts.max === 'function' ? opts.max(c) : opts.max) + 1) {
+          logger.warn({ limiter: opts.name, retryAfter }, 'rate limit reached');
+        }
         c.header('Retry-After', String(retryAfter));
         return c.json(
           { error: 'too many requests, slow down and try again shortly', retryAfterSeconds: retryAfter },
