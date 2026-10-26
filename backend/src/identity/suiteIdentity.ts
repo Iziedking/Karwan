@@ -11,6 +11,11 @@ type Hex = `0x${string}`;
 
 const YEAR_SECS = 365 * 86_400;
 const DEADLINE_SECS = 3_600;
+/// A step's result is read back until the read node shows it: right after a
+/// call it can still answer with the state before (26 Oct 2026, 12 of 38
+/// backfilled accounts stopped on a step that had in fact landed).
+const CONFIRM_TRIES = 10;
+const CONFIRM_PAUSE_MS = 2_000;
 
 /// KarwanIdentityRegistry.Kind.
 export const KIND = { None: 0, Wallet: 1, Agent: 2 } as const;
@@ -67,6 +72,7 @@ export interface IdentityPorts {
   /// signs their record setup itself when a record is needed, instead of asking.
   autoSetupCustodial?: boolean;
   warn?: (fields: Record<string, unknown>, msg: string) => void;
+  pause?: (ms: number) => Promise<void>;
 }
 
 export function bindingTypedData(args: {
@@ -111,6 +117,16 @@ export function bindingTypedData(args: {
 
 export function createSuiteIdentity(ports: IdentityPorts) {
   const now = () => BigInt(ports.now());
+  const pause = ports.pause ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+
+  async function confirmed(wallet: Hex, ok: (b: { id: bigint; kind: number; expiry: bigint }) => boolean) {
+    for (let i = 0; i < CONFIRM_TRIES; i += 1) {
+      const b = await ports.binding(wallet);
+      if (ok(b)) return b;
+      await pause(CONFIRM_PAUSE_MS);
+    }
+    return null;
+  }
 
   async function identityStatus(userAddress: string) {
     const w = await ports.wallets(userAddress);
@@ -168,18 +184,20 @@ export function createSuiteIdentity(ports: IdentityPorts) {
     let me = await ports.binding(w.identity.address);
     if (me.id === 0n) {
       await ports.execute(walletId, 'register', []);
-      me = await ports.binding(w.identity.address);
-      if (me.id === 0n) throw new Error('register did not land');
+      const landed = await confirmed(w.identity.address, (b) => b.id !== 0n);
+      if (!landed) throw new Error('register did not land');
+      me = landed;
     }
     const buyer = await ports.binding(w.buyer.address);
     if (buyer.id === me.id && buyer.kind === KIND.Agent && buyer.expiry <= now()) {
       await ports.execute(walletId, 'unbind', [w.buyer.address]);
-      if ((await ports.binding(w.buyer.address)).id !== 0n) throw new Error('unbind did not land');
+      if (!(await confirmed(w.buyer.address, (b) => b.id === 0n))) throw new Error('unbind did not land');
     }
     for (const { args } of await missingBindings(w, me.id)) {
       const wallet = args[0] as Hex;
       await ports.execute(walletId, 'bind', args);
-      if ((await ports.binding(wallet)).id !== me.id) throw new Error(`bind of ${wallet} did not land`);
+      const id = me.id;
+      if (!(await confirmed(wallet, (b) => b.id === id))) throw new Error(`bind of ${wallet} did not land`);
     }
   }
 

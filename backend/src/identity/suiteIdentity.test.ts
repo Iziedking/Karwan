@@ -21,12 +21,14 @@ const YEAR = 365 * 86_400;
 
 interface Binding { id: bigint; kind: number; expiry: bigint }
 
-function harness(opts: { custodial?: boolean; undeployed?: Hex[]; neverDeploys?: boolean; noAgentsYet?: boolean; autoSetup?: boolean } = {}) {
+function harness(opts: { custodial?: boolean; undeployed?: Hex[]; neverDeploys?: boolean; noAgentsYet?: boolean; autoSetup?: boolean; lagReads?: number } = {}) {
   const bindings = new Map<string, Binding>();
   const nonces = new Map<string, bigint>();
   const sent: Array<{ walletId: string; fn: string; args: unknown[] }> = [];
   const signed: Array<{ walletId: string; digest: Hex }> = [];
   let count = 0n;
+  let lagging = 0;
+  let before = new Map<string, Binding>();
   let revertNext = false;
   const deployed = new Set([BUYER, SELLER].filter((a) => !(opts.undeployed ?? []).includes(a)));
   const deploys: string[] = [];
@@ -44,7 +46,15 @@ function harness(opts: { custodial?: boolean; undeployed?: Hex[]; neverDeploys?:
     chainId: 5042002,
     now: () => NOW,
     ...(opts.autoSetup ? { autoSetupCustodial: true } : {}),
-    binding: async (w) => bindings.get(w.toLowerCase()) ?? { id: 0n, kind: 0, expiry: 0n },
+    // A read node that lags: right after a call, the first reads still show the old state.
+    binding: async (w) => {
+      if (lagging > 0) {
+        lagging -= 1;
+        return before.get(w.toLowerCase()) ?? { id: 0n, kind: 0, expiry: 0n };
+      }
+      return bindings.get(w.toLowerCase()) ?? { id: 0n, kind: 0, expiry: 0n };
+    },
+    pause: async () => {},
     nonce: async (w) => nonces.get(w.toLowerCase()) ?? 0n,
     wallets: async (user) => person(user),
     ensureWallets: async (user) => {
@@ -64,6 +74,8 @@ function harness(opts: { custodial?: boolean; undeployed?: Hex[]; neverDeploys?:
     },
     execute: async (walletId, fn, args) => {
       sent.push({ walletId, fn, args });
+      before = new Map(bindings);
+      lagging = opts.lagReads ?? 0;
       if (revertNext) {
         revertNext = false;
         return { txHash: `0x${'00'.repeat(32)}` };
@@ -245,4 +257,12 @@ test('an expired buying agent is renewed by the same signing', async () => {
 test('if the signing fails the gate asks the person, as before', async () => {
   const h = harness({ autoSetup: true, undeployed: [SELLER], neverDeploys: true });
   await assert.rejects(h.identity.requireIdentity(PERSON, 'seller'), (e: unknown) => e instanceof IdentityNeeded && e.code === 'record_setup_needed');
+});
+
+test('a step that lands after the read node catches up is not called a failure', async () => {
+  const h = harness({ lagReads: 3 });
+  await h.identity.setUpIdentityForCustodial(PERSON);
+  assert.deepEqual(h.sent.map((x) => x.fn), ['register', 'bind', 'bind']);
+  const s = await h.identity.identityStatus(PERSON);
+  assert.equal(s.sellerBound && s.buyerBound, true);
 });
