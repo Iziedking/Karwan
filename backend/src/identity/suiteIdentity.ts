@@ -63,6 +63,10 @@ export interface IdentityPorts {
   deployAgent: (walletId: string, address: Hex) => Promise<void>;
   signTypedData: (walletId: string, typedData: ReturnType<typeof bindingTypedData>) => Promise<Hex>;
   execute: (walletId: string, fn: 'register' | 'bind' | 'unbind', args: unknown[]) => Promise<{ txHash: string }>;
+  /// Testnet (owner, 26 Oct 2026): where Karwan holds the person's wallets it
+  /// signs their record setup itself when a record is needed, instead of asking.
+  autoSetupCustodial?: boolean;
+  warn?: (fields: Record<string, unknown>, msg: string) => void;
 }
 
 export function bindingTypedData(args: {
@@ -201,6 +205,37 @@ export function createSuiteIdentity(ports: IdentityPorts) {
   /// Before a money step on the family. A buyer needs a live buying agent; a seller
   /// needs the selling agent bound, so their deals count on their record.
   async function requireIdentity(userAddress: string, role: 'buyer' | 'seller'): Promise<void> {
+    try {
+      await checkIdentity(userAddress, role);
+    } catch (err) {
+      if (!(err instanceof IdentityNeeded) || !ports.autoSetupCustodial) throw err;
+      const w = await ports.wallets(userAddress);
+      // A person who holds their own wallet signs their own setup.
+      if (w && !w.identity.walletId) throw err;
+      try {
+        await setUpOnce(userAddress);
+      } catch (setupErr) {
+        // The gate then asks the person, as it does without auto setup.
+        ports.warn?.({ userAddress, err: (setupErr as Error).message }, 'automatic record setup failed');
+        throw err;
+      }
+      await checkIdentity(userAddress, role);
+    }
+  }
+
+  /// One setup per person at a time: a selling agent can reach several
+  /// requests together, and each would otherwise send its own register.
+  const settingUp = new Map<string, Promise<void>>();
+  function setUpOnce(userAddress: string): Promise<void> {
+    const key = userAddress.toLowerCase();
+    const pending = settingUp.get(key);
+    if (pending) return pending;
+    const run = setUpIdentityForCustodial(userAddress).finally(() => settingUp.delete(key));
+    settingUp.set(key, run);
+    return run;
+  }
+
+  async function checkIdentity(userAddress: string, role: 'buyer' | 'seller'): Promise<void> {
     const s = await identityStatus(userAddress);
     if (s.identityId === 0n) throw new IdentityNeeded('record_setup_needed');
     if (role === 'seller' && !s.sellerBound) throw new IdentityNeeded('record_setup_needed');

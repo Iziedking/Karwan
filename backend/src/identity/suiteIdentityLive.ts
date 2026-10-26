@@ -3,6 +3,7 @@ import { suiteAddresses } from '../chain/suiteConfig.js';
 import { executeContractCall } from '../chain/txs.js';
 import { ensureUserAgentWallets } from '../circle/userAgents.js';
 import { config } from '../config.js';
+import { logger } from '../logger.js';
 import { getAgentWallets, type AgentWallets } from '../db/agentWallets.js';
 import { getUserByAddress } from '../db/users.js';
 import { dcwEvmSigner } from '../x402/dcwSigner.js';
@@ -32,6 +33,9 @@ function bindLive(registry: Hex): SuiteIdentity {
     registry,
     chainId: ARC.chainId,
     now: () => Math.floor(Date.now() / 1000),
+    // Testnet only: on mainnet the person still confirms their record setup.
+    autoSetupCustodial: ARC.testnet,
+    warn: (fields, msg) => logger.warn(fields, msg),
     binding: async (wallet) => {
       const [id, kind, expiry] = await publicClient.readContract({ address: registry, abi: registryAbi, functionName: 'bindingOf', args: [wallet] });
       return { id: BigInt(id), kind: Number(kind), expiry: BigInt(expiry) };

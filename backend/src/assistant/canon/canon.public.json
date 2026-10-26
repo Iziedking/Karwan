@@ -123,7 +123,7 @@
       "id": "confirming-it-is-you",
       "title": "Confirming it is you, with a passkey or a Karwan PIN",
       "status": "roadmap",
-      "updated": "2026-10-24",
+      "updated": "2026-10-26",
       "tags": [
         "money",
         "agents",
@@ -136,7 +136,7 @@
           "date": "2026-10-24"
         }
       ],
-      "body": "A person's agents run their deals for them: they pay into a deal, accept,\ndeliver and release inside the limits the person set, so a deal keeps moving\nwhile the person is away. Karwan asks the person to be present for three\nthings only, and then they confirm with a passkey, which is their phone's\nface or fingerprint check, or with a 6-digit Karwan PIN.\n\nThe three things: setting up their Karwan record and their buying agent's\nlimits, putting up deal insurance, and money leaving Karwan for an address\nthat is not one of their own Karwan wallets. Putting up deal insurance is\nthe consent for it to protect their buyers and back advances from\nfinanciers on their deals, so taking an advance later is one tap.\n\nFive wrong PINs lock the PIN for 15 minutes, and a passkey still works in\nthe meantime. A forgotten PIN is reset with a code sent to the person's\nemail. A PIN is never typed into a chat: the agent sends a one-time Karwan\nlink and the person confirms on that page. Someone who signs in with their\nown wallet confirms by signing in that wallet.\n\nEach confirmation fits one action and one amount, and works once."
+      "body": "A person's agents run their deals for them: they pay into a deal, accept,\ndeliver and release inside the limits the person set, so a deal keeps moving\nwhile the person is away. Karwan asks the person to be present for three\nthings only, and then they confirm with a passkey, which is their phone's\nface or fingerprint check, or with a 6-digit Karwan PIN.\n\nThe three things: setting up their Karwan record and their buying agent's\nlimits (on Arc Testnet Karwan does this itself for accounts whose wallets\nit holds), putting up deal insurance, and money leaving Karwan for an address\nthat is not one of their own Karwan wallets. Putting up deal insurance is\nthe consent for it to protect their buyers and back advances from\nfinanciers on their deals, so taking an advance later is one tap.\n\nFive wrong PINs lock the PIN for 15 minutes, and a passkey still works in\nthe meantime. A forgotten PIN is reset with a code sent to the person's\nemail. A PIN is never typed into a chat: the agent sends a one-time Karwan\nlink and the person confirms on that page. Someone who signs in with their\nown wallet confirms by signing in that wallet.\n\nEach confirmation fits one action and one amount, and works once."
     },
     {
       "id": "credit-passport",
@@ -674,7 +674,7 @@
       "id": "your-karwan-record",
       "title": "Your Karwan record, set up once",
       "status": "roadmap",
-      "updated": "2026-10-24",
+      "updated": "2026-10-26",
       "tags": [
         "reputation",
         "agents",
@@ -688,7 +688,7 @@
           "date": "2026-10-24"
         }
       ],
-      "body": "Deals held by Karwan's escrow family count on each side's Karwan record. A\nperson sets their record up once: before their first payment as a buyer,\nand as a seller when they agree to their first deal's terms or before their\nselling agent offers on a request. Setting it up links their buying and\nselling agents to it. The buying agent can then pay up to 1,005 USDC at a\ntime and 10,000 USDC in total for one year, and asks to be renewed after\nthat.\n\nA seller sets it up when they agree because the escrow notes each side's\nrecord at the moment the buyer pays in. A deal paid in before the seller\nhad a record runs normally but does not count on the seller's record.\nUntil a seller has a record, their selling agent does not offer on new\nrequests and tells them once a day.\n\nIt takes one confirmation with a passkey or a Karwan PIN, or, for someone\nwho signs in with their own wallet, signing in that wallet. In Telegram the\ncard shows in the chat and the confirmation happens on Karwan.\n\nAfter each payment on a deal, the seller's earnings move from their selling\nagent to their own wallet; a move that is still waiting shows in their\nbalance and is tried again. Once a deal settles, the deal page says when it\nis on both records. Deals can be up to 1,000 USDC while Karwan is in beta.\n\nThis runs on Arc Testnet once new deals are switched over to the escrow\nfamily; mainnet follows an external audit."
+      "body": "Deals held by Karwan's escrow family count on each side's Karwan record. A\nperson sets their record up once: before their first payment as a buyer,\nand as a seller when they agree to their first deal's terms or before their\nselling agent offers on a request. Setting it up links their buying and\nselling agents to it. The buying agent can then pay up to 1,005 USDC at a\ntime and 10,000 USDC in total for one year, and asks to be renewed after\nthat.\n\nA seller sets it up when they agree because the escrow notes each side's\nrecord at the moment the buyer pays in. A deal paid in before the seller\nhad a record runs normally but does not count on the seller's record.\nUntil a seller has a record, their selling agent does not offer on new\nrequests and tells them once a day.\n\nOn Arc Testnet, when Karwan holds the person's wallets, Karwan sets the\nrecord up itself the first time it is needed, with no step from them.\nOtherwise it takes one confirmation with a passkey or a Karwan PIN, or, for\nsomeone who signs in with their own wallet, signing in that wallet. In Telegram the\ncard shows in the chat and the confirmation happens on Karwan.\n\nAfter each payment on a deal, the seller's earnings move from their selling\nagent to their own wallet; a move that is still waiting shows in their\nbalance and is tried again. Once a deal settles, the deal page says when it\nis on both records. Deals can be up to 1,000 USDC while Karwan is in beta.\n\nThis runs on Arc Testnet once new deals are switched over to the escrow\nfamily; mainnet follows an external audit."
     }
   ],
   "facts": [
@@ -864,7 +864,7 @@
         }
       ],
       "check": null,
-      "updated": "2026-10-24",
+      "updated": "2026-10-26",
       "path": "public/product/confirming-it-is-you.md"
     },
     {
@@ -1601,7 +1601,7 @@
         }
       ],
       "check": null,
-      "updated": "2026-10-24",
+      "updated": "2026-10-26",
       "path": "public/product/your-karwan-record.md"
     }
   ]

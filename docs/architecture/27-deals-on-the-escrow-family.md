@@ -193,6 +193,8 @@ Before any code, and logged in `docs/arc-circle-checks.md`:
 
 8. **The delivery date.** Karwan reminds the seller a day before the delivery date, or halfway when the whole delivery time is under two days. When the date passes with nothing delivered, both sides are told: the seller has one more day (the grace the contract sets) to deliver, then the buyer's money goes back to them. The seller can ask for more time before the date, and once more after it while the grace runs. A request for more time that the buyer has not answered holds the refund: the money stays in the deal until the buyer approves or declines, and Karwan reminds the buyer up to three times, a day apart. A decline sends the refund on; an approval counts the extra days from the later of the old date and the moment of approval. No contract change is needed: the escrow takes a later deadline at any time before the money is taken back.
 
+9. **Records on testnet are set up by Karwan.** Where Karwan holds a person's wallets, it signs their record setup itself the moment a record is first needed (their selling agent is about to offer, they agree to terms, they pay in), with no step from them; an expired buying agent is renewed the same way. A one-time run sets up every existing testnet account Karwan holds (`scripts/backfill-records`). People with their own wallet still sign theirs. Mainnet keeps the passkey or PIN confirmation.
+
 ## Status
 
 | Part | Status |

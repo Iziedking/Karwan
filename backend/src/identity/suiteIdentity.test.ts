@@ -21,7 +21,7 @@ const YEAR = 365 * 86_400;
 
 interface Binding { id: bigint; kind: number; expiry: bigint }
 
-function harness(opts: { custodial?: boolean; undeployed?: Hex[]; neverDeploys?: boolean; noAgentsYet?: boolean } = {}) {
+function harness(opts: { custodial?: boolean; undeployed?: Hex[]; neverDeploys?: boolean; noAgentsYet?: boolean; autoSetup?: boolean } = {}) {
   const bindings = new Map<string, Binding>();
   const nonces = new Map<string, bigint>();
   const sent: Array<{ walletId: string; fn: string; args: unknown[] }> = [];
@@ -43,6 +43,7 @@ function harness(opts: { custodial?: boolean; undeployed?: Hex[]; neverDeploys?:
     registry: REGISTRY,
     chainId: 5042002,
     now: () => NOW,
+    ...(opts.autoSetup ? { autoSetupCustodial: true } : {}),
     binding: async (w) => bindings.get(w.toLowerCase()) ?? { id: 0n, kind: 0, expiry: 0n },
     nonce: async (w) => nonces.get(w.toLowerCase()) ?? 0n,
     wallets: async (user) => person(user),
@@ -204,4 +205,44 @@ test('setup_provisions_agents_for_a_new_account', async () => {
   assert.deepEqual(h.sent.map((x) => x.fn), ['register', 'bind', 'bind']);
   const web3 = harness({ noAgentsYet: true, custodial: false });
   assert.equal((await web3.identity.preparedSetupCalls(PERSON)).length, 1, 'register first, agents made on the way');
+});
+
+test('where Karwan holds the wallets it signs the record setup the moment a record is needed', async () => {
+  const h = harness({ autoSetup: true });
+  await h.identity.requireIdentity(PERSON, 'seller');
+  assert.deepEqual(h.sent.map((x) => x.fn), ['register', 'bind', 'bind']);
+  await h.identity.requireIdentity(PERSON, 'buyer');
+  assert.equal(h.sent.length, 3, 'a complete record is not set up again');
+});
+
+test('a person who holds their own wallet still sets up their record themselves', async () => {
+  const h = harness({ autoSetup: true, custodial: false });
+  await assert.rejects(h.identity.requireIdentity(PERSON, 'seller'), (e: unknown) => e instanceof IdentityNeeded && e.code === 'record_setup_needed');
+  assert.deepEqual(h.sent, []);
+});
+
+test('without auto setup the gate still asks', async () => {
+  const h = harness();
+  await assert.rejects(h.identity.requireIdentity(PERSON, 'seller'), (e: unknown) => e instanceof IdentityNeeded);
+  assert.deepEqual(h.sent, []);
+});
+
+test('two gates at once set the record up once', async () => {
+  const h = harness({ autoSetup: true });
+  await Promise.all([h.identity.requireIdentity(PERSON, 'seller'), h.identity.requireIdentity(PERSON, 'buyer'), h.identity.requireIdentity(PERSON, 'seller')]);
+  assert.deepEqual(h.sent.map((x) => x.fn), ['register', 'bind', 'bind']);
+});
+
+test('an expired buying agent is renewed by the same signing', async () => {
+  const h = harness({ autoSetup: true });
+  h.bindings.set(PERSON, { id: 7n, kind: KIND.Wallet, expiry: 0n });
+  h.bindings.set(BUYER, { id: 7n, kind: KIND.Agent, expiry: BigInt(NOW - 1) });
+  h.bindings.set(SELLER, { id: 7n, kind: KIND.Wallet, expiry: 0n });
+  await h.identity.requireIdentity(PERSON, 'buyer');
+  assert.deepEqual(h.sent.map((x) => x.fn), ['unbind', 'bind']);
+});
+
+test('if the signing fails the gate asks the person, as before', async () => {
+  const h = harness({ autoSetup: true, undeployed: [SELLER], neverDeploys: true });
+  await assert.rejects(h.identity.requireIdentity(PERSON, 'seller'), (e: unknown) => e instanceof IdentityNeeded && e.code === 'record_setup_needed');
 });
