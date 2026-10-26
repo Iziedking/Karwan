@@ -40,7 +40,7 @@ test('during delivery the seller asks for time once; the buyer reclaims only aft
 });
 
 test('after delivery either side can dispute or propose cancelling, unless a proposal is open', () => {
-  assert.deepEqual(problemOptions(deal('awaiting-first-release'), 'buyer', NOW), ['dispute', 'propose']);
+  assert.deepEqual(problemOptions(deal('awaiting-first-release'), 'buyer', NOW), ['dispute', 'moreReview', 'propose']);
   assert.deepEqual(problemOptions(deal('awaiting-final-release'), 'seller', NOW), ['dispute', 'propose']);
   assert.deepEqual(problemOptions(deal('disputed'), 'buyer', NOW), ['propose']);
   assert.deepEqual(problemOptions(deal('disputed'), 'seller', NOW), ['propose']);
@@ -53,4 +53,10 @@ test('after delivery either side can dispute or propose cancelling, unless a pro
 test('dispute rulings are answered on the full view, plain cancels here', () => {
   assert.equal(answersCancelHere(deal('awaiting-first-release', { cancellationProposal: { proposedBy: 'seller', kind: 'mutual', reason: 'x', proposedAt: NOW } })), true);
   assert.equal(answersCancelHere(deal('disputed', { cancellationProposal: { proposedBy: 'seller', kind: 'release-from-dispute', reason: 'x', proposedAt: NOW } })), false);
+});
+
+test('while reviewing the buyer can ask once for more time, beside raising a problem', () => {
+  assert.deepEqual(problemOptions(deal('awaiting-first-release', { delivered: true }), 'buyer', NOW), ['dispute', 'moreReview', 'propose']);
+  assert.deepEqual(problemOptions(deal('awaiting-final-release', { delivered: true, reviewExtensionCount: 1 }), 'buyer', NOW), ['dispute', 'propose']);
+  assert.deepEqual(problemOptions(deal('awaiting-first-release', { delivered: true }), 'seller', NOW), ['dispute', 'propose']);
 });

@@ -1,6 +1,6 @@
 import type { DirectDeal } from '@/core/api';
 
-export type Problem = 'cancel' | 'moreTime' | 'reclaim' | 'dispute' | 'propose';
+export type Problem = 'cancel' | 'moreTime' | 'moreReview' | 'reclaim' | 'dispute' | 'propose';
 
 const DAY_MS = 86_400_000;
 
@@ -19,7 +19,10 @@ export function problemOptions(deal: DirectDeal, viewer: 'buyer' | 'seller' | nu
     const reclaimAt = deal.deadlineUnix * 1000 + (deal.deadlineReclaimGraceMs ?? DAY_MS);
     return now >= reclaimAt ? ['reclaim'] : [];
   }
-  if (stage === 'awaiting-first-release' || stage === 'awaiting-final-release') return ['dispute', 'propose'];
+  if (stage === 'awaiting-first-release' || stage === 'awaiting-final-release') {
+    // The buyer may add review time once; the route holds the exact limit.
+    return viewer === 'buyer' && !(deal.reviewExtensionCount ?? 0) ? ['dispute', 'moreReview', 'propose'] : ['dispute', 'propose'];
+  }
   // A dispute can still end by agreement: either side proposes a full refund and
   // the other accepts, without waiting for the arbiter.
   if (stage === 'disputed') return ['propose'];

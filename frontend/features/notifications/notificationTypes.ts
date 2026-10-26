@@ -103,7 +103,6 @@ export const MONEY_DIRECT_TYPES = new Set(Object.keys(MONEY_DIRECT_OWNER_KEY));
 // /deals/[id]#action so the user scrolls straight to Mark Delivered / Release /
 // Accept rather than the top of the page.
 export const ACTION_TYPES = new Set([
-  'deal.buyer_silent',
   'deal.match.approved',
   'deal.direct.created',
   'deal.seller-approved',
@@ -135,8 +134,6 @@ export const NOTIFY_TYPES = new Set([
   'agent.suggestion',
   // The viewer is asked to set up their Karwan record (addressed by sellerUser).
   'record.setup_needed',
-  // Escrow family: review ended with the buyer silent (seller asked; buyer told when to answer).
-  'deal.buyer_silent',
   // A seller answered the viewer's request. Routed to the poster by payload.
   'offer.created',
   // The deal under a position the viewer financed (financedDeal.ts).
@@ -194,7 +191,6 @@ export const RECIPIENT: Record<string, Role | 'both'> = {
   'trend.match': 'seller', // rising-demand nudge, addressed to the matching seller
   'agent.suggestion': 'seller', // ask me first: the seller decides on the offer
   'record.setup_needed': 'seller', // the seller sets up their Karwan record
-  'deal.buyer_silent': 'both', // special-cased below: the seller is asked, the buyer is told when to answer
   'agent.declined': 'buyer',
   // Direct flow.
   'deal.direct.created': 'seller', // buyer just created it; the seller must act

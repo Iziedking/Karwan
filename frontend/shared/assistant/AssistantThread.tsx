@@ -401,15 +401,6 @@ async function runConfirmIntent(
       viewLabel: 'Open the deal',
     };
   }
-  if (action.intent === 'ask_for_payment') {
-    const p = action.payload as { jobId: string; caller: string };
-    await api.appealDeal(p.jobId, p.caller);
-    return {
-      successText: 'Asked for payment. The buyer has 72 hours to answer; if they do not, the payment is yours.',
-      viewHref: `/deals/${p.jobId}`,
-      viewLabel: 'Open the deal',
-    };
-  }
   if (action.intent === 'set_up_record') {
     await runRecordSetup(deps.sendWalletCalls);
     return { successText: 'Your Karwan record is set up.', viewHref: '/profile', viewLabel: 'Your profile' };
@@ -953,6 +944,7 @@ const DEAL_PAGE_STEP: Partial<Record<AssistantConfirmAction['intent'], (p: DealS
   review_delivery_myself: (p) => api.reviewDeliveryManually(p.jobId, p.caller),
   claim_payment: (p) => api.claimDirectDeal(p.jobId, p.caller),
   still_reviewing: (p) => api.stillReviewing(p.jobId, p.caller),
+  raise_problem: (p) => api.appealDeal(p.jobId, p.caller, p.reason),
   delay_appeal: (p) => api.raiseDelayAppeal(p.jobId, p.caller),
   answer_delay_appeal: (p) => api.respondToDelayAppeal(p.jobId, p.caller, p.reason ?? ''),
   take_back_deal: (p) => api.cancelDirectDeal(p.jobId, p.caller),
@@ -972,6 +964,7 @@ const DEAL_PAGE_DONE: Partial<Record<AssistantConfirmAction['intent'], string>> 
   review_delivery_myself: 'Done. You review this delivery yourself; your review time has started.',
   claim_payment: 'Payment claimed. It is on its way to you.',
   still_reviewing: 'Review time added. The seller sees you are still checking.',
+  raise_problem: 'Problem raised. The payment stays held; each side has 72 hours to give their side.',
   delay_appeal: 'Sent. The buyer has to answer or the payment is released to you.',
   answer_delay_appeal: 'Reason sent. The payment stays held until you release it.',
   take_back_deal: 'Deal taken back. Anything you paid in comes back to you.',

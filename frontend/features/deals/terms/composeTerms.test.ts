@@ -17,8 +17,7 @@ const copy: TermsCopy = {
   partName: 'Part {n}',
   review: 'Check window: {n} days after each delivery. No reply in that time releases that part.',
   reviewOne: 'Check window: 1 day after each delivery. No reply in that time releases that part.',
-  reviewAsk: 'Check window: {n} days. After it the seller may ask; 72 hours to answer.',
-  reviewAskOne: 'Check window: 1 day. After it the seller may ask; 72 hours to answer.',
+  moreTime: 'The buyer can ask once for more time to check.',
   late: 'Late: if nothing is delivered by the deadline, unpaid parts return to the buyer.',
 };
 
@@ -46,6 +45,7 @@ test('the agreement lists each milestone with what it delivers, in a fixed order
       '• 2 rounds of changes included',
       'Proof of delivery: a link to the work.',
       'Check window: 3 days after each delivery. No reply in that time releases that part.',
+      'The buyer can ask once for more time to check.',
       'Late: if nothing is delivered by the deadline, unpaid parts return to the buyer.',
     ].join('\n'),
   );
@@ -84,11 +84,8 @@ test('a one-off deal is one milestone that releases the whole price', () => {
   assert.deepEqual(termsIssues({ conditions: [''], proof: 'link', parts: [{ pct: 100, what: 'Logo in SVG and PNG' }], reviewWindowDays: 3 }), []);
 });
 
-test('on the escrow family the review clause says the seller asks and the buyer has 72 hours', () => {
-  const lines = composeTerms(draft, { priceUsdc: 450, dueLabel: null, buyerSilence: 'seller_asks' }, copy).split('\n');
-  assert.ok(lines.includes('Check window: 3 days. After it the seller may ask; 72 hours to answer.'));
-  assert.ok(!lines.some((l) => l.includes('releases that part')));
-  const one = composeTerms({ ...draft, reviewWindowDays: 1 }, { priceUsdc: 450, dueLabel: null, buyerSilence: 'seller_asks' }, copy);
-  assert.ok(one.includes('Check window: 1 day. After it the seller may ask; 72 hours to answer.'));
-  assert.ok(composeTerms(draft, { priceUsdc: 450, dueLabel: null, buyerSilence: 'pays_seller' }, copy).includes('No reply in that time releases that part.'));
+test('right after the time to check, the terms say the buyer can ask once for more time', () => {
+  const lines = composeTerms(draft, { priceUsdc: 450, dueLabel: null }, copy).split('\n');
+  const review = lines.findIndex((l) => l.startsWith('Check window:'));
+  assert.equal(lines[review + 1], 'The buyer can ask once for more time to check.');
 });

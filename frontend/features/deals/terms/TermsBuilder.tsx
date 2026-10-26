@@ -6,11 +6,12 @@ import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { cn } from '@/shared/utils/cn';
 import { MAX_PARTS, composeTerms, evenSplit, termsIssues, type TermsDraft, type TermsPart } from './composeTerms';
 import { TERMS_COPY } from './termsCopy';
-import { useBuyerSilence } from './useBuyerSilence';
 import { termsBlocker, termsIssueText } from './termsBlocker';
 
 const REVIEW_CHOICES = [1, 3, 7, 14] as const;
-export const MAX_REVIEW_DAYS = 90;
+/// The most the Agreement escrow takes (30 days on chain); a buyer who needs
+/// longer asks once for more time.
+export const MAX_REVIEW_DAYS = 30;
 
 export const DEFAULT_TERMS: TermsDraft = {
   conditions: [''],
@@ -52,8 +53,7 @@ export function TermsBuilder({
   const set = (patch: Partial<TermsDraft>) => onChange({ ...value, ...patch });
   const total = value.parts.reduce((sum, part) => sum + (Number.isFinite(part.pct) ? part.pct : 0), 0);
   const issues = termsIssues(value);
-  const buyerSilence = useBuyerSilence();
-  const agreement = composeTerms(value, { priceUsdc, dueLabel, buyerSilence }, t.text);
+  const agreement = composeTerms(value, { priceUsdc, dueLabel }, t.text);
   const partName = (index: number) => t.part.replace('{n}', String(index + 1));
 
   function setPart(index: number, patch: Partial<TermsPart>) {
@@ -197,7 +197,7 @@ export function TermsBuilder({
             </label>
           ) : null}
         </div>
-        <p className="mt-2 text-[14px] text-[var(--lp-text-sub)]">{buyerSilence === 'seller_asks' ? t.reviewRuleAsk : t.reviewRule}</p>
+        <p className="mt-2 text-[14px] text-[var(--lp-text-sub)]">{t.reviewRule}</p>
       </div>
 
 

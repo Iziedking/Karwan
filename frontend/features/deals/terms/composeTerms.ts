@@ -23,13 +23,7 @@ export interface TermsContext {
   priceUsdc: number | null;
   /// Delivery deadline as the reader sees it ("14 Oct"); null when the deal has none.
   dueLabel: string | null;
-  /// What the buyer's silence after review does on the escrow that will hold
-  /// the deal: pays the seller (current escrow), or lets the seller ask with 72
-  /// hours for the buyer to answer (escrow family). Unknown reads as the first.
-  buyerSilence?: BuyerSilence;
 }
-
-export type BuyerSilence = 'pays_seller' | 'seller_asks';
 
 export interface TermsCopy {
   due: string;
@@ -46,8 +40,8 @@ export interface TermsCopy {
   partName: string;
   review: string;
   reviewOne: string;
-  reviewAsk: string;
-  reviewAskOne: string;
+  /// The buyer may ask once for more time to check (the escrow allows one extension).
+  moreTime: string;
   late: string;
 }
 
@@ -93,9 +87,8 @@ export function composeTerms(draft: TermsDraft, context: TermsContext, copy: Ter
   });
   if (conditions.length) lines.push(copy.conditions, ...conditions.map((condition) => `• ${condition}`));
   lines.push(draft.proof === 'tracking' ? copy.proofTracking : draft.proof === 'either' ? copy.proofEither : copy.proofLink);
-  const asks = context.buyerSilence === 'seller_asks';
-  const review = asks ? (draft.reviewWindowDays === 1 ? copy.reviewAskOne : copy.reviewAsk) : draft.reviewWindowDays === 1 ? copy.reviewOne : copy.review;
-  lines.push(fill(review, { n: draft.reviewWindowDays }));
+  lines.push(draft.reviewWindowDays === 1 ? copy.reviewOne : fill(copy.review, { n: draft.reviewWindowDays }));
+  lines.push(copy.moreTime);
   // Unpaid parts only come back for lateness when there is a deadline to miss.
   if (context.dueLabel) lines.push(copy.late);
   return lines.join('\n');

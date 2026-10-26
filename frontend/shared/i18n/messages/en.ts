@@ -3161,6 +3161,9 @@ interface MessagesShape {
       reasonLabel: string;
       moreTimeSubmit: string;
       moreTimeSentTemplate: string;
+      moreReviewTitle: string;
+      moreReviewBody: string;
+      moreReviewSubmit: string;
       answerTimeTitle: string;
       answerTimeTemplate: string;
       giveTime: string;
@@ -8884,6 +8887,9 @@ export const en: MessagesShape = {
       reasonLabel: "Reason",
       moreTimeSubmit: "Send request",
       moreTimeSentTemplate: "Request sent. Waiting on {name}.",
+      moreReviewTitle: "Ask for more time to check",
+      moreReviewBody: "You get one more review period, once. The seller sees you are still checking.",
+      moreReviewSubmit: "Add the time",
       answerTimeTitle: "More time requested",
       answerTimeTemplate: "{name} asks for {n} more days.",
       giveTime: "Give more time",
@@ -8893,7 +8899,7 @@ export const en: MessagesShape = {
       agreeCancel: "Agree to cancel",
       keepDeal: "Keep the deal",
       disputeTitle: "Open a dispute",
-      disputeBody: "The money stays in escrow until the dispute is decided.",
+      disputeBody: "The money stays held until the dispute is decided. Each side has 72 hours to give their side; a side that stays silent loses.",
       whatWentWrong: "What went wrong",
       disputeSubmit: "Open dispute",
       proposeTitle: "Propose cancelling",
@@ -10798,7 +10804,7 @@ export const en: MessagesShape = {
       q3: { q: 'Who controls my agent wallet, and how do I fund it?', a: "On testnet, Karwan operates the Circle agent wallets used for account actions. Deal funding requires your approval. Connected-wallet users sign with their own wallet. Use the wallet page to see available balances and transfer options; never send real funds to a testnet address." },
       q4: { q: 'Are the smart contracts deployed?', a: "Reputation and BusinessRegistry are deployed on Arc mainnet. The escrow and remaining trading contracts are available on testnet, not mainnet. Contract addresses are listed in the public repository." },
       q5: { q: "How does the escrow release?", a: "Review the delivery and release the agreed milestones. If either side needs more time, the seller can ask for more time to deliver and the buyer can extend the review window, up to the limit in the terms. If a review window ends with no action, the contract may let the seller claim the current milestone, including the final one. Check the deadlines and actions on the deal." },
-      q6: { q: "What if a deal goes to dispute?", a: "A dispute freezes the unreleased balance. You can propose a split for the other party to accept. Otherwise each side gives its account within 48 hours by answering three questions. The judge reads both accounts, the delivery check on the submitted work and the deal chat, then proposes a split. A reviewer confirms every ruling before money moves. A side that gives no account loses. Opening a dispute is not an automatic refund." },
+      q6: { q: "What if a deal goes to dispute?", a: "A dispute freezes the unreleased balance. You can propose a split for the other party to accept. Otherwise each side gives its account within 72 hours by answering three questions. The judge reads both accounts, the delivery check on the submitted work and the deal chat, then proposes a split. A reviewer confirms every ruling before money moves. A side that gives no account loses. Opening a dispute is not an automatic refund." },
       q7: { q: 'What if a seller agent skips my agent-matched request?', a: 'The seller\'s profile has a budget and deadline range. If your request falls outside it, the agent skips and the timeline shows you why. If the agent is uncertain for any other reason, that is logged too, so the next move is never silent.' },
       q8: { q: "What kinds of trade can I use?", a: "Services and digital work, local or cross-border. Trade in physical goods and business trade are coming soon. Bring a counterparty you already know, or publish a request or offer to find one. Both paths use USDC escrow on Arc." },
       q9: { q: 'Where does the agent reasoning run?', a: "Agents compare candidates and propose terms within your budget and deadline. You review the terms before funding. Contract rules determine later releases, refunds and disputes." },
@@ -10875,7 +10881,7 @@ export const en: MessagesShape = {
         autoRelease: { label: 'Automatic release.', body: 'Milestones before the final one release on their own once the review window has passed with no action from the buyer. The window is shown on the deal and lengthens for each later milestone.' },
         deadline: { label: 'A missed deadline.', body: 'When a delivery deadline passes with nothing delivered, the buyer is alerted and can reclaim or grant an extension. If nobody acts and the seller still has not delivered after the grace window, the escrow returns to the buyer automatically and the miss is recorded against the seller.' },
         cancel: { label: 'Cancelling.', body: 'A cancel both sides agree to refunds in full and carries no penalty. Staked funds reserved against the deal are released back to the seller.' },
-        disputes: { label: "Disputes.", body: "A dispute freezes the unreleased escrow. The parties can agree a split themselves. If they do not, each side gives its account within 48 hours. The judge reads both accounts, the delivery check on the submitted work and the deal chat, and proposes the release and refund proportions. A reviewer confirms every ruling before any money moves. A side that gives no account loses. The live deal and the verified contract are the source of truth for the path available." },
+        disputes: { label: "Disputes.", body: "A dispute freezes the unreleased escrow. The parties can agree a split themselves. If they do not, each side gives its account within 72 hours. The judge reads both accounts, the delivery check on the submitted work and the deal chat, and proposes the release and refund proportions. A reviewer confirms every ruling before any money moves. A side that gives no account loses. The live deal and the verified contract are the source of truth for the path available." },
       },
       tail: 'The exact timings in force are published on the disputes page in the product, and they can change. That page shows the live values, not a copy of them.',
     },

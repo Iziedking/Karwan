@@ -240,6 +240,7 @@ export function ProblemSheet({ open, deal, caller, name, options, onClose, onDon
   const titles: Record<Problem, string> = {
     cancel: copy.cancelDeal.title,
     moreTime: s.moreTimeTitle,
+    moreReview: s.moreReviewTitle,
     reclaim: s.reclaimTitle,
     dispute: s.disputeTitle,
     propose: s.proposeTitle,
@@ -285,6 +286,16 @@ export function ProblemSheet({ open, deal, caller, name, options, onClose, onDon
           <div className="mt-6">
             <button type="button" disabled={move.busy} onClick={() => void move.run(() => api.cancelDirectDeal(deal.jobId, caller))} className={primaryButton}>
               {s.reclaimTitle}
+            </button>
+          </div>
+        </>
+      ) : current === 'moreReview' ? (
+        <>
+          <p className="text-[15px] text-[var(--lp-dark)]">{s.moreReviewBody}</p>
+          <MoveError error={move.error} />
+          <div className="mt-6">
+            <button type="button" disabled={move.busy} onClick={() => void move.run(() => api.stillReviewing(deal.jobId, caller))} className={primaryButton}>
+              {s.moreReviewSubmit}
             </button>
           </div>
         </>

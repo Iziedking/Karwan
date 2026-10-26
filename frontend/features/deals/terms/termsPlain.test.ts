@@ -4,7 +4,7 @@ import test from 'node:test';
 import { TERMS_COPY } from './termsCopy';
 import { termsBlocker } from './termsBlocker';
 import { durationText } from '../durationText';
-import { DEFAULT_TERMS } from './TermsBuilder';
+import { DEFAULT_TERMS, MAX_REVIEW_DAYS } from './TermsBuilder';
 
 const en = TERMS_COPY.en;
 
@@ -18,11 +18,9 @@ test('the reason the form cannot go on is said in plain words, one at a time', (
 test('the terms speak plainly in every language: no arbiter, no escrow, the default rule in the open', () => {
   const jargon = /arbiter|arbitre|محكّم|मध्यस्थ|msuluhishi|escrow|séquestre|الضمان|एस्क्रो/i;
   for (const [locale, t] of Object.entries(TERMS_COPY)) {
-    const visible = [t.title, t.lead, t.reviewRule, t.reviewRuleAsk, t.agreementNote, ...Object.values(t.text)].join(' ');
+    const visible = [t.title, t.lead, t.reviewRule, t.agreementNote, ...Object.values(t.text)].join(' ');
     assert.doesNotMatch(visible, jargon, `${locale} still uses jargon`);
     assert.ok(t.reviewRule.length > 20, `${locale} states what happens when the buyer does not reply`);
-    assert.match(t.reviewRuleAsk, /72/, `${locale} gives the buyer's 72 hours on the escrow family`);
-    assert.match(t.text.reviewAsk, /\{n\}/, `${locale} fills in the days to check`);
     assert.equal('soon' in t, false, `${locale} has no "soon" options`);
   }
 });
@@ -30,7 +28,7 @@ test('the terms speak plainly in every language: no arbiter, no escrow, the defa
 test('the builder shows only choices that work, and the default rule is on the page, not in a tooltip', () => {
   const src = readFileSync(new URL('./TermsBuilder.tsx', import.meta.url), 'utf8');
   assert.doesNotMatch(src, /aria-disabled|t\.soon|t\.goods|t\.kind/);
-  assert.match(src, /<p[^>]*>\{buyerSilence === 'seller_asks' \? t\.reviewRuleAsk : t\.reviewRule\}<\/p>/);
+  assert.match(src, /<p[^>]*>\{t\.reviewRule\}<\/p>/);
 });
 
 test('every form that uses the terms says why it cannot go on yet', () => {
@@ -49,4 +47,9 @@ test('durations read in days, with hours only when someone chose hours', () => {
   assert.equal(durationText({ days: 0, hours: 0, minutes: 30 }, units), '30 min');
   const direct = readFileSync(new URL('../components/DirectDealForm.tsx', import.meta.url), 'utf8');
   assert.doesNotMatch(direct, /submitDays \* 24 \+ submitHours/);
+});
+
+test('nobody can choose more than 30 days to check, the most the escrow takes', () => {
+  assert.equal(MAX_REVIEW_DAYS, 30);
+  for (const t of Object.values(TERMS_COPY)) assert.ok(t.text.moreTime.length > 10);
 });

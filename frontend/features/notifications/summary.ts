@@ -62,8 +62,6 @@ export function summaryFor(
       return pick(c.listingMatchedPrice, c.listingMatched, { price: str('askingPriceUsdc') });
     case 'agent.suggestion':
       return pick(c.suggestionTitle, c.suggestion, { title: str('title') });
-    case 'deal.buyer_silent':
-      return str('stage') === 'answer' ? c.buyerSilentAnswer : str('stage') === 'raised' ? c.buyerSilentRaised : c.buyerSilentPrompt;
     case 'record.setup_needed':
       return str('reason') === 'deal' ? c.recordNeededDeal : c.recordNeededOffers;
     case 'trend.match':
