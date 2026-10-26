@@ -9,6 +9,8 @@ export interface TimelineRow {
   kind: TimelineKind;
   at?: number;
   dueAt?: number;
+  /// The delivery date has passed with nothing delivered.
+  overdue?: boolean;
 }
 
 /// The deal's steps as a dated list. Done steps keep when they happened; the
@@ -16,7 +18,7 @@ export interface TimelineRow {
 /// as it happens instead of a silent wait.
 export function timelineRows(
   progress: DealView['progress'],
-  ctx: { viewerIsBuyer: boolean; check: CheckStatus | null; dueAt: number | null },
+  ctx: { viewerIsBuyer: boolean; check: CheckStatus | null; dueAt: number | null; now?: number },
 ): TimelineRow[] {
   return progress.map((p) => {
     let kind: TimelineKind = 'label';
@@ -27,7 +29,9 @@ export function timelineRows(
       state: p.state,
       kind,
       ...(p.at != null ? { at: p.at } : {}),
-      ...(kind === 'working' || kind === 'deliver') && ctx.dueAt != null ? { dueAt: ctx.dueAt } : {},
+      ...(kind === 'working' || kind === 'deliver') && ctx.dueAt != null
+        ? { dueAt: ctx.dueAt, overdue: (ctx.now ?? Date.now()) > ctx.dueAt }
+        : {},
     };
   });
 }

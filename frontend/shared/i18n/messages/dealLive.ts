@@ -5,6 +5,8 @@ export interface DealLiveCopy {
   working: string;
   deliver: string;
   due: string;
+  /// The delivery step once its date has passed with nothing delivered.
+  duePassed: string;
   checking: string;
   checkingDetail: string;
   latest: string;
@@ -29,6 +31,7 @@ export const dealLiveCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealLiveCopy
     working: '{name} is working on it',
     deliver: 'Your turn to deliver',
     due: 'Due {date}',
+    duePassed: "Was due {date}. Not delivered yet.",
     checking: 'Checking the delivery',
     checkingDetail: 'Comparing it with the request.',
     latest: 'Latest',
@@ -49,6 +52,7 @@ export const dealLiveCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealLiveCopy
     working: '{name} travaille dessus',
     deliver: 'À vous de livrer',
     due: 'Échéance le {date}',
+    duePassed: "Prévu le {date}. Pas encore livré.",
     checking: 'Vérification de la livraison',
     checkingDetail: 'Comparaison avec la demande.',
     latest: 'Dernières nouvelles',
@@ -69,6 +73,7 @@ export const dealLiveCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealLiveCopy
     working: '{name} يعمل عليه',
     deliver: 'دورك في التسليم',
     due: 'الموعد {date}',
+    duePassed: "كان موعده {date}. لم يُسلَّم بعد.",
     checking: 'جارٍ فحص التسليم',
     checkingDetail: 'تتم مقارنته بالطلب.',
     latest: 'الأحدث',
@@ -89,6 +94,7 @@ export const dealLiveCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealLiveCopy
     working: '{name} इस पर काम कर रहे हैं',
     deliver: 'डिलीवर करने की आपकी बारी',
     due: '{date} तक',
+    duePassed: "{date} तक देना था। अभी डिलीवर नहीं हुआ।",
     checking: 'डिलीवरी की जाँच हो रही है',
     checkingDetail: 'इसे अनुरोध से मिलाया जा रहा है।',
     latest: 'ताज़ा',
@@ -109,6 +115,7 @@ export const dealLiveCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealLiveCopy
     working: '{name} anaifanyia kazi',
     deliver: 'Zamu yako kuwasilisha',
     due: 'Mwisho {date}',
+    duePassed: "Ilitakiwa {date}. Bado haijawasilishwa.",
     checking: 'Kukagua uwasilishaji',
     checkingDetail: 'Inalinganishwa na ombi.',
     latest: 'Karibuni',

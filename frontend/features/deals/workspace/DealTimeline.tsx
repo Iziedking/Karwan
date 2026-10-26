@@ -33,7 +33,7 @@ export function DealTimeline({ progress, viewerIsBuyer, name, check, dueAt }: {
                 : steps[row.step];
         const detail =
           row.kind === 'checking' ? live.checkingDetail
-            : row.dueAt != null ? fill(live.due, { date: formatDealDate(row.dueAt, locale) })
+            : row.dueAt != null ? fill(row.overdue ? live.duePassed : live.due, { date: formatDealDate(row.dueAt, locale) })
               : null;
         return (
           <li
@@ -65,7 +65,7 @@ export function DealTimeline({ progress, viewerIsBuyer, name, check, dueAt }: {
               <span className={cn('block text-[15px] leading-snug', row.state === 'upcoming' ? 'text-[var(--lp-text-sub)]' : 'font-medium text-[var(--lp-dark)]')}>
                 {title}
               </span>
-              {detail ? <span className="mt-0.5 block text-[14px] text-[var(--lp-text-sub)] font-medium">{detail}</span> : null}
+              {detail ? <span className={cn('mt-0.5 block text-[14px] font-medium', row.overdue ? 'text-[var(--color-warning)]' : 'text-[var(--lp-text-sub)]')}>{detail}</span> : null}
             </span>
             <span className="pt-0.5 text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">
               {row.at != null ? formatDealDate(row.at, locale) : ''}

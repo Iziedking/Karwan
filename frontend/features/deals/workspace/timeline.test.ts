@@ -34,3 +34,11 @@ test('the latest feed is newest first and three lines long', () => {
   const msgs = [1, 2, 3, 4].map((n) => ({ id: String(n), ts: n, body: `m${n}` }));
   assert.deepEqual(latestLines(msgs).map((m) => m.id), ['4', '3', '2']);
 });
+
+test('a delivery step past its date says so instead of still showing it as due', () => {
+  const due = Date.UTC(2026, 9, 26, 12);
+  const rows = timelineRows(steps(2), { viewerIsBuyer: true, check: null, dueAt: due, now: due + 60_000 });
+  assert.equal(rows[2].overdue, true);
+  const early = timelineRows(steps(2), { viewerIsBuyer: true, check: null, dueAt: due, now: due - 60_000 });
+  assert.equal(early[2].overdue, false);
+});
