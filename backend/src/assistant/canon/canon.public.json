@@ -615,8 +615,8 @@
     {
       "id": "when-the-buyer-is-silent",
       "title": "When a buyer does not respond after delivery",
-      "status": "roadmap",
-      "updated": "2026-10-24",
+      "status": "shipping",
+      "updated": "2026-10-25",
       "tags": [
         "escrow",
         "disputes",
@@ -626,10 +626,10 @@
       "sources": [
         {
           "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/27-deals-on-the-escrow-family.md",
-          "date": "2026-10-24"
+          "date": "2026-10-25"
         }
       ],
-      "body": "On deals held by Karwan's escrow family, no payment goes to a seller only\nbecause the buyer's review time ran out, since a buyer may simply be away.\n\nWhen review time ends without the buyer releasing the payment or raising a\nproblem, the seller is asked whether to ask for payment, in one tap on the\ndeal page or from their assistant in any chat. If they have not asked\nwithin 24 hours, their selling agent asks for them and tells them.\n\nThe buyer then has 72 hours to answer by saying what is wrong with the\ndelivery. An answer sends the case to a person on Karwan's review team,\nwho rules within 5 days; if they do not, the deal's agreed fallback share\napplies. With no answer, that payment goes to the seller. This works the\nsame for a milestone and for the final payment.\n\nA buyer opens a dispute while their review time runs; after it ends they\nanswer the seller's instead.\n\nOn Arc Testnet this is how Karwan runs these deals once new deals are\nswitched over to the escrow family. The contract itself will carry the\nrule in the mainnet release, before its external audit."
+      "body": "Every Karwan deal gives the buyer a set time to check each delivery, chosen\nwhen the deal is agreed and never more than 30 days.\n\nDuring that time the buyer can release the payment, ask once for more time\nto check, or raise a problem with what is wrong. A day before the time runs\nout, Karwan reminds them, on the website, by email and on Telegram.\n\nIf the time runs out with no release and no problem raised, that payment\ngoes to the seller. This works the same for a milestone and for the final\npayment. A buyer cannot raise a problem after their time to check has ended.\n\nOnce either side raises a problem, the payment stays held and each side has\n72 hours to give their side of what happened. A side that gives no account\nloses. A person on Karwan's review team confirms every ruling before any\nmoney moves."
     },
     {
       "id": "world-id-risk-checks",
@@ -1486,7 +1486,7 @@
     {
       "id": "when-the-buyer-is-silent",
       "title": "When a buyer does not respond after delivery",
-      "status": "roadmap",
+      "status": "shipping",
       "publishable": false,
       "blockedBy": "not-live",
       "capability": true,
@@ -1496,15 +1496,15 @@
         "disputes",
         "testnet"
       ],
-      "summary": "On deals held by Karwan's escrow family, no payment goes to a seller only because the buyer's review time ran out, since a buyer may simply be away.",
+      "summary": "Every Karwan deal gives the buyer a set time to check each delivery, chosen when the deal is agreed and never more than 30 days.",
       "sources": [
         {
           "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/27-deals-on-the-escrow-family.md",
-          "date": "2026-10-24"
+          "date": "2026-10-25"
         }
       ],
       "check": null,
-      "updated": "2026-10-24",
+      "updated": "2026-10-25",
       "path": "public/product/when-the-buyer-is-silent.md"
     },
     {
