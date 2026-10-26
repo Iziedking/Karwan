@@ -1,6 +1,6 @@
 {
   "canonVersion": "0.4.0",
-  "canonUpdated": "2026-10-25",
+  "canonUpdated": "2026-10-26",
   "docs": [
     {
       "id": "agent-record-checks",
@@ -326,7 +326,7 @@
       "id": "milestone-escrow",
       "title": "Milestone escrow",
       "status": "live",
-      "updated": "2026-07-27",
+      "updated": "2026-10-26",
       "tags": [
         "escrow",
         "settlement"
@@ -334,11 +334,11 @@
       "path": "public/product/milestone-escrow.md",
       "sources": [
         {
-          "url": "https://karwan.site/docs/deals",
-          "date": "2026-07-27"
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/27-deals-on-the-escrow-family.md",
+          "date": "2026-10-26"
         }
       ],
-      "body": "A deal splits into two to five milestones. The supplier marks a milestone\ndelivered, the buyer reviews and releases that portion.\n\nThe final milestone always needs an explicit buyer click and never releases on a\ntimer. That is the buyer protection the rest of the product rests on, and it is\nenforced in the contract rather than in the interface.\n\nA missed deadline lets the buyer reclaim, and the miss lands on the supplier's\nrecord. A cancel or extension both sides agree to carries no penalty and refunds\nin full. The platform fee is 1.5 percent of the deal, split evenly between the\ntwo sides."
+      "body": "A deal is paid in one to five parts. The seller marks a part delivered, and\nthe buyer has the review time the deal set, at most 30 days, to check it.\n\nDuring that time the buyer can release the payment, ask once for more time\nto check, or raise a problem. Karwan reminds them a day before the time runs\nout. If it ends with no release and no problem raised, that payment goes to\nthe seller. The final payment works the same way. A deposit is the one\nexception: it goes back to the buyer.\n\nOnce either side raises a problem, the payment stays held and each side has\n72 hours to give their side of what happened.\n\nA missed delivery date lets the buyer take back what is left, and the miss\nlands on the seller's record. A cancel or extra time both sides agree to\ncarries no penalty. The fee is 1 percent of the deal, half from each side.\n\nDeals already open on Karwan's earlier escrow finish under its rules: when\nthe review ends with no release, the seller claims the payment."
     },
     {
       "id": "negotiation-in-assistant",
@@ -616,7 +616,7 @@
       "id": "when-the-buyer-is-silent",
       "title": "When a buyer does not respond after delivery",
       "status": "shipping",
-      "updated": "2026-10-25",
+      "updated": "2026-10-26",
       "tags": [
         "escrow",
         "disputes",
@@ -629,7 +629,26 @@
           "date": "2026-10-25"
         }
       ],
-      "body": "Every Karwan deal gives the buyer a set time to check each delivery, chosen\nwhen the deal is agreed and never more than 30 days.\n\nDuring that time the buyer can release the payment, ask once for more time\nto check, or raise a problem with what is wrong. A day before the time runs\nout, Karwan reminds them, on the website, by email and on Telegram.\n\nIf the time runs out with no release and no problem raised, that payment\ngoes to the seller. This works the same for a milestone and for the final\npayment. A buyer cannot raise a problem after their time to check has ended.\n\nOnce either side raises a problem, the payment stays held and each side has\n72 hours to give their side of what happened. A side that gives no account\nloses. A person on Karwan's review team confirms every ruling before any\nmoney moves."
+      "body": "Every Karwan deal gives the buyer a set time to check each delivery, chosen\nwhen the deal is agreed and never more than 30 days.\n\nDuring that time the buyer can release the payment, ask once for more time\nto check, or raise a problem with what is wrong. A day before the time runs\nout, Karwan reminds them, on the website, by email and on Telegram.\n\nIf the time runs out with no release and no problem raised, that payment\ngoes to the seller. This works the same for a milestone and for the final\npayment. A buyer cannot raise a problem after their time to check has ended.\n\nOn a deal paid in milestones, the seller delivers each milestone on its own.\nThe buyer can release the next milestone, and its time to check starts, only\nonce the seller has delivered it.\n\nOnce either side raises a problem, the payment stays held and each side has\n72 hours to give their side of what happened. A side that gives no account\nloses. A person on Karwan's review team confirms every ruling before any\nmoney moves."
+    },
+    {
+      "id": "when-the-delivery-date-passes",
+      "title": "When the delivery date passes",
+      "status": "shipping",
+      "updated": "2026-10-26",
+      "tags": [
+        "escrow",
+        "deadlines",
+        "testnet"
+      ],
+      "path": "public/product/when-the-delivery-date-passes.md",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/27-deals-on-the-escrow-family.md",
+          "date": "2026-10-26"
+        }
+      ],
+      "body": "Every Karwan deal has a delivery date. A day before it, Karwan reminds the\nseller to deliver or to ask the buyer for more time. When the whole delivery\ntime is under two days, the reminder comes halfway.\n\nIf the date passes with nothing delivered, both sides are told. The seller\nhas one more day to deliver. After that, the buyer's money goes back to them\nautomatically, and the missed date counts against the seller's record.\n\nThe seller can ask for more time before the date, one request at a time, and\nonce more after it while that last day runs. A request the buyer has not\nanswered holds the refund: the money stays in the deal until the buyer\napproves or declines, and Karwan reminds the buyer up to three times, a day\napart. If the buyer declines, the refund goes ahead. If they approve, the\nextra days count from the later of the old date and the moment they approve."
     },
     {
       "id": "world-id-risk-checks",
@@ -1114,19 +1133,19 @@
         "escrow",
         "settlement"
       ],
-      "summary": "A deal splits into two to five milestones. The supplier marks a milestone delivered, the buyer reviews and releases that portion.",
+      "summary": "A deal is paid in one to five parts. The seller marks a part delivered, and the buyer has the review time the deal set, at most 30 days, to check it.",
       "sources": [
         {
-          "url": "https://karwan.site/docs/deals",
-          "date": "2026-07-27"
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/27-deals-on-the-escrow-family.md",
+          "date": "2026-10-26"
         }
       ],
       "check": {
         "kind": "grep",
-        "note": "The final release is a distinct buyer-called path, never reachable from a timer.",
+        "note": "A delivered payment is sent to the seller only once the buyer's review time has ended with no release and no problem raised.",
         "lastVerified": ""
       },
-      "updated": "2026-07-27",
+      "updated": "2026-10-26",
       "path": "public/product/milestone-escrow.md"
     },
     {
@@ -1504,8 +1523,32 @@
         }
       ],
       "check": null,
-      "updated": "2026-10-25",
+      "updated": "2026-10-26",
       "path": "public/product/when-the-buyer-is-silent.md"
+    },
+    {
+      "id": "when-the-delivery-date-passes",
+      "title": "When the delivery date passes",
+      "status": "shipping",
+      "publishable": false,
+      "blockedBy": "not-live",
+      "capability": true,
+      "audience": "all",
+      "tags": [
+        "escrow",
+        "deadlines",
+        "testnet"
+      ],
+      "summary": "Every Karwan deal has a delivery date. A day before it, Karwan reminds the seller to deliver or to ask the buyer for more time. When the whole delivery time is under two days, the reminder comes halfway.",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/27-deals-on-the-escrow-family.md",
+          "date": "2026-10-26"
+        }
+      ],
+      "check": null,
+      "updated": "2026-10-26",
+      "path": "public/product/when-the-delivery-date-passes.md"
     },
     {
       "id": "world-id-risk-checks",

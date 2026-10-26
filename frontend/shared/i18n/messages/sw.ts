@@ -3477,6 +3477,7 @@ export const sw: Messages = {
     automatic: {
       autoReleaseTemplate: 'Inatolewa yenyewe tarehe {date} isipokuwa mnunuzi apinge.',
       deadlineReclaimTemplate: 'Kama hakuna kilichowasilishwa, mnunuzi anaweza kurudisha pesa kuanzia {date}.',
+      reclaimWaitsSeller: 'Pesa zinabaki kwenye mkataba hadi mnunuzi ajibu ombi lako la muda zaidi.',
       acceptanceExpiryTemplate: 'Ofa hii inaisha tarehe {date}.',
     },
     trust: {
@@ -4773,14 +4774,14 @@ export const sw: Messages = {
     },
     buyerSilent: {
       heading: 'Mnunuzi akinyamaza',
-      s1: { label: 'Utoaji otomatiki unaanza.', body: "Baada ya uwasilishaji, muda wa kwanza wa ukaguzi ni {reviewWindow}. Angalia muda wa mkataba wako: muuzaji anaweza kudai hatua inayostahili ukaguzi ukiisha, pamoja na ya mwisho." },
-      s2: { label: 'Wasilisha rufaa ya kuchelewa.', body: 'Inafunguka {appealGrace} baada ya utoaji wa mwisho. Mnunuzi ana {buyerResponse} kujibu.' },
-      s3: { label: "Angalia njia za kutatua.", body: "Angalia hatua za kudai malipo, kuongeza muda au mgogoro na muda wake. Wasiliana na usaidizi ikiwa hatua inayotarajiwa haipatikani. Kukosa jibu hakuhakikishi malipo wala kurejeshewa fedha." },
+      s1: { label: 'Kagua, kisha ulipe.', body: "Mnunuzi ana muda wa kukagua uliowekwa kwenye mkataba, usiozidi siku 30, kukagua kila uwasilishaji. Anaweza kuachilia malipo, kuomba muda zaidi mara moja tu au kuripoti tatizo, na Karwan humkumbusha siku moja kabla muda haujaisha. Muda ukiisha bila kuachilia wala kuripoti tatizo, malipo yanaenda kwa muuzaji, pamoja na ya mwisho. Amana inarudi kwa mnunuzi badala yake." },
+      s2: { label: 'Mikataba kwenye escrow ya awali.', body: 'Inabaki na sheria zake. Muda wa kwanza wa ukaguzi ni {reviewWindow}, na ukiisha muuzaji anaweza kudai malipo, pamoja na ya mwisho. Muuzaji pia anaweza kuwasilisha rufaa ya kuchelewa {appealGrace} baada ya utoaji wa mwisho, na mnunuzi ana {buyerResponse} kujibu.' },
+      s3: { label: "Angalia njia za kutatua.", body: "Angalia hatua zilizo wazi kwako na muda wake. Wasiliana na usaidizi ikiwa hatua inayotarajiwa haipatikani." },
     },
     sellerLate: {
       heading: 'Muuzaji akikosa muda wa mwisho',
-      s1: { label: 'Mnunuzi anaarifiwa.', body: 'Mara tu muda unapopita bila uwasilishaji, na kurejesha au kuongeza muda kwa mbofyo mmoja.' },
-      s2: { label: 'Kurejesha otomatiki.', body: 'Bado hakuna uwasilishaji baada ya neema ya {reclaimGrace} na eskro inarudi kamili kwa mnunuzi. Kukosa kunaingia kwenye rekodi ya sifa ya muuzaji.' },
+      s1: { label: "Muuzaji anakumbushwa.", body: "Siku moja kabla ya tarehe, awasilishe au aombe muda zaidi. Tarehe ikipita bila uwasilishaji, pande zote mbili zinaarifiwa." },
+      s2: { label: "Kurejesha otomatiki.", body: "Bado hakuna uwasilishaji baada ya neema ya {reclaimGrace} na eskro inarudi kamili kwa mnunuzi. Kukosa kunaingia kwenye rekodi ya sifa ya muuzaji. Ombi la muda zaidi ambalo mnunuzi hajajibu linasimamisha urejeshaji hadi ajibu." },
     },
     disputed: {
       heading: 'Mkataba ukigombewa',
@@ -4969,7 +4970,7 @@ export const sw: Messages = {
       settled: { alt: 'Ukurasa wa deal katika hali iliyokamilika, imelipwa kikamilifu', caption: 'Imekamilika. Muuzaji amelipwa kikamilifu na sifa imerekodiwa kwenye chain.' },
     },
     shareable: { heading: 'Viungo vya deal vinavyoweza kushirikishwa', body: "Mwalike muuzaji kwa barua pepe. Ataingia, kufungua mwaliko na kusoma masharti kabla ya kukubali. Akaunti za barua pepe za majaribio hutumia pochi ya Circle inayoendeshwa na Karwan. Hii ni tofauti na kuunganisha pochi ambayo mtumiaji anadhibiti funguo zake." },
-    fee: { heading: 'Ada ya jukwaa', body: 'Karwan inachukua ada ya jukwaa ya 1.5% kwa kila deal, ikigawanywa sawa kati ya mnunuzi na muuzaji. Ada hukusanywa kwenye chain kila milestone inapoachiliwa. Mnunuzi hufadhili nusu yake mapema, nusu ya muuzaji hutoka kwenye malipo yake.' },
+    fee: { heading: 'Ada ya jukwaa', body: 'Karwan inachukua ada ya jukwaa ya 1% kwa kila deal, nusu kutoka kwa mnunuzi na nusu kutoka kwa muuzaji. Ada hukusanywa kwenye chain kila milestone inapoachiliwa. Mnunuzi hufadhili nusu yake mapema, nusu ya muuzaji hutoka kwenye malipo yake. Mikataba kwenye escrow ya awali inabaki na ada iliyofunguliwa nayo.' },
     review: { heading: 'Madirisha ya ukaguzi na kuachilia kiotomatiki', body: "Angalia muda wa ukaguzi wa kila hatua. Baada ya uwasilishaji, mkataba wa sasa wa majaribio unaweza kumruhusu muuzaji kudai malipo yanayostahili muda ukiisha, pamoja na hatua ya mwisho. Tumia hatua ya ukaguzi, kuongeza muda au mgogoro kabla muda haujaisha. Kanuni hutegemea toleo la mkataba na masharti yaliyokubaliwa." },
     stake: {
       heading: 'stake kama bima ya deal',
@@ -5187,7 +5188,7 @@ export const sw: Messages = {
       step2: { actor: 'Mawakala wote wawili · inayosimamiwa pekee', body: 'Majadiliano. Muuzaji anatoa ofa, mnunuzi anatoa kaunta moja, muuzaji anajibu, mnunuzi anafunga masharti ya mwisho.' },
       step3: { actor: 'Wakala wa mnunuzi', body: 'Idhini ya ERC-20 ili KarwanEscrow iweze kuvuta fedha. Idhini inafunika kiasi cha deal pamoja na nusu ya mnunuzi ya ada ya jukwaa.' },
       step4: { actor: 'Wakala wa mnunuzi', bodyA: 'Inafunga kiasi cha deal pamoja na ratiba ya hatua. Mkataba unavuta ', bodyB: ', huhifadhi anachopata muuzaji na anachokusanya treasury. Inatoa ', bodyC: '.' },
-      step5: { actor: 'Mnunuzi', body: 'Inatoa hatua moja. Muuzaji anapata fungu lake, treasury inapata sehemu yake ya uwiano ya ada ya 1.5%. Hatua ya mwisho inafagia bakaa lolote na kuweka alama kwamba escrow imekamilika.' },
+      step5: { actor: 'Mnunuzi', body: 'Inatoa hatua moja. Muuzaji anapata fungu lake, treasury inapata sehemu yake ya uwiano ya ada. Hatua ya mwisho inafagia bakaa lolote na kuweka alama kwamba escrow imekamilika.' },
       step6: { actor: 'Wakala wa mnunuzi', body: 'Wakati wa kukamilika, inarekodi matokeo dhidi ya muuzaji kwenye KarwanReputation. ERC-8004 inazuia kujipima mwenyewe, hivyo mnunuzi anampima muuzaji.' },
     },
     stake: {
@@ -5226,7 +5227,7 @@ export const sw: Messages = {
     faq: {
       eyebrow: 'Maswali ya kawaida', title: 'Maswali yanayoulizwa mara kwa mara',
       q1: { q: 'Kuna tofauti gani kati ya deal ya moja kwa moja na deal iliyolinganishwa na wakala?', a: 'Deal ya moja kwa moja ni kwa pande mbili zinazojuana tayari. Unafungua escrow ukimtaja mkoba wa muuzaji, au hata anwani ya barua pepe, na unaruka ulinganishaji. Deal iliyolinganishwa na wakala ni pale unahitaji mwenzi: unatuma ombi kama mnunuzi au ofa kama muuzaji, na mawakala wanaendesha ulinganisho na mazungumzo. Zote zinatumia escrow ile ile, sifa ile ile, na malipo yale yale chini.' },
-      q2: { q: 'Ada ya jukwaa ni nini?', a: '1.5% ya kiasi cha deal, inagawanywa sawa kati ya mnunuzi na muuzaji. Mnunuzi anafadhili kiasi cha deal na nusu yake ya ada; muuzaji anapata kiasi cha deal ukiondoa nusu yake. Ada inakusanywa on-chain kila hatua inapotoka.' },
+      q2: { q: 'Ada ya jukwaa ni nini?', a: '1% ya kiasi cha deal, nusu kutoka kwa mnunuzi na nusu kutoka kwa muuzaji. Mnunuzi anafadhili kiasi cha deal na nusu yake ya ada; muuzaji anapata kiasi cha deal ukiondoa nusu yake. Ada inakusanywa on-chain kila hatua inapotoka. Mikataba kwenye escrow ya awali inabaki na ada iliyofunguliwa nayo.' },
       q3: { q: 'Nani anadhibiti mkoba wangu wa wakala?', a: 'Mkoba wako wa wakala ni Circle Developer-Controlled Wallet ambao mmiliki wake ni wewe. Karwan inaweza kusaini kwa niaba yake kuzungumza wakati unalala, lakini haifungui escrow bila idhini yako. Unaweza kufyeka fedha kutoka kwake wakati wowote kupitia ukurasa wa wasifu.' },
       q4: { q: 'Je, mikataba mahiri imewekwa?', a: 'Ndio. Mikataba ya escrow, vault, sifa, treasury, na job-board iko hai kwenye Arc Testnet (chenya 5042002). Anwani za sasa ziko kwenye hifadhi ya umma. Kila tukio kwenye mlisho wa shughuli linaunganishwa na muamala wake kwenye kichunguzi cha Arc.' },
       q5: { q: "Escrow inatoa vipi?", a: "Kagua uwasilishaji na uachilie hatua zilizokubaliwa. Ikiwa upande wowote unahitaji muda zaidi, muuzaji anaweza kuomba muda wa kuwasilisha na mnunuzi anaweza kuongeza muda wa ukaguzi, hadi kikomo kilicho kwenye masharti. Muda wa ukaguzi ukiisha bila hatua, mkataba unaweza kumruhusu muuzaji kudai hatua ya sasa, ikiwemo ya mwisho. Angalia tarehe na hatua kwenye mkataba." },
@@ -5303,9 +5304,9 @@ export const sw: Messages = {
       title: '4. Jinsi deal inavyolipwa',
       lead: 'Mara escrow inapofadhiliwa, hizi ndizo sheria zinazohamisha fedha.',
       bullets: {
-        release: { label: "Kutoa kwa hatua.", body: "Kagua uwasilishaji na uachilie hatua zilizokubaliwa. Muuzaji anaweza kuomba muda wa kuwasilisha na mnunuzi anaweza kuongeza muda wa ukaguzi, hadi kikomo kilicho kwenye masharti. Muda wa ukaguzi ukiisha bila hatua, mkataba unaweza kumruhusu muuzaji kudai hatua ya sasa, ikiwemo ya mwisho. Angalia tarehe na hatua kwenye mkataba." },
+        release: { label: "Kutoa kwa hatua.", body: "Kagua uwasilishaji na uachilie hatua zilizokubaliwa. Muuzaji anaweza kuomba muda wa kuwasilisha na mnunuzi anaweza kuongeza muda wa ukaguzi, hadi kikomo kilicho kwenye masharti. Muda wa ukaguzi ukiisha bila hatua, mkataba unaweza kumruhusu muuzaji kudai hatua ya sasa, ikiwemo ya mwisho. Angalia tarehe na hatua kwenye mkataba. Kila hatua inawasilishwa peke yake, na inayofuata inaweza kutolewa tu baada ya muuzaji kuiwasilisha." },
         autoRelease: { label: 'Kutolewa kiotomatiki.', body: 'Hatua zilizo kabla ya ya mwisho hujitoa zenyewe baada ya dirisha la ukaguzi kupita bila hatua yoyote kutoka kwa mnunuzi. Dirisha huonyeshwa kwenye deal na hurefuka kwa kila hatua inayofuata.' },
-        deadline: { label: 'Tarehe ya mwisho iliyokosewa.', body: 'Wakati tarehe ya uwasilishaji inapita bila kitu kuwasilishwa, mnunuzi hutahadharishwa na anaweza kurudisha au kutoa muda zaidi. Kama hakuna anayetenda na muuzaji bado hajawasilisha baada ya dirisha la neema, escrow inarudi kwa mnunuzi kiotomatiki na kukosa huko kunarekodiwa dhidi ya muuzaji.' },
+        deadline: { label: "Tarehe ya mwisho iliyokosewa.", body: "Wakati tarehe ya uwasilishaji inapita bila kitu kuwasilishwa, pande zote mbili zinaarifiwa. Kama muuzaji bado hajawasilisha baada ya dirisha la neema, escrow inarudi kwa mnunuzi kiotomatiki na kukosa huko kunarekodiwa dhidi ya muuzaji. Muuzaji anaweza kuomba muda zaidi kabla ya tarehe, na mara moja zaidi baada yake ndani ya dirisha la neema. Ombi ambalo mnunuzi hajajibu linasimamisha urejeshaji hadi mnunuzi akubali au akatae." },
         cancel: { label: 'Kughairi.', body: 'Kughairi ambako pande zote mbili zinakubali kunarudisha fedha zote na hakuna adhabu. Fedha zilizowekewa stake na kutengwa kwa deal hurudishwa kwa muuzaji.' },
         disputes: { label: "Migogoro.", body: "Mgogoro hufungia sehemu ya escrow ambayo haijaachiliwa. Pande zinaweza kukubaliana mgawanyo wenyewe. Vinginevyo kila upande hutoa maelezo yake ndani ya saa 72. Mwamuzi husoma maelezo ya pande zote, ukaguzi wa kazi iliyowasilishwa na mazungumzo ya mkataba, na hupendekeza viwango vya kuachilia na kurejesha. Mkaguzi huthibitisha kila uamuzi kabla pesa hazijasonga. Upande usiotoa maelezo hushindwa. Mkataba unaoendelea na mkataba uliothibitishwa ndio msingi wa njia iliyopo." },
       },

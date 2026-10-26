@@ -3480,6 +3480,7 @@ export const fr: Messages = {
     automatic: {
       autoReleaseTemplate: 'Libération automatique le {date} sauf contestation de l\'acheteur.',
       deadlineReclaimTemplate: 'Sans livraison, l\'acheteur peut reprendre les fonds à partir du {date}.',
+      reclaimWaitsSeller: 'L\'argent reste dans l\'accord jusqu\'à ce que l\'acheteur réponde à votre demande de délai.',
       acceptanceExpiryTemplate: 'Cette offre expire le {date}.',
     },
     trust: {
@@ -4776,14 +4777,14 @@ export const fr: Messages = {
     },
     buyerSilent: {
       heading: 'Si l\'acheteur ne répond plus',
-      s1: { label: 'La libération auto démarre.', body: "Après livraison, la première fenêtre de vérification est de {reviewWindow}. Consultez l’échéance de votre transaction : le vendeur peut réclamer une étape admissible après expiration, y compris la dernière." },
-      s2: { label: 'Déposez un appel de retard.', body: 'Disponible {appealGrace} après la dernière libération. L\'acheteur a {buyerResponse} pour répondre.' },
-      s3: { label: "Consultez les recours.", body: "Consultez les actions de paiement, de prolongation ou de litige et leurs échéances. Contactez l’assistance si une action attendue manque. Le silence ne garantit ni paiement ni remboursement." },
+      s1: { label: 'Vérifier, puis payer.', body: "L’acheteur a le temps de vérification fixé dans la transaction, 30 jours au plus, pour vérifier chaque livraison. Il peut libérer le paiement, demander une seule fois plus de temps ou signaler un problème, et Karwan le lui rappelle un jour avant la fin. Si ce temps se termine sans libération ni problème signalé, le paiement va au vendeur, le dernier compris. Un acompte revient à l’acheteur." },
+      s2: { label: 'Transactions sur l’ancien escrow.', body: 'Elles gardent leurs propres règles. La première fenêtre de vérification est de {reviewWindow} ; à sa fin, le vendeur peut réclamer le paiement, le dernier compris. Le vendeur peut aussi déposer un appel de retard {appealGrace} après la dernière libération, et l\'acheteur a {buyerResponse} pour répondre.' },
+      s3: { label: "Consultez les recours.", body: "Consultez les actions qui vous sont ouvertes et leurs échéances. Contactez l’assistance si une action attendue manque." },
     },
     sellerLate: {
       heading: 'Si le vendeur manque le délai',
-      s1: { label: 'L\'acheteur est alerté.', body: 'Dès que le délai passe sans livraison, avec récupération ou extension en un clic.' },
-      s2: { label: 'Récupération auto.', body: 'Toujours pas de livraison après {reclaimGrace} de grâce et le séquestre revient intégralement à l\'acheteur. Le manquement est inscrit au dossier de réputation du vendeur.' },
+      s1: { label: "Le vendeur reçoit un rappel.", body: "La veille de la date, pour livrer ou demander plus de temps. Si la date passe sans livraison, les deux parties sont prévenues." },
+      s2: { label: "Remboursement auto.", body: "Toujours pas de livraison après {reclaimGrace} de grâce et le séquestre revient intégralement à l’acheteur. Le manquement est inscrit au dossier de réputation du vendeur. Une demande de délai sans réponse de l’acheteur retient le remboursement jusqu’à sa réponse." },
     },
     disputed: {
       heading: 'Si un accord est contesté',
@@ -4972,7 +4973,7 @@ export const fr: Messages = {
       settled: { alt: 'Page du deal en état réglé, intégralement payé', caption: 'Réglé. Le vendeur est payé en totalité et la réputation est inscrite on-chain.' },
     },
     shareable: { heading: 'Liens de deals partageables', body: "Invitez un vendeur par e-mail. Il se connecte, récupère l’invitation et lit les conditions avant d’accepter. Sur le réseau de test, les comptes e-mail utilisent un portefeuille Circle exploité par Karwan. Cela diffère d’un portefeuille dont l’utilisateur contrôle les clés." },
-    fee: { heading: 'Les frais de plateforme', body: 'Karwan prend 1,5% de frais de plateforme sur chaque deal, partagés à parts égales entre acheteur et vendeur. Les frais sont collectés on-chain à chaque libération de milestone. L\'acheteur finance sa moitié à l\'avance, la moitié du vendeur est prélevée sur son paiement.' },
+    fee: { heading: 'Les frais de plateforme', body: 'Karwan prend 1 % de frais de plateforme sur chaque deal, moitié à la charge de l’acheteur, moitié à celle du vendeur. Les frais sont collectés on-chain à chaque libération de milestone. L\'acheteur finance sa moitié à l\'avance, la moitié du vendeur est prélevée sur son paiement. Les transactions sur l’ancien escrow gardent les frais fixés à leur ouverture.' },
     review: { heading: 'Fenêtres de revue et libération automatique', body: "Vérifiez le délai de vérification de chaque étape. Après livraison, le contrat actuel du réseau de test peut permettre au vendeur de réclamer une étape admissible à l’expiration du délai, y compris la dernière. Utilisez les actions de vérification, de prolongation ou de litige avant l’échéance. Les règles dépendent du contrat et des conditions acceptées." },
     stake: {
       heading: 'Le stake comme assurance du deal',
@@ -5190,7 +5191,7 @@ export const fr: Messages = {
       step2: { actor: 'Les deux agents · gérée uniquement', body: 'La négociation. Le vendeur fait une offre, l\'acheteur fait une contre-offre, le vendeur répond, puis l\'acheteur fixe les conditions finales.' },
       step3: { actor: 'Agent acheteur', body: 'Approbation ERC-20 pour que KarwanEscrow puisse tirer les fonds. L\'approbation couvre le montant de la transaction plus la moitié des frais de plateforme de l\'acheteur.' },
       step4: { actor: 'Agent acheteur', bodyA: 'Verrouille le montant avec un calendrier de jalons. Le contrat tire ', bodyB: ', stocke ce que le vendeur reçoit net et ce que la trésorerie collecte. Émet ', bodyC: '.' },
-      step5: { actor: 'Acheteur', body: 'Libère un jalon. Le vendeur reçoit sa part, la trésorerie reçoit sa part proportionnelle des 1,5% de frais. Le dernier jalon balaie tout solde résiduel et marque le séquestre comme réglé.' },
+      step5: { actor: 'Acheteur', body: 'Libère un jalon. Le vendeur reçoit sa part, la trésorerie reçoit sa part proportionnelle des frais. Le dernier jalon balaie tout solde résiduel et marque le séquestre comme réglé.' },
       step6: { actor: 'Agent acheteur', body: 'Au règlement, inscrit le résultat contre le vendeur sur KarwanReputation. ERC-8004 interdit l\'auto-notation, donc l\'acheteur note le vendeur.' },
     },
     stake: {
@@ -5229,7 +5230,7 @@ export const fr: Messages = {
     faq: {
       eyebrow: 'FAQ', title: 'Questions fréquentes',
       q1: { q: 'Quelle est la différence entre une transaction directe et une transaction matchée par agent?', a: 'Une transaction directe est pour deux parties qui se connaissent déjà. Vous ouvrez un séquestre en désignant le portefeuille du vendeur, ou même une adresse e-mail, et sautez le matching. Une transaction matchée par agent est pour quand vous avez besoin d\'une contrepartie: vous publiez une demande comme acheteur ou une offre comme vendeur, et les agents mènent le matching et la négociation. Les deux utilisent le même séquestre, la même réputation et le même règlement en dessous.' },
-      q2: { q: 'Quels sont les frais de plateforme?', a: '1,5% du montant de la transaction, partagés à parts égales entre acheteur et vendeur. L\'acheteur finance le montant et sa moitié des frais; le vendeur reçoit net le montant moins sa moitié. Les frais se collectent on-chain à mesure que chaque jalon se libère.' },
+      q2: { q: 'Quels sont les frais de plateforme?', a: '1 % du montant de la transaction, moitié à la charge de l’acheteur, moitié à celle du vendeur. L\'acheteur finance le montant et sa moitié des frais; le vendeur reçoit net le montant moins sa moitié. Les frais se collectent on-chain à mesure que chaque jalon se libère. Les transactions sur l’ancien escrow gardent les frais fixés à leur ouverture.' },
       q3: { q: 'Qui contrôle mon portefeuille d\'agent?', a: 'Votre portefeuille d\'agent est un Developer-Controlled Wallet de Circle dont vous êtes propriétaire. Karwan peut signer en son nom pour négocier pendant que vous dormez, mais n\'ouvre jamais de séquestre sans votre validation. Vous pouvez en retirer les fonds à tout moment depuis la page de profil.' },
       q4: { q: 'Les smart contracts sont-ils déployés?', a: 'Oui. Les contrats escrow, vault, réputation, trésorerie et job-board sont en ligne sur Arc Testnet (chaîne 5042002). Les adresses actuelles sont dans le dépôt public. Chaque évènement du fil d\'activité renvoie à sa transaction sur l\'explorateur Arc.' },
       q5: { q: "Comment l'escrow se libère-t-il ?", a: "Examinez la livraison et libérez les jalons convenus. Si l'une des parties a besoin de plus de temps, le vendeur peut demander un délai de livraison et l'acheteur peut prolonger la période d'examen, dans la limite prévue par les conditions. Si une période d'examen se termine sans action, le contrat peut permettre au vendeur de réclamer le jalon en cours, y compris le dernier. Vérifiez les échéances et les actions sur la transaction." },
@@ -5306,9 +5307,9 @@ export const fr: Messages = {
       title: '4. Comment une transaction se règle',
       lead: 'Une fois le séquestre financé, voici les règles qui déplacent l\'argent.',
       bullets: {
-        release: { label: "Libération des jalons.", body: "Examinez la livraison et libérez les jalons convenus. Le vendeur peut demander un délai de livraison et l'acheteur peut prolonger la période d'examen, dans la limite prévue par les conditions. Si une période d'examen se termine sans action, le contrat peut permettre au vendeur de réclamer le jalon en cours, y compris le dernier. Vérifiez les échéances et les actions sur la transaction." },
+        release: { label: "Libération des jalons.", body: "Examinez la livraison et libérez les jalons convenus. Le vendeur peut demander un délai de livraison et l'acheteur peut prolonger la période d'examen, dans la limite prévue par les conditions. Si une période d'examen se termine sans action, le contrat peut permettre au vendeur de réclamer le jalon en cours, y compris le dernier. Vérifiez les échéances et les actions sur la transaction. Chaque jalon est livré séparément, et le suivant ne peut être libéré qu’une fois livré par le vendeur." },
         autoRelease: { label: 'Libération automatique.', body: 'Les jalons avant le dernier se libèrent tout seuls une fois la fenêtre d\'examen passée sans action de l\'acheteur. La fenêtre est affichée sur la transaction et s\'allonge pour chaque jalon suivant.' },
-        deadline: { label: 'Un délai manqué.', body: 'Quand un délai de livraison passe sans rien de livré, l\'acheteur est alerté et peut récupérer ou accorder une prolongation. Si personne n\'agit et que le vendeur n\'a toujours pas livré après la fenêtre de grâce, le séquestre revient automatiquement à l\'acheteur et le manquement est enregistré contre le vendeur.' },
+        deadline: { label: "Un délai manqué.", body: "Quand un délai de livraison passe sans rien de livré, les deux parties sont prévenues. Si le vendeur n’a toujours pas livré après la fenêtre de grâce, le séquestre revient automatiquement à l’acheteur et le manquement est enregistré contre le vendeur. Le vendeur peut demander plus de temps avant le délai, et une fois encore après, pendant la fenêtre de grâce. Une demande sans réponse de l’acheteur retient le remboursement jusqu’à ce qu’il accepte ou refuse." },
         cancel: { label: 'Annulation.', body: 'Une annulation acceptée des deux côtés rembourse intégralement et ne porte aucune pénalité. Les fonds stakés réservés sur la transaction sont rendus au vendeur.' },
         disputes: { label: "Litiges.", body: "Un litige bloque la part non libérée de l'escrow. Les parties peuvent convenir d'un partage. Sinon, chaque partie donne sa version sous 72 heures. Le juge lit les deux versions, la vérification du travail livré et la discussion, et propose les parts libérées et remboursées. Un examinateur confirme chaque décision avant tout mouvement d'argent. La partie qui ne donne pas sa version perd. La transaction en cours et le contrat vérifié font foi pour la voie disponible." },
       },

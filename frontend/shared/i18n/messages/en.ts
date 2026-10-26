@@ -3195,7 +3195,7 @@ interface MessagesShape {
     };
     consequence: { accept: string; fundTemplate: string; releaseTemplate: string; claimTemplate: string; reviewManually: string };
     progress: { title: string; agreed: string; funded: string; delivered: string; checked: string; released: string; cancelled: string; refunded: string };
-    automatic: { autoReleaseTemplate: string; deadlineReclaimTemplate: string; acceptanceExpiryTemplate: string };
+    automatic: { autoReleaseTemplate: string; deadlineReclaimTemplate: string; reclaimWaitsSeller: string; acceptanceExpiryTemplate: string };
     trust: {
       title: string; asSeller: string; asBuyer: string; verifiedBusiness: string; verifiedPerson: string;
       verifiedPersonDetail: string; settledTemplate: string; onTimeTemplate: string; disputesTemplate: string;
@@ -8946,6 +8946,7 @@ export const en: MessagesShape = {
     automatic: {
       autoReleaseTemplate: 'Releases automatically on {date} unless the buyer disputes.',
       deadlineReclaimTemplate: 'If nothing is delivered, the buyer can take the money back from {date}.',
+      reclaimWaitsSeller: 'The money stays in the deal until the buyer answers your request for more time.',
       acceptanceExpiryTemplate: 'This offer expires on {date}.',
     },
     trust: {
@@ -10294,14 +10295,14 @@ export const en: MessagesShape = {
     },
     buyerSilent: {
       heading: 'If the buyer goes quiet',
-      s1: { label: 'Auto-release starts.', body: "After delivery, the first review window is {reviewWindow}. Check the deadline on your deal: the seller may claim an eligible milestone after review expires, including the final one." },
-      s2: { label: 'Raise a delay appeal.', body: 'Opens {appealGrace} after the last release. The buyer gets {buyerResponse} to respond.' },
-      s3: { label: "Check recovery options.", body: "Check the deal for available claim, extension or dispute actions and their deadlines. Contact support if an expected action is unavailable. Silence does not guarantee payment or a refund." },
+      s1: { label: 'Review, then pay.', body: "The buyer has the review time set in the deal, at most 30 days, to check each delivery. They can release it, ask once for more time or raise a problem, and Karwan reminds them a day before the time ends. If it ends with no release and no problem raised, the payment goes to the seller, the final one included. A deposit goes back to the buyer instead." },
+      s2: { label: 'Deals on the earlier escrow.', body: 'They keep their own rules. The first review window is {reviewWindow}, and when it ends the seller can claim the payment, the final one included. The seller can also raise a delay appeal {appealGrace} after the last release, and the buyer has {buyerResponse} to answer.' },
+      s3: { label: "Check recovery options.", body: "Check the deal for the actions open to you and their deadlines. Contact support if an expected action is unavailable." },
     },
     sellerLate: {
       heading: 'If the seller misses the deadline',
-      s1: { label: 'The buyer is alerted.', body: 'The moment the deadline passes without delivery, with one-click reclaim or extend.' },
-      s2: { label: 'Auto-reclaim.', body: 'Still no delivery after {reclaimGrace} of grace and the escrow returns to the buyer in full. The miss lands on the seller reputation record.' },
+      s1: { label: "The seller is reminded.", body: "A day before the date, to deliver or ask for more time. When the date passes with nothing delivered, both sides are told." },
+      s2: { label: "Auto-refund.", body: "Still no delivery after {reclaimGrace} of grace and the escrow returns to the buyer in full. The miss lands on the seller reputation record. A request for more time the buyer has not answered holds the refund until they answer." },
     },
     disputed: {
       heading: 'If a deal is disputed',
@@ -10522,7 +10523,7 @@ export const en: MessagesShape = {
     },
     fee: {
       heading: 'The platform fee',
-      body: 'Karwan takes a 1.5% platform fee on each deal, split evenly between buyer and seller. The fee collects on chain as each milestone releases. The buyer funds their half up front; the seller\'s half comes out of their payout.',
+      body: 'Karwan takes a 1% platform fee on each deal, half from the buyer and half from the seller. The fee collects on chain as each milestone releases. The buyer funds their half up front; the seller\'s half comes out of their payout. Deals on the earlier escrow keep the fee they were opened with.',
     },
     review: {
       heading: 'Review windows and auto-release',
@@ -10757,7 +10758,7 @@ export const en: MessagesShape = {
       step2: { actor: 'Both agents · managed only', body: 'The negotiation. The seller makes an offer, the buyer counters once, the seller responds, and the buyer locks the final terms.' },
       step3: { actor: 'Buyer agent', body: 'ERC-20 approval so KarwanEscrow can pull funds. The approval covers the deal amount plus the buyer\'s half of the platform fee.' },
       step4: { actor: 'Buyer agent', bodyA: 'Locks the deal amount with a milestone schedule. The contract pulls ', bodyB: ', stores what the seller nets and what the treasury collects. Emits ', bodyC: '.' },
-      step5: { actor: 'Buyer', body: 'Releases one milestone. The seller gets their cut, the treasury gets its proportional slice of the 1.5% fee. The final milestone sweeps any remainder and marks the escrow settled.' },
+      step5: { actor: 'Buyer', body: 'Releases one milestone. The seller gets their cut, the treasury gets its proportional slice of the fee. The final milestone sweeps any remainder and marks the escrow settled.' },
       step6: { actor: 'Buyer agent', body: 'On settlement, records the outcome against the seller on KarwanReputation. ERC-8004 forbids self-rating, so the buyer rates the seller.' },
     },
     stake: {
@@ -10800,7 +10801,7 @@ export const en: MessagesShape = {
       eyebrow: 'FAQs',
       title: 'Common questions',
       q1: { q: 'What is the difference between a direct deal and an agent-matched deal?', a: 'A direct deal is for two parties who already know each other. You open an escrow naming the seller\'s wallet, or even an email address, and skip the matching. An agent-matched deal is for when you need a counterparty: you post a request as a buyer or an offer as a seller, and the agents run the matching and negotiation. Both use the same escrow, reputation, and settlement underneath.' },
-      q2: { q: 'What is the platform fee?', a: '1.5% of the deal amount, split evenly between buyer and seller. The buyer funds the deal amount and their half of the fee; the seller nets the deal amount minus their half. The fee collects on chain as each milestone releases.' },
+      q2: { q: 'What is the platform fee?', a: '1% of the deal amount, half from the buyer and half from the seller. The buyer funds the deal amount and their half of the fee; the seller nets the deal amount minus their half. The fee collects on chain as each milestone releases. Deals on the earlier escrow keep the fee they were opened with.' },
       q3: { q: 'Who controls my agent wallet, and how do I fund it?', a: "On testnet, Karwan operates the Circle agent wallets used for account actions. Deal funding requires your approval. Connected-wallet users sign with their own wallet. Use the wallet page to see available balances and transfer options; never send real funds to a testnet address." },
       q4: { q: 'Are the smart contracts deployed?', a: "Reputation and BusinessRegistry are deployed on Arc mainnet. The escrow and remaining trading contracts are available on testnet, not mainnet. Contract addresses are listed in the public repository." },
       q5: { q: "How does the escrow release?", a: "Review the delivery and release the agreed milestones. If either side needs more time, the seller can ask for more time to deliver and the buyer can extend the review window, up to the limit in the terms. If a review window ends with no action, the contract may let the seller claim the current milestone, including the final one. Check the deadlines and actions on the deal." },
@@ -10877,9 +10878,9 @@ export const en: MessagesShape = {
       title: '4. How a deal settles',
       lead: 'Once escrow is funded, these are the rules that move the money.',
       bullets: {
-        release: { label: "Milestone release.", body: "Review the delivery and release the agreed milestones. The seller can ask for more time to deliver and the buyer can extend the review window, up to the limit in the terms. If a review window ends with no action, the contract may let the seller claim the current milestone, including the final one. Check the deadlines and actions on the deal." },
+        release: { label: "Milestone release.", body: "Review the delivery and release the agreed milestones. The seller can ask for more time to deliver and the buyer can extend the review window, up to the limit in the terms. If a review window ends with no action, the contract may let the seller claim the current milestone, including the final one. Check the deadlines and actions on the deal. Each milestone is delivered on its own, and the next one can be released only after the seller delivers it." },
         autoRelease: { label: 'Automatic release.', body: 'Milestones before the final one release on their own once the review window has passed with no action from the buyer. The window is shown on the deal and lengthens for each later milestone.' },
-        deadline: { label: 'A missed deadline.', body: 'When a delivery deadline passes with nothing delivered, the buyer is alerted and can reclaim or grant an extension. If nobody acts and the seller still has not delivered after the grace window, the escrow returns to the buyer automatically and the miss is recorded against the seller.' },
+        deadline: { label: "A missed deadline.", body: "When a delivery deadline passes with nothing delivered, both sides are told. If the seller still has not delivered after the grace window, the escrow returns to the buyer automatically and the miss is recorded against the seller. The seller can ask for more time before the deadline, and once more after it during the grace window. A request the buyer has not answered holds the refund until the buyer approves or declines." },
         cancel: { label: 'Cancelling.', body: 'A cancel both sides agree to refunds in full and carries no penalty. Staked funds reserved against the deal are released back to the seller.' },
         disputes: { label: "Disputes.", body: "A dispute freezes the unreleased escrow. The parties can agree a split themselves. If they do not, each side gives its account within 72 hours. The judge reads both accounts, the delivery check on the submitted work and the deal chat, and proposes the release and refund proportions. A reviewer confirms every ruling before any money moves. A side that gives no account loses. The live deal and the verified contract are the source of truth for the path available." },
       },

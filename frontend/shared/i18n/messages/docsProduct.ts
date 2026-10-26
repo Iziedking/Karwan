@@ -100,7 +100,7 @@ const en: DocsProductCopy = {
   },
   facts: {
     fee: 'Fee',
-    feeValue: '1.5%, split between buyer and seller',
+    feeValue: '1%, half from each side',
     confirm: 'Confirmation',
     confirmValue: "Confirmed by the network",
     token: 'Currency',
@@ -198,7 +198,7 @@ const ar: DocsProductCopy = {
   },
   facts: {
     fee: 'الرسوم',
-    feeValue: '1.5%، مقسّمة بين المشتري والبائع',
+    feeValue: '1%، نصفها من كل طرف',
     confirm: 'التأكيد',
     confirmValue: "تؤكده الشبكة",
     token: 'العملة',
@@ -296,7 +296,7 @@ const fr: DocsProductCopy = {
   },
   facts: {
     fee: 'Frais',
-    feeValue: '1,5 %, partagés entre acheteur et vendeur',
+    feeValue: '1 %, moitié payée par chaque partie',
     confirm: 'Confirmation',
     confirmValue: "Confirmé par le réseau",
     token: 'Monnaie',
@@ -394,7 +394,7 @@ const hi: DocsProductCopy = {
   },
   facts: {
     fee: 'शुल्क',
-    feeValue: '1.5%, खरीदार और विक्रेता में बँटा',
+    feeValue: '1%, आधा खरीदार से, आधा विक्रेता से',
     confirm: 'पुष्टि',
     confirmValue: "नेटवर्क की पुष्टि के बाद",
     token: 'मुद्रा',
@@ -492,7 +492,7 @@ const sw: DocsProductCopy = {
   },
   facts: {
     fee: 'Ada',
-    feeValue: '1.5%, hugawanywa kati ya mnunuzi na muuzaji',
+    feeValue: '1%, nusu kutoka kwa kila upande',
     confirm: 'Uthibitisho',
     confirmValue: "Yanathibitishwa na mtandao",
     token: 'Sarafu',

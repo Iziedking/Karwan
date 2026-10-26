@@ -73,7 +73,7 @@ test('final milestone copy does not imply that silence prevents a seller claim',
   for (const text of [
     t.docsDealsPage.review.body,
     t.docsFaqPage.items.find(item => item.q === 'What if the buyer is slow to release?')!.a,
-    t.docsDisputesPage.buyerSilent.s1.body,
+    t.docsDisputesPage.buyerSilent.s2.body,
     t.directDealDetail.actionPanel.awaitingFinalRelease.buyerNoAppealTemplate,
   ]) {
     assert.match(text, /claim/);
@@ -81,10 +81,21 @@ test('final milestone copy does not imply that silence prevents a seller claim',
   }
 });
 
+test('the disputes page says review then pay for deals on the escrow family', () => {
+  const s1 = MESSAGES.en.docsDisputesPage.buyerSilent.s1.body;
+  assert.match(s1, /at most 30 days/);
+  assert.match(s1, /ask once for more time/);
+  assert.match(s1, /the payment goes to the seller, the final one included/);
+  assert.doesNotMatch(s1, /delay appeal|auto-release/i);
+  assert.match(MESSAGES.en.docsDisputesPage.buyerSilent.s2.body, /earlier escrow|delay appeal/);
+});
+
 test('all locales retain the payment and timing placeholders', () => {
   for (const [locale, t] of Object.entries(MESSAGES)) {
     assert.match(t.directDealDetail.actionPanel.awaitingFinalRelease.buyerNoAppealTemplate, /\{rest\}/, locale);
-    assert.match(t.docsDisputesPage.buyerSilent.s1.body, /\{reviewWindow\}/, locale);
+    for (const slot of [/\{reviewWindow\}/, /\{appealGrace\}/, /\{buyerResponse\}/]) {
+      assert.match(t.docsDisputesPage.buyerSilent.s2.body, slot, locale);
+    }
     for (const text of [t.docsIndexPage.intro, t.docsRoadmapPage.intro, t.x402Page.intro]) {
       assert.ok(text.length > 50, locale);
     }
