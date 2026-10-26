@@ -1,10 +1,12 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { ApiError, api, type DirectDeal } from '@/core/api';
+import { Icon } from '@/shared/components/Icon';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { fill } from './presentation';
 import type { Problem } from './problems';
-import { deliveryNeedsShipment, deliveryReady, type Shipment } from './delivery';
+import { MAX_DELIVERY_PHOTOS, deliveryNeedsPhoto, deliveryNeedsShipment, deliveryReady, type Shipment } from './delivery';
+import { resizePhoto } from '@/features/listings/photos';
 import { Sheet, fieldLabel, primaryButton, quietButton } from './Sheet';
 
 const DAY_S = 86_400;
@@ -46,7 +48,13 @@ type Carrier = { slug: string; name: string; needsUrl: boolean };
 export function DeliverSheet({ open, deal, caller, onClose, onDone }: SheetProps) {
   const s = useTranslations().dealWorkspace.simple;
   const placeholder = useTranslations().pageBits.dealDetail.containerRefPlaceholder;
+  const f = useTranslations().deliveryCard.form;
   const ships = deliveryNeedsShipment(deal.tradeType);
+  const photoRequired = deliveryNeedsPhoto(deal);
+  const [mode, setMode] = useState<'courier' | 'person'>('courier');
+  const [code, setCode] = useState('');
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [photoError, setPhotoError] = useState(false);
   const [proof, setProof] = useState('');
   const [shipment, setShipment] = useState<Shipment>({ carrier: '', trackingNumber: '', trackingUrl: '' });
   const [carriers, setCarriers] = useState<Carrier[]>([]);
@@ -60,25 +68,79 @@ export function DeliverSheet({ open, deal, caller, onClose, onDone }: SheetProps
     return () => { live = false; };
   }, [open, ships, carriers.length]);
 
+  const inPerson = ships && mode === 'person';
   const submit = () =>
     void move.run(() =>
       api.markDelivered(
         deal.jobId,
         caller,
         proof.trim() || undefined,
-        ships
+        ships && !inPerson
           ? {
               carrier: shipment.carrier,
               trackingNumber: shipment.trackingNumber.trim(),
               ...(shipment.trackingUrl.trim() ? { trackingUrl: shipment.trackingUrl.trim() } : {}),
             }
           : undefined,
+        { handoverCode: inPerson ? code.trim() : undefined, photos },
       ),
     );
+
+  async function addPhotos(files: FileList | null) {
+    setPhotoError(false);
+    const picked = Array.from(files ?? []).slice(0, MAX_DELIVERY_PHOTOS - photos.length);
+    const added: string[] = [];
+    for (const file of picked) {
+      try {
+        added.push(await resizePhoto(file));
+      } catch {
+        setPhotoError(true);
+      }
+    }
+    setPhotos((current) => [...current, ...added].slice(0, MAX_DELIVERY_PHOTOS));
+  }
+
+  const choice = (on: boolean) =>
+    `min-h-11 rounded-full border px-4 text-[15px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] ${
+      on ? 'border-[var(--lp-dark)] bg-[var(--lp-dark)] text-[var(--lp-light)]' : 'border-[var(--lp-border-light)] text-[var(--lp-dark)]'
+    }`;
 
   return (
     <Sheet open={open} title={ships ? s.shipTitle : s.deliverTitle} onClose={onClose} busy={move.busy}>
       {ships ? (
+        <fieldset className="mb-4">
+          <legend className={fieldLabel}>{f.how}</legend>
+          <div role="radiogroup" className="mt-2 flex flex-wrap gap-2">
+            <button type="button" role="radio" aria-checked={mode === 'courier'} onClick={() => setMode('courier')} className={choice(mode === 'courier')}>
+              {f.byCourier}
+            </button>
+            <button type="button" role="radio" aria-checked={mode === 'person'} onClick={() => setMode('person')} className={choice(mode === 'person')}>
+              {f.inPerson}
+            </button>
+          </div>
+        </fieldset>
+      ) : null}
+      {inPerson ? (
+        <>
+          <label className={`${fieldLabel} block`}>
+            {f.codeLabel}
+            <input
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              dir="ltr"
+              maxLength={6}
+              className="form-input mt-1.5 block font-mono text-[20px] tracking-[0.3em]"
+            />
+            <span className="mt-1.5 block text-[14px] font-normal text-[var(--lp-text-sub)]">{f.codeNote}</span>
+          </label>
+          <label className={`${fieldLabel} mt-4 block`}>
+            {s.shipNoteLabel}
+            <textarea value={proof} onChange={(e) => setProof(e.target.value)} dir="auto" maxLength={2000} className={textArea} />
+          </label>
+        </>
+      ) : ships ? (
         <>
           <fieldset>
             <legend className={fieldLabel}>{s.carrierLabel}</legend>
@@ -140,11 +202,36 @@ export function DeliverSheet({ open, deal, caller, onClose, onDone }: SheetProps
           <textarea value={proof} onChange={(e) => setProof(e.target.value)} dir="auto" maxLength={2000} className={textArea} />
         </label>
       )}
+      <div className="mt-4">
+        <p className={fieldLabel}>{f.photosLabel}</p>
+        <p className="mt-1 text-[14px] text-[var(--lp-text-sub)]">{photoRequired ? f.photosRequired : f.photosOptional}</p>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {photos.map((src, index) => (
+            <button
+              key={src.slice(-32) + index}
+              type="button"
+              onClick={() => setPhotos((current) => current.filter((_, i) => i !== index))}
+              aria-label={fill(f.removeTemplate, { n: index + 1 })}
+              className="relative overflow-hidden rounded-[12px] border border-[var(--lp-border-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            >
+              <img src={src} alt="" className="size-16 object-cover" />
+              <span aria-hidden className="absolute end-1 top-1 grid size-6 place-items-center rounded-full bg-[var(--lp-dark)] text-[var(--lp-light)]"><Icon name="close" size={16} /></span>
+            </button>
+          ))}
+          {photos.length < MAX_DELIVERY_PHOTOS ? (
+            <label className="inline-flex min-h-11 cursor-pointer items-center rounded-full border border-[var(--lp-border-light)] px-4 text-[14px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)] focus-within:ring-2 focus-within:ring-[var(--accent)]">
+              {f.addPhotos}
+              <input type="file" accept="image/jpeg,image/png,image/webp" multiple className="sr-only" onChange={(e) => { void addPhotos(e.target.files); e.target.value = ''; }} />
+            </label>
+          ) : null}
+        </div>
+        {photoError ? <p role="alert" className="mt-1.5 text-[14px] text-[var(--neg)]">{f.photoFailed}</p> : null}
+      </div>
       <MoveError error={move.error} />
       <div className="mt-6">
         <button
           type="button"
-          disabled={move.busy || !deliveryReady({ tradeType: deal.tradeType, proof, shipment, carrier })}
+          disabled={move.busy || !deliveryReady({ tradeType: deal.tradeType, proof, shipment, carrier, handoverCode: inPerson ? code : null, photos: photos.length, photoRequired })}
           onClick={submit}
           className={primaryButton}
         >

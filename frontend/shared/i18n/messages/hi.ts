@@ -17,6 +17,7 @@ import { moneyCopy } from './money';
 import { notifyCopy } from './notifications';
 import { notFoundCopy } from './pageStates';
 import { dealLiveCopy } from './dealLive';
+import { deliveryCardCopy } from './deliveryCard';
 import { offerRosterCopy } from './offerRoster';
 import { shortlistCopy } from './shortlist';
 import { directMessagesCopy } from './directMessages';
@@ -58,6 +59,7 @@ export const hi: Messages = {
   developers: developersCopy.hi,
   reputationSources: reputationSourcesCopy.hi,
   dealLive: dealLiveCopy.hi,
+  deliveryCard: deliveryCardCopy.hi,
   disputeJudge: disputeJudgeCopy.hi,
   balanceSummary: balanceSummaryCopy.hi,
   firstTrade: firstTradeCopy.hi,

@@ -50,6 +50,11 @@ export function createAssistantAttachRoutes(deps: AttachRouteDeps): Hono {
       const hold = deps.holdForOffer ?? (await import('../listings/photos.js')).holdForOffer;
       return c.json({ reply: await hold(address, { bytes: new Uint8Array(await file.arrayBuffer()), mimeType: file.type }) });
     }
+    if (form?.purpose === 'delivery') {
+      if (!file.type.startsWith('image/')) return c.json({ error: 'send a photo for a delivery' }, 415);
+      const { holdForDelivery } = await import('../deals/deliveryPhotos.js');
+      return c.json({ reply: await holdForDelivery(address, { bytes: new Uint8Array(await file.arrayBuffer()), mimeType: file.type }) });
+    }
     const lines = await deps.intake(address, { bytes: new Uint8Array(await file.arrayBuffer()), mimeType: file.type });
     return c.json({ reply: lines.join('\n\n') });
   });

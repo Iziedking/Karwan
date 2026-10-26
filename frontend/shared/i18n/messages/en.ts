@@ -20,6 +20,7 @@ import { moneyCopy, type MoneyCopy } from './money';
 import { notifyCopy, type NotifyCopy } from './notifications';
 import { notFoundCopy, type NotFoundCopy } from './pageStates';
 import { dealLiveCopy, type DealLiveCopy } from './dealLive';
+import { deliveryCardCopy, type DeliveryCardCopy } from './deliveryCard';
 import { offerRosterCopy, type OfferRosterCopy } from './offerRoster';
 import { shortlistCopy, type ShortlistCopy } from './shortlist';
 import { directMessagesCopy, type DirectMessagesCopy } from './directMessages';
@@ -60,6 +61,7 @@ interface MessagesShape {
   developers: DevelopersCopy;
   reputationSources: ReputationSourcesCopy;
   dealLive: DealLiveCopy;
+  deliveryCard: DeliveryCardCopy;
   disputeJudge: DisputeJudgeCopy;
   balanceSummary: BalanceSummaryCopy;
   firstTrade: FirstTradeCopy;
@@ -5472,6 +5474,7 @@ export const en: MessagesShape = {
   developers: developersCopy.en,
   reputationSources: reputationSourcesCopy.en,
   dealLive: dealLiveCopy.en,
+  deliveryCard: deliveryCardCopy.en,
   disputeJudge: disputeJudgeCopy.en,
   balanceSummary: balanceSummaryCopy.en,
   firstTrade: firstTradeCopy.en,

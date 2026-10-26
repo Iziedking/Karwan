@@ -13,6 +13,11 @@ import { withLlmTimeout } from '../agents/llm-utils.js';
 import { systemPromptFor } from './knowledge.js';
 import { readUsdcBalance } from '../chain/contracts.js';
 import { dealEscrowOps } from '../deals/dealEscrowOpsLive.js';
+import { deliveryForAssistant } from '../deals/deliveryHistoryView.js';
+import { deliveryNeeds } from '../deals/deliveryProofRules.js';
+import { deliveryPhotos } from '../deals/deliveryPhotos.js';
+import { CARRIERS } from '../deals/carriers.js';
+import { extractUrls } from '../security/extractUrls.js';
 import { awaitingNextDelivery } from '../deals/milestoneDelivery.js';
 import { dealPendingLines, proposalPendingLines } from './pendingLines.js';
 import { arcChain, publicClient } from '../chain/client.js';
@@ -441,7 +446,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
 
     get_deal_status: tool({
       description:
-        "Get the full status of ONE of the signed-in user's own deals by its id (jobId, a 0x id of 64 hex characters): phase, amount, counterparty, deadline, and whether a release is paused. The same id may be a match still waiting for approval, or a request the user posted; the result says which (kind: deal, match or request). Only works when the user is a party.",
+        "Get the full status of ONE of the signed-in user's own deals by its id (jobId, a 0x id of 64 hex characters): phase, amount, counterparty, deadline, whether a release is paused, and the delivery: what was delivered with its links, the shipment's carrier, tracking number, tracking page and whether it arrived, what Karwan checked, and earlier deliveries. Use it for 'where is my order', 'what did they deliver', 'has it shipped'. The same id may be a match still waiting for approval, or a request the user posted; the result says which (kind: deal, match or request). Only works when the user is a party.",
       inputSchema: z.object({
         jobId: z.string().min(1).max(120).describe('The deal id (jobId) to look up.'),
       }),
@@ -453,7 +458,15 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
           if (!canViewDeal(deal, address)) {
             return { error: 'That deal is not one of yours, so I cannot show its details.' };
           }
-          return { jobId: deal.jobId, kind: 'deal', deal: summarizeDeal(deal, address), protection: dealProtectionContext(deal, address) };
+          const viewer = deal.buyer.toLowerCase() === address.toLowerCase() ? 'buyer' : 'seller';
+          return {
+            jobId: deal.jobId,
+            kind: 'deal',
+            deal: summarizeDeal(deal, address),
+            protection: dealProtectionContext(deal, address),
+            delivery: deliveryForAssistant(deal, viewer),
+            deliveryNote: 'Give the links and the tracking page as they are. For goods, name the carrier and tracking number. If shipment.buyerCanConfirmArrival and the buyer says it arrived, offer propose_goods_arrived. matchesRequest is for the buyer only; never repeat it to a seller.',
+          };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant get_deal_status failed');
           return { error: 'Could not read that deal right now. Try again shortly.' };
@@ -1483,16 +1496,20 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
 
     propose_mark_delivered: tool({
       description:
-        "Prepare a confirm card for the SELLER to mark a deal delivered, which starts the buyer's review window and puts the payment in reach. Use for 'I finished the work', 'mark it delivered', 'I've sent it'.",
+        "Prepare a confirm card for the SELLER to mark a deal delivered, which starts the buyer's review window and puts the payment in reach. Use for 'I finished the work', 'mark it delivered', 'I've sent it', 'I handed it over'. Work is delivered with a link in the note. Goods are delivered with the carrier and tracking number, or, when handed over in person, with the six-digit code the buyer shows once they hold the item. Goods over 50 USDC need a photo of the item: photos the seller sends here with a caption like 'delivered' or 'packed' are added on their own.",
       inputSchema: z.object({
         jobId: z.string().min(1).max(120).describe('The deal id.'),
         note: z
           .string()
           .max(300)
           .optional()
-          .describe('Optional short note to the buyer about what was delivered.'),
+          .describe('A short note to the buyer about what was delivered, with the link to the work for a service.'),
+        carrier: z.string().max(40).optional().describe("Goods sent by a courier: the carrier's name or slug, for example DHL, Aramex, GIG Logistics, Kwik, other."),
+        trackingNumber: z.string().min(3).max(60).optional(),
+        trackingUrl: z.string().max(400).optional().describe("The courier's tracking page, needed for couriers without a known tracking link."),
+        handoverCode: z.string().regex(/^\d{6}$/).optional().describe('Goods handed over in person: the six-digit code the buyer showed.'),
       }),
-      execute: async ({ jobId, note }) => {
+      execute: async ({ jobId, note, carrier, trackingNumber, trackingUrl, handoverCode }) => {
         try {
           const deal = await getDeal(jobId);
           if (!deal) return { error: `No deal found with id ${jobId}.` };
@@ -1506,11 +1523,29 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
             ? awaitingNextDelivery(deal, (await dealEscrowOps.read(deal)).milestonesReleased)
             : false;
           if (deal.delivered && !nextDue) return { error: 'That deal is already marked delivered; the buyer is reviewing.' };
+          const needs = deliveryNeeds(deal);
+          const photos = deliveryPhotos.heldCount(address, Date.now());
+          const found = carrier ? CARRIERS.find((c) => c.slug === carrier.toLowerCase() || c.name.toLowerCase() === carrier.toLowerCase()) ?? CARRIERS.find((c) => c.slug === 'other')! : undefined;
+          if (needs.goods && !handoverCode && !(found && trackingNumber)) {
+            return { error: 'This deal includes goods. Ask for the carrier and tracking number, or, if they hand it over in person, the six-digit code the buyer shows once they hold the item.' };
+          }
+          if (found && !found.trackingUrl && !trackingUrl) {
+            return { error: `Ask for the ${found.name} tracking page link, so the buyer can follow the parcel.` };
+          }
+          if (needs.photo && photos === 0) {
+            return { error: 'Goods over 50 USDC are delivered with a photo of the item. Ask them to send one here first, with a caption like "packed" or "delivered".' };
+          }
+          if (needs.link && !extractUrls(note ?? '').length) {
+            return { error: 'Ask for the link to the work (a Google Drive, Figma or repository link) and put it in the note.' };
+          }
           const built = buildMarkDeliveredConfirm({
             caller: address,
             jobId,
             amountUsdc: deal.dealAmountUsdc,
             ...(note ? { deliveryProof: note } : {}),
+            ...(found && trackingNumber && !handoverCode ? { shipment: { carrier: found.slug, carrierName: found.name, trackingNumber, ...(trackingUrl ? { trackingUrl } : {}) } } : {}),
+            ...(handoverCode ? { handoverCode } : {}),
+            ...(photos ? { photos } : {}),
           });
           if ('error' in built) return built;
           if (!hasEquivalentConfirm(actions, built)) actions.push(built);

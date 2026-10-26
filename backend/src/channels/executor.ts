@@ -64,7 +64,13 @@ export const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAc
   mark_delivered: (p) => ({
     method: 'POST',
     path: `/api/deals/direct/${p.jobId}/delivered`,
-    body: { caller: p.caller, ...(p.deliveryProof ? { deliveryProof: p.deliveryProof } : {}) },
+    body: {
+      caller: p.caller,
+      ...(p.deliveryProof ? { deliveryProof: p.deliveryProof } : {}),
+      ...(p.shipment ? { shipment: p.shipment } : {}),
+      ...(p.handoverCode ? { handoverCode: p.handoverCode } : {}),
+      ...(p.heldPhotos ? { heldPhotos: true } : {}),
+    },
   }),
   cancel_request: (p) => ({ method: 'POST', path: `/api/jobs/${p.jobId}/cancel`, body: { caller: p.caller } }),
   cancel_listing: (p) => ({ method: 'POST', path: `/api/listings/${p.listingId}/cancel`, body: { caller: p.caller } }),

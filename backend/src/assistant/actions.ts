@@ -133,6 +133,9 @@ export interface MarkDeliveredPayload {
   jobId: string;
   caller: string;
   deliveryProof?: string;
+  shipment?: { carrier: string; trackingNumber: string; trackingUrl?: string };
+  handoverCode?: string;
+  heldPhotos?: boolean;
 }
 export interface CancelRequestPayload {
   jobId: string;
@@ -1069,6 +1072,9 @@ export function buildMarkDeliveredConfirm(i: {
   jobId: string;
   amountUsdc: string;
   deliveryProof?: string;
+  shipment?: { carrier: string; carrierName: string; trackingNumber: string; trackingUrl?: string };
+  handoverCode?: string;
+  photos?: number;
 }): MarkDeliveredConfirm | { error: string } {
   if (!i.jobId) return { error: 'Missing the deal id.' };
   return {
@@ -1081,11 +1087,17 @@ export function buildMarkDeliveredConfirm(i: {
       { label: 'Deal', value: i.jobId.slice(0, 10) },
       { label: 'Amount', value: `${i.amountUsdc} USDC` },
       ...(i.deliveryProof ? [{ label: 'Note to buyer', value: i.deliveryProof }] : []),
+      ...(i.shipment ? [{ label: 'Sent with', value: `${i.shipment.carrierName}, ${i.shipment.trackingNumber}` }] : []),
+      ...(i.handoverCode ? [{ label: 'Handover', value: 'The buyer\'s code, entered now' }] : []),
+      ...(i.photos ? [{ label: 'Photos', value: String(i.photos) }] : []),
     ],
     payload: {
       jobId: i.jobId,
       caller: i.caller,
       ...(i.deliveryProof ? { deliveryProof: i.deliveryProof } : {}),
+      ...(i.shipment ? { shipment: { carrier: i.shipment.carrier, trackingNumber: i.shipment.trackingNumber, ...(i.shipment.trackingUrl ? { trackingUrl: i.shipment.trackingUrl } : {}) } } : {}),
+      ...(i.handoverCode ? { handoverCode: i.handoverCode } : {}),
+      ...(i.photos ? { heldPhotos: true } : {}),
     },
     confirmLabel: 'Mark delivered',
     cancelLabel: 'Not yet',

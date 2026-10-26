@@ -133,6 +133,11 @@ import { provisionUserAgentWallets } from '../circle/wallets.js';
 import { ensureUserAgentWallets } from '../circle/userAgents.js';
 import { sellerRecordNeeded } from '../deals/sellerRecordGate.js';
 import { refundMovementKey, takeBackUnaccepted, TakeBackRefused } from '../deals/takeBackUnaccepted.js';
+import { deliveryHistoryFor } from '../deals/deliveryHistoryView.js';
+import { MAX_DELIVERY_PHOTOS, PHOTO_REQUIRED_ABOVE_USDC, deliveryFingerprint, deliveryNeeds, photoFingerprint } from '../deals/deliveryProofRules.js';
+import { checkHandoverCode, issueHandoverCode } from '../deals/handoverCode.js';
+import { deliveryPhotoId, deliveryPhotos } from '../deals/deliveryPhotos.js';
+import { decodePhotoDataUrl, type Photo } from '../listings/photos.js';
 import { suiteIdentity } from '../identity/suiteIdentityLive.js';
 import { seedAgentFromOperator } from '../chain/agentSeed.js';
 import { bus, recentEventsByType } from '../events.js';
@@ -151,7 +156,7 @@ import {
 } from '../deals/releaseWindow.js';
 import { logger } from '../logger.js';
 import { classifyAgentError } from '../chain/errors.js';
-import { isSessionSelf, viewerAddress, readSession } from '../auth/session.js';
+import { isSessionSelf, sessionAddress, viewerAddress, readSession } from '../auth/session.js';
 import { sendDealInviteEmail, formatExpiresLabel, formatWindowLabel } from '../emails/dealInvite.js';
 import { sendDealUpdateEmail } from '../emails/dealUpdate.js';
 import { sendDealCancelledEmail } from '../emails/dealCancelled.js';
@@ -389,6 +394,12 @@ const deliveredSchema = z.object({
       trackingUrl: z.string().max(400).optional(),
     })
     .optional(),
+  /// Goods handed over in person: the code the buyer showed once they held the item.
+  handoverCode: z.string().regex(/^\d{6}$/).optional(),
+  /// Up to four photos as data URLs, resized on the device.
+  photos: z.array(z.string().max(2_100_000)).max(MAX_DELIVERY_PHOTOS).optional(),
+  /// Add the photos the seller sent to the assistant for this delivery.
+  heldPhotos: z.boolean().optional(),
 });
 const appealSchema = z.object({
   caller: addrSchema,
@@ -1482,8 +1493,16 @@ dealsRoutes.get('/direct', async (c) => {
       // Attach only the signed-in party's durable movement references. The
       // deal list must never fall back to wallet addresses or raw tx hashes.
       const receiptReferences = referencesByJob.get(d.jobId.toLowerCase()) ?? [];
+      // The same delivery rules as the deal page: the buyer's review of the work
+      // stays with the buyer, and a link held as unsafe never reaches them.
+      const asBuyer = d.buyer.toLowerCase() === viewer;
+      const held = d.verificationStatus === 'suspicious' || d.verificationStatus === 'malicious';
       return {
         ...deal,
+        deliveryHistory: deliveryHistoryFor(d.deliveryHistory, asBuyer ? 'buyer' : 'seller'),
+        handover: undefined,
+        ...(asBuyer ? {} : { deliveryMatch: undefined }),
+        ...(asBuyer && held ? { deliveryProof: undefined } : {}),
         ...(counterpartyName ? { counterpartyName } : {}),
         ...(receiptReferences.length ? { receiptReferences } : {}),
       };
@@ -1528,9 +1547,10 @@ dealsRoutes.get('/direct/:jobId', async (c) => {
   const dispute = deal.disputed
     ? disputeViewFor(deal, viewerIsBuyer ? 'buyer' : 'seller', Date.now(), config.DISPUTE_STATEMENT_WINDOW_MS)
     : undefined;
+  const deliveryHistory = deliveryHistoryFor(deal.deliveryHistory, viewerIsBuyer ? 'buyer' : 'seller');
   const shaped = viewerIsBuyer
-    ? { ...enriched, ...extras, trust, deliveryCheck, dispute, disputeStatements: undefined, judgeProposal: undefined }
-    : { ...enriched, ...extras, trust, deliveryCheck, dispute, disputeStatements: undefined, judgeProposal: undefined, deliveryMatch: undefined };
+    ? { ...enriched, ...extras, trust, deliveryCheck, dispute, deliveryHistory, handover: undefined, disputeStatements: undefined, judgeProposal: undefined }
+    : { ...enriched, ...extras, trust, deliveryCheck, dispute, deliveryHistory, handover: undefined, disputeStatements: undefined, judgeProposal: undefined, deliveryMatch: undefined };
   if (viewerIsBuyer && held && enriched.deliveryProof) {
     return c.json({ deal: { ...shaped, deliveryProof: undefined } });
   }
@@ -2927,13 +2947,54 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
   // carrier, it requires the seller to state who is carrying it and under what
   // reference, resolving to a page the buyer can open.
   let shipment: DirectDeal['shipment'] | undefined;
-  const includesGoods = deal.tradeType === 'goods' || deal.tradeType === 'mixed';
-  const includesService = deal.tradeType !== 'goods';
-  if (includesGoods) {
+  const needs = deliveryNeeds(deal);
+  const includesGoods = needs.goods;
+  const includesService = needs.link;
+  // Photos first: they are checked before anything else is touched.
+  const formPhotos: Photo[] = [];
+  for (const dataUrl of body.photos ?? []) {
+    const photo = decodePhotoDataUrl(dataUrl);
+    if ('error' in photo) return c.json({ error: photo.error, code: 'photo-invalid' }, 400);
+    formPhotos.push(photo);
+  }
+  const heldCount = body.heldPhotos ? deliveryPhotos.heldCount(deal.seller, Date.now()) : 0;
+  if (formPhotos.length + heldCount > MAX_DELIVERY_PHOTOS) {
+    return c.json({ error: `A delivery takes ${MAX_DELIVERY_PHOTOS} photos at most.`, code: 'too-many-photos' }, 400);
+  }
+  if (needs.photo && formPhotos.length + heldCount === 0) {
+    return c.json(
+      { error: `Add a photo of the item. Goods over ${PHOTO_REQUIRED_ABOVE_USDC} USDC are delivered with one.`, code: 'photo-required' },
+      400,
+    );
+  }
+  let handedOverAt: number | null = null;
+  if (includesGoods && !body.shipment && body.handoverCode) {
+    const checked = checkHandoverCode(deal.handover, jobId, body.handoverCode, Date.now());
+    if (!checked.ok) {
+      if (checked.record) await patchDeal(jobId, { handover: checked.record });
+      const said = {
+        'no-code': { error: 'The buyer has not shown a handover code yet. Ask them to open the deal and show it once they hold the item.', status: 409 as const },
+        used: { error: 'This deal was already handed over.', status: 409 as const },
+        locked: { error: 'Too many wrong codes. Try again in 15 minutes, or ask the buyer to show a new code.', status: 429 as const },
+        wrong: { error: 'That code does not match. Check it with the buyer and enter it again.', status: 400 as const },
+      }[checked.reason];
+      return c.json({ error: said.error, code: `handover-${checked.reason}` }, said.status);
+    }
+    handedOverAt = checked.record.usedAt!;
+    await patchDeal(jobId, { handover: checked.record });
+    shipment = {
+      carrier: 'handover',
+      carrierName: 'In person',
+      trackingNumber: '',
+      trackingUrl: null,
+      dispatchedAt: handedOverAt,
+    };
+  }
+  if (includesGoods && !handedOverAt) {
     if (!body.shipment) {
       return c.json(
         {
-          error: 'Add the carrier and tracking number so the buyer can follow the shipment.',
+          error: 'Add the carrier and tracking number so the buyer can follow the shipment, or enter the code the buyer shows when you hand it over.',
           code: 'shipment-required',
         },
         400,
@@ -3169,14 +3230,23 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
   const nowHeld = verificationStatus === 'suspicious' || verificationStatus === 'malicious';
   const isRedelivery = deal.delivered === true && !nextMilestoneDue;
   const deliveryRevision = (deal.deliveryRevision ?? (isRedelivery ? 1 : 0)) + 1;
-  const deliveryEvidenceCommitment = keccak256(
-    toBytes(JSON.stringify({ deliveryProof: body.deliveryProof ?? null, shipment: shipment ?? null })),
-  );
+  const photos = [...formPhotos, ...(body.heldPhotos ? deliveryPhotos.takeHeld(deal.seller, Date.now()) : [])].slice(0, MAX_DELIVERY_PHOTOS);
+  const deliveryEvidenceCommitment = deliveryFingerprint({
+    deliveryProof: body.deliveryProof,
+    shipment,
+    photoHashes: photos.map((photo) => photoFingerprint(photo.bytes)),
+    handedOverAt,
+  });
+  if (photos.length) deliveryPhotos.save(deliveryPhotoId(jobId, deliveryRevision), photos, Date.now());
   const deliveryHistory = [
     ...(deal.deliveryHistory ?? []),
     {
       revision: deliveryRevision,
       submittedAt: Date.now(),
+      ...(dealEscrowOps.isV3(deal) ? { milestone: account.milestonesReleased } : {}),
+      ...(shipment ? { shipment: { carrierName: shipment.carrierName, trackingNumber: shipment.trackingNumber, trackingUrl: shipment.trackingUrl } } : {}),
+      ...(photos.length ? { photos: photos.length } : {}),
+      ...(handedOverAt ? { handedOverAt } : {}),
       ...(body.deliveryProof ? { deliveryProof: body.deliveryProof } : {}),
       ...(verificationStatus ? { verificationStatus } : {}),
       ...(deliveryMatch ? { deliveryMatch } : {}),
@@ -3191,7 +3261,8 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
   // above / below) freezes the seller-paying paths regardless. Skips goods
   // deals with no proof and pre-flag holds handled by the guardian.
   if (dealEscrowOps.usesOnChainClock(deal) && deal.sellerAgentWalletId) {
-    const proofHash = keccak256(toBytes(body.deliveryProof ?? `delivered:${jobId}`));
+    // The whole delivery, not the note alone: tracking, photos and handover too.
+    const proofHash = deliveryEvidenceCommitment;
     try {
       await dealEscrowOps.markDelivered(deal, proofHash, deal.sellerAgentWalletId);
       // v2 R3: a clean link scan attests the delivery so review settles
@@ -3234,6 +3305,7 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
     deliveredAt: Date.now(),
     ...(body.deliveryProof ? { deliveryProof: body.deliveryProof } : {}),
     ...(shipment ? { shipment } : {}),
+    deliveryPhotos: photos.length ? { revision: deliveryRevision, count: photos.length } : undefined,
     // Always overwrite the verdict + reasons so a corrected link clears the old
     // flag (reasons explicitly emptied when the new link is clean).
     verificationStatus: verificationStatus ?? undefined,
@@ -3257,6 +3329,29 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
   await automaticallyPublishCreDelivery(jobId).catch(() => {
     logger.warn({ jobId }, 'CRE automatic publication deferred to recovery');
   });
+
+  // A handover code is the buyer's word that they hold the item: it counts as
+  // arrival, on chain first where the escrow keeps the review clock.
+  if (handedOverAt && shipment) {
+    let arrived = true;
+    if (dealEscrowOps.isV3(deal) && deal.buyerAgentWalletId) {
+      try {
+        await dealEscrowOps.confirmArrival(deal, deal.buyerAgentWalletId);
+      } catch (err) {
+        arrived = false;
+        logger.error({ jobId, err: (err as Error).message }, 'handover arrival did not reach the escrow; the buyer can confirm it on the deal');
+      }
+    }
+    if (arrived) {
+      await patchDeal(jobId, { shipment: { ...shipment, arrivedAt: handedOverAt }, buyerVerifiedAt: deal.buyerVerifiedAt ?? handedOverAt });
+      bus.emitEvent({
+        type: 'deal.goods.arrived',
+        jobId,
+        actor: 'buyer',
+        payload: { buyer: deal.buyer, seller: deal.seller, carrier: shipment.carrierName, trackingNumber: '', method: 'handover' },
+      });
+    }
+  }
 
   // Each delivery (and each milestone's) announces "delivered"; a correction
   // of the same one does not.
@@ -3312,6 +3407,55 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
     });
   }
   return c.json({ accepted: true, jobId, verificationStatus }, 200);
+});
+
+/// The buyer's handover code for goods handed over in person (view 33). Shown
+/// only when they hold the item; asking again issues a new code and the old one
+/// stops working. Only its hash is kept.
+dealsRoutes.post('/direct/:jobId/handover-code', async (c) => {
+  const jobId = c.req.param('jobId');
+  let body;
+  try {
+    body = callerSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: invalidBodyMessage(err) }, 400);
+  }
+  if (!isSessionSelf(c, body.caller)) {
+    return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  }
+  const deal = await getDeal(jobId);
+  if (!deal) return c.json({ error: 'deal not found' }, 404);
+  if (body.caller.toLowerCase() !== deal.buyer.toLowerCase()) {
+    return c.json({ error: 'only the buyer has a handover code' }, 403);
+  }
+  if (!deliveryNeeds(deal).goods) return c.json({ error: 'a handover code is for goods', code: 'not-goods' }, 409);
+  if (!deal.acceptedAt) return c.json({ error: 'the deal has not started yet', code: 'not-started' }, 409);
+  if (deal.settledAt || deal.cancelledAt || deal.disputed) return c.json({ error: 'this deal is no longer open' }, 409);
+  if (deal.handover?.usedAt || deal.shipment?.arrivedAt) return c.json({ error: 'the item was already handed over', code: 'handover-used' }, 409);
+  const { code, record } = issueHandoverCode(jobId, Date.now());
+  await patchDeal(jobId, { handover: record });
+  return c.json({ code, issuedAt: record.issuedAt }, 200);
+});
+
+/// A photo from a delivery, for the two sides of the deal only.
+dealsRoutes.get('/direct/:jobId/delivery-photos/:revision/:n', async (c) => {
+  const jobId = c.req.param('jobId');
+  const deal = await getDeal(jobId);
+  if (!deal) return c.json({ error: 'deal not found' }, 404);
+  const caller = sessionAddress(c);
+  if (!caller || ![deal.buyer.toLowerCase(), deal.seller.toLowerCase()].includes(caller.toLowerCase())) {
+    return c.json({ error: 'only the two sides of the deal see its photos' }, 403);
+  }
+  // A link held as unsafe hides that delivery from the buyer, photos included.
+  const revision = Number(c.req.param('revision'));
+  const entry = (deal.deliveryHistory ?? []).find((h) => h.revision === revision);
+  const held = entry?.verificationStatus === 'suspicious' || entry?.verificationStatus === 'malicious';
+  if (!entry || (held && caller.toLowerCase() === deal.buyer.toLowerCase())) return c.json({ error: 'photo not found' }, 404);
+  const photo = deliveryPhotos.read(deliveryPhotoId(jobId, revision), Number(c.req.param('n')));
+  if (!photo) return c.json({ error: 'photo not found' }, 404);
+  return new Response(photo.bytes, {
+    headers: { 'content-type': photo.contentType, 'cache-control': 'private, max-age=86400', 'x-content-type-options': 'nosniff' },
+  });
 });
 
 /// Buyer confirms the goods physically arrived.

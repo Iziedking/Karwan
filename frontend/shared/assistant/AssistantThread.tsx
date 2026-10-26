@@ -569,8 +569,15 @@ async function runConfirmIntent(
     };
   }
   if (action.intent === 'mark_delivered') {
-    const p = action.payload as { jobId: string; caller: string; deliveryProof?: string };
-    await api.markDelivered(p.jobId, p.caller, p.deliveryProof);
+    const p = action.payload as {
+      jobId: string;
+      caller: string;
+      deliveryProof?: string;
+      shipment?: { carrier: string; trackingNumber: string; trackingUrl?: string };
+      handoverCode?: string;
+      heldPhotos?: boolean;
+    };
+    await api.markDelivered(p.jobId, p.caller, p.deliveryProof, p.shipment, { handoverCode: p.handoverCode, heldPhotos: p.heldPhotos });
     return {
       successText: 'Marked delivered. The buyer has been notified to review and release.',
       viewHref: `/deals/${p.jobId}`,

@@ -20,6 +20,10 @@ import { TrustCard } from './TrustCard';
 import { useChatUnread } from '@/features/chat/hooks/useChatUnread';
 import { DealLatest, DealTimeline } from './DealTimeline';
 import { DisputePanel } from './DisputePanel';
+import { DeliveryCard } from './DeliveryCard';
+import { HandoverCode } from './HandoverCode';
+import { deliveryNeedsShipment } from './delivery';
+import { linksIn } from './deliveryCard';
 
 type Panel = 'record' | 'agreement' | 'messages' | 'receipts' | 'problem' | 'deliver' | 'answerTime' | 'answerCancel' | 'turnDown' | null;
 
@@ -37,8 +41,6 @@ const LINE_KEY = {
   'not-funded': 'notFunded', held: 'held', sending: 'sending', paused: 'paused',
   released: 'released', refunding: 'refunding', refunded: 'refunded', cancelled: 'cancelled',
 } as const;
-
-const isLink = (text: string) => /^https?:\/\/\S+$/i.test(text.trim());
 
 /// One screen, one move: who it is with, the money and where it is, a line for
 /// this moment, and the single thing to do. Everything else opens on request.
@@ -101,9 +103,10 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   const yourMove = !!address && (held === 'redeliver' || (!held && !!label) || (declined && viewerIsBuyer));
   const review = deal.deliveryReviewState?.state;
   const askPerson = () => callPerson([], { message: fill(copy.checkPaused.supportMessage, { path: `/deals/${deal.jobId}` }), dealId: deal.jobId });
-  const proof = deal.deliveryProof?.trim();
-  const seeDelivery = viewerIsBuyer && proof && isLink(proof) ? (
-    <a href={proof} target="_blank" rel="noreferrer noopener" className="font-semibold underline underline-offset-4">{s.seeDelivery}</a>
+  // The first link in the seller's note, wherever it sits in the sentence; the Delivery card lists them all.
+  const firstLink = viewerIsBuyer ? linksIn(deal.deliveryProof)[0]?.url : undefined;
+  const seeDelivery = firstLink ? (
+    <a href={firstLink} target="_blank" rel="noreferrer noopener" className="font-semibold underline underline-offset-4">{s.seeDelivery}</a>
   ) : null;
   if (paused) {
     const detail = heldDetail;
@@ -176,13 +179,10 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   } else if (view.stage === 'awaiting-delivery' && deal.extensionRequest && !viewerIsBuyer) {
     moment = <p className="text-[15px] text-[var(--lp-dark)]">{fill(s.moreTimeSentTemplate, { name })}</p>;
   } else if ((view.stage === 'awaiting-first-release' || view.stage === 'awaiting-final-release') && viewerIsBuyer && deal.delivered) {
-    const proof = deal.deliveryProof?.trim();
     moment = (
       <p className="text-[15px] text-[var(--lp-dark)]">
         {fill(s.deliveredTemplate, { name })}{' '}
-        {proof && isLink(proof) ? (
-          <a href={proof} target="_blank" rel="noreferrer noopener" className="font-semibold underline underline-offset-4">{s.seeDelivery}</a>
-        ) : null}
+        {seeDelivery}
       </p>
     );
   }
@@ -286,6 +286,10 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
           dueAt={deal.deadlineUnix ? deal.deadlineUnix * 1000 : null}
         />
       </section>
+      <DeliveryCard deal={deal} viewerIsBuyer={viewerIsBuyer} caller={address} onChanged={onChanged} />
+      {viewerIsBuyer && address && deliveryNeedsShipment(deal.tradeType) && view.stage === 'awaiting-delivery' && !deal.shipment?.arrivedAt ? (
+        <HandoverCode jobId={deal.jobId} caller={address} />
+      ) : null}
         {view.stage === 'settled' ? (
           <div className="rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5">
             <p className="flex items-center gap-2 text-[16px] font-semibold text-[var(--lp-dark)]">

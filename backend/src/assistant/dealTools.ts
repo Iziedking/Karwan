@@ -181,6 +181,24 @@ export function dealStepTools(address: string, actions: AssistantAction[], deps:
         }),
     }),
 
+    show_handover_code: tool({
+      description:
+        "Give the BUYER their six-digit handover code for goods handed over in person. They show it to the seller only once they hold the item; the seller enters it and that counts as the item arriving. Use for 'what is my handover code', 'the seller is here with my phone', 'I'm collecting it now'. Each call makes a new code and the old one stops working, so warn them to share it only with the item in hand.",
+      inputSchema: z.object({ jobId: jobIdField.describe('The deal id.') }),
+      execute: async ({ jobId }) =>
+        guarded('show_handover_code', async () => {
+          const found = await partyDeal(jobId, address);
+          if ('error' in found) return found;
+          if (found.side !== 'buyer') return { error: 'Only the buyer has a handover code. The seller enters the code the buyer shows them, when they deliver.' };
+          const r = await deps.call(address, 'POST', `/api/deals/direct/${jobId}/handover-code`, { caller: address });
+          if (r.status >= 400) return { error: typeof r.json.error === 'string' ? r.json.error : 'The code could not be made just now.' };
+          return {
+            code: r.json.code,
+            next: 'Show this code to the seller only when you hold the item. It works once. Asking again makes a new code.',
+          };
+        }),
+    }),
+
     list_offers_on_request: tool({
       description:
         "List the offers sellers' agents have made on ONE of the user's own requests: seller name, price and reputation tier. Call this before propose_choose_offer, and whenever they ask 'who offered', 'show me the offers', 'any bids on my request'. Only the request's owner sees offers.",

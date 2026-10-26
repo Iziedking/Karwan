@@ -28,6 +28,10 @@ const FINANCIER_HIDDEN_FIELDS = [
   'sellerAgentWalletId',
   'marketRead',
   'passportPulls',
+  // The buyer's handover code hash and their private review of the work.
+  'handover',
+  'deliveryMatch',
+  'deliveryHistory',
 ] as const;
 
 /// Project a deal down to what a financier may see on the desk. A denylist, not

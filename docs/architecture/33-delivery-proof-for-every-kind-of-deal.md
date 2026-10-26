@@ -1,6 +1,6 @@
 # 33 · Delivery proof for every kind of deal, and the buyer's delivery view
 
-Track T2, protected deals, roadmap item T2.2 (delivery checks), with T1.2 (choose the kind of deal): each kind of deal in [view 32](32-kind-of-deal-and-hourly-work.md) asks for the proof that fits it, and the buyer sees every delivery in one place. It builds on the delivery rules of [view 27](27-deals-on-the-escrow-family.md), the photo pipeline of [view 28](28-photos-on-listings.md) and the checks in [view 21](21-flagged-delivery-review.md). Draft for the owner, 26 Oct 2026.
+Track T2, protected deals, roadmap item T2.2 (delivery checks), with T1.2 (choose the kind of deal): each kind of deal in [view 32](32-kind-of-deal-and-hourly-work.md) asks for the proof that fits it, and the buyer sees every delivery in one place. It builds on the delivery rules of [view 27](27-deals-on-the-escrow-family.md), the photo pipeline of [view 28](28-photos-on-listings.md) and the checks in [view 21](21-flagged-delivery-review.md). Approved by the owner, 26 Oct 2026.
 
 ## What is wrong today
 
@@ -129,15 +129,14 @@ sequenceDiagram
 - Photos reuse the view 28 pipeline and its checks.
 - Carrier status reads are candidates only. No provider is called before its current docs, terms and a read-only test are recorded the way `docs/arc-circle-checks.md` records Arc and Circle.
 
-## Decided by the owner
+## Decided by the owner, 26 Oct 2026
 
-Open, with a recommendation for each:
+Approved as recommended:
 
-1. **A photo for shipped and handed-over goods.** Recommend required above 50 USDC, optional below.
-2. **The handover code ends the wait for arrival, not the review.** Recommend the review window still runs after the code, so a buyer who finds a fault an hour later can raise it.
-3. **Local carriers first.** Recommend tracking links only, no status reads yet, starting with the couriers the owner picks for the launch markets (candidates: GIG Logistics, Kwik and NIPOST in Nigeria; Aramex and Emirates Post in the UAE; Delhivery and India Post in India; Bosta in Egypt).
-4. **Files delivered directly, not only links.** Recommend later; links and photos first.
-5. **Carrier status reads** from a carrier or an aggregator. Recommend after the launch, as a candidate to compare.
+1. **A photo for shipped and handed-over goods** is required above 50 USDC and optional below.
+2. **The handover code ends the wait for arrival, not the review.** The review window still runs after the code, so a buyer who finds a fault an hour later can raise it.
+3. **Local carriers first, as tracking links only**, no status reads yet: GIG Logistics, Kwik and NIPOST (Nigeria), Aramex and Emirates Post (UAE), Delhivery and India Post (India), Bosta (Egypt).
+4. **Files delivered directly and carrier status reads come after the launch.** Links and photos first.
 
 ## Build order
 
@@ -145,6 +144,14 @@ Open, with a recommendation for each:
 2. **Proof by kind.** The proof each kind asks for in the terms, photos on delivery, the handover code, the local carriers list, the deposit return, and the fingerprint over the whole delivery.
 3. **Hours** with the Time escrow (view 32).
 4. **Carrier status reads**, once a provider is chosen.
+
+## As built, 26 Oct 2026
+
+- Rules: `deals/deliveryProofRules.ts` (what a delivery needs from the kind of deal, the photo line, the fingerprint); `deals/handoverCode.ts` (six digits, a keyed hash that never leaves the server, five tries then 15 minutes locked, used once).
+- Routes: `POST /api/deals/direct/:jobId/handover-code` (buyer only, goods, started, not handed over); `/delivered` takes `handoverCode`, `photos` and `heldPhotos`; `GET /api/deals/direct/:jobId/delivery-photos/:revision/:n` serves photos to the two sides only, never a held delivery's photos to the buyer. A right code marks the delivery and starts the review on the escrow with the buyer agent's `startReview`, the call It arrived already makes.
+- Views: the delivery history and the buyer's review are projected per viewer on the deal and the deal list (`deals/deliveryHistoryView.ts`); the handover hash is stripped from every deal response and from the financier desk.
+- Assistant: `propose_mark_delivered` takes the carrier and tracking number or the handover code and adds photos sent in chat with a caption like "delivered"; `show_handover_code` gives the buyer their code; `get_deal_status` carries the delivery.
+- Deposit return and hours wait for those kinds of deal (view 32).
 
 ## Status
 
@@ -154,8 +161,8 @@ Open, with a recommendation for each:
 | Carrier and tracking number, for goods | Live |
 | Buyer confirms arrival | Live |
 | Comparison with the request, buyer's own review when it stalls | Live |
-| Delivery card with every recorded detail | Planned |
-| Proof by kind, photos on delivery, handover code, local carriers | Planned |
-| Fingerprint over the whole delivery | Planned |
+| Delivery card with every recorded detail, on the page and from the assistant; delivery history shown per viewer on the deal and the deal list | Built 26 Oct, tested |
+| Proof by kind: photos on delivery (required for goods above 50 USDC), the buyer's handover code, the launch-market couriers as tracking links, the same rules in the assistant and in the deal terms | Built 26 Oct, tested |
+| Fingerprint over the whole delivery (note, tracking, photos, handover) written with `markDelivered` | Built 26 Oct, tested |
 | Hours on the Time escrow | Planned (view 32) |
 | Carrier status reads | Planned, candidates only |

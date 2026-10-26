@@ -66,6 +66,17 @@ export const CARRIERS: readonly Carrier[] = [
     trackingUrl: 'https://www.hapag-lloyd.com/en/online-business/track/track-by-container-solution.html?container={n}',
     pattern: /^[0-9A-Z]{9,20}$/i,
   },
+  // Couriers for local delivery in the launch markets (owner, 26 Oct 2026). The
+  // seller pastes the courier's tracking page, held to the same standard as
+  // `other`, until each courier's own tracking link is confirmed.
+  { slug: 'gig-logistics', name: 'GIG Logistics', trackingUrl: null, pattern: /^[A-Za-z0-9-]{4,40}$/ },
+  { slug: 'kwik', name: 'Kwik', trackingUrl: null, pattern: /^[A-Za-z0-9-]{4,40}$/ },
+  { slug: 'nipost', name: 'NIPOST', trackingUrl: null, pattern: /^[A-Za-z0-9-]{4,40}$/ },
+  { slug: 'aramex', name: 'Aramex', trackingUrl: null, pattern: /^[A-Za-z0-9-]{4,40}$/ },
+  { slug: 'emirates-post', name: 'Emirates Post', trackingUrl: null, pattern: /^[A-Za-z0-9-]{4,40}$/ },
+  { slug: 'delhivery', name: 'Delhivery', trackingUrl: null, pattern: /^[A-Za-z0-9-]{4,40}$/ },
+  { slug: 'india-post', name: 'India Post', trackingUrl: null, pattern: /^[A-Za-z0-9-]{4,40}$/ },
+  { slug: 'bosta', name: 'Bosta', trackingUrl: null, pattern: /^[A-Za-z0-9-]{4,40}$/ },
   {
     /// Freight forwarders, regional couriers, and anything not listed. The
     /// seller supplies the tracking page themselves, and it is held to the SAME

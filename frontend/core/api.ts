@@ -883,6 +883,23 @@ export interface DirectDeal {
   delivered: boolean;
   deliveredAt?: number;
   deliveryProof?: string;
+  /// The milestone the latest delivery is for, counted from 0, on escrows that
+  /// take one delivery per milestone.
+  deliveredMilestone?: number;
+  /// Every delivery on the deal, as this viewer may see it (deals/deliveryHistoryView).
+  deliveryHistory?: Array<{
+    revision: number;
+    submittedAt: number;
+    milestone?: number;
+    shipment?: { carrierName: string; trackingNumber: string; trackingUrl: string | null };
+    photos?: number;
+    handedOverAt?: number;
+    deliveryProof?: string;
+    held?: true;
+    deliveryMatch?: { verdict: 'aligned' | 'partial' | 'mismatch' | 'unknown'; reason: string };
+  }>;
+  /// Photos with the latest delivery, served to the two sides only.
+  deliveryPhotos?: { revision: number; count: number };
   /// Security Agent verdict on the delivery proof links. When 'suspicious' or
   /// 'malicious', the backend withholds deliveryProof from the buyer's view
   /// until cleared; verificationReasons explains why in plain language.
@@ -4559,6 +4576,7 @@ export const api = {
     caller: string,
     deliveryProof?: string,
     shipment?: { carrier: string; trackingNumber: string; trackingUrl?: string },
+    extra?: { handoverCode?: string; photos?: string[]; heldPhotos?: boolean },
   ) =>
     json<{ accepted: boolean; jobId: string }>(
       `/api/deals/direct/${jobId}/delivered`,
@@ -4568,11 +4586,21 @@ export const api = {
           caller,
           ...(deliveryProof ? { deliveryProof } : {}),
           ...(shipment ? { shipment } : {}),
+          ...(extra?.handoverCode ? { handoverCode: extra.handoverCode } : {}),
+          ...(extra?.photos?.length ? { photos: extra.photos } : {}),
+          ...(extra?.heldPhotos ? { heldPhotos: true } : {}),
         }),
       },
     ),
   /// Buyer confirms the goods physically arrived. Not a release: it lifts the
   /// transit floor on auto-release, it does not move money.
+  /// The buyer's six-digit code for a handover in person. Each call issues a new
+  /// code; the old one stops working.
+  showHandoverCode: (jobId: string, caller: string) =>
+    json<{ code: string; issuedAt: number }>(`/api/deals/direct/${jobId}/handover-code`, {
+      method: 'POST',
+      body: JSON.stringify({ caller }),
+    }),
   confirmGoodsArrived: (jobId: string, caller: string) =>
     json<{ ok: true; arrivedAt: number }>(`/api/deals/direct/${jobId}/arrived`, {
       method: 'POST',

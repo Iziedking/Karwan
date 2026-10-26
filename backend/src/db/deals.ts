@@ -228,6 +228,14 @@ export interface DirectDeal {
   deliveryHistory?: Array<{
     revision: number;
     submittedAt: number;
+    /// The milestone this delivery was for, counted from 0, on escrows that take
+    /// one delivery per milestone.
+    milestone?: number;
+    shipment?: { carrierName: string; trackingNumber: string; trackingUrl: string | null };
+    /// Photos sent with this delivery, served from data/delivery-photos.
+    photos?: number;
+    /// When the buyer's handover code was entered, for goods handed over in person.
+    handedOverAt?: number;
     deliveryProof?: string;
     verificationStatus?: DirectDeal['verificationStatus'];
     deliveryMatch?: DirectDeal['deliveryMatch'];
@@ -436,6 +444,11 @@ export interface DirectDeal {
   /// Reminders to the buyer while their answer to a request for more time
   /// holds the deadline refund, counted per request (deals/deliveryDeadline).
   extensionWaitReminder?: { requestedAt: number; count: number; lastAt: number };
+  /// The buyer's handover code for goods handed over in person, kept as a hash
+  /// (deals/handoverCode).
+  handover?: import('../deals/handoverCode.js').HandoverRecord;
+  /// Photos with the latest delivery (deals/deliveryPhotos).
+  deliveryPhotos?: { revision: number; count: number };
   /// When the watcher last retried the selling agent's accept on money the
   /// escrow holds but nobody accepted (deals/unacceptedEscrow).
   activationRetriedAt?: number;

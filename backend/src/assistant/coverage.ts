@@ -65,6 +65,7 @@ export const COVERAGE: Record<string, Coverage> = {
   'POST /api/deals/direct/:/cancel/decline': { by: 'assistant', via: 'cancel_deal' },
   'POST /api/deals/:/rating': { by: 'assistant', via: 'rate_deal' },
   'POST /api/deals/direct/:/arrived': { by: 'assistant', via: 'goods_arrived' },
+  'POST /api/deals/direct/:/handover-code': { by: 'assistant', via: 'show_handover_code' },
   'POST /api/deals/direct/:/evidence/manual-review': { by: 'assistant', via: 'review_delivery_myself' },
   'POST /api/deals/direct/:/claim': { by: 'assistant', via: 'claim_payment' },
   'POST /api/deals/direct/:/delay-appeal': { by: 'assistant', via: 'delay_appeal' },
