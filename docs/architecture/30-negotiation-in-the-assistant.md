@@ -59,6 +59,7 @@ sequenceDiagram
 - The request card remembers its conversation and the Agree for me choice until the request is posted (`assistant/requestLinks.ts`); the request keeps both (`conversationId`, `agreeForMe` on the brief).
 - One live turn per request, built on every read and never stored, so the newest state replaces the old one (`assistant/requestUpdates.ts`, `requestUpdatesLive.ts`); `GET /api/assistant/conversations/:id/live` serves them and the open page reads them every 20 seconds.
 - An agreed deal sends one Telegram line per seller (`assistant/agreedForYou.ts`); the other milestones already reach Telegram through the notifier.
+- A request never goes quiet before its date. The seller sweep offers every open request to sellers who have not seen it every 10 minutes (`agents/seller.ts` `sweepOpenRequests`), not only the last 20 minutes of the chain; a change to the request's text or price limit sends it to every seller again (`rescanRequest`, from the edit route). Once the buyer has passed the closest seller and that seller comes back at the same price, the request shows that no seller fits the budget, with the offer to reconsider (`negotiation.out-of-reach`). Found on testnet 26 Oct: a request posted at 03:01 was last offered at 03:21 and then sat with "Live" on the page.
 
 ## Status
 
@@ -68,3 +69,4 @@ sequenceDiagram
 | Shortlist folded until opened | Built 24 Oct |
 | This view | Proposed 24 Oct 2026 |
 | Linking, live updates in the conversation, Agree for me, Telegram line | Built 24 Oct, tested |
+| Open requests offered until their date, again after an edit; no-fit state after a pass | Built 26 Oct, tested |

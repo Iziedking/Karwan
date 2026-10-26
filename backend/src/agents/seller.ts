@@ -2115,15 +2115,58 @@ const RECONCILE_INTERVAL_MS = 90_000;
 // across several ticks, narrow enough to keep each sweep cheap. Restart-scale
 // gaps are covered by the wider startup backfill.
 const RECONCILE_LOOKBACK_BLOCKS = 2_400n;
+/// A request stays open until its date, far longer than the chain look-back, so
+/// every OPEN_REQUEST_SWEEP_MS the reconciler also offers each open request to
+/// the sellers who have not seen it: a seller who joined later, or every seller
+/// again after the buyer changed the request.
+const OPEN_REQUEST_SWEEP_MS = 10 * 60_000;
 export function startSellerReconciler(): () => void {
+  let lastOpenSweep = Date.now();
   const tick = () =>
     safe('reconcile', async () => {
       const latest = await publicClient.getBlockNumber();
       const fromBlock = latest > RECONCILE_LOOKBACK_BLOCKS ? latest - RECONCILE_LOOKBACK_BLOCKS : 0n;
       const count = await replayRecentJobLogs({ fromBlock, rescan: true });
       logger.debug({ count }, 'seller reconciler swept recent jobs');
+      if (Date.now() - lastOpenSweep >= OPEN_REQUEST_SWEEP_MS) {
+        lastOpenSweep = Date.now();
+        await sweepOpenRequests();
+      }
     });
   const id = setInterval(tick, RECONCILE_INTERVAL_MS);
   logger.info({ everyMs: RECONCILE_INTERVAL_MS }, 'seller reconciler started');
   return () => clearInterval(id);
+}
+
+function jobLogFor(job: JobContext): Log {
+  return {
+    transactionHash: `0x${job.jobId.slice(2)}`,
+    logIndex: 0,
+    args: {
+      jobId: job.jobId as `0x${string}`,
+      buyer: job.buyer as `0x${string}`,
+      budget: parseUnits(job.budgetUsdc, USDC_DECIMALS),
+      deadline: BigInt(job.deadlineUnix),
+      termsHash: job.termsHash,
+    } satisfies JobPostedArgs,
+  } as unknown as Log;
+}
+
+async function sweepOpenRequests() {
+  const { listOpenJobContexts } = await import('./buyer.js');
+  const nowSec = Math.floor(Date.now() / 1000);
+  const open = listOpenJobContexts().filter((job) => job.deadlineUnix > nowSec);
+  for (const job of open) await handleJobPosted(jobLogFor(job), { rescan: true });
+  logger.debug({ count: open.length }, 'seller reconciler swept open requests');
+}
+
+/// Offers one open request to the sellers again. `fresh` forgets who already
+/// looked, for a request the buyer just changed (text, price limit), so a seller
+/// who passed on the old one judges the new one.
+export async function rescanRequest(jobId: string, opts: { fresh?: boolean } = {}): Promise<void> {
+  const { listOpenJobContexts } = await import('./buyer.js');
+  const job = listOpenJobContexts().find((j) => j.jobId.toLowerCase() === jobId.toLowerCase());
+  if (!job) return;
+  if (opts.fresh) evaluatedSellers.delete(job.jobId);
+  await handleJobPosted(jobLogFor(job), { rescan: true });
 }

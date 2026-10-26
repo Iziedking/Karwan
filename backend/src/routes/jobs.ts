@@ -192,6 +192,16 @@ const postJobSchema = z
     path: ['deadlineSeconds'],
   });
 
+/// Every seller judges a changed request again, without waiting for a sweep.
+async function offerAgain(jobId: string): Promise<void> {
+  try {
+    const { rescanRequest } = await import('../agents/seller.js');
+    await rescanRequest(jobId, { fresh: true });
+  } catch (err) {
+    logger.warn({ jobId, err: (err as Error).message }, 'offering the changed request again failed');
+  }
+}
+
 export const jobsRoutes = new Hono();
 
 /// A refusal whose message the buyer should read as it is: the chat deal limits
@@ -943,6 +953,9 @@ jobsRoutes.post('/:jobId/edit', async (c) => {
     });
   }
   logger.info({ jobId, postedBy: brief.postedBy, fields: Object.keys(patch) }, 'brief edited by buyer');
+  // A changed price limit or trust setting goes back to every seller now; a text
+  // change waits for its new keywords below.
+  if (patch.briefText === undefined) void offerAgain(jobId);
 
   /// Keywords were extracted at post time. The agent scans them for topical
   /// match against incoming listings, so a text change should re-extract.
@@ -954,6 +967,7 @@ jobsRoutes.post('/:jobId/edit', async (c) => {
       .then((keywords) => {
         patchBrief(jobId, { keywords });
         logger.info({ jobId, keywords }, 'brief keywords re-extracted after edit');
+        return offerAgain(jobId);
       })
       .catch((err) => {
         logger.warn(

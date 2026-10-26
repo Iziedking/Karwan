@@ -58,6 +58,21 @@ test('the same seller is not raised again at the price the buyer already passed'
   assert.equal(seen.at(-1)?.reason, 'already-passed');
 });
 
+test('when the passed seller is still the closest, the request says no seller fits and offers to reconsider', async () => {
+  const job = '0x' + '5'.repeat(64);
+  const ends: Array<Record<string, unknown>> = [];
+  bus.on('event', (e: { type: string; jobId?: string; payload?: Record<string, unknown> }) => {
+    if (e.type === 'negotiation.out-of-reach' && e.jobId === job) ends.push(e.payload ?? {});
+  });
+  markPassed(job, {
+    jobId: job, buyerUser: BUYER, buyerAgent: BUYER, sellerUser: SELLER, sellerAgent: SELLER,
+    askedSide: 'buyer', askedUser: BUYER, proceedPriceUsdc: '139.50', limitUsdc: '120.00', gapUsdc: '19.50',
+    buyerCeilingUsdc: '120.00', sellerFloorUsdc: '139.50', createdAt: Date.now(), expiresAt: Date.now() + 1000,
+  });
+  await maybeRaiseNearMiss({ ...base, jobId: job, buyerCeilingUsdc: 120, sellerFloorUsdc: 139.5, confirmedTopical: false });
+  assert.deepEqual(ends.at(-1), { closestFloorUsdc: '139.50', ceilingUsdc: '120.00', passedPriceUsdc: '139.50' });
+});
+
 test('an offer on the shortlist within budget counts, from anyone but the stretching seller', async () => {
   const { inBudgetShortlistEntry } = await import('./nearMiss.js');
   const list = [

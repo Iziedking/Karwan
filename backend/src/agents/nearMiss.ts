@@ -142,6 +142,27 @@ interface NearMissInput {
   market?: { demand: 'hot' | 'steady' | 'soft'; note: string; fairPriceUsdc?: number };
 }
 
+/// Puts the request in the "no seller fits your budget" state once the buyer has
+/// passed the best real price. Not while another ask waits for an answer: the
+/// pending near-miss owns the page then.
+function signalOutOfReach(jobId: string, sellerFloorUsdc: number): void {
+  if (getPendingNearMiss(jobId)) return;
+  const marked = noteFarFloor(jobId, sellerFloorUsdc);
+  if (!marked) return;
+  bus.emitEvent({
+    type: 'negotiation.out-of-reach',
+    jobId,
+    actor: 'platform',
+    payload: {
+      closestFloorUsdc: round2(marked.closestFloorUsdc ?? sellerFloorUsdc),
+      ceilingUsdc: round2(marked.ceilingUsdc),
+      // The best real price the buyer passed, so the advisory can offer to
+      // reconsider it when nothing cheaper turned up.
+      passedPriceUsdc: marked.passed.proceedPriceUsdc,
+    },
+  });
+}
+
 /// Detection + creation. Called from a give-up point where the agents found a
 /// topical match but the seller's floor sits above the buyer's ceiling (no
 /// overlap). When the gap is within the band, ask the BLOCKED side instead of
@@ -178,6 +199,9 @@ export async function maybeRaiseNearMiss(input: NearMissInput): Promise<boolean>
       sellerFloorUsdc: round2(sellerFloorUsdc),
       passedFloorUsdc: passed.sellerFloorUsdc,
     });
+    // The seller the buyer passed is still the closest one: say so on the page
+    // with the offer to reconsider, instead of looking for sellers forever.
+    signalOutOfReach(jobId, sellerFloorUsdc);
     return false;
   }
   const relGap = gap / buyerCeilingUsdc;
@@ -212,23 +236,7 @@ export async function maybeRaiseNearMiss(input: NearMissInput): Promise<boolean>
     // Don't surface the out-of-reach advisory while a proceed/pass is already on
     // the table (a fresh seller's near-miss, or the deadline last-call). The
     // pending near-miss owns the page; re-arming out-of-reach here would fight it.
-    if (input.confirmedTopical && !getPendingNearMiss(jobId)) {
-      const marked = noteFarFloor(jobId, sellerFloorUsdc);
-      if (marked) {
-        bus.emitEvent({
-          type: 'negotiation.out-of-reach',
-          jobId,
-          actor: 'platform',
-          payload: {
-            closestFloorUsdc: round2(marked.closestFloorUsdc ?? sellerFloorUsdc),
-            ceilingUsdc: round2(marked.ceilingUsdc),
-            // The best real price the buyer passed, so the advisory can offer to
-            // reconsider it when nothing cheaper turned up.
-            passedPriceUsdc: marked.passed.proceedPriceUsdc,
-          },
-        });
-      }
-    }
+    if (input.confirmedTopical) signalOutOfReach(jobId, sellerFloorUsdc);
     return false;
   }
 
