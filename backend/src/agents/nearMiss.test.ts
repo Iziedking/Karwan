@@ -70,3 +70,20 @@ test('an offer on the shortlist within budget counts, from anyone but the stretc
   assert.equal(inBudgetShortlistEntry(list, 80, OTHER), null);
   assert.equal(inBudgetShortlistEntry(null, 100, OTHER), null);
 });
+
+test('a request still collecting offers holds a near match; once the window closes it can be shown', async () => {
+  const { collectingOffers, stillCollectingOffers, setCollectingProbe } = await import('./nearMiss.js');
+  const NOW = 1_800_000_000_000;
+  const open = { collectionFired: false, finalized: false, trackedAt: NOW - 30_000 };
+  assert.equal(collectingOffers(open, NOW, 180_000), true);
+  assert.equal(collectingOffers({ ...open, trackedAt: NOW - 181_000 }, NOW, 180_000), false);
+  // The window runs from the first offer once one has landed.
+  assert.equal(collectingOffers({ ...open, trackedAt: NOW - 400_000, collectionStartedAt: NOW - 60_000 }, NOW, 180_000), true);
+  assert.equal(collectingOffers({ ...open, collectionFired: true }, NOW, 180_000), false);
+  assert.equal(collectingOffers({ ...open, finalized: true }, NOW, 180_000), false);
+  assert.equal(collectingOffers({ ...open, expired: true }, NOW, 180_000), false);
+  assert.equal(stillCollectingOffers(JOB), false);
+  setCollectingProbe((jobId) => jobId === JOB);
+  assert.equal(stillCollectingOffers(JOB), true);
+  setCollectingProbe(null);
+});

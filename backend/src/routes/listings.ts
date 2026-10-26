@@ -29,7 +29,7 @@ import { resolveSellerProfile } from '../agents/agent-registry.js';
 import { actorSignalsFor } from '../agents/signals.js';
 import { listOpenJobContexts } from '../agents/buyer.js';
 import { submitListingBid } from '../agents/seller.js';
-import { maybeRaiseNearMiss } from '../agents/nearMiss.js';
+import { maybeRaiseNearMiss, stillCollectingOffers } from '../agents/nearMiss.js';
 import { topicalOverlap } from '../llm/keywords.js';
 import { rankListingCandidates, rankRequestCandidates } from '../marketplace/matchCandidates.js';
 import { emitAgentDecision } from '../agents/observability.js';
@@ -577,7 +577,16 @@ async function scanBriefsForListing(
 /// across the network and place listing-driven bids for any that match. The
 /// seller agent's `activeBids` map dedupes per (jobId, seller), so a profile-
 /// driven bid that already exists for this job is left alone.
-export async function scanListingsForBrief(
+/// One scan per request at a time: the live listener and the periodic rescan
+/// can start the same scan together, and each used to judge every listing and
+/// raise the same near match twice.
+const briefScanInflight = new Map<string, Promise<void>>();
+
+export function scanListingsForBrief(job: ListingMatchJob): Promise<void> {
+  return singleFlight(briefScanInflight, job.jobId.toLowerCase(), () => scanListingsForBriefOnce(job));
+}
+
+async function scanListingsForBriefOnce(
   job: ListingMatchJob,
 ) {
   const listings = rankListingCandidates(job, listOpenListings());
@@ -817,6 +826,13 @@ async function tryMatchListingToJobLegacy(
   const floor = listingFloor(listing);
   const buyerPct = job.negotiationMaxIncreasePct ?? 0;
   const buyerCeiling = Number(job.budgetUsdc) * (1 + buyerPct / 100);
+  if (floor > buyerCeiling && stillCollectingOffers(job.jobId)) {
+    // The request is still collecting offers, and the shortlist comes before a
+    // near match: an in-budget offer may yet arrive. The scan runs again after
+    // the window and raises it then if nothing within budget came in.
+    logger.info({ listingId: listing.id, jobId: job.jobId, listingFloor: floor, buyerCeiling }, 'near match held while the request collects offers');
+    return false;
+  }
   if (floor > buyerCeiling) {
     // Topical match, but the seller's floor sits above the buyer's ceiling, so
     // no price satisfies both ranges. Rather than skip silently, ask the blocked

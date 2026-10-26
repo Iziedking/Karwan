@@ -123,7 +123,7 @@ import {
   type RepTier,
 } from './signals.js';
 import { classifyAgentError } from '../chain/errors.js';
-import { inBudgetShortlistEntry, maybeRaiseNearMiss, setInBudgetProbe } from './nearMiss.js';
+import { collectingOffers, inBudgetShortlistEntry, maybeRaiseNearMiss, setCollectingProbe, setInBudgetProbe } from './nearMiss.js';
 import { clearNearMiss, getPendingNearMiss, type NearMissApproval } from '../db/nearMiss.js';
 import { clearOutOfReach } from '../db/outOfReach.js';
 import { config } from '../config.js';
@@ -314,6 +314,9 @@ interface JobState {
   /// When the first bid landed. The collection window's floor + hard cap are
   /// measured from here for the adaptive soft-close.
   collectionStartedAt?: number;
+  /// When the agent started tracking the request: the collection window runs
+  /// from here until a first bid lands.
+  trackedAt: number;
   /// Shadow-only schedule metadata. The legacy timer remains authoritative;
   /// these values let a durable observer fence replaced soft-close tasks.
   collectionCloseAt?: number;
@@ -442,6 +445,10 @@ setInBudgetProbe((jobId, ceilingUsdc, excludeSeller) => {
   // The shortlist the buyer is looking at counts too: an offer listed there
   // within budget is the answer, not a stretch past it.
   return inBudgetBidOf(state, ceilingUsdc, excludeSeller) ?? inBudgetShortlistEntry(state.shortlist, ceilingUsdc, excludeSeller);
+});
+setCollectingProbe((jobId) => {
+  const state = jobs.get(jobId.toLowerCase() as `0x${string}`) ?? jobs.get(jobId as `0x${string}`);
+  return state ? collectingOffers(state, Date.now(), BID_WINDOW_MAX_MS) : false;
 });
 const handledEvents = new Set<string>();
 let buyerTimerShadowObserver: BuyerTimerShadowObserver | null = null;
@@ -1310,6 +1317,7 @@ async function handleJobPosted(log: Log, opts?: { silent?: boolean }) {
   const recoveredEscrowFunded = !!existingDeal?.acceptedAt;
   const state: JobState = {
     jobId: args.jobId,
+    trackedAt: Date.now(),
     buyer,
     context: {
       jobId: args.jobId,

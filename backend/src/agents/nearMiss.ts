@@ -60,6 +60,33 @@ export function setInBudgetProbe(probe: InBudgetProbe | null): void {
   inBudgetProbe = probe;
 }
 
+/// Whether a request is still collecting offers: the bid window has not closed
+/// and the request is not finished. The window runs from the first offer, or
+/// from when the agent started tracking the request if none has landed yet.
+export function collectingOffers(
+  s: { collectionFired: boolean; finalized: boolean; expired?: boolean; collectionStartedAt?: number; trackedAt: number },
+  now: number,
+  maxWindowMs: number,
+): boolean {
+  if (s.collectionFired || s.finalized || s.expired) return false;
+  return now < (s.collectionStartedAt ?? s.trackedAt) + maxWindowMs;
+}
+
+/// The buyer agent's view of whether a request is still collecting offers,
+/// registered at start like the in-budget probe.
+type CollectingProbe = (jobId: string) => boolean;
+let collectingProbe: CollectingProbe | null = null;
+export function setCollectingProbe(probe: CollectingProbe | null): void {
+  collectingProbe = probe;
+}
+
+/// A near match is shown only once offers are in: while the request still
+/// collects them, an in-budget offer may yet arrive, and the shortlist comes
+/// first (view 30).
+export function stillCollectingOffers(jobId: string): boolean {
+  return collectingProbe?.(jobId) ?? false;
+}
+
 /// A live offer within the buyer's ceiling from someone other than the near-miss
 /// seller, from the bid book or the published shortlist. While one exists the
 /// buyer is never asked to stretch, and a pending ask is not shown.
