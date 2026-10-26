@@ -271,7 +271,7 @@ export function ProblemSheet({ open, deal, caller, name, options, onClose, onDon
         </ul>
       ) : current === 'cancel' ? (
         <>
-          <p className="text-[15px] text-[var(--lp-dark)]">{copy.cancelDeal.consequence}</p>
+          <p className="text-[15px] text-[var(--lp-dark)]">{deal.fundTxHash ? copy.cancelDeal.consequenceFunded : copy.cancelDeal.consequence}</p>
           <MoveError error={move.error} />
           <div className="mt-6">
             <button type="button" data-testid="deal-confirm" disabled={move.busy} onClick={() => void move.run(() => api.cancelDirectDeal(deal.jobId, caller))} className={quietButton}>

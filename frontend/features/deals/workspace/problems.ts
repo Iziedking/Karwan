@@ -11,7 +11,10 @@ export function problemOptions(deal: DirectDeal, viewer: 'buyer' | 'seller' | nu
   const stage = deal.view?.stage;
   if (!viewer || !stage || deal.cancellationProposal) return [];
   if (stage === 'awaiting-acceptance' || stage === 'awaiting-funding') {
-    return viewer === 'buyer' && !deal.fundTxHash ? ['cancel'] : [];
+    if (viewer !== 'buyer') return [];
+    // Money the seller never accepted on the escrow comes back whenever the buyer asks.
+    const takeBack = deal.escrowVersion === 'v3' || deal.escrowVersion === 'suite';
+    return !deal.fundTxHash || takeBack ? ['cancel'] : [];
   }
   if (stage === 'awaiting-delivery') {
     const dueMs = deal.deadlineUnix ? deal.deadlineUnix * 1000 : null;

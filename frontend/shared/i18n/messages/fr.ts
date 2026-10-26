@@ -3443,7 +3443,7 @@ export const fr: Messages = {
       reclaimBody: "La date de livraison est passée. L’argent non versé vous revient.",
     },
     protectedDeal: 'Accord protégé',
-    cancelDeal: { cta: 'Annuler l’accord', title: 'Annuler cet accord ?', consequence: 'L’accord est clos et le vendeur est prévenu. Rien n’est financé, donc aucun argent ne bouge.' },
+    cancelDeal: { cta: 'Annuler l’accord', title: 'Annuler cet accord ?', consequence: 'L’accord est clos et le vendeur est prévenu. Rien n’est financé, donc aucun argent ne bouge.', consequenceFunded: 'L’accord est clos et le vendeur est prévenu. Votre argent vous revient en entier.' },
     privateDeal: 'Cet accord est privé.',
     privateTermsPreview: 'Confirmez votre identité pour voir les conditions.',
     money: {
@@ -3482,6 +3482,7 @@ export const fr: Messages = {
       deadlineReclaimTemplate: 'Sans livraison, l\'acheteur peut reprendre les fonds à partir du {date}.',
       reclaimWaitsSeller: 'L\'argent reste dans l\'accord jusqu\'à ce que l\'acheteur réponde à votre demande de délai.',
       acceptanceExpiryTemplate: 'Cette offre expire le {date}.',
+      unacceptedRefundTemplate: "L'argent de l'acheteur est dans l'accord. S'il n'a pas commencé le {date}, il retourne à l'acheteur.",
     },
     trust: {
       title: 'Avec qui vous traitez',

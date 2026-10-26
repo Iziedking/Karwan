@@ -218,3 +218,25 @@ test('on the escrow family the seller is paid when the buyer’s review ends', (
   assert.deepEqual(dealView(open, 'seller', false, NOW).automatic, { kind: 'auto-release', at: NOW + 3_600_000 });
   assert.deepEqual(dealView(open, 'buyer', false, NOW).automatic, { kind: 'auto-release', at: NOW + 3_600_000 });
 });
+
+test('money in escrow that the seller has not accepted reads as held, asks nobody to fund again, and says when it comes back', () => {
+  const held: DealViewInput = {
+    ...base,
+    sellerApprovedAt: NOW - 86_400_000,
+    fundTxHash: '0xfund',
+    acceptUntilMs: NOW + 2 * 86_400_000,
+    onChain: { state: 1, milestonesReleased: 0, milestonePcts: [100] },
+  };
+  const buyer = dealView(held, 'buyer', false, NOW);
+  assert.equal(buyer.money.line, 'held');
+  assert.deepEqual(buyer.next, { action: null, actor: 'nobody', amountUsdc: null });
+  assert.deepEqual(buyer.automatic, { kind: 'unaccepted-refund', at: NOW + 2 * 86_400_000 });
+  assert.equal(buyer.progress.find((p) => p.step === 'funded')?.state, 'done');
+});
+
+test('a deal refunded before the seller accepted shows the money went in and came back', () => {
+  const back: DealViewInput = { ...base, sellerApprovedAt: NOW - 86_400_000, fundTxHash: '0xfund', cancelledAt: NOW, onChain: { state: 5, milestonesReleased: 0, milestonePcts: [100] } };
+  const view = dealView(back, 'buyer', false, NOW);
+  assert.equal(view.money.line, 'refunded');
+  assert.deepEqual(view.progress.map((p) => p.step), ['agreed', 'funded', 'cancelled', 'refunded']);
+});

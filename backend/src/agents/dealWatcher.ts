@@ -8,7 +8,7 @@ import { generateObjectWithLlmFallback } from '../llm/client.js';
 import { keccak256, toBytes } from 'viem';
 import { config } from '../config.js';
 import { recordHeartbeat } from '../ops/heartbeats.js';
-import { listAllDeals, patchDeal, type DirectDeal } from '../db/deals.js';
+import { dealMilestonePcts, listAllDeals, patchDeal, type DirectDeal } from '../db/deals.js';
 import { getAgentWallets } from '../db/agentWallets.js';
 import { appendActivity } from '../db/activityLog.js';
 import { escrow, readEscrow } from '../chain/contracts.js';
@@ -74,6 +74,12 @@ import { sendTelegramMessage, supportOperatorChatId } from '../telegram/bot.js';
 import { timeoutRuling } from '../deals/disputeTimeout.js';
 import { runDeadlineRule, deadlineRulingHash, type DeadlineRuleDeps } from '../deals/deadlineRuleRunner.js';
 import { sellerRespondedAfterDispute } from '../deals/sellerResponse.js';
+import { unacceptedStep } from '../deals/unacceptedEscrow.js';
+import { refundMovementKey, takeBackUnaccepted } from '../deals/takeBackUnaccepted.js';
+import { fundDirectDealSuite, fundingMovementKey } from '../deals/fundDirectSuite.js';
+import { fundDirectSuiteDeps } from '../deals/fundDirectV3Live.js';
+import { agreementDigest } from '../deals/agreementDigest.js';
+import type { StoredAgreementTerms } from '../chain/agreementTerms.js';
 
 /// Auto-release used to be gated on `poPrincipalStillHeld`, which blocked the
 /// unattended path while a PO line still held the seller's principal in the old
@@ -97,7 +103,6 @@ import { sellerRespondedAfterDispute } from '../deals/sellerResponse.js';
 /// for paid RPC tiers that can afford tighter polling.
 const TICK_MS = Number(process.env.DEAL_WATCHER_TICK_MS ?? 60_000);
 const processing = new Set<string>();
-const refundMovementKey = (jobId: string) => `escrow_refund:${jobId.toLowerCase()}`;
 
 let financialCommandShadowObserver: FinancialCommandShadowObserver | null = null;
 
@@ -782,6 +787,45 @@ async function maybeRunDisputeJudge(deal: DirectDeal, now: number): Promise<void
   }
 }
 
+/// Money the escrow family holds that no selling agent accepted
+/// (deals/unacceptedEscrow): retry the accept while the escrow allows it, and
+/// return the money to the buyer once it does not.
+async function maybeSettleUnaccepted(deal: DirectDeal, now: number) {
+  processing.add(deal.jobId);
+  try {
+    const account = await dealEscrowOps.read(deal);
+    const step = unacceptedStep(deal, account.state === ESCROW_FUNDED, now);
+    if (step === 'refund') {
+      const result = await takeBackUnaccepted(deal, account, {
+        actor: 'platform',
+        reason: 'the seller did not accept in time, so the money went back to the buyer',
+      });
+      logger.info({ jobId: deal.jobId, txHash: result.txHash }, 'returned unaccepted escrow to the buyer');
+      return;
+    }
+    if (step !== 'activate' || !deal.buyerAgentWalletId || !deal.buyerAgentAddress || !deal.sellerAgentWalletId || !deal.sellerAgentAddress) return;
+    await patchDeal(deal.jobId, { activationRetriedAt: now });
+    const base = fundDirectSuiteDeps();
+    // The seller was told about a missing record when the deal was funded; a retry stays quiet.
+    const deps = { ...base, emit: (e: Parameters<typeof base.emit>[0]) => (e.type === 'record.setup_needed' ? undefined : base.emit(e)) };
+    const result = await fundDirectDealSuite(deps, {
+      jobId: deal.jobId,
+      deal: { ...deal, escrowTerms: deal.escrowTerms as StoredAgreementTerms | undefined, agreementDigest: agreementDigest(deal) },
+      buyerAgent: { walletId: deal.buyerAgentWalletId, address: deal.buyerAgentAddress as `0x${string}` },
+      sellerAgent: { walletId: deal.sellerAgentWalletId, address: deal.sellerAgentAddress as `0x${string}` },
+      milestonePcts: dealMilestonePcts(deal),
+      // Never a new transfer: a total of zero refuses any path that would fund again.
+      authorizedTotalMicros: 0n,
+      operationKey: fundingMovementKey(deal.jobId),
+    });
+    logger.info({ jobId: deal.jobId, status: result.status, accepted: result.body.accepted, code: result.body.code }, 'retried the selling agent accept');
+  } catch (err) {
+    logger.warn({ jobId: deal.jobId, err: (err as Error).message }, 'unaccepted escrow step failed (retried next tick)');
+  } finally {
+    processing.delete(deal.jobId);
+  }
+}
+
 async function tick() {
   const now = Date.now();
   const deals = await listAllDeals();
@@ -831,8 +875,12 @@ async function tick() {
       continue;
     }
     // No escrow exists until the buyer funds after seller agreement, so there
-    // is nothing for the on-chain watcher to inspect before acceptedAt.
-    if (!deal.acceptedAt) continue;
+    // is nothing for the on-chain watcher to inspect before acceptedAt, except
+    // money the escrow family holds that no selling agent accepted.
+    if (!deal.acceptedAt) {
+      if (deal.escrowVersion === 'suite' && deal.escrowDealId && !processing.has(deal.jobId)) await maybeSettleUnaccepted(deal, now);
+      continue;
+    }
     if (processing.has(deal.jobId)) continue;
     if (await maybeApplyDeadlineRule(deal, now)) continue;
     const parties = { buyer: deal.buyer, seller: deal.seller };

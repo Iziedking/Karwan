@@ -24,6 +24,7 @@ export interface DealLiveCopy {
   autoReleaseYou: string;
   reclaimYou: string;
   reclaimWaitsYou: string;
+  unacceptedRefundYou: string;
 }
 
 export const dealLiveCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealLiveCopy> = {
@@ -47,6 +48,7 @@ export const dealLiveCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealLiveCopy
     autoReleaseYou: "Releases automatically on {date} unless you raise a problem.",
     reclaimYou: "If nothing is delivered, you can take your money back from {date}.",
     reclaimWaitsYou: "The seller asked for more time. Your money stays in the deal until you answer.",
+    unacceptedRefundYou: "Your money is in the deal. If it has not started by {date}, it comes back to you.",
   },
   fr: {
     working: '{name} travaille dessus',
@@ -68,6 +70,7 @@ export const dealLiveCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealLiveCopy
     autoReleaseYou: "Libération automatique le {date}, sauf si vous signalez un problème.",
     reclaimYou: "Sans livraison, vous pouvez reprendre votre argent à partir du {date}.",
     reclaimWaitsYou: "Le vendeur a demandé plus de temps. Votre argent reste dans l’accord jusqu’à votre réponse.",
+    unacceptedRefundYou: "Votre argent est dans l’accord. S’il n’a pas commencé le {date}, il vous revient.",
   },
   ar: {
     working: '{name} يعمل عليه',
@@ -89,6 +92,7 @@ export const dealLiveCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealLiveCopy
     autoReleaseYou: "تُصرف تلقائيًا في {date} ما لم تُبلغ عن مشكلة.",
     reclaimYou: "إن لم يُسلَّم شيء، يمكنك استرداد مالك اعتبارًا من {date}.",
     reclaimWaitsYou: "طلب البائع مزيدًا من الوقت. يبقى مالك في الصفقة حتى تردّ.",
+    unacceptedRefundYou: "مالك في الصفقة. إن لم تبدأ بحلول {date}، يعود إليك.",
   },
   hi: {
     working: '{name} इस पर काम कर रहे हैं',
@@ -110,6 +114,7 @@ export const dealLiveCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealLiveCopy
     autoReleaseYou: "{date} को अपने आप जारी होगा, जब तक आप कोई समस्या न बताएँ।",
     reclaimYou: "अगर कुछ डिलीवर नहीं हुआ, तो आप {date} से अपना पैसा वापस ले सकते हैं।",
     reclaimWaitsYou: "विक्रेता ने और समय माँगा है। जब तक आप जवाब नहीं देते, आपका पैसा सौदे में रहता है।",
+    unacceptedRefundYou: "आपका पैसा सौदे में है। अगर {date} तक सौदा शुरू नहीं हुआ, तो पैसा आपको वापस मिल जाएगा।",
   },
   sw: {
     working: '{name} anaifanyia kazi',
@@ -131,5 +136,6 @@ export const dealLiveCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealLiveCopy
     autoReleaseYou: "Inatolewa yenyewe tarehe {date} usipoibua tatizo.",
     reclaimYou: "Kama hakuna kilichowasilishwa, unaweza kurudisha pesa zako kuanzia {date}.",
     reclaimWaitsYou: "Muuzaji ameomba muda zaidi. Pesa zako zinabaki kwenye mkataba hadi ujibu.",
+    unacceptedRefundYou: "Pesa zako ziko kwenye mkataba. Mkataba usipoanza kufikia {date}, zinarudi kwako.",
   },
 };

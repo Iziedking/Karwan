@@ -28,6 +28,12 @@ test('before funding only the buyer can walk away, and only while nothing is hel
   assert.deepEqual(problemOptions(deal('awaiting-funding', { fundTxHash: '0xabc' }), 'buyer', NOW), []);
 });
 
+test('money the seller never accepted on the escrow can be taken back by the buyer at any time', () => {
+  assert.deepEqual(problemOptions(deal('awaiting-funding', { fundTxHash: '0xabc', escrowVersion: 'suite' }), 'buyer', NOW), ['cancel']);
+  assert.deepEqual(problemOptions(deal('awaiting-funding', { fundTxHash: '0xabc', escrowVersion: 'v3' }), 'buyer', NOW), ['cancel']);
+  assert.deepEqual(problemOptions(deal('awaiting-funding', { fundTxHash: '0xabc', escrowVersion: 'suite' }), 'seller', NOW), []);
+});
+
 test('during delivery the seller asks for time once; the buyer reclaims only after the grace period', () => {
   const later = Math.floor((NOW + 3 * DAY) / 1000);
   assert.deepEqual(problemOptions(deal('awaiting-delivery', { deadlineUnix: later }), 'seller', NOW), ['moreTime']);

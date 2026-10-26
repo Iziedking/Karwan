@@ -155,6 +155,7 @@ A seller with a funded deal can take an advance from a financier, as view 18 set
 | Paying | Over the per-deal cap, the family paused, or not enough USDC | Refused before anything is signed, with the reason and the limit in words |
 | Any transaction | A wallet provider reports done but the call reverted inside | The step is done only when the receipt shows the expected event and a fresh read agrees; otherwise it is flagged and retried from the chain state |
 | Accepting | The seller sees terms that differ from the ones paid for | The escrow refuses: acceptance is for the exact terms fingerprint |
+| Accepting | The selling agent's accept fails, or the seller has no record yet | The money stays in the escrow and the buyer is protected. The watcher retries the accept every 30 minutes; the buyer can take the money back at any time; once the escrow stops taking an accept (three days after funding) the watcher returns it to the buyer |
 | A check | Fewer than two checkers sign | No check is recorded; the review starts anyway at the longstop the terms set |
 | A dispute | The arbiter does not propose | After 5 days either side escalates to the review Safe |
 | A ruling | The review Safe misses its 5 days | The fallback share in the terms applies |

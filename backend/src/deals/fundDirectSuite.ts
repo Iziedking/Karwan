@@ -89,6 +89,9 @@ export interface FundDirectSuiteInput {
   operationKey: string;
 }
 
+/// The one money movement a deal's funding is recorded under, on every escrow.
+export const fundingMovementKey = (jobId: string) => `escrow_funding:${jobId.toLowerCase()}`;
+
 export interface FundDirectSuiteResult {
   status: 200 | 409 | 502;
   body: Record<string, unknown>;

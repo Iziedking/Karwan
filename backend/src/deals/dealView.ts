@@ -26,7 +26,7 @@ export type NextAction =
   | 'dispute'
   | null;
 export type Actor = 'you' | 'counterparty' | 'nobody';
-export type AutomaticOutcome = { kind: 'auto-release' | 'deadline-reclaim' | 'reclaim-waits' | 'acceptance-expiry'; at: number } | null;
+export type AutomaticOutcome = { kind: 'auto-release' | 'deadline-reclaim' | 'reclaim-waits' | 'acceptance-expiry' | 'unaccepted-refund'; at: number } | null;
 
 export interface DealViewInput {
   buyer: string;
@@ -40,6 +40,11 @@ export interface DealViewInput {
   sellerApprovedAt?: number;
   sellerDeclinedAt?: number;
   acceptedAt?: number;
+  /// The buyer's money went into escrow. Without acceptedAt it waits on the
+  /// selling agent's accept (deals/unacceptedEscrow).
+  fundTxHash?: string;
+  /// The last moment the escrow takes that accept; after it the money goes back.
+  acceptUntilMs?: number;
   delivered?: boolean;
   deliveredAt?: number;
   settledAt?: number;
@@ -133,16 +138,20 @@ function paused(deal: DealViewInput): boolean {
   return !!deal.disputed || !!deal.releaseBlockedReason || securityHold(deal);
 }
 
+function paidIn(deal: DealViewInput): boolean {
+  return !!deal.acceptedAt || !!deal.fundTxHash;
+}
+
 function moneyLine(deal: DealViewInput, stage: DealStage, pendingMovement: boolean): MoneyLine {
   if (stage === 'disputed') return 'paused';
   if (stage === 'cancelled') {
     // Nothing was paid in, so nothing is owed back: the deal is simply over.
-    if (!deal.acceptedAt) return 'cancelled';
+    if (!paidIn(deal)) return 'cancelled';
     return deal.onChain?.state === 5 ? 'refunded' : 'refunding';
   }
   if (stage === 'settled') return 'released';
   if (pendingMovement) return 'sending';
-  if (!deal.acceptedAt) return 'not-funded';
+  if (!paidIn(deal)) return 'not-funded';
   return paused(deal) ? 'paused' : 'held';
 }
 
@@ -158,10 +167,10 @@ function checkedDone(deal: DealViewInput, stage: DealStage): boolean {
 function cancelledProgress(deal: DealViewInput): DealView['progress'] {
   const rows: DealView['progress'] = [];
   const agreedAt = deal.sellerApprovedAt;
-  if (agreedAt || deal.acceptedAt) rows.push({ step: 'agreed', state: 'done', ...(agreedAt ? { at: agreedAt } : {}) });
-  if (deal.acceptedAt) rows.push({ step: 'funded', state: 'done', at: deal.acceptedAt });
+  if (agreedAt || paidIn(deal)) rows.push({ step: 'agreed', state: 'done', ...(agreedAt ? { at: agreedAt } : {}) });
+  if (paidIn(deal)) rows.push({ step: 'funded', state: 'done', ...(deal.acceptedAt ? { at: deal.acceptedAt } : {}) });
   rows.push({ step: 'cancelled', state: 'done', ...(deal.cancelledAt ? { at: deal.cancelledAt } : {}) });
-  if (deal.acceptedAt) {
+  if (paidIn(deal)) {
     const refunded = deal.onChain?.state === 5;
     rows.push({ step: 'refunded', state: refunded ? 'done' : 'current', ...(refunded && deal.cancelledAt ? { at: deal.cancelledAt } : {}) });
   }
@@ -172,8 +181,8 @@ function progress(deal: DealViewInput, stage: DealStage): DealView['progress'] {
   if (stage === 'cancelled') return cancelledProgress(deal);
   type PathStep = Exclude<ProgressStep, 'cancelled' | 'refunded'>;
   const done: Record<PathStep, boolean> = {
-    agreed: !!deal.sellerApprovedAt || !!deal.acceptedAt,
-    funded: !!deal.acceptedAt,
+    agreed: !!deal.sellerApprovedAt || paidIn(deal),
+    funded: paidIn(deal),
     delivered: !!(deal.delivered || deal.deliveredAt) && !deal.awaitingNextDelivery,
     checked: checkedDone(deal, stage) && !deal.awaitingNextDelivery,
     released: stage === 'settled',
@@ -214,6 +223,8 @@ function next(deal: DealViewInput, stage: DealStage, viewer: 'buyer' | 'seller',
     if (deal.sellerDeclinedAt) return viewer === 'buyer' ? none('you') : none('counterparty');
     return viewer === 'seller' ? you('accept') : none('counterparty');
   }
+  // Paid in and waiting on the selling agent's accept: Karwan retries it, nobody pays again.
+  if (stage === 'awaiting-funding' && deal.fundTxHash) return none('nobody');
   if (stage === 'awaiting-funding') return viewer === 'buyer' ? you('fund', deal.dealAmountUsdc) : none('counterparty');
   if (stage === 'awaiting-delivery') {
     if (deal.extensionRequest) return viewer === 'buyer' ? you('respond-extension') : none('counterparty');
@@ -233,6 +244,9 @@ function next(deal: DealViewInput, stage: DealStage, viewer: 'buyer' | 'seller',
 function automatic(deal: DealViewInput, stage: DealStage): AutomaticOutcome {
   if (stage === 'awaiting-acceptance' && deal.acceptanceDeadlineUnix) {
     return { kind: 'acceptance-expiry', at: deal.acceptanceDeadlineUnix * 1000 };
+  }
+  if (stage === 'awaiting-funding' && deal.fundTxHash && deal.acceptUntilMs) {
+    return { kind: 'unaccepted-refund', at: deal.acceptUntilMs };
   }
   if (stage === 'awaiting-delivery' && deal.deadlineUnix) {
     // An unanswered request for more time holds the refund until the buyer answers.

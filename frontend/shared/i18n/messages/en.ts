@@ -3183,7 +3183,7 @@ interface MessagesShape {
       reclaimBody: string;
     };
     protectedDeal: string;
-    cancelDeal: { cta: string; title: string; consequence: string };
+    cancelDeal: { cta: string; title: string; consequence: string; consequenceFunded: string };
     privateDeal: string;
     privateTermsPreview: string;
     money: { notFunded: string; held: string; sending: string; paused: string; released: string; refunding: string; refunded: string; cancelled: string };
@@ -3195,7 +3195,7 @@ interface MessagesShape {
     };
     consequence: { accept: string; fundTemplate: string; releaseTemplate: string; claimTemplate: string; reviewManually: string };
     progress: { title: string; agreed: string; funded: string; delivered: string; checked: string; released: string; cancelled: string; refunded: string };
-    automatic: { autoReleaseTemplate: string; deadlineReclaimTemplate: string; reclaimWaitsSeller: string; acceptanceExpiryTemplate: string };
+    automatic: { autoReleaseTemplate: string; deadlineReclaimTemplate: string; reclaimWaitsSeller: string; acceptanceExpiryTemplate: string; unacceptedRefundTemplate: string };
     trust: {
       title: string; asSeller: string; asBuyer: string; verifiedBusiness: string; verifiedPerson: string;
       verifiedPersonDetail: string; settledTemplate: string; onTimeTemplate: string; disputesTemplate: string;
@@ -8909,7 +8909,7 @@ export const en: MessagesShape = {
       reclaimBody: "The delivery deadline has passed. The unreleased money returns to you.",
     },
     protectedDeal: 'Protected deal',
-    cancelDeal: { cta: 'Cancel deal', title: 'Cancel this deal?', consequence: 'The deal closes and the seller is told. Nothing is funded, so no money moves.' },
+    cancelDeal: { cta: 'Cancel deal', title: 'Cancel this deal?', consequence: 'The deal closes and the seller is told. Nothing is funded, so no money moves.', consequenceFunded: 'The deal closes and the seller is told. Your money comes back to you in full.' },
     privateDeal: 'This deal is private.',
     privateTermsPreview: 'Confirm it is you to see the terms.',
     money: {
@@ -8948,6 +8948,7 @@ export const en: MessagesShape = {
       deadlineReclaimTemplate: 'If nothing is delivered, the buyer can take the money back from {date}.',
       reclaimWaitsSeller: 'The money stays in the deal until the buyer answers your request for more time.',
       acceptanceExpiryTemplate: 'This offer expires on {date}.',
+      unacceptedRefundTemplate: "The buyer's money is in the deal. If it has not started by {date}, it goes back to the buyer.",
     },
     trust: {
       title: 'Who you are dealing with',

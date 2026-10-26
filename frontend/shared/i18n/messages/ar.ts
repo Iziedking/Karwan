@@ -3443,7 +3443,7 @@ export const ar: Messages = {
       reclaimBody: "انقضى موعد التسليم. تعود إليك الأموال غير المصروفة.",
     },
     protectedDeal: 'صفقة محمية',
-    cancelDeal: { cta: 'إلغاء الصفقة', title: 'إلغاء هذه الصفقة؟', consequence: 'تُغلق الصفقة ويُبلَّغ البائع. لم يُموَّل شيء، فلا تتحرك أي أموال.' },
+    cancelDeal: { cta: 'إلغاء الصفقة', title: 'إلغاء هذه الصفقة؟', consequence: 'تُغلق الصفقة ويُبلَّغ البائع. لم يُموَّل شيء، فلا تتحرك أي أموال.', consequenceFunded: 'تُغلق الصفقة ويُبلَّغ البائع. يعود إليك مالك كاملًا.' },
     privateDeal: 'هذه الصفقة خاصة.',
     privateTermsPreview: 'أكّد هويتك لرؤية الشروط.',
     money: {
@@ -3482,6 +3482,7 @@ export const ar: Messages = {
       deadlineReclaimTemplate: 'إن لم يُسلَّم شيء، يمكن للمشتري استرداد المال اعتباراً من {date}.',
       reclaimWaitsSeller: 'يبقى المال في الصفقة حتى يردّ المشتري على طلبك لمزيد من الوقت.',
       acceptanceExpiryTemplate: 'ينتهي هذا العرض في {date}.',
+      unacceptedRefundTemplate: 'مال المشتري في الصفقة. إن لم تبدأ بحلول {date}، يعود إلى المشتري.',
     },
     trust: {
       title: 'مع من تتعامل',

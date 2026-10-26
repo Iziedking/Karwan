@@ -436,6 +436,9 @@ export interface DirectDeal {
   /// Reminders to the buyer while their answer to a request for more time
   /// holds the deadline refund, counted per request (deals/deliveryDeadline).
   extensionWaitReminder?: { requestedAt: number; count: number; lastAt: number };
+  /// When the watcher last retried the selling agent's accept on money the
+  /// escrow holds but nobody accepted (deals/unacceptedEscrow).
+  activationRetriedAt?: number;
   /// The on-chain deliveredAt (ms) we last alerted the buyer about, for a
   /// delivery marked on the escrow outside Karwan. See deals/onChainDelivery.
   onChainDeliveryAlertedAt?: number;

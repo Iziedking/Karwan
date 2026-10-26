@@ -613,6 +613,25 @@
       "body": "Karwan unifies online reputation, starting with an open market for secure local\nand cross-border trade. People join a new marketplace, job board or region and\nhave to vet themselves from zero every time; Karwan is building one reputation\nthat travels with a person, so hidden talent becomes visible and opportunity\nfollows. It starts with Karwan's market, where every completed deal is\nprotected in escrow and recorded.\n\nPeople and businesses can buy or sell services, goods, supplies and eligible\nbusiness orders. A trade may be local, with both parties in the same country,\nor cross-border, with parties in different countries.\n\nTrade can start as a direct deal with a known counterparty, an email invite, an\nopen buyer request, an open seller offer, a verified business connection or an\nagent-assisted match. The parties agree the commercial terms before test USDC\nmoves into milestone escrow on Arc Testnet. Money sits in the escrow contract,\nnot with Karwan or the counterparty, and releases against the agreed outcome.\n\nIndividual and business trade use the same protection layer. Business accounts\ncan also build a portable credit record from settled trade and request financing\nfor eligible Karwan-originated accepted invoices or purchase orders. Financing\nis opt-in: approved financiers quote terms and the supplier chooses. Direct deals\nremain available without verification, while agent matching, verified-business\nfeatures and financing may have eligibility gates.\n\nThe current release is testnet software. Local trade does not mean local-currency\npayment is live. Unified reputation across platforms, browser capture, mainnet\nsettlement and local bank payout are planned expansion, not current capabilities."
     },
     {
+      "id": "when-a-paid-deal-does-not-start",
+      "title": "When a paid deal does not start",
+      "status": "shipping",
+      "updated": "2026-10-26",
+      "tags": [
+        "escrow",
+        "refunds",
+        "testnet"
+      ],
+      "path": "public/product/when-a-paid-deal-does-not-start.md",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/27-deals-on-the-escrow-family.md",
+          "date": "2026-10-26"
+        }
+      ],
+      "body": "A deal starts when the buyer's money is in the escrow and the seller's side\naccepts it. Karwan does that accept for the seller right after the buyer pays.\n\nIf the accept does not go through, for example because the seller has not set\nup their Karwan record yet, the money stays in the escrow and the buyer is\nprotected. Nobody pays twice. Karwan keeps trying the accept, and the deal\npage tells the buyer the date by which the money comes back if the deal has\nnot started.\n\nThe buyer can take the money back at any time before the deal starts, from\nSomething is wrong on the deal page or by asking the assistant. If they do\nnothing, the escrow returns it to them by itself three days after they paid,\nonce the seller's side can no longer accept. Neither side's record changes,\nbecause the deal never started."
+    },
+    {
       "id": "when-the-buyer-is-silent",
       "title": "When a buyer does not respond after delivery",
       "status": "shipping",
@@ -1501,6 +1520,30 @@
       "check": null,
       "updated": "2026-09-30",
       "path": "public/product/what-karwan-is.md"
+    },
+    {
+      "id": "when-a-paid-deal-does-not-start",
+      "title": "When a paid deal does not start",
+      "status": "shipping",
+      "publishable": false,
+      "blockedBy": "not-live",
+      "capability": true,
+      "audience": "all",
+      "tags": [
+        "escrow",
+        "refunds",
+        "testnet"
+      ],
+      "summary": "A deal starts when the buyer's money is in the escrow and the seller's side accepts it. Karwan does that accept for the seller right after the buyer pays.",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/27-deals-on-the-escrow-family.md",
+          "date": "2026-10-26"
+        }
+      ],
+      "check": null,
+      "updated": "2026-10-26",
+      "path": "public/product/when-a-paid-deal-does-not-start.md"
     },
     {
       "id": "when-the-buyer-is-silent",

@@ -3440,7 +3440,7 @@ export const sw: Messages = {
       reclaimBody: "Tarehe ya kuwasilisha imepita. Pesa ambazo hazijatolewa zinarudi kwako.",
     },
     protectedDeal: 'Mkataba uliolindwa',
-    cancelDeal: { cta: 'Ghairi mkataba', title: 'Ughairi mkataba huu?', consequence: 'Mkataba unafungwa na muuzaji anaarifiwa. Hakuna kilicholipiwa, kwa hivyo hakuna pesa inayohamishwa.' },
+    cancelDeal: { cta: 'Ghairi mkataba', title: 'Ughairi mkataba huu?', consequence: 'Mkataba unafungwa na muuzaji anaarifiwa. Hakuna kilicholipiwa, kwa hivyo hakuna pesa inayohamishwa.', consequenceFunded: 'Mkataba unafungwa na muuzaji anaarifiwa. Pesa zako zote zinarudi kwako.' },
     privateDeal: 'Mkataba huu ni wa faragha.',
     privateTermsPreview: 'Thibitisha kuwa ni wewe ili kuona masharti.',
     money: {
@@ -3479,6 +3479,7 @@ export const sw: Messages = {
       deadlineReclaimTemplate: 'Kama hakuna kilichowasilishwa, mnunuzi anaweza kurudisha pesa kuanzia {date}.',
       reclaimWaitsSeller: 'Pesa zinabaki kwenye mkataba hadi mnunuzi ajibu ombi lako la muda zaidi.',
       acceptanceExpiryTemplate: 'Ofa hii inaisha tarehe {date}.',
+      unacceptedRefundTemplate: 'Pesa za mnunuzi ziko kwenye mkataba. Mkataba usipoanza kufikia {date}, zinarudi kwa mnunuzi.',
     },
     trust: {
       title: 'Unashughulika na nani',

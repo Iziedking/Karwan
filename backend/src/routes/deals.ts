@@ -28,7 +28,7 @@ import { executeContractCall } from '../chain/txs.js';
 import { readDisputeClocksV3, v3FundingEnabled } from '../chain/dealEscrowV3Live.js';
 import { DEAL_STATE } from '../chain/dealEscrowV3.js';
 import { chooseFundingEscrow, fundDirectDealV3, type EscrowVersion, type StoredTermsV3 } from '../deals/fundDirectV3.js';
-import { fundDirectDealSuite } from '../deals/fundDirectSuite.js';
+import { fundDirectDealSuite, fundingMovementKey } from '../deals/fundDirectSuite.js';
 import type { StoredAgreementTerms } from '../chain/agreementTerms.js';
 import { suiteFundingEnabled } from '../chain/suiteConfig.js';
 import { IdentityNeeded } from '../identity/suiteIdentity.js';
@@ -132,6 +132,7 @@ import { deliveryCheckState } from '../deals/deliveryCheckState.js';
 import { provisionUserAgentWallets } from '../circle/wallets.js';
 import { ensureUserAgentWallets } from '../circle/userAgents.js';
 import { sellerRecordNeeded } from '../deals/sellerRecordGate.js';
+import { refundMovementKey, takeBackUnaccepted, TakeBackRefused } from '../deals/takeBackUnaccepted.js';
 import { suiteIdentity } from '../identity/suiteIdentityLive.js';
 import { seedAgentFromOperator } from '../chain/agentSeed.js';
 import { bus, recentEventsByType } from '../events.js';
@@ -211,7 +212,6 @@ import {
 // ERC-20 USDC on Arc uses 6 decimals for escrow accounting.
 const USDC_DECIMALS = 6;
 
-const fundingMovementKey = (jobId: string) => `escrow_funding:${jobId.toLowerCase()}`;
 
 /// What the deal page shows for a v3 dispute: the proposed ruling in USDC for
 /// each side and when it applies, and when either side may escalate or lapse.
@@ -266,7 +266,6 @@ async function fundingEscrowFor(deal: DirectDeal, jobId: string): Promise<Escrow
 }
 const payoutMovementKey = (jobId: string, milestoneIndex: number) =>
   `escrow_release:${jobId.toLowerCase()}:${milestoneIndex}`;
-const refundMovementKey = (jobId: string) => `escrow_refund:${jobId.toLowerCase()}`;
 const mutualCancelMovementKey = (jobId: string) => `escrow_mutual_cancel:${jobId.toLowerCase()}`;
 const complimentaryReportResourceId = (jobId: string, subject: string) =>
   `direct-deal:${jobId.toLowerCase()}:counterparty:${subject.toLowerCase()}`;
@@ -4771,67 +4770,15 @@ async function cancelUnacceptedV3(
   extra: Partial<DirectDeal> = {},
 ) {
   const jobId = deal.jobId;
-  if (!deal.buyerAgentWalletId) return c.json({ error: 'this deal has no buyer agent wallet on record' }, 409);
-  const buyerAgentAddress = deal.buyerAgentAddress ?? (await getAgentWallets(deal.buyer))?.buyerAddress;
-  if (!buyerAgentAddress) return c.json({ error: 'this deal has no buyer agent address on record' }, 409);
   if (inFlight.has(jobId)) return c.json({ error: 'an action is already in progress for this deal' }, 409);
-  const refundMicros = dealEscrowOps.refundableMicros(account) ?? 0n;
-  if (refundMicros <= 0n) return c.json({ error: 'there is no remaining escrow to refund', code: 'ESCROW_EMPTY' }, 409);
-  const refundAmountUsdc = formatUsdcMicros(refundMicros);
-  const reason = 'buyer took back a deal the seller never accepted';
-  const refundInput = {
-    operationKey: refundMovementKey(jobId),
-    amountUsdc: refundAmountUsdc,
-    initiatedBy: deal.buyer,
-    buyerAgentAddress,
-    sellerAddress: deal.seller,
-    jobId,
-    summary: `Took back ${refundAmountUsdc} USDC from a deal the seller never accepted`,
-    escrowAddress: escrowAddressOf(deal),
-    buyerAgentWalletId: deal.buyerAgentWalletId,
-  };
   inFlight.add(jobId);
   try {
-    await ensureEscrowRefundMovement(refundInput);
-    const refundResult = await executeEscrowRefundMovement(refundInput, (options) =>
-      dealEscrowOps.cancelUnaccepted(deal, deal.buyerAgentWalletId!, options),
-    );
-    await patchDeal(jobId, {
-      cancelledAt: Date.now(),
-      cancelKind: 'pre-accept',
-      cancelReason: reason,
-      refundTxHash: refundResult.txHash,
-      ...extra,
-    });
-    void appendActivity({
-      address: deal.buyer,
-      kind: 'refund',
-      id: `escrow-refund:${jobId}`,
-      refId: refundResult.movement.reference,
-      summary: refundInput.summary,
-      amountUsdc: refundAmountUsdc,
-      txHash: refundResult.txHash,
-      jobId,
-      counterparty: deal.seller?.toLowerCase(),
-    });
-    bus.emitEvent({
-      type: 'deal.cancelled',
-      jobId,
-      actor: 'buyer',
-      payload: {
-        buyer: deal.buyer,
-        seller: deal.seller,
-        kind: 'pre-accept',
-        reason,
-        txHash: refundResult.txHash,
-        reference: refundResult.movement.reference,
-      },
-    });
-    return c.json(
-      { accepted: true, jobId, txHash: refundResult.txHash, reference: refundResult.movement.reference },
-      200,
-    );
+    const result = await takeBackUnaccepted(deal, account, { actor: 'buyer', reason: 'buyer took back a deal the seller never accepted', extra });
+    return c.json({ accepted: true, jobId, ...result }, 200);
   } catch (err) {
+    if (err instanceof TakeBackRefused) {
+      return c.json(err.code === 'ESCROW_EMPTY' ? { error: err.message, code: err.code } : { error: err.message }, 409);
+    }
     const info = classifyAgentError(err);
     logger.error({ jobId, code: info.code, err: info.raw }, 'v3 cancel of an unaccepted deal failed');
     return c.json({ error: 'cancel failed', code: info.code, detail: info.message }, 502);
@@ -5582,6 +5529,9 @@ async function partyView(enriched: Awaited<ReturnType<typeof enrich>>, viewer: '
   const input: DealViewInput = {
     ...enriched,
     evidenceReceiptState: enriched.evidenceReceipt?.state,
+    acceptUntilMs: enriched.escrowVersion === 'suite' && enriched.escrowTerms && 'acceptBy' in enriched.escrowTerms
+      ? Number(enriched.escrowTerms.acceptBy) * 1000
+      : undefined,
     checkedAt: enriched.evidenceManualReviewActive
       ? enriched.evidenceManualReview?.at
       : enriched.evidenceReceipt?.state === 'pass' && enriched.evidenceReceipt.recordedAt != null

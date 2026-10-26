@@ -628,7 +628,7 @@ export interface DirectDealOnChain {
   deliveredAtMs?: number | null;
   claimDeadlineMs?: number | null;
   /// Which escrow holds the money. Absent on older responses reads as 'v2'.
-  escrowVersion?: 'v2' | 'v3';
+  escrowVersion?: 'v2' | 'v3' | 'suite';
   /// The terms-driven escrow's own state, present on v3 deals only.
   v3?: DirectDealOnChainV3;
 }
@@ -696,7 +696,7 @@ export interface DealView {
     actor: 'you' | 'counterparty' | 'nobody';
     amountUsdc: string | null;
   };
-  automatic: { kind: 'auto-release' | 'deadline-reclaim' | 'reclaim-waits' | 'acceptance-expiry'; at: number } | null;
+  automatic: { kind: 'auto-release' | 'deadline-reclaim' | 'reclaim-waits' | 'acceptance-expiry' | 'unaccepted-refund'; at: number } | null;
   /// Settled escrow-family deals only: on both sides' records (true), waiting
   /// for the record (false), or a side had no record when it was paid in (null).
   onBothRecords?: boolean | null;
@@ -1005,6 +1005,8 @@ export interface DirectDeal {
   /// deal back to a "pending" stage and reappear in the pending bands.
   settledAt?: number;
   fundTxHash?: string;
+  /// Which escrow holds the money: 'v3' and 'suite' are the escrows with their own deal id.
+  escrowVersion?: 'v2' | 'v3' | 'suite';
   /// Durable Karwan movement references belonging to this deal and visible to
   /// the signed-in party. Empty/absent means no funded movement is recorded.
   receiptReferences?: string[];

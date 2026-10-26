@@ -112,7 +112,7 @@ export function automaticLine(
   view: DealView,
   copy: Copy,
   locale: string,
-  you?: { autoReleaseYou: string; reclaimYou: string; reclaimWaitsYou: string },
+  you?: { autoReleaseYou: string; reclaimYou: string; reclaimWaitsYou: string; unacceptedRefundYou: string },
 ): string | null {
   if (!view.automatic) return null;
   const date = formatDealDate(view.automatic.at, locale);
@@ -121,5 +121,6 @@ export function automaticLine(
     case 'deadline-reclaim': return fill(you?.reclaimYou ?? copy.automatic.deadlineReclaimTemplate, { date });
     case 'reclaim-waits': return you?.reclaimWaitsYou ?? copy.automatic.reclaimWaitsSeller;
     case 'acceptance-expiry': return fill(copy.automatic.acceptanceExpiryTemplate, { date });
+    case 'unaccepted-refund': return fill(you?.unacceptedRefundYou ?? copy.automatic.unacceptedRefundTemplate, { date });
   }
 }
