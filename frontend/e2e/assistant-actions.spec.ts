@@ -13,7 +13,7 @@ async function assistantWith(page: Page, card: Record<string, unknown>) {
   });
   await page.goto('/assistant');
   await page.locator('#assistant-ask').fill('do it');
-  await page.locator('#assistant-ask').press('Enter');
+  await page.locator('form:has(#assistant-ask) button[type="submit"]').click();
 }
 
 test('a deal insurance card takes out each position on it, as the deal insurance page does', async ({ page }) => {
@@ -113,6 +113,46 @@ test('paying a payment link from the assistant sends from the balance, then mark
   await expect(page.getByText('Paid. They see it on their payment link.')).toBeVisible();
   expect(sent).toEqual([{ recipient: ADA, amountUsdc: 25, bridgeId: `pay-pay_payment_link-${TOKEN}-n1` }]);
   expect(reported).toEqual([{ txHash: TX, chain: 'Arc' }]);
+});
+
+test('Enter sends on a computer and adds a line on a phone', async ({ page }, testInfo) => {
+  let asked = 0;
+  await serveMoney(page, { balances: funded });
+  await page.route(`${API}/api/assistant/**`, (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === '/api/assistant/chat') { asked += 1; return route.fulfill({ json: { reply: 'Hello.' } }); }
+    if (path === '/api/assistant/conversations' && route.request().method() === 'GET') return route.fulfill({ json: { conversations: [] } });
+    return route.fulfill({ json: { conversation: { id: 'c-1', title: 'New', createdAt: 1, updatedAt: 1, messages: [] } } });
+  });
+  await page.goto('/assistant');
+  const ask = page.locator('#assistant-ask');
+  await ask.fill('first line');
+  await ask.press('Enter');
+  if (testInfo.project.name === 'phone') {
+    await expect(ask).toHaveValue('first line\n');
+    expect(asked).toBe(0);
+  } else {
+    await expect(page.getByText('Hello.')).toBeVisible();
+    expect(asked).toBe(1);
+  }
+});
+
+test('a test USDC card from the assistant asks the faucet for the wallet it names', async ({ page }) => {
+  const ME = `0x${'a'.repeat(40)}`;
+  const asked: unknown[] = [];
+  await serveMoney(page, { balances: funded });
+  await page.route(`${API}/api/activation/faucet`, (route) => {
+    asked.push(route.request().postDataJSON());
+    return route.fulfill({ json: { ok: true, target: 'buyer', address: `0x${'b'.repeat(40)}` } });
+  });
+  await assistantWith(page, {
+    kind: 'confirm', id: 'test_usdc:buyer:n1', intent: 'test_usdc', title: 'Get test USDC',
+    summary: "Circle's testnet faucet sends about 20 test USDC.", fields: [{ label: 'To', value: 'Your buying agent' }],
+    payload: { address: ME, target: 'buyer' }, confirmLabel: 'Get test USDC', cancelLabel: 'Not now',
+  });
+  await page.getByRole('button', { name: 'Get test USDC', exact: true }).click();
+  await expect(page.getByText('Asked the faucet. Test USDC usually lands within a minute.')).toBeVisible();
+  expect(asked).toEqual([{ address: ME, target: 'buyer' }]);
 });
 
 test('a settings card from the assistant saves only what it names', async ({ page }) => {

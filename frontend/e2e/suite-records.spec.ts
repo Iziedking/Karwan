@@ -71,7 +71,7 @@ for (const [theme, locale] of [['light', 'en'], ['dark', 'en'], ['light', 'ar'],
     });
     await page.goto('/assistant');
     await page.getByRole('textbox').fill('Set up my record');
-    await page.getByRole('textbox').press('Enter');
+    await page.locator('form:has(#assistant-ask) button[type="submit"]').click();
     await expect(page.getByText(recordCard.title, { exact: true })).toBeVisible();
     await expect(page.getByText(recordCard.summary)).toBeVisible();
     // UI law v2: 44px targets, on both of the card's buttons.

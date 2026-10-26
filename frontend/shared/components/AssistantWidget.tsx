@@ -15,6 +15,7 @@ import {
 } from '@/shared/hooks/useFloatingClearance';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { isAssistantRoute, isPublicEditorialRoute } from '@/shared/utils/routes';
+import { enterSends, touchKeyboard } from '@/shared/utils/enterSends';
 import { Icon } from '@/shared/components/Icon';
 
 interface LiveMsg {
@@ -282,7 +283,7 @@ export function AssistantWidget() {
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (enterSends({ key: e.key, shiftKey: e.shiftKey, isComposing: e.nativeEvent.isComposing }, touchKeyboard())) {
       e.preventDefault();
       send();
     }

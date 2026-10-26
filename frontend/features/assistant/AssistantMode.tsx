@@ -23,6 +23,7 @@ import { takeReturn } from './assistantReturn';
 import { conversationToResume, NEW_CHAT, readOpenConversation, rememberOpenConversation } from './resumeConversation';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { pastedFile } from '@/shared/utils/pastedFile';
+import { enterSends, touchKeyboard } from '@/shared/utils/enterSends';
 import { isOfferCaption } from '@/shared/assistant/offerCaption';
 
 const ATTACHABLE = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
@@ -382,7 +383,7 @@ function AssistantPage() {
                   take(e.clipboardData.files[i]!);
                 }}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
+                  if (enterSends({ key: e.key, shiftKey: e.shiftKey, isComposing: e.nativeEvent.isComposing }, touchKeyboard())) {
                     e.preventDefault();
                     void send(input);
                   }

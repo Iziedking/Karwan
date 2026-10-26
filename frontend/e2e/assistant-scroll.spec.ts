@@ -24,7 +24,7 @@ test('a sent message comes into view, and the jump button returns to the newest'
 
   for (const n of [1, 2, 3]) {
     await ask.fill(`Question ${n}`);
-    await ask.press('Enter');
+    await page.locator('form:has(#assistant-ask) button[type="submit"]').click();
     await expect(page.getByText(`Question ${n}`, { exact: true })).toBeInViewport();
     await expect.poll(() => replies).toBe(n);
     release();

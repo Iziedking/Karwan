@@ -43,7 +43,7 @@ test('a pasted picture waits in the box, then goes with the words and shows in t
   expect(calls.attach).toEqual([]);
 
   await page.locator('#assistant-ask').fill('selling this for 50 USDC');
-  await page.locator('#assistant-ask').press('Enter');
+  await page.locator('form:has(#assistant-ask) button[type="submit"]').click();
 
   await expect(page.getByText('Your offer is ready to post.')).toBeVisible();
   await expect(page.locator('img[src^="blob:"]')).toHaveCount(1);
@@ -60,7 +60,7 @@ test('a picture sent alone asks what it is for, and can be removed before sendin
   await expect(page.getByRole('img', { name: 'shot.png' })).toHaveCount(0);
 
   await pastePicture(page);
-  await page.locator('#assistant-ask').press('Enter');
+  await page.locator('form:has(#assistant-ask) button[type="submit"]').click();
   await expect(page.getByText('What is this photo for?')).toBeVisible();
   expect(calls.attach).toEqual([]);
 });
