@@ -450,7 +450,7 @@ const envSchema = z.object({
   // the statement window after a buyer dispute is refunded against. Off until
   // the testnet run passes.
   DISPUTE_DEADLINE_RULE_ENABLED: envBool('DISPUTE_DEADLINE_RULE_ENABLED'),
-  DISPUTE_STATEMENT_WINDOW_MS: z.coerce.number().int().positive().default(172_800_000),
+  DISPUTE_STATEMENT_WINDOW_MS: z.coerce.number().int().positive().default(259_200_000),
   // The guard judge proposes a split once both statements are in or the
   // window closes. Proposal only: a reviewer confirms every ruling, so it is
   // on by default; this switches it off.

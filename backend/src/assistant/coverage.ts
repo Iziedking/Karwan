@@ -57,7 +57,7 @@ export const COVERAGE: Record<string, Coverage> = {
   'POST /api/deals/direct/:/release': { by: 'assistant', via: 'release_milestone' },
   'POST /api/deals/direct/:/extension/request': { by: 'assistant', via: 'request_extension' },
   'POST /api/deals/direct/:/extension/respond': { by: 'assistant', via: 'respond_extension' },
-  'POST /api/deals/direct/:/appeal': { by: 'assistant', via: 'ask_for_payment' },
+  'POST /api/deals/direct/:/appeal': { by: 'assistant', via: 'raise_problem' },
   'POST /api/deals/direct/:/dispute/statement': { by: 'assistant', via: 'dispute_statement' },
   'POST /api/deals/direct/:/dispute/escalate': { by: 'assistant', via: 'escalate_dispute' },
   'POST /api/deals/direct/:/cancel/propose': { by: 'assistant', via: 'cancel_deal' },

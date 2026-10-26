@@ -1,3 +1,4 @@
+import { MAX_REVIEW_DAYS } from '../deals/reviewClock.js';
 import { tool } from 'ai';
 import { z } from 'zod';
 import { formatUnits, parseUnits } from 'viem';
@@ -103,7 +104,7 @@ export function directDealTools(address: string, actions: AssistantAction[], con
         deliverInDays: z.number().int().min(1).max(180).optional(),
         deliverBy: z.string().max(10).optional().describe('Due date as YYYY-MM-DD when the user gave a date.'),
         payments: z.array(z.number().int().min(1).max(100)).min(1).max(5).optional().describe('Payment parts in percent, adding to 100, e.g. [50, 50]. Omit for one payment.'),
-        reviewDays: z.number().int().min(1).max(90).optional().describe('Days the buyer has to check each delivery, only if the user set it.'),
+        reviewDays: z.number().int().min(1).max(MAX_REVIEW_DAYS).optional().describe('Days the buyer has to check each delivery, only if the user set it.'),
         acceptWithinHours: z.number().min(0.25).max(720).optional().describe('Hours the seller has to accept. Omit for the default 24.'),
         tradeType: z.enum(['service', 'goods', 'mixed']).optional(),
         incoterms: z.enum(['EXW', 'FCA', 'FOB', 'CIF', 'DAP', 'DDP']).optional().describe('Goods only.'),

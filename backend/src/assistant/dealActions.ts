@@ -45,11 +45,11 @@ export interface EscalateDisputeConfirm extends ConfirmActionBase {
   intent: 'escalate_dispute';
   payload: { jobId: string; caller: string };
 }
-/// Escrow family: the seller asks for payment after the buyer let review time
-/// pass in silence (view 27 decision 7); the buyer then has 72 hours to answer.
-export interface AskForPaymentConfirm extends ConfirmActionBase {
-  intent: 'ask_for_payment';
-  payload: { jobId: string; caller: string };
+/// Either side raises a problem with a delivery: the deal goes to dispute and
+/// each side has 72 hours to give their side; a side that stays silent loses.
+export interface RaiseProblemConfirm extends ConfirmActionBase {
+  intent: 'raise_problem';
+  payload: { jobId: string; caller: string; reason: string };
 }
 export interface DeclineDealConfirm extends ConfirmActionBase {
   intent: 'decline_deal';
@@ -160,7 +160,7 @@ export type DealStepConfirm =
   | CancelDealConfirm
   | DisputeStatementConfirm
   | EscalateDisputeConfirm
-  | AskForPaymentConfirm
+  | RaiseProblemConfirm
   | DeclineDealConfirm;
 
 export function buildChooseOfferConfirm(i: {
@@ -430,24 +430,28 @@ export function buildEscalateDisputeConfirm(i: {
   };
 }
 
-export function buildAskForPaymentConfirm(i: {
+export function buildRaiseProblemConfirm(i: {
   caller: string;
   jobId: string;
   amountUsdc: string;
-}): AskForPaymentConfirm | { error: string } {
+  reason: string;
+}): RaiseProblemConfirm | { error: string } {
   if (!i.jobId) return { error: 'Missing the deal id.' };
+  const reason = i.reason.trim();
+  if (!reason) return { error: 'Ask them what is wrong, in a sentence.' };
   return {
     kind: 'confirm',
-    id: `ask_for_payment:${i.jobId}:${confirmNonce()}`,
-    intent: 'ask_for_payment',
-    title: 'Ask for payment',
-    summary: 'The buyer did not respond after their review time. They get 72 hours to answer; if they do not, the payment is yours.',
+    id: `raise_problem:${i.jobId}:${confirmNonce()}`,
+    intent: 'raise_problem',
+    title: 'Raise a problem',
+    summary: 'The payment stays held while this is looked at. You and the other side each have 72 hours to give your side; a side that stays silent loses.',
     fields: [
       { label: 'Deal', value: shortId(i.jobId) },
       { label: 'Amount', value: `${i.amountUsdc} USDC` },
+      { label: 'What is wrong', value: reason },
     ],
-    payload: { jobId: i.jobId, caller: i.caller },
-    confirmLabel: 'Ask for payment',
+    payload: { jobId: i.jobId, caller: i.caller, reason },
+    confirmLabel: 'Raise the problem',
     cancelLabel: 'Not now',
   };
 }

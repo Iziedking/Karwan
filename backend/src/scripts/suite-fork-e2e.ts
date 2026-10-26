@@ -27,6 +27,7 @@ import { createPlatformSigners, type PlatformTarget } from '../chain/platformSig
 import type { DirectDeal } from '../db/deals.js';
 import { CHECK_POLICY_V1 } from '../deals/fundDirectV3.js';
 import { createSuiteEarnings, type EarningsMove } from '../deals/suiteEarnings.js';
+import { runSuiteReviewEnd } from '../deals/suiteReviewEnd.js';
 import { bindingTypedData, createSuiteIdentity, KIND, registryAbi } from '../identity/suiteIdentity.js';
 
 /// The escrow-family path end to end on an Arc fork of the deployed suite
@@ -424,6 +425,45 @@ async function full(): Promise<void> {
     "the seller's ruled share moved to their identity wallet, exactly",
     !!movedShare && 'txHash' in movedShare && (await balance(sellerUser)) - beforeShare === BigInt(String(share?.payload?.sellerMicros ?? -1)),
     String(share?.payload?.sellerMicros ?? 'no share event'),
+  );
+
+  // 3. Review, then pay (owner, 25 Oct 2026): a silent buyer's review ends and
+  // the seller is paid by a claim; asking for more time moves the end first.
+  nowSecs = await chainNow();
+  const quiet = await matched(`0x${'03'.repeat(32)}`, 20_000_000n, nowSecs + 5 * DAY);
+  check('a deal for the silent-buyer run funded and accepted', quiet.ok && quiet.accepted, quiet.ok ? quiet.record.escrowDealId : quiet.reason);
+  if (!quiet.ok) return;
+  const quietId = quiet.record.escrowDealId;
+  const quietKey = `0x${'03'.repeat(32)}`;
+  await escrow.markDelivered({ walletId: 'seller-agent', jobId: quietId, proofHash: `0x${'e3'.repeat(32)}`, dealKey: quietKey });
+  const firstEnd = await reads.reviewEnd(D.agreement!, quietId);
+  const early = await escrow.claim({ walletId: 'seller-agent', jobId: quietId, dealKey: quietKey }).then(() => 'paid', (err: Error) => err.message);
+  check('a claim before review ends is refused', early !== 'paid' && (await readView(quietId)).paid === 0, early.slice(0, 60));
+  await escrow.requestMoreTime({ walletId: 'buyer-agent', jobId: quietId, dealKey: quietKey });
+  const laterEnd = await reads.reviewEnd(D.agreement!, quietId);
+  check('asking for more time moves the review end later', laterEnd > firstEnd, `${firstEnd} -> ${laterEnd}`);
+
+  const told: string[] = [];
+  const quietDeal = { jobId: quietKey, buyer: buyerUser, seller: sellerUser, escrowVersion: 'suite', escrowDealId: quietId, sellerAgentWalletId: 'seller-agent', delivered: true } as unknown as DirectDeal;
+  const reviewDeps = {
+    readView: () => readView(quietId),
+    readReviewEnd: () => reads.reviewEnd(D.agreement!, quietId),
+    claim: async () => (await escrow.claim({ walletId: 'seller-agent', jobId: quietId, dealKey: quietKey })).txHash,
+    recordSettlement: async () => undefined,
+    patchDeal: async (_id: string, patch: Partial<DirectDeal>) => Object.assign(quietDeal, patch),
+    emit: (e: { type: string }) => told.push(e.type),
+  };
+  await warp(Number(laterEnd) - (await chainNow()) - 3_600);
+  const reminded = await runSuiteReviewEnd(reviewDeps, quietDeal, (await chainNow()) * 1000);
+  check('the buyer is reminded in the last day of review', reminded === 'remind' && told.includes('deal.review.ending'));
+  await warp(3_600 + 60);
+  const agentBefore = await balance(accounts['seller-agent']!.address);
+  const claimed = await runSuiteReviewEnd(reviewDeps, quietDeal, (await chainNow()) * 1000);
+  const quietView = await readView(quietId);
+  check(
+    'a silent buyer: the seller is paid when review ends',
+    claimed === 'claim' && quietView.state === DEAL_STATE.Settled && (await balance(accounts['seller-agent']!.address)) > agentBefore,
+    `state ${quietView.state}`,
   );
 }
 

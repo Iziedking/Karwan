@@ -1,4 +1,5 @@
 import { releaseLeg } from '../deals/payoutLeg.js';
+import { MAX_REVIEW_DAYS, reviewHasStarted } from '../deals/reviewClock.js';
 import { SELLER_LINK_DETAIL, sellerAgentBinding, sellerBindingRefusal } from '../deals/sellerBinding.js';
 import { prohibitedBody } from '../policy/prohibited.js';
 import { addrSchema, createSchema, milestonePctsSchema } from '../deals/createSchema.js';
@@ -129,7 +130,6 @@ import { deliveryCheckState } from '../deals/deliveryCheckState.js';
 import { provisionUserAgentWallets } from '../circle/wallets.js';
 import { ensureUserAgentWallets } from '../circle/userAgents.js';
 import { sellerRecordNeeded } from '../deals/sellerRecordGate.js';
-import { BUYER_ANSWER_MS, BUYER_SILENT_REASON, reviewOpenUntil } from '../deals/buyerSilence.js';
 import { suiteIdentity } from '../identity/suiteIdentityLive.js';
 import { seedAgentFromOperator } from '../chain/agentSeed.js';
 import { bus, recentEventsByType } from '../events.js';
@@ -322,7 +322,7 @@ const editSchema = z
     deadlineHours: z.number().int().min(0).max(23).optional(),
     acceptanceWindowHours: z.number().min(0.25).max(720).multipleOf(0.25).optional(),
     terms: z.string().min(1).max(4000).optional(),
-    reviewWindowDays: z.number().int().min(1).max(90).optional(),
+    reviewWindowDays: z.number().int().min(1).max(MAX_REVIEW_DAYS).optional(),
     firstReleasePct: z.number().int().min(1).max(100).optional(),
     milestonePcts: milestonePctsSchema.optional(),
     requireStake: z.boolean().optional(),
@@ -4120,7 +4120,7 @@ dealsRoutes.post('/direct/:jobId/still-reviewing', async (c) => {
   if (body.caller.toLowerCase() !== deal.buyer) {
     return c.json({ error: 'only the buyer can extend the review window' }, 403);
   }
-  if (!deal.reviewWindowStartedAt) {
+  if (!reviewHasStarted(deal)) {
     return c.json({ error: 'review window has not started' }, 409);
   }
   const extensionCount = deal.reviewExtensionCount ?? 0;
@@ -4517,9 +4517,7 @@ dealsRoutes.post('/direct/:jobId/dispute/statement', async (c) => {
   const side: 'buyer' | 'seller' | null =
     caller.toLowerCase() === deal.buyer.toLowerCase() ? 'buyer' : caller.toLowerCase() === deal.seller.toLowerCase() ? 'seller' : null;
   if (!side) return c.json({ error: 'only the buyer or seller of this deal can give a statement', code: 'forbidden' }, 403);
-  // A buyer answering a seller who asked for payment has the whole 72 hours.
-  const statementWindowMs = deal.disputeKind === 'buyer-silent' ? Math.max(config.DISPUTE_STATEMENT_WINDOW_MS, BUYER_ANSWER_MS + 3_600_000) : config.DISPUTE_STATEMENT_WINDOW_MS;
-  if (!statementWindowOpen(deal, Date.now(), statementWindowMs)) {
+  if (!statementWindowOpen(deal, Date.now(), config.DISPUTE_STATEMENT_WINDOW_MS)) {
     return c.json({ error: 'statements are not open on this deal', code: 'STATEMENTS_CLOSED' }, 409);
   }
   if (deal.judgeProposal) {
@@ -4604,38 +4602,21 @@ dealsRoutes.post('/direct/:jobId/appeal', async (c) => {
   if (account.state !== ESCROW_FUNDED && account.state !== ESCROW_ACCEPTED) {
     return c.json({ error: `escrow is not in a disputable state (${account.state})` }, 409);
   }
-  // The escrow family (view 27 decision 7): a seller asks for payment only once
-  // the buyer's review time is over; a buyer disputes only while it runs, and
-  // after that answers inside the seller's dispute.
-  let buyerSilent = false;
-  if (dealEscrowOps.isSuite(deal)) {
-    const openUntil = reviewOpenUntil(account.claimDeadline ?? 0n, Date.now());
-    if (callerRole === 'seller' && openUntil !== null) {
+  // The escrow family takes a buyer's problem only while their review runs
+  // (owner, 25 Oct 2026); after it the payment goes to the seller.
+  if (dealEscrowOps.isSuite(deal) && callerRole === 'buyer') {
+    const end = Number(account.claimDeadline ?? 0n) * 1000;
+    if (end > 0 && Date.now() >= end) {
       return c.json(
-        {
-          error: Number.isFinite(openUntil)
-            ? `The buyer still has time to review this delivery. You can ask for payment from ${new Date(openUntil).toUTCString()}.`
-            : 'The buyer has not started reviewing this delivery yet.',
-          code: 'REVIEW_OPEN',
-        },
+        { error: 'Your review time for this delivery has ended, so the payment goes to the seller.', code: 'REVIEW_ENDED' },
         409,
       );
     }
-    if (callerRole === 'buyer' && openUntil === null) {
-      return c.json(
-        {
-          error: 'Your review time for this delivery has ended. Release the payment, or, if the seller asks for payment, answer with what is wrong within 72 hours.',
-          code: 'REVIEW_ENDED',
-        },
-        409,
-      );
-    }
-    buyerSilent = callerRole === 'seller';
   }
 
   inFlight.add(jobId);
   try {
-    const defaultReason = buyerSilent ? BUYER_SILENT_REASON :
+    const defaultReason =
       callerRole === 'seller'
         ? 'seller appeal: final release overdue'
         : 'buyer appeal: delivery disputed';
@@ -4649,27 +4630,7 @@ dealsRoutes.post('/direct/:jobId/appeal', async (c) => {
     /// inner userOp reverted, so the off-chain `disputed=true` patch below only
     /// runs when the chain actually moved to Disputed.
     const disputeTxHash = await dealEscrowOps.dispute(deal, signerWalletId, reasonHash);
-    const raisedAt = Date.now();
-    await patchDeal(jobId, {
-      disputed: true,
-      disputedAt: raisedAt,
-      disputedBy: callerRole,
-      ...(buyerSilent
-        ? {
-            disputeKind: 'buyer-silent' as const,
-            buyerSilence: {
-              revision: account.v3?.revision ?? 0,
-              paid: account.milestonesReleased,
-              promptedAt: deal.buyerSilence?.promptedAt ?? raisedAt,
-              raisedAt,
-              raisedBy: 'seller' as const,
-            },
-          }
-        : {}),
-    });
-    if (buyerSilent) {
-      bus.emitEvent({ type: 'deal.buyer_silent', jobId, actor: 'seller', payload: { buyer: deal.buyer, seller: deal.seller, stage: 'raised', by: 'seller' } });
-    }
+    await patchDeal(jobId, { disputed: true, disputedAt: Date.now(), disputedBy: callerRole });
     bus.emitEvent({
       type: 'deal.disputed',
       jobId,
@@ -4726,13 +4687,6 @@ dealsRoutes.post('/direct/:jobId/dispute/escalate', async (c) => {
   const v3 = account.v3;
   if (!v3 || v3.state !== DEAL_STATE.Disputed) return c.json({ error: 'this deal is not in dispute' }, 409);
   if (v3.escalated) return c.json({ error: 'this dispute is already with admin review', code: 'already-escalated' }, 409);
-  // Answering a seller who asked for payment takes a reason: the statement goes first.
-  if (role === 'buyer' && deal.disputeKind === 'buyer-silent' && !deal.disputeStatements?.buyer) {
-    return c.json(
-      { error: 'Say what is wrong with the delivery first. That is your answer, and a person on the review team reads it.', code: 'STATEMENT_NEEDED' },
-      409,
-    );
-  }
   if (inFlight.has(jobId)) return c.json({ error: 'an action is already in progress for this deal' }, 409);
   inFlight.add(jobId);
   try {
@@ -5587,11 +5541,6 @@ async function partyView(enriched: Awaited<ReturnType<typeof enrich>>, viewer: '
     onChain: enriched.onChain
       ? { state: enriched.onChain.state, milestonesReleased: enriched.onChain.milestonesReleased, milestonePcts: enriched.onChain.milestonePcts }
       : null,
-    // A buyer-silence dispute's proposal takes effect 72 hours after it was made.
-    silenceAnswerByMs:
-      enriched.disputeKind === 'buyer-silent' && enriched.v3Ruling?.ruleId === 'R5-buyer-silent'
-        ? enriched.v3Ruling.inputs.decidedAt * 1000 + BUYER_ANSWER_MS
-        : undefined,
   };
   const counterpartyRole = viewer === 'buyer' ? 'seller' : 'buyer';
   const highSignal = highSignalStateFor(enriched);
@@ -5740,7 +5689,7 @@ async function enrich(deal: DirectDeal, ctx: EnrichContext = {}) {
       } catch {
         releaseEligibleAtMs = null;
       }
-      // The escrow family keeps the review clock itself; its end is when a seller may ask.
+      // The escrow family keeps the review clock itself; the seller is paid when it ends.
       if (dealEscrowOps.isSuite(deal)) {
         const end = account.claimDeadline ?? 0n;
         releaseEligibleAtMs = end > 0n ? Number(end) * 1000 : null;

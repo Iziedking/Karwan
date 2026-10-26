@@ -3,7 +3,6 @@ import { getNetworkStats } from '../chain/networkStats.js';
 import { getLifetimeStats } from '../chain/lifetimeStats.js';
 import { getCurrentContracts } from '../chain/currentContracts.js';
 import { config } from '../config.js';
-import { suiteFundingEnabled } from '../chain/suiteConfig.js';
 import { recordReadTotals } from '../db/recordReads.js';
 import { paidReadTotals } from '../db/paidReads.js';
 import { listWaitlist } from '../db/waitlist.js';
@@ -23,9 +22,6 @@ networkRoutes.get('/dispute-policy', (c) =>
     delayAppealResponseMs: config.DEAL_DELAY_APPEAL_RESPONSE_MS,
     deadlineReclaimGraceMs: config.DEAL_DEADLINE_RECLAIM_GRACE_MS,
     disputeTimeoutMs: config.DEAL_DISPUTE_TIMEOUT_MS,
-    // On the escrow family nothing pays out on review time alone: the seller
-    // asks and the buyer has 72 hours to answer (view 27 decision 7).
-    buyerSilence: suiteFundingEnabled() ? 'seller_asks' : 'pays_seller',
   }),
 );
 

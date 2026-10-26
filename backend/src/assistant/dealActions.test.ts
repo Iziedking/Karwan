@@ -10,7 +10,7 @@ import {
   buildDisputeStatementConfirm,
   buildEscalateDisputeConfirm,
   buildDeclineDealConfirm,
-  buildAskForPaymentConfirm,
+  buildRaiseProblemConfirm,
   buildGoodsArrivedConfirm,
   buildReviewDeliveryMyselfConfirm,
   buildClaimPaymentConfirm,
@@ -138,15 +138,16 @@ test('choosing an unverified seller says so on the card and carries the acknowle
   assert.equal(verified.payload.acknowledgeUnverified, undefined);
 });
 
-test('asking for payment is one card that says the buyer gets 72 hours', () => {
-  const card = buildAskForPaymentConfirm({ caller: '0xseller', jobId: '0xdeal', amountUsdc: '600' });
+test('raising a problem is one card that names the reason and the 72 hours each side gets', () => {
+  const card = buildRaiseProblemConfirm({ caller: '0xbuyer', jobId: '0xdeal', amountUsdc: '600', reason: '  The logo is the wrong colour  ' });
   assert.ok(!('error' in card));
   if ('error' in card) return;
-  assert.equal(card.intent, 'ask_for_payment');
-  assert.equal(card.title, 'Ask for payment');
+  assert.equal(card.intent, 'raise_problem');
+  assert.equal(card.title, 'Raise a problem');
   assert.match(card.summary ?? '', /72 hours/);
-  assert.deepEqual(card.payload, { jobId: '0xdeal', caller: '0xseller' });
-  assert.deepEqual(buildAskForPaymentConfirm({ caller: '0xseller', jobId: '', amountUsdc: '600' }), { error: 'Missing the deal id.' });
+  assert.deepEqual(card.payload, { jobId: '0xdeal', caller: '0xbuyer', reason: 'The logo is the wrong colour' });
+  assert.deepEqual(buildRaiseProblemConfirm({ caller: '0xbuyer', jobId: '', amountUsdc: '600', reason: 'x' }), { error: 'Missing the deal id.' });
+  assert.deepEqual(buildRaiseProblemConfirm({ caller: '0xbuyer', jobId: '0xdeal', amountUsdc: '600', reason: '  ' }), { error: 'Ask them what is wrong, in a sentence.' });
 });
 
 test('durations read in minutes on testnet windows and in hours or days on real ones', () => {

@@ -31,8 +31,8 @@ import { runV3Attestation, runV3Dispute } from './v3DisputeWatcher.js';
 import { v3WatcherDeps } from './v3DisputeWatcherLive.js';
 import { runSuiteCheck, runSuiteDispute } from './suiteDisputeWatcher.js';
 import { suiteWatcherDeps } from './suiteDisputeWatcherLive.js';
-import { runBuyerSilence } from '../deals/buyerSilence.js';
-import { buyerSilenceDeps } from '../deals/buyerSilenceLive.js';
+import { runSuiteReviewEnd } from '../deals/suiteReviewEnd.js';
+import { suiteReviewEndDeps } from '../deals/suiteReviewEndLive.js';
 import { logger } from '../logger.js';
 import {
   releaseBlockReasonForDelivery,
@@ -250,16 +250,16 @@ async function runSuiteDisputeSafely(deal: DirectDeal, now: number) {
   }
 }
 
-/// Review ended with the buyer silent on an escrow-family deal: ask the seller,
-/// then let their agent raise it after 24 hours. A failure retries next tick.
-async function runBuyerSilenceSafely(deal: DirectDeal, now: number) {
-  const deps = buyerSilenceDeps();
+/// An escrow-family deal near or past the end of the buyer's review: remind the
+/// buyer a day before, pay the seller when it ends. A failure retries next tick.
+async function runSuiteReviewEndSafely(deal: DirectDeal, now: number) {
+  const deps = suiteReviewEndDeps();
   if (!deps || processing.has(deal.jobId)) return;
   processing.add(deal.jobId);
   try {
-    await runBuyerSilence(deps, deal, now);
+    await runSuiteReviewEnd(deps, deal, now);
   } catch (err) {
-    logger.warn({ jobId: deal.jobId, err: (err as Error).message }, 'buyer silence step failed (retried next tick)');
+    logger.warn({ jobId: deal.jobId, err: (err as Error).message }, 'review-end step failed (retried next tick)');
   } finally {
     processing.delete(deal.jobId);
   }
@@ -872,11 +872,12 @@ async function tick() {
         );
       }
 
-      // The escrow family pays nothing on review time alone (view 27 decision 7):
-      // a silent buyer gets a seller dispute and 72 hours to answer instead of
-      // the release ladder below.
+      // The escrow family runs its own review clock: the seller is paid when the
+      // buyer's review ends (owner, 25 Oct 2026), not by the ladder below.
       if (account.version === 'suite') {
-        await runBuyerSilenceSafely(deal, now);
+        // A missed delivery deadline refunds the buyer here too, as on v3.
+        if (await maybeReclaimAfterDeadline(deal, account, now)) continue;
+        await runSuiteReviewEndSafely(deal, now);
         continue;
       }
 

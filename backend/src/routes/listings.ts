@@ -1,3 +1,4 @@
+import { MAX_REVIEW_DAYS } from '../deals/reviewClock.js';
 import { prohibitedBody, prohibitedReason } from '../policy/prohibited.js';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -62,7 +63,7 @@ export const termsDraftSchema = z.object({
     .min(1)
     .max(5)
     .refine((parts) => parts.reduce((sum, part) => sum + part.pct, 0) === 100, { message: 'parts must add up to 100' }),
-  reviewWindowDays: z.number().int().min(1).max(90),
+  reviewWindowDays: z.number().int().min(1).max(MAX_REVIEW_DAYS),
 });
 
 const createSchema = z.object({

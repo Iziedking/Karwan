@@ -1,3 +1,4 @@
+import { MAX_REVIEW_DAYS } from '../deals/reviewClock.js';
 import { prohibitedBody, prohibitedReason } from '../policy/prohibited.js';
 import { Hono, type Context } from 'hono';
 import { z } from 'zod';
@@ -126,7 +127,7 @@ const postJobSchema = z
      *  the deal's terms on a match and is covered by the on-chain terms hash. */
     terms: z.string().min(1).max(4000).optional(),
     /** Days the buyer has to check each delivery; the escrow honours it. */
-    reviewWindowDays: z.number().int().min(1).max(90).optional(),
+    reviewWindowDays: z.number().int().min(1).max(MAX_REVIEW_DAYS).optional(),
     budgetUsdc: z.number().positive().max(5_000_000),
     deadlineDays: z.number().int().min(1).max(90).optional(),
     deadlineSeconds: z

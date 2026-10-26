@@ -306,11 +306,15 @@ export interface DirectDeal {
   /// timer — that case escalates to the human arbiter instead. Absent on deals
   /// disputed before this field existed.
   disputedBy?: 'buyer' | 'seller';
-  /// suite: a dispute the seller (or their agent) raised because the buyer did
-  /// not respond after the review period (deals/buyerSilence.ts).
+  /// suite, 24 Oct 2026 only: a dispute raised for a silent buyer under the rule
+  /// replaced on 25 Oct. Kept so those rows still read; never written now.
   disputeKind?: 'buyer-silent';
-  /// suite: the buyer-silence prompt for one delivery and payment, and who raised it.
   buyerSilence?: { revision: number; paid: number; promptedAt: number; raisedAt?: number; raisedBy?: 'seller' | 'agent' };
+  /// suite: the reminder sent before the buyer's review ends, for one delivery,
+  /// payment and review end (deals/suiteReviewEnd.ts).
+  reviewReminder?: { revision: number; paid: number; endSecs: number };
+  /// suite: a claim the chain refused is tried again from this time.
+  reviewClaimRetryAt?: number;
   /// Each side's answers to the three dispute questions, taken inside the
   /// statement window. Shown to the other side only once both are in or the
   /// window has closed (deals/disputeJudge.ts disputeViewFor).

@@ -126,17 +126,19 @@ test('a seller asked to set up their record gets one plain email, and nobody els
   assert.match(contentFor(paidFirst, 'seller', 'service')!.body, /will not count on your record/);
 });
 
-test('buyer silence emails the seller to ask, and the buyer when to answer', () => {
-  const ev = (payload: Record<string, unknown>) =>
-    ({ type: 'deal.buyer_silent', jobId: '0xdeal', actor: 'platform', ts: 0, payload: { buyer: '0xb', seller: '0xs', ...payload } }) as unknown as KarwanEvent;
-  const prompt = contentFor(ev({ stage: 'prompt' }), 'seller', 'service');
-  assert.equal(prompt!.subject, 'The buyer has not responded. Ask for payment?');
-  assert.match(prompt!.body, /72 hours/);
-  assert.equal(contentFor(ev({ stage: 'prompt' }), 'buyer', 'service'), null);
-  const answer = contentFor(ev({ stage: 'answer', answerBy: Date.UTC(2026, 9, 27, 9, 0) }), 'buyer', 'service');
-  assert.match(answer!.subject, /the payment goes to the seller/);
-  assert.equal(contentFor(ev({ stage: 'answer', answerBy: 1 }), 'seller', 'service'), null);
-  assert.match(contentFor(ev({ stage: 'raised', by: 'agent' }), 'seller', 'service')!.subject, /Your agent asked for payment/);
+test('the buyer is reminded a day before review ends, with the three choices; the seller is not', () => {
+  const ending = { type: 'deal.review.ending', jobId: '0xdeal', actor: 'platform', ts: 0, payload: { buyer: '0xb', seller: '0xs', endsAt: Date.UTC(2026, 9, 27, 9, 0), canAskMoreTime: true } } as unknown as KarwanEvent;
+  const mail = contentFor(ending, 'buyer', 'service');
+  assert.ok(mail);
+  assert.match(mail.subject, /review ends/i);
+  assert.match(mail.body, /release/i);
+  assert.match(mail.body, /more time/i);
+  assert.match(mail.body, /problem/i);
+  assert.match(mail.body, /goes to the seller/);
+  assert.doesNotMatch(mail.body, /—|escrow/i);
+  assert.equal(contentFor(ending, 'seller', 'service'), null);
+  const used = { ...ending, payload: { ...ending.payload, canAskMoreTime: false } } as unknown as KarwanEvent;
+  assert.doesNotMatch(contentFor(used, 'buyer', 'service')!.body, /more time/i);
 });
 
 test('a financier whose offer is short hears how much to add', () => {

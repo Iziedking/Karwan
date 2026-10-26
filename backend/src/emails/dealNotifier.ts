@@ -51,7 +51,7 @@ function financierUrl(): string | undefined {
 // High-signal events only. Keep this list short on purpose.
 const EMAIL_RELEVANT = new Set([
   'agent.suggestion',
-  'deal.buyer_silent',
+  'deal.review.ending',
   'record.setup_needed',
   'deal.extension.requested',
   'deal.dispute.statement',
@@ -166,18 +166,10 @@ async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
     return buyer ? [{ address: buyer, role: 'buyer' }] : [];
   }
-  if (e.type === 'deal.buyer_silent') {
-    // The seller is asked, and told when their agent asked; the buyer is told when to answer.
-    const stage = e.payload?.stage;
-    if (stage === 'answer') {
-      const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
-      return buyer ? [{ address: buyer, role: 'buyer' }] : [];
-    }
-    if (stage === 'prompt' || (stage === 'raised' && e.payload?.by === 'agent')) {
-      const seller = (e.payload?.seller as string | undefined)?.toLowerCase();
-      return seller ? [{ address: seller, role: 'seller' }] : [];
-    }
-    return [];
+  if (e.type === 'deal.review.ending') {
+    // The buyer's choices before their review ends are the buyer's alone.
+    const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
+    return buyer ? [{ address: buyer, role: 'buyer' }] : [];
   }
   if (e.type === 'agent.suggestion' || e.type === 'record.setup_needed') {
     // "Ask me first", and the record reminder: only the seller it is about.
@@ -416,37 +408,16 @@ export function contentFor(
             ctaUrl: dealUrl(e.jobId),
           };
     }
-    case 'deal.buyer_silent': {
-      const stage = e.payload?.stage;
-      if (stage === 'answer') {
-        if (role !== 'buyer') return null;
-        const by = closesLabel(e.payload?.answerBy);
-        return {
-          kicker: 'Your deal',
-          subject: `Answer by ${by} or the payment goes to the seller`,
-          heading: 'The seller asked for payment',
-          body: `Your review time ended without a release or a problem raised, so the seller asked for payment. If something is wrong with the delivery, say what on the deal page by ${by}; a person on the review team reads it. If you do not answer, the payment goes to the seller.`,
-          ctaLabel: 'Open the deal',
-          ctaUrl: dealUrl(e.jobId),
-        };
-      }
-      if (role !== 'seller') return null;
-      if (stage === 'raised') {
-        return {
-          kicker: 'Your agent',
-          subject: 'Your agent asked for payment',
-          heading: 'The buyer did not respond',
-          body: 'The buyer did not respond after their review time, so your agent asked for payment for you. The buyer has 72 hours to answer; if they do not, the payment is yours.',
-          ctaLabel: 'Open the deal',
-          ctaUrl: dealUrl(e.jobId),
-        };
-      }
+    case 'deal.review.ending': {
+      if (role !== 'buyer') return null;
+      const by = closesLabel(e.payload?.endsAt);
+      const more = e.payload?.canAskMoreTime === true;
       return {
         kicker: 'Your deal',
-        subject: 'The buyer has not responded. Ask for payment?',
-        heading: 'Review time has ended',
-        body: 'The buyer did not release or raise a problem before their review time ended. Ask for payment in one tap: the buyer then has 72 hours to answer, and if they do not, the payment is yours. If you do nothing, your agent asks for you in 24 hours.',
-        ctaLabel: 'Ask for payment',
+        subject: `Your review ends ${by}`,
+        heading: 'Check the delivery before your review ends',
+        body: `Your time to check this delivery ends ${by}. Release the payment if it is right${more ? ', ask once for more time if you need it,' : ''} or raise a problem with what is wrong. If you do nothing, the payment goes to the seller when your review ends.`,
+        ctaLabel: 'Open the deal',
         ctaUrl: dealUrl(e.jobId),
       };
     }

@@ -10,6 +10,7 @@ import { assistantShortlistNote, assistantView, isVerified } from '../agents/sho
 import { levelOf } from '../verification/live.js';
 import { isRequestOwner } from '../agents/chooseOffer.js';
 import { statementWindowOpen } from '../deals/disputeJudge.js';
+import { reviewHasStarted } from '../deals/reviewClock.js';
 import { hasEquivalentConfirm, type AssistantAction, type ConfirmAction } from './actions.js';
 import {
   buildChooseOfferConfirm,
@@ -21,7 +22,7 @@ import {
   buildDisputeStatementConfirm,
   buildEscalateDisputeConfirm,
   buildDeclineDealConfirm,
-  buildAskForPaymentConfirm,
+  buildRaiseProblemConfirm,
   buildGoodsArrivedConfirm,
   buildReviewDeliveryMyselfConfirm,
   buildClaimPaymentConfirm,
@@ -49,7 +50,6 @@ import { listListingsForSeller } from '../db/listings.js';
 import { getAgentWallets } from '../db/agentWallets.js';
 import { getSellerBidFlags } from '../agents/seller.js';
 import { agreementEscrowAddress, readAgreementReviewEnd } from '../chain/agreementEscrowLive.js';
-import { reviewOpenUntil } from '../deals/buyerSilence.js';
 
 /// Tools for every step after a request or deal is posted. Each one reads the
 /// live record, refuses when it is not this person's move, and only prepares a
@@ -414,51 +414,23 @@ export function dealStepTools(address: string, actions: AssistantAction[], deps:
         }),
     }),
 
-    propose_ask_for_payment: tool({
+    propose_raise_problem: tool({
       description:
-        "Prepare a confirm card for the SELLER to ask for payment on a deal held by the new escrow, once the buyer's review time has ended without a release or a problem raised. The buyer then has 72 hours to answer; with no answer the payment goes to the seller. Use for 'ask for payment', 'the buyer is not answering', 'get my money'.",
-      inputSchema: z.object({ jobId: jobIdField.describe('The deal id.') }),
-      execute: async ({ jobId }) =>
-        guarded('propose_ask_for_payment', async () => {
+        "Prepare a confirm card for the BUYER or the SELLER to raise a problem with a delivered deal: the payment stays held and the deal goes to dispute, where each side has 72 hours to give their side and a silent side loses. A buyer can raise one only while their review time runs; when it ends the payment goes to the seller. Ask what is wrong in a sentence first. Use for 'something is wrong', 'the work is not what we agreed', 'open a dispute'.",
+      inputSchema: z.object({ jobId: jobIdField.describe('The deal id.'), reason: z.string().min(1).max(400).describe('What is wrong, in their words.') }),
+      execute: async ({ jobId, reason }) =>
+        guarded('propose_raise_problem', async () => {
           const found = await partyDeal(jobId, address);
           if ('error' in found) return found;
           const { deal, side } = found;
-          if (side !== 'seller') return { error: 'Only the seller asks for payment. The buyer releases it from the deal page.' };
-          if (deal.escrowVersion !== 'suite') return { error: 'This deal pays out on its own timer; nothing to ask for.' };
-          if (!deal.delivered) return { error: 'Mark the work delivered first.' };
-          if (deal.disputed) return { error: 'This deal already has an open dispute.' };
+          if (!deal.delivered) return { error: side === 'buyer' ? 'Nothing has been delivered yet. If the deadline passes, you can take the money back.' : 'Mark the work delivered first.' };
+          if (deal.disputed) return { error: 'This deal already has an open dispute. Give your side with the dispute statement.' };
           if (deal.settledAt || deal.cancelledAt) return { error: 'That deal is no longer open.' };
-          if (agreementEscrowAddress && deal.escrowDealId) {
-            const openUntil = reviewOpenUntil(await readAgreementReviewEnd(agreementEscrowAddress, deal.escrowDealId as `0x${string}`), Date.now());
-            if (openUntil !== null) {
-              return { error: Number.isFinite(openUntil) ? `The buyer still has review time until ${new Date(openUntil).toUTCString()}.` : 'The buyer has not started reviewing yet.' };
-            }
+          if (side === 'buyer' && deal.escrowVersion === 'suite' && agreementEscrowAddress && deal.escrowDealId) {
+            const end = Number(await readAgreementReviewEnd(agreementEscrowAddress, deal.escrowDealId as `0x${string}`)) * 1000;
+            if (end > 0 && Date.now() >= end) return { error: 'Your review time for this delivery has ended, so the payment goes to the seller.' };
           }
-          return offer(actions, buildAskForPaymentConfirm({ caller: address, jobId, amountUsdc: deal.dealAmountUsdc }));
-        }),
-    }),
-
-    list_sellers_own_offers: tool({
-      description:
-        "List the offers sellers made THEMSELVES on a request (price, delivery date, note), as the request page shows them. The request's owner sees every live one with what they would pay in; a seller sees only their own. Call before propose_accept_offer or propose_withdraw_offer. Agent bids are listed by list_offers_on_request instead.",
-      inputSchema: z.object({ jobId: jobIdField.describe('The request id.') }),
-      execute: async ({ jobId }) =>
-        guarded('list_sellers_own_offers', async () => {
-          const view = await viewOffers(address, jobId);
-          if (view.role === 'visitor') return { error: 'Sign in to see offers.' };
-          const names = await personNames(view.offers.map((o) => o.sellerUser));
-          return {
-            role: view.role,
-            offers: view.offers.map((o) => ({
-              offerId: o.id,
-              seller: names.get(o.sellerUser) ?? 'A Karwan seller',
-              priceUsdc: o.priceUsdc,
-              ...(o.fundedUsdc ? { paidInWithFeeUsdc: o.fundedUsdc } : {}),
-              deliverBy: new Date(o.deliverByUnix * 1000).toISOString().slice(0, 10),
-              note: o.note,
-            })),
-            note: view.offers.length ? 'Never show offerId. Use it with propose_accept_offer or propose_withdraw_offer.' : 'No live offers from sellers on this request.',
-          };
+          return offer(actions, buildRaiseProblemConfirm({ caller: address, jobId, amountUsdc: deal.dealAmountUsdc, reason }));
         }),
     }),
 
@@ -589,7 +561,7 @@ export function dealStepTools(address: string, actions: AssistantAction[], deps:
 
     propose_claim_payment: tool({
       description:
-        "Prepare a confirm card for the SELLER to claim the next payment on a deal held by the earlier escrow, once the buyer's review time ended with no release and no problem raised. On a deal held by the new escrow use propose_ask_for_payment instead. Use for 'claim my payment', 'the buyer never released'.",
+        "Prepare a confirm card for the SELLER to claim the next payment on a deal held by the earlier escrow, once the buyer's review time ended with no release and no problem raised. On a deal held by the new escrow the seller is paid by itself when the review ends. Use for 'claim my payment', 'the buyer never released'.",
       inputSchema: z.object({ jobId: jobIdField.describe('The deal id.') }),
       execute: async ({ jobId }) =>
         guarded('propose_claim_payment', async () => {
@@ -597,7 +569,7 @@ export function dealStepTools(address: string, actions: AssistantAction[], deps:
           if ('error' in found) return found;
           const { deal, side } = found;
           if (side !== 'seller') return { error: 'Only the seller claims a payment. The buyer releases it.' };
-          if (deal.escrowVersion === 'suite') return { error: 'This deal is on the new escrow. Use propose_ask_for_payment.' };
+          if (deal.escrowVersion === 'suite') return { error: 'This deal pays you by itself when the buyer’s review time ends.' };
           if (deal.settledAt || deal.cancelledAt) return { error: 'That deal is closed.' };
           if (deal.disputed) return { error: 'This deal has an open dispute, so nothing can be claimed.' };
           if (!deal.delivered) return { error: 'Mark the work delivered first.' };
@@ -616,7 +588,7 @@ export function dealStepTools(address: string, actions: AssistantAction[], deps:
           const { deal, side } = found;
           if (side !== 'buyer') return { error: 'Only the buyer adds review time.' };
           if (deal.settledAt || deal.cancelledAt) return { error: 'That deal is closed.' };
-          if (!deal.reviewWindowStartedAt) return { error: 'Their review time has not started on this deal.' };
+          if (!reviewHasStarted(deal)) return { error: 'Their review time has not started on this deal.' };
           const terms = deal.escrowVersion === 'v3' || deal.escrowVersion === 'suite'
             ? (deal.escrowTerms as { maxExtensions?: number; extensionSecs?: number } | undefined)
             : undefined;
@@ -643,6 +615,7 @@ export function dealStepTools(address: string, actions: AssistantAction[], deps:
           const open = (deal.delayAppealRaisedAt ?? 0) > (deal.delayAppealRespondedAt ?? 0);
           if (action === 'raise') {
             if (side !== 'seller') return { error: 'Only the seller asks the buyer to release.' };
+            if (deal.escrowVersion === 'suite') return { error: 'This deal pays you by itself when the buyer’s review time ends.' };
             if (!deal.reviewWindowStartedAt) return { error: 'No payment has been released yet, so there is nothing to appeal.' };
             if (open) return { error: 'An appeal is already waiting on the buyer.' };
             const eligibleAt = (deal.lastReleaseAt ?? deal.reviewWindowStartedAt) + config.DEAL_DELAY_APPEAL_GRACE_MS;

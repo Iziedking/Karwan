@@ -119,7 +119,7 @@ export type KarwanEventType =
   /// A seller is asked to set up their Karwan record: their agent waits to offer, or a deal was paid in before they had one.
   | 'record.setup_needed'
   /// suite: review ended with the buyer silent: the seller is asked, the agent raised it, or the buyer has 72 hours to answer.
-  | 'deal.buyer_silent'
+  | 'deal.review.ending'
   | 'agent.declined'
   | 'agent.error'
   | 'agent.fallback'

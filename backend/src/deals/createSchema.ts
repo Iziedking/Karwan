@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MAX_REVIEW_DAYS } from './reviewClock.js';
 
 /// What a direct deal is made of, in one place: POST /api/deals/direct
 /// validates with it, and so does the assistant before it shows a deal card
@@ -46,7 +47,7 @@ export const createSchema = z
     terms: z.string().min(1).max(4000),
     /// Days the buyer has to check each delivery. Lengthens the escrow's
     /// release window to match what the terms say; unset keeps the default.
-    reviewWindowDays: z.number().int().min(1).max(90).optional(),
+    reviewWindowDays: z.number().int().min(1).max(MAX_REVIEW_DAYS).optional(),
     firstReleasePct: z.number().int().min(1).max(100),
     /// Every part of the payment when there are more than two. Must start with
     /// firstReleasePct and add up to 100.
