@@ -12,6 +12,9 @@ test('guide cites only sources, pages, endpoints and tools that exist', () => {
   const agent = ['./agent.ts', './dealTools.ts', './verificationTools.ts', './networkTools.ts', './directDealTools.ts', './chatTools.ts', './locationTools.ts', './messageTools.ts', './ratingTools.ts', './counterpartyTools.ts', './memoryTools.ts', './passportShareTools.ts', './financeTools.ts', './moneyTools.ts', './accountTools.ts'].map((f) => readFileSync(new URL(f, import.meta.url), 'utf8')).join('\n');
   const agentTools =new Set([...agent.matchAll(/^    (\w+): tool\(\{/gm)].map((m) => m[1]!));
   assert.ok(agentTools.size > 30, 'tool parse');
+  // Descriptions and error text tell the model which tool to call next, so
+  // every tool they name has to exist too.
+  for (const [name] of agent.matchAll(/\b(?:list|propose|get|ask|whats)_[a-z_]+\b/g)) assert.ok(agentTools.has(name), `named tool ${name}`);
   for (const entry of PLATFORM_GUIDE) {
     for (const source of entry.sources) assert.ok(existsSync(new URL('../../../' + source, import.meta.url)), source);
     for (const page of [entry.route, ...entry.pages]) assert.ok(pageExists(page), `${entry.id}: page ${page}`);

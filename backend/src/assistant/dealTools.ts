@@ -434,6 +434,30 @@ export function dealStepTools(address: string, actions: AssistantAction[], deps:
         }),
     }),
 
+    list_sellers_own_offers: tool({
+      description:
+        "List the offers sellers made THEMSELVES on a request (price, delivery date, note), as the request page shows them. The request's owner sees every live one with what they would pay in; a seller sees only their own. Call before propose_accept_offer or propose_withdraw_offer. Agent bids are listed by list_offers_on_request instead.",
+      inputSchema: z.object({ jobId: jobIdField.describe('The request id.') }),
+      execute: async ({ jobId }) =>
+        guarded('list_sellers_own_offers', async () => {
+          const view = await viewOffers(address, jobId);
+          if (view.role === 'visitor') return { error: 'Sign in to see offers.' };
+          const names = await personNames(view.offers.map((o) => o.sellerUser));
+          return {
+            role: view.role,
+            offers: view.offers.map((o) => ({
+              offerId: o.id,
+              seller: names.get(o.sellerUser) ?? 'A Karwan seller',
+              priceUsdc: o.priceUsdc,
+              ...(o.fundedUsdc ? { paidInWithFeeUsdc: o.fundedUsdc } : {}),
+              deliverBy: new Date(o.deliverByUnix * 1000).toISOString().slice(0, 10),
+              note: o.note,
+            })),
+            note: view.offers.length ? 'Never show offerId. Use it with propose_accept_offer or propose_withdraw_offer.' : 'No live offers from sellers on this request.',
+          };
+        }),
+    }),
+
     propose_make_offer: tool({
       description:
         "Prepare a confirm card for a SELLER to make their own offer on someone else's open request: a price in USDC, how many days to deliver, and a short note to the buyer (280 characters at most). It replaces any bid their agent made there. Use for 'offer 120 on that request', 'I can do it for 80 in 5 days'.",
