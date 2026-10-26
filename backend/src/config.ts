@@ -409,7 +409,7 @@ const envSchema = z.object({
   // with it. Bump the default rather than setting the env per environment: an
   // env that goes unset silently keeps serving the old version while the
   // frontend footer already shows the new one.
-  TERMS_CURRENT_VERSION: z.string().regex(/^\d+\.\d+\.\d+$/).default('2.2.0'),
+  TERMS_CURRENT_VERSION: z.string().regex(/^\d+\.\d+\.\d+$/).default('2.3.0'),
   /// Mainnet invite list, comma or space separated emails. Read at start, so a
   /// recreated container picks up changes. Adds to the admin-managed list.
   MAINNET_INVITES: z.string().optional(),

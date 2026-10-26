@@ -8,13 +8,13 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 /// `docs/terms-and-conditions.md`; bumping the `TERMS_CURRENT_VERSION` env on
 /// the backend AND editing the version here together is what triggers a
 /// re-prompt across the product.
-export const TERMS_LAST_UPDATED = '2026-08-08';
+export const TERMS_LAST_UPDATED = '2026-10-26';
 
 /// Bump this in lockstep with the backend's TERMS_CURRENT_VERSION when the
 /// visible text changes materially. The modal records whatever the backend
 /// says is current, so the source of truth for "is this user up to date" lives
 /// on the backend; this constant is just for the human-visible footer.
-export const TERMS_DISPLAY_VERSION = '2.2.0';
+export const TERMS_DISPLAY_VERSION = '2.3.0';
 
 export function TermsContent({ heading, contents = false }: { heading?: ReactNode; contents?: boolean }) {
   const messages = useTranslations();

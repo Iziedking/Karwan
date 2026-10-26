@@ -25,5 +25,5 @@ test('every language carries the passkey and mainnet access entries, with no em 
 });
 
 test('the displayed terms version moved with this change', () => {
-  assert.equal(TERMS_DISPLAY_VERSION, '2.2.0');
+  assert.equal(TERMS_DISPLAY_VERSION, '2.3.0');
 });
