@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useState } from 'react';
 import { useAccount, useChainId, usePublicClient, useSwitchChain, useWalletClient } from 'wagmi';
-import { erc20Abi, parseUnits } from 'viem';
+import { encodeFunctionData, erc20Abi, parseUnits } from 'viem';
 import { GATEWAY_CHAINS } from '@/features/bridge/config';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { useBridges, type BridgeStartResult } from '@/features/bridge/hooks/useBridge';
@@ -20,7 +20,8 @@ import type { AgentWays } from '@/features/profile/ways';
 import { tidyAssistantText } from '@/shared/utils/assistantText';
 import { confirmTransaction } from '@/shared/chain/confirmTx';
 import { runRecordSetup } from '@/features/record/runRecordSetup';
-import { useWalletCalls } from '@/features/record/useWalletCalls';
+import { useOwnWalletSend, type OwnWallet } from '@/shared/chain/useOwnWalletSend';
+import { recordOnTheWayCopy } from '@/shared/i18n/messages/recordOnTheWay';
 import {
   ARC_EXPLORER_TX,
   ARC_CHAIN_ID,
@@ -250,14 +251,14 @@ interface ConfirmDeps {
     toAddress: string;
     amountUsdc: number;
     requestId: string;
-  }) => Promise<void>;
-  /// Sends prepared Arc calls from the person's own wallet, one at a time, each
-  /// waited on before the next.
-  sendWalletCalls?: (calls: Array<{ to: `0x${string}`; data: `0x${string}` }>) => Promise<void>;
+  }) => Promise<{ recordSetUp: boolean } | void>;
+  /// The person's own wallet: every Arc transaction from it can carry the steps
+  /// still missing from their Karwan record (view 27, decision 10).
+  ownWallet?: OwnWallet;
   /// Putting money into deal insurance from the person's own wallet.
-  runVaultDeposit?: (amountUsdc: number) => Promise<{ txHash: `0x${string}` }>;
+  runVaultDeposit?: (amountUsdc: number) => Promise<{ txHash: `0x${string}`; recordSetUp?: boolean }>;
   /// One deal insurance step on one position, signed by the person's own wallet.
-  runVaultStep?: (positionId: string, action: VaultPositionAction) => Promise<{ txHash: `0x${string}` }>;
+  runVaultStep?: (positionId: string, action: VaultPositionAction) => Promise<{ txHash: `0x${string}`; recordSetUp?: boolean }>;
   /// A wallet financier's signature on the advance (USDC EIP-3009), as the
   /// financier desk asks for it: no gas, nothing moves until the seller accepts.
   signAdvance?: (input: { to: `0x${string}`; valueUsdc: string; validForSeconds: number }) => Promise<UsdcAuthorization>;
@@ -268,6 +269,11 @@ const INSURANCE_STEP = {
   insurance_cancel_take_out: { karwan: api.vaultCancelWithdraw, wallet: 'cancelWithdraw', done: 'Kept. It protects your deals again.' },
   insurance_collect: { karwan: api.vaultClaim, wallet: 'claim', done: 'Collected. It is back in your wallet.' },
 } as const;
+
+/// The assistant's card says it too when a wallet step also set up the record.
+function withRecordLine(text: string, recordSetUp: boolean): string {
+  return recordSetUp ? `${text} ${recordOnTheWayCopy.en.done}` : text;
+}
 
 async function runConfirmIntent(
   action: AssistantConfirmAction,
@@ -327,14 +333,14 @@ async function runConfirmIntent(
     // A plain USDC transfer on Arc, signed by the user because they self-custody
     // the source wallet. The agent wallet is a Circle DCW, so nothing else here
     // needs a signature.
-    await deps.startFundAgentWeb3({
+    const sent = await deps.startFundAgentWeb3({
       agent: p.agent === 'seller' ? 'seller' : 'buyer',
       toAddress: p.toAddress,
       amountUsdc: p.amountUsdc,
       requestId: action.id,
     });
     return {
-      successText: `Sent. Your ${p.agent} agent is funded.`,
+      successText: withRecordLine(`Sent. Your ${p.agent} agent is funded.`, !!sent?.recordSetUp),
       viewHref: '/profile/wallets',
       viewLabel: 'Your wallets',
     };
@@ -402,7 +408,7 @@ async function runConfirmIntent(
     };
   }
   if (action.intent === 'set_up_record') {
-    await runRecordSetup(deps.sendWalletCalls);
+    await runRecordSetup(deps.ownWallet);
     return { successText: 'Your Karwan record is set up.', viewHref: '/profile', viewLabel: 'Your profile' };
   }
   if (action.intent === 'fund_direct_deal') {
@@ -624,7 +630,7 @@ async function runConfirmIntent(
     const p = action.payload as { amountUsdc: number };
     if (!deps.runVaultDeposit) throw new Error('Open Deal insurance to sign this in your wallet.');
     const r = await deps.runVaultDeposit(p.amountUsdc);
-    return { state: 'completed', successText: 'Put up. It protects your deals now.', viewHref: '/stake', viewLabel: 'Deal insurance', txHash: r.txHash };
+    return { state: 'completed', successText: withRecordLine('Put up. It protects your deals now.', !!r.recordSetUp), viewHref: '/stake', viewLabel: 'Deal insurance', txHash: r.txHash };
   }
   if (action.intent === 'stake_usdc') {
     const p = action.payload as { address: string; amountUsdc: number };
@@ -651,17 +657,20 @@ async function runConfirmIntent(
     const p = action.payload as { address: string; positionIds: string[]; signer: 'karwan' | 'wallet' };
     const step = INSURANCE_STEP[action.intent];
     let txHash: string | undefined;
+    let recordSetUp = false;
     // The vault acts on whole positions, one after another; a failure stops
     // the rest, as on the deal insurance page.
     for (const positionId of p.positionIds) {
       if (p.signer === 'wallet') {
         if (!deps.runVaultStep) throw new Error('Open Deal insurance to sign this in your wallet.');
-        txHash = (await deps.runVaultStep(positionId, step.wallet)).txHash;
+        const r = await deps.runVaultStep(positionId, step.wallet);
+        txHash = r.txHash;
+        recordSetUp ||= !!r.recordSetUp;
       } else {
         txHash = (await step.karwan({ address: p.address, positionId, requestId: crypto.randomUUID() })).txHash ?? txHash;
       }
     }
-    return { successText: step.done, viewHref: '/stake', viewLabel: 'Deal insurance', ...(txHash ? { txHash } : {}) };
+    return { successText: withRecordLine(step.done, recordSetUp), viewHref: '/stake', viewLabel: 'Deal insurance', ...(txHash ? { txHash } : {}) };
   }
   if (action.intent === 'finance_ask') {
     const p = action.payload as { invoiceId: string; requestedAdvanceUsdc: string; minAdvanceUsdc?: string };
@@ -1156,6 +1165,7 @@ function ConfirmCard({
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
   const { data: walletClient } = useWalletClient();
+  const ownWallet = useOwnWalletSend();
   const arcPublicClient = usePublicClient({ chainId: ARC_CHAIN_ID });
   const { openConnectModal } = useConnectModal();
   // Only the web3 top-up needs a client-side executor: the user signs the burn
@@ -1231,14 +1241,11 @@ function ConfirmCard({
         args: [wagmiAddress],
       })) as bigint;
       if (balance < amountMicros) throw new Error('Not enough USDC on Arc');
-      const txHash = await walletClient.writeContract({
-        address: ARC_USDC_ADDRESS,
-        abi: erc20Abi,
-        functionName: 'transfer',
-        args: [input.toAddress as `0x${string}`, amountMicros],
-        chain: walletClient.chain,
-        account: wagmiAddress,
-      });
+      const sent = await ownWallet.send(
+        [{ to: ARC_USDC_ADDRESS, data: encodeFunctionData({ abi: erc20Abi, functionName: 'transfer', args: [input.toAddress as `0x${string}`, amountMicros] }) }],
+        { spendsMicros: amountMicros, spendsWholeBalance: amountMicros >= balance },
+      );
+      const txHash = sent.txHash;
       // A confirmation that has not arrived is not a rejection. The transfer is
       // on chain and the backend verifies it from the hash, so hand the hash
       // over either way; only a revert stops here. The 60 second wait used to
@@ -1252,6 +1259,7 @@ function ConfirmCard({
         requestId: input.requestId,
         txHash,
       });
+      return { recordSetUp: await ownWallet.recordDone(sent) };
     },
     [
       wagmiAddress,
@@ -1260,10 +1268,10 @@ function ConfirmCard({
       chainId,
       switchChainAsync,
       walletClient,
+      ownWallet,
       arcPublicClient,
     ],
   );
-  const sendWalletCalls = useWalletCalls();
   const revertedText = useTranslations().chainErrors.reverted;
   const signAdvance = useCallback(
     async (input: { to: `0x${string}`; valueUsdc: string; validForSeconds: number }) => {
@@ -1286,9 +1294,9 @@ function ConfirmCard({
       }
       if (chainId !== ARC_CHAIN_ID) await switchChainAsync({ chainId: ARC_CHAIN_ID });
       if (!walletClient || !arcPublicClient) throw new Error('Wallet client unavailable');
-      return runWalletVaultAction({ address: wagmiAddress, positionId, action, walletClient, arcClient: arcPublicClient, revertedText });
+      return runWalletVaultAction({ address: wagmiAddress, positionId, action, ownWallet, arcClient: arcPublicClient, revertedText });
     },
-    [wagmiAddress, connector, openConnectModal, chainId, switchChainAsync, walletClient, arcPublicClient, revertedText],
+    [wagmiAddress, connector, openConnectModal, chainId, switchChainAsync, walletClient, ownWallet, arcPublicClient, revertedText],
   );
   const runVaultDeposit = useCallback(
     async (amountUsdc: number) => {
@@ -1298,9 +1306,9 @@ function ConfirmCard({
       }
       if (chainId !== ARC_CHAIN_ID) await switchChainAsync({ chainId: ARC_CHAIN_ID });
       if (!walletClient || !arcPublicClient) throw new Error('Wallet client unavailable');
-      return runWalletVaultDeposit({ address: wagmiAddress, amountUsdc, walletClient, arcClient: arcPublicClient, revertedText });
+      return runWalletVaultDeposit({ address: wagmiAddress, amountUsdc, walletClient, ownWallet, arcClient: arcPublicClient, revertedText });
     },
-    [wagmiAddress, connector, openConnectModal, chainId, switchChainAsync, walletClient, arcPublicClient, revertedText],
+    [wagmiAddress, connector, openConnectModal, chainId, switchChainAsync, walletClient, ownWallet, arcPublicClient, revertedText],
   );
   const startGatewayDeposit = useCallback(
     async (input: { sourceChainKey: string; amountUsdc: number }) => {
@@ -1397,7 +1405,7 @@ function ConfirmCard({
         startWeb3CashOut,
         startGatewayDeposit,
         startFundAgentWeb3,
-        sendWalletCalls,
+        ownWallet,
         runVaultStep,
         runVaultDeposit,
         signAdvance,

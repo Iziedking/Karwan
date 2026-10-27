@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { erc20Abi, parseUnits } from 'viem';
+import { encodeFunctionData, erc20Abi, parseUnits } from 'viem';
 import {
   useAccount,
   useChainId,
@@ -12,6 +12,7 @@ import { ARC_CHAIN_ID, ARC_USDC_ADDRESS, ARC_USDC_DECIMALS } from '../config';
 import { ApiError, api } from '@/core/api';
 import { confirmTransaction } from '@/shared/chain/confirmTx';
 import { fundingRowState, isSettlingResponse } from '@/shared/chain/fundingPhase';
+import { useOwnWalletSend } from '@/shared/chain/useOwnWalletSend';
 
 export type FundPhase =
   | 'switching'
@@ -45,6 +46,8 @@ export interface FundRecord {
   reference?: string;
   txHash?: `0x${string}`;
   error?: string;
+  /// This top up also set up the person's Karwan record (view 27, decision 10).
+  recordSetUp?: boolean;
   startedAt: number;
   updatedAt: number;
 }
@@ -135,6 +138,7 @@ export function useArcFund() {
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
   const { data: walletClient } = useWalletClient();
+  const ownWallet = useOwnWalletSend();
   const arcClient = usePublicClient({ chainId: ARC_CHAIN_ID });
 
   const [records, setRecords] = useState<FundRecord[]>([]);
@@ -309,14 +313,11 @@ export function useArcFund() {
 
         activePhase = 'signing';
         patch(record.id, (r) => ({ ...r, phase: 'signing' }));
-        const hash = await walletClient.writeContract({
-          address: ARC_USDC_ADDRESS,
-          abi: erc20Abi,
-          functionName: 'transfer',
-          args: [record.agentAddress, amountMicros],
-          chain: walletClient.chain,
-          account: address,
-        });
+        const sent = await ownWallet.send(
+          [{ to: ARC_USDC_ADDRESS, data: encodeFunctionData({ abi: erc20Abi, functionName: 'transfer', args: [record.agentAddress, amountMicros] }) }],
+          { spendsMicros: amountMicros, spendsWholeBalance: amountMicros >= balance },
+        );
+        const hash = sent.txHash;
         activePhase = 'confirming';
         patch(record.id, (r) => ({ ...r, phase: 'confirming', txHash: hash }));
         // The wait is capped so a flaky RPC cannot strand the UI, and running
@@ -350,6 +351,9 @@ export function useArcFund() {
             reference: completed.reference,
             error: undefined,
           }));
+          void ownWallet.recordDone(sent).then((done) => {
+            if (done) patch(record.id, (r) => ({ ...r, recordSetUp: true }));
+          });
         } catch (err) {
           patch(record.id, (r) => ({
             ...r,
@@ -363,7 +367,7 @@ export function useArcFund() {
         patch(record.id, (r) => ({ ...r, phase: 'error', error: friendlyFundError(err, activePhase) }));
       }
     },
-    [address, arcClient, chainId, isConnected, patch, switchChainAsync, walletClient],
+    [address, arcClient, chainId, isConnected, ownWallet, patch, switchChainAsync, walletClient],
   );
 
   const start = useCallback(

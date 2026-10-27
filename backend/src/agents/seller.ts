@@ -29,7 +29,6 @@ import { reportError } from '../errorTracker.js';
 import { bus } from '../events.js';
 import { alreadySuggested, paysForResearch, shouldSuggest, suggestionEvent, suggestionKey } from './suggestion.js';
 import { getRecord, putRecord } from '../db/evidence.js';
-import { createOfferRecordGate } from './offerRecordGate.js';
 import { suiteFundingEnabled } from '../chain/suiteConfig.js';
 import { suiteIdentity } from '../identity/suiteIdentityLive.js';
 import type { SellerProfile } from './seller-profile.js';
@@ -255,18 +254,14 @@ export async function hydrateActiveBids(): Promise<void> {
 type DirectOfferLookup = (jobId: string, sellerAgent: string) => Promise<{ id: string } | null>;
 let directOfferLookup: DirectOfferLookup = findPendingDirectOfferByAgent;
 
-/// Selling agents offer only for owners with a Karwan record while new deals
-/// open on the escrow family; the owner is told once a day (offerRecordGate.ts).
-const offerRecordGate = createOfferRecordGate({
-  enabled: () => suiteFundingEnabled() && !!suiteIdentity,
-  requireIdentity: (user, role) => suiteIdentity!.requireIdentity(user, role),
-  lastTold: async (user) => (await getRecord<{ at: number }>('record-nudge', user).catch(() => null))?.at ?? null,
-  markTold: async (user, at) => {
-    await putRecord('record-nudge', user, { at }).catch(() => {});
-  },
-  emit: (e) => bus.emitEvent({ type: e.type, actor: 'platform', payload: e.payload }),
-  now: Date.now,
-});
+/// A selling agent offers whether or not its owner has a Karwan record (view 27,
+/// decision 10). Where Karwan holds the owner's wallets the record is set up
+/// first, so the deal counts on it; an owner with their own wallet gets theirs
+/// with their next transaction.
+async function prepareSellerRecord(sellerUser: string): Promise<void> {
+  if (!suiteFundingEnabled() || !suiteIdentity) return;
+  await suiteIdentity.ensureRecord(sellerUser, 'seller');
+}
 
 export const __listingBidTest = {
   setDirectOfferLookup(fn: DirectOfferLookup) {
@@ -342,9 +337,7 @@ export async function submitListingBid(
   if (activeBids.has(key)) {
     return { ok: false, reason: 'already-bid', message: 'This offer is already on the board.' };
   }
-  if (!(await offerRecordGate.canOffer(seller.userAddress))) {
-    return { ok: false, reason: 'record-setup-needed', message: 'Set up your Karwan record first, so your deals count on it.' };
-  }
+  await prepareSellerRecord(seller.userAddress);
   // The seller already named their own price on this request; a listing bid
   // from the same agent would overwrite it on chain.
   try {
@@ -1338,10 +1331,7 @@ async function evaluateAndBid(profile: SellerProfile, job: JobContext) {
     return;
   }
 
-  if (!(await offerRecordGate.canOffer(seller.userAddress))) {
-    logger.info({ jobId: job.jobId, seller: seller.address }, 'no Karwan record yet: the owner was asked to set it up, no bid');
-    return;
-  }
+  await prepareSellerRecord(seller.userAddress);
 
   const finalPrice = opening.toFixed(2);
   // NEW buyers, and buyers the record read sends to review, raise a

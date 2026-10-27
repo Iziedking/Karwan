@@ -32,7 +32,13 @@ test('roadmap entries are discoverable but cannot be stated as live', () => {
 
 test('canon version records the Canteen window features', () => {
   assert.equal(canonVersion, '0.4.0');
-  assert.equal(canonUpdated, '2026-10-26');
+  assert.equal(canonUpdated, '2026-10-27');
+});
+
+test('the record page says nothing waits for it (view 27, decision 10)', () => {
+  const fact = findFacts().find((f) => f.id === 'your-karwan-record');
+  assert.ok(fact);
+  assert.match(fact.summary, /Nothing ever waits for it/);
 });
 
 test('the delivery date is in the canon, held back from the present tense until it is live', () => {

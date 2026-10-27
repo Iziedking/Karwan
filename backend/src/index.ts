@@ -544,7 +544,17 @@ app.route(
 );
 app.route('/api/money-out', createMoneyOutRoutes({ ...moneyOutRouteDeps, sessionAddress }));
 app.route('/api/confirm', createConfirmRoutes(confirmRouteDeps));
-app.route('/api/record', createRecordSetupRoutes({ identity: suiteIdentity, session: readSession, requirePresence }));
+app.route(
+  '/api/record',
+  createRecordSetupRoutes({
+    identity: suiteIdentity,
+    session: readSession,
+    requirePresence,
+    markNudgeSeen: async (address, at) => {
+      await updateProfile(address, (p) => ({ ...p, recordNudgeShownAt: at }));
+    },
+  }),
+);
 app.route('/api/admin/verification', adminVerificationRoutes);
 app.route('/api/admin/account-deletions', createAdminAccountDeletionRoutes(() => accountDeletion));
 app.route('/api/r', createRecordRoutes(recordDeps));

@@ -3,7 +3,6 @@ import test from 'node:test';
 import { decodeFunctionData, hashTypedData } from 'viem';
 import {
   BUYING_AGENT_LIMITS,
-  IdentityNeeded,
   KIND,
   bindingTypedData,
   createSuiteIdentity,
@@ -25,7 +24,8 @@ function harness(opts: { custodial?: boolean; undeployed?: Hex[]; neverDeploys?:
   const bindings = new Map<string, Binding>();
   const nonces = new Map<string, bigint>();
   const sent: Array<{ walletId: string; fn: string; args: unknown[] }> = [];
-  const signed: Array<{ walletId: string; digest: Hex }> = [];
+  const signed: Array<{ walletId: string; digest: Hex; id: bigint }> = [];
+  const limits = new Map<string, { perPayment: bigint; total: bigint; used: bigint }>();
   let count = 0n;
   let lagging = 0;
   let before = new Map<string, Binding>();
@@ -69,7 +69,7 @@ function harness(opts: { custodial?: boolean; undeployed?: Hex[]; neverDeploys?:
     signTypedData: async (walletId, typed) => {
       // Circle cannot sign for a smart account before its first transaction.
       if (!deployed.has(typed.message.wallet as Hex)) throw new Error('wallet not deployed');
-      signed.push({ walletId, digest: hashTypedData(typed as never) });
+      signed.push({ walletId, digest: hashTypedData(typed as never), id: typed.message.id });
       return `0x${'51'.repeat(65)}` as Hex;
     },
     execute: async (walletId, fn, args) => {
@@ -89,8 +89,15 @@ function harness(opts: { custodial?: boolean; undeployed?: Hex[]; neverDeploys?:
       if (fn === 'unbind') bindings.delete((args[0] as Hex).toLowerCase());
       return { txHash: `0x${'01'.repeat(32)}` };
     },
+    identityCount: async () => count,
+    agentLimit: async (w) => limits.get(w.toLowerCase()) ?? { perPayment: BUYING_AGENT_LIMITS.perPayment, total: BUYING_AGENT_LIMITS.total, used: 0n },
   };
-  return { ports, bindings, nonces, sent, signed, deploys, identity: createSuiteIdentity(ports), revert: () => { revertNext = true; } };
+  return {
+    ports, bindings, nonces, sent, signed, deploys, limits,
+    identity: createSuiteIdentity(ports),
+    revert: () => { revertNext = true; },
+    setCount: (n: bigint) => { count = n; },
+  };
 }
 
 test('status_reads_identity_and_both_bindings', async () => {
@@ -165,37 +172,6 @@ test('the_binding_digest_is_the_registrys_typed_data', () => {
   ]);
 });
 
-test('web3_gets_only_the_missing_calls', async () => {
-  const h = harness({ custodial: false });
-  const first = await h.identity.preparedSetupCalls(PERSON);
-  assert.equal(first.length, 1, 'register first; the bindings name the identity it creates');
-  assert.equal(decodeFunctionData({ abi: registryAbi, data: first[0]!.data }).functionName, 'register');
-  assert.equal(first[0]!.to, REGISTRY);
-  h.bindings.set(PERSON, { id: 3n, kind: KIND.Wallet, expiry: 0n });
-  const second = await h.identity.preparedSetupCalls(PERSON);
-  assert.deepEqual(second.map((c) => decodeFunctionData({ abi: registryAbi, data: c.data }).functionName), ['bind', 'bind']);
-  assert.deepEqual(h.signed.map((s) => s.walletId), ['buyer-w', 'seller-w']);
-  h.bindings.set(BUYER, { id: 3n, kind: KIND.Agent, expiry: BigInt(NOW + YEAR) });
-  h.bindings.set(SELLER, { id: 3n, kind: KIND.Wallet, expiry: 0n });
-  assert.deepEqual(await h.identity.preparedSetupCalls(PERSON), []);
-});
-
-test('expired_agent_asks_to_renew', async () => {
-  const h = harness();
-  h.bindings.set(PERSON, { id: 2n, kind: KIND.Wallet, expiry: 0n });
-  h.bindings.set(BUYER, { id: 2n, kind: KIND.Agent, expiry: BigInt(NOW - 1) });
-  h.bindings.set(SELLER, { id: 2n, kind: KIND.Wallet, expiry: 0n });
-  await assert.rejects(h.identity.requireIdentity(PERSON, 'buyer'), (e: unknown) => e instanceof IdentityNeeded && e.code === 'agent_renewal_needed');
-  await h.identity.requireIdentity(PERSON, 'seller');
-});
-
-test('require_identity_names_what_is_missing', async () => {
-  const h = harness();
-  await assert.rejects(h.identity.requireIdentity(PERSON, 'buyer'), (e: unknown) => e instanceof IdentityNeeded && e.code === 'record_setup_needed');
-  await assert.rejects(h.identity.requireIdentity(PERSON, 'seller'), (e: unknown) => e instanceof IdentityNeeded && e.code === 'record_setup_needed');
-  await assert.rejects(h.identity.requireIdentity(`0x${'cc'.repeat(20)}`, 'buyer'), (e: unknown) => e instanceof IdentityNeeded && e.code === 'record_setup_needed');
-});
-
 test('a_new_agent_is_deployed_before_it_signs', async () => {
   const h = harness({ undeployed: [SELLER] });
   await h.identity.setUpIdentityForCustodial(PERSON);
@@ -216,47 +192,7 @@ test('setup_provisions_agents_for_a_new_account', async () => {
   await h.identity.setUpIdentityForCustodial(PERSON);
   assert.deepEqual(h.sent.map((x) => x.fn), ['register', 'bind', 'bind']);
   const web3 = harness({ noAgentsYet: true, custodial: false });
-  assert.equal((await web3.identity.preparedSetupCalls(PERSON)).length, 1, 'register first, agents made on the way');
-});
-
-test('where Karwan holds the wallets it signs the record setup the moment a record is needed', async () => {
-  const h = harness({ autoSetup: true });
-  await h.identity.requireIdentity(PERSON, 'seller');
-  assert.deepEqual(h.sent.map((x) => x.fn), ['register', 'bind', 'bind']);
-  await h.identity.requireIdentity(PERSON, 'buyer');
-  assert.equal(h.sent.length, 3, 'a complete record is not set up again');
-});
-
-test('a person who holds their own wallet still sets up their record themselves', async () => {
-  const h = harness({ autoSetup: true, custodial: false });
-  await assert.rejects(h.identity.requireIdentity(PERSON, 'seller'), (e: unknown) => e instanceof IdentityNeeded && e.code === 'record_setup_needed');
-  assert.deepEqual(h.sent, []);
-});
-
-test('without auto setup the gate still asks', async () => {
-  const h = harness();
-  await assert.rejects(h.identity.requireIdentity(PERSON, 'seller'), (e: unknown) => e instanceof IdentityNeeded);
-  assert.deepEqual(h.sent, []);
-});
-
-test('two gates at once set the record up once', async () => {
-  const h = harness({ autoSetup: true });
-  await Promise.all([h.identity.requireIdentity(PERSON, 'seller'), h.identity.requireIdentity(PERSON, 'buyer'), h.identity.requireIdentity(PERSON, 'seller')]);
-  assert.deepEqual(h.sent.map((x) => x.fn), ['register', 'bind', 'bind']);
-});
-
-test('an expired buying agent is renewed by the same signing', async () => {
-  const h = harness({ autoSetup: true });
-  h.bindings.set(PERSON, { id: 7n, kind: KIND.Wallet, expiry: 0n });
-  h.bindings.set(BUYER, { id: 7n, kind: KIND.Agent, expiry: BigInt(NOW - 1) });
-  h.bindings.set(SELLER, { id: 7n, kind: KIND.Wallet, expiry: 0n });
-  await h.identity.requireIdentity(PERSON, 'buyer');
-  assert.deepEqual(h.sent.map((x) => x.fn), ['unbind', 'bind']);
-});
-
-test('if the signing fails the gate asks the person, as before', async () => {
-  const h = harness({ autoSetup: true, undeployed: [SELLER], neverDeploys: true });
-  await assert.rejects(h.identity.requireIdentity(PERSON, 'seller'), (e: unknown) => e instanceof IdentityNeeded && e.code === 'record_setup_needed');
+  assert.deepEqual((await web3.identity.recordSteps(PERSON)).steps.map((x) => x.name), ['register', 'bindBuyer', 'bindSeller'], 'agents made on the way');
 });
 
 test('a step that lands after the read node catches up is not called a failure', async () => {
@@ -265,4 +201,141 @@ test('a step that lands after the read node catches up is not called a failure',
   assert.deepEqual(h.sent.map((x) => x.fn), ['register', 'bind', 'bind']);
   const s = await h.identity.identityStatus(PERSON);
   assert.equal(s.sellerBound && s.buyerBound, true);
+});
+
+const names = (steps: Array<{ data: Hex }>) => steps.map((c) => decodeFunctionData({ abi: registryAbi, data: c.data }).functionName);
+
+test('record_steps_for_a_new_person_hold_every_step', async () => {
+  const h = harness({ custodial: false });
+  h.setCount(40n);
+  const r = await h.identity.recordSteps(PERSON);
+  assert.deepEqual(r.steps.map((x) => x.name), ['register', 'bindBuyer', 'bindSeller']);
+  assert.deepEqual(names(r.steps), ['register', 'bind', 'bind']);
+  assert.ok(r.steps.every((x) => x.to === REGISTRY));
+  assert.equal(r.identityIdAfter, 41n);
+  assert.deepEqual(h.signed.map((x) => [x.walletId, x.id]), [['buyer-w', 41n], ['seller-w', 41n]], 'signed for the identity the registration will create');
+  assert.equal(r.complete, false);
+  assert.equal(h.sent.length, 0, 'nothing is sent for a person who holds their own wallet');
+});
+
+test('record_steps_hold_only_what_is_missing', async () => {
+  const h = harness({ custodial: false });
+  h.bindings.set(PERSON, { id: 3n, kind: KIND.Wallet, expiry: 0n });
+  h.bindings.set(BUYER, { id: 3n, kind: KIND.Agent, expiry: BigInt(NOW + YEAR) });
+  const r = await h.identity.recordSteps(PERSON);
+  assert.deepEqual(r.steps.map((x) => x.name), ['bindSeller']);
+  assert.deepEqual(h.signed.map((x) => x.id), [3n]);
+  assert.equal(r.identityIdAfter, 3n);
+});
+
+test('record_steps_renew_an_expired_buying_agent', async () => {
+  const h = harness({ custodial: false });
+  h.bindings.set(PERSON, { id: 2n, kind: KIND.Wallet, expiry: 0n });
+  h.bindings.set(BUYER, { id: 2n, kind: KIND.Agent, expiry: BigInt(NOW - 1) });
+  h.bindings.set(SELLER, { id: 2n, kind: KIND.Wallet, expiry: 0n });
+  const r = await h.identity.recordSteps(PERSON);
+  assert.deepEqual(r.steps.map((x) => x.name), ['unbindExpired', 'bindBuyer']);
+  assert.deepEqual(names(r.steps), ['unbind', 'bind']);
+});
+
+test('record_steps_complete_when_nothing_is_missing', async () => {
+  const h = harness({ custodial: false });
+  h.bindings.set(PERSON, { id: 3n, kind: KIND.Wallet, expiry: 0n });
+  h.bindings.set(BUYER, { id: 3n, kind: KIND.Agent, expiry: BigInt(NOW + YEAR) });
+  h.bindings.set(SELLER, { id: 3n, kind: KIND.Wallet, expiry: 0n });
+  const r = await h.identity.recordSteps(PERSON);
+  assert.equal(r.complete, true);
+  assert.deepEqual(r.steps, []);
+});
+
+test('record_steps_empty_without_agents', async () => {
+  const h = harness({ custodial: false });
+  const r = await h.identity.recordSteps(`0x${'cc'.repeat(20)}`);
+  assert.deepEqual(r, { complete: false, steps: [], identityIdAfter: 0n, validUntil: 0n });
+});
+
+test('record_steps_valid_until_is_the_binding_deadline', async () => {
+  const h = harness({ custodial: false });
+  const r = await h.identity.recordSteps(PERSON);
+  const bind = decodeFunctionData({ abi: registryAbi, data: r.steps[1]!.data });
+  assert.equal(r.validUntil, (bind.args as unknown[])[5]);
+  assert.equal(r.validUntil, BigInt(NOW + 3_600));
+});
+
+test('ensure_record_sets_up_a_held_wallet', async () => {
+  const h = harness({ autoSetup: true });
+  assert.equal(await h.identity.ensureRecord(PERSON, 'seller'), 'ready');
+  assert.deepEqual(h.sent.map((x) => x.fn), ['register', 'bind', 'bind']);
+  assert.equal(await h.identity.ensureRecord(PERSON, 'buyer'), 'ready');
+  assert.equal(h.sent.length, 3, 'a complete record is not set up again');
+});
+
+test('ensure_record_is_not_ready_for_an_own_wallet', async () => {
+  const h = harness({ autoSetup: true, custodial: false });
+  assert.equal(await h.identity.ensureRecord(PERSON, 'seller'), 'not-ready');
+  assert.equal(await h.identity.ensureRecord(PERSON, 'buyer'), 'not-ready');
+  assert.deepEqual(h.sent, []);
+});
+
+test('ensure_record_not_ready_without_auto_setup', async () => {
+  const h = harness();
+  assert.equal(await h.identity.ensureRecord(PERSON, 'seller'), 'not-ready');
+  assert.deepEqual(h.sent, []);
+});
+
+test('ensure_record_not_ready_when_setup_fails', async () => {
+  const warnings: string[] = [];
+  const h = harness({ autoSetup: true, undeployed: [SELLER], neverDeploys: true });
+  h.ports.warn = (_f, msg) => { warnings.push(msg); };
+  const identity = createSuiteIdentity(h.ports);
+  assert.equal(await identity.ensureRecord(PERSON, 'seller'), 'not-ready');
+  assert.deepEqual(warnings, ['automatic record setup failed']);
+});
+
+test('two records needed at once are set up once', async () => {
+  const h = harness({ autoSetup: true });
+  await Promise.all([h.identity.ensureRecord(PERSON, 'seller'), h.identity.ensureRecord(PERSON, 'buyer'), h.identity.ensureRecord(PERSON, 'seller')]);
+  assert.deepEqual(h.sent.map((x) => x.fn), ['register', 'bind', 'bind']);
+});
+
+test('ensure_record_renews_an_expired_held_buying_agent', async () => {
+  const h = harness({ autoSetup: true });
+  h.bindings.set(PERSON, { id: 7n, kind: KIND.Wallet, expiry: 0n });
+  h.bindings.set(BUYER, { id: 7n, kind: KIND.Agent, expiry: BigInt(NOW - 1) });
+  h.bindings.set(SELLER, { id: 7n, kind: KIND.Wallet, expiry: 0n });
+  assert.equal(await h.identity.ensureRecord(PERSON, 'buyer'), 'ready');
+  assert.deepEqual(h.sent.map((x) => x.fn), ['unbind', 'bind']);
+  assert.equal(await h.identity.freeBuyingAgent(PERSON, 1_000_000n), false, 'renewed, not freed');
+});
+
+test('frees_buying_agent_past_expiry_for_own_wallet', async () => {
+  const h = harness({ custodial: false });
+  h.bindings.set(PERSON, { id: 2n, kind: KIND.Wallet, expiry: 0n });
+  h.bindings.set(BUYER, { id: 2n, kind: KIND.Agent, expiry: BigInt(NOW - 1) });
+  assert.equal(await h.identity.freeBuyingAgent(PERSON, 1_000_000n), true);
+  assert.deepEqual(h.sent.map((x) => [x.walletId, x.fn, x.args[0]]), [['buyer-w', 'unbind', BUYER]], 'the agent unbinds itself');
+});
+
+test('frees_buying_agent_over_total_for_own_wallet', async () => {
+  const h = harness({ custodial: false });
+  h.bindings.set(PERSON, { id: 2n, kind: KIND.Wallet, expiry: 0n });
+  h.bindings.set(BUYER, { id: 2n, kind: KIND.Agent, expiry: BigInt(NOW + YEAR) });
+  h.limits.set(BUYER, { perPayment: 1_005_000_000n, total: 10_000_000_000n, used: 9_500_000_000n });
+  assert.equal(await h.identity.freeBuyingAgent(PERSON, 600_000_000n), true);
+});
+
+test('does_not_free_a_live_agent_within_limits', async () => {
+  const h = harness({ custodial: false });
+  h.bindings.set(PERSON, { id: 2n, kind: KIND.Wallet, expiry: 0n });
+  h.bindings.set(BUYER, { id: 2n, kind: KIND.Agent, expiry: BigInt(NOW + YEAR) });
+  h.limits.set(BUYER, { perPayment: 1_005_000_000n, total: 10_000_000_000n, used: 9_000_000_000n });
+  assert.equal(await h.identity.freeBuyingAgent(PERSON, 1_000_000_000n), false);
+  assert.equal(await h.identity.freeBuyingAgent(`0x${'cc'.repeat(20)}`, 1n), false, 'no agents, nothing to free');
+  assert.deepEqual(h.sent, []);
+});
+
+test('an_unbound_agent_is_never_freed', async () => {
+  const h = harness({ custodial: false });
+  assert.equal(await h.identity.freeBuyingAgent(PERSON, 2_000_000_000n), false);
+  assert.deepEqual(h.sent, []);
 });

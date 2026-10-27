@@ -1,6 +1,6 @@
 {
   "canonVersion": "0.4.0",
-  "canonUpdated": "2026-10-26",
+  "canonUpdated": "2026-10-27",
   "docs": [
     {
       "id": "agent-record-checks",
@@ -123,7 +123,7 @@
       "id": "confirming-it-is-you",
       "title": "Confirming it is you, with a passkey or a Karwan PIN",
       "status": "roadmap",
-      "updated": "2026-10-26",
+      "updated": "2026-10-27",
       "tags": [
         "money",
         "agents",
@@ -133,10 +133,10 @@
       "sources": [
         {
           "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/27-deals-on-the-escrow-family.md",
-          "date": "2026-10-24"
+          "date": "2026-10-27"
         }
       ],
-      "body": "A person's agents run their deals for them: they pay into a deal, accept,\ndeliver and release inside the limits the person set, so a deal keeps moving\nwhile the person is away. Karwan asks the person to be present for three\nthings only, and then they confirm with a passkey, which is their phone's\nface or fingerprint check, or with a 6-digit Karwan PIN.\n\nThe three things: setting up their Karwan record and their buying agent's\nlimits (on Arc Testnet Karwan does this itself for accounts whose wallets\nit holds), putting up deal insurance, and money leaving Karwan for an address\nthat is not one of their own Karwan wallets. Putting up deal insurance is\nthe consent for it to protect their buyers and back advances from\nfinanciers on their deals, so taking an advance later is one tap.\n\nFive wrong PINs lock the PIN for 15 minutes, and a passkey still works in\nthe meantime. A forgotten PIN is reset with a code sent to the person's\nemail. A PIN is never typed into a chat: the agent sends a one-time Karwan\nlink and the person confirms on that page. Someone who signs in with their\nown wallet confirms by signing in that wallet.\n\nEach confirmation fits one action and one amount, and works once."
+      "body": "A person's agents run their deals for them: they pay into a deal, accept,\ndeliver and release inside the limits the person set, so a deal keeps moving\nwhile the person is away. Karwan asks the person to be present for three\nthings only, and then they confirm with a passkey, which is their phone's\nface or fingerprint check, or with a 6-digit Karwan PIN.\n\nThe three things: setting up their Karwan record and their buying agent's\nlimits (on Arc Testnet Karwan does this itself for accounts whose wallets\nit holds, and someone with their own wallet signs it along with their next\ntransaction, with no separate step), putting up deal insurance, and money leaving Karwan for an address\nthat is not one of their own Karwan wallets. Putting up deal insurance is\nthe consent for it to protect their buyers and back advances from\nfinanciers on their deals, so taking an advance later is one tap.\n\nFive wrong PINs lock the PIN for 15 minutes, and a passkey still works in\nthe meantime. A forgotten PIN is reset with a code sent to the person's\nemail. A PIN is never typed into a chat: the agent sends a one-time Karwan\nlink and the person confirms on that page. Someone who signs in with their\nown wallet confirms by signing in that wallet.\n\nEach confirmation fits one action and one amount, and works once."
     },
     {
       "id": "credit-passport",
@@ -692,9 +692,9 @@
     },
     {
       "id": "your-karwan-record",
-      "title": "Your Karwan record, set up once",
+      "title": "Your Karwan record, set up on the way",
       "status": "roadmap",
-      "updated": "2026-10-26",
+      "updated": "2026-10-27",
       "tags": [
         "reputation",
         "agents",
@@ -705,10 +705,10 @@
       "sources": [
         {
           "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/27-deals-on-the-escrow-family.md",
-          "date": "2026-10-24"
+          "date": "2026-10-27"
         }
       ],
-      "body": "Deals held by Karwan's escrow family count on each side's Karwan record. A\nperson sets their record up once: before their first payment as a buyer,\nand as a seller when they agree to their first deal's terms or before their\nselling agent offers on a request. Setting it up links their buying and\nselling agents to it. The buying agent can then pay up to 1,005 USDC at a\ntime and 10,000 USDC in total for one year, and asks to be renewed after\nthat.\n\nA seller sets it up when they agree because the escrow notes each side's\nrecord at the moment the buyer pays in. A deal paid in before the seller\nhad a record runs normally but does not count on the seller's record.\nUntil a seller has a record, their selling agent does not offer on new\nrequests and tells them once a day.\n\nOn Arc Testnet, when Karwan holds the person's wallets, Karwan sets the\nrecord up itself the first time it is needed, with no step from them.\nOtherwise it takes one confirmation with a passkey or a Karwan PIN, or, for\nsomeone who signs in with their own wallet, signing in that wallet. In Telegram the\ncard shows in the chat and the confirmation happens on Karwan.\n\nAfter each payment on a deal, the seller's earnings move from their selling\nagent to their own wallet; a move that is still waiting shows in their\nbalance and is tried again. Once a deal settles, the deal page says when it\nis on both records. Deals can be up to 1,000 USDC while Karwan is in beta.\n\nThis runs on Arc Testnet once new deals are switched over to the escrow\nfamily; mainnet follows an external audit."
+      "body": "Deals held by Karwan's escrow family count on each side's Karwan record. The\nrecord links a person's buying and selling agents to them, and their deals\nand checks are written to it. Nothing ever waits for it: paying, agreeing to\na deal, making an offer and a selling agent's offers all go ahead with or\nwithout a record.\n\nWhen Karwan holds the person's wallets, as for email, passkey and Telegram\naccounts, Karwan sets the record up itself the first time it is needed, with\nno step from them, on Arc Testnet. On mainnet that takes one confirmation\nwith a passkey or a Karwan PIN.\n\nSomeone who signs in with their own wallet never takes a separate step either.\nThe record's steps ride along with the next transaction they sign on Arc in\nKarwan, such as adding money to their agents or putting up deal insurance, in\nthe same wallet prompt. They are added only when the wallet's USDC covers the\nsmall extra network fee, and never when the whole balance is being sent.\nThe person's own transaction always comes first and never fails because of\nthe record. Once it is set up, the result says so in one line. A transaction\nsigned on another chain, or from a smart-contract wallet, goes on its own and\nthe next one carries the record.\n\nThe escrow notes each side's record when the buyer pays in, so a deal paid\nin before a side had a record runs normally but does not count on that\nside's record. When that happens to someone with their own wallet, the\nsettled deal's receipt offers to count their next deals, with one signature.\nIt shows at most once a month and can be ignored.\n\nThe buying agent can pay up to 1,005 USDC at a time and 10,000 USDC in total\nfor one year. When it reaches its year or its total, it steps aside so a\npayment still goes through, and it is linked again with the next setup.\n\nAfter each payment on a deal, the seller's earnings move from their selling\nagent to their own wallet; a move that is still waiting shows in their\nbalance and is tried again. Once a deal settles, the deal page says whether\nit is on both records. Deals can be up to 1,000 USDC while Karwan is in beta.\n\nThis runs on Arc Testnet once new deals are switched over to the escrow\nfamily; mainnet follows an external audit."
     }
   ],
   "facts": [
@@ -880,11 +880,11 @@
       "sources": [
         {
           "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/27-deals-on-the-escrow-family.md",
-          "date": "2026-10-24"
+          "date": "2026-10-27"
         }
       ],
       "check": null,
-      "updated": "2026-10-26",
+      "updated": "2026-10-27",
       "path": "public/product/confirming-it-is-you.md"
     },
     {
@@ -1626,7 +1626,7 @@
     },
     {
       "id": "your-karwan-record",
-      "title": "Your Karwan record, set up once",
+      "title": "Your Karwan record, set up on the way",
       "status": "roadmap",
       "publishable": false,
       "blockedBy": "not-live",
@@ -1638,15 +1638,15 @@
         "escrow",
         "testnet"
       ],
-      "summary": "Deals held by Karwan's escrow family count on each side's Karwan record. A person sets their record up once: before their first payment as a buyer, and as a seller when they agree to their first deal's terms or before their selling agent offers on a request. Setting it up links their buying and selling agents to it. The buying agent can then pay up to 1,005 USDC at a time and 10,000 USDC in total for one year, and asks to be renewed after that.",
+      "summary": "Deals held by Karwan's escrow family count on each side's Karwan record. The record links a person's buying and selling agents to them, and their deals and checks are written to it. Nothing ever waits for it: paying, agreeing to a deal, making an offer and a selling agent's offers all go ahead with or without a record.",
       "sources": [
         {
           "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/27-deals-on-the-escrow-family.md",
-          "date": "2026-10-24"
+          "date": "2026-10-27"
         }
       ],
       "check": null,
-      "updated": "2026-10-26",
+      "updated": "2026-10-27",
       "path": "public/product/your-karwan-record.md"
     }
   ]

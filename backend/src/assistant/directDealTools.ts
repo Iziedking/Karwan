@@ -160,7 +160,7 @@ export function directDealTools(address: string, actions: AssistantAction[], con
 
     set_up_record: tool({
       description:
-        "Set up the person's Karwan record before their first payment or their first accepted deal on the new escrow, or renew their buying agent after its year. Use when a deal step answers record_setup_needed or agent_renewal_needed, or when they ask. Shows one card with the limits; they confirm it is them on Karwan. Moves no money.",
+        "Set up the person's Karwan record, or renew their buying agent after its year, when they ask. Nothing waits for a record: Karwan sets it up itself for wallets it holds, and a person's own wallet carries it with their next Arc transaction. Shows one card with the limits; someone with their own wallet signs the missing steps in one transaction. Moves no money.",
       inputSchema: z.object({}),
       execute: async () => {
         if (!suiteIdentity) return { error: 'Records are not open on this network yet. Deals here run as before.' };

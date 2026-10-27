@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useWalletClient, usePublicClient, useChainId } from 'wagmi';
-import { keccak256, toHex } from 'viem';
+import { encodeFunctionData, keccak256, toHex } from 'viem';
 import { api, type DirectDeal } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import {
@@ -13,6 +13,8 @@ import { cn } from '@/shared/utils/cn';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { chainErrorMessage } from '@/shared/utils/chainError';
 import { requireConfirmedTx } from '@/shared/chain/confirmTx';
+import { useOwnWalletSend } from '@/shared/chain/useOwnWalletSend';
+import { RecordDoneLine } from '@/shared/chain/RecordDoneLine';
 
 /// Buyer-side PoD acceptance band. Buyer signs registry.acceptPoD on the
 /// KarwanInvoiceRegistry contract, then the PO financing watcher releases
@@ -69,6 +71,8 @@ function BuyerPodPanelInner({
   const auth = useAuth();
   const chainId = useChainId();
   const { data: walletClient } = useWalletClient();
+  const ownWallet = useOwnWalletSend();
+  const [recordSetUp, setRecordSetUp] = useState(false);
   const arcClient = usePublicClient({ chainId: ARC_CHAIN_ID });
   const [submitting, setSubmitting] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
@@ -101,15 +105,12 @@ function BuyerPodPanelInner({
         if (!walletClient || !arcClient) {
           throw new Error('Wallet not ready');
         }
-        const hash = await walletClient.writeContract({
-          address: KARWAN_INVOICE_REGISTRY_ADDRESS,
-          abi: registryAbi,
-          functionName: 'acceptPoD',
-          args: [deal.jobId as `0x${string}`, podHash],
-          chain: walletClient.chain,
-          account: address,
-        });
+        const sent = await ownWallet.send([
+          { to: KARWAN_INVOICE_REGISTRY_ADDRESS, data: encodeFunctionData({ abi: registryAbi, functionName: 'acceptPoD', args: [deal.jobId as `0x${string}`, podHash] }) },
+        ]);
+        const hash = sent.txHash;
         await requireConfirmedTx(arcClient, hash, errCopy.reverted);
+        if (await ownWallet.recordDone(sent)) setRecordSetUp(true);
         // Mirror the off-chain record so the deal page reads delivered
         // immediately without waiting for the next snapshot poll.
         await api.acceptTradePod({
@@ -160,6 +161,7 @@ function BuyerPodPanelInner({
               </a>
             </p>
           ) : null}
+          <RecordDoneLine show={recordSetUp} />
           {error ? (
             <p className="mt-2 mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-critical)]">
               {error}

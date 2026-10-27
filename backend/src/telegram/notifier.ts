@@ -586,7 +586,7 @@ ${String(e.payload?.note ?? '').replace(/[*_`[\]]/g, '').slice(0, 300)}`, url)
     case 'deal.auto_released':
       return withLink('*Auto-released* the remaining milestone. Deal settled.', url);
     case 'escrow.settled':
-      return withLink('*Deal settled* in full. Reputation recorded on chain.', url);
+      return withLink('*Deal settled* in full. Your receipt and your record are on the deal page.', url);
     case 'deal.disputed':
       return withLink(
         '*Deal moved to dispute*. Either party can still propose a mutual cancel for a full refund.',

@@ -14,7 +14,6 @@ const { dealTermsHash } = await import('../chain/dealTermsV3.js');
 const { accountFromV3, createDealEscrowOps, NothingDelivered } = await import('./dealEscrowOps.js');
 const { storeTerms } = await import('./fundDirectV3.js');
 const { createAgreementEscrow } = await import('../chain/agreementEscrow.js');
-const { IdentityNeeded } = await import('../identity/suiteIdentity.js');
 const { agreementTermsHash, storeAgreementTerms } = await import('../chain/agreementTerms.js');
 
 type Hex = `0x${string}`;
@@ -82,6 +81,7 @@ function setup(initial: View = view(), opts: { sellerRecord?: boolean } = {}) {
   const v2Calls: string[] = [];
   const v3Calls: Array<{ name: string; walletId: string }> = [];
   const suiteCalls: Array<{ name: string; walletId: string; params: unknown[] }> = [];
+  const ensured: string[] = [];
   const warnings: string[] = [];
   const checks: Array<{ revision: number; pass: boolean }> = [];
   let split = { active: false, sellerBps: 0 };
@@ -133,8 +133,9 @@ function setup(initial: View = view(), opts: { sellerRecord?: boolean } = {}) {
       escrow: suiteEscrow,
       readView: async () => current,
       readReviewEnd: async () => 888n,
-      requireIdentity: async () => {
-        if (opts.sellerRecord === false) throw new IdentityNeeded('record_setup_needed');
+      ensureRecord: async (user: string) => {
+        ensured.push(user);
+        return opts.sellerRecord === false ? ('not-ready' as const) : ('ready' as const);
       },
       submitCheck: async (_id, revision, pass) => {
         checks.push({ revision, pass });
@@ -170,7 +171,7 @@ function setup(initial: View = view(), opts: { sellerRecord?: boolean } = {}) {
       warnings.push(message);
     },
   });
-  return { ops, v2Calls, v3Calls, suiteCalls, warnings, checks, get current() { return current; } };
+  return { ops, v2Calls, v3Calls, suiteCalls, warnings, checks, ensured, get current() { return current; } };
 }
 
 test('a v3 deal reads back in the v2 account shape the routes use', () => {
@@ -276,10 +277,11 @@ test('accept_uses_the_terms_hash_read_from_the_escrow', async () => {
   assert.deepEqual(s.suiteCalls[0]!.params, [SUITE_ID, agreementTermsHash(TERMS_A)]);
 });
 
-test('a_suite_accept_needs_the_sellers_record_first', async () => {
+test('a_suite_accept_goes_on_without_the_sellers_record', async () => {
   const s = setup(view({ state: DEAL_STATE.Funded }), { sellerRecord: false });
-  await assert.rejects(s.ops.accept({ ...SUITE_DEAL, seller: `0x${'b1'.repeat(20)}` }, 'seller-agent'), IdentityNeeded);
-  assert.deepEqual(s.suiteCalls, []);
+  await s.ops.accept({ ...SUITE_DEAL, seller: `0x${'b1'.repeat(20)}` }, 'seller-agent');
+  assert.equal(s.suiteCalls.length, 1, 'nothing waits for a record');
+  assert.deepEqual(s.ensured, [`0x${'b1'.repeat(20)}`], 'a held record is set up first');
 });
 
 test('a_suite_dispute_before_delivery_is_refused_without_a_call', async () => {

@@ -14,6 +14,8 @@ import { useMoneyRefresh } from '@/shared/hooks/useMoneyRefresh';
 import { isConfirmationPending } from '@/shared/chain/confirmTx';
 import { AgentStakeBinding } from './AgentStakeBinding';
 import { runWalletVaultAction, runWalletVaultDeposit } from '../walletVaultAction';
+import { useOwnWalletSend } from '@/shared/chain/useOwnWalletSend';
+import { RecordDoneLine } from '@/shared/chain/RecordDoneLine';
 import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
 import { Hint } from '@/shared/components/Hint';
 import type { Messages } from '@/shared/i18n/messages/en';
@@ -91,6 +93,8 @@ export function StakeCard() {
   const address = auth.address as `0x${string}` | undefined;
   const isCircleUser = auth.method === 'circle';
   const { data: walletClient } = useWalletClient();
+  const ownWallet = useOwnWalletSend();
+  const [recordSetUp, setRecordSetUp] = useState(false);
   const arcClient = usePublicClient({ chainId: ARC_CHAIN_ID });
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
@@ -254,11 +258,13 @@ export function StakeCard() {
           address,
           amountUsdc: depositAmount,
           walletClient,
+          ownWallet,
           arcClient,
           revertedText: chainCopy.reverted,
           onReference: (reference) => patchLog(logId, { reference }),
         });
         patchLog(logId, { status: 'done', txHash: done.txHash, reference: done.reference });
+        if (done.recordSetUp) setRecordSetUp(true);
       }
       recordAction('stake-deposit');
       deposited = true;
@@ -302,7 +308,7 @@ export function StakeCard() {
     } catch {
       /* the polling cadence in useVaultPositions picks it up */
     }
-  }, [address, depositAmount, walletUsdc, isCircleUser, chainId, switchToArc, recordAction, walletClient, arcClient, refetchPositions, refetchRep, pushLog, patchLog, sc]);
+  }, [address, depositAmount, walletUsdc, isCircleUser, chainId, switchToArc, recordAction, walletClient, ownWallet, arcClient, refetchPositions, refetchRep, pushLog, patchLog, sc]);
 
   // -------------------- withdraw --------------------
 
@@ -412,11 +418,12 @@ export function StakeCard() {
             address,
             positionId: p.positionId,
             action: 'requestWithdraw',
-            walletClient,
+            ownWallet,
             arcClient,
             revertedText: chainCopy.reverted,
             onReference: (reference) => patchLog(logId, { reference }),
           });
+          if (done.recordSetUp) setRecordSetUp(true);
           patchLog(logId, { status: 'done', txHash: done.txHash, reference: done.reference });
         }
       } catch (err) {
@@ -441,6 +448,7 @@ export function StakeCard() {
     chainId,
     switchToArc,
     walletClient,
+    ownWallet,
     arcClient,
     refetchPositions,
     refetchRep,
@@ -478,11 +486,12 @@ export function StakeCard() {
             address,
             positionId,
             action: kind === 'request' ? 'requestWithdraw' : kind === 'cancel' ? 'cancelWithdraw' : 'claim',
-            walletClient,
+            ownWallet,
             arcClient,
             revertedText: chainCopy.reverted,
             onReference: (reference) => patchLog(logId, { reference }),
           });
+          if (done.recordSetUp) setRecordSetUp(true);
           patchLog(logId, { status: 'done', txHash: done.txHash, reference: done.reference });
         }
       } catch (err) {
@@ -504,7 +513,7 @@ export function StakeCard() {
         /* the polling cadence picks it up */
       }
     },
-    [address, isCircleUser, chainId, switchToArc, walletClient, arcClient, refetchPositions, refetchRep, pushLog, patchLog, cooldownDays, sc, chainCopy],
+    [address, isCircleUser, chainId, switchToArc, ownWallet, arcClient, refetchPositions, refetchRep, pushLog, patchLog, cooldownDays, sc, chainCopy],
   );
 
   // -------------------- derived --------------------
@@ -539,6 +548,7 @@ export function StakeCard() {
 
   return (
     <div data-testid="stake-account-card" style={CARD_STYLE} className="h-full px-6 py-7 space-y-7">
+      <RecordDoneLine show={recordSetUp} />
       {/* HEADER: v2.D three-way split: Active total prominent, then a
           smaller meta line breaking it into Free / Reserved (open deal
           insurance) / Cooling. Reserved only renders when > 0 so users

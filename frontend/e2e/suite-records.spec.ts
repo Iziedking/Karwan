@@ -109,7 +109,7 @@ for (const [theme, locale] of [['light', 'en'], ['dark', 'en'], ['light', 'ar'],
   });
 }
 
-test('the seller sets up their record before agreeing, and the buyer pays as usual after', async ({ page }) => {
+test('the seller agrees straight away; nothing waits for a Karwan record (view 27, decision 10)', async ({ page }) => {
   const awaitingAcceptance = {
     ...deliveredDeal,
     delivered: false,
@@ -127,14 +127,9 @@ test('the seller sets up their record before agreeing, and the buyer pays as usu
   } as unknown as DirectDeal;
   await serveDeal(page, awaitingAcceptance, SELLER);
   const order: string[] = [];
-  let recordDone = false;
   await page.route(`${API}/api/record/setup`, async (route) => {
-    if (route.request().method() === 'POST') {
-      order.push('record');
-      recordDone = true;
-      return route.fulfill({ json: { complete: true } });
-    }
-    return route.fulfill({ json: { available: true, complete: recordDone } });
+    order.push('record');
+    return route.fulfill({ json: { available: true, complete: false } });
   });
   await page.route(`${API}/api/deals/direct/${JOB}/accept`, async (route) => {
     order.push('agree');
@@ -143,9 +138,8 @@ test('the seller sets up their record before agreeing, and the buyer pays as usu
   await page.goto(`/deals/${JOB}`);
   await page.getByRole('button', { name: en.dealWorkspace.actions.accept, exact: true }).click();
   const sheet = page.getByRole('dialog');
-  await expect(sheet).toContainText(dealLiveCopy.en.recordFirst);
   await sheet.getByRole('button', { name: en.dealWorkspace.confirm.confirm, exact: true }).click();
-  await expect.poll(() => order).toEqual(['record', 'agree']);
+  await expect.poll(() => order).toEqual(['agree']);
 });
 
 test('while reviewing, the buyer can ask once for more time to check', async ({ page }) => {

@@ -189,6 +189,11 @@ async function full(): Promise<void> {
       return { id: BigInt(id), kind: Number(kind), expiry: BigInt(expiry) };
     },
     nonce: (w) => pub.readContract({ address: D.identity!, abi: registryAbi, functionName: 'nonces', args: [w] }),
+    identityCount: async () => BigInt(await pub.readContract({ address: D.identity!, abi: registryAbi, functionName: 'identityCount' })),
+    agentLimit: async (w) => {
+      const [perPayment, total, used] = await pub.readContract({ address: D.identity!, abi: registryAbi, functionName: 'agentLimitOf', args: [w] });
+      return { perPayment, total, used };
+    },
     wallets: async (user) => {
       const p = people[user.toLowerCase()];
       if (!p) return null;
@@ -248,7 +253,8 @@ async function full(): Promise<void> {
     readView,
     readLimits: () => readAgreementLimits(pub, D.hub!, D.agreement!, USDC),
     settings: { baseReviewSecs: limits.minReview, reclaimGraceSecs: DAY },
-    requireIdentity: (user: string, role: 'buyer' | 'seller') => identity.requireIdentity(user, role),
+    ensureRecord: (user: string, role: 'buyer' | 'seller') => identity.ensureRecord(user, role),
+    freeBuyingAgent: (user: string, amount: bigint) => identity.freeBuyingAgent(user, amount),
     readUsdcAllowance: (owner: Hex, spender: Hex) => pub.readContract({ address: USDC, abi: erc20Abi, functionName: 'allowance', args: [owner, spender] }),
     approveUsdc: async (i: { walletId: string; spender: Hex; amount: bigint }) => {
       await sendAs(i.walletId, USDC, erc20Abi, 'approve', [i.spender, i.amount]);

@@ -9,6 +9,9 @@ import { Hint } from '@/shared/components/Hint';
 import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
 import { chainErrorMessage } from '@/shared/utils/chainError';
 import { requireConfirmedTx } from '@/shared/chain/confirmTx';
+import { encodeFunctionData } from 'viem';
+import { useOwnWalletSend } from '@/shared/chain/useOwnWalletSend';
+import { RecordDoneLine } from '@/shared/chain/RecordDoneLine';
 import {
   ARC_CHAIN_ID,
   ARC_EXPLORER_TX,
@@ -43,6 +46,8 @@ export function YieldClaimPanel() {
   const address = auth.address as `0x${string}` | undefined;
   const isCircleUser = auth.method === 'circle';
   const { data: walletClient } = useWalletClient();
+  const ownWallet = useOwnWalletSend();
+  const [recordSetUp, setRecordSetUp] = useState(false);
   const arcClient = usePublicClient({ chainId: ARC_CHAIN_ID });
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
@@ -78,15 +83,13 @@ export function YieldClaimPanel() {
           await switchChainAsync({ chainId: ARC_CHAIN_ID });
           return;
         }
-        const hash = await walletClient.writeContract({
-          address: KARWAN_YIELD_DISTRIBUTOR_ADDRESS,
-          abi: distributorAbi,
-          functionName: 'claim',
-          chain: walletClient.chain,
-          account: address,
-        });
+        const sent = await ownWallet.send([
+          { to: KARWAN_YIELD_DISTRIBUTOR_ADDRESS, data: encodeFunctionData({ abi: distributorAbi, functionName: 'claim' }) },
+        ]);
+        const hash = sent.txHash;
         setLastTx(hash);
         await requireConfirmedTx(arcClient, hash, chainCopy.reverted);
+        if (await ownWallet.recordDone(sent)) setRecordSetUp(true);
       }
       await refresh();
       setSheetOpen(false);
@@ -95,7 +98,7 @@ export function YieldClaimPanel() {
     } finally {
       setBusy(false);
     }
-  }, [address, claimableNum, isCircleUser, walletClient, arcClient, chainId, switchChainAsync, refresh, chainCopy, t.error]);
+  }, [address, claimableNum, isCircleUser, walletClient, ownWallet, arcClient, chainId, switchChainAsync, refresh, chainCopy, t.error]);
 
   if (!address) {
     return <p className="text-[14px] font-medium text-[var(--lp-text-sub)]">{t.signedOut}</p>;
@@ -149,6 +152,7 @@ export function YieldClaimPanel() {
         <h2 id={titleId} className="text-[20px] font-semibold text-[var(--lp-dark)]">{t.sheetTitleTemplate.replace('{amount}', amount)}</h2>
         <p className="mt-2 text-[15px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{t.sheetBody}</p>
         {error ? <p role="alert" className="mt-3 text-[14px] font-medium text-[var(--color-critical)]">{error}</p> : null}
+        <RecordDoneLine show={recordSetUp} />
         <div className="mt-5 grid gap-2">
           <button
             type="button"

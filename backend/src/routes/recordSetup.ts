@@ -8,6 +8,8 @@ export interface RecordSetupDeps {
   identity: SuiteIdentity | null;
   session: (c: Context) => SessionPayload | null;
   requirePresence: (c: Context, action: PresenceAction) => Promise<Response | null>;
+  /// Notes that the receipt line was shown, so it waits a month (view 27, decision 11).
+  markNudgeSeen: (address: string, at: number) => Promise<void>;
 }
 
 const limits = {
@@ -35,8 +37,15 @@ export function createRecordSetupRoutes(deps: RecordSetupDeps): Hono {
       sellerBound: s.sellerBound,
       buyerExpiresAt: Number(s.buyerExpiresAt),
       limits,
-      ...(session.method === 'web3' ? { calls: await deps.identity!.preparedSetupCalls(session.address) } : {}),
+      ...(session.method === 'web3' ? await ownWalletSteps(session.address) : {}),
     };
+  }
+
+  /// A person who holds their own wallet sends these with their next Arc
+  /// transaction, in one batch (view 27, decision 10).
+  async function ownWalletSteps(address: string) {
+    const r = await deps.identity!.recordSteps(address);
+    return { steps: r.steps, identityIdAfter: r.identityIdAfter.toString(), validUntil: Number(r.validUntil) };
   }
 
   app.get('/setup', async (c) => {
@@ -71,6 +80,13 @@ export function createRecordSetupRoutes(deps: RecordSetupDeps): Hono {
     if (refused) return refused;
     await deps.identity.setUpIdentityForCustodial(session.address);
     return c.json(await status(session));
+  });
+
+  app.post('/nudge-seen', async (c) => {
+    const session = deps.session(c);
+    if (!session) return c.json({ error: 'not authenticated' }, 401);
+    await deps.markNudgeSeen(session.address, Date.now());
+    return c.json({ ok: true });
   });
 
   return app;

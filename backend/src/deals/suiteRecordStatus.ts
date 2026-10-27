@@ -32,18 +32,26 @@ export interface RecordStatusPorts {
 /// record later is not on this deal's record and nothing is waiting for it.
 export type RecordOutcome = 'both' | 'pending' | 'none';
 
-export async function readOnBothRecords(ports: RecordStatusPorts, dealId: Hex): Promise<RecordOutcome> {
+/// One side of a settled deal: on that side's record, held back waiting for the
+/// record to take it, or not on it (the side had no record when it was paid in).
+export type RecordSide = 'recorded' | 'pending' | 'missing';
+
+export async function readRecordSides(ports: RecordStatusPorts, dealId: Hex): Promise<{ buyer: RecordSide; seller: RecordSide }> {
   const { buyer, seller } = await ports.subjects(dealId);
-  const sides = [
-    { subject: buyer, role: BUYER },
-    { subject: seller, role: SELLER },
-  ];
-  const states = await Promise.all(
-    sides.map(async ({ subject, role }) => {
-      if (subject !== 0n && (await ports.outcomeRecorded(outcomeKey(ports.family, dealId, subject, role)))) return 'recorded' as const;
-      return (await ports.pendingRecord(pendingRecordKey(dealId, role))) ? ('pending' as const) : ('missing' as const);
-    }),
-  );
+  const side = async (subject: bigint, role: number): Promise<RecordSide> => {
+    if (subject !== 0n && (await ports.outcomeRecorded(outcomeKey(ports.family, dealId, subject, role)))) return 'recorded';
+    return (await ports.pendingRecord(pendingRecordKey(dealId, role))) ? 'pending' : 'missing';
+  };
+  const [b, s] = await Promise.all([side(buyer, BUYER), side(seller, SELLER)]);
+  return { buyer: b, seller: s };
+}
+
+export function outcomeOf(sides: { buyer: RecordSide; seller: RecordSide }): RecordOutcome {
+  const states = [sides.buyer, sides.seller];
   if (states.every((s) => s === 'recorded')) return 'both';
   return states.includes('missing') ? 'none' : 'pending';
+}
+
+export async function readOnBothRecords(ports: RecordStatusPorts, dealId: Hex): Promise<RecordOutcome> {
+  return outcomeOf(await readRecordSides(ports, dealId));
 }

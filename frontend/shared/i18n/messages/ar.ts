@@ -18,6 +18,7 @@ import { notifyCopy } from './notifications';
 import { notFoundCopy } from './pageStates';
 import { dealLiveCopy } from './dealLive';
 import { deliveryCardCopy } from './deliveryCard';
+import { recordOnTheWayCopy } from './recordOnTheWay';
 import { offerRosterCopy } from './offerRoster';
 import { shortlistCopy } from './shortlist';
 import { directMessagesCopy } from './directMessages';
@@ -60,6 +61,7 @@ export const ar: Messages = {
   reputationSources: reputationSourcesCopy.ar,
   dealLive: dealLiveCopy.ar,
   deliveryCard: deliveryCardCopy.ar,
+  recordOnTheWay: recordOnTheWayCopy.ar,
   disputeJudge: disputeJudgeCopy.ar,
   balanceSummary: balanceSummaryCopy.ar,
   firstTrade: firstTradeCopy.ar,

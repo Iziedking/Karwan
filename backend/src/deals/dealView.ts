@@ -80,6 +80,10 @@ export interface DealView {
   /// Settled suite deals only: on both sides' records (true), waiting for the
   /// record (false), or a side had no record when it was paid in (null).
   onBothRecords?: boolean | null;
+  /// Settled suite deals only: where it stands on the viewer's own record.
+  onMyRecord?: 'recorded' | 'pending' | 'missing';
+  /// The receipt line for a person with their own wallet (view 27, decision 11).
+  recordNudge?: boolean;
 }
 
 const MICROS = 1_000_000n;

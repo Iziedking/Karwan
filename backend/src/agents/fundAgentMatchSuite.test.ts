@@ -3,7 +3,6 @@ import test from 'node:test';
 import { createAgreementEscrow } from '../chain/agreementEscrow.js';
 import { agreementDealId, agreementTermsHash, type AgreementLimits, type AgreementTerms } from '../chain/agreementTerms.js';
 import { DEAL_STATE, type DealV3View } from '../chain/dealEscrowV3.js';
-import { IdentityNeeded } from '../identity/suiteIdentity.js';
 import { fundAgentMatchSuite, type FundAgentMatchSuiteDeps, type FundAgentMatchSuiteInput } from './fundAgentMatchSuite.js';
 
 type Hex = `0x${string}`;
@@ -71,9 +70,8 @@ function world(opts: { buyerRecord?: boolean } = {}) {
     readView: async (id) => chain.get(id) ?? blank(),
     readLimits: async () => LIMITS,
     settings: { baseReviewSecs: 3 * DAY, reclaimGraceSecs: DAY },
-    requireIdentity: async () => {
-      if (opts.buyerRecord === false) throw new IdentityNeeded('record_setup_needed');
-    },
+    ensureRecord: async () => (opts.buyerRecord === false ? 'not-ready' : 'ready'),
+    freeBuyingAgent: async () => false,
     readUsdcAllowance: async () => allowance,
     approveUsdc: async (i) => {
       calls.push('approve');
@@ -109,11 +107,11 @@ test('matched_deal_funds_on_the_suite_and_the_seller_agent_accepts', async () =>
   assert.deepEqual(r.record.escrowTerms.trancheBps.slice(0, 3), [5000, 5000, 0]);
 });
 
-test('a_matched_buyer_with_no_record_is_refused_before_money_moves', async () => {
+test('a_matched_buyer_with_no_record_still_pays', async () => {
   const w = world({ buyerRecord: false });
   const r = await fundAgentMatchSuite(w.deps, input());
-  assert.deepEqual(r, { ok: false, reason: 'record_setup_needed' });
-  assert.deepEqual(w.calls, []);
+  assert.equal(r.ok, true);
+  assert.deepEqual(w.calls, ['approve', 'fund', 'accept'], 'nothing waits for a record');
 });
 
 test('a_matched_deal_over_the_cap_is_refused', async () => {

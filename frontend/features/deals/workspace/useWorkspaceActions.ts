@@ -1,8 +1,6 @@
 'use client';
 import { useCallback, useRef, useState } from 'react';
 import { api, ApiError, ConfirmCancelled, type DirectDeal, type DirectDealFundingQuote } from '@/core/api';
-import { recordSetupNeeded, runRecordSetup } from '@/features/record/runRecordSetup';
-import { useWalletCalls } from '@/features/record/useWalletCalls';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { classifyConfirmError, dealMovedSinceSnapshot, snapshotDeal, type ConfirmSnapshot } from './confirmLogic';
@@ -24,9 +22,6 @@ export interface SheetState {
   /// freshly refetched one, so the total the buyer approved is the total that
   /// gets authorized.
   quote: DirectDealFundingQuote | null;
-  /// Accept only: the seller's Karwan record is set up first (deals on the
-  /// escrow family count on a record only if it exists before payment).
-  recordFirst?: boolean;
 }
 
 const HANDOFF: readonly Handoff[] = ['deliver', 'respond-extension', 'respond-cancel', 'dispute'];
@@ -43,8 +38,6 @@ export function useWorkspaceActions(
   const { locale } = useLocale();
   const { activated } = useActivation();
   const fundingQuote = useFundingQuote(jobId);
-  const live = useTranslations().dealLive;
-  const sendWalletCalls = useWalletCalls();
   const [sheet, setSheet] = useState<SheetState | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -105,12 +98,6 @@ export function useWorkspaceActions(
         quote: null,
       };
       setSheet(base);
-      void recordSetupNeeded().then((needed) => {
-        if (!needed) return;
-        setSheet((current) => (current?.action === 'accept'
-          ? { ...current, recordFirst: true, consequence: `${base.consequence} ${live.recordFirst}` }
-          : current));
-      });
       return;
     }
 
@@ -122,7 +109,7 @@ export function useWorkspaceActions(
       snapshot,
       quote: null,
     });
-  }, [deal, address, locale, copy, dd, live, displayName, activated, fundingQuote]);
+  }, [deal, address, locale, copy, dd, displayName, activated, fundingQuote]);
 
   const confirm = useCallback(async () => {
     if (!deal || !address || !sheet || busyRef.current) return;
@@ -146,15 +133,7 @@ export function useWorkspaceActions(
           expectedAgreementVersion: deal.agreementVersion!,
           expectedAgreementDigest: deal.agreementDigest!,
         });
-        if (sheet.recordFirst) await runRecordSetup(sendWalletCalls);
-        try {
-          await accept();
-        } catch (err) {
-          // The record was needed after all (set up elsewhere and undone, or not read in time).
-          if (!(err instanceof ApiError && err.code === 'record_setup_needed')) throw err;
-          await runRecordSetup(sendWalletCalls);
-          await accept();
-        }
+        await accept();
       } else if (sheet.action === 'fund') {
         if (!sheet.quote) return;
         await api.fundDirectDeal(deal.jobId, {
@@ -222,7 +201,7 @@ export function useWorkspaceActions(
       busyRef.current = false;
       setBusy(false);
     }
-  }, [deal, address, sheet, refresh, copy, dd, fundingQuote, locale, viewerIsBuyer, sendWalletCalls]);
+  }, [deal, address, sheet, refresh, copy, dd, fundingQuote, locale, viewerIsBuyer]);
 
   const close = useCallback(() => {
     if (busy) return;

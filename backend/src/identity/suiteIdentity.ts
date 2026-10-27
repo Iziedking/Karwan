@@ -31,13 +31,16 @@ export const registryAbi = parseAbi([
   'function nonces(address wallet) view returns (uint256)',
   'function identityOf(address wallet) view returns (uint64)',
   'function isAgent(address wallet) view returns (bool)',
+  'function identityCount() view returns (uint64)',
+  'function agentLimitOf(address wallet) view returns (uint128 perPayment, uint128 total, uint128 used)',
 ]);
 
-export class IdentityNeeded extends Error {
-  constructor(readonly code: 'record_setup_needed' | 'agent_renewal_needed') {
-    super(code === 'record_setup_needed' ? 'Set up your Karwan record first.' : 'Renew your buying agent first.');
-  }
-}
+export type RecordStepName = 'register' | 'unbindExpired' | 'bindBuyer' | 'bindSeller';
+export type RecordStep = { name: RecordStepName; to: Hex; data: Hex };
+/// Every call still missing from a person's record, for their own wallet to send
+/// in one transaction. When there is no identity yet, the bindings are signed for
+/// the number the registration will create (`identityIdAfter`).
+export type RecordSteps = { complete: boolean; steps: RecordStep[]; identityIdAfter: bigint; validUntil: bigint };
 
 export interface AgentWalletRef {
   address: Hex;
@@ -68,6 +71,9 @@ export interface IdentityPorts {
   deployAgent: (walletId: string, address: Hex) => Promise<void>;
   signTypedData: (walletId: string, typedData: ReturnType<typeof bindingTypedData>) => Promise<Hex>;
   execute: (walletId: string, fn: 'register' | 'bind' | 'unbind', args: unknown[]) => Promise<{ txHash: string }>;
+  /// How many identities the registry has made; the next one gets this plus one.
+  identityCount: () => Promise<bigint>;
+  agentLimit: (wallet: Hex) => Promise<{ perPayment: bigint; total: bigint; used: bigint }>;
   /// Testnet (owner, 26 Oct 2026): where Karwan holds the person's wallets it
   /// signs their record setup itself when a record is needed, instead of asking.
   autoSetupCustodial?: boolean;
@@ -146,7 +152,7 @@ export function createSuiteIdentity(ports: IdentityPorts) {
     const status = await identityStatus(w.identity.address);
     const t = now();
     const deadline = t + BigInt(DEADLINE_SECS);
-    const out: Array<{ args: unknown[] }> = [];
+    const out: Array<{ role: 'buying' | 'selling'; args: unknown[] }> = [];
     const plan: Array<{ agent: AgentWalletRef; role: string; kind: number; expiry: bigint; perPayment: bigint; total: bigint }> = [];
     if (!status.buyerBound || status.buyerExpiresAt <= t) {
       plan.push({ agent: w.buyer, role: 'buying', kind: KIND.Agent, expiry: t + BigInt(YEAR_SECS), perPayment: BUYING_AGENT_LIMITS.perPayment, total: BUYING_AGENT_LIMITS.total });
@@ -170,9 +176,9 @@ export function createSuiteIdentity(ports: IdentityPorts) {
         nonce: await ports.nonce(p.agent.address),
       });
       const sig = await ports.signTypedData(p.agent.walletId, typed);
-      out.push({ args: [p.agent.address, p.kind, p.expiry, p.perPayment, p.total, deadline, sig] });
+      out.push({ role: p.role as 'buying' | 'selling', args: [p.agent.address, p.kind, p.expiry, p.perPayment, p.total, deadline, sig] });
     }
-    return out;
+    return { bindings: out, deadline };
   }
 
   /// Karwan signs from the identity wallet it holds: register, unbind an expired
@@ -193,7 +199,7 @@ export function createSuiteIdentity(ports: IdentityPorts) {
       await ports.execute(walletId, 'unbind', [w.buyer.address]);
       if (!(await confirmed(w.buyer.address, (b) => b.id === 0n))) throw new Error('unbind did not land');
     }
-    for (const { args } of await missingBindings(w, me.id)) {
+    for (const { args } of (await missingBindings(w, me.id)).bindings) {
       const wallet = args[0] as Hex;
       await ports.execute(walletId, 'bind', args);
       const id = me.id;
@@ -201,44 +207,71 @@ export function createSuiteIdentity(ports: IdentityPorts) {
     }
   }
 
-  /// For a person who holds their own wallet: the calls still missing, to send
-  /// from the browser. Register comes alone first, because the bindings name the
-  /// identity it creates. An expired buying agent is unbound before it is bound.
-  async function preparedSetupCalls(userAddress: string): Promise<Array<{ to: Hex; data: Hex }>> {
+  /// For a person who holds their own wallet: every call still missing, in the
+  /// order the registry needs, to send in one transaction. An expired buying
+  /// agent is unbound before it is bound again.
+  async function recordSteps(userAddress: string): Promise<RecordSteps> {
     const w = await ports.ensureWallets(userAddress);
-    if (!w) return [];
-    const me = await ports.binding(w.identity.address);
-    if (me.id === 0n) return [{ to: ports.registry, data: encodeFunctionData({ abi: registryAbi, functionName: 'register' }) }];
-    const calls: Array<{ to: Hex; data: Hex }> = [];
-    const buyer = await ports.binding(w.buyer.address);
-    if (buyer.id === me.id && buyer.kind === KIND.Agent && buyer.expiry <= now()) {
-      calls.push({ to: ports.registry, data: encodeFunctionData({ abi: registryAbi, functionName: 'unbind', args: [w.buyer.address] }) });
+    if (!w) return { complete: false, steps: [], identityIdAfter: 0n, validUntil: 0n };
+    const step = (name: RecordStepName, data: Hex): RecordStep => ({ name, to: ports.registry, data });
+    const steps: RecordStep[] = [];
+    let identityId = (await ports.binding(w.identity.address)).id;
+    if (identityId === 0n) {
+      identityId = (await ports.identityCount()) + 1n;
+      steps.push(step('register', encodeFunctionData({ abi: registryAbi, functionName: 'register' })));
+    } else {
+      const buyer = await ports.binding(w.buyer.address);
+      if (buyer.id === identityId && buyer.kind === KIND.Agent && buyer.expiry <= now()) {
+        steps.push(step('unbindExpired', encodeFunctionData({ abi: registryAbi, functionName: 'unbind', args: [w.buyer.address] })));
+      }
     }
-    for (const { args } of await missingBindings(w, me.id)) {
-      calls.push({ to: ports.registry, data: encodeFunctionData({ abi: registryAbi, functionName: 'bind', args: args as never }) });
+    const { bindings, deadline } = await missingBindings(w, identityId);
+    for (const { role, args } of bindings) {
+      steps.push(step(role === 'buying' ? 'bindBuyer' : 'bindSeller', encodeFunctionData({ abi: registryAbi, functionName: 'bind', args: args as never })));
     }
-    return calls;
+    return { complete: steps.length === 0, steps, identityIdAfter: identityId, validUntil: deadline };
   }
 
-  /// Before a money step on the family. A buyer needs a live buying agent; a seller
-  /// needs the selling agent bound, so their deals count on their record.
-  async function requireIdentity(userAddress: string, role: 'buyer' | 'seller'): Promise<void> {
+  /// Whether the record is ready for this side of a deal: a live buying agent for
+  /// a buyer, the selling agent attached for a seller.
+  async function recordReady(userAddress: string, role: 'buyer' | 'seller'): Promise<boolean> {
+    const s = await identityStatus(userAddress);
+    if (s.identityId === 0n) return false;
+    return role === 'seller' ? s.sellerBound : s.buyerBound && s.buyerExpiresAt > now();
+  }
+
+  /// Nothing waits for a record (view 27, decision 10). Where Karwan holds the
+  /// wallets it sets the record up on the spot; a person with their own wallet
+  /// gets theirs with their next transaction, so for them this only reports.
+  async function ensureRecord(userAddress: string, role: 'buyer' | 'seller'): Promise<'ready' | 'not-ready'> {
+    if (await recordReady(userAddress, role)) return 'ready';
+    if (!ports.autoSetupCustodial) return 'not-ready';
+    const w = await ports.wallets(userAddress);
+    if (w && !w.identity.walletId) return 'not-ready';
     try {
-      await checkIdentity(userAddress, role);
+      await setUpOnce(userAddress);
     } catch (err) {
-      if (!(err instanceof IdentityNeeded) || !ports.autoSetupCustodial) throw err;
-      const w = await ports.wallets(userAddress);
-      // A person who holds their own wallet signs their own setup.
-      if (w && !w.identity.walletId) throw err;
-      try {
-        await setUpOnce(userAddress);
-      } catch (setupErr) {
-        // The gate then asks the person, as it does without auto setup.
-        ports.warn?.({ userAddress, err: (setupErr as Error).message }, 'automatic record setup failed');
-        throw err;
-      }
-      await checkIdentity(userAddress, role);
+      ports.warn?.({ userAddress, err: (err as Error).message }, 'automatic record setup failed');
+      return 'not-ready';
     }
+    return (await recordReady(userAddress, role)) ? 'ready' : 'not-ready';
+  }
+
+  /// A buying agent past its year, or over its limits for this payment, makes the
+  /// registry refuse the payment. The agent leaves the record on its own (the
+  /// registry lets a wallet unbind itself), so the payment goes on; it is attached
+  /// again with the record's next setup. True when it left.
+  async function freeBuyingAgent(userAddress: string, amountMicros: bigint): Promise<boolean> {
+    const w = await ports.wallets(userAddress);
+    if (!w) return false;
+    const buyer = await ports.binding(w.buyer.address);
+    if (buyer.id === 0n || buyer.kind !== KIND.Agent) return false;
+    const limit = await ports.agentLimit(w.buyer.address);
+    const blocked = buyer.expiry <= now() || amountMicros > limit.perPayment || limit.used + amountMicros > limit.total;
+    if (!blocked) return false;
+    await ports.execute(w.buyer.walletId, 'unbind', [w.buyer.address]);
+    if (!(await confirmed(w.buyer.address, (b) => b.id === 0n))) throw new Error('the buying agent could not step aside');
+    return true;
   }
 
   /// One setup per person at a time: a selling agent can reach several
@@ -253,17 +286,7 @@ export function createSuiteIdentity(ports: IdentityPorts) {
     return run;
   }
 
-  async function checkIdentity(userAddress: string, role: 'buyer' | 'seller'): Promise<void> {
-    const s = await identityStatus(userAddress);
-    if (s.identityId === 0n) throw new IdentityNeeded('record_setup_needed');
-    if (role === 'seller' && !s.sellerBound) throw new IdentityNeeded('record_setup_needed');
-    if (role === 'buyer') {
-      if (!s.buyerBound && s.buyerExpiresAt === 0n) throw new IdentityNeeded('record_setup_needed');
-      if (s.buyerExpiresAt <= now()) throw new IdentityNeeded('agent_renewal_needed');
-    }
-  }
-
-  return { identityStatus, setUpIdentityForCustodial, preparedSetupCalls, requireIdentity };
+  return { identityStatus, setUpIdentityForCustodial, recordSteps, ensureRecord, freeBuyingAgent };
 }
 
 export type SuiteIdentity = ReturnType<typeof createSuiteIdentity>;

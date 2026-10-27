@@ -41,6 +41,11 @@ function bindLive(registry: Hex): SuiteIdentity {
       return { id: BigInt(id), kind: Number(kind), expiry: BigInt(expiry) };
     },
     nonce: (wallet) => publicClient.readContract({ address: registry, abi: registryAbi, functionName: 'nonces', args: [wallet] }),
+    identityCount: async () => BigInt(await publicClient.readContract({ address: registry, abi: registryAbi, functionName: 'identityCount' })),
+    agentLimit: async (wallet) => {
+      const [perPayment, total, used] = await publicClient.readContract({ address: registry, abi: registryAbi, functionName: 'agentLimitOf', args: [wallet] });
+      return { perPayment, total, used };
+    },
     wallets: async (userAddress) => personWallets(userAddress, await getAgentWallets(userAddress)),
     ensureWallets: async (userAddress) => personWallets(userAddress, await ensureUserAgentWallets(userAddress)),
     isDeployed: async (address) => ((await publicClient.getCode({ address })) ?? '0x') !== '0x',

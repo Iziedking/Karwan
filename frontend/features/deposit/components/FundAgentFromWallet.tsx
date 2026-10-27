@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { isAddress } from 'viem';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useArcFund, type FundPhase } from '@/features/profile/hooks/useArcFund';
+import { RecordDoneLine } from '@/shared/chain/RecordDoneLine';
 
 /// Fund an agent from the connected Arc wallet. This is deliberately separate
 /// from FundAgentFromBalance: that component calls the Circle identity-wallet
@@ -90,6 +91,7 @@ export function FundAgentFromWallet({
       {settling ? (
         <p className="text-[14px] leading-snug text-[var(--ink-secondary)] font-medium">{copy.submit.activeNote}</p>
       ) : null}
+      <RecordDoneLine show={latest?.recordSetUp === true} />
     </div>
   );
 }

@@ -22,6 +22,7 @@ import { DealLatest, DealTimeline } from './DealTimeline';
 import { DisputePanel } from './DisputePanel';
 import { DeliveryCard } from './DeliveryCard';
 import { HandoverCode } from './HandoverCode';
+import { RecordNudge } from './RecordNudge';
 import { deliveryNeedsShipment } from './delivery';
 import { linksIn } from './deliveryCard';
 
@@ -301,6 +302,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
                 {view.onBothRecords === false ? dl.recordPending : dl.completeBody}
               </p>
             )}
+            {view.recordNudge ? <RecordNudge /> : null}
           </div>
         ) : null}
 

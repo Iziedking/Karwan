@@ -538,7 +538,7 @@ export function contentFor(
         kicker: 'Settled',
         subject: 'Your Karwan deal settled in full',
         heading: 'Deal settled',
-        body: 'The deal settled in full and reputation was recorded on chain.',
+        body: 'The deal settled in full. Open it for your receipt and to see it on your Karwan record.',
         ctaLabel: 'View the deal',
         ctaUrl: dealUrl(e.jobId),
       };

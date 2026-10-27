@@ -99,7 +99,8 @@ export type SheetState =
   | { kind: 'editing' }
   | { kind: 'signing' }
   | { kind: 'sent' }
-  | { kind: 'confirmed'; reference: string | null; txHash: string | null }
+  /// `recordSetUp`: the person's own transaction also set up their Karwan record.
+  | { kind: 'confirmed'; reference: string | null; txHash: string | null; recordSetUp?: boolean }
   | { kind: 'slow'; reference: string | null; txHash: string | null }
   | { kind: 'reverted' }
   | { kind: 'failed'; declined: boolean }
@@ -143,7 +144,7 @@ function idsOf(record: Ids): { reference: string | null; txHash: string | null }
 
 /// A top-up signed by the person's own wallet (useArcFund). Once a hash exists
 /// it is never shown as failed unless the chain reverted it.
-export function fromArcFund(record: (Ids & { phase: FundPhase; error?: string }) | null): SheetState {
+export function fromArcFund(record: (Ids & { phase: FundPhase; error?: string; recordSetUp?: boolean }) | null): SheetState {
   if (!record) return { kind: 'signing' };
   switch (record.phase) {
     case 'switching':
@@ -157,7 +158,7 @@ export function fromArcFund(record: (Ids & { phase: FundPhase; error?: string })
     // money is with the agent either way.
     case 'settling':
     case 'done':
-      return { kind: 'confirmed', ...idsOf(record) };
+      return { kind: 'confirmed', ...idsOf(record), ...(record.recordSetUp ? { recordSetUp: true } : {}) };
     case 'error':
       if (record.txHash) {
         return REVERTED.test(record.error ?? '') ? { kind: 'reverted' } : { kind: 'slow', ...idsOf(record) };

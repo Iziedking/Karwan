@@ -36,7 +36,7 @@ export const dealEscrowOps = createDealEscrowOps({
           escrow: agreementEscrow,
           readView: (id) => readAgreementView(agreementEscrowAddress!, id),
           readReviewEnd: (id) => readAgreementReviewEnd(agreementEscrowAddress!, id),
-          ...(suiteIdentity ? { requireIdentity: suiteIdentity.requireIdentity } : {}),
+          ...(suiteIdentity ? { ensureRecord: suiteIdentity.ensureRecord } : {}),
           ...(platformSigners
             ? {
                 submitCheck: async (dealId, revision, pass, evidenceHash) =>

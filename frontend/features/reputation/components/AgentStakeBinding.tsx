@@ -6,6 +6,9 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { chainErrorMessage } from '@/shared/utils/chainError';
 import { requireConfirmedTx } from '@/shared/chain/confirmTx';
+import { encodeFunctionData } from 'viem';
+import { useOwnWalletSend } from '@/shared/chain/useOwnWalletSend';
+import { RecordDoneLine } from '@/shared/chain/RecordDoneLine';
 import { ARC_CHAIN_ID, KARWAN_VAULT_ADDRESS } from '../../profile/config';
 
 /// Letting your agents draw on your stake.
@@ -38,6 +41,8 @@ export function AgentStakeBinding() {
   const address = auth.address as `0x${string}` | undefined;
   const isCircleUser = auth.method === 'circle';
   const { data: walletClient } = useWalletClient();
+  const ownWallet = useOwnWalletSend();
+  const [recordSetUp, setRecordSetUp] = useState(false);
   const arcClient = usePublicClient({ chainId: ARC_CHAIN_ID });
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
@@ -78,20 +83,17 @@ export function AgentStakeBinding() {
         if (!walletClient) throw new Error(chainCopy.generic);
         if (chainId !== ARC_CHAIN_ID) await switchChainAsync({ chainId: ARC_CHAIN_ID });
         for (const agent of unbound) {
-          const hash = await walletClient.writeContract({
+          const sent = await ownWallet.send([
             // The backend's vault, not the one this bundle was built against.
-            address: vaultAddress ?? KARWAN_VAULT_ADDRESS,
-            abi: approveAgentAbi,
-            functionName: 'approveAgent',
-            args: [agent.agent as `0x${string}`],
-            chain: walletClient.chain,
-            account: address,
-          });
+            { to: vaultAddress ?? KARWAN_VAULT_ADDRESS, data: encodeFunctionData({ abi: approveAgentAbi, functionName: 'approveAgent', args: [agent.agent as `0x${string}`] }) },
+          ]);
+          const hash = sent.txHash;
           // The registration below READS this approval, so it has to be on
           // chain before that call, not merely submitted. Confirming here is
           // what stops registerOwner reverting AgentNotApproved on a race.
           if (!arcClient) throw new Error(chainCopy.generic);
           await requireConfirmedTx(arcClient, hash, chainCopy.reverted);
+          if (await ownWallet.recordDone(sent)) setRecordSetUp(true);
         }
       }
       const res = await api.registerAgentBinding(address);
@@ -130,6 +132,7 @@ export function AgentStakeBinding() {
           {t.foreignBody}
         </p>
       )}
+      <RecordDoneLine show={recordSetUp} />
       {error && (
         <p role="alert" className="text-[14px] leading-snug text-[var(--color-critical)]">{error}</p>
       )}

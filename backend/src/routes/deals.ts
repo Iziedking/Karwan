@@ -31,8 +31,9 @@ import { chooseFundingEscrow, fundDirectDealV3, type EscrowVersion, type StoredT
 import { fundDirectDealSuite, fundingMovementKey } from '../deals/fundDirectSuite.js';
 import type { StoredAgreementTerms } from '../chain/agreementTerms.js';
 import { suiteFundingEnabled } from '../chain/suiteConfig.js';
-import { IdentityNeeded } from '../identity/suiteIdentity.js';
-import { suiteOnBothRecords } from '../deals/suiteRecordStatusLive.js';
+import { suiteRecordSides } from '../deals/suiteRecordStatusLive.js';
+import { outcomeOf } from '../deals/suiteRecordStatus.js';
+import { recordNudgeDue } from '../deals/recordNudge.js';
 import { fundDirectSuiteDeps, fundDirectV3Deps } from '../deals/fundDirectV3Live.js';
 import { chatFundingRefusal } from '../deals/chatDealGate.js';
 import { chatFundingDeps } from '../deals/chatFundingLive.js';
@@ -125,13 +126,12 @@ import {
 } from '../db/dealInvites.js';
 import { pgEnabled } from '../db/client.js';
 import { pickEmailOwner, type EmailOwner } from '../identity/emailOwner.js';
-import { getUserByEmail } from '../db/users.js';
+import { getUserByAddress, getUserByEmail } from '../db/users.js';
 import { findProfileByEmail, getProfile } from '../db/profiles.js';
 import { partyLabel } from '../deals/partyLabel.js';
 import { deliveryCheckState } from '../deals/deliveryCheckState.js';
 import { provisionUserAgentWallets } from '../circle/wallets.js';
 import { ensureUserAgentWallets } from '../circle/userAgents.js';
-import { sellerRecordNeeded } from '../deals/sellerRecordGate.js';
 import { refundMovementKey, takeBackUnaccepted, TakeBackRefused } from '../deals/takeBackUnaccepted.js';
 import { deliveryHistoryFor } from '../deals/deliveryHistoryView.js';
 import { MAX_DELIVERY_PHOTOS, PHOTO_REQUIRED_ABOVE_USDC, deliveryFingerprint, deliveryNeeds, photoFingerprint } from '../deals/deliveryProofRules.js';
@@ -1997,11 +1997,11 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
   if (deal.sellerApprovedAt) {
     return c.json({ accepted: true, jobId, status: 'seller-approved' as const }, 200);
   }
-  const recordNeeded = await sellerRecordNeeded(deal, {
-    fundsOnSuite: async () => (await fundingEscrowFor(deal, jobId)) === 'suite',
-    requireIdentity: (user, role) => suiteIdentity!.requireIdentity(user, role),
-  });
-  if (recordNeeded) return c.json(recordNeeded, 409);
+  // Agreeing never waits for a record (view 27, decision 10). A held wallet's
+  // record is set up first, so the deal counts on it once it is paid in.
+  if (suiteIdentity && (await fundingEscrowFor(deal, jobId)) === 'suite') {
+    await suiteIdentity.ensureRecord(deal.seller, 'seller');
+  }
   if (inFlight.has(jobId)) {
     return c.json({ error: 'an action is already in progress for this deal' }, 409);
   }
@@ -3132,9 +3132,6 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
       account = await dealEscrowOps.read(deal);
       logger.info({ jobId }, 'deliver self-healed Funded -> Accepted via acceptEscrow');
     } catch (err) {
-      if (err instanceof IdentityNeeded) {
-        return c.json({ error: err.message, code: err.code }, 409);
-      }
       const message = (err as Error).message;
       const lower = message.toLowerCase();
       const isInsufficientStake =
@@ -4022,9 +4019,6 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
       account = await dealEscrowOps.read(deal);
       logger.info({ jobId }, 'release self-healed Funded -> Accepted via acceptEscrow');
     } catch (err) {
-      if (err instanceof IdentityNeeded) {
-        return c.json({ error: 'The seller sets up their Karwan record before this deal can go on.', code: 'seller_record_needed' }, 409);
-      }
       const message = (err as Error).message;
       const lower = message.toLowerCase();
       const isInsufficientStake =
@@ -5704,23 +5698,50 @@ async function partyView(enriched: Awaited<ReturnType<typeof enrich>>, viewer: '
     return null;
   });
   const view = dealView(input, viewer, pendingMovement, Date.now());
-  return { view: { ...view, ...(await onBothRecordsOf(enriched, view.stage)) }, counterpartyTrust };
+  return { view: { ...view, ...(await recordStatusOf(enriched, view.stage, viewer, caller)) }, counterpartyTrust };
 }
 
 /// A settled suite deal reads "on both your records" once the record holds both
 /// sides' outcomes (true), waiting while an outcome is held back (false), and
 /// makes no claim when a side had no record when the deal was paid in (null).
+/// The viewer also sees where it stands on their own record, and a person with
+/// their own wallet whose side is missing gets the receipt line (decision 11).
 /// The first "both" read is kept so later views skip the chain.
-async function onBothRecordsOf(deal: DirectDeal, stage: string): Promise<{ onBothRecords?: boolean | null }> {
+async function recordStatusOf(
+  deal: DirectDeal,
+  stage: string,
+  viewer: 'buyer' | 'seller',
+  caller: string,
+): Promise<{ onBothRecords?: boolean | null; onMyRecord?: 'recorded' | 'pending' | 'missing'; recordNudge?: boolean }> {
   if (deal.escrowVersion !== 'suite' || !deal.escrowDealId) return {};
-  if (deal.onBothRecordsAt) return { onBothRecords: true };
+  if (deal.onBothRecordsAt) return { onBothRecords: true, onMyRecord: 'recorded' };
   if (stage !== 'settled') return {};
-  const outcome = await suiteOnBothRecords(deal.escrowDealId as `0x${string}`).catch((err) => {
+  const sides = await suiteRecordSides(deal.escrowDealId as `0x${string}`).catch((err) => {
     logger.warn({ jobId: deal.jobId, err: (err as Error).message }, 'record read for a settled deal failed');
-    return 'pending' as const;
+    return undefined;
   });
+  if (sides === undefined) return { onBothRecords: false };
+  if (sides === null) return { onBothRecords: null };
+  const outcome = outcomeOf(sides);
   if (outcome === 'both') await patchDeal(deal.jobId, { onBothRecordsAt: Date.now() });
-  return { onBothRecords: outcome === 'both' ? true : outcome === 'pending' ? false : null };
+  const onMyRecord = sides[viewer];
+  return {
+    onBothRecords: outcome === 'both' ? true : outcome === 'pending' ? false : null,
+    onMyRecord,
+    recordNudge: onMyRecord === 'missing' ? await recordNudgeFor(caller) : false,
+  };
+}
+
+async function recordNudgeFor(caller: string): Promise<boolean> {
+  const ownWallet = !getUserByAddress(caller)?.circleIdentityWalletId;
+  if (!ownWallet || !suiteIdentity) return false;
+  const [status, profile] = await Promise.all([
+    suiteIdentity.identityStatus(caller).catch(() => null),
+    getProfile(caller).catch(() => null),
+  ]);
+  if (!status) return false;
+  const recordComplete = status.identityId !== 0n && status.buyerBound && status.sellerBound && status.buyerExpiresAt > BigInt(Math.floor(Date.now() / 1000));
+  return recordNudgeDue({ side: 'missing', ownWallet, recordComplete, shownAt: profile?.recordNudgeShownAt, nowMs: Date.now() });
 }
 
 /// Context a list passes so each deal does not re-read the whole deal table.

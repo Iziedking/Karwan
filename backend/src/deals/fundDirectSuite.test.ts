@@ -3,7 +3,6 @@ import test from 'node:test';
 import { createAgreementEscrow } from '../chain/agreementEscrow.js';
 import { agreementDealId, type AgreementLimits } from '../chain/agreementTerms.js';
 import { DEAL_STATE, type DealV3View } from '../chain/dealEscrowV3.js';
-import { IdentityNeeded } from '../identity/suiteIdentity.js';
 import { dealKindForSuite, fundDirectDealSuite, type FundDirectSuiteDeps, type FundDirectSuiteInput } from './fundDirectSuite.js';
 import { chooseFundingEscrow, fundingSaltV3 } from './fundDirectV3.js';
 
@@ -26,11 +25,13 @@ const blank = (): DealV3View => ({
   feeReleased: 0n, reserved: 0n, termsHash: `0x${'00'.repeat(32)}`,
 });
 
-function world(opts: { buyerRecord?: boolean; sellerRecord?: boolean } = {}) {
+function world(opts: { buyerRecord?: boolean; sellerRecord?: boolean; agentBlocked?: boolean } = {}) {
   const chain = new Map<string, DealV3View>();
   const calls: string[] = [];
   const patches: Array<Record<string, unknown>> = [];
   const attention: string[] = [];
+  const records: string[] = [];
+  const freed: Array<[string, bigint]> = [];
   const events: string[] = [];
   const plan: Array<'ok' | 'revert'> = [];
   let allowance = 0n;
@@ -68,10 +69,13 @@ function world(opts: { buyerRecord?: boolean; sellerRecord?: boolean } = {}) {
     readView: async (id) => chain.get(id) ?? blank(),
     readLimits: async () => LIMITS,
     settings: { baseReviewSecs: 3 * 86_400, reclaimGraceSecs: 86_400 },
-    requireIdentity: async (user, role) => {
-      const has = user === BUYER ? opts.buyerRecord !== false : opts.sellerRecord !== false;
-      if (!has) throw new IdentityNeeded('record_setup_needed');
-      void role;
+    ensureRecord: async (user) => {
+      records.push(user);
+      return (user === BUYER ? opts.buyerRecord !== false : opts.sellerRecord !== false) ? 'ready' : 'not-ready';
+    },
+    freeBuyingAgent: async (user, amount) => {
+      freed.push([user, amount]);
+      return !!opts.agentBlocked;
     },
     readUsdcBalance: async () => 10_000_000_000n,
     readUsdcAllowance: async () => allowance,
@@ -93,7 +97,7 @@ function world(opts: { buyerRecord?: boolean; sellerRecord?: boolean } = {}) {
     emit: (e) => events.push(e.type),
     now: () => NOW_MS,
   };
-  return { deps, chain, calls, patches, attention, events, plan };
+  return { deps, chain, calls, patches, attention, events, plan, records, freed };
 }
 
 const input = (over: Partial<FundDirectSuiteInput["deal"]> = {}, total = 251_250_000n): FundDirectSuiteInput => ({
@@ -144,12 +148,19 @@ test('refuses_over_the_cap_before_any_call', async () => {
   assert.deepEqual(w.patches, []);
 });
 
-test('refuses_without_a_record', async () => {
+test('pays_when_the_buyer_has_no_record', async () => {
   const w = world({ buyerRecord: false });
   const r = await fundDirectDealSuite(w.deps, input());
-  assert.equal(r.status, 409);
-  assert.equal(r.body.code, 'record_setup_needed');
-  assert.deepEqual(w.calls, []);
+  assert.equal(r.status, 200);
+  assert.deepEqual(w.calls, ['approve', 'fund', 'accept'], 'nothing waits for a record');
+});
+
+test('a_buying_agent_that_would_be_refused_steps_aside_before_paying', async () => {
+  const w = world({ agentBlocked: true });
+  const r = await fundDirectDealSuite(w.deps, input());
+  assert.equal(r.status, 200);
+  assert.deepEqual(w.freed, [[BUYER, 251_250_000n]], 'checked against what the agent puts in');
+  assert.deepEqual(w.records.slice(0, 1), [BUYER], 'then a held record is set up again');
 });
 
 test('a_changed_total_is_refused_before_signing', async () => {
@@ -180,11 +191,11 @@ test('resumes_without_a_second_fund', async () => {
   assert.deepEqual(w.calls, ['accept'], 'the funded deal is read first; no second approve or fund');
 });
 
-test('a_seller_without_a_record_leaves_the_deal_funded_and_is_asked', async () => {
+test('accepts_when_the_seller_has_no_record', async () => {
   const w = world({ sellerRecord: false });
   const r = await fundDirectDealSuite(w.deps, input());
   assert.equal(r.status, 200);
-  assert.equal(r.body.sellerRecordNeeded, true);
-  assert.deepEqual(w.calls, ['approve', 'fund']);
-  assert.ok(w.events.includes('record.setup_needed'));
+  assert.equal(r.body.sellerRecordNeeded, undefined);
+  assert.deepEqual(w.calls, ['approve', 'fund', 'accept']);
+  assert.ok(!w.events.includes('record.setup_needed'));
 });

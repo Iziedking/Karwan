@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { RecordDoneLine } from '@/shared/chain/RecordDoneLine';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Hint } from '@/shared/components/Hint';
@@ -408,6 +409,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
                 </div>
               ) : null}
             </dl>
+            <RecordDoneLine show={state.recordSetUp === true} />
             <button type="button" onClick={finish} className={`${PRIMARY} w-full`}>{t.sheet.done}</button>
           </motion.div>
         ) : state.kind === 'guarded' ? (

@@ -1,4 +1,5 @@
 import { erc20Abi, parseEventLogs } from 'viem';
+import { sentTo } from '../chain/multicall3From.js';
 import { ARC, publicClient } from '../chain/client.js';
 import { ensureMoneyMovement } from '../db/moneyMovements.js';
 import { formatUsdcMicros } from './model.js';
@@ -60,11 +61,12 @@ export async function completeWeb3VaultAction(input: {
   if (!prepared) throw new Error('vault action intent is not prepared');
   try {
     const receipt = await publicClient.getTransactionReceipt({ hash: input.txHash as `0x${string}` });
-    if (receipt.status !== 'success' || (receipt.to ?? '').toLowerCase() !== input.vaultAddress.toLowerCase() || (receipt.from ?? '').toLowerCase() !== input.ownerAddress.toLowerCase()) throw new Error('vault action transaction proof failed');
+    if (receipt.status !== 'success' || !sentTo(receipt.to, input.vaultAddress) || (receipt.from ?? '').toLowerCase() !== input.ownerAddress.toLowerCase()) throw new Error('vault action transaction proof failed');
     const decoded = parseEventLogs({ abi: vaultActionEventAbi, eventName: input.action === 'requestWithdraw' ? 'WithdrawalRequested' : input.action === 'cancelWithdraw' ? 'WithdrawalCancelled' : 'Claimed', logs: receipt.logs, strict: false });
     const event = decoded.find((entry) => {
       const args = entry.args as { owner?: string; positionId?: bigint; principal?: bigint };
-      return args.owner?.toLowerCase() === input.ownerAddress.toLowerCase() && args.positionId === BigInt(input.positionId) && (input.action !== 'claim' || args.principal === input.amountMicros);
+      // Only the vault's own log counts: a batched transaction can call other contracts too.
+      return entry.address.toLowerCase() === input.vaultAddress.toLowerCase() && args.owner?.toLowerCase() === input.ownerAddress.toLowerCase() && args.positionId === BigInt(input.positionId) && (input.action !== 'claim' || args.principal === input.amountMicros);
     });
     if (!event) throw new Error('vault action event does not match the position');
     if (input.action === 'claim') {
@@ -159,7 +161,8 @@ export async function executeVaultActionMovement(input: {
     const decoded = parseEventLogs({ abi: vaultActionEventAbi, eventName: input.action === 'requestWithdraw' ? 'WithdrawalRequested' : input.action === 'cancelWithdraw' ? 'WithdrawalCancelled' : 'Claimed', logs: receipt.logs, strict: false });
     const event = decoded.find((entry) => {
       const args = entry.args as { owner?: string; positionId?: bigint; principal?: bigint };
-      return args.owner?.toLowerCase() === input.ownerAddress.toLowerCase() && args.positionId === BigInt(input.positionId) && (input.action !== 'claim' || args.principal === input.amountMicros);
+      // Only the vault's own log counts: a batched transaction can call other contracts too.
+      return entry.address.toLowerCase() === input.vaultAddress.toLowerCase() && args.owner?.toLowerCase() === input.ownerAddress.toLowerCase() && args.positionId === BigInt(input.positionId) && (input.action !== 'claim' || args.principal === input.amountMicros);
     });
     if (!event) throw new Error('vault action event does not match the position');
     if (input.action === 'claim') {

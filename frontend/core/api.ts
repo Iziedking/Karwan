@@ -9,6 +9,7 @@ import { credentialsForApiRequest } from './adminTransport';
 import type { KdfParams } from '@/features/recovery/crypto';
 import type { Offer } from '@/features/offers/model';
 import type { SurveyAnswer, SurveySummary } from '@/features/admin/surveyPresentation';
+import type { RecordStep } from '@/shared/chain/ownWalletPlan';
 
 // next.config.mjs refuses a production build without NEXT_PUBLIC_BACKEND_URL,
 // so localhost here only ever serves development and tests.
@@ -700,6 +701,10 @@ export interface DealView {
   /// Settled escrow-family deals only: on both sides' records (true), waiting
   /// for the record (false), or a side had no record when it was paid in (null).
   onBothRecords?: boolean | null;
+  /// Settled suite deals: where it stands on the viewer's own record.
+  onMyRecord?: 'recorded' | 'pending' | 'missing';
+  /// The receipt line for someone with their own wallet (view 27, decision 11).
+  recordNudge?: boolean;
 }
 
 /// Mirrors backend/src/trust/trustCard.ts.
@@ -4417,10 +4422,16 @@ export const api = {
       sellerBound?: boolean;
       buyerExpiresAt?: number;
       limits?: { perPayment: string; total: string; days: number };
-      /// Web3 accounts: the calls still to send from their own wallet, in order.
-      calls?: Array<{ to: `0x${string}`; data: `0x${string}` }>;
+      /// Web3 accounts: every step still missing, to ride along with their next
+      /// Arc transaction (view 27, decision 10), signed for `identityIdAfter`
+      /// until `validUntil` (unix seconds).
+      steps?: RecordStep[];
+      identityIdAfter?: string;
+      validUntil?: number;
     }>('/api/record/setup'),
   recordSetup: () => json<{ complete: boolean }>('/api/record/setup', { method: 'POST' }),
+  /// The receipt line was shown; it waits a month before showing again.
+  recordNudgeSeen: () => json<{ ok: true }>('/api/record/nudge-seen', { method: 'POST' }),
   confirmStatus: () =>
     json<{ methods: PresenceMethod[]; pinSet: boolean; pinLockedUntil: number | null; passkeys: number; hasEmail: boolean }>('/api/confirm/status'),
   /// Confirms one challenge with a PIN, a passkey assertion or a wallet signature.

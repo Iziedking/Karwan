@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { encodeAbiParameters, keccak256 } from 'viem';
-import { outcomeKey, pendingRecordKey, readOnBothRecords } from './suiteRecordStatus.js';
+import { outcomeKey, pendingRecordKey, readOnBothRecords, readRecordSides } from './suiteRecordStatus.js';
 
 type Hex = `0x${string}`;
 const FAMILY = `0x${'55'.repeat(20)}` as Hex;
@@ -41,4 +41,11 @@ test('a_side_with_no_record_when_it_was_paid_reads_as_not_recorded', async () =>
   // set up their record later is not on this deal's record, and nothing is waiting.
   assert.equal(await readOnBothRecords(ports({ recorded: [outcomeKey(FAMILY, DEAL, 3n, 0)] }), DEAL), 'none');
   assert.equal(await readOnBothRecords(ports({ seller: 0n }), DEAL), 'none');
+});
+
+test('reads_each_side_on_its_own', async () => {
+  const sides = await readRecordSides(ports({ recorded: [outcomeKey(FAMILY, DEAL, 3n, 0)], seller: 0n }), DEAL);
+  assert.deepEqual(sides, { buyer: 'recorded', seller: 'missing' });
+  const held = await readRecordSides(ports({ recorded: [outcomeKey(FAMILY, DEAL, 7n, 1)], pending: [pendingRecordKey(DEAL, 0)] }), DEAL);
+  assert.deepEqual(held, { buyer: 'pending', seller: 'recorded' });
 });

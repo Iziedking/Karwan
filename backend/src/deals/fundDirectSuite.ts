@@ -15,7 +15,6 @@ import {
 import { DEAL_STATE, EscrowProofError, type DealV3View } from '../chain/dealEscrowV3.js';
 import type { ContractCallLifecycle } from '../chain/txs.js';
 import type { DirectDeal } from '../db/deals.js';
-import { IdentityNeeded } from '../identity/suiteIdentity.js';
 import type { PlanMovementLegInput } from '../money/model.js';
 import { CHECK_POLICY_V1, fundingSaltV3 } from './fundDirectV3.js';
 import { termsFloorMs } from './releaseWindow.js';
@@ -46,7 +45,10 @@ export interface FundDirectSuiteDeps {
   readView(dealId: Hex): Promise<DealV3View>;
   readLimits(): Promise<AgreementLimits>;
   settings: { baseReviewSecs: number; reclaimGraceSecs: number };
-  requireIdentity(userAddress: string, role: 'buyer' | 'seller'): Promise<void>;
+  /// Nothing waits for a record (view 27, decision 10): held wallets are set up on the spot.
+  ensureRecord(userAddress: string, role: 'buyer' | 'seller'): Promise<'ready' | 'not-ready'>;
+  /// A buying agent the registry would refuse steps aside, so the payment goes on.
+  freeBuyingAgent(userAddress: string, amountMicros: bigint): Promise<boolean>;
   readUsdcBalance(owner: Hex): Promise<bigint>;
   readUsdcAllowance(owner: Hex, spender: Hex): Promise<bigint>;
   approveUsdc(input: { walletId: string; spender: Hex; amount: bigint; idempotencyKey: string; lifecycle?: ContractCallLifecycle }): Promise<void>;
@@ -105,14 +107,11 @@ export function dealKindForSuite(deal: { tradeType?: 'service' | 'goods' | 'mixe
 
 const usdc = (micros: bigint) => formatUnits(micros, USDC_DECIMALS);
 
-const identityRefusal = (err: IdentityNeeded): FundDirectSuiteResult => ({ status: 409, body: { error: err.code, code: err.code } });
-
 export async function fundDirectDealSuite(deps: FundDirectSuiteDeps, input: FundDirectSuiteInput): Promise<FundDirectSuiteResult> {
   const ctx: { reference?: string } = {};
   try {
     return await steps(deps, input, ctx);
   } catch (err) {
-    if (err instanceof IdentityNeeded) return identityRefusal(err);
     if (ctx.reference && err && typeof err === 'object') Object.assign(err, { movementReference: ctx.reference });
     throw err;
   }
@@ -146,7 +145,7 @@ async function steps(deps: FundDirectSuiteDeps, input: FundDirectSuiteInput, ctx
       return activate(deps, input, { reference, funded, escrowDealId, terms, fundTxHash: deal.fundTxHash });
     }
     if (onChain.state !== DEAL_STATE.None) return { status: 409, body: { error: 'this escrow deal is already closed', code: 'ESCROW_CLOSED', escrowDealId } };
-    await deps.requireIdentity(deal.buyer, 'buyer');
+    await readyBuyer(deps, deal.buyer, total);
     funded = total;
     if (input.authorizedTotalMicros !== funded) {
       return { status: 409, body: { error: 'the funding total changed before confirmation', code: 'QUOTE_CHANGED', expectedTotalUsdc: usdc(funded) } };
@@ -158,7 +157,7 @@ async function steps(deps: FundDirectSuiteDeps, input: FundDirectSuiteInput, ctx
     if (buyerPaysMicros(amount, limits.feeBps) > limits.perDealCapMicros) {
       return { status: 409, body: { error: BETA_CAP_COPY, code: 'OVER_BETA_CAP' } };
     }
-    await deps.requireIdentity(deal.buyer, 'buyer');
+    await readyBuyer(deps, deal.buyer, buyerPaysMicros(amount, limits.feeBps));
 
     // The delivery window starts when the money is protected.
     const acceptBy = BigInt(nowSecs + ACCEPT_WINDOW_SECS);
@@ -300,24 +299,23 @@ async function fundAndActivate(
   return activate(deps, input, { ...s, fundTxHash });
 }
 
-/// The selling agent accepts the exact terms. A seller with no record yet is
-/// asked to set it up first; the deal stays funded and the buyer protected.
+/// The buying agent steps aside first if the registry would refuse it, then a
+/// held wallet's record is set up (a fresh agent binding included). A person with
+/// their own wallet pays on regardless; the deal then does not count on their record.
+async function readyBuyer(deps: FundDirectSuiteDeps, buyer: string, fundsMicros: bigint): Promise<void> {
+  await deps.freeBuyingAgent(buyer, fundsMicros);
+  await deps.ensureRecord(buyer, 'buyer');
+}
+
+/// The selling agent accepts the exact terms. A seller with no record yet still
+/// accepts; the deal then does not count on their record (view 27, decision 10).
 async function activate(
   deps: FundDirectSuiteDeps,
   input: FundDirectSuiteInput,
   s: { reference: string; funded: bigint; escrowDealId: Hex; terms: AgreementTerms; fundTxHash?: string },
 ): Promise<FundDirectSuiteResult> {
   const { jobId, deal, sellerAgent } = input;
-  try {
-    await deps.requireIdentity(deal.seller, 'seller');
-  } catch (err) {
-    if (!(err instanceof IdentityNeeded)) throw err;
-    deps.emit({ type: 'record.setup_needed', jobId, actor: 'platform', payload: { sellerUser: deal.seller.toLowerCase(), reason: 'deal', jobId, escrowDealId: s.escrowDealId } });
-    return {
-      status: 200,
-      body: { accepted: false, jobId, status: 'funded', escrowDealId: s.escrowDealId, reference: s.reference, sellerRecordNeeded: true, ...(s.fundTxHash ? { txHash: s.fundTxHash } : {}) },
-    };
-  }
+  await deps.ensureRecord(deal.seller, 'seller');
   const activation = await deps.movements.prepareLeg(s.reference, {
     key: 'activate',
     label: 'Activate escrow protection',

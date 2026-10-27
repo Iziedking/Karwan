@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { sentTo } from '../chain/multicall3From.js';
 import { z } from 'zod';
 import { randomUUID } from 'node:crypto';
 import { erc20Abi, formatUnits, parseEventLogs, parseUnits } from 'viem';
@@ -1270,7 +1271,7 @@ activationRoutes.post('/fund-agent-web3/complete', async (c) => {
     }
 
     const receipt = await publicClient.getTransactionReceipt({ hash: body.txHash as `0x${string}` });
-    if (receipt.status !== 'success' || receipt.to?.toLowerCase() !== usdcAddress.toLowerCase()) {
+    if (receipt.status !== 'success' || !sentTo(receipt.to, usdcAddress)) {
       const attention = await markMoneyMovementNeedsAttention(
         movement.reference,
         receipt.status === 'reverted' ? 'WEB3_AGENT_FUNDING_REVERTED' : 'WEB3_AGENT_FUNDING_RECEIPT_INVALID',
@@ -1287,7 +1288,9 @@ activationRoutes.post('/fund-agent-web3/complete', async (c) => {
       logs: receipt.logs,
       strict: false,
     });
+    // Only USDC's own log counts: a batched transaction can call other contracts too.
     const matchingTransfer = transfers.find((entry) =>
+      entry.address.toLowerCase() === usdcAddress.toLowerCase() &&
       matchesAgentFundingTransfer(entry.args as { from?: string; to?: string; value?: bigint }, {
         sourceAddress: userAddress,
         destinationAddress: agentAddress,

@@ -4,18 +4,17 @@ import { readAgreementTerms } from '../chain/agreementEscrowLive.js';
 import { publicClient } from '../chain/client.js';
 import { suiteAddresses } from '../chain/suiteConfig.js';
 import { registryAbi } from '../identity/suiteIdentity.js';
-import { readOnBothRecords, type RecordOutcome } from './suiteRecordStatus.js';
+import { readRecordSides, type RecordSide, type RecordStatusPorts } from './suiteRecordStatus.js';
 
 const recordAbi = parseAbi(['function outcomeRecorded(bytes32 key) view returns (bool)']);
 
-/// Whether a suite deal's outcome is on both sides' records, read from the chain.
+/// Where a suite deal's outcome stands on each side's record, read from the chain.
 /// The buyer's record id is the escrow's payer id; the seller's is the identity
-/// their payee wallet is bound to.
-export async function suiteOnBothRecords(dealId: Hex): Promise<RecordOutcome> {
+/// their payee wallet is bound to. Null where the escrow family is not set up.
+export async function suiteRecordSides(dealId: Hex): Promise<{ buyer: RecordSide; seller: RecordSide } | null> {
   const addrs = suiteAddresses();
-  if (!addrs) return 'none';
-  return readOnBothRecords(
-    {
+  if (!addrs) return null;
+  const ports: RecordStatusPorts = {
       family: addrs.agreement,
       subjects: async (id) => {
         const [account, terms] = await Promise.all([
@@ -28,7 +27,6 @@ export async function suiteOnBothRecords(dealId: Hex): Promise<RecordOutcome> {
       outcomeRecorded: (key) => publicClient.readContract({ address: addrs.record, abi: recordAbi, functionName: 'outcomeRecorded', args: [key] }),
       pendingRecord: async (key) =>
         Number(await publicClient.readContract({ address: addrs.agreement, abi: agreementEscrowAbi, functionName: 'pendingRecord', args: [key] })) !== 0,
-    },
-    dealId,
-  );
+  };
+  return readRecordSides(ports, dealId);
 }

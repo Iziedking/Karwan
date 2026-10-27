@@ -110,8 +110,8 @@ export interface DealEscrowOpsDeps {
     escrow: AgreementEscrow;
     readView(dealId: Hex): Promise<DealV3View>;
     readReviewEnd(dealId: Hex): Promise<bigint>;
-    /// Throws IdentityNeeded when the person has no record yet (Task 7).
-    requireIdentity?: (userAddress: string, role: 'buyer' | 'seller') => Promise<void>;
+    /// Sets up a held wallet's record before the seller accepts; never refuses (view 27, decision 10).
+    ensureRecord?: (userAddress: string, role: 'buyer' | 'seller') => Promise<'ready' | 'not-ready'>;
     /// Reports a delivery check signed by two of Karwan's three checkers (Task 9).
     submitCheck?: (dealId: Hex, revision: number, pass: boolean, evidenceHash: Hex) => Promise<string | null>;
   } | null;
@@ -233,7 +233,7 @@ export function createDealEscrowOps(deps: DealEscrowOpsDeps) {
       if (!isV3(deal)) return deps.v2.accept(deal.jobId, sellerWalletId, op);
       const f = familyOf(deal);
       const { escrow, id, dealKey } = f;
-      if (f.kind === 'suite' && deal.seller) await deps.suite!.requireIdentity?.(deal.seller, 'seller');
+      if (f.kind === 'suite' && deal.seller) await deps.suite!.ensureRecord?.(deal.seller, 'seller');
       // On the escrow family the seller accepts the terms the escrow holds, read back here.
       const termsHash = f.kind === 'suite' ? agreementTermsHash(await f.escrow.readTerms(id)) : (deal.escrowTermsHash as Hex);
       const r = await escrow.accept({

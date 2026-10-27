@@ -13,7 +13,6 @@ import { DEAL_STATE, EscrowProofError, type DealV3View } from '../chain/dealEscr
 import type { ContractCallLifecycle } from '../chain/txs.js';
 import { dealKindForSuite } from '../deals/fundDirectSuite.js';
 import { fundingSaltV3 } from '../deals/fundDirectV3.js';
-import { IdentityNeeded } from '../identity/suiteIdentity.js';
 
 /// Funding an agent-matched deal on the escrow family's Agreement escrow, after
 /// the human approved the match: the buying agent approves and funds, then the
@@ -33,7 +32,10 @@ export interface FundAgentMatchSuiteDeps {
   readView(dealId: Hex): Promise<DealV3View>;
   readLimits(): Promise<AgreementLimits>;
   settings: { baseReviewSecs: number; reclaimGraceSecs: number };
-  requireIdentity(userAddress: string, role: 'buyer' | 'seller'): Promise<void>;
+  /// Nothing waits for a record (view 27, decision 10): held wallets are set up on the spot.
+  ensureRecord(userAddress: string, role: 'buyer' | 'seller'): Promise<'ready' | 'not-ready'>;
+  /// A buying agent the registry would refuse steps aside, so the payment goes on.
+  freeBuyingAgent(userAddress: string, amountMicros: bigint): Promise<boolean>;
   readUsdcAllowance(owner: Hex, spender: Hex): Promise<bigint>;
   approveUsdc(input: { walletId: string; spender: Hex; amount: bigint; idempotencyKey?: string; lifecycle?: ContractCallLifecycle }): Promise<void>;
   now(): number;
@@ -67,7 +69,7 @@ export type FundAgentMatchSuiteResult =
   | { ok: true; record: SuiteDealRecord; accepted: boolean; fundTxHash?: string }
   | {
       ok: false;
-      reason: 'record_setup_needed' | 'agent_renewal_needed' | 'TERMS_NOT_SUPPORTED' | 'APPROVAL_NOT_CONFIRMED' | 'FUND_NOT_CONFIRMED' | 'FUND_ID_MISMATCH' | 'ESCROW_CLOSED';
+      reason: 'TERMS_NOT_SUPPORTED' | 'APPROVAL_NOT_CONFIRMED' | 'FUND_NOT_CONFIRMED' | 'FUND_ID_MISMATCH' | 'ESCROW_CLOSED';
       message?: string;
     };
 
@@ -89,12 +91,6 @@ export async function fundAgentMatchSuite(deps: FundAgentMatchSuiteDeps, input: 
   let fundTxHash: string | undefined;
 
   if (existing.state === DEAL_STATE.None) {
-    try {
-      await deps.requireIdentity(input.buyerUser, 'buyer');
-    } catch (err) {
-      if (err instanceof IdentityNeeded) return { ok: false, reason: err.code };
-      throw err;
-    }
     const limits = await deps.readLimits();
     const nowSecs = Math.floor(deps.now() / 1000);
     const acceptBy = BigInt(nowSecs + ACCEPT_WINDOW_SECS);
@@ -122,6 +118,8 @@ export async function fundAgentMatchSuite(deps: FundAgentMatchSuiteDeps, input: 
       throw err;
     }
     const funded = buyerPaysMicros(terms.amount, limits.feeBps);
+    await deps.freeBuyingAgent(input.buyerUser, funded);
+    await deps.ensureRecord(input.buyerUser, 'buyer');
     await deps.approveUsdc({ walletId: input.buyerAgent.walletId, spender: escrowAddress, amount: funded });
     if ((await deps.readUsdcAllowance(input.buyerAgent.address, escrowAddress)) < funded) return { ok: false, reason: 'APPROVAL_NOT_CONFIRMED' };
     try {
@@ -144,12 +142,12 @@ export async function fundAgentMatchSuite(deps: FundAgentMatchSuiteDeps, input: 
 
   let accepted = false;
   try {
-    await deps.requireIdentity(input.sellerUser, 'seller');
+    await deps.ensureRecord(input.sellerUser, 'seller');
     await deps.escrow.accept({ walletId: input.sellerAgent.walletId, jobId: escrowDealId, termsHash: agreementTermsHash(terms), dealKey: input.jobId });
     accepted = true;
   } catch {
-    // Funded and safe: the buyer can cancel an unaccepted deal, and the seller's
-    // agent accepts once their record is set up or at delivery.
+    // Funded and safe: the buyer can cancel an unaccepted deal, and the watcher
+    // retries the accept.
   }
   return { ok: true, record: recordOf(terms), accepted, ...(fundTxHash ? { fundTxHash } : {}) };
 }

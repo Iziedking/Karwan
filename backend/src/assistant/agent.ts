@@ -60,10 +60,6 @@ import { listAttestationsForSubject } from '../db/attestations.js';
 import { personNameOf } from '../channels/personName.js';
 import { verificationTools } from './verificationTools.js';
 import { chatTools, liveChatToolDeps } from './chatTools.js';
-import { recordSetupCard } from './recordCard.js';
-import { suiteIdentity } from '../identity/suiteIdentityLive.js';
-import { IdentityNeeded } from '../identity/suiteIdentity.js';
-import { suiteFundingEnabled } from '../chain/suiteConfig.js';
 import { liveLocationToolDeps, locationTools } from './locationTools.js';
 import { messageTools } from './messageTools.js';
 import { liveMessageToolDeps } from '../messages/live.js';
@@ -1454,25 +1450,6 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
             return { error: 'They already agreed to that deal. It is waiting for the buyer to fund.' };
           }
           if (deal.cancelledAt) return { error: 'That deal was cancelled.' };
-          // A deal opening on the escrow family counts on the seller's record only
-          // if the record exists before the money goes in, so it is set up first.
-          let recordFirst = false;
-          if (suiteIdentity && suiteFundingEnabled() && (deal.escrowVersion ?? 'suite') === 'suite') {
-            const recordCard = await suiteIdentity
-              .requireIdentity(address, 'seller')
-              .then(() => null)
-              .catch(async (err) => {
-                if (!(err instanceof IdentityNeeded)) throw err;
-                return recordSetupCard(address, await suiteIdentity!.identityStatus(address), Math.floor(Date.now() / 1000), {
-                  gasPolicy: config.CIRCLE_ARC_GAS_POLICY,
-                  karwanHoldsWallet: !!getUserByAddress(address)?.circleIdentityWalletId,
-                });
-              });
-            if (recordCard && !hasEquivalentConfirm(actions, recordCard)) {
-              actions.push(recordCard);
-              recordFirst = true;
-            }
-          }
           const built = buildAcceptDealConfirm({
             caller: address,
             jobId,
@@ -1484,9 +1461,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
           });
           if ('error' in built) return built;
           if (!hasEquivalentConfirm(actions, built)) actions.push(built);
-          return recordFirst
-            ? { ok: true, shown: ['record card', built.title], note: 'They set up their Karwan record first, with the first card, then agree with the second.' }
-            : { ok: true, shown: built.title };
+          return { ok: true, shown: built.title };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant propose_accept_deal failed');
           return { error: 'Could not prepare that right now. Try again shortly.' };

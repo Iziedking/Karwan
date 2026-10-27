@@ -103,6 +103,9 @@ export interface Workspace {
 }
 
 export interface UserProfile {
+  /// When the receipt line offering to count deals on the record was last shown
+  /// (view 27, decision 11); it shows at most once a month.
+  recordNudgeShownAt?: number;
   /// Where the person is and delivers. Private: used by matching only; the
   /// public profile shows the country (location/rules.ts publicLocation).
   location?: PrivateLocation;
@@ -371,6 +374,7 @@ const PRESERVE_WHEN_OMITTED = [
   'ownWords',
   'workPlaces',
   'businessDraft',
+  'recordNudgeShownAt',
 ] as const;
 
 export async function upsertProfile(
