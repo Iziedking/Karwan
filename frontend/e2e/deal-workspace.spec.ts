@@ -188,6 +188,7 @@ test('Arabic renders right to left without overflow', async ({ page, context }) 
 });
 
 const API = 'http://127.0.0.1:3199';
+const ONE_PIXEL_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64');
 
 test('a goods order is shipped from the same page with its carrier and tracking number', async ({ page }) => {
   await serveDeal(page, { ...awaitingDelivery, tradeType: 'goods', tradeLane: 'finance' }, SELLER);
@@ -203,8 +204,11 @@ test('a goods order is shipped from the same page with its carrier and tracking 
   await expect(submit).toBeDisabled();
   await dialog.getByRole('radio', { name: 'DHL' }).click();
   await dialog.getByLabel(s.trackingLabel).fill('JD014600006');
+  await expect(submit).toBeDisabled();
+  await dialog.locator('input[type="file"]').setInputFiles({ name: 'parcel.png', mimeType: 'image/png', buffer: ONE_PIXEL_PNG });
   await submit.click();
-  await expect.poll(() => delivered.body).toEqual({ caller: SELLER, shipment: { carrier: 'dhl', trackingNumber: 'JD014600006' } });
+  await expect.poll(() => delivered.body).toMatchObject({ caller: SELLER, shipment: { carrier: 'dhl', trackingNumber: 'JD014600006' } });
+  expect((delivered.body as { photos: string[] }).photos).toEqual([expect.stringMatching(/^data:image\/jpeg;base64,/)]);
   await expect(page).not.toHaveURL(/workspace=v1/);
 });
 
