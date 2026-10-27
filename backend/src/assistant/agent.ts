@@ -3,7 +3,8 @@
 /// only provider allowed to receive private tool results or chat history.
 
 import { locationOf, withBuyerLocations, withSellerLocations } from '../location/live.js';
-import { getBrief } from '../db/briefs.js';
+import { getBrief, listAllBriefs } from '../db/briefs.js';
+import { trendingCategories } from '../updates/model.js';
 import { prohibitedReason } from '../policy/prohibited.js';
 import { generateText, tool, stepCountIs } from 'ai';
 import { z } from 'zod';
@@ -1827,6 +1828,32 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant search_market failed');
           return { error: 'Could not search the market right now. Try again shortly.' };
+        }
+      },
+    }),
+
+    get_market_trends: tool({
+      description:
+        "What is in demand on Karwan's market this week: the kinds of work requested most in the last 7 days, each with how many requests named it, plus how many offers and requests are open now. The same numbers as the Trending on Karwan card on Home. Use it when the user asks what is trending, popular, most requested or in demand. Never invent trends; if the list is empty, say there is not enough activity this week and offer search_market.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        try {
+          const now = Date.now();
+          const trending = trendingCategories(listAllBriefs(), now, 5);
+          return {
+            window: 'last 7 days',
+            mostRequested: trending,
+            openNow: {
+              offers: listOpenListings().filter((l) => l.expiresAt > now).length,
+              requests: getMarketplaceBriefs().length,
+            },
+            next: trending.length
+              ? 'Name each kind of work with its number of requests. Offer to search the market for one of them or to post an offer for it.'
+              : 'Say there is not enough activity this week to show a trend, and offer to search what is open now.',
+          };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant get_market_trends failed');
+          return { error: 'Could not read the market right now. Try again shortly.' };
         }
       },
     }),

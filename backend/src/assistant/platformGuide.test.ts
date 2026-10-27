@@ -39,6 +39,10 @@ test('guide bounds retrieval and preserves unknown', () => {
   assert.ok(lookupPlatformGuide().facts.length <= 6);
   assert.equal(lookupPlatformGuide('zebravacuum').facts.length, 0);
   assert.equal(lookupPlatformGuide('world').facts[0]?.id, 'world');
+  // What the Home "Trending on Karwan" card shows, the assistant can say too.
+  const trends = lookupPlatformGuide('whats trending in karwan market this week').facts[0];
+  assert.equal(trends?.id, 'market');
+  assert.ok(trends?.tools.includes('get_market_trends'));
   assert.ok(lookupPlatformGuide('', true).facts.every((entry) => entry.status === 'testnet'));
 });
 

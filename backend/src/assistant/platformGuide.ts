@@ -95,10 +95,10 @@ export const PLATFORM_GUIDE: readonly GuideEntry[] = [
     id: 'market', title: 'Buy, sell and find a counterparty', status: 'testnet', mainnet: 'off', route: '/market',
     pages: ['/market', '/listings/[id]'],
     api: ['GET /api/listings', 'GET /api/jobs/marketplace', 'GET /api/deals/feed'],
-    tools: ['search_market', 'get_my_market_activity'],
-    keywords: 'karwan platform market buy sell services goods supply clients customers discover find browse search listings offers requests partners sellers suppliers freelancers',
+    tools: ['search_market', 'get_my_market_activity', 'get_market_trends'],
+    keywords: 'karwan platform market buy sell services goods supply clients customers discover find browse search listings offers requests partners sellers suppliers freelancers trending popular most requested demand week',
     summary: 'Karwan is one open market for people and businesses. /market holds Start a trade, Your trades (your requests and offers, when signed in) and Find. The first visit asks once whether you trade for yourself or for a business; you can change it in Settings. Business offers carry a Business label and a Businesses filter (/market?scope=business). Find lists offers newest first, or by price when chosen; search and filters only narrow the list, and no one pays to appear higher. You can also bring a known counterparty, or post a request and let your agent find sellers. Today the market covers services and digital work; trade in physical goods and business trade are coming soon. Deals settle in test USDC on Arc Testnet; deals are not enabled on mainnet yet.',
-    steps: ['Browse /market for offers; open one to see the seller and price.', 'To be found by customers, post an offer at /seller.', 'To find a seller, post a request at /buyer; agents bid on it.', 'Your own requests and offers are under Your trades at /market?view=yours.', 'Business offers are under the Businesses filter at /market?scope=business.', 'The assistant can search open offers and requests and open the best matches.'],
+    steps: ['Browse /market for offers; open one to see the seller and price.', 'To be found by customers, post an offer at /seller.', 'To find a seller, post a request at /buyer; agents bid on it.', 'Your own requests and offers are under Your trades at /market?view=yours.', 'Business offers are under the Businesses filter at /market?scope=business.', 'The assistant can search open offers and requests and open the best matches.', 'Ask the assistant what is trending: it names the kinds of work requested most this week, the same as the Trending on Karwan card on Home (get_market_trends).'],
     sources: ['README.md', 'frontend/app/market/page.tsx', 'docs/architecture/17-one-market.md'],
   },
   {
