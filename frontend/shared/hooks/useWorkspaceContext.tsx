@@ -46,7 +46,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       const selected = workspaces.find((workspace) => workspace.id === selectedId);
       if (selected) return selected;
     }
-    return workspaces.find((workspace) => workspace.kind === 'personal') ?? workspaces[0] ?? null;
+    // The server lists the workspace an account opens on first: business for
+    // an account that signed up as a business, personal for everyone else.
+    return workspaces[0] ?? null;
   }, [selectedId, workspaces]);
 
   const switchWorkspace = useCallback((workspaceId: string) => {

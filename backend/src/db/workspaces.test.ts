@@ -21,19 +21,31 @@ test('provisions one personal workspace against the identity wallet', () => {
   assert.equal(result.workspaceMemberships?.[0]?.role, 'owner');
 });
 
-test('projects an existing legacy business profile into only a business workspace', () => {
+test('a business account opens on its business workspace and can switch to a personal one', () => {
   const result = withWorkspaceDefaults(baseProfile({
     accountKind: 'business',
     smeProfile: { companyName: 'Amina Foods', sector: 'agriculture' },
     business: { status: 'verified', verifiedAt: 1_700_000_100_000 },
   }));
-  const business = result.workspaces?.find((workspace) => workspace.kind === 'business');
-  assert.ok(business);
-  assert.equal(business.name, 'Amina Foods');
-  assert.equal(business.business?.verificationStatus, 'verified');
-  assert.equal(business.walletAddress, baseProfile().address);
-  assert.equal(result.workspaces?.filter((workspace) => workspace.kind === 'personal').length, 0);
-  assert.equal(result.workspaceMemberships?.filter((membership) => membership.role === 'owner').length, 1);
+  assert.deepEqual(result.workspaces?.map((workspace) => workspace.kind), ['business', 'personal']);
+  const business = result.workspaces?.[0];
+  assert.equal(business?.name, 'Amina Foods');
+  assert.equal(business?.business?.verificationStatus, 'verified');
+  assert.equal(business?.walletAddress, baseProfile().address);
+  assert.equal(result.workspaces?.[1]?.name, 'Amina');
+  assert.equal(result.workspaceMemberships?.filter((membership) => membership.role === 'owner').length, 2);
+  // Reading it again changes nothing.
+  assert.deepEqual(withWorkspaceDefaults(result).workspaces, result.workspaces);
+});
+
+test('the personal workspace of a business account never takes the company name', () => {
+  const result = withWorkspaceDefaults(baseProfile({
+    accountKind: 'business',
+    displayName: 'Amina Foods',
+    handle: 'amina',
+    smeProfile: { companyName: 'Amina Foods', sector: 'agriculture' },
+  }));
+  assert.equal(result.workspaces?.find((workspace) => workspace.kind === 'personal')?.name, '@amina');
 });
 
 test('keeps a linked business workspace beside a personal identity workspace', () => {

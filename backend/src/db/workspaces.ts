@@ -27,10 +27,15 @@ const BUSINESS_PREFIX = 'business:';
 
 function personalWorkspace(profile: UserProfile): Workspace {
   const now = profile.createdAt || Date.now();
+  // A business account's display name is often the company's; the personal
+  // side then goes by the person's tag instead.
+  const displayName = profile.displayName?.trim();
+  const companyName = profile.smeProfile?.companyName?.trim();
+  const ownName = displayName && displayName !== companyName ? displayName : profile.handle ? `@${profile.handle}` : undefined;
   return {
     id: `${PERSONAL_PREFIX}${profile.address.toLowerCase()}`,
     kind: 'personal',
-    name: profile.displayName?.trim() || 'Personal workspace',
+    name: ownName || 'Personal workspace',
     status: 'active',
     ownerAddress: profile.address.toLowerCase(),
     walletAddress: profile.address.toLowerCase(),
@@ -73,29 +78,21 @@ function ownerMembership(workspace: Workspace, profile: UserProfile): WorkspaceM
 
 export function withWorkspaceDefaults(profile: UserProfile): UserProfile {
   const existing = profile.workspaces ?? [];
-  // A business onboarding choice is an identity boundary, not a request to
-  // create a second profile. Legacy business fields are included so old
-  // records migrate to one business workspace without manufacturing a
-  // personal workspace with the company name.
+  // Everyone has a personal workspace on the one identity wallet. An account
+  // that signed up as a business also has its business workspace, listed
+  // first so that is where it opens, and can switch to personal and back.
+  // Legacy business fields are included so old records migrate too.
   const isBusinessIdentity =
     profile.accountKind === 'business' ||
     profile.accountType === 'business' ||
     !!profile.smeProfile ||
     (profile.business?.status !== undefined && profile.business.status !== 'none');
-  const personal = isBusinessIdentity
-    ? undefined
-    : existing.find((workspace) => workspace.kind === 'personal') ?? personalWorkspace(profile);
-  const hasLegacyBusiness = isBusinessIdentity;
-  const business = existing.find((workspace) => workspace.kind === 'business') ?? (hasLegacyBusiness ? legacyBusinessWorkspace(profile) : null);
+  const personal = existing.find((workspace) => workspace.kind === 'personal') ?? personalWorkspace(profile);
+  const business = existing.find((workspace) => workspace.kind === 'business') ?? (isBusinessIdentity ? legacyBusinessWorkspace(profile) : null);
+  const ordered = isBusinessIdentity && business ? [business, personal] : [personal, ...(business ? [business] : [])];
   const workspaces = [
-    ...(personal ? [personal] : []),
-    ...(business ? [business] : []),
-    ...existing.filter(
-      (workspace) =>
-        workspace.id !== personal?.id &&
-        workspace.id !== business?.id &&
-        !(isBusinessIdentity && workspace.kind === 'personal'),
-    ),
+    ...ordered,
+    ...existing.filter((workspace) => workspace.id !== personal.id && workspace.id !== business?.id),
   ];
   const memberships = workspaces.map((workspace) => existing.find((candidate) => candidate.id === workspace.id)?.membership ?? ownerMembership(workspace, profile));
   return {
