@@ -143,6 +143,21 @@ test('the buyer can edit and cancel an open request', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Cancel request' })).toBeVisible();
 });
 
+test('the edit sheet sits above the bottom bar, so Save changes can be pressed', async ({ page }) => {
+  await serveSearch(page, { balances: { ...funded } });
+  let edited: unknown = null;
+  await page.route(`**/api/jobs/${JOB}/edit`, async (route) => {
+    edited = route.request().postDataJSON();
+    await route.fulfill({ json: { brief: {} } });
+  });
+  await page.goto(`/jobs/${JOB}`);
+  await page.getByRole('button', { name: 'Edit request' }).click();
+  const sheet = page.getByRole('dialog');
+  await sheet.getByRole('slider', { name: 'Price tolerance percent' }).fill('25');
+  await sheet.getByRole('button', { name: 'Save changes' }).click();
+  await expect.poll(() => edited).toMatchObject({ negotiationMaxIncreasePct: 25 });
+});
+
 test('a match waiting on the seller gives the buyer no primary action', async ({ page }) => {
   await serveSearch(page, { balances: { ...funded }, job: makeJob({ bids: [offer] }), proposal: makeProposal() });
   await page.goto(`/jobs/${JOB}`);

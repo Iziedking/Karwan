@@ -1,6 +1,7 @@
 ﻿'use client';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { api, type Listing, type ListingStatus } from '@/core/api';
@@ -297,7 +298,13 @@ export function ListingDetail({ listingId }: { listingId: string }) {
   );
 }
 
-function EditListingModal({
+/// Drawn on the page body: inside the page it sat under the phone's bottom bar,
+/// which covered Save changes.
+function EditListingModal(props: Parameters<typeof EditListingSheet>[0]) {
+  return createPortal(<EditListingSheet {...props} />, document.body);
+}
+
+function EditListingSheet({
   initialTitle,
   initialDescription,
   initialAskingPriceUsdc,

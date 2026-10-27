@@ -1,5 +1,6 @@
 ﻿'use client';
 import { useEffect, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -588,7 +589,13 @@ export function EditBriefSection({
   );
 }
 
-function EditBriefModal({
+/// Drawn on the page body: inside the page it sat under the phone's bottom bar,
+/// which covered Save changes.
+function EditBriefModal(props: Parameters<typeof EditBriefSheet>[0]) {
+  return createPortal(<EditBriefSheet {...props} />, document.body);
+}
+
+function EditBriefSheet({
   initialBriefText,
   initialTolerancePct,
   initialTrustedMatch,

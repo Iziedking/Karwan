@@ -7007,13 +7007,13 @@ export const en: MessagesShape = {
     editSection: {
       tag: 'Edit',
       title: 'Adjust the terms',
-      body: 'Update the request text, price tolerance, or trusted-match before a seller agent locks in a match. Budget and deadline stay locked because they live on chain.',
+      body: 'Change the wording, how far above your budget you would go, or Trusted match, until you agree with a seller. The budget and due date are fixed once posted.',
       cta: 'Edit request',
     },
     editModal: {
       tag: 'Edit request',
       title: 'Update terms',
-      body: 'The agent picks up these changes on its next scan. Budget and deadline stay locked because they live on the JobBoard contract; cancel and re-post to change those.',
+      body: 'Seller agents look at your request again with these changes. To change the budget or due date, cancel it and post a new one.',
       requestTextEyebrow: 'Request text',
       toleranceEyebrow: 'Price tolerance',
       toleranceAria: 'Price tolerance percent',

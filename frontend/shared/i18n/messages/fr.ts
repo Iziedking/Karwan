@@ -1570,13 +1570,13 @@ export const fr: Messages = {
     editSection: {
       tag: 'Modifier',
       title: 'Ajuster les termes',
-      body: "Mettez à jour le texte de la requête, la tolérance de prix, ou le match de confiance avant qu'un agent vendeur ne verrouille un match. Le budget et l'échéance restent verrouillés car ils sont on-chain.",
+      body: "Modifiez le texte, la marge au-dessus de votre budget ou le match de confiance, jusqu'à l'accord avec un vendeur. Le budget et l'échéance sont fixés à la publication.",
       cta: 'Modifier la requête',
     },
     editModal: {
       tag: 'Modifier la requête',
       title: 'Mettre à jour les termes',
-      body: "L'agent prend en compte ces changements au prochain scan. Le budget et l'échéance restent verrouillés car ils vivent sur le contrat JobBoard ; annulez et republiez pour les changer.",
+      body: "Les agents vendeurs relisent votre demande avec ces changements. Pour changer le budget ou l'échéance, annulez-la et publiez-en une nouvelle.",
       requestTextEyebrow: 'Texte de la requête',
       toleranceEyebrow: 'Tolérance de prix',
       toleranceAria: 'Pourcentage de tolérance de prix',

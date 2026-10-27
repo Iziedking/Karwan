@@ -1567,13 +1567,13 @@ export const sw: Messages = {
     editSection: {
       tag: 'Hariri',
       title: 'Rekebisha masharti',
-      body: 'Sasisha maandishi ya ombi, uvumilivu wa bei, au ujumbe wa kuaminiwa kabla wakala wa muuzaji hajafunga ujumbe. Bajeti na tarehe ya mwisho hubaki zimefungwa kwa sababu zipo kwenye mnyororo.',
+      body: 'Badilisha maandishi ya ombi, kiasi juu ya bajeti yako, au ujumbe wa kuaminiwa, hadi mkubaliane na muuzaji. Bajeti na tarehe ya mwisho hazibadiliki baada ya kuchapisha.',
       cta: 'Hariri ombi',
     },
     editModal: {
       tag: 'Hariri ombi',
       title: 'Sasisha masharti',
-      body: 'Wakala anachukua mabadiliko haya kwenye uchunguzi unaofuata. Bajeti na tarehe ya mwisho hubaki zimefungwa kwa sababu zipo kwenye kontrakti ya JobBoard; ghairi na uchapishe tena kuzibadilisha.',
+      body: 'Mawakala wa wauzaji wanaangalia ombi lako tena pamoja na mabadiliko haya. Kubadilisha bajeti au tarehe ya mwisho, ghairi ombi hili na uchapishe jipya.',
       requestTextEyebrow: 'Maandishi ya ombi',
       toleranceEyebrow: 'Uvumilivu wa bei',
       toleranceAria: 'Asilimia ya uvumilivu wa bei',
