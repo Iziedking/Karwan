@@ -69,7 +69,17 @@ sequenceDiagram
 - A best and final invite carries no prices and reaches only sellers not lowest.
 - A seller who offers by hand gets the notice and can lower from the assistant and the page.
 
-## Decisions for the owner
+## Decided by the owner, 27 Oct 2026
+
+All five below as recommended, and three more:
+
+6. **The paid market check stays honest.** When the market read says the budget is well under what the work goes for, the agent does not haggle sellers toward it. It tells the buyer that sellers ask about the market price and none has taken it at the budget, with the choice to allow more or post again at a higher budget. Nobody is pushed below their own floor.
+7. **Every fitting request reaches the seller.** A request that fits a seller's skills or offers but sits outside the price or time range they set is never dropped silently: the seller hears about it by email, Telegram and in the app, once, with the budget and a choice to make an offer or skip. This is why setup has to capture what each person sells and buys, in plain words (view 26): the agent can only haggle well with what it knows.
+8. **It must not look programmed.** Offers move on the market's own clock, each seller decides from its own floor, the market and the competition, so some lower, some keep and some withdraw, and nothing announces a round.
+
+Post it and sleep: the agents do the haggling inside each person's limits, and both sides wake up to a deal or an honest "not at this price".
+
+## The five questions put to the owner
 
 1. **Recommend within the leeway, agree only within the budget.** Recommended: yes. The leeway is what the buyer allowed the agent to discuss; spending past the budget still takes their tap.
 2. **One best and final round** when the shortlist is first ready and after each change. Recommended: yes. More rounds feel like spam to sellers and slow the buyer.
@@ -81,6 +91,7 @@ sequenceDiagram
 
 | Part | State |
 |---|---|
-| This view | Draft, 27 Oct 2026, waiting for the owner |
-| Spec, plan | Not started |
+| This view | Approved by the owner 27 Oct 2026, with decisions 6 to 8 |
+| Spec | Written 27 Oct 2026 |
+| Plan | Next |
 | Code | Not started |
