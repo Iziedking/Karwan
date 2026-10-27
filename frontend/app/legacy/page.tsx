@@ -27,6 +27,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { chainErrorMessage } from '@/shared/utils/chainError';
 import { requireConfirmedTx } from '@/shared/chain/confirmTx';
 import { useMoneyRefresh } from '@/shared/hooks/useMoneyRefresh';
+import { PreviousEscrowDeals } from '@/features/deals/components/PreviousEscrowDeals';
 import type { Messages } from '@/shared/i18n/messages/en';
 import {
   ARC_CHAIN_ID,
@@ -137,6 +138,7 @@ function LegacyPageInner() {
             </Link>
           </div>
         </Band>
+        <PreviousEscrowDeals />
       </FullBleed>
     );
   }
@@ -175,6 +177,8 @@ function LegacyPageInner() {
           </p>
         </div>
       </Band>
+
+      <PreviousEscrowDeals />
 
       <Band tone="light" compact>
         <SectionTag>{lp.stake.tag}</SectionTag>

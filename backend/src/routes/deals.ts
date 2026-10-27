@@ -31,6 +31,7 @@ import { chooseFundingEscrow, fundDirectDealV3, type EscrowVersion, type StoredT
 import { fundDirectDealSuite, fundingMovementKey } from '../deals/fundDirectSuite.js';
 import type { StoredAgreementTerms } from '../chain/agreementTerms.js';
 import { suiteFundingEnabled } from '../chain/suiteConfig.js';
+import { withPreviousEscrow } from '../deals/previousEscrow.js';
 import { suiteRecordSides } from '../deals/suiteRecordStatusLive.js';
 import { outcomeOf } from '../deals/suiteRecordStatus.js';
 import { recordNudgeDue } from '../deals/recordNudge.js';
@@ -1511,7 +1512,7 @@ dealsRoutes.get('/direct', async (c) => {
   // Legacy deals live on the dedicated /legacy recovery page; filtering
   // them here kills the false "release first" buttons on activity / buyer
   // / seller dashboards that otherwise show pre-v2.D escrow state.
-  return c.json({ deals: enriched.filter((d) => !d.legacyEscrow) });
+  return c.json({ deals: withPreviousEscrow(enriched.filter((d) => !d.legacyEscrow), suiteFundingEnabled()) });
 });
 
 dealsRoutes.get('/direct/:jobId', async (c) => {

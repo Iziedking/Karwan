@@ -19,6 +19,7 @@ import { notFoundCopy } from './pageStates';
 import { dealLiveCopy } from './dealLive';
 import { deliveryCardCopy } from './deliveryCard';
 import { recordOnTheWayCopy } from './recordOnTheWay';
+import { previousEscrowCopy } from './previousEscrow';
 import { offerRosterCopy } from './offerRoster';
 import { shortlistCopy } from './shortlist';
 import { directMessagesCopy } from './directMessages';
@@ -62,6 +63,7 @@ export const sw: Messages = {
   dealLive: dealLiveCopy.sw,
   deliveryCard: deliveryCardCopy.sw,
   recordOnTheWay: recordOnTheWayCopy.sw,
+  previousEscrow: previousEscrowCopy.sw,
   disputeJudge: disputeJudgeCopy.sw,
   balanceSummary: balanceSummaryCopy.sw,
   firstTrade: firstTradeCopy.sw,

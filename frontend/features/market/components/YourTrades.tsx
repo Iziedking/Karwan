@@ -9,7 +9,7 @@ import { YourOffers, YourRequests } from '@/features/home/components/TradeLists'
 import { TRADE_ENTRY_COPY } from '@/features/home/tradeEntry';
 import { tradeHubSummary } from '@/features/home/tradeHub';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { useLocale } from '@/shared/i18n/LocaleProvider';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { marketViewHref, type YoursList } from '../marketQuery';
 
 /// Your trades, inside the market: open deals, your requests and your offers,
@@ -38,6 +38,8 @@ function Summary() {
     now: Date.now(),
   });
   const fill = (template: string, n: number) => template.replace('{n}', String(n));
+  const previous = useTranslations().previousEscrow;
+  const earlier = deals.filter((deal) => deal.previousEscrow).length;
 
   return (
     <section aria-labelledby="market-yours" className="mt-6">
@@ -70,6 +72,12 @@ function Summary() {
           note={summary.offers.live > 0 ? hub.live : hub.noneLive}
         />
       </div>
+      {earlier > 0 ? (
+        <Link href="/legacy" className="mt-2 inline-flex min-h-11 items-center gap-1 text-[14px] font-semibold text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+          {fill(previous.link, earlier)}
+          <Chevron small />
+        </Link>
+      ) : null}
     </section>
   );
 }

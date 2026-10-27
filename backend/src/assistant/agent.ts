@@ -5,6 +5,8 @@
 import { locationOf, withBuyerLocations, withSellerLocations } from '../location/live.js';
 import { getBrief, listAllBriefs } from '../db/briefs.js';
 import { trendingCategories } from '../updates/model.js';
+import { onPreviousEscrow } from '../deals/previousEscrow.js';
+import { suiteFundingEnabled } from '../chain/suiteConfig.js';
 import { prohibitedReason } from '../policy/prohibited.js';
 import { generateText, tool, stepCountIs } from 'ai';
 import { z } from 'zod';
@@ -260,6 +262,8 @@ export function summarizeDeal(deal: DirectDeal, viewer: string): Record<string, 
     // Dates make relative-time questions answerable ("the deal from last week").
     openedAt: new Date(deal.createdAt).toISOString(),
     settledAt: deal.settledAt ? new Date(deal.settledAt).toISOString() : null,
+    // On the escrow from before the family went live; listed on /legacy too.
+    ...(onPreviousEscrow(deal, suiteFundingEnabled()) ? { previousEscrow: true } : {}),
   };
 }
 
@@ -433,7 +437,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
           if (deals.length === 0) {
             return { deals: [], note: 'You have no deals yet.' };
           }
-          return { count: deals.length, truncated: deals.length > 30, deals: deals.slice(0, 30).map((d) => summarizeDeal(d, address)), note: 'Newest 30 stored deals. Use get_deal_status for one deal and current protection details.' };
+          return { count: deals.length, truncated: deals.length > 30, deals: deals.slice(0, 30).map((d) => summarizeDeal(d, address)), note: 'Newest 30 stored deals. Use get_deal_status for one deal and current protection details. A deal with previousEscrow opened before the new escrow went live: it finishes on its own deal page as before, and all of them are listed together on /legacy to reconcile.' };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant list_my_deals failed');
           return { error: 'Could not load your deals right now. Try again shortly.' };

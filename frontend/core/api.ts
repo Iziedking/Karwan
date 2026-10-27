@@ -827,6 +827,9 @@ export interface DirectDeal {
   sellerPaytag?: string;
   /// The other party's display name or @tag, resolved by the deal list for the viewer.
   counterpartyName?: string;
+  /// Opened before the escrow family went live on this network; it finishes on
+  /// its own deal page and is listed on /legacy to reconcile (view 27).
+  previousEscrow?: true;
   dealAmountUsdc: string;
   /// First milestone percent. On a two-milestone deal implies [firstReleasePct,
   /// 100 - firstReleasePct]; kept in sync with milestonePcts[0] when present.
