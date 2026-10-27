@@ -36,13 +36,14 @@ export function requiresLiveAccountState(messages: AssistantSafetyMessage[]): bo
     /\b(?:account|agent|wallet|balance|money|funds|trade|deal|match(?:es)?|transaction|transfer|bridge|stake|yield)\s+(?:status|state|balance|history|record|result)\b/.test(text);
   const outcomeOrAttention =
     /\b(?:failed|failure|in flight|pending|not enough|didn'?t|hasn'?t|went through|go through|succeed(?:ed)?|complete(?:d)?|what needs my attention|anything pending|what(?:'s| is) the status)\b/.test(text);
-  const personalContext = /\b(?:my|mine|our|ours|your)\b/.test(text)
-    || /\b(?:mon|ma|mes|notre|nos|moi|mien|solde|salio|yangu|zetu)\b/.test(text)
-    || /(?:رصيدي|حسابي|معاملتي|تحققي|मेरे|मेरा|मेरी|खाता|शेष)/u.test(text)
-    || /\b(?:am i|have i|did i|can i still|is it still|what about it|what happened|verify me)\b/.test(text)
-    || /0x[0-9a-f]{40,64}\b/i.test(text)
-    || /\bkwn-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}\b/i.test(text)
-    || /\b(?:verification|registration|ticket|world|cre|business)\s+(?:status|state|result|pending)\b/.test(text);
+  const personal = (t: string) => /\b(?:my|mine|our|ours|your)\b/.test(t)
+    || /\b(?:mon|ma|mes|notre|nos|moi|mien|solde|salio|yangu|zetu)\b/.test(t)
+    || /(?:رصيدي|حسابي|معاملتي|تحققي|मेरे|मेरा|मेरी|खाता|शेष)/u.test(t)
+    || /\b(?:am i|have i|did i|can i still|is it still|what about it|what happened|verify me)\b/.test(t)
+    || /0x[0-9a-f]{40,64}\b/i.test(t)
+    || /\bkwn-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}\b/i.test(t)
+    || /\b(?:verification|registration|ticket|world|cre|business)\s+(?:status|state|result|pending)\b/.test(t);
+  const personalContext = personal(text);
   // A narrow generic-help allowance, not an assumption that unrecognised
   // wording is public. Unknown intent stays on the authenticated tool path.
   const genericHelp = /(?:\b(?:how|what|where|why|does|can|is|are|explain|describe|comment|fonctionne|expliquer|nini|jinsi)\b|كيف|ما هو|कैसे|क्या)/u.test(text)
@@ -59,18 +60,19 @@ export function requiresLiveAccountState(messages: AssistantSafetyMessage[]): bo
   const lastReply = messages.filter((m) => m.role === 'assistant').at(-1)?.content.trim() ?? '';
   const replying = messages.at(-1)?.role === 'user' && messages.at(-2)?.role === 'assistant' && lastReply.endsWith('?');
   const building = replying && users.slice(0, -1).some((m) => startsDeal(m.content.toLowerCase()));
-  if ((startsDeal(text) || building) && !outcomeOrAttention && !personalContext) return false;
+  // "My first deal" names a deal that does not exist yet, so it is not personal.
+  const aboutNewDeal = text.replace(/\bmy\s+(?:first|new|next|own)\s+(?:deals?|agreements?|contracts?)\b/g, 'a deal');
+  if ((startsDeal(text) || building) && !outcomeOrAttention && !personal(aboutNewDeal)) return false;
   return moneyOrAccount || outcomeOrAttention || personalContext || !(genericHelp || marketAction);
 }
 
-/// "Open a deal with @lawful for 3 logo designs": building a deal is a
-/// conversation, and its replies are questions (how much, by when). Nothing is
-/// claimed about the account and nothing moves until the person confirms the
-/// card. Asking about a deal that already exists is personal or an outcome,
-/// and stays stateful.
+/// "Open a deal with @lawful for 3 logo designs", or just "I want to make my
+/// first deal": building a deal is a conversation, and its replies are
+/// questions (who with, how much, by when). Nothing is claimed about the
+/// account and nothing moves until the person confirms the card. Asking about a
+/// deal that already exists is personal or an outcome, and stays stateful.
 function startsDeal(text: string): boolean {
-  return /\b(?:open|start|create|make|set ?up|draft|begin|send)\b(?:\s+\S+){0,3}?\s+(?:deals?|agreements?|contracts?)\b/.test(text)
-    && /\b(?:with|for|to)\b/.test(text);
+  return /\b(?:open|start|create|make|set ?up|draft|begin|send)\b(?:\s+\S+){0,3}?\s+(?:deals?|agreements?|contracts?)\b/.test(text);
 }
 
 /** Never forward previous assistant replies/account history to a fallback. */

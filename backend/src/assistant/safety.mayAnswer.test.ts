@@ -55,6 +55,25 @@ test('asking to open a deal with someone is an instruction, so the questions tha
   assert.equal(requiresLiveAccountState(ask('did the deal with @ada go through?')), true);
 });
 
+test('wanting a first or new deal is the start of building one, not an account question', async () => {
+  const { requiresLiveAccountState } = await import('./safety.js');
+  const ask = (content: string) => [{ role: 'user' as const, content }];
+  for (const text of [
+    'I want to make my first deal',
+    'help me make my first deal',
+    'start a deal',
+    'I want to start a new deal',
+    'open a protected deal',
+    'how do I make my first deal?',
+  ]) {
+    assert.equal(requiresLiveAccountState(ask(text)), false, text);
+  }
+  // Deals that already exist are still read first.
+  for (const text of ['did my first deal go through?', 'what is the status of my deal?', 'show my deals', 'is my new deal funded?']) {
+    assert.equal(requiresLiveAccountState(ask(text)), true, text);
+  }
+});
+
 test('a short answer while a deal is being built is part of building it', async () => {
   const { requiresLiveAccountState } = await import('./safety.js');
   const build = (...turns: string[]) => turns.map((content, i) => ({ role: (i % 2 ? 'assistant' : 'user') as 'user' | 'assistant', content }));
