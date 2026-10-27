@@ -76,9 +76,11 @@ test('a stalled delivery check offers the buyer manual review and pauses the mon
   assert.deepEqual(view.next, { action: 'review-manually', actor: 'you', amountUsdc: null });
 });
 
-test('a security hold pauses release with nobody able to act', () => {
+test('a held link pauses release and the seller moves next: another link, or a person checks it (view 21)', () => {
   const held = { ...delivered, verificationStatus: 'suspicious' };
-  assert.deepEqual(dealView(held, 'buyer', false, NOW).next, { action: null, actor: 'nobody', amountUsdc: null });
+  assert.equal(dealView(held, 'buyer', false, NOW).money.line, 'paused');
+  assert.deepEqual(dealView(held, 'buyer', false, NOW).next, { action: null, actor: 'counterparty', amountUsdc: null });
+  assert.deepEqual(dealView(held, 'seller', false, NOW).next, { action: 'deliver', actor: 'you', amountUsdc: null });
 });
 
 test('a requirement mismatch sends the seller to correct the delivery', () => {

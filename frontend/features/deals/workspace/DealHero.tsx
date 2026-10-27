@@ -14,7 +14,7 @@ import { AnswerCancelSheet, AnswerTimeSheet, DeliverSheet, ProblemSheet, TurnDow
 import { actionLabel, actorLabel, automaticLine, fill, formatDealDate, formatUsdcAmount, heldMove, trustFactParts } from './presentation';
 import { callPerson } from '@/shared/assistant/openHelp';
 import { answersCancelHere, problemOptions } from './problems';
-import { deliveryCheckStatus } from './checkStatus';
+import { deliveryCheckStatus, heldDetailOf } from './checkStatus';
 import { Sheet } from './Sheet';
 import { TrustCard } from './TrustCard';
 import { useChatUnread } from '@/features/chat/hooks/useChatUnread';
@@ -99,7 +99,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   const live = copy.checkLive;
   const paused = check === 'held' ? copy.checkPaused : null;
   // A hold from the verdict shows at once, before the watcher records a detail.
-  const heldDetail = paused ? deal.releaseBlockedDetail ?? (deal.releaseBlockedReason ? undefined : 'off-request') : undefined;
+  const heldDetail = paused ? heldDetailOf(deal) : undefined;
   const held = paused ? heldMove(heldDetail, viewerIsBuyer) : null;
   const yourMove = !!address && (held === 'redeliver' || (!held && !!label) || (declined && viewerIsBuyer));
   const review = deal.deliveryReviewState?.state;

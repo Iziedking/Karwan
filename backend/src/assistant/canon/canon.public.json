@@ -159,7 +159,7 @@
       "id": "delivery-proof",
       "title": "What counts as delivery",
       "status": "shipping",
-      "updated": "2026-10-26",
+      "updated": "2026-10-27",
       "tags": [
         "delivery",
         "goods",
@@ -172,7 +172,7 @@
           "date": "2026-10-26"
         }
       ],
-      "body": "Delivery has to be against something the buyer can check, and what that is\ndepends on the kind of deal.\n\nWork, such as a design, writing, code or a video, is delivered as a link to the\nwork, with a short note. The link has to point to a real site before the\ndelivery is accepted.\n\nGoods sent with a courier are delivered with the carrier and the tracking\nnumber. Karwan builds the tracking link for DHL, FedEx, UPS and the main\nshipping lines. For local couriers, such as GIG Logistics, Kwik, NIPOST,\nAramex, Emirates Post, Delhivery, India Post and Bosta, the seller adds the\ncourier's tracking page. The buyer confirms when the goods arrive, which\nstarts their review. Confirming arrival does not pay the seller.\n\nGoods handed over in person end with a handover code. The buyer opens the deal\nand shows a six-digit code only once they hold the item, and the seller enters\nit. The code works once, counts as the item arriving, and starts the buyer's\nreview, so the buyer can still raise a problem they find later. Five wrong\ntries lock the code for 15 minutes, and asking for a new code cancels the old\none.\n\nGoods worth more than 50 USDC are delivered with a photo of the item. Any\ndelivery can carry up to four photos, added on the deal page or sent to the\nassistant with a caption like \"delivered\" or \"packed\".\n\nBoth sides see every delivery on the deal page: the links to open, where the\ngoods are, what Karwan checked, the photos and the deliveries before this one.\nThe assistant answers \"where is my order\" from the same record.\n\nKarwan does not inspect goods or judge the quality of work, and it does not\nread the courier's own tracking status yet. What it requires is that each\ndelivery is specific, on the record and fingerprinted on chain with the\ndelivery."
+      "body": "Delivery has to be against something the buyer can check, and what that is\ndepends on the kind of deal.\n\nWork, such as a design, writing, code or a video, is delivered as a link to the\nwork, with a short note. The link has to point to a real site before the\ndelivery is accepted. Every link is checked for safety; one the check holds is\nhidden from the buyer and never paid for, not even when the buyer's review time\nends, until a person at Karwan clears it or the seller sends another link.\n\nGoods sent with a courier are delivered with the carrier and the tracking\nnumber. Karwan builds the tracking link for DHL, FedEx, UPS and the main\nshipping lines. For local couriers, such as GIG Logistics, Kwik, NIPOST,\nAramex, Emirates Post, Delhivery, India Post and Bosta, the seller adds the\ncourier's tracking page. The buyer confirms when the goods arrive, which\nstarts their review. Confirming arrival does not pay the seller.\n\nGoods handed over in person end with a handover code. The buyer opens the deal\nand shows a six-digit code only once they hold the item, and the seller enters\nit. The code works once, counts as the item arriving, and starts the buyer's\nreview, so the buyer can still raise a problem they find later. Five wrong\ntries lock the code for 15 minutes, and asking for a new code cancels the old\none.\n\nGoods worth more than 50 USDC are delivered with a photo of the item. Any\ndelivery can carry up to four photos, added on the deal page or sent to the\nassistant with a caption like \"delivered\" or \"packed\".\n\nBoth sides see every delivery on the deal page: the links to open, where the\ngoods are, what Karwan checked, the photos and the deliveries before this one.\nThe assistant answers \"where is my order\" from the same record.\n\nKarwan does not inspect goods or judge the quality of work, and it does not\nread the courier's own tracking status yet. What it requires is that each\ndelivery is specific, on the record and fingerprinted on chain with the\ndelivery."
     },
     {
       "id": "deposit-and-withdraw",
@@ -938,7 +938,7 @@
         "note": "Goods deliveries are refused without a carrier and tracking reference or the buyer's handover code.",
         "lastVerified": ""
       },
-      "updated": "2026-10-26",
+      "updated": "2026-10-27",
       "path": "public/product/delivery-proof.md"
     },
     {

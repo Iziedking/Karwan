@@ -7,12 +7,13 @@ export type DeliveryCheckState = 'checking' | 'passed' | 'held' | 'unverified';
 /// verdict is known the moment the seller delivers, so a mismatch reads as held
 /// at once rather than after the watcher's next pass pauses the release.
 export function deliveryCheckState(
-  deal: Pick<DirectDeal, 'delivered' | 'tradeType' | 'deliveryMatch' | 'releaseBlockedReason' | 'deliveryProof' | 'terms'>,
+  deal: Pick<DirectDeal, 'delivered' | 'tradeType' | 'deliveryMatch' | 'releaseBlockedReason' | 'deliveryProof' | 'terms' | 'verificationStatus'>,
 ): DeliveryCheckState | null {
   // Goods deliver against a proof of delivery, and a delivery with no link or a
   // deal with no written terms is never checked, so none of these has a status.
   if (!deal.delivered || deal.tradeType === 'goods' || !deal.deliveryProof || !deal.terms) return null;
-  if (deal.releaseBlockedReason) return 'held';
+  // A link held for a safety check outranks the work matching the request.
+  if (deal.releaseBlockedReason || deal.verificationStatus === 'suspicious' || deal.verificationStatus === 'malicious') return 'held';
   const verdict = deal.deliveryMatch?.verdict;
   if (!verdict) return 'checking';
   if (verdict === 'mismatch' || verdict === 'partial') return 'held';

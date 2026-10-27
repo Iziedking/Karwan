@@ -59,6 +59,17 @@ test('waits_while_disputed_or_not_open', () => {
   assert.equal(step({ deal: deal({ v3CheckFailedRevision: 1 }), endMs: NOW - 1_000 }), 'wait', 'a failed check is the buyer\'s case');
 });
 
+test('never_pays_for_a_link_held_for_a_safety_check', () => {
+  // Found on testnet 27 Oct 2026: a .xyz link was hidden from the buyer, and the
+  // review end would have paid the seller for it.
+  for (const status of ['suspicious', 'malicious'] as const) {
+    assert.equal(step({ deal: deal({ verificationStatus: status }), endMs: NOW - 1_000 }), 'wait', status);
+    assert.equal(step({ deal: deal({ verificationStatus: status }), endMs: NOW + 3_600_000 }), 'wait', `${status}: no reminder for a link the buyer cannot open`);
+  }
+  // Cleared by a person, it is a delivery like any other.
+  assert.equal(step({ deal: deal({ verificationStatus: 'clean' }), endMs: NOW - 1_000 }), 'claim');
+});
+
 test('waits_until_review_starts', () => {
   assert.equal(step({ endMs: null }), 'wait');
 });

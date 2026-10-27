@@ -956,6 +956,15 @@ async function tick() {
       if (account.version === 'suite') {
         // A missed delivery deadline refunds the buyer here too, as on v3.
         if (await maybeReclaimAfterDeadline(deal, account, now)) continue;
+        // A link held for a safety check is recorded as on the other escrows, so
+        // both sides see it and the seller is pointed to another link or a person.
+        // The family has no guardian hold, so this is what keeps the review end
+        // from paying for a link the buyer cannot open.
+        if (deal.verificationStatus === 'suspicious' || deal.verificationStatus === 'malicious') {
+          await markBlocked(deal.jobId, 'security-hold', 'security-hold', { reason: deal.releaseBlockedReason, detail: deal.releaseBlockedDetail }, parties);
+          continue;
+        }
+        if (deal.releaseBlockedReason === 'security-hold') await clearBlocked(deal.jobId, parties);
         await runSuiteReviewEndSafely(deal, now);
         continue;
       }

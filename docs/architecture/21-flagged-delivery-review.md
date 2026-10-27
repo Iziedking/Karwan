@@ -63,6 +63,17 @@ The audit trail is the review record kept on the deal (each step's credential, d
 - The two credentials stand for roles, not named people. Whoever holds both tokens can clear a malicious link alone.
 - Named operator accounts for support would close that gap.
 
+## On the escrow family (found on testnet, 27 Oct 2026)
+
+A 230 USDC deal's link (`.xyz`) was held for a safety check, but the deal page said "Delivery check passed", the seller was told no action was needed, and the buyer's review end would have paid the seller three days later. The family has no guardian hold, and the deal watcher's family branch ran the review end before it recorded any hold. Fixed:
+
+- The watcher records a held link on family deals as on the other escrows (`releaseBlockedReason: 'security-hold'`), so both sides get the held-link card.
+- The review end never pays while the link is held (`deals/suiteReviewEnd.ts`), on any escrow.
+- The delivery check shows held when the link is held, even if the work matches the request (`deals/deliveryCheckState.ts`, `features/deals/workspace/checkStatus.ts`).
+- The seller's next move on a held link is to send another link, with "Ask a person to check" beside it; the buyer waits on the seller (`deals/dealView.ts`).
+
+A person who clears the link late cannot restart the buyer's review on the family's chain clock; the buyer can still ask once for more time.
+
 ## Status
 
-Built 22 Oct 2026, uncommitted.
+Built 22 Oct 2026; the escrow family fix built 27 Oct 2026.

@@ -21,6 +21,9 @@ export function reviewEndStep(input: { deal: DirectDeal; view: DealV3View; revie
   if (deal.escrowTerms && 'silenceOutcome' in deal.escrowTerms && deal.escrowTerms.silenceOutcome === 1) return 'wait';
   // A failed check on this delivery is the buyer's case, not silence.
   if (deal.v3CheckFailedRevision === view.revision) return 'wait';
+  // A link held for a safety check is hidden from the buyer, so their silence
+  // means nothing: it waits for a person to clear it or for another link.
+  if (deal.verificationStatus === 'suspicious' || deal.verificationStatus === 'malicious') return 'wait';
   // A review that waits on arrival or a check has no end yet.
   if (reviewEndSecs === 0n) return 'wait';
   const endMs = Number(reviewEndSecs) * 1000;

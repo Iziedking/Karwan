@@ -234,7 +234,8 @@ function next(deal: DealViewInput, stage: DealStage, viewer: 'buyer' | 'seller',
     if (deal.extensionRequest) return viewer === 'buyer' ? you('respond-extension') : none('counterparty');
     return viewer === 'seller' ? you('deliver') : none('counterparty');
   }
-  if (securityHold(deal)) return none('nobody');
+  // A held link waits on the seller: another link, or a person checks this one (view 21).
+  if (securityHold(deal)) return viewer === 'seller' ? you('deliver') : none('counterparty');
   if (deal.releaseBlockedReason === 'requirement-mismatch') return viewer === 'seller' ? you('deliver') : you('dispute');
   if (deal.releaseBlockedReason === 'evidence-unavailable' || (deal.evidenceRequired && !checkedDone(deal, stage))) {
     if (viewer === 'buyer' && deal.evidenceManualReviewAvailable) return you('review-manually');
