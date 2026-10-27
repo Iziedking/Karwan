@@ -92,6 +92,14 @@ Post it and sleep: the agents do the haggling inside each person's limits, and b
 | Part | State |
 |---|---|
 | This view | Approved by the owner 27 Oct 2026, with decisions 6 to 8 |
-| Spec | Written 27 Oct 2026 |
-| Plan | Next |
-| Code | Not started |
+| Spec, plan | Written 27 Oct 2026 |
+| Arc check | Done 27 Oct 2026 on a fork of the deployed JobBoard: a second offer replaces the first, an offer above the budget is accepted. The deployed build is older than the source and its job id is read from `JobPosted` |
+| Code | Built 27 Oct 2026, not deployed: the buyer's agent looks again after an edit, takes a lower offer and drops a withdrawn one (also after a restart); the shortlist recommends within the leeway; sellers never see the leeway and may open below the budget; seller agents keep, lower or withdraw after a change and in one best and final round; the honest note when the budget is far under market; every fitting request outside a seller's range reaches them; sellers who offer by hand lower from the request page or the assistant and hear about changes |
+| On testnet | Not yet seen: raise a request's leeway with an offer above budget and watch the recommendation and counter; a seller agent lowering after a change |
+
+## As built
+
+- Found while building: the buyer's agent ignored a second offer from the same seller (`handleBidSubmitted` returned on any repeat), and a seller who stopped their agent stayed in the buyer's pool and could still be countered. Both fixed (`agents/offerRevision.ts`, `dropWithdrawnSeller`).
+- The honest note does not wait for the offer window, which only opens on a first offer: when the market read finds the buyer's limit under 60% of a grounded fair price, the agent looks again two seller sweeps later (`agents/underMarket.ts`).
+- The seller's prompts no longer tell the LLM that an agent never bids below the buyer's budget (`llm/prompts.ts`).
+- The newer request page (search v2) now shows the market note too; before, only the older page did.
