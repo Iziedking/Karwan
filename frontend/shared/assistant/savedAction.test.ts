@@ -24,3 +24,10 @@ test('navigate links are not kept, and a past card keeps its status', () => {
   assert.equal(savedAction({ kind: 'navigate', id: 'n', label: 'Open', href: '/x' }, () => undefined), null);
   assert.deepEqual(savedAction({ kind: 'confirm', title: 'Paid', status: 'done' }, () => undefined), { kind: 'confirm', title: 'Paid', label: undefined, status: 'done' });
 });
+
+test('a saved card keeps the rows it showed, so the assistant can prepare it again', () => {
+  const withRows = { ...card, fields: [{ label: 'Budget', value: '120 USDC' }] };
+  assert.deepEqual(savedAction(withRows as never, () => undefined)?.fields, [{ label: 'Budget', value: '120 USDC' }]);
+  assert.deepEqual(savedAction({ kind: 'confirm', title: 'Paid', status: 'expired', fields: [{ label: 'To', value: '@ada' }] }, () => undefined)?.fields, [{ label: 'To', value: '@ada' }]);
+});
+

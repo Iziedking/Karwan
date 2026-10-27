@@ -58,3 +58,17 @@ test('an earlier balance question does not make a later product question statefu
     true,
   );
 });
+
+test('a change to a card just shown is part of building it, not an account question', () => {
+  const card = 'Review the proposed actions below. Nothing has been executed.\n\nCard shown, not confirmed: Post this request. Budget: 120 USDC. Due: in 3 days.';
+  const after = (content: string) => requiresLiveAccountState([
+    { role: 'user', content: 'I want to post so agent find a match for me. 120 usdc, at most 140 due in 3 days' },
+    { role: 'assistant', content: card },
+    { role: 'user', content },
+  ]);
+  assert.equal(after('make the dealine 10 days'), false);
+  assert.equal(after('Make the deadline 10'), false);
+  assert.equal(after('change the budget to 150'), false);
+  assert.equal(after('did it go through?'), true);
+  assert.equal(after('what is my balance'), true);
+});

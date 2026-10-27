@@ -1992,6 +1992,7 @@ export interface PastAssistantAction {
   kind: string;
   title?: string;
   label?: string;
+  fields?: { label: string; value: string }[];
   status: 'done' | 'expired';
 }
 

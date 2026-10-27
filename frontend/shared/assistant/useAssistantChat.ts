@@ -4,7 +4,14 @@ import { api, ApiError } from '@/core/api';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { confirmOutcomes, type Turn } from './AssistantThread';
 import { savedAction } from './savedAction';
+import { contentForModel } from './modelHistory';
 import { attachForOffer } from '@/features/listings/photos';
+
+/// A card counts as run once its confirmation came back.
+const ran = (a: { id?: string }) => {
+  const outcome = a.id ? confirmOutcomes.get(a.id) : undefined;
+  return !!outcome && typeof outcome === 'object';
+};
 
 /// One conversation with the assistant: the turns, sending the next question
 /// and the reply's actions. The help panel and the assistant page share it;
@@ -109,7 +116,7 @@ export function useAssistantChat(opts: { onNeedsHuman?: (transcript: Turn[]) => 
       setError(null);
       setBusy(true);
       try {
-        await answer(next.map((m) => ({ role: m.role, content: m.content })), next);
+        await answer(next.map((m) => ({ role: m.role, content: contentForModel(m, ran) })), next);
       } finally {
         setBusy(false);
       }
@@ -165,7 +172,7 @@ export function useAssistantChat(opts: { onNeedsHuman?: (transcript: Turn[]) => 
         const shown: Turn[] = purpose === 'offer' && text ? next : [...next, { role: 'assistant', content: reply }];
         setMessages(shown);
         if (text) {
-          const before = messages.map((x) => ({ role: x.role, content: x.content }));
+          const before = messages.map((x) => ({ role: x.role, content: contentForModel(x, ran) }));
           await answer([...before, { role: 'user', content: label }, { role: 'assistant', content: reply }, { role: 'user', content: text }], shown);
         }
       } catch (e) {
