@@ -14,6 +14,7 @@ import { useMatchProposal } from '@/features/jobs/hooks/useMatchProposal';
 import { useNearMiss } from '@/features/jobs/hooks/useNearMiss';
 import { EventList } from '@/features/jobs/components/EventList';
 import { CancelBriefSection, EditBriefSection } from '@/features/jobs/components/LiveJobPage';
+import { MarketAdvisoryBanner } from '@/shared/components/MarketAdvisoryBanner';
 import { requestTitle } from '../requestTitle';
 import { refreshKey, requestView, type RequestView } from '../requestView';
 import { MatchPanel } from './MatchPanel';
@@ -157,6 +158,8 @@ export function RequestPage({ initial, explorer }: { initial: BuyerJob; explorer
 
         {canEdit || canCancel ? (
           <section className="space-y-4">
+            {/* The agent's market read, said plainly when the budget is far off (view 35). */}
+            <MarketAdvisoryBanner jobId={job.jobId} />
             {canEdit ? (
               <EditBriefSection
                 job={job}

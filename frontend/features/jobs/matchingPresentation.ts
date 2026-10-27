@@ -272,6 +272,8 @@ function projectEvent(event: ChainEvent): EventProjection | null {
     case 'market.scanned':
     case 'bid.scored':
     case 'bid.submitted':
+    case 'bid.revised':
+    case 'request.best-and-final':
     case 'counter.issued':
     case 'counter.received':
     case 'counter.evaluated':

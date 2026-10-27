@@ -20,6 +20,7 @@ import { dealLiveCopy } from './dealLive';
 import { deliveryCardCopy } from './deliveryCard';
 import { recordOnTheWayCopy } from './recordOnTheWay';
 import { previousEscrowCopy } from './previousEscrow';
+import { offersThatMoveCopy } from './offersThatMove';
 import { offerRosterCopy } from './offerRoster';
 import { shortlistCopy } from './shortlist';
 import { directMessagesCopy } from './directMessages';
@@ -64,6 +65,7 @@ export const ar: Messages = {
   deliveryCard: deliveryCardCopy.ar,
   recordOnTheWay: recordOnTheWayCopy.ar,
   previousEscrow: previousEscrowCopy.ar,
+  offersThatMove: offersThatMoveCopy.ar,
   disputeJudge: disputeJudgeCopy.ar,
   balanceSummary: balanceSummaryCopy.ar,
   firstTrade: firstTradeCopy.ar,
@@ -2025,6 +2027,9 @@ export const ar: Messages = {
       'job.expired': 'انتهت صلاحية الطلب دون تطابق',
       'bid.scored': 'وكيل المشتري قيّم العرض',
       'bid.submitted': 'قدّم البائع عرضاً',
+      'bid.revised': 'خفّض البائع عرضه',
+      'bid.withdrawn': 'سحب البائع عرضه',
+      'request.best-and-final': 'طلب وكيل المشتري أفضل عرض نهائي',
       'counter.issued': 'أصدر وكيل المشتري عرضاً مضاداً',
       'counter.response.submitted': 'ردّ البائع على العرض المضاد',
       'bid.accepted': 'قبل المشتري الشروط النهائية',

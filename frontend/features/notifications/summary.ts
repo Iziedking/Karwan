@@ -61,7 +61,12 @@ export function summaryFor(
     case 'listing.matched':
       return pick(c.listingMatchedPrice, c.listingMatched, { price: str('askingPriceUsdc') });
     case 'agent.suggestion':
-      return pick(c.suggestionTitle, c.suggestion, { title: str('title') });
+      // Outside the seller's range but a fit (view 35), or "Ask me first".
+      return str('outOfRange')
+        ? pick(c.suggestionRangeTitle, c.suggestionRange, { title: str('title') })
+        : pick(c.suggestionTitle, c.suggestion, { title: str('title') });
+    case 'offer.request-changed':
+      return pick(c.requestChangedTitle, c.requestChanged, { title: str('title') });
     case 'record.setup_needed':
       return str('reason') === 'deal' ? c.recordNeededDeal : c.recordNeededOffers;
     case 'trend.match':

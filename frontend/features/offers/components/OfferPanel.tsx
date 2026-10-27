@@ -9,6 +9,7 @@ import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { formatUsdc } from '@/shared/utils/format';
 import { splitRequestText } from '@/features/discovery/model';
 import { deliverByUnixFromDate, offerDefaults, offerErrorKey, type Offer } from '../model';
+import { lowerCheck, lowerErrorKey } from '../lowerOffer';
 import { Icon } from '@/shared/components/Icon';
 import { MarketReadsNote } from '@/features/market/MarketReadsNote';
 
@@ -118,16 +119,61 @@ export function OfferPanel({ jobId, fallback }: { jobId: string; fallback: React
 }
 
 function SentOffer({ jobId, offer, onChange }: { jobId: string; offer: Offer; onChange: () => Promise<void> }) {
-  const t = useTranslations().offers;
+  const all = useTranslations();
+  const t = all.offers;
+  const m = all.offersThatMove;
   const { locale } = useLocale();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lowering, setLowering] = useState(false);
+  const [price, setPrice] = useState('');
+  const priceId = useId();
+
+  async function lower() {
+    if (lowerCheck(price, offer.priceUsdc) !== 'ok') {
+      setError(m.lowerErrors.NOT_LOWER);
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await api.lowerOffer(jobId, offer.id, price.trim());
+      setLowering(false);
+      setPrice('');
+      await onChange();
+    } catch (err) {
+      setError(m.lowerErrors[lowerErrorKey(err instanceof ApiError ? err.code ?? '' : '')]);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="rounded-[20px] bg-[var(--lp-card)] p-6">
       <p className="text-[17px] font-medium text-[var(--lp-dark)]">{t.sent}</p>
       <p className="mt-1 text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">
         {t.sentDetail.replace('{price}', formatUsdc(offer.priceUsdc, { withSuffix: false })).replace('{date}', shortDate(offer.deliverByUnix, locale))}
       </p>
+      {lowering ? (
+        <div className="mt-4 space-y-2">
+          <label htmlFor={priceId} className="block text-[14px] font-semibold text-[var(--lp-dark)]">{m.lowerLabel}</label>
+          <input
+            id={priceId}
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            inputMode="decimal"
+            dir="ltr"
+            className="form-input block font-normal tabular-nums"
+          />
+          <p className="text-[14px] text-[var(--lp-text-sub)]">{m.lowerHint}</p>
+          <div className="flex flex-wrap gap-2 pt-1">
+            <Button className="rounded-full" loading={busy} onClick={() => void lower()}>{m.lowerSubmit}</Button>
+            <Button variant="ghost" className="rounded-full" disabled={busy} onClick={() => { setLowering(false); setError(null); }}>{m.lowerCancel}</Button>
+          </div>
+        </div>
+      ) : (
+        <Button variant="ghost" className="mt-4 me-2 rounded-full" onClick={() => setLowering(true)}>{m.lowerOpen}</Button>
+      )}
       <Button
         variant="ghost"
         className="mt-4 rounded-full"

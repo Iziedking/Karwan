@@ -20,6 +20,7 @@ import { dealLiveCopy } from './dealLive';
 import { deliveryCardCopy } from './deliveryCard';
 import { recordOnTheWayCopy } from './recordOnTheWay';
 import { previousEscrowCopy } from './previousEscrow';
+import { offersThatMoveCopy } from './offersThatMove';
 import { offerRosterCopy } from './offerRoster';
 import { shortlistCopy } from './shortlist';
 import { directMessagesCopy } from './directMessages';
@@ -64,6 +65,7 @@ export const fr: Messages = {
   deliveryCard: deliveryCardCopy.fr,
   recordOnTheWay: recordOnTheWayCopy.fr,
   previousEscrow: previousEscrowCopy.fr,
+  offersThatMove: offersThatMoveCopy.fr,
   disputeJudge: disputeJudgeCopy.fr,
   balanceSummary: balanceSummaryCopy.fr,
   firstTrade: firstTradeCopy.fr,
@@ -2025,6 +2027,9 @@ export const fr: Messages = {
       'job.expired': 'Requête expirée sans match',
       'bid.scored': 'L\'agent acheteur a noté l\'offre',
       'bid.submitted': 'Le vendeur a envoyé une offre',
+      'bid.revised': 'Le vendeur a baissé son offre',
+      'bid.withdrawn': 'Le vendeur a retiré son offre',
+      'request.best-and-final': 'L\'agent acheteur a demandé les meilleures offres finales',
       'counter.issued': "L'agent acheteur a émis une contre-offre",
       'counter.response.submitted': 'Le vendeur a répondu à la contre-offre',
       'bid.accepted': "L'acheteur a accepté les termes finaux",

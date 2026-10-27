@@ -307,6 +307,7 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "GET", path: "/api/jobs/:jobId/offers" },
   { method: "POST", path: "/api/jobs/:jobId/offers" },
   { method: "POST", path: "/api/jobs/:jobId/offers/:offerId/accept" },
+  { method: "POST", path: "/api/jobs/:jobId/offers/:offerId/lower" },
   { method: "POST", path: "/api/jobs/:jobId/offers/:offerId/withdraw" },
   { method: "POST", path: "/api/jobs/:jobId/raise-offer" },
   { method: "POST", path: "/api/jobs/:jobId/reconsider" },

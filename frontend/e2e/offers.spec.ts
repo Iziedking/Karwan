@@ -179,6 +179,24 @@ test('seller sends an offer and sees it as sent', async ({ page }) => {
   await expect(page.getByText(/110 USDC/)).toBeVisible();
 });
 
+test('a seller lowers their own offer, never raises it (view 35)', async ({ page }) => {
+  await open(page, { role: 'seller', offers: [offer('o1', ME, '118', 1)] });
+  let lowered: unknown = null;
+  await page.route(`${API}/api/jobs/${JOB}/offers/o1/lower`, async (route) => {
+    lowered = route.request().postDataJSON();
+    await route.fulfill({ json: { offer: offer('o1', ME, '110', 1) } });
+  });
+  await page.getByRole('button', { name: 'Lower my offer' }).click();
+  await page.getByLabel('New price in USDC').fill('120');
+  await page.getByRole('button', { name: 'Lower it' }).click();
+  await expect(page.getByText('The new price has to be lower than your offer now.')).toBeVisible();
+  expect(lowered).toBeNull();
+  await page.getByLabel('New price in USDC').fill('110');
+  await page.getByRole('button', { name: 'Lower it' }).click();
+  await expect.poll(() => lowered).toEqual({ priceUsdc: '110' });
+  await layoutIsSound(page);
+});
+
 test('buyer sees offers cheapest first and accepts through the confirm sheet', async ({ page }) => {
   await open(page, { role: 'buyer', offers: [offer('o1', SELLER_A, '120', 1), offer('o2', SELLER_B, '96', 2)] });
   await expect(page.getByRole('heading', { name: '2 offers' })).toBeVisible();

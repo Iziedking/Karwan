@@ -1348,6 +1348,9 @@ export interface MatchProposal {
 /// to proceed at the agreed price (anchored at the other side's boundary, so a
 /// single yes closes the deal). Valid until expiresAt; lapses to nothing.
 export interface MarketAdvisory {
+  /// 'under': far under what sellers take and none has taken it (view 35).
+  /// Absent reads as 'over'.
+  kind?: 'over' | 'under';
   jobId: string;
   buyer: string;
   budgetUsdc: number;
@@ -1937,6 +1940,7 @@ export interface AssistantConfirmAction {
     | 'change_deal_terms'
     | 'make_offer'
     | 'withdraw_offer'
+    | 'lower_offer'
     | 'accept_offer'
     | 'near_miss_proceed'
     | 'near_miss_pass'
@@ -2728,6 +2732,9 @@ export const api = {
     json<{ offer: Offer }>(`/api/jobs/${jobId}/offers`, { method: 'POST', body: JSON.stringify(body) }),
   withdrawOffer: (jobId: string, offerId: string) =>
     json<{ ok: true }>(`/api/jobs/${jobId}/offers/${offerId}/withdraw`, { method: 'POST', body: '{}' }),
+  /// A seller lowers their own offer (view 35): down only, at most three times.
+  lowerOffer: (jobId: string, offerId: string, priceUsdc: string) =>
+    json<{ offer: Offer }>(`/api/jobs/${jobId}/offers/${offerId}/lower`, { method: 'POST', body: JSON.stringify({ priceUsdc }) }),
   acceptOffer: (jobId: string, offerId: string) =>
     json<{ ok: true; txHash: string }>(`/api/jobs/${jobId}/offers/${offerId}/accept`, { method: 'POST', body: '{}' }),
   raiseMatchOffer: (jobId: string, caller: string, priceUsdc: string) =>

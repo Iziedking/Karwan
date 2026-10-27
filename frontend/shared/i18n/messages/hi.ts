@@ -20,6 +20,7 @@ import { dealLiveCopy } from './dealLive';
 import { deliveryCardCopy } from './deliveryCard';
 import { recordOnTheWayCopy } from './recordOnTheWay';
 import { previousEscrowCopy } from './previousEscrow';
+import { offersThatMoveCopy } from './offersThatMove';
 import { offerRosterCopy } from './offerRoster';
 import { shortlistCopy } from './shortlist';
 import { directMessagesCopy } from './directMessages';
@@ -64,6 +65,7 @@ export const hi: Messages = {
   deliveryCard: deliveryCardCopy.hi,
   recordOnTheWay: recordOnTheWayCopy.hi,
   previousEscrow: previousEscrowCopy.hi,
+  offersThatMove: offersThatMoveCopy.hi,
   disputeJudge: disputeJudgeCopy.hi,
   balanceSummary: balanceSummaryCopy.hi,
   firstTrade: firstTradeCopy.hi,
@@ -2023,6 +2025,9 @@ export const hi: Messages = {
       'job.expired': 'अनुरोध बिना मिलान समाप्त हुआ',
       'bid.scored': 'क्रेता एजेंट ने ऑफ़र को स्कोर किया',
       'bid.submitted': 'विक्रेता ने ऑफ़र भेजा',
+      'bid.revised': 'विक्रेता ने अपना ऑफ़र घटाया',
+      'bid.withdrawn': 'विक्रेता ने अपना ऑफ़र वापस लिया',
+      'request.best-and-final': 'खरीदार एजेंट ने सबसे अच्छे अंतिम ऑफ़र माँगे',
       'counter.issued': 'क्रेता एजेंट ने काउंटर जारी किया',
       'counter.response.submitted': 'विक्रेता ने काउंटर का जवाब दिया',
       'bid.accepted': 'क्रेता ने अंतिम शर्तें स्वीकार कीं',

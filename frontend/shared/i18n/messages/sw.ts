@@ -20,6 +20,7 @@ import { dealLiveCopy } from './dealLive';
 import { deliveryCardCopy } from './deliveryCard';
 import { recordOnTheWayCopy } from './recordOnTheWay';
 import { previousEscrowCopy } from './previousEscrow';
+import { offersThatMoveCopy } from './offersThatMove';
 import { offerRosterCopy } from './offerRoster';
 import { shortlistCopy } from './shortlist';
 import { directMessagesCopy } from './directMessages';
@@ -64,6 +65,7 @@ export const sw: Messages = {
   deliveryCard: deliveryCardCopy.sw,
   recordOnTheWay: recordOnTheWayCopy.sw,
   previousEscrow: previousEscrowCopy.sw,
+  offersThatMove: offersThatMoveCopy.sw,
   disputeJudge: disputeJudgeCopy.sw,
   balanceSummary: balanceSummaryCopy.sw,
   firstTrade: firstTradeCopy.sw,
@@ -2022,6 +2024,9 @@ export const sw: Messages = {
       'job.expired': 'Ombi limeisha bila ulinganifu',
       'bid.scored': 'Wakala wa mnunuzi ametoa alama ya ofa',
       'bid.submitted': 'Muuzaji ametuma ofa',
+      'bid.revised': 'Muuzaji ameshusha ofa yake',
+      'bid.withdrawn': 'Muuzaji ameondoa ofa yake',
+      'request.best-and-final': 'Wakala wa mnunuzi ameomba ofa bora za mwisho',
       'counter.issued': 'Wakala wa mnunuzi ametoa ofa ya majibu',
       'counter.response.submitted': 'Muuzaji amejibu ofa ya majibu',
       'bid.accepted': 'Mnunuzi amekubali masharti ya mwisho',

@@ -158,6 +158,18 @@ test('the edit sheet sits above the bottom bar, so Save changes can be pressed',
   await expect.poll(() => edited).toMatchObject({ negotiationMaxIncreasePct: 25 });
 });
 
+test('a budget far under market is said plainly, and Allow more opens the edit sheet (view 35)', async ({ page }) => {
+  await serveSearch(page, { balances: { ...funded } });
+  await page.route(`**/api/jobs/${JOB}/market-advisory**`, (route) =>
+    route.fulfill({ json: { advisory: { kind: 'under', jobId: JOB, buyer: ME, budgetUsdc: 40, fairPriceUsdc: 120, overPct: -67, createdAt: 1 } } }),
+  );
+  await page.goto(`/jobs/${JOB}`);
+  await expect(page.getByText('Sellers ask about 120 USDC for this. None has taken it at 40 USDC.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Post again' })).toBeVisible();
+  await page.getByRole('button', { name: 'Allow more' }).click();
+  await expect(page.getByRole('dialog').getByRole('slider', { name: 'Price tolerance percent' })).toBeVisible();
+});
+
 test('a match waiting on the seller gives the buyer no primary action', async ({ page }) => {
   await serveSearch(page, { balances: { ...funded }, job: makeJob({ bids: [offer] }), proposal: makeProposal() });
   await page.goto(`/jobs/${JOB}`);

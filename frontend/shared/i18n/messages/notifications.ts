@@ -7,7 +7,7 @@ export interface NotifyCopy {
   matchedSellerPrice: string; matchedSeller: string; matchedBuyerPrice: string; matchedBuyer: string;
   approvedSellerPrice: string; approvedSeller: string; approvedBuyerPrice: string; approvedBuyer: string;
   declinedSeller: string; declinedBuyer: string; raisedPrice: string; raised: string; jobExpired: string;
-  listingMatchedPrice: string; listingMatched: string; trendKeyword: string; trend: string; suggestionTitle: string; suggestion: string;
+  listingMatchedPrice: string; listingMatched: string; trendKeyword: string; trend: string; suggestionTitle: string; suggestion: string; suggestionRangeTitle: string; suggestionRange: string; requestChangedTitle: string; requestChanged: string;
   recordNeededOffers: string; recordNeededDeal: string;
   agentDeclinedReason: string; agentDeclined: string;
   nearMissBuyerPrice: string; nearMissSellerPrice: string; nearMissBuyer: string; nearMissSeller: string;
@@ -60,6 +60,10 @@ const en: NotifyCopy = {
   trendKeyword: 'Requests for {keyword} are up this week. Your offer matches.',
   suggestionTitle: "Your agent found a request that fits: {title}. Make an offer?",
   suggestion: "Your agent found a request that fits. Make an offer?",
+  suggestionRangeTitle: "A request fits what you sell, outside your range: {title}. Make an offer?",
+  suggestionRange: "A request fits what you sell, outside your range. Make an offer?",
+  requestChangedTitle: "The buyer changed a request you offered on: {title}. Keep, lower or withdraw your offer.",
+  requestChanged: "The buyer changed a request you offered on. Keep, lower or withdraw your offer.",
   recordNeededOffers: "Set up your Karwan record so your agent can make offers.",
   recordNeededDeal: "The buyer paid. Set up your Karwan record; this deal will not count on it, your next ones will.",
   trend: 'A skill you offer is in rising demand this week.',
@@ -195,6 +199,10 @@ const fr: NotifyCopy = {
   trendKeyword: 'Les demandes pour {keyword} augmentent cette semaine. Votre offre correspond.',
   suggestionTitle: "Votre agent a trouvé une demande qui vous correspond : {title}. Faire une offre ?",
   suggestion: "Votre agent a trouvé une demande qui vous correspond. Faire une offre ?",
+  suggestionRangeTitle: "Une demande correspond à ce que vous vendez, hors de votre fourchette : {title}. Faire une offre ?",
+  suggestionRange: "Une demande correspond à ce que vous vendez, hors de votre fourchette. Faire une offre ?",
+  requestChangedTitle: "L'acheteur a modifié une demande sur laquelle vous avez fait une offre : {title}. Gardez, baissez ou retirez votre offre.",
+  requestChanged: "L'acheteur a modifié une demande sur laquelle vous avez fait une offre. Gardez, baissez ou retirez votre offre.",
   recordNeededOffers: "Créez votre historique Karwan pour que votre agent puisse faire des offres.",
   recordNeededDeal: "L’acheteur a payé. Créez votre historique Karwan ; cet accord n’y comptera pas, les suivants oui.",
   trend: 'Une compétence que vous proposez est de plus en plus demandée cette semaine.',
@@ -330,6 +338,10 @@ const ar: NotifyCopy = {
   trendKeyword: 'الطلبات على {keyword} في ازدياد هذا الأسبوع. عرضك مطابق.',
   suggestionTitle: "وجد وكيلك طلبًا يناسبك: {title}. هل تقدم عرضًا؟",
   suggestion: "وجد وكيلك طلبًا يناسبك. هل تقدم عرضًا؟",
+  suggestionRangeTitle: "طلب يناسب ما تبيعه لكنه خارج نطاقك: {title}. هل تقدم عرضًا؟",
+  suggestionRange: "طلب يناسب ما تبيعه لكنه خارج نطاقك. هل تقدم عرضًا؟",
+  requestChangedTitle: "غيّر المشتري طلبًا قدّمت عليه عرضًا: {title}. أبقِ عرضك أو اخفضه أو اسحبه.",
+  requestChanged: "غيّر المشتري طلبًا قدّمت عليه عرضًا. أبقِ عرضك أو اخفضه أو اسحبه.",
   recordNeededOffers: "أنشئ سجلّك في كاروان ليتمكن وكيلك من تقديم العروض.",
   recordNeededDeal: "دفع المشتري. أنشئ سجلّك في كاروان؛ لن تُحتسب هذه الصفقة فيه، وستُحتسب الصفقات التالية.",
   trend: 'مهارة تقدّمها يزداد الطلب عليها هذا الأسبوع.',
@@ -465,6 +477,10 @@ const hi: NotifyCopy = {
   trendKeyword: 'इस हफ़्ते {keyword} के अनुरोध बढ़े हैं। आपका ऑफ़र मेल खाता है।',
   suggestionTitle: "आपके एजेंट को एक उपयुक्त अनुरोध मिला: {title}। ऑफ़र करें?",
   suggestion: "आपके एजेंट को एक उपयुक्त अनुरोध मिला। ऑफ़र करें?",
+  suggestionRangeTitle: "एक अनुरोध आपके काम से मेल खाता है, पर आपकी सीमा से बाहर है: {title}। ऑफ़र करें?",
+  suggestionRange: "एक अनुरोध आपके काम से मेल खाता है, पर आपकी सीमा से बाहर है। ऑफ़र करें?",
+  requestChangedTitle: "खरीदार ने वह अनुरोध बदल दिया जिस पर आपने ऑफ़र दिया था: {title}। अपना ऑफ़र रखें, घटाएँ या वापस लें।",
+  requestChanged: "खरीदार ने वह अनुरोध बदल दिया जिस पर आपने ऑफ़र दिया था। अपना ऑफ़र रखें, घटाएँ या वापस लें।",
   recordNeededOffers: "अपना Karwan रिकॉर्ड बनाएँ ताकि आपका एजेंट ऑफ़र कर सके।",
   recordNeededDeal: "ख़रीदार ने भुगतान कर दिया। अपना Karwan रिकॉर्ड बनाएँ; यह सौदा उसमें नहीं गिना जाएगा, अगले सौदे गिने जाएँगे।",
   trend: 'आपकी एक स्किल की माँग इस हफ़्ते बढ़ रही है।',
@@ -600,6 +616,10 @@ const sw: NotifyCopy = {
   trendKeyword: 'Maombi ya {keyword} yameongezeka wiki hii. Ofa yako inalingana.',
   suggestionTitle: "Wakala wako amepata ombi linalokufaa: {title}. Toa ofa?",
   suggestion: "Wakala wako amepata ombi linalokufaa. Toa ofa?",
+  suggestionRangeTitle: "Ombi linalingana na unachouza, lakini liko nje ya kiwango chako: {title}. Toa ofa?",
+  suggestionRange: "Ombi linalingana na unachouza, lakini liko nje ya kiwango chako. Toa ofa?",
+  requestChangedTitle: "Mnunuzi amebadilisha ombi ulilotoa ofa: {title}. Baki na ofa yako, ishushe au iondoe.",
+  requestChanged: "Mnunuzi amebadilisha ombi ulilotoa ofa. Baki na ofa yako, ishushe au iondoe.",
   recordNeededOffers: "Unda rekodi yako ya Karwan ili wakala wako aweze kutoa ofa.",
   recordNeededDeal: "Mnunuzi amelipa. Unda rekodi yako ya Karwan; mkataba huu hautahesabiwa humo, inayofuata itahesabiwa.",
   trend: 'Ujuzi unaotoa unazidi kuhitajika wiki hii.',

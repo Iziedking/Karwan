@@ -1,6 +1,7 @@
 ﻿'use client';
 import { useEffect, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { EDIT_REQUEST_EVENT } from '@/shared/components/MarketAdvisoryBanner';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -522,6 +523,15 @@ export function EditBriefSection({
     !matchPending &&
     !declined &&
     !!job.briefText;
+
+  // "Allow more" on the market note opens this sheet (view 35).
+  useEffect(() => {
+    const onAsk = (e: Event) => {
+      if ((e as CustomEvent<{ jobId?: string }>).detail?.jobId === job.jobId) setOpen(true);
+    };
+    window.addEventListener(EDIT_REQUEST_EVENT, onAsk);
+    return () => window.removeEventListener(EDIT_REQUEST_EVENT, onAsk);
+  }, [job.jobId]);
 
   if (!editable || !callerAddress) return null;
 

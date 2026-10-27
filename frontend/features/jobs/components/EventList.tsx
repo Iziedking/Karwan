@@ -22,6 +22,11 @@ function labelFor(type: string, texts: Record<string, string>): string {
   return phrase.charAt(0).toUpperCase() + phrase.slice(1);
 }
 
+/// A revision with no new price is a withdrawal, and reads as one (view 35).
+function textKey(type: string, payload: Record<string, unknown> | undefined): string {
+  return type === 'bid.revised' && payload?.toUsdc == null ? 'bid.withdrawn' : type;
+}
+
 /// Tone map for every known event type. Keeps the visual style at module scope
 /// (locale-independent) while the human-readable label lives in i18n.
 const EVENT_TONES: Record<string, 'buyer' | 'seller' | 'system' | 'error'> = {
@@ -30,6 +35,8 @@ const EVENT_TONES: Record<string, 'buyer' | 'seller' | 'system' | 'error'> = {
   'job.expired': 'error',
   'bid.scored': 'buyer',
   'bid.submitted': 'seller',
+  'bid.revised': 'seller',
+  'request.best-and-final': 'buyer',
   'counter.issued': 'buyer',
   'counter.response.submitted': 'seller',
   'bid.accepted': 'buyer',
@@ -94,7 +101,7 @@ function chipsFor(
   copy: Messages['eventList'],
 ): Chip[] {
   const out: Chip[] = [];
-  const price = payload.priceUsdc ?? payload.agreedPriceUsdc;
+  const price = payload.priceUsdc ?? payload.agreedPriceUsdc ?? payload.toUsdc;
   if (price != null) {
     out.push({
       key: 'price',
@@ -305,7 +312,7 @@ export function EventList({
     return (
       <ol className="space-y-2">
         {runs.map(({ e, repeat }, i) => {
-          const text = labelFor(e.type, el.eventTexts);
+          const text = labelFor(textKey(e.type, e.payload), el.eventTexts);
           const tone: Tone = EVENT_TONES[e.type] ?? 'system';
           const txHash = (e.payload?.txHash as string | undefined) ?? undefined;
           const txHref = txExplorerHref(explorer, e.payload, txHash);
@@ -427,7 +434,7 @@ export function EventList({
         className="absolute start-[5px] top-3 bottom-3 w-px bg-[var(--color-line)]"
       />
       {events.map((e, i) => {
-        const text = labelFor(e.type, el.eventTexts);
+        const text = labelFor(textKey(e.type, e.payload), el.eventTexts);
         const tone: Tone = EVENT_TONES[e.type] ?? 'system';
         const dotTone =
           tone === 'buyer'

@@ -1077,6 +1077,7 @@ type RequestStepPayload = { jobId: string; caller?: string; offerId?: string; pr
 const REQUEST_PAGE_STEP: Partial<Record<AssistantConfirmAction['intent'], (p: RequestStepPayload) => Promise<unknown>>> = {
   make_offer: (p) => api.createOffer(p.jobId, { priceUsdc: p.priceUsdc ?? '', deliverByUnix: p.deliverByUnix ?? 0, note: p.note ?? '' }),
   withdraw_offer: (p) => api.withdrawOffer(p.jobId, p.offerId ?? ''),
+  lower_offer: (p) => api.lowerOffer(p.jobId, p.offerId ?? '', p.priceUsdc ?? ''),
   accept_offer: (p) => api.acceptOffer(p.jobId, p.offerId ?? ''),
   near_miss_proceed: (p) => api.proceedNearMiss(p.jobId, p.caller ?? ''),
   near_miss_pass: (p) => api.declineNearMiss(p.jobId, p.caller ?? ''),
@@ -1086,6 +1087,7 @@ const REQUEST_PAGE_STEP: Partial<Record<AssistantConfirmAction['intent'], (p: Re
 const REQUEST_PAGE_DONE: Partial<Record<AssistantConfirmAction['intent'], string>> = {
   make_offer: 'Offer sent. The buyer sees it now.',
   withdraw_offer: 'Offer withdrawn.',
+  lower_offer: 'Offer lowered. The buyer sees the new price.',
   accept_offer: 'Offer taken. The escrow is paid and the deal is live.',
   near_miss_proceed: 'Done. The deal starts at that price.',
   near_miss_pass: 'Passed. The request stays open for other offers.',
@@ -1145,6 +1147,7 @@ const DEAL_STEP_BUSY: Partial<Record<AssistantConfirmAction['intent'], string>> 
   stop_agent_bid: 'Saving…',
   confirm_goods_received: 'Confirming…',
   withdraw_offer: 'Withdrawing…',
+  lower_offer: 'Lowering…',
   accept_offer: 'Paying in…',
   near_miss_proceed: 'Starting…',
   near_miss_pass: 'Saving…',

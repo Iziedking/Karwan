@@ -23,6 +23,7 @@ import { dealLiveCopy, type DealLiveCopy } from './dealLive';
 import { deliveryCardCopy, type DeliveryCardCopy } from './deliveryCard';
 import { recordOnTheWayCopy, type RecordOnTheWayCopy } from './recordOnTheWay';
 import { previousEscrowCopy, type PreviousEscrowCopy } from './previousEscrow';
+import { offersThatMoveCopy, type OffersThatMoveCopy } from './offersThatMove';
 import { offerRosterCopy, type OfferRosterCopy } from './offerRoster';
 import { shortlistCopy, type ShortlistCopy } from './shortlist';
 import { directMessagesCopy, type DirectMessagesCopy } from './directMessages';
@@ -66,6 +67,7 @@ interface MessagesShape {
   deliveryCard: DeliveryCardCopy;
   recordOnTheWay: RecordOnTheWayCopy;
   previousEscrow: PreviousEscrowCopy;
+  offersThatMove: OffersThatMoveCopy;
   disputeJudge: DisputeJudgeCopy;
   balanceSummary: BalanceSummaryCopy;
   firstTrade: FirstTradeCopy;
@@ -5481,6 +5483,7 @@ export const en: MessagesShape = {
   deliveryCard: deliveryCardCopy.en,
   recordOnTheWay: recordOnTheWayCopy.en,
   previousEscrow: previousEscrowCopy.en,
+  offersThatMove: offersThatMoveCopy.en,
   disputeJudge: disputeJudgeCopy.en,
   balanceSummary: balanceSummaryCopy.en,
   firstTrade: firstTradeCopy.en,
@@ -7470,6 +7473,9 @@ export const en: MessagesShape = {
       'job.expired': 'Request expired with no match',
       'bid.scored': 'Buyer agent scored the offer',
       'bid.submitted': 'Seller sent an offer',
+      'bid.revised': 'Seller lowered their offer',
+      'bid.withdrawn': 'Seller withdrew their offer',
+      'request.best-and-final': 'Buyer agent asked for best and final offers',
       'counter.issued': 'Buyer agent issued a counter',
       'counter.response.submitted': 'Seller responded to the counter',
       'bid.accepted': 'Buyer accepted final terms',
