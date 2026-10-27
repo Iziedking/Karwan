@@ -39,6 +39,20 @@ test('clearing a link makes the delivery clean, lifts the hold and tells both pe
   assert.deepEqual(s.calls, ['record', 'withdraw:suspicious', 'releaseHold', 'publish', 'cleared', 'message:safe']);
 });
 
+test('clearing a link also marks that delivery clean in the history, so its photos reach the buyer', async () => {
+  const s = setup({
+    deliveryRevision: 2,
+    deliveryHistory: [
+      { revision: 1, submittedAt: 1, deliveryProof: 'first.xyz', verificationStatus: 'suspicious' },
+      { revision: 2, submittedAt: 2, deliveryProof: 'second.xyz', verificationStatus: 'suspicious', photos: 1 },
+    ],
+  } as Partial<DirectDeal>);
+  await applyDeliveryReview('0xabc', { role: 'support', decision: 'safe', reason: REASON }, s.deps);
+  const history = s.deal().deliveryHistory ?? [];
+  assert.equal(history[0]?.verificationStatus, 'suspicious');
+  assert.equal(history[1]?.verificationStatus, 'clean');
+});
+
 test('keeping it blocked changes nothing but the record and tells the seller', async () => {
   const s = setup();
   const out = await applyDeliveryReview('0xabc', { role: 'admin', decision: 'unsafe', reason: REASON }, s.deps);

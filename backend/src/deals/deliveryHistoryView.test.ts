@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { deliveryForAssistant, deliveryHistoryFor } from './deliveryHistoryView.js';
+import { deliveryForAssistant, deliveryHistoryFor, entryHeld } from './deliveryHistoryView.js';
 
 const history = [
   { revision: 1, submittedAt: 1, milestone: 0, deliveryProof: 'Logo https://bad.example/x', verificationStatus: 'suspicious' as const, deliveryMatch: { verdict: 'partial' as const, reason: 'Only one logo' } },
@@ -16,6 +16,15 @@ test('the buyer sees every delivery and their own review, but never a link held 
   assert.deepEqual(view[1].deliveryMatch, { verdict: 'aligned', reason: 'Three logos' });
   assert.equal(view[2].milestone, 1);
   assert.equal(view[2].shipment?.trackingNumber, '1234567890');
+});
+
+test('a link support cleared reads as safe even where the history still says held', () => {
+  const review = { deliveryRevision: 1, originalVerdict: 'suspicious' as const, reasons: [], decision: 'safe' as const, steps: [] };
+  const view = deliveryHistoryFor(history as never, 'buyer', review);
+  assert.equal(view[0].deliveryProof, 'Logo https://bad.example/x');
+  assert.equal(view[0].held, undefined);
+  assert.equal(entryHeld(history[0] as never, { ...review, decision: 'unsafe' }), true);
+  assert.equal(entryHeld(history[0] as never, { ...review, deliveryRevision: 2 }), true);
 });
 
 test("the seller sees their own deliveries, never the buyer's review", () => {

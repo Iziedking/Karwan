@@ -15,12 +15,25 @@ export type DeliveryHistoryView = Array<{
 
 const HELD = new Set(['suspicious', 'malicious']);
 
+type HistoryEntry = NonNullable<DirectDeal['deliveryHistory']>[number];
+
+/// Whether one delivery is still held. A link support cleared (view 21) counts
+/// as safe, including deliveries recorded before clearing updated the history.
+export function entryHeld(entry: HistoryEntry, review?: DirectDeal['deliveryReview']): boolean {
+  if (!entry.verificationStatus || !HELD.has(entry.verificationStatus)) return false;
+  return !(review?.decision === 'safe' && review.deliveryRevision === entry.revision);
+}
+
 /// Every delivery on a deal as one side may see it. The buyer never gets a link
 /// that was held as unsafe, only that one was held; the seller never gets the
 /// buyer's private review of the work.
-export function deliveryHistoryFor(history: DirectDeal['deliveryHistory'], viewer: 'buyer' | 'seller'): DeliveryHistoryView {
+export function deliveryHistoryFor(
+  history: DirectDeal['deliveryHistory'],
+  viewer: 'buyer' | 'seller',
+  review?: DirectDeal['deliveryReview'],
+): DeliveryHistoryView {
   return (history ?? []).map((entry) => {
-    const held = !!entry.verificationStatus && HELD.has(entry.verificationStatus);
+    const held = entryHeld(entry, review);
     const hideProof = held && viewer === 'buyer';
     return {
       revision: entry.revision,

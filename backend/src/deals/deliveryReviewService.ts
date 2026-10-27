@@ -36,6 +36,8 @@ export async function applyDeliveryReview(
         deliveryReview: result.review,
         verificationStatus: 'clean',
         verificationReasons: [],
+        deliveryHistory: deal.deliveryHistory?.map((entry) =>
+          entry.revision === result.review.deliveryRevision ? { ...entry, verificationStatus: 'clean' as const } : entry),
         releaseBlockedReason: undefined,
         releaseBlockedAt: undefined,
         releaseBlockedDetail: undefined,

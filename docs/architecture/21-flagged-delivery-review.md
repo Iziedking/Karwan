@@ -44,6 +44,7 @@ These live in `deliveryReview.ts`.
 ## Clearing a link
 
 - The delivery becomes clean. The buyer can open the link, the release checks run as usual, and the buyer's review window starts at that moment.
+- That delivery is marked clean in the deal's delivery history too, so its photos and its line under Earlier deliveries reach the buyer. Found on testnet 27 Oct 2026: a cleared link showed, but its photo stayed hidden because the history still said held. A link cleared before this fix is read as clean from the review record (`entryHeld` in `deals/deliveryHistoryView.ts`).
 - The on-chain guardian hold is lifted. This is best-effort, the same way a clean redelivery lifts it.
 - The scanner's offense comes off the seller's record.
 - Both people get `deal.delivery.cleared`, and a line appears in the deal chat.

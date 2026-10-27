@@ -134,7 +134,7 @@ import { deliveryCheckState } from '../deals/deliveryCheckState.js';
 import { provisionUserAgentWallets } from '../circle/wallets.js';
 import { ensureUserAgentWallets } from '../circle/userAgents.js';
 import { refundMovementKey, takeBackUnaccepted, TakeBackRefused } from '../deals/takeBackUnaccepted.js';
-import { deliveryHistoryFor } from '../deals/deliveryHistoryView.js';
+import { deliveryHistoryFor, entryHeld } from '../deals/deliveryHistoryView.js';
 import { MAX_DELIVERY_PHOTOS, PHOTO_REQUIRED_ABOVE_USDC, deliveryFingerprint, deliveryNeeds, photoFingerprint } from '../deals/deliveryProofRules.js';
 import { checkHandoverCode, issueHandoverCode } from '../deals/handoverCode.js';
 import { deliveryPhotoId, deliveryPhotos } from '../deals/deliveryPhotos.js';
@@ -1500,7 +1500,7 @@ dealsRoutes.get('/direct', async (c) => {
       const held = d.verificationStatus === 'suspicious' || d.verificationStatus === 'malicious';
       return {
         ...deal,
-        deliveryHistory: deliveryHistoryFor(d.deliveryHistory, asBuyer ? 'buyer' : 'seller'),
+        deliveryHistory: deliveryHistoryFor(d.deliveryHistory, asBuyer ? 'buyer' : 'seller', d.deliveryReview),
         handover: undefined,
         ...(asBuyer ? {} : { deliveryMatch: undefined }),
         ...(asBuyer && held ? { deliveryProof: undefined } : {}),
@@ -1548,7 +1548,7 @@ dealsRoutes.get('/direct/:jobId', async (c) => {
   const dispute = deal.disputed
     ? disputeViewFor(deal, viewerIsBuyer ? 'buyer' : 'seller', Date.now(), config.DISPUTE_STATEMENT_WINDOW_MS)
     : undefined;
-  const deliveryHistory = deliveryHistoryFor(deal.deliveryHistory, viewerIsBuyer ? 'buyer' : 'seller');
+  const deliveryHistory = deliveryHistoryFor(deal.deliveryHistory, viewerIsBuyer ? 'buyer' : 'seller', deal.deliveryReview);
   const shaped = viewerIsBuyer
     ? { ...enriched, ...extras, trust, deliveryCheck, dispute, deliveryHistory, handover: undefined, disputeStatements: undefined, judgeProposal: undefined }
     : { ...enriched, ...extras, trust, deliveryCheck, dispute, deliveryHistory, handover: undefined, disputeStatements: undefined, judgeProposal: undefined, deliveryMatch: undefined };
@@ -3447,7 +3447,7 @@ dealsRoutes.get('/direct/:jobId/delivery-photos/:revision/:n', async (c) => {
   // A link held as unsafe hides that delivery from the buyer, photos included.
   const revision = Number(c.req.param('revision'));
   const entry = (deal.deliveryHistory ?? []).find((h) => h.revision === revision);
-  const held = entry?.verificationStatus === 'suspicious' || entry?.verificationStatus === 'malicious';
+  const held = !!entry && entryHeld(entry, deal.deliveryReview);
   if (!entry || (held && caller.toLowerCase() === deal.buyer.toLowerCase())) return c.json({ error: 'photo not found' }, 404);
   const photo = deliveryPhotos.read(deliveryPhotoId(jobId, revision), Number(c.req.param('n')));
   if (!photo) return c.json({ error: 'photo not found' }, 404);
