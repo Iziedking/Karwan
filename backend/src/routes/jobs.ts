@@ -33,6 +33,7 @@ import {
   raiseMatchOffer,
   patchTrackedJobContext,
   reopenForNewBids,
+  rejudgeOffers,
   type MarketplaceBrief,
 } from '../agents/buyer.js';
 import { getPendingNearMiss, upsertNearMiss } from '../db/nearMiss.js';
@@ -74,6 +75,8 @@ import { WorldSessionError } from '../worldid/dealSessions.js';
 import { worldIdAgentChecks, worldIdDealSessionsConfigured } from './worldId.js';
 import { enqueueLegacyReconsiderationShadow } from './jobsReengagement.js';
 import { publicJobStatus } from './jobPublicStatus.js';
+import { listDirectOffers } from '../db/directOffers.js';
+import { requestTitle } from '../agents/bidOutcome.js';
 
 const addrSchema = z
   .string()
@@ -192,10 +195,13 @@ const postJobSchema = z
     path: ['deadlineSeconds'],
   });
 
-/// Every seller judges a changed request again, without waiting for a sweep.
+/// Every seller judges a changed request again, without waiting for a sweep:
+/// those who offered get their turn to keep, lower or withdraw (view 35), the
+/// rest look at it as new.
 async function offerAgain(jobId: string): Promise<void> {
   try {
-    const { rescanRequest } = await import('../agents/seller.js');
+    const { rescanRequest, reviseStandingOffers } = await import('../agents/seller.js');
+    reviseStandingOffers(jobId, 'request-changed');
     await rescanRequest(jobId, { fresh: true });
   } catch (err) {
     logger.warn({ jobId, err: (err as Error).message }, 'offering the changed request again failed');
@@ -945,7 +951,7 @@ jobsRoutes.post('/:jobId/edit', async (c) => {
     return c.json({ error: 'no changes provided' }, 400);
   }
 
-  const next = patchBrief(jobId, patch);
+  const next = patchBrief(jobId, { ...patch, edits: (brief.edits ?? 0) + 1 });
   if (patch.negotiationMaxIncreasePct !== undefined || patch.trustedMatch !== undefined) {
     patchTrackedJobContext(jobId, {
       negotiationMaxIncreasePct: patch.negotiationMaxIncreasePct,
@@ -953,6 +959,22 @@ jobsRoutes.post('/:jobId/edit', async (c) => {
     });
   }
   logger.info({ jobId, postedBy: brief.postedBy, fields: Object.keys(patch) }, 'brief edited by buyer');
+  // The buyer's agent looks again at the offers it holds under the new terms (view 35).
+  void rejudgeOffers(jobId).catch((err: Error) => logger.warn({ jobId, err: err.message }, 'judging the offers again after an edit failed'));
+  // Sellers who offered by hand hear of the change once, with their price. The
+  // request rides in the payload so the notice reaches only that seller.
+  void listDirectOffers(jobId)
+    .then((offers) => {
+      const title = requestTitle(next?.briefText ?? brief.briefText) ?? '';
+      for (const o of offers.filter((x) => x.state === 'pending')) {
+        bus.emitEvent({
+          type: 'offer.request-changed',
+          actor: 'buyer',
+          payload: { sellerUser: o.sellerUser, jobId: jobId.toLowerCase(), priceUsdc: o.priceUsdc, title },
+        });
+      }
+    })
+    .catch((err: Error) => logger.warn({ jobId, err: err.message }, 'telling hand sellers of an edit failed'));
   // A changed price limit or trust setting goes back to every seller now; a text
   // change waits for its new keywords below.
   if (patch.briefText === undefined) void offerAgain(jobId);

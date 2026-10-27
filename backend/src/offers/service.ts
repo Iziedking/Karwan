@@ -5,9 +5,12 @@ import {
   createDirectOffer,
   getDirectOffer,
   listDirectOffers,
+  lowerDirectOfferPrice,
   setDirectOfferState,
   type DirectOffer,
 } from '../db/directOffers.js';
+import { getRecord, putRecord } from '../db/evidence.js';
+import { MAX_OFFER_REVISIONS } from '../agents/sellerPricing.js';
 import { getBrief } from '../db/briefs.js';
 import { getAgentWallets } from '../db/agentWallets.js';
 import {
@@ -173,6 +176,44 @@ export async function withdrawOffer(sellerUser: string, offerId: string): Promis
   }
   bus.emitEvent({ type: 'offer.withdrawn', jobId: o.jobId, actor: 'seller', payload: { offerId: o.id } });
   return { ok: true };
+}
+
+/// A seller lowers their own pending offer (view 35): a new bid on chain at the
+/// lower price replaces the old one, down only, at most three times per seller
+/// per request, the same count their agent's moves use.
+export async function lowerOffer(
+  sellerUser: string,
+  offerId: string,
+  priceUsdc: string,
+  deps: OfferDeps = defaultDeps,
+): Promise<{ ok: true; offer: DirectOffer } | Fail<400 | 403 | 404 | 409 | 502>> {
+  const o = await getDirectOffer(offerId);
+  if (!o) return { ok: false, status: 404, code: 'NO_OFFER' };
+  if (o.sellerUser !== low(sellerUser)) return { ok: false, status: 403, code: 'NOT_YOURS' };
+  if (jobActionsInFlight.has(o.jobId)) return { ok: false, status: 409, code: 'BUSY' };
+  if (o.state !== 'pending') return { ok: false, status: 409, code: 'NOT_PENDING' };
+  const job = deps.job(o.jobId);
+  if (!job?.open) return { ok: false, status: 409, code: 'CLOSED' };
+  if (!/^\d+(\.\d{1,6})?$/.test(priceUsdc) || !(Number(priceUsdc) > 0)) return { ok: false, status: 400, code: 'BAD_PRICE' };
+  if (parseUnits(priceUsdc, 6) >= parseUnits(o.priceUsdc, 6)) return { ok: false, status: 400, code: 'NOT_LOWER' };
+  const countKey = `${o.jobId.toLowerCase()}:${o.sellerAgent.toLowerCase()}`;
+  const done = (await getRecord<{ n: number }>('offer-revisions', countKey).catch(() => null))?.n ?? 0;
+  if (done >= MAX_OFFER_REVISIONS) return { ok: false, status: 409, code: 'LIMIT' };
+  const w = await deps.wallets(low(sellerUser));
+  if (!w?.sellerWalletId || !w.sellerAddress) return { ok: false, status: 409, code: 'NEEDS_ACTIVATION' };
+  const res = await deps.bid(o.jobId as `0x${string}`, { walletId: w.sellerWalletId, address: w.sellerAddress }, priceUsdc, o.lapsesAt);
+  if (!res.ok) return { ok: false, status: res.reason === 'job-not-open' ? 409 : 502, code: res.reason, message: res.message };
+  const offer = await lowerDirectOfferPrice(o.id, priceUsdc, res.txHash);
+  if (!offer) return { ok: false, status: 409, code: 'NOT_PENDING' };
+  await putRecord('offer-revisions', countKey, { n: done + 1, at: Date.now() }).catch(() => {});
+  const brief = deps.brief(o.jobId);
+  bus.emitEvent({
+    type: 'bid.revised',
+    jobId: o.jobId,
+    actor: 'seller',
+    payload: { seller: o.sellerAgent, offerId: o.id, fromUsdc: o.priceUsdc, toUsdc: priceUsdc, sellerUser: o.sellerUser, ...(brief ? { buyerUser: low(brief.postedBy) } : {}) },
+  });
+  return { ok: true, offer };
 }
 
 export async function acceptOffer(

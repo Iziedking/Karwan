@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { getAddress } from 'viem';
-import { bidsFromHistory } from './bidHistory.js';
+import { bidsFromHistory, withdrawnFromHistory } from './bidHistory.js';
 
 const MADNADE = getAddress('0x20d2cfd0b8f00f72cbf221d29cc91a51afd8deff');
 const FORGE = getAddress('0x83f2c96ceb69042fba2e0226c84868e1780f391f');
@@ -32,6 +32,33 @@ test('a later offer from the same seller replaces the earlier one', () => {
   ]);
   assert.equal(bids.length, 1);
   assert.equal(bids[0]!.priceUsdc, '62');
+});
+
+test('a lowered offer comes back at its lower price after a restart, keeping its score', () => {
+  const bids = bidsFromHistory([
+    ev('bid.submitted', 1, { seller: FORGE, priceUsdc: '142.71', deadlineUnix: 10 }),
+    ev('bid.scored', 2, { seller: FORGE, score: 64 }),
+    ev('bid.revised', 3, { seller: FORGE, fromUsdc: '142.71', toUsdc: '130', reason: 'request-changed' }),
+  ]);
+  assert.equal(bids[0]!.priceUsdc, '130');
+  assert.equal(bids[0]!.priceWei, 130_000_000n);
+  assert.equal(bids[0]!.score, 64);
+});
+
+test('a withdrawn offer stays gone after a restart', () => {
+  const bids = bidsFromHistory([
+    ev('bid.submitted', 1, { seller: FORGE, priceUsdc: '70', deadlineUnix: 10 }),
+    ev('bid.revised', 2, { seller: FORGE, fromUsdc: '70', toUsdc: null, reason: 'request-changed' }),
+    ev('bid.submitted', 3, { seller: MADNADE, priceUsdc: '60', deadlineUnix: 10 }),
+    ev('agent.declined', 4, { seller: MADNADE, reason: 'seller-abandoned' }),
+  ]);
+  assert.deepEqual(bids, []);
+  const withdrawn = withdrawnFromHistory([
+    ev('bid.revised', 2, { seller: FORGE, fromUsdc: '70', toUsdc: null }),
+    ev('agent.declined', 4, { seller: MADNADE, reason: 'seller-abandoned' }),
+    ev('agent.declined', 5, { seller: '0x00000000000000000000000000000000000000cc', reason: 'below-floor' }),
+  ]);
+  assert.deepEqual([...withdrawn].sort(), [FORGE.toLowerCase(), MADNADE.toLowerCase()].sort());
 });
 
 test('broken entries are skipped, never invented', () => {

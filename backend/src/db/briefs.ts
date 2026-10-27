@@ -18,6 +18,9 @@ export interface Brief {
   /// projections; it only makes a real seed run safe to repeat.
   seedKey?: string;
   negotiationMaxIncreasePct?: number;
+  /// How many times the buyer changed the request. Keys the one best and final
+  /// round each change brings (view 35).
+  edits?: number;
   keywords?: string[];
   /// Per-brief milestone split (percentages summing to 100). When the buyer
   /// states one in the request ("I pay 30% then 70%") it overrides the buyer

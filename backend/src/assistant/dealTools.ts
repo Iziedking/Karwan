@@ -36,6 +36,7 @@ import {
   buildChangeDealTermsConfirm,
   buildMakeOfferConfirm,
   buildWithdrawOfferConfirm,
+  buildLowerOfferConfirm,
   buildAcceptSellerOfferConfirm,
   buildNearMissConfirm,
   buildReconsiderOfferConfirm,
@@ -524,6 +525,20 @@ export function dealStepTools(address: string, actions: AssistantAction[], deps:
           const mine = (await listDirectOffers(jobId)).find((o) => o.sellerUser === address.toLowerCase() && o.state === 'pending');
           if (!mine) return { error: 'They have no live offer of their own on this request.' };
           return offer(actions, buildWithdrawOfferConfirm({ jobId, offerId: mine.id, priceUsdc: mine.priceUsdc }));
+        }),
+    }),
+
+    propose_lower_offer: tool({
+      description: "Prepare a confirm card for a SELLER to lower the price of their own live offer on a request. Offers only go down, at most three times. Use for 'lower my offer to 90', 'drop my price on that request'.",
+      inputSchema: z.object({
+        jobId: jobIdField.describe('The request id.'),
+        priceUsdc: z.string().regex(/^\d+(\.\d{1,6})?$/).describe('The new, lower price in USDC.'),
+      }),
+      execute: async ({ jobId, priceUsdc }) =>
+        guarded('propose_lower_offer', async () => {
+          const mine = (await listDirectOffers(jobId)).find((o) => o.sellerUser === address.toLowerCase() && o.state === 'pending');
+          if (!mine) return { error: 'They have no live offer of their own on this request.' };
+          return offer(actions, buildLowerOfferConfirm({ jobId, offerId: mine.id, fromUsdc: mine.priceUsdc, toUsdc: priceUsdc }));
         }),
     }),
 

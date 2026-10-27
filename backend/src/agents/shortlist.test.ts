@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { assistantShortlistNote, assistantView, sealEntries, unavailableSellers, markUnavailable, pickRecommended, rankCandidates, shortlistChoiceCheck, shouldSkipBuyer, toEntries, SHORTLIST_MAX, type ShortlistCandidate } from './shortlist.js';
+import { assistantShortlistNote, assistantView, sealEntries, unavailableSellers, markUnavailable, pickRecommended, rankCandidates, shortlistChoiceCheck, shouldSkipBuyer, shortlistLimits, toEntries, SHORTLIST_MAX, type ShortlistCandidate } from './shortlist.js';
 
 const c = (over: Partial<ShortlistCandidate>): ShortlistCandidate => ({
   seller: '0xs',
@@ -39,6 +39,18 @@ test('an unverified seller is never recommended', () => {
 
 test('no verified seller in budget means no recommendation', () => {
   assert.equal(pickRecommended(rankCandidates([c({ askedUsdc: 120 })]), 100), null);
+});
+
+test('the shortlist recommends within the leeway, while within budget keeps meaning the budget (view 35)', () => {
+  const limits = shortlistLimits(120, 25);
+  assert.deepEqual(limits, { recommendUpTo: 150, budget: 120 });
+  assert.deepEqual(shortlistLimits(120, undefined), { recommendUpTo: 120, budget: 120 });
+  const ranked = rankCandidates([c({ seller: 'z', askedUsdc: 142.71 })]);
+  const rec = pickRecommended(ranked, limits.recommendUpTo);
+  assert.equal(rec?.seller, 'z', '142.71 is within a 25% leeway on 120');
+  assert.equal(pickRecommended(rankCandidates([c({ askedUsdc: 151 })]), limits.recommendUpTo), null, 'never above the cap');
+  const [entry] = toEntries(ranked, rec, limits.budget, null, []);
+  assert.ok(!entry!.reasons.includes('within_budget'), 'above the budget is not called within budget');
 });
 
 test('the first verified seller in budget is recommended', () => {

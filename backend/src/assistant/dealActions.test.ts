@@ -22,6 +22,7 @@ import {
   durationText,
   buildMakeOfferConfirm,
   buildWithdrawOfferConfirm,
+  buildLowerOfferConfirm,
   buildAcceptSellerOfferConfirm,
   buildNearMissConfirm,
   buildReconsiderOfferConfirm,
@@ -229,6 +230,13 @@ test("a seller's own offer carries the request page body and the request's rules
   assert.match(refuse({ priceUsdc: 5000 }), /far above the budget/);
   assert.match(refuse({ deliverInDays: 90 }), /too long after/);
   assert.match(refuse({ note: 'x'.repeat(281) }), /280 characters/);
+});
+
+test('lowering an offer shows both prices, carries the new one, and refuses a higher one (view 35)', () => {
+  const card = ok(buildLowerOfferConfirm({ jobId, offerId: 'o1', fromUsdc: '280', toUsdc: '260' }));
+  assert.deepEqual(card.payload, { jobId, offerId: 'o1', priceUsdc: '260' });
+  assert.ok(card.fields.some((f) => f.value === '280 USDC') && card.fields.some((f) => f.value === '260 USDC'));
+  assert.match(String((buildLowerOfferConfirm({ jobId, offerId: 'o1', fromUsdc: '280', toUsdc: '280' }) as { error: string }).error), /lower than/);
 });
 
 test('withdrawing and taking a seller offer name the offer only by id', () => {

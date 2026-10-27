@@ -27,6 +27,7 @@ import { resendClient } from './resend.js';
 import { sendDealEventEmail } from './dealEventEmail.js';
 import { logger } from '../logger.js';
 import { closesLabel } from '../deals/disputeJudge.js';
+import { outOfRangeLine, rangeOf } from '../agents/outOfRange.js';
 
 function base(): string | null {
   return config.FRONTEND_BASE_URL ? config.FRONTEND_BASE_URL.replace(/\/$/, '') : null;
@@ -51,6 +52,7 @@ function financierUrl(): string | undefined {
 // High-signal events only. Keep this list short on purpose.
 const EMAIL_RELEVANT = new Set([
   'agent.suggestion',
+  'offer.request-changed',
   'deal.review.ending',
   'record.setup_needed',
   'deal.extension.requested',
@@ -188,8 +190,8 @@ export async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
     return buyer ? [{ address: buyer, role: 'buyer' }] : [];
   }
-  if (e.type === 'agent.suggestion' || e.type === 'record.setup_needed') {
-    // "Ask me first", and the record reminder: only the seller it is about.
+  if (e.type === 'agent.suggestion' || e.type === 'record.setup_needed' || e.type === 'offer.request-changed') {
+    // "Ask me first", the record reminder and a changed request: only the seller it is about.
     const owner = (e.payload?.sellerUser as string | undefined)?.toLowerCase();
     return owner ? [{ address: owner, role: 'seller' }] : [];
   }
@@ -460,10 +462,34 @@ export function contentFor(
         ctaUrl: b ? `${b}/assistant` : undefined,
       };
     }
+    case 'offer.request-changed': {
+      if (role !== 'seller') return null;
+      const title = (e.payload?.title as string | undefined) ?? '';
+      const price = (e.payload?.priceUsdc as string | undefined) ?? '';
+      return {
+        kicker: 'Your offer',
+        subject: 'The buyer changed a request you offered on',
+        heading: 'The request changed',
+        body: `${title ? `${title}. ` : ''}${price ? `Your offer is ${price} USDC. ` : ''}Keep it, lower it or withdraw it from the request page. An offer can only go down, at most three times.`,
+        ctaLabel: 'Open the request',
+        ctaUrl: jobUrl(e.payload?.jobId as string | undefined),
+      };
+    }
     case 'agent.suggestion': {
       if (role !== 'seller') return null;
       const title = (e.payload?.title as string | undefined) ?? '';
       const price = (e.payload?.priceUsdc as string | undefined) ?? '';
+      const range = rangeOf(e.payload);
+      if (range) {
+        return {
+          kicker: 'Your agent',
+          subject: 'A request fits what you sell, outside your range',
+          heading: 'A request that fits, outside your range',
+          body: `${title ? `${title}. ` : ''}${outOfRangeLine(range)} Your agent did not offer. Open the request to make an offer, or leave it.`,
+          ctaLabel: 'Open the request',
+          ctaUrl: jobUrl(e.payload?.jobId as string | undefined),
+        };
+      }
       return {
         kicker: 'Your agent',
         subject: 'Your agent found a request that fits. Make an offer?',

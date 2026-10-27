@@ -152,6 +152,22 @@ export async function setDirectOfferState(
   return r.rows.length > 0;
 }
 
+/// A seller lowered their pending offer (view 35). Only a pending offer moves.
+export async function lowerDirectOfferPrice(id: string, priceUsdc: string, txHash: string): Promise<DirectOffer | null> {
+  if (!pgEnabled) {
+    const o = mem.get(id);
+    if (!o || o.state !== 'pending') return null;
+    const next = { ...o, priceUsdc, txHash };
+    mem.set(id, next);
+    return next;
+  }
+  const r = await postgresExecutor().query<Row>(
+    `UPDATE direct_offers_v1 SET price_usdc = $2, tx_hash = $3 WHERE id = $1 AND state = 'pending' RETURNING *`,
+    [id, priceUsdc, txHash],
+  );
+  return r.rows[0] ? fromRow(r.rows[0]) : null;
+}
+
 /// Live (pending, not yet lapsed) offers per request, for the market's public
 /// count. One query for the whole page of cards.
 export async function countLiveDirectOffers(jobIds: string[], nowUnix: number): Promise<Map<string, number>> {

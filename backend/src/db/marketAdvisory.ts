@@ -7,6 +7,9 @@ const STORE_PATH = resolve(process.cwd(), 'data', 'market-advisory.json');
 /// above a grounded market price. Persisted so it survives a refresh and shows
 /// on load, not only live over SSE. Non-destructive — it never changes the deal.
 export interface MarketAdvisory {
+  /// 'over': the budget sits well above market. 'under': it sits far below
+  /// what sellers take, and none has taken it (view 35). Absent reads as 'over'.
+  kind?: 'over' | 'under';
   jobId: string;
   /// The buyer user address, so the read can be gated to the parties.
   buyer: string;

@@ -7,12 +7,17 @@ export type RandomSource = () => number;
 
 const HEADROOM_BASE_PCT = 5;
 const HEADROOM_DEMAND_SPAN_PCT = 45;
+/// How far under the budget a seller may open when demand for the skill is low.
+const UNDERCUT_SPAN_PCT = 20;
 
 /**
  * Pure opening-bid calculation used by the legacy seller path.
  *
- * The formula and bounds intentionally match the historical implementation;
- * only the random source is injected so fixtures can reproduce a decision.
+ * The range follows demand alone (view 35): from up to 20% under the budget
+ * for a common skill to up to 50% over it for a scarce one, never under the
+ * seller's own minimum or a grounded market price. The buyer's leeway is their
+ * private limit and plays no part. The random source is injected so fixtures
+ * can reproduce a decision.
  */
 export function sellerOpeningBid(
   seller: SellerProfile,
@@ -23,13 +28,12 @@ export function sellerOpeningBid(
   random: RandomSource,
 ): number | null {
   const budget = Number(job.budgetUsdc);
-  const tol = job.negotiationMaxIncreasePct ?? 0;
   const h = Number.isFinite(heat) ? Math.max(0, Math.min(1, heat)) : 0.5;
   const market = marketPriceUsdc && marketPriceUsdc > 0 ? Math.min(marketPriceUsdc, budget * 2) : 0;
   const demandHeadroomPct = HEADROOM_BASE_PCT + h * HEADROOM_DEMAND_SPAN_PCT;
-  const openHeadroomPct = Math.max(tol, demandHeadroomPct);
-  const openCeiling = budget * (1 + openHeadroomPct / 100);
-  const floor = Math.max(seller.minBudgetUsdc, budget, market);
+  const openCeiling = budget * (1 + demandHeadroomPct / 100);
+  const lowEnd = budget * (1 - ((1 - h) * UNDERCUT_SPAN_PCT) / 100);
+  const floor = Math.max(seller.minBudgetUsdc, lowEnd, market);
   const ceiling = Math.min(seller.maxBudgetUsdc, Math.max(openCeiling, market));
   if (!Number.isFinite(ceiling) || ceiling < floor) return null;
   if (ceiling === floor) return Number(floor.toFixed(2));
@@ -48,6 +52,44 @@ export function sellerOpeningBid(
   );
   if (job.trustedMatch) fraction = Math.min(fraction * 0.7, 0.55);
   return Number((floor + (ceiling - floor) * fraction).toFixed(2));
+}
+
+/// Offers only move down, and at most this many times per seller per request.
+export const MAX_OFFER_REVISIONS = 3;
+/// A seller whose floor is past this many times the budget cannot fit at any
+/// reasonable stretch, so it withdraws rather than sit on the list.
+const WITHDRAW_PAST_BUDGET_X = 3;
+
+export type SellerRevision = { action: 'keep' } | { action: 'lower'; priceUsdc: number } | { action: 'withdraw' };
+
+/**
+ * How a seller's agent answers a change (view 35): the buyer changed the
+ * request, or a best and final round says a lower offer is in. The target is
+ * the budget, or the lowest other offer on best and final; the step toward it
+ * is a share of the gap drawn from `random`, so sellers move differently and
+ * nothing looks scripted. Never above the standing offer, never under the
+ * seller's own floor, never more than MAX_OFFER_REVISIONS times.
+ */
+export function sellerRevision(input: {
+  standingUsdc: number;
+  floorUsdc: number;
+  reason: 'request-changed' | 'best-and-final';
+  budgetUsdc: number;
+  lowestOtherUsdc?: number;
+  revisionsSoFar: number;
+  random: RandomSource;
+}): SellerRevision {
+  const { standingUsdc, floorUsdc, budgetUsdc } = input;
+  if (input.revisionsSoFar >= MAX_OFFER_REVISIONS) return { action: 'keep' };
+  if (floorUsdc > budgetUsdc * WITHDRAW_PAST_BUDGET_X) return { action: 'withdraw' };
+  const aim = input.reason === 'best-and-final' && input.lowestOtherUsdc !== undefined && input.lowestOtherUsdc < standingUsdc
+    ? input.lowestOtherUsdc
+    : budgetUsdc;
+  const target = Math.max(aim, floorUsdc);
+  if (standingUsdc <= target) return { action: 'keep' };
+  const share = 0.3 + 0.4 * Math.max(0, Math.min(1, input.random()));
+  const price = Math.max(floorUsdc, Number((standingUsdc - (standingUsdc - target) * share).toFixed(2)));
+  return price < standingUsdc ? { action: 'lower', priceUsdc: price } : { action: 'keep' };
 }
 
 /** Pure UTC day calculation for counter timing. */

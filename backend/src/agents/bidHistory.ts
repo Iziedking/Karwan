@@ -36,6 +36,17 @@ export function bidsFromHistory(events: readonly HistoryEvent[]): RestoredBid[] 
       const deadline = num(p.deadlineUnix);
       if (!price || deadline === undefined || !/^\d+(\.\d{1,6})?$/.test(price)) continue;
       bids.set(seller, { seller, priceUsdc: price, priceWei: parseUnits(price, 6), deadlineUnix: deadline });
+    } else if (e.type === 'bid.revised') {
+      // A lower price replaces the offer's price and keeps its score; no price is a withdrawal.
+      const to = str(p.toUsdc);
+      const bid = bids.get(seller);
+      if (!to) bids.delete(seller);
+      else if (bid && /^\d+(\.\d{1,6})?$/.test(to)) {
+        bid.priceUsdc = to;
+        bid.priceWei = parseUnits(to, 6);
+      }
+    } else if (e.type === 'agent.declined' && p.reason === 'seller-abandoned') {
+      bids.delete(seller);
     } else if (e.type === 'bid.scored') {
       const bid = bids.get(seller);
       if (!bid) continue;
@@ -48,4 +59,18 @@ export function bidsFromHistory(events: readonly HistoryEvent[]): RestoredBid[] 
     }
   }
   return [...bids.values()];
+}
+
+/// Seller agents that withdrew from the request (lowercased), so a restart
+/// keeps them out even if their old offer is read from the chain again.
+export function withdrawnFromHistory(events: readonly HistoryEvent[]): Set<string> {
+  const out = new Set<string>();
+  for (const e of events) {
+    const p = e.payload ?? {};
+    const seller = str(p.seller)?.toLowerCase();
+    if (!seller) continue;
+    const withdrew = (e.type === 'bid.revised' && !str(p.toUsdc)) || (e.type === 'agent.declined' && p.reason === 'seller-abandoned');
+    if (withdrew) out.add(seller);
+  }
+  return out;
 }

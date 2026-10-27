@@ -38,6 +38,7 @@ export const COVERAGE: Record<string, Coverage> = {
   'POST /api/jobs/:/edit': { by: 'assistant', via: 'edit_request' },
   'POST /api/jobs/:/offers': { by: 'assistant', via: 'make_offer' },
   'POST /api/jobs/:/offers/:/withdraw': { by: 'assistant', via: 'withdraw_offer' },
+  'POST /api/jobs/:/offers/:/lower': { by: 'assistant', via: 'lower_offer' },
   'POST /api/jobs/:/offers/:/accept': { by: 'assistant', via: 'accept_offer' },
   'POST /api/jobs/:/near-miss': { by: 'assistant', via: 'near_miss_proceed' },
   'POST /api/jobs/:/reconsider': { by: 'assistant', via: 'reconsider_offer' },

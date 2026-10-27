@@ -101,6 +101,10 @@ export interface WithdrawOfferConfirm extends ConfirmActionBase {
   intent: 'withdraw_offer';
   payload: { jobId: string; offerId: string };
 }
+export interface LowerOfferConfirm extends ConfirmActionBase {
+  intent: 'lower_offer';
+  payload: { jobId: string; offerId: string; priceUsdc: string };
+}
 export interface AcceptSellerOfferConfirm extends ConfirmActionBase {
   intent: 'accept_offer';
   payload: { jobId: string; offerId: string };
@@ -141,6 +145,7 @@ export type DealStepConfirm =
   | ConfirmGoodsReceivedConfirm
   | MakeOfferConfirm
   | WithdrawOfferConfirm
+  | LowerOfferConfirm
   | AcceptSellerOfferConfirm
   | NearMissProceedConfirm
   | NearMissPassConfirm
@@ -739,6 +744,28 @@ export function buildWithdrawOfferConfirm(i: { jobId: string; offerId: string; p
     fields: [{ label: 'Your price', value: `${i.priceUsdc} USDC` }],
     payload: { jobId: i.jobId, offerId: i.offerId },
     confirmLabel: 'Withdraw',
+    cancelLabel: 'Keep it',
+  };
+}
+
+/// A seller lowers their own offer (view 35): down only, the new bid replaces the old.
+export function buildLowerOfferConfirm(i: { jobId: string; offerId: string; fromUsdc: string; toUsdc: string }): LowerOfferConfirm | { error: string } {
+  if (!i.jobId || !i.offerId) return { error: 'Missing which offer to lower.' };
+  if (!(Number(i.toUsdc) > 0) || Number(i.toUsdc) >= Number(i.fromUsdc)) {
+    return { error: `The new price has to be lower than the ${i.fromUsdc} USDC on the offer now.` };
+  }
+  return {
+    kind: 'confirm',
+    id: `lower_offer:${i.offerId}:${confirmNonce()}`,
+    intent: 'lower_offer',
+    title: 'Lower your offer',
+    summary: 'The buyer sees the new price. An offer can only go down, at most three times.',
+    fields: [
+      { label: 'Price now', value: `${i.fromUsdc} USDC` },
+      { label: 'New price', value: `${i.toUsdc} USDC` },
+    ],
+    payload: { jobId: i.jobId, offerId: i.offerId, priceUsdc: i.toUsdc },
+    confirmLabel: `Lower to ${i.toUsdc} USDC`,
     cancelLabel: 'Keep it',
   };
 }

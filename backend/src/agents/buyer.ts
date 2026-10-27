@@ -5,7 +5,8 @@ import { SELLER_LINK_DETAIL, SELLER_NOT_BOUND, sellerAgentBinding, sellerBinding
 import { carriedGate } from './proposalCarry.js';
 import { offerToChoose, priceAsSeen, withAgreedPrice, type OfferChoice } from './chooseOffer.js';
 import { sellerKey } from './sellerKey.js';
-import { bidsFromHistory } from './bidHistory.js';
+import { bidsFromHistory, withdrawnFromHistory } from './bidHistory.js';
+import { bestAndFinalRecipients, decideOfferRevision, lowestOtherUsdc, rejudgeStep, type StandingOffer } from './offerRevision.js';
 import { closedForOffers } from './offerWindow.js';
 import { generateObject } from 'ai';
 import { formatUnits, parseUnits, type Log } from 'viem';
@@ -112,7 +113,9 @@ import {
   submitListingBid,
   getSellerBuyerPassport,
   setSellerBuyerPassport,
+  setLowestOtherOfferReader,
 } from './seller.js';
+import { getRecord, putRecord } from '../db/evidence.js';
 import { withLlmRetry } from './llm-utils.js';
 import {
   actorSignalsFor,
@@ -128,7 +131,7 @@ import { clearNearMiss, getPendingNearMiss, type NearMissApproval } from '../db/
 import { clearOutOfReach } from '../db/outOfReach.js';
 import { config } from '../config.js';
 import { paidCreditPassport, paidRecordRead, READS_BALANCE_EMPTY, type PaidPassportSignal } from '../x402/buyerClient.js';
-import { markUnavailable, pickRecommended, rankCandidates, sealEntries, toEntries, unavailableSellers, type ShortlistCandidate, type ShortlistEntry } from './shortlist.js';
+import { markUnavailable, pickRecommended, rankCandidates, sealEntries, shortlistLimits, toEntries, unavailableSellers, type ShortlistCandidate, type ShortlistEntry } from './shortlist.js';
 import { buildCandidates, type ShortlistDeps } from './shortlistRun.js';
 import { recentReadBy } from '../db/recordReads.js';
 import { countsFor } from '../reputation/recordRead.js';
@@ -141,7 +144,8 @@ import { securityResearchOrder } from '../security/orderResearch.js';
 import { shouldDenyPaidCall } from '../security/sa-stub.js';
 import { recordSpend } from '../security/spendGuard.js';
 import { evaluateMatch } from '../security/matchGate.js';
-import { upsertMarketAdvisory } from '../db/marketAdvisory.js';
+import { getMarketAdvisory, upsertMarketAdvisory } from '../db/marketAdvisory.js';
+import { isFarUnderMarket, underMarketNoteDue, UNDER_MARKET_CHECK_MS } from './underMarket.js';
 import {
   recordDealPrice,
   categoryPriceSnapshot,
@@ -310,6 +314,12 @@ interface JobState {
   /// Seller agents whose bid is a direct offer (lowercased). The buyer decides
   /// on these; the agent never counters or opens a match for them.
   directOffers?: Set<string>;
+  /// Seller agents that withdrew (lowercased). Their offer is gone for good:
+  /// never countered, recommended or taken back by a later offer (view 35).
+  withdrawnSellers?: Set<string>;
+  /// A lower offer that landed while a counter with that seller was open,
+  /// applied once the counter ends (keyed by lowercased seller agent).
+  pendingRevisions?: Map<string, StandingOffer>;
   collectionTimer: NodeJS.Timeout | null;
   /// When the first bid landed. The collection window's floor + hard cap are
   /// measured from here for the adaptive soft-close.
@@ -1040,6 +1050,16 @@ function clearCounterWatchdog(state: JobState, publish = true) {
     clearTimeout(state.counterWatchdog);
     state.counterWatchdog = null;
   }
+  // A lower offer that waited for this counter lands now, if it is still lower.
+  const waited = state.counterWatchdogSeller?.toLowerCase();
+  const pending = waited ? state.pendingRevisions?.get(waited) : undefined;
+  if (waited && pending) {
+    state.pendingRevisions!.delete(waited);
+    const seller = sellerKey(state.bids, waited) as `0x${string}` | null;
+    if (seller && decideOfferRevision({ seller, next: pending, standing: state.bids.get(seller) }) === 'lower-now') {
+      safe('pendingRevision', () => lowerHeldOffer(state, seller, pending));
+    }
+  }
   state.counterWatchdogSeller = undefined;
   state.counterWatchdogDueAt = undefined;
   state.counterWatchdogRound = undefined;
@@ -1137,6 +1157,12 @@ export function startBuyerAgents() {
     { jobBoard: jobBoard.address, escrow: escrow.address },
     'buyer agent starting (multi-tenant)',
   );
+  // A seller on best and final is measured against the lowest other offer,
+  // read here and never sent to them (view 35).
+  setLowestOtherOfferReader((jobId, seller) => {
+    const state = jobs.get(jobId as `0x${string}`);
+    return state ? lowestOtherUsdc(liveOffers(state), seller) : null;
+  });
 
   // Stateless getLogs polling, NOT websockets (Arc's wss drops at boot and
   // viem's ws watcher never recovered) and NOT viem's filter-based polling
@@ -1199,6 +1225,11 @@ export function startBuyerAgents() {
       const jobId = e.jobId as `0x${string}` | undefined;
       const seller = e.payload?.seller as `0x${string}` | undefined;
       if (!jobId || !seller) return;
+      // A seller who stopped their agent withdrew, countered or not (view 35).
+      if (e.payload?.reason === 'seller-abandoned') {
+        safe('sellerWithdrew', () => dropWithdrawnSeller(jobId, seller));
+        return;
+      }
       const state = jobs.get(jobId);
       if (!state || state.finalized || state.expired) return;
       // The event may name the seller in another casing than the agent stored.
@@ -1418,10 +1449,13 @@ export const __directOfferTest = {
 /// re-scored and start no timers.
 async function restoreBidsFromHistory(state: JobState): Promise<void> {
   if (state.bids.size > 0) return;
-  const types = ['bid.submitted', 'bid.scored'];
+  const types = ['bid.submitted', 'bid.scored', 'bid.revised', 'agent.declined'];
   const persisted = await recentEventsByType(types, 500, state.jobId);
   const local = bus.recent(500, state.jobId).filter((e) => types.includes(e.type));
-  const restored = bidsFromHistory([...persisted, ...local]);
+  const history = [...persisted, ...local];
+  const restored = bidsFromHistory(history);
+  const withdrawn = withdrawnFromHistory(history);
+  if (withdrawn.size) state.withdrawnSellers = new Set([...(state.withdrawnSellers ?? []), ...withdrawn]);
   for (const r of restored) {
     if (state.bids.has(r.seller)) continue;
     let sellerUserAddress: string | undefined;
@@ -1462,7 +1496,24 @@ async function handleBidSubmitted(log: Log) {
   const nmPending = state.finalized ? getPendingNearMiss(args.jobId) : null;
   if (state.finalized && !nmPending) return;
   if (state.escrowFunded) return;
-  if (state.bids.has(args.seller)) return;
+  // The JobBoard keeps one offer per seller, so a repeat is a revision (view 35).
+  const next: StandingOffer = { priceUsdc: formatUnits(args.price, USDC_DECIMALS), deadlineUnix: Number(args.deadline) };
+  const step = decideOfferRevision({
+    seller: args.seller,
+    next,
+    standing: state.bids.get(args.seller),
+    counterOpenWith: state.counterWatchdogSeller,
+    withdrawn: state.withdrawnSellers?.has(args.seller.toLowerCase()),
+  });
+  if (step === 'ignore') return;
+  if (step === 'lower-after-counter') {
+    (state.pendingRevisions ??= new Map()).set(args.seller.toLowerCase(), next);
+    return;
+  }
+  if (step === 'lower-now') {
+    await lowerHeldOffer(state, args.seller, next);
+    return;
+  }
   if (await isDirectOfferBid(args.jobId, args.seller)) {
     state.directOffers ??= new Set();
     state.directOffers.add(args.seller.toLowerCase());
@@ -1942,6 +1993,7 @@ async function maybeResearchMarket(state: JobState): Promise<void> {
     state.marketVerdict = verdict.verdict;
     if (verdict.verdict === 'overpriced') {
       const advisory = {
+        kind: 'over' as const,
         jobId: state.jobId,
         buyer: owner,
         budgetUsdc: Number(cap.toFixed(2)),
@@ -1969,6 +2021,11 @@ async function maybeResearchMarket(state: JobState): Promise<void> {
         { jobId: state.jobId, cap, fairPriceUsdc: verdict.fairPriceUsdc, overPct: verdict.overPct },
         'market advisory: buyer budget sits well above market price',
       );
+    }
+    // Far under what sellers take: no haggling sellers below their floor; the
+    // buyer hears it plainly if nobody takes it at their limit (view 35).
+    if (isFarUnderMarket(cap, read.fairPriceUsdc)) {
+      scheduleUnderMarketCheck(state, owner, cap, { fairPriceUsdc: read.fairPriceUsdc!, demand: read.demand, note: read.priceNote });
     }
 
     logger.info(
@@ -2073,7 +2130,8 @@ async function publishShortlist(
     shortlistDeps(state),
   );
   const ranked = rankCandidates(candidates);
-  const recommended = pickRecommended(ranked, budget, unavailableSellers(state.shortlist ?? []), RECOMMEND_OPTS);
+  const limits = shortlistLimits(budget, state.context.negotiationMaxIncreasePct);
+  const recommended = pickRecommended(ranked, limits.recommendUpTo, unavailableSellers(state.shortlist ?? []), RECOMMEND_OPTS);
   state.shortlistCandidates = ranked;
   state.shortlist = toEntries(ranked, recommended, budget, null, state.shortlist ?? []);
   const changed = before?.toLowerCase() !== (recommended?.seller.toLowerCase() ?? null);
@@ -2097,6 +2155,129 @@ async function publishShortlist(
   if (!head || !mayCounter || state.triedSellers.has(head.seller)) return;
   state.candidateQueue = [head];
   await issueCounter(state, head);
+}
+
+/// Whether a published shortlist is live and may change.
+function shortlistLive(state: JobState): boolean {
+  return config.SHORTLIST_MODE && state.collectionFired && !!state.shortlistCandidates && !state.expired && !state.finalized && !state.escrowFunded;
+}
+
+/// A seller lowered the offer the agent holds (view 35). The price changes and
+/// the scores stay; a live shortlist is ranked again, and countered only when
+/// the recommendation changes and no counter is in flight.
+async function lowerHeldOffer(state: JobState, seller: `0x${string}`, next: StandingOffer): Promise<void> {
+  const bid = state.bids.get(seller);
+  // An agreed or funded request keeps the price it agreed.
+  if (!bid || state.finalized || state.escrowFunded) return;
+  const fromUsdc = bid.priceUsdc;
+  bid.priceUsdc = next.priceUsdc;
+  bid.priceWei = parseUnits(next.priceUsdc, USDC_DECIMALS);
+  bid.deadlineUnix = next.deadlineUnix;
+  bus.emitEvent({ type: 'bid.revised', jobId: state.jobId, actor: 'seller', payload: { seller, fromUsdc, toUsdc: next.priceUsdc } });
+  logger.info({ jobId: state.jobId, seller, fromUsdc, toUsdc: next.priceUsdc }, 'seller lowered their offer');
+  if (shortlistLive(state)) await publishShortlist(state, rankBidEntries(state), Number(state.context.budgetUsdc), { counter: false });
+}
+
+/// Two seller sweeps after the market read finds the buyer's limit far under
+/// what the work goes for, the agent looks: if no offer fits the limit, the
+/// buyer is told once, with the market price, and decides (view 35).
+function scheduleUnderMarketCheck(
+  state: JobState,
+  buyer: string,
+  capUsdc: number,
+  market: { fairPriceUsdc: number; demand?: 'hot' | 'steady' | 'soft'; note?: string },
+): void {
+  const timer = setTimeout(() => {
+    if (state.finalized || state.escrowFunded || state.expired) return;
+    const offerWithinCap = [...state.bids.values()].some((b) => Number(b.priceUsdc) <= capUsdc);
+    const noted = getMarketAdvisory(state.jobId)?.kind === 'under';
+    if (!underMarketNoteDue({ farUnder: true, offerWithinCap, noted })) return;
+    const advisory = {
+      kind: 'under' as const,
+      jobId: state.jobId,
+      buyer,
+      budgetUsdc: Number(capUsdc.toFixed(2)),
+      fairPriceUsdc: market.fairPriceUsdc,
+      overPct: Math.round(((capUsdc - market.fairPriceUsdc) / market.fairPriceUsdc) * 100),
+      demand: market.demand,
+      note: market.note,
+      createdAt: Date.now(),
+    };
+    upsertMarketAdvisory(advisory);
+    bus.emitEvent({ type: 'negotiation.market-advisory', jobId: state.jobId, actor: 'buyer', payload: { ...advisory } });
+    logger.info({ jobId: state.jobId, capUsdc, fairPriceUsdc: market.fairPriceUsdc }, 'market advisory: no seller takes it at this budget');
+  }, UNDER_MARKET_CHECK_MS);
+  timer.unref?.();
+}
+
+/// The agent offers still in play on the shortlist: not withdrawn, not marked
+/// unavailable. A seller's own offer (a direct offer) is the buyer's to judge.
+function liveOffers(state: JobState): Array<{ seller: string; priceUsdc: string }> {
+  const listed = new Set(
+    (state.shortlist ?? []).filter((e) => e.state !== 'unavailable').map((e) => e.seller.toLowerCase()),
+  );
+  return [...state.bids.values()]
+    .filter((b) => listed.has(b.seller.toLowerCase()))
+    .filter((b) => !state.withdrawnSellers?.has(b.seller.toLowerCase()) && !state.directOffers?.has(b.seller.toLowerCase()))
+    .map((b) => ({ seller: b.seller, priceUsdc: b.priceUsdc }));
+}
+
+/// One best and final round for each version of the request (view 35): when
+/// the shortlist is first ready and after each change. Sellers whose offer is
+/// not the lowest learn a lower one is in, never its price. Recorded so a
+/// restart never sends a round twice.
+async function inviteBestAndFinal(state: JobState): Promise<void> {
+  if (!shortlistLive(state)) return;
+  const round = getBrief(state.jobId)?.edits ?? 0;
+  const key = `${state.jobId.toLowerCase()}:${round}`;
+  if (await getRecord('best-and-final', key).catch(() => null)) return;
+  const sellers = bestAndFinalRecipients(liveOffers(state));
+  if (!sellers.length) return;
+  await putRecord('best-and-final', key, { at: Date.now(), sellers });
+  bus.emitEvent({ type: 'request.best-and-final', jobId: state.jobId, actor: 'buyer', payload: { round, sellers } });
+  logger.info({ jobId: state.jobId, round, invited: sellers.length }, 'best and final round sent');
+}
+
+/// The buyer changed the request (view 35): the agent ranks the offers it holds
+/// again under the new terms at once, and counters a changed recommendation
+/// unless a counter is already waiting. Sellers hear of the change separately.
+export async function rejudgeOffers(jobId: string): Promise<'rejudge' | 'rank-only' | 'skip'> {
+  const state = jobs.get(jobId as `0x${string}`);
+  if (!state) return 'skip';
+  const ranked = rankBidEntries(state).filter((e) => !state.triedSellers.has(e.bid.seller));
+  const step = rejudgeStep({
+    finalized: state.finalized,
+    escrowFunded: state.escrowFunded,
+    expired: !!state.expired,
+    nearMissPending: !!getPendingNearMiss(jobId),
+    counterInFlight: !!state.counterWatchdog,
+    offers: ranked.length,
+  });
+  // Before the offer window closes the window ranks them itself, with the new terms.
+  if (step === 'skip' || !config.SHORTLIST_MODE || !state.collectionFired) return 'skip';
+  await publishShortlist(state, ranked, Number(state.context.budgetUsdc), { counter: step === 'rejudge' });
+  logger.info({ jobId, step, offers: ranked.length }, 'request changed: offers judged again');
+  await inviteBestAndFinal(state);
+  return step;
+}
+
+/// A seller withdrew (view 35). Their offer leaves the pool for good: never
+/// countered, recommended or accepted, and shown as unavailable on the list.
+export async function dropWithdrawnSeller(jobId: string, sellerAgent: string): Promise<void> {
+  const state = jobs.get(jobId as `0x${string}`);
+  if (!state) return;
+  const key = sellerKey(state.bids, sellerAgent) as `0x${string}` | null;
+  (state.withdrawnSellers ??= new Set()).add(sellerAgent.toLowerCase());
+  state.pendingRevisions?.delete(sellerAgent.toLowerCase());
+  if (!key) return;
+  const fromUsdc = state.bids.get(key)?.priceUsdc ?? null;
+  state.bids.delete(key);
+  state.triedSellers.add(key);
+  state.candidateQueue = state.candidateQueue.filter((b) => b.seller.toLowerCase() !== sellerAgent.toLowerCase());
+  if (state.shortlist) state.shortlist = markUnavailable(state.shortlist, sellerAgent);
+  if (state.counterWatchdogSeller?.toLowerCase() === sellerAgent.toLowerCase()) clearCounterWatchdog(state);
+  bus.emitEvent({ type: 'bid.revised', jobId: state.jobId, actor: 'seller', payload: { seller: key, fromUsdc, toUsdc: null } });
+  if (shortlistLive(state)) await publishShortlist(state, rankBidEntries(state), Number(state.context.budgetUsdc), { counter: false });
 }
 
 /// Rank the bids currently in the pool, highest first. Match-first: the seller
@@ -2305,6 +2486,7 @@ async function finalizeBidCollection(
 
   if (config.SHORTLIST_MODE && rankedEntries.length > 0) {
     await publishShortlist(state, rankedEntries, budget, { counter: true });
+    await inviteBestAndFinal(state);
     return;
   }
 

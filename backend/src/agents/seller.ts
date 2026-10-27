@@ -45,6 +45,9 @@ import {
   type Tier,
 } from './strategy.js';
 import { sellerDaysToDeadline, sellerOpeningBid as pureSellerOpeningBid } from './sellerPricing.js';
+import { sellerViewOfRequest } from './sellerView.js';
+import { reviseStandingOffer, type ReviseOutcome } from './reviseOffer.js';
+import { outOfRangeKind, requestFits } from './outOfRange.js';
 import { getBrief } from '../db/briefs.js';
 import { sellerForRequest } from './ways.js';
 import { deliveryQuestions, reachGate } from '../location/deliveryQuestions.js';
@@ -510,10 +513,18 @@ export function startSellerAgents() {
   // Periodic safety net for missed websocket JobPosted events.
   const stopReconciler = startSellerReconciler();
 
+  // Best and final (view 35): the invited agents each answer once, from their own floor.
+  const unsubBestAndFinal = bus.subscribe((e) => {
+    if (e.type !== 'request.best-and-final' || !e.jobId) return;
+    const sellers = Array.isArray(e.payload?.sellers) ? (e.payload.sellers as string[]) : [];
+    if (sellers.length) reviseStandingOffers(e.jobId, 'best-and-final', sellers);
+  });
+
   return () => {
     unwatchPosted();
     unwatchCounter();
     stopReconciler();
+    unsubBestAndFinal();
     logger.info('seller agent stopped');
   };
 }
@@ -586,21 +597,15 @@ async function handleJobPosted(log: Log, opts?: { rescan?: boolean }) {
   if (briefKeywords.length === 0 && brief?.briefText) {
     briefKeywords = await extractKeywords(brief.briefText, `brief-match:${jobId}`);
   }
-  const baseJob: JobContext = {
+  const baseJob: JobContext = sellerViewOfRequest({
     jobId,
     buyer: args.buyer,
     budgetUsdc: formatUnits(args.budget, USDC_DECIMALS),
     deadlineUnix: Number(args.deadline),
     termsHash: args.termsHash,
-    buyerReputationBps: 5000,
-    briefText: brief?.briefText,
-    negotiationMaxIncreasePct: brief?.negotiationMaxIncreasePct,
     keywords: briefKeywords,
-    trustedMatch: brief?.trustedMatch === true,
-    tradeLane: brief?.tradeLane ?? 'service',
-    sourcingSector: brief?.counterpartyCompany?.sector,
-    sourcingRegion: brief?.counterpartyCompany?.region,
-  };
+    brief: brief ?? undefined,
+  });
 
   // Read the buyer's deterministic signals once and share across every seller
   // evaluation. Saves N reputation reads and keeps the read window aligned.
@@ -862,6 +867,46 @@ function passOnBuyer(seller: SellerProfile, job: JobContext, check: BuyerCheck):
   ]);
 }
 
+/// A request that fits what the seller sells but sits outside the price or time
+/// range they set (view 35): told once by email, Telegram and the bell, with
+/// what is outside it. The agent does not offer; the owner decides.
+async function tellOwnerOutOfRange(seller: SellerProfile, job: JobContext): Promise<void> {
+  const now = Math.floor(Date.now() / 1000);
+  const kind = outOfRangeKind(seller, job, now);
+  if (!kind || !seller.userAddress) return;
+  const recordKey = suggestionKey(seller.userAddress, job.jobId);
+  if (alreadySuggested(bus.recent(HISTORY_SCAN), job.jobId, seller.userAddress)) return;
+  if (await getRecord('suggested', recordKey).catch(() => null)) return;
+  const briefTags = job.keywords ?? [];
+  const sellerTags = [...(seller.keywords ?? []), ...(seller.skills ?? [])];
+  const fits = await requestFits({
+    briefTags,
+    sellerTags,
+    sectorFits: async () => {
+      if (!job.sourcingSector) return false;
+      const owner = await findAgentWalletByAgentAddress(seller.address).catch(() => null);
+      const sector = owner ? (await getProfile(owner.userAddress).catch(() => null))?.smeProfile?.sector : undefined;
+      return !!sector && sector.toLowerCase() === job.sourcingSector.toLowerCase();
+    },
+    judge: () => judgeRelevance({ briefText: job.briefText, briefTags, sellerProfile: `${seller.displayName}: ${seller.bio}`, sellerTags }),
+  });
+  if (!fits) return;
+  await putRecord('suggested', recordKey, { at: Date.now() }).catch(() => {});
+  const days = Math.ceil((job.deadlineUnix - now) / 86_400);
+  const limit = kind === 'below-min' ? seller.minBudgetUsdc
+    : kind === 'above-max' ? seller.maxBudgetUsdc
+    : kind === 'too-soon' ? seller.minDeadlineDays
+    : seller.maxDeadlineDays;
+  bus.emitEvent(suggestionEvent({
+    sellerUser: seller.userAddress,
+    jobId: job.jobId,
+    priceUsdc: '',
+    title: requestTitle(job.briefText) ?? '',
+    range: { outOfRange: kind, budgetUsdc: job.budgetUsdc, limit, days },
+  }));
+  logger.info({ jobId: job.jobId, seller: seller.address, outOfRange: kind }, 'fitting request outside the range: owner told');
+}
+
 async function evaluateAndBid(profile: SellerProfile, job: JobContext) {
   const seller = sellerForRequest(profile, getBrief(job.jobId)?.tradeType);
   const mismatch = profileMismatchReason(seller, job);
@@ -873,6 +918,12 @@ async function evaluateAndBid(profile: SellerProfile, job: JobContext) {
       actor: 'seller',
       payload: mismatch,
     });
+    // Outside the range but a fit: the owner hears of it once and decides (view 35).
+    if (mismatch.reason === 'budget-out-of-range' || mismatch.reason === 'deadline-out-of-range') {
+      void tellOwnerOutOfRange(seller, job).catch((err: Error) =>
+        logger.warn({ jobId: job.jobId, seller: seller.address, err: err.message }, 'out-of-range notice failed'),
+      );
+    }
     return;
   }
 
@@ -1108,7 +1159,8 @@ async function evaluateAndBid(profile: SellerProfile, job: JobContext) {
   if (job.trustedMatch) {
     try {
       const reservationBps = await getReservationBps();
-      const tolerance = job.negotiationMaxIncreasePct ?? 0;
+      // Karwan's own stake check, so it reads the leeway from the request record.
+      const tolerance = getBrief(job.jobId)?.negotiationMaxIncreasePct ?? 0;
       const maxDealUsdc = Number(job.budgetUsdc) * (1 + tolerance / 100);
       const maxDealWei = parseUnits(maxDealUsdc.toFixed(2), USDC_DECIMALS);
       const requiredWei = (maxDealWei * BigInt(reservationBps)) / 10000n;
@@ -1275,7 +1327,8 @@ async function evaluateAndBid(profile: SellerProfile, job: JobContext) {
     // ranges. When the gap is small, ask the blocked side to stretch instead of
     // walking away silently (a near-miss). The guard inside maybeRaiseNearMiss
     // only fires when the seller floor genuinely exceeds the buyer ceiling.
-    const tol = job.negotiationMaxIncreasePct ?? 0;
+    // The near match is Karwan's check, so it reads the leeway from the request record.
+    const tol = getBrief(job.jobId)?.negotiationMaxIncreasePct ?? 0;
     const buyerCeiling = Number(job.budgetUsdc) * (1 + tol / 100);
     const raised = await maybeRaiseNearMiss({
       jobId: job.jobId,
@@ -1390,18 +1443,6 @@ async function evaluateAndBid(profile: SellerProfile, job: JobContext) {
   });
 }
 
-/// Demand-scaled opening headroom above the buyer's budget. The seller's open
-/// reaches `HEADROOM_BASE_PCT + heat * HEADROOM_DEMAND_SPAN_PCT` percent above
-/// the budget, so a cold/oversupplied skill (heat -> 0) opens near the buyer's
-/// price with little to negotiate, while a scarce, in-demand skill (heat -> 1)
-/// opens well above it with a real walk down. `heat` is the live marketHeat
-/// signal (Karwan internal supply scarcity blended with external demand
-/// findings). The buyer's own tolerance still floors the headroom, and the
-/// buyer's acceptance cap is unchanged, so this only shapes the opening ask,
-/// never what the buyer ultimately pays.
-const HEADROOM_BASE_PCT = 5;
-const HEADROOM_DEMAND_SPAN_PCT = 45;
-
 /// Max time the opening bid will block on the research read when
 /// RESEARCH_AWAIT_ENABLED. Chosen to stay well inside the buyer's bid-collection
 /// floor so an awaited bid still lands in the auction; on timeout we proceed on
@@ -1417,108 +1458,6 @@ async function settledWithin(p: Promise<unknown>, ms: number): Promise<boolean> 
     p.then(() => true, () => true),
     new Promise<boolean>((resolve) => setTimeout(() => resolve(false), ms)),
   ]);
-}
-
-/// Per-seller opening bid, demand-driven, with bounded jitter so it doesn't
-/// fall into a fixed pattern.
-///
-/// Economic model: a buyer who posts a brief has committed to that budget as
-/// their valuation, so it is the FLOOR of the negotiation. The seller never
-/// bids below it. How far ABOVE it the seller opens is demand-scaled: the
-/// opening ceiling is budget x (1 + headroom%), where headroom grows with
-/// marketHeat (scarce / in-demand skill) and shrinks toward the budget as
-/// demand drops. The buyer's own tolerance floors the headroom. So a hot skill
-/// opens high with a real walk down; a common one opens near the buyer's price.
-///
-/// Within that band the opening biases toward the ceiling, lifted again by
-/// market demand and softened for trusted buyers (an elite/repeat buyer is
-/// quoted nearer the floor). A per-seller address seed keeps a multi-seller
-/// auction spread out instead of every seller converging on one number. Returns
-/// null when no point in [budget, ceiling] is reachable for
-/// this seller (their max is below the buyer's budget, or their min above the
-/// ceiling), i.e. no possible deal, so skip.
-/** @deprecated Use the injected pure helper in sellerPricing.ts. */
-export function legacySellerOpeningBid(
-  seller: SellerProfile,
-  job: JobContext,
-  buyerTier: Tier,
-  heat: number,
-  marketPriceUsdc?: number,
-): number | null {
-  const budget = Number(job.budgetUsdc);
-  const tol = job.negotiationMaxIncreasePct ?? 0;
-  const h = Number.isFinite(heat) ? Math.max(0, Math.min(1, heat)) : 0.5;
-  // A grounded market price the deal is worth. Clamped to 2x budget so a single
-  // bad estimate can never price the deal out beyond the near-miss band; only a
-  // confident (grounded) price is ever passed in.
-  const market = marketPriceUsdc && marketPriceUsdc > 0 ? Math.min(marketPriceUsdc, budget * 2) : 0;
-  // Sellers open ABOVE the budget and get negotiated down toward it (never
-  // below). How far above scales with DEMAND: the opening headroom grows as
-  // marketHeat rises (scarce / in-demand skill, Karwan supply + external
-  // findings) and shrinks toward the budget as demand drops, so a hot skill
-  // opens with room to negotiate while a common one opens near the buyer's
-  // price. The buyer's own tolerance is a floor on the headroom (they
-  // explicitly allowed that much). The buyer agent counters anything above its
-  // actual cap (budget x (1+tol)) back down, so a high open only means a longer
-  // walk to the buyer's price, never a worse deal.
-  const demandHeadroomPct = HEADROOM_BASE_PCT + h * HEADROOM_DEMAND_SPAN_PCT;
-  const openHeadroomPct = Math.max(tol, demandHeadroomPct);
-  const openCeiling = budget * (1 + openHeadroomPct / 100);
-  // Floor = the buyer's posted budget, never below it (the seller's own minimum
-  // applies if higher). When the market price is ABOVE the budget, the floor
-  // rises to market: it is unprofessional to undersell below what the deal is
-  // worth when the buyer is the one underpaying — the seller holds for market
-  // value and the buyer agent surfaces it as a proceed-or-pass near-miss. When
-  // the market sits BELOW the budget, the floor stays at the budget so the
-  // seller captures the buyer's full willingness to pay, never less.
-  const floor = Math.max(seller.minBudgetUsdc, budget, market);
-  const ceiling = Math.min(seller.maxBudgetUsdc, Math.max(openCeiling, market));
-  if (!Number.isFinite(ceiling) || ceiling < floor) return null;
-  if (ceiling === floor) return Number(floor.toFixed(2));
-
-  // Higher bias = nearer the ceiling (seller earns more). NEW/COLD buyers pay
-  // toward the top of the band; ELITE/STRONG repeat buyers are quoted nearer
-  // the floor. Market heat lifts everyone toward the ceiling for scarce skills.
-  const TIER_BIAS: Record<Tier, number> = {
-    elite: 0.15,
-    strong: 0.35,
-    established: 0.5,
-    cold: 0.7,
-    new: 0.8,
-  };
-  // Market heat is the heaviest input, so a hot skill genuinely holds nearer the
-  // ceiling and a common one prices down. The open tracks live demand, not a
-  // fixed formula. A per-bid jitter keeps the same seller from opening at the
-  // identical point each time (less robotic, harder to game); the address seed
-  // still spreads a multi-seller auction. All clamped within [floor, ceiling].
-  const jitter = Math.random();
-  let frac = Math.max(
-    0,
-    Math.min(
-      1,
-      0.15 * addrFrac(seller.address) + 0.3 * TIER_BIAS[buyerTier] + 0.4 * h + 0.15 * jitter,
-    ),
-  );
-  // Trusted Match restraint: when the buyer chose reputation over price, the
-  // seller anchors lower in the band rather than reaching for the ceiling.
-  // Multiplicative (0.7×) plus an absolute cap at 0.55 so opens cluster around
-  // the middle of [floor, ceiling] regardless of buyer tier or skill heat.
-  // The premium the seller gives up here is the price of being chosen as a
-  // trusted counterparty; the negotiation prompt's restraint rule completes
-  // the picture by accepting in-range counters early.
-  if (job.trustedMatch) {
-    frac = Math.min(frac * 0.7, 0.55);
-  }
-  return Number((floor + (ceiling - floor) * frac).toFixed(2));
-}
-
-/// Stable address -> [0,1) fraction so each seller's opening bid lands at a
-/// different point in its range. Pure string hash, deterministic.
-function addrFrac(addr: string): number {
-  let h = 0;
-  const s = addr.toLowerCase();
-  for (let i = 0; i < s.length; i += 1) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-  return (h % 1000) / 1000;
 }
 
 async function handleCounterOffer(log: Log) {
@@ -1566,16 +1505,14 @@ async function runCounterEvaluation(
   //    profile-wide minimum just because the buyer pushed hard. Ceiling stays
   //    at the seller's profile-wide maximum.
   const originalBid = Number(active.originalBidPriceUsdc);
-  // Brief-flow floor includes the buyer's posted budget: the seller negotiates
-  // upward from what the buyer offered and never concedes below it. (Listing
-  // flow keeps the listing's own floor. That's the seller-initiated flow where
-  // the buyer is the one pricing down toward their budget.)
-  const briefBudget = Number(active.jobContext.budgetUsdc);
+  // Brief-flow floor is the seller's own: their minimum and how far they will
+  // come down from their opening. It is no longer pinned to the buyer's budget,
+  // so a seller who opened under it keeps the room to agree (view 35). Listing
+  // flow keeps the listing's own floor.
   const profileFloor = active.listingFloorUsdc
     ? active.listingFloorUsdc
     : Math.max(
         seller.minBudgetUsdc,
-        Number.isFinite(briefBudget) ? briefBudget : 0,
         Number((originalBid * (1 - PROFILE_MAX_DECREASE_PCT / 100)).toFixed(2)),
       );
   const maxAcceptable = active.listingAskingPriceUsdc ?? seller.maxBudgetUsdc;
@@ -1600,6 +1537,7 @@ async function runCounterEvaluation(
   // below the budget it stays at the profile/budget floor.
   const counterMarket = getCachedMarketPrice(dealKeywords);
   const counterRead = getCachedMarketRead(dealKeywords);
+  const briefBudget = Number(active.jobContext.budgetUsdc);
   const budgetForClamp = Number.isFinite(briefBudget) ? briefBudget : 0;
   const marketFloor =
     counterMarket && counterMarket > 0 && budgetForClamp > 0
@@ -2045,6 +1983,95 @@ export function abandonBid(jobId: string, sellerAgentAddress: string): boolean {
   });
   logger.info({ jobId, seller: sellerAgentAddress }, 'seller abandoned bid');
   return true;
+}
+
+/// A seller's agent answers a change to a request it offered on (view 35):
+/// keep, lower with a new submitBid, or withdraw. The floor is the seller's
+/// own: their minimum, a listing's floor, a grounded market price.
+export async function reviseOffer(
+  jobId: string,
+  sellerAgent: string,
+  reason: 'request-changed' | 'best-and-final',
+  lowestOtherUsdc?: number,
+): Promise<ReviseOutcome> {
+  const key = bidKey(jobId, sellerAgent);
+  const recordKey = `${jobId.toLowerCase()}:${sellerAgent.toLowerCase()}`;
+  const outcome = await reviseStandingOffer(jobId, sellerAgent, reason, {
+    standing: async () => {
+      const active = activeBids.get(key);
+      if (!active || active.finalized || active.responding) return null;
+      const budget = Number(active.jobContext.budgetUsdc);
+      const keywords = active.jobContext.keywords?.length
+        ? active.jobContext.keywords
+        : [...(active.seller.keywords ?? []), ...(active.seller.skills ?? [])];
+      const market = getCachedMarketPrice(keywords);
+      const marketFloor = market && market > 0 ? Math.min(market, budget * 2) : 0;
+      return {
+        priceUsdc: Number(active.lastBidPrice),
+        deadlineUnix: active.jobContext.deadlineUnix,
+        budgetUsdc: budget,
+        floorUsdc: Math.max(active.seller.minBudgetUsdc, active.listingFloorUsdc ?? 0, marketFloor),
+      };
+    },
+    // A failed lookup counts as a hand offer: never replace a price a person set.
+    handOffer: async () => (await directOfferLookup(jobId, sellerAgent.toLowerCase()).catch(() => 'unknown')) !== null,
+    revisionsSoFar: async () => (await getRecord<{ n: number }>('offer-revisions', recordKey).catch(() => null))?.n ?? 0,
+    saveRevisions: (n) => putRecord('offer-revisions', recordKey, { n, at: Date.now() }),
+    submit: async (price, deadline) => {
+      const active = activeBids.get(key);
+      if (!active) return;
+      const finalPrice = price.toFixed(2);
+      await executeContractCall(
+        {
+          walletId: active.seller.walletId,
+          contractAddress: jobBoard.address,
+          abiFunctionSignature: 'submitBid(bytes32,uint256,uint64)',
+          abiParameters: [jobId, parseUnits(finalPrice, USDC_DECIMALS).toString(), deadline.toString()],
+        },
+        `submitBid(revise ${jobId})`,
+      );
+      active.lastBidPrice = finalPrice;
+      scheduleActiveBidsPersist();
+    },
+    withdraw: () => {
+      abandonBid(jobId, sellerAgent);
+    },
+    random: Math.random,
+  }, lowestOtherUsdc);
+  logger.info({ jobId, seller: sellerAgent, reason, outcome }, 'seller agent answered a change to the request');
+  return outcome;
+}
+
+/// Spread over the next minutes so a market's moves land as a market's do.
+const REVISE_MIN_DELAY_MS = 15_000;
+const REVISE_MAX_DELAY_MS = 240_000;
+
+/// Every seller agent with a standing offer on this request gets its turn after
+/// the buyer changes it (view 35). Returns how many were asked.
+export function reviseStandingOffers(jobId: string, reason: 'request-changed' | 'best-and-final' = 'request-changed', sellers?: string[]): number {
+  const wanted = sellers ? new Set(sellers.map((s) => s.toLowerCase())) : null;
+  const agents = [...activeBids.values()]
+    .filter((b) => b.jobContext.jobId.toLowerCase() === jobId.toLowerCase() && !b.finalized)
+    .map((b) => b.seller.address)
+    .filter((a) => !wanted || wanted.has(a.toLowerCase()));
+  for (const agent of agents) {
+    const delay = REVISE_MIN_DELAY_MS + Math.random() * (REVISE_MAX_DELAY_MS - REVISE_MIN_DELAY_MS);
+    const timer = setTimeout(() => {
+      const lowest = reason === 'best-and-final' ? lowestOtherOffer?.(jobId, agent) : undefined;
+      void reviseOffer(jobId, agent, reason, lowest ?? undefined).catch((err: Error) =>
+        logger.warn({ jobId, seller: agent, err: err.message }, 'seller agent could not answer a change'),
+      );
+    }, delay);
+    timer.unref?.();
+  }
+  return agents.length;
+}
+
+/// Set by the buyer side: the lowest other offer a seller is measured against on
+/// best and final. Never sent to the seller, only to its own decision.
+let lowestOtherOffer: ((jobId: string, sellerAgent: string) => number | null) | null = null;
+export function setLowestOtherOfferReader(fn: (jobId: string, sellerAgent: string) => number | null): void {
+  lowestOtherOffer = fn;
 }
 
 /// Snapshot of active bids. Pass a seller agent address to scope it to the bids

@@ -72,6 +72,8 @@ export const AUCTION_INTERNAL_TYPES: ReadonlySet<KarwanEventType> = new Set<Karw
   'request.shortlist',
   'request.world_check',
   'bid.submitted',
+  'bid.revised',
+  'request.best-and-final',
   'counter.issued',
   'counter.received',
   'counter.evaluated',

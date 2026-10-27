@@ -13,6 +13,7 @@ import { tg } from '../i18n/telegram.js';
 import { FINANCIER_FOLLOWS, financierAlert, financiersOfDeal } from '../financial/dealFinanciers.js';
 import { walletPlainName } from '../money/observedDeposit.js';
 import { personNames, shortAddress } from '../channels/personName.js';
+import { outOfRangeLine, rangeOf } from '../agents/outOfRange.js';
 import {
   deliverableNoun,
   startPhrase,
@@ -85,6 +86,7 @@ function withLink(text: string, url: string | null): NotifySummary {
 
 export const RELEVANT = new Set([
   'agent.suggestion',
+  'offer.request-changed',
   'deal.review.ending',
   'record.setup_needed',
   'request.shortlist',
@@ -264,7 +266,7 @@ export async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     const financiers = await financiersOfDeal(e.jobId).catch(() => []);
     return [...out, ...financiers.map((f) => ({ address: f.financier, role: 'financier', href: f.href }))];
   }
-  if (e.type === 'agent.suggestion' || e.type === 'record.setup_needed') {
+  if (e.type === 'agent.suggestion' || e.type === 'record.setup_needed' || e.type === 'offer.request-changed') {
     const owner = (e.payload?.sellerUser as string | undefined)?.toLowerCase();
     return owner ? [{ address: owner, role: 'seller' }] : [];
   }
@@ -419,10 +421,29 @@ export function summaryFor(e: KarwanEvent, role: string, locale: UserLocale = 'e
         null,
       );
     }
+    case 'offer.request-changed': {
+      if (role !== 'seller') return null;
+      const title = (e.payload?.title as string | undefined) ?? '';
+      const price = (e.payload?.priceUsdc as string | undefined) ?? '';
+      return withLink(
+        `*The buyer changed a request you offered on.*${title ? `
+${title}` : ''}${price ? `
+Your offer is ${price} USDC.` : ''}
+Keep it, lower it or withdraw it.`,
+        jobUrl(e.payload?.jobId as string | undefined),
+      );
+    }
     case 'agent.suggestion': {
       if (role !== 'seller') return null;
       const title = (e.payload?.title as string | undefined) ?? '';
       const price = (e.payload?.priceUsdc as string | undefined) ?? '';
+      const range = rangeOf(e.payload);
+      if (range) {
+        return withLink(
+          `*A request fits what you sell, outside your range.*${title ? `\n${title}` : ''}\n${outOfRangeLine(range)} Your agent did not offer. Open it to make an offer, or leave it.`,
+          jobUrl(e.payload?.jobId as string | undefined),
+        );
+      }
       return withLink(
         `*Your agent found a request that fits. Make an offer?*${title ? `\n${title}` : ''}${price ? `\nYour agent would offer ${price} USDC.` : ''}`,
         jobUrl(e.payload?.jobId as string | undefined),

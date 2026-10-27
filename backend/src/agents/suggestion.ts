@@ -13,11 +13,25 @@ export function shouldSuggest(mode: AgentMode, alreadySuggestedHere: boolean): '
 /// The request rides in the payload, never as the event's jobId: an event with
 /// a jobId reaches whoever posted that request, and this one carries the
 /// seller's own price. Only `sellerUser` is a party to it.
-export function suggestionEvent(s: { sellerUser: string; jobId: string; priceUsdc: string; title: string }): Omit<KarwanEvent, 'ts'> {
+export function suggestionEvent(s: {
+  sellerUser: string;
+  jobId: string;
+  priceUsdc: string;
+  title: string;
+  /// A request that fits but sits outside the seller's range (view 35): what is
+  /// outside it, so the notice can say so. Absent for "Ask me first".
+  range?: { outOfRange: import('./outOfRange.js').OutOfRange; budgetUsdc: string; limit: number; days: number };
+}): Omit<KarwanEvent, 'ts'> {
   return {
     type: 'agent.suggestion',
     actor: 'seller',
-    payload: { sellerUser: s.sellerUser.toLowerCase(), jobId: s.jobId.toLowerCase(), priceUsdc: s.priceUsdc, title: s.title },
+    payload: {
+      sellerUser: s.sellerUser.toLowerCase(),
+      jobId: s.jobId.toLowerCase(),
+      priceUsdc: s.priceUsdc,
+      title: s.title,
+      ...(s.range ? { ...s.range } : {}),
+    },
   };
 }
 

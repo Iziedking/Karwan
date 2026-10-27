@@ -345,7 +345,7 @@
       "id": "negotiation-in-assistant",
       "title": "Your agent negotiates while you sleep",
       "status": "roadmap",
-      "updated": "2026-10-24",
+      "updated": "2026-10-27",
       "tags": [
         "market",
         "assistant",
@@ -356,9 +356,13 @@
         {
           "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/30-negotiation-in-the-assistant.md",
           "date": "2026-10-24"
+        },
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/35-offers-that-move.md",
+          "date": "2026-10-27"
         }
       ],
-      "body": "Post what you need in the assistant, on the website or Telegram, and you can\nclose the chat. Your agent asks sellers for offers and negotiates, and the\nassistant writes back in the same conversation, and on Telegram, only when\nsomething moves: offers in, your shortlist ready with the seller the agent\nrecommends, a near match when nothing fits your budget, an agreed deal, the\nmoney locked, the work delivered.\n\nWhen you post, you can turn on Agree for me. Your agent then agrees with the\nseller it recommends, within your budget, and you wake up to an agreed deal\nready for one tap to lock the money. It never agrees above your budget and\nnever moves money on its own.\n\nThis is built for testnet and not live yet."
+      "body": "Post what you need in the assistant, on the website or Telegram, and you can\nclose the chat. Your agent asks sellers for offers and negotiates, and the\nassistant writes back in the same conversation, and on Telegram, only when\nsomething moves: offers in, your shortlist ready with the seller the agent\nrecommends, a near match when nothing fits your budget, an agreed deal, the\nmoney locked, the work delivered.\n\nWhen you post, you can turn on Agree for me. Your agent then agrees with the\nseller it recommends, within your budget, and you wake up to an agreed deal\nready for one tap to lock the money. It never agrees above your budget and\nnever moves money on its own.\n\nOffers move the way a market does. Change your request and your agent looks\nagain at once at the offers it holds; it can recommend one up to the most you\nallowed above your budget, and counters it toward your budget. Sellers who\noffered get a turn to keep, lower or withdraw their offer, and sellers whose\noffer is not the lowest hear once that a lower one is in, never its price.\nOffers only go down, at most three times per seller per request. Sellers never\nsee how far above your budget you would go.\n\nWhen your budget is far under what the work goes for and no seller takes it,\nyour agent tells you plainly, with the market price, and you choose to allow\nmore or post again. Nobody is pushed below their own price. A seller whose\nrange a request falls outside, but whose work fits it, hears about it once by\nemail, Telegram and in the app, and decides.\n\nThis is built for testnet and not live yet."
     },
     {
       "id": "open-trade-finance-roadmap",
@@ -1187,10 +1191,14 @@
         {
           "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/30-negotiation-in-the-assistant.md",
           "date": "2026-10-24"
+        },
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/35-offers-that-move.md",
+          "date": "2026-10-27"
         }
       ],
       "check": null,
-      "updated": "2026-10-24",
+      "updated": "2026-10-27",
       "path": "public/product/negotiation-in-assistant.md"
     },
     {

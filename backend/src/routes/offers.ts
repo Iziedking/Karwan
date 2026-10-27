@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { sessionAddress } from '../auth/session.js';
 import { invalidBodyMessage } from './invalidBody.js';
 import { getProfile } from '../db/profiles.js';
-import { acceptOffer, createOffer, defaultDeps, viewOffers, withdrawOffer, type OfferDeps } from '../offers/service.js';
+import { acceptOffer, createOffer, defaultDeps, lowerOffer, viewOffers, withdrawOffer, type OfferDeps } from '../offers/service.js';
 
 /// A seller's own offer on a request. Identity is the signed session only.
 
@@ -54,6 +54,22 @@ offersRoutes.post('/:jobId/offers/:offerId/withdraw', async (c) => {
   const r = await withdrawOffer(me, c.req.param('offerId'));
   if (!r.ok) return c.json({ error: r.code, code: r.code }, r.status);
   return c.json({ ok: true });
+});
+
+/// A seller lowers their own pending offer (view 35): down only, three times at most.
+offersRoutes.post('/:jobId/offers/:offerId/lower', async (c) => {
+  const me = session(c);
+  if (!me) return c.json({ error: 'Sign in first.', code: 'sign_in' }, 401);
+  let body: { priceUsdc?: unknown };
+  try {
+    body = (await c.req.json()) as { priceUsdc?: unknown };
+  } catch {
+    return c.json({ error: 'Send the new price.', code: 'bad_body' }, 400);
+  }
+  if (typeof body.priceUsdc !== 'string') return c.json({ error: 'Send the new price.', code: 'bad_body' }, 400);
+  const r = await lowerOffer(me, c.req.param('offerId'), body.priceUsdc, deps);
+  if (!r.ok) return c.json({ error: r.message ?? r.code, code: r.code }, r.status);
+  return c.json({ offer: r.offer });
 });
 
 offersRoutes.post('/:jobId/offers/:offerId/accept', async (c) => {

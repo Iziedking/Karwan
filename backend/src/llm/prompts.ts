@@ -142,12 +142,12 @@ export function buildBidEvaluationPrompt(job: JobContext, seller: SellerProfile)
     `- Pre-computed: budget-in-range=${inBudgetRange}, deadline-in-range=${inDeadlineRange}.`,
     '',
     'Pricing (the system sets the exact opening price; you do not):',
-    "- The buyer's posted budget is their committed valuation and the FLOOR. The system opens your bid between that budget and the buyer's tolerance ceiling (budget x (1 + their max increase %)), biased UP when demand for your skill is high and DOWN toward the budget for trusted or repeat buyers. Your agent never bids below the buyer's posted budget.",
-    '- So you are not racing to the bottom: you start at or above what the buyer offered and negotiate from there. Sellers want a premium; the buyer holds near their budget; you meet in between.',
+    "- The system opens your bid near the buyer's posted budget: up to 20% under it when demand for your skill is soft, up to 50% over it when demand is high, and never under your own minimum or a grounded market price. You do not know how far above the budget the buyer would go; nobody on the seller side does.",
+    '- So you are not racing to the bottom: you open where your skill and the market put you and negotiate from there. A fair price for good work wins; you meet the buyer in between.',
     '',
     'Output rules:',
     '- decision: "bid" ONLY if topical match passes AND budget-in-range AND deadline-in-range. Otherwise "skip".',
-    `- suggestedPrice: digits only USDC amount between ${seller.minBudgetUsdc} and ${seller.maxBudgetUsdc}. This is only a hint for the reasoning; the system sets the actual opening inside [budget, ceiling]. A sensible hint is ${Math.min(seller.maxBudgetUsdc, Math.max(seller.minBudgetUsdc, budgetN))} USDC or above.`,
+    `- suggestedPrice: digits only USDC amount between ${seller.minBudgetUsdc} and ${seller.maxBudgetUsdc}. This is only a hint for the reasoning; the system sets the actual opening inside its range. A sensible hint is ${Math.min(seller.maxBudgetUsdc, Math.max(seller.minBudgetUsdc, budgetN))} USDC or above.`,
     `- suggestedDeadlineDays: integer in [${seller.minDeadlineDays}, ${Math.min(seller.maxDeadlineDays, daysToBuyerDeadline)}]`,
     '- confidence: 0..1. 0.85+ for a clear match, 0.7 to 0.8 for a partial match, 0.5 or lower only when the seller cannot do the work or a range check is borderline.',
     '- reasoning: one or two sentences explaining the topical fit (or lack of it) and price logic.',
@@ -322,8 +322,8 @@ export function buildCounterEvaluationPrompt(
           'Posture: hold near the posted budget and make the seller earn any premium. Concede UPWARD toward the cap only when the seller has credible reputation OR demand for this skill is high. Never offer below the posted budget; never exceed the cap.',
         ]
       : [
-          `You are the SELLER's agent. The buyer committed ${job.budgetUsdc} USDC, which is the floor; your principal wants more, up to ${party.maxAcceptablePriceUsdc} USDC. Your last price on the table is ${ourLastPriceUsdc} USDC; the buyer's counter is ${theirCounterPriceUsdc} USDC.`,
-          `Posture: defend your asking price and earn a premium above the buyer's budget. Concede DOWNWARD toward the buyer's budget only when their reputation is strong OR demand for your skill is soft. Never drop below your acceptable floor (${party.minAcceptablePriceUsdc} USDC).`,
+          `You are the SELLER's agent. The buyer posted a budget of ${job.budgetUsdc} USDC; your principal's range is ${party.minAcceptablePriceUsdc} to ${party.maxAcceptablePriceUsdc} USDC. Your last price on the table is ${ourLastPriceUsdc} USDC; the buyer's counter is ${theirCounterPriceUsdc} USDC.`,
+          `Posture: defend a fair price for the work. Concede DOWNWARD only when the buyer's reputation is strong OR demand for your skill is soft. Never drop below your acceptable floor (${party.minAcceptablePriceUsdc} USDC).`,
         ];
 
   const concessionGuide = ctx

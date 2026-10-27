@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createOffer, acceptOffer, withdrawOffer, viewOffers, type OfferDeps } from './service.js';
+import { createOffer, acceptOffer, withdrawOffer, lowerOffer, viewOffers, type OfferDeps } from './service.js';
 import { __resetDirectOffersForTest, createDirectOffer, listDirectOffers } from '../db/directOffers.js';
 import { jobActionsInFlight } from './jobLock.js';
 import type { MatchProposal } from '../db/matchProposals.js';
@@ -19,6 +19,9 @@ const agentProposal = (over: Partial<MatchProposal> = {}): MatchProposal => ({
 });
 
 const JOB = '0x' + '2'.repeat(64);
+/// Revision counts are kept per request, so these tests each use their own.
+const JOB_B = '0x' + '3'.repeat(64);
+const JOB_C = '0x' + '4'.repeat(64);
 const NOW = 1_000_000;
 
 function deps(
@@ -159,6 +162,53 @@ test("withdraw is the seller's own pending offer only", async () => {
   assert.equal((await withdrawOffer('0xbuyer', offer.id)).ok, false);
   assert.equal((await withdrawOffer('0xseller', offer.id)).ok, true);
   assert.equal((await withdrawOffer('0xseller', offer.id)).ok, false);
+});
+
+test('a seller lowers their own pending offer with a new bid on chain, down only (view 35)', async () => {
+  __resetDirectOffersForTest();
+  const d = deps();
+  const made = await createOffer('0xseller', JOB, input, d);
+  assert.ok(made.ok);
+  const offerId = made.ok ? made.offer.id : '';
+  const lowered = await lowerOffer('0xseller', offerId, '260', d);
+  assert.ok(lowered.ok);
+  assert.equal(lowered.ok && lowered.offer.priceUsdc, '260');
+  assert.deepEqual(d.calls, ['bid', 'bid'], 'the lower price goes on chain as a new bid');
+  assert.equal((await listDirectOffers(JOB))[0]?.priceUsdc, '260');
+  const same = await lowerOffer('0xseller', offerId, '260', d);
+  assert.equal(!same.ok && same.code, 'NOT_LOWER');
+  const higher = await lowerOffer('0xseller', offerId, '270', d);
+  assert.equal(!higher.ok && higher.code, 'NOT_LOWER');
+});
+
+test('lowering stops at three, and only the seller may lower an open offer', async () => {
+  __resetDirectOffersForTest();
+  const d = deps();
+  const made = await createOffer('0xseller', JOB_B, input, d);
+  const offerId = made.ok ? made.offer.id : '';
+  const other = await lowerOffer('0xbuyer', offerId, '200', d);
+  assert.equal(!other.ok && other.status, 403);
+  for (const price of ['270', '260', '250']) assert.ok((await lowerOffer('0xseller', offerId, price, d)).ok, price);
+  const fourth = await lowerOffer('0xseller', offerId, '240', d);
+  assert.equal(!fourth.ok && fourth.code, 'LIMIT');
+  const closed = deps({ job: () => ({ budgetUsdc: '300', deadlineUnix: 2_000_000, open: false, termsHash: '0xt', buyerAgent: '0xjobagent' }) });
+  __resetDirectOffersForTest();
+  const again = await createOffer('0xseller', JOB_C, input, deps());
+  const refused = await lowerOffer('0xseller', again.ok ? again.offer.id : '', '200', closed);
+  assert.equal(!refused.ok && refused.code, 'CLOSED');
+});
+
+test('lowering waits while the buyer is funding that request', async () => {
+  __resetDirectOffersForTest();
+  const d = deps();
+  const made = await createOffer('0xseller', JOB, input, d);
+  jobActionsInFlight.add(JOB);
+  try {
+    const busy = await lowerOffer('0xseller', made.ok ? made.offer.id : '', '200', d);
+    assert.equal(!busy.ok && busy.code, 'BUSY');
+  } finally {
+    jobActionsInFlight.delete(JOB);
+  }
 });
 
 test('who sees what: buyer all, seller own, others only the count', async () => {

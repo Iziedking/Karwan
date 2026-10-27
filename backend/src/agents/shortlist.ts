@@ -84,6 +84,14 @@ export function rankCandidates(cands: readonly ShortlistCandidate[]): ShortlistC
 /// people have done the person check yet, a seller with settled Karwan deals
 /// and no lost dispute may be recommended when no verified one fits; they
 /// stay marked not verified, and choosing them still asks the buyer to confirm.
+/// What the shortlist measures against (view 35): it may recommend up to the
+/// budget plus the buyer's leeway and counter it toward the budget, while
+/// "within budget" and Agree for me keep meaning the budget itself.
+export function shortlistLimits(budgetUsdc: number, leewayPct: number | undefined): { recommendUpTo: number; budget: number } {
+  const leeway = leewayPct && leewayPct > 0 ? leewayPct : 0;
+  return { recommendUpTo: Number((budgetUsdc * (1 + leeway / 100)).toFixed(6)), budget: budgetUsdc };
+}
+
 export function pickRecommended(
   ranked: readonly ShortlistCandidate[],
   budgetUsdc: number,
