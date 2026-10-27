@@ -200,6 +200,27 @@ test('duplicate shadow observations are idempotent and conflicts are rejected', 
   );
 });
 
+test('the same decision seen again on a later rescan keeps the first record, not a conflict', async () => {
+  const store = new InMemoryMatchingAuditStore();
+  const observe = createMatchingShadowObserver(store);
+  const observation = {
+    source: 'listing-brief' as const,
+    observationKey: 'shadow-rescan',
+    mandate,
+    candidates: [candidate('seller-a', '90')],
+    legacyCandidateIds: [],
+    nowUnix: 1_000,
+  };
+  await observe(observation);
+  // Ten minutes later, before any deadline, the decision is the same.
+  await observe({ ...observation, nowUnix: 1_100 });
+  const [record] = await store.list();
+  assert.equal(record?.observedAt, 1_000);
+  assert.equal((await store.summary()).total, 1);
+  // A decision that did change under the same key is still refused.
+  await assert.rejects(() => observe({ ...observation, nowUnix: 1_100, legacyCandidateIds: ['seller-a'] }), /matching audit conflict/);
+});
+
 test('duplicate candidate snapshots are evaluated once in the shadow audit', async () => {
   const store = new InMemoryMatchingAuditStore();
   const observe = createMatchingShadowObserver(store);

@@ -149,9 +149,16 @@ function validateTelemetry(telemetry: MatchingAuditTelemetry | undefined): void 
   }
 }
 
-function comparableRecord(record: MatchingAuditRecord): MatchingAuditRecord {
-  const { telemetry: _telemetry, ...withoutTelemetry } = record;
-  return withoutTelemetry;
+/// Two records with one key agree when they decided the same thing: who
+/// qualified, who won and why. When it was seen and the score figures are left
+/// out, because the score counts the time left before the deadline and so moves
+/// a little on every rescan. The record keeps the first one seen.
+function comparableRecord(record: MatchingAuditRecord) {
+  const { telemetry: _telemetry, observedAt: _observedAt, evaluations, ...decision } = record;
+  return {
+    ...decision,
+    evaluations: evaluations.map(({ score: _score, breakdown: _breakdown, ...rest }) => rest),
+  };
 }
 
 function emptyTelemetrySummary(): MatchingAuditTelemetrySummary {
