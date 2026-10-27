@@ -189,6 +189,7 @@ A seller with a funded deal can take an advance from a financier, as view 18 set
 | Record setup, own wallet | Not enough USDC for the extra fee, or the transaction sends the whole balance | The main transaction goes alone; the record waits for the next one |
 | Record setup, own wallet | A record step fails inside the batch | The person's own call still stands. Nothing is said, and the next transaction holds only what is still missing |
 | Record setup, own wallet | The record was half set up before (registered, an agent not attached, or the buying agent expired) | The batch holds only the missing steps; nothing already on chain is sent again |
+| Paying | An own wallet's buying agent is past its year or over its total, which the registry would refuse | Karwan's buying agent takes itself off the record (the registry lets a wallet leave on its own), the payment goes on with no agent limit on chain for that deal, and the agent is attached again with the person's next transaction. A wallet Karwan holds is renewed on the spot instead |
 | Paying | The buyer has no record yet | The payment goes ahead; it is never refused for a missing record. A wallet Karwan holds is set up first, with no step; an own wallet's deal does not count on the buyer's record |
 | Paying | Over the per-deal cap, the family paused, or not enough USDC | Refused before anything is signed, with the reason and the limit in words |
 | Any transaction | A wallet provider reports done but the call reverted inside | The step is done only when the receipt shows the expected event and a fresh read agrees; otherwise it is flagged and retried from the chain state |
@@ -246,7 +247,7 @@ Before any code, and logged in `docs/arc-circle-checks.md`:
 - Accounts with their own wallet and no record, or a half-done one: nothing. Their next Arc transaction carries the missing steps, and the app tells them after.
 - An expired buying agent, for either kind of account: renewed the same way, with no step.
 
-**Open for the owner:** a seller with their own wallet who only receives money may never sign an Arc transaction, so their record would never be set up and none of their deals would count. Recommended: after the first settled deal that did not count, their receipt shows one quiet line, "Count your next deals on your record", which signs the record steps alone. It never blocks anything and it shows at most once a month.
+11. **One quiet line on the receipt** (owner, 27 Oct 2026). Someone with their own wallet who only receives money may never sign an Arc transaction, so their record would never be set up. After a settled deal that did not count on their record, the receipt shows one line, "Count your next deals on your record", with a button that signs the missing record steps alone, in one transaction. It is optional, never blocks anything, and shows at most once a month.
 
 ## Status
 
@@ -257,7 +258,7 @@ Before any code, and logged in `docs/arc-circle-checks.md`:
 | App opens new deals on the family | Planned |
 | Confirmation by passkey or Karwan PIN for setup, deal insurance and money out | Built, not deployed (view 05) |
 | One identity per person, set up at the first money step | Built for wallets Karwan holds (set up by Karwan on testnet) and for own wallets as separate transactions |
-| Own wallet: record steps ride along with the next Arc transaction; nothing waits for a record | Agreed 27 Oct 2026; spec and plan next |
+| Own wallet: record steps ride along with the next Arc transaction; nothing waits for a record; the receipt line | Agreed 27 Oct 2026; spec written, plan next |
 | Automatic arbiter on the family | Planned; the table is built for the terms-driven escrow and switched off |
 | Getting paid early on the family | Planned (T4.2) |
 | Time and Jobs families in the app | Later |
