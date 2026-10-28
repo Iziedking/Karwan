@@ -4344,12 +4344,6 @@ export const sw: Messages = {
       body: 'Tumetuma upya mikataba yetu ya escrow na vault. Fedha na hisa zilizowekwa kwenye mikataba ya awali zinabaki zako. Ingia ili uone unachoweza kurudisha.',
       button: 'Ingia ili kuendelea',
     },
-    closed: {
-      tag: 'Dirisha la urejeshaji',
-      title: 'Limefungwa',
-      body: 'Dirisha la urejeshaji la siku 30 limemalizika. Mikataba ya urithi inaendelea kuwa hai kwenye Arc na bado inaweza kuitwa moja kwa moja kupitia kichunguzi cha blocki ikiwa una fedha zilizofungwa. Wasiliana nasi kupitia Telegram ikiwa unahitaji msaada na hukupata nafasi ya kurudisha.',
-      home: '← Nyumbani',
-    },
     hero: {
       tag: 'Urithi · urejeshaji u-wazi',
       titleBefore: 'Rudisha kutoka kwa',

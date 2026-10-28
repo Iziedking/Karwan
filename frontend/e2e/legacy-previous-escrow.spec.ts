@@ -56,6 +56,7 @@ test('deals from before the new escrow are listed, open first, each opening its 
 test('nothing is listed when every deal is on the new escrow', async ({ page }) => {
   await signedIn(page, [deal('0x' + 'c'.repeat(64), 'settled', 1, { escrowVersion: 'suite' })]);
   await page.goto('/legacy');
-  await expect(page.getByRole('heading', { name: new RegExp(en.legacyPage.closed.title) })).toBeVisible();
-  await expect(page.getByRole('heading', { name: new RegExp(c.title) })).toHaveCount(0);
+  await expect(page.getByText(c.empty)).toBeVisible();
+  await expect(page.getByRole('link', { name: c.open })).toHaveCount(0);
+  await expect(page.getByText(/Recovery window/)).toHaveCount(0);
 });

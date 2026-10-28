@@ -7,6 +7,8 @@ export interface PreviousEscrowCopy {
   asBuyer: string;
   asSeller: string;
   open: string;
+  /// The legacy page once the recovery window has closed and nothing is left.
+  empty: string;
   /// The quiet link from Your trades to the legacy page, with the count.
   link: string;
 }
@@ -19,6 +21,7 @@ export const previousEscrowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Previo
     asBuyer: 'You buy',
     asSeller: 'You sell',
     open: 'Open deal',
+    empty: 'Nothing to settle here. Every deal you have runs on the new escrow.',
     link: 'Deals from before the new escrow: {n}',
   },
   fr: {
@@ -28,6 +31,7 @@ export const previousEscrowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Previo
     asBuyer: 'Vous achetez',
     asSeller: 'Vous vendez',
     open: 'Ouvrir l’accord',
+    empty: 'Rien à régler ici. Tous vos accords passent par le nouveau séquestre.',
     link: 'Accords d’avant le nouveau séquestre : {n}',
   },
   ar: {
@@ -37,6 +41,7 @@ export const previousEscrowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Previo
     asBuyer: 'أنت تشتري',
     asSeller: 'أنت تبيع',
     open: 'افتح الصفقة',
+    empty: 'لا شيء لتسويته هنا. كل صفقاتك تعمل على الضمان الجديد.',
     link: 'صفقات من قبل الضمان الجديد: {n}',
   },
   hi: {
@@ -46,6 +51,7 @@ export const previousEscrowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Previo
     asBuyer: 'आप खरीदते हैं',
     asSeller: 'आप बेचते हैं',
     open: 'सौदा खोलें',
+    empty: 'यहाँ निपटाने को कुछ नहीं। आपकी सभी डील नए एस्क्रो पर चलती हैं।',
     link: 'नए एस्क्रो से पहले के सौदे: {n}',
   },
   sw: {
@@ -55,6 +61,7 @@ export const previousEscrowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', Previo
     asBuyer: 'Unanunua',
     asSeller: 'Unauza',
     open: 'Fungua mkataba',
+    empty: 'Hakuna cha kumalizia hapa. Mikataba yako yote inaendeshwa kwenye escrow mpya.',
     link: 'Mikataba ya kabla ya escrow mpya: {n}',
   },
 };

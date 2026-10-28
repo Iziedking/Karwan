@@ -9,14 +9,26 @@ import { previousEscrowDeals } from '../previousEscrow';
 
 /// The deals from before the new escrow, gathered so they can be reconciled.
 /// Each row opens the deal page, where its actions still run on the escrow it
-/// started on. Shows nothing when there are none.
-export function PreviousEscrowDeals() {
+/// started on. Shows nothing when there are none, or one quiet line with
+/// `showEmpty` once the list has loaded.
+export function PreviousEscrowDeals({ showEmpty = false }: { showEmpty?: boolean }) {
   const t = useTranslations();
   const c = t.previousEscrow;
   const { address } = useAuth();
-  const { deals } = useDirectDeals();
+  const { deals, fetchState } = useDirectDeals();
   const rows = previousEscrowDeals(deals);
-  if (!rows.length) return null;
+  if (!rows.length) {
+    if (!showEmpty || fetchState !== 'success') return null;
+    return (
+      <Band tone="light" compact>
+        <SectionTag>{c.tag}</SectionTag>
+        <HeroHeadline size="md">
+          {c.title}<Punc>.</Punc>
+        </HeroHeadline>
+        <p className="mt-4 max-w-[58ch] text-[14px] font-medium leading-relaxed text-[var(--lp-text-sub)]">{c.empty}</p>
+      </Band>
+    );
+  }
   const me = address?.toLowerCase();
 
   return (

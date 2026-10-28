@@ -4347,12 +4347,6 @@ export const fr: Messages = {
       body: "Nous avons redéployé nos contrats d'entiercement et de coffre. Les fonds et la mise déposés sur les anciens contrats restent à vous. Connectez-vous pour voir ce que vous pouvez récupérer.",
       button: 'Connectez-vous pour continuer',
     },
-    closed: {
-      tag: 'Fenêtre de récupération',
-      title: 'Fermée',
-      body: "La fenêtre de récupération de 30 jours est terminée. Les anciens contrats restent actifs sur Arc et peuvent encore être appelés directement via l'explorateur de blocs si vous avez des fonds bloqués. Contactez-nous sur Telegram si vous avez besoin d'aide et n'avez pas eu l'occasion de récupérer.",
-      home: '← Accueil',
-    },
     hero: {
       tag: 'Héritage · récupération ouverte',
       titleBefore: 'Récupérez depuis les',

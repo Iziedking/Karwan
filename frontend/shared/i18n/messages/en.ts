@@ -4040,7 +4040,6 @@ interface MessagesShape {
       body: string;
       button: string;
     };
-    closed: { tag: string; title: string; body: string; home: string };
     hero: {
       tag: string;
       titleBefore: string;
@@ -9856,12 +9855,6 @@ export const en: MessagesShape = {
       titleAfter: 'contracts',
       body: 'We redeployed our escrow and vault contracts. Funds and stake parked on the previous contracts stay yours. Sign in to see what you can reclaim.',
       button: 'Sign in to continue',
-    },
-    closed: {
-      tag: 'Recovery window',
-      title: 'Closed',
-      body: "The 30-day recovery window has ended. The legacy contracts remain live on Arc and can still be called directly via the block explorer if you have funds locked. Reach out on Telegram if you need help and didn't get a chance to reclaim.",
-      home: '← Home',
     },
     hero: {
       tag: 'Legacy · recovery open',
