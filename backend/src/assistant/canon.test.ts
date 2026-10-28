@@ -32,7 +32,7 @@ test('roadmap entries are discoverable but cannot be stated as live', () => {
 
 test('canon version records the Canteen window features', () => {
   assert.equal(canonVersion, '0.4.0');
-  assert.equal(canonUpdated, '2026-10-27');
+  assert.equal(canonUpdated, '2026-10-28');
 });
 
 test('the record page says nothing waits for it (view 27, decision 10)', () => {

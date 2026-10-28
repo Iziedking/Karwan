@@ -1,6 +1,6 @@
 {
   "canonVersion": "0.4.0",
-  "canonUpdated": "2026-10-27",
+  "canonUpdated": "2026-10-28",
   "docs": [
     {
       "id": "agent-record-checks",
@@ -698,7 +698,7 @@
       "id": "your-karwan-record",
       "title": "Your Karwan record, set up on the way",
       "status": "roadmap",
-      "updated": "2026-10-27",
+      "updated": "2026-10-28",
       "tags": [
         "reputation",
         "agents",
@@ -712,7 +712,7 @@
           "date": "2026-10-27"
         }
       ],
-      "body": "Deals held by Karwan's escrow family count on each side's Karwan record. The\nrecord links a person's buying and selling agents to them, and their deals\nand checks are written to it. Nothing ever waits for it: paying, agreeing to\na deal, making an offer and a selling agent's offers all go ahead with or\nwithout a record.\n\nWhen Karwan holds the person's wallets, as for email, passkey and Telegram\naccounts, Karwan sets the record up itself the first time it is needed, with\nno step from them, on Arc Testnet. On mainnet that takes one confirmation\nwith a passkey or a Karwan PIN.\n\nSomeone who signs in with their own wallet never takes a separate step either.\nThe record's steps ride along with the next transaction they sign on Arc in\nKarwan, such as adding money to their agents or putting up deal insurance, in\nthe same wallet prompt. They are added only when the wallet's USDC covers the\nsmall extra network fee, and never when the whole balance is being sent.\nThe person's own transaction always comes first and never fails because of\nthe record. Once it is set up, the result says so in one line. A transaction\nsigned on another chain, or from a smart-contract wallet, goes on its own and\nthe next one carries the record.\n\nThe escrow notes each side's record when the buyer pays in, so a deal paid\nin before a side had a record runs normally but does not count on that\nside's record. When that happens to someone with their own wallet, the\nsettled deal's receipt offers to count their next deals, with one signature.\nIt shows at most once a month and can be ignored.\n\nThe buying agent can pay up to 1,005 USDC at a time and 10,000 USDC in total\nfor one year. When it reaches its year or its total, it steps aside so a\npayment still goes through, and it is linked again with the next setup.\n\nAfter each payment on a deal, the seller's earnings move from their selling\nagent to their own wallet; a move that is still waiting shows in their\nbalance and is tried again. Once a deal settles, the deal page says whether\nit is on both records. Deals can be up to 1,000 USDC while Karwan is in beta.\n\nNew deals on Arc Testnet have opened on the escrow family since 24 October\n2026; mainnet follows an external audit."
+      "body": "Deals held by Karwan's escrow family count on each side's Karwan record. The\nrecord links a person's buying and selling agents to them, and their deals\nand checks are written to it. Nothing ever waits for it: paying, agreeing to\na deal, making an offer and a selling agent's offers all go ahead with or\nwithout a record.\n\nWhen Karwan holds the person's wallets, as for email, passkey and Telegram\naccounts, Karwan sets the record up itself the first time it is needed, with\nno step from them, on Arc Testnet. On mainnet that takes one confirmation\nwith a passkey or a Karwan PIN.\n\nSomeone who signs in with their own wallet never takes a separate step either.\nThe record's steps ride along with the next transaction they sign on Arc in\nKarwan, such as adding money to their agents or putting up deal insurance, in\nthe same wallet prompt. They are added only when the wallet's USDC covers the\nsmall extra network fee, and never when the whole balance is being sent.\nThe person's own transaction always comes first and never fails because of\nthe record. Once it is set up, the result says so in one line. A transaction\nsigned on another chain, or from a smart-contract wallet, goes on its own and\nthe next one carries the record.\n\nThe escrow notes each side's record when the buyer pays in, so a deal paid\nin before a side had a record runs normally but does not count on that\nside's record. When that happens to someone with their own wallet, the\nsettled deal's receipt offers to count their next deals, with one signature.\nIt shows at most once a month and can be ignored.\n\nThe buying agent can pay up to 1,005 USDC at a time and 10,000 USDC in total\nfor one year. When it reaches its year or its total, it steps aside so a\npayment still goes through, and it is linked again with the next setup.\n\nAfter each payment on a deal, the seller's earnings move from their selling\nagent to their own wallet; a move that is still waiting shows in their\nbalance and is tried again. Once a deal settles, the deal page says whether\nit is on both records. On mainnet, deals can be up to 1,000 USDC while\nKarwan is in beta; testnet allows larger deals. A deal over the limit is\nrefused before any money moves, with the largest amount allowed.\n\nNew deals on Arc Testnet have opened on the escrow family since 24 October\n2026; mainnet follows an external audit."
     }
   ],
   "facts": [
@@ -1654,7 +1654,7 @@
         }
       ],
       "check": null,
-      "updated": "2026-10-27",
+      "updated": "2026-10-28",
       "path": "public/product/your-karwan-record.md"
     }
   ]

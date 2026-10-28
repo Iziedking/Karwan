@@ -35,7 +35,15 @@ const USDC_DECIMALS = 6;
 const DAY = 86_400;
 const ACCEPT_WINDOW_SECS = 3 * DAY;
 const DEFAULT_DELIVERY_SECS = 30 * DAY;
-export const BETA_CAP_COPY = 'Deals can be up to 1,000 USDC while Karwan is in beta.';
+/// The refusal for a deal over the hub's per-deal cap, naming the largest deal
+/// the cap allows once the buyer's half of the fee is added. The cap is the
+/// contract's; only mainnet's is a beta limit.
+export function overCapCopy(limits: Pick<AgreementLimits, 'perDealCapMicros' | 'feeBps'>, network: 'mainnet' | 'testnet' = 'mainnet'): string {
+  let micros = (limits.perDealCapMicros * 20_000n) / BigInt(20_000 + limits.feeBps);
+  while (micros > 0n && buyerPaysMicros(micros, limits.feeBps) > limits.perDealCapMicros) micros -= 1n;
+  const most = Number(micros / 1_000_000n).toLocaleString('en');
+  return network === 'mainnet' ? `Deals can be up to ${most} USDC while Karwan is in beta.` : `Deals can be up to ${most} USDC on testnet.`;
+}
 
 export interface FundDirectSuiteDeps {
   escrow: AgreementEscrow;
@@ -44,7 +52,7 @@ export interface FundDirectSuiteDeps {
   verifier: Hex;
   readView(dealId: Hex): Promise<DealV3View>;
   readLimits(): Promise<AgreementLimits>;
-  settings: { baseReviewSecs: number; reclaimGraceSecs: number };
+  settings: { baseReviewSecs: number; reclaimGraceSecs: number; network?: 'mainnet' | 'testnet' };
   /// Nothing waits for a record (view 27, decision 10): held wallets are set up on the spot.
   ensureRecord(userAddress: string, role: 'buyer' | 'seller'): Promise<'ready' | 'not-ready'>;
   /// A buying agent the registry would refuse steps aside, so the payment goes on.
@@ -155,7 +163,7 @@ async function steps(deps: FundDirectSuiteDeps, input: FundDirectSuiteInput, ctx
     const nowSecs = Math.floor(deps.now() / 1000);
     const amount = parseUnits(deal.dealAmountUsdc, USDC_DECIMALS);
     if (buyerPaysMicros(amount, limits.feeBps) > limits.perDealCapMicros) {
-      return { status: 409, body: { error: BETA_CAP_COPY, code: 'OVER_BETA_CAP' } };
+      return { status: 409, body: { error: overCapCopy(limits, deps.settings.network), code: 'OVER_BETA_CAP' } };
     }
     await readyBuyer(deps, deal.buyer, buyerPaysMicros(amount, limits.feeBps));
 
@@ -189,7 +197,7 @@ async function steps(deps: FundDirectSuiteDeps, input: FundDirectSuiteInput, ctx
       );
     } catch (err) {
       if (err instanceof AgreementTermsError) {
-        return { status: 409, body: { error: err.code === 'over_cap' ? BETA_CAP_COPY : err.message, code: err.code === 'over_cap' ? 'OVER_BETA_CAP' : 'TERMS_NOT_SUPPORTED' } };
+        return { status: 409, body: { error: err.code === 'over_cap' ? overCapCopy(limits, deps.settings.network) : err.message, code: err.code === 'over_cap' ? 'OVER_BETA_CAP' : 'TERMS_NOT_SUPPORTED' } };
       }
       throw err;
     }

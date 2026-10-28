@@ -3,7 +3,7 @@ import test from 'node:test';
 import { createAgreementEscrow } from '../chain/agreementEscrow.js';
 import { agreementDealId, type AgreementLimits } from '../chain/agreementTerms.js';
 import { DEAL_STATE, type DealV3View } from '../chain/dealEscrowV3.js';
-import { dealKindForSuite, fundDirectDealSuite, type FundDirectSuiteDeps, type FundDirectSuiteInput } from './fundDirectSuite.js';
+import { dealKindForSuite, fundDirectDealSuite, overCapCopy, type FundDirectSuiteDeps, type FundDirectSuiteInput } from './fundDirectSuite.js';
 import { chooseFundingEscrow, fundingSaltV3 } from './fundDirectV3.js';
 
 type Hex = `0x${string}`;
@@ -199,3 +199,10 @@ test('accepts_when_the_seller_has_no_record', async () => {
   assert.deepEqual(w.calls, ['approve', 'fund', 'accept']);
   assert.ok(!w.events.includes('record.setup_needed'));
 });
+
+test('an over-cap refusal names the largest deal the contract allows, and beta only on mainnet', () => {
+  assert.equal(overCapCopy(LIMITS, 'mainnet'), 'Deals can be up to 1,000 USDC while Karwan is in beta.');
+  assert.equal(overCapCopy(LIMITS, 'testnet'), 'Deals can be up to 1,000 USDC on testnet.');
+  assert.equal(overCapCopy({ perDealCapMicros: 101_000_000_000n, feeBps: 200 }, 'testnet'), 'Deals can be up to 100,000 USDC on testnet.');
+});
+

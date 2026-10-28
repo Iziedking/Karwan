@@ -146,6 +146,7 @@ export function fundDirectSuiteDeps(): FundDirectSuiteDeps {
     settings: {
       baseReviewSecs: Math.floor(config.DEAL_REVIEW_WINDOW_MS / 1000),
       reclaimGraceSecs: Math.floor(config.DEAL_DEADLINE_RECLAIM_GRACE_MS / 1000),
+      network: config.ARC_NETWORK === 'mainnet' ? 'mainnet' : 'testnet',
     },
     ensureRecord: (user, role) => identity.ensureRecord(user, role),
     freeBuyingAgent: (user, amount) => identity.freeBuyingAgent(user, amount),
