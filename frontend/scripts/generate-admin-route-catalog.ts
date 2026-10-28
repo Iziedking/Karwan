@@ -111,23 +111,15 @@ function mountedRoutes(binding: ImportBinding): RouteEntry[] {
   throw new Error(`No route registrations found for ${binding.importedName} in ${binding.sourcePath}`);
 }
 
-function joinRoute(prefix: string, routePath: string): string {
-  const left = prefix === '/' ? '' : prefix.replace(/\/$/, '');
-  const right = routePath === '/' ? '' : routePath.startsWith('/') ? routePath : `/${routePath}`;
-  return `${left}${right}` || '/';
-}
-
-function discoverRoutes(): RouteEntry[] {
-  const index = sourceFile(indexPath);
+function relativeImports(file: ts.SourceFile, filePath: string): Map<string, ImportBinding> {
   const imports = new Map<string, ImportBinding>();
-
-  for (const statement of index.statements) {
+  for (const statement of file.statements) {
     if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) continue;
-    if (!statement.moduleSpecifier.text.startsWith('./routes/')) continue;
+    if (!statement.moduleSpecifier.text.startsWith('.')) continue;
     const clause = statement.importClause?.namedBindings;
     if (!clause || !ts.isNamedImports(clause)) continue;
     const sourcePath = path.resolve(
-      backendRoot,
+      path.dirname(filePath),
       statement.moduleSpecifier.text.replace(/\.js$/, '.ts'),
     );
     for (const element of clause.elements) {
@@ -137,6 +129,51 @@ function discoverRoutes(): RouteEntry[] {
       });
     }
   }
+  return imports;
+}
+
+/// A router built from settings and mounted only when configured:
+/// const x = await xRoutesFromEnv(); if (x) app.route('/api/x', x).
+/// The builder returns a route factory's app, so its routes are that factory's.
+function builtRoutes(binding: ImportBinding): RouteEntry[] {
+  const file = sourceFile(binding.sourcePath);
+  const imports = relativeImports(file, binding.sourcePath);
+  const routes: RouteEntry[] = [];
+  for (const statement of file.statements) {
+    if (!ts.isFunctionDeclaration(statement) || statement.name?.text !== binding.importedName || !statement.body) continue;
+    walk(statement.body, (node) => {
+      if (!ts.isReturnStatement(node) || !node.expression || !ts.isCallExpression(node.expression)) return;
+      if (!ts.isIdentifier(node.expression.expression)) return;
+      const factory = imports.get(node.expression.expression.text);
+      if (!factory) return;
+      const factoryFile = sourceFile(factory.sourcePath);
+      const receivers = honoReceiversIn(factoryFile, factory.importedName);
+      routes.push(...routeCalls(factoryFile).filter((r) => r.receiver && receivers.has(r.receiver)));
+    });
+  }
+  if (routes.length === 0) throw new Error(`No route factory returned by ${binding.importedName} in ${binding.sourcePath}`);
+  return routes;
+}
+
+function joinRoute(prefix: string, routePath: string): string {
+  const left = prefix === '/' ? '' : prefix.replace(/\/$/, '');
+  const right = routePath === '/' ? '' : routePath.startsWith('/') ? routePath : `/${routePath}`;
+  return `${left}${right}` || '/';
+}
+
+function discoverRoutes(): RouteEntry[] {
+  const index = sourceFile(indexPath);
+  const allImports = relativeImports(index, indexPath);
+  const routesDir = path.join(backendRoot, 'routes') + path.sep;
+  const imports = new Map([...allImports].filter(([, binding]) => binding.sourcePath.startsWith(routesDir)));
+
+  // Local names holding a router a builder returns: const x = await builder().
+  const builtBy = new Map<string, string>();
+  walk(index, (node) => {
+    if (!ts.isVariableDeclaration(node) || !ts.isIdentifier(node.name) || !node.initializer) return;
+    const call = ts.isAwaitExpression(node.initializer) ? node.initializer.expression : node.initializer;
+    if (ts.isCallExpression(call) && ts.isIdentifier(call.expression)) builtBy.set(node.name.text, call.expression.text);
+  });
 
   const routes: RouteEntry[] = [];
   walk(index, (node) => {
@@ -160,6 +197,14 @@ function discoverRoutes(): RouteEntry[] {
         return;
       }
       if (!ts.isIdentifier(router)) return;
+      const builder = builtBy.get(router.text);
+      const built = builder ? allImports.get(builder) : undefined;
+      if (!imports.has(router.text) && built) {
+        for (const route of builtRoutes(built)) {
+          routes.push({ method: route.method, path: joinRoute(prefix, route.path) });
+        }
+        return;
+      }
       const binding = imports.get(router.text);
       if (!binding) throw new Error(`Missing import binding for mounted router ${router.text}`);
       for (const route of mountedRoutes(binding)) {
