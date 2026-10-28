@@ -3,20 +3,20 @@
   "chainId": 5042002,
   "chainSelectorName": "arc-testnet",
   "families": [
-    "0x0000000000000000000000000000000000000001"
+    "0x55460D2b8b0D8067Ea33406b310224B5bd44F43C"
   ],
   "verifiers": [
-    "0x0000000000000000000000000000000000000002"
+    "0xCD395b291bcEcbFd58a3b8253C70510dd7bdAAa8"
   ],
   "attest": false,
-  "adapter": "0x0000000000000000000000000000000000000004",
+  "adapter": "0x4eA2959C8843922b79f39976351543e46FC679CD",
   "karwanApi": "https://api.karwan.site",
   "apiTokenSecretId": "CRE_WORKFLOW_TOKEN",
   "githubTokenSecretId": "GITHUB_REPLAY_TOKEN",
   "runnerRef": "main",
-  "gatewayKey": "0x0000000000000000000000000000000000000003",
+  "gatewayKey": "0x182fd66E898DcED0e8B8966b7311325150B7c077",
   "gasLimit": "600000",
   "maxItems": 3,
   "runnerRepo": "Iziedking/karwan-replay",
-  "fees": "0x0000000000000000000000000000000000000006"
+  "fees": "0x9553ff79B13f27D767B2A94BB8428a8e6A7D9c7e"
 }

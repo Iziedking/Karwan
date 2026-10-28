@@ -22,6 +22,52 @@ that broadcasts, deploys or signs. Written 28 October 2026.
   `0xB434527FA2C7eA05313850FA03A976de05997Eff` (24 hour delay), proposed by the
   owner Safe `0xF253E02048FB2F89FFD3E3c931aa3ea14A857556`.
 
+## Deployed
+
+| Contract | Address | Transaction | Block |
+|---|---|---|---|
+| KarwanCreAdapter | `0x4eA2959C8843922b79f39976351543e46FC679CD` | `0x3ba7db947392ba906283f2d11924ae7ff9ca449581b3eff994ee968da5dfb4ac` | 69,524,471 |
+| KarwanCreFees | `0x9553ff79B13f27D767B2A94BB8428a8e6A7D9c7e` | `0x8acf9bbd5bb88cd74ad33e5f26d50945e9602c809f2da119e2366fc701e9c627` | 69,524,588 |
+
+Deployed 28 October 2026 by the owner from `0x665eEBCA6507867930D0f59fD1CfD9c40ce02B33`,
+the testnet deployer of the endgame suite, which holds no role in either
+contract. Read back from Arc the same day: the adapter names forwarder
+`0x76c9…5E62`, workflow owner `0x6aE4…C104`, hub `0xB874…38a6` and binder the
+timelock `0xB434…7Eff`, with no workflow bound yet; the fee contract names the
+adapter, payee `0x915E…8d9E`, Arc USDC and a price of 250,000 (0.25 USDC). Both
+are exact matches, creation and runtime, on Sourcify for chain 5042002.
+
+Workflows in the private registry, owner `0x6aE4fE38dFbBc609D720b2f0814d72E1a94Cc104`,
+DON family `zone-a`, deployed 28 October 2026 from node-services:
+
+| Workflow | Workflow ID | Signing key in its config |
+|---|---|---|
+| karwan-risk | `000dde745031a30f3f3e6350c691944d1d508f555d43ed32e02d9aff0d042b35` | none |
+| karwan-check | `0080cdf71dc5db4d6324096d64f1e6b28eccf2f491cd234900ec6e3962650126` | `gatewayKey` `0x182fd66E898DcED0e8B8966b7311325150B7c077` |
+| karwan-record | `006ebc310c4b7f6996f2951c74d32a2ae0d9462d506b95874c6ca819737fa2ae` | `backendKey` `0x182fd66E898DcED0e8B8966b7311325150B7c077` |
+
+`0x182f…c077` is `CRE_GATEWAY_SIGNER_KEY`, made with `env-put.sh --new-key` in
+`~/.karwan-cre-env` on node-services and never printed. `karwan-git-prod`
+(`00ab26d9…34c6`) was deleted the same day; for a while afterwards
+`cre workflow list` and `cre workflow get` still showed it as paused and did not
+show the new workflows, while deploy and delete, which ask the server by name,
+saw the true state.
+
+Two things learned on the way:
+
+- The first `karwan-check` deploy came out as `0070dfe2…e9fb`, and a redeploy of
+  the same source and config as `0080cdf7…0126`: the TypeScript build is not
+  byte-for-byte repeatable. After the bindings run, **do not redeploy** a bound
+  workflow. A new id needs a new binding through the timelock, another 24 hours.
+- Every hosted run fails until the Vault DON holds the secrets and production
+  serves `/api/cre`.
+
+The timelock batch for these ids is
+`contracts/deployments/cre-5042002-2026-10-28.schedule.json` and `.execute.json`
+(salt `0xa78b06db…c233`). Simulated on Arc Testnet on 28 October: the schedule
+call as the owner Safe, each `bindWorkflow` and `setIssuer(adapter, true)` as
+the timelock, all succeed; `setIssuer` sent by the Safe directly reverts.
+
 ## What runs when
 
 | Step | Who | Waits for |
@@ -190,3 +236,40 @@ can write a GitHub work fact.
 The broadcast files, the deploy output with each workflow id, the Safe
 transactions, and one successful execution per workflow from the CRE UI. A
 hosted execution is the first live CRE evidence; until then, say simulated.
+
+## Live x402 dry run on a real Arc Testnet deal
+
+Prepared 28 October 2026; run once the bindings execute (from 29 October
+20:40 UTC). An agent for a deal's buyer pays 0.25 USDC over x402, Chainlink's
+network replays the deal's agreed tests on GitHub, and its signed answer
+releases the fee on Arc.
+
+- `contracts/script/CreLiveDryRunDeal.s.sol` opens one 5 USDC deal on the
+  suite's Agreement escrow with the replay fixture's policy
+  (`0xd4a6ce8c…0a03`) as `checkPolicy` and the suite verifier, and the seller
+  accepts it. A second run sends nothing.
+- `backend/src/scripts/cre-seed-policy.ts` stores that policy in production so
+  the workflow can fetch it by fingerprint; it writes nothing unless the
+  fingerprint matches.
+- `backend/src/scripts/cre-dry-run-agent.ts` is the agent: 402 offer, signed
+  `ReceiveWithAuthorization`, 202, then Arc's fee run until it is released.
+- Production settings (testnet `.env` only): `CRE_SUITE_ENABLED=1`, the three
+  workflow ids, `CRE_WORKFLOW_OWNER`, `CRE_REGISTRY_RPC_URL`
+  (`https://ethereum-rpc.publicnode.com`), `CRE_ADAPTER_ADDR`, `CRE_FEES_ADDR`,
+  `CRE_IDENTITY_ADDR` (`0x5409…3D5D`), `CRE_VERIFIER_K_ADDR` (the suite
+  verifier `0xCD39…AAa8`, so its deals count as having an agreed check),
+  `CRE_ARC_RPC_URL`, and from node-services `CRE_WORKFLOW_TOKEN`,
+  `CRE_GATEWAY_SIGNER_KEY` and `CRE_RELAYER_KEY` (relayer
+  `0x0273707E2d2fcDf26092BE0b8307cEFd02FB5527`, about 1 USDC for gas).
+
+Rehearsed 28 October on a fork of Arc Testnet at block 69,560,824 with
+throwaway wallets: the deal script opened and accepted deal `0x5feab943…d6ec`
+on the real suite state; Karwan's x402 route (built from these settings,
+pointed at the fork) answered 402 with the fee contract as payee, took the
+signed authorization, relayed `open` and held 0.25 USDC; with the gateway on a
+closed port the run reported "not started" and refundable, as it should. The
+same day a deliberately malformed request through Chainlink's real gateway,
+signed with `CRE_GATEWAY_SIGNER_KEY`, ran `karwan-check` (execution
+`e4ada571…e1f5`, SUCCESS, trigger only), so the gateway accepts Karwan's key.
+Not rehearsed: the DON's signed write through the production forwarder, which
+needs the bindings.

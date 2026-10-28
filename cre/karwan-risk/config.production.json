@@ -2,8 +2,10 @@
   "schedule": "0 */2 * * * *",
   "chainId": 5042002,
   "chainSelectorName": "arc-testnet",
-  "families": ["0x0000000000000000000000000000000000000001"],
-  "adapter": "0x0000000000000000000000000000000000000004",
+  "families": [
+    "0x55460D2b8b0D8067Ea33406b310224B5bd44F43C"
+  ],
+  "adapter": "0x4eA2959C8843922b79f39976351543e46FC679CD",
   "karwanApi": "https://api.karwan.site",
   "apiTokenSecretId": "CRE_WORKFLOW_TOKEN",
   "gasLimit": "7000000",

@@ -36,6 +36,7 @@ import { startRecordReadSweep } from './reputation/recordReadSweep.js';
 import { reputationRoutes } from './routes/reputation.js';
 import { dealsRoutes } from './routes/deals.js';
 import { creDeliveryRequestRoutes } from './routes/creDeliveryRequest.js';
+import { creRoutesFromEnv, x402CreRoutesFromEnv } from './cre/wiring.js';
 import { paytagRoutes } from './routes/paytag.js';
 import { cashoutRoutes } from './routes/cashout.js';
 import { networkRoutes } from './routes/network.js';
@@ -132,7 +133,8 @@ import { liveRatingToolDeps, startRatingAsker } from './ratings/live.js';
 import { recordDeps } from './verification/recordLive.js';
 import { startFactPublisher } from './verification/publisherLive.js';
 import { partnersRoutes } from './routes/partners.js';
-import { x402Routes } from './routes/x402.js';
+import { listX402Endpoints, x402Routes } from './routes/x402.js';
+import { CRE_X402_ENDPOINTS } from './routes/x402Cre.js';
 import { createReputationSourcesRoutes } from './routes/reputationSources.js';
 import { readersOf } from './db/recordReads.js';
 import { readsBalanceUsdc } from './x402/buyerClient.js';
@@ -453,6 +455,15 @@ app.route('/api/gateway', gatewayRoutes);
 app.route('/api/reputation', reputationRoutes);
 app.route('/api/deals', dealsRoutes);
 app.route('/api/cre/delivery-request', creDeliveryRequestRoutes);
+// The suite CRE workflows (view 12). Each is null, and so not served, until
+// CRE_SUITE_ENABLED and its addresses and keys are set.
+const creRoutes = await creRoutesFromEnv();
+if (creRoutes) app.route('/api/cre', creRoutes);
+const x402CreRoutes = await x402CreRoutesFromEnv();
+if (x402CreRoutes) {
+  app.route('/api/x402/cre', x402CreRoutes);
+  listX402Endpoints(CRE_X402_ENDPOINTS);
+}
 app.route('/api/cashout', cashoutRoutes);
 app.route('/api/network', networkRoutes);
 app.route('/api/activation', activationRoutes);
