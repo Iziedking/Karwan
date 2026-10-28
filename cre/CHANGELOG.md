@@ -120,6 +120,16 @@ The simulations found two defects, both fixed in commit `2b7bc94c`:
 - The simulator reports a report the receiver refused as executed, so a result
   now counts only when Arc shows it.
 
+On 28 October 2026 the paid dry run an agent buys over x402 also ran under
+`cre workflow simulate` on a new fork: the fee was held in `KarwanCreFees`, the
+HTTP trigger dispatched the replay, and the collect run's signed answer released
+the fee and reached Karwan. Details under "x402 dry run in the CRE simulator,
+28 October 2026" in the CRE README. The same day the backend mounted the routes
+the workflows and agents call (`/api/cre`, `/api/x402/cre`, migration 48), off
+until the contracts are deployed, and
+[DEPLOY-SUITE.md](https://github.com/Iziedking/Karwan/blob/main/cre/DEPLOY-SUITE.md)
+set out the hosted deployment.
+
 ### Commits
 
 | Date | Commit | Change |
@@ -170,7 +180,7 @@ git log --since=2026-09-05 --until=2026-09-15 -- cre contracts/src/KarwanEvidenc
 ## Status, stated plainly
 
 - Simulated with the CRE CLI: all three Phase 2 workflows, on a fork of Arc
-  Testnet.
+  Testnet, including an x402 dry run paid into the fee contract.
 - Deployed: the Phase 1 receiver on Arc Testnet, and the Phase 1 workflow,
   registered but blocked by the DON error above.
 - Not deployed yet: the Phase 2 adapter, verifiers and fee contract, and the

@@ -149,8 +149,8 @@ export function createMemoryCreStore(): CreStore {
   };
 }
 
-/// Postgres tables for the store. Registered as a numbered migration in
-/// db/migrations.ts (owner wiring step); kept here so the CRE module is whole.
+/// Postgres tables for the store, run as numbered migration 48 in
+/// db/migrations.ts; kept here so the CRE module is whole.
 export const CRE_STORE_SQL = `
 CREATE TABLE cre_documents_v1 (
   hash TEXT PRIMARY KEY CHECK (hash ~ '^0x[0-9a-f]{64}$'),

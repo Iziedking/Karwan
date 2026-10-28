@@ -253,7 +253,7 @@ The workflow starts a dry run only while its fee is held on Arc. Only a party's 
 | karwan-record: work facts from GitHub | Built. Run in Chainlink's CRE simulator; the proof and the published rule were checked, and the account tested did not reach level 1 |
 | Dry-run fees held by KarwanCreFees, released by a signed answer or refunded after an hour | Built, not deployed. Tested on a fork of Arc Testnet with Arc's own USDC |
 | karwan-risk: timeouts, outcome write retries and alerts | Built. Run in Chainlink's CRE simulator on the fork; alerts reach Karwan's logs until the suite's deal flow names who to tell |
-| x402 dry runs and evidence for agents | Built, not yet served |
+| x402 dry runs and evidence for agents | Built and mounted at `/api/x402/cre`, with the workflow routes at `/api/cre` and their tables in migration 48. A paid dry run ran in Chainlink's CRE simulator on a fork of Arc Testnet: the fee was held, the replay ran, and a signed answer released it. Served, and listed in the x402 directory, only once the suite settings name a deployed adapter, fee contract and relayer. Off until then |
 | CRE on Arc mainnet | Not available. CRE supports Arc Testnet only |
 
 Contract and module notes: the adapter's address must exist before any check verifier that lists it, because a verifier's signers are fixed when it is deployed. Verifiers and the adapter's issuer role are registered through the 48-hour timelock in view 11. A deal keeps the verifier it was funded with.

@@ -1,3 +1,5 @@
+import { CRE_STORE_SQL } from '../cre/store.js';
+
 export interface SqlQueryResult<TRow extends Record<string, unknown> = Record<string, unknown>> {
   rows: TRow[];
 }
@@ -1312,6 +1314,13 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       CREATE UNIQUE INDEX passport_shares_token ON passport_shares_v1 (token_hash);
       CREATE INDEX passport_shares_subject ON passport_shares_v1 (subject, expires_at);
     `,
+  },
+  {
+    // The documents, check queue, dry runs and open-deal index the CRE
+    // workflows read through /api/cre and /api/x402/cre (view 12).
+    version: 48,
+    name: 'cre_suite_store',
+    sql: CRE_STORE_SQL,
   },
 ] as const;
 

@@ -2,6 +2,7 @@
 # Run the CRE CLI on node-services in a throwaway workspace, never on the laptop.
 #   scripts/ops/cre-remote.sh simulate karwan-check --target staging-settings --trigger-index 0 [...]
 #   scripts/ops/cre-remote.sh exec -- <cmd>     run a command in the workspace's cre/ folder
+#   scripts/ops/cre-remote.sh tty -- <cmd>      the same with a terminal, for a command that asks to confirm
 #   scripts/ops/cre-remote.sh --clean
 # The CLI reads CRE_API_KEY from ~/.karwan-cre-env on node-services (owner
 # creates it once, mode 600); nothing secret leaves that host.
@@ -54,6 +55,12 @@ run() {
     docker run --rm --network host \$ENV -v \$CA:/etc/ssl/certs/ca-certificates.crt:ro -v $W:/w -w /w/repo/cre --entrypoint sh $BUN_IMAGE -c $(printf '%q' "$1")" < /dev/null
 }
 
+# A terminal end to end, for `cre workflow delete`, which asks for the name.
+run_tty() {
+  ssh -t $H "ENV=; [ -f ~/.karwan-cre-env ] && ENV='--env-file /home/ubuntu/.karwan-cre-env'
+    docker run --rm -it --network host \$ENV -v /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro -v $W:/w -w /w/repo/cre --entrypoint sh $BUN_IMAGE -c $(printf '%q' "$1")"
+}
+
 case "${1:-}" in
   simulate)
     DIR=$2
@@ -67,8 +74,13 @@ case "${1:-}" in
     [ "${1:-}" = "--" ] && shift
     run "$(printf '%q ' "$@")"
     ;;
+  tty)
+    shift
+    [ "${1:-}" = "--" ] && shift
+    run_tty "$(printf '%q ' "$@")"
+    ;;
   *)
-    echo "usage: $0 simulate <workflow-dir> <cre args...> | exec -- <cmd> | --clean" >&2
+    echo "usage: $0 simulate <workflow-dir> <cre args...> | exec -- <cmd> | tty -- <cmd> | --clean" >&2
     exit 2
     ;;
 esac

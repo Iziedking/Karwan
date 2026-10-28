@@ -98,6 +98,10 @@ test(
             'money_out_spend_v1',
             'money_out_state_v1',
             'world_id_account_checks_v1',
+            'cre_documents_v1',
+            'cre_check_items_v1',
+            'cre_dry_runs_v1',
+            'cre_watch_v1',
           ]) {
             assert.equal(names.has(table), true, `${schema} is missing ${table}`);
           }

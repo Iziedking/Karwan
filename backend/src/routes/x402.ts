@@ -87,6 +87,20 @@ async function chargeRead(
 
 export const x402Routes = new Hono();
 
+export interface X402Endpoint {
+  path: string;
+  priceUsd: number;
+  returns: string;
+}
+
+const mounted: X402Endpoint[] = [];
+
+/// Lists endpoints served by another router under /api/x402, once they are
+/// mounted, so the directory never names a route that is not served.
+export function listX402Endpoints(entries: readonly X402Endpoint[]): void {
+  mounted.push(...entries);
+}
+
 /// GET /api/x402: free directory of the paid endpoints.
 x402Routes.get('/', (c) => {
   return c.json({
@@ -127,6 +141,7 @@ x402Routes.get('/', (c) => {
         returns:
           'On-platform demand for a skill: count of recent open briefs requesting it (comma-separated keywords) and a 0-1 demand heat. Lets a seller agent price up when a skill is hot.',
       },
+      ...mounted,
     ],
   });
 });

@@ -8,6 +8,7 @@ import {KarwanRecord} from "../src/suite/KarwanRecord.sol";
 import {KarwanAgreementEscrow} from "../src/suite/KarwanAgreementEscrow.sol";
 import {KarwanCheckVerifier} from "../src/suite/KarwanCheckVerifier.sol";
 import {KarwanCreAdapter} from "../src/suite/KarwanCreAdapter.sol";
+import {KarwanCreFees} from "../src/suite/KarwanCreFees.sol";
 import {AgreementTerms, AgreementBounds} from "../src/suite/agreement/AgreementTypes.sol";
 import {DeployCreAdapter} from "./DeployCreAdapter.s.sol";
 
@@ -43,7 +44,8 @@ contract CreForkScenario is Script {
         KarwanRecord record = new KarwanRecord(address(hub));
         hub.wire(address(identity), address(record), deployer);
         KarwanAgreementEscrow escrow = new KarwanAgreementEscrow(address(hub), AgreementBounds(1 hours, 30 days, 365 days));
-        hub.setFeeRecipient(deployer);
+        // The hub refuses the stake vault, which is the deployer here, as fee recipient.
+        hub.setFeeRecipient(checker);
         hub.setGuardian(deployer);
         hub.setReviewers(deployer, deployer);
         hub.setAsset(USDC, true, 5_000e6);
@@ -59,6 +61,8 @@ contract CreForkScenario is Script {
         KarwanCheckVerifier verifier = new KarwanCheckVerifier(signers, 1);
         hub.setVerifier(address(verifier), true);
         hub.setIssuer(address(adapter), true);
+        // 0.25 USDC, the x402 dry-run price DeployCreFees fixes.
+        KarwanCreFees fees = new KarwanCreFees(USDC, address(adapter), checker, 250_000);
         IUsdc(USDC).approve(address(escrow), type(uint256).max);
 
         AgreementTerms memory t;
@@ -90,6 +94,7 @@ contract CreForkScenario is Script {
         console.log("escrow", address(escrow));
         console.log("adapter", address(adapter));
         console.log("verifier V-CRE|K", address(verifier));
+        console.log("fees", address(fees));
         console.logBytes32(dealId);
     }
 }

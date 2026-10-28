@@ -10,6 +10,26 @@ import type { X402Payment } from '../x402/sellerFacilitator.js';
 /// signs, and anyone can return it to the payer after an hour without one.
 export const CRE_PRICES = { dryRun: 0.25, evidence: 0.01 } as const;
 
+/// The entries the free x402 directory lists while these routes are served.
+export const CRE_X402_ENDPOINTS = [
+  {
+    path: '/api/x402/cre/dry-run/:family/:dealId',
+    priceUsd: CRE_PRICES.dryRun,
+    returns:
+      "Runs a deal's agreed checks on a branch on Chainlink CRE, for the deal's buyer or seller. Paid by a USDC ReceiveWithAuthorization to KarwanCreFees on Arc, named in the 402 offer: released only by a CRE answer, refundable by anyone after an hour. Returns the run id to poll.",
+  },
+  {
+    path: '/api/x402/cre/dry-run/:id',
+    priceUsd: 0,
+    returns: 'The state of a paid dry run, its CRE-signed result once answered, or the refund call once the hour passes.',
+  },
+  {
+    path: '/api/x402/cre/evidence/:family/:dealId/:revision',
+    priceUsd: CRE_PRICES.evidence,
+    returns: "The evidence document behind a delivery check, for the deal's buyer or seller, with how to check it against the result the CRE adapter holds on Arc.",
+  },
+] as const;
+
 /// A payer's signed USDC ReceiveWithAuthorization for the fee contract.
 export interface FeeAuthorization {
   from: string;

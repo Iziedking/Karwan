@@ -392,3 +392,34 @@ and ignores a block hash, so the `Delivered` log is now found by block number
 and checked against its hash; and the simulator reports a report the receiver
 refused as executed, so karwan-check now counts a write only when Arc shows its
 effect.
+
+## x402 dry run in the CRE simulator, 28 October 2026
+
+The paid dry run an agent buys over x402 ran end to end under
+`cre workflow simulate` (CLI v1.38.0) on a fresh fork of Arc Testnet at block
+69,520,901 on node-services. `contracts/script/CreForkScenario.s.sol` deployed
+the suite, the adapter on the simulation forwarder, V-CRE|K, `KarwanCreFees`
+(0.25 USDC) and a delivered deal (`0xc5ce2a76…7015`); `BindCreWorkflow` bound
+kinds 1 and 4 to the simulator's workflow. Arc's fork refuses Anvil's public
+test accounts, so the run used throwaway keys funded on the fork only.
+
+- **The payment.** A payer signed a USDC `ReceiveWithAuthorization` to the fee
+  contract and a relayer called `open`: run `0xf8631596…ebad`, state open,
+  0.25 USDC held.
+- **karwan-check, HTTP trigger.** With the run id, deal and branch commit as the
+  payload, it read the terms from Arc, matched the policy from Karwan to its
+  fingerprint on Arc, confirmed the replay runner is pinned and the fee is held,
+  and dispatched the replay: `{"outcome":"dispatched"}`. GitHub run
+  40717194731 replayed the agreed items on commit `df41b5c1`.
+- **karwan-check, schedule.** It read the finished run, decided FAIL (item `b`
+  fails on purpose) and wrote a DRY report with `--broadcast`:
+  `{"outcome":"dry-run","decision":"FAIL"}`. The forwarder logged
+  `ReportProcessed(true)` in `0x70f986d5…244f`, the fee contract moved the run to
+  released and paid out its 0.25 USDC, and Karwan's `/api/cre/dry-run/result`
+  accepted the signed result (200), so the agent's poll returns it.
+
+The first attempt that day released its fee the same way, but Karwan refused
+the result with 401: the simulation API had been started without the
+simulator's workflow id and owner (`SIM_WORKFLOW_IDS`, `SIM_WORKFLOW_OWNER`).
+That was the harness, not the route. This is a simulation against a fork, not a
+hosted CRE run or an Arc Testnet transaction.

@@ -81,3 +81,16 @@ test('a payment that fails to settle is not counted', async () => {
   assert.equal((await paidReadTotals()).reads, 2);
   settles = true;
 });
+
+test('the directory names the CRE endpoints only once they are listed', async () => {
+  const { listX402Endpoints } = await import('./x402.js');
+  const { CRE_X402_ENDPOINTS } = await import('./x402Cre.js');
+  const paths = async () =>
+    ((await (await get('/', false)).json()) as { endpoints: { path: string }[] }).endpoints.map((e) => e.path);
+  assert.equal((await paths()).some((p) => p.startsWith('/api/x402/cre/')), false);
+  listX402Endpoints(CRE_X402_ENDPOINTS);
+  assert.deepEqual(
+    (await paths()).filter((p) => p.startsWith('/api/x402/cre/')),
+    CRE_X402_ENDPOINTS.map((e) => e.path),
+  );
+});
