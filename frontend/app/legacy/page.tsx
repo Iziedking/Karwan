@@ -115,30 +115,22 @@ function LegacyPageInner() {
 
   if (!address) return null;
 
-  if (windowState && !windowState.open) {
+  // The open layout reads the old escrow's positions and deals, so it waits
+  // until the window is known to be open.
+  if (!windowState) {
     return (
       <FullBleed>
-        <Band tone="dark" overlay={<GridOverlay />}>
-          <div className="max-w-[60ch]">
-            <SectionTag tone="dark">{lp.closed.tag}</SectionTag>
-            <HeroHeadline size="md">
-              {lp.closed.title}<Punc>.</Punc>
-            </HeroHeadline>
-            <p className="mt-6 text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
-              {lp.closed.body}
-            </p>
-            <Link
-              href="/"
-              className="mt-8 inline-flex min-h-11 items-center gap-2 px-5 py-3 mono text-[14px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)]"
-              style={{
-                borderRadius: 12,
-              }}
-            >
-              {lp.closed.home}
-            </Link>
-          </div>
+        <Band tone="dark" overlay={<GridOverlay />} compact>
+          <div className="h-32 max-w-[60ch] animate-pulse rounded-2xl bg-white/[0.06]" />
         </Band>
-        <PreviousEscrowDeals />
+      </FullBleed>
+    );
+  }
+
+  if (!windowState.open) {
+    return (
+      <FullBleed>
+        <PreviousEscrowDeals showEmpty />
       </FullBleed>
     );
   }
