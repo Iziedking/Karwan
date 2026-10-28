@@ -110,7 +110,7 @@ export function BalancesCard({
           {subtitle ?? bc.chainCountTemplate.replace('{n}', String(rows.length))}
         </span>
       </span>
-      <span className="shrink-0 text-end">
+      <span className="shrink-0 sm:text-end">
         <span className="block text-[14px] text-[var(--lp-text-muted)]">{bc.total}</span>
         <span className="mono mt-0.5 block text-[24px] font-semibold leading-none tracking-[-0.03em]">
           {total === null ? '-' : <AnimatedNumber value={total} decimals={2} />}
@@ -122,7 +122,8 @@ export function BalancesCard({
 
   return (
     <div className={CARD}>
-      <div className="flex items-start justify-between gap-4 px-5 pb-4 pt-5 sm:px-6">{header}</div>
+      {/* On a phone the total sits under the title, so the title keeps its line. */}
+      <div className="flex flex-col gap-3 px-5 pb-4 pt-5 sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:px-6">{header}</div>
 
       {DEALS_AVAILABLE ? (
         <div className="px-5 pb-2 sm:px-6">
