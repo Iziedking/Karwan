@@ -158,6 +158,7 @@ import { findLegacyPositions } from '../routes/legacyContracts.js';
 import { liveLegacyDeps } from '../routes/legacyContractsLive.js';
 import { financeTools } from './financeTools.js';
 import { contestTools } from './contestTools.js';
+import { workTools } from './workTools.js';
 import { entryFiles } from '../contests/entryFiles.js';
 import type { FinanceDeal } from './finance.js';
 import { callAsAccount } from '../channels/inProcess.js';
@@ -967,7 +968,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
 
     set_up_my_agents: tool({
       description:
-        "Set up or change how this person's agents work, from what they say: what they want Karwan to do (goals), what they do or sell, their usual price and delivery time, what they buy and their budget, their business name, where they already work, whether they have clients already or want Karwan to find them, whether the agent makes offers on its own or asks first, how to reach them, and where they are. Pass only what they said; the rest is kept from what was saved. Shows a Here's your Karwan card; nothing is saved until they confirm it. Use for 'set up my agent', 'change my price to 25 to 45', 'stop making offers for me', 'I sell shea butter now'.",
+        "Set up or change how this person's agents work, from what they say: what they want Karwan to do (goals), what they do or sell, their usual price and delivery time, what they buy and their budget, their business name, where they already work, whether they have clients already or want Karwan to find them, whether the agent makes offers on its own (offers), asks first about every fitting request (ask) or may also agree to a price inside their limits for them (agree, Agree for me), how to reach them, and where they are. Pass only what they said; the rest is kept from what was saved. Shows a Here's your Karwan card; nothing is saved until they confirm it. Use for 'set up my agent', 'change my price to 25 to 45', 'stop making offers for me', 'I sell shea butter now'.",
       inputSchema: z.object({
         goals: z.array(z.enum(['work', 'sell', 'buy', 'business', 'record'])).optional(),
         what: z.string().optional(),
@@ -976,7 +977,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
         business: z.string().optional(),
         places: z.string().optional(),
         clients: z.enum(['own', 'find', 'both']).optional(),
-        own: z.enum(['offers', 'ask']).optional(),
+        own: z.enum(['offers', 'ask', 'agree']).optional(),
         reach: z.enum(['telegram', 'email', 'both']).optional(),
         where: z.string().optional(),
         paid: z.enum(['one_time', 'milestones', 'goods']).optional(),
@@ -2647,6 +2648,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
       now: () => Date.now(),
     }),
     ...contestTools(address, actions, { call: callAsAccount, heldEntryFiles: (who) => entryFiles.heldCount(who, Date.now()) }),
+    ...workTools(address, actions, { call: callAsAccount }),
   };
 }
 

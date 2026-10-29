@@ -392,7 +392,7 @@ export interface Workspace {
 export interface UserProfile {
   /// The setup conversation's answers (view 19).
   goals?: Goal[];
-  agentPrefs?: { findClients?: boolean; agentMode?: 'offers' | 'ask'; sellerPriceSet?: boolean; buyerPriceSet?: boolean };
+  agentPrefs?: { findClients?: boolean; agentMode?: 'offers' | 'ask' | 'agree'; sellerPriceSet?: boolean; buyerPriceSet?: boolean };
   /// The ways this person deals, one per kind of deal (view 26). Absent until saved.
   agentWays?: import('@/features/profile/ways').AgentWays;
   ownWords?: { what?: string; price?: string; buy?: string; business?: string };
@@ -1938,6 +1938,15 @@ export interface AssistantConfirmAction {
     | 'contest_enter'
     | 'contest_award'
     | 'contest_cancel'
+    | 'work_offer'
+    | 'work_accept'
+    | 'work_decline'
+    | 'work_cancel'
+    | 'work_notice'
+    | 'work_fund'
+    | 'work_hours'
+    | 'work_approve'
+    | 'work_object'
     | 'fund_agent'
     | 'pool_usdc_web3'
     | 'fund_agent_web3'
@@ -2760,6 +2769,95 @@ export interface ContestView {
   mine?: boolean;
   entryList?: ContestEntryView[];
   myEntry?: ContestEntryView;
+}
+
+/// Hourly work and monthly retainers on the time escrow (view 32).
+export type WorkKind = 'hourly' | 'monthly';
+export type WorkStatus = 'offering' | 'offered' | 'active' | 'ending' | 'closed' | 'cancelled' | 'declined' | 'failed';
+export interface WorkInput {
+  worker: string;
+  kind: WorkKind;
+  rateUsdc: string;
+  maxHours?: number;
+  periods: number;
+  startsInDays?: number;
+  title: string;
+  brief: string;
+}
+export interface WorkCard {
+  kind: WorkKind;
+  title: string;
+  brief: string;
+  worker: string;
+  rateMicros: string;
+  maxHours: number;
+  periods: number;
+  startsAt: number;
+  budgetMicros: string;
+  feeHalfMicros: string;
+  totalMicros: string;
+  mostMicros: string;
+  note: string;
+}
+export interface WorkWeekView {
+  k: number;
+  fundedMicros: string;
+  loggedMinutes: number;
+  approvedMinutes: number;
+  objectedMinutes: number;
+  log: { at: number; minutes: number; note: string }[];
+  status: 'funded' | 'logged' | 'objected' | 'settled';
+  paidNetMicros?: string;
+  backMicros?: string;
+  reason?: string;
+  start: number;
+  end: number;
+  logBy: number;
+  reviewBy: number;
+  settleAt: number;
+  canLog: boolean;
+  canApprove: boolean;
+  canObject: boolean;
+  ifPaid: { netMicros: string; backMicros: string; feeMicros: string };
+}
+export interface WorkView {
+  id: string;
+  kind: WorkKind;
+  role: 'hirer' | 'worker';
+  hirer: string;
+  worker: string;
+  hirerName: string;
+  workerName: string;
+  title: string;
+  brief: string;
+  rateMicros: string;
+  maxHours: number;
+  periods: number;
+  runs: number;
+  startsAt: number;
+  feeBps: number;
+  status: WorkStatus;
+  weeks: WorkWeekView[];
+  noticeBy?: 'hirer' | 'worker';
+  weekTotalMicros: string;
+  nextWeek: { k: number; totalMicros: string } | null;
+  fundBlocked: string | null;
+  canAccept: boolean;
+  canTakeBack: boolean;
+  canGiveNotice: boolean;
+}
+export interface WorkRow {
+  id: string;
+  kind: WorkKind;
+  title: string;
+  status: WorkStatus;
+  role: 'hirer' | 'worker';
+  rateMicros: string;
+  maxHours: number;
+  periods: number;
+  startsAt: number;
+  weeks: number;
+  updatedAt: number;
 }
 
 export const api = {
@@ -5235,6 +5333,21 @@ export const api = {
     json<{ contest: ContestView }>(`/api/contests/${encodeURIComponent(id)}/award`, { method: 'POST', body: JSON.stringify({ entryIds }) }),
   cancelContest: (id: string) =>
     json<{ contest: ContestView }>(`/api/contests/${encodeURIComponent(id)}/cancel`, { method: 'POST', body: JSON.stringify({}) }),
+  myWork: () => json<{ work: WorkRow[] }>('/api/work/mine'),
+  getWork: (id: string) => json<{ work: WorkView }>(`/api/work/${encodeURIComponent(id)}`),
+  draftWork: (body: WorkInput) => json<{ card: WorkCard }>('/api/work/draft', { method: 'POST', body: JSON.stringify(body) }),
+  offerWork: (body: WorkInput) => json<{ work: WorkView }>('/api/work', { method: 'POST', body: JSON.stringify(body) }),
+  acceptWork: (id: string) => json<{ work: WorkView }>(`/api/work/${encodeURIComponent(id)}/accept`, { method: 'POST', body: JSON.stringify({}) }),
+  declineWork: (id: string) => json<{ work: WorkView }>(`/api/work/${encodeURIComponent(id)}/decline`, { method: 'POST', body: JSON.stringify({}) }),
+  cancelWork: (id: string) => json<{ work: WorkView }>(`/api/work/${encodeURIComponent(id)}/cancel`, { method: 'POST', body: JSON.stringify({}) }),
+  noticeWork: (id: string) => json<{ work: WorkView }>(`/api/work/${encodeURIComponent(id)}/notice`, { method: 'POST', body: JSON.stringify({}) }),
+  fundWork: (id: string) => json<{ work: WorkView }>(`/api/work/${encodeURIComponent(id)}/fund`, { method: 'POST', body: JSON.stringify({}) }),
+  logHours: (id: string, body: { minutes: number; note?: string; k?: number }) =>
+    json<{ work: WorkView }>(`/api/work/${encodeURIComponent(id)}/hours`, { method: 'POST', body: JSON.stringify(body) }),
+  approveHours: (id: string, k: number) =>
+    json<{ work: WorkView; paidMicros?: string }>(`/api/work/${encodeURIComponent(id)}/approve`, { method: 'POST', body: JSON.stringify({ k }) }),
+  objectHours: (id: string, body: { k: number; minutes: number; reason: string }) =>
+    json<{ work: WorkView }>(`/api/work/${encodeURIComponent(id)}/object`, { method: 'POST', body: JSON.stringify(body) }),
   factoringOpenComplete: (offerId: string, txHash: string) =>
     json<{ state: 'accepted' }>(`/api/factoring/offers/${offerId}/open/complete`, {
       method: 'POST',
