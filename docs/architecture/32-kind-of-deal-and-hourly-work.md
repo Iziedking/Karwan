@@ -122,10 +122,10 @@ Logged in `docs/arc-circle-checks.md` before any code: the deployed Time escrow 
 ## Decisions for the owner
 
 1. **Hours the hirer does not answer** (decided 25 Oct 2026, the same rule as every deal): the hirer reviews within the review time, can ask once for more time or object to hours, and unanswered hours are paid when review ends. Objected hours go to a dispute where each side has 72 hours to give their side.
-2. **A week is the cycle** for pay by the hour, a month for a retainer.
-3. **Review time for hours:** 3 days after the week's logging window, which is 2 days.
-4. **Notice to end:** one week for hourly, one month for a retainer.
-5. **Unused budget** goes back to the hirer after each week, rather than carrying forward.
+2. **A week is the cycle** for pay by the hour, a month for a retainer (decided 29 Oct 2026; a month is 30 days, the contract's longest cycle is 31).
+3. **Review time for hours:** 3 days after the week's logging window, which is 2 days (decided 29 Oct 2026, the same for a retainer).
+4. **Notice to end:** one week for hourly, one month for a retainer (decided 29 Oct 2026: one cycle of notice for both).
+5. **Unused budget** goes back to the hirer after each week, rather than carrying forward (decided 29 Oct 2026).
 6. **The limits in "Open to everyone":** 100 USDC for a new unverified seller, 50 USDC for goods with no tracking or handover, 3 settled deals before any money is paid ahead of delivery, and "far below" meaning under half the usual price of the same item on Karwan.
 7. **Selling in person** (a phone handed over at a meeting point): the buyer confirms the handover in the app, or the seller enters a code the buyer shows them, and the review time starts then.
 
@@ -138,5 +138,5 @@ Logged in `docs/arc-circle-checks.md` before any code: the deployed Time escrow 
 | Goods open to every account, shipped or handed over in person | Planned |
 | Deals refused or held by the rules in "Open to everyone" | Planned |
 | "How you pay" on the deal form, fixed price or by the hour | Planned |
-| Hourly and retainer engagements on the Time escrow | Planned |
+| Hourly and retainer engagements on the Time escrow | Building, from 29 Oct 2026: both kinds, the timings in decisions 2 to 5, and a worker with no finished engagement funded one week at a time (after that, up to 4 weeks ahead) |
 | Agent jobs and bounties (Jobs family) | Later |
