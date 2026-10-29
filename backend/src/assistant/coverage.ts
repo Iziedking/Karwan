@@ -96,16 +96,18 @@ export const COVERAGE: Record<string, Coverage> = {
   'POST /api/yield/claim': { by: 'assistant', via: 'claim_yield' },
   'POST /api/legacy/step': { by: 'assistant', via: 'legacy_step' },
 
-  // Getting paid early (phase B). Purchase-order financing is off on testnet
-  // until a contract the escrow authorises is live (T4.2); its three stay planned.
+  // Getting paid early runs on the escrow family (view 18): purchase-order
+  // financing and invoice factoring are one line, from acceptance on.
   'POST /api/factoring/request': { by: 'assistant', via: 'finance_ask' },
   'POST /api/factoring/withdraw-request': { by: 'assistant', via: 'finance_stop_asking' },
   'POST /api/factoring/accept': { by: 'assistant', via: 'finance_accept' },
   'POST /api/factoring/reject': { by: 'assistant', via: 'finance_reject' },
   'POST /api/factoring/offer': { by: 'assistant', via: 'finance_offer' },
-  'POST /api/po-financing/request': { by: 'planned', phase: 'B' },
-  'POST /api/po-financing/fund': { by: 'planned', phase: 'B' },
-  'POST /api/po-financing/fund-circle': { by: 'planned', phase: 'B' },
+  'POST /api/factoring/offers/:/open': { by: 'assistant', via: 'finance_pay_seller' },
+  'POST /api/factoring/offers/:/open/complete': { by: 'assistant', via: 'finance_pay_seller' },
+  'POST /api/po-financing/request': { by: 'page', why: 'Refuses new lines: purchase-order financing runs as Get paid now on new deals (view 18).' },
+  'POST /api/po-financing/fund': { by: 'page', why: 'Records a line already funded on the retired purchase-order contract.' },
+  'POST /api/po-financing/fund-circle': { by: 'page', why: 'Refuses new lines: purchase-order financing runs as Get paid now on new deals (view 18).' },
   'POST /api/po-financing/archive': { by: 'page', why: 'Dismissing a line from the retired purchase-order rail, kept on the financier desk until the last one is gone.' },
   'POST /api/po-financing/claim': UNUSED,
   'POST /api/po-financing/default': UNUSED,

@@ -6,7 +6,7 @@ import type { DealStepConfirm } from './dealActions.js';
 import type { MoneyStepConfirm } from './moneyActions.js';
 import type { AccountStepConfirm } from './accountActions.js';
 import type { GuaranteeCancelConfirm, GuaranteeCollectConfirm, GuaranteePutUpConfirm, GuaranteeTakeOutConfirm, LegacyStepConfirm } from './guarantee.js';
-import type { FinanceAcceptConfirm, FinanceApplyConfirm, FinanceAskConfirm, FinanceOfferConfirm, FinanceRejectConfirm, FinanceStopAskingConfirm } from './finance.js';
+import type { FinanceAcceptConfirm, FinanceApplyConfirm, FinanceAskConfirm, FinanceOfferConfirm, FinancePaySellerConfirm, FinanceRejectConfirm, FinanceStopAskingConfirm } from './finance.js';
 
 /// Stage 2 of the chat-native transaction surface: the ACTION ENVELOPE. An
 /// assistant reply can carry structured actions the chat UI renders as prominent
@@ -400,6 +400,7 @@ export type ConfirmAction =
   | FinanceAskConfirm
   | FinanceStopAskingConfirm
   | FinanceAcceptConfirm
+  | FinancePaySellerConfirm
   | FinanceRejectConfirm
   | FinanceOfferConfirm
   | FinanceApplyConfirm;

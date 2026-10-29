@@ -4,6 +4,7 @@ import { eq, and, desc } from 'drizzle-orm';
 import { db, pgEnabled } from './client.js';
 import { factoringOffers } from './schema.js';
 import type { UsdcTransferAuthorization } from '../chain/usdc3009.js';
+import type { SellerSigned } from '../chain/tradeFinance.js';
 
 const STORE_PATH = resolve(process.cwd(), 'data', 'factoring-offers.json');
 
@@ -15,7 +16,10 @@ export type FactoringOfferStatus =
   | 'expired'      // 24h window passed with no decision
   | 'superseded'   // the same financier re-priced; this offer was replaced
   | 'settled'      // buyer's settlement landed, financier repaid
-  | 'defaulted';   // settlement happened but financier never received repay
+  | 'defaulted'    // settlement happened but financier never received repay
+  | 'awaiting_financier' // family: the seller signed; the financier opens the line
+  | 'repaid'       // family: the line settled with the financier paid in full
+  | 'waived';      // family: the financier gave the line up
 
 export interface FactoringOffer {
   id: string;
@@ -70,6 +74,20 @@ export interface FactoringOffer {
   /// 'defaulted' and alerts the operator.
   settleAttempts?: number;
   lastSettleError?: string;
+  /// Offers on the escrow family (view 18) open a line on the trade finance
+  /// contract; absent on the older escrows.
+  rail?: 'family';
+  /// The part of the seller's deal guarantee the line holds, in micros.
+  stakeMicros?: string;
+  lineId?: `0x${string}`;
+  /// The seller's two signatures, made by their selling agent at the tap.
+  sellerSigned?: SellerSigned;
+  /// When those signatures stop working, in ms.
+  sellerDeadline?: number;
+  /// A financier whose wallet Karwan holds: Karwan opens the line for them.
+  financierWalletId?: string;
+  /// On a shortfall, what came from the seller's deal guarantee, in micros.
+  fromGuaranteeMicros?: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -215,6 +233,8 @@ export async function listPendingReceiptOffers(): Promise<FactoringOffer[]> {
 /// these each tick. (The old watcher iterated listOpenOffers, which only
 /// returns 'offered' rows, then skipped everything not 'accepted'. This was a
 /// dead loop that never settled anything.)
+/// Accepted offers on the older escrow, for its settlement watcher. A family
+/// line settles on the trade finance contract instead (familyFinancingRunner).
 export async function listAcceptedOffers(): Promise<FactoringOffer[]> {
   if (pgEnabled) {
     const rows = await db()
@@ -222,11 +242,20 @@ export async function listAcceptedOffers(): Promise<FactoringOffer[]> {
       .from(factoringOffers)
       .where(eq(factoringOffers.status, 'accepted'))
       .orderBy(desc(factoringOffers.offeredAt));
-    return rows.map((r) => r.data);
+    return rows.map((r) => r.data).filter((o) => o.rail !== 'family');
   }
   return Object.values(loadFile())
-    .filter((o) => o.status === 'accepted')
+    .filter((o) => o.status === 'accepted' && o.rail !== 'family')
     .sort((x, y) => y.offeredAt - x.offeredAt);
+}
+
+/// Family lines the runner still has to settle or keep held.
+export async function listOpenFamilyLines(): Promise<FactoringOffer[]> {
+  if (pgEnabled) {
+    const rows = await db().select().from(factoringOffers).where(eq(factoringOffers.status, 'accepted'));
+    return rows.map((r) => r.data).filter((o) => o.rail === 'family');
+  }
+  return Object.values(loadFile()).filter((o) => o.status === 'accepted' && o.rail === 'family');
 }
 
 /// Every factoring offer, newest first. This bounded read is for operator

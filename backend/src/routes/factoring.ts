@@ -1,12 +1,10 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { randomUUID } from 'node:crypto';
 import { readSession } from '../auth/session.js';
 import { getProfile, listProfiles } from '../db/profiles.js';
 import { isApprovedFinancier, financierSafeDeal } from '../profile/financier.js';
 import { isDealParty } from '../profile/dealParty.js';
 import {
-  createFactoringOffer,
   getFactoringOffer,
   listOffersForInvoice,
   listOffersByFinancier,
@@ -15,9 +13,9 @@ import {
   listPendingReceiptOffers,
   patchFactoringOffer,
   patchFactoringOfferIfStatus,
+  type FactoringOffer,
 } from '../db/factoring.js';
-import { isFactorable } from '../deals/deliveryEvidence.js';
-import { getDeal, patchDeal, listAllDeals } from '../db/deals.js';
+import { getDeal, patchDeal, listAllDeals, type DirectDeal } from '../db/deals.js';
 import { addSystemMessage } from '../chat/systemMessages.js';
 import { listAllLines as listAllPOLines } from '../db/poFinancing.js';
 import { getUserByAddress } from '../db/users.js';
@@ -28,12 +26,10 @@ import { assertFactoringAssignment } from '../chain/factoringIntegrity.js';
 import {
   verifyTransferAuthorization,
   splitSignature,
-  signTransferAuthorizationWithCircle,
 } from '../chain/usdc3009.js';
 import { vault, readEscrow, readUsdcBalance } from '../chain/contracts.js';
 import { acceptRefusal, offerRefusal } from './factoringFunding.js';
 import { rankFinancingOffers } from './factoringRanking.js';
-import { claimableUsdc, claimableForDeals } from '../deals/claimable.js';
 import { actorSignalsFor, type RepTier } from '../agents/signals.js';
 import { parseUnits, formatUnits, type Address, type Hex } from 'viem';
 import { config } from '../config.js';
@@ -51,6 +47,7 @@ import {
   selectFactoringAdvanceTxHash,
 } from './factoringAcceptance.js';
 import { onOwnIdEscrow } from '../deals/dealEscrowOps.js';
+import { familyAccept, familyOffer, familyOfferView, familyRequest, legacyRefusal, type FamilyRouteDeps } from './factoringFamily.js';
 export { factoringAdvanceRecipient } from './factoringRecipient.js';
 
 /// Invoice factoring routes.
@@ -102,11 +99,14 @@ const offerBodySchema = z.object({
   offeredAdvanceUsdc: usdcAmountSchema,
   expectedReturnUsdc: usdcAmountSchema,
   expiresInHours: z.number().int().min(1).max(168).default(24),
-  advanceAuthorization: authorizationSchema.optional(),
+  /// The part of the seller's deal guarantee the line holds; at least 10% of the advance.
+  stakeUsdc: usdcAmountSchema.optional(),
 });
 
 const acceptBodySchema = z.object({
   offerId: z.string().uuid(),
+  /// The seller agreed to put up the missing deal guarantee first.
+  putUpGap: z.boolean().optional(),
   setPayeeTxHash: hashSchema.optional(),
   /// Web3 sellers sign registry.assignReceivable themselves, since the call is
   /// seller-gated on chain, and hand back the hash. Circle sellers omit it and
@@ -144,6 +144,29 @@ const rejectBodySchema = z.object({
 
 export const factoringRoutes = new Hono();
 
+let familyDeps: FamilyRouteDeps | null = null;
+
+/// Connects the family path at boot (money/familyFinancingLive.ts); without it a
+/// family deal answers that getting paid early is not set up here.
+export function useFamilyFinancing(ports: Pick<FamilyRouteDeps, 'core' | 'receivable' | 'sellerReady' | 'freeGuarantee'> | null): void {
+  familyDeps = ports && {
+    ...ports,
+    listOffers: listOffersForInvoice,
+    patchDeal,
+    notifyFinanciers: async (deal, seller) => {
+      const financiers = (await listProfiles()).filter((p) => isApprovedFinancier(p) && !isDealParty(deal, p.address));
+      for (const financier of financiers) {
+        bus.emitEvent({
+          type: 'factoring.requested',
+          jobId: deal.jobId,
+          actor: 'seller',
+          payload: { seller, financier: financier.address, faceValueUsdc: deal.dealAmountUsdc, rail: 'family' },
+        });
+      }
+    },
+  };
+}
+
 const requestBodySchema = z.object({
   invoiceId: hashSchema,
   requestedAdvanceUsdc: usdcAmountSchema.optional(),
@@ -177,76 +200,23 @@ factoringRoutes.post('/request', async (c) => {
 
   const deal = await getDeal(body.invoiceId);
   if (!deal) return c.json({ error: 'unknown invoice' }, 404);
-  // Financing is not wired to the v3 escrow yet: its payouts can only be
-  // assigned by assigners that escrow authorises, and the financing contracts
-  // point at the v2 escrow. Refuse rather than take an advance that could not
-  // be repaid from settlement.
-  if (onOwnIdEscrow(deal)) {
-    return c.json({ error: 'financing is not available on this deal yet', code: 'FINANCING_NOT_ON_V3' }, 409);
-  }
-
+  // Older escrows take no new lines; a family deal goes to the core (view 18).
+  const moved = legacyRefusal(deal);
+  if (moved) return c.json(moved.body, moved.status);
   const caller = session.address.toLowerCase();
   if (caller !== deal.seller.toLowerCase()) {
     return c.json({ error: 'only the seller can request early payout' }, 403);
   }
-  if (deal.tradeLane !== 'finance') {
-    return c.json({ error: 'factoring is only available on trade-finance deals' }, 409);
-  }
-  // Delivery evidence is asked for per trade type. Demanding deliveryProof
-  // here excluded every goods deal, which delivers a shipment reference and
-  // never a link, so the suppliers factoring exists for could not use it.
-  if (!isFactorable(deal)) {
-    return c.json({ error: 'deal not eligible for factoring' }, 409);
-  }
-  if (deal.factoringOfferId) {
-    return c.json({ error: 'deal already has an accepted factoring offer' }, 409);
-  }
-  if ((await listOffersForInvoice(deal.jobId)).some((offer) => offer.status === 'pending_receipt')) {
-    return c.json(
-      { error: 'a financing advance is already confirmed and its receipt is being reconciled', code: 'receipt_reconciliation_required' },
-      409,
-    );
-  }
-  if (deal.poFinancingRequestedAt || deal.poFinancingId) {
-    return c.json({ error: 'deal already has a purchase-order financing line' }, 409);
-  }
-  if (body.minAdvanceUsdc && Number(body.minAdvanceUsdc) >= Number(deal.dealAmountUsdc)) {
-    return c.json({ error: 'minimum advance must be below the invoice face value' }, 400);
-  }
-  const claimable = await claimableUsdc(deal.jobId);
-  if (claimable === null || Number(claimable) <= 0) return c.json({ error: 'nothing remains to factor' }, 409);
-  if (body.requestedAdvanceUsdc && Number(body.requestedAdvanceUsdc) > Number(claimable)) {
-    return c.json({ error: `requested advance must be at most ${claimable} USDC remaining` }, 400);
-  }
-
-  const updated = await patchDeal(deal.jobId, {
-    factoringRequestedAt: Date.now(),
-    factoringMinAdvanceUsdc: body.minAdvanceUsdc,
-    factoringRequestedAdvanceUsdc: body.requestedAdvanceUsdc ?? claimable,
+  if (!familyDeps) return c.json({ error: 'getting paid early is not set up here' }, 503);
+  const reply = await familyRequest(familyDeps, {
+    deal,
+    caller,
+    requestedAdvanceUsdc: body.requestedAdvanceUsdc,
+    minAdvanceUsdc: body.minAdvanceUsdc,
   });
-
-  // This is a marketplace request, so every approved financier should hear
-  // about it. Emit one private event per financier: the personal activity feed
-  // routes on payload.financier without publishing the invoice globally.
-  // The deal's own buyer or seller may also be a financier; they never hear of it.
-  const financiers = (await listProfiles()).filter((p) => isApprovedFinancier(p) && !isDealParty(deal, p.address));
-  for (const financier of financiers) {
-    bus.emitEvent({
-      type: 'factoring.requested',
-      jobId: deal.jobId,
-      actor: 'seller',
-      payload: {
-        seller: caller,
-        financier: financier.address,
-        faceValueUsdc: deal.dealAmountUsdc,
-      },
-    });
-  }
-
-  logger.info(
-    { invoiceId: deal.jobId, seller: caller, minAdvanceUsdc: body.minAdvanceUsdc },
-    'factoring: seller requested early payout',
-  );
+  if (reply.status !== 200) return c.json(reply.body, reply.status);
+  const updated = reply.body.deal as DirectDeal | null;
+  logger.info({ invoiceId: deal.jobId, seller: caller, minAdvanceUsdc: body.minAdvanceUsdc }, 'factoring: seller requested early payout');
   return c.json({ deal: updated ? financierSafeDeal(updated) : null });
 });
 
@@ -267,11 +237,8 @@ factoringRoutes.post('/withdraw-request', async (c) => {
 
   const deal = await getDeal(body.invoiceId);
   if (!deal) return c.json({ error: 'unknown invoice' }, 404);
-  // Financing is not wired to the v3 escrow yet: its payouts can only be
-  // assigned by assigners that escrow authorises, and the financing contracts
-  // point at the v2 escrow. Refuse rather than take an advance that could not
-  // be repaid from settlement.
-  if (onOwnIdEscrow(deal)) {
+  // Withdrawing a request is never a new line, so only the v3 escrow refuses.
+  if (deal.escrowVersion === 'v3') {
     return c.json({ error: 'financing is not available on this deal yet', code: 'FINANCING_NOT_ON_V3' }, 409);
   }
   if (session.address.toLowerCase() !== deal.seller.toLowerCase()) {
@@ -337,11 +304,11 @@ factoringRoutes.get('/available', async (c) => {
       // accepted finance-lane deal, exposing counterparty, amount and timing to
       // every approved financier without the seller ever asking for an advance.
       d.factoringRequestedAt &&
-      // Delivered, with the evidence its trade type actually produces. This
-      // was `d.delivered && d.deliveryProof`, which is the services shape, so
-      // a shipped container never reached the desk however loudly its seller
-      // had asked.
-      isFactorable(d) &&
+      // On the escrow family, from acceptance on: purchase-order financing
+      // before delivery and invoice factoring after are one line (view 18).
+      // Older escrows take no new lines.
+      d.escrowVersion === 'suite' &&
+      !!d.acceptedAt && !d.settledAt && !d.cancelledAt && !d.disputed &&
       !d.factoringOfferId &&
       !financedInvoiceIds.has(d.jobId.toLowerCase()) &&
       // A financier never sees or funds a deal they are a party to.
@@ -365,7 +332,11 @@ factoringRoutes.get('/available', async (c) => {
   // A deal whose escrow could not be read is dropped from the listing rather
   // than shown at face. Better a shorter desk than a price nobody can stand
   // behind. Same for one with nothing left to claim.
-  const claimableMap = await claimableForDeals(filtered.map((d) => d.jobId));
+  const claimableMap = new Map<string, string>();
+  for (const d of filtered) {
+    const r = await familyDeps?.receivable(d.escrowDealId as `0x${string}`).catch(() => null);
+    if (r?.financeable) claimableMap.set(d.jobId, formatUnits(r.unpaid, USDC_DECIMALS));
+  }
 
   // Stamp each deal with the seller's reputation tier so the financier can price
   // risk at a glance (tier drives both the discount floor and the stake the
@@ -422,9 +393,6 @@ factoringRoutes.get('/my-qualification', async (c) => {
 /// POST /api/factoring/offer: financier proposes an offer on a seller's
 /// accepted invoice. Stored in 'offered' status until seller decides.
 factoringRoutes.post('/offer', async (c) => {
-  if (!config.KARWAN_INVOICE_REGISTRY_ADDR) {
-    return c.json({ error: 'invoice registry not configured' }, 503);
-  }
   const session = readSession(c);
   if (!session) return c.json({ error: 'not authenticated' }, 401);
   if (!isApprovedFinancier(await getProfile(session.address))) {
@@ -443,247 +411,30 @@ factoringRoutes.post('/offer', async (c) => {
   if (isDealParty(deal, session.address)) {
     return c.json({ error: 'you cannot finance a deal you are part of', code: 'financier_is_party' }, 403);
   }
-  // Financing is not wired to the v3 escrow yet: its payouts can only be
-  // assigned by assigners that escrow authorises, and the financing contracts
-  // point at the v2 escrow. Refuse rather than take an advance that could not
-  // be repaid from settlement.
-  if (onOwnIdEscrow(deal)) {
-    return c.json({ error: 'financing is not available on this deal yet', code: 'FINANCING_NOT_ON_V3' }, 409);
-  }
-  // Finance-lane only. A P2P service deal between two persons is private and
-  // never factorable; the lane separation must hold at the write path too.
-  if (deal.tradeLane !== 'finance') {
-    return c.json({ error: 'factoring is only available on trade-finance deals' }, 409);
-  }
-  if (!deal.acceptedAt || deal.settledAt || deal.cancelledAt || deal.disputed) {
-    return c.json({ error: 'deal not eligible for factoring' }, 409);
-  }
-  if (deal.factoringOfferId) {
-    return c.json({ error: 'deal already has an accepted factoring offer' }, 409);
-  }
-  const invoiceOffers = await listOffersForInvoice(body.invoiceId);
-  if (invoiceOffers.some((offer) => offer.status === 'pending_receipt')) {
-    return c.json(
-      {
-        error: 'a financing advance is already confirmed and its receipt is being reconciled',
-        code: 'receipt_reconciliation_required',
-      },
-      409,
-    );
-  }
-  if (deal.poFinancingRequestedAt || deal.poFinancingId) {
-    return c.json({ error: 'deal already has a purchase-order financing line' }, 409);
-  }
-  // Consent is enforced at the write path too, not just by leaving the invoice
-  // out of /available. A financier who kept a jobId from an earlier listing, or
-  // guessed one, must not be able to put an offer in front of a seller who has
-  // withdrawn or never asked.
-  if (!deal.factoringRequestedAt) {
-    return c.json(
-      { error: 'the seller has not asked for early payout on this invoice', code: 'not_requested' },
-      409,
-    );
-  }
-
+  const moved = legacyRefusal(deal);
+  if (moved) return c.json(moved.body, moved.status);
+  if (!familyDeps) return c.json({ error: 'getting paid early is not set up here' }, 503);
   const financier = session.address.toLowerCase();
-  const advanceRecipient = factoringAdvanceRecipient(deal);
-  // A financier must be a third party. Block both sides of the deal so the
-  // seller can't discount their own invoice to themselves and the buyer can't
-  // front their own settlement (no real capital changes hands either way).
-  if (financier === deal.seller) {
-    return c.json({ error: 'seller cannot fund their own invoice' }, 403);
-  }
-  if (financier === deal.buyer.toLowerCase()) {
-    return c.json({ error: 'buyer cannot fund their own deal' }, 403);
-  }
-
-  // Price against what is CLAIMABLE, not against invoice face.
-  //
-  // Face includes the platform fee and every tranche already released to the
-  // seller. The assignment can only pay out of what is left on the seller side,
-  // so an offer priced against face on a part-released invoice is an offer the
-  // escrow cannot honour. A 500 invoice with 50% already released can support a
-  // 250 claim, not a 430 one.
-  //
-  // This also keeps a partly-released invoice FINANCEABLE, which blocking it
-  // outright did not. The seller factors what remains, at a number that is true.
-  const claimable = await claimableUsdc(deal.jobId);
-  if (claimable === null) {
-    return c.json(
-      { error: 'could not read the escrow balance, try again shortly', code: 'escrow-unreadable' },
-      503,
-    );
-  }
-
-  const faceValueUsdc = deal.dealAmountUsdc;
-  const advance = Number(body.offeredAdvanceUsdc);
-  const expected = Number(body.expectedReturnUsdc);
-  const claimableNum = Number(claimable);
-  if (deal.factoringRequestedAdvanceUsdc && advance > Number(deal.factoringRequestedAdvanceUsdc)) {
-    return c.json({ error: 'offer exceeds the seller requested advance amount', code: 'above-requested' }, 400);
-  }
-
-  if (claimableNum <= 0) {
-    return c.json(
-      { error: 'this invoice has already paid out in full', code: 'nothing-claimable' },
-      409,
-    );
-  }
-  if (advance >= claimableNum) {
-    return c.json(
-      {
-        error: `advance must be below the ${claimableNum.toFixed(2)} USDC still claimable on this invoice`,
-        code: 'above-claimable',
-        claimableUsdc: claimable,
-      },
-      400,
-    );
-  }
-  // The seller named a floor when they asked. Refusing a lower bid here beats
-  // showing them one they have already said they will not take.
-  if (deal.factoringMinAdvanceUsdc && advance < Number(deal.factoringMinAdvanceUsdc)) {
-    return c.json(
-      {
-        error: `the seller will not consider less than ${deal.factoringMinAdvanceUsdc} USDC`,
-        code: 'below_seller_minimum',
-        minAdvanceUsdc: deal.factoringMinAdvanceUsdc,
-      },
-      409,
-    );
-  }
-  // The expected return is capped by what the escrow can actually pay. Anything
-  // above the claimable balance is a number the assignment can never reach, and
-  // the financier would discover that only at settlement.
-  if (expected <= advance || expected > claimableNum) {
-    return c.json(
-      {
-        error: `expected return must be above the advance and at most the ${claimableNum.toFixed(2)} USDC still claimable`,
-        code: 'above-claimable',
-        claimableUsdc: claimable,
-      },
-      400,
-    );
-  }
-
-  // Discount is measured against the claimable balance, because that is what is
-  // being bought. Measuring against face would understate the discount on a
-  // part-released invoice and misprice the risk for both sides.
-  const discountBps = Math.round(((claimableNum - advance) / claimableNum) * 10_000);
-  const now = Date.now();
-  const expiresAt = now + body.expiresInHours * 60 * 60 * 1000;
-
-  // The advance is paid from this wallet when the seller accepts. An offer it
-  // cannot cover would fail on chain at accept, so it does not go out.
-  const fundedMicros = await readUsdcBalance(financier).catch(() => null);
-  if (fundedMicros === null) return c.json({ error: 'could not read your wallet balance, try again' }, 503);
-  const unfunded = offerRefusal(fundedMicros, BigInt(atomicUsdc(body.offeredAdvanceUsdc)));
-  if (unfunded) return c.json(unfunded, 409);
-
-  // The advance leg needs a settlement instrument before the offer is
-  // worth anything. Circle financiers: backend signs from their identity
-  // wallet at accept time, nothing to capture. Web3 financiers: an
-  // EIP-3009 authorization signed now, valid past the offer expiry, so
-  // the seller's accept can move the advance without the financier
-  // being online.
-  const financierUser = getUserByAddress(financier);
-  if (!financierUser && !body.advanceAuthorization) {
-    return c.json(
-      { error: 'advance authorization required: sign the USDC transfer authorization for the advance' },
-      400,
-    );
-  }
-  if (body.advanceAuthorization) {
-    const problem = await verifyTransferAuthorization(body.advanceAuthorization, {
-      from: financier,
-      to: advanceRecipient,
-      valueAtomic: atomicUsdc(body.offeredAdvanceUsdc),
-      // Must cover the accept window plus an hour of margin.
-      validUntil: Math.floor(expiresAt / 1000) + 3600,
-    });
-    if (problem) {
-      return c.json({ error: 'invalid advance authorization', detail: problem }, 400);
-    }
-  }
-
-  // Circle financiers do not sign in a browser, but the registry needs an
-  // authorization to relay: assignReceivable pays the seller and records the
-  // assignment from that one signature. Producing it here from their identity
-  // wallet keeps both wallet types on the same on-chain path, rather than
-  // leaving Circle-funded offers on an unprotected rail.
-  let advanceAuthorization = body.advanceAuthorization;
-  if (!advanceAuthorization && financierUser) {
-    try {
-      advanceAuthorization = await signTransferAuthorizationWithCircle(
-        financierUser.circleIdentityWalletId,
-        financier,
-        advanceRecipient,
-        atomicUsdc(body.offeredAdvanceUsdc),
-        // Outlive the offer with an hour of margin, matching the validity the
-        // web3 path is checked against just above.
-        Math.floor((expiresAt - Date.now()) / 1000) + 3600,
-      );
-    } catch (err) {
-      logger.warn(
-        { financier, err: (err as Error).message },
-        'factoring: could not sign the advance from the Circle wallet',
-      );
-      return c.json(
-        { error: 'could not sign the advance authorization', detail: (err as Error).message },
-        502,
-      );
-    }
-  }
-
-  // A financier gets ONE live offer per invoice. Re-pricing supersedes the
-  // previous one instead of stacking a second offer against the same seller,
-  // who would otherwise see two live quotes from one counterparty and have to
-  // guess which is current.
-  const mine = invoiceOffers.find(
-    (o) => o.financier.toLowerCase() === financier && o.status === 'offered',
-  );
-  if (mine) {
-    await patchFactoringOffer(mine.id, { status: 'superseded' });
-    logger.info(
-      { offerId: mine.id, invoiceId: body.invoiceId, financier },
-      'factoring: superseded the financier\'s previous open offer',
-    );
-  }
-
-  const offer = await createFactoringOffer({
-    id: randomUUID(),
-    invoiceId: body.invoiceId,
+  // A financier whose wallet Karwan holds has the line opened for them at the tap.
+  const held = getUserByAddress(financier);
+  const reply = await familyOffer(familyDeps, {
+    deal,
     financier,
-    seller: deal.seller,
-    faceValueUsdc,
-    claimableAtOfferUsdc: claimable,
     offeredAdvanceUsdc: body.offeredAdvanceUsdc,
     expectedReturnUsdc: body.expectedReturnUsdc,
-    discountBps,
-    status: 'offered',
-    offeredAt: now,
-    expiresAt,
-    advanceAuthorization,
+    stakeUsdc: body.stakeUsdc,
+    expiresInHours: body.expiresInHours,
+    ...(held?.circleIdentityWalletId ? { walletId: held.circleIdentityWalletId } : {}),
   });
-
+  if (reply.status !== 200) return c.json(reply.body, reply.status);
+  const offer = reply.body.offer as FactoringOffer;
   bus.emitEvent({
     type: 'factoring.offered',
-    jobId: body.invoiceId,
+    jobId: deal.jobId,
     actor: 'platform',
-    payload: {
-      offerId: offer.id,
-      financier,
-      // The seller is the recipient of this offer; naming them routes the
-      // in-app notification + Telegram alert to the right party.
-      seller: deal.seller,
-      discountBps,
-      advance: body.offeredAdvanceUsdc,
-    },
+    payload: { offerId: offer.id, financier, seller: deal.seller, discountBps: offer.discountBps, advance: offer.offeredAdvanceUsdc },
   });
-
-  logger.info(
-    { offerId: offer.id, invoiceId: body.invoiceId, financier, discountBps },
-    'factoring: offer created',
-  );
+  logger.info({ offerId: offer.id, invoiceId: deal.jobId, financier, discountBps: offer.discountBps }, 'factoring: offer created');
   return c.json({ offer });
 });
 
@@ -722,7 +473,14 @@ factoringRoutes.get('/offers/:invoiceId', async (c) => {
       }),
     ),
   );
-  return c.json({ offers: [...ranked.map(({ tier, ...o }) => ({ ...o, financierTier: tier })), ...closed] });
+  // A family offer also says what it holds of the seller's deal guarantee,
+  // what they would put up first, and whether the financier still has to pay.
+  const deal = offers.some((o) => o.rail === 'family') ? await getDeal(parsed.data) : null;
+  const free = deal?.sellerAgentAddress && familyDeps
+    ? await familyDeps.freeGuarantee(deal.sellerAgentAddress as `0x${string}`).catch(() => 0n)
+    : 0n;
+  const withHold = <T extends FactoringOffer>(o: T) => ({ ...o, ...familyOfferView(o, free) });
+  return c.json({ offers: [...ranked.map(({ tier, ...o }) => withHold({ ...o, financierTier: tier })), ...closed.map(withHold)] });
 });
 
 /// GET /api/factoring/mine: offers belonging to the signed-in user as
@@ -863,9 +621,6 @@ factoringRoutes.get('/offers/:offerId/assignment', async (c) => {
 /// and the receivable assignment happen in one on-chain call; this records the
 /// result and flips state.
 factoringRoutes.post('/accept', async (c) => {
-  if (!config.KARWAN_INVOICE_REGISTRY_ADDR) {
-    return c.json({ error: 'invoice registry not configured' }, 503);
-  }
   const session = readSession(c);
   if (!session) return c.json({ error: 'not authenticated' }, 401);
 
@@ -878,7 +633,20 @@ factoringRoutes.post('/accept', async (c) => {
 
   const offer = await getFactoringOffer(body.offerId);
   if (!offer) return c.json({ error: 'unknown offer' }, 404);
+  if (offer.rail === 'family') {
+    if (!familyDeps) return c.json({ error: 'getting paid early is not set up here' }, 503);
+    const reply = await familyAccept(familyDeps, { offerId: offer.id, seller: session.address, putUpGap: body.putUpGap ?? false });
+    return c.json(reply.body, reply.status);
+  }
   const receiptRetry = isFactoringReceiptRetry(offer.status);
+  // The older escrow takes no new lines; it only finishes an advance whose
+  // receipt is still being reconciled.
+  if (!receiptRetry) {
+    return c.json({ error: 'Getting paid early now runs on new deals only. This deal finishes as it is.', code: 'FINANCING_MOVED' }, 409);
+  }
+  if (!config.KARWAN_INVOICE_REGISTRY_ADDR) {
+    return c.json({ error: 'invoice registry not configured' }, 503);
+  }
   if (!isFactoringOfferAcceptable(offer.status)) {
     return c.json({ error: `cannot accept offer in status ${offer.status}` }, 409);
   }

@@ -152,3 +152,14 @@ test('the guide says how a person confirms and the three things that ask (view 2
   assert.match(entry.summary, /Paying into a deal, accepting, delivering and releasing are not asked/);
   assert.doesNotMatch(entry.summary, /\bstake|yield|vault|—/i);
 });
+
+test('the guide says getting paid early runs on new deals, with the hold and the 24 hours', () => {
+  const finance = PLATFORM_GUIDE.find((e) => e.id === 'finance')!;
+  const text = `${finance.summary} ${finance.steps.join(' ')}`;
+  assert.doesNotMatch(text, /not open on deals made on the new escrow yet/);
+  assert.match(text, /from acceptance/);
+  assert.match(text, /deal guarantee/);
+  assert.match(text, /24 hours/);
+  assert.ok(finance.tools.includes('propose_pay_the_seller'));
+  assert.ok(finance.api.includes('POST /api/factoring/offers/:offerId/open'));
+});

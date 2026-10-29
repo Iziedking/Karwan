@@ -88,7 +88,7 @@ export const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAc
     body: { invoiceId: p.invoiceId, requestedAdvanceUsdc: p.requestedAdvanceUsdc, ...(p.minAdvanceUsdc ? { minAdvanceUsdc: p.minAdvanceUsdc } : {}) },
   }),
   finance_stop_asking: (p) => ({ method: 'POST', path: '/api/factoring/withdraw-request', body: { invoiceId: p.invoiceId } }),
-  finance_accept: (p) => ({ method: 'POST', path: '/api/factoring/accept', body: { offerId: p.offerId } }),
+  finance_accept: (p) => ({ method: 'POST', path: '/api/factoring/accept', body: { offerId: p.offerId, ...(p.putUpGap ? { putUpGap: true } : {}) } }),
   finance_reject: (p) => ({ method: 'POST', path: '/api/factoring/reject', body: { offerId: p.offerId } }),
   finance_offer: (p) => ({
     method: 'POST',
@@ -356,10 +356,6 @@ export function createExecutor(deps: {
     const route = ROUTES[action.intent];
     if (!route) return { ok: false, reason: 'refused', message: 'This step needs a wallet signature, so it has to be done in the Karwan app.' };
 
-    // A wallet financier signs the advance in their own wallet, which a chat cannot do.
-    if (action.intent === 'finance_offer' && p.signer === 'wallet') {
-      return { ok: false, reason: 'refused', message: 'Your own wallet signs this offer, so it is made in the Karwan app. Ask me there.' };
-    }
     // The person's own wallet signs these, which a chat cannot do.
     if (OWN_WALLET_SIGNS.has(action.intent) && p.signer === 'wallet') {
       return { ok: false, reason: 'refused', message: 'Your own wallet signs this, so it is done in the Karwan app. Ask me there.' };

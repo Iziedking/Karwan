@@ -159,8 +159,7 @@ import { liveLegacyDeps } from '../routes/legacyContractsLive.js';
 import { financeTools } from './financeTools.js';
 import type { FinanceDeal } from './finance.js';
 import { callAsAccount } from '../channels/inProcess.js';
-import { isFactorable } from '../deals/deliveryEvidence.js';
-import { claimableUsdc } from '../deals/claimable.js';
+import { familyClaimableUsdc } from '../money/familyFinancingLive.js';
 import { financierEligibility } from '../profile/financier.js';
 
 /// Absolute so a link works when pasted anywhere, including outside the app.
@@ -2631,8 +2630,12 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
     ...financeTools(address, method === 'circle' ? 'karwan' : 'wallet', actions, {
       call: callAsAccount,
       getDeal: async (jobId) => (await getDeal(jobId)) as FinanceDeal | null,
-      isFactorable: (deal) => isFactorable(deal as unknown as DirectDeal),
-      claimable: claimableUsdc,
+      // On the family a deal can ask from acceptance; what it still owes is the escrow's own figure.
+      isFactorable: (deal) => {
+        const d = deal as unknown as DirectDeal;
+        return !!d.acceptedAt && !d.settledAt && !d.cancelledAt && !d.disputed;
+      },
+      claimable: familyClaimableUsdc,
       getOffer: getFactoringOffer,
       eligibility: financierEligibility,
       financierStatus: async (who) => (await getProfile(who))?.financier?.status ?? 'none',

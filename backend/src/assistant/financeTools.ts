@@ -6,11 +6,13 @@ import {
   buildApplyConfirm,
   buildAskConfirm,
   buildFinancierOfferConfirm,
+  buildPaySellerConfirm,
   buildRejectOfferConfirm,
   buildStopAskingConfirm,
   type FinanceDeal,
   type FinanceOffer,
   type FinanceSigner,
+  type FinancierLine,
   type FundableRequest,
 } from './finance.js';
 
@@ -154,6 +156,19 @@ export function financeTools(address: string, signer: FinanceSigner, actions: As
             sellerTier: d.sellerTier ?? null,
           })),
         };
+      },
+    }),
+
+    propose_pay_the_seller: tool({
+      description:
+        "For a financier with their own wallet: prepare the card to pay a seller who took their offer. The seller's signatures last 24 hours from the moment they took it; after that nothing is held and nothing moved. Use for 'pay the seller', 'the seller took my offer'.",
+      inputSchema: z.object({ offerId: OFFER }),
+      execute: async ({ offerId }) => {
+        const r = await deps.call(address, 'GET', '/api/factoring/mine');
+        if (r.status !== 200) return { error: 'Could not read their offers just now.' };
+        const line = ((r.json.asFinancier as FinancierLine[] | undefined) ?? []).find((o) => o.id === offerId);
+        if (!line) return { error: 'Only the financier who made this offer can pay it.' };
+        return show(buildPaySellerConfirm({ line, me: address, nowMs: deps.now() }));
       },
     }),
 

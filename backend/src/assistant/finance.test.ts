@@ -5,6 +5,7 @@ import {
   buildApplyConfirm,
   buildAskConfirm,
   buildFinancierOfferConfirm,
+  buildPaySellerConfirm,
   buildRejectOfferConfirm,
   buildStopAskingConfirm,
   financeQuote,
@@ -16,7 +17,7 @@ const SELLER = `0x${'a'.repeat(40)}`;
 const OTHER = `0x${'b'.repeat(40)}`;
 const JOB = `0x${'1'.repeat(64)}`;
 const NOW = Date.UTC(2026, 9, 25);
-const deal = (over: Partial<FinanceDeal> = {}): FinanceDeal => ({ jobId: JOB, seller: SELLER, dealAmountUsdc: '500', tradeLane: 'finance', escrowVersion: 'v2', ...over });
+const deal = (over: Partial<FinanceDeal> = {}): FinanceDeal => ({ jobId: JOB, seller: SELLER, dealAmountUsdc: '500', tradeLane: 'finance', escrowVersion: 'suite', ...over });
 const offer = (over: Partial<FinanceOffer> = {}): FinanceOffer => ({
   id: '5f0c1f8e-3f5c-4a52-9a1b-2b5b9f6f0d11', invoiceId: JOB, seller: SELLER, offeredAdvanceUsdc: '470', expectedReturnUsdc: '490',
   status: 'offered', expiresAt: NOW + 3_600_000, recommended: true, funded: true, ...over,
@@ -39,17 +40,18 @@ test('asking to be paid early shows what is still to be paid and what they ask f
   assert.equal(all.payload.requestedAdvanceUsdc, '490');
 });
 
-test('asking refuses in plain words, the new escrow first', () => {
+test('asking refuses in plain words; older deals finish as they are', () => {
   const ask = (d: Partial<FinanceDeal>, factorable = true, claimable: string | null = '490', extra = {}) =>
     (buildAskConfirm({ deal: deal(d), me: SELLER, factorable, claimableUsdc: claimable, ...extra }) as { error: string }).error;
-  assert.match(ask({ escrowVersion: 'suite' }), /not open on deals made on the new escrow/);
+  assert.match(ask({ escrowVersion: 'v2' }), /new deals only/);
+  assert.match(ask({ escrowVersion: undefined }), /new deals only/);
   assert.match(ask({ escrowVersion: 'v3' }), /not open on deals made on the new escrow/);
   assert.match(ask({ seller: OTHER }), /Only the seller/);
   assert.match(ask({ tradeLane: 'service' }), /business orders/);
   assert.match(ask({ factoringOfferId: 'x' }), /already been paid early/);
   assert.match(ask({ poFinancingId: 'l' }), /purchase-order financing/);
   assert.match(ask({ factoringRequestedAt: 1 }), /already asked/);
-  assert.match(ask({}, false), /marked delivered/);
+  assert.match(ask({}, false), /accepted and fully paid in/);
   assert.match(ask({}, true, null), /Could not read the escrow/);
   assert.match(ask({}, true, '0'), /nothing to be paid early/);
   assert.match(ask({}, true, '490', { amountUsdc: 600 }), /up to 490\.00 USDC/);
@@ -101,4 +103,36 @@ test('applying to finance deals says what is missing, or that it is done already
   assert.match((buildApplyConfirm({ status: 'approved', eligible: true, reasons: [] }) as { error: string }).error, /already a financier/);
   assert.match((buildApplyConfirm({ status: 'applied', eligible: true, reasons: [] }) as { error: string }).error, /with the team/);
   assert.match((buildApplyConfirm({ status: 'none', eligible: false, reasons: ['Stake some USDC in the vault first'] }) as { error: string }).error, /Stake some USDC/);
+});
+
+test('taking an offer says what of the deal guarantee it holds', () => {
+  const card = buildAcceptOfferConfirm({ offer: offer({ holdUsdc: '47' }), me: SELLER, nowMs: NOW });
+  assert.ok(!('error' in card));
+  assert.ok(card.fields.some((f) => f.label === 'Held from your deal guarantee until it is repaid' && f.value === '47.00 USDC'));
+  assert.equal(card.payload.putUpGap, undefined);
+});
+
+test('a short guarantee makes the card put up the rest first, in one confirmation', () => {
+  const card = buildAcceptOfferConfirm({ offer: offer({ holdUsdc: '47', gapUsdc: '12' }), me: SELLER, nowMs: NOW });
+  assert.ok(!('error' in card));
+  assert.equal(card.title, 'Put up 12.00 USDC and get paid now');
+  assert.equal(card.confirmLabel, 'Put up 12.00 USDC and get paid now');
+  assert.equal(card.payload.putUpGap, true);
+});
+
+test('an offer already taken says the financier still has to pay', () => {
+  const r = buildAcceptOfferConfirm({ offer: offer({ status: 'awaiting_financier', waitingForFinancier: true }), me: SELLER, nowMs: NOW }) as { error: string };
+  assert.match(r.error, /Waiting for the financier to pay/);
+});
+
+test('pay the seller shows the amount and the time left, for the financier only', () => {
+  const line = { id: offer().id, invoiceId: JOB, financier: OTHER, offeredAdvanceUsdc: '470', status: 'awaiting_financier', sellerDeadline: NOW + 3_600_000 };
+  const card = buildPaySellerConfirm({ line, me: OTHER, nowMs: NOW });
+  assert.ok(!('error' in card));
+  assert.equal(card.intent, 'finance_pay_seller');
+  assert.equal(card.title, 'Pay the seller 470.00 USDC');
+  assert.deepEqual(card.payload, { offerId: offer().id, jobId: JOB });
+  assert.match((buildPaySellerConfirm({ line, me: SELLER, nowMs: NOW }) as { error: string }).error, /Only the financier/);
+  assert.match((buildPaySellerConfirm({ line, me: OTHER, nowMs: NOW + 3_600_001 }) as { error: string }).error, /24 hours/);
+  assert.match((buildPaySellerConfirm({ line: { ...line, status: 'accepted' }, me: OTHER, nowMs: NOW }) as { error: string }).error, /not waiting/);
 });

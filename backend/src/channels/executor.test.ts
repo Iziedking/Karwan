@@ -255,11 +255,24 @@ test('getting paid early runs the deal page and financier desk routes with their
   assert.deepEqual(offered, { ok: true, summary: 'Offer made. The seller sees it now.' });
 });
 
-test("a wallet financier's offer is never made from a chat", async () => {
+test("a wallet financier's offer is made from a chat: nothing is signed until the seller takes it", async () => {
   const { execute, calls } = setup(() => ({ status: 200, json: {} }));
   const r = await execute({ address: ME }, action('finance_offer', { invoiceId: `0x${'1'.repeat(64)}`, offeredAdvanceUsdc: '1', expectedReturnUsdc: '2', expiresInHours: 24, signer: 'wallet', advanceRecipient: ME }, 'fw'));
+  assert.equal(calls.length, 1);
+  assert.equal(r.ok, true);
+});
+
+test('paying the seller from an own wallet is done in the Karwan app', async () => {
+  const { execute, calls } = setup(() => ({ status: 200, json: {} }));
+  const r = await execute({ address: ME }, action('finance_pay_seller', { offerId: '5f0c1f8e-3f5c-4a52-9a1b-2b5b9f6f0d11', jobId: `0x${'1'.repeat(64)}` }, 'ps'));
   assert.equal(calls.length, 0);
   assert.equal(r.ok, false);
+});
+
+test('taking an offer passes the combined step to the route', async () => {
+  const { execute, calls } = setup(() => ({ status: 200, json: { state: 'accepted' } }));
+  await execute({ address: ME }, action('finance_accept', { offerId: '5f0c1f8e-3f5c-4a52-9a1b-2b5b9f6f0d11', jobId: `0x${'1'.repeat(64)}`, putUpGap: true }, 'pa'));
+  assert.deepEqual(calls, [{ method: 'POST', path: '/api/factoring/accept', body: { offerId: '5f0c1f8e-3f5c-4a52-9a1b-2b5b9f6f0d11', putUpGap: true } }]);
 });
 
 test('deal steps run the deal page routes with their bodies, and a change of terms is an edit or a counter by side', async () => {

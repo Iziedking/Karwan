@@ -686,6 +686,8 @@ const envSchema = z.object({
   KARWAN_SUITE_AGREEMENT_ADDR: optionalAddr,
   KARWAN_SUITE_VERIFIER_ADDR: optionalAddr,
   KARWAN_SUITE_TRADE_FINANCE_ADDR: optionalAddr,
+  /// The financier Karwan runs on testnet (view 18). Unset, no automatic offers.
+  KARWAN_TEST_FINANCIER_ADDR: optionalAddr,
   KARWAN_SUITE_VAULT_ADDR: optionalAddr,
   // Karwan's own keys on the escrow family: three checkers (comma separated,
   // any two sign a check), the arbiter and the record issuer. Secrets: the

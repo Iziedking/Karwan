@@ -93,7 +93,9 @@ import { xRoutes } from './routes/x.js';
 import { authRoutes } from './routes/auth.js';
 import { siweRoutes } from './routes/siwe.js';
 import { tradeRoutes } from './routes/trade.js';
-import { factoringRoutes } from './routes/factoring.js';
+import { factoringRoutes, useFamilyFinancing } from './routes/factoring.js';
+import { createFamilyOpenRoutes } from './routes/factoringFamily.js';
+import { familyRouteWiring } from './money/familyFinancingLive.js';
 import { poFinancingRoutes } from './routes/poFinancing.js';
 import { financierRoutes } from './routes/financier.js';
 import { smeRoutes } from './routes/sme.js';
@@ -167,6 +169,8 @@ import {
 import { configureDealFinancialCommandShadow, startDealWatcher } from './agents/dealWatcher.js';
 import { configureX402GatewayFundingShadow } from './x402/buyerClient.js';
 import { startFactoringWatcher } from './agents/factoringWatcher.js';
+import { startTestFinancier } from './agents/testFinancier.js';
+import { startFamilyFinancingRunner } from './money/familyFinancingRunner.js';
 import { startPOWatcher } from './agents/poWatcher.js';
 import { startJobExpiryWatcher } from './agents/jobExpiryWatcher.js';
 import { startReleaseWatcher } from './agents/releaseWatcher.js';
@@ -523,6 +527,9 @@ app.route('/api/auth', authRoutes);
 app.route('/api/siwe', siweRoutes);
 // SME trade-finance rail (Phase 2 Track 2).
 app.route('/api/trade', tradeRoutes);
+// Getting paid early on the escrow family (view 18): the routes branch to the core.
+useFamilyFinancing(familyRouteWiring);
+if (familyRouteWiring) app.route('/api/factoring', createFamilyOpenRoutes({ core: familyRouteWiring.core, session: (c) => readSession(c as Parameters<typeof readSession>[0]) }));
 app.route('/api/factoring', factoringRoutes);
 app.route('/api/po-financing', poFinancingRoutes);
 app.route('/api/financier', financierRoutes);
@@ -706,6 +713,8 @@ function bootAgents() {
   try {
     stopFns.push(startFactoringWatcher());
     stopFns.push(startPOWatcher());
+    stopFns.push(startTestFinancier());
+    stopFns.push(startFamilyFinancingRunner());
   } catch (err) {
     appLogger.warn({ err: (err as Error).message }, 'factoring watcher not started');
   }

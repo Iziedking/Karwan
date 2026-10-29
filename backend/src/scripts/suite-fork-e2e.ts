@@ -30,6 +30,9 @@ import { createSuiteEarnings, type EarningsMove } from '../deals/suiteEarnings.j
 import { runSuiteReviewEnd } from '../deals/suiteReviewEnd.js';
 import { bindingTypedData, createSuiteIdentity, KIND, registryAbi } from '../identity/suiteIdentity.js';
 import { guaranteeVaultAbi } from '../chain/guaranteeVault.js';
+import { financeableAbi, tradeFinanceAbi, vaultReservationAbi } from '../chain/tradeFinance.js';
+import type { FactoringOffer } from '../db/factoring.js';
+import { createFamilyFinancing, testFinancierTerms, type FamilyFinancingPorts } from '../money/familyFinancing.js';
 
 /// The escrow-family path end to end on an Arc fork of the deployed suite
 /// (plan 2, Task 13), with the backend's own adapters and local keys in place
@@ -549,11 +552,228 @@ async function guaranteeRun(): Promise<void> {
   );
 }
 
+/// Get paid now on the family (view 18), with the app's own core: the seller's
+/// selling agent signs, a short guarantee is put up in the same step, the
+/// financier opens the line, the escrow pays them back first, and settling
+/// frees the hold; a refunded deal pays the financier from the hold instead.
+async function financingRun(): Promise<void> {
+  const limits = await readAgreementLimits(pub, D.hub!, D.agreement!, USDC);
+  check('the hub opens the Agreement family for USDC', limits.perDealCapMicros > 0n, `cap ${limits.perDealCapMicros}`);
+  if (limits.perDealCapMicros === 0n) return;
+  const accounts: Record<string, LocalAccount> = {};
+  for (const id of ['buyer-id', 'buyer-agent', 'buyer-seller-agent', 'seller-id', 'seller-agent', 'seller-buyer-agent', 'financier', 'anyone']) {
+    accounts[id] = privateKeyToAccount(generatePrivateKey());
+    await anvil.setBalance({ address: accounts[id]!.address, value: 5_000n * 10n ** 18n });
+  }
+  const wallet = (id: string) => createWalletClient({ account: accounts[id]!, chain, transport: http(RPC) });
+  const sendAs = async (id: string, to: Hex, abi: readonly unknown[], functionName: string, args: unknown[]) => {
+    const hash = await wallet(id).writeContract({ address: to, abi: abi as never, functionName: functionName as never, args: args as never, account: accounts[id]!, chain });
+    const receipt = await pub.waitForTransactionReceipt({ hash });
+    if (receipt.status !== 'success') throw new Error(`${functionName} reverted (${hash})`);
+    return receipt;
+  };
+  const balance = (who: Hex) => pub.readContract({ address: USDC, abi: erc20Abi, functionName: 'balanceOf', args: [who] });
+  const people: Record<string, { identity: string; buyer: string; seller: string }> = {
+    [accounts['buyer-id']!.address.toLowerCase()]: { identity: 'buyer-id', buyer: 'buyer-agent', seller: 'buyer-seller-agent' },
+    [accounts['seller-id']!.address.toLowerCase()]: { identity: 'seller-id', buyer: 'seller-buyer-agent', seller: 'seller-agent' },
+  };
+  const walletsOf = async (user: string) => {
+    const w = people[user.toLowerCase()];
+    if (!w) return null;
+    return {
+      identity: { address: accounts[w.identity]!.address, walletId: w.identity },
+      buyer: { address: accounts[w.buyer]!.address, walletId: w.buyer },
+      seller: { address: accounts[w.seller]!.address, walletId: w.seller },
+    };
+  };
+  let nowSecs = await chainNow();
+  const identity = createSuiteIdentity({
+    registry: D.identity!,
+    chainId: CHAIN_ID,
+    now: () => nowSecs,
+    binding: async (w) => {
+      const [id, kind, expiry] = await pub.readContract({ address: D.identity!, abi: registryAbi, functionName: 'bindingOf', args: [w] });
+      return { id: BigInt(id), kind: Number(kind), expiry: BigInt(expiry) };
+    },
+    nonce: (w) => pub.readContract({ address: D.identity!, abi: registryAbi, functionName: 'nonces', args: [w] }),
+    identityCount: async () => BigInt(await pub.readContract({ address: D.identity!, abi: registryAbi, functionName: 'identityCount' })),
+    agentLimit: async (w) => {
+      const [perPayment, total, used] = await pub.readContract({ address: D.identity!, abi: registryAbi, functionName: 'agentLimitOf', args: [w] });
+      return { perPayment, total, used };
+    },
+    wallets: walletsOf,
+    ensureWallets: walletsOf,
+    isDeployed: async () => true,
+    deployAgent: async () => undefined,
+    signTypedData: (walletId, typed) => accounts[walletId]!.signTypedData!(typed),
+    execute: async (walletId, fn, args) => ({ txHash: (await sendAs(walletId, D.identity!, registryAbi, fn, args)).transactionHash }),
+  });
+  for (const who of ['buyer-id', 'seller-id']) await identity.setUpIdentityForCustodial(accounts[who]!.address);
+  const sellerUser = accounts['seller-id']!.address;
+  const sellerAgent = accounts['seller-agent']!.address;
+  const financier = accounts['financier']!.address;
+  const { identityId: sellerIdentity } = await identity.identityStatus(sellerUser);
+  check('the seller has a record with the selling agent bound', sellerIdentity !== 0n, `id ${sellerIdentity}`);
+
+  const escrow = createAgreementEscrow(
+    agreementEscrowPorts(reads, D.agreement!, CHAIN_ID, {
+      execute: async (input) => {
+        const item = parseAbiItem(`function ${input.abiFunctionSignature}`) as AbiFunction;
+        const hash = await wallet(input.walletId).writeContract({
+          address: input.contractAddress as Hex,
+          abi: [item],
+          functionName: item.name,
+          args: coerce(item.inputs, input.abiParameters as unknown[]) as never,
+          account: accounts[input.walletId]!,
+          chain,
+        });
+        await pub.waitForTransactionReceipt({ hash });
+        return { txHash: hash };
+      },
+      emit: () => {},
+    }),
+  );
+  const matchDeps = {
+    escrow,
+    asset: USDC,
+    readView: (id: Hex) => reads.view(D.agreement!, id),
+    readLimits: () => readAgreementLimits(pub, D.hub!, D.agreement!, USDC),
+    settings: { baseReviewSecs: limits.minReview, reclaimGraceSecs: DAY },
+    ensureRecord: (user: string, role: 'buyer' | 'seller') => identity.ensureRecord(user, role),
+    freeBuyingAgent: (user: string, amount: bigint) => identity.freeBuyingAgent(user, amount),
+    readUsdcAllowance: (owner: Hex, spender: Hex) => pub.readContract({ address: USDC, abi: erc20Abi, functionName: 'allowance', args: [owner, spender] }),
+    approveUsdc: async (i: { walletId: string; spender: Hex; amount: bigint }) => {
+      await sendAs(i.walletId, USDC, erc20Abi, 'approve', [i.spender, i.amount]);
+    },
+    now: () => nowSecs * 1000,
+  };
+  const order = async (jobId: Hex, deadlineUnix: number) =>
+    fundAgentMatchSuite(matchDeps, {
+      jobId,
+      buyerUser: accounts['buyer-id']!.address,
+      sellerUser,
+      buyerAgent: { walletId: 'buyer-agent', address: accounts['buyer-agent']!.address },
+      sellerAgent: { walletId: 'seller-agent', address: sellerAgent },
+      priceUnits: 150_000_000n,
+      milestonePcts: [100],
+      deadlineUnix,
+      tradeType: 'goods',
+      agreementHash: `0x${'cd'.repeat(32)}`,
+    });
+
+  const deals = new Map<string, DirectDeal>();
+  const offers = new Map<string, FactoringOffer>();
+  const ports: FamilyFinancingPorts = {
+    addresses: { tradeFinance: D.tradeFinance!, vault: D.vault!, usdc: USDC, chainId: CHAIN_ID },
+    deal: async (jobId) => deals.get(jobId) ?? null,
+    receivable: async (dealId) => {
+      const r = await pub.readContract({ address: D.agreement!, abi: financeableAbi, functionName: 'receivableOf', args: [dealId] });
+      return { asset: r.asset, seller: r.seller, unpaid: r.unpaid, horizon: BigInt(r.horizon), open: r.open, financeable: r.financeable };
+    },
+    freeGuarantee: async (w) => {
+      const id = await pub.readContract({ address: D.identity!, abi: registryAbi, functionName: 'identityOf', args: [w] });
+      return id === 0n ? 0n : pub.readContract({ address: D.vault!, abi: guaranteeVaultAbi, functionName: 'freeOf', args: [id, USDC] });
+    },
+    spendable: (deal) => balance(deal.seller as Hex),
+    sellerHeld: async () => true,
+    sellerReady: async () => true,
+    balance,
+    nextNonce: async () => BigInt(nowSecs),
+    signAsSeller: (walletId, _address, typed) => accounts[walletId]!.signTypedData!(typed as never),
+    putUpGuarantee: async ({ amount }) => {
+      await sendAs('seller-id', USDC, erc20Abi, 'approve', [D.vault!, amount]);
+      await sendAs('seller-id', D.vault!, guaranteeVaultAbi, 'stake', [USDC, amount]);
+    },
+    executeOpen: async ({ walletId, calls }) => {
+      let last: Hex = '0x';
+      for (const c of calls) {
+        const hash = await wallet(walletId).sendTransaction({ to: c.to, data: c.data, account: accounts[walletId]!, chain });
+        const receipt = await pub.waitForTransactionReceipt({ hash });
+        if (receipt.status !== 'success') throw new Error(`open call reverted (${hash})`);
+        last = hash;
+      }
+      return { txHash: last };
+    },
+    receipt: (hash) => pub.getTransactionReceipt({ hash }),
+    markDealFinanced: async () => {},
+    offers: {
+      get: async (id) => offers.get(id) ?? null,
+      listForDeal: async (jobId) => [...offers.values()].filter((o) => o.invoiceId === jobId),
+      create: async (o) => { const full = { ...o, createdAt: 1, updatedAt: 1 } as FactoringOffer; offers.set(o.id, full); return full; },
+      patch: async (id, patch) => { const next = { ...offers.get(id)!, ...patch }; offers.set(id, next); return next; },
+      patchIfStatus: async (id, expected, patch) => {
+        const cur = offers.get(id);
+        if (!cur || cur.status !== expected) return null;
+        const next = { ...cur, ...patch };
+        offers.set(id, next);
+        return next;
+      },
+    },
+    now: () => nowSecs * 1000,
+  };
+  const core = createFamilyFinancing(ports);
+
+  const openLine = async (key: string, deadlineUnix: number) => {
+    const funded = await order(`0x${key.repeat(32)}`, deadlineUnix);
+    if (!funded.ok || !funded.accepted) throw new Error(`the order did not fund: ${funded.ok ? 'not accepted' : funded.reason}`);
+    const jobId = `deal-${key}`;
+    deals.set(jobId, {
+      jobId, buyer: accounts['buyer-id']!.address, seller: sellerUser, tradeLane: 'finance', escrowVersion: 'suite', escrowAddress: D.agreement!,
+      escrowDealId: funded.record.escrowDealId, sellerAgentAddress: sellerAgent, sellerAgentWalletId: 'seller-agent', dealAmountUsdc: '150', acceptedAt: 1,
+    } as DirectDeal);
+    const r = await ports.receivable(funded.record.escrowDealId);
+    const terms = testFinancierTerms(r.unpaid);
+    const made = await core.createFamilyOffer({ jobId, financier, ...terms, walletId: 'financier', expiresInHours: 24 });
+    if (!('offer' in made)) throw new Error(`no offer: ${made.code}`);
+    const agentBefore = await balance(sellerAgent);
+    const taken = await core.takeOffer({ offerId: made.offer.id, seller: sellerUser, putUpGap: true });
+    const line = offers.get(made.offer.id)!;
+    return { jobId, dealId: funded.record.escrowDealId, terms, taken, line, agentGot: (await balance(sellerAgent)) - agentBefore };
+  };
+
+  // 1. Paid now, released, repaid first, settled.
+  nowSecs = await chainNow();
+  const one = await openLine('a1', nowSecs + 5 * DAY);
+  check('the seller took the offer and was paid at once', 'state' in one.taken && one.taken.state === 'accepted', JSON.stringify(one.taken));
+  check('the seller agent received exactly the advance', one.agentGot === one.terms.advance, `${one.agentGot} of ${one.terms.advance}`);
+  check('the short guarantee was put up in the same step', (await ports.freeGuarantee(sellerAgent)) === 0n);
+  const held = await pub.readContract({ address: D.vault!, abi: vaultReservationAbi, functionName: 'expiryOf', args: [D.tradeFinance!, one.line.lineId as Hex] });
+  check('the hold on the guarantee runs past the deal', held > BigInt(nowSecs), `until ${held}`);
+  await escrow.markDelivered({ walletId: 'seller-agent', jobId: one.dealId, proofHash: `0x${'de'.repeat(32)}`, dealKey: one.jobId });
+  const finBefore = await balance(financier);
+  await escrow.release({ walletId: 'buyer-agent', jobId: one.dealId, dealKey: one.jobId });
+  const repaid = (await balance(financier)) - finBefore;
+  check('release paid the financier back first, exactly', repaid === one.terms.repay, `${repaid} of ${one.terms.repay}`);
+  const settled = await sendAs('anyone', D.tradeFinance!, tradeFinanceAbi, 'settle', [one.line.lineId]);
+  const repaidEvent = settled.logs.some((l) => {
+    try { return decodeEventLog({ abi: tradeFinanceAbi, ...l }).eventName === 'LineRepaid'; } catch { return false; }
+  });
+  check('settling the line reads repaid and frees the hold', repaidEvent && (await ports.freeGuarantee(sellerAgent)) === one.terms.stake, `tx ${settled.transactionHash}`);
+
+  // 2. Paid now, never delivered, the buyer takes the money back: the hold pays the financier.
+  nowSecs = await chainNow();
+  const two = await openLine('b2', nowSecs + 2 * DAY);
+  check('a second advance opened', 'state' in two.taken && two.taken.state === 'accepted', JSON.stringify(two.taken));
+  // Past the delivery date the escrow holds, plus its grace.
+  const dueBy = Number((await reads.view(D.agreement!, two.dealId)).deadline);
+  await warp(dueBy + DAY + 60 - (await chainNow()));
+  nowSecs = await chainNow();
+  await escrow.reclaim({ walletId: 'buyer-agent', jobId: two.dealId, dealKey: two.jobId });
+  const finBeforeTwo = await balance(financier);
+  const defaulted = await sendAs('anyone', D.tradeFinance!, tradeFinanceAbi, 'settle', [two.line.lineId]);
+  const fromHold = (await balance(financier)) - finBeforeTwo;
+  const shortfall = defaulted.logs.some((l) => {
+    try { return decodeEventLog({ abi: tradeFinanceAbi, ...l }).eventName === 'LineDefaulted'; } catch { return false; }
+  });
+  check('a refunded deal reads defaulted and pays the financier from the hold, exactly', shortfall && fromHold === two.terms.stake, `${fromHold} of ${two.terms.stake}, tx ${defaulted.transactionHash}`);
+}
+
 async function main(): Promise<void> {
   console.log(`suite fork e2e, ${phase}, block ${await pub.getBlockNumber()}`);
   await parity();
   if (phase === 'full') await full();
   if (phase === 'guarantee') await guaranteeRun();
+  if (phase === 'financing') await financingRun();
   console.log(failed === 0 ? 'all checks passed' : `${failed} check(s) failed`);
   process.exit(failed === 0 ? 0 : 1);
 }

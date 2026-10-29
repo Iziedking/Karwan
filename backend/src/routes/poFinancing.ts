@@ -17,8 +17,6 @@ import {
 } from '../db/poFinancing.js';
 import { getDeal, listAllDeals, patchDeal } from '../db/deals.js';
 import { addSystemMessage } from '../chat/systemMessages.js';
-import { getUserByAddress } from '../db/users.js';
-import { executeContractCall } from '../chain/txs.js';
 import { vault } from '../chain/contracts.js';
 import { publicClient } from '../chain/client.js';
 import { poFinancingV2Abi } from '../chain/abis/poFinancingV2.js';
@@ -99,35 +97,13 @@ function minimumRepaymentWindowSeconds(deal: { deadlineUnix?: number }): number 
   return Math.max(7 * 86_400, deliveryDelay + 7 * 86_400);
 }
 
-const poRequestBodySchema = z.object({
-  invoiceId: hashSchema,
-  requestedAdvanceUsdc: usdcAmountSchema,
-});
 
 poFinancingRoutes.post('/request', async (c) => {
   const session = readSession(c);
   if (!session) return c.json({ error: 'not authenticated' }, 401);
-  let body: z.infer<typeof poRequestBodySchema>;
-  try {
-    body = poRequestBodySchema.parse(await c.req.json());
-  } catch (e) {
-    return c.json({ error: 'invalid body', detail: (e as Error).message }, 400);
-  }
-  const deal = await getDeal(body.invoiceId);
-  if (!deal) return c.json({ error: 'unknown purchase order' }, 404);
-  // Financing is not wired to the v3 escrow yet: its payouts can only be
-  // assigned by assigners that escrow authorises, and the financing contracts
-  // point at the v2 escrow. Refuse rather than take an advance that could not
-  // be repaid from settlement.
-  if (onOwnIdEscrow(deal)) {
-    return c.json({ error: 'financing is not available on this deal yet', code: 'FINANCING_NOT_ON_V3' }, 409);
-  }
-  if (session.address.toLowerCase() !== deal.seller.toLowerCase()) return c.json({ error: 'only the seller can request fulfilment capital' }, 403);
-  if (deal.tradeLane !== 'finance' || !deal.acceptedAt || deal.delivered || deal.settledAt || deal.cancelledAt || deal.disputed) return c.json({ error: 'deal not eligible for PO financing' }, 409);
-  if (deal.factoringRequestedAt || deal.factoringOfferId || deal.poFinancingRequestedAt || deal.poFinancingId) return c.json({ error: 'deal already selected a financing rail' }, 409);
-  if (Number(body.requestedAdvanceUsdc) > Number(deal.dealAmountUsdc)) return c.json({ error: 'requested advance cannot exceed the purchase-order value' }, 400);
-  const updated = await patchDeal(deal.jobId, { poFinancingRequestedAt: Date.now(), poFinancingRequestedAdvanceUsdc: body.requestedAdvanceUsdc });
-  return c.json({ deal: updated ? financierSafeDeal(updated) : null });
+  // Purchase-order financing runs on the escrow family now, as Get paid now
+  // from acceptance (view 18). Lines already open finish here.
+  return c.json({ error: 'Purchase-order financing now runs as Get paid now on new deals.', code: 'FINANCING_MOVED' }, 409);
 });
 
 async function readPoChainLine(invoiceId: string): Promise<PoChainLine> {
@@ -470,20 +446,6 @@ poFinancingRoutes.post('/fund', async (c) => {
   return c.json({ line, reference: advanceReference, movementState: 'completed' });
 });
 
-const fundCircleBodySchema = z.object({
-  address: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'expected 0x address'),
-  invoiceId: hashSchema,
-  principalUsdc: usdcAmountSchema,
-  repayUsdc: usdcAmountSchema,
-  repaymentWindowSeconds: repaymentWindowSchema,
-  /// Seller stake to reserve against this line, slashed to the financier up to
-  /// the shortfall if the settlement does not cover the repay amount. Omitted
-  /// means an unsecured line, which keeps older clients working. The contract
-  /// enforces its own minStakeBps floor and the vault reverts if the seller's
-  /// free stake is below this, so the caller is expected to have checked
-  /// freeStakeOf first.
-  requiredStakeUsdc: usdcAmountSchema,
-});
 
 /// POST /api/po-financing/fund-circle: Circle DCW-only sister route.
 /// Backend signs USDC.approve(financing, principal) then
@@ -491,227 +453,11 @@ const fundCircleBodySchema = z.object({
 /// requiredStake) via the caller's identity wallet, mirrors the line + emits
 /// po.funded with the real chain hash. Web3 callers stay on POST /fund.
 poFinancingRoutes.post('/fund-circle', async (c) => {
-  if (!config.KARWAN_PO_FINANCING_ADDR) {
-    return c.json({ error: 'po financing contract not configured' }, 503);
-  }
   const session = readSession(c);
   if (!session) return c.json({ error: 'not authenticated' }, 401);
-  if (!isApprovedFinancier(await getProfile(session.address))) {
-    return c.json({ error: 'Apply to become a financier first.', code: 'financier_required' }, 403);
-  }
-
-  let body;
-  try {
-    body = fundCircleBodySchema.parse(await c.req.json());
-  } catch (e) {
-    return c.json({ error: 'invalid body', detail: (e as Error).message }, 400);
-  }
-
-  const caller = body.address.toLowerCase();
-  if (caller !== session.address.toLowerCase()) {
-    return c.json({ error: 'address must match session' }, 403);
-  }
-
-  const deal = await getDeal(body.invoiceId);
-  if (!deal) return c.json({ error: 'unknown invoice' }, 404);
-  // Financing is not wired to the v3 escrow yet: its payouts can only be
-  // assigned by assigners that escrow authorises, and the financing contracts
-  // point at the v2 escrow. Refuse rather than take an advance that could not
-  // be repaid from settlement.
-  if (onOwnIdEscrow(deal)) {
-    return c.json({ error: 'financing is not available on this deal yet', code: 'FINANCING_NOT_ON_V3' }, 409);
-  }
-  if (deal.tradeLane !== 'finance') {
-    return c.json({ error: 'PO financing is for SME finance-lane deals only' }, 409);
-  }
-  if (!deal.acceptedAt || deal.delivered || deal.settledAt || deal.cancelledAt || deal.disputed) {
-    return c.json({ error: 'deal not eligible for PO financing' }, 409);
-  }
-  if (deal.factoringRequestedAt || deal.factoringOfferId) {
-    return c.json({ error: 'deal is already open on the invoice-factoring rail' }, 409);
-  }
-  if (!deal.poFinancingRequestedAt || !deal.poFinancingRequestedAdvanceUsdc) return c.json({ error: 'seller has not requested PO financing' }, 409);
-  if (Number(body.principalUsdc) > Number(deal.poFinancingRequestedAdvanceUsdc)) return c.json({ error: 'principal exceeds the seller requested amount' }, 400);
-  if (body.repaymentWindowSeconds < minimumRepaymentWindowSeconds(deal)) return c.json({ error: 'repayment window must extend beyond delivery and the buyer release buffer' }, 400);
-  if (caller === deal.seller) {
-    return c.json({ error: 'seller cannot fund their own PO' }, 403);
-  }
-
-  const existing = await getPOLineForInvoice(body.invoiceId);
-  if (existing) {
-    return c.json({ error: 'po line already opened on this invoice', line: existing }, 409);
-  }
-  if (Number(body.repayUsdc) <= Number(body.principalUsdc)) {
-    return c.json({ error: 'repay must exceed principal' }, 400);
-  }
-
-  const hold = await shouldHoldPOFunding(body.invoiceId);
-  if (hold) {
-    return c.json({ error: 'held for review', verdict: hold }, 409);
-  }
-
-  const user = getUserByAddress(caller);
-  if (!user?.circleIdentityWalletId) {
-    return c.json(
-      {
-        error: 'no Circle identity wallet for this address',
-        detail: 'fund-circle is for Circle users; web3 users sign locally and POST /fund.',
-      },
-      409,
-    );
-  }
-
-  const financingAddr = config.KARWAN_PO_FINANCING_ADDR;
-  const usdcAddr = config.USDC_ADDR;
-  if (!usdcAddr) {
-    return c.json({ error: 'USDC_ADDR not configured' }, 503);
-  }
-
-  const principalWei = parseUnits(body.principalUsdc, USDC_DECIMALS);
-  const repayWei = parseUnits(body.repayUsdc, USDC_DECIMALS);
-  const stakeWei = parseUnits(body.requiredStakeUsdc, USDC_DECIMALS);
-
-  try {
-    const approveResult = await executeContractCall(
-      {
-        walletId: user.circleIdentityWalletId,
-        contractAddress: usdcAddr,
-        abiFunctionSignature: 'approve(address,uint256)',
-        abiParameters: [financingAddr, principalWei.toString()],
-      },
-      `usdc.approve(${caller}, poFinancing)`,
-    );
-
-    const fundResult = await executeContractCall(
-      {
-        walletId: user.circleIdentityWalletId,
-        contractAddress: financingAddr,
-        // The v2 contract takes a fifth argument, requiredStakeUsdc. Sending
-        // the four-arg form is a DIFFERENT SELECTOR: on a Circle SCA the call
-        // fails as an inner revert inside a successful handleOps, so the tx
-        // hash looks fine and the line is never funded.
-        //
-        abiFunctionSignature: 'fund(bytes32,uint128,uint128,uint64,uint128)',
-        abiParameters: [
-          body.invoiceId,
-          principalWei.toString(),
-          repayWei.toString(),
-          body.repaymentWindowSeconds.toString(),
-          stakeWei.toString(),
-        ],
-      },
-      `poFinancing.fund(${body.invoiceId})`,
-    );
-
-    await verifyPoFund(
-      fundResult.txHash,
-      caller,
-      deal.seller,
-      body.invoiceId,
-      principalWei,
-      repayWei,
-      stakeWei,
-    );
-
-    let advanceReference: string;
-    try {
-      const movement = await recordVerifiedFinancingMovement({
-        operationKey: financingOperationKey('po', body.invoiceId, 'advance', fundResult.txHash),
-        kind: 'financing_advance',
-        positionId: body.invoiceId,
-        amountUsdc: body.principalUsdc,
-        initiatedBy: caller,
-        sourceAddress: caller,
-        destinationAddress: deal.seller,
-        txHash: fundResult.txHash,
-        contractAddress: financingAddr,
-        summary: `Purchase-order advance of ${body.principalUsdc} USDC on ${body.invoiceId}`,
-      });
-      advanceReference = movement.reference;
-    } catch (err) {
-      return c.json({ error: 'PO funding was confirmed but its Karwan receipt could not be reconciled', detail: (err as Error).message }, 502);
-    }
-    const now = Date.now();
-    const line = await createPOLine({
-      id: randomUUID(),
-      invoiceId: body.invoiceId,
-      financier: caller,
-      seller: deal.seller,
-      buyer: deal.buyer,
-      principalUsdc: body.principalUsdc,
-      repayUsdc: body.repayUsdc,
-      state: 'outstanding',
-      fundedAt: now,
-      repaymentTimeoutAt: now + body.repaymentWindowSeconds * 1000,
-      requiredStakeUsdc: body.requiredStakeUsdc,
-      txHashes: { fund: fundResult.txHash },
-    });
-    await patchDeal(body.invoiceId, { poFinancingId: line.id });
-
-    bus.emitEvent({
-      type: 'po.funded',
-      jobId: body.invoiceId,
-      actor: 'platform',
-      payload: {
-        lineId: line.id,
-        financier: caller,
-        seller: deal.seller,
-        principalUsdc: body.principalUsdc,
-        repayUsdc: body.repayUsdc,
-      },
-    });
-    // The advance leaving the financier and landing with the seller. One row per
-    // party: PO financing wrote nothing to either ledger before this.
-    void appendActivity({
-      address: caller,
-      kind: 'financing_funded',
-      summary: `Funded a ${body.principalUsdc} USDC purchase-order advance on ${body.invoiceId}`,
-      params: { t: 'advanceFunded', amount: String(body.principalUsdc), job: String(body.invoiceId) },
-      amountUsdc: body.principalUsdc,
-      txHash: fundResult.txHash,
-      jobId: body.invoiceId,
-      counterparty: deal.seller?.toLowerCase(),
-      refId: advanceReference,
-    });
-    if (deal.seller) {
-      void appendActivity({
-        address: deal.seller,
-        kind: 'financing_received',
-        summary: `Received a ${body.principalUsdc} USDC purchase-order advance on ${body.invoiceId}`,
-        params: { t: 'advanceReceived', amount: String(body.principalUsdc), job: String(body.invoiceId) },
-        amountUsdc: body.principalUsdc,
-        txHash: fundResult.txHash,
-        jobId: body.invoiceId,
-        counterparty: caller?.toLowerCase(),
-        refId: advanceReference,
-      });
-    }
-
-    logger.info(
-      {
-        lineId: line.id,
-        invoiceId: body.invoiceId,
-        financier: caller,
-        approveTxHash: approveResult.txHash,
-        fundTxHash: fundResult.txHash,
-      },
-      'po-financing: funded via Circle DCW',
-    );
-
-    return c.json({
-      line,
-      approveTxHash: approveResult.txHash,
-      fundTxHash: fundResult.txHash,
-      reference: advanceReference,
-      movementState: 'completed',
-    });
-  } catch (err) {
-    logger.error(
-      { invoiceId: body.invoiceId, err: (err as Error).message },
-      'po-financing: fund-circle failed',
-    );
-    return c.json({ error: 'fund failed', detail: (err as Error).message }, 502);
-  }
+  // Purchase-order financing runs on the escrow family now, as Get paid now
+  // from acceptance (view 18). Lines already open finish here.
+  return c.json({ error: 'Purchase-order financing now runs as Get paid now on new deals.', code: 'FINANCING_MOVED' }, 409);
 });
 
 /// POST /api/po-financing/archive: a party dismisses a dead legacy line.

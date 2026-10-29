@@ -20,6 +20,7 @@ export const MONEY_INTENTS: ReadonlySet<ConfirmAction['intent']> = new Set<Confi
   'legacy_step',
   'finance_accept',
   'finance_offer',
+  'finance_pay_seller',
   'claim_payment',
   'take_back_deal',
   'accept_offer',
@@ -44,6 +45,7 @@ export function moneyStepPath(action: ConfirmAction): string | null {
     case 'take_back_deal':
       return job ? `/deals/${job}` : null;
     case 'finance_offer':
+    case 'finance_pay_seller':
       return '/financier';
     case 'approve_match':
     case 'choose_offer':

@@ -31,6 +31,21 @@ export interface FinanceOffer {
   recommended?: boolean;
   /// False when the financier's wallet does not hold the advance yet.
   funded?: boolean;
+  /// On the escrow family: what the offer holds of the seller's deal guarantee,
+  /// what they would put up first, and whether the financier still has to pay.
+  holdUsdc?: string;
+  gapUsdc?: string;
+  waitingForFinancier?: boolean;
+}
+
+/// A line the seller took that an own-wallet financier still has to pay.
+export interface FinancierLine {
+  id: string;
+  invoiceId: string;
+  financier: string;
+  offeredAdvanceUsdc: string;
+  status: string;
+  sellerDeadline?: number;
 }
 
 /// One request on the financier's desk (GET /api/factoring/available).
@@ -55,6 +70,10 @@ export interface FinanceStopAskingConfirm extends ConfirmActionBase {
 }
 export interface FinanceAcceptConfirm extends ConfirmActionBase {
   intent: 'finance_accept';
+  payload: { offerId: string; jobId: string; putUpGap?: boolean };
+}
+export interface FinancePaySellerConfirm extends ConfirmActionBase {
+  intent: 'finance_pay_seller';
   payload: { offerId: string; jobId: string };
 }
 export interface FinanceRejectConfirm extends ConfirmActionBase {
@@ -82,6 +101,7 @@ export interface FinanceApplyConfirm extends ConfirmActionBase {
 export const OFFER_HOURS = 24;
 
 const NOT_ON_THIS_DEAL = 'Getting paid early is not open on deals made on the new escrow yet, which this one is. Deals made before it can use it now.';
+const MOVED = 'Getting paid early now runs on new deals only. This deal finishes as it is.';
 
 const SCALE = 1_000_000n;
 function micros(value: string): bigint {
@@ -113,12 +133,13 @@ export function financeQuote(i: { claimableUsdc: string; requestedAdvanceUsdc?: 
 /// Why this seller cannot ask on this deal, in their words, or null.
 function askRefusal(deal: FinanceDeal, me: string, factorable: boolean): string | null {
   if (deal.seller.toLowerCase() !== me.toLowerCase()) return 'Only the seller on a deal can ask to be paid early.';
-  if (deal.escrowVersion === 'v3' || deal.escrowVersion === 'suite') return NOT_ON_THIS_DEAL;
+  if (deal.escrowVersion === 'v3') return NOT_ON_THIS_DEAL;
+  if (deal.escrowVersion !== 'suite') return MOVED;
   if (deal.tradeLane !== 'finance') return 'Getting paid early is for business orders (goods or mixed) between two verified businesses, not this deal.';
   if (deal.factoringOfferId) return 'This deal has already been paid early.';
   if (deal.poFinancingRequestedAt || deal.poFinancingId) return 'This deal already has purchase-order financing.';
   if (deal.factoringRequestedAt) return 'They have already asked to be paid early on this deal. Financiers can make offers now.';
-  if (!factorable) return 'They can ask to be paid early once the order is marked delivered and before the buyer releases payment.';
+  if (!factorable) return 'They can ask to be paid early once the order is accepted and fully paid in, before the buyer releases payment.';
   return null;
 }
 
@@ -183,23 +204,52 @@ function offerRefusal(offer: FinanceOffer, me: string, nowMs: number): string | 
 }
 
 export function buildAcceptOfferConfirm(i: { offer: FinanceOffer; me: string; nowMs: number }): FinanceAcceptConfirm | { error: string } {
+  if (i.offer.waitingForFinancier) return { error: 'You took this offer. Waiting for the financier to pay, within 24 hours of when you took it.' };
   const refused = offerRefusal(i.offer, i.me, i.nowMs);
   if (refused) return { error: refused };
   if (i.offer.funded === false) return { error: 'The financier has not added the money for this offer yet, so it cannot be taken. They have been told; choose another offer or wait.' };
+  const gap = i.offer.gapUsdc && Number(i.offer.gapUsdc) > 0 ? i.offer.gapUsdc : undefined;
+  const label = gap ? `Put up ${show(gap)} and get paid now` : 'Get paid now';
   return {
     kind: 'confirm',
     id: `finance_accept:${i.offer.id}:${confirmNonce()}`,
     intent: 'finance_accept',
-    title: `Get paid ${show(i.offer.offeredAdvanceUsdc)} now`,
+    title: gap ? label : `Get paid ${show(i.offer.offeredAdvanceUsdc)} now`,
     summary: `When the buyer releases payment, the escrow repays the financier ${show(i.offer.expectedReturnUsdc)} first and pays you the rest.`,
     warning: 'Once you are paid this cannot be undone, and the financier is repaid from this deal before you.',
     fields: [
       { label: 'Paid to you now', value: show(i.offer.offeredAdvanceUsdc) },
       { label: 'Repaid to the financier', value: show(i.offer.expectedReturnUsdc) },
+      ...(i.offer.holdUsdc ? [{ label: 'Held from your deal guarantee until it is repaid', value: show(i.offer.holdUsdc) }] : []),
+      ...(gap ? [{ label: 'Put up first as a deal guarantee', value: show(gap) }] : []),
       ...(i.offer.recommended ? [{ label: 'Offer', value: 'Recommended' }] : []),
     ],
-    payload: { offerId: i.offer.id, jobId: i.offer.invoiceId },
-    confirmLabel: 'Get paid now',
+    payload: { offerId: i.offer.id, jobId: i.offer.invoiceId, ...(gap ? { putUpGap: true } : {}) },
+    confirmLabel: label,
+    cancelLabel: 'Not now',
+  };
+}
+
+/// An own-wallet financier pays the seller from their wallet within 24 hours
+/// of the seller taking the offer.
+export function buildPaySellerConfirm(i: { line: FinancierLine; me: string; nowMs: number }): FinancePaySellerConfirm | { error: string } {
+  if (i.line.financier.toLowerCase() !== i.me.toLowerCase()) return { error: 'Only the financier who made this offer can pay it.' };
+  if (i.line.status !== 'awaiting_financier') return { error: 'This offer is not waiting for a payment.' };
+  if (!i.line.sellerDeadline || i.nowMs > i.line.sellerDeadline) return { error: 'The 24 hours to pay the seller have passed. Nothing was held and nothing moved.' };
+  const hours = Math.max(1, Math.floor((i.line.sellerDeadline - i.nowMs) / 3_600_000));
+  return {
+    kind: 'confirm',
+    id: `finance_pay_seller:${i.line.id}:${confirmNonce()}`,
+    intent: 'finance_pay_seller',
+    title: `Pay the seller ${show(i.line.offeredAdvanceUsdc)}`,
+    summary: 'Your wallet pays the seller now, and the escrow repays you first when the buyer releases payment.',
+    warning: 'Once the seller is paid this cannot be undone.',
+    fields: [
+      { label: 'You pay now', value: show(i.line.offeredAdvanceUsdc) },
+      { label: 'Time left', value: `${hours} hours` },
+    ],
+    payload: { offerId: i.line.id, jobId: i.line.invoiceId },
+    confirmLabel: 'Pay the seller',
     cancelLabel: 'Not now',
   };
 }
