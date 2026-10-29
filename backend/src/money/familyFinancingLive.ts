@@ -21,7 +21,7 @@ import { registryAbi } from '../identity/suiteIdentity.js';
 import { suiteIdentity } from '../identity/suiteIdentityLive.js';
 import { logger } from '../logger.js';
 import { dcwEvmSigner } from '../x402/dcwSigner.js';
-import { createFamilyFinancing, type FamilyFinancingPorts, type Receivable } from './familyFinancing.js';
+import { createFamilyFinancing, type FamilyFinancing, type FamilyFinancingPorts, type Receivable } from './familyFinancing.js';
 import { financingOperationKey, projectFinancingActivity, recordVerifiedFinancingMovement } from './financing.js';
 import { executeCircleGuarantee, guaranteeOperationKey } from './guarantee.js';
 
@@ -154,20 +154,36 @@ function bind(): { ports: FamilyFinancingPorts; receivable: (dealId: Hex) => Pro
   return { ports, receivable, freeGuarantee };
 }
 
-const bound = bind();
+let bound: ReturnType<typeof bind> = null;
 
-export const familyFinancing = bound ? createFamilyFinancing(bound.ports) : null;
-export const familyFinancingPorts = bound?.ports ?? null;
+export let familyFinancing: FamilyFinancing | null = null;
+export let familyFinancingPorts: FamilyFinancingPorts | null = null;
 
 /// What the factoring routes need beyond the core.
-export const familyRouteWiring = bound && familyFinancing
-  ? {
-      core: familyFinancing,
-      receivable: bound.receivable,
-      sellerReady: bound.ports.sellerReady,
-      freeGuarantee: bound.freeGuarantee,
-    }
-  : null;
+export let familyRouteWiring: {
+  core: FamilyFinancing;
+  receivable: (dealId: Hex) => Promise<Receivable>;
+  sellerReady: FamilyFinancingPorts['sellerReady'];
+  freeGuarantee: (wallet: Hex) => Promise<bigint>;
+} | null = null;
+
+/// Wires getting paid early once the guarantee vault check has passed at
+/// startup. Binding when this file loads ran before that check, so the vault
+/// read as off and early payment never came on.
+export function bindFamilyFinancing(): typeof familyRouteWiring {
+  if (bound) return familyRouteWiring;
+  bound = bind();
+  if (!bound) return null;
+  familyFinancing = createFamilyFinancing(bound.ports);
+  familyFinancingPorts = bound.ports;
+  familyRouteWiring = {
+    core: familyFinancing,
+    receivable: bound.receivable,
+    sellerReady: bound.ports.sellerReady,
+    freeGuarantee: bound.freeGuarantee,
+  };
+  return familyRouteWiring;
+}
 
 /// What a family deal still owes its seller, when it can be paid early; null
 /// when it cannot or the escrow could not be read.

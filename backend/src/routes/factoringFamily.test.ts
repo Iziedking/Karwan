@@ -100,9 +100,22 @@ test('accept passes putUpGap to the core', async () => {
 function app(core: Partial<FamilyFinancing>, address: string | null) {
   const { d } = deps(core);
   const a = new Hono();
-  a.route('/api/factoring', createFamilyOpenRoutes({ core: d.core, session: () => (address ? { address } : null) }));
+  a.route('/api/factoring', createFamilyOpenRoutes({ core: () => d.core, session: () => (address ? { address } : null) }));
   return a;
 }
+
+test('the open routes say early payment is not set up until it is wired at startup', async () => {
+  let core: FamilyFinancing | null = null;
+  const { d } = deps({ prepareOpenCalls: async () => ({ calls: [] }) });
+  const a = new Hono();
+  a.route('/api/factoring', createFamilyOpenRoutes({ core: () => core, session: () => ({ address: FIN }) }));
+  const before = await a.request('/api/factoring/offers/o1/open', { method: 'POST' });
+  assert.equal(before.status, 503);
+  assert.deepEqual(await before.json(), { error: 'getting paid early is not set up here' });
+  core = d.core;
+  const after = await a.request('/api/factoring/offers/o1/open', { method: 'POST' });
+  assert.equal(after.status, 200);
+});
 
 test('open returns the calls to the signed-in financier', async () => {
   let asked: unknown;

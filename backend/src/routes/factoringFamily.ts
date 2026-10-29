@@ -102,12 +102,17 @@ export async function familyAccept(deps: FamilyRouteDeps, i: { offerId: string; 
 const completeBody = z.object({ txHash: z.string().regex(/^0x[0-9a-fA-F]{64}$/) });
 
 /// The own-wallet financier's step: the calls to pay the seller, then the receipt.
-export function createFamilyOpenRoutes(deps: { core: FamilyFinancing; session: (c: unknown) => { address: string } | null }) {
+/// The core is read on each request: early payment is wired only once the
+/// startup checks pass, after these routes are mounted.
+export function createFamilyOpenRoutes(deps: { core: () => FamilyFinancing | null; session: (c: unknown) => { address: string } | null }) {
   const app = new Hono();
+  const off = { error: 'getting paid early is not set up here' };
   app.post('/offers/:offerId/open', async (c) => {
     const session = deps.session(c);
     if (!session) return c.json({ error: 'not authenticated' }, 401);
-    const out = await deps.core.prepareOpenCalls({ offerId: c.req.param('offerId'), financier: session.address });
+    const core = deps.core();
+    if (!core) return c.json(off, 503);
+    const out = await core.prepareOpenCalls({ offerId: c.req.param('offerId'), financier: session.address });
     if ('calls' in out) return c.json(out);
     const r = refused(out);
     return c.json(r.body, r.status as 409);
@@ -117,7 +122,9 @@ export function createFamilyOpenRoutes(deps: { core: FamilyFinancing; session: (
     if (!session) return c.json({ error: 'not authenticated' }, 401);
     const body = completeBody.safeParse(await c.req.json().catch(() => null));
     if (!body.success) return c.json({ error: 'invalid body' }, 400);
-    const out = await deps.core.completeOpen({ offerId: c.req.param('offerId'), financier: session.address, txHash: body.data.txHash as Hex });
+    const core = deps.core();
+    if (!core) return c.json(off, 503);
+    const out = await core.completeOpen({ offerId: c.req.param('offerId'), financier: session.address, txHash: body.data.txHash as Hex });
     if ('state' in out) return c.json(out);
     const r = refused(out);
     return c.json(r.body, r.status as 409);

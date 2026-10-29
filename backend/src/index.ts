@@ -97,7 +97,7 @@ import { siweRoutes } from './routes/siwe.js';
 import { tradeRoutes } from './routes/trade.js';
 import { factoringRoutes, useFamilyFinancing } from './routes/factoring.js';
 import { createFamilyOpenRoutes } from './routes/factoringFamily.js';
-import { familyRouteWiring } from './money/familyFinancingLive.js';
+import { bindFamilyFinancing, familyRouteWiring } from './money/familyFinancingLive.js';
 import { poFinancingRoutes } from './routes/poFinancing.js';
 import { financierRoutes } from './routes/financier.js';
 import { smeRoutes } from './routes/sme.js';
@@ -175,6 +175,9 @@ import { startTestFinancier } from './agents/testFinancier.js';
 import { startFamilyFinancingRunner } from './money/familyFinancingRunner.js';
 import { contestPorts, contests as contestsCore } from './contests/contestsLive.js';
 import { startContestRunner } from './contests/contestRunner.js';
+import { work as workCore } from './work/workLive.js';
+import { startWorkRunner } from './work/workRunner.js';
+import { createWorkRoutes } from './routes/work.js';
 import { entryFiles, entryPreviews } from './contests/entryFiles.js';
 import { contestsStore } from './db/contests.js';
 import { createContestRoutes } from './routes/contests.js';
@@ -536,8 +539,7 @@ app.route('/api/siwe', siweRoutes);
 // SME trade-finance rail (Phase 2 Track 2).
 app.route('/api/trade', tradeRoutes);
 // Getting paid early on the escrow family (view 18): the routes branch to the core.
-useFamilyFinancing(familyRouteWiring);
-if (familyRouteWiring) app.route('/api/factoring', createFamilyOpenRoutes({ core: familyRouteWiring.core, session: (c) => readSession(c as Parameters<typeof readSession>[0]) }));
+app.route('/api/factoring', createFamilyOpenRoutes({ core: () => familyRouteWiring?.core ?? null, session: (c) => readSession(c as Parameters<typeof readSession>[0]) }));
 app.route('/api/factoring', factoringRoutes);
 // Contests on the job escrow (view 40); off where the job escrow is not set.
 if (contestsCore) {
@@ -555,6 +557,8 @@ if (contestsCore) {
     },
   }));
 }
+// Hourly work and monthly retainers on the time escrow (view 32); off where it is not set.
+if (workCore) app.route('/api/work', createWorkRoutes({ core: workCore, session: (c) => readSession(c as Parameters<typeof readSession>[0]) }));
 app.route('/api/po-financing', poFinancingRoutes);
 app.route('/api/financier', financierRoutes);
 app.route('/api/sme', smeRoutes);
@@ -741,6 +745,7 @@ function bootAgents() {
     stopFns.push(startTestFinancier());
     stopFns.push(startFamilyFinancingRunner());
     stopFns.push(startContestRunner(contestsCore));
+    stopFns.push(startWorkRunner(workCore));
   } catch (err) {
     appLogger.warn({ err: (err as Error).message }, 'factoring watcher not started');
   }
@@ -1485,7 +1490,8 @@ void boot();
 
 /// New deals open on the escrow family only once its addresses check out on chain.
 void bootSuiteCheck(undefined, platformSignersProblem);
-void bootGuaranteeVaultCheck();
+// Getting paid early needs the vault check, so it is wired only after it.
+void bootGuaranteeVaultCheck().then(() => useFamilyFinancing(bindFamilyFinancing()));
 
 /// A wrong chain id is fatal in production (see chain/networkGuard.ts).
 void checkChain(() => publicClient.getChainId(), ARC.chainId).then((result) => {
