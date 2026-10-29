@@ -96,6 +96,48 @@ sequenceDiagram
 
 Notes: `KarwanTimeEscrow.open`, `accept`, `submit`, `approve`, `object`, `settle`, `fundCycle`, `giveNotice`, `close`. Objected hours go to Karwan's dispute table and the review team as on the Agreement escrow. Either side can end the engagement with one week's notice.
 
+## Posting hourly work, and finding the best fit
+
+A hirer can name a worker they already know, or post the work to the market and let their agent find the best fit. Nobody proves they can do the work with files they upload: the hirer's agent judges each person by what they have actually done on Karwan. That means:
+
+- the skills their finished deals and engagements show;
+- the checks Karwan ran on those skills;
+- delivered on time, disputes lost and ratings.
+
+This is the same shortlist every request already uses: skill fit first, verified above unverified inside a fit, and reputation only as the tie-break.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant H as Hirer
+  participant HA as Hirer's buying agent
+  participant M as Market
+  participant S as Sellers and their agents
+  participant T as Time escrow
+
+  H->>HA: "A virtual assistant, up to 15 an hour, 20 hours a week, 4 weeks, from Monday"
+  HA->>M: Post the request with How you pay: by the hour
+  M-->>S: Sellers whose skills and record fit are told
+  S->>M: Offers: an hourly rate and a note
+  HA->>HA: Rank by skill fit from finished work, then record, then rate
+  HA-->>H: Shortlist of up to 5, the best fit recommended, with up to 3 reasons
+  H->>HA: Hire the one they choose
+  HA->>T: Open the engagement on the chosen worker's rate and fund week 1
+  S->>T: The worker's agent accepts the exact terms the worker offered
+```
+
+Notes:
+
+- **What an offer shows for any request, fixed price or hourly.** It never shows the score, counts, amounts, or who the deals were with (UI law rule 3).
+  - The seller's name and tag.
+  - Verified or not, in words.
+  - Their tier.
+  - Their rating, as "4.8 from 23 deals", or "New" under three ratings.
+  - Up to three reasons, such as "Best fit", "Verified" and "On time".
+- **When a worker counts as finished.** A finished engagement writes its outcome to both people's records. Hourly work a person has done well therefore counts the next time an agent looks for them.
+- **New workers.** A new worker can still be hired. They are funded one week at a time, which caps the hirer's risk at one week's budget.
+- **Who sends offers on the demo.** On testnet for 3 November, sellers offer an hourly rate by hand or through their assistant. Sellers' agents offering an hourly rate on their own comes after the pricing change to the ways of dealing (view 26).
+
 ## What fails where
 
 | Where | What fails | What happens |
@@ -138,5 +180,6 @@ Logged in `docs/arc-circle-checks.md` before any code: the deployed Time escrow 
 | Goods open to every account, shipped or handed over in person | Planned |
 | Deals refused or held by the rules in "Open to everyone" | Planned |
 | "How you pay" on the deal form, fixed price or by the hour | Planned |
+| Hourly work posted to the market, best fit found by the hirer's agent | Building, from 29 Oct 2026 (sellers offer by hand or in chat; agents offering on their own comes later) |
 | Hourly and retainer engagements on the Time escrow | Building, from 29 Oct 2026: both kinds, the timings in decisions 2 to 5, and a worker with no finished engagement funded one week at a time (after that, up to 4 weeks ahead) |
 | Agent jobs and bounties (Jobs family) | Later |
