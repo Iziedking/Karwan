@@ -108,7 +108,8 @@ The older factoring and purchase-order routes stay readable for past deals and s
 
 | Step | Status |
 |---|---|
-| Contract mechanics: advance, assignment, repaid first, stake held | Built and tested; proven in the Arc Testnet rehearsal |
+| Contract mechanics: advance, assignment, repaid first, deal guarantee held | Built and tested; proven in the Arc Testnet rehearsal |
+| The seller's deal guarantee on the family vault, which an advance holds (view 37) | Built 29 Oct 2026, not deployed |
 | Contract family deployed once on testnet | Planned (track T2, item 1), after the audit gates, expected by 24 Oct 2026 |
 | App connected to the suite: offers, signatures, line in step with chain | Planned (T4.2, T4.3) |
 | Financier follows the deal: Open deals list and deal alerts | Built 20 Oct 2026, not deployed |
