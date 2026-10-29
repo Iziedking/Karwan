@@ -22,7 +22,7 @@ export interface WaysCopy {
   order: string;
   fields: {
     priceFrom: string;
-    priceTo: string;
+    priceUsual: string;
     daysFrom: string;
     daysTo: string;
     stages: string;
@@ -44,6 +44,8 @@ export interface WaysCopy {
   payStages: string;
   usdc: string;
   usdcRange: string;
+  /// {usual} and {min} are USDC amounts: what they usually charge and the lowest they take.
+  usualLowest: string;
   days: string;
   daysRange: string;
   upTo: string;
@@ -86,9 +88,9 @@ export const waysCopy: Record<Locale, WaysCopy> = {
     failed: 'Could not save. Try again.',
     none: 'No ways yet.',
     missing: 'Fill in every field.',
-    order: 'The lowest cannot be above the highest.',
+    order: 'The lowest cannot be above the usual.',
     fields: {
-      priceFrom: 'Price from', priceTo: 'Price up to', daysFrom: 'Done in at least', daysTo: 'Done in at most', stages: 'Stages',
+      priceFrom: 'Lowest price', priceUsual: 'Usual price', daysFrom: 'Done in at least', daysTo: 'Done in at most', stages: 'Stages',
       whatSell: 'What you sell', whatRent: 'What you rent out', shipsTo: 'Ships to', arrives: 'Arrives in',
       deposit: 'Deposit', period: 'For how long', maxPrice: 'Most you pay', needDays: 'Needed within', pay: 'How you pay',
       deliverTo: 'Delivered to', waitDays: 'You can wait', maxDeposit: 'Most deposit you put down',
@@ -98,6 +100,7 @@ export const waysCopy: Record<Locale, WaysCopy> = {
     payStages: 'Stage by stage',
     usdc: '{n} USDC',
     usdcRange: '{min} to {max} USDC',
+    usualLowest: 'Usually {usual} USDC, lowest {min}',
     days: '{n} days',
     daysRange: '{min} to {max} days',
     upTo: 'Up to {n} USDC',
@@ -136,9 +139,9 @@ export const waysCopy: Record<Locale, WaysCopy> = {
     failed: 'Impossible d’enregistrer. Réessayez.',
     none: 'Aucune façon pour le moment.',
     missing: 'Remplissez chaque champ.',
-    order: 'Le minimum ne peut pas dépasser le maximum.',
+    order: 'Le minimum ne peut pas dépasser le prix habituel.',
     fields: {
-      priceFrom: 'Prix à partir de', priceTo: 'Prix jusqu’à', daysFrom: 'Fait en au moins', daysTo: 'Fait en au plus', stages: 'Étapes',
+      priceFrom: 'Prix minimum', priceUsual: 'Prix habituel', daysFrom: 'Fait en au moins', daysTo: 'Fait en au plus', stages: 'Étapes',
       whatSell: 'Ce que vous vendez', whatRent: 'Ce que vous louez', shipsTo: 'Livre vers', arrives: 'Arrive en',
       deposit: 'Caution', period: 'Pour combien de temps', maxPrice: 'Le plus que vous payez', needDays: 'Nécessaire sous', pay: 'Comment vous payez',
       deliverTo: 'Livré à', waitDays: 'Vous pouvez attendre', maxDeposit: 'Caution maximale versée',
@@ -148,6 +151,7 @@ export const waysCopy: Record<Locale, WaysCopy> = {
     payStages: 'Étape par étape',
     usdc: '{n} USDC',
     usdcRange: '{min} à {max} USDC',
+    usualLowest: 'Habituellement {usual} USDC, minimum {min}',
     days: '{n} jours',
     daysRange: '{min} à {max} jours',
     upTo: 'Jusqu’à {n} USDC',
@@ -186,9 +190,9 @@ export const waysCopy: Record<Locale, WaysCopy> = {
     failed: 'تعذّر الحفظ. حاول مرة أخرى.',
     none: 'لا توجد طرق بعد.',
     missing: 'املأ كل الحقول.',
-    order: 'لا يمكن أن يكون الأدنى أعلى من الأقصى.',
+    order: 'لا يمكن أن يكون الأدنى أعلى من السعر المعتاد.',
     fields: {
-      priceFrom: 'السعر من', priceTo: 'السعر حتى', daysFrom: 'يُنجز في الأقل خلال', daysTo: 'يُنجز في الأكثر خلال', stages: 'المراحل',
+      priceFrom: 'أدنى سعر', priceUsual: 'السعر المعتاد', daysFrom: 'يُنجز في الأقل خلال', daysTo: 'يُنجز في الأكثر خلال', stages: 'المراحل',
       whatSell: 'ما تبيعه', whatRent: 'ما تؤجره', shipsTo: 'يُشحن إلى', arrives: 'يصل خلال',
       deposit: 'التأمين', period: 'لأي مدة', maxPrice: 'أقصى ما تدفعه', needDays: 'مطلوب خلال', pay: 'طريقة الدفع',
       deliverTo: 'يُسلَّم إلى', waitDays: 'يمكنك الانتظار', maxDeposit: 'أقصى تأمين تضعه',
@@ -198,6 +202,7 @@ export const waysCopy: Record<Locale, WaysCopy> = {
     payStages: 'مرحلة بمرحلة',
     usdc: '{n} USDC',
     usdcRange: 'من {min} إلى {max} USDC',
+    usualLowest: 'عادةً {usual} USDC، والحد الأدنى {min}',
     days: '{n} أيام',
     daysRange: 'من {min} إلى {max} أيام',
     upTo: 'حتى {n} USDC',
@@ -236,9 +241,9 @@ export const waysCopy: Record<Locale, WaysCopy> = {
     failed: 'सहेजा नहीं जा सका। फिर कोशिश करें।',
     none: 'अभी कोई तरीका नहीं।',
     missing: 'हर फ़ील्ड भरें।',
-    order: 'न्यूनतम, अधिकतम से ज़्यादा नहीं हो सकता।',
+    order: 'न्यूनतम, सामान्य कीमत से ज़्यादा नहीं हो सकता।',
     fields: {
-      priceFrom: 'कीमत से', priceTo: 'कीमत तक', daysFrom: 'कम से कम इतने दिन', daysTo: 'ज़्यादा से ज़्यादा इतने दिन', stages: 'चरण',
+      priceFrom: 'न्यूनतम कीमत', priceUsual: 'सामान्य कीमत', daysFrom: 'कम से कम इतने दिन', daysTo: 'ज़्यादा से ज़्यादा इतने दिन', stages: 'चरण',
       whatSell: 'आप क्या बेचते हैं', whatRent: 'आप क्या किराए पर देते हैं', shipsTo: 'कहाँ भेजते हैं', arrives: 'पहुँचने में',
       deposit: 'जमा', period: 'कितने समय के लिए', maxPrice: 'आप अधिकतम कितना देते हैं', needDays: 'कितने दिनों में चाहिए', pay: 'आप कैसे भुगतान करते हैं',
       deliverTo: 'कहाँ पहुँचे', waitDays: 'आप इंतज़ार कर सकते हैं', maxDeposit: 'अधिकतम जमा',
@@ -248,6 +253,7 @@ export const waysCopy: Record<Locale, WaysCopy> = {
     payStages: 'चरण दर चरण',
     usdc: '{n} USDC',
     usdcRange: '{min} से {max} USDC',
+    usualLowest: 'आम तौर पर {usual} USDC, न्यूनतम {min}',
     days: '{n} दिन',
     daysRange: '{min} से {max} दिन',
     upTo: '{n} USDC तक',
@@ -286,9 +292,9 @@ export const waysCopy: Record<Locale, WaysCopy> = {
     failed: 'Imeshindwa kuhifadhi. Jaribu tena.',
     none: 'Bado hakuna njia.',
     missing: 'Jaza kila sehemu.',
-    order: 'Kiwango cha chini hakiwezi kuzidi cha juu.',
+    order: 'Kiwango cha chini hakiwezi kuzidi bei ya kawaida.',
     fields: {
-      priceFrom: 'Bei kuanzia', priceTo: 'Bei hadi', daysFrom: 'Inakamilika angalau kwa', daysTo: 'Inakamilika zaidi kwa', stages: 'Hatua',
+      priceFrom: 'Bei ya chini kabisa', priceUsual: 'Bei ya kawaida', daysFrom: 'Inakamilika angalau kwa', daysTo: 'Inakamilika zaidi kwa', stages: 'Hatua',
       whatSell: 'Unachouza', whatRent: 'Unachokodisha', shipsTo: 'Inatumwa hadi', arrives: 'Inafika kwa',
       deposit: 'Amana', period: 'Kwa muda gani', maxPrice: 'Kiasi cha juu unacholipa', needDays: 'Inahitajika ndani ya', pay: 'Unavyolipa',
       deliverTo: 'Inawasilishwa hadi', waitDays: 'Unaweza kusubiri', maxDeposit: 'Amana ya juu unayoweka',
@@ -298,6 +304,7 @@ export const waysCopy: Record<Locale, WaysCopy> = {
     payStages: 'Hatua kwa hatua',
     usdc: 'USDC {n}',
     usdcRange: 'USDC {min} hadi {max}',
+    usualLowest: 'Kawaida USDC {usual}, chini kabisa {min}',
     days: 'Siku {n}',
     daysRange: 'Siku {min} hadi {max}',
     upTo: 'Hadi USDC {n}',
