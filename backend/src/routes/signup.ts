@@ -18,6 +18,7 @@ import { isInvited } from '../db/waitlist.js';
 import { rateLimit } from '../middleware/rateLimit.js';
 import { checkKarwanTag } from '../profile/karwanTag.js';
 import { newAccountProfile, signupRefusal } from '../profile/signup.js';
+import { startAgents } from '../profile/agentStart.js';
 import { logger } from '../logger.js';
 import { invalidBodyMessage } from './invalidBody.js';
 
@@ -80,6 +81,7 @@ signupRoutes.post('/', rateLimit({ windowMs: 10 * 60_000, max: 10, name: 'signup
   // becomes the verified contact email, so alerts work from the first deal.
   if (email) profile = (await setProfileEmail(address, email, true)) ?? profile;
   logger.info({ address, tag, accountKind: body.accountKind }, 'account created');
+  startAgents(address);
   return c.json({ profile }, 201);
 });
 

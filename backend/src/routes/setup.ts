@@ -2,6 +2,7 @@ import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 import type { BriefResult, ProfilePatch } from '../agents/agentBrief.js';
 import type { BriefAnswers } from '../agents/agentBriefLines.js';
+import { firstPost } from '../agents/firstPost.js';
 import type { UserLocale, UserProfile } from '../db/profiles.js';
 import { legacyFromWays, waysSchema, wayLines } from '../agents/ways.js';
 
@@ -66,7 +67,7 @@ export function createSetupRoutes(deps: SetupRouteDeps): Hono {
     if (!allowed(address)) return { error: c.json({ error: 'too many tries, wait a few minutes' }, 429) } as const;
     const current = await deps.current(address);
     const result = await deps.read(parsed.data.answers, current, await deps.locale(address));
-    return { address, result } as const;
+    return { address, result, answers: parsed.data.answers } as const;
   }
 
   app.post('/preview', async (c) => {
@@ -83,7 +84,7 @@ export function createSetupRoutes(deps: SetupRouteDeps): Hono {
     const profile = await deps.save(r.address, patch);
     if (!profile) return c.json({ error: 'profile not found' }, 404);
     if (r.result.place) await deps.saveLocation(r.address, r.result.place);
-    return c.json({ profile });
+    return c.json({ profile, firstPost: firstPost(r.answers) });
   });
 
   /// The ways this person deals (view 26), saved whole. Moves no money and

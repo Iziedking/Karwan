@@ -53,6 +53,14 @@ test("save stores the server's reading, marks setup done and saves the place", a
   assert.deepEqual(h.places, [{ country: 'NG', city: 'Lagos' }]);
 });
 
+test('save returns the first post to offer', async () => {
+  const h = harness();
+  const seller = await (await h.post('/save', { answers })).json();
+  assert.equal(seller.firstPost.kind, 'offer');
+  const record = await (await h.post('/save', { answers: { goals: ['record'] } })).json();
+  assert.equal(record.firstPost, null);
+});
+
 test('an answer the server could not read is not saved yet', async () => {
   const h = harness({ read: async () => ({ patch: { goals: ['work'], agentPrefs: {}, settings: {} }, lines: [], needs: ['price'], place: null }) });
   const res = await h.post('/save', { answers });

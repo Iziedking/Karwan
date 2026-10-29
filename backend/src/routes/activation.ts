@@ -151,7 +151,7 @@ const fundInFlight = new Set<string>();
 
 // One activation at a time per address, so a double-click cannot provision two
 // wallet pairs for the same user.
-const inFlight = new Set<string>();
+const inFlight = new Map<string, Promise<AgentWallets>>();
 
 export const activationRoutes = new Hono();
 
@@ -471,153 +471,8 @@ activationRoutes.post('/activate', async (c) => {
     return c.json({ activated: true, agents: agentsPayload(existing) });
   }
 
-  if (inFlight.has(userAddress)) {
-    return c.json({ error: 'activation already in progress' }, 409);
-  }
-
-  inFlight.add(userAddress);
   try {
-    const provisioned = await provisionUserAgentWallets(userAddress);
-
-    // Provision every deposit chain up front, not just Base.
-    //
-    // This is load-bearing now, not a latency trick. The deposit card tells the
-    // user to send USDC from any of these chains to one address, and Circle only
-    // emits an inbound webhook for a chain it holds a wallet on. An unprovisioned
-    // chain is therefore not a slow credit, it is a deposit that arrives and is
-    // never noticed.
-    //
-    // Solana especially benefits: its create-wallet path was hanging on a
-    // /bridge first-pick, leaving users on "provisioning..." indefinitely
-    // (Circle's SOL-DEVNET create sometimes never returns). Doing it here moves
-    // the failure to where the user expects creation work.
-    //
-    // Only Circle/email accounts get backend deposit wallets. Web3 accounts
-    // bridge from their own connected wallet and never touch a backend-signed
-    // source DCW, so a deposit wallet is unusable to them AND provisioning one
-    // advances the shared wallet set's per-chain index counter, which is what
-    // collides addresses across users. See provisionUserBridgeWallet, which
-    // refuses this at the source.
-    let bridgeWallets: Record<string, { walletId: string; address: string }> = {};
-    const isCircleAccount = !!getUserByAddress(userAddress)?.circleIdentityWalletId;
-    // EVERY chain a backend DCW can sign a CCTP burn on, not just the four the
-    // deposit card advertises. The deposit address is the same 0x on all EVM
-    // chains, so a user who sends on Optimism, Avalanche or Unichain lands at a
-    // real address either way. Whether the money then moves depended entirely on
-    // whether a wallet record existed for that chain, because depositWatcher
-    // indexes on `bridgeWallets` — so three chains silently swallowed deposits
-    // and never bridged. Sei, Sonic, World Chain and HyperEVM stay off this list
-    // on purpose: Circle exposes them as EOA-only, and a CCTP burn is a contract
-    // call, so no backend wallet can sign there. Those remain web3-only.
-    const eagerBridgeChains: BridgeBlockchain[] = isCircleAccount
-      ? [
-          BASE_SEPOLIA_BLOCKCHAIN,
-          ETH_SEPOLIA_BLOCKCHAIN,
-          OP_SEPOLIA_BLOCKCHAIN,
-          ARB_SEPOLIA_BLOCKCHAIN,
-          POLYGON_AMOY_BLOCKCHAIN,
-          AVAX_FUJI_BLOCKCHAIN,
-          UNI_SEPOLIA_BLOCKCHAIN,
-          SOL_DEVNET_BLOCKCHAIN,
-        ]
-      : [];
-
-    // In parallel, so eight chains cost the slowest one rather than the sum.
-    // Safe to parallelise only because deriveOnly forbids the createWallets
-    // fallback on the EVM chains, which is the one step that consumes a shared
-    // index. Solana has no derive path and is the single create here by design.
-    const provisioning = await Promise.allSettled(
-      eagerBridgeChains.map((chain) =>
-        provisionUserBridgeWallet(userAddress, chain, undefined, {
-          deriveOnly: chain !== SOL_DEVNET_BLOCKCHAIN,
-        }),
-      ),
-    );
-    for (const [i, result] of provisioning.entries()) {
-      const chain = eagerBridgeChains[i]!;
-      if (result.status === 'fulfilled') {
-        bridgeWallets[chain] = {
-          walletId: result.value.walletId,
-          address: result.value.address,
-        };
-      } else {
-        // Not load-bearing for activation itself: agents still ship and the
-        // chain lazy-provisions on first use. A deposit sent to that chain
-        // before then is missed, which is why the deposit card offers only the
-        // chains actually present on the record.
-        logger.warn(
-          { userAddress, chain, err: (result.reason as Error)?.message },
-          'eager deposit wallet provisioning failed during activation; will lazy-provision later',
-        );
-      }
-    }
-
-    // A deposit landing in the first minute of an account's life must still be
-    // recognised, so drop the watcher's reverse index rather than let it expire
-    // with these addresses missing from it.
-    invalidateDepositIndex();
-
-    const record = await saveAgentWallets({
-      userAddress,
-      ...provisioned,
-      bridgeWallets,
-      buyerName: cleanName(body.buyerName),
-      sellerName: cleanName(body.sellerName),
-    });
-
-    // Bind each agent → identity on the vault so a stake-backed reservation
-    // (acceptEscrow) resolves to the wallet that actually holds the stake.
-    //
-    // This only completes here for an account whose identity is a wallet we
-    // sign with: the vault requires the OWNER to approve the agent first, and
-    // for a connected wallet that signature is the user's. They complete it on
-    // /stake, which is where stake starts mattering.
-    void bindAgentsAtActivation(userAddress, record);
-
-    // Seed both agents with a small USDC float from the operator wallet so the
-    // user lands ready to trade. This is the reliable funding path: the public
-    // faucet is rate-limited on testnet and absent on mainnet. Best-effort,
-    // idempotent (skips an already-funded agent), and never blocks activation.
-    void seedAgentFromOperator(record.buyerAddress, { owner: userAddress, agent: 'buyer' });
-    void seedAgentFromOperator(record.sellerAddress, { owner: userAddress, agent: 'seller' });
-
-    // Legacy fallback: top up from the user's own identity wallet when it holds
-    // funds (e.g. a Circle user who already topped up). The operator seed above
-    // already covers the common case; this is harmless and no-ops on an empty
-    // identity. Fire-and-forget, Circle users only. See seedAgentsFromIdentity.
-    void seedAgentsFromIdentity(userAddress, record);
-
-    // Give the Base Sepolia bridge wallet native gas + USDC so a Circle user can
-    // bridge without bringing Sepolia ETH for the CCTP approve+burn gas. Circle
-    // users only: web3 users bridge from their own wallet and never touch the
-    // backend-signed source DCW, so there's nothing to pre-fund for them.
-    const baseBridgeAddr = record.bridgeWallets?.[BASE_SEPOLIA_BLOCKCHAIN]?.address;
-    if (baseBridgeAddr && getUserByAddress(userAddress)?.circleIdentityWalletId) {
-      void dripTestnetUsdc(baseBridgeAddr, {
-        blockchain: BASE_SEPOLIA_BLOCKCHAIN,
-        native: true,
-        usdc: true,
-      });
-    }
-
-    bus.emitEvent({
-      type: 'agent.activated',
-      actor: 'platform',
-      payload: {
-        user: userAddress,
-        buyer: record.buyerAddress,
-        seller: record.sellerAddress,
-      },
-    });
-    logger.info(
-      {
-        userAddress,
-        buyer: record.buyerAddress,
-        seller: record.sellerAddress,
-        bridgeChains: Object.keys(record.bridgeWallets ?? {}),
-      },
-      'user agent wallets provisioned',
-    );
+    const record = await activateAgents(userAddress, { buyerName: body.buyerName, sellerName: body.sellerName });
     return c.json({
       activated: true,
       agents: agentsPayload(record),
@@ -626,10 +481,166 @@ activationRoutes.post('/activate', async (c) => {
   } catch (err) {
     logger.error({ userAddress, err: (err as Error).message }, 'activation failed');
     return c.json({ error: 'activation failed', detail: (err as Error).message }, 502);
-  } finally {
-    inFlight.delete(userAddress);
   }
 });
+
+/// Sets up a person's two agents: the Circle wallets, deposit wallets, the
+/// vault binding and the starting float. One run per account at a time; a
+/// second caller while it runs gets the same result. Called by POST /activate
+/// and, in the background, when an account is created (view 38).
+export function activateAgents(userAddress: string, names: { buyerName?: string; sellerName?: string } = {}): Promise<AgentWallets> {
+  const key = userAddress.toLowerCase();
+  const running = inFlight.get(key);
+  if (running) return running;
+  const run = provisionAgents(key, names).finally(() => inFlight.delete(key));
+  inFlight.set(key, run);
+  return run;
+}
+
+async function provisionAgents(userAddress: string, names: { buyerName?: string; sellerName?: string }): Promise<AgentWallets> {
+  const provisioned = await provisionUserAgentWallets(userAddress);
+
+  // Provision every deposit chain up front, not just Base.
+  //
+  // This is load-bearing now, not a latency trick. The deposit card tells the
+  // user to send USDC from any of these chains to one address, and Circle only
+  // emits an inbound webhook for a chain it holds a wallet on. An unprovisioned
+  // chain is therefore not a slow credit, it is a deposit that arrives and is
+  // never noticed.
+  //
+  // Solana especially benefits: its create-wallet path was hanging on a
+  // /bridge first-pick, leaving users on "provisioning..." indefinitely
+  // (Circle's SOL-DEVNET create sometimes never returns). Doing it here moves
+  // the failure to where the user expects creation work.
+  //
+  // Only Circle/email accounts get backend deposit wallets. Web3 accounts
+  // bridge from their own connected wallet and never touch a backend-signed
+  // source DCW, so a deposit wallet is unusable to them AND provisioning one
+  // advances the shared wallet set's per-chain index counter, which is what
+  // collides addresses across users. See provisionUserBridgeWallet, which
+  // refuses this at the source.
+  let bridgeWallets: Record<string, { walletId: string; address: string }> = {};
+  const isCircleAccount = !!getUserByAddress(userAddress)?.circleIdentityWalletId;
+  // EVERY chain a backend DCW can sign a CCTP burn on, not just the four the
+  // deposit card advertises. The deposit address is the same 0x on all EVM
+  // chains, so a user who sends on Optimism, Avalanche or Unichain lands at a
+  // real address either way. Whether the money then moves depended entirely on
+  // whether a wallet record existed for that chain, because depositWatcher
+  // indexes on `bridgeWallets` — so three chains silently swallowed deposits
+  // and never bridged. Sei, Sonic, World Chain and HyperEVM stay off this list
+  // on purpose: Circle exposes them as EOA-only, and a CCTP burn is a contract
+  // call, so no backend wallet can sign there. Those remain web3-only.
+  const eagerBridgeChains: BridgeBlockchain[] = isCircleAccount
+    ? [
+        BASE_SEPOLIA_BLOCKCHAIN,
+        ETH_SEPOLIA_BLOCKCHAIN,
+        OP_SEPOLIA_BLOCKCHAIN,
+        ARB_SEPOLIA_BLOCKCHAIN,
+        POLYGON_AMOY_BLOCKCHAIN,
+        AVAX_FUJI_BLOCKCHAIN,
+        UNI_SEPOLIA_BLOCKCHAIN,
+        SOL_DEVNET_BLOCKCHAIN,
+      ]
+    : [];
+
+  // In parallel, so eight chains cost the slowest one rather than the sum.
+  // Safe to parallelise only because deriveOnly forbids the createWallets
+  // fallback on the EVM chains, which is the one step that consumes a shared
+  // index. Solana has no derive path and is the single create here by design.
+  const provisioning = await Promise.allSettled(
+    eagerBridgeChains.map((chain) =>
+      provisionUserBridgeWallet(userAddress, chain, undefined, {
+        deriveOnly: chain !== SOL_DEVNET_BLOCKCHAIN,
+      }),
+    ),
+  );
+  for (const [i, result] of provisioning.entries()) {
+    const chain = eagerBridgeChains[i]!;
+    if (result.status === 'fulfilled') {
+      bridgeWallets[chain] = {
+        walletId: result.value.walletId,
+        address: result.value.address,
+      };
+    } else {
+      // Not load-bearing for activation itself: agents still ship and the
+      // chain lazy-provisions on first use. A deposit sent to that chain
+      // before then is missed, which is why the deposit card offers only the
+      // chains actually present on the record.
+      logger.warn(
+        { userAddress, chain, err: (result.reason as Error)?.message },
+        'eager deposit wallet provisioning failed during activation; will lazy-provision later',
+      );
+    }
+  }
+
+  // A deposit landing in the first minute of an account's life must still be
+  // recognised, so drop the watcher's reverse index rather than let it expire
+  // with these addresses missing from it.
+  invalidateDepositIndex();
+
+  const record = await saveAgentWallets({
+    userAddress,
+    ...provisioned,
+    bridgeWallets,
+    buyerName: cleanName(names.buyerName),
+    sellerName: cleanName(names.sellerName),
+  });
+
+  // Bind each agent → identity on the vault so a stake-backed reservation
+  // (acceptEscrow) resolves to the wallet that actually holds the stake.
+  //
+  // This only completes here for an account whose identity is a wallet we
+  // sign with: the vault requires the OWNER to approve the agent first, and
+  // for a connected wallet that signature is the user's. They complete it on
+  // /stake, which is where stake starts mattering.
+  void bindAgentsAtActivation(userAddress, record);
+
+  // Seed both agents with a small USDC float from the operator wallet so the
+  // user lands ready to trade. This is the reliable funding path: the public
+  // faucet is rate-limited on testnet and absent on mainnet. Best-effort,
+  // idempotent (skips an already-funded agent), and never blocks activation.
+  void seedAgentFromOperator(record.buyerAddress, { owner: userAddress, agent: 'buyer' });
+  void seedAgentFromOperator(record.sellerAddress, { owner: userAddress, agent: 'seller' });
+
+  // Legacy fallback: top up from the user's own identity wallet when it holds
+  // funds (e.g. a Circle user who already topped up). The operator seed above
+  // already covers the common case; this is harmless and no-ops on an empty
+  // identity. Fire-and-forget, Circle users only. See seedAgentsFromIdentity.
+  void seedAgentsFromIdentity(userAddress, record);
+
+  // Give the Base Sepolia bridge wallet native gas + USDC so a Circle user can
+  // bridge without bringing Sepolia ETH for the CCTP approve+burn gas. Circle
+  // users only: web3 users bridge from their own wallet and never touch the
+  // backend-signed source DCW, so there's nothing to pre-fund for them.
+  const baseBridgeAddr = record.bridgeWallets?.[BASE_SEPOLIA_BLOCKCHAIN]?.address;
+  if (baseBridgeAddr && getUserByAddress(userAddress)?.circleIdentityWalletId) {
+    void dripTestnetUsdc(baseBridgeAddr, {
+      blockchain: BASE_SEPOLIA_BLOCKCHAIN,
+      native: true,
+      usdc: true,
+    });
+  }
+
+  bus.emitEvent({
+    type: 'agent.activated',
+    actor: 'platform',
+    payload: {
+      user: userAddress,
+      buyer: record.buyerAddress,
+      seller: record.sellerAddress,
+    },
+  });
+  logger.info(
+    {
+      userAddress,
+      buyer: record.buyerAddress,
+      seller: record.sellerAddress,
+      bridgeChains: Object.keys(record.bridgeWallets ?? {}),
+    },
+    'user agent wallets provisioned',
+  );
+  return record;
+}
 
 /// Rename the user's agents (or clear back to the defaults by sending blanks).
 /// Session-gated: you can only rename your own agents. Names are display-only,

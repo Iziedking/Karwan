@@ -37,7 +37,7 @@ import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { getAgentWallets } from '../db/agentWallets.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
-import { isSessionSelf, sessionAddress } from '../auth/session.js';
+import { isSessionSelf, readSession, sessionAddress } from '../auth/session.js';
 import { accountTypeOf, deriveLane } from '../profile/accountType.js';
 import { invalidBodyMessage } from './invalidBody.js';
 import { publicListing } from '../marketplace/publicListing.js';
@@ -413,7 +413,13 @@ listingsRoutes.post('/', async (c) => {
     return c.json({ error: 'You can only post a listing as your own wallet.', code: 'forbidden' }, 403);
   }
 
-  const agents = await getAgentWallets(body.sellerUser);
+  let agents = await getAgentWallets(body.sellerUser);
+  // Agents are set up at sign-up (view 38). If that has not finished, or the
+  // account is older, the signed-in owner gets them now rather than an error.
+  // Only for a session that owns the address: never for an anonymous caller.
+  if (!agents && readSession(c)?.address.toLowerCase() === body.sellerUser.toLowerCase()) {
+    agents = await (await import('./activation.js')).activateAgents(body.sellerUser).catch(() => null);
+  }
   if (!agents) {
     return c.json(
       { error: 'activate your agent wallets before posting a listing' },

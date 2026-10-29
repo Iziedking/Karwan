@@ -1,5 +1,6 @@
 import { buildSaveSetupConfirm, type ConfirmAction } from '../assistant/actions.js';
 import type { BriefAnswers } from '../agents/agentBriefLines.js';
+import { firstPost } from '../agents/firstPost.js';
 import type { Goal } from '../db/profiles.js';
 import { parsePlace } from '../location/rules.js';
 import type { OnboardingResult } from './onboarding.js';
@@ -103,15 +104,6 @@ function ask(q: SetupQuestion, answers: BriefAnswers): OutMessage {
   }
   if (q === 'what' && answers.goals.includes('sell') && !answers.goals.includes('work')) return text(SELL_WHAT);
   return text(ASK[q]);
-}
-
-/// The person's own words for their first post, or null when there is nothing to post.
-function firstPost(a: BriefAnswers): { kind: 'offer' | 'request'; handOff: string } | null {
-  if ((a.goals.includes('work') || a.goals.includes('sell')) && a.what) {
-    return { kind: 'offer', handOff: `I sell: ${a.what}.${a.price ? ` Usually ${a.price}.` : ''} Post this as my offer.` };
-  }
-  if (a.goals.includes('buy') && a.buy) return { kind: 'request', handOff: `I need: ${a.buy}. Post this as my request.` };
-  return null;
 }
 
 const STEPS = new Set<string>(['role', 'offer', 'goals', 'what', 'price', 'paid', 'buy', 'business', 'places', 'clients', 'own', 'reach', 'where', 'confirm', 'post']);
