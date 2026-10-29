@@ -32,6 +32,7 @@ import { bindingTypedData, createSuiteIdentity, KIND, registryAbi } from '../ide
 import { guaranteeVaultAbi } from '../chain/guaranteeVault.js';
 import { financeableAbi, tradeFinanceAbi, vaultReservationAbi } from '../chain/tradeFinance.js';
 import type { FactoringOffer } from '../db/factoring.js';
+import { awardCall, contestPayouts, enterCall, openBountyCalls, proveAwarded, proveEntered, proveOpened, proveRefunded, refundCall } from '../chain/jobEscrow.js';
 import { createFamilyFinancing, testFinancierTerms, type FamilyFinancingPorts } from '../money/familyFinancing.js';
 
 /// The escrow-family path end to end on an Arc fork of the deployed suite
@@ -768,12 +769,82 @@ async function financingRun(): Promise<void> {
   check('a refunded deal reads defaulted and pays the financier from the hold, exactly', shortfall && fromHold === two.terms.stake, `${fromHold} of ${two.terms.stake}, tx ${defaulted.transactionHash}`);
 }
 
+/// Contests on the job escrow (view 40): a three-place contest paid to the
+/// unit, and a contest nobody picked returned in full after its award date.
+async function contestRun(): Promise<void> {
+  const hubAbi = parseAbi([
+    'struct OpeningConfig { bool open; uint16 feeBps; address feeRecipient; uint128 perDealCap; uint128 highValue; address reviewSafe; address seniorSafe; address autoArbiter; uint16 yieldBps; }',
+    'function openingConfig(address family, address asset) view returns (OpeningConfig)',
+  ]);
+  const jobs = D.jobs!;
+  const cfg = await pub.readContract({ address: D.hub!, abi: hubAbi, functionName: 'openingConfig', args: [jobs, USDC] });
+  check('the hub opens the job escrow for USDC', cfg.open, `fee ${cfg.feeBps} bps, cap ${cfg.perDealCap}`);
+  if (!cfg.open) return;
+  const ids = ['buyer-agent', 'ada', 'tunde', 'musa', 'anyone'];
+  const acct: Record<string, LocalAccount> = {};
+  for (const id of ids) {
+    acct[id] = privateKeyToAccount(generatePrivateKey());
+    await anvil.setBalance({ address: acct[id]!.address, value: 2_000n * 10n ** 18n });
+  }
+  const send = async (id: string, call: { to: Hex; data: Hex }) => {
+    const hash = await createWalletClient({ account: acct[id]!, chain, transport: http(RPC) }).sendTransaction({ to: call.to, data: call.data, account: acct[id]!, chain });
+    const receipt = await pub.waitForTransactionReceipt({ hash });
+    if (receipt.status !== 'success') throw new Error(`contest call reverted (${hash})`);
+    return receipt;
+  };
+  const balance = (who: Hex) => pub.readContract({ address: USDC, abi: erc20Abi, functionName: 'balanceOf', args: [who] });
+  const buyer = acct['buyer-agent']!.address;
+  const entrants = ['ada', 'tunde', 'musa'].map((id) => acct[id]!.address);
+
+  const prize = 300_000_000n;
+  const shares = [5000, 3000, 2000];
+  let now = BigInt(await chainNow());
+  const terms = { prize, feeBps: cfg.feeBps, evaluator: buyer, entriesBy: now + 2n * BigInt(DAY), awardBy: now + 9n * BigInt(DAY), shares, description: 'Best logo: a bakery in Kano' };
+  const calls = openBountyCalls({ jobs, usdc: USDC, ...terms });
+  await send('buyer-agent', calls[0]!);
+  const opened = await send('buyer-agent', calls[1]!);
+  const id = proveOpened(opened, { jobs, client: buyer, evaluator: buyer, prize, entriesBy: terms.entriesBy, awardBy: terms.awardBy });
+  check('the contest opens with the prize held', id > 0n, `contest ${id}, tx ${opened.transactionHash}`);
+  for (const [n, who] of ['ada', 'tunde', 'musa'].entries()) {
+    const fp = `0x${(n + 1).toString(16).padStart(64, '0')}` as Hex;
+    const r = await send(who, enterCall(jobs, id, fp));
+    proveEntered(r, { jobs, jobId: id, entrant: acct[who]!.address, deliverable: fp });
+  }
+  check('three sellers enter', true);
+  await warp(3 * DAY);
+  const pay = contestPayouts(prize, cfg.feeBps, shares, 3);
+  const before = await Promise.all([...entrants, cfg.feeRecipient as Hex].map(balance));
+  const awarded = await send('buyer-agent', awardCall(jobs, id, entrants));
+  proveAwarded(awarded, { jobs, jobId: id, winners: entrants, net: pay.net });
+  const after = await Promise.all([...entrants, cfg.feeRecipient as Hex].map(balance));
+  const got = after.map((a, i) => a - before[i]!);
+  check(
+    'the winners are paid their places exactly, and the fee goes to the fee recipient',
+    got[0] === pay.net[0] && got[1] === pay.net[1] && got[2] === pay.net[2] && got[3] === pay.fee,
+    `${got.map(String).join(', ')} (want ${pay.net.join(', ')}, fee ${pay.fee}), tx ${awarded.transactionHash}`,
+  );
+
+  now = BigInt(await chainNow());
+  const second = { prize: 50_000_000n, feeBps: cfg.feeBps, evaluator: buyer, entriesBy: now + BigInt(DAY), awardBy: now + 2n * BigInt(DAY), shares: [10_000], description: 'A shop sign' };
+  const c2 = openBountyCalls({ jobs, usdc: USDC, ...second });
+  await send('buyer-agent', c2[0]!);
+  const id2 = proveOpened(await send('buyer-agent', c2[1]!), { jobs, client: buyer, evaluator: buyer, prize: second.prize, entriesBy: second.entriesBy, awardBy: second.awardBy });
+  await send('ada', enterCall(jobs, id2, `0x${'aa'.repeat(32)}` as Hex));
+  await warp(3 * DAY);
+  const held = await balance(buyer);
+  const returned = await send('anyone', refundCall(jobs, id2));
+  const back = proveRefunded(returned, { jobs, jobId: id2, client: buyer });
+  const delta = (await balance(buyer)) - held;
+  check('a contest nobody picked comes back in full, prize and fee, to the buyer', back === 50_250_000n && delta === back, `${back} back, balance +${delta}, tx ${returned.transactionHash}`);
+}
+
 async function main(): Promise<void> {
   console.log(`suite fork e2e, ${phase}, block ${await pub.getBlockNumber()}`);
   await parity();
   if (phase === 'full') await full();
   if (phase === 'guarantee') await guaranteeRun();
   if (phase === 'financing') await financingRun();
+  if (phase === 'contest') await contestRun();
   console.log(failed === 0 ? 'all checks passed' : `${failed} check(s) failed`);
   process.exit(failed === 0 ? 0 : 1);
 }

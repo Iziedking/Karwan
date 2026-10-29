@@ -56,6 +56,8 @@ export type RouteTitleKey =
   | 'setUp'
   | 'settings'
   | 'guarantee'
+  | 'contest'
+  | 'runContest'
   | 'signIn'
   | 'signUp'
   | 'terms'
@@ -125,6 +127,8 @@ const en: RouteTitleCopy = {
   assistant: 'Assistant',
   settings: 'Settings',
   guarantee: 'Deal guarantee',
+  contest: 'Contest',
+  runContest: 'Run a contest',
   signIn: 'Sign in',
   signUp: 'Sign up',
   terms: 'Terms',
@@ -193,6 +197,8 @@ const ar: RouteTitleCopy = {
   assistant: 'المساعد',
   settings: 'الإعدادات',
   guarantee: 'ضمان الصفقة',
+  contest: 'مسابقة',
+  runContest: 'أطلق مسابقة',
   signIn: 'تسجيل الدخول',
   signUp: 'إنشاء حساب',
   terms: 'الشروط',
@@ -261,6 +267,8 @@ const fr: RouteTitleCopy = {
   assistant: 'Assistant',
   settings: 'Paramètres',
   guarantee: 'Garantie de transaction',
+  contest: 'Concours',
+  runContest: 'Lancer un concours',
   signIn: 'Se connecter',
   signUp: 'Créer un compte',
   terms: 'Conditions',
@@ -329,6 +337,8 @@ const hi: RouteTitleCopy = {
   assistant: 'सहायक',
   settings: 'सेटिंग्स',
   guarantee: 'डील गारंटी',
+  contest: 'प्रतियोगिता',
+  runContest: 'प्रतियोगिता चलाएँ',
   signIn: 'साइन इन',
   signUp: 'साइन अप',
   terms: 'शर्तें',
@@ -397,6 +407,8 @@ const sw: RouteTitleCopy = {
   assistant: 'Msaidizi',
   settings: 'Mipangilio',
   guarantee: 'Dhamana ya mpango',
+  contest: 'Shindano',
+  runContest: 'Endesha shindano',
   signIn: 'Ingia',
   signUp: 'Jisajili',
   terms: 'Masharti',

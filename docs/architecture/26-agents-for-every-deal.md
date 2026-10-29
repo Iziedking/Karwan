@@ -22,7 +22,7 @@ The escrow covers eleven shapes ([view 07](07-escrow.md), table 1), held by thre
 | Hourly or weekly | A virtual assistant, 20 hours a week | Time family, built, not deployed |
 | Retainer | Monthly social media | Time family, built, not deployed |
 | Agent-to-agent job | An agent hires another | Jobs family, built, not deployed |
-| Bounty or contest | Best logo, three places | Jobs family, built, not deployed |
+| Bounty or contest | Best logo, three places | Jobs family on Arc Testnet; contests built 29 Oct 2026, not deployed (view 40) |
 
 So a tailor who sells goods, a virtual assistant paid by the week and a supplier on Net 30 all meet the same service form. Their agent cannot offer the way they actually trade, and a buyer's agent cannot ask for it.
 

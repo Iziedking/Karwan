@@ -5,6 +5,7 @@ import type { OutMessage } from './render.js';
 import type { InboundMessage } from './types.js';
 import { holdForOffer, isOfferPhotoCaption } from '../listings/photos.js';
 import { holdForDelivery, isDeliveryPhotoCaption } from '../deals/deliveryPhotos.js';
+import { holdForEntry, isEntryCaption } from '../contests/entryFiles.js';
 
 const TWO_YEARS_MS = 2 * 365 * 24 * 3_600_000;
 const READABLE = /^(image\/(jpeg|png|webp)|application\/pdf)$/;
@@ -29,6 +30,9 @@ export interface IntakeDeps {
   /// A photo captioned for a delivery ("delivered", "packed", "handover") is held
   /// for the seller's next delivery (view 33).
   holdForDelivery?: (address: string, file: { bytes: Uint8Array; mimeType: string }) => Promise<string>;
+  /// A photo or PDF captioned for a contest ("my entry") is held for the
+  /// person's next entry (view 40).
+  holdForEntry?: (address: string, file: { bytes: Uint8Array; mimeType: string }) => Promise<string>;
 }
 
 const text = (body: string): OutMessage => ({ kind: 'text', body });
@@ -42,6 +46,9 @@ export function createEvidenceIntake(deps: IntakeDeps) {
     const file = await deps.download(m.mediaId, m.mimeType);
     if (!file) return [text("I couldn't open that file. Please send it again, under 10 MB.")];
     if (!READABLE.test(file.mimeType)) return [text('Please send the invoice as a photo or a PDF.')];
+    if (isEntryCaption(m.text)) {
+      return [text(await (deps.holdForEntry ?? holdForEntry)(address, file))];
+    }
     if (file.mimeType.startsWith('image/') && isOfferPhotoCaption(m.text)) {
       return [text(await (deps.holdForOffer ?? holdForOffer)(address, file))];
     }

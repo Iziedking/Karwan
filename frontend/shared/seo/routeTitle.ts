@@ -49,6 +49,7 @@ export const EXACT: Record<string, RouteTitleKey> = {
   '/settings': 'settings',
   '/setup': 'setUp',
   '/guarantee': 'guarantee',
+  '/contests/new': 'runContest',
   '/stake': 'guarantee',
   '/start': 'signIn',
   '/terms': 'terms',
@@ -64,6 +65,7 @@ export const EXACT: Record<string, RouteTitleKey> = {
 export const PATTERNS: [RegExp, RouteTitleKey][] = [
   [/^\/cashout\/[^/]+$/, 'cashout'],
   [/^\/developers\/[^/]+$/, 'developers'],
+  [/^\/contests\/[^/]+$/, 'contest'],
   [/^\/deals\/[^/]+$/, 'deal'],
   [/^\/deposit\/request\/[^/]+$/, 'paymentRequest'],
   [/^\/financier\/factoring\/[^/]+$/, 'financingOffer'],

@@ -157,6 +157,8 @@ import { guaranteeSnapshot } from '../routes/guaranteeLive.js';
 import { findLegacyPositions } from '../routes/legacyContracts.js';
 import { liveLegacyDeps } from '../routes/legacyContractsLive.js';
 import { financeTools } from './financeTools.js';
+import { contestTools } from './contestTools.js';
+import { entryFiles } from '../contests/entryFiles.js';
 import type { FinanceDeal } from './finance.js';
 import { callAsAccount } from '../channels/inProcess.js';
 import { familyClaimableUsdc } from '../money/familyFinancingLive.js';
@@ -2641,6 +2643,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
       financierStatus: async (who) => (await getProfile(who))?.financier?.status ?? 'none',
       now: () => Date.now(),
     }),
+    ...contestTools(address, actions, { call: callAsAccount, heldEntryFiles: (who) => entryFiles.heldCount(who, Date.now()) }),
   };
 }
 

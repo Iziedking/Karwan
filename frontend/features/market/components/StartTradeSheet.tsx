@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState, type ReactNode } from 'react';
 import { Sheet } from '@/features/deals/workspace/Sheet';
 import { TRADE_ENTRY_COPY, tradeEntryRoutes } from '@/features/home/tradeEntry';
-import { useLocale } from '@/shared/i18n/LocaleProvider';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { Chevron } from './YourTrades';
 import { DealLinkPanel } from './DealLinkPanel';
 
@@ -15,6 +15,7 @@ export function StartTradeSheet({ open, onClose }: { open: boolean; onClose: () 
   const entryCopy = TRADE_ENTRY_COPY[locale];
   const copy = entryCopy.desk;
   const routes = tradeEntryRoutes();
+  const contest = useTranslations().contests.start;
   // A deal already agreed asks who is paying first (view 38).
   const [agreement, setAgreement] = useState(false);
   const close = () => { setAgreement(false); onClose(); };
@@ -22,6 +23,7 @@ export function StartTradeSheet({ open, onClose }: { open: boolean; onClose: () 
     { href: routes.buy, title: copy.need, body: copy.needBody, icon: <SearchIcon /> },
     { href: routes.sell, title: copy.sell, body: copy.sellBody, icon: <TagIcon /> },
     { href: null, title: entryCopy.agreement, body: copy.bringAgreementBody, icon: <AgreementIcon /> },
+    { href: '/contests/new', title: contest.title, body: contest.body, icon: <PrizeIcon /> },
   ];
   const row = 'group flex min-h-[76px] w-full items-center gap-4 px-4 py-3 text-start transition-colors hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)] sm:px-5';
   return (
@@ -59,6 +61,10 @@ function SearchIcon() {
 
 function TagIcon() {
   return <Icon><path d="M3.5 12.6V4.5a1 1 0 0 1 1-1h8.1a1 1 0 0 1 .7.3l7.2 7.2a1 1 0 0 1 0 1.4l-8.1 8.1a1 1 0 0 1-1.4 0l-7.2-7.2a1 1 0 0 1-.3-.7z" /><circle cx="8" cy="8" r="1.4" /></Icon>;
+}
+
+function PrizeIcon() {
+  return <Icon><path d="M8 4h8v4a4 4 0 0 1-8 0z" /><path d="M8 6H5.5a2 2 0 0 0 2.5 3.5M16 6h2.5a2 2 0 0 1-2.5 3.5" /><path d="M12 12v4M8.5 20h7M10 16h4v4h-4z" /></Icon>;
 }
 
 function AgreementIcon() {

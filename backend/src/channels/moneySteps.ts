@@ -21,6 +21,9 @@ export const MONEY_INTENTS: ReadonlySet<ConfirmAction['intent']> = new Set<Confi
   'finance_accept',
   'finance_offer',
   'finance_pay_seller',
+  'contest_post',
+  'contest_award',
+  'contest_cancel',
   'claim_payment',
   'take_back_deal',
   'accept_offer',
@@ -47,6 +50,17 @@ export function moneyStepPath(action: ConfirmAction): string | null {
     case 'finance_offer':
     case 'finance_pay_seller':
       return '/financier';
+    case 'contest_post': {
+      const p = action.payload as { title?: string; brief?: string; prizeUsdc?: string; places?: number; entriesDays?: number; awardDays?: number };
+      if (!p.title || !p.brief || !p.prizeUsdc || !p.places || !p.entriesDays) return null;
+      const q = new URLSearchParams({ title: p.title, brief: p.brief, prize: p.prizeUsdc, places: String(p.places), days: String(p.entriesDays), ...(p.awardDays ? { pick: String(p.awardDays) } : {}) });
+      return `/contests/new?${q.toString()}`;
+    }
+    case 'contest_award':
+    case 'contest_cancel': {
+      const id = (action.payload as { contestId?: unknown }).contestId;
+      return typeof id === 'string' && /^c_[A-Za-z0-9_-]{1,40}$/.test(id) ? `/contests/${id}` : null;
+    }
     case 'approve_match':
     case 'choose_offer':
     case 'accept_offer':

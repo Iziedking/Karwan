@@ -37,6 +37,7 @@ type SuiteEnv = {
   KARWAN_SUITE_VERIFIER_ADDR?: string;
   KARWAN_SUITE_TRADE_FINANCE_ADDR?: string;
   KARWAN_SUITE_VAULT_ADDR?: string;
+  KARWAN_SUITE_JOBS_ADDR?: string;
 };
 
 export function suiteAddresses(cfg: SuiteEnv = config): SuiteAddresses | null {
@@ -60,6 +61,13 @@ const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 export function suiteVaultAddress(cfg: SuiteEnv = config): Hex | null {
   if (!cfg.SUITE_ENABLED || !cfg.KARWAN_SUITE_VAULT_ADDR) return null;
   return cfg.KARWAN_SUITE_VAULT_ADDR as Hex;
+}
+
+/// The family's job escrow, which holds contests and outside-agent jobs (view
+/// 40). Unset, contests are off and every other deal runs as before.
+export function suiteJobsAddress(cfg: SuiteEnv = config): Hex | null {
+  if (!cfg.SUITE_ENABLED || !cfg.KARWAN_SUITE_JOBS_ADDR) return null;
+  return cfg.KARWAN_SUITE_JOBS_ADDR as Hex;
 }
 
 export interface VaultReads {

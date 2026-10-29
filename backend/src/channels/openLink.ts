@@ -23,6 +23,9 @@ const OPENABLE: readonly RegExp[] = [
   /^\/bridge\?direction=(in|out)$/,
   new RegExp(`^/deals/${ID}$`),
   new RegExp(`^/jobs/${ID}$`),
+  // Contests (view 40): one contest, or the form filled from a chat card.
+  /^\/contests\/c_[A-Za-z0-9_-]{1,40}$/,
+  /^\/contests\/new\?[A-Za-z0-9=&%+*._-]{1,3000}$/,
 ];
 
 export type OpenablePath = string;

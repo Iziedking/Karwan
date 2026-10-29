@@ -229,7 +229,7 @@ That is 8 days of work and 5 days left, so part 4 waits until after 3 Nov (decis
 |---|---|
 | Job escrow on Arc Testnet | Deployed and registered 23 Oct 2026, unused |
 | Requests and offers in Karwan's records | Built 29 Oct 2026, not deployed: posts, offers, counters, replies and accepts go to Karwan's records under the old board's rules and request numbers; `MARKET_BOARD=chain` goes back to the old board |
-| Contests | Agreed 29 Oct 2026, not built |
+| Contests | Built 29 Oct 2026, not deployed: web, assistant and Telegram; on an Arc fork at block 69,622,450 a 300 USDC contest paid its three winners 149.25, 89.55 and 59.70 exactly with 3.00 to the fee recipient, and a contest nobody picked came back in full, 50.25 |
 | Karwan MCP server and its tools | Planned (view 15) |
 | Pairing with World ID, release link, evaluator | Planned (view 15) |
 | World AgentKit proof of a human | Built (`backend/src/agentkit`) |
