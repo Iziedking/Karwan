@@ -2183,11 +2183,17 @@ interface MessagesShape {
         accepted: string;
         settled: string;
         defaulted: string;
+        awaiting_financier: string;
+        repaid: string;
+        waived: string;
       };
       detail: {
         accepted: string;
         settled: string;
         defaulted: string;
+        awaiting_financier: string;
+        repaid: string;
+        waived: string;
       };
       advanced: string;
       expected: string;
@@ -2197,6 +2203,11 @@ interface MessagesShape {
       previous: string;
       next: string;
       pagination: string;
+      paySeller: string;
+      paySellerBy: string;
+      paid: string;
+      payFailed: string;
+      shortfall: string;
     };
     open: {
       title: string;
@@ -3024,6 +3035,10 @@ interface MessagesShape {
       errFinancierNotFunded: string;
       recommended: string;
       waitingOnFinancier: string;
+      hold: string;
+      putUpAndTake: string;
+      waitingTitle: string;
+      waitingBody: string;
       errRequest: string;
     };
     checkPaused: { title: string; stays: string; saw: string; noWallet: string; reasons: Record<"security-hold" | "off-request" | "evidence-mismatch" | "check-pending" | "check-expired" | "terms-changed" | "delivery-replaced" | "link-unverifiable", string>; sellerHold: string; sellerOff: string; sendNewLink: string; askPerson: string; supportMessage: string; reviewChecking: string; reviewUnsafe: string; reviewedSafe: string };
@@ -7655,11 +7670,17 @@ export const en: MessagesShape = {
         accepted: 'Active',
         settled: 'Repaid',
         defaulted: 'Needs review',
+        awaiting_financier: "Pay the seller",
+        repaid: "Repaid",
+        waived: "Closed",
       },
       detail: {
         accepted: 'Repaid when the buyer approves delivery',
         settled: 'Repaid in full',
         defaulted: 'Repayment was not completed',
+        awaiting_financier: "The seller took your offer. Pay within 24 hours of when they took it.",
+        repaid: "Repaid in full. The seller guarantee is free again.",
+        waived: "You gave this advance up.",
       },
       advanced: 'You advanced',
       expected: 'Expected back',
@@ -7669,6 +7690,11 @@ export const en: MessagesShape = {
       previous: 'Previous',
       next: 'Next',
       pagination: 'Your positions, pages',
+      paySeller: "Pay the seller",
+      paySellerBy: "Pay {amount} USDC by {time}",
+      paid: "Paid. The escrow repays you first when the buyer releases.",
+      payFailed: "The payment did not go through. Nothing moved.",
+      shortfall: "Not repaid in full: {amount} USDC came from the seller's deal guarantee.",
     },
     open: {
       title: 'Open to finance',
@@ -8549,6 +8575,10 @@ export const en: MessagesShape = {
       errFinancierNotFunded: "The financier's money is not ready yet. We've told them. The offer stays here, and nothing has moved.",
       recommended: "Recommended",
       waitingOnFinancier: "Waiting on the financier's money",
+      hold: "{amount} USDC of your deal guarantee is held until it is repaid.",
+      putUpAndTake: "Put up {gap} USDC and get paid now",
+      waitingTitle: "Waiting for the financier to pay",
+      waitingBody: "They have until {time}. If they do not pay by then, nothing is held and you can take another offer.",
       errRequest: "The request was not sent. Try again.",
     },
     checkPaused: { title: "Payment is paused", stays: "Your money stays in escrow until this is resolved.", saw: "What the check saw", noWallet: "Automatic release cannot run for this deal. Release it yourself from here.", reasons: { "security-hold": "The delivery link was flagged as unsafe, so it is hidden from you.", "off-request": "The check found the delivery does not match what you asked for.", "evidence-mismatch": "The delivery evidence does not match the agreed terms.", "check-pending": "The automatic check has not returned a result yet.", "check-expired": "The check result expired before payment was released.", "terms-changed": "The terms changed after the check ran, so it has to run again.", "delivery-replaced": "A newer delivery was submitted, so the check has to run again.", "link-unverifiable": "The delivery link could not be opened to check it." }, sellerHold: "Your delivery link was flagged as unsafe and is hidden from the buyer. Send a corrected link.", sellerOff: "The check found your delivery may not match the request. Send the right link.", sendNewLink: "Send a new delivery link", askPerson: "My link is safe. Ask a person to check", supportMessage: "My delivery link on {path} was flagged as unsafe, but it is safe. Please check it.", reviewChecking: "A person at Karwan is checking your link.", reviewUnsafe: "Karwan support checked your link and kept it blocked. Send a new delivery link.", reviewedSafe: "Checked by Karwan support." },

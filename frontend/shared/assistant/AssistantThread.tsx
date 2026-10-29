@@ -668,15 +668,27 @@ async function runConfirmIntent(
     return { successText: 'Stopped. Financiers no longer see this deal.', viewHref: `/deals/${p.invoiceId}`, viewLabel: 'Open the deal' };
   }
   if (action.intent === 'finance_accept') {
-    const p = action.payload as { offerId: string; jobId: string };
-    // Karwan sends it from the seller's agent wallet, the seller the escrow records (acceptOffer.ts).
-    const r = await api.acceptFactoringOffer({ offerId: p.offerId });
+    const p = action.payload as { offerId: string; jobId: string; putUpGap?: boolean };
+    // The selling agent signs; a short guarantee is put up first when the card said so (view 18).
+    const r = await api.acceptFactoringOffer({ offerId: p.offerId, ...(p.putUpGap ? { putUpGap: true } : {}) });
+    if (r.state === 'awaiting_financier') {
+      return { successText: 'Taken. Waiting for the financier to pay, within 24 hours.', viewHref: `/deals/${p.jobId}`, viewLabel: 'Open the deal' };
+    }
+    const txHash = r.txHash ?? r.offer?.advanceTxHash;
     return {
       successText: 'Done. The advance is on its way to you.',
-      viewHref: `/financier/factoring/${p.offerId}`,
-      viewLabel: 'Your financing',
-      ...(r.offer.advanceTxHash ? { txHash: r.offer.advanceTxHash } : {}),
+      viewHref: `/deals/${p.jobId}`,
+      viewLabel: 'Open the deal',
+      ...(txHash ? { txHash } : {}),
     };
+  }
+  if (action.intent === 'finance_pay_seller') {
+    const p = action.payload as { offerId: string; jobId: string };
+    if (!deps.runLegacyCalls) throw new Error('Open the financier desk to pay the seller from your wallet.');
+    const { calls } = await api.factoringOpenCalls(p.offerId);
+    const sent = await deps.runLegacyCalls(calls);
+    await api.factoringOpenComplete(p.offerId, sent.txHash);
+    return { successText: 'Paid. The escrow repays you first when the buyer releases.', viewHref: '/financier', viewLabel: 'Financier desk', txHash: sent.txHash };
   }
   if (action.intent === 'finance_reject') {
     const p = action.payload as { offerId: string; jobId: string };
@@ -692,22 +704,12 @@ async function runConfirmIntent(
       signer: 'karwan' | 'wallet';
       advanceRecipient: string;
     };
-    let advanceAuthorization: UsdcAuthorization | undefined;
-    if (p.signer === 'wallet') {
-      if (!deps.signAdvance) throw new Error('Open the financier desk to sign this offer in your wallet.');
-      // The signature covers the offer window plus a margin, as on the desk.
-      advanceAuthorization = await deps.signAdvance({
-        to: p.advanceRecipient as `0x${string}`,
-        valueUsdc: p.offeredAdvanceUsdc,
-        validForSeconds: (p.expiresInHours + 4) * 3600,
-      });
-    }
+    // Nothing is signed when an offer is made: the advance leaves the wallet only when the seller takes it.
     await api.postFactoringOffer({
       invoiceId: p.invoiceId,
       offeredAdvanceUsdc: p.offeredAdvanceUsdc,
       expectedReturnUsdc: p.expectedReturnUsdc,
       expiresInHours: p.expiresInHours,
-      advanceAuthorization,
     });
     return { successText: 'Offer made. The seller sees it now.', viewHref: '/financier', viewLabel: 'Financier desk' };
   }

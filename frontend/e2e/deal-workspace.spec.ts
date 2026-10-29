@@ -220,6 +220,8 @@ test('the seller of a delivered business order gets paid now on the same page', 
     tradeLane: 'finance',
     shipment: { carrier: 'dhl', trackingNumber: 'JD014600006', trackingUrl: 'https://www.dhl.com/track?id=JD014600006' },
     factoringRequestedAt: Date.UTC(2026, 9, 18),
+    // Getting paid early runs on the escrow family (view 18).
+    escrowVersion: 'suite',
   } as DirectDeal;
   await serveDeal(page, deal, SELLER);
   const offer = {

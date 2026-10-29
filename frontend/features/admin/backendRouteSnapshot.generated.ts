@@ -279,6 +279,8 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "POST", path: "/api/factoring/offer" },
   { method: "GET", path: "/api/factoring/offers/:invoiceId" },
   { method: "GET", path: "/api/factoring/offers/:offerId/assignment" },
+  { method: "POST", path: "/api/factoring/offers/:offerId/open" },
+  { method: "POST", path: "/api/factoring/offers/:offerId/open/complete" },
   { method: "GET", path: "/api/factoring/open" },
   { method: "GET", path: "/api/factoring/position/:offerId" },
   { method: "POST", path: "/api/factoring/reject" },

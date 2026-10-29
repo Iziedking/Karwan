@@ -8,15 +8,19 @@ import { formatUsdc } from '@/shared/utils/format';
 import { cn } from '@/shared/utils/cn';
 import { LINK, SECONDARY } from '@/shared/ui/controls';
 import { positionsSummary } from '../deskModel';
+import { PaySeller } from './PaySeller';
 
-const SHOWN = ['accepted', 'settled', 'defaulted'] as const;
+const SHOWN = ['awaiting_financier', 'accepted', 'settled', 'repaid', 'defaulted', 'waived'] as const;
 type ShownStatus = (typeof SHOWN)[number];
 const PAGE_SIZE = 4;
 
 const DOT: Record<ShownStatus, string> = {
+  awaiting_financier: 'bg-[var(--warn)]',
   accepted: 'bg-[var(--lp-accent)]',
   settled: 'bg-[var(--color-positive)]',
+  repaid: 'bg-[var(--color-positive)]',
   defaulted: 'bg-[var(--color-critical)]',
+  waived: 'bg-[var(--lp-border-light)]',
 };
 
 /// The financier's own money first: what is out, what is expected back, and
@@ -26,6 +30,8 @@ export function FactoringPositionsPanel() {
   const { locale } = useLocale();
   const [offers, setOffers] = useState<FactoringOffer[]>([]);
   const [page, setPage] = useState(0);
+
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     const load = () =>
@@ -42,7 +48,7 @@ export function FactoringPositionsPanel() {
     load();
     const id = setInterval(load, 30_000);
     return () => clearInterval(id);
-  }, []);
+  }, [reload]);
 
   useEffect(() => {
     const lastPage = Math.max(0, Math.ceil(offers.length / PAGE_SIZE) - 1);
@@ -84,7 +90,11 @@ export function FactoringPositionsPanel() {
                   {t.status[status]}
                   <span className="font-normal text-[var(--lp-text-sub)]">· {when(offer)}</span>
                 </p>
-                <p className="mt-0.5 text-[14px] text-[var(--lp-text-sub)]">{t.detail[status]}</p>
+                <p className="mt-0.5 text-[14px] text-[var(--lp-text-sub)]">
+                  {status === 'defaulted' && offer.fromGuaranteeMicros
+                    ? t.shortfall.replace('{amount}', formatUsdc((Number(offer.fromGuaranteeMicros) / 1e6).toString(), { withSuffix: false }))
+                    : t.detail[status]}
+                </p>
                 <dl className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-[14px]">
                   <div className="flex gap-1.5">
                     <dt className="text-[var(--lp-text-sub)]">{t.advanced}</dt>
@@ -93,16 +103,20 @@ export function FactoringPositionsPanel() {
                     </dd>
                   </div>
                   <div className="flex gap-1.5">
-                    <dt className="text-[var(--lp-text-sub)]">{status === 'settled' ? t.received : t.expected}</dt>
+                    <dt className="text-[var(--lp-text-sub)]">{status === 'settled' || status === 'repaid' ? t.received : t.expected}</dt>
                     <dd className="whitespace-nowrap font-semibold tabular-nums text-[var(--lp-dark)]">
                       {formatUsdc(offer.expectedReturnUsdc, { withSuffix: false })} USDC
                     </dd>
                   </div>
                 </dl>
               </div>
-              <Link href={`/financier/factoring/${offer.id}`} className={LINK}>
-                {t.view}
-              </Link>
+              {status === 'awaiting_financier' ? (
+                <PaySeller offer={offer} onPaid={() => setReload((n) => n + 1)} />
+              ) : (
+                <Link href={`/financier/factoring/${offer.id}`} className={LINK}>
+                  {t.view}
+                </Link>
+              )}
             </li>
           );
         })}

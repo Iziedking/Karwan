@@ -553,7 +553,23 @@ export interface FactoringOffer {
     | 'settled'
     | 'defaulted'
     // The same financier re-priced this invoice; a newer offer replaced it.
-    | 'superseded';
+    | 'superseded'
+    // The escrow family (view 18): the seller took it; an own-wallet financier pays within 24 hours.
+    | 'awaiting_financier'
+    | 'repaid'
+    | 'waived';
+  /// 'family' on deals made on the escrow family.
+  rail?: 'family';
+  /// What the line holds of the seller's deal guarantee (the seller's list adds
+  /// it in USDC, with what they would put up first and whether the financier
+  /// still has to pay).
+  stakeMicros?: string;
+  holdUsdc?: string;
+  gapUsdc?: string;
+  waitingForFinancier?: boolean;
+  sellerDeadline?: number;
+  /// On a shortfall, what came from the seller's deal guarantee, in micros.
+  fromGuaranteeMicros?: string;
   offeredAt: number;
   expiresAt: number;
   acceptedAt?: number;
@@ -1914,6 +1930,7 @@ export interface AssistantConfirmAction {
     | 'finance_accept'
     | 'finance_reject'
     | 'finance_offer'
+    | 'finance_pay_seller'
     | 'finance_apply'
     | 'fund_agent'
     | 'pool_usdc_web3'
@@ -5093,6 +5110,8 @@ export const api = {
     }),
   acceptFactoringOffer: (body: {
     offerId: string;
+    /// The seller agreed to put up the missing deal guarantee first (family deals).
+    putUpGap?: boolean;
     setPayeeTxHash?: string;
     /// Web3 sellers send registry.assignReceivable themselves and return the
     /// hash. Circle sellers omit it and the backend signs from their wallet.
@@ -5101,9 +5120,18 @@ export const api = {
     /// pays the financier out of the settlement directly.
     repayAuthorization?: UsdcAuthorization;
   }) =>
-    json<{ offer: FactoringOffer }>('/api/factoring/accept', {
+    json<{ offer?: FactoringOffer; state?: 'accepted' | 'awaiting_financier'; txHash?: string; deadline?: number }>('/api/factoring/accept', {
       method: 'POST',
       body: JSON.stringify(body),
+    }),
+  /// An own-wallet financier pays a seller who took their offer: the server
+  /// returns the two calls (allow the advance, open the line), then checks the receipt.
+  factoringOpenCalls: (offerId: string) =>
+    json<{ calls: Array<{ to: `0x${string}`; data: `0x${string}` }> }>(`/api/factoring/offers/${offerId}/open`, { method: 'POST' }),
+  factoringOpenComplete: (offerId: string, txHash: string) =>
+    json<{ state: 'accepted' }>(`/api/factoring/offers/${offerId}/open/complete`, {
+      method: 'POST',
+      body: JSON.stringify({ txHash }),
     }),
   rejectFactoringOffer: (body: { offerId: string }) =>
     json<{ offer: FactoringOffer }>('/api/factoring/reject', {

@@ -2,7 +2,7 @@ import { api, ApiError, type FactoringOffer } from '@/core/api';
 
 export type AcceptErrorKind = 'authorization' | 'reconcile' | 'alreadyAssigned' | 'windowClosed' | 'notAccepted' | 'financierNotFunded';
 
-type AcceptCall = (body: { offerId: string; assignTxHash?: string }) => Promise<{ offer: FactoringOffer }>;
+type AcceptCall = (body: { offerId: string; assignTxHash?: string }) => Promise<{ offer?: FactoringOffer }>;
 
 /// Accepting is one on-chain call: the registry relays the financier's signed
 /// advance to the seller and assigns the receivable in the same transaction.
@@ -13,6 +13,7 @@ type AcceptCall = (body: { offerId: string; assignTxHash?: string }) => Promise<
 /// hash instead of being sent again.
 export async function acceptOffer(offer: FactoringOffer, accept: AcceptCall = api.acceptFactoringOffer): Promise<FactoringOffer> {
   const r = await accept({ offerId: offer.id, assignTxHash: offer.advanceTxHash ?? undefined });
+  if (!r.offer) throw new Error('the accepted offer did not come back');
   return r.offer;
 }
 
