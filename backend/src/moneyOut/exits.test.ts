@@ -249,7 +249,9 @@ test('both escrow payments count before they fund', async () => {
   const dry = approve.indexOf('await moneyOutGuard.check(outgoing, { reserve: false })');
   const count = approve.indexOf('await moneyOutGuard.check(outgoing)');
   assert.ok(dry > approve.indexOf('chatFundingRefusal('), 'the match asks next to the chat limits');
-  assert.ok(count > 0 && count < approve.indexOf("abiFunctionSignature: 'acceptBid(bytes32,address)'"), 'and counts before it accepts on chain');
+  const accepts = approve.indexOf('await marketBoard().accept(');
+  assert.ok(accepts > 0, 'the match accepts through the market board');
+  assert.ok(count > 0 && count < accepts, 'and counts before it accepts');
 });
 
 const { saysWhy } = await import('../routes/jobs.js');

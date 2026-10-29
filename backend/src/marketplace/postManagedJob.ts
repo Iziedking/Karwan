@@ -1,16 +1,10 @@
-import { encodeAbiParameters, formatUnits, keccak256, parseUnits, toBytes, type Address } from 'viem';
+import { formatUnits, keccak256, parseUnits, toBytes, type Address } from 'viem';
 
-import {
-  computeFunding,
-  getEscrowFeeBps,
-  jobBoard,
-  readPostedJobId,
-  readUsdcBalance,
-} from '../chain/contracts.js';
-// Circle Developer-Controlled Wallet execution is kept behind the existing
-// txs seam. Built against the repository's installed viem/Circle packages on
-// 2026-09-15; the route and the operator seed command share this path.
-import { executeContractCall } from '../chain/txs.js';
+import { computeFunding, getEscrowFeeBps, readUsdcBalance } from '../chain/contracts.js';
+// The route and the operator seed command share this path; the board keeps the
+// request (view 40).
+import { BoardError, boardJobId } from './board.js';
+import { marketBoard } from './chainBoard.js';
 import { resolveBuyerProfileForUser } from '../agents/agent-registry.js';
 import { accountTypeOf, deriveJobLane } from '../profile/accountType.js';
 import {
@@ -53,7 +47,8 @@ type ManagedJobPostSuccess = {
   ok: true;
   jobId: string;
   deadlineUnix: number;
-  result?: Awaited<ReturnType<typeof executeContractCall>>;
+  /// The old board's transaction; absent when Karwan keeps the request.
+  result?: { txHash: string };
   reused: boolean;
 };
 
@@ -129,12 +124,7 @@ export async function postManagedJob(
   }
 
   const salt = keccak256(toBytes(`${body.brief}|${Date.now()}|${Math.random()}`));
-  let jobId = keccak256(
-    encodeAbiParameters(
-      [{ type: 'address' }, { type: 'bytes32' }],
-      [buyerProfile.address as Address, salt],
-    ),
-  );
+  let jobId = boardJobId(buyerProfile.address as Address, salt);
   const budgetWei = parseUnits(body.budgetUsdc.toString(), USDC_DECIMALS);
   const deadlineSeconds = body.deadlineSeconds ?? (body.deadlineDays ?? 1) * 86_400;
   const deadlineUnix = Math.floor(Date.now() / 1_000) + deadlineSeconds;
@@ -163,28 +153,31 @@ export async function postManagedJob(
     .catch((err) => logger.warn({ jobId, err: err instanceof Error ? err.message : String(err) }, 'brief keyword extraction failed'));
 
   try {
-    const result = await executeContractCall(
-      {
+    const board = marketBoard();
+    let posted: { jobId: `0x${string}`; ref: string };
+    try {
+      posted = await board.postRequest({
         walletId: buyerProfile.walletId,
-        contractAddress: jobBoard.address,
-        abiFunctionSignature: 'postJob(bytes32,uint256,uint64,string)',
-        abiParameters: [salt, budgetWei.toString(), deadlineUnix.toString(), termsHash],
-      },
-      `postJob(${jobId})`,
-    );
-    const realJobId = await readPostedJobId(result.txHash);
-    if (!realJobId) {
+        poster: buyerProfile.address as Address,
+        salt,
+        budget: budgetWei,
+        deadline: BigInt(deadlineUnix),
+        termsHash,
+      });
+    } catch (err) {
+      if (!(err instanceof BoardError)) throw err;
       deleteBrief(jobId);
       return {
         ok: false,
         status: 502,
-        body: { error: 'postJob reverted', detail: 'The request did not post on chain. Please try again.' },
+        body: { error: 'postJob reverted', detail: 'The request did not post. Please try again.' },
       };
     }
-    if (realJobId.toLowerCase() !== jobId.toLowerCase()) {
-      rekeyBrief(jobId, realJobId);
-      jobId = realJobId as `0x${string}`;
+    if (posted.jobId.toLowerCase() !== jobId.toLowerCase()) {
+      rekeyBrief(jobId, posted.jobId);
+      jobId = posted.jobId;
     }
+    const result = board.kind === 'chain' ? { txHash: posted.ref } : undefined;
     return { ok: true, jobId, deadlineUnix, result, reused: false };
   } catch (err) {
     logger.error({ jobId, err: err instanceof Error ? err.message : String(err) }, 'postJob failed');

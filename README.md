@@ -87,7 +87,7 @@ Deployment records are in `contracts/deployments/registries-5042.json` and `cont
 
 | Contract | Address |
 | --- | --- |
-| KarwanJobBoard | `0x35224C2234263B5506a9F7BfF4bb98e9FceD3FF3` |
+| KarwanJobBoard (requests and offers before 29 Oct 2026; Karwan keeps them since) | `0x35224C2234263B5506a9F7BfF4bb98e9FceD3FF3` |
 | KarwanEscrow | `0x0262A4dFec0E057cAf80F124BfD2847581E82B63` |
 | KarwanReputation | `0x8bD35853b986a04EfDED7F863AFF34826fde69eE` |
 | KarwanVault | `0xA600Bd772A032Ec2b96a9A44545024E270418927` |

@@ -696,6 +696,9 @@ const envSchema = z.object({
   /// The financier Karwan runs on testnet (view 18). Unset, no automatic offers.
   KARWAN_TEST_FINANCIER_ADDR: optionalAddr,
   KARWAN_SUITE_VAULT_ADDR: optionalAddr,
+  /// Where requests, offers and counters are kept (view 40): Karwan's records,
+  /// or 'chain' to go back to the old request board.
+  MARKET_BOARD: z.preprocess(blankToUndefined, z.enum(['karwan', 'chain']).default('karwan')),
   // Karwan's own keys on the escrow family: three checkers (comma separated,
   // any two sign a check), the arbiter and the record issuer. Secrets: the
   // logger strips them from every line.

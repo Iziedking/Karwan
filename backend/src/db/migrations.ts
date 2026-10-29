@@ -1322,6 +1322,26 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
     name: 'cre_suite_store',
     sql: CRE_STORE_SQL,
   },
+  {
+    // Requests, offers and counters kept by Karwan instead of the old request
+    // board (view 40), and the ordered list of what happened that the agents read.
+    version: 49,
+    name: 'market_board',
+    sql: `
+      CREATE TABLE market_requests (
+        job_id TEXT PRIMARY KEY,
+        data JSONB NOT NULL
+      );
+      CREATE TABLE market_board_events (
+        id BIGSERIAL PRIMARY KEY,
+        job_id TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        data JSONB NOT NULL,
+        at BIGINT NOT NULL
+      );
+      CREATE INDEX market_board_events_posted ON market_board_events (kind, at);
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

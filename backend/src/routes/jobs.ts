@@ -2,20 +2,10 @@ import { MAX_REVIEW_DAYS } from '../deals/reviewClock.js';
 import { prohibitedBody, prohibitedReason } from '../policy/prohibited.js';
 import { Hono, type Context } from 'hono';
 import { z } from 'zod';
-import {
-  encodeAbiParameters,
-  keccak256,
-  parseUnits,
-  toBytes,
-  type Address,
-} from 'viem';
-import {
-  jobBoard,
-  readPostedJobId,
-  readUsdcBalance,
-  getEscrowFeeBps,
-} from '../chain/contracts.js';
-import { executeContractCall } from '../chain/txs.js';
+import { keccak256, parseUnits, toBytes, type Address } from 'viem';
+import { readUsdcBalance, getEscrowFeeBps } from '../chain/contracts.js';
+import { BoardError, boardJobId } from '../marketplace/board.js';
+import { marketBoard } from '../marketplace/chainBoard.js';
 import {
   getBuyerSnapshot,
   getBuyerJob,
@@ -469,12 +459,7 @@ jobsRoutes.post('/', async (c) => {
   // when the stored buyer agent address equals the real Circle SCA that signs;
   // when it has drifted, the on-chain JobPosted event carries a different id and
   // we reconcile to it after the tx (see below).
-  let jobId = keccak256(
-    encodeAbiParameters(
-      [{ type: 'address' }, { type: 'bytes32' }],
-      [buyerProfile.address as Address, salt],
-    ),
-  );
+  let jobId = boardJobId(buyerProfile.address as Address, salt);
   const budgetWei = parseUnits(body.budgetUsdc.toString(), USDC_DECIMALS);
   // Prefer the explicit seconds shape when both arrive; otherwise convert days.
   const deadlineSeconds = body.deadlineSeconds ?? (body.deadlineDays ?? 1) * 86_400;
@@ -528,37 +513,26 @@ ${body.terms}` : body.brief));
     .catch(() => {});
 
   try {
-    const result = await executeContractCall(
-      {
+    const board = marketBoard();
+    let posted: { jobId: `0x${string}`; ref: string };
+    try {
+      posted = await board.postRequest({
         walletId: buyerProfile.walletId,
-        contractAddress: jobBoard.address,
-        abiFunctionSignature: 'postJob(bytes32,uint256,uint64,string)',
-        // First param is the SALT now; the contract derives + emits jobId.
-        abiParameters: [salt, budgetWei.toString(), deadlineUnix.toString(), termsHash],
-      },
-      `postJob(${jobId})`,
-    );
-    // Trust the on-chain JobPosted event, not the off-chain derived id. Circle
-    // reports the tx COMPLETE when the outer handleOps lands; the id it emits can
-    // differ from what we derived when the stored buyer agent address has drifted
-    // from the real signer (msg.sender), and no event at all means the inner
-    // postJob reverted. Either way the buyer would otherwise be stranded on a
-    // /jobs/<id> that 404s. See erc4337-inner-revert + own-auction-misfire notes.
-    const realJobId = await readPostedJobId(result.txHash);
-    if (!realJobId) {
+        poster: buyerProfile.address as Address,
+        salt,
+        budget: budgetWei,
+        deadline: BigInt(deadlineUnix),
+        termsHash,
+      });
+    } catch (err) {
+      // On the old board no JobPosted event means the inner postJob reverted;
+      // the buyer would otherwise be stranded on a /jobs/<id> that 404s.
+      if (!(err instanceof BoardError)) throw err;
       deleteBrief(jobId);
-      logger.error(
-        { jobId, txHash: result.txHash },
-        'postJob completed but emitted no JobPosted event: treating as a failed post',
-      );
-      return c.json(
-        {
-          error: 'postJob reverted',
-          detail: 'The request did not post on chain. Please try again.',
-        },
-        502,
-      );
+      logger.error({ jobId, code: err.code }, 'request not posted');
+      return c.json({ error: 'postJob reverted', detail: 'The request did not post. Please try again.' }, 502);
     }
+    const realJobId = posted.jobId;
     if (realJobId.toLowerCase() !== jobId.toLowerCase()) {
       logger.warn(
         { derivedJobId: jobId, realJobId, storedSigner: buyerProfile.address },
@@ -573,7 +547,8 @@ ${body.terms}` : body.brief));
         .catch(() => {});
       jobId = realJobId as `0x${string}`;
     }
-    return c.json({ jobId, deadlineUnix, ...result });
+    // Only the old board leaves a transaction to link to.
+    return c.json({ jobId, deadlineUnix, ...(board.kind === 'chain' ? { txHash: posted.ref } : {}) });
   } catch (err) {
     logger.error({ err: (err as Error).message }, 'postJob failed');
     return c.json({ error: 'postJob failed', detail: (err as Error).message }, 502);

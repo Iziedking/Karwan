@@ -3504,7 +3504,7 @@ export const api = {
       }>;
     } & ({ deadlineSeconds: number } | { deadlineDays: number }),
   ) =>
-    json<{ jobId: string; deadlineUnix: number; txHash: string; explorerUrl: string }>(
+    json<{ jobId: string; deadlineUnix: number; txHash?: string }>(
       '/api/jobs',
       { method: 'POST', body: JSON.stringify(body) },
     ),

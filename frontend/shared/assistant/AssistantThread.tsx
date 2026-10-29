@@ -402,7 +402,7 @@ async function runConfirmIntent(
       successText: 'Request posted. Your agent is finding developers now.',
       viewHref: `/jobs/${r.jobId}`,
       viewLabel: 'Track matching',
-      txHash: r.txHash,
+      ...(r.txHash ? { txHash: r.txHash } : {}),
     };
   }
   if (action.intent === 'create_direct_deal') {

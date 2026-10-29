@@ -2,17 +2,28 @@ import { sellerMayBid } from '../verification/networkGate.js';
 import { levelOf } from '../verification/live.js';
 import { blocksOffer, sellerAgentBinding, SELLER_LINK_DETAIL } from '../deals/sellerBinding.js';
 import { generateObject } from 'ai';
-import { formatUnits, parseUnits, type Log } from 'viem';
-import { publicClient, watchEventsViaGetLogs } from '../chain/client.js';
-import { jobBoard, vault, getReservationBps } from '../chain/contracts.js';
-import { jobBoardAbi } from '../chain/abis/jobBoard.js';
+import { formatUnits, parseUnits, type Address, type Hex, type Log } from 'viem';
+import { vault, getReservationBps } from '../chain/contracts.js';
 import { classifyAgentError } from '../chain/errors.js';
+import { marketBoard } from '../marketplace/chainBoard.js';
 
 /// KarwanJobBoard.JobState. None=0, Posted=1, Accepted=2, Cancelled=3,
 /// Expired=4. Only Posted accepts a bid.
 const JOB_STATE_POSTED = 1;
 const JOB_STATE_ACCEPTED = 2;
-import { executeContractCall } from '../chain/txs.js';
+
+/// A seller agent's offer and counter replies go to the market board (view 40).
+/// `txHash` is the board's reference: a transaction on the old board, an event
+/// id in Karwan's records.
+async function placeOffer(walletId: string, seller: string, jobId: string, price: bigint, validUntilUnix: number) {
+  const { ref } = await marketBoard().placeOffer({ walletId, seller: seller as Address, jobId: jobId as Hex, price, deadline: BigInt(validUntilUnix) });
+  return { txHash: ref };
+}
+
+async function respondToCounter(walletId: string, seller: string, jobId: string, accept: boolean, price: bigint, deadlineUnix: number) {
+  const { ref } = await marketBoard().respond({ walletId, seller: seller as Address, jobId: jobId as Hex, accept, price, deadline: BigInt(deadlineUnix) });
+  return { txHash: ref };
+}
 import { negotiationModel } from '../llm/client.js';
 import {
   bidDecisionSchema,
@@ -284,23 +295,15 @@ export async function submitDirectOfferBid(
   validUntilUnix: number,
 ): Promise<{ ok: true; txHash: string } | { ok: false; reason: string; message: string }> {
   try {
-    const onChain = (await jobBoard.read.jobs([jobId])) as readonly unknown[];
-    if (Number(onChain[4]) !== JOB_STATE_POSTED) {
+    const onBoard = await marketBoard().read(jobId);
+    if (Number(onBoard?.state ?? 0) !== JOB_STATE_POSTED) {
       return { ok: false, reason: 'job-not-open', message: 'This request is closed and can no longer take offers.' };
     }
   } catch (err) {
     logger.warn({ jobId, err: (err as Error).message }, 'could not read job state before a direct offer');
   }
   try {
-    const txResult = await executeContractCall(
-      {
-        walletId: seller.walletId,
-        contractAddress: jobBoard.address,
-        abiFunctionSignature: 'submitBid(bytes32,uint256,uint64)',
-        abiParameters: [jobId, parseUnits(priceUsdc, USDC_DECIMALS).toString(), validUntilUnix.toString()],
-      },
-      `submitBid(direct offer ${jobId})`,
-    );
+    const txResult = await placeOffer(seller.walletId, seller.address, jobId, parseUnits(priceUsdc, USDC_DECIMALS), validUntilUnix);
     bus.emitEvent({
       type: 'bid.submitted',
       jobId,
@@ -364,8 +367,8 @@ export async function submitListingBid(
   // bid because we could not check would cost real matches; the transaction is
   // the backstop.
   try {
-    const onChain = (await jobBoard.read.jobs([job.jobId as `0x${string}`])) as readonly unknown[];
-    const state = Number(onChain[4]);
+    const onBoard = await marketBoard().read(job.jobId as `0x${string}`);
+    const state = Number(onBoard?.state ?? 0);
     if (state !== JOB_STATE_POSTED) {
       logger.info(
         { jobId: job.jobId, seller: seller.address, state },
@@ -406,15 +409,7 @@ export async function submitListingBid(
   const priceWei = parseUnits(priceUsdc, USDC_DECIMALS);
 
   try {
-    const txResult = await executeContractCall(
-      {
-        walletId: seller.walletId,
-        contractAddress: jobBoard.address,
-        abiFunctionSignature: 'submitBid(bytes32,uint256,uint64)',
-        abiParameters: [job.jobId, priceWei.toString(), deadlineUnix.toString()],
-      },
-      `submitBid(listing-driven ${job.jobId})`,
-    );
+    const txResult = await placeOffer(seller.walletId, seller.address, job.jobId, priceWei, deadlineUnix);
 
     activeBids.set(key, {
       seller,
@@ -476,39 +471,27 @@ function logDedupeKey(label: string, log: Log): string {
 /// Starts the multi-tenant seller agent. One set of watchers serves every user:
 /// each posted job is evaluated by every activated user who has a seller
 /// profile, and each bids through their own seller agent wallet.
-/// Event-watch poll cadence. Arc blocks are ~0.5s, so a 4s poll picks up a new
-/// JobPosted / counter within a few seconds while keeping getLogs load light.
-const WATCH_POLL_MS = 15_000;
-
 export function startSellerAgents() {
-  logger.info({ jobBoard: jobBoard.address }, 'seller agent starting (multi-tenant)');
+  logger.info({ board: marketBoard().kind }, 'seller agent starting (multi-tenant)');
 
-  // Stateless getLogs polling, NOT websockets (Arc's wss drops at boot and
-  // viem's ws watcher never recovered) and NOT viem's filter-based polling
-  // either: eth_newFilter state lives on ONE server, and our fallback RPC
-  // pool rotates requests across servers, which strands the filter watcher
-  // in a permanent error loop. The reconciler below is the extra backstop.
-  const unwatchPosted = watchEventsViaGetLogs({
-    address: jobBoard.address,
-    abi: jobBoardAbi,
-    eventName: 'JobPosted',
-    pollingInterval: WATCH_POLL_MS,
-    onLogs: (logs) => {
+  // The board delivers in order (view 40); the reconciler below is the extra
+  // backstop.
+  const board = marketBoard();
+  const unwatchPosted = board.watch(
+    'JobPosted',
+    (logs) => {
       for (const log of logs) safe('JobPosted', () => handleJobPosted(log as never));
     },
-    onError: (err) => logger.error({ err: err.message }, 'JobPosted watch error'),
-  });
+    (err) => logger.error({ err: err.message }, 'JobPosted watch error'),
+  );
 
-  const unwatchCounter = watchEventsViaGetLogs({
-    address: jobBoard.address,
-    abi: jobBoardAbi,
-    eventName: 'CounterOfferIssued',
-    pollingInterval: WATCH_POLL_MS,
-    onLogs: (logs) => {
+  const unwatchCounter = board.watch(
+    'CounterOfferIssued',
+    (logs) => {
       for (const log of logs) safe('CounterOfferIssued', () => handleCounterOffer(log as never));
     },
-    onError: (err) => logger.error({ err: err.message }, 'CounterOfferIssued watch error'),
-  });
+    (err) => logger.error({ err: err.message }, 'CounterOfferIssued watch error'),
+  );
 
   // Periodic safety net for missed websocket JobPosted events.
   const stopReconciler = startSellerReconciler();
@@ -1399,15 +1382,7 @@ async function evaluateAndBid(profile: SellerProfile, job: JobContext) {
   const deadlineUnix = job.deadlineUnix;
   const priceWei = parseUnits(finalPrice, USDC_DECIMALS);
 
-  const txResult = await executeContractCall(
-    {
-      walletId: seller.walletId,
-      contractAddress: jobBoard.address,
-      abiFunctionSignature: 'submitBid(bytes32,uint256,uint64)',
-      abiParameters: [job.jobId, priceWei.toString(), deadlineUnix.toString()],
-    },
-    `submitBid(${job.jobId})`,
-  );
+  const txResult = await placeOffer(seller.walletId, seller.address, job.jobId, priceWei, deadlineUnix);
 
   activeBids.set(bidKey(job.jobId, seller.address), {
     seller,
@@ -1680,15 +1655,7 @@ async function runCounterEvaluation(
       });
       return;
     }
-    const result = await executeContractCall(
-      {
-        walletId: seller.walletId,
-        contractAddress: jobBoard.address,
-        abiFunctionSignature: 'respondToCounter(bytes32,bool,uint256,uint64)',
-        abiParameters: [args.jobId, true, '0', '0'],
-      },
-      `respondToCounter.accept(${args.jobId})`,
-    );
+    const result = await respondToCounter(seller.walletId, seller.address, args.jobId, true, 0n, 0);
     active.finalized = true;
     logger.info({ jobId: args.jobId, ...result }, 'counter accepted');
     bus.emitEvent({
@@ -1796,20 +1763,7 @@ async function runCounterEvaluation(
   // Commit to the round count only now that we know we have a valid counter
   // to submit on chain.
   active.counterRounds += 1;
-  const result = await executeContractCall(
-    {
-      walletId: seller.walletId,
-      contractAddress: jobBoard.address,
-      abiFunctionSignature: 'respondToCounter(bytes32,bool,uint256,uint64)',
-      abiParameters: [
-        args.jobId,
-        false,
-        counterPriceWei.toString(),
-        counterDeadlineUnix.toString(),
-      ],
-    },
-    `respondToCounter.counter(${args.jobId})`,
-  );
+  const result = await respondToCounter(seller.walletId, seller.address, args.jobId, false, counterPriceWei, counterDeadlineUnix);
   active.lastBidPrice = finalCounterPrice;
   logger.info({ jobId: args.jobId, ...result }, 'counter back submitted');
   bus.emitEvent({
@@ -2021,15 +1975,7 @@ export async function reviseOffer(
       const active = activeBids.get(key);
       if (!active) return;
       const finalPrice = price.toFixed(2);
-      await executeContractCall(
-        {
-          walletId: active.seller.walletId,
-          contractAddress: jobBoard.address,
-          abiFunctionSignature: 'submitBid(bytes32,uint256,uint64)',
-          abiParameters: [jobId, parseUnits(finalPrice, USDC_DECIMALS).toString(), deadline.toString()],
-        },
-        `submitBid(revise ${jobId})`,
-      );
+      await placeOffer(active.seller.walletId, active.seller.address, jobId, parseUnits(finalPrice, USDC_DECIMALS), Number(deadline));
       active.lastBidPrice = finalPrice;
       scheduleActiveBidsPersist();
     },
@@ -2101,23 +2047,16 @@ export function getSellerSnapshot(
 /// Replays recent JobPosted logs through the handler. `rescan` re-enters the
 /// scan for already-seen jobs (the per-seller guard keeps it idempotent); the
 /// default (startup backfill) relies on the per-log dedupe.
-async function replayRecentJobLogs(opts: { fromBlock?: bigint; rescan?: boolean }) {
-  const latest = await publicClient.getBlockNumber();
-  const from = opts.fromBlock ?? (latest > 10_000n ? latest - 10_000n : 0n);
-  const logs = await publicClient.getLogs({
-    address: jobBoard.address,
-    event: jobBoardAbi.find((x) => x.type === 'event' && x.name === 'JobPosted')! as never,
-    fromBlock: from,
-    toBlock: latest,
-  });
+async function replayRecentJobLogs(opts: { blocks: bigint; ms: number; rescan?: boolean }) {
+  const logs = await marketBoard().recentPosted(opts);
   for (const log of logs) await handleJobPosted(log as unknown as Log, { rescan: opts.rescan });
   return logs.length;
 }
 
 /// Replays recent JobPosted logs through the live handler, so a freshly started
 /// agent picks up jobs posted while it was down.
-export async function backfillRecentJobs(fromBlock?: bigint) {
-  const count = await replayRecentJobLogs({ fromBlock });
+export async function backfillRecentJobs() {
+  const count = await replayRecentJobLogs({ blocks: 10_000n, ms: 2 * 86_400_000 });
   logger.info({ count }, 'seller backfilling jobs');
 }
 
@@ -2132,6 +2071,7 @@ const RECONCILE_INTERVAL_MS = 90_000;
 // across several ticks, narrow enough to keep each sweep cheap. Restart-scale
 // gaps are covered by the wider startup backfill.
 const RECONCILE_LOOKBACK_BLOCKS = 2_400n;
+const RECONCILE_LOOKBACK_MS = 20 * 60_000;
 /// A request stays open until its date, far longer than the chain look-back, so
 /// every OPEN_REQUEST_SWEEP_MS the reconciler also offers each open request to
 /// the sellers who have not seen it: a seller who joined later, or every seller
@@ -2141,9 +2081,7 @@ export function startSellerReconciler(): () => void {
   let lastOpenSweep = Date.now();
   const tick = () =>
     safe('reconcile', async () => {
-      const latest = await publicClient.getBlockNumber();
-      const fromBlock = latest > RECONCILE_LOOKBACK_BLOCKS ? latest - RECONCILE_LOOKBACK_BLOCKS : 0n;
-      const count = await replayRecentJobLogs({ fromBlock, rescan: true });
+      const count = await replayRecentJobLogs({ blocks: RECONCILE_LOOKBACK_BLOCKS, ms: RECONCILE_LOOKBACK_MS, rescan: true });
       logger.debug({ count }, 'seller reconciler swept recent jobs');
       if (Date.now() - lastOpenSweep >= OPEN_REQUEST_SWEEP_MS) {
         lastOpenSweep = Date.now();

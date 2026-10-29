@@ -10,7 +10,7 @@ import { bestAndFinalRecipients, decideOfferRevision, lowestOtherUsdc, rejudgeSt
 import { closedForOffers } from './offerWindow.js';
 import { generateObject } from 'ai';
 import { formatUnits, parseUnits, type Log } from 'viem';
-import { publicClient, watchEventsViaGetLogs } from '../chain/client.js';
+import { marketBoard } from '../marketplace/chainBoard.js';
 import {
   jobBoard,
   escrow,
@@ -33,7 +33,6 @@ import { chatFundingRefusal } from '../deals/chatDealGate.js';
 import { chatFundingDeps } from '../deals/chatFundingLive.js';
 import { moneyOutGuard } from '../moneyOut/live.js';
 import { refusalBody } from '../moneyOut/refusal.js';
-import { jobBoardAbi } from '../chain/abis/jobBoard.js';
 import { executeContractCall } from '../chain/txs.js';
 import { negotiationModel } from '../llm/client.js';
 import {
@@ -1148,13 +1147,10 @@ function logDedupeKey(label: string, log: Log): string {
 /// Starts the multi-tenant buyer agent. One set of watchers serves every user:
 /// each posted job is matched to the buyer profile of whoever's buyer agent
 /// posted it, and that profile drives the auction.
-/// Event-watch poll cadence (HTTP polling, no websocket). Matches the seller
-/// agent; ~4s picks up bids/counters within seconds without heavy getLogs load.
-const WATCH_POLL_MS = 15_000;
 
 export function startBuyerAgents() {
   logger.info(
-    { jobBoard: jobBoard.address, escrow: escrow.address },
+    { board: marketBoard().kind, escrow: escrow.address },
     'buyer agent starting (multi-tenant)',
   );
   // A seller on best and final is measured against the lowest other offer,
@@ -1164,43 +1160,32 @@ export function startBuyerAgents() {
     return state ? lowestOtherUsdc(liveOffers(state), seller) : null;
   });
 
-  // Stateless getLogs polling, NOT websockets (Arc's wss drops at boot and
-  // viem's ws watcher never recovered) and NOT viem's filter-based polling
-  // either: eth_newFilter state lives on ONE server, and our fallback RPC
-  // pool rotates requests across servers, which strands the filter watcher
-  // in a permanent "filter not found"/unsupported-method error loop.
-  const unwatchPosted = watchEventsViaGetLogs({
-    address: jobBoard.address,
-    abi: jobBoardAbi,
-    eventName: 'JobPosted',
-    pollingInterval: WATCH_POLL_MS,
-    onLogs: (logs) => {
+  // The board delivers in order: Karwan's from its own records, the old board
+  // by stateless getLogs polling (see chain/client.ts for why not websockets).
+  const board = marketBoard();
+  const unwatchPosted = board.watch(
+    'JobPosted',
+    (logs) => {
       for (const log of logs) safe('JobPosted', () => handleJobPosted(log as never));
     },
-    onError: (err) => logger.error({ err: err.message }, 'JobPosted watch error'),
-  });
+    (err) => logger.error({ err: err.message }, 'JobPosted watch error'),
+  );
 
-  const unwatchBid = watchEventsViaGetLogs({
-    address: jobBoard.address,
-    abi: jobBoardAbi,
-    eventName: 'BidSubmitted',
-    pollingInterval: WATCH_POLL_MS,
-    onLogs: (logs) => {
+  const unwatchBid = board.watch(
+    'BidSubmitted',
+    (logs) => {
       for (const log of logs) safe('BidSubmitted', () => handleBidSubmitted(log as never));
     },
-    onError: (err) => logger.error({ err: err.message }, 'BidSubmitted watch error'),
-  });
+    (err) => logger.error({ err: err.message }, 'BidSubmitted watch error'),
+  );
 
-  const unwatchCounter = watchEventsViaGetLogs({
-    address: jobBoard.address,
-    abi: jobBoardAbi,
-    eventName: 'CounterResponse',
-    pollingInterval: WATCH_POLL_MS,
-    onLogs: (logs) => {
+  const unwatchCounter = board.watch(
+    'CounterResponse',
+    (logs) => {
       for (const log of logs) safe('CounterResponse', () => handleCounterResponse(log as never));
     },
-    onError: (err) => logger.error({ err: err.message }, 'CounterResponse watch error'),
-  });
+    (err) => logger.error({ err: err.message }, 'CounterResponse watch error'),
+  );
 
   const unsubBus = bus.subscribe((e) => {
     // Mark tracked jobs as cancelled when their resulting deal is cancelled, so
@@ -3231,20 +3216,15 @@ async function issueCounter(state: JobState, bid: Bid) {
     (state.counterRoundsBySeller.get(bid.seller) ?? 0) + 1,
   );
 
-  const result = await executeContractCall(
-    {
-      walletId: buyer.walletId,
-      contractAddress: jobBoard.address,
-      abiFunctionSignature: 'counterOffer(bytes32,address,uint256,uint64)',
-      abiParameters: [
-        state.jobId,
-        bid.seller,
-        counterPriceWei.toString(),
-        counterDeadlineUnix.toString(),
-      ],
-    },
-    `counterOffer(${state.jobId})`,
-  );
+  const { ref } = await marketBoard().counter({
+    walletId: buyer.walletId,
+    buyer: buyer.address as `0x${string}`,
+    jobId: state.jobId,
+    seller: bid.seller as `0x${string}`,
+    price: counterPriceWei,
+    deadline: BigInt(counterDeadlineUnix),
+  });
+  const result = { txHash: ref };
 
   logger.info({ jobId: state.jobId, seller: bid.seller, ...result }, 'counter issued');
   bus.emitEvent({
@@ -4330,15 +4310,13 @@ export async function approveAgentMatch(
 
   let acceptResult;
   try {
-    acceptResult = await executeContractCall(
-      {
-        walletId: state.buyer.walletId,
-        contractAddress: jobBoard.address,
-        abiFunctionSignature: 'acceptBid(bytes32,address)',
-        abiParameters: [state.jobId, seller],
-      },
-      `acceptBid(${state.jobId})`,
-    );
+    const { ref } = await marketBoard().accept({
+      walletId: state.buyer.walletId,
+      buyer: state.buyer.address as `0x${string}`,
+      jobId: state.jobId,
+      seller,
+    });
+    acceptResult = { txHash: ref };
   } catch (err) {
     logger.error({ jobId, err: (err as Error).message }, 'acceptBid (post-approval) failed');
     emitAgentChainError(state, seller, 'acceptBid', err);
@@ -5369,21 +5347,14 @@ export function cancelBriefByBuyer(
 
 /// Replays recent JobPosted logs through the live handler, so a freshly started
 /// agent picks up jobs posted while it was down.
-export async function backfillRecentJobs(fromBlock?: bigint) {
-  const latest = await publicClient.getBlockNumber();
-  const from = fromBlock ?? (latest > 10_000n ? latest - 10_000n : 0n);
-  const logs = await publicClient.getLogs({
-    address: jobBoard.address,
-    event: jobBoardAbi.find((x) => x.type === 'event' && x.name === 'JobPosted')! as never,
-    fromBlock: from,
-    toBlock: latest,
-  });
+export async function backfillRecentJobs() {
+  const logs = await marketBoard().recentPosted({ blocks: 10_000n, ms: 2 * 86_400_000 });
   logger.info({ count: logs.length }, 'buyer backfilling jobs');
   for (const log of logs) await handleJobPosted(log as unknown as Log, { silent: true });
 }
 
 /// Restores a single job's in-memory state by reading it directly from the
-/// JobBoard contract. Cheap O(1) call, no log scanning. Used by the API
+/// market board (view 40). Cheap O(1) read, no log scanning. Used by the API
 /// route to recover from a backend restart that wiped the in-memory `jobs`
 /// map. Returns true when the state was successfully restored.
 export async function reseedJobFromChain(
@@ -5392,38 +5363,23 @@ export async function reseedJobFromChain(
 ): Promise<boolean> {
   if (jobs.has(jobId as `0x${string}`)) return true;
   try {
-    const result = (await publicClient.readContract({
-      address: jobBoard.address,
-      abi: jobBoardAbi,
-      functionName: 'jobs',
-      args: [jobId as `0x${string}`],
-    })) as readonly [
-      `0x${string}`, // buyer
-      bigint, // budget
-      bigint, // deadline (uint64)
-      string, // termsHash
-      number, // state (uint8 enum)
-      `0x${string}`, // acceptedSeller
-      bigint, // acceptedPrice
-      bigint, // acceptedDeadline (uint64)
-    ];
-    const buyerAddr = result[0];
-    if (buyerAddr === '0x0000000000000000000000000000000000000000') return false;
+    const request = await marketBoard().read(jobId as `0x${string}`);
+    if (!request) return false;
     // Boot reseed: only a request still Posted (1) and inside its deadline goes
     // back on the market. The single-job route keeps reading any state.
     if (opts.openOnly) {
       const nowSec = opts.nowSec ?? Math.floor(Date.now() / 1000);
-      if (Number(result[4]) !== 1 || Number(result[2]) <= nowSec) return false;
+      if (request.state !== 1 || Number(request.deadline) <= nowSec) return false;
     }
     const syntheticLog = {
       transactionHash: `0x${jobId.slice(2)}` as `0x${string}`,
       logIndex: 0,
       args: {
         jobId: jobId as `0x${string}`,
-        buyer: buyerAddr,
-        budget: result[1],
-        deadline: result[2],
-        termsHash: result[3],
+        buyer: request.buyer,
+        budget: request.budget,
+        deadline: request.deadline,
+        termsHash: request.termsHash,
       },
     } as unknown as Log;
     await handleJobPosted(syntheticLog, { silent: true });
