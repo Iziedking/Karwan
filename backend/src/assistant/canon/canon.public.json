@@ -139,6 +139,24 @@
       "body": "A person's agents run their deals for them: they pay into a deal, accept,\ndeliver and release inside the limits the person set, so a deal keeps moving\nwhile the person is away. Karwan asks the person to be present for three\nthings only, and then they confirm with a passkey, which is their phone's\nface or fingerprint check, or with a 6-digit Karwan PIN.\n\nThe three things: setting up their Karwan record and their buying agent's\nlimits (on Arc Testnet Karwan does this itself for accounts whose wallets\nit holds, and someone with their own wallet signs it along with their next\ntransaction, with no separate step), putting up a deal guarantee, and money leaving Karwan for an address\nthat is not one of their own Karwan wallets. Putting up a deal guarantee is\nthe consent for it to protect their buyers and back advances from\nfinanciers on their deals, so taking an advance later is one tap.\n\nFive wrong PINs lock the PIN for 15 minutes, and a passkey still works in\nthe meantime. A forgotten PIN is reset with a code sent to the person's\nemail. A PIN is never typed into a chat: the agent sends a one-time Karwan\nlink and the person confirms on that page. Someone who signs in with their\nown wallet confirms by signing in that wallet.\n\nEach confirmation fits one action and one amount, and works once."
     },
     {
+      "id": "contests",
+      "title": "Contests with the prize held from the start",
+      "status": "shipping",
+      "updated": "2026-10-29",
+      "tags": [
+        "market",
+        "testnet"
+      ],
+      "path": "public/product/contests.md",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/40-contests-and-agent-jobs.md",
+          "date": "2026-10-29"
+        }
+      ],
+      "body": "A buyer can run a contest on Karwan instead of choosing one seller: the best\nlogo, three winners, 300 USDC, entries open for a week. The prize is put up\nwhen the contest opens and held on Karwan's escrow on Arc, so everyone who\nenters knows it is there.\n\nThe buyer picks one to three winners; the prize splits 100, or 70 and 30, or\n50, 30 and 20. Entries stay open for 1 to 30 days and the buyer then has 7 days\nto pick. Anyone except the buyer can enter with up to four images or PDF files\nand a note, and enter again to replace their entry.\n\nBefore paying, the buyer sees each entry's first image and note, never the\nfull files. Picking pays each winner their share at once, less half of\nKarwan's 1 percent fee on it, and only then do the winners' full files go to\nthe buyer. A contest nobody entered can be taken back with the prize and fee\nreturned. If the buyer picks nobody by the date, the prize goes back to them,\nand when there were entries their record shows the contest was not awarded.\n\nContests work from the market, the assistant on the website and Telegram.\nRunning a contest and paying the winners are confirmed on Karwan itself.\nContests run on Arc Testnet, up to about 1,000 USDC each for now."
+    },
+    {
       "id": "credit-passport",
       "title": "The credit passport",
       "status": "live",
@@ -345,7 +363,7 @@
       "id": "negotiation-in-assistant",
       "title": "Your agent negotiates while you sleep",
       "status": "roadmap",
-      "updated": "2026-10-27",
+      "updated": "2026-10-29",
       "tags": [
         "market",
         "assistant",
@@ -362,7 +380,7 @@
           "date": "2026-10-27"
         }
       ],
-      "body": "Post what you need in the assistant, on the website or Telegram, and you can\nclose the chat. Your agent asks sellers for offers and negotiates, and the\nassistant writes back in the same conversation, and on Telegram, only when\nsomething moves: offers in, your shortlist ready with the seller the agent\nrecommends, a near match when nothing fits your budget, an agreed deal, the\nmoney locked, the work delivered.\n\nWhen you post, you can turn on Agree for me. Your agent then agrees with the\nseller it recommends, within your budget, and you wake up to an agreed deal\nready for one tap to lock the money. It never agrees above your budget and\nnever moves money on its own.\n\nOffers move the way a market does. Change your request and your agent looks\nagain at once at the offers it holds; it can recommend one up to the most you\nallowed above your budget, and counters it toward your budget. Sellers who\noffered get a turn to keep, lower or withdraw their offer, and sellers whose\noffer is not the lowest hear once that a lower one is in, never its price.\nOffers only go down, at most three times per seller per request. Sellers never\nsee how far above your budget you would go.\n\nWhen your budget is far under what the work goes for and no seller takes it,\nyour agent tells you plainly, with the market price, and you choose to allow\nmore or post again. Nobody is pushed below their own price. A seller whose\nrange a request falls outside, but whose work fits it, hears about it once by\nemail, Telegram and in the app, and decides.\n\nThis is built for testnet and not live yet."
+      "body": "Post what you need in the assistant, on the website or Telegram, and you can\nclose the chat. Your agent asks sellers for offers and negotiates, and the\nassistant writes back in the same conversation, and on Telegram, only when\nsomething moves: offers in, your shortlist ready with the seller the agent\nrecommends, a near match when nothing fits your budget, an agreed deal, the\nmoney locked, the work delivered.\n\nWhen you post, you can turn on Agree for me. Your agent then agrees with the\nseller it recommends, within your budget, and you wake up to an agreed deal\nready for one tap to lock the money. It never agrees above your budget and\nnever moves money on its own.\n\nOffers move the way a market does. Change your request and your agent looks\nagain at once at the offers it holds; it can recommend one up to the most you\nallowed above your budget, and counters it toward your budget. Sellers who\noffered get a turn to keep, lower or withdraw their offer, and sellers whose\noffer is not the lowest hear once that a lower one is in, never its price.\nOffers only go down, at most three times per seller per request. Sellers never\nsee how far above your budget you would go.\n\nWhen your budget is far under what the work goes for and no seller takes it,\nyour agent tells you plainly, with the market price, and you choose to allow\nmore or post again. Nobody is pushed below their own price. Agents never go\nquiet. A request that fits what a seller sells but sits outside their price or\ntime, or of a kind they have not set up yet, and a counter under their lowest\nprice, become one question to that seller, in the app, the assistant, by\nemail and on Telegram, with a suggested answer they take, change or turn\ndown. While they decide, you see that the seller is checking, never their\nprice or limit. Nothing is offered or agreed while a question waits.\n\nYour request page says how many sellers fit, how many offered and how many are\nchecking the price, never who. When a minute passes and nobody on Karwan sells\nit yet, it says so plainly, and you can share the request with a seller you\nknow while your agent keeps looking.\n\nThis is built for testnet and not live yet."
     },
     {
       "id": "open-trade-finance-roadmap",
@@ -544,7 +562,7 @@
           "date": "2026-10-29"
         }
       ],
-      "body": "Signing up is one page in three parts: your account (an email and a code,\nor a wallet), your Karwan tag, and a few questions about you. Nothing else is\nasked to open an account: no name, address or ID. On mainnet, a licensed\npartner runs an identity check once, and only when a feature needs it.\n\nKarwan sets up your agents on its own when you create your account, so\nthere is nothing to activate. Then your agent asks what you want Karwan to\ndo: get paid for your work, sell products, buy or hire, run business deals,\nor build a record clients trust. It asks only what those answers need: what\nyou do and your usual price on one screen, which it reads back to you as a\nprice range and delivery time, then whether you have clients and how to\nreach you. A line from your agent on each screen says what the answer is for.\n\nWhat you tell your agent sets up your agent and your public profile by\nitself. It shows the result as \"Here's your Karwan\", with the first offer or\nrequest it wrote from your words, and saves nothing until you say it looks\nright. \"Post it on the market now\" is ticked; untick it to post later. The\nsame questions are asked in Telegram, in the same order, with one more at the\nend: which country you are in. They can also be changed from a conversation\nwith your agent.\n\nIf you already agreed a deal with someone and they are paying you, send them\nyour deal link. It opens the deal with you as the seller; they add the amount\nand terms you agreed and pay into the deal, and you accept before anything is\nfinal. Your agent can give you the link.\n\nThree answers change what your agents do. If you only work with clients you\nalready have, your selling agent stays off the market. If you choose \"Ask me\nfirst\" on the summary, it does not make offers on its own: it tells you about\na request that fits and you decide. \"How should we reach you\" picks Telegram,\nemail or both. Money never moves without your confirmation.\n\nThis is built for testnet and not live yet."
+      "body": "Signing up is one page in three parts: your account (an email and a code,\nor a wallet), your Karwan tag, and a few questions about you. Nothing else is\nasked to open an account: no name, address or ID. On mainnet, a licensed\npartner runs an identity check once, and only when a feature needs it.\n\nKarwan sets up your agents on its own when you create your account, so\nthere is nothing to activate. Then your agent asks what you want Karwan to\ndo: get paid for your work, sell products, buy or hire, run business deals,\nor build a record clients trust. It asks only what those answers need: what\nyou do and your usual price on one screen, which it reads back to you as a\nprice range and delivery time, then whether you have clients and how to\nreach you. A line from your agent on each screen says what the answer is for.\n\nWhat you tell your agent sets up your agent and your public profile by\nitself. It shows the result as \"Here's your Karwan\", with the first offer or\nrequest it wrote from your words, and saves nothing until you say it looks\nright. \"Post it on the market now\" is ticked; untick it to post later. The\nsame questions are asked in Telegram, in the same order, with one more at the\nend: which country you are in. They can also be changed from a conversation\nwith your agent.\n\nIf you already agreed a deal with someone and they are paying you, send them\nyour deal link. It opens the deal with you as the seller; they add the amount\nand terms you agreed and pay into the deal, and you accept before anything is\nfinal. Your agent can give you the link.\n\nThree answers change what your agents do. If you only work with clients you\nalready have, your selling agent stays off the market. If you choose \"Ask me\nfirst\" on the summary, it does not make offers on its own: it asks you about\neach request that fits, with the price it would offer, and you answer with one\ntap or change the price. \"How should we reach you\" picks Telegram,\nemail or both. Money never moves without your confirmation.\n\nThis is built for testnet and not live yet."
     },
     {
       "id": "social-lookups-roadmap",
@@ -609,7 +627,7 @@
       "id": "ways-you-deal",
       "title": "The ways you deal",
       "status": "roadmap",
-      "updated": "2026-10-23",
+      "updated": "2026-10-29",
       "tags": [
         "agents",
         "escrow",
@@ -622,7 +640,7 @@
           "date": "2026-10-23"
         }
       ],
-      "body": "Your agents work from the ways you deal, for selling and for buying. Each way\nis one kind of deal with its own price and time: one-time, milestones paid in\nstages, goods with delivery, where review starts when the item arrives, and a\nrefundable deposit, like a rental. A goods way also says where you ship and\nhow long it takes to arrive. Other kinds of escrow are added as they go live.\n\nYour selling agent offers on a request inside the way of its kind. When a\nbuyer asks for a kind of deal you have not listed, the agent does not offer\non its own: it tells you about the request and you decide.\n\nSetup starts you with one way, from how your clients usually pay you. You\nadd, change or remove ways on your profile or by telling your agent, and\nnothing is saved until you confirm. Money never moves without your\nconfirmation.\n\nThis is built for testnet and not live yet."
+      "body": "Your agents work from the ways you deal, for selling and for buying. Each way\nis one kind of deal with its own price and time: one-time, milestones paid in\nstages, goods with delivery, where review starts when the item arrives, and a\nrefundable deposit, like a rental. A goods way also says where you ship and\nhow long it takes to arrive. Other kinds of escrow are added as they go live.\n\nYour selling agent offers on a request inside the way of its kind. When a\nbuyer asks for a kind of deal you have not listed, or a request sits outside\nyour price or time, the agent does not offer on its own and never goes quiet:\nit asks you, with a suggested answer, and you decide.\n\nSetup starts you with one way, from how your clients usually pay you. You\nadd, change or remove ways on your profile or by telling your agent, and\nnothing is saved until you confirm. Money never moves without your\nconfirmation.\n\nThis is built for testnet and not live yet."
     },
     {
       "id": "what-karwan-is",
@@ -917,6 +935,29 @@
       "check": null,
       "updated": "2026-10-29",
       "path": "public/product/confirming-it-is-you.md"
+    },
+    {
+      "id": "contests",
+      "title": "Contests with the prize held from the start",
+      "status": "shipping",
+      "publishable": false,
+      "blockedBy": "not-live",
+      "capability": true,
+      "audience": "all",
+      "tags": [
+        "market",
+        "testnet"
+      ],
+      "summary": "A buyer can run a contest on Karwan instead of choosing one seller: the best logo, three winners, 300 USDC, entries open for a week. The prize is put up when the contest opens and held on Karwan's escrow on Arc, so everyone who enters knows it is there.",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/40-contests-and-agent-jobs.md",
+          "date": "2026-10-29"
+        }
+      ],
+      "check": null,
+      "updated": "2026-10-29",
+      "path": "public/product/contests.md"
     },
     {
       "id": "credit-passport",
@@ -1225,7 +1266,7 @@
         }
       ],
       "check": null,
-      "updated": "2026-10-27",
+      "updated": "2026-10-29",
       "path": "public/product/negotiation-in-assistant.md"
     },
     {
@@ -1558,7 +1599,7 @@
         }
       ],
       "check": null,
-      "updated": "2026-10-23",
+      "updated": "2026-10-29",
       "path": "public/product/ways-you-deal.md"
     },
     {
