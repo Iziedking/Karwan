@@ -7,7 +7,7 @@ export interface NotifyCopy {
   matchedSellerPrice: string; matchedSeller: string; matchedBuyerPrice: string; matchedBuyer: string;
   approvedSellerPrice: string; approvedSeller: string; approvedBuyerPrice: string; approvedBuyer: string;
   declinedSeller: string; declinedBuyer: string; raisedPrice: string; raised: string; jobExpired: string;
-  listingMatchedPrice: string; listingMatched: string; trendKeyword: string; trend: string; suggestionTitle: string; suggestion: string; suggestionRangeTitle: string; suggestionRange: string; requestChangedTitle: string; requestChanged: string;
+  listingMatchedPrice: string; listingMatched: string; trendKeyword: string; trend: string; suggestionTitle: string; suggestion: string; suggestionRangeTitle: string; suggestionRange: string; agentQuestionTitle: string; agentQuestion: string; requestChangedTitle: string; requestChanged: string;
   recordNeededOffers: string; recordNeededDeal: string;
   agentDeclinedReason: string; agentDeclined: string;
   nearMissBuyerPrice: string; nearMissSellerPrice: string; nearMissBuyer: string; nearMissSeller: string;
@@ -61,6 +61,8 @@ const en: NotifyCopy = {
   suggestionTitle: "Your agent found a request that fits: {title}. Make an offer?",
   suggestion: "Your agent found a request that fits. Make an offer?",
   suggestionRangeTitle: "A request fits what you sell, outside your range: {title}. Make an offer?",
+  agentQuestionTitle: "Your agent has a question about {title}. Nothing is sent until you answer.",
+  agentQuestion: "Your agent has a question for you. Nothing is sent until you answer.",
   suggestionRange: "A request fits what you sell, outside your range. Make an offer?",
   requestChangedTitle: "The buyer changed a request you offered on: {title}. Keep, lower or withdraw your offer.",
   requestChanged: "The buyer changed a request you offered on. Keep, lower or withdraw your offer.",
@@ -200,6 +202,8 @@ const fr: NotifyCopy = {
   suggestionTitle: "Votre agent a trouvé une demande qui vous correspond : {title}. Faire une offre ?",
   suggestion: "Votre agent a trouvé une demande qui vous correspond. Faire une offre ?",
   suggestionRangeTitle: "Une demande correspond à ce que vous vendez, hors de votre fourchette : {title}. Faire une offre ?",
+  agentQuestionTitle: "Votre agent a une question sur {title}. Rien n'est envoyé avant votre réponse.",
+  agentQuestion: "Votre agent a une question pour vous. Rien n'est envoyé avant votre réponse.",
   suggestionRange: "Une demande correspond à ce que vous vendez, hors de votre fourchette. Faire une offre ?",
   requestChangedTitle: "L'acheteur a modifié une demande sur laquelle vous avez fait une offre : {title}. Gardez, baissez ou retirez votre offre.",
   requestChanged: "L'acheteur a modifié une demande sur laquelle vous avez fait une offre. Gardez, baissez ou retirez votre offre.",
@@ -339,6 +343,8 @@ const ar: NotifyCopy = {
   suggestionTitle: "وجد وكيلك طلبًا يناسبك: {title}. هل تقدم عرضًا؟",
   suggestion: "وجد وكيلك طلبًا يناسبك. هل تقدم عرضًا؟",
   suggestionRangeTitle: "طلب يناسب ما تبيعه لكنه خارج نطاقك: {title}. هل تقدم عرضًا؟",
+  agentQuestionTitle: "لدى وكيلك سؤال عن {title}. لا يُرسل شيء قبل أن تجيب.",
+  agentQuestion: "لدى وكيلك سؤال لك. لا يُرسل شيء قبل أن تجيب.",
   suggestionRange: "طلب يناسب ما تبيعه لكنه خارج نطاقك. هل تقدم عرضًا؟",
   requestChangedTitle: "غيّر المشتري طلبًا قدّمت عليه عرضًا: {title}. أبقِ عرضك أو اخفضه أو اسحبه.",
   requestChanged: "غيّر المشتري طلبًا قدّمت عليه عرضًا. أبقِ عرضك أو اخفضه أو اسحبه.",
@@ -478,6 +484,8 @@ const hi: NotifyCopy = {
   suggestionTitle: "आपके एजेंट को एक उपयुक्त अनुरोध मिला: {title}। ऑफ़र करें?",
   suggestion: "आपके एजेंट को एक उपयुक्त अनुरोध मिला। ऑफ़र करें?",
   suggestionRangeTitle: "एक अनुरोध आपके काम से मेल खाता है, पर आपकी सीमा से बाहर है: {title}। ऑफ़र करें?",
+  agentQuestionTitle: "आपके एजेंट का {title} के बारे में एक सवाल है। आपके जवाब से पहले कुछ नहीं भेजा जाता।",
+  agentQuestion: "आपके एजेंट का आपसे एक सवाल है। आपके जवाब से पहले कुछ नहीं भेजा जाता।",
   suggestionRange: "एक अनुरोध आपके काम से मेल खाता है, पर आपकी सीमा से बाहर है। ऑफ़र करें?",
   requestChangedTitle: "खरीदार ने वह अनुरोध बदल दिया जिस पर आपने ऑफ़र दिया था: {title}। अपना ऑफ़र रखें, घटाएँ या वापस लें।",
   requestChanged: "खरीदार ने वह अनुरोध बदल दिया जिस पर आपने ऑफ़र दिया था। अपना ऑफ़र रखें, घटाएँ या वापस लें।",
@@ -617,6 +625,8 @@ const sw: NotifyCopy = {
   suggestionTitle: "Wakala wako amepata ombi linalokufaa: {title}. Toa ofa?",
   suggestion: "Wakala wako amepata ombi linalokufaa. Toa ofa?",
   suggestionRangeTitle: "Ombi linalingana na unachouza, lakini liko nje ya kiwango chako: {title}. Toa ofa?",
+  agentQuestionTitle: "Wakala wako ana swali kuhusu {title}. Hakuna kinachotumwa hadi ujibu.",
+  agentQuestion: "Wakala wako ana swali kwako. Hakuna kinachotumwa hadi ujibu.",
   suggestionRange: "Ombi linalingana na unachouza, lakini liko nje ya kiwango chako. Toa ofa?",
   requestChangedTitle: "Mnunuzi amebadilisha ombi ulilotoa ofa: {title}. Baki na ofa yako, ishushe au iondoe.",
   requestChanged: "Mnunuzi amebadilisha ombi ulilotoa ofa. Baki na ofa yako, ishushe au iondoe.",

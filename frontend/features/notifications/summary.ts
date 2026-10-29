@@ -61,7 +61,9 @@ export function summaryFor(
     case 'listing.matched':
       return pick(c.listingMatchedPrice, c.listingMatched, { price: str('askingPriceUsdc') });
     case 'agent.suggestion':
-      // Outside the seller's range but a fit (view 35), or "Ask me first".
+      // A question the agent asks its person (view 41); older events were
+      // outside the seller's range (view 35) or "Ask me first".
+      if (str('questionId')) return pick(c.agentQuestionTitle, c.agentQuestion, { title: str('title') });
       return str('outOfRange')
         ? pick(c.suggestionRangeTitle, c.suggestionRange, { title: str('title') })
         : pick(c.suggestionTitle, c.suggestion, { title: str('title') });

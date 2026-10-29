@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import Link from 'next/link';
-import { api, ApiError } from '@/core/api';
+import { api, ApiError, type AgentQuestion } from '@/core/api';
 import { Button, buttonClasses } from '@/shared/components/Button';
 import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -12,6 +12,7 @@ import { deliverByUnixFromDate, offerDefaults, offerErrorKey, type Offer } from 
 import { lowerCheck, lowerErrorKey } from '../lowerOffer';
 import { Icon } from '@/shared/components/Icon';
 import { MarketReadsNote } from '@/features/market/MarketReadsNote';
+import { AgentQuestionCard } from './AgentQuestionCard';
 
 type View = Awaited<ReturnType<typeof api.offers>>;
 
@@ -31,14 +32,22 @@ export function OfferPanel({ jobId, fallback }: { jobId: string; fallback: React
   const { locale } = useLocale();
   const auth = useAuth();
   const [view, setView] = useState<View | null | 'failed'>(null);
+  // The question this seller's agent asked them here (view 41), if one waits.
+  const [question, setQuestion] = useState<AgentQuestion | null>(null);
+  const [preset, setPreset] = useState<{ priceUsdc: string; nonce: number } | null>(null);
 
   const load = useCallback(async () => {
     try {
-      setView(await api.offers(jobId));
+      const [offers, questions] = await Promise.all([
+        api.offers(jobId),
+        auth.address ? api.agentQuestions().catch(() => ({ questions: [] as AgentQuestion[] })) : Promise.resolve({ questions: [] as AgentQuestion[] }),
+      ]);
+      setView(offers);
+      setQuestion(questions.questions.find((q) => q.side === 'seller' && q.jobId.toLowerCase() === jobId.toLowerCase()) ?? null);
     } catch {
       setView('failed');
     }
-  }, [jobId]);
+  }, [jobId, auth.address]);
 
   useEffect(() => {
     if (auth.isLoading) return;
@@ -111,7 +120,27 @@ export function OfferPanel({ jobId, fallback }: { jobId: string; fallback: React
         ) : mine ? (
           <SentOffer jobId={jobId} offer={mine} onChange={load} />
         ) : (
-          <MakeOffer jobId={jobId} budgetUsdc={view.request.budgetUsdc} deadlineUnix={view.request.deadlineUnix} onSent={load} />
+          <>
+            {question ? (
+              <AgentQuestionCard
+                question={question}
+                onOffer={async (priceUsdc, deliverInDays) => {
+                  const date = new Date(Date.now() + deliverInDays * 86_400_000).toISOString().slice(0, 10);
+                  await api.createOffer(jobId, { priceUsdc, deliverByUnix: deliverByUnixFromDate(date), note: '' });
+                }}
+                onChangePrice={(priceUsdc) => setPreset({ priceUsdc, nonce: Date.now() })}
+                onDone={load}
+              />
+            ) : null}
+            <MakeOffer
+              jobId={jobId}
+              budgetUsdc={view.request.budgetUsdc}
+              deadlineUnix={view.request.deadlineUnix}
+              onSent={load}
+              preset={preset}
+              trigger={!question}
+            />
+          </>
         )}
       </div>
     </main>
@@ -203,11 +232,17 @@ function MakeOffer({
   budgetUsdc,
   deadlineUnix,
   onSent,
+  preset,
+  trigger = true,
 }: {
   jobId: string;
   budgetUsdc: string;
   deadlineUnix: number;
   onSent: () => Promise<void>;
+  /// A price to open the sheet with: the agent's suggestion the seller wants to change.
+  preset?: { priceUsdc: string; nonce: number } | null;
+  /// False hides the "Make an offer" button; the question card opens the sheet instead.
+  trigger?: boolean;
 }) {
   const t = useTranslations().offers;
   const titleId = useId();
@@ -223,6 +258,11 @@ function MakeOffer({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<{ key: ReturnType<typeof offerErrorKey> } | null>(null);
   const noteLength = [...note].length;
+  useEffect(() => {
+    if (!preset) return;
+    setPrice(preset.priceUsdc);
+    setOpen(true);
+  }, [preset]);
 
   async function send() {
     setBusy(true);
@@ -243,9 +283,11 @@ function MakeOffer({
 
   return (
     <>
-      <Button size="lg" className="w-full rounded-full" onClick={() => setOpen(true)}>
-        {t.makeOffer}
-      </Button>
+      {trigger ? (
+        <Button size="lg" className="w-full rounded-full" onClick={() => setOpen(true)}>
+          {t.makeOffer}
+        </Button>
+      ) : null}
       <ConfirmSheetShell open={open} labelledBy={titleId} busy={busy} onClose={() => setOpen(false)} initialFocus={priceRef}>
         <form
           className="space-y-5"

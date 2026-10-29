@@ -18,6 +18,7 @@ import { CopyId } from '@/shared/components/CopyId';
 import { MarketAdvisoryBanner } from '@/shared/components/MarketAdvisoryBanner';
 import { NearMissCard } from './NearMissCard';
 import { OutOfReachCard } from './OutOfReachCard';
+import { RequestReachLine } from './RequestReachLine';
 import { useMatchProposal } from '../hooks/useMatchProposal';
 import { useNearMiss } from '../hooks/useNearMiss';
 import { presentMatchingState } from '../matchingPresentation';
@@ -288,6 +289,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
         <section className="mt-6 rounded-[18px] bg-[var(--lp-card)] p-5">
           <p className="text-[16px] font-semibold text-[var(--lp-dark)]">{rs.lookingTitle}</p>
           <p className="mt-1 text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{rs.lookingBody}</p>
+          <RequestReachLine jobId={job.jobId} active={viewerIsBuyer} refreshKey={events.length} />
           <p className="mt-3 inline-flex items-center gap-2 text-[14px] text-[var(--lp-text-sub)] font-medium">
             <span aria-hidden className="size-2 rounded-full bg-[var(--lp-accent)] shadow-[0_0_0_4px_rgba(175,201,91,0.25)]" />
             {rs.live}

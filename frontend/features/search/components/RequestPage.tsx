@@ -13,6 +13,7 @@ import { useJobLiveState } from '@/features/jobs/hooks/useJobLiveState';
 import { useMatchProposal } from '@/features/jobs/hooks/useMatchProposal';
 import { useNearMiss } from '@/features/jobs/hooks/useNearMiss';
 import { EventList } from '@/features/jobs/components/EventList';
+import { RequestReachLine } from '@/features/jobs/components/RequestReachLine';
 import { CancelBriefSection, EditBriefSection } from '@/features/jobs/components/LiveJobPage';
 import { MarketAdvisoryBanner } from '@/shared/components/MarketAdvisoryBanner';
 import { requestTitle } from '../requestTitle';
@@ -114,6 +115,11 @@ export function RequestPage({ initial, explorer }: { initial: BuyerJob; explorer
           <div aria-live="polite" className="space-y-2">
             <h2 id="request-status" className="text-[20px] font-semibold text-[var(--lp-dark)]">{fill(copy.headline, values)}</h2>
             <p className="text-[15px] leading-relaxed text-[var(--lp-text-sub)]">{fill(copy.detail, values)}</p>
+            <RequestReachLine
+              jobId={job.jobId}
+              active={view.viewer === 'buyer' && !proposal && !nearMiss && !job.escrowFunded && !job.expiredAt && !job.cancelledAt}
+              refreshKey={live.events.length}
+            />
           </div>
           {view.priceUsdc && view.state.startsWith('match') ? (
             <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">

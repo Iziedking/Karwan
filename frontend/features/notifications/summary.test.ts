@@ -88,6 +88,14 @@ test('ask me first says the agent found a request and asks for an offer', () => 
   assert.equal(summaryFor('agent.suggestion', {}, 'seller', en), 'Your agent found a request that fits. Make an offer?');
 });
 
+test('a question from the agent says so, and that nothing is sent until they answer (view 41)', () => {
+  assert.equal(
+    summaryFor('agent.suggestion', { questionId: 'q1', kind: 'no-way', title: '3 pairs of Clark shoes' }, 'seller', en),
+    'Your agent has a question about 3 pairs of Clark shoes. Nothing is sent until you answer.',
+  );
+  assert.equal(summaryFor('agent.suggestion', { questionId: 'q1', kind: 'no-way' }, 'seller', en), en.agentQuestion);
+});
+
 test('a seller asked to set up their record reads why, in the bell', () => {
   assert.equal(summaryFor('record.setup_needed', { reason: 'offers' }, 'seller', en), en.recordNeededOffers);
   assert.equal(summaryFor('record.setup_needed', { reason: 'deal' }, 'seller', en), en.recordNeededDeal);
