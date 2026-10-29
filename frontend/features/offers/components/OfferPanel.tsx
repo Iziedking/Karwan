@@ -13,6 +13,7 @@ import { lowerCheck, lowerErrorKey } from '../lowerOffer';
 import { Icon } from '@/shared/components/Icon';
 import { MarketReadsNote } from '@/features/market/MarketReadsNote';
 import { AgentQuestionCard } from './AgentQuestionCard';
+import { quantityLine } from '@/features/jobs/quantityLine';
 
 type View = Awaited<ReturnType<typeof api.offers>>;
 
@@ -98,6 +99,11 @@ export function OfferPanel({ jobId, fallback }: { jobId: string; fallback: React
             {formatUsdc(view.request.budgetUsdc)}
           </dd>
         </div>
+        {quantityLine(all.requestPage, view.request.quantity, view.request.budgetUsdc) ? (
+          <div className="py-4">
+            <p className="text-[15px] tabular-nums text-[var(--lp-text-sub)]">{quantityLine(all.requestPage, view.request.quantity, view.request.budgetUsdc)}</p>
+          </div>
+        ) : null}
         <div className="flex items-center justify-between gap-4 py-4">
           <dt className="text-[15px] text-[var(--lp-text-sub)]">{t.due}</dt>
           <dd className="text-[15px] text-[var(--lp-dark)]">{shortDate(view.request.deadlineUnix, locale)}</dd>

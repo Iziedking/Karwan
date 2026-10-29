@@ -170,6 +170,15 @@ function WayForm({ side, open, c, motionProps, onChange, onDone, onCancel, onRem
       </span>
     </Field>
   );
+  // A goods way priced per item (view 41): a request that names a count is compared per item.
+  const perItem = () => (
+    <Field label={f.perItem} as="div">
+      <label className="inline-flex min-h-11 items-center gap-3 text-[15px] text-[var(--lp-dark)]">
+        <input type="checkbox" checked={w.perItem === true} onChange={(e) => set('perItem', e.target.checked)} className="size-5 accent-[var(--accent)]" />
+        {c.perItemYes}
+      </label>
+    </Field>
+  );
   const words = (key: string, label: string) => (
     <Field label={label}>
       <input value={(w[key] as string) ?? ''} maxLength={120} onChange={(e) => set(key, e.target.value)} className="form-input" />
@@ -178,7 +187,7 @@ function WayForm({ side, open, c, motionProps, onChange, onDone, onCancel, onRem
 
   let fields: ReactNode;
   if (side === 'sell') {
-    if (w.shape === 'goods') fields = <>{words('what', f.whatSell)}{num('priceMin', f.priceFrom, 'USDC')}{num('priceUsual', f.priceUsual, 'USDC')}{words('shipsTo', f.shipsTo)}{num('arriveDaysMin', f.daysFrom, c.unitDays)}{num('arriveDaysMax', f.daysTo, c.unitDays)}</>;
+    if (w.shape === 'goods') fields = <>{words('what', f.whatSell)}{num('priceMin', f.priceFrom, 'USDC')}{num('priceUsual', f.priceUsual, 'USDC')}{perItem()}{words('shipsTo', f.shipsTo)}{num('arriveDaysMin', f.daysFrom, c.unitDays)}{num('arriveDaysMax', f.daysTo, c.unitDays)}</>;
     else if (w.shape === 'deposit') fields = <>{words('what', f.whatRent)}{num('deposit', f.deposit, 'USDC')}{num('periodDays', f.period, c.unitDays)}</>;
     else fields = <>{num('priceMin', f.priceFrom, 'USDC')}{num('priceUsual', f.priceUsual, 'USDC')}{num('daysMin', f.daysFrom, c.unitDays)}{num('daysMax', f.daysTo, c.unitDays)}{w.shape === 'milestones' ? num('stages', f.stages, '') : null}</>;
   } else {

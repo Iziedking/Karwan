@@ -27,6 +27,7 @@ export interface WaysCopy {
     daysTo: string;
     stages: string;
     whatSell: string;
+    perItem: string;
     whatRent: string;
     shipsTo: string;
     arrives: string;
@@ -46,6 +47,8 @@ export interface WaysCopy {
   usdcRange: string;
   /// {usual} and {min} are USDC amounts: what they usually charge and the lowest they take.
   usualLowest: string;
+  perItemYes: string;
+  perItemLine: string;
   days: string;
   daysRange: string;
   upTo: string;
@@ -91,7 +94,7 @@ export const waysCopy: Record<Locale, WaysCopy> = {
     order: 'The lowest cannot be above the usual.',
     fields: {
       priceFrom: 'Lowest price', priceUsual: 'Usual price', daysFrom: 'Done in at least', daysTo: 'Done in at most', stages: 'Stages',
-      whatSell: 'What you sell', whatRent: 'What you rent out', shipsTo: 'Ships to', arrives: 'Arrives in',
+      whatSell: 'What you sell', perItem: 'Price is for', whatRent: 'What you rent out', shipsTo: 'Ships to', arrives: 'Arrives in',
       deposit: 'Deposit', period: 'For how long', maxPrice: 'Most you pay', needDays: 'Needed within', pay: 'How you pay',
       deliverTo: 'Delivered to', waitDays: 'You can wait', maxDeposit: 'Most deposit you put down',
     },
@@ -101,6 +104,8 @@ export const waysCopy: Record<Locale, WaysCopy> = {
     usdc: '{n} USDC',
     usdcRange: '{min} to {max} USDC',
     usualLowest: 'Usually {usual} USDC, lowest {min}',
+    perItemYes: 'One item, not the whole order',
+    perItemLine: 'per item',
     days: '{n} days',
     daysRange: '{min} to {max} days',
     upTo: 'Up to {n} USDC',
@@ -142,7 +147,7 @@ export const waysCopy: Record<Locale, WaysCopy> = {
     order: 'Le minimum ne peut pas dépasser le prix habituel.',
     fields: {
       priceFrom: 'Prix minimum', priceUsual: 'Prix habituel', daysFrom: 'Fait en au moins', daysTo: 'Fait en au plus', stages: 'Étapes',
-      whatSell: 'Ce que vous vendez', whatRent: 'Ce que vous louez', shipsTo: 'Livre vers', arrives: 'Arrive en',
+      whatSell: 'Ce que vous vendez', perItem: 'Le prix vaut pour', whatRent: 'Ce que vous louez', shipsTo: 'Livre vers', arrives: 'Arrive en',
       deposit: 'Caution', period: 'Pour combien de temps', maxPrice: 'Le plus que vous payez', needDays: 'Nécessaire sous', pay: 'Comment vous payez',
       deliverTo: 'Livré à', waitDays: 'Vous pouvez attendre', maxDeposit: 'Caution maximale versée',
     },
@@ -152,6 +157,8 @@ export const waysCopy: Record<Locale, WaysCopy> = {
     usdc: '{n} USDC',
     usdcRange: '{min} à {max} USDC',
     usualLowest: 'Habituellement {usual} USDC, minimum {min}',
+    perItemYes: 'Un article, pas la commande entière',
+    perItemLine: 'par article',
     days: '{n} jours',
     daysRange: '{min} à {max} jours',
     upTo: 'Jusqu’à {n} USDC',
@@ -193,7 +200,7 @@ export const waysCopy: Record<Locale, WaysCopy> = {
     order: 'لا يمكن أن يكون الأدنى أعلى من السعر المعتاد.',
     fields: {
       priceFrom: 'أدنى سعر', priceUsual: 'السعر المعتاد', daysFrom: 'يُنجز في الأقل خلال', daysTo: 'يُنجز في الأكثر خلال', stages: 'المراحل',
-      whatSell: 'ما تبيعه', whatRent: 'ما تؤجره', shipsTo: 'يُشحن إلى', arrives: 'يصل خلال',
+      whatSell: 'ما تبيعه', perItem: 'السعر يخص', whatRent: 'ما تؤجره', shipsTo: 'يُشحن إلى', arrives: 'يصل خلال',
       deposit: 'التأمين', period: 'لأي مدة', maxPrice: 'أقصى ما تدفعه', needDays: 'مطلوب خلال', pay: 'طريقة الدفع',
       deliverTo: 'يُسلَّم إلى', waitDays: 'يمكنك الانتظار', maxDeposit: 'أقصى تأمين تضعه',
     },
@@ -203,6 +210,8 @@ export const waysCopy: Record<Locale, WaysCopy> = {
     usdc: '{n} USDC',
     usdcRange: 'من {min} إلى {max} USDC',
     usualLowest: 'عادةً {usual} USDC، والحد الأدنى {min}',
+    perItemYes: 'قطعة واحدة، لا الطلب كله',
+    perItemLine: 'للقطعة',
     days: '{n} أيام',
     daysRange: 'من {min} إلى {max} أيام',
     upTo: 'حتى {n} USDC',
@@ -244,7 +253,7 @@ export const waysCopy: Record<Locale, WaysCopy> = {
     order: 'न्यूनतम, सामान्य कीमत से ज़्यादा नहीं हो सकता।',
     fields: {
       priceFrom: 'न्यूनतम कीमत', priceUsual: 'सामान्य कीमत', daysFrom: 'कम से कम इतने दिन', daysTo: 'ज़्यादा से ज़्यादा इतने दिन', stages: 'चरण',
-      whatSell: 'आप क्या बेचते हैं', whatRent: 'आप क्या किराए पर देते हैं', shipsTo: 'कहाँ भेजते हैं', arrives: 'पहुँचने में',
+      whatSell: 'आप क्या बेचते हैं', perItem: 'कीमत किसके लिए', whatRent: 'आप क्या किराए पर देते हैं', shipsTo: 'कहाँ भेजते हैं', arrives: 'पहुँचने में',
       deposit: 'जमा', period: 'कितने समय के लिए', maxPrice: 'आप अधिकतम कितना देते हैं', needDays: 'कितने दिनों में चाहिए', pay: 'आप कैसे भुगतान करते हैं',
       deliverTo: 'कहाँ पहुँचे', waitDays: 'आप इंतज़ार कर सकते हैं', maxDeposit: 'अधिकतम जमा',
     },
@@ -254,6 +263,8 @@ export const waysCopy: Record<Locale, WaysCopy> = {
     usdc: '{n} USDC',
     usdcRange: '{min} से {max} USDC',
     usualLowest: 'आम तौर पर {usual} USDC, न्यूनतम {min}',
+    perItemYes: 'एक नग, पूरा ऑर्डर नहीं',
+    perItemLine: 'प्रति नग',
     days: '{n} दिन',
     daysRange: '{min} से {max} दिन',
     upTo: '{n} USDC तक',
@@ -295,7 +306,7 @@ export const waysCopy: Record<Locale, WaysCopy> = {
     order: 'Kiwango cha chini hakiwezi kuzidi bei ya kawaida.',
     fields: {
       priceFrom: 'Bei ya chini kabisa', priceUsual: 'Bei ya kawaida', daysFrom: 'Inakamilika angalau kwa', daysTo: 'Inakamilika zaidi kwa', stages: 'Hatua',
-      whatSell: 'Unachouza', whatRent: 'Unachokodisha', shipsTo: 'Inatumwa hadi', arrives: 'Inafika kwa',
+      whatSell: 'Unachouza', perItem: 'Bei ni ya', whatRent: 'Unachokodisha', shipsTo: 'Inatumwa hadi', arrives: 'Inafika kwa',
       deposit: 'Amana', period: 'Kwa muda gani', maxPrice: 'Kiasi cha juu unacholipa', needDays: 'Inahitajika ndani ya', pay: 'Unavyolipa',
       deliverTo: 'Inawasilishwa hadi', waitDays: 'Unaweza kusubiri', maxDeposit: 'Amana ya juu unayoweka',
     },
@@ -305,6 +316,8 @@ export const waysCopy: Record<Locale, WaysCopy> = {
     usdc: 'USDC {n}',
     usdcRange: 'USDC {min} hadi {max}',
     usualLowest: 'Kawaida USDC {usual}, chini kabisa {min}',
+    perItemYes: 'Bidhaa moja, si oda nzima',
+    perItemLine: 'kwa kila moja',
     days: 'Siku {n}',
     daysRange: 'Siku {min} hadi {max}',
     upTo: 'Hadi USDC {n}',

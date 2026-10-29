@@ -187,6 +187,8 @@ export interface BuyerJob {
   /// Human-readable brief text from the off-chain store. Null when the brief
   /// record was lost (eg flat-file wiped) but the on-chain job still exists.
   briefText?: string | null;
+  /// How many the request asks for, read when it was posted (view 41).
+  quantity?: { count: number; unit: string | null } | null;
   keywords?: string[] | null;
   negotiationMaxIncreasePct?: number | null;
   /// Buyer opted into Trusted Match for this brief. The job-detail page
@@ -2830,7 +2832,7 @@ export const api = {
       count: number;
       offers: Offer[];
       role: 'buyer' | 'seller' | 'visitor';
-      request: { briefText: string; budgetUsdc: string; deadlineUnix: number } | null;
+      request: { briefText: string; budgetUsdc: string; deadlineUnix: number; quantity?: { count: number; unit: string | null } | null } | null;
       /// Who posted the request, when their passport is public.
       poster?: { address: string; name: string | null; handle: string | null } | null;
     }>(`/api/jobs/${jobId}/offers`),

@@ -14,6 +14,7 @@ import { useMatchProposal } from '@/features/jobs/hooks/useMatchProposal';
 import { useNearMiss } from '@/features/jobs/hooks/useNearMiss';
 import { EventList } from '@/features/jobs/components/EventList';
 import { RequestReachLine } from '@/features/jobs/components/RequestReachLine';
+import { quantityLine } from '@/features/jobs/quantityLine';
 import { CancelBriefSection, EditBriefSection } from '@/features/jobs/components/LiveJobPage';
 import { MarketAdvisoryBanner } from '@/shared/components/MarketAdvisoryBanner';
 import { requestTitle } from '../requestTitle';
@@ -46,6 +47,7 @@ const TOGGLE =
 /// a matched seller never gets them at all.
 export function RequestPage({ initial, explorer }: { initial: BuyerJob; explorer: string }) {
   const t = useTranslations().search.request;
+  const rp = useTranslations().requestPage;
   const router = useRouter();
   const { address } = useAuth();
   const { job, refresh: refreshJob } = useJobSnapshot(initial);
@@ -109,6 +111,9 @@ export function RequestPage({ initial, explorer }: { initial: BuyerJob; explorer
         <header className="space-y-2">
           <h1 className="break-words text-[26px] font-semibold tracking-[-0.02em] text-[var(--lp-dark)]">{title}</h1>
           <p className="text-[15px] tabular-nums text-[var(--lp-text-sub)]">{fill(t.upTo, { amount: job.budgetUsdc })}</p>
+          {quantityLine(rp, job.quantity, job.budgetUsdc) ? (
+            <p className="text-[15px] tabular-nums text-[var(--lp-text-sub)]">{quantityLine(rp, job.quantity, job.budgetUsdc)}</p>
+          ) : null}
         </header>
 
         <section aria-labelledby="request-status" className="space-y-4">

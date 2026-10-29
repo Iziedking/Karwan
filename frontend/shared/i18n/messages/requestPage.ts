@@ -15,6 +15,9 @@ export interface RequestPageCopy {
   researchEmpty: string;
   verification: string;
   verificationTemplate: string;
+  /// {what} is "3 pairs"; {total} and {each} are USDC amounts.
+  quantityLine: string;
+  quantityItems: string;
 }
 
 const en: RequestPageCopy = {
@@ -34,6 +37,8 @@ const en: RequestPageCopy = {
   researchEmpty: 'Market research and what your agent spent show here once it has looked.',
   verification: 'Seller check',
   verificationTemplate: 'Your agent paid {amount} USDC to check this seller.',
+  quantityLine: '{what}, {total} USDC for all, about {each} USDC each',
+  quantityItems: '{count} items',
 };
 
 const fr: RequestPageCopy = {
@@ -53,6 +58,8 @@ const fr: RequestPageCopy = {
   researchEmpty: 'L’étude de marché et les dépenses de votre agent apparaissent ici dès qu’il a cherché.',
   verification: 'Vérification du vendeur',
   verificationTemplate: 'Votre agent a payé {amount} USDC pour vérifier ce vendeur.',
+  quantityLine: '{what}, {total} USDC pour le tout, environ {each} USDC chacun',
+  quantityItems: '{count} articles',
 };
 
 const ar: RequestPageCopy = {
@@ -72,6 +79,8 @@ const ar: RequestPageCopy = {
   researchEmpty: 'يظهر هنا بحث السوق وما أنفقه وكيلك بعد أن يبحث.',
   verification: 'فحص البائع',
   verificationTemplate: 'دفع وكيلك {amount} USDC لفحص هذا البائع.',
+  quantityLine: '{what}، {total} USDC للكل، نحو {each} USDC لكل واحد',
+  quantityItems: '{count} قطع',
 };
 
 const hi: RequestPageCopy = {
@@ -91,6 +100,8 @@ const hi: RequestPageCopy = {
   researchEmpty: 'एजेंट के खोजने के बाद बाज़ार रिसर्च और उसका खर्च यहाँ दिखता है।',
   verification: 'विक्रेता जाँच',
   verificationTemplate: 'आपके एजेंट ने इस विक्रेता की जाँच के लिए {amount} USDC दिए।',
+  quantityLine: '{what}, कुल {total} USDC, लगभग {each} USDC प्रति नग',
+  quantityItems: '{count} नग',
 };
 
 const sw: RequestPageCopy = {
@@ -110,6 +121,8 @@ const sw: RequestPageCopy = {
   researchEmpty: 'Utafiti wa soko na alichotumia wakala wako huonekana hapa akishatafuta.',
   verification: 'Ukaguzi wa muuzaji',
   verificationTemplate: 'Wakala wako alilipa USDC {amount} kumkagua muuzaji huyu.',
+  quantityLine: '{what}, USDC {total} kwa zote, takriban USDC {each} kila moja',
+  quantityItems: 'bidhaa {count}',
 };
 
 export const requestPageCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', RequestPageCopy> = { en, ar, fr, hi, sw };

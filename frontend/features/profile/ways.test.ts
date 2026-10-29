@@ -29,6 +29,7 @@ test('each way reads as one line with its price, place and time', () => {
   assert.equal(waySummary('sell', ways.sell[0]!, c), 'Wigs · Usually 190 USDC, lowest 80 · to Anywhere in Nigeria · 2 to 5 days');
   assert.equal(waySummary('buy', ways.buy[0]!, c), 'Up to 5,000 USDC · within 30 days · Stage by stage');
   assert.equal(waySummary('sell', { shape: 'one_time', priceMin: 25, priceUsual: 25, daysMin: 3, daysMax: 3 }, c), '25 USDC · 3 days');
+  assert.equal(waySummary('sell', { ...(ways.sell[0] as Extract<SellWay, { shape: 'goods' }>), perItem: true }, c), 'Wigs · Usually 190 USDC, lowest 80 per item · to Anywhere in Nigeria · 2 to 5 days');
 });
 
 test('the form says what stops a save', () => {
@@ -41,5 +42,6 @@ test('the form says what stops a save', () => {
 
 test('a new way opens near what the person already charges', () => {
   assert.deepEqual(blankWay('sell', 'one_time', ways), { shape: 'one_time', priceMin: 80, priceUsual: 190, daysMin: 1, daysMax: 7 });
+  assert.equal((blankWay('sell', 'goods', ways) as { perItem?: boolean }).perItem, true, 'a new goods way is priced per item');
   assert.equal((blankWay('buy', 'goods', ways) as { maxPrice: number }).maxPrice, 5000);
 });

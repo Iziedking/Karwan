@@ -14,7 +14,7 @@ export type Side = 'sell' | 'buy';
 export type SellWay =
   | { shape: 'one_time'; priceMin: number; priceUsual: number; daysMin: number; daysMax: number }
   | { shape: 'milestones'; priceMin: number; priceUsual: number; daysMin: number; daysMax: number; stages: number }
-  | { shape: 'goods'; what: string; priceMin: number; priceUsual: number; shipsTo: string; arriveDaysMin: number; arriveDaysMax: number }
+  | { shape: 'goods'; what: string; priceMin: number; priceUsual: number; perItem?: boolean; shipsTo: string; arriveDaysMin: number; arriveDaysMax: number }
   | { shape: 'deposit'; what: string; deposit: number; periodDays: number };
 
 export type BuyWay =
@@ -58,7 +58,7 @@ export function blankWay(side: Side, shape: WayShape, ways: AgentWays): SellWay 
     const usual = priced?.priceUsual ?? 50;
     switch (shape) {
       case 'goods':
-        return { shape, what: '', priceMin: lo, priceUsual: usual, shipsTo: '', arriveDaysMin: 2, arriveDaysMax: 5 };
+        return { shape, what: '', priceMin: lo, priceUsual: usual, perItem: true, shipsTo: '', arriveDaysMin: 2, arriveDaysMax: 5 };
       case 'deposit':
         return { shape, what: '', deposit: 100, periodDays: 7 };
       case 'milestones':
@@ -127,7 +127,7 @@ export function waySummary(side: Side, way: SellWay | BuyWay, c: WaysCopy): stri
     const w = way as SellWay;
     switch (w.shape) {
       case 'goods':
-        return [w.what, money(w.priceMin, w.priceUsual), fill(c.shipsToLine, { place: w.shipsTo }), time(w.arriveDaysMin, w.arriveDaysMax)].join(' · ');
+        return [w.what, money(w.priceMin, w.priceUsual) + (w.perItem ? ` ${c.perItemLine}` : ''), fill(c.shipsToLine, { place: w.shipsTo }), time(w.arriveDaysMin, w.arriveDaysMax)].join(' · ');
       case 'deposit':
         return [w.what, fill(c.depositLine, { n: n(w.deposit) }), fill(c.days, { n: n(w.periodDays) })].join(' · ');
       case 'milestones':

@@ -19,6 +19,7 @@ import { MarketAdvisoryBanner } from '@/shared/components/MarketAdvisoryBanner';
 import { NearMissCard } from './NearMissCard';
 import { OutOfReachCard } from './OutOfReachCard';
 import { RequestReachLine } from './RequestReachLine';
+import { quantityLine } from '../quantityLine';
 import { useMatchProposal } from '../hooks/useMatchProposal';
 import { useNearMiss } from '../hooks/useNearMiss';
 import { presentMatchingState } from '../matchingPresentation';
@@ -253,6 +254,9 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
           </div>
         ) : null}
       </dl>
+      {quantityLine(rs, job.quantity, job.budgetUsdc) ? (
+        <p className="mt-2 text-[14px] font-medium tabular-nums text-[var(--lp-text-sub)]">{quantityLine(rs, job.quantity, job.budgetUsdc)}</p>
+      ) : null}
 
       <ol className="mt-6 grid grid-cols-4 gap-1.5" data-guide="job-flow" aria-label={lj.sections.flow}>
         {rs.steps.map((label, index) => (
