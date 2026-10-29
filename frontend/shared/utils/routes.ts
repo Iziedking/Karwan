@@ -19,6 +19,7 @@ export function isPublicEditorialRoute(pathname: string | null | undefined): boo
     '/newsletter',
     '/docs',
     '/terms',
+    '/privacy',
     '/feedback',
     '/x402',
     '/developers',

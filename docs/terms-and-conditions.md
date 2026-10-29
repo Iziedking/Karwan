@@ -151,6 +151,8 @@ For accounts Karwan operates on your behalf, the signing capability is held in C
 
 You can ask us to delete your account record from `/settings`. Anything recorded on chain stays on chain. We cannot remove that.
 
+The full privacy notice, with who processes your data for us, how long we keep it and what you can ask of us, is at `/privacy`.
+
 ## 9. Account and acceptance
 
 By accepting these terms in the product, you confirm:

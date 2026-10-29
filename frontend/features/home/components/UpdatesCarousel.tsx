@@ -7,17 +7,23 @@ import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { localizeSeedCard } from '../seedUpdates';
 import { cn } from '@/shared/utils/cn';
 import { photoSrc } from '@/features/listings/photos';
+import { UPDATES_EVERY_MS, nextUpdateMove, updatesMayMove } from '../updatesAutoplay';
 
 /// Home Updates: published media tiles about the tech Karwan runs on, market
 /// news, videos and what people are asking for. Three fit the column on a wide
 /// screen; more scroll in a native snap strip that the arrows page through. It
-/// never moves on its own.
+/// moves on by itself every few seconds and holds still under the pointer or
+/// focus, or when the person asked for reduced motion (view 39).
 export function UpdatesCarousel() {
-  const t = useTranslations().accountHome;
+  const messages = useTranslations();
+  const t = { ...messages.accountHome, updatesAuto: messages.startFlow.home.updatesAuto };
   const updates = useQuery({ queryKey: ['home-updates'], queryFn: () => api.getUpdates(), staleTime: 60_000 });
   const track = useRef<HTMLDivElement>(null);
   const [edges, setEdges] = useState({ start: true, end: true });
   const drag = useRef<{ x: number; left: number; moved: boolean } | null>(null);
+  const [paused, setPaused] = useState(false);
+  const edgesRef = useRef(edges);
+  edgesRef.current = edges;
   const cards = updates.data?.cards ?? [];
 
   const sync = useCallback(() => {
@@ -42,6 +48,19 @@ export function UpdatesCarousel() {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     el.scrollBy({ left: dir * by * el.clientWidth, behavior: reduce ? 'auto' : 'smooth' });
   }, []);
+
+  useEffect(() => {
+    if (cards.length === 0) return;
+    const id = window.setInterval(() => {
+      const el = track.current;
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (!el || !updatesMayMove({ paused, reducedMotion, hidden: document.hidden })) return;
+      const move = nextUpdateMove(edgesRef.current);
+      if (move === 'next') page(1);
+      else if (move === 'restart') el.scrollTo({ left: 0, behavior: 'smooth' });
+    }, UPDATES_EVERY_MS);
+    return () => window.clearInterval(id);
+  }, [cards.length, paused, page]);
 
   if (cards.length === 0) return null;
 
@@ -72,7 +91,17 @@ export function UpdatesCarousel() {
   );
 
   return (
-    <section aria-labelledby="home-updates-title" aria-roledescription="carousel" className="mt-7">
+    <section
+      aria-labelledby="home-updates-title"
+      aria-describedby="home-updates-auto"
+      aria-roledescription="carousel"
+      className="mt-7"
+      onPointerEnter={() => setPaused(true)}
+      onPointerLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setPaused(false); }}
+    >
+      <p id="home-updates-auto" className="sr-only">{t.updatesAuto}</p>
       <div className="flex min-h-11 items-center justify-between gap-3">
         <h2 id="home-updates-title" className="text-[20px] font-semibold tracking-[-0.02em] text-[var(--lp-dark)]">{t.updatesTitle}</h2>
         {scrolls ? (

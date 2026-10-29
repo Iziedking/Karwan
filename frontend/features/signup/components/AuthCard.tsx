@@ -10,7 +10,8 @@ import { useAccount, useConnect, useSignMessage } from 'wagmi';
 import { api, ApiError } from '@/core/api';
 import { DEALS_AVAILABLE, ARC_NETWORK } from '@/core/arcNetwork';
 import { BUSINESS_ACCOUNTS_OPEN } from '@/features/account/businessOpen';
-import { afterCreate } from '@/features/signup/afterCreate';
+import { ABOUT_YOU, afterCreate } from '@/features/signup/afterCreate';
+import { Nudge, StartBar } from '@/features/setup/StartParts';
 import { MODULAR_WALLETS_ENABLED } from '@/features/modularWallet/config';
 import { PASSKEY_CONNECTOR_ID } from '@/features/modularWallet/connector';
 import { clearEmailProof, holdEmailProof } from '@/features/modularWallet/pendingEmail';
@@ -54,7 +55,7 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
 
   const [mode, setMode] = useState<Mode>(initialMode);
   const [inStep, setInStep] = useState<SignInStep>('email');
-  const [upStep, setUpStep] = useState<SignUpStep>('tag');
+  const [upStep, setUpStep] = useState<SignUpStep>('method');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [tag, setTag] = useState('');
@@ -106,14 +107,14 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
     router.replace(HOME);
   }, [queryClient, router]);
 
-  // A new account goes on to setup (view 38); its agents are already being set up.
+  // A new account goes on to About you (view 39); its agents are already being set up.
   const goSetup = useCallback(() => {
     void queryClient.invalidateQueries();
-    router.replace('/setup');
+    router.replace(ABOUT_YOU);
   }, [queryClient, router]);
 
   // Once a session exists, the server decides what happens next: an account
-  // goes home, a session without one finishes sign-up at the tag or kind step.
+  // goes home, a session without one goes on to pick its tag.
   useEffect(() => {
     if (auth.isLoading || !auth.isAuthenticated || !auth.address) return;
     // A recovery signs in partway through; it finishes on its own screen.
@@ -141,14 +142,14 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
       setAuthedWithoutAccount(true);
       releaseSplash();
       setMode('signup');
-      setUpStep(normalizeTag(tag) && tagState === 'available' ? 'kind' : 'tag');
+      setUpStep('tag');
     })();
     return () => {
       cancelled = true;
       // An interrupted check runs again instead of leaving the card empty.
       if (!settled) resolvedFor.current = null;
     };
-  }, [auth.isLoading, auth.isAuthenticated, auth.address, goHome, releaseSplash, tag, tagState]);
+  }, [auth.isLoading, auth.isAuthenticated, auth.address, goHome, releaseSplash]);
 
   // A wallet the person chose to connect here signs in straight away.
   useEffect(() => {
@@ -194,7 +195,7 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
     setError(null);
     setCode('');
     setInStep('email');
-    setUpStep('tag');
+    setUpStep(authedWithoutAccount ? 'tag' : 'method');
   }
 
   async function connectPasskey(kindOf: 'register' | 'login') {
@@ -380,7 +381,9 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
               : tagState === 'invalid' ? s.tagInvalid
                 : tagState === 'reserved' ? s.tagReserved
                   : s.tagHint;
-  const stepNumber = upStep === 'tag' ? 1 : upStep === 'kind' ? 3 : 2;
+  const f = messages.startFlow;
+  // Account, then tag; About you follows on the same page once the account exists.
+  const startPart = upStep === 'tag' || upStep === 'kind' || upStep === 'recovery' ? 1 : 0;
   const businessOpen = BUSINESS_ACCOUNTS_OPEN;
   const waitingForSignIn = awaitingAuth && (siwe.state === 'awaiting-signature' || siwe.state === 'verifying' || siwe.state === 'switching-network');
 
@@ -517,20 +520,24 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
         </>
       ) : (
         <>
-          <p className="text-[14px] font-medium tabular-nums text-[var(--ink-secondary)]">{s.step.replace('{n}', String(stepNumber))}</p>
-          <h1 className={`mt-1 ${START_TITLE}`}>
-            {upStep === 'tag' ? s.tagLabel
+          <div className="flex min-h-11 items-center"><StartBar part={startPart} fill={upStep === 'code' || upStep === 'passkey' ? 0.6 : 0.15} /></div>
+          <h1 className={`mt-4 ${START_TITLE}`}>
+            {upStep === 'tag' ? f.tag.title
               : upStep === 'code' ? s.codeTitle
                 : upStep === 'passkey' ? s.passkeyTitle
-                  : upStep === 'kind' ? (businessOpen ? s.kindTitle : s.finishTitle)
-                    : s.title}
+                  : upStep === 'kind' ? s.kindTitle
+                    : f.account.title}
           </h1>
+          {upStep === 'method' ? <p className="mt-1.5 text-[15px] font-medium leading-[1.45] text-[var(--ink-secondary)]">{f.account.body}</p> : null}
+          {upStep === 'tag' ? <p className="mt-1.5 text-[15px] font-medium leading-[1.45] text-[var(--ink-secondary)]">{f.tag.body}</p> : null}
 
           {upStep === 'tag' && (
             <form className="mt-6 space-y-3" onSubmit={(e) => {
               e.preventDefault();
               if (tagState !== 'available') return;
-              setUpStep(authedWithoutAccount ? 'kind' : 'method');
+              // With one kind of account open there is nothing more to ask: the tag creates it.
+              if (businessOpen) setUpStep('kind');
+              else void createAccount();
             }}>
               <div className="flex min-h-[52px] items-center rounded-[14px] bg-[var(--tint)] px-4 focus-within:ring-2 focus-within:ring-[var(--action)]">
                 <span className="text-[17px] font-medium text-[var(--ink-secondary)]" aria-hidden>@</span>
@@ -541,13 +548,16 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
               <p aria-live="polite" className={`text-[14px] ${tagState === 'available' ? 'text-[var(--ink)]' : tagState === 'idle' || tagState === 'checking' ? 'text-[var(--ink-secondary)]' : 'text-[var(--color-critical)]'}`}>
                 {tagLine}
               </p>
-              <Primary type="submit" disabled={tagState !== 'available'}>{s.next}</Primary>
+              {businessOpen ? null : <TermsAgree checked={agreed} onChange={setAgreed} copy={f.tag} />}
+              <Primary type="submit" disabled={tagState !== 'available' || (!businessOpen && (!agreed || !!busy || !auth.address))}>
+                {busy === 'create' ? s.creating : businessOpen ? s.next : f.tag.continueAs.replace('{tag}', cleanTag)}
+              </Primary>
+              <div className="pt-2"><Nudge from="karwan">{f.tag.nudge}</Nudge></div>
             </form>
           )}
 
           {upStep === 'method' && (
             <div className="mt-6 space-y-3">
-              <p className="text-[15px] font-medium text-[var(--ink)]">@{cleanTag}</p>
               <form onSubmit={sendCode} className="space-y-3">
                 <Field label={s.emailLabel}>
                   <input type="email" inputMode="email" autoComplete="email" value={email}
@@ -561,7 +571,7 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
               <Divider label={t.signIn.or} />
               <WalletButton label={busy === 'wallet' || waitingForSignIn ? s.walletSigning : s.wallet}
                 disabled={!!busy || waitingForSignIn} onStart={startWallet} />
-              <BackLink label={s.back} onClick={() => setUpStep('tag')} />
+              <div className="pt-2"><Nudge from="karwan">{f.account.nudge}</Nudge></div>
             </div>
           )}
 
@@ -570,6 +580,7 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
               <CodeForm label={s.codeLabel} hint={s.codeSent.replace('{email}', email)} code={code} setCode={setCode}
                 busy={busy} onSubmit={verifyCode} submit={busy === 'verify' ? s.verifying : s.verify}
                 resend={s.resend} onResend={() => void sendCode()} />
+              <div className="mt-4"><Nudge from="karwan">{f.code.nudge}</Nudge></div>
               <BackLink label={s.back} onClick={() => setUpStep('method')} />
             </>
           )}
@@ -593,14 +604,7 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
                   <KindOption selected={kind === 'business'} title={s.business} body={s.businessBody} onSelect={() => setKind('business')} />
                 </div>
               ) : null}
-              <label className="flex min-h-11 cursor-pointer items-start gap-3 pt-2 text-[14px] leading-[1.5] text-[var(--ink-secondary)] font-medium">
-                <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)}
-                  className="mt-[3px] h-4 w-4 shrink-0 accent-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]" />
-                <span>
-                  {s.termsPrefix}{' '}
-                  <Link href="/terms" target="_blank" className="inline-flex min-h-11 items-center rounded-full font-medium text-[var(--ink)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">{s.termsLink}</Link>
-                </span>
-              </label>
+              <TermsAgree checked={agreed} onChange={setAgreed} copy={f.tag} />
               <Primary onClick={() => void createAccount()} disabled={!agreed || !!busy || !auth.address}>
                 {busy === 'create' ? s.creating : s.create}
               </Primary>
@@ -732,5 +736,28 @@ function ErrorLine({ error }: { error: string | null }) {
     <p role="alert" className="mt-4 text-[14px] leading-snug text-[var(--color-critical)]">
       {error}
     </p>
+  );
+}
+
+const AGREE_LINK = 'font-semibold text-[var(--ink)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]';
+
+/// The one box ticked before the account exists: the terms and the privacy
+/// notice, each a link that opens beside the card.
+function TermsAgree({ checked, onChange, copy }: {
+  checked: boolean;
+  onChange: (on: boolean) => void;
+  copy: { agreeBefore: string; terms: string; and: string; privacy: string };
+}) {
+  return (
+    <label className="flex min-h-11 cursor-pointer items-start gap-3 pt-1 text-[14px] font-medium leading-[1.6] text-[var(--ink-secondary)]">
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)}
+        className="mt-[3px] h-4 w-4 shrink-0 accent-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]" />
+      <span>
+        {copy.agreeBefore}{' '}
+        <Link href="/terms" target="_blank" className={AGREE_LINK}>{copy.terms}</Link>{' '}
+        {copy.and}{' '}
+        <Link href="/privacy" target="_blank" className={AGREE_LINK}>{copy.privacy}</Link>
+      </span>
+    </label>
   );
 }

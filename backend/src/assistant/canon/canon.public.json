@@ -439,6 +439,24 @@
       "body": "Working capital advanced against an accepted purchase order whose escrow the\nbuyer has already funded.\n\nThe advance goes straight to the supplier, in the same transaction that redirects\nthat deal's settlement to the financier. That atomicity is the whole design.\nThere is no state in which the redirect is live and the supplier has not been\npaid, so nothing can strand the advance, and the supplier can spend the capital\nimmediately. An advance they cannot touch until after they deliver is not working\ncapital.\n\nOn settlement the escrow pays the financier ahead of the supplier. If the deal\nsettles short, the shortfall alone is recovered from the supplier's deal\nguarantee, and the rest of it returns to them."
     },
     {
+      "id": "privacy-notice",
+      "title": "What Karwan keeps about you",
+      "status": "roadmap",
+      "updated": "2026-10-29",
+      "tags": [
+        "privacy",
+        "onboarding"
+      ],
+      "path": "public/product/privacy-notice.md",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/39-start-to-home.md",
+          "date": "2026-10-29"
+        }
+      ],
+      "body": "Karwan has a privacy notice at /privacy. It is in English, and that text is\nthe one that applies.\n\nTo open an account Karwan needs only an email address or a wallet. What you\ntell your agent about your work sets up your agent and your public profile,\nand only your country is shown to others. Karwan keeps your deals and your\nrecord, your conversations with the assistant and your agent, and a sign-in\ncookie and a language cookie. It uses no advertising trackers, and it never\nkeeps wallet keys or card and bank details.\n\nDeals settle on Arc, a public blockchain. What is written there cannot be\nchanged or removed, even after you delete your account.\n\nOn mainnet, a licensed partner runs identity checks when a feature needs one,\nand Karwan keeps the result. You can ask for a copy of what Karwan holds,\nask for a correction, or delete your account. A deletion runs 7 days after\nyou confirm, and it waits while you have an open deal, a live offer or\nrequest, or money in your balance.\n\nThe notice is published with this build and is not live yet."
+    },
+    {
       "id": "proof-network",
       "title": "Network and contracts",
       "status": "live",
@@ -519,9 +537,13 @@
         {
           "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/38-one-clear-path.md",
           "date": "2026-10-29"
+        },
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/39-start-to-home.md",
+          "date": "2026-10-29"
         }
       ],
-      "body": "Karwan sets up your agents on its own when you create your account, so\nthere is nothing to activate. Straight after sign-up, Karwan asks what you\nwant it to do: get paid\nfor your work, sell products, buy or hire, run business deals, or build a\nrecord clients trust. It then asks only what those answers need, such as\nwhat you do, your usual price and how fast you deliver, how your clients\nusually pay you, and where you are.\nIt shows the result as \"Here's your Karwan\" and saves nothing until you\nsay it looks right. Then it offers to post your first offer or request from\nyour answers; nothing is posted until you confirm it. The same questions run\non the website, in Telegram, and from a conversation with your agent.\n\nIf you already agreed a deal with someone and they are paying you, send them\nyour deal link. It opens the deal with you as the seller; they add the amount\nand terms you agreed and pay into the deal, and you accept before anything is\nfinal. Your agent can give you the link.\n\nThree answers change what your agents do. If you only work with clients you\nalready have, your selling agent stays off the market. If you choose \"Ask me\nfirst\", it does not make offers on its own: it tells you about a request that\nfits and you decide. \"How should we reach you\" picks Telegram, email or both.\nMoney never moves without your confirmation.\n\nThis is built for testnet and not live yet."
+      "body": "Signing up is one page in three parts: your account (an email and a code,\nor a wallet), your Karwan tag, and a few questions about you. Nothing else is\nasked to open an account: no name, address or ID. On mainnet, a licensed\npartner runs an identity check once, and only when a feature needs it.\n\nKarwan sets up your agents on its own when you create your account, so\nthere is nothing to activate. Then your agent asks what you want Karwan to\ndo: get paid for your work, sell products, buy or hire, run business deals,\nor build a record clients trust. It asks only what those answers need: what\nyou do and your usual price on one screen, which it reads back to you as a\nprice range and delivery time, then whether you have clients and how to\nreach you. A line from your agent on each screen says what the answer is for.\n\nWhat you tell your agent sets up your agent and your public profile by\nitself. It shows the result as \"Here's your Karwan\", with the first offer or\nrequest it wrote from your words, and saves nothing until you say it looks\nright. \"Post it on the market now\" is ticked; untick it to post later. The\nsame choices can be made in Telegram, which asks them in its own order, and\nfrom a conversation with your agent.\n\nIf you already agreed a deal with someone and they are paying you, send them\nyour deal link. It opens the deal with you as the seller; they add the amount\nand terms you agreed and pay into the deal, and you accept before anything is\nfinal. Your agent can give you the link.\n\nThree answers change what your agents do. If you only work with clients you\nalready have, your selling agent stays off the market. If you choose \"Ask me\nfirst\" on the summary, it does not make offers on its own: it tells you about\na request that fits and you decide. \"How should we reach you\" picks Telegram,\nemail or both. Money never moves without your confirmation.\n\nThis is built for testnet and not live yet."
     },
     {
       "id": "social-lookups-roadmap",
@@ -1304,6 +1326,29 @@
       "path": "public/product/po-financing.md"
     },
     {
+      "id": "privacy-notice",
+      "title": "What Karwan keeps about you",
+      "status": "roadmap",
+      "publishable": false,
+      "blockedBy": "not-a-capability",
+      "capability": false,
+      "audience": "all",
+      "tags": [
+        "privacy",
+        "onboarding"
+      ],
+      "summary": "Karwan has a privacy notice at /privacy. It is in English, and that text is the one that applies.",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/39-start-to-home.md",
+          "date": "2026-10-29"
+        }
+      ],
+      "check": null,
+      "updated": "2026-10-29",
+      "path": "public/product/privacy-notice.md"
+    },
+    {
       "id": "proof-network",
       "title": "Network and contracts",
       "status": "live",
@@ -1401,7 +1446,7 @@
         "onboarding",
         "testnet"
       ],
-      "summary": "Karwan sets up your agents on its own when you create your account, so there is nothing to activate. Straight after sign-up, Karwan asks what you want it to do: get paid for your work, sell products, buy or hire, run business deals, or build a record clients trust. It then asks only what those answers need, such as what you do, your usual price and how fast you deliver, how your clients usually pay you, and where you are. It shows the result as \"Here's your Karwan\" and saves nothing until you say it looks right. Then it offers to post your first offer or request from your answers; nothing is posted until you confirm it. The same questions run on the website, in Telegram, and from a conversation with your agent.",
+      "summary": "Signing up is one page in three parts: your account (an email and a code, or a wallet), your Karwan tag, and a few questions about you. Nothing else is asked to open an account: no name, address or ID. On mainnet, a licensed partner runs an identity check once, and only when a feature needs it.",
       "sources": [
         {
           "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/19-simple-karwan.md",
@@ -1409,6 +1454,10 @@
         },
         {
           "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/38-one-clear-path.md",
+          "date": "2026-10-29"
+        },
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/39-start-to-home.md",
           "date": "2026-10-29"
         }
       ],

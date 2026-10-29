@@ -6,9 +6,9 @@ import { motion } from 'motion/react';
 import type { UserProfile } from '@/core/api';
 import { stageOf, type DealStage } from '@/features/deals/components/DirectDealList';
 import { useDirectDeals } from '@/features/deals/hooks/useDirectDeals';
+import { AskCard } from './AskCard';
 import { FirstTrade } from './FirstTrade';
 import { HomeBlock } from './HomeBlock';
-import { rememberReturn } from '@/features/assistant/assistantReturn';
 import { pickCurrentDeal } from '@/features/home/currentDeal';
 import { useOwnedBalance } from '@/features/money/hooks/useOwnedBalance';
 import { fill } from '@/features/deals/workspace/presentation';
@@ -34,6 +34,7 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
   const translations = useTranslations();
   const home = translations.accountHome;
   const payLink = translations.payLink.create;
+  const start = translations.startFlow.home;
   const { address } = useAuth();
   const { deals, fetchState } = useDirectDeals();
   const greeting = useGreeting();
@@ -56,27 +57,24 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
     <div className="product-surface home-workbench mx-auto w-full max-w-[1180px] pb-12 sm:pb-16">
       <PageTour id={HOME_TOUR_ID} steps={HOME_STEPS} />
       <section aria-labelledby="home-heading" className="border-b border-[var(--lp-border-light)] pb-7">
-        <h1 id="home-heading" className="pt-3 text-[14px] font-semibold text-[var(--lp-text-sub)] sm:pt-4">
+        <h1 id="home-heading" className="pt-3 text-[15px] font-semibold text-[var(--lp-text-sub)] sm:pt-4">
           {/* bdi keeps a tag such as @lawful whole in right-to-left text. */}
           {greeting ?? translations.businessHome.hero.welcomeBack} <bdi>{firstName}</bdi>
         </h1>
 
-        <div className="mt-4 grid items-start gap-5 lg:grid-cols-[minmax(0,460px)_minmax(0,1fr)]">
-          <motion.div
-            data-guide="home-money"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.48, ease: [0.16, 1, 0.3, 1] }}
-            className="w-full rounded-[24px] border border-[var(--lp-border-light)] bg-[linear-gradient(115deg,var(--hero-from),var(--hero-to)_70%)] p-5 shadow-[var(--hero-shadow)] sm:p-6 lg:max-w-[460px]"
-            aria-label={home.balanceLabel}
-          >
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{home.balanceLabel}</p>
-              <Link href="/account" className="-me-1 inline-flex min-h-11 items-center gap-1 rounded-full px-1 text-[15px] font-semibold text-[var(--lp-dark)] hover:text-[var(--lp-accent-on-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
-                {home.details}
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="rtl:-scale-x-100"><path d="m9 18 6-6-6-6" /></svg>
-              </Link>
-            </div>
+        {/* The balance is the top line of the page, with its four moves beside
+            it; the next steps sit under it side by side (view 39). */}
+        <motion.div
+          data-guide="home-money"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.48, ease: [0.16, 1, 0.3, 1] }}
+          aria-label={start.totalBalance}
+          role="group"
+          className="mt-4 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between"
+        >
+          <div className="min-w-0">
+            <p className="text-[15px] font-semibold text-[var(--lp-text-sub)]">{start.totalBalance}</p>
             {owned.failed ? (
               <p role="alert" className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[15px] text-[var(--lp-dark)]">
                 {home.balanceUnavailable}
@@ -85,59 +83,49 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
                 </button>
               </p>
             ) : (
-              <p className="mt-1.5 flex items-baseline gap-2">
-                <span className={`text-[34px] font-bold leading-none tabular-nums tracking-[-0.03em] text-[var(--lp-dark)] sm:text-[40px] ${owned.loading && totalBalance == null ? 'motion-safe:animate-pulse' : ''}`}>
+              <p className="mt-1.5 flex items-baseline gap-2.5">
+                <span className={`text-[44px] font-extrabold leading-none tabular-nums tracking-[-0.03em] text-[var(--lp-dark)] sm:text-[56px] ${owned.loading && totalBalance == null ? 'motion-safe:animate-pulse' : ''}`}>
                   {totalBalance == null ? '-' : totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
-                {' '}<span className="text-[15px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
+                {' '}<span className="text-[17px] font-bold text-[var(--lp-text-sub)]">USDC</span>
               </p>
             )}
-            <p className="mt-1 text-[14px] font-medium text-[var(--lp-text-sub)]">
+            <p className="mt-2 flex flex-wrap items-center gap-x-1.5 text-[15px] font-medium text-[var(--lp-text-sub)]">
               {activeDeals.length === 1 ? home.activeTradesOne : fill(home.activeTrades, { n: activeDeals.length })}
-            </p>
-            <div className="mt-5 grid grid-cols-4 gap-2">
-              <QuickAction href="/bridge?direction=in" icon="add" primary>{home.add}</QuickAction>
-              <QuickAction href="/send" icon="send">{home.send}</QuickAction>
-              <QuickAction href="/request" icon="request">{payLink.short}</QuickAction>
-              <QuickAction href="/bridge?direction=out" icon="withdraw">{home.withdraw}</QuickAction>
-            </div>
-            <HomeBlock profile={profile} />
-            <Link
-              href="/assistant"
-              onClick={() => rememberReturn('/app')}
-              className="mt-4 flex min-h-[52px] items-center gap-3 rounded-full border border-[var(--lp-border-light)] bg-[var(--lp-card)] py-1.5 pe-1.5 ps-4 text-[14px] font-semibold text-[var(--lp-text-sub)] transition-colors hover:border-[var(--lp-outline-strong)] hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--lp-accent-on-light)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0"><path d="M4 5h16v11H9l-5 4z" /></svg>
-              <span className="min-w-0 flex-1">{translations.assistantMode.askHome}</span>
-              <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--lp-accent)] text-[var(--accent-ink)]">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="rtl:-scale-x-100"><path d="M5 12h12M13 7l5 5-5 5" /></svg>
-              </span>
-            </Link>
-            {ARC_NETWORK === 'testnet' ? (
-              <Link
-                href="/profile/wallets"
-                className="mt-3 flex min-h-12 items-center gap-2.5 rounded-[16px] border border-[var(--faucet-strip-line)] bg-[var(--faucet-strip)] py-2 pe-2 ps-2.5 text-[var(--lp-dark)] transition-colors hover:border-[var(--lp-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
-              >
-                <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--lp-card)]">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="var(--lp-accent)" stroke="var(--lp-accent-on-light)" strokeWidth="1.6" strokeLinejoin="round"><path d="M12 3s6 6.4 6 11a6 6 0 0 1-12 0c0-4.6 6-11 6-11z" /></svg>
-                </span>
-                <span className="min-w-0 flex-1 text-[14px] leading-snug">
-                  <span className="font-bold">{home.faucetLabel}</span> · {home.faucetBody}
-                </span>
-                <span className="shrink-0 rounded-full bg-[var(--lp-dark)] px-3 py-1.5 text-[14px] font-semibold text-[var(--lp-card)]">{home.faucetClaim}</span>
+              <span aria-hidden>·</span>
+              <Link href="/account" className="inline-flex min-h-11 items-center gap-1 font-bold text-[var(--lp-dark)] hover:text-[var(--lp-accent-on-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+                {home.details}
               </Link>
-            ) : null}
-            <Link
-              data-guide="home-start"
-              href="/market?view=yours"
-              className="group mt-3 flex min-h-12 items-center justify-between gap-3 rounded-[16px] border border-[var(--lp-border-light)] px-4 text-[15px] font-semibold text-[var(--lp-dark)] transition-colors hover:border-[var(--lp-outline-strong)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
-            >
-              {home.tradeNow}
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="transition-transform duration-200 group-hover:translate-x-0.5 rtl:-scale-x-100 motion-reduce:transition-none"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
-            </Link>
-          </motion.div>
+            </p>
+          </div>
+          <div className="grid grid-cols-4 gap-2 lg:flex lg:gap-3">
+            <QuickAction href="/bridge?direction=in" icon="add" primary wide={start.addMoney}>{home.add}</QuickAction>
+            <QuickAction href="/send" icon="send">{home.send}</QuickAction>
+            <QuickAction href="/request" icon="request">{payLink.short}</QuickAction>
+            <QuickAction href="/bridge?direction=out" icon="withdraw">{home.withdraw}</QuickAction>
+          </div>
+        </motion.div>
+
+        <div className="mt-7 grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))]">
+          <HomeBlock profile={profile} />
           <FirstTrade deals={deals} dealsState={fetchState} />
+          <AskCard />
         </div>
+
+        {ARC_NETWORK === 'testnet' ? (
+          <Link
+            href="/profile/wallets"
+            className="mt-4 flex min-h-[52px] items-center gap-3 rounded-[16px] border border-[var(--faucet-strip-line)] bg-[var(--faucet-strip)] py-2 pe-2 ps-3 text-[var(--lp-dark)] transition-colors hover:border-[var(--lp-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+          >
+            <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--lp-card)]">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="var(--lp-accent)" stroke="var(--lp-accent-on-light)" strokeWidth="1.6" strokeLinejoin="round"><path d="M12 3s6 6.4 6 11a6 6 0 0 1-12 0c0-4.6 6-11 6-11z" /></svg>
+            </span>
+            <span className="min-w-0 flex-1 text-[15px] leading-snug">
+              <span className="font-bold">{home.faucetLabel}</span> · {home.faucetBody}
+            </span>
+            <span className="shrink-0 rounded-full bg-[var(--lp-dark)] px-4 py-2 text-[14px] font-semibold text-[var(--lp-card)]">{home.faucetClaim}</span>
+          </Link>
+        ) : null}
 
         <UpdatesCarousel />
       </section>
@@ -287,15 +275,17 @@ const QUICK_ICONS = {
   withdraw: <path d="M12 4v12M7 11l5 5 5-5M5 20h14" />,
 } as const;
 
-/// A round button with its word under it, as on a banking app. Add is the one
-/// filled in lime; the others sit quietly beside it.
-function QuickAction({ href, icon, primary = false, children }: { href: string; icon: keyof typeof QUICK_ICONS; primary?: boolean; children: string }) {
+/// A round button with its word under it on a phone, as on a banking app, and
+/// a pill on a wide screen where there is room for the words beside the icon.
+/// Add is the one filled in lime; the others sit quietly beside it.
+function QuickAction({ href, icon, primary = false, wide, children }: { href: string; icon: keyof typeof QUICK_ICONS; primary?: boolean; wide?: string; children: string }) {
   return (
-    <Link href={href} className="group flex min-h-11 flex-col items-center gap-1.5 rounded-[16px] py-1 text-[13px] font-semibold text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
-      <span aria-hidden className={`grid size-12 place-items-center rounded-full transition-transform duration-200 group-hover:-translate-y-0.5 motion-reduce:group-hover:translate-y-0 ${primary ? 'bg-[var(--lp-accent)] text-[var(--accent-ink)]' : 'border border-[var(--lp-border-light)] bg-[var(--tint)] text-[var(--lp-dark)]'}`}>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{QUICK_ICONS[icon]}</svg>
+    <Link href={href} className={`group flex min-h-11 flex-col items-center gap-1.5 rounded-[16px] py-1 text-[13px] font-semibold text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] lg:h-12 lg:flex-row lg:gap-2 lg:rounded-full lg:px-5 lg:py-0 lg:text-[15px] lg:font-bold ${primary ? 'lg:bg-[var(--lp-accent)] lg:text-[var(--accent-ink)]' : 'lg:border lg:border-[var(--lp-border-light)] lg:bg-[var(--tint)]'}`}>
+      <span aria-hidden className={`grid size-12 place-items-center rounded-full transition-transform duration-200 group-hover:-translate-y-0.5 motion-reduce:group-hover:translate-y-0 lg:size-auto lg:bg-transparent lg:group-hover:translate-y-0 ${primary ? 'bg-[var(--lp-accent)] text-[var(--accent-ink)]' : 'border border-[var(--lp-border-light)] bg-[var(--tint)] text-[var(--lp-dark)] lg:border-0'}`}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lg:size-[18px]">{QUICK_ICONS[icon]}</svg>
       </span>
-      <span className="max-w-full truncate">{children}</span>
+      <span className="max-w-full truncate lg:hidden">{children}</span>
+      <span className="hidden whitespace-nowrap lg:inline">{wide ?? children}</span>
     </Link>
   );
 }

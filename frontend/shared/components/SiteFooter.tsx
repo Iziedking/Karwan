@@ -83,6 +83,7 @@ export function SiteFooter() {
                   <FooterLink href="/docs">{t.productLinks.docs}</FooterLink>
                   <FooterLink href="/brand">{t.productLinks.brand}</FooterLink>
                   <FooterLink href="/terms">{t.productLinks.terms}</FooterLink>
+                  <FooterLink href="/privacy">{messages.startFlow.privacy.link}</FooterLink>
                   <FooterLink href="/feedback">{t.productLinks.feedback}</FooterLink>
                 </>
                 <FooterContact label={t.productLinks.contact} />

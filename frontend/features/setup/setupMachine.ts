@@ -1,5 +1,5 @@
 import type { UserProfile } from '@/core/api';
-import { setupSteps, type Goal, type SetupAnswers, type SetupFirstPost, type SetupStep } from './setupSteps';
+import { setupSteps, withDefaults, type Goal, type SetupAnswers, type SetupStep } from './setupSteps';
 
 /// Where a person is in the setup conversation, and what they answered.
 export interface SetupState {
@@ -9,27 +9,26 @@ export interface SetupState {
   lines: string[];
   /// 1 moving forward, -1 going back: which edge the next card enters from.
   direction: 1 | -1;
-  /// What to offer to post once the answers are saved.
-  post: SetupFirstPost | null;
+  /// Opened with "Change" from the summary: Next reads the answers again and
+  /// returns there, Back returns without reading.
+  fromSummary: boolean;
 }
 
 type Answerable = Exclude<keyof SetupAnswers, 'goals' | 'retried'>;
 
 export type SetupEvent =
-  | { type: 'start' }
   | { type: 'toggleGoal'; goal: Goal }
   | { type: 'answer'; step: Answerable; value: string }
   | { type: 'pick'; step: 'paid' | 'clients' | 'own' | 'reach'; value: string }
   | { type: 'next' }
   | { type: 'back' }
-  | { type: 'skip' }
+  | { type: 'goto'; step: SetupStep }
   | { type: 'read'; lines: string[]; needs: Array<'price'> }
   | { type: 'edit' }
-  | { type: 'resume'; answers: SetupAnswers; lines: string[] }
-  | { type: 'saved'; post: SetupFirstPost | null };
+  | { type: 'resume'; answers: SetupAnswers; lines: string[] };
 
 export function initialSetup(): SetupState {
-  return { step: 'welcome', answers: { goals: [] }, lines: [], direction: 1, post: null };
+  return { step: 'goals', answers: { goals: [] }, lines: [], direction: 1, fromSummary: false };
 }
 
 function move(state: SetupState, by: 1 | -1): SetupState {
@@ -41,8 +40,6 @@ function move(state: SetupState, by: 1 | -1): SetupState {
 
 export function setupReducer(state: SetupState, event: SetupEvent): SetupState {
   switch (event.type) {
-    case 'start':
-      return { ...state, step: 'goals', direction: 1 };
     case 'toggleGoal': {
       const goals = state.answers.goals.includes(event.goal)
         ? state.answers.goals.filter((g) => g !== event.goal)
@@ -53,25 +50,25 @@ export function setupReducer(state: SetupState, event: SetupEvent): SetupState {
     case 'pick':
       return { ...state, answers: { ...state.answers, [event.step]: event.value } };
     case 'next':
-      return move(state, 1);
+      if (state.fromSummary) return { ...state, step: 'reading', direction: 1, fromSummary: false };
+      // The reading saves what was not asked as its default, so the summary shows it.
+      return state.step === 'contact'
+        ? { ...move(state, 1), answers: withDefaults(state.answers) }
+        : move(state, 1);
     case 'back':
-      return state.step === 'welcome' ? state : move(state, -1);
-    case 'skip': {
-      const answers = { ...state.answers };
-      if (state.step !== 'goals' && state.step in answers) delete answers[state.step as Answerable];
-      return move({ ...state, answers }, 1);
-    }
+      if (state.fromSummary) return { ...state, step: 'summary', direction: -1, fromSummary: false };
+      return state.step === 'goals' ? state : move(state, -1);
+    case 'goto':
+      return { ...state, step: event.step, direction: -1, fromSummary: state.step === 'summary' };
     case 'read':
       if (event.needs.includes('price')) {
-        return { ...state, step: 'price', direction: -1, answers: { ...state.answers, retried: true } };
+        return { ...state, step: 'work', direction: -1, answers: { ...state.answers, retried: true } };
       }
       return { ...state, step: 'summary', lines: event.lines, direction: 1 };
     case 'edit':
-      return { ...state, step: 'goals', direction: -1 };
+      return { ...state, step: 'goals', direction: -1, fromSummary: false };
     case 'resume':
-      return { ...state, step: 'summary', answers: event.answers, lines: event.lines, direction: 1 };
-    case 'saved':
-      return event.post ? { ...state, step: 'post', post: event.post, direction: 1 } : { ...state, post: null };
+      return { ...state, step: 'summary', answers: withDefaults(event.answers), lines: event.lines, direction: 1 };
   }
 }
 

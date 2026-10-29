@@ -6,6 +6,7 @@ import { usePublicClient } from 'wagmi';
 import { api, ApiError, ConfirmCancelled, type GuaranteeStep } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useMoneyRefresh } from '@/shared/hooks/useMoneyRefresh';
+import { useMoneyBalances } from '@/features/money/hooks/useMoneyBalances';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { useOwnWalletSend } from '@/shared/chain/useOwnWalletSend';
 import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
@@ -24,6 +25,9 @@ const secondary = 'min-h-12 rounded-full border border-[var(--lp-border-light)] 
 export function GuaranteeCard() {
   const { locale, t } = useLocale();
   const c = t.dealGuarantee;
+  const g = t.startFlow.guarantee;
+  // The guarantee is paid from the wallet on Arc, the same balance the server checks.
+  const wallet = useMoneyBalances().balance;
   const { method } = useAuth();
   const qc = useQueryClient();
   const refreshMoney = useMoneyRefresh();
@@ -109,6 +113,11 @@ export function GuaranteeCard() {
 
   const sheet = step === 'put_up' ? c.sheets.putUp : step === 'take_out' ? c.sheets.takeOut : step === 'cancel' ? c.sheets.cancel : c.sheets.collect;
   const shownAmount = withAmount ? amount || '0' : data.comingBackUsdc;
+  const typed = Number(amount) || 0;
+  const left = wallet === null ? null : Math.max(wallet - typed, 0);
+  const usdc = (n: number) => n.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // Until an amount is typed the title says what this is, not "Put up 0 USDC".
+  const title = step === 'put_up' && typed <= 0 ? g.title : fill(sheet.title, { amount: shownAmount });
 
   return (
     <div className="space-y-3">
@@ -158,8 +167,24 @@ export function GuaranteeCard() {
 
       <ConfirmSheetShell open={step !== null} labelledBy={`${sheetId}-title`} busy={busy} onClose={() => setStep(null)}>
         <h2 id={`${sheetId}-title`} className="text-[20px] font-semibold text-[var(--lp-dark)]">
-          {fill(sheet.title, { amount: shownAmount })}
+          {title}
         </h2>
+        {step === 'put_up' && wallet !== null ? (
+          <div className="mt-4 flex items-center justify-between gap-3 rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] px-4 py-3">
+            <p className="min-w-0">
+              <span className="block text-[14px] font-medium text-[var(--lp-text-sub)]">{g.from}</span>
+              <span className="mt-0.5 block text-[17px] font-semibold tabular-nums text-[var(--lp-dark)]">{usdc(wallet)} USDC</span>
+            </p>
+            <button
+              type="button"
+              disabled={busy || wallet <= 0}
+              onClick={() => setAmount((Math.floor(wallet * 100) / 100).toFixed(2))}
+              className="inline-flex min-h-11 shrink-0 items-center rounded-full border border-[var(--lp-border-light)] px-4 text-[14px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-card)] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            >
+              {g.useAll}
+            </button>
+          </div>
+        ) : null}
         {withAmount ? (
           <label className="mt-4 block">
             <span className="text-[14px] font-medium text-[var(--lp-text-sub)]">{c.amountLabel}</span>
@@ -172,6 +197,9 @@ export function GuaranteeCard() {
               className="mt-1 min-h-12 w-full rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-4 text-[16px] font-semibold tabular-nums text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
             />
           </label>
+        ) : null}
+        {step === 'put_up' && left !== null && typed > 0 ? (
+          <p aria-live="polite" className="mt-2 text-[14px] font-medium tabular-nums text-[var(--lp-text-sub)]">{fill(g.left, { amount: usdc(left) })}</p>
         ) : null}
         <p className="mt-3 text-[15px] font-medium leading-relaxed text-[var(--lp-text-sub)]">
           {fill(sheet.body, { days: data.waitDays, date: readyOn })}

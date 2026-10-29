@@ -24,10 +24,10 @@ export function HomeBlock({ profile }: { profile: UserProfile }) {
   }[kind];
 
   return (
-    <section aria-labelledby="home-next" className="mt-4 rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5">
-      <h2 id="home-next" className="text-[18px] font-bold text-[var(--lp-dark)]">{view.title}</h2>
-      <p className="mt-1 text-[15px] font-medium text-[var(--lp-text-sub)]">{view.body}</p>
-      <div className="mt-4 flex flex-wrap gap-2.5">
+    <section data-guide="home-start" aria-labelledby="home-next" className="flex flex-col rounded-[24px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5 sm:p-6">
+      <h2 id="home-next" className="text-[19px] font-bold tracking-[-0.02em] text-[var(--lp-dark)]">{view.title}</h2>
+      <p className="mt-1.5 text-[15px] font-medium leading-relaxed text-[var(--lp-text-sub)]">{view.body}</p>
+      <div className="mt-auto flex flex-wrap gap-2.5 pt-5">
         {kind === 'getPaid' ? (
           <>
             <button type="button" onClick={() => setLinkOpen(true)} className={PRIMARY}>{t.sendLink}</button>
@@ -41,7 +41,7 @@ export function HomeBlock({ profile }: { profile: UserProfile }) {
           </>
         ) : null}
         {kind === 'postNeed' ? <Link href={tradeEntryRoutes().buy} className={PRIMARY}>{t.postRequest}</Link> : null}
-        {kind === 'setUp' ? <Link href="/setup" className={PRIMARY}>{t.start}</Link> : null}
+        {kind === 'setUp' ? <Link href="/start?step=about" className={PRIMARY}>{t.start}</Link> : null}
       </div>
       <DealLinkSheet open={linkOpen} onClose={() => setLinkOpen(false)} />
     </section>

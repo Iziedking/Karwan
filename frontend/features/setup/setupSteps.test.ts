@@ -1,46 +1,45 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { isQuestionStep, questionProgress, setupSteps } from './setupSteps';
+import { aboutProgress, isQuestionStep, setupSteps, withDefaults } from './setupSteps';
 
-/// The setup conversation asks only what a person's goals need.
+/// The setup conversation asks only what a person's goals need (view 39).
 ///
 ///   npx tsx --test features/setup/setupSteps.test.ts
 
-test('a freelancer is asked about their work and price', () => {
-  assert.deepEqual(setupSteps(['work']), ['welcome', 'goals', 'what', 'price', 'paid', 'clients', 'own', 'reach', 'where', 'reading', 'summary']);
+test('a freelancer is asked about their work, then clients and reach', () => {
+  assert.deepEqual(setupSteps(['work']), ['goals', 'work', 'contact', 'reading', 'summary']);
 });
 
-test('buying with a record skips the selling questions', () => {
-  assert.deepEqual(setupSteps(['buy', 'record']), ['welcome', 'goals', 'buy', 'places', 'clients', 'own', 'reach', 'where', 'reading', 'summary']);
+test('buying with a record skips the selling question', () => {
+  assert.deepEqual(setupSteps(['buy', 'record']), ['goals', 'buy', 'places', 'contact', 'reading', 'summary']);
 });
 
-test('no goal picked goes straight to how the agent works', () => {
-  assert.deepEqual(setupSteps([]), ['welcome', 'goals', 'own', 'reach', 'where', 'reading', 'summary']);
+test('no goal picked goes straight to how we reach them', () => {
+  assert.deepEqual(setupSteps([]), ['goals', 'contact', 'reading', 'summary']);
 });
 
 test('a business is asked its name', () => {
   assert.ok(setupSteps(['business']).includes('business'));
 });
 
-test('progress counts the questions after the goals', () => {
-  const steps = setupSteps(['work']);
-  assert.equal(questionProgress(steps, 'welcome'), null);
-  assert.equal(questionProgress(steps, 'goals'), null);
-  assert.deepEqual(questionProgress(steps, 'what'), { index: 1, total: 7 });
-  assert.deepEqual(questionProgress(steps, 'where'), { index: 7, total: 7 });
-  assert.equal(questionProgress(steps, 'summary'), null);
+test('the bar for About you only moves forward and ends full on the summary', () => {
+  const steps = setupSteps(['work', 'buy']);
+  const values = steps.map((s) => aboutProgress(steps, s));
+  assert.equal(values[0], 0);
+  assert.equal(values.at(-1), 1);
+  for (let i = 1; i < values.length; i++) assert.ok(values[i]! > values[i - 1]!, `${steps[i]} is further than ${steps[i - 1]}`);
 });
 
-test('the total never changes once the goals are chosen', () => {
-  for (const goals of [['work'], ['buy'], ['work', 'buy', 'business', 'record'], []] as const) {
-    const steps = setupSteps(goals);
-    const totals = new Set(steps.map((s) => questionProgress(steps, s)?.total).filter((t) => t !== undefined));
-    assert.ok(totals.size <= 1, `one total for ${goals.join(',') || 'no goals'}`);
-  }
-});
-
-test('the goals question is still a question', () => {
+test('the reading and the summary are not questions', () => {
   assert.equal(isQuestionStep('goals'), true);
-  assert.equal(isQuestionStep('welcome'), false);
+  assert.equal(isQuestionStep('contact'), true);
+  assert.equal(isQuestionStep('reading'), false);
   assert.equal(isQuestionStep('summary'), false);
+});
+
+test('what was not asked starts from an answer the summary can change', () => {
+  assert.deepEqual(withDefaults({ goals: ['work'] }), { goals: ['work'], paid: 'one_time', own: 'offers' });
+  assert.deepEqual(withDefaults({ goals: ['sell'] }), { goals: ['sell'], paid: 'goods', own: 'offers' });
+  assert.deepEqual(withDefaults({ goals: ['buy'] }), { goals: ['buy'], own: 'offers' });
+  assert.deepEqual(withDefaults({ goals: ['work'], paid: 'milestones', own: 'ask' }), { goals: ['work'], paid: 'milestones', own: 'ask' });
 });

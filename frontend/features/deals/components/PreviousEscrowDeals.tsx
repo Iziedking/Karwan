@@ -1,6 +1,8 @@
 'use client';
+import { useState } from 'react';
 import Link from 'next/link';
-import { Band, HeroHeadline, Punc, SectionTag } from '@/shared/components/Bands';
+import { Pager } from '@/shared/components/Pager';
+import { paged } from '@/shared/utils/paged';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { formatUsdc } from '@/shared/utils/format';
@@ -15,19 +17,18 @@ export function PreviousEscrowDeals() {
   const c = t.previousEscrow;
   const { address } = useAuth();
   const { deals } = useDirectDeals();
-  const rows = previousEscrowDeals(deals);
-  if (!rows.length) return null;
+  const [at, setAt] = useState(0);
+  const all = previousEscrowDeals(deals);
+  if (!all.length) return null;
+  const page = paged(all, at);
   const me = address?.toLowerCase();
 
   return (
-    <Band tone="light" compact>
-      <SectionTag>{c.tag}</SectionTag>
-      <HeroHeadline size="md">
-        {c.title}<Punc>.</Punc>
-      </HeroHeadline>
-      <p className="mt-4 max-w-[58ch] text-[14px] font-medium leading-relaxed text-[var(--lp-text-sub)]">{c.body}</p>
-      <ul className="mt-8 space-y-3">
-        {rows.map((d) => {
+    <section aria-labelledby="previous-escrow" className="mt-10">
+      <h2 id="previous-escrow" className="text-[20px] font-bold tracking-[-0.02em] text-[var(--lp-dark)]">{c.title}</h2>
+      <p className="mt-1.5 max-w-[58ch] text-[15px] font-medium leading-relaxed text-[var(--lp-text-sub)]">{c.body}</p>
+      <ul className="mt-4 space-y-3">
+        {page.rows.map((d) => {
           const buying = d.buyer.toLowerCase() === me;
           const stage = d.view?.stage;
           return (
@@ -54,6 +55,7 @@ export function PreviousEscrowDeals() {
           );
         })}
       </ul>
-    </Band>
+      <Pager page={page} label={c.title} onPage={setAt} />
+    </section>
   );
 }

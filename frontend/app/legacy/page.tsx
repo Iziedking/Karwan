@@ -2,7 +2,7 @@
 import { useId, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePublicClient } from 'wagmi';
-import { Accent, Band, FullBleed, HeroHeadline, Punc, SectionTag } from '@/shared/components/Bands';
+import { Accent, Punc } from '@/shared/components/Bands';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
 import { api, ConfirmCancelled, type LegacyStepBody } from '@/core/api';
@@ -17,6 +17,8 @@ import { useDirectDeals } from '@/features/deals/hooks/useDirectDeals';
 import { previousEscrowDeals } from '@/features/deals/previousEscrow';
 import { runWalletLegacyCalls } from '@/features/guarantee/walletGuarantee';
 import { GUARANTEE_QUERY } from '@/features/guarantee/GuaranteeCard';
+import { Pager } from '@/shared/components/Pager';
+import { paged } from '@/shared/utils/paged';
 
 const LEGACY_QUERY = ['legacy-positions'] as const;
 
@@ -65,6 +67,8 @@ function LegacyPageInner() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
+  const [dealsAt, setDealsAt] = useState(0);
+  const [guaranteesAt, setGuaranteesAt] = useState(0);
 
   const fill = (text: string, values: Record<string, string>) => text.replace(/\{(\w+)\}/g, (_, k: string) => values[k] ?? '');
   const day = (unix: number) => new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(new Date(unix * 1000));
@@ -72,6 +76,8 @@ function LegacyPageInner() {
 
   const deals = data?.deals ?? [];
   const guarantees = data?.guarantees ?? [];
+  const dealsPage = paged(deals, dealsAt);
+  const guaranteesPage = paged(guarantees, guaranteesAt);
   const nothingLeft = !!data && fetchState === 'success' && deals.length === 0 && guarantees.length === 0 && previousEscrowDeals(directDeals).length === 0;
 
   const ask = (next: Pending) => {
@@ -106,29 +112,28 @@ function LegacyPageInner() {
   }
 
   return (
-    <FullBleed>
-      <Band tone="light" compact>
-        <SectionTag>{c.gate.tag}</SectionTag>
-        <HeroHeadline size="md">
-          {c.title}
-          <Punc>.</Punc>
-        </HeroHeadline>
-        <p className="mt-4 max-w-[58ch] text-[14px] font-medium leading-relaxed text-[var(--lp-text-sub)]">{c.hint}</p>
-        {isPending ? <p className="mt-4 text-[14px] font-medium text-[var(--lp-text-sub)]">{c.loading}</p> : null}
-        {nothingLeft ? <p className="mt-4 text-[15px] font-semibold text-[var(--lp-dark)]">{c.empty}</p> : null}
-        <p aria-live="polite" className="mt-4 text-[14px] font-semibold text-[var(--lp-dark)] empty:hidden">
+    // One column on the page's own measure, so Back above it lines up with the heading.
+    <div className="mx-auto w-full max-w-[var(--workspace-measure)] pb-10">
+      <h1 className="text-[32px] font-bold leading-tight tracking-[-0.03em] text-[var(--lp-dark)] sm:text-[40px]">{c.title}</h1>
+      <p className="mt-2 max-w-[58ch] text-[16px] font-medium leading-relaxed text-[var(--lp-text-sub)]">{c.hint}</p>
+      {isPending ? <p className="mt-4 text-[15px] font-medium text-[var(--lp-text-sub)]">{c.loading}</p> : null}
+      {nothingLeft ? <p className="mt-4 text-[15px] font-semibold text-[var(--lp-dark)]">{c.empty}</p> : null}
+      {done ? (
+        <p role="status" className="mt-5 flex items-center gap-3 rounded-[16px] border border-[var(--lp-accent)] bg-[var(--offer-surface)] px-4 py-3 text-[15px] font-semibold text-[var(--lp-dark)]">
+          <span aria-hidden className="grid size-6 shrink-0 place-items-center rounded-full bg-[var(--lp-accent)] text-[var(--accent-ink)]">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M3.5 8.5 6.5 11.5 12.5 4.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </span>
           {done}
         </p>
-      </Band>
+      ) : null}
 
       <PreviousEscrowDeals />
 
       {deals.length > 0 ? (
-        <Band tone="light" compact>
-          <h2 className="text-[18px] font-semibold tracking-[-0.02em] text-[var(--lp-dark)]">{c.olderDeals}</h2>
-          <ul className="mt-5 space-y-3">
-            {deals.map((d) => (
-              <li key={`${d.contract}:${d.jobId}`} className={row}>
+        <section aria-labelledby="legacy-deals" className="mt-10">
+          <h2 id="legacy-deals" className="text-[20px] font-bold tracking-[-0.02em] text-[var(--lp-dark)]">{c.olderDeals}</h2>
+          <ul className="mt-4 space-y-3">
+            {dealsPage.rows.map((d) => (              <li key={`${d.contract}:${d.jobId}`} className={row}>
                 <div className="min-w-0">
                   <p className="truncate text-[15px] font-semibold text-[var(--lp-dark)]">{fill(c.withWho, { who: short(d.otherSide) })}</p>
                   <p className="mt-0.5 text-[14px] text-[var(--lp-text-sub)]">
@@ -154,16 +159,15 @@ function LegacyPageInner() {
               </li>
             ))}
           </ul>
-        </Band>
+          <Pager page={dealsPage} label={c.olderDeals} onPage={setDealsAt} />
+        </section>
       ) : null}
 
       {guarantees.length > 0 ? (
-        <Band tone="light" compact>
-          <section id="previous-guarantee" className="scroll-mt-24">
-            <h2 className="text-[18px] font-semibold tracking-[-0.02em] text-[var(--lp-dark)]">{c.guarantees}</h2>
-            <ul className="mt-5 space-y-3">
-              {guarantees.map((p) => (
-                <li key={`${p.contract}:${p.positionId}`} className={row}>
+        <section id="previous-guarantee" aria-labelledby="legacy-guarantees" className="mt-10 scroll-mt-24">
+          <h2 id="legacy-guarantees" className="text-[20px] font-bold tracking-[-0.02em] text-[var(--lp-dark)]">{c.guarantees}</h2>
+          <ul className="mt-4 space-y-3">
+            {guaranteesPage.rows.map((p) => (                <li key={`${p.contract}:${p.positionId}`} className={row}>
                   <div className="min-w-0">
                     <p className="text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">{formatUsdc(p.amountUsdc)}</p>
                     <p className="mt-0.5 text-[14px] text-[var(--lp-text-sub)]">
@@ -192,9 +196,9 @@ function LegacyPageInner() {
                   )}
                 </li>
               ))}
-            </ul>
-          </section>
-        </Band>
+          </ul>
+          <Pager page={guaranteesPage} label={c.guarantees} onPage={setGuaranteesAt} />
+        </section>
       ) : null}
 
       <ConfirmSheetShell open={pending !== null} labelledBy={`${sheetId}-title`} busy={busy} onClose={() => setPending(null)}>
@@ -219,6 +223,6 @@ function LegacyPageInner() {
           </button>
         </div>
       </ConfirmSheetShell>
-    </FullBleed>
+    </div>
   );
 }

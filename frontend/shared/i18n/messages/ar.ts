@@ -4,6 +4,7 @@ import { cashoutFlowCopy } from './cashoutFlow';
 import { balanceSummaryCopy } from './balanceSummary';
 import { firstTradeCopy } from './firstTrade';
 import { setupCopy } from './setup';
+import { startFlowCopy } from './startFlow';
 import { assistantModeCopy } from './assistantMode';
 import { assistantMemoryCopy } from './assistantMemory';
 import { walletPanelCopy } from './walletPanel';
@@ -72,6 +73,7 @@ export const ar: Messages = {
   balanceSummary: balanceSummaryCopy.ar,
   firstTrade: firstTradeCopy.ar,
   setup: setupCopy.ar,
+  startFlow: startFlowCopy.ar,
   assistantMode: assistantModeCopy.ar,
   assistantMemory: assistantMemoryCopy.ar,
   walletPanel: walletPanelCopy.ar,

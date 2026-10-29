@@ -9,6 +9,7 @@ export function isNoTourRoute(pathname: string | null): boolean {
     pathname.startsWith('/how-it-works') ||
     pathname.startsWith('/feedback') ||
     pathname.startsWith('/terms') ||
+    pathname.startsWith('/privacy') ||
     pathname.startsWith('/onboarding') ||
     pathname.startsWith('/invite') ||
     pathname.startsWith('/admin') ||

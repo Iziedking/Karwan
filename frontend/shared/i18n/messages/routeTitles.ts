@@ -59,6 +59,7 @@ export type RouteTitleKey =
   | 'signIn'
   | 'signUp'
   | 'terms'
+  | 'privacy'
   | 'chatTerms'
   | 'personCheck'
   | 'waitlist'
@@ -127,6 +128,7 @@ const en: RouteTitleCopy = {
   signIn: 'Sign in',
   signUp: 'Sign up',
   terms: 'Terms',
+  privacy: 'Privacy notice',
   chatTerms: 'Chat terms',
   personCheck: 'Person check',
   waitlist: 'Waitlist',
@@ -194,6 +196,7 @@ const ar: RouteTitleCopy = {
   signIn: 'تسجيل الدخول',
   signUp: 'إنشاء حساب',
   terms: 'الشروط',
+  privacy: 'إشعار الخصوصية',
   chatTerms: 'شروط المحادثة',
   personCheck: 'فحص الشخص',
   waitlist: 'قائمة الانتظار',
@@ -261,6 +264,7 @@ const fr: RouteTitleCopy = {
   signIn: 'Se connecter',
   signUp: 'Créer un compte',
   terms: 'Conditions',
+  privacy: 'Avis de confidentialité',
   chatTerms: 'Conditions du chat',
   personCheck: 'Vérification de personne',
   waitlist: 'Liste d’attente',
@@ -328,6 +332,7 @@ const hi: RouteTitleCopy = {
   signIn: 'साइन इन',
   signUp: 'साइन अप',
   terms: 'शर्तें',
+  privacy: 'गोपनीयता सूचना',
   chatTerms: 'चैट की शर्तें',
   personCheck: 'व्यक्ति जाँच',
   waitlist: 'प्रतीक्षा सूची',
@@ -395,6 +400,7 @@ const sw: RouteTitleCopy = {
   signIn: 'Ingia',
   signUp: 'Jisajili',
   terms: 'Masharti',
+  privacy: 'Taarifa ya faragha',
   chatTerms: 'Masharti ya mazungumzo',
   personCheck: 'Ukaguzi wa mtu',
   waitlist: 'Orodha ya kusubiri',

@@ -211,6 +211,9 @@ export function TermsContent({ heading, contents = false }: { heading?: ReactNod
         </Bullets>
         <p>{t.s7.custody}</p>
         <p>{t.s7.tail}</p>
+        <p>
+          <a href="/privacy" className="font-semibold text-[var(--lp-dark)] underline underline-offset-4">{messages.startFlow.privacy.link}</a>
+        </p>
       </Section>
 
       <Section id={`${id}-terms-9`} title={t.s8.title}>

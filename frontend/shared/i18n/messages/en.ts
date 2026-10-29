@@ -7,6 +7,7 @@ import { cashoutFlowCopy, type CashoutFlowCopy } from './cashoutFlow';
 import { balanceSummaryCopy, type BalanceSummaryCopy } from './balanceSummary';
 import { firstTradeCopy, type FirstTradeCopy } from './firstTrade';
 import { setupCopy, type SetupCopy } from './setup';
+import { startFlowCopy, type StartFlowCopy } from './startFlow';
 import { assistantModeCopy, type AssistantModeCopy } from './assistantMode';
 import { assistantMemoryCopy, type AssistantMemoryCopy } from './assistantMemory';
 import { walletPanelCopy, type WalletPanelCopy } from './walletPanel';
@@ -74,6 +75,7 @@ interface MessagesShape {
   balanceSummary: BalanceSummaryCopy;
   firstTrade: FirstTradeCopy;
   setup: SetupCopy;
+  startFlow: StartFlowCopy;
   assistantMode: AssistantModeCopy;
   assistantMemory: AssistantMemoryCopy;
   walletPanel: WalletPanelCopy;
@@ -5280,6 +5282,7 @@ export const en: MessagesShape = {
   balanceSummary: balanceSummaryCopy.en,
   firstTrade: firstTradeCopy.en,
   setup: setupCopy.en,
+  startFlow: startFlowCopy.en,
   assistantMode: assistantModeCopy.en,
   assistantMemory: assistantMemoryCopy.en,
   walletPanel: walletPanelCopy.en,

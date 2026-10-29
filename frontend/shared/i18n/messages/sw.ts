@@ -4,6 +4,7 @@ import { cashoutFlowCopy } from './cashoutFlow';
 import { balanceSummaryCopy } from './balanceSummary';
 import { firstTradeCopy } from './firstTrade';
 import { setupCopy } from './setup';
+import { startFlowCopy } from './startFlow';
 import { assistantModeCopy } from './assistantMode';
 import { assistantMemoryCopy } from './assistantMemory';
 import { walletPanelCopy } from './walletPanel';
@@ -72,6 +73,7 @@ export const sw: Messages = {
   balanceSummary: balanceSummaryCopy.sw,
   firstTrade: firstTradeCopy.sw,
   setup: setupCopy.sw,
+  startFlow: startFlowCopy.sw,
   assistantMode: assistantModeCopy.sw,
   assistantMemory: assistantMemoryCopy.sw,
   walletPanel: walletPanelCopy.sw,

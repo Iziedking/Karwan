@@ -52,6 +52,7 @@ export const EXACT: Record<string, RouteTitleKey> = {
   '/stake': 'guarantee',
   '/start': 'signIn',
   '/terms': 'terms',
+  '/privacy': 'privacy',
   '/terms/chat': 'chatTerms',
   '/verify/person': 'personCheck',
   '/waitlist': 'waitlist',
@@ -80,6 +81,7 @@ export function routeTitleKey(pathname: string, search = ''): RouteTitleKey | 's
   const path = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
   if (SERVER_TITLED.some((re) => re.test(path))) return 'server';
   if (path === '/start' && new URLSearchParams(search).get('mode') === 'signup') return 'signUp';
+  if (path === '/start' && new URLSearchParams(search).get('step') === 'about') return 'setUp';
   return EXACT[path] ?? PATTERNS.find(([re]) => re.test(path))?.[1] ?? null;
 }
 

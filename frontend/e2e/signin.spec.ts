@@ -1,13 +1,15 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { signupCopy } from '../shared/i18n/messages/signup';
+import { startFlowCopy } from '../shared/i18n/messages/startFlow';
 import { API, funded } from './moneyFixtures';
 import { serveSearch } from './searchFixtures';
 
 const mainnet = process.env.KARWAN_UI_NETWORK === 'mainnet';
 const EMAIL = 'signin-fixture@example.com';
-const TAG = 'signin_fixture';
 const en = signupCopy.en;
+// Sign-up asks for the account first and the tag after it (view 39).
+const start = startFlowCopy.en;
 type Theme = 'light' | 'dark';
 type Locale = 'en' | 'ar';
 type AuthWorld = {
@@ -137,7 +139,7 @@ for (const theme of ['light', 'dark'] as const) {
   }
 }
 
-test('an unknown email offers sign-up and keeps the tag step reachable', async ({ page }, testInfo) => {
+test('an unknown email offers sign-up with the email kept', async ({ page }, testInfo) => {
   const requests = await open(page);
   await signIn(page);
   await page.getByLabel(en.signIn.emailLabel, { exact: true }).fill(`  ${EMAIL.toUpperCase()}  `);
@@ -145,17 +147,15 @@ test('an unknown email offers sign-up and keeps the tag step reachable', async (
   await expect(page.getByText(en.signIn.notFound, { exact: true })).toBeVisible();
   expect(requests.find(r => r.path === '/api/auth/lookup')?.body).toEqual({ email: EMAIL });
   await page.getByRole('button', { name: en.signIn.createInstead, exact: true }).click();
-  await expect(page.getByRole('heading', { name: en.signUp.tagLabel, exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: en.signUp.next, exact: true })).toBeDisabled();
+  await expect(page.getByRole('heading', { name: start.account.title, exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: en.signUp.sendCode, exact: true })).toBeEnabled();
+  await expect(page.getByText(start.account.nudge, { exact: true })).toBeVisible();
   await layoutIsSound(page, testInfo);
 });
 
-test('sign-up keeps tag availability, code errors and back navigation', async ({ page }, testInfo) => {
+test('sign-up keeps code errors and back navigation', async ({ page }, testInfo) => {
   const requests = await open(page, { route: '/start?mode=signup' });
-  await page.getByLabel(en.signUp.tagLabel, { exact: true }).fill(TAG);
-  await expect(page.getByText(en.signUp.tagAvailable.replace('{tag}', TAG), { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: en.signUp.next, exact: true }).click();
-  await expect(page.getByRole('heading', { name: en.signUp.title, exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: start.account.title, exact: true })).toBeVisible();
   await page.getByLabel(en.signUp.emailLabel, { exact: true }).fill(EMAIL);
   await page.getByRole('button', { name: en.signUp.sendCode, exact: true }).click();
   await expect(page.getByRole('heading', { name: en.signUp.codeTitle, exact: true })).toBeVisible();
@@ -167,15 +167,10 @@ test('sign-up keeps tag availability, code errors and back navigation', async ({
   await layoutIsSound(page, testInfo);
   await page.getByRole('button', { name: en.signUp.back, exact: true }).click();
   await expect(page.getByLabel(en.signUp.emailLabel, { exact: true })).toHaveValue(EMAIL);
-  await page.getByRole('button', { name: en.signUp.back, exact: true }).click();
-  await expect(page.getByLabel(en.signUp.tagLabel, { exact: true })).toHaveValue(TAG);
 });
 
 test('a misspelled email provider is caught before the code is sent', async ({ page }) => {
   const requests = await open(page, { route: '/start?mode=signup' });
-  await page.getByLabel(en.signUp.tagLabel, { exact: true }).fill(TAG);
-  await expect(page.getByText(en.signUp.tagAvailable.replace('{tag}', TAG), { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: en.signUp.next, exact: true }).click();
   const email = page.getByLabel(en.signUp.emailLabel, { exact: true });
   await email.fill('ada@gmail.cm');
   await page.getByRole('button', { name: 'ada@gmail.com', exact: true }).click();
@@ -224,7 +219,7 @@ for (const invited of [false, true]) {
     if (invited) {
       await expect(page.getByText(en.waitlist.invitedBody, { exact: true })).toBeVisible();
       await page.getByRole('button', { name: en.waitlist.createAccount, exact: true }).click();
-      await expect(page.getByRole('heading', { name: en.signUp.tagLabel, exact: true })).toBeVisible();
+      await expect(page.getByRole('heading', { name: start.account.title, exact: true })).toBeVisible();
     } else {
       await expect(page.getByText(en.waitlist.position.replace('{n}', '7'), { exact: true })).toBeVisible();
       const choice = page.getByRole('button', { name: en.waitlist.useCases.sell_services, exact: true });

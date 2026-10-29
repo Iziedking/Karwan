@@ -406,11 +406,17 @@ test('the trade chooser draws its arrows as icons', () => {
   }
 });
 
-test('home Updates are media tiles with no generated art, a fixed media height, three to the column, and never move on their own', () => {
+test('home Updates are media tiles with no generated art, a fixed media height, three to the column, and move on by themselves only while nobody is on them', () => {
   const carousel = source('../../features/home/components/UpdatesCarousel.tsx');
   assert.doesNotMatch(carousel, /update-art/);
   assert.doesNotMatch(source('../../app/globals.css'), /\.update-art/);
-  assert.doesNotMatch(carousel, /setTimeout|setInterval/);
+  // View 39: the strip pages itself, with no pause button, and holds still under
+  // the pointer or focus, with reduced motion, or in a hidden tab.
+  assert.match(carousel, /setInterval\(/);
+  assert.match(carousel, /onPointerEnter=\{\(\) => setPaused\(true\)\}/);
+  assert.match(carousel, /onFocus=\{\(\) => setPaused\(true\)\}/);
+  assert.match(carousel, /updatesMayMove\(\{ paused, reducedMotion, hidden: document\.hidden \}\)/);
+  assert.doesNotMatch(carousel, /aria-label=\{t\.(pause|play)/);
   assert.match(carousel, /h-\[180px\][^"]*sm:h-\[212px\]/);
   assert.match(carousel, /lg:w-\[calc\(\(100%-48px\)\/3\)\]/);
 });
@@ -516,8 +522,8 @@ test('the desktop rail ends with Settings and Sign out, pinned to its foot, sign
 
 test('current trade and recent trades share one heading line and end together', () => {
   const home = source('../../features/home/components/AccountHome.tsx');
-  // Two heading-line links plus Details, which is now 44px tall too.
-  assert.equal(home.match(/flex min-h-11 items-center[^"]*px-1/g)?.length, 3);
+  // The two heading lines; Details now sits on the balance line (view 39).
+  assert.equal(home.match(/flex min-h-11 items-center[^"]*px-1/g)?.length, 2);
   assert.match(home, /trade-route mt-3 flex flex-1 flex-col/);
   assert.match(home, /trade-book flex-1/);
 });
