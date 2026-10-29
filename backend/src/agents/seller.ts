@@ -45,8 +45,8 @@ import { suiteIdentity } from '../identity/suiteIdentityLive.js';
 import type { SellerProfile } from './seller-profile.js';
 import {
   MAX_COUNTER_ROUNDS,
-  resolveAllSellerProfiles,
   resolveSellerProfile,
+  resolveSellerProfilesForUsers,
   siblingSellerAddress,
 } from './agent-registry.js';
 import { withLlmRetry } from './llm-utils.js';
@@ -81,6 +81,8 @@ import { paidRecordRead, type PaidPassportSignal } from '../x402/buyerClient.js'
 import { assessBuyer, type BuyerCheck } from './buyerCheck.js';
 import { config } from '../config.js';
 import { evaluationStarted, evaluationFinished } from './evaluationTracker.js';
+import { rankSellers, requestsForSeller, sellerIndex } from '../matching/sellerIndex.js';
+import { recordDecision, recordPosted } from './matchLatency.js';
 import { cleanDealPartnersFor } from './workRecord.js';
 import { getTierState } from '../db/tierState.js';
 import type { Tier as StandingTier } from '../reputation/config.js';
@@ -472,6 +474,13 @@ function logDedupeKey(label: string, log: Log): string {
 export function startSellerAgents() {
   logger.info({ board: marketBoard().kind }, 'seller agent starting (multi-tenant)');
 
+  // Who sells what, in memory (view 41): the match for a new request reads it
+  // instead of every profile; a save refreshes one entry.
+  void sellerIndex
+    .rebuild()
+    .then((n) => logger.info({ sellers: n }, 'seller index built'))
+    .catch((err: Error) => logger.warn({ err: err.message }, 'seller index build failed, built on first request'));
+
   // The board delivers in order (view 40); the reconciler below is the extra
   // backstop.
   const board = marketBoard();
@@ -558,9 +567,6 @@ async function handleJobPosted(log: Log, opts?: { rescan?: boolean }) {
     if (isJobClosedForOffers(jobId)) return;
   }
 
-  const sellers = await resolveAllSellerProfiles();
-  if (sellers.length === 0) return;
-
   // Keep a user's own seller agent out of their own auction.
   const excludeSeller = (await siblingSellerAddress(args.buyer))?.toLowerCase();
   const evaluated = evaluatedSellers.get(jobId) ?? new Set<string>();
@@ -587,6 +593,26 @@ async function handleJobPosted(log: Log, opts?: { rescan?: boolean }) {
     keywords: briefKeywords,
     brief: brief ?? undefined,
   });
+
+  // Who hears of this request (view 41): every seller on the market sharing a
+  // word with it, plus at most MATCH_CANDIDATE_LIMIT without one for the model
+  // judge, read from the in-memory index instead of every profile in the store.
+  if (!sellerIndex.isBuilt()) await sellerIndex.rebuild();
+  const candidates = rankSellers(sellerIndex.entries(), {
+    jobId,
+    keywords: briefKeywords,
+    briefText: brief?.briefText,
+    sourcingSector: brief?.counterpartyCompany?.sector ?? null,
+    tradeType: brief?.tradeType ?? null,
+    where: brief?.where ?? null,
+  });
+  if (!opts?.rescan) recordPosted(jobId, brief?.createdAt ?? Date.now());
+  const sellers = await resolveSellerProfilesForUsers([...candidates.byWords, ...candidates.toJudge].map((s) => s.userAddress));
+  logger.info(
+    { jobId, byWords: candidates.byWords.length, toJudge: candidates.toJudge.length, skipped: candidates.skipped, resolved: sellers.length },
+    'request matched against the seller index',
+  );
+  if (sellers.length === 0) return;
 
   // Read the buyer's deterministic signals once and share across every seller
   // evaluation. Saves N reputation reads and keeps the read window aligned.
@@ -674,6 +700,7 @@ async function handleJobPosted(log: Log, opts?: { rescan?: boolean }) {
         evaluationStarted(jobId);
         try {
           await evaluateAndBid(seller, { ...baseJob });
+          recordDecision(jobId, Date.now());
           // Marked only on success, so the reconciler's rescan retries a seller
           // whose evaluation failed instead of writing them off for the job.
           evaluated.add(sellerLower);
@@ -2077,6 +2104,50 @@ async function sweepOpenRequests() {
   const open = listOpenJobContexts().filter((job) => job.deadlineUnix > nowSec);
   for (const job of open) await handleJobPosted(jobLogFor(job), { rescan: true });
   logger.debug({ count: open.length }, 'seller reconciler swept open requests');
+}
+
+/// A seller just saved their profile, a way or an offer (view 41): their entry
+/// in the index is read again and the open requests that fit are offered to
+/// their agent now, instead of at the next sweep. Returns how many it judged.
+export async function matchSellerNow(userAddress: string): Promise<number> {
+  const entry = await sellerIndex.refresh(userAddress);
+  if (!entry || !entry.onMarket || entry.example) return 0;
+  const { listOpenJobContexts } = await import('./buyer.js');
+  const nowSec = Math.floor(Date.now() / 1000);
+  const open = listOpenJobContexts().filter((j) => j.deadlineUnix > nowSec);
+  const fits = requestsForSeller(
+    entry,
+    open.map((j) => {
+      const brief = getBrief(j.jobId);
+      return { jobId: j.jobId, keywords: j.keywords, briefText: j.briefText, sourcingSector: j.sourcingSector ?? null, tradeType: brief?.tradeType ?? null, where: brief?.where ?? null };
+    }),
+  );
+  if (fits.length === 0) return 0;
+  const [seller] = await resolveSellerProfilesForUsers([userAddress]);
+  if (!seller) return 0;
+  const sellerLower = seller.address.toLowerCase();
+  let judged = 0;
+  for (const fit of fits) {
+    const job = open.find((j) => j.jobId === fit.jobId);
+    if (!job) continue;
+    if (activeBids.has(bidKey(job.jobId, seller.address))) continue;
+    const evaluated = evaluatedSellers.get(job.jobId) ?? new Set<string>();
+    evaluatedSellers.set(job.jobId, evaluated);
+    if (evaluated.has(sellerLower)) continue;
+    if ((await siblingSellerAddress(job.buyer))?.toLowerCase() === sellerLower) continue;
+    evaluationStarted(job.jobId);
+    try {
+      await evaluateAndBid(seller, { ...job });
+      evaluated.add(sellerLower);
+      judged += 1;
+    } catch (err) {
+      logger.warn({ jobId: job.jobId, seller: seller.address, err: (err as Error).message }, 'seller evaluation after a save failed');
+    } finally {
+      evaluationFinished(job.jobId);
+    }
+  }
+  logger.info({ userAddress, fits: fits.length, judged }, 'seller matched against open requests after a save');
+  return judged;
 }
 
 /// Offers one open request to the sellers again. `fresh` forgets who already

@@ -271,6 +271,13 @@ profileRoutes.post('/', async (c) => {
     ...(existing?.agentWays ? { agentWays: reconcileWays(existing.agentWays, sellerWithKeywords, body.buyer) } : {}),
   });
 
+  // A seller who saved is matched against the open requests now (view 41).
+  if (profile.seller) {
+    void import('../agents/seller.js')
+      .then((m) => m.matchSellerNow(profile.address))
+      .catch(() => {});
+  }
+
   // Email-login (Circle) users proved their email at sign-in, so auto-fill it
   // as a verified contact email the first time they save a profile. Web3 users
   // have no login email; they add and verify one from the profile email band.

@@ -23,4 +23,9 @@ export const liveSetupDeps: SetupRouteDeps = {
     }),
   locale: async (address) => ((await getProfile(address))?.settings?.locale ?? 'en') as UserLocale,
   now: Date.now,
+  sellerSaved: (address) => {
+    void import('../agents/seller.js')
+      .then((m) => m.matchSellerNow(address))
+      .catch(() => {});
+  },
 };

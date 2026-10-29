@@ -37,6 +37,8 @@ export interface SetupRouteDeps {
   saveLocation: (address: string, place: { country: string; city: string | null }) => Promise<void>;
   locale: (address: string) => Promise<UserLocale>;
   now: () => number;
+  /// A selling way was saved: the seller is matched against open requests now (view 41).
+  sellerSaved?: (address: string) => void;
 }
 
 const LIMIT = 20;
@@ -113,6 +115,7 @@ export function createSetupRoutes(deps: SetupRouteDeps): Hono {
     };
     const profile = await deps.save(address, patch);
     if (!profile) return c.json({ error: 'profile not found' }, 404);
+    if (ways.sell.length) deps.sellerSaved?.(address);
     return c.json({ profile, lines: wayLines(ways) });
   });
 

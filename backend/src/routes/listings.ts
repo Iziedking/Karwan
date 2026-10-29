@@ -31,7 +31,7 @@ import { listOpenJobContexts } from '../agents/buyer.js';
 import { submitListingBid } from '../agents/seller.js';
 import { maybeRaiseNearMiss, stillCollectingOffers } from '../agents/nearMiss.js';
 import { topicalOverlap } from '../llm/keywords.js';
-import { rankListingCandidates, rankRequestCandidates } from '../marketplace/matchCandidates.js';
+import { rankListingCandidates, rankRequestCandidates, realListings } from '../marketplace/matchCandidates.js';
 import { emitAgentDecision } from '../agents/observability.js';
 import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { getAgentWallets } from '../db/agentWallets.js';
@@ -540,6 +540,8 @@ async function scanBriefsForListing(
   seller: Awaited<ReturnType<typeof resolveSellerProfile>>,
 ) {
   if (!seller) return;
+  // Example stock never bids (view 41, decision 7).
+  if (listing.seedKey) return;
   const briefs = rankRequestCandidates(listing, listOpenJobContexts());
   if (briefs.length === 0) {
     logger.info({ listingId: listing.id }, 'no open briefs to match against');
@@ -599,7 +601,7 @@ export function scanListingsForBrief(job: ListingMatchJob): Promise<void> {
 async function scanListingsForBriefOnce(
   job: ListingMatchJob,
 ) {
-  const listings = rankListingCandidates(job, listOpenListings());
+  const listings = rankListingCandidates(job, realListings(listOpenListings()));
   if (listings.length === 0) return;
   logger.info(
     { jobId: job.jobId, listingsCount: listings.length },

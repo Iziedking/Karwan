@@ -131,6 +131,20 @@ export async function resolveAllSellerProfiles(): Promise<SellerProfile[]> {
   return out;
 }
 
+/// The seller profiles of the people the seller index picked for a request
+/// (view 41): read one by one, in the order given, skipping anyone who left
+/// the market or has no selling profile.
+export async function resolveSellerProfilesForUsers(userAddresses: readonly string[]): Promise<SellerProfile[]> {
+  const out: SellerProfile[] = [];
+  for (const userAddress of userAddresses) {
+    const [agents, profile] = await Promise.all([getAgentWallets(userAddress).catch(() => null), getProfile(userAddress).catch(() => null)]);
+    if (!agents || !profile || !joinsMarket(profile)) continue;
+    const sp = toSellerProfile(agents, profile);
+    if (sp) out.push(sp);
+  }
+  return out;
+}
+
 /// The seller agent address belonging to the same user as a given buyer agent
 /// address. Used to keep a user's seller agent out of their own auction.
 export async function siblingSellerAddress(

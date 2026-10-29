@@ -8,7 +8,8 @@ import { logger } from '../logger.js';
 import { getBrief } from '../db/briefs.js';
 import { getDeal, type DirectDeal } from '../db/deals.js';
 import { listMatchProposalsForUser } from '../db/matchProposals.js';
-import { getBuyerJob, getShortlist } from '../agents/buyer.js';
+import { getBuyerJob, getShortlist, listOpenJobContexts } from '../agents/buyer.js';
+import { requestsForSeller, sellerIndex } from '../matching/sellerIndex.js';
 import { assistantShortlistNote, assistantView, isVerified } from '../agents/shortlist.js';
 import { levelOf } from '../verification/live.js';
 import { isRequestOwner } from '../agents/chooseOffer.js';
@@ -483,6 +484,37 @@ export function dealStepTools(address: string, actions: AssistantAction[], deps:
               : reach.asked > 0
                 ? 'Say how many sellers fit, how many offered, and that the others are checking the price. Never name them.'
                 : 'Say how many sellers fit and how many offered.',
+          };
+        }),
+    }),
+
+    list_requests_that_fit_me: tool({
+      description:
+        "For a SELLER: the open requests on the market that fit what they sell, by shared words or sector, best fit first. Their agent already offers or asks them on these on its own; this is the list to look at. Use for 'anything for me', 'what could I offer on', 'are there requests I fit'.",
+      inputSchema: z.object({}),
+      execute: async () =>
+        guarded('list_requests_that_fit_me', async () => {
+          const entry = sellerIndex.get(address) ?? (await sellerIndex.refresh(address));
+          if (!entry) return { requests: [], note: 'They have no selling profile yet. Offer set_up_my_agents.' };
+          const nowSec = Math.floor(Date.now() / 1000);
+          const open = listOpenJobContexts().filter((j) => j.deadlineUnix > nowSec);
+          const fits = requestsForSeller(
+            entry,
+            open.map((j) => {
+              const brief = getBrief(j.jobId);
+              return { jobId: j.jobId, keywords: j.keywords, briefText: j.briefText, sourcingSector: j.sourcingSector ?? null, tradeType: brief?.tradeType ?? null, where: brief?.where ?? null };
+            }),
+            10,
+          );
+          const requests = fits.map((fit) => {
+            const j = open.find((x) => x.jobId === fit.jobId)!;
+            return { jobId: j.jobId, what: (j.briefText ?? '').slice(0, 160), budgetUsdc: j.budgetUsdc, dueDays: Math.max(1, Math.ceil((j.deadlineUnix - nowSec) / 86_400)) };
+          });
+          return {
+            requests,
+            note: requests.length
+              ? 'Say what each asks, its budget and when it is due. Their agent is already on these; to offer their own price use propose_make_offer. Never show jobId.'
+              : 'Nothing open fits what they sell right now; their agent tells them when one is posted.',
           };
         }),
     }),

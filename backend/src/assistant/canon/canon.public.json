@@ -264,6 +264,24 @@
       "body": "**Escrow.** A contract that holds the buyer's money while the work happens. It\nreleases against delivery, in milestones, and nobody can pull funds out of turn.\n\n**Milestone.** One slice of a deal. A deal splits into two to five. The last one\nalways needs the buyer to click.\n\n**Credit passport.** A public page built from a business's settled deals and\nrepayment behaviour. It belongs to the wallet, so it moves with the business\nrather than living on the platform.\n\n**Factoring.** Selling an invoice for less than face to be paid now instead of on\nsettlement. The discount is the cost of the wait.\n\n**Purchase-order financing.** Working capital advanced before delivery, against a\npurchase order whose escrow is already funded.\n\n**Receivable assignment.** Recording, on the escrow, that a financier is paid\nahead of the supplier at settlement. It is what makes financing non-recourse: the\nfinancier is repaid by the contract rather than by chasing the supplier.\n\n**x402.** A payment standard for machine-to-machine calls, used here so an agent\ncan pay a fraction of a cent for a single piece of data.\n\n**USYC.** A tokenised T-bill fund. Idle balance is parked in it so capital earns\nwhile it waits."
     },
     {
+      "id": "hourly-work",
+      "title": "Pay someone by the hour, or monthly",
+      "status": "shipping",
+      "updated": "2026-10-29",
+      "tags": [
+        "market",
+        "testnet"
+      ],
+      "path": "public/product/hourly-work.md",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/32-kind-of-deal-and-hourly-work.md",
+          "date": "2026-10-29"
+        }
+      ],
+      "body": "A hirer can pay someone by the hour or monthly. A virtual assistant, for\nexample, might earn 15 USDC an hour for up to 20 hours a week, for 4 weeks.\nThere are two ways to start. The hirer can name someone they know by their\nKarwan tag, or post the work on the market and let their agent find the best\nfit.\n\nThe agent judges people by what they have actually done on Karwan: the skills\ntheir finished work shows, the checks Karwan ran, delivering on time, and\nratings. Skill fit counts first, and reputation only breaks a tie. Nobody has\nto upload samples to prove themselves.\n\nThe hirer pays one week (or month) at a time. The money is held on Karwan's\nescrow on Arc until that week is settled. A worker new to Karwan is paid for\none week at a time. Once they have finished work on Karwan, the hirer can pay\nup to four weeks ahead.\n\nThe worker logs hours by the minute, from the start of the week until 2 days\nafter it ends. The hirer then has 3 days to approve the hours or say which are\nwrong. Approved hours are paid at once. If the hirer says nothing, the hours\nare paid when the review ends. Unused budget goes back to the hirer every week.\n\nHours the hirer objects to wait for Karwan's review team, and the rest are paid\nat once. If the team does not rule within 5 days, those hours are split half\nand half. Either side can end the work with one week's notice, or one month's\nfor a retainer. When the work ends, it goes on both people's records.\n\nHourly work runs from the website, the assistant and Telegram. The hirer's\nmoney steps are confirmed on Karwan itself. It runs on Arc Testnet, up to about\n1,000 USDC held at once for now.\n"
+    },
+    {
       "id": "how-karwan-is-built",
       "title": "How Karwan is built",
       "status": "live",
@@ -380,7 +398,7 @@
           "date": "2026-10-27"
         }
       ],
-      "body": "Post what you need in the assistant, on the website or Telegram, and you can\nclose the chat. Your agent asks sellers for offers and negotiates, and the\nassistant writes back in the same conversation, and on Telegram, only when\nsomething moves: offers in, your shortlist ready with the seller the agent\nrecommends, a near match when nothing fits your budget, an agreed deal, the\nmoney locked, the work delivered.\n\nWhen you post, you can turn on Agree for me. Your agent then agrees with the\nseller it recommends, within your budget, and you wake up to an agreed deal\nready for one tap to lock the money. It never agrees above your budget and\nnever moves money on its own.\n\nOffers move the way a market does. Change your request and your agent looks\nagain at once at the offers it holds; it can recommend one up to the most you\nallowed above your budget, and counters it toward your budget. Sellers who\noffered get a turn to keep, lower or withdraw their offer, and sellers whose\noffer is not the lowest hear once that a lower one is in, never its price.\nOffers only go down, at most three times per seller per request. Sellers never\nsee how far above your budget you would go.\n\nWhen your budget is far under what the work goes for and no seller takes it,\nyour agent tells you plainly, with the market price, and you choose to allow\nmore or post again. Nobody is pushed below their own price. Agents never go\nquiet. A request that fits what a seller sells but sits outside their price or\ntime, or of a kind they have not set up yet, and a counter under their lowest\nprice, become one question to that seller, in the app, the assistant, by\nemail and on Telegram, with a suggested answer they take, change or turn\ndown. While they decide, you see that the seller is checking, never their\nprice or limit. Nothing is offered or agreed while a question waits.\n\nYour request page says how many sellers fit, how many offered and how many are\nchecking the price, never who. When a minute passes and nobody on Karwan sells\nit yet, it says so plainly, and you can share the request with a seller you\nknow while your agent keeps looking.\n\nThis is built for testnet and not live yet."
+      "body": "Post what you need in the assistant, on the website or Telegram, and you can\nclose the chat. Your agent asks sellers for offers and negotiates, and the\nassistant writes back in the same conversation, and on Telegram, only when\nsomething moves: offers in, your shortlist ready with the seller the agent\nrecommends, a near match when nothing fits your budget, an agreed deal, the\nmoney locked, the work delivered.\n\nWhen you post, you can turn on Agree for me. Your agent then agrees with the\nseller it recommends, within your budget, and you wake up to an agreed deal\nready for one tap to lock the money. It never agrees above your budget and\nnever moves money on its own.\n\nOffers move the way a market does. Change your request and your agent looks\nagain at once at the offers it holds; it can recommend one up to the most you\nallowed above your budget, and counters it toward your budget. Sellers who\noffered get a turn to keep, lower or withdraw their offer, and sellers whose\noffer is not the lowest hear once that a lower one is in, never its price.\nOffers only go down, at most three times per seller per request. Sellers never\nsee how far above your budget you would go.\n\nWhen your budget is far under what the work goes for and no seller takes it,\nyour agent tells you plainly, with the market price, and you choose to allow\nmore or post again. Nobody is pushed below their own price. Agents never go\nquiet. A request that fits what a seller sells but sits outside their price or\ntime, or of a kind they have not set up yet, and a counter under their lowest\nprice, become one question to that seller, in the app, the assistant, by\nemail and on Telegram, with a suggested answer they take, change or turn\ndown. While they decide, you see that the seller is checking, never their\nprice or limit. Nothing is offered or agreed while a question waits.\n\nYour request page says how many sellers fit, how many offered and how many are\nchecking the price, never who. When a minute passes and nobody on Karwan sells\nit yet, it says so plainly, and you can share the request with a seller you\nknow while your agent keeps looking. Sellers who fit hear of your request when it is\nposted, not on a timer, and a seller who sets up a new way is matched against\nthe open requests straight away. Example stock on the market never counts as a\nseller.\n\nThis is built for testnet and not live yet."
     },
     {
       "id": "open-trade-finance-roadmap",
@@ -1107,6 +1125,29 @@
       "check": null,
       "updated": "2026-07-27",
       "path": "public/glossary/terms.md"
+    },
+    {
+      "id": "hourly-work",
+      "title": "Pay someone by the hour, or monthly",
+      "status": "shipping",
+      "publishable": false,
+      "blockedBy": "not-live",
+      "capability": true,
+      "audience": "all",
+      "tags": [
+        "market",
+        "testnet"
+      ],
+      "summary": "A hirer can pay someone by the hour or monthly. A virtual assistant, for example, might earn 15 USDC an hour for up to 20 hours a week, for 4 weeks. There are two ways to start. The hirer can name someone they know by their Karwan tag, or post the work on the market and let their agent find the best fit.",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/32-kind-of-deal-and-hourly-work.md",
+          "date": "2026-10-29"
+        }
+      ],
+      "check": null,
+      "updated": "2026-10-29",
+      "path": "public/product/hourly-work.md"
     },
     {
       "id": "how-karwan-is-built",

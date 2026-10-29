@@ -22,6 +22,12 @@ function topByOverlap<T>(items: readonly T[], score: (item: T) => number): T[] {
     .map((entry) => entry.item);
 }
 
+/// Seeded example stock is shown on the market, labelled, but it is never a
+/// seller (view 41, decision 7): never matched to a request, never a bid.
+export function realListings<L extends { seedKey?: string }>(listings: readonly L[]): L[] {
+  return listings.filter((l) => !l.seedKey);
+}
+
 /// The open offers worth asking the matcher about for one request: only those
 /// sharing a topic word with it, best overlap first.
 export function rankListingCandidates<L extends OfferText>(request: RequestText, listings: readonly L[]): L[] {
