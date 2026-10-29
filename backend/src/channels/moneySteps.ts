@@ -14,9 +14,10 @@ export const MONEY_INTENTS: ReadonlySet<ConfirmAction['intent']> = new Set<Confi
   'fund_agent',
   'cash_out',
   'top_up_to_arc',
-  'stake_usdc',
+  'guarantee_put_up',
   'claim_yield',
-  'insurance_collect',
+  'guarantee_collect',
+  'legacy_step',
   'finance_accept',
   'finance_offer',
   'claim_payment',
@@ -62,10 +63,12 @@ export function moneyStepPath(action: ConfirmAction): string | null {
       const token = (action.payload as { token?: unknown }).token;
       return typeof token === 'string' && /^[0-9a-f-]{36}$/.test(token) ? `/deposit/request/${token}` : null;
     }
-    case 'stake_usdc':
+    case 'guarantee_put_up':
     case 'claim_yield':
-    case 'insurance_collect':
-      return '/stake';
+    case 'guarantee_collect':
+      return '/guarantee';
+    case 'legacy_step':
+      return '/legacy';
     default:
       return null;
   }

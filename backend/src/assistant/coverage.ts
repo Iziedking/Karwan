@@ -20,7 +20,6 @@ const RECOVERY = { by: 'page', why: 'Account recovery: the password and the wait
 const CONFIRM = { by: 'page', why: 'Setting or using a passkey, Karwan PIN or email code: never carried in a chat.' } as const;
 const WORLD = { by: 'page', why: 'World ID and Selfie Check need the camera and the World app.' } as const;
 const WAITLIST = { by: 'page', why: 'Joining the waitlist happens before there is an account.' } as const;
-const LEGACY = { by: 'page', why: 'Deals and deal insurance on the earlier contracts stay on their page until the last one finishes.' } as const;
 const WALLET_STEP = { by: 'internal', why: 'A bookkeeping step inside a wallet-signed transfer the card or page already runs.' } as const;
 const UNUSED = { by: 'internal', why: 'No screen calls it.' } as const;
 const ASSISTANT_OWN = { by: 'internal', why: "The assistant's own conversation and memory plumbing." } as const;
@@ -86,25 +85,16 @@ export const COVERAGE: Record<string, Coverage> = {
   'POST /api/chat/:': { by: 'assistant', via: 'message_in_deal' },
   'POST /api/trade/pod/accept': { by: 'page', why: 'Signed in the buyer\'s own wallet on the deal page; Karwan-held wallets use the card.' },
   'POST /api/trade/pod/accept-circle': { by: 'assistant', via: 'confirm_goods_received' },
-  'POST /api/legacy/deals/:/refund': LEGACY,
-  'POST /api/legacy/deals/:/release-final': LEGACY,
-  'POST /api/legacy/deals/:/cancel-propose': LEGACY,
-  'POST /api/legacy/deals/:/cancel-accept': LEGACY,
 
-  // Deal insurance (phase A).
-  'POST /api/vault/deposit': { by: 'assistant', via: 'stake_usdc' },
+  // Deal guarantee on the family vault, and older contracts (view 37).
+  'POST /api/guarantee/put-up': { by: 'assistant', via: 'guarantee_put_up' },
+  'POST /api/guarantee/take-out': { by: 'assistant', via: 'guarantee_take_out' },
+  'POST /api/guarantee/cancel-take-out': { by: 'assistant', via: 'guarantee_cancel_take_out' },
+  'POST /api/guarantee/collect': { by: 'assistant', via: 'guarantee_collect' },
+  'POST /api/guarantee/intent': { by: 'assistant', via: 'guarantee_put_up' },
+  'POST /api/guarantee/complete': { by: 'assistant', via: 'guarantee_put_up' },
   'POST /api/yield/claim': { by: 'assistant', via: 'claim_yield' },
-  'POST /api/vault/request-withdraw': { by: 'assistant', via: 'insurance_take_out' },
-  'POST /api/vault/cancel-withdraw': { by: 'assistant', via: 'insurance_cancel_take_out' },
-  'POST /api/vault/claim': { by: 'assistant', via: 'insurance_collect' },
-  'POST /api/vault/action/intent': { by: 'assistant', via: 'insurance_take_out' },
-  'POST /api/vault/action/complete': { by: 'assistant', via: 'insurance_take_out' },
-  'POST /api/vault/deposit/intent': { by: 'assistant', via: 'stake_usdc' },
-  'POST /api/vault/deposit/complete': { by: 'assistant', via: 'stake_usdc' },
-  'POST /api/vault/record-stake': UNUSED,
-  'POST /api/legacy/vault/request-withdraw': LEGACY,
-  'POST /api/legacy/vault/cancel-withdraw': LEGACY,
-  'POST /api/legacy/vault/claim': LEGACY,
+  'POST /api/legacy/step': { by: 'assistant', via: 'legacy_step' },
 
   // Getting paid early (phase B). Purchase-order financing is off on testnet
   // until a contract the escrow authorises is live (T4.2); its three stay planned.

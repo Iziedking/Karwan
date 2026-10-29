@@ -205,32 +205,35 @@ test('a_confirmed_action_from_chat_answers_with_the_one_time_link', async () => 
 
 test('a_pin_is_never_asked_in_the_chat', async () => {
   const { execute } = setup(() => ({ status: 428, json: { code: 'CONFIRM_REQUIRED', challengeId: 'c1' } }));
-  const r = await execute({ address: ME }, action('stake_usdc', { address: ME, amountUsdc: 5 }));
+  const r = await execute({ address: ME }, action('guarantee_put_up', { address: ME, amountUsdc: '5.00', signer: 'karwan' }));
   assert.equal(r.ok, false);
   if (!r.ok) assert.doesNotMatch(r.message, /PIN|passkey/i);
 });
 
-test('taking out deal insurance starts the wait on each position on the card, as the stake page does', async () => {
+test('taking out from the deal guarantee asks for the amount on the card', async () => {
   const { execute, calls } = setup(() => ({ status: 200, json: { txHash: '0xcool' } }));
-  const r = await execute({ address: ME }, action('insurance_take_out', { address: ME, positionIds: ['7', '9'], amountUsdc: '50.00', signer: 'karwan' }));
-  assert.deepEqual(calls.map((c) => [c.method, c.path, (c.body as { positionId: string }).positionId]), [
-    ['POST', '/api/vault/request-withdraw', '7'],
-    ['POST', '/api/vault/request-withdraw', '9'],
-  ]);
-  assert.deepEqual(r, { ok: true, summary: 'The wait has started. Ask me to collect it when it ends.', txHash: '0xcool' });
+  const r = await execute({ address: ME }, action('guarantee_take_out', { address: ME, amountUsdc: '50.00', signer: 'karwan' }));
+  assert.deepEqual(calls.map((c) => [c.method, c.path, (c.body as { amountUsdc: string }).amountUsdc]), [['POST', '/api/guarantee/take-out', '50.00']]);
+  assert.deepEqual(r, { ok: true, summary: 'Started. Ask me to collect it when it is ready.', txHash: '0xcool' });
 });
 
-test('a failed position stops the rest, and a wallet-signed card is sent to the app', async () => {
-  const { execute, calls } = setup(() => ({ status: 409, json: { error: 'a vault action is already in progress for this position' } }));
-  const r = await execute({ address: ME }, action('insurance_collect', { address: ME, positionIds: ['1', '2'], amountUsdc: '9.00', signer: 'karwan' }));
-  assert.equal(calls.length, 1);
-  assert.equal(calls[0].path, '/api/vault/claim');
-  assert.equal(r.ok, false);
+test('collecting and keeping the guarantee run their routes, and a wallet-signed card is sent to the app', async () => {
+  const { execute, calls } = setup(() => ({ status: 200, json: { txHash: '0xcool' } }));
+  await execute({ address: ME }, action('guarantee_collect', { address: ME, amountUsdc: '9.00', signer: 'karwan' }));
+  await execute({ address: ME }, action('guarantee_cancel_take_out', { address: ME, amountUsdc: '9.00', signer: 'karwan' }, 'c2'));
+  assert.deepEqual(calls.map((c) => c.path), ['/api/guarantee/collect', '/api/guarantee/cancel-take-out']);
 
   const wallet = setup(() => ({ status: 200, json: {} }));
-  const w = await wallet.execute({ address: ME }, action('insurance_cancel_take_out', { address: ME, positionIds: ['1'], amountUsdc: '9.00', signer: 'wallet' }, 'w1'));
+  const w = await wallet.execute({ address: ME }, action('guarantee_put_up', { address: ME, amountUsdc: '9.00', signer: 'wallet' }, 'w1'));
   assert.equal(wallet.calls.length, 0);
   assert.equal(w.ok, false);
+});
+
+test('a step on an older contract names the contract, the position and the step', async () => {
+  const { execute, calls } = setup(() => ({ status: 200, json: { txHash: '0xold' } }));
+  const r = await execute({ address: ME }, action('legacy_step', { address: ME, kind: 'guarantee', contract: '0x3fe7bddea2b1d5255a0e865222dae00eeefc45da', ref: '4', step: 'claim', amountUsdc: '250', signer: 'karwan' }));
+  assert.deepEqual(calls.map((c) => [c.path, c.body]), [['/api/legacy/step', { kind: 'guarantee', contract: '0x3fe7bddea2b1d5255a0e865222dae00eeefc45da', ref: '4', step: 'claim' }]]);
+  assert.equal(r.ok, true);
 });
 
 test('getting paid early runs the deal page and financier desk routes with their bodies', async () => {

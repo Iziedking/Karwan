@@ -18,6 +18,8 @@ const MAY_ASK = new Set([
   'routes/bridge.ts',
   'routes/activation.ts',
   'routes/vault.ts',
+  // Putting up a deal guarantee is the confirmed action deal insurance was (view 37).
+  'routes/guaranteeLive.ts',
 ]);
 
 function sources(dir: string): string[] {

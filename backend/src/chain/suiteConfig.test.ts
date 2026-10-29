@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { SuiteConfigError, checkSuiteOnChain, suiteAddresses, type SuiteAddresses, type SuiteReads } from './suiteConfig.js';
+import { SuiteConfigError, checkGuaranteeVault, checkSuiteOnChain, suiteAddresses, suiteVaultAddress, type SuiteAddresses, type SuiteReads } from './suiteConfig.js';
 
 const DEPLOYED: SuiteAddresses = {
   hub: '0xB874C290B82c0689De75Eaf9434774f83da138a6',
@@ -91,4 +91,19 @@ test('new_deals_stay_put_while_karwan_keys_are_missing', async () => {
   assert.deepEqual(await suiteReady(DEPLOYED, chain(), 'the arbiter key is not a private key'), { ready: false, reason: 'the arbiter key is not a private key' });
   assert.deepEqual(await suiteReady(DEPLOYED, chain(), null), { ready: true, reason: null });
   assert.deepEqual(await suiteReady(DEPLOYED, chain({ isFamily: async () => false }), null), { ready: false, reason: 'agreement-family' });
+});
+
+const VAULT = '0xF5FD1fd6d790da42C022a5c5404676c048007ed5' as const;
+
+test('the guarantee vault is off unless the family is on and its address is set', () => {
+  assert.equal(suiteVaultAddress(env({ KARWAN_SUITE_VAULT_ADDR: VAULT, SUITE_ENABLED: false })), null);
+  assert.equal(suiteVaultAddress(env()), null);
+  assert.equal(suiteVaultAddress(env({ KARWAN_SUITE_VAULT_ADDR: VAULT })), VAULT);
+});
+
+test('the guarantee vault must be a contract that names the suite hub', async () => {
+  const reads = (hub: string, code = '0x6080') => ({ code: async () => code as `0x${string}`, vaultHub: async () => hub as `0x${string}` });
+  await checkGuaranteeVault(VAULT, DEPLOYED.hub, reads(DEPLOYED.hub.toLowerCase()));
+  await assert.rejects(checkGuaranteeVault(VAULT, DEPLOYED.hub, reads(DEPLOYED.hub, '0x')), (e: SuiteConfigError) => e.check === 'code:vault');
+  await assert.rejects(checkGuaranteeVault(VAULT, DEPLOYED.hub, reads(DEPLOYED.identity)), (e: SuiteConfigError) => e.check === 'vault-hub');
 });

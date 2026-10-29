@@ -29,6 +29,7 @@ import { CHECK_POLICY_V1 } from '../deals/fundDirectV3.js';
 import { createSuiteEarnings, type EarningsMove } from '../deals/suiteEarnings.js';
 import { runSuiteReviewEnd } from '../deals/suiteReviewEnd.js';
 import { bindingTypedData, createSuiteIdentity, KIND, registryAbi } from '../identity/suiteIdentity.js';
+import { guaranteeVaultAbi } from '../chain/guaranteeVault.js';
 
 /// The escrow-family path end to end on an Arc fork of the deployed suite
 /// (plan 2, Task 13), with the backend's own adapters and local keys in place
@@ -473,10 +474,86 @@ async function full(): Promise<void> {
   );
 }
 
+/// The Deal guarantee on the family vault (view 37), with no role keys: a fresh
+/// person sets up their record through the app's identity module, puts up a
+/// guarantee, takes it out, cannot collect early, and collects after the wait.
+async function guaranteeRun(): Promise<void> {
+  const accounts: Record<string, LocalAccount> = {};
+  for (const id of ['g-id', 'g-buyer', 'g-seller']) {
+    accounts[id] = privateKeyToAccount(generatePrivateKey());
+    await anvil.setBalance({ address: accounts[id]!.address, value: 5_000n * 10n ** 18n });
+  }
+  const wallet = (id: string) => createWalletClient({ account: accounts[id]!, chain, transport: http(RPC) });
+  const sendAs = async (id: string, to: Hex, abi: readonly unknown[], functionName: string, args: unknown[]) => {
+    const hash = await wallet(id).writeContract({ address: to, abi: abi as never, functionName: functionName as never, args: args as never, account: accounts[id]!, chain });
+    const receipt = await pub.waitForTransactionReceipt({ hash });
+    if (receipt.status !== 'success') throw new Error(`${functionName} reverted (${hash})`);
+    return receipt;
+  };
+  const me = accounts['g-id']!.address;
+  const mine = { identity: { address: me, walletId: 'g-id' }, buyer: { address: accounts['g-buyer']!.address, walletId: 'g-buyer' }, seller: { address: accounts['g-seller']!.address, walletId: 'g-seller' } };
+  const nowSecs = await chainNow();
+  const identity = createSuiteIdentity({
+    registry: D.identity!,
+    chainId: CHAIN_ID,
+    now: () => nowSecs,
+    binding: async (w) => {
+      const [id, kind, expiry] = await pub.readContract({ address: D.identity!, abi: registryAbi, functionName: 'bindingOf', args: [w] });
+      return { id: BigInt(id), kind: Number(kind), expiry: BigInt(expiry) };
+    },
+    nonce: (w) => pub.readContract({ address: D.identity!, abi: registryAbi, functionName: 'nonces', args: [w] }),
+    identityCount: async () => BigInt(await pub.readContract({ address: D.identity!, abi: registryAbi, functionName: 'identityCount' })),
+    agentLimit: async (w) => {
+      const [perPayment, total, used] = await pub.readContract({ address: D.identity!, abi: registryAbi, functionName: 'agentLimitOf', args: [w] });
+      return { perPayment, total, used };
+    },
+    wallets: async (user) => (user.toLowerCase() === me.toLowerCase() ? mine : null),
+    ensureWallets: async (user) => (user.toLowerCase() === me.toLowerCase() ? mine : null),
+    isDeployed: async () => true,
+    deployAgent: async () => undefined,
+    signTypedData: (walletId, typed) => accounts[walletId]!.signTypedData!(typed),
+    execute: async (walletId, fn, args) => ({ txHash: (await sendAs(walletId, D.identity!, registryAbi, fn, args)).transactionHash }),
+  });
+  await identity.setUpIdentityForCustodial(me);
+  const { identityId } = await identity.identityStatus(me);
+  check('a fresh person has a record', identityId !== 0n, `id ${identityId}`);
+
+  const vault = D.vault!;
+  const amount = 100_000_000n;
+  const stakeOf = () => pub.readContract({ address: vault, abi: guaranteeVaultAbi, functionName: 'stakeOf', args: [identityId, USDC] });
+  const balance = () => pub.readContract({ address: USDC, abi: erc20Abi, functionName: 'balanceOf', args: [me] });
+
+  await sendAs('g-id', USDC, erc20Abi, 'approve', [vault, amount]);
+  const put = await sendAs('g-id', vault, guaranteeVaultAbi, 'stake', [USDC, amount]);
+  check('put up 100 USDC as a deal guarantee', (await stakeOf()).active === amount, `tx ${put.transactionHash}`);
+
+  const out = await sendAs('g-id', vault, guaranteeVaultAbi, 'requestWithdraw', [USDC, amount]);
+  const cooling = await stakeOf();
+  const wait = Number(await pub.readContract({ address: vault, abi: guaranteeVaultAbi, functionName: 'COOLDOWN' }));
+  check('taking it out starts the wait', cooling.cooling === amount && Number(cooling.coolUntil) >= (await chainNow()) + wait - 5, `${wait / DAY} days, tx ${out.transactionHash}`);
+
+  const early = await pub.simulateContract({ address: vault, abi: guaranteeVaultAbi, functionName: 'withdraw', args: [USDC], account: me }).then(() => 'went through', () => 'refused');
+  check('collecting before the wait ends is refused', early === 'refused');
+
+  await warp(wait + 1);
+  const before = await balance();
+  const got = await sendAs('g-id', vault, guaranteeVaultAbi, 'withdraw', [USDC]);
+  const after = await stakeOf();
+  // Gas on Arc is paid in USDC: native has 18 decimals, the token 6.
+  const gasMicros = (got.gasUsed * got.effectiveGasPrice) / 10n ** 12n;
+  const received = (await balance()) - before + gasMicros;
+  check(
+    'after the wait it is collected back to the wallet, exactly',
+    received >= amount - 1n && received <= amount + 1n && after.active === 0n && after.cooling === 0n,
+    `received ${received} micros with gas added back, tx ${got.transactionHash}`,
+  );
+}
+
 async function main(): Promise<void> {
   console.log(`suite fork e2e, ${phase}, block ${await pub.getBlockNumber()}`);
   await parity();
   if (phase === 'full') await full();
+  if (phase === 'guarantee') await guaranteeRun();
   console.log(failed === 0 ? 'all checks passed' : `${failed} check(s) failed`);
   process.exit(failed === 0 ? 0 : 1);
 }

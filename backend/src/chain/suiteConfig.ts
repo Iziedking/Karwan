@@ -36,6 +36,7 @@ type SuiteEnv = {
   KARWAN_SUITE_AGREEMENT_ADDR?: string;
   KARWAN_SUITE_VERIFIER_ADDR?: string;
   KARWAN_SUITE_TRADE_FINANCE_ADDR?: string;
+  KARWAN_SUITE_VAULT_ADDR?: string;
 };
 
 export function suiteAddresses(cfg: SuiteEnv = config): SuiteAddresses | null {
@@ -52,6 +53,25 @@ export function suiteAddresses(cfg: SuiteEnv = config): SuiteAddresses | null {
 }
 
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
+
+/// The family's vault, which holds Deal guarantees (view 37). Kept apart from
+/// the deal addresses so a missing vault setting turns off the guarantee only,
+/// never new deals.
+export function suiteVaultAddress(cfg: SuiteEnv = config): Hex | null {
+  if (!cfg.SUITE_ENABLED || !cfg.KARWAN_SUITE_VAULT_ADDR) return null;
+  return cfg.KARWAN_SUITE_VAULT_ADDR as Hex;
+}
+
+export interface VaultReads {
+  code: (addr: Hex) => Promise<Hex | undefined>;
+  vaultHub: () => Promise<Hex>;
+}
+
+export async function checkGuaranteeVault(vault: Hex, hub: Hex, read: VaultReads): Promise<void> {
+  const code = await read.code(vault);
+  if (!code || code === '0x') throw new SuiteConfigError('code:vault', `no contract at ${vault}`);
+  if (!same(await read.vaultHub(), hub)) throw new SuiteConfigError('vault-hub', 'the vault names another hub');
+}
 
 export async function checkSuiteOnChain(addrs: SuiteAddresses, read: SuiteReads): Promise<void> {
   for (const [name, addr] of Object.entries(addrs) as [keyof SuiteAddresses, Hex][]) {
@@ -109,4 +129,34 @@ export async function bootSuiteCheck(reads?: SuiteReads, signersProblem: string 
 
 export function suiteFundingEnabled(): boolean {
   return suiteChecked && suiteAddresses() !== null;
+}
+
+const VAULT_HUB_ABI = [
+  { type: 'function', name: 'hub', stateMutability: 'view', inputs: [], outputs: [{ type: 'address' }] },
+] as const;
+
+let vaultChecked = false;
+
+/// Runs once at startup after the deal check. A failed check keeps the Deal
+/// guarantee off; deals are not affected.
+export async function bootGuaranteeVaultCheck(reads?: VaultReads): Promise<boolean> {
+  const addrs = suiteAddresses();
+  const vault = suiteVaultAddress();
+  if (!addrs || !vault) return false;
+  try {
+    await checkGuaranteeVault(vault, addrs.hub, reads ?? {
+      code: (addr) => publicClient.getCode({ address: addr }),
+      vaultHub: () => publicClient.readContract({ address: vault, abi: VAULT_HUB_ABI, functionName: 'hub' }),
+    });
+    vaultChecked = true;
+    logger.info({ vault }, 'guarantee vault check passed');
+  } catch (err) {
+    vaultChecked = false;
+    logger.error({ reason: err instanceof SuiteConfigError ? err.check : (err as Error).message }, 'guarantee vault check failed; the Deal guarantee stays off');
+  }
+  return vaultChecked;
+}
+
+export function guaranteeVaultEnabled(): Hex | null {
+  return vaultChecked ? suiteVaultAddress() : null;
 }

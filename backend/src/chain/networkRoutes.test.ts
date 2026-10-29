@@ -15,7 +15,7 @@ test('with only the v3 escrow, direct deals and offers open and everything else 
   const closed = closedPrefixes({ legacyDeployed: false, v3EscrowDeployed: true });
   assert.ok(!closed.includes('/api/deals'));
   assert.ok(!closed.includes('/api/listings'));
-  for (const p of ['/api/jobs', '/api/agents', '/api/reputation', '/api/x402', '/api/vault', '/api/factoring']) {
+  for (const p of ['/api/jobs', '/api/agents', '/api/reputation', '/api/x402', '/api/vault', '/api/guarantee', '/api/factoring']) {
     assert.ok(closed.includes(p), p);
   }
 });

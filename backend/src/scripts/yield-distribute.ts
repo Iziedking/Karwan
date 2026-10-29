@@ -41,6 +41,9 @@
 ///   OPERATOR_PRIVATE_KEY               0x-prefixed hex (NOT the deployer)
 ///
 /// Optional env:
+///   KARWAN_SUITE_VAULT_ADDR and        the family vault and identity registry;
+///   KARWAN_SUITE_IDENTITY_ADDR         when both are set, Deal guarantees are
+///                                      credited at the same rate (view 37)
 ///   USDC_ADDR                          defaults to 0x3600... on Arc
 ///   USER_DAILY_APY_BPS                 fallback bps/day when the oracle is
 ///                                      unreadable. Default 1. NOT the normal
@@ -72,6 +75,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { arcChain as buildArcChain, arcRpcUrls, arcTransport } from './arcRpc.js';
 import { appendActivity } from '../db/activityLog.js';
+import { guaranteeAccruals, mergeAccruals, readGuaranteeHolders } from '../chain/guaranteeYield.js';
 import { bus } from '../events.js';
 import 'dotenv/config';
 
@@ -165,6 +169,8 @@ const POSITION_STATE_ACTIVE = 1;
 const RPC_URLS = arcRpcUrls();
 const VAULT = process.env.KARWAN_VAULT_ADDR as Address | undefined;
 const DISTRIBUTOR = process.env.KARWAN_YIELD_DISTRIBUTOR_ADDR as Address | undefined;
+const FAMILY_VAULT = process.env.KARWAN_SUITE_VAULT_ADDR as Address | undefined;
+const IDENTITY_REGISTRY = process.env.KARWAN_SUITE_IDENTITY_ADDR as Address | undefined;
 const USDC = (process.env.USDC_ADDR ?? '0x3600000000000000000000000000000000000000') as Address;
 const PK = process.env.OPERATOR_PRIVATE_KEY as `0x${string}` | undefined;
 /// Fixed fallback rate, in basis points PER DAY, used only when the oracle
@@ -387,13 +393,23 @@ async function run(): Promise<void> {
     accrualByOwner.set(owner, (accrualByOwner.get(owner) ?? 0n) + dailyYield);
   }
 
-  if (accrualByOwner.size === 0) {
-    console.log('no active positions to credit. exiting.');
+  /// Deal guarantees on the family vault earn the same rate (view 37). The
+  /// vault keys them by identity; each credit goes to the identity's own wallet.
+  let guaranteeCredits = new Map<Address, bigint>();
+  if (FAMILY_VAULT && IDENTITY_REGISTRY) {
+    const holders = await readGuaranteeHolders(publicClient, { registry: IDENTITY_REGISTRY, vault: FAMILY_VAULT, usdc: USDC });
+    guaranteeCredits = guaranteeAccruals(holders, dailyBps);
+    log(`deal guarantees: ${holders.filter((h) => h.active > 0n).length} with money in the family vault, ${guaranteeCredits.size} credited`);
+  }
+  const credits = mergeAccruals(accrualByOwner, guaranteeCredits);
+
+  if (credits.size === 0) {
+    console.log('no active positions or guarantees to credit. exiting.');
     return;
   }
 
-  const stakers = [...accrualByOwner.keys()];
-  const amounts = stakers.map((s) => accrualByOwner.get(s) ?? 0n);
+  const stakers = [...credits.keys()];
+  const amounts = stakers.map((s) => credits.get(s) ?? 0n);
   const total = amounts.reduce((acc, a) => acc + a, 0n);
 
   log(`active stakers: ${stakers.length}`);

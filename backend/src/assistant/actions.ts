@@ -5,7 +5,7 @@ import type { BriefAnswers } from '../agents/agentBriefLines.js';
 import type { DealStepConfirm } from './dealActions.js';
 import type { MoneyStepConfirm } from './moneyActions.js';
 import type { AccountStepConfirm } from './accountActions.js';
-import type { InsuranceCancelTakeOutConfirm, InsuranceCollectConfirm, InsuranceTakeOutConfirm } from './insurance.js';
+import type { GuaranteeCancelConfirm, GuaranteeCollectConfirm, GuaranteePutUpConfirm, GuaranteeTakeOutConfirm, LegacyStepConfirm } from './guarantee.js';
 import type { FinanceAcceptConfirm, FinanceApplyConfirm, FinanceAskConfirm, FinanceOfferConfirm, FinanceRejectConfirm, FinanceStopAskingConfirm } from './finance.js';
 
 /// Stage 2 of the chat-native transaction surface: the ACTION ENVELOPE. An
@@ -146,15 +146,8 @@ export interface CancelListingPayload {
   caller: string;
 }
 
-/// Staking and yield are Circle-account only: they move the user's IDENTITY
-/// wallet, which web3 users self-custody. The tools gate on `method` before
-/// building either card.
-export interface StakePayload {
-  address: string;
-  amountUsdc: number;
-  /// Set when the person's own wallet signs the deposit (view 31 phase D).
-  signer?: 'wallet';
-}
+/// Claiming yield moves the user's identity wallet, which web3 users hold
+/// themselves, so the tool gates on `method` before building the card.
 export interface ClaimYieldPayload {
   address: string;
 }
@@ -302,10 +295,6 @@ export interface CancelListingConfirm extends ConfirmActionBase {
   intent: 'cancel_listing';
   payload: CancelListingPayload;
 }
-export interface StakeConfirm extends ConfirmActionBase {
-  intent: 'stake_usdc';
-  payload: StakePayload;
-}
 export interface ClaimYieldConfirm extends ConfirmActionBase {
   intent: 'claim_yield';
   payload: ClaimYieldPayload;
@@ -393,7 +382,7 @@ export type ConfirmAction =
   | MarkDeliveredConfirm
   | CancelRequestConfirm
   | CancelListingConfirm
-  | StakeConfirm
+  | GuaranteePutUpConfirm
   | ClaimYieldConfirm
   | FundAgentConfirm
   | GatewayDepositConfirm
@@ -404,9 +393,10 @@ export type ConfirmAction =
   | CreateDirectDealConfirm
   | FundDirectDealConfirm
   | SetUpRecordConfirm
-  | InsuranceTakeOutConfirm
-  | InsuranceCancelTakeOutConfirm
-  | InsuranceCollectConfirm
+  | GuaranteeTakeOutConfirm
+  | GuaranteeCancelConfirm
+  | GuaranteeCollectConfirm
+  | LegacyStepConfirm
   | FinanceAskConfirm
   | FinanceStopAskingConfirm
   | FinanceAcceptConfirm
@@ -445,7 +435,8 @@ export const NAVIGATE_DESTINATIONS = [
   'profile',
   'activity',
   'how_it_works',
-  'stake',
+  'guarantee',
+  'legacy',
   'settings',
   'feedback',
 ] as const;
@@ -545,7 +536,8 @@ const DESTINATIONS: Record<NavigateDestination, DestSpec> = {
   profile: { label: 'Your profile', build: () => '/profile' },
   activity: { label: 'Your activity', build: () => '/activity' },
   how_it_works: { label: 'How it works', build: () => '/how-it-works' },
-  stake: { label: 'Stake for reputation', build: () => '/stake' },
+  guarantee: { label: 'Your deal guarantee', build: () => '/guarantee' },
+  legacy: { label: 'Legacy contracts', build: () => '/legacy' },
   settings: { label: 'Settings', build: () => '/settings' },
   feedback: { label: 'Send feedback', build: () => '/feedback' },
 };
@@ -1147,35 +1139,7 @@ export function buildCancelListingConfirm(i: {
   };
 }
 
-/// Stake USDC into the vault. Locks the money behind a cooldown, so it warns.
-export function buildStakeConfirm(i: {
-  caller: string;
-  amountUsdc: number;
-  walletAfterUsdc: string;
-  cooldownLabel: string;
-  signer?: 'karwan' | 'wallet';
-}): StakeConfirm | { error: string } {
-  if (!(i.amountUsdc > 0)) return { error: 'The stake amount must be greater than 0.' };
-  return {
-    kind: 'confirm',
-    id: `stake_usdc:${i.amountUsdc}:${confirmNonce()}`,
-    intent: 'stake_usdc',
-    title: 'Stake USDC',
-    summary: `Lock ${i.amountUsdc} USDC in the stake vault to earn yield and build reputation.`,
-    warning: `Staked USDC is not instantly spendable. Unstaking takes a ${i.cooldownLabel} cooldown, and stake reserved against an open deal cannot be withdrawn until that deal settles.`,
-    fields: [
-      { label: 'Amount', value: `${i.amountUsdc} USDC` },
-      { label: 'From', value: i.signer === 'wallet' ? 'Your own wallet, which asks you to sign twice' : 'Your wallet' },
-      { label: 'Wallet after', value: `${i.walletAfterUsdc} USDC` },
-      { label: 'Unstake takes', value: i.cooldownLabel },
-    ],
-    payload: { address: i.caller, amountUsdc: i.amountUsdc, ...(i.signer === 'wallet' ? { signer: 'wallet' as const } : {}) },
-    confirmLabel: 'Stake',
-    cancelLabel: 'Not now',
-  };
-}
-
-/// Claim accrued staking yield into the user's wallet. Purely additive.
+/// Claim yield earned on the deal guarantee into the user's wallet. Purely additive.
 export function buildClaimYieldConfirm(i: {
   caller: string;
   claimableUsdc: string;

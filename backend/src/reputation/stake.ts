@@ -25,6 +25,7 @@ import { vault, legacyVault } from '../chain/contracts.js';
 import { vaultAbi } from '../chain/abis/vault.js';
 import { legacyVaultAbi } from '../chain/abis/legacyVault.js';
 import { logger } from '../logger.js';
+import { readGuaranteeForStake, withGuarantee } from './stakeGuarantee.js';
 
 interface CacheEntry {
   value: number;
@@ -203,10 +204,15 @@ export async function activeStakeSummary(addressRaw: string): Promise<ActiveStak
   const cached = summaryCache.get(address);
   if (cached && cached.expiresAt > Date.now()) return cached.value;
 
+  const guarantee = readGuaranteeForStake(address).catch((err) => {
+    logger.warn({ err: (err as Error).message }, 'guarantee read for stake failed; counting the previous vault only');
+    return null;
+  });
   const vaultAddr = (config as unknown as Record<string, string | undefined>).KARWAN_VAULT_ADDR;
   if (!vaultAddr) {
-    summaryCache.set(address, { value: EMPTY_SUMMARY, expiresAt: Date.now() + CACHE_TTL_MS });
-    return EMPTY_SUMMARY;
+    const value = withGuarantee(EMPTY_SUMMARY, await guarantee, Math.floor(Date.now() / 1000));
+    summaryCache.set(address, { value, expiresAt: Date.now() + CACHE_TTL_MS });
+    return value;
   }
 
   const env = config as unknown as Record<string, string | undefined>;
@@ -235,12 +241,7 @@ export async function activeStakeSummary(addressRaw: string): Promise<ActiveStak
   const reservedUsdc = Number(formatUnits(reservedRaw as bigint, USDC_DECIMALS));
   const freeStakeUsdc = Math.max(0, stakeUsdc - reservedUsdc);
 
-  const value: ActiveStakeSummary = {
-    stakeUsdc,
-    freeStakeUsdc,
-    reservedUsdc,
-    stakeDays,
-  };
+  const value: ActiveStakeSummary = withGuarantee({ stakeUsdc, freeStakeUsdc, reservedUsdc, stakeDays }, await guarantee, now);
   summaryCache.set(address, { value, expiresAt: Date.now() + CACHE_TTL_MS });
   return value;
 }

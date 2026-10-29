@@ -24,7 +24,6 @@ import { extractUrls } from '../security/extractUrls.js';
 import { awaitingNextDelivery } from '../deals/milestoneDelivery.js';
 import { dealPendingLines, proposalPendingLines } from './pendingLines.js';
 import { arcChain, publicClient } from '../chain/client.js';
-import { vaultAbi } from '../chain/abis/vault.js';
 import { config } from '../config.js';
 import { getUserByAddress } from '../db/users.js';
 import { listDealsForAddress, getDeal, type DirectDeal } from '../db/deals.js';
@@ -35,7 +34,6 @@ import { listActivityForAddress } from '../db/activityLog.js';
 import { listBridgesForUser } from '../db/bridges.js';
 import { bridgeStanding } from './bridgeStanding.js';
 import { listMatchProposalsForUser } from '../db/matchProposals.js';
-import { activeStakeSummary } from '../reputation/stake.js';
 import { readOwnedBalance } from '../money/ownedBalance.js';
 import { financedStage, positionHref } from '../financial/dealFinanciers.js';
 import { firstTradeSteps, readFirstTradeFacts } from './firstTrade.js';
@@ -71,6 +69,7 @@ import { liveShareDeps } from '../sealed/passportShareLive.js';
 import { stopShare } from '../db/passportShares.js';
 import { ratingTools } from './ratingTools.js';
 import { counterpartyTools } from './counterpartyTools.js';
+import { dealLinkTools } from './dealLink.js';
 import { memoryPreamble, memoryTools } from './memoryTools.js';
 import { addNotes, deleteNotes, getMemory, type AssistantMemory } from '../db/assistantMemory.js';
 import { conversationsMentioning } from '../db/assistantConversations.js';
@@ -103,7 +102,6 @@ import {
   buildCancelListingConfirm,
   buildSaveSetupConfirm,
   buildSaveWaysConfirm,
-  buildStakeConfirm,
   buildClaimYieldConfirm,
   buildFundAgentConfirm,
   buildFundAgentWeb3Confirm,
@@ -154,8 +152,10 @@ import { tagRecipient } from '../profile/tagRecipient.js';
 import { findProfileByHandle } from '../db/profiles.js';
 import { ARC } from '../chain/client.js';
 import { personName } from '../channels/personName.js';
-import { getPositionsByOwner } from '../chain/vaultScanCache.js';
-import { buildCancelTakeOutConfirm, buildCollectConfirm, buildTakeOutConfirm, type InsurancePosition } from './insurance.js';
+import { buildGuaranteeCancelConfirm, buildGuaranteeCollectConfirm, buildGuaranteePutUpConfirm, buildGuaranteeTakeOutConfirm, buildLegacyStepConfirm } from './guarantee.js';
+import { guaranteeSnapshot } from '../routes/guaranteeLive.js';
+import { findLegacyPositions } from '../routes/legacyContracts.js';
+import { liveLegacyDeps } from '../routes/legacyContractsLive.js';
 import { financeTools } from './financeTools.js';
 import type { FinanceDeal } from './finance.js';
 import { callAsAccount } from '../channels/inProcess.js';
@@ -195,27 +195,8 @@ const NATIVE_DECIMALS = arcChain.nativeCurrency.decimals;
 
 /// Whether the authenticated tool-calling assistant can run. False when no
 /// Anthropic key is set (privacy boundary: this path is direct-Anthropic-only).
-/// The vault's wait before deal insurance can be collected, in days.
-async function vaultWaitDays(): Promise<number> {
-  try {
-    if (!config.KARWAN_VAULT_ADDR) return 7;
-    const days = await publicClient.readContract({ address: config.KARWAN_VAULT_ADDR as `0x${string}`, abi: vaultAbi, functionName: 'COOLDOWN_DAYS' });
-    return Number(days);
-  } catch {
-    return 7;
-  }
-}
-
-/// Their deal insurance positions, from the vault scan the stake page reads.
-async function insurancePositions(owner: string): Promise<InsurancePosition[]> {
-  const { positions } = await getPositionsByOwner(owner);
-  return positions.map((p) => ({
-    positionId: p.positionId,
-    amountUsdc: Number(formatUnits(BigInt(p.principalWei), USDC_DECIMALS)),
-    state: p.state,
-    claimableAt: p.claimableAt,
-  }));
-}
+const micros = (m: bigint) => Number(formatUnits(m, USDC_DECIMALS));
+const dayOf = (unixSeconds: number) => new Date(unixSeconds * 1000).toISOString().slice(0, 10);
 
 export function assistantAgentEnabled(): boolean {
   return assistantAgentModel !== null;
@@ -302,7 +283,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
             stakedUsdc: owned.staked > 0 ? owned.staked.toFixed(2) : null,
             gas: formatUnits(gas, NATIVE_DECIMALS),
             someSourcesUnread: owned.partial,
-            note: `totalUsdc is the balance on their balance page: give it first, as their balance. Name parts only in the page's words: "ready to send", "on other networks", "with your agents" (for buying, for selling). Never say chains. walletOnArcUsdc is what they can send or pay from directly. stakedUsdc is locked in the stake vault behind their deals and is NOT part of the total: if you mention it, say it is locked and not counted in the balance, and do not claim it earns yield unless get_my_stake shows yield. Never mention a pooled or unified balance. If someSourcesUnread is true, say one place could not be read just now, so the total may be low.`,
+            note: `totalUsdc is the balance on their balance page: give it first, as their balance. Name parts only in the page's words: "ready to send", "on other networks", "with your agents" (for buying, for selling). Never say chains. walletOnArcUsdc is what they can send or pay from directly. stakedUsdc is their deal guarantee, set aside to protect their buyers, and is NOT part of the total: if you mention it, call it their deal guarantee, say it is not counted in the balance, and get the details from get_my_guarantee. Never mention a pooled or unified balance. If someSourcesUnread is true, say one place could not be read just now, so the total may be low.`,
           };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant get_my_balance failed');
@@ -652,40 +633,52 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
       },
     }),
 
-    get_my_stake: tool({
+    get_my_guarantee: tool({
       description:
-        "The signed-in user's full staking picture: total USDC staked in the vault, how much is free vs reserved as insurance against their open deals, how long they've been staking, plus their yield — claimable now, lifetime earned, lifetime claimed. Use for 'what is my staking balance', 'how much have I staked', 'what's my yield', 'can I unstake'. Never guess these numbers.",
+        "The signed-in user's deal guarantee: money they set aside to protect their buyers and back advances. In place, held by deals until they finish, free to take out, coming back and the day it is ready, the yield they can claim, and anything still on the previous contract. Use for 'my guarantee', 'how much have I put up', 'my yield', 'can I take it out', and the old words 'my stake' or 'my insurance'. Never guess these numbers.",
       inputSchema: z.object({}),
       execute: async () => {
         try {
-          const [stake, yieldSnap, positions] = await Promise.all([
-            activeStakeSummary(address),
-            readStakerYield(address),
-            insurancePositions(address).catch(() => []),
-          ]);
-          const now = Math.floor(Date.now() / 1000);
+          const [snap, yieldSnap] = await Promise.all([guaranteeSnapshot(address), readStakerYield(address).catch(() => null)]);
+          if (!snap) return { error: 'The deal guarantee is not available right now.' };
+          const s = snap.state;
           return {
-            stakedUsdc: stake.stakeUsdc.toFixed(2),
-            freeStakeUsdc: stake.freeStakeUsdc.toFixed(2),
-            reservedForDealsUsdc: stake.reservedUsdc.toFixed(2),
-            longestPositionDays: Math.round(stake.stakeDays),
-            // Insurance being taken out: offer propose_insurance_collect for what is ready, propose_insurance_cancel_take_out to keep it.
-            waitingToTakeOut: positions
-              .filter((p) => p.state === 2 && p.amountUsdc > 0)
-              .map((p) => ({ amountUsdc: p.amountUsdc.toFixed(2), readyOn: new Date(p.claimableAt * 1000).toISOString().slice(0, 10), ready: p.claimableAt <= now })),
+            inPlaceUsdc: micros(s.inPlaceMicros).toFixed(2),
+            heldByDealsUsdc: micros(s.heldMicros).toFixed(2),
+            freeToTakeOutUsdc: micros(s.freeMicros).toFixed(2),
+            comingBackUsdc: micros(s.comingBackMicros).toFixed(2),
+            readyOn: s.readyAt === null ? null : dayOf(s.readyAt),
+            readyToCollect: s.ready,
+            waitDays: snap.waitDays,
+            onPreviousContractUsdc: micros(snap.previousMicros).toFixed(2),
             yield:
               yieldSnap && yieldSnap.configured
-                ? {
-                    claimableNowUsdc: yieldSnap.claimableUsdc,
-                    lifetimeEarnedUsdc: yieldSnap.lifetimeCreditedUsdc,
-                    lifetimeClaimedUsdc: yieldSnap.lifetimeClaimedUsdc,
-                  }
+                ? { claimableNowUsdc: yieldSnap.claimableUsdc, lifetimeEarnedUsdc: yieldSnap.lifetimeCreditedUsdc, lifetimeClaimedUsdc: yieldSnap.lifetimeClaimedUsdc }
                 : null,
-            note: 'Free stake backs new deals as insurance; reserved stake is locked against open deals until they settle. Yield is credited daily from the USYC-backed treasury and claimed at /stake. Staking also feeds the reputation score.',
+            note: 'Call it their deal guarantee, never stake, vault or insurance. It earns at the USYC rate, paid by Karwan on testnet; never say it is invested in USYC. Money on the previous contract is withdrawn from Legacy contracts (get_my_legacy_positions). Ready money: propose_guarantee_collect; to keep it, propose_guarantee_cancel_take_out.',
           };
         } catch (err) {
-          logger.warn({ err: (err as Error).message }, 'assistant get_my_stake failed');
-          return { error: 'Could not read the stake vault right now. Try again shortly.' };
+          logger.warn({ err: (err as Error).message }, 'assistant get_my_guarantee failed');
+          return { error: 'Could not read the deal guarantee right now. Try again shortly.' };
+        }
+      },
+    }),
+
+    get_my_legacy_positions: tool({
+      description:
+        "What the signed-in user still has on older Karwan contracts: older deals with money in them and guarantees on older contracts, each with the step that works now. Use for 'old contracts', 'legacy', 'money on the previous contract', 'I had money on an older version'.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        try {
+          const found = await findLegacyPositions(liveLegacyDeps, address);
+          return {
+            deals: found.deals.map((d) => d.row),
+            guarantees: found.guarantees.map((g) => g.row),
+            note: 'Offer one step with propose_legacy_step. A row held by Karwan has no step: tell them to contact support and it will be returned. Page: Legacy contracts (propose_navigation destination "legacy").',
+          };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant get_my_legacy_positions failed');
+          return { error: 'Could not read the older contracts right now. Try again shortly.' };
         }
       },
     }),
@@ -890,7 +883,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
 
           if (yieldSnap?.configured && Number(yieldSnap.claimableUsdc) > 0) {
             actionNeeded.push(
-              `${yieldSnap.claimableUsdc} USDC of staking yield is claimable at /stake.`,
+              `${yieldSnap.claimableUsdc} USDC of yield on your deal guarantee is ready to claim at /guarantee.`,
             );
           }
 
@@ -1577,30 +1570,22 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
       },
     }),
 
-    propose_stake: tool({
+    propose_guarantee_put_up: tool({
       description:
-        "Prepare a confirm card to stake USDC into the vault, which earns yield and raises their reputation score. Use for 'stake 50 USDC', 'I want to earn yield', 'how do I raise my reputation' (after explaining, offer the card).",
+        "Prepare a card to put up USDC as a deal guarantee: money set aside to protect their buyers and back advances, coming back 7 days after they take it out, earning at the USYC rate paid by Karwan. Use for 'put up a guarantee', 'stake 50', 'add deal insurance', 'how do I raise my reputation' (after explaining, offer the card).",
       inputSchema: z.object({
-        amountUsdc: z.number().positive().max(1_000_000).describe('How much USDC to stake.'),
+        amountUsdc: z.number().positive().max(1_000_000).describe('How much USDC to put up.'),
       }),
       execute: async ({ amountUsdc }) => {
         try {
-          const balance = Number(formatUnits(await readUsdcBalance(address), USDC_DECIMALS));
-          if (balance < amountUsdc) {
-            return { error: `Their wallet holds ${balance.toFixed(2)} USDC, less than the ${amountUsdc} they want to stake. Tell them the real balance and offer to bring more over (check_top_up_sources).` };
-          }
-          const built = buildStakeConfirm({
-            caller: address,
-            amountUsdc,
-            walletAfterUsdc: (balance - amountUsdc).toFixed(2),
-            cooldownLabel: `${await vaultWaitDays()} day`,
-            signer: method === 'circle' ? 'karwan' : 'wallet',
-          });
+          const [snap, balance] = await Promise.all([guaranteeSnapshot(address), readUsdcBalance(address)]);
+          if (!snap) return { error: 'The deal guarantee is not available right now.' };
+          const built = buildGuaranteePutUpConfirm({ address, amountUsdc, balanceUsdc: micros(balance), waitDays: snap.waitDays, signer: method === 'circle' ? 'karwan' : 'wallet' });
           if ('error' in built) return built;
           if (!hasEquivalentConfirm(actions, built)) actions.push(built);
           return { ok: true, shown: built.title };
         } catch (err) {
-          logger.warn({ err: (err as Error).message }, 'assistant propose_stake failed');
+          logger.warn({ err: (err as Error).message }, 'assistant propose_guarantee_put_up failed');
           return { error: 'Could not prepare that right now. Try again shortly.' };
         }
       },
@@ -1608,16 +1593,16 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
 
     propose_claim_yield: tool({
       description:
-        "Prepare a confirm card to claim the user's accrued staking yield into their wallet. Use for 'claim my yield', 'collect my earnings', or proactively when get_my_stake or whats_pending shows claimable yield.",
+        "Prepare a confirm card to claim the yield earned on their deal guarantee into their wallet. Use for 'claim my yield', 'collect my earnings', or proactively when get_my_guarantee or whats_pending shows claimable yield.",
       inputSchema: z.object({}),
       execute: async () => {
         try {
           if (method !== 'circle') {
-            return { error: 'Claiming yield moves their own identity wallet, so they sign it themselves. Send them to the stake screen with propose_navigation (destination "stake").' };
+            return { error: 'Claiming yield moves their own identity wallet, so they sign it themselves. Send them to the guarantee page with propose_navigation (destination "guarantee").' };
           }
           const snap = await readStakerYield(address);
           if (!snap.configured || !(Number(snap.claimableUsdc) > 0)) {
-            return { error: 'They have no yield to claim right now. Yield is credited daily on staked USDC.' };
+            return { error: 'They have no yield to claim right now. Yield is credited daily on the deal guarantee.' };
           }
           const built = buildClaimYieldConfirm({ caller: address, claimableUsdc: snap.claimableUsdc });
           if ('error' in built) return built;
@@ -1630,22 +1615,24 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
       },
     }),
 
-    propose_insurance_take_out: tool({
+    propose_guarantee_take_out: tool({
       description:
-        "Prepare a card to take out deal insurance (money put up in the vault behind their deals). It starts the vault's wait; the money is collected when the wait ends. Use for 'take out my insurance', 'unstake', 'withdraw my stake', 'I want my insurance money back'. Leave amountUsdc out to take out everything that is not protecting an open deal.",
+        "Prepare a card to take money out of their deal guarantee. It comes back after 7 days and is then collected. Use for 'take out my guarantee', 'unstake', 'withdraw my insurance'. Leave amountUsdc out to take out everything deals are not holding.",
       inputSchema: z.object({
         amountUsdc: z.number().positive().max(1_000_000).optional().describe('How much to take out. Omit for all that is free.'),
       }),
       execute: async ({ amountUsdc }) => {
         try {
-          const [positions, stake, waitDays] = await Promise.all([insurancePositions(address), activeStakeSummary(address), vaultWaitDays()]);
-          const built = buildTakeOutConfirm({
+          const snap = await guaranteeSnapshot(address);
+          if (!snap) return { error: 'The deal guarantee is not available right now.' };
+          const s = snap.state;
+          const built = buildGuaranteeTakeOutConfirm({
             address,
-            positions,
-            freeUsdc: stake.freeStakeUsdc,
-            reservedUsdc: stake.reservedUsdc,
             ...(amountUsdc !== undefined ? { amountUsdc } : {}),
-            waitDays,
+            freeUsdc: micros(s.freeMicros),
+            heldUsdc: micros(s.heldMicros),
+            comingBackUsdc: micros(s.comingBackMicros),
+            waitDays: snap.waitDays,
             nowUnix: Math.floor(Date.now() / 1000),
             signer: method === 'circle' ? 'karwan' : 'wallet',
           });
@@ -1653,38 +1640,41 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
           if (!hasEquivalentConfirm(actions, built)) actions.push(built);
           return { ok: true, shown: built.title };
         } catch (err) {
-          logger.warn({ err: (err as Error).message }, 'assistant propose_insurance_take_out failed');
-          return { error: 'Could not read their deal insurance right now. Try again shortly.' };
+          logger.warn({ err: (err as Error).message }, 'assistant propose_guarantee_take_out failed');
+          return { error: 'Could not read their deal guarantee right now. Try again shortly.' };
         }
       },
     }),
 
-    propose_insurance_cancel_take_out: tool({
-      description:
-        "Prepare a card to stop the wait on deal insurance they started taking out, so it protects their deals again. Use for 'cancel the unstake', 'keep my insurance', 'I changed my mind about taking it out'.",
+    propose_guarantee_cancel_take_out: tool({
+      description: "Prepare a card to keep the money coming back from their deal guarantee, so it protects their buyers again. Use for 'cancel taking it out', 'keep my guarantee'.",
       inputSchema: z.object({}),
       execute: async () => {
         try {
-          const built = buildCancelTakeOutConfirm({ address, positions: await insurancePositions(address), signer: method === 'circle' ? 'karwan' : 'wallet' });
+          const snap = await guaranteeSnapshot(address);
+          if (!snap) return { error: 'The deal guarantee is not available right now.' };
+          const built = buildGuaranteeCancelConfirm({ address, comingBackUsdc: micros(snap.state.comingBackMicros), signer: method === 'circle' ? 'karwan' : 'wallet' });
           if ('error' in built) return built;
           if (!hasEquivalentConfirm(actions, built)) actions.push(built);
           return { ok: true, shown: built.title };
         } catch (err) {
-          logger.warn({ err: (err as Error).message }, 'assistant propose_insurance_cancel_take_out failed');
-          return { error: 'Could not read their deal insurance right now. Try again shortly.' };
+          logger.warn({ err: (err as Error).message }, 'assistant propose_guarantee_cancel_take_out failed');
+          return { error: 'Could not read their deal guarantee right now. Try again shortly.' };
         }
       },
     }),
 
-    propose_insurance_collect: tool({
-      description:
-        "Prepare a card to collect deal insurance whose wait has ended, back into their wallet. Use for 'collect my insurance', 'claim my unstaked money', or when get_my_stake shows insurance ready to collect.",
+    propose_guarantee_collect: tool({
+      description: "Prepare a card to collect money from their deal guarantee once it is ready. Use for 'collect my guarantee', 'claim my unstaked money', or when get_my_guarantee shows it is ready.",
       inputSchema: z.object({}),
       execute: async () => {
         try {
-          const built = buildCollectConfirm({
+          const snap = await guaranteeSnapshot(address);
+          if (!snap) return { error: 'The deal guarantee is not available right now.' };
+          const built = buildGuaranteeCollectConfirm({
             address,
-            positions: await insurancePositions(address),
+            comingBackUsdc: micros(snap.state.comingBackMicros),
+            readyAt: snap.state.readyAt,
             nowUnix: Math.floor(Date.now() / 1000),
             signer: method === 'circle' ? 'karwan' : 'wallet',
           });
@@ -1692,8 +1682,36 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
           if (!hasEquivalentConfirm(actions, built)) actions.push(built);
           return { ok: true, shown: built.title };
         } catch (err) {
-          logger.warn({ err: (err as Error).message }, 'assistant propose_insurance_collect failed');
-          return { error: 'Could not read their deal insurance right now. Try again shortly.' };
+          logger.warn({ err: (err as Error).message }, 'assistant propose_guarantee_collect failed');
+          return { error: 'Could not read their deal guarantee right now. Try again shortly.' };
+        }
+      },
+    }),
+
+    propose_legacy_step: tool({
+      description:
+        "Prepare a card for one step on an older Karwan contract, from what get_my_legacy_positions returned: take out, keep or collect a guarantee there; release an older deal or get the money back from it. Pass the row's contract, the jobId or positionId as ref, and one of its steps.",
+      inputSchema: z.object({
+        kind: z.enum(['deal', 'guarantee']),
+        contract: z.string(),
+        ref: z.string(),
+        step: z.enum(['releaseFinal', 'refund', 'requestWithdraw', 'cancelWithdraw', 'claim']),
+      }),
+      execute: async ({ kind, contract, ref, step }) => {
+        try {
+          const found = await findLegacyPositions(liveLegacyDeps, address);
+          const row =
+            kind === 'deal'
+              ? found.deals.find((d) => d.row.contract.toLowerCase() === contract.toLowerCase() && d.row.jobId.toLowerCase() === ref.toLowerCase())?.row
+              : found.guarantees.find((g) => g.row.contract.toLowerCase() === contract.toLowerCase() && g.row.positionId === ref)?.row;
+          if (!row) return { error: 'That is not one of theirs on an older contract. Read get_my_legacy_positions again.' };
+          if (!(row.steps as string[]).includes(step)) return { error: `That step is not available for it right now. Available: ${row.steps.join(', ') || 'none'}.` };
+          const built = buildLegacyStepConfirm({ address, kind, contract: row.contract, ref, step, amountUsdc: row.amountUsdc, signer: method === 'circle' ? 'karwan' : 'wallet' });
+          if (!hasEquivalentConfirm(actions, built)) actions.push(built);
+          return { ok: true, shown: built.title };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant propose_legacy_step failed');
+          return { error: 'Could not prepare that right now. Try again shortly.' };
         }
       },
     }),
@@ -2606,6 +2624,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
     ...passportShareTools(address, { ...liveShareDeps, stop: stopShare }),
     ...ratingTools(address, liveRatingToolDeps),
     ...counterpartyTools(address, { deals: listDealsForAddress, profile: getProfile }),
+    ...dealLinkTools(address, { base: (config.FRONTEND_BASE_URL ?? (ARC.testnet ? 'https://testnet.karwan.site' : 'https://karwan.site')), profile: getProfile }),
     ...memoryTools(address, { memory: getMemory, add: addNotes, remove: deleteNotes, conversations: conversationsMentioning }),
     ...networkTools(address),
     ...directDealTools(address, actions, conversationId),
@@ -2636,7 +2655,7 @@ function authenticatedPreamble(address: string, method: string): string {
     'Start a deal with @someone -> start_protected_deal (ask what is missing first); pay an accepted one -> pay_into_escrow. Send to a Karwan tag -> propose_send_to_tag. Who is @tag -> find_karwan_tag. How-to and navigation -> get_product_facts, then propose_navigation.',
     'Product behaviour -> get_product_facts. Balances -> get_my_balance. Cross-chain source inventory -> list_bridge_sources.',
     'Specific deal, World ID or CRE recorded status -> get_deal_status. Other deals -> list_my_deals.',
-    'Past money moves and bridges -> recall_activity. Stake/yield -> get_my_stake. Reputation -> get_my_reputation.',
+    'Past money moves and bridges -> recall_activity. Deal guarantee and yield -> get_my_guarantee. Older contracts -> get_my_legacy_positions. Reputation -> get_my_reputation.',
     'Offers, requests and bids -> get_my_market_activity. Pending work -> whats_pending. Finance -> get_my_financing.',
     'Getting paid early: the seller asks with propose_get_paid_early, reads offers with list_early_payment_offers, then propose_take_early_payment or propose_turn_down_early_payment. A financier reads list_requests_i_can_fund and offers with propose_early_payment_offer.',
     'Profile -> get_my_profile. Skills and eligibility -> get_my_skills. Business registration/workspaces -> get_my_workspaces.',

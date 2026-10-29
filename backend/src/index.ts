@@ -44,7 +44,8 @@ import { activationRoutes } from './routes/activation.js';
 import { depositRoutes } from './routes/deposit.js';
 import { attestationRoutes } from './routes/attestation.js';
 import { vaultRoutes } from './routes/vault.js';
-import { legacyRoutes } from './routes/legacy.js';
+import { createLegacyContractRoutes } from './routes/legacyContracts.js';
+import { liveLegacyDeps } from './routes/legacyContractsLive.js';
 import { bridgeRoutes, resumePendingBridges } from './routes/bridge.js';
 import { gatewayRoutes } from './routes/gateway.js';
 import { chatRoutes } from './routes/chat.js';
@@ -112,9 +113,11 @@ import { verificationRoutes } from './routes/verification.js';
 import { createPersonVerificationRoutes } from './routes/personVerification.js';
 import { createMoneyOutRoutes } from './routes/moneyOut.js';
 import { createConfirmRoutes } from './routes/confirm.js';
-import { bootSuiteCheck } from './chain/suiteConfig.js';
+import { bootGuaranteeVaultCheck, bootSuiteCheck } from './chain/suiteConfig.js';
 import { platformSignersProblem } from './chain/platformSignersLive.js';
 import { createRecordSetupRoutes } from './routes/recordSetup.js';
+import { createGuaranteeRoutes } from './routes/guarantee.js';
+import { liveGuaranteeDeps } from './routes/guaranteeLive.js';
 import { suiteIdentity } from './identity/suiteIdentityLive.js';
 import { requirePresence } from './presence/live.js';
 import { confirmRouteDeps } from './presence/live.js';
@@ -474,7 +477,7 @@ app.route('/api/setup', setupRoutes);
 // issuer domain, so they cannot live under /api.
 app.route('/', attestationRoutes);
 app.route('/api/vault', vaultRoutes);
-app.route('/api/legacy', legacyRoutes);
+app.route('/api/legacy', createLegacyContractRoutes(liveLegacyDeps));
 app.route('/api/chat', chatRoutes);
 app.route('/api/financing-chat', financingChatRoutes);
 app.route('/api/telegram', telegramRoutes);
@@ -566,6 +569,7 @@ app.route(
     },
   }),
 );
+app.route('/api/guarantee', createGuaranteeRoutes(liveGuaranteeDeps));
 app.route('/api/admin/verification', adminVerificationRoutes);
 app.route('/api/admin/account-deletions', createAdminAccountDeletionRoutes(() => accountDeletion));
 app.route('/api/r', createRecordRoutes(recordDeps));
@@ -1446,6 +1450,7 @@ void boot();
 
 /// New deals open on the escrow family only once its addresses check out on chain.
 void bootSuiteCheck(undefined, platformSignersProblem);
+void bootGuaranteeVaultCheck();
 
 /// A wrong chain id is fatal in production (see chain/networkGuard.ts).
 void checkChain(() => publicClient.getChainId(), ARC.chainId).then((result) => {

@@ -9,6 +9,7 @@ export const DEAL_ROUTE_PREFIXES = [
   '/api/deals',
   '/api/cre',
   '/api/vault',
+  '/api/guarantee',
   '/api/legacy',
   '/api/yield',
   '/api/treasury',

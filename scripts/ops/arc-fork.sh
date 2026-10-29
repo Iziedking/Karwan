@@ -4,7 +4,7 @@
 #   scripts/ops/arc-fork.sh up      start it (idempotent)
 #   scripts/ops/arc-fork.sh url     the RPC URL as seen from node-services
 #   scripts/ops/arc-fork.sh exec -- <cmd>   run Arc's cast/forge in the fork workspace
-#   scripts/ops/arc-fork.sh e2e parity|full   the escrow-family path end to end on the fork
+#   scripts/ops/arc-fork.sh e2e parity|full|guarantee   the escrow-family path end to end on the fork
 #   scripts/ops/arc-fork.sh down    stop it and remove the workspace
 set -euo pipefail
 H=node-services
@@ -52,7 +52,7 @@ case "${1:-}" in
     # The escrow-family path end to end against the fork (backend/src/scripts/suite-fork-e2e.ts).
     # A full run reads the role keys as NAME=value lines on stdin, never from a command line.
     PHASE=${2:-parity}
-    case "$PHASE" in parity|full) ;; *) echo "usage: $0 e2e parity|full" >&2; exit 2 ;; esac
+    case "$PHASE" in parity|full|guarantee) ;; *) echo "usage: $0 e2e parity|full|guarantee" >&2; exit 2 ;; esac
     ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
     ssh -o BatchMode=yes $H "rm -rf $W/repo && mkdir -p $W/repo /tmp/karwan-npm-cache" < /dev/null
     tar -C "$ROOT" -czf - --exclude=node_modules --exclude=dist --exclude=backend/data --exclude='*.log' \

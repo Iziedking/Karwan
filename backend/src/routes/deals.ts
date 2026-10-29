@@ -10,14 +10,12 @@ import { z } from 'zod';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { parseUnits, formatUnits, keccak256, toBytes } from 'viem';
 import { config } from '../config.js';
+import { findLegacyDeal } from '../chain/legacyLive.js';
 import {
   escrow,
   usdc as usdcAddress,
   readEscrow,
-  readLegacyEscrow,
-  legacyEscrow,
   ESCROW_STATE,
-  LEGACY_ESCROW_STATE,
   invalidateEscrowCache,
   readUsdcBalance,
   readUsdcAllowance,
@@ -5822,9 +5820,9 @@ async function enrich(deal: DirectDeal, ctx: EnrichContext = {}) {
     // address = the funds are still on the pre-v2.D contract. Tag the deal
     // lazily so subsequent /direct calls can filter it out without re-
     // querying. Stays a deal record; the /legacy surface picks it up.
-    if (account.version === 'v2' && account.state === ESCROW_STATE.None && legacyEscrow) {
-      const legacy = await readLegacyEscrow(deal.jobId);
-      if (legacy && legacy.state !== LEGACY_ESCROW_STATE.None) {
+    if (account.version === 'v2' && account.state === ESCROW_STATE.None) {
+      const legacy = (await findLegacyDeal(deal.jobId))?.deal ?? null;
+      if (legacy) {
         if (!deal.legacyEscrow || deal.legacyState !== legacy.state) {
           await patchDeal(deal.jobId, {
             legacyEscrow: true,

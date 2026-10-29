@@ -261,40 +261,14 @@ const envSchema = z.object({
   /// every match visibly re-pays on chain and the payer wallet's BaseScan
   /// activity proves the spend instead of a stale cached verdict.
   X402_SCREEN_CACHE_DISABLED: envBool('X402_SCREEN_CACHE_DISABLED'),
-  /// Pre-v2.D KarwanEscrow. Read-only during the 30-day recovery window so
-  /// users with funds still locked on the legacy contract (Funded or
-  /// pre-v2.D "accepted" but never delivered) can refund / cancel from
-  /// the dedicated /legacy page. Unset = recovery surface disabled.
+  /// Pre-v2.D KarwanEscrow, kept for the historical event scan and the
+  /// reputation tenure reader. Recovery reads the deploy ledger (view 37).
   KARWAN_ESCROW_LEGACY_ADDR: optionalAddr,
-  /// Second-generation legacy escrow. Set during a redeploy that promotes the
-  /// previous production escrow into a legacy slot. Each generation runs its
-  /// own 30-day recovery window via LEGACY_WINDOW_CLOSES_AT_2.
+  /// Second-generation legacy escrow, kept for the historical event scan. The
+  /// legacy page reads every older contract from the deploy ledger instead.
   KARWAN_ESCROW_LEGACY_ADDR_2: optionalAddr,
-  /// Third-generation legacy escrow. The v2.D escrow that v2.E displaces.
-  /// Same recovery semantics; window cuts off via LEGACY_WINDOW_CLOSES_AT_3.
+  /// Third-generation legacy escrow, the v2.D escrow; historical scan only.
   KARWAN_ESCROW_LEGACY_ADDR_3: optionalAddr,
-  /// Hard cutoff for the legacy recovery surface. Any time after this
-  /// instant: home banner hides, /legacy returns 410, /api/legacy/* routes
-  /// return 410. Reads still answer for transparency but writes refuse.
-  /// ISO 8601 UTC timestamp. Unset = legacy surface disabled entirely
-  /// (post-window state).
-  LEGACY_WINDOW_CLOSES_AT: z.preprocess(
-    blankToUndefined,
-    z.string().datetime({ offset: true }).optional(),
-  ),
-  /// Hard cutoff for the second-generation legacy recovery (Gen 2). Independent
-  /// from the Gen 1 cutoff so each retired contract gets a fresh 30-day claim
-  /// window from the day it was retired. Unset = Gen 2 surface disabled.
-  LEGACY_WINDOW_CLOSES_AT_2: z.preprocess(
-    blankToUndefined,
-    z.string().datetime({ offset: true }).optional(),
-  ),
-  /// Hard cutoff for the v2.D legacy recovery (Gen 3). Set this to today+30d
-  /// when v2.E goes live so v2.D holders get a clean unwind window.
-  LEGACY_WINDOW_CLOSES_AT_3: z.preprocess(
-    blankToUndefined,
-    z.string().datetime({ offset: true }).optional(),
-  ),
   KARWAN_REPUTATION_ADDR: optionalAddr,
   // KarwanVault. Optional because pre-deploy the reputation engine cleanly
   // degrades stakeTerm to its base value (1.0). Once set, stake.ts indexes
@@ -712,6 +686,7 @@ const envSchema = z.object({
   KARWAN_SUITE_AGREEMENT_ADDR: optionalAddr,
   KARWAN_SUITE_VERIFIER_ADDR: optionalAddr,
   KARWAN_SUITE_TRADE_FINANCE_ADDR: optionalAddr,
+  KARWAN_SUITE_VAULT_ADDR: optionalAddr,
   // Karwan's own keys on the escrow family: three checkers (comma separated,
   // any two sign a check), the arbiter and the record issuer. Secrets: the
   // logger strips them from every line.

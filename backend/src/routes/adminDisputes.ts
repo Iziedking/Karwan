@@ -9,7 +9,8 @@ import { executeContractCall } from '../chain/txs.js';
 import { listAllDeals, getDeal, patchDeal } from '../db/deals.js';
 import { listSignatures, putSignature, clearSignatures } from '../db/arbiterSignatures.js';
 import { config } from '../config.js';
-import { ESCROW_STATE, invalidateEscrowCache, legacyGenerations, readEscrow, readLegacyEscrowWithGen } from '../chain/contracts.js';
+import { ESCROW_STATE, invalidateEscrowCache, readEscrow } from '../chain/contracts.js';
+import { findLegacyDeal } from '../chain/legacyLive.js';
 import { dealEscrowV3Abi } from '../chain/abis/dealEscrowV3.js';
 import { DEAL_STATE } from '../chain/dealEscrowV3.js';
 import { readDealV3 } from '../chain/dealEscrowV3Live.js';
@@ -182,15 +183,14 @@ adminDisputeRoutes.get('/', async (c) => {
           const escalated = view?.escalated === true;
           return { ...d, rulable: escalated, escalated, venue: null };
         }
-        const legacy = await readLegacyEscrowWithGen(d.jobId);
+        const legacy = await findLegacyDeal(d.jobId);
         if (!legacy) return { ...d, rulable: true as const, venue: null };
         return {
           ...d,
           rulable: false as const,
           venue: {
-            generation: legacy.generation,
-            escrow:
-              legacyGenerations.find((g) => g.index === legacy.generation)?.escrowAddress ?? null,
+            version: legacy.version,
+            escrow: legacy.escrow,
             /// Only the current escrow carries the arbiter Safe and the
             /// split-ruling `resolve`. Older ones can release a disputed
             /// escrow to the seller wholesale and nothing else, so a

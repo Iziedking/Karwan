@@ -74,13 +74,13 @@ export const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAc
   }),
   cancel_request: (p) => ({ method: 'POST', path: `/api/jobs/${p.jobId}/cancel`, body: { caller: p.caller } }),
   cancel_listing: (p) => ({ method: 'POST', path: `/api/listings/${p.listingId}/cancel`, body: { caller: p.caller } }),
-  stake_usdc: (p) => ({ method: 'POST', path: '/api/vault/deposit', body: { address: p.address, amountUsdc: p.amountUsdc, requestId: randomUUID() } }),
   claim_yield: (p) => ({ method: 'POST', path: '/api/yield/claim', body: { address: p.address } }),
-  // Deal insurance acts on whole positions: the runner calls these once per
-  // position on the card (view 31, phase A).
-  insurance_take_out: (p) => ({ method: 'POST', path: '/api/vault/request-withdraw', body: { address: p.address, positionId: p.positionId, requestId: randomUUID() } }),
-  insurance_cancel_take_out: (p) => ({ method: 'POST', path: '/api/vault/cancel-withdraw', body: { address: p.address, positionId: p.positionId, requestId: randomUUID() } }),
-  insurance_collect: (p) => ({ method: 'POST', path: '/api/vault/claim', body: { address: p.address, positionId: p.positionId, requestId: randomUUID() } }),
+  // Deal guarantee on the family vault (view 37).
+  guarantee_put_up: (p) => ({ method: 'POST', path: '/api/guarantee/put-up', body: { amountUsdc: p.amountUsdc, requestId: randomUUID() } }),
+  guarantee_take_out: (p) => ({ method: 'POST', path: '/api/guarantee/take-out', body: { amountUsdc: p.amountUsdc, requestId: randomUUID() } }),
+  guarantee_cancel_take_out: () => ({ method: 'POST', path: '/api/guarantee/cancel-take-out', body: { requestId: randomUUID() } }),
+  guarantee_collect: () => ({ method: 'POST', path: '/api/guarantee/collect', body: { requestId: randomUUID() } }),
+  legacy_step: (p) => ({ method: 'POST', path: '/api/legacy/step', body: { kind: p.kind, contract: p.contract, ref: p.ref, step: p.step } }),
   // Getting paid early (view 31, phase B), the deal page's and the financier desk's calls.
   finance_ask: (p) => ({
     method: 'POST',
@@ -298,9 +298,11 @@ const DONE: Partial<Record<ConfirmAction['intent'], string>> = {
   near_miss_proceed: 'Done. The deal starts at that price.',
   near_miss_pass: 'Passed. The request stays open for other offers.',
   reconsider_offer: 'Brought back. Say go ahead when you are ready.',
-  insurance_take_out: 'The wait has started. Ask me to collect it when it ends.',
-  insurance_cancel_take_out: 'Kept. It protects your deals again.',
-  insurance_collect: 'Collected. It is back in your wallet.',
+  guarantee_put_up: 'Done. Your deal guarantee is in place.',
+  guarantee_take_out: 'Started. Ask me to collect it when it is ready.',
+  guarantee_cancel_take_out: 'Kept. It protects your buyers again.',
+  guarantee_collect: 'Collected. It is back in your balance.',
+  legacy_step: 'Done on the older contract.',
   finance_ask: 'Asked. Financiers can make offers now; I will tell you when one comes in.',
   finance_stop_asking: 'Stopped. Financiers no longer see this deal.',
   finance_accept: 'Done. The advance is on its way to you.',
@@ -309,10 +311,10 @@ const DONE: Partial<Record<ConfirmAction['intent'], string>> = {
   finance_apply: 'Applied. You are told when the financier desk opens for you.',
 };
 
-const BY_POSITION = new Set<ConfirmAction['intent']>(['insurance_take_out', 'insurance_cancel_take_out', 'insurance_collect']);
+const OWN_WALLET_SIGNS = new Set<ConfirmAction['intent']>(['guarantee_put_up', 'guarantee_take_out', 'guarantee_cancel_take_out', 'guarantee_collect', 'legacy_step']);
 
 // Intents whose response carries a money-movement state.
-const MOVEMENTS = new Set<ConfirmAction['intent']>(['withdraw_proceeds', 'cash_out', 'stake_usdc', 'fund_agent']);
+const MOVEMENTS = new Set<ConfirmAction['intent']>(['withdraw_proceeds', 'cash_out', 'fund_agent']);
 
 const ON_KARWAN = 'This step is confirmed on Karwan. Ask me again and I will send you the link.';
 
@@ -358,17 +360,9 @@ export function createExecutor(deps: {
     if (action.intent === 'finance_offer' && p.signer === 'wallet') {
       return { ok: false, reason: 'refused', message: 'Your own wallet signs this offer, so it is made in the Karwan app. Ask me there.' };
     }
-    if (BY_POSITION.has(action.intent)) {
-      // The person's own wallet signs these, which a chat cannot do.
-      if (p.signer === 'wallet') return { ok: false, reason: 'refused', message: 'Your own wallet signs this, so it is done in the Karwan app. Ask me there.' };
-      used.add(action.id);
-      let last: { status: number; json: Record<string, unknown> } = { status: 400, json: { error: 'Nothing to do on this card.' } };
-      for (const positionId of Array.isArray(p.positionIds) ? (p.positionIds as string[]) : []) {
-        const step = route({ ...p, positionId }, action);
-        last = await deps.call(account.address, step.method, step.path, step.body);
-        if (last.status >= 400) break;
-      }
-      return finish(action, last);
+    // The person's own wallet signs these, which a chat cannot do.
+    if (OWN_WALLET_SIGNS.has(action.intent) && p.signer === 'wallet') {
+      return { ok: false, reason: 'refused', message: 'Your own wallet signs this, so it is done in the Karwan app. Ask me there.' };
     }
 
     used.add(action.id);

@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 
 /// The actions a person must be present for (spec decision 13). Paying,
 /// releasing and every other deal step are signed by the agents unasked.
-export type PresenceKind = 'record_setup' | 'deal_insurance' | 'move_out' | 'factor_change';
+export type PresenceKind = 'record_setup' | 'deal_guarantee' | 'deal_insurance' | 'move_out' | 'factor_change';
 
 export interface PresenceAction {
   kind: PresenceKind;
@@ -14,7 +14,8 @@ export interface PresenceAction {
 
 const KIND_WORDS: Record<PresenceKind, string> = {
   record_setup: 'Set up your Karwan record',
-  deal_insurance: 'Put up deal insurance',
+  deal_guarantee: 'Put up a deal guarantee',
+  deal_insurance: 'Put up a deal guarantee',
   move_out: 'Send money out of Karwan',
   factor_change: 'Change how you confirm',
 };
