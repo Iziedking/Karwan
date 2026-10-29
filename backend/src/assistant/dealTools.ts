@@ -1,4 +1,7 @@
 import { tool } from 'ai';
+import { getQuestion, openQuestionsFor } from '../db/agentQuestions.js';
+import { questionLine } from '../agents/agentQuestion.js';
+import { loadRequestReach } from '../agents/requestReach.js';
 import { z } from 'zod';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
@@ -37,6 +40,7 @@ import {
   buildMakeOfferConfirm,
   buildWithdrawOfferConfirm,
   buildLowerOfferConfirm,
+  buildAnswerAgentQuestionConfirm,
   buildAcceptSellerOfferConfirm,
   buildNearMissConfirm,
   buildReconsiderOfferConfirm,
@@ -460,6 +464,100 @@ export function dealStepTools(address: string, actions: AssistantAction[], deps:
             if (end > 0 && Date.now() >= end) return { error: 'Your review time for this delivery has ended, so the payment goes to the seller.' };
           }
           return offer(actions, buildRaiseProblemConfirm({ caller: address, jobId, amountUsdc: deal.dealAmountUsdc, reason }));
+        }),
+    }),
+
+    get_request_reach: tool({
+      description:
+        "For a BUYER: where their request stands with the sellers who fit it, as counts (how many fit, how many offered, how many are being asked about the price) and whether nobody on Karwan sells it yet. Never names a seller or a price before they offer. Use for 'is anyone interested', 'why no offers yet', 'what is happening with my request'.",
+      inputSchema: z.object({ jobId: jobIdField.describe('The request id.') }),
+      execute: async ({ jobId }) =>
+        guarded('get_request_reach', async () => {
+          if (getBrief(jobId)?.postedBy.toLowerCase() !== address.toLowerCase()) return { error: 'Only the person who posted the request can see this.' };
+          const reach = await loadRequestReach(jobId);
+          if (!reach) return { error: `No open request found with id ${jobId}.` };
+          return {
+            ...reach,
+            note: reach.nobodyYet
+              ? 'Say plainly that nobody on Karwan sells this yet, that their agent keeps looking and will tell them when someone who does joins, and offer the request link to share.'
+              : reach.asked > 0
+                ? 'Say how many sellers fit, how many offered, and that the others are checking the price. Never name them.'
+                : 'Say how many sellers fit and how many offered.',
+          };
+        }),
+    }),
+
+    list_agent_questions: tool({
+      description:
+        "List what the person's own agents are waiting on them for: a request that fits but sits outside their limits, a request their agent would offer on when they chose Ask me first, or a buyer's counter under their lowest price. Each has a suggested answer. Call for 'what does my agent need from me', 'any questions for me', or before propose_answer_agent_question.",
+      inputSchema: z.object({}),
+      execute: async () =>
+        guarded('list_agent_questions', async () => {
+          const questions = await openQuestionsFor(address);
+          return {
+            questions: questions.map((q) => ({
+              questionId: q.id,
+              jobId: q.jobId,
+              request: q.title,
+              asks: questionLine({ kind: q.kind, ...q.facts, priceUsdc: q.suggested.priceUsdc, days: q.suggested.days }),
+              suggestedPriceUsdc: q.suggested.priceUsdc ?? null,
+              suggestedDays: q.suggested.days ?? null,
+            })),
+            note: questions.length
+              ? 'Never show questionId or jobId. Answer with propose_answer_agent_question.'
+              : 'Their agents are not waiting on them for anything.',
+          };
+        }),
+    }),
+
+    propose_answer_agent_question: tool({
+      description:
+        "Prepare a confirm card answering one of the person's agent questions (from list_agent_questions): 'yes' takes the suggested answer, 'change' gives their own price (and days for a request), 'no' turns it down politely. Use for 'yes, offer that', 'offer 90 instead', 'hold at 95', 'not for me'.",
+      inputSchema: z.object({
+        questionId: z.string().min(1).max(64),
+        choice: z.enum(['yes', 'change', 'no']),
+        priceUsdc: z.number().positive().max(1_000_000).optional().describe('Their own price, for change.'),
+        deliverInDays: z.number().int().min(1).max(180).optional().describe('Whole days to deliver, for a request.'),
+      }),
+      execute: async ({ questionId, choice, priceUsdc, deliverInDays }) =>
+        guarded('propose_answer_agent_question', async () => {
+          const q = await getQuestion(questionId);
+          if (!q || q.owner !== address.toLowerCase() || q.state !== 'input-required') {
+            return { error: 'That question has already been answered or has closed.' };
+          }
+          if (q.kind === 'price-above-cap') {
+            // The buyer's near match: going ahead pays the seller's price, so it
+            // is the near-match card with its own money step.
+            if (choice === 'change') return { error: 'A near match is taken at the price the seller asks, or passed. To offer less, edit the request.' };
+            return offer(actions, buildNearMissConfirm({ caller: address, jobId: q.jobId, decision: choice === 'yes' ? 'proceed' : 'pass', askedSide: 'buyer', priceUsdc: q.suggested.priceUsdc ?? '' }));
+          }
+          const price = choice === 'change' ? (priceUsdc !== undefined ? String(priceUsdc) : undefined) : q.suggested.priceUsdc;
+          const counter = q.kind === 'counter-below-floor' || q.kind === 'last-price-passed';
+          if (counter || choice === 'no') {
+            return offer(actions, buildAnswerAgentQuestionConfirm({
+              questionId,
+              choice,
+              title: q.title,
+              theirPriceUsdc: typeof q.facts.theirPriceUsdc === 'string' ? q.facts.theirPriceUsdc : undefined,
+              ...(choice === 'yes' ? {} : price ? { priceUsdc: price } : {}),
+            }));
+          }
+          const brief = getBrief(q.jobId);
+          const job = getBuyerJob(q.jobId);
+          if (!brief || !job || !price) return { error: 'That request is no longer open.' };
+          return offer(actions, buildMakeOfferConfirm({
+            me: address,
+            jobId: q.jobId,
+            buyerUser: brief.postedBy,
+            briefText: brief.briefText,
+            budgetUsdc: job.budgetUsdc,
+            requestDeadlineUnix: job.deadlineUnix,
+            jobOpen: !job.escrowFunded && !job.cancelledAt && !job.expiredAt,
+            priceUsdc: Number(price),
+            deliverInDays: deliverInDays ?? q.suggested.days ?? 1,
+            note: '',
+            nowUnix: Math.floor(Date.now() / 1000),
+          }));
         }),
     }),
 

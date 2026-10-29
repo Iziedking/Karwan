@@ -6,6 +6,7 @@ import test from 'node:test';
 
 // The near-miss and out-of-reach stores write under <cwd>/data; keep them out of the repo.
 process.chdir(mkdtempSync(join(tmpdir(), 'nearmiss-')));
+delete process.env.DATABASE_URL;
 
 const { maybeRaiseNearMiss, setInBudgetProbe } = await import('./nearMiss.js');
 const { markPassed } = await import('../db/outOfReach.js');
@@ -101,4 +102,37 @@ test('a request still collecting offers holds a near match; once the window clos
   setCollectingProbe((jobId) => jobId === JOB);
   assert.equal(stillCollectingOffers(JOB), true);
   setCollectingProbe(null);
+});
+
+test('a near match stores the buyer question with no second notice, and passing closes it (view 41)', async () => {
+  const job = '0x' + '7'.repeat(64);
+  const buyerUser = '0x' + 'e'.repeat(40);
+  const sellerUser = '0x' + 'f'.repeat(40);
+  const { saveAgentWallets } = await import('../db/agentWallets.js');
+  const { openFor, getQuestion } = await import('../db/agentQuestions.js');
+  const { startQuestionSweep } = await import('./questionSweep.js');
+  const { endNearMissOnDecline } = await import('./nearMiss.js');
+  await saveAgentWallets({ userAddress: buyerUser, buyerWalletId: 'wb', buyerAddress: BUYER, sellerWalletId: 'ws', sellerAddress: '0x' + '9'.repeat(40) });
+  await saveAgentWallets({ userAddress: sellerUser, buyerWalletId: 'wb2', buyerAddress: '0x' + '8'.repeat(40), sellerWalletId: 'ws2', sellerAddress: SELLER });
+  const notices: unknown[] = [];
+  bus.on('event', (e: { type: string; payload?: Record<string, unknown> }) => {
+    if (e.type === 'agent.suggestion' && e.payload?.jobId === job) notices.push(e);
+  });
+  const stop = startQuestionSweep();
+  try {
+    assert.equal(await maybeRaiseNearMiss({ ...base, jobId: job }), true);
+    await new Promise((r) => setTimeout(r, 30));
+    const q = await openFor(buyerUser, job);
+    assert.equal(q?.kind, 'price-above-cap');
+    assert.equal(q?.side, 'buyer');
+    assert.equal(q?.facts.theirPriceUsdc, '486.00');
+    assert.equal(notices.length, 0, 'the near-match card already told the buyer');
+    endNearMissOnDecline(job);
+    await new Promise((r) => setTimeout(r, 30));
+    const closed = await getQuestion(q!.id);
+    assert.equal(closed?.state, 'answered');
+    assert.deepEqual(closed?.answer, { choice: 'no' });
+  } finally {
+    stop();
+  }
 });

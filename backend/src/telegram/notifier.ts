@@ -1,6 +1,6 @@
 import { bus, type KarwanEvent } from '../events.js';
 import { config } from '../config.js';
-import { channelsFor } from '../channels/notifyVia.js';
+import { channelsFor, reminderChannelsFor } from '../channels/notifyVia.js';
 import { getDeal } from '../db/deals.js';
 import { getProfile, type UserLocale } from '../db/profiles.js';
 import { getTelegramLink } from '../db/telegramLinks.js';
@@ -14,6 +14,7 @@ import { FINANCIER_FOLLOWS, financierAlert, financiersOfDeal } from '../financia
 import { walletPlainName } from '../money/observedDeposit.js';
 import { personNames, shortAddress } from '../channels/personName.js';
 import { outOfRangeLine, rangeOf } from '../agents/outOfRange.js';
+import { questionLine } from '../agents/agentQuestion.js';
 import {
   deliverableNoun,
   startPhrase,
@@ -266,6 +267,9 @@ export async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     const financiers = await financiersOfDeal(e.jobId).catch(() => []);
     return [...out, ...financiers.map((f) => ({ address: f.financier, role: 'financier', href: f.href }))];
   }
+  if (e.type === 'agent.suggestion' && e.payload?.buyerUser) {
+    return [{ address: (e.payload.buyerUser as string).toLowerCase(), role: 'buyer' }];
+  }
   if (e.type === 'agent.suggestion' || e.type === 'record.setup_needed' || e.type === 'offer.request-changed') {
     const owner = (e.payload?.sellerUser as string | undefined)?.toLowerCase();
     return owner ? [{ address: owner, role: 'seller' }] : [];
@@ -434,6 +438,15 @@ Keep it, lower it or withdraw it.`,
       );
     }
     case 'agent.suggestion': {
+      const asked = questionLine(e.payload);
+      if (asked) {
+        if (role !== (e.payload?.buyerUser ? 'buyer' : 'seller')) return null;
+        const title = (e.payload?.title as string | undefined) ?? '';
+        return withLink(`*${e.payload?.reminder ? 'Reminder: your agent is waiting on you.' : 'Your agent has a question for you.'}*${title ? `
+${title}` : ''}
+${asked}
+Nothing is sent until you answer.`, jobUrl(e.payload?.jobId as string | undefined));
+      }
       if (role !== 'seller') return null;
       const title = (e.payload?.title as string | undefined) ?? '';
       const price = (e.payload?.priceUsdc as string | undefined) ?? '';
@@ -991,6 +1004,8 @@ export function startTelegramNotifier(): () => void {
         const profile = await getProfile(r.address);
         if (profile?.settings?.notificationsMuted) continue;
         if (!channelsFor(profile?.settings, true).telegram) continue;
+        // The one reminder of an agent question goes to the next channel only (view 41).
+        if (e.type === 'agent.suggestion' && e.payload?.reminder === true && !reminderChannelsFor(profile?.settings, true).telegram) continue;
         const locale = (profile?.settings?.locale ?? 'en') as UserLocale;
         const summary = r.role === 'financier' ? financierSummaryFor(e, r.href, locale) : summaryFor(e, r.role, locale, { names, counterparty: r.counterparty });
         if (!summary) continue;

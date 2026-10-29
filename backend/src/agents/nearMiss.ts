@@ -1,4 +1,5 @@
 import { bus } from '../events.js';
+import { askOwner } from './agentQuestion.js';
 import { logger } from '../logger.js';
 import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import {
@@ -306,6 +307,24 @@ export async function maybeRaiseNearMiss(input: NearMissInput): Promise<boolean>
   // marker (a cheaper seller showed up after the pass).
   clearOutOfReach(jobId);
   emitNearMiss(record);
+  const dueDays = Math.max(1, Math.ceil((input.deadlineUnix - Math.floor(now / 1000)) / 86_400));
+  // The same ask is the buyer's agent question (view 41): listed with their
+  // other questions, and the seller sees the buyer is checking. The near-match
+  // card already told the buyer, so no second notice.
+  void askOwner({
+    owner: record.buyerUser,
+    side: 'buyer',
+    jobId,
+    kind: 'price-above-cap',
+    title: '',
+    budgetUsdc: record.buyerCeilingUsdc,
+    dueDays,
+    limit: buyerCeilingUsdc,
+    suggested: { priceUsdc: proceedPriceUsdc, days: dueDays },
+    theirPriceUsdc: proceedPriceUsdc,
+    counterpartUser: record.sellerUser,
+    notify: false,
+  }, now).catch((err: Error) => logger.warn({ jobId, err: err.message }, 'near match question not stored'));
   logger.info(
     { jobId, askedSide: 'buyer', proceedPriceUsdc, gapUsdc: record.gapUsdc },
     'near-miss raised: asking buyer to stretch to seller floor',

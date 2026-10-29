@@ -14,6 +14,7 @@ import { config } from '../config.js';
 import { deleteActivityFor } from '../db/activityLog.js';
 import { deleteAgentWallets, getAgentWallets } from '../db/agentWallets.js';
 import { deleteReadsFor } from '../db/recordReads.js';
+import { deleteQuestionsFor } from '../db/agentQuestions.js';
 import { deleteAssistantUsage } from '../db/assistantUsage.js';
 import { deleteBriefsByPoster, listAllBriefs } from '../db/briefs.js';
 import { pgEnabled, withPostgresTransaction } from '../db/client.js';
@@ -181,6 +182,7 @@ const eraser: Eraser = {
     { name: 'account', run: deleteUserDurably },
     { name: 'agent wallets', run: deleteAgentWallets },
     { name: 'record reads', run: async (address) => { await deleteReadsFor(address); } },
+    { name: 'agent questions', run: async (address) => { await deleteQuestionsFor(address); } },
     { name: 'direct messages', run: (address) => liveDirect.forget(address) },
     { name: 'rating notes', run: (address) => scrubNotesBy(address) },
     { name: 'assistant conversations', run: (address) => deleteConversationsOf(address) },

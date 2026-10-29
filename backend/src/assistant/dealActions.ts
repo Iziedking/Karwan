@@ -101,6 +101,11 @@ export interface WithdrawOfferConfirm extends ConfirmActionBase {
   intent: 'withdraw_offer';
   payload: { jobId: string; offerId: string };
 }
+/// The answer to a question a person's agent asked them (view 41).
+export interface AnswerAgentQuestionConfirm extends ConfirmActionBase {
+  intent: 'answer_agent_question';
+  payload: { questionId: string; choice: 'yes' | 'change' | 'no'; priceUsdc?: string };
+}
 export interface LowerOfferConfirm extends ConfirmActionBase {
   intent: 'lower_offer';
   payload: { jobId: string; offerId: string; priceUsdc: string };
@@ -146,6 +151,7 @@ export type DealStepConfirm =
   | MakeOfferConfirm
   | WithdrawOfferConfirm
   | LowerOfferConfirm
+  | AnswerAgentQuestionConfirm
   | AcceptSellerOfferConfirm
   | NearMissProceedConfirm
   | NearMissPassConfirm
@@ -745,6 +751,38 @@ export function buildWithdrawOfferConfirm(i: { jobId: string; offerId: string; p
     payload: { jobId: i.jobId, offerId: i.offerId },
     confirmLabel: 'Withdraw',
     cancelLabel: 'Keep it',
+  };
+}
+
+/// Answering an agent's question about a buyer's counter, or turning a
+/// request down. Answering a request with an offer uses the offer card.
+export function buildAnswerAgentQuestionConfirm(i: {
+  questionId: string;
+  choice: 'yes' | 'change' | 'no';
+  title: string;
+  theirPriceUsdc?: string;
+  priceUsdc?: string;
+}): AnswerAgentQuestionConfirm | { error: string } {
+  if (!i.questionId) return { error: 'Missing which question to answer.' };
+  if (i.choice === 'change' && !i.priceUsdc) return { error: 'Ask what price they want to hold at.' };
+  const title =
+    i.choice === 'no' ? 'Not for me'
+    : i.choice === 'yes' ? `Take ${i.theirPriceUsdc} USDC`
+    : `Hold at ${i.priceUsdc} USDC`;
+  const summary =
+    i.choice === 'no' ? 'Your agent says no politely and leaves the door open.'
+    : i.choice === 'yes' ? 'Your agent accepts the price the buyer offered. The buyer still pays into escrow before any work starts.'
+    : 'Your agent answers with this price as your last price.';
+  return {
+    kind: 'confirm',
+    id: `answer_agent_question:${i.questionId}:${i.choice}:${confirmNonce()}`,
+    intent: 'answer_agent_question',
+    title,
+    summary,
+    fields: [{ label: 'Request', value: i.title || 'Your request' }],
+    payload: { questionId: i.questionId, choice: i.choice, ...(i.priceUsdc ? { priceUsdc: i.priceUsdc } : {}) },
+    confirmLabel: i.choice === 'no' ? 'Say no' : 'Send',
+    cancelLabel: 'Not now',
   };
 }
 

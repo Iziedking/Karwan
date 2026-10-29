@@ -1051,6 +1051,13 @@ jobsRoutes.get('/:jobId/near-miss', (c) => {
   return c.json({ nearMiss: nm });
 });
 
+/// Where the buyer's request stands with the sellers who fit (view 41), for
+/// the poster only: counts and states, never a seller's name or price.
+jobsRoutes.get('/:jobId/reach', async (c) => {
+  const { reachForViewer } = await import('../agents/requestReach.js');
+  return c.json({ reach: await reachForViewer(c.req.param('jobId'), viewerAddress(c)) });
+});
+
 /// The persisted overpay advisory for a job, gated to the buyer. Non-destructive
 /// market check that survives a refresh (the live SSE event shows it during the
 /// auction; this reappears it on load).

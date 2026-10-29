@@ -22,12 +22,13 @@ import {
 } from '../deals/tradeVocabulary.js';
 import { getProfile } from '../db/profiles.js';
 import { getTelegramLink } from '../db/telegramLinks.js';
-import { channelsFor } from '../channels/notifyVia.js';
+import { channelsFor, reminderChannelsFor } from '../channels/notifyVia.js';
 import { resendClient } from './resend.js';
 import { sendDealEventEmail } from './dealEventEmail.js';
 import { logger } from '../logger.js';
 import { closesLabel } from '../deals/disputeJudge.js';
 import { outOfRangeLine, rangeOf } from '../agents/outOfRange.js';
+import { questionLine } from '../agents/agentQuestion.js';
 
 function base(): string | null {
   return config.FRONTEND_BASE_URL ? config.FRONTEND_BASE_URL.replace(/\/$/, '') : null;
@@ -189,6 +190,11 @@ export async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     // The buyer's choices before their review ends are the buyer's alone.
     const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
     return buyer ? [{ address: buyer, role: 'buyer' }] : [];
+  }
+  if (e.type === 'agent.suggestion' && e.payload?.buyerUser) {
+    // A buyer's agent asking its person (view 41): only that buyer.
+    const owner = (e.payload.buyerUser as string).toLowerCase();
+    return [{ address: owner, role: 'buyer' }];
   }
   if (e.type === 'agent.suggestion' || e.type === 'record.setup_needed' || e.type === 'offer.request-changed') {
     // "Ask me first", the record reminder and a changed request: only the seller it is about.
@@ -476,6 +482,20 @@ export function contentFor(
       };
     }
     case 'agent.suggestion': {
+      const asked = questionLine(e.payload);
+      if (asked) {
+        const side = e.payload?.buyerUser ? 'buyer' : 'seller';
+        if (role !== side) return null;
+        const title = (e.payload?.title as string | undefined) ?? '';
+        return {
+          kicker: 'Your agent',
+          subject: e.payload?.reminder ? 'Reminder: your agent is waiting on you' : 'Your agent has a question for you',
+          heading: side === 'seller' ? 'A request that fits, waiting on you' : 'An offer waiting on you',
+          body: `${title ? `${title}. ` : ''}${asked} Answer from the request page or your assistant. Nothing is sent until you answer.`,
+          ctaLabel: 'Answer',
+          ctaUrl: jobUrl(e.payload?.jobId as string | undefined),
+        };
+      }
       if (role !== 'seller') return null;
       const title = (e.payload?.title as string | undefined) ?? '';
       const price = (e.payload?.priceUsdc as string | undefined) ?? '';
@@ -1009,9 +1029,12 @@ export function startEmailNotifier(): () => void {
         if (!profile?.email || !profile.emailVerified) continue;
         if (profile.settings?.notificationsMuted) continue;
         // "How should we reach you": Telegram only skips email while a chat is linked.
-        if (profile.settings?.notifyVia === 'telegram') {
+        // The one reminder of an agent question goes to the next channel only (view 41).
+        const reminder = e.type === 'agent.suggestion' && e.payload?.reminder === true;
+        if (reminder || profile.settings?.notifyVia === 'telegram') {
           const linked = !!(await getTelegramLink(r.address).catch(() => null));
-          if (!channelsFor(profile.settings, linked).email) continue;
+          const via = reminder ? reminderChannelsFor(profile.settings, linked) : channelsFor(profile.settings, linked);
+          if (!via.email) continue;
         }
         const privateNote = e.type === 'deal.release.blocked' && r.role === 'buyer' && e.jobId
           ? (await getDeal(e.jobId).catch(() => null))?.deliveryMatch?.reason

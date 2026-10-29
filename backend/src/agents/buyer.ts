@@ -1848,6 +1848,7 @@ async function maybeSupersedeNearMiss(
     jobId: state.jobId,
     actor: 'buyer',
     payload: {
+      buyerUser: nm.buyerUser,
       seller: bid.seller,
       priceUsdc: bid.priceUsdc,
       supersededSeller: nm.sellerAgent,

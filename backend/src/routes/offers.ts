@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { sessionAddress } from '../auth/session.js';
 import { invalidBodyMessage } from './invalidBody.js';
 import { getProfile } from '../db/profiles.js';
+import { closeQuestionOnOffer } from '../agents/agentQuestion.js';
 import { acceptOffer, createOffer, defaultDeps, lowerOffer, viewOffers, withdrawOffer, type OfferDeps } from '../offers/service.js';
 
 /// A seller's own offer on a request. Identity is the signed session only.
@@ -45,6 +46,8 @@ offersRoutes.post('/:jobId/offers', async (c) => {
   }
   const r = await createOffer(me, c.req.param('jobId'), body, deps);
   if (!r.ok) return c.json({ error: r.message ?? r.code, code: r.code }, r.status);
+  // Their own offer is their answer to any question their agent had asked here.
+  await closeQuestionOnOffer(me, c.req.param('jobId'), body.priceUsdc).catch(() => {});
   return c.json({ offer: r.offer }, r.created ? 201 : 200);
 });
 

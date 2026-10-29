@@ -38,7 +38,7 @@ import {
 import { logger } from '../logger.js';
 import { reportError } from '../errorTracker.js';
 import { bus } from '../events.js';
-import { alreadySuggested, paysForResearch, shouldSuggest, suggestionEvent, suggestionKey } from './suggestion.js';
+import { paysForResearch } from './suggestion.js';
 import { getRecord, putRecord } from '../db/evidence.js';
 import { suiteFundingEnabled } from '../chain/suiteConfig.js';
 import { suiteIdentity } from '../identity/suiteIdentityLive.js';
@@ -58,9 +58,10 @@ import {
 import { sellerDaysToDeadline, sellerOpeningBid as pureSellerOpeningBid } from './sellerPricing.js';
 import { sellerViewOfRequest } from './sellerView.js';
 import { reviseStandingOffer, type ReviseOutcome } from './reviseOffer.js';
-import { outOfRangeKind, requestFits } from './outOfRange.js';
+import { limitDecision } from './limits.js';
+import { askOwner } from './agentQuestion.js';
 import { getBrief } from '../db/briefs.js';
-import { sellerForRequest } from './ways.js';
+import { fittingWay, sellerForRequest } from './ways.js';
 import { deliveryQuestions, reachGate } from '../location/deliveryQuestions.js';
 import { locationOf } from '../location/live.js';
 import { kindOf } from '../location/rules.js';
@@ -95,9 +96,6 @@ import { recordBidOutcomes } from '../db/bidOutcomes.js';
 // ERC-20 USDC on Arc uses 6 decimals (native gas interface uses 18). Bid amounts
 // ride the ERC-20 rail because escrow.transferFrom is ERC-20.
 const USDC_DECIMALS = 6;
-/// How far back "ask me first" looks for a suggestion it already sent: the
-/// whole in-memory event ring, which is reloaded from Postgres on boot.
-const HISTORY_SCAN = 500;
 
 /// How many seller evaluations run at once in the JobPosted sweep. Each one is
 /// an LLM call plus a bounded research await, so serial was 60-90s end to end.
@@ -850,65 +848,51 @@ function passOnBuyer(seller: SellerProfile, job: JobContext, check: BuyerCheck):
   ]);
 }
 
-/// A request that fits what the seller sells but sits outside the price or time
-/// range they set (view 35): told once by email, Telegram and the bell, with
-/// what is outside it. The agent does not offer; the owner decides.
-async function tellOwnerOutOfRange(seller: SellerProfile, job: JobContext): Promise<void> {
-  const now = Math.floor(Date.now() / 1000);
-  const kind = outOfRangeKind(seller, job, now);
-  if (!kind || !seller.userAddress) return;
-  const recordKey = suggestionKey(seller.userAddress, job.jobId);
-  if (alreadySuggested(bus.recent(HISTORY_SCAN), job.jobId, seller.userAddress)) return;
-  if (await getRecord('suggested', recordKey).catch(() => null)) return;
-  const briefTags = job.keywords ?? [];
-  const sellerTags = [...(seller.keywords ?? []), ...(seller.skills ?? [])];
-  const fits = await requestFits({
-    briefTags,
-    sellerTags,
-    sectorFits: async () => {
-      if (!job.sourcingSector) return false;
-      const owner = await findAgentWalletByAgentAddress(seller.address).catch(() => null);
-      const sector = owner ? (await getProfile(owner.userAddress).catch(() => null))?.smeProfile?.sector : undefined;
-      return !!sector && sector.toLowerCase() === job.sourcingSector.toLowerCase();
-    },
-    judge: () => judgeRelevance({ briefText: job.briefText, briefTags, sellerProfile: `${seller.displayName}: ${seller.bio}`, sellerTags }),
-  });
-  if (!fits) return;
-  await putRecord('suggested', recordKey, { at: Date.now() }).catch(() => {});
-  const days = Math.ceil((job.deadlineUnix - now) / 86_400);
-  const limit = kind === 'below-min' ? seller.minBudgetUsdc
-    : kind === 'above-max' ? seller.maxBudgetUsdc
-    : kind === 'too-soon' ? seller.minDeadlineDays
-    : seller.maxDeadlineDays;
-  bus.emitEvent(suggestionEvent({
-    sellerUser: seller.userAddress,
+/// A request that fits but sits outside the person's limits, or one their agent
+/// waits on them for: one question with a suggested answer, on every channel,
+/// and the buyer hears that the seller is checking (view 41).
+async function askSellerOwner(
+  seller: SellerProfile,
+  job: JobContext,
+  kind: import('../db/agentQuestions.js').QuestionKind,
+  suggested: { priceUsdc: string; days: number },
+  limit: number | null,
+): Promise<void> {
+  if (!seller.userAddress) return;
+  const dueDays = Math.max(1, Math.ceil((job.deadlineUnix - Math.floor(Date.now() / 1000)) / 86_400));
+  await askOwner({
+    owner: seller.userAddress,
+    side: 'seller',
     jobId: job.jobId,
-    priceUsdc: '',
+    kind,
     title: requestTitle(job.briefText) ?? '',
-    range: { outOfRange: kind, budgetUsdc: job.budgetUsdc, limit, days },
-  }));
-  logger.info({ jobId: job.jobId, seller: seller.address, outOfRange: kind }, 'fitting request outside the range: owner told');
+    budgetUsdc: job.budgetUsdc,
+    dueDays,
+    limit,
+    suggested,
+    counterpartUser: getBrief(job.jobId)?.postedBy ?? null,
+  });
+  bus.emitEvent({
+    type: 'agent.decision',
+    jobId: job.jobId,
+    actor: 'seller',
+    payload: { seller: seller.address, stage: 'limits', decision: 'asked-owner', kind },
+  });
+  logger.info({ jobId: job.jobId, seller: seller.address, kind }, 'request outside the limits: owner asked');
 }
 
 async function evaluateAndBid(profile: SellerProfile, job: JobContext) {
-  const seller = sellerForRequest(profile, getBrief(job.jobId)?.tradeType);
-  const mismatch = profileMismatchReason(seller, job);
-  if (mismatch) {
-    logger.info({ jobId: job.jobId, seller: seller.address, reason: mismatch.reason }, 'skipping job');
-    bus.emitEvent({
-      type: 'agent.skipped',
-      jobId: job.jobId,
-      actor: 'seller',
-      payload: mismatch,
-    });
-    // Outside the range but a fit: the owner hears of it once and decides (view 35).
-    if (mismatch.reason === 'budget-out-of-range' || mismatch.reason === 'deadline-out-of-range') {
-      void tellOwnerOutOfRange(seller, job).catch((err: Error) =>
-        logger.warn({ jobId: job.jobId, seller: seller.address, err: err.message }, 'out-of-range notice failed'),
-      );
-    }
-    return;
-  }
+  const tradeType = getBrief(job.jobId)?.tradeType;
+  const seller = sellerForRequest(profile, tradeType);
+  // Limits decide whether the agent offers or asks its person, never whether
+  // the person hears of a request that fits (view 41). Fit is judged below,
+  // so a request outside the limits is held here and asked about after it.
+  const limits = limitDecision({
+    seller,
+    job,
+    nowUnix: Math.floor(Date.now() / 1000),
+    hasWay: !profile.ways || fittingWay(profile.ways, tradeType) !== null,
+  });
 
   // One offer per seller per request: when the seller already named their own
   // price here, the agent stays out. Its bid would overwrite that offer on chain
@@ -1136,6 +1120,11 @@ async function evaluateAndBid(profile: SellerProfile, job: JobContext) {
     }
   }
 
+  if (!limits.act) {
+    await askSellerOwner(seller, job, limits.kind, limits.suggested, limits.limit);
+    return;
+  }
+
   // Trusted Match: filter sellers whose stake can't cover the worst-case
   // reservation. freeStakeOf reads against the identity wallet (where stake
   // lives), not the seller agent.
@@ -1328,20 +1317,8 @@ async function evaluateAndBid(profile: SellerProfile, job: JobContext) {
       );
       return;
     }
-    logger.info(
-      { jobId: job.jobId, seller: seller.address, minBudget: seller.minBudgetUsdc },
-      'skipping: seller floor above the buyer budget cap',
-    );
-    bus.emitEvent({
-      type: 'agent.skipped',
-      jobId: job.jobId,
-      actor: 'seller',
-      payload: {
-        seller: seller.address,
-        reason: 'budget-below-seller-floor',
-        detail: `seller floor ${seller.minBudgetUsdc} USDC is above the buyer's budget cap`,
-      },
-    });
+    const days = Math.max(1, Math.ceil((job.deadlineUnix - Math.floor(Date.now() / 1000)) / 86_400));
+    await askSellerOwner(seller, job, 'price-below-floor', { priceUsdc: String(seller.minBudgetUsdc), days }, seller.minBudgetUsdc);
     return;
   }
   const buyerCheck = await checkBuyer(seller, job);
@@ -1352,18 +1329,9 @@ async function evaluateAndBid(profile: SellerProfile, job: JobContext) {
 
   // "Ask me first": tell the owner about the request at this price, once, and
   // let them make the offer themselves.
-  const mode = seller.agentMode ?? 'offers';
-  const told = mode === 'ask' && (
-    alreadySuggested(bus.recent(HISTORY_SCAN), job.jobId, seller.userAddress) ||
-    !!(await getRecord('suggested', suggestionKey(seller.userAddress, job.jobId)).catch(() => null))
-  );
-  const step = shouldSuggest(mode, told);
-  if (step !== 'bid') {
-    if (step === 'suggest') {
-      await putRecord('suggested', suggestionKey(seller.userAddress, job.jobId), { at: Date.now() }).catch(() => {});
-      bus.emitEvent(suggestionEvent({ sellerUser: seller.userAddress, jobId: job.jobId, priceUsdc: opening.toFixed(2), title: requestTitle(job.briefText) ?? '' }));
-      logger.info({ jobId: job.jobId, seller: seller.address }, 'ask me first: suggested to the owner, no bid');
-    }
+  if ((seller.agentMode ?? 'offers') === 'ask') {
+    const days = Math.max(seller.minDeadlineDays, Math.min(seller.maxDeadlineDays, Math.ceil((job.deadlineUnix - Math.floor(Date.now() / 1000)) / 86_400)));
+    await askSellerOwner(seller, job, 'ask-first', { priceUsdc: opening.toFixed(2), days }, null);
     return;
   }
 
@@ -1433,6 +1401,90 @@ async function settledWithin(p: Promise<unknown>, ms: number): Promise<boolean> 
     p.then(() => true, () => true),
     new Promise<boolean>((resolve) => setTimeout(() => resolve(false), ms)),
   ]);
+}
+
+/// A buyer's counter past what the seller allowed (under their floor, or past
+/// the last round): the agent asks its person instead of walking away, and the
+/// buyer hears the seller is checking (view 41). The counter stays open on
+/// chain until the person answers through `answerCounterQuestion`.
+async function askAtFloor(
+  seller: SellerProfile,
+  active: ActiveBid,
+  buyerPriceUsdc: string,
+  floorUsdc: number,
+  kind: 'counter-below-floor' | 'last-price-passed',
+): Promise<void> {
+  const job = active.jobContext;
+  if (!seller.userAddress) {
+    active.finalized = true;
+    return;
+  }
+  const dueDays = Math.max(1, Math.ceil((job.deadlineUnix - Math.floor(Date.now() / 1000)) / 86_400));
+  const hold = Math.max(floorUsdc, Number(active.lastBidPrice) || floorUsdc);
+  await askOwner({
+    owner: seller.userAddress,
+    side: 'seller',
+    jobId: job.jobId,
+    kind,
+    title: requestTitle(job.briefText) ?? '',
+    budgetUsdc: job.budgetUsdc,
+    dueDays,
+    limit: Number(floorUsdc.toFixed(2)),
+    suggested: { priceUsdc: (kind === 'last-price-passed' ? hold : floorUsdc).toFixed(2), days: dueDays },
+    theirPriceUsdc: buyerPriceUsdc,
+    counterpartUser: getBrief(job.jobId)?.postedBy ?? null,
+  });
+  bus.emitEvent({
+    type: 'agent.decision',
+    jobId: job.jobId,
+    actor: 'seller',
+    payload: { seller: seller.address, stage: 'counter', decision: 'asked-owner', kind, buyerCounterPrice: buyerPriceUsdc },
+  });
+}
+
+/// The person's answer to a counter question: take the buyer's price, hold at
+/// a price of their own, or walk away politely with the door open.
+export async function answerCounterQuestion(
+  jobId: string,
+  sellerUser: string,
+  answer: { choice: 'yes' | 'change' | 'no'; priceUsdc?: string; theirPriceUsdc?: string },
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const owner = sellerUser.toLowerCase();
+  const active = [...activeBids.values()].find(
+    (b) => b.jobContext.jobId.toLowerCase() === jobId.toLowerCase() && b.seller.userAddress?.toLowerCase() === owner,
+  );
+  if (!active || active.finalized) return { ok: false, message: 'This negotiation has already ended.' };
+  const { seller } = active;
+  if (answer.choice === 'no') {
+    active.finalized = true;
+    bus.emitEvent({
+      type: 'agent.declined',
+      jobId: active.jobContext.jobId,
+      actor: 'seller',
+      payload: { seller: seller.address, reason: 'owner-declined', detail: 'Thanks, the seller cannot do this price. If it changes, they are here.' },
+    });
+    scheduleActiveBidsPersist();
+    return { ok: true };
+  }
+  const accept = answer.choice === 'yes';
+  const price = accept ? 0n : parseUnits(answer.priceUsdc ?? active.lastBidPrice, USDC_DECIMALS);
+  const deadline = accept ? 0 : active.jobContext.deadlineUnix;
+  const result = await respondToCounter(seller.walletId, seller.address, active.jobContext.jobId, accept, price, deadline);
+  if (accept) active.finalized = true;
+  else {
+    active.counterRounds += 1;
+    active.lastBidPrice = answer.priceUsdc ?? active.lastBidPrice;
+  }
+  bus.emitEvent({
+    type: 'counter.response.submitted',
+    jobId: active.jobContext.jobId,
+    actor: 'seller',
+    payload: accept
+      ? { accepted: true, txHash: result.txHash, by: 'owner' }
+      : { accepted: false, counterPrice: answer.priceUsdc ?? active.lastBidPrice, txHash: result.txHash, by: 'owner' },
+  });
+  scheduleActiveBidsPersist();
+  return { ok: true };
 }
 
 async function handleCounterOffer(log: Log) {
@@ -1631,28 +1683,21 @@ async function runCounterEvaluation(
 
   logger.info({ jobId: args.jobId, seller: seller.address, decision }, 'counter-offer evaluated');
 
-  if (decision.decision === 'accept') {
-    // Hard steering guard: even if the LLM said accept, refuse when the buyer's
-    // counter is below the steering floor. Protects against LLM drift that
-    // forgets the floor we passed in the prompt.
+  if (decision.decision === 'decline') {
+    // Code decides, the model reads (view 41): a counter inside the person's
+    // limits is accepted, one under their floor goes to them as a question.
     if (Number(buyerCounterPrice) < minAcceptable) {
-      logger.info(
-        { jobId: args.jobId, buyerCounterPrice, minAcceptable },
-        'LLM accept overridden — buyer counter below steering floor',
-      );
-      active.finalized = true;
-      bus.emitEvent({
-        type: 'agent.declined',
-        jobId: args.jobId,
-        actor: 'seller',
-        payload: {
-          seller: seller.address,
-          reason: 'counter-below-steering-floor',
-          detail: `${buyerCounterPrice} USDC is below the per-job steering floor of ${minAcceptable} USDC`,
-          buyerCounterPrice,
-          minAcceptable,
-        },
-      });
+      await askAtFloor(seller, active, buyerCounterPrice, minAcceptable, 'counter-below-floor');
+      return;
+    }
+    decision = { ...decision, decision: 'accept' };
+  }
+
+  if (decision.decision === 'accept') {
+    // Even when the model said accept, a counter under the floor is the
+    // person's call, never a silent stop.
+    if (Number(buyerCounterPrice) < minAcceptable) {
+      await askAtFloor(seller, active, buyerCounterPrice, minAcceptable, 'counter-below-floor');
       return;
     }
     const result = await respondToCounter(seller.walletId, seller.address, args.jobId, true, 0n, 0);
@@ -1667,36 +1712,13 @@ async function runCounterEvaluation(
     return;
   }
 
-  if (decision.decision === 'decline') {
-    logger.info({ jobId: args.jobId }, 'declined buyer counter');
-    active.finalized = true;
-    bus.emitEvent({
-      type: 'agent.declined',
-      jobId: args.jobId,
-      actor: 'seller',
-      payload: { seller: seller.address, reason: 'llm-decline', decision },
-    });
-    return;
-  }
 
   // Validate the LLM's counter BEFORE burning a round. Previously we
   // incremented `counterRounds` first, so a malformed counter (missing
   // price/deadline OR price outside the steering range) would waste a round
   // and trip the cap one offer early.
   if (active.counterRounds >= MAX_COUNTER_ROUNDS) {
-    logger.info({ jobId: args.jobId }, 'too many counter rounds, declining');
-    active.finalized = true;
-    bus.emitEvent({
-      type: 'agent.declined',
-      jobId: args.jobId,
-      actor: 'seller',
-      payload: {
-        seller: seller.address,
-        reason: 'max-counter-rounds',
-        detail: `seller hit the ${MAX_COUNTER_ROUNDS}-round counter cap on this auction`,
-        rounds: active.counterRounds,
-      },
-    });
+    await askAtFloor(seller, active, buyerCounterPrice, minAcceptable, 'last-price-passed');
     return;
   }
 
@@ -1704,7 +1726,7 @@ async function runCounterEvaluation(
   // price/deadline. Fall back to the deterministic suggestion (already inside
   // the seller's [min,max] steering range) instead of stranding the job, keeping
   // the buyer's proposed timing clamped to the seller's window.
-  const finalCounterPrice = decision.counterPrice ?? suggestedCounter.toFixed(2);
+  let finalCounterPrice = decision.counterPrice ?? suggestedCounter.toFixed(2);
   const finalCounterDeadlineDays =
     decision.counterDeadlineDays ??
     Math.max(
@@ -1733,27 +1755,11 @@ async function runCounterEvaluation(
     });
   }
 
-  const counterPriceUsdc = Number(finalCounterPrice);
-  if (counterPriceUsdc < minAcceptable || counterPriceUsdc > maxAcceptable) {
-    logger.warn(
-      { jobId: args.jobId, counterPriceUsdc, minAcceptable, maxAcceptable },
-      'LLM counter outside steering range, declining',
-    );
-    active.finalized = true;
-    bus.emitEvent({
-      type: 'agent.declined',
-      jobId: args.jobId,
-      actor: 'seller',
-      payload: {
-        seller: seller.address,
-        reason: 'llm-counter-out-of-range',
-        detail: `${counterPriceUsdc} USDC is outside the per-job steering range ${minAcceptable}-${maxAcceptable} USDC`,
-        counterPriceUsdc,
-        minAcceptable,
-        maxAcceptable,
-      },
-    });
-    return;
+  // The model never sets the price (view 41): a counter outside the seller's
+  // range is replaced by the deterministic one, which is inside it.
+  if (Number(finalCounterPrice) < minAcceptable || Number(finalCounterPrice) > maxAcceptable) {
+    logger.warn({ jobId: args.jobId, finalCounterPrice, minAcceptable, maxAcceptable }, 'model counter outside the range, using the deterministic counter');
+    finalCounterPrice = Math.min(maxAcceptable, Math.max(minAcceptable, suggestedCounter)).toFixed(2);
   }
 
   const counterDeadlineUnix =
@@ -1777,49 +1783,6 @@ async function runCounterEvaluation(
       txHash: result.txHash,
     },
   });
-}
-
-/// `reason` is a stable code the timeline maps to a short label; `detail` is the
-/// human sentence shown as the row's subtitle. Both ride on the agent.skipped
-/// payload so the seller's owner can always read why their agent stood down.
-function profileMismatchReason(
-  seller: SellerProfile,
-  job: JobContext,
-): { reason: string; detail: string; budgetUsdc?: string; daysToDeadline?: number } | null {
-  const budget = Number(job.budgetUsdc);
-  if (budget < seller.minBudgetUsdc) {
-    return {
-      reason: 'budget-out-of-range',
-      detail: `Budget ${budget} USDC is below your ${seller.minBudgetUsdc} USDC minimum.`,
-      budgetUsdc: job.budgetUsdc,
-    };
-  }
-  if (budget > seller.maxBudgetUsdc) {
-    return {
-      reason: 'budget-out-of-range',
-      detail: `Budget ${budget} USDC is above your ${seller.maxBudgetUsdc} USDC maximum.`,
-      budgetUsdc: job.budgetUsdc,
-    };
-  }
-  // Round up so that "24h from now" counts as 1 day even if processing latency
-  // makes the raw float < 1.
-  const rawDays = (job.deadlineUnix - Math.floor(Date.now() / 1000)) / 86_400;
-  const daysToDeadline = Math.ceil(rawDays);
-  if (daysToDeadline < seller.minDeadlineDays) {
-    return {
-      reason: 'deadline-out-of-range',
-      detail: `Deadline ${daysToDeadline}d is sooner than your ${seller.minDeadlineDays}d minimum.`,
-      daysToDeadline,
-    };
-  }
-  if (daysToDeadline > seller.maxDeadlineDays) {
-    return {
-      reason: 'deadline-out-of-range',
-      detail: `Deadline ${daysToDeadline}d is longer than your ${seller.maxDeadlineDays}d maximum.`,
-      daysToDeadline,
-    };
-  }
-  return null;
 }
 
 interface JobPostedArgs {

@@ -429,6 +429,23 @@ export const scoutReads = pgTable(
 
 /// Paid record reads (view 13). The signed detail is cleared 24 hours after the
 /// read; the score, level and receipt stay. Created by migration 38.
+export const agentQuestions = pgTable('agent_questions_v1', {
+  id: text('id').primaryKey(),
+  owner: text('owner').notNull(),
+  side: text('side').notNull(),
+  jobId: text('job_id').notNull(),
+  kind: text('kind').notNull(),
+  title: text('title').notNull(),
+  facts: jsonb('facts').notNull(),
+  suggested: jsonb('suggested').notNull(),
+  state: text('state').notNull(),
+  answer: jsonb('answer'),
+  mandateVersion: integer('mandate_version').notNull(),
+  createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+  updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),
+  remindedAt: bigint('reminded_at', { mode: 'number' }),
+});
+
 export const recordReads = pgTable(
   'record_reads_v1',
   {
