@@ -21,6 +21,8 @@ import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { DEALS_AVAILABLE } from '@/core/arcNetwork';
 import { useAddPasskey } from '@/features/settings/components/SettingsBand';
 import { accountRows } from '../accountRows';
+import { useQuery } from '@tanstack/react-query';
+import { GUARANTEE_QUERY } from '@/features/guarantee/GuaranteeCard';
 
 type ProfileAccountHubProps = {
   profile: UserProfile;
@@ -43,6 +45,8 @@ export function ProfileAccountHub({
   const [photoError, setPhotoError] = useState('');
   const photoInput = useRef<HTMLInputElement>(null);
   const messages = useTranslations();
+  const guarantee = useQuery({ queryKey: GUARANTEE_QUERY, queryFn: () => api.guarantee(), enabled: DEALS_AVAILABLE });
+  const guaranteeInPlace = guarantee.data?.available && Number(guarantee.data.inPlaceUsdc) > 0 ? `${guarantee.data.inPlaceUsdc} USDC` : undefined;
   const router = useRouter();
   const nav = messages.nav;
   const businessCopy = messages.businessProfilePage;
@@ -186,7 +190,7 @@ export function ProfileAccountHub({
           </>
         ) : null}
         <Row label={hub.activityReceipts} href="/activity" />
-        {DEALS_AVAILABLE ? <Row label={hub.reputation} href="/stake" /> : null}
+        {DEALS_AVAILABLE ? <Row label={messages.dealGuarantee.profile.dealGuarantee} value={guaranteeInPlace} href="/guarantee" /> : null}
       </RowGroup>
 
       <RowGroup title={hub.account}>
@@ -222,6 +226,7 @@ export function ProfileAccountHub({
 
       <RowGroup title={hub.other}>
         <Row label={hub.publicProfile} href={`/credit-passport/${address}`} />
+        <Row label={messages.dealGuarantee.profile.legacyContracts} href="/legacy" />
         <Row label={nav.allSettings} href="/settings" />
         <Row label={nav.help} href="/how-it-works" />
       </RowGroup>

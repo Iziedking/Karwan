@@ -79,7 +79,7 @@ export function FundingQuoteRows({ quote, errorCode, viewerIsBuyer, onFunded, on
       ) : null}
       {errorCode === 'INSUFFICIENT_STAKE' && !viewerIsBuyer ? (
         <p className="mt-3 text-[14px] leading-relaxed text-[var(--ink-secondary)] font-medium">
-          <Link href="/stake" className="font-medium text-[var(--ink)] underline underline-offset-2">
+          <Link href="/guarantee" className="font-medium text-[var(--ink)] underline underline-offset-2">
             {copy.errors.insufficientStakeLink}
           </Link>{' '}
           {copy.errors.insufficientStakeSuffix}

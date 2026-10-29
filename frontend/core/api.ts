@@ -1,4 +1,4 @@
-import type { Goal, SetupAnswers } from '@/features/setup/setupSteps';
+import type { Goal, SetupAnswers, SetupFirstPost } from '@/features/setup/setupSteps';
 import type {
   PublicKeyCredentialCreationOptionsJSON,
   PublicKeyCredentialRequestOptionsJSON,
@@ -1903,11 +1903,12 @@ export interface AssistantConfirmAction {
     | 'cancel_listing'
     | 'save_setup'
     | 'save_ways'
-    | 'stake_usdc'
+    | 'guarantee_put_up'
     | 'claim_yield'
-    | 'insurance_take_out'
-    | 'insurance_cancel_take_out'
-    | 'insurance_collect'
+    | 'guarantee_take_out'
+    | 'guarantee_cancel_take_out'
+    | 'guarantee_collect'
+    | 'legacy_step'
     | 'finance_ask'
     | 'finance_stop_asking'
     | 'finance_accept'
@@ -2066,7 +2067,7 @@ export type PresenceMethod = 'pin' | 'passkey' | 'wallet';
 /// record, putting up deal insurance, sending money out of Karwan, or changing
 /// how they confirm.
 export interface PresenceAction {
-  kind: 'record_setup' | 'deal_insurance' | 'move_out' | 'factor_change';
+  kind: 'record_setup' | 'deal_guarantee' | 'deal_insurance' | 'move_out' | 'factor_change';
   wallet: string;
   amountMicros: string | null;
   recipient: string | null;
@@ -2089,6 +2090,11 @@ export interface ConfirmRequired {
 /// Opens the confirmation sheet and resolves with the grant, or null when the
 /// person closes it.
 export type ConfirmHandler = (required: ConfirmRequired) => Promise<string | null>;
+
+export type GuaranteeStep = 'put_up' | 'take_out' | 'cancel' | 'collect';
+export type LegacyStepBody =
+  | { kind: 'deal'; contract: string; ref: string; step: 'releaseFinal' | 'refund' }
+  | { kind: 'guarantee'; contract: string; ref: string; step: 'requestWithdraw' | 'cancelWithdraw' | 'claim' };
 
 export class ConfirmCancelled extends Error {
   constructor() {
@@ -2241,7 +2247,8 @@ export interface AdminDisputeRow {
   rulable?: boolean;
   /// Where the money actually is, when it is not on the current escrow.
   venue?: {
-    generation: 1 | 2 | 3;
+    /// The older escrow's version, read from its storage layout.
+    version: 'v0' | 'pre-v2d' | 'v2d' | 'v2e';
     escrow: string | null;
     /// Retired escrows predate the arbiter Safe. They can release a disputed
     /// escrow to the seller and nothing else, so a split has no expression.
@@ -3785,53 +3792,6 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ address, ...names }),
     }),
-  /// Record a stake a web3 wallet signed for itself. The Circle path records
-  /// itself server-side; a wallet-signed deposit is invisible to the backend
-  /// until this call, which is why staking was missing from transaction history
-  /// and raised no alert. Verified against the chain before anything is written.
-  recordStake: (body: { address: string; amountUsdc: number | string; txHash: string }) =>
-    json<{
-      recorded: boolean;
-      alreadyRecorded?: boolean;
-      amountUsdc?: string;
-      reference?: string;
-      movementState?: MoneyMovementState;
-      positionId?: string | null;
-    }>('/api/vault/record-stake', {
-      method: 'POST',
-      body: JSON.stringify(body),
-    }),
-  vaultDepositIntent: (body: { address: string; amountUsdc: number | string; requestId: string }) =>
-    json<{
-      accepted: true;
-      reference: string;
-      movementState: MoneyMovementState;
-      amountUsdc: string;
-      vaultAddress: string;
-      usdcAddress: string;
-    }>('/api/vault/deposit/intent', {
-      method: 'POST',
-      body: JSON.stringify(body),
-    }),
-  vaultDepositComplete: (body: {
-    address: string;
-    amountUsdc: number | string;
-    requestId: string;
-    approvalTxHash: string;
-    depositTxHash: string;
-  }) =>
-    json<{
-      ok: true;
-      reference: string;
-      movementState: MoneyMovementState;
-      approvalTxHash: string;
-      depositTxHash: string;
-      amountUsdc: string;
-      positionId: string | null;
-    }>('/api/vault/deposit/complete', {
-      method: 'POST',
-      body: JSON.stringify(body),
-    }),
   withdrawFromAgent: (body: {
     address: string;
     agent: 'buyer' | 'seller';
@@ -3996,45 +3956,6 @@ export const api = {
       '/api/activation/drip-bridge',
       { method: 'POST', body: JSON.stringify({ address, chain }) },
     ),
-  /// KarwanVault: list every staking position for an address with state +
-  /// tenure. Used by /profile StakeCard to render the position list. Pass
-  /// `fresh=true` after a web3 deposit/withdraw lands so the backend force-
-  /// scans before serving; otherwise the 5-minute periodic scan cadence
-  /// makes the new position invisible for several minutes.
-  vaultPositions: (address: string, fresh?: boolean, share?: string) =>
-    json<{
-      vaultAddress: string | null;
-      positions: Array<{
-        positionId: string;
-        principalUsdc: string;
-        principalWei: string;
-        depositedAt: number;
-        cooldownStartedAt: number;
-        claimableAt: number;
-        state: 'active' | 'cooling' | 'claimed';
-        tenureDays: number;
-      }>;
-      totalActiveUsdc: string;
-      totalCoolingUsdc: string;
-      /// v2.D: Sum of open insurance reservations against the owner's
-      /// active positions. The free side of the Free / Reserved / Cooling
-      /// split shown on /profile and /stake. Absent on pre-v2.D deployments
-      /// where the vault doesn't have a reservation system; treat as '0'.
-      reservedUsdc?: string;
-      /// v2.D: totalActiveUsdc minus reservedUsdc, floored at zero. The
-      /// portion of stake that can backstop a new deal. Same back-compat
-      /// fallback — treat absent as equal to totalActiveUsdc.
-      freeStakeUsdc?: string;
-      cooldownDays: number;
-      /// False while the backend is still scanning the vault's event log for
-      /// this owner — older positions may be missing from the served set
-      /// until the scan reaches head. The UI should render a syncing
-      /// indicator and refetch shortly. Absent on older deploys; treat as
-      /// `true` for back-compat.
-      synced?: boolean;
-    }>(
-      `/api/vault/positions?address=${address}${fresh ? '&refresh=1' : ''}${shareParam(share)}`,
-    ),
   /// KarwanYieldDistributor: this address's claimable + lifetime totals.
   /// Lifetime credited and claimed come from event scans (YieldCredited /
   /// YieldClaimed indexed by staker), cached 30s on the backend. Pass
@@ -4124,139 +4045,64 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
-  /// Circle-only vault writes. Web3 users sign deposit/withdraw/claim
-  /// directly from the wallet via wagmi `writeContract`.
-  vaultDeposit: (body: { address: string; amountUsdc: number; requestId?: string }) =>
-    json<{
-      ok: true;
-      approveTxHash: string | null;
-      depositTxHash: string | null;
-      amountUsdc: string;
-      reference: string;
-      movementState: MoneyMovementState;
-      positionId: string | null;
-    }>(
-      '/api/vault/deposit',
-      { method: 'POST', body: JSON.stringify(body) },
-    ),
-  vaultRequestWithdraw: (body: { address: string; positionId: string; requestId?: string }) =>
-    json<{ ok: true; txHash: string; reference?: string; movementState?: MoneyMovementState }>('/api/vault/request-withdraw', {
-      method: 'POST',
-      body: JSON.stringify(body),
-    }),
-  vaultCancelWithdraw: (body: { address: string; positionId: string; requestId?: string }) =>
-    json<{ ok: true; txHash: string; reference?: string; movementState?: MoneyMovementState }>('/api/vault/cancel-withdraw', {
-      method: 'POST',
-      body: JSON.stringify(body),
-    }),
-  vaultClaim: (body: { address: string; positionId: string; requestId?: string }) =>
-    json<{ ok: true; txHash: string; reference?: string; movementState?: MoneyMovementState }>('/api/vault/claim', {
-      method: 'POST',
-      body: JSON.stringify(body),
-    }),
-  vaultActionIntent: (body: { address: string; positionId: string; action: 'requestWithdraw' | 'cancelWithdraw' | 'claim'; requestId: string }) =>
-    json<{ accepted: true; reference: string; movementState: MoneyMovementState; amountUsdc: string }>('/api/vault/action/intent', { method: 'POST', body: JSON.stringify(body) }),
-  vaultActionComplete: (body: { address: string; positionId: string; action: 'requestWithdraw' | 'cancelWithdraw' | 'claim'; requestId: string; txHash: string }) =>
-    json<{ ok: true; reference: string; movementState: MoneyMovementState; txHash: string }>('/api/vault/action/complete', { method: 'POST', body: JSON.stringify(body) }),
+  /// Deal guarantee on the family vault (view 37). Karwan signs for a wallet it
+  /// holds; an own wallet takes an intent, signs, and completes with the hash.
+  guarantee: () =>
+    json<
+      | { available: false }
+      | {
+          available: true;
+          hasRecord: boolean;
+          inPlaceUsdc: string;
+          heldUsdc: string;
+          freeUsdc: string;
+          comingBackUsdc: string;
+          readyAt: number | null;
+          ready: boolean;
+          previousUsdc: string;
+          waitDays: number;
+        }
+    >('/api/guarantee'),
+  guaranteePutUp: (body: { amountUsdc: string; requestId: string }) =>
+    json<{ ok: true; reference: string; txHash: string | null; amountUsdc: string }>('/api/guarantee/put-up', { method: 'POST', body: JSON.stringify(body) }),
+  guaranteeTakeOut: (body: { amountUsdc: string; requestId: string }) =>
+    json<{ ok: true; reference: string; txHash: string | null; amountUsdc: string }>('/api/guarantee/take-out', { method: 'POST', body: JSON.stringify(body) }),
+  guaranteeCancelTakeOut: (body: { requestId: string }) =>
+    json<{ ok: true; reference: string; txHash: string | null; amountUsdc: string }>('/api/guarantee/cancel-take-out', { method: 'POST', body: JSON.stringify(body) }),
+  guaranteeCollect: (body: { requestId: string }) =>
+    json<{ ok: true; reference: string; txHash: string | null; amountUsdc: string }>('/api/guarantee/collect', { method: 'POST', body: JSON.stringify(body) }),
+  guaranteeIntent: (body: { step: GuaranteeStep; amountUsdc?: string; requestId: string }) =>
+    json<{ reference: string; vault: `0x${string}`; usdc: `0x${string}`; amountMicros: string; amountUsdc: string }>('/api/guarantee/intent', { method: 'POST', body: JSON.stringify(body) }),
+  guaranteeComplete: (body: { step: GuaranteeStep; amountUsdc?: string; requestId: string; txHash: string }) =>
+    json<{ ok: true; reference: string; txHash: string; amountUsdc: string }>('/api/guarantee/complete', { method: 'POST', body: JSON.stringify(body) }),
 
-  /// 30-day legacy recovery surface. Reads the window status (open / closing-
-  /// in / closed) so the home banner and /legacy page can branch off it.
-  legacyWindow: () =>
+  /// Everything still held on older Karwan contracts, each with the step that
+  /// works now (view 37).
+  legacyPositions: () =>
     json<{
-      open: boolean;
-      closesAtMs: number | null;
-      daysRemaining: number | null;
-      hasLegacyEscrow: boolean;
-      hasLegacyVault: boolean;
-      legacyEscrowAddress: string | null;
-      legacyVaultAddress: string | null;
-    }>('/api/legacy/window'),
-  legacyDeals: (address: string) =>
-    json<{
-      legacyEscrowAddress: string | null;
-      generations: Array<{ index: 1 | 2; legacyEscrowAddress: string }>;
       deals: Array<{
+        contract: string;
         jobId: string;
-        role: 'buyer' | 'seller' | 'both';
-        buyer: string;
-        seller: string;
-        dealAmountUsdc: string;
-        state: number;
-        stateLabel: 'funded' | 'settled' | 'disputed' | 'refunded' | 'unknown';
-        deadlineUnix: number;
-        pastDeadline: boolean;
-        delivered: boolean;
-        hasCancellationProposal: boolean;
-        cancellationProposal?: {
-          proposedBy: 'buyer' | 'seller';
-          kind: string;
-          reason: string;
-          proposedAt: number;
-        };
-        createdAt: number;
-        releasedUsdc: string;
-        generation: 1 | 2;
+        role: 'buyer' | 'seller';
+        otherSide: string;
+        amountUsdc: string;
+        state: 'funded' | 'disputed';
+        steps: Array<'releaseFinal' | 'refund'>;
+        heldByKarwan: boolean;
       }>;
-    }>(`/api/legacy/deals?address=${address}`),
-  legacyDealRefund: (body: { jobId: string; address: string; role: 'buyer' }) =>
-    json<{ ok: true; txHash: string }>(`/api/legacy/deals/${body.jobId}/refund`, {
-      method: 'POST',
-      body: JSON.stringify({ address: body.address, role: body.role }),
-    }),
-  legacyDealReleaseFinal: (body: { jobId: string; address: string; role: 'buyer' }) =>
-    json<{ ok: true; txHash: string }>(`/api/legacy/deals/${body.jobId}/release-final`, {
-      method: 'POST',
-      body: JSON.stringify({ address: body.address, role: body.role }),
-    }),
-  legacyDealCancelPropose: (body: {
-    jobId: string;
-    address: string;
-    role: 'buyer' | 'seller';
-    reason: string;
-  }) =>
-    json<{ ok: true; txHash: string }>(`/api/legacy/deals/${body.jobId}/cancel-propose`, {
-      method: 'POST',
-      body: JSON.stringify({ address: body.address, role: body.role, reason: body.reason }),
-    }),
-  legacyDealCancelAccept: (body: { jobId: string; address: string; role: 'buyer' | 'seller' }) =>
-    json<{ ok: true; txHash: string }>(`/api/legacy/deals/${body.jobId}/cancel-accept`, {
-      method: 'POST',
-      body: JSON.stringify({ address: body.address, role: body.role }),
-    }),
-  legacyVaultPositions: (address: string) =>
-    json<{
-      vaultAddress: string | null;
-      positions: Array<{
+      guarantees: Array<{
+        contract: string;
         positionId: string;
-        principalUsdc: string;
-        depositedAt: number;
-        cooldownStartedAt: number;
-        claimableAt: number;
-        state: 'active' | 'cooling' | 'claimed';
-        generation: 1 | 2;
+        amountUsdc: string;
+        state: 'in_place' | 'coming_back';
+        readyAt: number | null;
+        steps: Array<'requestWithdraw' | 'cancelWithdraw' | 'claim'>;
+        heldByKarwan: boolean;
+        previous: boolean;
       }>;
-      totalActiveUsdc: string;
-      totalCoolingUsdc: string;
-      cooldownDays: number;
-      generations: Array<{
-        index: 1 | 2;
-        vaultAddress: string;
-        cooldownDays: number;
-        positionCount: number;
-      }>;
-    }>(`/api/legacy/vault/positions?address=${address}`),
-  legacyVaultRequestWithdraw: (body: { address: string; positionId: string; generation: 1 | 2 | 3 }) =>
-    json<{ ok: true; txHash: string }>('/api/legacy/vault/request-withdraw', {
-      method: 'POST',
-      body: JSON.stringify(body),
-    }),
-  legacyVaultCancelWithdraw: (body: { address: string; positionId: string; generation: 1 | 2 | 3 }) =>
-    json<{ ok: true; txHash: string }>('/api/legacy/vault/cancel-withdraw', {
-      method: 'POST',
-      body: JSON.stringify(body),
-    }),
-  legacyVaultClaim: (body: { address: string; positionId: string; generation: 1 | 2 | 3 }) =>
-    json<{ ok: true; txHash: string }>('/api/legacy/vault/claim', {
+    }>('/api/legacy/positions'),
+  legacyStep: (body: LegacyStepBody) =>
+    json<{ ok: true; txHash: string; amountUsdc: string } | { calls: Array<{ to: `0x${string}`; data: `0x${string}` }>; amountUsdc: string }>('/api/legacy/step', {
       method: 'POST',
       body: JSON.stringify(body),
     }),
@@ -5480,7 +5326,7 @@ export const api = {
   setupPreview: (answers: SetupAnswers) =>
     json<{ lines: string[]; needs: Array<'price'> }>('/api/setup/preview', { method: 'POST', body: JSON.stringify({ answers }) }),
   setupSave: (answers: SetupAnswers) =>
-    json<{ profile: UserProfile }>('/api/setup/save', { method: 'POST', body: JSON.stringify({ answers }) }),
+    json<{ profile: UserProfile; firstPost: SetupFirstPost | null }>('/api/setup/save', { method: 'POST', body: JSON.stringify({ answers }) }),
   /// The ways the person deals, saved whole (view 26).
   saveWays: (ways: import('@/features/profile/ways').AgentWays) =>
     json<{ profile: UserProfile; lines: string[] }>('/api/setup/ways', { method: 'POST', body: JSON.stringify({ ways }) }),

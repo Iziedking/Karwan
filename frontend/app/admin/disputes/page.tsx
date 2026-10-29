@@ -219,7 +219,7 @@ function DisputeCard({
             Retired escrow
           </p>
           <p className="mt-2">
-            This deal is held by escrow generation {dispute.venue?.generation}
+            This deal is held by an older escrow ({dispute.venue?.version})
             {dispute.venue?.escrow ? ` (${short(dispute.venue.escrow)})` : ''}, not the one
             rulings target. A ruling prepared here would collect signatures and then revert at
             execution, which is what used to happen.

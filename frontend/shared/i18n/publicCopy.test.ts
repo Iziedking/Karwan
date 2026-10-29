@@ -104,10 +104,10 @@ test('all locales retain the payment and timing placeholders', () => {
 
 test('public notices do not expose setup instructions or media source paths', () => {
   const telegram = read('features/telegram/components/TelegramConnectCard.tsx');
-  const stake = read('features/reputation/components/StakeCard.tsx');
+  const guarantee = read('features/guarantee/GuaranteeCard.tsx');
   const figures = read('features/docs/components/Prose.tsx');
   assert.doesNotMatch(telegram, /TELEGRAM_BOT_TOKEN|TELEGRAM_BOT_USERNAME/);
-  assert.doesNotMatch(stake, /<code[^>]*>KARWAN_VAULT_ADDR|<code[^>]*>\.env/);
+  assert.doesNotMatch(guarantee, /<code[^>]*>KARWAN_|<code[^>]*>\.env/);
   assert.doesNotMatch(figures, /\{src\}\s*<\/span>/);
   assert.doesNotMatch(MESSAGES.en.telegramConnectCard.notConfiguredPrefix, /operator|server|set /i);
   assert.doesNotMatch(MESSAGES.en.docsDisputesPage.buyerSilent.s3.body, /we are still reviewing|send us feedback/i);

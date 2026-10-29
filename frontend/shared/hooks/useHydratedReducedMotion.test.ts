@@ -35,7 +35,7 @@ test('components read reduced motion through the hydration-safe hook', () => {
 test('animations are reduced from the first frame and render-time reads are gone', () => {
   assert.match(source('shared/components/AppProviders.tsx'), /<MotionConfig reducedMotion="user">/);
   assert.doesNotMatch(source('shared/components/ProfileDeck.tsx'), /matchMedia\('\(prefers-reduced-motion/);
-  assert.match(source('app/stake/page.tsx'), /const \[n, setN\] = useState\(0\);/);
+  assert.match(source('app/guarantee/page.tsx'), /const \[n, setN\] = useState\(0\);/);
   // A route change has no animation at all, so there is nothing to reduce.
   assert.doesNotMatch(source('shared/components/RouteStage.tsx'), /from 'motion\/react'/);
 });

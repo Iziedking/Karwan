@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { API, funded, serveMoney } from './moneyFixtures';
 
 /// Cards the assistant prepares run the page's own routes when confirmed
-/// (view 31): deal insurance, getting paid early, deal steps.
+/// (view 31): the deal guarantee, getting paid early, deal steps.
 
 async function assistantWith(page: Page, card: Record<string, unknown>) {
   await page.route(`${API}/api/assistant/**`, (route) => {
@@ -16,22 +16,22 @@ async function assistantWith(page: Page, card: Record<string, unknown>) {
   await page.locator('form:has(#assistant-ask) button[type="submit"]').click();
 }
 
-test('a deal insurance card takes out each position on it, as the deal insurance page does', async ({ page }) => {
-  const withdrawn: string[] = [];
+test('a deal guarantee card takes out the amount on it, as the Deal guarantee page does', async ({ page }) => {
+  const takenOut: unknown[] = [];
   await serveMoney(page, { balances: funded });
-  await page.route(`${API}/api/vault/request-withdraw`, (route) => {
-    withdrawn.push((route.request().postDataJSON() as { positionId: string }).positionId);
-    return route.fulfill({ json: { ok: true, txHash: `0x${'c'.repeat(64)}` } });
+  await page.route(`${API}/api/guarantee/take-out`, (route) => {
+    takenOut.push(route.request().postDataJSON());
+    return route.fulfill({ json: { ok: true, reference: 'KWN-GUAR-0001', txHash: `0x${'c'.repeat(64)}`, amountUsdc: '50.00' } });
   });
   await assistantWith(page, {
-    kind: 'confirm', id: 'insurance_take_out:7-9:n1', intent: 'insurance_take_out', title: 'Take out deal insurance',
-    summary: 'Start the 7-day wait on 50.00 USDC. You collect it on 31 Oct.', fields: [{ label: 'Amount', value: '50.00 USDC' }],
-    payload: { address: `0x${'a'.repeat(40)}`, positionIds: ['7', '9'], amountUsdc: '50.00', signer: 'karwan' },
-    confirmLabel: 'Start the wait', cancelLabel: 'Not now',
+    kind: 'confirm', id: 'guarantee_take_out:50.00:n1', intent: 'guarantee_take_out', title: 'Take out from your deal guarantee',
+    summary: '50.00 USDC comes back on 5 Nov.', fields: [{ label: 'Amount', value: '50.00 USDC' }],
+    payload: { address: `0x${'a'.repeat(40)}`, amountUsdc: '50.00', signer: 'karwan' },
+    confirmLabel: 'Take out', cancelLabel: 'Not now',
   });
-  await page.getByRole('button', { name: 'Start the wait' }).click();
-  await expect(page.getByText('The wait has started. Ask me to collect it when it ends.')).toBeVisible();
-  expect(withdrawn).toEqual(['7', '9']);
+  await page.getByRole('button', { name: 'Take out', exact: true }).click();
+  await expect(page.getByText('Started. Ask me to collect it when it is ready.')).toBeVisible();
+  expect(takenOut).toEqual([expect.objectContaining({ amountUsdc: '50.00' })]);
 });
 
 test('asking to be paid early from the assistant sends the deal page request', async ({ page }) => {

@@ -29,7 +29,8 @@ import {
   ARC_USDC_DECIMALS,
 } from '@/features/profile/config';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { runWalletVaultAction, runWalletVaultDeposit, type VaultPositionAction } from '@/features/reputation/walletVaultAction';
+import { runWalletGuarantee, runWalletLegacyCalls } from '@/features/guarantee/walletGuarantee';
+import type { GuaranteeStep, LegacyStepBody } from '@/core/api';
 import { buildTransferAuthorization, serializeAuthorization } from '@/features/factoring/usdcAuthorization';
 import type { UsdcAuthorization, UserSettings } from '@/core/api';
 
@@ -255,19 +256,27 @@ interface ConfirmDeps {
   /// The person's own wallet: every Arc transaction from it can carry the steps
   /// still missing from their Karwan record (view 27, decision 10).
   ownWallet?: OwnWallet;
-  /// Putting money into deal insurance from the person's own wallet.
-  runVaultDeposit?: (amountUsdc: number) => Promise<{ txHash: `0x${string}`; recordSetUp?: boolean }>;
-  /// One deal insurance step on one position, signed by the person's own wallet.
-  runVaultStep?: (positionId: string, action: VaultPositionAction) => Promise<{ txHash: `0x${string}`; recordSetUp?: boolean }>;
+  /// A Deal guarantee step signed by the person's own wallet.
+  runGuaranteeStep?: (step: GuaranteeStep, amountUsdc?: string) => Promise<{ txHash: `0x${string}`; recordSetUp?: boolean }>;
+  /// The calls for a step on an older contract, signed by the person's own wallet.
+  runLegacyCalls?: (calls: Array<{ to: `0x${string}`; data: `0x${string}` }>) => Promise<{ txHash: `0x${string}`; recordSetUp?: boolean }>;
   /// A wallet financier's signature on the advance (USDC EIP-3009), as the
   /// financier desk asks for it: no gas, nothing moves until the seller accepts.
   signAdvance?: (input: { to: `0x${string}`; valueUsdc: string; validForSeconds: number }) => Promise<UsdcAuthorization>;
 }
 
-const INSURANCE_STEP = {
-  insurance_take_out: { karwan: api.vaultRequestWithdraw, wallet: 'requestWithdraw', done: 'The wait has started. Ask me to collect it when it ends.' },
-  insurance_cancel_take_out: { karwan: api.vaultCancelWithdraw, wallet: 'cancelWithdraw', done: 'Kept. It protects your deals again.' },
-  insurance_collect: { karwan: api.vaultClaim, wallet: 'claim', done: 'Collected. It is back in your wallet.' },
+const GUARANTEE_STEP = {
+  guarantee_put_up: { step: 'put_up', done: 'Done. Your deal guarantee is in place.' },
+  guarantee_take_out: { step: 'take_out', done: 'Started. Ask me to collect it when it is ready.' },
+  guarantee_cancel_take_out: { step: 'cancel', done: 'Kept. It protects your buyers again.' },
+  guarantee_collect: { step: 'collect', done: 'Collected. It is back in your balance.' },
+} as const;
+
+const GUARANTEE_CALL = {
+  put_up: (amountUsdc: string) => api.guaranteePutUp({ amountUsdc, requestId: crypto.randomUUID() }),
+  take_out: (amountUsdc: string) => api.guaranteeTakeOut({ amountUsdc, requestId: crypto.randomUUID() }),
+  cancel: () => api.guaranteeCancelTakeOut({ requestId: crypto.randomUUID() }),
+  collect: () => api.guaranteeCollect({ requestId: crypto.randomUUID() }),
 } as const;
 
 /// The assistant's card says it too when a wallet step also set up the record.
@@ -626,51 +635,27 @@ async function runConfirmIntent(
       viewLabel: 'See how you deal',
     };
   }
-  if (action.intent === 'stake_usdc' && (action.payload as { signer?: string }).signer === 'wallet') {
-    const p = action.payload as { amountUsdc: number };
-    if (!deps.runVaultDeposit) throw new Error('Open Deal insurance to sign this in your wallet.');
-    const r = await deps.runVaultDeposit(p.amountUsdc);
-    return { state: 'completed', successText: withRecordLine('Put up. It protects your deals now.', !!r.recordSetUp), viewHref: '/stake', viewLabel: 'Deal insurance', txHash: r.txHash };
-  }
-  if (action.intent === 'stake_usdc') {
-    const p = action.payload as { address: string; amountUsdc: number };
-    const r = await api.vaultDeposit({
-      address: p.address,
-      amountUsdc: p.amountUsdc,
-      requestId: crypto.randomUUID(),
-    });
-    const outcome = movementOutcome(r.movementState);
-    if (outcome === 'failed') {
-      throw new Error('Staking needs attention. No completion was confirmed; check your activity and try again.');
+  if (action.intent === 'guarantee_put_up' || action.intent === 'guarantee_take_out' || action.intent === 'guarantee_cancel_take_out' || action.intent === 'guarantee_collect') {
+    const p = action.payload as { amountUsdc: string; signer: 'karwan' | 'wallet' };
+    const { step, done } = GUARANTEE_STEP[action.intent];
+    const withAmount = step === 'put_up' || step === 'take_out';
+    if (p.signer === 'wallet') {
+      if (!deps.runGuaranteeStep) throw new Error('Open your deal guarantee to sign this in your wallet.');
+      const r = await deps.runGuaranteeStep(step, withAmount ? p.amountUsdc : undefined);
+      return { successText: withRecordLine(done, !!r.recordSetUp), viewHref: '/guarantee', viewLabel: 'Deal guarantee', txHash: r.txHash };
     }
-    return {
-      state: outcome,
-      successText: outcome === 'completed'
-        ? 'Stake completed. Yield starts from the next daily credit.'
-        : 'Your stake is being confirmed. It is not complete yet.',
-      viewHref: '/stake',
-      viewLabel: 'Your stake',
-      ...(r.depositTxHash ? { txHash: r.depositTxHash } : {}),
-    };
+    const r = await GUARANTEE_CALL[step](p.amountUsdc);
+    return { successText: done, viewHref: '/guarantee', viewLabel: 'Deal guarantee', ...(r.txHash ? { txHash: r.txHash } : {}) };
   }
-  if (action.intent === 'insurance_take_out' || action.intent === 'insurance_cancel_take_out' || action.intent === 'insurance_collect') {
-    const p = action.payload as { address: string; positionIds: string[]; signer: 'karwan' | 'wallet' };
-    const step = INSURANCE_STEP[action.intent];
-    let txHash: string | undefined;
-    let recordSetUp = false;
-    // The vault acts on whole positions, one after another; a failure stops
-    // the rest, as on the deal insurance page.
-    for (const positionId of p.positionIds) {
-      if (p.signer === 'wallet') {
-        if (!deps.runVaultStep) throw new Error('Open Deal insurance to sign this in your wallet.');
-        const r = await deps.runVaultStep(positionId, step.wallet);
-        txHash = r.txHash;
-        recordSetUp ||= !!r.recordSetUp;
-      } else {
-        txHash = (await step.karwan({ address: p.address, positionId, requestId: crypto.randomUUID() })).txHash ?? txHash;
-      }
+  if (action.intent === 'legacy_step') {
+    const p = action.payload as LegacyStepBody & { signer: 'karwan' | 'wallet' };
+    const r = await api.legacyStep({ kind: p.kind, contract: p.contract, ref: p.ref, step: p.step } as LegacyStepBody);
+    if ('calls' in r) {
+      if (!deps.runLegacyCalls) throw new Error('Open Legacy contracts to sign this in your wallet.');
+      const sent = await deps.runLegacyCalls(r.calls);
+      return { successText: withRecordLine('Done on the older contract.', !!sent.recordSetUp), viewHref: '/legacy', viewLabel: 'Legacy contracts', txHash: sent.txHash };
     }
-    return { successText: withRecordLine(step.done, recordSetUp), viewHref: '/stake', viewLabel: 'Deal insurance', ...(txHash ? { txHash } : {}) };
+    return { successText: 'Done on the older contract.', viewHref: '/legacy', viewLabel: 'Legacy contracts', txHash: r.txHash };
   }
   if (action.intent === 'finance_ask') {
     const p = action.payload as { invoiceId: string; requestedAdvanceUsdc: string; minAdvanceUsdc?: string };
@@ -739,8 +724,8 @@ async function runConfirmIntent(
     const r = await api.yieldClaim({ address: p.address });
     return {
       successText: 'Yield claimed. It is in your wallet.',
-      viewHref: '/stake',
-      viewLabel: 'Your stake',
+      viewHref: '/guarantee',
+      viewLabel: 'Your deal guarantee',
       ...(r.txHash ? { txHash: r.txHash } : {}),
     };
   }
@@ -1289,27 +1274,27 @@ function ConfirmCard({
     },
     [wagmiAddress, connector, openConnectModal, walletClient],
   );
-  const runVaultStep = useCallback(
-    async (positionId: string, action: VaultPositionAction) => {
+  const runGuaranteeStep = useCallback(
+    async (step: GuaranteeStep, amountUsdc?: string) => {
       if (!wagmiAddress || !connector) {
         openConnectModal?.();
         throw new Error('Connect your wallet, then confirm again.');
       }
       if (chainId !== ARC_CHAIN_ID) await switchChainAsync({ chainId: ARC_CHAIN_ID });
       if (!walletClient || !arcPublicClient) throw new Error('Wallet client unavailable');
-      return runWalletVaultAction({ address: wagmiAddress, positionId, action, ownWallet, arcClient: arcPublicClient, revertedText });
+      return runWalletGuarantee({ step, ...(amountUsdc ? { amountUsdc } : {}), ownWallet, arcClient: arcPublicClient, revertedText });
     },
     [wagmiAddress, connector, openConnectModal, chainId, switchChainAsync, walletClient, ownWallet, arcPublicClient, revertedText],
   );
-  const runVaultDeposit = useCallback(
-    async (amountUsdc: number) => {
+  const runLegacyCalls = useCallback(
+    async (calls: Array<{ to: `0x${string}`; data: `0x${string}` }>) => {
       if (!wagmiAddress || !connector) {
         openConnectModal?.();
         throw new Error('Connect your wallet, then confirm again.');
       }
       if (chainId !== ARC_CHAIN_ID) await switchChainAsync({ chainId: ARC_CHAIN_ID });
       if (!walletClient || !arcPublicClient) throw new Error('Wallet client unavailable');
-      return runWalletVaultDeposit({ address: wagmiAddress, amountUsdc, walletClient, ownWallet, arcClient: arcPublicClient, revertedText });
+      return runWalletLegacyCalls({ calls, ownWallet, arcClient: arcPublicClient, revertedText });
     },
     [wagmiAddress, connector, openConnectModal, chainId, switchChainAsync, walletClient, ownWallet, arcPublicClient, revertedText],
   );
@@ -1379,8 +1364,8 @@ function ConfirmCard({
                       ? 'Cancelling…'
                       : action.intent === 'save_setup' || action.intent === 'save_ways'
                         ? 'Saving…'
-                      : action.intent === 'stake_usdc'
-                        ? 'Staking…'
+                      : action.intent === 'guarantee_put_up'
+                        ? 'Putting up…'
                         : action.intent === 'claim_yield'
                           ? 'Claiming…'
                           : action.intent === 'fund_agent'
@@ -1409,8 +1394,8 @@ function ConfirmCard({
         startGatewayDeposit,
         startFundAgentWeb3,
         ownWallet,
-        runVaultStep,
-        runVaultDeposit,
+        runGuaranteeStep,
+        runLegacyCalls,
         signAdvance,
       });
       confirmOutcomes.set(action.id, r);

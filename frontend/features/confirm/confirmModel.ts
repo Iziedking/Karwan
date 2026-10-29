@@ -50,8 +50,9 @@ export function actionLines(action: PresenceAction, copy: ConfirmPresenceCopy): 
         headline: fillIn(copy.moveOut, { amount, to: shortAddress(action.recipient ?? '') }),
         lines: action.detail.feeMicros ? [fillIn(copy.fee, { fee: formatMicros(action.detail.feeMicros) })] : [],
       };
+    case 'deal_guarantee':
     case 'deal_insurance':
-      return { headline: fillIn(copy.insurance, { amount }), lines: [copy.insuranceLine] };
+      return { headline: fillIn(copy.guarantee, { amount }), lines: [copy.guaranteeLine] };
     case 'record_setup':
       return {
         headline: copy.setup,

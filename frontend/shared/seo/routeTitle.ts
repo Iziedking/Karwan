@@ -31,7 +31,6 @@ export const EXACT: Record<string, RouteTitleKey> = {
   '/listings': 'offers',
   '/market': 'market',
   '/newsletter': 'newsletter',
-  '/onboarding': 'onboarding',
   '/profile': 'profile',
   '/profile/agent-funds': 'agentFunds',
   '/profile/business': 'business',
@@ -49,7 +48,8 @@ export const EXACT: Record<string, RouteTitleKey> = {
   '/send': 'send',
   '/settings': 'settings',
   '/setup': 'setUp',
-  '/stake': 'stake',
+  '/guarantee': 'guarantee',
+  '/stake': 'guarantee',
   '/start': 'signIn',
   '/terms': 'terms',
   '/terms/chat': 'chatTerms',
@@ -76,9 +76,10 @@ export const PATTERNS: [RegExp, RouteTitleKey][] = [
 
 /// The title a page carries in the tab: a route title, 'server' when the page
 /// sets its own, or null for the site title (the landing page, the console).
-export function routeTitleKey(pathname: string): RouteTitleKey | 'server' | null {
+export function routeTitleKey(pathname: string, search = ''): RouteTitleKey | 'server' | null {
   const path = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
   if (SERVER_TITLED.some((re) => re.test(path))) return 'server';
+  if (path === '/start' && new URLSearchParams(search).get('mode') === 'signup') return 'signUp';
   return EXACT[path] ?? PATTERNS.find(([re]) => re.test(path))?.[1] ?? null;
 }
 
@@ -96,5 +97,5 @@ export function titlePrepaintScript(): string {
     p: PATTERNS.map(([re, key]) => [re.source, key]),
     t: routeTitlesCopy,
   };
-  return `(function(){try{var d=${JSON.stringify(data).replace(/</g, '\\u003c')};var p=location.pathname;if(p.length>1)p=p.replace(/\\/+$/,'');for(var i=0;i<d.s.length;i++)if(new RegExp(d.s[i]).test(p))return;var k=d.e[p];for(var j=0;!k&&j<d.p.length;j++)if(new RegExp(d.p[j][0]).test(p))k=d.p[j][1];if(!k)return;var m=document.cookie.match(/(?:^|; )karwan-locale=([^;]+)/);var l=m?decodeURIComponent(m[1]):'en';var t=(d.t[l]||d.t.en)[k];if(t)document.title=t+' · Karwan';}catch(e){}})();`;
+  return `(function(){try{var d=${JSON.stringify(data).replace(/</g, '\\u003c')};var p=location.pathname;if(p.length>1)p=p.replace(/\\/+$/,'');for(var i=0;i<d.s.length;i++)if(new RegExp(d.s[i]).test(p))return;var k=p==='/start'&&/[?&]mode=signup(&|$)/.test(location.search)?'signUp':d.e[p];for(var j=0;!k&&j<d.p.length;j++)if(new RegExp(d.p[j][0]).test(p))k=d.p[j][1];if(!k)return;var m=document.cookie.match(/(?:^|; )karwan-locale=([^;]+)/);var l=m?decodeURIComponent(m[1]):'en';var t=(d.t[l]||d.t.en)[k];if(t)document.title=t+' · Karwan';}catch(e){}})();`;
 }

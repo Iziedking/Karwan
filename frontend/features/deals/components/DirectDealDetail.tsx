@@ -2569,7 +2569,7 @@ function ActionPanel({
             <Body>
               Karwan&rsquo;s arbiter resolved this dispute and split the escrow:{' '}
               <span className="font-semibold text-[var(--lp-workspace-ink)]">{sellerPct}% to the seller</span>,{' '}
-              {100 - sellerPct}% back to the buyer. The staked reservation was settled to match.
+              {100 - sellerPct}% back to the buyer. The deal guarantee it held was settled to match.
             </Body>
             {deal.cancelReason && (
               <div>
@@ -4289,7 +4289,7 @@ function DealErrorNote({
         <p className="font-medium">{copy.insufficientStakeTitle}</p>
         {!viewerIsBuyer && (
           <p className="text-[14px] opacity-90">
-            <Link href="/stake" className="underline font-medium">
+            <Link href="/guarantee" className="underline font-medium">
               {copy.insufficientStakeLink}
             </Link>{' '}
             {copy.insufficientStakeSuffix}

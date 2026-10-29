@@ -280,7 +280,7 @@ test('no page draws two Back controls', async ({ page }) => {
   await serveMoney(page, { balances: funded });
   const routes = [
     '/account', '/bridge?direction=in', '/bridge?direction=in&money=v1', '/bridge?direction=out&money=v1', '/send', '/activity', '/profile', '/profile/wallets',
-    '/profile/edit', '/settings', '/stake', '/financier', '/market', '/p2p/requests', '/p2p/offers', '/profile/open-deals',
+    '/profile/edit', '/settings', '/guarantee', '/financier', '/market', '/p2p/requests', '/p2p/offers', '/profile/open-deals',
   ];
   const backs = page.getByRole('link', { name: /^(←\s*)?Back\b/ }).or(page.getByRole('button', { name: /^(Go back|Back\b)/ })).filter({ visible: true });
   for (const route of routes) {

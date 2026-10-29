@@ -46,8 +46,6 @@ export function CreditPassport({ address, share, onSealed }: { address: string; 
   const sc = passportShareCopy[locale];
   const [rep, setRep] = useState<Reputation | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [stakeUsdc, setStakeUsdc] = useState<string>('0');
-  const [stakeSynced, setStakeSynced] = useState<boolean>(true);
   const [fetchState, setFetchState] = useState<FetchState>('idle');
   const [copied, setCopied] = useState(false);
   /// SME public profile (companyName, sector, region, ...) + computed
@@ -69,13 +67,11 @@ export function CreditPassport({ address, share, onSealed }: { address: string; 
   useEffect(() => {
     if (!valid) return;
     let cancelled = false;
-    let pollId: ReturnType<typeof setTimeout> | null = null;
 
     async function load() {
-      const [repRes, profRes, vaultRes, smeRes] = await Promise.allSettled([
+      const [repRes, profRes, smeRes] = await Promise.allSettled([
         api.reputation(address, false, share),
         api.getProfile(address),
-        api.vaultPositions(address, undefined, share),
         // The SME profile only matters when the trade rail is live; skip
         // the call otherwise.
         SME_TRADES_ENABLED ? api.getSmeProfile(address, share) : Promise.resolve(null),
@@ -101,38 +97,6 @@ export function CreditPassport({ address, share, onSealed }: { address: string; 
       }
       setRep(repRes.value);
       setProfile(profRes.status === 'fulfilled' ? profRes.value.profile : null);
-      if (vaultRes.status === 'fulfilled') {
-        setStakeUsdc(vaultRes.value.totalActiveUsdc);
-        // synced is optional on the response for back-compat with older
-        // backends. undefined means "we don't know, assume final".
-        const synced = vaultRes.value.synced !== false;
-        setStakeSynced(synced);
-        // Mid-scan: poll the vault endpoint until it reports synced, so the
-        // total catches up without the user manually refreshing. Reputation
-        // is left as the first read since it depends on chain mirroring,
-        // not the vault scan.
-        if (!synced) {
-          pollId = setTimeout(async () => {
-            try {
-              const next = await api.vaultPositions(address);
-              if (cancelled) return;
-              setStakeUsdc(next.totalActiveUsdc);
-              const nextSynced = next.synced !== false;
-              setStakeSynced(nextSynced);
-              if (!nextSynced) {
-                // Same effect, recurse via the load() guarantee that pollId
-                // only ever holds the latest scheduled timer.
-                pollId = setTimeout(load, 5000);
-              }
-            } catch {
-              /* transient; the next user-driven refresh will catch up */
-            }
-          }, 5000);
-        }
-      } else {
-        setStakeUsdc('0');
-        setStakeSynced(true);
-      }
       setFetchState('ready');
     }
 
@@ -141,7 +105,6 @@ export function CreditPassport({ address, share, onSealed }: { address: string; 
 
     return () => {
       cancelled = true;
-      if (pollId) clearTimeout(pollId);
     };
   }, [address, valid, share, onSealed]);
 
@@ -223,6 +186,8 @@ export function CreditPassport({ address, share, onSealed }: { address: string; 
   const settled = rep.successCount + rep.disputedCount + rep.failedCount;
   const counterparties = rep.inputs?.distinctCounterparties;
   const volume = rep.inputs?.lifetimeVolumeUsdc ?? 0;
+  // The deal guarantee as reputation counts it, on the new vault and the previous one.
+  const guaranteeUsdc = String(rep.inputs?.stakeUsdc ?? 0);
   const lastDealAt = rep.inputs?.lastActionAt;
   const dateLabel = (ms: number) => new Date(ms).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
   const tierName = TIER_LABEL[tier];
@@ -301,7 +266,7 @@ export function CreditPassport({ address, share, onSealed }: { address: string; 
             ) : null}
             <div className="flex items-center justify-between gap-4 py-3">
               <dt className="text-[var(--lp-text-sub)]">{pc.stake}</dt>
-              <dd className="tabular-nums text-[var(--lp-dark)]">{stakeSynced ? `${walletAmount(stakeUsdc) ?? trimUsdc(stakeUsdc)} USDC` : cp.stats.syncing}</dd>
+              <dd className="tabular-nums text-[var(--lp-dark)]">{`${walletAmount(guaranteeUsdc) ?? trimUsdc(guaranteeUsdc)} USDC`}</dd>
             </div>
             {lastDealAt ? (
               <div className="flex items-center justify-between gap-4 py-3">

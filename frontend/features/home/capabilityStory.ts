@@ -6,7 +6,7 @@ export const CAPABILITIES = [
   { id: 'market', href: '/market' },
   { id: 'research', href: '/market?scope=business' },
   { id: 'settlement', href: '/account' },
-  { id: 'reputation', href: '/stake' },
+  { id: 'reputation', href: '/guarantee' },
 ] as const;
 export type CapabilityId = (typeof CAPABILITIES)[number]['id'];
 export const STORY_INTERVAL_MS = 6500;

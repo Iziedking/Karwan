@@ -72,10 +72,12 @@ test('each_action_reads_as_its_consequence', () => {
     headline: 'Send 50 USDC to 0x1234…abcd',
     lines: ['Network fee about 0.12 USDC'],
   });
-  assert.deepEqual(actionLines({ kind: 'deal_insurance', wallet: '0xaa', amountMicros: '25000000', recipient: '0xvault', detail: {} }, copy), {
-    headline: 'Put up 25 USDC of deal insurance',
-    lines: [copy.insuranceLine],
-  });
+  for (const kind of ['deal_guarantee', 'deal_insurance'] as const) {
+    assert.deepEqual(actionLines({ kind, wallet: '0xaa', amountMicros: '25000000', recipient: '0xvault', detail: {} }, copy), {
+      headline: 'Put up 25 USDC as your deal guarantee',
+      lines: [copy.guaranteeLine],
+    });
+  }
   const setup = actionLines({ kind: 'record_setup', wallet: '0xaa', amountMicros: null, recipient: null, detail: { perPayment: '1005000000', total: '10000000000', days: '365' } }, copy);
   assert.equal(setup.headline, 'Set up your Karwan record');
   assert.deepEqual(setup.lines, ['Your agents run your deals for you. Your buying agent can pay up to 1005 USDC at a time and 10000 USDC in total for one year.']);

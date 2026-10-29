@@ -41,11 +41,11 @@ export function FinancierApply({
       fix: null as { href: string; label: string } | null,
     },
     {
-      label: 'Stake',
+      label: 'Deal guarantee',
       ok: eligibility.stakeOk,
       value: `$${eligibility.stakeUsdc.toFixed(2)}`,
-      need: 'Stake some USDC in the vault first.',
-      fix: { href: '/stake', label: 'Stake USDC' },
+      need: 'Put up a deal guarantee first.',
+      fix: { href: '/guarantee', label: 'Put up a deal guarantee' },
     },
     {
       label: 'Reputation',

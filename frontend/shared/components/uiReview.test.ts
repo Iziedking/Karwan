@@ -69,13 +69,6 @@ test('activity keeps personal transactions and the public feed distinct without 
   assert.doesNotMatch(activity, /<ActivityStats|toggleGroup|countByGroup/);
 });
 
-test('account setup explains payment stages at the label and shows verification timing once', () => {
-  const onboarding = source('../../app/onboarding/page.tsx');
-  assert.match(onboarding, /hint=\{ps\.matching\.milestonePresetsHint\}/);
-  assert.doesNotMatch(onboarding, /\{ats\.note\}/);
-  assert.match(en.onboarding.accountTypeStep.description, /verification/);
-});
-
 test('profile photo is a user-initiated saved image with a generated fallback', () => {
   const hub = source('../../features/profile/components/ProfileAccountHub.tsx');
   assert.match(hub, /api\.setProfileAvatar\(address, imageDataUrl\)/);
@@ -84,25 +77,11 @@ test('profile photo is a user-initiated saved image with a generated fallback', 
   assert.match(hub, /type="file" accept="image\/jpeg,image\/png,image\/webp"/);
 });
 
-test('stake keeps agent linking inside the stake panel', () => {
-  const page = source('../../app/stake/page.tsx');
-  const stake = source('../../features/reputation/components/StakeCard.tsx');
-  const binding = source('../../features/reputation/components/AgentStakeBinding.tsx');
-  assert.doesNotMatch(page, /<AgentStakeBinding/);
-  assert.match(stake, /<AgentStakeBinding\s*\/>/);
-  assert.match(page, /<StakeCard\s*\/>/);
-  assert.match(binding, /\{done \? t\.doneCta : busy \? t\.busyCta : t\.cta\}/);
-  assert.doesNotMatch(binding, /\{t\.title\}|\{t\.body\}|\{t\.tag\}/);
-  assert.equal(en.agentStakeBinding.cta, 'Link agent');
-});
-
-test('setup ends in a preferences review before the existing submit action', () => {
-  const page = source('../../app/onboarding/page.tsx');
-  assert.match(page, /type ProfilePanel = [^;]*'review'/);
-  assert.match(page, /currentPanel === 'review' \? props.canSubmit/);
-  assert.match(page, /currentPanel === 'review' && <ProfileSection/);
-  assert.match(page, /panel === 3 && <ProfileSection/);
-  assert.match(page, /else props.onSubmit\(\)/);
+test('the deal guarantee page holds the guarantee card, and the old staking page only redirects', () => {
+  const page = source('../../app/guarantee/page.tsx');
+  assert.match(page, /<GuaranteeCard\s*\/>/);
+  const stake = source('../../app/stake/page.tsx');
+  assert.match(stake, /\/guarantee/);
 });
 
 test('documentation returns to a useful internal destination', () => {

@@ -125,7 +125,7 @@ function BalanceSummary() {
       {staked > 0 ? (
         <div className="mt-2 border-t border-[var(--lp-border-light)] pt-3">
           <div className="flex items-baseline justify-between gap-4">
-            <Link href="/stake" className="text-[16px] font-medium text-[var(--lp-dark)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">{t.staked}</Link>
+            <Link href="/guarantee" className="text-[16px] font-medium text-[var(--lp-dark)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">{t.staked}</Link>
             <span className="text-[16px] font-semibold tabular-nums text-[var(--lp-dark)]">{fmt(staked)} USDC</span>
           </div>
           <p className="mt-1 text-[14px] font-medium text-[var(--lp-text-sub)]">{t.stakedNote}</p>

@@ -3,7 +3,7 @@ import { BUYER } from './fixtures';
 
 const API = 'http://127.0.0.1:3199';
 const WIDTHS = [320, 360, 375, 390, 414, 430];
-const PAGES = ['/', '/market', '/start', '/stake', '/profile'];
+const PAGES = ['/', '/market', '/start', '/guarantee', '/profile'];
 
 async function mockApi(page: Page) {
   await page.addInitScript(() => {

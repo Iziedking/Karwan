@@ -3,8 +3,8 @@
 export interface ConfirmPresenceCopy {
   title: string;
   moveOut: string;
-  insurance: string;
-  insuranceLine: string;
+  guarantee: string;
+  guaranteeLine: string;
   setup: string;
   setupLine: string;
   factor: string;
@@ -38,8 +38,8 @@ export interface ConfirmPresenceCopy {
 const en: ConfirmPresenceCopy = {
   title: "Confirm it's you",
   moveOut: 'Send {amount} USDC to {to}',
-  insurance: 'Put up {amount} USDC of deal insurance',
-  insuranceLine: 'It protects your buyers and lets financiers advance you money on your deals. You can take it back when no deal is using it.',
+  guarantee: 'Put up {amount} USDC as your deal guarantee',
+  guaranteeLine: 'It protects your buyers and lets financiers advance you money on your deals. You can take it back when no deal is using it.',
   setup: 'Set up your Karwan record',
   setupLine: 'Your agents run your deals for you. Your buying agent can pay up to {perPayment} USDC at a time and {total} USDC in total for one year.',
   factor: 'Change how you confirm',
@@ -73,8 +73,8 @@ const en: ConfirmPresenceCopy = {
 const ar: ConfirmPresenceCopy = {
   title: 'أكّد أنك أنت',
   moveOut: 'إرسال {amount} USDC إلى {to}',
-  insurance: 'وضع {amount} USDC كتأمين للصفقات',
-  insuranceLine: 'يحمي المشترين منك ويتيح للممولين تقديم سلفة لك على صفقاتك. يمكنك استرداده حين لا تستخدمه أي صفقة.',
+  guarantee: 'وضع {amount} USDC كضمان للصفقة',
+  guaranteeLine: 'يحمي المشترين منك ويتيح للممولين تقديم سلفة لك على صفقاتك. يمكنك استرداده حين لا تستخدمه أي صفقة.',
   setup: 'أنشئ سجلك في Karwan',
   setupLine: 'وكلاؤك يديرون صفقاتك نيابة عنك. يمكن لوكيل الشراء أن يدفع حتى {perPayment} USDC في المرة و{total} USDC إجمالًا لمدة سنة.',
   factor: 'غيّر طريقة التأكيد',
@@ -108,8 +108,8 @@ const ar: ConfirmPresenceCopy = {
 const fr: ConfirmPresenceCopy = {
   title: "Confirmez que c'est vous",
   moveOut: 'Envoyer {amount} USDC à {to}',
-  insurance: 'Déposer {amount} USDC en assurance de transaction',
-  insuranceLine: 'Elle protège vos acheteurs et permet aux financeurs de vous avancer de l’argent sur vos transactions. Vous pouvez la reprendre quand aucune transaction ne l’utilise.',
+  guarantee: 'Déposer {amount} USDC en garantie de transaction',
+  guaranteeLine: 'Elle protège vos acheteurs et permet aux financeurs de vous avancer de l’argent sur vos transactions. Vous pouvez la reprendre quand aucune transaction ne l’utilise.',
   setup: 'Créez votre dossier Karwan',
   setupLine: 'Vos agents mènent vos transactions pour vous. Votre agent d’achat peut payer jusqu’à {perPayment} USDC à la fois et {total} USDC au total pendant un an.',
   factor: 'Changer votre façon de confirmer',
@@ -143,8 +143,8 @@ const fr: ConfirmPresenceCopy = {
 const hi: ConfirmPresenceCopy = {
   title: 'पुष्टि करें कि यह आप हैं',
   moveOut: '{to} को {amount} USDC भेजें',
-  insurance: '{amount} USDC डील बीमा के रूप में रखें',
-  insuranceLine: 'यह आपके खरीदारों की रक्षा करता है और फ़ाइनेंसरों को आपकी डील पर आपको पैसा अग्रिम देने देता है। जब कोई डील इसका उपयोग न कर रही हो, तब आप इसे वापस ले सकते हैं।',
+  guarantee: '{amount} USDC डील गारंटी के रूप में रखें',
+  guaranteeLine: 'यह आपके खरीदारों की रक्षा करता है और फ़ाइनेंसरों को आपकी डील पर आपको पैसा अग्रिम देने देता है। जब कोई डील इसका उपयोग न कर रही हो, तब आप इसे वापस ले सकते हैं।',
   setup: 'अपना Karwan रिकॉर्ड बनाएँ',
   setupLine: 'आपके एजेंट आपकी डील आपके लिए चलाते हैं। आपका खरीद एजेंट एक बार में {perPayment} USDC तक और एक साल में कुल {total} USDC तक भुगतान कर सकता है।',
   factor: 'पुष्टि का तरीका बदलें',
@@ -178,8 +178,8 @@ const hi: ConfirmPresenceCopy = {
 const sw: ConfirmPresenceCopy = {
   title: 'Thibitisha kuwa ni wewe',
   moveOut: 'Tuma USDC {amount} kwa {to}',
-  insurance: 'Weka USDC {amount} kama bima ya mikataba',
-  insuranceLine: 'Inawalinda wanunuzi wako na inawaruhusu wafadhili kukupa pesa mapema kwa mikataba yako. Unaweza kuirudisha wakati hakuna mkataba unaoitumia.',
+  guarantee: 'Weka USDC {amount} kama dhamana ya mpango',
+  guaranteeLine: 'Inawalinda wanunuzi wako na inawaruhusu wafadhili kukupa pesa mapema kwa mikataba yako. Unaweza kuirudisha wakati hakuna mkataba unaoitumia.',
   setup: 'Fungua rekodi yako ya Karwan',
   setupLine: 'Mawakala wako wanaendesha mikataba yako kwa niaba yako. Wakala wako wa kununua anaweza kulipa hadi USDC {perPayment} kwa mara moja na USDC {total} kwa jumla kwa mwaka mmoja.',
   factor: 'Badilisha jinsi unavyothibitisha',

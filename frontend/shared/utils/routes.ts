@@ -77,7 +77,7 @@ export function getProductBackHref(
     '/request',
     '/seller',
     '/send',
-    '/stake',
+    '/guarantee',
   ];
   if (appParents.some((route) => matchesRoute(pathname, route))) return '/app';
   return null;
@@ -154,7 +154,7 @@ const DEAL_ROUTES = [
   '/market',
   '/listings',
   '/financier',
-  '/stake',
+  '/guarantee',
   '/legacy',
   '/business',
   '/credit-passport',

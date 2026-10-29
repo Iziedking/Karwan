@@ -124,28 +124,23 @@ export const SELLER_STEPS: TourStep[] = [
   },
 ];
 
-/// Stake tour.
-export const STAKE_TOUR_ID = 'stake-v2';
+/// Deal guarantee tour (view 37).
+export const STAKE_TOUR_ID = 'guarantee-v1';
 export const STAKE_STEPS: TourStep[] = [
   {
-    title: 'Network reserve',
-    body: 'Review the vault reserve and distribution record.',
-    target: 'stake-network-yield',
+    title: 'Your deal guarantee',
+    body: 'Money you set aside to protect your buyers. Put it up, take it out or collect it here.',
+    target: 'guarantee',
   },
   {
     title: 'Your yield',
-    body: 'Claim available yield without changing your stake.',
+    body: 'The guarantee earns at the USYC rate, paid by Karwan on testnet. Claim it here.',
     target: 'stake-your-yield',
   },
   {
-    title: 'Your vault position',
-    body: 'Deposit USDC to build reputation. The same position holds your withdrawable stake.',
-    target: 'stake-vault',
-  },
-  {
-    title: 'Withdrawal timing',
-    body: 'Withdrawals cool down before they can be claimed. The timer shows the exact wait.',
-    target: 'stake-withdraw',
+    title: 'Network reserve',
+    body: 'Review the reserve and the distribution record.',
+    target: 'stake-network-yield',
   },
 ];
 

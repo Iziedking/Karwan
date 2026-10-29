@@ -80,7 +80,7 @@ function hrefForType(type: string, jobId: string): string {
   // Trend nudge points the seller at the live requests driving the rising demand.
   if (type === 'trend.match') return '/market';
   if (BRIDGE_TYPES.has(type) || WALLET_TYPES.has(type)) return '/activity';
-  if (type.startsWith('vault.')) return '/stake';
+  if (type.startsWith('vault.') || type.startsWith('guarantee.')) return '/guarantee';
   if (type.startsWith('agent.')) return '/profile';
   // Tier-up lands on the profile, where the 12h celebrate card renders the
   // full breakdown alongside the user's stake, agents, and identity wallet.

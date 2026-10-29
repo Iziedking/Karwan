@@ -10,7 +10,7 @@ const UNTIL = Date.UTC(2026, 9, 31, 14, 0);
 
 const full = {
   address: OWNER, score: 518, tier: 'ESTABLISHED', scoreTier: 'ESTABLISHED', terms: { breadth: 0.67 },
-  inputs: { distinctCounterparties: 20, lifetimeVolumeUsdc: 3046.85, lastActionAt: Date.UTC(2026, 9, 24), registeredAt: Date.UTC(2026, 4, 14) },
+  inputs: { distinctCounterparties: 20, lifetimeVolumeUsdc: 3046.85, stakeUsdc: 7050, lastActionAt: Date.UTC(2026, 9, 24), registeredAt: Date.UTC(2026, 4, 14) },
   successCount: 30, disputedCount: 0, failedCount: 0, totalDeals: 30, scoreBps: 5000,
 };
 const profile = { address: OWNER, displayName: 'Kingizie', handle: 'kingizie' };
@@ -35,7 +35,6 @@ async function serve(page: Page, viewer: string | null, reputation: Record<strin
       shares.splice(0, shares.length);
       return route.fulfill({ json: { stopped: true } });
     }
-    if (pathname === '/api/vault/positions') return route.fulfill({ json: { vaultAddress: null, positions: [], totalActiveUsdc: '7050', totalCoolingUsdc: '0', cooldownDays: 7, synced: true } });
     if (pathname.startsWith('/api/profile')) return route.fulfill({ json: { profile } });
     return route.fulfill({ json: {} });
   });

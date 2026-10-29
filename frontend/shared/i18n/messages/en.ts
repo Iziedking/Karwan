@@ -23,6 +23,7 @@ import { dealLiveCopy, type DealLiveCopy } from './dealLive';
 import { deliveryCardCopy, type DeliveryCardCopy } from './deliveryCard';
 import { recordOnTheWayCopy, type RecordOnTheWayCopy } from './recordOnTheWay';
 import { previousEscrowCopy, type PreviousEscrowCopy } from './previousEscrow';
+import { dealGuaranteeCopy, type DealGuaranteeCopy } from './dealGuarantee';
 import { offersThatMoveCopy, type OffersThatMoveCopy } from './offersThatMove';
 import { offerRosterCopy, type OfferRosterCopy } from './offerRoster';
 import { shortlistCopy, type ShortlistCopy } from './shortlist';
@@ -67,6 +68,7 @@ interface MessagesShape {
   deliveryCard: DeliveryCardCopy;
   recordOnTheWay: RecordOnTheWayCopy;
   previousEscrow: PreviousEscrowCopy;
+  dealGuarantee: DealGuaranteeCopy;
   offersThatMove: OffersThatMoveCopy;
   disputeJudge: DisputeJudgeCopy;
   balanceSummary: BalanceSummaryCopy;
@@ -443,16 +445,6 @@ interface MessagesShape {
       openProfile: string;
       dismissAria: string;
     };
-    legacy: {
-      ariaLabel: string;
-      eyebrowPrefix: string;
-      closesSoonFallback: string;
-      title: string;
-      body: string;
-      openRecovery: string;
-      dismissAria: string;
-      dismissTooltip: string;
-    };
   };
   footer: {
     tagline: string;
@@ -766,6 +758,15 @@ interface MessagesShape {
         yieldClaim: string;
         /// The daily distribution arriving. Not the same as claiming it out.
         yieldAccrued: string;
+        guaranteePutUp: string;
+        guaranteeTakeOut: string;
+        guaranteeCancel: string;
+        guaranteeCollect: string;
+        legacyTakeOut: string;
+        legacyCancel: string;
+        legacyCollect: string;
+        legacyRelease: string;
+        legacyRefund: string;
       };
       eyebrow: string;
       loading: string;
@@ -2947,17 +2948,6 @@ interface MessagesShape {
   /// an agent to its identity before reading a balance, but only once the pair
   /// is bound, and the identity's half of that handshake is a signature only
   /// the user can give.
-  agentStakeBinding: {
-    tag: string;
-    title: string;
-    body: string;
-    foreignBody: string;
-    cta: string;
-    busyCta: string;
-    doneCta: string;
-    incomplete: string;
-    failed: string;
-  };
   gatewayCard: {
     connectCta: string;
     soonTag: string;
@@ -3002,110 +2992,6 @@ interface MessagesShape {
     arcPinned: string;
     /// Nothing pooled, so there is nothing to move.
     outEmpty: string;
-  };
-  stakeCard: {
-    eyebrow: {
-      stake: string;
-    };
-    signedOut: {
-      body: string;
-    };
-    summary: {
-      usdcActive: string;
-      syncing: string;
-      syncingTitle: string;
-      freeLabel: string;
-      reservedLabel: string;
-      reservedTitle: string;
-      coolingLabel: string;
-      freeHint: string;
-    };
-    wrongNetwork: {
-      eyebrow: string;
-      body: string;
-      switchButton: string;
-    };
-    vaultNotDeployed: {
-      prefix: string;
-      middle: string;
-      suffix: string;
-    };
-    yield: {
-      eyebrow: string;
-      bodyPrefix: string;
-      bodyMiddle: string;
-    };
-    /// The confirm sheet a deposit opens before any money moves.
-    depositSheet: { titleTemplate: string; bodyTemplate: string; confirmTemplate: string };
-    depositForm: {
-      label: string;
-      max: string;
-      maxTitleTemplate: string;
-      maxTitleLoading: string;
-      inputAria: string;
-      submit: string;
-      submitBusy: string;
-      insufficientBalanceTemplate: string;
-    };
-    withdrawForm: {
-      label: string;
-      max: string;
-      maxTitleFreeTemplate: string;
-      maxTitleAllReserved: string;
-      maxTitleNone: string;
-      inputAria: string;
-      submit: string;
-      submitBusy: string;
-      insufficientFreeTemplate: string;
-      insufficientStakeTemplate: string;
-    };
-    confirm: {
-      eyebrow: string;
-      coolPrefix: string;
-      coolMiddle: string;
-      daysTemplate: string;
-      roundedPrefix: string;
-      roundedMiddle: string;
-      smallestSingleTemplate: string;
-      smallestMultiTemplate: string;
-      roundedSuffix: string;
-      disclaimerTemplate: string;
-      cancel: string;
-      confirm: string;
-    };
-    cooldownFooterTemplate: string;
-    cooling: {
-      label: string;
-      usdcCooling: string;
-      preparing: string;
-      claimReady: string;
-      claimInDaysHoursTemplate: string;
-      claimInHoursMinutesTemplate: string;
-      cancelTitle: string;
-      cancelLabel: string;
-      cancelling: string;
-      claimLabel: string;
-      claimBusy: string;
-    };
-    recent: {
-      label: string;
-      kinds: {
-        deposit: string;
-        request: string;
-        cancel: string;
-        claim: string;
-      };
-      failedFallback: string;
-    };
-    positionAction: {
-      confirmRequestTemplate: string;
-    };
-    errors: {
-      insufficientBalanceTemplate: string;
-      insufficientFreeStakeTemplate: string;
-      insufficientStakeTemplate: string;
-      walletNotReady: string;
-    };
   };
   dealWorkspace: {
     getPaid: {
@@ -4029,102 +3915,6 @@ interface MessagesShape {
       body: string;
       ctaPrimary: string;
       ctaSecondary: string;
-    };
-  };
-  legacyPage: {
-    gate: {
-      tag: string;
-      titleBefore: string;
-      titleAccent: string;
-      titleAfter: string;
-      body: string;
-      button: string;
-    };
-    hero: {
-      tag: string;
-      titleBefore: string;
-      titleAccent: string;
-      titleAfter: string;
-      body: string;
-      windowClosesIn: string;
-      afterWindowNote: string;
-    };
-    stake: {
-      tag: string;
-      title: string;
-      bodyBefore: string;
-      stakeLink: string;
-      bodyAfter: string;
-      empty: { headline: string; body: string };
-      stats: { active: string; cooling: string };
-      wrongChain: string;
-      groups: {
-        activeTitleTemplate: string;
-        startCooldownTemplate: string;
-        signing: string;
-      };
-      coolingTitle: string;
-      claimReady: string;
-      claimInTemplate: string;
-      cancelLink: string;
-      claimingLabel: string;
-      claimToWallet: string;
-      txPrefix: string;
-      confirmDialog: {
-        titleTemplate: string;
-        bodyTemplate: string;
-        confirm: string;
-      };
-      errors: {
-        walletNotReady: string;
-        vaultNotConfiguredTemplate: string;
-      };
-    };
-    deals: {
-      tag: string;
-      title: string;
-      body: string;
-      empty: { headline: string; body: string };
-      noneOpen: string;
-      openSectionTitle: string;
-      pastSectionTitle: string;
-      txPrefix: string;
-      roles: { buyer: string; seller: string; both: string };
-      stateLabels: {
-        funded: string;
-        settled: string;
-        disputed: string;
-        refunded: string;
-        unknown: string;
-      };
-      row: {
-        live: string;
-        pastDeadline: string;
-        delivered: string;
-        notDelivered: string;
-        cancelProposedByTemplate: string;
-        noAction: string;
-        genTemplate: string;
-      };
-      actions: {
-        refundToBuyer: string;
-        refunding: string;
-        releaseToSeller: string;
-        releasing: string;
-        acceptCancellation: string;
-        accepting: string;
-        proposeCancellation: string;
-        proposing: string;
-      };
-      dialogs: {
-        refund: { titleTemplate: string; bodyTemplate: string; confirm: string };
-        release: { titleTemplate: string; bodyTemplate: string; confirm: string };
-        cancelPropose: { title: string; body: string; confirm: string };
-        cancelAccept: { title: string; bodyTemplate: string; confirm: string };
-        confirmFallback: string;
-      };
-      reasonPrompt: { label: string; placeholder: string };
-      errors: { reasonRequired: string };
     };
   };
   cashoutPage: {
@@ -5284,6 +5074,8 @@ interface MessagesShape {
     };
     gate: {
       loading: string;
+      failed: string;
+      retry: string;
       title: string;
       body: string;
       cta: string;
@@ -5482,6 +5274,7 @@ export const en: MessagesShape = {
   deliveryCard: deliveryCardCopy.en,
   recordOnTheWay: recordOnTheWayCopy.en,
   previousEscrow: previousEscrowCopy.en,
+  dealGuarantee: dealGuaranteeCopy.en,
   offersThatMove: offersThatMoveCopy.en,
   disputeJudge: disputeJudgeCopy.en,
   balanceSummary: balanceSummaryCopy.en,
@@ -5554,7 +5347,7 @@ export const en: MessagesShape = {
     buyer: 'Buyer',
     seller: 'Seller',
     activity: 'Activity',
-    stake: 'Stake',
+    stake: 'Deal guarantee',
     profile: 'Profile',
     profileOf: 'Your profile, {name}',
     deals: 'Deals',
@@ -5909,16 +5702,6 @@ export const en: MessagesShape = {
       openProfile: 'Open profile',
       dismissAria: 'Dismiss banner',
     },
-    legacy: {
-      ariaLabel: 'Legacy contract recovery window',
-      eyebrowPrefix: 'Legacy · closes in',
-      closesSoonFallback: 'soon',
-      title: 'Migrated to a new contract. Unstake or finalize deals here.',
-      body: 'Anything you staked or any deal still locked on the previous version stays yours. Open recovery to pull it out before the window closes.',
-      openRecovery: 'Open recovery',
-      dismissAria: 'Dismiss banner',
-      dismissTooltip: 'Hide for this browser. Comes back if you clear storage. Window closes for everyone after the deadline.',
-    },
   },
   footer: {
     tagline: 'Protected settlement for cross-border SME trade. Funds release in milestones after buyer review.',
@@ -6206,12 +5989,21 @@ export const en: MessagesShape = {
         dealCashout: 'Cashed out {amount} USDC to {to}',
         researchActivate: 'Paid {amount} USDC to activate agent market research',
         marketRead: 'Your scout agent paid {amount} USDC for a market read on {keywords}',
-        staked: 'Staked {amount} USDC',
-        unstakeClaim: 'Claimed {amount} USDC of unstaked principal',
-        unstakeStart: 'Started unstaking {amount} USDC',
-        unstakeCancel: 'Cancelled unstaking {amount} USDC',
+        staked: 'Put up {amount} USDC as a deal guarantee',
+        unstakeClaim: 'Collected {amount} USDC from the deal guarantee',
+        unstakeStart: 'Started taking out {amount} USDC from the deal guarantee',
+        unstakeCancel: 'Kept {amount} USDC in the deal guarantee',
         yieldClaim: 'Claimed {amount} USDC of earned yield',
-        yieldAccrued: 'Earned {amount} USDC of staking yield',
+        yieldAccrued: 'Earned {amount} USDC on the deal guarantee',
+        guaranteePutUp: 'Put up {amount} USDC as a deal guarantee',
+        guaranteeTakeOut: 'Started taking out {amount} USDC from the deal guarantee',
+        guaranteeCancel: 'Kept {amount} USDC in the deal guarantee',
+        guaranteeCollect: 'Collected {amount} USDC from the deal guarantee',
+        legacyTakeOut: 'Started taking out {amount} USDC from an older contract',
+        legacyCancel: 'Kept {amount} USDC on an older contract',
+        legacyCollect: 'Collected {amount} USDC from an older contract',
+        legacyRelease: 'Released {amount} USDC from an older deal',
+        legacyRefund: 'Got {amount} USDC back from an older deal',
       },
       eyebrow: 'Money activity',
       loading: 'Loading…',
@@ -6251,8 +6043,8 @@ export const en: MessagesShape = {
         yield: "Yield earned",
         yield_claim: "Yield claimed",
         refund: "Refund",
-        stake: "Staked",
-        unstake: "Unstaked",
+        stake: 'Deal guarantee',
+        unstake: 'Guarantee collected',
         withdraw: "Withdrawal",
         cash_out: "Cash out",
         bridge: "Sent to another network",
@@ -6307,18 +6099,18 @@ export const en: MessagesShape = {
       updatedAgo: 'Updated {n}s ago',
       settlementTag: 'Settlement',
       financingTag: 'Trade finance',
-      stakingTag: 'Staking',
+      stakingTag: 'Deal guarantee',
       treasuryTag: 'Treasury',
       registryTag: 'Registries',
       settlementBody: 'Buyers funding escrow, and money released as delivery was accepted.',
       financingBody: 'Financiers paying suppliers ahead of settlement, against an invoice or a purchase order.',
-      stakingBody: 'Sellers locking capital behind their deals, and what a lost dispute took from it.',
+      stakingBody: 'Sellers setting money aside behind their deals, and what a lost dispute paid to buyers from it.',
       advancedLabel: 'Capital advanced',
       repaidLabel: 'Advances repaid',
       financingsLabel: 'Advances',
       defaultsLabel: 'Defaulted',
-      stakedLabel: 'Stake locked',
-      slashedLabel: 'Stake slashed',
+      stakedLabel: 'Guarantees in place',
+      slashedLabel: 'Paid to buyers from guarantees',
       yieldLabel: 'Yield claimed',
       jobsPostedLabel: 'Requests posted',
       currentTag: 'In service now',
@@ -6422,7 +6214,7 @@ export const en: MessagesShape = {
       openDeals: 'Open deals',
       wallets: 'Wallets',
       agents: 'Agent funds',
-      stake: 'Stake',
+      stake: 'Deal guarantee',
       preferences: 'Contact',
     },
     hub: {
@@ -6509,10 +6301,10 @@ export const en: MessagesShape = {
       body: 'Wallet roles and balances',
     },
     stake: {
-      tag: 'Stake',
+      tag: 'Deal guarantee',
       headlinePrefix: 'Earn ',
       headlineAccent: 'reputation',
-      body: 'Deposit USDC into KarwanVault. A deposit can contribute to reputation. The live position shows the withdrawal cooldown and claim time.',
+      body: 'Money you set aside to protect your buyers. It adds to your reputation, and taking it out takes a waiting time.',
     },
     preferences: {
       tag: 'Preferences',
@@ -6970,7 +6762,7 @@ export const en: MessagesShape = {
     brief: {
       eyebrow: 'Request',
       trustedMatchBadge: '★ trusted match',
-      trustedMatchTooltip: 'The buyer turned on Trusted match. Their agent weighs seller reputation and stake above price, and sellers need free stake to make an offer.',
+      trustedMatchTooltip: 'The buyer turned on Trusted match. Their agent weighs seller reputation and deal guarantee above price, and sellers need enough guarantee free to make an offer.',
     },
     expired: {
       eyebrow: 'Request expired · read only',
@@ -7024,7 +6816,7 @@ export const en: MessagesShape = {
       toleranceAria: 'Price tolerance percent',
       toleranceFootTemplate: '↳ agent may accept counters up to your budget +{n}%',
       trustedMatchEyebrow: 'Trusted match',
-      trustedMatchBody: 'Put seller reputation and stake above price. A seller can only make an offer if their free stake covers the deal\'s insurance reserve. For high-value or one-off trades.',
+      trustedMatchBody: 'Put seller reputation and deal guarantee above price. A seller can only make an offer if the guarantee they have free covers what the deal holds. For high-value or one-off trades.',
       saving: 'Saving…',
       save: 'Save changes',
       cancel: 'Cancel',
@@ -7532,11 +7324,11 @@ export const en: MessagesShape = {
       'business.registration.submitted': 'Business registration submitted',
       'business.verified': 'Business verified',
       'business.rejected': 'Business registration declined',
-      'vault.deposit': 'Stake added',
-      'vault.withdraw.requested': 'Withdrawal requested, cool-down started',
-      'vault.withdraw.cancelled': 'Withdrawal cancelled',
-      'vault.claimed': 'Stake claimed',
-      'vault.cooldown.completed': 'Cool-down finished',
+      'vault.deposit': 'Deal guarantee put up',
+      'vault.withdraw.requested': 'Started taking out the deal guarantee',
+      'vault.withdraw.cancelled': 'Kept the deal guarantee',
+      'vault.claimed': 'Deal guarantee collected',
+      'vault.cooldown.completed': 'Deal guarantee ready to collect',
       'yield.claimed': 'Yield claimed',
       'yield.credited': 'Yield earned',
       'gateway.deposited': 'Added to balance',
@@ -7562,7 +7354,7 @@ export const en: MessagesShape = {
       'deadline-out-of-range': 'Outside delivery window',
       'own-auction': 'Your own seller',
       'finance-lane-requires-business': 'Business sellers only',
-      'insufficient-stake-trusted-match': 'Not enough stake for trusted match',
+      'insufficient-stake-trusted-match': 'Not enough deal guarantee for trusted match',
       'agent-not-linked': 'Agent not linked to your account',
     },
     scopeLabels: {
@@ -7581,7 +7373,7 @@ export const en: MessagesShape = {
   pageBits: {
     stake: {
       networkYield: 'Network yield',
-      networkYieldHint: 'Stakers are paid at the USYC rate, the return on tokenized US Treasuries. On testnet Karwan funds these payouts.',
+      networkYieldHint: 'Deal guarantees earn at the USYC rate, the return on tokenized US Treasuries. On testnet Karwan pays it.',
       yourYield: 'Your yield',
     },
     dealDetail: {
@@ -7613,7 +7405,7 @@ export const en: MessagesShape = {
       brief: 'Example: I need a backend engineer to build an API endpoint. Budget 120 USDC, 2 days, plus or minus 15% on price, prefer a trusted seller.',
       directDeal: 'Example: 500 USDC to 0x1234…abcd for a landing page redesign, 7 days, 50/50 milestone split, trusted.',
       scout: '2,000 units custom packaging, Lagos to Dubai',
-      listing: 'Example: Solidity audit for ERC-4626 vaults. 1500 USDC fixed, 7 days turnaround, plus or minus 20% on price, listing open for 14 days.',
+      listing: 'Example: Solidity audit for a lending contract. 1500 USDC fixed, 7 days turnaround, plus or minus 20% on price, listing open for 14 days.',
     },
     supplyDesk: 'Supply desk',
     chooseHowDealStarts: 'Choose how the deal starts.',
@@ -7711,7 +7503,7 @@ export const en: MessagesShape = {
   },
   yieldClaim: {
     earned: "Earned so far",
-    earnedHint: "Yield credited to your stake since you started staking.",
+    earnedHint: 'Earned on your deal guarantee since you put it up.',
     claimed: "Claimed",
     claimTemplate: "Claim {amount} USDC",
     claiming: "Claiming",
@@ -7720,7 +7512,7 @@ export const en: MessagesShape = {
     done: "Claimed.",
     proof: "Proof on Arc",
     sheetTitleTemplate: "Claim {amount} USDC?",
-    sheetBody: "Moves your earned yield into your account. Your stake stays where it is.",
+    sheetBody: 'Moves what you earned into your account. Your deal guarantee stays where it is.',
     confirm: "Claim",
     cancel: "Cancel",
     error: "Could not claim right now. Try again.",
@@ -7836,7 +7628,7 @@ export const en: MessagesShape = {
     newReply: 'New reply',
     cumulativeTradeVolume: 'Cumulative trade volume',
     businessDealViewOnly: 'Business deal, view only',
-    cumulativeYieldDistributed: 'Cumulative USDC distributed to stakers over time',
+    cumulativeYieldDistributed: 'Cumulative USDC paid on deal guarantees over time',
     findBusinesses: 'Find businesses to trade with, by sector and region',
     fundFactoringAndPos: 'Fund factoring and purchase orders',
     sendFeedback: 'Send feedback or report a bug',
@@ -7957,11 +7749,11 @@ export const en: MessagesShape = {
       principal: 'Principal you fund',
       repayOnSettlement: 'Repay on settlement',
       sellerProtection: 'Seller protection',
-      stakeChecking: 'Checking the seller’s available stake.',
-      stakeCovers: '{collateral} USDC will be set aside from the seller’s {total} USDC stake. If repayment falls short, up to that amount can cover the unpaid balance.',
+      stakeChecking: 'Checking the seller’s deal guarantee.',
+      stakeCovers: '{collateral} USDC will be held from the seller’s {total} USDC deal guarantee. If repayment falls short, up to that amount covers the unpaid balance.',
       stakeShort: 'This offer needs {collateral} USDC of seller protection, but only {free} USDC is available.',
-      stakeCommitted: 'The seller has {total} USDC staked, but it is already committed elsewhere.',
-      stakeNone: 'The seller has no available stake to help cover a repayment shortfall.',
+      stakeCommitted: 'The seller has {total} USDC in their deal guarantee, but other deals already hold it.',
+      stakeNone: 'The seller has no deal guarantee free to cover a repayment shortfall.',
       repaymentDeadline: 'Repayment deadline',
       expectedDelivery: 'Expected delivery',
       earliestRepayment: 'Earliest repayment',
@@ -7978,7 +7770,7 @@ export const en: MessagesShape = {
       signIn: 'Sign in to fund a purchase order.',
       repayInvalid: 'Repay must be more than the principal and at most the order value.',
       stakePending: 'Seller protection is still being checked. Try again in a moment.',
-      stakeTooLow: 'The seller does not have enough available stake for this offer.',
+      stakeTooLow: 'The seller does not have enough deal guarantee free for this offer.',
       error: 'Could not fund the line. Try again.',
     },
     extensions: {
@@ -8146,7 +7938,7 @@ export const en: MessagesShape = {
       success: 'Success',
       disputed: 'Disputed',
       failed: 'Failed',
-      activeStake: 'Active stake',
+      activeStake: 'Deal guarantee in place',
       syncing: 'syncing',
       syncingTitle: 'Scanning chain history. The total may still rise.',
     },
@@ -8166,7 +7958,7 @@ export const en: MessagesShape = {
       scaleCaption: '0 to 100 each',
       labels: {
         completion: 'Completion',
-        stake: 'Stake',
+        stake: 'Deal guarantee',
         volume: 'Volume',
         tenure: 'Tenure',
         activity: 'Activity',
@@ -8175,7 +7967,7 @@ export const en: MessagesShape = {
       },
     },
     footer: {
-      disclaimer: 'Composite of deal history, stake, and tenure. Reputation is recorded on Arc and travels with the wallet across deals.',
+      disclaimer: 'Made from deal history, deal guarantee and time on Karwan. Reputation is recorded on Arc and travels with the wallet across deals.',
       verifiedLink: 'Verified on Arc',
     },
   },
@@ -8685,17 +8477,6 @@ export const en: MessagesShape = {
     availableTemplate: '{amount} ready to top up from another chain.',
     shortTemplate: 'You have {have} ready. This needs {need}.',
   },
-  agentStakeBinding: {
-    tag: 'Agents and stake',
-    title: 'Let your agents use your stake',
-    body: 'Your agents hold no funds. Sign once so they can draw on the stake held by this wallet when a deal needs backing. Until you do, a deal that reserves stake cannot start.',
-    foreignBody: 'One of your agents is already linked to a different wallet. That link cannot be moved. Contact support so it can be looked at.',
-    cta: 'Link agent',
-    busyCta: 'Linking',
-    doneCta: 'Linked',
-    incomplete: 'The link did not finish. Try again in a moment.',
-    failed: 'Could not link your agents. Try again.',
-  },
   gatewayCard: {
     connectCta: 'Connect wallet',
     soonTag: 'Top up from another chain',
@@ -8736,109 +8517,6 @@ export const en: MessagesShape = {
     arcPinned: 'Lands on Arc, ready to spend.',
     outEmpty: 'Nothing to move yet. Add money first.',
   },
-  stakeCard: {
-    eyebrow: {
-      stake: 'Stake',
-    },
-    signedOut: {
-      body: 'Sign in to deposit USDC into KarwanVault. Stake earns reputation; the score grows your tier and softens the agent loop in your favor.',
-    },
-    summary: {
-      usdcActive: 'USDC active',
-      syncing: 'syncing',
-      syncingTitle: 'Scanning chain history. The total may still rise.',
-      freeLabel: 'Free',
-      reservedLabel: 'Reserved',
-      reservedTitle: 'Locked against an active deal as buyer-side insurance. Releases on settle, slashes to the buyer on a dispute you lose.',
-      coolingLabel: 'Cooling',
-      freeHint: "Free stake can be withdrawn. Reserved stake backs your open deals: it releases when a deal settles and goes to the buyer if you lose a dispute.",
-    },
-    wrongNetwork: {
-      eyebrow: 'Wrong network',
-      body: 'Your wallet is on another network. Switch to Arc Testnet to stake.',
-      switchButton: 'Switch to Arc',
-    },
-    vaultNotDeployed: {
-      prefix: "Staking is unavailable on this network. Do not send funds to a staking address until the service is available.",
-      middle: 'in',
-      suffix: 'and restart the backend.',
-    },
-    yield: {
-      eyebrow: 'Live yield',
-      bodyPrefix: 'Idle stake accrues through',
-      bodyMiddle: 'while it builds your reputation. You earn what it earns, credited daily.',
-    },
-    depositSheet: { titleTemplate: "Stake {amount} USDC?", bodyTemplate: "Moves {amount} USDC from your account into stake, where it raises your reputation. Taking it out later starts a {days}-day cool-down.", confirmTemplate: "Stake {amount} USDC" },
-    depositForm: {
-      label: 'Deposit',
-      max: 'Max',
-      maxTitleTemplate: 'Wallet balance: {amount} USDC. Click to fill.',
-      maxTitleLoading: 'Loading wallet balance…',
-      inputAria: 'Deposit amount in USDC',
-      submit: 'Deposit',
-      submitBusy: 'Depositing…',
-      insufficientBalanceTemplate: 'Insufficient balance. You have {amount} USDC.',
-    },
-    withdrawForm: {
-      label: 'Withdraw',
-      max: 'Max',
-      maxTitleFreeTemplate: 'Free stake: {amount} USDC. Click to fill. (Reserved stake stays locked until the deal settles.)',
-      maxTitleAllReserved: 'All your active stake is reserved against open deals. It becomes available when those deals settle.',
-      maxTitleNone: 'No active stake to withdraw',
-      inputAria: 'Withdraw amount in USDC',
-      submit: 'Withdraw',
-      submitBusy: 'Cooling…',
-      insufficientFreeTemplate: 'Insufficient free stake. You have {free} USDC free ({reserved} USDC reserved against open deals).',
-      insufficientStakeTemplate: 'Insufficient stake. You have {free} USDC active.',
-    },
-    confirm: {
-      eyebrow: 'Confirm withdrawal',
-      coolPrefix: 'Cool',
-      coolMiddle: 'for',
-      daysTemplate: '{days} days',
-      roundedPrefix: 'Rounded up from your',
-      roundedMiddle: 'USDC request. The vault cools whole positions only, and your smallest matching position is',
-      smallestSingleTemplate: '#{positionId} ({principal} USDC)',
-      smallestMultiTemplate: '{count} positions',
-      roundedSuffix: 'To cool less, deposit smaller amounts next time.',
-      disclaimerTemplate: 'This stake stops earning reputation during the cool-down. Cancel anytime in the {days}-day window to resume earning with tenure intact.',
-      cancel: 'Cancel',
-      confirm: 'Confirm',
-    },
-    cooldownFooterTemplate: 'Withdrawal starts a {days}-day cool-down. After that the stake is claimable to your wallet.',
-    cooling: {
-      label: 'Cooling',
-      usdcCooling: 'USDC cooling',
-      preparing: 'preparing cool-down',
-      claimReady: 'claim ready',
-      claimInDaysHoursTemplate: 'claim in {days}d {hours}h',
-      claimInHoursMinutesTemplate: 'claim in {hours}h {minutes}m',
-      cancelTitle: 'Cancel this withdrawal and put the stake back to Active. Tenure stays intact.',
-      cancelLabel: '↶ cancel',
-      cancelling: 'cancelling',
-      claimLabel: 'Claim to wallet',
-      claimBusy: 'Claiming…',
-    },
-    recent: {
-      label: 'Recent',
-      kinds: {
-        deposit: 'deposit',
-        request: 'request',
-        cancel: 'cancel',
-        claim: 'claim',
-      },
-      failedFallback: 'failed',
-    },
-    positionAction: {
-      confirmRequestTemplate: 'Start the {days}-day withdrawal cool-down on position #{positionId}? Stake stops earning reputation until you cancel or claim.',
-    },
-    errors: {
-      insufficientBalanceTemplate: 'Insufficient balance. You have {amount} USDC.',
-      insufficientFreeStakeTemplate: 'Insufficient free stake. You have {free} USDC free, {reserved} USDC reserved against open deals.',
-      insufficientStakeTemplate: 'Insufficient stake. You have {free} USDC active.',
-      walletNotReady: 'Wallet not ready. Reconnect and retry.',
-    },
-  },
   dealWorkspace: {
     getPaid: {
       title: "Get paid now",
@@ -8872,7 +8550,7 @@ export const en: MessagesShape = {
     },
     checkPaused: { title: "Payment is paused", stays: "Your money stays in escrow until this is resolved.", saw: "What the check saw", noWallet: "Automatic release cannot run for this deal. Release it yourself from here.", reasons: { "security-hold": "The delivery link was flagged as unsafe, so it is hidden from you.", "off-request": "The check found the delivery does not match what you asked for.", "evidence-mismatch": "The delivery evidence does not match the agreed terms.", "check-pending": "The automatic check has not returned a result yet.", "check-expired": "The check result expired before payment was released.", "terms-changed": "The terms changed after the check ran, so it has to run again.", "delivery-replaced": "A newer delivery was submitted, so the check has to run again.", "link-unverifiable": "The delivery link could not be opened to check it." }, sellerHold: "Your delivery link was flagged as unsafe and is hidden from the buyer. Send a corrected link.", sellerOff: "The check found your delivery may not match the request. Send the right link.", sendNewLink: "Send a new delivery link", askPerson: "My link is safe. Ask a person to check", supportMessage: "My delivery link on {path} was flagged as unsafe, but it is safe. Please check it.", reviewChecking: "A person at Karwan is checking your link.", reviewUnsafe: "Karwan support checked your link and kept it blocked. Send a new delivery link.", reviewedSafe: "Checked by Karwan support." },
     checkLive: { checking: "Checking the delivery", checkingBody: "A guard agent is comparing it with the request. Payment waits for the result.", passed: "Delivery check passed", passedBuyer: "Review the work, then release.", passedSeller: "{name} reviews the work next.", unverified: "The link could not be checked", unverifiedBuyer: "Review the work yourself before you release.", unverifiedSeller: "{name} reviews the work themselves." },
-    protection: { title: "Protection on this deal", escrow: "Money held in escrow until release", you: "You verify with World ID", buyer: "The buyer verifies with World ID", seller: "The seller verifies with World ID", reasons: { first_deal: "first deal", large_deal: "large deal", fast_new_account: "many new deals today", flagged_link_before: "a flagged link on record" }, stake: "Seller holds {pct}% stake", github: "Delivery checked on GitHub", offMarket: "Price is well above similar deals", belowMarket: "Price is well below similar deals" , cashOut: "Cash out" },
+    protection: { title: "Protection on this deal", escrow: "Money held in escrow until release", you: "You verify with World ID", buyer: "The buyer verifies with World ID", seller: "The seller verifies with World ID", reasons: { first_deal: "first deal", large_deal: "large deal", fast_new_account: "many new deals today", flagged_link_before: "a flagged link on record" }, stake: 'Seller holds a {pct}% deal guarantee', github: "Delivery checked on GitHub", offMarket: "Price is well above similar deals", belowMarket: "Price is well below similar deals" , cashOut: "Cash out" },
     simple: {
       newHere: "New to Karwan",
       agreement: "Agreement",
@@ -8975,7 +8653,7 @@ export const en: MessagesShape = {
       onTimeTemplate: '{on} of {total} on time',
       disputesTemplate: '{n} disputes',
       sinceTemplate: 'since {date}',
-      stakeTemplate: '{amount} USDC stake backs this deal',
+      stakeTemplate: 'A {amount} USDC deal guarantee backs this deal',
       proven: 'Proven accounts',
       newAccount: 'New to Karwan. No record yet. Escrow still protects this deal.',
       notChecked: 'Not checked yet',
@@ -9272,14 +8950,14 @@ export const en: MessagesShape = {
         intro: 'This deal is in dispute. The escrow is frozen on chain. To unfreeze it, one side proposes a resolution and the counterparty accepts.',
         refundLabel: 'Refund the buyer.',
         refundBody: 'Unreleased escrow returns to the buyer.',
-        refundBodyWithReservation: 'Unreleased escrow returns to the buyer. If both sides agree the cancel, the seller keeps their reserved stake (no-fault); only an arbiter ruling against the seller slashes it to the buyer.',
+        refundBodyWithReservation: 'Unreleased escrow returns to the buyer. If both sides agree to cancel, the seller keeps the deal guarantee the deal held; only an arbiter ruling against the seller pays it to the buyer.',
         releaseLabel: 'Release to seller.',
         releaseBody: 'The seller is paid the full escrow.',
       },
       awaitingAcceptance: {
         sellerIntro: 'Review the terms. Agreeing confirms that you will deliver on them. The buyer reviews the exact total and funds escrow afterward.',
         trustedMatchPrefix: 'Trusted match. You need',
-        trustedMatchMiddleTemplate: 'free in your stake to accept ({pct}% of {amount}).',
+        trustedMatchMiddleTemplate: 'free in your deal guarantee to accept ({pct}% of {amount}).',
         trustedMatchSuffix: 'It releases back when the deal settles, or slashes to the buyer if you lose a dispute.',
         acceptCta: 'Agree to terms',
         acceptBusy: 'Recording agreement…',
@@ -9507,7 +9185,7 @@ export const en: MessagesShape = {
       kindEyebrowKind: 'Kind',
       kindRefundBuyerLabel: 'Refund the buyer',
       kindRefundBuyerBody: 'Unreleased escrow returns to the buyer.',
-      kindRefundBuyerBodyWithReservation: 'Unreleased escrow returns to the buyer. If both sides agree, the seller keeps their reserved stake (no-fault); only an arbiter ruling against the seller slashes it to the buyer.',
+      kindRefundBuyerBodyWithReservation: 'Unreleased escrow returns to the buyer. If both sides agree, the seller keeps the deal guarantee the deal held; only an arbiter ruling against the seller pays it to the buyer.',
       kindReleaseSellerLabel: 'Release to seller',
       kindReleaseSellerBody: 'Seller is paid the full escrow.',
       kindMutualLabel: 'Mutual',
@@ -9526,8 +9204,8 @@ export const en: MessagesShape = {
       insufficientBalanceBuyerLink: 'Fund agent',
       insufficientBalanceSeller: 'The buyer needs to add funds before escrow can start.',
       insufficientGas: 'Karwan could not cover the transaction cost. Try again shortly or contact support.',
-      insufficientStakeTitle: 'The seller needs more available stake before this trusted deal can be funded.',
-      insufficientStakeLink: 'Stake more',
+      insufficientStakeTitle: 'The seller needs more deal guarantee free before this trusted deal can be funded.',
+      insufficientStakeLink: 'Add to your deal guarantee',
       insufficientStakeSuffix: 'then return here and try again.',
       acceptEscrowFailedTitle: 'Escrow activation did not finish. The deal is not active. Retry is safe because existing funding is checked first.',
       approvalFailed: 'Karwan could not record the seller agreement. Try again.',
@@ -9650,7 +9328,7 @@ export const en: MessagesShape = {
     dealCountManyTemplate: '{count} deals',
     scoreMaxTemplate: '/ {max}',
     unratedLabel: 'unrated',
-    compositeFootnote: 'Built from deal history, stake and time on Karwan. Recorded on Arc.',
+    compositeFootnote: 'Made from deal history, deal guarantee and time on Karwan. Recorded on Arc.',
     creditPassportLink: 'Credit passport',
     stats: {
       success: 'Success',
@@ -9847,112 +9525,6 @@ export const en: MessagesShape = {
       ctaSecondary: 'Enter Karwan',
     },
   },
-  legacyPage: {
-    gate: {
-      tag: 'Legacy · recovery',
-      titleBefore: 'Reclaim from',
-      titleAccent: 'previous',
-      titleAfter: 'contracts',
-      body: 'We redeployed our escrow and vault contracts. Funds and stake parked on the previous contracts stay yours. Sign in to see what you can reclaim.',
-      button: 'Sign in to continue',
-    },
-    hero: {
-      tag: 'Legacy · recovery open',
-      titleBefore: 'Reclaim from',
-      titleAccent: 'previous',
-      titleAfter: 'contracts',
-      body: 'We moved our escrow and vault to new contracts. Anything you staked or any deal you funded on the previous contracts still belongs to you. This page lets you pull it out before the recovery window closes.',
-      windowClosesIn: 'window closes in',
-      afterWindowNote: '// after the window, the legacy contracts stay live on Arc and can be called directly via the explorer',
-    },
-    stake: {
-      tag: 'Legacy stake',
-      title: 'Your stake',
-      bodyBefore: 'Positions parked on the previous KarwanVault. Cool-down on this contract is 7 days. New deposits go to the current vault. Visit',
-      stakeLink: '/stake',
-      bodyAfter: 'for that.',
-      empty: { headline: 'Nothing to recover.', body: 'No positions on the previous vault for this wallet.' },
-      stats: { active: 'Active', cooling: 'Cooling' },
-      wrongChain: 'Your wallet is on another network. Switch to Arc to sign legacy actions.',
-      groups: {
-        activeTitleTemplate: 'Gen {gen} active. Start cool-down to recover',
-        startCooldownTemplate: 'Start {days}-day cool-down',
-        signing: 'Signing…',
-      },
-      coolingTitle: 'Cooling. Claim once the countdown ends',
-      claimReady: 'claim ready',
-      claimInTemplate: 'claim in {days}d {hours}h',
-      cancelLink: 'cancel',
-      claimingLabel: 'Claiming…',
-      claimToWallet: 'Claim to wallet',
-      txPrefix: 'tx',
-      confirmDialog: {
-        titleTemplate: 'Cool {principal} USDC?',
-        bodyTemplate: 'Starts the {days}-day cool-down on this legacy position. Once it elapses you can claim the principal back to your wallet. Cooling stake stops earning reputation until you cancel or claim.',
-        confirm: 'Start cool-down',
-      },
-      errors: {
-        walletNotReady: 'Wallet not ready. Reconnect and retry.',
-        vaultNotConfiguredTemplate: 'Legacy vault for generation {generation} is not configured on this build.',
-      },
-    },
-    deals: {
-      tag: 'Legacy deals',
-      title: 'Pending escrow',
-      body: 'Deals where USDC is still locked on the previous escrow. Buyer can refund (after the deadline) or release if the seller delivered. Either party can propose a mutual cancellation.',
-      empty: { headline: 'No legacy deals.', body: 'You have no escrow records on the previous contract.' },
-      noneOpen: 'No open legacy deals. Everything past settled or refunded.',
-      openSectionTitle: 'Open. Actions available',
-      pastSectionTitle: 'Past. Already settled or refunded',
-      txPrefix: 'tx',
-      roles: { buyer: 'buyer', seller: 'seller', both: 'both' },
-      stateLabels: { funded: 'funded', settled: 'settled', disputed: 'disputed', refunded: 'refunded', unknown: 'unknown' },
-      row: {
-        live: 'live',
-        pastDeadline: 'past deadline',
-        delivered: 'delivered',
-        notDelivered: 'not delivered',
-        cancelProposedByTemplate: 'cancel proposed by {role}:',
-        noAction: 'No action available for your role on this deal state.',
-        genTemplate: 'GEN {n}',
-      },
-      actions: {
-        refundToBuyer: 'Refund to buyer',
-        refunding: 'Refunding…',
-        releaseToSeller: 'Release to seller',
-        releasing: 'Releasing…',
-        acceptCancellation: 'Accept cancellation',
-        accepting: 'Accepting…',
-        proposeCancellation: 'Propose cancellation',
-        proposing: 'Proposing…',
-      },
-      dialogs: {
-        refund: {
-          titleTemplate: 'Refund {amount} USDC to your wallet?',
-          bodyTemplate: 'Cancels the deal on the legacy escrow and returns the full {amount} USDC to your wallet. Reputation is unchanged on this recovery path.',
-          confirm: 'Refund to buyer',
-        },
-        release: {
-          titleTemplate: 'Release {amount} USDC to the seller?',
-          bodyTemplate: 'Settles the legacy escrow and pays the seller their {amount} USDC net of platform fees. Use this when the seller already delivered before the contract migration.',
-          confirm: 'Release to seller',
-        },
-        cancelPropose: {
-          title: 'Propose a mutual cancellation?',
-          body: 'Sends a cancellation proposal to the other party. They have to accept before the deal cancels. Funds stay locked until they accept or you withdraw the proposal.',
-          confirm: 'Send proposal',
-        },
-        cancelAccept: {
-          title: 'Accept the proposed cancellation?',
-          bodyTemplate: 'The other party proposed cancelling this deal. Accepting refunds you the full {amount} USDC and closes the legacy escrow.',
-          confirm: 'Accept cancellation',
-        },
-        confirmFallback: 'Confirm',
-      },
-      reasonPrompt: { label: 'Reason (shared with the other party)', placeholder: 'No longer needed' },
-      errors: { reasonRequired: 'Reason is required to propose a cancellation.' },
-    },
-  },
   cashoutPage: {
     signInGate: {
       tag: 'Cashout',
@@ -10095,16 +9667,16 @@ export const en: MessagesShape = {
   },
   stakePage: {
     signedOut: {
-      tag: 'Stake',
+      tag: 'Deal guarantee',
       titlePrefix: 'Earn',
       titleAccent: 'reputation',
-      body: 'Deposit USDC into KarwanVault to support your reputation position. The product shows any enabled yield route separately from your stake.',
-      buttonLabel: 'Log in to stake',
+      body: 'Set money aside as a deal guarantee. It protects your buyers and can back an advance.',
+      buttonLabel: 'Log in',
     },
     hero: {
-      tag: 'Stake',
-      body: 'Stake USDC to support your reputation position. Request a withdrawal when you need it. The live vault shows the cooldown and claim time.',
-      mainnetNote: '// yield depends on the enabled route, contract state, and current instrument value',
+      tag: 'Deal guarantee',
+      body: 'Money you set aside to protect your buyers. Take it out when you need it; it comes back after the waiting time.',
+      mainnetNote: '// earnings depend on the current rate',
     },
     position: {
       reputation: 'Reputation',
@@ -10118,8 +9690,8 @@ export const en: MessagesShape = {
       pts: 'pts',
       topTier: 'Top tier',
     },
-    vault: { tag: 'Your stake', heading: 'Vault' },
-    legacyNudge: { body: 'You have {amount} USDC on the previous vault.', link: 'Recover it' },
+    vault: { tag: 'Your deal guarantee', heading: 'Deal guarantee' },
+    legacyNudge: { body: 'You have {amount} USDC on the previous contract.', link: 'Recover it' },
     ladder: {
       tag: 'Tier ladder',
       body: 'Reputation moves your tier. Tier changes how the agents negotiate for you.',
@@ -10279,7 +9851,7 @@ export const en: MessagesShape = {
         agents: { label: 'Agents', blurb: 'How the buyer and seller agents negotiate.' },
         deals: { label: 'Deals and escrow', blurb: 'Both deal flows, milestones, settlement.' },
         disputes: { label: 'Disputes', blurb: 'Published timelines for every recovery path.' },
-        reputation: { label: 'Reputation and stake', blurb: 'The composite score and the vault.' },
+        reputation: { label: 'Reputation and deal guarantee', blurb: 'The composite score and the deal guarantee.' },
         bridge: { label: 'Deposit / Withdraw', blurb: 'Move USDC in and out of Arc.' },
         roadmap: { label: 'Roadmap', blurb: 'Strong functionality shipping next.' },
         numbers: { label: 'Public numbers', blurb: 'Volume and transactions since day one, read from the contracts.' },
@@ -10359,7 +9931,7 @@ export const en: MessagesShape = {
       cards: {
         agents: { title: 'Agents', blurb: 'How agents search, compare, and prepare offers within your limits.' },
         deals: { title: "Deals and escrow", blurb: 'The deal lifecycle from acceptance to settlement, plus cashout.' },
-        reputation: { title: "Reputation and stake", blurb: "Read trade history, reputation and stake, and understand their limits." },
+        reputation: { title: 'Reputation and deal guarantee', blurb: 'Read trade history, reputation and deal guarantee, and understand their limits.' },
         bridge: { title: 'Deposit / Withdraw', blurb: 'Move USDC in and out of Arc.' },
         roadmap: { title: 'Roadmap', blurb: 'What is live today and what is shipping next.' },
         faq: { title: 'FAQs', blurb: 'Quick answers to the questions new users ask first.' },
@@ -10513,9 +10085,9 @@ export const en: MessagesShape = {
     lifecycle: {
       heading: 'The lifecycle',
       open: { label: 'Open.', body: 'A buyer opens a direct deal or approves a proposal from the matching flow.' },
-      acceptFund: { label: 'Agree, then fund.', body: 'The seller agrees to the terms first. The buyer then reviews the live fee and exact total before funding escrow. On a trusted deal, seller stake reserves only when funding is activated.' },
+      acceptFund: { label: 'Agree, then fund.', body: 'The seller agrees to the terms first. The buyer then reviews the live fee and exact total before funding escrow. On a trusted deal, the seller’s deal guarantee is held only when funding goes through.' },
       deliver: { label: 'Deliver.', body: 'The seller marks delivery against proof the buyer can check. For goods, dispatch and arrival are separate events. The buyer reviews the proof before releasing a milestone.' },
-      release: { label: 'Release.', body: 'The buyer releases the first milestone, then verifies and releases the rest. The escrow settles, the reservation returns to the seller\'s free stake, and the reputation registry records a clean outcome.' },
+      release: { label: 'Release.', body: 'The buyer releases the first milestone, then verifies and releases the rest. The escrow settles, what the deal held returns to the seller’s deal guarantee, and the reputation registry records a clean outcome.' },
       summary: 'The deal page tracks every stage with a progress strip on top and a next-move panel below it, so both sides always know exactly where the deal is and what they can do.',
     },
     figures: {
@@ -10539,9 +10111,9 @@ export const en: MessagesShape = {
       body: "Check the review deadline on each milestone. After delivery, the current testnet contract may let the seller claim an eligible milestone when that deadline expires, including the final milestone. Use the review, extension or dispute action shown on the deal before the deadline. Rules depend on the contract version and agreed terms.",
     },
     stake: {
-      heading: 'Stake as deal insurance',
-      body1: 'When the seller accepts a deal, a configurable portion of their free stake reserves against the deal amount. The active deal and accept panel show the reservation settings that apply. On a clean settlement, the reservation releases back to the seller\'s free stake. On a failed dispute, the reservation slashes to the buyer as insurance.',
-      body2: 'This is what makes a seller\'s reputation more than a number. A buyer can read the seller\'s free-stake balance and know what is actually backing the deal.',
+      heading: 'The deal guarantee',
+      body1: 'When the seller accepts a deal, part of their deal guarantee is held against the deal amount. The deal and accept panel show how much. On a clean settlement it returns to the seller’s guarantee. If the seller loses a dispute, it is paid to the buyer.',
+      body2: 'This is what makes a seller’s reputation more than a number. A buyer can see how much guarantee the seller has free and know what is actually backing the deal.',
     },
     cashout: {
       heading: 'Cashing out after settlement',
@@ -10568,7 +10140,7 @@ export const en: MessagesShape = {
       { q: "Does my counterparty need an account?", a: "Not before you create a direct deal. You can address an invite to a supported wallet or email. The recipient must claim the invite, review the terms, and accept before the deal can continue." },
       { q: "What happens when negotiation fails?", a: "No escrow funds. The request can end without an agreement, and the product shows the reason available from the matching flow. You can change your limits or post a new request." },
       { q: "Can I cancel a deal?", a: "The deal page shows whether cancellation is available in its current state. A mutual cancellation follows the contract path shown to both parties. Read the proposed outcome before accepting it." },
-      { q: "What if the seller does not deliver?", a: "Use the recovery or dispute action shown on the deal. The available refund, release, timeout, and stake outcome depend on the contract state and current configuration." },
+      { q: "What if the seller does not deliver?", a: 'Use the recovery or dispute action shown on the deal. The refund, release, timeout and deal guarantee outcome depend on the contract state and current settings.' },
       { q: "What if the buyer is slow to release?", a: "Check the review deadline. The seller may be able to claim an eligible milestone after it expires, including the final one. Review the delivery or use an available extension or dispute action before the deadline." },
       { q: "What happens after a missed deadline?", a: "The deal page shows the actions and grace period that apply. A deadline miss can affect the seller record when the contract records a failed outcome." },
       { q: "Do agents spend money?", a: "Agents do not fund deals on their own. On testnet, market research through x402 is live: after the free reports for the day, each report is paid from your research credit, and the price and balance show in Agent funds." },
@@ -10577,7 +10149,7 @@ export const en: MessagesShape = {
       { q: "What does business verification mean?", a: "Where enabled, a business can submit registration or tax evidence through the business review path. A verified state does not prove licensing, solvency, performance, or safety. It can expire or be revoked." },
       { q: "How long does a deposit take?", a: "Timing depends on the source chain and transfer service. Follow the status shown in Deposit / Withdraw. If a transfer is still pending, use the recheck control before sending another one." },
       { q: "How do I raise my reputation?", a: "Reputation uses the inputs and tier requirements shown in your profile and the current reputation model. Settled outcomes matter. Reputation is not identity, skill, or business verification." },
-      { q: "Does stake earn yield?", a: "The Stake page separates the vault position from network and account yield. Yield depends on the enabled route, permissions, contract state, and instrument value. It is not guaranteed." },
+      { q: 'Does the deal guarantee earn anything?', a: 'On testnet it earns at the USYC rate, paid by Karwan. The Deal guarantee page shows what you earned and lets you claim it. It is not guaranteed.' },
       { q: "Where does settled money go?", a: "The deal and wallet views show the destination account. Use Deposit / Withdraw for a supported transfer after settlement. Available routes depend on the live configuration." },
       { q: "Does Karwan custody funds?", a: "Wallet control depends on how you sign in. A connected wallet or mainnet passkey wallet is signed by you. Karwan operates the managed email wallets available on testnet. Once a deal is funded, the escrow contract governs those deal funds. Read the Terms for authority and recovery details." },
       { q: "Why can I see sellers who are not verified?", a: "Your agent lists everyone who fits your request and says plainly who is verified. Only a verified seller can be recommended; on testnet, a seller with settled Karwan deals and no lost dispute can be too, and stays marked not verified. You can choose anyone on the list until the request closes, and choosing someone who is not verified asks you once more before any money moves." },
@@ -10586,14 +10158,14 @@ export const en: MessagesShape = {
     ],
   },
   docsReputationPage: {
-    eyebrow: 'Reputation and stake',
+    eyebrow: 'Reputation and deal guarantee',
     title: 'Reputation records outcomes',
     intro: 'An account can build a reputation score from settled deal history and the other inputs shown in the product. The score follows the account that settled the deal. It is a record of outcomes, not a guarantee about the person or business behind the wallet.',
     signals: {
       heading: 'What moves your score',
       lead: "Your profile shows the inputs behind your score. The score does not verify identity, skill, licensing or future performance.",
       items: {
-        stake: { label: 'Locked stake.', body: 'USDC deposited in the vault. It can contribute to reputation and may be reserved as deal insurance when the active deal requires it.' },
+        stake: { label: 'Deal guarantee.', body: 'USDC you set aside to protect your buyers. It adds to reputation, and a deal that requires it holds part of it until the deal finishes.' },
         deals: { label: 'Settled deals.', body: 'Completed outcomes against your wallet, weighted by your success rate.' },
         volume: { label: 'Lifetime volume.', body: 'Total USDC moved through escrow. One huge deal does not dominate.' },
         tenure: { label: 'Tenure.', body: 'Time since the account registered. It is one input, not proof that the account has traded successfully.' },
@@ -10606,7 +10178,7 @@ export const en: MessagesShape = {
     },
     tiers: {
       heading: 'The five tiers',
-      lead: 'Your score buckets into one of five tiers. Your agent and your counterparty\'s agent both read the tier when scoring a match. A tier also has to be earned in settled deals: stake, tenure and activity all raise your score on their own, but they cannot carry a tier without completed work behind it. If deals are what is holding you back, your profile says so and tells you how many more you need.',
+      lead: 'Your score falls into one of five tiers. Your agent and your counterparty’s agent both read the tier when scoring a match. A tier also has to be earned in settled deals: deal guarantee, time on Karwan and activity all raise your score on their own, but they cannot carry a tier without completed work behind it. If deals are what is holding you back, your profile says so and tells you how many more you need.',
       items: {
         new: 'Fresh account with little or no settled history.',
         cold: 'Early history. Matching can apply the handling configured for this tier.',
@@ -10622,18 +10194,18 @@ export const en: MessagesShape = {
       heading: 'Controls around the score',
       lead: "The score limits the weight of repeated trades and considers completed outcomes. These controls reduce manipulation; they do not prove that counterparties are independent.",
       volumeFarming: { heading: 'Volume farming', body: 'Posting many small deals with yourself does not pay off. The volume curve is concave, so each extra unit of volume contributes less than the one before. Counterparty spread is then checked separately: when most of your settled deals are with a single wallet, your tier is capped no matter what the score says. Trading in a circle cannot buy standing.' },
-      stakeAndRun: { heading: 'Stake and run', body: 'A withdrawal follows the cooldown returned by the live vault. The position view shows the current state of every amount. Do not rely on a fixed number copied into documentation.' },
+      stakeAndRun: { heading: 'Guarantee and run', body: 'Taking a deal guarantee out takes a waiting time, and money a deal holds cannot come out until the deal releases it. The Deal guarantee page shows the current state of every amount.' },
       selfDealing: { heading: 'Self-dealing', body: "The registry rejects self-rating where the required agent-owner binding is present. Concentrated trading can also limit a tier. These checks do not prove that two different wallets belong to different people." },
       matchAndCancel: { heading: 'Match and cancel', body: 'Making offers on many requests and pulling out before settlement counts toward the cancellation penalty. The penalty is measured in days, not months, so repeating this pattern drops the score fast.' },
       decay: { heading: 'Decay on idleness', body: 'A once-strong wallet that goes silent for months is no longer trusted as currently strong. The decay term reduces the displayed score so agents weigh inactive history less. A returning user re-earns trust by completing a deal or two.' },
     },
     staking: {
-      heading: 'Stake, reputation, and deal insurance',
-      body: 'A vault deposit can contribute to reputation. When a deal requires collateral, the contract can reserve part of the seller\'s free stake against that deal. Settlement or dispute resolution determines what happens to the reservation.',
-      cooldown: 'You can request a withdrawal from the vault. The live position shows the cooldown and when the funds become claimable. Reserved stake cannot be withdrawn until the related deal releases it.',
+      heading: 'Deal guarantee and reputation',
+      body: 'A deal guarantee adds to reputation. When a deal requires it, part of the seller’s guarantee is held against that deal. Settlement or the dispute decision says what happens to it.',
+      cooldown: 'You can take your deal guarantee out at any time. It comes back after the waiting time shown on the page. Money a deal holds cannot come out until that deal releases it.',
       calloutTitle: "Yield is a separate readout",
-      calloutBody: 'The Stake page separates protocol yield, your claimable yield, and the vault position. Yield depends on the enabled route, contract state, permissions, and current instrument value. It is not guaranteed by a reputation tier or verification badge.',
-      figureAlt: 'The staking card showing deposit amount and cooldown state',
+      calloutBody: 'The Deal guarantee page shows your guarantee, what you earned on it and the network yield separately. Earnings depend on the current rate and are not guaranteed by a reputation tier or a verification badge.',
+      figureAlt: 'The Deal guarantee page with the amount in place and what is coming back',
       figureCaption: 'Deposit, cooldown, and claim in one card.',
     },
   },
@@ -10646,11 +10218,11 @@ export const en: MessagesShape = {
       items: {
         match: { title: 'Agent-assisted matching.', body: 'Buyer and seller flows can compare matches and negotiate inside account limits. Users review the resulting terms before funding.' },
         negotiation: { title: 'Market context for negotiation.', body: "Agents compare offers within your limits. On testnet they can also buy market research through x402, paid from your research credit." },
-        stake: { title: 'Stake as deal insurance.', body: "An eligible deal can reserve part of the seller’s stake as collateral. The agreement shows the amount and the conditions for release or loss." },
+        stake: { title: 'Deal guarantee.', body: 'An eligible deal can hold part of the seller’s deal guarantee. The agreement shows the amount and when it is released or paid to the buyer.' },
         passport: { title: "Credit passport.", body: "Share the trade history visible on your credit passport. Your privacy settings control what other people can read." },
         shareable: { title: 'Shareable deal links.', body: "Invite a counterparty by email. They sign in and review the agreement before accepting." },
         cashout: { title: 'Cashout after settlement.', body: 'Send settled USDC to any wallet on Arc, or withdraw to Ethereum, Base, Arbitrum, Optimism, Polygon, or Solana with an inline progress card.' },
-        vault: { title: 'USYC yield paths.', body: "The position view separates staked principal from claimable yield. Availability depends on the account and contract. Yield is not guaranteed." },
+        vault: { title: 'USYC earnings.', body: 'The Deal guarantee page shows the guarantee apart from what it earned. On testnet it earns at the USYC rate, paid by Karwan. Earnings are not guaranteed.' },
         factoring: { title: 'Business finance paths.', body: "Invoice and purchase-order financing are implemented for testing. Access depends on eligibility and available funding. Mainnet financing is not available." },
         disputes: { title: 'Dispute resolution paths.', body: "The parties can propose a resolution. If they cannot agree, the contract determines the available ruling and timeout paths. A dispute is not an automatic refund." },
         symmetric: { title: 'Both sides earn a record.', body: 'A settled deal credits the buyer and the seller on chain, not only the seller, and each side gains a distinct counterparty the first time a pair settles. Standing is value-weighted and counts distinct counterparties, so volume with one repeat partner cannot inflate a score.' },
@@ -10685,7 +10257,7 @@ export const en: MessagesShape = {
         items: {
           audit: { title: 'External smart-contract audit', body: "for the money-holding contracts before broader use." },
           safe: { title: 'Safe multisig treasury', body: 'to replace the deployer address before the mainnet contracts hold real funds.' },
-          coverage: { title: 'Higher test coverage', body: 'on the escrow and vault branches before audit.' },
+          coverage: { title: 'Higher test coverage', body: 'on the escrow and deal guarantee branches before audit.' },
         },
       },
       reach: {
@@ -10771,17 +10343,17 @@ export const en: MessagesShape = {
       step6: { actor: 'Buyer agent', body: 'On settlement, records the outcome against the seller on KarwanReputation. ERC-8004 forbids self-rating, so the buyer rates the seller.' },
     },
     stake: {
-      eyebrow: 'Trade record and stake',
+      eyebrow: 'Trade record and deal guarantee',
       title: 'Reputation with evidence',
-      body: 'Completed trades, available evidence, and stake inform the reputation view. The score is tied to the customer identity and trade history, not a promise that every future trade is safe.',
+      body: 'Completed trades, available evidence and the deal guarantee inform the reputation view. The score is tied to the customer identity and trade history, not a promise that every future trade is safe.',
       step1: { title: 'Deposit USDC', bodyA: 'On ', bodyB: ', deposit any amount into ', bodyC: '. No forced lock, no minimum tenure. The longer it sits, the more weight it carries in the formula.' },
       step2: { title: 'Climb tiers', body: '. Each tier changes how agents treat you. ELITE sellers skip the negotiation; NEW buyers pay a premium, which the seller reviews before approving.' },
-      step3: { title: 'Request a withdrawal', body: 'A withdrawal request enters the cooldown returned by the live vault. The position shows when the principal becomes claimable and whether the request can still be cancelled.' },
+      step3: { title: 'Take it out', body: 'Taking a deal guarantee out starts a waiting time. The page shows when it is ready to collect and lets you keep it instead while it waits.' },
     },
     stack: {
       eyebrow: 'Settlement rails',
       title: 'What we use, and where',
-      usdc: 'The currency we settle in. Holds deal amounts, escrow balances, milestone payouts, the platform fee, and KarwanVault staking principal.',
+      usdc: 'The currency we settle in. Holds deal amounts, escrow balances, milestone payouts, the platform fee and deal guarantees.',
       dcw: 'Operational agent wallets can handle bounded background work on Arc Testnet. They are separate from the one customer identity wallet and balance, and they do not remove the approval boundary for funding or settlement.',
       cctp: "CCTP moves USDC between supported networks. Choose a route shown for your account and review its fees. A transfer completes only after the destination credit is confirmed.",
       appKit: "Arc App Kit connects supported transfer routes. Signing depends on the account and network: a connected wallet, a passkey wallet or a testnet managed wallet. Review the route, destination and fees before confirming.",
@@ -10812,19 +10384,19 @@ export const en: MessagesShape = {
       q1: { q: 'What is the difference between a direct deal and an agent-matched deal?', a: 'A direct deal is for two parties who already know each other. You open an escrow naming the seller\'s wallet, or even an email address, and skip the matching. An agent-matched deal is for when you need a counterparty: you post a request as a buyer or an offer as a seller, and the agents run the matching and negotiation. Both use the same escrow, reputation, and settlement underneath.' },
       q2: { q: 'What is the platform fee?', a: '1% of the deal amount, half from the buyer and half from the seller. The buyer funds the deal amount and their half of the fee; the seller nets the deal amount minus their half. The fee collects on chain as each milestone releases. Deals on the earlier escrow keep the fee they were opened with.' },
       q3: { q: 'Who controls my agent wallet, and how do I fund it?', a: "On testnet, Karwan operates the Circle agent wallets used for account actions. Deal funding requires your approval. Connected-wallet users sign with their own wallet. Use the wallet page to see available balances and transfer options; never send real funds to a testnet address." },
-      q4: { q: 'Are the smart contracts deployed?', a: "Reputation and BusinessRegistry are deployed on Arc mainnet. The escrow and remaining trading contracts are available on testnet, not mainnet. Contract addresses are listed in the public repository." },
+      q4: { q: 'Are the smart contracts deployed?', a: 'Reputation and BusinessRegistry are deployed on Arc mainnet. The escrow and remaining trading contracts are available on testnet, not mainnet. Contract addresses are listed in the public repository.' },
       q5: { q: "How does the escrow release?", a: "Review the delivery and release the agreed milestones. If either side needs more time, the seller can ask for more time to deliver and the buyer can extend the review window, up to the limit in the terms. If a review window ends with no action, the contract may let the seller claim the current milestone, including the final one. Check the deadlines and actions on the deal." },
       q6: { q: "What if a deal goes to dispute?", a: "A dispute freezes the unreleased balance. You can propose a split for the other party to accept. Otherwise each side gives its account within 72 hours by answering three questions. The judge reads both accounts, the delivery check on the submitted work and the deal chat, then proposes a split. A reviewer confirms every ruling before money moves. A side that gives no account loses. Opening a dispute is not an automatic refund." },
       q7: { q: 'What if a seller agent skips my agent-matched request?', a: 'The seller\'s profile has a budget and deadline range. If your request falls outside it, the agent skips and the timeline shows you why. If the agent is uncertain for any other reason, that is logged too, so the next move is never silent.' },
       q8: { q: "What kinds of trade can I use?", a: "Services and digital work, local or cross-border. Trade in physical goods and business trade are coming soon. Bring a counterparty you already know, or publish a request or offer to find one. Both paths use USDC escrow on Arc." },
-      q9: { q: 'Where does the agent reasoning run?', a: "Agents compare candidates and propose terms within your budget and deadline. You review the terms before funding. Contract rules determine later releases, refunds and disputes." },
+      q9: { q: 'Where does the agent reasoning run?', a: 'Agents compare candidates and propose terms within your budget and deadline. You review the terms before funding. Contract rules determine later releases, refunds and disputes.' },
       q10: { q: "How does Karwan keep delivery safe?", a: "Every delivered link is checked for safety and checked against the agreed request. A delivery that fails either check pauses the payment. Checks cannot guarantee quality, so inspect the work before you release." },
       q11: { q: 'Can I bring my reputation from other platforms?', a: 'Not yet. Karwan is building this so your record from other platforms can count here, with your permission and without leaking your data. Today your reputation comes from completed Karwan deals.' },
       q12: { q: "How do I get paid with a payment link?", a: "Create a link on Request and share it. The payer needs no account. They can pay from their Karwan balance, from a connected wallet, or with Send from any chain, which shows an address for EVM chains and one for Solana so they can pay from an exchange or any wallet. Money sent that way reaches your own address on Arc automatically. Sending less counts as part payment and the page shows what is left. Sending more marks the link paid and the extra is yours." },
       q13: { q: "Who sees where I am?", a: "Only your country shows on your record. Your city and area stay private: agents use them to match you with people near you and with buyers you can deliver to, and never show them to anyone. Delivery details are agreed in chat with the person you deal with." },
       q14: { q: "Can I message someone before a deal?", a: "Yes. Ask your agent to send a message to their Karwan tag, or open karwan.site/messages/their-tag. They get it in their Karwan chat with an alert on Telegram and by email, and see your tag, country and tier. When you agree, start a protected deal. Keep payment in Karwan escrow and never pay outside it. Messages are kept 14 days." },
       q15: { q: "How do ratings work?", a: "After a deal settles, you and the other person each rate it from 1 to 5, with a note if you like. Neither of you sees the other's rating until you both rate or 14 days pass. Your public rating is the average with how many ratings it comes from, for example 4.8 from 23 deals; under 3 ratings it shows New. Ratings close 14 days after the deal settles. Ratings from disputed deals are counted beside the number, for example 3.7 from 3 deals, 2 disputed. A note with a phone number, an email or a link is kept private. Your rating is separate from your reputation score." },
-      q16: { q: "When does Karwan ask me to confirm it is me?", a: "Only for three things: setting up your Karwan record and your buying agent's limits, putting up deal insurance, and money leaving Karwan for an address that is not one of your own Karwan wallets. You confirm with a passkey, your phone's face or fingerprint check, or a 6-digit Karwan PIN. Your agents pay, accept, deliver and release inside the limits you set without asking. Five wrong PINs lock it for 15 minutes, and Forgot PIN resets it with an email code. A PIN is never asked in a chat; the agent sends a one-time Karwan link." },
+      q16: { q: "When does Karwan ask me to confirm it is me?", a: 'Only for three things: setting up your Karwan record and your buying agent\'s limits, putting up a deal guarantee, and money leaving Karwan for an address that is not one of your own Karwan wallets. You confirm with a passkey, your phone\'s face or fingerprint check, or a 6-digit Karwan PIN. Your agents pay, accept, deliver and release inside the limits you set without asking. Five wrong PINs lock it for 15 minutes, and Forgot PIN resets it with an email code. A PIN is never asked in a chat; the agent sends a one-time Karwan link.' },
     },
     videoGuides: { eyebrow: 'Guided help', title: 'Know what to do next', body: 'Use the page tour on sensitive screens when you need context. It stays out of the way for returning users and can be opened again from the page control.', badge: 'In the app' },
     cta: { title: 'Start building your record', body: 'Agree the terms, fund USDC escrow, and every completed deal adds to your reputation.', button: 'Launch app', chainPrefix: 'chain' },
@@ -10843,7 +10415,7 @@ export const en: MessagesShape = {
     headlineLead: 'What you sign up',
     headlineAccent: 'for',
     intro: "These terms describe Karwan’s services, wallet authority, settlement rules and risks. Mainnet uses real funds; testnet uses test funds with no monetary value. Features differ between the two environments. Read these terms before accepting.",
-    preamble: 'These terms cover how Karwan works, what we do with your money, and what each side is responsible for. Signing in, posting a request, opening a deal, or staking means you accept them. Take a moment with them first.',
+    preamble: 'These terms cover how Karwan works, what we do with your money, and what each side is responsible for. Signing in, posting a request, opening a deal, or putting up a deal guarantee means you accept them. Take a moment with them first.',
     s1: {
       title: '1. What Karwan offers',
       lead: 'Karwan is an open market and settlement layer for local and cross-border trade between businesses and individuals. The core pieces:',
@@ -10856,9 +10428,9 @@ export const en: MessagesShape = {
         reputation: { label: 'Reputation and the credit passport.', body: 'Your account carries a tier and a score built from settled deal history. Anyone with your address can read the on-chain part.' },
         agents: { label: 'Agents.', body: 'Optional buyer and seller agents find counterparties, score offers, and negotiate inside the limits you set. They negotiate. They do not move money on their own. Every movement is either approved by you or is one of the automatic outcomes in section 4.' },
         assistant: { label: 'The assistant.', body: 'An in-product AI assistant answers questions and can prepare actions for you. Anything that moves money is shown to you and needs your confirmation before it runs. You can ask it for a person at any point, which opens a support ticket.' },
-        staking: { label: 'Staking.', body: 'You can lock USDC in the vault. It raises your tier and acts as deal insurance the escrow contract can draw on if you lose a dispute.' },
+        staking: { label: 'Deal guarantee.', body: 'You can set USDC aside as a deal guarantee. It raises your tier, and the escrow can pay it to the buyer if you lose a dispute.' },
       },
-      tail: "Some of this is still rolling out. On mainnet today you can hold, add, send and withdraw USDC, and read on-chain reputation. Deals with escrow, agents and staking run on testnet only until they ship on mainnet. Business registration, invoice factoring, purchase-order financing and the financier side are behind flags and are not available to every account. Anything labelled \"coming soon\" is not guaranteed to ship on a fixed date.",
+      tail: 'Some of this is still rolling out. On mainnet today you can hold, add, send and withdraw USDC, and read on-chain reputation. Deals with escrow, agents and the deal guarantee run on testnet only until they ship on mainnet. Business registration, invoice factoring, purchase-order financing and the financier side are behind flags and are not available to every account. Anything labelled "coming soon" is not guaranteed to ship on a fixed date.',
     },
     s2: {
       title: '2. How your account is held',
@@ -10890,7 +10462,7 @@ export const en: MessagesShape = {
         release: { label: "Milestone release.", body: "Review the delivery and release the agreed milestones. The seller can ask for more time to deliver and the buyer can extend the review window, up to the limit in the terms. If a review window ends with no action, the contract may let the seller claim the current milestone, including the final one. Check the deadlines and actions on the deal. Each milestone is delivered on its own, and the next one can be released only after the seller delivers it." },
         autoRelease: { label: 'Automatic release.', body: 'Milestones before the final one release on their own once the review window has passed with no action from the buyer. The window is shown on the deal and lengthens for each later milestone.' },
         deadline: { label: "A missed deadline.", body: "When a delivery deadline passes with nothing delivered, both sides are told. If the seller still has not delivered after the grace window, the escrow returns to the buyer automatically and the miss is recorded against the seller. The seller can ask for more time before the deadline, and once more after it during the grace window. A request the buyer has not answered holds the refund until the buyer approves or declines." },
-        cancel: { label: 'Cancelling.', body: 'A cancel both sides agree to refunds in full and carries no penalty. Staked funds reserved against the deal are released back to the seller.' },
+        cancel: { label: 'Cancelling.', body: 'A cancel both sides agree to refunds in full and carries no penalty. Any deal guarantee the deal held goes back to the seller.' },
         disputes: { label: "Disputes.", body: "A dispute freezes the unreleased escrow. The parties can agree a split themselves. If they do not, each side gives its account within 72 hours. The judge reads both accounts, the delivery check on the submitted work and the deal chat, and proposes the release and refund proportions. A reviewer confirms every ruling before any money moves. A side that gives no account loses. The live deal and the verified contract are the source of truth for the path available." },
       },
       tail: 'The exact timings in force are published on the disputes page in the product, and they can change. That page shows the live values, not a copy of them.',
@@ -10903,7 +10475,7 @@ export const en: MessagesShape = {
         disputes: 'Disputes you lose reduce your score. Disputes you win do not.',
         malicious: 'A delivery confirmed as malicious drops your tier sharply.',
         deadline: 'A missed deadline that ends in a reclaim is recorded as a failure.',
-        staking: 'Staking contributes to a higher tier and acts as deal insurance the escrow contract can draw on.',
+        staking: 'A deal guarantee raises your tier, and the escrow can pay it to the buyer if you lose a dispute.',
       },
       tail: 'The full formula lives in the reputation model doc. Agents read the tier and apply tier-aware behaviour: a high tier gets priority and can skip the auction in some flows, a new account pays a premium on first deals. An agent never overrides the limits you set. After a settled deal both people can rate each other from 1 to 5; the public rating is kept apart from the score and does not change it.',
       agentWallet: 'Reputation is written against the account that settled the deal. If you use an agent wallet, the record follows that wallet.',
@@ -10939,7 +10511,7 @@ export const en: MessagesShape = {
         addresses: 'Addresses, on-chain activity, and off-chain deal records keyed by address.',
         email: 'Your email if you sign in by email or passkey, or if you verify one. Your X handle and your Telegram account if you connect them.',
         chats: 'Negotiation transcripts, deal messages, assistant conversations, and support tickets, plus short notes the assistant keeps about what you discussed, which you can delete or switch off in Settings.',
-        reputation: 'Reputation inputs: settled deal counts, dispute counts, staked balance, registration time.',
+        reputation: 'Reputation inputs: settled deal counts, dispute counts, deal guarantee, registration time.',
         business: 'Business details you submit for registration, including a hash of any document you upload. The document itself is hashed in your browser and is not sent to us.',
       },
       notStoreLead: 'What we do not store:',
@@ -10958,7 +10530,7 @@ export const en: MessagesShape = {
         lawful: 'You can lawfully enter contracts in your jurisdiction.',
         address: 'The account you signed in with is yours, or you have authority to act for the entity that owns it.',
       },
-      changes: 'These terms may change. When a material change ships, the version number on this page is updated and the product asks you to accept the new version before you can post a request, open a deal, or stake. If you do not accept, you can still read your existing deals and reclaim escrow under the previous terms, but you cannot open new work.',
+      changes: 'These terms may change. When a material change ships, the version number on this page is updated and the product asks you to accept the new version before you can post a request, open a deal, or put up a deal guarantee. If you do not accept, you can still read your existing deals and reclaim escrow under the previous terms, but you cannot open new work.',
       organisation: 'If you are using the product through an organisation, you confirm that you have authority to bind that organisation to these terms.',
     },
     s9: { title: '10. Contact', body: 'The fastest channel is the in-product feedback link, or the assistant, which can open a support ticket for you. For matters that need a paper trail, email the address listed on karwan.site under "Contact". Every live chat and email opens a ticket with an id. Keep the id if you have one.' },
@@ -11082,7 +10654,7 @@ export const en: MessagesShape = {
     },
     trustedMatch: {
       eyebrow: 'Trusted match',
-      body: 'Your agent puts seller reputation and stake ahead of price. Sellers with no stake cannot make an offer. Best for high-value or one-off deals.',
+      body: 'Your agent puts seller reputation and deal guarantee ahead of price. Sellers with no deal guarantee cannot make an offer. Best for high-value or one-off deals.',
     },
     customSplit: {
       eyebrow: 'Custom milestone split',
@@ -11181,7 +10753,7 @@ export const en: MessagesShape = {
       eyebrow: 'Source contracts',
       labels: {
         escrow: 'Escrow',
-        vault: 'Vault',
+        vault: 'Deal guarantee',
         reputation: 'Reputation',
         treasury: 'Treasury',
         jobBoard: 'JobBoard',
@@ -11316,6 +10888,8 @@ export const en: MessagesShape = {
     },
     gate: {
       loading: "Checking your agents",
+      failed: "Something went wrong getting this ready.",
+      retry: "Try again",
       title: 'Activate your agent wallets to start trading',
       body: "Every deal runs through them. One pays when you buy, the other is paid when you sell. You activate them once.",
       cta: 'Activate agent wallets',

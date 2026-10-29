@@ -25,9 +25,7 @@ async function signedIn(page: Page, deals: unknown[]) {
       return route.fulfill({ json: { user: { address: BUYER, method: 'circle', hasPasskey: true }, profile } });
     }
     if (pathname === '/api/profile') return route.fulfill({ json: { profile } });
-    if (pathname === '/api/legacy/window') {
-      return route.fulfill({ json: { open: false, closesAtMs: null, daysRemaining: null, hasLegacyEscrow: false, hasLegacyVault: false, legacyEscrowAddress: null, legacyVaultAddress: null, generations: [] } });
-    }
+    if (pathname === '/api/legacy/positions') return route.fulfill({ json: { deals: [], guarantees: [] } });
     if (pathname === '/api/deals/direct') return route.fulfill({ json: { deals } });
     if (route.request().method() !== 'GET') return route.fulfill({ status: 403, body: '' });
     return route.fulfill({ json: { items: [], events: [], movements: [], messages: [], workspaces: [] } });
@@ -56,7 +54,7 @@ test('deals from before the new escrow are listed, open first, each opening its 
 test('nothing is listed when every deal is on the new escrow', async ({ page }) => {
   await signedIn(page, [deal('0x' + 'c'.repeat(64), 'settled', 1, { escrowVersion: 'suite' })]);
   await page.goto('/legacy');
-  await expect(page.getByText(c.empty)).toBeVisible();
+  await expect(page.getByText(en.dealGuarantee.legacy.empty)).toBeVisible();
   await expect(page.getByRole('link', { name: c.open })).toHaveCount(0);
   await expect(page.getByText(/Recovery window/)).toHaveCount(0);
 });
