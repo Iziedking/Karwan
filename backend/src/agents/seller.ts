@@ -1542,7 +1542,8 @@ async function runCounterEvaluation(
         seller.minBudgetUsdc,
         Number((originalBid * (1 - PROFILE_MAX_DECREASE_PCT / 100)).toFixed(2)),
       );
-  const maxAcceptable = active.listingAskingPriceUsdc ?? seller.maxBudgetUsdc;
+  // No seller maximum (view 41): the agent never counters above what it opened at.
+  const maxAcceptable = active.listingAskingPriceUsdc ?? Math.max(originalBid, seller.usualPriceUsdc ?? 0);
 
   // Strategy module computes a deterministic counter price for this round.
   // Tier elasticity + urgency lean the move in the right direction; the LLM

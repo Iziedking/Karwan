@@ -91,6 +91,7 @@ Each shape asks only what its contract needs. Answers are words and numbers, nev
 | Setup question "How do clients usually pay you?" | Built 23 Oct, web and Telegram | `paid` answer; starts the first selling way |
 | Matching by shape; another shape goes to the owner | Built 23 Oct, for accounts that saved ways | `sellerForRequest` in the selling agent |
 | Edit profile form and ways agree | Built 23 Oct | `reconcileWays` on profile save |
+| Lowest and usual price on each selling way, no highest (view 41, phase 2) | Built 29 Oct | `priceUsual` beside `priceMin`; `upgradeWays` on read and `scripts/backfill-way-prices.ts` once; editor, setup and form copy in five languages |
 | Terms draft per shape | Partly: view 24 drafts one-time, milestones and goods from conversation | Not yet read from ways |
 | A buying agent asking for a shape | Not built: requests carry goods or work, not milestones or deposit | Needs the request form to ask |
 | Shapes beyond v3 | Wait for T2.1 | Added to `LIVE_SHAPES` as each family deploys |

@@ -7,6 +7,7 @@ import {
 import { agentPrefsOf, getProfile, type UserProfile } from '../db/profiles.js';
 import type { BuyerProfile } from './buyer-profile.js';
 import type { SellerProfile } from './seller-profile.js';
+import { usualOf } from './ways.js';
 
 // Managed deals run on each user's own agents. A user joins the auction only if
 // they have activated (agent wallets) and filled the matching role profile.
@@ -59,6 +60,9 @@ export function toSellerProfile(agents: AgentWallets, profile: UserProfile): Sel
     bio: s.bio,
     minBudgetUsdc: s.minBudgetUsdc,
     maxBudgetUsdc: s.maxBudgetUsdc,
+    // A way that fits replaces this (sellerForRequest); an account with no ways
+    // reads its usual price from the range it set, as the ways upgrade does.
+    usualPriceUsdc: usualOf(s.minBudgetUsdc, s.maxBudgetUsdc),
     minDeadlineDays: s.minDeadlineDays,
     maxDeadlineDays: s.maxDeadlineDays,
     confidenceThreshold: DEFAULT_CONFIDENCE_THRESHOLD,

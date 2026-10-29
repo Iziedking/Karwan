@@ -37,14 +37,14 @@ type ChoiceQuestion = 'paid' | 'clients' | 'own' | 'reach';
 
 const ASK: Record<TextQuestion, string> = {
   what: 'What do you do? One line in your own words. Your agent uses it to find clients. For example: Logo and brand design.',
-  price: 'Your usual price and how fast you deliver, however you say it. For example: 20 to 40 USDC, 3 days.',
+  price: 'Your usual price, the lowest you would take, and how fast you deliver, however you say it. One price is both. For example: 20 to 40 USDC, 3 days.',
   buy: 'What do you usually buy or hire for? And your usual budget, if you have one. For example: Phone repairs, up to 50 USDC.',
   business: 'Your business name, and what it trades. We start your business profile with this. For example: Bello Foods, rice and grains to shops.',
   places: 'Where do you already work or sell? Only accounts you prove are yours count toward your record. For example: Instagram, WhatsApp, Fiverr.',
   where: 'Where are you? Only your country is ever shown. Your city helps find people near you. For example: Lagos, Nigeria.',
 };
 const SELL_WHAT = 'What do you sell? One line in your own words. Your agent uses it to find buyers. For example: Ankara fabric, 6 yards a piece.';
-const PRICE_AGAIN = "I couldn't read a price there. What do you usually charge, in USDC? For example: 20 to 40 USDC.";
+const PRICE_AGAIN = "I couldn't read a price there. What do you usually charge, in USDC? One price, or your lowest to your usual. For example: 20 to 40 USDC.";
 
 const CHOICES: Record<ChoiceQuestion, { body: string; options: Array<[string, string]> }> = {
   paid: {

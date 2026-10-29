@@ -4,7 +4,7 @@ import type { BriefResult, ProfilePatch } from '../agents/agentBrief.js';
 import type { BriefAnswers } from '../agents/agentBriefLines.js';
 import { firstPost } from '../agents/firstPost.js';
 import type { UserLocale, UserProfile } from '../db/profiles.js';
-import { legacyFromWays, waysSchema, wayLines } from '../agents/ways.js';
+import { legacyFromWays, upgradeWays, waysSchema, wayLines } from '../agents/ways.js';
 
 /// The setup conversation after activation (view 19). The answers are read on
 /// the server: preview shows what they set up, save stores what the server
@@ -92,7 +92,8 @@ export function createSetupRoutes(deps: SetupRouteDeps): Hono {
   app.post('/ways', async (c) => {
     const address = (await deps.sessionAddress(c))?.toLowerCase();
     if (!address) return c.json({ error: 'not authenticated' }, 401);
-    const parsed = z.object({ ways: waysSchema }).safeParse(await c.req.json().catch(() => null));
+    const body = (await c.req.json().catch(() => null)) as { ways?: unknown } | null;
+    const parsed = z.object({ ways: waysSchema }).safeParse(body && typeof body === 'object' ? { ...body, ways: upgradeWays(body.ways) } : body);
     if (!parsed.success) return c.json({ error: 'invalid ways', issues: parsed.error.issues.map((i) => i.message) }, 400);
     if (!allowed(address)) return c.json({ error: 'too many tries, wait a few minutes' }, 429);
     const current = await deps.current(address);

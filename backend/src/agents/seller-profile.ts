@@ -8,7 +8,11 @@ export interface SellerProfile {
   skills: string[];
   bio: string;
   minBudgetUsdc: number;
+  /// Kept for readers that predate the ways; the agent no longer treats it as a cap (view 41).
   maxBudgetUsdc: number;
+  /// What the person usually charges, the opening anchor (view 41, phase 2). Unset on
+  /// accounts that never set a price, which anchor on the budget.
+  usualPriceUsdc?: number;
   minDeadlineDays: number;
   maxDeadlineDays: number;
   confidenceThreshold: number;

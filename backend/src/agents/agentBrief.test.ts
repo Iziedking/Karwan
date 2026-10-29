@@ -17,8 +17,8 @@ test("a freelancer's answers become a selling agent", async () => {
   assert.equal(r.patch.role, 'seller');
   assert.deepEqual(r.patch.seller?.skills, ['logo', 'branding']);
   assert.equal(r.patch.seller?.bio, 'Logo and brand design');
-  assert.equal(r.patch.seller?.minBudgetUsdc, 20);
-  assert.equal(r.patch.seller?.maxBudgetUsdc, 40);
+  assert.equal(r.patch.seller?.minBudgetUsdc, 20, 'the low end is the lowest');
+  assert.equal(r.patch.seller?.maxBudgetUsdc, 30, 'the midpoint is the usual, under the older name');
   assert.equal(r.patch.seller?.minDeadlineDays, 3);
   assert.equal(r.patch.seller?.maxDeadlineDays, 3);
   assert.equal(r.patch.agentPrefs?.findClients, true);
@@ -76,8 +76,12 @@ test('own clients, reach, business and places each land in their own place', asy
 test('how clients pay becomes the selling way the agent starts with', async () => {
   const goods = await readBrief({ goals: ['sell'], what: 'Ankara fabric', price: '30 to 60 USDC, 2 to 4 days', paid: 'goods', where: 'Kano, Nigeria' }, null, deps, 'en');
   assert.deepEqual(goods.patch.agentWays?.sell, [
-    { shape: 'goods', what: 'Ankara fabric', priceMin: 30, priceMax: 60, shipsTo: 'Kano, Nigeria', arriveDaysMin: 2, arriveDaysMax: 4 },
+    { shape: 'goods', what: 'Ankara fabric', priceMin: 30, priceUsual: 45, shipsTo: 'Kano, Nigeria', arriveDaysMin: 2, arriveDaysMax: 4 },
   ]);
+  assert.ok(goods.lines.includes('Usually 45 USDC, lowest 30, delivers in 2 to 4 days'), goods.lines.join(' | '));
+  const one = await readBrief({ goals: ['work'], what: 'Logos', price: '100 USDC, a week', paid: 'one_time' }, null, deps, 'en');
+  assert.deepEqual(one.patch.agentWays?.sell, [{ shape: 'one_time', priceMin: 100, priceUsual: 100, daysMin: 7, daysMax: 7 }]);
+  assert.ok(one.lines.includes('Asks 100 USDC, delivers in about 7 days'), one.lines.join(' | '));
   assert.equal(goods.patch.seller?.tradeType, 'goods');
   assert.ok(goods.lines.includes('Paid when the buyer has the goods'));
   const stages = await readBrief({ goals: ['work'], what: 'Websites', price: '200 to 900 USDC, 14 to 30 days', paid: 'milestones' }, null, deps, 'en');

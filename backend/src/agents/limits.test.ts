@@ -23,9 +23,9 @@ test('under the floor asks, suggesting the floor', () => {
   assert.deepEqual(d, { act: false, kind: 'price-below-floor', suggested: { priceUsdc: '20', days: 3 }, limit: 20 });
 });
 
-test('over the usual range asks, suggesting the budget (phase 2 turns this into an offer)', () => {
-  const d = limitDecision({ seller, job: job('100', 3), nowUnix: NOW, hasWay: true });
-  assert.deepEqual(d, { act: false, kind: 'price-above-usual', suggested: { priceUsdc: '100', days: 3 }, limit: 40 });
+test('a budget far above the usual price is an offer, not a question: there is no seller maximum', () => {
+  assert.deepEqual(limitDecision({ seller, job: job('100', 3), nowUnix: NOW, hasWay: true }), { act: true });
+  assert.deepEqual(limitDecision({ seller, job: job('100000', 3), nowUnix: NOW, hasWay: true }), { act: true });
 });
 
 test('too soon or too late asks, suggesting the nearest time the person takes', () => {

@@ -2,7 +2,7 @@ import type { AgentPrefs, UserLocale, UserProfile, UserSettings } from '../db/pr
 import { parsePlace } from '../location/rules.js';
 import { parseBriefPrice } from './agentBriefParse.js';
 import { briefLines, type BriefAnswers, type BriefRead } from './agentBriefLines.js';
-import { legacyFromWays, waysOf, withWay, type SellWay } from './ways.js';
+import { legacyFromWays, usualOf, waysOf, withWay, type SellWay } from './ways.js';
 
 /// The setup conversation's answers, read into the account's settings (view
 /// 19). Shared by the website, the Telegram interview and the assistant, so
@@ -63,6 +63,10 @@ export async function readBrief(
     }
     if (skills.length === 0) skills = what ? [what.slice(0, 40).trim()] : current?.seller?.skills ?? [has('work') ? 'services' : 'products'];
     const range = price ?? UNSET_RANGE;
+    // One price is the lowest and the usual; a range is lowest and midpoint
+    // (view 41). An unread price keeps the wide unset range, and the agent asks.
+    const lowest = range.min;
+    const usual = price ? usualOf(range.min, range.max) : range.max;
     const days = pace ?? DEFAULT_DAYS;
     patch.seller = {
       ...(current?.seller ?? {}),
@@ -70,8 +74,8 @@ export async function readBrief(
       // The tags gate which requests the agent bids on, so they follow the words.
       ...(what ? { keywords: skills } : {}),
       bio: what || current?.seller?.bio || '',
-      minBudgetUsdc: range.min,
-      maxBudgetUsdc: range.max,
+      minBudgetUsdc: lowest,
+      maxBudgetUsdc: usual,
       minDeadlineDays: days.minDays,
       maxDeadlineDays: days.maxDays,
     };
@@ -83,11 +87,11 @@ export async function readBrief(
       ? null
       : a.paid === 'goods'
         ? shipsTo
-          ? { shape: 'goods', what: (what || skills[0] || 'Goods').slice(0, 120), priceMin: range.min, priceMax: range.max, shipsTo, arriveDaysMin: days.minDays, arriveDaysMax: days.maxDays }
+          ? { shape: 'goods', what: (what || skills[0] || 'Goods').slice(0, 120), priceMin: lowest, priceUsual: usual, shipsTo, arriveDaysMin: days.minDays, arriveDaysMax: days.maxDays }
           : null
         : a.paid === 'milestones'
-          ? { shape: 'milestones', priceMin: range.min, priceMax: range.max, daysMin: days.minDays, daysMax: days.maxDays, stages: 2 }
-          : { shape: 'one_time', priceMin: range.min, priceMax: range.max, daysMin: days.minDays, daysMax: days.maxDays };
+          ? { shape: 'milestones', priceMin: lowest, priceUsual: usual, daysMin: days.minDays, daysMax: days.maxDays, stages: 2 }
+          : { shape: 'one_time', priceMin: lowest, priceUsual: usual, daysMin: days.minDays, daysMax: days.maxDays };
     if (way) {
       const base = current?.agentWays ?? { sell: [], buy: waysOf({ buyer: current?.buyer }).buy };
       const ways = withWay(base, 'sell', way.shape, way);

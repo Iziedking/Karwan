@@ -13,7 +13,7 @@ const read: BriefRead = { price: { min: 20, max: 40 }, pace: { minDays: 3, maxDa
 test("a freelancer's summary, in order", () => {
   assert.deepEqual(briefLines(freelancer, read, 'en'), [
     'Your agent offers Logo and brand design',
-    'Asks 20 to 40 USDC, delivers in about 3 days',
+    'Usually 30 USDC, lowest 20, delivers in about 3 days',
     'Your agent looks for matching requests on the market',
     'Your agent makes offers within your price, and asks before any deal',
     'We tell you on Telegram',

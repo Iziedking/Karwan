@@ -60,17 +60,23 @@ test('an opening never goes below the seller\'s own minimum or a grounded market
   assert.ok(market !== null && market >= 110, String(market));
 });
 
-test('opening pricing preserves floor, ceiling, and impossible-range guards', () => {
-  assert.equal(
-    sellerOpeningBid({ ...seller, minBudgetUsdc: 120, maxBudgetUsdc: 120 }, job, 'new', 1, undefined, () => 0),
-    120,
-  );
-  const capped = sellerOpeningBid({ ...seller, maxBudgetUsdc: 110 }, job, 'new', 1, undefined, () => 1);
-  assert.ok(capped !== null && capped >= 100 && capped <= 110);
-  assert.equal(
-    sellerOpeningBid({ ...seller, minBudgetUsdc: 130, maxBudgetUsdc: 140 }, job, 'new', 0, undefined, () => 0.5),
-    null,
-  );
+test('a lowest price above the budget opens at the lowest, never at nothing; the old maximum caps nothing (view 41)', () => {
+  assert.equal(sellerOpeningBid({ ...seller, minBudgetUsdc: 120, maxBudgetUsdc: 120 }, job, 'new', 0, undefined, () => 0), 120);
+  assert.equal(sellerOpeningBid({ ...seller, minBudgetUsdc: 130, maxBudgetUsdc: 140 }, job, 'new', 0, undefined, () => 0.5), 130);
+  const uncapped = sellerOpeningBid({ ...seller, maxBudgetUsdc: 110 }, job, 'new', 1, undefined, () => 1);
+  assert.ok(uncapped !== null && uncapped > 110, String(uncapped));
+});
+
+test('the opening anchors on the usual price, under or over the budget (view 41)', () => {
+  const under = sellerOpeningBid({ ...seller, usualPriceUsdc: 60 }, job, 'established', 0.5, undefined, () => 0.5);
+  // Heat 0.5 around 60: from 10% under to 27.5% over the usual, all under the 100 budget.
+  assert.ok(under !== null && under >= 80 && under <= 76.5 + 10, String(under));
+  const over = sellerOpeningBid({ ...seller, usualPriceUsdc: 150 }, job, 'established', 0.5, undefined, () => 0.5);
+  assert.ok(over !== null && over >= 135 && over <= 191.25, String(over));
+  const floored = sellerOpeningBid({ ...seller, usualPriceUsdc: 85, minBudgetUsdc: 84 }, job, 'elite', 0, undefined, () => 0);
+  assert.ok(floored !== null && floored >= 84, String(floored));
+  const market = sellerOpeningBid({ ...seller, usualPriceUsdc: 60 }, job, 'elite', 0, 110, () => 0);
+  assert.ok(market !== null && market >= 110, String(market));
 });
 
 test('trusted matching remains no more aggressive than the same ordinary opening', () => {

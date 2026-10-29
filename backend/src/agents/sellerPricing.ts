@@ -13,11 +13,13 @@ const UNDERCUT_SPAN_PCT = 20;
 /**
  * Pure opening-bid calculation used by the legacy seller path.
  *
- * The range follows demand alone (view 35): from up to 20% under the budget
- * for a common skill to up to 50% over it for a scarce one, never under the
- * seller's own minimum or a grounded market price. The buyer's leeway is their
- * private limit and plays no part. The random source is injected so fixtures
- * can reproduce a decision.
+ * The opening anchors on the seller's usual price (view 41): demand moves it
+ * from up to 20% under the usual for a common skill to up to 50% over it for a
+ * scarce one, never under the seller's own lowest or a grounded market price,
+ * and with no seller maximum. It may sit under the buyer's budget (view 35) or
+ * over it; the buyer's leeway is their private limit and plays no part. An
+ * account that never set a usual price anchors on the budget, as before. The
+ * random source is injected so fixtures can reproduce a decision.
  */
 export function sellerOpeningBid(
   seller: SellerProfile,
@@ -30,12 +32,12 @@ export function sellerOpeningBid(
   const budget = Number(job.budgetUsdc);
   const h = Number.isFinite(heat) ? Math.max(0, Math.min(1, heat)) : 0.5;
   const market = marketPriceUsdc && marketPriceUsdc > 0 ? Math.min(marketPriceUsdc, budget * 2) : 0;
+  const usual = seller.usualPriceUsdc && seller.usualPriceUsdc > 0 ? seller.usualPriceUsdc : budget;
   const demandHeadroomPct = HEADROOM_BASE_PCT + h * HEADROOM_DEMAND_SPAN_PCT;
-  const openCeiling = budget * (1 + demandHeadroomPct / 100);
-  const lowEnd = budget * (1 - ((1 - h) * UNDERCUT_SPAN_PCT) / 100);
-  const floor = Math.max(seller.minBudgetUsdc, lowEnd, market);
-  const ceiling = Math.min(seller.maxBudgetUsdc, Math.max(openCeiling, market));
-  if (!Number.isFinite(ceiling) || ceiling < floor) return null;
+  const lowest = Math.max(seller.minBudgetUsdc, market);
+  const floor = Math.max(lowest, usual * (1 - ((1 - h) * UNDERCUT_SPAN_PCT) / 100));
+  const ceiling = Math.max(floor, usual * (1 + demandHeadroomPct / 100), market);
+  if (!Number.isFinite(ceiling) || !Number.isFinite(floor)) return null;
   if (ceiling === floor) return Number(floor.toFixed(2));
 
   const tierBias: Record<Tier, number> = {

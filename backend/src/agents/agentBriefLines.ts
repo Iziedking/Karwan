@@ -1,5 +1,6 @@
 import type { Goal, UserLocale } from '../db/profiles.js';
 import type { Pace, PriceRange } from './agentBriefParse.js';
+import { usualOf } from './ways.js';
 
 /// "Here's your Karwan" (view 19): what the setup answers set up, in plain
 /// sentences. Built here so the website, Telegram and the assistant say the
@@ -56,7 +57,7 @@ interface Copy {
 const COPY: Record<UserLocale, Copy> = {
   en: {
     offers: 'Your agent offers {what}', yourWork: 'your work', yourProducts: 'your products',
-    price: 'Asks {min} to {max} USDC', priceOne: 'Asks {min} USDC', pace: ', delivers in about {days} days', paceRange: ', delivers in {min} to {max} days',
+    price: 'Usually {usual} USDC, lowest {min}', priceOne: 'Asks {min} USDC', pace: ', delivers in about {days} days', paceRange: ', delivers in {min} to {max} days',
     noPrice: 'Price not set yet. Your agent asks you each time.',
     buys: 'Your buying agent looks for {buy}', buysUpTo: 'Your buying agent looks for {buy}, up to {max} USDC',
     business: 'Business profile ready to finish for {name}', record: 'Connect {places} to build your record',
@@ -68,7 +69,7 @@ const COPY: Record<UserLocale, Copy> = {
   },
   fr: {
     offers: 'Votre agent propose {what}', yourWork: 'votre travail', yourProducts: 'vos produits',
-    price: 'Demande {min} à {max} USDC', priceOne: 'Demande {min} USDC', pace: ', livre en environ {days} jours', paceRange: ', livre en {min} à {max} jours',
+    price: 'Habituellement {usual} USDC, minimum {min}', priceOne: 'Demande {min} USDC', pace: ', livre en environ {days} jours', paceRange: ', livre en {min} à {max} jours',
     noPrice: 'Prix pas encore fixé. Votre agent vous demande à chaque fois.',
     buys: 'Votre agent d’achat cherche {buy}', buysUpTo: 'Votre agent d’achat cherche {buy}, jusqu’à {max} USDC',
     business: 'Profil d’entreprise prêt à finaliser pour {name}', record: 'Connectez {places} pour bâtir votre historique',
@@ -80,7 +81,7 @@ const COPY: Record<UserLocale, Copy> = {
   },
   ar: {
     offers: 'وكيلك يعرض {what}', yourWork: 'عملك', yourProducts: 'منتجاتك',
-    price: 'يطلب من {min} إلى {max} USDC', priceOne: 'يطلب {min} USDC', pace: '، ويسلّم في نحو {days} أيام', paceRange: '، ويسلّم في {min} إلى {max} أيام',
+    price: 'عادةً {usual} USDC، والحد الأدنى {min}', priceOne: 'يطلب {min} USDC', pace: '، ويسلّم في نحو {days} أيام', paceRange: '، ويسلّم في {min} إلى {max} أيام',
     noPrice: 'لم يُحدَّد السعر بعد. وكيلك يسألك في كل مرة.',
     buys: 'وكيل الشراء يبحث عن {buy}', buysUpTo: 'وكيل الشراء يبحث عن {buy}، حتى {max} USDC',
     business: 'ملف عملك جاهز للإكمال باسم {name}', record: 'اربط {places} لتبني سجلك',
@@ -92,7 +93,7 @@ const COPY: Record<UserLocale, Copy> = {
   },
   hi: {
     offers: 'आपका एजेंट {what} पेश करता है', yourWork: 'आपका काम', yourProducts: 'आपके उत्पाद',
-    price: '{min} से {max} USDC माँगता है', priceOne: '{min} USDC माँगता है', pace: ', लगभग {days} दिनों में डिलीवर करता है', paceRange: ', {min} से {max} दिनों में डिलीवर करता है',
+    price: 'आम तौर पर {usual} USDC, न्यूनतम {min}', priceOne: '{min} USDC माँगता है', pace: ', लगभग {days} दिनों में डिलीवर करता है', paceRange: ', {min} से {max} दिनों में डिलीवर करता है',
     noPrice: 'कीमत अभी तय नहीं। आपका एजेंट हर बार आपसे पूछता है।',
     buys: 'आपका खरीद एजेंट {buy} ढूँढता है', buysUpTo: 'आपका खरीद एजेंट {buy} ढूँढता है, {max} USDC तक',
     business: '{name} के लिए व्यवसाय प्रोफ़ाइल पूरा करने को तैयार', record: 'अपना रिकॉर्ड बनाने के लिए {places} जोड़ें',
@@ -104,7 +105,7 @@ const COPY: Record<UserLocale, Copy> = {
   },
   sw: {
     offers: 'Wakala wako anatoa {what}', yourWork: 'kazi yako', yourProducts: 'bidhaa zako',
-    price: 'Anaomba USDC {min} hadi {max}', priceOne: 'Anaomba USDC {min}', pace: ', anawasilisha kwa takriban siku {days}', paceRange: ', anawasilisha kwa siku {min} hadi {max}',
+    price: 'Kawaida USDC {usual}, chini kabisa {min}', priceOne: 'Anaomba USDC {min}', pace: ', anawasilisha kwa takriban siku {days}', paceRange: ', anawasilisha kwa siku {min} hadi {max}',
     noPrice: 'Bei bado haijawekwa. Wakala wako anakuuliza kila mara.',
     buys: 'Wakala wako wa kununua anatafuta {buy}', buysUpTo: 'Wakala wako wa kununua anatafuta {buy}, hadi USDC {max}',
     business: 'Wasifu wa biashara uko tayari kukamilishwa kwa {name}', record: 'Unganisha {places} ili kujenga rekodi yako',
@@ -127,7 +128,7 @@ export function briefLines(a: BriefAnswers, r: BriefRead, locale: UserLocale): s
   if (selling) {
     lines.push(fill(c.offers, { what: a.what?.trim() || (has('work') ? c.yourWork : c.yourProducts) }));
     if (r.price) {
-      const base = r.price.min === r.price.max ? fill(c.priceOne, { min: r.price.min }) : fill(c.price, { min: r.price.min, max: r.price.max });
+      const base = r.price.min === r.price.max ? fill(c.priceOne, { min: r.price.min }) : fill(c.price, { min: r.price.min, usual: usualOf(r.price.min, r.price.max) });
       const pace = !r.pace ? '' : r.pace.minDays === r.pace.maxDays ? fill(c.pace, { days: r.pace.minDays }) : fill(c.paceRange, { min: r.pace.minDays, max: r.pace.maxDays });
       lines.push(base + pace);
       if (a.paid) lines.push(c.paid[a.paid]);

@@ -16,13 +16,16 @@ const usdc = z.number().finite().positive().max(1_000_000);
 const days = z.number().int().min(1).max(365);
 const words = (max: number) => z.string().trim().min(1).max(max);
 
-const sellOneTime = z.object({ shape: z.literal('one_time'), priceMin: usdc, priceMax: usdc, daysMin: days, daysMax: days });
+// A selling way carries the lowest price the person takes (priceMin, the
+// floor) and their usual price (view 41, phase 2). There is no highest: a
+// bigger budget gets an offer opened from the usual price.
+const sellOneTime = z.object({ shape: z.literal('one_time'), priceMin: usdc, priceUsual: usdc, daysMin: days, daysMax: days });
 const sellMilestones = sellOneTime.extend({ shape: z.literal('milestones'), stages: z.number().int().min(2).max(5) });
 const sellGoods = z.object({
   shape: z.literal('goods'),
   what: words(120),
   priceMin: usdc,
-  priceMax: usdc,
+  priceUsual: usdc,
   shipsTo: words(120),
   arriveDaysMin: days,
   arriveDaysMax: days,
@@ -36,7 +39,7 @@ const buyDeposit = z.object({ shape: z.literal('deposit'), maxDeposit: usdc });
 
 export const sellWaySchema = z
   .discriminatedUnion('shape', [sellOneTime, sellMilestones, sellGoods, sellDeposit])
-  .refine((w) => (w.shape === 'deposit' ? true : w.priceMin <= w.priceMax), { message: 'lowest price above highest' })
+  .refine((w) => (w.shape === 'deposit' ? true : w.priceMin <= w.priceUsual), { message: 'lowest price above usual' })
   .refine((w) => (w.shape === 'goods' ? w.arriveDaysMin <= w.arriveDaysMax : w.shape === 'deposit' ? true : w.daysMin <= w.daysMax), {
     message: 'shortest time above longest',
   });
@@ -53,14 +56,38 @@ export type SellWay = z.infer<typeof sellWaySchema>;
 export type BuyWay = z.infer<typeof buyWaySchema>;
 export type AgentWays = z.infer<typeof waysSchema>;
 
+/// One price is the lowest and the usual; a range makes its low end the lowest
+/// and its midpoint the usual (view 41, decision 2).
+export function usualOf(lo: number, hi: number): number {
+  return lo === hi ? lo : Number(((lo + hi) / 2).toFixed(2));
+}
+
+function upgradeSellWay(w: unknown): unknown {
+  if (!w || typeof w !== 'object') return w;
+  const o = w as Record<string, unknown>;
+  if (o.shape === 'deposit' || typeof o.priceMin !== 'number') return w;
+  const { priceMax, ...rest } = o;
+  if (typeof rest.priceUsual === 'number') return rest;
+  const hi = typeof priceMax === 'number' ? priceMax : o.priceMin;
+  return { ...rest, priceUsual: usualOf(o.priceMin, hi) };
+}
+
+/// Ways saved before the usual price: a range becomes lowest and usual, one
+/// price is both, and the old highest is dropped. Ways already in the new
+/// shape pass through, so this can run on every read and twice is harmless.
+export function upgradeWays<T>(raw: T): T {
+  if (!raw || typeof raw !== 'object' || !Array.isArray((raw as { sell?: unknown }).sell)) return raw;
+  return { ...(raw as object), sell: (raw as unknown as { sell: unknown[] }).sell.map(upgradeSellWay) } as T;
+}
+
 /// The account's ways: the saved ones, or for an account that never saved
 /// any, the one way its current settings describe.
 export function waysOf(profile: Pick<UserProfile, 'agentWays' | 'seller' | 'buyer'>): AgentWays & { saved: boolean } {
-  if (profile.agentWays) return { ...profile.agentWays, saved: true };
+  if (profile.agentWays) return { ...upgradeWays(profile.agentWays), saved: true };
   const s = profile.seller;
   const b = profile.buyer;
   const sell: SellWay[] = s
-    ? [{ shape: 'one_time', priceMin: s.minBudgetUsdc, priceMax: s.maxBudgetUsdc, daysMin: s.minDeadlineDays, daysMax: s.maxDeadlineDays }]
+    ? [{ shape: 'one_time', priceMin: s.minBudgetUsdc, priceUsual: usualOf(s.minBudgetUsdc, s.maxBudgetUsdc), daysMin: s.minDeadlineDays, daysMax: s.maxDeadlineDays }]
     : [];
   const buy: BuyWay[] = b
     ? [
@@ -82,20 +109,23 @@ export function fittingWay(sell: readonly SellWay[], requestKind: 'service' | 'g
 
 interface Limits {
   minBudgetUsdc: number;
+  /// The usual price, kept under the older name for every reader that predates
+  /// the ways. It is a starting point, never a cap (view 41).
   maxBudgetUsdc: number;
+  usualPriceUsdc?: number;
   minDeadlineDays: number;
   maxDeadlineDays: number;
 }
 
-/// The price and time limits the agent bids inside, taken from one way.
+/// The floor, usual price and time the agent acts from, taken from one way.
 export function withWayLimits<T extends Limits>(seller: T, way: SellWay): T {
   switch (way.shape) {
     case 'goods':
-      return { ...seller, minBudgetUsdc: way.priceMin, maxBudgetUsdc: way.priceMax, minDeadlineDays: way.arriveDaysMin, maxDeadlineDays: way.arriveDaysMax };
+      return { ...seller, minBudgetUsdc: way.priceMin, maxBudgetUsdc: way.priceUsual, usualPriceUsdc: way.priceUsual, minDeadlineDays: way.arriveDaysMin, maxDeadlineDays: way.arriveDaysMax };
     case 'deposit':
       return seller;
     default:
-      return { ...seller, minBudgetUsdc: way.priceMin, maxBudgetUsdc: way.priceMax, minDeadlineDays: way.daysMin, maxDeadlineDays: way.daysMax };
+      return { ...seller, minBudgetUsdc: way.priceMin, maxBudgetUsdc: way.priceUsual, usualPriceUsdc: way.priceUsual, minDeadlineDays: way.daysMin, maxDeadlineDays: way.daysMax };
   }
 }
 
@@ -103,8 +133,8 @@ const sellRange = (w: SellWay) =>
   w.shape === 'deposit'
     ? null
     : w.shape === 'goods'
-      ? { lo: w.priceMin, hi: w.priceMax, dLo: w.arriveDaysMin, dHi: w.arriveDaysMax }
-      : { lo: w.priceMin, hi: w.priceMax, dLo: w.daysMin, dHi: w.daysMax };
+      ? { lo: w.priceMin, hi: w.priceUsual, dLo: w.arriveDaysMin, dHi: w.arriveDaysMax }
+      : { lo: w.priceMin, hi: w.priceUsual, dLo: w.daysMin, dHi: w.daysMax };
 
 /// The older seller and buyer settings, rewritten from the ways so every
 /// reader that predates them (pricing, the market sweep, the forms) agrees.
@@ -121,6 +151,7 @@ export function legacyFromWays(ways: AgentWays, current: Pick<UserProfile, 'sell
       ...(current.seller?.keywords ? { keywords: current.seller.keywords } : {}),
       tradeType: goods && work ? 'both' : goods ? 'goods' : 'services',
       minBudgetUsdc: Math.min(...ranges.map((r) => r.lo)),
+      // The highest usual price, under the older name; no reader treats it as a cap.
       maxBudgetUsdc: Math.max(...ranges.map((r) => r.hi)),
       minDeadlineDays: Math.min(...ranges.map((r) => r.dLo)),
       maxDeadlineDays: Math.max(...ranges.map((r) => r.dHi)),
@@ -151,6 +182,7 @@ const SHAPE_WORDS: Record<WayShape, string> = {
 };
 const span = (lo: number | string, hi: number | string) => (lo === hi ? `${lo}` : `${lo} to ${hi}`);
 const whole = (n: number) => n.toLocaleString('en-US');
+const priceWords = (lo: number, usual: number) => (lo === usual ? `${whole(lo)} USDC` : `usually ${whole(usual)} USDC, lowest ${whole(lo)}`);
 
 /// One plain line per way, for the confirm card and chat.
 export function wayLines(ways: Pick<AgentWays, 'sell' | 'buy'>): string[] {
@@ -158,13 +190,13 @@ export function wayLines(ways: Pick<AgentWays, 'sell' | 'buy'>): string[] {
     const head = `Selling, ${SHAPE_WORDS[w.shape]}: `;
     switch (w.shape) {
       case 'goods':
-        return `${head}${w.what}, ${span(whole(w.priceMin), whole(w.priceMax))} USDC, to ${w.shipsTo}, arrives in ${span(w.arriveDaysMin, w.arriveDaysMax)} days`;
+        return `${head}${w.what}, ${priceWords(w.priceMin, w.priceUsual)}, to ${w.shipsTo}, arrives in ${span(w.arriveDaysMin, w.arriveDaysMax)} days`;
       case 'deposit':
         return `${head}${w.what}, ${whole(w.deposit)} USDC deposit for ${w.periodDays} days`;
       case 'milestones':
-        return `${head}${span(whole(w.priceMin), whole(w.priceMax))} USDC in ${w.stages} stages, done in ${span(w.daysMin, w.daysMax)} days`;
+        return `${head}${priceWords(w.priceMin, w.priceUsual)} in ${w.stages} stages, done in ${span(w.daysMin, w.daysMax)} days`;
       default:
-        return `${head}${span(whole(w.priceMin), whole(w.priceMax))} USDC, done in ${span(w.daysMin, w.daysMax)} days`;
+        return `${head}${priceWords(w.priceMin, w.priceUsual)}, done in ${span(w.daysMin, w.daysMax)} days`;
     }
   });
   const buy = ways.buy.map((w) => {
@@ -183,15 +215,16 @@ export function wayLines(ways: Pick<AgentWays, 'sell' | 'buy'>): string[] {
   return [...sell, ...buy];
 }
 
-/// The Edit profile form still writes the older settings. When an account has
-/// saved ways, its work way takes the form's price and time, and a side the
-/// form dropped (a role switched off) loses its ways, so the two never differ.
+/// The Edit profile form still writes the older settings: its price fields are
+/// the lowest and the usual. When an account has saved ways, its work way takes
+/// the form's price and time, and a side the form dropped (a role switched off)
+/// loses its ways, so the two never differ.
 export function reconcileWays(ways: AgentWays, seller: UserProfile['seller'], buyer: UserProfile['buyer']): AgentWays {
   const sell: SellWay[] = !seller
     ? []
     : ways.sell.map((w) =>
         w.shape === 'one_time' || w.shape === 'milestones'
-          ? { ...w, priceMin: seller.minBudgetUsdc, priceMax: seller.maxBudgetUsdc, daysMin: seller.minDeadlineDays, daysMax: seller.maxDeadlineDays }
+          ? { ...w, priceMin: seller.minBudgetUsdc, priceUsual: Math.max(seller.minBudgetUsdc, seller.maxBudgetUsdc), daysMin: seller.minDeadlineDays, daysMax: seller.maxDeadlineDays }
           : w,
       );
   const buy: BuyWay[] = !buyer

@@ -83,7 +83,7 @@ test('one account gets 20 readings in ten minutes', async () => {
 });
 
 const ways = {
-  sell: [{ shape: 'goods', what: 'Wigs', priceMin: 80, priceMax: 300, shipsTo: 'Nigeria', arriveDaysMin: 2, arriveDaysMax: 5 }],
+  sell: [{ shape: 'goods', what: 'Wigs', priceMin: 80, priceUsual: 190, shipsTo: 'Nigeria', arriveDaysMin: 2, arriveDaysMax: 5 }],
   buy: [{ shape: 'one_time', maxPrice: 200, needDays: 7 }],
 };
 
@@ -97,7 +97,7 @@ test('ways are saved with the older settings in step', async () => {
   assert.deepEqual(patch.agentWays, ways);
   assert.equal(patch.role, 'both');
   assert.equal(patch.seller?.tradeType, 'goods');
-  assert.equal(patch.seller?.maxBudgetUsdc, 300);
+  assert.equal(patch.seller?.maxBudgetUsdc, 190);
   assert.equal(patch.buyer?.maxBudgetUsdc, 200);
   assert.equal(patch.agentPrefs?.sellerPriceSet, true);
 });

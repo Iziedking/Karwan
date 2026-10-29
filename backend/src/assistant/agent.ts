@@ -1004,14 +1004,14 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
 
     set_way_i_deal: tool({
       description:
-        "Add, change or remove one way this person deals, for selling or for buying (view 26). Shapes: one_time (a single job or item), milestones (paid in stages), goods (sent to the buyer, review starts on arrival), deposit (held and returned, like a rental). Selling asks: one_time and milestones a price range and days (milestones also 2 to 5 stages); goods what, a price range, where they ship and how many days it takes to arrive; deposit what, the deposit and the period in days. Buying asks: one_time the most they pay and days; milestones the same plus pay at the end or by stage; goods the most they pay, where it comes to and how long they can wait; deposit the most deposit they will hold. Pass only what they said for that one way; ask for anything missing before calling. Shows a card; nothing is saved until they confirm. Use for 'I also sell wigs, I ship anywhere in Nigeria', 'I rent cameras with a 200 USDC deposit', 'stop selling one-off jobs'.",
+        "Add, change or remove one way this person deals, for selling or for buying (view 26). Shapes: one_time (a single job or item), milestones (paid in stages), goods (sent to the buyer, review starts on arrival), deposit (held and returned, like a rental). Selling asks: one_time and milestones the lowest price they take (priceMin), their usual price (priceUsual; one price is both, there is no highest) and days (milestones also 2 to 5 stages); goods what, lowest and usual price, where they ship and how many days it takes to arrive; deposit what, the deposit and the period in days. Buying asks: one_time the most they pay and days; milestones the same plus pay at the end or by stage; goods the most they pay, where it comes to and how long they can wait; deposit the most deposit they will hold. Pass only what they said for that one way; ask for anything missing before calling. Shows a card; nothing is saved until they confirm. Use for 'I also sell wigs, I ship anywhere in Nigeria', 'I rent cameras with a 200 USDC deposit', 'stop selling one-off jobs'.",
       inputSchema: z.object({
         side: z.enum(['sell', 'buy']),
         shape: z.enum(LIVE_SHAPES),
         remove: z.boolean().optional(),
         what: z.string().optional(),
         priceMin: z.number().optional(),
-        priceMax: z.number().optional(),
+        priceUsual: z.number().optional(),
         daysMin: z.number().int().optional(),
         daysMax: z.number().int().optional(),
         stages: z.number().int().optional(),
