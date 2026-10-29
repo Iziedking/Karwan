@@ -140,7 +140,7 @@ test('typing at a choice asks the same question again', async () => {
   const { iv } = make();
   const r = await iv.handle(at({ onboarding: { step: 'own', answers: { goals: ['work'] } } }), text('hmm'));
   assert.equal(r?.account.onboarding?.step, 'own');
-  assert.deepEqual(idsOf(r?.out[0]), ['ws:own:offers', 'ws:own:ask']);
+  assert.deepEqual(idsOf(r?.out[0]), ['ws:own:offers', 'ws:own:ask', 'ws:own:agree']);
 });
 
 test('skip moves on to the next question without an answer', async () => {

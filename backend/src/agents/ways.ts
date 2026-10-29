@@ -242,7 +242,7 @@ export function reconcileWays(ways: AgentWays, seller: UserProfile['seller'], bu
 /// inside the way of the request's shape. A request of a shape the person does
 /// not offer is not bid on: the owner is told and decides (view 26, a buyer
 /// may propose a shape). Without saved ways nothing changes.
-export function sellerForRequest<T extends Limits & { ways?: SellWay[]; agentMode?: 'offers' | 'ask' }>(
+export function sellerForRequest<T extends Limits & { ways?: SellWay[]; agentMode?: 'offers' | 'ask' | 'agree' }>(
   seller: T,
   requestKind: 'service' | 'goods' | 'mixed' | null | undefined,
 ): T {

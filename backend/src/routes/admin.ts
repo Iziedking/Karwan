@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { formatUnits, keccak256, toBytes } from 'viem';
 import { config } from '../config.js';
 import { matchLatencySummary } from '../agents/matchLatency.js';
+import { negotiationSummary } from '../agents/negotiationMeasures.js';
 import { publicClient } from '../chain/client.js';
 import { getAgentWallets, listAllAgentWallets, agentWalletIntegrity } from '../db/agentWallets.js';
 import { listAllDeals } from '../db/deals.js';
@@ -258,6 +259,8 @@ adminRoutes.get('/health', async (c) => {
     contracts,
     // Posted-to-first-decision time per request (view 41, measure 1).
     matching: matchLatencySummary(),
+    // Deals, exchanges, agreed against usual, and agreements outside a mandate, which must be zero (view 41).
+    negotiation: negotiationSummary(),
   });
 });
 

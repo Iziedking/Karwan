@@ -267,3 +267,19 @@ test('a poorly rated seller ranks below one who is still New', () => {
   ]);
   assert.deepEqual(out.map((x) => x.seller), ['new', 'poor']);
 });
+
+test('the ranking is the same whatever order the offers arrived in, and at most five are shown (view 41)', () => {
+  const offers = [
+    c({ seller: '0x1', matchBand: 3, deterministicScore: 60, askedUsdc: 90 }),
+    c({ seller: '0x2', matchBand: 3, deterministicScore: 70, askedUsdc: 95 }),
+    c({ seller: '0x3', matchBand: 2, deterministicScore: 99, askedUsdc: 50 }),
+    c({ seller: '0x4', matchBand: 3, deterministicScore: 70, askedUsdc: 80 }),
+    c({ seller: '0x5', matchBand: 1, deterministicScore: 10, askedUsdc: 10 }),
+    c({ seller: '0x6', matchBand: 3, deterministicScore: 65, askedUsdc: 85 }),
+  ];
+  const forward = rankCandidates(offers).map((o) => o.seller);
+  const backward = rankCandidates([...offers].reverse()).map((o) => o.seller);
+  assert.deepEqual(forward, backward);
+  assert.equal(forward[0], '0x4', 'same band and score, the lower ask comes first');
+  assert.equal(SHORTLIST_MAX, 5);
+});

@@ -57,7 +57,7 @@ const CHOICES: Record<ChoiceQuestion, { body: string; options: Array<[string, st
   },
   own: {
     body: 'How much should your agent do on its own? It can make offers within your price, or ask you first. Money never moves without your confirmation.',
-    options: [['offers', 'Offer for me'], ['ask', 'Ask me first']],
+    options: [['offers', 'Offer for me'], ['ask', 'Ask me first'], ['agree', 'Agree for me']],
   },
   reach: {
     body: 'How should we reach you? For new offers, payments and anything that needs you.',

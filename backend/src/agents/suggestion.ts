@@ -3,7 +3,7 @@ import type { KarwanEvent } from '../events.js';
 /// "Ask me first" (view 19): where the selling agent would bid, it tells its
 /// owner instead, once per request, and the owner decides on /jobs/{id}.
 
-export type AgentMode = 'offers' | 'ask';
+export type AgentMode = 'offers' | 'ask' | 'agree';
 
 export function shouldSuggest(mode: AgentMode, alreadySuggestedHere: boolean): 'bid' | 'suggest' | 'skip' {
   if (mode !== 'ask') return 'bid';

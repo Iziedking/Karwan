@@ -14,7 +14,7 @@ export interface BriefAnswers {
   business?: string;
   places?: string;
   clients?: 'own' | 'find' | 'both';
-  own?: 'offers' | 'ask';
+  own?: 'offers' | 'ask' | 'agree';
   reach?: 'telegram' | 'email' | 'both';
   where?: string;
   /// How clients usually pay: the selling way setup starts with (view 26).
@@ -48,6 +48,7 @@ interface Copy {
   findClients: string;
   agentOffers: string;
   agentAsks: string;
+  agentAgrees: string;
   reach: Record<'telegram' | 'email' | 'both', string>;
   near: string;
   held: string;
@@ -62,7 +63,7 @@ const COPY: Record<UserLocale, Copy> = {
     buys: 'Your buying agent looks for {buy}', buysUpTo: 'Your buying agent looks for {buy}, up to {max} USDC',
     business: 'Business profile ready to finish for {name}', record: 'Connect {places} to build your record',
     ownClients: 'Home puts payment requests for your clients first', findClients: 'Your agent looks for matching requests on the market',
-    agentOffers: 'Your agent makes offers within your price, and asks before any deal', agentAsks: 'Your agent suggests, and asks you every time',
+    agentOffers: 'Your agent makes offers within your price, and asks before any deal', agentAsks: 'Your agent suggests, and asks you every time', agentAgrees: 'Your agent makes offers within your price and may agree to a price inside your limits for you',
     reach: { telegram: 'We tell you on Telegram', email: 'We tell you by email', both: 'We tell you on Telegram, with email as backup' },
     near: 'Looks for people near {place} first', held: "Every client's payment is held until you deliver",
     paid: { one_time: 'Paid all at once when the work is done', milestones: 'Paid in stages, as each one is approved', goods: 'Paid when the buyer has the goods' },
@@ -74,7 +75,7 @@ const COPY: Record<UserLocale, Copy> = {
     buys: 'Votre agent d’achat cherche {buy}', buysUpTo: 'Votre agent d’achat cherche {buy}, jusqu’à {max} USDC',
     business: 'Profil d’entreprise prêt à finaliser pour {name}', record: 'Connectez {places} pour bâtir votre historique',
     ownClients: 'L’accueil met d’abord les demandes de paiement pour vos clients', findClients: 'Votre agent cherche des demandes qui vous correspondent sur le marché',
-    agentOffers: 'Votre agent fait des offres dans votre prix et vous demande avant tout accord', agentAsks: 'Votre agent suggère et vous demande à chaque fois',
+    agentOffers: 'Votre agent fait des offres dans votre prix et vous demande avant tout accord', agentAsks: 'Votre agent suggère et vous demande à chaque fois', agentAgrees: 'Votre agent fait des offres dans votre prix et peut accepter pour vous un prix dans vos limites',
     reach: { telegram: 'Nous vous prévenons sur Telegram', email: 'Nous vous prévenons par e-mail', both: 'Nous vous prévenons sur Telegram, avec l’e-mail en secours' },
     near: 'Cherche d’abord des personnes près de {place}', held: 'Chaque paiement client est retenu jusqu’à votre livraison',
     paid: { one_time: 'Payé en une fois quand le travail est fait', milestones: 'Payé par étapes, à chaque étape approuvée', goods: 'Payé quand l’acheteur a la marchandise' },
@@ -86,7 +87,7 @@ const COPY: Record<UserLocale, Copy> = {
     buys: 'وكيل الشراء يبحث عن {buy}', buysUpTo: 'وكيل الشراء يبحث عن {buy}، حتى {max} USDC',
     business: 'ملف عملك جاهز للإكمال باسم {name}', record: 'اربط {places} لتبني سجلك',
     ownClients: 'الصفحة الرئيسية تضع طلبات الدفع لعملائك أولًا', findClients: 'وكيلك يبحث في السوق عن طلبات تناسبك',
-    agentOffers: 'وكيلك يقدّم عروضًا ضمن سعرك، ويسألك قبل أي صفقة', agentAsks: 'وكيلك يقترح، ويسألك في كل مرة',
+    agentOffers: 'وكيلك يقدّم عروضًا ضمن سعرك، ويسألك قبل أي صفقة', agentAsks: 'وكيلك يقترح، ويسألك في كل مرة', agentAgrees: 'وكيلك يقدّم عروضًا ضمن سعرك وقد يوافق باسمك على سعر ضمن حدودك',
     reach: { telegram: 'نخبرك عبر Telegram', email: 'نخبرك بالبريد الإلكتروني', both: 'نخبرك عبر Telegram، والبريد الإلكتروني احتياطًا' },
     near: 'يبحث أولًا عن أشخاص قرب {place}', held: 'كل دفعة من عميل تُحجز حتى تسلّم',
     paid: { one_time: 'يُدفع لك دفعة واحدة عند إنجاز العمل', milestones: 'يُدفع لك على مراحل، مع اعتماد كل مرحلة', goods: 'يُدفع لك حين يستلم المشتري البضاعة' },
@@ -98,7 +99,7 @@ const COPY: Record<UserLocale, Copy> = {
     buys: 'आपका खरीद एजेंट {buy} ढूँढता है', buysUpTo: 'आपका खरीद एजेंट {buy} ढूँढता है, {max} USDC तक',
     business: '{name} के लिए व्यवसाय प्रोफ़ाइल पूरा करने को तैयार', record: 'अपना रिकॉर्ड बनाने के लिए {places} जोड़ें',
     ownClients: 'होम पर आपके ग्राहकों के भुगतान अनुरोध सबसे पहले', findClients: 'आपका एजेंट बाज़ार में मेल खाते अनुरोध ढूँढता है',
-    agentOffers: 'आपका एजेंट आपकी कीमत में ऑफ़र देता है, और किसी भी सौदे से पहले पूछता है', agentAsks: 'आपका एजेंट सुझाव देता है, और हर बार आपसे पूछता है',
+    agentOffers: 'आपका एजेंट आपकी कीमत में ऑफ़र देता है, और किसी भी सौदे से पहले पूछता है', agentAsks: 'आपका एजेंट सुझाव देता है, और हर बार आपसे पूछता है', agentAgrees: 'आपका एजेंट आपकी कीमत में ऑफ़र देता है और आपकी सीमा के भीतर की कीमत पर आपकी ओर से सहमत हो सकता है',
     reach: { telegram: 'हम आपको Telegram पर बताते हैं', email: 'हम आपको ईमेल से बताते हैं', both: 'हम आपको Telegram पर बताते हैं, ईमेल बैकअप के रूप में' },
     near: 'पहले {place} के पास लोगों को ढूँढता है', held: 'हर ग्राहक का भुगतान आपकी डिलीवरी तक रोका जाता है',
     paid: { one_time: 'काम पूरा होने पर एक बार में भुगतान', milestones: 'चरणों में भुगतान, हर चरण मंज़ूर होने पर', goods: 'खरीदार के पास सामान पहुँचने पर भुगतान' },
@@ -110,7 +111,7 @@ const COPY: Record<UserLocale, Copy> = {
     buys: 'Wakala wako wa kununua anatafuta {buy}', buysUpTo: 'Wakala wako wa kununua anatafuta {buy}, hadi USDC {max}',
     business: 'Wasifu wa biashara uko tayari kukamilishwa kwa {name}', record: 'Unganisha {places} ili kujenga rekodi yako',
     ownClients: 'Mwanzo unaweka maombi ya malipo kwa wateja wako kwanza', findClients: 'Wakala wako anatafuta maombi yanayofaa sokoni',
-    agentOffers: 'Wakala wako anatoa ofa ndani ya bei yako, na anakuuliza kabla ya makubaliano yoyote', agentAsks: 'Wakala wako anapendekeza, na anakuuliza kila mara',
+    agentOffers: 'Wakala wako anatoa ofa ndani ya bei yako, na anakuuliza kabla ya makubaliano yoyote', agentAsks: 'Wakala wako anapendekeza, na anakuuliza kila mara', agentAgrees: 'Wakala wako anatoa ofa ndani ya bei yako na anaweza kukubali bei iliyo ndani ya mipaka yako kwa niaba yako',
     reach: { telegram: 'Tunakujulisha kwenye Telegram', email: 'Tunakujulisha kwa barua pepe', both: 'Tunakujulisha kwenye Telegram, barua pepe kama akiba' },
     near: 'Anatafuta watu karibu na {place} kwanza', held: 'Kila malipo ya mteja yanashikiliwa hadi uwasilishe',
     paid: { one_time: 'Unalipwa mara moja kazi ikikamilika', milestones: 'Unalipwa kwa hatua, kila hatua ikikubaliwa', goods: 'Unalipwa mnunuzi akipata bidhaa' },
@@ -144,8 +145,8 @@ export function briefLines(a: BriefAnswers, r: BriefRead, locale: UserLocale): s
   if (has('record') && a.places?.trim()) lines.push(fill(c.record, { places: a.places.trim() }));
   if (a.clients === 'own') lines.push(c.ownClients);
   if (a.clients === 'find' || a.clients === 'both') lines.push(c.findClients);
-  const asks = a.own === 'ask' || (selling && !r.price);
-  lines.push(asks ? c.agentAsks : c.agentOffers);
+  const mode = (selling && !r.price) || a.own === 'ask' ? 'ask' : a.own === 'agree' ? 'agree' : 'offers';
+  lines.push(mode === 'ask' ? c.agentAsks : mode === 'agree' ? c.agentAgrees : c.agentOffers);
   lines.push(c.reach[a.reach ?? 'both']);
   if (r.place) lines.push(fill(c.near, { place: r.place.city || r.place.country }));
   lines.push(c.held);

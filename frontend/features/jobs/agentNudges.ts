@@ -52,7 +52,8 @@ export function agentNudgeFor(e: ChainEvent, copy: AgentNudgesCopy): Omit<AgentN
     case 'counter.response.submitted': {
       if (p.accepted === true) return theirs(copy.sellerAccepted);
       const amount = str(p.counterPrice);
-      return amount ? theirs(fill(copy.sellerAnswered, { amount })) : null;
+      const reason = str(p.reasonLine);
+      return amount ? theirs(reason ? `${fill(copy.sellerAnswered, { amount })} “${reason}”` : fill(copy.sellerAnswered, { amount })) : null;
     }
     case 'agent.skipped':
       return e.actor === 'seller' && Object.keys(p).length > 0 ? theirs(copy.sellerPassed) : null;

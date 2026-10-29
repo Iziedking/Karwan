@@ -24,7 +24,7 @@ export interface SetupAnswers {
   business?: string;
   places?: string;
   clients?: 'own' | 'find' | 'both';
-  own?: 'offers' | 'ask';
+  own?: 'offers' | 'ask' | 'agree';
   reach?: 'telegram' | 'email' | 'both';
   where?: string;
   paid?: 'one_time' | 'milestones' | 'goods';

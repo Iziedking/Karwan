@@ -20,7 +20,7 @@ export const answersSchema = z.object({
   business: text(200),
   places: text(400),
   clients: z.enum(['own', 'find', 'both']).optional(),
-  own: z.enum(['offers', 'ask']).optional(),
+  own: z.enum(['offers', 'ask', 'agree']).optional(),
   reach: z.enum(['telegram', 'email', 'both']).optional(),
   where: text(120),
   paid: z.enum(['one_time', 'milestones', 'goods']).optional(),

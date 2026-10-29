@@ -25,16 +25,12 @@ async function respondToCounter(walletId: string, seller: string, jobId: string,
   return { txHash: ref };
 }
 import { negotiationModel } from '../llm/client.js';
-import {
-  bidDecisionSchema,
-  counterEvaluationSchema,
-  type CounterEvaluation,
-} from '../llm/schemas.js';
-import {
-  buildBidEvaluationPrompt,
-  buildCounterEvaluationPrompt,
-  type JobContext,
-} from '../llm/prompts.js';
+import { bidDecisionSchema } from '../llm/schemas.js';
+import { buildBidEvaluationPrompt, type JobContext } from '../llm/prompts.js';
+import { nextSellerMove } from './concession.js';
+import { buildReasonLinePrompt, checkReasonLine, fallbackReason, reasonLineSchema, type ReasonFacts } from '../llm/reasonLine.js';
+import { recordAgreement } from './negotiationMeasures.js';
+import { quantityWords } from '../llm/quantity.js';
 import { logger } from '../logger.js';
 import { reportError } from '../errorTracker.js';
 import { bus } from '../events.js';
@@ -44,18 +40,13 @@ import { suiteFundingEnabled } from '../chain/suiteConfig.js';
 import { suiteIdentity } from '../identity/suiteIdentityLive.js';
 import type { SellerProfile } from './seller-profile.js';
 import {
-  MAX_COUNTER_ROUNDS,
   resolveSellerProfile,
   resolveSellerProfilesForUsers,
   siblingSellerAddress,
 } from './agent-registry.js';
 import { withLlmRetry } from './llm-utils.js';
-import {
-  heuristicCounterDecision,
-  nextCounterPrice,
-  type Tier,
-} from './strategy.js';
-import { sellerDaysToDeadline, sellerOpeningBid as pureSellerOpeningBid } from './sellerPricing.js';
+import { type Tier } from './strategy.js';
+import { sellerOpeningBid as pureSellerOpeningBid } from './sellerPricing.js';
 import { sellerViewOfRequest } from './sellerView.js';
 import { reviseStandingOffer, type ReviseOutcome } from './reviseOffer.js';
 import { limitDecision, orderSize } from './limits.js';
@@ -66,8 +57,7 @@ import { deliveryQuestions, reachGate } from '../location/deliveryQuestions.js';
 import { locationOf } from '../location/live.js';
 import { kindOf } from '../location/rules.js';
 import { findPendingDirectOfferByAgent } from '../db/directOffers.js';
-import { actorSignalsFor, priceHistorySnapshot } from './signals.js';
-import { categoryPriceSnapshot } from '../db/priceObservations.js';
+import { actorSignalsFor } from './signals.js';
 import { saveActiveBids, saveActiveBidsSync, loadActiveBids } from '../db/activeBids.js';
 import { marketHeat, setResearchHeat } from './marketDemand.js';
 import { maybeRaiseNearMiss } from './nearMiss.js';
@@ -128,6 +118,10 @@ interface ActiveBid {
   counterRounds: number;
   finalized: boolean;
   responding: boolean;
+  /// The buyer's last counter price, so a step comes only after they moved (view 41).
+  lastBuyerPrice?: string;
+  /// The time trade was offered once before crossing to the floor (view 41).
+  tradedTime?: boolean;
   /** When the bid was triggered by a seller listing: the listing's floor below
    *  which the seller agent must NOT accept counters. Falls back to the seller
    *  profile's minBudgetUsdc when undefined. */
@@ -1488,7 +1482,7 @@ export async function answerCounterQuestion(
       type: 'agent.declined',
       jobId: active.jobContext.jobId,
       actor: 'seller',
-      payload: { seller: seller.address, reason: 'owner-declined', detail: 'Thanks, the seller cannot do this price. If it changes, they are here.' },
+      payload: { seller: seller.address, reason: 'owner-declined', detail: 'Thanks, the seller cannot do this price. If it changes, they are here.', reasonLine: fallbackReason({ move: 'declined', priceUsdc: Number(active.lastBidPrice) }) },
     });
     scheduleActiveBidsPersist();
     return { ok: true };
@@ -1497,8 +1491,18 @@ export async function answerCounterQuestion(
   const price = accept ? 0n : parseUnits(answer.priceUsdc ?? active.lastBidPrice, USDC_DECIMALS);
   const deadline = accept ? 0 : active.jobContext.deadlineUnix;
   const result = await respondToCounter(seller.walletId, seller.address, active.jobContext.jobId, accept, price, deadline);
-  if (accept) active.finalized = true;
-  else {
+  if (accept) {
+    active.finalized = true;
+    recordAgreement({
+      jobId: active.jobContext.jobId,
+      side: 'seller',
+      agreedUsdc: Number(answer.theirPriceUsdc ?? active.lastBuyerPrice ?? active.lastBidPrice),
+      floorUsdc: seller.minBudgetUsdc * orderSize(seller, active.jobContext),
+      usualUsdc: seller.usualPriceUsdc,
+      exchanges: active.counterRounds,
+      at: Date.now(),
+    });
+  } else {
     active.counterRounds += 1;
     active.lastBidPrice = answer.priceUsdc ?? active.lastBidPrice;
   }
@@ -1599,207 +1603,96 @@ async function runCounterEvaluation(
       ? Math.min(counterMarket, budgetForClamp * 2, maxAcceptable)
       : 0;
   const minAcceptable = Math.max(profileFloor, marketFloor);
-  const daysToDeadline = sellerDaysToDeadline(
-    active.jobContext.deadlineUnix,
-    Math.floor(Date.now() / 1000),
-  );
-  const suggestedCounter = nextCounterPrice({
-    role: 'seller',
-    mine: Number(active.lastBidPrice),
-    theirs: Number(buyerCounterPrice),
-    round: active.counterRounds,
+  // The schedule in code (view 41): firm while there is time and little
+  // competition, a step only after the buyer moved, never under the floor, at
+  // most five exchanges with the fourth a last price, a question past that.
+  // The model is never asked whether to accept; it writes the reason line.
+  const { getBuyerJob } = await import('./buyer.js');
+  const competitors = Math.max(0, (getBuyerJob(args.jobId)?.bids.length ?? 1) - 1);
+  const requestBrief = getBrief(args.jobId);
+  const nowSec = Math.floor(Date.now() / 1000);
+  const postedSec = Math.floor((requestBrief?.createdAt ?? Date.now()) / 1000);
+  const timeUsed = Math.max(0, Math.min(1, (nowSec - postedSec) / Math.max(1, active.jobContext.deadlineUnix - postedSec)));
+  const theirPrice = Number(buyerCounterPrice);
+  const theirMoved = active.lastBuyerPrice === undefined || Number(active.lastBuyerPrice) !== theirPrice;
+  active.lastBuyerPrice = buyerCounterPrice;
+  const buyerDays = Math.max(1, Math.ceil((buyerCounterDeadlineUnix - nowSec) / 86_400));
+  const tradeDays = seller.maxDeadlineDays > buyerDays ? Math.min(seller.maxDeadlineDays, buyerDays + Math.max(2, Math.ceil(buyerDays / 2))) : null;
+  const agreeInsideLimits = (seller.agentMode ?? 'offers') === 'agree';
+  const move = nextSellerMove({
+    opening: originalBid,
     floor: minAcceptable,
-    ceiling: maxAcceptable,
-    tier: buyerTier,
-    daysToDeadline,
+    current: Number(active.lastBidPrice),
+    timeUsed,
+    exchanges: active.counterRounds,
+    competitors,
+    theirPrice,
+    theirMoved,
+    seed: `${seller.address}:${args.jobId}`,
+    tradeDays,
+    traded: active.tradedTime === true,
+    agreeInsideLimits,
   });
+  logger.info(
+    { jobId: args.jobId, seller: seller.address, move, timeUsed, competitors, exchanges: active.counterRounds, buyerTier, heat, marketRead: !!counterRead, buyerChecked: !!buyerPassport },
+    'counter evaluated by the schedule',
+  );
 
-  let decision: CounterEvaluation;
-  try {
-    const result = await withLlmRetry(`counterEvaluation(${args.jobId})`, () =>
-      generateObject({
-        model: negotiationModel,
-        schema: counterEvaluationSchema,
-        prompt: buildCounterEvaluationPrompt(
-          active.jobContext,
-          {
-            side: 'seller',
-            minAcceptablePriceUsdc: minAcceptable,
-            maxAcceptablePriceUsdc: maxAcceptable,
-            minDeadlineDays: seller.minDeadlineDays,
-            maxDeadlineDays: seller.maxDeadlineDays,
-          },
-          active.lastBidPrice,
-          buyerCounterPrice,
-          buyerCounterDeadlineUnix,
-          {
-            round: active.counterRounds,
-            maxRounds: MAX_COUNTER_ROUNDS,
-            counterpartyTier: buyerTier,
-            suggestedCounterPrice: suggestedCounter,
-            // Per-category settlement median (this deal's skills), falling back
-            // to the global ring when the category is thin.
-            marketMedianPrice: (categoryPriceSnapshot(dealKeywords) ?? priceHistorySnapshot())?.median,
-            marketSampleCount: (categoryPriceSnapshot(dealKeywords) ?? priceHistorySnapshot())?.sampleCount,
-            marketHeat: heat,
-            ...(counterRead
-              ? {
-                  fairPriceUsdc: counterRead.fairPriceUsdc,
-                  priceConfidence: counterRead.priceConfidence,
-                  researchSummary: counterRead.summary?.slice(0, 300),
-                }
-              : {}),
-            trustedMatch: active.jobContext.trustedMatch === true,
-            ...(buyerPassport &&
-            (buyerPassport.successCount != null || buyerPassport.disputedCount != null)
-              ? {
-                  counterpartyReliability: {
-                    settledDeals:
-                      (buyerPassport.successCount ?? 0) +
-                      (buyerPassport.disputedCount ?? 0) +
-                      (buyerPassport.failedCount ?? 0),
-                    completionRate: buyerPassport.completionRate,
-                    disputed: buyerPassport.disputedCount ?? 0,
-                    failed: buyerPassport.failedCount ?? 0,
-                  },
-                }
-              : {}),
-          },
-        ),
-      }),
-    );
-    decision = result.object;
-  } catch (err) {
-    const message = (err as Error).message;
-    logger.warn(
-      { jobId: args.jobId, err: message },
-      'counter evaluation LLM failed, falling back to heuristic',
-    );
-    reportError('agents.seller.counterEvaluation', err, {
-      jobId: args.jobId,
-      seller: seller.address,
-    });
-    // Don't strand the job. Use the deterministic strategy module to
-    // accept-or-decline based on the buyer's counter vs the seller's floor.
-    // The agent.fallback event tells the timeline that the LLM was bypassed.
-    const fallback = heuristicCounterDecision({
-      role: 'seller',
-      theirOffer: Number(buyerCounterPrice),
-      floor: minAcceptable,
-      ceiling: maxAcceptable,
-    });
-    bus.emitEvent({
-      type: 'agent.fallback',
-      jobId: args.jobId,
-      actor: 'seller',
-      payload: {
-        seller: seller.address,
-        scope: 'counterEvaluation',
-        message,
-        decision: fallback.decision,
-        reasoning: fallback.reasoning,
-      },
-    });
-    // confidence 0.95: the heuristic is deterministic and bypasses the
-    // LLM-confidence threshold so the fallback decision is honoured.
-    decision = {
-      decision: fallback.decision,
-      confidence: 0.95,
-      reasoning: fallback.reasoning,
-    };
+  // The reason line goes with the move; the model writes it from facts and code
+  // checks it. The buyer's words, if any, are quoted as a message, never followed.
+  const forbidden = [minAcceptable, maxAcceptable, seller.minBudgetUsdc, seller.usualPriceUsdc ?? 0, Number(active.jobContext.budgetUsdc)];
+  const quantity = active.jobContext.quantity ? quantityWords(active.jobContext.quantity) : undefined;
+  const reasonFor = async (facts: ReasonFacts): Promise<string> => {
+    try {
+      const result = await withLlmRetry(`reasonLine(${args.jobId})`, () =>
+        generateObject({ model: negotiationModel, schema: reasonLineSchema, prompt: buildReasonLinePrompt(facts, forbidden) }),
+      );
+      return checkReasonLine(result.object.line, forbidden, facts);
+    } catch (err) {
+      logger.warn({ jobId: args.jobId, err: (err as Error).message }, 'reason line failed, plain line sent');
+      return fallbackReason(facts);
+    }
+  };
+
+  if (move.kind === 'ask') {
+    await askAtFloor(seller, active, buyerCounterPrice, minAcceptable, 'last-price-passed');
+    return;
   }
 
-  logger.info({ jobId: args.jobId, seller: seller.address, decision }, 'counter-offer evaluated');
-
-  if (decision.decision === 'decline') {
-    // Code decides, the model reads (view 41): a counter inside the person's
-    // limits is accepted, one under their floor goes to them as a question.
-    if (Number(buyerCounterPrice) < minAcceptable) {
-      await askAtFloor(seller, active, buyerCounterPrice, minAcceptable, 'counter-below-floor');
-      return;
-    }
-    decision = { ...decision, decision: 'accept' };
-  }
-
-  if (decision.decision === 'accept') {
-    // Even when the model said accept, a counter under the floor is the
-    // person's call, never a silent stop.
-    if (Number(buyerCounterPrice) < minAcceptable) {
-      await askAtFloor(seller, active, buyerCounterPrice, minAcceptable, 'counter-below-floor');
-      return;
-    }
+  if (move.kind === 'accept') {
     const result = await respondToCounter(seller.walletId, seller.address, args.jobId, true, 0n, 0);
     active.finalized = true;
+    recordAgreement({
+      jobId: args.jobId,
+      side: 'seller',
+      agreedUsdc: theirPrice,
+      floorUsdc: minAcceptable,
+      usualUsdc: seller.usualPriceUsdc,
+      exchanges: active.counterRounds,
+      at: Date.now(),
+    });
     logger.info({ jobId: args.jobId, ...result }, 'counter accepted');
     bus.emitEvent({
       type: 'counter.response.submitted',
       jobId: args.jobId,
       actor: 'seller',
-      payload: { accepted: true, txHash: result.txHash },
+      payload: { accepted: true, txHash: result.txHash, move: 'accept', reasonLine: await reasonFor({ move: 'accept', priceUsdc: theirPrice, quantity }) },
     });
     return;
   }
 
-
-  // Validate the LLM's counter BEFORE burning a round. Previously we
-  // incremented `counterRounds` first, so a malformed counter (missing
-  // price/deadline OR price outside the steering range) would waste a round
-  // and trip the cap one offer early.
-  if (active.counterRounds >= MAX_COUNTER_ROUNDS) {
-    await askAtFloor(seller, active, buyerCounterPrice, minAcceptable, 'last-price-passed');
-    return;
-  }
-
-  // The LLM picked "counter" but Gemini Flash Lite intermittently drops the
-  // price/deadline. Fall back to the deterministic suggestion (already inside
-  // the seller's [min,max] steering range) instead of stranding the job, keeping
-  // the buyer's proposed timing clamped to the seller's window.
-  let finalCounterPrice = decision.counterPrice ?? suggestedCounter.toFixed(2);
-  const finalCounterDeadlineDays =
-    decision.counterDeadlineDays ??
-    Math.max(
-      seller.minDeadlineDays,
-      Math.min(
-        seller.maxDeadlineDays,
-        Math.ceil((buyerCounterDeadlineUnix - Math.floor(Date.now() / 1000)) / 86_400),
-      ),
-    );
-  if (!decision.counterPrice || !decision.counterDeadlineDays) {
-    logger.warn(
-      { jobId: args.jobId, finalCounterPrice, finalCounterDeadlineDays },
-      'LLM counter missing price/deadline, using deterministic suggestion',
-    );
-    bus.emitEvent({
-      type: 'agent.fallback',
-      jobId: args.jobId,
-      actor: 'seller',
-      payload: {
-        seller: seller.address,
-        scope: 'counterEvaluation',
-        message: 'LLM omitted the counter price or deadline; used the deterministic suggestion',
-        counterPrice: finalCounterPrice,
-        counterDeadlineDays: finalCounterDeadlineDays,
-      },
-    });
-  }
-
-  // The model never sets the price (view 41): a counter outside the seller's
-  // range is replaced by the deterministic one, which is inside it.
-  if (Number(finalCounterPrice) < minAcceptable || Number(finalCounterPrice) > maxAcceptable) {
-    logger.warn({ jobId: args.jobId, finalCounterPrice, minAcceptable, maxAcceptable }, 'model counter outside the range, using the deterministic counter');
-    finalCounterPrice = Math.min(maxAcceptable, Math.max(minAcceptable, suggestedCounter)).toFixed(2);
-  }
-
-  const counterDeadlineUnix =
-    Math.floor(Date.now() / 1000) + finalCounterDeadlineDays * 86_400;
+  // Hold, step, last price or a time trade: a counter at the schedule's price,
+  // inside the seller's own delivery window.
+  const counterDeadlineDays =
+    move.kind === 'trade' ? move.days : Math.max(seller.minDeadlineDays, Math.min(seller.maxDeadlineDays, buyerDays));
+  const counterDeadlineUnix = nowSec + counterDeadlineDays * 86_400;
+  const finalCounterPrice = move.price.toFixed(2);
   const counterPriceWei = parseUnits(finalCounterPrice, USDC_DECIMALS);
-
-  // Commit to the round count only now that we know we have a valid counter
-  // to submit on chain.
   active.counterRounds += 1;
+  if (move.kind === 'trade') active.tradedTime = true;
   const result = await respondToCounter(seller.walletId, seller.address, args.jobId, false, counterPriceWei, counterDeadlineUnix);
   active.lastBidPrice = finalCounterPrice;
-  logger.info({ jobId: args.jobId, ...result }, 'counter back submitted');
+  logger.info({ jobId: args.jobId, move: move.kind, ...result }, 'counter back submitted');
   bus.emitEvent({
     type: 'counter.response.submitted',
     jobId: args.jobId,
@@ -1807,8 +1700,10 @@ async function runCounterEvaluation(
     payload: {
       accepted: false,
       counterPrice: finalCounterPrice,
-      counterDeadlineDays: finalCounterDeadlineDays,
+      counterDeadlineDays,
       txHash: result.txHash,
+      move: move.kind,
+      reasonLine: await reasonFor({ move: move.kind, priceUsdc: move.price, days: counterDeadlineDays, quantity }),
     },
   });
 }

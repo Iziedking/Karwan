@@ -43,7 +43,10 @@ export interface AgentPrefs {
   /// Absent means true: the selling agent joins the market.
   findClients?: boolean;
   /// Absent means offers: the agent offers within the price range.
-  agentMode?: 'offers' | 'ask';
+  /// offers: makes offers within the price and asks before any deal; ask: asks
+  /// about every fitting request first; agree: may also take a buyer's price
+  /// inside the limits on its own (Agree for me for sellers, view 41).
+  agentMode?: 'offers' | 'ask' | 'agree';
   /// False when the person's price or budget could not be read.
   sellerPriceSet?: boolean;
   buyerPriceSet?: boolean;

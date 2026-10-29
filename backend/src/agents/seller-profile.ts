@@ -22,7 +22,7 @@ export interface SellerProfile {
    *  Used to gate bidding when the brief is in an unrelated topic. */
   keywords: string[];
   /** 'ask' suggests a fitting request to the owner instead of bidding (view 19). */
-  agentMode?: 'offers' | 'ask';
+  agentMode?: 'offers' | 'ask' | 'agree';
   /** Saved ways to sell (view 26). Absent when the person never saved any. */
   ways?: import('./ways.js').SellWay[];
   /** Existing issuer records carried into read-only matching snapshots. */
