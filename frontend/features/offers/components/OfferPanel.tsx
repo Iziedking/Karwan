@@ -43,7 +43,7 @@ export function OfferPanel({ jobId, fallback }: { jobId: string; fallback: React
         auth.address ? api.agentQuestions().catch(() => ({ questions: [] as AgentQuestion[] })) : Promise.resolve({ questions: [] as AgentQuestion[] }),
       ]);
       setView(offers);
-      setQuestion(questions.questions.find((q) => q.side === 'seller' && q.jobId.toLowerCase() === jobId.toLowerCase()) ?? null);
+      setQuestion((Array.isArray(questions.questions) ? questions.questions : []).find((q) => q.side === 'seller' && q.jobId.toLowerCase() === jobId.toLowerCase()) ?? null);
     } catch {
       setView('failed');
     }
