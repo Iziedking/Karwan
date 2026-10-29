@@ -34,7 +34,7 @@ export const HOME_STEPS: TourStep[] = [
   },
   {
     title: 'Your money, at a glance',
-    body: 'This shows available USDC in your account and agent wallets. Details opens the chain-by-chain view. On testnet, Claim gets you free test USDC. Money held in a deal is not available balance.',
+    body: 'This shows available USDC in your account and agent wallets. Details opens the chain-by-chain view. On testnet, the drop in the top corner gets you free test USDC. Money held in a deal is not available balance.',
     target: 'home-money',
   },
   {

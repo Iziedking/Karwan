@@ -35,6 +35,10 @@ The balance is the top line of the page, not a card: the amount, the active trad
 - Putting up a deal guarantee shows the balance it comes from, a "Use all" button and what is left after. The title reads "Put up a deal guarantee" until an amount is typed.
 - Legacy contracts shows five rows at a time with Previous and Next for older deals and for guarantees, and its Back link lines up with the heading. The "Done" line becomes a notice at the top of the list.
 
+## Test USDC on Home
+
+On testnet the full-width "Get free test USDC" strip is gone. A drop sits in the top corner of Home, opposite the greeting. Hovering or focusing it shows the same words with Claim; on a phone a tap opens the card. Claim opens the wallets page with the faucet, as the strip did. On mainnet nothing shows there.
+
 ## Privacy notice
 
 A new public page, `/privacy`, linked from sign-up, the terms, the footer and the assistant guide. It says in plain words what Karwan keeps, why, who processes it for us, how long, what goes on chain and cannot be removed, the identity data partners collect on mainnet, and how to get a copy or delete an account. Section 8 of the terms points to it. It is written for the Nigeria Data Protection Act 2023 first and needs a legal review before mainnet.

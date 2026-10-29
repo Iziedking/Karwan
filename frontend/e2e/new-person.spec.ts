@@ -78,6 +78,18 @@ test.describe('a new person on a phone', () => {
     await clean(page);
     await page.getByRole('button', { name: f.summary.done }).click();
     await expect(page).toHaveURL(/\/app$/);
+
+    // On testnet free test USDC is a drop in the corner of Home, not a strip:
+    // a tap opens the card with Claim, Escape closes it.
+    const home = en.accountHome;
+    const drop = page.getByRole('button', { name: `${home.faucetLabel}. ${home.faucetBody}` });
+    await expect(drop).toBeVisible();
+    await expect(drop).toHaveAttribute('aria-expanded', 'false');
+    await drop.click();
+    await expect(drop).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.getByRole('link', { name: home.faucetClaim })).toHaveAttribute('href', '/profile/wallets');
+    await page.keyboard.press('Escape');
+    await expect(drop).toHaveAttribute('aria-expanded', 'false');
   });
 
   test('Change on the summary opens that question and comes back', async ({ page }) => {

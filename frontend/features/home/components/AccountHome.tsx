@@ -7,6 +7,7 @@ import type { UserProfile } from '@/core/api';
 import { stageOf, type DealStage } from '@/features/deals/components/DirectDealList';
 import { useDirectDeals } from '@/features/deals/hooks/useDirectDeals';
 import { AskCard } from './AskCard';
+import { FaucetDrop } from './FaucetDrop';
 import { FirstTrade } from './FirstTrade';
 import { HomeBlock } from './HomeBlock';
 import { pickCurrentDeal } from '@/features/home/currentDeal';
@@ -57,10 +58,13 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
     <div className="product-surface home-workbench mx-auto w-full max-w-[1180px] pb-12 sm:pb-16">
       <PageTour id={HOME_TOUR_ID} steps={HOME_STEPS} />
       <section aria-labelledby="home-heading" className="border-b border-[var(--lp-border-light)] pb-7">
-        <h1 id="home-heading" className="pt-3 text-[15px] font-semibold text-[var(--lp-text-sub)] sm:pt-4">
-          {/* bdi keeps a tag such as @lawful whole in right-to-left text. */}
-          {greeting ?? translations.businessHome.hero.welcomeBack} <bdi>{firstName}</bdi>
-        </h1>
+        <div className="flex items-start justify-between gap-4 pt-3 sm:pt-4">
+          <h1 id="home-heading" className="min-w-0 pt-2.5 text-[15px] font-semibold text-[var(--lp-text-sub)]">
+            {/* bdi keeps a tag such as @lawful whole in right-to-left text. */}
+            {greeting ?? translations.businessHome.hero.welcomeBack} <bdi>{firstName}</bdi>
+          </h1>
+          {ARC_NETWORK === 'testnet' ? <FaucetDrop /> : null}
+        </div>
 
         {/* The balance is the top line of the page, with its four moves beside
             it; the next steps sit under it side by side (view 39). */}
@@ -111,21 +115,6 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
           <FirstTrade deals={deals} dealsState={fetchState} />
           <AskCard />
         </div>
-
-        {ARC_NETWORK === 'testnet' ? (
-          <Link
-            href="/profile/wallets"
-            className="mt-4 flex min-h-[52px] items-center gap-3 rounded-[16px] border border-[var(--faucet-strip-line)] bg-[var(--faucet-strip)] py-2 pe-2 ps-3 text-[var(--lp-dark)] transition-colors hover:border-[var(--lp-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
-          >
-            <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--lp-card)]">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="var(--lp-accent)" stroke="var(--lp-accent-on-light)" strokeWidth="1.6" strokeLinejoin="round"><path d="M12 3s6 6.4 6 11a6 6 0 0 1-12 0c0-4.6 6-11 6-11z" /></svg>
-            </span>
-            <span className="min-w-0 flex-1 text-[15px] leading-snug">
-              <span className="font-bold">{home.faucetLabel}</span> · {home.faucetBody}
-            </span>
-            <span className="shrink-0 rounded-full bg-[var(--lp-dark)] px-4 py-2 text-[14px] font-semibold text-[var(--lp-card)]">{home.faucetClaim}</span>
-          </Link>
-        ) : null}
 
         <UpdatesCarousel />
       </section>
