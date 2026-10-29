@@ -1,6 +1,6 @@
 ﻿'use client';
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   subscribeToToasts,
   type AppNotification,
@@ -26,9 +26,14 @@ export function NotificationToasts() {
   const router = useRouter();
   const trToast = useTranslations().notifications.toast;
   const toastLabels = trToast.labels;
+  // Setup is not interrupted; what arrives meanwhile is still in the bell.
+  const quiet = usePathname()?.startsWith('/setup') ?? false;
+  const quietRef = useRef(quiet);
+  quietRef.current = quiet;
 
   useEffect(() => {
     const unsub = subscribeToToasts((n) => {
+      if (quietRef.current) return;
       setToasts((list) => {
         if (list.some((t) => t.id === n.id)) return list;
         const next: ActiveToast = { ...n, queuedAt: Date.now() };
@@ -47,7 +52,7 @@ export function NotificationToasts() {
     return () => clearInterval(id);
   }, [toasts.length]);
 
-  if (toasts.length === 0) return null;
+  if (quiet || toasts.length === 0) return null;
 
   function dismiss(id: string) {
     setToasts((list) => list.filter((t) => t.id !== id));

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { questionProgress, setupSteps } from './setupSteps';
+import { isQuestionStep, questionProgress, setupSteps } from './setupSteps';
 
 /// The setup conversation asks only what a person's goals need.
 ///
@@ -22,10 +22,25 @@ test('a business is asked its name', () => {
   assert.ok(setupSteps(['business']).includes('business'));
 });
 
-test('progress counts only the questions', () => {
+test('progress counts the questions after the goals', () => {
   const steps = setupSteps(['work']);
   assert.equal(questionProgress(steps, 'welcome'), null);
-  assert.deepEqual(questionProgress(steps, 'goals'), { index: 1, total: 8 });
-  assert.deepEqual(questionProgress(steps, 'where'), { index: 8, total: 8 });
+  assert.equal(questionProgress(steps, 'goals'), null);
+  assert.deepEqual(questionProgress(steps, 'what'), { index: 1, total: 7 });
+  assert.deepEqual(questionProgress(steps, 'where'), { index: 7, total: 7 });
   assert.equal(questionProgress(steps, 'summary'), null);
+});
+
+test('the total never changes once the goals are chosen', () => {
+  for (const goals of [['work'], ['buy'], ['work', 'buy', 'business', 'record'], []] as const) {
+    const steps = setupSteps(goals);
+    const totals = new Set(steps.map((s) => questionProgress(steps, s)?.total).filter((t) => t !== undefined));
+    assert.ok(totals.size <= 1, `one total for ${goals.join(',') || 'no goals'}`);
+  }
+});
+
+test('the goals question is still a question', () => {
+  assert.equal(isQuestionStep('goals'), true);
+  assert.equal(isQuestionStep('welcome'), false);
+  assert.equal(isQuestionStep('summary'), false);
 });

@@ -72,6 +72,7 @@ export function AssistantWidget() {
   const [liveClosed, setLiveClosed] = useState(false);
   const [fromElsewhere, setFromElsewhere] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const sendRef = useRef<((text: string) => void) | null>(null);
   const [unread, setUnread] = useState(false);
 
   // Any screen can open Help, with a question already typed (shared/assistant/openHelp.ts).
@@ -79,7 +80,8 @@ export function AssistantWidget() {
     const onOpen = (e: Event) => {
       const detail = (e as CustomEvent<HelpOpenDetail>).detail ?? {};
       setOpen(true);
-      if (detail.prefill) setInput(detail.prefill);
+      if (detail.prefill && detail.send) sendRef.current?.(detail.prefill);
+      else if (detail.prefill) setInput(detail.prefill);
       if (detail.person) {
         setHandoff({ context: detail.context, message: detail.message, dealId: detail.dealId });
         setHumanSuggested(true);
@@ -254,6 +256,9 @@ export function AssistantWidget() {
     if (typeof window !== 'undefined') window.localStorage.removeItem(SUPPORT_STORAGE_KEY);
   }
 
+  // The open listener is registered once; it sends through the latest send.
+  sendRef.current = (text: string) => { void send(text); };
+
   async function send(question?: string) {
     const text = (question ?? input).trim();
     if (!text || loading) return;
@@ -306,6 +311,8 @@ export function AssistantWidget() {
   // composer; the panel still opens there when the assistant asks for a person.
   if (isPublicEditorialRoute(pathname)) return null;
   if (isAssistantRoute(pathname) && !open) return null;
+  // Setup has its own Ask me; the launcher would cover Next on a phone.
+  if (pathname?.startsWith('/setup') && !open) return null;
   if (auth.isLoading || !auth.isAuthenticated) return null;
 
   return (

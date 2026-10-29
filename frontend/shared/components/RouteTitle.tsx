@@ -16,10 +16,11 @@ export function RouteTitle() {
   const pathname = usePathname() ?? '/';
   const titles = useTranslations().routeTitles;
   useEffect(() => {
-    const key = routeTitleKey(pathname);
-    if (key === 'server') return;
-    const wanted = key ? documentTitle(titles[key]) : SITE_TITLE;
+    if (routeTitleKey(pathname) === 'server') return;
+    // The query is read each time: sign in and sign up share /start.
     const hold = () => {
+      const key = routeTitleKey(pathname, window.location.search);
+      const wanted = key && key !== 'server' ? documentTitle(titles[key]) : SITE_TITLE;
       if (document.title !== wanted) document.title = wanted;
     };
     hold();

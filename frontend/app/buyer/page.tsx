@@ -6,10 +6,8 @@ import { api, type BuyerJob } from '@/core/api';
 import { JobsTable } from '@/features/buyer/components/JobsTable';
 import { openRequestCount } from '@/features/buyer/requestCounts';
 import { NewDealPanel } from '@/features/deals/components/NewDealPanel';
-import { BalanceSidecar } from '@/features/balances/components/BalanceSidecar';
 import { DealAmountProvider } from '@/features/balances/dealAmount';
 import { AuthGuard } from '@/shared/components/AuthGuard';
-import { ActivateAgentsNotice } from '@/shared/components/ActivateAgentsNotice';
 import { FullBleed, Band, PageCard } from '@/shared/components/Bands';
 import { Hint } from '@/shared/components/Hint';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -77,17 +75,13 @@ function PersonalBuyerDesk() {
 
       {/* ACTIVATE NOTICE. shared band, renders nothing once activated. Catches
           the dead end where a profile is saved but no agent was provisioned. */}
-      <ActivateAgentsNotice role="buyer" tone="light" />
 
       {/* NEW DEAL + SIDE COLUMN */}
       <Band tone="light" compact>
         <div id="new-deal" className="scroll-mt-20" />
         <DealAmountProvider>
-        <div className="mx-auto grid max-w-[940px] items-start gap-5 lg:grid-cols-[minmax(0,640px)_280px] lg:justify-center">
-          <div className="lg:order-2">
-            <BalanceSidecar />
-          </div>
-          <div className="min-w-0 lg:order-1">
+        <div className="mx-auto grid max-w-[640px] items-start gap-5">
+          <div className="min-w-0">
             <PageCard>
               <div className="p-6 md:p-8">
                 <NewDealPanel />

@@ -1,5 +1,5 @@
 import type { UserProfile } from '@/core/api';
-import { setupSteps, type Goal, type SetupAnswers, type SetupStep } from './setupSteps';
+import { setupSteps, type Goal, type SetupAnswers, type SetupFirstPost, type SetupStep } from './setupSteps';
 
 /// Where a person is in the setup conversation, and what they answered.
 export interface SetupState {
@@ -9,6 +9,8 @@ export interface SetupState {
   lines: string[];
   /// 1 moving forward, -1 going back: which edge the next card enters from.
   direction: 1 | -1;
+  /// What to offer to post once the answers are saved.
+  post: SetupFirstPost | null;
 }
 
 type Answerable = Exclude<keyof SetupAnswers, 'goals' | 'retried'>;
@@ -23,10 +25,11 @@ export type SetupEvent =
   | { type: 'skip' }
   | { type: 'read'; lines: string[]; needs: Array<'price'> }
   | { type: 'edit' }
-  | { type: 'resume'; answers: SetupAnswers; lines: string[] };
+  | { type: 'resume'; answers: SetupAnswers; lines: string[] }
+  | { type: 'saved'; post: SetupFirstPost | null };
 
 export function initialSetup(): SetupState {
-  return { step: 'welcome', answers: { goals: [] }, lines: [], direction: 1 };
+  return { step: 'welcome', answers: { goals: [] }, lines: [], direction: 1, post: null };
 }
 
 function move(state: SetupState, by: 1 | -1): SetupState {
@@ -67,6 +70,8 @@ export function setupReducer(state: SetupState, event: SetupEvent): SetupState {
       return { ...state, step: 'goals', direction: -1 };
     case 'resume':
       return { ...state, step: 'summary', answers: event.answers, lines: event.lines, direction: 1 };
+    case 'saved':
+      return event.post ? { ...state, step: 'post', post: event.post, direction: 1 } : { ...state, post: null };
   }
 }
 

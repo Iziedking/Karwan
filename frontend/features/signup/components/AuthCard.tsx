@@ -10,6 +10,7 @@ import { useAccount, useConnect, useSignMessage } from 'wagmi';
 import { api, ApiError } from '@/core/api';
 import { DEALS_AVAILABLE, ARC_NETWORK } from '@/core/arcNetwork';
 import { BUSINESS_ACCOUNTS_OPEN } from '@/features/account/businessOpen';
+import { afterCreate } from '@/features/signup/afterCreate';
 import { MODULAR_WALLETS_ENABLED } from '@/features/modularWallet/config';
 import { PASSKEY_CONNECTOR_ID } from '@/features/modularWallet/connector';
 import { clearEmailProof, holdEmailProof } from '@/features/modularWallet/pendingEmail';
@@ -103,6 +104,12 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
     // Queries read while signed out must not show on the signed-in home.
     void queryClient.invalidateQueries();
     router.replace(HOME);
+  }, [queryClient, router]);
+
+  // A new account goes on to setup (view 38); its agents are already being set up.
+  const goSetup = useCallback(() => {
+    void queryClient.invalidateQueries();
+    router.replace('/setup');
   }, [queryClient, router]);
 
   // Once a session exists, the server decides what happens next: an account
@@ -340,12 +347,12 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
     try {
       await api.signupCreate(normalizeTag(tag), kind);
       clearEmailProof();
-      if (RECOVERY_ON && connector?.id === PASSKEY_CONNECTOR_ID) {
+      if (afterCreate({ recoveryStep: RECOVERY_ON && connector?.id === PASSKEY_CONNECTOR_ID }) === 'recovery') {
         setBusy(null);
         setUpStep('recovery');
         return;
       }
-      goHome();
+      goSetup();
     } catch (err) {
       const code = err instanceof ApiError ? err.code : undefined;
       if (code === 'account_exists') return goHome();
@@ -397,7 +404,7 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
   if (mode === 'signup' && upStep === 'recovery' && auth.address) {
     return (
       <div className={card}>
-        <RecoveryPasswordStep walletAddress={auth.address} onDone={goHome} />
+        <RecoveryPasswordStep walletAddress={auth.address} onDone={goSetup} />
       </div>
     );
   }
@@ -515,7 +522,7 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
             {upStep === 'tag' ? s.tagLabel
               : upStep === 'code' ? s.codeTitle
                 : upStep === 'passkey' ? s.passkeyTitle
-                  : upStep === 'kind' ? s.kindTitle
+                  : upStep === 'kind' ? (businessOpen ? s.kindTitle : s.finishTitle)
                     : s.title}
           </h1>
 
@@ -579,11 +586,13 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
           {upStep === 'kind' && (
             <div className="mt-6 space-y-3">
               <p className="text-[15px] font-medium text-[var(--ink)]">@{cleanTag}</p>
-              <div role="radiogroup" aria-label={s.kindTitle} className="grid gap-3 sm:grid-cols-2">
-                <KindOption selected={kind === 'person'} title={s.person} body={s.personBody} onSelect={() => setKind('person')} />
-                <KindOption selected={kind === 'business'} title={s.business} body={s.businessBody}
-                  badge={businessOpen ? undefined : s.comingSoon} disabled={!businessOpen} onSelect={() => setKind('business')} />
-              </div>
+              {/* Only one kind of account is open, so there is nothing to choose (view 38). */}
+              {businessOpen ? (
+                <div role="radiogroup" aria-label={s.kindTitle} className="grid gap-3 sm:grid-cols-2">
+                  <KindOption selected={kind === 'person'} title={s.person} body={s.personBody} onSelect={() => setKind('person')} />
+                  <KindOption selected={kind === 'business'} title={s.business} body={s.businessBody} onSelect={() => setKind('business')} />
+                </div>
+              ) : null}
               <label className="flex min-h-11 cursor-pointer items-start gap-3 pt-2 text-[14px] leading-[1.5] text-[var(--ink-secondary)] font-medium">
                 <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)}
                   className="mt-[3px] h-4 w-4 shrink-0 accent-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]" />

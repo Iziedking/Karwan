@@ -8,7 +8,7 @@ import { afterBusinessSetup, shouldAskTradesAs } from './entryQuestion';
 ///   npx tsx --test features/market/entryQuestion.test.ts
 
 test('a first visit while signed in asks', () => {
-  assert.equal(shouldAskTradesAs({ signedIn: true, hasBusinessWorkspace: false, answer: undefined, profileLoaded: true }), true);
+  assert.equal(shouldAskTradesAs({ signedIn: true, hasBusinessWorkspace: false, answer: undefined, profileLoaded: true, businessOpen: true }), true);
 });
 
 test('never asks someone signed out, with a business, or who answered', () => {
@@ -30,4 +30,8 @@ test('business setup returns to the market when it was opened from there', () =>
 test('business setup never follows a link off Karwan', () => {
   assert.equal(afterBusinessSetup('//evil.example'), '/business/verification');
   assert.equal(afterBusinessSetup('https://evil.example'), '/business/verification');
+});
+
+test('never asks while business accounts are closed: there is only one answer', () => {
+  assert.equal(shouldAskTradesAs({ signedIn: true, hasBusinessWorkspace: false, answer: undefined, profileLoaded: true, businessOpen: false }), false);
 });

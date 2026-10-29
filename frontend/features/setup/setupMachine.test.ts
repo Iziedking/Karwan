@@ -66,3 +66,18 @@ test('change from Me starts from what was saved', async () => {
   assert.deepEqual(answers, { goals: ['work'], what: 'Logo design', price: '20 to 40 USDC', places: 'Instagram', clients: 'own', own: 'ask', reach: 'email' });
   assert.deepEqual(answersFromProfile(null), { goals: [] });
 });
+
+test('once saved with something to post, setup offers it', () => {
+  const at = { ...initialSetup(), step: 'summary' as const };
+  const post = { kind: 'offer' as const, handOff: 'I sell: Logo design. Post this as my offer.' };
+  const s = setupReducer(at, { type: 'saved', post });
+  assert.equal(s.step, 'post');
+  assert.deepEqual(s.post, post);
+});
+
+test('once saved with nothing to post, setup stays on the summary', () => {
+  const at = { ...initialSetup(), step: 'summary' as const };
+  const s = setupReducer(at, { type: 'saved', post: null });
+  assert.equal(s.step, 'summary');
+  assert.equal(s.post, null);
+});

@@ -11,9 +11,7 @@ export function chooseWorkspaceNudge(input: {
 }): WorkspaceNudgeKind | null {
   if (!input.profileResolved) return null;
   if (!input.hasProfile) return 'profile';
-  if (input.dealsAvailable === false) return null;
-  if (!input.activationResolved) return null;
-  if (!input.activated) return 'activation';
+  // Karwan sets up the agents itself (view 38), so they are never a step.
   return null;
 }
 

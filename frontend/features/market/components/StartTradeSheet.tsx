@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Sheet } from '@/features/deals/workspace/Sheet';
 import { TRADE_ENTRY_COPY, tradeEntryRoutes } from '@/features/home/tradeEntry';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { Chevron } from './YourTrades';
+import { DealLinkPanel } from './DealLinkPanel';
 
 /// Start a trade: the three ways in, one sheet, the same for every account.
 /// A bottom sheet on a phone, a side panel on a wider screen.
@@ -14,27 +15,36 @@ export function StartTradeSheet({ open, onClose }: { open: boolean; onClose: () 
   const entryCopy = TRADE_ENTRY_COPY[locale];
   const copy = entryCopy.desk;
   const routes = tradeEntryRoutes();
+  // A deal already agreed asks who is paying first (view 38).
+  const [agreement, setAgreement] = useState(false);
+  const close = () => { setAgreement(false); onClose(); };
   const paths = [
     { href: routes.buy, title: copy.need, body: copy.needBody, icon: <SearchIcon /> },
     { href: routes.sell, title: copy.sell, body: copy.sellBody, icon: <TagIcon /> },
-    { href: routes.agreement, title: entryCopy.agreement, body: copy.bringAgreementBody, icon: <AgreementIcon /> },
+    { href: null, title: entryCopy.agreement, body: copy.bringAgreementBody, icon: <AgreementIcon /> },
   ];
+  const row = 'group flex min-h-[76px] w-full items-center gap-4 px-4 py-3 text-start transition-colors hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)] sm:px-5';
   return (
-    <Sheet open={open} title={entryCopy.title} onClose={onClose}>
-      <ul className="overflow-hidden rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]" aria-label={copy.question}>
-        {paths.map((path) => (
-          <li key={path.href} className="border-b border-[var(--lp-border-light)] last:border-b-0">
-            <Link href={path.href} className="group flex min-h-[76px] items-center gap-4 px-4 py-3 transition-colors hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)] sm:px-5">
+    <Sheet open={open} title={agreement ? entryCopy.agreement : entryCopy.title} onClose={close}>
+      {agreement ? <DealLinkPanel /> : <ul className="overflow-hidden rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]" aria-label={copy.question}>
+        {paths.map((path) => {
+          const inner = (
+            <>
               <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-[12px] bg-[var(--lp-light)] text-[var(--lp-dark)]">{path.icon}</span>
               <span className="min-w-0 flex-1">
                 <span className="block text-[17px] font-semibold text-[var(--lp-dark)]">{path.title}</span>
                 <span className="mt-0.5 block text-[15px] font-medium text-[var(--lp-text-sub)]">{path.body}</span>
               </span>
               <Chevron />
-            </Link>
-          </li>
-        ))}
-      </ul>
+            </>
+          );
+          return (
+            <li key={path.title} className="border-b border-[var(--lp-border-light)] last:border-b-0">
+              {path.href ? <Link href={path.href} className={row}>{inner}</Link> : <button type="button" onClick={() => setAgreement(true)} className={row}>{inner}</button>}
+            </li>
+          );
+        })}
+      </ul>}
     </Sheet>
   );
 }

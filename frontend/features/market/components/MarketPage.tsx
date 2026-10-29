@@ -11,6 +11,7 @@ import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { shouldAskTradesAs } from '../entryQuestion';
 import type { MarketView, YoursList } from '../marketQuery';
 import { EntryQuestion } from './EntryQuestion';
+import { BUSINESS_ACCOUNTS_OPEN } from '@/features/account/businessOpen';
 import { StartTradeSheet } from './StartTradeSheet';
 import { YourTrades } from './YourTrades';
 
@@ -27,6 +28,7 @@ export function MarketPage({ view, scope, list }: { view: MarketView; scope: Dis
     hasBusinessWorkspace: workspaces.some((workspace) => workspace.kind === 'business'),
     answer: profile?.settings?.tradesAs,
     profileLoaded: fetchState === 'success' && !!profile,
+    businessOpen: BUSINESS_ACCOUNTS_OPEN,
   });
   const [startOpen, setStartOpen] = useState(false);
   const yoursRef = useRef<HTMLDivElement>(null);

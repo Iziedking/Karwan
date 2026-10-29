@@ -26,6 +26,7 @@ export interface SetupCopy {
   ask: string;
   reading: { title: string; body: string };
   summary: { title: string; body: string; looksRight: string; change: string };
+  post: { offer: string; request: string; body: string; postIt: string; notNow: string };
   buttons: { back: string; skip: string; next: string };
   saveError: string;
   /// The button after activation, and the row under Me.
@@ -70,6 +71,7 @@ export const setupCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', SetupCopy> = {
     ask: 'Got a question? Ask me',
     reading: { title: 'Reading your answers', body: 'Setting up your agents and your Home.' },
     summary: { title: "Here's your Karwan", body: 'Check it. Nothing is saved until you say it looks right.', looksRight: 'Looks right', change: 'Change something' },
+    post: { offer: 'Post this as your first offer?', request: 'Post this as your first request?', body: 'Your agent shows it to you first. Nothing is posted until you confirm.', postIt: 'Post it', notNow: 'Not now' },
     buttons: { back: 'Back', skip: 'Skip', next: 'Next' },
     saveError: "That didn't save. Try again in a moment.",
     start: 'Set up my Karwan', meChange: 'Change how your agents work',
@@ -109,6 +111,7 @@ export const setupCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', SetupCopy> = {
     ask: 'Une question ? Demandez-moi',
     reading: { title: 'Lecture de vos réponses', body: 'Configuration de vos agents et de votre accueil.' },
     summary: { title: 'Voici votre Karwan', body: 'Vérifiez. Rien n’est enregistré avant que vous disiez que c’est bon.', looksRight: 'C’est bon', change: 'Changer quelque chose' },
+    post: { offer: 'Publier ceci comme votre première offre ?', request: 'Publier ceci comme votre première demande ?', body: 'Votre agent vous la montre d’abord. Rien n’est publié avant votre confirmation.', postIt: 'Publier', notNow: 'Pas maintenant' },
     buttons: { back: 'Retour', skip: 'Passer', next: 'Suivant' },
     saveError: 'L’enregistrement a échoué. Réessayez dans un instant.',
     start: 'Configurer mon Karwan', meChange: 'Changer le travail de vos agents',
@@ -148,6 +151,7 @@ export const setupCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', SetupCopy> = {
     ask: 'لديك سؤال؟ اسألني',
     reading: { title: 'قراءة إجاباتك', body: 'إعداد وكلائك وصفحتك الرئيسية.' },
     summary: { title: 'هذا Karwan الخاص بك', body: 'راجعه. لا يُحفظ شيء حتى تقول إنه صحيح.', looksRight: 'يبدو صحيحًا', change: 'غيّر شيئًا' },
+    post: { offer: 'هل تنشر هذا كأول عرض لك؟', request: 'هل تنشر هذا كأول طلب لك؟', body: 'يعرضه وكيلك عليك أولًا. لا يُنشر شيء حتى تؤكد.', postIt: 'انشره', notNow: 'ليس الآن' },
     buttons: { back: 'رجوع', skip: 'تخطٍّ', next: 'التالي' },
     saveError: 'لم يُحفظ ذلك. حاول بعد لحظة.',
     start: 'إعداد Karwan الخاص بي', meChange: 'غيّر طريقة عمل وكلائك',
@@ -187,6 +191,7 @@ export const setupCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', SetupCopy> = {
     ask: 'कोई सवाल? मुझसे पूछें',
     reading: { title: 'आपके जवाब पढ़ रहा हूँ', body: 'आपके एजेंट और होम सेट कर रहा हूँ।' },
     summary: { title: 'यह रहा आपका Karwan', body: 'जाँच लें। जब तक आप सही न कहें, कुछ भी सेव नहीं होता।', looksRight: 'सही है', change: 'कुछ बदलें' },
+    post: { offer: 'क्या इसे अपने पहले ऑफ़र के रूप में पोस्ट करें?', request: 'क्या इसे अपने पहले अनुरोध के रूप में पोस्ट करें?', body: 'आपका एजेंट पहले आपको दिखाता है। पुष्टि से पहले कुछ भी पोस्ट नहीं होता।', postIt: 'पोस्ट करें', notNow: 'अभी नहीं' },
     buttons: { back: 'वापस', skip: 'छोड़ें', next: 'आगे' },
     saveError: 'सेव नहीं हुआ। थोड़ी देर में फिर कोशिश करें।',
     start: 'मेरा Karwan सेट करें', meChange: 'अपने एजेंटों के काम का तरीका बदलें',
@@ -226,6 +231,7 @@ export const setupCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', SetupCopy> = {
     ask: 'Una swali? Niulize',
     reading: { title: 'Ninasoma majibu yako', body: 'Ninaweka mawakala wako na Mwanzo wako.' },
     summary: { title: 'Hii ndiyo Karwan yako', body: 'Iangalie. Hakuna kinachohifadhiwa hadi useme iko sawa.', looksRight: 'Iko sawa', change: 'Badilisha kitu' },
+    post: { offer: 'Ichapishe kama ofa yako ya kwanza?', request: 'Ichapishe kama ombi lako la kwanza?', body: 'Wakala wako anakuonyesha kwanza. Hakuna kinachochapishwa hadi uthibitishe.', postIt: 'Ichapishe', notNow: 'Si sasa' },
     buttons: { back: 'Rudi', skip: 'Ruka', next: 'Endelea' },
     saveError: 'Haikuhifadhiwa. Jaribu tena baada ya muda mfupi.',
     start: 'Weka Karwan yangu', meChange: 'Badilisha jinsi mawakala wako wanavyofanya kazi',

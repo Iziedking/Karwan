@@ -10,7 +10,6 @@ import type { useDirectDeals } from '@/features/deals/hooks/useDirectDeals';
 import { useOwnedBalance } from '@/features/money/hooks/useOwnedBalance';
 import { TelegramConnectButton } from '@/features/telegram/components/TelegramConnectButton';
 import { useTelegramLink } from '@/features/telegram/hooks/useTelegramLink';
-import { useActivation } from '@/shared/hooks/useActivation';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -29,7 +28,6 @@ export function FirstTrade({ deals, dealsState }: {
 }) {
   const t = useTranslations().firstTrade;
   const me = useAuth().address?.toLowerCase() ?? '';
-  const activation = useActivation();
   const owned = useOwnedBalance();
   const telegram = useTelegramLink(me || undefined);
   const { profile, fetchState: profileState } = useUserProfile();
@@ -48,7 +46,7 @@ export function FirstTrade({ deals, dealsState }: {
 
   const dealsLoaded = dealsState === 'success' || dealsState === 'error';
   const view = firstTrade({
-    activated: activation.loading ? null : activation.activated,
+    reach: profile?.settings?.notifyVia ?? null,
     balance: owned.loading ? null : owned.total ?? 0,
     telegram: !telegram.status ? null : !telegram.status.enabled ? 'unavailable' : telegram.status.linked ? 'linked' : 'unlinked',
     startedTrade: !dealsLoaded || requests.isPending || listings.isPending
@@ -77,7 +75,6 @@ export function FirstTrade({ deals, dealsState }: {
   const action = (key: FirstTradeStep) => {
     if (key === 'setup') return <Link href="/setup" className={PRIMARY}>{t.steps.setup.action}</Link>;
     if (key === 'connect') return <Link href="/profile/setup" className={PRIMARY}>{t.steps.connect.action}</Link>;
-    if (key === 'wallets') return <Link href="/profile/agent-funds" className={PRIMARY}>{t.steps.wallets.action}</Link>;
     if (key === 'money') {
       // On testnet nobody holds USDC yet, so the faucet comes first.
       if (ARC_NETWORK === 'testnet') {

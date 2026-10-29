@@ -17,7 +17,8 @@ export function ChoiceCard({ label, note, on, multi, reduce, onPick }: {
   return (
     <button
       type="button"
-      aria-pressed={on}
+      role={multi ? 'checkbox' : 'radio'}
+      aria-checked={on}
       onClick={onPick}
       className={cn(
         'flex min-h-[68px] w-full items-center gap-4 rounded-[16px] border px-[18px] py-3 text-start transition-colors duration-[180ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]',

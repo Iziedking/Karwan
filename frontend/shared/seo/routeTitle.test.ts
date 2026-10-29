@@ -71,3 +71,9 @@ test('the tab is titled before the page draws, in the reader’s language', () =
   assert.equal(run('/r/ada', ''), 'site');
   assert.equal(run('/', ''), 'site');
 });
+
+test('sign-up says Sign up in the tab', () => {
+  assert.equal(routeTitleKey('/start', '?mode=signup'), 'signUp');
+  assert.equal(routeTitleKey('/start', ''), 'signIn');
+  assert.equal(routeTitleKey('/start'), 'signIn');
+});

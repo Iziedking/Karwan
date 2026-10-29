@@ -14,7 +14,7 @@ import { ease } from '@/shared/motion/tokens';
 import { PRIMARY, SECONDARY } from '@/shared/ui/controls';
 import { ChoiceCard, SummaryLines, TextQuestion } from './SetupParts';
 import { answersFromProfile, initialSetup, setupReducer } from './setupMachine';
-import { CHOICE_STEPS, TEXT_STEPS, questionProgress, setupSteps, type Goal, type TextStep } from './setupSteps';
+import { CHOICE_STEPS, TEXT_STEPS, isQuestionStep, questionProgress, setupSteps, type Goal, type TextStep } from './setupSteps';
 
 const GOALS: Goal[] = ['work', 'sell', 'buy', 'business', 'record'];
 /// The reading never flashes: it shows for at least this long.
@@ -40,6 +40,7 @@ function SetupConversation() {
   const [saving, setSaving] = useState(false);
   const steps = setupSteps(state.answers.goals);
   const progress = questionProgress(steps, state.step);
+  const asking = isQuestionStep(state.step);
   const rtl = locale === 'ar';
   const offset = (reduce ? 0 : 24) * state.direction * (rtl ? -1 : 1);
 
@@ -68,9 +69,10 @@ function SetupConversation() {
     setSaving(true);
     setError(null);
     try {
-      await api.setupSave(state.answers);
+      const saved = await api.setupSave(state.answers);
       refresh();
-      router.push('/app');
+      dispatch({ type: 'saved', post: saved.firstPost ?? null });
+      if (!saved.firstPost) router.push('/app');
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) dispatch({ type: 'read', lines: state.lines, needs: ['price'] });
       else setError(t.saveError);
@@ -86,10 +88,10 @@ function SetupConversation() {
   return (
     <div className="min-h-[calc(100svh-var(--lp-nav-h,68px))] text-[var(--lp-dark)]">
       <div className="mx-auto flex max-w-[640px] items-center justify-between px-6 pt-4">
-        {progress ? (
+        {asking ? (
           <span className="text-[14px] font-medium text-[var(--lp-text-sub)]">{t.progressLabel}</span>
         ) : <span />}
-        {state.step !== 'summary' ? (
+        {state.step !== 'summary' && state.step !== 'post' ? (
           <Link href="/app" className="inline-flex min-h-11 items-center px-2 text-[15px] font-medium text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)]">{t.later}</Link>
         ) : null}
       </div>
@@ -109,14 +111,17 @@ function SetupConversation() {
         </div>
       ) : null}
 
-      <main className="mx-auto max-w-[640px] px-6 pb-16 pt-10">
-        <AnimatePresence mode="wait" initial={false}>
+      {/* The layout already holds the page's main landmark. */}
+      <div className="mx-auto max-w-[640px] px-6 pb-16 pt-10">
+        {/* The next question shows at once and slides in; the old one is not
+            waited out, so the screen never goes blank between questions. */}
+        <AnimatePresence mode="popLayout" initial={false}>
           <motion.section
             key={state.step}
             initial={{ opacity: 0, x: offset }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -offset }}
-            transition={{ duration: reduce ? 0.12 : 0.26, ease: ease.out }}
+            exit={{ opacity: 0, transition: { duration: 0 } }}
+            transition={{ duration: reduce ? 0 : 0.18, ease: ease.out }}
           >
             {state.step === 'welcome' ? (
               <div className="pt-10 text-center">
@@ -133,9 +138,9 @@ function SetupConversation() {
 
             {state.step === 'goals' ? (
               <div>
-                <h1 className="text-[30px] font-bold leading-tight tracking-[-0.03em]">{t.goals.title}</h1>
+                <h1 id="setup-q-goals" className="text-[30px] font-bold leading-tight tracking-[-0.03em]">{t.goals.title}</h1>
                 <p className="mt-2 text-[16px] font-medium text-[var(--lp-text-sub)]">{t.goals.help}</p>
-                <div className="mt-6 flex flex-col gap-2.5">
+                <div role="group" aria-labelledby="setup-q-goals" className="mt-6 flex flex-col gap-2.5">
                   {GOALS.map((goal) => (
                     <ChoiceCard key={goal} multi reduce={reduce} label={t.goals.options[goal].label} note={t.goals.options[goal].note} on={state.answers.goals.includes(goal)} onPick={() => dispatch({ type: 'toggleGoal', goal })} />
                   ))}
@@ -163,9 +168,9 @@ function SetupConversation() {
 
             {choice ? (
               <div>
-                <h1 className="text-[30px] font-bold leading-tight tracking-[-0.03em]">{t.choices[choice].title}</h1>
+                <h1 id={`setup-q-${choice}`} className="text-[30px] font-bold leading-tight tracking-[-0.03em]">{t.choices[choice].title}</h1>
                 <p className="mt-2 text-[16px] font-medium text-[var(--lp-text-sub)]">{t.choices[choice].help}</p>
-                <div className="mt-6 flex flex-col gap-2.5">
+                <div role="radiogroup" aria-labelledby={`setup-q-${choice}`} className="mt-6 flex flex-col gap-2.5">
                   {(Object.entries(t.choices[choice].options) as Array<[string, { label: string; note: string }]>).map(([value, option]) => (
                     <ChoiceCard key={value} multi={false} reduce={reduce} label={option.label} note={option.note} on={state.answers[choice] === value} onPick={() => dispatch({ type: 'pick', step: choice, value })} />
                   ))}
@@ -191,12 +196,23 @@ function SetupConversation() {
                 </div>
               </div>
             ) : null}
+            {state.step === 'post' && state.post ? (
+              <div>
+                <h1 className="text-[30px] font-bold leading-tight tracking-[-0.03em]">{state.post.kind === 'offer' ? t.post.offer : t.post.request}</h1>
+                <p className="mt-4 rounded-[16px] border border-[var(--lp-outline-strong)] bg-[var(--lp-card)] px-[18px] py-4 text-[17px] font-medium">{state.post.handOff}</p>
+                <p className="mt-3 text-[15px] font-medium text-[var(--lp-text-sub)]">{t.post.body}</p>
+                <div className="mt-6 flex flex-wrap justify-end gap-2.5">
+                  <button type="button" onClick={() => router.push('/app')} className={SECONDARY}>{t.post.notNow}</button>
+                  <button type="button" onClick={() => { openHelp(state.post!.handOff, { send: true }); router.push('/app'); }} className={PRIMARY}>{t.post.postIt}</button>
+                </div>
+              </div>
+            ) : null}
           </motion.section>
         </AnimatePresence>
 
         {error ? <p role="alert" className="mt-4 border-s-2 border-[var(--color-critical)] ps-3 text-[14px]">{error}</p> : null}
 
-        {progress ? (
+        {asking ? (
           <div className="mt-8 flex justify-between gap-3">
             <button type="button" onClick={() => dispatch({ type: 'back' })} className="min-h-12 px-5 text-[16px] font-medium text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)]">{t.buttons.back}</button>
             <div className="flex gap-2">
@@ -207,7 +223,7 @@ function SetupConversation() {
             </div>
           </div>
         ) : null}
-      </main>
+      </div>
     </div>
   );
 }

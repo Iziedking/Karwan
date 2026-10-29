@@ -12,6 +12,8 @@ type Copy = { startHere: string; find: string;
   entry: { question: string; note: string; self: string; business: string; settingsLabel: string; saveError: string };
   title: string; body: string; sell: string; sellBody: string; buy: string; buyBody: string;
   agreement: string; options: string; buyTitle: string; sellTitle: string; businessBuyBody: string;
+  link: { question: string; paying: string; payingBody: string; gettingPaid: string; gettingPaidBody: string; title: string; note: string; copy: string; copied: string; share: string; requestInstead: string; noTag: string };
+  block: { getPaid: string; getPaidBody: string; sendLink: string; request: string; findWork: string; findWorkBody: string; seeRequests: string; postNeed: string; postNeedBody: string; postRequest: string; setUp: string; setUpBody: string; start: string };
   journey: { brief: string; match: string; agree: string; settle: string };
   desk: {
     eyebrow: string; title: string; body: string; choosePath: string; paths: string; tryAgain: string;
@@ -38,6 +40,8 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
     buy: 'Find something to buy', buyBody: 'Describe what you need, your budget and your deadline.',
     businessBuyBody: 'Browse what businesses offer on Karwan, then agree a deal.',
     agreement: 'I already have an agreement',
+    link: { question: 'Are you paying, or getting paid?', paying: 'I am paying', payingBody: 'Fill in the deal you agreed, then pay into it.', gettingPaid: 'I am getting paid', gettingPaidBody: 'Send the other person your deal link.', title: 'Your deal link', note: 'They open it, add the amount and terms you agreed, and pay into the deal. You accept before anything is final.', copy: 'Copy link', copied: 'Copied', share: 'Share', requestInstead: 'Request a payment instead', noTag: 'Choose your Karwan tag in Profile to get your deal link.' },
+    block: { getPaid: 'Get paid by a client', getPaidBody: 'Send them your deal link, or ask for a payment.', sendLink: 'Send a deal link', request: 'Request a payment', findWork: 'Find work', findWorkBody: 'Requests on the market that fit what you do.', seeRequests: 'See requests', postNeed: 'What do you need?', postNeedBody: 'Post it and sellers send you offers.', postRequest: 'Post a request', setUp: 'Set up Karwan in a minute', setUpBody: 'A few questions, and Karwan works the way you do.', start: 'Start' },
     buyTitle: 'What do you need?', sellTitle: 'What do you offer?',
     journey: { brief: 'Brief', match: 'Match', agree: 'Agree', settle: 'Settle' },
     desk: {
@@ -64,6 +68,8 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
     buy: 'Trouver quoi acheter', buyBody: 'Décrivez votre besoin, votre budget et votre échéance.',
     businessBuyBody: 'Parcourez les offres des entreprises sur Karwan, puis convenez d’un accord.',
     agreement: 'J’ai déjà un accord',
+    link: { question: 'Vous payez, ou vous êtes payé ?', paying: 'Je paie', payingBody: 'Remplissez l’accord convenu, puis payez dedans.', gettingPaid: 'Je suis payé', gettingPaidBody: 'Envoyez votre lien d’accord à l’autre personne.', title: 'Votre lien d’accord', note: 'Elle l’ouvre, ajoute le montant et les conditions convenus, et paie dans l’accord. Vous acceptez avant que rien ne soit définitif.', copy: 'Copier le lien', copied: 'Copié', share: 'Partager', requestInstead: 'Demander un paiement à la place', noTag: 'Choisissez votre identifiant Karwan dans Profil pour obtenir votre lien.' },
+    block: { getPaid: 'Être payé par un client', getPaidBody: 'Envoyez votre lien d’accord, ou demandez un paiement.', sendLink: 'Envoyer un lien d’accord', request: 'Demander un paiement', findWork: 'Trouver du travail', findWorkBody: 'Les demandes du marché qui correspondent à ce que vous faites.', seeRequests: 'Voir les demandes', postNeed: 'De quoi avez-vous besoin ?', postNeedBody: 'Publiez-le et les vendeurs vous font des offres.', postRequest: 'Publier une demande', setUp: 'Configurez Karwan en une minute', setUpBody: 'Quelques questions, et Karwan s’adapte à vous.', start: 'Commencer' },
     buyTitle: 'De quoi avez-vous besoin ?', sellTitle: 'Que proposez-vous ?',
     journey: { brief: 'Besoin', match: 'Mise en relation', agree: 'Accord', settle: 'Règlement' },
     desk: {
@@ -90,6 +96,8 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
     buy: 'ابحث عما تشتريه', buyBody: 'صف ما تحتاجه وحدد ميزانيتك وموعد التسليم.',
     businessBuyBody: 'تصفح عروض الشركات على Karwan، ثم اتفق على صفقة.',
     agreement: 'لدي اتفاق بالفعل',
+    link: { question: 'هل أنت من يدفع، أم من يُدفع له؟', paying: 'أنا أدفع', payingBody: 'املأ الصفقة المتفق عليها، ثم ادفع فيها.', gettingPaid: 'يُدفع لي', gettingPaidBody: 'أرسل رابط صفقتك إلى الطرف الآخر.', title: 'رابط صفقتك', note: 'يفتحه، ويضيف المبلغ والشروط المتفق عليها، ويدفع في الصفقة. توافق أنت قبل أن يصبح أي شيء نهائيًا.', copy: 'انسخ الرابط', copied: 'تم النسخ', share: 'شارك', requestInstead: 'اطلب دفعة بدلًا من ذلك', noTag: 'اختر وسم Karwan الخاص بك من الملف الشخصي لتحصل على رابطك.' },
+    block: { getPaid: 'احصل على أجرك من عميل', getPaidBody: 'أرسل رابط صفقتك، أو اطلب دفعة.', sendLink: 'أرسل رابط صفقة', request: 'اطلب دفعة', findWork: 'ابحث عن عمل', findWorkBody: 'طلبات في السوق تناسب ما تقدمه.', seeRequests: 'اعرض الطلبات', postNeed: 'ماذا تحتاج؟', postNeedBody: 'انشره وسيرسل لك البائعون عروضهم.', postRequest: 'انشر طلبًا', setUp: 'جهّز Karwan في دقيقة', setUpBody: 'بضعة أسئلة، ويعمل Karwan بطريقتك.', start: 'ابدأ' },
     buyTitle: 'ماذا تحتاج؟', sellTitle: 'ماذا تقدم؟',
     journey: { brief: 'الطلب', match: 'المطابقة', agree: 'الاتفاق', settle: 'التسوية' },
     desk: {
@@ -116,6 +124,8 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
     buy: 'खरीदने के लिए खोजें', buyBody: 'अपनी ज़रूरत, बजट और समय सीमा बताएं।',
     businessBuyBody: 'Karwan पर व्यवसायों की पेशकश देखें, फिर सौदे की शर्तें तय करें।',
     agreement: 'मेरा समझौता पहले से है',
+    link: { question: 'आप भुगतान कर रहे हैं, या आपको भुगतान मिल रहा है?', paying: 'मैं भुगतान कर रहा हूँ', payingBody: 'तय किया गया सौदा भरें, फिर उसमें भुगतान करें।', gettingPaid: 'मुझे भुगतान मिल रहा है', gettingPaidBody: 'दूसरे व्यक्ति को अपना सौदा लिंक भेजें।', title: 'आपका सौदा लिंक', note: 'वे इसे खोलते हैं, तय रकम और शर्तें जोड़ते हैं, और सौदे में भुगतान करते हैं। कुछ भी अंतिम होने से पहले आप स्वीकार करते हैं।', copy: 'लिंक कॉपी करें', copied: 'कॉपी हो गया', share: 'शेयर करें', requestInstead: 'इसके बजाय भुगतान का अनुरोध करें', noTag: 'अपना सौदा लिंक पाने के लिए प्रोफ़ाइल में अपना Karwan टैग चुनें।' },
+    block: { getPaid: 'ग्राहक से भुगतान पाएँ', getPaidBody: 'उन्हें अपना सौदा लिंक भेजें, या भुगतान माँगें।', sendLink: 'सौदा लिंक भेजें', request: 'भुगतान का अनुरोध करें', findWork: 'काम खोजें', findWorkBody: 'बाज़ार के अनुरोध जो आपके काम से मेल खाते हैं।', seeRequests: 'अनुरोध देखें', postNeed: 'आपको क्या चाहिए?', postNeedBody: 'पोस्ट करें और विक्रेता आपको ऑफ़र भेजेंगे।', postRequest: 'अनुरोध पोस्ट करें', setUp: 'एक मिनट में Karwan सेट करें', setUpBody: 'कुछ सवाल, और Karwan आपके तरीके से काम करता है।', start: 'शुरू करें' },
     buyTitle: 'आपको क्या चाहिए?', sellTitle: 'आप क्या देते हैं?',
     journey: { brief: 'ज़रूरत', match: 'मिलान', agree: 'सहमति', settle: 'निपटान' },
     desk: {
@@ -142,6 +152,8 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
     buy: 'Tafuta cha kununua', buyBody: 'Eleza unachohitaji, bajeti yako na tarehe ya mwisho.',
     businessBuyBody: 'Angalia bidhaa na huduma za biashara kwenye Karwan, kisha ukubaliane kuhusu biashara.',
     agreement: 'Tayari nina makubaliano',
+    link: { question: 'Unalipa, au unalipwa?', paying: 'Ninalipa', payingBody: 'Jaza makubaliano mliyokubaliana, kisha ulipe ndani yake.', gettingPaid: 'Ninalipwa', gettingPaidBody: 'Mtumie mtu mwingine kiungo cha makubaliano yako.', title: 'Kiungo cha makubaliano yako', note: 'Anakifungua, anaongeza kiasi na masharti mliyokubaliana, na analipa ndani ya makubaliano. Wewe unakubali kabla chochote hakijawa cha mwisho.', copy: 'Nakili kiungo', copied: 'Imenakiliwa', share: 'Shiriki', requestInstead: 'Omba malipo badala yake', noTag: 'Chagua lebo yako ya Karwan kwenye Wasifu ili upate kiungo chako.' },
+    block: { getPaid: 'Lipwa na mteja', getPaidBody: 'Mtumie kiungo cha makubaliano yako, au omba malipo.', sendLink: 'Tuma kiungo cha makubaliano', request: 'Omba malipo', findWork: 'Tafuta kazi', findWorkBody: 'Maombi sokoni yanayolingana na unachofanya.', seeRequests: 'Angalia maombi', postNeed: 'Unahitaji nini?', postNeedBody: 'Ichapishe na wauzaji watakutumia ofa.', postRequest: 'Chapisha ombi', setUp: 'Weka Karwan kwa dakika moja', setUpBody: 'Maswali machache, na Karwan inafanya kazi kwa njia yako.', start: 'Anza' },
     buyTitle: 'Unahitaji nini?', sellTitle: 'Unatoa nini?',
     journey: { brief: 'Hitaji', match: 'Ulinganifu', agree: 'Kubali', settle: 'Malipo' },
     desk: {

@@ -15,6 +15,15 @@ test('opening Help carries the question to the panel', () => {
   assert.deepEqual(got, { prefill: 'Is there a fee?' });
 });
 
+test('a message can be opened and sent in one go', () => {
+  const target = new EventTarget();
+  (globalThis as { window?: unknown }).window = target;
+  let got: unknown = null;
+  target.addEventListener(HELP_OPEN_EVENT, (e) => { got = (e as CustomEvent).detail; });
+  openHelp('I sell: Logo design. Post this as my offer.', { send: true });
+  assert.deepEqual(got, { prefill: 'I sell: Logo design. Post this as my offer.', send: true });
+});
+
 test('assistant mode hands its conversation to a person through Help', () => {
   const target = new EventTarget();
   (globalThis as { window?: unknown }).window = target;

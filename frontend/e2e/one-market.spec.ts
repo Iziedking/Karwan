@@ -93,36 +93,24 @@ test.describe('one market', () => {
 
       await page.getByRole('button', { name: copy.title, exact: true }).click();
       const sheet = page.getByRole('dialog');
-      await expect(sheet.getByRole('link')).toHaveCount(3);
+      await expect(sheet.getByRole('link')).toHaveCount(2);
       await expect(sheet.getByRole('link', { name: new RegExp(copy.desk.need) })).toHaveAttribute('href', '/buyer?mode=managed#new-deal');
       await expect(sheet.getByRole('link', { name: new RegExp(copy.desk.sell) })).toHaveAttribute('href', '/seller#post-listing');
-      await expect(sheet.getByRole('link', { name: new RegExp(copy.agreement) })).toHaveAttribute('href', '/buyer?mode=direct#new-deal');
+      // A deal already agreed asks who is paying first (view 38).
+      await sheet.getByRole('button', { name: new RegExp(copy.agreement) }).click();
+      await expect(sheet.getByText(copy.link.question)).toBeVisible();
+      await expect(sheet.getByRole('link', { name: new RegExp(copy.link.paying) })).toHaveAttribute('href', '/buyer?mode=direct#new-deal');
+      await expect(sheet.getByRole('button', { name: new RegExp(copy.link.gettingPaid) })).toBeVisible();
       await fitsTheScreen(page);
       expect(hydrationErrors()).toEqual([]);
     });
   }
 
-  test('a person is asked once whether they trade for themselves or a business', async ({ page }) => {
-    const copy = TRADE_ENTRY_COPY.en.entry;
-    const { saved } = await open(page, 'person');
-    const question = page.getByRole('region', { name: copy.question });
-    await expect(question).toBeVisible();
-    await expect(page.getByRole('button', { name: TRADE_ENTRY_COPY.en.title, exact: true })).toBeVisible();
-    await question.getByRole('button', { name: copy.self }).click();
-    await expect(question).toHaveCount(0);
-    expect(saved).toEqual([{ tradesAs: 'self' }]);
-    await page.reload();
+  test('while business accounts are closed, nobody is asked whether they trade for a business', async ({ page }) => {
+    // There is only one answer, so the question would be noise (view 38).
+    await open(page, 'person');
     await expect(page.getByTestId('market')).toBeVisible();
-    await expect(page.getByRole('region', { name: copy.question })).toHaveCount(0);
-  });
-
-  test('a failed save says so and keeps the question', async ({ page }) => {
-    const copy = TRADE_ENTRY_COPY.en.entry;
-    await open(page, 'person', { failSave: true });
-    const question = page.getByRole('region', { name: copy.question });
-    await question.getByRole('button', { name: copy.self }).click();
-    await expect(question.getByRole('alert')).toHaveText(copy.saveError);
-    await expect(question.getByRole('button', { name: copy.self })).toBeEnabled();
+    await expect(page.getByRole('region', { name: TRADE_ENTRY_COPY.en.entry.question })).toHaveCount(0);
   });
 
   test('an account with a business is never asked', async ({ page }) => {
@@ -135,7 +123,6 @@ test.describe('one market', () => {
     await open(page, 'person', { locale: 'ar', theme: 'dark' });
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
     await expect(page.getByRole('button', { name: copy.title, exact: true })).toBeVisible();
-    await expect(page.getByRole('region', { name: copy.entry.question })).toBeVisible();
     await fitsTheScreen(page);
   });
 

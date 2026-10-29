@@ -6,7 +6,10 @@ export function shouldAskTradesAs(input: {
   hasBusinessWorkspace: boolean;
   answer: 'self' | 'business' | undefined;
   profileLoaded: boolean;
+  /// While business accounts are closed there is only one answer (view 38).
+  businessOpen?: boolean;
 }): boolean {
+  if (input.businessOpen === false) return false;
   return input.signedIn && input.profileLoaded && !input.hasBusinessWorkspace && input.answer === undefined;
 }
 

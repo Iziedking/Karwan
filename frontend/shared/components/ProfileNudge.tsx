@@ -68,7 +68,7 @@ export function ProfileNudge() {
   }, [address, kind]);
 
   const isApp = pathname !== '/' && pathname !== '/how-it-works';
-  const onSetupRoute = pathname.startsWith('/onboarding') || pathname.startsWith('/profile');
+  const onSetupRoute = pathname.startsWith('/setup') || pathname.startsWith('/profile');
   const visible =
     mounted &&
     isApp &&

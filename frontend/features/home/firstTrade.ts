@@ -2,10 +2,11 @@
 /// first trade"). Every step ticks itself from what is true for the account,
 /// never from a click, and the list goes away once a deal has finished.
 
-export type FirstTradeStep = 'setup' | 'wallets' | 'money' | 'telegram' | 'connect' | 'deal' | 'finish';
+export type FirstTradeStep = 'setup' | 'money' | 'telegram' | 'connect' | 'deal' | 'finish';
 
 export interface FirstTradeInput {
-  activated: boolean | null;
+  /// How they asked to be reached in setup; email alone needs no Telegram step.
+  reach: 'telegram' | 'email' | 'both' | null;
   /// The whole balance; null while it loads.
   balance: number | null;
   /// 'unavailable' when the Telegram bot is not set up on this network.
@@ -33,15 +34,14 @@ export interface FirstTradeView {
 export function firstTrade(input: FirstTradeInput): FirstTradeView {
   const steps: FirstTradeView['steps'] = [
     ...(input.setupDone === false ? [{ key: 'setup' as const, done: false }] : []),
-    { key: 'wallets', done: input.activated === true },
     { key: 'money', done: (input.balance ?? 0) > 0 },
-    ...(input.telegram === 'unavailable' ? [] : [{ key: 'telegram' as const, done: input.telegram === 'linked' }]),
+    ...(input.telegram === 'unavailable' || input.reach === 'email' ? [] : [{ key: 'telegram' as const, done: input.telegram === 'linked' }]),
     ...(input.goals.includes('record') ? [{ key: 'connect' as const, done: input.connected === true }] : []),
     { key: 'deal', done: input.startedTrade === true },
     { key: 'finish', done: input.settledTrade === true },
   ];
   const loading =
-    input.activated === null || input.balance === null || input.telegram === null || input.startedTrade === null || input.settledTrade === null || input.setupDone === null;
+    input.balance === null || input.telegram === null || input.startedTrade === null || input.settledTrade === null || input.setupDone === null;
   return {
     visible: !loading && input.settledTrade === false,
     steps,

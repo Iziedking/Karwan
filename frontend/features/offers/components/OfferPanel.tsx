@@ -302,7 +302,7 @@ function MakeOffer({
               {error.key === 'activate' ? (
                 <>
                   {' '}
-                  <Link href="/onboarding" className="underline">
+                  <Link href="/setup" className="underline">
                     {t.activateLink}
                   </Link>
                 </>

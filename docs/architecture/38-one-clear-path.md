@@ -28,7 +28,6 @@ Inside `/setup`:
 - The five choice cards on question 1 have no names a screen reader can announce.
 - A toast, "0.5 USDC arrived in your selling agent", covers the progress bar on question 8.
 - Prices are asked in USDC ("About 100 USDC, a week"). A designer in Lagos thinks in naira.
-- The summary leaves out the one thing typed by hand, what the person does.
 - The answer to "Do you have clients already, or should Karwan find them?" says it "decides what Home puts first". Home looked the same afterwards.
 - The summary says "Your agent offers your work", but no offer was posted. The market showed "Your offers 0".
 
@@ -131,7 +130,7 @@ flowchart TD
 - `/setup` starts straight after Create account. Agent activation runs on its own after "Looks right", with no names, no addresses and no second sheet. People can rename agents in Settings later.
 - The counter is fixed at the real number of questions for the answers given, and never jumps.
 - Transitions show the next question at once; motion only slides it, never blanks it.
-- The summary includes what the person does, and "Your agent offers your work" posts a real offer from the answers, or the line changes to "Post your first offer" with a button.
+- After Looks right, setup offers to post the first offer or request from the answers, as Telegram already does, so "Your agent offers your work" becomes true straight away.
 - `app/onboarding` is retired; its three links point to `/setup`.
 
 ### Navigation
@@ -199,13 +198,15 @@ Steps 1 and 2 change what a person can do and where Karwan moves money on their 
 - It does not change the assistant or Telegram, which already run on plain words. They pick up the new names through the guide.
 - It does not open business accounts.
 
-## Decisions for the owner
+## Decided by the owner, 29 Oct 2026
 
-1. **Personal or Business at sign-up.** Recommended: drop the step until business accounts open, and let setup decide later.
-2. **Agent balances.** Recommended: no agent balance anywhere on the main path. Karwan moves money to an agent only when a bid or deal needs it, with the person's confirmation.
-3. **Navigation.** Recommended: Home, Market, Activity, Profile on every device, with getting paid early inside Home and Profile.
-4. **Order.** Recommended: steps 1 to 5 as listed, starting with the new-person path.
+All four as recommended:
+
+1. **Personal or Business at sign-up.** The step is dropped until business accounts open; setup decides later.
+2. **Agent balances.** No agent balance anywhere on the main path. Karwan moves money to an agent only when a bid or deal needs it, with the person's confirmation.
+3. **Navigation.** Home, Market, Activity, Profile on every device, with getting paid early inside Home and Profile.
+4. **Order.** Steps 1 to 5 as listed, starting with the new-person path.
 
 ## Status
 
-Draft, 29 Oct 2026. Found on testnet with @lawful and a new account, @spencerkiddo. Nothing built.
+Agreed 29 Oct 2026. Found on testnet with @lawful and a new account, @spencerkiddo. Step 1, the new-person path, built 29 Oct 2026, not deployed: sign-up ends at the terms and goes to setup; Karwan sets up the agents when the account is made (and, for an older account, the first time they are needed), so no screen asks to activate; setup keeps a steady count, shows each question at once, hides Help and holds pop-ups; after Looks right it offers the first offer or request, handed to the assistant as Telegram already does; Home leads with one block from the answers; a seller with an agreement sends a deal link (also the assistant's share_my_deal_link); the old onboarding page is gone. Steps 2 to 5 not started. Before step 3: the owner decided on 23 Oct that every signed-in page but Home has a Back link, which step 3's "top-level tabs lose the Back link" would change.

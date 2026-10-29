@@ -8,7 +8,6 @@ import { ListingComposer } from '@/features/seller/components/ListingComposer';
 import { BalanceSidecar } from '@/features/balances/components/BalanceSidecar';
 import { DealAmountProvider } from '@/features/balances/dealAmount';
 import { AuthGuard } from '@/shared/components/AuthGuard';
-import { ActivateAgentsNotice } from '@/shared/components/ActivateAgentsNotice';
 import {
   FullBleed,
   Band,
@@ -80,7 +79,6 @@ if (v2) return <SellerDesk />;
       {/* ACTIVATE NOTICE. shared band, renders nothing once activated. Catches
           the dead end where a seller profile is saved but no agent was ever
           provisioned, so the seller agent silently never bids. */}
-      <ActivateAgentsNotice role="seller" tone="light" />
 
       {/* POST LISTING */}
       <Band tone="light" compact>

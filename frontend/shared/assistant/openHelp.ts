@@ -6,6 +6,8 @@ type Turn = { role: 'user' | 'assistant'; content: string };
 
 export interface HelpOpenDetail {
   prefill?: string;
+  /// Send the prefill as the person's message straight away.
+  send?: boolean;
   /// Bring in a person straight away.
   person?: boolean;
   /// What the person already said elsewhere, such as assistant mode. It goes
@@ -18,9 +20,10 @@ export interface HelpOpenDetail {
   dealId?: string;
 }
 
-export function openHelp(prefill?: string): void {
+export function openHelp(prefill?: string, opts: { send?: boolean } = {}): void {
   if (typeof window === 'undefined') return;
-  window.dispatchEvent(new CustomEvent<HelpOpenDetail>(HELP_OPEN_EVENT, { detail: { prefill } }));
+  const detail: HelpOpenDetail = opts.send ? { prefill, send: true } : { prefill };
+  window.dispatchEvent(new CustomEvent<HelpOpenDetail>(HELP_OPEN_EVENT, { detail }));
 }
 
 /// The assistant could not do it, or the person asked for one: Help opens and

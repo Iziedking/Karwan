@@ -7,6 +7,7 @@ import type { UserProfile } from '@/core/api';
 import { stageOf, type DealStage } from '@/features/deals/components/DirectDealList';
 import { useDirectDeals } from '@/features/deals/hooks/useDirectDeals';
 import { FirstTrade } from './FirstTrade';
+import { HomeBlock } from './HomeBlock';
 import { rememberReturn } from '@/features/assistant/assistantReturn';
 import { pickCurrentDeal } from '@/features/home/currentDeal';
 import { useOwnedBalance } from '@/features/money/hooks/useOwnedBalance';
@@ -100,6 +101,7 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
               <QuickAction href="/request" icon="request">{payLink.short}</QuickAction>
               <QuickAction href="/bridge?direction=out" icon="withdraw">{home.withdraw}</QuickAction>
             </div>
+            <HomeBlock profile={profile} />
             <Link
               href="/assistant"
               onClick={() => rememberReturn('/app')}

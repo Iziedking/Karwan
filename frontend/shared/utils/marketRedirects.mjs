@@ -8,4 +8,6 @@ export const MARKET_REDIRECTS = [
   { source: '/listings', destination: '/market', permanent: false },
   { source: '/partners', destination: '/market?scope=business', permanent: false },
   { source: '/supply', destination: '/seller', permanent: false },
+  // The old onboarding page; setup replaced it (view 38).
+  { source: '/onboarding', destination: '/setup', permanent: false },
 ];

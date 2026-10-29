@@ -11,7 +11,6 @@ const THEME_AWARE_WORKSPACES = [
   '../market/components/StartTradeSheet.tsx',
   '../../app/settings/page.tsx',
   '../../app/business/verification/page.tsx',
-  '../../app/onboarding/page.tsx',
   '../../app/profile/page.tsx',
   '../../app/cashout/[jobId]/page.tsx',
   '../feedback/components/FeedbackForm.tsx',

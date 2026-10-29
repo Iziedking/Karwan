@@ -66,6 +66,7 @@ export interface SignupCopy {
     wallet: string;
     walletSigning: string;
     kindTitle: string;
+    finishTitle: string;
     person: string;
     personBody: string;
     business: string;
@@ -208,6 +209,7 @@ const en: SignupCopy = {
     wallet: 'Connect a wallet',
     walletSigning: 'Check your wallet',
     kindTitle: 'Who is this account for?',
+    finishTitle: 'Almost done',
     person: 'Personal',
     personBody: 'Buy and sell as yourself.',
     business: 'Business',
@@ -355,6 +357,7 @@ const ar: SignupCopy = {
     wallet: 'ربط محفظة',
     walletSigning: 'تحقق من محفظتك',
     kindTitle: 'لمن هذا الحساب؟',
+    finishTitle: 'اقتربت من النهاية',
     person: 'شخصي',
     personBody: 'اشترِ وبِع باسمك.',
     business: 'تجاري',
@@ -502,6 +505,7 @@ const fr: SignupCopy = {
     wallet: 'Connecter un portefeuille',
     walletSigning: 'Vérifiez votre portefeuille',
     kindTitle: 'Pour qui est ce compte ?',
+    finishTitle: 'Presque fini',
     person: 'Personnel',
     personBody: 'Achetez et vendez en votre nom.',
     business: 'Entreprise',
@@ -649,6 +653,7 @@ const hi: SignupCopy = {
     wallet: 'वॉलेट जोड़ें',
     walletSigning: 'अपना वॉलेट देखें',
     kindTitle: 'यह खाता किसके लिए है?',
+    finishTitle: 'बस हो गया',
     person: 'व्यक्तिगत',
     personBody: 'अपने नाम से खरीदें और बेचें।',
     business: 'व्यवसाय',
@@ -796,6 +801,7 @@ const sw: SignupCopy = {
     wallet: 'Unganisha pochi',
     walletSigning: 'Angalia pochi yako',
     kindTitle: 'Akaunti hii ni ya nani?',
+    finishTitle: 'Karibu umemaliza',
     person: 'Binafsi',
     personBody: 'Nunua na uuze kwa jina lako.',
     business: 'Biashara',

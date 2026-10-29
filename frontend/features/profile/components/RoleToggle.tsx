@@ -53,7 +53,7 @@ export function RoleToggle({
     if (role === profile.role) return;
     const eligibility = eligibilityFor(role);
     if (!eligibility.ok) {
-      router.push(`/onboarding?role=${role}`);
+      router.push('/setup?edit=1');
       return;
     }
     setSubmitting(role);

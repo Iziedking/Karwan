@@ -18,7 +18,7 @@ test('profile setup stays ahead of agent activation', () => {
   );
 });
 
-test('agent activation becomes the next step after profile setup', () => {
+test('agents are never a step a person is asked to take', () => {
   assert.equal(
     chooseWorkspaceNudge({
       profileResolved: true,
@@ -26,7 +26,7 @@ test('agent activation becomes the next step after profile setup', () => {
       activationResolved: true,
       activated: false,
     }),
-    'activation',
+    null,
   );
 });
 

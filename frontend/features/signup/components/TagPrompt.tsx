@@ -45,7 +45,7 @@ export function TagPrompt() {
   }, [tag]);
 
   if (!isConnected || fetchState !== 'success' || !profile || profile.handle) return null;
-  if (isPublicEditorialRoute(pathname) || pathname?.startsWith('/onboarding')) return null;
+  if (isPublicEditorialRoute(pathname) || pathname?.startsWith('/setup')) return null;
 
   const s = t.signUp;
   const clean = normalizeTag(tag);

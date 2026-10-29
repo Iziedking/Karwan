@@ -14,7 +14,6 @@
     "check:hooks": "eslint --no-inline-config --max-warnings=0 app features shared core",
     "generate:admin-routes": "tsx scripts/generate-admin-route-catalog.ts",
     "check:admin-routes": "tsx scripts/generate-admin-route-catalog.ts --check",
-    "test:onboarding": "tsx --test features/onboarding/journey.test.ts features/onboarding/sellerSetup.test.ts",
     "test:auth": "tsx --test shared/auth/authPresentation.test.ts shared/auth/postAuthRoute.test.ts shared/auth/sessionStore.test.ts",
     "test:admin": "tsx --test features/admin/*.test.ts core/adminTransport.test.ts",
     "test:newsletter": "tsx --test features/admin/newsletterMarkdown.test.ts",
