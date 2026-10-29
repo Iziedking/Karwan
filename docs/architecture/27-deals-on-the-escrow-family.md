@@ -263,6 +263,6 @@ Before any code, and logged in `docs/arc-circle-checks.md`:
 | One identity per person, set up on the way | Built: held wallets set up by Karwan on testnet; own wallets with their next Arc transaction |
 | Own wallet: record steps ride along with the next Arc transaction; nothing waits for a record; the receipt line | Built 27 Oct 2026, not yet tried on testnet. Rides along with agent top ups, deal insurance (with the approval; take out, cancel, collect), yield claims, the agent stake binding and accepting a delivery; the business registration and purchase-order financing steps follow when those open. Smart-contract wallets go alone until `wallet_sendCalls` is checked on Arc |
 | Automatic arbiter on the family | Planned; the table is built for the terms-driven escrow and switched off |
-| Getting paid early on the family | Planned (T4.2) |
+| Getting paid early on the family | Built 29 Oct 2026, not deployed (view 18); proven on an Arc fork |
 | Time and Jobs families in the app | Later |
 | Mainnet | After the audit steps in view 11 |

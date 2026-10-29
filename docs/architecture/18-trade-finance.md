@@ -34,9 +34,9 @@ sequenceDiagram
   S->>K: "Get paid now" on the deal, or asks the agent in Telegram
   K->>F: Shows the deal to approved financiers: amount, terms, the seller's record
   F->>K: Offers an advance and a payback amount (120 now, 126 paid back)
-  K-->>S: Plain offer: 120 now; 126 of the buyer's 150 goes to the financier first; 12 of your deal insurance backs it until it is repaid
+  K-->>S: Plain offer: 120 now; 126 of the buyer's 150 goes to the financier first; 12 of your deal guarantee is held until it is repaid
   S-->>K: Taps the offer; the selling agent signs the payout over to the financier, up to 126, and the stake hold
-  F->>TF: Opens the line with the seller's two signatures, from the financier's own wallet
+  F->>TF: Opens the line with the seller's two signatures, from the financier's wallet (Karwan sends it at once for a wallet it holds; an own-wallet financier has 24 hours)
   TF->>AG: Records the assignment
   TF->>SV: Holds the seller's stake for the financier (at least 10% of the advance)
   TF-->>S: 120 USDC, straight from the financier
@@ -53,7 +53,7 @@ Numbers are the ones the rehearsal used on Arc Testnet: order 150, advance 120, 
 
 | Who | What they do | What they never do |
 |---|---|---|
-| Seller | Asks to be paid now, compares offers, takes one with a tap; their selling agent signs the payout assignment and the stake hold under the consent given when their deal insurance went up | Pay the financier back by hand. The escrow does it |
+| Seller | Asks to be paid now, compares offers, takes one with a tap; their selling agent signs the payout assignment and the hold on their deal guarantee under the consent given when the guarantee went up; if the guarantee is short, the same confirmation puts up the rest from their balance | Pay the financier back by hand. The escrow does it |
 | Buyer | Funds and releases the order as on any deal | Learn anything new or carry new risk. Their protection and review window are unchanged |
 | Financier | Applies once (account age on Karwan, some stake, a reputation of at least Cold), sees qualifying deals, makes offers, opens the line from their own wallet | Take money from the escrow before the buyer releases, or touch more than the assigned payback |
 | Karwan | Matches deals with financiers, shows offers in plain words, keeps the line in step with the chain, writes the outcome to the record | Hold the advance or the repayment. Money moves wallet to wallet and escrow to wallet |
@@ -63,11 +63,16 @@ Numbers are the ones the rehearsal used on Arc Testnet: order 150, advance 120, 
 
 Two kinds of financier from the start: a test financier that Karwan runs, so every qualifying deal can get an offer, and invited partners who fund from their own wallets under the same rules. Both apply through the same desk and meet the same bar.
 
+The test financier offers 80% of what the deal still owes the seller, paid back with 3% of the advance, holding 10% of the advance from the seller's deal guarantee (owner, 29 Oct 2026). On a deal that still owes 150 USDC, that is 120 now and 123.60 back.
+
+A financier whose wallet Karwan holds is charged the moment the seller takes the offer. A financier who pays from their own wallet sees **Pay the seller** on their desk and has 24 hours from the seller's tap; until then the seller sees **Waiting for the financier to pay**. If the 24 hours pass, the seller's signatures expire, nothing was held and nothing moved, and the seller can take another offer.
+
 ## When a deal goes wrong
 
 - **The buyer refunds or a dispute splits the deal short.** The escrow pays what it can to the financier first. The shortfall comes out of the seller's held stake to the financier; anything beyond the stake is recovered off chain under the signed financing agreement.
 - **The seller never delivers.** Same path as a refund: the stake covers the financier first.
-- **The financier never opens the line.** Nothing moves; the signatures expire and the stake is never held.
+- **The financier never opens the line.** Nothing moves; the signatures expire after 24 hours and the guarantee is never held.
+- **Settling.** Once the deal has ended, Karwan settles the line on chain: repaid in full frees the held guarantee; a shortfall is paid to the financier from it. While the deal can still run past the hold, Karwan keeps the hold for longer. Anyone may make both calls; Karwan's operator wallet pays the gas.
 - **What the record keeps.** A line repaid on time counts for the seller. A line that defaulted counts against them, with the reason. Financiers' agents acting on a live deal read the full record for that deal only, logged and deleted after 24 hours (track T3).
 
 ## While the financed deal runs
@@ -111,11 +116,11 @@ The older factoring and purchase-order routes stay readable for past deals and s
 | Contract mechanics: advance, assignment, repaid first, deal guarantee held | Built and tested; proven in the Arc Testnet rehearsal |
 | The seller's deal guarantee on the family vault, which an advance holds (view 37) | Built 29 Oct 2026, not deployed |
 | Contract family deployed once on testnet | Planned (track T2, item 1), after the audit gates, expected by 24 Oct 2026 |
-| App connected to the suite: offers, signatures, line in step with chain | Planned (T4.2, T4.3) |
+| App connected to the suite: offers, signatures, line in step with chain | Built 29 Oct 2026, not deployed: the selling agent signs, a held financier is charged at the tap, an own-wallet financier has 24 hours to Pay the seller, Karwan settles each line when its deal ends; on an Arc fork at block 69,622,426 an advance of 119.40 was paid exactly, the financier was repaid 122.98 first, settling freed the hold, and a refunded deal paid the financier the 11.94 held |
 | Financier follows the deal: Open deals list and deal alerts | Built 20 Oct 2026, not deployed |
 | Offer funded before it goes out; accept checks the financier's money first; offers ranked by financier reputation, then price, with one Recommended | Built 20 Oct 2026, not deployed. Found from a seller whose accept failed: the financier's wallet held 310.97 USDC against offers of 880 and 815 (`routes/factoringFunding.ts`, `routes/factoringRanking.ts`) |
 | Get paid now on the deal page | Built on the current escrow (invoice factoring), not deployed; the new deal page also takes the goods delivery with its tracking number, so a business order no longer drops to the old page. Moves to the suite after the audit |
 | Seller's Activity on a financed deal adds up | Built 22 Oct 2026, not deployed: each deal payment shows what reached the seller and the financier's part reads Repaid to your financier, unsigned. Found on deal 0x756b…: the seller's list showed about 3,865 USDC in against 1,865 received (`routes/activityMovementLedger.ts` netOfFinancierRepayments) |
-| Get paid now in Telegram | Planned (T4.3) |
-| Financier desk to UI law v2 | Planned (T4.3) |
+| Get paid now in Telegram | Built 29 Oct 2026, not deployed: the same cards; Pay the seller opens Karwan for the own-wallet signature |
+| Financier desk to UI law v2 | Started: positions show Pay the seller, Repaid, Closed and what came from the guarantee; the rest of the desk follows |
 | Record counts financed and repaid lines | Planned |
