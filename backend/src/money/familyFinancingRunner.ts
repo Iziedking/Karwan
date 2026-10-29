@@ -57,9 +57,14 @@ export async function runFamilyFinancingPass(deps: RunnerDeps): Promise<void> {
 
 const EVERY_MS = 600_000;
 
+/// The key that pays gas to settle: the yield operator's, never the treasury's.
+export function settleKey(cfg: { OPERATOR_PRIVATE_KEY?: string; USYC_OPERATOR_PRIVATE_KEY?: string }): Hex | null {
+  return (cfg.OPERATOR_PRIVATE_KEY as Hex | undefined) ?? null;
+}
+
 export function startFamilyFinancingRunner(): () => void {
   const ports = familyFinancingPorts;
-  const key = config.USYC_OPERATOR_PRIVATE_KEY as Hex | undefined;
+  const key = settleKey(config);
   if (!ports) return () => {};
   if (!key) {
     logger.warn('financing runner: no operator key, family lines are not settled automatically');

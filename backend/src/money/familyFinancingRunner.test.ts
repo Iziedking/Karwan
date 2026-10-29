@@ -89,3 +89,11 @@ test('a revert is logged and retried next pass, and the other lines still run', 
   assert.equal(logs.length, 1);
   assert.deepEqual(patched.map(([id]) => id), ['o2']);
 });
+
+test('settling pays gas from the yield operator wallet, never the treasury key', async () => {
+  const { settleKey } = await import('./familyFinancingRunner.js');
+  const yieldKey = `0x${'1'.repeat(64)}`;
+  const treasuryKey = `0x${'2'.repeat(64)}`;
+  assert.equal(settleKey({ OPERATOR_PRIVATE_KEY: yieldKey, USYC_OPERATOR_PRIVATE_KEY: treasuryKey }), yieldKey);
+  assert.equal(settleKey({ USYC_OPERATOR_PRIVATE_KEY: treasuryKey }), null);
+});
