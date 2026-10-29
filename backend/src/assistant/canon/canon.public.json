@@ -423,20 +423,21 @@
     },
     {
       "id": "po-financing",
-      "title": "Purchase-order financing",
-      "status": "live",
+      "title": "Getting paid early on a business order",
+      "status": "shipping",
       "updated": "2026-10-29",
       "tags": [
-        "financing"
+        "financing",
+        "testnet"
       ],
       "path": "public/product/po-financing.md",
       "sources": [
         {
-          "url": "https://karwan.site/financier",
-          "date": "2026-07-27"
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/18-trade-finance.md",
+          "date": "2026-10-29"
         }
       ],
-      "body": "Working capital advanced against an accepted purchase order whose escrow the\nbuyer has already funded.\n\nThe advance goes straight to the supplier, in the same transaction that redirects\nthat deal's settlement to the financier. That atomicity is the whole design.\nThere is no state in which the redirect is live and the supplier has not been\npaid, so nothing can strand the advance, and the supplier can spend the capital\nimmediately. An advance they cannot touch until after they deliver is not working\ncapital.\n\nOn settlement the escrow pays the financier ahead of the supplier. If the deal\nsettles short, the shortfall alone is recovered from the supplier's deal\nguarantee, and the rest of it returns to them."
+      "body": "A seller on a business order made on Karwan's newer escrow can be paid before\nthe buyer releases. Purchase-order financing and invoice factoring are the\nsame action, Get paid now, from the moment the order is accepted and paid in:\nbefore delivery, or after it while the buyer reviews or Net terms run.\n\nA financier offers an advance and what they are paid back. When the seller\ntakes the offer, one transaction pays the advance straight to them, assigns\nthe deal's payout to the financier up to the payback, and holds part of the\nseller's deal guarantee, at least a tenth of the advance, until the financier\nis repaid. When the buyer releases, the escrow pays the financier back first\nand the seller the rest. If the deal settles short, the shortfall is paid to\nthe financier from the held guarantee.\n\nA financier whose wallet Karwan holds is charged at the seller's tap. One who\npays from their own wallet has 24 hours to do it; until then nothing is held\nand nothing moves. On Arc Testnet a financier run by Karwan offers on every\norder that asks, alongside invited partners. Orders on the older escrows\nfinish as they are and take no new advances. This is built and not yet on\ntestnet or mainnet."
     },
     {
       "id": "privacy-notice",
@@ -543,7 +544,7 @@
           "date": "2026-10-29"
         }
       ],
-      "body": "Signing up is one page in three parts: your account (an email and a code,\nor a wallet), your Karwan tag, and a few questions about you. Nothing else is\nasked to open an account: no name, address or ID. On mainnet, a licensed\npartner runs an identity check once, and only when a feature needs it.\n\nKarwan sets up your agents on its own when you create your account, so\nthere is nothing to activate. Then your agent asks what you want Karwan to\ndo: get paid for your work, sell products, buy or hire, run business deals,\nor build a record clients trust. It asks only what those answers need: what\nyou do and your usual price on one screen, which it reads back to you as a\nprice range and delivery time, then whether you have clients and how to\nreach you. A line from your agent on each screen says what the answer is for.\n\nWhat you tell your agent sets up your agent and your public profile by\nitself. It shows the result as \"Here's your Karwan\", with the first offer or\nrequest it wrote from your words, and saves nothing until you say it looks\nright. \"Post it on the market now\" is ticked; untick it to post later. The\nsame choices can be made in Telegram, which asks them in its own order, and\nfrom a conversation with your agent.\n\nIf you already agreed a deal with someone and they are paying you, send them\nyour deal link. It opens the deal with you as the seller; they add the amount\nand terms you agreed and pay into the deal, and you accept before anything is\nfinal. Your agent can give you the link.\n\nThree answers change what your agents do. If you only work with clients you\nalready have, your selling agent stays off the market. If you choose \"Ask me\nfirst\" on the summary, it does not make offers on its own: it tells you about\na request that fits and you decide. \"How should we reach you\" picks Telegram,\nemail or both. Money never moves without your confirmation.\n\nThis is built for testnet and not live yet."
+      "body": "Signing up is one page in three parts: your account (an email and a code,\nor a wallet), your Karwan tag, and a few questions about you. Nothing else is\nasked to open an account: no name, address or ID. On mainnet, a licensed\npartner runs an identity check once, and only when a feature needs it.\n\nKarwan sets up your agents on its own when you create your account, so\nthere is nothing to activate. Then your agent asks what you want Karwan to\ndo: get paid for your work, sell products, buy or hire, run business deals,\nor build a record clients trust. It asks only what those answers need: what\nyou do and your usual price on one screen, which it reads back to you as a\nprice range and delivery time, then whether you have clients and how to\nreach you. A line from your agent on each screen says what the answer is for.\n\nWhat you tell your agent sets up your agent and your public profile by\nitself. It shows the result as \"Here's your Karwan\", with the first offer or\nrequest it wrote from your words, and saves nothing until you say it looks\nright. \"Post it on the market now\" is ticked; untick it to post later. The\nsame questions are asked in Telegram, in the same order, with one more at the\nend: which country you are in. They can also be changed from a conversation\nwith your agent.\n\nIf you already agreed a deal with someone and they are paying you, send them\nyour deal link. It opens the deal with you as the seller; they add the amount\nand terms you agreed and pay into the deal, and you accept before anything is\nfinal. Your agent can give you the link.\n\nThree answers change what your agents do. If you only work with clients you\nalready have, your selling agent stays off the market. If you choose \"Ask me\nfirst\" on the summary, it does not make offers on its own: it tells you about\na request that fits and you decide. \"How should we reach you\" picks Telegram,\nemail or both. Money never moves without your confirmation.\n\nThis is built for testnet and not live yet."
     },
     {
       "id": "social-lookups-roadmap",
@@ -1301,27 +1302,24 @@
     },
     {
       "id": "po-financing",
-      "title": "Purchase-order financing",
-      "status": "live",
-      "publishable": true,
-      "blockedBy": "",
+      "title": "Getting paid early on a business order",
+      "status": "shipping",
+      "publishable": false,
+      "blockedBy": "not-live",
       "capability": true,
       "audience": "all",
       "tags": [
-        "financing"
+        "financing",
+        "testnet"
       ],
-      "summary": "Working capital advanced against an accepted purchase order whose escrow the buyer has already funded.",
+      "summary": "A seller on a business order made on Karwan's newer escrow can be paid before the buyer releases. Purchase-order financing and invoice factoring are the same action, Get paid now, from the moment the order is accepted and paid in: before delivery, or after it while the buyer reviews or Net terms run.",
       "sources": [
         {
-          "url": "https://karwan.site/financier",
-          "date": "2026-07-27"
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/18-trade-finance.md",
+          "date": "2026-10-29"
         }
       ],
-      "check": {
-        "kind": "contract",
-        "note": "fund() pays the seller and assigns the receivable in one transaction.",
-        "lastVerified": ""
-      },
+      "check": null,
       "updated": "2026-10-29",
       "path": "public/product/po-financing.md"
     },

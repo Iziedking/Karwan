@@ -7,10 +7,11 @@ import type { OnboardingResult } from './onboarding.js';
 import { renderConfirm, type OutMessage } from './render.js';
 import { CARD_TTL_MS, type ChatAccount, type InboundMessage, type OnboardingState, type SetupQuestion } from './types.js';
 
-/// The setup interview after the tag: the questions /setup asks, in the same
-/// order, ending with Here's your Karwan as a confirm card. Looks right saves
-/// it through the setup route; a first offer or request is offered after that.
-/// The website's order is frontend/features/setup/setupSteps.ts.
+/// The setup interview after the tag: the questions /start?step=about asks, in
+/// the same order, ending with Here's your Karwan as a confirm card. Looks right
+/// saves it through the setup route; a first offer or request is offered after
+/// that. The website's order is frontend/features/setup/setupSteps.ts, and its
+/// defaults for what is not asked are withDefaults there.
 
 export interface InterviewDeps {
   /// Sent when the interview ends: the questions that follow sign-up.
@@ -67,21 +68,36 @@ const CHOICES: Record<ChoiceQuestion, { body: string; options: Array<[string, st
 const isChoice = (q: SetupQuestion): q is ChoiceQuestion => q in CHOICES;
 const text = (body: string): OutMessage => ({ kind: 'text', body });
 
-/// The questions these goals need, in /setup's order.
+/// The questions these goals need, in the website's order. How someone is paid
+/// and how much their agent does alone are not asked (see withDefaults). Where
+/// they are comes last: a chat has no Profile page to add it later, and a goods
+/// seller ships from there.
 export function interviewQuestions(goals: readonly Goal[]): SetupQuestion[] {
   const has = (g: Goal) => goals.includes(g);
   const selling = has('work') || has('sell');
   return [
     'goals',
-    ...(selling ? (['what', 'price', 'paid'] as const) : []),
+    ...(selling ? (['what', 'price'] as const) : []),
     ...(has('buy') ? (['buy'] as const) : []),
     ...(has('business') ? (['business'] as const) : []),
     ...(has('record') ? (['places'] as const) : []),
     ...(selling || has('buy') ? (['clients'] as const) : []),
-    'own',
     'reach',
     'where',
   ];
+}
+
+/// What was not asked starts where the website starts it: paid all at once (on
+/// arrival for someone who only sells goods), and an agent that offers within
+/// the price but asks before any deal. Both change later from Profile.
+export function withDefaults(answers: BriefAnswers): BriefAnswers {
+  const out = { ...answers };
+  const goals = answers.goals;
+  if ((goals.includes('work') || goals.includes('sell')) && !out.paid) {
+    out.paid = goals.includes('sell') && !goals.includes('work') ? 'goods' : 'one_time';
+  }
+  if (!out.own) out.own = 'offers';
+  return out;
 }
 
 function goalsMessage(picked: readonly Goal[], lead?: string): OutMessage {
@@ -127,12 +143,16 @@ export function createInterview<A extends ChatAccount>(deps: InterviewDeps) {
     // The price asked again after the card goes straight back to the card.
     if (q === 'price' && answers.retried) return card(account, answers);
     const order = interviewQuestions(answers.goals);
-    const next = order[order.indexOf(q) + 1];
+    const i = order.indexOf(q);
+    // Someone left at a question the chat no longer asks picks up at the first
+    // one they have not answered.
+    const next = i >= 0 ? order[i + 1] : order.find((s) => s !== 'goals' && answers[s as keyof BriefAnswers] === undefined);
     if (next) return { account: at(account, { step: next, answers }), out: [ask(next, answers)] };
     return card(account, answers);
   }
 
-  async function card(account: A, answers: BriefAnswers): Promise<OnboardingResult<A>> {
+  async function card(account: A, asked: BriefAnswers): Promise<OnboardingResult<A>> {
+    const answers = withDefaults(asked);
     const read = await deps.preview(account.address!, answers).catch(() => null);
     // The account is returned as it came, so the same answer can be sent again.
     if (!read) return { account, out: [text("I couldn't read that just now. Send your last answer again in a minute.")] };

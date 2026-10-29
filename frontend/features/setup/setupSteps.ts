@@ -1,6 +1,6 @@
 /// The setup conversation (docs/architecture/39-start-to-home.md). Only the
-/// questions a person's goals need are asked; the Telegram interview in
-/// backend/src/channels/interview.ts still keeps its own, longer order.
+/// questions a person's goals need are asked. The Telegram interview in
+/// backend/src/channels/interview.ts follows this order and these defaults.
 
 export type Goal = 'work' | 'sell' | 'buy' | 'business' | 'record';
 

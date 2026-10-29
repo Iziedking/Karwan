@@ -41,7 +41,7 @@ A new public page, `/privacy`, linked from sign-up, the terms, the footer and th
 
 ## The assistant and Telegram
 
-The guide learns the new path ("sign-up is on /start: account, tag, a few questions") and the privacy page. The Telegram interview keeps its own order of questions for now. Bringing it to the same shorter order is a follow-up.
+The guide learns the new path ("sign-up is on /start: account, tag, a few questions") and the privacy page. The Telegram interview asks the same questions in the same order, with buttons for the choices, and starts how clients pay and how much the agent does alone from the same defaults. It adds one last question, where you are, because a chat has no Profile page to add it later and a goods seller ships from there.
 
 ## Status
 
