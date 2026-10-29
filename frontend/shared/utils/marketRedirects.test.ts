@@ -21,6 +21,7 @@ test('every old place redirects to its new place, temporarily', () => {
       ['/listings', '/market', false],
       ['/partners', '/market?scope=business', false],
       ['/supply', '/seller', false],
+      ['/onboarding', '/setup', false],
     ],
   );
 });
