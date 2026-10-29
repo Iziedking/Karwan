@@ -23,6 +23,7 @@ import { recordOnTheWayCopy } from './recordOnTheWay';
 import { previousEscrowCopy } from './previousEscrow';
 import { dealGuaranteeCopy } from './dealGuarantee';
 import { contestsCopy } from './contests';
+import { workCopy } from './work';
 import { offersThatMoveCopy } from './offersThatMove';
 import { agentQuestionsCopy } from './agentQuestions';
 import { offerRosterCopy } from './offerRoster';
@@ -71,6 +72,7 @@ export const sw: Messages = {
   previousEscrow: previousEscrowCopy.sw,
   dealGuarantee: dealGuaranteeCopy.sw,
   contests: contestsCopy.sw,
+  work: workCopy.sw,
   offersThatMove: offersThatMoveCopy.sw,
   agentQuestions: agentQuestionsCopy.sw,
   disputeJudge: disputeJudgeCopy.sw,

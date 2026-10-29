@@ -15,7 +15,9 @@ export function StartTradeSheet({ open, onClose }: { open: boolean; onClose: () 
   const entryCopy = TRADE_ENTRY_COPY[locale];
   const copy = entryCopy.desk;
   const routes = tradeEntryRoutes();
-  const contest = useTranslations().contests.start;
+  const all = useTranslations();
+  const contest = all.contests.start;
+  const hourly = all.work.start;
   // A deal already agreed asks who is paying first (view 38).
   const [agreement, setAgreement] = useState(false);
   const close = () => { setAgreement(false); onClose(); };
@@ -24,6 +26,7 @@ export function StartTradeSheet({ open, onClose }: { open: boolean; onClose: () 
     { href: routes.sell, title: copy.sell, body: copy.sellBody, icon: <TagIcon /> },
     { href: null, title: entryCopy.agreement, body: copy.bringAgreementBody, icon: <AgreementIcon /> },
     { href: '/contests/new', title: contest.title, body: contest.body, icon: <PrizeIcon /> },
+    { href: '/work/new', title: hourly.title, body: hourly.body, icon: <ClockIcon /> },
   ];
   const row = 'group flex min-h-[76px] w-full items-center gap-4 px-4 py-3 text-start transition-colors hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)] sm:px-5';
   return (
@@ -61,6 +64,10 @@ function SearchIcon() {
 
 function TagIcon() {
   return <Icon><path d="M3.5 12.6V4.5a1 1 0 0 1 1-1h8.1a1 1 0 0 1 .7.3l7.2 7.2a1 1 0 0 1 0 1.4l-8.1 8.1a1 1 0 0 1-1.4 0l-7.2-7.2a1 1 0 0 1-.3-.7z" /><circle cx="8" cy="8" r="1.4" /></Icon>;
+}
+
+function ClockIcon() {
+  return <Icon><circle cx="12" cy="12" r="8" /><path d="M12 8v4l2.5 2.5" /></Icon>;
 }
 
 function PrizeIcon() {

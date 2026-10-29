@@ -23,6 +23,7 @@ import { recordOnTheWayCopy } from './recordOnTheWay';
 import { previousEscrowCopy } from './previousEscrow';
 import { dealGuaranteeCopy } from './dealGuarantee';
 import { contestsCopy } from './contests';
+import { workCopy } from './work';
 import { offersThatMoveCopy } from './offersThatMove';
 import { agentQuestionsCopy } from './agentQuestions';
 import { offerRosterCopy } from './offerRoster';
@@ -71,6 +72,7 @@ export const ar: Messages = {
   previousEscrow: previousEscrowCopy.ar,
   dealGuarantee: dealGuaranteeCopy.ar,
   contests: contestsCopy.ar,
+  work: workCopy.ar,
   offersThatMove: offersThatMoveCopy.ar,
   agentQuestions: agentQuestionsCopy.ar,
   disputeJudge: disputeJudgeCopy.ar,

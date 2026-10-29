@@ -1390,6 +1390,20 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       CREATE INDEX agent_questions_remind ON agent_questions_v1 (created_at) WHERE state = 'input-required' AND reminded_at IS NULL;
     `,
   },
+  {
+    // Hourly work and monthly retainers on the time escrow (view 32).
+    version: 52,
+    name: 'engagements',
+    sql: `
+      CREATE TABLE engagements (
+        id TEXT PRIMARY KEY,
+        data JSONB NOT NULL
+      );
+      CREATE INDEX engagements_status ON engagements ((data->>'status'));
+      CREATE INDEX engagements_hirer ON engagements (lower(data->>'hirer'));
+      CREATE INDEX engagements_worker ON engagements (lower(data->>'worker'));
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

@@ -8,6 +8,7 @@ import type { MoneyStepConfirm } from './moneyActions.js';
 import type { AccountStepConfirm } from './accountActions.js';
 import type { GuaranteeCancelConfirm, GuaranteeCollectConfirm, GuaranteePutUpConfirm, GuaranteeTakeOutConfirm, LegacyStepConfirm } from './guarantee.js';
 import type { ContestAwardConfirm, ContestCancelConfirm, ContestEnterConfirm, ContestPostConfirm } from './contests.js';
+import type { WorkConfirm } from './work.js';
 import type { FinanceAcceptConfirm, FinanceApplyConfirm, FinanceAskConfirm, FinanceOfferConfirm, FinancePaySellerConfirm, FinanceRejectConfirm, FinanceStopAskingConfirm } from './finance.js';
 
 /// Stage 2 of the chat-native transaction surface: the ACTION ENVELOPE. An
@@ -412,7 +413,8 @@ export type ConfirmAction =
   | ContestPostConfirm
   | ContestEnterConfirm
   | ContestAwardConfirm
-  | ContestCancelConfirm;
+  | ContestCancelConfirm
+  | WorkConfirm;
 
 /// Stage 2 shipped `navigate`; Stages 3-4 add `confirm`. The envelope + renderer
 /// carry the union unchanged as new variants land.

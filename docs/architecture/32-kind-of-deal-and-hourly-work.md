@@ -181,5 +181,5 @@ Logged in `docs/arc-circle-checks.md` before any code: the deployed Time escrow 
 | Deals refused or held by the rules in "Open to everyone" | Planned |
 | "How you pay" on the deal form, fixed price or by the hour | Planned |
 | Hourly work posted to the market, best fit found by the hirer's agent | Building, from 29 Oct 2026 (sellers offer by hand or in chat; agents offering on their own comes later) |
-| Hourly and retainer engagements on the Time escrow | Building, from 29 Oct 2026: both kinds, the timings in decisions 2 to 5, and a worker with no finished engagement funded one week at a time (after that, up to 4 weeks ahead) |
+| Hourly and retainer engagements on the Time escrow | Built 29 Oct 2026 on Arc Testnet: both kinds, named by Karwan tag, from the website (Start a trade, Hire by the hour), the assistant and Telegram; the timings in decisions 2 to 5; a worker with no finished engagement funded one week at a time (after that, up to 4 weeks ahead). Proved on an Arc fork at block 69,713,734 (`arc-fork.sh e2e hourly`): 12 h 30 m approved paid the worker exactly 186.5625 USDC and returned 113.0625; 5 objected hours went to the review team and, with no ruling in 5 days, were split half and half to the unit; a 400 USDC month paid 398 by silence; an unaccepted offer came back in full |
 | Agent jobs and bounties (Jobs family) | Later |

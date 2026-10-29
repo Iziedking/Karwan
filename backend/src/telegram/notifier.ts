@@ -32,6 +32,11 @@ function jobUrl(jobId: string | undefined): string | null {
   return `${config.FRONTEND_BASE_URL.replace(/\/$/, '')}/jobs/${jobId}`;
 }
 
+function workUrl(workId: string | undefined): string | null {
+  if (!workId || !config.FRONTEND_BASE_URL) return null;
+  return `${config.FRONTEND_BASE_URL.replace(/\/$/, '')}/work/${workId}`;
+}
+
 function listingUrl(listingId: string | undefined): string | null {
   if (!listingId || !config.FRONTEND_BASE_URL) return null;
   return `${config.FRONTEND_BASE_URL.replace(/\/$/, '')}/listings/${listingId}`;
@@ -86,6 +91,7 @@ function withLink(text: string, url: string | null): NotifySummary {
 // subscribes on boot and is a no-op when the bot isn't configured.
 
 export const RELEVANT = new Set([
+  'work.update',
   'agent.suggestion',
   'offer.request-changed',
   'deal.review.ending',
@@ -278,6 +284,11 @@ export async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     const seller = (e.payload?.seller as string | undefined)?.toLowerCase();
     const waiting = e.payload?.waitingOn === 'seller' && e.payload?.buyerConfirmed === true;
     return seller && waiting ? [{ address: seller, role: 'seller' }] : [];
+  }
+  // An update on hourly work names the one person it is for.
+  if (e.type === 'work.update') {
+    const owner = (e.payload?.address as string | undefined)?.toLowerCase();
+    return owner ? [{ address: owner, role: 'self' }] : [];
   }
   if (e.type === 'request.shortlist') {
     const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
@@ -964,6 +975,8 @@ ${String(e.payload?.note ?? '').replace(/[*_`[\]]/g, '').slice(0, 300)}`, url)
       const url = dealUrl(e.payload?.dealId as string | undefined);
       return withLink(String(e.payload?.text ?? ''), url ? `${url}#rate` : null);
     }
+    case 'work.update':
+      return withLink(String(e.payload?.text ?? ''), workUrl(e.payload?.workId as string | undefined));
     case 'rating.revealed':
       return withLink(String(e.payload?.text ?? ''), dealUrl(e.payload?.dealId as string | undefined));
     case 'support.reply': {

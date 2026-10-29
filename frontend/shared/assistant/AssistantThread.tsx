@@ -30,7 +30,7 @@ import {
 } from '@/features/profile/config';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { runWalletGuarantee, runWalletLegacyCalls } from '@/features/guarantee/walletGuarantee';
-import type { ContestInput, GuaranteeStep, LegacyStepBody } from '@/core/api';
+import type { ContestInput, GuaranteeStep, LegacyStepBody, WorkInput } from '@/core/api';
 import { buildTransferAuthorization, serializeAuthorization } from '@/features/factoring/usdcAuthorization';
 import type { UsdcAuthorization, UserSettings } from '@/core/api';
 
@@ -685,6 +685,32 @@ async function runConfirmIntent(
     const p = action.payload as { contestId: string };
     await api.cancelContest(p.contestId);
     return { successText: 'Taken back. The prize is back with your agent.', viewHref: '/market', viewLabel: 'Market' };
+  }
+  if (action.intent.startsWith('work_')) {
+    // Hourly work (view 32): the work page's own calls.
+    const p = action.payload as { workId?: string; k?: number; minutes?: number; note?: string; reason?: string };
+    const id = p.workId ?? '';
+    const open = (w: { id: string }, text: string) => ({ successText: text, viewHref: `/work/${w.id}`, viewLabel: 'Open the work' });
+    switch (action.intent) {
+      case 'work_offer':
+        return open((await api.offerWork(action.payload as unknown as WorkInput)).work, 'Offered, and the first one is paid in. I will tell you when they accept.');
+      case 'work_accept':
+        return open((await api.acceptWork(id)).work, 'Accepted. Log your hours as you work; I will remind you before logging closes.');
+      case 'work_decline':
+        return open((await api.declineWork(id)).work, 'Done. The hirer has been told.');
+      case 'work_cancel':
+        return open((await api.cancelWork(id)).work, 'Taken back. The money is on its way back to your agent.');
+      case 'work_notice':
+        return open((await api.noticeWork(id)).work, 'Notice given. You will both be told the last day.');
+      case 'work_fund':
+        return open((await api.fundWork(id)).work, 'Paid in. They can log hours for it once it starts.');
+      case 'work_hours':
+        return open((await api.logHours(id, { minutes: p.minutes ?? 0, note: p.note ?? '', ...(p.k === undefined ? {} : { k: p.k }) })).work, 'Logged. The hirer has been told.');
+      case 'work_approve':
+        return open((await api.approveHours(id, p.k ?? 0)).work, 'Approved, and they are paid.');
+      case 'work_object':
+        return open((await api.objectHours(id, { k: p.k ?? 0, minutes: p.minutes ?? 0, reason: p.reason ?? '' })).work, "Sent. The rest is paid; Karwan's review team decides the hours you objected to.");
+    }
   }
   if (action.intent === 'finance_accept') {
     const p = action.payload as { offerId: string; jobId: string; putUpGap?: boolean };

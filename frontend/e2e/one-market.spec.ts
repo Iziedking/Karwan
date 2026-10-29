@@ -85,7 +85,7 @@ async function fitsTheScreen(page: Page) {
 
 test.describe('one market', () => {
   for (const account of ['signedOut', 'person', 'business'] as const) {
-    test(`${account}: Find lists personal and business offers, and Start a trade offers four ways in`, async ({ page }) => {
+    test(`${account}: Find lists personal and business offers, and Start a trade offers five ways in`, async ({ page }) => {
       const copy = TRADE_ENTRY_COPY.en;
       const { hydrationErrors } = await open(page, account);
       await expect(page.getByText(PERSON_OFFER).first()).toBeVisible();
@@ -94,11 +94,13 @@ test.describe('one market', () => {
 
       await page.getByRole('button', { name: copy.title, exact: true }).click();
       const sheet = page.getByRole('dialog');
-      await expect(sheet.getByRole('link')).toHaveCount(3);
+      await expect(sheet.getByRole('link')).toHaveCount(4);
       await expect(sheet.getByRole('link', { name: new RegExp(copy.desk.need) })).toHaveAttribute('href', '/buyer?mode=managed#new-deal');
       await expect(sheet.getByRole('link', { name: new RegExp(copy.desk.sell) })).toHaveAttribute('href', '/seller#post-listing');
       // A buyer can run a contest instead of choosing one seller (view 40).
       await expect(sheet.getByRole('link', { name: new RegExp(en.contests.start.title) })).toHaveAttribute('href', '/contests/new');
+      // Or hire someone by the hour (view 32).
+      await expect(sheet.getByRole('link', { name: new RegExp(en.work.start.title) })).toHaveAttribute('href', '/work/new');
       // A deal already agreed asks who is paying first (view 38).
       await sheet.getByRole('button', { name: new RegExp(copy.agreement) }).click();
       await expect(sheet.getByText(copy.link.question)).toBeVisible();

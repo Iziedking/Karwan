@@ -225,6 +225,12 @@ export type KarwanEventType =
   | 'contest.awarded'
   | 'contest.cancelled'
   | 'contest.returned'
+  // Hourly work and monthly retainers on the time escrow (view 32).
+  | 'work.update'
+  | 'work.offered'
+  | 'work.accepted'
+  | 'work.objected'
+  | 'work.closed'
   // Verified-business accounts.
   | 'business.registration.submitted'
   | 'business.verified'

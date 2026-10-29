@@ -58,6 +58,8 @@ export type RouteTitleKey =
   | 'guarantee'
   | 'contest'
   | 'runContest'
+  | 'work'
+  | 'hireByHour'
   | 'signIn'
   | 'signUp'
   | 'terms'
@@ -129,6 +131,8 @@ const en: RouteTitleCopy = {
   guarantee: 'Deal guarantee',
   contest: 'Contest',
   runContest: 'Run a contest',
+  work: 'Hourly work',
+  hireByHour: 'Hire by the hour',
   signIn: 'Sign in',
   signUp: 'Sign up',
   terms: 'Terms',
@@ -199,6 +203,8 @@ const ar: RouteTitleCopy = {
   guarantee: 'ضمان الصفقة',
   contest: 'مسابقة',
   runContest: 'أطلق مسابقة',
+  work: 'عمل بالساعة',
+  hireByHour: 'التوظيف بالساعة',
   signIn: 'تسجيل الدخول',
   signUp: 'إنشاء حساب',
   terms: 'الشروط',
@@ -269,6 +275,8 @@ const fr: RouteTitleCopy = {
   guarantee: 'Garantie de transaction',
   contest: 'Concours',
   runContest: 'Lancer un concours',
+  work: "Travail à l'heure",
+  hireByHour: "Embaucher à l'heure",
   signIn: 'Se connecter',
   signUp: 'Créer un compte',
   terms: 'Conditions',
@@ -339,6 +347,8 @@ const hi: RouteTitleCopy = {
   guarantee: 'डील गारंटी',
   contest: 'प्रतियोगिता',
   runContest: 'प्रतियोगिता चलाएँ',
+  work: 'घंटे के हिसाब से काम',
+  hireByHour: 'घंटे के हिसाब से काम पर रखें',
   signIn: 'साइन इन',
   signUp: 'साइन अप',
   terms: 'शर्तें',
@@ -409,6 +419,8 @@ const sw: RouteTitleCopy = {
   guarantee: 'Dhamana ya mpango',
   contest: 'Shindano',
   runContest: 'Endesha shindano',
+  work: 'Kazi ya saa',
+  hireByHour: 'Ajiri kwa saa',
   signIn: 'Ingia',
   signUp: 'Jisajili',
   terms: 'Masharti',

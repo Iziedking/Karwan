@@ -102,6 +102,16 @@ export const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAc
   contest_enter: (p) => ({ method: 'POST', path: `/api/contests/${encodeURIComponent(String(p.contestId))}/entries`, body: { note: p.note, heldFiles: true } }),
   contest_award: (p) => ({ method: 'POST', path: `/api/contests/${encodeURIComponent(String(p.contestId))}/award`, body: { entryIds: p.entryIds } }),
   contest_cancel: (p) => ({ method: 'POST', path: `/api/contests/${encodeURIComponent(String(p.contestId))}/cancel`, body: {} }),
+  // Hourly work (view 32): the work page's calls.
+  work_offer: (p) => ({ method: 'POST', path: '/api/work', body: p }),
+  work_accept: (p) => ({ method: 'POST', path: `/api/work/${encodeURIComponent(String(p.workId))}/accept`, body: {} }),
+  work_decline: (p) => ({ method: 'POST', path: `/api/work/${encodeURIComponent(String(p.workId))}/decline`, body: {} }),
+  work_cancel: (p) => ({ method: 'POST', path: `/api/work/${encodeURIComponent(String(p.workId))}/cancel`, body: {} }),
+  work_notice: (p) => ({ method: 'POST', path: `/api/work/${encodeURIComponent(String(p.workId))}/notice`, body: {} }),
+  work_fund: (p) => ({ method: 'POST', path: `/api/work/${encodeURIComponent(String(p.workId))}/fund`, body: {} }),
+  work_hours: (p) => ({ method: 'POST', path: `/api/work/${encodeURIComponent(String(p.workId))}/hours`, body: { minutes: p.minutes, note: p.note, ...(p.k === undefined ? {} : { k: p.k }) } }),
+  work_approve: (p) => ({ method: 'POST', path: `/api/work/${encodeURIComponent(String(p.workId))}/approve`, body: { k: p.k } }),
+  work_object: (p) => ({ method: 'POST', path: `/api/work/${encodeURIComponent(String(p.workId))}/object`, body: { k: p.k, minutes: p.minutes, reason: p.reason } }),
   // Placeholder so the route table knows the intent; fundDirect runs it.
   fund_direct_deal: (p) => ({ method: 'POST', path: `/api/deals/direct/${p.jobId}/fund` }),
   // A held wallet needs the person to confirm it is them, which happens on Karwan.
@@ -325,6 +335,15 @@ const DONE: Partial<Record<ConfirmAction['intent'], string>> = {
   contest_enter: 'You are in. The buyer sees your preview; your files go to them only if you win.',
   contest_award: 'Paid. The winners have their prize and their files are yours.',
   contest_cancel: 'Taken back. The prize is back with your agent.',
+  work_offer: 'Offered, and the first one is paid in. I will tell you when they accept.',
+  work_accept: 'Accepted. Log your hours as you work; I will remind you before logging closes.',
+  work_decline: 'Done. The hirer has been told.',
+  work_cancel: 'Taken back. The money is on its way back to your agent.',
+  work_notice: 'Notice given. You will both be told the last day.',
+  work_fund: 'Paid in. They can log hours for it once it starts.',
+  work_hours: 'Logged. The hirer has been told.',
+  work_approve: 'Approved, and they are paid.',
+  work_object: "Sent. The rest is paid; Karwan's review team decides the hours you objected to.",
 };
 
 const OWN_WALLET_SIGNS = new Set<ConfirmAction['intent']>(['guarantee_put_up', 'guarantee_take_out', 'guarantee_cancel_take_out', 'guarantee_collect', 'legacy_step']);

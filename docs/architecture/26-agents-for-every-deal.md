@@ -19,8 +19,8 @@ The escrow covers eleven shapes ([view 07](07-escrow.md), table 1), held by thre
 | Pay on delivery | Replaces cash on delivery | Agreement family, built, not deployed |
 | Instalments | A fridge in four parts | Agreement family, built, not deployed |
 | Business order, net terms | 200 T-shirts, Net 30 | Agreement family with trade finance, built, not deployed |
-| Hourly or weekly | A virtual assistant, 20 hours a week | Time family, built, not deployed |
-| Retainer | Monthly social media | Time family, built, not deployed |
+| Hourly or weekly | A virtual assistant, 20 hours a week | Time family, on Arc Testnet and in the app (view 32) |
+| Retainer | Monthly social media | Time family, on Arc Testnet and in the app (view 32) |
 | Agent-to-agent job | An agent hires another | Jobs family, built, not deployed |
 | Bounty or contest | Best logo, three places | Jobs family on Arc Testnet; contests built 29 Oct 2026, not deployed (view 40) |
 

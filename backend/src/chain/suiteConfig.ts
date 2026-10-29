@@ -38,6 +38,7 @@ type SuiteEnv = {
   KARWAN_SUITE_TRADE_FINANCE_ADDR?: string;
   KARWAN_SUITE_VAULT_ADDR?: string;
   KARWAN_SUITE_JOBS_ADDR?: string;
+  KARWAN_SUITE_TIME_ADDR?: string;
 };
 
 export function suiteAddresses(cfg: SuiteEnv = config): SuiteAddresses | null {
@@ -68,6 +69,13 @@ export function suiteVaultAddress(cfg: SuiteEnv = config): Hex | null {
 export function suiteJobsAddress(cfg: SuiteEnv = config): Hex | null {
   if (!cfg.SUITE_ENABLED || !cfg.KARWAN_SUITE_JOBS_ADDR) return null;
   return cfg.KARWAN_SUITE_JOBS_ADDR as Hex;
+}
+
+/// The family's time escrow, which holds hourly work and monthly retainers
+/// (view 32). Null until the address is set, so the routes stay off.
+export function suiteTimeAddress(cfg: SuiteEnv = config): Hex | null {
+  if (!cfg.SUITE_ENABLED || !cfg.KARWAN_SUITE_TIME_ADDR) return null;
+  return cfg.KARWAN_SUITE_TIME_ADDR as Hex;
 }
 
 export interface VaultReads {

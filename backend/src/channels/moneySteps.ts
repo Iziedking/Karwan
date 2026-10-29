@@ -24,6 +24,11 @@ export const MONEY_INTENTS: ReadonlySet<ConfirmAction['intent']> = new Set<Confi
   'contest_post',
   'contest_award',
   'contest_cancel',
+  'work_offer',
+  'work_fund',
+  'work_approve',
+  'work_object',
+  'work_cancel',
   'claim_payment',
   'take_back_deal',
   'accept_offer',
@@ -60,6 +65,22 @@ export function moneyStepPath(action: ConfirmAction): string | null {
     case 'contest_cancel': {
       const id = (action.payload as { contestId?: unknown }).contestId;
       return typeof id === 'string' && /^c_[A-Za-z0-9_-]{1,40}$/.test(id) ? `/contests/${id}` : null;
+    }
+    case 'work_offer': {
+      const p = action.payload as { worker?: string; kind?: string; rateUsdc?: string; maxHours?: number; periods?: number; startsInDays?: number; title?: string; brief?: string };
+      if (!p.worker || !p.kind || !p.rateUsdc || !p.periods || !p.title) return null;
+      const q = new URLSearchParams({
+        to: p.worker, kind: p.kind, rate: p.rateUsdc, periods: String(p.periods), title: p.title,
+        ...(p.maxHours ? { hours: String(p.maxHours) } : {}), ...(p.startsInDays ? { starts: String(p.startsInDays) } : {}), ...(p.brief ? { brief: p.brief } : {}),
+      });
+      return `/work/new?${q.toString()}`;
+    }
+    case 'work_fund':
+    case 'work_approve':
+    case 'work_object':
+    case 'work_cancel': {
+      const id = (action.payload as { workId?: unknown }).workId;
+      return typeof id === 'string' && /^w_[A-Za-z0-9_-]{1,40}$/.test(id) ? `/work/${id}` : null;
     }
     case 'approve_match':
     case 'choose_offer':

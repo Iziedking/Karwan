@@ -14,8 +14,8 @@ Looked at from emerging markets first, where cash on delivery, "pay small small"
 | Fixed price, milestones | Website in three stages | Funded upfront, released stage by stage after review | v3, up to 5 milestones |
 | Physical goods with delivery | Wig from Lagos to Abuja | Held until the buyer has the item; review starts on arrival | v3 `ON_ARRIVAL` |
 | Pay on delivery, prepaid | Replaces cash on delivery | Held until the buyer taps "Received" at handover, which signs a release the app or the courier submits | Built, not deployed |
-| Hourly or weekly time | Virtual assistant, 20 h a week at 8 USDC | Weekly budget held; hours submitted with a work log; buyer reviews; approved hours paid, unused returned or rolled | Built, not deployed: Time family |
-| Retainer or subscription | Monthly social media management | One period funded at a time; paid once the worker claims the period and the review passes, unless disputed; either side can end with notice | Built, not deployed: Time family |
+| Hourly or weekly time | Virtual assistant, 20 h a week at 8 USDC | Weekly budget held; hours submitted with a work log; buyer reviews; approved hours paid, unused returned or rolled | On Arc Testnet: Time family, in the app since 29 Oct 2026 (website, assistant, Telegram) |
+| Retainer or subscription | Monthly social media management | One period funded at a time; paid once the worker claims the period and the review passes, unless disputed; either side can end with notice | On Arc Testnet: Time family, in the app since 29 Oct 2026 (website, assistant, Telegram) |
 | Agent-to-agent job | An agent hires another to summarise filings | Budget held; the provider submits; the evaluator completes or rejects, and silence pays once the review ends; a rejection of submitted work can be disputed; the standard ERC-8183 interface | Built, not deployed: Jobs family |
 | Bounty or contest | Best logo, three places | Prize held; entries before the deadline; the evaluator awards the places from the entries; a bounty not awarded in time goes back | Jobs family on Arc Testnet; contests in the app built 29 Oct 2026, not deployed (view 40) |
 | Instalments, lay-by | Fridge paid in four parts | Buyer pays equal parts into escrow; the seller delivers once the last part is in; a missed part ends the plan with the cancellation fee agreed upfront | Built, not deployed |
@@ -207,7 +207,7 @@ Rulings only ever split a leg's unreleased money between the two parties, carry 
 | Signed release at handover (replaces the delivery code) | Built, not deployed | Agreement family |
 | Disputes: arbiter proposal, 72-hour appeal, reviewer ruling within 5 days, fallback in the terms | Built, not deployed | Agreement family, shared dispute library |
 | Up to 12 tranches, seller accept deadline, seller extension request | Built, not deployed | Agreement family |
-| Hourly and weekly time | Built, not deployed | Time family |
+| Hourly and weekly time | On Arc Testnet, in the app (view 32) | Time family |
 | Instalments | Built, not deployed | Agreement family |
-| Retainers | Built, not deployed | Time family |
+| Retainers | On Arc Testnet, in the app (view 32) | Time family |
 | Streaming for trusted retainers | Later | Sablier Flow style, only after the period model proves out |

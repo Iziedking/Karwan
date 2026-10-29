@@ -33,6 +33,11 @@ import { guaranteeVaultAbi } from '../chain/guaranteeVault.js';
 import { financeableAbi, tradeFinanceAbi, vaultReservationAbi } from '../chain/tradeFinance.js';
 import type { FactoringOffer } from '../db/factoring.js';
 import { awardCall, contestPayouts, enterCall, openBountyCalls, proveAwarded, proveEntered, proveOpened, proveRefunded, refundCall } from '../chain/jobEscrow.js';
+import {
+  acceptCall, applyFallbackCall, approveCall, buildTimeTerms, cancelOfferCall, closeCall, fundCalls, grossOf, objectCall, offerCalls, payFor,
+  proveAccepted, proveApproved, proveCancelled, proveClosed, proveFunded, proveObjected, proveOffered, proveSettled, proveSubmitted,
+  settleCall, submitCall, timeEscrowAbi, timeTermsHash, weekCost,
+} from '../chain/timeEscrow.js';
 import { createFamilyFinancing, testFinancierTerms, type FamilyFinancingPorts } from '../money/familyFinancing.js';
 
 /// The escrow-family path end to end on an Arc fork of the deployed suite
@@ -838,6 +843,111 @@ async function contestRun(): Promise<void> {
   check('a contest nobody picked comes back in full, prize and fee, to the buyer', back === 50_250_000n && delta === back, `${back} back, balance +${delta}, tx ${returned.transactionHash}`);
 }
 
+/// Hourly work and retainers on the time escrow (view 32): two weeks by the
+/// hour (one approved, one with hours objected to and settled by the
+/// fallback), a monthly retainer paid by silence, and an offer nobody
+/// accepted taken back in full. Every amount is checked to the unit.
+async function hourlyRun(): Promise<void> {
+  const hubAbi = parseAbi([
+    'struct OpeningConfig { bool open; uint16 feeBps; address feeRecipient; uint128 perDealCap; uint128 highValue; address reviewSafe; address seniorSafe; address autoArbiter; uint16 yieldBps; }',
+    'function openingConfig(address family, address asset) view returns (OpeningConfig)',
+  ]);
+  const escrow = D.time!;
+  const cfg = await pub.readContract({ address: D.hub!, abi: hubAbi, functionName: 'openingConfig', args: [escrow, USDC] });
+  check('the hub opens the time escrow for USDC', cfg.open, `fee ${cfg.feeBps} bps, cap ${cfg.perDealCap}`);
+  if (!cfg.open) return;
+  const acct: Record<string, LocalAccount> = {};
+  for (const id of ['hirer', 'worker', 'anyone']) {
+    acct[id] = privateKeyToAccount(generatePrivateKey());
+    await anvil.setBalance({ address: acct[id]!.address, value: 5_000n * 10n ** 18n });
+  }
+  const send = async (id: string, call: { to: Hex; data: Hex }) => {
+    const hash = await createWalletClient({ account: acct[id]!, chain, transport: http(RPC) }).sendTransaction({ to: call.to, data: call.data, account: acct[id]!, chain });
+    const receipt = await pub.waitForTransactionReceipt({ hash });
+    if (receipt.status !== 'success') throw new Error(`hourly call reverted (${hash})`);
+    return receipt;
+  };
+  const balance = (who: Hex) => pub.readContract({ address: USDC, abi: erc20Abi, functionName: 'balanceOf', args: [who] });
+  const hirer = acct.hirer!.address;
+  const worker = acct.worker!.address;
+  const fee = cfg.feeBps;
+  const salt = (n: number) => `0x${n.toString(16).padStart(64, '0')}` as Hex;
+  const agreementHash = `0x${'ab'.repeat(32)}` as Hex;
+
+  const open = async (kind: 'hourly' | 'monthly', rateMicros: bigint, maxHours: number, periods: number, n: number) => {
+    const startsAt = BigInt((await chainNow()) + 3_600);
+    const terms = buildTimeTerms({ kind, asset: USDC, worker, rateMicros, maxHours, periods, startsAt, agreementHash });
+    const total = weekCost(terms, fee).total;
+    const calls = offerCalls({ escrow, usdc: USDC, salt: salt(n), terms, feeBps: fee });
+    await send('hirer', calls[0]!);
+    const r = await send('hirer', calls[1]!);
+    const id = proveOffered(r, { escrow, employer: hirer, worker, termsHash: timeTermsHash(terms), total });
+    return { id, terms, total, startsAt: Number(startsAt) };
+  };
+
+  // Two weeks at 15 an hour, up to 20 hours a week.
+  const h = await open('hourly', 15_000_000n, 20, 2, 1);
+  check('the work is offered with week 1 paid in', h.total === 301_500_000n, `id ${h.id}, ${h.total}`);
+  proveAccepted(await send('worker', acceptCall(escrow, h.id, timeTermsHash(h.terms))), { escrow, id: h.id });
+  const week = h.terms.cycleSecs;
+  await warp(h.startsAt + DAY - (await chainNow()));
+  const evidence = `0x${'cd'.repeat(32)}` as Hex;
+  proveSubmitted(await send('worker', submitCall(escrow, h.id, 0, 750, evidence)), { escrow, id: h.id, k: 0, units: 750, evidence });
+  const w0 = await balance(worker);
+  const paidOnApproval = proveApproved(await send('hirer', approveCall(escrow, h.id, 0, 750)), { escrow, id: h.id, k: 0, units: 750, worker });
+  const expect0 = payFor(h.terms, fee, 750, h.total);
+  check('approving 12 h 30 m pays the worker exactly, at once', paidOnApproval === expect0.net && (await balance(worker)) - w0 === expect0.net, `${paidOnApproval} (want ${expect0.net})`);
+  await warp(h.startsAt + week + h.terms.claimGrace - (await chainNow()));
+  const hb = await balance(hirer);
+  const s0 = proveSettled(await send('anyone', settleCall(escrow, h.id, 0)), { escrow, id: h.id, k: 0, worker });
+  check('week 1 settles and the unused budget goes back to the hirer', s0.back === expect0.back && (await balance(hirer)) - hb === expect0.back, `${s0.back} back (want ${expect0.back})`);
+
+  const fund = fundCalls({ escrow, usdc: USDC, id: h.id, terms: h.terms, feeBps: fee });
+  await send('hirer', fund[0]!);
+  proveFunded(await send('hirer', fund[1]!), { escrow, id: h.id, k: 1, total: h.total });
+  check('week 2 is paid in', true);
+  proveSubmitted(await send('worker', submitCall(escrow, h.id, 1, 1200, evidence)), { escrow, id: h.id, k: 1, units: 1200, evidence });
+  await warp(h.startsAt + 2 * week + h.terms.claimGrace - (await chainNow()));
+  const w1 = await balance(worker);
+  const rest = proveObjected(await send('hirer', objectCall(escrow, h.id, 1, 300, `0x${'ee'.repeat(32)}`)), { escrow, id: h.id, k: 1, units: 300, worker });
+  const expectRest = payFor(h.terms, fee, 900, h.total).net;
+  check('objecting to 5 hours pays the other 15 at once', rest === expectRest && (await balance(worker)) - w1 === expectRest, `${rest} (want ${expectRest})`);
+  await anvil.impersonateAccount({ address: cfg.autoArbiter });
+  await anvil.setBalance({ address: cfg.autoArbiter, value: 10n ** 18n });
+  const esc = await createWalletClient({ account: cfg.autoArbiter, chain, transport: http(RPC) }).writeContract({ address: escrow, abi: timeEscrowAbi, functionName: 'escalate', args: [h.id, 1], account: cfg.autoArbiter, chain });
+  check('Karwan takes the objected hours to the review team', (await pub.waitForTransactionReceipt({ hash: esc })).status === 'success', `tx ${esc}`);
+  await anvil.stopImpersonatingAccount({ address: cfg.autoArbiter });
+  await warp(5 * DAY + 1);
+  const w2 = await balance(worker);
+  const fb = proveSettled(await send('anyone', applyFallbackCall(escrow, h.id, 1)), { escrow, id: h.id, k: 1, worker });
+  // 15 hours plus half of the 5 objected: 17.5 hours gross.
+  const gross = grossOf(h.terms, 900) + (grossOf(h.terms, 1200) - grossOf(h.terms, 900)) / 2n;
+  const f = (gross * BigInt(fee)) / 10_000n;
+  const fallbackNet = gross - (f - f / 2n) - expectRest;
+  check('with no ruling in 5 days, the objected hours are split half and half, exactly', fb.gross === gross && fb.paidNow === fallbackNet && (await balance(worker)) - w2 === fallbackNet, `${fb.paidNow} (want ${fallbackNet}), gross ${fb.gross}`);
+  const closed = proveClosed(await send('anyone', closeCall(escrow, h.id)), { escrow, id: h.id });
+  check('the work closes and its record is written', closed.paidGross === grossOf(h.terms, 750) + gross, `paid gross ${closed.paidGross}`);
+
+  // A monthly retainer of 400 USDC, claimed and paid by silence.
+  const m = await open('monthly', 400_000_000n, 1, 1, 2);
+  await send('worker', acceptCall(escrow, m.id, timeTermsHash(m.terms)));
+  await warp(m.startsAt + m.terms.cycleSecs - (await chainNow()));
+  await send('worker', submitCall(escrow, m.id, 0, 1, evidence));
+  await warp(m.terms.claimGrace + m.terms.reviewWindow + 1);
+  const wm = await balance(worker);
+  const sm = proveSettled(await send('anyone', settleCall(escrow, m.id, 0)), { escrow, id: m.id, k: 0, worker });
+  check('a retainer month is paid in full by silence when review ends', sm.paidNow === 398_000_000n && (await balance(worker)) - wm === 398_000_000n, `${sm.paidNow}`);
+
+  // An offer nobody accepts comes back in full.
+  const lapsed = await open('hourly', 10_000_000n, 5, 1, 3);
+  await warp(3_601);
+  // The hirer sends this one and pays its gas in USDC, so the escrow's own
+  // refund and state are the measure, not the hirer's balance.
+  const back = proveCancelled(await send('hirer', cancelOfferCall(escrow, lapsed.id)), { escrow, id: lapsed.id });
+  const gone = await pub.readContract({ address: escrow, abi: timeEscrowAbi, functionName: 'getEngagement', args: [lapsed.id] });
+  check('an offer nobody accepted is taken back in full', back === lapsed.total && gone.state === 4, `${back} back, state ${gone.state}`);
+}
+
 async function main(): Promise<void> {
   console.log(`suite fork e2e, ${phase}, block ${await pub.getBlockNumber()}`);
   await parity();
@@ -845,6 +955,7 @@ async function main(): Promise<void> {
   if (phase === 'guarantee') await guaranteeRun();
   if (phase === 'financing') await financingRun();
   if (phase === 'contest') await contestRun();
+  if (phase === 'hourly') await hourlyRun();
   console.log(failed === 0 ? 'all checks passed' : `${failed} check(s) failed`);
   process.exit(failed === 0 ? 0 : 1);
 }
