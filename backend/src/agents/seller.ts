@@ -1142,6 +1142,23 @@ async function evaluateAndBid(profile: SellerProfile, job: JobContext) {
   }
 
   if (!limits.act) {
+    if (limits.kind === 'polite-no') {
+      // Under the level the person set for not being asked (view 41): a no with
+      // the door open, counted for their daily summary, never a question.
+      bus.emitEvent({
+        type: 'agent.declined',
+        jobId: job.jobId,
+        actor: 'seller',
+        payload: {
+          seller: seller.address,
+          reason: 'no-ask-below',
+          polite: true,
+          detail: 'The budget is under the level the seller set for not being asked.',
+          reasonLine: fallbackReason({ move: 'declined', priceUsdc: Number(limits.suggested.priceUsdc) }),
+        },
+      });
+      return;
+    }
     await askSellerOwner(seller, job, limits.kind, limits.suggested, limits.limit);
     return;
   }
@@ -1655,6 +1672,24 @@ async function runCounterEvaluation(
   };
 
   if (move.kind === 'ask') {
+    const noAsk = (seller.noAskBelowUsdc ?? 0) * orderSize(seller, active.jobContext);
+    if (noAsk > 0 && theirPrice < noAsk) {
+      // Under the no-ask level: a polite no, the offer stays as it is (view 41).
+      active.finalized = true;
+      bus.emitEvent({
+        type: 'agent.declined',
+        jobId: args.jobId,
+        actor: 'seller',
+        payload: {
+          seller: seller.address,
+          reason: 'no-ask-below',
+          polite: true,
+          detail: 'The counter is under the level the seller set for not being asked.',
+          reasonLine: fallbackReason({ move: 'declined', priceUsdc: Number(active.lastBidPrice) }),
+        },
+      });
+      return;
+    }
     await askAtFloor(seller, active, buyerCounterPrice, minAcceptable, 'last-price-passed');
     return;
   }

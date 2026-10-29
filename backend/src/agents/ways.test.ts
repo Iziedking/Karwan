@@ -67,6 +67,14 @@ test('ways saved with a range become lowest and usual, once', () => {
   assert.equal((saved.sell[0] as { priceUsual: number }).priceUsual, 30);
 });
 
+test('a way can carry the level under which the agent says no politely, never above its lowest', () => {
+  const band = { shape: 'one_time' as const, priceMin: 20, priceUsual: 30, noAskBelow: 15, daysMin: 1, daysMax: 3 };
+  assert.equal(waysSchema.safeParse({ sell: [band], buy: [] }).success, true);
+  assert.equal(waysSchema.safeParse({ sell: [{ ...band, noAskBelow: 25 }], buy: [] }).success, false);
+  assert.equal(withWayLimits({ minBudgetUsdc: 1, maxBudgetUsdc: 1, minDeadlineDays: 1, maxDeadlineDays: 1 }, band).noAskBelowUsdc, 15);
+  assert.equal(wayLines({ sell: [band], buy: [] })[0], 'Selling, one-time: usually 30 USDC, lowest 20, not asked under 15 USDC, done in 1 to 3 days');
+});
+
 test('a goods way can be priced per item, and says so', () => {
   const perItem = { shape: 'goods' as const, what: 'Wigs', priceMin: 80, priceUsual: 190, perItem: true, shipsTo: 'Lagos', arriveDaysMin: 2, arriveDaysMax: 5 };
   assert.equal(waysSchema.safeParse({ sell: [perItem], buy: [] }).success, true);

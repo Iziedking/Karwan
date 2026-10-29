@@ -5,6 +5,7 @@ import type { BriefAnswers } from '../agents/agentBriefLines.js';
 import { firstPost } from '../agents/firstPost.js';
 import type { UserLocale, UserProfile } from '../db/profiles.js';
 import { legacyFromWays, upgradeWays, waysSchema, wayLines } from '../agents/ways.js';
+import type { Suggestion } from '../agents/learned.js';
 
 /// The setup conversation after activation (view 19). The answers are read on
 /// the server: preview shows what they set up, save stores what the server
@@ -39,6 +40,8 @@ export interface SetupRouteDeps {
   now: () => number;
   /// A selling way was saved: the seller is matched against open requests now (view 41).
   sellerSaved?: (address: string) => void;
+  /// What the person's agent learned and suggests (view 41); nothing applied.
+  learned?: (address: string) => Promise<Suggestion[]>;
 }
 
 const LIMIT = 20;
@@ -117,6 +120,27 @@ export function createSetupRoutes(deps: SetupRouteDeps): Hono {
     if (!profile) return c.json({ error: 'profile not found' }, 404);
     if (ways.sell.length) deps.sellerSaved?.(address);
     return c.json({ profile, lines: wayLines(ways) });
+  });
+
+  /// What the agent learned from the person's own history, as suggestions they
+  /// confirm through the same cards; a no is remembered (view 41).
+  app.get('/suggestions', async (c) => {
+    const address = (await deps.sessionAddress(c))?.toLowerCase();
+    if (!address) return c.json({ error: 'not authenticated' }, 401);
+    return c.json({ suggestions: deps.learned ? await deps.learned(address) : [] });
+  });
+
+  app.post('/dismiss-suggestion', async (c) => {
+    const address = (await deps.sessionAddress(c))?.toLowerCase();
+    if (!address) return c.json({ error: 'not authenticated' }, 401);
+    const parsed = z.object({ key: z.string().trim().min(1).max(80) }).safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: 'invalid key' }, 400);
+    const current = await deps.current(address);
+    if (!current) return c.json({ error: 'profile not found' }, 404);
+    const dismissed = Array.from(new Set([...(current.agentPrefs?.dismissedSuggestions ?? []), parsed.data.key]));
+    const profile = await deps.save(address, { agentPrefs: { ...(current.agentPrefs ?? {}), dismissedSuggestions: dismissed } });
+    if (!profile) return c.json({ error: 'profile not found' }, 404);
+    return c.json({ ok: true, dismissed });
   });
 
   return app;

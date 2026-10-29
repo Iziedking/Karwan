@@ -49,7 +49,8 @@ import { getBuyerSnapshot } from '../agents/buyer.js';
 import { getSellerSnapshot } from '../agents/seller.js';
 import { getFactoringOffer, listOffersBySeller, listOffersByFinancier } from '../db/factoring.js';
 import { listLinesBySeller, listLinesByFinancier } from '../db/poFinancing.js';
-import { getProfile, type UserLocale } from '../db/profiles.js';
+import { getProfile, updateProfile, type UserLocale } from '../db/profiles.js';
+import { learnedFor } from '../agents/learnedLive.js';
 import { extractKeywords } from '../llm/keywords.js';
 import { readSourceUsdcBalance } from '../chain/cctpClients.js';
 import { readSolanaHolding } from '../chain/solanaBalances.js';
@@ -1048,6 +1049,84 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant set_way_i_deal failed');
           return { error: 'Could not read that just now. Try again shortly.' };
+        }
+      },
+    }),
+
+    list_learned_suggestions: tool({
+      description:
+        "What this person's agent learned from their own history and suggests, never applied by itself (view 41): a way to save after they said yes to a request of a kind they had not set up, a new usual price after three agreed deals, or a level under which to stop asking after three no answers. Use for 'anything to improve my setup', 'what has my agent learned', or after a deal settles.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        try {
+          const list = await learnedFor(address);
+          return {
+            suggestions: list.map((s) => ({ key: s.key, line: s.line })),
+            note: list.length
+              ? 'Say each line as a question. A yes goes through propose_learned_change with its key; a no through dismiss_learned_suggestion. Never show the key.'
+              : 'Nothing to suggest yet; say so plainly.',
+          };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant list_learned_suggestions failed');
+          return { error: 'Could not read that just now. Try again shortly.' };
+        }
+      },
+    }),
+
+    propose_learned_change: tool({
+      description:
+        "Prepare the confirm card for one learned suggestion, by its key from list_learned_suggestions. A new goods way needs where they ship (shipsTo); ask before calling. Shows the same How your agents deal card; nothing is saved until they confirm.",
+      inputSchema: z.object({ key: z.string().min(1).max(80), shipsTo: z.string().max(120).optional() }),
+      execute: async ({ key, shipsTo }) => {
+        try {
+          const saved = await getProfile(address);
+          if (!saved) return { error: 'They have no profile yet. They need to finish signing up first.' };
+          const s = (await learnedFor(address)).find((x) => x.key === key);
+          if (!s) return { error: 'That suggestion is no longer there. Call list_learned_suggestions again.' };
+          const current = waysOf(saved);
+          const days = { min: saved.seller?.minDeadlineDays ?? 1, max: Math.max(saved.seller?.minDeadlineDays ?? 1, saved.seller?.maxDeadlineDays ?? 7) };
+          let next: { sell: typeof current.sell; buy: typeof current.buy };
+          if (s.kind === 'new-way') {
+            if (s.shape === 'goods') {
+              const place = (shipsTo ?? '').trim();
+              if (!place) return { needs: ['shipsTo'], note: 'Ask where they ship these goods, then call this again.' };
+              next = withWay(current, 'sell', 'goods', { shape: 'goods', what: s.what.slice(0, 120), priceMin: s.priceUsdc, priceUsual: s.priceUsdc, perItem: true, shipsTo: place, arriveDaysMin: days.min, arriveDaysMax: days.max });
+            } else {
+              next = withWay(current, 'sell', 'one_time', { shape: 'one_time', priceMin: s.priceUsdc, priceUsual: s.priceUsdc, daysMin: days.min, daysMax: days.max });
+            }
+          } else if (s.kind === 'usual-price') {
+            const way = current.sell.find((w) => w.shape === s.shape);
+            if (!way || way.shape === 'deposit') return { error: 'That way is no longer saved. Call list_learned_suggestions again.' };
+            next = withWay(current, 'sell', s.shape, { ...way, priceUsual: s.priceUsdc, priceMin: Math.min(way.priceMin, s.priceUsdc) });
+          } else {
+            next = { sell: current.sell.map((w) => (w.shape === 'deposit' ? w : { ...w, noAskBelow: Math.min(s.priceUsdc, w.priceMin) })), buy: current.buy };
+          }
+          const parsed = waysSchema.safeParse(next);
+          if (!parsed.success) return { error: 'That could not be saved as it is. Ask them to say it in plain words and use set_way_i_deal.' };
+          const lines = wayLines(parsed.data);
+          const card = buildSaveWaysConfirm(parsed.data, lines);
+          if (!hasEquivalentConfirm(actions, card)) actions.push(card);
+          return { ok: true, shown: card.title, lines };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant propose_learned_change failed');
+          return { error: 'Could not read that just now. Try again shortly.' };
+        }
+      },
+    }),
+
+    dismiss_learned_suggestion: tool({
+      description: 'The person said no to a learned suggestion, by its key: remembered, so their agent does not suggest it again. Saves nothing else.',
+      inputSchema: z.object({ key: z.string().min(1).max(80) }),
+      execute: async ({ key }) => {
+        try {
+          await updateProfile(address, (current) => ({
+            ...current,
+            agentPrefs: { ...(current.agentPrefs ?? {}), dismissedSuggestions: Array.from(new Set([...(current.agentPrefs?.dismissedSuggestions ?? []), key])) },
+          }));
+          return { ok: true, note: 'Say it will not be suggested again.' };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant dismiss_learned_suggestion failed');
+          return { error: 'Could not save that just now. Try again shortly.' };
         }
       },
     }),

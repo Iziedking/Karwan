@@ -5,7 +5,9 @@
 
 /// There is no price-above-usual: a budget above the usual price is an offer,
 /// opened from the usual price (view 41, decision 1).
-export type LimitKind = 'no-way' | 'price-below-floor' | 'time';
+/// polite-no: under the level the person set for not being asked, the agent
+/// says no with the door open instead of asking (view 41, decision 3).
+export type LimitKind = 'no-way' | 'price-below-floor' | 'time' | 'polite-no';
 
 export type LimitDecision =
   | { act: true }
@@ -20,7 +22,7 @@ export function orderSize(seller: { pricesPerItem?: boolean }, job: { quantity?:
 }
 
 export function limitDecision(input: {
-  seller: { minBudgetUsdc: number; minDeadlineDays: number; maxDeadlineDays: number; pricesPerItem?: boolean };
+  seller: { minBudgetUsdc: number; minDeadlineDays: number; maxDeadlineDays: number; pricesPerItem?: boolean; noAskBelowUsdc?: number };
   job: { budgetUsdc: string; deadlineUnix: number; quantity?: { count: number; unit: string | null } | null };
   nowUnix: number;
   /// False when the request is of a kind the person has no way to deal for.
@@ -33,6 +35,10 @@ export function limitDecision(input: {
   // A goods way priced per item against a request that names a count: the
   // floor for the order is the floor times the count (view 41).
   const floor = seller.minBudgetUsdc * orderSize(seller, input.job);
+  const noAsk = (seller.noAskBelowUsdc ?? 0) * orderSize(seller, input.job);
+  if (noAsk > 0 && budget < noAsk) {
+    return { act: false, kind: 'polite-no', suggested: { priceUsdc: money(floor), days }, limit: Number(noAsk.toFixed(2)) };
+  }
   if (budget < floor) {
     return { act: false, kind: 'price-below-floor', suggested: { priceUsdc: money(floor), days }, limit: Number(floor.toFixed(2)) };
   }

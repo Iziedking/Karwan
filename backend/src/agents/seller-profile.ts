@@ -15,6 +15,8 @@ export interface SellerProfile {
   usualPriceUsdc?: number;
   /// The floor and the usual price are per item (a goods way, view 41).
   pricesPerItem?: boolean;
+  /// Under this the agent says no politely instead of asking (view 41, decision 3).
+  noAskBelowUsdc?: number;
   minDeadlineDays: number;
   maxDeadlineDays: number;
   confidenceThreshold: number;

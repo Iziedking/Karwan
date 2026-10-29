@@ -40,6 +40,13 @@ test('a goods way priced per item is compared per item when the request names a 
   assert.deepEqual(limitDecision({ seller: { ...perItem, pricesPerItem: false }, job: pairs('100', 3), nowUnix: NOW, hasWay: true }), { act: true });
 });
 
+test('under the no-ask level the agent says no politely instead of asking (view 41)', () => {
+  const banded = { ...seller, noAskBelowUsdc: 10 };
+  assert.deepEqual(limitDecision({ seller: banded, job: job('8', 3), nowUnix: NOW, hasWay: true }), { act: false, kind: 'polite-no', suggested: { priceUsdc: '20', days: 3 }, limit: 10 });
+  assert.equal(limitDecision({ seller: banded, job: job('15', 3), nowUnix: NOW, hasWay: true }).kind, 'price-below-floor', 'between the level and the floor it still asks');
+  assert.equal(limitDecision({ seller, job: job('8', 3), nowUnix: NOW, hasWay: true }).kind, 'price-below-floor', 'no level set means a question, as before');
+});
+
 test('too soon or too late asks, suggesting the nearest time the person takes', () => {
   const soon = limitDecision({ seller: { ...seller, minDeadlineDays: 4 }, job: job('30', 2), nowUnix: NOW, hasWay: true });
   assert.deepEqual(soon, { act: false, kind: 'time', suggested: { priceUsdc: '30', days: 4 }, limit: 4 });

@@ -29,6 +29,26 @@ function harness(over: Partial<SetupRouteDeps> = {}) {
 
 const answers = { goals: ['work'], what: 'Logo design', price: '20 to 40' };
 
+test('learned suggestions are read, and a no is remembered on the prefs (view 41)', async () => {
+  const suggestion = { key: 'way:goods', kind: 'new-way' as const, shape: 'goods' as const, what: 'Shoes', priceUsdc: 96, line: 'Save this as how you sell Shoes?' };
+  const h = harness({ learned: async () => [suggestion] });
+  assert.equal((await h.app.request('/suggestions')).status, 200);
+  assert.deepEqual(await (await h.app.request('/suggestions')).json(), { suggestions: [suggestion] });
+  const res = await h.post('/dismiss-suggestion', { key: 'way:goods' });
+  assert.equal(res.status, 200);
+  assert.deepEqual(h.saved[0]!.agentPrefs?.dismissedSuggestions, ['way:goods']);
+  assert.equal((await h.post('/dismiss-suggestion', { key: '' })).status, 400);
+});
+
+test('a way saved with a no-ask level keeps it', async () => {
+  const h = harness();
+  const banded = { sell: [{ shape: 'one_time', priceMin: 20, priceUsual: 30, noAskBelow: 12, daysMin: 1, daysMax: 3 }], buy: [] };
+  const res = await h.post('/ways', { ways: banded });
+  assert.equal(res.status, 200);
+  assert.deepEqual(h.saved[0]!.agentWays, banded);
+  assert.equal((await h.post('/ways', { ways: { sell: [{ ...banded.sell[0], noAskBelow: 25 }], buy: [] } })).status, 400);
+});
+
 test('no session, no setup', async () => {
   const h = harness({ sessionAddress: () => null });
   assert.equal((await h.post('/preview', { answers })).status, 401);

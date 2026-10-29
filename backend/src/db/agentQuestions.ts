@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { and, eq, gt, isNull, lte } from 'drizzle-orm';
+import { and, desc, eq, gt, isNull, lte } from 'drizzle-orm';
 import { db, pgEnabled } from './client.js';
 import { agentQuestions } from './schema.js';
 
@@ -149,6 +149,21 @@ export async function openQuestionsOnJob(jobId: string, now = Date.now()): Promi
         .from(agentQuestions)
         .where(and(eq(agentQuestions.jobId, j), eq(agentQuestions.state, 'input-required')))).map(fromRow);
   return rows.filter((q) => live(q, now));
+}
+
+/// What the person answered, newest first, for what their agent learns (view 41).
+export async function recentAnsweredFor(owner: string, limit = 50): Promise<AgentQuestion[]> {
+  const o = owner.toLowerCase();
+  if (!pgEnabled) {
+    return [...mem.values()].filter((q) => q.owner === o && q.state === 'answered').sort((a, b) => b.updatedAt - a.updatedAt).slice(0, limit);
+  }
+  const rows = await db()
+    .select()
+    .from(agentQuestions)
+    .where(and(eq(agentQuestions.owner, o), eq(agentQuestions.state, 'answered')))
+    .orderBy(desc(agentQuestions.updatedAt))
+    .limit(limit);
+  return rows.map(fromRow);
 }
 
 /// Null when the question is not this person's, already answered or expired.

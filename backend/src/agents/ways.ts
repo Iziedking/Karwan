@@ -19,13 +19,16 @@ const words = (max: number) => z.string().trim().min(1).max(max);
 // A selling way carries the lowest price the person takes (priceMin, the
 // floor) and their usual price (view 41, phase 2). There is no highest: a
 // bigger budget gets an offer opened from the usual price.
-const sellOneTime = z.object({ shape: z.literal('one_time'), priceMin: usdc, priceUsual: usdc, daysMin: days, daysMax: days });
+/// Under noAskBelow the agent says no politely instead of asking (view 41,
+/// decision 3): off unless the person sets it, suggested after three no answers.
+const sellOneTime = z.object({ shape: z.literal('one_time'), priceMin: usdc, priceUsual: usdc, noAskBelow: usdc.optional(), daysMin: days, daysMax: days });
 const sellMilestones = sellOneTime.extend({ shape: z.literal('milestones'), stages: z.number().int().min(2).max(5) });
 const sellGoods = z.object({
   shape: z.literal('goods'),
   what: words(120),
   priceMin: usdc,
   priceUsual: usdc,
+  noAskBelow: usdc.optional(),
   /// True when the prices are for one item (view 41): a request that names a
   /// count is then compared per item. Missing means for the whole order.
   perItem: z.boolean().optional(),
@@ -43,6 +46,7 @@ const buyDeposit = z.object({ shape: z.literal('deposit'), maxDeposit: usdc });
 export const sellWaySchema = z
   .discriminatedUnion('shape', [sellOneTime, sellMilestones, sellGoods, sellDeposit])
   .refine((w) => (w.shape === 'deposit' ? true : w.priceMin <= w.priceUsual), { message: 'lowest price above usual' })
+  .refine((w) => (w.shape === 'deposit' || w.noAskBelow === undefined ? true : w.noAskBelow <= w.priceMin), { message: 'no-ask level above the lowest price' })
   .refine((w) => (w.shape === 'goods' ? w.arriveDaysMin <= w.arriveDaysMax : w.shape === 'deposit' ? true : w.daysMin <= w.daysMax), {
     message: 'shortest time above longest',
   });
@@ -118,6 +122,8 @@ interface Limits {
   usualPriceUsdc?: number;
   /// The floor and usual are per item (a goods way, view 41).
   pricesPerItem?: boolean;
+  /// Under this the agent says no politely instead of asking (view 41).
+  noAskBelowUsdc?: number;
   minDeadlineDays: number;
   maxDeadlineDays: number;
 }
@@ -126,11 +132,11 @@ interface Limits {
 export function withWayLimits<T extends Limits>(seller: T, way: SellWay): T {
   switch (way.shape) {
     case 'goods':
-      return { ...seller, minBudgetUsdc: way.priceMin, maxBudgetUsdc: way.priceUsual, usualPriceUsdc: way.priceUsual, pricesPerItem: way.perItem === true, minDeadlineDays: way.arriveDaysMin, maxDeadlineDays: way.arriveDaysMax };
+      return { ...seller, minBudgetUsdc: way.priceMin, maxBudgetUsdc: way.priceUsual, usualPriceUsdc: way.priceUsual, pricesPerItem: way.perItem === true, ...(way.noAskBelow !== undefined ? { noAskBelowUsdc: way.noAskBelow } : {}), minDeadlineDays: way.arriveDaysMin, maxDeadlineDays: way.arriveDaysMax };
     case 'deposit':
       return seller;
     default:
-      return { ...seller, minBudgetUsdc: way.priceMin, maxBudgetUsdc: way.priceUsual, usualPriceUsdc: way.priceUsual, minDeadlineDays: way.daysMin, maxDeadlineDays: way.daysMax };
+      return { ...seller, minBudgetUsdc: way.priceMin, maxBudgetUsdc: way.priceUsual, usualPriceUsdc: way.priceUsual, ...(way.noAskBelow !== undefined ? { noAskBelowUsdc: way.noAskBelow } : {}), minDeadlineDays: way.daysMin, maxDeadlineDays: way.daysMax };
   }
 }
 
@@ -188,6 +194,7 @@ const SHAPE_WORDS: Record<WayShape, string> = {
 const span = (lo: number | string, hi: number | string) => (lo === hi ? `${lo}` : `${lo} to ${hi}`);
 const whole = (n: number) => n.toLocaleString('en-US');
 const priceWords = (lo: number, usual: number) => (lo === usual ? `${whole(lo)} USDC` : `usually ${whole(usual)} USDC, lowest ${whole(lo)}`);
+const bandWords = (w: { noAskBelow?: number }) => (w.noAskBelow ? `, not asked under ${whole(w.noAskBelow)} USDC` : '');
 
 /// One plain line per way, for the confirm card and chat.
 export function wayLines(ways: Pick<AgentWays, 'sell' | 'buy'>): string[] {
@@ -195,13 +202,13 @@ export function wayLines(ways: Pick<AgentWays, 'sell' | 'buy'>): string[] {
     const head = `Selling, ${SHAPE_WORDS[w.shape]}: `;
     switch (w.shape) {
       case 'goods':
-        return `${head}${w.what}, ${priceWords(w.priceMin, w.priceUsual)}${w.perItem ? ' per item' : ''}, to ${w.shipsTo}, arrives in ${span(w.arriveDaysMin, w.arriveDaysMax)} days`;
+        return `${head}${w.what}, ${priceWords(w.priceMin, w.priceUsual)}${w.perItem ? ' per item' : ''}${bandWords(w)}, to ${w.shipsTo}, arrives in ${span(w.arriveDaysMin, w.arriveDaysMax)} days`;
       case 'deposit':
         return `${head}${w.what}, ${whole(w.deposit)} USDC deposit for ${w.periodDays} days`;
       case 'milestones':
-        return `${head}${priceWords(w.priceMin, w.priceUsual)} in ${w.stages} stages, done in ${span(w.daysMin, w.daysMax)} days`;
+        return `${head}${priceWords(w.priceMin, w.priceUsual)}${bandWords(w)} in ${w.stages} stages, done in ${span(w.daysMin, w.daysMax)} days`;
       default:
-        return `${head}${priceWords(w.priceMin, w.priceUsual)}, done in ${span(w.daysMin, w.daysMax)} days`;
+        return `${head}${priceWords(w.priceMin, w.priceUsual)}${bandWords(w)}, done in ${span(w.daysMin, w.daysMax)} days`;
     }
   });
   const buy = ways.buy.map((w) => {

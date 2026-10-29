@@ -50,10 +50,12 @@ export interface AgentPrefs {
   /// False when the person's price or budget could not be read.
   sellerPriceSet?: boolean;
   buyerPriceSet?: boolean;
+  /// Learned suggestions the person said no to, by key (view 41).
+  dismissedSuggestions?: string[];
 }
 
 export function agentPrefsOf(profile: Pick<UserProfile, 'agentPrefs'> | null | undefined): Required<AgentPrefs> {
-  return { findClients: true, agentMode: 'offers', sellerPriceSet: true, buyerPriceSet: true, ...(profile?.agentPrefs ?? {}) };
+  return { findClients: true, agentMode: 'offers', sellerPriceSet: true, buyerPriceSet: true, dismissedSuggestions: [], ...(profile?.agentPrefs ?? {}) };
 }
 
 export type WorkspaceKind = 'personal' | 'business';

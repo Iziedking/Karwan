@@ -35,8 +35,8 @@ test("an older client's save keeps the setup fields", async () => {
 });
 
 test('agentPrefsOf fills the defaults an older account never stored', () => {
-  assert.deepEqual(agentPrefsOf(null), { findClients: true, agentMode: 'offers', sellerPriceSet: true, buyerPriceSet: true });
+  assert.deepEqual(agentPrefsOf(null), { findClients: true, agentMode: 'offers', sellerPriceSet: true, buyerPriceSet: true, dismissedSuggestions: [] });
   assert.deepEqual(agentPrefsOf({ ...base, createdAt: 0, updatedAt: 0, agentPrefs: { agentMode: 'ask' } }), {
-    findClients: true, agentMode: 'ask', sellerPriceSet: true, buyerPriceSet: true,
+    findClients: true, agentMode: 'ask', sellerPriceSet: true, buyerPriceSet: true, dismissedSuggestions: [],
   });
 });
