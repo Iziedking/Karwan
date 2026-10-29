@@ -604,7 +604,7 @@ function ProfileLink({
       <span className="grid size-full place-items-center overflow-hidden rounded-full">
         {photo ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={photo} alt="" width={40} height={40} className="size-full object-cover" onError={() => setImageFailed(true)} />
+          <img src={photo} referrerPolicy="no-referrer" alt="" width={40} height={40} className="size-full object-cover" onError={() => setImageFailed(true)} />
         ) : (
           initials
         )}

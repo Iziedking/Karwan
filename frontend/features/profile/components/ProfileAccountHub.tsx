@@ -136,7 +136,7 @@ export function ProfileAccountHub({
             onRemove={() => void savePhoto(null)}
           >
             {(savedPhoto || profile.xProfileImageUrl) && !imageFailed ? (
-              <img src={savedPhoto || profile.xProfileImageUrl} alt="" width={56} height={56} className="size-14 rounded-full object-cover" onError={() => setImageFailed(true)} />
+              <img src={savedPhoto || profile.xProfileImageUrl} referrerPolicy="no-referrer" alt="" width={56} height={56} className="size-14 rounded-full object-cover" onError={() => setImageFailed(true)} />
             ) : (
               <WalletAvatar address={address} size={56} />
             )}

@@ -527,3 +527,11 @@ test('current trade and recent trades share one heading line and end together', 
   assert.match(home, /trade-route mt-3 flex flex-1 flex-col/);
   assert.match(home, /trade-book flex-1/);
 });
+
+test('an X photo is fetched with no referrer, since X refuses images asked for from karwan.site', () => {
+  for (const file of ['../../features/profile/components/ConnectXButton.tsx', '../../features/profile/components/ProfileAccountHub.tsx', './TopNav.tsx']) {
+    const imgs = source(file).match(/<img\b[^>]*>/g) ?? [];
+    assert.ok(imgs.length > 0, file);
+    for (const img of imgs) assert.match(img, /referrerPolicy="no-referrer"/, `${file}: ${img}`);
+  }
+});

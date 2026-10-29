@@ -151,6 +151,7 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={profile.xProfileImageUrl}
+              referrerPolicy="no-referrer"
               alt=""
               className="w-[18px] h-[18px] rounded-full object-cover shrink-0"
             />
