@@ -9,9 +9,10 @@ import { pgEnabled, postgresExecutor } from './client.js';
 ///   rc         key = RC or BN   which account a business registration backs
 ///   delivery-q key = address    countries a seller's agent will ask about
 ///   dm-history key = address    who someone messaged first by tag, and who replied
+///   dm-read    key = address    when they last opened each conversation by tag
 ///   ratings-asked key = deal id who was asked to rate a deal, reminded, and told of the reveal
 ///   suggested  key = owner|request  "ask me first" already told this owner about this request
-export type RecordKind = 'facts' | 'fp' | 'nullifier' | 'confirm' | 'cac' | 'rc' | 'delivery-q' | 'dm-history' | 'ratings-asked' | 'suggested' | 'record-nudge' | 'offer-revisions' | 'best-and-final';
+export type RecordKind = 'facts' | 'fp' | 'nullifier' | 'confirm' | 'cac' | 'rc' | 'delivery-q' | 'dm-history' | 'dm-read' | 'ratings-asked' | 'suggested' | 'record-nudge' | 'offer-revisions' | 'best-and-final';
 type UniqueKind = 'fp' | 'nullifier' | 'rc';
 
 const memory = new Map<string, unknown>();

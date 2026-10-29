@@ -32,6 +32,11 @@ export interface DirectDeps {
   /// Account deletion: who the person wrote to, and their direct messages.
   dropHistory: (address: string) => Promise<void>;
   dropMessages: (address: string) => Promise<void>;
+  /// When the owner last opened each conversation, by its pair key. Opening
+  /// one is what clears its alert, not replying.
+  getRead: (owner: string) => Promise<Record<string, number>>;
+  putRead: (owner: string, read: Record<string, number>) => Promise<void>;
+  dropRead: (owner: string) => Promise<void>;
 }
 
 export type SendRefusal = 'empty' | 'unknown_tag' | 'self' | 'paused' | 'no_tag' | 'wait_reply' | 'link_blocked';
@@ -45,6 +50,8 @@ export interface InboxRow {
   last: string;
   at: number;
   yourTurn: boolean;
+  /// The other person wrote since the owner last opened it.
+  unread: boolean;
 }
 
 const BODY_MAX = 2000;
@@ -146,17 +153,25 @@ export function createDirect(deps: DirectDeps) {
     const a = address.toLowerCase();
     await deps.dropHistory(a);
     await deps.dropMessages(a);
+    await deps.dropRead(a);
   }
 
   async function list(owner: string, withTag: string): Promise<ChatMessage[]> {
     const other = await deps.findByTag(withTag);
     if (!other) return [];
-    return (await deps.list(pairKey(owner, other.address))).sort((a, b) => a.ts - b.ts);
+    const key = pairKey(owner, other.address);
+    const thread = (await deps.list(key)).sort((a, b) => a.ts - b.ts);
+    // Reading the conversation, on the site or through the agent, opens it.
+    const me = owner.toLowerCase();
+    const read = await deps.getRead(me);
+    await deps.putRead(me, { ...read, [key]: deps.now() });
+    return thread;
   }
 
   async function inbox(owner: string): Promise<InboxRow[]> {
     const me = owner.toLowerCase();
     const latest = new Map<string, ChatMessage>();
+    const read = await deps.getRead(me);
     for (const m of await deps.threadsFor(me)) {
       const key = m.channelKey ?? m.jobId;
       if (!key.startsWith('dm:') || !key.split(':').includes(me)) continue;
@@ -166,7 +181,8 @@ export function createDirect(deps: DirectDeps) {
     const rows = await Promise.all(
       [...latest.entries()].map(async ([key, m]) => {
         const other = key.split(':').slice(1).find((a) => a !== me) ?? me;
-        return { withTag: await deps.tagOf(other), last: m.body.slice(0, 200), at: m.ts, yourTurn: m.sender !== me };
+        const yourTurn = m.sender !== me;
+        return { withTag: await deps.tagOf(other), last: m.body.slice(0, 200), at: m.ts, yourTurn, unread: yourTurn && m.ts > (read[key] ?? 0) };
       }),
     );
     return rows.sort((a, b) => b.at - a.at);

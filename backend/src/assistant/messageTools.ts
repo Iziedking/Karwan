@@ -35,7 +35,7 @@ export function conversationView(owner: string, who: PersonCard, messages: ChatM
 }
 
 export function inboxView(rows: InboxRow[]) {
-  return rows.map((r) => ({ with: r.withTag ? `@${r.withTag}` : 'A Karwan member', last: r.last, at: new Date(r.at).toISOString(), yourTurn: r.yourTurn }));
+  return rows.map((r) => ({ with: r.withTag ? `@${r.withTag}` : 'A Karwan member', last: r.last, at: new Date(r.at).toISOString(), yourTurn: r.yourTurn, unread: r.unread }));
 }
 
 export function messageTools(address: string, deps: MessageToolDeps) {

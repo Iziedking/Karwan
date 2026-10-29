@@ -16,6 +16,7 @@ function fakeDirect(over: Partial<DirectDeps> = {}) {
   const store: ChatMessage[] = [];
   const histories = new Map<string, SenderHistory>();
   const alerts: DirectAlert[] = [];
+  const reads = new Map<string, Record<string, number>>();
   let now = NOW;
   const deps: DirectDeps = {
     now: () => now,
@@ -38,6 +39,9 @@ function fakeDirect(over: Partial<DirectDeps> = {}) {
     offense: () => {},
     dropHistory: async () => {},
     dropMessages: async () => {},
+    getRead: async (owner) => reads.get(owner) ?? {},
+    putRead: async (owner, read) => void reads.set(owner, read),
+    dropRead: async (owner) => void reads.delete(owner),
     ...over,
   };
   return { direct: createDirect(deps), store, alerts, histories, advance: (ms: number) => (now += ms) };
@@ -111,7 +115,7 @@ test('the inbox lists each conversation once with the latest message', async () 
   f.advance(1000);
   await f.direct.send('0xb0', '@ada', 'Hi Ada');
   const inbox = await f.direct.inbox('0xada');
-  assert.deepEqual(inbox, [{ withTag: 'bo', last: 'Hi Ada', at: NOW + 1000, yourTurn: true }]);
+  assert.deepEqual(inbox, [{ withTag: 'bo', last: 'Hi Ada', at: NOW + 1000, yourTurn: true, unread: true }]);
 });
 
 const crowd: Record<string, string> = { ...people, c1: '0xc1', c2: '0xc2', c3: '0xc3', c4: '0xc4', c5: '0xc5', c6: '0xc6', c7: '0xc7' };
@@ -173,4 +177,24 @@ test('deleting an account removes its direct messages and who it wrote to', asyn
   await f.direct.send('0xada', '@bo', 'Hello');
   await f.direct.forget('0xADA');
   assert.deepEqual(removed, ['history:0xada', 'messages:0xada']);
+});
+
+test('opening a conversation clears its alert before any reply, and a new message brings it back', async () => {
+  const f = fakeDirect();
+  await f.direct.send('0xb0', '@ada', 'Do you make agbada?');
+  assert.equal((await f.direct.inbox('0xada'))[0]!.unread, true);
+  f.advance(1000);
+  await f.direct.list('0xada', 'bo');
+  const opened = (await f.direct.inbox('0xada'))[0]!;
+  assert.equal(opened.unread, false);
+  assert.equal(opened.yourTurn, true, 'still their move to answer');
+  f.advance(1000);
+  await f.direct.send('0xb0', '@ada', 'For a wedding in December');
+  assert.equal((await f.direct.inbox('0xada'))[0]!.unread, true);
+});
+
+test('the sender never has an alert for their own message', async () => {
+  const f = fakeDirect();
+  await f.direct.send('0xada', '@bo', 'Hello');
+  assert.equal((await f.direct.inbox('0xada'))[0]!.unread, false);
 });

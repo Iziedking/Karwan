@@ -20,7 +20,8 @@ export default function MessagesInboxPage() {
 function Inbox() {
   const t = useTranslations().directMessages;
   const { locale } = useLocale();
-  const { conversations, waiting, loading, error } = useMessageInbox();
+  const { conversations, loading, error } = useMessageInbox();
+  const waiting = conversations.filter((c) => c.yourTurn).length;
   const sorted = [...conversations].sort((a, b) => Number(b.yourTurn) - Number(a.yourTurn) || b.at.localeCompare(a.at));
 
   return (

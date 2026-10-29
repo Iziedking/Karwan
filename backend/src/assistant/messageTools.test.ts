@@ -21,7 +21,7 @@ function setup() {
       return { ok: true, message: sent, warning: null };
     },
     list: async () => [sent, { ...sent, id: 'dm-2', sender: '0xb0', body: 'Hi Ada', ts: NOW + 1, warning: 'Keep payment in Karwan escrow. Never pay outside it.' }],
-    inbox: async () => [{ withTag: 'bo', last: 'Hi Ada', at: NOW + 1, yourTurn: true }],
+    inbox: async () => [{ withTag: 'bo', last: 'Hi Ada', at: NOW + 1, yourTurn: true, unread: true }],
     describe: async (tag) => (tag.replace(/^@/, '') === 'bo' ? { tag: 'bo', country: 'GH', tier: 'Established' } : null),
   };
   return { deps, calls };
@@ -50,7 +50,7 @@ test('reading a conversation shows tags, country and tier, never an address', as
 test('reading with no tag lists the conversations', async () => {
   const s = setup();
   const out = (await messageTools('0xada', s.deps).read_my_messages.execute!({}, call)) as { conversations: unknown[] };
-  assert.deepEqual(out.conversations, [{ with: '@bo', last: 'Hi Ada', at: new Date(NOW + 1).toISOString(), yourTurn: true }]);
+  assert.deepEqual(out.conversations, [{ with: '@bo', last: 'Hi Ada', at: new Date(NOW + 1).toISOString(), yourTurn: true, unread: true }]);
 });
 
 test('a route without a session is 401', async () => {

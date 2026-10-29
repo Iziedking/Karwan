@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { useAutoGrow } from '@/shared/hooks/useAutoGrow';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { MESSAGE_INBOX_KEY } from './useMessageInbox';
 import { api, ApiError } from '@/core/api';
 import { Icon } from '@/shared/components/Icon';
 import { PersonAvatar } from '@/shared/components/PersonAvatar';
@@ -30,6 +31,7 @@ export function ConversationView({ tag }: { tag: string }) {
   const [sendError, setSendError] = useState<string | null>(null);
   const pathname = usePathname();
   const { isAuthenticated } = useAuth();
+  const queryClient = useQueryClient();
   // Who the tag belongs to, for the name and photo: the same lookup Send uses.
   const person = useQuery({
     queryKey: ['karwan-tag', tag.toLowerCase()],
@@ -43,9 +45,11 @@ export function ConversationView({ tag }: { tag: string }) {
       .then((c) => {
         setFailure(null);
         setData(c);
+        // Reading it marked it opened on the server, so the bell drops it now.
+        void queryClient.invalidateQueries({ queryKey: MESSAGE_INBOX_KEY });
       })
       .catch((err) => setFailure(err instanceof ApiError && err.status === 404 ? 'missing' : 'error'));
-  }, [tag]);
+  }, [tag, queryClient]);
 
   useEffect(load, [load]);
 

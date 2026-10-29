@@ -23,7 +23,7 @@ export function NotificationBell() {
   const t = all.notifications.bell;
   const inbox = all.directMessages.inbox;
   const messages = useMessageInbox();
-  const badge = unreadCount + messages.waiting;
+  const badge = unreadCount + messages.unread;
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   // Panel renders via portal so a transformed ancestor (.fade-up bands) cannot
@@ -104,7 +104,7 @@ export function NotificationBell() {
               </header>
 
               {/* Messages people sent by tag live in their own inbox; this row says
-                  how many wait for an answer and opens it. */}
+                  how many have something new and opens it. */}
               {messages.conversations.length > 0 ? (
                 <Link
                   href="/messages"
@@ -112,8 +112,8 @@ export function NotificationBell() {
                   className="mx-2 mb-1 flex min-h-12 items-center justify-between gap-3 rounded-[16px] px-3 text-start transition-colors hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)]"
                 >
                   <span className="text-[15px] font-semibold text-[var(--lp-dark)]">{inbox.title}</span>
-                  <span className={`text-[14px] ${messages.waiting > 0 ? 'font-semibold text-[var(--lp-dark)]' : 'font-medium text-[var(--lp-text-sub)]'}`}>
-                    {messages.waiting === 0 ? inbox.noneWaiting : messages.waiting === 1 ? inbox.waitingOne : inbox.waiting.replace('{n}', String(messages.waiting))}
+                  <span className={`text-[14px] ${messages.unread > 0 ? 'font-semibold text-[var(--lp-dark)]' : 'font-medium text-[var(--lp-text-sub)]'}`}>
+                    {messages.unread === 0 ? inbox.noneNew : messages.unread === 1 ? inbox.newOne : inbox.newMany.replace('{n}', String(messages.unread))}
                   </span>
                 </Link>
               ) : null}

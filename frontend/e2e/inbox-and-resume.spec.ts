@@ -10,8 +10,8 @@ test('messages people sent you are read in the app, the ones waiting for you fir
     route.fulfill({
       json: {
         conversations: [
-          { with: '@bo', last: 'Thanks, talk soon', at: '2026-10-24T09:00:00.000Z', yourTurn: false },
-          { with: '@matiephol', last: 'Do you sell outlier.ai accounts?', at: '2026-10-24T06:07:00.000Z', yourTurn: true },
+          { with: '@bo', last: 'Thanks, talk soon', at: '2026-10-24T09:00:00.000Z', yourTurn: false, unread: false },
+          { with: '@matiephol', last: 'Do you sell outlier.ai accounts?', at: '2026-10-24T06:07:00.000Z', yourTurn: true, unread: true },
         ],
       },
     }),
@@ -26,7 +26,7 @@ test('messages people sent you are read in the app, the ones waiting for you fir
 
   await page.getByRole('button', { name: /Notifications|Alerts/ }).first().click();
   const panelRow = page.getByRole('dialog').getByRole('link', { name: /Messages/ });
-  await expect(panelRow).toContainText('1 waiting for your reply');
+  await expect(panelRow).toContainText('1 new message');
   await expect(panelRow).toHaveAttribute('href', '/messages');
 });
 

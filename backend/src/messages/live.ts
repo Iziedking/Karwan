@@ -54,6 +54,9 @@ export const liveDirect = createDirect({
   offense: (address, verdict, reasons) => recordLinkOffense({ address, jobId: 'direct', surface: 'chat', verdict, reasons }),
   dropHistory: (address) => deleteRecord('dm-history', address),
   dropMessages: async (address) => void (await deleteDirectMessagesFor(address)),
+  getRead: async (owner) => (await getRecord<Record<string, number>>('dm-read', owner)) ?? {},
+  putRead: (owner, read) => putRecord('dm-read', owner, read),
+  dropRead: (owner) => deleteRecord('dm-read', owner),
 });
 
 export const liveMessageToolDeps: MessageToolDeps = {
