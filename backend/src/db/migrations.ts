@@ -1404,6 +1404,24 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       CREATE INDEX engagements_worker ON engagements (lower(data->>'worker'));
     `,
   },
+  {
+    // Hourly work posted to the market, and the rates sellers offer on it (view 32).
+    version: 53,
+    name: 'work_requests',
+    sql: `
+      CREATE TABLE work_requests (
+        id TEXT PRIMARY KEY,
+        data JSONB NOT NULL
+      );
+      CREATE INDEX work_requests_status ON work_requests ((data->>'status'));
+      CREATE TABLE work_offers (
+        id TEXT PRIMARY KEY,
+        request_id TEXT NOT NULL,
+        data JSONB NOT NULL
+      );
+      CREATE INDEX work_offers_request ON work_offers (request_id);
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

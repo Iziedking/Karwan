@@ -11,7 +11,7 @@ const card = (intent: string, payload: Record<string, unknown> = {}) => ({ kind:
 test('every money step has a page, and each page can be opened by a one-time link', async () => {
   const links = createOpenLinks({ now: () => 0, newToken: () => 'tok', put: async () => {}, take: async () => null });
   for (const intent of MONEY_INTENTS) {
-    const path = moneyStepPath(card(intent, { jobId: JOB, token: '6f1c2a3b-0000-4000-8000-000000000000', contestId: 'c_abc', title: 'Best logo', brief: 'A logo', prizeUsdc: '10', places: 1, entriesDays: 3, workId: 'w_abc', worker: '@ada', kind: 'hourly', rateUsdc: '15', maxHours: 20, periods: 4 }));
+    const path = moneyStepPath(card(intent, { jobId: JOB, token: '6f1c2a3b-0000-4000-8000-000000000000', contestId: 'c_abc', title: 'Best logo', brief: 'A logo', prizeUsdc: '10', places: 1, entriesDays: 3, workId: 'w_abc', requestId: 'wr_abc', offerId: 'wo_abc', worker: '@ada', kind: 'hourly', rateUsdc: '15', maxHours: 20, periods: 4 }));
     assert.ok(path, intent);
     assert.ok(await links.mint('0xada', path), `${intent} -> ${path}`);
   }

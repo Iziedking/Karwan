@@ -28,6 +28,7 @@ const OPENABLE: readonly RegExp[] = [
   /^\/contests\/new\?[A-Za-z0-9=&%+*._-]{1,3000}$/,
   // Hourly work (view 32): one piece of work, or the form filled from a chat card.
   /^\/work\/w_[A-Za-z0-9_-]{1,40}$/,
+  /^\/work\/requests\/wr_[A-Za-z0-9_-]{1,40}$/,
   /^\/work\/new\?[A-Za-z0-9=&%+*._-]{1,3000}$/,
 ];
 

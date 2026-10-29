@@ -30,7 +30,7 @@ import {
 } from '@/features/profile/config';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { runWalletGuarantee, runWalletLegacyCalls } from '@/features/guarantee/walletGuarantee';
-import type { ContestInput, GuaranteeStep, LegacyStepBody, WorkInput } from '@/core/api';
+import type { ContestInput, GuaranteeStep, LegacyStepBody, WorkInput, WorkRequestInput } from '@/core/api';
 import { buildTransferAuthorization, serializeAuthorization } from '@/features/factoring/usdcAuthorization';
 import type { UsdcAuthorization, UserSettings } from '@/core/api';
 
@@ -685,6 +685,26 @@ async function runConfirmIntent(
     const p = action.payload as { contestId: string };
     await api.cancelContest(p.contestId);
     return { successText: 'Taken back. The prize is back with your agent.', viewHref: '/market', viewLabel: 'Market' };
+  }
+  if (action.intent.startsWith('work_request_')) {
+    // Hourly work posted to the market (view 32).
+    const p = action.payload as { requestId?: string; offerId?: string; rateUsdc?: string; note?: string };
+    const id = p.requestId ?? '';
+    const page = (rid: string, text: string) => ({ successText: text, viewHref: `/work/requests/${rid}`, viewLabel: 'Open the work' });
+    switch (action.intent) {
+      case 'work_request_post':
+        return page((await api.postWorkRequest(action.payload as unknown as WorkRequestInput)).request.id, 'Posted. Sellers who fit are told; I will tell you as offers come in, ranked by fit.');
+      case 'work_request_offer':
+        await api.offerOnWorkRequest(id, { rateUsdc: p.rateUsdc ?? '', note: p.note ?? '' });
+        return page(id, 'Offer sent. If they hire you, your agent accepts and the first week is paid in.');
+      case 'work_request_hire': {
+        const r = await api.hireFromWorkRequest(id, p.offerId ?? '');
+        return { successText: 'Hired. The first week is paid in and they have accepted.', viewHref: `/work/${r.workId}`, viewLabel: 'Open the work' };
+      }
+      case 'work_request_close':
+        await api.closeWorkRequest(id);
+        return page(id, 'Closed. It is off the market and the people who offered are told.');
+    }
   }
   if (action.intent.startsWith('work_')) {
     // Hourly work (view 32): the work page's own calls.

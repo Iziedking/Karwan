@@ -178,6 +178,8 @@ import { startContestRunner } from './contests/contestRunner.js';
 import { work as workCore } from './work/workLive.js';
 import { startWorkRunner } from './work/workRunner.js';
 import { createWorkRoutes } from './routes/work.js';
+import { workRequests } from './work/workRequestsLive.js';
+import { createWorkRequestRoutes } from './routes/workRequests.js';
 import { entryFiles, entryPreviews } from './contests/entryFiles.js';
 import { contestsStore } from './db/contests.js';
 import { createContestRoutes } from './routes/contests.js';
@@ -559,6 +561,8 @@ if (contestsCore) {
 }
 // Hourly work and monthly retainers on the time escrow (view 32); off where it is not set.
 if (workCore) app.route('/api/work', createWorkRoutes({ core: workCore, session: (c) => readSession(c as Parameters<typeof readSession>[0]) }));
+// Hourly work posted to the market, ranked by the hirer's agent (view 32).
+if (workRequests) app.route('/api/work-requests', createWorkRequestRoutes({ core: workRequests, session: (c) => readSession(c as Parameters<typeof readSession>[0]) }));
 app.route('/api/po-financing', poFinancingRoutes);
 app.route('/api/financier', financierRoutes);
 app.route('/api/sme', smeRoutes);
@@ -745,7 +749,7 @@ function bootAgents() {
     stopFns.push(startTestFinancier());
     stopFns.push(startFamilyFinancingRunner());
     stopFns.push(startContestRunner(contestsCore));
-    stopFns.push(startWorkRunner(workCore));
+    stopFns.push(startWorkRunner(workCore, workRequests));
   } catch (err) {
     appLogger.warn({ err: (err as Error).message }, 'factoring watcher not started');
   }

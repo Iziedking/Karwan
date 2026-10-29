@@ -2,6 +2,10 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import type { AssistantAction } from './actions.js';
 import {
+  buildWorkRequestCloseConfirm,
+  buildWorkRequestHireConfirm,
+  buildWorkRequestOfferConfirm,
+  buildWorkRequestPostConfirm,
   buildWorkApproveConfirm,
   buildWorkHoursConfirm,
   buildWorkObjectConfirm,
@@ -21,6 +25,7 @@ export interface WorkToolDeps {
 }
 
 const WORK = z.string().min(3).max(64).describe('The work id, from list_my_work.');
+const REQUEST = z.string().min(3).max(64).describe('The posted work id, from list_hourly_requests.');
 const errorOf = (r: { json: Record<string, unknown> }, fallback: string) => ({ error: typeof r.json.error === 'string' ? r.json.error : fallback });
 
 type Week = { k: number; loggedMinutes: number; approvedMinutes: number; canApprove: boolean; canObject: boolean; canLog: boolean; ifPaid: { netMicros: string } };
@@ -134,6 +139,80 @@ export function workTools(address: string, actions: AssistantAction[], deps: Wor
         if ('error' in w) return w;
         if (!w.nextWeek) return { error: w.fundBlocked ?? 'There is nothing to pay for right now.' };
         return show(buildWorkStepConfirm('work_fund', { ...w, k: w.nextWeek.k, totalMicros: w.nextWeek.totalMicros }));
+      },
+    }),
+
+    list_hourly_requests: tool({
+      description: "Hourly and monthly work posted on the market: the open ones a seller can offer on, and the ones the person posted. Use for 'any hourly work', 'part-time jobs', 'my posted work'.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        const [open, mine] = await Promise.all([deps.call(address, 'GET', '/api/work-requests'), deps.call(address, 'GET', '/api/work-requests/mine')]);
+        return { open: ((open.json.requests as unknown[]) ?? []).slice(0, 10), mine: ((mine.json.requests as unknown[]) ?? []).slice(0, 10) };
+      },
+    }),
+
+    read_hourly_request: tool({
+      description: "One piece of posted hourly work. For the hirer it lists the offers their agent ranked, best fit first: name, verified in words, tier, rating, up to three reasons and the rate; never scores or counts, so never state or guess any. For a seller, their own offer.",
+      inputSchema: z.object({ requestId: REQUEST }),
+      execute: async ({ requestId }) => {
+        const r = await deps.call(address, 'GET', `/api/work-requests/${encodeURIComponent(requestId)}`);
+        return r.status === 200 ? r.json.request : errorOf(r, 'No posted work with that id.');
+      },
+    }),
+
+    propose_post_hourly_work: tool({
+      description: "Prepare a card to post hourly or monthly work on the market when the person does not have someone in mind: 'I need a bookkeeper, up to 10 an hour, 10 hours a week, 4 weeks'. Sellers who fit offer a rate and their agent ranks them by what they have actually done on Karwan. Nothing is paid until they hire. Ask for anything missing: what the work is, the most per hour (or month), hours a week (hourly only), how many weeks or months.",
+      inputSchema: z.object({
+        kind: z.enum(['hourly', 'monthly']),
+        title: z.string().min(1).max(80),
+        brief: z.string().min(1).max(1_500),
+        maxRateUsdc: z.number().positive().max(100_000),
+        maxHours: z.number().int().min(1).max(80).optional(),
+        periods: z.number().int().min(1).max(52),
+        startsInDays: z.number().int().min(2).max(30).optional(),
+      }),
+      execute: async (i) => show(buildWorkRequestPostConfirm({ ...i, maxRateUsdc: String(i.maxRateUsdc) })),
+    }),
+
+    propose_hourly_offer: tool({
+      description: 'Prepare a card for a seller to offer their rate on posted hourly work, with a short note. Offering again changes their rate.',
+      inputSchema: z.object({ requestId: REQUEST, rateUsdc: z.number().positive().max(100_000), note: z.string().max(300).default('') }),
+      execute: async ({ requestId, rateUsdc, note }) => {
+        const r = await deps.call(address, 'GET', `/api/work-requests/${encodeURIComponent(requestId)}`);
+        if (r.status !== 200) return errorOf(r, 'No posted work with that id.');
+        const req = r.json.request as { title: string; kind: 'hourly' | 'monthly'; mine: boolean; status: string };
+        if (req.mine) return { error: 'You cannot offer on your own work.' };
+        if (req.status !== 'open') return { error: 'This work is no longer taking offers.' };
+        return show(buildWorkRequestOfferConfirm({ requestId, title: req.title, kind: req.kind, rateUsdc: String(rateUsdc), note }));
+      },
+    }),
+
+    propose_hire_offer: tool({
+      description: 'Prepare a card for the hirer to hire one of the people who offered on their posted work, by offer id from read_hourly_request. Their agent pays for the first week and the worker\'s agent accepts at once.',
+      inputSchema: z.object({ requestId: REQUEST, offerId: z.string().min(3).max(64) }),
+      execute: async ({ requestId, offerId }) => {
+        const r = await deps.call(address, 'GET', `/api/work-requests/${encodeURIComponent(requestId)}`);
+        if (r.status !== 200) return errorOf(r, 'No posted work with that id.');
+        const req = r.json.request as { title: string; offers?: Array<{ offerId: string; name: string; tag: string | null }> };
+        const o = req.offers?.find((x) => x.offerId === offerId);
+        if (!o) return { error: 'Only the hirer can hire, and only someone who offered.' };
+        const card = await deps.call(address, 'POST', `/api/work-requests/${encodeURIComponent(requestId)}/hire/card`, { offerId });
+        if (card.status !== 200) return errorOf(card, 'That hire cannot go ahead as it is.');
+        const c = card.json.card as { totalMicros: string };
+        return show(buildWorkRequestHireConfirm({ requestId, offerId, name: o.tag ? `@${o.tag}` : o.name, title: req.title, totalMicros: c.totalMicros }));
+      },
+    }),
+
+    propose_close_hourly_request: tool({
+      description: 'Prepare a card for the hirer to take their posted hourly work off the market without hiring.',
+      inputSchema: z.object({ requestId: REQUEST }),
+      execute: async ({ requestId }) => {
+        const r = await deps.call(address, 'GET', `/api/work-requests/${encodeURIComponent(requestId)}`);
+        if (r.status !== 200) return errorOf(r, 'No posted work with that id.');
+        const req = r.json.request as { title: string; mine: boolean; status: string };
+        if (!req.mine) return { error: 'Only the hirer can close it.' };
+        if (req.status !== 'open') return { error: 'It is already off the market.' };
+        return show(buildWorkRequestCloseConfirm({ requestId, title: req.title }));
       },
     }),
 

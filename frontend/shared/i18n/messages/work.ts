@@ -69,6 +69,32 @@ export interface WorkCopy {
     takeBack: { title: string; body: string; confirm: string };
     log: { title: string; hours: string; minutes: string; note: string; confirm: string; claim: string };
   };
+  requests: {
+    findTitle: string;
+    findBody: string;
+    form: { title: string; most: string; mostMonthly: string; briefHint: string; starts: string; startsHint: string; post: string };
+    market: { title: string; upTo: string; upToMonth: string; closes: string };
+    page: {
+      status: { open: string; hired: string; closed: string; expired: string };
+      offers: string;
+      noOffers: string;
+      over: string;
+      hire: string;
+      close: string;
+      yourOffer: string;
+      yourRate: string;
+      yourPrice: string;
+      note: string;
+      send: string;
+      change: string;
+      withdraw: string;
+      offerStatus: { live: string; withdrawn: string; hired: string; filled: string };
+      signIn: string;
+      openWork: string;
+    };
+    hireSheet: { title: string; body: string; confirm: string };
+    closeSheet: { title: string; body: string; confirm: string };
+  };
   notNow: string;
   failed: string;
 }
@@ -154,6 +180,32 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
       takeBack: { title: 'Take back the offer', body: 'They have not accepted yet, so the money comes back to you in full.', confirm: 'Take it back' },
       log: { title: 'Log hours', hours: 'Hours', minutes: 'Minutes', note: 'What you did', confirm: 'Log {hours}', claim: 'Claim the month' },
     },
+    requests: {
+      findTitle: 'Post it instead',
+      findBody: 'No one in mind? Post it, and your agent finds the best fit from what people have done on Karwan.',
+      form: { title: 'Post hourly work', most: 'The most per hour, USDC', mostMonthly: 'The most per month, USDC', briefHint: 'Say what the work is, so the right people find it.', starts: 'Starts in, days', startsHint: 'Offers close a day before it starts.', post: 'Post it' },
+      market: { title: 'Hourly work', upTo: 'Up to {amount} USDC an hour', upToMonth: 'Up to {amount} USDC a month', closes: 'Offers close {date}' },
+      page: {
+        status: { open: 'Taking offers', hired: 'Someone was hired', closed: 'Closed', expired: 'Closed, nobody was hired' },
+        offers: 'Offers, best fit first',
+        noOffers: 'No offers yet. Sellers who fit have been told.',
+        over: 'Over your most',
+        hire: 'Hire',
+        close: 'Close it',
+        yourOffer: 'Your offer',
+        yourRate: 'Your rate per hour, USDC',
+        yourPrice: 'Your price per month, USDC',
+        note: 'A short note',
+        send: 'Send my offer',
+        change: 'Change my offer',
+        withdraw: 'Take back my offer',
+        offerStatus: { live: 'Sent', withdrawn: 'Taken back', hired: 'You were hired', filled: 'Someone else was hired' },
+        signIn: 'Sign in to offer',
+        openWork: 'Open the work',
+      },
+      hireSheet: { title: 'Hire and pay for the first week', body: 'They already agreed these terms, so their agent accepts at once.', confirm: 'Pay {amount} USDC' },
+      closeSheet: { title: 'Close this work', body: 'It comes off the market and the people who offered are told.', confirm: 'Close it' },
+    },
     notNow: 'Not now',
     failed: 'That did not go through. Try again in a minute.',
   },
@@ -236,6 +288,32 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
       decline: { title: 'Refuser ce travail', body: "L'employeur est prévenu et son argent lui revient.", confirm: 'Refuser' },
       takeBack: { title: "Reprendre l'offre", body: "La personne n'a pas encore accepté, l'argent vous revient en entier.", confirm: 'Reprendre' },
       log: { title: 'Déclarer des heures', hours: 'Heures', minutes: 'Minutes', note: 'Ce que vous avez fait', confirm: 'Déclarer {hours}', claim: 'Déclarer le mois' },
+    },
+    requests: {
+      findTitle: 'Publiez plutôt',
+      findBody: "Personne en tête ? Publiez, et votre agent trouve la meilleure personne d'après ce qu'elle a fait sur Karwan.",
+      form: { title: "Publier un travail à l'heure", most: "Le maximum par heure, USDC", mostMonthly: 'Le maximum par mois, USDC', briefHint: 'Dites quel est le travail, pour que les bonnes personnes le trouvent.', starts: 'Début dans, jours', startsHint: 'Les offres se ferment la veille du début.', post: 'Publier' },
+      market: { title: "Travail à l'heure", upTo: "Jusqu'à {amount} USDC de l'heure", upToMonth: "Jusqu'à {amount} USDC par mois", closes: 'Offres jusqu’au {date}' },
+      page: {
+        status: { open: 'Reçoit des offres', hired: 'Quelqu’un a été embauché', closed: 'Fermé', expired: 'Fermé, personne embauché' },
+        offers: "Offres, les plus adaptées d'abord",
+        noOffers: "Pas encore d'offres. Les vendeurs adaptés ont été prévenus.",
+        over: 'Au-dessus de votre maximum',
+        hire: 'Embaucher',
+        close: 'Fermer',
+        yourOffer: 'Votre offre',
+        yourRate: 'Votre tarif horaire, USDC',
+        yourPrice: 'Votre prix par mois, USDC',
+        note: 'Une courte note',
+        send: 'Envoyer mon offre',
+        change: 'Modifier mon offre',
+        withdraw: 'Retirer mon offre',
+        offerStatus: { live: 'Envoyée', withdrawn: 'Retirée', hired: 'Vous avez été embauché', filled: "Quelqu'un d'autre a été embauché" },
+        signIn: 'Connectez-vous pour faire une offre',
+        openWork: 'Ouvrir le travail',
+      },
+      hireSheet: { title: 'Embaucher et payer la première semaine', body: 'La personne a déjà accepté ces conditions, son agent accepte tout de suite.', confirm: 'Payer {amount} USDC' },
+      closeSheet: { title: 'Fermer ce travail', body: 'Il quitte le marché et les personnes qui ont fait une offre sont prévenues.', confirm: 'Fermer' },
     },
     notNow: 'Pas maintenant',
     failed: "Cela n'a pas abouti. Réessayez dans une minute.",
@@ -320,6 +398,32 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
       takeBack: { title: 'استرجاع العرض', body: 'لم يقبل بعد، لذا يعود إليك المال كاملاً.', confirm: 'استرجاع' },
       log: { title: 'تسجيل الساعات', hours: 'الساعات', minutes: 'الدقائق', note: 'ما الذي أنجزته', confirm: 'سجّل {hours}', claim: 'المطالبة بالشهر' },
     },
+    requests: {
+      findTitle: 'انشره بدلاً من ذلك',
+      findBody: 'لا يوجد شخص في بالك؟ انشره، ويجد وكيلك الأنسب مما أنجزه الناس على Karwan.',
+      form: { title: 'نشر عمل بالساعة', most: 'الحد الأقصى للساعة، USDC', mostMonthly: 'الحد الأقصى للشهر، USDC', briefHint: 'قل ما هو العمل، ليجده الأشخاص المناسبون.', starts: 'يبدأ بعد، بالأيام', startsHint: 'تُغلق العروض قبل يوم من البدء.', post: 'انشر' },
+      market: { title: 'عمل بالساعة', upTo: 'حتى {amount} USDC للساعة', upToMonth: 'حتى {amount} USDC للشهر', closes: 'تُغلق العروض {date}' },
+      page: {
+        status: { open: 'يستقبل العروض', hired: 'تم توظيف شخص', closed: 'مغلق', expired: 'مغلق، لم يُوظَّف أحد' },
+        offers: 'العروض، الأنسب أولاً',
+        noOffers: 'لا عروض بعد. تم إبلاغ البائعين المناسبين.',
+        over: 'أعلى من حدك الأقصى',
+        hire: 'وظّف',
+        close: 'أغلقه',
+        yourOffer: 'عرضك',
+        yourRate: 'سعرك للساعة، USDC',
+        yourPrice: 'سعرك للشهر، USDC',
+        note: 'ملاحظة قصيرة',
+        send: 'أرسل عرضي',
+        change: 'غيّر عرضي',
+        withdraw: 'اسحب عرضي',
+        offerStatus: { live: 'أُرسل', withdrawn: 'سُحب', hired: 'تم توظيفك', filled: 'تم توظيف شخص آخر' },
+        signIn: 'سجّل الدخول لتقدّم عرضاً',
+        openWork: 'افتح العمل',
+      },
+      hireSheet: { title: 'وظّف وادفع الأسبوع الأول', body: 'وافق بالفعل على هذه الشروط، لذا يقبل وكيله فوراً.', confirm: 'ادفع {amount} USDC' },
+      closeSheet: { title: 'أغلق هذا العمل', body: 'يُزال من السوق ويُبلّغ من قدّموا عروضاً.', confirm: 'أغلقه' },
+    },
     notNow: 'ليس الآن',
     failed: 'لم يتم ذلك. حاول مرة أخرى بعد دقيقة.',
   },
@@ -403,6 +507,32 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
       takeBack: { title: 'प्रस्ताव वापस लें', body: 'उन्होंने अभी स्वीकार नहीं किया, इसलिए पूरा पैसा आपको वापस मिलता है।', confirm: 'वापस लें' },
       log: { title: 'घंटे दर्ज करें', hours: 'घंटे', minutes: 'मिनट', note: 'आपने क्या किया', confirm: '{hours} दर्ज करें', claim: 'महीने का दावा करें' },
     },
+    requests: {
+      findTitle: 'इसके बजाय पोस्ट करें',
+      findBody: 'कोई ध्यान में नहीं? पोस्ट करें, और आपका एजेंट Karwan पर लोगों के किए काम से सबसे सही व्यक्ति ढूँढता है।',
+      form: { title: 'घंटे के हिसाब से काम पोस्ट करें', most: 'प्रति घंटा अधिकतम, USDC', mostMonthly: 'प्रति माह अधिकतम, USDC', briefHint: 'बताएँ काम क्या है, ताकि सही लोग इसे ढूँढें।', starts: 'कितने दिनों में शुरू', startsHint: 'शुरू होने से एक दिन पहले प्रस्ताव बंद हो जाते हैं।', post: 'पोस्ट करें' },
+      market: { title: 'घंटे के हिसाब से काम', upTo: '{amount} USDC प्रति घंटा तक', upToMonth: '{amount} USDC प्रति माह तक', closes: 'प्रस्ताव {date} को बंद' },
+      page: {
+        status: { open: 'प्रस्ताव ले रहे हैं', hired: 'किसी को काम पर रखा गया', closed: 'बंद', expired: 'बंद, किसी को नहीं रखा गया' },
+        offers: 'प्रस्ताव, सबसे सही पहले',
+        noOffers: 'अभी कोई प्रस्ताव नहीं। सही विक्रेताओं को बताया गया है।',
+        over: 'आपकी अधिकतम सीमा से ऊपर',
+        hire: 'काम पर रखें',
+        close: 'बंद करें',
+        yourOffer: 'आपका प्रस्ताव',
+        yourRate: 'आपकी प्रति घंटा दर, USDC',
+        yourPrice: 'आपकी प्रति माह कीमत, USDC',
+        note: 'एक छोटा नोट',
+        send: 'मेरा प्रस्ताव भेजें',
+        change: 'मेरा प्रस्ताव बदलें',
+        withdraw: 'मेरा प्रस्ताव वापस लें',
+        offerStatus: { live: 'भेजा गया', withdrawn: 'वापस लिया गया', hired: 'आपको काम पर रखा गया', filled: 'किसी और को रखा गया' },
+        signIn: 'प्रस्ताव देने के लिए साइन इन करें',
+        openWork: 'काम खोलें',
+      },
+      hireSheet: { title: 'काम पर रखें और पहले हफ़्ते का भुगतान करें', body: 'वे इन शर्तों पर पहले ही सहमत हैं, इसलिए उनका एजेंट तुरंत स्वीकार करता है।', confirm: '{amount} USDC भुगतान करें' },
+      closeSheet: { title: 'यह काम बंद करें', body: 'यह बाज़ार से हट जाता है और प्रस्ताव देने वालों को बताया जाता है।', confirm: 'बंद करें' },
+    },
     notNow: 'अभी नहीं',
     failed: 'यह नहीं हो पाया। एक मिनट में फिर कोशिश करें।',
   },
@@ -485,6 +615,32 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
       decline: { title: 'Kataa kazi hii', body: 'Mwajiri anaambiwa na pesa yake inarudi kwake.', confirm: 'Kataa' },
       takeBack: { title: 'Rudisha ofa', body: 'Bado hawajakubali, kwa hivyo pesa yote inarudi kwako.', confirm: 'Rudisha' },
       log: { title: 'Andika saa', hours: 'Saa', minutes: 'Dakika', note: 'Ulichofanya', confirm: 'Andika {hours}', claim: 'Dai mwezi' },
+    },
+    requests: {
+      findTitle: 'Badala yake ichapishe',
+      findBody: 'Huna mtu akilini? Ichapishe, na wakala wako atampata anayefaa zaidi kutokana na kazi watu walizofanya kwenye Karwan.',
+      form: { title: 'Chapisha kazi ya saa', most: 'Kiwango cha juu kwa saa, USDC', mostMonthly: 'Kiwango cha juu kwa mwezi, USDC', briefHint: 'Eleza kazi ni ipi, ili watu sahihi waipate.', starts: 'Inaanza baada ya, siku', startsHint: 'Ofa zinafungwa siku moja kabla ya kuanza.', post: 'Ichapishe' },
+      market: { title: 'Kazi ya saa', upTo: 'Hadi USDC {amount} kwa saa', upToMonth: 'Hadi USDC {amount} kwa mwezi', closes: 'Ofa zinafungwa {date}' },
+      page: {
+        status: { open: 'Inapokea ofa', hired: 'Mtu ameajiriwa', closed: 'Imefungwa', expired: 'Imefungwa, hakuna aliyeajiriwa' },
+        offers: 'Ofa, anayefaa zaidi kwanza',
+        noOffers: 'Bado hakuna ofa. Wauzaji wanaofaa wameambiwa.',
+        over: 'Zaidi ya kiwango chako cha juu',
+        hire: 'Ajiri',
+        close: 'Ifunge',
+        yourOffer: 'Ofa yako',
+        yourRate: 'Kiwango chako kwa saa, USDC',
+        yourPrice: 'Bei yako kwa mwezi, USDC',
+        note: 'Ujumbe mfupi',
+        send: 'Tuma ofa yangu',
+        change: 'Badilisha ofa yangu',
+        withdraw: 'Rudisha ofa yangu',
+        offerStatus: { live: 'Imetumwa', withdrawn: 'Imerudishwa', hired: 'Umeajiriwa', filled: 'Mtu mwingine ameajiriwa' },
+        signIn: 'Ingia ili utoe ofa',
+        openWork: 'Fungua kazi',
+      },
+      hireSheet: { title: 'Ajiri na ulipie wiki ya kwanza', body: 'Tayari wamekubali masharti haya, kwa hivyo wakala wao anakubali mara moja.', confirm: 'Lipa USDC {amount}' },
+      closeSheet: { title: 'Funga kazi hii', body: 'Inaondoka sokoni na waliotoa ofa wanaambiwa.', confirm: 'Ifunge' },
     },
     notNow: 'Si sasa',
     failed: 'Haikufanikiwa. Jaribu tena baada ya dakika moja.',

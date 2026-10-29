@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import type { WorkView, WorkWeekView } from '../core/api';
+import type { WorkRequestView, WorkView, WorkWeekView } from '../core/api';
 import { en } from '../shared/i18n/messages/en';
 import { ar } from '../shared/i18n/messages/ar';
 import { BUYER, SELLER } from './fixtures';
@@ -114,4 +114,65 @@ test('hourly work reads right to left in Arabic and fits a phone', async ({ page
   await expect(page.getByRole('button', { name: ar.work.page.fundWeek.replace('{n}', '2') })).toBeVisible();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);
+});
+
+const posted = (over: Partial<WorkRequestView> = {}): WorkRequestView => ({
+  id: 'wr_demo', kind: 'hourly', title: 'Bookkeeping', brief: 'Monthly books in QuickBooks', maxRateMicros: '10000000', maxHours: 10, periods: 4,
+  startsAt: Date.now() + 7 * DAY, offersCloseAt: Date.now() + 6 * DAY, status: 'open', ...over,
+});
+
+async function servePosted(page: Page, who: string, view: WorkRequestView, sent?: { body: unknown; path?: string }) {
+  await page.addInitScript(() => {
+    try { localStorage.setItem('karwan:guide:disabled', '1'); } catch { /* private mode */ }
+  });
+  await page.route(`${API}/**`, async (route) => {
+    const { pathname } = new URL(route.request().url());
+    const method = route.request().method();
+    if (pathname === '/api/auth/bootstrap') return route.fulfill({ json: { user: { address: who, method: 'web3', hasPasskey: false }, profile: null } });
+    if (pathname === '/api/terms/status') return route.fulfill({ json: { currentVersion: '1', acceptedVersion: '1' } });
+    if (pathname === `/api/work-requests/${view.id}` && method === 'GET') return route.fulfill({ json: { request: view } });
+    if (pathname.endsWith('/hire/card')) {
+      return route.fulfill({ json: { card: { kind: 'hourly', title: 'Bookkeeping', brief: '', worker: SELLER, rateMicros: '9000000', maxHours: 10, periods: 4, startsAt: Date.now() + 7 * DAY, budgetMicros: '90000000', feeHalfMicros: '450000', totalMicros: '90450000', mostMicros: '361800000', note: '' } } });
+    }
+    if (method === 'POST' && pathname.startsWith('/api/work-requests')) {
+      if (sent) { sent.body = route.request().postDataJSON(); sent.path = pathname; }
+      return route.fulfill({ json: pathname.endsWith('/hire') ? { workId: 'w_demo' } : { request: view } });
+    }
+    if (pathname.startsWith('/api/client-errors')) return route.fulfill({ status: 204, body: '' });
+    return route.fulfill({ json: { items: [], events: [], movements: [], messages: [] } });
+  });
+}
+
+test('the hirer sees offers ranked by fit, with who they are and never a score, and hires the best fit', async ({ page }) => {
+  const sent = { body: null as unknown, path: '' as string | undefined };
+  await servePosted(page, BUYER, posted({
+    mine: true,
+    offers: [
+      { offerId: 'wo_a', seller: SELLER, name: 'Ada Obi', tag: 'ada', verified: true, tier: 'ESTABLISHED', rating: { kind: 'rated', value: 4.8, count: 23, disputed: 0 }, reasons: ['best_fit', 'verified'], recommended: true, rateMicros: '9000000', note: 'Five years of QuickBooks', overMost: false },
+      { offerId: 'wo_t', seller: '0x3333333333333333333333333333333333333333', name: 'Tunde', tag: null, verified: false, tier: 'NEW', rating: { kind: 'new', count: 0 }, reasons: [], recommended: false, rateMicros: '12000000', note: '', overMost: true },
+    ],
+  }), sent);
+  await page.goto('/work/requests/wr_demo');
+  await expect(page.getByRole('heading', { name: t.requests.page.offers })).toBeVisible();
+  await expect(page.getByText('4.8 from 23 deals')).toBeVisible();
+  await expect(page.getByText(t.requests.page.over)).toBeVisible();
+  await expect(page.getByText(/\bscore\b|\b23 completed\b/i)).toHaveCount(0);
+  await page.getByRole('button', { name: `${t.requests.page.hire} Ada Obi` }).click();
+  const sheet = page.getByRole('dialog');
+  await expect(sheet).toContainText('90.45 USDC');
+  await sheet.getByRole('button', { name: t.requests.hireSheet.confirm.replace('{amount}', '90.45') }).click();
+  await expect.poll(() => sent.path).toBe('/api/work-requests/wr_demo/hire');
+  expect(sent.body).toEqual({ offerId: 'wo_a' });
+  await expect(page).toHaveURL(/\/work\/w_demo$/);
+});
+
+test('a seller offers a rate and a note on posted work', async ({ page }) => {
+  const sent = { body: null as unknown, path: '' as string | undefined };
+  await servePosted(page, SELLER, posted(), sent);
+  await page.goto('/work/requests/wr_demo');
+  await page.getByLabel(t.requests.page.yourRate).fill('9');
+  await page.getByLabel(t.requests.page.note).fill('Five years of QuickBooks');
+  await page.getByRole('button', { name: t.requests.page.send }).click();
+  await expect.poll(() => sent.path).toBe('/api/work-requests/wr_demo/offers');
+  expect(sent.body).toEqual({ rateUsdc: '9', note: 'Five years of QuickBooks' });
 });

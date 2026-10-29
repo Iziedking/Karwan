@@ -60,6 +60,7 @@ export type RouteTitleKey =
   | 'runContest'
   | 'work'
   | 'hireByHour'
+  | 'postHourlyWork'
   | 'signIn'
   | 'signUp'
   | 'terms'
@@ -133,6 +134,7 @@ const en: RouteTitleCopy = {
   runContest: 'Run a contest',
   work: 'Hourly work',
   hireByHour: 'Hire by the hour',
+  postHourlyWork: 'Post hourly work',
   signIn: 'Sign in',
   signUp: 'Sign up',
   terms: 'Terms',
@@ -205,6 +207,7 @@ const ar: RouteTitleCopy = {
   runContest: 'أطلق مسابقة',
   work: 'عمل بالساعة',
   hireByHour: 'التوظيف بالساعة',
+  postHourlyWork: 'نشر عمل بالساعة',
   signIn: 'تسجيل الدخول',
   signUp: 'إنشاء حساب',
   terms: 'الشروط',
@@ -277,6 +280,7 @@ const fr: RouteTitleCopy = {
   runContest: 'Lancer un concours',
   work: "Travail à l'heure",
   hireByHour: "Embaucher à l'heure",
+  postHourlyWork: "Publier un travail à l'heure",
   signIn: 'Se connecter',
   signUp: 'Créer un compte',
   terms: 'Conditions',
@@ -349,6 +353,7 @@ const hi: RouteTitleCopy = {
   runContest: 'प्रतियोगिता चलाएँ',
   work: 'घंटे के हिसाब से काम',
   hireByHour: 'घंटे के हिसाब से काम पर रखें',
+  postHourlyWork: 'घंटे के हिसाब से काम पोस्ट करें',
   signIn: 'साइन इन',
   signUp: 'साइन अप',
   terms: 'शर्तें',
@@ -421,6 +426,7 @@ const sw: RouteTitleCopy = {
   runContest: 'Endesha shindano',
   work: 'Kazi ya saa',
   hireByHour: 'Ajiri kwa saa',
+  postHourlyWork: 'Chapisha kazi ya saa',
   signIn: 'Ingia',
   signUp: 'Jisajili',
   terms: 'Masharti',

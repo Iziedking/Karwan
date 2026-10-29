@@ -975,8 +975,13 @@ ${String(e.payload?.note ?? '').replace(/[*_`[\]]/g, '').slice(0, 300)}`, url)
       const url = dealUrl(e.payload?.dealId as string | undefined);
       return withLink(String(e.payload?.text ?? ''), url ? `${url}#rate` : null);
     }
-    case 'work.update':
-      return withLink(String(e.payload?.text ?? ''), workUrl(e.payload?.workId as string | undefined));
+    case 'work.update': {
+      // Hourly work names its own page; posted work names the request's.
+      const path = e.payload?.path as string | undefined;
+      const base = config.FRONTEND_BASE_URL?.replace(/\/$/, '');
+      const url = path && base && /^\/work\/requests\/wr_[A-Za-z0-9_-]{1,40}$/.test(path) ? `${base}${path}` : workUrl(e.payload?.workId as string | undefined);
+      return withLink(String(e.payload?.text ?? ''), url);
+    }
     case 'rating.revealed':
       return withLink(String(e.payload?.text ?? ''), dealUrl(e.payload?.dealId as string | undefined));
     case 'support.reply': {

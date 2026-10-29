@@ -15,6 +15,7 @@ import { BUSINESS_ACCOUNTS_OPEN } from '@/features/account/businessOpen';
 import { StartTradeSheet } from './StartTradeSheet';
 import { YourTrades } from './YourTrades';
 import { OpenContests } from '@/features/contests/components/OpenContests';
+import { OpenWorkRequests } from '@/features/work/components/OpenWorkRequests';
 
 /// The one market (view 17): Start a trade, then Your trades when signed in,
 /// then Find, on one scrolling page for every account. A requests or offers
@@ -62,6 +63,7 @@ export function MarketPage({ view, scope, list }: { view: MarketView; scope: Dis
               </div>
             ) : null}
             <OpenContests />
+            <OpenWorkRequests />
           </>
         }
       />

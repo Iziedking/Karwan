@@ -132,6 +132,12 @@ export const COVERAGE: Record<string, Coverage> = {
   'POST /api/work/:/hours': { by: 'assistant', via: 'work_hours' },
   'POST /api/work/:/approve': { by: 'assistant', via: 'work_approve' },
   'POST /api/work/:/object': { by: 'assistant', via: 'work_object' },
+  'POST /api/work-requests': { by: 'assistant', via: 'work_request_post' },
+  'POST /api/work-requests/:/offers': { by: 'assistant', via: 'work_request_offer' },
+  'POST /api/work-requests/:/offers/withdraw': { by: 'page', why: 'Taking back a rate before the hirer chooses; offering again changes it, which the assistant does.' },
+  'POST /api/work-requests/:/hire/card': { by: 'assistant', via: 'work_request_hire' },
+  'POST /api/work-requests/:/hire': { by: 'assistant', via: 'work_request_hire' },
+  'POST /api/work-requests/:/close': { by: 'assistant', via: 'work_request_close' },
   'POST /api/financing-chat/:/:': { by: 'assistant', via: 'message_about_early_payment' },
 
   // Money.

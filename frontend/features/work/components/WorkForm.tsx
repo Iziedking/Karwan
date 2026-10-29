@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ApiError, api, type WorkCard, type WorkInput, type WorkKind } from '@/core/api';
@@ -86,6 +87,10 @@ export function WorkForm({ prefill }: { prefill: Partial<WorkInput> }) {
   return (
     <main className="mx-auto w-full max-w-[760px] px-4 pb-16 pt-8 sm:px-6">
       <h1 className="text-[28px] font-semibold text-[var(--lp-dark)]">{t.form.title}</h1>
+      <p className="mt-2 text-[15px] text-[var(--lp-text-sub)]">
+        {t.requests.findBody}{' '}
+        <Link href="/work/requests/new" className="font-semibold text-[var(--lp-dark)] underline underline-offset-2">{t.requests.findTitle}</Link>
+      </p>
       <div className="mt-6 space-y-5">
         <label className="block">
           <span className={fieldLabel}>{t.form.who}</span>

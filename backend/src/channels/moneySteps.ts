@@ -29,6 +29,7 @@ export const MONEY_INTENTS: ReadonlySet<ConfirmAction['intent']> = new Set<Confi
   'work_approve',
   'work_object',
   'work_cancel',
+  'work_request_hire',
   'claim_payment',
   'take_back_deal',
   'accept_offer',
@@ -81,6 +82,10 @@ export function moneyStepPath(action: ConfirmAction): string | null {
     case 'work_cancel': {
       const id = (action.payload as { workId?: unknown }).workId;
       return typeof id === 'string' && /^w_[A-Za-z0-9_-]{1,40}$/.test(id) ? `/work/${id}` : null;
+    }
+    case 'work_request_hire': {
+      const id = (action.payload as { requestId?: unknown }).requestId;
+      return typeof id === 'string' && /^wr_[A-Za-z0-9_-]{1,40}$/.test(id) ? `/work/requests/${id}` : null;
     }
     case 'approve_match':
     case 'choose_offer':

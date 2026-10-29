@@ -1947,6 +1947,10 @@ export interface AssistantConfirmAction {
     | 'work_hours'
     | 'work_approve'
     | 'work_object'
+    | 'work_request_post'
+    | 'work_request_offer'
+    | 'work_request_hire'
+    | 'work_request_close'
     | 'fund_agent'
     | 'pool_usdc_web3'
     | 'fund_agent_web3'
@@ -2845,6 +2849,46 @@ export interface WorkView {
   canAccept: boolean;
   canTakeBack: boolean;
   canGiveNotice: boolean;
+}
+export interface WorkRequestInput {
+  kind: WorkKind;
+  title: string;
+  brief: string;
+  maxRateUsdc: string;
+  maxHours?: number;
+  periods: number;
+  startsInDays?: number;
+}
+export interface RankedWorkOffer {
+  offerId: string;
+  seller: string;
+  name: string;
+  tag: string | null;
+  verified: boolean;
+  tier: string;
+  rating: { kind: 'new'; count: number } | { kind: 'rated'; value: number; count: number; disputed: number };
+  reasons: string[];
+  recommended: boolean;
+  rateMicros: string;
+  note: string;
+  overMost: boolean;
+}
+export interface WorkRequestView {
+  id: string;
+  kind: WorkKind;
+  title: string;
+  brief: string;
+  maxRateMicros: string;
+  maxHours: number;
+  periods: number;
+  startsAt: number;
+  offersCloseAt: number;
+  status: 'open' | 'hired' | 'closed' | 'expired';
+  mine?: boolean;
+  workId?: string;
+  offers?: RankedWorkOffer[];
+  offerCount?: number;
+  myOffer?: { id: string; rateMicros: string; note: string; status: 'live' | 'withdrawn' | 'hired' | 'filled' };
 }
 export interface WorkRow {
   id: string;
@@ -5333,6 +5377,20 @@ export const api = {
     json<{ contest: ContestView }>(`/api/contests/${encodeURIComponent(id)}/award`, { method: 'POST', body: JSON.stringify({ entryIds }) }),
   cancelContest: (id: string) =>
     json<{ contest: ContestView }>(`/api/contests/${encodeURIComponent(id)}/cancel`, { method: 'POST', body: JSON.stringify({}) }),
+  listWorkRequests: () => json<{ requests: WorkRequestView[] }>('/api/work-requests'),
+  myWorkRequests: () => json<{ requests: WorkRequestView[] }>('/api/work-requests/mine'),
+  getWorkRequest: (id: string) => json<{ request: WorkRequestView }>(`/api/work-requests/${encodeURIComponent(id)}`),
+  postWorkRequest: (body: WorkRequestInput) => json<{ request: WorkRequestView }>('/api/work-requests', { method: 'POST', body: JSON.stringify(body) }),
+  offerOnWorkRequest: (id: string, body: { rateUsdc: string; note?: string }) =>
+    json<{ request: WorkRequestView }>(`/api/work-requests/${encodeURIComponent(id)}/offers`, { method: 'POST', body: JSON.stringify(body) }),
+  withdrawWorkOffer: (id: string) =>
+    json<{ request: WorkRequestView }>(`/api/work-requests/${encodeURIComponent(id)}/offers/withdraw`, { method: 'POST', body: JSON.stringify({}) }),
+  workHireCard: (id: string, offerId: string) =>
+    json<{ card: WorkCard }>(`/api/work-requests/${encodeURIComponent(id)}/hire/card`, { method: 'POST', body: JSON.stringify({ offerId }) }),
+  hireFromWorkRequest: (id: string, offerId: string) =>
+    json<{ workId: string }>(`/api/work-requests/${encodeURIComponent(id)}/hire`, { method: 'POST', body: JSON.stringify({ offerId }) }),
+  closeWorkRequest: (id: string) =>
+    json<{ request: WorkRequestView }>(`/api/work-requests/${encodeURIComponent(id)}/close`, { method: 'POST', body: JSON.stringify({}) }),
   myWork: () => json<{ work: WorkRow[] }>('/api/work/mine'),
   getWork: (id: string) => json<{ work: WorkView }>(`/api/work/${encodeURIComponent(id)}`),
   draftWork: (body: WorkInput) => json<{ card: WorkCard }>('/api/work/draft', { method: 'POST', body: JSON.stringify(body) }),

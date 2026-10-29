@@ -25,7 +25,23 @@ export interface WorkHoursConfirm extends ConfirmActionBase { intent: 'work_hour
 export interface WorkApproveConfirm extends ConfirmActionBase { intent: 'work_approve'; payload: { workId: string; k: number } }
 export interface WorkObjectConfirm extends ConfirmActionBase { intent: 'work_object'; payload: { workId: string; k: number; minutes: number; reason: string } }
 
-export type WorkConfirm = WorkOfferConfirm | WorkStepConfirm | WorkHoursConfirm | WorkApproveConfirm | WorkObjectConfirm;
+export interface WorkRequestPayload {
+  kind: 'hourly' | 'monthly';
+  title: string;
+  brief: string;
+  maxRateUsdc: string;
+  maxHours?: number;
+  periods: number;
+  startsInDays?: number;
+}
+export interface WorkRequestPostConfirm extends ConfirmActionBase { intent: 'work_request_post'; payload: WorkRequestPayload }
+export interface WorkRequestOfferConfirm extends ConfirmActionBase { intent: 'work_request_offer'; payload: { requestId: string; rateUsdc: string; note: string } }
+export interface WorkRequestHireConfirm extends ConfirmActionBase { intent: 'work_request_hire'; payload: { requestId: string; offerId: string } }
+export interface WorkRequestCloseConfirm extends ConfirmActionBase { intent: 'work_request_close'; payload: { requestId: string } }
+
+export type WorkConfirm =
+  | WorkOfferConfirm | WorkStepConfirm | WorkHoursConfirm | WorkApproveConfirm | WorkObjectConfirm
+  | WorkRequestPostConfirm | WorkRequestOfferConfirm | WorkRequestHireConfirm | WorkRequestCloseConfirm;
 
 export interface WorkDraftCard {
   kind: 'hourly' | 'monthly';
@@ -137,5 +153,66 @@ export function buildWorkObjectConfirm(w: WorkRow, i: { k: number; minutes: numb
     payload: { workId: w.id, k: i.k, minutes: i.minutes, reason: i.reason },
     confirmLabel: 'Send my objection',
     cancelLabel: 'Not now',
+  };
+}
+
+export function buildWorkRequestPostConfirm(p: WorkRequestPayload): WorkRequestPostConfirm {
+  const hourly = p.kind === 'hourly';
+  return {
+    kind: 'confirm',
+    id: `work_request_post:${confirmNonce()}`,
+    intent: 'work_request_post',
+    title: `Post ${p.title}`,
+    summary: 'Sellers who fit are told and offer their rate. Your agent ranks them by what they have done on Karwan. Nothing is paid until you hire someone.',
+    fields: [
+      { label: hourly ? 'The most an hour' : 'The most a month', value: usdc(Number(p.maxRateUsdc) * 1_000_000) },
+      ...(hourly ? [{ label: 'Most hours a week', value: String(p.maxHours ?? 0) }] : []),
+      { label: hourly ? 'Weeks' : 'Months', value: String(p.periods) },
+    ],
+    payload: p,
+    confirmLabel: 'Post it',
+    cancelLabel: 'Not now',
+  };
+}
+
+export function buildWorkRequestOfferConfirm(i: { requestId: string; title: string; kind: 'hourly' | 'monthly'; rateUsdc: string; note: string }): WorkRequestOfferConfirm {
+  return {
+    kind: 'confirm',
+    id: `work_request_offer:${i.requestId}:${confirmNonce()}`,
+    intent: 'work_request_offer',
+    title: `Offer on ${i.title}`,
+    summary: 'If they hire you, your agent accepts these terms for you and the first one is paid in.',
+    fields: [{ label: i.kind === 'hourly' ? 'Your rate an hour' : 'Your price a month', value: usdc(Number(i.rateUsdc) * 1_000_000) }, ...(i.note ? [{ label: 'Note', value: i.note }] : [])],
+    payload: { requestId: i.requestId, rateUsdc: i.rateUsdc, note: i.note },
+    confirmLabel: 'Send my offer',
+    cancelLabel: 'Not now',
+  };
+}
+
+export function buildWorkRequestHireConfirm(i: { requestId: string; offerId: string; name: string; title: string; totalMicros: string }): WorkRequestHireConfirm {
+  return {
+    kind: 'confirm',
+    id: `work_request_hire:${i.requestId}:${confirmNonce()}`,
+    intent: 'work_request_hire',
+    title: `Hire ${i.name} for ${i.title}`,
+    summary: 'Your agent pays for the first week now; they already agreed these terms, so it starts as planned.',
+    fields: [{ label: 'You pay now', value: usdc(i.totalMicros) }],
+    payload: { requestId: i.requestId, offerId: i.offerId },
+    confirmLabel: `Pay ${usdc(i.totalMicros)}`,
+    cancelLabel: 'Not now',
+  };
+}
+
+export function buildWorkRequestCloseConfirm(i: { requestId: string; title: string }): WorkRequestCloseConfirm {
+  return {
+    kind: 'confirm',
+    id: `work_request_close:${i.requestId}:${confirmNonce()}`,
+    intent: 'work_request_close',
+    title: `Close ${i.title}`,
+    summary: 'It comes off the market and the people who offered are told.',
+    fields: [],
+    payload: { requestId: i.requestId },
+    confirmLabel: 'Close it',
+    cancelLabel: 'Keep it open',
   };
 }

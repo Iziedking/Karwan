@@ -112,6 +112,10 @@ export const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAc
   work_hours: (p) => ({ method: 'POST', path: `/api/work/${encodeURIComponent(String(p.workId))}/hours`, body: { minutes: p.minutes, note: p.note, ...(p.k === undefined ? {} : { k: p.k }) } }),
   work_approve: (p) => ({ method: 'POST', path: `/api/work/${encodeURIComponent(String(p.workId))}/approve`, body: { k: p.k } }),
   work_object: (p) => ({ method: 'POST', path: `/api/work/${encodeURIComponent(String(p.workId))}/object`, body: { k: p.k, minutes: p.minutes, reason: p.reason } }),
+  work_request_post: (p) => ({ method: 'POST', path: '/api/work-requests', body: p }),
+  work_request_offer: (p) => ({ method: 'POST', path: `/api/work-requests/${encodeURIComponent(String(p.requestId))}/offers`, body: { rateUsdc: p.rateUsdc, note: p.note } }),
+  work_request_hire: (p) => ({ method: 'POST', path: `/api/work-requests/${encodeURIComponent(String(p.requestId))}/hire`, body: { offerId: p.offerId } }),
+  work_request_close: (p) => ({ method: 'POST', path: `/api/work-requests/${encodeURIComponent(String(p.requestId))}/close`, body: {} }),
   // Placeholder so the route table knows the intent; fundDirect runs it.
   fund_direct_deal: (p) => ({ method: 'POST', path: `/api/deals/direct/${p.jobId}/fund` }),
   // A held wallet needs the person to confirm it is them, which happens on Karwan.
@@ -344,6 +348,10 @@ const DONE: Partial<Record<ConfirmAction['intent'], string>> = {
   work_hours: 'Logged. The hirer has been told.',
   work_approve: 'Approved, and they are paid.',
   work_object: "Sent. The rest is paid; Karwan's review team decides the hours you objected to.",
+  work_request_post: 'Posted. Sellers who fit are told; I will tell you as offers come in, ranked by fit.',
+  work_request_offer: 'Offer sent. If they hire you, your agent accepts and the first week is paid in.',
+  work_request_hire: 'Hired. The first week is paid in and they have accepted.',
+  work_request_close: 'Closed. It is off the market and the people who offered are told.',
 };
 
 const OWN_WALLET_SIGNS = new Set<ConfirmAction['intent']>(['guarantee_put_up', 'guarantee_take_out', 'guarantee_cancel_take_out', 'guarantee_collect', 'legacy_step']);
