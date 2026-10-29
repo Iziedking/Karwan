@@ -124,6 +124,9 @@ export type KarwanEventType =
   /// "Ask me first": the selling agent found a request that fits and asks its
   /// owner instead of offering. Party: `sellerUser` only (agents/suggestion.ts).
   | 'agent.suggestion'
+  /// The other side's agent is asking its person (view 41). Carries no price,
+  /// limit or name; party: the `buyerUser` or `sellerUser` it is shown to.
+  | 'agent.question.waiting'
   /// A seller is asked to set up their Karwan record: their agent waits to offer, or a deal was paid in before they had one.
   | 'record.setup_needed'
   /// suite: the buyer's review ends within a day; the buyer is reminded.
@@ -215,6 +218,13 @@ export type KarwanEventType =
   | 'po.repaid'
   | 'po.reclaimed'
   | 'po.defaulted'
+  // Contests on the job escrow (view 40). Payload names the buyer and, where
+  // they are told, the sellers.
+  | 'contest.opened'
+  | 'contest.entered'
+  | 'contest.awarded'
+  | 'contest.cancelled'
+  | 'contest.returned'
   // Verified-business accounts.
   | 'business.registration.submitted'
   | 'business.verified'

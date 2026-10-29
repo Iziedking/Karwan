@@ -1342,6 +1342,54 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       CREATE INDEX market_board_events_posted ON market_board_events (kind, at);
     `,
   },
+  {
+    // Contests on the job escrow and the entries sent to them (view 40).
+    version: 50,
+    name: 'contests',
+    sql: `
+      CREATE TABLE contests (
+        id TEXT PRIMARY KEY,
+        data JSONB NOT NULL
+      );
+      CREATE INDEX contests_status ON contests ((data->>'status'));
+      CREATE TABLE contest_entries (
+        id TEXT PRIMARY KEY,
+        contest_id TEXT NOT NULL,
+        data JSONB NOT NULL
+      );
+      CREATE INDEX contest_entries_contest ON contest_entries (contest_id);
+    `,
+  },
+  {
+    // What an agent asks its person instead of going quiet (view 41). One open
+    // question per person and request; answered, expired after 24 hours or
+    // when the request closes.
+    version: 51,
+    name: 'agent_questions',
+    sql: `
+      CREATE TABLE agent_questions_v1 (
+        id TEXT PRIMARY KEY,
+        owner TEXT NOT NULL,
+        side TEXT NOT NULL CHECK (side IN ('seller', 'buyer')),
+        job_id TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        title TEXT NOT NULL,
+        facts JSONB NOT NULL,
+        suggested JSONB NOT NULL,
+        state TEXT NOT NULL CHECK (state IN ('input-required', 'answered', 'expired')),
+        answer JSONB,
+        mandate_version INTEGER NOT NULL,
+        created_at BIGINT NOT NULL,
+        updated_at BIGINT NOT NULL,
+        reminded_at BIGINT
+      );
+      CREATE UNIQUE INDEX agent_questions_one_open ON agent_questions_v1 (owner, job_id)
+        WHERE state = 'input-required';
+      CREATE INDEX agent_questions_owner ON agent_questions_v1 (owner, state, updated_at DESC);
+      CREATE INDEX agent_questions_job ON agent_questions_v1 (job_id, state);
+      CREATE INDEX agent_questions_remind ON agent_questions_v1 (created_at) WHERE state = 'input-required' AND reminded_at IS NULL;
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

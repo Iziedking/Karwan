@@ -96,6 +96,11 @@ export const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAc
     body: { invoiceId: p.invoiceId, offeredAdvanceUsdc: p.offeredAdvanceUsdc, expectedReturnUsdc: p.expectedReturnUsdc, expiresInHours: p.expiresInHours },
   }),
   finance_apply: () => ({ method: 'POST', path: '/api/financier/apply', body: {} }),
+  // Contests (view 40): the contest page's calls.
+  contest_post: (p) => ({ method: 'POST', path: '/api/contests', body: p }),
+  contest_enter: (p) => ({ method: 'POST', path: `/api/contests/${encodeURIComponent(String(p.contestId))}/entries`, body: { note: p.note, heldFiles: true } }),
+  contest_award: (p) => ({ method: 'POST', path: `/api/contests/${encodeURIComponent(String(p.contestId))}/award`, body: { entryIds: p.entryIds } }),
+  contest_cancel: (p) => ({ method: 'POST', path: `/api/contests/${encodeURIComponent(String(p.contestId))}/cancel`, body: {} }),
   // Placeholder so the route table knows the intent; fundDirect runs it.
   fund_direct_deal: (p) => ({ method: 'POST', path: `/api/deals/direct/${p.jobId}/fund` }),
   // A held wallet needs the person to confirm it is them, which happens on Karwan.
@@ -218,6 +223,11 @@ export const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAc
   make_offer: (p) => ({ method: 'POST', path: `/api/jobs/${p.jobId}/offers`, body: { priceUsdc: p.priceUsdc, deliverByUnix: p.deliverByUnix, note: p.note } }),
   withdraw_offer: (p) => ({ method: 'POST', path: `/api/jobs/${p.jobId}/offers/${p.offerId}/withdraw`, body: {} }),
   lower_offer: (p) => ({ method: 'POST', path: `/api/jobs/${p.jobId}/offers/${p.offerId}/lower`, body: { priceUsdc: p.priceUsdc } }),
+  answer_agent_question: (p) => ({
+    method: 'POST',
+    path: `/api/agent-questions/${encodeURIComponent(String(p.questionId))}/answer`,
+    body: { choice: p.choice, ...(p.priceUsdc ? { priceUsdc: p.priceUsdc } : {}) },
+  }),
   accept_offer: (p) => ({ method: 'POST', path: `/api/jobs/${p.jobId}/offers/${p.offerId}/accept`, body: {} }),
   near_miss_proceed: (p) => ({ method: 'POST', path: `/api/jobs/${p.jobId}/near-miss`, body: { caller: p.caller, action: 'proceed' } }),
   near_miss_pass: (p) => ({ method: 'POST', path: `/api/jobs/${p.jobId}/near-miss`, body: { caller: p.caller, action: 'decline' } }),
@@ -294,6 +304,7 @@ const DONE: Partial<Record<ConfirmAction['intent'], string>> = {
   confirm_goods_received: 'Confirmed on the trade record.',
   withdraw_offer: 'Offer withdrawn.',
   lower_offer: 'Offer lowered. The buyer sees the new price.',
+  answer_agent_question: 'Done. Your agent has your answer.',
   accept_offer: 'Offer taken. The escrow is paid and the deal is live.',
   near_miss_proceed: 'Done. The deal starts at that price.',
   near_miss_pass: 'Passed. The request stays open for other offers.',
@@ -309,6 +320,10 @@ const DONE: Partial<Record<ConfirmAction['intent'], string>> = {
   finance_reject: 'Turned down. The financier has been told.',
   finance_offer: 'Offer made. The seller sees it now.',
   finance_apply: 'Applied. You are told when the financier desk opens for you.',
+  contest_post: 'Your contest is live. I will tell you as entries come in.',
+  contest_enter: 'You are in. The buyer sees your preview; your files go to them only if you win.',
+  contest_award: 'Paid. The winners have their prize and their files are yours.',
+  contest_cancel: 'Taken back. The prize is back with your agent.',
 };
 
 const OWN_WALLET_SIGNS = new Set<ConfirmAction['intent']>(['guarantee_put_up', 'guarantee_take_out', 'guarantee_cancel_take_out', 'guarantee_collect', 'legacy_step']);

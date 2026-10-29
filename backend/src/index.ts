@@ -12,6 +12,7 @@ import { invalidateEscrowCache, KARWAN_CONTRACTS_DEPLOYED } from './chain/contra
 import { bus } from './events.js';
 import { jobsRoutes } from './routes/jobs.js';
 import { offersRoutes } from './routes/offers.js';
+import { agentQuestionsRoutes } from './routes/agentQuestions.js';
 import { configureJobsReengagementShadow } from './routes/jobsReengagement.js';
 import { agentsRoutes } from './routes/agents.js';
 import { eventsRoutes } from './routes/events.js';
@@ -33,6 +34,7 @@ import { surveyRoutes } from './routes/survey.js';
 import { recoveryRoutes } from './routes/recovery.js';
 import { startRecoveryWatcher } from './recovery/watcher.js';
 import { startRecordReadSweep } from './reputation/recordReadSweep.js';
+import { startQuestionSweep } from './agents/questionSweep.js';
 import { reputationRoutes } from './routes/reputation.js';
 import { dealsRoutes } from './routes/deals.js';
 import { creDeliveryRequestRoutes } from './routes/creDeliveryRequest.js';
@@ -171,6 +173,11 @@ import { configureX402GatewayFundingShadow } from './x402/buyerClient.js';
 import { startFactoringWatcher } from './agents/factoringWatcher.js';
 import { startTestFinancier } from './agents/testFinancier.js';
 import { startFamilyFinancingRunner } from './money/familyFinancingRunner.js';
+import { contestPorts, contests as contestsCore } from './contests/contestsLive.js';
+import { startContestRunner } from './contests/contestRunner.js';
+import { entryFiles, entryPreviews } from './contests/entryFiles.js';
+import { contestsStore } from './db/contests.js';
+import { createContestRoutes } from './routes/contests.js';
 import { startPOWatcher } from './agents/poWatcher.js';
 import { startJobExpiryWatcher } from './agents/jobExpiryWatcher.js';
 import { startReleaseWatcher } from './agents/releaseWatcher.js';
@@ -437,6 +444,7 @@ for (const prefix of closedPrefixes({ legacyDeployed: KARWAN_CONTRACTS_DEPLOYED,
 }
 
 app.route('/api/jobs', offersRoutes);
+app.route('/api/agent-questions', agentQuestionsRoutes);
 app.route('/api/jobs', jobsRoutes);
 app.route('/api/agents', agentsRoutes);
 app.route('/api/events', eventsRoutes);
@@ -531,6 +539,22 @@ app.route('/api/trade', tradeRoutes);
 useFamilyFinancing(familyRouteWiring);
 if (familyRouteWiring) app.route('/api/factoring', createFamilyOpenRoutes({ core: familyRouteWiring.core, session: (c) => readSession(c as Parameters<typeof readSession>[0]) }));
 app.route('/api/factoring', factoringRoutes);
+// Contests on the job escrow (view 40); off where the job escrow is not set.
+if (contestsCore) {
+  app.route('/api/contests', createContestRoutes({
+    core: contestsCore,
+    store: contestsStore,
+    readFile: (id, n) => entryFiles.readFile(id, n),
+    readPreview: (id) => entryPreviews.read(id, 0),
+    takeHeldFiles: (address) => entryFiles.takeHeld(address, Date.now()),
+    feeBps: async () => (await contestPorts!.openingConfig()).feeBps,
+    session: (c) => readSession(c as Parameters<typeof readSession>[0]),
+    nameOf: async (address) => {
+      const p = await getProfile(address).catch(() => null);
+      return p?.handle ? `@${p.handle}` : p?.displayName || 'A seller';
+    },
+  }));
+}
 app.route('/api/po-financing', poFinancingRoutes);
 app.route('/api/financier', financierRoutes);
 app.route('/api/sme', smeRoutes);
@@ -637,6 +661,7 @@ stopFns.push(startChatRetentionSweep());
 stopFns.push(startDeliveryQuestionSweep());
 stopFns.push(startRatingAsker());
 stopFns.push(startRecordReadSweep());
+stopFns.push(startQuestionSweep());
 
 // Any event that mutates on-chain escrow state has to bust the readEscrow
 // cache so the next read pulls fresh data instead of serving the stale tuple.
@@ -715,6 +740,7 @@ function bootAgents() {
     stopFns.push(startPOWatcher());
     stopFns.push(startTestFinancier());
     stopFns.push(startFamilyFinancingRunner());
+    stopFns.push(startContestRunner(contestsCore));
   } catch (err) {
     appLogger.warn({ err: (err as Error).message }, 'factoring watcher not started');
   }

@@ -37,6 +37,7 @@ export const COVERAGE: Record<string, Coverage> = {
   'POST /api/jobs/:/edit': { by: 'assistant', via: 'edit_request' },
   'POST /api/jobs/:/offers': { by: 'assistant', via: 'make_offer' },
   'POST /api/jobs/:/offers/:/withdraw': { by: 'assistant', via: 'withdraw_offer' },
+  'POST /api/agent-questions/:/answer': { by: 'assistant', via: 'answer_agent_question' },
   'POST /api/jobs/:/offers/:/lower': { by: 'assistant', via: 'lower_offer' },
   'POST /api/jobs/:/offers/:/accept': { by: 'assistant', via: 'accept_offer' },
   'POST /api/jobs/:/near-miss': { by: 'assistant', via: 'near_miss_proceed' },
@@ -112,6 +113,14 @@ export const COVERAGE: Record<string, Coverage> = {
   'POST /api/po-financing/claim': UNUSED,
   'POST /api/po-financing/default': UNUSED,
   'POST /api/financier/apply': { by: 'assistant', via: 'finance_apply' },
+
+  // Contests on the job escrow (view 40).
+  'POST /api/contests/draft': { by: 'assistant', via: 'contest_post' },
+  'POST /api/contests': { by: 'assistant', via: 'contest_post' },
+  'POST /api/contests/:/entries': { by: 'assistant', via: 'contest_enter' },
+  'POST /api/contests/:/award/card': { by: 'assistant', via: 'contest_award' },
+  'POST /api/contests/:/award': { by: 'assistant', via: 'contest_award' },
+  'POST /api/contests/:/cancel': { by: 'assistant', via: 'contest_cancel' },
   'POST /api/financing-chat/:/:': { by: 'assistant', via: 'message_about_early_payment' },
 
   // Money.

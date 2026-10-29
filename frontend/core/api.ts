@@ -1932,6 +1932,10 @@ export interface AssistantConfirmAction {
     | 'finance_offer'
     | 'finance_pay_seller'
     | 'finance_apply'
+    | 'contest_post'
+    | 'contest_enter'
+    | 'contest_award'
+    | 'contest_cancel'
     | 'fund_agent'
     | 'pool_usdc_web3'
     | 'fund_agent_web3'
@@ -1958,6 +1962,7 @@ export interface AssistantConfirmAction {
     | 'change_deal_terms'
     | 'make_offer'
     | 'withdraw_offer'
+    | 'answer_agent_question'
     | 'lower_offer'
     | 'accept_offer'
     | 'near_miss_proceed'
@@ -2004,6 +2009,29 @@ export interface AssistantConfirmAction {
 }
 
 export type AssistantAction = AssistantNavigateAction | AssistantConfirmAction;
+
+/// A question a person's agent asked them instead of going quiet (view 41).
+export interface AgentQuestion {
+  id: string;
+  side: 'seller' | 'buyer';
+  jobId: string;
+  kind: 'price-below-floor' | 'price-above-cap' | 'price-above-usual' | 'time' | 'place' | 'no-way' | 'ask-first' | 'counter-below-floor' | 'last-price-passed';
+  title: string;
+  facts: { budgetUsdc?: string; dueDays?: number; limit?: number | null; theirPriceUsdc?: string };
+  suggested: { priceUsdc?: string; days?: number };
+  state: 'input-required' | 'answered' | 'expired';
+  createdAt: number;
+  updatedAt: number;
+}
+
+/// Sellers who fit a request, as counts (view 41): offered, being asked, and
+/// whether a minute has passed with nobody.
+export interface RequestReach {
+  fit: number;
+  offered: number;
+  asked: number;
+  nobodyYet: boolean;
+}
 
 /// A card from a saved conversation: what was shown, never something to run.
 export interface PastAssistantAction {
@@ -2679,6 +2707,59 @@ export interface TrendingCategory {
   requests: number;
 }
 
+/// A contest on the job escrow (view 40): the prize is held from the start and
+/// the buyer picks up to three winners from the entries.
+export interface ContestInput {
+  title: string;
+  brief: string;
+  prizeUsdc: string;
+  places: number;
+  entriesDays: number;
+  awardDays?: number;
+  tags?: string[];
+}
+export interface ContestCard {
+  title: string;
+  brief: string;
+  prizeMicros: string;
+  feeHalfMicros: string;
+  totalMicros: string;
+  shares: number[];
+  placeNetMicros: string[];
+  entriesBy: number;
+  awardBy: number;
+  ifNobody: string;
+}
+export type ContestStatus = 'opening' | 'open' | 'awarding' | 'awarded' | 'cancelled' | 'returned' | 'failed';
+export type ContestEntryStatus = 'entering' | 'in' | 'replaced' | 'won' | 'lost' | 'failed';
+export interface ContestEntryView {
+  id: string;
+  note: string;
+  status: ContestEntryStatus;
+  previewUrl: string;
+  files: number;
+  seller?: string;
+  /// What this entry won, on the entrant's own view.
+  wonMicros?: string;
+}
+export interface ContestView {
+  id: string;
+  title: string;
+  brief: string;
+  tags: string[];
+  prizeMicros: string;
+  feeBps: number;
+  shares: number[];
+  entriesBy: number;
+  awardBy: number;
+  status: ContestStatus;
+  entries: number;
+  winners?: { place: number; netMicros: string }[];
+  mine?: boolean;
+  entryList?: ContestEntryView[];
+  myEntry?: ContestEntryView;
+}
+
 export const api = {
   baseUrl: BASE,
   eventsUrl: (dealRoomId?: string, afterSequence?: number) => {
@@ -2755,6 +2836,15 @@ export const api = {
     }>(`/api/jobs/${jobId}/offers`),
   createOffer: (jobId: string, body: { priceUsdc: string; deliverByUnix: number; note: string }) =>
     json<{ offer: Offer }>(`/api/jobs/${jobId}/offers`, { method: 'POST', body: JSON.stringify(body) }),
+  /// What the person's own agents are waiting on them for (view 41).
+  agentQuestions: () => json<{ questions: AgentQuestion[] }>('/api/agent-questions'),
+  /// Where the person's own request stands with the sellers who fit (view 41): counts only.
+  requestReach: (jobId: string) => json<{ reach: RequestReach | null }>(`/api/jobs/${jobId}/reach`),
+  answerAgentQuestion: (questionId: string, answer: { choice: 'yes' | 'change' | 'no'; priceUsdc?: string; days?: number }) =>
+    json<{ question?: AgentQuestion; next?: { intent: 'make_offer'; jobId: string; priceUsdc: string; deliverInDays: number } }>(
+      `/api/agent-questions/${encodeURIComponent(questionId)}/answer`,
+      { method: 'POST', body: JSON.stringify(answer) },
+    ),
   withdrawOffer: (jobId: string, offerId: string) =>
     json<{ ok: true }>(`/api/jobs/${jobId}/offers/${offerId}/withdraw`, { method: 'POST', body: '{}' }),
   /// A seller lowers their own offer (view 35): down only, at most three times.
@@ -5128,6 +5218,21 @@ export const api = {
   /// returns the two calls (allow the advance, open the line), then checks the receipt.
   factoringOpenCalls: (offerId: string) =>
     json<{ calls: Array<{ to: `0x${string}`; data: `0x${string}` }> }>(`/api/factoring/offers/${offerId}/open`, { method: 'POST' }),
+  listContests: () => json<{ contests: ContestView[] }>('/api/contests'),
+  myContests: () => json<{ contests: ContestView[] }>('/api/contests/mine'),
+  getContest: (id: string) => json<ContestView>(`/api/contests/${encodeURIComponent(id)}`),
+  draftContest: (body: ContestInput) =>
+    json<{ card: ContestCard }>('/api/contests/draft', { method: 'POST', body: JSON.stringify(body) }),
+  postContest: (body: ContestInput) =>
+    json<{ contest: ContestView }>('/api/contests', { method: 'POST', body: JSON.stringify(body) }),
+  enterContest: (id: string, body: { files?: string[]; preview?: string; note: string; heldFiles?: boolean }) =>
+    json<{ entry: { id: string; status: ContestEntryStatus } }>(`/api/contests/${encodeURIComponent(id)}/entries`, { method: 'POST', body: JSON.stringify(body) }),
+  contestAwardCard: (id: string, entryIds: string[]) =>
+    json<{ card: { netMicros: string[]; backMicros: string; totalMicros: string } }>(`/api/contests/${encodeURIComponent(id)}/award/card`, { method: 'POST', body: JSON.stringify({ entryIds }) }),
+  awardContest: (id: string, entryIds: string[]) =>
+    json<{ contest: ContestView }>(`/api/contests/${encodeURIComponent(id)}/award`, { method: 'POST', body: JSON.stringify({ entryIds }) }),
+  cancelContest: (id: string) =>
+    json<{ contest: ContestView }>(`/api/contests/${encodeURIComponent(id)}/cancel`, { method: 'POST', body: JSON.stringify({}) }),
   factoringOpenComplete: (offerId: string, txHash: string) =>
     json<{ state: 'accepted' }>(`/api/factoring/offers/${offerId}/open/complete`, {
       method: 'POST',

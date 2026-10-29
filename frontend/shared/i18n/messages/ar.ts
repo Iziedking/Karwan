@@ -22,7 +22,9 @@ import { deliveryCardCopy } from './deliveryCard';
 import { recordOnTheWayCopy } from './recordOnTheWay';
 import { previousEscrowCopy } from './previousEscrow';
 import { dealGuaranteeCopy } from './dealGuarantee';
+import { contestsCopy } from './contests';
 import { offersThatMoveCopy } from './offersThatMove';
+import { agentQuestionsCopy } from './agentQuestions';
 import { offerRosterCopy } from './offerRoster';
 import { shortlistCopy } from './shortlist';
 import { directMessagesCopy } from './directMessages';
@@ -68,7 +70,9 @@ export const ar: Messages = {
   recordOnTheWay: recordOnTheWayCopy.ar,
   previousEscrow: previousEscrowCopy.ar,
   dealGuarantee: dealGuaranteeCopy.ar,
+  contests: contestsCopy.ar,
   offersThatMove: offersThatMoveCopy.ar,
+  agentQuestions: agentQuestionsCopy.ar,
   disputeJudge: disputeJudgeCopy.ar,
   balanceSummary: balanceSummaryCopy.ar,
   firstTrade: firstTradeCopy.ar,

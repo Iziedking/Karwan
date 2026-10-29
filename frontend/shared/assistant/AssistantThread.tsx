@@ -30,7 +30,7 @@ import {
 } from '@/features/profile/config';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { runWalletGuarantee, runWalletLegacyCalls } from '@/features/guarantee/walletGuarantee';
-import type { GuaranteeStep, LegacyStepBody } from '@/core/api';
+import type { ContestInput, GuaranteeStep, LegacyStepBody } from '@/core/api';
 import { buildTransferAuthorization, serializeAuthorization } from '@/features/factoring/usdcAuthorization';
 import type { UsdcAuthorization, UserSettings } from '@/core/api';
 
@@ -667,6 +667,25 @@ async function runConfirmIntent(
     await api.withdrawFactoringRequest(p);
     return { successText: 'Stopped. Financiers no longer see this deal.', viewHref: `/deals/${p.invoiceId}`, viewLabel: 'Open the deal' };
   }
+  if (action.intent === 'contest_post') {
+    const r = await api.postContest(action.payload as unknown as ContestInput);
+    return { successText: 'Your contest is live. I will tell you as entries come in.', viewHref: `/contests/${r.contest.id}`, viewLabel: 'Open the contest' };
+  }
+  if (action.intent === 'contest_enter') {
+    const p = action.payload as { contestId: string; note: string };
+    await api.enterContest(p.contestId, { note: p.note, heldFiles: true });
+    return { successText: 'You are in. The buyer sees your preview; your files go to them only if you win.', viewHref: `/contests/${p.contestId}`, viewLabel: 'Open the contest' };
+  }
+  if (action.intent === 'contest_award') {
+    const p = action.payload as { contestId: string; entryIds: string[] };
+    await api.awardContest(p.contestId, p.entryIds);
+    return { successText: 'Paid. The winners have their prize and their files are yours.', viewHref: `/contests/${p.contestId}`, viewLabel: 'Open the contest' };
+  }
+  if (action.intent === 'contest_cancel') {
+    const p = action.payload as { contestId: string };
+    await api.cancelContest(p.contestId);
+    return { successText: 'Taken back. The prize is back with your agent.', viewHref: '/market', viewLabel: 'Market' };
+  }
   if (action.intent === 'finance_accept') {
     const p = action.payload as { offerId: string; jobId: string; putUpGap?: boolean };
     // The selling agent signs; a short guarantee is put up first when the card said so (view 18).
@@ -999,6 +1018,8 @@ const ACCOUNT_STEP: Partial<Record<AssistantConfirmAction['intent'], (p: P) => P
     return api.saveTradeAvailability(str(workspaceId), line as unknown as Parameters<typeof api.saveTradeAvailability>[1]);
   },
   remove_trade_line: (p) => api.removeTradeAvailability(str(p.workspaceId), str(p.availabilityId)),
+  answer_agent_question: (p) =>
+    api.answerAgentQuestion(str(p.questionId), { choice: p.choice as 'yes' | 'change' | 'no', ...(p.priceUsdc ? { priceUsdc: str(p.priceUsdc) } : {}) }),
   edit_company_card: (p) => api.updateSmeProfile({ address: str(p.address), smeProfile: p.smeProfile as Parameters<typeof api.updateSmeProfile>[0]['smeProfile'] }),
 };
 
@@ -1021,6 +1042,7 @@ const ACCOUNT_STEP_DONE: Partial<Record<AssistantConfirmAction['intent'], [strin
   save_trade_line: ['Saved on your company card.', '/profile'],
   remove_trade_line: ['Removed from your company card.', '/profile'],
   edit_company_card: ['Company card updated.', '/profile'],
+  answer_agent_question: ['Done. Your agent has your answer.', '/app'],
 };
 
 /// Money steps outside a deal (view 31 phase D), each one page route.
@@ -1135,6 +1157,7 @@ const DEAL_STEP_BUSY: Partial<Record<AssistantConfirmAction['intent'], string>> 
   confirm_goods_received: 'Confirming…',
   withdraw_offer: 'Withdrawing…',
   lower_offer: 'Lowering…',
+  answer_agent_question: 'Sending…',
   accept_offer: 'Paying in…',
   near_miss_proceed: 'Starting…',
   near_miss_pass: 'Saving…',
