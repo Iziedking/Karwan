@@ -26,6 +26,9 @@ const sellGoods = z.object({
   what: words(120),
   priceMin: usdc,
   priceUsual: usdc,
+  /// True when the prices are for one item (view 41): a request that names a
+  /// count is then compared per item. Missing means for the whole order.
+  perItem: z.boolean().optional(),
   shipsTo: words(120),
   arriveDaysMin: days,
   arriveDaysMax: days,
@@ -113,6 +116,8 @@ interface Limits {
   /// the ways. It is a starting point, never a cap (view 41).
   maxBudgetUsdc: number;
   usualPriceUsdc?: number;
+  /// The floor and usual are per item (a goods way, view 41).
+  pricesPerItem?: boolean;
   minDeadlineDays: number;
   maxDeadlineDays: number;
 }
@@ -121,7 +126,7 @@ interface Limits {
 export function withWayLimits<T extends Limits>(seller: T, way: SellWay): T {
   switch (way.shape) {
     case 'goods':
-      return { ...seller, minBudgetUsdc: way.priceMin, maxBudgetUsdc: way.priceUsual, usualPriceUsdc: way.priceUsual, minDeadlineDays: way.arriveDaysMin, maxDeadlineDays: way.arriveDaysMax };
+      return { ...seller, minBudgetUsdc: way.priceMin, maxBudgetUsdc: way.priceUsual, usualPriceUsdc: way.priceUsual, pricesPerItem: way.perItem === true, minDeadlineDays: way.arriveDaysMin, maxDeadlineDays: way.arriveDaysMax };
     case 'deposit':
       return seller;
     default:
@@ -190,7 +195,7 @@ export function wayLines(ways: Pick<AgentWays, 'sell' | 'buy'>): string[] {
     const head = `Selling, ${SHAPE_WORDS[w.shape]}: `;
     switch (w.shape) {
       case 'goods':
-        return `${head}${w.what}, ${priceWords(w.priceMin, w.priceUsual)}, to ${w.shipsTo}, arrives in ${span(w.arriveDaysMin, w.arriveDaysMax)} days`;
+        return `${head}${w.what}, ${priceWords(w.priceMin, w.priceUsual)}${w.perItem ? ' per item' : ''}, to ${w.shipsTo}, arrives in ${span(w.arriveDaysMin, w.arriveDaysMax)} days`;
       case 'deposit':
         return `${head}${w.what}, ${whole(w.deposit)} USDC deposit for ${w.periodDays} days`;
       case 'milestones':

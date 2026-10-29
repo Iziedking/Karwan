@@ -67,6 +67,14 @@ test('ways saved with a range become lowest and usual, once', () => {
   assert.equal((saved.sell[0] as { priceUsual: number }).priceUsual, 30);
 });
 
+test('a goods way can be priced per item, and says so', () => {
+  const perItem = { shape: 'goods' as const, what: 'Wigs', priceMin: 80, priceUsual: 190, perItem: true, shipsTo: 'Lagos', arriveDaysMin: 2, arriveDaysMax: 5 };
+  assert.equal(waysSchema.safeParse({ sell: [perItem], buy: [] }).success, true);
+  assert.equal(withWayLimits({ minBudgetUsdc: 1, maxBudgetUsdc: 1, minDeadlineDays: 1, maxDeadlineDays: 1 }, perItem).pricesPerItem, true);
+  assert.equal(withWayLimits({ minBudgetUsdc: 1, maxBudgetUsdc: 1, minDeadlineDays: 1, maxDeadlineDays: 1 }, ways.sell[1]!).pricesPerItem, false);
+  assert.equal(wayLines({ sell: [perItem], buy: [] })[0], 'Selling, goods with delivery: Wigs, usually 190 USDC, lowest 80 per item, to Lagos, arrives in 2 to 5 days');
+});
+
 test('an account that never saved ways reads them from its settings', () => {
   const read = waysOf(legacy);
   assert.deepEqual(read.sell, [{ shape: 'one_time', priceMin: 20, priceUsual: 30, daysMin: 1, daysMax: 3 }]);
@@ -85,7 +93,7 @@ test('a request is matched to the way of its shape', () => {
 
 test('the agent bids inside the fitting way, not the account-wide range', () => {
   const seller = { minBudgetUsdc: 20, maxBudgetUsdc: 40, minDeadlineDays: 1, maxDeadlineDays: 3 };
-  assert.deepEqual(withWayLimits(seller, ways.sell[1]!), { minBudgetUsdc: 80, maxBudgetUsdc: 190, usualPriceUsdc: 190, minDeadlineDays: 2, maxDeadlineDays: 5 });
+  assert.deepEqual(withWayLimits(seller, ways.sell[1]!), { minBudgetUsdc: 80, maxBudgetUsdc: 190, usualPriceUsdc: 190, pricesPerItem: false, minDeadlineDays: 2, maxDeadlineDays: 5 });
 });
 
 test('saving ways keeps the older settings in step', () => {

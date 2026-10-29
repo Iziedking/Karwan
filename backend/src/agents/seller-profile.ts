@@ -13,6 +13,8 @@ export interface SellerProfile {
   /// What the person usually charges, the opening anchor (view 41, phase 2). Unset on
   /// accounts that never set a price, which anchor on the budget.
   usualPriceUsdc?: number;
+  /// The floor and the usual price are per item (a goods way, view 41).
+  pricesPerItem?: boolean;
   minDeadlineDays: number;
   maxDeadlineDays: number;
   confidenceThreshold: number;

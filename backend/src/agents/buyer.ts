@@ -5061,6 +5061,8 @@ export interface MarketplaceBrief {
   budgetUsdc: string;
   deadlineUnix: number;
   briefText: string;
+  /// The count read from the request (view 41), for the per-item line.
+  quantity?: { count: number; unit: string | null } | null;
   bidsCount: number;
   postedAt: number;
   /// Match lane + poster account type, so a business-account market view can
@@ -5087,6 +5089,7 @@ export function getMarketplaceBriefs(): MarketplaceBrief[] {
         budgetUsdc: s.context.budgetUsdc,
         deadlineUnix: s.context.deadlineUnix,
         briefText: brief?.briefText ?? '',
+        quantity: brief?.quantity ?? null,
         bidsCount: s.bids.size,
         postedAt: brief?.createdAt ?? Date.now(),
         tradeLane: brief?.tradeLane ?? 'service',

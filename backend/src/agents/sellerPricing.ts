@@ -1,6 +1,7 @@
 import type { JobContext } from '../llm/prompts.js';
 import type { SellerProfile } from './seller-profile.js';
 import type { Tier } from './strategy.js';
+import { orderSize } from './limits.js';
 
 /** Randomness is supplied by the caller so pricing can be characterized safely. */
 export type RandomSource = () => number;
@@ -32,9 +33,11 @@ export function sellerOpeningBid(
   const budget = Number(job.budgetUsdc);
   const h = Number.isFinite(heat) ? Math.max(0, Math.min(1, heat)) : 0.5;
   const market = marketPriceUsdc && marketPriceUsdc > 0 ? Math.min(marketPriceUsdc, budget * 2) : 0;
-  const usual = seller.usualPriceUsdc && seller.usualPriceUsdc > 0 ? seller.usualPriceUsdc : budget;
+  // A goods way priced per item opens from the usual price times the count (view 41).
+  const items = orderSize(seller, job);
+  const usual = seller.usualPriceUsdc && seller.usualPriceUsdc > 0 ? seller.usualPriceUsdc * items : budget;
   const demandHeadroomPct = HEADROOM_BASE_PCT + h * HEADROOM_DEMAND_SPAN_PCT;
-  const lowest = Math.max(seller.minBudgetUsdc, market);
+  const lowest = Math.max(seller.minBudgetUsdc * items, market);
   const floor = Math.max(lowest, usual * (1 - ((1 - h) * UNDERCUT_SPAN_PCT) / 100));
   const ceiling = Math.max(floor, usual * (1 + demandHeadroomPct / 100), market);
   if (!Number.isFinite(ceiling) || !Number.isFinite(floor)) return null;

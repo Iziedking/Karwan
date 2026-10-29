@@ -1,6 +1,7 @@
 import type { CreateDirectDealBody } from '../deals/createSchema.js';
 import type { AgentWays } from '../agents/ways.js';
 import type { DeliveryKind, Where } from '../location/rules.js';
+import { perItemUsdc, quantityWords, readQuantity } from '../llm/quantity.js';
 import type { BriefAnswers } from '../agents/agentBriefLines.js';
 import type { DealStepConfirm } from './dealActions.js';
 import type { MoneyStepConfirm } from './moneyActions.js';
@@ -73,6 +74,9 @@ export interface PostRequestPayload {
   where?: Where;
   /// The agent may agree with the seller it recommends, within budget (view 30).
   agreeForMe?: boolean;
+  /// How many, when the person said a count (view 41). Missing means the
+  /// server reads the brief for one.
+  quantity?: { count: number; unit: string | null };
 }
 
 export interface ReleaseMilestonePayload {
@@ -701,6 +705,8 @@ export interface BuildPostRequestInput {
   /// "Agree for me" (view 30): the agent may agree with the seller it
   /// recommends, within budget. Locking the money still waits for a tap.
   agreeForMe?: boolean;
+  /// How many, when the person said a count (view 41).
+  quantity?: { count: number; unit: string | null };
 }
 
 /// Build a post-request (buyer desk) confirm card, or an `{ error }` the tool
@@ -732,9 +738,13 @@ export function buildPostRequestConfirm(
   const deadlineLabel =
     i.deadlineLabel ??
     (days >= 1 ? `${roundedDays} day${roundedDays === 1 ? '' : 's'}` : `${Math.round(days * 24 * 60)} min`);
+  const quantity = i.quantity ?? readQuantity(brief);
   const fields: { label: string; value: string }[] = [
     { label: 'You need', value: brief.length > 140 ? `${brief.slice(0, 137)}…` : brief },
     { label: 'Budget', value: `${i.budgetUsdc} USDC` },
+    ...(quantity && quantity.count > 1
+      ? [{ label: 'How many', value: `${quantityWords(quantity)}, ${i.budgetUsdc} USDC for all, about ${perItemUsdc(i.budgetUsdc, quantity.count)} USDC each` }]
+      : []),
     { label: 'Deadline', value: deadlineLabel },
     { label: 'Matching', value: 'Your agent compares matching sellers and offers' },
     {
@@ -759,6 +769,7 @@ export function buildPostRequestConfirm(
       ...(i.deliveryKind ? { deliveryKind: i.deliveryKind } : {}),
       ...(i.where ? { where: i.where } : {}),
       ...(i.agreeForMe ? { agreeForMe: true } : {}),
+      ...(quantity ? { quantity } : {}),
     },
     confirmLabel: 'Post request',
     cancelLabel: 'Not now',

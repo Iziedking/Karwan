@@ -58,7 +58,7 @@ import {
 import { sellerDaysToDeadline, sellerOpeningBid as pureSellerOpeningBid } from './sellerPricing.js';
 import { sellerViewOfRequest } from './sellerView.js';
 import { reviseStandingOffer, type ReviseOutcome } from './reviseOffer.js';
-import { limitDecision } from './limits.js';
+import { limitDecision, orderSize } from './limits.js';
 import { askOwner } from './agentQuestion.js';
 import { getBrief } from '../db/briefs.js';
 import { fittingWay, sellerForRequest } from './ways.js';
@@ -1539,7 +1539,7 @@ async function runCounterEvaluation(
   const profileFloor = active.listingFloorUsdc
     ? active.listingFloorUsdc
     : Math.max(
-        seller.minBudgetUsdc,
+        seller.minBudgetUsdc * orderSize(seller, active.jobContext),
         Number((originalBid * (1 - PROFILE_MAX_DECREASE_PCT / 100)).toFixed(2)),
       );
   // No seller maximum (view 41): the agent never counters above what it opened at.

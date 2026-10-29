@@ -14,6 +14,7 @@ export function sellerViewOfRequest(input: {
   keywords: string[];
   brief?: {
     briefText?: string;
+    quantity?: { count: number; unit: string | null } | null;
     trustedMatch?: boolean;
     tradeLane?: 'service' | 'finance';
     counterpartyCompany?: { sector?: string; region?: string };
@@ -27,6 +28,7 @@ export function sellerViewOfRequest(input: {
     termsHash: input.termsHash,
     buyerReputationBps: 5000,
     briefText: input.brief?.briefText,
+    quantity: input.brief?.quantity ?? null,
     keywords: input.keywords,
     trustedMatch: input.brief?.trustedMatch === true,
     tradeLane: input.brief?.tradeLane ?? 'service',

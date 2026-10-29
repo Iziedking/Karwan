@@ -51,7 +51,7 @@ Each shape asks only what its contract needs. Answers are words and numbers, nev
 |---|---|---|
 | One-time | What you do, usual price, how fast | Most you pay, how soon you need it |
 | Milestones | Usual stages and how the price splits | Most you pay, how you like to pay (all at the end, by stage) |
-| Goods with delivery | What you sell, where you ship, how long it takes to arrive | Where it comes to, how long you can wait |
+| Goods with delivery | What you sell, price per item or for the order, where you ship, how long it takes to arrive | Where it comes to, how long you can wait |
 | Refundable deposit | What you rent, deposit and period | Most deposit you will hold |
 | Pay on delivery | Where you hand over in person | Where you can receive |
 | Instalments | What can be paid in parts, how many parts | Most per part |
@@ -92,6 +92,7 @@ Each shape asks only what its contract needs. Answers are words and numbers, nev
 | Matching by shape; another shape goes to the owner | Built 23 Oct, for accounts that saved ways | `sellerForRequest` in the selling agent |
 | Edit profile form and ways agree | Built 23 Oct | `reconcileWays` on profile save |
 | Lowest and usual price on each selling way, no highest (view 41, phase 2) | Built 29 Oct | `priceUsual` beside `priceMin`; `upgradeWays` on read and `scripts/backfill-way-prices.ts` once; editor, setup and form copy in five languages |
+| A goods way priced per item, compared per item against a request that names a count (view 41, phase 3) | Built 29 Oct | `perItem` on the goods way; `llm/quantity.ts` reads the request; `orderSize` in `agents/limits.ts` |
 | Terms draft per shape | Partly: view 24 drafts one-time, milestones and goods from conversation | Not yet read from ways |
 | A buying agent asking for a shape | Not built: requests carry goods or work, not milestones or deposit | Needs the request form to ask |
 | Shapes beyond v3 | Wait for T2.1 | Added to `LIVE_SHAPES` as each family deploys |

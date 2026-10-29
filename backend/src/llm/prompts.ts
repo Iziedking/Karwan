@@ -18,6 +18,9 @@ export interface JobContext {
    *  for jobs posted before we tracked it, in which case the LLM falls back to
    *  budget/deadline matching only. */
   briefText?: string;
+  /// How many the request asks for, read at post time (view 41). A goods way
+  /// priced per item is compared per item when this is set.
+  quantity?: { count: number; unit: string | null } | null;
   /// Synonym-expanded match tags for the brief, extracted at post time (same
   /// extractor the seller profile uses). The seller agent compares these against
   /// its own tags as a deterministic topical guard before trusting the LLM's
@@ -104,8 +107,9 @@ export function buildBidEvaluationPrompt(job: JobContext, seller: SellerProfile)
   const inBudgetRange = budgetN >= seller.minBudgetUsdc && budgetN <= seller.maxBudgetUsdc;
   const inDeadlineRange =
     daysToBuyerDeadline >= seller.minDeadlineDays && daysToBuyerDeadline <= seller.maxDeadlineDays;
+  const quantity = job.quantity ? ` (quantity: ${job.quantity.count}${job.quantity.unit ? ` ${job.quantity.unit}` : ''})` : '';
   const briefLine = job.briefText
-    ? `- Brief: ${job.briefText}`
+    ? `- Brief: ${job.briefText}${quantity}`
     : `- Brief: (not provided; only terms hash ${job.termsHash} is available)`;
   return [
     'You are a freelancer agent deciding whether to bid on a job for your principal.',

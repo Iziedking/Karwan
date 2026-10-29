@@ -28,6 +28,18 @@ test('a budget far above the usual price is an offer, not a question: there is n
   assert.deepEqual(limitDecision({ seller, job: job('100000', 3), nowUnix: NOW, hasWay: true }), { act: true });
 });
 
+test('a goods way priced per item is compared per item when the request names a count (view 41)', () => {
+  const perItem = { minBudgetUsdc: 30, minDeadlineDays: 1, maxDeadlineDays: 5, pricesPerItem: true };
+  const pairs = (budget: string, count: number | null) => ({ ...job(budget, 3), quantity: count ? { count, unit: 'pairs' } : null });
+  // 100 USDC for 3 pairs against a floor of 30 a pair: 33 each, so the agent acts.
+  assert.deepEqual(limitDecision({ seller: perItem, job: pairs('100', 3), nowUnix: NOW, hasWay: true }), { act: true });
+  // 80 for 3 pairs is under 90, the floor for the order: a question suggesting 90.
+  assert.deepEqual(limitDecision({ seller: perItem, job: pairs('80', 3), nowUnix: NOW, hasWay: true }), { act: false, kind: 'price-below-floor', suggested: { priceUsdc: '90', days: 3 }, limit: 90 });
+  // No count on the request, or a way priced for the order: the whole amount, as before.
+  assert.deepEqual(limitDecision({ seller: perItem, job: pairs('25', null), nowUnix: NOW, hasWay: true }).act, false);
+  assert.deepEqual(limitDecision({ seller: { ...perItem, pricesPerItem: false }, job: pairs('100', 3), nowUnix: NOW, hasWay: true }), { act: true });
+});
+
 test('too soon or too late asks, suggesting the nearest time the person takes', () => {
   const soon = limitDecision({ seller: { ...seller, minDeadlineDays: 4 }, job: job('30', 2), nowUnix: NOW, hasWay: true });
   assert.deepEqual(soon, { act: false, kind: 'time', suggested: { priceUsdc: '30', days: 4 }, limit: 4 });

@@ -1004,7 +1004,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
 
     set_way_i_deal: tool({
       description:
-        "Add, change or remove one way this person deals, for selling or for buying (view 26). Shapes: one_time (a single job or item), milestones (paid in stages), goods (sent to the buyer, review starts on arrival), deposit (held and returned, like a rental). Selling asks: one_time and milestones the lowest price they take (priceMin), their usual price (priceUsual; one price is both, there is no highest) and days (milestones also 2 to 5 stages); goods what, lowest and usual price, where they ship and how many days it takes to arrive; deposit what, the deposit and the period in days. Buying asks: one_time the most they pay and days; milestones the same plus pay at the end or by stage; goods the most they pay, where it comes to and how long they can wait; deposit the most deposit they will hold. Pass only what they said for that one way; ask for anything missing before calling. Shows a card; nothing is saved until they confirm. Use for 'I also sell wigs, I ship anywhere in Nigeria', 'I rent cameras with a 200 USDC deposit', 'stop selling one-off jobs'.",
+        "Add, change or remove one way this person deals, for selling or for buying (view 26). Shapes: one_time (a single job or item), milestones (paid in stages), goods (sent to the buyer, review starts on arrival), deposit (held and returned, like a rental). Selling asks: one_time and milestones the lowest price they take (priceMin), their usual price (priceUsual; one price is both, there is no highest) and days (milestones also 2 to 5 stages); goods what, lowest and usual price, whether those are per item (perItem true when they price one item; a request naming a count is then compared per item), where they ship and how many days it takes to arrive; deposit what, the deposit and the period in days. Buying asks: one_time the most they pay and days; milestones the same plus pay at the end or by stage; goods the most they pay, where it comes to and how long they can wait; deposit the most deposit they will hold. Pass only what they said for that one way; ask for anything missing before calling. Shows a card; nothing is saved until they confirm. Use for 'I also sell wigs, I ship anywhere in Nigeria', 'I rent cameras with a 200 USDC deposit', 'stop selling one-off jobs'.",
       inputSchema: z.object({
         side: z.enum(['sell', 'buy']),
         shape: z.enum(LIVE_SHAPES),
@@ -1012,6 +1012,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
         what: z.string().optional(),
         priceMin: z.number().optional(),
         priceUsual: z.number().optional(),
+        perItem: z.boolean().optional(),
         daysMin: z.number().int().optional(),
         daysMax: z.number().int().optional(),
         stages: z.number().int().optional(),
@@ -2152,6 +2153,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
         deliveryKind: z.enum(['goods', 'in_person', 'remote']).optional().describe('goods (physical items to deliver), in_person (work done at a place), or remote (done online). Ask only if unclear.'),
         where: z.object({ scope: z.enum(['near', 'country', 'anywhere']), country: z.string().length(2).optional() }).optional().describe('Where the buyer wants it done, for goods or in-person work only: near (near them), country (a two-letter country), or anywhere. Ask "near you, or anywhere?" once when unclear. Never for remote work.'),
         agreeForMe: z.boolean().optional().describe('True when they want Agree for me: the agent agrees with the seller it recommends, within budget, and they tap once to lock the money. Off unless they said yes.'),
+        quantity: z.object({ count: z.number().int().min(1).max(100_000), unit: z.string().max(40).nullable() }).optional().describe('How many they need and the word for it when they said a count ("3 pairs" -> {count: 3, unit: "pairs"}). Leave out when they did not say one; the server reads the brief.'),
       }),
       execute: async (args) => {
         // Pre-flight the SAME preconditions the jobs route enforces so the card
@@ -2192,6 +2194,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[],
           ...(args.deliveryKind ? { deliveryKind: args.deliveryKind } : {}),
           ...(args.where && args.deliveryKind !== 'remote' ? { where: { ...args.where, ...(args.where.country ? { country: args.where.country.toUpperCase() } : {}) } } : {}),
           ...(args.agreeForMe ? { agreeForMe: true } : {}),
+          ...(args.quantity ? { quantity: args.quantity } : {}),
         });
         if ('error' in built) return built;
         if (!hasEquivalentConfirm(actions, built)) actions.push(built);

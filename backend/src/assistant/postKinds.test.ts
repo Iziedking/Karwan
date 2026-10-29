@@ -11,6 +11,16 @@ import { buildPostOfferConfirm, buildPostRequestConfirm, type PostOfferPayload, 
 
 const ADA = '0x' + 'a'.repeat(40);
 
+test('a request that names a count shows how many and what each comes to (view 41)', () => {
+  const card = buildPostRequestConfirm({ caller: ADA, brief: '3 pairs of Clark shoes, size 42', budgetUsdc: 100, deadlineDays: 7, deliveryKind: 'goods' });
+  assert.ok(!('error' in card));
+  assert.deepEqual(card.fields.find((f) => f.label === 'How many'), { label: 'How many', value: '3 pairs, 100 USDC for all, about 33 USDC each' });
+  assert.deepEqual((card.payload as PostRequestPayload).quantity, { count: 3, unit: 'pairs' });
+  const one = buildPostRequestConfirm({ caller: ADA, brief: 'A website', budgetUsdc: 300, deadlineDays: 14 });
+  assert.ok(!('error' in one));
+  assert.equal(one.fields.some((f) => f.label === 'How many'), false);
+});
+
 test('a goods request stores near', () => {
   const card = buildPostRequestConfirm({ caller: ADA, brief: 'Two owambe outfits', budgetUsdc: 150, deadlineDays: 7, deliveryKind: 'goods', where: { scope: 'near' } });
   assert.ok(!('error' in card));

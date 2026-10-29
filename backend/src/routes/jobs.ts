@@ -45,6 +45,7 @@ import { getDeal } from '../db/deals.js';
 import { countLiveDirectOffers } from '../db/directOffers.js';
 import { jobActionsInFlight } from '../offers/jobLock.js';
 import { extractKeywords } from '../llm/keywords.js';
+import { MAX_QUANTITY, readQuantity } from '../llm/quantity.js';
 import { isSessionSelf, sessionAddress, viewerAddress } from '../auth/session.js';
 import { findAgentWalletByAgentAddress, getAgentWallets } from '../db/agentWallets.js';
 import { buyerFundingNeed } from '../agents/buyerFundingNeed.js';
@@ -156,6 +157,9 @@ const postJobSchema = z
      *  (db/briefs.ts) snapshots these alongside the brief text so the buyer
      *  agent + downstream surfaces can read them without re-querying chain. */
     tradeType: z.enum(['service', 'goods', 'mixed']).optional(),
+    /// How many, when the poster said it apart from the words (view 41).
+    /// Missing means the brief is read for a count.
+    quantity: z.object({ count: z.number().int().min(1).max(MAX_QUANTITY), unit: z.string().trim().max(40).nullable() }).nullable().optional(),
     deliveryKind: z.enum(['goods', 'in_person', 'remote']).optional(),
     where: z
       .object({ scope: z.enum(['near', 'country', 'anywhere']), country: z.string().regex(/^[A-Za-z]{2}$/).optional() })
@@ -366,6 +370,7 @@ jobsRoutes.get('/:jobId', async (c) => {
     // server-side rather than trusting the client to hide it.
     bids: viewerIsBuyer ? job.bids : [],
     briefText: brief?.briefText ?? null,
+    quantity: brief?.quantity ?? null,
     keywords: brief?.keywords ?? null,
     negotiationMaxIncreasePct: brief?.negotiationMaxIncreasePct ?? null,
     trustedMatch: brief?.trustedMatch === true,
@@ -492,6 +497,7 @@ ${body.terms}` : body.brief));
     tradeLane: deriveJobLane(posterAccountType, body.tradeType),
     partyKind: posterAccountType,
     tradeType: body.tradeType,
+    quantity: body.quantity === undefined ? readQuantity(body.brief) : body.quantity,
     deliveryKind: body.deliveryKind,
     where: body.where ? { scope: body.where.scope, ...(body.where.country ? { country: body.where.country.toUpperCase() } : {}) } : undefined,
     incoterms: body.incoterms,

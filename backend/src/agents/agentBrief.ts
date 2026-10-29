@@ -87,7 +87,7 @@ export async function readBrief(
       ? null
       : a.paid === 'goods'
         ? shipsTo
-          ? { shape: 'goods', what: (what || skills[0] || 'Goods').slice(0, 120), priceMin: lowest, priceUsual: usual, shipsTo, arriveDaysMin: days.minDays, arriveDaysMax: days.maxDays }
+          ? { shape: 'goods', what: (what || skills[0] || 'Goods').slice(0, 120), priceMin: lowest, priceUsual: usual, perItem: true, shipsTo, arriveDaysMin: days.minDays, arriveDaysMax: days.maxDays }
           : null
         : a.paid === 'milestones'
           ? { shape: 'milestones', priceMin: lowest, priceUsual: usual, daysMin: days.minDays, daysMax: days.maxDays, stages: 2 }

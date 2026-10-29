@@ -67,6 +67,16 @@ test('a lowest price above the budget opens at the lowest, never at nothing; the
   assert.ok(uncapped !== null && uncapped > 110, String(uncapped));
 });
 
+test('a goods way priced per item opens from the usual price times the count: the shoe case opens about 96 (view 41)', () => {
+  const shoes: SellerProfile = { ...seller, minBudgetUsdc: 30, usualPriceUsdc: 32, pricesPerItem: true };
+  const request = { ...job, budgetUsdc: '100', quantity: { count: 3, unit: 'pairs' } };
+  const opening = sellerOpeningBid(shoes, request, 'established', 0.5, undefined, () => 0.5);
+  // Usual 96 for the order, heat 0.5: between 86.4 and 122.4, never under 90.
+  assert.ok(opening !== null && opening >= 90 && opening <= 122.4, String(opening));
+  const whole = sellerOpeningBid({ ...shoes, pricesPerItem: false }, request, 'established', 0.5, undefined, () => 0.5);
+  assert.ok(whole !== null && whole <= 40.8, String(whole));
+});
+
 test('the opening anchors on the usual price, under or over the budget (view 41)', () => {
   const under = sellerOpeningBid({ ...seller, usualPriceUsdc: 60 }, job, 'established', 0.5, undefined, () => 0.5);
   // Heat 0.5 around 60: from 10% under to 27.5% over the usual, all under the 100 budget.

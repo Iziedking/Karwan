@@ -35,7 +35,7 @@ import { logger } from '../logger.js';
 
 type JobView = { budgetUsdc: string; deadlineUnix: number; open: boolean; termsHash: string; buyerAgent: string };
 type Wallets = { userAddress: string; sellerWalletId?: string; sellerAddress?: string; buyerAddress?: string };
-export type PublicRequest = { briefText: string; budgetUsdc: string; deadlineUnix: number };
+export type PublicRequest = { briefText: string; budgetUsdc: string; deadlineUnix: number; quantity?: { count: number; unit: string | null } | null };
 export type OfferViewerRole = 'buyer' | 'seller' | 'visitor';
 /// What the buyer sees: the offer plus the exact amount that leaves their wallet.
 export type BuyerOfferView = DirectOffer & { fundedUsdc?: string };
@@ -89,7 +89,7 @@ export const defaultDeps: OfferDeps = {
   approve: approveAgentMatch,
   publicRequest: (jobId) => {
     const b = getMarketplaceBriefs().find((m) => m.jobId === jobId);
-    return b ? { briefText: b.briefText, budgetUsdc: b.budgetUsdc, deadlineUnix: b.deadlineUnix } : null;
+    return b ? { briefText: b.briefText, budgetUsdc: b.budgetUsdc, deadlineUnix: b.deadlineUnix, quantity: b.quantity ?? null } : null;
   },
   withdrawAgentBid: abandonBid,
   fundedUsdc: async (priceUsdc) => {

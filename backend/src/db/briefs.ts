@@ -5,6 +5,7 @@
 // survives backend restarts (Postgres-backed in a future iteration).
 
 import type { DeliveryKind, Where } from '../location/rules.js';
+import type { Quantity } from '../llm/quantity.js';
 import type { ShortlistEntry } from '../agents/shortlist.js';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -75,6 +76,10 @@ export interface Brief {
     kind: 'invoice' | 'po' | 'bol' | 'coo' | 'pod' | 'other';
     label?: string;
   }>;
+  /// How many of the thing the request asks for, read from its words when it
+  /// was posted (view 41): "3 pairs". Null or missing means the whole amount
+  /// is compared, as before.
+  quantity?: Quantity | null;
   /// Goods, in-person or remote work, and where the buyer wants it done.
   /// Missing means anywhere (location/rules.ts kindOf).
   deliveryKind?: DeliveryKind;
