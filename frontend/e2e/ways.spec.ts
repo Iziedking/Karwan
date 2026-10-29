@@ -39,7 +39,7 @@ test('a goods way is added in place and saved with the rest', async ({ page }) =
   const save = page.getByRole('button', { name: c.save, exact: true });
   await expect(save).toBeDisabled();
   await page.getByRole('button', { name: `+ ${c.add}` }).first().click();
-  await page.getByRole('button', { name: new RegExp(c.shapes.goods) }).click();
+  await page.getByRole('radio', { name: new RegExp(c.shapes.goods) }).click();
   const done = page.getByRole('button', { name: c.done, exact: true });
   await expect(page.getByText(c.missing)).toBeVisible();
   await expect(done).toBeDisabled();

@@ -2,24 +2,22 @@ import { expect, test } from '@playwright/test';
 import { BUYER } from './fixtures';
 
 const API = 'http://127.0.0.1:3199';
-const profile = { address: BUYER, displayName: 'breezee', handle: 'breezee', role: 'buyer', createdAt: 1, updatedAt: 1 };
-
-test('the activation banner sits beside the workspace rail, never under it', async ({ page }, info) => {
+test('the profile banner sits beside the workspace rail, never under it', async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop', 'the rail shows on desktop only');
   await page.addInitScript(() => localStorage.setItem('karwan:guide:disabled', '1'));
   await page.route(`${API}/**`, async (route) => {
     const { pathname } = new URL(route.request().url());
     if (pathname === '/api/auth/bootstrap') {
-      return route.fulfill({ json: { user: { address: BUYER, method: 'circle', hasPasskey: true }, profile } });
+      return route.fulfill({ json: { user: { address: BUYER, method: 'circle', hasPasskey: true }, profile: null } });
     }
-    if (pathname === '/api/profile') return route.fulfill({ json: { profile } });
-    // Agents not activated yet: the activation banner shows, as on a new account.
-    if (pathname === '/api/activation/status') return route.fulfill({ json: { activated: false } });
+    // No profile yet: the one banner left. Agents are set up by Karwan, never a step (view 38).
+    if (pathname === '/api/profile') return route.fulfill({ json: { profile: null } });
     if (route.request().method() !== 'GET') return route.fulfill({ status: 403, body: '' });
     return route.fulfill({ json: { items: [], events: [], movements: [], messages: [] } });
   });
 
-  await page.goto('/app');
+  // Home sends an account with no profile to sign-up; Activity keeps the workspace.
+  await page.goto('/activity');
   const banner = page.locator('[data-workspace-nudge="true"] aside');
   const rail = page.locator('#workspace-navigation');
   await expect(banner).toBeVisible();
