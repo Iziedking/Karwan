@@ -1324,14 +1324,12 @@ async function evaluateAndBid(profile: SellerProfile, job: JobContext) {
   // the buyer process via verifyCounterpartyAtMatch), so the bidding phase stays
   // free of internal Arc receipts. Counters here price on free reputation.
   const heat = await marketHeat(dealKeywords, seller.address);
-  const opening = pureSellerOpeningBid(
-    seller,
-    job,
-    buyerTier,
-    heat,
-    getCachedMarketPrice(dealKeywords),
-    Math.random,
-  );
+  // Under the seller's floor the agent still offers, at the floor, and the
+  // buyer sees it as outside their request (view 41, decision 11).
+  const atOwnPrice = limits.atOwnPriceUsdc ?? null;
+  const opening = atOwnPrice
+    ? Number(atOwnPrice)
+    : pureSellerOpeningBid(seller, job, buyerTier, heat, getCachedMarketPrice(dealKeywords), Math.random);
   if (opening === null) {
     // Seller floor sits above the buyer's ceiling, so no price clears both
     // ranges. When the gap is small, ask the blocked side to stretch instead of
@@ -1416,6 +1414,7 @@ async function evaluateAndBid(profile: SellerProfile, job: JobContext) {
       buyerTier,
       humanReview,
       buyerChecked: !!buyerCheck,
+      ...(atOwnPrice ? { outsideRequest: 'price' } : {}),
       // Whether the opening priced on an awaited (fresh) research read vs a
       // best-effort warm cache. Lets the audit trail (and the eval harness) tell
       // a research-grounded opening from one that raced the read.

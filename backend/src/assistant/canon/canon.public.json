@@ -385,7 +385,7 @@
       "id": "negotiation-in-assistant",
       "title": "Your agent negotiates while you sleep",
       "status": "roadmap",
-      "updated": "2026-10-29",
+      "updated": "2026-10-30",
       "tags": [
         "market",
         "assistant",
@@ -402,7 +402,7 @@
           "date": "2026-10-27"
         }
       ],
-      "body": "Post what you need in the assistant, on the website or Telegram, and you can\nclose the chat. Your agent asks sellers for offers and negotiates, and the\nassistant writes back in the same conversation, and on Telegram, only when\nsomething moves: offers in, your shortlist ready with the seller the agent\nrecommends, a near match when nothing fits your budget, an agreed deal, the\nmoney locked, the work delivered.\n\nWhen you post, you can turn on Agree for me. Your agent then agrees with the\nseller it recommends, within your budget, and you wake up to an agreed deal\nready for one tap to lock the money. It never agrees above your budget and\nnever moves money on its own.\n\nOffers move the way a market does. Change your request and your agent looks\nagain at once at the offers it holds; it can recommend one up to the most you\nallowed above your budget, and counters it toward your budget. Sellers who\noffered get a turn to keep, lower or withdraw their offer, and sellers whose\noffer is not the lowest hear once that a lower one is in, never its price.\nOffers only go down, at most three times per seller per request. Sellers never\nsee how far above your budget you would go.\n\nWhen your budget is far under what the work goes for and no seller takes it,\nyour agent tells you plainly, with the market price, and you choose to allow\nmore or post again. Nobody is pushed below their own price. Agents never go\nquiet. A request that fits what a seller sells but sits outside their price or\ntime, or of a kind they have not set up yet, and a counter under their lowest\nprice, become one question to that seller, in the app, the assistant, by\nemail and on Telegram, with a suggested answer they take, change or turn\ndown. While they decide, you see that the seller is checking, never their\nprice or limit. Nothing is offered or agreed while a question waits.\n\nYour request page says how many sellers fit, how many offered and how many are\nchecking the price, never who. When a minute passes and nobody on Karwan sells\nit yet, it says so plainly, and you can share the request with a seller you\nknow while your agent keeps looking. Sellers who fit hear of your request when it is\nposted, not on a timer, and a seller who sets up a new way is matched against\nthe open requests straight away. Example stock on the market never counts as a\nseller.\n\nThe agents haggle like people. Neither opens at its limit. A seller's agent\ncomes down by a schedule, firm while there is time and little competition,\nsteadier near the deadline or with several offers, one step only after your\nagent moved, never under the seller's lowest, and it offers more time before it\nreaches that lowest. It aims to agree within three exchanges and never runs\npast five; the fourth is a last price, and anything past it is a question to\nthe seller. Every move carries one short reason you can read, and a reason\nnever names a limit, a budget or another offer. A seller's agent agrees to a\nprice under its own offer only when the seller chose Agree for me; otherwise\nit asks them first.\n\nThis is built for testnet and not live yet."
+      "body": "Post what you need in the assistant, on the website or Telegram, and you can\nclose the chat. Your agent asks sellers for offers and negotiates, and the\nassistant writes back in the same conversation, and on Telegram, only when\nsomething moves: offers in, your shortlist ready with the seller the agent\nrecommends, a near match when nothing fits your budget, an agreed deal, the\nmoney locked, the work delivered.\n\nWhen you post, you can turn on Agree for me. Your agent then agrees with the\nseller it recommends, within your budget, and you wake up to an agreed deal\nready for one tap to lock the money. It never agrees above your budget and\nnever moves money on its own.\n\nOffers move the way a market does. Change your request and your agent looks\nagain at once at the offers it holds; it can recommend one up to the most you\nallowed above your budget, and counters it toward your budget. Sellers who\noffered get a turn to keep, lower or withdraw their offer, and sellers whose\noffer is not the lowest hear once that a lower one is in, never its price.\nOffers only go down, at most three times per seller per request. Sellers never\nsee how far above your budget you would go.\n\nWhen your budget is far under what the work goes for and no seller takes it,\nyour agent tells you plainly, with the market price, and you choose to allow\nmore or post again. Nobody is pushed below their own price. Agents never go\nquiet. Every seller whose agent judges that your request fits what they sell\nmakes an offer. A seller whose lowest price is above your budget still offers,\nat their lowest, and you see that offer as outside your request; you decide\nwhether to take it. A request due sooner than a seller needs, or of a kind they\nhave not set up yet, and a counter under their lowest price, become one\nquestion to that seller, in the app, the assistant, by email and on Telegram,\nwith a suggested answer they take, change or turn down. While they decide, you\nsee that the seller is checking, never their price or limit. Nothing is\noffered or agreed while a question waits.\n\nYour request page says how many sellers fit, how many offered and how many are\nchecking the price, never who. When a minute passes and nobody on Karwan sells\nit yet, it says so plainly, and you can share the request with a seller you\nknow while your agent keeps looking. Sellers who fit hear of your request when it is\nposted, not on a timer, and a seller who sets up a new way is matched against\nthe open requests straight away. Example stock on the market never counts as a\nseller.\n\nThe agents haggle like people. Neither opens at its limit. A seller's agent\ncomes down by a schedule, firm while there is time and little competition,\nsteadier near the deadline or with several offers, one step only after your\nagent moved, never under the seller's lowest, and it offers more time before it\nreaches that lowest. It aims to agree within three exchanges and never runs\npast five; the fourth is a last price, and anything past it is a question to\nthe seller. Every move carries one short reason you can read, and a reason\nnever names a limit, a budget or another offer. A seller's agent agrees to a\nprice under its own offer only when the seller chose Agree for me; otherwise\nit asks them first.\n\nThis is built for testnet and not live yet."
     },
     {
       "id": "open-trade-finance-roadmap",
@@ -649,7 +649,7 @@
       "id": "ways-you-deal",
       "title": "The ways you deal",
       "status": "roadmap",
-      "updated": "2026-10-29",
+      "updated": "2026-10-30",
       "tags": [
         "agents",
         "escrow",
@@ -662,7 +662,7 @@
           "date": "2026-10-23"
         }
       ],
-      "body": "Your agents work from the ways you deal, for selling and for buying. Each way\nis one kind of deal with its lowest and usual price and its time (there is no\nhighest): one-time, milestones paid in\nstages, goods with delivery, where review starts when the item arrives, and a\nrefundable deposit, like a rental. A goods way also says where you ship and\nhow long it takes to arrive. Other kinds of escrow are added as they go live.\n\nYour selling agent offers on a request inside the way of its kind. When a\nbuyer asks for a kind of deal you have not listed, or a request sits outside\nyour price or time, the agent does not offer on its own and never goes quiet:\nit asks you, with a suggested answer, and you decide.\n\nA goods way can be priced per item. A request that names a count, like 3\npairs, is then compared per item, and the buyer sees what each comes to.\n\nYour agent learns from what you accept and only suggests, never changes a\nsetting on its own: a way to save after you said yes to a request of a kind you\nhad not set up, a new usual price after three agreed deals, or a level under\nwhich it stops asking you after you said no three times. Each comes as the same\ncard you set things up with, and a no is remembered. Under a level you set, your\nagent says no politely and keeps the door open instead of asking you.\n\nSetup starts you with one way, from how your clients usually pay you. You\nadd, change or remove ways on your profile or by telling your agent, and\nnothing is saved until you confirm. Money never moves without your\nconfirmation.\n\nThis is built for testnet and not live yet."
+      "body": "Your agents work from the ways you deal, for selling and for buying. Each way\nis one kind of deal with its lowest and usual price and its time (there is no\nhighest): one-time, milestones paid in\nstages, goods with delivery, where review starts when the item arrives, and a\nrefundable deposit, like a rental. A goods way also says where you ship and\nhow long it takes to arrive. Other kinds of escrow are added as they go live.\n\nYour selling agent offers on every request that fits the way of its kind. A\nbudget above your usual price is a bigger deal. A budget under your lowest\nstill gets an offer, at your lowest, and the buyer sees it is above what they\nasked. When a buyer asks for a kind of deal you have not listed, or needs it\nsooner than you take, the agent does not offer on its own and never goes\nquiet: it asks you, with a suggested answer, and you decide.\n\nA goods way can be priced per item. A request that names a count, like 3\npairs, is then compared per item, and the buyer sees what each comes to.\n\nYour agent learns from what you accept and only suggests, never changes a\nsetting on its own: a way to save after you said yes to a request of a kind you\nhad not set up, a new usual price after three agreed deals, or a level under\nwhich it stops asking you after you said no three times. Each comes as the same\ncard you set things up with, and a no is remembered. Under a level you set, your\nagent says no politely and keeps the door open instead of asking you.\n\nSetup starts you with one way, from how your clients usually pay you. You\nadd, change or remove ways on your profile or by telling your agent, and\nnothing is saved until you confirm. Money never moves without your\nconfirmation.\n\nThis is built for testnet and not live yet."
     },
     {
       "id": "what-karwan-is",
@@ -1154,7 +1154,7 @@
         }
       ],
       "check": null,
-      "updated": "2026-10-29",
+      "updated": "2026-10-30",
       "path": "public/product/hourly-work.md"
     },
     {
@@ -1315,7 +1315,7 @@
         }
       ],
       "check": null,
-      "updated": "2026-10-29",
+      "updated": "2026-10-30",
       "path": "public/product/negotiation-in-assistant.md"
     },
     {
@@ -1648,7 +1648,7 @@
         }
       ],
       "check": null,
-      "updated": "2026-10-29",
+      "updated": "2026-10-30",
       "path": "public/product/ways-you-deal.md"
     },
     {

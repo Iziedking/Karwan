@@ -1,7 +1,9 @@
 /// Whether the selling agent acts on a request that fits, or asks its person
 /// first (view 41). Limits never make the agent go quiet: inside them it
-/// offers, outside them it asks with a suggested answer the person can take,
-/// change or turn down. Fit is decided before this is called.
+/// offers; under its floor it still offers, at the floor, marked outside the
+/// request for the buyer (view 41, decision 11); a request of a kind it has no
+/// way for, or due sooner than it needs, is a question with a suggested answer.
+/// Fit is decided before this is called.
 
 /// There is no price-above-usual: a budget above the usual price is an offer,
 /// opened from the usual price (view 41, decision 1).
@@ -10,7 +12,7 @@
 export type LimitKind = 'no-way' | 'price-below-floor' | 'time' | 'polite-no';
 
 export type LimitDecision =
-  | { act: true }
+  | { act: true; atOwnPriceUsdc?: string }
   | { act: false; kind: LimitKind; suggested: { priceUsdc: string; days: number }; limit: number | null };
 
 const money = (n: number) => String(Number(n.toFixed(2)));
@@ -39,14 +41,10 @@ export function limitDecision(input: {
   if (noAsk > 0 && budget < noAsk) {
     return { act: false, kind: 'polite-no', suggested: { priceUsdc: money(floor), days }, limit: Number(noAsk.toFixed(2)) };
   }
-  if (budget < floor) {
-    return { act: false, kind: 'price-below-floor', suggested: { priceUsdc: money(floor), days }, limit: Number(floor.toFixed(2)) };
-  }
   if (days < seller.minDeadlineDays) {
-    return { act: false, kind: 'time', suggested: { priceUsdc: money(budget), days: seller.minDeadlineDays }, limit: seller.minDeadlineDays };
+    return { act: false, kind: 'time', suggested: { priceUsdc: money(Math.max(budget, floor)), days: seller.minDeadlineDays }, limit: seller.minDeadlineDays };
   }
-  if (days > seller.maxDeadlineDays) {
-    return { act: false, kind: 'time', suggested: { priceUsdc: money(budget), days: seller.maxDeadlineDays }, limit: seller.maxDeadlineDays };
-  }
+  // More time than the person usually takes is fine: the work can be done sooner.
+  if (budget < floor) return { act: true, atOwnPriceUsdc: money(floor) };
   return { act: true };
 }

@@ -101,19 +101,21 @@ function daysFromNow(unix: number): number {
   return Math.max(1, Math.floor((unix - Math.floor(Date.now() / 1000)) / DAY_SECONDS));
 }
 
+/// The model judges only whether the request fits what the seller does. Price
+/// and time were decided in code before this runs (agents/limits.ts), which
+/// has no seller maximum and counts days rounding up; the prompt counts them
+/// the same way and never skips for them (view 41, 30 Oct 2026).
 export function buildBidEvaluationPrompt(job: JobContext, seller: SellerProfile): string {
-  const daysToBuyerDeadline = daysFromNow(job.deadlineUnix);
+  const daysToBuyerDeadline = Math.max(1, Math.ceil((job.deadlineUnix - Math.floor(Date.now() / 1000)) / DAY_SECONDS));
   const budgetN = Number(job.budgetUsdc);
-  const inBudgetRange = budgetN >= seller.minBudgetUsdc && budgetN <= seller.maxBudgetUsdc;
-  const inDeadlineRange =
-    daysToBuyerDeadline >= seller.minDeadlineDays && daysToBuyerDeadline <= seller.maxDeadlineDays;
+  const usual = seller.usualPriceUsdc ?? Math.max(seller.minBudgetUsdc, seller.maxBudgetUsdc);
   const quantity = job.quantity ? ` (quantity: ${job.quantity.count}${job.quantity.unit ? ` ${job.quantity.unit}` : ''})` : '';
   const briefLine = job.briefText
     ? `- Brief: ${job.briefText}${quantity}`
     : `- Brief: (not provided; only terms hash ${job.termsHash} is available)`;
   return [
     'You are a freelancer agent deciding whether to bid on a job for your principal.',
-    'You must apply BOTH a topical-match check and the hard range checks below.',
+    'Your only judgement is whether the job fits what the seller does. Price and timing were already checked in code.',
     '',
     'Seller profile:',
     `- Skills: ${seller.skills.join(', ')}`,
@@ -138,22 +140,19 @@ export function buildBidEvaluationPrompt(job: JobContext, seller: SellerProfile)
     '- A partial match is a match. If the seller covers the core of the brief, or a close adjacent skill a working professional in that field would have (a React or full-stack developer for a landing page, a web3 developer for a dApp frontend), bid with confidence 0.7 to 0.8 and name the gap in reasoning. A missing tag is not a missing skill.',
     '- If the brief is clearly outside the seller\'s skills (e.g. brief asks for graphic design but the seller does smart contracts), decision MUST be "skip" with low confidence. Do NOT bid out of topic.',
     '',
-    'Hard range checks (apply SECOND, only if topical match passes):',
-    `- Minimum acceptable price: ${seller.minBudgetUsdc} USDC`,
-    `- Maximum acceptable price: ${seller.maxBudgetUsdc} USDC`,
-    `- Minimum days to delivery: ${seller.minDeadlineDays}`,
-    `- Maximum days to delivery: ${seller.maxDeadlineDays}`,
-    `- Pre-computed: budget-in-range=${inBudgetRange}, deadline-in-range=${inDeadlineRange}.`,
+    'Price and timing (for context only; never a reason to skip):',
+    `- Lowest price: ${seller.minBudgetUsdc} USDC. Usual price: ${usual} USDC. A budget above the usual price is a bigger deal, never a reason to skip. A budget under the lowest is handled in code, which offers at the lowest.`,
+    `- The seller needs at least ${seller.minDeadlineDays} days to deliver.`,
     '',
     'Pricing (the system sets the exact opening price; you do not):',
     "- The system opens your bid near the buyer's posted budget: up to 20% under it when demand for your skill is soft, up to 50% over it when demand is high, and never under your own minimum or a grounded market price. You do not know how far above the budget the buyer would go; nobody on the seller side does.",
     '- So you are not racing to the bottom: you open where your skill and the market put you and negotiate from there. A fair price for good work wins; you meet the buyer in between.',
     '',
     'Output rules:',
-    '- decision: "bid" ONLY if topical match passes AND budget-in-range AND deadline-in-range. Otherwise "skip".',
-    `- suggestedPrice: digits only USDC amount between ${seller.minBudgetUsdc} and ${seller.maxBudgetUsdc}. This is only a hint for the reasoning; the system sets the actual opening inside its range. A sensible hint is ${Math.min(seller.maxBudgetUsdc, Math.max(seller.minBudgetUsdc, budgetN))} USDC or above.`,
-    `- suggestedDeadlineDays: integer in [${seller.minDeadlineDays}, ${Math.min(seller.maxDeadlineDays, daysToBuyerDeadline)}]`,
-    '- confidence: 0..1. 0.85+ for a clear match, 0.7 to 0.8 for a partial match, 0.5 or lower only when the seller cannot do the work or a range check is borderline.',
+    '- decision: "bid" when the topical match passes, including a partial match. "skip" only when the job is outside what the seller does.',
+    `- suggestedPrice: digits only USDC amount, at least ${seller.minBudgetUsdc}. This is only a hint for the reasoning; the system sets the actual opening. A sensible hint is ${Math.max(seller.minBudgetUsdc, budgetN)} USDC.`,
+    `- suggestedDeadlineDays: integer in [${seller.minDeadlineDays}, ${Math.max(seller.minDeadlineDays, daysToBuyerDeadline)}]`,
+    '- confidence: 0..1. 0.85+ for a clear match, 0.7 to 0.8 for a partial match, 0.5 or lower only when the seller cannot do the work.',
     '- reasoning: one or two sentences explaining the topical fit (or lack of it) and price logic.',
   ].join('\n');
 }
