@@ -1,7 +1,9 @@
 import { randomBytes } from 'node:crypto';
 import type { Address } from 'viem';
 import { sealedSellerDeps } from '../agents/sealedSellersLive.js';
+import { timeOffer, waysOf } from '../agents/ways.js';
 import { getAgentWallets } from '../db/agentWallets.js';
+import { getProfile } from '../db/profiles.js';
 import { workRequestsStore } from '../db/workRequests.js';
 import { bus } from '../events.js';
 import { extractKeywords } from '../llm/keywords.js';
@@ -33,6 +35,10 @@ export const workRequests = work
     },
     rank: (r, offers) => rankWorkOffers(r, offers, sealedSellerDeps, Date.now()),
     tellPerson: (address, text, path) => bus.emitEvent({ type: 'work.update', actor: 'platform', payload: { address, text, path } }),
+    timeOfferFor: async (seller, work) => {
+      const profile = await getProfile(seller).catch(() => null);
+      return profile?.agentWays ? timeOffer(waysOf(profile).sell, work) : null;
+    },
     now: () => Date.now(),
     newId: (prefix) => `${prefix}_${randomBytes(9).toString('base64url')}`,
   })

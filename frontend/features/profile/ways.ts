@@ -6,7 +6,9 @@ import type { WaysCopy } from '@/shared/i18n/messages/ways';
 /// shapes and rules so the form can say what is missing before saving.
 
 export const LIVE_SHAPES = ['one_time', 'milestones', 'goods', 'deposit'] as const;
-export type WayShape = (typeof LIVE_SHAPES)[number];
+/// Selling time on the Time escrow (view 32); never a buying way.
+export const TIME_SHAPES = ['hourly', 'monthly'] as const;
+export type WayShape = (typeof LIVE_SHAPES)[number] | (typeof TIME_SHAPES)[number];
 export type Side = 'sell' | 'buy';
 
 /// priceMin is the lowest price the person takes, priceUsual what they usually
@@ -15,7 +17,9 @@ export type SellWay =
   | { shape: 'one_time'; priceMin: number; priceUsual: number; daysMin: number; daysMax: number }
   | { shape: 'milestones'; priceMin: number; priceUsual: number; daysMin: number; daysMax: number; stages: number }
   | { shape: 'goods'; what: string; priceMin: number; priceUsual: number; perItem?: boolean; shipsTo: string; arriveDaysMin: number; arriveDaysMax: number }
-  | { shape: 'deposit'; what: string; deposit: number; periodDays: number };
+  | { shape: 'deposit'; what: string; deposit: number; periodDays: number }
+  | { shape: 'hourly'; rateMin: number; rateUsual: number; hoursMax: number }
+  | { shape: 'monthly'; priceMin: number; priceUsual: number };
 
 export type BuyWay =
   | { shape: 'one_time'; maxPrice: number; needDays: number }
@@ -53,7 +57,7 @@ export function waysOf(profile: Pick<UserProfile, 'agentWays' | 'seller' | 'buye
 /// they say something, so the form opens near what the person charges.
 export function blankWay(side: Side, shape: WayShape, ways: AgentWays): SellWay | BuyWay {
   if (side === 'sell') {
-    const priced = ways.sell.find((w) => w.shape !== 'deposit') as Exclude<SellWay, { shape: 'deposit' }> | undefined;
+    const priced = ways.sell.find((w) => w.shape === 'one_time' || w.shape === 'milestones' || w.shape === 'goods') as Extract<SellWay, { priceMin: number }> | undefined;
     const lo = priced?.priceMin ?? 20;
     const usual = priced?.priceUsual ?? 50;
     switch (shape) {
@@ -61,6 +65,10 @@ export function blankWay(side: Side, shape: WayShape, ways: AgentWays): SellWay 
         return { shape, what: '', priceMin: lo, priceUsual: usual, perItem: true, shipsTo: '', arriveDaysMin: 2, arriveDaysMax: 5 };
       case 'deposit':
         return { shape, what: '', deposit: 100, periodDays: 7 };
+      case 'hourly':
+        return { shape, rateMin: 5, rateUsual: 10, hoursMax: 20 };
+      case 'monthly':
+        return { shape, priceMin: 200, priceUsual: 300 };
       case 'milestones':
         return { shape, priceMin: lo, priceUsual: usual, daysMin: 7, daysMax: 30, stages: 2 };
       default:
@@ -77,7 +85,7 @@ export function blankWay(side: Side, shape: WayShape, ways: AgentWays): SellWay 
     case 'milestones':
       return { shape, maxPrice: max, needDays: 30, pay: 'stages' };
     default:
-      return { shape, maxPrice: max, needDays: 7 };
+      return { shape: 'one_time', maxPrice: max, needDays: 7 };
   }
 }
 
@@ -95,6 +103,12 @@ export function wayProblem(side: Side, way: SellWay | BuyWay): 'missing' | 'orde
         return w.priceMin > w.priceUsual || w.arriveDaysMin > w.arriveDaysMax ? 'order' : null;
       case 'deposit':
         return !words(w.what) || !usdc(w.deposit) || !days(w.periodDays) ? 'missing' : null;
+      case 'hourly':
+        if (!usdc(w.rateMin) || !usdc(w.rateUsual) || !Number.isInteger(w.hoursMax) || w.hoursMax < 1 || w.hoursMax > 60) return 'missing';
+        return w.rateMin > w.rateUsual ? 'order' : null;
+      case 'monthly':
+        if (!usdc(w.priceMin) || !usdc(w.priceUsual)) return 'missing';
+        return w.priceMin > w.priceUsual ? 'order' : null;
       case 'milestones':
         if (!Number.isInteger(w.stages) || w.stages < 2 || w.stages > 5) return 'missing';
       // falls through
@@ -130,6 +144,10 @@ export function waySummary(side: Side, way: SellWay | BuyWay, c: WaysCopy): stri
         return [w.what, money(w.priceMin, w.priceUsual) + (w.perItem ? ` ${c.perItemLine}` : ''), fill(c.shipsToLine, { place: w.shipsTo }), time(w.arriveDaysMin, w.arriveDaysMax)].join(' · ');
       case 'deposit':
         return [w.what, fill(c.depositLine, { n: n(w.deposit) }), fill(c.days, { n: n(w.periodDays) })].join(' · ');
+      case 'hourly':
+        return [fill(c.perHour, { money: money(w.rateMin, w.rateUsual) }), fill(c.hoursWeek, { n: n(w.hoursMax) })].join(' · ');
+      case 'monthly':
+        return fill(c.perMonth, { money: money(w.priceMin, w.priceUsual) });
       case 'milestones':
         return [money(w.priceMin, w.priceUsual), time(w.daysMin, w.daysMax), fill(c.stagesLine, { n: n(w.stages) })].join(' · ');
       default:

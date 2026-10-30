@@ -2,7 +2,7 @@ import { agentPrefsOf, getProfile, type UserProfile } from '../db/profiles.js';
 import { getAgentWallets, listAllAgentWallets, type AgentWallets } from '../db/agentWallets.js';
 import { topicalOverlap } from '../llm/keywords.js';
 import { MATCH_CANDIDATE_LIMIT } from '../marketplace/matchCandidates.js';
-import { waysOf, type WayShape } from '../agents/ways.js';
+import { waysOf, type SellShape } from '../agents/ways.js';
 
 /// Who sells what, in memory (view 41): built from the agent wallets and
 /// profiles when the seller agents start, refreshed when a person saves their
@@ -18,7 +18,7 @@ export interface IndexedSeller {
   /// Keywords and skills, the words matching runs on.
   words: string[];
   sector: string | null;
-  shapes: WayShape[];
+  shapes: SellShape[];
   country: string | null;
   /// Seeded stock, never a seller (decision 7).
   example: boolean;

@@ -5,8 +5,8 @@ export interface WaysCopy {
   hint: string;
   selling: string;
   buying: string;
-  shapes: Record<'one_time' | 'milestones' | 'goods' | 'deposit', string>;
-  sellNotes: Record<'one_time' | 'milestones' | 'goods' | 'deposit', string>;
+  shapes: Record<'one_time' | 'milestones' | 'goods' | 'deposit' | 'hourly' | 'monthly', string>;
+  sellNotes: Record<'one_time' | 'milestones' | 'goods' | 'deposit' | 'hourly' | 'monthly', string>;
   buyNotes: Record<'one_time' | 'milestones' | 'goods' | 'deposit', string>;
   add: string;
   edit: string;
@@ -39,8 +39,17 @@ export interface WaysCopy {
     deliverTo: string;
     waitDays: string;
     maxDeposit: string;
+    rateFrom: string;
+    rateUsual: string;
+    hoursMax: string;
   };
   unitDays: string;
+  /// Selling by the hour or by the month (view 32). {money} is an amount line.
+  unitHour: string;
+  unitMonth: string;
+  perHour: string;
+  perMonth: string;
+  hoursWeek: string;
   payEnd: string;
   payStages: string;
   usdc: string;
@@ -67,12 +76,14 @@ export const waysCopy: Record<Locale, WaysCopy> = {
     hint: 'Your agents offer and ask only in these ways. Money never moves without your confirmation.',
     selling: 'Selling',
     buying: 'Buying',
-    shapes: { one_time: 'One-time', milestones: 'Milestones', goods: 'Goods with delivery', deposit: 'Refundable deposit' },
+    shapes: { one_time: 'One-time', milestones: 'Milestones', goods: 'Goods with delivery', deposit: 'Refundable deposit', hourly: 'By the hour', monthly: 'Monthly retainer' },
     sellNotes: {
       one_time: 'Paid once, when the work is done',
       milestones: 'Paid in stages, each after you deliver it',
       goods: 'Paid when the buyer has the item',
       deposit: 'Held while they use it, then returned',
+      hourly: 'Paid for the hours the hirer approves, week by week. Your agent offers your rate on work that fits',
+      monthly: 'Paid each month. Your agent offers your price on work that fits',
     },
     buyNotes: {
       one_time: 'You pay once, when you have the work',
@@ -96,9 +107,10 @@ export const waysCopy: Record<Locale, WaysCopy> = {
       priceFrom: 'Lowest price', priceUsual: 'Usual price', daysFrom: 'Done in at least', daysTo: 'Done in at most', stages: 'Stages',
       whatSell: 'What you sell', perItem: 'Price is for', whatRent: 'What you rent out', shipsTo: 'Ships to', arrives: 'Arrives in',
       deposit: 'Deposit', period: 'For how long', maxPrice: 'Most you pay', needDays: 'Needed within', pay: 'How you pay',
-      deliverTo: 'Delivered to', waitDays: 'You can wait', maxDeposit: 'Most deposit you put down',
+      deliverTo: 'Delivered to', waitDays: 'You can wait', maxDeposit: 'Most deposit you put down', rateFrom: 'Lowest rate', rateUsual: 'Usual rate', hoursMax: 'Most hours a week',
     },
     unitDays: 'days',
+    unitHour: 'USDC an hour', unitMonth: 'USDC a month', perHour: '{money} an hour', perMonth: '{money} a month', hoursWeek: 'up to {n} hours a week',
     payEnd: 'At the end',
     payStages: 'Stage by stage',
     usdc: '{n} USDC',
@@ -120,12 +132,14 @@ export const waysCopy: Record<Locale, WaysCopy> = {
     hint: 'Vos agents proposent et demandent seulement de ces façons. L’argent ne bouge jamais sans votre confirmation.',
     selling: 'Vente',
     buying: 'Achat',
-    shapes: { one_time: 'En une fois', milestones: 'Par étapes', goods: 'Marchandises livrées', deposit: 'Caution remboursable' },
+    shapes: { one_time: 'En une fois', milestones: 'Par étapes', goods: 'Marchandises livrées', deposit: 'Caution remboursable', hourly: 'À l’heure', monthly: 'Forfait mensuel' },
     sellNotes: {
       one_time: 'Payé une fois, quand le travail est fait',
       milestones: 'Payé par étapes, chacune après livraison',
       goods: 'Payé quand l’acheteur a l’article',
       deposit: 'Retenue pendant l’usage, puis rendue',
+      hourly: 'Payé pour les heures validées, semaine par semaine. Votre agent propose votre taux sur le travail qui vous correspond',
+      monthly: 'Payé chaque mois. Votre agent propose votre prix sur le travail qui vous correspond',
     },
     buyNotes: {
       one_time: 'Vous payez une fois, quand vous avez le travail',
@@ -149,9 +163,10 @@ export const waysCopy: Record<Locale, WaysCopy> = {
       priceFrom: 'Prix minimum', priceUsual: 'Prix habituel', daysFrom: 'Fait en au moins', daysTo: 'Fait en au plus', stages: 'Étapes',
       whatSell: 'Ce que vous vendez', perItem: 'Le prix vaut pour', whatRent: 'Ce que vous louez', shipsTo: 'Livre vers', arrives: 'Arrive en',
       deposit: 'Caution', period: 'Pour combien de temps', maxPrice: 'Le plus que vous payez', needDays: 'Nécessaire sous', pay: 'Comment vous payez',
-      deliverTo: 'Livré à', waitDays: 'Vous pouvez attendre', maxDeposit: 'Caution maximale versée',
+      deliverTo: 'Livré à', waitDays: 'Vous pouvez attendre', maxDeposit: 'Caution maximale versée', rateFrom: 'Taux minimum', rateUsual: 'Taux habituel', hoursMax: 'Heures max. par semaine',
     },
     unitDays: 'jours',
+    unitHour: 'USDC de l’heure', unitMonth: 'USDC par mois', perHour: '{money} de l’heure', perMonth: '{money} par mois', hoursWeek: 'jusqu’à {n} heures par semaine',
     payEnd: 'À la fin',
     payStages: 'Étape par étape',
     usdc: '{n} USDC',
@@ -173,12 +188,14 @@ export const waysCopy: Record<Locale, WaysCopy> = {
     hint: 'وكلاؤك يعرضون ويطلبون بهذه الطرق فقط. المال لا يتحرك أبدًا دون تأكيدك.',
     selling: 'البيع',
     buying: 'الشراء',
-    shapes: { one_time: 'دفعة واحدة', milestones: 'على مراحل', goods: 'بضائع مع التوصيل', deposit: 'تأمين مسترد' },
+    shapes: { one_time: 'دفعة واحدة', milestones: 'على مراحل', goods: 'بضائع مع التوصيل', deposit: 'تأمين مسترد', hourly: 'بالساعة', monthly: 'اشتراك شهري' },
     sellNotes: {
       one_time: 'يُدفع مرة واحدة عند إنجاز العمل',
       milestones: 'يُدفع على مراحل، كل مرحلة بعد تسليمها',
       goods: 'يُدفع حين يستلم المشتري السلعة',
       deposit: 'يُحجز أثناء الاستخدام ثم يُعاد',
+      hourly: 'تُدفع مقابل الساعات التي يوافق عليها صاحب العمل، أسبوعًا بأسبوع. يعرض وكيلك سعرك على العمل المناسب',
+      monthly: 'تُدفع كل شهر. يعرض وكيلك سعرك على العمل المناسب',
     },
     buyNotes: {
       one_time: 'تدفع مرة واحدة عند استلام العمل',
@@ -202,9 +219,10 @@ export const waysCopy: Record<Locale, WaysCopy> = {
       priceFrom: 'أدنى سعر', priceUsual: 'السعر المعتاد', daysFrom: 'يُنجز في الأقل خلال', daysTo: 'يُنجز في الأكثر خلال', stages: 'المراحل',
       whatSell: 'ما تبيعه', perItem: 'السعر يخص', whatRent: 'ما تؤجره', shipsTo: 'يُشحن إلى', arrives: 'يصل خلال',
       deposit: 'التأمين', period: 'لأي مدة', maxPrice: 'أقصى ما تدفعه', needDays: 'مطلوب خلال', pay: 'طريقة الدفع',
-      deliverTo: 'يُسلَّم إلى', waitDays: 'يمكنك الانتظار', maxDeposit: 'أقصى تأمين تضعه',
+      deliverTo: 'يُسلَّم إلى', waitDays: 'يمكنك الانتظار', maxDeposit: 'أقصى تأمين تضعه', rateFrom: 'أدنى سعر للساعة', rateUsual: 'السعر المعتاد للساعة', hoursMax: 'أقصى عدد ساعات في الأسبوع',
     },
     unitDays: 'أيام',
+    unitHour: 'USDC للساعة', unitMonth: 'USDC شهريًا', perHour: '{money} للساعة', perMonth: '{money} شهريًا', hoursWeek: 'حتى {n} ساعة في الأسبوع',
     payEnd: 'في النهاية',
     payStages: 'مرحلة بمرحلة',
     usdc: '{n} USDC',
@@ -226,12 +244,14 @@ export const waysCopy: Record<Locale, WaysCopy> = {
     hint: 'आपके एजेंट केवल इन्हीं तरीकों से ऑफ़र और अनुरोध करते हैं। आपकी पुष्टि के बिना पैसा कभी नहीं हिलता।',
     selling: 'बेचना',
     buying: 'खरीदना',
-    shapes: { one_time: 'एक बार में', milestones: 'चरणों में', goods: 'डिलीवरी वाला सामान', deposit: 'वापसी योग्य जमा' },
+    shapes: { one_time: 'एक बार में', milestones: 'चरणों में', goods: 'डिलीवरी वाला सामान', deposit: 'वापसी योग्य जमा', hourly: 'घंटे के हिसाब से', monthly: 'मासिक रिटेनर' },
     sellNotes: {
       one_time: 'काम पूरा होने पर एक बार भुगतान',
       milestones: 'चरणों में भुगतान, हर चरण डिलीवर होने के बाद',
       goods: 'खरीदार के पास सामान पहुँचने पर भुगतान',
       deposit: 'इस्तेमाल के दौरान रोका, फिर लौटाया',
+      hourly: 'हायर जिन घंटों को मंज़ूर करे, उनका भुगतान हर हफ़्ते. आपका एजेंट सही काम पर आपकी दर पेश करता है',
+      monthly: 'हर महीने भुगतान. आपका एजेंट सही काम पर आपकी कीमत पेश करता है',
     },
     buyNotes: {
       one_time: 'काम मिलने पर आप एक बार भुगतान करते हैं',
@@ -255,9 +275,10 @@ export const waysCopy: Record<Locale, WaysCopy> = {
       priceFrom: 'न्यूनतम कीमत', priceUsual: 'सामान्य कीमत', daysFrom: 'कम से कम इतने दिन', daysTo: 'ज़्यादा से ज़्यादा इतने दिन', stages: 'चरण',
       whatSell: 'आप क्या बेचते हैं', perItem: 'कीमत किसके लिए', whatRent: 'आप क्या किराए पर देते हैं', shipsTo: 'कहाँ भेजते हैं', arrives: 'पहुँचने में',
       deposit: 'जमा', period: 'कितने समय के लिए', maxPrice: 'आप अधिकतम कितना देते हैं', needDays: 'कितने दिनों में चाहिए', pay: 'आप कैसे भुगतान करते हैं',
-      deliverTo: 'कहाँ पहुँचे', waitDays: 'आप इंतज़ार कर सकते हैं', maxDeposit: 'अधिकतम जमा',
+      deliverTo: 'कहाँ पहुँचे', waitDays: 'आप इंतज़ार कर सकते हैं', maxDeposit: 'अधिकतम जमा', rateFrom: 'सबसे कम दर', rateUsual: 'आम दर', hoursMax: 'हफ़्ते में अधिकतम घंटे',
     },
     unitDays: 'दिन',
+    unitHour: 'USDC प्रति घंटा', unitMonth: 'USDC प्रति माह', perHour: '{money} प्रति घंटा', perMonth: '{money} प्रति माह', hoursWeek: 'हफ़्ते में {n} घंटे तक',
     payEnd: 'अंत में',
     payStages: 'चरण दर चरण',
     usdc: '{n} USDC',
@@ -279,12 +300,14 @@ export const waysCopy: Record<Locale, WaysCopy> = {
     hint: 'Mawakala wako hutoa na kuomba kwa njia hizi tu. Pesa haisogei kamwe bila uthibitisho wako.',
     selling: 'Kuuza',
     buying: 'Kununua',
-    shapes: { one_time: 'Mara moja', milestones: 'Kwa hatua', goods: 'Bidhaa zinazowasilishwa', deposit: 'Amana inayorudishwa' },
+    shapes: { one_time: 'Mara moja', milestones: 'Kwa hatua', goods: 'Bidhaa zinazowasilishwa', deposit: 'Amana inayorudishwa', hourly: 'Kwa saa', monthly: 'Malipo ya kila mwezi' },
     sellNotes: {
       one_time: 'Hulipwa mara moja kazi ikikamilika',
       milestones: 'Hulipwa kwa hatua, kila moja baada ya kuiwasilisha',
       goods: 'Hulipwa mnunuzi akipata bidhaa',
       deposit: 'Hushikiliwa wakati wa matumizi, kisha hurudishwa',
+      hourly: 'Unalipwa kwa saa zinazoidhinishwa, kila wiki. Wakala wako anatoa kiwango chako kwenye kazi inayokufaa',
+      monthly: 'Unalipwa kila mwezi. Wakala wako anatoa bei yako kwenye kazi inayokufaa',
     },
     buyNotes: {
       one_time: 'Unalipa mara moja ukipata kazi',
@@ -308,9 +331,10 @@ export const waysCopy: Record<Locale, WaysCopy> = {
       priceFrom: 'Bei ya chini kabisa', priceUsual: 'Bei ya kawaida', daysFrom: 'Inakamilika angalau kwa', daysTo: 'Inakamilika zaidi kwa', stages: 'Hatua',
       whatSell: 'Unachouza', perItem: 'Bei ni ya', whatRent: 'Unachokodisha', shipsTo: 'Inatumwa hadi', arrives: 'Inafika kwa',
       deposit: 'Amana', period: 'Kwa muda gani', maxPrice: 'Kiasi cha juu unacholipa', needDays: 'Inahitajika ndani ya', pay: 'Unavyolipa',
-      deliverTo: 'Inawasilishwa hadi', waitDays: 'Unaweza kusubiri', maxDeposit: 'Amana ya juu unayoweka',
+      deliverTo: 'Inawasilishwa hadi', waitDays: 'Unaweza kusubiri', maxDeposit: 'Amana ya juu unayoweka', rateFrom: 'Kiwango cha chini', rateUsual: 'Kiwango cha kawaida', hoursMax: 'Saa nyingi zaidi kwa wiki',
     },
     unitDays: 'siku',
+    unitHour: 'USDC kwa saa', unitMonth: 'USDC kwa mwezi', perHour: '{money} kwa saa', perMonth: '{money} kwa mwezi', hoursWeek: 'hadi saa {n} kwa wiki',
     payEnd: 'Mwishoni',
     payStages: 'Hatua kwa hatua',
     usdc: 'USDC {n}',

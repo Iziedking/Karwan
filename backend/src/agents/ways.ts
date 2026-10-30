@@ -11,6 +11,11 @@ import type { UserProfile } from '../db/profiles.js';
 
 export const LIVE_SHAPES = ['one_time', 'milestones', 'goods', 'deposit'] as const;
 export type WayShape = (typeof LIVE_SHAPES)[number];
+/// Selling time on the Time escrow (view 32): by the hour, or a monthly
+/// retainer. Only for selling; a hirer posts the work instead.
+export const TIME_SHAPES = ['hourly', 'monthly'] as const;
+export type TimeShape = (typeof TIME_SHAPES)[number];
+export type SellShape = WayShape | TimeShape;
 
 const usdc = z.number().finite().positive().max(1_000_000);
 const days = z.number().int().min(1).max(365);
@@ -37,6 +42,10 @@ const sellGoods = z.object({
   arriveDaysMax: days,
 });
 const sellDeposit = z.object({ shape: z.literal('deposit'), what: words(120), deposit: usdc, periodDays: days });
+/// The agent offers rateUsual on posted hourly work, lowered to the hirer's
+/// most rate but never under rateMin, and only when hoursMax covers the hours.
+const sellHourly = z.object({ shape: z.literal('hourly'), rateMin: usdc, rateUsual: usdc, hoursMax: z.number().int().min(1).max(60) });
+const sellMonthly = z.object({ shape: z.literal('monthly'), priceMin: usdc, priceUsual: usdc });
 
 const buyOneTime = z.object({ shape: z.literal('one_time'), maxPrice: usdc, needDays: days });
 const buyMilestones = buyOneTime.extend({ shape: z.literal('milestones'), pay: z.enum(['end', 'stages']) });
@@ -44,10 +53,10 @@ const buyGoods = z.object({ shape: z.literal('goods'), maxPrice: usdc, deliverTo
 const buyDeposit = z.object({ shape: z.literal('deposit'), maxDeposit: usdc });
 
 export const sellWaySchema = z
-  .discriminatedUnion('shape', [sellOneTime, sellMilestones, sellGoods, sellDeposit])
-  .refine((w) => (w.shape === 'deposit' ? true : w.priceMin <= w.priceUsual), { message: 'lowest price above usual' })
-  .refine((w) => (w.shape === 'deposit' || w.noAskBelow === undefined ? true : w.noAskBelow <= w.priceMin), { message: 'no-ask level above the lowest price' })
-  .refine((w) => (w.shape === 'goods' ? w.arriveDaysMin <= w.arriveDaysMax : w.shape === 'deposit' ? true : w.daysMin <= w.daysMax), {
+  .discriminatedUnion('shape', [sellOneTime, sellMilestones, sellGoods, sellDeposit, sellHourly, sellMonthly])
+  .refine((w) => (w.shape === 'hourly' ? w.rateMin <= w.rateUsual : w.shape === 'deposit' ? true : w.priceMin <= w.priceUsual), { message: 'lowest price above usual' })
+  .refine((w) => (!('noAskBelow' in w) || w.noAskBelow === undefined ? true : w.noAskBelow <= w.priceMin), { message: 'no-ask level above the lowest price' })
+  .refine((w) => (w.shape === 'goods' ? w.arriveDaysMin <= w.arriveDaysMax : 'daysMin' in w ? w.daysMin <= w.daysMax : true), {
     message: 'shortest time above longest',
   });
 export const buyWaySchema = z.discriminatedUnion('shape', [buyOneTime, buyMilestones, buyGoods, buyDeposit]);
@@ -55,11 +64,14 @@ export const buyWaySchema = z.discriminatedUnion('shape', [buyOneTime, buyMilest
 const oneEach = (list: Array<{ shape: string }>) => new Set(list.map((w) => w.shape)).size === list.length;
 
 export const waysSchema = z.object({
-  sell: z.array(sellWaySchema).max(LIVE_SHAPES.length).refine(oneEach, { message: 'one way per shape' }),
+  sell: z.array(sellWaySchema).max(LIVE_SHAPES.length + TIME_SHAPES.length).refine(oneEach, { message: 'one way per shape' }),
   buy: z.array(buyWaySchema).max(LIVE_SHAPES.length).refine(oneEach, { message: 'one way per shape' }),
 });
 
 export type SellWay = z.infer<typeof sellWaySchema>;
+/// A way with a fixed price the agent bids from: work or goods.
+export type PricedWay = Extract<SellWay, { shape: 'one_time' | 'milestones' | 'goods' }>;
+export const isPriced = (w: SellWay): w is PricedWay => w.shape === 'one_time' || w.shape === 'milestones' || w.shape === 'goods';
 export type BuyWay = z.infer<typeof buyWaySchema>;
 export type AgentWays = z.infer<typeof waysSchema>;
 
@@ -134,6 +146,8 @@ export function withWayLimits<T extends Limits>(seller: T, way: SellWay): T {
     case 'goods':
       return { ...seller, minBudgetUsdc: way.priceMin, maxBudgetUsdc: way.priceUsual, usualPriceUsdc: way.priceUsual, pricesPerItem: way.perItem === true, ...(way.noAskBelow !== undefined ? { noAskBelowUsdc: way.noAskBelow } : {}), minDeadlineDays: way.arriveDaysMin, maxDeadlineDays: way.arriveDaysMax };
     case 'deposit':
+    case 'hourly':
+    case 'monthly':
       return seller;
     default:
       return { ...seller, minBudgetUsdc: way.priceMin, maxBudgetUsdc: way.priceUsual, usualPriceUsdc: way.priceUsual, ...(way.noAskBelow !== undefined ? { noAskBelowUsdc: way.noAskBelow } : {}), minDeadlineDays: way.daysMin, maxDeadlineDays: way.daysMax };
@@ -141,7 +155,7 @@ export function withWayLimits<T extends Limits>(seller: T, way: SellWay): T {
 }
 
 const sellRange = (w: SellWay) =>
-  w.shape === 'deposit'
+  w.shape === 'deposit' || w.shape === 'hourly' || w.shape === 'monthly'
     ? null
     : w.shape === 'goods'
       ? { lo: w.priceMin, hi: w.priceUsual, dLo: w.arriveDaysMin, dHi: w.arriveDaysMax }
@@ -185,11 +199,13 @@ export function legacyFromWays(ways: AgentWays, current: Pick<UserProfile, 'sell
   return { seller, buyer };
 }
 
-const SHAPE_WORDS: Record<WayShape, string> = {
+const SHAPE_WORDS: Record<SellShape, string> = {
   one_time: 'one-time',
   milestones: 'milestones',
   goods: 'goods with delivery',
   deposit: 'refundable deposit',
+  hourly: 'by the hour',
+  monthly: 'monthly retainer',
 };
 const span = (lo: number | string, hi: number | string) => (lo === hi ? `${lo}` : `${lo} to ${hi}`);
 const whole = (n: number) => n.toLocaleString('en-US');
@@ -205,6 +221,10 @@ export function wayLines(ways: Pick<AgentWays, 'sell' | 'buy'>): string[] {
         return `${head}${w.what}, ${priceWords(w.priceMin, w.priceUsual)}${w.perItem ? ' per item' : ''}${bandWords(w)}, to ${w.shipsTo}, arrives in ${span(w.arriveDaysMin, w.arriveDaysMax)} days`;
       case 'deposit':
         return `${head}${w.what}, ${whole(w.deposit)} USDC deposit for ${w.periodDays} days`;
+      case 'hourly':
+        return `${head}${w.rateMin === w.rateUsual ? `${whole(w.rateUsual)} USDC an hour` : `usually ${whole(w.rateUsual)} USDC an hour, lowest ${whole(w.rateMin)}`}, up to ${w.hoursMax} hours a week`;
+      case 'monthly':
+        return `${head}${priceWords(w.priceMin, w.priceUsual)} a month`;
       case 'milestones':
         return `${head}${priceWords(w.priceMin, w.priceUsual)}${bandWords(w)} in ${w.stages} stages, done in ${span(w.daysMin, w.daysMax)} days`;
       default:
@@ -259,8 +279,8 @@ export function sellerForRequest<T extends Limits & { ways?: SellWay[]; agentMod
 }
 
 /// One way added, changed or removed, the rest kept as they are.
-export function withWay(current: Pick<AgentWays, 'sell' | 'buy'>, side: 'sell' | 'buy', shape: WayShape, way: SellWay | BuyWay | null): AgentWays {
-  const replace = <W extends { shape: WayShape }>(list: readonly W[], next: W | null): W[] => {
+export function withWay(current: Pick<AgentWays, 'sell' | 'buy'>, side: 'sell' | 'buy', shape: SellShape, way: SellWay | BuyWay | null): AgentWays {
+  const replace = <W extends { shape: SellShape }>(list: readonly W[], next: W | null): W[] => {
     const at = list.findIndex((w) => w.shape === shape);
     if (at < 0) return next ? [...list, next] : [...list];
     return next ? [...list.slice(0, at), next, ...list.slice(at + 1)] : [...list.slice(0, at), ...list.slice(at + 1)];
@@ -268,4 +288,22 @@ export function withWay(current: Pick<AgentWays, 'sell' | 'buy'>, side: 'sell' |
   return side === 'sell'
     ? { sell: replace(current.sell, way as SellWay | null), buy: [...current.buy] }
     : { sell: [...current.sell], buy: replace(current.buy, way as BuyWay | null) };
+}
+
+/// The rate a seller's agent offers on posted time work (view 32): the usual
+/// rate, lowered to the hirer's most but never under the lowest. Null when the
+/// seller has no way of that kind, the most is under their lowest, or the
+/// hours are more than they take.
+export function timeOffer(sell: readonly SellWay[], work: { kind: TimeShape; mostUsdc: number; maxHours: number }): number | null {
+  const way = sell.find((w) => w.shape === work.kind);
+  if (!way) return null;
+  if (way.shape === 'hourly') {
+    if (work.maxHours > way.hoursMax || work.mostUsdc < way.rateMin) return null;
+    return Math.min(way.rateUsual, work.mostUsdc);
+  }
+  if (way.shape === 'monthly') {
+    if (work.mostUsdc < way.priceMin) return null;
+    return Math.min(way.priceUsual, work.mostUsdc);
+  }
+  return null;
 }

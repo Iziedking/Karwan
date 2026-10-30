@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { UserProfile } from '../db/profiles.js';
-import { fittingWay, legacyFromWays, LIVE_SHAPES, reconcileWays, sellerForRequest, sellWaySchema, upgradeWays, usualOf, waysOf, withWay, waysSchema, wayLines, withWayLimits, type AgentWays } from './ways.js';
+import { fittingWay, legacyFromWays, LIVE_SHAPES, reconcileWays, sellerForRequest, sellWaySchema, timeOffer, upgradeWays, usualOf, waysOf, withWay, waysSchema, wayLines, withWayLimits, type AgentWays } from './ways.js';
 
 /// The ways a person deals (view 26): one per escrow shape, in plain answers,
 /// read by the selling agent to match and by the account to stay in step.
@@ -150,4 +150,29 @@ test('one way changes at a time, in place', () => {
   assert.equal(next.sell[1], cheaper);
   assert.deepEqual(withWay(ways, 'sell', 'one_time', null).sell.map((w) => w.shape), ['goods']);
   assert.deepEqual(withWay(ways, 'buy', 'deposit', { shape: 'deposit', maxDeposit: 100 }).buy.map((w) => w.shape), ['milestones', 'deposit']);
+});
+
+test('time ways sell by the hour or by the month, and the agent offers inside them (view 32)', () => {
+  const parsed = waysSchema.parse({
+    sell: [
+      { shape: 'hourly', rateMin: 8, rateUsual: 10, hoursMax: 20 },
+      { shape: 'monthly', priceMin: 300, priceUsual: 400 },
+    ],
+    buy: [],
+  });
+  assert.equal(parsed.sell.length, 2);
+  assert.throws(() => waysSchema.parse({ sell: [{ shape: 'hourly', rateMin: 12, rateUsual: 10, hoursMax: 20 }], buy: [] }));
+  assert.deepEqual(wayLines(parsed), [
+    'Selling, by the hour: usually 10 USDC an hour, lowest 8, up to 20 hours a week',
+    'Selling, monthly retainer: usually 400 USDC, lowest 300 a month',
+  ]);
+  // The usual rate, lowered to the hirer's most, never under the lowest.
+  assert.equal(timeOffer(parsed.sell, { kind: 'hourly', mostUsdc: 15, maxHours: 10 }), 10);
+  assert.equal(timeOffer(parsed.sell, { kind: 'hourly', mostUsdc: 9, maxHours: 10 }), 9);
+  assert.equal(timeOffer(parsed.sell, { kind: 'hourly', mostUsdc: 7, maxHours: 10 }), null);
+  assert.equal(timeOffer(parsed.sell, { kind: 'hourly', mostUsdc: 15, maxHours: 30 }), null);
+  assert.equal(timeOffer(parsed.sell, { kind: 'monthly', mostUsdc: 350, maxHours: 1 }), 350);
+  assert.equal(timeOffer([], { kind: 'hourly', mostUsdc: 15, maxHours: 10 }), null);
+  // A time way never sets the price the agent bids on fixed-price work.
+  assert.equal(fittingWay(parsed.sell, 'service'), null);
 });

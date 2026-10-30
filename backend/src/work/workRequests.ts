@@ -56,6 +56,9 @@ export interface WorkRequestPorts {
   /// The live offers, best fit first, sealed.
   rank(r: WorkRequest, offers: WorkOffer[]): Promise<RankedOffer[]>;
   tellPerson(address: Address, text: string, link: string): void;
+  /// The rate a reached seller's agent offers from their hourly or monthly
+  /// way, or null when they have none that fits (view 32).
+  timeOfferFor?(seller: Address, work: { kind: 'hourly' | 'monthly'; mostUsdc: number; maxHours: number }): Promise<number | null>;
   now(): number;
   newId(prefix: string): string;
 }
@@ -99,6 +102,15 @@ export function createWorkRequests(p: WorkRequestPorts) {
     await p.store.create(request);
     const fits = (await p.reach(request).catch(() => [])).filter((s) => !same(s, hirer));
     for (const s of fits) {
+      // A seller with a way of this kind has their agent offer at once.
+      const auto = p.timeOfferFor
+        ? await p.timeOfferFor(s, { kind: request.kind, mostUsdc: Number(usdc(rate)), maxHours: request.maxHours }).catch(() => null)
+        : null;
+      const made = auto !== null ? await offer(s, request.id, { rateUsdc: auto.toFixed(2) }) : null;
+      if (made?.ok) {
+        p.tellPerson(s, `Your agent offered ${usdc(made.offer.rateMicros)} USDC ${per(request)} on ${title}. You can change or withdraw it.`, `/work/requests/${request.id}`);
+        continue;
+      }
       p.tellPerson(s, `New ${hourly ? 'hourly' : 'monthly'} work that fits you: ${title}, up to ${usdc(rate)} USDC ${per(request)}${hourly ? `, ${maxHours} hours a week` : ''}. Offer your rate if you want it.`, `/work/requests/${request.id}`);
     }
     const live = (await p.store.patch(request.id, { told: fits.length }))!;

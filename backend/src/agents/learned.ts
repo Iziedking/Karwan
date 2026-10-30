@@ -1,5 +1,4 @@
-import type { AgentWays, SellWay, WayShape } from './ways.js';
-import { fittingWay } from './ways.js';
+import { fittingWay, isPriced, type AgentWays, type SellWay, type WayShape } from './ways.js';
 
 /// What the agent learns from the person's own history (view 41): a kind of
 /// deal they keep accepting by question, the prices they agree, the questions
@@ -79,7 +78,7 @@ export function suggestedUsualPrice(i: Pick<LearnedInputs, 'ways' | 'settled'>):
   for (const [shape, prices] of groups) {
     if (prices.length < THRESHOLD_DEALS) continue;
     const way: SellWay | null = fittingWay(i.ways.sell, shape === 'goods' ? 'goods' : 'service');
-    if (!way || way.shape === 'deposit') continue;
+    if (!way || !isPriced(way)) continue;
     const usual = money(median(prices.slice(0, 10)));
     if (Math.abs(usual - way.priceUsual) <= way.priceUsual * USUAL_DRIFT) continue;
     out.push({

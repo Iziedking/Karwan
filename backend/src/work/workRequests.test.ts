@@ -16,7 +16,7 @@ const TUNDE: Address = '0x3333333333333333333333333333333333333333';
 const DAY = 86_400_000;
 const T0 = Date.UTC(2026, 10, 2, 9);
 
-function world(over: { offerFails?: boolean } = {}) {
+function world(over: { offerFails?: boolean; timeOfferFor?: (s: Address) => number | null } = {}) {
   let now = T0;
   let n = 0;
   const told: Array<{ to: string; text: string }> = [];
@@ -37,6 +37,7 @@ function world(over: { offerFails?: boolean } = {}) {
       reasons: [], recommended: i === 0, rateMicros: o.rateMicros, note: o.note, overMost: false,
     })),
     tellPerson: (to, text) => told.push({ to, text }),
+    ...(over.timeOfferFor ? { timeOfferFor: async (seller: Address) => over.timeOfferFor!(seller) } : {}),
     now: () => now,
     newId: (prefix) => `${prefix}_${++n}`,
   });
@@ -164,4 +165,19 @@ test('the agent ranks a strong skill fit with no rating above a weak fit with a 
     assert.equal('score' in row, false);
     assert.equal('counts' in row, false);
   }
+});
+
+test('a reached seller with an hourly way has their agent offer at once; the others are told (view 32)', async () => {
+  const { core, store, told } = world({ timeOfferFor: (s) => (s === ADA ? 9 : null) });
+  const r = await core.post(HIRER, books);
+  assert.ok(r.ok);
+  const offers = (await store.offers(r.request.id)).filter((o) => o.status === 'live');
+  assert.equal(offers.length, 1);
+  assert.equal(offers[0]!.seller, ADA);
+  assert.equal(offers[0]!.rateMicros, '9000000');
+  assert.match(told.find((t) => t.to === ADA)!.text, /Your agent offered 9 USDC an hour on Bookkeeping/);
+  assert.match(told.find((t) => t.to === TUNDE)!.text, /Offer your rate if you want it/);
+  // The hirer hears of the new offer, as with any offer.
+  assert.ok(told.some((t) => t.to === HIRER && /a new offer, 9 USDC an hour/.test(t.text)));
+  assert.equal(r.request.told, 2);
 });

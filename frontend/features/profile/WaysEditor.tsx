@@ -13,7 +13,7 @@ import { dur, ease } from '@/shared/motion/tokens';
 import { cn } from '@/shared/utils/cn';
 import { ProfileFrame, RowGroup } from './ui/ProfileUi';
 import { ChoiceCard } from '@/features/setup/SetupParts';
-import { blankWay, LIVE_SHAPES, wayProblem, waysOf, waySummary, type AgentWays, type BuyWay, type SellWay, type Side, type WayShape } from './ways';
+import { blankWay, LIVE_SHAPES, TIME_SHAPES, wayProblem, waysOf, waySummary, type AgentWays, type BuyWay, type SellWay, type Side, type WayShape } from './ways';
 
 type Way = SellWay | BuyWay;
 type Open = { side: Side; shape: WayShape; draft: Way; isNew: boolean } | null;
@@ -75,7 +75,7 @@ export function WaysEditor() {
 
   const section = (side: Side) => {
     const list = ways[side] as Way[];
-    const free = LIVE_SHAPES.filter((s) => !list.some((w) => w.shape === s));
+    const free = (side === 'sell' ? [...LIVE_SHAPES, ...TIME_SHAPES] : [...LIVE_SHAPES]).filter((s) => !list.some((w) => w.shape === s));
     return (
       <RowGroup title={side === 'sell' ? c.selling : c.buying}>
         {list.length === 0 && open?.side !== side ? <p className="px-4 py-4 text-[15px] font-medium text-[var(--lp-text-sub)]">{c.none}</p> : null}
@@ -111,7 +111,7 @@ export function WaysEditor() {
                     reduce={reduce}
                     on={false}
                     label={c.shapes[shape]}
-                    note={(side === 'sell' ? c.sellNotes : c.buyNotes)[shape]}
+                    note={side === 'sell' ? c.sellNotes[shape] : c.buyNotes[shape as keyof typeof c.buyNotes]}
                     onPick={() => { setAdding(null); setOpen({ side, shape, draft: blankWay(side, shape, ways), isNew: true }); }}
                   />
                 ))}
@@ -189,6 +189,8 @@ function WayForm({ side, open, c, motionProps, onChange, onDone, onCancel, onRem
   if (side === 'sell') {
     if (w.shape === 'goods') fields = <>{words('what', f.whatSell)}{num('priceMin', f.priceFrom, 'USDC')}{num('priceUsual', f.priceUsual, 'USDC')}{perItem()}{words('shipsTo', f.shipsTo)}{num('arriveDaysMin', f.daysFrom, c.unitDays)}{num('arriveDaysMax', f.daysTo, c.unitDays)}</>;
     else if (w.shape === 'deposit') fields = <>{words('what', f.whatRent)}{num('deposit', f.deposit, 'USDC')}{num('periodDays', f.period, c.unitDays)}</>;
+    else if (w.shape === 'hourly') fields = <>{num('rateMin', f.rateFrom, c.unitHour)}{num('rateUsual', f.rateUsual, c.unitHour)}{num('hoursMax', f.hoursMax, '')}</>;
+    else if (w.shape === 'monthly') fields = <>{num('priceMin', f.priceFrom, c.unitMonth)}{num('priceUsual', f.priceUsual, c.unitMonth)}</>;
     else fields = <>{num('priceMin', f.priceFrom, 'USDC')}{num('priceUsual', f.priceUsual, 'USDC')}{num('daysMin', f.daysFrom, c.unitDays)}{num('daysMax', f.daysTo, c.unitDays)}{w.shape === 'milestones' ? num('stages', f.stages, '') : null}</>;
   } else {
     if (w.shape === 'goods') fields = <>{num('maxPrice', f.maxPrice, 'USDC')}{words('deliverTo', f.deliverTo)}{num('waitDays', f.waitDays, c.unitDays)}</>;

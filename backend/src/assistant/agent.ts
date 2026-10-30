@@ -41,7 +41,7 @@ import { financedStage, positionHref } from '../financial/dealFinanciers.js';
 import { firstTradeSteps, readFirstTradeFacts } from './firstTrade.js';
 import { mergeSetupAnswers } from './setupTool.js';
 import { readBrief } from '../agents/agentBrief.js';
-import { buyWaySchema, LIVE_SHAPES, sellWaySchema, waysOf, waysSchema, wayLines, withWay } from '../agents/ways.js';
+import { buyWaySchema, isPriced, LIVE_SHAPES, sellWaySchema, TIME_SHAPES, waysOf, waysSchema, wayLines, withWay } from '../agents/ways.js';
 import { answersSchema as setupAnswersSchema } from '../routes/setup.js';
 import { readStakerYield } from '../routes/yield.js';
 import { loadInputs } from '../reputation/signals.js';
@@ -1017,11 +1017,14 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
 
     set_way_i_deal: tool({
       description:
-        "Add, change or remove one way this person deals, for selling or for buying (view 26). Shapes: one_time (a single job or item), milestones (paid in stages), goods (sent to the buyer, review starts on arrival), deposit (held and returned, like a rental). Selling asks: one_time and milestones the lowest price they take (priceMin), their usual price (priceUsual; one price is both, there is no highest) and days (milestones also 2 to 5 stages); goods what, lowest and usual price, whether those are per item (perItem true when they price one item; a request naming a count is then compared per item), where they ship and how many days it takes to arrive; deposit what, the deposit and the period in days. Buying asks: one_time the most they pay and days; milestones the same plus pay at the end or by stage; goods the most they pay, where it comes to and how long they can wait; deposit the most deposit they will hold. Pass only what they said for that one way; ask for anything missing before calling. Shows a card; nothing is saved until they confirm. Use for 'I also sell wigs, I ship anywhere in Nigeria', 'I rent cameras with a 200 USDC deposit', 'stop selling one-off jobs'.",
+        "Add, change or remove one way this person deals, for selling or for buying (view 26). Shapes: one_time (a single job or item), milestones (paid in stages), goods (sent to the buyer, review starts on arrival), deposit (held and returned, like a rental), and for selling only hourly (paid by the hour on the time escrow) and monthly (a monthly retainer). Selling asks: one_time and milestones the lowest price they take (priceMin), their usual price (priceUsual; one price is both, there is no highest) and days (milestones also 2 to 5 stages); goods what, lowest and usual price, whether those are per item (perItem true when they price one item; a request naming a count is then compared per item), where they ship and how many days it takes to arrive; deposit what, the deposit and the period in days; hourly the lowest rate (rateMin), the usual rate (rateUsual) and the most hours a week (hoursMax); monthly the lowest and usual price a month. With an hourly or monthly way their agent offers on posted work that fits by itself, at the usual rate lowered to the hirer's most, never under the lowest. Buying asks: one_time the most they pay and days; milestones the same plus pay at the end or by stage; goods the most they pay, where it comes to and how long they can wait; deposit the most deposit they will hold. Pass only what they said for that one way; ask for anything missing before calling. Shows a card; nothing is saved until they confirm. Use for 'I also sell wigs, I ship anywhere in Nigeria', 'I rent cameras with a 200 USDC deposit', 'stop selling one-off jobs'.",
       inputSchema: z.object({
         side: z.enum(['sell', 'buy']),
-        shape: z.enum(LIVE_SHAPES),
+        shape: z.enum([...LIVE_SHAPES, ...TIME_SHAPES]),
         remove: z.boolean().optional(),
+        rateMin: z.number().optional(),
+        rateUsual: z.number().optional(),
+        hoursMax: z.number().int().optional(),
         what: z.string().optional(),
         priceMin: z.number().optional(),
         priceUsual: z.number().optional(),
@@ -1107,10 +1110,10 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
             }
           } else if (s.kind === 'usual-price') {
             const way = current.sell.find((w) => w.shape === s.shape);
-            if (!way || way.shape === 'deposit') return { error: 'That way is no longer saved. Call list_learned_suggestions again.' };
+            if (!way || !isPriced(way)) return { error: 'That way is no longer saved. Call list_learned_suggestions again.' };
             next = withWay(current, 'sell', s.shape, { ...way, priceUsual: s.priceUsdc, priceMin: Math.min(way.priceMin, s.priceUsdc) });
           } else {
-            next = { sell: current.sell.map((w) => (w.shape === 'deposit' ? w : { ...w, noAskBelow: Math.min(s.priceUsdc, w.priceMin) })), buy: current.buy };
+            next = { sell: current.sell.map((w) => (isPriced(w) ? { ...w, noAskBelow: Math.min(s.priceUsdc, w.priceMin) } : w)), buy: current.buy };
           }
           const parsed = waysSchema.safeParse(next);
           if (!parsed.success) return { error: 'That could not be saved as it is. Ask them to say it in plain words and use set_way_i_deal.' };

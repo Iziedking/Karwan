@@ -52,3 +52,22 @@ test('a goods way is added in place and saved with the rest', async ({ page }) =
   await expect(page.getByText(c.saved)).toBeVisible();
   expect(saved[0]?.ways.sell.map((w) => w.shape)).toEqual(['one_time', 'goods']);
 });
+
+test('an hourly way is set up for the agent to offer on posted work (view 32)', async ({ page }) => {
+  const saved: Array<{ ways: { sell: Array<Record<string, unknown>>; buy: Array<{ shape: string }> } }> = [];
+  await signedIn(page, saved as unknown[]);
+  await page.goto('/profile/ways');
+  await page.getByRole('button', { name: `+ ${c.add}` }).first().click();
+  await page.getByRole('radio', { name: new RegExp(c.shapes.hourly) }).click();
+  await page.getByLabel(c.fields.rateFrom).fill('8');
+  await page.getByLabel(c.fields.rateUsual).fill('12');
+  await page.getByLabel(c.fields.hoursMax).fill('15');
+  await page.getByRole('button', { name: c.done, exact: true }).click();
+  await expect(page.getByText('Usually 12 USDC, lowest 8 an hour · up to 15 hours a week')).toBeVisible();
+  // Buying never offers a time way: the hirer posts the work instead.
+  await page.getByRole('button', { name: `+ ${c.add}` }).last().click();
+  await expect(page.getByRole('radio', { name: new RegExp(c.shapes.hourly) })).toHaveCount(0);
+  await page.getByRole('button', { name: c.save, exact: true }).click();
+  await expect(page.getByText(c.saved)).toBeVisible();
+  expect(saved[0]?.ways.sell.find((w) => w.shape === 'hourly')).toEqual({ shape: 'hourly', rateMin: 8, rateUsual: 12, hoursMax: 15 });
+});
