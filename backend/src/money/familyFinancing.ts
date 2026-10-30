@@ -92,6 +92,16 @@ const NOT_ELIGIBLE: Record<string, string> = {
   line_in_progress: 'An offer on this deal is already taken.',
 };
 
+/// The line a seller reads when they cannot ask yet. A person with their own
+/// wallet gets their record with an Arc transaction they sign (view 27,
+/// decision 10), and asking sends none, so the line says where that happens.
+export function notEligibleLine(code: string, ownWallet = false): string {
+  if (code === 'record_not_ready' && ownWallet) {
+    return 'Your Karwan record is not set up yet. Open the deal on the website and ask again; your wallet signs the setup there.';
+  }
+  return NOT_ELIGIBLE[code] ?? 'This deal cannot be paid early now.';
+}
+
 /// Settle once the deal has ended; keep the hold when the deal now runs past it.
 export function settleDecision(i: { offer: FactoringOffer; r: Receivable; holdEnd: bigint }): 'settle' | 'keep' | 'wait' {
   if (i.offer.status !== 'accepted' || !i.offer.lineId) return 'wait';

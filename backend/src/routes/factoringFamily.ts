@@ -3,7 +3,7 @@ import { formatUnits, parseUnits, type Hex } from 'viem';
 import { z } from 'zod';
 import type { DirectDeal } from '../db/deals.js';
 import type { FactoringOffer } from '../db/factoring.js';
-import { eligibility, type FamilyFinancing, type Receivable } from '../money/familyFinancing.js';
+import { eligibility, notEligibleLine, type FamilyFinancing, type Receivable } from '../money/familyFinancing.js';
 
 /// Getting paid early on an escrow family deal (view 18). The factoring routes
 /// branch here for a family deal; everything that decides lives in the core.
@@ -53,11 +53,11 @@ export function familyOfferView(o: FactoringOffer, freeMicros: bigint): { holdUs
 
 export async function familyRequest(
   deps: FamilyRouteDeps,
-  i: { deal: DirectDeal; caller: string; requestedAdvanceUsdc?: string; minAdvanceUsdc?: string },
+  i: { deal: DirectDeal; caller: string; requestedAdvanceUsdc?: string; minAdvanceUsdc?: string; ownWallet?: boolean },
 ): Promise<Reply> {
   const r = await deps.receivable(i.deal.escrowDealId as Hex);
   const ok = eligibility(i.deal, r, await deps.sellerReady(i.deal), await deps.listOffers(i.deal.jobId), Date.now());
-  if (!ok.ok) return { status: 409, body: { error: 'This deal cannot be paid early now.', code: ok.code } };
+  if (!ok.ok) return { status: 409, body: { error: notEligibleLine(ok.code, i.ownWallet), code: ok.code } };
   const owed = formatUnits(r.unpaid, 6);
   if (i.requestedAdvanceUsdc && micros(i.requestedAdvanceUsdc) > r.unpaid) {
     return { status: 400, body: { error: `requested advance must be at most ${owed} USDC remaining` } };

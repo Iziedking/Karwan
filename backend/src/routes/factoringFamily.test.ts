@@ -150,3 +150,16 @@ test('the seller sees the hold, the gap and whether the financier still has to p
   assert.deepEqual(familyOfferView({ ...o, status: 'awaiting_financier', sellerDeadline: 9 }, 0n), { holdUsdc: '12', waitingForFinancier: true, sellerDeadline: 9 });
   assert.deepEqual(familyOfferView({ status: 'offered' } as FactoringOffer, 0n), {});
 });
+
+test('a refused ask says why, and tells an own-wallet seller where the record is set up', async () => {
+  const { d } = deps();
+  d.sellerReady = async () => false;
+  const held = await familyRequest(d, { deal: deal(), caller: SELLER });
+  assert.equal(held.status, 409);
+  assert.deepEqual(held.body, { error: 'Your Karwan record is still being set up. Try again in a moment.', code: 'record_not_ready' });
+  const own = await familyRequest(d, { deal: deal(), caller: SELLER, ownWallet: true });
+  assert.equal(own.body.code, 'record_not_ready');
+  assert.match(String(own.body.error), /not set up yet.*website/);
+  const service = await familyRequest(d, { deal: deal({ tradeLane: 'service' }), caller: SELLER, ownWallet: true });
+  assert.deepEqual(service.body, { error: 'Getting paid early is for business orders.', code: 'not_business' });
+});

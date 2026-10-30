@@ -213,6 +213,7 @@ factoringRoutes.post('/request', async (c) => {
     caller,
     requestedAdvanceUsdc: body.requestedAdvanceUsdc,
     minAdvanceUsdc: body.minAdvanceUsdc,
+    ownWallet: session.method === 'web3',
   });
   if (reply.status !== 200) return c.json(reply.body, reply.status);
   const updated = reply.body.deal as DirectDeal | null;
