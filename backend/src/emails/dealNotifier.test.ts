@@ -191,3 +191,16 @@ test('a financier whose offer is short hears how much to add', () => {
   assert.equal(toFinancier.subject, 'Add 569.03 USDC so the seller can take your offer');
   assert.match(toFinancier.body, /Nothing has moved/);
 });
+
+test('a financier paying from their own wallet hears that the seller took the offer', () => {
+  const took = {
+    type: 'factoring.awaiting_financier', actor: 'platform', ts: 0, jobId: '0xjob',
+    payload: { offerId: 'o1', financier: '0xf', seller: '0xs', advanceUsdc: '185', deadline: Date.UTC(2026, 9, 31, 8, 16) },
+  } as unknown as KarwanEvent;
+  const toFinancier = contentFor(took, 'self', 'service');
+  assert.ok(toFinancier);
+  assert.equal(toFinancier.subject, 'The seller took your offer. Pay them within 24 hours');
+  assert.match(toFinancier.body, /185 USDC/);
+  assert.match(toFinancier.body, /31 Oct 2026, 08:16 UTC/);
+  assert.match(toFinancier.body, /nothing moves/);
+});

@@ -637,6 +637,16 @@ factoringRoutes.post('/accept', async (c) => {
   if (offer.rail === 'family') {
     if (!familyDeps) return c.json({ error: 'getting paid early is not set up here' }, 503);
     const reply = await familyAccept(familyDeps, { offerId: offer.id, seller: session.address, putUpGap: body.putUpGap ?? false });
+    // A financier paying from their own wallet has 24 hours from now; tell them (view 43).
+    const taken = reply.body as { state?: string; deadline?: number };
+    if (reply.status === 200 && taken.state === 'awaiting_financier') {
+      bus.emitEvent({
+        type: 'factoring.awaiting_financier',
+        jobId: offer.invoiceId,
+        actor: 'seller',
+        payload: { offerId: offer.id, seller: offer.seller, financier: offer.financier, advanceUsdc: offer.offeredAdvanceUsdc, deadline: taken.deadline },
+      });
+    }
     return c.json(reply.body, reply.status);
   }
   const receiptRetry = isFactoringReceiptRetry(offer.status);

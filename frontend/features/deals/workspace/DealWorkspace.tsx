@@ -17,7 +17,6 @@ import { registerDealTools } from './webmcp';
 import { V3EscrowPanel } from '../v3/V3EscrowPanel';
 import { HighSignalVerificationCard } from '../components/HighSignalVerificationCard';
 import { ProtectionSection } from './ProtectionSection';
-import { GetPaidNow } from './GetPaidNow';
 import { RatingCard } from '@/features/ratings/RatingCard';
 
 const SOFT = 'bg-[var(--lp-workspace-soft)] motion-safe:animate-pulse motion-reduce:animate-none rounded-[10px]';
@@ -129,7 +128,7 @@ export function DealWorkspace({ jobId }: { jobId: string }) {
   }
 
   return (
-    <div className="product-surface mx-auto max-w-[560px] px-4 pb-16 pt-4 sm:px-6 lg:max-w-[1040px]">
+    <div className="product-surface mx-auto max-w-[640px] px-4 pb-16 pt-4 sm:px-6">
       <div data-own-back className="-ms-2 mb-4 empty:hidden">
         <ProductBackLink pathname={pathname} isAuthenticated={auth.isAuthenticated} />
       </div>
@@ -152,11 +151,6 @@ export function DealWorkspace({ jobId }: { jobId: string }) {
           <HighSignalVerificationCard deal={deal} caller={address} onRefresh={() => { void refresh(); }} />
         </div>
       ) : null}
-      <GetPaidNow
-        deal={deal}
-        viewerIsSeller={!!address && deal.seller.toLowerCase() === address.toLowerCase()}
-        onChanged={() => { void refresh(); }}
-      />
       {deal.settledAt && address && [deal.buyer, deal.seller].some((p) => p.toLowerCase() === address.toLowerCase()) ? (
         <section id="rate" className="mt-8 scroll-mt-24 empty:hidden">
           <RatingCard jobId={deal.jobId} />

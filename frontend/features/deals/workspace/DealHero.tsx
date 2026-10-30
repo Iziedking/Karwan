@@ -9,6 +9,9 @@ import { shortAddress } from '@/shared/utils/format';
 import { cn } from '@/shared/utils/cn';
 import { EditDealModal } from '../components/EditDealModal';
 import { dealReference } from '../dealReference';
+import { dealLayers, type LayerKey } from './dealLayers';
+import { GetPaidNow } from './GetPaidNow';
+import { financingVisible } from '@/shared/deals/financingEligibility';
 import { SettlementRecord, type SettlementRecordFetchState } from '../components/SettlementRecord';
 import { AgreementSection } from './AgreementSection';
 import { AnswerCancelSheet, AnswerTimeSheet, DeliverSheet, ProblemSheet, TurnDownSheet } from './DealSheets';
@@ -27,7 +30,7 @@ import { RecordNudge } from './RecordNudge';
 import { deliveryNeedsShipment } from './delivery';
 import { linksIn } from './deliveryCard';
 
-type Panel = 'record' | 'agreement' | 'messages' | 'receipts' | 'problem' | 'deliver' | 'answerTime' | 'answerCancel' | 'turnDown' | null;
+type Panel = 'record' | 'problem' | 'deliver' | 'answerTime' | 'answerCancel' | 'turnDown' | null;
 
 const LINE_TONE: Record<DealView['money']['line'], string> = {
   'not-funded': 'var(--lp-text-sub)',
@@ -65,11 +68,17 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   const declineCopy = useTranslations().directDealDetail.actionPanel.awaitingAcceptance;
   const { locale } = useLocale();
   const [panel, setPanel] = useState<Panel>(null);
+  // One row under the title block is open at a time (view 43).
+  const [openRow, setOpenRow] = useState<LayerKey | null>(null);
   const chat = useChatUnread(deal.jobId, address);
   const { markSeen } = chat;
   useEffect(() => {
-    if (panel === 'messages' && chat.unread) markSeen();
-  }, [panel, chat.unread, markSeen]);
+    if (openRow === 'messages' && chat.unread) markSeen();
+  }, [openRow, chat.unread, markSeen]);
+  const openMessages = () => {
+    setOpenRow('messages');
+    window.requestAnimationFrame(() => document.getElementById('deal-row-messages')?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
+  };
   const [editing, setEditing] = useState(false);
   // The short reference people give the assistant or support (view 42).
   const reference = dealReference(deal.jobId);
@@ -202,10 +211,77 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
     );
   }
 
+  const isSeller = !!address && deal.seller.toLowerCase() === address.toLowerCase();
+  const layers = dealLayers({
+    signedIn: !!address,
+    delivered: !!deal.delivered || !!deal.deliveredAt,
+    needsHandover: viewerIsBuyer && !!address && deliveryNeedsShipment(deal.tradeType) && view.stage === 'awaiting-delivery' && !deal.shipment?.arrivedAt,
+    canGetPaid: financingVisible(deal, isSeller) && deal.escrowVersion === 'suite',
+    funded: !!deal.acceptedAt || !!deal.fundTxHash,
+    problems: problems.length,
+    heldDelivery: check === 'held',
+    unread: !!chat.unread,
+  });
+  const steps = copy.progress;
+  const current = view.progress.find((p) => p.state === 'current') ?? [...view.progress].reverse().find((p) => p.state === 'done');
+  const rowTitle: Record<LayerKey, string> = {
+    progress: steps.title,
+    delivery: copy.layers.delivery,
+    handover: copy.layers.handover,
+    getPaid: copy.layers.getPaid,
+    messages: s.messages,
+    agreement: s.agreement,
+    receipts: s.receipts,
+    problem: s.problem,
+  };
+  const rowSummary: Partial<Record<LayerKey, string>> = {
+    progress: current ? steps[current.step] : undefined,
+    delivery: paused ? paused.title : deal.deliveredAt ? formatDealDate(deal.deliveredAt, locale) : undefined,
+    messages: chat.unread ? s.newMessages : undefined,
+    agreement: deal.terms,
+  };
+  function rowBody(key: LayerKey): ReactNode {
+    switch (key) {
+      case 'progress':
+        return (
+          <div className="space-y-6 [&>ol]:mt-0">
+            <DealTimeline progress={view.progress} viewerIsBuyer={viewerIsBuyer} name={name} check={check} dueAt={deal.deadlineUnix ? deal.deadlineUnix * 1000 : null} />
+            {address ? <DealLatest jobId={deal.jobId} caller={address} name={name} onOpen={openMessages} /> : null}
+          </div>
+        );
+      case 'delivery':
+        return <DeliveryCard deal={deal} viewerIsBuyer={viewerIsBuyer} caller={address} onChanged={onChanged} />;
+      case 'handover':
+        return address ? <HandoverCode jobId={deal.jobId} caller={address} /> : null;
+      case 'getPaid':
+        return <GetPaidNow deal={deal} viewerIsSeller={isSeller} onChanged={onChanged} />;
+      case 'messages':
+        return address ? <ChatPanel jobId={deal.jobId} caller={address} counterpartyLabel={name} counterpartyAddress={counterparty} /> : null;
+      case 'agreement':
+        return <AgreementSection bare deal={deal} />;
+      case 'receipts':
+        return (
+          <SettlementRecord
+            bare
+            movements={movements}
+            fetchState={recordState}
+            fundTxHash={deal.fundTxHash}
+            refundTxHash={deal.refundTxHash}
+            onRetry={onRetryRecord}
+            canShareReceipts={viewerIsBuyer}
+            dealAmountUsdc={deal.dealAmountUsdc}
+            milestonePcts={deal.onChain?.milestonePcts?.length ? deal.onChain.milestonePcts : deal.milestonePcts?.length ? deal.milestonePcts : deal.firstReleasePct >= 100 ? [100] : [deal.firstReleasePct, 100 - deal.firstReleasePct]}
+          />
+        );
+      default:
+        return null;
+    }
+  }
+
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:items-start lg:gap-5">
-      <div className="min-w-0 space-y-4">
-      <section aria-labelledby="deal-amount" className="rounded-[24px] border border-[var(--lp-border-light)] bg-[linear-gradient(115deg,var(--hero-from),var(--hero-to)_70%)] p-5 shadow-[var(--hero-shadow)] sm:p-6">
+    <div className="mx-auto max-w-[640px]">
+      <div className="min-w-0 space-y-5">
+      <section aria-labelledby="deal-amount" className="pt-1">
       <header className="flex items-center gap-3">
         <button type="button" onClick={() => setPanel('record')} disabled={!card} className="flex min-w-0 items-center gap-3 rounded-[14px] py-1 pe-2 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
           <PersonAvatar address={counterparty} name={name} />
@@ -217,7 +293,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
         {address ? (
           <button
             type="button"
-            onClick={() => setPanel('messages')}
+            onClick={openMessages}
             aria-label={fill(dl.message, { name })}
             className="relative ms-auto grid size-11 shrink-0 place-items-center rounded-full border border-[var(--lp-border-light)] text-[var(--lp-dark)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
@@ -304,77 +380,61 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
       ) : null}
       </div>
 
-      <div className="min-w-0 space-y-4">
-      <section className="rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-5 py-4 [&>ol]:mt-0">
-        <DealTimeline
-          progress={view.progress}
-          viewerIsBuyer={viewerIsBuyer}
-          name={name}
-          check={check}
-          dueAt={deal.deadlineUnix ? deal.deadlineUnix * 1000 : null}
-        />
-      </section>
-      <DeliveryCard deal={deal} viewerIsBuyer={viewerIsBuyer} caller={address} onChanged={onChanged} />
-      {viewerIsBuyer && address && deliveryNeedsShipment(deal.tradeType) && view.stage === 'awaiting-delivery' && !deal.shipment?.arrivedAt ? (
-        <HandoverCode jobId={deal.jobId} caller={address} />
-      ) : null}
-        {view.stage === 'settled' ? (
-          <div className="rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5">
-            <p className="flex items-center gap-2 text-[16px] font-semibold text-[var(--lp-dark)]">
-              <Icon name="check" size={20} className="text-[var(--color-positive)]" />
-              {view.onBothRecords ? dl.onBothRecords : dl.completeTitle}
+      {view.stage === 'settled' ? (
+        <div className="border-t border-[var(--lp-border-light)] pt-5">
+          <p className="flex items-center gap-2 text-[16px] font-semibold text-[var(--lp-dark)]">
+            <Icon name="check" size={20} className="text-[var(--color-positive)]" />
+            {view.onBothRecords ? dl.onBothRecords : dl.completeTitle}
+          </p>
+          {view.onBothRecords || view.onBothRecords === null ? null : (
+            <p className="mt-1.5 text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
+              {view.onBothRecords === false ? dl.recordPending : dl.completeBody}
             </p>
-            {view.onBothRecords || view.onBothRecords === null ? null : (
-              <p className="mt-1.5 text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
-                {view.onBothRecords === false ? dl.recordPending : dl.completeBody}
-              </p>
-            )}
-            {view.recordNudge ? <RecordNudge /> : null}
-          </div>
-        ) : null}
+          )}
+          {view.recordNudge ? <RecordNudge /> : null}
+        </div>
+      ) : null}
 
-      {address ? <DealLatest jobId={deal.jobId} caller={address} name={name} onOpen={() => setPanel('messages')} /> : null}
-
-      <nav aria-label={copy.protectedDeal} className="overflow-hidden rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
-        {[
-          ...(problems.length ? [{ key: 'problem' as const, text: s.problem }] : []),
-          { key: 'agreement' as const, text: s.agreement },
-          { key: 'receipts' as const, text: s.receipts },
-        ].map((row) => (
-          <button
-            key={row.key}
-            type="button"
-            onClick={() => setPanel(row.key)}
-            className="flex min-h-14 w-full items-center justify-between border-b border-[var(--lp-border-light)] px-5 text-start text-[15px] font-medium text-[var(--lp-dark)] last:border-b-0 hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent)]"
-          >
-            <span>{row.text}</span>
-            <Icon name="chevron-right" size={16} directional className="text-[var(--lp-text-sub)]" />
-          </button>
-        ))}
-      </nav>
-      </div>
+      <ul aria-label={copy.protectedDeal} className="mt-8 border-t border-[var(--lp-border-light)]">
+        {layers.map(({ key, attention }) => {
+          const action = key === 'problem';
+          const isOpen = openRow === key;
+          return (
+            <li key={key} id={`deal-row-${key}`} className="scroll-mt-24 border-b border-[var(--lp-border-light)]">
+              <button
+                type="button"
+                aria-expanded={action ? undefined : isOpen}
+                aria-controls={action ? undefined : `deal-row-${key}-body`}
+                onClick={() => (action ? setPanel('problem') : setOpenRow(isOpen ? null : key))}
+                className="flex min-h-14 w-full items-center gap-3 py-3 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent)]"
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-2 text-[15px] font-semibold text-[var(--lp-dark)]">
+                    {attention ? <span aria-hidden className="size-2 shrink-0 rounded-full bg-[var(--lp-accent)]" /> : null}
+                    {rowTitle[key]}
+                    {attention ? <span className="sr-only">{copy.layers.needsYou}</span> : null}
+                  </span>
+                  {rowSummary[key] ? <span dir="auto" className="mt-0.5 block truncate text-[14px] font-medium text-[var(--lp-text-sub)]">{rowSummary[key]}</span> : null}
+                </span>
+                <Icon
+                  name="chevron-right"
+                  size={16}
+                  directional={action}
+                  className={cn('shrink-0 text-[var(--lp-text-sub)] transition-transform duration-200 motion-reduce:transition-none', action ? undefined : isOpen ? '-rotate-90' : 'rotate-90')}
+                />
+              </button>
+              {isOpen && !action ? (
+                <div id={`deal-row-${key}-body`} className="pb-5">
+                  {rowBody(key)}
+                </div>
+              ) : null}
+            </li>
+          );
+        })}
+      </ul>
 
       <Sheet open={panel === 'record'} title={s.record} onClose={close}>
         {card ? <TrustCard bare card={card} onOpenPassport={() => window.open(`/credit-passport/${counterparty}`, '_blank', 'noopener,noreferrer')} /> : null}
-      </Sheet>
-      <Sheet open={panel === 'agreement'} title={s.agreement} onClose={close}>
-        <AgreementSection bare deal={deal} />
-      </Sheet>
-      <Sheet open={panel === 'messages'} title={s.messages} onClose={close}>
-        {address ? <ChatPanel jobId={deal.jobId} caller={address} counterpartyLabel={name} counterpartyAddress={counterparty} /> : null}
-      </Sheet>
-      <Sheet open={panel === 'receipts'} title={s.receipts} onClose={close}>
-        <SettlementRecord
-          bare
-          movements={movements}
-          fetchState={recordState}
-          fundTxHash={deal.fundTxHash}
-          refundTxHash={deal.refundTxHash}
-          onRetry={onRetryRecord}
-          canShareReceipts={viewerIsBuyer}
-          dealAmountUsdc={deal.dealAmountUsdc}
-          milestonePcts={deal.onChain?.milestonePcts?.length ? deal.onChain.milestonePcts : deal.milestonePcts?.length ? deal.milestonePcts : deal.firstReleasePct >= 100 ? [100] : [deal.firstReleasePct, 100 - deal.firstReleasePct]}
-        />
       </Sheet>
       {address ? (
         <>

@@ -108,3 +108,10 @@ test('a financier whose offer is short is told how much to add', () => {
     'A seller tried to take your offer. Add 569.03 USDC so they can.',
   );
 });
+
+test('a financier paying from their own wallet is told the seller took their offer, with the amount', () => {
+  assert.equal(
+    summaryFor('factoring.awaiting_financier', { advanceUsdc: '185' }, 'financier', en),
+    'The seller took your offer. Pay them 185 USDC within 24 hours.',
+  );
+});

@@ -211,6 +211,9 @@ export type KarwanEventType =
   | 'factoring.requested'
   | 'factoring.offered'
   | 'factoring.accepted'
+  /// The seller took an offer from a financier who pays from their own wallet;
+  /// the financier has 24 hours to pay. Party: `financier`.
+  | 'factoring.awaiting_financier'
   | 'factoring.rejected'
   | 'factoring.settled'
   | 'factoring.defaulted'

@@ -65,7 +65,7 @@ export function GetPaidNow({ deal, viewerIsSeller, onChanged }: { deal: DirectDe
 
   if (deal.factoringOfferId) {
     return (
-      <section aria-labelledby="get-paid-title" className="mt-8 border-t border-[var(--lp-border-light)] pt-6">
+      <section aria-labelledby="get-paid-title">
         <h2 id="get-paid-title" className="text-[17px] font-medium text-[var(--lp-dark)]">{g.paidTitle}</h2>
         <p className="mt-1 text-[15px] text-[var(--lp-text-sub)]">{g.paidBody}</p>
         <Link href={`/financier/factoring/${deal.factoringOfferId}`} className="mt-3 inline-flex min-h-11 items-center text-[15px] font-medium text-[var(--lp-dark)] underline underline-offset-4">
@@ -153,7 +153,7 @@ export function GetPaidNow({ deal, viewerIsSeller, onChanged }: { deal: DirectDe
   ) : null;
 
   return (
-    <section aria-labelledby="get-paid-title" className="mt-8 border-t border-[var(--lp-border-light)] pt-6">
+    <section aria-labelledby="get-paid-title">
       {view.waiting ? (
         <>
           <h2 id="get-paid-title" className="text-[17px] font-medium text-[var(--lp-dark)]">{g.waitingTitle}</h2>

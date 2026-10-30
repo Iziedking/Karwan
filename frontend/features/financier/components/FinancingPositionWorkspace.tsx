@@ -9,13 +9,15 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { Icon } from '@/shared/components/Icon';
 import { Sheet } from '@/features/deals/workspace/Sheet';
 import { FinancingChatPanel } from '@/features/chat/components/FinancingChatPanel';
-import { shortAddress } from '@/shared/utils/format';
+import type { PositionStatus } from '../positionStatus';
 
-type Status = 'pending' | 'active' | 'repaid' | 'declined' | 'expired' | 'review';
+type Status = PositionStatus;
 type Copy = ReturnType<typeof useTranslations>['financingWorkspace'];
 
 const STATUS_COPY: Record<Status, [keyof Copy, keyof Copy]> = {
   pending: ['statusPending', 'detailPending'],
+  paySeller: ['statusPaySeller', 'detailPaySeller'],
+  closed: ['statusClosed', 'detailClosed'],
   active: ['statusActive', 'detailActive'],
   repaid: ['statusRepaid', 'detailRepaid'],
   declined: ['statusDeclined', 'detailDeclined'],
@@ -23,8 +25,10 @@ const STATUS_COPY: Record<Status, [keyof Copy, keyof Copy]> = {
   review: ['statusReview', 'detailReview'],
 };
 
-function dealProgress(deal: DirectDeal | null): { label: keyof Copy; step: number } {
+function dealProgress(deal: DirectDeal | null, status: Status): { label: keyof Copy; step: number } {
   if (!deal) return { label: 'progressUnavailable', step: 1 };
+  // Nothing is paid out until the financier pays, whatever the deal has done.
+  if (status === 'pending' || status === 'paySeller') return { label: 'progressAccepted', step: 1 };
   if (deal.settledAt) return { label: 'progressSettled', step: 4 };
   if (deal.disputed) return { label: 'progressReview', step: 3 };
   if (deal.delivered) return { label: 'progressDelivered', step: 3 };
@@ -51,7 +55,10 @@ export function FinancingPositionWorkspace(props: {
   const pathname = usePathname();
   const auth = useAuth();
   const [statusKey, detailKey] = STATUS_COPY[props.status];
-  const progress = dealProgress(props.deal);
+  const progress = dealProgress(props.deal, props.status);
+  const me = auth.address?.toLowerCase();
+  const sellerName = me === props.seller.toLowerCase() ? fw.you : props.deal?.sellerPaytag ? `@${props.deal.sellerPaytag}` : fw.anySeller;
+  const financierName = me === props.financier.toLowerCase() ? fw.you : fw.anyFinancier;
   const steps: (keyof Copy)[] = props.kind === 'po'
     ? ['stepPo1', 'stepPo2', 'stepPo3', 'stepPo4']
     : ['stepFactoring1', 'stepFactoring2', 'stepFactoring3', 'stepFactoring4'];
@@ -59,8 +66,8 @@ export function FinancingPositionWorkspace(props: {
     [fw.amountFinanced, `${props.advanceUsdc} USDC`],
     [fw.expectedRepayment, `${props.expectedReturnUsdc} USDC`],
     ...(props.protectionUsdc ? [[fw.sellerProtectionReserved, `${props.protectionUsdc} USDC`] as [string, string]] : []),
-    [fw.seller, shortAddress(props.seller)],
-    [fw.financier, shortAddress(props.financier)],
+    [fw.seller, sellerName],
+    [fw.financier, financierName],
   ];
 
   return (
@@ -83,7 +90,7 @@ export function FinancingPositionWorkspace(props: {
       <p className="mt-1 text-[15px] text-[var(--lp-text-sub)]">{fw.privateNote}</p>
 
       <p className="mt-6 text-[17px] font-medium text-[var(--ink)]">
-        <span className={props.status === 'review' ? 'text-[var(--color-critical)]' : ''}>{fw[statusKey]}</span>
+        <span className={props.status === 'review' ? 'text-[var(--color-critical)]' : props.status === 'paySeller' ? 'text-[var(--warn)]' : ''}>{fw[statusKey]}</span>
       </p>
       <p className="mt-1 text-[15px] text-[var(--lp-text-sub)]">{fw[detailKey]}</p>
 

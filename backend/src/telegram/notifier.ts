@@ -141,6 +141,7 @@ export const RELEVANT = new Set([
   'factoring.funding_needed',
   'factoring.offered',
   'factoring.accepted',
+  'factoring.awaiting_financier',
   'factoring.settled',
   'factoring.defaulted',
   'po.funded',
@@ -193,6 +194,7 @@ const FINANCE_RECIPIENTS: Record<string, ReadonlyArray<'seller' | 'financier'>> 
   'factoring.funding_needed': ['financier'],
   'factoring.offered': ['seller'],
   'factoring.accepted': ['financier'],
+  'factoring.awaiting_financier': ['financier'],
   'factoring.settled': ['seller', 'financier'],
   'factoring.defaulted': ['seller', 'financier'],
   'po.funded': ['seller'],
@@ -913,6 +915,13 @@ ${String(e.payload?.note ?? '').replace(/[*_`[\]]/g, '').slice(0, 300)}`, url)
       return withLink(
         `*A financier offered you early payout*: ${advance}${discount}. Open the deal to accept or pass.`,
         dealUrl(e.jobId),
+      );
+    }
+    case 'factoring.awaiting_financier': {
+      const advance = (e.payload?.advanceUsdc as string | undefined) ?? '';
+      return withLink(
+        `*The seller took your offer.* Pay them ${advance ? `${trimUsdcLabel(advance)} USDC ` : ''}from your wallet within 24 hours, or the offer lapses and nothing moves.`,
+        financierUrl(),
       );
     }
     case 'factoring.accepted':

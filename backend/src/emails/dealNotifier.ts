@@ -33,6 +33,13 @@ import { questionLine } from '../agents/agentQuestion.js';
 function base(): string | null {
   return config.FRONTEND_BASE_URL ? config.FRONTEND_BASE_URL.replace(/\/$/, '') : null;
 }
+/// A payment deadline in plain words, always in UTC: 31 Oct 2026, 08:16 UTC.
+function payDeadline(ms: number): string {
+  const d = new Date(ms);
+  const month = d.toLocaleString('en-GB', { month: 'short', timeZone: 'UTC' });
+  const hm = `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+  return `${d.getUTCDate()} ${month} ${d.getUTCFullYear()}, ${hm} UTC`;
+}
 function dealUrl(jobId?: string): string | undefined {
   const b = base();
   return b && jobId ? `${b}/deals/${jobId}` : undefined;
@@ -91,6 +98,7 @@ const EMAIL_RELEVANT = new Set([
   'factoring.funding_needed',
   'factoring.offered',
   'factoring.accepted',
+  'factoring.awaiting_financier',
   'factoring.settled',
   'factoring.defaulted',
   'po.funded',
@@ -112,6 +120,7 @@ const FINANCE_RECIPIENTS: Record<string, ReadonlyArray<'seller' | 'financier'>> 
   'factoring.funding_needed': ['financier'],
   'factoring.offered': ['seller'],
   'factoring.accepted': ['financier'],
+  'factoring.awaiting_financier': ['financier'],
   'factoring.settled': ['seller', 'financier'],
   'factoring.defaulted': ['seller', 'financier'],
   'po.funded': ['seller'],
@@ -819,6 +828,20 @@ export function contentFor(
         body: `A financier offered you ${advance}${discount}. Open the deal to accept or pass.`,
         ctaLabel: 'Review the offer',
         ctaUrl: dealUrl(e.jobId),
+      };
+    }
+    case 'factoring.awaiting_financier': {
+      const advance = (e.payload?.advanceUsdc as string | undefined) ?? '';
+      const deadline = e.payload?.deadline as number | undefined;
+      const by = deadline ? ` by ${payDeadline(deadline)}` : ' within 24 hours';
+      const b = base();
+      return {
+        kicker: 'Early payout',
+        subject: 'The seller took your offer. Pay them within 24 hours',
+        heading: 'Pay the seller',
+        body: `The seller took your offer. Pay them ${advance ? `${advance} USDC ` : ''}from your wallet${by}. If you do not, the offer lapses and nothing moves.`,
+        ctaLabel: 'Pay the seller',
+        ctaUrl: b ? `${b}/financier` : undefined,
       };
     }
     case 'factoring.accepted':

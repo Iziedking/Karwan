@@ -193,6 +193,8 @@ export function summaryFor(
         ? fill(c.factoringOfferedAt, { amount: advance, pct: (bps / 100).toFixed(1).replace(/\.0$/, '') })
         : fill(c.factoringOffered, { amount: advance });
     }
+    case 'factoring.awaiting_financier':
+      return fill(c.factoringAwaitingFinancier, { amount: str('advanceUsdc') });
     case 'factoring.accepted':
       return c.factoringAccepted;
     case 'factoring.settled':

@@ -11,5 +11,5 @@ test('Send draws Back on its own column, beside the form', () => {
 test('the deal page draws Back on its own column, right above the deal', () => {
   const workspace = readFileSync(new URL('../deals/workspace/DealWorkspace.tsx', import.meta.url), 'utf8');
   const page = workspace.slice(workspace.indexOf('<div className="product-surface'));
-  assert.match(page, /^<div className="product-surface mx-auto max-w-\[560px\][^"]*">\s*<div data-own-back[^>]*>\s*<ProductBackLink/);
+  assert.match(page, /^<div className="product-surface mx-auto max-w-\[640px\][^"]*">\s*<div data-own-back[^>]*>\s*<ProductBackLink/);
 });

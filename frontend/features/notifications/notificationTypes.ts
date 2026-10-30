@@ -71,6 +71,7 @@ export const FINANCE_RECIPIENT_KEYS: Record<string, ReadonlyArray<'seller' | 'fi
   'factoring.funding_needed': ['financier'],
   'factoring.offered': ['seller'],
   'factoring.accepted': ['financier'],
+  'factoring.awaiting_financier': ['financier'],
   'factoring.settled': ['seller', 'financier'],
   'factoring.defaulted': ['seller', 'financier'],
   'po.funded': ['seller'],
@@ -184,6 +185,7 @@ export const TOAST_TYPES = new Set([
   // want a decision or a look; the rest of the financing lifecycle can sit
   // quietly in the bell.
   'factoring.offered',
+  'factoring.awaiting_financier',
   'factoring.defaulted',
   'po.released',
   'po.defaulted',

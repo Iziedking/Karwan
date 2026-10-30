@@ -71,7 +71,7 @@ export function DeliveryCard({ deal, viewerIsBuyer, caller, onChanged }: {
   }
 
   return (
-    <section aria-labelledby="delivery-title" className="space-y-5 rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5">
+    <section aria-labelledby="delivery-title" className="space-y-5">
       <header className="flex items-baseline justify-between gap-3">
         <h2 id="delivery-title" className="text-[16px] font-semibold text-[var(--lp-dark)]">{t.title}</h2>
         {card.milestone ? (

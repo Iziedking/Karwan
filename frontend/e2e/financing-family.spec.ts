@@ -8,7 +8,7 @@ import { BUYER, JOB, SELLER, deliveredDeal, serveDeal } from './fixtures';
 /// the financier desk for a financier who pays from their own wallet.
 
 const API = 'http://127.0.0.1:3199';
-const g = en.dealWorkspace.getPaid;
+const g = { ...en.dealWorkspace.getPaid, rowTitle: en.dealWorkspace.layers.getPaid };
 const p = en.financierDashboard.positions;
 
 const familyDeal = {
@@ -40,6 +40,7 @@ test('a seller gets paid now from the deal page, and the offer says what it hold
   const accepted = { body: null as unknown };
   await serveFamily(page, [offer()], accepted);
   await page.goto(`/deals/${JOB}`);
+  await page.getByRole('button', { name: g.rowTitle, exact: true }).click();
   await expect(page.getByText(g.hold.replace('{amount}', '12')).first()).toBeVisible();
   await page.getByRole('button', { name: g.review }).click();
   const dialog = page.getByRole('dialog');
@@ -52,6 +53,7 @@ test('a short guarantee shows Deposit and get paid now, and posts the combined s
   const accepted = { body: null as unknown };
   await serveFamily(page, [offer({ gapUsdc: '8' })], accepted);
   await page.goto(`/deals/${JOB}`);
+  await page.getByRole('button', { name: g.rowTitle, exact: true }).click();
   await page.getByRole('button', { name: g.review }).click();
   await page.getByRole('dialog').getByRole('button', { name: g.putUpAndTake.replace('{gap}', '8') }).click();
   await expect.poll(() => accepted.body).toEqual({ offerId: offer().id, putUpGap: true });
@@ -60,6 +62,7 @@ test('a short guarantee shows Deposit and get paid now, and posts the combined s
 test('an offer taken from an own-wallet financier shows Waiting for the financier to pay', async ({ page }) => {
   await serveFamily(page, [offer({ status: 'awaiting_financier', waitingForFinancier: true, sellerDeadline: Date.now() + 3_600_000 }), offer({ id: '6f1c2a3b-0000-4000-8000-000000000003' })]);
   await page.goto(`/deals/${JOB}`);
+  await page.getByRole('button', { name: g.rowTitle, exact: true }).click();
   await expect(page.getByRole('heading', { name: g.waitingTitle })).toBeVisible();
   await expect(page.getByRole('button', { name: g.review })).toHaveCount(0);
 });
@@ -75,6 +78,7 @@ test('a deal on an older escrow takes no new advances', async ({ page }) => {
 test('the seller path never says stake, vault, insurance, factoring or assignment', async ({ page }) => {
   await serveFamily(page, [offer({ gapUsdc: '8' })]);
   await page.goto(`/deals/${JOB}`);
+  await page.getByRole('button', { name: g.rowTitle, exact: true }).click();
   await expect(page.getByText(g.hold.replace('{amount}', '12')).first()).toBeVisible();
   await page.getByRole('button', { name: g.review }).click();
   await expect(page.getByText(/\b(stake|staking|vault|insurance|factoring|assignment)\b/i)).toHaveCount(0);
@@ -85,6 +89,7 @@ test('Get paid now reads right to left in Arabic and fits the screen', async ({ 
   await serveFamily(page, [offer()]);
   await page.goto(`/deals/${JOB}`);
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+  await page.getByRole('button', { name: ar.dealWorkspace.layers.getPaid, exact: true }).click();
   await expect(page.getByRole('button', { name: ar.dealWorkspace.getPaid.review })).toBeVisible();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);

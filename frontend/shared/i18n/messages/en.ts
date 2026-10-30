@@ -2141,6 +2141,13 @@ interface MessagesShape {
     detailDeclined: string;
     detailExpired: string;
     detailReview: string;
+    statusPaySeller: string;
+    detailPaySeller: string;
+    statusClosed: string;
+    detailClosed: string;
+    you: string;
+    anyFinancier: string;
+    anySeller: string;
     stepFactoring1: string;
     stepFactoring2: string;
     stepFactoring3: string;
@@ -3118,6 +3125,7 @@ interface MessagesShape {
     };
     consequence: { accept: string; fundTemplate: string; releaseTemplate: string; claimTemplate: string; reviewManually: string };
     progress: { title: string; agreed: string; funded: string; delivered: string; checked: string; released: string; cancelled: string; refunded: string };
+    layers: { delivery: string; handover: string; getPaid: string; needsYou: string };
     automatic: { autoReleaseTemplate: string; deadlineReclaimTemplate: string; reclaimWaitsSeller: string; acceptanceExpiryTemplate: string; unacceptedRefundTemplate: string };
     trust: {
       title: string; asSeller: string; asBuyer: string; verifiedBusiness: string; verifiedPerson: string;
@@ -7353,6 +7361,7 @@ export const en: MessagesShape = {
       'trade.pod.accepted': 'Proof of delivery accepted',
       'factoring.offered': 'Invoice financing offered',
       'factoring.accepted': 'Invoice financing accepted',
+      'factoring.awaiting_financier': 'Seller took your offer',
       'factoring.rejected': 'Invoice financing declined',
       'factoring.settled': 'Invoice financing repaid',
       'factoring.defaulted': 'Invoice financing defaulted',
@@ -7644,6 +7653,13 @@ export const en: MessagesShape = {
     detailDeclined: 'The seller did not accept this offer.',
     detailExpired: 'This offer expired.',
     detailReview: 'The repayment needs attention.',
+    statusPaySeller: 'Pay the seller',
+    detailPaySeller: 'The seller took this offer. The financier pays within 24 hours of when they took it, or it lapses and nothing moves.',
+    statusClosed: 'Closed',
+    detailClosed: 'The financier gave this advance up.',
+    you: 'You',
+    anyFinancier: 'A financier on Karwan',
+    anySeller: 'A seller on Karwan',
     stepFactoring1: 'Early payment sent',
     stepFactoring2: 'Delivered',
     stepFactoring3: 'Buyer releases',
@@ -8696,6 +8712,7 @@ export const en: MessagesShape = {
       reviewManually: 'You review the delivery yourself. Your review time starts now, and you can still dispute.',
     },
     progress: { title: 'Progress', agreed: 'Agreed', funded: 'Funded', delivered: 'Delivered', checked: 'Checked', released: 'Released', cancelled: 'Cancelled', refunded: 'Refunded' },
+    layers: { delivery: 'Delivery', handover: 'Handover code', getPaid: 'Get paid now', needsYou: 'Needs you' },
     automatic: {
       autoReleaseTemplate: 'Releases automatically on {date} unless the buyer disputes.',
       deadlineReclaimTemplate: 'If nothing is delivered, the buyer can take the money back from {date}.',

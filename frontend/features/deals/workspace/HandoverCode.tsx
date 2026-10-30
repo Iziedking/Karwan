@@ -24,8 +24,8 @@ export function HandoverCode({ jobId, caller }: { jobId: string; caller: string 
   }
 
   return (
-    <section aria-labelledby="handover-title" className="space-y-3 rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5">
-      <h2 id="handover-title" className="text-[16px] font-semibold text-[var(--lp-dark)]">{t.title}</h2>
+    <section aria-labelledby="handover-title" className="space-y-3">
+      <h2 id="handover-title" className="sr-only">{t.title}</h2>
       <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{t.body}</p>
       {code ? (
         <>

@@ -32,7 +32,7 @@ export interface NotifyCopy {
   staked: string; cooldownStartedAmount: string; cooldownStarted: string; cooldownCancelledAmount: string;
   cooldownCancelled: string; claimedAmount: string; claimed: string; cooldownDoneAmount: string; cooldownDone: string;
   cashedOut: string; factoringRequested: string; factoringFundingNeeded: string; factoringOfferedAt: string; factoringOffered: string;
-  factoringOfferedPlain: string; factoringAccepted: string; factoringSettledSeller: string; factoringSettledFinancier: string;
+  factoringOfferedPlain: string; factoringAccepted: string; factoringAwaitingFinancier: string; factoringSettledSeller: string; factoringSettledFinancier: string;
   factoringDefaultedSeller: string; factoringDefaulted: string; poFunded: string; poReleasedSeller: string;
   poReleasedBuyer: string; poRepaidSeller: string; poRepaidFinancier: string; poDefaultedSeller: string; poDefaulted: string;
   agentFunded: string; agentSeeded: string; agentWithdrawal: string; agents: { buyer: string; seller: string; agent: string };
@@ -160,6 +160,7 @@ const en: NotifyCopy = {
   factoringOffered: 'A financier offered {amount} USDC now on your invoice.',
   factoringOfferedPlain: 'A financier offered early payout on your invoice.',
   factoringAccepted: 'The seller accepted your factoring offer. Your advance is on its way.',
+  factoringAwaitingFinancier: 'The seller took your offer. Pay them {amount} USDC within 24 hours.',
   factoringSettledSeller: 'Factoring settled. Your financier was repaid. Nothing more is owed.',
   factoringSettledFinancier: 'A factored invoice was repaid to your wallet.',
   factoringDefaultedSeller: 'Your factoring repayment failed. Fund your wallet and contact the financier.',
@@ -301,6 +302,7 @@ const fr: NotifyCopy = {
   factoringOffered: 'Un financeur propose {amount} USDC maintenant sur votre facture.',
   factoringOfferedPlain: 'Un financeur propose un paiement anticipé sur votre facture.',
   factoringAccepted: 'Le vendeur a accepté votre offre d’affacturage. Votre avance est en route.',
+  factoringAwaitingFinancier: 'Le vendeur a pris votre offre. Payez-lui {amount} USDC sous 24 heures.',
   factoringSettledSeller: 'Affacturage réglé. Votre financeur a été remboursé. Plus rien n’est dû.',
   factoringSettledFinancier: 'Une facture affacturée a été remboursée sur votre portefeuille.',
   factoringDefaultedSeller: 'Votre remboursement d’affacturage a échoué. Approvisionnez votre portefeuille et contactez le financeur.',
@@ -442,6 +444,7 @@ const ar: NotifyCopy = {
   factoringOffered: 'عرض ممول {amount} USDC الآن على فاتورتك.',
   factoringOfferedPlain: 'عرض ممول دفعًا مبكرًا على فاتورتك.',
   factoringAccepted: 'قبل البائع عرض التخصيم الخاص بك. سلفتك في الطريق.',
+  factoringAwaitingFinancier: 'أخذ البائع عرضك. ادفع له {amount} USDC خلال 24 ساعة.',
   factoringSettledSeller: 'تمت تسوية التخصيم. تم سداد الممول. لا يوجد مبلغ مستحق.',
   factoringSettledFinancier: 'تم سداد فاتورة مخصومة إلى محفظتك.',
   factoringDefaultedSeller: 'فشل سداد التخصيم الخاص بك. موّل محفظتك وتواصل مع الممول.',
@@ -583,6 +586,7 @@ const hi: NotifyCopy = {
   factoringOffered: 'एक फ़ाइनेंसर ने आपके इनवॉइस पर अभी {amount} USDC ऑफ़र किए।',
   factoringOfferedPlain: 'एक फ़ाइनेंसर ने आपके इनवॉइस पर जल्दी भुगतान ऑफ़र किया।',
   factoringAccepted: 'विक्रेता ने आपका फ़ैक्टरिंग ऑफ़र स्वीकार किया। आपका एडवांस आ रहा है।',
+  factoringAwaitingFinancier: 'विक्रेता ने आपका ऑफ़र ले लिया। उन्हें 24 घंटे के भीतर {amount} USDC चुकाएँ।',
   factoringSettledSeller: 'फ़ैक्टरिंग निपट गई। फ़ाइनेंसर को चुका दिया गया। अब कुछ बकाया नहीं।',
   factoringSettledFinancier: 'एक फ़ैक्टर किया गया इनवॉइस आपके वॉलेट में चुकाया गया।',
   factoringDefaultedSeller: 'आपकी फ़ैक्टरिंग वापसी विफल रही। अपना वॉलेट फ़ंड करें और फ़ाइनेंसर से संपर्क करें।',
@@ -724,6 +728,7 @@ const sw: NotifyCopy = {
   factoringOffered: 'Mfadhili ametoa {amount} USDC sasa kwenye ankara yako.',
   factoringOfferedPlain: 'Mfadhili ametoa malipo ya mapema kwenye ankara yako.',
   factoringAccepted: 'Muuzaji amekubali ofa yako ya factoring. Malipo yako ya awali yanakuja.',
+  factoringAwaitingFinancier: 'Muuzaji amechukua ofa yako. Mlipe USDC {amount} ndani ya saa 24.',
   factoringSettledSeller: 'Factoring imekamilika. Mfadhili amelipwa. Hakuna deni lililobaki.',
   factoringSettledFinancier: 'Ankara iliyofanyiwa factoring imelipwa kwenye pochi yako.',
   factoringDefaultedSeller: 'Malipo yako ya factoring yameshindwa. Ongeza pesa kwenye pochi yako na uwasiliane na mfadhili.',
