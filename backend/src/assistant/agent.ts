@@ -34,6 +34,8 @@ import { listActivityForAddress } from '../db/activityLog.js';
 import { listBridgesForUser } from '../db/bridges.js';
 import { bridgeStanding } from './bridgeStanding.js';
 import { listMatchProposalsForUser } from '../db/matchProposals.js';
+import { dealReference } from '../deals/reference.js';
+import { withDealReferences } from './dealReferences.js';
 import { readOwnedBalance } from '../money/ownedBalance.js';
 import { financedStage, positionHref } from '../financial/dealFinanciers.js';
 import { firstTradeSteps, readFirstTradeFacts } from './firstTrade.js';
@@ -237,6 +239,7 @@ export function summarizeDeal(deal: DirectDeal, viewer: string): Record<string, 
   const isBuyer = deal.buyer.toLowerCase() === viewer.toLowerCase();
   return {
     jobId: deal.jobId,
+    reference: dealReference(deal.jobId),
     role: isBuyer ? 'buyer' : 'seller',
     counterparty: isBuyer ? deal.sellerPaytag ?? deal.seller : deal.buyer,
     amountUsdc: deal.dealAmountUsdc,
@@ -258,6 +261,14 @@ export function summarizeDeal(deal: DirectDeal, viewer: string): Record<string, 
 /// Tools return plain objects (including `{ error }`) rather than throwing, so the
 /// model can explain a failure to the user instead of the loop aborting.
 function buildTools(address: string, method: string, actions: AssistantAction[], conversationId?: string) {
+  // Every tool takes a deal reference (D68F-E7D8) for a jobId (view 42).
+  return withDealReferences(toolSet(address, method, actions, conversationId), async () => {
+    const [deals, proposals] = await Promise.all([listDealsForAddress(address), listMatchProposalsForUser(address)]);
+    return [...deals.map((d) => d.jobId), ...proposals.map((p) => p.jobId)];
+  });
+}
+
+function toolSet(address: string, method: string, actions: AssistantAction[], conversationId?: string) {
   return {
     get_my_balance: tool({
       description:
@@ -2745,6 +2756,7 @@ function authenticatedPreamble(address: string, method: string): string {
     'Start a deal with @someone -> start_protected_deal (ask what is missing first); pay an accepted one -> pay_into_escrow. Send to a Karwan tag -> propose_send_to_tag. Who is @tag -> find_karwan_tag. How-to and navigation -> get_product_facts, then propose_navigation.',
     'Product behaviour -> get_product_facts. Balances -> get_my_balance. Cross-chain source inventory -> list_bridge_sources.',
     'Specific deal, World ID or CRE recorded status -> get_deal_status. Other deals -> list_my_deals.',
+    'Every deal has a reference such as D68F-E7D8, returned as reference by list_my_deals and get_deal_status. Any tool that takes a jobId takes the reference too. Name a deal to the person by its reference, never the long 0x id, and never ask them for the long id: find the deal with list_my_deals instead.',
     'Past money moves and bridges -> recall_activity. Deal guarantee and yield -> get_my_guarantee. Older contracts -> get_my_legacy_positions. Reputation -> get_my_reputation.',
     'Offers, requests and bids -> get_my_market_activity. Pending work -> whats_pending. Finance -> get_my_financing.',
     'Getting paid early: the seller asks with propose_get_paid_early, reads offers with list_early_payment_offers, then propose_take_early_payment or propose_turn_down_early_payment. A financier reads list_requests_i_can_fund and offers with propose_early_payment_offer.',
@@ -2763,6 +2775,12 @@ function authenticatedPreamble(address: string, method: string): string {
   ].join('\n');
 }
 
+/// The deal the person is looking at. A page can be stale or opened by link,
+/// so this only says which deal "this" means; the tools still check access.
+export function viewingDealLine(jobId: string): string {
+  return `The person has deal ${dealReference(jobId)} (${jobId}) open on screen. "This deal", "the seller" or "the buyer" mean that deal: read it with get_deal_status and do not ask which deal.`;
+}
+
 /// Run the authenticated tool-calling loop and return the assistant's reply plus
 /// confirmation/navigation actions it prepared. Account questions fail closed
 /// on model or evidence failure; generic help may use direct-provider fallback.
@@ -2775,6 +2793,8 @@ export async function runAssistantAgent(input: {
   /// What the assistant remembers about this person; absent when it could not be read.
   memory?: AssistantMemory;
   conversationId?: string;
+  /// The deal page the person has open, when they asked from it (view 42).
+  viewingDeal?: string;
   /// A second try after a reply stated account facts without reading them:
   /// the first step must call a tool, so the answer rests on a fresh read.
   forceRead?: boolean;
@@ -2784,6 +2804,7 @@ export async function runAssistantAgent(input: {
 
   const system = systemPromptFor({ mode: input.mode }) + '\n' + authenticatedPreamble(input.address, input.method)
     + (input.memory ? '\n' + memoryPreamble(input.memory) : '')
+    + (input.viewingDeal ? '\n' + viewingDealLine(input.viewingDeal) : '')
     + (input.forceRead ? '\nRead the account with the tool for what the person asked about before you answer. State only what that read returned.' : '');
   const actions: AssistantAction[] = [];
 

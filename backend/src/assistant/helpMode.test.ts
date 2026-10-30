@@ -29,3 +29,11 @@ test('the chat body accepts help or assistant mode and nothing else', () => {
   assert.equal(chatBodySchema.safeParse({ messages, mode: 'assistant' }).success, true);
   assert.equal(chatBodySchema.safeParse({ messages, mode: 'admin' }).success, false);
 });
+
+test('Help may say which deal page it is on, and only as a full deal id', () => {
+  const messages = [{ role: 'user', content: 'message the seller about this' }];
+  const id = '0xd68fe7d8eaf9cde16836c248d1df7d5811342d77ad987d0b83fb2ccf5e888172';
+  assert.equal(chatBodySchema.safeParse({ messages, mode: 'help', viewingDeal: id }).success, true);
+  assert.equal(chatBodySchema.safeParse({ messages, viewingDeal: 'D68F-E7D8' }).success, false);
+  assert.equal(chatBodySchema.safeParse({ messages, viewingDeal: '/deals/' + id }).success, false);
+});

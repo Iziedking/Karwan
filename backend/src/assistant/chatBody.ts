@@ -16,4 +16,7 @@ export const chatBodySchema = z.object({
   /// The saved conversation this turn belongs to, so a deal sent from it can
   /// offer its payment there later (view 24).
   conversationId: z.string().min(1).max(64).optional(),
+  /// The deal page the Help panel is open on (view 42). Context only: every
+  /// tool still checks the person is a party to it.
+  viewingDeal: z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional(),
 });

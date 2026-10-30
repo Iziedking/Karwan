@@ -8,6 +8,7 @@ import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { shortAddress } from '@/shared/utils/format';
 import { cn } from '@/shared/utils/cn';
 import { EditDealModal } from '../components/EditDealModal';
+import { dealReference } from '../dealReference';
 import { SettlementRecord, type SettlementRecordFetchState } from '../components/SettlementRecord';
 import { AgreementSection } from './AgreementSection';
 import { AnswerCancelSheet, AnswerTimeSheet, DeliverSheet, ProblemSheet, TurnDownSheet } from './DealSheets';
@@ -70,6 +71,19 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
     if (panel === 'messages' && chat.unread) markSeen();
   }, [panel, chat.unread, markSeen]);
   const [editing, setEditing] = useState(false);
+  // The short reference people give the assistant or support (view 42).
+  const reference = dealReference(deal.jobId);
+  const [copied, setCopied] = useState(false);
+  async function copyReference() {
+    if (!reference) return;
+    try {
+      await navigator.clipboard.writeText(reference);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // The reference stays visible and selectable without clipboard access.
+    }
+  }
   const viewer = !address ? null : viewerIsBuyer ? 'buyer' : 'seller';
   const counterparty = viewerIsBuyer ? deal.seller : deal.buyer;
   const card = deal.counterpartyTrust;
@@ -215,10 +229,23 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
         ) : null}
       </header>
 
-        <p role="status" aria-live="polite" className="mt-5 inline-flex items-center gap-2 text-[14px] font-medium text-[var(--lp-text-sub)]">
-          <span aria-hidden className="size-2 rounded-full" style={{ background: LINE_TONE[view.money.line] }} />
-          {copy.money[LINE_KEY[view.money.line]]}
-        </p>
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+          <p role="status" aria-live="polite" className="inline-flex items-center gap-2 text-[14px] font-medium text-[var(--lp-text-sub)]">
+            <span aria-hidden className="size-2 rounded-full" style={{ background: LINE_TONE[view.money.line] }} />
+            {copy.money[LINE_KEY[view.money.line]]}
+          </p>
+          {reference ? (
+            <button
+              type="button"
+              onClick={copyReference}
+              aria-label={copied ? copy.reference.copied : fill(copy.reference.copy, { reference })}
+              className="-me-2 inline-flex min-h-11 items-center gap-2 rounded-[10px] px-2 mono text-[13px] tracking-[0.04em] text-[var(--lp-text-sub)] transition-colors hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            >
+              <span dir="ltr">{fill(copy.reference.label, { reference })}</span>
+              <Icon name={copied ? 'check' : 'copy'} size={16} className="shrink-0" />
+            </button>
+          ) : null}
+        </div>
         <h1 id="deal-amount" className="mt-2 flex items-baseline gap-2 tabular-nums">
           <span className="text-[34px] font-bold leading-none tracking-[-0.03em] text-[var(--lp-dark)] sm:text-[40px]">{formatUsdcAmount(deal.dealAmountUsdc, locale)}</span>{' '}
           {' '}<span className="text-[15px] font-semibold text-[var(--lp-text-sub)]">USDC</span>

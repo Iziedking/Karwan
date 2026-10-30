@@ -33,7 +33,7 @@ export interface FinanceToolDeps {
   now: () => number;
 }
 
-const JOB = z.string().regex(/^0x[0-9a-fA-F]{64}$/).describe('The deal id (0x and 64 hex characters), from list_my_deals.');
+const JOB = z.string().regex(/^(0x[0-9a-fA-F]{64}|#?(0x)?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4})$/).describe('The deal id (0x and 64 hex characters) or its reference such as D68F-E7D8, from list_my_deals.');
 const OFFER = z.string().uuid().describe('The offer id, from list_early_payment_offers.');
 
 export function financeTools(address: string, signer: FinanceSigner, actions: AssistantAction[], deps: FinanceToolDeps) {

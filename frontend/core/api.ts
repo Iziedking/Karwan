@@ -5826,10 +5826,12 @@ export const api = {
     mode?: 'help' | 'assistant',
     /// The saved conversation, so a deal sent from it offers its payment there later.
     conversationId?: string | null,
+    /// The deal page the person is on, so "this deal" needs no id (view 42).
+    viewingDeal?: string | null,
   ) =>
     json<{ reply: string; actions?: AssistantAction[] }>('/api/assistant/chat', {
       method: 'POST',
-      body: JSON.stringify({ messages, ...(mode ? { mode } : {}), ...(conversationId ? { conversationId } : {}) }),
+      body: JSON.stringify({ messages, ...(mode ? { mode } : {}), ...(conversationId ? { conversationId } : {}), ...(viewingDeal ? { viewingDeal } : {}) }),
     }),
 
   // Live support handoff. The widget escalates from the AI to a human; the

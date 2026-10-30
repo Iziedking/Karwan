@@ -16,7 +16,7 @@ const ran = (a: { id?: string }) => {
 /// One conversation with the assistant: the turns, sending the next question
 /// and the reply's actions. The help panel and the assistant page share it;
 /// the page also saves it to the account (`persist`).
-export function useAssistantChat(opts: { onNeedsHuman?: (transcript: Turn[]) => void; persist?: boolean; mode?: 'help' | 'assistant' } = {}) {
+export function useAssistantChat(opts: { onNeedsHuman?: (transcript: Turn[]) => void; persist?: boolean; mode?: 'help' | 'assistant'; viewingDeal?: string | null } = {}) {
   const copy = useTranslations();
   const t = copy.assistant;
   const m = copy.assistantMode;
@@ -26,7 +26,7 @@ export function useAssistantChat(opts: { onNeedsHuman?: (transcript: Turn[]) => 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const { onNeedsHuman, persist = false, mode } = opts;
+  const { onNeedsHuman, persist = false, mode, viewingDeal } = opts;
   // An exchange is saved when the next one starts or the page is left, so its
   // cards are saved with their outcome. Mirrors of the latest state for saving outside a render.
   const live = useRef({ messages, conversationId, savedUpTo: 0 });
@@ -73,7 +73,7 @@ export function useAssistantChat(opts: { onNeedsHuman?: (transcript: Turn[]) => 
   const answer = useCallback(
     async (history: Array<{ role: 'user' | 'assistant'; content: string }>, shown: Turn[]) => {
       try {
-        const { reply, actions } = await api.assistantChat(history, mode, live.current.conversationId);
+        const { reply, actions } = await api.assistantChat(history, mode, live.current.conversationId, viewingDeal);
         // The assistant appends [[HUMAN]] when the person asked for one or it
         // cannot do it. Strip the marker and bring a person in.
         const needsHuman = /\[\[HUMAN\]\]/i.test(reply);
@@ -103,7 +103,7 @@ export function useAssistantChat(opts: { onNeedsHuman?: (transcript: Turn[]) => 
         if (cannot) onNeedsHuman?.(shown);
       }
     },
-    [onNeedsHuman, t.error, m, mode],
+    [onNeedsHuman, t.error, m, mode, viewingDeal],
   );
 
   const send = useCallback(

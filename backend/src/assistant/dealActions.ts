@@ -1,4 +1,5 @@
 import { confirmNonce, type ConfirmActionBase } from './actions.js';
+import { dealReference } from '../deals/reference.js';
 import { parseStatement } from '../deals/disputeJudge.js';
 import { approvedDeadline } from '../deals/deliveryDeadline.js';
 import { checkOffer, type OfferRuleError } from '../offers/rules.js';
@@ -13,6 +14,7 @@ const DAY_SECONDS = 86_400;
 
 const isoDay = (unix: number) => new Date(unix * 1000).toISOString().slice(0, 10);
 const shortId = (jobId: string) => jobId.slice(0, 10);
+const dealRef = (jobId: string) => dealReference(jobId) ?? shortId(jobId);
 
 export interface ChooseOfferConfirm extends ConfirmActionBase {
   intent: 'choose_offer';
@@ -442,7 +444,7 @@ export function buildEscalateDisputeConfirm(i: {
     title: 'Send to review',
     summary: 'A Karwan reviewer looks at the deal, both statements and the evidence, then rules.',
     fields: [
-      { label: 'Deal', value: shortId(i.jobId) },
+      { label: 'Deal', value: dealRef(i.jobId) },
       { label: 'Amount', value: `${i.amountUsdc} USDC` },
     ],
     payload: { jobId: i.jobId, caller: i.caller },
@@ -467,7 +469,7 @@ export function buildRaiseProblemConfirm(i: {
     title: 'Raise a problem',
     summary: 'The payment stays held while this is looked at. You and the other side each have 72 hours to give your side; a side that stays silent loses.',
     fields: [
-      { label: 'Deal', value: shortId(i.jobId) },
+      { label: 'Deal', value: dealRef(i.jobId) },
       { label: 'Amount', value: `${i.amountUsdc} USDC` },
       { label: 'What is wrong', value: reason },
     ],

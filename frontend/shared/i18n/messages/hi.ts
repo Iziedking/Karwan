@@ -3376,6 +3376,7 @@ export const hi: Messages = {
       refunded: "खरीदार को लौटाया गया",
     },
     actor: { you: 'आपकी बारी', waitingTemplate: '{name} का इंतज़ार', nobody: 'कोई कार्रवाई ज़रूरी नहीं' },
+    reference: { label: 'सौदा {reference}', copy: 'सौदे का संदर्भ {reference} कॉपी करें', copied: 'सौदे का संदर्भ कॉपी हो गया' },
     counterparty: { seller: 'विक्रेता', buyer: 'खरीदार' },
     actions: {
       accept: 'समझौता स्वीकार करें',

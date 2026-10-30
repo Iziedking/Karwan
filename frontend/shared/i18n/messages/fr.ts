@@ -3378,6 +3378,7 @@ export const fr: Messages = {
       refunded: "Rendu à l’acheteur",
     },
     actor: { you: 'À vous', waitingTemplate: 'En attente de {name}', nobody: 'Aucune action requise' },
+    reference: { label: 'Transaction {reference}', copy: 'Copier la référence de la transaction {reference}', copied: 'Référence de la transaction copiée' },
     counterparty: { seller: 'le vendeur', buyer: "l'acheteur" },
     actions: {
       accept: 'Accepter l\'accord',

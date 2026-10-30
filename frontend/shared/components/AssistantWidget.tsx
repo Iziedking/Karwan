@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAutoGrow } from '@/shared/hooks/useAutoGrow';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { dealIdInPath } from '@/features/deals/dealReference';
 import { api, ApiError } from '@/core/api';
 import { stripMarkdown } from '@/shared/utils/format';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -63,7 +64,9 @@ export function AssistantWidget() {
   const [handoff, setHandoff] = useState<Pick<HelpOpenDetail, 'context' | 'message' | 'dealId'> | null>(null);
   const autoTriedRef = useRef(false);
   const suggestHuman = useCallback(() => setHumanSuggested(true), []);
-  const chat = useAssistantChat({ onNeedsHuman: suggestHuman, mode: 'help' });
+  // On a deal page the assistant is told which deal "this" is (view 42).
+  const viewingDeal = dealIdInPath(pathname);
+  const chat = useAssistantChat({ onNeedsHuman: suggestHuman, mode: 'help', viewingDeal });
   const turns = chat.messages;
   const loading = liveLoading || chat.busy;
   const error = liveError ?? chat.error;
@@ -216,7 +219,7 @@ export function AssistantWidget() {
         ...(handoff?.context?.length ? handoff.context : own),
         ...(message ? [{ role: 'user' as const, content: message }] : []),
       ].slice(-40);
-      const res = await api.supportStart(transcript, undefined, handoff?.dealId);
+      const res = await api.supportStart(transcript, undefined, handoff?.dealId ?? viewingDeal ?? undefined);
       lastTsRef.current = res.at;
       // The opening message is part of the ticket; show it as the first line here.
       setLive(message ? [{ role: 'user', text: message, ts: res.at }] : []);

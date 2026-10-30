@@ -27,7 +27,7 @@ const STATE_UNAVAILABLE: AssistantTurnResult = {
 };
 
 export async function runAssistantTurn(
-  input: { address: string; method: string; messages: AssistantChatMessage[]; mode?: 'help' | 'assistant'; conversationId?: string },
+  input: { address: string; method: string; messages: AssistantChatMessage[]; mode?: 'help' | 'assistant'; conversationId?: string; viewingDeal?: string },
   fallback: FallbackReply,
 ): Promise<AssistantTurnResult> {
   // Stateful prompts fail closed rather than falling through to an ungrounded
@@ -48,6 +48,7 @@ export async function runAssistantTurn(
         mode: input.mode,
         memory,
         conversationId: input.conversationId,
+        viewingDeal: input.viewingDeal,
         forceRead,
       });
       let { text, actions, grounded, subjects } = await ask(false);

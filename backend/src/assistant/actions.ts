@@ -1,4 +1,5 @@
 import type { CreateDirectDealBody } from '../deals/createSchema.js';
+import { dealReference } from '../deals/reference.js';
 import type { AgentWays } from '../agents/ways.js';
 import type { DeliveryKind, Where } from '../location/rules.js';
 import { perItemUsdc, quantityWords, readQuantity } from '../llm/quantity.js';
@@ -1095,7 +1096,7 @@ export function buildMarkDeliveredConfirm(i: {
     title: 'Mark as delivered',
     summary: `Tell the buyer the work on this ${i.amountUsdc} USDC deal is done. Their review window starts now.`,
     fields: [
-      { label: 'Deal', value: i.jobId.slice(0, 10) },
+      { label: 'Deal', value: dealReference(i.jobId) ?? i.jobId.slice(0, 10) },
       { label: 'Amount', value: `${i.amountUsdc} USDC` },
       ...(i.deliveryProof ? [{ label: 'Note to buyer', value: i.deliveryProof }] : []),
       ...(i.shipment ? [{ label: 'Sent with', value: `${i.shipment.carrierName}, ${i.shipment.trackingNumber}` }] : []),

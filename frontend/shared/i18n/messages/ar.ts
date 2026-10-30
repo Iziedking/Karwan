@@ -3378,6 +3378,7 @@ export const ar: Messages = {
       refunded: "أُعيد إلى المشتري",
     },
     actor: { you: 'دورك', waitingTemplate: 'بانتظار {name}', nobody: 'لا يلزم أي إجراء' },
+    reference: { label: 'الصفقة {reference}', copy: 'انسخ مرجع الصفقة {reference}', copied: 'تم نسخ مرجع الصفقة' },
     counterparty: { seller: 'البائع', buyer: 'المشتري' },
     actions: {
       accept: 'قبول الاتفاق',

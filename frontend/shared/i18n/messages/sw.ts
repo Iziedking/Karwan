@@ -3375,6 +3375,7 @@ export const sw: Messages = {
       refunded: "Imerudishwa kwa mnunuzi",
     },
     actor: { you: 'Zamu yako', waitingTemplate: 'Inamsubiri {name}', nobody: 'Hakuna hatua inayohitajika' },
+    reference: { label: 'Mpango {reference}', copy: 'Nakili kumbukumbu ya mpango {reference}', copied: 'Kumbukumbu ya mpango imenakiliwa' },
     counterparty: { seller: 'muuzaji', buyer: 'mnunuzi' },
     actions: {
       accept: 'Kubali makubaliano',

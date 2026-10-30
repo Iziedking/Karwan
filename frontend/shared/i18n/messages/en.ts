@@ -3105,6 +3105,7 @@ interface MessagesShape {
     privateTermsPreview: string;
     money: { notFunded: string; held: string; sending: string; paused: string; released: string; refunding: string; refunded: string; cancelled: string };
     actor: { you: string; waitingTemplate: string; nobody: string };
+    reference: { label: string; copy: string; copied: string };
     counterparty: { seller: string; buyer: string };
     actions: {
       accept: string; fundTemplate: string; deliver: string; releaseTemplate: string; claimTemplate: string;
@@ -8664,6 +8665,7 @@ export const en: MessagesShape = {
       refunded: "Returned to the buyer",
     },
     actor: { you: 'Your move', waitingTemplate: 'Waiting on {name}', nobody: 'No action needed' },
+    reference: { label: 'Deal {reference}', copy: 'Copy deal reference {reference}', copied: 'Deal reference copied' },
     counterparty: { seller: 'the seller', buyer: 'the buyer' },
     actions: {
       accept: 'Accept the agreement',
