@@ -34,7 +34,7 @@ test('a goods way is added in place and saved with the rest', async ({ page }) =
   await signedIn(page, saved as unknown[]);
   await page.goto('/profile/ways');
   await expect(page.getByRole('heading', { name: c.title })).toBeVisible();
-  await expect(page.getByText('20 to 40 USDC · 1 to 3 days')).toBeVisible();
+  await expect(page.getByText('Usually 30 USDC, lowest 20 · 1 to 3 days')).toBeVisible();
 
   const save = page.getByRole('button', { name: c.save, exact: true });
   await expect(save).toBeDisabled();
@@ -46,7 +46,7 @@ test('a goods way is added in place and saved with the rest', async ({ page }) =
   await page.getByLabel(c.fields.whatSell).fill('Wigs');
   await page.getByLabel(c.fields.shipsTo).fill('Anywhere in Nigeria');
   await done.click();
-  await expect(page.getByText('Wigs · 20 to 40 USDC · to Anywhere in Nigeria · 2 to 5 days')).toBeVisible();
+  await expect(page.getByText('Wigs · Usually 30 USDC, lowest 20 per item · to Anywhere in Nigeria · 2 to 5 days')).toBeVisible();
 
   await save.click();
   await expect(page.getByText(c.saved)).toBeVisible();
