@@ -102,6 +102,19 @@ test('test financier terms: 150 owed gives 120 now, 123.60 back, 12 held', () =>
   assert.deepEqual(testFinancierTerms(M(99.99)), { advance: M(79.99), repay: 82_389_700n, stake: 7_999_000n });
 });
 
+test('test financier terms follow the ask, up to 80% of what is owed', () => {
+  assert.deepEqual(testFinancierTerms(M(150), { requested: M(150) }), { advance: M(120), repay: M(123.6), stake: M(12) });
+  assert.deepEqual(testFinancierTerms(M(150), { requested: M(100) }), { advance: M(100), repay: M(103), stake: M(10) });
+  assert.deepEqual(testFinancierTerms(M(150), { requested: 55_555_555n }), { advance: M(55.55), repay: 57_216_500n, stake: 5_555_000n });
+  assert.deepEqual(testFinancierTerms(M(150), { requested: M(100), least: M(90) }), { advance: M(100), repay: M(103), stake: M(10) });
+});
+
+test('test financier makes no offer below the least the seller will take', () => {
+  assert.equal(testFinancierTerms(M(150), { least: M(130) }), null);
+  assert.equal(testFinancierTerms(M(150), { requested: M(140), least: M(121) }), null);
+  assert.equal(testFinancierTerms(0n), null);
+});
+
 test('eligibility table', () => {
   const r = receivable();
   assert.deepEqual(eligibility(deal(), r, true, []), { ok: true });

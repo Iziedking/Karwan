@@ -729,6 +729,7 @@ async function financingRun(): Promise<void> {
     } as DirectDeal);
     const r = await ports.receivable(funded.record.escrowDealId);
     const terms = testFinancierTerms(r.unpaid);
+    if (!terms) throw new Error('no test financier terms');
     const made = await core.createFamilyOffer({ jobId, financier, ...terms, walletId: 'financier', expiresInHours: 24 });
     if (!('offer' in made)) throw new Error(`no offer: ${made.code}`);
     const agentBefore = await balance(sellerAgent);

@@ -50,10 +50,18 @@ const micros = (usdc: string) => parseUnits(usdc, 6);
 const usdc = (m: bigint) => formatUnits(m, 6);
 const refuse = (code: string, refused: string, extra: Partial<Refusal> = {}): Refusal => ({ refused, code, ...extra });
 
-/// The Karwan test financier's offer (owner, 29 Oct 2026): 80% of what the deal
-/// still owes now, paid back with 3% of the advance, holding 10% of it.
-export function testFinancierTerms(unpaid: bigint): { advance: bigint; repay: bigint; stake: bigint } {
-  const advance = ((unpaid * 80n) / 100n / 10_000n) * 10_000n;
+/// The Karwan test financier's offer (owner, 29 Oct 2026; follows the ask since
+/// 30 Oct): what the seller asked for, at most 80% of what the deal still owes,
+/// paid back with 3% of the advance, holding 10% of it. None when that is below
+/// the least the seller will take.
+export function testFinancierTerms(
+  unpaid: bigint,
+  ask: { requested?: bigint; least?: bigint } = {},
+): { advance: bigint; repay: bigint; stake: bigint } | null {
+  const cents = (m: bigint) => (m / 10_000n) * 10_000n;
+  const cap = cents((unpaid * 80n) / 100n);
+  const advance = ask.requested && cents(ask.requested) < cap ? cents(ask.requested) : cap;
+  if (advance <= 0n || (ask.least !== undefined && advance < ask.least)) return null;
   return { advance, repay: advance + (advance * 3n) / 100n, stake: (advance + 9n) / 10n };
 }
 

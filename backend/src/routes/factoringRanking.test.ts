@@ -40,6 +40,30 @@ test('an offer the financier cannot pay yet goes last and is never recommended',
   assert.deepEqual(ranked.map((r) => [r.id, r.recommended]), [['cold-funded', true], ['elite-unfunded', false]]);
 });
 
+test("Karwan's test financier loses a tie to a partner, even when it offered first", () => {
+  const house = '0x7E57000000000000000000000000000000007e57';
+  const ranked = rankFinancingOffers(
+    [
+      { ...offer('karwan', '880', '1000', 'strong', true, 1), financier: house.toLowerCase() },
+      { ...offer('partner', '880', '1000', 'strong', true, 2), financier: '0xa11' },
+    ],
+    house,
+  );
+  assert.deepEqual(ranked.map((r) => [r.id, r.recommended]), [['partner', true], ['karwan', false]]);
+});
+
+test("Karwan's test financier is recommended when its offer is the best", () => {
+  const house = '0x7e57000000000000000000000000000000007e57';
+  const ranked = rankFinancingOffers(
+    [
+      { ...offer('karwan', '900', '1000', 'strong', true, 2), financier: house },
+      { ...offer('partner', '880', '1000', 'strong', true, 1), financier: '0xa11' },
+    ],
+    house,
+  );
+  assert.deepEqual(ranked.map((r) => r.id), ['karwan', 'partner']);
+});
+
 test('nothing is recommended when no offer can be paid', () => {
   assert.deepEqual(rankFinancingOffers([offer('a', '900', '1000', 'strong', false)]).map((r) => r.recommended), [false]);
 });

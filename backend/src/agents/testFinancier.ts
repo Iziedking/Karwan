@@ -1,19 +1,23 @@
-import type { Hex } from 'viem';
+import { parseUnits, type Hex } from 'viem';
 import { config } from '../config.js';
-import { getDeal } from '../db/deals.js';
+import { getDeal, listAllDeals, type DirectDeal } from '../db/deals.js';
 import { listOffersForInvoice } from '../db/factoring.js';
 import { getUserByAddress } from '../db/users.js';
-import { bus } from '../events.js';
 import { logger } from '../logger.js';
 import { testFinancierTerms, type FamilyFinancing } from '../money/familyFinancing.js';
 import { familyFinancing, familyFinancingPorts } from '../money/familyFinancingLive.js';
 
-/// The financier Karwan runs on testnet (view 18): every family deal that asks
-/// to be paid early gets one offer from it, at the owner's terms of 29 Oct 2026.
+/// The financier Karwan runs on testnet (view 18). It competes with the
+/// partners: it waits about two hours after a seller asks, so they offer first,
+/// then offers what the seller asked for at the owner's terms of 29 Oct 2026.
+
+export const TEST_FINANCIER_WAIT_MS = 2 * 60 * 60 * 1000;
+const SWEEP_MS = 5 * 60 * 1000;
 
 export interface TestFinancierDeps {
   address: Hex | null;
   walletId: string | null;
+  /// What the deal still owes, or null when it cannot be financed now.
   unpaid(jobId: string): Promise<bigint | null>;
   balance(address: Hex): Promise<bigint>;
   /// Whether this financier already has a live offer or line on the deal.
@@ -22,36 +26,55 @@ export interface TestFinancierDeps {
   log(message: string): void;
 }
 
-type RequestEvent = { type: string; jobId?: string; payload?: Record<string, unknown> };
+const ask = (usdc: string | undefined) => (usdc ? parseUnits(usdc, 6) : undefined);
 
-export async function handleFamilyRequest(deps: TestFinancierDeps, e: RequestEvent): Promise<void> {
-  if (!deps.address || e.type !== 'factoring.requested' || e.payload?.rail !== 'family' || !e.jobId) return;
-  if (String(e.payload.seller ?? '').toLowerCase() === deps.address.toLowerCase()) return;
-  if (await deps.offerOnDeal(e.jobId)) return;
-  const unpaid = await deps.unpaid(e.jobId);
+/// Family deals whose seller asked at least the wait ago and has not taken an offer.
+export function requestsDue(deals: readonly DirectDeal[], address: string, now: number, waitMs = TEST_FINANCIER_WAIT_MS): DirectDeal[] {
+  const me = address.toLowerCase();
+  return deals.filter(
+    (d) =>
+      d.escrowVersion === 'suite' &&
+      !!d.factoringRequestedAt && now - d.factoringRequestedAt >= waitMs &&
+      !d.factoringOfferId && !d.settledAt && !d.cancelledAt && !d.disputed &&
+      d.seller.toLowerCase() !== me,
+  );
+}
+
+export async function answerRequest(deps: TestFinancierDeps, deal: DirectDeal): Promise<void> {
+  if (!deps.address) return;
+  if (await deps.offerOnDeal(deal.jobId)) return;
+  const unpaid = await deps.unpaid(deal.jobId);
   if (!unpaid) return;
-  const terms = testFinancierTerms(unpaid);
+  const terms = testFinancierTerms(unpaid, {
+    requested: ask(deal.factoringRequestedAdvanceUsdc),
+    least: ask(deal.factoringMinAdvanceUsdc),
+  });
+  if (!terms) {
+    deps.log(`test financier: the least the seller takes on ${deal.jobId} is above its terms`);
+    return;
+  }
   if ((await deps.balance(deps.address)) < terms.advance) {
-    deps.log(`test financier: wallet cannot cover the ${terms.advance} micros advance on ${e.jobId}`);
+    deps.log(`test financier: wallet cannot cover the ${terms.advance} micros advance on ${deal.jobId}`);
     return;
   }
   const out = await deps.createFamilyOffer({
-    jobId: e.jobId,
+    jobId: deal.jobId,
     financier: deps.address,
     ...terms,
     ...(deps.walletId ? { walletId: deps.walletId } : {}),
     expiresInHours: 24,
   });
-  if ('code' in out) deps.log(`test financier: no offer on ${e.jobId} (${out.code})`);
+  if ('code' in out) deps.log(`test financier: no offer on ${deal.jobId} (${out.code})`);
 }
 
-/// Answers family requests while the API runs; off unless KARWAN_TEST_FINANCIER_ADDR is set.
+/// Sweeps requested deals while the API runs; off unless KARWAN_TEST_FINANCIER_ADDR is set.
 export function startTestFinancier(): () => void {
   const address = (config.KARWAN_TEST_FINANCIER_ADDR?.toLowerCase() as Hex | undefined) ?? null;
   if (!address || !familyFinancing || !familyFinancingPorts) return () => {};
   const ports = familyFinancingPorts;
   const core = familyFinancing;
-  const inFlight = new Set<string>();
+  // One line per deal and reason, not one every sweep.
+  const said = new Set<string>();
   const deps: TestFinancierDeps = {
     address,
     walletId: getUserByAddress(address)?.circleIdentityWalletId ?? null,
@@ -67,14 +90,30 @@ export function startTestFinancier(): () => void {
         (o) => o.financier === address && ['offered', 'awaiting_financier', 'accepted'].includes(o.status),
       ),
     createFamilyOffer: core.createFamilyOffer,
-    log: (message) => logger.info(message),
+    log: (message) => {
+      if (said.has(message)) return;
+      said.add(message);
+      logger.info(message);
+    },
   };
-  logger.info({ address }, 'test financier: answering family requests');
-  return bus.subscribe((e) => {
-    if (!e.jobId || inFlight.has(e.jobId)) return;
-    inFlight.add(e.jobId);
-    void handleFamilyRequest(deps, e)
-      .catch((err) => logger.warn({ jobId: e.jobId, err: (err as Error).message }, 'test financier: offer failed'))
-      .finally(() => inFlight.delete(e.jobId!));
-  });
+  let running = false;
+  const sweep = async () => {
+    if (running) return;
+    running = true;
+    try {
+      for (const deal of requestsDue(await listAllDeals(), address, Date.now())) {
+        await answerRequest(deps, deal).catch((err) =>
+          logger.warn({ jobId: deal.jobId, err: (err as Error).message }, 'test financier: offer failed'),
+        );
+      }
+    } catch (err) {
+      logger.warn({ err: (err as Error).message }, 'test financier: sweep failed');
+    } finally {
+      running = false;
+    }
+  };
+  logger.info({ address, waitMinutes: TEST_FINANCIER_WAIT_MS / 60_000 }, 'test financier: answering family requests');
+  void sweep();
+  const id = setInterval(() => void sweep(), SWEEP_MS);
+  return () => clearInterval(id);
 }

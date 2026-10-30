@@ -63,7 +63,9 @@ Numbers are the ones the rehearsal used on Arc Testnet: order 150, advance 120, 
 
 Two kinds of financier from the start: a test financier that Karwan runs, so every qualifying deal can get an offer, and invited partners who fund from their own wallets under the same rules. Both apply through the same desk and meet the same bar.
 
-The test financier offers 80% of what the deal still owes the seller, paid back with 3% of the advance, holding 10% of the advance from the seller's deal guarantee (owner, 29 Oct 2026). On a deal that still owes 150 USDC, that is 120 now and 123.60 back.
+The test financier offers what the seller asked for, at most 80% of what the deal still owes, paid back with 3% of the advance, holding 10% of the advance from the seller's deal guarantee (owner, 29 Oct 2026; the amount follows the ask since 30 Oct). On a deal that still owes 150 USDC, a seller who asks for all of it is offered 120 now and 123.60 back; one who asks for 100 is offered 100 now and 103 back. When the least the seller will take is above 80%, it makes no offer.
+
+It competes like any other financier. It waits about two hours after the seller asks, so the partners offer first, and then makes its offer. Offers are ranked by the same rules for everyone, and when its offer ties with a partner's, the partner's comes first. It is Recommended only when it is the best offer the seller can take.
 
 A financier whose wallet Karwan holds is charged the moment the seller takes the offer. A financier who pays from their own wallet sees **Pay the seller** on their desk and has 24 hours from the seller's tap; until then the seller sees **Waiting for the financier to pay**. If the 24 hours pass, the seller's signatures expire, nothing was held and nothing moved, and the seller can take another offer.
 
@@ -123,5 +125,6 @@ The older factoring and purchase-order routes stay readable for past deals and s
 | Seller's Activity on a financed deal adds up | Built 22 Oct 2026, not deployed: each deal payment shows what reached the seller and the financier's part reads Repaid to your financier, unsigned. Found on deal 0x756b…: the seller's list showed about 3,865 USDC in against 1,865 received (`routes/activityMovementLedger.ts` netOfFinancierRepayments) |
 | Get paid now in Telegram | Built 29 Oct 2026, not deployed: the same cards; Pay the seller opens Karwan for the own-wallet signature |
 | A seller with their own wallet asks before their record exists | Built 30 Oct 2026, not deployed. Found on testnet, deal 0x2caa: the chain said financeable, the ask was refused because the seller's record was not set up, and the page said only that the deal could not be paid early. Now the website sends the record steps with the seller's wallet signature before the ask, the refusal names its reason, and from Telegram the assistant says to open the deal on the website for that one step |
+| Karwan's test financier follows the ask and competes | Built 30 Oct 2026, not deployed. Found on testnet: it offered 80% of every deal the moment the seller asked, whatever the seller asked for, so it was usually the only offer and always Recommended. Now it offers what the seller asked for up to 80%, waits about two hours, and loses ties to partners (`agents/testFinancier.ts`, `routes/factoringRanking.ts`) |
 | Financier desk to UI law v2 | Started: positions show Pay the seller, Repaid, Closed and what came from the guarantee; the rest of the desk follows |
 | Record counts financed and repaid lines | Planned |
