@@ -723,6 +723,9 @@ export interface DealView {
   onMyRecord?: 'recorded' | 'pending' | 'missing';
   /// The receipt line for someone with their own wallet (view 27, decision 11).
   recordNudge?: boolean;
+  /// Something a person at Karwan is looking at on this deal, said the same way
+  /// everywhere. A held match moves no money; a held link pays nothing until it clears.
+  hold?: { kind: 'match' | 'link'; line: string } | null;
 }
 
 /// Mirrors backend/src/trust/trustCard.ts.
@@ -950,22 +953,13 @@ export interface DirectDeal {
   evidenceManualReviewActive?: boolean;
   view?: DealView;
   counterpartyTrust?: TrustCardView | null;
-  /// Security agent's verdict on the MATCH (distinct from delivery-proof safety
-  /// above). 'flag' surfaces a risk banner; 'hold' also marks the deal for
-  /// review. Deterministic, non-blocking — the money is escrowed and the human
-  /// is the judge. Set at match persist when the gate is enabled.
-  matchRisk?: {
-    decision: 'flag' | 'hold';
-    flags: string[];
-    reason: string;
-    /// Per-flag lines, each tagged with the party it is for; the deal page shows
-    /// a viewer only lines whose audience is their role or 'both'. Legacy rows
-    /// hold bare strings (pre-audience); the UI treats those as 'both'.
-    reasons: Array<string | { text: string; audience: 'buyer' | 'seller' | 'both' }>;
-    paidConsulted: boolean;
-    evaluatedAt: number;
-    clearedAt?: number;
-  };
+  /// The security agent's screen of the match itself (distinct from delivery
+  /// link safety), as this viewer may read it: the server sends only the lines
+  /// for their side plus the shared one (backend deals/matchHold.ts). A hold is
+  /// advisory, the money is escrowed and release follows the deal's own rules;
+  /// a person at Karwan clears it. Null or absent once cleared or when the
+  /// match passed.
+  matchHold?: { decision: 'flag' | 'hold'; lines: string[]; paidConsulted: boolean } | null;
   /// Security Agent verdict on whether the delivery meets the request (separate
   /// from link safety). 'partial'/'mismatch' surface a buyer review notice and
   /// pause auto-release; the proof is always shown, the buyer decides.
@@ -2083,10 +2077,33 @@ export interface AdminDeliveryReviewView {
   delivered: boolean;
   closed: boolean;
   deliveryRevision: number;
+  /// The delivery this view is about; an earlier one, or any on a closed deal, is record-only.
+  revision: number;
+  scope: 'current' | 'record-only';
   deliveryProof: string | null;
   verificationStatus: 'clean' | 'suspicious' | 'malicious' | 'unverifiable' | null;
   verificationReasons: string[];
   review: AdminDeliveryReview | null;
+  /// Every held delivery a reviewer may look at, newest first.
+  deliveries: Array<{ revision: number; verificationStatus: 'suspicious' | 'malicious'; current: boolean; reviewed: 'safe' | 'unsafe' | 'pending-approval' | null }>;
+  /// The match hold still open on this deal, if any.
+  matchHold: { flags: string[]; reasons: Array<{ text: string; audience: 'buyer' | 'seller' | 'both' }>; evaluatedAt: number } | null;
+}
+
+/// What waits for a person at Karwan (view 21): held matches with the offence
+/// each rests on, and held delivery links.
+export interface AdminHeldView {
+  matches: Array<{
+    jobId: string;
+    buyer: string;
+    seller: string;
+    amountUsdc: string;
+    evaluatedAt: number;
+    flags: string[];
+    reasons: Array<{ text: string; audience: 'buyer' | 'seller' | 'both' }>;
+    offences: Array<{ address: string; count: number; lastVerdict: 'suspicious' | 'malicious'; from: Array<{ jobId: string; surface: 'delivery' | 'chat' }> }>;
+  }>;
+  links: Array<{ jobId: string; buyer: string; seller: string; amountUsdc: string; deliveryRevision: number; verificationStatus: 'suspicious' | 'malicious'; deliveredAt: number | null }>;
 }
 
 export interface AssistantMemoryView {
@@ -3456,14 +3473,26 @@ export const api = {
       /// Deals the person attached from a deal page.
       dealIds?: string[];
     }>(`/api/admin/support/${id}`, { headers: adminHeaders() }),
-  /// A delivery the link check holds, for a support review (view 21).
-  adminDeliveryGet: (jobId: string) =>
-    json<AdminDeliveryReviewView>(`/api/admin/support/deliveries/${encodeURIComponent(jobId)}`, { headers: adminHeaders() }),
-  adminDeliveryReview: (jobId: string, decision: 'safe' | 'unsafe', reason: string) =>
-    json<{ review: AdminDeliveryReview; cleared: boolean }>(`/api/admin/support/deliveries/${encodeURIComponent(jobId)}/review`, {
+  /// A delivery the link check holds, for a support review (view 21); with a
+  /// revision, an earlier delivery or one on a closed deal, for the record only.
+  adminDeliveryGet: (jobId: string, revision?: number) =>
+    json<AdminDeliveryReviewView>(
+      `/api/admin/support/deliveries/${encodeURIComponent(jobId)}${revision === undefined ? '' : `?revision=${revision}`}`,
+      { headers: adminHeaders() },
+    ),
+  adminDeliveryReview: (jobId: string, decision: 'safe' | 'unsafe', reason: string, revision?: number) =>
+    json<{ review: AdminDeliveryReview; cleared: boolean; scope: 'current' | 'record-only' }>(`/api/admin/support/deliveries/${encodeURIComponent(jobId)}/review`, {
       method: 'POST',
       headers: adminHeaders(),
-      body: JSON.stringify({ decision, reason }),
+      body: JSON.stringify(revision === undefined ? { decision, reason } : { decision, reason, revision }),
+    }),
+  /// Held matches and held links waiting for a person, without a ticket.
+  adminSupportHeld: () => json<AdminHeldView>('/api/admin/support/held', { headers: adminHeaders() }),
+  adminClearMatchHold: (jobId: string, reason: string) =>
+    json<{ cleared: true }>(`/api/admin/support/matches/${encodeURIComponent(jobId)}/clear`, {
+      method: 'POST',
+      headers: adminHeaders(),
+      body: JSON.stringify({ reason }),
     }),
   adminSupportReply: (id: string, text: string) =>
     json<{ ok: true }>(`/api/admin/support/${id}/reply`, {

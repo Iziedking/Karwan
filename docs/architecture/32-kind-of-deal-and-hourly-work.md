@@ -49,7 +49,6 @@ Every kind is open to every account. The trust engine (view 09) keeps asking for
 | Money paid to the seller before anything is delivered | Every kind, seller with fewer than 3 settled deals | Not allowed; the first payment waits for a delivery |
 | Pay by the hour funded more than one week ahead | Worker with no settled engagement | Not allowed; one week at a time |
 | A seller who lost 2 or more disputes takes a deal without deal insurance covering half of it | Every kind | Not allowed (view 09's step-up, now enforced) |
-| A goods price far below what the same item sells for on Karwan | Goods, seller with no settled deal | Held: a person on the review team looks before the buyer can pay; never declined by code alone |
 | Asking to be paid outside Karwan, in the deal chat | Every kind | Held: the message is flagged and both sides are warned |
 | Account under 7 days old opening 5 or more deals in a day | Every kind | Step-up, as view 09 already does |
 
@@ -168,8 +167,8 @@ Logged in `docs/arc-circle-checks.md` before any code: the deployed Time escrow 
 3. **Review time for hours:** 3 days after the week's logging window, which is 2 days (decided 29 Oct 2026, the same for a retainer).
 4. **Notice to end:** one week for hourly, one month for a retainer (decided 29 Oct 2026: one cycle of notice for both).
 5. **Unused budget** goes back to the hirer after each week, rather than carrying forward (decided 29 Oct 2026).
-6. **The limits in "Open to everyone":** 100 USDC for a new unverified seller, 50 USDC for goods with no tracking or handover, 3 settled deals before any money is paid ahead of delivery, and "far below" meaning under half the usual price of the same item on Karwan.
-7. **Selling in person** (a phone handed over at a meeting point): the buyer confirms the handover in the app, or the seller enters a code the buyer shows them, and the review time starts then.
+6. **The limits in "Open to everyone"** (decided 30 Oct 2026): 100 USDC for a new unverified seller, 50 USDC for goods with no tracking or handover, 3 settled deals before any money is paid ahead of delivery. They are built behind a switch that stays off until after 3 Nov. There is no price rule: two people agree first, and Karwan judges a deal against what they agreed, never against a market price. Asking to be paid outside Karwan is flagged from the start, because a flag never refuses.
+7. **Selling in person** (decided 30 Oct 2026; built with view 33's handover code): the buyer confirms the handover in the app, or the seller enters a code the buyer shows them, and the review time starts then.
 
 ## Status
 
