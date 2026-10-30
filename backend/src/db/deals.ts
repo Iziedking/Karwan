@@ -167,8 +167,12 @@ export interface DirectDeal {
   // check. verificationReasons explains a non-clean verdict in plain language.
   verificationStatus?: 'clean' | 'suspicious' | 'malicious' | 'unverifiable';
   verificationReasons?: string[];
-  /// A person's check of a flagged delivery link (deals/deliveryReview.ts).
+  /// A person's check of a flagged delivery link (deals/deliveryReview.ts):
+  /// the current revision's review, kept for readers that exist.
   deliveryReview?: import('../deals/deliveryReview.js').DeliveryReview;
+  /// Every review, one per reviewed delivery revision, so a replaced or closed
+  /// delivery can still be checked and its offence taken off the record.
+  deliveryReviews?: import('../deals/deliveryReview.js').DeliveryReview[];
   /// Security agent's verdict on the MATCH itself (distinct from the delivery-
   /// proof verificationStatus above), set at match persist when
   /// SECURITY_MATCH_GATE_ENABLED. 'flag' surfaces a risk banner; 'hold' also
@@ -185,7 +189,11 @@ export interface DirectDeal {
     reasons: Array<string | { text: string; audience: 'buyer' | 'seller' | 'both' }>;
     paidConsulted: boolean;
     evaluatedAt: number;
+    /// A person at Karwan cleared the hold (deals/matchHold.ts): when, which
+    /// credential (a role, never a name) and why. The reason never leaves the server.
     clearedAt?: number;
+    clearedBy?: 'admin' | 'support';
+    clearReason?: string;
   };
   /// Security Agent verdict on whether the delivery meets the buyer's request,
   /// separate from link safety. 'aligned' (or absent) flows normally; 'partial'
@@ -773,6 +781,30 @@ export function recordDeliveryReview(snapshot: DirectDeal, patch: Partial<Direct
     if (!current || current.cancelledAt || current.settledAt
       || (current.deliveryRevision ?? 0) !== (snapshot.deliveryRevision ?? 0)
       || current.verificationStatus !== snapshot.verificationStatus) return null;
+    return { ...current, ...patch, updatedAt: Date.now() };
+  });
+}
+
+/** A record-only review of one delivery revision: the deal may be closed, but that revision's record must be as the reviewer saw it. */
+export function recordDeliveryReviewForRevision(snapshot: DirectDeal, revision: number, patch: Partial<DirectDeal>): Promise<DirectDeal | null> {
+  const entryOf = (deal: DirectDeal) => deal.deliveryHistory?.find((e) => e.revision === revision);
+  const reviewOf = (deal: DirectDeal) => (deal.deliveryReviews ?? []).find((r) => r.deliveryRevision === revision)?.decision ?? null;
+  return mutateLockedDeal(snapshot.jobId, (current) => {
+    if (!current) return null;
+    const isCurrent = (current.deliveryRevision ?? 0) === revision;
+    const sameVerdict = isCurrent
+      ? current.verificationStatus === snapshot.verificationStatus
+      : entryOf(current)?.verificationStatus === entryOf(snapshot)?.verificationStatus;
+    if (!sameVerdict || reviewOf(current) !== reviewOf(snapshot)) return null;
+    return { ...current, ...patch, updatedAt: Date.now() };
+  });
+}
+
+/** A person clears a held match; refused when the hold was re-evaluated or cleared meanwhile. */
+export function recordMatchHoldClear(snapshot: DirectDeal, patch: Partial<DirectDeal>): Promise<DirectDeal | null> {
+  return mutateLockedDeal(snapshot.jobId, (current) => {
+    if (!current || current.cancelledAt || current.settledAt || !current.matchRisk || current.matchRisk.clearedAt
+      || current.matchRisk.evaluatedAt !== snapshot.matchRisk?.evaluatedAt) return null;
     return { ...current, ...patch, updatedAt: Date.now() };
   });
 }

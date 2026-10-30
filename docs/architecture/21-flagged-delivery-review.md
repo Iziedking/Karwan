@@ -75,6 +75,48 @@ A 230 USDC deal's link (`.xyz`) was held for a safety check, but the deal page s
 
 A person who clears the link late cannot restart the buyer's review on the family's chain clock; the buyer can still ask once for more time.
 
+## A person checks a held match (found on testnet, 30 Oct 2026)
+
+Deal `0xd68f…` (a smart contract audit, 104.66 USDC) showed "Match held for review" to both people. The buyer read it as a flagged link, opened the support panel, and the panel answered that the delivery was not held, which was true: the delivery link was clean. The hold came from the security match gate (`security/matchGate.ts`), which screens the match after funding and held it because the buyer's account carried one unsafe-link offence from an earlier deal where they were the seller. What was wrong:
+
+- A held match had no way out. The field for clearing it existed but nothing wrote it, and no operator page showed held matches.
+- The deal page said "nothing releases until it clears". Nothing in the release rules reads the match hold, so that was not true. The gate was built as advisory, and the copy promised more.
+- The hold's reason was addressed to the other side, so the buyer saw a hold with no reason. The raw response still carried the other side's line, which only the browser hid.
+- The offence came from a replaced delivery (revision 2 of `0x0aa431…`, an `.xyz` link flagged on 23 Oct 2026). Revision 1 had been cleared by review, revision 3 was clean and the deal settled, so revision 2 was never reviewed, and a review can only reach the current revision of an open deal. The offence stayed on the record with no way off, and it will hold every later match of that account.
+
+### How it works now
+
+```
+match funded → security match gate → hold or flag on the deal
+      │
+      ▼
+deal page / assistant: "Held for a look", money unchanged, "Ask a person to check"
+      │ callPerson(message, dealId)              as for a held link
+      ▼
+/admin/support → Held, above the tickets
+      │ GET  /api/admin/support/held                    open deals with a held match or a held link
+      │ POST /api/admin/support/matches/:jobId/clear    {reason}
+      │ GET  /api/admin/support/deliveries/:jobId?revision=N
+      │ POST /api/admin/support/deliveries/:jobId/review {decision, reason, revision?}
+      ▼
+deals/matchHold.ts (rules) → deals/matchHoldService.ts (apply)
+deals/deliveryReview.ts, now by revision
+```
+
+### The rules
+
+- **A held match moves no money.** The deal page and the assistant say: the security agent held this match for a person at Karwan to look at; the money stays in escrow and release follows the deal's own rules. The old sentence about release is gone.
+- **Each side reads only its own lines.** The server sends a party the lines addressed to their role or to both, never the other side's line. Every hold carries one shared line: a past delivery link from one side was flagged by the safety check, a person at Karwan looks at it, nothing is blocked. The same line reaches the assistant through the shared deal view, so the website, Telegram and every channel answer "why is my match held" the same way.
+- **Clearing a hold.** Either credential, support or admin, clears it with a written reason; one decision is enough because the hold moves no money. The deal records who cleared it (the role, never a name), when and why. Both people get one line in the deal chat, and the card goes.
+- **A review reaches any revision.** A review names the delivery revision it is about. The current revision of an open deal is reviewed as before. A replaced revision, or any revision of a closed deal, can still be reviewed: clearing it marks that delivery clean in the history and takes the offence off the record, and changes nothing for the money or for the current delivery. Keeping it blocked only records the decision. A malicious verdict still needs both credentials.
+- **Finding the work.** Held matches and held links are listed for operators without a ticket. A held match shows the offence it rests on and the deals it came from, so the reviewer opens the right revision.
+
+### Decision for the owner
+
+The scanner rates `.xyz` a high-risk domain (`security/localScan.ts`). That is what flagged `arcrun.xyz`, twice. Options: keep it (one reviewer clears each hit, and the offence can now come off later), or take `.xyz` out of the list. Recommended: keep it until the review path above is live, then decide from how often it fires on real deals.
+
+#
+
 ## Status
 
-Built 22 Oct 2026; the escrow family fix built 27 Oct 2026.
+Built 22 Oct 2026; the escrow family fix built 27 Oct 2026. The held-match review was found, designed and built on 30 Oct 2026.

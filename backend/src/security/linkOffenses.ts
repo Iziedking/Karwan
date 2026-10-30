@@ -126,6 +126,25 @@ export function getMaliciousLinkCount(address: string): number {
   return maliciousCountOf(store.get(address.toLowerCase()));
 }
 
+/// The offences on one address as a reviewer needs them: how many, the last
+/// verdict, and the deals and surfaces they came from, so the right delivery
+/// can be reviewed. Null when the record is clean.
+export function getLinkOffense(address: string): { address: string; count: number; lastVerdict: 'suspicious' | 'malicious'; lastAt: number; from: Array<{ jobId: string; surface: 'delivery' | 'chat' }> } | null {
+  load();
+  const entry = store.get(address.toLowerCase());
+  if (!entry || entry.count === 0) return null;
+  return {
+    address: entry.address,
+    count: entry.count,
+    lastVerdict: entry.lastVerdict,
+    lastAt: entry.lastAt,
+    from: entry.seen.map((key) => {
+      const at = key.lastIndexOf(':');
+      return { jobId: key.slice(0, at), surface: key.slice(at + 1) as 'delivery' | 'chat' };
+    }),
+  };
+}
+
 /// Number of distinct flagged-link offenses recorded against an address.
 export function getLinkOffenseCount(address: string): number {
   load();

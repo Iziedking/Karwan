@@ -16,6 +16,7 @@ function setup(over: Partial<DirectDeal> = {}) {
   const deps: DeliveryReviewDeps = {
     getDeal: async () => deal,
     record: async (_snap, patch) => { deal = { ...deal, ...patch }; calls.push('record'); return deal; },
+    recordForRevision: async (_snap, revision, patch) => { deal = { ...deal, ...patch }; calls.push(`recordRevision:${revision}`); return deal; },
     releaseHold: async () => { calls.push('releaseHold'); },
     withdrawOffense: (i) => { calls.push(`withdraw:${i.verdict}`); },
     publishEvidence: async () => { calls.push('publish'); },
@@ -68,6 +69,46 @@ test('a malicious link waiting for the second credential changes nothing a perso
   assert.equal(s.deal().verificationStatus, 'malicious');
   assert.equal(s.deal().deliveryReview?.decision, 'pending-approval');
   assert.deepEqual(s.calls, ['record']);
+});
+
+test('clearing a replaced delivery corrects the record and the offence, and touches nothing for the money', async () => {
+  const s = setup({
+    deliveryRevision: 3, verificationStatus: 'clean', verificationReasons: [], releaseBlockedReason: undefined, deliveredAt: 3, settledAt: 9,
+    deliveryHistory: [
+      { revision: 1, submittedAt: 1, deliveryProof: 'www.arcrun.xyz', verificationStatus: 'suspicious' },
+      { revision: 2, submittedAt: 2, deliveryProof: 'arcrun.xyz', verificationStatus: 'suspicious' },
+      { revision: 3, submittedAt: 3, deliveryProof: 'outlier.ai/x', verificationStatus: 'clean' },
+    ],
+  } as Partial<DirectDeal>);
+  const out = await applyDeliveryReview('0xabc', { role: 'support', decision: 'safe', reason: REASON, revision: 2 }, s.deps);
+  assert.ok(out.ok && out.scope === 'record-only' && out.clears);
+  const d = s.deal();
+  assert.equal(d.deliveryHistory?.[1]?.verificationStatus, 'clean');
+  assert.equal(d.deliveryHistory?.[0]?.verificationStatus, 'suspicious', 'revision 1 is not touched');
+  assert.equal(d.verificationStatus, 'clean');
+  assert.equal(d.deliveredAt, 3, 'the review window is not restarted');
+  assert.equal(d.settledAt, 9);
+  assert.equal(d.deliveryReview, undefined, 'the current delivery has no review');
+  assert.equal(d.deliveryReviews?.[0]?.deliveryRevision, 2);
+  assert.deepEqual(s.calls, ['recordRevision:2', 'withdraw:suspicious', 'message:safe']);
+});
+
+test('keeping a replaced delivery blocked records the decision and nothing else', async () => {
+  const s = setup({
+    deliveryRevision: 2, verificationStatus: 'clean', releaseBlockedReason: undefined,
+    deliveryHistory: [{ revision: 1, submittedAt: 1, deliveryProof: 'x.xyz', verificationStatus: 'suspicious' }],
+  } as Partial<DirectDeal>);
+  const out = await applyDeliveryReview('0xabc', { role: 'admin', decision: 'unsafe', reason: REASON, revision: 1 }, s.deps);
+  assert.ok(out.ok && out.scope === 'record-only' && !out.clears);
+  assert.equal(s.deal().deliveryHistory?.[0]?.verificationStatus, 'suspicious');
+  assert.deepEqual(s.calls, ['recordRevision:1']);
+});
+
+test('a current review is also kept in the per-revision list', async () => {
+  const s = setup();
+  await applyDeliveryReview('0xabc', { role: 'support', decision: 'safe', reason: REASON }, s.deps);
+  assert.equal(s.deal().deliveryReviews?.length, 1);
+  assert.equal(s.deal().deliveryReviews?.[0]?.scope, 'current');
 });
 
 test('a delivery that changed underneath is not touched', async () => {

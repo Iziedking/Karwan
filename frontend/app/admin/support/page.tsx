@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { api, type AdminTicketRow } from '@/core/api';
+import { api, type AdminHeldView, type AdminTicketRow } from '@/core/api';
 import { CopyId } from '@/shared/components/CopyId';
 import { useDialog } from '@/shared/components/Dialog';
 import { stripMarkdown } from '@/shared/utils/format';
@@ -24,6 +24,9 @@ export default function AdminSupport() {
   const [selected, setSelected] = useState<string | null>(null);
   const [messages, setMessages] = useState<TicketMsg[]>([]);
   const [dealIds, setDealIds] = useState<string[]>([]);
+  /// Held matches and held links waiting for a person, with no ticket needed (view 21).
+  const [held, setHeld] = useState<AdminHeldView | null>(null);
+  const [heldJob, setHeldJob] = useState<string | null>(null);
   const [reply, setReply] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -46,6 +49,8 @@ export default function AdminSupport() {
     try {
       const r = await api.adminSupportList();
       setTickets(r.tickets);
+      const h = await api.adminSupportHeld().catch(() => null);
+      if (h) setHeld((prev) => (JSON.stringify(prev) === JSON.stringify(h) ? prev : h));
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Failed to load');
     }
@@ -130,6 +135,37 @@ export default function AdminSupport() {
         meta={tickets ? `${tickets.length} open conversations` : 'Waiting for open conversations'}
       />
       {err && <p role="alert" className="mt-5 border-l-2 border-[#e0794f] px-3 py-2 text-[12px] text-[#efaa8d]">• Error: {err}</p>}
+
+      {held && (held.matches.length > 0 || held.links.length > 0) && (
+        <section className="mt-5 space-y-2" aria-label="Held for a look">
+          <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/45">Held for a look</p>
+          <div className="border border-white/10 rounded-xl divide-y divide-white/[0.06]">
+            {held.matches.map((m) => (
+              <button key={`m-${m.jobId}`} type="button" onClick={() => setHeldJob(heldJob === m.jobId ? null : m.jobId)} className={`w-full text-start p-3 transition ${heldJob === m.jobId ? 'bg-white/[0.06]' : 'hover:bg-white/[0.03]'}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[13px] text-white">Match held · {m.amountUsdc} USDC</span>
+                  <span className="mono text-[11px] text-white/50">{m.jobId.slice(0, 10)}…</span>
+                </div>
+                <p className="mt-1 text-[12px] text-white/55">{m.reasons.map((r) => r.text).join(' ') || m.flags.join(', ')}</p>
+                {m.offences.length > 0 && (
+                  <p className="mt-1 text-[12px] text-white/45">
+                    {m.offences.map((o) => `${o.address.slice(0, 8)}… ${o.count} on record, from ${o.from.map((f) => f.jobId.slice(0, 10)).join(', ')}`).join(' · ')}
+                  </p>
+                )}
+              </button>
+            ))}
+            {held.links.map((l) => (
+              <button key={`l-${l.jobId}`} type="button" onClick={() => setHeldJob(heldJob === l.jobId ? null : l.jobId)} className={`w-full text-start p-3 transition ${heldJob === l.jobId ? 'bg-white/[0.06]' : 'hover:bg-white/[0.03]'}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[13px] text-white">Link held ({l.verificationStatus}) · {l.amountUsdc} USDC · delivery {l.deliveryRevision}</span>
+                  <span className="mono text-[11px] text-white/50">{l.jobId.slice(0, 10)}…</span>
+                </div>
+              </button>
+            ))}
+          </div>
+          {heldJob && <DeliveryReviewPanel key={heldJob} jobId={heldJob} onChanged={() => void loadList()} />}
+        </section>
+      )}
 
       <div className="mt-5 grid md:grid-cols-[320px_1fr] gap-4">
         {/* ticket list */}

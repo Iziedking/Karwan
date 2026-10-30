@@ -177,6 +177,7 @@ import { releaseBlockReasonForDelivery } from '../deals/releaseBlock.js';
 import { dealOrigin, publicFeedDeal } from '../deals/publicFeed.js';
 import { manualReviewActive, manualReviewEligibility } from '../deals/evidenceManualReview.js';
 import { reviewForParty } from '../deals/deliveryReview.js';
+import { matchHoldForParty } from '../deals/matchHold.js';
 import { recordSettlement } from '../deals/recordSettlement.js';
 import { dealView, type DealViewInput } from '../deals/dealView.js';
 import { loadTrustCard } from '../trust/loadTrustCard.js';
@@ -1498,6 +1499,8 @@ dealsRoutes.get('/direct', async (c) => {
       const held = d.verificationStatus === 'suspicious' || d.verificationStatus === 'malicious';
       return {
         ...deal,
+        matchRisk: undefined,
+        matchHold: matchHoldForParty(d, asBuyer ? 'buyer' : 'seller'),
         deliveryHistory: deliveryHistoryFor(d.deliveryHistory, asBuyer ? 'buyer' : 'seller', d.deliveryReview),
         handover: undefined,
         ...(asBuyer ? {} : { deliveryMatch: undefined }),
@@ -1548,8 +1551,8 @@ dealsRoutes.get('/direct/:jobId', async (c) => {
     : undefined;
   const deliveryHistory = deliveryHistoryFor(deal.deliveryHistory, viewerIsBuyer ? 'buyer' : 'seller', deal.deliveryReview);
   const shaped = viewerIsBuyer
-    ? { ...enriched, ...extras, trust, deliveryCheck, dispute, deliveryHistory, handover: undefined, disputeStatements: undefined, judgeProposal: undefined }
-    : { ...enriched, ...extras, trust, deliveryCheck, dispute, deliveryHistory, handover: undefined, disputeStatements: undefined, judgeProposal: undefined, deliveryMatch: undefined };
+    ? { ...enriched, ...extras, trust, deliveryCheck, dispute, deliveryHistory, handover: undefined, matchRisk: undefined, disputeStatements: undefined, judgeProposal: undefined }
+    : { ...enriched, ...extras, trust, deliveryCheck, dispute, deliveryHistory, handover: undefined, matchRisk: undefined, disputeStatements: undefined, judgeProposal: undefined, deliveryMatch: undefined };
   if (viewerIsBuyer && held && enriched.deliveryProof) {
     return c.json({ deal: { ...shaped, deliveryProof: undefined } });
   }
@@ -5696,8 +5699,10 @@ async function partyView(enriched: Awaited<ReturnType<typeof enrich>>, viewer: '
     logger.warn({ jobId: enriched.jobId, err: (err as Error).message }, 'counterparty trust card unavailable');
     return null;
   });
+  const matchHold = matchHoldForParty(enriched, viewer);
+  input.matchHoldLine = matchHold?.decision === 'hold' ? matchHold.lines[0] ?? null : null;
   const view = dealView(input, viewer, pendingMovement, Date.now());
-  return { view: { ...view, ...(await recordStatusOf(enriched, view.stage, viewer, caller)) }, counterpartyTrust };
+  return { view: { ...view, ...(await recordStatusOf(enriched, view.stage, viewer, caller)) }, counterpartyTrust, matchHold };
 }
 
 /// A settled suite deal reads "on both your records" once the record holds both

@@ -68,6 +68,9 @@ export interface DealViewInput {
   /// A milestone was paid and the next one waits for its own delivery
   /// (deals/milestoneDelivery.ts).
   awaitingNextDelivery?: boolean;
+  /// The shared line of a held match this viewer may read (deals/matchHold.ts),
+  /// null or absent when the match passed or the hold was cleared.
+  matchHoldLine?: string | null;
   onChain?: { state: number; milestonesReleased: number; milestonePcts: number[] } | null;
 }
 
@@ -84,6 +87,21 @@ export interface DealView {
   onMyRecord?: 'recorded' | 'pending' | 'missing';
   /// The receipt line for a person with their own wallet (view 27, decision 11).
   recordNudge?: boolean;
+  /// Something a person at Karwan is looking at on this deal, said the same way
+  /// on the deal page, in the assistant and in every channel. A held match
+  /// moves no money; a held delivery link pays nothing until it clears.
+  hold: { kind: 'match' | 'link'; line: string } | null;
+}
+
+const HELD_LINK_LINE = 'The delivery link is held for a safety check. Nothing is paid for it until a person at Karwan clears it or a new link arrives.';
+
+export function holdOf(deal: Pick<DealViewInput, 'matchHoldLine' | 'delivered' | 'verificationStatus' | 'settledAt' | 'cancelledAt'>): DealView['hold'] {
+  if (deal.settledAt || deal.cancelledAt) return null;
+  if (deal.delivered && (deal.verificationStatus === 'suspicious' || deal.verificationStatus === 'malicious')) {
+    return { kind: 'link', line: HELD_LINK_LINE };
+  }
+  if (deal.matchHoldLine) return { kind: 'match', line: deal.matchHoldLine };
+  return null;
 }
 
 const MICROS = 1_000_000n;
@@ -277,5 +295,6 @@ export function dealView(
     progress: progress(deal, stage),
     next: next(deal, stage, viewer, now),
     automatic: automatic(deal, stage),
+    hold: holdOf(deal),
   };
 }

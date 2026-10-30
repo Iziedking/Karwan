@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { dealView, milestoneAmountUsdc, type DealViewInput } from './dealView.js';
+import { dealView, holdOf, milestoneAmountUsdc, type DealViewInput } from './dealView.js';
 
 const NOW = 1_790_000_000_000;
 const base: DealViewInput = {
@@ -241,4 +241,15 @@ test('a deal refunded before the seller accepted shows the money went in and cam
   const view = dealView(back, 'buyer', false, NOW);
   assert.equal(view.money.line, 'refunded');
   assert.deepEqual(view.progress.map((p) => p.step), ['agreed', 'funded', 'cancelled', 'refunded']);
+});
+
+test('the view carries one hold line: a held link first, else a held match, nothing once cleared or closed', () => {
+  assert.equal(dealView(funded, 'buyer', false, NOW).hold, null);
+  const match = { ...funded, matchHoldLine: 'A past delivery link from one side was flagged by the safety check. A person at Karwan looks at it. Nothing is blocked.' };
+  assert.deepEqual(dealView(match, 'buyer', false, NOW).hold, { kind: 'match', line: match.matchHoldLine });
+  assert.equal(dealView(match, 'seller', false, NOW).hold?.kind, 'match');
+  const link = { ...delivered, verificationStatus: 'suspicious', matchHoldLine: match.matchHoldLine };
+  assert.equal(dealView(link, 'buyer', false, NOW).hold?.kind, 'link', 'a held link outranks the match hold: it does stop payment');
+  assert.equal(holdOf({ ...match, settledAt: NOW }), null);
+  assert.equal(holdOf({ ...match, matchHoldLine: null }), null);
 });
