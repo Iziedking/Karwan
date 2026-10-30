@@ -97,6 +97,8 @@ export interface WorkCopy {
   };
   notNow: string;
   failed: string;
+  /// The two choices at the top of the deal form (view 32).
+  dealForm: { whatItIs: string; service: string; goods: string; shipped: string; inPerson: string; howYouPay: string; fixed: string; byTheHour: string };
 }
 
 export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
@@ -207,6 +209,7 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
       closeSheet: { title: 'Close this work', body: 'It comes off the market and the people who offered are told.', confirm: 'Close it' },
     },
     notNow: 'Not now',
+    dealForm: { whatItIs: 'What it is', service: 'A service', goods: 'Goods', shipped: 'Shipped', inPerson: 'Handed over in person', howYouPay: 'How you pay', fixed: 'Fixed price', byTheHour: 'By the hour' },
     failed: 'That did not go through. Try again in a minute.',
   },
   fr: {
@@ -316,6 +319,7 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
       closeSheet: { title: 'Fermer ce travail', body: 'Il quitte le marché et les personnes qui ont fait une offre sont prévenues.', confirm: 'Fermer' },
     },
     notNow: 'Pas maintenant',
+    dealForm: { whatItIs: 'De quoi il s’agit', service: 'Un service', goods: 'Des biens', shipped: 'Expédié', inPerson: 'Remis en main propre', howYouPay: 'Comment vous payez', fixed: 'Prix fixe', byTheHour: 'À l’heure' },
     failed: "Cela n'a pas abouti. Réessayez dans une minute.",
   },
   ar: {
@@ -425,6 +429,7 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
       closeSheet: { title: 'أغلق هذا العمل', body: 'يُزال من السوق ويُبلّغ من قدّموا عروضاً.', confirm: 'أغلقه' },
     },
     notNow: 'ليس الآن',
+    dealForm: { whatItIs: 'ما هو', service: 'خدمة', goods: 'سلع', shipped: 'يُشحن', inPerson: 'يُسلَّم يدًا بيد', howYouPay: 'طريقة الدفع', fixed: 'سعر ثابت', byTheHour: 'بالساعة' },
     failed: 'لم يتم ذلك. حاول مرة أخرى بعد دقيقة.',
   },
   hi: {
@@ -534,6 +539,7 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
       closeSheet: { title: 'यह काम बंद करें', body: 'यह बाज़ार से हट जाता है और प्रस्ताव देने वालों को बताया जाता है।', confirm: 'बंद करें' },
     },
     notNow: 'अभी नहीं',
+    dealForm: { whatItIs: 'यह क्या है', service: 'एक सेवा', goods: 'सामान', shipped: 'भेजा जाएगा', inPerson: 'हाथों-हाथ सौंपा जाएगा', howYouPay: 'आप कैसे भुगतान करेंगे', fixed: 'तय कीमत', byTheHour: 'घंटे के हिसाब से' },
     failed: 'यह नहीं हो पाया। एक मिनट में फिर कोशिश करें।',
   },
   sw: {
@@ -643,6 +649,7 @@ export const workCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', WorkCopy> = {
       closeSheet: { title: 'Funga kazi hii', body: 'Inaondoka sokoni na waliotoa ofa wanaambiwa.', confirm: 'Ifunge' },
     },
     notNow: 'Si sasa',
+    dealForm: { whatItIs: 'Ni nini', service: 'Huduma', goods: 'Bidhaa', shipped: 'Itatumwa', inPerson: 'Itakabidhiwa ana kwa ana', howYouPay: 'Unavyolipa', fixed: 'Bei maalum', byTheHour: 'Kwa saa' },
     failed: 'Haikufanikiwa. Jaribu tena baada ya dakika moja.',
   },
 };

@@ -556,6 +556,11 @@ export interface DirectDeal {
   /// and the SME passport surfacing. Absent on rows created before this
   /// landed; backend treats absent as 'service' to preserve old UI.
   tradeType?: 'service' | 'goods' | 'mixed';
+  /// One payment, stages or goods (view 32), stored when the deal is made and
+  /// when its split or trade type changes before funding. Absent on older rows.
+  dealKind?: import('../chain/agreementTerms.js').DealKind;
+  /// Goods only: how they reach the buyer, chosen on the deal (view 32).
+  goodsWay?: 'shipped' | 'in_person';
   /// Incoterms 2020 set. Only the subset relevant to SME cross-border deals
   /// per sme-research.md §2: FOB, CIF, DAP, EXW, FCA, DDP.
   incoterms?: 'EXW' | 'FCA' | 'FOB' | 'CIF' | 'DAP' | 'DDP';

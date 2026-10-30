@@ -17,6 +17,7 @@ import type { ContractCallLifecycle } from '../chain/txs.js';
 import type { DirectDeal } from '../db/deals.js';
 import type { PlanMovementLegInput } from '../money/model.js';
 import { CHECK_POLICY_V1, fundingSaltV3 } from './fundDirectV3.js';
+import { kindOf } from './dealKind.js';
 import { termsFloorMs } from './releaseWindow.js';
 
 /// Funding a direct deal on the escrow family's Agreement escrow (view 27): the
@@ -107,10 +108,10 @@ export interface FundDirectSuiteResult {
   body: Record<string, unknown>;
 }
 
-/// The kind of deal a direct deal is, from what it records (view 26).
-export function dealKindForSuite(deal: { tradeType?: 'service' | 'goods' | 'mixed' }, milestonePcts: number[]): DealKind {
-  if (deal.tradeType === 'goods' || deal.tradeType === 'mixed') return 'goods';
-  return milestonePcts.filter((p) => p > 0).length > 1 ? 'milestones' : 'one_time';
+/// The kind of deal a direct deal is (view 32): the kind stored on it, or for
+/// a deal from before that, worked out from what it records.
+export function dealKindForSuite(deal: { tradeType?: 'service' | 'goods' | 'mixed'; dealKind?: DealKind }, milestonePcts: number[]): DealKind {
+  return deal.dealKind ?? kindOf({ tradeType: deal.tradeType, firstReleasePct: milestonePcts[0] ?? 100, milestonePcts });
 }
 
 const usdc = (micros: bigint) => formatUnits(micros, USDC_DECIMALS);

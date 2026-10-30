@@ -144,3 +144,37 @@ test('a direct deal names the seller in one box and sends the agreed terms in tw
   expect(agreement).toContain('• Milestone 3, 20% (40 USDC): Edited set in one folder');
   expect(agreement).toContain('Time to check: 10 days after each delivery');
 });
+
+test('a person can open a goods deal handed over in person, and By the hour opens the hourly form (view 32)', async ({ page }) => {
+  await signedInBuyer(page);
+  let posted: Record<string, unknown> | null = null;
+  await page.route(`${API}/api/deals/direct`, async route => {
+    if (route.request().method() !== 'POST') return route.fallback();
+    posted = route.request().postDataJSON();
+    return route.fulfill({ status: 500, json: { error: 'stop here' } });
+  });
+  const dd = en.directDeal;
+  const wf = en.work.dealForm;
+  const tb = TERMS_COPY.en;
+
+  await page.goto('/buyer?mode=direct');
+  const next = page.getByRole('button', { name: rs.continue, exact: true });
+  await page.getByLabel(dd.counterparty.oneBoxLabel).fill('0x3333333333333333333333333333333333333333');
+  await next.click();
+
+  await expect(page.getByRole('link', { name: wf.byTheHour, exact: true })).toHaveAttribute('href', '/work/new');
+  await page.getByRole('button', { name: wf.goods, exact: true }).click();
+  await expect(page.getByRole('link', { name: wf.byTheHour, exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: wf.inPerson, exact: true }).click();
+  await expect(page.getByRole('button', { name: wf.inPerson, exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('spinbutton').first().fill('80');
+  await page.getByRole('button', { name: new RegExp(`^${rs.week1}`) }).click();
+  await next.click();
+
+  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '1')}: ${tb.whatLabel}`, exact: true }).fill('Tecno Spark 20, blue, with charger');
+  await page.getByRole('button', { name: en.dealCreation.review, exact: true }).click();
+  await page.getByRole('button', { name: rs.sendTo.replace('{name}', '0x3333…3333'), exact: true }).click();
+  await expect.poll(() => posted).not.toBeNull();
+  expect(posted).toMatchObject({ tradeType: 'goods', goodsWay: 'in_person', dealAmountUsdc: 80 });
+  expect(posted).not.toHaveProperty('incoterms');
+});

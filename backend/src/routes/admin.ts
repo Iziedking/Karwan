@@ -44,6 +44,7 @@ import {
 import { logger } from '../logger.js';
 import { requireAdmin } from '../middleware/adminAuth.js';
 import { formLimitsState, setFormLimits } from '../db/formLimits.js';
+import { dealRulesState, setDealRules } from '../db/dealRulesSwitch.js';
 import { addInvites, ENV_INVITES, listInvites, listWaitlist, markInviteEmailed, removeInvite } from '../db/waitlist.js';
 import { listResearchAnswers, summarizeResearchAnswers } from '../db/researchAnswers.js';
 import { sendMainnetAccessEmail } from '../emails/mainnetAccess.js';
@@ -1238,6 +1239,20 @@ adminRoutes.post('/form-limits', async (c) => {
     return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   return c.json(await setFormLimits(body.on, 'admin'));
+});
+
+/// The deal rules (view 32): off until after the 3 Nov demo. While off, a deal
+/// a rule would refuse goes ahead and is logged.
+adminRoutes.get('/deal-rules', async (c) => c.json(await dealRulesState()));
+
+adminRoutes.post('/deal-rules', async (c) => {
+  let body;
+  try {
+    body = z.object({ on: z.boolean() }).parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: invalidBodyMessage(err) }, 400);
+  }
+  return c.json(await setDealRules(body.on, 'admin'));
 });
 
 adminRoutes.get('/waitlist', async (c) => {

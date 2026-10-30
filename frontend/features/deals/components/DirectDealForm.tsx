@@ -1,5 +1,6 @@
 ﻿'use client';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -87,6 +88,7 @@ function inferDocKindDD(name: string): DocumentKind {
 export function DirectDealForm() {
   const t = useTranslations();
   const tt = t.tradeTerms;
+  const wf = t.work.dealForm;
   const sectorLabels = t.smeCompany.sectors;
   const dd = t.directDeal;
   const c = t.dealCreation;
@@ -196,6 +198,7 @@ export function DirectDealForm() {
   // Vercel `rerender-split-combined-hooks` rule. Default tradeType is
   // 'service' so the existing service-flow deal experience is unchanged.
   const [tradeType, setTradeType] = useState<'service' | 'goods' | 'mixed'>('service');
+  const [goodsWay, setGoodsWay] = useState<'shipped' | 'in_person'>('shipped');
   const [incoterms, setIncoterms] = useState<
     'EXW' | 'FCA' | 'FOB' | 'CIF' | 'DAP' | 'DDP' | null
   >(null);
@@ -232,6 +235,13 @@ export function DirectDealForm() {
   const paytagAllowed = PAYTAG_ENABLED && !(isBusiness && tradeType !== 'service');
   const [contactMatch, setContactMatch] = useState<ContactMatch | null>(null);
   const [contactState, setContactState] = useState<'idle' | 'looking' | 'missing' | 'self' | 'error'>('idle');
+  // By the hour opens the hourly form with the person and what was typed (view 32).
+  const byTheHourHref = (() => {
+    const q = new URLSearchParams();
+    if (contactMatch?.tag) q.set('to', `@${contactMatch.tag}`);
+    else if (counterparty.trim().startsWith('@')) q.set('to', counterparty.trim());
+    return `/work/new${q.size ? `?${q}` : ''}`;
+  })();
 
   // Debounced so the lookup fires when they stop typing, not per keystroke.
   const tagQuery = contact.kind === 'tag' ? contact : null;
@@ -408,9 +418,10 @@ export function DirectDealForm() {
         requireStake,
         requireStakePct: requireStake ? requireStakePct : undefined,
         tradeType: tradeType !== 'service' ? tradeType : undefined,
-        incoterms: tradeType !== 'service' && incoterms ? incoterms : undefined,
-        paymentTerms: tradeType !== 'service' ? paymentTerms : undefined,
-        counterpartyCompany: tradeType !== 'service' ? counterpartyCompany : undefined,
+        goodsWay: tradeType !== 'service' ? goodsWay : undefined,
+        incoterms: isBusiness && tradeType !== 'service' && incoterms ? incoterms : undefined,
+        paymentTerms: isBusiness && tradeType !== 'service' ? paymentTerms : undefined,
+        counterpartyCompany: isBusiness && tradeType !== 'service' ? counterpartyCompany : undefined,
         documentRefs: documentRefs.length > 0 ? documentRefs : undefined,
         sourceContext: {
           channel: sourceChannel,
@@ -553,6 +564,39 @@ export function DirectDealForm() {
       </div>
 
       <div hidden={step !== 1} className="space-y-6">
+      <FieldSection title={wf.whatItIs}>
+        <div className="flex flex-wrap gap-2" role="group" aria-label={wf.whatItIs}>
+          {(['service', 'goods'] as const).map((opt) => {
+            const on = opt === 'service' ? tradeType === 'service' : tradeType !== 'service';
+            return (
+              <button key={opt} type="button" aria-pressed={on} disabled={submitting}
+                onClick={() => setTradeType(opt === 'service' ? 'service' : tradeType === 'mixed' ? 'mixed' : 'goods')}
+                className={cn(chip, on ? chipOn : chipOff)}>
+                {opt === 'service' ? wf.service : wf.goods}
+              </button>
+            );
+          })}
+        </div>
+        {tradeType !== 'service' ? (
+          <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label={wf.goods}>
+            {(['shipped', 'in_person'] as const).map((way) => (
+              <button key={way} type="button" aria-pressed={goodsWay === way} disabled={submitting} onClick={() => setGoodsWay(way)}
+                className={cn(chip, goodsWay === way ? chipOn : chipOff)}>
+                {way === 'shipped' ? wf.shipped : wf.inPerson}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-5">
+            <p className="text-[14px] font-semibold text-[var(--lp-dark)]">{wf.howYouPay}</p>
+            <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label={wf.howYouPay}>
+              <button type="button" aria-pressed disabled={submitting} className={cn(chip, chipOn)}>{wf.fixed}</button>
+              <Link href={byTheHourHref} className={cn(chip, chipOff, 'inline-flex items-center')}>{wf.byTheHour}</Link>
+            </div>
+          </div>
+        )}
+      </FieldSection>
+
       <FieldSection title={c.priceDeadline}>
         <FormLabel label={dd.terms.amountLabel} unit="USDC">
           <input
@@ -601,9 +645,10 @@ export function DirectDealForm() {
           for individuals so a P2P direct deal stays the simple service flow. */}
       {SME_TRADES_ENABLED && isBusiness && (
       <FieldSection title={tt.sectionTitle}>
+        {tradeType !== 'service' ? (
         <FormLabel label={tt.tradeType}>
           <div className="flex gap-2 flex-wrap">
-            {(['service', 'goods', 'mixed'] as const).map((opt) => (
+            {(['goods', 'mixed'] as const).map((opt) => (
               <button
                 key={opt}
                 type="button"
@@ -616,6 +661,7 @@ export function DirectDealForm() {
             ))}
           </div>
         </FormLabel>
+        ) : null}
         {tradeType !== 'service' ? (
           <>
             <FormLabel label={tt.incoterms} hint={tt.incotermsHint}>

@@ -72,6 +72,8 @@ export const createSchema = z
     /// SME trade-finance fields (Phase 2 Track 2). All optional; service-flow
     /// direct deals continue to post without them.
     tradeType: z.enum(['service', 'goods', 'mixed']).optional(),
+    /// Goods only: shipped with tracking at delivery, or handed over in person (view 32).
+    goodsWay: z.enum(['shipped', 'in_person']).optional(),
     incoterms: z.enum(['EXW', 'FCA', 'FOB', 'CIF', 'DAP', 'DDP']).optional(),
     paymentTerms: z.enum(['immediate', 'net30', 'net60', 'net90']).optional(),
     counterpartyCompany: z

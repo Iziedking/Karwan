@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { api, ApiError } from '@/core/api';
+import { DealRulesSwitch } from '@/features/admin/DealRulesSwitch';
 
 /// Operator diagnostics. A backend-health overview (model gateway, operator
 /// funds, infrastructure, feature flags) plus an agent-seed tool that can fund
@@ -95,6 +96,7 @@ export default function AdminDiagnostics() {
         </p>
       </div>
       <HealthOverview />
+      <DealRulesSwitch />
       <OlderContractsPanel />
       <AgentSeedPanel />
     </div>

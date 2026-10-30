@@ -22,6 +22,8 @@ export interface DealAnswers {
   reviewDays?: number;
   acceptWithinHours?: number;
   tradeType?: 'service' | 'goods' | 'mixed';
+  /// Goods only: shipped, or handed over in person (view 32).
+  goodsWay?: 'shipped' | 'in_person';
   incoterms?: 'EXW' | 'FCA' | 'FOB' | 'CIF' | 'DAP' | 'DDP';
   paymentTerms?: 'immediate' | 'net30' | 'net60' | 'net90';
   company?: { name?: string; sector?: string; region?: string };
@@ -74,6 +76,7 @@ export function dealBody(
     requireStake: a.stakePct !== undefined,
     ...(a.stakePct !== undefined ? { requireStakePct: a.stakePct } : {}),
     ...(a.tradeType ? { tradeType: a.tradeType } : {}),
+    ...(goods && a.goodsWay ? { goodsWay: a.goodsWay } : {}),
     ...(goods && a.incoterms ? { incoterms: a.incoterms } : {}),
     ...(goods && a.paymentTerms ? { paymentTerms: a.paymentTerms } : {}),
     ...(goods && a.company ? { counterpartyCompany: a.company } : {}),
@@ -119,6 +122,7 @@ export function dealCardFields(body: CreateDirectDealBody, sellerLabel: string, 
   if (body.reviewWindowDays) rows.push({ label: 'Days to check each delivery', value: String(body.reviewWindowDays) });
   rows.push({ label: 'They have to accept within', value: `${body.acceptanceWindowHours} hours` });
   if (body.tradeType) rows.push({ label: 'Type', value: TRADE[body.tradeType] ?? body.tradeType });
+  if (body.goodsWay) rows.push({ label: 'How it reaches you', value: body.goodsWay === 'in_person' ? 'Handed over in person' : 'Shipped' });
   if (body.incoterms) rows.push({ label: 'Delivery terms', value: body.incoterms });
   if (body.paymentTerms) rows.push({ label: 'Payment terms', value: TERMS[body.paymentTerms] ?? body.paymentTerms });
   if (body.counterpartyCompany?.name) rows.push({ label: 'Company', value: body.counterpartyCompany.name });

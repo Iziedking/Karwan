@@ -3951,6 +3951,10 @@ export const api = {
       method: 'DELETE',
       headers: adminHeaders(),
     }),
+  adminDealRules: () =>
+    json<AdminFormLimits>('/api/admin/deal-rules', { headers: adminHeaders() }),
+  adminSetDealRules: (on: boolean) =>
+    json<AdminFormLimits>('/api/admin/deal-rules', { method: 'POST', headers: adminHeaders(), body: JSON.stringify({ on }) }),
   adminFormLimits: () =>
     json<AdminFormLimits>('/api/admin/form-limits', { headers: adminHeaders() }),
   adminSetFormLimits: (on: boolean) =>
@@ -4434,6 +4438,8 @@ export const api = {
     /// SME trade-finance fields (Phase 2 Track 2). All optional; legacy
     /// service-flow deals continue to post without them.
     tradeType?: 'service' | 'goods' | 'mixed';
+    /// Goods only: shipped, or handed over in person (view 32).
+    goodsWay?: 'shipped' | 'in_person';
     incoterms?: 'EXW' | 'FCA' | 'FOB' | 'CIF' | 'DAP' | 'DDP';
     paymentTerms?: 'immediate' | 'net30' | 'net60' | 'net90';
     counterpartyCompany?: { name?: string; sector?: string; region?: string };

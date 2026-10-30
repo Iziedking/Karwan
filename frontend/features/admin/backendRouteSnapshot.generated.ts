@@ -46,6 +46,8 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "POST", path: "/api/admin/attestations/sweep" },
   { method: "GET", path: "/api/admin/business/pending" },
   { method: "POST", path: "/api/admin/business/review" },
+  { method: "GET", path: "/api/admin/deal-rules" },
+  { method: "POST", path: "/api/admin/deal-rules" },
   { method: "GET", path: "/api/admin/deals" },
   { method: "POST", path: "/api/admin/deals/:jobId/extend" },
   { method: "POST", path: "/api/admin/deals/:jobId/force-cancel" },

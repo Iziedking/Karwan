@@ -5,6 +5,8 @@ import { awaitingNextDelivery } from '../deals/milestoneDelivery.js';
 import { SELLER_LINK_DETAIL, sellerAgentBinding, sellerBindingRefusal } from '../deals/sellerBinding.js';
 import { prohibitedBody } from '../policy/prohibited.js';
 import { addrSchema, createSchema, milestonePctsSchema } from '../deals/createSchema.js';
+import { kindOf } from '../deals/dealKind.js';
+import { dealRuleRefusal } from '../deals/dealRulesLive.js';
 import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 import { randomBytes, randomUUID } from 'node:crypto';
@@ -688,6 +690,8 @@ dealsRoutes.post('/direct', async (c) => {
     tradeLane,
     partyKind: creatorAccountType,
     tradeType: body.tradeType,
+    dealKind: kindOf({ tradeType: body.tradeType, firstReleasePct: body.firstReleasePct, milestonePcts: body.milestonePcts }),
+    ...(body.goodsWay ? { goodsWay: body.goodsWay } : {}),
     incoterms: body.incoterms,
     paymentTerms: body.paymentTerms,
     counterpartyCompany: body.counterpartyCompany,
@@ -856,6 +860,7 @@ dealsRoutes.post('/direct/:jobId/edit', async (c) => {
     patch.reviewWindowDays = body.reviewWindowDays;
   }
   Object.assign(patch, splitPatch(body));
+  patch.dealKind = kindOf({ ...deal, ...patch });
   if (body.deadlineDays !== undefined || body.deadlineHours !== undefined) {
     const days = body.deadlineDays ?? 0;
     const hours = body.deadlineHours ?? 0;
@@ -1044,6 +1049,7 @@ dealsRoutes.post('/direct/:jobId/counter', async (c) => {
   if (body.dealAmountUsdc !== undefined) patch.dealAmountUsdc = body.dealAmountUsdc.toString();
   if (body.terms !== undefined) patch.terms = body.terms;
   Object.assign(patch, splitPatch(body));
+  patch.dealKind = kindOf({ ...deal, ...patch });
   if (body.deadlineDays !== undefined || body.deadlineHours !== undefined) {
     const days = body.deadlineDays ?? 0;
     const hours = body.deadlineHours ?? 0;
@@ -2125,6 +2131,8 @@ dealsRoutes.post('/direct/:jobId/fund', async (c) => {
   if (!chatLimit.ok) {
     return c.json({ error: chatLimit.message, code: 'CHAT_DEAL_LIMIT', reason: chatLimit.reason }, 409);
   }
+  const refused = await dealRuleRefusal(deal);
+  if (refused) return c.json({ error: `${refused.words} ${refused.fix}`, code: 'DEAL_RULE', rule: refused.rule }, 409);
   const outgoing = {
     wallet: deal.buyer,
     exit: { kind: 'escrow' },
