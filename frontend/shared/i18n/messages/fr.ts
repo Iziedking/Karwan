@@ -2396,7 +2396,7 @@ export const fr: Messages = {
   },
   financierDashboard: {
     title: 'Financement',
-    intro: 'Payez les vendeurs en avance sur des deals acceptés. Vous avancez une partie d’un paiement maintenant et recevez cette partie, avec votre remise, quand l’acheteur approuve la livraison.',
+    intro: 'Payez un vendeur en avance sur une partie d’un deal accepté, avant ou après la livraison. Quand l’acheteur libère le paiement, l’escrow vous rembourse en premier, avec votre remise.',
     testnet: 'Testnet. Les offres utilisent des USDC de test.',
     close: 'Fermer',
     working: 'En cours',
@@ -2406,8 +2406,8 @@ export const fr: Messages = {
     declined: 'Vous avez refusé la signature, rien n’a été envoyé.',
     positions: {
       title: 'Vos positions',
-      summary: '{active} actives · {out} USDC avancés · {back} USDC attendus',
-      needsReview: '{count} à examiner',
+      summary: '{active} actives · {out} USDC avancés · {back} USDC à recevoir',
+      needsReview: '{count} vous attendent',
       status: {
         accepted: 'Active',
         settled: 'Remboursée',
@@ -2419,7 +2419,7 @@ export const fr: Messages = {
       detail: {
         accepted: 'Remboursée quand l’acheteur approuve la livraison',
         settled: 'Remboursée en totalité',
-        defaulted: 'Le remboursement n’a pas été effectué',
+        defaulted: 'Pas remboursée en entier. Ouvrez-la pour voir ce qui est revenu et ce qui reste dû.',
         awaiting_financier: "Le vendeur a pris votre offre. Payez dans les 24 heures qui suivent.",
         repaid: "Remboursé en totalité. La garantie du vendeur est de nouveau libre.",
         waived: "Vous avez renoncé à cette avance.",
@@ -2437,6 +2437,10 @@ export const fr: Messages = {
       paid: "Payé. Le séquestre vous rembourse en premier quand l’acheteur libère le paiement.",
       payFailed: "Le paiement n’est pas passé. Rien n’a bougé.",
       shortfall: "Pas remboursé en totalité : {amount} USDC sont venus de la garantie du vendeur.",
+      needsYouTitle: 'Vous attendent',
+      activeTitle: 'Actives',
+      historyTitle: 'Historique',
+      dealLine: 'Deal {reference} · {seller}',
     },
     open: {
       title: 'À financer',
@@ -2446,6 +2450,7 @@ export const fr: Messages = {
       anySeller: 'Un vendeur sur Karwan',
       invoiceValue: 'Valeur de la facture',
       asksEarly: 'Demande {amount} USDC en avance',
+      timing: { beforeDelivery: 'Pas encore livré', afterDelivery: 'Livré' },
       terms: {
         immediate: 'Payé à la livraison',
         net30: 'Net 30',

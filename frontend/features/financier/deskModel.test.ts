@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { FactoringOffer } from '@/core/api';
-import { positionsSummary, showFilters, termKey } from './deskModel';
+import type { DirectDeal } from '@/core/api';
+import { groupPositions, invoiceTiming, positionsSummary, showFilters, termKey } from './deskModel';
 
 const offer = (over: Partial<FactoringOffer>): FactoringOffer =>
   ({
@@ -44,4 +45,25 @@ test('payment terms map to copy keys, defaulting to on delivery', () => {
   assert.equal(termKey('net90'), 'net90');
   assert.equal(termKey(null), 'immediate');
   assert.equal(termKey(undefined), 'immediate');
+});
+
+test('what needs the financier comes first, then live money, then finished history', () => {
+  const g = groupPositions([
+    offer({ id: 'old-repaid', status: 'repaid', settledAt: 50 }),
+    offer({ id: 'new-repaid', status: 'settled', settledAt: 90 }),
+    offer({ id: 'review', status: 'defaulted', settledAt: 10 }),
+    offer({ id: 'live-old', status: 'accepted', acceptedAt: 20 }),
+    offer({ id: 'pay', status: 'awaiting_financier', acceptedAt: 5 }),
+    offer({ id: 'live-new', status: 'accepted', acceptedAt: 40 }),
+    offer({ id: 'closed', status: 'waived', updatedAt: 70 }),
+  ]);
+  assert.deepEqual(g.needsYou.map((o) => o.id), ['pay', 'review']);
+  assert.deepEqual(g.active.map((o) => o.id), ['live-new', 'live-old']);
+  assert.deepEqual(g.history.map((o) => o.id), ['new-repaid', 'closed', 'old-repaid']);
+});
+
+test('an open request says whether the goods are delivered yet', () => {
+  assert.equal(invoiceTiming({ delivered: false } as DirectDeal), 'beforeDelivery');
+  assert.equal(invoiceTiming({ delivered: true } as DirectDeal), 'afterDelivery');
+  assert.equal(invoiceTiming({ delivered: false, deliveredAt: 1 } as DirectDeal), 'afterDelivery');
 });

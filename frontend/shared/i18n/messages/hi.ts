@@ -2394,7 +2394,7 @@ export const hi: Messages = {
   },
   financierDashboard: {
     title: 'फ़ाइनेंस',
-    intro: 'स्वीकृत डील पर विक्रेताओं को पहले भुगतान करें। आप अभी भुगतान का एक हिस्सा अग्रिम देते हैं और खरीदार के डिलीवरी मंज़ूर करने पर वह हिस्सा अपनी छूट के साथ पाते हैं।',
+    intro: 'स्वीकार किए गए सौदे का एक हिस्सा विक्रेता को अभी दें, डिलीवरी से पहले या बाद में। जब खरीदार भुगतान जारी करता है, एस्क्रो आपको आपकी छूट के साथ सबसे पहले लौटाता है।',
     testnet: 'टेस्टनेट। ऑफ़र टेस्ट USDC का उपयोग करते हैं।',
     close: 'बंद करें',
     working: 'काम जारी है',
@@ -2404,8 +2404,8 @@ export const hi: Messages = {
     declined: 'आपने हस्ताक्षर अस्वीकार किया, इसलिए कुछ नहीं भेजा गया।',
     positions: {
       title: 'आपकी पोज़िशन',
-      summary: '{active} सक्रिय · {out} USDC दिए गए · {back} USDC वापस अपेक्षित',
-      needsReview: '{count} समीक्षा चाहिए',
+      summary: '{active} सक्रिय · {out} USDC दिए गए · {back} USDC वापस आने वाले',
+      needsReview: '{count} आपका इंतज़ार कर रहे हैं',
       status: {
         accepted: 'सक्रिय',
         settled: 'चुकाया गया',
@@ -2417,7 +2417,7 @@ export const hi: Messages = {
       detail: {
         accepted: 'खरीदार के डिलीवरी मंज़ूर करने पर चुकाया जाएगा',
         settled: 'पूरा चुकाया गया',
-        defaulted: 'भुगतान पूरा नहीं हुआ',
+        defaulted: 'पूरा नहीं लौटाया गया। खोलकर देखें क्या लौटा और क्या बाकी है।',
         awaiting_financier: "विक्रेता ने आपका ऑफ़र ले लिया। लेने के 24 घंटे के भीतर भुगतान करें।",
         repaid: "पूरा चुकाया गया। विक्रेता की गारंटी फिर से खाली है।",
         waived: "आपने यह अग्रिम छोड़ दिया।",
@@ -2435,6 +2435,10 @@ export const hi: Messages = {
       paid: "भुगतान हो गया। खरीदार के रिलीज़ करने पर एस्क्रो पहले आपको चुकाता है।",
       payFailed: "भुगतान नहीं हुआ। कुछ नहीं बदला।",
       shortfall: "पूरा नहीं चुकाया गया: {amount} USDC विक्रेता की डील गारंटी से आए।",
+      needsYouTitle: 'आपका इंतज़ार',
+      activeTitle: 'सक्रिय',
+      historyTitle: 'इतिहास',
+      dealLine: 'सौदा {reference} · {seller}',
     },
     open: {
       title: 'फ़ाइनेंस के लिए खुले',
@@ -2444,6 +2448,7 @@ export const hi: Messages = {
       anySeller: 'Karwan पर एक विक्रेता',
       invoiceValue: 'इनवॉइस मूल्य',
       asksEarly: '{amount} USDC पहले माँगता है',
+      timing: { beforeDelivery: 'अभी डिलीवर नहीं हुआ', afterDelivery: 'डिलीवर हो गया' },
       terms: {
         immediate: 'डिलीवरी पर भुगतान',
         net30: 'नेट 30',

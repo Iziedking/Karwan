@@ -2396,7 +2396,7 @@ export const ar: Messages = {
   },
   financierDashboard: {
     title: 'التمويل',
-    intro: 'ادفع للبائعين مبكرًا على صفقات مقبولة. تقدّم جزءًا من الدفعة الآن وتستلم هذا الجزء مع خصمك عندما يوافق المشتري على التسليم.',
+    intro: 'ادفع للبائع جزءًا من صفقة مقبولة الآن، قبل التسليم أو بعده. عندما يحرّر المشتري الدفعة، يردّ لك الضمان أولًا مع خصمك.',
     testnet: 'شبكة تجريبية. تستخدم العروض USDC تجريبية.',
     close: 'إغلاق',
     working: 'جارٍ التنفيذ',
@@ -2406,8 +2406,8 @@ export const ar: Messages = {
     declined: 'رفضت التوقيع، لذلك لم يُرسل شيء.',
     positions: {
       title: 'مراكزك',
-      summary: '{active} نشطة · {out} USDC مقدّمة · {back} USDC متوقعة',
-      needsReview: '{count} تحتاج مراجعة',
+      summary: '{active} نشطة · {out} USDC مقدّمة · {back} USDC ستعود إليك',
+      needsReview: '{count} تنتظرك',
       status: {
         accepted: 'نشط',
         settled: 'مُسدَّد',
@@ -2419,7 +2419,7 @@ export const ar: Messages = {
       detail: {
         accepted: 'يُسدَّد عندما يوافق المشتري على التسليم',
         settled: 'سُدِّد بالكامل',
-        defaulted: 'لم يكتمل السداد',
+        defaulted: 'لم تُسدَّد بالكامل. افتحها لترى ما عاد وما زال مستحقًا.',
         awaiting_financier: "قبل البائع عرضك. ادفع خلال 24 ساعة من قبوله.",
         repaid: "تم السداد بالكامل. ضمان البائع حر مجددا.",
         waived: "تنازلت عن هذه السلفة.",
@@ -2437,6 +2437,10 @@ export const ar: Messages = {
       paid: "تم الدفع. يسدد لك الضمان أولا عندما يحرر المشتري الدفعة.",
       payFailed: "لم يتم الدفع. لم يتحرك شيء.",
       shortfall: "لم يتم السداد بالكامل: جاء {amount} USDC من ضمان صفقة البائع.",
+      needsYouTitle: 'تنتظرك',
+      activeTitle: 'نشطة',
+      historyTitle: 'السجل',
+      dealLine: 'الصفقة {reference} · {seller}',
     },
     open: {
       title: 'متاح للتمويل',
@@ -2446,6 +2450,7 @@ export const ar: Messages = {
       anySeller: 'بائع على Karwan',
       invoiceValue: 'قيمة الفاتورة',
       asksEarly: 'يطلب {amount} USDC مبكرًا',
+      timing: { beforeDelivery: 'لم يُسلَّم بعد', afterDelivery: 'تم التسليم' },
       terms: {
         immediate: 'الدفع عند التسليم',
         net30: 'صافي 30',

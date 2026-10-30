@@ -2214,6 +2214,10 @@ interface MessagesShape {
       paid: string;
       payFailed: string;
       shortfall: string;
+      needsYouTitle: string;
+      activeTitle: string;
+      historyTitle: string;
+      dealLine: string;
     };
     open: {
       title: string;
@@ -2223,6 +2227,7 @@ interface MessagesShape {
       anySeller: string;
       invoiceValue: string;
       asksEarly: string;
+      timing: { beforeDelivery: string; afterDelivery: string };
       terms: {
         immediate: string;
         net30: string;
@@ -7671,7 +7676,7 @@ export const en: MessagesShape = {
   },
   financierDashboard: {
     title: 'Finance',
-    intro: 'Pay sellers early on accepted deals. You advance part of a payment now and receive that part, with your discount, when the buyer approves delivery.',
+    intro: 'Pay a seller part of an accepted deal now, before or after delivery. When the buyer releases the payment, the escrow pays you back first, with your discount.',
     testnet: 'Testnet. Offers use test USDC.',
     close: 'Close',
     working: 'Working',
@@ -7681,8 +7686,8 @@ export const en: MessagesShape = {
     declined: 'You declined the signature, so nothing was sent.',
     positions: {
       title: 'Your positions',
-      summary: '{active} active · {out} USDC out · {back} USDC expected back',
-      needsReview: '{count} need review',
+      summary: '{active} active · {out} USDC out · {back} USDC coming back',
+      needsReview: '{count} need you',
       status: {
         accepted: 'Active',
         settled: 'Repaid',
@@ -7694,7 +7699,7 @@ export const en: MessagesShape = {
       detail: {
         accepted: 'Repaid when the buyer approves delivery',
         settled: 'Repaid in full',
-        defaulted: 'Repayment was not completed',
+        defaulted: 'Not repaid in full. Open it to see what came back and what is still owed.',
         awaiting_financier: "The seller took your offer. Pay within 24 hours of when they took it.",
         repaid: "Repaid in full. The seller guarantee is free again.",
         waived: "You gave this advance up.",
@@ -7712,6 +7717,10 @@ export const en: MessagesShape = {
       paid: "Paid. The escrow repays you first when the buyer releases.",
       payFailed: "The payment did not go through. Nothing moved.",
       shortfall: "Not repaid in full: {amount} USDC came from the seller's deal guarantee.",
+      needsYouTitle: 'Needs you',
+      activeTitle: 'Active',
+      historyTitle: 'History',
+      dealLine: 'Deal {reference} · {seller}',
     },
     open: {
       title: 'Open to finance',
@@ -7721,6 +7730,7 @@ export const en: MessagesShape = {
       anySeller: 'A seller on Karwan',
       invoiceValue: 'Invoice value',
       asksEarly: 'Asks for {amount} USDC early',
+      timing: { beforeDelivery: 'Not delivered yet', afterDelivery: 'Delivered' },
       terms: {
         immediate: 'Paid on delivery',
         net30: 'Net 30',

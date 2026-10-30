@@ -2393,7 +2393,7 @@ export const sw: Messages = {
   },
   financierDashboard: {
     title: 'Ufadhili',
-    intro: 'Walipe wauzaji mapema kwenye mikataba iliyokubaliwa. Unatanguliza sehemu ya malipo sasa na kupokea sehemu hiyo, pamoja na punguzo lako, mnunuzi anapoidhinisha uwasilishaji.',
+    intro: 'Mlipe muuzaji sehemu ya mpango uliokubaliwa sasa, kabla au baada ya kuwasilisha. Mnunuzi akitoa malipo, escrow inakulipa kwanza, pamoja na punguzo lako.',
     testnet: 'Testnet. Ofa zinatumia USDC za majaribio.',
     close: 'Funga',
     working: 'Inaendelea',
@@ -2403,8 +2403,8 @@ export const sw: Messages = {
     declined: 'Ulikataa sahihi, kwa hiyo hakuna kilichotumwa.',
     positions: {
       title: 'Nafasi zako',
-      summary: '{active} hai · {out} USDC zimetolewa · {back} USDC zinatarajiwa kurudi',
-      needsReview: '{count} zinahitaji ukaguzi',
+      summary: '{active} hai · {out} USDC zimetolewa · {back} USDC zitarudi',
+      needsReview: '{count} zinakusubiri',
       status: {
         accepted: 'Hai',
         settled: 'Imelipwa',
@@ -2416,7 +2416,7 @@ export const sw: Messages = {
       detail: {
         accepted: 'Inalipwa mnunuzi anapoidhinisha uwasilishaji',
         settled: 'Imelipwa kikamilifu',
-        defaulted: 'Malipo hayakukamilika',
+        defaulted: 'Haijalipwa kikamilifu. Ifungue uone kilichorudi na kinachodaiwa bado.',
         awaiting_financier: "Muuzaji amechukua ofa yako. Lipa ndani ya saa 24 tangu alipoichukua.",
         repaid: "Imelipwa yote. Dhamana ya muuzaji iko huru tena.",
         waived: "Uliacha malipo haya ya awali.",
@@ -2434,6 +2434,10 @@ export const sw: Messages = {
       paid: "Imelipwa. Escrow inakulipa wewe kwanza mnunuzi anapoachilia malipo.",
       payFailed: "Malipo hayakupita. Hakuna kilichohama.",
       shortfall: "Haikulipwa yote: USDC {amount} zilitoka kwenye dhamana ya muuzaji.",
+      needsYouTitle: 'Zinakusubiri',
+      activeTitle: 'Hai',
+      historyTitle: 'Historia',
+      dealLine: 'Mpango {reference} · {seller}',
     },
     open: {
       title: 'Zinazoweza kufadhiliwa',
@@ -2443,6 +2447,7 @@ export const sw: Messages = {
       anySeller: 'Muuzaji kwenye Karwan',
       invoiceValue: 'Thamani ya ankara',
       asksEarly: 'Anaomba USDC {amount} mapema',
+      timing: { beforeDelivery: 'Bado haijawasilishwa', afterDelivery: 'Imewasilishwa' },
       terms: {
         immediate: 'Malipo wakati wa uwasilishaji',
         net30: 'Net 30',

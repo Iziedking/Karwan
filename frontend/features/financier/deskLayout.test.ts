@@ -23,8 +23,9 @@ test('money steps open in the shared confirm sheet', () => {
   assert.equal(/role="dialog"/.test(desk), false);
 });
 
-test('your positions come before the invoices to finance', () => {
+test('your positions come before the invoices to finance, and finished ones after', () => {
   assert.ok(desk.indexOf('<FactoringPositionsPanel') < desk.indexOf('<InvoiceList'));
+  assert.ok(desk.indexOf('<InvoiceList') < desk.indexOf('<FactoringHistoryPanel'));
 });
 
 test('purchase-order financing stays hidden behind its flag', () => {

@@ -63,6 +63,9 @@ async function serveDesk(page: Page, opts: { invoices?: DirectDeal[]; positions?
     if (pathname === '/api/factoring/mine') {
       return route.fulfill({ json: { asFinancier: opts.positions ?? [position('p1', 'accepted'), position('p2', 'settled')], asSeller: [] } });
     }
+    if (pathname.startsWith('/api/factoring/position/')) {
+      return route.fulfill({ json: { offer: null, deal: invoice(9, { sellerPaytag: 'amina', delivered: false }), assignedPayee: null } });
+    }
     if (pathname.startsWith('/api/client-errors')) return route.fulfill({ status: 204, body: '' });
     return route.fulfill({ json: { items: [], events: [], movements: [], messages: [] } });
   });
@@ -78,7 +81,8 @@ test('your positions come first, then invoices as rows with one plain action eac
   await expect(open).toBeVisible();
   const [p, o] = await Promise.all([positions.boundingBox(), open.boundingBox()]);
   expect(p!.y).toBeLessThan(o!.y);
-  await expect(page.getByText('1 active · 1,470 USDC out · 1,500 USDC expected back')).toBeVisible();
+  await expect(page.getByText('1 active · 1,470 USDC out · 1,500 USDC coming back')).toBeVisible();
+  await expect(page.getByText(t.positions.dealLine.replace('{reference}', '9999-9999').replace('{seller}', '@amina'))).toBeVisible();
   await expect(page.getByText('4,800 USDC').first()).toBeVisible();
   await expect(page.getByText(t.open.anySeller)).toBeVisible();
   await expect(page.locator('select')).toHaveCount(0);
@@ -152,4 +156,20 @@ test('Arabic renders right to left without overflow', async ({ page, context }, 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(0);
   await page.screenshot({ path: `test-results/financier/desk_${info.project.name}_ar.png`, fullPage: true });
+});
+
+test('what needs the financier is above the requests and finished positions are below them', async ({ page }) => {
+  const old = (id: string) => ({ ...position(id, 'settled'), settledAt: Date.UTC(2026, 9, 20) });
+  await serveDesk(page, { positions: [old('h1'), old('h2'), old('h3'), old('h4'), position('r1', 'defaulted')] });
+  await page.goto('/financier');
+  const needsYou = page.getByRole('heading', { level: 3, name: t.positions.needsYouTitle });
+  const open = page.getByRole('heading', { level: 2, name: t.open.title });
+  const history = page.getByRole('heading', { level: 2, name: t.positions.historyTitle });
+  await expect(needsYou).toBeVisible();
+  await expect(history).toBeVisible();
+  const [n, o, h] = await Promise.all([needsYou.boundingBox(), open.boundingBox(), history.boundingBox()]);
+  expect(n!.y).toBeLessThan(o!.y);
+  expect(o!.y).toBeLessThan(h!.y);
+  await expect(page.getByText(t.positions.detail.defaulted)).toBeVisible();
+  await expect(page.getByText(t.open.timing.beforeDelivery).first()).toBeVisible();
 });

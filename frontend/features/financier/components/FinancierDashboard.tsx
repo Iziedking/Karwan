@@ -32,9 +32,9 @@ import {
 } from '@/features/factoring/usdcAuthorization';
 import { resolveFactoringAdvanceRecipient } from '@/features/factoring/advanceRecipient';
 import { buildFactoringQuote } from '@/features/factoring/factoringQuote';
-import { showFilters, termKey } from '../deskModel';
+import { invoiceTiming, showFilters, termKey } from '../deskModel';
 import { POLinesPanel } from './POLinesPanel';
-import { FactoringPositionsPanel } from './FactoringPositionsPanel';
+import { FactoringHistoryPanel, FactoringPositionsPanel } from './FactoringPositionsPanel';
 
 type Copy = Messages['financierDashboard'];
 
@@ -266,6 +266,8 @@ export function FinancierDashboard() {
               <OrderList t={t} available={poAvailable} failed={poLoadFailed} onOpenFund={setFundTarget} />
             </section>
           )}
+
+          <FactoringHistoryPanel />
         </div>
       </Band>
 
@@ -443,6 +445,7 @@ function InvoiceRow({
         </p>
         <p className="mt-0.5 text-[14px] text-[var(--lp-text-sub)]">
           {[
+            t.open.timing[invoiceTiming(deal)],
             t.open.terms[termKey(deal.paymentTerms)],
             deal.factoringRequestedAdvanceUsdc
               ? t.open.asksEarly.replace('{amount}', formatUsdc(deal.factoringRequestedAdvanceUsdc, { withSuffix: false }))

@@ -33,3 +33,28 @@ export type TermKey = 'immediate' | 'net30' | 'net60' | 'net90';
 export function termKey(terms: DirectDeal['paymentTerms'] | null): TermKey {
   return terms === 'net30' || terms === 'net60' || terms === 'net90' ? terms : 'immediate';
 }
+
+/// The financier's positions in the order they need reading: anything waiting
+/// on them, then money still out, then the finished record. A paginated list
+/// sorted by date alone put a position needing review on page two.
+export function groupPositions(offers: readonly FactoringOffer[]): {
+  needsYou: FactoringOffer[];
+  active: FactoringOffer[];
+  history: FactoringOffer[];
+} {
+  const at = (o: FactoringOffer) => o.settledAt ?? o.acceptedAt ?? o.updatedAt ?? o.offeredAt;
+  const newest = (a: FactoringOffer, b: FactoringOffer) => at(b) - at(a);
+  const pick = (statuses: readonly FactoringOffer['status'][]) => offers.filter((o) => statuses.includes(o.status));
+  return {
+    // Paying the seller has a 24-hour clock, so it leads.
+    needsYou: [...pick(['awaiting_financier']).sort(newest), ...pick(['defaulted']).sort(newest)],
+    active: pick(['accepted']).sort(newest),
+    history: pick(['settled', 'repaid', 'waived']).sort(newest),
+  };
+}
+
+/// Before delivery the advance works like purchase-order finance, after it
+/// like invoice finance. Both are the same Get paid now on the deal.
+export function invoiceTiming(deal: Pick<DirectDeal, 'delivered' | 'deliveredAt'>): 'beforeDelivery' | 'afterDelivery' {
+  return deal.delivered || deal.deliveredAt ? 'afterDelivery' : 'beforeDelivery';
+}
