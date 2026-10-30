@@ -6,6 +6,7 @@ import { cn } from '@/shared/utils/cn';
 import { ApiError, type ChatMessage } from '@/core/api';
 import { Icon } from '@/shared/components/Icon';
 import { PersonAvatar } from '@/shared/components/PersonAvatar';
+import { LinkedText } from '@/shared/components/LinkedText';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useChat } from '../hooks/useChat';
 import { pastedFile } from '@/shared/utils/pastedFile';
@@ -132,7 +133,7 @@ export function ChatPanel({ jobId, caller, counterpartyLabel, counterpartyAddres
                   {message.imageDataUrl ? (
                     <img src={message.imageDataUrl} alt={cp.imageAttachment} className="mb-1.5 max-h-60 w-full rounded-[12px] object-contain" />
                   ) : null}
-                  {message.body ? <span>{message.body}</span> : null}
+                  {message.body ? <span><LinkedText text={message.body} /></span> : null}
                   <span className={cn('ms-2 inline-block translate-y-[3px] text-[14px] tabular-nums', mine ? 'text-[var(--lp-light)]/70' : 'text-[var(--lp-text-sub)]')}>
                     {timeOf(message.ts, locale)}
                   </span>

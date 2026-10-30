@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { LinkedText } from '@/shared/components/LinkedText';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { api, type ChatMessage } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -115,7 +116,7 @@ export function FinancingChatPanel({ kind, positionId, seller, financier, bare =
                     </div>
                   ) : null}
                   {message.imageDataUrl ? <img src={message.imageDataUrl} alt="" className="mb-2 max-h-56 w-full rounded-lg object-contain" /> : null}
-                  {message.body ? <p dir="auto" className="whitespace-pre-wrap break-words">{message.body}</p> : null}
+                  {message.body ? <p dir="auto" className="whitespace-pre-wrap break-words"><LinkedText text={message.body} /></p> : null}
                 </div>
                 {writable ? (
                   <button type="button" onClick={() => setReplyingTo(message)} className={`mt-1 inline-flex min-h-11 items-center text-[14px] font-medium text-[var(--lp-text-sub)] hover:text-[var(--ink)] ${mine ? 'float-right' : ''}`}>

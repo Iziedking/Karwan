@@ -1,4 +1,5 @@
 import { publicApiUrl, type DirectDeal } from '@/core/api';
+import { LINK_RE, linkHref } from '@/shared/utils/textLinks';
 
 export type DeliveryLink = { url: string; host: string };
 export type DocumentKind = NonNullable<DirectDeal['documentRefs']>[number]['kind'];
@@ -18,21 +19,16 @@ export interface DeliveryCardModel {
   documents: Array<{ kind: DocumentKind; label: string | null; anchoredAt: number | null }>;
 }
 
-const URL_RE = /https?:\/\/[^\s<>"'`]+/gi;
-const TRAILING = /[.,;:!?)\]}]+$/;
 
 /// Every web link inside a delivery note, in order and once each. A note is
 /// usually a sentence with a link in it, so a link is never expected alone.
 export function linksIn(text: string | undefined | null): DeliveryLink[] {
   const seen = new Set<string>();
   const links: DeliveryLink[] = [];
-  for (const raw of (text ?? '').match(URL_RE) ?? []) {
-    let parsed: URL;
-    try {
-      parsed = new URL(raw.replace(TRAILING, ''));
-    } catch {
-      continue;
-    }
+  for (const raw of (text ?? '').match(LINK_RE) ?? []) {
+    const href = linkHref(raw.replace(/[.,;:!?)\]}]+$/, ''));
+    if (!href) continue;
+    const parsed = new URL(href);
     if (seen.has(parsed.href)) continue;
     seen.add(parsed.href);
     links.push({ url: parsed.href, host: parsed.hostname.replace(/^www\./, '') });
@@ -42,7 +38,7 @@ export function linksIn(text: string | undefined | null): DeliveryLink[] {
 
 /// The words of a note with its links taken out, or null when only links remain.
 export function noteWithoutLinks(text: string | undefined | null): string | null {
-  const note = (text ?? '').replace(URL_RE, ' ').replace(/\s+/g, ' ').trim();
+  const note = (text ?? '').replace(LINK_RE, ' ').replace(/\s+/g, ' ').trim();
   return note.length > 0 ? note : null;
 }
 

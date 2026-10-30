@@ -26,6 +26,8 @@ test('links are found inside a sentence, without trailing punctuation, once each
     { url: 'https://github.com/a/b', host: 'github.com' },
   ]);
   assert.deepEqual(linksIn('no link here'), []);
+  assert.deepEqual(linksIn('delivered: www.github.com/a/audit'), [{ url: 'https://www.github.com/a/audit', host: 'github.com' }]);
+  assert.equal(noteWithoutLinks('delivered: www.github.com'), 'delivered:');
   assert.equal(noteWithoutLinks('Final files https://www.figma.com/file/1 thanks'), 'Final files thanks');
   assert.equal(noteWithoutLinks('https://www.figma.com/file/1'), null);
 });
