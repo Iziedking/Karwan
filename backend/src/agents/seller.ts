@@ -325,6 +325,8 @@ export async function submitListingBid(
     floorUsdc: number;
     description: string;
     deadlineDays?: number;
+    /// The ad's lowest is above the buyer's ceiling: offered at it, outside the request.
+    outsideRequest?: boolean;
   },
 ): Promise<
   | { ok: true; txHash: string }
@@ -429,6 +431,7 @@ export async function submitListingBid(
         deadlineUnix,
         source: 'listing',
         listingFloorUsdc: listing.floorUsdc,
+        ...(listing.outsideRequest ? { outsideRequest: 'price' } : {}),
         txHash: txResult.txHash,
         buyerChecked: !!buyerCheck,
       },
@@ -1124,20 +1127,22 @@ async function evaluateAndBid(profile: SellerProfile, job: JobContext) {
     }
   }
 
-  // An offer from an agent not linked to its person would fund an escrow whose
-  // record lands on the agent. Hold it and say how to link.
+  // An agent not linked to its person still offers (view 41, decision 13): the
+  // buyer sees it marked must link first and cannot choose it until it is, and
+  // funding refuses it anyway, so the record never lands on the agent. The
+  // person is told how to link.
   const linkOwner = await findAgentWalletByAgentAddress(seller.address);
   if (linkOwner?.userAddress) {
     const link = await sellerAgentBinding(seller.address, linkOwner.userAddress);
     if (blocksOffer(link)) {
-      logger.info({ jobId: job.jobId, seller: seller.address, link: link.kind }, 'skipping: seller agent not linked to its owner');
+      logger.info({ jobId: job.jobId, seller: seller.address, link: link.kind }, 'seller agent not linked to its owner: offering, marked must link');
+      // Same event as before, so the seller still gets the link prompt on Stake.
       bus.emitEvent({
         type: 'agent.skipped',
         jobId: job.jobId,
         actor: 'seller',
-        payload: { seller: seller.address, reason: 'agent-not-linked', detail: SELLER_LINK_DETAIL },
+        payload: { seller: seller.address, reason: 'agent-not-linked', detail: SELLER_LINK_DETAIL, offering: true },
       });
-      return;
     }
   }
 

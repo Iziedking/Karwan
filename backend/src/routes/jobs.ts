@@ -736,7 +736,9 @@ jobsRoutes.post('/:jobId/choose-offer', async (c) => {
       const error =
         check.code === 'unavailable'
           ? 'This offer is no longer available.'
-          : 'This seller is not verified. Confirm that you want to go ahead.';
+          : check.code === 'must-link'
+            ? 'This seller has not linked their agent to their account yet. They have been asked to; you can choose them once they do.'
+            : 'This seller is not verified. Confirm that you want to go ahead.';
       return c.json({ error, code: check.code }, 409);
     }
   }

@@ -77,3 +77,13 @@ test('the live shortlist event carries sealed rows once records are sealed', asy
   const fn = buyer.slice(buyer.indexOf('function shortlistPayload('), buyer.indexOf('function shortlistDeps('));
   assert.match(fn, /config\.SEALED_RECORDS \? sealEntries\(/);
 });
+
+test('in chat, an offer above the budget and an unlinked agent are marked (view 41)', () => {
+  const text = shortlistText(
+    [entry({ rank: 1, outsideRequest: true }), entry({ rank: 2, name: 'Kemi B.', mustLink: true })],
+    'https://karwan.site',
+    { readsBalanceEmpty: false },
+  );
+  assert.match(text, /Above your budget, outside your request/);
+  assert.match(text, /Not linked to their account yet\. You can choose them once they link it\./);
+});

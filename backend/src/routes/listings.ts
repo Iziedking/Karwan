@@ -29,7 +29,6 @@ import { resolveSellerProfile } from '../agents/agent-registry.js';
 import { actorSignalsFor } from '../agents/signals.js';
 import { listOpenJobContexts } from '../agents/buyer.js';
 import { submitListingBid } from '../agents/seller.js';
-import { maybeRaiseNearMiss, stillCollectingOffers } from '../agents/nearMiss.js';
 import { topicalOverlap } from '../llm/keywords.js';
 import { rankListingCandidates, rankRequestCandidates, realListings } from '../marketplace/matchCandidates.js';
 import { emitAgentDecision } from '../agents/observability.js';
@@ -839,71 +838,25 @@ async function tryMatchListingToJobLegacy(
   const floor = listingFloor(listing);
   const buyerPct = job.negotiationMaxIncreasePct ?? 0;
   const buyerCeiling = Number(job.budgetUsdc) * (1 + buyerPct / 100);
-  if (floor > buyerCeiling && stillCollectingOffers(job.jobId)) {
-    // The request is still collecting offers, and the shortlist comes before a
-    // near match: an in-budget offer may yet arrive. The scan runs again after
-    // the window and raises it then if nothing within budget came in.
-    logger.info({ listingId: listing.id, jobId: job.jobId, listingFloor: floor, buyerCeiling }, 'near match held while the request collects offers');
-    return false;
-  }
-  if (floor > buyerCeiling) {
-    // Topical match, but the seller's floor sits above the buyer's ceiling, so
-    // no price satisfies both ranges. Rather than skip silently, ask the blocked
-    // side whether to stretch when the gap is small (a near-miss). The agent
-    // becomes an assistant, not a wall. Falls back to a plain skip when the gap
-    // is too wide to bother anyone with.
-    const raised = await maybeRaiseNearMiss({
-      jobId: job.jobId,
-      buyerAgent: job.buyer,
-      sellerAgent: listing.sellerAgent,
-      deadlineUnix: job.deadlineUnix,
-      buyerCeilingUsdc: buyerCeiling,
-      sellerFloorUsdc: floor,
-      // The LLM already confirmed this listing is the buyer's exact product
-      // above, so surface it even at a wider stretch than a fuzzy profile guess.
-      confirmedTopical: true,
-    });
-    if (raised) {
-      logger.info(
-        { listingId: listing.id, jobId: job.jobId, listingFloor: floor, buyerCeiling },
-        'near-miss raised for an uncrossable but close match',
-      );
-      return false; // not consumed by a bid; the human decides whether to proceed
-    }
+  // An ad whose lowest price sits above the buyer's ceiling still offers, at
+  // that lowest, marked outside the request (view 41, decision 11). The buyer
+  // sees it on the shortlist and decides; there is no near match to raise.
+  const outside = floor > buyerCeiling;
+  if (outside) {
     logger.info(
-      {
-        listingId: listing.id,
-        jobId: job.jobId,
-        listingFloor: floor,
-        buyerCeiling,
-        listingAsking: listing.askingPriceUsdc,
-        buyerBudget: job.budgetUsdc,
-      },
-      'topical match but price gap uncrossable, skipping',
+      { listingId: listing.id, jobId: job.jobId, listingFloor: floor, buyerCeiling },
+      'ad above the buyer ceiling: offering at its lowest, outside the request',
     );
-    bus.emitEvent({
-      type: 'agent.skipped',
-      jobId: job.jobId,
-      actor: 'seller',
-      payload: {
-        seller: listing.sellerUser,
-        reason: 'price-gap-uncrossable',
-        listingAskingUsdc: listing.askingPriceUsdc,
-        listingFloorUsdc: floor,
-        buyerBudgetUsdc: job.budgetUsdc,
-        buyerCeilingUsdc: buyerCeiling,
-      },
-    });
-    return false;
   }
 
   const result = await submitListingBid(
     { ...job, buyerReputationBps: job.buyerReputationBps ?? 5000 },
     seller,
     {
-      askingPriceUsdc: listing.askingPriceUsdc,
+      askingPriceUsdc: outside ? floor : listing.askingPriceUsdc,
       floorUsdc: floor,
       description: listing.description,
+      ...(outside ? { outsideRequest: true } : {}),
     },
   );
   if (!result.ok) return false;

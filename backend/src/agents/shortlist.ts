@@ -2,9 +2,12 @@ import type { Ladder } from '../verification/ladder.js';
 import { ratingLine, type PublicRating } from '../ratings/rules.js';
 import type { RecordCounts } from '../reputation/recordRead.js';
 
-/// The shortlist a buyer chooses from. Pure: skill fit first, verified above
-/// unverified inside a fit band, then the buyer agent's deterministic score.
-/// Only a verified seller inside the budget can be recommended.
+/// The shortlist a buyer chooses from (view 41, decisions 11 to 13). Pure. Every
+/// seller who fits and offered is listed: fit first (skill band, then place),
+/// then reputation and score, then how close the terms are to the request.
+/// Only a verified seller inside the budget, whose agent is linked to them, can
+/// be recommended; an offer above the budget is marked outside the request, and
+/// an agent not linked to its owner is marked and cannot be chosen until it is.
 
 export type RecommendReason = 'best_fit' | 'verified' | 'within_budget' | 'lower_price' | 'on_time_record' | 'nearby';
 
@@ -29,6 +32,8 @@ export interface ShortlistCandidate {
   country: string | null;
   /// Public: mean of revealed ratings, or New under three.
   rating: PublicRating;
+  /// The seller's agent is linked to its owner; absent means linked.
+  linked?: boolean;
 }
 
 export interface ShortlistEntry {
@@ -53,8 +58,13 @@ export interface ShortlistEntry {
   isNew: boolean;
   country: string | null;
   rating: PublicRating;
+  /// The offer asks more than the buyer's budget. Absent on lists saved before 30 Oct.
+  outsideRequest?: boolean;
+  /// The seller's agent is not linked to its owner yet: listed, never chosen.
+  mustLink?: boolean;
 }
 
+/// How many offers get a paid record read; every offer is listed.
 export const SHORTLIST_MAX = 5;
 const ON_TIME_REASON_MIN = 80;
 const MAX_REASONS = 3;
@@ -68,13 +78,18 @@ export function isVerified(level: Ladder): boolean {
 const NEW_RANK = 3.5;
 const ratingRank = (r: PublicRating) => (r.kind === 'rated' ? r.value : NEW_RANK);
 
-export function rankCandidates(cands: readonly ShortlistCandidate[]): ShortlistCandidate[] {
+const linked = (c: ShortlistCandidate) => c.linked !== false;
+
+export function rankCandidates(cands: readonly ShortlistCandidate[], budgetUsdc?: number): ShortlistCandidate[] {
+  const over = (c: ShortlistCandidate) => (budgetUsdc === undefined ? 0 : Math.max(0, c.askedUsdc - budgetUsdc));
   return [...cands].sort(
     (a, b) =>
       b.matchBand - a.matchBand ||
       b.locationFit - a.locationFit ||
       Number(isVerified(b.level)) - Number(isVerified(a.level)) ||
       ratingRank(b.rating) - ratingRank(a.rating) ||
+      b.engineScore - a.engineScore ||
+      over(a) - over(b) ||
       b.deterministicScore - a.deterministicScore ||
       a.askedUsdc - b.askedUsdc,
   );
@@ -98,9 +113,7 @@ export function pickRecommended(
   unavailable: ReadonlySet<string> = new Set(),
   opts: { cleanRecordCounts?: boolean } = {},
 ): ShortlistCandidate | null {
-  const open = ranked
-    .slice(0, SHORTLIST_MAX)
-    .filter((c) => c.askedUsdc <= budgetUsdc && !unavailable.has(c.seller.toLowerCase()));
+  const open = ranked.filter((c) => c.askedUsdc <= budgetUsdc && linked(c) && !unavailable.has(c.seller.toLowerCase()));
   const verified = open.find((c) => isVerified(c.level));
   if (verified || !opts.cleanRecordCounts) return verified ?? null;
   return open.find((c) => c.counts.completed > 0 && c.counts.disputesLost === 0) ?? null;
@@ -132,7 +145,7 @@ export function toEntries(
 ): ShortlistEntry[] {
   const seen = new Set(previous.map((e) => e.seller.toLowerCase()));
   const before = new Map(previous.map((e) => [e.seller.toLowerCase(), e.state]));
-  return ranked.slice(0, SHORTLIST_MAX).map((c, i) => {
+  return ranked.map((c, i) => {
     const was = before.get(c.seller.toLowerCase());
     const isRec = recommended?.seller === c.seller && was !== 'unavailable';
     const agreedPrice = agreed && agreed.seller.toLowerCase() === c.seller.toLowerCase() ? agreed.priceUsdc : null;
@@ -158,6 +171,8 @@ export function toEntries(
       isNew: previous.length > 0 && !seen.has(c.seller.toLowerCase()),
       country: c.country,
       rating: c.rating,
+      outsideRequest: c.askedUsdc > budgetUsdc,
+      mustLink: !linked(c),
     };
   });
 }
@@ -177,7 +192,7 @@ export function shouldSkipBuyer(counts: RecordCounts | null, sellerOptsIn: boole
   return !!counts && !sellerOptsIn && counts.disputesLost > counts.completed;
 }
 
-export type ShortlistChoice = { ok: true } | { ok: false; code: 'unavailable' | 'unverified-needs-ack' };
+export type ShortlistChoice = { ok: true } | { ok: false; code: 'unavailable' | 'unverified-needs-ack' | 'must-link' };
 
 /// Checks a buyer's pick against the list before money moves. A seller not on
 /// the list (past the first five, or after a restart) is checked by their
@@ -191,6 +206,7 @@ export function shortlistChoiceCheck(
   const entry = entries.find((e) => e.seller.toLowerCase() === seller.toLowerCase());
   if (!entry) return offListVerified || acknowledgeUnverified ? { ok: true } : { ok: false, code: 'unverified-needs-ack' };
   if (entry.state === 'unavailable') return { ok: false, code: 'unavailable' };
+  if (entry.mustLink) return { ok: false, code: 'must-link' };
   if (!entry.verified && !acknowledgeUnverified) return { ok: false, code: 'unverified-needs-ack' };
   return { ok: true };
 }
@@ -201,7 +217,7 @@ export function assistantShortlistNote(sealed: boolean): string {
   const fields = sealed
     ? 'name, Verified or Not verified, tier, their reasons, offer, days and price'
     : 'name, Verified or Not verified, score, tier, completed deals, on-time percent, disputes lost, offer, days and price';
-  return `Show each person by rank: ${fields} (with the opening ask when it differs). Say which one is Recommended and why, from its reasons. Offer their profile at karwan.site/r/<tag>. The person chooses; to prepare it call propose_choose_offer with that row's seller value. Never show the seller value.`;
+  return `Show each person by rank: ${fields} (with the opening ask when it differs). Say which one is Recommended and why, from its reasons. An offer marked outsideRequest asks more than the budget, outside the request: say so, and that the person may still choose it. One marked mustLink is from a seller whose agent is not linked to them yet: say they cannot be chosen until they link it. Offer their profile at karwan.site/r/<tag>. The person chooses; to prepare it call propose_choose_offer with that row's seller value. Never show the seller value.`;
 }
 
 export type SealedShortlistEntry = Omit<ShortlistEntry, 'score' | 'counts'> & { score: null; counts: null };
@@ -244,5 +260,7 @@ export function assistantView(entries: readonly ShortlistEntry[], sealed: boolea
       recommended: e.recommended,
       reasons: e.reasons,
       available: e.state !== 'unavailable',
+      outsideRequest: e.outsideRequest,
+      mustLink: e.mustLink,
     }));
 }

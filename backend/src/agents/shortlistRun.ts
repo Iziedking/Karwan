@@ -4,9 +4,10 @@ import { locationFit, publicLocation, type DeliveryKind, type PrivateLocation, t
 import type { PublicRating } from '../ratings/rules.js';
 import { SHORTLIST_MAX, type ShortlistCandidate } from './shortlist.js';
 
-/// Turns the buyer agent's ranked bids into shortlist candidates: a paid
-/// record read on each of the first five, in parallel, each capped by a
-/// timeout. A read that fails or is slow leaves the free data in place.
+/// Turns the buyer agent's ranked bids into shortlist candidates, every one of
+/// them (view 41, decision 12): a paid record read on each of the first five,
+/// in parallel, each capped by a timeout. A read that fails or is slow, and
+/// every bid past the fifth, keep the free data.
 
 const MATCH_BAND_SIZE = 25;
 const DAY_S = 86_400;
@@ -23,6 +24,8 @@ export interface ShortlistDeps {
   profile: (user: string) => Promise<{ name: string | null; tag: string | null }>;
   location: (user: string) => Promise<PrivateLocation | null>;
   rating: (user: string) => Promise<PublicRating>;
+  /// Whether the seller's agent is linked to its owner; absent counts as linked.
+  linked?: (sellerAgent: string) => Promise<boolean>;
   timeoutMs: number;
 }
 
@@ -58,15 +61,16 @@ export async function buildCandidates(
   deps: ShortlistDeps,
 ): Promise<ShortlistCandidate[]> {
   return Promise.all(
-    input.bids.slice(0, SHORTLIST_MAX).map(async (b) => {
+    input.bids.map(async (b, i) => {
       const user = b.sellerUserAddress ?? b.seller;
-      const [level, engine, profile, read, location, rating] = await Promise.all([
+      const [level, engine, profile, read, location, rating, linked] = await Promise.all([
         deps.level(user),
         deps.engine(user),
         deps.profile(user),
-        within(deps.readRecord(input.buyerAgent, user, input.jobId, input.buyerUser), deps.timeoutMs),
+        i < SHORTLIST_MAX ? within(deps.readRecord(input.buyerAgent, user, input.jobId, input.buyerUser), deps.timeoutMs) : null,
         deps.location(user).catch(() => null),
         deps.rating(user).catch((): PublicRating => ({ kind: 'new', count: 0 })),
+        deps.linked ? deps.linked(b.seller).catch(() => false) : true,
       ]);
       return {
         seller: b.seller,
@@ -86,6 +90,7 @@ export async function buildCandidates(
         locationFit: locationFit(input.where, input.buyerLocation ?? null, location, input.deliveryKind),
         country: publicLocation(location).country,
         rating,
+        linked,
       };
     }),
   );

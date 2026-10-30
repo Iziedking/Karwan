@@ -212,6 +212,7 @@ function ShortlistRow({ entry, canChoose, onChoose }: { entry: ShortlistEntry; c
           ) : null}
           {entry.recommended ? <p className="mt-1 text-[14px] font-semibold text-[var(--lp-dark)]">{copy.recommended}</p> : null}
           {v.reasonLine ? <p className="mt-0.5 text-[14px] font-medium text-[var(--ink-secondary)]">{v.reasonLine}</p> : null}
+          {v.markLine ? <p className="mt-0.5 text-[14px] font-semibold text-[var(--lp-dark)]">{v.markLine}</p> : null}
         </div>
         <p className="shrink-0 text-end tabular-nums">
           <span className="block text-[18px] font-semibold text-[var(--lp-dark)]">{price(entry.priceUsdc)} USDC</span>

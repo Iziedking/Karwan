@@ -39,12 +39,20 @@ test('a read that throws falls back to free data', async () => {
   assert.equal(c!.recordChecked, false);
 });
 
-test('reads run for at most five bids', async () => {
+test('reads run for at most five bids, and every bid is a candidate (view 41, decision 12)', async () => {
   let calls = 0;
   const counting = deps({ readRecord: async () => { calls += 1; return null; } });
   const out = await buildCandidates(input(Array.from({ length: 8 }, (_, i) => bid(`s${i}`))), counting);
   assert.equal(calls, 5);
-  assert.equal(out.length, 5);
+  assert.equal(out.length, 8);
+  assert.ok(out.slice(5).every((c) => !c.recordChecked));
+});
+
+test('a candidate carries whether its agent is linked to its owner', async () => {
+  const out = await buildCandidates(input([bid('a'), bid('b')]), deps({ linked: async (agent) => agent !== 'b' }));
+  assert.deepEqual(out.map((c) => c.linked), [true, false]);
+  const [plain] = await buildCandidates(input([bid('a')]), deps());
+  assert.equal(plain!.linked, true, 'without a link check every agent counts as linked');
 });
 
 test('location fit and country come from the seller\'s private location and the request', async () => {

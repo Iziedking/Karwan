@@ -10,6 +10,8 @@ export interface ShortlistRowView {
   numbersLine: string | null;
   reasonLine: string | null;
   profileHref: string | null;
+  /// Why the row stands apart: above the budget, or the agent not linked yet.
+  markLine: string | null;
   choosable: boolean;
 }
 
@@ -39,7 +41,8 @@ export function shortlistRowView(e: ShortlistEntry, copy: ShortlistCopy): Shortl
     numbersLine: [numbers, e.recordChecked ? copy.recordChecked : null].filter(Boolean).join(' · ') || null,
     reasonLine: e.reasons.length ? e.reasons.map((r) => copy.reasons[r]).join(' · ') : null,
     profileHref: e.tag ? `/r/${e.tag}` : null,
-    choosable: e.state !== 'unavailable',
+    markLine: e.mustLink ? copy.mustLink : e.outsideRequest ? copy.outsideRequest : null,
+    choosable: e.state !== 'unavailable' && !e.mustLink,
   };
 }
 

@@ -38,6 +38,9 @@ function row(e: Row, webBase: string): string {
   const numbers = numbersLine(e);
   const lines = [head, level, price, ...(numbers ? [numbers] : [])];
   if (e.state === 'unavailable') lines.push('No longer available');
+  // view 41, decisions 11 and 13
+  if (e.mustLink) lines.push('Not linked to their account yet. You can choose them once they link it.');
+  else if (e.outsideRequest) lines.push('Above your budget, outside your request');
   if (e.tag) lines.push(`Profile: ${webBase.replace(/\/$/, '')}/r/${e.tag}`);
   return lines.join('\n');
 }

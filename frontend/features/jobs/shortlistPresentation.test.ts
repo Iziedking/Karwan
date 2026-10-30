@@ -90,3 +90,16 @@ test('the cost line names how many records were checked and the total', () => {
   assert.equal(shortlistCostLine({ count: 0, usdc: 0 }, copy), null);
   assert.equal(shortlistCostLine(undefined, copy), null);
 });
+
+test('an offer above the budget says it is outside the request and can still be chosen (view 41, decision 11)', () => {
+  const v = shortlistRowView({ ...ada, outsideRequest: true, recommended: false }, copy);
+  assert.equal(v.markLine, 'Above your budget, outside your request');
+  assert.equal(v.choosable, true);
+});
+
+test('a seller whose agent is not linked is listed, says why, and cannot be chosen yet (view 41, decision 13)', () => {
+  const v = shortlistRowView({ ...ada, mustLink: true, recommended: false }, copy);
+  assert.equal(v.markLine, 'Not linked to their account yet. You can choose them once they link it.');
+  assert.equal(v.choosable, false);
+  assert.equal(shortlistRowView(ada, copy).markLine, null);
+});

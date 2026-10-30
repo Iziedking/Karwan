@@ -58,12 +58,12 @@ test('the first verified seller in budget is recommended', () => {
   assert.equal(pickRecommended(ranked, 100)?.seller, 'y');
 });
 
-test('entries carry the 0-100 score, the agreed price and the ask, at most five', () => {
+test('entries carry the 0-100 score, the agreed price and the ask, and every offer is listed (view 41, decision 12)', () => {
   const many = Array.from({ length: 8 }, (_, i) => c({ seller: `s${i}`, deterministicScore: 100 - i }));
   const ranked = rankCandidates(many);
   const rec = pickRecommended(ranked, 100);
   const entries = toEntries(ranked, rec, 100, { seller: 's0', priceUsdc: 70 }, []);
-  assert.equal(entries.length, SHORTLIST_MAX);
+  assert.equal(entries.length, 8);
   assert.equal(entries[0]!.score, 70);
   assert.equal(entries[0]!.priceUsdc, 70);
   assert.equal(entries[0]!.askedUsdc, 80);
@@ -268,7 +268,7 @@ test('a poorly rated seller ranks below one who is still New', () => {
   assert.deepEqual(out.map((x) => x.seller), ['new', 'poor']);
 });
 
-test('the ranking is the same whatever order the offers arrived in, and at most five are shown (view 41)', () => {
+test('the ranking is the same whatever order the offers arrived in (view 41)', () => {
   const offers = [
     c({ seller: '0x1', matchBand: 3, deterministicScore: 60, askedUsdc: 90 }),
     c({ seller: '0x2', matchBand: 3, deterministicScore: 70, askedUsdc: 95 }),
@@ -281,5 +281,55 @@ test('the ranking is the same whatever order the offers arrived in, and at most 
   const backward = rankCandidates([...offers].reverse()).map((o) => o.seller);
   assert.deepEqual(forward, backward);
   assert.equal(forward[0], '0x4', 'same band and score, the lower ask comes first');
-  assert.equal(SHORTLIST_MAX, 5);
+  assert.equal(SHORTLIST_MAX, 5, 'the paid record read still covers the first five');
+});
+
+test('fit first, then reputation and score, then how close the terms are to the request (view 41, decision 12)', () => {
+  const out = rankCandidates(
+    [
+      c({ seller: 'weak-fit', matchBand: 1, engineScore: 990, askedUsdc: 50 }),
+      c({ seller: 'fit-low-rep', matchBand: 3, engineScore: 300, askedUsdc: 90 }),
+      c({ seller: 'fit-high-rep-over', matchBand: 3, engineScore: 800, askedUsdc: 160 }),
+      c({ seller: 'fit-high-rep-close', matchBand: 3, engineScore: 800, askedUsdc: 120 }),
+    ],
+    100,
+  );
+  assert.deepEqual(out.map((x) => x.seller), ['fit-high-rep-close', 'fit-high-rep-over', 'fit-low-rep', 'weak-fit']);
+});
+
+test('an offer above the budget and an agent not linked are listed, marked, and never recommended (view 41, decisions 11 and 13)', () => {
+  const ranked = rankCandidates(
+    [
+      c({ seller: 'unlinked', engineScore: 900, askedUsdc: 80, linked: false }),
+      c({ seller: 'over', engineScore: 850, askedUsdc: 130 }),
+      c({ seller: 'inside', engineScore: 500, askedUsdc: 95 }),
+    ],
+    100,
+  );
+  const rec = pickRecommended(ranked, 100);
+  assert.equal(rec?.seller, 'inside');
+  const entries = toEntries(ranked, rec, 100, null, []);
+  const by = (s: string) => entries.find((e) => e.seller === s)!;
+  assert.equal(entries.length, 3);
+  assert.equal(by('unlinked').mustLink, true);
+  assert.equal(by('unlinked').outsideRequest, false);
+  assert.equal(by('over').outsideRequest, true);
+  assert.equal(by('over').mustLink, false);
+  assert.equal(by('inside').recommended, true);
+});
+
+test('an agent not linked to its owner cannot be chosen until it is', () => {
+  const ranked = rankCandidates([c({ seller: 'unlinked', linked: false }), c({ seller: 'ok' })], 100);
+  const entries = toEntries(ranked, pickRecommended(ranked, 100), 100, null, []);
+  assert.deepEqual(shortlistChoiceCheck(entries, 'unlinked', true), { ok: false, code: 'must-link' });
+  assert.deepEqual(shortlistChoiceCheck(entries, 'ok', false), { ok: true });
+});
+
+test('the assistant sees the marks and is told what they mean', () => {
+  const ranked = rankCandidates([c({ seller: 'over', askedUsdc: 130 }), c({ seller: 'unlinked', linked: false })], 100);
+  const view = assistantView(toEntries(ranked, null, 100, null, []), false);
+  assert.ok(view.some((r) => r.outsideRequest === true));
+  assert.ok(view.some((r) => r.mustLink === true));
+  assert.match(assistantShortlistNote(false), /outside the request/);
+  assert.match(assistantShortlistNote(false), /link/);
 });

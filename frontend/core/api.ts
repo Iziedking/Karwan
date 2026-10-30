@@ -143,6 +143,10 @@ export interface ShortlistEntry {
   rating?: { kind: 'new'; count: number } | { kind: 'rated'; value: number; count: number; disputed?: number };
   state: 'negotiating' | 'ready' | 'unavailable';
   isNew: boolean;
+  /// Asks more than the budget: outside the request, still choosable (view 41).
+  outsideRequest?: boolean;
+  /// The seller's agent is not linked to them yet: listed, not choosable.
+  mustLink?: boolean;
 }
 
 export interface BuyerBid {

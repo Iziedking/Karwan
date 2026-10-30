@@ -33,6 +33,8 @@ export interface ShortlistCopy {
   noneVerified: string;
   noneInBudget: string;
   unverifiedWarning: string;
+  outsideRequest: string;
+  mustLink: string;
   reasons: { best_fit: string; verified: string; within_budget: string; lower_price: string; on_time_record: string; nearby: string };
   tiers: { NEW: string; COLD: string; ESTABLISHED: string; STRONG: string; ELITE: string };
 }
@@ -69,6 +71,8 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
     noneVerified: 'None of these sellers is verified yet.',
     noneInBudget: 'No verified seller is within your budget yet.',
     unverifiedWarning: '{name} is not verified. Karwan has not checked their identity or past work. Your money stays in escrow until you release it.',
+    outsideRequest: 'Above your budget, outside your request',
+    mustLink: 'Not linked to their account yet. You can choose them once they link it.',
     reasons: {
       best_fit: 'Best skill match',
       verified: 'Verified',
@@ -110,6 +114,8 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
     noneVerified: 'Aucun de ces vendeurs n’est encore vérifié.',
     noneInBudget: 'Aucun vendeur vérifié ne tient encore dans votre budget.',
     unverifiedWarning: '{name} n’est pas vérifié. Karwan n’a contrôlé ni son identité ni ses travaux passés. Votre argent reste en séquestre jusqu’à ce que vous le libériez.',
+    outsideRequest: 'Au-dessus de votre budget, hors de votre demande',
+    mustLink: 'Pas encore relié à son compte. Vous pourrez le choisir une fois relié.',
     reasons: {
       best_fit: 'Meilleure correspondance',
       verified: 'Vérifié',
@@ -151,6 +157,8 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
     noneVerified: 'لا أحد من هؤلاء البائعين موثّق بعد.',
     noneInBudget: 'لا يوجد بائع موثّق ضمن ميزانيتك بعد.',
     unverifiedWarning: '{name} غير موثّق. لم تتحقق كاروان من هويته أو أعماله السابقة. تبقى أموالك في الضمان حتى تحررها.',
+    outsideRequest: 'أعلى من ميزانيتك، خارج طلبك',
+    mustLink: 'لم يربط وكيله بحسابه بعد. يمكنك اختياره بعد أن يربطه.',
     reasons: {
       best_fit: 'أفضل تطابق في المهارة',
       verified: 'موثّق',
@@ -192,6 +200,8 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
     noneVerified: 'इनमें से कोई विक्रेता अभी सत्यापित नहीं है।',
     noneInBudget: 'अभी कोई सत्यापित विक्रेता आपके बजट में नहीं है।',
     unverifiedWarning: '{name} सत्यापित नहीं है। Karwan ने उनकी पहचान या पिछला काम नहीं जांचा है। जब तक आप जारी नहीं करते, आपका पैसा एस्क्रो में रहता है।',
+    outsideRequest: 'आपके बजट से ऊपर, आपके अनुरोध से बाहर',
+    mustLink: 'अभी तक उनके खाते से जुड़ा नहीं है। जुड़ने के बाद आप उन्हें चुन सकते हैं।',
     reasons: {
       best_fit: 'सबसे अच्छा कौशल मेल',
       verified: 'सत्यापित',
@@ -233,6 +243,8 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
     noneVerified: 'Hakuna kati ya wauzaji hawa aliyethibitishwa bado.',
     noneInBudget: 'Bado hakuna muuzaji aliyethibitishwa ndani ya bajeti yako.',
     unverifiedWarning: '{name} hajathibitishwa. Karwan haijakagua utambulisho wake wala kazi zake za awali. Pesa zako zinabaki kwenye escrow hadi utakapozitoa.',
+    outsideRequest: 'Juu ya bajeti yako, nje ya ombi lako',
+    mustLink: 'Bado hajaunganishwa na akaunti yake. Unaweza kumchagua akishaunganisha.',
     reasons: {
       best_fit: 'Ujuzi unaolingana zaidi',
       verified: 'Amethibitishwa',
