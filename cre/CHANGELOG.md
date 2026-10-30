@@ -147,6 +147,56 @@ set out the hosted deployment.
 | 16 Oct | `2b7bc94c` | Fixes found by the CRE simulator |
 | 16 Oct | `d89a8998` | Simulation harness; all three workflows simulated |
 
+## Phase 3: hosted on Chainlink, wired on Arc, first live run (28 to 30 October 2026)
+
+### Deployed
+
+- **Workflows on Chainlink's hosted CRE**, private registry, DON family `zone-a`,
+  owner `0x6aE4fE38dFbBc609D720b2f0814d72E1a94Cc104`: karwan-check,
+  karwan-risk and karwan-record, all active. Their secrets are in the Vault DON.
+  The cron triggers have run thousands of times since 28 October.
+- **Contracts on Arc Testnet**: `KarwanCreAdapter`
+  [`0x4eA2959C8843922b79f39976351543e46FC679CD`](https://explorer.testnet.arc.io/address/0x4eA2959C8843922b79f39976351543e46FC679CD),
+  which accepts reports only from Chainlink's forwarder and only from the
+  workflow bound to each report kind, and `KarwanCreFees`
+  [`0x9553ff79B13f27D767B2A94BB8428a8e6A7D9c7e`](https://explorer.testnet.arc.io/address/0x9553ff79B13f27D767B2A94BB8428a8e6A7D9c7e),
+  which holds x402 dry-run fees until CRE answers.
+- **Bindings through governance**: the owner Safe queued the workflow bindings in
+  a 24-hour timelock and executed them on 29 October
+  ([tx](https://explorer.testnet.arc.io/tx/0x3a0e08bc381cfc8ed98976cda268325873eb536f39cffc3549a944cc3b9c8c6f)).
+  Nobody, Karwan included, can point the adapter at another workflow without
+  that delay.
+- **Karwan's backend** serves the routes the workflows call (`/api/cre`) and the
+  paid x402 endpoints agents call (`/api/x402/cre`).
+- **A real deal for the live run**: 5 USDC on the Agreement escrow
+  [`0x5546…F43C`](https://explorer.testnet.arc.io/address/0x55460D2b8b0D8067Ea33406b310224B5bd44F43C),
+  deal `0x1e91da0b…0339`, with the agreed GitHub tests as its check policy,
+  accepted by the seller.
+
+### First live run, and what it found
+
+On 30 October an agent for the deal's buyer paid 0.25 USDC over x402 (a signed
+USDC `ReceiveWithAuthorization`), Karwan relayed it into `KarwanCreFees`, and
+Chainlink's gateway started karwan-check. The run stopped at the first GitHub
+call: Chainlink's gateway refuses requests that set their own `User-Agent`
+header, and the workflows set one. The CRE simulator does not apply that rule,
+so the simulations had passed.
+
+The fix sends GitHub headers without it (the gateway adds its own) and adds a
+test against the gateway's full list of blocked headers, taken from Chainlink's
+source. karwan-check was redeployed with the fix and its new binding goes
+through the same 24-hour timelock. The 0.25 USDC is refundable to the payer by
+anyone, because no answer came within the hour.
+
+### Commits
+
+| Date | Commit | Change |
+|---|---|---|
+| 28 Oct | `b2093bf5` | CRE tables, x402 CRE endpoints, x402 dry run simulated end to end, deploy runbook and timelock batch tool |
+| 28 Oct | `77979f15` | Production configs, CRE routes served in production, live dry-run deal and agent scripts |
+| 29 Oct | `852c1139` | The admin route catalog lists the CRE routes |
+| 30 Oct | `792a1a39` | GitHub calls no longer set the header Chainlink's gateway refuses |
+
 ## Phase 1: a confidential delivery check (5 to 14 September 2026)
 
 The first integration: a confidential CRE workflow reads a GitHub delivery
@@ -181,10 +231,12 @@ git log --since=2026-09-05 --until=2026-09-15 -- cre contracts/src/KarwanEvidenc
 
 - Simulated with the CRE CLI: all three Phase 2 workflows, on a fork of Arc
   Testnet, including an x402 dry run paid into the fee contract.
-- Deployed: the Phase 1 receiver on Arc Testnet, and the Phase 1 workflow,
-  registered but blocked by the DON error above.
-- Not deployed yet: the Phase 2 adapter, verifiers and fee contract, and the
-  hosted Phase 2 workflows.
-- While CRE cannot run hosted, Karwan's own checks decide deals, and CRE results
-  are compared alongside them (`CRE_ENABLED` is off). A CRE error never blocks a
-  deal.
+- Deployed and running on Chainlink's hosted CRE: all three Phase 2 workflows.
+- Deployed on Arc Testnet: the adapter and the fee contract, bound to the
+  workflows through the owner Safe and a 24-hour timelock.
+- Live on Arc Testnet: a paid x402 dry run reached Chainlink and started
+  karwan-check. The first run stopped at a header Chainlink's gateway refuses;
+  the fix is deployed and its binding is in the timelock. A live run that writes
+  its signed answer to Arc has not happened yet.
+- Karwan's own checks still decide deals, and CRE results are compared alongside
+  them (`CRE_ENABLED` is off). A CRE error never blocks a deal.
