@@ -2,15 +2,15 @@
 /// A row shows only once it means something, in one order for everyone, and
 /// anything that needs the person moves to the top, marked.
 
-export type LayerKey = 'progress' | 'delivery' | 'handover' | 'getPaid' | 'messages' | 'agreement' | 'receipts' | 'problem';
+export type LayerKey = 'progress' | 'delivery' | 'handover' | 'getPaid' | 'agreement' | 'receipts' | 'problem';
 
 export interface Layer {
   key: LayerKey;
   attention: boolean;
 }
 
+/// Messages are not a row: the message button beside the name opens them.
 export interface LayerFacts {
-  signedIn: boolean;
   delivered: boolean;
   /// The buyer holds the code the seller asks for at an in-person handover.
   needsHandover: boolean;
@@ -20,10 +20,9 @@ export interface LayerFacts {
   problems: number;
   /// The delivery check paused the payment.
   heldDelivery: boolean;
-  unread: boolean;
 }
 
-const ORDER: LayerKey[] = ['progress', 'delivery', 'handover', 'getPaid', 'messages', 'agreement', 'receipts', 'problem'];
+const ORDER: LayerKey[] = ['progress', 'delivery', 'handover', 'getPaid', 'agreement', 'receipts', 'problem'];
 
 export function dealLayers(f: LayerFacts): Layer[] {
   const shown: Record<LayerKey, boolean> = {
@@ -31,7 +30,6 @@ export function dealLayers(f: LayerFacts): Layer[] {
     delivery: f.delivered || f.heldDelivery,
     handover: f.needsHandover,
     getPaid: f.canGetPaid,
-    messages: f.signedIn,
     agreement: true,
     receipts: f.funded,
     problem: f.problems > 0,
@@ -39,7 +37,6 @@ export function dealLayers(f: LayerFacts): Layer[] {
   const attention: Partial<Record<LayerKey, boolean>> = {
     delivery: f.heldDelivery,
     handover: f.needsHandover,
-    messages: f.unread,
   };
   const rows = ORDER.filter((key) => shown[key]).map((key) => ({ key, attention: !!attention[key] }));
   return [...rows.filter((r) => r.attention), ...rows.filter((r) => !r.attention)];

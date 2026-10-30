@@ -30,7 +30,7 @@ import { RecordNudge } from './RecordNudge';
 import { deliveryNeedsShipment } from './delivery';
 import { linksIn } from './deliveryCard';
 
-type Panel = 'record' | 'problem' | 'deliver' | 'answerTime' | 'answerCancel' | 'turnDown' | null;
+type Panel = 'record' | 'messages' | 'problem' | 'deliver' | 'answerTime' | 'answerCancel' | 'turnDown' | null;
 
 const LINE_TONE: Record<DealView['money']['line'], string> = {
   'not-funded': 'var(--lp-text-sub)',
@@ -73,12 +73,10 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   const chat = useChatUnread(deal.jobId, address);
   const { markSeen } = chat;
   useEffect(() => {
-    if (openRow === 'messages' && chat.unread) markSeen();
-  }, [openRow, chat.unread, markSeen]);
-  const openMessages = () => {
-    setOpenRow('messages');
-    window.requestAnimationFrame(() => document.getElementById('deal-row-messages')?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
-  };
+    if (panel === 'messages' && chat.unread) markSeen();
+  }, [panel, chat.unread, markSeen]);
+  // Messages open beside the deal from the message button, not as a row.
+  const openMessages = () => setPanel('messages');
   const [editing, setEditing] = useState(false);
   // The short reference people give the assistant or support (view 42).
   const reference = dealReference(deal.jobId);
@@ -213,14 +211,12 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
 
   const isSeller = !!address && deal.seller.toLowerCase() === address.toLowerCase();
   const layers = dealLayers({
-    signedIn: !!address,
     delivered: !!deal.delivered || !!deal.deliveredAt,
     needsHandover: viewerIsBuyer && !!address && deliveryNeedsShipment(deal.tradeType) && view.stage === 'awaiting-delivery' && !deal.shipment?.arrivedAt,
     canGetPaid: financingVisible(deal, isSeller) && deal.escrowVersion === 'suite',
     funded: !!deal.acceptedAt || !!deal.fundTxHash,
     problems: problems.length,
     heldDelivery: check === 'held',
-    unread: !!chat.unread,
   });
   const steps = copy.progress;
   const current = view.progress.find((p) => p.state === 'current') ?? [...view.progress].reverse().find((p) => p.state === 'done');
@@ -229,7 +225,6 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
     delivery: copy.layers.delivery,
     handover: copy.layers.handover,
     getPaid: copy.layers.getPaid,
-    messages: s.messages,
     agreement: s.agreement,
     receipts: s.receipts,
     problem: s.problem,
@@ -237,7 +232,6 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   const rowSummary: Partial<Record<LayerKey, string>> = {
     progress: current ? steps[current.step] : undefined,
     delivery: paused ? paused.title : deal.deliveredAt ? formatDealDate(deal.deliveredAt, locale) : undefined,
-    messages: chat.unread ? s.newMessages : undefined,
     agreement: deal.terms,
   };
   function rowBody(key: LayerKey): ReactNode {
@@ -255,8 +249,6 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
         return address ? <HandoverCode jobId={deal.jobId} caller={address} /> : null;
       case 'getPaid':
         return <GetPaidNow deal={deal} viewerIsSeller={isSeller} onChanged={onChanged} />;
-      case 'messages':
-        return address ? <ChatPanel jobId={deal.jobId} caller={address} counterpartyLabel={name} counterpartyAddress={counterparty} /> : null;
       case 'agreement':
         return <AgreementSection bare deal={deal} />;
       case 'receipts':
@@ -433,6 +425,9 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
         })}
       </ul>
 
+      <Sheet open={panel === 'messages'} title={s.messages} onClose={close}>
+        {address ? <ChatPanel jobId={deal.jobId} caller={address} counterpartyLabel={name} counterpartyAddress={counterparty} /> : null}
+      </Sheet>
       <Sheet open={panel === 'record'} title={s.record} onClose={close}>
         {card ? <TrustCard bare card={card} onOpenPassport={() => window.open(`/credit-passport/${counterparty}`, '_blank', 'noopener,noreferrer')} /> : null}
       </Sheet>

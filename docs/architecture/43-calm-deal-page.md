@@ -15,7 +15,7 @@ One column. The title block comes first and sits flat on the page: who the deal 
 ```mermaid
 flowchart TD
   T["Title block: who, money, this moment, one move"] --> A["Rows that need you, marked"]
-  A --> R["Progress · Delivery · Handover code · Get paid now · Messages · What you agreed · Money record · Something is wrong"]
+  A --> R["Progress · Delivery · Handover code · Get paid now · What you agreed · Money record · Something is wrong"]
   R -->|tap| O["The row opens in place"]
   R -->|an action| S["Confirm sheet, as today"]
 ```
@@ -23,8 +23,8 @@ flowchart TD
 ## Decisions
 
 1. **A row shows only once it means something.** No delivery row before a delivery, no money record before money moves, Get paid now only for the seller of a business order on the escrow family, Something is wrong only when a step is possible.
-2. **One order for everyone**, so a person learns the page once: progress, delivery, handover code, get paid now, messages, what you agreed, money record, something is wrong.
-3. **What needs the person rises to the top, marked**: a delivery the check paused, a handover code the buyer must give, unread messages. A dispute stays open under the title block until it ends.
+2. **One order for everyone**, so a person learns the page once: progress, delivery, handover code, get paid now, what you agreed, money record, something is wrong. **Messages are not a row** (owner, 30 Oct): the message button beside the other person's name opens the conversation beside the deal, a side panel on wide screens and a bottom sheet on phones, with a mark for unread messages.
+3. **What needs the person rises to the top, marked**: a delivery the check paused, a handover code the buyer must give. A dispute stays open under the title block until it ends.
 4. **Rows open in place, actions open the confirm sheet.** Reading never stacks one sheet on another.
 5. **Same words as the assistant.** Each row is a subject the assistant already answers on the website and in Telegram (get_deal_status, the deal chat, the problem steps).
 

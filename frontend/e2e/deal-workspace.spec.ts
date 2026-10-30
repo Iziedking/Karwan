@@ -58,14 +58,15 @@ test('the agreement opens in place from its row instead of sitting on the page',
   await expect(page.getByRole('dialog')).toHaveCount(0);
 });
 
-test('messages stay closed on a wide screen until the message button opens their row', async ({ page }) => {
+test('messages stay closed on a wide screen until the message button opens them beside the deal', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await serveDeal(page, deliveredDeal);
   await page.goto(`/deals/${JOB}`);
   await expect(page.getByRole('heading', { level: 1 })).toContainText('1,200');
   await expect(page.getByRole('log')).toHaveCount(0);
   await page.getByRole('button', { name: /^Message Amina Foods Ltd/ }).click();
-  await expect(page.locator('#deal-row-messages-body').getByRole('log')).toBeVisible();
+  await expect(page.getByRole('dialog').getByRole('log')).toBeVisible();
+  await expect(page.locator('#deal-row-messages')).toHaveCount(0);
 });
 
 test('Back sits on the deal column, not at the edge of a wide screen', async ({ page }) => {
