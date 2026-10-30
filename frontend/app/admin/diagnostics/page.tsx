@@ -8,6 +8,7 @@ import { api, ApiError } from '@/core/api';
 
 type Health = Awaited<ReturnType<typeof api.adminHealth>>;
 type SeedStatus = Awaited<ReturnType<typeof api.adminAgentSeedStatus>>;
+type Older = Awaited<ReturnType<typeof api.adminOlderContracts>>['contracts'];
 type SeedRun = Awaited<ReturnType<typeof api.adminAgentSeedRun>>;
 
 const PANEL = 'bg-[#161616] border border-white/10 rounded-2xl p-6';
@@ -94,6 +95,7 @@ export default function AdminDiagnostics() {
         </p>
       </div>
       <HealthOverview />
+      <OlderContractsPanel />
       <AgentSeedPanel />
     </div>
   );
@@ -255,6 +257,64 @@ function HealthOverview() {
               </div>
             ))}
           </HealthCard>
+        </div>
+      )}
+    </section>
+  );
+}
+
+const usd = (v: string | null) => (v === null ? '—' : `${Number(v).toLocaleString(undefined, { maximumFractionDigits: 2 })} USDC`);
+
+/// What older contracts still hold (view 37). "For people" is what open deals
+/// and positions on Karwan's records hold; "no step" is the part of it nobody
+/// can move today; "left over" is the rest of the balance: fees, team money and
+/// money not matched to a record.
+function OlderContractsPanel() {
+  const [rows, setRows] = useState<Older | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.adminOlderContracts().then((r) => setRows(r.contracts), (e) => setErr(errMsg(e)));
+  }, []);
+
+  return (
+    <section className={PANEL}>
+      <p className={LABEL}>Older contracts</p>
+      <h2 className="mt-1.5 font-sans text-[18px] font-bold text-white">Money still on older contracts</h2>
+      {err && <p className="mt-3 text-[13px] text-[#e0794f]">{err}</p>}
+      {!rows && !err && <p className="mt-3 text-[13px] text-white/50">Reading the chain…</p>}
+      {rows && rows.length === 0 && <p className="mt-3 text-[13px] text-white/50">Nothing is left on older contracts.</p>}
+      {rows && rows.length > 0 && (
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full text-[12.5px] tabular-nums">
+            <thead>
+              <tr className={`${LABEL} text-left`}>
+                <th className="py-2 pr-4 font-normal">Contract</th>
+                <th className="py-2 pr-4 font-normal text-right">Holds</th>
+                <th className="py-2 pr-4 font-normal text-right">For people</th>
+                <th className="py-2 pr-4 font-normal text-right">Open</th>
+                <th className="py-2 pr-4 font-normal text-right">No step</th>
+                <th className="py-2 font-normal text-right">Left over</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.address} className="border-t border-white/10 text-white/80">
+                  <td className="py-2 pr-4">
+                    {r.name.replace(/^Karwan/, '')}
+                    <span className="block mono text-[10px] text-white/30">{short(r.address)}</span>
+                  </td>
+                  <td className="py-2 pr-4 text-right">{usd(r.balanceUsdc)}</td>
+                  <td className="py-2 pr-4 text-right">{usd(r.forPeopleUsdc)}</td>
+                  <td className="py-2 pr-4 text-right">{r.forPeopleUsdc === null ? '—' : r.open}</td>
+                  <td className="py-2 pr-4 text-right" style={{ color: r.noStepUsdc && Number(r.noStepUsdc) > 0 ? AMBER : undefined }}>
+                    {usd(r.noStepUsdc)}
+                  </td>
+                  <td className="py-2 text-right">{usd(r.leftOverUsdc)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </section>

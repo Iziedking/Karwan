@@ -191,4 +191,5 @@ The view was agreed with decision 3 changed: guarantees earn at the USYC rate.
 | Deals from before the new escrow on the legacy page | Built, committed 28 Oct 2026 |
 | Every older money contract on the legacy page, no window | Built 29 Oct 2026, not deployed; read from the deploy ledger |
 | Legacy contracts row in Profile, Other | Built 29 Oct 2026, not deployed |
+| Older contracts table for the team, on /admin/diagnostics: each contract's USDC, what open deals and positions hold for people, the part with no working step, and what is left over | Built 30 Oct 2026, not deployed |
 | Mainnet | After the audit steps in view 11 |

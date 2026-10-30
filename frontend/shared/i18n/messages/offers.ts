@@ -19,6 +19,8 @@ export interface OffersCopy {
   listTitle: string;
   closestMatch: string;
   agentLine: string;
+  /// When the buyer's agent picked one: it leads, the rest follow by price.
+  agentPickLine: string;
   accept: string;
   acceptShort: string;
   confirmTitle: string;
@@ -77,6 +79,7 @@ const en: OffersCopy = {
   listTitle: '{n} offers',
   closestMatch: 'Closest match to your request',
   agentLine: 'Sorted by price. You decide.',
+  agentPickLine: 'Your agent’s pick first, then by price. You decide.',
   accept: 'Accept {seller} · {price} USDC',
   acceptShort: 'Accept',
   confirmTitle: 'Accept this offer',
@@ -135,6 +138,7 @@ const ar: OffersCopy = {
   listTitle: '{n} عروض',
   closestMatch: 'الأقرب إلى طلبك',
   agentLine: 'مرتّبة حسب السعر. والقرار لك.',
+  agentPickLine: 'اختيار وكيلك أولًا، ثم حسب السعر. والقرار لك.',
   accept: 'اقبل {seller} · {price} USDC',
   acceptShort: 'اقبل',
   confirmTitle: 'اقبل هذا العرض',
@@ -193,6 +197,7 @@ const fr: OffersCopy = {
   listTitle: '{n} offres',
   closestMatch: 'La plus proche de votre demande',
   agentLine: 'Triées par prix. Vous décidez.',
+  agentPickLine: 'Le choix de votre agent d’abord, puis par prix. Vous décidez.',
   accept: 'Accepter {seller} · {price} USDC',
   acceptShort: 'Accepter',
   confirmTitle: 'Accepter cette offre',
@@ -251,6 +256,7 @@ const hi: OffersCopy = {
   listTitle: '{n} ऑफ़र',
   closestMatch: 'आपके अनुरोध से सबसे मेल खाता',
   agentLine: 'कीमत के क्रम में। फ़ैसला आपका है।',
+  agentPickLine: 'पहले आपके एजेंट की पसंद, फिर कीमत के क्रम में। फ़ैसला आपका है।',
   accept: '{seller} स्वीकार करें · {price} USDC',
   acceptShort: 'स्वीकार करें',
   confirmTitle: 'यह ऑफ़र स्वीकार करें',
@@ -309,6 +315,7 @@ const sw: OffersCopy = {
   listTitle: 'Ofa {n}',
   closestMatch: 'Inayolingana zaidi na ombi lako',
   agentLine: 'Zimepangwa kwa bei. Wewe unaamua.',
+  agentPickLine: 'Chaguo la wakala wako kwanza, kisha kwa bei. Wewe unaamua.',
   accept: 'Kubali {seller} · {price} USDC',
   acceptShort: 'Kubali',
   confirmTitle: 'Kubali ofa hii',

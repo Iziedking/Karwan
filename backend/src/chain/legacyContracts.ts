@@ -27,6 +27,58 @@ export function olderContracts(ledger: readonly DeployedContract[], live: { escr
   return { escrows, vaults };
 }
 
+export interface OlderContract {
+  address: Address;
+  name: DeployedContract['name'];
+  /// Which reader can count what it holds for people; null when none can.
+  reader: 'escrow' | 'vault' | null;
+}
+
+/// Every older contract that can hold USDC, for the admin table: the escrows
+/// and vaults the legacy page reads, then any other settlement, staking or
+/// financing contract that is not a live one, counted by balance only.
+export function olderContractsForAdmin(ledger: readonly DeployedContract[], live: { escrow?: string | null; others: readonly string[] }): OlderContract[] {
+  const { escrows, vaults } = olderContracts(ledger, live);
+  const skip = new Set([...escrows, ...vaults, live.escrow?.toLowerCase(), ...live.others.map((a) => a.toLowerCase())]);
+  const rest = ledger
+    .filter((c) => (c.kind === 'settlement' || c.kind === 'staking' || c.kind === 'financing') && !skip.has(c.address.toLowerCase()))
+    .map((c) => ({ address: c.address.toLowerCase() as Address, name: c.name, reader: null }));
+  const named = (address: Address, reader: 'escrow' | 'vault'): OlderContract => ({ address, name: ledger.find((c) => c.address.toLowerCase() === address)!.name, reader });
+  return [...escrows.map((a) => named(a, 'escrow')), ...vaults.map((a) => named(a, 'vault')), ...rest];
+}
+
+export interface OlderContractRow {
+  address: Address;
+  name: DeployedContract['name'];
+  /// null when the balance read failed.
+  balanceMicros: bigint | null;
+  /// What open deals and positions on Karwan's records still hold for people.
+  forPeopleMicros: bigint | null;
+  open: number;
+  /// The part of it with no step that goes through today.
+  noStepMicros: bigint | null;
+  /// Balance less what is held for people: fees, team money, and anything not
+  /// matched to a Karwan record.
+  leftOverMicros: bigint | null;
+}
+
+export function olderContractTotals(input: {
+  contracts: readonly OlderContract[];
+  balances: ReadonlyMap<Address, bigint>;
+  held: ReadonlyArray<{ contract: Address; micros: bigint; hasStep: boolean }>;
+}): OlderContractRow[] {
+  return input.contracts
+    .map((c) => {
+      const balance = input.balances.get(c.address) ?? null;
+      const mine = input.held.filter((h) => h.contract === c.address);
+      const forPeople = c.reader ? mine.reduce((s, h) => s + h.micros, 0n) : null;
+      const noStep = c.reader ? mine.filter((h) => !h.hasStep).reduce((s, h) => s + h.micros, 0n) : null;
+      const leftOver = balance !== null && forPeople !== null ? (balance > forPeople ? balance - forPeople : 0n) : null;
+      return { address: c.address, name: c.name, balanceMicros: balance, forPeopleMicros: forPeople, open: mine.length, noStepMicros: noStep, leftOverMicros: leftOver };
+    })
+    .filter((r) => r.balanceMicros !== 0n || r.open > 0);
+}
+
 /// The public `escrows(bytes32)` getter grew a field with each version, and its
 /// width is how the deployed version is told apart.
 const BY_WIDTH: Record<number, EscrowVersion> = { 6: 'v0', 9: 'pre-v2d', 10: 'v2d', 11: 'v2e' };

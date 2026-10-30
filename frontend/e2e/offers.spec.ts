@@ -216,6 +216,21 @@ test('buyer sees offers cheapest first and accepts through the confirm sheet', a
   await expect(page.getByText('Offer accepted. The money is held.')).toBeVisible();
 });
 
+test("buyer sees who each seller is, the agent's pick first, never a score (view 32)", async ({ page }) => {
+  const ada = {
+    ...offer('o1', SELLER_A, '120', 1),
+    sellerBlock: { name: 'Ada Obi', tag: 'ada', verified: true, tier: 'ESTABLISHED', rating: { kind: 'rated' as const, value: 4.8, count: 23, disputed: 0 }, reasons: ['best_fit', 'verified'], recommended: true },
+  };
+  await open(page, { role: 'buyer', offers: [offer('o2', SELLER_B, '96', 2), ada] });
+  await expect(page.getByText('Your agent’s pick first, then by price. You decide.')).toBeVisible();
+  await expect(page.getByText('4.8 from 23 deals')).toBeVisible();
+  await expect(page.getByText(/score|23 completed/i)).toHaveCount(0);
+  await layoutIsSound(page);
+  // The one primary button is on the pick, named by name.
+  await page.getByRole('button', { name: /Accept Ada Obi · 120 USDC/ }).click();
+  await expect(page.getByRole('dialog')).toContainText('Ada Obi');
+});
+
 test('buyer accepting above budget sees the difference', async ({ page }) => {
   await open(page, { role: 'buyer', offers: [offer('o1', SELLER_A, '150', 1)] });
   await page.getByRole('button', { name: /Accept 0x5555/ }).click();

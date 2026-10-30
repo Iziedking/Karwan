@@ -2,16 +2,25 @@ import { encodeFunctionData, type Address, type Hex } from 'viem';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { ARC, publicClient } from './client.js';
+import { readUsdcBalance } from './contracts.js';
 import { DEPLOY_LEDGER } from './deployLedger.js';
 import {
+  LEGACY_STATE,
+  dealStepCalls,
+  dealSteps,
   decodeLegacyEscrow,
   escrowVersionForWidth,
   legacyEscrowAbi,
   legacyVaultAbi,
   olderContracts,
+  olderContractsForAdmin,
+  olderContractTotals,
+  vaultStepCall,
+  vaultSteps,
   type Call,
   type EscrowVersion,
   type LegacyDeal,
+  type OlderContractRow,
 } from './legacyContracts.js';
 
 /// Live reads behind the legacy page (view 37). The deploy ledger lists Arc
@@ -125,4 +134,70 @@ export async function simulates(from: Address, call: Call): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/// The money contracts still in use. Older ones are everything else in the ledger.
+function liveAddresses(): string[] {
+  const c = config as unknown as Record<string, string | undefined>;
+  return Object.keys(c)
+    .filter((k) => /^KARWAN_.*_ADDR$/.test(k) && !k.includes('LEGACY'))
+    .map((k) => c[k])
+    .filter((v): v is string => !!v && /^0x[0-9a-fA-F]{40}$/.test(v));
+}
+
+const REPORT_TTL_MS = 5 * 60_000;
+let report: { at: number; rows: Promise<OlderContractRow[]> } | null = null;
+
+/// The admin table of older contracts (view 37): what each holds, how much of
+/// it open deals and positions on Karwan's records hold for people, and the
+/// part with no step that goes through today. Read from the chain, cached a few
+/// minutes because it simulates every open step.
+export function olderContractsReport(jobIds: () => Promise<string[]>): Promise<OlderContractRow[]> {
+  if (report && Date.now() - report.at < REPORT_TTL_MS) return report.rows;
+  const rows = (async () => {
+    const contracts = ON_LEDGER_NETWORK ? olderContractsForAdmin(DEPLOY_LEDGER, { escrow: config.KARWAN_ESCROW_ADDR ?? null, others: liveAddresses() }) : [];
+    const balances = new Map<Address, bigint>();
+    await Promise.all(
+      contracts.map(async (c) => {
+        const b = await readUsdcBalance(c.address).catch(() => null);
+        if (b !== null) balances.set(c.address, b);
+      }),
+    );
+    const now = Math.floor(Date.now() / 1000);
+    const held: Array<{ contract: Address; micros: bigint; hasStep: boolean }> = [];
+    const anyStep = async (from: Address, calls: Call[]) => (await Promise.all(calls.map((call) => simulates(from, call)))).some(Boolean);
+
+    for (const vault of contracts.filter((c) => c.reader === 'vault')) {
+      const positions = await vaultIndex(vault.address).catch(() => [] as LegacyVaultPosition[]);
+      for (const p of positions) {
+        const calls = vaultSteps(p, now).map((s) => vaultStepCall(p.vault, s, p.positionId));
+        held.push({ contract: vault.address, micros: p.principalMicros, hasStep: await anyStep(p.owner, calls) });
+      }
+    }
+
+    const ids = await jobIds();
+    for (const [escrow, version] of await escrowVersions()) {
+      for (let i = 0; i < ids.length; i += 25) {
+        const reads = await Promise.all(
+          ids.slice(i, i + 25).map(async (jobId) => {
+            const r = await publicClient.call({ to: escrow, data: encodeFunctionData({ abi: legacyEscrowAbi, functionName: 'escrows', args: [jobId as Hex] }) }).catch(() => null);
+            const deal = r?.data ? decodeLegacyEscrow(version, r.data) : null;
+            return deal ? { jobId, deal } : null;
+          }),
+        );
+        for (const hit of reads) {
+          if (!hit || hit.deal.lockedMicros === 0n) continue;
+          if (hit.deal.state !== LEGACY_STATE.Funded && hit.deal.state !== LEGACY_STATE.Disputed) continue;
+          const calls = dealSteps(hit.deal, 'buyer').map((s) => dealStepCalls(escrow, s, hit.jobId as Hex, hit.deal)[0]!);
+          held.push({ contract: escrow, micros: hit.deal.lockedMicros, hasStep: await anyStep(hit.deal.buyer, calls) });
+        }
+      }
+    }
+    return olderContractTotals({ contracts, balances, held });
+  })();
+  rows.catch(() => {
+    report = null;
+  });
+  report = { at: Date.now(), rows };
+  return rows;
 }

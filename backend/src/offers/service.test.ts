@@ -223,6 +223,36 @@ test('who sees what: buyer all, seller own, others only the count', async () => 
   assert.deepEqual(pub.offers, []);
 });
 
+test('the buyer sees who each seller is, sealed; a seller and a visitor do not', async () => {
+  __resetDirectOffersForTest();
+  await createDirectOffer(row());
+  await createDirectOffer(row({ sellerUser: '0xother', sellerAgent: '0xoagent', priceUsdc: '250' }));
+  const asked: string[][] = [];
+  const d = deps({
+    sellerBlocks: async (_jobId, offers) => {
+      asked.push(offers.map((o) => o.sellerAgent));
+      return [{ sellerAgent: '0xsagent', name: 'Ada Obi', tag: 'ada', verified: true, tier: 'ESTABLISHED', rating: { kind: 'rated', value: 4.8, count: 23, disputed: 0 }, reasons: ['best_fit'], recommended: true }];
+    },
+  });
+  const v = await viewOffers('0xbuyer', JOB, d);
+  const ada = v.offers.find((o) => o.sellerAgent === '0xsagent')!;
+  assert.equal(ada.sellerBlock?.name, 'Ada Obi');
+  assert.equal(ada.sellerBlock?.recommended, true);
+  assert.ok(!('score' in (ada.sellerBlock ?? {})));
+  // An offer the ranking left out keeps the plain row.
+  assert.equal(v.offers.find((o) => o.sellerAgent === '0xoagent')!.sellerBlock, undefined);
+  assert.equal((await viewOffers('0xseller', JOB, d)).offers[0]?.sellerBlock, undefined);
+  assert.equal(asked.length, 1);
+});
+
+test('a ranking that fails leaves the offers as they were', async () => {
+  __resetDirectOffersForTest();
+  await createDirectOffer(row());
+  const v = await viewOffers('0xbuyer', JOB, deps({ sellerBlocks: async () => { throw new Error('rpc down'); } }));
+  assert.equal(v.offers.length, 1);
+  assert.equal(v.offers[0]?.sellerBlock, undefined);
+});
+
 test('the view carries the public request and the viewer role', async () => {
   __resetDirectOffersForTest();
   const d = deps();

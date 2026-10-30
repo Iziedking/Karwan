@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { encodeAbiParameters, parseAbiParameters } from 'viem';
 import { DEPLOY_LEDGER } from './deployLedger.js';
-import { decodeLegacyEscrow, dealSteps, escrowVersionForWidth, olderContracts, vaultSteps, LEGACY_STATE } from './legacyContracts.js';
+import { decodeLegacyEscrow, dealSteps, escrowVersionForWidth, olderContracts, olderContractsForAdmin, olderContractTotals, vaultSteps, LEGACY_STATE } from './legacyContracts.js';
 
 const LIVE_ESCROW = '0x0262a4dfec0e057caf80f124bfd2847581e82b63';
 const BUYER = '0x00000000000000000000000000000000000000b1';
@@ -60,4 +60,53 @@ test('an older deal offers the buyer a release or their money back, and the sell
   assert.deepEqual(dealSteps(deal, 'seller'), []);
   assert.deepEqual(dealSteps({ ...deal, lockedMicros: 0n }, 'buyer'), []);
   assert.deepEqual(dealSteps({ ...deal, state: LEGACY_STATE.Settled }, 'buyer'), []);
+});
+
+test('the admin table counts what each older contract holds for people and what is left over', () => {
+  const E = '0x00000000000000000000000000000000000000e1';
+  const V = '0x00000000000000000000000000000000000000f1';
+  const P = '0x00000000000000000000000000000000000000d1';
+  const rows = olderContractTotals({
+    contracts: [
+      { address: E, name: 'KarwanEscrow', reader: 'escrow' },
+      { address: V, name: 'KarwanVault', reader: 'vault' },
+      { address: P, name: 'KarwanPOFinancing', reader: null },
+    ],
+    balances: new Map([[E, 30_000_000n], [V, 5_000_000n], [P, 2_000_000n]]),
+    held: [
+      { contract: E, micros: 10_000_000n, hasStep: true },
+      { contract: E, micros: 4_000_000n, hasStep: false },
+      { contract: V, micros: 5_000_000n, hasStep: true },
+    ],
+  });
+  assert.deepEqual(rows[0], { address: E, name: 'KarwanEscrow', balanceMicros: 30_000_000n, forPeopleMicros: 14_000_000n, open: 2, noStepMicros: 4_000_000n, leftOverMicros: 16_000_000n });
+  assert.equal(rows[1]!.leftOverMicros, 0n);
+  // A contract with no reader shows its balance; who it belongs to is unknown.
+  assert.deepEqual(rows[2], { address: P, name: 'KarwanPOFinancing', balanceMicros: 2_000_000n, forPeopleMicros: null, open: 0, noStepMicros: null, leftOverMicros: null });
+});
+
+test('an empty older contract drops off the table, and a balance read that failed shows as unknown', () => {
+  const E = '0x00000000000000000000000000000000000000e1';
+  const F = '0x00000000000000000000000000000000000000e2';
+  const rows = olderContractTotals({
+    contracts: [
+      { address: E, name: 'KarwanEscrow', reader: 'escrow' },
+      { address: F, name: 'KarwanEscrow', reader: 'escrow' },
+    ],
+    balances: new Map([[E, 0n]]),
+    held: [],
+  });
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0]!.address, F);
+  assert.equal(rows[0]!.balanceMicros, null);
+  assert.equal(rows[0]!.leftOverMicros, null);
+});
+
+test('the admin table lists other non-live money contracts by balance only', () => {
+  const live = { escrow: LIVE_ESCROW, others: ['0x0000000000000000000000000000000000000001'] };
+  const list = olderContractsForAdmin(DEPLOY_LEDGER, live);
+  assert.ok(!list.some((c) => c.address === LIVE_ESCROW));
+  assert.ok(list.some((c) => c.reader === 'vault' && c.address === '0xa600bd772a032ec2b96a9a44545024e270418927'));
+  assert.ok(list.every((c) => c.name !== 'KarwanJobBoard' && c.name !== 'KarwanReputation' && c.name !== 'KarwanTreasury'));
+  for (const c of list.filter((x) => x.reader === null)) assert.ok(!live.others.includes(c.address));
 });

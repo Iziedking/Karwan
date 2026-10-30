@@ -1,4 +1,5 @@
 import { formatUnits, parseUnits } from 'viem';
+import type { RankedWorkOffer } from '@/core/api';
 import type { OffersCopy } from '@/shared/i18n/messages/offers';
 
 export type Offer = {
@@ -13,6 +14,8 @@ export type Offer = {
   lapsesAt: number;
   /// Buyer view only: what accepting takes from the wallet, fee included.
   fundedUsdc?: string;
+  /// Buyer view only: who the seller is, sealed, as the buyer's agent ranked them.
+  sellerBlock?: Pick<RankedWorkOffer, 'name' | 'tag' | 'verified' | 'tier' | 'rating' | 'reasons' | 'recommended'>;
 };
 
 export function offerDefaults(budgetUsdc: string, deadlineUnix: number) {

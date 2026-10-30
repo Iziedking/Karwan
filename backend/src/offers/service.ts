@@ -1,4 +1,5 @@
 import { formatUnits, parseUnits } from 'viem';
+import type { SealedSeller } from '../agents/sealedSellers.js';
 import { checkOffer, offerLapsesAt, type OfferInput } from './rules.js';
 import { jobActionsInFlight } from './jobLock.js';
 import {
@@ -38,7 +39,11 @@ type Wallets = { userAddress: string; sellerWalletId?: string; sellerAddress?: s
 export type PublicRequest = { briefText: string; budgetUsdc: string; deadlineUnix: number; quantity?: { count: number; unit: string | null } | null };
 export type OfferViewerRole = 'buyer' | 'seller' | 'visitor';
 /// What the buyer sees: the offer plus the exact amount that leaves their wallet.
-export type BuyerOfferView = DirectOffer & { fundedUsdc?: string };
+/// Who the seller is, sealed (view 32): never a score or a count.
+export type SellerBlock = Omit<SealedSeller, 'sellerAgent'>;
+export type BuyerOfferView = DirectOffer & { fundedUsdc?: string; sellerBlock?: SellerBlock };
+
+const blockOf = ({ sellerAgent: _agent, ...block }: SealedSeller): SellerBlock => block;
 
 export type OfferDeps = {
   now: () => number;
@@ -60,6 +65,8 @@ export type OfferDeps = {
   /// Sets up a held wallet's Karwan record before the offer, so the deal counts
   /// on it. Never refuses the offer (view 27, decision 10).
   prepareRecord?: (sellerUser: string) => Promise<void>;
+  /// The buyer's agent ranks the sellers who offered (view 32).
+  sellerBlocks?: (jobId: string, offers: readonly DirectOffer[]) => Promise<SealedSeller[]>;
 };
 
 const low = (s: string) => s.toLowerCase();
@@ -99,6 +106,23 @@ export const defaultDeps: OfferDeps = {
   prepareRecord: async (sellerUser) => {
     if (!suiteFundingEnabled() || !suiteIdentity) return;
     await suiteIdentity.ensureRecord(sellerUser, 'seller');
+  },
+  sellerBlocks: async (jobId, offers) => {
+    const job = getBuyerJob(jobId);
+    if (!job) return [];
+    const [{ sealedSellers }, { sealedSellerDeps }] = await Promise.all([import('../agents/sealedSellers.js'), import('../agents/sealedSellersLive.js')]);
+    return sealedSellers(
+      {
+        requestId: jobId,
+        // The person who posted; job.buyer is their buying agent.
+        buyer: getBrief(jobId)?.postedBy ?? job.buyer,
+        budgetUsdc: job.budgetUsdc,
+        keywords: getBrief(jobId)?.keywords ?? [],
+        offers: offers.map((o) => ({ sellerUser: o.sellerUser, sellerAgent: o.sellerAgent, priceUsdc: o.priceUsdc, deadlineUnix: o.deliverByUnix, note: o.note })),
+      },
+      sealedSellerDeps,
+      Date.now(),
+    );
   },
 };
 
@@ -284,7 +308,14 @@ export async function viewOffers(
   const request = deps.publicRequest(jobId);
   const v = viewer ? low(viewer) : null;
   if (v && brief && low(brief.postedBy) === v) {
-    const offers = await Promise.all(live.map(async (o) => ({ ...o, fundedUsdc: await deps.fundedUsdc(o.priceUsdc) })));
+    const [funded, blocks] = await Promise.all([
+      Promise.all(live.map((o) => deps.fundedUsdc(o.priceUsdc))),
+      deps.sellerBlocks && live.length ? deps.sellerBlocks(jobId, live).catch(() => [] as SealedSeller[]) : Promise.resolve([] as SealedSeller[]),
+    ]);
+    const offers: BuyerOfferView[] = live.map((o, i) => {
+      const hit = blocks.find((b) => low(b.sellerAgent) === low(o.sellerAgent));
+      return { ...o, fundedUsdc: funded[i], ...(hit ? { sellerBlock: blockOf(hit) } : {}) };
+    });
     return { count: live.length, offers, role: 'buyer', request };
   }
   if (v) return { count: live.length, offers: live.filter((o) => o.sellerUser === v), role: 'seller', request };

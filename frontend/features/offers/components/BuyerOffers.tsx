@@ -4,6 +4,7 @@ import { api, ApiError } from '@/core/api';
 import { Button } from '@/shared/components/Button';
 import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
+import { SellerBlock } from '@/features/work/components/SellerBlock';
 import { FundAgentOptions } from '@/features/deposit/components/FundAgentOptions';
 import { useMoneyBalances } from '@/features/money/hooks/useMoneyBalances';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -14,6 +15,8 @@ import { budgetDifference, offerErrorKey, orderOffers, topUpAmount, type Offer }
 function sellerName(address: string): string {
   return /^0x[a-fA-F0-9]{40}$/.test(address) ? `${address.slice(0, 6)}…${address.slice(-4)}` : address;
 }
+
+const nameOf = (offer: Offer) => offer.sellerBlock?.name ?? sellerName(offer.sellerUser);
 
 function shortDate(unix: number, locale: string): string {
   return new Date(unix * 1000).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
@@ -46,7 +49,8 @@ export function BuyerOffers({ jobId, budgetUsdc }: { jobId: string; budgetUsdc: 
   const load = useCallback(async () => {
     try {
       const view = await api.offers(jobId);
-      setOffers(view.role === 'buyer' ? orderOffers(view.offers) : []);
+      // The buyer's agent's pick leads, so the one primary button is on it.
+      setOffers(view.role === 'buyer' ? orderOffers(view.offers, view.offers.find((o) => o.sellerBlock?.recommended)?.sellerUser) : []);
     } catch {
       setOffers([]);
     }
@@ -105,11 +109,15 @@ export function BuyerOffers({ jobId, budgetUsdc }: { jobId: string; budgetUsdc: 
       <ul className="mt-5 space-y-3">
         {offers.map((offer) => (
           <li key={offer.id} className="rounded-[20px] bg-[var(--lp-card)] p-6">
-            <div className="flex items-baseline justify-between gap-4">
-              <span className="flex min-w-0 items-center gap-2">
-                <span className="truncate text-[16px] font-medium text-[var(--lp-dark)]">{sellerName(offer.sellerUser)}</span>
-                {/^0x[a-fA-F0-9]{40}$/.test(offer.sellerUser) ? <ReputationBadge address={offer.sellerUser} size="sm" appearance="quiet" /> : null}
-              </span>
+            <div className={`flex justify-between gap-4 ${offer.sellerBlock ? 'items-start' : 'items-baseline'}`}>
+              {offer.sellerBlock ? (
+                <SellerBlock offer={{ seller: offer.sellerUser, ...offer.sellerBlock }} />
+              ) : (
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="truncate text-[16px] font-medium text-[var(--lp-dark)]">{sellerName(offer.sellerUser)}</span>
+                  {/^0x[a-fA-F0-9]{40}$/.test(offer.sellerUser) ? <ReputationBadge address={offer.sellerUser} size="sm" appearance="quiet" /> : null}
+                </span>
+              )}
               <span className="shrink-0 text-[16px] font-medium tabular-nums text-[var(--lp-dark)]">
                 {formatUsdc(offer.priceUsdc)}
               </span>
@@ -127,9 +135,9 @@ export function BuyerOffers({ jobId, budgetUsdc }: { jobId: string; budgetUsdc: 
         ))}
       </ul>
       <Button variant={chosen ? 'outline' : undefined} size="lg" className="mt-5 w-full rounded-full" onClick={() => setChosen(top)}>
-        {t.accept.replace('{seller}', sellerName(top.sellerUser)).replace('{price}', formatUsdc(top.priceUsdc, { withSuffix: false }))}
+        {t.accept.replace('{seller}', nameOf(top)).replace('{price}', formatUsdc(top.priceUsdc, { withSuffix: false }))}
       </Button>
-      <p className="mt-3 text-center text-[14px] text-[var(--lp-text-sub)] font-medium">{t.agentLine}</p>
+      <p className="mt-3 text-center text-[14px] text-[var(--lp-text-sub)] font-medium">{top.sellerBlock?.recommended ? t.agentPickLine : t.agentLine}</p>
 
       <ConfirmSheetShell open={!!chosen} labelledBy={titleId} busy={busy || fundingBusy} onClose={closeConfirmation}>
         {chosen ? (
@@ -180,7 +188,7 @@ export function BuyerOffers({ jobId, budgetUsdc }: { jobId: string; budgetUsdc: 
             ) : null}
             {!funding ? (
               <Button id={`${titleId}-accept`} size="lg" className="w-full rounded-full" loading={busy} onClick={() => void accept(chosen)}>
-                {t.accept.replace('{seller}', sellerName(chosen.sellerUser)).replace('{price}', formatUsdc(chosen.priceUsdc, { withSuffix: false }))}
+                {t.accept.replace('{seller}', nameOf(chosen)).replace('{price}', formatUsdc(chosen.priceUsdc, { withSuffix: false }))}
               </Button>
             ) : null}
             <Button variant="ghost" className="w-full rounded-full" disabled={busy || fundingBusy} onClick={closeConfirmation}>

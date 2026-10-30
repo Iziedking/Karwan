@@ -51,6 +51,7 @@ import { parseEmailList } from '../profile/waitlistRules.js';
 import { researchMarket, externalPayerAddress, x402PayerHealth } from '../x402/externalClient.js';
 import { recordExternalResearchFailure, recordExternalResearchPayment } from '../x402/researchAccounting.js';
 import { seedAgentFromOperator } from '../chain/agentSeed.js';
+import { olderContractsReport } from '../chain/legacyLive.js';
 import { pingAssistantProviders } from './assistant.js';
 import { watcherHealth, cronHealth } from '../ops/heartbeats.js';
 import { db, pgEnabled } from '../db/client.js';
@@ -261,6 +262,25 @@ adminRoutes.get('/health', async (c) => {
     matching: matchLatencySummary(),
     // Deals, exchanges, agreed against usual, and agreements outside a mandate, which must be zero (view 41).
     negotiation: negotiationSummary(),
+  });
+});
+
+/// Older contracts (view 37): what each still holds, how much of that open
+/// deals and positions hold for people, and what is left over. Its own call
+/// because it simulates every open step and takes a few seconds cold.
+adminRoutes.get('/older-contracts', async (c) => {
+  const rows = await olderContractsReport(async () => (await listAllDeals()).filter((d) => !d.escrowVersion || d.escrowVersion === 'v2').map((d) => d.jobId));
+  const usdc = (m: bigint | null) => (m === null ? null : formatUnits(m, 6));
+  return c.json({
+    contracts: rows.map((r) => ({
+      address: r.address,
+      name: r.name,
+      balanceUsdc: usdc(r.balanceMicros),
+      forPeopleUsdc: usdc(r.forPeopleMicros),
+      open: r.open,
+      noStepUsdc: usdc(r.noStepMicros),
+      leftOverUsdc: usdc(r.leftOverMicros),
+    })),
   });
 });
 

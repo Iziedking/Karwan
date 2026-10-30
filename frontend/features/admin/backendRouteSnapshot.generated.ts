@@ -78,6 +78,7 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "POST", path: "/api/admin/newsletter/:id/send" },
   { method: "POST", path: "/api/admin/newsletter/:id/social" },
   { method: "POST", path: "/api/admin/newsletter/draft" },
+  { method: "GET", path: "/api/admin/older-contracts" },
   { method: "GET", path: "/api/admin/profiles" },
   { method: "POST", path: "/api/admin/profiles/:address/business" },
   { method: "POST", path: "/api/admin/profiles/:address/research" },

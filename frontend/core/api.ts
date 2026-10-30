@@ -3369,6 +3369,18 @@ export const api = {
         sample?: string;
       }>;
     }>('/api/admin/assistant-health', { headers: adminHeaders() }),
+  adminOlderContracts: () =>
+    json<{
+      contracts: Array<{
+        address: string;
+        name: string;
+        balanceUsdc: string | null;
+        forPeopleUsdc: string | null;
+        open: number;
+        noStepUsdc: string | null;
+        leftOverUsdc: string | null;
+      }>;
+    }>('/api/admin/older-contracts', { headers: adminHeaders() }),
   adminHealth: () =>
     json<{
       checkedAt: number;
