@@ -3530,6 +3530,13 @@ export const sw: Messages = {
       deliveryOkBody: 'Wakala wako wa usalama alikagua kiungo na kubaini uwasilishaji unakidhi ombi lako. Fedha hubaki kwenye escrow hadi uziachilie.',
       deliveryUnknownLabel: 'Ukaguzi wa uwasilishaji haupatikani',
       deliveryUnknownBody: 'Karwan haikuweza kukamilisha ukaguzi wa uwasilishaji. Hii ni hali isiyojulikana, si kushindwa. Kagua kazi mwenyewe kabla ya kutoa malipo.',
+      matchHeldLabel: 'Imeshikiliwa kwa ukaguzi',
+      matchHeldBody: 'Wakala wa usalama ameshikilia mechi hii ili mtu wa Karwan aiangalie. Pesa yako inabaki kwenye escrow na utoaji unafuata sheria za mkataba wenyewe.',
+      matchHeldAsk: 'Omba mtu aikague',
+      matchHeldAskMessage: 'Mechi yangu kwenye {path} imeshikiliwa kwa ukaguzi. Je, mtu anaweza kuiangalia?',
+      matchFlaggedLabel: 'Mechi imewekwa alama',
+      matchFlaggedBody: 'Wakala wa usalama ameona jambo linalofaa kuangaliwa kwenye mechi hii. Haizuii mkataba; pesa iko kwenye escrow na uamuzi ni wako.',
+      matchPaidLine: 'Imekaguliwa dhidi ya data ya mlipaji na soko ya kulipia ambayo mawakala walikusanya tayari.',
     },
     evidenceReceipt: {
       resultLabel: "Matokeo",

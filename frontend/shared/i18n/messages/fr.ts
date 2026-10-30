@@ -3533,6 +3533,13 @@ export const fr: Messages = {
       deliveryOkBody: 'Votre agent de sécurité a vérifié le lien et constaté que la livraison correspond à votre demande. Les fonds restent sous séquestre jusqu’à ce que vous les libériez.',
       deliveryUnknownLabel: 'Vérification de livraison indisponible',
       deliveryUnknownBody: 'Karwan n’a pas pu terminer la vérification de livraison. Le résultat est inconnu, pas négatif. Examinez le travail avant de libérer les fonds.',
+      matchHeldLabel: 'Mis en attente pour vérification',
+      matchHeldBody: 'L’agent de sécurité a mis cette mise en relation en attente pour qu’une personne chez Karwan y jette un œil. Votre argent reste sous séquestre et la libération suit les règles de l’accord.',
+      matchHeldAsk: 'Demander à une personne de vérifier',
+      matchHeldAskMessage: 'Ma mise en relation sur {path} est en attente de vérification. Quelqu’un peut-il regarder ?',
+      matchFlaggedLabel: 'Mise en relation signalée',
+      matchFlaggedBody: 'L’agent de sécurité a relevé un point à regarder sur cette mise en relation. Cela ne bloque pas l’accord ; l’argent est sous séquestre et vous restez juge.',
+      matchPaidLine: 'Vérifié avec les données payantes sur la contrepartie et le marché déjà réunies par les agents.',
     },
     evidenceReceipt: {
       resultLabel: "Résultat",

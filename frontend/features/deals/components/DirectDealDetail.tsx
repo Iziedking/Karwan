@@ -66,6 +66,8 @@ import { creVerificationState, type CreVerificationState } from '../creVerificat
 import { worldCheckOverview } from '../worldCheckOverview';
 import { dealRouteRecoveryKey } from '../dealRouteRecovery';
 import { HighSignalVerificationCard } from './HighSignalVerificationCard';
+import { matchHoldCard } from '../matchHoldCard';
+import { callPerson } from '@/shared/assistant/openHelp';
 import { SwipeToPay } from './SwipeToPay';
 import { Icon } from '@/shared/components/Icon';
 import { RatingCard } from '@/features/ratings/RatingCard';
@@ -1656,42 +1658,36 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               </PageCard>
             )}
 
-          {/* Security agent's verdict on the MATCH (distinct from delivery-link
-              safety above). Non-blocking: the funds are escrowed and the human is
-              the judge. 'hold' marks the deal for review; 'flag' is advisory. */}
+          {/* The security agent's screen of the match (view 21). A hold is
+              advisory: the money is in escrow, release follows the deal's own
+              rules, and a person at Karwan clears it. Each side gets only the
+              lines meant for it; the server decides which. */}
           {(() => {
-            const mr = deal.matchRisk;
-            if (!mr || mr.clearedAt) return null;
-            // Show a viewer only the lines that are for them or shared. A warning
-            // about the other party (e.g. "the buyer is new") is meaningless, even
-            // alarming, on this party's own page. Legacy rows are bare strings and
-            // read as shared.
-            const mine = mr.reasons
-              .map((r) => (typeof r === 'string' ? { text: r, audience: 'both' as const } : r))
-              .filter((r) => r.audience === 'both' || r.audience === viewerRole);
-            // A 'hold' always shows (funds are held; both parties must know). A
-            // 'flag' is advisory, so it only shows when a line fits this viewer.
-            if (mr.decision !== 'hold' && mine.length === 0) return null;
+            const card = matchHoldCard(deal.matchHold, dd.terms);
+            if (!card) return null;
             return (
               <PageCard>
-                <CardHead label={mr.decision === 'hold' ? 'Match held for review' : 'Match flagged'} />
+                <CardHead label={card.title} />
                 <div className="p-5 md:p-6 space-y-3">
-                  <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
-                    {mr.decision === 'hold'
-                      ? 'The security agent flagged this match for review. Your funds stay safely in escrow while it is looked at; nothing releases until it clears.'
-                      : 'The security agent noted something worth a look on this match. It does not block the deal; the funds are escrowed and you remain the judge.'}
-                  </p>
-                  {mine.length > 0 && (
+                  <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{card.body}</p>
+                  {card.lines.length > 0 && (
                     <ul className="list-disc ps-5 space-y-1 text-[14px] text-[var(--lp-text-muted)]">
-                      {mine.map((r, i) => (
-                        <li key={i}>{r.text}</li>
+                      {card.lines.map((line, i) => (
+                        <li key={i}>{line}</li>
                       ))}
                     </ul>
                   )}
-                  {mr.paidConsulted && (
-                    <p className="text-[14px]" style={{ color: 'var(--lp-accent)' }}>
-                      Screened against the paid counterparty and market data the agents already gathered.
-                    </p>
+                  {card.paidLine && (
+                    <p className="text-[14px]" style={{ color: 'var(--lp-accent)' }}>{card.paidLine}</p>
+                  )}
+                  {card.ask && (
+                    <button
+                      type="button"
+                      onClick={() => callPerson([], { message: dd.terms.matchHeldAskMessage.replace('{path}', `/deals/${deal.jobId}`), dealId: deal.jobId })}
+                      className="min-h-11 rounded-xl border border-[var(--lp-border-light)] px-5 text-[14px] font-semibold text-[var(--lp-dark)]"
+                    >
+                      {card.ask}
+                    </button>
                   )}
                 </div>
               </PageCard>

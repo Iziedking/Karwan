@@ -3212,6 +3212,13 @@ interface MessagesShape {
       deliveryOkBody: string;
       deliveryUnknownLabel: string;
       deliveryUnknownBody: string;
+      matchHeldLabel: string;
+      matchHeldBody: string;
+      matchHeldAsk: string;
+      matchHeldAskMessage: string;
+      matchFlaggedLabel: string;
+      matchFlaggedBody: string;
+      matchPaidLine: string;
     };
     evidenceReceipt: {
       resultLabel: string;
@@ -8812,6 +8819,13 @@ export const en: MessagesShape = {
       deliveryOkBody: 'The delivery check found that the evidence matches your request. USDC stays protected until you release it.',
       deliveryUnknownLabel: 'Delivery check unavailable',
       deliveryUnknownBody: 'Karwan could not complete the delivery check. This is unknown, not a failure. Review the work yourself before releasing.',
+      matchHeldLabel: 'Held for a look',
+      matchHeldBody: "The security agent held this match for a person at Karwan to look at. Your money stays in escrow and release follows the deal's own rules.",
+      matchHeldAsk: 'Ask a person to check',
+      matchHeldAskMessage: 'My match on {path} is held for a look. Can someone check it?',
+      matchFlaggedLabel: 'Match flagged',
+      matchFlaggedBody: 'The security agent noted something worth a look on this match. It does not block the deal; the money is in escrow and you remain the judge.',
+      matchPaidLine: 'Screened against the paid counterparty and market data the agents already gathered.',
     },
     evidenceReceipt: {
       resultLabel: "Result",
