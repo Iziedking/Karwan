@@ -29,6 +29,7 @@ import {
   type Hex,
 } from 'viem';
 import { canonicalJson } from '../shared/canonical.js';
+import { githubHeaders } from '../shared/github.js';
 import { adapterAbi, agreementAbi } from '../shared/suiteAbi.js';
 import type { RunFacts } from '../shared/verdict.js';
 import { runsListUrl, type CheckPorts, type DispatchArgs, type PendingItem } from './check.js';
@@ -114,12 +115,7 @@ export function createPorts(runtime: Runtime<unknown>, config: PortsConfig): Che
   const apiToken = runtime.getSecret({ id: config.apiTokenSecretId }).result().value;
   const githubToken = runtime.getSecret({ id: config.githubTokenSecretId }).result().value;
   const karwan = { Accept: 'application/json', Authorization: `Bearer ${apiToken}` };
-  const github = {
-    Accept: 'application/vnd.github+json',
-    'X-GitHub-Api-Version': '2022-11-28',
-    Authorization: `Bearer ${githubToken}`,
-    'User-Agent': 'karwan-check',
-  };
+  const github = githubHeaders(githubToken);
 
   const call = (to: Address, data: Hex, at: typeof LAST_FINALIZED_BLOCK_NUMBER = LAST_FINALIZED_BLOCK_NUMBER): Hex =>
     bytesToHex(evm.callContract(runtime, {

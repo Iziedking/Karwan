@@ -13,6 +13,7 @@ import {
 } from '@chainlink/cre-sdk';
 import { encodeFunctionData, hashMessage, parseAbi, zeroAddress, type Address, type Hex } from 'viem';
 import { canonicalJson } from '../shared/canonical.js';
+import { githubHeaders } from '../shared/github.js';
 import type { RecordPorts } from './record.js';
 import { recoverSigner } from './recover.js';
 
@@ -42,12 +43,7 @@ export function createPorts(runtime: Runtime<unknown>, config: PortsConfig): Rec
   const evm = new cre.capabilities.EVMClient(network.chainSelector.selector);
   const http = new cre.capabilities.HTTPClient();
   const token = runtime.getSecret({ id: config.githubTokenSecretId }).result().value;
-  const github = {
-    Accept: 'application/vnd.github+json',
-    'X-GitHub-Api-Version': '2022-11-28',
-    Authorization: `Bearer ${token}`,
-    'User-Agent': 'karwan-record',
-  };
+  const github = githubHeaders(token);
 
   /// Each node fetches and keeps only the facts the rule needs; consensus
   /// compares those, not the raw bodies.
