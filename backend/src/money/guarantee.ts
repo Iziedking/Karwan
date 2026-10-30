@@ -133,9 +133,9 @@ function proveReceipt(
 }
 
 const SUMMARY: Record<GuaranteeStep, (amount: string) => string> = {
-  put_up: (a) => `Put up ${a} USDC as a deal guarantee`,
-  take_out: (a) => `Started taking out ${a} USDC from your deal guarantee`,
-  cancel: (a) => `Cancelled taking out ${a} USDC from your deal guarantee`,
+  put_up: (a) => `Deposited ${a} USDC to your deal guarantee`,
+  take_out: (a) => `Started withdrawing ${a} USDC from your deal guarantee`,
+  cancel: (a) => `Cancelled withdrawing ${a} USDC from your deal guarantee`,
   collect: (a) => `Collected ${a} USDC from your deal guarantee`,
 };
 

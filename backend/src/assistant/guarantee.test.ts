@@ -15,7 +15,7 @@ test('putting up says what it protects, how long coming back takes, and the yiel
   const c = buildGuaranteePutUpConfirm({ address: ME, amountUsdc: 100, balanceUsdc: 250, waitDays: 7, signer: 'karwan' });
   assert.ok(!('error' in c));
   assert.equal(c.intent, 'guarantee_put_up');
-  assert.equal(c.title, 'Put up a deal guarantee');
+  assert.equal(c.title, 'Deposit to your deal guarantee');
   assert.match(c.summary!, /protects your buyers/);
   assert.deepEqual(c.fields.map((f) => f.label), ['Amount', 'Coming back takes', 'Earns', 'Balance after']);
   assert.equal(c.fields.find((f) => f.label === 'Earns')!.value, 'At the USYC rate, paid by Karwan on testnet');

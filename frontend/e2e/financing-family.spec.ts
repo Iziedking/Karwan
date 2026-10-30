@@ -48,7 +48,7 @@ test('a seller gets paid now from the deal page, and the offer says what it hold
   await expect.poll(() => accepted.body).toEqual({ offerId: offer().id });
 });
 
-test('a short guarantee shows Put up and get paid now, and posts the combined step', async ({ page }) => {
+test('a short guarantee shows Deposit and get paid now, and posts the combined step', async ({ page }) => {
   const accepted = { body: null as unknown };
   await serveFamily(page, [offer({ gapUsdc: '8' })], accepted);
   await page.goto(`/deals/${JOB}`);

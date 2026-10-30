@@ -43,9 +43,9 @@ export function FinancierApply({
     {
       label: 'Deal guarantee',
       ok: eligibility.stakeOk,
-      value: `$${eligibility.stakeUsdc.toFixed(2)}`,
-      need: 'Put up a deal guarantee first.',
-      fix: { href: '/guarantee', label: 'Put up a deal guarantee' },
+      value: `${eligibility.stakeUsdc.toFixed(2)} USDC`,
+      need: 'Deposit to your deal guarantee first.',
+      fix: { href: '/guarantee', label: 'Deposit to your deal guarantee' },
     },
     {
       label: 'Reputation',

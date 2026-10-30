@@ -115,8 +115,8 @@ test('taking an offer says what of the deal guarantee it holds', () => {
 test('a short guarantee makes the card put up the rest first, in one confirmation', () => {
   const card = buildAcceptOfferConfirm({ offer: offer({ holdUsdc: '47', gapUsdc: '12' }), me: SELLER, nowMs: NOW });
   assert.ok(!('error' in card));
-  assert.equal(card.title, 'Put up 12.00 USDC and get paid now');
-  assert.equal(card.confirmLabel, 'Put up 12.00 USDC and get paid now');
+  assert.equal(card.title, 'Deposit 12.00 USDC and get paid now');
+  assert.equal(card.confirmLabel, 'Deposit 12.00 USDC and get paid now');
   assert.equal(card.payload.putUpGap, true);
 });
 
@@ -135,4 +135,13 @@ test('pay the seller shows the amount and the time left, for the financier only'
   assert.match((buildPaySellerConfirm({ line, me: SELLER, nowMs: NOW }) as { error: string }).error, /Only the financier/);
   assert.match((buildPaySellerConfirm({ line, me: OTHER, nowMs: NOW + 3_600_001 }) as { error: string }).error, /24 hours/);
   assert.match((buildPaySellerConfirm({ line: { ...line, status: 'accepted' }, me: OTHER, nowMs: NOW }) as { error: string }).error, /not waiting/);
+});
+
+test('a seller with their own wallet deposits the short guarantee from that wallet, then takes the offer', () => {
+  const card = buildAcceptOfferConfirm({ offer: offer({ holdUsdc: '47', gapUsdc: '12' }), me: SELLER, nowMs: NOW, signer: 'wallet' });
+  assert.ok(!('error' in card));
+  assert.equal(card.title, 'Deposit 12.00 USDC and get paid now');
+  assert.equal(card.payload.putUpGap, undefined, 'Karwan cannot deposit from a wallet it does not hold');
+  assert.equal(card.payload.walletDepositUsdc, '12');
+  assert.match(card.summary, /your wallet signs/i);
 });

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { DirectDeal, FactoringOffer } from '@/core/api';
-import { getPaidNowView } from './getPaidNow';
+import { getPaidNowView, takePlan } from './getPaidNow';
 
 /// Get paid now on the deal page (view 18): a business order on the escrow
 /// family can ask from acceptance, and each offer says what it holds.
@@ -38,4 +38,11 @@ test('a waiting offer hides the others and shows the deadline', () => {
 
 test('a deal already paid early does not ask again', () => {
   assert.equal(getPaidNowView({ deal: deal({ factoringOfferId: 'o1' }), viewerIsSeller: true, offers: [], now: NOW }).canAsk, false);
+});
+
+test('a short guarantee is deposited by whoever signs for the seller', () => {
+  assert.deepEqual(takePlan({ gapUsdc: '18.5' }, 'circle'), { karwanDeposits: true });
+  assert.deepEqual(takePlan({ gapUsdc: '18.5' }, 'web3'), { walletDeposits: '18.5' });
+  assert.deepEqual(takePlan({}, 'web3'), {});
+  assert.deepEqual(takePlan({ gapUsdc: '0' }, 'circle'), {});
 });

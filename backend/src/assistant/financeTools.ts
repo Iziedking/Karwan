@@ -109,7 +109,7 @@ export function financeTools(address: string, signer: FinanceSigner, actions: As
         if ('error' in offers) return offers;
         const o = offers.find((x) => x.id === offerId);
         if (!o) return { error: 'Only the seller this offer was made to can answer it.' };
-        return show(buildAcceptOfferConfirm({ offer: o, me: address, nowMs: deps.now() }));
+        return show(buildAcceptOfferConfirm({ offer: o, me: address, nowMs: deps.now(), signer }));
       },
     }),
 

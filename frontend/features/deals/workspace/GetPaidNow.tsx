@@ -1,10 +1,17 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ApiError, api, type DirectDeal, type FactoringOffer } from '@/core/api';
+import { usePublicClient } from 'wagmi';
+import { ApiError, ConfirmCancelled, api, type DirectDeal, type FactoringOffer } from '@/core/api';
+import { recordFirst } from '@/features/record/recordFirst';
+import { runRecordSetup } from '@/features/record/runRecordSetup';
+import { useOwnWalletSend } from '@/shared/chain/useOwnWalletSend';
+import { runWalletGuarantee } from '@/features/guarantee/walletGuarantee';
+import { ARC_CHAIN_ID } from '@/features/profile/config';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { fill, formatUsdcAmount } from './presentation';
-import { getPaidNowView } from './getPaidNow';
+import { getPaidNowView, takePlan } from './getPaidNow';
 import { Sheet, fieldLabel, primaryButton, quietButton } from './Sheet';
 
 /// Get paid now on the deal page (view 18): the seller of a business order on
@@ -13,8 +20,12 @@ import { Sheet, fieldLabel, primaryButton, quietButton } from './Sheet';
 type GetPaidOffer = ReturnType<typeof getPaidNowView>['offers'][number];
 
 export function GetPaidNow({ deal, viewerIsSeller, onChanged }: { deal: DirectDeal; viewerIsSeller: boolean; onChanged: () => void }) {
-  const g = useTranslations().dealWorkspace.getPaid;
+  const copy = useTranslations();
+  const g = copy.dealWorkspace.getPaid;
   const { locale } = useLocale();
+  const ownWallet = useOwnWalletSend();
+  const { method } = useAuth();
+  const arc = usePublicClient({ chainId: ARC_CHAIN_ID });
   const [requestedAt, setRequestedAt] = useState(deal.factoringRequestedAt);
   const [offers, setOffers] = useState<FactoringOffer[]>([]);
   const [asking, setAsking] = useState(false);
@@ -73,6 +84,15 @@ export function GetPaidNow({ deal, viewerIsSeller, onChanged }: { deal: DirectDe
     }
     setBusy(true);
     setError(null);
+    // Asking sends no Arc transaction of its own, so a person's own wallet
+    // signs the record steps still missing first (view 27, decision 10).
+    try {
+      if (recordFirst(await api.recordSetupStatus().catch(() => null))) await runRecordSetup(ownWallet);
+    } catch (e) {
+      setError(e instanceof Error && e.message ? e.message : g.errRequest);
+      setBusy(false);
+      return;
+    }
     try {
       const r = await api.requestFactoring({ invoiceId: deal.jobId, requestedAdvanceUsdc: value });
       setRequestedAt(r.deal?.factoringRequestedAt ?? Date.now());
@@ -105,7 +125,14 @@ export function GetPaidNow({ deal, viewerIsSeller, onChanged }: { deal: DirectDe
     setBusy(true);
     setError(null);
     try {
-      const r = await api.acceptFactoringOffer({ offerId: offer.id, ...(offer.gapUsdc ? { putUpGap: true } : {}) });
+      // Karwan deposits a short guarantee from a wallet it holds; a person's own
+      // wallet signs that deposit here first, then the offer is taken.
+      const plan = takePlan(offer, method);
+      if (plan.walletDeposits) {
+        if (!arc) throw new Error(g.errNotAccepted);
+        await runWalletGuarantee({ step: 'put_up', amountUsdc: plan.walletDeposits, ownWallet, arcClient: arc, revertedText: copy.chainErrors.reverted });
+      }
+      const r = await api.acceptFactoringOffer({ offerId: offer.id, ...(plan.karwanDeposits ? { putUpGap: true } : {}) });
       setReviewing(null);
       if (r.state === 'awaiting_financier') {
         const refreshed = await api.listOffersForInvoice(deal.jobId).catch(() => null);
@@ -113,6 +140,8 @@ export function GetPaidNow({ deal, viewerIsSeller, onChanged }: { deal: DirectDe
       }
       onChanged();
     } catch (e) {
+      // A wallet that was closed or refused leaves nothing moved and needs no line.
+      if (e instanceof ConfirmCancelled) return;
       setError(e instanceof ApiError && e.message ? e.message : g.errNotAccepted);
     } finally {
       setBusy(false);

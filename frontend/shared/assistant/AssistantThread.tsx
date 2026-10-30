@@ -733,8 +733,13 @@ async function runConfirmIntent(
     }
   }
   if (action.intent === 'finance_accept') {
-    const p = action.payload as { offerId: string; jobId: string; putUpGap?: boolean };
-    // The selling agent signs; a short guarantee is put up first when the card said so (view 18).
+    const p = action.payload as { offerId: string; jobId: string; putUpGap?: boolean; walletDepositUsdc?: string };
+    // The selling agent signs. A short guarantee is deposited first when the card
+    // said so: by Karwan for a wallet it holds, else by the person's own wallet (view 18).
+    if (p.walletDepositUsdc) {
+      if (!deps.runGuaranteeStep) throw new Error('Open the deal page to sign the deposit in your wallet.');
+      await deps.runGuaranteeStep('put_up', p.walletDepositUsdc);
+    }
     const r = await api.acceptFactoringOffer({ offerId: p.offerId, ...(p.putUpGap ? { putUpGap: true } : {}) });
     if (r.state === 'awaiting_financier') {
       return { successText: 'Taken. Waiting for the financier to pay, within 24 hours.', viewHref: `/deals/${p.jobId}`, viewLabel: 'Open the deal' };

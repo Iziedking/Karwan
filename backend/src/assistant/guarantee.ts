@@ -58,13 +58,13 @@ export function buildGuaranteePutUpConfirm(i: {
 }): GuaranteePutUpConfirm | { error: string } {
   if (!(i.amountUsdc > 0)) return { error: 'The amount must be greater than 0.' };
   if (i.amountUsdc > i.balanceUsdc + EPS) {
-    return { error: `Their balance is ${usdc(i.balanceUsdc)} USDC, less than the ${usdc(i.amountUsdc)} USDC they want to put up. Tell them the real balance and offer to bring more over (check_top_up_sources).` };
+    return { error: `Their balance is ${usdc(i.balanceUsdc)} USDC, less than the ${usdc(i.amountUsdc)} USDC they want to deposit. Tell them the real balance and offer to bring more over (check_top_up_sources).` };
   }
   return {
     kind: 'confirm',
     id: `guarantee_put_up:${usdc(i.amountUsdc)}:${confirmNonce()}`,
     intent: 'guarantee_put_up',
-    title: 'Put up a deal guarantee',
+    title: 'Deposit to your deal guarantee',
     summary: `${usdc(i.amountUsdc)} USDC set aside. It protects your buyers and can back an advance.`,
     warning: `Coming back takes ${i.waitDays} days. Deals and advances can hold part of it until they finish.`,
     fields: [
@@ -74,7 +74,7 @@ export function buildGuaranteePutUpConfirm(i: {
       { label: 'Balance after', value: `${usdc(i.balanceUsdc - i.amountUsdc)} USDC` },
     ],
     payload: { address: i.address, amountUsdc: usdc(i.amountUsdc), signer: i.signer },
-    confirmLabel: 'Put up',
+    confirmLabel: 'Deposit',
     cancelLabel: 'Not now',
   };
 }
@@ -91,13 +91,13 @@ export function buildGuaranteeTakeOutConfirm(i: {
   signer: GuaranteeSigner;
 }): GuaranteeTakeOutConfirm | { error: string } {
   if (!(i.freeUsdc > EPS)) {
-    if (i.heldUsdc > EPS) return { error: `Deals hold all ${usdc(i.heldUsdc)} USDC of their guarantee until they finish. It can be taken out then.` };
-    return { error: 'They have no deal guarantee to take out.' };
+    if (i.heldUsdc > EPS) return { error: `Deals hold all ${usdc(i.heldUsdc)} USDC of their guarantee until they finish. It can be withdrawn then.` };
+    return { error: 'They have no deal guarantee to withdraw.' };
   }
   const amount = i.amountUsdc ?? i.freeUsdc;
   if (!(amount > 0)) return { error: 'The amount must be greater than 0.' };
   if (amount > i.freeUsdc + EPS) {
-    return { error: `They can take out up to ${usdc(i.freeUsdc)} USDC now${i.heldUsdc > EPS ? `; deals hold ${usdc(i.heldUsdc)} USDC until they finish` : ''}.` };
+    return { error: `They can withdraw up to ${usdc(i.freeUsdc)} USDC now${i.heldUsdc > EPS ? `; deals hold ${usdc(i.heldUsdc)} USDC until they finish` : ''}.` };
   }
   const ready = i.nowUnix + i.waitDays * 86_400;
   const restarts = i.comingBackUsdc > EPS;
@@ -105,10 +105,10 @@ export function buildGuaranteeTakeOutConfirm(i: {
     kind: 'confirm',
     id: `guarantee_take_out:${usdc(amount)}:${confirmNonce()}`,
     intent: 'guarantee_take_out',
-    title: 'Take out from your deal guarantee',
+    title: 'Withdraw from your deal guarantee',
     summary: `${usdc(amount)} USDC comes back on ${day(ready)}.`,
     warning: restarts
-      ? `Taking out more restarts the ${i.waitDays} days for all ${usdc(amount + i.comingBackUsdc)} USDC coming back. While it comes back it no longer protects your deals.`
+      ? `Withdrawing more restarts the ${i.waitDays} days for all ${usdc(amount + i.comingBackUsdc)} USDC coming back. While it comes back it no longer protects your deals.`
       : 'While it comes back it no longer protects your deals. You can cancel until you collect.',
     fields: [
       { label: 'Amount', value: `${usdc(amount)} USDC` },
@@ -116,7 +116,7 @@ export function buildGuaranteeTakeOutConfirm(i: {
       ...(i.heldUsdc > EPS ? [{ label: 'Deals keep', value: `${usdc(i.heldUsdc)} USDC` }] : []),
     ],
     payload: { address: i.address, amountUsdc: usdc(amount), signer: i.signer },
-    confirmLabel: 'Take out',
+    confirmLabel: 'Withdraw',
     cancelLabel: 'Not now',
   };
 }
@@ -162,7 +162,7 @@ export function buildGuaranteeCollectConfirm(i: {
 }
 
 const LEGACY_TITLE: Record<LegacyStepPayload['step'], string> = {
-  requestWithdraw: 'Take out from an older contract',
+  requestWithdraw: 'Withdraw from an older contract',
   cancelWithdraw: 'Keep it on the older contract',
   claim: 'Collect from an older contract',
   releaseFinal: 'Release an older deal to the seller',

@@ -70,7 +70,9 @@ export interface FinanceStopAskingConfirm extends ConfirmActionBase {
 }
 export interface FinanceAcceptConfirm extends ConfirmActionBase {
   intent: 'finance_accept';
-  payload: { offerId: string; jobId: string; putUpGap?: boolean };
+  /// putUpGap: Karwan deposits the short guarantee from the wallet it holds.
+  /// walletDepositUsdc: the person's own wallet deposits it first, on the website.
+  payload: { offerId: string; jobId: string; putUpGap?: boolean; walletDepositUsdc?: string };
 }
 export interface FinancePaySellerConfirm extends ConfirmActionBase {
   intent: 'finance_pay_seller';
@@ -203,28 +205,29 @@ function offerRefusal(offer: FinanceOffer, me: string, nowMs: number): string | 
   return null;
 }
 
-export function buildAcceptOfferConfirm(i: { offer: FinanceOffer; me: string; nowMs: number }): FinanceAcceptConfirm | { error: string } {
+export function buildAcceptOfferConfirm(i: { offer: FinanceOffer; me: string; nowMs: number; signer?: FinanceSigner }): FinanceAcceptConfirm | { error: string } {
   if (i.offer.waitingForFinancier) return { error: 'You took this offer. Waiting for the financier to pay, within 24 hours of when you took it.' };
   const refused = offerRefusal(i.offer, i.me, i.nowMs);
   if (refused) return { error: refused };
   if (i.offer.funded === false) return { error: 'The financier has not added the money for this offer yet, so it cannot be taken. They have been told; choose another offer or wait.' };
   const gap = i.offer.gapUsdc && Number(i.offer.gapUsdc) > 0 ? i.offer.gapUsdc : undefined;
-  const label = gap ? `Put up ${show(gap)} and get paid now` : 'Get paid now';
+  const label = gap ? `Deposit ${show(gap)} and get paid now` : 'Get paid now';
+  const fromWallet = !!gap && i.signer === 'wallet';
   return {
     kind: 'confirm',
     id: `finance_accept:${i.offer.id}:${confirmNonce()}`,
     intent: 'finance_accept',
     title: gap ? label : `Get paid ${show(i.offer.offeredAdvanceUsdc)} now`,
-    summary: `When the buyer releases payment, the escrow repays the financier ${show(i.offer.expectedReturnUsdc)} first and pays you the rest.`,
+    summary: `${fromWallet ? `Your wallet signs the ${show(gap!)} deposit to your deal guarantee first. ` : ''}When the buyer releases payment, the escrow repays the financier ${show(i.offer.expectedReturnUsdc)} first and pays you the rest.`,
     warning: 'Once you are paid this cannot be undone, and the financier is repaid from this deal before you.',
     fields: [
       { label: 'Paid to you now', value: show(i.offer.offeredAdvanceUsdc) },
       { label: 'Repaid to the financier', value: show(i.offer.expectedReturnUsdc) },
       ...(i.offer.holdUsdc ? [{ label: 'Held from your deal guarantee until it is repaid', value: show(i.offer.holdUsdc) }] : []),
-      ...(gap ? [{ label: 'Put up first as a deal guarantee', value: show(gap) }] : []),
+      ...(gap ? [{ label: 'Deposited first to your deal guarantee', value: show(gap) }] : []),
       ...(i.offer.recommended ? [{ label: 'Offer', value: 'Recommended' }] : []),
     ],
-    payload: { offerId: i.offer.id, jobId: i.offer.invoiceId, ...(gap ? { putUpGap: true } : {}) },
+    payload: { offerId: i.offer.id, jobId: i.offer.invoiceId, ...(fromWallet ? { walletDepositUsdc: gap } : gap ? { putUpGap: true } : {}) },
     confirmLabel: label,
     cancelLabel: 'Not now',
   };

@@ -19,9 +19,9 @@ const ACTIVE = 1;
 const COOLING = 2;
 
 const ACTIVITY: Record<GuaranteeStep, { kind: 'stake' | 'unstake'; t: string; summary: string }> = {
-  put_up: { kind: 'stake', t: 'guaranteePutUp', summary: 'Put up {a} USDC as a deal guarantee' },
-  take_out: { kind: 'stake', t: 'guaranteeTakeOut', summary: 'Started taking out {a} USDC from the deal guarantee' },
-  cancel: { kind: 'stake', t: 'guaranteeCancel', summary: 'Cancelled taking out {a} USDC from the deal guarantee' },
+  put_up: { kind: 'stake', t: 'guaranteePutUp', summary: 'Deposited {a} USDC to the deal guarantee' },
+  take_out: { kind: 'stake', t: 'guaranteeTakeOut', summary: 'Started withdrawing {a} USDC from the deal guarantee' },
+  cancel: { kind: 'stake', t: 'guaranteeCancel', summary: 'Cancelled withdrawing {a} USDC from the deal guarantee' },
   collect: { kind: 'unstake', t: 'guaranteeCollect', summary: 'Collected {a} USDC from the deal guarantee' },
 };
 

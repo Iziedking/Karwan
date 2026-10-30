@@ -31,3 +31,11 @@ export function getPaidNowView(i: { deal: DirectDeal; viewerIsSeller: boolean; o
       : [],
   };
 }
+
+/// Who deposits a short deal guarantee before an offer is taken. Karwan does it
+/// for a wallet it holds; a person's own wallet signs the deposit itself, since
+/// the server cannot move money from it.
+export function takePlan(offer: { gapUsdc?: string }, method: 'circle' | 'web3' | null): { karwanDeposits?: true; walletDeposits?: string } {
+  if (!offer.gapUsdc || !(Number(offer.gapUsdc) > 0)) return {};
+  return method === 'circle' ? { karwanDeposits: true } : { walletDeposits: offer.gapUsdc };
+}
