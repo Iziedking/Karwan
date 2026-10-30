@@ -84,7 +84,7 @@ test('your positions come first, then invoices as rows with one plain action eac
   await expect(page.getByText('1 active · 1,470 USDC out · 1,500 USDC coming back')).toBeVisible();
   await expect(page.getByText(t.positions.dealLine.replace('{reference}', '9999-9999').replace('{seller}', '@amina'))).toBeVisible();
   await expect(page.getByText('4,800 USDC').first()).toBeVisible();
-  await expect(page.getByText(t.open.anySeller)).toBeVisible();
+  await expect(page.getByText(t.open.anySeller, { exact: true })).toBeVisible();
   await expect(page.locator('select')).toHaveCount(0);
   await expect(page.getByRole('button', { name: t.open.makeOffer })).toHaveCount(2);
 });
