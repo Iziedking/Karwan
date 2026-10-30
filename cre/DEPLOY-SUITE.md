@@ -43,8 +43,16 @@ DON family `zone-a`, deployed 28 October 2026 from node-services:
 | Workflow | Workflow ID | Signing key in its config |
 |---|---|---|
 | karwan-risk | `000dde745031a30f3f3e6350c691944d1d508f555d43ed32e02d9aff0d042b35` | none |
-| karwan-check | `0080cdf71dc5db4d6324096d64f1e6b28eccf2f491cd234900ec6e3962650126` | `gatewayKey` `0x182fd66E898DcED0e8B8966b7311325150B7c077` |
-| karwan-record | `006ebc310c4b7f6996f2951c74d32a2ae0d9462d506b95874c6ca819737fa2ae` | `backendKey` `0x182fd66E898DcED0e8B8966b7311325150B7c077` |
+| karwan-check | `00fc7a5b553cb839f4dbf5c94d05d8210bcca90a6d8650b2dd59fc59a221eaa3` (30 Oct; was `0080cdf7…0126`) | `gatewayKey` `0x182fd66E898DcED0e8B8966b7311325150B7c077` |
+| karwan-record | `008b63ef82127dc2e270f64486c52787ac8ed44fb04609e3bd2214268c0800a1` (30 Oct; was `006ebc31…a2ae`) | `backendKey` `0x182fd66E898DcED0e8B8966b7311325150B7c077` |
+
+karwan-check and karwan-record were redeployed on 30 October with commit
+`792a1a39`: the first live run showed that Chainlink's gateway refuses requests
+that set `User-Agent` (and 13 other headers; see `cre/shared/github.ts`), which
+the simulator allows. Their new bindings are
+`contracts/deployments/cre-5042002-2026-10-30.schedule.json` and
+`.execute.json` (salt `0xa17409bb…9c6a`), simulated on Arc Testnet the same day:
+the schedule as the owner Safe, each `bindWorkflow` as the timelock.
 
 `0x182f…c077` is `CRE_GATEWAY_SIGNER_KEY`, made with `env-put.sh --new-key` in
 `~/.karwan-cre-env` on node-services and never printed. `karwan-git-prod`
