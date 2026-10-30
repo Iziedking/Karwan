@@ -90,6 +90,14 @@ export function OfferPanel({ jobId, fallback }: { jobId: string; fallback: React
                 <span className="sr-only"> ({opensNewTab})</span>
                 <Icon name="arrow-up-right" size={16} />
               </Link>
+              {view.poster.handle && auth.address?.toLowerCase() !== view.poster.address.toLowerCase() ? (
+                <Link
+                  href={`/messages/${encodeURIComponent(view.poster.handle)}?about=request:${encodeURIComponent(jobId)}`}
+                  className="block text-end text-[14px] font-semibold text-[var(--lp-dark)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+                >
+                  {all.directMessages.messageFromAd.replace('{tag}', `@${view.poster.handle}`)}
+                </Link>
+              ) : null}
             </dd>
           </div>
         ) : null}

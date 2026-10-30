@@ -1,3 +1,5 @@
+import { asksToPayOutside } from './payOutside.js';
+
 /// Messaging someone by tag before any deal: who may send, the spam pause, and
 /// the escrow warning. Pure rules; the store and alerts live elsewhere.
 
@@ -46,7 +48,8 @@ export function hasContactDetails(text: string): boolean {
 }
 
 /// Contact details before any deal between the two are the usual start of an
-/// off-platform payment, so the message carries a warning.
+/// off-platform payment, so the message carries a warning. Asking outright to
+/// be paid outside Karwan is warned whether or not they have a deal.
 export function warningFor(body: string, hasDeal: boolean): string | null {
-  return !hasDeal && hasContactDetails(body) ? ESCROW_WARNING : null;
+  return (!hasDeal && hasContactDetails(body)) || asksToPayOutside(body) ? ESCROW_WARNING : null;
 }

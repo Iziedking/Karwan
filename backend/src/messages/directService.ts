@@ -37,6 +37,14 @@ export interface DirectDeps {
   getRead: (owner: string) => Promise<Record<string, number>>;
   putRead: (owner: string, read: Record<string, number>) => Promise<void>;
   dropRead: (owner: string) => Promise<void>;
+  /// The ad a message was sent from (view 32): its title and whose it is.
+  aboutOf?: (about: MessageAbout) => Promise<{ title: string; owner: string } | null>;
+}
+
+/// The market ad a first question is about: a listing or a request.
+export interface MessageAbout {
+  kind: 'listing' | 'request';
+  id: string;
 }
 
 export type SendRefusal = 'empty' | 'unknown_tag' | 'self' | 'paused' | 'no_tag' | 'wait_reply' | 'link_blocked';
@@ -84,7 +92,7 @@ function pausedText(until: number, now: number): string {
 }
 
 export function createDirect(deps: DirectDeps) {
-  async function send(from: string, toTag: string, body: string): Promise<SendResult> {
+  async function send(from: string, toTag: string, body: string, about?: MessageAbout): Promise<SendResult> {
     const sender = from.toLowerCase();
     const text = body.trim().slice(0, BODY_MAX);
     if (!text) return { ok: false, code: 'empty', message: 'Write a message first.' };
@@ -99,10 +107,18 @@ export function createDirect(deps: DirectDeps) {
       deps.offense(sender, scan.verdict, scan.reasons);
       return { ok: false, code: 'link_blocked', message: 'Karwan flagged a link in this message and will not send it.' };
     }
-    return lockedFor(sender, receiver, () => deliver(sender, receiver, fromTag, text));
+    return lockedFor(sender, receiver, () => deliver(sender, receiver, fromTag, text, about));
   }
 
-  async function deliver(sender: string, receiver: string, fromTag: string, text: string): Promise<SendResult> {
+  /// Only the receiver's own ad is named, so a message cannot claim to be
+  /// about something the other person never posted.
+  async function aboutLine(receiver: string, about: MessageAbout | undefined) {
+    if (!about || !deps.aboutOf) return null;
+    const ad = await deps.aboutOf(about).catch(() => null);
+    return ad && ad.owner.toLowerCase() === receiver ? { kind: about.kind, id: about.id, title: ad.title } : null;
+  }
+
+  async function deliver(sender: string, receiver: string, fromTag: string, text: string, about?: MessageAbout): Promise<SendResult> {
     const now = deps.now();
     const key = pairKey(sender, receiver);
     const [history, theirs, thread] = await Promise.all([deps.getHistory(sender), deps.getHistory(receiver), deps.list(key)]);
@@ -124,6 +140,7 @@ export function createDirect(deps: DirectDeps) {
     }
 
     const warning = warningFor(text, await deps.hasDeal(sender, receiver));
+    const ad = await aboutLine(receiver, about);
     const message = await deps.add({
       id: `dm-${randomUUID()}`,
       jobId: key,
@@ -133,6 +150,7 @@ export function createDirect(deps: DirectDeps) {
       kind: 'participant',
       body: text,
       ...(warning ? { warning } : {}),
+      ...(ad ? { about: ad } : {}),
       ts: now,
     });
 

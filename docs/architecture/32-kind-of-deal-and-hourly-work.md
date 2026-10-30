@@ -178,6 +178,8 @@ Logged in `docs/arc-circle-checks.md` before any code: the deployed Time escrow 
 | Kind worked out and stored on the deal | Planned |
 | Goods open to every account, shipped or handed over in person | Planned |
 | Deals refused or held by the rules in "Open to everyone" | Planned |
+| Asking to be paid outside Karwan flagged, in deal chat and in messages before a deal | Built 30 Oct 2026: the message goes through, both sides see the warning, the team sees it on /admin/disputes with repeats marked; the assistant and Telegram send through the same paths |
+| Message the person who posted a listing or a request, or from their public record, before agreeing | Built 30 Oct 2026: the first message names the ad and the conversation links back to it; only the receiver's own ad is named |
 | "How you pay" on the deal form, fixed price or by the hour | Planned |
 | Hourly work posted to the market, best fit found by the hirer's agent | Built 29 Oct 2026 on Arc Testnet: posted from /work/requests/new or the assistant, sellers who fit told from the seller index, a rate and a note per seller, the hirer's agent ranks them with the request shortlist's own rules and seals the rows, and hiring opens the work with the worker's agent accepting at once. An hourly request is kept beside fixed-price requests so no agent bids a fixed price on it. Sellers offer by hand or in chat; agents offering an hourly rate on their own comes later |
 | The same seller block on every offer, fixed price or hourly: name, tag, verified in words, tier, rating and up to three reasons, never a score or counts | Built 30 Oct 2026: one ranking (`agents/sealedSellers.ts`) for both; on a fixed-price request the buyer's agent's pick leads and the rest follow by price |

@@ -3,6 +3,8 @@ import { rememberInChat } from '../channels/chatHistory.js';
 import { config } from '../config.js';
 import { listDealsForAddress } from '../db/deals.js';
 import { deleteRecord, getRecord, putRecord } from '../db/evidence.js';
+import { getBrief } from '../db/briefs.js';
+import { getListing } from '../db/listings.js';
 import { addMessage, deleteDirectMessagesFor, listDirectFor, listMessages } from '../db/messages.js';
 import { findProfileByHandle, getProfile } from '../db/profiles.js';
 import { getTelegramLink } from '../db/telegramLinks.js';
@@ -57,6 +59,14 @@ export const liveDirect = createDirect({
   getRead: async (owner) => (await getRecord<Record<string, number>>('dm-read', owner)) ?? {},
   putRead: (owner, read) => putRecord('dm-read', owner, read),
   dropRead: (owner) => deleteRecord('dm-read', owner),
+  aboutOf: async (about) => {
+    if (about.kind === 'listing') {
+      const l = getListing(about.id);
+      return l ? { title: l.title, owner: l.sellerUser } : null;
+    }
+    const b = getBrief(about.id);
+    return b ? { title: b.briefText.slice(0, 80), owner: b.postedBy } : null;
+  },
 });
 
 export const liveMessageToolDeps: MessageToolDeps = {

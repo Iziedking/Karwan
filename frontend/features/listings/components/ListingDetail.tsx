@@ -207,6 +207,11 @@ export function ListingDetail({ listingId }: { listingId: string }) {
       <Link href={buyerOfferHref} className={`mt-4 w-full sm:w-auto ${primaryClass}`}>
         {ld.state.buyerCtaTemplate.replace('{amount}', String(listing.askingPriceUsdc))}
       </Link>
+      {sellerProfile?.handle ? (
+        <Link href={`/messages/${encodeURIComponent(sellerProfile.handle)}?about=listing:${encodeURIComponent(listing.id)}`} className={`mt-3 block w-fit ${quietClass}`}>
+          {translations.directMessages.messageFromAd.replace('{tag}', `@${sellerProfile.handle}`)}
+        </Link>
+      ) : null}
     </>
   );
 

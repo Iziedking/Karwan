@@ -82,3 +82,29 @@ test('coming back to the assistant reopens the conversation you were in', async 
   await page.goto('/assistant');
   await expect(page.getByText('That is Matie (@matiephol) on Karwan.')).toBeVisible();
 });
+
+test('a question from a market ad says what it is about, and the first message carries it (view 32)', async ({ page }) => {
+  await serveMoney(page, { balances: funded });
+  const sent: unknown[] = [];
+  const thread: Array<Record<string, unknown>> = [];
+  await page.route(`${API}/api/tags/bo`, (route) => route.fulfill({ json: { found: true, self: false, tag: 'bo', displayName: 'Bo Ade', address: '0x00000000000000000000000000000000000000b0' } }));
+  await page.route(`${API}/api/messages/bo`, async (route) => {
+    if (route.request().method() === 'POST') {
+      const body = route.request().postDataJSON() as { body: string; about?: { kind: string; id: string } };
+      sent.push(body);
+      thread.push({ from: 'you', text: body.body, at: '2026-10-30T09:00:00.000Z', ...(body.about ? { about: { ...body.about, title: 'Blue Tecno Spark 20' } } : {}) });
+      return route.fulfill({ json: { sent: true, warning: null } });
+    }
+    return route.fulfill({ json: { with: { tag: '@bo', country: 'NG', tier: 'NEW' }, messages: thread } });
+  });
+  await page.goto('/messages/bo?about=listing:lst_1');
+  await page.getByRole('textbox').fill('Does it come with a charger?');
+  await page.getByRole('button', { name: 'Send' }).click();
+  await expect(page.getByRole('link', { name: 'About: Blue Tecno Spark 20' })).toHaveAttribute('href', '/listings/lst_1');
+  await page.getByRole('textbox').fill('And the box?');
+  await page.getByRole('button', { name: 'Send' }).click();
+  await expect.poll(() => sent.length).toBe(2);
+  expect(sent[0]).toEqual({ body: 'Does it come with a charger?', about: { kind: 'listing', id: 'lst_1' } });
+  // Only the first message from the ad carries it.
+  expect(sent[1]).toEqual({ body: 'And the box?' });
+});

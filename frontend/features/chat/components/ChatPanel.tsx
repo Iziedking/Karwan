@@ -19,7 +19,10 @@ const CHAT_IMAGES = ['image/png', 'image/jpeg', 'image/webp'];
 const MESSAGES_PER_PAGE = 30;
 
 export function ChatPanel({ jobId, caller, counterpartyLabel, counterpartyAddress, draftSeed, draftSeedKey, fill }: { jobId: string; caller: string; counterpartyLabel: string; counterpartyAddress?: string; draftSeed?: string; draftSeedKey?: number; /** Stretch to the parent's height, input pinned to the bottom. */ fill?: boolean }) {
-  const cp = useTranslations().chatPanel;
+  const all = useTranslations();
+  const cp = all.chatPanel;
+  // The same words as messages before a deal (view 32).
+  const payOutsideWarning = all.directMessages.warning;
   const { locale } = useLocale();
   const { messages, fetchState, fetchError, send, sending, writable } = useChat({ jobId, caller });
   const [draft, setDraft] = useState('');
@@ -145,6 +148,11 @@ export function ChatPanel({ jobId, caller, counterpartyLabel, counterpartyAddres
                   </button>
                 ) : null}
               </div>
+              {message.warning === 'pay_outside' ? (
+                <p role="note" className={cn('mt-1.5 max-w-[80%] rounded-[16px] border border-[color-mix(in_srgb,var(--color-warning)_40%,transparent)] bg-[var(--color-warning-soft)] px-3.5 py-2.5 text-[14px] font-semibold leading-snug text-[var(--lp-ink)] sm:max-w-[70%]', mine ? 'ms-auto me-8' : 'ms-8')}>
+                  {payOutsideWarning}
+                </p>
+              ) : null}
             </div>
           );
         })}

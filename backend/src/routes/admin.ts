@@ -52,6 +52,7 @@ import { researchMarket, externalPayerAddress, x402PayerHealth } from '../x402/e
 import { recordExternalResearchFailure, recordExternalResearchPayment } from '../x402/researchAccounting.js';
 import { seedAgentFromOperator } from '../chain/agentSeed.js';
 import { olderContractsReport } from '../chain/legacyLive.js';
+import { payOutsideFlags } from '../security/payOutsideFlags.js';
 import { pingAssistantProviders } from './assistant.js';
 import { watcherHealth, cronHealth } from '../ops/heartbeats.js';
 import { db, pgEnabled } from '../db/client.js';
@@ -264,6 +265,10 @@ adminRoutes.get('/health', async (c) => {
     negotiation: negotiationSummary(),
   });
 });
+
+/// Messages in a deal chat that asked to be paid outside Karwan (view 32),
+/// newest first. A repeat is a sender flagged three times in 30 days.
+adminRoutes.get('/pay-outside', (c) => c.json({ flags: payOutsideFlags.list(Date.now()).slice(0, 200) }));
 
 /// Older contracts (view 37): what each still holds, how much of that open
 /// deals and positions hold for people, and what is left over. Its own call

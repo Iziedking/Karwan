@@ -183,7 +183,12 @@ export function dealStepTools(address: string, actions: AssistantAction[], deps:
           if ('error' in found) return found;
           const r = await deps.call(address, 'POST', `/api/chat/${jobId}`, { body: text });
           if (r.status >= 400) return { sent: false, error: typeof r.json.error === 'string' ? r.json.error : 'The message was not sent.' };
-          return { sent: true, next: 'They see it in the deal chat, with an alert if they turned those on.' };
+          const warned = (r.json.message as { warning?: string } | undefined)?.warning === 'pay_outside';
+          return {
+            sent: true,
+            next: 'They see it in the deal chat, with an alert if they turned those on.',
+            ...(warned ? { warned: 'It reads as asking to be paid outside Karwan, so both sides see: Keep payment in Karwan escrow. Never pay outside it.' } : {}),
+          };
         }),
     }),
 

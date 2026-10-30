@@ -3386,6 +3386,8 @@ export const api = {
         sample?: string;
       }>;
     }>('/api/admin/assistant-health', { headers: adminHeaders() }),
+  adminPayOutside: () =>
+    json<{ flags: Array<{ address: string; jobId: string; messageId: string; body: string; at: number; repeat: boolean }> }>('/api/admin/pay-outside', { headers: adminHeaders() }),
   adminOlderContracts: () =>
     json<{
       contracts: Array<{
@@ -4655,12 +4657,12 @@ export const api = {
   directMessages: (tag: string) =>
     json<{
       with: { tag: string; country: string | null; tier: string };
-      messages: { from: string; text: string; at: string; warning?: string }[];
+      messages: { from: string; text: string; at: string; warning?: string; about?: { kind: 'listing' | 'request'; id: string; title: string } }[];
     }>(`/api/messages/${encodeURIComponent(tag)}`),
-  sendDirectMessage: (tag: string, body: string) =>
+  sendDirectMessage: (tag: string, body: string, about?: { kind: 'listing' | 'request'; id: string } | null) =>
     json<{ sent: true; warning: string | null }>(`/api/messages/${encodeURIComponent(tag)}`, {
       method: 'POST',
-      body: JSON.stringify({ body }),
+      body: JSON.stringify({ body, ...(about ? { about } : {}) }),
     }),
   reputationSources: (address: string) =>
     json<{
@@ -6192,6 +6194,8 @@ export interface ChatMessage {
   imageDataUrl?: string;
   replyToId?: string;
   eventType?: string;
+  /// 'pay_outside' when the message asked to be paid outside Karwan (view 32).
+  warning?: string;
   ts: number;
 }
 

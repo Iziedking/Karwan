@@ -344,7 +344,7 @@
       "id": "messages-by-tag",
       "title": "Message anyone by their Karwan tag",
       "status": "roadmap",
-      "updated": "2026-10-17",
+      "updated": "2026-10-30",
       "tags": [
         "agents",
         "chat",
@@ -357,7 +357,7 @@
           "date": "2026-10-17"
         }
       ],
-      "body": "A person can ask their agent to message someone by Karwan tag before any\ndeal, for example \"send @ada a message: do you make agbada?\". Ada gets it in\nher Karwan chat, with an alert on Telegram and by email, and sees the sender's\ntag, country and tier. She answers with her agent's help.\n\nWhen they agree, either agent starts the protected deal. Money never moves\nfrom a message. A message with a phone number, an email or a link, sent\nbefore any deal between the two, carries a warning to keep payment in Karwan\nescrow. Someone whose first messages to five people in a day all go\nunanswered is paused from writing to anyone new for a day, and three messages\nin a row with no answer wait for a reply. Only someone with a Karwan tag can\nmessage, and a message with a link Karwan flags is not sent. Messages are kept\n14 days.\n\nThis is built for testnet and not live."
+      "body": "A person can ask their agent to message someone by Karwan tag before any\ndeal, for example \"send @ada a message: do you make agbada?\". Ada gets it in\nher Karwan chat, with an alert on Telegram and by email, and sees the sender's\ntag, country and tier. She answers with her agent's help.\n\nA market listing, a request a seller is looking at, and a person's public\nrecord page have a Message button, so a buyer can ask before agreeing. The\nfirst message names the ad it is about, and the conversation links back to it.\n\nWhen they agree, either agent starts the protected deal. Money never moves\nfrom a message. A message with a phone number, an email or a link, sent\nbefore any deal between the two, carries a warning to keep payment in Karwan\nescrow. So does any message, before a deal or in a deal's chat, that asks to\nbe paid outside Karwan, such as \"send it to my account\" or a bank account\nnumber. It still goes through, both sides see the warning, and the Karwan team\nis told. Someone whose first messages to five people in a day all go\nunanswered is paused from writing to anyone new for a day, and three messages\nin a row with no answer wait for a reply. Only someone with a Karwan tag can\nmessage, and a message with a link Karwan flags is not sent. Messages are kept\n14 days.\n\nThis is built for testnet and not live."
     },
     {
       "id": "milestone-escrow",

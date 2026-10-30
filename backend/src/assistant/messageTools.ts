@@ -1,7 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 import type { ChatMessage } from '../db/messages.js';
-import type { InboxRow, SendResult } from '../messages/directService.js';
+import type { InboxRow, MessageAbout, SendResult } from '../messages/directService.js';
 
 /// Talking to someone by their Karwan tag before any deal. Each side sees the
 /// other's tag, country and tier, never an address or a city.
@@ -13,7 +13,7 @@ export interface PersonCard {
 }
 
 export interface MessageToolDeps {
-  send: (from: string, toTag: string, body: string) => Promise<SendResult>;
+  send: (from: string, toTag: string, body: string, about?: MessageAbout) => Promise<SendResult>;
   list: (owner: string, withTag: string) => Promise<ChatMessage[]>;
   inbox: (owner: string) => Promise<InboxRow[]>;
   describe: (tag: string) => Promise<PersonCard | null>;
@@ -30,6 +30,7 @@ export function conversationView(owner: string, who: PersonCard, messages: ChatM
       text: m.body,
       at: new Date(m.ts).toISOString(),
       ...(m.warning ? { warning: m.warning } : {}),
+      ...(m.about ? { about: m.about } : {}),
     })),
   };
 }
@@ -42,13 +43,17 @@ export function messageTools(address: string, deps: MessageToolDeps) {
   return {
     message_person: tool({
       description:
-        "Send a message to someone on Karwan by their tag (for example @ada), before any deal. Use when the user asks to message, ask or contact someone by tag. They read it in Karwan under Messages (/messages) and get an alert on Telegram and by email if those are on. Never put money in a message: when the two agree, start a protected deal. If the result has a warning, tell the user plainly.",
+        "Send a message to someone on Karwan by their tag (for example @ada), before any deal. Use when the user asks to message, ask or contact someone by tag, including asking the seller of a listing or the poster of a request before a deal (pass about). They read it in Karwan under Messages (/messages) and get an alert on Telegram and by email if those are on. Never put money in a message: when the two agree, start a protected deal. If the result has a warning, tell the user plainly.",
       inputSchema: z.object({
         tag: z.string().min(1).max(60),
         text: z.string().min(1).max(2000),
+        about: z
+          .object({ kind: z.enum(['listing', 'request']), id: z.string().min(1).max(120) })
+          .optional()
+          .describe('The market listing or request the question is about, when they ask the person who posted it.'),
       }),
-      execute: async ({ tag, text }) => {
-        const r = await deps.send(address, tag, text);
+      execute: async ({ tag, text, about }) => {
+        const r = await deps.send(address, tag, text, about);
         if (!r.ok) return { sent: false, error: r.message };
         return {
           sent: true,

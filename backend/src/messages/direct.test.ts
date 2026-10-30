@@ -48,6 +48,9 @@ test('a payment link before a deal gets the escrow warning', () => {
   assert.equal(warningFor('Email ada@example.com', false), warn);
   assert.equal(warningFor('Pay me at https://pay.example.com/ada', true), null);
   assert.equal(warningFor('Two owambe outfits for 150 USDC, ready in 5 days', false), null);
+  // Asking to be paid outside Karwan is warned even when the two have a deal.
+  assert.equal(warningFor('No need for escrow, send it to my account', true), warn);
+  assert.equal(warningFor('I will pay into escrow tonight', true), null);
 });
 
 test('the same pair gives the same key in either order', () => {

@@ -9,7 +9,10 @@ export interface DirectMessageRouteDeps extends MessageToolDeps {
   viewer: (c: Context) => string | null;
 }
 
-const Body = z.object({ body: z.string().min(1).max(2000) });
+const Body = z.object({
+  body: z.string().min(1).max(2000),
+  about: z.object({ kind: z.enum(['listing', 'request']), id: z.string().min(1).max(120) }).optional(),
+});
 
 export function createDirectMessageRoutes(deps: DirectMessageRouteDeps): Hono {
   const app = new Hono();
@@ -34,7 +37,7 @@ export function createDirectMessageRoutes(deps: DirectMessageRouteDeps): Hono {
     if (!me) return c.json({ error: 'Sign in to send a message.' }, 401);
     const parsed = Body.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) return c.json({ error: 'Write a message first.' }, 400);
-    const r = await deps.send(me, c.req.param('tag'), parsed.data.body);
+    const r = await deps.send(me, c.req.param('tag'), parsed.data.body, parsed.data.about);
     if (!r.ok) return c.json({ error: r.message, code: r.code, ...(r.until ? { until: r.until } : {}) }, 400);
     return c.json({ sent: true, warning: r.warning });
   });

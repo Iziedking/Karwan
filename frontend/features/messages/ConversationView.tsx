@@ -14,12 +14,13 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { useTierLabels } from '@/features/reputation/useTierLabels';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { refusalText } from './refusal';
+import { aboutHref, type MessageAbout } from './about';
 
 type Conversation = Awaited<ReturnType<typeof api.directMessages>>;
 
 /// One conversation with someone by their Karwan tag, before any deal. The
 /// other person shows as tag, country and tier; never a city or an address.
-export function ConversationView({ tag }: { tag: string }) {
+export function ConversationView({ tag, about = null }: { tag: string; about?: MessageAbout | null }) {
   const { locale, t: all } = useLocale();
   const tierNames = useTierLabels();
   const t = all.directMessages;
@@ -29,6 +30,8 @@ export function ConversationView({ tag }: { tag: string }) {
   const draftRef = useAutoGrow(draft);
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  // The ad this page was opened from rides on the first message sent from it.
+  const [pendingAbout, setPendingAbout] = useState<MessageAbout | null>(about);
   const pathname = usePathname();
   const { isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
@@ -60,7 +63,8 @@ export function ConversationView({ tag }: { tag: string }) {
     setSending(true);
     setSendError(null);
     try {
-      await api.sendDirectMessage(tag, body);
+      await api.sendDirectMessage(tag, body, pendingAbout);
+      setPendingAbout(null);
       setDraft('');
       load();
     } catch (err) {
@@ -120,6 +124,11 @@ export function ConversationView({ tag }: { tag: string }) {
             const mine = m.from === 'you';
             return (
               <li key={`${m.at}-${i}`} className={mine ? 'flex max-w-[85%] flex-col items-end self-end sm:max-w-[70%]' : 'flex max-w-[85%] flex-col items-start self-start sm:max-w-[70%]'}>
+                {m.about ? (
+                  <Link dir="auto" href={aboutHref(m.about)} className="mb-1 max-w-full truncate px-1 text-[13px] font-semibold text-[var(--lp-text-sub)] underline-offset-2 hover:underline">
+                    {t.about.replace('{title}', m.about.title)}
+                  </Link>
+                ) : null}
                 <p className={mine
                   ? 'whitespace-pre-wrap break-words rounded-[18px] rounded-ee-[6px] bg-[var(--lp-accent)] px-3.5 py-2.5 text-[15px] font-medium leading-snug text-[var(--accent-ink)]'
                   : 'whitespace-pre-wrap break-words rounded-[18px] rounded-es-[6px] bg-[var(--tint)] px-3.5 py-2.5 text-[15px] leading-snug text-[var(--lp-ink)]'}

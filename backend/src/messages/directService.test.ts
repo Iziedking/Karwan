@@ -198,3 +198,20 @@ test('the sender never has an alert for their own message', async () => {
   await f.direct.send('0xada', '@bo', 'Hello');
   assert.equal((await f.direct.inbox('0xada'))[0]!.unread, false);
 });
+
+test('a message from an ad carries what it is about, only when the ad is theirs', async () => {
+  const ads: Record<string, { title: string; owner: string }> = {
+    'listing:lst_1': { title: 'Blue Tecno Spark 20', owner: '0xb0' },
+    'listing:lst_2': { title: 'Someone else’s phone', owner: '0xc3' },
+  };
+  const f = fakeDirect({ aboutOf: async (a) => ads[`${a.kind}:${a.id}`] ?? null });
+  const r = await f.direct.send('0xada', '@bo', 'Does it come with a charger?', { kind: 'listing', id: 'lst_1' });
+  assert.equal(r.ok, true);
+  assert.deepEqual(f.store[0]!.about, { kind: 'listing', id: 'lst_1', title: 'Blue Tecno Spark 20' });
+  // An ad that is not the receiver's, or does not exist, is left off; the message still goes.
+  await f.direct.send('0xada', '@bo', 'And this one?', { kind: 'listing', id: 'lst_2' });
+  await f.direct.send('0xada', '@bo', 'Or this?', { kind: 'request', id: 'nope' });
+  assert.equal(f.store.length, 3);
+  assert.equal(f.store[1]!.about, undefined);
+  assert.equal(f.store[2]!.about, undefined);
+});

@@ -23,6 +23,8 @@ export interface ChatMessage {
   replyToId?: string;
   /// Set on a direct message holding contact details before any deal.
   warning?: string;
+  /// A direct message sent from a market ad: which one, and its title then.
+  about?: { kind: 'listing' | 'request'; id: string; title: string };
   eventType?: string;
   ts: number;
 }

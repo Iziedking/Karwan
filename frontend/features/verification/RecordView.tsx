@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { api, ApiError } from '@/core/api';
 import { explorerTxUrl, settlementChain } from '@/core/arcNetwork';
 import { reasonLabels } from '@/features/reputation/sealed';
@@ -22,6 +23,9 @@ export function RecordView({ tag }: { tag: string }) {
   const [record, setRecord] = useState<RecordData | null>(null);
   const [failure, setFailure] = useState<'missing' | 'error' | null>(null);
   const [attempt, setAttempt] = useState(0);
+  // Who the tag belongs to, so your own record never offers to message you.
+  const owner = useQuery({ queryKey: ['karwan-tag', tag.toLowerCase()], queryFn: () => api.resolveKarwanTag(tag), staleTime: 60_000 });
+  const own = owner.data?.found ? owner.data.self : false;
 
   useEffect(() => {
     api
@@ -70,6 +74,11 @@ export function RecordView({ tag }: { tag: string }) {
         {record.displayName ?? sealed.unnamed}
       </h1>
       {record.tag ? <p className="mt-1 text-[15px] text-[var(--lp-text-sub)]">@{record.tag}</p> : null}
+      {record.tag && !own ? (
+        <Link href={`/messages/${encodeURIComponent(record.tag)}`} className="mt-4 inline-flex min-h-11 items-center rounded-full border border-[var(--lp-line)] px-5 text-[14px] font-semibold text-[var(--lp-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+          {all.directMessages.messageFromAd.replace('{tag}', `@${record.tag}`)}
+        </Link>
+      ) : null}
 
       <dl className="mt-8 border-t border-[var(--lp-line)]">
         <div className="flex justify-between gap-4 border-b border-[var(--lp-line)] py-3">

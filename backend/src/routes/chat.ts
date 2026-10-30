@@ -6,12 +6,16 @@ import { listMessages, addMessage } from '../db/messages.js';
 import { bus } from '../events.js';
 import { localScanProof } from '../security/localScan.js';
 import { recordLinkOffense } from '../security/linkOffenses.js';
+import { payOutsideFlags } from '../security/payOutsideFlags.js';
+import { asksToPayOutside } from '../messages/payOutside.js';
 import { sessionAddress } from '../auth/session.js';
 import { logger } from '../logger.js';
 import { tradeChannelState } from '../chat/channelAccess.js';
 import { validateReplyTarget } from '../chat/replyValidation.js';
 import { getMessage } from '../db/messages.js';
 import { invalidBodyMessage } from './invalidBody.js';
+
+const PAY_OUTSIDE = 'pay_outside';
 
 const addrSchema = z.string().regex(/^0x[a-fA-F0-9]{40}$/);
 
@@ -113,6 +117,9 @@ chatRoutes.post('/:jobId', async (c) => {
     }
   }
 
+  // Asking to be paid outside Karwan goes through, warned on both sides and
+  // flagged for the team (view 32).
+  const payOutside = asksToPayOutside(trimmed);
   const message = {
     id: `${jobId}-${Date.now()}-${randomBytes(4).toString('hex')}`,
     jobId,
@@ -121,11 +128,13 @@ chatRoutes.post('/:jobId', async (c) => {
     sender,
     kind: 'participant' as const,
     body: trimmed,
+    ...(payOutside ? { warning: PAY_OUTSIDE } : {}),
     ...(body.imageDataUrl ? { imageDataUrl: body.imageDataUrl } : {}),
     ...(body.replyToId ? { replyToId: body.replyToId } : {}),
     ts: Date.now(),
   };
   await addMessage(message);
+  if (payOutside) payOutsideFlags.record({ address: sender, jobId, messageId: message.id, body: trimmed, at: message.ts });
 
   bus.emitEvent({
     type: 'chat.message',
@@ -137,6 +146,7 @@ chatRoutes.post('/:jobId', async (c) => {
       body: message.body,
       ...(message.imageDataUrl ? { imageDataUrl: message.imageDataUrl } : {}),
       ...(message.replyToId ? { replyToId: message.replyToId } : {}),
+      ...(payOutside ? { warning: PAY_OUTSIDE } : {}),
       channel: 'trade',
       channelKey: jobId,
       recipient: state.recipient,

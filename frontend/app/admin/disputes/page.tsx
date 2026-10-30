@@ -78,7 +78,41 @@ export default function AdminDisputesPage() {
           ))}
         </div>
       )}
+      <PayOutsideFlags />
     </main>
+  );
+}
+
+type PayOutsideFlag = Awaited<ReturnType<typeof api.adminPayOutside>>['flags'][number];
+
+/// Deal-chat messages that asked to be paid outside Karwan (view 32). Both
+/// sides were warned; nothing was blocked. A repeat is three in 30 days.
+function PayOutsideFlags() {
+  const [flags, setFlags] = useState<PayOutsideFlag[] | null>(null);
+  useEffect(() => {
+    api.adminPayOutside().then((r) => setFlags(r.flags), () => setFlags([]));
+  }, []);
+  return (
+    <section className="mt-10">
+      <h2 className="mono text-[12px] uppercase tracking-[0.18em] font-bold">Asked to pay outside Karwan</h2>
+      {flags === null ? null : flags.length === 0 ? (
+        <p className="mt-3 text-[13px] text-zinc-500">No messages flagged.</p>
+      ) : (
+        <ul className="mt-3 divide-y divide-zinc-200 border-y border-zinc-200">
+          {flags.map((f) => (
+            <li key={f.messageId} className="py-3 text-[13px]">
+              <p className="flex flex-wrap gap-x-3 mono text-[11px] text-zinc-500">
+                <span>{short(f.address)}</span>
+                <a className="underline" href={`/deals/${encodeURIComponent(f.jobId)}`}>{f.jobId.slice(0, 14)}</a>
+                <span>{new Date(f.at).toLocaleString()}</span>
+                {f.repeat ? <span className="font-bold text-[var(--lp-critical)]">Repeat</span> : null}
+              </p>
+              <p dir="auto" className="mt-1 whitespace-pre-wrap break-words text-zinc-800">{f.body}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 
