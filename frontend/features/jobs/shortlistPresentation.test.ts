@@ -103,3 +103,11 @@ test('a seller whose agent is not linked is listed, says why, and cannot be chos
   assert.equal(v.choosable, false);
   assert.equal(shortlistRowView(ada, copy).markLine, null);
 });
+
+test('an offer that needs longer than the request says how many days more (view 41, step three)', () => {
+  const v = shortlistRowView({ ...ada, outsideRequest: true, extraDays: 2, recommended: false }, copy);
+  assert.equal(v.markLine, 'Needs 2 days longer than your request');
+  assert.equal(shortlistRowView({ ...ada, outsideRequest: true, extraDays: 1 }, copy).markLine, 'Needs 1 day longer than your request');
+  assert.equal(shortlistRowView({ ...ada, outsideRequest: true, extraDays: 0 }, copy).markLine, 'Above your budget, outside your request');
+  assert.equal(v.choosable, true);
+});

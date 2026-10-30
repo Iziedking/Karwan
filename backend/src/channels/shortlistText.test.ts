@@ -87,3 +87,8 @@ test('in chat, an offer above the budget and an unlinked agent are marked (view 
   assert.match(text, /Above your budget, outside your request/);
   assert.match(text, /Not linked to their account yet\. You can choose them once they link it\./);
 });
+
+test('in chat, an offer that needs longer than the request says how many days more (view 41, step three)', () => {
+  const text = shortlistText([entry({ rank: 1, outsideRequest: true, extraDays: 2 })], 'https://karwan.site', { readsBalanceEmpty: false });
+  assert.match(text, /Needs 2 days longer than your request/);
+});

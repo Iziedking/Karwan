@@ -5,7 +5,7 @@ import { blocksOffer, SELLER_LINK_DETAIL, SELLER_NOT_BOUND, sellerAgentBinding, 
 import { carriedGate } from './proposalCarry.js';
 import { offerToChoose, priceAsSeen, withAgreedPrice, type OfferChoice } from './chooseOffer.js';
 import { sellerKey } from './sellerKey.js';
-import { bidsFromHistory, withdrawnFromHistory } from './bidHistory.js';
+import { bidsFromHistory, offeredDaysFrom, withdrawnFromHistory } from './bidHistory.js';
 import { bestAndFinalRecipients, decideOfferRevision, lowestOtherUsdc, rejudgeStep, type StandingOffer } from './offerRevision.js';
 import { closedForOffers } from './offerWindow.js';
 import { generateObject } from 'ai';
@@ -2098,6 +2098,15 @@ const RECOMMEND_OPTS = { cleanRecordCounts: config.ARC_NETWORK === 'testnet' };
 /// On first publish the agent negotiates with the recommended seller only. A
 /// refresh from a late offer counters a new recommendation only when no counter
 /// is in flight and nothing is agreed or funded yet.
+/// The days a seller offered on this request when it was due sooner than they
+/// need (view 41, step three), from the offer events. Null when they took the
+/// request's own date.
+async function offeredDaysOf(jobId: string, seller: string): Promise<number | null> {
+  const local = bus.recent(500, jobId).filter((e) => e.type === 'bid.submitted');
+  const persisted = await recentEventsByType(['bid.submitted'], 500, jobId).catch(() => []);
+  return offeredDaysFrom([...persisted, ...local], seller);
+}
+
 async function publishShortlist(
   state: JobState,
   rankedEntries: RankedBidEntry[],
@@ -2107,13 +2116,21 @@ async function publishShortlist(
   const brief = getBrief(state.jobId);
   const buyerUser = brief?.postedBy ?? state.context.buyer;
   const before = state.shortlist?.find((e) => e.recommended)?.seller ?? null;
+  const nowUnix = Math.floor(Date.now() / 1000);
   const candidates = await buildCandidates(
     {
       jobId: state.jobId,
       buyerAgent: state.buyer.address,
       buyerUser,
-      bids: rankedEntries.map((e) => ({ ...e.bid, deterministicScore: e.deterministicScore })),
-      nowUnix: Math.floor(Date.now() / 1000),
+      bids: await Promise.all(
+        rankedEntries.map(async (e) => ({
+          ...e.bid,
+          deterministicScore: e.deterministicScore,
+          offeredDays: await offeredDaysOf(state.jobId, e.bid.seller),
+        })),
+      ),
+      requestDays: Math.max(1, Math.ceil((state.context.deadlineUnix - nowUnix) / 86_400)),
+      nowUnix,
       where: brief?.where,
       deliveryKind: brief ? kindOf(brief) : undefined,
       buyerLocation: await locationOf(buyerUser),
@@ -4070,7 +4087,7 @@ async function proposeMatch(
       sellerUser: sellerWallets.userAddress,
       sellerAgent: sellerWallets.sellerAddress,
       agreedPriceUsdc,
-      deadlineUnix: state.context.deadlineUnix,
+      deadlineUnix: await proposalDeadline(state, seller),
       termsHash: state.context.termsHash,
       proposedAt: Date.now(),
       // Shortlist mode: the agreed match waits for the buyer's choice, never
@@ -4571,6 +4588,16 @@ export async function raiseMatchOffer(
 /// have run for days, and the seller should not inherit a clock that started
 /// when the brief went live. The window is the negotiated deadline measured
 /// from the brief's creation.
+/// The deadline a match carries: the request's, or, when the seller offered
+/// with the days they need, that many days from when the request was posted, so
+/// re-anchoring at acceptance gives the deal the seller's days (view 41, step three).
+async function proposalDeadline(state: JobState, seller: string): Promise<number> {
+  const days = await offeredDaysOf(state.jobId, seller);
+  const posted = getBrief(state.jobId)?.createdAt;
+  if (!days || !posted) return state.context.deadlineUnix;
+  return Math.max(state.context.deadlineUnix, Math.floor(posted / 1000) + days * 86_400);
+}
+
 function reanchoredDealDeadline(jobId: string, negotiatedDeadlineUnix: number, nowMs: number): number {
   const brief = getBrief(jobId);
   if (!brief) return negotiatedDeadlineUnix;

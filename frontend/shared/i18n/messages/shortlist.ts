@@ -35,6 +35,8 @@ export interface ShortlistCopy {
   unverifiedWarning: string;
   outsideRequest: string;
   mustLink: string;
+  longerOne: string;
+  longerMany: string;
   reasons: { best_fit: string; verified: string; within_budget: string; lower_price: string; on_time_record: string; nearby: string };
   tiers: { NEW: string; COLD: string; ESTABLISHED: string; STRONG: string; ELITE: string };
 }
@@ -73,6 +75,8 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
     unverifiedWarning: '{name} is not verified. Karwan has not checked their identity or past work. Your money stays in escrow until you release it.',
     outsideRequest: 'Above your budget, outside your request',
     mustLink: 'Not linked to their account yet. You can choose them once they link it.',
+    longerOne: 'Needs 1 day longer than your request',
+    longerMany: 'Needs {n} days longer than your request',
     reasons: {
       best_fit: 'Best skill match',
       verified: 'Verified',
@@ -116,6 +120,8 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
     unverifiedWarning: '{name} n’est pas vérifié. Karwan n’a contrôlé ni son identité ni ses travaux passés. Votre argent reste en séquestre jusqu’à ce que vous le libériez.',
     outsideRequest: 'Au-dessus de votre budget, hors de votre demande',
     mustLink: 'Pas encore relié à son compte. Vous pourrez le choisir une fois relié.',
+    longerOne: 'Demande 1 jour de plus que votre demande',
+    longerMany: 'Demande {n} jours de plus que votre demande',
     reasons: {
       best_fit: 'Meilleure correspondance',
       verified: 'Vérifié',
@@ -159,6 +165,8 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
     unverifiedWarning: '{name} غير موثّق. لم تتحقق كاروان من هويته أو أعماله السابقة. تبقى أموالك في الضمان حتى تحررها.',
     outsideRequest: 'أعلى من ميزانيتك، خارج طلبك',
     mustLink: 'لم يربط وكيله بحسابه بعد. يمكنك اختياره بعد أن يربطه.',
+    longerOne: 'يحتاج يومًا واحدًا أكثر من طلبك',
+    longerMany: 'يحتاج {n} أيام أكثر من طلبك',
     reasons: {
       best_fit: 'أفضل تطابق في المهارة',
       verified: 'موثّق',
@@ -202,6 +210,8 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
     unverifiedWarning: '{name} सत्यापित नहीं है। Karwan ने उनकी पहचान या पिछला काम नहीं जांचा है। जब तक आप जारी नहीं करते, आपका पैसा एस्क्रो में रहता है।',
     outsideRequest: 'आपके बजट से ऊपर, आपके अनुरोध से बाहर',
     mustLink: 'अभी तक उनके खाते से जुड़ा नहीं है। जुड़ने के बाद आप उन्हें चुन सकते हैं।',
+    longerOne: 'आपके अनुरोध से 1 दिन ज़्यादा चाहिए',
+    longerMany: 'आपके अनुरोध से {n} दिन ज़्यादा चाहिए',
     reasons: {
       best_fit: 'सबसे अच्छा कौशल मेल',
       verified: 'सत्यापित',
@@ -245,6 +255,8 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
     unverifiedWarning: '{name} hajathibitishwa. Karwan haijakagua utambulisho wake wala kazi zake za awali. Pesa zako zinabaki kwenye escrow hadi utakapozitoa.',
     outsideRequest: 'Juu ya bajeti yako, nje ya ombi lako',
     mustLink: 'Bado hajaunganishwa na akaunti yake. Unaweza kumchagua akishaunganisha.',
+    longerOne: 'Anahitaji siku 1 zaidi ya ombi lako',
+    longerMany: 'Anahitaji siku {n} zaidi ya ombi lako',
     reasons: {
       best_fit: 'Ujuzi unaolingana zaidi',
       verified: 'Amethibitishwa',

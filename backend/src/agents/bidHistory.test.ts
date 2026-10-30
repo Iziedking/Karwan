@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { getAddress } from 'viem';
-import { bidsFromHistory, withdrawnFromHistory } from './bidHistory.js';
+import { offeredDaysFrom, bidsFromHistory, withdrawnFromHistory } from './bidHistory.js';
 
 const MADNADE = getAddress('0x20d2cfd0b8f00f72cbf221d29cc91a51afd8deff');
 const FORGE = getAddress('0x83f2c96ceb69042fba2e0226c84868e1780f391f');
@@ -68,4 +68,16 @@ test('broken entries are skipped, never invented', () => {
     ev('bid.scored', 3, { seller: MADNADE, score: 50 }),
   ]);
   assert.deepEqual(bids, []);
+});
+
+test('the days a seller offered when the request was due too soon come from the latest offer (view 41, step three)', () => {
+  const S = '0x60d921870bec83e8ce4a824c8e7d05c74a1f88a8';
+  const events = [
+    { type: 'bid.submitted', ts: 1, payload: { seller: S, priceUsdc: '500', deadlineUnix: 10, offeredDays: 12 } },
+    { type: 'bid.submitted', ts: 2, payload: { seller: S.toUpperCase().replace('0X', '0x'), priceUsdc: '500', deadlineUnix: 10, offeredDays: 10 } },
+    { type: 'bid.submitted', ts: 3, payload: { seller: '0x1111111111111111111111111111111111111111', priceUsdc: '90', deadlineUnix: 10 } },
+  ];
+  assert.equal(offeredDaysFrom(events, S), 10);
+  assert.equal(offeredDaysFrom(events, '0x1111111111111111111111111111111111111111'), null);
+  assert.equal(offeredDaysFrom([], S), null);
 });

@@ -74,3 +74,18 @@ export function withdrawnFromHistory(events: readonly HistoryEvent[]): Set<strin
   }
   return out;
 }
+
+/// The days a seller's agent offered when the request was due sooner than the
+/// seller needs (view 41, step three), from that seller's latest offer, or null.
+/// The days ride off chain: the bid's on-chain deadline stays the request's.
+export function offeredDaysFrom(events: readonly HistoryEvent[], seller: string): number | null {
+  const want = seller.toLowerCase();
+  let latest: { ts: number; days: number | null } | null = null;
+  for (const e of events) {
+    if (e.type !== 'bid.submitted' || str(e.payload?.seller)?.toLowerCase() !== want) continue;
+    if (latest && e.ts < latest.ts) continue;
+    const days = num(e.payload?.offeredDays);
+    latest = { ts: e.ts, days: days !== undefined && days > 0 ? Math.ceil(days) : null };
+  }
+  return latest?.days ?? null;
+}

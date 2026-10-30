@@ -37,6 +37,8 @@ export interface ShortlistBid {
   topicalMatch?: number;
   deterministicScore: number;
   title?: string;
+  /// The days the seller needs when the request was due sooner (view 41, step three).
+  offeredDays?: number | null;
 }
 
 function within<T>(p: Promise<T>, ms: number): Promise<T | null> {
@@ -57,6 +59,8 @@ export async function buildCandidates(
     where?: Where;
     deliveryKind?: DeliveryKind;
     buyerLocation?: PrivateLocation | null;
+    /// The days the request gives, to measure an offer's extra days against.
+    requestDays?: number;
   },
   deps: ShortlistDeps,
 ): Promise<ShortlistCandidate[]> {
@@ -84,7 +88,8 @@ export async function buildCandidates(
         tier: engine.tier,
         counts: read?.counts ?? engine.counts,
         offer: b.title ?? '',
-        deliveryDays: Math.max(1, Math.round((b.deadlineUnix - input.nowUnix) / DAY_S)),
+        deliveryDays: b.offeredDays ?? Math.max(1, Math.round((b.deadlineUnix - input.nowUnix) / DAY_S)),
+        extraDays: b.offeredDays && input.requestDays !== undefined ? Math.max(0, b.offeredDays - input.requestDays) : 0,
         askedUsdc: Number(b.priceUsdc),
         recordChecked: !!read,
         locationFit: locationFit(input.where, input.buyerLocation ?? null, location, input.deliveryKind),

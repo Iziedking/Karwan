@@ -34,6 +34,8 @@ export interface ShortlistCandidate {
   rating: PublicRating;
   /// The seller's agent is linked to its owner; absent means linked.
   linked?: boolean;
+  /// Days the offer needs beyond what the request gives (view 41, step three).
+  extraDays?: number;
 }
 
 export interface ShortlistEntry {
@@ -62,6 +64,8 @@ export interface ShortlistEntry {
   outsideRequest?: boolean;
   /// The seller's agent is not linked to its owner yet: listed, never chosen.
   mustLink?: boolean;
+  /// Days the offer needs beyond what the request gives; 0 when it fits the date.
+  extraDays?: number;
 }
 
 /// How many offers get a paid record read; every offer is listed.
@@ -82,6 +86,7 @@ const linked = (c: ShortlistCandidate) => c.linked !== false;
 
 export function rankCandidates(cands: readonly ShortlistCandidate[], budgetUsdc?: number): ShortlistCandidate[] {
   const over = (c: ShortlistCandidate) => (budgetUsdc === undefined ? 0 : Math.max(0, c.askedUsdc - budgetUsdc));
+  const later = (c: ShortlistCandidate) => c.extraDays ?? 0;
   return [...cands].sort(
     (a, b) =>
       b.matchBand - a.matchBand ||
@@ -90,6 +95,7 @@ export function rankCandidates(cands: readonly ShortlistCandidate[], budgetUsdc?
       ratingRank(b.rating) - ratingRank(a.rating) ||
       b.engineScore - a.engineScore ||
       over(a) - over(b) ||
+      later(a) - later(b) ||
       b.deterministicScore - a.deterministicScore ||
       a.askedUsdc - b.askedUsdc,
   );
@@ -113,7 +119,9 @@ export function pickRecommended(
   unavailable: ReadonlySet<string> = new Set(),
   opts: { cleanRecordCounts?: boolean } = {},
 ): ShortlistCandidate | null {
-  const open = ranked.filter((c) => c.askedUsdc <= budgetUsdc && linked(c) && !unavailable.has(c.seller.toLowerCase()));
+  const open = ranked.filter(
+    (c) => c.askedUsdc <= budgetUsdc && !(c.extraDays ?? 0) && linked(c) && !unavailable.has(c.seller.toLowerCase()),
+  );
   const verified = open.find((c) => isVerified(c.level));
   if (verified || !opts.cleanRecordCounts) return verified ?? null;
   return open.find((c) => c.counts.completed > 0 && c.counts.disputesLost === 0) ?? null;
@@ -171,8 +179,9 @@ export function toEntries(
       isNew: previous.length > 0 && !seen.has(c.seller.toLowerCase()),
       country: c.country,
       rating: c.rating,
-      outsideRequest: c.askedUsdc > budgetUsdc,
+      outsideRequest: c.askedUsdc > budgetUsdc || (c.extraDays ?? 0) > 0,
       mustLink: !linked(c),
+      extraDays: c.extraDays ?? 0,
     };
   });
 }
@@ -217,7 +226,7 @@ export function assistantShortlistNote(sealed: boolean): string {
   const fields = sealed
     ? 'name, Verified or Not verified, tier, their reasons, offer, days and price'
     : 'name, Verified or Not verified, score, tier, completed deals, on-time percent, disputes lost, offer, days and price';
-  return `Show each person by rank: ${fields} (with the opening ask when it differs). Say which one is Recommended and why, from its reasons. An offer marked outsideRequest asks more than the budget, outside the request: say so, and that the person may still choose it. One marked mustLink is from a seller whose agent is not linked to them yet: say they cannot be chosen until they link it. Offer their profile at karwan.site/r/<tag>. The person chooses; to prepare it call propose_choose_offer with that row's seller value. Never show the seller value.`;
+  return `Show each person by rank: ${fields} (with the opening ask when it differs). Say which one is Recommended and why, from its reasons. An offer marked outsideRequest asks more than the budget, outside the request: say so, and that the person may still choose it. One with extraDays needs that many days more than the request asked: say so. One marked mustLink is from a seller whose agent is not linked to them yet: say they cannot be chosen until they link it. Offer their profile at karwan.site/r/<tag>. The person chooses; to prepare it call propose_choose_offer with that row's seller value. Never show the seller value.`;
 }
 
 export type SealedShortlistEntry = Omit<ShortlistEntry, 'score' | 'counts'> & { score: null; counts: null };
@@ -262,5 +271,6 @@ export function assistantView(entries: readonly ShortlistEntry[], sealed: boolea
       available: e.state !== 'unavailable',
       outsideRequest: e.outsideRequest,
       mustLink: e.mustLink,
+      extraDays: e.extraDays ?? 0,
     }));
 }

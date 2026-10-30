@@ -41,7 +41,15 @@ export function shortlistRowView(e: ShortlistEntry, copy: ShortlistCopy): Shortl
     numbersLine: [numbers, e.recordChecked ? copy.recordChecked : null].filter(Boolean).join(' · ') || null,
     reasonLine: e.reasons.length ? e.reasons.map((r) => copy.reasons[r]).join(' · ') : null,
     profileHref: e.tag ? `/r/${e.tag}` : null,
-    markLine: e.mustLink ? copy.mustLink : e.outsideRequest ? copy.outsideRequest : null,
+    markLine: e.mustLink
+      ? copy.mustLink
+      : e.extraDays
+        ? e.extraDays === 1
+          ? copy.longerOne
+          : fill(copy.longerMany, { n: e.extraDays })
+        : e.outsideRequest
+          ? copy.outsideRequest
+          : null,
     choosable: e.state !== 'unavailable' && !e.mustLink,
   };
 }

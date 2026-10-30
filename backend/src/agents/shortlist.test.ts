@@ -333,3 +333,25 @@ test('the assistant sees the marks and is told what they mean', () => {
   assert.match(assistantShortlistNote(false), /outside the request/);
   assert.match(assistantShortlistNote(false), /link/);
 });
+
+test('an offer that needs longer than the request is listed, marked with its extra days, and never recommended (view 41, step three)', () => {
+  const ranked = rankCandidates(
+    [
+      c({ seller: 'slow', engineScore: 900, askedUsdc: 80, extraDays: 1 }),
+      c({ seller: 'on-time', engineScore: 500, askedUsdc: 95 }),
+    ],
+    100,
+  );
+  const rec = pickRecommended(ranked, 100);
+  assert.equal(rec?.seller, 'on-time');
+  const entries = toEntries(ranked, rec, 100, null, []);
+  const slow = entries.find((e) => e.seller === 'slow')!;
+  assert.equal(slow.outsideRequest, true);
+  assert.equal(slow.extraDays, 1);
+  assert.equal(entries.find((e) => e.seller === 'on-time')!.extraDays, 0);
+});
+
+test('at equal fit and reputation, fewer extra days ranks first', () => {
+  const out = rankCandidates([c({ seller: 'three-more', extraDays: 3 }), c({ seller: 'one-more', extraDays: 1 })], 100);
+  assert.deepEqual(out.map((x) => x.seller), ['one-more', 'three-more']);
+});

@@ -47,9 +47,14 @@ test('under the no-ask level the agent says no politely; above it, under the flo
   assert.deepEqual(limitDecision({ seller, job: job('8', 3), nowUnix: NOW, hasWay: true }), { act: true, atOwnPriceUsdc: '20' }, 'no level set means an offer at the floor');
 });
 
-test('too soon asks, suggesting the days the person needs', () => {
+test('due sooner than the person needs, the agent still offers, with the days they need (view 41, step three)', () => {
   const soon = limitDecision({ seller: { ...seller, minDeadlineDays: 4 }, job: job('30', 2), nowUnix: NOW, hasWay: true });
-  assert.deepEqual(soon, { act: false, kind: 'time', suggested: { priceUsdc: '30', days: 4 }, limit: 4 });
+  assert.deepEqual(soon, { act: true, atOwnDays: 4 });
+});
+
+test('under the floor and too soon at once: an offer at the floor, with the days the person needs', () => {
+  const both = limitDecision({ seller: { ...seller, minDeadlineDays: 4 }, job: job('12', 2), nowUnix: NOW, hasWay: true });
+  assert.deepEqual(both, { act: true, atOwnPriceUsdc: '20', atOwnDays: 4 });
 });
 
 test('more time than the person usually takes is an offer: the work can be done sooner', () => {

@@ -1332,6 +1332,10 @@ async function evaluateAndBid(profile: SellerProfile, job: JobContext) {
   // Under the seller's floor the agent still offers, at the floor, and the
   // buyer sees it as outside their request (view 41, decision 11).
   const atOwnPrice = limits.atOwnPriceUsdc ?? null;
+  // Due sooner than the seller needs: the offer carries the days they need, off
+  // chain, and the deal takes them if the buyer chooses it (view 41, step three).
+  const atOwnDays = limits.atOwnDays ?? null;
+  const outsideRequest = atOwnPrice && atOwnDays ? 'both' : atOwnPrice ? 'price' : atOwnDays ? 'time' : null;
   const opening = atOwnPrice
     ? Number(atOwnPrice)
     : pureSellerOpeningBid(seller, job, buyerTier, heat, getCachedMarketPrice(dealKeywords), Math.random);
@@ -1419,7 +1423,8 @@ async function evaluateAndBid(profile: SellerProfile, job: JobContext) {
       buyerTier,
       humanReview,
       buyerChecked: !!buyerCheck,
-      ...(atOwnPrice ? { outsideRequest: 'price' } : {}),
+      ...(outsideRequest ? { outsideRequest } : {}),
+      ...(atOwnDays ? { offeredDays: atOwnDays } : {}),
       // Whether the opening priced on an awaited (fresh) research read vs a
       // best-effort warm cache. Lets the audit trail (and the eval harness) tell
       // a research-grounded opening from one that raced the read.

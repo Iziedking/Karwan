@@ -74,3 +74,12 @@ test('each candidate carries the seller\'s public rating', async () => {
   const [c] = await buildCandidates(input([bid('s')]), deps({ rating: async () => ({ kind: 'rated', value: 4.5, count: 6 }) }));
   assert.deepEqual(c!.rating, { kind: 'rated', value: 4.5, count: 6 });
 });
+
+test('an offer with its own days shows those days and how many more than the request (view 41, step three)', async () => {
+  const [c] = await buildCandidates({ ...input([{ ...bid('s'), offeredDays: 7 }]), requestDays: 5 }, deps());
+  assert.equal(c!.deliveryDays, 7);
+  assert.equal(c!.extraDays, 2);
+  const [plain] = await buildCandidates({ ...input([bid('s')]), requestDays: 5 }, deps());
+  assert.equal(plain!.deliveryDays, 5);
+  assert.equal(plain!.extraDays, 0);
+});

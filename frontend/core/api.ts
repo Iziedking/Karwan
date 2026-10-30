@@ -147,6 +147,8 @@ export interface ShortlistEntry {
   outsideRequest?: boolean;
   /// The seller's agent is not linked to them yet: listed, not choosable.
   mustLink?: boolean;
+  /// Days the offer needs beyond the request's date (view 41, step three).
+  extraDays?: number;
 }
 
 export interface BuyerBid {
