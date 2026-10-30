@@ -575,7 +575,7 @@ function CheckGlyph() {
 export function PassportPhoto({ src, address }: { src?: string; address: string }) {
   const [failed, setFailed] = useState(false);
   if (src && !failed) {
-    return <img src={src} alt="" width={56} height={56} className="size-14 shrink-0 rounded-full object-cover" onError={() => setFailed(true)} />;
+    return <img src={src} referrerPolicy="no-referrer" alt="" width={56} height={56} className="size-14 shrink-0 rounded-full object-cover" onError={() => setFailed(true)} />;
   }
   return <span className="shrink-0"><WalletAvatar address={address} size={56} /></span>;
 }

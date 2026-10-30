@@ -30,7 +30,7 @@ export function PersonAvatar({ address, name, size = 40 }: { address?: string; n
   if (image) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={image} alt="" width={size} height={size} style={{ width: size, height: size }} className="shrink-0 rounded-full object-cover" onError={() => setFailed(true)} />
+      <img src={image} referrerPolicy="no-referrer" alt="" width={size} height={size} style={{ width: size, height: size }} className="shrink-0 rounded-full object-cover" onError={() => setFailed(true)} />
     );
   }
   return (

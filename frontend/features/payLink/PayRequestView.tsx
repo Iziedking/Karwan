@@ -101,7 +101,7 @@ function Requester({ recipient }: { recipient: string }) {
   return (
     <div className="flex items-center gap-3">
       {photo && !failed ? (
-        <img src={photo} alt="" width={48} height={48} className="size-12 rounded-full object-cover" onError={() => setFailed(true)} />
+        <img src={photo} referrerPolicy="no-referrer" alt="" width={48} height={48} className="size-12 rounded-full object-cover" onError={() => setFailed(true)} />
       ) : (
         <WalletAvatar address={recipient} size={48} />
       )}

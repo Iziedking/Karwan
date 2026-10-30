@@ -71,6 +71,7 @@ export function ProfileAvatar({ actionCount = 0 }: { actionCount?: number }) {
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={xImage}
+            referrerPolicy="no-referrer"
             alt=""
             width={48}
             height={48}
