@@ -45,3 +45,21 @@ test('a new way opens near what the person already charges', () => {
   assert.equal((blankWay('sell', 'goods', ways) as { perItem?: boolean }).perItem, true, 'a new goods way is priced per item');
   assert.equal((blankWay('buy', 'goods', ways) as { maxPrice: number }).maxPrice, 5000);
 });
+
+test('ways saved before the usual price read safely: a range becomes lowest and usual, and the summary never breaks', () => {
+  const saved = {
+    agentWays: {
+      sell: [
+        { shape: 'one_time', priceMin: 20, priceMax: 40, daysMin: 1, daysMax: 3 },
+        { shape: 'goods', what: 'Wigs', priceMin: 30, perItem: true, shipsTo: 'Lagos', arriveDaysMin: 2, arriveDaysMax: 5 },
+        { shape: 'deposit', what: 'Bike', deposit: 50, periodDays: 7 },
+      ],
+      buy: [],
+    },
+  } as unknown as UserProfile;
+  const ways = waysOf(saved);
+  assert.equal((ways.sell[0] as { priceUsual: number }).priceUsual, 30);
+  assert.equal((ways.sell[1] as { priceUsual: number }).priceUsual, 30);
+  assert.equal('priceMax' in ways.sell[0]!, false);
+  for (const w of ways.sell) assert.doesNotThrow(() => waySummary('sell', w, waysCopy.en));
+});

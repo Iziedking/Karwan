@@ -37,8 +37,20 @@ export const usualOf = (lo: number, hi: number): number => (lo === hi ? lo : Num
 
 /// Saved ways, or the one way an account's older settings describe. The server
 /// upgrades saved ways before it sends them, so a range never arrives here.
+/// A selling way saved before the usual price (it had a highest price, or one
+/// price): the range becomes lowest and usual, as the backend's upgradeWays
+/// does. The profile read sends ways as stored, so this runs on every read.
+function upgradeSellWay(w: SellWay): SellWay {
+  const o = w as unknown as Record<string, unknown>;
+  if (o.shape === 'deposit' || typeof o.priceMin !== 'number') return w;
+  const { priceMax, ...rest } = o;
+  if (typeof rest.priceUsual === 'number') return rest as unknown as SellWay;
+  const hi = typeof priceMax === 'number' ? priceMax : o.priceMin;
+  return { ...rest, priceUsual: usualOf(o.priceMin, hi) } as unknown as SellWay;
+}
+
 export function waysOf(profile: Pick<UserProfile, 'agentWays' | 'seller' | 'buyer'> | null | undefined): AgentWays {
-  if (profile?.agentWays) return profile.agentWays;
+  if (profile?.agentWays) return { ...profile.agentWays, sell: (profile.agentWays.sell ?? []).map(upgradeSellWay), buy: profile.agentWays.buy ?? [] };
   const s = profile?.seller;
   const b = profile?.buyer;
   return {
