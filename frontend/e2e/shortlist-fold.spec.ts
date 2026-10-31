@@ -2,8 +2,8 @@ import { expect, test } from '@playwright/test';
 import { funded } from './moneyFixtures';
 import { JOB, makeJob, serveSearch } from './searchFixtures';
 
-/// The shortlist arrives folded into one row: who offered and the lowest price.
-/// Opening it shows each person with Choose.
+/// The shortlist arrives open and ranked, led by the best fit; Hide folds it
+/// into one row with who offered and the lowest price. Accept asks with the facts.
 
 const entry = (rank: number, name: string, priceUsdc: number) => ({
   rank,
@@ -28,7 +28,7 @@ const entry = (rank: number, name: string, priceUsdc: number) => ({
   isNew: true,
 });
 
-test('the shortlist arrives folded and opens on Show', async ({ page }) => {
+test('the offers arrive open and ranked, led by the best fit, and fold on Hide (view 44, P4)', async ({ page }) => {
   await serveSearch(page, {
     balances: funded,
     job: makeJob({
@@ -39,16 +39,28 @@ test('the shortlist arrives folded and opens on Show', async ({ page }) => {
         sellerUserAddress: null, sellerDisplayName: 'Pamcollins', topicalMatch: 80,
       }],
     }),
-    shortlist: { entries: [entry(1, 'Realnica', 116.06), entry(2, 'Pamcollins', 90), entry(3, 'Poz', 113.32)], closed: false },
+    shortlist: { entries: [entry(2, 'Pamcollins', 90), entry(1, 'Realnica', 96), entry(3, 'Poz', 99)], closed: false },
   });
   await page.goto(`/jobs/${JOB}`);
+  await expect(page.getByText(/^Request REQ-/)).toBeVisible();
   const fold = page.getByRole('button', { name: /3 offers, from 90 USDC/ });
-  await expect(fold).toBeVisible();
-  await expect(fold).toHaveAttribute('aria-expanded', 'false');
-  await expect(page.getByRole('button', { name: 'Choose' })).toHaveCount(0);
-  await fold.click();
   await expect(fold).toHaveAttribute('aria-expanded', 'true');
-  await expect(page.getByRole('button', { name: 'Choose' })).toHaveCount(3);
+  const accepts = page.getByRole('button', { name: /^Accept / });
+  await expect(accepts).toHaveCount(3);
+  await expect(accepts.first()).toHaveAccessibleName('Accept Realnica');
+  await expect(page.locator('[data-best-fit]')).toHaveCount(1);
+  await expect(page.locator('[data-best-fit]')).toHaveText('Best fit, picked by your agent');
+  await accepts.first().click();
+  const sheet = page.getByRole('dialog');
+  await expect(sheet.getByRole('heading', { name: 'Accept the offer from Realnica?' })).toBeVisible();
+  for (const label of ['For', 'To', 'Price', 'Delivers in', 'Held by']) await expect(sheet.getByText(label, { exact: true })).toBeVisible();
+  await expect(sheet.getByText('96 USDC', { exact: true })).toBeVisible();
+  await expect(sheet.getByRole('button', { name: 'Not now' })).toBeVisible();
+  await sheet.getByRole('button', { name: 'Not now' }).click();
+  await fold.click();
+  await expect(fold).toHaveAttribute('aria-expanded', 'false');
+  await expect(accepts).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
 });
 
 test('an empty shortlist next to offers shows the offers, never "no one has offered"', async ({ page }) => {

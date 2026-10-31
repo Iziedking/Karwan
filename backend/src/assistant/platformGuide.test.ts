@@ -213,3 +213,12 @@ test('the guide describes the deal page for every kind (view 44, Batch 5)', () =
   assert.match(delivery.summary, /Ask for changes/);
   assert.match(delivery.summary, /Release 120 USDC to Ada\?/);
 });
+
+test('the guide knows the request page and how a deal is paid (view 44, Batch 6)', () => {
+  const market = PLATFORM_GUIDE.find((entry) => entry.id === 'market')!;
+  const said = [market.summary, ...market.steps].join(' ');
+  assert.match(said, /Best fit, picked by your agent/);
+  assert.match(said, /Nothing is paid until you accept an offer/);
+  const direct = PLATFORM_GUIDE.find((entry) => entry.id === 'direct')!;
+  assert.match(direct.summary, /How do you want to pay\?/);
+});

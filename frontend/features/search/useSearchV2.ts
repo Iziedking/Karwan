@@ -5,8 +5,8 @@ import { forcedSearchVersion, SEARCH_CHOICE_KEY, searchV2Enabled } from './searc
 /// Starts from the build flag so the first render matches the server's, then
 /// applies a ?search= override before the first paint, so a requested version
 /// never flashes the other one, and remembers it for the session.
-export function useSearchV2(): boolean {
-  const [on, setOn] = useState(process.env.NEXT_PUBLIC_SEARCH_V2 === '1');
+export function useSearchV2(defaultOn = false): boolean {
+  const [on, setOn] = useState(defaultOn || process.env.NEXT_PUBLIC_SEARCH_V2 === '1');
   useLayoutEffect(() => {
     let remembered: string | null = null;
     try {
@@ -16,7 +16,7 @@ export function useSearchV2(): boolean {
     } catch {
       // Storage can be blocked; the URL and the build flag still decide.
     }
-    setOn(searchV2Enabled(process.env.NEXT_PUBLIC_SEARCH_V2, window.location.search, remembered));
-  }, []);
+    setOn(searchV2Enabled(process.env.NEXT_PUBLIC_SEARCH_V2, window.location.search, remembered, defaultOn));
+  }, [defaultOn]);
   return on;
 }

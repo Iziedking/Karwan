@@ -6,7 +6,8 @@ import { PersonAvatar } from '@/shared/components/PersonAvatar';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ratingText } from '@/features/ratings/ratingText';
 import { formatUsdc } from '@/shared/utils/format';
-import { ConfirmSheet } from '@/features/deals/workspace/ConfirmSheet';
+import { FactsConfirmSheet } from '@/shared/components/FactsConfirmSheet';
+import { rankedOffers, type RankedOffer } from '../rankedOffers';
 import { fill } from '@/features/deals/workspace/presentation';
 import { chooseErrorKey } from '../chooseError';
 import { shortlistCostLine, shortlistNotice, shortlistRowView, shortlistState, type ShortlistState } from '../shortlistPresentation';
@@ -62,13 +63,16 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordCh
   const t = useTranslations();
   const copy = t.shortlist;
   const roster = t.offerRoster;
+  const rf = t.requestFlow;
+  const ranked = rankedOffers(entries);
   const [choosing, setChoosing] = useState<ShortlistEntry | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [worldStep, setWorldStep] = useState<{ reason: WorldCheckReason | null; skipAllowed: boolean } | null>(null);
   /// Folded until the buyer opens it: one row with who offered and the lowest
   /// price, so the list never crowds the page while agents are still at work.
-  const [open, setOpen] = useState(false);
+  // Open from the start: the offers and the agent's pick are what the buyer came for (view 44, P4).
+  const [open, setOpen] = useState(true);
   const lowest = entries.length ? Math.min(...entries.map((e) => e.priceUsdc)) : null;
   const world = t.agentNudges.world;
   const notice = shortlistNotice(entries, copy);
@@ -101,14 +105,6 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordCh
     }
   }
 
-  const consequence = choosing
-    ? [
-        choosing.verified ? null : fill(copy.unverifiedWarning, { name: choosing.name }),
-        fill(roster.confirmBody, { name: choosing.name, amount: price(choosing.priceUsdc) }),
-      ]
-        .filter(Boolean)
-        .join(' ')
-    : '';
 
   return (
     <section data-guide="job-shortlist" className="mt-6 rounded-[18px] bg-[var(--lp-card)] px-4">
@@ -144,7 +140,7 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordCh
       ) : null}
       {entries.length && open ? (
         <ul id={`shortlist-${jobId}`} className="divide-y divide-[var(--lp-border-light)] border-t border-[var(--lp-border-light)]">
-          {entries.map((e) => (
+          {ranked.map((e) => (
             <li key={e.seller}>
               <ShortlistRow
                 entry={e}
@@ -158,11 +154,19 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordCh
           ))}
         </ul>
       ) : null}
-      <ConfirmSheet
+      <FactsConfirmSheet
         open={!!choosing}
-        title={choosing ? fill(roster.confirmTitle, { name: choosing.name }) : ''}
-        consequence={consequence}
-        irreversible={false}
+        title={choosing ? fill(rf.acceptTitle, { name: choosing.name }) : ''}
+        rows={choosing ? [
+          [rf.confirmFor, choosing.offer],
+          [rf.confirmTo, choosing.name],
+          [rf.confirmPrice, `${price(choosing.priceUsdc)} USDC`],
+          [rf.confirmDelivers, choosing.deliveryDays === 1 ? rf.deliversInOne : fill(rf.deliversIn, { n: choosing.deliveryDays })],
+          [rf.heldBy, rf.heldValue],
+        ] : []}
+        note={choosing && !choosing.verified ? fill(copy.unverifiedWarning, { name: choosing.name }) : undefined}
+        primaryLabel={rf.accept}
+        quietLabel={rf.notNow}
         busy={busy}
         error={error}
         onConfirm={() => {
@@ -184,16 +188,18 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordCh
             onDone={() => void choose(choosing)}
           />
         ) : null}
-      </ConfirmSheet>
+      </FactsConfirmSheet>
     </section>
   );
 }
 
-function ShortlistRow({ entry, canChoose, onChoose }: { entry: ShortlistEntry; canChoose: boolean; onChoose: () => void }) {
+function ShortlistRow({ entry, canChoose, onChoose }: { entry: RankedOffer; canChoose: boolean; onChoose: () => void }) {
   const copy = useTranslations().shortlist;
+  const rf = useTranslations().requestFlow;
   const { locale, t: all } = useLocale();
   const v = shortlistRowView(entry, copy);
-  const chooseLabel = `${copy.choose} ${entry.name}`;
+  const chooseLabel = `${rf.accept} ${entry.name}`;
+  const reasons = entry.reasonLine.map((r) => copy.reasons[r]).join(' · ');
   return (
     <div className="py-4">
       <div className="flex items-start gap-3">
@@ -210,8 +216,8 @@ function ShortlistRow({ entry, canChoose, onChoose }: { entry: ShortlistEntry; c
           {entry.rating ? (
             <p className="mt-0.5 text-[14px] font-medium tabular-nums text-[var(--ink-secondary)]">{ratingText(entry.rating, all.ratings, locale)}</p>
           ) : null}
-          {entry.recommended ? <p className="mt-1 text-[14px] font-semibold text-[var(--lp-dark)]">{copy.recommended}</p> : null}
-          {v.reasonLine ? <p className="mt-0.5 text-[14px] font-medium text-[var(--ink-secondary)]">{v.reasonLine}</p> : null}
+          {entry.bestFit ? <p data-best-fit className="mt-1 text-[14px] font-semibold text-[var(--lp-accent-on-light)]">{rf.bestFit}</p> : null}
+          {reasons ? <p className="mt-0.5 text-[14px] font-medium text-[var(--ink-secondary)]">{reasons}</p> : null}
           {v.markLine ? <p className="mt-0.5 text-[14px] font-semibold text-[var(--lp-dark)]">{v.markLine}</p> : null}
         </div>
         <p className="shrink-0 text-end tabular-nums">
@@ -240,12 +246,12 @@ function ShortlistRow({ entry, canChoose, onChoose }: { entry: ShortlistEntry; c
             onClick={onChoose}
             aria-label={chooseLabel}
             className={
-              entry.recommended
+              entry.bestFit
                 ? 'inline-flex min-h-11 items-center rounded-full bg-[var(--action)] px-5 text-[14px] font-semibold text-[var(--on-action)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-offset-2'
                 : 'inline-flex min-h-11 items-center rounded-full border border-[var(--lp-border-light)] px-5 text-[14px] font-semibold text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]'
             }
           >
-            {copy.choose}
+            {rf.accept}
           </button>
         ) : null}
       </div>

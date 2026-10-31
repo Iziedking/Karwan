@@ -6,8 +6,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { BuyerJob } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { fill } from '@/features/deals/workspace/presentation';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
+import { fill, formatDealDate } from '@/features/deals/workspace/presentation';
+import { requestRef } from '@/features/jobs/requestRef';
 import { useJobSnapshot } from '@/features/jobs/hooks/useJobSnapshot';
 import { useJobLiveState } from '@/features/jobs/hooks/useJobLiveState';
 import { useMatchProposal } from '@/features/jobs/hooks/useMatchProposal';
@@ -48,6 +49,8 @@ const TOGGLE =
 export function RequestPage({ initial, explorer }: { initial: BuyerJob; explorer: string }) {
   const t = useTranslations().search.request;
   const rp = useTranslations().requestPage;
+  const rf = useTranslations().requestFlow;
+  const { locale } = useLocale();
   const router = useRouter();
   const { address } = useAuth();
   const { job, refresh: refreshJob } = useJobSnapshot(initial);
@@ -109,8 +112,12 @@ export function RequestPage({ initial, explorer }: { initial: BuyerJob; explorer
       </Link>
       <div className="divide-y divide-[var(--lp-border-light)] [&>*]:py-8">
         <header className="space-y-2">
+          <p className="mono text-[13px] tracking-[0.04em] text-[var(--lp-text-sub)]">{fill(rf.reference, { reference: requestRef(job.jobId) })}</p>
           <h1 className="break-words text-[26px] font-semibold tracking-[-0.02em] text-[var(--lp-dark)]">{title}</h1>
-          <p className="text-[15px] tabular-nums text-[var(--lp-text-sub)]">{fill(t.upTo, { amount: job.budgetUsdc })}</p>
+          <p className="text-[15px] tabular-nums text-[var(--lp-text-sub)]">
+            {fill(rf.upTo, { amount: job.budgetUsdc })}
+            {job.deadlineUnix ? ` · ${fill(rf.neededBy, { date: formatDealDate(job.deadlineUnix * 1000, locale) })}` : ''}
+          </p>
           {quantityLine(rp, job.quantity, job.budgetUsdc) ? (
             <p className="text-[15px] tabular-nums text-[var(--lp-text-sub)]">{quantityLine(rp, job.quantity, job.budgetUsdc)}</p>
           ) : null}

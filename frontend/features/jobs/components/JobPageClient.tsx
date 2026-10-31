@@ -43,7 +43,8 @@ export function JobPageClient({ jobId }: { jobId: string }) {
   const t = useTranslations();
   const jp = t.jobPage;
   const auth = useAuth();
-  const v2 = useSearchV2();
+  // The request page is the new one for everyone (view 44, Batch 6); ?search=v1 opens the old one.
+  const v2 = useSearchV2(true);
   const [state, setState] = useState<
     | { kind: 'loading' }
     | { kind: 'ready'; job: BuyerJob; explorer: string }

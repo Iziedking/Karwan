@@ -23,3 +23,10 @@ test('a forced version is remembered for the session and a new force replaces it
   assert.equal(forcedSearchVersion('?search=v2&mode=direct'), 'v2');
   assert.equal(forcedSearchVersion('?search=v3'), null);
 });
+
+test('the request page is the new one for everyone unless the old one is asked for (view 44, Batch 6)', () => {
+  assert.equal(searchV2Enabled(undefined, '', null, true), true);
+  assert.equal(searchV2Enabled(undefined, '?search=v1', null, true), false);
+  assert.equal(searchV2Enabled(undefined, '', 'v1', true), false);
+  assert.equal(searchV2Enabled(undefined, '', null), false);
+});

@@ -67,6 +67,8 @@ test('a request is asked in three steps and posts the chosen date and milestones
   await next.click();
 
   await page.locator('button[data-guide="buyer-submit"]').click();
+  await expect(page.getByText(en.requestFlow.nothingPaid, { exact: true })).toBeVisible();
+  await expect(page.getByText(en.requestFlow.agentLine, { exact: true })).toBeVisible();
   await page.locator('button[data-guide="buyer-submit"]').click();
   await expect.poll(() => posted).not.toBeNull();
   expect(posted).toMatchObject({ budgetUsdc: 150, deadlineSeconds: 14 * DAY_S, milestonePcts: [20, 70, 10], reviewWindowDays: 7 });
@@ -101,6 +103,7 @@ test('a direct deal names the seller in one box and sends the agreed terms in tw
   const tb = TERMS_COPY.en;
 
   await page.goto('/buyer?mode=direct');
+  await page.getByRole('button', { name: new RegExp(`^${en.requestFlow.kinds.one}`) }).click();
   await expect(page.getByText(`${rs.stepOf.replace('{n}', '1')} · ${rs.seller}`)).toBeVisible();
   const next = page.getByRole('button', { name: rs.continue, exact: true });
   await expect(next).toBeDisabled();
@@ -160,6 +163,7 @@ test('a person can open a goods deal handed over in person, and By the hour open
   const tb = TERMS_COPY.en;
 
   await page.goto('/buyer?mode=direct');
+  await page.getByRole('button', { name: new RegExp(`^${en.requestFlow.kinds.one}`) }).click();
   const next = page.getByRole('button', { name: rs.continue, exact: true });
   await page.getByLabel(dd.counterparty.oneBoxLabel).fill('0x3333333333333333333333333333333333333333');
   await next.click();
@@ -179,4 +183,24 @@ test('a person can open a goods deal handed over in person, and By the hour open
   await expect.poll(() => posted).not.toBeNull();
   expect(posted).toMatchObject({ tradeType: 'goods', goodsWay: 'in_person', dealAmountUsdc: 80 });
   expect(posted).not.toHaveProperty('incoterms');
+});
+
+test('a deal starts with How do you want to pay?, showing only what runs (view 44, K1)', async ({ page }) => {
+  await signedInBuyer(page);
+  const rf = en.requestFlow;
+  await page.goto('/buyer?mode=direct');
+  await expect(page.getByRole('heading', { level: 1, name: rf.kindTitle })).toBeVisible();
+  await expect(page.getByRole('region', { name: rf.forWork })).toBeVisible();
+  await expect(page.getByRole('region', { name: rf.forGoods })).toBeVisible();
+  await expect(page.getByRole('button', { name: new RegExp(`^${rf.kinds.hourly}`) })).toHaveCount(0);
+  await page.getByRole('button', { name: new RegExp(`^${rf.kinds.stages}`) }).click();
+  await expect(page.getByLabel(en.directDeal.counterparty.oneBoxLabel)).toBeVisible();
+
+  await page.goto('/buyer?mode=direct');
+  await page.getByRole('button', { name: new RegExp(`^${rf.kinds.contest}`) }).click();
+  await expect(page).toHaveURL(/\/contests\/new$/);
+
+  await page.goto('/buyer?mode=direct&kind=in_person');
+  await expect(page.getByRole('heading', { level: 1, name: rf.kindTitle })).toHaveCount(0);
+  await expect(page.getByLabel(en.directDeal.counterparty.oneBoxLabel)).toBeVisible();
 });

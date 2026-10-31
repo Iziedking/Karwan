@@ -300,6 +300,7 @@ test('a direct deal takes an email, a tag or a wallet address in one box', async
     tags: { ada: { displayName: 'Ada Obi', address: '0x2222222222222222222222222222222222222222' } },
   });
   await page.goto('/buyer?mode=direct');
+  await page.getByRole('button', { name: /^One payment/ }).click();
   const box = page.getByLabel('Email, tag, Paytag or wallet address');
 
   await box.fill('@ada');

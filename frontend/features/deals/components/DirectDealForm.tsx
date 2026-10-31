@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useLiveFeatures } from '@/shared/hooks/useLiveFeatures';
+import { KindPicker } from './KindPicker';
+import { kindChoices, preselectedKind, type KindChoice } from '../kindChoices';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { api, ApiError, type Partner, type TrustView } from '@/core/api';
 import { Hint } from '@/shared/components/Hint';
@@ -200,6 +202,22 @@ export function DirectDealForm() {
   // 'service' so the existing service-flow deal experience is unchanged.
   const [tradeType, setTradeType] = useState<'service' | 'goods' | 'mixed'>('service');
   const [goodsWay, setGoodsWay] = useState<'shipped' | 'in_person'>('shipped');
+  // How do you want to pay? comes first unless a link or a listing already says (view 44, K1).
+  const [kind, setKind] = useState<KindChoice | null>(() => preselectedKind({ kind: search.get('kind') }) ?? (search.get('listing') ? 'one' : null));
+  function applyKind(next: KindChoice) {
+    if (next === 'shipped' || next === 'in_person') {
+      setTradeType('goods');
+      setGoodsWay(next === 'in_person' ? 'in_person' : 'shipped');
+    }
+    if (next === 'stages') {
+      setTerms((current) => ({ ...current, parts: [{ pct: 50, what: current.parts[0]?.what ?? '' }, { pct: 50, what: '' }] }));
+    }
+  }
+  useEffect(() => {
+    if (kind) applyKind(kind);
+    // Once, for a kind the link asked for.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [incoterms, setIncoterms] = useState<
     'EXW' | 'FCA' | 'FOB' | 'CIF' | 'DAP' | 'DDP' | null
   >(null);
@@ -457,6 +475,20 @@ export function DirectDealForm() {
   if (!isConnected) {
     return (
       <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{dd.notConnected}</p>
+    );
+  }
+
+  if (!kind) {
+    return (
+      <KindPicker
+        choices={kindChoices({ hourlyWork })}
+        onPick={(next) => {
+          if (next === 'hourly' || next === 'monthly') return router.push(`/work/new?kind=${next}`);
+          if (next === 'contest') return router.push('/contests/new');
+          applyKind(next);
+          setKind(next);
+        }}
+      />
     );
   }
 

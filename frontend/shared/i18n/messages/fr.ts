@@ -25,6 +25,7 @@ import { dealsPageCopy } from './dealsPage';
 import { marketShopCopy } from './marketShop';
 import { orderFlowCopy } from './orderFlow';
 import { dealPageCopy } from './dealPage';
+import { requestFlowCopy } from './requestFlow';
 import { dealGuaranteeCopy } from './dealGuarantee';
 import { contestsCopy } from './contests';
 import { workCopy } from './work';
@@ -78,6 +79,7 @@ export const fr: Messages = {
   marketShop: marketShopCopy.fr,
   orderFlow: orderFlowCopy.fr,
   dealPage: dealPageCopy.fr,
+  requestFlow: requestFlowCopy.fr,
   dealGuarantee: dealGuaranteeCopy.fr,
   contests: contestsCopy.fr,
   work: workCopy.fr,

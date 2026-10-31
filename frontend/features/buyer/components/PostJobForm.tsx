@@ -168,6 +168,7 @@ export function PostJobForm() {
   const { locale } = useLocale();
   const t = useTranslations().postJob;
   const c = useTranslations().dealCreation;
+  const rf = useTranslations().requestFlow;
   const dt = useTranslations();
   const [reviewing, setReviewing] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
@@ -796,8 +797,8 @@ export function PostJobForm() {
         ...(SME_TRADES_ENABLED && isBusiness && tradeType !== 'service' ? [{ label: c.extra, value: [tt.types[tradeType], incoterms, tt.paymentTermLabels[paymentTerms], companySector, companyRegion].filter(Boolean).join(' · ') }] : []),
         ...(documentRefs.length ? [{ label: c.documents, value: documentRefs.map(d => d.label).join('\n') }] : []),
       ]}>
-        <p className="font-semibold">{c.authorisation}</p>
-        <p className="mt-2">{c.managedNext}</p>
+        <p data-nothing-paid className="font-semibold">{rf.nothingPaid}</p>
+        <p className="mt-2">{rf.agentLine}</p>
         {funding ? (
           <>
             <dl className="mt-3 space-y-1.5">
