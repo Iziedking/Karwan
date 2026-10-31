@@ -23,6 +23,8 @@ import { useAddPasskey } from '@/features/settings/components/SettingsBand';
 import { accountRows } from '../accountRows';
 import { useQuery } from '@tanstack/react-query';
 import { GUARANTEE_QUERY } from '@/features/guarantee/GuaranteeCard';
+import { ownRecord } from '../ownRecord';
+import { ratingText } from '@/features/ratings/ratingText';
 
 type ProfileAccountHubProps = {
   profile: UserProfile;
@@ -51,6 +53,10 @@ export function ProfileAccountHub({
   const nav = messages.nav;
   const businessCopy = messages.businessProfilePage;
   const hub = messages.profile.hub;
+  const pp = messages.profilePage;
+  // Your own record, with your own counts (view 44, P9); others only see words.
+  const record = useQuery({ queryKey: ['karwan-record', profile.handle], queryFn: () => api.record(profile.handle!), enabled: !!profile.handle, retry: false });
+  const mine = ownRecord(record.data);
   useEffect(() => {
     setSavedPhoto(profile.profileImageDataUrl);
     setImageFailed(false);
@@ -181,6 +187,29 @@ export function ProfileAccountHub({
         </RowGroup>
       ) : null}
 
+      {mine ? (
+        <RowGroup title={pp.yourRecord}>
+          {mine.kind === 'new' ? (
+            <Row label={pp.newHere} />
+          ) : (
+            <>
+              <Row label={mine.completed === 1 ? pp.completedOne : pp.completed.replace('{n}', String(mine.completed))} />
+              {mine.onTimePct !== null ? <Row label={pp.onTime.replace('{pct}', String(mine.onTimePct))} /> : null}
+              {mine.rating ? <Row label={ratingText(mine.rating, messages.ratings, locale)} /> : null}
+              <Row label={mine.problemsLost === 0 ? pp.noProblems : mine.problemsLost === 1 ? pp.problemsLostOne : pp.problemsLost.replace('{n}', String(mine.problemsLost))} />
+            </>
+          )}
+          <Row label={pp.share} href={`/credit-passport/${address}#share`} />
+        </RowGroup>
+      ) : null}
+
+      {DEALS_AVAILABLE ? (
+        <RowGroup title={pp.yourOffers}>
+          <Row label={pp.yourOffers} href="/market?view=yours" />
+          <Row label={pp.howAgentSells} href="/profile/ways" />
+        </RowGroup>
+      ) : null}
+
       <RowGroup title={DEALS_AVAILABLE ? hub.moneyAndTrade : hub.money}>
         <Row label={hub.usdcBalance} value={owned.total == null ? undefined : `${formatBalance(owned.total, locale)} USDC`} href="/account" />
         {DEALS_AVAILABLE ? (
@@ -225,7 +254,7 @@ export function ProfileAccountHub({
       ) : null}
 
       <RowGroup title={hub.other}>
-        <Row label={hub.publicProfile} href={`/credit-passport/${address}`} />
+        <Row label={pp.publicView} href={profile.handle ? `/r/${profile.handle}` : '/profile/edit'} />
         <Row label={messages.dealGuarantee.profile.legacyContracts} href="/legacy" />
         <Row label={nav.allSettings} href="/settings" />
         <Row label={nav.help} href="/how-it-works" />

@@ -27,6 +27,7 @@ import { orderFlowCopy } from './orderFlow';
 import { dealPageCopy } from './dealPage';
 import { requestFlowCopy } from './requestFlow';
 import { moneyPageCopy } from './moneyPage';
+import { profilePageCopy } from './profilePage';
 import { dealGuaranteeCopy } from './dealGuarantee';
 import { contestsCopy } from './contests';
 import { workCopy } from './work';
@@ -82,6 +83,7 @@ export const ar: Messages = {
   dealPage: dealPageCopy.ar,
   requestFlow: requestFlowCopy.ar,
   moneyPage: moneyPageCopy.ar,
+  profilePage: profilePageCopy.ar,
   dealGuarantee: dealGuaranteeCopy.ar,
   contests: contestsCopy.ar,
   work: workCopy.ar,
@@ -3382,7 +3384,7 @@ export const ar: Messages = {
       answerCancelTemplate: "اقترح {name} الإلغاء.",
       agreeCancel: "وافق على الإلغاء",
       keepDeal: "أبقِ الصفقة",
-      disputeTitle: "افتح نزاعًا",
+      disputeTitle: "أبلغ عن مشكلة",
       disputeBody: "تبقى الأموال محجوزة حتى يُحسم النزاع. لكل طرف 72 ساعة ليقدّم روايته، ومن يصمت يخسر.",
       whatWentWrong: "ما الخطأ",
       disputeSubmit: "افتح النزاع",
@@ -3418,7 +3420,7 @@ export const ar: Messages = {
       reviewManually: 'سأراجعه بنفسي',
       respondExtension: 'الرد على طلب التمديد',
       respondCancel: 'الرد على طلب الإلغاء',
-      dispute: 'فتح نزاع',
+      dispute: 'أبلغ عن مشكلة',
     },
     consequence: {
       accept: 'توافق على هذه الشروط. يمكن للمشتري بعدها تمويل الصفقة.',

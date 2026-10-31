@@ -120,3 +120,19 @@ test('both pages fit the screen in the dark theme', async ({ page }) => {
     expect(scroll, route).toBeLessThanOrEqual(1);
   }
 });
+
+test('Profile shows your record in words with your own counts, and what others see by tag (view 44, P9)', async ({ page }) => {
+  await serveGuarantee(page);
+  await page.route(`${API}/api/r/ada`, (route) => route.fulfill({ json: {
+    displayName: 'Ada', tag: 'ada', level: 'person_verified', tier: 'ESTABLISHED', reasons: [], facts: [],
+    counts: { completed: 23, onTimeRate: 0.957, disputesLost: 0 }, rating: { kind: 'rated', value: 4.8, count: 23 },
+  } }));
+  await page.goto('/profile');
+  const p = en.profilePage;
+  await expect(page.getByText('23 deals completed')).toBeVisible();
+  await expect(page.getByText('96% on time')).toBeVisible();
+  await expect(page.getByText(p.noProblems)).toBeVisible();
+  await expect(page.getByRole('link', { name: new RegExp(p.share) })).toHaveAttribute('href', `/credit-passport/${ME}#share`);
+  await expect(page.getByRole('link', { name: new RegExp(p.publicView) })).toHaveAttribute('href', '/r/ada');
+  await expect(page.getByRole('link', { name: new RegExp(p.howAgentSells) })).toHaveAttribute('href', '/profile/ways');
+});

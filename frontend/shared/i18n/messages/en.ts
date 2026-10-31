@@ -30,6 +30,7 @@ import { orderFlowCopy, type OrderFlowCopy } from './orderFlow';
 import { dealPageCopy, type DealPageCopy } from './dealPage';
 import { requestFlowCopy, type RequestFlowCopy } from './requestFlow';
 import { moneyPageCopy, type MoneyPageCopy } from './moneyPage';
+import { profilePageCopy, type ProfilePageCopy } from './profilePage';
 import { dealGuaranteeCopy, type DealGuaranteeCopy } from './dealGuarantee';
 import { contestsCopy, type ContestsCopy } from './contests';
 import { workCopy, type WorkCopy } from './work';
@@ -84,6 +85,7 @@ interface MessagesShape {
   dealPage: DealPageCopy;
   requestFlow: RequestFlowCopy;
   moneyPage: MoneyPageCopy;
+  profilePage: ProfilePageCopy;
   dealGuarantee: DealGuaranteeCopy;
   contests: ContestsCopy;
   work: WorkCopy;
@@ -5341,6 +5343,7 @@ export const en: MessagesShape = {
   dealPage: dealPageCopy.en,
   requestFlow: requestFlowCopy.en,
   moneyPage: moneyPageCopy.en,
+  profilePage: profilePageCopy.en,
   dealGuarantee: dealGuaranteeCopy.en,
   contests: contestsCopy.en,
   work: workCopy.en,
@@ -8693,7 +8696,7 @@ export const en: MessagesShape = {
       answerCancelTemplate: "{name} proposed cancelling.",
       agreeCancel: "Agree to cancel",
       keepDeal: "Keep the deal",
-      disputeTitle: "Open a dispute",
+      disputeTitle: "Open a problem",
       disputeBody: "The money stays held until the dispute is decided. Each side has 72 hours to give their side; a side that stays silent loses.",
       whatWentWrong: "What went wrong",
       disputeSubmit: "Open dispute",
@@ -8729,7 +8732,7 @@ export const en: MessagesShape = {
       reviewManually: 'Review it myself',
       respondExtension: 'Answer the extension request',
       respondCancel: 'Answer the cancellation request',
-      dispute: 'Open a dispute',
+      dispute: 'Open a problem',
     },
     consequence: {
       accept: 'You agree to these terms. The buyer can then fund the deal.',

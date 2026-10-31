@@ -2,14 +2,20 @@
 import { useState } from 'react';
 import { api, type DealDisputeView, type DisputeStatementView } from '@/core/api';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
-import { fill, formatDealDate } from './presentation';
+import { fill, formatDealDate, formatUsdcAmount } from './presentation';
+import { problemSteps } from './problemSteps';
+import { StepsTrack } from './StepsTrack';
 import { linksFrom, proposalNote, splitShares } from './disputeShares';
 
 /// The dispute on the deal page: this side's account, the other side's once it
 /// may be seen, and the judge's proposed ruling with what a reviewer does next.
-export function DisputePanel({ jobId, dispute, viewerIsBuyer, caller, name, myName, onChanged }: {
+export function DisputePanel({ jobId, dispute, viewerIsBuyer, caller, name, myName, openedBy = null, heldUsdc = null, onChanged }: {
   jobId: string;
   dispute: DealDisputeView;
+  /// Who opened the problem, when the deal says.
+  openedBy?: 'buyer' | 'seller' | null;
+  /// What Karwan still holds while it is decided.
+  heldUsdc?: string | null;
   viewerIsBuyer: boolean;
   caller: string;
   /// The other party's display name.
@@ -19,6 +25,7 @@ export function DisputePanel({ jobId, dispute, viewerIsBuyer, caller, name, myNa
   onChanged: () => void;
 }) {
   const t = useTranslations().disputeJudge;
+  const pp = useTranslations().profilePage;
   const { locale } = useLocale();
   const me = viewerIsBuyer ? 'buyer' : 'seller';
   const them = viewerIsBuyer ? 'seller' : 'buyer';
@@ -26,9 +33,23 @@ export function DisputePanel({ jobId, dispute, viewerIsBuyer, caller, name, myNa
   const theirs = dispute.statements[them];
   const proposal = dispute.proposal;
   const [editing, setEditing] = useState(!mine);
+  const track = problemSteps(dispute, Date.now());
+  const date = formatDealDate(dispute.closesAt, locale);
+  const labels: Record<'opened' | 'answer' | 'decides', string> = {
+    opened: openedBy === me ? pp.problemOpened : openedBy === them ? fill(pp.theyOpened, { name }) : t.title,
+    answer: track.answerPassed ? pp.answerPassed : fill(pp.answersBy, { name, date }),
+    decides: pp.karwanDecides,
+  };
+  // D13 as built: a silent seller's rule returns the money after a Karwan reviewer confirms it.
+  const silent = viewerIsBuyer && !proposal && dispute.open && !dispute.otherSubmitted;
 
   return (
     <section aria-labelledby="dispute-title" className="mt-6 space-y-4 rounded-[20px] bg-[var(--lp-card)] p-5">
+      <div data-problem-steps className="space-y-3">
+        <StepsTrack steps={track.steps.map((step) => ({ ...step, label: labels[step.key] }))} />
+        {heldUsdc ? <p className="text-[15px] font-semibold text-[var(--lp-dark)]">{fill(pp.heldUntil, { amount: formatUsdcAmount(heldUsdc, locale) })}</p> : null}
+        {silent ? <p className="text-[14px] text-[var(--lp-text-sub)]">{fill(pp.silentLine, { name, date })}</p> : null}
+      </div>
       {proposal ? (
         <Proposal proposal={proposal} viewerIsBuyer={viewerIsBuyer} name={name} myName={myName} />
       ) : (

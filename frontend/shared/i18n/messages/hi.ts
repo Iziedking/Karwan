@@ -27,6 +27,7 @@ import { orderFlowCopy } from './orderFlow';
 import { dealPageCopy } from './dealPage';
 import { requestFlowCopy } from './requestFlow';
 import { moneyPageCopy } from './moneyPage';
+import { profilePageCopy } from './profilePage';
 import { dealGuaranteeCopy } from './dealGuarantee';
 import { contestsCopy } from './contests';
 import { workCopy } from './work';
@@ -82,6 +83,7 @@ export const hi: Messages = {
   dealPage: dealPageCopy.hi,
   requestFlow: requestFlowCopy.hi,
   moneyPage: moneyPageCopy.hi,
+  profilePage: profilePageCopy.hi,
   dealGuarantee: dealGuaranteeCopy.hi,
   contests: contestsCopy.hi,
   work: workCopy.hi,
@@ -3380,7 +3382,7 @@ export const hi: Messages = {
       answerCancelTemplate: "{name} ने रद्द करने का प्रस्ताव दिया।",
       agreeCancel: "रद्द करने पर सहमत",
       keepDeal: "सौदा जारी रखें",
-      disputeTitle: "विवाद खोलें",
+      disputeTitle: "समस्या दर्ज करें",
       disputeBody: "विवाद तय होने तक पैसा रुका रहता है। हर पक्ष के पास अपनी बात रखने के लिए 72 घंटे हैं; जो पक्ष चुप रहता है, वह हारता है।",
       whatWentWrong: "क्या गलत हुआ",
       disputeSubmit: "विवाद खोलें",
@@ -3416,7 +3418,7 @@ export const hi: Messages = {
       reviewManually: 'मैं खुद जाँचूँगा',
       respondExtension: 'समय बढ़ाने के अनुरोध का जवाब दें',
       respondCancel: 'रद्द करने के अनुरोध का जवाब दें',
-      dispute: 'विवाद खोलें',
+      dispute: 'समस्या दर्ज करें',
     },
     consequence: {
       accept: 'आप इन शर्तों से सहमत हैं। इसके बाद खरीदार सौदा फंड कर सकता है।',

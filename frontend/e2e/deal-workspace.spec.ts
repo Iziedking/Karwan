@@ -158,15 +158,39 @@ test('the buyer answers a request for more time in place', async ({ page }) => {
   await expect.poll(() => answered.body).toEqual({ caller: BUYER, decision: 'approved' });
 });
 
-test('something is wrong offers a dispute with a reason after delivery', async ({ page }) => {
+const pp = en.profilePage;
+
+test('something is wrong offers three plain choices, and not what we agreed opens a problem', async ({ page }) => {
   await serveDeal(page, deliveredDeal, BUYER);
   const appealed = capture(page, 'appeal');
   await page.goto(`/deals/${JOB}`);
   await page.getByRole('button', { name: s.problem, exact: true }).click();
-  await page.getByRole('button', { name: s.disputeTitle }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('heading', { name: pp.wrongTitle })).toBeVisible();
+  await expect(dialog.getByRole('button', { name: new RegExp(pp.needsChanges) })).toBeVisible();
+  await expect(dialog.getByRole('button', { name: new RegExp(pp.nothingArrived) })).toHaveCount(0);
+  await expect(dialog.getByRole('button', { name: 'Open a dispute' })).toHaveCount(0);
+  await dialog.getByRole('button', { name: new RegExp(pp.notAgreed) }).click();
+  await expect(dialog.getByRole('heading', { name: 'Open a problem' })).toBeVisible();
   await page.getByLabel(s.whatWentWrong).fill('Half the catalogue is missing');
   await page.getByRole('button', { name: s.disputeSubmit }).click();
   await expect.poll(() => appealed.body).toEqual({ caller: BUYER, reason: 'Half the catalogue is missing' });
+});
+
+test('it needs changes opens Messages with a started note', async ({ page }) => {
+  await serveDeal(page, deliveredDeal, BUYER);
+  await page.goto(`/deals/${JOB}`);
+  await page.getByRole('button', { name: s.problem, exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: new RegExp(pp.needsChanges) }).click();
+  await expect(page.getByRole('dialog').getByRole('textbox')).toHaveValue(en.dealPage.changesDraft);
+});
+
+test('goods that have not arrived also offer nothing arrived, which opens a problem', async ({ page }) => {
+  await serveDeal(page, { ...deliveredDeal, tradeType: 'goods', tradeLane: 'finance' }, BUYER);
+  await page.goto(`/deals/${JOB}`);
+  await page.getByRole('button', { name: s.problem, exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: new RegExp(pp.nothingArrived) }).click();
+  await expect(page.getByRole('dialog').getByLabel(s.whatWentWrong)).toBeVisible();
 });
 
 for (const theme of ['light', 'dark'] as const) {

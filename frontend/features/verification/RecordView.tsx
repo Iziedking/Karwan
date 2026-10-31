@@ -9,7 +9,9 @@ import { reasonLabels } from '@/features/reputation/sealed';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ratingText } from '@/features/ratings/ratingText';
 import type { RecordFactKind } from '@/shared/i18n/messages/record';
-import { recordNumbers } from './recordNumbers';
+import { publicRecord } from './publicRecord';
+import { useTierLabels } from '@/features/reputation/useTierLabels';
+import type { CompositeTier } from '@/features/reputation/tierColors';
 
 type RecordData = Awaited<ReturnType<typeof api.record>>;
 
@@ -26,6 +28,12 @@ export function RecordView({ tag }: { tag: string }) {
   // Who the tag belongs to, so your own record never offers to message you.
   const owner = useQuery({ queryKey: ['karwan-tag', tag.toLowerCase()], queryFn: () => api.resolveKarwanTag(tag), staleTime: 60_000 });
   const own = owner.data?.found ? owner.data.self : false;
+  const sellerAddress = owner.data?.found ? owner.data.address.toLowerCase() : null;
+  const tierNames = useTierLabels();
+  const pp = useTranslations().profilePage;
+  // What they sell: their open offers on the market (view 44, P10).
+  const offers = useQuery({ queryKey: ['market-listings'], queryFn: () => api.listings(), enabled: !!sellerAddress, staleTime: 60_000 });
+  const selling = (offers.data?.listings ?? []).filter((l) => l.sellerUser.toLowerCase() === sellerAddress && !l.cancelledAt && l.expiresAt > Date.now()).slice(0, 4);
 
   useEffect(() => {
     api
@@ -64,7 +72,8 @@ export function RecordView({ tag }: { tag: string }) {
   }
   if (!record) return <main className="mx-auto w-full max-w-[720px] px-4 py-12" aria-busy="true" />;
 
-  const reasons = reasonLabels(record.reasons, sealed);
+  const view = publicRecord(record);
+  const reasons = reasonLabels(view.reasons, sealed);
   const date = (ms: number) => new Date(ms).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 
   return (
@@ -74,6 +83,7 @@ export function RecordView({ tag }: { tag: string }) {
         {record.displayName ?? sealed.unnamed}
       </h1>
       {record.tag ? <p className="mt-1 text-[15px] text-[var(--lp-text-sub)]">@{record.tag}</p> : null}
+      {view.verifiedPerson ? <p className="mt-1 text-[14px] font-semibold text-[var(--color-positive)]">{t.levels[record.level]}</p> : null}
       {record.tag && !own ? (
         <Link href={`/messages/${encodeURIComponent(record.tag)}`} className="mt-4 inline-flex min-h-11 items-center rounded-full border border-[var(--lp-line)] px-5 text-[14px] font-semibold text-[var(--lp-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
           {all.directMessages.messageFromAd.replace('{tag}', `@${record.tag}`)}
@@ -83,21 +93,30 @@ export function RecordView({ tag }: { tag: string }) {
       <dl className="mt-8 border-t border-[var(--lp-line)]">
         <div className="flex justify-between gap-4 border-b border-[var(--lp-line)] py-3">
           <dt className="text-[14px] text-[var(--lp-text-sub)]">{t.tier}</dt>
-          <dd className="text-[14px] font-semibold text-[var(--lp-ink)]">{record.tier}</dd>
+          <dd className="text-[14px] font-semibold text-[var(--lp-ink)]">{tierNames[view.tier as CompositeTier] ?? view.tier}</dd>
         </div>
         <div className="flex justify-between gap-4 border-b border-[var(--lp-line)] py-3">
           <dt className="text-[14px] text-[var(--lp-text-sub)]">{all.ratings.label}</dt>
-          <dd className="text-[14px] font-semibold tabular-nums text-[var(--lp-ink)]">{ratingText(record.rating ?? { kind: 'new', count: 0 }, all.ratings, locale)}</dd>
+          <dd className="text-[14px] font-semibold tabular-nums text-[var(--lp-ink)]">{ratingText(view.rating, all.ratings, locale)}</dd>
         </div>
-        {recordNumbers(record, t).map((row) => (
-          <div key={row.label} className="flex justify-between gap-4 border-b border-[var(--lp-line)] py-3">
-            <dt className="text-[14px] text-[var(--lp-text-sub)]">{row.label}</dt>
-            <dd className="text-[14px] font-semibold tabular-nums text-[var(--lp-ink)]">{row.value}</dd>
-          </div>
-        ))}
       </dl>
       {reasons.length ? <p className="mt-4 text-[15px] text-[var(--lp-ink)]">{reasons.join(' · ')}</p> : null}
-      {record.sealed ? <p className="mt-2 text-[14px] text-[var(--lp-text-sub)]">{sealed.noNumbers}</p> : null}
+
+      {selling.length ? (
+        <section className="mt-10" aria-labelledby="record-selling">
+          <h2 id="record-selling" className="text-[18px] font-semibold text-[var(--lp-ink)]">{pp.whatTheySell.replace('{name}', record.displayName ?? `@${record.tag}`)}</h2>
+          <ul className="mt-3 border-t border-[var(--lp-line)]">
+            {selling.map((l) => (
+              <li key={l.id} className="border-b border-[var(--lp-line)]">
+                <Link href={`/listings/${l.id}`} className="flex min-h-12 items-center justify-between gap-4 py-3 text-[15px] text-[var(--lp-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+                  <span dir="auto" className="min-w-0 truncate font-medium">{l.title}</span>
+                  <span className="shrink-0 tabular-nums font-semibold">{l.askingPriceUsdc} USDC</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <h2 className="mt-10 text-[18px] font-semibold text-[var(--lp-ink)]">{t.verifiedFacts}</h2>
       {record.facts.length === 0 ? (

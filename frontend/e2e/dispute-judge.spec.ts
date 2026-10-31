@@ -57,3 +57,31 @@ test('a proposed ruling shows the split, each finding, and that a reviewer confi
   await expect(page.getByText(t.reviewerNote)).toBeVisible();
   await expect(page.getByRole('button', { name: t.send })).toHaveCount(0);
 });
+
+const pp = en.profilePage;
+
+test('the buyer sees the steps of the problem, the money held, and what happens if the seller stays silent', async ({ page }) => {
+  await serveDeal(page, { ...disputed({ closesAt: Date.now() + 47 * HOUR, open: true, otherSubmitted: false, statements: {} }), disputedBy: 'buyer' });
+  await page.goto(`/deals/${JOB}`);
+  const steps = page.locator('[data-problem-steps]');
+  await expect(steps.getByText(pp.problemOpened)).toBeVisible();
+  await expect(steps.getByText(/ answers by /)).toBeVisible();
+  await expect(steps.getByText(pp.karwanDecides)).toBeVisible();
+  await expect(steps.getByText(/1,200 USDC held by Karwan until it is decided/)).toBeVisible();
+  await expect(steps.getByText(/does not answer by .*, Karwan returns the money to you after a check\./)).toBeVisible();
+});
+
+test('the seller sees who opened it and never the silent-seller line', async ({ page }) => {
+  await serveDeal(page, { ...disputed({ closesAt: Date.now() + 47 * HOUR, open: true, otherSubmitted: false, statements: {} }), disputedBy: 'buyer' }, SELLER);
+  await page.goto(`/deals/${JOB}`);
+  const steps = page.locator('[data-problem-steps]');
+  await expect(steps.getByText(/ opened a problem$/)).toBeVisible();
+  await expect(steps.getByText(pp.problemOpened)).toHaveCount(0);
+  await expect(steps.getByText(/after a check/)).toHaveCount(0);
+});
+
+test('a passed answer date says Karwan is checking', async ({ page }) => {
+  await serveDeal(page, disputed({ closesAt: Date.now() - HOUR, open: false, otherSubmitted: false, statements: { buyer: statement } }));
+  await page.goto(`/deals/${JOB}`);
+  await expect(page.locator('[data-problem-steps]').getByText(pp.answerPassed)).toBeVisible();
+});

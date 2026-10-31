@@ -5,6 +5,7 @@ import { Icon } from '@/shared/components/Icon';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { fill } from './presentation';
 import type { Problem } from './problems';
+import type { WrongChoice } from './wrongChoices';
 import { MAX_DELIVERY_PHOTOS, deliveryNeedsPhoto, deliveryNeedsShipment, deliveryReady, type Shipment } from './delivery';
 import { resizePhoto } from '@/features/listings/photos';
 import { Sheet, fieldLabel, primaryButton, quietButton } from './Sheet';
@@ -313,8 +314,9 @@ export function TurnDownSheet({ open, deal, caller, onClose, onDone }: SheetProp
 
 /// The ways out this viewer has at this point. One option opens straight on
 /// its form; several are listed first.
-export function ProblemSheet({ open, deal, caller, name, options, onClose, onDone }: SheetProps & { options: Problem[] }) {
+export function ProblemSheet({ open, deal, caller, name, options, wrong = null, onAskChanges, onClose, onDone }: SheetProps & { options: Problem[]; wrong?: WrongChoice[] | null; onAskChanges?: () => void }) {
   const copy = useTranslations().dealWorkspace;
+  const pp = useTranslations().profilePage;
   const s = copy.simple;
   const [chosen, setChosen] = useState<Problem | null>(null);
   const [text, setText] = useState('');
@@ -324,7 +326,8 @@ export function ProblemSheet({ open, deal, caller, name, options, onClose, onDon
     setText('');
     onDone();
   });
-  const current = options.length === 1 ? options[0]! : chosen;
+  // The buyer of a delivery first picks one of three plain choices (view 44, P11).
+  const current = wrong ? chosen : options.length === 1 ? options[0]! : chosen;
   const titles: Record<Problem, string> = {
     cancel: copy.cancelDeal.title,
     moreTime: s.moreTimeTitle,
@@ -341,8 +344,43 @@ export function ProblemSheet({ open, deal, caller, name, options, onClose, onDon
   const daysValid = Number.isInteger(dayCount) && dayCount >= 1 && dayCount <= 30;
 
   return (
-    <Sheet open={open} title={current ? titles[current] : s.problem} onClose={close} busy={move.busy}>
-      {!current ? (
+    <Sheet open={open} title={current ? titles[current] : wrong ? pp.wrongTitle : s.problem} onClose={close} busy={move.busy}>
+      {!current && wrong ? (
+        <div className="space-y-4">
+          <ul data-wrong-choices className="divide-y divide-[var(--lp-border-light)] border-y border-[var(--lp-border-light)]">
+            {wrong.map((choice) => {
+              const [title, line] = choice === 'changes'
+                ? [pp.needsChanges, pp.needsChangesLine.replace('{name}', name)]
+                : choice === 'notAgreed' ? [pp.notAgreed, pp.notAgreedLine] : [pp.nothingArrived, pp.nothingArrivedLine];
+              return (
+                <li key={choice}>
+                  <button
+                    type="button"
+                    onClick={() => (choice === 'changes' ? (close(), onAskChanges?.()) : setChosen('dispute'))}
+                    className="flex min-h-16 w-full items-center py-3 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                  >
+                    <span className="min-w-0">
+                      <span className="block text-[15px] font-semibold text-[var(--lp-dark)]">{title}</span>
+                      <span className="mt-0.5 block text-[14px] text-[var(--lp-text-sub)]">{line}</span>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          {options.filter((option) => option !== 'dispute').length ? (
+            <ul className="divide-y divide-[var(--lp-border-light)]">
+              {options.filter((option) => option !== 'dispute').map((option) => (
+                <li key={option}>
+                  <button type="button" onClick={() => setChosen(option)} className="flex min-h-12 w-full items-center text-start text-[14px] font-medium text-[var(--lp-text-sub)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+                    {titles[option]}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : !current ? (
         <ul className="divide-y divide-[var(--lp-border-light)] border-y border-[var(--lp-border-light)]">
           {options.map((option) => (
             <li key={option}>

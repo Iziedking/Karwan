@@ -986,6 +986,8 @@ export interface DirectDeal {
   lastSettleMs?: number;
   disputed?: boolean;
   disputedAt?: number;
+  /// Who opened the problem (the deal record carries it).
+  disputedBy?: 'buyer' | 'seller';
   cancelledAt?: number;
   cancelKind?:
     | 'mutual'

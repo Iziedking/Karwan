@@ -230,3 +230,18 @@ test('the guide describes money, withdrawing and the guarantee as money pages (v
   assert.match(said('reputation'), /What your guarantee does/);
   assert.match(said('reputation'), /It shows no score/);
 });
+
+test('the guide describes Profile, the public record and Something is wrong (view 44, Batch 8)', () => {
+  const said = (id: string) => { const e = PLATFORM_GUIDE.find((entry) => entry.id === id)!; return [e.summary, ...e.steps].join(' '); };
+  assert.match(said('reputation'), /Your record/);
+  assert.match(said('reputation'), /Share your record/);
+  assert.match(said('reputation'), /\/r\/<tag>/);
+  assert.match(said('reputation'), /never a score or counts/);
+  assert.match(said('delivery'), /It needs changes/);
+  assert.match(said('delivery'), /It is not what we agreed/);
+  assert.match(said('delivery'), /Nothing arrived/);
+  assert.match(said('recovery'), /Karwan decides/);
+  assert.match(said('recovery'), /held by Karwan until it is decided/);
+  assert.match(said('recovery'), /returns the money to the buyer after a check/);
+  assert.doesNotMatch(said('recovery'), /returns the money to the buyer automatically/);
+});

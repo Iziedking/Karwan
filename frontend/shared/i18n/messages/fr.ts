@@ -27,6 +27,7 @@ import { orderFlowCopy } from './orderFlow';
 import { dealPageCopy } from './dealPage';
 import { requestFlowCopy } from './requestFlow';
 import { moneyPageCopy } from './moneyPage';
+import { profilePageCopy } from './profilePage';
 import { dealGuaranteeCopy } from './dealGuarantee';
 import { contestsCopy } from './contests';
 import { workCopy } from './work';
@@ -82,6 +83,7 @@ export const fr: Messages = {
   dealPage: dealPageCopy.fr,
   requestFlow: requestFlowCopy.fr,
   moneyPage: moneyPageCopy.fr,
+  profilePage: profilePageCopy.fr,
   dealGuarantee: dealGuaranteeCopy.fr,
   contests: contestsCopy.fr,
   work: workCopy.fr,
@@ -3382,7 +3384,7 @@ export const fr: Messages = {
       answerCancelTemplate: "{name} propose d’annuler.",
       agreeCancel: "Accepter l’annulation",
       keepDeal: "Garder l’accord",
-      disputeTitle: "Ouvrir un litige",
+      disputeTitle: "Signaler un problème",
       disputeBody: "L’argent reste bloqué jusqu’à la décision. Chaque partie a 72 heures pour donner sa version ; une partie qui se tait perd.",
       whatWentWrong: "Ce qui ne va pas",
       disputeSubmit: "Ouvrir le litige",
@@ -3418,7 +3420,7 @@ export const fr: Messages = {
       reviewManually: 'Je vérifie moi-même',
       respondExtension: 'Répondre à la demande de délai',
       respondCancel: 'Répondre à la demande d\'annulation',
-      dispute: 'Ouvrir un litige',
+      dispute: 'Signaler un problème',
     },
     consequence: {
       accept: 'Vous acceptez ces conditions. L\'acheteur peut ensuite financer l\'accord.',

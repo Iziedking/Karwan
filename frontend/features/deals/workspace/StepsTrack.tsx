@@ -11,17 +11,24 @@ export interface TrackStep {
   stageLine?: 'delivered' | 'paidOut';
 }
 
+/// A step that brings its own words, such as the steps of an open problem.
+export interface LabelledStep {
+  key: string;
+  state: 'done' | 'current' | 'upcoming';
+  label: string;
+}
+
 /// The steps of a deal as a row of dots with the step's name under each
 /// (rule 2): done filled, the current one ringed in the accent, later ones
 /// hollow. Labels wrap; the row never scrolls sideways.
-export function StepsTrack({ steps }: { steps: TrackStep[] }) {
+export function StepsTrack({ steps }: { steps: Array<TrackStep | LabelledStep> }) {
   const t = useTranslations().dealPage;
   return (
     <ol aria-label={t.stepsLabel} className="grid" style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }} data-steps-track>
       {steps.map((step, i) => {
-        const label = step.key === 'stage' ? fill(t.steps.stage, { n: step.stage ?? i + 1 }) : t.steps[step.key];
+        const label = 'label' in step ? step.label : step.key === 'stage' ? fill(t.steps.stage, { n: step.stage ?? i + 1 }) : t.steps[step.key];
         return (
-          <li key={`${step.key}-${step.stage ?? i}`} aria-current={step.state === 'current' ? 'step' : undefined} className="relative flex min-w-0 flex-col items-center px-1 text-center">
+          <li key={`${step.key}-${'stage' in step ? step.stage ?? i : i}`} aria-current={step.state === 'current' ? 'step' : undefined} className="relative flex min-w-0 flex-col items-center px-1 text-center">
             {i > 0 ? (
               <span
                 aria-hidden
@@ -40,7 +47,7 @@ export function StepsTrack({ steps }: { steps: TrackStep[] }) {
             <span className={cn('mt-2 text-[13px] leading-tight', step.state === 'upcoming' ? 'text-[var(--lp-text-sub)]' : 'font-semibold text-[var(--lp-dark)]')}>
               {label}
             </span>
-            {step.stageLine ? <span className="mt-0.5 text-[13px] leading-tight text-[var(--lp-text-sub)]">{t.stageLine[step.stageLine]}</span> : null}
+            {'stageLine' in step && step.stageLine ? <span className="mt-0.5 text-[13px] leading-tight text-[var(--lp-text-sub)]">{t.stageLine[step.stageLine]}</span> : null}
           </li>
         );
       })}

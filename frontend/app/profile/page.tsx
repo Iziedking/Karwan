@@ -16,7 +16,6 @@ import { SmeCompanyBand } from '@/features/profile/components/SmeCompanyBand';
 import { RegisterBusinessBand } from '@/features/profile/components/RegisterBusinessBand';
 import { ProfileEmailButton } from '@/features/profile/components/ProfileEmailButton';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
-import { ProfileOpenDealsPanel } from '@/features/notifications/components/ProfileOpenDealsPanel';
 import { useOpenDeals } from '@/features/notifications/hooks/useOpenDeals';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { waysCopy } from '@/shared/i18n/messages/ways';
@@ -233,22 +232,6 @@ function ProfilePageInner() {
         </div>
       ),
     },
-    ...(address
-      ? [{
-          key: 'open-deals',
-          label: t.tabs.openDeals,
-          content: (
-            <ProfileOpenDealsPanel
-              address={address}
-              matches={openDeals.matches}
-              directDeals={openDeals.directDeals}
-              financed={openDeals.financed}
-              fetchState={openDeals.fetchState}
-              onRetry={openDeals.refresh}
-            />
-          ),
-        } satisfies ProfilePanel]
-      : []),
     {
       key: 'wallets',
       label: t.tabs.wallets,

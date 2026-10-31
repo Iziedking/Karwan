@@ -36,8 +36,9 @@ import { linksIn } from './deliveryCard';
 import { DealTitle } from './DealTitle';
 import { DealMoment } from './DealMoment';
 import { StepsTrack } from './StepsTrack';
-import { dealKindOf, dealSteps } from './dealSteps';
+import { dealKindOf, dealSteps, moneySplit } from './dealSteps';
 import { checkSummary } from './checkSummary';
+import { wrongChoices } from './wrongChoices';
 import { CheckedCard } from './CheckedCard';
 import { titleMoneyLine, whatItIs } from './titleLine';
 import { momentFor } from './momentLine';
@@ -379,7 +380,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
       </div>
       </div>
       {deal.dispute && address ? (
-        <DisputePanel jobId={deal.jobId} dispute={deal.dispute} viewerIsBuyer={viewerIsBuyer} caller={address} name={name} myName={displayName} onChanged={onChanged} />
+        <DisputePanel jobId={deal.jobId} dispute={deal.dispute} viewerIsBuyer={viewerIsBuyer} caller={address} name={name} myName={displayName} openedBy={deal.disputedBy ?? null} heldUsdc={moneySplit(deal)?.heldUsdc ?? null} onChanged={onChanged} />
       ) : null}
       </div>
 
@@ -480,7 +481,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
           <AnswerTimeSheet open={panel === 'answerTime'} deal={deal} caller={address} name={name} onClose={close} onDone={done} />
           <AnswerCancelSheet open={panel === 'answerCancel'} deal={deal} caller={address} name={name} onClose={close} onDone={done} />
           <TurnDownSheet open={panel === 'turnDown'} deal={deal} caller={address} name={name} onClose={close} onDone={done} />
-          <ProblemSheet open={panel === 'problem'} deal={deal} caller={address} name={name} options={problems} onClose={close} onDone={done} />
+          <ProblemSheet open={panel === 'problem'} deal={deal} caller={address} name={name} options={problems} wrong={problems.includes('dispute') ? wrongChoices(deal, viewer) : null} onAskChanges={() => { setDraft({ text: dp.changesDraft, key: Date.now() }); openMessages(); }} onClose={close} onDone={done} />
         </>
       ) : null}
       {editing && address ? (

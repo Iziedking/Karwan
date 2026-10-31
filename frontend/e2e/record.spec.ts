@@ -50,3 +50,25 @@ test('no text on the record is under 14px', async ({ page }) => {
   );
   expect(small).toEqual([]);
 });
+
+test('what others see is words only, with what they sell, even on your own preview (view 44, P10)', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('karwan:guide:disabled', '1'));
+  const ada = '0x2222222222222222222222222222222222222222';
+  await page.route(`${API}/**`, async (route) => {
+    const { pathname } = new URL(route.request().url());
+    if (pathname === '/api/r/ada') {
+      return route.fulfill({ json: { ...record, level: 'person_verified', tier: 'ESTABLISHED', score: 512, counts: { completed: 23, onTimeRate: 0.95, disputesLost: 0 }, rating: { kind: 'rated', value: 4.8, count: 23 }, reasons: ['HAS_COMPLETED_DEALS', 'USUALLY_ON_TIME', 'NO_LOST_DISPUTES', 'VERIFIED_PERSON'] } });
+    }
+    if (pathname === '/api/tags/ada') return route.fulfill({ json: { found: true, self: true, tag: 'ada', displayName: 'Ada Builds', address: ada } });
+    if (pathname === '/api/listings') return route.fulfill({ json: { listings: [{ id: 'lst_1', sellerUser: ada, sellerAgent: ada, title: 'Logo design', description: 'd', askingPriceUsdc: 120, postedAt: 0, expiresAt: Date.now() + 86_400_000 }] } });
+    if (pathname === '/api/auth/bootstrap') return route.fulfill({ json: { user: null, profile: null } });
+    return route.fulfill({ json: {} });
+  });
+  await page.goto('/r/ada');
+  await expect(page.getByRole('heading', { level: 1, name: 'Ada Builds' })).toBeVisible();
+  await expect(page.getByText('4.8 from 23 deals')).toBeVisible();
+  await expect(page.getByText('512')).toHaveCount(0);
+  await expect(page.getByText(/95%/)).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'What Ada Builds sells' })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Logo design/ })).toHaveAttribute('href', '/listings/lst_1');
+});

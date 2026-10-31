@@ -27,6 +27,7 @@ import { orderFlowCopy } from './orderFlow';
 import { dealPageCopy } from './dealPage';
 import { requestFlowCopy } from './requestFlow';
 import { moneyPageCopy } from './moneyPage';
+import { profilePageCopy } from './profilePage';
 import { dealGuaranteeCopy } from './dealGuarantee';
 import { contestsCopy } from './contests';
 import { workCopy } from './work';
@@ -82,6 +83,7 @@ export const sw: Messages = {
   dealPage: dealPageCopy.sw,
   requestFlow: requestFlowCopy.sw,
   moneyPage: moneyPageCopy.sw,
+  profilePage: profilePageCopy.sw,
   dealGuarantee: dealGuaranteeCopy.sw,
   contests: contestsCopy.sw,
   work: workCopy.sw,
@@ -3379,7 +3381,7 @@ export const sw: Messages = {
       answerCancelTemplate: "{name} amependekeza kughairi.",
       agreeCancel: "Kubali kughairi",
       keepDeal: "Endelea na mkataba",
-      disputeTitle: "Fungua mgogoro",
+      disputeTitle: "Ripoti tatizo",
       disputeBody: "Pesa zinabaki zimeshikiliwa hadi mgogoro uamuliwe. Kila upande una saa 72 kutoa maelezo yake; upande unaonyamaza unashindwa.",
       whatWentWrong: "Nini kimeharibika",
       disputeSubmit: "Fungua mgogoro",
@@ -3415,7 +3417,7 @@ export const sw: Messages = {
       reviewManually: 'Nitakagua mwenyewe',
       respondExtension: 'Jibu ombi la kuongeza muda',
       respondCancel: 'Jibu ombi la kughairi',
-      dispute: 'Fungua mgogoro',
+      dispute: 'Ripoti tatizo',
     },
     consequence: {
       accept: 'Unakubali masharti haya. Kisha mnunuzi anaweza kufadhili mkataba.',
