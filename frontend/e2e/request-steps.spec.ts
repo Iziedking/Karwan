@@ -153,6 +153,8 @@ test('a person can open a goods deal handed over in person, and By the hour open
     posted = route.request().postDataJSON();
     return route.fulfill({ status: 500, json: { error: 'stop here' } });
   });
+  // By the hour shows only where hourly work runs.
+  await page.route(`${API}/api/features`, route => route.fulfill({ json: { hourlyWork: true } }));
   const dd = en.directDeal;
   const wf = en.work.dealForm;
   const tb = TERMS_COPY.en;
