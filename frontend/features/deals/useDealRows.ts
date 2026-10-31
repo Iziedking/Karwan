@@ -11,7 +11,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { stageOf } from './components/DirectDealList';
 import { dealReference } from './dealReference';
-import { classifyDirectDeal, orderDeals, type Orderable } from './dealsList';
+import { classifyDirectDeal, orderDeals, rowMove, type Orderable } from './dealsList';
 import { useDirectDeals } from './hooks/useDirectDeals';
 
 export interface DealRow extends Orderable {
@@ -55,6 +55,7 @@ export function useDealRows() {
           unit: p.card.unit,
           status: live?.text ?? messages.dealStage.labels[c.stage],
           due: c.finished ? undefined : due(deal.deadlineUnix),
+          move: (() => { const m = rowMove(deal); return m ? messages.dealsPage.move[m] : undefined; })(),
         },
       });
     }

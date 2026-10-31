@@ -1,20 +1,16 @@
 'use client';
-import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useAuth } from '@/shared/hooks/useAuth';
-import { api, type BuyerJob } from '@/core/api';
-import { JobsTable } from '@/features/buyer/components/JobsTable';
-import { openRequestCount } from '@/features/buyer/requestCounts';
 import { NewDealPanel } from '@/features/deals/components/NewDealPanel';
 import { DealAmountProvider } from '@/features/balances/dealAmount';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { FullBleed, Band, PageCard } from '@/shared/components/Bands';
 import { Hint } from '@/shared/components/Hint';
+import { Icon } from '@/shared/components/Icon';
+import Link from 'next/link';
+import { marketViewHref } from '@/features/market/marketQuery';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useSearchV2 } from '@/features/search/useSearchV2';
 import { DirectDealOnly, FindSellerPage } from '@/features/search/components/FindSellerPage';
-
-type FetchState = 'idle' | 'loading' | 'ready' | 'error';
 
 export default function BuyerPage() {
   const bh = useTranslations().buyerHub;
@@ -35,37 +31,7 @@ function BuyerPageInner() {
 
 function PersonalBuyerDesk() {
   const creation = useTranslations().dealCreation;
-  const auth = useAuth();
-  const address = auth.address;
-  const [jobs, setJobs] = useState<BuyerJob[]>([]);
-  const [fetchState, setFetchState] = useState<FetchState>('idle');
   const bh = useTranslations().buyerHub;
-
-  useEffect(() => {
-    if (!address) {
-      setJobs([]);
-      setFetchState('idle');
-      return;
-    }
-    let cancelled = false;
-    setFetchState('loading');
-    api
-      .buyer(address)
-      .then((d) => {
-        if (cancelled) return;
-        setJobs(d.jobs);
-        setFetchState('ready');
-      })
-      .catch(() => {
-        if (!cancelled) setFetchState('error');
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [address]);
-
-  const sortedJobs = [...jobs].sort((a, b) => b.deadlineUnix - a.deadlineUnix);
-  const openCount = openRequestCount(jobs);
 
   return (
     <FullBleed>
@@ -92,36 +58,16 @@ function PersonalBuyerDesk() {
         </DealAmountProvider>
       </Band>
 
-      {/* YOUR REQUESTS */}
+      {/* Your requests live in Market, Yours (view 44); the desk only starts one. */}
       <Band tone="light" compact>
-        <div className="mx-auto max-w-[940px]">
-          <div className="flex items-baseline justify-between gap-4 border-b border-[var(--lp-border-light)] pb-4">
-            <h2 className="flex items-center gap-2 text-[clamp(1.5rem,3vw,2rem)] font-semibold leading-tight tracking-[-0.03em] text-[var(--lp-dark)]">
-              {bh.managedDeals.headline}
-              <Hint side="bottom" align="start">{bh.managedDeals.description}</Hint>
-            </h2>
-            {fetchState === 'ready' && openCount > 0 && (
-              <p className="shrink-0 text-[15px] font-semibold tabular-nums text-[var(--lp-text-sub)]">
-                {bh.managedDeals.openCount.replace('{count}', String(openCount))}
-              </p>
-            )}
-          </div>
-          {fetchState === 'error' ? (
-            <p role="alert" className="py-10 text-center text-[15px] font-medium text-[var(--color-critical)]">
-              {bh.managedDeals.statesError}
-            </p>
-          ) : fetchState === 'loading' || fetchState === 'idle' ? (
-            <div className="space-y-3 py-6" aria-busy>
-              <div className="h-14 rounded-md bg-[var(--color-surface-2)] motion-safe:animate-pulse" />
-              <div className="h-14 rounded-md bg-[var(--color-surface-2)] motion-safe:animate-pulse" />
-            </div>
-          ) : sortedJobs.length === 0 ? (
-            <p className="py-10 text-center text-[15px] font-medium text-[var(--lp-text-sub)]">
-              {bh.managedDeals.statesEmpty}
-            </p>
-          ) : (
-            <JobsTable jobs={sortedJobs} />
-          )}
+        <div className="mx-auto max-w-[640px]">
+          <Link
+            href={marketViewHref('yours', 'requests')}
+            className="flex min-h-14 items-center justify-between gap-4 rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-5 text-[15px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+          >
+            {bh.managedDeals.headline}
+            <Icon name="arrow-right" size={16} directional />
+          </Link>
         </div>
       </Band>
     </FullBleed>

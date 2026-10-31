@@ -7,7 +7,6 @@ import { setupCopy } from './setup';
 import { startFlowCopy } from './startFlow';
 import { assistantModeCopy } from './assistantMode';
 import { assistantMemoryCopy } from './assistantMemory';
-import { walletPanelCopy } from './walletPanel';
 import { plainMoneyCopy } from './plainMoney';
 import { disputeJudgeCopy } from './disputeJudge';
 import { networkCopy } from './network';
@@ -96,7 +95,6 @@ export const fr: Messages = {
   startFlow: startFlowCopy.fr,
   assistantMode: assistantModeCopy.fr,
   assistantMemory: assistantMemoryCopy.fr,
-  walletPanel: walletPanelCopy.fr,
   plainMoney: plainMoneyCopy.fr,
   requestList: requestListCopy.fr,
   cashoutFlow: cashoutFlowCopy.fr,

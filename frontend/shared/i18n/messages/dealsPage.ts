@@ -11,6 +11,8 @@ export interface DealsPageCopy {
   allActivity: string;
   /// The link from the top of the list on Home to the whole list.
   allDeals: string;
+  /// The move a row that needs you carries on desktop.
+  move: Record<'release' | 'approve' | 'pay' | 'deliver' | 'claim', string>;
 }
 
 export const dealsPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealsPageCopy> = {
@@ -24,6 +26,7 @@ export const dealsPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealsPageCo
     emptyCta: 'Go to the market',
     allActivity: 'All activity',
     allDeals: 'All deals',
+    move: { release: 'Release', approve: 'Approve', pay: 'Pay in', deliver: 'Deliver', claim: 'Claim' },
   },
   fr: {
     title: 'Accords',
@@ -35,6 +38,7 @@ export const dealsPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealsPageCo
     emptyCta: 'Aller au marché',
     allActivity: 'Toute l’activité',
     allDeals: 'Tous les accords',
+    move: { release: 'Libérer', approve: 'Accepter', pay: 'Payer', deliver: 'Livrer', claim: 'Réclamer' },
   },
   ar: {
     title: 'الصفقات',
@@ -46,6 +50,7 @@ export const dealsPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealsPageCo
     emptyCta: 'اذهب إلى السوق',
     allActivity: 'كل النشاط',
     allDeals: 'كل الصفقات',
+    move: { release: 'حرّر', approve: 'وافق', pay: 'ادفع', deliver: 'سلّم', claim: 'اطلب' },
   },
   hi: {
     title: 'सौदे',
@@ -57,6 +62,7 @@ export const dealsPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealsPageCo
     emptyCta: 'बाज़ार पर जाएँ',
     allActivity: 'सारी गतिविधि',
     allDeals: 'सभी सौदे',
+    move: { release: 'जारी करें', approve: 'मंज़ूर करें', pay: 'भुगतान करें', deliver: 'डिलीवर करें', claim: 'दावा करें' },
   },
   sw: {
     title: 'Mikataba',
@@ -68,5 +74,6 @@ export const dealsPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealsPageCo
     emptyCta: 'Nenda sokoni',
     allActivity: 'Shughuli zote',
     allDeals: 'Mikataba yote',
+    move: { release: 'Toa', approve: 'Kubali', pay: 'Lipa', deliver: 'Wasilisha', claim: 'Dai' },
   },
 };

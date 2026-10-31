@@ -1,19 +1,12 @@
-import { AccountPageV1 } from '@/features/account/AccountPageV1';
 import { MoneyHome } from '@/features/money/components/MoneyHome';
-import { moneyV2Enabled } from '@/features/money/moneySwitch';
 import { ProfileGate } from '@/features/account/ProfileGate';
 
-export default async function AccountPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const query = await searchParams;
-  const forced = typeof query.money === 'string' ? `?money=${query.money}` : '';
+/// The money page (view 44). An old ?money=v1 link opens it too.
+export default function AccountPage() {
   return (
     <>
       <ProfileGate />
-      {moneyV2Enabled(process.env.NEXT_PUBLIC_MONEY_V2, forced, true) ? <MoneyHome /> : <AccountPageV1 />}
+      <MoneyHome />
     </>
   );
 }

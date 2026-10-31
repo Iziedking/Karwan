@@ -55,3 +55,15 @@ export function homeDealsPreview<T>(groups: DealsGroups<T>): { title: 'needsYou'
   if (groups.active.length > 0) return { title: 'active', items: groups.active.slice(0, 1) };
   return { title: null, items: [] };
 }
+
+export type RowMove = 'release' | 'approve' | 'pay' | 'deliver' | 'claim';
+
+const ROW_MOVES: Partial<Record<string, RowMove>> = { release: 'release', accept: 'approve', fund: 'pay', deliver: 'deliver', claim: 'claim' };
+
+/// The move a needs-you row carries on desktop (rule 8), in one word. A move
+/// with no short name gives none, and the row still opens the deal.
+export function rowMove(deal: DirectDeal): RowMove | null {
+  const next = deal.view?.next;
+  if (!next?.action || next.actor !== 'you') return null;
+  return ROW_MOVES[next.action] ?? null;
+}

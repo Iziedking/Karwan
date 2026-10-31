@@ -6,8 +6,6 @@ import { settlementExplorer } from '@/core/arcNetwork';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
 import { PAGE_REFRESH_EVENT } from '@/shared/utils/pageRefresh';
-import { LiveJobPage } from './LiveJobPage';
-import { useSearchV2 } from '@/features/search/useSearchV2';
 import { RequestPage } from '@/features/search/components/RequestPage';
 import {
   FullBleed,
@@ -43,8 +41,6 @@ export function JobPageClient({ jobId }: { jobId: string }) {
   const t = useTranslations();
   const jp = t.jobPage;
   const auth = useAuth();
-  // The request page is the new one for everyone (view 44, Batch 6); ?search=v1 opens the old one.
-  const v2 = useSearchV2(true);
   const [state, setState] = useState<
     | { kind: 'loading' }
     | { kind: 'ready'; job: BuyerJob; explorer: string }
@@ -144,7 +140,7 @@ export function JobPageClient({ jobId }: { jobId: string }) {
     // Match the loading.tsx feel: render the route shell so the transition
     // doesn't look broken. The shared loading.tsx covers the inter-route
     // hop; this state covers data-fetch latency once we've landed. The
-    // min-h reserves roughly the height of the resolved LiveJobPage hero
+    // min-h reserves roughly the height of the resolved request page
     // so the swap into the real page doesn't shift the bands below, the
     // dominant CLS source on /jobs/[id] before this pass.
     return (
@@ -232,11 +228,8 @@ export function JobPageClient({ jobId }: { jobId: string }) {
     );
   }
 
-  const page = v2 ? (
-    <RequestPage initial={state.job} explorer={state.explorer} />
-  ) : (
-    <LiveJobPage initial={state.job} explorer={state.explorer} />
-  );
+  // The request page (view 44, Batch 6); an old ?search=v1 link opens it too.
+  const page = <RequestPage initial={state.job} explorer={state.explorer} />;
   return state.job.viewerIsBuyer !== false ? (
     <>
       <BuyerOffers jobId={jobId} budgetUsdc={state.job.budgetUsdc} />

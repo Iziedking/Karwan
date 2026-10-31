@@ -16,6 +16,7 @@ export function OpenDealRow({
   yourMove,
   next,
   due,
+  move,
 }: {
   href: string;
   role: string;
@@ -28,6 +29,8 @@ export function OpenDealRow({
   yourMove: boolean;
   next?: string;
   due?: string;
+  /// On desktop a row that needs you shows its move as a small button (rule 8).
+  move?: string;
 }) {
   const meta = [next, due].filter(Boolean).join(' · ');
   return (
@@ -64,6 +67,11 @@ export function OpenDealRow({
         >
           {status}
         </span>
+        {yourMove && move ? (
+          <span aria-hidden data-row-move className="hidden h-9 shrink-0 items-center rounded-full bg-[var(--action)] px-4 text-[14px] font-semibold text-[var(--on-action)] lg:inline-flex">
+            {move}
+          </span>
+        ) : null}
         <svg
           aria-hidden
           width="16"

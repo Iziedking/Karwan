@@ -32,8 +32,8 @@ test('the list pages four at a time and the folded row shows the price range', (
 });
 
 test('the request page lets its buyer cancel or edit, and shows offers as one roster', () => {
-  const page = readFileSync(new URL('./components/LiveJobPage.tsx', import.meta.url), 'utf8');
-  assert.match(page, /<EditBriefSection[\s\S]*?isBuyer=\{viewerIsBuyer\}[\s\S]*?\/>/);
-  assert.match(page, /<CancelBriefSection[\s\S]*?isBuyer=\{viewerIsBuyer\}[\s\S]*?\/>/);
+  const page = readFileSync(new URL('../search/components/RequestPage.tsx', import.meta.url), 'utf8');
+  assert.match(page, /<EditBriefSection[\s\S]*?isBuyer[\s\S]*?\/>/);
+  assert.match(page, /<CancelBriefSection[\s\S]*?isBuyer[\s\S]*?\/>/);
   assert.match(page, /<OffersRoster/);
 });

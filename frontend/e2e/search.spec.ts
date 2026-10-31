@@ -317,3 +317,10 @@ test('a direct deal takes an email, a tag or a wallet address in one box', async
   await expect(page.getByText('Wallet 0x3333…3333. They accept by signing in with it.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Continue', exact: true })).toBeEnabled();
 });
+
+test('an old ?search=v1 link to a request opens the request page (view 44, Batch 9)', async ({ page }) => {
+  await serveSearch(page, { balances: { ...funded } });
+  await page.goto(`/jobs/${JOB}?search=v1`);
+  await expect(page.getByRole('heading', { name: 'Looking for sellers.' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Edit request' })).toBeVisible();
+});

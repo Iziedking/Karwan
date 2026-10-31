@@ -245,3 +245,9 @@ test('the guide describes Profile, the public record and Something is wrong (vie
   assert.match(said('recovery'), /returns the money to the buyer after a check/);
   assert.doesNotMatch(said('recovery'), /returns the money to the buyer automatically/);
 });
+
+test('the guide describes the money page and Home as they are after the old pages left (view 44, Batch 9)', () => {
+  const said = (id: string) => { const e = PLATFORM_GUIDE.find((entry) => entry.id === id)!; return [e.summary, ...e.steps].join(' '); };
+  assert.doesNotMatch(said('account'), /Picking a wallet there/);
+  assert.match(said('account'), /a Telegram card sits beside them/);
+});

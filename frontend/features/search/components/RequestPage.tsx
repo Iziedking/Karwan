@@ -16,7 +16,7 @@ import { useNearMiss } from '@/features/jobs/hooks/useNearMiss';
 import { EventList } from '@/features/jobs/components/EventList';
 import { RequestReachLine } from '@/features/jobs/components/RequestReachLine';
 import { quantityLine } from '@/features/jobs/quantityLine';
-import { CancelBriefSection, EditBriefSection } from '@/features/jobs/components/LiveJobPage';
+import { CancelBriefSection, EditBriefSection } from '@/features/jobs/components/BriefSections';
 import { MarketAdvisoryBanner } from '@/shared/components/MarketAdvisoryBanner';
 import { requestTitle } from '../requestTitle';
 import { refreshKey, requestView, type RequestView } from '../requestView';

@@ -23,6 +23,7 @@ import type { AgentKey, MoneyMove } from '../moneySheetModel';
 import { MoneySheet } from './MoneySheet';
 import { RecentMoney } from './RecentMoney';
 import { SavedAddresses } from '@/features/moneyOut/SavedAddresses';
+import { RecoveryRow } from '@/features/recovery/components/RecoveryRow';
 import { useHeldInDeals } from '../useHeldInDeals';
 
 const PRIMARY =
@@ -171,6 +172,8 @@ function MoneyHomeInner() {
         </Disclosure>
 
         <SavedAddresses />
+
+        <RecoveryRow />
 
         <RecentMoney />
 

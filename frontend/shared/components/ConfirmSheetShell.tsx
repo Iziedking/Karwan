@@ -66,7 +66,7 @@ export function ConfirmSheetShell({ open, labelledBy, busy, onClose, initialFocu
   return createPortal(
     <AnimatePresence>
       {open ? (
-        <div className="fixed inset-0 z-[80] md:flex md:items-center md:justify-end md:p-4" role="presentation">
+        <div className="fixed inset-0 z-[80] md:flex md:items-center md:justify-end md:p-4 lg:items-stretch lg:p-0" role="presentation">
           <motion.div
             className="absolute inset-0 bg-black/40"
             initial={{ opacity: 0 }}
@@ -80,7 +80,7 @@ export function ConfirmSheetShell({ open, labelledBy, busy, onClose, initialFocu
             role="dialog"
             aria-modal="true"
             aria-labelledby={labelledBy}
-            className="absolute inset-x-0 bottom-0 max-h-[90vh] overflow-y-auto rounded-t-[20px] bg-[var(--lp-card)] p-6 md:relative md:inset-auto md:w-[440px] md:max-h-[calc(100dvh-2rem)] md:rounded-[20px] md:shadow-[0_24px_64px_rgba(0,0,0,0.18)]"
+            className="absolute inset-x-0 bottom-0 max-h-[90vh] overflow-y-auto rounded-t-[20px] bg-[var(--lp-card)] p-6 md:relative md:inset-auto md:w-[440px] md:max-h-[calc(100dvh-2rem)] md:rounded-[20px] md:shadow-[0_24px_64px_rgba(0,0,0,0.18)] lg:h-dvh lg:max-h-dvh lg:rounded-e-none"
             initial={reduce ? { opacity: 0 } : { y: 24, opacity: 0 }}
             animate={reduce ? { opacity: 1 } : { y: 0, opacity: 1 }}
             exit={reduce ? { opacity: 0 } : { y: 24, opacity: 0 }}

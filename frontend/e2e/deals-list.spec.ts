@@ -138,3 +138,24 @@ test('an old open deals link lands on Deals', async ({ page }) => {
   await expect(page).toHaveURL(/\/deals$/);
   await expect(page.getByRole('heading', { level: 1, name: t.title })).toBeVisible();
 });
+
+test('on desktop a row that needs you carries its move; a move with no short name carries none', async ({ page }, testInfo) => {
+  const view = (action: NonNullable<DirectDeal['view']>['next']['action']) => ({
+    stage: 'awaiting-funding' as const, money: { line: 'not-funded' as const }, progress: [], next: { action, actor: 'you' as const, amountUsdc: '101' }, automatic: null,
+  });
+  await serve(page, [
+    deal(FUND, { sellerApprovedAt: 2, view: view('fund') }),
+    deal(7, { sellerApprovedAt: 2, view: view('respond-cancel') }),
+  ]);
+  await page.goto('/deals');
+  const needs = section(page, t.needsYou);
+  const fundRow = needs.getByRole('link').filter({ hasText: ref(FUND) });
+  const move = fundRow.locator('[data-row-move]');
+  if (testInfo.project.name === 'desktop') {
+    await expect(move).toHaveText(t.move.pay);
+    await expect(move).toBeVisible();
+  } else {
+    await expect(move).toBeHidden();
+  }
+  await expect(page.locator('[data-row-move]')).toHaveCount(1);
+});

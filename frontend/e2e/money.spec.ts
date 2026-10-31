@@ -333,3 +333,12 @@ test('withdraw starts with how much and where it goes (view 44, P8)', async ({ p
   await expect(page.locator('[data-withdraw-start]')).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
 });
+
+test('an old ?money=v1 link to the money page opens the money page (view 44, Batch 9)', async ({ page }) => {
+  await serveMoney(page, { balances: funded });
+  await page.route('**/api/deals/direct?address=*', (route) => route.fulfill({ json: { deals: [
+    { jobId: `0x${'ab'.repeat(32)}`, buyer: ME, seller: '0x2222222222222222222222222222222222222222', dealAmountUsdc: '120', firstReleasePct: 100, terms: 'Logo', delivered: false, createdAt: 0, updatedAt: 0, acceptedAt: 1, onChain: null },
+  ] } }));
+  await page.goto('/account?money=v1');
+  await expect(page.locator('[data-held-in-deals]')).toHaveText('120.00 USDC held in your deals');
+});

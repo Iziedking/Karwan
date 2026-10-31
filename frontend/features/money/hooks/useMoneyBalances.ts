@@ -13,7 +13,7 @@ function amountOf(data: { value: bigint; decimals: number } | undefined): number
   return data ? Number(formatUnits(data.value, data.decimals)) : null;
 }
 
-/// The money home's numbers, read the way BalancesCard reads them: the Arc
+/// The money home's numbers: the Arc
 /// balance of the sign-in wallet and of each agent, straight from the chain,
 /// plus the Gateway balance the account already holds. SSE invalidation and
 /// useMoneyRefresh move them when money moves; the poll is the safety net.

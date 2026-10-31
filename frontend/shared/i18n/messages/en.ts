@@ -10,7 +10,6 @@ import { setupCopy, type SetupCopy } from './setup';
 import { startFlowCopy, type StartFlowCopy } from './startFlow';
 import { assistantModeCopy, type AssistantModeCopy } from './assistantMode';
 import { assistantMemoryCopy, type AssistantMemoryCopy } from './assistantMemory';
-import { walletPanelCopy, type WalletPanelCopy } from './walletPanel';
 import { plainMoneyCopy, type PlainMoneyCopy } from './plainMoney';
 import { disputeJudgeCopy, type DisputeJudgeCopy } from './disputeJudge';
 import { networkCopy, type NetworkCopy } from './network';
@@ -98,7 +97,6 @@ interface MessagesShape {
   startFlow: StartFlowCopy;
   assistantMode: AssistantModeCopy;
   assistantMemory: AssistantMemoryCopy;
-  walletPanel: WalletPanelCopy;
   plainMoney: PlainMoneyCopy;
   requestList: RequestListCopy;
   cashoutFlow: CashoutFlowCopy;
@@ -5356,7 +5354,6 @@ export const en: MessagesShape = {
   startFlow: startFlowCopy.en,
   assistantMode: assistantModeCopy.en,
   assistantMemory: assistantMemoryCopy.en,
-  walletPanel: walletPanelCopy.en,
   plainMoney: plainMoneyCopy.en,
   requestList: requestListCopy.en,
   cashoutFlow: cashoutFlowCopy.en,

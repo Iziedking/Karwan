@@ -7,7 +7,7 @@ import { qk } from '@/core/queryKeys';
 import { useDirectDeals } from '@/features/deals/hooks/useDirectDeals';
 import { stageOf, type DealStage } from '@/features/deals/components/DirectDealList';
 import { DealsFeed } from '@/features/deals/components/DealsFeed';
-import { PendingDealsBand } from '@/features/notifications/components/PendingDealsBand';
+import { HomeDeals } from './HomeDeals';
 import { OnChainProofBand } from '@/features/network/components/OnChainProofBand';
 import { LiveNetworkBand, type LiveNetworkStats } from '@/features/home/components/LiveNetworkBand';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
@@ -138,7 +138,9 @@ export function BusinessHome({
         </div>
       </Band>
 
-      <PendingDealsBand tone="light" />
+      <Band tone="light" compact>
+        <HomeDeals />
+      </Band>
 
       <BusinessAvailability workspaceId={workspaceId} />
 

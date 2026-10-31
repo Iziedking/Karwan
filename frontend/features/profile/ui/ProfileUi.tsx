@@ -13,7 +13,7 @@ export function ProfileFrame({ title, hint, backHref, hero = false, children }: 
   const pathname = usePathname();
   const { isAuthenticated } = useAuth();
   return (
-    <main className="product-surface min-h-[calc(100vh-72px)] px-4 pb-16 pt-6 sm:px-6">
+    <div className="product-surface min-h-[calc(100vh-72px)] px-4 pb-16 pt-6 sm:px-6">
       <div className="mx-auto max-w-[640px]">
         {/* Back sits on this column, beside what it leaves, not at the page edge. */}
         <div data-own-back className="-ms-2 mb-3 empty:hidden">
@@ -25,7 +25,7 @@ export function ProfileFrame({ title, hint, backHref, hero = false, children }: 
         </h1>
         <div className="mt-6 space-y-7">{children}</div>
       </div>
-    </main>
+    </div>
   );
 }
 

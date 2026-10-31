@@ -204,3 +204,11 @@ test('a deal starts with How do you want to pay?, showing only what runs (view 4
   await expect(page.getByRole('heading', { level: 1, name: rf.kindTitle })).toHaveCount(0);
   await expect(page.getByLabel(en.directDeal.counterparty.oneBoxLabel)).toBeVisible();
 });
+
+test('the desk starts a request; your requests open in Market, Yours (view 44, Batch 9)', async ({ page }) => {
+  await signedInBuyer(page);
+  await page.goto('/buyer?mode=managed');
+  const yours = page.getByRole('link', { name: en.buyerHub.managedDeals.headline });
+  await expect(yours).toHaveAttribute('href', '/market?view=yours&list=requests');
+  await expect(page.getByText(en.buyerHub.managedDeals.statesEmpty)).toHaveCount(0);
+});

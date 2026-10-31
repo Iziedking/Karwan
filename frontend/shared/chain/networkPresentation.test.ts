@@ -57,7 +57,6 @@ test('testnet warnings stay beside balances while mainnet shows network identity
   assert.doesNotMatch(footer, /https:\/\/(testnet\.arcscan\.app|explorer\.testnet\.arc\.io)|landingEditorial.testnet/);
   assert.match(source('../../app/page.tsx'), /networkUi.builtOnArc/);
   for (const file of [
-    '../../features/account/AccountPageV1.tsx',
     '../../app/bridge/page.tsx',
     '../../features/money/components/MoneyHome.tsx',
     '../../features/bridge/components/CrossChainFlow.tsx',

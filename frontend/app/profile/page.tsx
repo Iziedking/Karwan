@@ -274,7 +274,7 @@ function ProfilePageInner() {
   // filled by the effect above, so checking it alone flashed this screen.
   if (!activeSection && !(profile ?? loadedProfile)) {
     return (
-      <main className="product-surface min-h-[calc(100vh-72px)] bg-[var(--lp-light)] px-4 py-8 sm:px-7 lg:px-10">
+      <div className="product-surface min-h-[calc(100vh-72px)] bg-[var(--lp-light)] px-4 py-8 sm:px-7 lg:px-10">
         <div className="mx-auto max-w-[760px]">
           <h1 className="text-[clamp(2.25rem,5vw,4rem)] font-semibold leading-none tracking-[-0.05em] text-[var(--lp-dark)]">
             {messages.profile.hub.setupTitle}
@@ -287,7 +287,7 @@ function ProfilePageInner() {
             {messages.profile.hub.setupCta}
           </Link>
         </div>
-      </main>
+      </div>
     );
   }
 

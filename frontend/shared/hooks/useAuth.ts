@@ -174,7 +174,7 @@ export function useAuth(): AuthState & {
 
   // Sync this instance's circle slice whenever ANY other useAuth() in the app
   // changes the session. Without this, signing out from CircleAccountModal
-  // only clears state in that one hook instance. TopNav, BalancesCard, gated
+  // only clears state in that one hook instance. TopNav, the money page, gated
   // pages, etc. keep showing stale "signed in" UI until the user reloads.
   useEffect(() => {
     if (typeof window === 'undefined') return;

@@ -111,11 +111,13 @@ test('workspace width is column-bound and tablet navigation fills the rail gap',
 test('signed-in home splits only when the content column has room', () => {
   const css = source('../../app/globals.css');
   const home = source('../../features/home/components/AccountHome.tsx');
+  const deals = source('../../features/home/components/HomeDeals.tsx');
   assert.match(css, /\.home-workbench\s*\{[^}]*container-type: inline-size;/);
   assert.match(css, /@container \(min-width: 1080px\)\s*\{\s*\.home-command-grid/);
   // Home shows the top of the Deals list (view 44), or nothing when no deal is live.
-  assert.match(home, /homeDealsPreview\(groups\)/);
-  assert.match(home, /if \(!preview\.title\) return null;/);
+  assert.match(home, /<HomeDeals \/>/);
+  assert.match(deals, /homeDealsPreview\(groups\)/);
+  assert.match(deals, /if \(!preview\.title\) return null;/);
   assert.doesNotMatch(home, /lg:grid-cols-\[minmax\(0,0\.92fr\)/);
 });
 
@@ -241,13 +243,8 @@ test('market cards are quiet: a white card, a real photo or a marked sample, and
 });
 
 test('account action is Withdraw, the route out that works for every account', () => {
-  // The balance page's actions come from walletActions (one tile per action).
-  const account = source('../../features/account/walletActions.ts');
   const transfer = source('../../app/bridge/page.tsx');
   assert.equal(en.accountHome.withdraw, 'Withdraw');
-  assert.equal(en.walletPanel.label.withdraw, 'Withdraw');
-  assert.match(account, /key: 'withdraw'[^}]*go: \{ href: '\/bridge\?direction=out' \}/);
-  assert.doesNotMatch(account, /Withdraw from Gateway/);
   assert.match(transfer, /outIntent === 'move' \? header\.titleMove/);
   assert.equal(en.bridge.header.titleMove, 'Move USDC');
 });
@@ -365,7 +362,7 @@ test('the deal page shows dated steps, and messages stay closed behind the messa
 });
 
 test('Home lists deals as the same rows as Deals, without numbering or text arrows', () => {
-  const home = source('../../features/home/components/AccountHome.tsx');
+  const home = source('../../features/home/components/HomeDeals.tsx');
   assert.match(home, /<OpenDealRow key=\{r\.key\}/);
   assert.doesNotMatch(home, /padStart\(2, '0'\)/);
   assert.doesNotMatch(home, /→/);
@@ -436,10 +433,6 @@ test('every balance surface offers Withdraw, the route out that works for every 
     assert.match(src, /\/bridge\?direction=out"/, file);
     assert.match(src, /\.withdraw\b/, file);
   }
-  // The balance page's tiles live in walletActions.
-  const tiles = source('../../features/account/walletActions.ts');
-  assert.doesNotMatch(tiles, /intent=move/);
-  assert.match(tiles, /'\/bridge\?direction=out'/);
 });
 
 test('Send says what Available counts, so it is never read as a wrong balance', () => {
@@ -523,7 +516,7 @@ test('the desktop rail ends with the person and Sign out, pinned to its foot, si
 });
 
 test('the deals on Home sit under one heading line with the way to all deals', () => {
-  const home = source('../../features/home/components/AccountHome.tsx');
+  const home = source('../../features/home/components/HomeDeals.tsx');
   // One heading line; Details sits on the balance line (view 39).
   assert.equal(home.match(/flex min-h-11 items-center[^"]*px-1/g)?.length, 1);
   assert.match(home, /<Link href="\/deals"/);

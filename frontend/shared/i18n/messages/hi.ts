@@ -7,7 +7,6 @@ import { setupCopy } from './setup';
 import { startFlowCopy } from './startFlow';
 import { assistantModeCopy } from './assistantMode';
 import { assistantMemoryCopy } from './assistantMemory';
-import { walletPanelCopy } from './walletPanel';
 import { plainMoneyCopy } from './plainMoney';
 import { disputeJudgeCopy } from './disputeJudge';
 import { networkCopy } from './network';
@@ -96,7 +95,6 @@ export const hi: Messages = {
   startFlow: startFlowCopy.hi,
   assistantMode: assistantModeCopy.hi,
   assistantMemory: assistantMemoryCopy.hi,
-  walletPanel: walletPanelCopy.hi,
   plainMoney: plainMoneyCopy.hi,
   requestList: requestListCopy.hi,
   cashoutFlow: cashoutFlowCopy.hi,

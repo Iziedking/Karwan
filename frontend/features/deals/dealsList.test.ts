@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import type { DirectDeal } from '@/core/api';
-import { classifyDirectDeal, homeDealsPreview, orderDeals, type Orderable } from './dealsList';
+import { classifyDirectDeal, homeDealsPreview, orderDeals, rowMove, type Orderable } from './dealsList';
 
 const BUYER = `0x${'22'.repeat(20)}`;
 const SELLER = `0x${'33'.repeat(20)}`;
@@ -81,4 +81,19 @@ test('Home shows two that need you, else the next active one, else nothing', () 
   assert.deepEqual(homeDealsPreview({ needsYou: [1, 2, 3], active: [4], finished: [] }), { title: 'needsYou', items: [1, 2] });
   assert.deepEqual(homeDealsPreview({ needsYou: [], active: [4, 5], finished: [] }), { title: 'active', items: [4] });
   assert.deepEqual(homeDealsPreview({ needsYou: [], active: [], finished: [6] }), { title: null, items: [] });
+});
+
+const next = (action: NonNullable<DirectDeal['view']>['next']['action'], actor: 'you' | 'counterparty' = 'you') =>
+  deal({ view: { stage: 'awaiting-first-release', money: { line: 'held' }, progress: [], next: { action, actor, amountUsdc: '100' }, automatic: null } });
+
+test('a row that needs you names its move in one word, when it has one', () => {
+  assert.equal(rowMove(next('release')), 'release');
+  assert.equal(rowMove(next('accept')), 'approve');
+  assert.equal(rowMove(next('fund')), 'pay');
+  assert.equal(rowMove(next('deliver')), 'deliver');
+  assert.equal(rowMove(next('claim')), 'claim');
+  assert.equal(rowMove(next('respond-cancel')), null);
+  assert.equal(rowMove(next('release', 'counterparty')), null);
+  assert.equal(rowMove(next(null)), null);
+  assert.equal(rowMove(deal({})), null);
 });
