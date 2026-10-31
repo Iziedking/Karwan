@@ -281,7 +281,9 @@ function SellSide({ cards, loading, failed, retry }: { cards: DiscoveryCard[]; l
                   <span className="mt-1 block text-[14px] text-[var(--ink-secondary)]">
                     {t.upTo.replace('{amount}', formatUsdc(request.priceUsdc, { withSuffix: false }))} · {t.neededBy.replace('{date}', dateOf(request.availableUntil))}
                   </span>
-                  <span className="mt-0.5 block text-[14px] text-[var(--ink-secondary)]">{offers(request.bidsCount)}</span>
+                  <span className="mt-0.5 block truncate text-[14px] text-[var(--ink-secondary)]">
+                    {[request.seller?.name || (request.seller?.tag ? `@${request.seller.tag}` : null), offers(request.bidsCount)].filter(Boolean).join(' · ')}
+                  </span>
                 </Link>
               </li>
             ))}

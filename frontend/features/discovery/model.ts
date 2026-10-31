@@ -33,7 +33,7 @@ export interface DiscoveryCard {
   photo?: string;
   /// The market category (view 44); null for requests and offers that fit none.
   category: CategoryId | null;
-  /// Who sells an offer; null for requests and when it could not be read.
+  /// Who sells an offer, or who posted a request; null when it could not be read.
   seller: ListingSeller | null;
   readyInDays?: number;
   deliveryKind?: 'goods' | 'in_person' | 'remote';
@@ -100,7 +100,7 @@ export function buildDiscoveryCards(
         matchedBefore: false,
         example: brief.example === true,
         category: null,
-        seller: null,
+        seller: brief.poster ?? null,
         bidsCount: brief.bidsCount + (brief.offerCount ?? 0),
       } satisfies DiscoveryCard;
     });

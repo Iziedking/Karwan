@@ -39,9 +39,9 @@ function marketData() {
     offer('example-new', 'Example stock that is newest', 99, 10, { category: 'design', example: true }),
   ];
   const briefs: MarketplaceBrief[] = [
-    request(1, 'Logo for a food business. Simple and bold.', 150, { bidsCount: 2, offerCount: 1 }),
+    request(1, 'Logo for a food business. Simple and bold.', 150, { bidsCount: 2, offerCount: 1, poster: { ...ada, name: 'Chidi Eze', tag: 'chidi' } }),
     request(2, 'Menu design for a small restaurant.', 60),
-    request(3, 'Flyer for a church event.', 25, { bidsCount: 5 }),
+    request(3, 'Flyer for a church event.', 25, { bidsCount: 5, poster: { ...ada, name: null, tag: 'tunde' } }),
   ];
   return { listings, briefs };
 }
@@ -169,7 +169,10 @@ test('Sell shows what buyers need, the requests that fit you first', async ({ pa
   await expect(rows.first()).toContainText('Flyer for a church event');
   await expect(rows.first()).toContainText(t.fits);
   await expect(rows.first()).toContainText('Up to 25 USDC');
-  await expect(rows.first()).toContainText('5 offers so far');
+  await expect(rows.first()).toContainText('@tunde · 5 offers so far');
+  await expect(rows.filter({ hasText: 'Logo for a food business' })).toContainText('Chidi Eze');
+  // A request with nobody readable shows only its offers line, never an address.
+  await expect(rows.filter({ hasText: 'Menu design' })).not.toContainText('0x');
   await expect(rows.nth(1)).not.toContainText(t.fits);
   await expect(page.getByText(t.fitsFirst)).toBeVisible();
   expect(fitsCalls.length).toBeGreaterThan(0);

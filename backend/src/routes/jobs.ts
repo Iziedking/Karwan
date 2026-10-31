@@ -68,6 +68,8 @@ import { enqueueLegacyReconsiderationShadow } from './jobsReengagement.js';
 import { publicJobStatus } from './jobPublicStatus.js';
 import { listDirectOffers } from '../db/directOffers.js';
 import { requestTitle } from '../agents/bidOutcome.js';
+import { attachPosters } from '../listings/posters.js';
+import { liveSellerSummaries } from '../listings/sellerSummary.js';
 
 const addrSchema = z
   .string()
@@ -251,7 +253,9 @@ jobsRoutes.get('/marketplace', async (c) => {
     if (deal) continue;
     out.push({ ...b, buyer: mask(b.buyer), offerCount: offerCounts.get(b.jobId) ?? 0 });
   }
-  return c.json({ briefs: out });
+  // Who posted each request, by name (view 44, Market Sell); never the address.
+  const briefs = await attachPosters(out, (jobId) => getBrief(jobId)?.postedBy, liveSellerSummaries);
+  return c.json({ briefs });
 });
 
 /// What "Start the search" will move before posting. Same arithmetic as the

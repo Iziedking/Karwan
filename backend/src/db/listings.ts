@@ -198,21 +198,21 @@ export function markListingMatched(id: string, jobId: string): void {
   persist();
 }
 
-/// Seller edits limited fields on their own listing. Caller checks ownership
-/// and lifecycle state BEFORE calling. Only title, description, and
-/// askingPriceUsdc are mutable; tolerance, ttl, and agent address stay locked
-/// because the seller agent's bidding loop reads them at post time and a
-/// mid-loop change would invalidate in-flight matches without a clean signal
-/// back to the buyer side.
+/// Seller edits on their own listing. Caller checks ownership and lifecycle
+/// state BEFORE calling. The agent's price floor is read fresh on every bid
+/// (listingFloor), so a new tolerance applies from the next one; a new window
+/// is anchored from the edit by the route. The agent address never changes.
 export function patchListing(
   id: string,
-  patch: Partial<Pick<Listing, 'title' | 'description' | 'askingPriceUsdc' | 'category'>>,
+  patch: Partial<Pick<Listing, 'title' | 'description' | 'askingPriceUsdc' | 'negotiationMaxDecreasePct' | 'expiresAt' | 'category'>>,
 ): Listing | null {
   const l = store.get(id);
   if (!l) return null;
   if (patch.title !== undefined) l.title = patch.title;
   if (patch.description !== undefined) l.description = patch.description;
   if (patch.askingPriceUsdc !== undefined) l.askingPriceUsdc = patch.askingPriceUsdc;
+  if (patch.negotiationMaxDecreasePct !== undefined) l.negotiationMaxDecreasePct = patch.negotiationMaxDecreasePct;
+  if (patch.expiresAt !== undefined) l.expiresAt = patch.expiresAt;
   if (patch.category !== undefined) l.category = patch.category;
   store.set(id, l);
   persist();

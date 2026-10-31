@@ -1220,6 +1220,8 @@ export interface MarketplaceBrief {
   partyKind?: 'person' | 'business';
   /// Example stock Karwan seeded, not a real person's request.
   example?: boolean;
+  /// Who posted it, by name (view 44); null when they could not be read.
+  poster?: ListingSeller | null;
 }
 
 export type ListingStatus = 'open' | 'matched' | 'cancelled' | 'expired';
