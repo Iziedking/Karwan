@@ -12,9 +12,12 @@ import { useEntryHref } from '@/shared/auth/useEntryHref';
 import { dealHref, START_ROUTE } from '@/shared/utils/routes';
 import styles from './landing.module.css';
 
-/// The hero film plays at half speed: at full speed its motion was tiring to
-/// watch (owner, 31 Oct 2026). A calmer film replaces it later.
+/// The hero film plays once at half speed, then holds still for a minute before
+/// playing again: constant motion was tiring to watch (owner, 31 Oct 2026). Its
+/// last frame is the poster, so the rest reads as a still. A calmer film
+/// replaces it later.
 const HERO_FILM_RATE = 0.5;
+const HERO_FILM_REST_MS = 60_000;
 
 function Arrow() {
   return <svg aria-hidden width="18" height="18" viewBox="0 0 24 24" fill="none" className="rtl-flip" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14m-6-6 6 6-6 6" /></svg>;
@@ -34,16 +37,23 @@ export default function HomePage() {
     video.defaultPlaybackRate = HERO_FILM_RATE;
     video.playbackRate = HERO_FILM_RATE;
     let inView = false;
+    let resting = false;
+    let restTimer: ReturnType<typeof setTimeout> | undefined;
     const sync = () => {
-      if (preference.matches || document.hidden || !inView) video.pause();
+      if (preference.matches || document.hidden || !inView || resting) video.pause();
       else void video.play().catch(() => {});
+    };
+    const rest = () => {
+      resting = true;
+      restTimer = setTimeout(() => { resting = false; video.currentTime = 0; sync(); }, HERO_FILM_REST_MS);
     };
     const observer = new IntersectionObserver(([entry]) => { inView = entry.isIntersecting; sync(); }, { threshold: 0.05 });
     observer.observe(video);
+    video.addEventListener('ended', rest);
     document.addEventListener('visibilitychange', sync);
     preference.addEventListener('change', sync);
     sync();
-    return () => { observer.disconnect(); document.removeEventListener('visibilitychange', sync); preference.removeEventListener('change', sync); video.pause(); };
+    return () => { observer.disconnect(); clearTimeout(restTimer); video.removeEventListener('ended', rest); document.removeEventListener('visibilitychange', sync); preference.removeEventListener('change', sync); video.pause(); };
   }, []);
 
   // Each section after the hero eases up once as it comes into view. Turned on
@@ -88,7 +98,7 @@ export default function HomePage() {
           <p className={styles.note}>{messages.networkUi.builtOnArc}</p>
         </div>
         <div className={styles.media}>
-          <video ref={videoRef} muted loop playsInline preload="metadata" poster="/media/landing/karwan-hero-poster.jpg" aria-hidden="true">
+          <video ref={videoRef} muted playsInline preload="metadata" poster="/media/landing/karwan-hero-poster.jpg" aria-hidden="true">
             <source src="/media/landing/karwan-hero-olive.mp4" type="video/mp4" />
           </video>
         </div>
