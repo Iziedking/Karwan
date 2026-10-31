@@ -1,4 +1,5 @@
-import type { Listing, MarketplaceBrief, Partner } from '@/core/api';
+import type { Listing, ListingSeller, MarketplaceBrief, Partner } from '@/core/api';
+import { CATEGORY_IDS, type CategoryId } from '@/features/market/marketModel';
 
 export type DiscoverySide = 'offer' | 'request';
 export type DiscoveryScope = 'all' | 'services' | 'business';
@@ -30,6 +31,12 @@ export interface DiscoveryCard {
   bidsCount?: number;
   /// The offer's first photo link, when it has one (view 28).
   photo?: string;
+  /// The market category (view 44); null for requests and offers that fit none.
+  category: CategoryId | null;
+  /// Who sells an offer; null for requests and when it could not be read.
+  seller: ListingSeller | null;
+  readyInDays?: number;
+  deliveryKind?: 'goods' | 'in_person' | 'remote';
 }
 
 export interface DiscoveryFilters {
@@ -64,6 +71,10 @@ export function buildDiscoveryCards(
       partyIsYou: !!viewer && listing.sellerUser.toLowerCase() === viewer,
       matchedBefore: !!listing.matchedAt,
       example: listing.example === true,
+      category: (CATEGORY_IDS as readonly string[]).includes(listing.category ?? '') ? (listing.category as CategoryId) : null,
+      seller: listing.seller ?? null,
+      ...(listing.readyInDays ? { readyInDays: listing.readyInDays } : {}),
+      ...(listing.deliveryKind ? { deliveryKind: listing.deliveryKind } : {}),
       ...((listing as { photoUrls?: string[] }).photoUrls?.[0] ? { photo: (listing as { photoUrls?: string[] }).photoUrls![0] } : {}),
     }));
 
@@ -88,6 +99,8 @@ export function buildDiscoveryCards(
         partyIsYou: false,
         matchedBefore: false,
         example: brief.example === true,
+        category: null,
+        seller: null,
         bidsCount: brief.bidsCount + (brief.offerCount ?? 0),
       } satisfies DiscoveryCard;
     });

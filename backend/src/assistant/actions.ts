@@ -2,6 +2,7 @@ import type { CreateDirectDealBody } from '../deals/createSchema.js';
 import { dealReference } from '../deals/reference.js';
 import type { AgentWays } from '../agents/ways.js';
 import type { DeliveryKind, Where } from '../location/rules.js';
+import { CATEGORY_IDS, CATEGORY_NAMES, type CategoryId } from '../listings/categories.js';
 import { perItemUsdc, quantityWords, readQuantity } from '../llm/quantity.js';
 import type { BriefAnswers } from '../agents/agentBriefLines.js';
 import type { DealStepConfirm } from './dealActions.js';
@@ -59,6 +60,8 @@ export interface PostOfferPayload {
   negotiationMaxDecreasePct?: number;
   ttlDays?: number;
   deliveryKind?: DeliveryKind;
+  /// The market category (view 44); missing, the market reads one from the words.
+  category?: CategoryId;
   /// Add the photos the seller sent in chat in the last hour (view 28).
   heldPhotos?: boolean;
 }
@@ -442,6 +445,7 @@ export const NAVIGATE_DESTINATIONS = [
   'new_offer',
   'market',
   'deals',
+  'market_sell',
   'partners',
   'financier',
   'open_deal',
@@ -532,6 +536,7 @@ const DESTINATIONS: Record<NavigateDestination, DestSpec> = {
   new_offer: { label: 'Post an offer', build: () => '/seller' },
   market: { label: 'Browse the market', build: () => '/market' },
   deals: { label: 'Your deals', build: () => '/deals' },
+  market_sell: { label: 'What buyers need', build: () => '/market?side=sell' },
   partners: { label: 'Business offers in the market', build: () => '/market?scope=business' },
   financier: { label: 'Financier desk', build: () => '/financier' },
   open_deal: {
@@ -622,6 +627,7 @@ export interface BuildPostOfferInput {
   negotiationMaxDecreasePct?: number;
   ttlDays?: number;
   deliveryKind?: DeliveryKind;
+  category?: CategoryId;
   /// How many photos the seller has sent in chat for this offer, if any.
   heldPhotos?: number;
 }
@@ -655,6 +661,9 @@ export function buildPostOfferConfirm(input: BuildPostOfferInput): PostOfferConf
   if (ttl !== undefined && (ttl < 0.0006 || ttl > 90)) {
     return { error: 'The listing window must be between about a minute and 90 days.' };
   }
+  if (input.category !== undefined && !CATEGORY_IDS.includes(input.category)) {
+    return { error: `The category must be one of: ${CATEGORY_IDS.join(', ')}.` };
+  }
 
   const fields: { label: string; value: string }[] = [
     { label: 'Title', value: title },
@@ -673,8 +682,10 @@ export function buildPostOfferConfirm(input: BuildPostOfferInput): PostOfferConf
     ...(pct !== undefined ? { negotiationMaxDecreasePct: pct } : {}),
     ...(ttl !== undefined ? { ttlDays: ttl } : {}),
     ...(input.deliveryKind ? { deliveryKind: input.deliveryKind } : {}),
+    ...(input.category ? { category: input.category } : {}),
     ...(input.heldPhotos ? { heldPhotos: true } : {}),
   };
+  if (input.category) fields.push({ label: 'Category', value: CATEGORY_NAMES[input.category] });
   if (input.heldPhotos) fields.push({ label: 'Photos', value: String(input.heldPhotos) });
 
   return {

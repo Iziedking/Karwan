@@ -191,9 +191,6 @@ test('the market says how results are ordered, behind a tip by the sort, for whi
   assert.equal(orderNoteKey('newest'), 'newest');
   assert.equal(orderNoteKey('price-asc'), 'lowestPrice');
   assert.equal(orderNoteKey('price-desc'), 'highestPrice');
-  const { readFileSync } = await import('node:fs');
-  const browse = readFileSync(new URL('../listings/components/ListingsBrowse.tsx', import.meta.url), 'utf8');
-  assert.match(browse, /<Hint[^>]*><span data-market-order>\{copy\.order\[orderNoteKey\(sort\)\]\}/);
   const { en } = await import('@/shared/i18n/messages/en');
   for (const line of Object.values(en.listingsBrowse.order)) {
     assert.match(line, /no one pays to appear higher/i);

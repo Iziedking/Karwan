@@ -10,6 +10,7 @@ import { suiteFundingEnabled } from '../chain/suiteConfig.js';
 import { prohibitedReason } from '../policy/prohibited.js';
 import { generateText, tool, stepCountIs } from 'ai';
 import { z } from 'zod';
+import { CATEGORY_IDS } from '../listings/categories.js';
 import { formatUnits, parseUnits, type Address } from 'viem';
 import { assistantAgentModel } from '../llm/client.js';
 import { withLlmTimeout } from '../agents/llm-utils.js';
@@ -2214,6 +2215,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
           .describe('Optional: how far, in percent, their agent may auto-negotiate below the asking price.'),
         ttlDays: z.number().min(0.0006).max(90).optional().describe('Optional: how many days the offer stays open. Defaults to 30.'),
         deliveryKind: z.enum(['goods', 'in_person', 'remote']).optional().describe('goods (physical items to deliver), in_person (work done at a place), or remote (done online). Ask only if unclear.'),
+        category: z.enum(CATEGORY_IDS).optional().describe('The market category the offer belongs in, when it clearly fits one. Leave it out when unsure; the market reads one from the words.'),
       }),
       execute: async (args) => {
         // Pre-flight the SAME preconditions the listings route enforces, so the

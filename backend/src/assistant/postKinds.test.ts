@@ -70,3 +70,14 @@ test('an offer card shows the photos sent in chat and asks the route to add them
   const none = buildPostOfferConfirm({ caller: ADA, title: 'Logo design', description: 'Logos in three days', askingPriceUsdc: 60 });
   assert.ok(!('error' in none) && none.payload.heldPhotos === undefined);
 });
+
+test('an offer from the assistant can carry its market category, and only one from the list', () => {
+  const card = buildPostOfferConfirm({ caller: ADA, title: 'Jollof rice trays', description: 'For parties of 50', askingPriceUsdc: 60, category: 'food' });
+  assert.ok(!('error' in card));
+  if ('error' in card) return;
+  assert.equal(card.payload.category, 'food');
+  assert.ok(card.fields.some((f) => f.label === 'Category' && f.value === 'Food'));
+  assert.ok('error' in buildPostOfferConfirm({ caller: ADA, title: 'A car', description: 'Toyota Corolla 2012', askingPriceUsdc: 3000, category: 'cars' as never }));
+  const none = buildPostOfferConfirm({ caller: ADA, title: 'Logo design', description: 'Logos in three days', askingPriceUsdc: 60 });
+  assert.ok(!('error' in none) && none.payload.category === undefined);
+});

@@ -70,4 +70,5 @@ flowchart LR
 | Spec | Approved, 31 Oct 2026 |
 | Batch 1: dead ends and words (`GET /api/features`, hourly hidden while off, switched-off pages are a 404, not-found leads to your trades, Earlier deals, offer, Deposit) | Built, 31 Oct 2026 |
 | Batch 2: navigation and one Deals list (`/deals` ordered needs you, active, finished; phone bar Home, Market, Deals, Profile; desktop rail Home, Market, Deals with a count, Money, Messages, the person at the foot; Home shows the top of Deals; the assistant can open Deals) | Built, 31 Oct 2026 |
-| Batches 3 to 9 | Not started |
+| Batch 3: the market (Buy and Sell, one search, categories, photo cards with the seller, rating and delivery, a marked sample photo when an offer has none, Sell shows what buyers need with "Fits what you sell", the listing page with Order; `GET /api/listings` carries category and seller, `GET /api/listings/fits`) | Built, 31 Oct 2026 |
+| Batches 4 to 9 | Not started |

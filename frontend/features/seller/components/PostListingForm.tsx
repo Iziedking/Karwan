@@ -24,6 +24,8 @@ import { cleanLines, composeTerms, termsIssues, type TermsDraft } from '@/featur
 import { TERMS_COPY } from '@/features/deals/terms/termsCopy';
 import { MarketReadsNote } from '@/features/market/MarketReadsNote';
 import { OfferPhotosField } from '@/features/listings/components/OfferPhotosField';
+import { CategoryChips } from '@/features/market/components/CategoryChips';
+import type { CategoryId } from '@/features/market/marketModel';
 
 const READY_CHIPS = [1, 3, 7, 14] as const;
 const MAX_READY_DAYS = 180;
@@ -64,6 +66,8 @@ export function PostListingForm() {
   const [reviewing, setReviewing] = useState(false);
   const [title, setTitle] = useState(search.get('title') ?? '');
   const [description, setDescription] = useState(search.get('description') ?? '');
+  // Optional: left empty, the market reads a category from the words.
+  const [category, setCategory] = useState<CategoryId | null>(null);
   const [price, setPrice] = useState<number | ''>(initialPrice ?? '');
   const [floorPrice, setFloorPrice] = useState<number | ''>(
     initialPrice != null && initialTolerance != null && initialTolerance > 0
@@ -150,6 +154,7 @@ export function PostListingForm() {
     try {
       const r = await api.postListing({
         ...(photos.length ? { photos } : {}),
+        ...(category ? { category } : {}),
         sellerUser: address,
         title: title.trim(),
         description: description.trim(),
@@ -271,6 +276,11 @@ export function PostListingForm() {
                 className="form-input"
               />
             </Field>
+            {/* Not a Field: a label around buttons would pass every tap to the first chip. */}
+            <div className="space-y-2">
+              <p className="text-[14px] font-semibold text-[var(--lp-dark)]">{t.marketShop.categoriesLabel}</p>
+              <CategoryChips withAll={false} value={category} onChange={(next) => setCategory((now) => (now === next || next === 'all' ? null : next))} />
+            </div>
             <Field label={pl.sectionWork.descriptionLabel} hint={pl.sectionWork.descriptionHint}>
               <textarea
                 value={description}

@@ -4,6 +4,7 @@ import {
   ChartColumn, Check, ChevronLeft, ChevronRight, Clapperboard, Code, Coins, Copy, CornerDownLeft, FileText, Globe,
   GraduationCap, ImagePlus, Languages, Link, List, LoaderCircle, Megaphone, MessagesSquare,
   Package, PenLine, PenTool, Plus, Receipt, Reply, Search, Send, Shirt, Smartphone, Trash2, UserRound, Wallet, X,
+  BadgeCheck, KeyRound, ShieldCheck, Sofa, Sprout, Utensils, Wrench,
 } from 'lucide-react';
 
 const icons = {
@@ -53,6 +54,13 @@ const icons = {
   shirt: Shirt,
   smartphone: Smartphone,
   trash: Trash2,
+  'badge-check': BadgeCheck,
+  'key-round': KeyRound,
+  'shield-check': ShieldCheck,
+  sofa: Sofa,
+  sprout: Sprout,
+  utensils: Utensils,
+  wrench: Wrench,
 } as const;
 
 export type IconName = keyof typeof icons;

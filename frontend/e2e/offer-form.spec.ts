@@ -33,6 +33,10 @@ test('an offer is set in three steps: price, floor, ready-in time and terms', as
   await expect(next).toBeDisabled();
   await page.locator('[data-guide="seller-listing"] input').fill('Logo design for small shops');
   await page.locator('[data-guide="seller-listing"] textarea').fill('A logo in SVG and PNG with two rounds of changes.');
+  // The seller can place the offer in a market category (view 44).
+  const design = page.getByRole('group', { name: en.marketShop.categoriesLabel }).getByRole('button', { name: en.marketShop.categories.design });
+  await design.click();
+  await expect(design).toHaveAttribute('aria-pressed', 'true');
   await next.click();
 
   // Ways to charge that do not work yet stay hidden until business accounts open.
@@ -60,6 +64,7 @@ test('an offer is set in three steps: price, floor, ready-in time and terms', as
 
   await expect.poll(() => posted).not.toBeNull();
   expect(posted).toMatchObject({
+    category: 'design',
     askingPriceUsdc: 100,
     negotiationMaxDecreasePct: 20,
     readyInDays: 5,

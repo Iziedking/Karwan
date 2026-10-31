@@ -12,6 +12,12 @@ import { PersonAvatar } from '@/shared/components/PersonAvatar';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { TERMS_COPY } from '@/features/deals/terms/termsCopy';
 import { OfferGallery } from './OfferGallery';
+import { Icon } from '@/shared/components/Icon';
+import { ratingText } from '@/features/ratings/ratingText';
+import { CATEGORY_IDS, type CategoryId } from '@/features/market/marketModel';
+import { CategoryChips } from '@/features/market/components/CategoryChips';
+import { samplePhoto } from '@/features/market/listingFacts';
+import { countryName, howItWorks, howYouPay, whatYouGet } from '../listingPage';
 import { ReportOffer } from './ReportOffer';
 import type { WithPhotos } from '../photos';
 
@@ -20,7 +26,6 @@ type FetchState = 'loading' | 'ok' | 'error';
 export function ListingDetail({ listingId }: { listingId: string }) {
   const translations = useTranslations();
   const ld = translations.listingDetail;
-  const flow = translations.postListing.flow;
   const { locale } = useLocale();
   const auth = useAuth();
   const address = auth.address;
@@ -85,6 +90,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
     askingPriceUsdc?: number;
     negotiationMaxDecreasePct?: number;
     ttlDays?: number;
+    category?: CategoryId;
   }) {
     if (!address || !listing) return;
     setEditing(true);
@@ -148,7 +154,6 @@ export function ListingDetail({ listingId }: { listingId: string }) {
   const sellerName = viewerIsOwner
     ? ld.pitch.sellerSelfLabel
     : sellerProfile?.displayName?.trim() || (sellerProfile?.handle ? `@${sellerProfile.handle}` : ld.pitch.sellerLabel);
-  const sellerTag = !viewerIsOwner && sellerProfile?.handle && sellerProfile.displayName?.trim() ? `@${sellerProfile.handle}` : null;
   // Buyer-side CTA: pre-fill the new-deal form with this seller + asking price
   // so anyone reading an offer can open a direct deal without copy-paste.
   const buyerOfferHref = isConnected
@@ -201,87 +206,184 @@ export function ListingDetail({ listingId }: { listingId: string }) {
         </div>
       )}
     </>
-  ) : (
-    <>
-      <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{ld.state.buyerBody}</p>
-      <Link href={buyerOfferHref} className={`mt-4 w-full sm:w-auto ${primaryClass}`}>
-        {ld.state.buyerCtaTemplate.replace('{amount}', String(listing.askingPriceUsdc))}
-      </Link>
-      {sellerProfile?.handle ? (
-        <Link href={`/messages/${encodeURIComponent(sellerProfile.handle)}?about=listing:${encodeURIComponent(listing.id)}`} className={`mt-3 block w-fit ${quietClass}`}>
-          {translations.directMessages.messageFromAd.replace('{tag}', `@${sellerProfile.handle}`)}
-        </Link>
-      ) : null}
-    </>
+  ) : null;
+
+  const shop = translations.marketShop;
+  const card = listing.seller ?? null;
+  const shownName = viewerIsOwner
+    ? ld.pitch.sellerSelfLabel
+    : card?.name || (card?.tag ? `@${card.tag}` : sellerName);
+  const stepName = viewerIsOwner ? ld.pitch.sellerSelfLabel : card?.name?.split(/\s+/)[0] || (card?.tag ? `@${card.tag}` : shop.listing.seller);
+  const category = (CATEGORY_IDS as readonly string[]).includes(listing.category ?? '') ? (listing.category as CategoryId) : null;
+  const photos = (listing as Listing & WithPhotos).photoUrls ?? [];
+  const gets = whatYouGet(listing);
+  const steps = howItWorks(stepName, listing.deliveryKind, shop);
+  const rating = ratingText(card?.rating ?? { kind: 'new', count: 0 }, translations.ratings, locale);
+  const country = countryName(card?.country, locale);
+  const recordHref = card?.tag ? `/r/${encodeURIComponent(card.tag)}` : `/credit-passport/${listing.sellerUser}`;
+  const messageHref = sellerProfile?.handle
+    ? `/messages/${encodeURIComponent(sellerProfile.handle)}?about=listing:${encodeURIComponent(listing.id)}`
+    : null;
+  const buyerView = isOpen && !viewerIsOwner;
+  const price = formatUsdc(listing.askingPriceUsdc, { withSuffix: false });
+  const orderLabel = shop.listing.order.replace('{amount}', price);
+  const facts = [
+    listing.readyInDays
+      ? { label: shop.listing.delivery, value: listing.readyInDays === 1 ? shop.listing.inOneDay : shop.listing.inDays.replace('{n}', String(listing.readyInDays)) }
+      : null,
+    { label: shop.listing.howYouPay, value: howYouPay(listing, shop) },
+  ].filter((fact): fact is { label: string; value: string } => !!fact);
+  const factList = (
+    <dl className="grid grid-cols-2 gap-x-6 gap-y-3">
+      {facts.map((fact) => (
+        <div key={fact.label}>
+          <dt className="text-[14px] font-medium text-[var(--lp-text-sub)]">{fact.label}</dt>
+          <dd className="mt-0.5 text-[16px] font-semibold text-[var(--lp-dark)]">{fact.value}</dd>
+        </div>
+      ))}
+    </dl>
   );
+  const protectedNote = (
+    <p className="flex gap-2.5 rounded-[16px] bg-[var(--color-accent-soft)] p-4 text-[14px] leading-relaxed text-[var(--lp-dark)]">
+      <Icon name="shield-check" size={20} className="mt-0.5 shrink-0 text-[var(--lp-accent-on-light)]" />
+      <span>{shop.listing.protectedNote}</span>
+    </p>
+  );
+  const quietLink =
+    'inline-flex min-h-12 items-center justify-center rounded-full border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-5 text-[15px] font-semibold text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]';
 
   return (
-    <main className="product-surface mx-auto w-full max-w-[760px] px-4 pb-16 pt-6 sm:px-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{ld.pitch.sectionTag}</p>
-        <span className={`inline-flex min-h-8 items-center gap-1.5 rounded-full px-3 text-[14px] font-semibold ${pill}`}>
-          {isOpen ? <span aria-hidden className="size-1.5 rounded-full bg-[var(--lp-accent)] motion-safe:animate-pulse" /> : null}
-          {statusLabel}
-        </span>
+    <main className="product-surface mx-auto w-full max-w-[1120px] px-4 pb-16 pt-4 sm:px-6">
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-10">
+        <div className="min-w-0">
+          {photos.length ? (
+            <OfferGallery urls={photos} title={listing.title} />
+          ) : (
+            <div className="relative mt-2 overflow-hidden rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--color-surface-2)]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={samplePhoto(category)} alt="" className="aspect-[4/3] w-full object-cover" />
+              {!listing.example ? (
+                <span className="absolute bottom-3 end-3 rounded-full bg-[color-mix(in_srgb,var(--lp-band-dark)_72%,transparent)] px-2.5 py-1 text-[13px] font-medium text-[var(--color-white)]">
+                  {shop.samplePhoto}
+                </span>
+              ) : null}
+            </div>
+          )}
+
+          {!isOpen ? (
+            <span className={`mt-5 inline-flex min-h-8 items-center gap-1.5 rounded-full px-3 text-[14px] font-semibold ${pill}`}>{statusLabel}</span>
+          ) : null}
+          <p className="mt-5 flex items-baseline gap-2 lg:hidden">
+            <span className="text-[32px] font-bold leading-none tracking-[-0.03em] tabular-nums text-[var(--lp-dark)]">{price}</span>
+            <span className="text-[15px] font-semibold text-[var(--lp-text-sub)]">{shop.usdc}</span>
+          </p>
+          <h1 dir="auto" className="mt-3 text-[22px] font-semibold leading-tight tracking-[-0.02em] text-[var(--lp-dark)] sm:text-[26px] lg:mt-6">
+            {listing.title}
+          </h1>
+          <p dir="auto" className="mt-2 whitespace-pre-wrap text-[15px] leading-relaxed text-[var(--lp-text-sub)]">{listing.description}</p>
+          <div className="mt-5 lg:hidden">{protectedNote}</div>
+
+          <Link
+            href={recordHref}
+            data-listing-seller
+            className="mt-5 flex items-center gap-3 rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+          >
+            <PersonAvatar address={listing.sellerUser} name={shownName} size={44} />
+            <span className="min-w-0 flex-1">
+              <span className="flex min-w-0 items-center gap-1 text-[16px] font-semibold text-[var(--lp-dark)]">
+                <span dir="auto" className="truncate">{shownName}</span>
+                {card?.verified ? (
+                  <span role="img" aria-label={shop.verified} className="shrink-0 text-[var(--lp-accent-on-light)]"><Icon name="badge-check" size={16} /></span>
+                ) : null}
+              </span>
+              <span className="mt-0.5 block truncate text-[14px] text-[var(--lp-text-sub)]">{[rating, country].filter(Boolean).join(' · ')}</span>
+            </span>
+            <Icon name="chevron-right" size={20} directional className="shrink-0 text-[var(--lp-text-sub)]" />
+          </Link>
+
+          <div className="mt-6 lg:hidden">{factList}</div>
+
+          {showFloor ? (
+            <div className="mt-6">
+              <p className="text-[14px] font-medium text-[var(--lp-text-sub)]">{ld.pitch.floorLabelTemplate.replace('{n}', String(listing.negotiationMaxDecreasePct ?? 0))}</p>
+              <p className="mt-0.5 text-[20px] font-semibold tabular-nums text-[var(--lp-dark)]">{formatUsdc(floor!)}</p>
+              <p className="mt-1 text-[14px] text-[var(--lp-text-muted)]">{ld.pitch.floorNote}</p>
+            </div>
+          ) : null}
+
+          {gets.length ? (
+            <section aria-labelledby="listing-gets" className="mt-8">
+              <h2 id="listing-gets" className="text-[17px] font-semibold text-[var(--lp-dark)]">{shop.listing.whatYouGet}</h2>
+              <ul className="mt-3 space-y-2">
+                {gets.map((item) => (
+                  <li key={item} className="flex gap-2.5 text-[15px] text-[var(--lp-dark)]">
+                    <Icon name="check" size={20} className="mt-0.5 shrink-0 text-[var(--lp-accent-on-light)]" />
+                    <span dir="auto">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
+          {buyerView ? (
+            <section aria-labelledby="listing-how" className="mt-8">
+              <h2 id="listing-how" className="text-[17px] font-semibold text-[var(--lp-dark)]">{shop.listing.howItWorks}</h2>
+              <ol className="mt-3 space-y-3">
+                {steps.map((step, i) => (
+                  <li key={step} className="flex gap-3 text-[15px] text-[var(--lp-dark)]">
+                    <span aria-hidden className="grid size-7 shrink-0 place-items-center rounded-full bg-[var(--color-surface-2)] text-[14px] font-semibold tabular-nums">{i + 1}</span>
+                    <span className="pt-0.5">{step}</span>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          ) : (
+            <section className="mt-6 rounded-[18px] bg-[var(--lp-card)] p-5">{action}</section>
+          )}
+
+          <p className="mt-6 text-[14px] text-[var(--lp-text-muted)]">
+            {ld.hero.postedTemplate.replace('{time}', relativeTime(listing.postedAt, locale))}
+            {isOpen && listing.expiresAt ? ` · ${ld.state.windowClosesTemplate.replace('{time}', relativeTime(listing.expiresAt, locale))}` : null}
+          </p>
+
+          {listing.terms ? (
+            <details className="group mt-6 border-t border-[var(--lp-border-light)]">
+              <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between text-[14px] text-[var(--lp-text-sub)] [&::-webkit-details-marker]:hidden font-medium">
+                {TERMS_COPY[locale].agreement}
+                <span aria-hidden className="transition-transform group-open:rotate-180">⌄</span>
+              </summary>
+              <p dir="auto" className="whitespace-pre-wrap pb-4 text-[14px] leading-6 text-[var(--lp-text-sub)] font-medium">{listing.terms}</p>
+            </details>
+          ) : null}
+
+          {address && !viewerIsOwner ? <ReportOffer listingId={listing.id} hasPhotos={photos.length > 0} /> : null}
+        </div>
+
+        {buyerView ? (
+          <aside data-order-panel className="sticky top-24 hidden space-y-5 rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-6 lg:block">
+            <p className="flex items-baseline gap-2">
+              <span className="text-[34px] font-bold leading-none tracking-[-0.03em] tabular-nums text-[var(--lp-dark)]">{price}</span>
+              <span className="text-[15px] font-semibold text-[var(--lp-text-sub)]">{shop.usdc}</span>
+            </p>
+            {factList}
+            <div className="space-y-2">
+              <Link href={buyerOfferHref} className={`w-full ${primaryClass}`}>{orderLabel}</Link>
+              {messageHref ? <Link href={messageHref} className={`w-full ${quietLink}`}>{shop.listing.message}</Link> : null}
+            </div>
+            {protectedNote}
+          </aside>
+        ) : null}
       </div>
 
-      <h1 dir="auto" className="mt-5 text-[26px] font-semibold leading-tight tracking-[-0.02em] text-[var(--lp-dark)] sm:text-[32px]">
-        {listing.title}
-      </h1>
-      <p dir="auto" className="mt-2 whitespace-pre-wrap text-[15px] leading-relaxed text-[var(--lp-text-sub)]">{listing.description}</p>
-      <OfferGallery urls={(listing as Listing & WithPhotos).photoUrls ?? []} title={listing.title} />
-
-      <Link
-        href={`/credit-passport/${listing.sellerUser}`} target="_blank" rel="noopener noreferrer"
-        className="mt-5 flex items-center gap-3 rounded-[16px] py-1 pe-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
-      >
-        <PersonAvatar address={listing.sellerUser} name={sellerName} />
-        <span className="min-w-0">
-          <span className="block text-[14px] text-[var(--lp-text-sub)] font-medium">{ld.pitch.sellerEyebrow}</span>
-          <span className="block truncate text-[15px] font-semibold text-[var(--lp-dark)]">
-            {sellerName}
-            {sellerTag ? <span className="ms-1.5 font-normal text-[var(--lp-text-sub)]">{sellerTag}</span> : null}
-          </span>
-        </span>
-      </Link>
-
-      <dl className="mt-6 flex flex-wrap gap-x-10 gap-y-3">
-        <div>
-          <dt className="text-[14px] text-[var(--lp-text-sub)] font-medium">{ld.pitch.askingLabel}</dt>
-          <dd className="mt-0.5 text-[20px] font-semibold tabular-nums text-[var(--lp-dark)]">{formatUsdc(listing.askingPriceUsdc)}</dd>
+      {buyerView ? (
+        <div
+          data-order-bar
+          className={`sticky z-20 -mx-4 mt-6 flex gap-2 border-t border-[var(--lp-border-light)] bg-[var(--lp-card)] px-4 py-3 sm:-mx-6 sm:px-6 lg:hidden ${isConnected ? 'bottom-[calc(5.5rem+env(safe-area-inset-bottom))]' : 'bottom-0 pb-[calc(0.75rem+env(safe-area-inset-bottom))]'}`}
+        >
+          <Link href={buyerOfferHref} className={`flex-1 ${primaryClass}`}>{orderLabel}</Link>
+          {messageHref ? <Link href={messageHref} className={quietLink}>{shop.listing.message}</Link> : null}
         </div>
-        {listing.readyInDays ? (
-          <div>
-            <dt className="text-[14px] text-[var(--lp-text-sub)] font-medium">{flow.readyIn}</dt>
-            <dd className="mt-0.5 text-[20px] font-semibold text-[var(--lp-dark)]">{flow.readyInRow.replace('{n}', String(listing.readyInDays))}</dd>
-          </div>
-        ) : null}
-        {showFloor ? (
-          <div>
-            <dt className="text-[14px] text-[var(--lp-text-sub)] font-medium">{ld.pitch.floorLabelTemplate.replace('{n}', String(listing.negotiationMaxDecreasePct ?? 0))}</dt>
-            <dd className="mt-0.5 text-[20px] font-semibold tabular-nums text-[var(--lp-dark)]">{formatUsdc(floor!)}</dd>
-          </div>
-        ) : null}
-      </dl>
-      {showFloor ? <p className="mt-2 text-[14px] text-[var(--lp-text-muted)]">{ld.pitch.floorNote}</p> : null}
-
-      <section className="mt-6 rounded-[18px] bg-[var(--lp-card)] p-5">{action}</section>
-      <p className="mt-3 text-[14px] text-[var(--lp-text-muted)]">
-        {ld.hero.postedTemplate.replace('{time}', relativeTime(listing.postedAt, locale))}
-        {isOpen && listing.expiresAt ? ` · ${ld.state.windowClosesTemplate.replace('{time}', relativeTime(listing.expiresAt, locale))}` : null}
-      </p>
-
-      {listing.terms ? (
-        <details className="group mt-8 border-t border-[var(--lp-border-light)]">
-          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between text-[14px] text-[var(--lp-text-sub)] [&::-webkit-details-marker]:hidden font-medium">
-            {TERMS_COPY[locale].agreement}
-            <span aria-hidden className="transition-transform group-open:rotate-180">⌄</span>
-          </summary>
-          <p dir="auto" className="whitespace-pre-wrap pb-4 text-[14px] leading-6 text-[var(--lp-text-sub)] font-medium">{listing.terms}</p>
-        </details>
       ) : null}
-
-      {address && !viewerIsOwner ? <ReportOffer listingId={listing.id} hasPhotos={!!(listing as Listing & WithPhotos).photoUrls?.length} /> : null}
 
       {showEdit ? (
         <EditListingModal
@@ -290,6 +392,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
           initialAskingPriceUsdc={listing.askingPriceUsdc}
           initialFloorPct={listing.negotiationMaxDecreasePct ?? 0}
           initialTtlDays={Math.max(1, Math.round((listing.expiresAt - Date.now()) / 86_400_000))}
+          initialCategory={category}
           busy={editing}
           error={editError}
           onSave={handleEdit}
@@ -315,6 +418,7 @@ function EditListingSheet({
   initialAskingPriceUsdc,
   initialFloorPct,
   initialTtlDays,
+  initialCategory,
   busy,
   error,
   onSave,
@@ -325,6 +429,7 @@ function EditListingSheet({
   initialAskingPriceUsdc: number;
   initialFloorPct: number;
   initialTtlDays: number;
+  initialCategory: CategoryId | null;
   busy: boolean;
   error: string | null;
   onSave: (patch: {
@@ -333,10 +438,14 @@ function EditListingSheet({
     askingPriceUsdc?: number;
     negotiationMaxDecreasePct?: number;
     ttlDays?: number;
+    category?: CategoryId;
   }) => void;
   onClose: () => void;
 }) {
-  const em = useTranslations().listingDetail.editModal;
+  const all = useTranslations();
+  const em = all.listingDetail.editModal;
+  const [category, setCategory] = useState<CategoryId | null>(initialCategory);
+  const categoryChanged = !!category && category !== initialCategory;
   const [title, setTitle] = useState(initialTitle);
   const [description, setDescription] = useState(initialDescription);
   const [price, setPrice] = useState<number | ''>(initialAskingPriceUsdc);
@@ -347,7 +456,7 @@ function EditListingSheet({
   const priceChanged = typeof price === 'number' && price !== initialAskingPriceUsdc;
   const floorChanged = floorPct !== initialFloorPct;
   const ttlChanged = typeof ttlDays === 'number' && ttlDays !== initialTtlDays;
-  const dirty = titleChanged || descChanged || priceChanged || floorChanged || ttlChanged;
+  const dirty = titleChanged || descChanged || priceChanged || floorChanged || ttlChanged || categoryChanged;
   const titleValid = title.trim().length >= 3 && title.trim().length <= 120;
   const descValid = description.trim().length >= 5 && description.trim().length <= 500;
   const priceValid = typeof price === 'number' && price > 0 && price <= 5_000_000;
@@ -363,7 +472,9 @@ function EditListingSheet({
       askingPriceUsdc?: number;
       negotiationMaxDecreasePct?: number;
       ttlDays?: number;
+      category?: CategoryId;
     } = {};
+    if (categoryChanged && category) patch.category = category;
     if (titleChanged) patch.title = title.trim();
     if (descChanged) patch.description = description.trim();
     if (priceChanged && typeof price === 'number') patch.askingPriceUsdc = price;
@@ -437,6 +548,13 @@ function EditListingSheet({
               {description.length}/500
             </span>
           </label>
+
+          <div className="space-y-1.5">
+            <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+              {all.marketShop.categoriesLabel}
+            </span>
+            <CategoryChips withAll={false} value={category} onChange={(next) => next !== 'all' && setCategory(next)} />
+          </div>
 
           <label className="block space-y-1.5">
             <span className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">

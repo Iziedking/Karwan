@@ -52,7 +52,7 @@ for (const route of ['/start', '/market', '/account']) {
         await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
         if (route === '/market') {
           if (mainnet) await expect(page).toHaveURL(/\/account$/);
-          else await expect(page.locator('.market-card').first()).toBeVisible();
+          else await expect(page.locator('[data-listing-card]').first()).toBeVisible();
         }
         if (route === '/account') await expect(page.getByRole('heading', { level: 1 })).toContainText('1,240.50');
         await page.evaluate(() => document.fonts.ready);
@@ -77,7 +77,7 @@ for (const route of ['/start', '/market', '/account']) {
           return {
             overflow: html.scrollWidth - html.clientWidth, tokens, resolved,
             font: h1 ? getComputedStyle(h1).fontFamily : '',
-            cards: Array.from(document.querySelectorAll('.market-card')).map(el => {
+            cards: Array.from(document.querySelectorAll('[data-listing-card]')).map(el => {
               const card = el.getBoundingClientRect();
               const price = el.lastElementChild!.getBoundingClientRect();
               return { top: card.top, bottom: card.bottom, priceTop: price.top, priceBottom: price.bottom };
@@ -117,7 +117,7 @@ for (const route of ['/start', '/market', '/account']) {
             expect(band.right).toBeLessThanOrEqual(page.viewportSize()!.width + 1);
           }
           if (route === '/market' && !mainnet) {
-            expect(metrics.cards).toHaveLength(12);
+            expect(metrics.cards).toHaveLength(6);
             for (const card of metrics.cards) {
               expect(Math.abs(card.priceBottom - card.bottom)).toBeLessThanOrEqual(2);
               for (const peer of metrics.cards.filter(peer => Math.abs(peer.top - card.top) < 2)) {

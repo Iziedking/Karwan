@@ -25,6 +25,7 @@ import { deliveryCardCopy, type DeliveryCardCopy } from './deliveryCard';
 import { recordOnTheWayCopy, type RecordOnTheWayCopy } from './recordOnTheWay';
 import { previousEscrowCopy, type PreviousEscrowCopy } from './previousEscrow';
 import { dealsPageCopy, type DealsPageCopy } from './dealsPage';
+import { marketShopCopy, type MarketShopCopy } from './marketShop';
 import { dealGuaranteeCopy, type DealGuaranteeCopy } from './dealGuarantee';
 import { contestsCopy, type ContestsCopy } from './contests';
 import { workCopy, type WorkCopy } from './work';
@@ -74,6 +75,7 @@ interface MessagesShape {
   recordOnTheWay: RecordOnTheWayCopy;
   previousEscrow: PreviousEscrowCopy;
   dealsPage: DealsPageCopy;
+  marketShop: MarketShopCopy;
   dealGuarantee: DealGuaranteeCopy;
   contests: ContestsCopy;
   work: WorkCopy;
@@ -5326,6 +5328,7 @@ export const en: MessagesShape = {
   recordOnTheWay: recordOnTheWayCopy.en,
   previousEscrow: previousEscrowCopy.en,
   dealsPage: dealsPageCopy.en,
+  marketShop: marketShopCopy.en,
   dealGuarantee: dealGuaranteeCopy.en,
   contests: contestsCopy.en,
   work: workCopy.en,

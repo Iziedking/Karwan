@@ -12,7 +12,6 @@ test('partners is a tab of Discover: same title, nav, search and filter bar', ()
   assert.doesNotMatch(source, /SectionTag|GridOverlay|tone="dark"/);
   const shared = read('../../discovery/components/FilterBar.tsx');
   assert.match(shared, /export function SortMenu/);
-  assert.match(read('../../listings/components/ListingsBrowse.tsx'), /from '@\/features\/discovery\/components\/FilterBar'/);
 });
 
 test('a business is a quiet card: verified says why in a tooltip once, no numbering, no outside-link arrow', () => {

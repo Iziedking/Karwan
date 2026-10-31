@@ -1251,6 +1251,22 @@ export interface Listing {
   /// The agreement the offer is sold on, and the parts it was built from.
   terms?: string;
   termsDraft?: ListingTermsDraft;
+  /// Goods, in-person or remote work; missing on older offers.
+  deliveryKind?: 'goods' | 'in_person' | 'remote';
+  /// The market category, picked by the seller or read from the words.
+  category?: string | null;
+  /// Who sells it, as the card shows them; null when it could not be read.
+  seller?: ListingSeller | null;
+}
+
+/// A seller on a market card (view 44): never an address.
+export interface ListingSeller {
+  name: string | null;
+  tag: string | null;
+  verified: boolean;
+  rating: { kind: 'new'; count: number } | { kind: 'rated'; value: number; count: number; disputed?: number };
+  /// Two-letter country, the only location anyone else sees.
+  country: string | null;
 }
 
 export interface ListingTermsDraft {
@@ -3108,6 +3124,8 @@ export const api = {
       { method: 'POST', body: JSON.stringify({ caller }) },
     ),
   listings: () => json<{ listings: Listing[] }>('/api/listings'),
+  /// The open requests the signed-in seller fits (view 44, Market Sell).
+  listingFits: (caller: string) => json<{ jobIds: string[] }>(`/api/listings/fits?caller=${encodeURIComponent(caller)}`),
   listingsForSeller: (address: string) =>
     json<{ listings: Listing[] }>(`/api/listings/mine?address=${address}`),
   getListing: (id: string, caller?: string) => {
@@ -3133,6 +3151,7 @@ export const api = {
       askingPriceUsdc?: number;
       negotiationMaxDecreasePct?: number;
       ttlDays?: number;
+      category?: string;
     },
   ) =>
     json<{ listing: Listing }>(`/api/listings/${id}/edit`, {
@@ -3151,6 +3170,7 @@ export const api = {
     readyInDays?: number;
     terms?: string;
     termsDraft?: ListingTermsDraft;
+    category?: string;
   }) =>
     json<{ listing: Listing }>('/api/listings', {
       method: 'POST',

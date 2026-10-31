@@ -225,18 +225,19 @@ test('canonical theme text, selected controls and field edges meet contrast thre
 });
 
 test('market price and unit stay together, and card facts sit on fixed lines that truncate rather than wrap', () => {
-  const market = source('../../features/listings/components/ListingsBrowse.tsx');
-  assert.match(market, /<p className="flex items-baseline gap-1\.5">/);
-  assert.match(market, /<span className="whitespace-nowrap text-\[14px\] text-\[var\(--ink-secondary\)\] font-medium"/);
-  assert.match(market, /<p className="truncate">\{\[\.\.\.facts/);
-  assert.doesNotMatch(market, /data-market-facts className="[^"]*flex-wrap/);
+  const card = source('../../features/market/components/ListingCard.tsx');
+  assert.match(card, /<span className="flex items-baseline gap-1">/);
+  // Two title lines always take the same room, so every card in a row lines up.
+  assert.match(card, /line-clamp-2 h-\[42px\]/);
+  assert.match(card, /block truncate text-\[14px\] text-\[var\(--ink-secondary\)\]">\{rating\}/);
 });
 
-test('market cards are quiet: no tinted surface, no decorative category icon, and example stock says so', () => {
-  const market = source('../../features/listings/components/ListingsBrowse.tsx');
-  assert.match(market, /const shell = '[^']*bg-\[var\(--lp-card\)\]/);
-  assert.doesNotMatch(market, /--market-surface|market-card-glyph|WORK_ICON/);
-  assert.match(market, /card\.example \? \(/);
+test('market cards are quiet: a white card, a real photo or a marked sample, and example stock says so', () => {
+  const card = source('../../features/market/components/ListingCard.tsx');
+  assert.match(card, /rounded-\[20px\] border border-\[var\(--lp-border-light\)\] bg-\[var\(--lp-card\)\]/);
+  assert.doesNotMatch(card, /--market-surface|market-card-glyph|WORK_ICON/);
+  assert.match(card, /card\.example \? t\.example/);
+  assert.match(card, /picture === 'sample' && !card\.example/);
 });
 
 test('account action is Withdraw, the route out that works for every account', () => {
@@ -386,7 +387,7 @@ test('activity is a statement: one count, rows under their day, a money in and o
   assert.doesNotMatch(ledger, /t\.count/);
   const page = source('../../app/activity/page.tsx');
   assert.match(page, /text-\[22px\] font-semibold/);
-  assert.match(source('../../features/listings/components/ListingsBrowse.tsx'), /<h1 className="text-\[22px\] font-semibold/);
+  assert.match(source('../../features/market/components/MarketPage.tsx'), /<h1 className="text-\[22px\] font-semibold/);
   assert.doesNotMatch(page, /Your records|clamp\(2\.8rem/);
 });
 

@@ -21,6 +21,11 @@ import {
   type Listing,
 } from '../db/listings.js';
 import { MAX_OFFER_PHOTOS, decodePhotoDataUrl, offerPhotos, photoUrls, type Photo } from '../listings/photos.js';
+import { CATEGORY_IDS, categoryOf } from '../listings/categories.js';
+import { liveSellerSummaries, type ListingSeller } from '../listings/sellerSummary.js';
+import { requestsThatFit } from '../listings/fits.js';
+import { listAllBriefs } from '../db/briefs.js';
+import { config } from '../config.js';
 import { requireAdmin } from '../middleware/adminAuth.js';
 import { rateLimit } from '../middleware/rateLimit.js';
 import { createFeedback } from '../db/feedback.js';
@@ -80,6 +85,7 @@ const createSchema = z.object({
   terms: z.string().trim().max(4000).optional(),
   termsDraft: termsDraftSchema.optional(),
   deliveryKind: z.enum(['goods', 'in_person', 'remote']).optional(),
+  category: z.enum(CATEGORY_IDS).optional(),
   /// Up to four photos as data URLs, resized on the device (view 28).
   photos: z.array(z.string().max(2_100_000)).max(MAX_OFFER_PHOTOS).optional(),
   /// Add the photos the seller sent to the assistant in the last hour. Set by
@@ -98,7 +104,7 @@ function decodePhotos(list: string[] | undefined): Photo[] | { error: string } {
   return out;
 }
 
-const withPhotoUrls = (listing: Listing) => ({ ...listing, photoUrls: photoUrls(listing) });
+const withPhotoUrls = (listing: Listing) => ({ ...listing, photoUrls: photoUrls(listing), category: categoryOf(listing) });
 
 const cancelSchema = z.object({ caller: addrSchema });
 
@@ -115,6 +121,7 @@ const editSchema = z.object({
   askingPriceUsdc: z.number().positive().max(5_000_000).optional(),
   negotiationMaxDecreasePct: z.number().min(0).max(50).optional(),
   ttlDays: z.number().min(0.0006).max(90).optional(),
+  category: z.enum(CATEGORY_IDS).optional(),
   /// The offer's full photo set after the edit, in order. An empty list removes them.
   photos: z.array(z.string().max(2_100_000)).max(MAX_OFFER_PHOTOS).optional(),
 });
@@ -168,9 +175,12 @@ export function configureListingMatchingEngineShadow(
 
 /// All listings, newest first. Public surface, strips private agent steering
 /// (negotiationMaxDecreasePct) so a buyer-side LLM can't enumerate floors.
-listingsRoutes.get('/', (c) => {
+listingsRoutes.get('/', async (c) => {
   // Rows that describe a trade Karwan does not support stay off the market.
-  return c.json({ listings: listAllListings().filter((l) => !prohibitedReason(l.title, l.description, l.terms)).map(publicListing) });
+  const rows = listAllListings().filter((l) => !prohibitedReason(l.title, l.description, l.terms));
+  // Who sells each offer, for the card; a seller who cannot be read is null.
+  const sellers = await liveSellerSummaries(rows.map((l) => l.sellerUser)).catch(() => new Map<string, ListingSeller | null>());
+  return c.json({ listings: rows.map((l) => ({ ...publicListing(l), seller: sellers.get(l.sellerUser.toLowerCase()) ?? null })) });
 });
 
 /// Listings owned by the caller, with the private fields intact. The caller's
@@ -190,10 +200,19 @@ listingsRoutes.get('/mine', (c) => {
   return c.json({ listings: listListingsForSeller(parsed.data).map(withPhotoUrls) });
 });
 
+/// The open requests the signed-in seller fits, for "Fits what you sell" on
+/// the Sell side. Empty while shortlists are off.
+listingsRoutes.get('/fits', (c) => {
+  const caller = c.req.query('caller') ?? '';
+  if (!isSessionSelf(c, caller)) return c.json({ error: 'sign in as this address to see the requests you fit' }, 403);
+  if (!config.SHORTLIST_MODE) return c.json({ jobIds: [] });
+  return c.json({ jobIds: requestsThatFit(caller, listAllBriefs()) });
+});
+
 /// Detail of one listing. `floor` and `negotiationMaxDecreasePct` are agent-
 /// private steering values; if the caller isn't the seller, both are stripped
 /// so a buyer-side LLM can't walk straight to the seller's bottom.
-listingsRoutes.get('/:id', (c) => {
+listingsRoutes.get('/:id', async (c) => {
   const id = c.req.param('id');
   const listing = getListing(id);
   if (!listing) return c.json({ error: 'listing not found' }, 404);
@@ -203,16 +222,18 @@ listingsRoutes.get('/:id', (c) => {
   const caller = sessionAddress(c);
   const isOwner = !!caller && caller === listing.sellerUser.toLowerCase();
   const status = listingStatus(listing);
+  const sellers = await liveSellerSummaries([listing.sellerUser]).catch(() => new Map<string, ListingSeller | null>());
+  const seller = sellers.get(listing.sellerUser.toLowerCase()) ?? null;
   if (isOwner) {
     return c.json({
-      listing: withPhotoUrls(listing),
+      listing: { ...withPhotoUrls(listing), seller },
       floor: listingFloor(listing),
       viewerIsOwner: true,
       status,
     });
   }
   const { negotiationMaxDecreasePct: _drop, seedKey, ...visible } = listing;
-  return c.json({ listing: { ...visible, example: Boolean(seedKey), photoUrls: photoUrls(listing) }, viewerIsOwner: false, status });
+  return c.json({ listing: { ...visible, example: Boolean(seedKey), photoUrls: photoUrls(listing), category: categoryOf(listing), seller }, viewerIsOwner: false, status });
 });
 
 /// One photo of an offer. Public, like the offer; cached for a year because
@@ -354,12 +375,13 @@ listingsRoutes.post('/:id/edit', async (c) => {
   const patch: Partial<
     Pick<
       Listing,
-      'title' | 'description' | 'askingPriceUsdc' | 'negotiationMaxDecreasePct' | 'expiresAt'
+      'title' | 'description' | 'askingPriceUsdc' | 'negotiationMaxDecreasePct' | 'expiresAt' | 'category'
     >
   > = {};
   if (body.title !== undefined) patch.title = body.title;
   if (body.description !== undefined) patch.description = body.description;
   if (body.askingPriceUsdc !== undefined) patch.askingPriceUsdc = body.askingPriceUsdc;
+  if (body.category !== undefined) patch.category = body.category;
   if (body.negotiationMaxDecreasePct !== undefined) {
     patch.negotiationMaxDecreasePct = body.negotiationMaxDecreasePct;
   }
@@ -449,6 +471,7 @@ listingsRoutes.post('/', async (c) => {
     terms: body.terms || undefined,
     termsDraft: body.termsDraft,
     deliveryKind: body.deliveryKind,
+    category: body.category,
     tradeLane: deriveLane(sellerAccountType),
     partyKind: sellerAccountType,
   });

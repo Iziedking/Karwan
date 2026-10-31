@@ -5,6 +5,7 @@ import { MARKET_REDIRECTS } from '../shared/utils/marketRedirects.mjs';
 import { API, ME, SELLER_AGENT, funded, watchHydration } from './moneyFixtures';
 import { PROFILE, serveSearch } from './searchFixtures';
 import { en } from '../shared/i18n/messages/en';
+import { ar } from '../shared/i18n/messages/ar';
 
 /// View 17: one market for every account. The account type is a lens, the
 /// entry question is asked once, and every old trade route lands here.
@@ -60,6 +61,8 @@ async function open(page: Page, account: Account, { locale = 'en', theme = 'ligh
     if (account === 'signedOut' && url.pathname === '/api/auth/me') return route.fulfill({ status: 401, json: { error: 'unauthorized' } });
     if (url.pathname === '/api/listings' && method === 'GET') return route.fulfill({ json: { listings: data.listings } });
     if (url.pathname === '/api/jobs/marketplace') return route.fulfill({ json: { briefs: data.briefs } });
+    // Hourly work is on here, so the start sheet offers it (it hides while off, view 44 Batch 1).
+    if (url.pathname === '/api/features') return route.fulfill({ json: { hourlyWork: true } });
     if (url.pathname === '/api/profile') return route.fulfill({ json: { profile: { ...PROFILE, settings } } });
     if (url.pathname === '/api/workspaces') {
       return route.fulfill({ json: { workspaces: account === 'business' ? [personal, business] : [personal], wallet: { address: ME, balanceScope: 'identity' } } });
@@ -85,14 +88,15 @@ async function fitsTheScreen(page: Page) {
 
 test.describe('one market', () => {
   for (const account of ['signedOut', 'person', 'business'] as const) {
-    test(`${account}: Find lists personal and business offers, and Start a trade offers five ways in`, async ({ page }) => {
+    test(`${account}: Buy lists personal and business offers, and the start sheet offers five ways in`, async ({ page }) => {
       const copy = TRADE_ENTRY_COPY.en;
       const { hydrationErrors } = await open(page, account);
       await expect(page.getByText(PERSON_OFFER).first()).toBeVisible();
       await expect(page.getByText(BUSINESS_OFFER).first()).toBeVisible();
-      await expect(page.getByRole('heading', { name: copy.desk.hub.yours })).toHaveCount(account === 'signedOut' ? 0 : 1);
+      // Your trades live in Deals now (view 44), never on the market.
+      await expect(page.getByRole('heading', { name: copy.desk.hub.yours })).toHaveCount(0);
 
-      await page.getByRole('button', { name: copy.title, exact: true }).click();
+      await page.getByRole('button', { name: en.marketShop.dealDirect, exact: true }).click();
       const sheet = page.getByRole('dialog');
       await expect(sheet.getByRole('link')).toHaveCount(4);
       await expect(sheet.getByRole('link', { name: new RegExp(copy.desk.need) })).toHaveAttribute('href', '/buyer?mode=managed#new-deal');
@@ -124,10 +128,9 @@ test.describe('one market', () => {
   });
 
   test('Arabic in dark keeps the market inside the screen', async ({ page }) => {
-    const copy = TRADE_ENTRY_COPY.ar;
     await open(page, 'person', { locale: 'ar', theme: 'dark' });
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
-    await expect(page.getByRole('button', { name: copy.title, exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: ar.marketShop.dealDirect, exact: true })).toBeVisible();
     await fitsTheScreen(page);
   });
 

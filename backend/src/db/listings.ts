@@ -4,6 +4,7 @@
 // the seller's existing submitBid call.
 
 import type { DeliveryKind } from '../location/rules.js';
+import type { CategoryId } from '../listings/categories.js';
 import { randomBytes } from 'node:crypto';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -61,6 +62,9 @@ export interface Listing {
   /// Goods, in-person or remote work. Missing on older offers, which are
   /// never gated by location (location/rules.ts kindOf).
   deliveryKind?: DeliveryKind;
+  /// The market category the seller picked. Missing, the market reads one
+  /// from the words (listings/categories.ts categoryOf).
+  category?: CategoryId;
   /// Up to four photos (view 28). The images live in data/listing-photos;
   /// this keeps their type, size and when they were saved.
   photos?: ListingPhoto[];
@@ -133,6 +137,7 @@ export function createListing(
     terms: input.terms,
     termsDraft: input.termsDraft,
     deliveryKind: input.deliveryKind,
+    category: input.category,
   };
   store.set(id, listing);
   persist();
@@ -201,13 +206,14 @@ export function markListingMatched(id: string, jobId: string): void {
 /// back to the buyer side.
 export function patchListing(
   id: string,
-  patch: Partial<Pick<Listing, 'title' | 'description' | 'askingPriceUsdc'>>,
+  patch: Partial<Pick<Listing, 'title' | 'description' | 'askingPriceUsdc' | 'category'>>,
 ): Listing | null {
   const l = store.get(id);
   if (!l) return null;
   if (patch.title !== undefined) l.title = patch.title;
   if (patch.description !== undefined) l.description = patch.description;
   if (patch.askingPriceUsdc !== undefined) l.askingPriceUsdc = patch.askingPriceUsdc;
+  if (patch.category !== undefined) l.category = patch.category;
   store.set(id, l);
   persist();
   return l;

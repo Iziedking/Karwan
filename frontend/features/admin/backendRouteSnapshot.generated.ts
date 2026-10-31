@@ -366,6 +366,7 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "GET", path: "/api/listings/:id/photos/:n" },
   { method: "POST", path: "/api/listings/:id/photos/clear" },
   { method: "POST", path: "/api/listings/:id/report" },
+  { method: "GET", path: "/api/listings/fits" },
   { method: "GET", path: "/api/listings/mine" },
   { method: "POST", path: "/api/me/attestations/revoke" },
   { method: "GET", path: "/api/me/reputation-sources" },

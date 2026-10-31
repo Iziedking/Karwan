@@ -320,58 +320,21 @@ export const SETTINGS_STEPS: TourStep[] = [
   },
 ];
 
-/// Marketplace tour. The market is sectioned by rail, so the walkthrough
-/// branches: an individual learns the P2P market plus the "businesses hiring"
-/// bridge and the view-only B2B strip; a business learns its B2B market.
-/// Distinct ids per variant so the "seen" set never suppresses the wrong one.
-export const MARKET_TOUR_ID = 'market-person-v1';
-export const MARKET_BIZ_TOUR_ID = 'market-biz-v1';
-/// `sections` is the list of section keys the page actually rendered. Empty
-/// sections are filtered out of the market before paint, so a step pointing at
-/// one spotlights nothing: on a quiet market the tour talked about rails that
-/// were not there. Passing the keys in keeps the tour describing the page in
-/// front of the user rather than the page as designed.
-export function buildMarketSteps(
-  accountKind: 'person' | 'business',
-  sections?: string[],
-): TourStep[] {
-  const built = buildAllMarketSteps(accountKind);
-  if (!sections) return built;
-  const present = new Set(sections.map((key) => `market-${key}`));
-  return built.filter((step) => !step.target || present.has(step.target));
-}
-
-function buildAllMarketSteps(accountKind: 'person' | 'business'): TourStep[] {
-  if (accountKind === 'business') {
-    return [
-      {
-        title: 'B2B market',
-        body: 'Review trade-finance deals your business can fund or fulfil.',
-        target: 'market-b2b',
-      },
-      {
-        title: 'Companies hiring',
-        body: 'Review business requests for individual services and decide whether to bid.',
-        target: 'market-hiring',
-      },
-    ];
-  }
+/// Marketplace tour (view 44): the Buy and Sell switch, the search, the
+/// categories and the newest offers. A business sees the same shop; its own
+/// id keeps the "seen" set apart from a personal account's.
+export const MARKET_TOUR_ID = 'market-person-v2';
+export const MARKET_BIZ_TOUR_ID = 'market-biz-v2';
+export function buildMarketSteps(accountKind: 'person' | 'business'): TourStep[] {
   return [
     {
-      title: 'Browse the market',
-      body: 'Review open requests and offers. Open a listing to inspect the details.',
-      target: 'market-p2p',
+      title: 'Buy or sell',
+      body: accountKind === 'business' ? 'Buy for your business, or switch to Sell to see what buyers need.' : 'Buy what you need, or switch to Sell to see what buyers need.',
+      target: 'market-switch',
     },
-    {
-      title: 'Companies hiring',
-      body: 'Review business requests for individual services. Open a brief to decide whether to bid.',
-      target: 'market-hiring',
-    },
-    {
-      title: 'B2B activity',
-      body: 'B2B activity is view-only for personal accounts. Business accounts can act on eligible trades.',
-      target: 'market-b2b',
-    },
+    { title: 'Search', body: 'Type what you need. Every offer here is protected: Karwan holds the money until you confirm.', target: 'market-search' },
+    { title: 'Categories', body: 'Pick a category to narrow the offers.', target: 'market-categories' },
+    { title: 'New on Karwan', body: 'The newest offers, with who sells them, their rating and how fast it comes. Open one to order.', target: 'market-new' },
   ];
 }
 

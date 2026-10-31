@@ -181,3 +181,12 @@ test('the assistant can send someone to Deals, where every deal lives', () => {
   assert.ok(!('error' in built) && built.href === '/deals' && built.label === 'Your deals');
   for (const entry of PLATFORM_GUIDE) assert.ok(!entry.pages.includes('/profile/open-deals'), `${entry.id} still names open deals`);
 });
+
+test('the assistant can open the Sell side, and the guide describes the market as a shop', () => {
+  assert.ok((NAVIGATE_DESTINATIONS as readonly string[]).includes('market_sell'));
+  const built = buildNavigateAction({ destination: 'market_sell' as never });
+  assert.ok(!('error' in built) && built.href === '/market?side=sell' && built.label === 'What buyers need');
+  const market = PLATFORM_GUIDE.find((entry) => entry.id === 'market')!;
+  for (const words of ['Buy', 'Sell', 'categor', 'Fits what you sell']) assert.match(market.summary, new RegExp(words));
+  assert.doesNotMatch(market.summary, /Start a trade/);
+});
