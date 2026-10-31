@@ -26,6 +26,8 @@ export interface ReportHeader {
 }
 
 const strip0x = (h: string) => (h.startsWith('0x') ? h : `0x${h}`) as Hex;
+/// Workflow ids are configured as the CRE CLI prints them, without 0x.
+const sameId = (a: string, b: string) => a.replace(/^0x/, '').toLowerCase() === b.replace(/^0x/, '').toLowerCase();
 
 export function parseReportHeader(raw: string): ReportHeader | null {
   const bytes = hexToBytes(strip0x(raw));
@@ -59,7 +61,7 @@ export async function verifyDonReport(
 ): Promise<VerifyResult> {
   const header = parseReportHeader(input.rawReport);
   if (!header) return { ok: false, reason: 'BAD_HEADER' };
-  if (![...deps.workflowIds].some((w) => w.toLowerCase() === header.workflowId.toLowerCase())) return { ok: false, reason: 'UNKNOWN_WORKFLOW' };
+  if (![...deps.workflowIds].some((w) => sameId(w, header.workflowId))) return { ok: false, reason: 'UNKNOWN_WORKFLOW' };
   if (header.workflowOwner !== deps.workflowOwner.toLowerCase()) return { ok: false, reason: 'UNKNOWN_OWNER' };
   if (deps.trust === 'simulation') {
     if (deps.production) return { ok: false, reason: 'SIMULATION_IN_PRODUCTION' };

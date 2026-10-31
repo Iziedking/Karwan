@@ -80,6 +80,13 @@ test('another workflow or another owner is refused before any signature work', a
   assert.deepEqual(await verifyDonReport({ rawReport: owner, context: CONTEXT, signatures: await sign(owner) }, deps), { ok: false, reason: 'UNKNOWN_OWNER' });
 });
 
+test('a workflow id configured without 0x, as the CRE CLI prints it, still matches', async () => {
+  const raw = rawReport();
+  const bare = { ...deps, workflowIds: new Set([WORKFLOW.slice(2).toUpperCase()]) };
+  const result = await verifyDonReport({ rawReport: raw, context: CONTEXT, signatures: await sign(raw) }, bare);
+  assert.deepEqual(result, { ok: true, simulated: false, workflowId: WORKFLOW, body: '0xdeadbeef' });
+});
+
 test('a short report is refused', async () => {
   assert.deepEqual(await verifyDonReport({ rawReport: '0x01', context: CONTEXT, signatures: [] }, deps), { ok: false, reason: 'BAD_HEADER' });
 });
