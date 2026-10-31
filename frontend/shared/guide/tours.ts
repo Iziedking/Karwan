@@ -223,41 +223,6 @@ export function buildBridgeSteps(view: {
   return steps;
 }
 
-/// Live request page tour (/jobs/[id]), the auction + negotiation surface a
-/// buyer watches after posting a request, before escrow funds.
-export const JOBS_TOUR_ID = 'jobs-v1';
-export const JOBS_STEPS: TourStep[] = [
-  {
-    title: 'Request summary',
-    body: 'Review your budget, deadline, offer count, and terms fingerprint.',
-    target: 'job-stats',
-  },
-  {
-    title: 'Your brief',
-    body: 'Read the request as posted, including the keywords used for matching.',
-    target: 'job-brief',
-  },
-  {
-    title: 'Request status',
-    body: 'Follow the path from posted to funded. Funding waits for your approval.',
-    target: 'job-flow',
-  },
-  {
-    title: 'Negotiation',
-    body: 'See the latest offer and how terms are changing. Open the card for the full history.',
-    target: 'job-negotiation',
-  },
-  {
-    title: 'Offers',
-    body: 'Compare offers by price and reputation. The current lead is shown first.',
-    target: 'job-bids',
-  },
-  {
-    title: 'Approval',
-    body: 'Approve the match when the terms are right. Nothing funds until you confirm.',
-  },
-];
-
 /// Deal page tour (/deals/[id]).
 export const DEAL_TOUR_ID = 'deal-v1';
 export const DEAL_STEPS: TourStep[] = [
