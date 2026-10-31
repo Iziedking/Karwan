@@ -1118,6 +1118,8 @@ export interface DirectDeal {
   /// Trade type drives the milestone vocabulary on the deal page and the
   /// trade-context band's visibility. Absent on legacy service deals.
   tradeType?: 'service' | 'goods' | 'mixed';
+  /// Goods only: shipped with tracking, or handed over in person (view 32).
+  goodsWay?: 'shipped' | 'in_person';
   /// Match lane. 'finance' is the trade-finance (SME) lane factoring applies to;
   /// 'service' (or absent) is the P2P lane, never factorable.
   tradeLane?: 'service' | 'finance';
@@ -4695,7 +4697,8 @@ export const api = {
       rating?: { kind: 'new'; count: number } | { kind: 'rated'; value: number; count: number; disputed?: number };
     }>(`/api/r/${encodeURIComponent(tag)}`),
   /// Whether the signed-in person already rated this settled deal.
-  dealRating: (jobId: string) => json<{ rated: boolean }>(`/api/deals/${encodeURIComponent(jobId)}/rating`),
+  /// Whether you rated, and the rating the other side gave you once it may be shown.
+  dealRating: (jobId: string) => json<{ rated: boolean; received?: { stars: number; note: string | null } | null }>(`/api/deals/${encodeURIComponent(jobId)}/rating`),
   rateDeal: (jobId: string, stars: number, note?: string) =>
     json<{ saved: true; revealed: boolean; message: string }>(`/api/deals/${encodeURIComponent(jobId)}/rating`, {
       method: 'POST',

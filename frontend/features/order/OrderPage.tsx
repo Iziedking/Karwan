@@ -8,7 +8,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { Icon } from '@/shared/components/Icon';
-import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
+import { FactsConfirmSheet } from '@/shared/components/FactsConfirmSheet';
 import { useMoneyBalances } from '@/features/money/hooks/useMoneyBalances';
 import { fill, formatDealDate } from '@/features/deals/workspace/presentation';
 import { useFundsLanded } from '@/features/deposit/useDepositWatch';
@@ -220,34 +220,21 @@ function OrderReview({ listingId, address, circle }: { listingId: string; addres
       </>
       )}
 
-      <ConfirmSheetShell open={confirming} labelledBy="order-confirm-title" busy={payOrder.busy} onClose={() => setConfirming(false)}>
-        <h2 id="order-confirm-title" className="text-[20px] font-semibold text-[var(--lp-dark)]">{t.confirmTitle}</h2>
-        <dl className="mt-4 divide-y divide-[var(--lp-border-light)]">
-          {[
-            [t.confirmFor, listing?.title ?? ''],
-            [t.confirmTo, name],
-            [t.confirmHeld, t.heldValue],
-            [fill(t.confirmIf, { name }), t.ifValue],
-          ].map(([label, value]) => (
-            <div key={label} className="flex items-baseline justify-between gap-4 py-2.5">
-              <dt className="text-[14px] text-[var(--lp-text-sub)]">{label}</dt>
-              <dd className="min-w-0 text-end text-[14px] font-medium text-[var(--lp-dark)]">{value}</dd>
-            </div>
-          ))}
-        </dl>
-        <div className="mt-6 flex flex-col gap-3">
-          <button
-            type="button"
-            data-testid="order-pay"
-            disabled={payOrder.busy}
-            onClick={() => { setConfirming(false); void payOrder.pay(); }}
-            className={PRIMARY}
-          >
-            {fill(t.pay, { amount: youPay })}
-          </button>
-          <button type="button" disabled={payOrder.busy} onClick={() => setConfirming(false)} className={QUIET}>{t.notNow}</button>
-        </div>
-      </ConfirmSheetShell>
+      <FactsConfirmSheet
+        open={confirming}
+        title={t.confirmTitle}
+        rows={[
+          [t.confirmFor, listing?.title ?? ''],
+          [t.confirmTo, name],
+          [t.confirmHeld, t.heldValue],
+          [fill(t.confirmIf, { name }), t.ifValue],
+        ]}
+        primaryLabel={fill(t.pay, { amount: youPay })}
+        quietLabel={t.notNow}
+        busy={payOrder.busy}
+        onConfirm={() => { setConfirming(false); void payOrder.pay(); }}
+        onClose={() => setConfirming(false)}
+      />
     </main>
   );
 }

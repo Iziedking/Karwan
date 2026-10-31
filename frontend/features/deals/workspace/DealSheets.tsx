@@ -49,6 +49,7 @@ export function DeliverSheet({ open, deal, caller, onClose, onDone }: SheetProps
   const s = useTranslations().dealWorkspace.simple;
   const placeholder = useTranslations().pageBits.dealDetail.containerRefPlaceholder;
   const f = useTranslations().deliveryCard.form;
+  const sendLabel = useTranslations().dealPage.sendDelivery;
   const ships = deliveryNeedsShipment(deal.tradeType);
   const photoRequired = deliveryNeedsPhoto(deal);
   const [mode, setMode] = useState<'courier' | 'person'>('courier');
@@ -235,7 +236,7 @@ export function DeliverSheet({ open, deal, caller, onClose, onDone }: SheetProps
           onClick={submit}
           className={primaryButton}
         >
-          {s.deliverSubmit}
+          {sendLabel}
         </button>
       </div>
     </Sheet>

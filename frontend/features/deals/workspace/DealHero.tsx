@@ -1,6 +1,10 @@
 'use client';
 import { useEffect, useState, type ReactNode } from 'react';
-import type { DealView, DirectDeal, MoneyMovementView } from '@/core/api';
+import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
+import { api, type DealView, type DirectDeal, type MoneyMovementView } from '@/core/api';
+import { useMoneyBalances } from '@/features/money/hooks/useMoneyBalances';
+import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { ChatPanel } from '@/features/chat/components/ChatPanel';
 import { Icon } from '@/shared/components/Icon';
 import { PersonAvatar } from '@/shared/components/PersonAvatar';
@@ -29,6 +33,14 @@ import { HandoverCode } from './HandoverCode';
 import { RecordNudge } from './RecordNudge';
 import { deliveryNeedsShipment } from './delivery';
 import { linksIn } from './deliveryCard';
+import { DealTitle } from './DealTitle';
+import { DealMoment } from './DealMoment';
+import { StepsTrack } from './StepsTrack';
+import { dealKindOf, dealSteps } from './dealSteps';
+import { checkSummary } from './checkSummary';
+import { CheckedCard } from './CheckedCard';
+import { titleMoneyLine, whatItIs } from './titleLine';
+import { momentFor } from './momentLine';
 
 type Panel = 'record' | 'messages' | 'problem' | 'deliver' | 'answerTime' | 'answerCancel' | 'turnDown' | null;
 
@@ -42,6 +54,14 @@ const LINE_TONE: Record<DealView['money']['line'], string> = {
   refunded: 'var(--lp-text-sub)',
   cancelled: 'var(--lp-text-sub)',
 };
+/// What the seller received: the escrow's net, else the deal amount.
+function sellerNetUsdc(deal: DirectDeal): string {
+  const wei = deal.onChain?.sellerNetWei;
+  if (!wei) return deal.dealAmountUsdc;
+  const micros = BigInt(wei);
+  return `${micros / 1_000_000n}.${(micros % 1_000_000n).toString().padStart(6, '0')}`;
+}
+
 const LINE_KEY = {
   'not-funded': 'notFunded', held: 'held', sending: 'sending', paused: 'paused',
   released: 'released', refunding: 'refunding', refunded: 'refunded', cancelled: 'cancelled',
@@ -63,6 +83,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   onRetryRecord: () => void;
 }) {
   const copy = useTranslations().dealWorkspace;
+  const dp = useTranslations().dealPage;
   const dl = useTranslations().dealLive;
   const s = copy.simple;
   const declineCopy = useTranslations().directDealDetail.actionPanel.awaitingAcceptance;
@@ -78,6 +99,17 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   // Messages open beside the deal from the message button, not as a row.
   const openMessages = () => setPanel('messages');
   const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<{ text: string; key: number } | null>(null);
+  // A finished deal: the seller sees what was paid, their balance and the rating they received.
+  const settledParty = view.stage === 'settled' && !!address;
+  const rating = useQuery({
+    queryKey: ['deal-rating', deal.jobId],
+    queryFn: () => api.dealRating(deal.jobId),
+    enabled: settledParty && !viewerIsBuyer,
+    retry: false,
+  });
+  const money = useMoneyBalances();
+  const { profile } = useUserProfile();
   // The short reference people give the assistant or support (view 42).
   const reference = dealReference(deal.jobId);
   const [copied, setCopied] = useState(false);
@@ -100,6 +132,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   const declined = view.stage === 'awaiting-acceptance' && !!deal.sellerDeclinedAt;
   const label = actionLabel(view.next, copy, locale);
   const automatic = automaticLine(view, copy, locale, viewerIsBuyer ? dl : undefined);
+  const momentNow = address ? momentFor(view, name, dp, view.next.amountUsdc ? formatUsdcAmount(view.next.amountUsdc, locale) : '') : null;
   const close = () => setPanel(null);
   const done = () => {
     setPanel(null);
@@ -122,7 +155,10 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   // A hold from the verdict shows at once, before the watcher records a detail.
   const heldDetail = paused ? heldDetailOf(deal) : undefined;
   const held = paused ? heldMove(heldDetail, viewerIsBuyer) : null;
-  const yourMove = !!address && (held === 'redeliver' || (!held && !!label) || (declined && viewerIsBuyer));
+  const summary = checkSummary(deal, viewerIsBuyer, dealKindOf(deal));
+  // A delivery that does not match what was agreed: the buyer asks for changes.
+  const askForChanges = !!address && viewerIsBuyer && summary?.result === 'gap';
+  const yourMove = !!address && (askForChanges || held === 'redeliver' || (!held && !!label) || (declined && viewerIsBuyer));
   const review = deal.deliveryReviewState?.state;
   const askPerson = () => callPerson([], { message: fill(copy.checkPaused.supportMessage, { path: `/deals/${deal.jobId}` }), dealId: deal.jobId });
   // The first link in the seller's note, wherever it sits in the sentence; the Delivery card lists them all.
@@ -130,7 +166,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   const seeDelivery = firstLink ? (
     <a href={firstLink} target="_blank" rel="noreferrer noopener" className="font-semibold underline underline-offset-4">{s.seeDelivery}</a>
   ) : null;
-  if (paused) {
+  if (summary && paused) {
     const detail = heldDetail;
     const reason = !detail
       ? paused.noWallet
@@ -143,53 +179,22 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
         : !viewerIsBuyer && detail === 'off-request'
           ? paused.sellerOff
           : paused.reasons[detail];
-    // The requirement review is the buyer's alone; the seller's copy of the deal never carries it.
-    const saw = viewerIsBuyer ? deal.deliveryMatch?.reason?.trim() : undefined;
     moment = (
-      <div role="status" className="space-y-2 rounded-[16px] border border-[var(--color-warning-soft)] bg-[var(--color-warning-soft)] p-4">
-        <p className="text-[15px] font-semibold text-[var(--lp-dark)]">{paused.title}</p>
+      <CheckedCard summary={summary}>
         <p className="text-[14px] leading-relaxed text-[var(--lp-dark)]">{reason}</p>
-        {saw ? (
-          <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium"><span className="font-semibold text-[var(--lp-dark)]">{paused.saw}:</span> <span dir="auto">{saw}</span></p>
-        ) : null}
         <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{paused.stays}</p>
-      </div>
+      </CheckedCard>
     );
-  } else if (check === 'checking') {
+  } else if (summary) {
     moment = (
-      <div role="status" aria-live="polite" className="flex gap-3 rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-4">
-        <span aria-hidden className="relative mt-1.5 flex size-2.5 shrink-0">
-          <span className="absolute inline-flex size-full rounded-full bg-[var(--accent)] opacity-60 motion-safe:animate-ping" />
-          <span className="relative inline-flex size-2.5 rounded-full bg-[var(--accent)]" />
-        </span>
-        <span className="space-y-1">
-          <span className="block text-[15px] font-semibold text-[var(--lp-dark)]">{live.checking}</span>
-          <span className="block text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{live.checkingBody}</span>
-        </span>
-      </div>
-    );
-  } else if (check === 'passed' || check === 'unverified') {
-    const passed = check === 'passed';
-    moment = (
-      <div role="status" className="flex gap-3 rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-4">
-        <span aria-hidden className={cn('mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full', passed ? 'bg-[var(--accent)]' : 'bg-[var(--color-warning-soft)]')}>
-          {passed ? (
-            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--lp-band-dark)]"><path d="M2.5 6.3 5 8.7l4.6-5.2" /></svg>
-          ) : (
-            <span className="size-1.5 rounded-full bg-[var(--color-warning)]" />
-          )}
-        </span>
-        <span className="space-y-1">
-          <span className="block text-[15px] font-semibold text-[var(--lp-dark)]">{passed ? live.passed : live.unverified}</span>
-          <span className="block text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
-            {viewerIsBuyer
-              ? passed ? live.passedBuyer : live.unverifiedBuyer
-              : fill(passed ? live.passedSeller : live.unverifiedSeller, { name })}{' '}
+      <CheckedCard summary={summary}>
+        {review === 'safe' || seeDelivery ? (
+          <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">
             {review === 'safe' ? `${copy.checkPaused.reviewedSafe} ` : null}
             {seeDelivery}
-          </span>
-        </span>
-      </div>
+          </p>
+        ) : null}
+      </CheckedCard>
     );
   } else if (declined && deal.sellerDeclineNote) {
     moment = (
@@ -273,7 +278,8 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   return (
     <div className="mx-auto max-w-[640px]">
       <div className="min-w-0 space-y-5">
-      <section aria-labelledby="deal-amount" className="pt-1">
+      <DealTitle
+        person={
       <header className="flex items-center gap-3">
         <button type="button" onClick={() => setPanel('record')} disabled={!card} className="flex min-w-0 items-center gap-3 rounded-[14px] py-1 pe-2 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
           <PersonAvatar address={counterparty} name={name} />
@@ -296,13 +302,12 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
           </button>
         ) : null}
       </header>
-
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-          <p role="status" aria-live="polite" className="inline-flex items-center gap-2 text-[14px] font-medium text-[var(--lp-text-sub)]">
-            <span aria-hidden className="size-2 rounded-full" style={{ background: LINE_TONE[view.money.line] }} />
-            {copy.money[LINE_KEY[view.money.line]]}
-          </p>
-          {reference ? (
+        }
+        what={whatItIs(deal)}
+        amount={formatUsdcAmount(deal.dealAmountUsdc, locale)}
+        moneyLine={titleMoneyLine(deal, name, dp, locale) ?? copy.money[LINE_KEY[view.money.line]]}
+        moneyTone={LINE_TONE[view.money.line]}
+        reference={reference ? (
             <button
               type="button"
               onClick={copyReference}
@@ -313,17 +318,23 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
               <Icon name={copied ? 'check' : 'copy'} size={16} className="shrink-0" />
             </button>
           ) : null}
-        </div>
-        <h1 id="deal-amount" className="mt-2 flex items-baseline gap-2 tabular-nums">
-          <span className="text-[34px] font-bold leading-none tracking-[-0.03em] text-[var(--lp-dark)] sm:text-[40px]">{formatUsdcAmount(deal.dealAmountUsdc, locale)}</span>{' '}
-          {' '}<span className="text-[15px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
-        </h1>
-        {moment ? <div className="mt-3 max-w-[52ch]">{moment}</div> : null}
-      </section>
+      />
+      {moment ? <div className="max-w-[52ch]">{moment}</div> : null}
 
-      <div className={cn('space-y-3 empty:hidden', yourMove && 'rounded-[20px] border border-[color-mix(in_srgb,var(--lp-accent)_45%,transparent)] bg-[var(--lp-card)] p-5')}>
-        {yourMove ? <p className="text-[13px] font-bold text-[var(--lp-accent-on-light)]">{copy.actor.you}</p> : null}
-        {held === 'redeliver' && address ? (
+      <div data-steps-card className={cn('space-y-5 rounded-[20px] border bg-[var(--lp-card)] p-5', yourMove ? 'border-[color-mix(in_srgb,var(--lp-accent)_45%,transparent)]' : 'border-[var(--lp-border-light)]')}>
+        <StepsTrack steps={dealSteps(deal)} />
+        {momentNow ? (
+          <DealMoment label={momentNow.label} yours={view.next.actor === 'you'} sentence={momentNow.sentence} automatic={automatic} />
+        ) : automatic ? (
+          <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{automatic}</p>
+        ) : null}
+      {/* The move sits in a bar fixed above the bottom nav on phones and inside this card on desktop (rule 4). */}
+      <div data-move-bar className="fixed inset-x-0 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 space-y-2 border-t border-[var(--lp-border-light)] bg-[var(--lp-card)] px-4 py-3 empty:hidden lg:static lg:z-auto lg:space-y-3 lg:border-0 lg:bg-transparent lg:p-0">
+        {askForChanges ? (
+          <button type="button" onClick={() => { setDraft({ text: dp.changesDraft, key: Date.now() }); openMessages(); }} className="inline-flex min-h-14 w-full items-center justify-center rounded-full bg-[var(--action)] px-6 text-[16px] font-semibold text-[var(--on-action)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-offset-2">
+            {dp.askChanges}
+          </button>
+        ) : held === 'redeliver' && address ? (
           <>
             <button type="button" onClick={() => setPanel('deliver')} disabled={busy} className="inline-flex min-h-14 w-full items-center justify-center rounded-full bg-[var(--action)] px-6 text-[16px] font-semibold text-[var(--on-action)] transition-opacity hover:opacity-90 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-offset-2">
               {copy.checkPaused.sendNewLink}
@@ -345,7 +356,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
           <button type="button" onClick={() => setEditing(true)} className="inline-flex min-h-14 w-full items-center justify-center rounded-full bg-[var(--action)] px-6 text-[16px] font-semibold text-[var(--on-action)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-offset-2">
             {declineCopy.editTermsCta}
           </button>
-        ) : view.next.actor !== 'you' && view.stage !== 'settled' && view.stage !== 'cancelled' ? (
+        ) : !momentNow && view.next.actor !== 'you' && view.stage !== 'settled' && view.stage !== 'cancelled' ? (
           // Whose move it is, as a plain line: a filled pill read as a button
           // nobody could press. A finished deal needs no line at all.
           <p className="flex min-h-11 w-full items-center justify-center text-[15px] font-medium text-[var(--lp-text-sub)]">
@@ -365,7 +376,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
             {fill(dl.again, { name })}
           </a>
         ) : null}
-        {automatic ? <p className="text-center text-[14px] text-[var(--lp-text-sub)] font-medium">{automatic}</p> : null}
+      </div>
       </div>
       {deal.dispute && address ? (
         <DisputePanel jobId={deal.jobId} dispute={deal.dispute} viewerIsBuyer={viewerIsBuyer} caller={address} name={name} myName={displayName} onChanged={onChanged} />
@@ -373,10 +384,30 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
       </div>
 
       {view.stage === 'settled' ? (
-        <div className="border-t border-[var(--lp-border-light)] pt-5">
+        <div data-deal-done className="border-t border-[var(--lp-border-light)] pt-5">
+          {settledParty && !viewerIsBuyer ? (
+            <div data-seller-paid className="mb-5">
+              <p className="text-[28px] font-bold tabular-nums tracking-[-0.02em] text-[var(--lp-dark)]">{fill(dp.paidYou, { amount: formatUsdcAmount(sellerNetUsdc(deal), locale) })}</p>
+              <p className="mt-1 text-[14px] font-medium text-[var(--lp-text-sub)]">
+                {dp.inBalance}{money.balance !== null ? ` · ${formatUsdcAmount(String(money.balance), locale)} USDC` : ''}
+              </p>
+              {rating.data?.received ? (
+                <div className="mt-3">
+                  <p className="text-[15px] font-semibold text-[var(--lp-dark)]">{fill(dp.ratedYou, { name, stars: rating.data.received.stars })}</p>
+                  {rating.data.received.note ? <p dir="auto" className="mt-0.5 text-[14px] text-[var(--lp-text-sub)]">{rating.data.received.note}</p> : null}
+                </div>
+              ) : null}
+              {profile?.handle ? (
+                <Link href={`/r/${profile.handle}`} className="mt-3 flex min-h-12 items-center justify-between border-y border-[var(--lp-border-light)] text-[15px] font-semibold text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+                  {dp.yourRecord}
+                  <Icon name="chevron-right" size={16} directional className="text-[var(--lp-text-sub)]" />
+                </Link>
+              ) : null}
+            </div>
+          ) : null}
           <p className="flex items-center gap-2 text-[16px] font-semibold text-[var(--lp-dark)]">
             <Icon name="check" size={20} className="text-[var(--color-positive)]" />
-            {view.onBothRecords ? dl.onBothRecords : dl.completeTitle}
+            {view.onBothRecords ? dl.onBothRecords : dp.doneTitle}
           </p>
           {view.onBothRecords || view.onBothRecords === null ? null : (
             <p className="mt-1.5 text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">
@@ -384,11 +415,20 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
             </p>
           )}
           {view.recordNudge ? <RecordNudge /> : null}
+          {viewerIsBuyer && address ? (
+            <button
+              type="button"
+              onClick={() => { setOpenRow('receipts'); document.getElementById('deal-row-receipts')?.scrollIntoView({ block: 'center' }); }}
+              className="mt-4 inline-flex min-h-11 items-center rounded-full border border-[var(--lp-border-light)] px-5 text-[15px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            >
+              {dp.getReceipt}
+            </button>
+          ) : null}
         </div>
       ) : null}
 
       <ul aria-label={copy.protectedDeal} className="mt-8 border-t border-[var(--lp-border-light)]">
-        {layers.map(({ key, attention }) => {
+        {layers.filter(({ key }) => key !== 'progress').map(({ key, attention }) => {
           const action = key === 'problem';
           const isOpen = openRow === key;
           return (
@@ -425,8 +465,11 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
         })}
       </ul>
 
+      {/* Room for the move bar, so it never covers the last row on a phone. */}
+      <div aria-hidden className="h-32 lg:hidden" />
+
       <Sheet open={panel === 'messages'} title={s.messages} onClose={close}>
-        {address ? <ChatPanel jobId={deal.jobId} caller={address} counterpartyLabel={name} counterpartyAddress={counterparty} /> : null}
+        {address ? <ChatPanel jobId={deal.jobId} caller={address} counterpartyLabel={name} counterpartyAddress={counterparty} draftSeed={draft?.text} draftSeedKey={draft?.key} /> : null}
       </Sheet>
       <Sheet open={panel === 'record'} title={s.record} onClose={close}>
         {card ? <TrustCard bare card={card} onOpenPassport={() => window.open(`/credit-passport/${counterparty}`, '_blank', 'noopener,noreferrer')} /> : null}

@@ -24,6 +24,7 @@ import { previousEscrowCopy } from './previousEscrow';
 import { dealsPageCopy } from './dealsPage';
 import { marketShopCopy } from './marketShop';
 import { orderFlowCopy } from './orderFlow';
+import { dealPageCopy } from './dealPage';
 import { dealGuaranteeCopy } from './dealGuarantee';
 import { contestsCopy } from './contests';
 import { workCopy } from './work';
@@ -76,6 +77,7 @@ export const hi: Messages = {
   dealsPage: dealsPageCopy.hi,
   marketShop: marketShopCopy.hi,
   orderFlow: orderFlowCopy.hi,
+  dealPage: dealPageCopy.hi,
   dealGuarantee: dealGuaranteeCopy.hi,
   contests: contestsCopy.hi,
   work: workCopy.hi,
@@ -3389,9 +3391,9 @@ export const hi: Messages = {
     privateDeal: 'यह सौदा निजी है।',
     privateTermsPreview: 'शर्तें देखने के लिए पुष्टि करें कि यह आप हैं।',
     money: {
-      notFunded: "अभी फंड नहीं हुआ",
+      notFunded: "अभी भुगतान नहीं हुआ",
       cancelled: "रद्द. कोई पैसा नहीं गया",
-      held: "एस्क्रो में सुरक्षित",
+      held: "Karwan के पास सुरक्षित",
       sending: "भेजा जा रहा है",
       paused: "रुका हुआ",
       released: "विक्रेता को जारी",
@@ -3403,8 +3405,8 @@ export const hi: Messages = {
     counterparty: { seller: 'विक्रेता', buyer: 'खरीदार' },
     actions: {
       accept: 'समझौता स्वीकार करें',
-      fundTemplate: '{amount} USDC फंड करें',
-      deliver: 'डिलीवरी जमा करें',
+      fundTemplate: '{amount} USDC का भुगतान करें',
+      deliver: 'डिलीवरी भेजें',
       releaseTemplate: '{amount} USDC जारी करें',
       claimTemplate: '{amount} USDC का दावा करें',
       reviewManually: 'मैं खुद जाँचूँगा',
@@ -3414,7 +3416,7 @@ export const hi: Messages = {
     },
     consequence: {
       accept: 'आप इन शर्तों से सहमत हैं। इसके बाद खरीदार सौदा फंड कर सकता है।',
-      fundTemplate: '{amount} USDC एस्क्रो में जाता है। यह आपके काम मंज़ूर करने पर, या बिना विवाद के समीक्षा अवधि खत्म होने पर जारी होता है।',
+      fundTemplate: 'Karwan {amount} USDC अपने पास रखता है। यह आपके जारी करने पर, या बिना किसी समस्या के जाँच का समय खत्म होने पर दिया जाता है।',
       releaseTemplate: '{amount} USDC {name} को जाता है।',
       claimTemplate: '{amount} USDC आपको मिलता है। समीक्षा अवधि खत्म हो गई है।',
       reviewManually: 'आप डिलीवरी खुद जाँचेंगे। आपका समीक्षा समय अभी शुरू होता है, और आप फिर भी विवाद कर सकते हैं।',
@@ -3422,7 +3424,7 @@ export const hi: Messages = {
     progress: { title: 'प्रगति', agreed: 'सहमति', funded: 'फंडेड', delivered: 'डिलीवर', checked: 'जाँचा गया', released: 'जारी', cancelled: 'रद्द', refunded: 'रिफ़ंड हुआ' },
     layers: { delivery: 'डिलीवरी', handover: 'हैंडओवर कोड', getPaid: 'अभी भुगतान पाएँ', needsYou: 'आपका इंतज़ार' },
     automatic: {
-      autoReleaseTemplate: '{date} को अपने आप जारी होगा, जब तक खरीदार विवाद न करे।',
+      autoReleaseTemplate: '{date} को अपने आप जारी होगा, जब तक खरीदार कोई समस्या न बताए।',
       deadlineReclaimTemplate: 'अगर कुछ डिलीवर नहीं हुआ, तो खरीदार {date} से पैसा वापस ले सकता है।',
       reclaimWaitsSeller: 'जब तक खरीदार आपके और समय के अनुरोध का जवाब नहीं देता, पैसा सौदे में रहता है।',
       acceptanceExpiryTemplate: 'यह ऑफ़र {date} को खत्म होगा।',

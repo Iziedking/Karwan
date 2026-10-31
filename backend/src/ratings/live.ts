@@ -56,6 +56,7 @@ export const liveRatings = createRatings({
 export const liveRatingToolDeps: RatingToolDeps = {
   rateDeal: liveRatings.rateDeal,
   waiting: liveRatings.waiting,
+  receivedRating: liveRatings.receivedRating,
   hasRated: async (caller, dealId) => {
     const me = await identityOf(caller);
     return (await ratingsForDeal(dealId)).some((r) => r.rater === me);

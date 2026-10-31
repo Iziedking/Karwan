@@ -24,6 +24,7 @@ import { previousEscrowCopy } from './previousEscrow';
 import { dealsPageCopy } from './dealsPage';
 import { marketShopCopy } from './marketShop';
 import { orderFlowCopy } from './orderFlow';
+import { dealPageCopy } from './dealPage';
 import { dealGuaranteeCopy } from './dealGuarantee';
 import { contestsCopy } from './contests';
 import { workCopy } from './work';
@@ -76,6 +77,7 @@ export const fr: Messages = {
   dealsPage: dealsPageCopy.fr,
   marketShop: marketShopCopy.fr,
   orderFlow: orderFlowCopy.fr,
+  dealPage: dealPageCopy.fr,
   dealGuarantee: dealGuaranteeCopy.fr,
   contests: contestsCopy.fr,
   work: workCopy.fr,
@@ -3391,9 +3393,9 @@ export const fr: Messages = {
     privateDeal: 'Cet accord est privé.',
     privateTermsPreview: 'Confirmez votre identité pour voir les conditions.',
     money: {
-      notFunded: "Pas encore financé",
+      notFunded: "Pas encore payé",
       cancelled: "Annulée. Aucun argent n'a bougé",
-      held: "En séquestre",
+      held: "Gardé par Karwan",
       sending: "Envoi en cours",
       paused: "En pause",
       released: "Versé au vendeur",
@@ -3405,8 +3407,8 @@ export const fr: Messages = {
     counterparty: { seller: 'le vendeur', buyer: "l'acheteur" },
     actions: {
       accept: 'Accepter l\'accord',
-      fundTemplate: 'Financer {amount} USDC',
-      deliver: 'Soumettre la livraison',
+      fundTemplate: 'Payer {amount} USDC',
+      deliver: 'Envoyer la livraison',
       releaseTemplate: 'Libérer {amount} USDC',
       claimTemplate: 'Réclamer {amount} USDC',
       reviewManually: 'Je vérifie moi-même',
@@ -3416,7 +3418,7 @@ export const fr: Messages = {
     },
     consequence: {
       accept: 'Vous acceptez ces conditions. L\'acheteur peut ensuite financer l\'accord.',
-      fundTemplate: '{amount} USDC passent en séquestre. Ils sont libérés quand vous validez le travail, ou à la fin du délai d\'examen sans litige.',
+      fundTemplate: 'Karwan garde {amount} USDC. Ils sont versés quand vous les libérez, ou à la fin du délai de vérification sans problème signalé.',
       releaseTemplate: '{amount} USDC vont à {name}.',
       claimTemplate: '{amount} USDC vous reviennent. Le délai d\'examen est terminé.',
       reviewManually: 'Vous examinez la livraison vous-même. Votre délai d\'examen commence maintenant, et vous pouvez toujours contester.',
@@ -3424,7 +3426,7 @@ export const fr: Messages = {
     progress: { title: 'Avancement', agreed: 'Convenu', funded: 'Financé', delivered: 'Livré', checked: 'Vérifié', released: 'Libéré', cancelled: 'Annulée', refunded: 'Remboursée' },
     layers: { delivery: 'Livraison', handover: 'Code de remise', getPaid: 'Être payé maintenant', needsYou: 'Vous attend' },
     automatic: {
-      autoReleaseTemplate: 'Libération automatique le {date} sauf contestation de l\'acheteur.',
+      autoReleaseTemplate: 'Versé automatiquement le {date}, sauf si l\'acheteur signale un problème.',
       deadlineReclaimTemplate: 'Sans livraison, l\'acheteur peut reprendre les fonds à partir du {date}.',
       reclaimWaitsSeller: 'L\'argent reste dans l\'accord jusqu\'à ce que l\'acheteur réponde à votre demande de délai.',
       acceptanceExpiryTemplate: 'Cette offre expire le {date}.',

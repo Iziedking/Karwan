@@ -9,6 +9,7 @@ export interface RatingToolDeps {
   rateDeal: (caller: string, dealId: string, stars: number, note?: string) => Promise<RateResult>;
   waiting: (caller: string) => Promise<Array<{ dealId: string; withTag: string | null; settledAt: number }>>;
   hasRated: (caller: string, dealId: string) => Promise<boolean>;
+  receivedRating: (caller: string, dealId: string) => Promise<{ stars: number; note: string | null } | null>;
 }
 
 export function ratingTools(address: string, deps: RatingToolDeps) {

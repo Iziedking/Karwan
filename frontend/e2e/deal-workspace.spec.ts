@@ -19,7 +19,7 @@ test('the money comes first with one clear action', async ({ page }) => {
   await serveDeal(page, deliveredDeal);
   await page.goto(`/deals/${JOB}`);
   await expect(page.getByRole('heading', { level: 1 })).toContainText('1,200');
-  await expect(page.getByText('Held in escrow', { exact: true })).toBeVisible();
+  await expect(page.getByText('Held by Karwan', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Release 600 USDC' })).toBeVisible();
   await expect(page.getByText('Releases automatically on 25 Sep 2026 unless you raise a problem.')).toBeVisible();
   await expect(page.getByRole('tab')).toHaveCount(0);
@@ -41,7 +41,8 @@ test('a money action opens the confirm sheet with its consequence', async ({ pag
   await page.goto(`/deals/${JOB}`);
   await page.getByRole('button', { name: 'Release 600 USDC' }).click();
   const sheet = page.getByRole('dialog');
-  await expect(sheet).toContainText('600 USDC goes to Amina Foods Ltd.');
+  await expect(sheet.getByRole('heading', { name: 'Release 600 USDC to Amina Foods Ltd?' })).toBeVisible();
+  await expect(sheet.getByText('Not yet', { exact: true })).toBeVisible();
   await expect(sheet).toContainText('This cannot be undone.');
   await page.keyboard.press('Escape');
   await expect(sheet).toBeHidden();
@@ -120,7 +121,7 @@ test('the page still works when the trust lookup failed', async ({ page }) => {
   await page.goto(`/deals/${JOB}`);
   await expect(page.getByRole('button', { name: 'Release 600 USDC' })).toBeVisible();
   await page.getByRole('button', { name: 'Release 600 USDC' }).click();
-  await expect(page.getByRole('dialog')).toContainText('600 USDC goes to the seller.');
+  await expect(page.getByRole('dialog').getByRole('heading', { name: 'Release 600 USDC to the seller?' })).toBeVisible();
 });
 
 const awaitingDelivery: DirectDeal = {
@@ -136,7 +137,7 @@ test('the seller delivers from a sheet on the same page', async ({ page }) => {
   const delivered = capture(page, 'delivered');
   await page.goto(`/deals/${JOB}`);
   await page.getByRole('button', { name: en.dealWorkspace.actions.deliver }).click();
-  const submit = page.getByRole('button', { name: s.deliverSubmit });
+  const submit = page.getByRole('dialog').getByRole('button', { name: en.dealPage.sendDelivery });
   await expect(submit).toBeDisabled();
   await page.getByLabel(s.proofLabel).fill('https://example.com/catalogue.pdf');
   await submit.click();
@@ -204,7 +205,7 @@ test('a goods order is shipped from the same page with its carrier and tracking 
   await page.getByRole('button', { name: en.dealWorkspace.actions.deliver }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toContainText(s.shipTitle);
-  const submit = dialog.getByRole('button', { name: s.deliverSubmit });
+  const submit = dialog.getByRole('button', { name: en.dealPage.sendDelivery });
   await expect(submit).toBeDisabled();
   await dialog.getByRole('radio', { name: 'DHL' }).click();
   await dialog.getByLabel(s.trackingLabel).fill('JD014600006');

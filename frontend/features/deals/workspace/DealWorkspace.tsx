@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { api, type MoneyMovementView } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ConnectWalletButton } from '@/shared/components/ConnectWallet';
 import { ProductBackLink } from '@/shared/components/ProductBackLink';
 import { type SettlementRecordFetchState } from '../components/SettlementRecord';
@@ -19,6 +19,12 @@ import { HighSignalVerificationCard } from '../components/HighSignalVerification
 import { ProtectionSection } from './ProtectionSection';
 import { RatingCard } from '@/features/ratings/RatingCard';
 import { DEALS_HREF } from '@/shared/components/workspaceNav';
+import { FactsConfirmSheet } from '@/shared/components/FactsConfirmSheet';
+import { dealReference } from '../dealReference';
+import { checkSummary } from './checkSummary';
+import { dealKindOf } from './dealSteps';
+import { whatItIs } from './titleLine';
+import { fill, formatUsdcAmount } from './presentation';
 
 const SOFT = 'bg-[var(--lp-workspace-soft)] motion-safe:animate-pulse motion-reduce:animate-none rounded-[10px]';
 
@@ -87,6 +93,9 @@ function DealFetchError({ kind, isRefetching, onRetry }: {
 
 export function DealWorkspace({ jobId }: { jobId: string }) {
   const copy = useTranslations().dealWorkspace;
+  const dp = useTranslations().dealPage;
+  const notNow = useTranslations().orderFlow.notNow;
+  const { locale } = useLocale();
   const auth = useAuth();
   const pathname = usePathname();
   const address = auth.address ?? null;
@@ -117,6 +126,13 @@ export function DealWorkspace({ jobId }: { jobId: string }) {
     if (!deal?.view) return;
     return registerDealTools(deal);
   }, [deal]);
+
+  // Release and claim ask with the facts sheet (rule 7); the others keep the consequence sheet.
+  const factsAction = actions.sheet?.action === 'release' || actions.sheet?.action === 'claim' ? actions.sheet.action : null;
+  const what = deal ? whatItIs(deal) : null;
+  const reference = dealReference(jobId);
+  const summary = deal?.view ? checkSummary(deal, actions.viewerIsBuyer, dealKindOf(deal)) : null;
+  const moveAmount = deal?.view?.next.amountUsdc ? formatUsdcAmount(deal.view.next.amountUsdc, locale) : '';
 
   if (fetchState !== 'success') {
     if (fetchState === 'error') {
@@ -162,8 +178,33 @@ export function DealWorkspace({ jobId }: { jobId: string }) {
         <V3EscrowPanel deal={deal} address={address} onChanged={() => { void refresh(); }} />
       </div>
       </div>
+      {factsAction ? (
+        <FactsConfirmSheet
+          open
+          title={factsAction === 'release' ? fill(dp.release.title, { amount: moveAmount, name: actions.displayName }) : actions.sheet?.title ?? ''}
+          rows={factsAction === 'release'
+            ? [
+                [dp.release.to, actions.displayName],
+                ...(what ? [[dp.release.for, what] as [string, string]] : []),
+                ...(reference ? [[dp.release.deal, reference] as [string, string]] : []),
+                [dp.release.heldBy, dp.release.heldValue],
+                ...(summary ? [[dp.release.checked, dp.result[summary.result]] as [string, string]] : []),
+              ]
+            : [
+                ...(what ? [[dp.release.for, what] as [string, string]] : []),
+                ...(reference ? [[dp.release.deal, reference] as [string, string]] : []),
+              ]}
+          note={factsAction === 'release' ? dp.release.cannotUndo : actions.sheet?.consequence}
+          primaryLabel={factsAction === 'release' ? fill(dp.release.primary, { amount: moveAmount }) : actions.sheet?.title ?? ''}
+          quietLabel={factsAction === 'release' ? dp.release.notYet : notNow}
+          busy={actions.busy}
+          error={actions.error}
+          onConfirm={() => { void actions.confirm(); }}
+          onClose={actions.close}
+        />
+      ) : null}
       <ConfirmSheet
-        open={!!actions.sheet}
+        open={!!actions.sheet && !factsAction}
         title={actions.sheet?.title ?? ''}
         consequence={actions.sheet?.consequence ?? ''}
         irreversible={actions.sheet?.irreversible ?? false}

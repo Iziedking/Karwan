@@ -24,6 +24,7 @@ import { previousEscrowCopy } from './previousEscrow';
 import { dealsPageCopy } from './dealsPage';
 import { marketShopCopy } from './marketShop';
 import { orderFlowCopy } from './orderFlow';
+import { dealPageCopy } from './dealPage';
 import { dealGuaranteeCopy } from './dealGuarantee';
 import { contestsCopy } from './contests';
 import { workCopy } from './work';
@@ -76,6 +77,7 @@ export const ar: Messages = {
   dealsPage: dealsPageCopy.ar,
   marketShop: marketShopCopy.ar,
   orderFlow: orderFlowCopy.ar,
+  dealPage: dealPageCopy.ar,
   dealGuarantee: dealGuaranteeCopy.ar,
   contests: contestsCopy.ar,
   work: workCopy.ar,
@@ -3391,9 +3393,9 @@ export const ar: Messages = {
     privateDeal: 'هذه الصفقة خاصة.',
     privateTermsPreview: 'أكّد هويتك لرؤية الشروط.',
     money: {
-      notFunded: "لم يُموَّل بعد",
+      notFunded: "لم يُدفع بعد",
       cancelled: "أُلغيت. لم يتحرك أي مال",
-      held: "محفوظ في الضمان",
+      held: "تحتفظ به كاروان",
       sending: "جارٍ الإرسال",
       paused: "متوقف مؤقتًا",
       released: "صُرف للبائع",
@@ -3405,7 +3407,7 @@ export const ar: Messages = {
     counterparty: { seller: 'البائع', buyer: 'المشتري' },
     actions: {
       accept: 'قبول الاتفاق',
-      fundTemplate: 'موّل {amount} USDC',
+      fundTemplate: 'ادفع {amount} USDC',
       deliver: 'إرسال التسليم',
       releaseTemplate: 'اصرف {amount} USDC',
       claimTemplate: 'اطلب {amount} USDC',
@@ -3416,7 +3418,7 @@ export const ar: Messages = {
     },
     consequence: {
       accept: 'توافق على هذه الشروط. يمكن للمشتري بعدها تمويل الصفقة.',
-      fundTemplate: 'ينتقل {amount} USDC إلى الضمان. يُحرَّر عند موافقتك على العمل، أو عند انتهاء مهلة المراجعة دون نزاع.',
+      fundTemplate: 'تحتفظ كاروان بـ {amount} USDC. يُصرف عندما تصرفه أنت، أو عند انتهاء وقت المراجعة دون الإبلاغ عن مشكلة.',
       releaseTemplate: 'يذهب {amount} USDC إلى {name}.',
       claimTemplate: 'يصلك {amount} USDC. انتهت مدة المراجعة.',
       reviewManually: 'تراجع التسليم بنفسك. يبدأ وقت المراجعة الآن، ويمكنك الاعتراض لاحقاً.',
@@ -3424,7 +3426,7 @@ export const ar: Messages = {
     progress: { title: 'التقدم', agreed: 'متفق عليها', funded: 'مموّلة', delivered: 'مُسلَّمة', checked: 'مُراجَعة', released: 'مصروفة', cancelled: 'أُلغيت', refunded: 'أُعيد المال' },
     layers: { delivery: 'التسليم', handover: 'رمز التسليم', getPaid: 'احصل على الدفع الآن', needsYou: 'بانتظارك' },
     automatic: {
-      autoReleaseTemplate: 'تُصرف تلقائياً في {date} ما لم يعترض المشتري.',
+      autoReleaseTemplate: 'تُصرف تلقائياً في {date} ما لم يُبلغ المشتري عن مشكلة.',
       deadlineReclaimTemplate: 'إن لم يُسلَّم شيء، يمكن للمشتري استرداد المال اعتباراً من {date}.',
       reclaimWaitsSeller: 'يبقى المال في الصفقة حتى يردّ المشتري على طلبك لمزيد من الوقت.',
       acceptanceExpiryTemplate: 'ينتهي هذا العرض في {date}.',

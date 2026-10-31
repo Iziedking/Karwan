@@ -83,5 +83,17 @@ export function createRatings(deps: RatingDeps) {
     );
   }
 
-  return { rateDeal, waiting };
+  /// The rating the other side gave this person on a deal, once it may be
+  /// shown. A note held for contact details stays private.
+  async function receivedRating(caller: string, dealId: string): Promise<{ stars: number; note: string | null } | null> {
+    const deal = await deps.getDeal(dealId);
+    if (!deal?.settledAt) return null;
+    const me = (await deps.identityOf(caller)).toLowerCase();
+    const all = await deps.ratingsForDeal(deal.jobId);
+    const mine = all.find((r) => r.ratee.toLowerCase() === me);
+    if (!mine || !isRevealed(all, deal.settledAt, deps.now())) return null;
+    return { stars: mine.stars, note: mine.noteHeld ? null : mine.note };
+  }
+
+  return { rateDeal, waiting, receivedRating };
 }

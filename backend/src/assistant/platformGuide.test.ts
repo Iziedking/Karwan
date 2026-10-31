@@ -205,3 +205,11 @@ test('the guide says a goods offer takes one order at a time', () => {
   assert.match(market.summary, /one order at a time/);
   assert.match(market.summary, /Someone has already ordered this/);
 });
+
+test('the guide describes the deal page for every kind (view 44, Batch 5)', () => {
+  const delivery = PLATFORM_GUIDE.find((entry) => entry.id === 'delivery')!;
+  assert.match(delivery.summary, /Checked by Karwan/);
+  assert.match(delivery.summary, /On the way, Arrived/);
+  assert.match(delivery.summary, /Ask for changes/);
+  assert.match(delivery.summary, /Release 120 USDC to Ada\?/);
+});

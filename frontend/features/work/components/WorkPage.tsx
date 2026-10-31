@@ -7,6 +7,8 @@ import { Sheet, fieldLabel, primaryButton, quietButton } from '@/features/deals/
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ALERT, FIELD, PRIMARY, QUIET } from '@/shared/ui/controls';
 import { hoursText, localDay, microsToUsdc, minutesFrom, weekLine, workActions } from '../workModel';
+import { StepsTrack } from '@/features/deals/workspace/StepsTrack';
+import { workSteps } from '../workSteps';
 
 type SheetKind =
   | { kind: 'accept' | 'decline' | 'takeBack' | 'fund' | 'notice' }
@@ -67,6 +69,8 @@ export function WorkPage({ id }: { id: string }) {
   // One primary button on the screen: the newest week's step if it has one,
   // else the first step on the work as a whole.
   const primaryWeek = [...v.weeks].reverse().find((w) => w.canLog || w.canApprove)?.k ?? null;
+  // The steps of the week in hand: the newest one still open, else the last.
+  const trackWeek = [...v.weeks].reverse().find((w) => w.status !== 'settled') ?? v.weeks.at(-1) ?? null;
 
   return (
     <main className="mx-auto w-full max-w-[760px] px-4 pb-16 pt-8 sm:px-6">
@@ -81,6 +85,12 @@ export function WorkPage({ id }: { id: string }) {
       </p>
       {v.status === 'ending' ? <p className="mt-1 text-[15px] font-semibold text-[var(--lp-dark)]">{fill(hourly ? t.page.endsAfterWeek : t.page.endsAfterMonth, { n: lastK + 1 })}</p> : null}
       {v.brief ? <p dir="auto" className="mt-4 whitespace-pre-line text-[15px] leading-relaxed text-[var(--lp-dark)]">{v.brief}</p> : null}
+      {trackWeek ? (
+        <div data-steps-card className="mt-6 rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5">
+          <p className="mb-4 text-[14px] font-semibold text-[var(--lp-text-sub)]">{periodName(trackWeek.k)}</p>
+          <StepsTrack steps={workSteps(trackWeek)} />
+        </div>
+      ) : null}
 
       {actions.length > 0 ? (
         <div className="mt-6 flex flex-wrap gap-3">

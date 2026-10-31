@@ -93,3 +93,14 @@ test('a deal closes for ratings 14 days after it settles, and is no longer liste
   assert.deepEqual(await s.ratings.rateDeal('0xb', 'd1', 5), { ok: false, message: 'Ratings for this deal closed 14 days after it settled.' });
   assert.deepEqual(await s.ratings.waiting('0xb'), []);
 });
+
+test('a person sees the rating they received, without a held note', async () => {
+  const s = setup();
+  assert.equal(await s.ratings.receivedRating('0xs', 'd1'), null);
+  await s.ratings.rateDeal('0xb', 'd1', 5, 'Fast and clear');
+  assert.deepEqual(await s.ratings.receivedRating('0xs', 'd1'), { stars: 5, note: 'Fast and clear' });
+  assert.equal(await s.ratings.receivedRating('0xb', 'd1'), null);
+  const held = setup();
+  await held.ratings.rateDeal('0xb', 'd1', 4, 'Call me on +234 801 234 5678');
+  assert.deepEqual(await held.ratings.receivedRating('0xs', 'd1'), { stars: 4, note: null });
+});

@@ -10,6 +10,8 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ALERT, FIELD, PRIMARY, QUIET } from '@/shared/ui/controls';
 import { contestScreen, microsToUsdc, picksReady } from '../contestModel';
+import { StepsTrack } from '@/features/deals/workspace/StepsTrack';
+import { contestSteps } from '../contestSteps';
 
 /// One contest (view 40). The prize is the loudest line; the buyer picks
 /// winners from previews; an entrant sends their work or replaces it.
@@ -91,6 +93,9 @@ export function ContestPage({ id }: { id: string }) {
       <p className="mt-1 text-[15px] text-[var(--lp-text-sub)]">
         {c.shares.length === 1 ? t.market.winnersOne : fill(t.market.winnersMany, { n: c.shares.length })} · {fill(t.page.closes, { date: date(c.entriesBy) })} · {fill(t.page.pickBy, { date: date(c.awardBy) })}
       </p>
+      <div data-steps-card className="mt-6 rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5">
+        <StepsTrack steps={contestSteps(c, now)} />
+      </div>
 
       <section className="mt-8 border-t border-[var(--lp-border-light)] pt-6">
         <h2 className="text-[17px] font-semibold text-[var(--lp-dark)]">{t.page.brief}</h2>

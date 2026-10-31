@@ -27,6 +27,7 @@ import { previousEscrowCopy, type PreviousEscrowCopy } from './previousEscrow';
 import { dealsPageCopy, type DealsPageCopy } from './dealsPage';
 import { marketShopCopy, type MarketShopCopy } from './marketShop';
 import { orderFlowCopy, type OrderFlowCopy } from './orderFlow';
+import { dealPageCopy, type DealPageCopy } from './dealPage';
 import { dealGuaranteeCopy, type DealGuaranteeCopy } from './dealGuarantee';
 import { contestsCopy, type ContestsCopy } from './contests';
 import { workCopy, type WorkCopy } from './work';
@@ -78,6 +79,7 @@ interface MessagesShape {
   dealsPage: DealsPageCopy;
   marketShop: MarketShopCopy;
   orderFlow: OrderFlowCopy;
+  dealPage: DealPageCopy;
   dealGuarantee: DealGuaranteeCopy;
   contests: ContestsCopy;
   work: WorkCopy;
@@ -5332,6 +5334,7 @@ export const en: MessagesShape = {
   dealsPage: dealsPageCopy.en,
   marketShop: marketShopCopy.en,
   orderFlow: orderFlowCopy.en,
+  dealPage: dealPageCopy.en,
   dealGuarantee: dealGuaranteeCopy.en,
   contests: contestsCopy.en,
   work: workCopy.en,
@@ -8699,12 +8702,12 @@ export const en: MessagesShape = {
     privateDeal: 'This deal is private.',
     privateTermsPreview: 'Confirm it is you to see the terms.',
     money: {
-      notFunded: "Not funded yet",
+      notFunded: "Not paid in yet",
       cancelled: "Cancelled. No money moved",
-      held: "Held in escrow",
+      held: "Held by Karwan",
       sending: "Sending",
       paused: "Paused",
-      released: "Released to the seller",
+      released: "Paid out to the seller",
       refunding: "Returning to the buyer",
       refunded: "Returned to the buyer",
     },
@@ -8713,8 +8716,8 @@ export const en: MessagesShape = {
     counterparty: { seller: 'the seller', buyer: 'the buyer' },
     actions: {
       accept: 'Accept the agreement',
-      fundTemplate: 'Fund {amount} USDC',
-      deliver: 'Submit delivery',
+      fundTemplate: 'Pay in {amount} USDC',
+      deliver: 'Send delivery',
       releaseTemplate: 'Release {amount} USDC',
       claimTemplate: 'Claim {amount} USDC',
       reviewManually: 'Review it myself',
@@ -8724,7 +8727,7 @@ export const en: MessagesShape = {
     },
     consequence: {
       accept: 'You agree to these terms. The buyer can then fund the deal.',
-      fundTemplate: '{amount} USDC moves into escrow. It is released when you approve the work, or when the review window ends without a dispute.',
+      fundTemplate: 'Karwan holds {amount} USDC. It is paid out when you release it, or when the review time ends with no problem raised.',
       releaseTemplate: '{amount} USDC goes to {name}.',
       claimTemplate: '{amount} USDC comes to you. The review window has ended.',
       reviewManually: 'You review the delivery yourself. Your review time starts now, and you can still dispute.',
@@ -8732,7 +8735,7 @@ export const en: MessagesShape = {
     progress: { title: 'Progress', agreed: 'Agreed', funded: 'Funded', delivered: 'Delivered', checked: 'Checked', released: 'Released', cancelled: 'Cancelled', refunded: 'Refunded' },
     layers: { delivery: 'Delivery', handover: 'Handover code', getPaid: 'Get paid now', needsYou: 'Needs you' },
     automatic: {
-      autoReleaseTemplate: 'Releases automatically on {date} unless the buyer disputes.',
+      autoReleaseTemplate: 'Paid out automatically on {date} unless the buyer raises a problem.',
       deadlineReclaimTemplate: 'If nothing is delivered, the buyer can take the money back from {date}.',
       reclaimWaitsSeller: 'The money stays in the deal until the buyer answers your request for more time.',
       acceptanceExpiryTemplate: 'This offer expires on {date}.',

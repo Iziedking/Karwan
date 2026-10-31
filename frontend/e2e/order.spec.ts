@@ -139,7 +139,7 @@ test('short of money: add it, it arrives, then one sheet and one payment', async
   const axe = await new AxeBuilder({ page }).analyze();
   expect(axe.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')).toEqual([]);
   await page.screenshot({ path: testInfo.outputPath('confirm.png') });
-  await sheet.getByTestId('order-pay').click();
+  await sheet.getByTestId('facts-confirm').click();
 
   await expect(page).toHaveURL(new RegExp(`/deals/${JOB}$`));
   expect(world.creates).toHaveLength(1);
@@ -157,7 +157,7 @@ test("when the seller's agent cannot accept, you land on the deal and nothing is
   });
   await page.goto('/order/lst_logo');
   await page.getByRole('button', { name: 'Pay 120.60 USDC' }).click();
-  await page.getByRole('dialog').getByTestId('order-pay').click();
+  await page.getByRole('dialog').getByTestId('facts-confirm').click();
   await expect(page).toHaveURL(new RegExp(`/deals/${JOB}$`));
   expect(world.creates).toHaveLength(1);
   expect(world.agentFunds).toHaveLength(0);
@@ -171,7 +171,7 @@ test('an offer that changed before Pay is not ordered', async ({ page }) => {
   });
   await page.goto('/order/lst_logo');
   await page.getByRole('button', { name: 'Pay 120.60 USDC' }).click();
-  await page.getByRole('dialog').getByTestId('order-pay').click();
+  await page.getByRole('dialog').getByTestId('facts-confirm').click();
   await expect(page.getByText(t.changed)).toBeVisible();
   await expect(page.getByRole('link', { name: t.backToOffer })).toHaveAttribute('href', '/listings/lst_logo');
   expect(world.funds).toHaveLength(0);

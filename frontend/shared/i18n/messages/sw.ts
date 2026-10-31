@@ -24,6 +24,7 @@ import { previousEscrowCopy } from './previousEscrow';
 import { dealsPageCopy } from './dealsPage';
 import { marketShopCopy } from './marketShop';
 import { orderFlowCopy } from './orderFlow';
+import { dealPageCopy } from './dealPage';
 import { dealGuaranteeCopy } from './dealGuarantee';
 import { contestsCopy } from './contests';
 import { workCopy } from './work';
@@ -76,6 +77,7 @@ export const sw: Messages = {
   dealsPage: dealsPageCopy.sw,
   marketShop: marketShopCopy.sw,
   orderFlow: orderFlowCopy.sw,
+  dealPage: dealPageCopy.sw,
   dealGuarantee: dealGuaranteeCopy.sw,
   contests: contestsCopy.sw,
   work: workCopy.sw,
@@ -3390,7 +3392,7 @@ export const sw: Messages = {
     money: {
       notFunded: "Bado haijalipiwa",
       cancelled: "Imeghairiwa. Hakuna pesa iliyohamishwa",
-      held: "Imeshikiliwa kwenye escrow",
+      held: "Inashikiliwa na Karwan",
       sending: "Inatumwa",
       paused: "Imesimamishwa",
       released: "Imetolewa kwa muuzaji",
@@ -3402,8 +3404,8 @@ export const sw: Messages = {
     counterparty: { seller: 'muuzaji', buyer: 'mnunuzi' },
     actions: {
       accept: 'Kubali makubaliano',
-      fundTemplate: 'Fadhili {amount} USDC',
-      deliver: 'Wasilisha uwasilishaji',
+      fundTemplate: 'Lipa {amount} USDC',
+      deliver: 'Tuma uwasilishaji',
       releaseTemplate: 'Toa {amount} USDC',
       claimTemplate: 'Dai {amount} USDC',
       reviewManually: 'Nitakagua mwenyewe',
@@ -3413,7 +3415,7 @@ export const sw: Messages = {
     },
     consequence: {
       accept: 'Unakubali masharti haya. Kisha mnunuzi anaweza kufadhili mkataba.',
-      fundTemplate: '{amount} USDC zinaingia kwenye escrow. Zinatolewa ukikubali kazi, au muda wa kukagua ukiisha bila mgogoro.',
+      fundTemplate: 'Karwan inashikilia {amount} USDC. Zinalipwa ukiziachilia, au muda wa kukagua ukiisha bila tatizo kuripotiwa.',
       releaseTemplate: '{amount} USDC zinaenda kwa {name}.',
       claimTemplate: '{amount} USDC zinakuja kwako. Muda wa kukagua umekwisha.',
       reviewManually: 'Unakagua uwasilishaji mwenyewe. Muda wako wa kukagua unaanza sasa, na bado unaweza kupinga.',
@@ -3421,7 +3423,7 @@ export const sw: Messages = {
     progress: { title: 'Maendeleo', agreed: 'Imekubaliwa', funded: 'Imefadhiliwa', delivered: 'Imewasilishwa', checked: 'Imekaguliwa', released: 'Imetolewa', cancelled: 'Imeghairiwa', refunded: 'Imerejeshwa' },
     layers: { delivery: 'Uwasilishaji', handover: 'Msimbo wa makabidhiano', getPaid: 'Lipwa sasa', needsYou: 'Inakusubiri' },
     automatic: {
-      autoReleaseTemplate: 'Inatolewa yenyewe tarehe {date} isipokuwa mnunuzi apinge.',
+      autoReleaseTemplate: 'Inalipwa yenyewe tarehe {date} isipokuwa mnunuzi aripoti tatizo.',
       deadlineReclaimTemplate: 'Kama hakuna kilichowasilishwa, mnunuzi anaweza kurudisha pesa kuanzia {date}.',
       reclaimWaitsSeller: 'Pesa zinabaki kwenye mkataba hadi mnunuzi ajibu ombi lako la muda zaidi.',
       acceptanceExpiryTemplate: 'Ofa hii inaisha tarehe {date}.',

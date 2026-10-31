@@ -20,7 +20,9 @@ export function createRatingRoutes(deps: RatingRouteDeps): Hono {
   app.get('/:id/rating', async (c) => {
     const me = deps.viewer(c);
     if (!me) return c.json({ error: 'Sign in to rate this deal.' }, 401);
-    return c.json({ rated: await deps.hasRated(me, c.req.param('id')) });
+    const id = c.req.param('id');
+    const [rated, received] = await Promise.all([deps.hasRated(me, id), deps.receivedRating(me, id)]);
+    return c.json({ rated, received });
   });
 
   app.post('/:id/rating', async (c) => {

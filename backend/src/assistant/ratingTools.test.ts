@@ -18,6 +18,7 @@ function setup() {
     },
     waiting: async () => [{ dealId: 'd1', withTag: 'ada', settledAt: 1_760_000_000_000 }],
     hasRated: async (_caller, dealId) => dealId === 'done',
+    receivedRating: async () => null,
   };
   return { deps, calls };
 }
@@ -57,8 +58,8 @@ test('a refused rating is a 400 with the plain reason', async () => {
 test('the deal page learns whether you rated already', async () => {
   const s = setup();
   const app = createRatingRoutes({ ...s.deps, viewer: () => '0xb' });
-  assert.deepEqual(await (await app.request('/done/rating')).json(), { rated: true });
-  assert.deepEqual(await (await app.request('/d1/rating')).json(), { rated: false });
+  assert.deepEqual(await (await app.request('/done/rating')).json(), { rated: true, received: null });
+  assert.deepEqual(await (await app.request('/d1/rating')).json(), { rated: false, received: null });
 });
 
 test('the agent can list the deals waiting for a rating, by tag', async () => {

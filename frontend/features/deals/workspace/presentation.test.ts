@@ -55,7 +55,7 @@ test('the automatic outcome names its date', () => {
     next: { action: 'release', actor: 'you', amountUsdc: '600' },
     automatic: { kind: 'auto-release', at: Date.UTC(2026, 8, 25, 9, 0) },
   }, copy, 'en');
-  assert.equal(line, 'Releases automatically on 25 Sep 2026 unless the buyer disputes.');
+  assert.equal(line, 'Paid out automatically on 25 Sep 2026 unless the buyer raises a problem.');
 });
 
 test('the buyer reads the automatic outcome addressed to them', () => {
