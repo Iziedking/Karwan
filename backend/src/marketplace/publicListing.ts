@@ -10,6 +10,6 @@ import { categoryOf, type CategoryId } from '../listings/categories.js';
 /// stock Karwan seeded, so the card can say so. Photos go out as links, so
 /// the list stays small and each image caches on its own.
 export function publicListing(l: Listing): Omit<Listing, 'negotiationMaxDecreasePct' | 'matchedJobId' | 'seedKey' | 'category' | 'orderJobId'> & { example: boolean; photoUrls: string[]; category: CategoryId | null } {
-  const { negotiationMaxDecreasePct: _floor, matchedJobId: _job, seedKey, orderJobId: _order, ...rest } = l;
+  const { negotiationMaxDecreasePct: _floor, matchedJobId: _job, orderJobId: _order, seedKey, ...rest } = l;
   return { ...rest, example: Boolean(seedKey), photoUrls: photoUrls(l), category: categoryOf(l) };
 }

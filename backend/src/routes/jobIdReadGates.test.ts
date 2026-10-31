@@ -29,8 +29,9 @@ test('every read keyed by a job id checks the signed session, never the id alone
   assert.ok(checked.length >= 10, `expected the job routes to be found, saw ${checked.length}`);
 });
 
-test('the public listing view still carries no negotiation floor or seed key', async () => {
+test('the public listing view still carries no negotiation floor, seed key or holding order', async () => {
   const source = await readFile(new URL('../marketplace/publicListing.ts', import.meta.url), 'utf8');
   assert.match(source, /negotiationMaxDecreasePct: _floor/);
   assert.match(source, /seedKey, \.\.\.rest/);
+  assert.match(source, /orderJobId: _order/);
 });
