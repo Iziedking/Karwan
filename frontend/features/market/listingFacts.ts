@@ -35,14 +35,13 @@ export const CATEGORY_ICON: Record<CategoryId, IconName> = {
 
 /// Free stock photos (Unsplash License), one per category, shown when an offer
 /// has no photo of its own. On a real seller's offer the card marks it as a
-/// sample, so it never passes for their item. Food borrows the farm photo
-/// until it has its own.
+/// sample, so it never passes for their item.
 const SAMPLE: Record<CategoryId, string> = {
   design: 'design',
   tech: 'tech',
   phones: 'phones',
   fashion: 'fashion',
-  food: 'farm',
+  food: 'food',
   farm: 'farm',
   home: 'home',
   lessons: 'lessons',

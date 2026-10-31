@@ -32,4 +32,6 @@ test('every category has an icon and a sample photo, and so does an offer with n
     assert.match(samplePhoto(id), /^\/market-samples\/[a-z]+\.jpg$/);
   }
   assert.equal(samplePhoto(null), '/market-samples/default.jpg');
+  // Each category shows its own photo, Food included.
+  assert.equal(new Set(CATEGORY_IDS.map(samplePhoto)).size, CATEGORY_IDS.length);
 });
