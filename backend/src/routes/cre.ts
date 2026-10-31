@@ -142,16 +142,17 @@ export function createCreRoutes(deps: CreRouteDeps) {
 
   /// A DON-signed post is acted on only when the report was signed by the
   /// right workflow over exactly the payload sent beside it, and only once.
-  async function signedPost(c: Context, report: z.infer<typeof reportSchema>, signedBody: unknown, allowed: string[]) {
+  /// A repeatable post is one every node of the DON sends with the same
+  /// report; acting on it again changes nothing, so each node gets the same reply.
+  async function signedPost(c: Context, report: z.infer<typeof reportSchema>, signedBody: unknown, allowed: string[], repeatable = false) {
     const verified = await deps.verifyReport(report);
     if (!verified.ok) return c.json({ error: 'report not signed by the DON', code: verified.reason }, 401);
     if (!allowed.some((w) => sameId(w, verified.workflowId))) return c.json({ error: 'report from another workflow' }, 401);
     if (verified.body.toLowerCase() !== toHex(toBytes(canonicalJson(signedBody))).toLowerCase()) {
       return c.json({ error: 'payload is not what the DON signed' }, 400);
     }
-    if (!(await deps.store.markReport(keccak256(report.rawReport.startsWith('0x') ? (report.rawReport as Hex) : toHex(toBytes(report.rawReport))), deps.now()))) {
-      return c.json({ error: 'report already used' }, 409);
-    }
+    const fresh = await deps.store.markReport(keccak256(report.rawReport.startsWith('0x') ? (report.rawReport as Hex) : toHex(toBytes(report.rawReport))), deps.now());
+    if (!fresh && !repeatable) return c.json({ error: 'report already used' }, 409);
     return null;
   }
 
@@ -166,13 +167,16 @@ export function createCreRoutes(deps: CreRouteDeps) {
 
   app.post('/dry-run/result', async (c) => {
     const body = z.object({
-      payload: z.object({ dealKey: z.string().regex(/^dry-[0-9a-f]{64}$/) }).passthrough(),
+      payload: z.object({ dealKey: z.string().regex(/^dry-[0-9a-f]{64}$/), released: z.boolean().optional() }).passthrough(),
       report: reportSchema,
     }).safeParse(await c.req.json().catch(() => null));
     if (!body.success) return c.json({ error: 'bad request' }, 400);
-    const refused = await signedPost(c, body.data.report, body.data.payload, deps.workflows.check);
+    const refused = await signedPost(c, body.data.report, body.data.payload, deps.workflows.check, true);
     if (refused) return refused;
-    await deps.store.putDryRun(`0x${body.data.payload.dealKey.slice(4)}`, { payload: body.data.payload, report: body.data.report }, deps.now());
+    const { payload } = body.data;
+    await deps.store.putDryRun(`0x${payload.dealKey.slice(4)}`, { payload, report: body.data.report }, deps.now());
+    // Once Arc shows the fee released the answer is final, so the schedule stops collecting it.
+    if (payload.released === true) await deps.store.closeCheckItem(payload.dealKey, { answered: payload.decision ?? null }, deps.now());
     return c.json({ ok: true });
   });
 

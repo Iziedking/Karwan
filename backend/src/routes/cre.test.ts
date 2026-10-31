@@ -168,6 +168,24 @@ test('a dry-run result is stored under its fee run only when the check workflow 
   assert.equal((await bad.call('/dry-run/result', { method: 'POST', body: { payload, report: signed('check', payload) } })).status, 401);
 });
 
+test('every node posting the same signed answer gets the same reply, and a released answer leaves the index', async () => {
+  const { store, call } = setup();
+  const policyHash = await store.putDocument('policy', policy);
+  const dealKey = `dry-${'7'.repeat(64)}`;
+  await call('/check/started', { method: 'POST', body: { kind: 'dry', dealKey, family: FAMILY, dealId: DEAL, revision: 0, deliveredBlockHash: null, policyHash, reference } });
+
+  const waiting = { dealKey, decision: 'FAIL', released: false };
+  assert.equal((await call('/dry-run/result', { method: 'POST', body: { payload: waiting, report: signed('check', waiting) } })).status, 200);
+  assert.equal(((await (await call('/check/pending')).json()) as { items: unknown[] }).items.length, 1);
+
+  const answered = { dealKey, decision: 'FAIL', released: true };
+  for (let node = 0; node < 3; node++) {
+    assert.equal((await call('/dry-run/result', { method: 'POST', body: { payload: answered, report: signed('check', answered) } })).status, 200);
+  }
+  assert.deepEqual(((await store.getDryRun(`0x${'7'.repeat(64)}`))?.result as { payload: unknown }).payload, answered);
+  assert.equal(((await (await call('/check/pending')).json()) as { items: unknown[] }).items.length, 0);
+});
+
 test('a pending page follows the cursor, and dropped items can be closed', async () => {
   const { store, call } = setup();
   const policyHash = await store.putDocument('policy', policy);
