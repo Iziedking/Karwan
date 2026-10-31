@@ -49,6 +49,8 @@ export interface OrderFlowCopy {
   waitingSeller: string;
   failed: string;
   totalChanged: string;
+  heldNote: string;
+  askSeller: string;
   loadFailed: string;
   retry: string;
 }
@@ -103,6 +105,8 @@ export const orderFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', OrderFlowCo
     waitingSeller: 'Waiting for {name} to accept',
     failed: 'Nothing was paid. Try again.',
     totalChanged: 'The total is now {amount} USDC. Check it and pay again.',
+    heldNote: 'Someone has already ordered this. {name} decides on your order, and you pay only after they accept.',
+    askSeller: 'Send your order to {name}',
     loadFailed: 'This order could not load.',
     retry: 'Try again',
   },
@@ -155,6 +159,8 @@ export const orderFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', OrderFlowCo
     waitingSeller: 'En attente de l’accord de {name}',
     failed: 'Rien n’a été payé. Réessayez.',
     totalChanged: 'Le total est maintenant de {amount} USDC. Vérifiez-le et payez à nouveau.',
+    heldNote: 'Quelqu’un a déjà commandé cet article. {name} décide pour votre commande, et vous payez seulement après son accord.',
+    askSeller: 'Envoyer votre commande à {name}',
     loadFailed: 'Cette commande n’a pas pu se charger.',
     retry: 'Réessayer',
   },
@@ -207,6 +213,8 @@ export const orderFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', OrderFlowCo
     waitingSeller: 'بانتظار موافقة {name}',
     failed: 'لم يُدفع شيء. حاول مرة أخرى.',
     totalChanged: 'أصبح الإجمالي {amount} USDC. تحقق منه وادفع مرة أخرى.',
+    heldNote: 'طلب شخص آخر هذا بالفعل. يقرّر {name} بشأن طلبك، ولا تدفع إلا بعد موافقته.',
+    askSeller: 'أرسل طلبك إلى {name}',
     loadFailed: 'تعذّر تحميل هذا الطلب.',
     retry: 'حاول مرة أخرى',
   },
@@ -259,6 +267,8 @@ export const orderFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', OrderFlowCo
     waitingSeller: '{name} की स्वीकृति का इंतज़ार',
     failed: 'कुछ भी भुगतान नहीं हुआ। फिर कोशिश करें।',
     totalChanged: 'कुल राशि अब {amount} USDC है। इसे जाँचें और फिर से भुगतान करें।',
+    heldNote: 'किसी ने इसे पहले ही ऑर्डर कर दिया है। आपके ऑर्डर पर {name} फ़ैसला करेंगे, और उनकी स्वीकृति के बाद ही आप भुगतान करेंगे।',
+    askSeller: 'अपना ऑर्डर {name} को भेजें',
     loadFailed: 'यह ऑर्डर लोड नहीं हो सका।',
     retry: 'फिर कोशिश करें',
   },
@@ -311,6 +321,8 @@ export const orderFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', OrderFlowCo
     waitingSeller: 'Inasubiri {name} akubali',
     failed: 'Hakuna kilicholipwa. Jaribu tena.',
     totalChanged: 'Jumla sasa ni {amount} USDC. Iangalie kisha ulipe tena.',
+    heldNote: 'Mtu mwingine ameshaagiza hii. {name} ataamua kuhusu oda yako, na utalipa tu baada ya kukubali.',
+    askSeller: 'Tuma oda yako kwa {name}',
     loadFailed: 'Oda hii haikuweza kufunguka.',
     retry: 'Jaribu tena',
   },

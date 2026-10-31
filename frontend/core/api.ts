@@ -1269,6 +1269,8 @@ export interface ListingQuote {
   feeBps: number;
   deliverByUnix: number | null;
   parts: number;
+  /// A goods offer another open order already holds: this order waits for the seller.
+  waitsForSeller?: boolean;
 }
 
 export interface ListingSeller {

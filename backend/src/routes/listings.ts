@@ -25,7 +25,8 @@ import { CATEGORY_IDS, categoryOf } from '../listings/categories.js';
 import { liveSellerSummaries, type ListingSeller } from '../listings/sellerSummary.js';
 import { requestsThatFit } from '../listings/fits.js';
 import { buildDirectDealFundingQuote } from '../deals/fundingQuote.js';
-import { listingOrderTerms } from '../deals/listingOrder.js';
+import { listingHeldByOrder, listingOrderTerms } from '../deals/listingOrder.js';
+import { getDeal } from '../db/deals.js';
 import { newDealFeeBps } from '../deals/newDealFee.js';
 import { listAllBriefs } from '../db/briefs.js';
 import { config } from '../config.js';
@@ -235,7 +236,7 @@ listingsRoutes.get('/:id', async (c) => {
       status,
     });
   }
-  const { negotiationMaxDecreasePct: _drop, seedKey, ...visible } = listing;
+  const { negotiationMaxDecreasePct: _drop, seedKey, orderJobId: _order, ...visible } = listing;
   return c.json({ listing: { ...visible, example: Boolean(seedKey), photoUrls: photoUrls(listing), category: categoryOf(listing), seller }, viewerIsOwner: false, status });
 });
 
@@ -261,6 +262,8 @@ listingsRoutes.get('/:id/quote', async (c) => {
     feeBps,
     deliverByUnix: Math.floor(Date.now() / 1000) + order.deadlineDays * 86400,
     parts: order.milestonePcts.length,
+    /// A goods offer already held by another open order: this one waits for the seller.
+    waitsForSeller: await listingHeldByOrder(listing, getDeal, Date.now()),
   });
 });
 

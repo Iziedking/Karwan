@@ -41,6 +41,7 @@ interface World {
   createAnswer?: (route: Route) => Promise<void>;
   signedOut?: boolean;
   profile?: boolean;
+  waitsForSeller?: boolean;
 }
 
 async function serveOrder(page: Page, over: Partial<World> = {}): Promise<World> {
@@ -64,7 +65,7 @@ async function serveOrder(page: Page, over: Partial<World> = {}): Promise<World>
     if (pathname === '/api/terms/status') return route.fulfill({ json: { currentVersion: '1', acceptedVersion: '1' } });
     if (pathname === '/api/listings/lst_logo') return route.fulfill({ json: { listing, viewerIsOwner: false, status: 'open' } });
     if (pathname === '/api/listings/lst_logo/quote') {
-      return route.fulfill({ json: { priceUsdc: '120', feeUsdc: '0.6', youPayUsdc: '120.6', feeBps: 100, deliverByUnix: Math.floor(Date.UTC(2026, 10, 3) / 1000), parts: 1 } });
+      return route.fulfill({ json: { priceUsdc: '120', feeUsdc: '0.6', youPayUsdc: '120.6', feeBps: 100, deliverByUnix: Math.floor(Date.UTC(2026, 10, 3) / 1000), parts: 1, waitsForSeller: !!world.waitsForSeller } });
     }
     if (pathname === '/api/deals/direct' && method === 'POST') {
       world.creates.push(route.request().postDataJSON());
@@ -184,4 +185,20 @@ test('Arabic in dark keeps the order inside the screen', async ({ page }) => {
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   await noSideways(page);
+});
+
+test('a goods offer someone already ordered sends your order to the seller, and nothing is paid', async ({ page }) => {
+  const world = await serveOrder(page, {
+    waitsForSeller: true,
+    createAnswer: (route) => route.fulfill({ json: { deal: { jobId: JOB }, funding: {}, agentAccepted: false } }),
+  });
+  await page.goto('/order/lst_logo');
+  await expect(page.getByText('Someone has already ordered this. Ada decides on your order, and you pay only after they accept.')).toBeVisible();
+  await expect(page.locator('[data-order-balance]')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^Pay / })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Send your order to Ada' }).click();
+  await expect(page).toHaveURL(new RegExp(`/deals/${JOB}$`));
+  expect(world.creates).toHaveLength(1);
+  expect(world.agentFunds).toHaveLength(0);
+  expect(world.funds).toHaveLength(0);
 });

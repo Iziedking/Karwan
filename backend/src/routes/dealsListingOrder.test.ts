@@ -52,3 +52,11 @@ test('the seller hears their agent accepted; the paying buyer gets no "review an
   const approved = { type: 'deal.seller-approved', jobId: '0xjob', actor: 'seller', ts: 0, payload: { buyer: BUYER, seller: SELLER, dealAmountUsdc: '120', byAgent: true } } as unknown as KarwanEvent;
   assert.equal(contentFor(approved, 'buyer', 'service'), null);
 });
+
+test('a goods offer is claimed for its order before the agent accepts, and let go if accepting fails', () => {
+  const helper = source.slice(source.indexOf('async function acceptAsSellerAgent'), source.indexOf("dealsRoutes.post('/direct/:jobId/accept'"));
+  assert.match(helper, /heldByOpenOrder: held/);
+  const claim = helper.indexOf('setListingOrder(listing.id, jobId)');
+  assert.ok(claim > 0 && claim < helper.indexOf('approveSellerAgreement('), 'claimed before accepting');
+  assert.match(helper, /setListingOrder\(listing\.id, previous\)/);
+});

@@ -1,4 +1,6 @@
 import type { Listing } from '../db/listings.js';
+import type { DirectDeal } from '../db/deals.js';
+import { stageOf, type DealViewInput } from './dealView.js';
 
 /// An order on a listing is the listing as it stands (view 44, D10). The order
 /// page, the assistant and POST /api/deals/direct all build it here, so the
@@ -51,6 +53,29 @@ export function listingOrderMatches(
 /// The seller's agent accepts for them only inside their limits: the order is
 /// the listing exactly, it is not a trade-finance deal, no World ID check is due
 /// for the seller, and the agent is the one linked to them.
-export function agentMayAccept(input: { matches: boolean; tradeLane?: string; sellerCheckDue: boolean; sellerAgentLinked: boolean }): boolean {
-  return input.matches && input.tradeLane !== 'finance' && !input.sellerCheckDue && input.sellerAgentLinked;
+export function agentMayAccept(input: { matches: boolean; tradeLane?: string; sellerCheckDue: boolean; sellerAgentLinked: boolean; heldByOpenOrder?: boolean }): boolean {
+  return input.matches && input.tradeLane !== 'finance' && !input.sellerCheckDue && input.sellerAgentLinked && !input.heldByOpenOrder;
+}
+
+/// A goods offer is one item: its agent accepts one order at a time, and the
+/// seller decides on the rest. Work can be ordered again and again.
+export function holdsOneOrderAtATime(listing: Listing): boolean {
+  return listing.deliveryKind === 'goods';
+}
+
+/// Whether the order holding a goods offer still counts: until it is settled,
+/// cancelled, or its buyer never paid it in before the acceptance window ran out.
+export async function listingHeldByOrder(
+  listing: Listing,
+  readDeal: (jobId: string) => Promise<DirectDeal | null | undefined>,
+  now: number,
+): Promise<boolean> {
+  if (!holdsOneOrderAtATime(listing) || !listing.orderJobId) return false;
+  const deal = await readDeal(listing.orderJobId).catch(() => null);
+  if (!deal) return false;
+  const stage = stageOf(deal as unknown as DealViewInput);
+  if (stage === 'cancelled' || stage === 'settled') return false;
+  const paidIn = !!deal.acceptedAt || !!deal.fundTxHash;
+  if (!paidIn && deal.acceptanceDeadlineUnix && deal.acceptanceDeadlineUnix * 1000 < now) return false;
+  return true;
 }

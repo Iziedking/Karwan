@@ -17,7 +17,7 @@ import { personName, shortAddress } from '../channels/personName.js';
 import { suiteIdentity } from '../identity/suiteIdentityLive.js';
 import { recordSetupCard } from './recordCard.js';
 import { getListing, listingStatus } from '../db/listings.js';
-import { listingOrderTerms } from '../deals/listingOrder.js';
+import { listingHeldByOrder, listingOrderTerms } from '../deals/listingOrder.js';
 import { createSchema } from '../deals/createSchema.js';
 
 const USDC_DECIMALS = 6;
@@ -183,12 +183,15 @@ export function directDealTools(address: string, actions: AssistantAction[], con
           const body = parsed.data;
           const sellerLabel = personName(await getProfile(listing.sellerUser).catch(() => null), 'the seller');
           const pays = await buyerPays(body.dealAmountUsdc, feeBps).catch(() => null);
+          const held = await listingHeldByOrder(listing, getDeal, Date.now());
           push({
             kind: 'confirm',
             id: `create_direct_deal:${listingId}:${confirmNonce()}`,
             intent: 'create_direct_deal',
             title: `Order ${listing.title.slice(0, 60)} from ${sellerLabel}`,
-            summary: "This is the offer as listed, so the seller's agent accepts it at once. You pay it in next; Karwan holds the money until you release it.",
+            summary: held
+              ? `Someone has already ordered this, so ${sellerLabel} decides on your order. Nothing is paid until they accept.`
+              : "This is the offer as listed, so the seller's agent accepts it at once. You pay it in next; Karwan holds the money until you release it.",
             fields: dealCardFields(body, sellerLabel, pays).map((row) =>
               row.label === 'You pay into escrow' && pays ? { label: 'You pay', value: `${pays} USDC with the fee` } : row,
             ).filter((row) => row.label !== 'They have to accept within'),
@@ -196,7 +199,7 @@ export function directDealTools(address: string, actions: AssistantAction[], con
             confirmLabel: 'Order',
             cancelLabel: 'Not now',
           });
-          return { ok: true, shown: 'order card', listingId };
+          return { ok: true, shown: 'order card', listingId, waitsForSeller: held };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant order_listing failed');
           return { error: 'Could not prepare that order right now.' };

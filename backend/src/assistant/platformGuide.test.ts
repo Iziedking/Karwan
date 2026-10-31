@@ -199,3 +199,9 @@ test('the guide knows the order path: one fee line, the agent accepting, and the
   assert.ok(market.pages.includes('/order/[listingId]'));
   assert.ok(market.api.includes('GET /api/listings/:id/quote'));
 });
+
+test('the guide says a goods offer takes one order at a time', () => {
+  const market = PLATFORM_GUIDE.find((entry) => entry.id === 'market')!;
+  assert.match(market.summary, /one order at a time/);
+  assert.match(market.summary, /Someone has already ordered this/);
+});

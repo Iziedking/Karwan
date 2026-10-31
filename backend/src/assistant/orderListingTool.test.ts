@@ -59,3 +59,16 @@ test('a closed listing, or your own, is not ordered', async () => {
   assert.match(own.error ?? '', /your own/);
   assert.equal(actions.length, 0);
 });
+
+test('a goods offer another open order holds is still ordered, but the card says the seller decides', async () => {
+  const l = createListing({ sellerUser: BOLA, sellerAgent: '0x00000000000000000000000000000000000000b1', title: 'Used phone', description: 'One phone.', askingPriceUsdc: 150, deliveryKind: 'goods' });
+  const { createDeal } = await import('../db/deals.js');
+  const { setListingOrder } = await import('../db/listings.js');
+  const jobId = `0x${'cd'.repeat(32)}`;
+  await createDeal({ jobId, buyer: '0x00000000000000000000000000000000000000c0', seller: BOLA, dealAmountUsdc: '150', firstReleasePct: 100, terms: 'Used phone', termsDigest: '0x', acceptanceDeadlineUnix: Math.floor(Date.now() / 1000) + 3600, sellerApprovedAt: Date.now(), origin: 'direct' } as never);
+  setListingOrder(l.id, jobId);
+  const actions: AssistantAction[] = [];
+  const out = (await directDealTools(ADA, actions, undefined, fee).order_listing.execute!({ listingId: l.id }, call)) as { waitsForSeller?: boolean };
+  assert.equal(out.waitsForSeller, true);
+  assert.match((actions[0] as ConfirmAction).summary ?? '', /already ordered this/);
+});

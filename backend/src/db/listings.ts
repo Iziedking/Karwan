@@ -68,6 +68,10 @@ export interface Listing {
   /// Up to four photos (view 28). The images live in data/listing-photos;
   /// this keeps their type, size and when they were saved.
   photos?: ListingPhoto[];
+  /// Goods only: the order the seller's agent accepted and that holds the item
+  /// until it is settled, cancelled or never paid (view 44). Internal; never in
+  /// a public read.
+  orderJobId?: string;
 }
 
 // Listings are off-chain and have no chain event to reseed from, so without
@@ -187,6 +191,16 @@ export function deleteListingsBySeller(addressLower: string, keep: (l: Listing) 
   }
   if (removed > 0) persist();
   return removed;
+}
+
+/// Claims a goods offer for the order its agent accepted, or lets it go.
+export function setListingOrder(id: string, jobId: string | undefined): void {
+  const l = store.get(id);
+  if (!l) return;
+  if (jobId) l.orderJobId = jobId;
+  else delete l.orderJobId;
+  store.set(id, l);
+  persist();
 }
 
 export function markListingMatched(id: string, jobId: string): void {

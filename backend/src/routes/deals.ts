@@ -140,8 +140,8 @@ import { checkHandoverCode, issueHandoverCode } from '../deals/handoverCode.js';
 import { deliveryPhotoId, deliveryPhotos } from '../deals/deliveryPhotos.js';
 import { decodePhotoDataUrl, type Photo } from '../listings/photos.js';
 import { suiteIdentity } from '../identity/suiteIdentityLive.js';
-import { getListing, type Listing } from '../db/listings.js';
-import { agentMayAccept, listingOrderMatches } from '../deals/listingOrder.js';
+import { getListing, setListingOrder, type Listing } from '../db/listings.js';
+import { agentMayAccept, holdsOneOrderAtATime, listingHeldByOrder, listingOrderMatches } from '../deals/listingOrder.js';
 import { seedAgentFromOperator } from '../chain/agentSeed.js';
 import { bus, recentEventsByType } from '../events.js';
 import { addSystemMessage } from '../chat/systemMessages.js';
@@ -1982,15 +1982,28 @@ dealsRoutes.post('/direct/:jobId/high-signal/skip', async (c) => {
 /// failure leaves the deal waiting for the seller; nothing has been paid.
 async function acceptAsSellerAgent(deal: DirectDeal, listing: Listing): Promise<boolean> {
   const jobId = deal.jobId;
+  const goods = holdsOneOrderAtATime(listing);
+  const previous = getListing(listing.id)?.orderJobId;
+  let claimed = false;
+  let accepted = false;
   try {
     const sellerAgents = await getAgentWallets(deal.seller);
+    const held = await listingHeldByOrder({ ...listing, orderJobId: previous }, getDeal, Date.now());
     const allowed = agentMayAccept({
       matches: true,
       tradeLane: deal.tradeLane,
       sellerCheckDue: highSignalGate(deal, 'seller') !== null,
       sellerAgentLinked: !!sellerAgents && sellerAgents.sellerAddress.toLowerCase() === listing.sellerAgent.toLowerCase(),
+      heldByOpenOrder: held,
     });
     if (!allowed || !sellerAgents || inFlight.has(jobId)) return false;
+    // A goods offer is one item: claim it for this order before accepting, so
+    // two orders arriving together never both get it.
+    if (goods) {
+      if (getListing(listing.id)?.orderJobId !== previous) return false;
+      setListingOrder(listing.id, jobId);
+      claimed = true;
+    }
     if (suiteIdentity && (await fundingEscrowFor(deal, jobId)) === 'suite') {
       await suiteIdentity.ensureRecord(deal.seller, 'seller');
     }
@@ -2006,13 +2019,16 @@ async function acceptAsSellerAgent(deal: DirectDeal, listing: Listing): Promise<
         sellerAgentWalletId: sellerAgents.sellerWalletId,
         sellerAgentAddress: sellerAgents.sellerAddress,
       });
-      return approval.ok;
+      accepted = approval.ok;
+      return accepted;
     } finally {
       inFlight.delete(jobId);
     }
   } catch (err) {
     logger.warn({ jobId, err: (err as Error).message }, "the seller's agent could not accept the listing order; it waits for the seller");
     return false;
+  } finally {
+    if (claimed && !accepted) setListingOrder(listing.id, previous);
   }
 }
 

@@ -122,6 +122,7 @@ function OrderReview({ listingId, address, circle }: { listingId: string; addres
     );
   }
 
+  const held = !!quote?.waitsForSeller;
   const youPay = quote ? usd(quote.youPayUsdc) : '';
   const short = quote && spendable !== null ? shortfallUsdc(quote.youPayUsdc, spendable) : '0';
   const failure = outcome === 'failed' ? t.failed : outcome && typeof outcome === 'object' ? fill(t.totalChanged, { amount: usd(outcome.totalChanged) }) : null;
@@ -162,6 +163,16 @@ function OrderReview({ listingId, address, circle }: { listingId: string; addres
         </div>
       </section>
 
+      {held ? (
+        <>
+          <p role="status" className="mt-4 text-[15px] leading-relaxed text-[var(--lp-dark)]" data-order-held>{fill(t.heldNote, { name })}</p>
+          {failure ? <p role="alert" className="mt-4 border-s-2 border-[var(--color-critical)] ps-3 text-[14px] text-[var(--lp-dark)]">{failure}</p> : null}
+          <button type="button" disabled={payOrder.busy} onClick={() => void payOrder.pay()} className={`mt-6 ${PRIMARY}`}>
+            {fill(t.askSeller, { name })}
+          </button>
+        </>
+      ) : (
+      <>
       <section className="mt-4 rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-5 py-4" data-order-balance>
         <div className="flex items-baseline justify-between gap-4">
           <span className="text-[15px] text-[var(--lp-text-sub)]">{t.balance}</span>
@@ -206,6 +217,8 @@ function OrderReview({ listingId, address, circle }: { listingId: string; addres
           </button>
         )}
       </div>
+      </>
+      )}
 
       <ConfirmSheetShell open={confirming} labelledBy="order-confirm-title" busy={payOrder.busy} onClose={() => setConfirming(false)}>
         <h2 id="order-confirm-title" className="text-[20px] font-semibold text-[var(--lp-dark)]">{t.confirmTitle}</h2>

@@ -11,7 +11,7 @@ import { join } from 'node:path';
 process.chdir(mkdtempSync(join(tmpdir(), 'karwan-listing-quote-')));
 delete process.env.DATABASE_URL;
 
-const { createListing, cancelListing } = await import('../db/listings.js');
+const { createListing, cancelListing, setListingOrder } = await import('../db/listings.js');
 const { newDealFeeDeps } = await import('../deals/newDealFee.js');
 const { listingsRoutes } = await import('./listings.js');
 
@@ -39,4 +39,15 @@ test('a closed listing is not quoted, and a missing one is not found', async () 
   assert.equal(closed.status, 409);
   assert.equal(((await closed.json()) as { code: string }).code, 'CLOSED');
   assert.equal((await listingsRoutes.request('/lst_ffffffffffffffff/quote')).status, 404);
+});
+
+test('the quote says when an order would wait for the seller, and never shows the order it waits on', async () => {
+  const l = createListing({ ...seller, title: 'Used phone', description: 'One phone.', askingPriceUsdc: 150, deliveryKind: 'goods' });
+  const q = (await (await listingsRoutes.request(`/${l.id}/quote`)).json()) as { waitsForSeller: boolean };
+  assert.equal(q.waitsForSeller, false);
+  setListingOrder(l.id, `0x${'ab'.repeat(32)}`);
+  const one = (await (await listingsRoutes.request(`/${l.id}`)).json()) as { listing: Record<string, unknown> };
+  assert.equal('orderJobId' in one.listing, false);
+  const list = (await (await listingsRoutes.request('/')).json()) as { listings: Array<Record<string, unknown>> };
+  assert.equal(list.listings.some((row) => 'orderJobId' in row), false);
 });
