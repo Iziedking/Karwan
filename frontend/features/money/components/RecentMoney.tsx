@@ -6,6 +6,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
 import { ledgerAmountLabel, ledgerDirection, ledgerLine, ledgerReferenceLabel } from '@/features/activity/ledgerPresentation';
 import { NOTIFY_TYPES } from '@/features/notifications/notificationTypes';
+import { dealReference } from '@/features/deals/dealReference';
 
 type Item = Awaited<ReturnType<typeof api.myActivity>>['items'][number];
 
@@ -18,6 +19,7 @@ const RECENT = 5;
 export function RecentMoney() {
   const messages = useTranslations();
   const copy = messages.money.home;
+  const dealLabel = messages.moneyPage.deal;
   const texts = messages.activity.myMoney.text;
   const [items, setItems] = useState<Item[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -72,6 +74,7 @@ export function RecentMoney() {
           {items.map((item) => {
             const amount = ledgerAmountLabel(item.amountUsdc, item.kind);
             const reference = ledgerReferenceLabel(item.refId);
+            const dealRef = item.jobId ? dealReference(item.jobId) : null;
             return (
               <li key={item.id} className="flex items-start justify-between gap-4 py-3">
                 <span className="min-w-0">
@@ -79,6 +82,9 @@ export function RecentMoney() {
                   <span className="mt-1 flex flex-wrap gap-x-3 text-[14px] text-[var(--lp-text-sub)] font-medium">
                     {item.status === 'pending' ? <span>{copy.statusPending}</span> : null}
                     {item.status === 'failed' ? <span className="text-[var(--color-critical)]">{copy.statusFailed}</span> : null}
+                    {dealRef ? (
+                      <Link href={`/deals/${item.jobId}`} className="font-semibold text-[var(--lp-dark)] underline-offset-4 hover:underline">{dealLabel.replace('{reference}', dealRef)}</Link>
+                    ) : null}
                     {reference ? <span className="mono break-all tabular-nums">{reference}</span> : null}
                   </span>
                 </span>

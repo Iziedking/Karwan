@@ -1,4 +1,5 @@
 'use client';
+import { WithdrawStart } from '@/features/money/components/WithdrawStart';
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { usePathname, useSearchParams } from 'next/navigation';
@@ -157,8 +158,13 @@ function BridgePageInner() {
   const [picked, setPicked] = useState<PlainOption<AddOptionId> | PlainOption<WithdrawOptionId> | null>(null);
   const asksFirst = !moneyIntent && !params.get('rail') && !publicPayment;
   const pickedRail = picked?.opens && 'rail' in picked.opens ? picked.opens.rail : null;
+  // Withdraw starts with how much and where (view 44, P8); a wallet or exchange
+  // then opens the own-wallet rail with the amount and address filled in.
+  const [withdrawTo, setWithdrawTo] = useState<{ amount: number; address: string } | null>(null);
+  const ownWalletOpens = withdrawOptions(account).find((option) => option.id === 'ownWallet')?.opens;
+  const ownWalletRail = ownWalletOpens && 'rail' in ownWalletOpens ? ownWalletOpens.rail : null;
   // Add and Withdraw share this page; a choice made on one never carries over.
-  useEffect(() => setPicked(null), [direction]);
+  useEffect(() => { setPicked(null); setWithdrawTo(null); }, [direction]);
 
   const header = messages.bridge.header;
   const pageTitle = direction === 'in'
@@ -180,7 +186,7 @@ function BridgePageInner() {
           <ProductBackLink
             pathname={pathname}
             isAuthenticated={isAuthenticated}
-            onBack={asksFirst && picked ? () => setPicked(null) : undefined}
+            onBack={asksFirst && withdrawTo ? () => setWithdrawTo(null) : asksFirst && picked ? () => setPicked(null) : undefined}
           />
         </div>
         <header className="max-w-[620px] pb-6">
@@ -203,14 +209,17 @@ function BridgePageInner() {
                   icons={ADD_ICONS}
                   onPick={setPicked}
                 />
-              ) : (
-                <PlainChooser
-                  question={plain.withdrawQuestion}
-                  options={withdrawOptions(account)}
-                  words={(id) => (id === 'ownWallet' ? (account === 'email' ? plain.withdraw.ownWalletEmail : plain.withdraw.ownWalletConnected) : plain.withdraw[id])}
-                  icons={WITHDRAW_ICONS}
-                  onPick={setPicked}
+              ) : withdrawTo && ownWalletRail ? (
+                <RailPanel
+                  rail={ownWalletRail}
+                  direction={direction}
+                  state={rails.find((option) => option.id === ownWalletRail)?.state ?? 'ready'}
+                  agents={agents ?? undefined}
+                  prefillRecipient={withdrawTo.address}
+                  prefillAmount={withdrawTo.amount}
                 />
+              ) : (
+                <WithdrawStart onWallet={(amount, recipient) => setWithdrawTo({ amount, address: recipient })} />
               )
             ) : asksFirst && picked ? (
               <>
@@ -255,12 +264,6 @@ const ADD_ICONS: Record<AddOptionId, IconName> = {
   card: 'wallet',
   fromWallet: 'wallet',
   fromExchange: 'arrow-down-left',
-};
-
-const WITHDRAW_ICONS: Record<WithdrawOptionId, IconName> = {
-  ownWallet: 'arrow-up-right',
-  someone: 'send',
-  bank: 'wallet',
 };
 
 /// The panel for one rail. Every branch is a component that already owns that

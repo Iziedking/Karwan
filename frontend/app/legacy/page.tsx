@@ -19,6 +19,7 @@ import { runWalletLegacyCalls } from '@/features/guarantee/walletGuarantee';
 import { GUARANTEE_QUERY } from '@/features/guarantee/GuaranteeCard';
 import { Pager } from '@/shared/components/Pager';
 import { paged } from '@/shared/utils/paged';
+import { dealReference } from '@/features/deals/dealReference';
 
 const LEGACY_QUERY = ['legacy-positions'] as const;
 
@@ -55,6 +56,7 @@ export default function LegacyPage() {
 function LegacyPageInner() {
   const { locale, t } = useLocale();
   const c = t.dealGuarantee.legacy;
+  const mpDeal = t.moneyPage.deal;
   const { method } = useAuth();
   const qc = useQueryClient();
   const refreshMoney = useMoneyRefresh();
@@ -72,7 +74,6 @@ function LegacyPageInner() {
 
   const fill = (text: string, values: Record<string, string>) => text.replace(/\{(\w+)\}/g, (_, k: string) => values[k] ?? '');
   const day = (unix: number) => new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(new Date(unix * 1000));
-  const short = (address: string) => `${address.slice(0, 6)}…${address.slice(-4)}`;
 
   const deals = data?.deals ?? [];
   const guarantees = data?.guarantees ?? [];
@@ -135,7 +136,8 @@ function LegacyPageInner() {
           <ul className="mt-4 space-y-3">
             {dealsPage.rows.map((d) => (              <li key={`${d.contract}:${d.jobId}`} className={row}>
                 <div className="min-w-0">
-                  <p className="truncate text-[15px] font-semibold text-[var(--lp-dark)]">{fill(c.withWho, { who: short(d.otherSide) })}</p>
+                  {/* Names, never addresses (rule 9): the deal's reference stands in for the other side. */}
+                  <p className="truncate text-[15px] font-semibold text-[var(--lp-dark)]">{dealReference(d.jobId) ? fill(mpDeal, { reference: dealReference(d.jobId)! }) : (d.role === 'buyer' ? c.asBuyer : c.asSeller)}</p>
                   <p className="mt-0.5 text-[14px] text-[var(--lp-text-sub)]">
                     {d.role === 'buyer' ? c.asBuyer : c.asSeller} · <span className="tabular-nums">{formatUsdc(d.amountUsdc)}</span> ·{' '}
                     {d.state === 'disputed' ? c.disputed : d.steps.length === 0 && d.role === 'seller' ? c.waitingBuyer : c.funded}

@@ -60,7 +60,12 @@ test('the old staking address opens the deal guarantee, with a quiet way to the 
   await serveGuarantee(page);
   await page.goto('/stake');
   await expect(page).toHaveURL(/\/guarantee$/);
-  await expect(page.getByText('125 USDC').first()).toBeVisible();
+  await expect(page.locator('[data-guaranteed]')).toContainText('125');
+  await expect(page.locator('[data-guaranteed]')).toContainText('USDC guaranteed');
+  // The guarantee is a money page: no score out of 1000 (view 44, P13).
+  await expect(page.getByText(/\/ 1000/)).toHaveCount(0);
+  await page.getByText('What your guarantee does').click();
+  await expect(page.getByText(/It shows buyers you stand behind your work/)).toBeVisible();
   await expect(page.getByText(g.previous.line.replace('{amount}', '40'))).toBeVisible();
   await expect(page.getByRole('link', { name: g.previous.link })).toHaveAttribute('href', '/legacy#previous-guarantee');
   await expect(page.getByText(/\b(stake|staking|vault|insurance)\b/i)).toHaveCount(0);
@@ -71,7 +76,9 @@ test('Legacy contracts lists older deals and guarantees, and each step is confir
   await serveGuarantee(page, steps);
   await page.goto('/legacy');
   await expect(page.getByRole('heading', { name: new RegExp(g.legacy.title) })).toBeVisible();
-  await expect(page.getByText(g.legacy.withWho.replace('{who}', '0x5555…5555'))).toBeVisible();
+  // Names, never addresses: the other side's address is not shown (rule 9).
+  await expect(page.getByText(/0x5555/)).toHaveCount(0);
+  await expect(page.getByText(/(contract|legacy|escrow)/i)).toHaveCount(0);
 
   const held = page.locator('#previous-guarantee');
   await expect(held.getByRole('heading', { name: g.legacy.guarantees })).toBeVisible();

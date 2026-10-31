@@ -222,3 +222,11 @@ test('the guide knows the request page and how a deal is paid (view 44, Batch 6)
   const direct = PLATFORM_GUIDE.find((entry) => entry.id === 'direct')!;
   assert.match(direct.summary, /How do you want to pay\?/);
 });
+
+test('the guide describes money, withdrawing and the guarantee as money pages (view 44, Batch 7)', () => {
+  const said = (id: string) => { const e = PLATFORM_GUIDE.find((entry) => entry.id === id)!; return [e.summary, ...e.steps].join(' '); };
+  assert.match(said('account'), /held in your deals/);
+  assert.match(said('withdraw'), /Where should it go\?/);
+  assert.match(said('reputation'), /What your guarantee does/);
+  assert.match(said('reputation'), /It shows no score/);
+});

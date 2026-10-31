@@ -2,6 +2,7 @@
 import { useId, useState } from 'react';
 import Link from 'next/link';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { guaranteeView } from './guaranteeView';
 import { usePublicClient } from 'wagmi';
 import { api, ApiError, ConfirmCancelled, type GuaranteeStep } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -25,6 +26,7 @@ const secondary = 'min-h-12 rounded-full border border-[var(--lp-border-light)] 
 export function GuaranteeCard() {
   const { locale, t } = useLocale();
   const c = t.dealGuarantee;
+  const mp = t.moneyPage;
   const g = t.startFlow.guarantee;
   // The guarantee is paid from the wallet on Arc, the same balance the server checks.
   const wallet = useMoneyBalances().balance;
@@ -44,13 +46,10 @@ export function GuaranteeCard() {
   const day = (unix: number) => new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(new Date(unix * 1000));
   const fill = (text: string, values: Record<string, string | number>) => text.replace(/\{(\w+)\}/g, (_, k: string) => String(values[k] ?? ''));
 
-  if (!data) return null;
-  if (!data.available) {
-    return (
-      <RowGroup>
-        <Row label={c.notAvailable} />
-      </RowGroup>
-    );
+  const view = guaranteeView(data);
+  if (!view || !data) return null;
+  if (view.kind === 'off' || !data.available) {
+    return <p role="status" className="px-1 text-[15px] text-[var(--lp-dark)]">{mp.off}</p>;
   }
 
   const comingBack = Number(data.comingBackUsdc);
@@ -121,15 +120,25 @@ export function GuaranteeCard() {
 
   return (
     <div className="space-y-3">
+      <p data-guaranteed className="flex items-baseline gap-2 px-1 tabular-nums">
+        <span className="text-[34px] font-bold leading-none tracking-[-0.03em] text-[var(--lp-dark)] sm:text-[40px]">{view.guaranteed}</span>
+        <span className="text-[15px] font-semibold text-[var(--lp-text-sub)]">USDC {mp.guaranteed}</span>
+      </p>
       <RowGroup>
-        <Row label={c.rows.inPlace} value={`${data.inPlaceUsdc} USDC`} />
-        {Number(data.heldUsdc) > 0 ? <Row label={c.rows.held} value={`${data.heldUsdc} USDC`} /> : null}
+        {Number(view.held) > 0 ? <Row label={mp.heldRow} value={`${view.held} USDC`} /> : null}
+        <Row label={mp.freeRow} value={`${view.free} USDC`} />
         {comingBack > 0 && !data.ready && data.readyAt ? (
           <Row label={c.rows.comingBack} value={fill(c.comingBackValue, { amount: data.comingBackUsdc, date: day(data.readyAt) })} />
         ) : null}
         {comingBack > 0 && data.ready ? <Row label={c.rows.ready} value={fill(c.readyValue, { amount: data.comingBackUsdc })} /> : null}
-        <Row label={c.rows.earns} value={c.earnsValue} full />
       </RowGroup>
+      <details className="group rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-4">
+        <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between text-[15px] font-semibold text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+          {mp.whatItDoes}
+          <span aria-hidden className="text-[var(--lp-text-sub)] transition-transform group-open:rotate-180">⌄</span>
+        </summary>
+        <p className="pb-4 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{mp.whatItDoesBody}</p>
+      </details>
 
       <div className="grid gap-2 sm:grid-cols-2">
         <button type="button" className={primary} onClick={() => open('put_up')}>

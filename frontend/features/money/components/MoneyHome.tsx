@@ -23,6 +23,7 @@ import type { AgentKey, MoneyMove } from '../moneySheetModel';
 import { MoneySheet } from './MoneySheet';
 import { RecentMoney } from './RecentMoney';
 import { SavedAddresses } from '@/features/moneyOut/SavedAddresses';
+import { useHeldInDeals } from '../useHeldInDeals';
 
 const PRIMARY =
   'inline-flex min-h-12 items-center justify-center rounded-[10px] bg-[var(--accent)] px-6 text-[15px] font-semibold text-[var(--accent-ink)] transition-colors duration-200 hover:bg-[var(--lp-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2';
@@ -45,7 +46,9 @@ export function MoneyHome() {
 /// the per-network view and the proof, both closed until asked for.
 function MoneyHomeInner() {
   const t = useTranslations().money;
-  const payLink = useTranslations().payLink.create;
+  const mp = useTranslations().moneyPage;
+  const held = useHeldInDeals();
+  const [agentsOpen, setAgentsOpen] = useState(false);
   const { locale } = useLocale();
   const auth = useAuth();
   const reduce = useHydratedReducedMotion();
@@ -109,21 +112,25 @@ function MoneyHomeInner() {
                 />
                 {state === 'empty' ? t.home.empty : movingText ?? t.home.readyOnArc}
               </p>
+              {held && held !== '0' ? (
+                <p data-held-in-deals className="text-[15px] font-medium tabular-nums text-[var(--lp-dark)]">
+                  {fill(mp.heldInDeals, { amount: formatAmount(Number(held), locale) })}
+                </p>
+              ) : null}
               <div className="flex flex-wrap gap-3">
-                <Link href="/bridge?intent=add" className={PRIMARY}>{t.home.add}</Link>
-                <Link href="/bridge?direction=out" className={SECONDARY}>{t.home.withdraw}</Link>
-                <Link href="/send" className={SECONDARY}>{t.home.send}</Link>
-                <Link href="/request" className={SECONDARY}>{payLink.short}</Link>
+                <Link href="/bridge?intent=add" className={PRIMARY}>{mp.addMoney}</Link>
+                <Link href="/send" className={SECONDARY}>{mp.send}</Link>
+                <Link href="/bridge?direction=out" className={SECONDARY}>{mp.withdraw}</Link>
               </div>
+              <Link href="/request" className={QUIET}>{mp.askForMoney}</Link>
             </div>
           )}
         </section>
 
-        <section id="agents" aria-labelledby="money-agents" className="scroll-mt-24 space-y-4">
-          <div>
-            <h2 id="money-agents" className="text-[17px] font-semibold text-[var(--lp-dark)]">{t.home.agentsTitle}</h2>
-            <p className="mt-1 text-[14px] text-[var(--lp-text-sub)] font-medium">{t.home.agentsLine}</p>
-          </div>
+        {/* One balance leads; the agents fold under one row (one wallet doctrine, view 44). */}
+        <Disclosure id="agents" title={mp.agentsRow} open={agentsOpen} onToggle={() => setAgentsOpen((value) => !value)}>
+        <div className="scroll-mt-24 space-y-4">
+          <p className="text-[14px] text-[var(--lp-text-sub)] font-medium">{t.home.agentsLine}</p>
           {balances.activationLoading ? (
             <div aria-busy="true" className="space-y-3">
               <div className={`h-14 ${SOFT}`} />
@@ -160,7 +167,8 @@ function MoneyHomeInner() {
               })}
             </ul>
           )}
-        </section>
+        </div>
+        </Disclosure>
 
         <SavedAddresses />
 

@@ -13,6 +13,7 @@ import { FaucetDrop } from './FaucetDrop';
 import { FirstTrade } from './FirstTrade';
 import { HomeBlock } from './HomeBlock';
 import { useOwnedBalance } from '@/features/money/hooks/useOwnedBalance';
+import { useHeldInDeals } from '@/features/money/useHeldInDeals';
 import { fill } from '@/features/deals/workspace/presentation';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { UpdatesCarousel } from './UpdatesCarousel';
@@ -29,6 +30,7 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
   accountKind?: AccountKind;
 }) {
   const translations = useTranslations();
+  const held = useHeldInDeals();
   const home = translations.accountHome;
   const payLink = translations.payLink.create;
   const start = translations.startFlow.home;
@@ -88,6 +90,12 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
             )}
             <p className="mt-2 flex flex-wrap items-center gap-x-1.5 text-[15px] font-medium text-[var(--lp-text-sub)]">
               {activeDeals.length === 1 ? home.activeTradesOne : fill(home.activeTrades, { n: activeDeals.length })}
+              {held && held !== '0' ? (
+                <>
+                  <span aria-hidden>·</span>
+                  <span data-held-in-deals className="tabular-nums">{fill(translations.moneyPage.heldInDeals, { amount: Number(held).toLocaleString(undefined, { maximumFractionDigits: 6 }) })}</span>
+                </>
+              ) : null}
               <span aria-hidden>·</span>
               <Link href="/account" className="inline-flex min-h-11 items-center gap-1 font-bold text-[var(--lp-dark)] hover:text-[var(--lp-accent-on-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
                 {home.details}

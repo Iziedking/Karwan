@@ -13,7 +13,7 @@ export default async function AccountPage({
   return (
     <>
       <ProfileGate />
-      {moneyV2Enabled(process.env.NEXT_PUBLIC_MONEY_V2, forced) ? <MoneyHome /> : <AccountPageV1 />}
+      {moneyV2Enabled(process.env.NEXT_PUBLIC_MONEY_V2, forced, true) ? <MoneyHome /> : <AccountPageV1 />}
     </>
   );
 }

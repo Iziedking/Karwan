@@ -29,6 +29,7 @@ import { marketShopCopy, type MarketShopCopy } from './marketShop';
 import { orderFlowCopy, type OrderFlowCopy } from './orderFlow';
 import { dealPageCopy, type DealPageCopy } from './dealPage';
 import { requestFlowCopy, type RequestFlowCopy } from './requestFlow';
+import { moneyPageCopy, type MoneyPageCopy } from './moneyPage';
 import { dealGuaranteeCopy, type DealGuaranteeCopy } from './dealGuarantee';
 import { contestsCopy, type ContestsCopy } from './contests';
 import { workCopy, type WorkCopy } from './work';
@@ -82,6 +83,7 @@ interface MessagesShape {
   orderFlow: OrderFlowCopy;
   dealPage: DealPageCopy;
   requestFlow: RequestFlowCopy;
+  moneyPage: MoneyPageCopy;
   dealGuarantee: DealGuaranteeCopy;
   contests: ContestsCopy;
   work: WorkCopy;
@@ -5338,6 +5340,7 @@ export const en: MessagesShape = {
   orderFlow: orderFlowCopy.en,
   dealPage: dealPageCopy.en,
   requestFlow: requestFlowCopy.en,
+  moneyPage: moneyPageCopy.en,
   dealGuarantee: dealGuaranteeCopy.en,
   contests: contestsCopy.en,
   work: workCopy.en,

@@ -26,6 +26,7 @@ import { marketShopCopy } from './marketShop';
 import { orderFlowCopy } from './orderFlow';
 import { dealPageCopy } from './dealPage';
 import { requestFlowCopy } from './requestFlow';
+import { moneyPageCopy } from './moneyPage';
 import { dealGuaranteeCopy } from './dealGuarantee';
 import { contestsCopy } from './contests';
 import { workCopy } from './work';
@@ -80,6 +81,7 @@ export const hi: Messages = {
   orderFlow: orderFlowCopy.hi,
   dealPage: dealPageCopy.hi,
   requestFlow: requestFlowCopy.hi,
+  moneyPage: moneyPageCopy.hi,
   dealGuarantee: dealGuaranteeCopy.hi,
   contests: contestsCopy.hi,
   work: workCopy.hi,

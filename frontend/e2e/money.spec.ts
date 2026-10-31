@@ -2,10 +2,15 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { ME, TX, accentControls, funded, serveMoney, watchHydration } from './moneyFixtures';
 
-const agentRow = (page: Page, name: string) => page.getByRole('listitem').filter({ hasText: name });
+/// The agents fold under one row on the money page (view 44, Batch 7); open it first.
+async function agents(page: Page, name: string) {
+  const row = page.getByRole('button', { name: 'Money your agents hold' });
+  if ((await row.getAttribute('aria-expanded')) === 'false') await row.click();
+  return page.getByRole('listitem').filter({ hasText: name });
+}
 
 async function openTopUp(page: Page) {
-  await agentRow(page, 'Buying agent').getByRole('button', { name: 'Top up', exact: true }).click();
+  await (await agents(page, 'Buying agent')).getByRole('button', { name: 'Top up', exact: true }).click();
   const sheet = page.getByRole('dialog');
   await expect(sheet.getByRole('heading', { name: 'Top up buying agent' })).toBeVisible();
   return sheet;
@@ -18,7 +23,7 @@ test('the balance is the loudest thing on the page, with one primary action', as
   await expect(heading).toContainText('USDC balance');
   await expect(heading).toContainText('1,240.50');
   await expect(page.getByText('Ready to use on Arc')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Add', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Add money', exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Withdraw', exact: true })).toHaveAttribute('href', '/bridge?direction=out');
   await expect(page.getByRole('link', { name: 'Send', exact: true })).toHaveAttribute('href', '/send');
   expect(await accentControls(page)).toBe(1);
@@ -27,7 +32,7 @@ test('the balance is the loudest thing on the page, with one primary action', as
 test('agents show what they can spend, with top up and withdraw', async ({ page }) => {
   await serveMoney(page, { balances: funded });
   await page.goto('/account');
-  const row = agentRow(page, 'Buying agent');
+  const row = (await agents(page, 'Buying agent'));
   await expect(row).toContainText('120.00 USDC');
   await expect(row.getByRole('button', { name: 'Top up', exact: true })).toBeVisible();
   await expect(row.getByRole('button', { name: 'Withdraw', exact: true })).toBeVisible();
@@ -130,7 +135,7 @@ test('a withdrawal brings money back to the balance', async ({ page }) => {
     withdraw: (route) => route.fulfill({ json: { accepted: true, txHash: TX, reference: 'KWN-2026-0200', movementState: 'completed' } }),
   });
   await page.goto('/account');
-  await agentRow(page, 'Buying agent').getByRole('button', { name: 'Withdraw', exact: true }).click();
+  await (await agents(page, 'Buying agent')).getByRole('button', { name: 'Withdraw', exact: true }).click();
   const sheet = page.getByRole('dialog');
   await expect(sheet.getByRole('heading', { name: 'Withdraw from buying agent' })).toBeVisible();
   await sheet.getByLabel('Amount').fill('20');
@@ -178,7 +183,7 @@ test('the sheet cannot be dismissed while money is in flight', async ({ page }) 
 test('the sheet keeps focus inside and gives it back', async ({ page }) => {
   await serveMoney(page, { balances: funded });
   await page.goto('/account');
-  const opener = agentRow(page, 'Buying agent').getByRole('button', { name: 'Top up', exact: true });
+  const opener = (await agents(page, 'Buying agent')).getByRole('button', { name: 'Top up', exact: true });
   await opener.click();
   const sheet = page.getByRole('dialog');
   await expect(sheet.getByLabel('Amount')).toBeFocused();
@@ -289,4 +294,42 @@ test('no page draws two Back controls', async ({ page }) => {
     await page.waitForTimeout(700);
     expect(await backs.count(), route).toBeLessThanOrEqual(1);
   }
+});
+
+test('the balance says what is held in your deals, and the agents fold under one row (view 44, Batch 7)', async ({ page }) => {
+  await serveMoney(page, { balances: funded });
+  await page.route('**/api/deals/direct?address=*', (route) => route.fulfill({ json: { deals: [
+    { jobId: `0x${'ab'.repeat(32)}`, buyer: ME, seller: '0x2222222222222222222222222222222222222222', dealAmountUsdc: '120', firstReleasePct: 100, terms: 'Logo', delivered: false, createdAt: 0, updatedAt: 0, acceptedAt: 1, onChain: null },
+  ] } }));
+  await page.goto('/account');
+  await expect(page.locator('[data-held-in-deals]')).toHaveText('120.00 USDC held in your deals');
+  const agentsRow = page.getByRole('button', { name: 'Money your agents hold' });
+  await expect(agentsRow).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.getByRole('listitem').filter({ hasText: 'Buying agent' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Ask for money' })).toHaveAttribute('href', '/request');
+});
+
+test('withdraw starts with how much and where it goes (view 44, P8)', async ({ page }) => {
+  await serveMoney(page, { balances: funded });
+  // Testnet serves the plain chooser page (the e2e build turns the newer page on).
+  await page.goto('/bridge?direction=out&money=v1');
+  const start = page.locator('[data-withdraw-start]');
+  await expect(start).toContainText('1,240.50 USDC available');
+  const amount = start.getByRole('textbox').first();
+  await amount.fill('5000');
+  await expect(start).toContainText('That is more than you have.');
+  await expect(start.getByRole('button', { name: 'Continue' })).toBeDisabled();
+  await amount.fill('50');
+  await start.getByRole('radio', { name: /Someone on Karwan/ }).click();
+  await start.getByRole('button', { name: 'Continue' }).click();
+  await expect(page).toHaveURL(/\/send\?amount=50$/);
+
+  // Testnet serves the plain chooser page (the e2e build turns the newer page on).
+  await page.goto('/bridge?direction=out&money=v1');
+  await page.locator('[data-withdraw-start]').getByRole('textbox').first().fill('50');
+  await page.getByRole('radio', { name: /A wallet or exchange/ }).click();
+  await page.getByPlaceholder('0x').fill('0x' + 'ab'.repeat(20));
+  await page.getByRole('button', { name: 'Withdraw 50.00 USDC' }).click();
+  await expect(page.locator('[data-withdraw-start]')).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
 });
