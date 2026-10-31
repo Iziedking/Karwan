@@ -148,6 +148,8 @@ test('guarantee short without the combined step returns the gap', async () => {
   const out = await core.takeOffer({ offerId: 'o1', seller: SELLER, putUpGap: false });
   assert.equal('code' in out && out.code, 'guarantee_short');
   assert.equal('gapMicros' in out && out.gapMicros, '8000000');
+  assert.ok('refused' in out && /^Deposit 8 USDC more into your deal guarantee/.test(out.refused));
+  assert.ok('refused' in out && !/put up/i.test(out.refused));
   assert.deepEqual(calls, []);
 });
 

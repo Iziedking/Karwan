@@ -163,3 +163,14 @@ test('the guide says getting paid early runs on new deals, with the hold and the
   assert.ok(finance.tools.includes('propose_pay_the_seller'));
   assert.ok(finance.api.includes('POST /api/factoring/offers/:offerId/open'));
 });
+
+test('a hidden entry never comes back from the guide', () => {
+  const ids = lookupPlatformGuide('hourly by the hour virtual assistant', false, ['hourly-work']).facts.map((f) => f.id);
+  assert.ok(!ids.includes('hourly-work'));
+  assert.ok(lookupPlatformGuide('hourly by the hour virtual assistant').facts.some((f) => f.id === 'hourly-work'));
+});
+
+test('the guide calls older positions Earlier deals, never Legacy contracts', () => {
+  const text = PLATFORM_GUIDE.map((e) => `${e.title} ${e.summary} ${e.steps.join(' ')}`).join(' ');
+  assert.ok(!/legacy contracts/i.test(text));
+});

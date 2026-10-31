@@ -52,7 +52,10 @@ Bring in a person from the Karwan team only when they ask for one, or when you c
 /// Added when the person typed in the Help panel rather than assistant mode.
 export const HELP_MODE_NOTE = 'The person opened Help. Answer how-to and problem questions first, in two or three sentences, from what their account shows. Bring in a person only as the escalation rule above says.';
 
-export function systemPromptFor(opts: { mode?: 'help' | 'assistant' }): string {
-  return opts.mode === 'help' ? `${KARWAN_ASSISTANT_SYSTEM}
-${HELP_MODE_NOTE}` : KARWAN_ASSISTANT_SYSTEM;
+export function systemPromptFor(opts: { mode?: 'help' | 'assistant'; hidden?: readonly string[] }): string {
+  const off = (opts.hidden ?? []).flatMap((id) => {
+    const entry = PLATFORM_GUIDE.find((e) => e.id === id);
+    return entry ? [`Not available on this network now: ${entry.title}. Do not offer it or link to it.`] : [];
+  });
+  return [KARWAN_ASSISTANT_SYSTEM, ...off, ...(opts.mode === 'help' ? [HELP_MODE_NOTE] : [])].join('\n');
 }

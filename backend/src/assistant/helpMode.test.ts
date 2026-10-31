@@ -37,3 +37,8 @@ test('Help may say which deal page it is on, and only as a full deal id', () => 
   assert.equal(chatBodySchema.safeParse({ messages, viewingDeal: 'D68F-E7D8' }).success, false);
   assert.equal(chatBodySchema.safeParse({ messages, viewingDeal: '/deals/' + id }).success, false);
 });
+
+test('the prompt tells the assistant a hidden feature is off', () => {
+  assert.ok(systemPromptFor({ hidden: ['hourly-work'] }).includes('Not available on this network now: Pay someone by the hour, or monthly.'));
+  assert.ok(!systemPromptFor({}).includes('Not available on this network now'));
+});

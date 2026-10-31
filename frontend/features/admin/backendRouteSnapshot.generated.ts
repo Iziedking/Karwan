@@ -305,6 +305,7 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "POST", path: "/api/factoring/reject" },
   { method: "POST", path: "/api/factoring/request" },
   { method: "POST", path: "/api/factoring/withdraw-request" },
+  { method: "GET", path: "/api/features" },
   { method: "GET", path: "/api/feedback" },
   { method: "POST", path: "/api/feedback" },
   { method: "GET", path: "/api/feedback/:id/asset/:n" },

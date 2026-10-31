@@ -21,6 +21,7 @@ import {
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { OfferPanel } from '@/features/offers/components/OfferPanel';
 import { BuyerOffers } from '@/features/offers/components/BuyerOffers';
+import { YOUR_TRADES_HREF } from '@/features/market/marketQuery';
 
 /// Client-side wrapper for /jobs/[id]. Replaces the previous async server
 /// component so navigation into a job page is instant; the loading.tsx
@@ -216,7 +217,7 @@ export function JobPageClient({ jobId }: { jobId: string }) {
               {jobId}
             </p>
             <div className="mt-7 flex flex-wrap items-center gap-3">
-              <CTAPill href="/buyer">{jp.error.backCta}</CTAPill>
+              <CTAPill href={YOUR_TRADES_HREF}>{jp.error.backCta}</CTAPill>
               <Link
                 href="/activity"
                 className="mono text-[14px] uppercase tracking-[0.12em] text-[var(--lp-workspace-muted)] hover:text-[var(--lp-workspace-ink)]"

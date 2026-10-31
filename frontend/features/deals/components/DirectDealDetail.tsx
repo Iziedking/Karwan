@@ -72,6 +72,7 @@ import { SwipeToPay } from './SwipeToPay';
 import { Icon } from '@/shared/components/Icon';
 import { RatingCard } from '@/features/ratings/RatingCard';
 import { settlementExplorer } from '@/core/arcNetwork';
+import { YOUR_TRADES_HREF } from '@/features/market/marketQuery';
 
 const ARC_EXPLORER_TX = (h: string) => `${settlementExplorer}/tx/${h}`;
 
@@ -508,7 +509,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                   {isRefetching ? es.transientRetrying : es.transientCta}
                 </button>
               ) : (
-                <CTAPill href={kind === 'private' ? '/market' : '/buyer'}>
+                <CTAPill href={kind === 'private' ? '/market' : YOUR_TRADES_HREF}>
                   {kind === 'private' ? es.privateCta : es.notFoundCta}
                 </CTAPill>
               )}

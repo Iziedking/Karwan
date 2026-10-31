@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useLiveFeatures } from '@/shared/hooks/useLiveFeatures';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { api, ApiError, type Partner, type TrustView } from '@/core/api';
 import { Hint } from '@/shared/components/Hint';
@@ -235,7 +236,9 @@ export function DirectDealForm() {
   const paytagAllowed = PAYTAG_ENABLED && !(isBusiness && tradeType !== 'service');
   const [contactMatch, setContactMatch] = useState<ContactMatch | null>(null);
   const [contactState, setContactState] = useState<'idle' | 'looking' | 'missing' | 'self' | 'error'>('idle');
-  // By the hour opens the hourly form with the person and what was typed (view 32).
+  // By the hour opens the hourly form with the person and what was typed (view 32),
+  // and shows only where hourly work runs.
+  const { hourlyWork } = useLiveFeatures();
   const byTheHourHref = (() => {
     const q = new URLSearchParams();
     if (contactMatch?.tag) q.set('to', `@${contactMatch.tag}`);
@@ -591,7 +594,7 @@ export function DirectDealForm() {
             <p className="text-[14px] font-semibold text-[var(--lp-dark)]">{wf.howYouPay}</p>
             <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label={wf.howYouPay}>
               <button type="button" aria-pressed disabled={submitting} className={cn(chip, chipOn)}>{wf.fixed}</button>
-              <Link href={byTheHourHref} className={cn(chip, chipOff, 'inline-flex items-center')}>{wf.byTheHour}</Link>
+              {hourlyWork ? <Link href={byTheHourHref} className={cn(chip, chipOff, 'inline-flex items-center')}>{wf.byTheHour}</Link> : null}
             </div>
           </div>
         )}

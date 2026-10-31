@@ -550,7 +550,7 @@ const DESTINATIONS: Record<NavigateDestination, DestSpec> = {
   activity: { label: 'Your activity', build: () => '/activity' },
   how_it_works: { label: 'How it works', build: () => '/how-it-works' },
   guarantee: { label: 'Your deal guarantee', build: () => '/guarantee' },
-  legacy: { label: 'Legacy contracts', build: () => '/legacy' },
+  legacy: { label: 'Earlier deals', build: () => '/legacy' },
   settings: { label: 'Settings', build: () => '/settings' },
   feedback: { label: 'Send feedback', build: () => '/feedback' },
 };

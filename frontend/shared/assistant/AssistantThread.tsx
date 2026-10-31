@@ -651,11 +651,11 @@ async function runConfirmIntent(
     const p = action.payload as LegacyStepBody & { signer: 'karwan' | 'wallet' };
     const r = await api.legacyStep({ kind: p.kind, contract: p.contract, ref: p.ref, step: p.step } as LegacyStepBody);
     if ('calls' in r) {
-      if (!deps.runLegacyCalls) throw new Error('Open Legacy contracts to sign this in your wallet.');
+      if (!deps.runLegacyCalls) throw new Error('Open Earlier deals to sign this in your wallet.');
       const sent = await deps.runLegacyCalls(r.calls);
-      return { successText: withRecordLine('Done on the older contract.', !!sent.recordSetUp), viewHref: '/legacy', viewLabel: 'Legacy contracts', txHash: sent.txHash };
+      return { successText: withRecordLine('Done on your earlier deal.', !!sent.recordSetUp), viewHref: '/legacy', viewLabel: 'Earlier deals', txHash: sent.txHash };
     }
-    return { successText: 'Done on the older contract.', viewHref: '/legacy', viewLabel: 'Legacy contracts', txHash: r.txHash };
+    return { successText: 'Done on your earlier deal.', viewHref: '/legacy', viewLabel: 'Earlier deals', txHash: r.txHash };
   }
   if (action.intent === 'finance_ask') {
     const p = action.payload as { invoiceId: string; requestedAdvanceUsdc: string; minAdvanceUsdc?: string };
@@ -976,7 +976,7 @@ async function runConfirmIntent(
   if (action.intent === 'stop_agent_bid') {
     const p = action.payload as { jobId: string };
     await api.abandonBid(p.jobId);
-    return { successText: 'Your agent stopped bidding on that request.', viewHref: '/seller', viewLabel: 'Your bids' };
+    return { successText: 'Your agent took back its offer on that request.', viewHref: '/seller', viewLabel: 'Your offers' };
   }
   if (action.intent === 'confirm_goods_received') {
     const p = action.payload as { address: string; invoiceId: string; podHash: string };

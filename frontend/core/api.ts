@@ -10,6 +10,7 @@ import type { KdfParams } from '@/features/recovery/crypto';
 import type { Offer } from '@/features/offers/model';
 import type { SurveyAnswer, SurveySummary } from '@/features/admin/surveyPresentation';
 import type { RecordStep } from '@/shared/chain/ownWalletPlan';
+import type { LiveFeatures } from '@/shared/liveFeatures';
 
 // next.config.mjs refuses a production build without NEXT_PUBLIC_BACKEND_URL,
 // so localhost here only ever serves development and tests.
@@ -5432,6 +5433,7 @@ export const api = {
     json<{ contest: ContestView }>(`/api/contests/${encodeURIComponent(id)}/award`, { method: 'POST', body: JSON.stringify({ entryIds }) }),
   cancelContest: (id: string) =>
     json<{ contest: ContestView }>(`/api/contests/${encodeURIComponent(id)}/cancel`, { method: 'POST', body: JSON.stringify({}) }),
+  features: () => json<LiveFeatures>('/api/features'),
   listWorkRequests: () => json<{ requests: WorkRequestView[] }>('/api/work-requests'),
   myWorkRequests: () => json<{ requests: WorkRequestView[] }>('/api/work-requests/mine'),
   getWorkRequest: (id: string) => json<{ request: WorkRequestView }>(`/api/work-requests/${encodeURIComponent(id)}`),

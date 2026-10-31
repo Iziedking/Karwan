@@ -25,3 +25,6 @@ export function marketViewHref(view: MarketView, list: YoursList = 'all'): strin
   if (view === 'find') return '/market';
   return list === 'all' ? '/market?view=yours' : `/market?view=yours&list=${list}`;
 }
+
+/// Where a missing deal or request sends people: their own trades.
+export const YOUR_TRADES_HREF = marketViewHref('yours');

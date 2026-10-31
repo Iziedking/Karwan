@@ -18,6 +18,7 @@ import { V3EscrowPanel } from '../v3/V3EscrowPanel';
 import { HighSignalVerificationCard } from '../components/HighSignalVerificationCard';
 import { ProtectionSection } from './ProtectionSection';
 import { RatingCard } from '@/features/ratings/RatingCard';
+import { YOUR_TRADES_HREF } from '@/features/market/marketQuery';
 
 const SOFT = 'bg-[var(--lp-workspace-soft)] motion-safe:animate-pulse motion-reduce:animate-none rounded-[10px]';
 
@@ -53,7 +54,7 @@ function DealFetchError({ kind, isRefetching, onRetry }: {
       <div className="mx-auto max-w-[720px] space-y-4 px-4 py-10">
         <p className="text-[15px] leading-relaxed text-[var(--lp-dark)]">{dd.errorStates.notFoundBody}</p>
         <Link
-          href="/buyer"
+          href={YOUR_TRADES_HREF}
           className="inline-flex min-h-12 items-center rounded-[10px] bg-[var(--accent)] px-5 text-[15px] font-semibold text-[var(--accent-ink)]"
         >
           {dd.errorStates.notFoundCta}

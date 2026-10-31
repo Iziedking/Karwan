@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { marketViewHref, parseMarketQuery } from './marketQuery';
+import { marketViewHref, parseMarketQuery, YOUR_TRADES_HREF } from './marketQuery';
 
 /// The market's view and filter come from the address, so old links and the
 /// agent's links land in the right place.
@@ -24,4 +24,8 @@ test('links to each view are plain addresses', () => {
   assert.equal(marketViewHref('find'), '/market');
   assert.equal(marketViewHref('yours'), '/market?view=yours');
   assert.equal(marketViewHref('yours', 'requests'), '/market?view=yours&list=requests');
+});
+
+test('not-found states send people to their own trades', () => {
+  assert.equal(YOUR_TRADES_HREF, '/market?view=yours');
 });

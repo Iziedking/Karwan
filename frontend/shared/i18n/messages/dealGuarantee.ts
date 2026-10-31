@@ -74,8 +74,8 @@ export const dealGuaranteeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealGua
     errors: { amount: 'Enter an amount above 0.', overBalance: 'Your balance is {amount} USDC.', overFree: 'You can withdraw up to {amount} USDC now.', failed: 'That did not go through. Nothing moved.' },
     done: { putUp: 'Your deal guarantee is in place.', takeOut: 'Started. It comes back on {date}.', cancel: 'Kept. It protects your buyers again.', collect: 'Collected. It is back in your balance.' },
     legacy: {
-      gate: { tag: 'Legacy contracts', titleBefore: 'Money on', titleAccent: 'older contracts', body: 'Anything you still have on an older Karwan contract stays yours. Sign in to see it and get it back.', button: 'Sign in' },
-      title: 'Legacy contracts',
+      gate: { tag: 'Earlier deals', titleBefore: 'Money from', titleAccent: 'earlier deals', body: 'Anything you still have from an earlier deal on Karwan stays yours. Sign in to see it and get it back.', button: 'Sign in' },
+      title: 'Earlier deals',
       hint: 'Money you still have on older Karwan contracts.',
       empty: 'Nothing left on older contracts.',
       loading: 'Reading older contracts',
@@ -97,7 +97,7 @@ export const dealGuaranteeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealGua
       done: 'Done. {amount} USDC.',
       failed: 'That did not go through. Nothing moved.',
     },
-    profile: { dealGuarantee: 'Deal guarantee', legacyContracts: 'Legacy contracts' },
+    profile: { dealGuarantee: 'Deal guarantee', legacyContracts: 'Earlier deals' },
   },
   fr: {
     title: 'Garantie de transaction',
@@ -122,8 +122,8 @@ export const dealGuaranteeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealGua
     errors: { amount: 'Saisissez un montant supérieur à 0.', overBalance: 'Votre solde est de {amount} USDC.', overFree: 'Vous pouvez retirer jusqu’à {amount} USDC maintenant.', failed: 'Cela n’a pas abouti. Rien n’a bougé.' },
     done: { putUp: 'Votre garantie de transaction est en place.', takeOut: 'C’est lancé. L’argent revient le {date}.', cancel: 'Gardé. Il protège de nouveau vos acheteurs.', collect: 'Récupéré. L’argent est de retour sur votre solde.' },
     legacy: {
-      gate: { tag: 'Anciens contrats', titleBefore: 'L’argent sur', titleAccent: 'd’anciens contrats', body: 'Ce que vous avez encore sur un ancien contrat Karwan vous appartient. Connectez-vous pour le voir et le récupérer.', button: 'Se connecter' },
-      title: 'Anciens contrats',
+      gate: { tag: 'Accords précédents', titleBefore: 'L’argent de', titleAccent: 'vos accords précédents', body: 'Ce que vous avez encore d’un accord précédent sur Karwan vous appartient. Connectez-vous pour le voir et le récupérer.', button: 'Se connecter' },
+      title: 'Accords précédents',
       hint: 'L’argent que vous avez encore sur d’anciens contrats Karwan.',
       empty: 'Il ne reste rien sur les anciens contrats.',
       loading: 'Lecture des anciens contrats',
@@ -145,7 +145,7 @@ export const dealGuaranteeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealGua
       done: 'C’est fait. {amount} USDC.',
       failed: 'Cela n’a pas abouti. Rien n’a bougé.',
     },
-    profile: { dealGuarantee: 'Garantie de transaction', legacyContracts: 'Anciens contrats' },
+    profile: { dealGuarantee: 'Garantie de transaction', legacyContracts: 'Accords précédents' },
   },
   ar: {
     title: 'ضمان الصفقة',
@@ -170,8 +170,8 @@ export const dealGuaranteeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealGua
     errors: { amount: 'أدخل مبلغا أكبر من 0.', overBalance: 'رصيدك {amount} USDC.', overFree: 'يمكنك سحب ما يصل إلى {amount} USDC الآن.', failed: 'لم تتم العملية. لم يتحرك شيء.' },
     done: { putUp: 'ضمان صفقتك قائم.', takeOut: 'بدأ السحب. يعود في {date}.', cancel: 'تم الإبقاء عليه. يحمي المشترين منك من جديد.', collect: 'تم الاستلام. عاد إلى رصيدك.' },
     legacy: {
-      gate: { tag: 'العقود السابقة', titleBefore: 'مالك على', titleAccent: 'العقود السابقة', body: 'ما زال لك كل ما لديك على عقد سابق من Karwan. سجّل الدخول لتراه وتسترده.', button: 'تسجيل الدخول' },
-      title: 'العقود السابقة',
+      gate: { tag: 'الصفقات السابقة', titleBefore: 'مالك من', titleAccent: 'الصفقات السابقة', body: 'ما زال لك كل ما لديك من صفقة سابقة على Karwan. سجّل الدخول لتراه وتسترده.', button: 'تسجيل الدخول' },
+      title: 'الصفقات السابقة',
       hint: 'المال الذي ما زال لك على عقود Karwan السابقة.',
       empty: 'لم يبقَ شيء على العقود السابقة.',
       loading: 'جارٍ قراءة العقود السابقة',
@@ -193,7 +193,7 @@ export const dealGuaranteeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealGua
       done: 'تم. {amount} USDC.',
       failed: 'لم تتم العملية. لم يتحرك شيء.',
     },
-    profile: { dealGuarantee: 'ضمان الصفقة', legacyContracts: 'العقود السابقة' },
+    profile: { dealGuarantee: 'ضمان الصفقة', legacyContracts: 'الصفقات السابقة' },
   },
   hi: {
     title: 'डील गारंटी',
@@ -218,8 +218,8 @@ export const dealGuaranteeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealGua
     errors: { amount: '0 से अधिक राशि डालें।', overBalance: 'आपका बैलेंस {amount} USDC है।', overFree: 'आप अभी {amount} USDC तक निकाल सकते हैं।', failed: 'यह पूरा नहीं हुआ। कुछ नहीं हिला।' },
     done: { putUp: 'आपकी डील गारंटी लग गई है।', takeOut: 'शुरू हो गया। यह {date} को वापस आएगा।', cancel: 'रखा गया। यह फिर से आपके खरीदारों की रक्षा करता है।', collect: 'मिल गया। यह आपके बैलेंस में वापस है।' },
     legacy: {
-      gate: { tag: 'पुराने कॉन्ट्रैक्ट', titleBefore: 'पैसा', titleAccent: 'पुराने कॉन्ट्रैक्ट पर', body: 'पुराने Karwan कॉन्ट्रैक्ट पर जो भी है, वह आपका ही है। उसे देखने और वापस पाने के लिए साइन इन करें।', button: 'साइन इन करें' },
-      title: 'पुराने कॉन्ट्रैक्ट',
+      gate: { tag: 'पिछले सौदे', titleBefore: 'पैसा', titleAccent: 'पिछले सौदों से', body: 'Karwan पर पिछले सौदों से जो भी बचा है, वह आपका ही है। उसे देखने और वापस पाने के लिए साइन इन करें।', button: 'साइन इन करें' },
+      title: 'पिछले सौदे',
       hint: 'पुराने Karwan कॉन्ट्रैक्ट पर अभी भी आपका पैसा।',
       empty: 'पुराने कॉन्ट्रैक्ट पर कुछ नहीं बचा।',
       loading: 'पुराने कॉन्ट्रैक्ट पढ़े जा रहे हैं',
@@ -241,7 +241,7 @@ export const dealGuaranteeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealGua
       done: 'हो गया। {amount} USDC।',
       failed: 'यह पूरा नहीं हुआ। कुछ नहीं हिला।',
     },
-    profile: { dealGuarantee: 'डील गारंटी', legacyContracts: 'पुराने कॉन्ट्रैक्ट' },
+    profile: { dealGuarantee: 'डील गारंटी', legacyContracts: 'पिछले सौदे' },
   },
   sw: {
     title: 'Dhamana ya mpango',
@@ -266,8 +266,8 @@ export const dealGuaranteeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealGua
     errors: { amount: 'Weka kiasi zaidi ya 0.', overBalance: 'Salio lako ni {amount} USDC.', overFree: 'Unaweza kutoa hadi {amount} USDC sasa.', failed: 'Haikufanikiwa. Hakuna kilichohamishwa.' },
     done: { putUp: 'Dhamana yako ya mpango imewekwa.', takeOut: 'Imeanza. Inarudi tarehe {date}.', cancel: 'Imebaki. Inalinda wanunuzi wako tena.', collect: 'Imechukuliwa. Imerudi kwenye salio lako.' },
     legacy: {
-      gate: { tag: 'Mikataba ya zamani', titleBefore: 'Pesa kwenye', titleAccent: 'mikataba ya zamani', body: 'Chochote ulicho nacho kwenye mkataba wa zamani wa Karwan bado ni chako. Ingia ili ukione na ukirudishe.', button: 'Ingia' },
-      title: 'Mikataba ya zamani',
+      gate: { tag: 'Mikataba ya awali', titleBefore: 'Pesa kutoka', titleAccent: 'mikataba ya awali', body: 'Chochote ulicho nacho kutoka mkataba wa awali kwenye Karwan bado ni chako. Ingia ili ukione na ukirudishe.', button: 'Ingia' },
+      title: 'Mikataba ya awali',
       hint: 'Pesa ambazo bado unazo kwenye mikataba ya zamani ya Karwan.',
       empty: 'Hakuna kilichobaki kwenye mikataba ya zamani.',
       loading: 'Inasoma mikataba ya zamani',
@@ -289,6 +289,6 @@ export const dealGuaranteeCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealGua
       done: 'Imekamilika. {amount} USDC.',
       failed: 'Haikufanikiwa. Hakuna kilichohamishwa.',
     },
-    profile: { dealGuarantee: 'Dhamana ya mpango', legacyContracts: 'Mikataba ya zamani' },
+    profile: { dealGuarantee: 'Dhamana ya mpango', legacyContracts: 'Mikataba ya awali' },
   },
 };

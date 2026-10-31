@@ -231,7 +231,7 @@ export function createFamilyFinancing(ports: FamilyFinancingPorts) {
 
     const gap = guaranteeGap(t.stake, await ports.freeGuarantee(r.seller));
     if (gap > 0n) {
-      const short = refuse('guarantee_short', `Put up ${usdc(gap)} USDC more as a deal guarantee to take this offer.`, { gapMicros: gap.toString() });
+      const short = refuse('guarantee_short', `Deposit ${usdc(gap)} USDC more into your deal guarantee to take this offer.`, { gapMicros: gap.toString() });
       if (!putUpGap || !(await ports.sellerHeld(deal))) return short;
       if ((await ports.spendable(deal)) < gap) {
         return refuse('balance_short', `Add ${usdc(gap)} USDC to your balance to take this offer.`, { gapMicros: gap.toString() });

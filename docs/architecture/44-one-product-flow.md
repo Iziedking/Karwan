@@ -67,5 +67,6 @@ flowchart LR
 | Part | State |
 |---|---|
 | Screens designed and approved | Done, 31 Oct 2026 |
-| Spec | Written, waiting for the owner |
-| Build | Not started |
+| Spec | Approved, 31 Oct 2026 |
+| Batch 1: dead ends and words (`GET /api/features`, hourly hidden while off, switched-off pages are a 404, not-found leads to your trades, Earlier deals, offer, Deposit) | Built, 31 Oct 2026 |
+| Batches 2 to 9 | Not started |

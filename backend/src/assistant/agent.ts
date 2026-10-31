@@ -57,6 +57,8 @@ import { extractKeywords } from '../llm/keywords.js';
 import { readSourceUsdcBalance } from '../chain/cctpClients.js';
 import { readSolanaHolding } from '../chain/solanaBalances.js';
 import { lookupPlatformGuide } from './platformGuide.js';
+import { hiddenGuideIds } from '../features.js';
+import { liveFeatures } from '../featuresLive.js';
 import { dealStepTools, dealStepPendingLines } from './dealTools.js';
 import { moneyTools } from './moneyTools.js';
 import { accountTools, type StoredProfile } from './accountTools.js';
@@ -669,7 +671,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
               yieldSnap && yieldSnap.configured
                 ? { claimableNowUsdc: yieldSnap.claimableUsdc, lifetimeEarnedUsdc: yieldSnap.lifetimeCreditedUsdc, lifetimeClaimedUsdc: yieldSnap.lifetimeClaimedUsdc }
                 : null,
-            note: 'Call it their deal guarantee, never stake, vault or insurance. It earns at the USYC rate, paid by Karwan on testnet; never say it is invested in USYC. Money on the previous contract is withdrawn from Legacy contracts (get_my_legacy_positions). Ready money: propose_guarantee_collect; to keep it, propose_guarantee_cancel_take_out.',
+            note: 'Call it their deal guarantee, never stake, vault or insurance. It earns at the USYC rate, paid by Karwan on testnet; never say it is invested in USYC. Money on the previous contract is withdrawn from Earlier deals (get_my_legacy_positions). Ready money: propose_guarantee_collect; to keep it, propose_guarantee_cancel_take_out.',
           };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant get_my_guarantee failed');
@@ -688,7 +690,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
           return {
             deals: found.deals.map((d) => d.row),
             guarantees: found.guarantees.map((g) => g.row),
-            note: 'Offer one step with propose_legacy_step. A row held by Karwan has no step: tell them to contact support and it will be returned. Page: Legacy contracts (propose_navigation destination "legacy").',
+            note: 'Offer one step with propose_legacy_step. A row held by Karwan has no step: tell them to contact support and it will be returned. Page: Earlier deals (propose_navigation destination "legacy").',
           };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant get_my_legacy_positions failed');
@@ -1205,7 +1207,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
     get_product_facts: tool({
       description: 'Look up the reviewed platform guide: trading, agent funding authority, business setup, World ID, CRE, recovery, payments, reputation, finance and roadmap. Use short topic keywords. These are repository capabilities, not live account or deployment evidence. Unknown results must not become invented features.',
       inputSchema: z.object({ q: z.string().max(120).optional(), liveOnly: z.boolean().optional() }),
-      execute: async ({ q, liveOnly }) => lookupPlatformGuide(q, liveOnly),
+      execute: async ({ q, liveOnly }) => lookupPlatformGuide(q, liveOnly, hiddenGuideIds(liveFeatures)),
     }),
 
     get_my_workspaces: tool({
@@ -2741,7 +2743,8 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
       now: () => Date.now(),
     }),
     ...contestTools(address, actions, { call: callAsAccount, heldEntryFiles: (who) => entryFiles.heldCount(who, Date.now()) }),
-    ...workTools(address, actions, { call: callAsAccount }),
+    // Off where the Time escrow is not bound: the tools are left out, the type stays whole.
+    ...(liveFeatures.hourlyWork ? workTools(address, actions, { call: callAsAccount }) : ({} as ReturnType<typeof workTools>)),
   };
 }
 
@@ -2805,7 +2808,7 @@ export async function runAssistantAgent(input: {
   const model = assistantAgentModel;
   if (!model) throw new Error('assistant agent model unavailable');
 
-  const system = systemPromptFor({ mode: input.mode }) + '\n' + authenticatedPreamble(input.address, input.method)
+  const system = systemPromptFor({ mode: input.mode, hidden: hiddenGuideIds(liveFeatures) }) +'\n' + authenticatedPreamble(input.address, input.method)
     + (input.memory ? '\n' + memoryPreamble(input.memory) : '')
     + (input.viewingDeal ? '\n' + viewingDealLine(input.viewingDeal) : '')
     + (input.forceRead ? '\nRead the account with the tool for what the person asked about before you answer. State only what that read returned.' : '');

@@ -7,6 +7,8 @@ import { TRADE_ENTRY_COPY, tradeEntryRoutes } from '@/features/home/tradeEntry';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { Chevron } from './YourTrades';
 import { DealLinkPanel } from './DealLinkPanel';
+import { useLiveFeatures } from '@/shared/hooks/useLiveFeatures';
+import { startTradePaths, type StartTradePathId } from '../startTradePaths';
 
 /// Start a trade: the three ways in, one sheet, the same for every account.
 /// A bottom sheet on a phone, a side panel on a wider screen.
@@ -21,13 +23,15 @@ export function StartTradeSheet({ open, onClose }: { open: boolean; onClose: () 
   // A deal already agreed asks who is paying first (view 38).
   const [agreement, setAgreement] = useState(false);
   const close = () => { setAgreement(false); onClose(); };
-  const paths = [
-    { href: routes.buy, title: copy.need, body: copy.needBody, icon: <SearchIcon /> },
-    { href: routes.sell, title: copy.sell, body: copy.sellBody, icon: <TagIcon /> },
-    { href: null, title: entryCopy.agreement, body: copy.bringAgreementBody, icon: <AgreementIcon /> },
-    { href: '/contests/new', title: contest.title, body: contest.body, icon: <PrizeIcon /> },
-    { href: '/work/new', title: hourly.title, body: hourly.body, icon: <ClockIcon /> },
-  ];
+  const features = useLiveFeatures();
+  const byId: Record<StartTradePathId, { href: string | null; title: string; body: string; icon: ReactNode }> = {
+    buy: { href: routes.buy, title: copy.need, body: copy.needBody, icon: <SearchIcon /> },
+    sell: { href: routes.sell, title: copy.sell, body: copy.sellBody, icon: <TagIcon /> },
+    agreement: { href: null, title: entryCopy.agreement, body: copy.bringAgreementBody, icon: <AgreementIcon /> },
+    contest: { href: '/contests/new', title: contest.title, body: contest.body, icon: <PrizeIcon /> },
+    hourly: { href: '/work/new', title: hourly.title, body: hourly.body, icon: <ClockIcon /> },
+  };
+  const paths = startTradePaths(features).map((id) => byId[id]);
   const row = 'group flex min-h-[76px] w-full items-center gap-4 px-4 py-3 text-start transition-colors hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)] sm:px-5';
   return (
     <Sheet open={open} title={agreement ? entryCopy.agreement : entryCopy.title} onClose={close}>

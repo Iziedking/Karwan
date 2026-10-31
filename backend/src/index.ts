@@ -179,6 +179,7 @@ import { work as workCore } from './work/workLive.js';
 import { startWorkRunner } from './work/workRunner.js';
 import { createWorkRoutes } from './routes/work.js';
 import { workRequests } from './work/workRequestsLive.js';
+import { liveFeatures } from './featuresLive.js';
 import { createWorkRequestRoutes } from './routes/workRequests.js';
 import { entryFiles, entryPreviews } from './contests/entryFiles.js';
 import { contestsStore } from './db/contests.js';
@@ -563,6 +564,8 @@ if (contestsCore) {
 if (workCore) app.route('/api/work', createWorkRoutes({ core: workCore, session: (c) => readSession(c as Parameters<typeof readSession>[0]) }));
 // Hourly work posted to the market, ranked by the hirer's agent (view 32).
 if (workRequests) app.route('/api/work-requests', createWorkRequestRoutes({ core: workRequests, session: (c) => readSession(c as Parameters<typeof readSession>[0]) }));
+// Which switchable features run here, so the app and assistant offer only those.
+app.get('/api/features', (c) => c.json(liveFeatures));
 app.route('/api/po-financing', poFinancingRoutes);
 app.route('/api/financier', financierRoutes);
 app.route('/api/sme', smeRoutes);

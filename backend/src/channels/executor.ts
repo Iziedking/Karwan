@@ -315,7 +315,7 @@ const DONE: Partial<Record<ConfirmAction['intent'], string>> = {
   recheck_payout: 'Checked. The deal now shows the payment.',
   pause_money_out: 'Paused. No money can leave until you resume it with World ID.',
   remove_payout_address: 'Address removed.',
-  stop_agent_bid: 'Your agent stopped bidding on that request.',
+  stop_agent_bid: 'Your agent took back its offer on that request.',
   confirm_goods_received: 'Confirmed on the trade record.',
   withdraw_offer: 'Offer withdrawn.',
   lower_offer: 'Offer lowered. The buyer sees the new price.',

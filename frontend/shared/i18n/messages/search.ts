@@ -236,7 +236,7 @@ const en: SearchCopy = {
     buyerCheck: {
       paid: 'Your agent paid {amount} USDC to check this buyer',
       numbers: '{completed} deals as a buyer · {repeat} repeat sellers · {disputes} disputes lost · score {score}',
-      late: 'Checked after your agent bid',
+      late: 'Checked after your agent made its offer',
       flags: {
         disputes: 'Passed: the buyer lost more disputes than they completed',
         'mixed-record': 'Look before you accept: more failed buys than finished ones',
