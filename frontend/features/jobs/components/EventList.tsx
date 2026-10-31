@@ -1,11 +1,13 @@
 ﻿'use client';
 import Link from 'next/link';
+import { useState } from 'react';
 import type { ChainEvent } from '@/core/api';
 import { hrefForEvent } from '@/features/activity/eventRouting';
 import { Tag, StatusDot } from '@/shared/components/Tag';
 import { shortHash, relativeTime, formatUsdc } from '@/shared/utils/format';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
+import { eventRuns } from '../eventRuns';
 
 /// A readable label for any event type, including ones i18n has no entry for.
 ///
@@ -256,6 +258,7 @@ export function EventList({
   showJobId,
   variant = 'timeline',
   collapseRepeats = false,
+  pageSize,
 }: {
   events: ChainEvent[];
   explorer: string;
@@ -266,9 +269,13 @@ export function EventList({
   /// seen twice. Only the public stream, where amounts and parties are
   /// stripped, has rows that genuinely carry no information apart.
   collapseRepeats?: boolean;
+  /// The timeline shows this many rows, then Show more adds as many again.
+  pageSize?: number;
 }) {
   const { locale } = useLocale();
-  const el = useTranslations().eventList;
+  const messages = useTranslations();
+  const el = messages.eventList;
+  const [shown, setShown] = useState(pageSize ?? Number.POSITIVE_INFINITY);
   if (events.length === 0) {
     if (variant === 'card') {
       return (
@@ -427,13 +434,20 @@ export function EventList({
     );
   }
 
+  // Two rows fold only when everything a person reads on them is the same.
+  const reads = (e: ChainEvent) =>
+    [e.type, e.actor, textKey(e.type, e.payload), ...chipsFor(e.payload, el).map((c) => `${c.label}:${c.value}`)].join('|');
+  const runs = collapseRepeats ? eventRuns(events, (a, b) => reads(a) === reads(b)) : events.map((item) => ({ item, repeat: 1 }));
+  const visible = runs.slice(0, shown);
+
   return (
+    <>
     <ol className="relative -my-3">
       <span
         aria-hidden
         className="absolute start-[5px] top-3 bottom-3 w-px bg-[var(--color-line)]"
       />
-      {events.map((e, i) => {
+      {visible.map(({ item: e, repeat }, i) => {
         const text = labelFor(textKey(e.type, e.payload), el.eventTexts);
         const tone: Tone = EVENT_TONES[e.type] ?? 'system';
         const dotTone =
@@ -463,6 +477,7 @@ export function EventList({
             <div className="flex items-baseline justify-between gap-3">
               <span className="text-[14px] text-[var(--color-ink)] font-medium">{text}</span>
               <span className="text-[14px] text-[var(--color-ink-faint)] mono shrink-0">
+                {repeat > 1 && <span data-repeat className="me-2">{`×${repeat}`}</span>}
                 {relativeTime(e.ts, locale)}
               </span>
             </div>
@@ -503,6 +518,16 @@ export function EventList({
         );
       })}
     </ol>
+    {runs.length > visible.length && pageSize ? (
+      <button
+        type="button"
+        onClick={() => setShown((n) => n + pageSize)}
+        className="mt-4 inline-flex min-h-11 items-center rounded-full border border-[var(--lp-border-light)] px-4 text-[14px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+      >
+        {messages.dealsPage.showMore}
+      </button>
+    ) : null}
+    </>
   );
 }
 

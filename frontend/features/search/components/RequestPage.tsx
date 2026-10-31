@@ -170,7 +170,7 @@ export function RequestPage({ initial, explorer }: { initial: BuyerJob; explorer
               <span>{t.timeline}</span>
               <span className="text-[14px] font-medium text-[var(--lp-text-sub)]">{timelineOpen ? t.offers.hide : t.offers.show}</span>
             </button>
-            {timelineOpen ? <EventList events={live.events} explorer={explorer} collapseRepeats /> : null}
+            {timelineOpen ? <EventList events={live.events} explorer={explorer} collapseRepeats pageSize={5} /> : null}
           </section>
         ) : null}
 

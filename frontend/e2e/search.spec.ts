@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { ME, TX, accentControls, funded, watchHydration } from './moneyFixtures';
+import { ME, TX, accentControls, funded, sseEvent, watchHydration } from './moneyFixtures';
 
 import { JOB, makeJob, makeProposal, serveSearch } from './searchFixtures';
 
@@ -323,4 +323,19 @@ test('an old ?search=v1 link to a request opens the request page (view 44, Batch
   await page.goto(`/jobs/${JOB}?search=v1`);
   await expect(page.getByRole('heading', { name: 'Looking for sellers.' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Edit request' })).toBeVisible();
+});
+
+test('what your agent did folds repeats and shows five rows at a time', async ({ page }) => {
+  const now = Date.now();
+  const skips = Array.from({ length: 6 }, (_, i) => ({ type: 'agent.skipped', jobId: JOB, actor: 'seller', ts: now - 60_000 + i, payload: { reason: 'outside_skills' } }));
+  const scans = Array.from({ length: 6 }, (_, i) => ({ type: 'market.scanned', jobId: JOB, actor: 'buyer', ts: now - 30_000 + i * 1000, payload: { scanned: i + 1, matched: 0 } }));
+  await serveSearch(page, { balances: { ...funded }, events: () => [...skips, ...scans].map(sseEvent).join('') });
+  await page.goto(`/jobs/${JOB}`);
+  await page.getByRole('button', { name: /What your agent did/ }).click();
+  const rows = page.locator('ol > li.slide-in');
+  await expect(rows).toHaveCount(5);
+  await page.getByRole('button', { name: 'Show more', exact: true }).click();
+  await expect(rows).toHaveCount(7);
+  await expect(page.locator('[data-repeat]')).toHaveText('×6');
+  await expect(page.getByRole('button', { name: 'Show more', exact: true })).toHaveCount(0);
 });
