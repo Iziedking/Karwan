@@ -394,6 +394,16 @@ export function contentFor(
       };
     }
     case 'deal.direct.created':
+      if (role === 'seller' && e.payload?.agentAccepted === true) {
+        return {
+          kicker: 'New order',
+          subject: `A buyer ordered your offer${amountSuffix}`,
+          heading: 'Your agent accepted an order',
+          body: `A buyer ordered your offer${amountSuffix} at the terms you listed, so your agent accepted it for you. You will hear from us when the money is held.`,
+          ctaLabel: 'Open the deal',
+          ctaUrl: dealUrl(e.jobId),
+        };
+      }
       return role === 'seller'
         ? {
             kicker: 'New deal',
@@ -558,6 +568,8 @@ export function contentFor(
       };
     }
     case 'deal.seller-approved':
+      // The seller's agent accepted while the buyer was paying; they need no email.
+      if (e.payload?.byAgent === true) return null;
       return role === 'buyer'
         ? {
             kicker: 'Ready to fund',

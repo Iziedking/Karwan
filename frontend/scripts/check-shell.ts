@@ -39,6 +39,9 @@ for (const route of ['/market', '/listings/example', '/credit-passport/0x123']) 
 // Deals is a place of its own in the signed-in workspace (view 44).
 assert.equal(isPublicAccessRoute('/deals'), false, '/deals stays behind sign-in');
 assert.equal(getShellSurface('/deals', true), 'workspace', '/deals joins the signed-in workspace');
+assert.equal(isPublicAccessRoute('/order/lst_1'), false, 'an order needs sign-in');
+assert.equal(getShellSurface('/order/lst_1', true), 'workspace', 'an order is a signed-in workspace page');
+assert.equal(getProductBackHref('/order/lst_1'), '/listings/lst_1', 'an order goes back to its offer');
 
 // Onboarding is focused whoever you are: leaving mid-setup is what it guards.
 for (const route of ['/onboarding', '/onboarding?step=profile']) {

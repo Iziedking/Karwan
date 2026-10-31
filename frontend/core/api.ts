@@ -1262,6 +1262,15 @@ export interface Listing {
 }
 
 /// A seller on a market card (view 44): never an address.
+export interface ListingQuote {
+  priceUsdc: string;
+  feeUsdc: string;
+  youPayUsdc: string;
+  feeBps: number;
+  deliverByUnix: number | null;
+  parts: number;
+}
+
 export interface ListingSeller {
   name: string | null;
   tag: string | null;
@@ -3130,6 +3139,8 @@ export const api = {
   listingFits: (caller: string) => json<{ jobIds: string[] }>(`/api/listings/fits?caller=${encodeURIComponent(caller)}`),
   listingsForSeller: (address: string) =>
     json<{ listings: Listing[] }>(`/api/listings/mine?address=${address}`),
+  /// What ordering a listing costs: Price, Karwan fee, You pay (D12).
+  listingQuote: (id: string) => json<ListingQuote>(`/api/listings/${encodeURIComponent(id)}/quote`),
   getListing: (id: string, caller?: string) => {
     const q = caller ? `?caller=${caller}` : '';
     return json<{
@@ -4480,11 +4491,15 @@ export const api = {
     sourceContext?: TradeSourceContext;
     verificationPolicy?: 'standard' | 'high_signal';
     verificationSubject?: 'buyer' | 'seller' | 'both';
+    /// Ordered from this listing (view 44): the deal is the listing as it stands.
+    listingId?: string;
   }) =>
     json<{
       deal: DirectDeal;
       funding: DirectDealFunding;
       invite?: { url: string; email: string };
+      /// True when the seller's agent accepted a listing order at once.
+      agentAccepted?: boolean;
     }>('/api/deals/direct', {
       method: 'POST',
       body: JSON.stringify(body),

@@ -154,11 +154,8 @@ export function ListingDetail({ listingId }: { listingId: string }) {
   const sellerName = viewerIsOwner
     ? ld.pitch.sellerSelfLabel
     : sellerProfile?.displayName?.trim() || (sellerProfile?.handle ? `@${sellerProfile.handle}` : ld.pitch.sellerLabel);
-  // Buyer-side CTA: pre-fill the new-deal form with this seller + asking price
-  // so anyone reading an offer can open a direct deal without copy-paste.
-  const buyerOfferHref = isConnected
-    ? `/buyer?seller=${listing.sellerUser}&amount=${listing.askingPriceUsdc}&terms=${encodeURIComponent(listing.title)}&listing=${encodeURIComponent(listing.id)}`
-    : '/buyer';
+  // Order opens the review of this offer (view 44); signed out, it signs in first.
+  const buyerOfferHref = `/order/${encodeURIComponent(listing.id)}`;
   const primaryClass =
     'inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--action)] px-6 text-[15px] font-semibold text-[var(--on-action)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-offset-2';
   const quietClass =

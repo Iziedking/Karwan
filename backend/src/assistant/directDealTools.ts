@@ -16,6 +16,9 @@ import { conversationReference, dealBody, dealCardFields, type Counterparty } fr
 import { personName, shortAddress } from '../channels/personName.js';
 import { suiteIdentity } from '../identity/suiteIdentityLive.js';
 import { recordSetupCard } from './recordCard.js';
+import { getListing, listingStatus } from '../db/listings.js';
+import { listingOrderTerms } from '../deals/listingOrder.js';
+import { createSchema } from '../deals/createSchema.js';
 
 const USDC_DECIMALS = 6;
 
@@ -155,6 +158,48 @@ export function directDealTools(address: string, actions: AssistantAction[], con
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant start_protected_deal failed');
           return { error: 'Could not prepare that deal right now.' };
+        }
+      },
+    }),
+
+    order_listing: tool({
+      description:
+        "Order an offer from the market exactly as it is listed (its price, delivery days and parts), the way its Order button does. Shows one card; on Confirm the deal is made and the seller's agent accepts it at once because it is the listing as it stands, then pay it with pay_into_escrow. Use when the user wants to buy a listing they found (search_market gives the id). To change the price or the terms, use start_protected_deal instead; then the seller decides.",
+      inputSchema: z.object({ listingId: z.string().regex(/^lst_[0-9a-f]{16}$/) }),
+      execute: async ({ listingId }) => {
+        try {
+          const listing = getListing(listingId);
+          if (!listing || listingStatus(listing) !== 'open') return { error: 'That offer is no longer open.' };
+          if (listing.sellerUser.toLowerCase() === address.toLowerCase()) return { error: 'That is your own offer.' };
+          const order = listingOrderTerms(listing);
+          const parsed = createSchema.safeParse({
+            buyerAddress: address,
+            sellerAddress: listing.sellerUser.toLowerCase(),
+            ...order,
+            listingId,
+            ...(conversationId ? { sourceContext: { channel: 'karwan', reference: conversationReference(conversationId) } } : {}),
+          });
+          if (!parsed.success) return { error: 'That offer cannot be ordered here. Open it on the market.' };
+          const body = parsed.data;
+          const sellerLabel = personName(await getProfile(listing.sellerUser).catch(() => null), 'the seller');
+          const pays = await buyerPays(body.dealAmountUsdc, feeBps).catch(() => null);
+          push({
+            kind: 'confirm',
+            id: `create_direct_deal:${listingId}:${confirmNonce()}`,
+            intent: 'create_direct_deal',
+            title: `Order ${listing.title.slice(0, 60)} from ${sellerLabel}`,
+            summary: "This is the offer as listed, so the seller's agent accepts it at once. You pay it in next; Karwan holds the money until you release it.",
+            fields: dealCardFields(body, sellerLabel, pays).map((row) =>
+              row.label === 'You pay into escrow' && pays ? { label: 'You pay', value: `${pays} USDC with the fee` } : row,
+            ).filter((row) => row.label !== 'They have to accept within'),
+            payload: body,
+            confirmLabel: 'Order',
+            cancelLabel: 'Not now',
+          });
+          return { ok: true, shown: 'order card', listingId };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant order_listing failed');
+          return { error: 'Could not prepare that order right now.' };
         }
       },
     }),

@@ -1,11 +1,9 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { api } from '@/core/api';
+import { useCallback, useState } from 'react';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
 import { fill } from '@/features/deals/workspace/presentation';
 import { Qr, Watching } from '@/features/deposit/components/DepositCard';
+import { useDepositAddress, useFundsLanded } from '@/features/deposit/useDepositWatch';
 
 /// Shown when an email or passkey account is short of the request. The payer
 /// sends the missing USDC from an exchange or any wallet to their own account;
@@ -21,22 +19,8 @@ export function FundToPay({ owner, shortfall, name, onLanded }: {
   const copy = useTranslations().payLink.pay;
   const deposit = useTranslations().deposit;
   const [copied, setCopied] = useState(false);
-  const { data } = useQuery({
-    queryKey: ['deposit', 'address', owner],
-    queryFn: () => api.depositAddress(owner),
-    staleTime: Infinity,
-  });
-  const evm = data?.chains ?? [];
-  const address = evm[0]?.address ?? null;
-
-  useEffect(() => {
-    const me = owner.toLowerCase();
-    return subscribeLiveEvents((event) => {
-      const p = (event.payload ?? {}) as { owner?: string; mintRecipient?: string };
-      if (event.type === 'wallet.credited' && p.owner?.toLowerCase() === me) onLanded();
-      if (event.type === 'bridge.minted' && p.mintRecipient?.toLowerCase() === me) onLanded();
-    });
-  }, [owner, onLanded]);
+  const { supported, address, chains: evm } = useDepositAddress(owner);
+  useFundsLanded(owner, useCallback(() => onLanded(), [onLanded]));
 
   async function copyAddress() {
     if (!address) return;
@@ -50,7 +34,7 @@ export function FundToPay({ owner, shortfall, name, onLanded }: {
   return (
     <section className="mt-8 rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5">
       <h2 className="text-[17px] font-semibold text-[var(--lp-dark)]">{fill(copy.fundTitle, { amount: shortfall, name })}</h2>
-      {data && !data.supported ? (
+      {supported === false ? (
         <p className="mt-2 text-[14px] text-[var(--lp-text-sub)] font-medium">{deposit.unavailable}</p>
       ) : address ? (
         <div className="mt-5 flex flex-col items-center gap-5 sm:flex-row sm:items-start">

@@ -297,6 +297,7 @@ export async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     return buyer && e.payload?.notify === true ? [{ address: buyer, role: 'buyer' }] : [];
   }
   if (e.type === 'deal.seller-approved') {
+    if (e.payload?.byAgent === true) return [];
     const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
     return buyer ? [{ address: buyer, role: 'buyer' }] : [];
   }
@@ -565,6 +566,11 @@ Nothing is sent until you answer.`, jobUrl(e.payload?.jobId as string | undefine
       );
     }
     case 'deal.direct.created':
+      if (e.payload?.agentAccepted === true) {
+        return role === 'seller'
+          ? withLink(`*A buyer ordered your offer*${amount ? ` at ${amount} USDC` : ''}. Your agent accepted it at the terms you listed. You will hear when the money is held.`, url)
+          : null;
+      }
       return withLink(
         role === 'seller'
           ? `*A buyer opened a deal with you*${amount ? ` at ${amount} USDC` : ''}. Review and agree to the terms. The buyer funds afterward.`

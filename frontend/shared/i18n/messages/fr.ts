@@ -23,6 +23,7 @@ import { recordOnTheWayCopy } from './recordOnTheWay';
 import { previousEscrowCopy } from './previousEscrow';
 import { dealsPageCopy } from './dealsPage';
 import { marketShopCopy } from './marketShop';
+import { orderFlowCopy } from './orderFlow';
 import { dealGuaranteeCopy } from './dealGuarantee';
 import { contestsCopy } from './contests';
 import { workCopy } from './work';
@@ -74,6 +75,7 @@ export const fr: Messages = {
   previousEscrow: previousEscrowCopy.fr,
   dealsPage: dealsPageCopy.fr,
   marketShop: marketShopCopy.fr,
+  orderFlow: orderFlowCopy.fr,
   dealGuarantee: dealGuaranteeCopy.fr,
   contests: contestsCopy.fr,
   work: workCopy.fr,

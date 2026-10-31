@@ -107,6 +107,9 @@ export const createSchema = z
     /// policy, not a payment authorization.
     verificationPolicy: z.enum(['standard', 'high_signal']).optional().default('standard'),
     verificationSubject: z.enum(['buyer', 'seller', 'both']).optional().default('seller'),
+    /// Ordered from this listing (view 44, D10). The deal must be the listing as
+    /// it stands; the seller's agent then accepts it at once.
+    listingId: z.string().regex(/^lst_[0-9a-f]{16}$/).optional(),
   })
   .refine(
     (b) =>

@@ -64,7 +64,7 @@ test('a buyer sees the offer, the seller and one way to order', async ({ page },
   await expect(page.getByText(t.samplePhoto).first()).toBeVisible();
   const order = page.getByRole('link', { name: 'Order · 120 USDC' }).filter({ visible: true });
   await expect(order).toHaveCount(1);
-  await expect(order).toHaveAttribute('href', /\/buyer\?seller=0x5555555555555555555555555555555555555555&amount=120&.*listing=lst_logo/);
+  await expect(order).toHaveAttribute('href', '/order/lst_logo');
   const width = page.viewportSize()!.width;
   if (width >= 1024) await expect(page.locator('[data-order-panel]')).toBeVisible();
   else await expect(page.locator('[data-order-bar]')).toBeVisible();

@@ -43,7 +43,16 @@ function isCancel(error: unknown): boolean {
   return e?.name === 'NotAllowedError' || e?.name === 'AbortError' || /cancel|not allowed|denied|rejected/i.test(e?.message ?? '');
 }
 
-export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?: Mode; onWaitlist?: () => void }) {
+export function AuthCard({
+  initialMode = 'signin',
+  onWaitlist,
+  next = null,
+}: {
+  initialMode?: Mode;
+  onWaitlist?: () => void;
+  /// A page on this site to return to once signed in (already checked by safeNext).
+  next?: string | null;
+}) {
   const messages = useTranslations();
   const t = messages.signup;
   const recoveryCopy = messages.recovery;
@@ -104,14 +113,14 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
     splashHold.current ??= holdSplash();
     // Queries read while signed out must not show on the signed-in home.
     void queryClient.invalidateQueries();
-    router.replace(HOME);
-  }, [queryClient, router]);
+    router.replace(next ?? HOME);
+  }, [queryClient, router, next]);
 
   // A new account goes on to About you (view 39); its agents are already being set up.
   const goSetup = useCallback(() => {
     void queryClient.invalidateQueries();
-    router.replace(ABOUT_YOU);
-  }, [queryClient, router]);
+    router.replace(next ? `${ABOUT_YOU}&next=${encodeURIComponent(next)}` : ABOUT_YOU);
+  }, [queryClient, router, next]);
 
   // Once a session exists, the server decides what happens next: an account
   // goes home, a session without one goes on to pick its tag.

@@ -462,5 +462,8 @@ function finish(action: ConfirmAction, res: { status: number; json: Record<strin
     if (state !== 'completed') return { ok: true, summary: 'It is being confirmed. It is not complete yet.', ...(txHash ? { txHash } : {}) };
     return { ok: true, summary: 'Completed.', ...(txHash ? { txHash } : {}) };
   }
+  if (action.intent === 'create_direct_deal' && res.json.agentAccepted === true) {
+    return { ok: true, summary: "Ordered. The seller's agent accepted it. Ask me to pay it in when you are ready." };
+  }
   return { ok: true, summary: DONE[action.intent] ?? 'Done.', ...(txHash ? { txHash } : {}) };
 }

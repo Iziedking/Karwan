@@ -25,16 +25,16 @@ const READ_BACK_MS = 900;
 
 /// The setup conversation. On /start it is "About you", the last of the three
 /// parts of sign-up (view 39); under Profile it is where the answers change.
-export function SetupFlow({ embedded = false }: { embedded?: boolean }) {
+export function SetupFlow({ embedded = false, next = null }: { embedded?: boolean; next?: string | null }) {
   const t = useTranslations().profile.signInGate;
   return (
     <AuthGuard gateTag={t.tag} gateBody={t.body}>
-      <SetupConversation embedded={embedded} />
+      <SetupConversation embedded={embedded} next={next} />
     </AuthGuard>
   );
 }
 
-function SetupConversation({ embedded }: { embedded: boolean }) {
+function SetupConversation({ embedded, next }: { embedded: boolean; next: string | null }) {
   const messages = useTranslations();
   const t = messages.setup;
   const f = messages.startFlow.about;
@@ -102,7 +102,7 @@ function SetupConversation({ embedded }: { embedded: boolean }) {
       const saved = await api.setupSave(answers);
       refresh();
       if (postNow && saved.firstPost) openHelp(saved.firstPost.handOff, { send: true });
-      router.push('/app');
+      router.push(next ?? '/app');
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) dispatch({ type: 'read', lines: state.lines, needs: ['price'] });
       else setError(t.saveError);

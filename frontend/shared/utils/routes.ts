@@ -61,6 +61,11 @@ export function getProductBackHref(
   if (matchesRoute(pathname, '/business/verification')) return '/profile/business';
   if (matchesRoute(pathname, '/profile')) return '/profile';
   if (matchesRoute(pathname, '/listings')) return '/market';
+  // An order goes back to the offer it was made from.
+  if (matchesRoute(pathname, '/order')) {
+    const id = pathname.split('/')[2];
+    return id ? `/listings/${id}` : '/market';
+  }
   if (matchesRoute(pathname, '/market')) return isAuthenticated ? '/app' : '/';
   if (matchesRoute(pathname, '/onboarding')) return '/';
   if (matchesRoute(pathname, '/cashout')) return isAuthenticated ? '/app' : '/';
@@ -155,6 +160,7 @@ const DEAL_ROUTES = [
   '/invite',
   '/market',
   '/listings',
+  '/order',
   '/financier',
   '/guarantee',
   '/legacy',

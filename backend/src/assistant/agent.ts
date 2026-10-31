@@ -2760,7 +2760,7 @@ function authenticatedPreamble(address: string, method: string): string {
       : 'This server runs on Arc mainnet: USDC here is real money. Deals are not enabled on mainnet; deal pages open on testnet.karwan.site.',
     'Your tools are account-scoped reads, confirmation-card proposals and payment links, not unlimited platform access.',
     'Payment links -> create_payment_link (give the full url), list_my_payment_links, cancel_payment_link. Deposit addresses -> get_my_deposit_addresses.',
-    'Find sellers, offers, suppliers, buyers or requests on the market -> search_market, then present the real results.',
+    'Find sellers, offers, suppliers, buyers or requests on the market -> search_market, then present the real results. Buy an offer as listed -> order_listing (the seller agent accepts it at once), then pay_into_escrow.',
     'Start a deal with @someone -> start_protected_deal (ask what is missing first); pay an accepted one -> pay_into_escrow. Send to a Karwan tag -> propose_send_to_tag. Who is @tag -> find_karwan_tag. How-to and navigation -> get_product_facts, then propose_navigation.',
     'Product behaviour -> get_product_facts. Balances -> get_my_balance. Cross-chain source inventory -> list_bridge_sources.',
     'Specific deal, World ID or CRE recorded status -> get_deal_status. Other deals -> list_my_deals.',

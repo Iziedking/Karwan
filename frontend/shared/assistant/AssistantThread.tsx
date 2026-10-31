@@ -409,9 +409,11 @@ async function runConfirmIntent(
     // The card carries the exact body the deal form sends, validated on the server (view 24).
     const r = await api.createDirectDeal(action.payload as Parameters<typeof api.createDirectDeal>[0]);
     return {
-      successText: r.invite
-        ? `Deal sent. ${r.invite.email} gets a link to accept; you pay into escrow after that.`
-        : 'Deal sent. They are asked to accept the terms; you pay into escrow after that.',
+      successText: r.agentAccepted
+        ? "Ordered. The seller's agent accepted it, so you can pay it in now."
+        : r.invite
+          ? `Deal sent. ${r.invite.email} gets a link to accept; you pay into escrow after that.`
+          : 'Deal sent. They are asked to accept the terms; you pay into escrow after that.',
       viewHref: `/deals/${r.deal.jobId}`,
       viewLabel: 'Open the deal',
     };

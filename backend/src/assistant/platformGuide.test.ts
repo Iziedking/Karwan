@@ -190,3 +190,12 @@ test('the assistant can open the Sell side, and the guide describes the market a
   for (const words of ['Buy', 'Sell', 'categor', 'Fits what you sell']) assert.match(market.summary, new RegExp(words));
   assert.doesNotMatch(market.summary, /Start a trade/);
 });
+
+test('the guide knows the order path: one fee line, the agent accepting, and the assistant ordering (view 44, Batch 4)', () => {
+  const market = PLATFORM_GUIDE.find((entry) => entry.id === 'market')!;
+  assert.match(market.summary, /Price, Karwan fee and You pay/);
+  assert.match(market.summary, /accepted at once by the seller's agent/);
+  assert.ok(market.tools.includes('order_listing'));
+  assert.ok(market.pages.includes('/order/[listingId]'));
+  assert.ok(market.api.includes('GET /api/listings/:id/quote'));
+});

@@ -140,6 +140,8 @@ import { checkHandoverCode, issueHandoverCode } from '../deals/handoverCode.js';
 import { deliveryPhotoId, deliveryPhotos } from '../deals/deliveryPhotos.js';
 import { decodePhotoDataUrl, type Photo } from '../listings/photos.js';
 import { suiteIdentity } from '../identity/suiteIdentityLive.js';
+import { getListing, type Listing } from '../db/listings.js';
+import { agentMayAccept, listingOrderMatches } from '../deals/listingOrder.js';
 import { seedAgentFromOperator } from '../chain/agentSeed.js';
 import { bus, recentEventsByType } from '../events.js';
 import { addSystemMessage } from '../chat/systemMessages.js';
@@ -499,6 +501,28 @@ dealsRoutes.post('/direct', async (c) => {
     return c.json({ error: 'You can only open a deal as your own wallet.', code: 'forbidden' }, 403);
   }
 
+  // Ordered from a listing: the deal must be the listing as it stands, checked
+  // before anything is created (view 44, D10).
+  let orderedListing: Listing | null = null;
+  if (body.listingId) {
+    const listing = getListing(body.listingId);
+    if (!listing) return c.json({ error: 'this offer is no longer open', code: 'LISTING_CLOSED' }, 409);
+    if (listing.sellerUser.toLowerCase() === body.buyerAddress.toLowerCase()) {
+      return c.json({ error: 'this is your own offer', code: 'OWN_LISTING' }, 409);
+    }
+    const check = listingOrderMatches(body, listing, Date.now());
+    if (!check.ok || (body.deadlineHours ?? 0) !== 0) {
+      const closed = !check.ok && check.reason === 'closed';
+      return c.json(
+        closed
+          ? { error: 'this offer is no longer open', code: 'LISTING_CLOSED' }
+          : { error: 'this offer changed; look at it again before you order', code: 'LISTING_CHANGED' },
+        409,
+      );
+    }
+    orderedListing = listing;
+  }
+
   // The buyer agent funds escrow only after the seller agrees and the buyer
   // confirms a live quote, so it must exist now. The seller activates lazily.
   const buyerAgents = await getAgentWallets(body.buyerAddress);
@@ -701,6 +725,9 @@ dealsRoutes.post('/direct', async (c) => {
     ...protection,
   });
 
+  // An order of a listing as it stands is accepted by the seller's agent before
+  // anyone is told, so the seller hears "your agent accepted", not "agree".
+  const agentAccepted = orderedListing ? await acceptAsSellerAgent(deal, orderedListing) : false;
   bus.emitEvent({
     type: 'deal.direct.created',
     jobId,
@@ -711,8 +738,17 @@ dealsRoutes.post('/direct', async (c) => {
       dealAmountUsdc: body.dealAmountUsdc.toString(),
       firstReleasePct: body.firstReleasePct,
       ...(pendingCounterparty ? { invitedEmail: pendingCounterparty.email } : {}),
+      ...(orderedListing ? { listingId: orderedListing.id, agentAccepted } : {}),
     },
   });
+  if (agentAccepted) {
+    bus.emitEvent({
+      type: 'deal.seller-approved',
+      jobId,
+      actor: 'seller',
+      payload: { seller: sellerAddress, buyer: body.buyerAddress, dealAmountUsdc: body.dealAmountUsdc.toString(), byAgent: true },
+    });
+  }
   if (pendingCounterparty) {
     bus.emitEvent({
       type: 'deal.invite.created',
@@ -786,12 +822,13 @@ dealsRoutes.post('/direct', async (c) => {
   }
 
   logger.info(
-    { jobId, buyer: body.buyerAddress, seller: sellerAddress, invited: !!body.sellerEmail },
-    'direct deal created, awaiting seller agreement',
+    { jobId, buyer: body.buyerAddress, seller: sellerAddress, invited: !!body.sellerEmail, agentAccepted },
+    agentAccepted ? "direct deal created from a listing, accepted by the seller's agent" : 'direct deal created, awaiting seller agreement',
   );
   return c.json(
     {
-      deal,
+      deal: agentAccepted ? (await getDeal(jobId)) ?? deal : deal,
+      agentAccepted,
       funding: {
         dealAmountUsdc: body.dealAmountUsdc.toString(),
         fundedAmountUsdc: formatUnits(fundedAmount, USDC_DECIMALS),
@@ -1940,6 +1977,45 @@ dealsRoutes.post('/direct/:jobId/high-signal/skip', async (c) => {
 /// Seller agrees to the current commercial terms. This may provision their
 /// agent identity, but it never approves, transfers, or locks the buyer's USDC.
 /// The buyer performs the separate, exact-amount funding authorization below.
+/// The seller's agent accepts an order that is the listing exactly, inside the
+/// seller's limits (view 44, D10), the way the seller's own accept would. Any
+/// failure leaves the deal waiting for the seller; nothing has been paid.
+async function acceptAsSellerAgent(deal: DirectDeal, listing: Listing): Promise<boolean> {
+  const jobId = deal.jobId;
+  try {
+    const sellerAgents = await getAgentWallets(deal.seller);
+    const allowed = agentMayAccept({
+      matches: true,
+      tradeLane: deal.tradeLane,
+      sellerCheckDue: highSignalGate(deal, 'seller') !== null,
+      sellerAgentLinked: !!sellerAgents && sellerAgents.sellerAddress.toLowerCase() === listing.sellerAgent.toLowerCase(),
+    });
+    if (!allowed || !sellerAgents || inFlight.has(jobId)) return false;
+    if (suiteIdentity && (await fundingEscrowFor(deal, jobId)) === 'suite') {
+      await suiteIdentity.ensureRecord(deal.seller, 'seller');
+    }
+    inFlight.add(jobId);
+    try {
+      const version = deal.agreementVersion ?? 1;
+      const digest = agreementDigest(deal);
+      const approval = await approveSellerAgreement(jobId, version, digest, {
+        sellerApprovedAt: Date.now(),
+        sellerApprovedTermsDigest: termsDigest(deal.terms),
+        sellerApprovedAgreementVersion: version,
+        sellerApprovedAgreementDigest: digest,
+        sellerAgentWalletId: sellerAgents.sellerWalletId,
+        sellerAgentAddress: sellerAgents.sellerAddress,
+      });
+      return approval.ok;
+    } finally {
+      inFlight.delete(jobId);
+    }
+  } catch (err) {
+    logger.warn({ jobId, err: (err as Error).message }, "the seller's agent could not accept the listing order; it waits for the seller");
+    return false;
+  }
+}
+
 dealsRoutes.post('/direct/:jobId/accept', async (c) => {
   const jobId = c.req.param('jobId');
   const deal = await getDeal(jobId);

@@ -71,4 +71,5 @@ flowchart LR
 | Batch 1: dead ends and words (`GET /api/features`, hourly hidden while off, switched-off pages are a 404, not-found leads to your trades, Earlier deals, offer, Deposit) | Built, 31 Oct 2026 |
 | Batch 2: navigation and one Deals list (`/deals` ordered needs you, active, finished; phone bar Home, Market, Deals, Profile; desktop rail Home, Market, Deals with a count, Money, Messages, the person at the foot; Home shows the top of Deals; the assistant can open Deals) | Built, 31 Oct 2026 |
 | Batch 3: the market (Buy and Sell, one search, categories, photo cards with the seller, rating and delivery, a marked sample photo when an offer has none, Sell shows what buyers need with "Fits what you sell", the listing page with Order; `GET /api/listings` carries category and seller, `GET /api/listings/fits`) | Built, 31 Oct 2026 |
-| Batches 4 to 9 | Not started |
+| Batch 4: the order flow (Order opens Review your order at `/order/<id>`, signing in first and coming back; Delivery, then Price, Karwan fee and You pay from `GET /api/listings/:id/quote`; Add money shows your own address and updates by itself; Pay confirms in a sheet; an order that is the listing as it stands is accepted at once by the seller's agent, so it is paid in straight away; the assistant orders with `order_listing`) | Built, 31 Oct 2026 |
+| Batches 5 to 9 | Not started |

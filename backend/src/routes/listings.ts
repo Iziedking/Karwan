@@ -24,6 +24,9 @@ import { MAX_OFFER_PHOTOS, decodePhotoDataUrl, offerPhotos, photoUrls, type Phot
 import { CATEGORY_IDS, categoryOf } from '../listings/categories.js';
 import { liveSellerSummaries, type ListingSeller } from '../listings/sellerSummary.js';
 import { requestsThatFit } from '../listings/fits.js';
+import { buildDirectDealFundingQuote } from '../deals/fundingQuote.js';
+import { listingOrderTerms } from '../deals/listingOrder.js';
+import { newDealFeeBps } from '../deals/newDealFee.js';
 import { listAllBriefs } from '../db/briefs.js';
 import { config } from '../config.js';
 import { requireAdmin } from '../middleware/adminAuth.js';
@@ -234,6 +237,31 @@ listingsRoutes.get('/:id', async (c) => {
   }
   const { negotiationMaxDecreasePct: _drop, seedKey, ...visible } = listing;
   return c.json({ listing: { ...visible, example: Boolean(seedKey), photoUrls: photoUrls(listing), category: categoryOf(listing), seller }, viewerIsOwner: false, status });
+});
+
+/// What ordering this listing costs, with the fee of the escrow a new deal pays
+/// in on (D12): Price, Karwan fee, You pay, and when it would be delivered by.
+listingsRoutes.get('/:id/quote', async (c) => {
+  const listing = getListing(c.req.param('id'));
+  if (!listing) return c.json({ error: 'listing not found' }, 404);
+  if (listingStatus(listing) !== 'open') return c.json({ error: 'this offer is no longer open', code: 'CLOSED' }, 409);
+  const order = listingOrderTerms(listing);
+  let feeBps: number;
+  try {
+    feeBps = await newDealFeeBps();
+  } catch (err) {
+    logger.warn({ id: listing.id, err: (err as Error).message }, 'listing quote: fee read failed');
+    return c.json({ error: 'the fee could not be read just now', code: 'FEE_UNAVAILABLE' }, 503);
+  }
+  const quote = buildDirectDealFundingQuote({ jobId: `listing:${listing.id}`, dealAmountUsdc: String(order.dealAmountUsdc), feeBps });
+  return c.json({
+    priceUsdc: quote.dealAmountUsdc,
+    feeUsdc: quote.buyerFeeUsdc,
+    youPayUsdc: quote.fundedAmountUsdc,
+    feeBps,
+    deliverByUnix: Math.floor(Date.now() / 1000) + order.deadlineDays * 86400,
+    parts: order.milestonePcts.length,
+  });
 });
 
 /// One photo of an offer. Public, like the offer; cached for a year because

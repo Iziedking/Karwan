@@ -1,6 +1,7 @@
 /// The browser tab title of each page, shown as "<title> · Karwan".
 export type RouteTitleKey =
   | 'account'
+  | 'order'
   | 'assistant'
   | 'connectTelegram'
   | 'activity'
@@ -110,6 +111,7 @@ const en: RouteTitleCopy = {
   legacy: 'Earlier deals',
   offers: 'Offers',
   offer: 'Offer',
+  order: 'Review your order',
   market: 'Market',
   newsletter: 'Newsletter',
   onboarding: 'Set up your account',
@@ -184,6 +186,7 @@ const ar: RouteTitleCopy = {
   legacy: 'الصفقات السابقة',
   offers: 'العروض',
   offer: 'عرض',
+  order: 'راجع طلبك',
   market: 'السوق',
   newsletter: 'النشرة',
   onboarding: 'إعداد حسابك',
@@ -258,6 +261,7 @@ const fr: RouteTitleCopy = {
   legacy: 'Accords précédents',
   offers: 'Offres',
   offer: 'Offre',
+  order: 'Vérifiez votre commande',
   market: 'Marché',
   newsletter: 'Lettre d’information',
   onboarding: 'Configurer votre compte',
@@ -332,6 +336,7 @@ const hi: RouteTitleCopy = {
   legacy: 'पिछले सौदे',
   offers: 'ऑफ़र',
   offer: 'ऑफ़र',
+  order: 'अपना ऑर्डर देखें',
   market: 'बाज़ार',
   newsletter: 'न्यूज़लेटर',
   onboarding: 'अपना खाता सेट करें',
@@ -406,6 +411,7 @@ const sw: RouteTitleCopy = {
   legacy: 'Mikataba ya awali',
   offers: 'Ofa',
   offer: 'Ofa',
+  order: 'Kagua oda yako',
   market: 'Soko',
   newsletter: 'Jarida',
   onboarding: 'Andaa akaunti yako',
