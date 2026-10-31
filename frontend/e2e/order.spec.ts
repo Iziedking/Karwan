@@ -105,7 +105,7 @@ test('short of money: add it, it arrives, then one sheet and one payment', async
   const world = await serveOrder(page);
   await page.goto('/order/lst_logo');
   await expect(page.getByRole('heading', { level: 1, name: t.title })).toBeVisible();
-  await expect(page.getByText('By 3 Nov 2026')).toBeVisible();
+  await expect(page.getByText('By 3 Nov 2026', { exact: true })).toBeVisible();
   await expect(page.getByText('120.00 USDC', { exact: true })).toBeVisible();
   await expect(page.getByText('0.60 USDC', { exact: true })).toBeVisible();
   await expect(page.getByText('120.60 USDC', { exact: true })).toBeVisible();
@@ -116,24 +116,24 @@ test('short of money: add it, it arrives, then one sheet and one payment', async
   await page.getByRole('button', { name: t.addMoney }).click();
   await page.getByRole('button', { name: new RegExp(t.fromWallet) }).click();
   await expect(page.getByText(ME)).toBeVisible();
-  await expect(page.getByText(t.anyNetwork)).toBeVisible();
+  await expect(page.getByText(t.anyNetwork, { exact: true })).toBeVisible();
   await expect(page.getByText('Waiting for your 120.60 USDC')).toBeVisible();
   await noSideways(page);
   await page.screenshot({ path: testInfo.outputPath('add-money.png'), fullPage: true });
 
   world.balances[ME.toLowerCase()] = 150;
   world.events = sseEvent({ type: 'wallet.credited', jobId: '', actor: 'platform', ts: Date.now(), payload: { owner: ME, amountUsdc: '150.000000' } });
-  await expect(page.getByText(t.enough)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(t.enough, { exact: true })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText('150.00 USDC arrived in your account')).toBeVisible();
   const pay = page.getByRole('button', { name: 'Pay 120.60 USDC' });
   await expect(pay).toBeEnabled();
   await pay.click();
 
   const sheet = page.getByRole('dialog');
-  await expect(sheet.getByText(t.confirmFor)).toBeVisible();
-  await expect(sheet.getByText('Logo and brand kit')).toBeVisible();
-  await expect(sheet.getByText(t.confirmHeld)).toBeVisible();
-  await expect(sheet.getByText('If Ada does not deliver')).toBeVisible();
+  await expect(sheet.getByText(t.confirmFor, { exact: true })).toBeVisible();
+  await expect(sheet.getByText('Logo and brand kit', { exact: true })).toBeVisible();
+  await expect(sheet.getByText(t.confirmHeld, { exact: true })).toBeVisible();
+  await expect(sheet.getByText('If Ada does not deliver', { exact: true })).toBeVisible();
   await expect(sheet.getByRole('button', { name: t.notNow })).toBeVisible();
   const axe = await new AxeBuilder({ page }).analyze();
   expect(axe.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')).toEqual([]);
