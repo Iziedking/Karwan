@@ -1,6 +1,7 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import type { DirectDeal } from '../core/api';
 import { dealLiveCopy } from '../shared/i18n/messages/dealLive';
+import { dealPageCopy } from '../shared/i18n/messages/dealPage';
 import { en } from '../shared/i18n/messages/en';
 import { BUYER, JOB, SELLER, deliveredDeal, serveDeal } from './fixtures';
 import { API, funded, serveMoney } from './moneyFixtures';
@@ -92,13 +93,13 @@ for (const [theme, locale] of [['light', 'en'], ['dark', 'en'], ['light', 'ar'],
     const words = dealLiveCopy[locale];
     for (const [state, line, body] of [
       [true, words.onBothRecords, null],
-      [false, words.completeTitle, words.recordPending],
-      [null, words.completeTitle, null],
+      [false, dealPageCopy[locale].doneTitle, words.recordPending],
+      [null, dealPageCopy[locale].doneTitle, null],
     ] as const) {
       await page.unrouteAll({ behavior: 'ignoreErrors' });
       await serveDeal(page, settled(state));
       await page.goto(`/deals/${JOB}`);
-      await expect(page.getByText(line, { exact: true })).toBeVisible();
+      await expect(page.locator('[data-deal-done]').getByText(line, { exact: true })).toBeVisible();
       if (body) await expect(page.getByText(body, { exact: true })).toBeVisible();
       // No record claim at all when a side had no record when it was paid in.
       if (state === null) await expect(page.getByText(words.completeBody, { exact: true })).toHaveCount(0);
