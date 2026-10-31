@@ -12,6 +12,10 @@ import { useEntryHref } from '@/shared/auth/useEntryHref';
 import { dealHref, START_ROUTE } from '@/shared/utils/routes';
 import styles from './landing.module.css';
 
+/// The hero film plays at half speed: at full speed its motion was tiring to
+/// watch (owner, 31 Oct 2026). A calmer film replaces it later.
+const HERO_FILM_RATE = 0.5;
+
 function Arrow() {
   return <svg aria-hidden width="18" height="18" viewBox="0 0 24 24" fill="none" className="rtl-flip" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14m-6-6 6 6-6 6" /></svg>;
 }
@@ -27,6 +31,8 @@ export default function HomePage() {
     const video = videoRef.current;
     if (!video) return;
     const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
+    video.defaultPlaybackRate = HERO_FILM_RATE;
+    video.playbackRate = HERO_FILM_RATE;
     let inView = false;
     const sync = () => {
       if (preference.matches || document.hidden || !inView) video.pause();
