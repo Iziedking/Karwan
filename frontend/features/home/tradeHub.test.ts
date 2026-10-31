@@ -76,7 +76,7 @@ test('the lists hold exactly what the cards count, newest first', () => {
 
 test('each card in Your trades opens its own list, never a form or the whole activity feed', () => {
   const yours = readFileSync(new URL('../market/components/YourTrades.tsx', import.meta.url), 'utf8');
-  assert.match(yours, /href="\/profile\/open-deals"/);
+  assert.match(yours, /href="\/deals"/);
   assert.match(yours, /marketViewHref\('yours', 'requests'\)/);
   assert.match(yours, /marketViewHref\('yours', 'offers'\)/);
   assert.doesNotMatch(yours, /\/p2p/);

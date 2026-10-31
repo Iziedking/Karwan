@@ -9,6 +9,7 @@ export const EXACT: Record<string, RouteTitleKey> = {
   '/connect/telegram': 'connectTelegram',
   '/account': 'account',
   '/activity': 'activity',
+  '/deals': 'deals',
   '/assistant': 'assistant',
   '/activity/all-time': 'activityAllTime',
   '/app': 'app',

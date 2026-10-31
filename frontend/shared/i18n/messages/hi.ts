@@ -21,6 +21,7 @@ import { dealLiveCopy } from './dealLive';
 import { deliveryCardCopy } from './deliveryCard';
 import { recordOnTheWayCopy } from './recordOnTheWay';
 import { previousEscrowCopy } from './previousEscrow';
+import { dealsPageCopy } from './dealsPage';
 import { dealGuaranteeCopy } from './dealGuarantee';
 import { contestsCopy } from './contests';
 import { workCopy } from './work';
@@ -70,6 +71,7 @@ export const hi: Messages = {
   deliveryCard: deliveryCardCopy.hi,
   recordOnTheWay: recordOnTheWayCopy.hi,
   previousEscrow: previousEscrowCopy.hi,
+  dealsPage: dealsPageCopy.hi,
   dealGuarantee: dealGuaranteeCopy.hi,
   contests: contestsCopy.hi,
   work: workCopy.hi,
@@ -148,7 +150,11 @@ export const hi: Messages = {
     profile: 'प्रोफ़ाइल',
     profileOf: 'आपकी प्रोफ़ाइल, {name}',
     deals: 'सौदे',
-    market: 'खोजें',
+    money: 'पैसा',
+    messages: 'संदेश',
+    profileAndSettings: 'प्रोफ़ाइल और सेटिंग्स',
+    dealsNeedYou: '{n} आपकी बारी',
+    market: 'बाज़ार',
     finance: 'वित्त',
     reputation: 'प्रतिष्ठा',
     bridge: 'ब्रिज',
@@ -3472,7 +3478,7 @@ export const hi: Messages = {
       notFoundEyebrow: 'डील नहीं मिली',
       notFoundTitle: 'हम यह डील लोड नहीं कर सके',
       notFoundBody: 'लिंक गलत हो सकता है, या आपका वॉलेट पक्षकार नहीं हो सकता.',
-      notFoundCta: 'अपने सौदों पर वापस जाएँ',
+      notFoundCta: 'सौदों पर वापस जाएँ',
       transientEyebrow: 'डील तक नहीं पहुंच सके',
       transientTitle: 'हम अभी इस डील तक नहीं पहुंच सके',
       transientBody: 'आपकी डील सुरक्षित है और अब भी चेन पर है. यह नेटवर्क की एक झलक भर है, खोई हुई डील नहीं. एक पल रुकें और फिर कोशिश करें.',

@@ -13,6 +13,7 @@ export type RouteTitleKey =
   | 'buyer'
   | 'cashout'
   | 'deal'
+  | 'deals'
   | 'paymentRequest'
   | 'docs'
   | 'docsAgents'
@@ -86,6 +87,7 @@ const en: RouteTitleCopy = {
   buyer: 'Buy',
   cashout: 'Cash out',
   deal: 'Deal',
+  deals: 'Deals',
   paymentRequest: 'Payment request',
   docs: 'Docs',
   docsAgents: 'Agents',
@@ -159,6 +161,7 @@ const ar: RouteTitleCopy = {
   buyer: 'شراء',
   cashout: 'سحب الأرباح',
   deal: 'صفقة',
+  deals: 'الصفقات',
   paymentRequest: 'طلب دفع',
   docs: 'الوثائق',
   docsAgents: 'الوكلاء',
@@ -232,6 +235,7 @@ const fr: RouteTitleCopy = {
   buyer: 'Acheter',
   cashout: 'Encaisser',
   deal: 'Deal',
+  deals: 'Accords',
   paymentRequest: 'Demande de paiement',
   docs: 'Documentation',
   docsAgents: 'Agents',
@@ -305,6 +309,7 @@ const hi: RouteTitleCopy = {
   buyer: 'खरीदें',
   cashout: 'कैश आउट',
   deal: 'डील',
+  deals: 'सौदे',
   paymentRequest: 'भुगतान अनुरोध',
   docs: 'दस्तावेज़',
   docsAgents: 'एजेंट',
@@ -378,6 +383,7 @@ const sw: RouteTitleCopy = {
   buyer: 'Nunua',
   cashout: 'Toa mapato',
   deal: 'Mkataba',
+  deals: 'Mikataba',
   paymentRequest: 'Ombi la malipo',
   docs: 'Nyaraka',
   docsAgents: 'Mawakala',

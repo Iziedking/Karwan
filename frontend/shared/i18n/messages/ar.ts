@@ -21,6 +21,7 @@ import { dealLiveCopy } from './dealLive';
 import { deliveryCardCopy } from './deliveryCard';
 import { recordOnTheWayCopy } from './recordOnTheWay';
 import { previousEscrowCopy } from './previousEscrow';
+import { dealsPageCopy } from './dealsPage';
 import { dealGuaranteeCopy } from './dealGuarantee';
 import { contestsCopy } from './contests';
 import { workCopy } from './work';
@@ -70,6 +71,7 @@ export const ar: Messages = {
   deliveryCard: deliveryCardCopy.ar,
   recordOnTheWay: recordOnTheWayCopy.ar,
   previousEscrow: previousEscrowCopy.ar,
+  dealsPage: dealsPageCopy.ar,
   dealGuarantee: dealGuaranteeCopy.ar,
   contests: contestsCopy.ar,
   work: workCopy.ar,
@@ -150,7 +152,11 @@ export const ar: Messages = {
     profile: 'الملف',
     profileOf: 'الملف الشخصي، {name}',
     deals: 'الصفقات',
-    market: 'استكشاف',
+    money: 'المال',
+    messages: 'الرسائل',
+    profileAndSettings: 'الملف الشخصي والإعدادات',
+    dealsNeedYou: '{n} بانتظارك',
+    market: 'السوق',
     finance: 'التمويل',
     reputation: 'السمعة',
     bridge: 'الجسر',
@@ -3474,7 +3480,7 @@ export const ar: Messages = {
       notFoundEyebrow: 'الصفقة غير موجودة',
       notFoundTitle: 'تعذّر تحميل هذه الصفقة',
       notFoundBody: 'قد يكون الرابط خاطئاً، أو لا تكون محفظتك طرفاً فيها.',
-      notFoundCta: 'العودة إلى صفقاتك',
+      notFoundCta: 'العودة إلى الصفقات',
       transientEyebrow: 'تعذّر الوصول إلى الصفقة',
       transientTitle: 'تعذّر الوصول إلى هذه الصفقة الآن',
       transientBody: 'صفقتك آمنة وما زالت على السلسلة. هذا خلل مؤقت في الشبكة وليس صفقة ضائعة. انتظر لحظة ثم حاول مرة أخرى.',

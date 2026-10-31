@@ -52,7 +52,7 @@ function Summary() {
       </div>
       <div className="mt-3 grid gap-2 sm:grid-cols-3 sm:gap-3">
         <Tile
-          href="/profile/open-deals"
+          href="/deals"
           label={hub.trades}
           value={fetchState === 'success' ? summary.trades.active : null}
           note={summary.trades.yourMove > 0 ? fill(hub.yourMove, summary.trades.yourMove) : hub.noMove}

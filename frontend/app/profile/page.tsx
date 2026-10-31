@@ -51,7 +51,7 @@ const PROFILE_SECTION_BY_PATH: Record<string, ProfileSection> = {
 const PROFILE_ROUTE_BY_PANEL = {
   wallets: '/profile/wallets',
   money: '/account',
-  'open-deals': '/profile/open-deals',
+  'open-deals': '/deals',
   agents: '/profile/agent-funds',
   identity: '/profile/setup',
   preferences: '/profile/contact',

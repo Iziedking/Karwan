@@ -3,8 +3,8 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { MARKET_HREF, isMarketRoute } from './marketNav';
 
-/// One Market in the navigation for every account (view 17): Home, Market,
-/// Activity, Profile. Everything you trade from lights Market.
+/// One Market in the navigation for every account (view 17). Everything you
+/// trade from lights Market; a deal lights Deals (view 44).
 ///
 ///   npx tsx --test shared/components/marketNav.test.ts
 
@@ -13,10 +13,10 @@ test('Market is one address for every account', () => {
 });
 
 test('every trading page lights Market', () => {
-  for (const path of ['/market', '/listings/abc', '/jobs/0x1', '/buyer', '/seller', '/deals/0x2', '/cashout/0x3']) {
+  for (const path of ['/market', '/listings/abc', '/jobs/0x1', '/buyer', '/seller', '/cashout/0x3']) {
     assert.equal(isMarketRoute(path), true, path);
   }
-  for (const path of ['/app', '/activity', '/profile', '/marketplace-x']) assert.equal(isMarketRoute(path), false, path);
+  for (const path of ['/app', '/activity', '/profile', '/marketplace-x', '/deals', '/deals/0x2']) assert.equal(isMarketRoute(path), false, path);
 });
 
 test('neither navigation links to the old trade hubs or parked pages', () => {

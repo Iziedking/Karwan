@@ -21,6 +21,7 @@ import { dealLiveCopy } from './dealLive';
 import { deliveryCardCopy } from './deliveryCard';
 import { recordOnTheWayCopy } from './recordOnTheWay';
 import { previousEscrowCopy } from './previousEscrow';
+import { dealsPageCopy } from './dealsPage';
 import { dealGuaranteeCopy } from './dealGuarantee';
 import { contestsCopy } from './contests';
 import { workCopy } from './work';
@@ -70,6 +71,7 @@ export const fr: Messages = {
   deliveryCard: deliveryCardCopy.fr,
   recordOnTheWay: recordOnTheWayCopy.fr,
   previousEscrow: previousEscrowCopy.fr,
+  dealsPage: dealsPageCopy.fr,
   dealGuarantee: dealGuaranteeCopy.fr,
   contests: contestsCopy.fr,
   work: workCopy.fr,
@@ -149,8 +151,12 @@ export const fr: Messages = {
     stake: 'Garantie de transaction',
     profile: 'Profil',
     profileOf: 'Votre profil, {name}',
-    deals: 'Transactions',
-    market: 'Découvrir',
+    deals: 'Accords',
+    money: 'Argent',
+    messages: 'Messages',
+    profileAndSettings: 'Profil et réglages',
+    dealsNeedYou: '{n} à traiter',
+    market: 'Marché',
     finance: 'Financement',
     reputation: 'Réputation',
     bridge: 'Bridge',
@@ -3474,7 +3480,7 @@ export const fr: Messages = {
       notFoundEyebrow: 'Transaction introuvable',
       notFoundTitle: 'Impossible de charger cette transaction',
       notFoundBody: 'Le lien est peut-être incorrect, ou votre portefeuille n\'est peut-être pas partie prenante.',
-      notFoundCta: 'Retour à vos échanges',
+      notFoundCta: 'Retour aux accords',
       transientEyebrow: 'Transaction injoignable',
       transientTitle: 'Impossible de joindre cette transaction pour le moment',
       transientBody: 'Votre transaction est en sécurité et toujours sur la chaîne. C\'est un incident réseau, pas une transaction perdue. Patientez un instant et réessayez.',

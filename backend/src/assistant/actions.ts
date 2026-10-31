@@ -441,6 +441,7 @@ export const NAVIGATE_DESTINATIONS = [
   'direct_deal',
   'new_offer',
   'market',
+  'deals',
   'partners',
   'financier',
   'open_deal',
@@ -530,6 +531,7 @@ const DESTINATIONS: Record<NavigateDestination, DestSpec> = {
   },
   new_offer: { label: 'Post an offer', build: () => '/seller' },
   market: { label: 'Browse the market', build: () => '/market' },
+  deals: { label: 'Your deals', build: () => '/deals' },
   partners: { label: 'Business offers in the market', build: () => '/market?scope=business' },
   financier: { label: 'Financier desk', build: () => '/financier' },
   open_deal: {

@@ -113,10 +113,9 @@ test('signed-in home splits only when the content column has room', () => {
   const home = source('../../features/home/components/AccountHome.tsx');
   assert.match(css, /\.home-workbench\s*\{[^}]*container-type: inline-size;/);
   assert.match(css, /@container \(min-width: 1080px\)\s*\{\s*\.home-command-grid/);
-  assert.match(css, /\.home-deals-grid\s*\{\s*grid-template-columns:/);
-  assert.match(home, /currentDeal && showRecentDeals \? 'home-deals-grid grid gap-5' : ''/);
-  assert.match(home, /currentDeal = pickCurrentDeal\(deals\)/);
-  assert.match(home, /recentDeals = currentDeal \? deals\.filter\(\(deal\) => deal\.jobId !== currentDeal\.jobId\) : deals/);
+  // Home shows the top of the Deals list (view 44), or nothing when no deal is live.
+  assert.match(home, /homeDealsPreview\(groups\)/);
+  assert.match(home, /if \(!preview\.title\) return null;/);
   assert.doesNotMatch(home, /lg:grid-cols-\[minmax\(0,0\.92fr\)/);
 });
 
@@ -364,12 +363,10 @@ test('the deal page shows dated steps, and messages stay closed behind the messa
   assert.doesNotMatch(source('../../features/deals/workspace/DealWorkspace.tsx'), /<ChatPanel/);
 });
 
-test('recent trades lead with what the deal is and who it is with, without numbering or text arrows', () => {
+test('Home lists deals as the same rows as Deals, without numbering or text arrows', () => {
   const home = source('../../features/home/components/AccountHome.tsx');
-  const rows = home.slice(home.indexOf('const counterparty = deal.counterpartyName'));
-  assert.match(rows, /dealHeadline\(deal\.terms\)/);
-  assert.match(rows, /<PersonAvatar/);
-  assert.doesNotMatch(rows, /padStart\(2, '0'\)/);
+  assert.match(home, /<OpenDealRow key=\{r\.key\}/);
+  assert.doesNotMatch(home, /padStart\(2, '0'\)/);
   assert.doesNotMatch(home, /→/);
 });
 
@@ -490,11 +487,13 @@ test('profile is tidy: one way to change the photo, rows say what they open, no 
   assert.doesNotMatch(hub, /hub\.accountLabel|shortAddress\(address\)\}/);
 });
 
-test('the rail foot reads Theme, Settings, Sign out; Settings is a cog, not a sun; theme sits in no circle', () => {
+test('the rail foot reads the person, Theme, Sign out; no settings mark is a sun; theme sits in no circle', () => {
   const nav = source('./TopNav.tsx');
   const rail = nav.slice(nav.indexOf('function WorkspaceRail('), nav.indexOf('function RailLink('));
   const foot = rail.slice(rail.indexOf('data-rail-footer'));
-  assert.ok(foot.indexOf('<RailTheme') > -1 && foot.indexOf('<RailTheme') < foot.indexOf('href="/settings"'));
+  const person = foot.indexOf('<RailProfile');
+  const themeRow = foot.indexOf('<RailTheme');
+  assert.ok(person > -1 && person < themeRow && themeRow < foot.indexOf('<RailAction'));
   // The old settings mark was a circle with eight rays: the theme sun.
   assert.doesNotMatch(nav, /M6 6l1\.6 1\.6/);
   // With the rail on screen, theme lives there, so the top bar drops it.
@@ -510,22 +509,23 @@ test('languages are one list, a check on the current one, never an orphan tile c
   assert.doesNotMatch(picker, /last:odd/);
 });
 
-test('the desktop rail ends with Settings and Sign out, pinned to its foot, sign out asking first like Profile', () => {
+test('the desktop rail ends with the person and Sign out, pinned to its foot, sign out asking first like Profile', () => {
   const nav = source('./TopNav.tsx');
   const rail = nav.slice(nav.indexOf('function WorkspaceRail('), nav.indexOf('function RailLink('));
   assert.match(rail, /data-rail-footer[^>]*mt-auto/);
-  assert.match(rail, /href="\/settings"/);
+  // Settings live inside Profile, reached from the person at the foot (view 44).
+  assert.doesNotMatch(rail, /href="\/settings"/);
+  assert.match(nav, /data-rail-profile/);
   assert.match(rail, /useSignOutRequest\(\)/);
   const profile = source('../../features/profile/components/ProfileSignOut.tsx');
   assert.match(profile, /useSignOutRequest\(\)/);
 });
 
-test('current trade and recent trades share one heading line and end together', () => {
+test('the deals on Home sit under one heading line with the way to all deals', () => {
   const home = source('../../features/home/components/AccountHome.tsx');
-  // The two heading lines; Details now sits on the balance line (view 39).
-  assert.equal(home.match(/flex min-h-11 items-center[^"]*px-1/g)?.length, 2);
-  assert.match(home, /trade-route mt-3 flex flex-1 flex-col/);
-  assert.match(home, /trade-book flex-1/);
+  // One heading line; Details sits on the balance line (view 39).
+  assert.equal(home.match(/flex min-h-11 items-center[^"]*px-1/g)?.length, 1);
+  assert.match(home, /<Link href="\/deals"/);
 });
 
 test('an X photo is fetched with no referrer, since X refuses images asked for from karwan.site', () => {

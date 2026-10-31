@@ -24,6 +24,7 @@ import { dealLiveCopy, type DealLiveCopy } from './dealLive';
 import { deliveryCardCopy, type DeliveryCardCopy } from './deliveryCard';
 import { recordOnTheWayCopy, type RecordOnTheWayCopy } from './recordOnTheWay';
 import { previousEscrowCopy, type PreviousEscrowCopy } from './previousEscrow';
+import { dealsPageCopy, type DealsPageCopy } from './dealsPage';
 import { dealGuaranteeCopy, type DealGuaranteeCopy } from './dealGuarantee';
 import { contestsCopy, type ContestsCopy } from './contests';
 import { workCopy, type WorkCopy } from './work';
@@ -72,6 +73,7 @@ interface MessagesShape {
   deliveryCard: DeliveryCardCopy;
   recordOnTheWay: RecordOnTheWayCopy;
   previousEscrow: PreviousEscrowCopy;
+  dealsPage: DealsPageCopy;
   dealGuarantee: DealGuaranteeCopy;
   contests: ContestsCopy;
   work: WorkCopy;
@@ -143,6 +145,11 @@ interface MessagesShape {
     /// The round profile button's label: whose profile it opens.
     profileOf: string;
     deals: string;
+    money: string;
+    messages: string;
+    profileAndSettings: string;
+    /// The count on the desktop Deals item, read out: how many need you.
+    dealsNeedYou: string;
     market: string;
     finance: string;
     reputation: string;
@@ -5318,6 +5325,7 @@ export const en: MessagesShape = {
   deliveryCard: deliveryCardCopy.en,
   recordOnTheWay: recordOnTheWayCopy.en,
   previousEscrow: previousEscrowCopy.en,
+  dealsPage: dealsPageCopy.en,
   dealGuarantee: dealGuaranteeCopy.en,
   contests: contestsCopy.en,
   work: workCopy.en,
@@ -5399,7 +5407,11 @@ export const en: MessagesShape = {
     profile: 'Profile',
     profileOf: 'Your profile, {name}',
     deals: 'Deals',
-    market: 'Discover',
+    money: 'Money',
+    messages: 'Messages',
+    profileAndSettings: 'Profile and settings',
+    dealsNeedYou: '{n} need you',
+    market: 'Market',
     finance: 'Finance',
     reputation: 'Reputation',
     bridge: 'Bridge',
@@ -8774,7 +8786,7 @@ export const en: MessagesShape = {
       notFoundEyebrow: 'Deal not found',
       notFoundTitle: 'We could not load this deal',
       notFoundBody: 'The link may be wrong, or your wallet may not be a party.',
-      notFoundCta: 'Back to your trades',
+      notFoundCta: 'Back to deals',
       transientEyebrow: 'Cannot reach deal',
       transientTitle: 'We could not reach this deal right now',
       transientBody: 'Your deal is safe and still on chain. This is a network hiccup, not a lost deal. Give it a moment and try again.',

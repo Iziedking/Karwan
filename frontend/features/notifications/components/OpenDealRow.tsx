@@ -9,6 +9,7 @@ export function OpenDealRow({
   href,
   role,
   counterparty,
+  reference,
   amount,
   unit,
   status,
@@ -19,6 +20,8 @@ export function OpenDealRow({
   href: string;
   role: string;
   counterparty?: string;
+  /// The short reference people read aloud (D68F-E7D8, REQ-1A2B-3C4D).
+  reference?: string | null;
   amount: string;
   unit: string;
   status: string;
@@ -31,12 +34,17 @@ export function OpenDealRow({
     <li>
       <Link
         href={href}
-        aria-label={`${status}, ${formatUsdc(amount)} ${unit}`}
+        aria-label={[status, reference, `${formatUsdc(amount)} ${unit}`].filter(Boolean).join(', ')}
         className="group flex min-h-20 items-center gap-4 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
       >
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[14px] text-[var(--lp-text-sub)] font-medium">
-            {counterparty ? `${role} · ${counterparty}` : role}
+          <span className="flex min-w-0 items-baseline gap-2">
+            <span className="truncate text-[14px] text-[var(--lp-text-sub)] font-medium">
+              {counterparty ? `${role} · ${counterparty}` : role}
+            </span>
+            {reference ? (
+              <span dir="ltr" className="shrink-0 mono text-[13px] tracking-[0.04em] text-[var(--lp-text-muted)]">{reference}</span>
+            ) : null}
           </span>
           <span className="mt-1 flex items-baseline gap-1.5">
             <span className="text-[24px] font-semibold leading-none tracking-[-0.02em] tabular-nums text-[var(--lp-dark)]">

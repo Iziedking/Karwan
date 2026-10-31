@@ -971,7 +971,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
             poLinesFundingMe: sellerLines.slice(0, 10).map(line),
             poLinesIFunded: financierLines.slice(0, 10).map(line),
             dealsIFinanced,
-            note: `Factoring advances pay sellers early against an accepted invoice; repayment auto-pulls when the deal settles. PO financing fronts the purchase before delivery. dealsIFinanced is what this person is still owed, with each deal's stage from their side (delivering, overdue, reviewing, disputed, complete, refunded) and the page for that position; the same list is under Profile, Open deals, "Deals you financed". A financier takes no action on the deal itself. They are told when it is delivered, released, disputed, refunded or misses its deadline.`,
+            note: `Factoring advances pay sellers early against an accepted invoice; repayment auto-pulls when the deal settles. PO financing fronts the purchase before delivery. dealsIFinanced is what this person is still owed, with each deal's stage from their side (delivering, overdue, reviewing, disputed, complete, refunded) and the page for that position; the same deals show in Deals, with the active ones. A financier takes no action on the deal itself. They are told when it is delivered, released, disputed, refunded or misses its deadline.`,
           };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant get_my_financing failed');

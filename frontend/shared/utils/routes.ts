@@ -56,6 +56,7 @@ export function getProductBackHref(
   if (matchesRoute(pathname, '/docs')) return '/docs';
   if (matchesRoute(pathname, '/settings')) return '/profile';
   if (pathname === '/profile') return '/app';
+  if (pathname === '/profile/open-deals' || (pathname !== '/deals' && matchesRoute(pathname, '/deals'))) return '/deals';
   if (matchesRoute(pathname, '/profile/business/setup')) return '/profile/business';
   if (matchesRoute(pathname, '/business/verification')) return '/profile/business';
   if (matchesRoute(pathname, '/profile')) return '/profile';

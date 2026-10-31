@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/shared/utils/cn';
 import { ConnectWalletButton } from './ConnectWallet';
 import { NotificationBell } from '@/features/notifications/components/NotificationBell';
-import { useNotifications } from '@/features/notifications/hooks/useNotifications';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useEntryHref } from '@/shared/auth/useEntryHref';
@@ -26,7 +25,9 @@ import { isAlwaysDarkRoute } from '@/shared/hooks/useTheme';
 import { PublicMenu } from './PublicMenu';
 import { Brand } from './Brand';
 import { Icon } from './Icon';
-import { MARKET_HREF, isMarketRoute } from './marketNav';
+import { isMarketRoute } from './marketNav';
+import { PersonAvatar } from './PersonAvatar';
+import { navHref, workspaceNavItems, type NavItemId } from './workspaceNav';
 
 export function TopNav() {
   const a11y = useTranslations().a11y;
@@ -38,7 +39,6 @@ export function TopNav() {
     isAuthenticated,
     isLoading: authLoading,
   } = useAuth();
-  const { unreadCount } = useNotifications();
   const openDeals = useOpenDeals();
   const { profile, address: profileAddress } = useUserProfile();
   const shell = getShellSurface(pathname, isAuthenticated);
@@ -49,6 +49,8 @@ export function TopNav() {
   // Onboarding is a focused setup flow: strip the nav rail down to identity.
   // The full chrome returns once setup is complete.
   const showFullChrome = workspaceSurface && isAuthenticated;
+  const railShown = showFullChrome && !isAssistantRoute(pathname);
+  const identityName = profile?.displayName ?? authEmail?.split('@')[0] ?? '';
 
   const discoverActive = isMarketRoute(pathname);
 
@@ -123,15 +125,19 @@ export function TopNav() {
                   </span>
                 ) : null}
                 <NotificationBell />
-                {/* Where the bottom bar shows, its Profile tab is the one
-                    profile entry; the header pill returns on desktop. */}
-                <ProfileLink
-                  hideBelowLg={shell === 'workspace' && !isAssistantRoute(pathname)}
-                  profileActionCount={openDeals.actionCount}
-                  profile={profile}
-                  identityName={profile?.displayName ?? authEmail?.split('@')[0] ?? ''}
-                  identityAddress={profileAddress ?? authAddress}
-                />
+                {/* In the workspace the person is at the foot of the rail on
+                    desktop and the Profile tab on a phone, so the header pill
+                    shows only where neither does. */}
+                {railShown && shell === 'workspace' ? null : (
+                  <span className={railShown ? 'contents lg:hidden' : 'contents'}>
+                    <ProfileLink
+                      profileActionCount={openDeals.actionCount}
+                      profile={profile}
+                      identityName={identityName}
+                      identityAddress={profileAddress ?? authAddress}
+                    />
+                  </span>
+                )}
               </>
           ) : !publicSurface ? (
             // The account entry at /app owns its sole sign-in action. Its
@@ -165,15 +171,15 @@ export function TopNav() {
         </div>
       </div>
     </header>
-    {showFullChrome && !isAssistantRoute(pathname) ? (
+    {railShown ? (
       <WorkspaceRail
         pathname={pathname}
-        discoverHref={MARKET_HREF}
         discoverActive={discoverActive}
         financeEnabled={SME_TRADES_ENABLED}
-        unread={unreadCount > 0}
+        dealsCount={openDeals.actionCount}
         financeLabel={a11y.fundFactoringAndPos}
-        soonLabel={t.nav.soonBadge}
+        identityName={identityName}
+        identityAddress={profileAddress ?? authAddress}
       />
     ) : null}
     </>
@@ -182,26 +188,42 @@ export function TopNav() {
 
 function WorkspaceRail({
   pathname,
-  discoverHref,
   discoverActive,
   financeEnabled,
-  unread,
+  dealsCount,
   financeLabel,
-  soonLabel,
+  identityName,
+  identityAddress,
 }: {
   pathname: string;
-  discoverHref: string;
   discoverActive: boolean;
   financeEnabled: boolean;
-  unread: boolean;
+  dealsCount: number;
   financeLabel: string;
-  soonLabel: string;
+  identityName: string;
+  identityAddress?: string | null;
 }) {
   const messages = useTranslations();
   const t = messages.nav;
   const signOut = useSignOutRequest();
-  const financeActive = pathname.startsWith('/financier');
   const homeHref = DEALS_AVAILABLE ? '/app' : WALLET_HOME;
+  const items = workspaceNavItems({ surface: 'desktop', dealsAvailable: DEALS_AVAILABLE, financeEnabled });
+  const RAIL_ICON: Record<NavItemId, RailIconName> = {
+    home: 'home',
+    market: 'discover',
+    deals: 'trade',
+    money: 'money',
+    messages: 'messages',
+    finance: 'finance',
+    activity: 'activity',
+    profile: 'home',
+  };
+  const isActive = (id: NavItemId, href: string): boolean => {
+    if (id === 'home') return pathname === href;
+    if (id === 'market') return discoverActive;
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
+  const profileActive = pathname.startsWith('/profile') || pathname.startsWith('/settings');
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
@@ -280,35 +302,33 @@ function WorkspaceRail({
             </svg>
           </button>
         </Tooltip>
-        <RailLink href={homeHref} active={pathname === homeHref} icon="home" collapsed={collapsed} ariaLabel={t.home}>
-          {t.home}
-        </RailLink>
-        {DEALS_AVAILABLE && (
-        <>
-        <RailLink href={discoverHref} active={discoverActive} icon="discover" collapsed={collapsed} ariaLabel={t.market}>
-          {t.market}
-        </RailLink>
-        <RailLink
-          href="/financier"
-          active={financeActive}
-          icon="finance"
-          ariaLabel={financeLabel}
-          collapsed={collapsed}
-          badge={!financeEnabled ? soonLabel : undefined}
-        >
-          {t.finance}
-        </RailLink>
-        </>
-        )}
-        <RailLink href="/activity" active={pathname.startsWith('/activity')} icon="activity" collapsed={collapsed} signal={unread} ariaLabel={t.activity}>
-          {t.activity}
-        </RailLink>
-        {/* Account housekeeping sits at the foot, apart from the places you work. */}
+        {items.map((id) => {
+          const href = navHref(id, homeHref);
+          const count = id === 'deals' && dealsCount > 0 ? dealsCount : undefined;
+          return (
+            <RailLink
+              key={id}
+              href={href}
+              active={isActive(id, href)}
+              icon={RAIL_ICON[id]}
+              collapsed={collapsed}
+              count={count}
+              ariaLabel={id === 'finance' ? financeLabel : count ? `${t[id]}, ${t.dealsNeedYou.replace('{n}', String(count))}` : t[id]}
+            >
+              {t[id]}
+            </RailLink>
+          );
+        })}
+        {/* The person and account housekeeping sit at the foot, apart from the
+            places you work. Settings live inside Profile. */}
         <div data-rail-footer className="mt-auto flex flex-col gap-1">
+          <RailProfile
+            active={profileActive}
+            collapsed={collapsed}
+            name={identityName}
+            address={identityAddress ?? undefined}
+          />
           <RailTheme collapsed={collapsed} />
-          <RailLink href="/settings" active={pathname.startsWith('/settings')} icon="settings" collapsed={collapsed} ariaLabel={t.settingsAriaTitle}>
-            {t.settingsAriaTitle}
-          </RailLink>
           <RailAction onClick={() => void signOut.request()} busy={signOut.busy} icon="signOut" collapsed={collapsed}>
             {signOut.busy ? messages.profileSignOut.pending : messages.common.signOut}
           </RailAction>
@@ -328,8 +348,7 @@ function RailLink({
   children,
   ariaLabel,
   collapsed,
-  badge,
-  signal = false,
+  count,
 }: {
   href: string;
   active: boolean;
@@ -337,8 +356,8 @@ function RailLink({
   children: React.ReactNode;
   ariaLabel?: string;
   collapsed?: boolean;
-  badge?: string;
-  signal?: boolean;
+  /// How many need you here, in the accent; a dot when the rail is collapsed.
+  count?: number;
 }) {
   const link = (
     <Link
@@ -356,15 +375,15 @@ function RailLink({
     >
       <RailIcon name={icon} active={active} />
       <span className={cn('min-w-0 flex-1 truncate', collapsed && 'sr-only')}>{children}</span>
-      {badge && !collapsed ? (
+      {count && !collapsed ? (
         <span
-          className="mono rounded-full px-2 py-1 text-[13px] font-semibold uppercase tracking-[0.12em]"
-          style={{ background: 'color-mix(in oklab, var(--lp-accent) 20%, transparent)', color: 'var(--color-ink)' }}
+          aria-hidden
+          className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[var(--lp-accent)] px-2 text-[13px] font-semibold tabular-nums text-[var(--lp-band-dark)]"
         >
-          {badge}
+          {count}
         </span>
-      ) : signal ? (
-        <span aria-hidden className={cn('size-2 rounded-full bg-[var(--lp-accent)]', collapsed ? 'absolute end-2 top-2' : '')} />
+      ) : count ? (
+        <span aria-hidden className="absolute end-2 top-2 size-2 rounded-full bg-[var(--lp-accent)]" />
       ) : null}
     </Link>
   );
@@ -397,7 +416,44 @@ function RailTheme({ collapsed }: { collapsed: boolean }) {
   return collapsed ? <Tooltip label={theme.label} side="end" className="w-full">{button}</Tooltip> : button;
 }
 
-type RailIconName = 'home' | 'trade' | 'discover' | 'finance' | 'activity' | 'settings' | 'signOut';
+/// The person at the foot of the rail: their photo, name and the way into
+/// Profile and settings. Collapsed, the photo alone, with the same name.
+function RailProfile({
+  active,
+  collapsed,
+  name,
+  address,
+}: {
+  active: boolean;
+  collapsed: boolean;
+  name: string;
+  address?: string;
+}) {
+  const t = useTranslations().nav;
+  const label = name ? `${name}, ${t.profileAndSettings}` : t.profileAndSettings;
+  const link = (
+    <Link
+      href="/profile"
+      aria-label={label}
+      aria-current={active ? 'page' : undefined}
+      data-rail-profile
+      className={cn(
+        'flex min-h-14 w-full items-center rounded-[16px] transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]',
+        collapsed ? 'justify-center px-0' : 'gap-3 px-3',
+        active ? 'bg-[var(--color-surface-2)]' : 'hover:bg-[var(--color-surface-2)]',
+      )}
+    >
+      <PersonAvatar address={address} name={name || t.profile} size={32} />
+      <span className={cn('min-w-0 flex-1', collapsed && 'sr-only')}>
+        {name ? <span className="block truncate text-[15px] font-semibold text-[var(--color-ink)]">{name}</span> : null}
+        <span className="block truncate text-[13px] font-medium text-[var(--color-ink-dim)]">{t.profileAndSettings}</span>
+      </span>
+    </Link>
+  );
+  return collapsed ? <Tooltip label={label} side="end" className="w-full">{link}</Tooltip> : link;
+}
+
+type RailIconName = 'home' | 'trade' | 'discover' | 'finance' | 'money' | 'messages' | 'activity' | 'settings' | 'signOut';
 
 /// A rail row that does something instead of going somewhere.
 function RailAction({
@@ -451,6 +507,13 @@ function RailIcon({ name, active }: { name: RailIconName; active: boolean }) {
         <path d="m14.5 4.5-2.1 5.9-5.9 2.1 5.9 2.1 2.1 5.9 2.1-5.9 5.9-2.1-5.9-2.1-2.1-5.9Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
       ) : name === 'finance' ? (
         <path d="M4 19h16M6 17V9m4 8V5m4 12v-6m4 6V7" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      ) : name === 'money' ? (
+        <>
+          <rect x="3.5" y="6" width="17" height="13" rx="3" stroke="currentColor" strokeWidth="1.7" />
+          <path d="M3.5 10h17M15.5 14.5h2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+        </>
+      ) : name === 'messages' ? (
+        <path d="M5 5.5h14a1.5 1.5 0 0 1 1.5 1.5v8.5A1.5 1.5 0 0 1 19 17h-8l-4.5 3.5V17H5a1.5 1.5 0 0 1-1.5-1.5V7A1.5 1.5 0 0 1 5 5.5Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" className="rtl:-scale-x-100 origin-center" />
       ) : name === 'settings' ? (
         <>
           <path d="M10.3 3.6a1.7 1.7 0 0 1 3.4 0l.2 1.3a7 7 0 0 1 1.9 1.1l1.2-.5a1.7 1.7 0 0 1 2.1.8l.4.7a1.7 1.7 0 0 1-.4 2.2l-1 .8a7 7 0 0 1 0 2.1l1 .8a1.7 1.7 0 0 1 .4 2.2l-.4.7a1.7 1.7 0 0 1-2.1.8l-1.2-.5a7 7 0 0 1-1.9 1.1l-.2 1.3a1.7 1.7 0 0 1-3.4 0l-.2-1.3a7 7 0 0 1-1.9-1.1l-1.2.5a1.7 1.7 0 0 1-2.1-.8l-.4-.7a1.7 1.7 0 0 1 .4-2.2l1-.8a7 7 0 0 1 0-2.1l-1-.8a1.7 1.7 0 0 1-.4-2.2l.4-.7a1.7 1.7 0 0 1 2.1-.8l1.2.5a7 7 0 0 1 1.9-1.1Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />

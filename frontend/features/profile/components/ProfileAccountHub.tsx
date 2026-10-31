@@ -186,7 +186,7 @@ export function ProfileAccountHub({
         {DEALS_AVAILABLE ? (
           <>
             <Row label={simple.agents} value={usdc(agentTotal)} href="/profile/agent-funds" />
-            <Row label={hub.openDeals} value={hasAction ? hub.reviewNow : openCount > 0 ? String(openCount) : undefined} href="/profile/open-deals" />
+            <Row label={hub.openDeals} value={hasAction ? hub.reviewNow : openCount > 0 ? String(openCount) : undefined} href="/deals" />
           </>
         ) : null}
         <Row label={hub.activityReceipts} href="/activity" />

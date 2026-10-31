@@ -19,6 +19,12 @@ test('every page but Home has a Back, the sidebar sections included', () => {
   for (const page of ['/activity', '/market', '/financier', '/profile']) assert.equal(getProductBackHref(page), '/app', page);
 });
 
+test('Deals is a place of its own and a deal goes back to it', () => {
+  assert.equal(getProductBackHref('/deals'), '/app');
+  assert.equal(getProductBackHref(`/deals/0x${'ab'.repeat(32)}`), '/deals');
+  assert.equal(getProductBackHref('/profile/open-deals'), '/deals');
+});
+
 test('Back skips every copy of the page it is on, whatever case the address was written in', () => {
   const own = '/credit-passport/0xa045e8104bc066fff5bfc673abf354871edc03c5';
   const ownChecksum = '/credit-passport/0xA045E8104bc066FFF5bFC673ABf354871eDc03c5';

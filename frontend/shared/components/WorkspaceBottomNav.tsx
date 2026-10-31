@@ -7,7 +7,8 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useNotifications } from '@/features/notifications/hooks/useNotifications';
 import { useOpenDeals } from '@/features/notifications/hooks/useOpenDeals';
 import { ActionBeacon } from './ActionBeacon';
-import { MARKET_HREF, isMarketRoute } from './marketNav';
+import { isMarketRoute } from './marketNav';
+import { DEALS_HREF, navHref, workspaceNavItems, type NavItemId } from './workspaceNav';
 import { PersonAvatar } from './PersonAvatar';
 import { cn } from '@/shared/utils/cn';
 import { getShellSurface, WALLET_HOME } from '@/shared/utils/routes';
@@ -23,10 +24,21 @@ interface BottomNavItem {
   signal?: boolean;
 }
 
+const ICON: Record<NavItemId, IconName> = {
+  home: 'home',
+  market: 'discover',
+  deals: 'trade',
+  money: 'activity',
+  messages: 'activity',
+  finance: 'activity',
+  activity: 'activity',
+  profile: 'account',
+};
+
 /**
- * Persistent mobile task navigation for the signed-in workspace. Five stable
- * destinations replace the old expanding hamburger menu, so the user's next
- * action remains reachable with one thumb from every top-level desk.
+ * Persistent mobile task navigation for the signed-in workspace: Home, Market,
+ * Deals and Profile (view 44), one thumb away from every desk. Deals carries
+ * the mark when something needs you.
  */
 export function WorkspaceBottomNav() {
   const pathname = usePathname();
@@ -39,27 +51,23 @@ export function WorkspaceBottomNav() {
   if (!auth.isAuthenticated || shell !== 'workspace') return null;
 
   const homeHref = DEALS_AVAILABLE ? '/app' : WALLET_HOME;
-  const dealItems: BottomNavItem[] = DEALS_AVAILABLE
-    ? [{ href: MARKET_HREF, label: t.market, icon: 'discover', active: isMarketRoute(pathname) }]
-    : [];
-  const items: BottomNavItem[] = [
-    { href: homeHref, label: t.home, icon: 'home', active: pathname === homeHref },
-    ...dealItems,
-    {
-      href: '/activity',
-      label: t.activity,
-      icon: 'activity',
-      active: pathname.startsWith('/activity'),
-      signal: unreadCount > 0,
-    },
-    {
-      href: '/profile',
-      label: t.profile,
-      icon: 'account',
-      active: pathname.startsWith('/profile') || pathname.startsWith('/settings'),
-      signal: openDeals.actionCount > 0,
-    },
-  ];
+  const isActive = (id: NavItemId, href: string): boolean => {
+    if (id === 'market') return isMarketRoute(pathname);
+    if (id === 'deals') return pathname === DEALS_HREF || pathname.startsWith(`${DEALS_HREF}/`);
+    if (id === 'profile') return pathname.startsWith('/profile') || pathname.startsWith('/settings');
+    if (id === 'home') return pathname === href;
+    return pathname.startsWith(href);
+  };
+  const items: BottomNavItem[] = workspaceNavItems({ surface: 'phone', dealsAvailable: DEALS_AVAILABLE, financeEnabled: false }).map((id) => {
+    const href = navHref(id, homeHref);
+    return {
+      href,
+      label: t[id],
+      icon: ICON[id],
+      active: isActive(id, href),
+      signal: id === 'deals' ? openDeals.actionCount > 0 : id === 'activity' && unreadCount > 0,
+    };
+  });
 
   const activeIndex = items.findIndex((item) => item.active);
 

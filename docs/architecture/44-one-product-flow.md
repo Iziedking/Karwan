@@ -69,4 +69,5 @@ flowchart LR
 | Screens designed and approved | Done, 31 Oct 2026 |
 | Spec | Approved, 31 Oct 2026 |
 | Batch 1: dead ends and words (`GET /api/features`, hourly hidden while off, switched-off pages are a 404, not-found leads to your trades, Earlier deals, offer, Deposit) | Built, 31 Oct 2026 |
-| Batches 2 to 9 | Not started |
+| Batch 2: navigation and one Deals list (`/deals` ordered needs you, active, finished; phone bar Home, Market, Deals, Profile; desktop rail Home, Market, Deals with a count, Money, Messages, the person at the foot; Home shows the top of Deals; the assistant can open Deals) | Built, 31 Oct 2026 |
+| Batches 3 to 9 | Not started |

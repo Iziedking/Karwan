@@ -21,6 +21,7 @@ import { dealLiveCopy } from './dealLive';
 import { deliveryCardCopy } from './deliveryCard';
 import { recordOnTheWayCopy } from './recordOnTheWay';
 import { previousEscrowCopy } from './previousEscrow';
+import { dealsPageCopy } from './dealsPage';
 import { dealGuaranteeCopy } from './dealGuarantee';
 import { contestsCopy } from './contests';
 import { workCopy } from './work';
@@ -70,6 +71,7 @@ export const sw: Messages = {
   deliveryCard: deliveryCardCopy.sw,
   recordOnTheWay: recordOnTheWayCopy.sw,
   previousEscrow: previousEscrowCopy.sw,
+  dealsPage: dealsPageCopy.sw,
   dealGuarantee: dealGuaranteeCopy.sw,
   contests: contestsCopy.sw,
   work: workCopy.sw,
@@ -147,7 +149,11 @@ export const sw: Messages = {
     profile: 'Wasifu',
     profileOf: 'Wasifu wako, {name}',
     deals: 'Mikataba',
-    market: 'Gundua',
+    money: 'Pesa',
+    messages: 'Ujumbe',
+    profileAndSettings: 'Wasifu na mipangilio',
+    dealsNeedYou: '{n} zinakusubiri',
+    market: 'Soko',
     finance: 'Ufadhili',
     reputation: 'Sifa',
     bridge: 'Daraja',
@@ -3471,7 +3477,7 @@ export const sw: Messages = {
       notFoundEyebrow: 'Mkataba haukupatikana',
       notFoundTitle: 'Hatukuweza kupakia mkataba huu',
       notFoundBody: 'Kiungo huenda kibaya, au mkoba wako huenda si mhusika.',
-      notFoundCta: 'Rudi kwenye biashara zako',
+      notFoundCta: 'Rudi kwenye mikataba',
       transientEyebrow: 'Hatukufikia mkataba',
       transientTitle: 'Hatukuweza kufikia mkataba huu kwa sasa',
       transientBody: 'Mkataba wako uko salama na bado uko kwenye chain. Hili ni tatizo dogo la mtandao, si mkataba uliopotea. Subiri kidogo kisha ujaribu tena.',

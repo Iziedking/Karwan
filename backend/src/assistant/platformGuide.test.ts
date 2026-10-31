@@ -174,3 +174,10 @@ test('the guide calls older positions Earlier deals, never Legacy contracts', ()
   const text = PLATFORM_GUIDE.map((e) => `${e.title} ${e.summary} ${e.steps.join(' ')}`).join(' ');
   assert.ok(!/legacy contracts/i.test(text));
 });
+
+test('the assistant can send someone to Deals, where every deal lives', () => {
+  assert.ok((NAVIGATE_DESTINATIONS as readonly string[]).includes('deals'));
+  const built = buildNavigateAction({ destination: 'deals' as never });
+  assert.ok(!('error' in built) && built.href === '/deals' && built.label === 'Your deals');
+  for (const entry of PLATFORM_GUIDE) assert.ok(!entry.pages.includes('/profile/open-deals'), `${entry.id} still names open deals`);
+});
