@@ -57,6 +57,21 @@ export interface DealPageCopy {
   inBalance: string;
   ratedYou: string;
   yourRecord: string;
+  answerProposal: string;
+  whichWay: string;
+  refundBuyer: string;
+  paySeller: string;
+  outcomeRefund: string;
+  outcomePay: string;
+  askRelease: string;
+  askReleaseBody: string;
+  askReleaseSend: string;
+  answerAppeal: string;
+  answerAppealBody: string;
+  answerAppealSend: string;
+  checkAgain: string;
+  earlierEscrow: string;
+  openEarlier: string;
 }
 
 export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy> = {
@@ -110,6 +125,21 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
     inBalance: 'Now in your Karwan balance',
     ratedYou: '{name} rated you {stars}',
     yourRecord: 'Your record',
+    answerProposal: 'Answer the proposal',
+    whichWay: 'Which way',
+    refundBuyer: 'Refund the buyer',
+    paySeller: 'Pay the seller',
+    outcomeRefund: '{amount} USDC goes back to the buyer.',
+    outcomePay: '{amount} USDC goes to the seller.',
+    askRelease: 'Ask them to release',
+    askReleaseBody: '{name} has to release the next payment or say why not. If they do not answer in time, it is released to you.',
+    askReleaseSend: 'Send the ask',
+    answerAppeal: 'Say why you have not released',
+    answerAppealBody: '{name} asked you to release the next payment. Say why you are still checking, or it is released to them.',
+    answerAppealSend: 'Send your answer',
+    checkAgain: 'Check it again',
+    earlierEscrow: 'This deal finishes in Earlier deals',
+    openEarlier: 'Open Earlier deals',
   },
   fr: {
     steps: {
@@ -161,6 +191,21 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
     inBalance: 'Maintenant sur votre solde Karwan',
     ratedYou: '{name} vous a noté {stars}',
     yourRecord: 'Votre historique',
+    answerProposal: 'Répondre à la proposition',
+    whichWay: 'Dans quel sens',
+    refundBuyer: 'Rembourser l’acheteur',
+    paySeller: 'Payer le vendeur',
+    outcomeRefund: '{amount} USDC retournent à l’acheteur.',
+    outcomePay: '{amount} USDC vont au vendeur.',
+    askRelease: 'Lui demander de libérer',
+    askReleaseBody: '{name} doit libérer le prochain paiement ou dire pourquoi. Sans réponse à temps, il vous est versé.',
+    askReleaseSend: 'Envoyer la demande',
+    answerAppeal: 'Dire pourquoi vous n’avez pas libéré',
+    answerAppealBody: '{name} vous demande de libérer le prochain paiement. Dites pourquoi vous vérifiez encore, sinon il lui est versé.',
+    answerAppealSend: 'Envoyer votre réponse',
+    checkAgain: 'Vérifier à nouveau',
+    earlierEscrow: 'Cette transaction se termine dans Accords précédents',
+    openEarlier: 'Ouvrir Accords précédents',
   },
   ar: {
     steps: {
@@ -212,6 +257,21 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
     inBalance: 'أصبح الآن في رصيدك في كاروان',
     ratedYou: 'قيّمك {name} بـ {stars}',
     yourRecord: 'سجلّك',
+    answerProposal: 'الرد على الاقتراح',
+    whichWay: 'أي اتجاه',
+    refundBuyer: 'إعادة المال للمشتري',
+    paySeller: 'الدفع للبائع',
+    outcomeRefund: 'تعود {amount} USDC إلى المشتري.',
+    outcomePay: 'تذهب {amount} USDC إلى البائع.',
+    askRelease: 'اطلب منه الإفراج',
+    askReleaseBody: 'على {name} الإفراج عن الدفعة التالية أو ذكر السبب. إن لم يرد في الوقت المحدد، تُدفع لك.',
+    askReleaseSend: 'أرسل الطلب',
+    answerAppeal: 'اذكر لماذا لم تُفرج',
+    answerAppealBody: 'طلب منك {name} الإفراج عن الدفعة التالية. اذكر لماذا ما زلت تراجع، وإلا تُدفع له.',
+    answerAppealSend: 'أرسل ردك',
+    checkAgain: 'تحقق مرة أخرى',
+    earlierEscrow: 'تنتهي هذه الصفقة في الصفقات السابقة',
+    openEarlier: 'افتح الصفقات السابقة',
   },
   hi: {
     steps: {
@@ -263,6 +323,21 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
     inBalance: 'अब आपके Karwan बैलेंस में',
     ratedYou: '{name} ने आपको {stars} दिए',
     yourRecord: 'आपका रिकॉर्ड',
+    answerProposal: 'प्रस्ताव का जवाब दें',
+    whichWay: 'किस तरफ़',
+    refundBuyer: 'खरीदार को पैसे लौटाएँ',
+    paySeller: 'विक्रेता को भुगतान करें',
+    outcomeRefund: '{amount} USDC खरीदार को वापस जाते हैं.',
+    outcomePay: '{amount} USDC विक्रेता को जाते हैं.',
+    askRelease: 'उनसे रिलीज़ करने को कहें',
+    askReleaseBody: '{name} को अगला भुगतान रिलीज़ करना है या कारण बताना है. समय पर जवाब न मिलने पर यह आपको मिल जाता है.',
+    askReleaseSend: 'अनुरोध भेजें',
+    answerAppeal: 'बताएँ कि आपने रिलीज़ क्यों नहीं किया',
+    answerAppealBody: '{name} ने आपसे अगला भुगतान रिलीज़ करने को कहा है. बताएँ कि आप अभी भी क्यों जाँच रहे हैं, नहीं तो यह उन्हें मिल जाएगा.',
+    answerAppealSend: 'अपना जवाब भेजें',
+    checkAgain: 'फिर से जाँचें',
+    earlierEscrow: 'यह डील पिछले सौदे में पूरी होती है',
+    openEarlier: 'पिछले सौदे खोलें',
   },
   sw: {
     steps: {
@@ -314,5 +389,20 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
     inBalance: 'Sasa iko kwenye salio lako la Karwan',
     ratedYou: '{name} amekupa {stars}',
     yourRecord: 'Rekodi yako',
+    answerProposal: 'Jibu pendekezo',
+    whichWay: 'Upande gani',
+    refundBuyer: 'Mrudishie mnunuzi',
+    paySeller: 'Mlipe muuzaji',
+    outcomeRefund: '{amount} USDC zinarudi kwa mnunuzi.',
+    outcomePay: '{amount} USDC zinaenda kwa muuzaji.',
+    askRelease: 'Mwombe atoe malipo',
+    askReleaseBody: '{name} lazima atoe malipo yanayofuata au aseme kwa nini. Asipojibu kwa wakati, yanatolewa kwako.',
+    askReleaseSend: 'Tuma ombi',
+    answerAppeal: 'Sema kwa nini hujatoa malipo',
+    answerAppealBody: '{name} amekuomba utoe malipo yanayofuata. Sema kwa nini bado unakagua, la sivyo yanatolewa kwake.',
+    answerAppealSend: 'Tuma jibu lako',
+    checkAgain: 'Kagua tena',
+    earlierEscrow: 'Mpango huu unakamilika katika Mikataba ya awali',
+    openEarlier: 'Fungua Mikataba ya awali',
   },
 };

@@ -259,3 +259,12 @@ test('the guide describes the money page and Home as they are after the old page
   assert.doesNotMatch(said('account'), /Picking a wallet there/);
   assert.match(said('account'), /a Telegram card sits beside them/);
 });
+
+test('the guide names the deal page moves that replaced the older page (Batch 9 part B)', () => {
+  const said = (id: string) => { const e = PLATFORM_GUIDE.find((entry) => entry.id === id)!; return [e.summary, ...e.steps].join(' '); };
+  assert.match(said('delivery'), /Ask them to release/);
+  assert.match(said('delivery'), /Refund the buyer or Pay the seller/);
+  assert.match(said('delivery'), /Check it again/);
+  assert.match(said('delivery'), /there is no older deal page/);
+  assert.doesNotMatch(PLATFORM_GUIDE.map((e) => e.summary).join(' '), /with every action as before/);
+});

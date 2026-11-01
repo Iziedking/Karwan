@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { DirectDeal } from '@/core/api';
-import { answersCancelHere, problemOptions } from './problems';
+import { answersCancelHere, problemOptions, proposalOutcome, proposeKinds } from './problems';
 
 const NOW = Date.UTC(2026, 9, 10);
 const DAY = 86_400_000;
@@ -72,9 +72,47 @@ test('after delivery either side can dispute or propose cancelling, unless a pro
   assert.deepEqual(problemOptions(deal('awaiting-first-release'), null, NOW), []);
 });
 
-test('dispute rulings are answered on the full view, plain cancels here', () => {
-  assert.equal(answersCancelHere(deal('awaiting-first-release', { cancellationProposal: { proposedBy: 'seller', kind: 'mutual', reason: 'x', proposedAt: NOW } })), true);
-  assert.equal(answersCancelHere(deal('disputed', { cancellationProposal: { proposedBy: 'seller', kind: 'release-from-dispute', reason: 'x', proposedAt: NOW } })), false);
+test('every proposal is answered on this page, saying where the money goes; older contracts finish in Earlier deals', () => {
+  const proposal = (kind: NonNullable<DirectDeal['cancellationProposal']>['kind']) => ({ cancellationProposal: { proposedBy: 'seller' as const, kind, reason: 'x', proposedAt: NOW } });
+  assert.equal(answersCancelHere(deal('awaiting-first-release', proposal('mutual'))), true);
+  assert.equal(answersCancelHere(deal('disputed', proposal('release-from-dispute'))), true);
+  assert.equal(answersCancelHere(deal('disputed', proposal('refund-from-dispute'))), true);
+  assert.equal(answersCancelHere(deal('disputed', { ...proposal('refund-from-dispute'), legacyEscrow: true })), false);
+  assert.equal(proposalOutcome(deal('awaiting-first-release', proposal('mutual'))), 'cancel');
+  assert.equal(proposalOutcome(deal('awaiting-first-release', proposal('platform-attributed'))), 'cancel');
+  assert.equal(proposalOutcome(deal('disputed', proposal('refund-from-dispute'))), 'refund');
+  assert.equal(proposalOutcome(deal('disputed', proposal('release-from-dispute'))), 'pay');
+  assert.equal(proposalOutcome(deal('disputed')), null);
+});
+
+test('in a dispute either side proposes refunding the buyer or paying the seller; before that, cancelling', () => {
+  assert.deepEqual(proposeKinds(deal('disputed')), ['refund-from-dispute', 'release-from-dispute']);
+  assert.deepEqual(proposeKinds(deal('awaiting-first-release')), ['mutual']);
+});
+
+test('a deal on an older contract offers no moves here', () => {
+  assert.deepEqual(problemOptions(deal('awaiting-first-release', { legacyEscrow: true }), 'buyer', NOW), []);
+  assert.deepEqual(problemOptions(deal('disputed', { legacyEscrow: true }), 'seller', NOW), []);
+});
+
+test('after a release the seller asks a quiet buyer to release once the grace has run, and the buyer answers while the window is open', () => {
+  const HOUR = 3_600_000;
+  const released = { delivered: true, reviewWindowStartedAt: NOW - 2 * HOUR, delayAppealGraceMs: HOUR, delayAppealResponseWindowMs: 5 * 60_000 };
+  assert.deepEqual(problemOptions(deal('awaiting-final-release', released), 'seller', NOW), ['askRelease', 'dispute', 'propose']);
+  // Not inside the grace, counted from the latest release.
+  assert.deepEqual(problemOptions(deal('awaiting-final-release', { ...released, lastReleaseAt: NOW - HOUR / 2 }), 'seller', NOW), ['dispute', 'propose']);
+  // Not before anything was released.
+  assert.deepEqual(problemOptions(deal('awaiting-first-release', { delivered: true }), 'seller', NOW), ['dispute', 'propose']);
+  const open = { ...released, delayAppealRaisedAt: NOW - 60_000 };
+  assert.deepEqual(problemOptions(deal('awaiting-final-release', open), 'seller', NOW), ['dispute', 'propose']);
+  assert.deepEqual(problemOptions(deal('awaiting-final-release', open), 'buyer', NOW), ['answerAppeal', 'dispute', 'moreReview', 'propose']);
+  // The window closed: the agent releases, nothing to answer.
+  const late = { ...released, delayAppealRaisedAt: NOW - 10 * 60_000 };
+  assert.deepEqual(problemOptions(deal('awaiting-final-release', late), 'buyer', NOW), ['dispute', 'moreReview', 'propose']);
+  // Answered: the seller may ask again after a fresh grace, the buyer has nothing open.
+  const answered = { ...released, delayAppealRaisedAt: NOW - 30 * 60_000, delayAppealRespondedAt: NOW - 20 * 60_000 };
+  assert.deepEqual(problemOptions(deal('awaiting-final-release', answered), 'buyer', NOW), ['dispute', 'moreReview', 'propose']);
+  assert.deepEqual(problemOptions(deal('awaiting-final-release', answered), 'seller', NOW), ['askRelease', 'dispute', 'propose']);
 });
 
 test('while reviewing the buyer can ask once for more time, beside raising a problem', () => {

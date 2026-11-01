@@ -58,12 +58,6 @@ test('the buyer reads the note and changing the terms leads', async ({ page }) =
   await expect(page.getByRole('dialog')).toBeVisible();
 });
 
-test('the old deal page offers the same turn-down', async ({ page }) => {
-  await serveDeal(page, offered, SELLER);
-  await page.goto(`/deals/${JOB}?workspace=v1`);
-  await page.getByRole('button', { name: copy.declineCta, exact: true }).click();
-  await expect(page.getByLabel(copy.declineLabel)).toBeVisible();
-});
 
 test('the buyer can cancel on the new deal page while nothing is funded', async ({ page }) => {
   await serveDeal(page, { ...offered, view: { ...offered.view!, next: { action: null, actor: 'counterparty', amountUsdc: null } } }, BUYER);

@@ -2,9 +2,10 @@
 import { useEffect, useState } from 'react';
 import { ApiError, api, type DirectDeal } from '@/core/api';
 import { Icon } from '@/shared/components/Icon';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { fill } from './presentation';
-import type { Problem } from './problems';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
+import { fill, formatUsdcAmount } from './presentation';
+import { moneySplit } from './dealSteps';
+import { proposalOutcome, proposeKinds, type Problem } from './problems';
 import type { WrongChoice } from './wrongChoices';
 import { MAX_DELIVERY_PHOTOS, deliveryNeedsPhoto, deliveryNeedsShipment, deliveryReady, type Shipment } from './delivery';
 import { resizePhoto } from '@/features/listings/photos';
@@ -264,19 +265,28 @@ export function AnswerTimeSheet({ open, deal, caller, name, onClose, onDone }: S
   );
 }
 
+/// Answers any open proposal: a plain cancel, or a dispute ending that refunds
+/// the buyer or pays the seller, with the amount that moves in words.
 export function AnswerCancelSheet({ open, deal, caller, name, onClose, onDone }: SheetProps) {
   const s = useTranslations().dealWorkspace.simple;
+  const dp = useTranslations().dealPage;
+  const { locale } = useLocale();
   const move = useMove(onDone);
+  const outcome = proposalOutcome(deal);
+  const amount = formatUsdcAmount(moneySplit(deal)?.heldUsdc ?? deal.dealAmountUsdc, locale);
+  const ruling = outcome === 'refund' || outcome === 'pay';
   return (
-    <Sheet open={open} title={s.answerCancelTitle} onClose={onClose} busy={move.busy}>
-      <p className="text-[15px] text-[var(--lp-dark)]">{fill(s.answerCancelTemplate, { name })}</p>
+    <Sheet open={open} title={ruling ? dp.answerProposal : s.answerCancelTitle} onClose={onClose} busy={move.busy}>
+      <p className="text-[15px] text-[var(--lp-dark)]">
+        {outcome === 'refund' ? fill(dp.outcomeRefund, { amount }) : outcome === 'pay' ? fill(dp.outcomePay, { amount }) : fill(s.answerCancelTemplate, { name })}
+      </p>
       {deal.cancellationProposal?.reason ? (
         <p dir="auto" className="mt-3 rounded-[12px] bg-[var(--lp-light)] px-3 py-2 text-[15px] text-[var(--lp-dark)]">{deal.cancellationProposal.reason}</p>
       ) : null}
       <MoveError error={move.error} />
       <div className="mt-6 grid gap-2">
         <button type="button" disabled={move.busy} onClick={() => void move.run(() => api.acceptCancelDirectDeal(deal.jobId, caller))} className={primaryButton}>
-          {s.agreeCancel}
+          {outcome === 'refund' ? dp.refundBuyer : outcome === 'pay' ? dp.paySeller : s.agreeCancel}
         </button>
         <button type="button" disabled={move.busy} onClick={() => void move.run(() => api.declineCancelDirectDeal(deal.jobId, caller))} className={quietButton}>
           {s.keepDeal}
@@ -317,10 +327,14 @@ export function TurnDownSheet({ open, deal, caller, onClose, onDone }: SheetProp
 export function ProblemSheet({ open, deal, caller, name, options, wrong = null, onAskChanges, onClose, onDone }: SheetProps & { options: Problem[]; wrong?: WrongChoice[] | null; onAskChanges?: () => void }) {
   const copy = useTranslations().dealWorkspace;
   const pp = useTranslations().profilePage;
+  const dp = useTranslations().dealPage;
   const s = copy.simple;
   const [chosen, setChosen] = useState<Problem | null>(null);
   const [text, setText] = useState('');
   const [days, setDays] = useState('3');
+  const kinds = proposeKinds(deal);
+  const [kind, setKind] = useState(kinds[0]!);
+  const proposeKind = kinds.includes(kind) ? kind : kinds[0]!;
   const move = useMove(() => {
     setChosen(null);
     setText('');
@@ -335,6 +349,8 @@ export function ProblemSheet({ open, deal, caller, name, options, wrong = null, 
     reclaim: s.reclaimTitle,
     dispute: s.disputeTitle,
     propose: s.proposeTitle,
+    askRelease: dp.askRelease,
+    answerAppeal: dp.answerAppeal,
   };
   const close = () => {
     setChosen(null);
@@ -425,6 +441,30 @@ export function ProblemSheet({ open, deal, caller, name, options, wrong = null, 
             </button>
           </div>
         </>
+      ) : current === 'askRelease' ? (
+        <>
+          <p className="text-[15px] text-[var(--lp-dark)]">{fill(dp.askReleaseBody, { name })}</p>
+          <MoveError error={move.error} />
+          <div className="mt-6">
+            <button type="button" disabled={move.busy} onClick={() => void move.run(() => api.raiseDelayAppeal(deal.jobId, caller))} className={primaryButton}>
+              {dp.askReleaseSend}
+            </button>
+          </div>
+        </>
+      ) : current === 'answerAppeal' ? (
+        <>
+          <p className="text-[15px] text-[var(--lp-dark)]">{fill(dp.answerAppealBody, { name })}</p>
+          <label className={`${fieldLabel} mt-4`}>
+            {s.reasonLabel}
+            <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={600} dir="auto" className={textArea} />
+          </label>
+          <MoveError error={move.error} />
+          <div className="mt-6">
+            <button type="button" disabled={move.busy || !text.trim()} onClick={() => void move.run(() => api.respondToDelayAppeal(deal.jobId, caller, text.trim()))} className={primaryButton}>
+              {dp.answerAppealSend}
+            </button>
+          </div>
+        </>
       ) : current === 'moreTime' ? (
         <>
           <label className={fieldLabel}>
@@ -452,6 +492,27 @@ export function ProblemSheet({ open, deal, caller, name, options, wrong = null, 
       ) : (
         <>
           <p className="text-[15px] text-[var(--lp-dark)]">{current === 'dispute' ? s.disputeBody : fill(s.proposeBodyTemplate, { name })}</p>
+          {current === 'propose' && kinds.length > 1 ? (
+            <fieldset className="mt-4">
+              <legend className={fieldLabel}>{dp.whichWay}</legend>
+              <div role="radiogroup" className="mt-2 flex flex-wrap gap-2">
+                {kinds.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    role="radio"
+                    aria-checked={proposeKind === option}
+                    onClick={() => setKind(option)}
+                    className={`min-h-11 rounded-full border px-4 text-[15px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] ${
+                      proposeKind === option ? 'border-[var(--lp-dark)] bg-[var(--lp-dark)] text-[var(--lp-light)]' : 'border-[var(--lp-border-light)] text-[var(--lp-dark)]'
+                    }`}
+                  >
+                    {option === 'release-from-dispute' ? dp.paySeller : dp.refundBuyer}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+          ) : null}
           <label className={`${fieldLabel} mt-4`}>
             {current === 'dispute' ? s.whatWentWrong : s.reasonLabel}
             <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={400} dir="auto" className={textArea} />
@@ -465,7 +526,7 @@ export function ProblemSheet({ open, deal, caller, name, options, wrong = null, 
                 void move.run(() =>
                   current === 'dispute'
                     ? api.appealDeal(deal.jobId, caller, text.trim())
-                    : api.proposeCancelDirectDeal(deal.jobId, caller, text.trim(), 'mutual'),
+                    : api.proposeCancelDirectDeal(deal.jobId, caller, text.trim(), proposeKind),
                 )
               }
               className={current === 'dispute' ? quietButton : primaryButton}

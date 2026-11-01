@@ -319,3 +319,99 @@ test('on desktop a confirm opens as a full-height drawer on the end side, and sc
   await page.waitForTimeout(400);
   expect(Math.round((await page.getByRole('dialog').boundingBox())!.x)).toBe(0);
 });
+
+const dp = en.dealPage;
+const disputedView = { ...deliveredDeal.view!, stage: 'disputed' as const, next: { action: null, actor: 'nobody' as const, amountUsdc: null }, automatic: null };
+
+test('a proposal to refund the buyer from a dispute is answered here, saying where the money goes', async ({ page }) => {
+  await serveDeal(page, {
+    ...deliveredDeal,
+    disputed: true,
+    cancellationProposal: { proposedBy: 'seller', kind: 'refund-from-dispute', reason: 'Fair enough, refund them', proposedAt: Date.UTC(2026, 8, 20) },
+    view: { ...disputedView, next: { action: 'respond-cancel', actor: 'you', amountUsdc: null } },
+  } as DirectDeal, BUYER);
+  const accepted = capture(page, 'cancel/accept');
+  await page.goto(`/deals/${JOB}`);
+  await page.getByRole('button', { name: dp.answerProposal }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toContainText('Fair enough, refund them');
+  await expect(dialog).toContainText('1,200 USDC goes back to the buyer.');
+  await dialog.getByRole('button', { name: dp.refundBuyer }).click();
+  await expect.poll(() => accepted.body).toEqual({ caller: BUYER });
+  await expect(page).not.toHaveURL(/workspace=v1/);
+});
+
+test('in a dispute either side proposes paying the seller or refunding the buyer', async ({ page }) => {
+  await serveDeal(page, { ...deliveredDeal, disputed: true, view: disputedView } as DirectDeal, SELLER);
+  const proposed = capture(page, 'cancel/propose');
+  await page.goto(`/deals/${JOB}`);
+  await page.getByRole('button', { name: s.problem, exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('radio', { name: dp.refundBuyer })).toBeVisible();
+  await dialog.getByRole('radio', { name: dp.paySeller }).click();
+  await dialog.getByLabel(s.reasonLabel).fill('The catalogue was delivered in full');
+  await dialog.getByRole('button', { name: s.proposeSubmit }).click();
+  await expect.poll(() => proposed.body).toEqual({ caller: SELLER, reason: 'The catalogue was delivered in full', kind: 'release-from-dispute' });
+});
+
+const HOUR = 3_600_000;
+const afterFirstRelease = {
+  ...deliveredDeal,
+  reviewWindowStartedAt: Date.now() - 2 * HOUR,
+  delayAppealGraceMs: HOUR,
+  delayAppealResponseWindowMs: 5 * 60_000,
+  view: { ...deliveredDeal.view!, stage: 'awaiting-final-release' as const, next: { action: 'release' as const, actor: 'counterparty' as const, amountUsdc: '600' } },
+} as DirectDeal;
+
+test('after the first release the seller asks a quiet buyer to release', async ({ page }) => {
+  await serveDeal(page, afterFirstRelease, SELLER);
+  const asked = capture(page, 'delay-appeal');
+  await page.goto(`/deals/${JOB}`);
+  await page.getByRole('button', { name: s.problem, exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: new RegExp(dp.askRelease) }).click();
+  await expect(page.getByRole('dialog')).toContainText('has to release the next payment');
+  await page.getByRole('button', { name: dp.askReleaseSend }).click();
+  await expect.poll(() => asked.body).toEqual({ caller: SELLER });
+});
+
+test('the buyer answers an ask to release with a reason', async ({ page }) => {
+  await serveDeal(page, { ...afterFirstRelease, delayAppealRaisedAt: Date.now() - 60_000, view: { ...afterFirstRelease.view!, next: { action: 'release', actor: 'you', amountUsdc: '600' } } } as DirectDeal, BUYER);
+  const answered = capture(page, 'delay-appeal-respond');
+  await page.goto(`/deals/${JOB}`);
+  await page.getByRole('button', { name: s.problem, exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: dp.answerAppeal }).click();
+  await page.getByLabel(s.reasonLabel).fill('Two pages are still in English');
+  await page.getByRole('button', { name: dp.answerAppealSend }).click();
+  await expect.poll(() => answered.body).toEqual({ caller: BUYER, reason: 'Two pages are still in English' });
+});
+
+test('a payout that needs another look is checked again from the deal, before any new release', async ({ page }) => {
+  await serveDeal(page, deliveredDeal, BUYER);
+  const reference = 'movement-payout-1';
+  await page.route(`${API}/api/deals/direct/${JOB}/movements`, (route) => route.fulfill({ json: { movements: [{
+    reference, kind: 'milestone_payout', state: 'needs_attention', currency: 'USDC', amountUsdc: '600.000000', summary: 'Payout',
+    nextActor: 'karwan', createdAt: 1, updatedAt: 1, legs: [],
+  }] } }));
+  const checked = capture(page, `payouts/${reference}/reconcile`);
+  await page.goto(`/deals/${JOB}`);
+  await expect(page.getByText(en.directDealDetail.settlementRecord.recoveryTitle)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Release 600 USDC' })).toHaveCount(0);
+  await page.getByRole('button', { name: dp.checkAgain }).click();
+  await expect.poll(() => checked.body).toEqual({ caller: BUYER });
+});
+
+test('a deal on an older contract points to Earlier deals and offers no move here', async ({ page }) => {
+  await serveDeal(page, { ...deliveredDeal, legacyEscrow: true } as DirectDeal, BUYER);
+  await page.goto(`/deals/${JOB}`);
+  await expect(page.getByText(dp.earlierEscrow)).toBeVisible();
+  await expect(page.getByRole('link', { name: dp.openEarlier })).toHaveAttribute('href', '/legacy');
+  await expect(page.getByRole('button', { name: 'Release 600 USDC' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: s.problem, exact: true })).toHaveCount(0);
+});
+
+test('an old link to the previous deal page opens the deal page there is now', async ({ page }) => {
+  await serveDeal(page, deliveredDeal);
+  await page.goto(`/deals/${JOB}?workspace=v1&handoff=1`);
+  await expect(page.locator('[data-steps-card]')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Release 600 USDC' })).toBeVisible();
+});

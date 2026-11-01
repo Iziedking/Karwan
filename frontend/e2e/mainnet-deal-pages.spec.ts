@@ -32,6 +32,9 @@ test('a deal’s own page opens on mainnet for the link the agent sends', async 
   await serve(page, CHAT_EMAIL);
   await page.goto(`/deals/${JOB}`);
   await expect(page).toHaveURL(new RegExp(`/deals/${JOB}$`));
+  // The one deal page, with its move, on mainnet too: the old page is gone.
+  await expect(page.locator('[data-steps-card]')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Release 600 USDC' })).toBeVisible();
 });
 
 test('the rest of the web deal rail still goes to the wallet', async ({ page }) => {

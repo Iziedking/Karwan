@@ -223,30 +223,6 @@ export function buildBridgeSteps(view: {
   return steps;
 }
 
-/// Deal page tour (/deals/[id]).
-export const DEAL_TOUR_ID = 'deal-v1';
-export const DEAL_STEPS: TourStep[] = [
-  {
-    title: 'Deal summary',
-    body: 'Review both parties, the funded amount, seller proceeds, fee, and milestone split.',
-    target: 'deal-money',
-  },
-  {
-    title: 'Deal status',
-    body: 'Track the deal from acceptance to settlement. Funds release as milestones are completed.',
-    target: 'deal-flow',
-  },
-  {
-    title: 'Next action',
-    body: 'Deliver, review, or release the next milestone. Cancellation and dispute options appear when available.',
-    target: 'deal-actions',
-  },
-  {
-    title: 'Deal messages',
-    body: 'Keep messages, delivery links, and notes with the deal.',
-  },
-];
-
 /// Activity stream tour. The general feed is a privacy pulse now: it shows that
 /// the network is alive without revealing any deal's parties or amounts.
 export const ACTIVITY_TOUR_ID = 'activity-v3';

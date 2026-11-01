@@ -28,7 +28,6 @@ export default defineConfig({
       NEXT_PUBLIC_BACKEND_URL: 'http://127.0.0.1:3199',
       NEXT_PUBLIC_ARC_RPC_URL: 'http://127.0.0.1:3198',
       NEXT_PUBLIC_ARC_NETWORK: network,
-      NEXT_PUBLIC_DEAL_WORKSPACE_V2: '1',
       NEXT_PUBLIC_MONEY_V2: '1',
       ...(network === 'mainnet' ? {
         NEXT_PUBLIC_RECOVERY: '1',

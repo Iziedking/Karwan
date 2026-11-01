@@ -25,7 +25,6 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     env: {
       NEXT_PUBLIC_BACKEND_URL: 'http://127.0.0.1:3199',
-      NEXT_PUBLIC_DEAL_WORKSPACE_V2: '1',
       NEXT_PUBLIC_MONEY_V2: '1',
       // The financier desk and the SME rail are on in testnet production.
       NEXT_PUBLIC_SME_TRADES_ENABLED: '1',

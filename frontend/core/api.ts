@@ -978,6 +978,8 @@ export interface DirectDeal {
   /// or the statement window has closed.
   dispute?: DealDisputeView;
   reviewWindowStartedAt?: number;
+  /// The latest release; a seller's ask to release counts its grace from here.
+  lastReleaseAt?: number;
   reviewExtensionMs?: number;
   reviewExtensionCount?: number;
   firstAutoReleased?: boolean;

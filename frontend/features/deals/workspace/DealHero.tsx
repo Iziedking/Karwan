@@ -2,7 +2,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { api, type DealView, type DirectDeal, type MoneyMovementView } from '@/core/api';
+import { ApiError, api, type DealView, type DirectDeal, type MoneyMovementView } from '@/core/api';
 import { useMoneyBalances } from '@/features/money/hooks/useMoneyBalances';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { ChatPanel } from '@/features/chat/components/ChatPanel';
@@ -21,7 +21,8 @@ import { AgreementSection } from './AgreementSection';
 import { AnswerCancelSheet, AnswerTimeSheet, DeliverSheet, ProblemSheet, TurnDownSheet } from './DealSheets';
 import { actionLabel, actorLabel, automaticLine, fill, formatDealDate, formatUsdcAmount, heldMove, trustFactParts } from './presentation';
 import { callPerson } from '@/shared/assistant/openHelp';
-import { answersCancelHere, problemOptions } from './problems';
+import { answersCancelHere, problemOptions, proposalOutcome } from './problems';
+import { findUnresolvedPayoutRecovery } from '../moneyRecovery';
 import { deliveryCheckStatus, heldDetailOf } from './checkStatus';
 import { Sheet } from './Sheet';
 import { TrustCard } from './TrustCard';
@@ -29,6 +30,7 @@ import { useChatUnread } from '@/features/chat/hooks/useChatUnread';
 import { DealLatest, DealTimeline } from './DealTimeline';
 import { DisputePanel } from './DisputePanel';
 import { DeliveryCard } from './DeliveryCard';
+import { BuyerPodPanel } from '@/features/trade/components/BuyerPodPanel';
 import { HandoverCode } from './HandoverCode';
 import { RecordNudge } from './RecordNudge';
 import { deliveryNeedsShipment } from './delivery';
@@ -87,7 +89,8 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   const dp = useTranslations().dealPage;
   const dl = useTranslations().dealLive;
   const s = copy.simple;
-  const declineCopy = useTranslations().directDealDetail.actionPanel.awaitingAcceptance;
+  const dd = useTranslations().directDealDetail;
+  const declineCopy = dd.actionPanel.awaitingAcceptance;
   const { locale } = useLocale();
   const [panel, setPanel] = useState<Panel>(null);
   // One row under the title block is open at a time (view 43).
@@ -131,7 +134,33 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   const facts = card ? (card.isNew ? s.newHere : trustFactParts(card, copy, locale).slice(0, 2).join(' · ')) : null;
   const problems = problemOptions(deal, viewer, Date.now());
   const declined = view.stage === 'awaiting-acceptance' && !!deal.sellerDeclinedAt;
-  const label = actionLabel(view.next, copy, locale);
+  // A deal on an older contract finishes in Earlier deals; this page only says so.
+  const legacy = !!deal.legacyEscrow;
+  const outcome = proposalOutcome(deal);
+  const label = legacy
+    ? null
+    : view.next.action === 'respond-cancel' && (outcome === 'refund' || outcome === 'pay')
+      ? dp.answerProposal
+      : actionLabel(view.next, copy, locale);
+  // A payout that may already be on chain is checked again before anything new moves.
+  const recovery = address && (view.stage === 'awaiting-first-release' || view.stage === 'awaiting-final-release')
+    ? findUnresolvedPayoutRecovery(movements)
+    : undefined;
+  const [checking, setChecking] = useState(false);
+  const [checkError, setCheckError] = useState<string | null>(null);
+  async function checkAgain(reference: string) {
+    if (!address) return;
+    setChecking(true);
+    setCheckError(null);
+    try {
+      await api.reconcileDirectDealPayout(deal.jobId, reference, address);
+      onChanged();
+    } catch (err) {
+      setCheckError(err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message);
+    } finally {
+      setChecking(false);
+    }
+  }
   const automatic = automaticLine(view, copy, locale, viewerIsBuyer ? dl : undefined);
   const momentNow = address ? momentFor(view, name, dp, view.next.amountUsdc ? formatUsdcAmount(view.next.amountUsdc, locale) : '') : null;
   const close = () => setPanel(null);
@@ -167,7 +196,22 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   const seeDelivery = firstLink ? (
     <a href={firstLink} target="_blank" rel="noreferrer noopener" className="font-semibold underline underline-offset-4">{s.seeDelivery}</a>
   ) : null;
-  if (summary && paused) {
+  if (legacy) {
+    moment = (
+      <div data-earlier-escrow className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-[15px] text-[var(--lp-dark)]">{dp.earlierEscrow}</p>
+        <Link href="/legacy" className="inline-flex min-h-11 items-center rounded-full border border-[var(--lp-border-light)] px-4 text-[14px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">{dp.openEarlier}</Link>
+      </div>
+    );
+  } else if (recovery) {
+    moment = (
+      <div className="space-y-1">
+        <p className="text-[15px] font-semibold text-[var(--lp-dark)]">{dd.settlementRecord.recoveryTitle}</p>
+        <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{dd.settlementRecord.recoveryBody}</p>
+        {checkError ? <p role="alert" className="border-s-2 border-[var(--color-critical)] ps-3 text-[14px] text-[var(--lp-dark)]">{checkError}</p> : null}
+      </div>
+    );
+  } else if (summary && paused) {
     const detail = heldDetail;
     const reason = !detail
       ? paused.noWallet
@@ -250,7 +294,13 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
           </div>
         );
       case 'delivery':
-        return <DeliveryCard deal={deal} viewerIsBuyer={viewerIsBuyer} caller={address} onChanged={onChanged} />;
+        return (
+          <div className="space-y-5">
+            <DeliveryCard deal={deal} viewerIsBuyer={viewerIsBuyer} caller={address} onChanged={onChanged} />
+            {/* A financed goods order: the buyer confirms the goods on the trade record, which frees the advance to the seller. */}
+            <BuyerPodPanel deal={deal} viewerIsBuyer={viewerIsBuyer} onPodAccepted={onChanged} />
+          </div>
+        );
       case 'handover':
         return address ? <HandoverCode jobId={deal.jobId} caller={address} /> : null;
       case 'getPaid':
@@ -331,7 +381,11 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
         ) : null}
       {/* The move sits in a bar fixed above the bottom nav on phones and inside this card on desktop (rule 4). */}
       <div data-move-bar className="fixed inset-x-0 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 space-y-2 border-t border-[var(--lp-border-light)] bg-[var(--lp-card)] px-4 py-3 empty:hidden lg:static lg:z-auto lg:space-y-3 lg:border-0 lg:bg-transparent lg:p-0">
-        {askForChanges ? (
+        {legacy ? null : recovery ? (
+          <button type="button" onClick={() => void checkAgain(recovery.reference)} disabled={checking} className="inline-flex min-h-14 w-full items-center justify-center rounded-full bg-[var(--action)] px-6 text-[16px] font-semibold text-[var(--on-action)] transition-opacity hover:opacity-90 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-offset-2">
+            {checking ? dd.settlementRecord.reconcileBusy : dp.checkAgain}
+          </button>
+        ) : askForChanges ? (
           <button type="button" onClick={() => { setDraft({ text: dp.changesDraft, key: Date.now() }); openMessages(); }} className="inline-flex min-h-14 w-full items-center justify-center rounded-full bg-[var(--action)] px-6 text-[16px] font-semibold text-[var(--on-action)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-offset-2">
             {dp.askChanges}
           </button>

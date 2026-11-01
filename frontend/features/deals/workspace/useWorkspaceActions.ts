@@ -8,7 +8,7 @@ import { actionConsequence, actionLabel, fill, formatUsdcAmount, isIrreversibleA
 import { useFundingQuote } from './useFundingQuote';
 
 type SheetAction = 'accept' | 'fund' | 'release' | 'claim' | 'review-manually';
-type Handoff = 'deliver' | 'respond-extension' | 'respond-cancel' | 'dispute';
+const SHEET_ACTIONS: readonly string[] = ['accept', 'fund', 'release', 'claim', 'review-manually'];
 
 export interface SheetState {
   action: SheetAction;
@@ -23,8 +23,6 @@ export interface SheetState {
   /// gets authorized.
   quote: DirectDealFundingQuote | null;
 }
-
-const HANDOFF: readonly Handoff[] = ['deliver', 'respond-extension', 'respond-cancel', 'dispute'];
 
 export function useWorkspaceActions(
   jobId: string,
@@ -51,10 +49,8 @@ export function useWorkspaceActions(
   const openPrimary = useCallback(() => {
     const next = deal?.view?.next;
     if (!deal || !address || !next?.action) return;
-    if ((HANDOFF as readonly string[]).includes(next.action)) {
-      window.location.assign(`/deals/${deal.jobId}?workspace=v1&handoff=1#deal-actions`);
-      return;
-    }
+    // Delivering, answering and problems open their own sheets on the deal page.
+    if (!SHEET_ACTIONS.includes(next.action)) return;
     const snapshot = snapshotDeal(deal);
     setError(null);
     setErrorCode(null);
