@@ -16,7 +16,6 @@ import { SmeCompanyBand } from '@/features/profile/components/SmeCompanyBand';
 import { RegisterBusinessBand } from '@/features/profile/components/RegisterBusinessBand';
 import { ProfileEmailButton } from '@/features/profile/components/ProfileEmailButton';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
-import { useOpenDeals } from '@/features/notifications/hooks/useOpenDeals';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { waysCopy } from '@/shared/i18n/messages/ways';
 import { waysOf, waySummary } from '@/features/profile/ways';
@@ -96,7 +95,6 @@ function ProfilePageInner() {
   const { isBusinessWorkspace } = useWorkspaceContext();
   const [profile, setProfile] = useState<UserProfile | null>(loadedProfile ?? null);
   const activation = useActivation();
-  const openDeals = useOpenDeals();
   const [activationOpen, setActivationOpen] = useState(false);
 
   useEffect(() => setProfile(loadedProfile), [loadedProfile]);
@@ -296,9 +294,6 @@ function ProfilePageInner() {
       <ProfileAccountHub
         profile={profile}
         address={address}
-        hasOpenDeals={openDeals.hasOpenDeals}
-        hasAction={openDeals.hasAction}
-        openCount={openDeals.totalCount}
       />
     );
   }

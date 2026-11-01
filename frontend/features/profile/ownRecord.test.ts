@@ -10,12 +10,17 @@ const read = (over: Partial<RecordRead> = {}): RecordRead => ({
   displayName: 'Ada', tag: 'ada', level: 'person_verified', tier: 'ESTABLISHED', reasons: [], facts: [], ...over,
 });
 
+test('on time is already a percent from the record read, so 98 shows as 98, never 9800', () => {
+  const mine = ownRecord(read({ counts: { completed: 90, onTimeRate: 98, disputesLost: 0 } }));
+  assert.equal(mine?.kind === 'record' ? mine.onTimePct : undefined, 98);
+});
+
 test('your record says what you have done, or that you are new', () => {
   assert.equal(ownRecord(undefined), null);
   assert.deepEqual(ownRecord(read()), { kind: 'new' });
   assert.deepEqual(ownRecord(read({ counts: { completed: 0, onTimeRate: null, disputesLost: 0 } })), { kind: 'new' });
   assert.deepEqual(
-    ownRecord(read({ counts: { completed: 23, onTimeRate: 0.957, disputesLost: 1 }, rating: { kind: 'rated', value: 4.8, count: 23 } })),
+    ownRecord(read({ counts: { completed: 23, onTimeRate: 96, disputesLost: 1 }, rating: { kind: 'rated', value: 4.8, count: 23 } })),
     { kind: 'record', completed: 23, onTimePct: 96, problemsLost: 1, rating: { kind: 'rated', value: 4.8, count: 23 } },
   );
   assert.deepEqual(

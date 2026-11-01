@@ -476,9 +476,31 @@ test('profile is tidy: one way to change the photo, rows say what they open, no 
   const menu = source('../../features/profile/components/PhotoMenu.tsx');
   assert.match(menu, /role="menu"/);
   assert.match(menu, /role="menuitem"/);
-  assert.match(hub, /label=\{hub\.editProfile\} href="\/profile\/edit"/);
   assert.doesNotMatch(hub, /hub\.devices/);
   assert.doesNotMatch(hub, /hub\.accountLabel|shortAddress\(address\)\}/);
+});
+
+test('profile says each thing once: one Record card, Edit profile in the header, no payment request or open deals rows', () => {
+  const hub = source('../../features/profile/components/ProfileAccountHub.tsx');
+  // Edit profile is the header's one button, not a row further down.
+  assert.match(hub, /href="\/profile\/edit"[^>]*>\{hub\.editProfile\}<\/Link>/);
+  assert.doesNotMatch(hub, /label=\{hub\.editProfile\}/);
+  // The record's numbers, what others see, earlier deals and sharing all sit in one Record card.
+  const record = hub.slice(hub.indexOf('<RowGroup title={pp.record}>'));
+  assert.ok(record.length > 0 && hub.includes('<RowGroup title={pp.record}>'));
+  const card = record.slice(0, record.indexOf('</RowGroup>'));
+  for (const piece of ['<RecordStats', 'pp.publicView', 'legacyContracts', 'pp.share']) assert.ok(card.includes(piece), piece);
+  // Said elsewhere already: Deals has open deals, Home and Money ask for a payment.
+  assert.doesNotMatch(hub, /hub\.openDeals|payLink\.create\.title/);
+  assert.doesNotMatch(hub, /<RowGroup title=\{pp\.yourOffers\}>/);
+});
+
+test('money is one balance on Arc: a Gateway balance line, no list of other networks, local currency marked soon', () => {
+  const money = source('../../features/money/components/MoneyHome.tsx');
+  assert.doesNotMatch(money, /useChainBalances|money-networks|CHAIN_META/);
+  assert.match(money, /data-gateway-balance[\s\S]{0,200}t\.home\.gatewayBalance/);
+  assert.match(money, /t\.home\.localCurrencySoon/);
+  assert.equal(en.money.home.gatewayBalance, 'Gateway balance');
 });
 
 test('the rail foot reads the person, Theme, Sign out; no settings mark is a sun; theme sits in no circle', () => {

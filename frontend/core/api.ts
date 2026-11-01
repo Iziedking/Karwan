@@ -5728,7 +5728,6 @@ export const api = {
       balance: {
         total: number;
         wallet: number;
-        otherChains: number;
         agents: number;
         buyer: number | null;
         seller: number | null;

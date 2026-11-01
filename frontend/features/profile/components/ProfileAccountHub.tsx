@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Icon } from '@/shared/components/Icon';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { api, type UserProfile } from '@/core/api';
@@ -10,7 +11,6 @@ import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { formatBalance, heroAmount } from '@/features/money/balanceModel';
 import { useMoneyBalances } from '@/features/money/hooks/useMoneyBalances';
-import { useOwnedBalance } from '@/features/money/hooks/useOwnedBalance';
 import { ProfileFrame, Row, RowGroup, ToggleRow } from '../ui/ProfileUi';
 import { useRouter } from 'next/navigation';
 import { rememberReturn } from '@/features/assistant/assistantReturn';
@@ -23,23 +23,17 @@ import { useAddPasskey } from '@/features/settings/components/SettingsBand';
 import { accountRows } from '../accountRows';
 import { useQuery } from '@tanstack/react-query';
 import { GUARANTEE_QUERY } from '@/features/guarantee/GuaranteeCard';
-import { ownRecord } from '../ownRecord';
-import { ratingText } from '@/features/ratings/ratingText';
+import { ownRecord, type OwnRecord } from '../ownRecord';
 
 type ProfileAccountHubProps = {
   profile: UserProfile;
   address: string;
-  hasOpenDeals: boolean;
-  hasAction: boolean;
-  openCount: number;
 };
 
 
 export function ProfileAccountHub({
   profile,
   address,
-  hasAction,
-  openCount,
 }: ProfileAccountHubProps) {
   const [imageFailed, setImageFailed] = useState(false);
   const [savedPhoto, setSavedPhoto] = useState(profile.profileImageDataUrl);
@@ -103,9 +97,8 @@ export function ProfileAccountHub({
     ? `@${profile.xHandle.replace(/^@/, '')}`
     : profile.email || shortAddress(address);
 
+  // The balance is the money page's one balance on Arc; the agents show beside it.
   const money = useMoneyBalances();
-  // The same total as Home and the balance page; the Agents row below shows its part.
-  const owned = useOwnedBalance();
   const { hasPasskey, method, email, refresh } = useAuth();
   const passkey = useAddPasskey(email, () => refresh());
   const { locale } = useLocale();
@@ -130,6 +123,7 @@ export function ProfileAccountHub({
     <ProfileFrame
       hero
       title={
+        <>
         <span className="flex min-w-0 items-center gap-4">
           <input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" tabIndex={-1} aria-label={savedPhoto ? hub.changePhoto : hub.addPhoto} onChange={(event) => void choosePhoto(event)} />
           <PhotoMenu
@@ -155,6 +149,8 @@ export function ProfileAccountHub({
             </span>
           </span>
         </span>
+        <Link href="/profile/edit" className="ms-auto inline-flex min-h-11 shrink-0 items-center rounded-full border border-[var(--lp-outline-strong)] px-4 text-[14px] font-semibold tracking-normal text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">{hub.editProfile}</Link>
+        </>
       }
     >
       {photoBusy || photoError ? (
@@ -187,47 +183,32 @@ export function ProfileAccountHub({
         </RowGroup>
       ) : null}
 
-      {mine ? (
-        <RowGroup title={pp.yourRecord}>
-          {mine.kind === 'new' ? (
-            <Row label={pp.newHere} />
-          ) : (
-            <>
-              <Row label={mine.completed === 1 ? pp.completedOne : pp.completed.replace('{n}', String(mine.completed))} />
-              {mine.onTimePct !== null ? <Row label={pp.onTime.replace('{pct}', String(mine.onTimePct))} /> : null}
-              {mine.rating ? <Row label={ratingText(mine.rating, messages.ratings, locale)} /> : null}
-              <Row label={mine.problemsLost === 0 ? pp.noProblems : mine.problemsLost === 1 ? pp.problemsLostOne : pp.problemsLost.replace('{n}', String(mine.problemsLost))} />
-            </>
-          )}
-          <Row label={pp.share} href={`/credit-passport/${address}#share`} />
-        </RowGroup>
-      ) : null}
+      {/* One Record card: the numbers, then what others see, earlier deals and sharing (view 44). */}
+      <RowGroup title={pp.record}>
+        {mine?.kind === 'record' ? <RecordStats record={mine} /> : mine?.kind === 'new' ? <Row label={pp.newHere} /> : null}
+        <Row label={pp.publicView} href={profile.handle ? `/r/${profile.handle}` : '/profile/edit'} />
+        <Row label={messages.dealGuarantee.profile.legacyContracts} href="/legacy" />
+        <Row label={pp.share} href={`/credit-passport/${address}#share`} />
+      </RowGroup>
 
       {DEALS_AVAILABLE ? (
-        <RowGroup title={pp.yourOffers}>
+        <RowGroup title={pp.selling}>
           <Row label={pp.yourOffers} href="/market?view=yours" />
           <Row label={pp.howAgentSells} href="/profile/ways" />
         </RowGroup>
       ) : null}
 
-      <RowGroup title={DEALS_AVAILABLE ? hub.moneyAndTrade : hub.money}>
-        <Row label={hub.usdcBalance} value={owned.total == null ? undefined : `${formatBalance(owned.total, locale)} USDC`} href="/account" />
-        {DEALS_AVAILABLE ? (
-          <>
-            <Row label={simple.agents} value={usdc(agentTotal)} href="/profile/agent-funds" />
-            <Row label={hub.openDeals} value={hasAction ? hub.reviewNow : openCount > 0 ? String(openCount) : undefined} href="/deals" />
-          </>
-        ) : null}
+      <RowGroup title={hub.money}>
+        <Row label={pp.balance} value={usdc(heroAmount(balanceFacts))} href="/account" />
+        {DEALS_AVAILABLE ? <Row label={pp.withAgents} value={usdc(agentTotal)} href="/profile/agent-funds" /> : null}
         <Row label={hub.activityReceipts} href="/activity" />
         {DEALS_AVAILABLE ? <Row label={messages.dealGuarantee.profile.dealGuarantee} value={guaranteeInPlace} href="/guarantee" /> : null}
       </RowGroup>
 
-      <RowGroup title={hub.account}>
-        <Row label={hub.editProfile} href="/profile/edit" />
+      <RowGroup title={pp.accountAndSecurity}>
         {DEALS_AVAILABLE ? <Row label={simple.agentsTitle} value={rows.agents} href={profile.settings?.setupDoneAt ? '/profile/setup' : '/setup'} /> : null}
         <Row label={simple.contactTitle} value={rows.contact} href="/profile/contact" />
         <Row label={simple.walletsTitle} href="/profile/wallets" />
-        <Row label={messages.payLink.create.title} href="/request" />
         {DEALS_AVAILABLE ? (
           <Row
             label={business || hasBusinessWorkspace ? businessCopy.label : businessCopy.open}
@@ -235,27 +216,24 @@ export function ProfileAccountHub({
             href="/profile/business"
           />
         ) : null}
+        {/* A wallet account signs with its wallet; passkeys belong to email accounts. */}
+        {method === 'circle' ? (
+          <>
+            {hasPasskey || passkey.justAdded ? (
+              <Row label={hub.passkey} value={simple.on} />
+            ) : (
+              <Row
+                label={hub.passkey}
+                value={passkey.busy ? passkey.copy.addingButton : passkey.error ?? simple.off}
+                onClick={passkey.supports && !passkey.busy ? () => void passkey.addPasskey() : undefined}
+              />
+            )}
+            <Row label={hub.recovery} soon={hub.soon} />
+          </>
+        ) : null}
       </RowGroup>
 
-      {/* A wallet account signs with its wallet; passkeys belong to email accounts. */}
-      {method === 'circle' ? (
-        <RowGroup title={hub.security}>
-          {hasPasskey || passkey.justAdded ? (
-            <Row label={hub.passkey} value={simple.on} />
-          ) : (
-            <Row
-              label={hub.passkey}
-              value={passkey.busy ? passkey.copy.addingButton : passkey.error ?? simple.off}
-              onClick={passkey.supports && !passkey.busy ? () => void passkey.addPasskey() : undefined}
-            />
-          )}
-          <Row label={hub.recovery} soon={hub.soon} />
-        </RowGroup>
-      ) : null}
-
-      <RowGroup title={hub.other}>
-        <Row label={pp.publicView} href={profile.handle ? `/r/${profile.handle}` : '/profile/edit'} />
-        <Row label={messages.dealGuarantee.profile.legacyContracts} href="/legacy" />
+      <RowGroup>
         <Row label={nav.allSettings} href="/settings" />
         <Row label={nav.help} href="/how-it-works" />
       </RowGroup>
@@ -265,6 +243,34 @@ export function ProfileAccountHub({
         <ProfileSignOut />
       </footer>
     </ProfileFrame>
+  );
+}
+
+/// The record's four numbers, each with its plain label under it.
+function RecordStats({ record }: { record: Extract<OwnRecord, { kind: 'record' }> }) {
+  const pp = useTranslations().profilePage;
+  const { locale } = useLocale();
+  const n = (value: number) => value.toLocaleString(locale);
+  const stats: Array<[string, string]> = [
+    [n(record.completed), record.completed === 1 ? pp.statCompletedOne : pp.statCompleted],
+  ];
+  if (record.onTimePct !== null) stats.push([(record.onTimePct / 100).toLocaleString(locale, { style: 'percent' }), pp.statOnTime]);
+  if (record.rating?.kind === 'rated') {
+    stats.push([
+      record.rating.value.toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+      pp.statRatings.replace('{n}', n(record.rating.count)),
+    ]);
+  }
+  stats.push([n(record.problemsLost), record.problemsLost === 1 ? pp.statProblemsOne : pp.statProblems]);
+  return (
+    <dl data-record-stats className="grid grid-cols-2 gap-px bg-[var(--lp-border-light)] sm:grid-cols-4">
+      {stats.map(([value, label]) => (
+        <div key={label} className="flex flex-col-reverse gap-0.5 bg-[var(--lp-card)] px-4 py-3">
+          <dt className="text-[13px] font-medium text-[var(--lp-text-sub)]">{label}</dt>
+          <dd className="text-[22px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--lp-dark)]">{value}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 

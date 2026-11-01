@@ -2,7 +2,6 @@
 import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { m } from 'motion/react';
-import { formatUnits } from 'viem';
 import { arcChain } from '@/core/wagmi';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { ActivationModal } from '@/shared/components/ActivationModal';
@@ -16,7 +15,6 @@ import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { dur } from '@/shared/motion/tokens';
 import { fill } from '@/features/deals/workspace/presentation';
 import { bridgeChainMeta, useBridges } from '@/features/bridge/hooks/useBridge';
-import { CHAIN_META, ROW_KEYS, useChainBalances, type RowKey } from '@/features/balances/hooks/useChainBalances';
 import { formatAmount, formatBalance, heroAmount, homeState, movingTransfer } from '../balanceModel';
 import { useMoneyBalances } from '../hooks/useMoneyBalances';
 import type { AgentKey, MoneyMove } from '../moneySheetModel';
@@ -43,8 +41,9 @@ export function MoneyHome() {
   );
 }
 
-/// One scrolling page: the balance, the agents, the last five movements, then
-/// the per-network view and the proof, both closed until asked for.
+/// One scrolling page: one balance on Arc, the agents, the last five movements,
+/// then the proof, closed until asked for. Other networks are only a way to
+/// add money, so they are never listed here.
 function MoneyHomeInner() {
   const t = useTranslations().money;
   const mp = useTranslations().moneyPage;
@@ -118,6 +117,12 @@ function MoneyHomeInner() {
                   {fill(mp.heldInDeals, { amount: formatAmount(Number(held), locale) })}
                 </p>
               ) : null}
+              {balances.pool > 0 ? (
+                <p data-gateway-balance className="flex items-center justify-between gap-3 text-[15px] font-medium tabular-nums text-[var(--lp-dark)]">
+                  <span>{t.home.gatewayBalance}</span>
+                  <span>{formatBalance(balances.pool, locale)} USDC</span>
+                </p>
+              ) : null}
               <div className="flex flex-wrap gap-3">
                 <Link href="/bridge?intent=add" className={PRIMARY}>{mp.addMoney}</Link>
                 <Link href="/send" className={SECONDARY}>{mp.send}</Link>
@@ -177,7 +182,14 @@ function MoneyHomeInner() {
 
         <RecentMoney />
 
-        <ByNetwork address={(auth.address ?? undefined) as `0x${string}` | undefined} balance={balances.balance} pool={balances.pool} />
+        {/* Amounts stay in USDC until local currencies are supported (shown, not clickable). */}
+        <div data-amounts-in className="flex flex-wrap items-center justify-between gap-3">
+          <span className="text-[15px] font-medium text-[var(--lp-dark)]">{t.home.showAmountsIn}</span>
+          <span className="flex items-center gap-2">
+            <span className="text-[15px] font-medium text-[var(--lp-dark)]">USDC</span>
+            <span className="rounded-full bg-[var(--lp-light)] px-2.5 py-1 text-[14px] font-semibold text-[var(--lp-text-sub)]">{t.home.localCurrencySoon}</span>
+          </span>
+        </div>
 
         <ProofOnArc address={auth.address} agents={balances.activated ? balances.agents : null} />
       </div>
@@ -225,50 +237,6 @@ function Disclosure({ id, title, open, onToggle, children }: {
       </h2>
       {open ? <div id={`${id}-body`} className="mt-4">{children}</div> : null}
     </section>
-  );
-}
-
-function amountOf(data: { value: bigint; decimals: number } | undefined): number | null {
-  return data ? Number(formatUnits(data.value, data.decimals)) : null;
-}
-
-/// Per-network balances, for the people who want them. Reads nothing until it
-/// is opened. Money on other networks is shown apart from the balance, because
-/// it is not spendable here until it is added.
-function ByNetwork({ address, balance, pool }: { address?: `0x${string}`; balance: number | null; pool: number }) {
-  const t = useTranslations().money.home;
-  const { locale } = useLocale();
-  const [open, setOpen] = useState(false);
-  const chains = useChainBalances(address, open);
-  const elsewhere = ROW_KEYS.filter((key): key is Exclude<RowKey, 'arc'> => key !== 'arc')
-    .map((key) => ({ key, amount: amountOf(chains[key].data) }))
-    .filter((row): row is { key: Exclude<RowKey, 'arc'>; amount: number } => row.amount !== null && row.amount > 0);
-  const line = (label: string, amount: number | null) => (
-    <div key={label} className="flex items-center justify-between gap-3 py-3">
-      <dt className="text-[15px] text-[var(--lp-dark)]">{label}</dt>
-      <dd className="text-[15px] tabular-nums text-[var(--lp-dark)]">{amount === null ? ' ' : `${formatBalance(amount, locale)} USDC`}</dd>
-    </div>
-  );
-  return (
-    <Disclosure id="money-networks" title={t.byNetworkTitle} open={open} onToggle={() => setOpen((value) => !value)}>
-      <div className="space-y-6">
-        <div>
-          <h3 className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{t.inYourBalance}</h3>
-          <dl className="divide-y divide-[var(--lp-border-light)]">
-            {line(CHAIN_META.arc.name, balance)}
-            {pool > 0 ? line(t.heldAnyNetwork, pool) : null}
-          </dl>
-        </div>
-        {elsewhere.length > 0 ? (
-          <div>
-            <h3 className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{t.otherNetworks}</h3>
-            <dl className="divide-y divide-[var(--lp-border-light)]">
-              {elsewhere.map((row) => line(CHAIN_META[row.key].name, row.amount))}
-            </dl>
-          </div>
-        ) : null}
-      </div>
-    </Disclosure>
   );
 }
 

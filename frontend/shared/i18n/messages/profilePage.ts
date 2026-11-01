@@ -9,6 +9,17 @@ export interface ProfilePageCopy {
   noProblems: string;
   newHere: string;
   share: string;
+  record: string;
+  selling: string;
+  accountAndSecurity: string;
+  balance: string;
+  withAgents: string;
+  statCompleted: string;
+  statCompletedOne: string;
+  statOnTime: string;
+  statRatings: string;
+  statProblems: string;
+  statProblemsOne: string;
   yourOffers: string;
   howAgentSells: string;
   publicView: string;
@@ -40,6 +51,17 @@ export const profilePageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ProfilePa
     noProblems: 'No problems lost',
     newHere: 'New on Karwan',
     share: 'Share your record',
+    record: 'Record',
+    selling: 'Selling',
+    accountAndSecurity: 'Account and security',
+    balance: 'Balance',
+    withAgents: 'With your agents',
+    statCompleted: 'deals completed',
+    statCompletedOne: 'deal completed',
+    statOnTime: 'on time',
+    statRatings: 'from {n} ratings',
+    statProblems: 'problems lost',
+    statProblemsOne: 'problem lost',
     yourOffers: 'Your offers',
     howAgentSells: 'How your agent sells',
     publicView: 'What others see',
@@ -69,6 +91,17 @@ export const profilePageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ProfilePa
     noProblems: 'Aucun problème perdu',
     newHere: 'Nouveau sur Karwan',
     share: 'Partager votre historique',
+    record: 'Historique',
+    selling: 'Vente',
+    accountAndSecurity: 'Compte et sécurité',
+    balance: 'Solde',
+    withAgents: 'Chez vos agents',
+    statCompleted: 'transactions terminées',
+    statCompletedOne: 'transaction terminée',
+    statOnTime: 'à l’heure',
+    statRatings: 'sur {n} avis',
+    statProblems: 'problèmes perdus',
+    statProblemsOne: 'problème perdu',
     yourOffers: 'Vos offres',
     howAgentSells: 'Comment votre agent vend',
     publicView: 'Ce que les autres voient',
@@ -98,6 +131,17 @@ export const profilePageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ProfilePa
     noProblems: 'لا مشكلات خاسرة',
     newHere: 'جديد على كاروان',
     share: 'شارك سجلّك',
+    record: 'السجل',
+    selling: 'البيع',
+    accountAndSecurity: 'الحساب والأمان',
+    balance: 'الرصيد',
+    withAgents: 'لدى وكلائك',
+    statCompleted: 'صفقات مكتملة',
+    statCompletedOne: 'صفقة مكتملة',
+    statOnTime: 'في الموعد',
+    statRatings: 'من {n} تقييمات',
+    statProblems: 'مشكلات خسرتها',
+    statProblemsOne: 'مشكلة خسرتها',
     yourOffers: 'عروضك',
     howAgentSells: 'كيف يبيع وكيلك',
     publicView: 'ما يراه الآخرون',
@@ -127,6 +171,17 @@ export const profilePageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ProfilePa
     noProblems: 'कोई समस्या नहीं हारी',
     newHere: 'Karwan पर नए',
     share: 'अपना रिकॉर्ड साझा करें',
+    record: 'रिकॉर्ड',
+    selling: 'बिक्री',
+    accountAndSecurity: 'खाता और सुरक्षा',
+    balance: 'बैलेंस',
+    withAgents: 'आपके एजेंटों के पास',
+    statCompleted: 'डील पूरी हुईं',
+    statCompletedOne: 'डील पूरी हुई',
+    statOnTime: 'समय पर',
+    statRatings: '{n} रेटिंग से',
+    statProblems: 'समस्याएँ हारीं',
+    statProblemsOne: 'समस्या हारी',
     yourOffers: 'आपके ऑफ़र',
     howAgentSells: 'आपका एजेंट कैसे बेचता है',
     publicView: 'दूसरे क्या देखते हैं',
@@ -156,6 +211,17 @@ export const profilePageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ProfilePa
     noProblems: 'Hakuna tatizo lililopotezwa',
     newHere: 'Mpya kwenye Karwan',
     share: 'Shiriki rekodi yako',
+    record: 'Rekodi',
+    selling: 'Kuuza',
+    accountAndSecurity: 'Akaunti na usalama',
+    balance: 'Salio',
+    withAgents: 'Kwa mawakala wako',
+    statCompleted: 'mipango iliyokamilika',
+    statCompletedOne: 'mpango uliokamilika',
+    statOnTime: 'kwa wakati',
+    statRatings: 'kutoka tathmini {n}',
+    statProblems: 'matatizo yaliyopotezwa',
+    statProblemsOne: 'tatizo lililopotezwa',
     yourOffers: 'Ofa zako',
     howAgentSells: 'Jinsi wakala wako anavyouza',
     publicView: 'Wengine wanachoona',

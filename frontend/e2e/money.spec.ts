@@ -29,6 +29,18 @@ test('the balance is the loudest thing on the page, with one primary action', as
   expect(await accentControls(page)).toBe(1);
 });
 
+test('money is one balance on Arc: no list of other networks, amounts in USDC with local currency soon', async ({ page }) => {
+  await serveMoney(page, { balances: funded });
+  await page.goto('/account');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('1,240.50');
+  await expect(page.getByRole('button', { name: 'By network' })).toHaveCount(0);
+  await expect(page.getByText('In your wallet on other networks')).toHaveCount(0);
+  const amounts = page.locator('[data-amounts-in]');
+  await expect(amounts).toContainText('Show amounts in');
+  await expect(amounts).toContainText('Local currency soon');
+  await expect(amounts.getByRole('link')).toHaveCount(0);
+});
+
 test('agents show what they can spend, with top up and withdraw', async ({ page }) => {
   await serveMoney(page, { balances: funded });
   await page.goto('/account');

@@ -16,7 +16,8 @@ export function ownRecord(data: RecordRead | undefined): OwnRecord | null {
   return {
     kind: 'record',
     completed: counts.completed,
-    onTimePct: counts.onTimeRate === null ? null : Math.round(counts.onTimeRate * 100),
+    // The record read already rounds it to a percent (recordRead.ts).
+    onTimePct: counts.onTimeRate === null ? null : Math.round(counts.onTimeRate),
     problemsLost: counts.disputesLost,
     rating: data.rating ?? null,
   };

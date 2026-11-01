@@ -275,7 +275,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
   return {
     get_my_balance: tool({
       description:
-        "Read the signed-in user's balance on Arc testnet exactly as their balance page shows it: the total, and where it sits (their wallet on Arc, other chains, their buying and selling agents), plus any stake and gas. Use this whenever they ask what their balance is, where their money is, how much USDC they have, what their agent wallet addresses are, or whether they can afford something. Never guess a number.",
+        "Read the signed-in user's balance on Arc testnet exactly as their balance page shows it: the one balance on Arc, and where it sits (their wallet, their buying and selling agents), plus any stake and gas. Use this whenever they ask what their balance is, where their money is, how much USDC they have, what their agent wallet addresses are, or whether they can afford something. Never guess a number.",
       inputSchema: z.object({}),
       execute: async () => {
         try {
@@ -288,7 +288,6 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
             totalUsdc: owned.total.toFixed(2),
             parts: {
               walletOnArcUsdc: owned.wallet.toFixed(2),
-              otherChainsUsdc: owned.otherChains.toFixed(2),
               agentsUsdc: owned.agents.toFixed(2),
             },
             buyerAgent: record?.buyerAddress
@@ -300,7 +299,7 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
             stakedUsdc: owned.staked > 0 ? owned.staked.toFixed(2) : null,
             gas: formatUnits(gas, NATIVE_DECIMALS),
             someSourcesUnread: owned.partial,
-            note: `totalUsdc is the balance on their balance page: give it first, as their balance. Name parts only in the page's words: "ready to send", "on other networks", "with your agents" (for buying, for selling). Never say chains. walletOnArcUsdc is what they can send or pay from directly. stakedUsdc is their deal guarantee, set aside to protect their buyers, and is NOT part of the total: if you mention it, call it their deal guarantee, say it is not counted in the balance, and get the details from get_my_guarantee. Never mention a pooled or unified balance. If someSourcesUnread is true, say one place could not be read just now, so the total may be low.`,
+            note: `totalUsdc is the balance on their balance page: give it first, as their balance. It is one balance on Arc. Name parts only in the page's words: "ready to send", "with your agents" (for buying, for selling). Never say chains, and never count or list money on other networks: other networks are only a way to add money (list_bridge_sources, when they ask to add from elsewhere). walletOnArcUsdc is what they can send or pay from directly. stakedUsdc is their deal guarantee, set aside to protect their buyers, and is NOT part of the total: if you mention it, call it their deal guarantee, say it is not counted in the balance, and get the details from get_my_guarantee. walletOnArcUsdc already includes any Gateway balance; name it, as the Gateway balance, only if they ask. If someSourcesUnread is true, say one place could not be read just now, so the total may be low.`,
           };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant get_my_balance failed');

@@ -47,7 +47,7 @@ async function serveGuarantee(page: Page, steps: unknown[] = []) {
   });
 }
 
-test('Profile shows the deal guarantee with its amount, and Legacy contracts under Other', async ({ page }) => {
+test('Profile shows the deal guarantee with its amount, and Earlier deals in the Record card', async ({ page }) => {
   await serveGuarantee(page);
   await page.goto('/profile');
   const row = page.getByRole('link', { name: new RegExp(g.profile.dealGuarantee) });
@@ -125,14 +125,25 @@ test('Profile shows your record in words with your own counts, and what others s
   await serveGuarantee(page);
   await page.route(`${API}/api/r/ada`, (route) => route.fulfill({ json: {
     displayName: 'Ada', tag: 'ada', level: 'person_verified', tier: 'ESTABLISHED', reasons: [], facts: [],
-    counts: { completed: 23, onTimeRate: 0.957, disputesLost: 0 }, rating: { kind: 'rated', value: 4.8, count: 23 },
+    counts: { completed: 23, onTimeRate: 96, disputesLost: 0 }, rating: { kind: 'rated', value: 4.8, count: 23 },
   } }));
   await page.goto('/profile');
   const p = en.profilePage;
-  await expect(page.getByText('23 deals completed')).toBeVisible();
-  await expect(page.getByText('96% on time')).toBeVisible();
-  await expect(page.getByText(p.noProblems)).toBeVisible();
-  await expect(page.getByRole('link', { name: new RegExp(p.share) })).toHaveAttribute('href', `/credit-passport/${ME}#share`);
-  await expect(page.getByRole('link', { name: new RegExp(p.publicView) })).toHaveAttribute('href', '/r/ada');
+  // One Record card: the numbers, then what others see, earlier deals and sharing.
+  const card = page.locator('section', { has: page.getByRole('heading', { name: p.record, exact: true }) });
+  const stats = card.locator('[data-record-stats]');
+  await expect(stats).toContainText('23');
+  await expect(stats).toContainText(p.statCompleted);
+  await expect(stats).toContainText('96%');
+  await expect(stats).not.toContainText('9600');
+  await expect(stats).toContainText('4.8');
+  await expect(stats).toContainText(p.statProblems);
+  await expect(card.getByRole('link', { name: new RegExp(p.share) })).toHaveAttribute('href', `/credit-passport/${ME}#share`);
+  await expect(card.getByRole('link', { name: new RegExp(p.publicView) })).toHaveAttribute('href', '/r/ada');
+  await expect(card.getByRole('link', { name: en.dealGuarantee.profile.legacyContracts })).toHaveAttribute('href', '/legacy');
   await expect(page.getByRole('link', { name: new RegExp(p.howAgentSells) })).toHaveAttribute('href', '/profile/ways');
+  await expect(page.getByRole('link', { name: en.profile.hub.editProfile })).toHaveAttribute('href', '/profile/edit');
+  // Said elsewhere already, so not here.
+  await expect(page.getByRole('link', { name: en.payLink.create.title })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: new RegExp(`^${en.profile.hub.openDeals}`) })).toHaveCount(0);
 });

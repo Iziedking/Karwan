@@ -178,7 +178,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
       : move === 'withdraw'
         ? withdrawToAgent ? t.sheet.doneWithdrawAgent : t.sheet.doneWithdraw
         : agent === 'buyer' ? t.sheet.doneTopUpBuyer : t.sheet.doneTopUpSeller;
-  const fromName = move === 'withdraw' ? agentName : route?.kind === 'pool' ? t.home.heldAnyNetwork : t.sheet.yourBalance;
+  const fromName = move === 'withdraw' ? agentName : route?.kind === 'pool' ? t.home.gatewayBalance : t.sheet.yourBalance;
   const fromAmount = move === 'withdraw' ? agentBalance : route?.kind === 'pool' ? balances.pool : balances.balance;
   const toName = move === 'withdraw' ? (withdrawToAgent ? otherAgentName : t.sheet.yourBalance) : agentName;
   const toAmount = move === 'withdraw' ? (withdrawToAgent ? otherAgentBalance : balances.balance) : agentBalance;
