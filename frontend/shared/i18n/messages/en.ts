@@ -9882,13 +9882,13 @@ export const en: MessagesShape = {
   },
   bidsTable: {
     empty: {
-      idle: 'Idle. The agent is subscribed to JobPosted and will respond when a matching request lands.',
+      idle: 'No offers yet. Your agent offers when a request matches your work.',
       dismissed: 'All finished offers dismissed.',
     },
-    columns: { job: 'Job', buyer: 'Buyer', bid: 'Offer', rounds: 'Rounds', status: 'Status', open: 'Open' },
+    columns: { job: 'Request', buyer: 'Buyer', bid: 'Offer', rounds: 'Rounds', status: 'Status', open: 'Open' },
     status: { finalized: 'Finalized', negotiating: 'Negotiating' },
     row: {
-      openJobAria: 'Open job {id}',
+      openJobAria: 'Open request {id}',
       dismissTitle: 'Dismiss',
       dismissAria: 'Dismiss this finished offer',
       abandon: 'Abandon',

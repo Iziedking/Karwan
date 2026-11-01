@@ -4515,7 +4515,7 @@ export const sw: Messages = {
   },
   bidsTable: {
     empty: {
-      idle: 'Tulivu. Wakala amejisajili kwa JobPosted na atajibu ombi linalolingana litakapofika.',
+      idle: 'Hakuna ofa bado. Wakala wako hutoa ofa ombi linapolingana na kazi yako.',
       dismissed: 'Ofa zote zilizokamilika zimeondolewa.',
     },
     columns: { job: 'Kazi', buyer: 'Mnunuzi', bid: 'Ofa', rounds: 'Mizunguko', status: 'Hali', open: 'Fungua' },

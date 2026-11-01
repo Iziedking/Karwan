@@ -41,7 +41,7 @@ export function BidsTable({
 
   if (visible.length === 0) {
     return (
-      <div className="py-10 text-center mono text-[14px] uppercase tracking-[0.14em] text-[var(--lp-workspace-faint)]">
+      <div className="py-10 text-center text-[14px] font-medium text-[var(--lp-text-muted)]">
         {bids.length === 0 ? bt.empty.idle : bt.empty.dismissed}
       </div>
     );
@@ -49,15 +49,15 @@ export function BidsTable({
 
   return (
     <>
-      <div className="divide-y divide-[var(--lp-workspace-border)] md:hidden">
+      <div className="divide-y divide-[var(--lp-border-light)] md:hidden">
         {visible.map((b) => {
           const href = `/jobs/${b.jobId}`;
           return (
             <article key={b.jobId} className="px-4 py-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="mono text-[13px] uppercase tracking-[0.13em] text-[var(--lp-workspace-faint)]">{bt.columns.job}</p>
-                  <p className="mt-1 mono text-[14px] tabular-nums text-[var(--lp-workspace-ink)]">{shortHash(b.jobId, 8, 4)}</p>
+                  <p className="text-[13px] font-medium text-[var(--lp-text-muted)]">{bt.columns.job}</p>
+                  <p className="mt-1 mono text-[14px] tabular-nums text-[var(--lp-dark)]">{shortHash(b.jobId, 8, 4)}</p>
                 </div>
                 <span className="inline-flex shrink-0 items-center gap-2">
                   <StatusDot tone={b.finalized ? 'positive' : 'accent'} />
@@ -66,18 +66,18 @@ export function BidsTable({
                   </Tag>
                 </span>
               </div>
-              <dl className="mt-4 grid grid-cols-3 gap-2 border-y border-[var(--lp-workspace-border)] py-3">
+              <dl className="mt-4 grid grid-cols-3 gap-2 border-y border-[var(--lp-border-light)] py-3">
                 <div className="min-w-0">
-                  <dt className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-workspace-faint)]">{bt.columns.buyer}</dt>
-                  <dd className="mt-1 truncate mono text-[14px] tabular-nums text-[var(--lp-workspace-muted)]">{shortHash(b.jobBuyer, 6, 4)}</dd>
+                  <dt className="text-[13px] font-medium text-[var(--lp-text-muted)]">{bt.columns.buyer}</dt>
+                  <dd className="mt-1 truncate mono text-[14px] tabular-nums text-[var(--lp-text-sub)]">{shortHash(b.jobBuyer, 6, 4)}</dd>
                 </div>
                 <div className="min-w-0">
-                  <dt className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-workspace-faint)]">{bt.columns.bid}</dt>
-                  <dd className="mt-1 font-sans text-[16px] font-extrabold tabular-nums text-[var(--lp-workspace-ink)]">{formatUsdc(b.lastBidPrice)}</dd>
+                  <dt className="text-[13px] font-medium text-[var(--lp-text-muted)]">{bt.columns.bid}</dt>
+                  <dd className="mt-1 font-sans text-[16px] font-extrabold tabular-nums text-[var(--lp-dark)]">{formatUsdc(b.lastBidPrice)}</dd>
                 </div>
                 <div className="min-w-0">
-                  <dt className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-workspace-faint)]">{bt.columns.rounds}</dt>
-                  <dd className="mt-1 mono text-[14px] tabular-nums text-[var(--lp-workspace-muted)]">{b.counterRounds}</dd>
+                  <dt className="text-[13px] font-medium text-[var(--lp-text-muted)]">{bt.columns.rounds}</dt>
+                  <dd className="mt-1 mono text-[14px] tabular-nums text-[var(--lp-text-sub)]">{b.counterRounds}</dd>
                 </div>
               </dl>
               <div className="mt-3 flex items-center justify-between gap-2">
@@ -86,7 +86,7 @@ export function BidsTable({
                     type="button"
                     aria-label={bt.row.dismissAria}
                     onClick={() => dismiss(b.jobId)}
-                    className="inline-flex min-h-11 items-center px-2 mono text-[13px] uppercase tracking-[0.1em] text-[var(--lp-workspace-faint)]"
+                    className="inline-flex min-h-11 items-center px-2 text-[13px] font-medium text-[var(--lp-text-muted)]"
                   >
                     {bt.row.dismissTitle}
                   </button>
@@ -95,7 +95,7 @@ export function BidsTable({
                     type="button"
                     disabled={busy === b.jobId}
                     onClick={() => void doAbandon(b.jobId)}
-                    className="inline-flex min-h-11 items-center rounded-lg border border-[#ff8a7a]/40 px-3 mono text-[13px] font-bold uppercase tracking-[0.1em] text-[#ff8a7a] disabled:opacity-50"
+                    className="inline-flex min-h-11 items-center rounded-lg border border-[#ff8a7a]/40 px-3 text-[13px] font-semibold text-[#ff8a7a] disabled:opacity-50"
                   >
                     {busy === b.jobId ? '…' : bt.row.abandonConfirm}
                   </button>
@@ -103,14 +103,14 @@ export function BidsTable({
                   <button
                     type="button"
                     onClick={() => setConfirming(b.jobId)}
-                    className="inline-flex min-h-11 items-center px-2 mono text-[13px] uppercase tracking-[0.1em] text-[var(--lp-workspace-faint)]"
+                    className="inline-flex min-h-11 items-center px-2 text-[13px] font-medium text-[var(--lp-text-muted)]"
                   >
                     {bt.row.abandon}
                   </button>
                 )}
                 <Link
                   href={href}
-                  className="inline-flex min-h-11 items-center gap-1.5 px-2 mono text-[13px] font-bold uppercase tracking-[0.12em] text-[var(--lp-accent)]"
+                  className="inline-flex min-h-11 items-center gap-1.5 px-2 text-[13px] font-semibold text-[var(--lp-accent-on-light)]"
                 >
                   {bt.row.open}<Icon name="arrow-right" size={16} directional />
                 </Link>
@@ -122,7 +122,7 @@ export function BidsTable({
       <div className="hidden overflow-x-auto md:block">
       <table className="w-full text-sm">
         <thead>
-          <tr className="mono text-[13px] uppercase tracking-[0.16em] text-[var(--lp-workspace-faint)] border-b border-[var(--lp-workspace-border)]">
+          <tr className="text-[13px] font-medium text-[var(--lp-text-muted)] border-b border-[var(--lp-border-light)]">
             <th className="text-start font-medium px-5 py-3">{bt.columns.job}</th>
             <th className="text-start font-medium px-5 py-3">{bt.columns.buyer}</th>
             <th className="text-start font-medium px-5 py-3">{bt.columns.bid}</th>
@@ -151,18 +151,18 @@ export function BidsTable({
                 tabIndex={0}
                 role="link"
                 aria-label={bt.row.openJobAria.replace('{id}', shortHash(b.jobId, 8, 4))}
-                className="group cursor-pointer border-b border-[var(--lp-workspace-border)] last:border-0 hover:bg-[var(--lp-workspace-soft)] focus:bg-[var(--lp-workspace-soft)] focus:outline-none transition-colors"
+                className="group cursor-pointer border-b border-[var(--lp-border-light)] last:border-0 hover:bg-[var(--lp-light)] focus:bg-[var(--lp-light)] focus:outline-none transition-colors"
               >
-                <td className="px-5 py-3.5 mono text-[14px] tabular-nums text-[var(--lp-workspace-ink)]">
+                <td className="px-5 py-3.5 mono text-[14px] tabular-nums text-[var(--lp-dark)]">
                   {shortHash(b.jobId, 8, 4)}
                 </td>
-                <td className="px-5 py-3.5 mono text-[14px] tabular-nums text-[var(--lp-workspace-muted)]">
+                <td className="px-5 py-3.5 mono text-[14px] tabular-nums text-[var(--lp-text-sub)]">
                   {shortHash(b.jobBuyer, 6, 4)}
                 </td>
-                <td className="px-5 py-3.5 font-sans font-extrabold tabular-nums text-[15px] tracking-[-0.01em] text-[var(--lp-workspace-ink)]">
+                <td className="px-5 py-3.5 font-sans font-extrabold tabular-nums text-[15px] tracking-[-0.01em] text-[var(--lp-dark)]">
                   {formatUsdc(b.lastBidPrice)}
                 </td>
-                <td className="px-5 py-3.5 mono tabular-nums text-[var(--lp-workspace-muted)]">{b.counterRounds}</td>
+                <td className="px-5 py-3.5 mono tabular-nums text-[var(--lp-text-sub)]">{b.counterRounds}</td>
                 <td className="px-5 py-3.5">
                   <span className="inline-flex items-center gap-2">
                     <StatusDot tone={b.finalized ? 'positive' : 'accent'} />
@@ -182,7 +182,7 @@ export function BidsTable({
                           e.stopPropagation();
                           dismiss(b.jobId);
                         }}
-                        className="inline-flex items-center justify-center w-6 h-6 rounded-full mono text-[14px] text-[var(--lp-workspace-faint)] hover:text-[var(--lp-workspace-ink)] hover:bg-[var(--lp-workspace-soft)] transition-colors"
+                        className="inline-flex items-center justify-center w-6 h-6 rounded-full mono text-[14px] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] hover:bg-[var(--lp-light)] transition-colors"
                       >
                         ×
                       </button>
@@ -196,7 +196,7 @@ export function BidsTable({
                             e.stopPropagation();
                             void doAbandon(b.jobId);
                           }}
-                          className="mono text-[13px] uppercase tracking-[0.12em] font-bold px-2.5 py-1 rounded-full border border-[#ff8a7a]/40 text-[#ff8a7a] hover:bg-[#ff8a7a]/10 transition-colors disabled:opacity-50"
+                          className="text-[13px] font-semibold px-2.5 py-1 rounded-full border border-[#ff8a7a]/40 text-[#ff8a7a] hover:bg-[#ff8a7a]/10 transition-colors disabled:opacity-50"
                         >
                           {busy === b.jobId ? '…' : bt.row.abandonConfirm}
                         </button>
@@ -208,14 +208,14 @@ export function BidsTable({
                             e.stopPropagation();
                             setConfirming(b.jobId);
                           }}
-                          className="mono text-[13px] uppercase tracking-[0.12em] px-2.5 py-1 rounded-full text-[var(--lp-workspace-faint)] hover:text-[var(--lp-workspace-ink)] hover:bg-[var(--lp-workspace-soft)] transition-colors"
+                          className="text-[13px] font-medium px-2.5 py-1 rounded-full text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] hover:bg-[var(--lp-light)] transition-colors"
                         >
                           {bt.row.abandon}
                         </button>
                       ))}
                     <span
-                      className="inline-flex items-center gap-1 mono text-[14px] uppercase tracking-[0.12em] font-bold"
-                      style={{ color: 'var(--lp-accent)' }}
+                      className="inline-flex items-center gap-1 text-[14px] font-semibold"
+                      style={{ color: 'var(--lp-accent-on-light)' }}
                     >
                       {bt.row.open}
                       <Icon name="arrow-right" size={16} directional className="inline-block transition-transform duration-200 group-hover:translate-x-0.5" />

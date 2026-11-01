@@ -56,7 +56,7 @@ export function Band({
           // Keep workspace pages on the same readable measure as AccountHome.
           // The surface still bleeds edge to edge, but the content should not
           // become a dashboard-wide slab on large monitors.
-          'relative mx-auto max-w-[1240px] px-[clamp(20px,3.6vw,52px)]',
+          'band-inner relative mx-auto max-w-[1240px] px-[clamp(20px,3.6vw,52px)]',
           tight
             ? 'py-[clamp(16px,2.2vw,24px)]'
             : compact

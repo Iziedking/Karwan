@@ -4518,7 +4518,7 @@ export const fr: Messages = {
   },
   bidsTable: {
     empty: {
-      idle: "Inactif. L'agent est abonné à JobPosted et répondra lorsqu'une demande correspondante arrivera.",
+      idle: "Aucune offre pour l'instant. Votre agent fait une offre quand une demande correspond à votre travail.",
       dismissed: 'Toutes les offres finalisées ont été ignorées.',
     },
     columns: { job: 'Mission', buyer: 'Acheteur', bid: 'Offre', rounds: 'Tours', status: 'Statut', open: 'Ouvrir' },

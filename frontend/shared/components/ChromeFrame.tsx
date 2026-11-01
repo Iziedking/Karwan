@@ -108,11 +108,12 @@ function CustomerChromeFrame({
   const assistantMode = workspace && auth.isAuthenticated && isAssistantRoute(pathname);
   const workspaceWithRail = workspace && auth.isAuthenticated && !assistantMode;
   const focused = shell === 'focused';
+  const fullWidth = pathname === '/' || pathname === '/start' || pathname === '/waitlist';
   const mainClass = assistantMode
     ? 'flex min-h-0 w-full min-w-0 flex-1 flex-col'
     : workspaceWithRail
     ? 'workspace-main flex-1 mx-auto min-w-0 min-h-[calc(100svh-var(--lp-nav-h,68px))] w-full max-w-[1600px] px-4 pb-[calc(10rem+env(safe-area-inset-bottom))] pt-5 sm:px-6 sm:pt-7 lg:py-8'
-    : pathname === '/' || pathname === '/start' || pathname === '/waitlist' ? 'w-full min-w-0 flex-1' : 'flex-1 mx-auto min-h-[calc(100svh-var(--lp-nav-h,68px))] w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-10';
+    : fullWidth ? 'w-full min-w-0 flex-1' : 'flex-1 mx-auto min-h-[calc(100svh-var(--lp-nav-h,68px))] w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-10';
   const platformCopy = workspace || focused;
   return (
     <div className="product-chrome relative isolate flex min-h-screen flex-col overflow-x-clip">
@@ -120,10 +121,11 @@ function CustomerChromeFrame({
       {workspace ? <div data-workspace-nudge={workspaceWithRail ? 'true' : undefined}>{profileNudge}</div> : null}
       <main
         data-workspace-main={workspaceWithRail ? 'true' : undefined}
+        data-page-column={!assistantMode && !workspaceWithRail && !fullWidth ? '' : undefined}
         className={`relative z-[1] ${mainClass}${platformCopy ? ' platform-copy' : ''}`}
       >
         {pathname !== '/' && pathname !== '/start' && pathname !== '/waitlist' && !assistantMode && <div className={`relative z-10 mb-2 flex flex-wrap items-center gap-2 empty:hidden${workspaceWithRail ? ' mx-auto w-full max-w-[var(--workspace-measure)]' : ''}`}>
-          <ProductBackLink pathname={pathname} isAuthenticated={auth.isAuthenticated} shell />
+          <ProductBackLink pathname={pathname} isAuthenticated={auth.isAuthenticated} shell className="-ms-2" />
           <PageTourButton pathname={pathname} enabled={auth.isAuthenticated && (workspace || focused)} />
         </div>}
         {pathname === '/' ? children : <RouteStage pathname={pathname}>{children}</RouteStage>}

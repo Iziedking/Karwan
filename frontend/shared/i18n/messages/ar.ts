@@ -4518,7 +4518,7 @@ export const ar: Messages = {
   },
   bidsTable: {
     empty: {
-      idle: 'خامل. الوكيل مشترك في JobPosted وسيستجيب عند ورود طلب مطابق.',
+      idle: 'لا عروض بعد. يقدّم وكيلك عرضًا عندما يطابق طلبٌ عملك.',
       dismissed: 'تم تجاهل جميع العروض المُنجزة.',
     },
     columns: { job: 'المهمة', buyer: 'المشتري', bid: 'العرض', rounds: 'الجولات', status: 'الحالة', open: 'فتح' },

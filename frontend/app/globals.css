@@ -1616,6 +1616,25 @@ html[data-auth-dialog='open'] .page-feedback-slot {
   transform: none;
 }
 
+/* A plain band's content sits on the same column as the Back row above it,
+   so Back, the heading and the cards share one start edge on every page.
+   Coloured bands are slabs of their own and keep their inner inset. */
+[data-workspace-main='true'] [data-surface='paper'] > .band-inner {
+  max-width: var(--workspace-measure);
+  padding-inline: 0;
+}
+
+[data-page-column] [data-surface='paper'] > .band-inner {
+  max-width: 72rem;
+  padding-inline: 1rem;
+}
+
+@media (min-width: 640px) {
+  [data-page-column] [data-surface='paper'] > .band-inner {
+    padding-inline: 1.5rem;
+  }
+}
+
 /* ---- Workspace rail and content reflow -----------------------------------
    The navigation rail and the page canvas share one width contract. The old
    rail only changed its own width, so collapsing it left the content parked

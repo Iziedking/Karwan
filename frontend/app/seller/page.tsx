@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { api, type SellerActiveBid } from '@/core/api';
-import { useActivation } from '@/shared/hooks/useActivation';
 import { BidsTable } from '@/features/seller/components/BidsTable';
 import { ListingComposer } from '@/features/seller/components/ListingComposer';
 import { BalanceSidecar } from '@/features/balances/components/BalanceSidecar';
@@ -11,9 +10,6 @@ import { AuthGuard } from '@/shared/components/AuthGuard';
 import {
   FullBleed,
   Band,
-  SectionTag,
-  HeroHeadline,
-  Punc,
   PageCard,
 } from '@/shared/components/Bands';
 import { Hint } from '@/shared/components/Hint';
@@ -38,7 +34,6 @@ function SellerPageInner() {
   const entry = TRADE_ENTRY_COPY[locale];
   const auth = useAuth();
   const address = auth.address;
-  const { activated } = useActivation();
   const [activeBids, setActiveBids] = useState<SellerActiveBid[]>([]);
   const [fetchState, setFetchState] = useState<FetchState>('idle');
   const sh = useTranslations().sellerHub;
@@ -56,7 +51,7 @@ function SellerPageInner() {
       .seller(address)
       .then((d) => {
         if (cancelled) return;
-        setActiveBids(d.activeBids);
+        setActiveBids(d.activeBids ?? []);
         setFetchState('ready');
       })
       .catch(() => {
@@ -100,63 +95,36 @@ if (v2) return <SellerDesk />;
       </Band>
 
       {/* ACTIVE BIDS */}
-      <Band tone="dark" compact>
-        <div className="flex flex-wrap items-end justify-between gap-6">
-          <div className="max-w-[46ch]">
-            <div className="flex items-center gap-2">
-              <SectionTag tone="dark" dot={activated ? 'live' : undefined}>
-                {sh.activeBids.tag}
-              </SectionTag>
-              <Hint glow side="bottom" align="start">{sh.activeBids.lede}</Hint>
-            </div>
-            <HeroHeadline size="md" as="h2">
-              {sh.activeBids.headline}
-              {activeBids.length > 0 && (
-                <>
-                  <Punc>.</Punc>
-                  <span className="ms-3 text-[var(--lp-workspace-muted)] font-sans font-extrabold">
-                    {activeBids.length}
-                  </span>
-                </>
-              )}
-              {activeBids.length === 0 && <Punc>.</Punc>}
-            </HeroHeadline>
-          </div>
+      <Band tone="light" compact>
+        <div className="flex items-center gap-2">
+          <h2 className="flex items-baseline gap-2 text-[17px] font-semibold text-[var(--lp-dark)]">
+            {sh.activeBids.tag}
+            {activeBids.length > 0 ? <span className="text-[15px] font-medium tabular-nums text-[var(--lp-text-muted)]">{activeBids.length}</span> : null}
+          </h2>
+          <Hint side="bottom" align="start">{sh.activeBids.lede}</Hint>
         </div>
-        <div className="mt-10">
-          <div
-            className="overflow-hidden"
-            style={{
-              background: 'var(--lp-workspace-raised)',
-              border: '1px solid var(--lp-workspace-border)',
-              borderTopLeftRadius: 22,
-              borderTopRightRadius: 22,
-              borderBottomLeftRadius: 22,
-              borderBottomRightRadius: 5,
-            }}
-          >
-            {fetchState === 'error' ? (
-              <p className="p-8 text-center text-[14px] text-[#ff8a7a]">
-                {sh.activeBids.errorMessage}
-              </p>
-            ) : fetchState === 'loading' || fetchState === 'idle' ? (
-              <div className="p-8 space-y-3">
-                <div className="h-14 rounded-md bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
-                <div className="h-14 rounded-md bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
-              </div>
-            ) : activeBids.length === 0 ? (
-              <p className="p-8 text-center text-[14px] text-[var(--lp-workspace-muted)]">
-                {sh.activeBids.emptyMessage}
-              </p>
-            ) : (
-              <BidsTable
-                bids={activeBids}
-                onAbandon={(jobId) =>
-                  setActiveBids((prev) => prev.filter((b) => b.jobId !== jobId))
-                }
-              />
-            )}
-          </div>
+        <div className="mt-4 overflow-hidden rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
+          {fetchState === 'error' ? (
+            <p role="status" className="p-6 text-[15px] font-medium text-[var(--lp-text-sub)]">
+              {sh.activeBids.errorMessage}
+            </p>
+          ) : fetchState === 'loading' || fetchState === 'idle' ? (
+            <div className="space-y-3 p-6">
+              <div className="h-14 animate-pulse rounded-[12px] bg-[var(--lp-light)] motion-reduce:animate-none" />
+              <div className="h-14 animate-pulse rounded-[12px] bg-[var(--lp-light)] motion-reduce:animate-none" />
+            </div>
+          ) : activeBids.length === 0 ? (
+            <p className="p-6 text-[15px] font-medium text-[var(--lp-text-sub)]">
+              {sh.activeBids.emptyMessage}
+            </p>
+          ) : (
+            <BidsTable
+              bids={activeBids}
+              onAbandon={(jobId) =>
+                setActiveBids((prev) => prev.filter((b) => b.jobId !== jobId))
+              }
+            />
+          )}
         </div>
       </Band>
     </FullBleed>

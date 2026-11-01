@@ -112,13 +112,13 @@ export function PostListingForm() {
   useEffect(() => {
     if (!address) return;
     if (events.some((e) => e.type === 'listing.matched' || e.type === 'listing.posted')) {
-      api.listingsForSeller(address).then((r) => setRecent(r.listings)).catch(() => {});
+      api.listingsForSeller(address).then((r) => setRecent(r.listings ?? [])).catch(() => {});
     }
   }, [events, address]);
 
   useEffect(() => {
     if (!address) return;
-    api.listingsForSeller(address).then((r) => setRecent(r.listings)).catch(() => {});
+    api.listingsForSeller(address).then((r) => setRecent(r.listings ?? [])).catch(() => {});
   }, [address]);
 
   const priceValue = typeof price === 'number' && price > 0 ? price : null;
