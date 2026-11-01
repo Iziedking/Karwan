@@ -172,6 +172,7 @@ import { configureDealFinancialCommandShadow, startDealWatcher } from './agents/
 import { configureX402GatewayFundingShadow } from './x402/buyerClient.js';
 import { startFactoringWatcher } from './agents/factoringWatcher.js';
 import { startTestFinancier } from './agents/testFinancier.js';
+import { startExampleKeeper } from './marketplace/marketSeed/keepOpen.js';
 import { startFamilyFinancingRunner } from './money/familyFinancingRunner.js';
 import { contestPorts, contests as contestsCore } from './contests/contestsLive.js';
 import { startContestRunner } from './contests/contestRunner.js';
@@ -750,6 +751,7 @@ function bootAgents() {
     stopFns.push(startFactoringWatcher());
     stopFns.push(startPOWatcher());
     stopFns.push(startTestFinancier());
+    stopFns.push(startExampleKeeper());
     stopFns.push(startFamilyFinancingRunner());
     stopFns.push(startContestRunner(contestsCore));
     stopFns.push(startWorkRunner(workCore, workRequests));

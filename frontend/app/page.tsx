@@ -12,11 +12,11 @@ import { useEntryHref } from '@/shared/auth/useEntryHref';
 import { dealHref, START_ROUTE } from '@/shared/utils/routes';
 import styles from './landing.module.css';
 
-/// The hero film plays once at half speed, then holds still for a minute before
-/// playing again: constant motion was tiring to watch (owner, 31 Oct 2026). Its
-/// last frame is the poster, so the rest reads as a still. A calmer film
-/// replaces it later.
-const HERO_FILM_RATE = 0.5;
+/// The hero film is the original slowed to a quarter, with the frames between
+/// drawn in so the motion stays smooth (owner, 1 Nov 2026: half speed still
+/// strained the eyes, and slowing the video in the browser stutters). It plays
+/// once, then holds still for a minute; its last frame is the poster, so the
+/// rest reads as a still. A calmer film replaces it later.
 const HERO_FILM_REST_MS = 60_000;
 
 function Arrow() {
@@ -34,8 +34,6 @@ export default function HomePage() {
     const video = videoRef.current;
     if (!video) return;
     const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
-    video.defaultPlaybackRate = HERO_FILM_RATE;
-    video.playbackRate = HERO_FILM_RATE;
     let inView = false;
     let resting = false;
     let restTimer: ReturnType<typeof setTimeout> | undefined;
@@ -99,7 +97,7 @@ export default function HomePage() {
         </div>
         <div className={styles.media}>
           <video ref={videoRef} muted playsInline preload="metadata" poster="/media/landing/karwan-hero-poster.jpg" aria-hidden="true">
-            <source src="/media/landing/karwan-hero-olive.mp4" type="video/mp4" />
+            <source src="/media/landing/karwan-hero-olive-slow.mp4" type="video/mp4" />
           </video>
         </div>
       </section>
