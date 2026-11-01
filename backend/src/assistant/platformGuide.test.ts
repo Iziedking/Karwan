@@ -257,7 +257,8 @@ test('the guide gives one Record card on Profile and one balance on Arc (1 Nov)'
 test('the guide describes the money page and Home as they are after the old pages left (view 44, Batch 9)', () => {
   const said = (id: string) => { const e = PLATFORM_GUIDE.find((entry) => entry.id === id)!; return [e.summary, ...e.steps].join(' '); };
   assert.doesNotMatch(said('account'), /Picking a wallet there/);
-  assert.match(said('account'), /a Telegram card sits beside them/);
+  assert.match(said('account'), /Telegram is linked from Contact on Profile/);
+  assert.doesNotMatch(said('account'), /Telegram card/);
 });
 
 test('the guide names the deal page moves that replaced the older page (Batch 9 part B)', () => {
