@@ -10,7 +10,6 @@ import { FaucetDrop } from './FaucetDrop';
 import { FirstTrade } from './FirstTrade';
 import { HomeBlock } from './HomeBlock';
 import { HomeDeals } from './HomeDeals';
-import { HomeTelegramCard } from './HomeTelegramCard';
 import { useOwnedBalance } from '@/features/money/hooks/useOwnedBalance';
 import { useHeldInDeals } from '@/features/money/useHeldInDeals';
 import { fill } from '@/features/deals/workspace/presentation';
@@ -113,7 +112,6 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
           <HomeBlock profile={profile} />
           <FirstTrade deals={deals} dealsState={fetchState} />
           <AskCard />
-          <HomeTelegramCard />
         </div>
 
         <UpdatesCarousel />

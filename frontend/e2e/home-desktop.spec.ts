@@ -11,24 +11,11 @@ async function serveHome(page: Page, linked: boolean) {
     route.fulfill({ json: { enabled: true, botUsername: 'karwan_bot', linked, chatId: linked ? 1 : null, username: linked ? 'bola' : null, linkedAt: linked ? 1 : null } }));
 }
 
-test('on desktop Home invites the person to Telegram until it is linked (view 44, D5)', async ({ page }, testInfo) => {
+test('Home has no Telegram card; Telegram is linked from Contact on Profile', async ({ page }) => {
   await serveHome(page, false);
   await page.goto('/app');
   await expect(page.locator('#home-heading')).toBeVisible();
-  const card = page.locator('[data-home-telegram]');
-  if (testInfo.project.name === 'desktop') {
-    await expect(card).toBeVisible();
-    await expect(card.getByRole('button', { name: /Connect Telegram/ })).toBeVisible();
-  } else {
-    await expect(card).toBeHidden();
-  }
-});
-
-test('a linked Telegram leaves no card on Home', async ({ page }) => {
-  await serveHome(page, true);
-  await page.goto('/app');
-  await expect(page.locator('#home-heading')).toBeVisible();
-  await expect(page.locator('[data-home-telegram]')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Telegram' })).toHaveCount(0);
 });
 
 test('asking on Home opens assistant mode with the question sent, not Help', async ({ page }) => {
