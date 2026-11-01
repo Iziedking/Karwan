@@ -26,7 +26,7 @@ The balance is the top line of the page, not a card: the amount, the active trad
 
 - **The next step from setup** (Find work, Get paid, Post what you need), as today.
 - **Your first trade**: steps done out of five, the next step, and "See the steps", which opens the full list in a side drawer (bottom sheet on a phone). It goes away after the first settled deal, as today.
-- **Ask your assistant**: a box and two suggestions.
+- **Ask your assistant**: a box and two suggestions. What is sent, typed or a suggestion, opens assistant mode (`/assistant`) and is sent there as a new conversation, not in the Help panel. Switching assistant mode off comes back to Home.
 
 "Trade now" is gone: the first card already leads to the market. Updates move on by themselves every 6 seconds and stop while the pointer or keyboard focus is on them, or when the person has asked for reduced motion. There is no pause button.
 

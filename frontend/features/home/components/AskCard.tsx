@@ -1,20 +1,26 @@
 'use client';
 
 import { useId, useState } from 'react';
-import { openHelp } from '@/shared/assistant/openHelp';
+import { usePathname, useRouter } from 'next/navigation';
+import { rememberReturn } from '@/features/assistant/assistantReturn';
+import { carryAsk } from '@/features/assistant/carriedAsk';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 /// The assistant on Home: a box to type in and two things it can do straight
-/// away. What is sent opens the assistant with it already asked.
+/// away. What is sent opens assistant mode with it already asked; switching
+/// assistant mode off comes back here.
 export function AskCard() {
   const t = useTranslations().startFlow.home.ask;
   const id = useId();
+  const router = useRouter();
+  const pathname = usePathname();
   const [text, setText] = useState('');
   const ask = (words: string) => {
     const clean = words.trim();
     if (!clean) return;
-    openHelp(clean, { send: true });
-    setText('');
+    carryAsk(clean);
+    rememberReturn(pathname);
+    router.push('/assistant');
   };
   return (
     <section aria-labelledby={`${id}-title`} className="flex flex-col rounded-[24px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5 sm:p-6">

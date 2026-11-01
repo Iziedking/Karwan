@@ -20,6 +20,7 @@ import { ease } from '@/shared/motion/tokens';
 import { greetingKey } from './conversationGroups';
 import { ConversationList } from './ConversationList';
 import { takeReturn } from './assistantReturn';
+import { takeAsk } from './carriedAsk';
 import { conversationToResume, NEW_CHAT, readOpenConversation, rememberOpenConversation } from './resumeConversation';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { pastedFile } from '@/shared/utils/pastedFile';
@@ -89,9 +90,19 @@ function AssistantPage() {
     if (chat.conversationId) void queryClient.invalidateQueries({ queryKey: LIST_KEY });
   }, [chat.conversationId, queryClient]);
 
-  // Coming back reopens the conversation you were in; a new chat is your call.
+  // A question asked on Home starts its own conversation instead.
   const { address } = useAuth();
   const resumed = useRef(false);
+  const chatSend = chat.send;
+  useEffect(() => {
+    if (resumed.current) return;
+    const asked = takeAsk();
+    if (!asked) return;
+    resumed.current = true;
+    void chatSend(asked);
+  }, [chatSend]);
+
+  // Coming back reopens the conversation you were in; a new chat is your call.
   const chatOpen = chat.open;
   useEffect(() => {
     if (resumed.current || !list.data || chat.conversationId || chat.messages.length > 0) return;
