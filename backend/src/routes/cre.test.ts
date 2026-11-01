@@ -186,6 +186,22 @@ test('every node posting the same signed answer gets the same reply, and a relea
   assert.equal(((await (await call('/check/pending')).json()) as { items: unknown[] }).items.length, 0);
 });
 
+test('an answer posted after the fee was already released leaves the index, because Arc says so', async () => {
+  const settled = new Set<string>();
+  const { store, call } = setup({ feeRunSettled: async (runId) => settled.has(runId) });
+  const policyHash = await store.putDocument('policy', policy);
+  const dealKey = `dry-${'7'.repeat(64)}`;
+  await call('/check/started', { method: 'POST', body: { kind: 'dry', dealKey, family: FAMILY, dealId: DEAL, revision: 0, deliveredBlockHash: null, policyHash, reference } });
+
+  const answer = { dealKey, decision: 'FAIL', released: false };
+  assert.equal((await call('/dry-run/result', { method: 'POST', body: { payload: answer, report: signed('check', answer) } })).status, 200);
+  assert.equal(((await (await call('/check/pending')).json()) as { items: unknown[] }).items.length, 1);
+
+  settled.add(`0x${'7'.repeat(64)}`);
+  assert.equal((await call('/dry-run/result', { method: 'POST', body: { payload: answer, report: signed('check', answer) } })).status, 200);
+  assert.equal(((await (await call('/check/pending')).json()) as { items: unknown[] }).items.length, 0);
+});
+
 test('a pending page follows the cursor, and dropped items can be closed', async () => {
   const { store, call } = setup();
   const policyHash = await store.putDocument('policy', policy);

@@ -58,6 +58,8 @@ export function makePartyOf(read: ReadContract, identityRegistry: string) {
 }
 
 const FEE_OPEN = 1;
+const FEE_RELEASED = 2;
+const FEE_REFUNDED = 3;
 
 /// A fee payment counts once Arc shows its run open. The run id is keyed as
 /// the contract keys it, and a run another relayer opened first still counts.
@@ -197,5 +199,11 @@ export async function creRoutesFromEnv(env: Record<string, string | undefined> =
     notify: async (alerts) => {
       logger.warn({ alerts }, 'CRE risk alerts');
     },
+    feeRunSettled: settings.fees
+      ? async (runId) => {
+          const [, , state] = await arc.readContract({ address: settings.fees as Address, abi: feesAbi, functionName: 'runs', args: [runId] });
+          return state === FEE_RELEASED || state === FEE_REFUNDED;
+        }
+      : undefined,
   });
 }

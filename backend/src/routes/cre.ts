@@ -17,6 +17,8 @@ export interface CreRouteDeps {
   checkApprovedOnChain(input: { family: string; dealId: string; revision: number; evidenceHash: string; pass: boolean }): Promise<boolean>;
   verifyReport(report: { rawReport: string; context: string; signatures: string[] }): Promise<VerifyResult>;
   notify(alerts: unknown[]): Promise<void>;
+  /// True once Arc shows the dry-run fee released or refunded.
+  feeRunSettled?(runId: Hex): Promise<boolean>;
   /// Workflow ids allowed to sign each kind of post: dry runs come from
   /// karwan-check, alerts from karwan-risk.
   workflows: { check: string[]; risk: string[] };
@@ -174,9 +176,13 @@ export function createCreRoutes(deps: CreRouteDeps) {
     const refused = await signedPost(c, body.data.report, body.data.payload, deps.workflows.check, true);
     if (refused) return refused;
     const { payload } = body.data;
-    await deps.store.putDryRun(`0x${payload.dealKey.slice(4)}`, { payload, report: body.data.report }, deps.now());
+    const runId = `0x${payload.dealKey.slice(4)}` as Hex;
+    await deps.store.putDryRun(runId, { payload, report: body.data.report }, deps.now());
     // Once Arc shows the fee released the answer is final, so the schedule stops collecting it.
-    if (payload.released === true) await deps.store.closeCheckItem(payload.dealKey, { answered: payload.decision ?? null }, deps.now());
+    // The workflow reports released only when its own write lands, and a second write to a
+    // released run never does, so Arc is asked directly.
+    const settled = payload.released === true || (await deps.feeRunSettled?.(runId).catch(() => false)) === true;
+    if (settled) await deps.store.closeCheckItem(payload.dealKey, { answered: payload.decision ?? null }, deps.now());
     return c.json({ ok: true });
   });
 
