@@ -48,7 +48,8 @@ export function OrderPage({ listingId }: { listingId: string }) {
 }
 
 function OrderReview({ listingId, address, circle }: { listingId: string; address: string; circle: boolean }) {
-  const t = useTranslations().orderFlow;
+  const copy = useTranslations();
+  const t = copy.orderFlow;
   const shop = useTranslations().marketShop;
   const { locale } = useLocale();
   const { agents } = useActivation();
@@ -160,6 +161,7 @@ function OrderReview({ listingId, address, circle }: { listingId: string; addres
           <p className="mt-1 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
             {deliverBy ? fill(t.protectedBody, { name, date: deliverBy }) : fill(t.protectedBodyNoDate, { name })}
           </p>
+          <Link href="/docs/escrow" className="mt-2 inline-flex min-h-11 items-center text-[14px] font-medium underline underline-offset-4">{copy.landingEditorial.rulesLink}</Link>
         </div>
       </section>
 

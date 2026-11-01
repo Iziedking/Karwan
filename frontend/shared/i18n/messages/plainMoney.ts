@@ -25,7 +25,7 @@ export const plainMoneyCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', PlainMoney
     withdrawQuestion: 'Where should the money go?',
     add: {
       faucet: { label: 'Get free test USDC', note: 'Try a whole deal without real money. Testnet only.' },
-      address: { label: 'Send from an app or exchange', note: 'Use your Karwan address. Any supported network works.' },
+      address: { label: 'Send from an app or exchange', note: "Use the address and network shown on the deposit screen." },
       card: { label: 'Pay with card or bank', note: 'Not available yet.' },
       fromWallet: { label: 'Move USDC from your wallet', note: 'We show the USDC your wallet holds on each network. You confirm in your wallet.' },
       fromExchange: { label: 'From an exchange', note: 'Send USDC on Arc to your wallet address.' },
@@ -33,7 +33,7 @@ export const plainMoneyCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', PlainMoney
     withdraw: {
       ownWalletEmail: { label: 'To a wallet you own', note: 'Paste its address, then pick the network.' },
       ownWalletConnected: { label: 'To your connected wallet', note: 'On the network you choose. You confirm in your wallet.' },
-      someone: { label: 'To someone on Karwan', note: 'Pay a tag like @ada. Instant, no fee.' },
+      someone: { label: 'To someone on Karwan', note: "Send to a Karwan tag such as @ada. Review the details before confirming." },
       bank: { label: 'To a bank account', note: 'Not available yet.' },
     },
     soon: 'Coming soon',
@@ -47,7 +47,7 @@ export const plainMoneyCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', PlainMoney
     withdrawQuestion: 'Où doit aller l’argent ?',
     add: {
       faucet: { label: 'Obtenir des USDC de test gratuits', note: 'Essayez une transaction entière sans argent réel. Testnet uniquement.' },
-      address: { label: 'Envoyer depuis une app ou une plateforme', note: 'Utilisez votre adresse Karwan. Tout réseau pris en charge fonctionne.' },
+      address: { label: 'Envoyer depuis une app ou une plateforme', note: "Utilisez l’adresse et le réseau indiqués sur l’écran de dépôt." },
       card: { label: 'Payer par carte ou banque', note: 'Pas encore disponible.' },
       fromWallet: { label: 'Déplacer des USDC depuis votre wallet', note: 'Nous montrons les USDC de votre wallet sur chaque réseau. Vous confirmez dans votre wallet.' },
       fromExchange: { label: 'Depuis une plateforme d’échange', note: 'Envoyez des USDC sur Arc à l’adresse de votre wallet.' },
@@ -55,7 +55,7 @@ export const plainMoneyCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', PlainMoney
     withdraw: {
       ownWalletEmail: { label: 'Vers un wallet à vous', note: 'Collez son adresse, puis choisissez le réseau.' },
       ownWalletConnected: { label: 'Vers votre wallet connecté', note: 'Sur le réseau de votre choix. Vous confirmez dans votre wallet.' },
-      someone: { label: 'À quelqu’un sur Karwan', note: 'Payez un tag comme @ada. Instantané, sans frais.' },
+      someone: { label: 'À quelqu’un sur Karwan', note: "Envoyez à un tag Karwan comme @ada. Vérifiez les détails avant de confirmer." },
       bank: { label: 'Vers un compte bancaire', note: 'Pas encore disponible.' },
     },
     soon: 'Bientôt',
@@ -69,7 +69,7 @@ export const plainMoneyCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', PlainMoney
     withdrawQuestion: 'إلى أين يذهب المال؟',
     add: {
       faucet: { label: 'احصل على USDC تجريبي مجاني', note: 'جرّب صفقة كاملة بلا مال حقيقي. على الشبكة التجريبية فقط.' },
-      address: { label: 'أرسل من تطبيق أو منصة تداول', note: 'استخدم عنوانك في Karwan. أي شبكة مدعومة تعمل.' },
+      address: { label: 'أرسل من تطبيق أو منصة تداول', note: "استخدم العنوان والشبكة المعروضين في شاشة الإيداع." },
       card: { label: 'ادفع بالبطاقة أو البنك', note: 'غير متاح بعد.' },
       fromWallet: { label: 'انقل USDC من محفظتك', note: 'نعرض USDC الموجود في محفظتك على كل شبكة. تؤكد في محفظتك.' },
       fromExchange: { label: 'من منصة تداول', note: 'أرسل USDC على شبكة Arc إلى عنوان محفظتك.' },
@@ -77,7 +77,7 @@ export const plainMoneyCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', PlainMoney
     withdraw: {
       ownWalletEmail: { label: 'إلى محفظة تملكها', note: 'الصق عنوانها ثم اختر الشبكة.' },
       ownWalletConnected: { label: 'إلى محفظتك المتصلة', note: 'على الشبكة التي تختارها. تؤكد في محفظتك.' },
-      someone: { label: 'إلى شخص على Karwan', note: 'ادفع لوسم مثل @ada. فوري، بلا رسوم.' },
+      someone: { label: 'إلى شخص على Karwan', note: "أرسل إلى وسم Karwan مثل @ada. راجع التفاصيل قبل التأكيد." },
       bank: { label: 'إلى حساب بنكي', note: 'غير متاح بعد.' },
     },
     soon: 'قريبًا',
@@ -91,7 +91,7 @@ export const plainMoneyCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', PlainMoney
     withdrawQuestion: 'पैसा कहाँ जाना चाहिए?',
     add: {
       faucet: { label: 'मुफ़्त टेस्ट USDC पाएँ', note: 'असली पैसे के बिना पूरा सौदा आज़माएँ। केवल टेस्टनेट पर।' },
-      address: { label: 'किसी ऐप या एक्सचेंज से भेजें', note: 'अपना Karwan पता इस्तेमाल करें। कोई भी समर्थित नेटवर्क चलेगा।' },
+      address: { label: 'किसी ऐप या एक्सचेंज से भेजें', note: "जमा स्क्रीन पर दिखाए गए पते और नेटवर्क का उपयोग करें।" },
       card: { label: 'कार्ड या बैंक से भुगतान करें', note: 'अभी उपलब्ध नहीं।' },
       fromWallet: { label: 'अपने वॉलेट से USDC लाएँ', note: 'हम हर नेटवर्क पर आपके वॉलेट का USDC दिखाते हैं। आप अपने वॉलेट में पुष्टि करते हैं।' },
       fromExchange: { label: 'किसी एक्सचेंज से', note: 'Arc नेटवर्क पर USDC अपने वॉलेट पते पर भेजें।' },
@@ -99,7 +99,7 @@ export const plainMoneyCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', PlainMoney
     withdraw: {
       ownWalletEmail: { label: 'अपने किसी वॉलेट में', note: 'उसका पता चिपकाएँ, फिर नेटवर्क चुनें।' },
       ownWalletConnected: { label: 'अपने जुड़े वॉलेट में', note: 'अपनी चुनी नेटवर्क पर। आप अपने वॉलेट में पुष्टि करते हैं।' },
-      someone: { label: 'Karwan पर किसी को', note: '@ada जैसे टैग को भुगतान करें। तुरंत, कोई शुल्क नहीं।' },
+      someone: { label: 'Karwan पर किसी को', note: "@ada जैसे Karwan टैग पर भेजें। पुष्टि से पहले विवरण जाँचें।" },
       bank: { label: 'बैंक खाते में', note: 'अभी उपलब्ध नहीं।' },
     },
     soon: 'जल्द आ रहा है',
@@ -113,7 +113,7 @@ export const plainMoneyCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', PlainMoney
     withdrawQuestion: 'Pesa ziende wapi?',
     add: {
       faucet: { label: 'Pata USDC za majaribio bure', note: 'Jaribu mkataba mzima bila pesa halisi. Kwenye testnet tu.' },
-      address: { label: 'Tuma kutoka programu au soko la kubadilisha', note: 'Tumia anwani yako ya Karwan. Mtandao wowote unaoungwa mkono unafanya kazi.' },
+      address: { label: 'Tuma kutoka programu au soko la kubadilisha', note: "Tumia anwani na mtandao ulioonyeshwa kwenye ukurasa wa kuweka pesa." },
       card: { label: 'Lipa kwa kadi au benki', note: 'Bado haipatikani.' },
       fromWallet: { label: 'Hamisha USDC kutoka pochi yako', note: 'Tunaonyesha USDC za pochi yako kwenye kila mtandao. Unathibitisha kwenye pochi yako.' },
       fromExchange: { label: 'Kutoka soko la kubadilisha', note: 'Tuma USDC kwenye Arc kwenda anwani ya pochi yako.' },
@@ -121,7 +121,7 @@ export const plainMoneyCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', PlainMoney
     withdraw: {
       ownWalletEmail: { label: 'Kwenye pochi unayomiliki', note: 'Bandika anwani yake, kisha chagua mtandao.' },
       ownWalletConnected: { label: 'Kwenye pochi yako iliyounganishwa', note: 'Kwenye mtandao unaochagua. Unathibitisha kwenye pochi yako.' },
-      someone: { label: 'Kwa mtu kwenye Karwan', note: 'Lipa tagi kama @ada. Papo hapo, bila ada.' },
+      someone: { label: 'Kwa mtu kwenye Karwan', note: "Tuma kwa tagi ya Karwan kama @ada. Kagua maelezo kabla ya kuthibitisha." },
       bank: { label: 'Kwenye akaunti ya benki', note: 'Bado haipatikani.' },
     },
     soon: 'Inakuja hivi karibuni',

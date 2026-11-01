@@ -176,7 +176,7 @@ const en: SignupCopy = {
     signUp: 'Sign up',
     browsePrompt: 'Just looking around?',
     trustNoMoney: 'Signing in never moves money',
-    trustEscrow: 'Payments held in escrow until you approve',
+    trustEscrow: "Payment is held in escrow. Review the delivery, release and refund terms before paying.",
     browse: 'Browse the market first',
   },
   signUp: {
@@ -324,7 +324,7 @@ const ar: SignupCopy = {
     signUp: 'أنشئ حسابًا',
     browsePrompt: 'تتصفح فقط؟',
     trustNoMoney: 'تسجيل الدخول لا يحرّك أي مال',
-    trustEscrow: 'المدفوعات محفوظة في الضمان حتى توافق',
+    trustEscrow: "يُحفظ المبلغ في الضمان. راجع شروط التسليم والصرف والاسترداد قبل الدفع.",
     browse: 'تصفح السوق أولًا',
   },
   signUp: {
@@ -472,7 +472,7 @@ const fr: SignupCopy = {
     signUp: 'S’inscrire',
     browsePrompt: 'Vous jetez juste un œil ?',
     trustNoMoney: 'Se connecter ne déplace jamais d’argent',
-    trustEscrow: 'Les paiements restent sous séquestre jusqu’à votre accord',
+    trustEscrow: "Le paiement est sous séquestre. Vérifiez les conditions de livraison, de versement et de remboursement avant de payer.",
     browse: 'Parcourir le marché d’abord',
   },
   signUp: {
@@ -620,7 +620,7 @@ const hi: SignupCopy = {
     signUp: 'साइन अप करें',
     browsePrompt: 'बस देख रहे हैं?',
     trustNoMoney: 'साइन इन करने से कभी पैसा नहीं हिलता',
-    trustEscrow: 'आपकी मंज़ूरी तक भुगतान एस्क्रो में रहते हैं',
+    trustEscrow: "भुगतान एस्क्रो में रखा जाता है। भुगतान से पहले डिलीवरी, भुगतान जारी करने और वापसी की शर्तें पढ़ें।",
     browse: 'पहले बाज़ार देखें',
   },
   signUp: {
@@ -768,7 +768,7 @@ const sw: SignupCopy = {
     signUp: 'Jisajili',
     browsePrompt: 'Unaangalia tu?',
     trustNoMoney: 'Kuingia hakusogezi pesa kamwe',
-    trustEscrow: 'Malipo yanashikiliwa kwenye escrow hadi ukubali',
+    trustEscrow: "Malipo yanashikiliwa kwenye escrow. Kagua masharti ya uwasilishaji, malipo na kurejeshewa pesa kabla ya kulipa.",
     browse: 'Tazama soko kwanza',
   },
   signUp: {

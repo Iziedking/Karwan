@@ -110,16 +110,19 @@ test('short of money: add it, it arrives, then one sheet and one payment', async
   await expect(page.getByText('120.00 USDC', { exact: true })).toBeVisible();
   await expect(page.getByText('0.60 USDC', { exact: true })).toBeVisible();
   await expect(page.getByText('120.60 USDC', { exact: true })).toBeVisible();
-  await expect(page.getByText(/If Ada does not deliver by 3 Nov 2026, you get it back/)).toBeVisible();
+  await expect(page.getByText(/the seller may claim payment when it ends/)).toBeVisible();
+  await expect(page.getByRole('link', { name: en.landingEditorial.rulesLink })).toHaveAttribute('href', '/docs/escrow');
   await noSideways(page);
+  await expect(page.locator('.karwan-splash-mark')).toHaveCount(0);
   await page.screenshot({ path: testInfo.outputPath('review-short.png'), fullPage: true });
 
   await page.getByRole('button', { name: t.addMoney }).click();
   await page.getByRole('button', { name: new RegExp(t.fromWallet) }).click();
   await expect(page.getByText(ME)).toBeVisible();
-  await expect(page.getByText(t.anyNetwork, { exact: true })).toBeVisible();
+  await expect(page.getByText(t.anyNetwork.replace('{network}', 'Base Sepolia'), { exact: true })).toBeVisible();
   await expect(page.getByText('Waiting for your 120.60 USDC')).toBeVisible();
   await noSideways(page);
+  await expect(page.locator('.karwan-splash-mark')).toHaveCount(0);
   await page.screenshot({ path: testInfo.outputPath('add-money.png'), fullPage: true });
 
   world.balances[ME.toLowerCase()] = 150;
@@ -138,6 +141,7 @@ test('short of money: add it, it arrives, then one sheet and one payment', async
   await expect(sheet.getByRole('button', { name: t.notNow })).toBeVisible();
   const axe = await new AxeBuilder({ page }).analyze();
   expect(axe.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')).toEqual([]);
+  await expect(page.locator('.karwan-splash-mark')).toHaveCount(0);
   await page.screenshot({ path: testInfo.outputPath('confirm.png') });
   await sheet.getByTestId('facts-confirm').click();
 
@@ -177,15 +181,19 @@ test('an offer that changed before Pay is not ordered', async ({ page }) => {
   expect(world.funds).toHaveLength(0);
 });
 
-test('Arabic in dark keeps the order inside the screen', async ({ page }) => {
-  await page.context().addCookies([{ name: 'karwan-locale', value: 'ar', domain: '127.0.0.1', path: '/' }]);
-  await page.addInitScript(() => localStorage.setItem('karwan-theme', 'dark'));
-  await serveOrder(page);
-  await page.goto('/order/lst_logo');
-  await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
-  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-  await noSideways(page);
-});
+for (const locale of ['en', 'fr', 'ar', 'hi', 'sw']) {
+  test(locale + ' in dark keeps the order inside the screen', async ({ page }, testInfo) => {
+    await page.context().addCookies([{ name: 'karwan-locale', value: locale, domain: '127.0.0.1', path: '/' }]);
+    await page.addInitScript(() => localStorage.setItem('karwan-theme', 'dark'));
+    await serveOrder(page);
+    await page.goto('/order/lst_logo');
+    await expect(page.locator('html')).toHaveAttribute('dir', locale === 'ar' ? 'rtl' : 'ltr');
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await noSideways(page);
+    await expect(page.locator('.karwan-splash-mark')).toHaveCount(0);
+  await page.screenshot({ path: testInfo.outputPath('review-' + locale + '-dark.png'), fullPage: true });
+  });
+}
 
 test('a goods offer someone already ordered sends your order to the seller, and nothing is paid', async ({ page }) => {
   const world = await serveOrder(page, {
@@ -201,4 +209,31 @@ test('a goods offer someone already ordered sends your order to the seller, and 
   expect(world.creates).toHaveLength(1);
   expect(world.agentFunds).toHaveLength(0);
   expect(world.funds).toHaveLength(0);
+});
+
+test('checkout shows only the network associated with its deposit address', async ({ page }) => {
+  await serveOrder(page);
+  const depositAddress = '0x9999999999999999999999999999999999999999';
+  await page.route(API + '/api/deposit/address?**', route => route.fulfill({ json: {
+    supported: true, chains: [{ key: 'arbSepolia', name: 'Arbitrum Sepolia', address: depositAddress }], solana: null,
+  } }));
+  await page.goto('/order/lst_logo');
+  await page.getByRole('button', { name: t.addMoney }).click();
+  await page.getByRole('button', { name: new RegExp(t.fromWallet) }).click();
+  await expect(page.getByText(depositAddress, { exact: true })).toBeVisible();
+  await expect(page.getByText(t.anyNetwork.replace('{network}', 'Arbitrum Sepolia'), { exact: true })).toBeVisible();
+  await expect(page.getByText(/Any network works/)).toHaveCount(0);
+});
+
+test('unavailable deposit instructions never offer an address or claim to watch a payment', async ({ page }) => {
+  await serveOrder(page);
+  await page.route(API + '/api/deposit/address?**', route => route.fulfill({ json: {
+    supported: false, chains: [], solana: null, reason: 'not_on_this_network',
+  } }));
+  await page.goto('/order/lst_logo');
+  await page.getByRole('button', { name: t.addMoney }).click();
+  await page.getByRole('button', { name: new RegExp(t.fromWallet) }).click();
+  await expect(page.getByText(en.deposit.unavailable, { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: t.copy, exact: true })).toHaveCount(0);
+  await expect(page.getByText('Waiting for your 120.60 USDC')).toHaveCount(0);
 });

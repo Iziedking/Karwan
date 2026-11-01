@@ -9,7 +9,7 @@ import { useDepositAddress } from '@/features/deposit/useDepositWatch';
 
 /// Add money for an order (Figma 06 and 07). The amount is what the order
 /// still needs. An email or passkey account sends it to its own Karwan address
-/// from any network; a wallet account moves it from that wallet. Bank and card
+/// on the displayed network; a wallet account moves it from that wallet. Bank and card
 /// stay hidden until they work.
 export function AddMoneyPanel({ owner, circle, buyerAgent, amount, amountLabel, onFunded }: {
   owner: string;
@@ -19,9 +19,12 @@ export function AddMoneyPanel({ owner, circle, buyerAgent, amount, amountLabel, 
   amountLabel: string;
   onFunded: () => void;
 }) {
-  const t = useTranslations().orderFlow;
+  const copy = useTranslations();
+  const t = copy.orderFlow;
   const [step, setStep] = useState<'how' | 'send'>('how');
-  const { supported, address } = useDepositAddress(circle ? owner : null);
+  const { supported, chains } = useDepositAddress(circle ? owner : null);
+  const deposit = supported ? chains[0] : null;
+  const address = deposit?.address ?? null;
   const [copied, setCopied] = useState(false);
 
   async function copyAddress() {
@@ -73,7 +76,9 @@ export function AddMoneyPanel({ owner, circle, buyerAgent, amount, amountLabel, 
   return (
     <section data-add-money className="rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5">
       <h2 className="text-[17px] font-semibold text-[var(--lp-dark)]">{fill(t.sendTitle, { amount: amountLabel })}</h2>
-      {supported === false ? null : (
+      {supported === false || (supported === true && !deposit) ? (
+        <p role="status" className="mt-4 text-[14px] text-[var(--lp-text-sub)]">{copy.deposit.unavailable}</p>
+      ) : (
         <>
           <p className="mt-4 text-[14px] font-medium text-[var(--lp-text-sub)]">{t.yourAddress}</p>
           {address ? (
@@ -94,13 +99,13 @@ export function AddMoneyPanel({ owner, circle, buyerAgent, amount, amountLabel, 
             <li className="flex gap-3"><span aria-hidden className="tabular-nums text-[var(--lp-text-sub)]">1</span>{t.stepWithdraw}</li>
             <li className="flex gap-3"><span aria-hidden className="tabular-nums text-[var(--lp-text-sub)]">2</span>{t.stepPaste}</li>
           </ol>
-          <p className="mt-4 text-[14px] text-[var(--lp-text-sub)]">{t.anyNetwork}</p>
+          <p className="mt-4 text-[14px] text-[var(--lp-text-sub)]">{deposit ? fill(t.anyNetwork, { network: deposit.name }) : null}</p>
         </>
       )}
-      <div className="mt-5 border-t border-[var(--lp-border-light)] pt-4">
+      {deposit ? <div className="mt-5 border-t border-[var(--lp-border-light)] pt-4">
         <Watching label={fill(t.waiting, { amount: amountLabel })} />
         <p className="mt-1 ps-[16px] text-[13px] text-[var(--lp-text-sub)]">{t.updates}</p>
-      </div>
+      </div> : null}
     </section>
   );
 }

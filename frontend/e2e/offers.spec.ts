@@ -204,7 +204,8 @@ test('buyer sees offers cheapest first and accepts through the confirm sheet', a
   await layoutIsSound(page);
   await page.getByRole('button', { name: /Accept 0x8888…8888 · 96 USDC/ }).click();
   const dialog = page.getByRole('dialog');
-  await expect(dialog).toContainText('held until you approve the work');
+  await expect(dialog).toContainText('held in escrow under the agreed release rules');
+  await expect(dialog).toContainText('the seller may claim payment when it ends');
   // The amount that leaves the wallet, fee included, is the loudest number.
   await expect(dialog).toContainText('96.72 USDC');
   await expect(dialog).toContainText('96 USDC offer plus the fee');

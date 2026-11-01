@@ -6624,7 +6624,7 @@ export const en: MessagesShape = {
   deposit: {
     tag: 'Deposit',
     addressLabel: 'Your address',
-    acceptsLabel: 'Deposit from any chain',
+    acceptsLabel: "Supported networks",
     copy: 'Copy address',
     copied: 'Copied',
     qrAlt: 'QR code of your deposit address',
@@ -6653,7 +6653,7 @@ export const en: MessagesShape = {
     },
     sectionTag: 'Deposit / withdraw',
     headlinePrefix: 'Move ',
-    description: 'Deposit USDC from any chain, or withdraw to any wallet. Powered by Circle. Settles in seconds.',
+    description: "Add or withdraw USDC using the networks available for your account. Review the route and details before confirming.",
     directions: {
       toArc: 'Deposit',
       fromArc: 'Withdraw',
@@ -8186,17 +8186,17 @@ export const en: MessagesShape = {
     direct: {
       tab: 'Direct',
       tag: 'Direct deposit',
-      title: 'One address, any chain',
-      blurb: 'Send USDC to this address from any chain you hold it on. It reaches Arc on its own and shows up as spendable.',
+      title: "Supported networks",
+      blurb: "Use the address and network shown on the deposit screen.",
     },
     gateway: {
       tab: 'Top up',
       tag: 'Top up from another chain',
       title: 'Add money from other networks',
-      blurb: "Keep USDC from any network in one unified balance. When your Arc balance runs low, pay from it in one approval, in seconds.",
+      blurb: "Add USDC from a supported network to your unified balance. Review the transfer before confirming.",
       tabOut: 'Withdraw',
       titleOut: "Withdraw to other networks",
-      blurbOut: "Send USDC from your unified balance to any network in one approval. It lands in seconds.",
+      blurbOut: "Send USDC from your unified balance to a supported network. Review the destination and transfer details first.",
     },
     cctp: {
       tab: 'Transfer',
@@ -8538,7 +8538,7 @@ export const en: MessagesShape = {
       tag: 'Add money',
       title: 'Deposit / Withdraw',
       protocol: 'CCTP',
-      blurb: 'Fund your wallet from any chain.',
+      blurb: "Add USDC from a supported network.",
       nudge: 'Best for a one off transfer. Your money goes straight from one chain to another.',
     },
     gateway: {
@@ -8874,7 +8874,7 @@ export const en: MessagesShape = {
       deliveryReviewLabel: 'Check this meets your request',
       deliveryReviewBody: 'The delivery check is not sure this fully matches your request. Open it and confirm before you release payment.',
       deliveryOkLabel: 'Reviewed, matches your request',
-      deliveryOkBody: 'The delivery check found that the evidence matches your request. USDC stays protected until you release it.',
+      deliveryOkBody: "The delivery check found that the evidence matches your request. Review the delivery before the review period ends.",
       deliveryUnknownLabel: 'Delivery check unavailable',
       deliveryUnknownBody: 'Karwan could not complete the delivery check. This is unknown, not a failure. Review the work yourself before releasing.',
       matchHeldLabel: 'Held for a look',

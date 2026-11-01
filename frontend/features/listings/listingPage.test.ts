@@ -29,7 +29,7 @@ test('how it works names the seller and follows the kind of offer', () => {
   assert.deepEqual(howItWorks('Ada', 'remote', t), [
     'You order and pay in. Karwan holds the money.',
     'Ada does the work and sends it to you.',
-    'You check it, then release the money to Ada.',
+    'Review delivery from Ada. Payment follows the agreed release rules.',
   ]);
   assert.equal(howItWorks('Tunde', 'goods', t)[1], 'Tunde sends it to you.');
   assert.equal(howItWorks('Musa', 'in_person', t)[1], 'Musa meets you to hand it over.');

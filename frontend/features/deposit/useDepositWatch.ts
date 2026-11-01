@@ -5,7 +5,7 @@ import { api } from '@/core/api';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
 
 /// The person's own deposit address, for an email or passkey account: USDC
-/// sent to it from any network lands in their Karwan balance.
+/// can be sent only on the networks returned with each address.
 export function useDepositAddress(owner: string | null) {
   const { data } = useQuery({
     queryKey: ['deposit', 'address', owner],

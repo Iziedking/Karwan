@@ -1340,7 +1340,7 @@ export const sw: Messages = {
   deposit: {
     tag: 'Amana',
     addressLabel: 'Anwani yako',
-    acceptsLabel: 'Weka kutoka mtandao wowote',
+    acceptsLabel: "Mitandao inayokubaliwa",
     copy: 'Nakili anwani',
     copied: 'Imenakiliwa',
     qrAlt: 'Msimbo QR wa anwani yako ya amana',
@@ -1369,7 +1369,7 @@ export const sw: Messages = {
     },
     sectionTag: 'Weka / toa',
     headlinePrefix: 'Hamisha ',
-    description: 'Weka USDC kutoka mnyororo wowote, au toa kwenda pochi yoyote. Inaendeshwa na Circle. Inakamilika kwa sekunde.',
+    description: "Weka au toa USDC kupitia mitandao inayopatikana kwa akaunti yako. Kagua njia na maelezo kabla ya kuthibitisha.",
     directions: {
       toArc: 'Weka',
       fromArc: 'Toa',
@@ -2883,17 +2883,17 @@ export const sw: Messages = {
     direct: {
       tab: 'Moja kwa moja',
       tag: 'Amana ya moja kwa moja',
-      title: 'Anwani moja, mtandao wowote',
-      blurb: 'Tuma USDC kwenye anwani hii kutoka mtandao wowote unaoshikilia. Zinafika Arc zenyewe na kuwa tayari kutumika.',
+      title: "Mitandao inayokubaliwa",
+      blurb: "Tumia anwani na mtandao ulioonyeshwa kwenye ukurasa wa kuweka pesa.",
     },
     gateway: {
       tab: 'Ongeza salio',
       tag: 'Ongeza salio kutoka mtandao mwingine',
       title: 'Ongeza pesa kutoka mitandao mingine',
-      blurb: "Weka USDC kutoka mtandao wowote kwenye salio moja lililounganishwa. Salio lako la Arc likipungua, lipa kutoka humo kwa idhini moja, kwa sekunde.",
+      blurb: "Weka USDC kutoka mtandao unaokubaliwa kwenye salio lako la pamoja. Kagua uhamisho kabla ya kuthibitisha.",
       tabOut: 'Toa',
       titleOut: "Toa kwenda mitandao mingine",
-      blurbOut: "Tuma USDC kutoka salio lako lililounganishwa kwenda mtandao wowote kwa idhini moja. Inafika kwa sekunde.",
+      blurbOut: "Tuma USDC kutoka salio lako la pamoja kwenda mtandao unaokubaliwa. Kagua kwanza unakopeleka na maelezo ya uhamisho.",
     },
     cctp: {
       tab: 'Uhamisho',
@@ -3223,7 +3223,7 @@ export const sw: Messages = {
       tag: 'Weka pesa',
       title: 'Weka / Toa',
       protocol: 'CCTP',
-      blurb: 'Weka pesa kwenye mkoba wako kutoka mnyororo wowote.',
+      blurb: "Weka USDC kutoka mtandao unaokubaliwa.",
       nudge: 'Bora kwa uhamisho wa mara moja. Pesa yako huenda moja kwa moja kutoka mnyororo mmoja hadi mwingine.',
     },
     gateway: {
@@ -3559,7 +3559,7 @@ export const sw: Messages = {
       deliveryReviewLabel: 'Hakikisha inakidhi ombi lako',
       deliveryReviewBody: 'Wakala wako alilinganisha uwasilishaji na ombi lako na hana uhakika unakidhi kikamilifu. Fungua na uthibitishe kabla ya kuachilia malipo.',
       deliveryOkLabel: 'Imekaguliwa, inakidhi ombi lako',
-      deliveryOkBody: 'Wakala wako wa usalama alikagua kiungo na kubaini uwasilishaji unakidhi ombi lako. Fedha hubaki kwenye escrow hadi uziachilie.',
+      deliveryOkBody: "Ukaguzi wa uwasilishaji umeona kuwa ushahidi unalingana na ombi lako. Kagua kilichowasilishwa kabla ya muda wa ukaguzi kuisha.",
       deliveryUnknownLabel: 'Ukaguzi wa uwasilishaji haupatikani',
       deliveryUnknownBody: 'Karwan haikuweza kukamilisha ukaguzi wa uwasilishaji. Hii ni hali isiyojulikana, si kushindwa. Kagua kazi mwenyewe kabla ya kutoa malipo.',
       matchHeldLabel: 'Imeshikiliwa kwa ukaguzi',

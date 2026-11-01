@@ -1343,7 +1343,7 @@ export const fr: Messages = {
   deposit: {
     tag: 'Dépôt',
     addressLabel: 'Votre adresse',
-    acceptsLabel: 'Déposez depuis n’importe quelle chaîne',
+    acceptsLabel: "Réseaux pris en charge",
     copy: "Copier l'adresse",
     copied: 'Copié',
     qrAlt: 'Code QR de votre adresse de dépôt',
@@ -1372,7 +1372,7 @@ export const fr: Messages = {
     },
     sectionTag: 'Dépôt / retrait',
     headlinePrefix: 'Déplacer ',
-    description: "Déposez de l'USDC depuis n'importe quelle chaîne, ou retirez vers n'importe quel portefeuille. Propulsé par Circle. Règlement en quelques secondes.",
+    description: "Ajoutez ou retirez des USDC via les réseaux disponibles pour votre compte. Vérifiez le trajet et les détails avant de confirmer.",
     directions: {
       toArc: 'Dépôt',
       fromArc: 'Retrait',
@@ -2886,17 +2886,17 @@ export const fr: Messages = {
     direct: {
       tab: 'Direct',
       tag: 'Dépôt direct',
-      title: 'Une adresse, toutes les chaînes',
-      blurb: "Envoyez des USDC à cette adresse depuis n'importe quelle chaîne. Ils rejoignent Arc tout seuls et deviennent disponibles.",
+      title: "Réseaux pris en charge",
+      blurb: "Utilisez l’adresse et le réseau indiqués sur l’écran de dépôt.",
     },
     gateway: {
       tab: 'Recharger',
       tag: 'Recharger depuis une autre chaîne',
       title: 'Ajouter de l’argent depuis d’autres réseaux',
-      blurb: "Gardez des USDC de n'importe quel réseau dans un solde unifié. Quand votre solde sur Arc baisse, payez avec lui en une validation, en quelques secondes.",
+      blurb: "Ajoutez des USDC depuis un réseau pris en charge à votre solde unifié. Vérifiez le transfert avant de confirmer.",
       tabOut: 'Retirer',
       titleOut: "Retirer vers d'autres réseaux",
-      blurbOut: "Envoyez des USDC de votre solde unifié vers n'importe quel réseau en une validation. Arrivée en quelques secondes.",
+      blurbOut: "Envoyez des USDC depuis votre solde unifié vers un réseau pris en charge. Vérifiez d’abord la destination et les détails du transfert.",
     },
     cctp: {
       tab: 'Transfert',
@@ -3226,7 +3226,7 @@ export const fr: Messages = {
       tag: 'Dépôt',
       title: 'Déposer / Retirer',
       protocol: 'CCTP',
-      blurb: 'Alimentez votre portefeuille depuis n\'importe quelle chaîne.',
+      blurb: "Ajoutez des USDC depuis un réseau pris en charge.",
       nudge: 'Idéal pour un transfert ponctuel. Votre argent passe directement d’une chaîne à une autre.',
     },
     gateway: {
@@ -3562,7 +3562,7 @@ export const fr: Messages = {
       deliveryReviewLabel: 'Vérifiez que cela répond à votre demande',
       deliveryReviewBody: 'Votre agent a comparé la livraison à votre demande et n’est pas sûr qu’elle corresponde entièrement. Ouvrez-la et confirmez avant de libérer les fonds.',
       deliveryOkLabel: 'Vérifié, correspond à votre demande',
-      deliveryOkBody: 'Votre agent de sécurité a vérifié le lien et constaté que la livraison correspond à votre demande. Les fonds restent sous séquestre jusqu’à ce que vous les libériez.',
+      deliveryOkBody: "La vérification indique que les justificatifs correspondent à votre demande. Vérifiez la livraison avant la fin du délai de vérification.",
       deliveryUnknownLabel: 'Vérification de livraison indisponible',
       deliveryUnknownBody: 'Karwan n’a pas pu terminer la vérification de livraison. Le résultat est inconnu, pas négatif. Examinez le travail avant de libérer les fonds.',
       matchHeldLabel: 'Mis en attente pour vérification',
