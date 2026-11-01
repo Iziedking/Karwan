@@ -388,7 +388,7 @@ test('the buyer answers an ask to release with a reason', async ({ page }) => {
 test('a payout that needs another look is checked again from the deal, before any new release', async ({ page }) => {
   await serveDeal(page, deliveredDeal, BUYER);
   const reference = 'movement-payout-1';
-  await page.route(`${API}/api/deals/direct/${JOB}/movements`, (route) => route.fulfill({ json: { movements: [{
+  await page.route(new RegExp(`/api/deals/direct/${JOB}/movements(\\?|$)`), (route) => route.fulfill({ json: { movements: [{
     reference, kind: 'milestone_payout', state: 'needs_attention', currency: 'USDC', amountUsdc: '600.000000', summary: 'Payout',
     nextActor: 'karwan', createdAt: 1, updatedAt: 1, legs: [],
   }] } }));
