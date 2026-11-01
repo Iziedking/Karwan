@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { PHASE_PRODUCTION_BUILD } from 'next/constants.js';
 import { MARKET_REDIRECTS } from './shared/utils/marketRedirects.mjs';
 
@@ -39,6 +40,18 @@ const nextConfig = {
   // build lint would read eslint-disable comments for rules this config does
   // not load and fail the deploy on them.
   eslint: { ignoreDuringBuilds: true },
+  // Each language bundle keeps only its own language from the feature copy
+  // files, which hold all five side by side (shared/i18n/localeLoader.cjs).
+  webpack(config, { dev }) {
+    if (!dev) {
+      config.module.rules.unshift({
+        test: /[\\/]shared[\\/]i18n[\\/]messages[\\/][^\\/]+\.ts$/,
+        enforce: 'pre',
+        use: [{ loader: fileURLToPath(new URL('./shared/i18n/localeLoader.cjs', import.meta.url)) }],
+      });
+    }
+    return config;
+  },
   async redirects() {
     return MARKET_REDIRECTS;
   },
