@@ -290,21 +290,21 @@ test('a rating link opens the rating on a settled deal', async ({ page }) => {
   await expect(page.locator('#rate').getByRole('radio')).toHaveCount(5);
 });
 
-test('on desktop a confirm opens as a full-height drawer on the end side, and scrolls on a short window', async ({ page, context }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop', 'the drawer is the desktop shape');
+test('on desktop a confirm opens as a card on the end side, only as tall as what it asks, and scrolls on a short window', async ({ page, context }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'the side card is the desktop shape');
   await serveDeal(page, { ...deliveredDeal, counterpartyTrust: null });
   await page.goto(`/deals/${JOB}`);
   await page.getByRole('button', { name: 'Release 600 USDC' }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
   await page.waitForTimeout(400);
-  // The page keeps a scrollbar gutter (scrollbar-gutter: stable), so the edge is
-  // the overlay's, which stops at most a gutter short of the window.
   const overlay = (await page.locator('[role="presentation"]').filter({ has: dialog }).boundingBox())!;
   const box = (await dialog.boundingBox())!;
-  expect(Math.round(box.x + box.width)).toBe(Math.round(overlay.x + overlay.width));
-  expect(Math.round(box.height)).toBe(Math.round(overlay.height));
-  expect(overlay.x + overlay.width).toBeGreaterThanOrEqual(page.viewportSize()!.width - 16);
+  expect(Math.round(overlay.x + overlay.width - (box.x + box.width))).toBe(16);
+  expect(box.y).toBeGreaterThanOrEqual(overlay.y + 16);
+  // No empty space under the last button: the card ends at its own padding.
+  const lastButton = (await dialog.getByRole('button').last().boundingBox())!;
+  expect(box.y + box.height - (lastButton.y + lastButton.height)).toBeLessThanOrEqual(32);
 
   await page.setViewportSize({ width: 1440, height: 700 });
   const last = dialog.getByRole('button').last();
@@ -317,7 +317,7 @@ test('on desktop a confirm opens as a full-height drawer on the end side, and sc
   await page.locator('[data-steps-track]').waitFor();
   await page.getByRole('button', { name: /600/ }).first().click();
   await page.waitForTimeout(400);
-  expect(Math.round((await page.getByRole('dialog').boundingBox())!.x)).toBe(0);
+  expect(Math.round((await page.getByRole('dialog').boundingBox())!.x)).toBe(16);
 });
 
 const dp = en.dealPage;
