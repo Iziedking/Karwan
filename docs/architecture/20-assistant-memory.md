@@ -66,6 +66,7 @@ The writer also replaces notes that a newer one makes stale.
 
 - It does not remember other people's messages to you. Direct messages keep their own privacy rules.
 - It does not use memory as proof of anything: balances, deals and money always come from a fresh read.
+- A step the assistant just took is its own proof: a reply about a payment link it made, a message it sent or a setting it saved is answered from that result, and the turn is never run again to check it, so nothing happens twice (fixed 1 Nov 2026 after a payment request made two links).
 - It does not share notes with anyone, including the other person in a deal.
 
 ## Status

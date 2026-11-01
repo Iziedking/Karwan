@@ -24,9 +24,9 @@ const subjects: Array<[RegExp, string[]]> = [
   [/\b(?:deals?|escrow)\b/i, ['get_deal_status', 'list_my_deals', 'start_protected_deal', 'list_people_i_traded_with']],
   [/\b(?:traded|bought|worked|dealt)\s+with\b|\b(?:buy|order)\s+again\b|\bsame\s+(?:seller|person|supplier)\b/i, ['list_people_i_traded_with', 'list_my_deals']],
   [/\b(?:delivery|refund|reclaim|world|cre)\b/i, ['get_deal_status']],
-  [/\b(?:offers?|(?<!payment )requests?(?!\s+(?:money|payment|usdc|\d))|matches|matching|bids?)\b/i, ['get_my_market_activity', 'whats_pending', 'search_market']],
+  [/\b(?:offers?|(?<!payment )requests?(?!\s+(?:an?\s+)?(?:money|payment|amount|usdc|\d))|matches|matching|bids?)\b/i, ['get_my_market_activity', 'whats_pending', 'search_market']],
   [/\b(?:sellers?|suppliers?|freelancers?|listings?)\b/i, ['search_market', 'get_my_market_activity']],
-  [/\b(?:pay(?:ment)?\s*links?|invoice\s+link|payment\s+requests?|request\s+(?:money|payment|usdc|\d)|(?:got|been|get)\s+paid)\b/i, ['create_payment_link', 'list_my_payment_links', 'cancel_payment_link']],
+  [/\b(?:pay(?:ment)?\s*links?|invoice\s+link|payment\s+requests?|request\s+(?:an?\s+)?(?:money|payment|amount|usdc|\d)|(?:got|been|get)\s+paid)\b/i, ['create_payment_link', 'list_my_payment_links', 'cancel_payment_link']],
   [/\b(?:deposit|add money|top[ -]?up)\b/i, ['get_my_deposit_addresses', 'check_top_up_sources', 'list_bridge_sources', 'get_my_balance']],
   [/(?:\bsend\b|\bpay\s+@|(?:^|\s)@[a-z][a-z0-9_]{2,19}\b)/i, ['propose_send_to_tag', 'find_karwan_tag', 'get_my_balance', 'start_protected_deal']],
   [/\b(?:(?<!request )money|funds|paid|landed|arrived?|received?)\b/i, ['get_my_balance', 'recall_activity', 'list_my_payment_links', 'propose_send_to_tag']],
@@ -36,6 +36,17 @@ const subjects: Array<[RegExp, string[]]> = [
   [/\b(?:set ?up my agents?|change my (?:price|agent|offer|budget)|stop making offers|ask me first)\b/i, ['set_up_my_agents', 'get_my_profile']],
   [/\b(?:i (?:also )?(?:sell|rent|ship|deliver)|refundable deposits?|rental deposits?|milestones?|in stages|how i deal|ways? (?:i|to) (?:deal|sell|buy))\b/i, ['set_way_i_deal', 'get_my_profile']],
 ];
+
+/// Tools that change something the moment they run, with no card to confirm.
+/// A successful one is the evidence for what the reply says it did, and running
+/// the turn again would do it twice.
+const actingTools = new Set([
+  'create_payment_link', 'cancel_payment_link', 'add_my_link', 'answer_delivery',
+  'ask_past_client_to_confirm', 'message_about_early_payment', 'message_person', 'message_in_deal',
+  'rate_deal', 'set_chat_alerts', 'set_location', 'set_up_my_agents', 'set_up_record',
+  'set_way_i_deal', 'share_my_passport', 'stop_passport_share', 'submit_business_registration',
+  'remember_this', 'forget_memory', 'dismiss_learned_suggestion',
+]);
 
 function successful(output: unknown): boolean {
   if (!output || typeof output !== 'object' || Array.isArray(output)) return false;
@@ -67,5 +78,8 @@ export function assessGrounding(messages: Message[], steps: readonly Step[]) {
   // How many account topics this question touches. Zero means there is no
   // account claim to check, so nothing has to be held back.
   const touched = subjects.filter(([pattern]) => pattern.test(question)).length + dealIds.length;
-  return { grounded: reads.length > 0 && missing.length === 0, tools: [...used], missing, subjects: touched };
+  const acted = [...new Set(steps.flatMap((s) => s.toolResults ?? [])
+    .filter((r) => actingTools.has(r.toolName) && successful(r.output))
+    .map((r) => r.toolName))];
+  return { grounded: reads.length > 0 && missing.length === 0, tools: [...used], missing, subjects: touched, acted };
 }

@@ -6,7 +6,8 @@
 import { logger } from '../logger.js';
 import type { AssistantAction } from './actions.js';
 import { assistantAgentEnabled, runAssistantAgent, type AssistantChatMessage } from './agent.js';
-import { mayAnswer, proposalReply, requiresLiveAccountState, staticFallbackMessages } from './safety.js';
+import { proposalReply, requiresLiveAccountState, staticFallbackMessages } from './safety.js';
+import { replyStands, retryWithRead, type TryOutcome } from './turnRules.js';
 import { getMemory, type AssistantMemory } from '../db/assistantMemory.js';
 import { liveMemoryWriterDeps, writeMemoryNotes } from './memoryWriter.js';
 import { noteRequestCards } from './requestLinks.js';
@@ -51,14 +52,16 @@ export async function runAssistantTurn(
         viewingDeal: input.viewingDeal,
         forceRead,
       });
-      let { text, actions, grounded, subjects } = await ask(false);
+      let { text, actions, grounded, subjects, acted } = await ask(false);
+      const outcome = (): TryOutcome => ({
+        text, hasActions: actions.length > 0, proposal: !!proposalReply(actions), acted: acted.length, needsLiveState, grounded, subjects,
+      });
       // A reply that states account facts without reading them gets one more
       // try that must read first. A person is called only if that fails too.
-      const unread = text && !proposalReply(actions) && !mayAnswer({ needsLiveState, grounded, subjects, reply: text });
-      const silent = !text && !actions.length && needsLiveState;
-      if (unread || silent) {
+      // A try that already changed something is answered as it is.
+      if (retryWithRead(outcome())) {
         logger.info('assistant: unread account claim, retrying with a required read');
-        ({ text, actions, grounded, subjects } = await ask(true));
+        ({ text, actions, grounded, subjects, acted } = await ask(true));
       }
       // Notes are written after the reply goes out, never holding it up.
       const remember = (reply: string) => {
@@ -79,7 +82,7 @@ export async function runAssistantTurn(
       // Never let a tool-less model answer a stateful prompt. The only safe
       // response when the account read model was not consulted is an honest
       // retry message, not an optimistic status.
-      if (text && mayAnswer({ needsLiveState, grounded, subjects, reply: text })) {
+      if (replyStands(outcome())) {
         remember(text);
         return { ok: true, reply: text, actions };
       }

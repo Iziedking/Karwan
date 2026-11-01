@@ -2805,7 +2805,7 @@ export async function runAssistantAgent(input: {
   /// A second try after a reply stated account facts without reading them:
   /// the first step must call a tool, so the answer rests on a fresh read.
   forceRead?: boolean;
-}): Promise<{ text: string; actions: AssistantAction[]; grounded: boolean; subjects: number }> {
+}): Promise<{ text: string; actions: AssistantAction[]; grounded: boolean; subjects: number; acted: string[] }> {
   const model = assistantAgentModel;
   if (!model) throw new Error('assistant agent model unavailable');
 
@@ -2833,8 +2833,8 @@ export async function runAssistantAgent(input: {
 
   // Tool failures, public facts and proposals are not private account evidence.
   // Coverage checks are a guard, not a guarantee of semantic model correctness.
-  const { grounded, subjects } = assessGrounding(input.messages, result.steps ?? []);
-  return { text: result.text.trim(), actions, grounded, subjects };
+  const { grounded, subjects, acted } = assessGrounding(input.messages, result.steps ?? []);
+  return { text: result.text.trim(), actions, grounded, subjects, acted };
 }
 
 /// A 0x id is a deal only once escrow is funded. Before that the same id is a
