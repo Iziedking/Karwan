@@ -4,7 +4,9 @@
 /// and the highest was a cap: a request above it was skipped. Prices are a
 /// starting point now: a way carries the lowest price the person takes and
 /// their usual price, and there is no highest. A saved range becomes lowest =
-/// its low end and usual = its midpoint; one price is both. The older seller
+/// its low end and usual = its midpoint; one price is both. The usual price is
+/// marked as carried over, so it is shown but the agent opens from the budget
+/// until the person gives one (view 41, decision 14). The older seller
 /// settings follow the ways, as they do on every save.
 ///
 /// Nothing is guessed beyond that rule, and running it twice changes nothing:

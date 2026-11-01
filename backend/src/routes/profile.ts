@@ -32,7 +32,7 @@ import { durableEphemeralMap } from '../db/ephemeral.js';
 import { rateLimit } from '../middleware/rateLimit.js';
 import { checkOtpAttempt, generateOtpCode, hashOtpCode, OTP_TTL_MS } from '../auth/otp.js';
 import { isValidProfileImage } from './profileImage.js';
-import { reconcileWays } from '../agents/ways.js';
+import { reconcileWays, usualGivenOnSave } from '../agents/ways.js';
 
 const USDC_DECIMALS = 6;
 
@@ -242,7 +242,7 @@ profileRoutes.post('/', async (c) => {
   // Extract canonical match keywords from the seller profile (skills+bio) so
   // future buyer briefs can be filtered/ranked against this seller. Fails open:
   // an empty keywords array on LLM error still saves the profile.
-  const sellerWithKeywords: (typeof body.seller & { keywords: string[] }) | undefined =
+  const sellerWithKeywords: (typeof body.seller & { keywords: string[]; usualSet: boolean }) | undefined =
     body.seller
       ? {
           ...body.seller,
@@ -250,6 +250,7 @@ profileRoutes.post('/', async (c) => {
             [body.seller.skills.join(', '), body.seller.bio].filter(Boolean).join('. '),
             `seller-profile:${body.address}`,
           ),
+          usualSet: usualGivenOnSave(existing?.seller, body.seller),
         }
       : undefined;
   if (sellerWithKeywords) {

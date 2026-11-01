@@ -31,13 +31,15 @@ test('a saved range becomes lowest and usual; one price is both; buying ways are
   assert.equal(plan.length, 1);
   assert.deepEqual(plan[0]!.after, {
     sell: [
-      { shape: 'goods', what: 'Wigs', priceMin: 80, priceUsual: 190, shipsTo: 'Nigeria', arriveDaysMin: 2, arriveDaysMax: 5 },
-      { shape: 'one_time', priceMin: 25, priceUsual: 25, daysMin: 1, daysMax: 3 },
+      { shape: 'goods', what: 'Wigs', priceMin: 80, priceUsual: 190, usualGuessed: true, shipsTo: 'Nigeria', arriveDaysMin: 2, arriveDaysMax: 5 },
+      { shape: 'one_time', priceMin: 25, priceUsual: 25, usualGuessed: true, daysMin: 1, daysMax: 3 },
     ],
     buy: [{ shape: 'one_time', maxPrice: 200, needDays: 7 }],
   });
   assert.equal(plan[0]!.seller?.minBudgetUsdc, 25);
   assert.equal(plan[0]!.seller?.maxBudgetUsdc, 190);
+  // The midpoint is shown, never the opening (view 41, decision 14).
+  assert.equal(plan[0]!.seller?.usualSet, false);
 });
 
 test('running it again changes nothing, and profiles without ways are left out', () => {

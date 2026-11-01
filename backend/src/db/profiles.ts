@@ -193,6 +193,10 @@ export interface UserProfile {
     /** Canonical match tags derived from skills+bio on save. Empty if extraction
      *  failed. Seller agent compares these to brief keywords to gate bidding. */
     keywords?: string[];
+    /// The person gave maxBudgetUsdc as their usual price (setup, the Edit
+    /// profile form, saved ways). Without it the number is an old range's top
+    /// and the agent opens from the budget (view 41, decision 14).
+    usualSet?: boolean;
   };
   buyer?: {
     maxBudgetUsdc: number;

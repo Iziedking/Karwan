@@ -4,7 +4,7 @@ import type { BriefResult, ProfilePatch } from '../agents/agentBrief.js';
 import type { BriefAnswers } from '../agents/agentBriefLines.js';
 import { firstPost } from '../agents/firstPost.js';
 import type { UserLocale, UserProfile } from '../db/profiles.js';
-import { legacyFromWays, upgradeWays, waysSchema, wayLines } from '../agents/ways.js';
+import { legacyFromWays, upgradeWays, waysSchema, wayLines, withoutGuess } from '../agents/ways.js';
 import type { Suggestion } from '../agents/learned.js';
 
 /// The setup conversation after activation (view 19). The answers are read on
@@ -103,7 +103,8 @@ export function createSetupRoutes(deps: SetupRouteDeps): Hono {
     if (!allowed(address)) return c.json({ error: 'too many tries, wait a few minutes' }, 429);
     const current = await deps.current(address);
     if (!current) return c.json({ error: 'profile not found' }, 404);
-    const { ways } = parsed.data;
+    // The person saw and saved these prices, so each usual price is theirs.
+    const ways = { ...parsed.data.ways, sell: parsed.data.ways.sell.map(withoutGuess) };
     const { seller, buyer } = legacyFromWays(ways, current);
     const patch: ProfilePatch = {
       agentWays: ways,

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { UserProfile } from '../db/profiles.js';
-import { fittingWay, legacyFromWays, LIVE_SHAPES, reconcileWays, sellerForRequest, sellWaySchema, timeOffer, upgradeWays, usualOf, waysOf, withWay, waysSchema, wayLines, withWayLimits, type AgentWays } from './ways.js';
+import { usualGivenOnSave, fittingWay, legacyFromWays, LIVE_SHAPES, reconcileWays, sellerForRequest, sellWaySchema, timeOffer, upgradeWays, usualOf, waysOf, withWay, waysSchema, wayLines, withWayLimits, type AgentWays } from './ways.js';
 
 /// The ways a person deals (view 26): one per escrow shape, in plain answers,
 /// read by the selling agent to match and by the account to stay in step.
@@ -53,8 +53,8 @@ test('ways saved with a range become lowest and usual, once', () => {
   };
   const upgraded = upgradeWays(old);
   assert.deepEqual(upgraded.sell, [
-    { shape: 'one_time', priceMin: 20, priceUsual: 30, daysMin: 1, daysMax: 3 },
-    { shape: 'goods', what: 'Wigs', priceMin: 80, priceUsual: 80, shipsTo: 'Lagos', arriveDaysMin: 2, arriveDaysMax: 5 },
+    { shape: 'one_time', priceMin: 20, priceUsual: 30, usualGuessed: true, daysMin: 1, daysMax: 3 },
+    { shape: 'goods', what: 'Wigs', priceMin: 80, priceUsual: 80, usualGuessed: true, shipsTo: 'Lagos', arriveDaysMin: 2, arriveDaysMax: 5 },
     { shape: 'deposit', what: 'Camera', deposit: 200, periodDays: 7 },
   ]);
   assert.deepEqual(upgraded.buy, old.buy);
@@ -85,7 +85,10 @@ test('a goods way can be priced per item, and says so', () => {
 
 test('an account that never saved ways reads them from its settings', () => {
   const read = waysOf(legacy);
-  assert.deepEqual(read.sell, [{ shape: 'one_time', priceMin: 20, priceUsual: 30, daysMin: 1, daysMax: 3 }]);
+  assert.deepEqual(read.sell, [{ shape: 'one_time', priceMin: 20, priceUsual: 30, usualGuessed: true, daysMin: 1, daysMax: 3 }]);
+  // Settings the person priced themselves give their usual price as it is.
+  const priced = waysOf({ ...legacy, seller: { ...legacy.seller!, usualSet: true } } as UserProfile);
+  assert.deepEqual(priced.sell, [{ shape: 'one_time', priceMin: 20, priceUsual: 40, daysMin: 1, daysMax: 3 }]);
   assert.deepEqual(read.buy, [{ shape: 'milestones', maxPrice: 300, needDays: 14, pay: 'stages' }]);
   assert.equal(read.saved, false);
   assert.equal(waysOf({ ...legacy, agentWays: ways } as UserProfile).saved, true);
@@ -132,6 +135,26 @@ test('the Edit profile form and saved ways never differ', () => {
   assert.deepEqual(next.sell[1], ways.sell[1]);
   assert.deepEqual(next.buy[0], { shape: 'milestones', maxPrice: 300, needDays: 14, pay: 'stages' });
   assert.deepEqual(reconcileWays(ways, undefined, legacy.buyer).sell, []);
+  // The form asks for the usual price, so a carried-over one becomes theirs.
+  const carried: AgentWays = { sell: [{ shape: 'one_time', priceMin: 20, priceUsual: 30, usualGuessed: true, daysMin: 1, daysMax: 3 }], buy: [] };
+  assert.deepEqual(reconcileWays(carried, { ...seller, usualSet: true }, undefined).sell[0], { shape: 'one_time', priceMin: 30, priceUsual: 60, daysMin: 2, daysMax: 4 });
+  // A save that gave no price (a role switch) leaves it carried over.
+  assert.equal((reconcileWays(carried, seller, undefined).sell[0] as { usualGuessed?: boolean }).usualGuessed, true);
+});
+
+test('only a usual price the person gave reaches the agent (view 41, decision 14)', () => {
+  const base = { minBudgetUsdc: 1, maxBudgetUsdc: 1, minDeadlineDays: 1, maxDeadlineDays: 1 };
+  const carried = withWayLimits(base, { shape: 'one_time', priceMin: 10, priceUsual: 10005, usualGuessed: true, daysMin: 1, daysMax: 3 });
+  assert.equal(carried.usualPriceUsdc, undefined);
+  assert.equal(carried.minBudgetUsdc, 10);
+  const given = withWayLimits(base, { shape: 'one_time', priceMin: 10, priceUsual: 60, daysMin: 1, daysMax: 3 });
+  assert.equal(given.usualPriceUsdc, 60);
+});
+
+test('the older settings say whether the usual price was given', () => {
+  assert.equal(legacyFromWays(ways, legacy).seller?.usualSet, true);
+  const carried: AgentWays = { sell: [{ shape: 'one_time', priceMin: 20, priceUsual: 30, usualGuessed: true, daysMin: 1, daysMax: 3 }], buy: [] };
+  assert.equal(legacyFromWays(carried, legacy).seller?.usualSet, false);
 });
 
 test('a request of a shape the seller does not offer goes to the owner', () => {
@@ -175,4 +198,12 @@ test('time ways sell by the hour or by the month, and the agent offers inside th
   assert.equal(timeOffer([], { kind: 'hourly', mostUsdc: 15, maxHours: 10 }), null);
   // A time way never sets the price the agent bids on fixed-price work.
   assert.equal(fittingWay(parsed.sell, 'service'), null);
+});
+
+test('a profile save gives the usual price only when the price changed (view 41, decision 14)', () => {
+  const old = { minBudgetUsdc: 10, maxBudgetUsdc: 100000 };
+  assert.equal(usualGivenOnSave(old, old), false, 'a role switch or bio change carries the old range');
+  assert.equal(usualGivenOnSave(old, { minBudgetUsdc: 10, maxBudgetUsdc: 50 }), true);
+  assert.equal(usualGivenOnSave({ ...old, usualSet: true }, old), true);
+  assert.equal(usualGivenOnSave(undefined, old), true, 'a new seller filled the form in');
 });

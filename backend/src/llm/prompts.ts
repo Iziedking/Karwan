@@ -108,7 +108,8 @@ function daysFromNow(unix: number): number {
 export function buildBidEvaluationPrompt(job: JobContext, seller: SellerProfile): string {
   const daysToBuyerDeadline = Math.max(1, Math.ceil((job.deadlineUnix - Math.floor(Date.now() / 1000)) / DAY_SECONDS));
   const budgetN = Number(job.budgetUsdc);
-  const usual = seller.usualPriceUsdc ?? Math.max(seller.minBudgetUsdc, seller.maxBudgetUsdc);
+  // No usual price given: the opening comes from the budget (view 41, decision 14).
+  const usual = seller.usualPriceUsdc ?? budgetN;
   const quantity = job.quantity ? ` (quantity: ${job.quantity.count}${job.quantity.unit ? ` ${job.quantity.unit}` : ''})` : '';
   const briefLine = job.briefText
     ? `- Brief: ${job.briefText}${quantity}`

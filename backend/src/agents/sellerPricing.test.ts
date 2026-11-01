@@ -137,3 +137,17 @@ test('deadline calculation is pure and never returns less than one day', () => {
   assert.equal(sellerDaysToDeadline(200_000 + 3 * 86_400 + 10, 200_000), 3);
   assert.equal(sellerDaysToDeadline(200_000 - 1, 200_000), 1);
 });
+
+test('a seller who never gave a usual price opens from the budget, not from the middle of an old range (view 41, decision 14)', async () => {
+  const { toSellerProfile } = await import('./agent-registry.js');
+  const wallets = { userAddress: seller.userAddress, sellerAddress: seller.address, sellerWalletId: 'w' } as Parameters<typeof toSellerProfile>[0];
+  const ranges: Array<[number, number]> = [[10, 20_000], [10, 100_000], [10, 100_000_000_000]];
+  for (const [lo, hi] of ranges) {
+    const profile = { address: seller.userAddress, displayName: 'S', seller: { skills: ['design'], bio: '', minBudgetUsdc: lo, maxBudgetUsdc: hi, minDeadlineDays: 1, maxDeadlineDays: 30 } };
+    const ranged = toSellerProfile(wallets, profile as Parameters<typeof toSellerProfile>[1])!;
+    for (const heat of [0, 0.5, 1]) {
+      const opening = sellerOpeningBid(ranged, job, 'cold', heat, undefined, () => 1);
+      assert.ok(opening !== null && opening >= 80 && opening <= 150, `${lo}-${hi} heat ${heat}: ${opening}`);
+    }
+  }
+});

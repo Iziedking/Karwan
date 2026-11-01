@@ -19,6 +19,7 @@ test("a freelancer's answers become a selling agent", async () => {
   assert.equal(r.patch.seller?.bio, 'Logo and brand design');
   assert.equal(r.patch.seller?.minBudgetUsdc, 20, 'the low end is the lowest');
   assert.equal(r.patch.seller?.maxBudgetUsdc, 30, 'the midpoint is the usual, under the older name');
+  assert.equal(r.patch.seller?.usualSet, true, 'a price they gave sets the opening');
   assert.equal(r.patch.seller?.minDeadlineDays, 3);
   assert.equal(r.patch.seller?.maxDeadlineDays, 3);
   assert.equal(r.patch.agentPrefs?.findClients, true);
@@ -36,6 +37,7 @@ test('an unreadable price is asked once, then saved as not set and the agent ask
   assert.equal(second.patch.seller?.maxBudgetUsdc, 100000);
   assert.equal(second.patch.agentPrefs?.agentMode, 'ask');
   assert.equal(second.patch.agentPrefs?.sellerPriceSet, false);
+  assert.equal(second.patch.seller?.usualSet, false, 'the unset range never sets the opening');
 });
 
 test("a model failure keeps the person's own words as the tag", async () => {

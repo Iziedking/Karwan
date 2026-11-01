@@ -78,6 +78,7 @@ export async function readBrief(
       maxBudgetUsdc: usual,
       minDeadlineDays: days.minDays,
       maxDeadlineDays: days.maxDays,
+      usualSet: !!price,
     };
     prefs.sellerPriceSet = !!price;
     // How clients pay becomes the selling way the agent starts with (view 26).

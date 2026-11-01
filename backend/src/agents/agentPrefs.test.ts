@@ -33,6 +33,15 @@ test('the seller profile carries how much the agent may do on its own', () => {
   assert.ok(toSellerProfile(agents, profile({ findClients: false })));
 });
 
+test('a usual price reaches the agent only when the person gave it (view 41, decision 14)', () => {
+  const ranged = profile();
+  ranged.seller = { ...ranged.seller!, minBudgetUsdc: 10, maxBudgetUsdc: 20000 };
+  assert.equal(toSellerProfile(agents, ranged)?.usualPriceUsdc, undefined);
+  const given = profile();
+  given.seller = { ...given.seller!, usualSet: true };
+  assert.equal(toSellerProfile(agents, given)?.usualPriceUsdc, 40);
+});
+
 test('offers bids; ask me first suggests once per request, then stays quiet', () => {
   assert.equal(shouldSuggest('offers', false), 'bid');
   assert.equal(shouldSuggest('offers', true), 'bid');

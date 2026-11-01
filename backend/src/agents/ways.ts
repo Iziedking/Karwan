@@ -26,13 +26,18 @@ const words = (max: number) => z.string().trim().min(1).max(max);
 // bigger budget gets an offer opened from the usual price.
 /// Under noAskBelow the agent says no politely instead of asking (view 41,
 /// decision 3): off unless the person sets it, suggested after three no answers.
-const sellOneTime = z.object({ shape: z.literal('one_time'), priceMin: usdc, priceUsual: usdc, noAskBelow: usdc.optional(), daysMin: days, daysMax: days });
+/// usualGuessed marks a usual price the person never gave: the midpoint of an
+/// old range. It is shown, but the agent opens from the budget instead (view
+/// 41, decision 14). A save by the person clears it.
+const usualGuessed = z.literal(true).optional();
+const sellOneTime = z.object({ shape: z.literal('one_time'), priceMin: usdc, priceUsual: usdc, usualGuessed, noAskBelow: usdc.optional(), daysMin: days, daysMax: days });
 const sellMilestones = sellOneTime.extend({ shape: z.literal('milestones'), stages: z.number().int().min(2).max(5) });
 const sellGoods = z.object({
   shape: z.literal('goods'),
   what: words(120),
   priceMin: usdc,
   priceUsual: usdc,
+  usualGuessed,
   noAskBelow: usdc.optional(),
   /// True when the prices are for one item (view 41): a request that names a
   /// count is then compared per item. Missing means for the whole order.
@@ -88,7 +93,7 @@ function upgradeSellWay(w: unknown): unknown {
   const { priceMax, ...rest } = o;
   if (typeof rest.priceUsual === 'number') return rest;
   const hi = typeof priceMax === 'number' ? priceMax : o.priceMin;
-  return { ...rest, priceUsual: usualOf(o.priceMin, hi) };
+  return { ...rest, priceUsual: usualOf(o.priceMin, hi), usualGuessed: true };
 }
 
 /// Ways saved before the usual price: a range becomes lowest and usual, one
@@ -106,7 +111,9 @@ export function waysOf(profile: Pick<UserProfile, 'agentWays' | 'seller' | 'buye
   const s = profile.seller;
   const b = profile.buyer;
   const sell: SellWay[] = s
-    ? [{ shape: 'one_time', priceMin: s.minBudgetUsdc, priceUsual: usualOf(s.minBudgetUsdc, s.maxBudgetUsdc), daysMin: s.minDeadlineDays, daysMax: s.maxDeadlineDays }]
+    ? [s.usualSet
+        ? { shape: 'one_time', priceMin: s.minBudgetUsdc, priceUsual: Math.max(s.minBudgetUsdc, s.maxBudgetUsdc), daysMin: s.minDeadlineDays, daysMax: s.maxDeadlineDays }
+        : { shape: 'one_time', priceMin: s.minBudgetUsdc, priceUsual: usualOf(s.minBudgetUsdc, s.maxBudgetUsdc), usualGuessed: true, daysMin: s.minDeadlineDays, daysMax: s.maxDeadlineDays }]
     : [];
   const buy: BuyWay[] = b
     ? [
@@ -144,13 +151,13 @@ interface Limits {
 export function withWayLimits<T extends Limits>(seller: T, way: SellWay): T {
   switch (way.shape) {
     case 'goods':
-      return { ...seller, minBudgetUsdc: way.priceMin, maxBudgetUsdc: way.priceUsual, usualPriceUsdc: way.priceUsual, pricesPerItem: way.perItem === true, ...(way.noAskBelow !== undefined ? { noAskBelowUsdc: way.noAskBelow } : {}), minDeadlineDays: way.arriveDaysMin, maxDeadlineDays: way.arriveDaysMax };
+      return { ...seller, minBudgetUsdc: way.priceMin, maxBudgetUsdc: way.priceUsual, usualPriceUsdc: way.usualGuessed ? undefined : way.priceUsual, pricesPerItem: way.perItem === true, ...(way.noAskBelow !== undefined ? { noAskBelowUsdc: way.noAskBelow } : {}), minDeadlineDays: way.arriveDaysMin, maxDeadlineDays: way.arriveDaysMax };
     case 'deposit':
     case 'hourly':
     case 'monthly':
       return seller;
     default:
-      return { ...seller, minBudgetUsdc: way.priceMin, maxBudgetUsdc: way.priceUsual, usualPriceUsdc: way.priceUsual, ...(way.noAskBelow !== undefined ? { noAskBelowUsdc: way.noAskBelow } : {}), minDeadlineDays: way.daysMin, maxDeadlineDays: way.daysMax };
+      return { ...seller, minBudgetUsdc: way.priceMin, maxBudgetUsdc: way.priceUsual, usualPriceUsdc: way.usualGuessed ? undefined : way.priceUsual, ...(way.noAskBelow !== undefined ? { noAskBelowUsdc: way.noAskBelow } : {}), minDeadlineDays: way.daysMin, maxDeadlineDays: way.daysMax };
   }
 }
 
@@ -180,6 +187,7 @@ export function legacyFromWays(ways: AgentWays, current: Pick<UserProfile, 'sell
       maxBudgetUsdc: Math.max(...ranges.map((r) => r.hi)),
       minDeadlineDays: Math.min(...ranges.map((r) => r.dLo)),
       maxDeadlineDays: Math.max(...ranges.map((r) => r.dHi)),
+      usualSet: ways.sell.some((w) => 'priceUsual' in w && !('usualGuessed' in w && w.usualGuessed)),
     };
   }
   let buyer = current.buyer;
@@ -251,12 +259,30 @@ export function wayLines(ways: Pick<AgentWays, 'sell' | 'buy'>): string[] {
 /// the lowest and the usual. When an account has saved ways, its work way takes
 /// the form's price and time, and a side the form dropped (a role switched off)
 /// loses its ways, so the two never differ.
+/// Whether a save of the seller settings gives the usual price: the Edit
+/// profile form asks for it, so a changed price counts; a save that carries
+/// the stored numbers back (a role switch, a bio change) keeps what was there.
+export function usualGivenOnSave(
+  before: { minBudgetUsdc: number; maxBudgetUsdc: number; usualSet?: boolean } | undefined,
+  next: { minBudgetUsdc: number; maxBudgetUsdc: number },
+): boolean {
+  if (!before) return true;
+  return before.usualSet === true || before.minBudgetUsdc !== next.minBudgetUsdc || before.maxBudgetUsdc !== next.maxBudgetUsdc;
+}
+
+/// A way the person just saved: its usual price is theirs now.
+export function withoutGuess<W extends SellWay>(w: W): W {
+  if (!('usualGuessed' in w)) return w;
+  const { usualGuessed: _guess, ...rest } = w;
+  return rest as W;
+}
+
 export function reconcileWays(ways: AgentWays, seller: UserProfile['seller'], buyer: UserProfile['buyer']): AgentWays {
   const sell: SellWay[] = !seller
     ? []
     : ways.sell.map((w) =>
         w.shape === 'one_time' || w.shape === 'milestones'
-          ? { ...w, priceMin: seller.minBudgetUsdc, priceUsual: Math.max(seller.minBudgetUsdc, seller.maxBudgetUsdc), daysMin: seller.minDeadlineDays, daysMax: seller.maxDeadlineDays }
+          ? { ...(seller.usualSet ? withoutGuess(w) : w), priceMin: seller.minBudgetUsdc, priceUsual: Math.max(seller.minBudgetUsdc, seller.maxBudgetUsdc), daysMin: seller.minDeadlineDays, daysMax: seller.maxDeadlineDays }
           : w,
       );
   const buy: BuyWay[] = !buyer

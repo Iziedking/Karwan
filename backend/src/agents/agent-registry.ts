@@ -7,7 +7,7 @@ import {
 import { agentPrefsOf, getProfile, type UserProfile } from '../db/profiles.js';
 import type { BuyerProfile } from './buyer-profile.js';
 import type { SellerProfile } from './seller-profile.js';
-import { usualOf } from './ways.js';
+import { upgradeWays } from './ways.js';
 
 // Managed deals run on each user's own agents. A user joins the auction only if
 // they have activated (agent wallets) and filled the matching role profile.
@@ -60,15 +60,16 @@ export function toSellerProfile(agents: AgentWallets, profile: UserProfile): Sel
     bio: s.bio,
     minBudgetUsdc: s.minBudgetUsdc,
     maxBudgetUsdc: s.maxBudgetUsdc,
-    // A way that fits replaces this (sellerForRequest); an account with no ways
-    // reads its usual price from the range it set, as the ways upgrade does.
-    usualPriceUsdc: usualOf(s.minBudgetUsdc, s.maxBudgetUsdc),
+    // A way that fits replaces this (sellerForRequest). Without ways, the usual
+    // price counts only when the person gave it; otherwise the agent opens from
+    // the request's budget (view 41, decision 14).
+    ...(s.usualSet ? { usualPriceUsdc: Math.max(s.minBudgetUsdc, s.maxBudgetUsdc) } : {}),
     minDeadlineDays: s.minDeadlineDays,
     maxDeadlineDays: s.maxDeadlineDays,
     confidenceThreshold: DEFAULT_CONFIDENCE_THRESHOLD,
     keywords: s.keywords ?? [],
     agentMode: agentPrefsOf(profile).agentMode,
-    ...(profile.agentWays ? { ways: profile.agentWays.sell } : {}),
+    ...(profile.agentWays ? { ways: upgradeWays(profile.agentWays).sell } : {}),
     skillVerifications: profile.skillVerifications?.map(({ skillId, status, issuer, expiresAt }) => ({
       skillId,
       status,
