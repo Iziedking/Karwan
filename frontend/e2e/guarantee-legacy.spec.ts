@@ -141,7 +141,9 @@ test('Profile shows your record in words with your own counts, and what others s
   await expect(card.getByRole('link', { name: new RegExp(p.share) })).toHaveAttribute('href', `/credit-passport/${ME}#share`);
   await expect(card.getByRole('link', { name: new RegExp(p.publicView) })).toHaveAttribute('href', '/r/ada');
   await expect(card.getByRole('link', { name: en.dealGuarantee.profile.legacyContracts })).toHaveAttribute('href', '/legacy');
-  await expect(page.getByRole('link', { name: new RegExp(p.howAgentSells) })).toHaveAttribute('href', '/profile/ways');
+  // How your agent sells opens Your agent (view 45), and Where your record comes from has its own page.
+  await expect(page.getByRole('link', { name: new RegExp(p.howAgentSells) })).toHaveAttribute('href', '/profile/setup');
+  await expect(card.getByRole('link', { name: 'Where your record comes from' })).toHaveAttribute('href', '/profile/sources');
   await expect(page.getByRole('link', { name: en.profile.hub.editProfile })).toHaveAttribute('href', '/profile/edit');
   // Said elsewhere already, so not here.
   await expect(page.getByRole('link', { name: en.payLink.create.title })).toHaveCount(0);

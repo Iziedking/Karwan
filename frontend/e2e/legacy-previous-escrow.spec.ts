@@ -42,8 +42,9 @@ test('deals from before the new escrow are listed, open first, each opening its 
     deal(family, 'awaiting-delivery', 40, { escrowVersion: 'suite' }),
   ]);
   await page.goto('/legacy');
-  // The list shows after sign-in and the deal read both land.
-  await expect(page.getByRole('heading', { name: new RegExp(c.title) })).toBeVisible({ timeout: 15_000 });
+  // The list shows after sign-in and the deal read both land. The page title
+  // uses the same words, so the list is found by its own heading.
+  await expect(page.getByRole('heading', { name: c.title, level: 2 })).toBeVisible({ timeout: 15_000 });
   const links = page.getByRole('link', { name: c.open });
   await expect(links).toHaveCount(2);
   await expect(links.first()).toHaveAttribute('href', `/deals/${open}`);
