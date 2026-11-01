@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { motion } from 'motion/react';
+import { m } from 'motion/react';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import { ease } from '@/shared/motion/tokens';
@@ -27,7 +27,7 @@ export function StartBar({ part, fill = 0 }: { part: 0 | 1 | 2 | 3; fill?: numbe
         const width = i < part ? 1 : i === part ? Math.max(fill, 0.08) : 0;
         return (
           <span key={i} className="h-1 overflow-hidden rounded-full bg-[var(--line,var(--lp-border-light))]">
-            <motion.span
+            <m.span
               className={`block h-full rounded-full ${i < part ? 'bg-[var(--lp-accent)]' : 'bg-[var(--ink,var(--lp-dark))]'}`}
               initial={false}
               animate={{ width: `${Math.round(width * 100)}%` }}

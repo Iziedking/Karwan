@@ -16,19 +16,23 @@ const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : use
 /// and the explicit sign-in handoff, then hides when incoming data is ready.
 /// Routine client navigation stays visible and uses RouteStage instead.
 ///
-/// "Ready" = no React Query fetches in flight past a short floor (so it can't
-/// hide before the page's queries even start, and won't flicker), capped by a
-/// hard max so a slow on-chain read never hangs the splash — at the cap it
-/// lifts and the page's own skeleton takes over.
+/// "Ready" = nothing in flight that the page has no data for yet, past a short
+/// floor (so it can't hide before the page's queries even start, and won't
+/// flicker). Refreshing data saved from the last visit does not hold it: that
+/// page can already paint. A cap lifts it on a slow load and the page's own
+/// skeleton takes over; a cold entry waits less than a sign-in, which holds for
+/// the terms check.
 ///
 /// Landing routes never show it.
 const MIN_MS = 300; // floor: long enough for the page's queries to start, short enough not to be felt
-const MAX_MS = 5000; // cap: never hold longer than this, even on a slow page
+const ENTRY_MAX_MS = 1500; // cap on a cold entry: skeletons beat a logo past this
+const SIGN_IN_MAX_MS = 5000; // cap after sign-in, which waits for the terms check
 const STALL_MS = 12_000;
+const missingData = { predicate: (query: { state: { data: unknown } }) => query.state.data === undefined };
 
 export function GlobalLoadingSplash() {
   const pathname = usePathname();
-  const isFetching = useIsFetching();
+  const isFetching = useIsFetching(missingData);
   const held = useSyncExternalStore(subscribeSplashHold, getSplashHeld, () => false);
   const [active, setActive] = useState(() => !isLandingRoute(pathname));
   const [stalled, setStalled] = useState(false);
@@ -43,7 +47,7 @@ export function GlobalLoadingSplash() {
   // Raise the splash: cover the screen and arm the cap + stall timers. Shared by
   // the navigation trigger and the sign-in trigger. Timers live in a ref so a
   // re-arm (or unmount) can clear the previous ones.
-  const arm = useCallback(() => {
+  const arm = useCallback((maxMs: number) => {
     setActive(true);
     setStalled(false);
     setMounted(true);
@@ -51,7 +55,7 @@ export function GlobalLoadingSplash() {
     if (timersRef.current.cap) clearTimeout(timersRef.current.cap);
     if (timersRef.current.stall) clearTimeout(timersRef.current.stall);
     // A held splash outlives the cap: lifting would show the page being left.
-    timersRef.current.cap = setTimeout(() => { if (!getSplashHeld()) setActive(false); }, MAX_MS);
+    timersRef.current.cap = setTimeout(() => { if (!getSplashHeld()) setActive(false); }, maxMs);
     timersRef.current.stall = setTimeout(() => setStalled(true), STALL_MS);
   }, []);
 
@@ -94,7 +98,7 @@ export function GlobalLoadingSplash() {
     }
     const prev = prevPathRef.current;
     prevPathRef.current = pathname;
-    if (prev === null) arm();
+    if (prev === null) arm(ENTRY_MAX_MS);
   }, [pathname]);
 
   // Sign-in trigger (the ONE splash per sign-in): emitAuthChanged fires
@@ -105,7 +109,7 @@ export function GlobalLoadingSplash() {
   // first and paint terms before this one armed. Arming on the shared event fixes
   // that. The splash then holds via the data-settled effect until the terms-status
   // fetch resolves, and lifts to reveal the gate.
-  useEffect(() => subscribeSplashRequest(arm), [arm]);
+  useEffect(() => subscribeSplashRequest(() => arm(SIGN_IN_MAX_MS)), [arm]);
 
   // Hide as soon as the incoming page's data has settled (nothing fetching)
   // past the MIN floor. Re-arms automatically if a new fetch starts before the

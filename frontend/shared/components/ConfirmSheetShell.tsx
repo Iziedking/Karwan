@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, type ReactNode, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, m } from 'motion/react';
 import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import { dur, ease } from '@/shared/motion/tokens';
 
@@ -67,7 +67,7 @@ export function ConfirmSheetShell({ open, labelledBy, busy, onClose, initialFocu
     <AnimatePresence>
       {open ? (
         <div className="fixed inset-0 z-[80] md:flex md:items-center md:justify-end md:p-4 lg:items-stretch lg:p-0" role="presentation">
-          <motion.div
+          <m.div
             className="absolute inset-0 bg-black/40"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -75,7 +75,7 @@ export function ConfirmSheetShell({ open, labelledBy, busy, onClose, initialFocu
             transition={{ duration: dur.micro }}
             onClick={() => { if (!busy) onClose(); }}
           />
-          <motion.div
+          <m.div
             ref={panelRef}
             role="dialog"
             aria-modal="true"
@@ -87,7 +87,7 @@ export function ConfirmSheetShell({ open, labelledBy, busy, onClose, initialFocu
             transition={{ duration: reduce ? dur.micro : dur.sheet, ease: ease.out }}
           >
             {children}
-          </motion.div>
+          </m.div>
         </div>
       ) : null}
     </AnimatePresence>,

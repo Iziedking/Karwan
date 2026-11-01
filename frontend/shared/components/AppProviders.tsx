@@ -1,7 +1,7 @@
 'use client';
 import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { MotionConfig } from 'motion/react';
+import { LazyMotion, MotionConfig } from 'motion/react';
 import { WagmiProvider } from 'wagmi';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { RainbowKitProvider, lightTheme, darkTheme } from '@rainbow-me/rainbowkit';
@@ -24,7 +24,9 @@ import type { Locale } from '@/shared/i18n/locales';
 
 /// The Help panel is a launcher until it is opened, so its code (the chat
 /// thread, cards and live support) loads after the page instead of with it.
-const AssistantWidget = dynamic(() => import('@/shared/components/AssistantWidget').then((m) => m.AssistantWidget), { ssr: false });
+const AssistantWidget = dynamic(() => import('@/shared/components/AssistantWidget').then((mod) => mod.AssistantWidget), { ssr: false });
+
+const motionFeatures = () => import('@/shared/motion/features').then((mod) => mod.default);
 
 type Mode = 'light' | 'dark';
 
@@ -98,6 +100,7 @@ export function AppProviders({
   const inner = adminSurface ? children : customerRuntime;
 
   return (
+    <LazyMotion features={motionFeatures}>
     <MotionConfig reducedMotion="user">
     <LocaleProvider initialLocale={initialLocale}>
       <RouteTitle />
@@ -108,5 +111,6 @@ export function AppProviders({
       </WagmiProvider>
     </LocaleProvider>
     </MotionConfig>
+    </LazyMotion>
   );
 }

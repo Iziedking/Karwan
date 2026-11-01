@@ -1,5 +1,5 @@
 'use client';
-import { motion } from 'motion/react';
+import { m } from 'motion/react';
 import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -367,7 +367,7 @@ export function StickyTabStrip({
                 }}
               >
                 {isActive && (
-                  <motion.span
+                  <m.span
                     layoutId={LAYOUT_ID}
                     aria-hidden
                     className="absolute start-0 end-0 top-0 h-[2px]"
@@ -438,7 +438,7 @@ export function StickyTabStrip({
               : 'color-mix(in srgb, var(--lp-text-muted) 50%, transparent)',
           }}
         >
-          <motion.span
+          <m.span
             className="absolute inset-y-0"
             style={{ background: 'var(--accent)', width: `${100 / tabs.length}%` }}
             animate={{

@@ -3141,6 +3141,14 @@ export const api = {
       { method: 'POST', body: JSON.stringify({ caller }) },
     ),
   listings: () => json<{ listings: Listing[] }>('/api/listings'),
+  /// One page of the market's Buy side, narrowed and searched on the server.
+  marketOffers: (f: { q: string; category: string; scope: string; limit: number }) => {
+    const query = new URLSearchParams({ limit: String(f.limit) });
+    if (f.q.trim()) query.set('q', f.q.trim());
+    if (f.category !== 'all') query.set('category', f.category);
+    if (f.scope === 'business') query.set('scope', 'business');
+    return json<{ listings: Listing[]; total?: number }>(`/api/listings?${query}`);
+  },
   /// The open requests the signed-in seller fits (view 44, Market Sell).
   listingFits: (caller: string) => json<{ jobIds: string[] }>(`/api/listings/fits?caller=${encodeURIComponent(caller)}`),
   listingsForSeller: (address: string) =>

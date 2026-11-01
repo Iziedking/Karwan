@@ -10,7 +10,7 @@ import {
   type ReactNode,
   type RefObject,
 } from 'react';
-import { motion, useScroll, useTransform } from 'motion/react';
+import { m, useScroll, useTransform } from 'motion/react';
 import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import { cn } from '@/shared/utils/cn';
 import { dur, ease } from '@/shared/motion/tokens';
@@ -169,7 +169,7 @@ export function PanelContent({
   // is in frame at a time there.
   if (!isPanel) {
     return (
-      <motion.div
+      <m.div
         initial={reduce ? false : { opacity: 0, y: 18 }}
         whileInView={{ opacity: 1, y: 0 }}
         whileHover={hoverLift && !reduce ? { y: -2 } : undefined}
@@ -179,13 +179,13 @@ export function PanelContent({
         style={style}
       >
         {children}
-      </motion.div>
+      </m.div>
     );
   }
 
   const shown = entered || active;
   return (
-    <motion.div
+    <m.div
       initial={false}
       animate={
         reduce
@@ -201,7 +201,7 @@ export function PanelContent({
       style={style}
     >
       {children}
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -242,9 +242,9 @@ export function PanelMedia({
 
   return (
     <div ref={ref} className={cn('lp-panel-media', className)} aria-hidden="true">
-      <motion.div className="absolute inset-0" style={reduce || isPanel ? undefined : { y, scale, opacity }}>
+      <m.div className="absolute inset-0" style={reduce || isPanel ? undefined : { y, scale, opacity }}>
         {children}
-      </motion.div>
+      </m.div>
     </div>
   );
 }
@@ -264,7 +264,7 @@ export function PanelAdvance({
   const active = usePanelActive();
   const reduce = useHydratedReducedMotion();
   return (
-    <motion.button
+    <m.button
       type="button"
       onClick={onAdvance}
       tabIndex={active ? 0 : -1}
@@ -284,7 +284,7 @@ export function PanelAdvance({
         className="relative inline-flex h-[24px] w-[15px] items-start justify-center rounded-full border transition-colors"
         style={{ borderColor: tone === 'dark' ? 'rgba(255,255,255,0.34)' : 'var(--lp-outline)' }}
       >
-        <motion.span
+        <m.span
           className="mt-[4px] block"
           style={{ width: 2, height: 6, borderRadius: 2, background: 'var(--lp-accent)' }}
           animate={reduce ? undefined : { y: [0, 7, 0], opacity: [1, 0.35, 1] }}
@@ -292,7 +292,7 @@ export function PanelAdvance({
         />
       </span>
       {label}
-    </motion.button>
+    </m.button>
   );
 }
 

@@ -49,6 +49,7 @@ import { isSessionSelf, readSession, sessionAddress } from '../auth/session.js';
 import { accountTypeOf, deriveLane } from '../profile/accountType.js';
 import { invalidBodyMessage } from './invalidBody.js';
 import { publicListing } from '../marketplace/publicListing.js';
+import { marketPage } from '../marketplace/marketPage.js';
 import type { MatchingShadowObserver } from '../matching/shadow.js';
 import type { MatchingAuditTelemetry } from '../matching/audit.js';
 import { buildListingMatchingShadowObservation } from '../matching/listingProjection.js';
@@ -56,6 +57,14 @@ import { buildListingMatchingShadowObservation } from '../matching/listingProjec
 const addrSchema = z
   .string()
   .regex(/^0x[a-fA-F0-9]{40}$/, 'expected 0x-prefixed 20-byte hex address');
+
+const marketPageQuery = z.object({
+  q: z.string().max(120).optional(),
+  category: z.enum(['all', ...CATEGORY_IDS]).optional(),
+  scope: z.enum(['all', 'business']).optional(),
+  limit: z.coerce.number().int().min(1).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
+});
 
 const termLine = z.string().trim().max(160);
 export const termsDraftSchema = z.object({
@@ -179,12 +188,20 @@ export function configureListingMatchingEngineShadow(
 
 /// All listings, newest first. Public surface, strips private agent steering
 /// (negotiationMaxDecreasePct) so a buyer-side LLM can't enumerate floors.
+/// With `limit`, one page of the market's Buy side (marketPage) and how many
+/// matched, so the page reads only the offers it shows.
 listingsRoutes.get('/', async (c) => {
   // Rows that describe a trade Karwan does not support stay off the market.
-  const rows = listAllListings().filter((l) => !prohibitedReason(l.title, l.description, l.terms));
+  const all = listAllListings().filter((l) => !prohibitedReason(l.title, l.description, l.terms));
+  const page = marketPageQuery.safeParse(c.req.query());
+  if (!page.success) return c.json({ error: 'invalid market page' }, 400);
+  const picked = page.data.limit === undefined
+    ? { rows: all.map(publicListing), total: all.length }
+    : marketPage(all.map(publicListing), { ...page.data, limit: page.data.limit, now: Date.now() });
   // Who sells each offer, for the card; a seller who cannot be read is null.
-  const sellers = await liveSellerSummaries(rows.map((l) => l.sellerUser)).catch(() => new Map<string, ListingSeller | null>());
-  return c.json({ listings: rows.map((l) => ({ ...publicListing(l), seller: sellers.get(l.sellerUser.toLowerCase()) ?? null })) });
+  const sellers = await liveSellerSummaries(picked.rows.map((l) => l.sellerUser)).catch(() => new Map<string, ListingSeller | null>());
+  const listings = picked.rows.map((l) => ({ ...l, seller: sellers.get(l.sellerUser.toLowerCase()) ?? null }));
+  return c.json(page.data.limit === undefined ? { listings } : { listings, total: picked.total });
 });
 
 /// Listings owned by the caller, with the private fields intact. The caller's

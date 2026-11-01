@@ -3,7 +3,7 @@
 import { useEffect, useReducer, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, m } from 'motion/react';
 import { api, ApiError } from '@/core/api';
 import { openHelp } from '@/shared/assistant/openHelp';
 import { AuthGuard } from '@/shared/components/AuthGuard';
@@ -141,7 +141,7 @@ function SetupConversation({ embedded, next }: { embedded: boolean; next: string
         {/* The next question shows at once and slides in; the old one is not
             waited out, so the screen never goes blank between questions. */}
         <AnimatePresence mode="popLayout" initial={false}>
-          <motion.section
+          <m.section
             key={step}
             initial={{ opacity: 0, x: offset }}
             animate={{ opacity: 1, x: 0 }}
@@ -299,7 +299,7 @@ function SetupConversation({ embedded, next }: { embedded: boolean; next: string
                 <button type="button" onClick={() => dispatch({ type: 'edit' })} disabled={saving} className="mt-2 inline-flex min-h-11 w-full items-center justify-center text-[15px] font-medium text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)]">{t.summary.change}</button>
               </div>
             ) : null}
-          </motion.section>
+          </m.section>
         </AnimatePresence>
 
         {error ? <p role="alert" className="mt-4 border-s-2 border-[var(--color-critical)] ps-3 text-[14px]">{error}</p> : null}

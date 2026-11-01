@@ -5,7 +5,7 @@ import { useAutoGrow } from '@/shared/hooks/useAutoGrow';
 import { offerPhotosCopy } from '@/shared/i18n/messages/offerPhotos';
 import { useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, m } from 'motion/react';
 import { api } from '@/core/api';
 import { AssistantThread } from '@/shared/assistant/AssistantThread';
 import { callPerson } from '@/shared/assistant/openHelp';
@@ -51,7 +51,7 @@ function AssistantPage() {
   const chat = useAssistantChat({
     persist: true,
     mode: 'assistant',
-    onNeedsHuman: (transcript) => callPerson(transcript.map((m) => ({ role: m.role, content: m.content }))),
+    onNeedsHuman: (transcript) => callPerson(transcript.map((message) => ({ role: message.role, content: message.content }))),
   });
   const [input, setInput] = useState('');
   const askRef = useAutoGrow(input);
@@ -251,7 +251,7 @@ function AssistantPage() {
           <div className="flex flex-wrap justify-end gap-2">
             <button
               type="button"
-              onClick={() => callPerson(chat.messages.map((m) => ({ role: m.role, content: m.content })))}
+              onClick={() => callPerson(chat.messages.map((message) => ({ role: message.role, content: message.content })))}
               className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--lp-border-light)] px-4 text-[14px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
             >
               <Icon name="user" size={20} />
@@ -265,10 +265,10 @@ function AssistantPage() {
             ) : null}
           </div>
           {empty ? (
-            <motion.div initial={reduce ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: ease.out }} className="pt-6 sm:pt-12">
+            <m.div initial={reduce ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: ease.out }} className="pt-6 sm:pt-12">
               <h1 className="text-[24px] font-semibold tracking-[-0.02em] sm:text-[28px]">{greeting}</h1>
               <p className="mt-2 max-w-[52ch] text-[15px] font-medium text-[var(--lp-text-sub)]">{t.greetingBody}</p>
-            </motion.div>
+            </m.div>
           ) : (
             <div ref={threadRef}>
               <AssistantThread messages={chat.messages} busy={chat.busy} onNavigate={() => undefined} />
@@ -422,7 +422,7 @@ function AssistantPage() {
 
       <AnimatePresence>
         {listOpen ? (
-          <motion.div
+          <m.div
             key="list"
             className="fixed inset-0 z-40 bg-black/50 lg:hidden"
             initial={{ opacity: 0 }}
@@ -431,7 +431,7 @@ function AssistantPage() {
             transition={{ duration: reduce ? 0 : 0.2 }}
             onClick={() => setListOpen(false)}
           >
-            <motion.div
+            <m.div
               role="dialog"
               aria-modal="true"
               aria-label={t.conversations}
@@ -443,8 +443,8 @@ function AssistantPage() {
               onClick={(e) => e.stopPropagation()}
             >
               {column}
-            </motion.div>
-          </motion.div>
+            </m.div>
+          </m.div>
         ) : null}
       </AnimatePresence>
     </div>

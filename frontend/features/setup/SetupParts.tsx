@@ -1,6 +1,6 @@
 'use client';
 
-import { motion } from 'motion/react';
+import { m } from 'motion/react';
 import { cn } from '@/shared/utils/cn';
 import { ease } from '@/shared/motion/tokens';
 
@@ -39,7 +39,7 @@ export function ChoiceCard({ label, note, on, multi, reduce, onPick }: {
       >
         {on ? (
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-            <motion.path
+            <m.path
               d="M3.5 8.5 6.5 11.5 12.5 4.5"
               stroke="currentColor"
               strokeWidth="2.2"
@@ -98,14 +98,14 @@ export function TextQuestion({ id, label, help, example, examples, value, onChan
 /// "Here's your Karwan": each line arrives in turn, 60 ms apart.
 export function SummaryLines({ lines, reduce }: { lines: string[]; reduce: boolean }) {
   return (
-    <motion.ul
+    <m.ul
       className="mt-6 divide-y divide-[var(--lp-border-light)] rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-5"
       initial="hidden"
       animate="visible"
       variants={{ visible: { transition: { staggerChildren: reduce ? 0 : 0.06, delayChildren: reduce ? 0 : 0.12 } } }}
     >
       {lines.map((line) => (
-        <motion.li
+        <m.li
           key={line}
           className="flex items-start gap-3 py-3"
           variants={{ hidden: reduce ? { opacity: 0 } : { opacity: 0, y: 6 }, visible: { opacity: 1, y: 0, transition: { duration: reduce ? 0.12 : 0.26, ease: ease.out } } }}
@@ -114,8 +114,8 @@ export function SummaryLines({ lines, reduce }: { lines: string[]; reduce: boole
             <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M3.5 8.5 6.5 11.5 12.5 4.5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </span>
           <span dir="auto" className="text-[16px] leading-normal text-[var(--lp-dark)]">{line}</span>
-        </motion.li>
+        </m.li>
       ))}
-    </motion.ul>
+    </m.ul>
   );
 }

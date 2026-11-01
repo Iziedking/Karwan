@@ -1,7 +1,7 @@
 'use client';
 import { MoneyCard, MoneyValue, MoneyLabel } from '@/shared/components/Money';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, m } from 'motion/react';
 import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/core/api';
@@ -89,7 +89,7 @@ function MoneyRotator({ cells }: { cells: Cell[] }) {
   return (
     <div ref={ref}>
       <AnimatePresence mode="wait">
-        <motion.div
+        <m.div
           key={active.label}
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
@@ -97,7 +97,7 @@ function MoneyRotator({ cells }: { cells: Cell[] }) {
           transition={{ duration: 0.3, ease: 'easeOut' }}
         >
           <MoneyTile cell={active} />
-        </motion.div>
+        </m.div>
       </AnimatePresence>
       <div className="mt-3 flex justify-center gap-1.5">
         {cells.map((c, idx) => (

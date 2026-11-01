@@ -38,6 +38,7 @@ const PERSISTABLE_PREFIXES = new Set([
   'api', // status + dealsStats: network-wide counters, fine to seed
   'terms',
   'activation',
+  'market', // public offers: a return visit paints the last page, then refreshes it
 ]);
 
 /// Finished queries only, as TanStack's own default does. A query still

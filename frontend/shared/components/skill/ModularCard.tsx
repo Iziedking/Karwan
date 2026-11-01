@@ -1,5 +1,5 @@
 'use client';
-import { motion } from 'motion/react';
+import { m } from 'motion/react';
 import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
@@ -39,7 +39,7 @@ export function ModularCard({
 }) {
   const reduced = useHydratedReducedMotion();
   const body = (
-    <motion.div
+    <m.div
       whileHover={reduced ? undefined : { y: -1.5 }}
       transition={{ duration: reduced ? 0 : dur.fast, ease: ease.out }}
       className={cn(
@@ -121,7 +121,7 @@ export function ModularCard({
           </svg>
         </span>
       </div>
-    </motion.div>
+    </m.div>
   );
 
   if (!href) return body;

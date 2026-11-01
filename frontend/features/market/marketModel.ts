@@ -5,7 +5,8 @@ import type { DiscoveryCard, DiscoveryScope } from '../discovery/model';
 export const CATEGORY_IDS = ['design', 'tech', 'phones', 'fashion', 'food', 'farm', 'home', 'lessons', 'repairs', 'rentals'] as const;
 export type CategoryId = (typeof CATEGORY_IDS)[number];
 
-const FRESH = 6;
+/// How many offers "New on Karwan" shows.
+export const FRESH = 6;
 
 const newest = (a: DiscoveryCard, b: DiscoveryCard) => b.postedAt - a.postedAt || a.id.localeCompare(b.id);
 

@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { motion } from 'motion/react';
+import { m } from 'motion/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/shared/utils/cn';
@@ -556,7 +556,7 @@ function NavLink({
       )}
     >
       {active && (
-        <motion.span
+        <m.span
           layoutId="topnav-active"
           aria-hidden
           className="absolute inset-x-3 bottom-0 h-0.5 bg-[var(--lp-accent)]"
@@ -607,7 +607,7 @@ function NavLinkSoon({
       )}
     >
       {active && (
-        <motion.span
+        <m.span
           layoutId="topnav-active"
           aria-hidden
           className="absolute inset-x-3 bottom-0 h-0.5 bg-[var(--lp-accent)]"

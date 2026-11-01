@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { motion } from 'motion/react';
+import { m } from 'motion/react';
 import type { UserProfile } from '@/core/api';
 import { stageOf } from '@/features/deals/components/DirectDealList';
 import { useDirectDeals } from '@/features/deals/hooks/useDirectDeals';
@@ -61,7 +61,7 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
 
         {/* The balance is the top line of the page, with its four moves beside
             it; the next steps sit under it side by side (view 39). */}
-        <motion.div
+        <m.div
           data-guide="home-money"
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -107,7 +107,7 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
             <QuickAction href="/request" icon="request">{payLink.short}</QuickAction>
             <QuickAction href="/bridge?direction=out" icon="withdraw">{home.withdraw}</QuickAction>
           </div>
-        </motion.div>
+        </m.div>
 
         <div className="mt-7 grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))]">
           <HomeBlock profile={profile} />

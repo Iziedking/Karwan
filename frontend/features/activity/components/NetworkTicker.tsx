@@ -1,6 +1,6 @@
 ﻿'use client';
 import { useEffect, useMemo, useState } from 'react';
-import { motion } from 'motion/react';
+import { m } from 'motion/react';
 import { api, type PublicFeedDeal } from '@/core/api';
 import { relativeTime } from '@/shared/utils/format';
 import { BracketTag, type BracketTagVariant } from '@/shared/components/skill';
@@ -122,7 +122,7 @@ function TickerCardView({ card, muted }: { card: TickerCard; muted: boolean }) {
   const verb = t.verbs.completed;
 
   return (
-    <motion.div
+    <m.div
       whileHover={{ y: -2 }}
       transition={{ duration: dur.fast, ease: ease.out }}
       className="group relative shrink-0 overflow-hidden flex flex-col justify-between"
@@ -203,6 +203,6 @@ function TickerCardView({ card, muted }: { card: TickerCard; muted: boolean }) {
           </span>
         </div>
       </div>
-    </motion.div>
+    </m.div>
   );
 }

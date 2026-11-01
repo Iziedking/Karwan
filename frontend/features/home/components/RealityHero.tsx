@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { AnimatePresence, motion, useInView, useScroll, useTransform } from 'motion/react';
+import { AnimatePresence, m, useInView, useScroll, useTransform } from 'motion/react';
 import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import Link from 'next/link';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -113,7 +113,7 @@ export function RealityHero() {
       className="landing-hero relative isolate overflow-hidden bg-[var(--lp-workspace-band)] text-[var(--lp-workspace-ink)]"
       style={{ minHeight: 'var(--lp-panel-h)' }}
     >
-      <motion.div
+      <m.div
         className="absolute inset-0"
         style={reduce ? undefined : { y: filmY, scale: filmScale, opacity: filmDim }}
       >
@@ -131,7 +131,7 @@ export function RealityHero() {
         >
           <source src="/media/karwan-reality.mp4" type="video/mp4" />
         </video>
-      </motion.div>
+      </m.div>
 
       <div
         className="pointer-events-none absolute inset-0"
@@ -142,11 +142,11 @@ export function RealityHero() {
         }}
       />
 
-      <motion.div
+      <m.div
         className="relative z-10 mx-auto grid min-h-[var(--lp-panel-h)] w-full max-w-[1440px] items-center gap-12 px-[clamp(20px,5vw,72px)] py-[clamp(92px,12vh,144px)] lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.72fr)] lg:gap-16"
         style={reduce ? undefined : { y: contentY, opacity: contentFade }}
       >
-        <motion.div
+        <m.div
           className="max-w-[690px]"
           initial={{ opacity: 0, y: reduce ? 0 : 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -167,9 +167,9 @@ export function RealityHero() {
             {lp.hero.ctaPrimary}<Icon name="arrow-right" size={16} directional className="landing-action-arrow" />
           </Link>
           <p className="mt-7 text-[14px] text-[var(--lp-text-sub)] font-medium">{lp.hero.footnote}</p>
-        </motion.div>
+        </m.div>
 
-        <motion.div
+        <m.div
           className="landing-deal-card w-full max-w-[470px] justify-self-start lg:justify-self-end"
           initial={{ opacity: 0, y: reduce ? 0 : 28 }}
           animate={{ opacity: 1, y: 0 }}
@@ -177,7 +177,7 @@ export function RealityHero() {
         >
           <div aria-live="polite" aria-atomic="true">
           <AnimatePresence mode="wait" initial={false}>
-            <motion.div
+            <m.div
               key={intent.id}
               initial={{ opacity: 0, y: reduce ? 0 : 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -210,7 +210,7 @@ export function RealityHero() {
                 <span className="text-[var(--lp-text-sub)]">Example trade intent</span>
                 <Link href="/app" className="inline-flex min-h-11 items-center text-[var(--lp-accent)] focus-visible:outline focus-visible:outline-2">Enter Karwan →</Link>
               </div>
-            </motion.div>
+            </m.div>
           </AnimatePresence>
           </div>
           {!reduce ? <span key={intent.id} aria-hidden className="landing-intent-progress" /> : null}
@@ -228,8 +228,8 @@ export function RealityHero() {
               </button>
             ))}
           </div>
-        </motion.div>
-      </motion.div>
+        </m.div>
+      </m.div>
     </div>
   );
 }

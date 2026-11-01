@@ -3,7 +3,7 @@ import Link from 'next/link';
 
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, m, useReducedMotion } from 'motion/react';
 import { shortAddress } from '@/shared/utils/format';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { Button } from '@/shared/components/Button';
@@ -124,7 +124,7 @@ export function ActivationModal({
   return createPortal(
     <AnimatePresence>
       {open ? (
-        <motion.div
+        <m.div
           className="fixed inset-0 z-[100] flex items-end bg-black/60 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:items-center sm:justify-end sm:p-4 md:p-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -134,7 +134,7 @@ export function ActivationModal({
             if (event.target === event.currentTarget && !activating) onClose();
           }}
         >
-          <motion.div
+          <m.div
             ref={panelRef}
             role="dialog"
             aria-modal="true"
@@ -241,8 +241,8 @@ export function ActivationModal({
                 })}
               </Button>
             </footer>
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
       ) : null}
     </AnimatePresence>,
     document.body,

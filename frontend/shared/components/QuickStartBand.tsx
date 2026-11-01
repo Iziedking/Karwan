@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, m } from 'motion/react';
 import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { useDirectDeals } from '@/features/deals/hooks/useDirectDeals';
@@ -91,7 +91,7 @@ export function QuickStartBand() {
         </button>
       </div>
 
-      <motion.ol
+      <m.ol
         layout
         transition={{ duration: reduce ? 0 : 0.22, ease: [0.22, 1, 0.36, 1] }}
         className="mt-7 border-y border-[var(--lp-border-light)] fade-up fade-up-1"
@@ -120,7 +120,7 @@ export function QuickStartBand() {
             );
 
             return (
-              <motion.li
+              <m.li
                 key={s.n}
                 layout
                 initial={reduce ? { opacity: 1 } : { opacity: 0, y: -6 }}
@@ -141,11 +141,11 @@ export function QuickStartBand() {
                     {content}
                   </div>
                 )}
-              </motion.li>
+              </m.li>
             );
           })}
         </AnimatePresence>
-      </motion.ol>
+      </m.ol>
     </Band>
   );
 }

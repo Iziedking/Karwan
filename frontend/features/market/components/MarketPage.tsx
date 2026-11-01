@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import type { DiscoveryCard, DiscoveryScope } from '@/features/discovery/model';
+import type { DiscoveryScope } from '@/features/discovery/model';
 import { BUSINESS_ACCOUNTS_OPEN } from '@/features/account/businessOpen';
 import { OpenContests } from '@/features/contests/components/OpenContests';
 import { OpenWorkRequests } from '@/features/work/components/OpenWorkRequests';
@@ -20,9 +20,9 @@ import type { MarketShopCopy } from '@/shared/i18n/messages/marketShop';
 import { cn } from '@/shared/utils/cn';
 import { formatUsdc } from '@/shared/utils/format';
 import { shouldAskTradesAs } from '../entryQuestion';
-import { buyCards, sellRequests, type CategoryId } from '../marketModel';
+import { FRESH, buyCards, sellRequests, type CategoryId } from '../marketModel';
 import { marketHref, marketViewHref, type MarketSide, type MarketView, type YoursList } from '../marketQuery';
-import { useMarketData, useRequestFits, type MarketSource } from '../useMarketData';
+import { useMarketOffers, useMarketRequests, useRequestFits, type MarketSource } from '../useMarketData';
 import { BuySellSwitch } from './BuySellSwitch';
 import { CategoryChips } from './CategoryChips';
 import { EntryQuestion } from './EntryQuestion';
@@ -31,6 +31,8 @@ import { StartTradeSheet } from './StartTradeSheet';
 import { YourTrades } from './YourTrades';
 
 const STEP = 12;
+/// The most offers one page asks for (backend/src/marketplace/marketPage.ts).
+const MARKET_PAGE_MAX = 240;
 
 /// The one market (views 17 and 44): a shop with a Buy and a Sell side. Buy
 /// is search, categories and photo cards; Sell is what buyers need, the
@@ -70,7 +72,6 @@ function Shop({ scope, initialSide, initialCategory, initialQ }: { scope: Discov
   const [side, setSide] = useState(initialSide);
   const [category, setCategory] = useState(initialCategory);
   const [q, setQ] = useState(initialQ);
-  const data = useMarketData();
 
   // The address follows the page without reloading it, so a shared link opens here.
   useEffect(() => {
@@ -79,7 +80,7 @@ function Shop({ scope, initialSide, initialCategory, initialQ }: { scope: Discov
   }, [side, category, q, scope]);
 
   return (
-    <div className="product-surface" data-testid="market" aria-busy={data.refreshing}>
+    <div className="product-surface" data-testid="market">
       <FullBleed>
         {isAuthenticated ? <PageTour id={isBusinessWorkspace ? MARKET_BIZ_TOUR_ID : MARKET_TOUR_ID} steps={buildMarketSteps(isBusinessWorkspace ? 'business' : 'person')} /> : null}
         <Band tone="light" compact>
@@ -92,9 +93,9 @@ function Shop({ scope, initialSide, initialCategory, initialQ }: { scope: Discov
             <BuySellSwitch value={side} onChange={setSide} />
           </div>
           {side === 'buy' ? (
-            <BuySide cards={data.cards} loading={data.loading} failed={data.failed} retry={data.retry} scope={scope} category={category} setCategory={setCategory} q={q} setQ={setQ} />
+            <BuySide scope={scope} category={category} setCategory={setCategory} q={q} setQ={setQ} />
           ) : (
-            <SellSide cards={data.cards} loading={data.loading} failed={data.failed} retry={data.retry} />
+            <SellSide />
           )}
         </Band>
       </FullBleed>
@@ -112,20 +113,12 @@ function Notice({ failed, retry, t }: { failed: MarketSource[]; retry: () => voi
 }
 
 function BuySide({
-  cards,
-  loading,
-  failed,
-  retry,
   scope,
   category,
   setCategory,
   q,
   setQ,
 }: {
-  cards: DiscoveryCard[];
-  loading: boolean;
-  failed: MarketSource[];
-  retry: () => void;
   scope: DiscoveryScope;
   category: CategoryId | 'all';
   setCategory: (next: CategoryId | 'all') => void;
@@ -138,10 +131,15 @@ function BuySide({
   const [seeAll, setSeeAll] = useState(false);
   const [shown, setShown] = useState(STEP);
   const [startOpen, setStartOpen] = useState(false);
-  const { fresh, all } = useMemo(() => buyCards(cards, { q, category, scope }), [cards, q, category, scope]);
   const narrowed = category !== 'all' || q.trim() !== '' || scope === 'business';
   const full = narrowed || seeAll;
+  const offers = useMarketOffers({ q, category, scope, limit: full ? shown : FRESH });
+  // The server already narrowed the page; narrowing again costs nothing and
+  // keeps the page right against a server that sends every offer.
+  const { fresh, all } = useMemo(() => buyCards(offers.cards, { q, category, scope }), [offers.cards, q, category, scope]);
+  const matched = offers.total ?? all.length;
   const visible = full ? all.slice(0, shown) : fresh;
+  const loading = offers.loading;
   const title = category !== 'all' ? t.categories[category] : q.trim() ? t.results : t.newOnKarwan;
 
   useEffect(() => setShown(STEP), [q, category, scope, seeAll]);
@@ -165,12 +163,12 @@ function BuySide({
         <CategoryChips value={category} onChange={setCategory} />
       </div>
 
-      {failed.includes('offers') ? <Notice failed={failed} retry={retry} t={t} /> : null}
+      {offers.failed ? <Notice failed={['offers']} retry={offers.retry} t={t} /> : null}
 
-      <section aria-labelledby="market-buy-heading" data-guide="market-new" className="mt-7">
+      <section aria-labelledby="market-buy-heading" data-guide="market-new" aria-busy={offers.refreshing} className="mt-7">
         <div className="flex min-h-11 items-center justify-between gap-3">
           <h2 id="market-buy-heading" className="text-[17px] font-semibold text-[var(--ink)]">{title}</h2>
-          {!full && all.length > fresh.length ? (
+          {!full && matched > fresh.length ? (
             <button type="button" onClick={() => setSeeAll(true)} className="inline-flex min-h-11 items-center px-1 text-[14px] font-semibold text-[var(--lp-accent-on-light)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--action)]">
               {t.seeAll}
             </button>
@@ -185,7 +183,7 @@ function BuySide({
             <ul className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
               {visible.map((card) => <li key={card.id}><ListingCard card={card} /></li>)}
             </ul>
-            {full && all.length > shown ? (
+            {full && matched > shown && shown < MARKET_PAGE_MAX ? (
               <button type="button" onClick={() => setShown((n) => n + STEP)} className={cn(buttonClasses({ variant: 'outline', size: 'sm' }), 'mt-4')}>
                 {messages.dealsPage.showMore}
               </button>
@@ -224,10 +222,11 @@ function BuySide({
   );
 }
 
-function SellSide({ cards, loading, failed, retry }: { cards: DiscoveryCard[]; loading: boolean; failed: MarketSource[]; retry: () => void }) {
+function SellSide() {
   const { locale, t: messages } = useLocale();
   const t = messages.marketShop;
   const { isAuthenticated } = useAuth();
+  const { cards, loading, failed, retry } = useMarketRequests();
   const fits = useRequestFits(true);
   const requests = useMemo(() => sellRequests(cards, fits), [cards, fits]);
   const anyFit = requests.some((request) => request.fits);

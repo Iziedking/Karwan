@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, m } from 'motion/react';
 import { useQueryClient } from '@tanstack/react-query';
 import { api } from '@/core/api';
 import { qk } from '@/core/queryKeys';
@@ -102,7 +102,7 @@ export function WaysEditor() {
         ) : null}
         <AnimatePresence initial={false}>
           {adding === side && !open ? (
-            <motion.div key="add" {...motionProps} className="overflow-hidden">
+            <m.div key="add" {...motionProps} className="overflow-hidden">
               <div className="space-y-2 p-3">
                 {free.map((shape) => (
                   <ChoiceCard
@@ -116,7 +116,7 @@ export function WaysEditor() {
                   />
                 ))}
               </div>
-            </motion.div>
+            </m.div>
           ) : null}
         </AnimatePresence>
         {free.length && !open && adding !== side ? (
@@ -223,7 +223,7 @@ function WayForm({ side, open, c, motionProps, onChange, onDone, onCancel, onRem
   }
 
   return (
-    <motion.div {...motionProps} className="overflow-hidden">
+    <m.div {...motionProps} className="overflow-hidden">
       <div className="space-y-4 bg-[var(--lp-light)] px-4 py-4">
         <p className="text-[15px] font-semibold text-[var(--lp-dark)]">{c.shapes[w.shape]}</p>
         <div className="grid gap-4 sm:grid-cols-2">{fields}</div>
@@ -238,7 +238,7 @@ function WayForm({ side, open, c, motionProps, onChange, onDone, onCancel, onRem
           ) : null}
         </div>
       </div>
-    </motion.div>
+    </m.div>
   );
 }
 

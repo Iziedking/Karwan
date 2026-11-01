@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { motion } from 'motion/react';
+import { m } from 'motion/react';
 import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
@@ -68,7 +68,7 @@ export function HeroFlow() {
         {/* A low-contrast signal sweeps the route continuously. It gives the
             diagram a readable sense of live settlement without adding noise
             or changing the underlying state model. */}
-        <motion.line
+        <m.line
           x1="60"
           y1="100"
           x2="300"
@@ -112,7 +112,7 @@ export function HeroFlow() {
 
         {/* Escrow pill, lights up when the coin lands inside it. */}
         <g transform="translate(180 168)">
-          <motion.rect
+          <m.rect
             x="-58"
             y="-12"
             width="116"
@@ -126,7 +126,7 @@ export function HeroFlow() {
             }}
             transition={{ duration: reduce ? 0 : 0.3 }}
           />
-          <motion.text
+          <m.text
             textAnchor="middle"
             y="4.5"
             fontSize="11"
@@ -136,12 +136,12 @@ export function HeroFlow() {
             transition={{ duration: reduce ? 0 : 0.3 }}
           >
             {atEscrow ? t.escrow.settling : t.escrow.idle}
-          </motion.text>
+          </m.text>
         </g>
 
         {/* GLOW HALO trailing the coin. Slightly behind the coin in the SVG
             stack so the coin renders on top of its own glow. */}
-        <motion.circle
+        <m.circle
           r="22"
           fill="url(#coinGlow)"
           animate={{ cx: pos.x, cy: pos.y }}
@@ -150,7 +150,7 @@ export function HeroFlow() {
 
         {/* THE COIN. Lime fill, dark $ inscription. Big enough that the eye
             tracks it without trying. Drop shadow gives it a tactile lift. */}
-        <motion.g
+        <m.g
           animate={{ x: pos.x, y: pos.y }}
           transition={reduce ? { duration: 0 } : { duration: TRAVEL_DURATION, ease: [0.45, 0, 0.2, 1] }}
         >
@@ -176,7 +176,7 @@ export function HeroFlow() {
           >
             $
           </text>
-        </motion.g>
+        </m.g>
       </svg>
 
       {/* small caption hairline below the graphic so it reads as a flow */}
@@ -189,7 +189,7 @@ export function HeroFlow() {
         <span>{t.caption.sellerAgent}</span>
       </div>
       <div className="mt-3 h-px overflow-hidden rounded-full bg-white/10" aria-hidden>
-        <motion.span
+        <m.span
           className="block h-full w-1/4 rounded-full bg-[var(--lp-accent)]"
           initial={{ x: '-120%' }}
           animate={reduce ? { x: '0%' } : { x: ['-120%', '420%'] }}
@@ -222,7 +222,7 @@ function Node({
     <g>
       {/* Pulse halo on the active node. */}
       {active && (
-        <motion.circle
+        <m.circle
           cx={x}
           cy={100}
           r="14"

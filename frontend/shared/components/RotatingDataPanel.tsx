@@ -1,6 +1,6 @@
 'use client';
 
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, m } from 'motion/react';
 import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -132,7 +132,7 @@ export function RotatingDataPanel({
 
       <div className="relative min-h-[250px] sm:min-h-[290px]">
         <AnimatePresence mode="wait" initial={false}>
-          <motion.div
+          <m.div
             key={active.id}
             role="group"
             aria-label={`${activeIndex + 1} / ${count}`}
@@ -143,7 +143,7 @@ export function RotatingDataPanel({
             className="absolute inset-0 flex flex-col justify-center p-5 sm:p-7"
           >
             {active.content}
-          </motion.div>
+          </m.div>
         </AnimatePresence>
       </div>
 

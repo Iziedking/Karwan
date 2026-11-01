@@ -1,5 +1,5 @@
 'use client';
-import { motion } from 'motion/react';
+import { m } from 'motion/react';
 import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import type { ReactNode, MouseEventHandler } from 'react';
 import Link from 'next/link';
@@ -63,7 +63,7 @@ export function PrimaryCTA({
   if (href) {
     const external = /^(?:https?:|mailto:|tel:)/.test(href);
     return (
-      <motion.span
+      <m.span
         whileTap={reduced ? undefined : { scale: 0.98 }}
         transition={{ duration: reduced ? 0 : dur.micro, ease: ease.out }}
         style={{ display: 'inline-block' }}
@@ -77,11 +77,11 @@ export function PrimaryCTA({
             {content}
           </Link>
         )}
-      </motion.span>
+      </m.span>
     );
   }
   return (
-    <motion.button
+    <m.button
       type={type}
       onClick={onClick}
       disabled={disabled}
@@ -91,6 +91,6 @@ export function PrimaryCTA({
       style={baseStyle}
     >
       {content}
-    </motion.button>
+    </m.button>
   );
 }

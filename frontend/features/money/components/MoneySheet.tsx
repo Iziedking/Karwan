@@ -4,7 +4,7 @@ import { RecordDoneLine } from '@/shared/chain/RecordDoneLine';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Hint } from '@/shared/components/Hint';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, m } from 'motion/react';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useAddressKind, type AddressKind } from '@/shared/hooks/useAddressKind';
 import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
@@ -357,7 +357,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
 
       <AnimatePresence mode="wait" initial={false}>
         {state.kind === 'editing' ? (
-          <motion.div key="editing" {...fade} className="mt-6">
+          <m.div key="editing" {...fade} className="mt-6">
             <p className="text-[15px] leading-relaxed text-[var(--lp-dark)]">
               {fill(consequence, { amount: formatAmount(amount ?? 0, locale), tag: paidTag?.tag ?? '', name: otherAgentName.toLowerCase() })}
             </p>
@@ -378,13 +378,13 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
               {amount === null ? t.sheet.ctaNoAmount : fill(cta, { amount: formatAmount(amount, locale) })}
               {move === 'send' && amount !== null ? <Icon name="send" size={16} directional /> : null}
             </button>
-          </motion.div>
+          </m.div>
         ) : state.kind === 'confirmed' ? (
-          <motion.div key="confirmed" {...fade} className="mt-6 space-y-5">
+          <m.div key="confirmed" {...fade} className="mt-6 space-y-5">
             <div className="flex flex-col items-center gap-4 pt-2 text-center">
               <span aria-hidden className="grid size-16 place-items-center rounded-full bg-[var(--color-accent-soft)]">
                 <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                  <motion.path d="M5 12.5 10 17.5 19 7" initial={reduce ? false : { pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.3, delay: 0.1 }} />
+                  <m.path d="M5 12.5 10 17.5 19 7" initial={reduce ? false : { pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.3, delay: 0.1 }} />
                 </svg>
               </span>
               <p className="text-[20px] font-semibold tracking-[-0.01em] text-[var(--lp-dark)]">
@@ -411,14 +411,14 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
             </dl>
             <RecordDoneLine show={state.recordSetUp === true} />
             <button type="button" onClick={finish} className={`${PRIMARY} w-full`}>{t.sheet.done}</button>
-          </motion.div>
+          </m.div>
         ) : state.kind === 'guarded' ? (
-          <motion.div key="guarded" {...fade} className="mt-6 space-y-4">
+          <m.div key="guarded" {...fade} className="mt-6 space-y-4">
             <MoneyOutNotice refusal={state.refusal} destination={guardedDestination} onCleared={tryAgain} />
             <button type="button" onClick={onClose} className={SECONDARY}>{t.sheet.close}</button>
-          </motion.div>
+          </m.div>
         ) : progress ? (
-          <motion.div key="progress" {...fade} className="mt-6 space-y-4">
+          <m.div key="progress" {...fade} className="mt-6 space-y-4">
             <ol aria-label={t.sheet.progressLabel} className="grid grid-cols-3 gap-2">
               {SHEET_STEPS.map((step, index) => {
                 const done = index < progress.done;
@@ -444,9 +444,9 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
                 </div>
               </>
             ) : null}
-          </motion.div>
+          </m.div>
         ) : (
-          <motion.div key="stopped" {...fade} className="mt-6 space-y-4">
+          <m.div key="stopped" {...fade} className="mt-6 space-y-4">
             <p role="alert" className="border-s-2 border-[var(--color-critical)] ps-3 text-[15px] leading-relaxed text-[var(--lp-dark)]">
               {state.kind === 'reverted' ? t.sheet.reverted : state.kind === 'failed' && state.declined ? t.sheet.declined : t.sheet.failed}
             </p>
@@ -454,7 +454,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
               <button type="button" onClick={tryAgain} className={PRIMARY}>{t.sheet.tryAgain}</button>
               <button type="button" onClick={onClose} className={SECONDARY}>{t.sheet.close}</button>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useId, useRef, useState } from 'react';
-import { motion, useInView } from 'motion/react';
+import { m, useInView } from 'motion/react';
 import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { CAPABILITIES, CAPABILITY_COPY, canRotateStory, STORY_INTERVAL_MS } from '../capabilityStory';
@@ -46,7 +46,7 @@ export function CapabilityIntro({ landing = false }: { landing?: boolean }) {
           const selected = index === sceneIndex;
           const text = copy.scenes[scene.id];
           return (
-            <motion.section key={scene.id} id={`${id}-${scene.id}`} aria-hidden={!selected} inert={!selected}
+            <m.section key={scene.id} id={`${id}-${scene.id}`} aria-hidden={!selected} inert={!selected}
               className="capability-scene" data-active={selected} initial={false}
               animate={{ opacity: selected ? 1 : 0, y: selected || reduced ? 0 : 10 }}
               transition={{ duration: reduced ? 0 : selected ? 0.5 : 0.16, delay: selected && !reduced ? 0.14 : 0, ease: [0.16, 1, 0.3, 1] }}>
@@ -61,7 +61,7 @@ export function CapabilityIntro({ landing = false }: { landing?: boolean }) {
                 <Link href={scene.href} className="capability-action-primary">{text.action}<Icon name="arrow-up-right" size={16} directional /></Link>
                 <Link href="/how-it-works" className="capability-action-secondary">{copy.guide}<Icon name="arrow-right" size={16} directional /></Link>
               </div>
-            </motion.section>
+            </m.section>
           );
         })}
       </div>
@@ -70,7 +70,7 @@ export function CapabilityIntro({ landing = false }: { landing?: boolean }) {
           <button key={scene.id} type="button" aria-pressed={index === sceneIndex} aria-controls={`${id}-${scene.id}`}
             onClick={() => { setIndex(sceneIndex); setPaused(true); }}>
             {copy.scenes[scene.id].label}
-            {index === sceneIndex && <motion.span aria-hidden layoutId={`${id}-selection`} className="capability-selected" transition={{ duration: reduced ? 0 : 0.3 }} />}
+            {index === sceneIndex && <m.span aria-hidden layoutId={`${id}-selection`} className="capability-selected" transition={{ duration: reduced ? 0 : 0.3 }} />}
           </button>
         ))}
         {!reduced && <button type="button" className="capability-play" aria-label={paused ? copy.play : copy.pause}

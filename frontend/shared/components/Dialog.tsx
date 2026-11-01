@@ -9,7 +9,7 @@ import {
   useState,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, m, useReducedMotion } from 'motion/react';
 import { Button } from '@/shared/components/Button';
 import { FormError } from '@/shared/components/FormError';
 import { dur, ease, spring } from '@/shared/motion/tokens';
@@ -186,7 +186,7 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
             <>
               <AnimatePresence>
                 {active ? (
-                  <motion.div
+                  <m.div
                     key="dialog"
                     className="fixed inset-0 z-[200] flex items-end bg-black/60 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:items-center sm:justify-end sm:p-4 md:p-6"
                     initial={{ opacity: 0 }}
@@ -199,7 +199,7 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
                       }
                     }}
                   >
-                    <motion.form
+                    <m.form
                       ref={panelRef}
                       onSubmit={onSubmit}
                       role="dialog"
@@ -276,14 +276,14 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
                           {active.options.confirmLabel ?? (active.kind === 'prompt' ? 'Save' : 'Confirm')}
                         </Button>
                       </footer>
-                    </motion.form>
-                  </motion.div>
+                    </m.form>
+                  </m.div>
                 ) : null}
               </AnimatePresence>
 
               <AnimatePresence>
                 {toast ? (
-                  <motion.div
+                  <m.div
                     key={`${toast.tone}:${toast.message}`}
                     role="status"
                     aria-live="polite"
@@ -309,7 +309,7 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
                     <p className="mt-1.5 text-[14px] leading-snug text-[var(--color-ink)]">
                       {toast.message}
                     </p>
-                  </motion.div>
+                  </m.div>
                 ) : null}
               </AnimatePresence>
             </>,

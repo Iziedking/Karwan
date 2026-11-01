@@ -1,7 +1,7 @@
 'use client';
 import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { motion } from 'motion/react';
+import { m } from 'motion/react';
 import { formatUnits } from 'viem';
 import { arcChain } from '@/core/wagmi';
 import { AuthGuard } from '@/shared/components/AuthGuard';
@@ -93,7 +93,7 @@ function MoneyHomeInner() {
                 <span className="block text-[14px] font-semibold text-[var(--lp-text-sub)]">{t.home.balanceLabel}</span>
                 <span className="flex items-baseline gap-2 tabular-nums">
                   {/* Counts to a new value; under reduced motion it fades instead. */}
-                  <motion.span
+                  <m.span
                     key={reduce ? hero : 'count'}
                     initial={{ opacity: reduce ? 0 : 1 }}
                     animate={{ opacity: 1 }}
@@ -101,7 +101,7 @@ function MoneyHomeInner() {
                     className="text-[34px] font-bold leading-none tracking-[-0.03em] text-[var(--lp-dark)] sm:text-[40px]"
                   >
                     <AnimatedNumber value={hero} format={(value) => formatBalance(value, locale)} />
-                  </motion.span>
+                  </m.span>
                   {' '}<span className="text-[15px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
                 </span>
               </h1>

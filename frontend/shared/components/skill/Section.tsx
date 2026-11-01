@@ -1,5 +1,5 @@
 'use client';
-import { motion } from 'motion/react';
+import { m } from 'motion/react';
 import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import type { CSSProperties, ReactNode } from 'react';
 import { cn } from '@/shared/utils/cn';
@@ -58,7 +58,7 @@ export function Section({
         '--lp-accent-on-light': 'var(--accent-on-paper)',
       } as CSSProperties;
   return (
-    <motion.section
+    <m.section
       id={id}
       initial={reduced ? false : 'hidden'}
       // The first render does not know the preference yet and starts hidden;
@@ -91,7 +91,7 @@ export function Section({
       >
         {children}
       </div>
-    </motion.section>
+    </m.section>
   );
 }
 

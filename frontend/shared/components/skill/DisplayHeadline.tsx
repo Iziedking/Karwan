@@ -1,5 +1,5 @@
 'use client';
-import { motion } from 'motion/react';
+import { m } from 'motion/react';
 import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import type { ReactNode } from 'react';
 import { cn } from '@/shared/utils/cn';
@@ -51,7 +51,7 @@ export function DisplayHeadline({
   );
   if (!animate) return <Tag className={base}>{children}</Tag>;
   return (
-    <motion.div
+    <m.div
       className={base}
       initial={reduced ? false : { opacity: 0, y: 16 }}
       whileInView={reduced ? undefined : { opacity: 1, y: 0 }}
@@ -59,7 +59,7 @@ export function DisplayHeadline({
       transition={{ duration: reduced ? 0 : dur.hero, ease: ease.out }}
     >
       <Tag className="contents">{children}</Tag>
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -84,7 +84,7 @@ export function SplitText({ text }: { text: string }) {
     >
       {words.map((word, i) => (
         <span key={i} className="inline-block overflow-hidden" aria-hidden>
-          <motion.span
+          <m.span
             className="inline-block"
             variants={wordReveal}
             initial="hidden"
@@ -93,7 +93,7 @@ export function SplitText({ text }: { text: string }) {
             transition={{ duration: dur.hero, ease: ease.out, delay: i * 0.08 }}
           >
             {word}
-          </motion.span>
+          </m.span>
         </span>
       ))}
     </span>

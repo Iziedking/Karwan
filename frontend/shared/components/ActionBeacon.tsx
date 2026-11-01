@@ -1,6 +1,6 @@
 'use client';
 
-import { motion } from 'motion/react';
+import { m } from 'motion/react';
 import { cn } from '@/shared/utils/cn';
 import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 
@@ -11,14 +11,14 @@ export function ActionBeacon({ className }: { className?: string }) {
   return (
     <span aria-hidden className={cn('relative inline-flex size-3 shrink-0 items-center justify-center', className)}>
       {!reduced ? (
-        <motion.span
+        <m.span
           className="absolute size-2 rounded-full bg-[var(--lp-accent)] motion-reduce:hidden"
           initial={{ opacity: 0.34, scale: 0.7 }}
           animate={{ opacity: 0, scale: 2.1 }}
           transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
         />
       ) : null}
-      <motion.span
+      <m.span
         className="relative size-1.5 rounded-full bg-[var(--lp-accent)]"
         initial={reduced ? false : { opacity: 0, scale: 0.5 }}
         animate={{ opacity: 1, scale: 1 }}

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, m } from 'motion/react';
 import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
@@ -113,7 +113,7 @@ export function ProfileNudge() {
   return (
     <AnimatePresence initial={false}>
       {visible && copy ? (
-        <motion.aside
+        <m.aside
           key={kind}
           initial={reduce ? { opacity: 0 } : { opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -150,7 +150,7 @@ export function ProfileNudge() {
               </button>
             </div>
           </div>
-        </motion.aside>
+        </m.aside>
       ) : null}
     </AnimatePresence>
   );

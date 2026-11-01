@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, m } from 'motion/react';
 import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import { Punc, Accent } from '@/shared/components/Bands';
 import { ProfileFrame, Row, RowGroup } from '@/features/profile/ui/ProfileUi';
@@ -59,7 +59,7 @@ function GuaranteePageInner() {
         </RowGroup>
         <AnimatePresence initial={false}>
           {earningsOpen ? (
-            <motion.div
+            <m.div
               id="guarantee-earnings"
               role="region"
               aria-label={mp.earnings}
@@ -80,7 +80,7 @@ function GuaranteePageInner() {
                 <UsycReservesWidget />
                 <ReservesWidget />
               </div>
-            </motion.div>
+            </m.div>
           ) : null}
         </AnimatePresence>
       </section>
