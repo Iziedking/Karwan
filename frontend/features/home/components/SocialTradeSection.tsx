@@ -6,7 +6,8 @@ import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { canRotateStory } from '../capabilityStory';
 import { nextTradeIntentIndex } from '../tradeIntentRotation';
 import { SOCIAL_TRADE_EXAMPLES, SOCIAL_EXAMPLE_INTERVAL_MS } from '../socialTradeExamples';
-import { tradeEntryRoutes } from '../tradeEntry';
+import { landingEntryRoutes } from '../landingEntry';
+import { DEALS_AVAILABLE } from '@/core/arcNetwork';
 import { PlatformMark } from './PlatformMark';
 import styles from './SocialTradeSection.module.css';
 import { Icon } from '@/shared/components/Icon';
@@ -58,7 +59,7 @@ export function SocialTradeSection() {
           <p className={styles.label}><img src="/brand/karwan-mark-lime.svg" alt="" width={24} height={28} />{t.label}</p>
           <h2 id="social-trade-title" className={styles.headline}>{t.title}</h2>
           <p className={styles.body}>{t.body}</p>
-          <Link href={tradeEntryRoutes().agreement} className={styles.cta}>{t.action}<Icon name="arrow-right" size={16} directional /></Link>
+          <Link href={landingEntryRoutes(DEALS_AVAILABLE).agreement} className={styles.cta}>{DEALS_AVAILABLE ? t.action : messages.landingEditorial.tryTestnet}<Icon name="arrow-right" size={16} directional /></Link>
 
           <div className={styles.exampleControls}>
             <p className={styles.controlsLabel}>{t.controls}</p>

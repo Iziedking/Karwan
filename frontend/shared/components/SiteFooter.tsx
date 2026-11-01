@@ -61,10 +61,10 @@ export function SiteFooter() {
         >
           <div className="grid gap-8 lg:grid-cols-[0.95fr_2fr] lg:gap-10">
             {/* LEFT. logo block, editorial */}
-            <div className="space-y-5">
+            <div className="min-w-0 space-y-5">
               <Brand />
               <p className="text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[34ch]">
-                {messages.landingEditorial.kicker}.
+                {t.tagline}
               </p>
               <p className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{messages.networkUi.poweredByArc}</p>
               <NewsletterSignup />
@@ -199,14 +199,14 @@ function NewsletterSignup() {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-2.5 pt-1">
+    <form onSubmit={submit} className="min-w-0 space-y-2.5 pt-1">
       <p className="text-sm font-semibold text-[var(--lp-text-sub)]">
         {t.title}
       </p>
       <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[34ch] font-medium">
         {t.blurb}
       </p>
-      <div className="flex max-w-[360px] flex-col items-stretch gap-2 min-[380px]:flex-row">
+      <div className="flex w-full max-w-[360px] flex-col items-stretch gap-2 sm:flex-row">
         <input
           type="email"
           value={email}
@@ -218,13 +218,13 @@ function NewsletterSignup() {
           placeholder={t.placeholder}
           maxLength={200}
           aria-label={t.title}
-          className="min-h-11 min-w-0 flex-1 px-3 py-2 text-[14px] bg-[var(--lp-light)] text-[var(--lp-dark)] border border-[var(--lp-field-border)] placeholder:text-[var(--lp-text-muted)] focus:border-[var(--lp-dark)] transition-colors"
+          className="min-h-11 w-full min-w-0 flex-1 px-3 py-2 text-[14px] bg-[var(--lp-light)] text-[var(--lp-dark)] border border-[var(--lp-field-border)] placeholder:text-[var(--lp-text-muted)] focus:border-[var(--lp-dark)] transition-colors"
           style={{ borderRadius: 10 }}
         />
         <button
           type="submit"
           disabled={state === 'sending'}
-          className="min-h-11 w-full shrink-0 px-4 py-2 text-sm font-semibold bg-[var(--lp-control-active-bg)] text-[var(--lp-control-active-ink)] disabled:opacity-60 min-[380px]:w-auto"
+          className="min-h-11 w-full shrink-0 px-4 py-2 text-sm font-semibold bg-[var(--lp-control-active-bg)] text-[var(--lp-control-active-ink)] disabled:opacity-60 sm:w-auto"
           style={{ borderRadius: 10 }}
         >
           {state === 'sending' ? t.sending : t.cta}

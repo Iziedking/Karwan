@@ -5385,11 +5385,11 @@ export const en: MessagesShape = {
   onboardingReview: { purpose: 'Set the trade amounts and delivery times you want to work with. You can change these preferences later.', review: 'Review your trade preferences', days: 'days' },
   landingEditorial: {
     routes: { label: 'Across borders', title: 'Trade with anyone, anywhere.', body: 'A supplier in Kano and a buyer in Hamburg agree terms, lock the payment in escrow and settle in USDC on Arc. The same protected deal works between any two places.', cities: { kano: 'Kano', hamburg: 'Hamburg', lagos: 'Lagos', london: 'London', johannesburg: 'Johannesburg', shenzhen: 'Shenzhen', nairobi: 'Nairobi', dubai: 'Dubai', toronto: 'Toronto', dakar: 'Dakar', casablanca: 'Casablanca', cairo: 'Cairo', addisAbaba: 'Addis Ababa', kinshasa: 'Kinshasa' } },
-    kicker: 'One reputation for the internet', titleFirst: "Your reputation should", titleLast: "travel with you.",
-    lead: 'Karwan brings your reputation together, so you never start from zero again. It starts with an open market where every completed trade builds your record.',
-    open: 'Open Karwan', trade: "Mainnet access is by invitation, one user at a time. The market and deal flow are available on testnet.", startLink: 'How a deal starts',
+    kicker: "Online and cross-border trade", titleFirst: "Find buyers and sellers.", titleLast: "Check their record.",
+    lead: "Browse offers and requests, or create a deal with someone you know. Agree delivery and USDC escrow terms in one place.",
+    open: "Explore the market", trade: "Mainnet access is by invitation. The market and deal flow are available on testnet with test funds.", startLink: 'How a deal starts',
     introLabel: "Opportunity and reputation", introTitle: "Build on the work you have already done.", introBody: "A freelancer’s completed work, a supplier’s deliveries and a buyer’s payment history should help them find their next opportunity. Karwan starts with a record of trades completed here. Sharing that reputation across platforms, with your permission, is planned.", marketLink: 'Explore requests and offers',
-    bringLabel: 'Bring a deal', bringTitle: 'You already know the other side', bringBody: 'Set the goods or service, amount, deadline, and milestones. Invite the buyer or seller to review the same terms.',
+    bringLabel: "Create a deal", bringTitle: 'You already know the other side', bringBody: 'Set the goods or service, amount, deadline, and milestones. Invite the buyer or seller to review the same terms.',
     findLabel: 'Find a match', findTitle: 'You need a buyer or seller', findBody: "Browse requests and offers on testnet. Review the available trade history and proposed terms before choosing who to work with.",
     recordLabel: 'Escrow and settlement', recordTitle: 'The payment has a schedule.', recordBody: 'The buyer funds USDC escrow after both sides agree. Karwan shows the delivery, the current milestone, and what happens to the money next.',
     terms: 'Terms accepted', funded: 'Escrow funded', delivery: 'Delivery submitted', reviewed: 'Milestone reviewed', released: 'Release recorded', both: 'Buyer and seller', buyer: 'Buyer', seller: 'Seller', receipt: 'Deal receipt',
@@ -5780,7 +5780,7 @@ export const en: MessagesShape = {
     },
   },
   footer: {
-    tagline: 'Protected settlement for cross-border SME trade. Funds release in milestones after buyer review.',
+    tagline: "Find trading partners, agree terms and manage USDC escrow. Market and escrow deals are available on testnet.",
     builtFor: 'Built for the trade lane',
     columns: {
       product: 'Product',
@@ -5813,7 +5813,7 @@ export const en: MessagesShape = {
     },
     copyright: {
       entity: '© 2026 Karwan',
-      tagline: 'one reputation, starting with an open market',
+      tagline: "Online and cross-border trade",
     },
     heroClose: 'settle in real time',
     feedbackPrompt: {
@@ -10516,10 +10516,10 @@ export const en: MessagesShape = {
     cta: { title: 'Start building your record', body: 'Agree the terms, fund USDC escrow, and every completed deal adds to your reputation.', button: 'Launch app', chainPrefix: 'chain' },
   },
   brandPage: {
-    hero: { tag: 'Brand', headlineLead: 'The Karwan', headlineAccent: 'mark', body: 'Karwan is building one reputation for the internet, starting with an open market. Download the mark and wordmark, use the exact palette, and say clearly what is live and what is being built.' },
+    hero: { tag: 'Brand', headlineLead: 'The Karwan', headlineAccent: 'mark', body: "Karwan is building a trust layer for online and cross-border trade. Use the official assets and distinguish available features from planned work." },
     logo: { tag: 'Logo', headline: 'Three forms', body: 'Pick by surface. Mark for small spaces. Wordmark when there is room. Reserve clearspace equal to the stroke width on every side.', wordmarkOnDark: 'Wordmark on dark', wordmarkOnLight: 'Wordmark on light', markOnDark: 'Mark on dark' },
     palette: { tag: 'Palette', headline: 'The Karwan palette', body: 'Four foundation colors set the mark, ink and light surfaces. Supporting interface colors keep text readable in both themes.', brandLime: 'Karwan green', brandInk: 'Karwan ink', creamSurface: 'Blue-grey canvas', cardWhite: 'Mist card', darkRaised: 'Dark raised surface', darkInset: 'Dark inset surface', lightInset: 'Light inset surface', lightSecondary: 'Secondary ink on light', darkSecondary: 'Secondary ink on dark', greenOnLight: 'Green text on light', interfaceHeadline: 'Supporting interface colors', interfaceBody: 'Use these for surface depth and readable supporting text. Status colors are separate and must always be paired with words.', interfaceLabel: 'Interface', brandLabel: 'Brand', copy: 'Copy', copied: 'Copied' },
-    voice: { tag: 'Voice', headline: 'Lead with reputation, be exact about today', body: 'Say with confidence where Karwan is going: one reputation that travels with a person. Say exactly what runs today: the market, milestone escrow in USDC and the record of completed deals. Keep limitations beside the claim they qualify.', wordsWeUseLabel: 'Use plain terms', wordsWeUseBody: 'Buyer, seller, agreement, milestone, delivery, review, payment held, release, dispute, refund, trade record.', wordsWeAvoidLabel: 'Avoid unproven claims', wordsWeAvoidBody: 'Never call an unaudited flow guaranteed, insured, instant or risk-free. Do not describe example trades as live activity or agent suggestions as decisions.' },
+    voice: { tag: 'Voice', headline: "Lead with the task and be clear about availability", body: "Explain what a person can do today: find a buyer or seller, review their record and agree a deal. Say that market and escrow trading run on testnet. Reputation sharing across platforms is planned.", wordsWeUseLabel: 'Use plain terms', wordsWeUseBody: 'Buyer, seller, agreement, milestone, delivery, review, payment held, release, dispute, refund, trade record.', wordsWeAvoidLabel: 'Avoid unproven claims', wordsWeAvoidBody: 'Never call an unaudited flow guaranteed, insured, instant or risk-free. Do not describe example trades as live activity or agent suggestions as decisions.' },
     partner: { tag: 'Partner co-mark', headline: 'Pair, do not enclose', body: 'Use an organisation’s mark only with its approval. Align both wordmarks on one baseline with a fine divider, and keep their original proportions.', partnerLabel: 'Partner' },
     press: { tag: 'Press kit', headline: 'About Karwan', body: 'Use the boilerplate as written. Shorten it from the end, never rewrite the claims.', boilerplateLabel: 'Boilerplate, in English', taglinesLabel: 'Taglines', copy: 'Copy', copied: 'Copied', previewLabel: 'Link preview', previewBody: 'The card people see when karwan.site is shared: two people dealing, the money held in escrow between them, and the record that follows.', download: 'Download the card (PNG)' },
     contact: { tag: 'Press and partners', headlineLead: 'Reach', headlineAccent: 'out', body: 'Want a higher-resolution asset, a co-mark configuration we have not published, or a quote? Send a note.', backHome: 'Back home' },

@@ -9,7 +9,7 @@ import { ImageResponse } from 'next/og';
 // Fonts are TTF copies of the self-hosted General Sans because the image
 // renderer cannot read woff2.
 export const runtime = 'nodejs';
-export const alt = 'Karwan · one reputation, starting with an open market';
+export const alt = 'Karwan · online and cross-border trade';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -74,14 +74,14 @@ export default async function OpengraphImage() {
 
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', flexDirection: 'column', fontSize: 66, fontWeight: 600, lineHeight: 1.04, letterSpacing: -2, color: PAPER }}>
-              <div style={{ display: 'flex' }}>Your reputation</div>
-              <div style={{ display: 'flex' }}>should travel</div>
+              <div style={{ display: 'flex' }}>Find buyers</div>
+              <div style={{ display: 'flex' }}>and sellers.</div>
               <div style={{ display: 'flex' }}>
-                with you<span style={{ color: LIME }}>.</span>
+                Check records<span style={{ color: LIME }}>.</span>
               </div>
             </div>
             <div style={{ display: 'flex', marginTop: 24, fontSize: 27, fontWeight: 500, lineHeight: 1.35, color: MUTED }}>
-              One reputation for the internet. It starts with an open market where every completed trade counts.
+              Review trade terms and manage USDC escrow. Try the market and deal flow with test funds.
             </div>
           </div>
 

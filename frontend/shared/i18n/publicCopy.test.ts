@@ -23,7 +23,7 @@ test('English public guides distinguish the mainnet wallet from testnet trading'
 test('product copy separates portable reputation plans from current access', () => {
   const t = MESSAGES.en;
   assert.match(t.landingEditorial.introBody, /across platforms.*planned/);
-  assert.match(t.landingEditorial.trade, /one user at a time/);
+  assert.match(t.landingEditorial.trade, /Mainnet access is by invitation/);
   assert.match(t.landingEditorial.trade, /testnet/);
   assert.match(t.docsProduct.today.lede, /not available yet/);
   assert.match(t.docsProduct.problem.body, /planned, not available today/);

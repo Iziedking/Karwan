@@ -77,7 +77,7 @@ const notoDevanagari = Noto_Sans_Devanagari({
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://karwan.site').replace(/\/$/, '');
 const TITLE = SITE_TITLE;
 const DESCRIPTION =
-  'Karwan brings your online reputation together so you never start from zero again. It starts with an open market where every completed trade builds your record. Mainnet access is by invitation.';
+  "Find buyers and sellers, review their record and agree clear trade terms. Try Karwan’s market and USDC escrow with test funds. Mainnet access is by invitation.";
 
 /// Viewport tag lives in its own export per the Next.js 15 metadata split.
 /// themeColor reads as #0e0e0e so Android Chrome paints the address bar in

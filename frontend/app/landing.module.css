@@ -133,3 +133,9 @@
   .page[data-motion] .heroContent > *, .page[data-motion] .hero h1 span, .page[data-motion] .media video { animation: none; }
   .page[data-motion] > section[data-reveal] { opacity: 1; transform: none; transition: none; }
 }
+
+.heroActions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px 24px; margin-top: 32px; }
+.heroActions .button { margin-top: 0; }
+.heroActions .textLink { color: inherit; }
+.heroContent .note { max-width: 630px; margin-inline: auto; line-height: 1.55; }
+@media (max-width: 640px) { .heroActions { justify-content: flex-start; margin-top: 28px; } .heroActions .button { margin-top: 0; } .heroContent .note { margin-inline: 0; } }

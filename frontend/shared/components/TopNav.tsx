@@ -709,14 +709,14 @@ function SettingsIconLink({ active }: { active: boolean }) {
 }
 
 function LaunchAppCTA() {
-  const label = useTranslations().nav.openApp;
+  const messages = useTranslations();
   const href = useEntryHref();
   return (
     <Link
       href={href}
       className="hidden min-h-12 items-center gap-2 rounded-full bg-[var(--tint)] px-5 text-[14px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] hover:bg-[color-mix(in_srgb,var(--tint)_92%,var(--ink))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)] md:inline-flex"
     >
-      {label}
+      {href === START_ROUTE ? messages.common.signIn : messages.nav.openApp}
       <Icon name="arrow-right" size={16} directional />
     </Link>
   );

@@ -34,12 +34,12 @@ test('someone signed in opens the app, everyone else the sign-in page', () => {
   assert.equal(entryHref(false, '/app'), '/start');
 });
 
-test('the session store keeps the hint, and the landing reads it without calling auth', () => {
+test('the session store keeps the hint while public trading actions remain independent of sign-in', () => {
   const store = readFileSync(new URL('./sessionStore.ts', import.meta.url), 'utf8');
   assert.match(store, /if \(loaded\) rememberSignedIn\(!!session\)/);
   const landing = readFileSync(new URL('../../app/page.tsx', import.meta.url), 'utf8');
-  assert.doesNotMatch(landing, /href="\/start"/, 'both Open buttons use the entry link');
-  assert.match(landing, /useEntryHref\(\)/);
+  assert.match(landing, /landingEntryRoutes\(DEALS_AVAILABLE\)/);
+  assert.doesNotMatch(landing, /useEntryHref\(\)/, 'public browsing does not require a session hint');
   assert.doesNotMatch(landing, /useAuth|useSiwe/, 'the landing never runs sign-in');
 });
 

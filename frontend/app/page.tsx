@@ -8,8 +8,7 @@ import { SocialTradeSection } from '@/features/home/components/SocialTradeSectio
 import { ProtectionSection } from '@/features/home/components/ProtectionSection';
 import { TradeRoutesMap } from '@/features/home/components/TradeRoutesMap';
 import { SettlementRecord } from '@/features/home/components/SettlementRecord';
-import { useEntryHref } from '@/shared/auth/useEntryHref';
-import { dealHref, START_ROUTE } from '@/shared/utils/routes';
+import { landingEntryRoutes } from '@/features/home/landingEntry';
 import styles from './landing.module.css';
 
 /// The hero film is the original slowed to a quarter, with the frames between
@@ -28,7 +27,7 @@ export default function HomePage() {
   const t = messages.landingEditorial;
   const videoRef = useRef<HTMLVideoElement>(null);
   const pageRef = useRef<HTMLDivElement>(null);
-  const openHref = useEntryHref();
+  const entry = landingEntryRoutes(DEALS_AVAILABLE);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -92,8 +91,11 @@ export default function HomePage() {
           <p className={styles.kicker}>{t.kicker}</p>
           <h1 id="landing-title"><span>{t.titleFirst}</span>{' '}<span>{t.titleLast}</span></h1>
           <p className={styles.lead}>{t.lead}</p>
-          <Link className={styles.button} href={openHref}>{t.open}<Arrow /></Link>
-          <p className={styles.note}>{messages.networkUi.builtOnArc}</p>
+          <div className={styles.heroActions}>
+            <Link className={styles.button} href={entry.primary}>{DEALS_AVAILABLE ? t.open : t.waitlistCta}<Arrow /></Link>
+            <Link className={styles.textLink} href={entry.secondary}>{DEALS_AVAILABLE ? t.bringLabel : t.tryTestnet}<Arrow /></Link>
+          </div>
+          <p className={styles.note}>{t.trade}</p>
         </div>
         <div className={styles.media}>
           <video ref={videoRef} muted playsInline preload="metadata" poster="/media/landing/karwan-hero-poster.jpg" aria-hidden="true">
@@ -104,7 +106,7 @@ export default function HomePage() {
       <SocialTradeSection />
       <section className={styles.intro} id="how-it-works" aria-labelledby="intro-title">
         <div className={`${styles.wrap} ${styles.introGrid}`}>
-          <div><p className={styles.eyebrow}>{t.introLabel}</p><h2 id="intro-title">{t.introTitle}</h2><p className={styles.introCopy}>{t.introBody}</p>{DEALS_AVAILABLE && <Link className={styles.textLink} href="/market">{t.marketLink}<Arrow /></Link>}</div>
+          <div><p className={styles.eyebrow}>{t.introLabel}</p><h2 id="intro-title">{t.introTitle}</h2><p className={styles.introCopy}>{t.introBody}</p><Link className={styles.textLink} href={entry.market}>{DEALS_AVAILABLE ? t.marketLink : t.tryTestnet}<Arrow /></Link></div>
           <div className={styles.flow}>
             <article><p className={styles.flowLabel}>{t.bringLabel}</p><h3>{t.bringTitle}</h3><p>{t.bringBody}</p></article>
             <article><p className={styles.flowLabel}>{t.findLabel}</p><h3>{t.findTitle}</h3><p>{t.findBody}</p></article>
@@ -122,7 +124,7 @@ export default function HomePage() {
               test funds is the second way in. */}
           <div className={styles.closingActions}>
             <Link className={styles.button} href="/waitlist">{t.waitlistCta}<Arrow /></Link>
-            <Link className={styles.textLink} href={DEALS_AVAILABLE ? openHref : dealHref(START_ROUTE, false)}>{t.tryTestnet}<Arrow /></Link>
+            <Link className={styles.textLink} href={entry.market}>{t.tryTestnet}<Arrow /></Link>
           </div>
         </div>
       </section>

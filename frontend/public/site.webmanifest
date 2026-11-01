@@ -1,7 +1,7 @@
 {
   "name": "Karwan",
   "short_name": "Karwan",
-  "description": "An open market for people and businesses to find opportunities and build a trade record. Mainnet access is by invitation.",
+  "description": "Find buyers and sellers, review their record and agree clear trade terms. Try Karwan’s market and USDC escrow with test funds. Mainnet access is by invitation.",
   "start_url": "/app",
   "scope": "/",
   "display": "standalone",

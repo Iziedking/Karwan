@@ -16,7 +16,7 @@ test('editorial copy names the network and distinguishes current access from pla
   assert.equal(en.networkUi.builtOnArc, 'Built on Arc');
   assert.match(en.networkUi.testnetNotice, /no real monetary value/);
   assert.match(en.landingEditorial.trade, /Mainnet access is by invitation/);
-  assert.match(en.landingEditorial.trade, /market and deal flow are available on testnet/);
+  assert.match(en.landingEditorial.trade, /market and deal flow are available on testnet with test funds/);
   assert.match(en.landingEditorial.introBody, /across platforms.*planned/);
   assert.match(en.landingEditorial.limitBody, /including the final one/);
   assert.match(en.landingEditorial.limitBody, /It does not refund them automatically/);
