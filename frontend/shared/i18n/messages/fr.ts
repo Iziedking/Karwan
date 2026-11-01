@@ -533,6 +533,7 @@ export const fr: Messages = {
       docs: 'Documentation',
       brand: 'Presse et marque',
       terms: 'Conditions',
+      companyRegistration: 'Immatriculation de la société',
       feedback: 'Retours',
       contact: 'Contact',
     },

@@ -487,6 +487,7 @@ interface MessagesShape {
       docs: string;
       brand: string;
       terms: string;
+      companyRegistration: string;
       feedback: string;
       contact: string;
     };
@@ -5794,6 +5795,7 @@ export const en: MessagesShape = {
       docs: 'Documentation',
       brand: 'Press and brand',
       terms: 'Terms',
+      companyRegistration: 'Company registration',
       feedback: 'Feedback',
       contact: 'Contact',
     },

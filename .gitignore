@@ -188,6 +188,9 @@ docs/space-paytag-2026-08-16.md
 # Internal documentation is private by default. Explicitly allow public docs.
 # Add future public documents here deliberately; do not force-add private plans.
 /docs/*
+# Company registration page; the original certificate PDF stays out.
+!/docs/Nigeria Company Reg/
+/docs/Nigeria Company Reg/*.pdf
 !/docs/agent-lanes.md
 !/docs/agent-workflows.md
 !/docs/architecture.md

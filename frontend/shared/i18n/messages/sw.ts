@@ -530,6 +530,7 @@ export const sw: Messages = {
       docs: 'Nyaraka',
       brand: 'Vyombo vya habari na chapa',
       terms: 'Masharti',
+      companyRegistration: 'Usajili wa kampuni',
       feedback: 'Maoni',
       contact: 'Wasiliana',
     },

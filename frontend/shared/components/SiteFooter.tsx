@@ -84,6 +84,9 @@ export function SiteFooter() {
                   <FooterLink href="/brand">{t.productLinks.brand}</FooterLink>
                   <FooterLink href="/terms">{t.productLinks.terms}</FooterLink>
                   <FooterLink href="/privacy">{messages.startFlow.privacy.link}</FooterLink>
+                  {/* The CAC certificate of Karwan Technologies Limited, RC
+                      9974106, with the tax number covered. */}
+                  <FooterLink href="/legal/cac-certificate.jpg" external>{t.productLinks.companyRegistration}</FooterLink>
                   <FooterLink href="/feedback">{t.productLinks.feedback}</FooterLink>
                 </>
                 <FooterContact label={t.productLinks.contact} />

@@ -1,6 +1,6 @@
 {
   "canonVersion": "0.4.0",
-  "canonUpdated": "2026-10-31",
+  "canonUpdated": "2026-11-01",
   "docs": [
     {
       "id": "agent-record-checks",
@@ -672,7 +672,7 @@
       "id": "what-karwan-is",
       "title": "What Karwan is",
       "status": "live",
-      "updated": "2026-09-30",
+      "updated": "2026-11-01",
       "tags": [
         "overview",
         "market",
@@ -684,9 +684,13 @@
         {
           "url": "https://karwan.site",
           "date": "2026-09-30"
+        },
+        {
+          "url": "https://search.cac.gov.ng",
+          "date": "2026-11-01"
         }
       ],
-      "body": "Karwan unifies online reputation, starting with an open market for secure local\nand cross-border trade. People join a new marketplace, job board or region and\nhave to vet themselves from zero every time; Karwan is building one reputation\nthat travels with a person, so hidden talent becomes visible and opportunity\nfollows. It starts with Karwan's market, where every completed deal is\nprotected in escrow and recorded.\n\nPeople and businesses can buy or sell services, goods, supplies and eligible\nbusiness orders. A trade may be local, with both parties in the same country,\nor cross-border, with parties in different countries.\n\nTrade can start as a direct deal with a known counterparty, an email invite, an\nopen buyer request, an open seller offer, a verified business connection or an\nagent-assisted match. The parties agree the commercial terms before test USDC\nmoves into milestone escrow on Arc Testnet. Money sits in the escrow contract,\nnot with Karwan or the counterparty, and releases against the agreed outcome.\n\nIndividual and business trade use the same protection layer. Business accounts\ncan also build a portable credit record from settled trade and request financing\nfor eligible Karwan-originated accepted invoices or purchase orders. Financing\nis opt-in: approved financiers quote terms and the supplier chooses. Direct deals\nremain available without verification, while agent matching, verified-business\nfeatures and financing may have eligibility gates.\n\nThe current release is testnet software. Local trade does not mean local-currency\npayment is live. Unified reputation across platforms, browser capture, mainnet\nsettlement and local bank payout are planned expansion, not current capabilities."
+      "body": "Karwan unifies online reputation, starting with an open market for secure local\nand cross-border trade. People join a new marketplace, job board or region and\nhave to vet themselves from zero every time; Karwan is building one reputation\nthat travels with a person, so hidden talent becomes visible and opportunity\nfollows. It starts with Karwan's market, where every completed deal is\nprotected in escrow and recorded.\n\nPeople and businesses can buy or sell services, goods, supplies and eligible\nbusiness orders. A trade may be local, with both parties in the same country,\nor cross-border, with parties in different countries.\n\nTrade can start as a direct deal with a known counterparty, an email invite, an\nopen buyer request, an open seller offer, a verified business connection or an\nagent-assisted match. The parties agree the commercial terms before test USDC\nmoves into milestone escrow on Arc Testnet. Money sits in the escrow contract,\nnot with Karwan or the counterparty, and releases against the agreed outcome.\n\nIndividual and business trade use the same protection layer. Business accounts\ncan also build a portable credit record from settled trade and request financing\nfor eligible Karwan-originated accepted invoices or purchase orders. Financing\nis opt-in: approved financiers quote terms and the supplier chooses. Direct deals\nremain available without verification, while agent matching, verified-business\nfeatures and financing may have eligibility gates.\n\nKarwan is built by Karwan Technologies Limited, a private company limited by\nshares incorporated in Nigeria with the Corporate Affairs Commission on 29\nOctober 2026, registration number RC 9974106. The certificate is linked as\nCompany registration in the site footer, and the company can be looked up on the\nCAC public search. Incorporation makes it a company; it is not a licence to hold\ncustomer money or provide payment or financial services.\n\nThe current release is testnet software. Local trade does not mean local-currency\npayment is live. Unified reputation across platforms, browser capture, mainnet\nsettlement and local bank payout are planned expansion, not current capabilities."
     },
     {
       "id": "when-a-paid-deal-does-not-start",
@@ -1678,10 +1682,14 @@
         {
           "url": "https://karwan.site",
           "date": "2026-09-30"
+        },
+        {
+          "url": "https://search.cac.gov.ng",
+          "date": "2026-11-01"
         }
       ],
       "check": null,
-      "updated": "2026-09-30",
+      "updated": "2026-11-01",
       "path": "public/product/what-karwan-is.md"
     },
     {

@@ -533,6 +533,7 @@ export const ar: Messages = {
       docs: 'التوثيق',
       brand: 'الصحافة والعلامة التجارية',
       terms: 'الشروط',
+      companyRegistration: 'تسجيل الشركة',
       feedback: 'الملاحظات',
       contact: 'تواصل معنا',
     },

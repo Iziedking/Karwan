@@ -531,6 +531,7 @@ export const hi: Messages = {
       docs: 'दस्तावेज़',
       brand: 'प्रेस और ब्रांड',
       terms: 'शर्तें',
+      companyRegistration: 'कंपनी पंजीकरण',
       feedback: 'फीडबैक',
       contact: 'संपर्क',
     },
