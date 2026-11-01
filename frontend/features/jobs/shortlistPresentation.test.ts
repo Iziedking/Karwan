@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { ShortlistEntry } from '@/core/api';
 import { shortlistCopy } from '@/shared/i18n/messages/shortlist';
-import { shortlistCostLine, shortlistNotice, shortlistRowView, shortlistState } from './shortlistPresentation';
+import { rankLine, shortlistCostLine, shortlistNotice, shortlistRowView, shortlistState } from './shortlistPresentation';
 
 const copy = shortlistCopy.en;
 
@@ -110,4 +110,9 @@ test('an offer that needs longer than the request says how many days more (view 
   assert.equal(shortlistRowView({ ...ada, outsideRequest: true, extraDays: 1 }, copy).markLine, 'Needs 1 day longer than your request');
   assert.equal(shortlistRowView({ ...ada, outsideRequest: true, extraDays: 0 }, copy).markLine, 'Above your budget, outside your request');
   assert.equal(v.choosable, true);
+});
+
+test('each offer shows its place in the agent order, the pick marked (view 46)', () => {
+  assert.equal(rankLine(0, true, copy), '#1 · Agent’s pick');
+  assert.equal(rankLine(2, false, copy), '#3');
 });

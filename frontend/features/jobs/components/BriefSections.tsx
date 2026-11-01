@@ -6,10 +6,10 @@ import { api, ApiError, type BuyerJob } from '@/core/api';
 import { EDIT_REQUEST_EVENT } from '@/shared/components/MarketAdvisoryBanner';
 import { SectionTag, PageCard, CTAPill } from '@/shared/components/Bands';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { briefOpenForChange } from '../briefOpen';
 
 export function EditBriefSection({
   job,
-  declined,
   matchPending,
   viewerIsSeller,
   callerAddress,
@@ -17,7 +17,6 @@ export function EditBriefSection({
   onEdited,
 }: {
   job: BuyerJob;
-  declined: boolean;
   matchPending: boolean;
   viewerIsSeller: boolean;
   callerAddress: string | undefined;
@@ -33,16 +32,7 @@ export function EditBriefSection({
 
   const viewerIsBuyer =
     isBuyer ?? (!!callerAddress && callerAddress.toLowerCase() === job.buyer.toLowerCase());
-  const editable =
-    viewerIsBuyer &&
-    !viewerIsSeller &&
-    !job.finalized &&
-    !job.escrowFunded &&
-    !job.expiredAt &&
-    !job.cancelledAt &&
-    !matchPending &&
-    !declined &&
-    !!job.briefText;
+  const editable = viewerIsBuyer && !viewerIsSeller && briefOpenForChange(job, matchPending) && !!job.briefText;
 
   // "Allow more" on the market note opens this sheet (view 35).
   useEffect(() => {
@@ -305,14 +295,12 @@ function EditBriefSheet({
 
 export function CancelBriefSection({
   job,
-  declined,
   matchPending,
   viewerIsSeller,
   callerAddress,
   isBuyer,
 }: {
   job: BuyerJob;
-  declined: boolean;
   matchPending: boolean;
   viewerIsSeller: boolean;
   callerAddress: string | undefined;
@@ -328,15 +316,7 @@ export function CancelBriefSection({
 
   const viewerIsBuyer =
     isBuyer ?? (!!callerAddress && callerAddress.toLowerCase() === job.buyer.toLowerCase());
-  const cancellable =
-    viewerIsBuyer &&
-    !viewerIsSeller &&
-    !job.finalized &&
-    !job.escrowFunded &&
-    !job.expiredAt &&
-    !job.cancelledAt &&
-    !matchPending &&
-    !declined;
+  const cancellable = viewerIsBuyer && !viewerIsSeller && briefOpenForChange(job, matchPending);
 
   if (!cancellable || !callerAddress) return null;
 

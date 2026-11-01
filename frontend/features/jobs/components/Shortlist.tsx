@@ -7,10 +7,11 @@ import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ratingText } from '@/features/ratings/ratingText';
 import { formatUsdc } from '@/shared/utils/format';
 import { FactsConfirmSheet } from '@/shared/components/FactsConfirmSheet';
+import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
 import { rankedOffers, type RankedOffer } from '../rankedOffers';
 import { fill } from '@/features/deals/workspace/presentation';
 import { chooseErrorKey } from '../chooseError';
-import { shortlistCostLine, shortlistNotice, shortlistRowView, shortlistState, type ShortlistState } from '../shortlistPresentation';
+import { rankLine, shortlistCostLine, shortlistNotice, shortlistRowView, shortlistState, type ShortlistState } from '../shortlistPresentation';
 import { AgentWorldCheck } from './AgentWorldCheck';
 import { worldStepFrom } from '../agentWorldStep';
 
@@ -49,8 +50,8 @@ export function useShortlist(jobId: string, caller: string | null) {
   return state;
 }
 
-/// Who the agents found for this request, verified or not, with each person's
-/// score and numbers and the one the agent recommends. The buyer chooses.
+/// The offers on a request in the agent's order, one line each: photo, name,
+/// price and place, with the agent's pick marked. A tap shows the rest (view 46).
 export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordChecks, onChosen }: {
   jobId: string;
   caller: string;
@@ -65,15 +66,11 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordCh
   const roster = t.offerRoster;
   const rf = t.requestFlow;
   const ranked = rankedOffers(entries);
+  const [viewing, setViewing] = useState<RankedOffer | null>(null);
   const [choosing, setChoosing] = useState<ShortlistEntry | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [worldStep, setWorldStep] = useState<{ reason: WorldCheckReason | null; skipAllowed: boolean } | null>(null);
-  /// Folded until the buyer opens it: one row with who offered and the lowest
-  /// price, so the list never crowds the page while agents are still at work.
-  // Open from the start: the offers and the agent's pick are what the buyer came for (view 44, P4).
-  const [open, setOpen] = useState(true);
-  const lowest = entries.length ? Math.min(...entries.map((e) => e.priceUsdc)) : null;
   const world = t.agentNudges.world;
   const notice = shortlistNotice(entries, copy);
   const cost = shortlistCostLine(recordChecks, copy);
@@ -105,55 +102,51 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordCh
     }
   }
 
-
   return (
     <section data-guide="job-shortlist" className="mt-6 rounded-[18px] bg-[var(--lp-card)] px-4">
       <div className="py-4">
         <h2 className="text-[17px] font-semibold text-[var(--lp-dark)]">{copy.title}</h2>
-        <p className="mt-1 text-[14px] font-medium text-[var(--ink-secondary)]">{copy.note}</p>
-        {cost ? <p className="mt-1 text-[14px] font-medium tabular-nums text-[var(--ink-secondary)]">{cost}</p> : null}
+        {entries.length ? <p className="mt-1 text-[14px] font-medium text-[var(--ink-secondary)]">{copy.note}</p> : null}
         {notice ? <p className="mt-2 text-[14px] font-semibold text-[var(--lp-dark)]">{notice}</p> : null}
         {waitingOn ? <p role="status" className="mt-2 text-[14px] font-semibold text-[var(--lp-dark)]">{fill(world.waiting, { name: waitingOn })}</p> : null}
       </div>
-      {entries.length ? (
-        <button
-          type="button"
-          aria-expanded={open}
-          aria-controls={`shortlist-${jobId}`}
-          onClick={() => setOpen((o) => !o)}
-          className="flex min-h-14 w-full items-center gap-3 border-t border-[var(--lp-border-light)] py-3 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent)]"
-        >
-          <span aria-hidden className="flex shrink-0 -space-x-2 rtl:space-x-reverse">
-            {entries.slice(0, 4).map((e) => (
-              <span key={e.seller} className="rounded-full ring-2 ring-[var(--lp-card)]">
-                <PersonAvatar address={e.sellerUser} name={e.name} size={28} />
-              </span>
-            ))}
-          </span>
-          <span className="min-w-0 flex-1 truncate text-[15px] font-medium tabular-nums text-[var(--ink-secondary)]">
-            {entries.length === 1
-              ? fill(copy.foldOne, { amount: price(lowest ?? 0) })
-              : fill(copy.fold, { n: entries.length, amount: price(lowest ?? 0) })}
-          </span>
-          <span className="shrink-0 text-[15px] font-semibold text-[var(--lp-dark)]">{open ? copy.hide : copy.show}</span>
-        </button>
-      ) : null}
-      {entries.length && open ? (
+      {ranked.length ? (
         <ul id={`shortlist-${jobId}`} className="divide-y divide-[var(--lp-border-light)] border-t border-[var(--lp-border-light)]">
-          {ranked.map((e) => (
+          {ranked.map((e, i) => (
             <li key={e.seller}>
-              <ShortlistRow
-                entry={e}
-                canChoose={!closed}
-                onChoose={() => {
-                  setError(null);
-                  setChoosing(e);
-                }}
-              />
+              <button
+                type="button"
+                onClick={() => setViewing(e)}
+                className="flex min-h-16 w-full items-center gap-3 py-3 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent)]"
+              >
+                <PersonAvatar address={e.sellerUser} name={e.name} size={40} />
+                <span className="min-w-0 flex-1">
+                  <span dir="auto" className="block truncate text-[15px] font-semibold text-[var(--lp-dark)]">{e.name}</span>
+                  <span
+                    {...(e.bestFit ? { 'data-best-fit': '' } : {})}
+                    className={`block text-[14px] font-medium ${e.bestFit ? 'text-[var(--lp-accent-on-light)]' : 'text-[var(--ink-secondary)]'}`}
+                  >
+                    {e.state === 'unavailable' ? `${fill(copy.rank, { n: i + 1 })} · ${copy.unavailable}` : rankLine(i, e.bestFit, copy)}
+                  </span>
+                </span>
+                <span className="shrink-0 text-[17px] font-semibold tabular-nums text-[var(--lp-dark)]">{price(e.priceUsdc)} USDC</span>
+              </button>
             </li>
           ))}
         </ul>
       ) : null}
+      {cost ? <p className="border-t border-[var(--lp-border-light)] py-3 text-[13px] font-medium tabular-nums text-[var(--ink-secondary)]">{cost}</p> : null}
+      <OfferDetails
+        entry={viewing}
+        place={viewing ? ranked.indexOf(viewing) : 0}
+        canChoose={!closed}
+        onClose={() => setViewing(null)}
+        onChoose={(e) => {
+          setViewing(null);
+          setError(null);
+          setChoosing(e);
+        }}
+      />
       <FactsConfirmSheet
         open={!!choosing}
         title={choosing ? fill(rf.acceptTitle, { name: choosing.name }) : ''}
@@ -193,68 +186,73 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordCh
   );
 }
 
-function ShortlistRow({ entry, canChoose, onChoose }: { entry: RankedOffer; canChoose: boolean; onChoose: () => void }) {
+/// Everything about one offer that its line leaves out, and the move.
+function OfferDetails({ entry, place, canChoose, onClose, onChoose }: {
+  entry: RankedOffer | null;
+  place: number;
+  canChoose: boolean;
+  onClose: () => void;
+  onChoose: (entry: RankedOffer) => void;
+}) {
   const copy = useTranslations().shortlist;
   const rf = useTranslations().requestFlow;
   const { locale, t: all } = useLocale();
-  const v = shortlistRowView(entry, copy);
-  const chooseLabel = `${rf.accept} ${entry.name}`;
-  const reasons = entry.reasonLine.map((r) => copy.reasons[r]).join(' · ');
+  const v = entry ? shortlistRowView(entry, copy) : null;
+  const reasons = entry ? entry.reasonLine.map((r) => copy.reasons[r]).join(' · ') : '';
+  const line = 'text-[15px] font-medium text-[var(--ink-secondary)]';
   return (
-    <div className="py-4">
-      <div className="flex items-start gap-3">
-        <PersonAvatar address={entry.sellerUser} name={entry.name} size={40} />
-        <div className="min-w-0 flex-1">
-          <p className="flex min-w-0 flex-wrap items-baseline gap-x-2">
-            <span dir="auto" className="truncate text-[15px] font-semibold text-[var(--lp-dark)]">{entry.name}</span>
-            {entry.tag ? <span className="text-[14px] font-medium text-[var(--ink-secondary)]">@{entry.tag}</span> : null}
-            {entry.isNew ? <span className="text-[14px] font-semibold text-[var(--lp-dark)]">{copy.isNew}</span> : null}
-          </p>
-          <p className={`mt-0.5 text-[14px] font-semibold ${entry.verified ? 'text-[var(--color-positive)]' : 'text-[var(--lp-dark)]'}`}>
-            {v.levelLine}
-          </p>
-          {entry.rating ? (
-            <p className="mt-0.5 text-[14px] font-medium tabular-nums text-[var(--ink-secondary)]">{ratingText(entry.rating, all.ratings, locale)}</p>
-          ) : null}
-          {entry.bestFit ? <p data-best-fit className="mt-1 text-[14px] font-semibold text-[var(--lp-accent-on-light)]">{rf.bestFit}</p> : null}
-          {reasons ? <p className="mt-0.5 text-[14px] font-medium text-[var(--ink-secondary)]">{reasons}</p> : null}
-          {v.markLine ? <p className="mt-0.5 text-[14px] font-semibold text-[var(--lp-dark)]">{v.markLine}</p> : null}
+    <ConfirmSheetShell open={!!entry} labelledBy="offer-details-title" busy={false} onClose={onClose}>
+      {entry && v ? (
+        <div>
+          <div className="flex items-center gap-3">
+            <PersonAvatar address={entry.sellerUser} name={entry.name} size={48} />
+            <div className="min-w-0 flex-1">
+              <h2 id="offer-details-title" dir="auto" className="truncate text-[20px] font-semibold text-[var(--lp-dark)]">{entry.name}</h2>
+              {entry.tag ? <p className="text-[14px] font-medium text-[var(--ink-secondary)]">@{entry.tag}</p> : null}
+            </div>
+          </div>
+          <p className="mt-4 text-[24px] font-semibold tabular-nums text-[var(--lp-dark)]">{price(entry.priceUsdc)} USDC</p>
+          {v.askedLine ? <p className={line}>{v.askedLine}</p> : null}
+          <p className={`mt-1 text-[15px] font-semibold ${entry.bestFit ? 'text-[var(--lp-accent-on-light)]' : 'text-[var(--lp-dark)]'}`}>{rankLine(place, entry.bestFit, copy)}</p>
+          <div className="mt-4 space-y-1 border-t border-[var(--lp-border-light)] pt-4">
+            <p className={`text-[15px] font-semibold ${entry.verified ? 'text-[var(--color-positive)]' : 'text-[var(--lp-dark)]'}`}>{v.levelLine}</p>
+            {entry.rating ? <p className={`${line} tabular-nums`}>{ratingText(entry.rating, all.ratings, locale)}</p> : null}
+            <p dir="auto" className={line}>{v.offerLine}</p>
+            {v.numbersLine ? <p className={line}>{v.numbersLine}</p> : null}
+            {reasons ? <p className={line}>{reasons}</p> : null}
+            {entry.state === 'negotiating' ? <p className={line}>{copy.negotiating}</p> : null}
+            {entry.state === 'unavailable' ? <p className="text-[15px] font-semibold text-[var(--lp-dark)]">{copy.unavailable}</p> : null}
+            {v.markLine ? <p className="text-[15px] font-semibold text-[var(--lp-dark)]">{v.markLine}</p> : null}
+          </div>
+          <div className="mt-6 flex flex-wrap gap-2">
+            {canChoose && v.choosable ? (
+              <button
+                type="button"
+                onClick={() => onChoose(entry)}
+                aria-label={`${rf.accept} ${entry.name}`}
+                className="inline-flex min-h-12 items-center rounded-full bg-[var(--action)] px-6 text-[15px] font-semibold text-[var(--on-action)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-offset-2"
+              >
+                {rf.accept}
+              </button>
+            ) : null}
+            {v.profileHref ? (
+              <Link
+                href={v.profileHref}
+                className="inline-flex min-h-12 items-center rounded-full border border-[var(--lp-border-light)] px-5 text-[15px] font-semibold text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+              >
+                {copy.viewProfile}
+              </Link>
+            ) : null}
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex min-h-12 items-center rounded-full px-5 text-[15px] font-semibold text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+            >
+              {copy.close}
+            </button>
+          </div>
         </div>
-        <p className="shrink-0 text-end tabular-nums">
-          <span className="block text-[18px] font-semibold text-[var(--lp-dark)]">{price(entry.priceUsdc)} USDC</span>
-          {v.askedLine ? <span className="block text-[14px] font-medium text-[var(--ink-secondary)]">{v.askedLine}</span> : null}
-        </p>
-      </div>
-      <div className="mt-2 ps-[52px] text-[14px] font-medium text-[var(--ink-secondary)]">
-        <p dir="auto">{v.offerLine}</p>
-        {v.numbersLine ? <p className="mt-0.5">{v.numbersLine}</p> : null}
-        {entry.state === 'negotiating' ? <p className="mt-0.5">{copy.negotiating}</p> : null}
-        {entry.state === 'unavailable' ? <p className="mt-0.5 font-semibold text-[var(--lp-dark)]">{copy.unavailable}</p> : null}
-      </div>
-      <div className="mt-3 flex flex-wrap gap-2 ps-[52px]">
-        {v.profileHref ? (
-          <Link
-            href={v.profileHref}
-            className="inline-flex min-h-11 items-center rounded-full border border-[var(--lp-border-light)] px-4 text-[14px] font-semibold text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
-          >
-            {copy.viewProfile}
-          </Link>
-        ) : null}
-        {canChoose && v.choosable ? (
-          <button
-            type="button"
-            onClick={onChoose}
-            aria-label={chooseLabel}
-            className={
-              entry.bestFit
-                ? 'inline-flex min-h-11 items-center rounded-full bg-[var(--action)] px-5 text-[14px] font-semibold text-[var(--on-action)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-offset-2'
-                : 'inline-flex min-h-11 items-center rounded-full border border-[var(--lp-border-light)] px-5 text-[14px] font-semibold text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]'
-            }
-          >
-            {rf.accept}
-          </button>
-        ) : null}
-      </div>
-    </div>
+      ) : null}
+    </ConfirmSheetShell>
   );
 }

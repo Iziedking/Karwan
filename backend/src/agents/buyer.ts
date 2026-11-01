@@ -7,6 +7,7 @@ import { offerToChoose, priceAsSeen, withAgreedPrice, type OfferChoice } from '.
 import { sellerKey } from './sellerKey.js';
 import { bidsFromHistory, offeredDaysFrom, withdrawnFromHistory } from './bidHistory.js';
 import { bestAndFinalRecipients, decideOfferRevision, lowestOtherUsdc, rejudgeStep, type StandingOffer } from './offerRevision.js';
+import { cancelBlock, reopensOnEdit, sellersToJudgeAgain } from './noDeal.js';
 import { closedForOffers } from './offerWindow.js';
 import { generateObject } from 'ai';
 import { formatUnits, parseUnits, type Log } from 'viem';
@@ -5227,6 +5228,35 @@ export function reopenForNewBids(jobId: string): boolean {
   return true;
 }
 
+/// The buyer edited a request whose search ended without a deal (view 46). The
+/// offers it holds are judged again under the new terms and the search runs
+/// again, so the request can still end in a deal before its date.
+export async function reopenAfterEdit(jobId: string): Promise<boolean> {
+  const state = jobs.get(jobId as `0x${string}`);
+  if (!state || !reopensOnEdit(state)) return false;
+  clearCounterWatchdog(state);
+  clearCollectionClose(state);
+  clearNearMiss(state.jobId);
+  for (const seller of sellersToJudgeAgain(state.triedSellers, state.bids.keys())) state.triedSellers.delete(seller);
+  state.sellersAtLastPass = undefined;
+  state.finalized = false;
+  state.negotiationEndedAt = undefined;
+  state.negotiationEndReason = undefined;
+  patchBrief(state.jobId, { negotiationEndedAt: undefined, negotiationEndReason: undefined });
+  state.collectionFired = false;
+  state.collectionStartedAt = Date.now();
+  publishBuyerTimerShadow(state);
+  bus.emitEvent({
+    type: 'negotiation.reopened',
+    jobId: state.jobId,
+    actor: 'buyer',
+    payload: { reason: 'request-edited' },
+  });
+  logger.info({ jobId: state.jobId, offers: state.bids.size }, 'request edited after no deal: search reopened');
+  await finalizeBidCollection(state);
+  return true;
+}
+
 /// Patches the cached negotiation context for a tracked job. Used by the brief
 /// edit route so the next bid evaluation picks up the new tolerance and
 /// trustedMatch flag without the buyer having to repost. No-op when the job
@@ -5342,23 +5372,8 @@ export function cancelBriefByBuyer(
 ): { ok: true } | { ok: false; code: string; message: string } {
   const state = jobs.get(jobId);
   if (!state) return { ok: false, code: 'NO_JOB', message: 'no tracked brief for this job id' };
-  if (state.escrowFunded) {
-    return {
-      ok: false,
-      code: 'ESCROW_FUNDED',
-      message: 'this brief already matched and escrow is funded; cancel on the deal page',
-    };
-  }
-  if (state.finalized) {
-    return {
-      ok: false,
-      code: 'ALREADY_MATCHED',
-      message: 'this brief has a pending match; decline it on the deal page instead',
-    };
-  }
-  if (state.expired) {
-    return { ok: false, code: 'ALREADY_TERMINAL', message: 'this brief is already terminal' };
-  }
+  const blocked = cancelBlock(state);
+  if (blocked) return { ok: false, ...blocked };
   // Re-use the expired terminal state so every scanner that already filters
   // on `expired` honours this without a new field. The brief metadata gets
   // the same marker so a restart treats it consistently.

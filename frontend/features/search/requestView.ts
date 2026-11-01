@@ -140,7 +140,11 @@ export function requestView(input: {
     };
   }
   if (proposal?.approvedAt) return { ...ended('funding'), priceUsdc: proposal.agreedPriceUsdc };
-  if (live.ended === 'declined') return ended('declined');
+  // No deal is not the end: the request stays the buyer's to change or cancel
+  // until its date (view 46).
+  if (live.ended === 'declined') {
+    return { ...base, state: 'declined', whoseMove: buyer ? 'you' : 'none', primary: buyer ? 'editRequest' : null, secondary: buyer ? ['cancelRequest'] : [] };
+  }
 
   const nm = nearMiss && !nearMiss.proceededAt && !nearMiss.declinedAt && nearMiss.expiresAt > now ? nearMiss : null;
   if (nm) {

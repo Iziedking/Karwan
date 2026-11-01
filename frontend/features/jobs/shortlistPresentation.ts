@@ -66,7 +66,14 @@ function countsLine(counts: NonNullable<ShortlistEntry['counts']>, copy: Shortli
     .join(' · ');
 }
 
-/// What the agent spent checking records for this request, once, under the note.
+/// An offer's place in the agent's order, from the list index: "#1", and
+/// "#1 · Agent's pick" on the offer the agent picked (view 46).
+export function rankLine(index: number, pick: boolean, copy: Pick<ShortlistCopy, 'rank' | 'pick'>): string {
+  const place = fill(copy.rank, { n: index + 1 });
+  return pick ? `${place} · ${copy.pick}` : place;
+}
+
+/// What the agent spent checking records for this request, under the list.
 export function shortlistCostLine(checks: { count: number; usdc: number } | undefined, copy: ShortlistCopy): string | null {
   if (!checks || checks.count === 0) return null;
   return fill(checks.count === 1 ? copy.checkedCostOne : copy.checkedCost, { count: checks.count, amount: checks.usdc.toFixed(2) });

@@ -23,6 +23,7 @@ import {
   raiseMatchOffer,
   patchTrackedJobContext,
   reopenForNewBids,
+  reopenAfterEdit,
   rejudgeOffers,
   type MarketplaceBrief,
 } from '../agents/buyer.js';
@@ -946,8 +947,10 @@ jobsRoutes.post('/:jobId/edit', async (c) => {
     });
   }
   logger.info({ jobId, postedBy: brief.postedBy, fields: Object.keys(patch) }, 'brief edited by buyer');
-  // The buyer's agent looks again at the offers it holds under the new terms (view 35).
-  void rejudgeOffers(jobId).catch((err: Error) => logger.warn({ jobId, err: err.message }, 'judging the offers again after an edit failed'));
+  // The buyer's agent looks again at the offers it holds under the new terms
+  // (view 35); a search that ended without a deal runs again (view 46).
+  const judgeAgain: Promise<unknown> = brief.negotiationEndedAt ? reopenAfterEdit(jobId) : rejudgeOffers(jobId);
+  void judgeAgain.catch((err: Error) => logger.warn({ jobId, err: err.message }, 'judging the offers again after an edit failed'));
   // Sellers who offered by hand hear of the change once, with their price. The
   // request rides in the payload so the notice reaches only that seller.
   void listDirectOffers(jobId)
@@ -1006,6 +1009,11 @@ jobsRoutes.post('/:jobId/cancel', async (c) => {
   const brief = getBrief(jobId);
   if (!brief || !isRequestOwner(body.caller, brief)) {
     return c.json({ error: 'only the buyer can cancel this request', code: 'NOT_BUYER' }, 403);
+  }
+  // A search that ended without a deal cancels; a match still in play does not.
+  const proposal = await getMatchProposal(jobId);
+  if (proposal && !proposal.declinedAt) {
+    return c.json({ error: 'this brief has a pending match; decline it first', code: 'ALREADY_MATCHED' }, 409);
   }
   const result = cancelBriefByBuyer(jobId as `0x${string}`);
   if (!result.ok) {

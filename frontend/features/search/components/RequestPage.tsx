@@ -159,7 +159,7 @@ export function RequestPage({ initial, explorer }: { initial: BuyerJob; explorer
             bids={job.bids}
             pickSeller={pendingMatch && proposal ? proposal.sellerAgent : null}
             caller={address ?? null}
-            choosable={!job.expiredAt && !job.cancelledAt && !live.declined && !proposal?.approvedAt}
+            choosable={!job.expiredAt && !job.cancelledAt && !proposal?.approvedAt}
             onChosen={refreshAll}
           />
         ) : null}
@@ -181,7 +181,6 @@ export function RequestPage({ initial, explorer }: { initial: BuyerJob; explorer
             {canEdit ? (
               <EditBriefSection
                 job={job}
-                declined={live.declined}
                 matchPending={pendingMatch}
                 viewerIsSeller={false}
                 callerAddress={address ?? undefined}
@@ -192,7 +191,6 @@ export function RequestPage({ initial, explorer }: { initial: BuyerJob; explorer
             {canCancel ? (
               <CancelBriefSection
                 job={job}
-                declined={live.declined}
                 matchPending={pendingMatch}
                 viewerIsSeller={false}
                 callerAddress={address ?? undefined}

@@ -128,8 +128,15 @@ test('out of reach offers to reconsider the passed price when there is one', () 
   assert.equal(none.primary, 'editRequest');
 });
 
-test('declined ends the request', () => {
-  assert.equal(view({ live: { ...live, ended: 'declined' } }).state, 'declined');
+test('no deal leaves the buyer able to change or cancel the request', () => {
+  const v = view({ live: { ...live, ended: 'declined' } });
+  assert.equal(v.state, 'declined');
+  assert.equal(v.whoseMove, 'you');
+  assert.equal(v.primary, 'editRequest');
+  assert.deepEqual(v.secondary, ['cancelRequest']);
+  const seller = view({ job: job({ viewerIsBuyer: false }), live: { ...live, ended: 'declined' } });
+  assert.equal(seller.primary, null);
+  assert.deepEqual(seller.secondary, []);
 });
 
 test('a seller never gets offers or the timeline, whatever the data says', () => {

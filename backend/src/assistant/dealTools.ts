@@ -284,7 +284,7 @@ export function dealStepTools(address: string, actions: AssistantAction[], deps:
 
     propose_edit_request: tool({
       description:
-        "Prepare a confirm card for the BUYER to change an open request before a match: the description, or how far above budget their agent may negotiate (percent). Budget and due date cannot change here because they are fixed on chain; for those, offer to cancel and post again.",
+        "Prepare a confirm card for the BUYER to change an open request before a match, including one whose search ended with no deal (the change runs the search again): the description, or how far above budget their agent may negotiate (percent). Budget and due date cannot change here because they are fixed on chain; for those, offer to cancel and post again.",
       inputSchema: z.object({
         jobId: jobIdField.describe('The request id.'),
         briefText: z.string().min(10).max(2000).optional().describe('The full new description.'),
