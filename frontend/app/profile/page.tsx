@@ -11,14 +11,11 @@ import { ActivationModal } from '@/shared/components/ActivationModal';
 import { ConnectXButton } from '@/features/profile/components/ConnectXButton';
 import { WalletsPanel } from '@/features/balances/components/WalletsPanel';
 import { TelegramConnectButton } from '@/features/telegram/components/TelegramConnectButton';
-import { TierCelebration } from '@/features/reputation/components/TierCelebration';
 import { SmeCompanyBand } from '@/features/profile/components/SmeCompanyBand';
 import { RegisterBusinessBand } from '@/features/profile/components/RegisterBusinessBand';
 import { ProfileEmailButton } from '@/features/profile/components/ProfileEmailButton';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
-import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
-import { waysCopy } from '@/shared/i18n/messages/ways';
-import { waysOf, waySummary } from '@/features/profile/ways';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { type UserProfile } from '@/core/api';
 import {
   FullBleed,
@@ -29,11 +26,10 @@ import {
   Punc,
 } from '@/shared/components/Bands';
 import { ProfileAccountHub } from '@/features/profile/components/ProfileAccountHub';
+import { YourAgent } from '@/features/agent/YourAgent';
 import { AgentFundsList } from '@/features/profile/components/AgentFundsList';
 import { ResearchRows } from '@/features/profile/components/ResearchRows';
 import { ProfileFrame, Row, RowGroup } from '@/features/profile/ui/ProfileUi';
-import { ReputationSources } from '@/features/profile/ui/ReputationSources';
-import { Hint } from '@/shared/components/Hint';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 
 type ProfileSection = 'wallets' | 'open-deals' | 'agents' | 'identity' | 'preferences';
@@ -86,7 +82,6 @@ export default function ProfilePage() {
 
 function ProfilePageInner() {
   const messages = useTranslations();
-  const { locale } = useLocale();
   const t = messages.profile;
   const router = useRouter();
   const pathname = usePathname();
@@ -157,71 +152,29 @@ function ProfilePageInner() {
     identity: simple.agentsTitle,
     preferences: simple.contactTitle,
   };
-  const ways = waysOf(profile);
-  const waysText = waysCopy[locale as keyof typeof waysCopy] ?? waysCopy.en;
-  const waysLink = (
-    <Link href="/profile/ways" className="inline-flex min-h-11 items-center rounded-full px-2 text-[14px] font-semibold text-[var(--lp-dark)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
-      {simple.edit}
-    </Link>
-  );
-  const editLink = (anchor: 'selling') => (
-    <Link href={`/profile/edit#${anchor}`} className="inline-flex min-h-11 items-center rounded-full px-2 text-[14px] font-semibold text-[var(--lp-dark)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
-      {simple.edit}
-    </Link>
-  );
-
   const profilePanels: ProfilePanel[] = [
     {
       key: 'identity',
       label: t.tabs.identity,
       content: (
         <div data-guide="profile-identity" className="space-y-7">
-          <TierCelebration address={address} />
-          {address ? <ReputationSources address={address} /> : null}
-          {AGENTS_AVAILABLE && activation.activated ? (
-            <RowGroup>
-              <Row label={messages.setup.meChange} href="/setup?edit=1" />
-            </RowGroup>
-          ) : null}
-          {AGENTS_AVAILABLE ? (
-            <RowGroup>
-              <Row label={<span className="inline-flex items-center gap-1">{simple.agents}<Hint side="bottom">{simple.agentsHint}</Hint></span>} value={activation.loading ? undefined : activation.activated ? simple.on : undefined}>
-                {!activation.loading && !activation.activated ? (
-                  <button type="button" onClick={() => setActivationOpen(true)} className={ACCENT_PILL}>{simple.setUp}</button>
-                ) : null}
-              </Row>
-            </RowGroup>
+          {profile && address && AGENTS_AVAILABLE ? (
+            <YourAgent
+              profile={profile}
+              address={address}
+              activated={activation.activated}
+              activationLoading={activation.loading}
+              onTurnOn={() => setActivationOpen(true)}
+              onSaved={setProfile}
+            />
+          ) : !profile ? (
+            <Link href="/start?mode=signup" className={ACCENT_PILL}>{t.noProfile.cta}</Link>
           ) : null}
           {SME_TRADES_ENABLED && address && isBusiness ? (
             <div data-guide="profile-business-verification">
               <RegisterBusinessBand address={address} />
             </div>
           ) : null}
-          {profile ? (
-            <>
-              {/* Selling first, buying second, the order Edit profile uses. */}
-              {profile.seller ? (
-                <RowGroup title={activation.agents?.sellerName || simple.sellingAgent} action={editLink('selling')}>
-                  <Row label={isBusiness ? t.agentProfiles.rows.supplies : simple.whatYouOffer} value={profile.seller.skills?.length ? profile.seller.skills.join(', ') : simple.notSet} full />
-                  <Row label={messages.profileEdit.offerDescription} value={profile.seller.bio?.trim() || simple.notSet} full />
-                  {ways.sell.map((w) => (
-                    <Row key={w.shape} label={waysText.shapes[w.shape]} value={waySummary('sell', w, waysText)} href="/profile/ways" full />
-                  ))}
-                  <Row label={`+ ${waysText.add}`} href="/profile/ways" />
-                </RowGroup>
-              ) : null}
-              {profile.buyer ? (
-                <RowGroup title={activation.agents?.buyerName || simple.buyingAgent} hint={waysText.hint} action={waysLink}>
-                  {ways.buy.map((w) => (
-                    <Row key={w.shape} label={waysText.shapes[w.shape]} value={waySummary('buy', w, waysText)} href="/profile/ways" full />
-                  ))}
-                  <Row label={`+ ${waysText.add}`} href="/profile/ways" />
-                </RowGroup>
-              ) : null}
-            </>
-          ) : (
-            <Link href="/start?mode=signup" className={ACCENT_PILL}>{t.noProfile.cta}</Link>
-          )}
           {/* A business's company details sit here; the anchor keeps old links working. */}
           <div id="company" aria-hidden style={{ scrollMarginTop: 80 }} />
           {SME_TRADES_ENABLED && address && isBusiness ? (

@@ -1,31 +1,25 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { en } from '../../shared/i18n/messages/en';
 
 const page = readFileSync(new URL('../../app/profile/page.tsx', import.meta.url), 'utf8');
-const panel = page.slice(page.indexOf("key: 'identity'"), page.indexOf("key: 'open-deals'"));
+const panel = page.slice(page.indexOf("key: 'identity'"), page.indexOf("key: 'wallets'"));
+const agent = readFileSync(new URL('../agent/YourAgent.tsx', import.meta.url), 'utf8');
 
-test('the agents summary lists the ways they deal, selling first (view 26)', () => {
-  assert.ok(panel.indexOf('profile.seller ?') < panel.indexOf('profile.buyer ?'), 'selling first');
-  assert.ok(panel.indexOf('ways.sell.map') < panel.indexOf('ways.buy.map'), 'selling ways first');
-  assert.match(panel, /waySummary\('sell', w, waysText\)/);
-  assert.match(panel, /waySummary\('buy', w, waysText\)/);
-  assert.equal(en.profile.simple.edit.length > 0, true);
+/// Your agent (view 45) replaced the Agent workspace's groups, links and hint.
+
+test('the Your agent section is the one page, not groups that edit elsewhere', () => {
+  assert.match(panel, /<YourAgent/);
+  assert.doesNotMatch(panel, /waySummary|editLink|waysLink|ReputationSources|TierCelebration|meChange/);
 });
 
-test('nothing on it is cut, the description buyers see is there, and each card edits itself', () => {
-  assert.match(panel, /value=\{profile\.seller\.skills[^}]*\}[^/]*full/);
-  assert.match(panel, /messages\.profileEdit\.offerDescription/);
-  assert.match(page, /href=\{`\/profile\/edit#\$\{anchor\}`\}/);
-  assert.match(panel, /action=\{editLink\('selling'\)\}/);
-  assert.match(panel, /action=\{waysLink\}/);
-  assert.match(panel, /href="\/profile\/ways" full/);
-  assert.match(panel, /label=\{`\+ \$\{waysText\.add\}`\} href="\/profile\/ways"/);
-  assert.doesNotMatch(panel, /className=\{QUIET_PILL\}>\{simple\.edit\}/);
+test('five questions, selling first, then what it does alone, then buying', () => {
+  const order = ['t.rows.sell', 't.rows.price', 't.rows.paid', 't.rows.alone', 't.rows.buy'].map((k) => agent.indexOf(`answer(${k}`));
+  for (const at of order) assert.ok(at > 0, 'every row is there');
+  assert.deepEqual([...order].sort((a, b) => a - b), order);
 });
 
-test('"Agents: On" says what it means where it stands', () => {
-  assert.match(panel, /<Hint[^>]*>\{simple\.agentsHint\}<\/Hint>/);
-  assert.doesNotMatch(page, /hint=\{activeSection === 'identity' \? simple\.agentsHint/);
+test('the full editor is one link away, and the assistant is offered beside it', () => {
+  assert.match(agent, /<Row label=\{t\.moreWays\} href="\/profile\/ways" \/>/);
+  assert.match(agent, /router\.push\('\/assistant'\)/);
 });

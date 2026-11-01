@@ -981,7 +981,7 @@ export const sw: Messages = {
       notEnough: "USDC haitoshi kwa wakala wako wa kununua. Mjaze kwanza.",
       tryAgain: "Haikufanikiwa. Jaribu tena.",
       profileTitle: "Wasifu",
-      agentsTitle: "Eneo la kazi la mawakala",
+      agentsTitle: "Wakala wako",
       agentsHint: "Wakala wako wanakubali mikataba ndani ya mipaka hii tu.",
       agentFundsTitle: "Fedha za wakala",
       walletsTitle: "Pochi",

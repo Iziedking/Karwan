@@ -49,6 +49,7 @@ export type RouteTitleKey =
   | 'editProfile'
   | 'openDeals'
   | 'profileSetup'
+  | 'recordSources'
   | 'wallets'
   | 'cancelRecovery'
   | 'requestMoney'
@@ -102,6 +103,7 @@ const en: RouteTitleCopy = {
   docsRoadmap: 'Roadmap',
   finance: 'Finance',
   ways: 'How you deal',
+  recordSources: 'Where your record comes from',
   financingOffer: 'Financing offer',
   poFinancing: 'Purchase order financing',
   howItWorks: 'How it works',
@@ -123,7 +125,7 @@ const en: RouteTitleCopy = {
   contact: 'Contact details',
   editProfile: 'Edit profile',
   openDeals: 'Open deals',
-  profileSetup: 'Agent workspace',
+  profileSetup: 'Your agent',
   wallets: 'Wallets',
   cancelRecovery: 'Cancel recovery',
   requestMoney: 'Request money',
@@ -177,6 +179,7 @@ const ar: RouteTitleCopy = {
   docsRoadmap: 'خارطة الطريق',
   finance: 'التمويل',
   ways: 'طريقة تعاملك',
+  recordSources: 'من أين يأتي سجلك',
   financingOffer: 'عرض تمويل',
   poFinancing: 'تمويل أمر شراء',
   howItWorks: 'كيف يعمل',
@@ -198,7 +201,7 @@ const ar: RouteTitleCopy = {
   contact: 'بيانات التواصل',
   editProfile: 'تعديل الملف',
   openDeals: 'الصفقات المفتوحة',
-  profileSetup: 'مساحة عمل الوكلاء',
+  profileSetup: 'وكيلك',
   wallets: 'المحافظ',
   cancelRecovery: 'إلغاء الاسترداد',
   requestMoney: 'طلب مال',
@@ -252,6 +255,7 @@ const fr: RouteTitleCopy = {
   docsRoadmap: 'Feuille de route',
   finance: 'Financement',
   ways: 'Comment vous traitez',
+  recordSources: 'D’où vient votre dossier',
   financingOffer: 'Offre de financement',
   poFinancing: 'Financement de bon de commande',
   howItWorks: 'Comment ça marche',
@@ -273,7 +277,7 @@ const fr: RouteTitleCopy = {
   contact: 'Coordonnées',
   editProfile: 'Modifier le profil',
   openDeals: 'Deals ouverts',
-  profileSetup: 'Espace des agents',
+  profileSetup: 'Votre agent',
   wallets: 'Portefeuilles',
   cancelRecovery: 'Annuler la récupération',
   requestMoney: 'Demander de l’argent',
@@ -327,6 +331,7 @@ const hi: RouteTitleCopy = {
   docsRoadmap: 'रोडमैप',
   finance: 'वित्त',
   ways: 'आप कैसे सौदा करते हैं',
+  recordSources: 'आपका रिकॉर्ड कहां से आता है',
   financingOffer: 'फ़ाइनेंसिंग ऑफ़र',
   poFinancing: 'खरीद आदेश फ़ाइनेंसिंग',
   howItWorks: 'यह कैसे काम करता है',
@@ -348,7 +353,7 @@ const hi: RouteTitleCopy = {
   contact: 'संपर्क विवरण',
   editProfile: 'प्रोफ़ाइल संपादित करें',
   openDeals: 'खुली डील',
-  profileSetup: 'एजेंट वर्कस्पेस',
+  profileSetup: 'आपका एजेंट',
   wallets: 'वॉलेट',
   cancelRecovery: 'रिकवरी रद्द करें',
   requestMoney: 'पैसे का अनुरोध',
@@ -402,6 +407,7 @@ const sw: RouteTitleCopy = {
   docsRoadmap: 'Ramani ya njia',
   finance: 'Ufadhili',
   ways: 'Jinsi unavyofanya biashara',
+  recordSources: 'Rekodi yako inatoka wapi',
   financingOffer: 'Ofa ya ufadhili',
   poFinancing: 'Ufadhili wa agizo la ununuzi',
   howItWorks: 'Jinsi inavyofanya kazi',
@@ -423,7 +429,7 @@ const sw: RouteTitleCopy = {
   contact: 'Mawasiliano',
   editProfile: 'Hariri wasifu',
   openDeals: 'Mikataba iliyo wazi',
-  profileSetup: 'Eneo la kazi la mawakala',
+  profileSetup: 'Wakala wako',
   wallets: 'Pochi',
   cancelRecovery: 'Ghairi urejeshaji',
   requestMoney: 'Omba pesa',

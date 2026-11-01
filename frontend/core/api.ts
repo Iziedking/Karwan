@@ -448,6 +448,8 @@ export interface UserProfile {
     maxBudgetUsdc: number;
     minDeadlineDays: number;
     maxDeadlineDays: number;
+    /// The person gave maxBudgetUsdc as their usual price (view 41, decision 14).
+    usualSet?: boolean;
   };
   buyer?: {
     maxBudgetUsdc: number;
@@ -5744,6 +5746,8 @@ export const api = {
   setupSave: (answers: SetupAnswers) =>
     json<{ profile: UserProfile; firstPost: SetupFirstPost | null }>('/api/setup/save', { method: 'POST', body: JSON.stringify({ answers }) }),
   /// The ways the person deals, saved whole (view 26).
+  saveAgentMode: (agentMode: 'offers' | 'ask' | 'agree') =>
+    json<{ profile: UserProfile }>('/api/setup/agent-mode', { method: 'POST', body: JSON.stringify({ agentMode }) }),
   saveWays: (ways: import('@/features/profile/ways').AgentWays) =>
     json<{ profile: UserProfile; lines: string[] }>('/api/setup/ways', { method: 'POST', body: JSON.stringify({ ways }) }),
   /// Assistant conversations saved to the account (view 19).

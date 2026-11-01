@@ -6254,7 +6254,7 @@ export const en: MessagesShape = {
       notEnough: "Not enough USDC in your buying agent. Top it up first.",
       tryAgain: "That did not go through. Try again.",
       profileTitle: "Profile",
-      agentsTitle: "Agent workspace",
+      agentsTitle: "Your agent",
       agentsHint: "Your agents only agree to deals inside these limits.",
       agentFundsTitle: "Agent funds",
       walletsTitle: "Wallets",

@@ -25,6 +25,6 @@ test('the assistant also starts a fresh account with setup, and follows the answ
   const view = firstTradeSteps({ ...fresh, setupDone: false, goals: ['record'], ownClients: true });
   assert.equal(view.next, 'setup');
   assert.equal(view.steps[0]!.route, '/setup');
-  assert.equal(view.steps.find((s) => s.key === 'connect')?.route, '/profile/setup');
+  assert.equal(view.steps.find((s) => s.key === 'connect')?.route, '/profile/sources');
   assert.equal(view.steps.find((s) => s.key === 'deal')?.route, '/request');
 });

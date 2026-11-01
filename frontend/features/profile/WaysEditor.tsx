@@ -159,7 +159,12 @@ function WayForm({ side, open, c, motionProps, onChange, onDone, onCancel, onRem
   onRemove?: () => void;
 }) {
   const w = open.draft as Record<string, unknown> & { shape: WayShape };
-  const set = (key: string, value: unknown) => onChange({ ...w, [key]: value } as unknown as Way);
+  // A price typed here is the person's own, so the carried-over mark goes (view 41, decision 14).
+  const set = (key: string, value: unknown) => {
+    const next = { ...w, [key]: value } as Record<string, unknown>;
+    if (key === 'priceMin' || key === 'priceUsual') delete next.usualGuessed;
+    onChange(next as unknown as Way);
+  };
   const problem = wayProblem(side, open.draft);
   const f = c.fields;
   const num = (key: string, label: string, unit: string) => (

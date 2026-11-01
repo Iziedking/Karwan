@@ -128,3 +128,21 @@ test('ways outside the live shapes, or without a session, are refused', async ()
   assert.equal((await h.post('/ways', { ways: { sell: [{ shape: 'retainer', monthly: 100 }], buy: [] } })).status, 400);
   assert.equal(h.saved.length, 0);
 });
+
+test('what the agent does alone changes on its own, keeping the other prefs (view 45)', async () => {
+  const h = harness({ current: async () => ({ address: '0xada', role: 'seller', displayName: 'Ada', createdAt: 0, updatedAt: 0, agentPrefs: { findClients: false, agentMode: 'offers' } }) });
+  const res = await h.post('/agent-mode', { agentMode: 'ask' });
+  assert.equal(res.status, 200);
+  assert.deepEqual(h.saved[0]!.agentPrefs, { findClients: false, agentMode: 'ask' });
+  assert.equal((await h.post('/agent-mode', { agentMode: 'everything' })).status, 400);
+  const signedOut = harness({ sessionAddress: () => null });
+  assert.equal((await signedOut.post('/agent-mode', { agentMode: 'ask' })).status, 401);
+});
+
+test('a carried-over usual price stays marked when only the way of getting paid is saved (view 41, decision 14)', async () => {
+  const h = harness();
+  const carried = { sell: [{ shape: 'milestones', priceMin: 10, priceUsual: 10005, usualGuessed: true, daysMin: 2, daysMax: 9, stages: 2 }], buy: [] };
+  assert.equal((await h.post('/ways', { ways: carried })).status, 200);
+  assert.equal((h.saved[0]!.agentWays!.sell[0] as { usualGuessed?: boolean }).usualGuessed, true);
+  assert.equal(h.saved[0]!.seller?.usualSet, false);
+});

@@ -24,6 +24,7 @@ import { accountRows } from '../accountRows';
 import { useQuery } from '@tanstack/react-query';
 import { GUARANTEE_QUERY } from '@/features/guarantee/GuaranteeCard';
 import { ownRecord, type OwnRecord } from '../ownRecord';
+import { yourAgentCopy } from '@/shared/i18n/messages/yourAgent';
 
 type ProfileAccountHubProps = {
   profile: UserProfile;
@@ -102,6 +103,7 @@ export function ProfileAccountHub({
   const { hasPasskey, method, email, refresh } = useAuth();
   const passkey = useAddPasskey(email, () => refresh());
   const { locale } = useLocale();
+  const agentCopy = yourAgentCopy[locale as keyof typeof yourAgentCopy] ?? yourAgentCopy.en;
   const simple = messages.profile.simple;
   const balanceFacts = { balance: money.balance, pool: money.pool, loading: money.loading, error: money.error };
   const agentTotal = money.buyer != null || money.seller != null ? (money.buyer ?? 0) + (money.seller ?? 0) : null;
@@ -189,12 +191,13 @@ export function ProfileAccountHub({
         <Row label={pp.publicView} href={profile.handle ? `/r/${profile.handle}` : '/profile/edit'} />
         <Row label={messages.dealGuarantee.profile.legacyContracts} href="/legacy" />
         <Row label={pp.share} href={`/credit-passport/${address}#share`} />
+        <Row label={agentCopy.recordSources} href="/profile/sources" />
       </RowGroup>
 
       {DEALS_AVAILABLE ? (
         <RowGroup title={pp.selling}>
           <Row label={pp.yourOffers} href="/market?view=yours" />
-          <Row label={pp.howAgentSells} href="/profile/ways" />
+          <Row label={pp.howAgentSells} href="/profile/setup" />
         </RowGroup>
       ) : null}
 

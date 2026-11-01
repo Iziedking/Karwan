@@ -81,7 +81,7 @@ export function FirstTrade({ deals, dealsState, className }: {
   const routes = tradeEntryRoutes();
   const action = (key: FirstTradeStep) => {
     if (key === 'setup') return <Link href="/start?step=about" className={PRIMARY}>{t.steps.setup.action}</Link>;
-    if (key === 'connect') return <Link href="/profile/setup" className={PRIMARY}>{t.steps.connect.action}</Link>;
+    if (key === 'connect') return <Link href="/profile/sources" className={PRIMARY}>{t.steps.connect.action}</Link>;
     if (key === 'money') {
       // On testnet nobody holds USDC yet, so the faucet comes first.
       if (ARC_NETWORK === 'testnet') {

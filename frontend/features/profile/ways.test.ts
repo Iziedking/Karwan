@@ -19,7 +19,7 @@ test('an account that never saved ways reads one from its settings', () => {
     buyer: { maxBudgetUsdc: 300, minDeadlineDays: 1, maxDeadlineDays: 14, bidCollectionSeconds: 45, milestonePcts: [100] },
   } as unknown as UserProfile;
   assert.deepEqual(waysOf(profile), {
-    sell: [{ shape: 'one_time', priceMin: 20, priceUsual: 30, daysMin: 3, daysMax: 3 }],
+    sell: [{ shape: 'one_time', priceMin: 20, priceUsual: 30, usualGuessed: true, daysMin: 3, daysMax: 3 }],
     buy: [{ shape: 'one_time', maxPrice: 300, needDays: 14 }],
   });
   assert.deepEqual(waysOf({ ...profile, agentWays: ways } as UserProfile), ways);
@@ -61,5 +61,6 @@ test('ways saved before the usual price read safely: a range becomes lowest and 
   assert.equal((ways.sell[0] as { priceUsual: number }).priceUsual, 30);
   assert.equal((ways.sell[1] as { priceUsual: number }).priceUsual, 30);
   assert.equal('priceMax' in ways.sell[0]!, false);
+  assert.equal((ways.sell[0] as { usualGuessed?: boolean }).usualGuessed, true, 'worked out from a range, not given');
   for (const w of ways.sell) assert.doesNotThrow(() => waySummary('sell', w, waysCopy.en));
 });

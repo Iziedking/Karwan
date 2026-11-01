@@ -984,7 +984,7 @@ export const fr: Messages = {
       notEnough: "Pas assez d’USDC chez votre agent acheteur. Alimentez-le d’abord.",
       tryAgain: "Cela n’a pas abouti. Réessayez.",
       profileTitle: "Profil",
-      agentsTitle: "Espace des agents",
+      agentsTitle: "Votre agent",
       agentsHint: "Vos agents n’acceptent que des accords dans ces limites.",
       agentFundsTitle: "Fonds des agents",
       walletsTitle: "Portefeuilles",

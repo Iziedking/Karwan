@@ -12,9 +12,9 @@ test('every agent limit on the edit form says what it does', () => {
   assert.doesNotMatch(form, /<[a-z]+\b[^>]*\stitle=/, 'no browser tooltip');
 });
 
-test('the agent summary on Profile says what the ways do (view 26)', () => {
-  const page = read('../../app/profile/page.tsx');
-  assert.match(page, /hint=\{waysText\.hint\}/);
+test('the ways editor still says what the ways do (view 26)', () => {
+  const editor = read('./WaysEditor.tsx');
+  assert.match(editor, /hint=\{c\.hint\}/);
 });
 
 test('the tips exist in every language', () => {
@@ -50,9 +50,9 @@ test('the record switch is about agents outside Karwan, and there is no second b
   }
 });
 
-test('the agent page is called Agent workspace, in the page and the tab title', async () => {
+test('the agent page is called Your agent, in the page and the tab title (view 45)', async () => {
   const { routeTitlesCopy: routeTitles } = await import('../../shared/i18n/messages/routeTitles');
-  const names = { en: 'Agent workspace', fr: 'Espace des agents', ar: 'مساحة عمل الوكلاء', hi: 'एजेंट वर्कस्पेस', sw: 'Eneo la kazi la mawakala' };
+  const names = { en: 'Your agent', fr: 'Votre agent', ar: 'وكيلك', hi: 'आपका एजेंट', sw: 'Wakala wako' };
   for (const [locale, name] of Object.entries(names)) {
     const src = read(`../../shared/i18n/messages/${locale}.ts`);
     assert.match(src, new RegExp(`agentsTitle: "${name}"`), locale);

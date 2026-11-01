@@ -14,12 +14,12 @@ export type Side = 'sell' | 'buy';
 /// priceMin is the lowest price the person takes, priceUsual what they usually
 /// charge; there is no highest (view 41).
 export type SellWay =
-  | { shape: 'one_time'; priceMin: number; priceUsual: number; daysMin: number; daysMax: number }
-  | { shape: 'milestones'; priceMin: number; priceUsual: number; daysMin: number; daysMax: number; stages: number }
-  | { shape: 'goods'; what: string; priceMin: number; priceUsual: number; perItem?: boolean; shipsTo: string; arriveDaysMin: number; arriveDaysMax: number }
+  | { shape: 'one_time'; priceMin: number; priceUsual: number; usualGuessed?: true; daysMin: number; daysMax: number }
+  | { shape: 'milestones'; priceMin: number; priceUsual: number; usualGuessed?: true; daysMin: number; daysMax: number; stages: number }
+  | { shape: 'goods'; what: string; priceMin: number; priceUsual: number; usualGuessed?: true; perItem?: boolean; shipsTo: string; arriveDaysMin: number; arriveDaysMax: number }
   | { shape: 'deposit'; what: string; deposit: number; periodDays: number }
   | { shape: 'hourly'; rateMin: number; rateUsual: number; hoursMax: number }
-  | { shape: 'monthly'; priceMin: number; priceUsual: number };
+  | { shape: 'monthly'; priceMin: number; priceUsual: number; usualGuessed?: true };
 
 export type BuyWay =
   | { shape: 'one_time'; maxPrice: number; needDays: number }
@@ -46,7 +46,8 @@ function upgradeSellWay(w: SellWay): SellWay {
   const { priceMax, ...rest } = o;
   if (typeof rest.priceUsual === 'number') return rest as unknown as SellWay;
   const hi = typeof priceMax === 'number' ? priceMax : o.priceMin;
-  return { ...rest, priceUsual: usualOf(o.priceMin, hi) } as unknown as SellWay;
+  // Worked out from a range, not given: shown, never the opening (view 41, decision 14).
+  return { ...rest, priceUsual: usualOf(o.priceMin, hi), usualGuessed: true } as unknown as SellWay;
 }
 
 export function waysOf(profile: Pick<UserProfile, 'agentWays' | 'seller' | 'buyer'> | null | undefined): AgentWays {
@@ -54,7 +55,11 @@ export function waysOf(profile: Pick<UserProfile, 'agentWays' | 'seller' | 'buye
   const s = profile?.seller;
   const b = profile?.buyer;
   return {
-    sell: s ? [{ shape: 'one_time', priceMin: s.minBudgetUsdc, priceUsual: usualOf(s.minBudgetUsdc, s.maxBudgetUsdc), daysMin: s.minDeadlineDays, daysMax: s.maxDeadlineDays }] : [],
+    sell: !s
+      ? []
+      : s.usualSet
+        ? [{ shape: 'one_time', priceMin: s.minBudgetUsdc, priceUsual: Math.max(s.minBudgetUsdc, s.maxBudgetUsdc), daysMin: s.minDeadlineDays, daysMax: s.maxDeadlineDays }]
+        : [{ shape: 'one_time', priceMin: s.minBudgetUsdc, priceUsual: usualOf(s.minBudgetUsdc, s.maxBudgetUsdc), usualGuessed: true, daysMin: s.minDeadlineDays, daysMax: s.maxDeadlineDays }],
     buy: b
       ? [
           b.milestonePcts.length > 1

@@ -189,6 +189,8 @@ export const COVERAGE: Record<string, Coverage> = {
   // Setup and agents.
   'POST /api/setup/save': { by: 'assistant', via: 'save_setup' },
   'POST /api/setup/ways': { by: 'assistant', via: 'save_ways' },
+  // The Your agent page changes this alone; the assistant changes the same answer through setup (view 45).
+  'POST /api/setup/agent-mode': { by: 'assistant', via: 'save_setup' },
   'POST /api/setup/preview': { by: 'internal', why: 'Shows the setup form what its answers would do before saving.' },
   'POST /api/activation/activate': { by: 'assistant', via: 'set_up_agents' },
   'POST /api/activation/agent-names': { by: 'assistant', via: 'rename_agents' },

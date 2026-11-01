@@ -567,7 +567,7 @@
       "id": "setup-and-agent-choices",
       "title": "Setting up Karwan the way you use it",
       "status": "roadmap",
-      "updated": "2026-10-29",
+      "updated": "2026-11-01",
       "tags": [
         "agents",
         "onboarding",
@@ -586,9 +586,13 @@
         {
           "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/39-start-to-home.md",
           "date": "2026-10-29"
+        },
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/45-your-agent.md",
+          "date": "2026-11-01"
         }
       ],
-      "body": "Signing up is one page in three parts: your account (an email and a code,\nor a wallet), your Karwan tag, and a few questions about you. Nothing else is\nasked to open an account: no name, address or ID. On mainnet, a licensed\npartner runs an identity check once, and only when a feature needs it.\n\nKarwan sets up your agents on its own when you create your account, so\nthere is nothing to activate. Then your agent asks what you want Karwan to\ndo: get paid for your work, sell products, buy or hire, run business deals,\nor build a record clients trust. It asks only what those answers need: what\nyou do and your usual price on one screen, which it reads back to you as your\nusual and lowest price and delivery time (one price is both; a range makes its\nlow end your lowest), then whether you have clients and how to reach you. A line from your agent on each screen says what the answer is for.\n\nWhat you tell your agent sets up your agent and your public profile by\nitself. It shows the result as \"Here's your Karwan\", with the first offer or\nrequest it wrote from your words, and saves nothing until you say it looks\nright. \"Post it on the market now\" is ticked; untick it to post later. The\nsame questions are asked in Telegram, in the same order, with one more at the\nend: which country you are in. They can also be changed from a conversation\nwith your agent.\n\nIf you already agreed a deal with someone and they are paying you, send them\nyour deal link. It opens the deal with you as the seller; they add the amount\nand terms you agreed and pay into the deal, and you accept before anything is\nfinal. Your agent can give you the link.\n\nThree answers change what your agents do. If you only work with clients you\nalready have, your selling agent stays off the market. If you choose \"Ask me\nfirst\" on the summary, it does not make offers on its own: it asks you about\neach request that fits, with the price it would offer, and you answer with one\ntap or change the price. \"How should we reach you\" picks Telegram,\nemail or both. Money never moves without your confirmation.\n\nThis is built for testnet and not live yet."
+      "body": "Signing up is one page in three parts: your account (an email and a code,\nor a wallet), your Karwan tag, and a few questions about you. Nothing else is\nasked to open an account: no name, address or ID. On mainnet, a licensed\npartner runs an identity check once, and only when a feature needs it.\n\nKarwan sets up your agents on its own when you create your account, so\nthere is nothing to activate. Then your agent asks what you want Karwan to\ndo: get paid for your work, sell products, buy or hire, run business deals,\nor build a record clients trust. It asks only what those answers need: what\nyou do and your usual price on one screen, which it reads back to you as your\nusual and lowest price and delivery time (one price is both; a range makes its\nlow end your lowest), then whether you have clients and how to reach you. A line from your agent on each screen says what the answer is for.\n\nWhat you tell your agent sets up your agent and your public profile by\nitself. It shows the result as \"Here's your Karwan\", with the first offer or\nrequest it wrote from your words, and saves nothing until you say it looks\nright. \"Post it on the market now\" is ticked; untick it to post later. The\nsame questions are asked in Telegram, in the same order, with one more at the\nend: which country you are in. They can also be changed from a conversation\nwith your agent.\n\nIf you already agreed a deal with someone and they are paying you, send them\nyour deal link. It opens the deal with you as the seller; they add the amount\nand terms you agreed and pay into the deal, and you accept before anything is\nfinal. Your agent can give you the link.\n\nThree answers change what your agents do. If you only work with clients you\nalready have, your selling agent stays off the market. If you choose \"Ask me\nfirst\" on the summary, it does not make offers on its own: it asks you about\neach request that fits, with the price it would offer, and you answer with one\ntap or change the price. \"How should we reach you\" picks Telegram,\nemail or both. Money never moves without your confirmation.\n\nLater, Your agent on your profile keeps it on one page: whether your agent is\non and how many of its offers wait on buyers, then what you sell, your price,\nhow you get paid (all at once, in stages or on delivery), what it does alone\nand, if you buy, the most it pays without asking you. Each is changed in place\non that page, or by telling your agent. Until you give a usual price, the page\nsays so, because your agent offers at the buyer's budget until then.\n\nThis is built for testnet and not live yet."
     },
     {
       "id": "social-lookups-roadmap",
@@ -1559,10 +1563,14 @@
         {
           "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/39-start-to-home.md",
           "date": "2026-10-29"
+        },
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/45-your-agent.md",
+          "date": "2026-11-01"
         }
       ],
       "check": null,
-      "updated": "2026-10-29",
+      "updated": "2026-11-01",
       "path": "public/product/setup-and-agent-choices.md"
     },
     {

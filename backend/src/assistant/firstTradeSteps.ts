@@ -24,7 +24,7 @@ export interface FirstTradeFacts {
 export function firstTradeRoute(step: FirstTradeStep, network: 'testnet' | 'mainnet', ownClients = false): string {
   const routes: Record<FirstTradeStep, string> = {
     setup: '/setup',
-    connect: '/profile/setup',
+    connect: '/profile/sources',
     wallets: '/profile/agent-funds',
     money: network === 'testnet' ? '/profile/wallets' : '/bridge?direction=in',
     telegram: '/profile',

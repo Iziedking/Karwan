@@ -982,7 +982,7 @@ export const hi: Messages = {
       notEnough: "खरीद एजेंट में पर्याप्त USDC नहीं है। पहले टॉप अप करें।",
       tryAgain: "यह पूरा नहीं हुआ। फिर कोशिश करें।",
       profileTitle: "प्रोफ़ाइल",
-      agentsTitle: "एजेंट वर्कस्पेस",
+      agentsTitle: "आपका एजेंट",
       agentsHint: "आपके एजेंट केवल इन सीमाओं के भीतर सौदे करते हैं।",
       agentFundsTitle: "एजेंट फंड",
       walletsTitle: "वॉलेट",

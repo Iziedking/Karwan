@@ -4,7 +4,7 @@ import type { BriefResult, ProfilePatch } from '../agents/agentBrief.js';
 import type { BriefAnswers } from '../agents/agentBriefLines.js';
 import { firstPost } from '../agents/firstPost.js';
 import type { UserLocale, UserProfile } from '../db/profiles.js';
-import { legacyFromWays, upgradeWays, waysSchema, wayLines, withoutGuess } from '../agents/ways.js';
+import { legacyFromWays, upgradeWays, waysSchema, wayLines } from '../agents/ways.js';
 import type { Suggestion } from '../agents/learned.js';
 
 /// The setup conversation after activation (view 19). The answers are read on
@@ -103,8 +103,10 @@ export function createSetupRoutes(deps: SetupRouteDeps): Hono {
     if (!allowed(address)) return c.json({ error: 'too many tries, wait a few minutes' }, 429);
     const current = await deps.current(address);
     if (!current) return c.json({ error: 'profile not found' }, 404);
-    // The person saw and saved these prices, so each usual price is theirs.
-    const ways = { ...parsed.data.ways, sell: parsed.data.ways.sell.map(withoutGuess) };
+    // A usual price stays marked as carried over until the person types one;
+    // the page clears the mark on the way whose price they edited (view 41,
+    // decision 14), so saving only how they get paid keeps it.
+    const { ways } = parsed.data;
     const { seller, buyer } = legacyFromWays(ways, current);
     const patch: ProfilePatch = {
       agentWays: ways,
@@ -142,6 +144,20 @@ export function createSetupRoutes(deps: SetupRouteDeps): Hono {
     const profile = await deps.save(address, { agentPrefs: { ...(current.agentPrefs ?? {}), dismissedSuggestions: dismissed } });
     if (!profile) return c.json({ error: 'profile not found' }, 404);
     return c.json({ ok: true, dismissed });
+  });
+
+  /// What the agent does on its own, changed alone from the Your agent page
+  /// (view 45): make offers, ask first, or agree inside the person's limits.
+  app.post('/agent-mode', async (c) => {
+    const address = (await deps.sessionAddress(c))?.toLowerCase();
+    if (!address) return c.json({ error: 'not authenticated' }, 401);
+    const parsed = z.object({ agentMode: z.enum(['offers', 'ask', 'agree']) }).safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: 'invalid agent mode' }, 400);
+    const current = await deps.current(address);
+    if (!current) return c.json({ error: 'profile not found' }, 404);
+    const profile = await deps.save(address, { agentPrefs: { ...(current.agentPrefs ?? {}), agentMode: parsed.data.agentMode } });
+    if (!profile) return c.json({ error: 'profile not found' }, 404);
+    return c.json({ profile });
   });
 
   return app;

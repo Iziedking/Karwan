@@ -984,7 +984,7 @@ export const ar: Messages = {
       notEnough: "لا يوجد ما يكفي من USDC لدى وكيل الشراء. عبّئه أولًا.",
       tryAgain: "لم يكتمل ذلك. حاول مرة أخرى.",
       profileTitle: "الملف الشخصي",
-      agentsTitle: "مساحة عمل الوكلاء",
+      agentsTitle: "وكيلك",
       agentsHint: "لا يوافق وكلاؤك إلا على صفقات ضمن هذه الحدود.",
       agentFundsTitle: "أموال الوكلاء",
       walletsTitle: "المحافظ",
