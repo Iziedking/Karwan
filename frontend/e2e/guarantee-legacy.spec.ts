@@ -61,11 +61,11 @@ test('the old staking address opens the deal guarantee, with a quiet way to the 
   await page.goto('/stake');
   await expect(page).toHaveURL(/\/guarantee$/);
   await expect(page.locator('[data-guaranteed]')).toContainText('125');
-  await expect(page.locator('[data-guaranteed]')).toContainText('USDC guaranteed');
+  await expect(page.locator('[data-guaranteed]')).toContainText('USDC '+en.moneyPage.guaranteed);
   // The guarantee is a money page: no score out of 1000 (view 44, P13).
   await expect(page.getByText(/\/ 1000/)).toHaveCount(0);
   await page.getByText('What your guarantee does').click();
-  await expect(page.getByText(/It shows buyers you stand behind your work/)).toBeVisible();
+  await expect(page.getByText(en.moneyPage.whatItDoesBody,{exact:true})).toBeVisible();
   await expect(page.getByText(g.previous.line.replace('{amount}', '40'))).toBeVisible();
   await expect(page.getByRole('link', { name: g.previous.link })).toHaveAttribute('href', '/legacy#previous-guarantee');
   await expect(page.getByText(/\b(stake|staking|vault|insurance)\b/i)).toHaveCount(0);

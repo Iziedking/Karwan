@@ -14,11 +14,11 @@ const SME_TRADES_ENABLED = process.env.NEXT_PUBLIC_SME_TRADES_ENABLED === '1';
 export const metadata: Metadata = {
   title: 'Finance · Karwan',
   description:
-    'Pay sellers early on accepted deals and get repaid when the buyer approves delivery.',
+    'Pay sellers early against eligible deals. Review the repayment terms before funding.',
   openGraph: {
     title: 'Finance · Karwan',
     description:
-      'Pay sellers early on accepted deals and get repaid when the buyer approves delivery.',
+      'Pay sellers early against eligible deals. Review the repayment terms before funding.',
     type: 'website',
   },
   twitter: { card: 'summary', title: 'Finance · Karwan' },

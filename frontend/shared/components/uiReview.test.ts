@@ -495,12 +495,12 @@ test('profile says each thing once: one Record card, Edit profile in the header,
   assert.doesNotMatch(hub, /<RowGroup title=\{pp\.yourOffers\}>/);
 });
 
-test('money is one balance on Arc: a Gateway balance line, no list of other networks, local currency marked soon', () => {
+test('money is one balance on Arc: a transfer balance line, no list of other networks, local currency marked soon', () => {
   const money = source('../../features/money/components/MoneyHome.tsx');
   assert.doesNotMatch(money, /useChainBalances|money-networks|CHAIN_META/);
   assert.match(money, /data-gateway-balance[\s\S]{0,200}t\.home\.gatewayBalance/);
   assert.match(money, /t\.home\.localCurrencySoon/);
-  assert.equal(en.money.home.gatewayBalance, 'Gateway balance');
+  assert.equal(en.money.home.gatewayBalance, 'Transfer balance');
 });
 
 test('the rail foot reads the person, Theme, Sign out; no settings mark is a sun; theme sits in no circle', () => {

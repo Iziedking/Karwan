@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { budgetDifference, deliverByUnixFromDate, offerDefaults, offerErrorKey, orderOffers, topUpAmount, type Offer } from './model';
+import { offerFundingTotal, budgetDifference, deliverByUnixFromDate, offerDefaults, offerErrorKey, orderOffers, topUpAmount, type Offer } from './model';
 
 const o = (id: string, price: string, createdAt: number): Offer => ({
   id,
@@ -77,4 +77,13 @@ test('top-up accepts a native-USDC dust balance written in exponent notation', (
 test('top-up preserves a shortfall smaller than one USDC micro-unit', () => {
   assert.equal(topUpAmount({ needUsdc: '10', agentUsdc: 9.9999999 }), 0.01);
   assert.equal(topUpAmount({ needUsdc: '10.00000001', agentUsdc: 10 }), 0.01);
+});
+
+test('the payment CTA requires a valid server total rather than the base price', () => {
+  for (const total of [undefined, '', 'NaN', 'Infinity', '-100', '99.99', '100.0000001', '1e2', 100 as unknown as string]) {
+    assert.equal(offerFundingTotal({ priceUsdc: '100', fundedUsdc: total }), null);
+  }
+  assert.equal(offerFundingTotal({priceUsdc:'100',fundedUsdc:'100.5'}),'100.5');
+  assert.equal(offerFundingTotal({priceUsdc:'100',fundedUsdc:'100'}),'100');
+  assert.equal(offerFundingTotal({priceUsdc:'bad',fundedUsdc:'100.5'}),null);
 });

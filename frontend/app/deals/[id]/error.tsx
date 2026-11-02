@@ -2,14 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import {
-  Band,
-  FullBleed,
-  GridOverlay,
-  HeroHeadline,
-  Punc,
-  SectionTag,
-} from '@/shared/components/Bands';
+import { Button, buttonClasses } from '@/shared/components/Button';
+import { DEALS_AVAILABLE } from '@/core/arcNetwork';
 import {
   dealRouteRecoveryKey,
   shouldAutomaticallyReloadDeal,
@@ -23,7 +17,8 @@ export default function DealError({
   error: Error & { digest?: string };
 }) {
   const [showFallback, setShowFallback] = useState(false);
-  const es = useTranslations().directDealDetail.errorStates;
+  const copy = useTranslations();
+  const es = copy.directDealDetail.errorStates;
 
   useEffect(() => {
     // Keep the original trace available in the browser console without
@@ -70,53 +65,25 @@ export default function DealError({
 
   if (!showFallback) {
     return (
-      <FullBleed>
-        <Band tone="dark" overlay={<GridOverlay />}>
-          <div role="status" aria-live="polite" className="max-w-[44ch] min-h-[44vh] space-y-4">
-            <span className="sr-only">{es.transientRetrying}</span>
-            <div className="h-3 w-28 rounded bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
-            <div className="h-12 w-64 rounded bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
-            <div className="h-3 w-44 rounded bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
-          </div>
-        </Band>
-      </FullBleed>
+      <div role="status" aria-live="polite" className="product-surface mx-auto min-h-[44vh] w-full max-w-[640px] space-y-4 py-10">
+        <span className="sr-only">{es.transientRetrying}</span>
+        <div className="h-3 w-28 rounded bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
+        <div className="h-10 w-64 max-w-full rounded bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
+      </div>
     );
   }
 
   return (
-    <FullBleed>
-      <Band tone="dark" overlay={<GridOverlay />}>
-        <div className="max-w-[48ch]">
-          <SectionTag tone="dark">{es.transientEyebrow}</SectionTag>
-          <HeroHeadline size="md">
-            {es.transientTitle}<Punc>.</Punc>
-          </HeroHeadline>
-          <p className="mt-6 text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
-            {es.crashBody}
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={retry}
-              className="inline-flex min-h-11 items-center justify-center bg-[var(--lp-accent)] px-5 py-2.5 mono text-[14px] font-bold uppercase tracking-[0.1em] text-[var(--accent-ink)] transition-colors hover:bg-[var(--lp-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
-              style={{
-                borderRadius: 10,
-              }}
-            >
-              {es.transientCta}
-            </button>
-            <Link
-              href="/buyer"
-              className="inline-flex min-h-11 items-center justify-center border border-[var(--lp-outline-strong)] px-5 py-2.5 mono text-[14px] font-bold uppercase tracking-[0.1em] text-[var(--lp-text-muted)] transition-colors hover:border-[var(--lp-accent)] hover:text-[var(--lp-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
-              style={{
-                borderRadius: 10,
-              }}
-            >
-              {es.notFoundCta}
-            </Link>
-          </div>
-        </div>
-      </Band>
-    </FullBleed>
+    <section aria-labelledby="deal-recovery-title" className="product-surface mx-auto w-full max-w-[640px] py-6 sm:py-10">
+      <p className="text-[14px] font-medium text-[var(--ink-secondary)]">{es.transientEyebrow}</p>
+      <h1 id="deal-recovery-title" className="mt-3 text-[24px] font-semibold leading-tight tracking-[-0.02em] text-[var(--ink)]">{es.transientTitle}</h1>
+      <p className="mt-4 max-w-[52ch] text-[15px] leading-relaxed text-[var(--ink-secondary)]">{es.crashBody}</p>
+      <div className="mt-6 flex flex-wrap gap-3">
+        <Button type="button" onClick={retry} className="rounded-full">{es.transientCta}</Button>
+        <Link href={DEALS_AVAILABLE ? '/deals' : '/account'} className={buttonClasses({variant:'outline',className:'rounded-full'})}>
+          {DEALS_AVAILABLE ? es.notFoundCta : copy.nav.home}
+        </Link>
+      </div>
+    </section>
   );
 }

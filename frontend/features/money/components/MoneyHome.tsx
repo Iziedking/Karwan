@@ -108,10 +108,11 @@ function MoneyHomeInner() {
                 <span
                   aria-hidden
                   className="mt-[7px] size-2 shrink-0 rounded-full"
-                  style={{ background: movingText || state === 'empty' ? 'var(--lp-text-sub)' : 'var(--color-positive)' }}
+                  style={{ background: balances.error || movingText || state === 'empty' ? 'var(--lp-text-sub)' : 'var(--color-positive)' }}
                 />
-                {state === 'empty' ? t.home.empty : movingText ?? t.home.readyOnArc}
+                {balances.error ? t.home.staleBalance : state === 'empty' ? t.home.empty : movingText ?? t.home.readyOnArc}
               </p>
+              {balances.error ? <button type="button" onClick={balances.refetch} className={SECONDARY}>{t.home.tryAgain}</button> : null}
               {held && held !== '0' ? (
                 <p data-held-in-deals className="text-[15px] font-medium tabular-nums text-[var(--lp-dark)]">
                   {fill(mp.heldInDeals, { amount: formatAmount(Number(held), locale) })}

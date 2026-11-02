@@ -119,7 +119,9 @@ export function sheetProgress(state: SheetState): { done: number; current: Sheet
     case 'sent':
       return { done: 1, current: 'sent' };
     case 'slow':
-      return { done: 2, current: 'confirmed' };
+      // A transport timeout can precede submission. Only a transaction hash
+      // lets the progress line mark that step complete.
+      return state.txHash ? { done: 2, current: 'confirmed' } : { done: 1, current: 'sent' };
     case 'confirmed':
       return { done: 3, current: null };
     default:

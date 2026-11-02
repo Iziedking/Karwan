@@ -295,7 +295,7 @@ export function createFamilyFinancing(ports: FamilyFinancingPorts) {
     if ('code' in w) return w;
     if (ports.now() > (w.o.sellerDeadline ?? 0)) {
       await ports.offers.patch(w.o.id, { status: 'expired' });
-      return refuse('expired', 'The 24 hours to pay the seller have passed. Nothing was held and nothing moved.');
+      return refuse('expired', 'The payment window has expired. Check the payment status before trying again.');
     }
     const t = termsOf(w.deal, w.o);
     if ((await ports.balance(t.financier)) < t.advance) {

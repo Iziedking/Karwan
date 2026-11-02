@@ -36,7 +36,8 @@ export function GuaranteeCard() {
   const ownWallet = useOwnWalletSend();
   const arc = usePublicClient({ chainId: ARC_CHAIN_ID });
   const sheetId = useId();
-  const { data } = useQuery({ queryKey: GUARANTEE_QUERY, queryFn: () => api.guarantee() });
+  const query = useQuery({ queryKey: GUARANTEE_QUERY, queryFn: () => api.guarantee() });
+  const { data } = query;
   const [step, setStep] = useState<GuaranteeStep | null>(null);
   const [amount, setAmount] = useState('');
   const [busy, setBusy] = useState(false);
@@ -47,6 +48,12 @@ export function GuaranteeCard() {
   const fill = (text: string, values: Record<string, string | number>) => text.replace(/\{(\w+)\}/g, (_, k: string) => String(values[k] ?? ''));
 
   const view = guaranteeView(data);
+  if (query.isError && !data) return (
+    <div role="alert" className="space-y-3">
+      <p className="text-[15px] text-[var(--lp-dark)]">{c.notAvailable}</p>
+      <button type="button" className={secondary} onClick={() => void query.refetch()}>{c.refresh}</button>
+    </div>
+  );
   if (!view || !data) return null;
   if (view.kind === 'off' || !data.available) {
     return <p role="status" className="px-1 text-[15px] text-[var(--lp-dark)]">{mp.off}</p>;

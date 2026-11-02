@@ -1,3 +1,4 @@
+import { moneyCopy } from '../shared/i18n/messages/money';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { ME, TX, accentControls, funded, serveMoney, watchHydration } from './moneyFixtures';
@@ -20,9 +21,9 @@ test('the balance is the loudest thing on the page, with one primary action', as
   await serveMoney(page, { balances: funded });
   await page.goto('/account');
   const heading = page.getByRole('heading', { level: 1 });
-  await expect(heading).toContainText('USDC balance');
+  await expect(heading).toContainText(moneyCopy.en.home.balanceLabel);
   await expect(heading).toContainText('1,240.50');
-  await expect(page.getByText('Ready to use on Arc')).toBeVisible();
+  await expect(page.getByText(moneyCopy.en.home.readyOnArc)).toBeVisible();
   await expect(page.getByRole('link', { name: 'Add money', exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Withdraw', exact: true })).toHaveAttribute('href', '/bridge?direction=out');
   await expect(page.getByRole('link', { name: 'Send', exact: true })).toHaveAttribute('href', '/send');
@@ -90,8 +91,8 @@ test('a slow top-up says it is waiting and never failed', async ({ page }) => {
   const sheet = await openTopUp(page);
   await sheet.getByLabel('Amount').fill('50');
   await sheet.getByRole('button', { name: 'Top up 50.00 USDC' }).click();
-  await expect(sheet).toContainText('Sent. Waiting for the network. Nothing is lost.');
-  await expect(sheet.getByRole('button', { name: 'Check again' })).toBeVisible();
+  await expect(sheet).toContainText(moneyCopy.en.sheet.slow);
+  await expect(sheet.getByRole('button', { name: moneyCopy.en.sheet.checkAgain })).toBeVisible();
   await expect(sheet.getByText(/fail/i)).toHaveCount(0);
 });
 
@@ -104,7 +105,7 @@ test('a failed top-up says nothing moved and offers to try again', async ({ page
   const sheet = await openTopUp(page);
   await sheet.getByLabel('Amount').fill('50');
   await sheet.getByRole('button', { name: 'Top up 50.00 USDC' }).click();
-  await expect(sheet).toContainText("It didn't go through. Nothing moved.");
+  await expect(sheet).toContainText(moneyCopy.en.sheet.failed);
   await sheet.getByRole('button', { name: 'Try again' }).click();
   await expect(sheet.getByRole('button', { name: 'Top up 50.00 USDC' })).toBeEnabled();
 });
@@ -124,9 +125,9 @@ test('a top-up that got no clear answer waits and never offers a second send', a
   const sheet = await openTopUp(page);
   await sheet.getByLabel('Amount').fill('50');
   await sheet.getByRole('button', { name: 'Top up 50.00 USDC' }).click();
-  await expect(sheet).toContainText('Sent. Waiting for the network. Nothing is lost.');
+  await expect(sheet).toContainText(moneyCopy.en.sheet.slow);
   await expect(sheet.getByRole('button', { name: 'Try again' })).toHaveCount(0);
-  await sheet.getByRole('button', { name: 'Check again' }).click();
+  await sheet.getByRole('button', { name: moneyCopy.en.sheet.checkAgain }).click();
   await expect(sheet).toContainText('50.00 USDC is with your buying agent.');
   expect(calls).toBe(2);
 });

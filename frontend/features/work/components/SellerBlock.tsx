@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import type { RankedWorkOffer } from '@/core/api';
+import { useTierLabels } from '@/features/reputation/useTierLabels';
 import { ratingText } from '@/features/ratings/ratingText';
 import { PersonAvatar } from '@/shared/components/PersonAvatar';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -12,7 +13,8 @@ import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 export function SellerBlock({ offer }: { offer: Pick<RankedWorkOffer, 'seller' | 'name' | 'tag' | 'verified' | 'tier' | 'rating' | 'reasons' | 'recommended'> }) {
   const copy = useTranslations().shortlist;
   const { locale, t: all } = useLocale();
-  const tier = copy.tiers[offer.tier as keyof typeof copy.tiers] ?? offer.tier;
+  const tiers = useTierLabels();
+  const tier = tiers[offer.tier as keyof typeof tiers] ?? tiers.NEW;
   const reasons = offer.reasons.map((r) => copy.reasons[r as keyof typeof copy.reasons]).filter(Boolean).join(' · ');
   return (
     <div className="flex min-w-0 items-start gap-3">

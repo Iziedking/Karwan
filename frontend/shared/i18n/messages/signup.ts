@@ -34,6 +34,7 @@ export interface SignupCopy {
     /// Under the sign-in card: what signing in can and cannot do.
     trustNoMoney: string;
     trustEscrow: string;
+    trustDirectPayment: string;
     browse: string;
   };
   signUp: {
@@ -178,6 +179,7 @@ const en: SignupCopy = {
     browsePrompt: 'Just looking around?',
     trustNoMoney: 'Signing in never moves money',
     trustEscrow: "Payment is held in escrow. Review the delivery, release and refund terms before paying.",
+    trustDirectPayment: "Direct payments are outside deal escrow. Review the recipient and amount before paying.",
     browse: 'Browse the market first',
   },
   signUp: {
@@ -327,6 +329,7 @@ const ar: SignupCopy = {
     browsePrompt: 'تتصفح فقط؟',
     trustNoMoney: 'تسجيل الدخول لا يحرّك أي مال',
     trustEscrow: "يُحفظ المبلغ في الضمان. راجع شروط التسليم والصرف والاسترداد قبل الدفع.",
+    trustDirectPayment: "المدفوعات المباشرة خارج ضمان الصفقات. راجع المستلم والمبلغ قبل الدفع.",
     browse: 'تصفح السوق أولًا',
   },
   signUp: {
@@ -476,6 +479,7 @@ const fr: SignupCopy = {
     browsePrompt: 'Vous jetez juste un œil ?',
     trustNoMoney: 'Se connecter ne déplace jamais d’argent',
     trustEscrow: "Le paiement est sous séquestre. Vérifiez les conditions de livraison, de versement et de remboursement avant de payer.",
+    trustDirectPayment: "Les paiements directs ne sont pas couverts par le séquestre d’une transaction. Vérifiez le destinataire et le montant avant de payer.",
     browse: 'Parcourir le marché d’abord',
   },
   signUp: {
@@ -625,6 +629,7 @@ const hi: SignupCopy = {
     browsePrompt: 'बस देख रहे हैं?',
     trustNoMoney: 'साइन इन करने से कभी पैसा नहीं हिलता',
     trustEscrow: "भुगतान एस्क्रो में रखा जाता है। भुगतान से पहले डिलीवरी, भुगतान जारी करने और वापसी की शर्तें पढ़ें।",
+    trustDirectPayment: "सीधे भुगतान डील एस्क्रो के बाहर होते हैं। भुगतान से पहले प्राप्तकर्ता और रकम की जाँच करें।",
     browse: 'पहले बाज़ार देखें',
   },
   signUp: {
@@ -774,6 +779,7 @@ const sw: SignupCopy = {
     browsePrompt: 'Unaangalia tu?',
     trustNoMoney: 'Kuingia hakusogezi pesa kamwe',
     trustEscrow: "Malipo yanashikiliwa kwenye escrow. Kagua masharti ya uwasilishaji, malipo na kurejeshewa pesa kabla ya kulipa.",
+    trustDirectPayment: "Malipo ya moja kwa moja hayatumii escrow ya mkataba. Kagua mpokeaji na kiasi kabla ya kulipa.",
     browse: 'Tazama soko kwanza',
   },
   signUp: {

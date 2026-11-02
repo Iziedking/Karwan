@@ -72,7 +72,7 @@ test('a ledger row without a known template falls back to its recorded sentence'
   assert.equal(ledgerLine({ summary, params: { t: 'missing' } }, {}), readableMovementText(summary));
 });
 
-test('a long recipient in a template is not printed raw', () => {
+test('a wallet recipient in a template is not printed raw', () => {
   const texts = { agentWithdraw: 'Moved {amount} USDC from the {agent} trade account to {to}' };
   assert.equal(
     ledgerLine({ summary: 'x', params: { t: 'agentWithdraw', amount: '5', agent: 'seller', to: '0x1234567890abcdef1234567890abcdef12345678' } }, texts),
@@ -164,4 +164,12 @@ test('money the escrow paid your financier from your deal is a note: no sign, in
   assert.equal(ledgerDirection('financing_paid_from_deal'), 'flat');
   assert.equal(ledgerAmountLabel('992.5', 'financing_paid_from_deal'), '992.50 USDC');
   assert.deepEqual(filterByDirection([{ kind: 'financing_paid_from_deal' }], 'in'), []);
+});
+
+
+test('ledger actors and wallet destinations follow the reader locale', () => {
+  const texts = { agentTopUp: 'Ajouté au compte {agent}', agentWithdraw: 'Envoyé au {to}', agentBuyer: 'acheteur', agentSeller: 'vendeur', counterparty: 'destinataire' };
+  assert.equal(ledgerLine({ summary: 'x', params: { t: 'agentTopUp', agent: 'buyer' } }, texts), 'Ajouté au compte acheteur');
+  assert.equal(ledgerLine({ summary: 'x', params: { t: 'agentWithdraw', to: '0x1234567890abcdef1234567890abcdef12345678' } }, texts), 'Envoyé au destinataire');
+  assert.equal(ledgerLine({ summary: 'x', params: { t: 'agentWithdraw', to: 'Alexandra Laurent' } }, texts), 'Envoyé au Alexandra Laurent');
 });

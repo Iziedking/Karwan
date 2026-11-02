@@ -1,14 +1,17 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { signInContext } from '@/shared/auth/signInContext';
 import { FlowLines } from '@/shared/components/FlowLines';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 /// The sign-in and waitlist page: the card in the middle of a framed stage,
 /// with the flow lines meeting behind it and what signing in can and cannot
 /// do underneath. Phone and desktop share it; only the frame inset changes.
-export function SignInStage({ children }: { children: ReactNode }) {
+export function SignInStage({ children, next = null }: { children: ReactNode; next?: string | null }) {
   const t = useTranslations().signup.signIn;
+  const context = signInContext(next);
+  const paymentNote = context === 'direct' ? t.trustDirectPayment : context === 'deal' ? t.trustEscrow : null;
   return (
     <div className="w-full bg-[var(--canvas)] p-0 sm:p-3">
       <div className="relative isolate flex min-h-[calc(100svh-var(--lp-nav-h,72px))] flex-col items-center overflow-hidden bg-[var(--canvas)] px-4 sm:min-h-[calc(100svh-var(--lp-nav-h,72px)-24px)] sm:rounded-[24px] sm:border sm:border-[var(--line)]">
@@ -19,10 +22,10 @@ export function SignInStage({ children }: { children: ReactNode }) {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--lp-accent-on-light)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="5" y="10" width="14" height="10" rx="2.5" /><path d="M8 10V7.5a4 4 0 0 1 8 0V10" /></svg>
             {t.trustNoMoney}
           </li>
-          <li className="flex items-center gap-2">
+          {paymentNote ? <li className="flex items-center gap-2">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--lp-accent-on-light)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z" /><path d="m9 12 2 2 4-4" /></svg>
-            {t.trustEscrow}
-          </li>
+            {paymentNote}
+          </li> : null}
         </ul>
       </div>
     </div>

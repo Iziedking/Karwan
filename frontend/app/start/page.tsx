@@ -14,7 +14,7 @@ export default async function StartPage({
   if (query.step === 'about') return <SetupFlow embedded next={next} />;
   const mode = query.mode === 'signup' ? 'signup' : 'signin';
   return (
-    <SignInStage>
+    <SignInStage next={next}>
       <StartScreen mode={mode} next={next} />
     </SignInStage>
   );

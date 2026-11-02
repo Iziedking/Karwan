@@ -81,3 +81,13 @@ export function budgetDifference(priceUsdc: string, budgetUsdc: string): string 
   const diff = micros(priceUsdc) - micros(budgetUsdc);
   return diff > 0n ? formatUnits(diff, 6) : null;
 }
+
+/// Only the server-supplied, fee-inclusive total can authorize the payment CTA.
+/// A base price is not a substitute when an older response omits the total.
+export function offerFundingTotal(offer: Pick<Offer, 'priceUsdc' | 'fundedUsdc'>): string | null {
+  const decimal = /^\d{1,30}(?:\.\d{1,6})?$/;
+  if (typeof offer.fundedUsdc !== 'string' || typeof offer.priceUsdc !== 'string' || !decimal.test(offer.fundedUsdc) || !decimal.test(offer.priceUsdc)) return null;
+  const total = micros(offer.fundedUsdc);
+  const price = micros(offer.priceUsdc);
+  return price > 0n && total >= price ? offer.fundedUsdc : null;
+}

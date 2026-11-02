@@ -10,7 +10,7 @@ import { useMoneyBalances } from '@/features/money/hooks/useMoneyBalances';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { formatUsdc } from '@/shared/utils/format';
-import { budgetDifference, offerErrorKey, orderOffers, topUpAmount, type Offer } from '../model';
+import { budgetDifference, offerErrorKey, offerFundingTotal, orderOffers, topUpAmount, type Offer } from '../model';
 
 function sellerName(address: string): string {
   return /^0x[a-fA-F0-9]{40}$/.test(address) ? `${address.slice(0, 6)}…${address.slice(-4)}` : address;
@@ -50,7 +50,9 @@ export function BuyerOffers({ jobId, budgetUsdc }: { jobId: string; budgetUsdc: 
     try {
       const view = await api.offers(jobId);
       // The buyer's agent's pick leads, so the one primary button is on it.
-      setOffers(view.role === 'buyer' ? orderOffers(view.offers, view.offers.find((o) => o.sellerBlock?.recommended)?.sellerUser) : []);
+      const next = view.role === 'buyer' ? orderOffers(view.offers, view.offers.find((o) => o.sellerBlock?.recommended)?.sellerUser) : [];
+      setOffers(next);
+      setChosen((current) => current ? next.find((offer) => offer.id === current.id) ?? null : null);
     } catch {
       setOffers([]);
     }
@@ -73,6 +75,7 @@ export function BuyerOffers({ jobId, budgetUsdc }: { jobId: string; budgetUsdc: 
   if (offers.length === 0) return null;
 
   async function accept(offer: Offer) {
+    if (!offerFundingTotal(offer)) return;
     setBusy(true);
     setError(null);
     try {
@@ -86,10 +89,11 @@ export function BuyerOffers({ jobId, budgetUsdc }: { jobId: string; budgetUsdc: 
     }
   }
 
+  const chosenTotal = chosen ? offerFundingTotal(chosen) : null;
   const top = offers[0]!;
   const diff = chosen ? budgetDifference(chosen.priceUsdc, budgetUsdc) : null;
-  const shortfall = chosen && money.buyer !== null
-    ? topUpAmount({ needUsdc: chosen.fundedUsdc ?? chosen.priceUsdc, agentUsdc: money.buyer })
+  const shortfall = chosenTotal !== null && money.buyer !== null
+    ? topUpAmount({ needUsdc: chosenTotal, agentUsdc: money.buyer })
     : null;
   const funding = fundingAmount !== null;
 
@@ -145,9 +149,10 @@ export function BuyerOffers({ jobId, budgetUsdc }: { jobId: string; budgetUsdc: 
             <h2 id={titleId} className="text-[22px] font-medium text-[var(--lp-dark)]">
               {t.confirmTitle.replace('{seller}', nameOf(chosen))}
             </h2>
-            {/* The amount that leaves the wallet, fee included, is the loudest number. */}
+            {chosenTotal ? <>
+            {/* The verified total, fee included, is the loudest number. */}
             <p className="text-[36px] font-medium leading-none tabular-nums text-[var(--lp-dark)]">
-              {formatUsdc(chosen.fundedUsdc ?? chosen.priceUsdc)}
+              {formatUsdc(chosenTotal)}
             </p>
             {chosen.fundedUsdc && chosen.fundedUsdc !== chosen.priceUsdc ? (
               <p className="text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">
@@ -155,8 +160,9 @@ export function BuyerOffers({ jobId, budgetUsdc }: { jobId: string; budgetUsdc: 
               </p>
             ) : null}
             <p className="text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
-              {t.confirmBody.replace('{price}', formatUsdc(chosen.fundedUsdc ?? chosen.priceUsdc, { withSuffix: false }))}
+              {t.confirmBody.replace('{price}', formatUsdc(chosenTotal, { withSuffix: false }))}
             </p>
+            </> : <p role="alert" className="text-[15px] leading-relaxed text-[var(--lp-text-sub)]">{t.totalUnavailable}</p>}
             {diff ? <p className="text-[14px] text-[var(--color-warning)]">{t.aboveBudget.replace('{diff}', diff)}</p> : null}
             {error ? (
               <p role="alert" className="text-[14px] text-[var(--color-critical)]">
@@ -186,11 +192,12 @@ export function BuyerOffers({ jobId, budgetUsdc }: { jobId: string; budgetUsdc: 
                 />
               </div>
             ) : null}
-            {!funding ? (
+            {!funding && chosenTotal ? (
               <Button id={`${titleId}-accept`} size="lg" className="w-full rounded-full" loading={busy} onClick={() => void accept(chosen)}>
-                {t.accept.replace('{price}', formatUsdc(chosen.fundedUsdc ?? chosen.priceUsdc, { withSuffix: false }))}
+                {t.accept.replace('{price}', formatUsdc(chosenTotal, { withSuffix: false }))}
               </Button>
             ) : null}
+            {!chosenTotal ? <Button size="lg" className="w-full rounded-full" loading={busy} onClick={async () => { setBusy(true); await load(); setBusy(false); }}>{t.refreshTotal}</Button> : null}
             <Button variant="ghost" className="w-full rounded-full" disabled={busy || fundingBusy} onClick={closeConfirmation}>
               {t.cancel}
             </Button>

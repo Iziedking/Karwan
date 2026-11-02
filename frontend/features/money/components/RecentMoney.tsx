@@ -57,6 +57,7 @@ export function RecentMoney() {
   return (
     <section aria-labelledby="money-recent" className="space-y-4">
       <h2 id="money-recent" className="text-[20px] font-semibold text-[var(--lp-dark)]">{copy.recentTitle}</h2>
+      {failed && items !== null ? <p role="status" className="text-[15px] text-[var(--lp-text-sub)]">{copy.recentError}</p> : null}
       {items === null ? (
         failed ? (
           <p className="text-[15px] text-[var(--lp-dark)]">{copy.recentError}</p>

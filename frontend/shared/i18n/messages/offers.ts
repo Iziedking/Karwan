@@ -27,6 +27,8 @@ export interface OffersCopy {
   confirmTitle: string;
   confirmBody: string;
   aboveBudget: string;
+  totalUnavailable: string;
+  refreshTotal: string;
   includesFee: string;
   topUpCta: string;
   cancel: string;
@@ -60,6 +62,8 @@ export interface OffersCopy {
 }
 
 const en: OffersCopy = {
+  totalUnavailable: "The total payment amount is unavailable. Refresh the total before accepting this offer.",
+  refreshTotal: "Refresh total",
   makeOffer: 'Make an offer',
   sheetTitle: 'Your offer',
   price: 'Price',
@@ -87,7 +91,7 @@ const en: OffersCopy = {
   confirmTitle: "Accept the offer from {seller}?",
   confirmBody: "{price} USDC is held in escrow under the agreed release rules. Review delivery within the review period; the seller may claim payment when it ends.",
   aboveBudget: '{diff} USDC above your budget',
-  includesFee: '{price} USDC offer plus the fee',
+  includesFee: "{price} USDC offer. The total includes your share of the fee.",
   topUpCta: 'Top up {amount} USDC',
   cancel: "Not now",
   accepted: 'Offer accepted. The money is held.',
@@ -120,6 +124,8 @@ const en: OffersCopy = {
 };
 
 const ar: OffersCopy = {
+  totalUnavailable: "إجمالي مبلغ الدفع غير متاح. حدّث الإجمالي قبل قبول هذا العرض.",
+  refreshTotal: "تحديث الإجمالي",
   makeOffer: 'قدّم عرضًا',
   sheetTitle: 'عرضك',
   price: 'السعر',
@@ -147,7 +153,7 @@ const ar: OffersCopy = {
   confirmTitle: "هل تقبل عرض {seller}؟",
   confirmBody: "يُحفظ {price} USDC في الضمان وفق قواعد الصرف المتفق عليها. راجع التسليم خلال فترة المراجعة؛ يمكن للبائع المطالبة بالدفع عند انتهائها.",
   aboveBudget: '{diff} USDC فوق ميزانيتك',
-  includesFee: 'عرض بقيمة {price} USDC مع الرسوم',
+  includesFee: "عرض بقيمة {price} USDC. يشمل الإجمالي حصتك من الرسوم.",
   topUpCta: 'اشحن بمبلغ {amount} USDC',
   cancel: "ليس الآن",
   accepted: 'تم قبول العرض. الأموال محجوزة.',
@@ -180,6 +186,8 @@ const ar: OffersCopy = {
 };
 
 const fr: OffersCopy = {
+  totalUnavailable: "Le montant total du paiement est indisponible. Actualisez-le avant d’accepter cette offre.",
+  refreshTotal: "Actualiser le total",
   makeOffer: 'Faire une offre',
   sheetTitle: 'Votre offre',
   price: 'Prix',
@@ -207,7 +215,7 @@ const fr: OffersCopy = {
   confirmTitle: "Accepter l’offre de {seller} ?",
   confirmBody: "{price} USDC sont sous séquestre selon les règles de versement convenues. Vérifiez la livraison pendant le délai prévu ; le vendeur peut réclamer le paiement à son terme.",
   aboveBudget: '{diff} USDC au-dessus de votre budget',
-  includesFee: 'Offre de {price} USDC plus les frais',
+  includesFee: "Offre de {price} USDC. Le total inclut votre part des frais.",
   topUpCta: 'Ajouter {amount} USDC',
   cancel: "Pas maintenant",
   accepted: "Offre acceptée. L'argent est bloqué.",
@@ -240,6 +248,8 @@ const fr: OffersCopy = {
 };
 
 const hi: OffersCopy = {
+  totalUnavailable: "भुगतान की कुल राशि उपलब्ध नहीं है। ऑफ़र स्वीकार करने से पहले कुल राशि रीफ़्रेश करें।",
+  refreshTotal: "कुल राशि रीफ़्रेश करें",
   makeOffer: 'ऑफ़र दें',
   sheetTitle: 'आपका ऑफ़र',
   price: 'कीमत',
@@ -267,7 +277,7 @@ const hi: OffersCopy = {
   confirmTitle: "{seller} का ऑफ़र स्वीकार करें?",
   confirmBody: "{price} USDC तय भुगतान नियमों के अनुसार एस्क्रो में रखा जाता है। समीक्षा अवधि के भीतर डिलीवरी जाँचें। अवधि समाप्त होने पर विक्रेता भुगतान का दावा कर सकता है।",
   aboveBudget: 'आपके बजट से {diff} USDC ज़्यादा',
-  includesFee: '{price} USDC का ऑफ़र और शुल्क',
+  includesFee: "{price} USDC का ऑफ़र। कुल राशि में शुल्क का आपका हिस्सा शामिल है।",
   topUpCta: '{amount} USDC टॉप अप करें',
   cancel: "अभी नहीं",
   accepted: 'ऑफ़र स्वीकार हुआ। पैसा रोक लिया गया है।',
@@ -300,6 +310,8 @@ const hi: OffersCopy = {
 };
 
 const sw: OffersCopy = {
+  totalUnavailable: "Jumla ya malipo haipatikani. Onyesha jumla upya kabla ya kukubali ofa hii.",
+  refreshTotal: "Onyesha jumla upya",
   makeOffer: 'Toa ofa',
   sheetTitle: 'Ofa yako',
   price: 'Bei',
@@ -327,7 +339,7 @@ const sw: OffersCopy = {
   confirmTitle: "Ukubali ofa ya {seller}?",
   confirmBody: "{price} USDC zinashikiliwa kwenye escrow kwa masharti ya malipo yaliyokubaliwa. Kagua uwasilishaji ndani ya muda wa ukaguzi; muuzaji anaweza kudai malipo muda huo ukiisha.",
   aboveBudget: '{diff} USDC juu ya bajeti yako',
-  includesFee: 'Ofa ya {price} USDC pamoja na ada',
+  includesFee: "Ofa ya {price} USDC. Jumla inajumuisha sehemu yako ya ada.",
   topUpCta: 'Ongeza {amount} USDC',
   cancel: "Si sasa",
   accepted: 'Ofa imekubaliwa. Pesa inashikiliwa.',

@@ -115,7 +115,10 @@ export function ledgerLine(item: LedgerLineItem, texts: Record<string, string>):
   return readableMovementText(
     template.replace(/\{(\w+)\}/g, (whole, key: string) => {
       const value = params[key] ?? whole;
-      return key === 'to' && value.length > 12 ? 'counterparty' : value;
+      if (key === 'agent' && value === 'buyer') return texts.agentBuyer ?? 'buyer';
+      if (key === 'agent' && value === 'seller') return texts.agentSeller ?? 'seller';
+      if (key === 'to' && /^0x[0-9a-f]{40}$/i.test(value)) return texts.counterparty ?? 'counterparty';
+      return value;
     }),
   );
 }

@@ -1,4 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
+import { offersCopy } from '../shared/i18n/messages/offers';
 import { expect, test, type Page } from '@playwright/test';
 import { BUYER_AGENT, ME, funded, API, RPC, TX, watchHydration } from './moneyFixtures';
 import { JOB, makeJob, serveSearch } from './searchFixtures';
@@ -209,7 +210,7 @@ test('buyer sees offers cheapest first and accepts through the confirm sheet', a
   await expect(dialog).toContainText('the seller may claim payment when it ends');
   // The amount that leaves the wallet, fee included, is the loudest number.
   await expect(dialog).toContainText('96.48 USDC');
-  await expect(dialog).toContainText('96 USDC offer plus the fee');
+  await expect(dialog).toContainText(offersCopy.en.includesFee.replace('{price}','96'));
   // The sheet must be a solid surface: money copy never sits over the page text.
   await expect.poll(() => dialog.evaluate((el) => getComputedStyle(el).opacity)).toBe('1');
   const bg = await dialog.evaluate((el) => getComputedStyle(el).backgroundColor);

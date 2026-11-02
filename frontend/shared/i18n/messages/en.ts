@@ -756,6 +756,9 @@ interface MessagesShape {
         received: string;
         seededByKarwan: string;
         setupMove: string;
+        agentBuyer: string;
+        agentSeller: string;
+        counterparty: string;
         agentWithdraw: string;
         agentTopUp: string;
         milestoneRelease: string;
@@ -6047,6 +6050,9 @@ export const en: MessagesShape = {
         setupMove: 'Moved {amount} USDC from your main account into your {agent} trade account at setup',
         agentWithdraw: 'Moved {amount} USDC from the {agent} trade account to {to}',
         agentTopUp: 'Added {amount} USDC to the {agent} trade account from the main account',
+        agentBuyer: "buyer",
+        agentSeller: "seller",
+        counterparty: "counterparty",
         milestoneRelease: 'Released milestone {n} on deal {job} to the seller',
         milestoneReleaseFinal: 'Released milestone {n} on deal {job} to the seller (final release, deal settled)',
         dealPayout: 'Received payment for milestone {n} on deal {job}',
@@ -6394,8 +6400,8 @@ export const en: MessagesShape = {
     backendOffline: {
       eyebrow: "Connection",
       title: "Cannot load your account",
-      bodyPrefix: 'Couldn\'t reach Karwan at ',
-      bodySuffix: ". This page picks up the moment it's back.",
+      bodyPrefix: "We could not load your account. ",
+      bodySuffix: "Try again to check the latest status.",
     },
     hero: {
       welcomeBack: 'Welcome back,',
@@ -7443,9 +7449,9 @@ export const en: MessagesShape = {
       acceptBid: 'Accepting offer failed',
       fundEscrow: 'Escrow funding failed',
       recordCompletion: 'Reputation record failed',
-      JobPosted: 'JobPosted handler crashed',
-      CounterOfferIssued: 'CounterOfferIssued handler crashed',
-      BidSubmitted: 'BidSubmitted handler crashed',
+      JobPosted: "Request processing failed",
+      CounterOfferIssued: "Offer processing failed",
+      BidSubmitted: "Quote processing failed",
     },
   },
   pageBits: {
@@ -8806,10 +8812,10 @@ export const en: MessagesShape = {
       notFoundCta: 'Back to deals',
       transientEyebrow: 'Cannot reach deal',
       transientTitle: 'We could not reach this deal right now',
-      transientBody: 'Your deal is safe and still on chain. This is a network hiccup, not a lost deal. Give it a moment and try again.',
+      transientBody: "We could not load the latest deal status. Try again to check its current state.",
       transientCta: 'Try again',
       transientRetrying: 'Reaching deal',
-      crashBody: 'Your agreement and funds are unchanged. Try once more or go back to your trades.',
+      crashBody: "This page could not finish loading. Try again to check the latest information, or return to your account.",
     },
     connectGate: {
       eyebrow: 'Private deal',
@@ -10020,7 +10026,7 @@ export const en: MessagesShape = {
         body: 'You already have a counterparty. From the active workspace, name their wallet or email, set the terms, and send them for agreement. Review the live fee and exact total before funding escrow.',
       },
       matched: {
-        label: 'Find supply.',
+        label: "Find a seller.",
         body: 'You need a counterparty, supplier, or buyer. Post a request or publish what you offer. The market and bounded agents look for a fit, then bring you a proposal to approve.',
       },
     },
@@ -10419,10 +10425,10 @@ export const en: MessagesShape = {
       body: 'You found someone through a chat, marketplace, social post, or referral. Karwan records the terms and protects payment while goods or services are delivered.',
       step1: { title: 'Agree and fund', cta: 'the buyer page', bodyA: 'On ', bodyB: ', pick "I have a seller". Enter their wallet or email, the amount, deadline, and milestones. The seller agrees first. You then review the current fee and exact total before funding escrow.' },
       step2: { title: 'Seller delivers', body: 'Delivery begins only after the deal shows escrow funded. When the agreed goods or service are delivered, the seller submits delivery for the buyer to review.' },
-      step3: { title: 'Review and pay', body: 'You release the first slice, then verify the delivery and release the rest. The escrow settles, the platform fee is collected, and the seller\'s reputation is recorded on chain.' },
+      step3: { title: 'Review and pay', body: "Review the delivery against the agreed terms before releasing payment. The deal page shows the review deadline and any automatic release or refund rules. Settlement updates the deal record and reputation history." },
     },
     managedDeal: {
-      eyebrow: 'Find supply',
+      eyebrow: "Find a seller",
       title: 'When you need a counterparty',
       body: 'Post what you need or publish what you offer. The market and bounded agents help compare candidates and prepare a proposal for your review.',
       step1: { title: 'Post a request', bodyA: 'On ', bodyB: ', pick "Find me a seller". Write what you need, set a budget and deadline. A ', bodyC: ' transaction lands on Arc in a few seconds.' },
@@ -10502,7 +10508,7 @@ export const en: MessagesShape = {
       q5: { q: "How does the escrow release?", a: "Review the delivery and release the agreed milestones. If either side needs more time, the seller can ask for more time to deliver and the buyer can extend the review window, up to the limit in the terms. If a review window ends with no action, the contract may let the seller claim the current milestone, including the final one. Check the deadlines and actions on the deal." },
       q6: { q: "What if a deal goes to dispute?", a: "A dispute freezes the unreleased balance. You can propose a split for the other party to accept. Otherwise each side gives its account within 72 hours by answering three questions. The judge reads both accounts, the delivery check on the submitted work and the deal chat, then proposes a split. A reviewer confirms every ruling before money moves. A side that gives no account loses. Opening a dispute is not an automatic refund." },
       q7: { q: 'What if a seller agent skips my agent-matched request?', a: 'The seller\'s profile has a budget and deadline range. If your request falls outside it, the agent skips and the timeline shows you why. If the agent is uncertain for any other reason, that is logged too, so the next move is never silent.' },
-      q8: { q: "What kinds of trade can I use?", a: "Services and digital work, local or cross-border. Trade in physical goods and business trade are coming soon. Bring a counterparty you already know, or publish a request or offer to find one. Both paths use USDC escrow on Arc." },
+      q8: { q: "What kinds of trade can I use?", a: "Use service or goods deals where available. Bring someone you know, or browse and post requests and offers. Review the available deal type, delivery requirements and payment rules before funding. Business financing depends on feature availability and eligibility." },
       q9: { q: 'Where does the agent reasoning run?', a: 'Agents compare candidates and propose terms within your budget and deadline. You review the terms before funding. Contract rules determine later releases, refunds and disputes.' },
       q10: { q: "How does Karwan keep delivery safe?", a: "Every delivered link is checked for safety and checked against the agreed request. A delivery that fails either check pauses the payment. Checks cannot guarantee quality, so inspect the work before you release." },
       q11: { q: 'Can I bring my reputation from other platforms?', a: 'Not yet. Karwan is building this so your record from other platforms can count here, with your permission and without leaking your data. Today your reputation comes from completed Karwan deals.' },

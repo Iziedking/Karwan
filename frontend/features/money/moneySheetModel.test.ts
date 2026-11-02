@@ -88,7 +88,9 @@ test('an address is shown in groups of four to check against', () => {
 test('the progress line and busy flag follow the state', () => {
   assert.deepEqual(sheetProgress({ kind: 'signing' }), { done: 0, current: 'signed' });
   assert.deepEqual(sheetProgress({ kind: 'sent' }), { done: 1, current: 'sent' });
-  assert.deepEqual(sheetProgress({ kind: 'slow', reference: null, txHash: null }), { done: 2, current: 'confirmed' });
+  assert.deepEqual(sheetProgress({ kind: 'slow', reference: null, txHash: null }), { done: 1, current: 'sent' });
+  assert.deepEqual(sheetProgress({ kind: 'slow', reference: 'KWN-1', txHash: null }), { done: 1, current: 'sent' });
+  assert.deepEqual(sheetProgress({ kind: 'slow', reference: null, txHash: '0xabc' }), { done: 2, current: 'confirmed' });
   assert.deepEqual(sheetProgress({ kind: 'confirmed', reference: null, txHash: null }), { done: 3, current: null });
   assert.equal(sheetProgress({ kind: 'editing' }), null);
   assert.equal(sheetBusy({ kind: 'signing' }), true);

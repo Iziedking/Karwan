@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/core/api';
 import { qk } from '@/core/queryKeys';
 import { AccountHome } from '@/features/home/components/AccountHome';
-import { Band, FullBleed, HeroHeadline, Punc, SectionTag } from '@/shared/components/Bands';
+import { Button } from '@/shared/components/Button';
 import { SignInGate } from '@/shared/components/SignInGate';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
@@ -13,7 +13,8 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 
 export default function AppHome() {
-  const t = useTranslations().appHome;
+  const copy = useTranslations();
+  const t = copy.appHome;
   const { profile, isConnected, loading, fetchState } = useUserProfile();
   const { activeWorkspace, isBusinessWorkspace } = useWorkspaceContext();
   const { isLoading: authLoading } = useAuth();
@@ -34,19 +35,16 @@ export default function AppHome() {
 
   if (!statusQuery.isPending && !statusQuery.data) {
     return (
-      <FullBleed>
-        <Band tone="light">
-          <SectionTag>{t.backendOffline.eyebrow}</SectionTag>
-          <HeroHeadline>
-            {t.backendOffline.title}<Punc>.</Punc>
-          </HeroHeadline>
-          <p className="mt-5 max-w-md text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
-            {t.backendOffline.bodyPrefix}
-            <span className="mono text-[var(--lp-dark)]">{api.baseUrl}</span>
-            {t.backendOffline.bodySuffix}
-          </p>
-        </Band>
-      </FullBleed>
+      <section aria-labelledby="account-recovery-title" className="product-surface mx-auto w-full max-w-[640px] py-6 sm:py-10">
+        <p className="text-[14px] font-medium text-[var(--ink-secondary)]">{t.backendOffline.eyebrow}</p>
+        <h1 id="account-recovery-title" className="mt-3 text-[24px] font-semibold leading-tight tracking-[-0.02em] text-[var(--ink)]">{t.backendOffline.title}</h1>
+        <p className="mt-4 max-w-[52ch] text-[15px] leading-relaxed text-[var(--ink-secondary)]">
+          {t.backendOffline.bodyPrefix}{t.backendOffline.bodySuffix}
+        </p>
+        <Button type="button" onClick={() => void statusQuery.refetch()} loading={statusQuery.isFetching} className="mt-6 rounded-full">
+          {copy.accountHome.balanceRetry}
+        </Button>
+      </section>
     );
   }
 
