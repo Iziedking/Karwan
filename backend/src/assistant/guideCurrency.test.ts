@@ -24,7 +24,7 @@ test('the shortlist is on for testnet and both sides check each other', () => {
   assert.equal(shortlist.mainnet, 'off');
   // The seller's agent reads the buyer before it bids, and can pass.
   assert.match(shortlist.summary, /seller's agent/i);
-  assert.match(shortlist.summary, /before it bids/i);
+  assert.match(shortlist.summary, /before it (?:bids|makes an offer)/i);
   assert.match(shortlist.summary, /passes on a buyer/i);
 });
 

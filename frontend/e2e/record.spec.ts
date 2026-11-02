@@ -72,3 +72,13 @@ test('what others see is words only, with what they sell, even on your own previ
   await expect(page.getByRole('heading', { name: 'What Ada Builds sells' })).toBeVisible();
   await expect(page.getByRole('link', { name: /Logo design/ })).toHaveAttribute('href', '/listings/lst_1');
 });
+
+test('the record has Back, which goes to the market when opened from a link', async ({ page }) => {
+  await serve(page, () => ({ status: 200, json: record }));
+  await page.goto('/r/ada');
+  await expect(page.getByRole('heading', { name: 'Ada Builds' })).toBeVisible();
+  const back = page.getByRole('button', { name: /back/i }).first();
+  await expect(back).toBeVisible();
+  await back.click();
+  await expect(page).toHaveURL(/\/market/);
+});

@@ -26,3 +26,10 @@ test('a seller learns which open requests they fit, and nobody else can ask for 
   assert.equal((await listingsRoutes.request(`/fits?caller=${ADA}`, { headers: { cookie: cookieOf(BISI) } })).status, 403);
   assert.equal((await listingsRoutes.request(`/fits?caller=${ADA}`)).status, 403);
 });
+
+test('a request with no deal yet still fits; a closed one does not (view 46)', async () => {
+  const { requestsThatFit } = await import('../listings/fits.js');
+  const open = { jobId: '0xa', negotiationEndedAt: 1, shortlist: [{ sellerUser: ADA }] };
+  const closed = { jobId: '0xb', expiredAt: 1, shortlist: [{ sellerUser: ADA }] };
+  assert.deepEqual(requestsThatFit(ADA, [open, closed] as never), ['0xa']);
+});

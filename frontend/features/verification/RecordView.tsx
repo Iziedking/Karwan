@@ -7,6 +7,7 @@ import { api, ApiError } from '@/core/api';
 import { explorerTxUrl, settlementChain } from '@/core/arcNetwork';
 import { reasonLabels } from '@/features/reputation/sealed';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
+import { BackButton } from '@/shared/components/BackButton';
 import { ratingText } from '@/features/ratings/ratingText';
 import type { RecordFactKind } from '@/shared/i18n/messages/record';
 import { publicRecord } from './publicRecord';
@@ -77,7 +78,10 @@ export function RecordView({ tag }: { tag: string }) {
   const date = (ms: number) => new Date(ms).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' });
 
   return (
-    <main className="mx-auto w-full max-w-[720px] px-4 py-12 sm:py-16">
+    <main className="mx-auto w-full max-w-[720px] px-4 py-6 sm:py-10">
+      <div className="-ms-2 mb-4">
+        <BackButton tone="adaptive" showOnPublic fallbackHref="/market" />
+      </div>
       <p className="text-[14px] font-medium text-[var(--lp-text-sub)]">{all.passport.record}</p>
       <h1 className="mt-1 text-[28px] font-semibold leading-tight text-[var(--lp-ink)]">
         {record.displayName ?? sealed.unnamed}

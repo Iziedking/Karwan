@@ -7,7 +7,7 @@ const ADA = '0x00000000000000000000000000000000000000aa';
 const brief = (jobId: string, sellers: string[], extra: Partial<Brief> = {}): Brief =>
   ({ jobId, briefText: 'Logo for a food business', postedBy: '0xbb', createdAt: 1, shortlist: sellers.map((sellerUser) => ({ sellerUser })), ...extra }) as unknown as Brief;
 
-test('a seller sees the open requests whose shortlist names them', () => {
+test('a seller sees the open requests whose shortlist names them, no deal yet included (view 46)', () => {
   const ids = requestsThatFit(ADA.toUpperCase().replace('0X', '0x'), [
     brief('0x1', [ADA]),
     brief('0x2', ['0x00000000000000000000000000000000000000cc']),
@@ -15,5 +15,5 @@ test('a seller sees the open requests whose shortlist names them', () => {
     brief('0x4', [ADA], { negotiationEndedAt: 5 }),
     brief('0x5', []),
   ]);
-  assert.deepEqual(ids, ['0x1']);
+  assert.deepEqual(ids, ['0x1', '0x4']);
 });
