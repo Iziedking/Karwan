@@ -74,16 +74,16 @@ export function RecordView({ tag }: { tag: string }) {
 
   const view = publicRecord(record);
   const reasons = reasonLabels(view.reasons, sealed);
-  const date = (ms: number) => new Date(ms).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  const date = (ms: number) => new Date(ms).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' });
 
   return (
     <main className="mx-auto w-full max-w-[720px] px-4 py-12 sm:py-16">
-      <p className="text-[14px] font-medium text-[var(--lp-text-sub)]">{t.levels[record.level]}</p>
+      <p className="text-[14px] font-medium text-[var(--lp-text-sub)]">{all.passport.record}</p>
       <h1 className="mt-1 text-[28px] font-semibold leading-tight text-[var(--lp-ink)]">
         {record.displayName ?? sealed.unnamed}
       </h1>
       {record.tag ? <p className="mt-1 text-[15px] text-[var(--lp-text-sub)]">@{record.tag}</p> : null}
-      {view.verifiedPerson ? <p className="mt-1 text-[14px] font-semibold text-[var(--color-positive)]">{t.levels[record.level]}</p> : null}
+      <p className="mt-1 text-[14px] font-medium text-[var(--lp-text-sub)]">{t.levels[record.level]}</p>
       {record.tag && !own ? (
         <Link href={`/messages/${encodeURIComponent(record.tag)}`} className="mt-4 inline-flex min-h-11 items-center rounded-full border border-[var(--lp-line)] px-5 text-[14px] font-semibold text-[var(--lp-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
           {all.directMessages.messageFromAd.replace('{tag}', `@${record.tag}`)}
@@ -100,6 +100,7 @@ export function RecordView({ tag }: { tag: string }) {
           <dd className="text-[14px] font-semibold tabular-nums text-[var(--lp-ink)]">{ratingText(view.rating, all.ratings, locale)}</dd>
         </div>
       </dl>
+      <p className="mt-4 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{t.meaning}</p>
       {reasons.length ? <p className="mt-4 text-[15px] text-[var(--lp-ink)]">{reasons.join(' · ')}</p> : null}
 
       {selling.length ? (
@@ -141,6 +142,8 @@ export function RecordView({ tag }: { tag: string }) {
           ))}
         </ul>
       )}
+
+      <p className="mt-8 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{t.privacy}</p>
 
       <h2 className="mt-10 text-[18px] font-semibold text-[var(--lp-ink)]">{t.sources}</h2>
       <dl className="mt-3 border-t border-[var(--lp-line)]">

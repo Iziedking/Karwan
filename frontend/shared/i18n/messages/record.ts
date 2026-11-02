@@ -12,6 +12,8 @@ export type RecordFactKind =
 export interface RecordCopy {
   levels: Record<RecordLevel, string>;
   kinds: Record<RecordFactKind, string>;
+  meaning: string;
+  privacy: string;
   verifiedFacts: string;
   noFacts: string;
   tier: string;
@@ -37,8 +39,10 @@ export interface RecordCopy {
 }
 
 const en: RecordCopy = {
+  meaning: "Reputation level reflects trade history and guarantee activity. Ratings come from customers. Checks cover only the stated evidence and do not guarantee future performance.",
+  privacy: "This public record shows profile details, reputation level, ratings and checked facts. Ratings include a count. It does not list private messages or identity documents. Blockchain transactions and published deal attestations may reveal addresses and payment details.",
   levels: {
-    registered: 'Registered',
+    registered: "Account created",
     person_verified: 'Person verified',
     work_verified: 'Work verified',
     id_verified: 'ID verified',
@@ -55,7 +59,7 @@ const en: RecordCopy = {
   },
   verifiedFacts: 'Verified facts',
   noFacts: 'Nothing verified yet.',
-  tier: 'Tier',
+  tier: "Reputation level",
   until: 'Valid until',
   proof: 'Proof on Arc',
   download: 'Download signed copy',
@@ -65,12 +69,12 @@ const en: RecordCopy = {
   notFoundHint: 'Check the spelling, or ask the person for their link.',
   retry: 'Try again',
   home: 'Go to Karwan',
-  score: 'Score',
+  score: "Record score",
   scoreOf: '{n} of 100',
   completed: 'Completed deals',
   onTime: 'On time',
   disputesLost: 'Disputes lost',
-  sources: 'Reputation from other platforms',
+  sources: "Record sources",
   sourceKarwan: 'Karwan',
   connected: 'Connected',
   otherPlatforms: 'Other platforms',
@@ -78,8 +82,10 @@ const en: RecordCopy = {
 };
 
 const ar: RecordCopy = {
+  meaning: "يعكس مستوى السمعة سجل التعاملات ونشاط الضمان. التقييمات من العملاء. تقتصر الفحوص على الأدلة المحددة ولا تضمن الأداء المستقبلي.",
+  privacy: "يعرض هذا السجل العام بيانات الملف ومستوى السمعة والتقييمات والحقائق المفحوصة. يشمل التقييم عدد المشاركين. لا يعرض الرسائل الخاصة أو وثائق الهوية. قد تكشف معاملات البلوكشين وإثباتات الصفقات المنشورة عن العناوين وتفاصيل الدفع.",
   levels: {
-    registered: 'مسجّل',
+    registered: "تم إنشاء الحساب",
     person_verified: 'شخص موثّق',
     work_verified: 'عمل موثّق',
     id_verified: 'هوية موثّقة',
@@ -96,7 +102,7 @@ const ar: RecordCopy = {
   },
   verifiedFacts: 'حقائق موثّقة',
   noFacts: 'لا شيء موثّق بعد.',
-  tier: 'المستوى',
+  tier: "مستوى السمعة",
   until: 'صالح حتى',
   proof: 'الإثبات على Arc',
   download: 'تنزيل نسخة موقّعة',
@@ -106,12 +112,12 @@ const ar: RecordCopy = {
   notFoundHint: 'تحقق من الكتابة، أو اطلب من الشخص رابطه.',
   retry: 'حاول مرة أخرى',
   home: 'اذهب إلى Karwan',
-  score: 'النتيجة',
+  score: "درجة السجل",
   scoreOf: '{n} من 100',
   completed: 'صفقات مكتملة',
   onTime: 'في الموعد',
   disputesLost: 'نزاعات خاسرة',
-  sources: 'السمعة من منصات أخرى',
+  sources: "مصادر السجل",
   sourceKarwan: 'Karwan',
   connected: 'متصل',
   otherPlatforms: 'منصات أخرى',
@@ -119,8 +125,10 @@ const ar: RecordCopy = {
 };
 
 const fr: RecordCopy = {
+  meaning: "Le niveau de réputation reflète les échanges et la garantie. Les évaluations viennent des clients. Les contrôles portent sur les éléments indiqués et ne garantissent pas les résultats futurs.",
+  privacy: "Ce dossier public présente le profil, le niveau de réputation, les évaluations et les faits contrôlés. Le nombre d’évaluations est public. Les messages privés et pièces d’identité ne sont pas affichés. Les transactions sur la blockchain et les attestations publiées peuvent révéler des adresses et des informations de paiement.",
   levels: {
-    registered: 'Inscrit',
+    registered: "Compte créé",
     person_verified: 'Personne vérifiée',
     work_verified: 'Travail vérifié',
     id_verified: 'Identité vérifiée',
@@ -137,7 +145,7 @@ const fr: RecordCopy = {
   },
   verifiedFacts: 'Faits vérifiés',
   noFacts: 'Rien n’est encore vérifié.',
-  tier: 'Niveau',
+  tier: "Niveau de réputation",
   until: 'Valable jusqu’au',
   proof: 'Preuve sur Arc',
   download: 'Télécharger la copie signée',
@@ -147,12 +155,12 @@ const fr: RecordCopy = {
   notFoundHint: 'Vérifiez l’orthographe, ou demandez son lien à la personne.',
   retry: 'Réessayer',
   home: 'Aller sur Karwan',
-  score: 'Score',
+  score: "Score du dossier",
   scoreOf: '{n} sur 100',
   completed: 'Affaires terminées',
   onTime: 'Dans les délais',
   disputesLost: 'Litiges perdus',
-  sources: 'Réputation sur d’autres plateformes',
+  sources: "Sources du dossier",
   sourceKarwan: 'Karwan',
   connected: 'Connecté',
   otherPlatforms: 'Autres plateformes',
@@ -160,8 +168,10 @@ const fr: RecordCopy = {
 };
 
 const hi: RecordCopy = {
+  meaning: "प्रतिष्ठा स्तर व्यापार इतिहास और गारंटी गतिविधि पर आधारित है। रेटिंग ग्राहकों से मिलती है। जाँच केवल बताए गए प्रमाणों पर लागू होती है और भविष्य के प्रदर्शन की गारंटी नहीं देती।",
+  privacy: "इस सार्वजनिक रिकॉर्ड में प्रोफ़ाइल, प्रतिष्ठा स्तर, रेटिंग और जाँचे गए तथ्य दिखते हैं। रेटिंग की संख्या भी सार्वजनिक है। निजी संदेश या पहचान दस्तावेज़ नहीं दिखते। ब्लॉकचेन लेनदेन और प्रकाशित सौदा प्रमाणों से पते और भुगतान विवरण दिख सकते हैं।",
   levels: {
-    registered: 'पंजीकृत',
+    registered: "खाता बनाया गया",
     person_verified: 'व्यक्ति सत्यापित',
     work_verified: 'काम सत्यापित',
     id_verified: 'पहचान सत्यापित',
@@ -178,7 +188,7 @@ const hi: RecordCopy = {
   },
   verifiedFacts: 'सत्यापित तथ्य',
   noFacts: 'अभी कुछ सत्यापित नहीं है।',
-  tier: 'स्तर',
+  tier: "प्रतिष्ठा स्तर",
   until: 'मान्य तक',
   proof: 'Arc पर प्रमाण',
   download: 'हस्ताक्षरित प्रति डाउनलोड करें',
@@ -188,12 +198,12 @@ const hi: RecordCopy = {
   notFoundHint: 'वर्तनी जाँचें, या उस व्यक्ति से उनका लिंक माँगें।',
   retry: 'फिर से कोशिश करें',
   home: 'Karwan पर जाएँ',
-  score: 'स्कोर',
+  score: "रिकॉर्ड स्कोर",
   scoreOf: '100 में से {n}',
   completed: 'पूरे सौदे',
   onTime: 'समय पर',
   disputesLost: 'हारे गए विवाद',
-  sources: 'दूसरे प्लेटफ़ॉर्म से साख',
+  sources: "रिकॉर्ड के स्रोत",
   sourceKarwan: 'Karwan',
   connected: 'जुड़ा है',
   otherPlatforms: 'दूसरे प्लेटफ़ॉर्म',
@@ -201,8 +211,10 @@ const hi: RecordCopy = {
 };
 
 const sw: RecordCopy = {
+  meaning: "Kiwango cha sifa kinatokana na historia ya biashara na shughuli za dhamana. Tathmini zinatoka kwa wateja. Ukaguzi unahusu ushahidi uliotajwa tu na hauhakikishi utendaji wa baadaye.",
+  privacy: "Rekodi hii ya umma inaonyesha wasifu, kiwango cha sifa, tathmini na mambo yaliyokaguliwa. Idadi ya tathmini pia ni ya umma. Haionyeshi ujumbe binafsi au hati za utambulisho. Miamala ya blockchain na uthibitisho wa mikataba uliochapishwa unaweza kuonyesha anwani na maelezo ya malipo.",
   levels: {
-    registered: 'Amesajiliwa',
+    registered: "Akaunti imeundwa",
     person_verified: 'Mtu amethibitishwa',
     work_verified: 'Kazi imethibitishwa',
     id_verified: 'Kitambulisho kimethibitishwa',
@@ -219,7 +231,7 @@ const sw: RecordCopy = {
   },
   verifiedFacts: 'Ukweli uliothibitishwa',
   noFacts: 'Bado hakuna kilichothibitishwa.',
-  tier: 'Kiwango',
+  tier: "Kiwango cha sifa",
   until: 'Halali hadi',
   proof: 'Uthibitisho kwenye Arc',
   download: 'Pakua nakala iliyosainiwa',
@@ -229,12 +241,12 @@ const sw: RecordCopy = {
   notFoundHint: 'Kagua tahajia, au muombe mtu huyo kiungo chake.',
   retry: 'Jaribu tena',
   home: 'Nenda Karwan',
-  score: 'Alama',
+  score: "Alama ya rekodi",
   scoreOf: '{n} kati ya 100',
   completed: 'Mipango iliyokamilika',
   onTime: 'Kwa wakati',
   disputesLost: 'Mizozo aliyoshindwa',
-  sources: 'Sifa kutoka majukwaa mengine',
+  sources: "Vyanzo vya rekodi",
   sourceKarwan: 'Karwan',
   connected: 'Imeunganishwa',
   otherPlatforms: 'Majukwaa mengine',

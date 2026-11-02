@@ -1,4 +1,5 @@
 'use client';
+import { useTierLabels } from '../useTierLabels';
 import { useReputation } from '../hooks/useReputation';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { tierProgress, tierProgressLabel } from '../tierProgressLabel';
@@ -23,6 +24,7 @@ const COLOR: Record<Tier, string> = {
 /// and how far to the next tier. Self-contained: pass the user's address.
 export function ProfileTierCard({ address }: { address?: string | null }) {
   const { data, fetchState } = useReputation(address);
+  const labels = useTierLabels();
   const pt = useTranslations().profileTierCard;
   const tp = useTranslations().tierProgress;
   if (!address) return null;
@@ -50,7 +52,7 @@ export function ProfileTierCard({ address }: { address?: string | null }) {
     tierCappedBy: data?.tierCappedBy ?? null,
     dealsToNextTier: data?.dealsToNextTier ?? null,
   });
-  const progressLabel = tierProgressLabel(progress, tp, (t) => t);
+  const progressLabel = tierProgressLabel(progress, tp, (t) => labels[t]);
   const pct = Math.min(100, Math.max(0, (score / 1000) * 100));
 
   return (
@@ -68,16 +70,13 @@ export function ProfileTierCard({ address }: { address?: string | null }) {
         </span>
       </div>
 
-      {/* The tier word never breaks. It was `min-w-0 break-words` beside a
-          progress label that can run to "needs varied counterparties", so on a
-          narrow phone the label squeezed it and COLD came out as COL / D. The
-          label is the part that should give: it wraps, and the word does not. */}
+      {/* Translated tier names wrap independently of the progress summary. */}
       <div className="mt-2 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
         <span
-          className="shrink-0 whitespace-nowrap font-sans text-[clamp(18px,6vw,26px)] font-extrabold uppercase tracking-[-0.02em] leading-none"
+          className="min-w-0 break-words font-sans text-[clamp(18px,6vw,26px)] font-extrabold tracking-[-0.02em] leading-none"
           style={{ color }}
         >
-          {tier}
+          {labels[tier]}
         </span>
         <span className="min-w-0 text-[14px] text-[var(--lp-workspace-muted)]">
           {progressLabel}

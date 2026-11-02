@@ -211,6 +211,7 @@ export function CreditPassport({ address, share, onSealed }: { address: string; 
 
   return (
     <Shell>
+      <p className="mb-4 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{t.record.meaning}</p>
       {sharedLine ? <p className="mb-3 text-[14px] font-medium text-[var(--lp-text-sub)]">{sharedLine}</p> : null}
       <section className="rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5 sm:p-7">
         <div className="flex flex-wrap items-center gap-4">
@@ -242,8 +243,8 @@ export function CreditPassport({ address, share, onSealed }: { address: string; 
             {TIER_LADDER.map((band, index) => (
               <li key={band} aria-current={index === rung ? 'step' : undefined} className="min-w-0">
                 <span aria-hidden className={`block h-[5px] rounded-full ${index < rung ? 'bg-[#6a8a1e]' : index === rung ? 'bg-[var(--lp-dark)]' : 'bg-[var(--lp-border-light)]'}`} />
-                {/* On a phone only your tier is named under its bar, so a long name is never cut. */}
-                <span className={`mt-1.5 whitespace-nowrap text-[14px] ${index === 0 ? 'text-start' : index === TIER_LADDER.length - 1 ? 'text-end' : 'text-center'} ${index === rung ? 'block font-semibold text-[var(--lp-dark)]' : 'hidden sm:block text-[var(--lp-text-sub)]'}`}>{TIER_LABEL[band]}</span>
+                {/* The heading names the level on phones; the full ladder stays available to screen readers. */}
+                <span className={`sr-only text-[14px] sm:not-sr-only sm:mt-1.5 sm:block ${index === 0 ? 'text-start' : index === TIER_LADDER.length - 1 ? 'text-end' : 'text-center'} ${index === rung ? 'font-semibold text-[var(--lp-dark)]' : 'text-[var(--lp-text-sub)]'}`}>{TIER_LABEL[band]}</span>
               </li>
             ))}
           </ol>

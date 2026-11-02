@@ -2,6 +2,7 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useReputation } from '../hooks/useReputation';
+import { useTierLabels } from '../useTierLabels';
 import { TIER_HUE, type CompositeTier } from '../tierColors';
 
 type Tier = CompositeTier;
@@ -96,6 +97,7 @@ function TierBurst({ tierHue }: { tierHue: string }) {
 /// every visit; the card itself still pops in each time. Pass the user's
 /// address and it reads its own reputation.
 export function TierCelebration({ address }: { address?: string | null }) {
+  const labels = useTierLabels();
   const t = useTranslations().tierCelebration;
   const { data } = useReputation(address);
   const [dismissed, setDismissed] = useState(false);
@@ -196,8 +198,8 @@ export function TierCelebration({ address }: { address?: string | null }) {
             <p className="mono text-[13px] uppercase tracking-[0.2em]" style={{ color: labelInk }}>
               {t.eyebrow}
             </p>
-            <p className="mt-1.5 font-sans text-[22px] font-extrabold uppercase leading-[0.95] tracking-[-0.02em] text-[var(--color-ink)] sm:text-[26px]">
-              {t.achievementPrefix} <span style={{ color: wordInk }}>{tier}</span>
+            <p className="mt-1.5 font-sans text-[22px] font-extrabold leading-[0.95] tracking-[-0.02em] text-[var(--color-ink)] sm:text-[26px]">
+              {t.achievementPrefix} <span style={{ color: wordInk }}>{labels[tier]}</span>
               <span style={{ color: 'var(--lp-accent)' }}>.</span>
             </p>
             <p className="mt-1.5 text-[14px] leading-snug text-[var(--color-ink-dim)] font-medium">

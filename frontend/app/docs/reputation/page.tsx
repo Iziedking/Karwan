@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useTierLabels } from '@/features/reputation/useTierLabels';
 import {
   DocsEyebrow,
   DocsH2,
@@ -14,7 +15,9 @@ import {
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 export default function DocsReputationPage() {
-  const t = useTranslations().docsReputationPage;
+  const all = useTranslations();
+  const t = all.docsReputationPage;
+  const tiers = useTierLabels();
   return (
     <article>
       <DocsEyebrow>{t.eyebrow}</DocsEyebrow>
@@ -22,6 +25,8 @@ export default function DocsReputationPage() {
         {t.title}
       </h1>
       <DocsP>{t.intro}</DocsP>
+      <DocsP>{all.record.meaning}</DocsP>
+      <DocsP>{all.record.privacy}</DocsP>
 
       <DocsH2>{t.signals.heading}</DocsH2>
       <DocsP>{t.signals.lead}</DocsP>
@@ -57,11 +62,11 @@ export default function DocsReputationPage() {
       <DocsH2>{t.tiers.heading}</DocsH2>
       <DocsP>{t.tiers.lead}</DocsP>
       <DocsList>
-        <DocsListItem><strong>NEW (0 to 199).</strong> {t.tiers.items.new}</DocsListItem>
-        <DocsListItem><strong>COLD (200 to 399).</strong> {t.tiers.items.cold}</DocsListItem>
-        <DocsListItem><strong>ESTABLISHED (400 to 599).</strong> {t.tiers.items.established}</DocsListItem>
-        <DocsListItem><strong>STRONG (600 to 799).</strong> {t.tiers.items.strong}</DocsListItem>
-        <DocsListItem><strong>ELITE (800 to 1000).</strong> {t.tiers.items.elite}</DocsListItem>
+        <DocsListItem><strong>{tiers.NEW} (0–199).</strong> {t.tiers.items.new}</DocsListItem>
+        <DocsListItem><strong>{tiers.COLD} (200–399).</strong> {t.tiers.items.cold}</DocsListItem>
+        <DocsListItem><strong>{tiers.ESTABLISHED} (400–599).</strong> {t.tiers.items.established}</DocsListItem>
+        <DocsListItem><strong>{tiers.STRONG} (600–799).</strong> {t.tiers.items.strong}</DocsListItem>
+        <DocsListItem><strong>{tiers.ELITE} (800–1000).</strong> {t.tiers.items.elite}</DocsListItem>
       </DocsList>
       <DocsP>{t.tiers.breakpoints}</DocsP>
 

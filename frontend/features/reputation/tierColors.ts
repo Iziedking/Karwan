@@ -18,8 +18,8 @@ export const TIER_HUE: Record<CompositeTier, string> = {
 };
 
 export const TIER_LABEL: Record<CompositeTier, string> = {
-  NEW: 'New',
-  COLD: 'Cold',
+  NEW: 'Limited history',
+  COLD: 'Early history',
   ESTABLISHED: 'Established',
   STRONG: 'Strong',
   ELITE: 'Elite',

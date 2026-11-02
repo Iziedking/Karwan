@@ -52,6 +52,7 @@ export function PublicPassport({ address, notice }: { address: string; notice?: 
         <span className="text-[var(--lp-text-sub)]">{sr.tier}</span>
         <span className="rounded-full px-2.5 py-0.5 font-semibold" style={{ background: tierBg(sealed.tier), color: tierInk(sealed.tier) }}>{TIER_LABEL[sealed.tier]}</span>
       </p>
+      <p className="mt-3 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{t.record.meaning}</p>
       <section aria-labelledby="passport-record" className="mt-8 border-t border-[var(--lp-border-light)] pt-6">
         <h2 id="passport-record" className="text-[17px] font-semibold text-[var(--lp-dark)]">{sr.record}</h2>
         <ul className="mt-3 divide-y divide-[var(--lp-border-light)]">

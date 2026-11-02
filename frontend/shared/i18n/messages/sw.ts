@@ -4864,11 +4864,11 @@ export const sw: Messages = {
   },
   docsReputationPage: {
     eyebrow: 'Sifa na dhamana ya mpango',
-    title: 'Sifa ndicho tiketi ya dhahabu',
-    intro: 'Kila pochi kwenye Karwan ina alama ya sifa ya umma kutoka 0 hadi 1000. Inakufuata kutoka deal hadi deal. Alama ya juu hupata masharti bora, huruka mazungumzo na wenza wa kuaminika, na hupita ukaguzi wa kibinadamu kwa kasi zaidi.',
+    title: "Sifa hurekodi matokeo",
+    intro: "Akaunti inaweza kujenga alama ya sifa kutokana na mikataba iliyokamilika na vipengele vingine vinavyoonyeshwa kwenye bidhaa. Alama inafuata akaunti iliyokamilisha mkataba. Ni rekodi ya matokeo na si dhamana ya mtu au biashara iliyo nyuma ya pochi.",
     signals: {
       heading: 'Kinachosogeza alama yako',
-      lead: 'Ishara tano hulisha alama leo, kila moja kwenye mkunjo ambapo sehemu za kwanza za juhudi huhesabu zaidi na sehemu za mwisho huhesabu kidogo. Mchanganyiko umeundwa ili hakuna njia ya mkato moja inayokupeleka juu, kwa mpangilio wa uzito:',
+      lead: "Wasifu wako unaonyesha vipengele vya alama yako. Alama haithibitishi utambulisho, ujuzi au leseni na haihakikishi utendaji wa baadaye.",
       items: {
         stake: { label: 'Dhamana ya mpango.', body: 'USDC unazoweka kando kuwalinda wanunuzi wako. Inaongeza sifa, na mpango unaoihitaji unashikilia sehemu yake hadi mpango uishe.' },
         deals: { label: 'Deal zilizokamilika.', body: 'Matokeo yaliyokamilika dhidi ya pochi yako, yenye uzito kwa kiwango chako cha mafanikio.' },

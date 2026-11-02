@@ -5,7 +5,7 @@ import { RecordView } from '@/features/verification/RecordView';
 export async function generateMetadata({ params }: { params: Promise<{ tag: string }> }): Promise<Metadata> {
   const { tag } = await params;
   const title = `@${tag} · Karwan record`;
-  const description = `Verified record on Karwan for @${tag}: level, tier and the proof on Arc.`;
+  const description = `Trade record for @${tag}: reputation, customer ratings and available checks.`;
   return {
     title,
     description,

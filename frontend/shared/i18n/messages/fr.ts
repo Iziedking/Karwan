@@ -4867,11 +4867,11 @@ export const fr: Messages = {
   },
   docsReputationPage: {
     eyebrow: 'Réputation et garantie de transaction',
-    title: 'La réputation est le ticket d\'or',
-    intro: 'Chaque portefeuille sur Karwan porte un score de réputation public de 0 à 1000. Il vous suit de deal en deal. Un score plus haut obtient de meilleures conditions, évite le marchandage avec les contreparties de confiance, et passe la revue humaine plus vite.',
+    title: "La réputation reflète les résultats",
+    intro: "Un compte peut construire un score de réputation à partir des transactions réglées et des autres facteurs affichés dans le produit. Le score suit le compte qui a réglé la transaction. Il décrit des résultats et ne garantit pas la personne ou l’entreprise derrière le portefeuille.",
     signals: {
       heading: 'Ce qui fait bouger votre score',
-      lead: 'Cinq signaux nourrissent le score aujourd\'hui, chacun sur une courbe où les premières unités d\'effort comptent le plus et les dernières le moins. Le mélange est conçu pour qu\'aucun raccourci unique ne vous mène au sommet, par ordre de poids:',
+      lead: "Votre profil présente les facteurs de votre score. Ce score ne vérifie ni l’identité, ni les compétences, ni les autorisations professionnelles, ni les résultats futurs.",
       items: {
         stake: { label: 'Garantie de transaction.', body: 'Des USDC mis de côté pour protéger vos acheteurs. Ils comptent pour la réputation, et un accord qui l’exige en retient une partie jusqu’à sa fin.' },
         deals: { label: 'Deals réglés.', body: 'Résultats achevés contre votre portefeuille, pondérés par votre taux de réussite.' },
