@@ -8,14 +8,9 @@ function isPrivateRoute(pathname: string): boolean {
   return pathname === '/profile' || /^\/(deals|jobs)(\/|$)/.test(pathname);
 }
 
-/// Private, per-account surfaces must not be restorable from Chrome's back/forward
-/// cache (bfcache). On a shared device (log out of A, log in as B in the same tab)
-/// bfcache can otherwise repaint account A's fully-rendered page — the DOM and JS
-/// heap are snapshotted live, so it shows A's data before B's fetch runs. A page
-/// served with `Cache-Control: no-store` is ineligible for bfcache, so the browser
-/// rebuilds it fresh (and the app's own auth gate + fetch run against the current
-/// session). Public/shareable routes (landing, market, credit-passport) are left
-/// alone so they keep their instant-restore snappiness.
+/// Do not store private HTML in the HTTP cache. Cache-Control does not by
+/// itself prevent modern browsers from keeping a document snapshot; the
+/// session restore guard also reopens restored product pages through auth.
 export function middleware(req: NextRequest) {
   // Where the web deal rail is closed (mainnet), its pages go to the wallet.
   // A deal's own page stays open for the deals people run from chat.

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import type { DiscoveryScope } from '@/features/discovery/model';
 import { BUSINESS_ACCOUNTS_OPEN } from '@/features/account/businessOpen';
@@ -21,7 +22,7 @@ import { cn } from '@/shared/utils/cn';
 import { formatUsdc } from '@/shared/utils/format';
 import { shouldAskTradesAs } from '../entryQuestion';
 import { FRESH, buyCards, sellRequests, type CategoryId } from '../marketModel';
-import { marketHref, marketViewHref, type MarketSide, type MarketView, type YoursList } from '../marketQuery';
+import { parseMarketQuery, marketHref, marketViewHref, type MarketSide, type MarketView, type YoursList } from '../marketQuery';
 import { useMarketOffers, useMarketRequests, useRequestFits, type MarketSource } from '../useMarketData';
 import { BuySellSwitch } from './BuySellSwitch';
 import { CategoryChips } from './CategoryChips';
@@ -37,14 +38,7 @@ const MARKET_PAGE_MAX = 240;
 /// The one market (views 17 and 44): a shop with a Buy and a Sell side. Buy
 /// is search, categories and photo cards; Sell is what buyers need, the
 /// requests that fit you first. Side, category and search live in the address.
-export function MarketPage({
-  view,
-  scope,
-  list,
-  side: initialSide,
-  category: initialCategory,
-  q: initialQ,
-}: {
+export function MarketPage(_initialQuery: {
   view: MarketView;
   scope: DiscoveryScope;
   list: YoursList;
@@ -52,11 +46,14 @@ export function MarketPage({
   category: CategoryId | 'all';
   q: string;
 }) {
+  const {view,list} = parseMarketQuery(useSearchParams());
   if (view === 'yours') return <YourTrades list={list} />;
-  return <Shop scope={scope} initialSide={initialSide} initialCategory={initialCategory} initialQ={initialQ} />;
+  return <Shop />;
 }
 
-function Shop({ scope, initialSide, initialCategory, initialQ }: { scope: DiscoveryScope; initialSide: MarketSide; initialCategory: CategoryId | 'all'; initialQ: string }) {
+function Shop() {
+  const query = parseMarketQuery(useSearchParams());
+  const {side,category,scope} = query;
   const { t: messages } = useLocale();
   const t = messages.marketShop;
   const { isAuthenticated, address } = useAuth();
@@ -69,15 +66,23 @@ function Shop({ scope, initialSide, initialCategory, initialQ }: { scope: Discov
     profileLoaded: fetchState === 'success' && !!profile,
     businessOpen: BUSINESS_ACCOUNTS_OPEN,
   });
-  const [side, setSide] = useState(initialSide);
-  const [category, setCategory] = useState(initialCategory);
-  const [q, setQ] = useState(initialQ);
-
-  // The address follows the page without reloading it, so a shared link opens here.
+  const [q, setSearchDraft] = useState(query.q);
   useEffect(() => {
-    const href = marketHref({ side, category, q, scope });
-    if (`${window.location.pathname}${window.location.search}` !== href) window.history.replaceState(null, '', href);
-  }, [side, category, q, scope]);
+    setSearchDraft(current => current.trim() === query.q ? current : query.q);
+  }, [query.q]);
+
+  function updateFilters(change: Partial<ReturnType<typeof parseMarketQuery>>) {
+    const current = parseMarketQuery(new URLSearchParams(window.location.search));
+    const href = marketHref({ ...current, ...change }) + window.location.hash;
+    if (window.location.pathname + window.location.search + window.location.hash !== href) {
+      // Next merges its router state when handling a native URL update.
+      // Passing its private __NA marker would bypass that update.
+      window.history.replaceState(null, '', href);
+    }
+  }
+  const setSide = (next: MarketSide) => updateFilters({ side: next });
+  const setCategory = (next: CategoryId | 'all') => updateFilters({ category: next });
+  const setQ = (next: string) => { setSearchDraft(next); updateFilters({ q: next }); };
 
   return (
     <div className="product-surface" data-testid="market">

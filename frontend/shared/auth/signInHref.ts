@@ -13,5 +13,5 @@ export function signInHref(current: string): string {
 /// Browsing a trade item or filtered market should survive account entry.
 export function publicTaskEntry(fallback: string, current: string): string {
   const task = safeNext(current);
-  return task && /^\/(market|listings|jobs)(?:\/|\?|#|$)/.test(task) ? signInHref(task) : fallback;
+  return task && /^\/(market|listings|jobs|order|contests|work\/requests)(?:\/|\?|#|$)/.test(task) ? signInHref(task) : fallback;
 }

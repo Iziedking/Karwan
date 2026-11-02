@@ -1,6 +1,7 @@
 'use client';
 
-import Link from 'next/link';
+import { TaskEntryLink } from '@/shared/components/TaskEntryLink';
+import { signInHref } from '@/shared/auth/signInHref';
 import { useCallback, useEffect, useState } from 'react';
 import { ApiError, api, type ContestView } from '@/core/api';
 import { fill } from '@/features/deals/workspace/presentation';
@@ -162,7 +163,7 @@ export function ContestPage({ id }: { id: string }) {
               </p>
             </>
           ) : null}
-          {next === 'sign_in' ? <Link href={`/start?next=/contests/${c.id}`} className={`${PRIMARY} mt-4`}>{t.page.signIn}</Link> : null}
+          {next === 'sign_in' ? <TaskEntryLink href={signInHref(`/contests/${encodeURIComponent(c.id)}`)} className={`${PRIMARY} mt-4`}>{t.page.signIn}</TaskEntryLink> : null}
           {next === 'closed' ? <p className="text-[15px] text-[var(--lp-text-sub)]">{t.page.closed}</p> : null}
           {next === 'enter' || next === 'replace' ? (
             <div className="mt-4 space-y-4">

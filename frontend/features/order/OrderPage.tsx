@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { api, ApiError, type Listing } from '@/core/api';
+import { signInHref } from '@/shared/auth/signInHref';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -37,11 +38,10 @@ function Row({ label, value, strong = false }: { label: string; value: string; s
 export function OrderPage({ listingId }: { listingId: string }) {
   const auth = useAuth();
   const router = useRouter();
-  const next = `/order/${encodeURIComponent(listingId)}`;
 
   useEffect(() => {
-    if (!auth.isLoading && !auth.isAuthenticated) router.replace(`/start?next=${encodeURIComponent(next)}`);
-  }, [auth.isLoading, auth.isAuthenticated, router, next]);
+    if (!auth.isLoading && !auth.isAuthenticated) router.replace(signInHref(window.location.pathname + window.location.search + window.location.hash));
+  }, [auth.isLoading, auth.isAuthenticated, router]);
 
   if (auth.isLoading || !auth.isAuthenticated || !auth.address) return <div aria-hidden className="min-h-[60vh]" />;
   return <OrderReview listingId={listingId} address={auth.address} circle={auth.method === 'circle'} />;

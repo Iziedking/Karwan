@@ -2,6 +2,8 @@
 
 import { useRouter } from 'next/navigation';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { DEALS_AVAILABLE } from '@/core/arcNetwork';
+import { backWithinKarwan } from '@/shared/utils/navigationHistory';
 import { getProductBackHref } from '@/shared/utils/routes';
 import { cn } from '@/shared/utils/cn';
 
@@ -25,7 +27,7 @@ export function ProductBackLink({
   /// A step inside the page goes back to the page's previous step first.
   onBack?: () => void;
 }) {
-  const href = getProductBackHref(pathname, isAuthenticated) ?? fallbackHref ?? null;
+  const href = getProductBackHref(pathname, isAuthenticated, DEALS_AVAILABLE) ?? fallbackHref ?? null;
   const t = useTranslations();
   const router = useRouter();
 
@@ -40,12 +42,7 @@ export function ProductBackLink({
           return;
         }
         if (!href) return;
-        const documentation = pathname === '/how-it-works' || pathname?.startsWith('/docs');
-        if (!documentation && window.history.length > 1) {
-          router.back();
-          return;
-        }
-        router.push(href);
+        if (!backWithinKarwan(DEALS_AVAILABLE)) router.replace(href);
       }}
       aria-label={t.nav.backAria}
       data-shell-back={shell ? '' : undefined}

@@ -40,3 +40,17 @@ test('blocked storage still goes Home', () => {
   assert.doesNotThrow(() => rememberReturn('/deals/0xabc'));
   assert.equal(takeReturn(), '/app');
 });
+
+
+test('assistant mode remembers the current filters and anchor rather than just its pathname',()=>{
+ const data=fakeStorage();const host=globalThis as {window?:unknown};const before=host.window;
+ host.window={location:new URL('https://karwan.site/market?category=design&q=Logo#results')};
+ try {rememberReturn('/market');assert.equal(data.get(RETURN_KEY),'/market?category=design&q=Logo#results');assert.equal(takeReturn(),'/market?category=design&q=Logo#results');}finally{if(before===undefined)delete host.window;else host.window=before;}
+});
+
+test('assistant return refuses external, sign-in and self-loop destinations',()=>{
+ const data=fakeStorage();
+ for(const path of ['https://outside.example','//outside.example','/start?next=/market','/assistant?chat=1','/%61ssistant']){data.set(RETURN_KEY,path);assert.equal(takeReturn(),'/app',path);}
+ data.set(RETURN_KEY,'/deals/0xabc');assert.equal(takeReturn(false),'/account');
+ data.set(RETURN_KEY,'/account?section=money#balance');assert.equal(takeReturn(false),'/account?section=money#balance');
+});

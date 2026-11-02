@@ -1,6 +1,8 @@
 'use client';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import Link from 'next/link';
+import { TaskEntryLink } from '@/shared/components/TaskEntryLink';
+import { signInHref } from '@/shared/auth/signInHref';
 import { api, ApiError, type AgentQuestion } from '@/core/api';
 import { Button, buttonClasses } from '@/shared/components/Button';
 import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
@@ -128,9 +130,9 @@ export function OfferPanel({ jobId, fallback }: { jobId: string; fallback: React
 
       <div className="mt-8">
         {view.role === 'visitor' ? (
-          <Link href={`/start?next=/jobs/${jobId}`} className={buttonClasses({ size: 'lg', className: 'w-full rounded-full' })}>
+          <TaskEntryLink href={signInHref(`/jobs/${encodeURIComponent(jobId)}`)} className={buttonClasses({ size: 'lg', className: 'w-full rounded-full' })}>
             {t.signIn}
-          </Link>
+          </TaskEntryLink>
         ) : mine ? (
           <SentOffer jobId={jobId} offer={mine} onChange={load} />
         ) : (

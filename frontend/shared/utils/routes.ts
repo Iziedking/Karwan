@@ -48,27 +48,48 @@ export function isPublicDiscoveryRoute(pathname: string | null | undefined): boo
 export function getProductBackHref(
   pathname: string | null | undefined,
   isAuthenticated = true,
+  dealsAvailable = true,
 ): string | null {
-  if (!pathname || pathname === '/app') return null;
+  if (!pathname || pathname === '/') return null;
+  pathname = pathname.split(/[?#]/)[0];
+  const home = dealsAvailable ? '/app' : '/account';
+  if (pathname === home || pathname === '/app') return null;
   // Every page but Home has a Back, the sidebar's own sections included, so
   // nobody is left looking for the way home (owner, 23 Oct).
-  if (pathname === '/docs' || pathname === '/how-it-works') return isAuthenticated ? '/app' : '/';
+  if (pathname === '/docs' || pathname === '/how-it-works') return isAuthenticated ? home : '/';
   if (matchesRoute(pathname, '/docs')) return '/docs';
   if (matchesRoute(pathname, '/settings')) return '/profile';
-  if (pathname === '/profile') return '/app';
-  if (pathname === '/profile/open-deals' || (pathname !== '/deals' && matchesRoute(pathname, '/deals'))) return '/deals';
+  if (pathname === '/profile') return home;
+  if (pathname === '/profile/open-deals' || (pathname !== '/deals' && matchesRoute(pathname, '/deals'))) return dealsAvailable ? '/deals' : home;
   if (matchesRoute(pathname, '/profile/business/setup')) return '/profile/business';
   if (matchesRoute(pathname, '/business/verification')) return '/profile/business';
   if (matchesRoute(pathname, '/profile')) return '/profile';
-  if (matchesRoute(pathname, '/listings')) return '/market';
+  if (matchesRoute(pathname, '/listings')) return dealsAvailable ? '/market' : home;
   // An order goes back to the offer it was made from.
   if (matchesRoute(pathname, '/order')) {
     const id = pathname.split('/')[2];
-    return id ? `/listings/${id}` : '/market';
+    return dealsAvailable ? (id ? `/listings/${id}` : '/market') : home;
   }
-  if (matchesRoute(pathname, '/market')) return isAuthenticated ? '/app' : '/';
+  if (matchesRoute(pathname, '/market')) return isAuthenticated ? home : '/';
   if (matchesRoute(pathname, '/onboarding')) return '/';
-  if (matchesRoute(pathname, '/cashout')) return isAuthenticated ? '/app' : '/';
+  if (matchesRoute(pathname, '/cashout')) return isAuthenticated ? home : '/';
+
+  if (matchesRoute(pathname, '/financier') && pathname !== '/financier') return dealsAvailable ? '/financier' : home;
+  if (matchesRoute(pathname, '/messages') && pathname !== '/messages') return '/messages';
+  if (matchesRoute(pathname, '/work') || matchesRoute(pathname, '/contests')) return dealsAvailable ? '/market' : home;
+  if (matchesRoute(pathname, '/developers') && pathname !== '/developers') return '/developers';
+  if (matchesRoute(pathname, '/newsletter') && pathname !== '/newsletter') return '/newsletter';
+  if (matchesRoute(pathname, '/terms') && pathname !== '/terms') return '/terms';
+  if (matchesRoute(pathname, '/r') || matchesRoute(pathname, '/attested') || matchesRoute(pathname, '/credit-passport')) return dealsAvailable ? '/market' : '/';
+  if (matchesRoute(pathname, '/admin')) return pathname === '/admin' ? home : '/admin';
+  if (matchesRoute(pathname, '/connect') || matchesRoute(pathname, '/verify')) return isAuthenticated ? '/profile' : '/start';
+  if (matchesRoute(pathname, '/recover')) return isAuthenticated ? home : '/start';
+  if (matchesRoute(pathname, '/deposit/request')) return isAuthenticated ? home : '/';
+  if (matchesRoute(pathname, '/invite')) return isAuthenticated ? home : '/';
+  if (pathname === '/setup') return isAuthenticated ? '/profile' : '/start';
+  if (pathname === '/assistant') return home;
+  if (matchesRoute(pathname, '/stake')) return dealsAvailable ? '/guarantee' : home;
+  if (isPublicEditorialRoute(pathname)) return isAuthenticated ? home : '/';
 
   const appParents = [
     '/account',
@@ -86,7 +107,7 @@ export function getProductBackHref(
     '/send',
     '/guarantee',
   ];
-  if (appParents.some((route) => matchesRoute(pathname, route))) return '/app';
+  if (appParents.some((route) => matchesRoute(pathname, route))) return home;
   return null;
 }
 

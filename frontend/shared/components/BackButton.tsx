@@ -1,52 +1,14 @@
 'use client';
 import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { isLandingRoute, isPublicEditorialRoute, previousRoute } from '@/shared/utils/routes';
+import { DEALS_AVAILABLE } from '@/core/arcNetwork';
+import { isLandingRoute, dealRouteBlocked } from '@/shared/utils/routes';
+import { backWithinKarwan, installNavigationTracker } from '@/shared/utils/navigationHistory';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
-/// A back control in the top nav. It returns the user to the route they actually
-/// came FROM, not to a fixed home.
-///
-/// The previous version trailed the last route in component refs. Those reset on
-/// any hard load, so a page reached by refresh or by a direct link (the assistant
-/// links to /bridge, for one) had no remembered previous route and every "back"
-/// dumped the user on /app. We keep an in-app route stack in sessionStorage
-/// instead: it survives reloads within the tab, so back goes where they came from
-/// no matter how they arrived.
-const STACK_KEY = 'karwan.nav.stack';
-
-function readStack(): string[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = window.sessionStorage.getItem(STACK_KEY);
-    return raw ? (JSON.parse(raw) as string[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeStack(stack: string[]): void {
-  try {
-    window.sessionStorage.setItem(STACK_KEY, JSON.stringify(stack.slice(-20)));
-  } catch {
-    /* private mode / quota — degrade to home-only back */
-  }
-}
-
-/// Records every in-app route as it is entered, mounted once at the root so a
-/// page without its own back control still counts as where the user came from.
-/// The marketing site never enters the stack, so back can never hand the user
-/// to it. Public discovery pages (market, passports, statements) do: a person
-/// who opened a statement from a passport goes back to that passport.
-/// A repeated path is not pushed twice.
+/// Mounted once at the root; all back controls share the same tab history.
 export function RouteTrail() {
-  const pathname = usePathname();
-  useEffect(() => {
-    if (!pathname || isPublicEditorialRoute(pathname)) return;
-    const stack = readStack();
-    if (stack.length && stack[stack.length - 1].toLowerCase() === pathname.toLowerCase()) return;
-    writeStack([...stack, pathname]);
-  }, [pathname]);
+  useEffect(() => installNavigationTracker(window), []);
   return null;
 }
 
@@ -68,14 +30,7 @@ export function BackButton({
   if ((isLandingRoute(pathname) && !showOnPublic) || pathname === '/app') return null;
 
   function goBack() {
-    const target = previousRoute(readStack(), pathname ?? '');
-    if (target) {
-      writeStack(target.rest); // pop past the target so the next back steps again
-      router.push(target.route);
-    } else {
-      writeStack([]);
-      router.push(fallbackHref);
-    }
+    if (!backWithinKarwan(DEALS_AVAILABLE)) router.replace(dealRouteBlocked(fallbackHref.split(/[?#]/)[0],DEALS_AVAILABLE) ? '/' : fallbackHref);
   }
 
   // The lane matches the page's first band: dark on the dark heroes (most

@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { join, relative, sep } from 'node:path';
 import { getProductBackHref, isPublicAccessRoute, isPublicEditorialRoute, previousRoute } from './routes.js';
 
 test('the public numbers page never asks a visitor to sign in, at its docs home or its old address', () => {
@@ -36,4 +39,30 @@ test('Back skips every copy of the page it is on, whatever case the address was 
 
 test('Back never returns to the marketing site', () => {
   assert.deepEqual(previousRoute(['/', '/docs/numbers', '/credit-passport/0x1'], '/credit-passport/0x1'), null);
+});
+
+
+test('detail pages have useful direct-entry parents across every product family',()=>{
+  for(const [path,parent] of [['/messages/ada','/messages'],['/financier/factoring/offer','/financier'],['/financier/po/line','/financier'],['/work/abc','/market'],['/work/requests/abc','/market'],['/contests/abc','/market'],['/r/ada','/market'],['/attested/abc','/market'],['/developers/record','/developers'],['/newsletter/issue','/newsletter'],['/terms/chat','/terms']]) assert.equal(getProductBackHref(path),parent,path);
+});
+
+test('mainnet direct deal parents lead to the wallet rather than a blocked list',()=>{
+  assert.equal(getProductBackHref('/deals/0xabc',true,false),'/account');
+  assert.equal(getProductBackHref('/account',true,false),null);
+  assert.equal(getProductBackHref('/settings',true,false),'/profile');
+  assert.equal(getProductBackHref('/docs',true,false),'/account');
+  assert.equal(getProductBackHref('/financier/factoring/abc',true,false),'/account');
+});
+
+
+test('every checked-in page has a defined direct-entry parent or is a home',()=>{
+  const app=fileURLToPath(new URL('../../app',import.meta.url));
+  const pages:string[]=[];
+  function walk(dir:string){for(const e of readdirSync(dir,{withFileTypes:true})){const path=join(dir,e.name);if(e.isDirectory())walk(path);else if(e.name==='page.tsx')pages.push(path);}}
+  walk(app);
+  for(const file of pages){
+    const route='/'+relative(app,file).split(sep).join('/').replace(/\/?page\.tsx$/,'');
+    if(route==='/'||route==='/app')continue;
+    assert.ok(getProductBackHref(route,true),route+' has no direct-entry parent');
+  }
 });

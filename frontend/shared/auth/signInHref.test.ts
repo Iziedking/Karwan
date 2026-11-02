@@ -30,3 +30,12 @@ test('interrupted About you resumes the intended task without nesting start link
   assert.equal(publicTaskEntry('/start','/'),'/start');
   assert.equal(publicTaskEntry('/app','/docs'),'/app');
  });
+
+
+test('order, contest and work-request entries keep the exact shared task context',()=>{
+ for(const target of ['/order/offer-1?quantity=2#review','/contests/contest-1?entry=draft#rules','/work/requests/request-1?view=offers#terms']) {
+  const entry=publicTaskEntry('/start',target);
+  assert.equal(new URL(entry,'https://karwan.invalid').searchParams.get('next'),target);
+ }
+ assert.equal(publicTaskEntry('/start','/orderly?x=1'),'/start');
+});

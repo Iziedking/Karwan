@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import { TaskEntryLink } from '@/shared/components/TaskEntryLink';
+import { signInHref } from '@/shared/auth/signInHref';
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ApiError, api, type RankedWorkOffer, type WorkCard, type WorkRequestView } from '@/core/api';
@@ -122,7 +124,7 @@ export function WorkRequestPage({ id }: { id: string }) {
           {open ? <button type="button" onClick={() => setClosing(true)} className={`${QUIET} mt-6`}>{t.page.close}</button> : null}
         </section>
       ) : !isAuthenticated ? (
-        open ? <Link href={`/start?next=/work/requests/${r.id}`} className={`${PRIMARY} mt-8`}>{t.page.signIn}</Link> : null
+        open ? <TaskEntryLink href={signInHref(`/work/requests/${encodeURIComponent(r.id)}`)} className={`${PRIMARY} mt-8`}>{t.page.signIn}</TaskEntryLink> : null
       ) : (
         <section aria-labelledby="your-offer" className="mt-8">
           <h2 id="your-offer" className="text-[20px] font-semibold text-[var(--lp-dark)]">{t.page.yourOffer}</h2>
