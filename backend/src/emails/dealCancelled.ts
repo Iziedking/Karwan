@@ -6,7 +6,7 @@
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { resendClient } from './resend.js';
-import { brandedEmailHtml, emailAmount, emailFacts, emailHeading, emailText, LOGO_BUFFER, LOGO_CID } from './brand.js';
+import { brandedEmailHtml, emailAmount, emailFacts, emailHeading, emailNote, emailText, LOGO_BUFFER, LOGO_CID } from './brand.js';
 
 export interface DealCancelledEmailInput {
   /// Lower-cased recipient email address; the address the invite was keyed to.
@@ -40,7 +40,7 @@ export function dealCancelledHtml(input: DealCancelledEmailInput): string {
   return brandedEmailHtml({
     title: 'The deal you were invited to was withdrawn',
     preheader: `${input.dealAmountUsdc} USDC deal withdrawn before you accepted.`,
-    inner: cancelInnerHtml(input),
+    inner: cancelInnerHtml(input) + (config.ARC_NETWORK === 'testnet' ? emailNote('Testnet activity uses test funds with no monetary value.') : ''),
     footerNote:
       'You can ignore the earlier invite link. Questions? Reply to this email.',
   });
@@ -76,7 +76,7 @@ export async function sendDealCancelledEmail(
       to: input.to,
       subject,
       html,
-      text,
+      text: text + (config.ARC_NETWORK === 'testnet' ? '\n\nTestnet activity uses test funds with no monetary value.' : ''),
       ...(LOGO_BUFFER
         ? {
             attachments: [

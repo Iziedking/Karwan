@@ -11,6 +11,7 @@ import {
   emailButton,
   emailFacts,
   emailHeading,
+  emailNote,
   emailPanel,
   emailStrong,
   emailText,
@@ -70,7 +71,7 @@ export function dealUpdateHtml(input: DealUpdateEmailInput): string {
   return brandedEmailHtml({
     title: 'The buyer changed the deal you were invited to',
     preheader: `The deal is now ${input.dealAmountUsdc} USDC. Check the new terms before you agree.`,
-    inner: updateInnerHtml(input),
+    inner: updateInnerHtml(input) + (config.ARC_NETWORK === 'testnet' ? emailNote('Testnet activity uses test funds with no monetary value.') : ''),
     footerNote:
       'No longer want the deal? Ignore this email. Nothing is agreed until you sign in and accept.',
   });
@@ -82,7 +83,7 @@ export async function sendDealUpdateEmail(
   const client = resendClient();
   if (!client) {
     logger.info(
-      { to: input.to, claimUrl: input.claimUrl },
+      { to: input.to },
       '[invite-update] no RESEND_API_KEY, log-only',
     );
     return { delivered: false };
@@ -114,7 +115,7 @@ export async function sendDealUpdateEmail(
       to: input.to,
       subject,
       html,
-      text,
+      text: text + (config.ARC_NETWORK === 'testnet' ? '\n\nTestnet activity uses test funds with no monetary value.' : ''),
       ...(LOGO_BUFFER
         ? {
             attachments: [

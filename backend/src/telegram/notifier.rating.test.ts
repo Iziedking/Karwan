@@ -26,7 +26,7 @@ test('a rating ask goes only to the person asked, with its own text', async () =
 test('the rating email asks the same question and opens the deal', () => {
   const mail = contentFor(ask, 'self', 'service');
   assert.equal(mail?.subject, 'How did your deal with @ada go?');
-  assert.match(mail?.body ?? '', /Rate it 1 to 5/);
+  assert.match(mail?.body ?? '', /Choose a rating from 1 to 5/);
 });
 
 test('a rating ask opens the rating on the deal, not just the ended deal', () => {

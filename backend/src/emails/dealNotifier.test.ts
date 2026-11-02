@@ -33,7 +33,7 @@ test('an offer on a request reaches only the person who posted it', () => {
   assert.equal(amountFor(offer), '35');
 });
 
-test('a paused release tells the buyer why, with the private note only for them', () => {
+test('a paused release explains the next step without emailing private analysis', () => {
   const blocked = {
     type: 'deal.release.blocked', jobId: '0xjob', actor: 'platform', ts: 0,
     payload: { buyer: '0xb', seller: '0xs', reason: 'requirement-mismatch', detail: 'off-request' },
@@ -41,7 +41,8 @@ test('a paused release tells the buyer why, with the private note only for them'
   const toBuyer = contentFor(blocked, 'buyer', 'service', 'The link is a landing page, not the logo files.');
   assert.ok(toBuyer);
   assert.match(toBuyer.body, /does not match what you asked for/);
-  assert.match(toBuyer.body, /landing page, not the logo files/);
+  assert.doesNotMatch(toBuyer.body, /landing page, not the logo files/);
+  assert.match(toBuyer.body, /Open the deal to review/);
   const toSeller = contentFor(blocked, 'seller', 'service', 'The link is a landing page, not the logo files.');
   assert.ok(toSeller);
   assert.doesNotMatch(toSeller.body, /landing page/);
@@ -74,7 +75,7 @@ const shortlistReady = (notify: boolean, count = 3): KarwanEvent => ({
 test('a ready shortlist emails the buyer to come and choose', () => {
   const c = contentFor(shortlistReady(true), 'buyer', 'service');
   assert.match(c!.subject, /Your agent found 3 sellers/);
-  assert.match(c!.body, /Nothing moves until you choose and confirm/);
+  assert.match(c!.body, /Review the total payment before confirming/);
   assert.match(c!.ctaUrl ?? '/jobs/0xjob', /\/jobs\/0xjob$/);
 });
 
@@ -189,7 +190,7 @@ test('a financier whose offer is short hears how much to add', () => {
   const toFinancier = contentFor(short, 'self', 'service');
   assert.ok(toFinancier);
   assert.equal(toFinancier.subject, 'Add 569.03 USDC so the seller can take your offer');
-  assert.match(toFinancier.body, /Nothing has moved/);
+  assert.match(toFinancier.body, /Review the current funding status/);
 });
 
 test('a financier paying from their own wallet hears that the seller took the offer', () => {
@@ -202,5 +203,5 @@ test('a financier paying from their own wallet hears that the seller took the of
   assert.equal(toFinancier.subject, 'The seller took your offer. Pay them within 24 hours');
   assert.match(toFinancier.body, /185 USDC/);
   assert.match(toFinancier.body, /31 Oct 2026, 08:16 UTC/);
-  assert.match(toFinancier.body, /nothing moves/);
+  assert.match(toFinancier.body, /Check the payment status before retrying/);
 });

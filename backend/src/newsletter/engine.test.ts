@@ -343,7 +343,7 @@ test('the rendered issue escapes, links, and keeps a text part', () => {
   };
 
   const rendered = renderIssue(issue);
-  assert.ok(rendered.html.includes('<a href="https://karwan.site/releases"'), 'link did not render');
+  assert.ok(rendered.html.includes('href="https://karwan.site/releases"'), 'link did not render');
   assert.equal(rendered.html.includes('<script>'), false, 'html was not escaped');
   assert.ok(rendered.html.includes('&lt;script&gt;'));
   assert.ok(rendered.html.includes('2026-07-24'), 'the source date is missing');

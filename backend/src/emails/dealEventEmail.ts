@@ -6,7 +6,7 @@
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { resendClient } from './resend.js';
-import { brandedEmailHtml, emailAmount, emailButton, emailFacts, emailHeading, emailText, LOGO_BUFFER, LOGO_CID } from './brand.js';
+import { brandedEmailHtml, emailAmount, emailButton, emailFacts, emailHeading, emailNote, emailText, LOGO_BUFFER, LOGO_CID } from './brand.js';
 
 export interface DealEventEmailInput {
   /// Lower-cased recipient email.
@@ -30,6 +30,8 @@ export interface DealEventEmailInput {
   facts?: Array<[label: string, value: string]>;
 }
 
+const notificationSettingsUrl = (config.FRONTEND_BASE_URL?.replace(/\/$/, '') || 'https://karwan.site') + '/settings';
+
 /// "1200.5" -> "1,200.50". Invalid input is shown as given.
 export function formatEmailUsdc(amount: string): string {
   const n = Number(amount);
@@ -50,9 +52,10 @@ export function dealEventInnerHtml(input: Omit<DealEventEmailInput, 'to'>): stri
 export function dealEventHtml(input: Omit<DealEventEmailInput, 'to'>): string {
   return brandedEmailHtml({
     title: input.subject,
-    inner: dealEventInnerHtml(input),
+    inner: dealEventInnerHtml(input) + (config.ARC_NETWORK === 'testnet' ? emailNote('Testnet activity uses test funds with no monetary value.') : ''),
     preheader: input.body,
-    footerNote: 'You get deal emails because you verified this address on Karwan. You can turn them off in your profile settings.',
+    footerNote: 'You receive updates about a deal on Karwan.',
+    footerAction: { label: 'Notification settings', url: notificationSettingsUrl },
   });
 }
 
@@ -68,6 +71,7 @@ export async function sendDealEventEmail(input: DealEventEmailInput): Promise<bo
     ...(input.amount ? ['', `${formatEmailUsdc(input.amount)} USDC`] : []),
     '',
     input.body,
+    ...(config.ARC_NETWORK === 'testnet' ? ['', 'Testnet activity uses test funds with no monetary value.'] : []),
     ...(input.facts?.length ? ['', ...input.facts.map(([label, value]) => `${label}: ${value}`)] : []),
   ];
   if (input.ctaLabel && input.ctaUrl) {
@@ -80,7 +84,7 @@ export async function sendDealEventEmail(input: DealEventEmailInput): Promise<bo
       to: input.to,
       subject: input.subject,
       html,
-      text: textLines.join('\n'),
+      text: textLines.join('\n') + `\n\nYou receive updates about a deal on Karwan.\nNotification settings: ${notificationSettingsUrl}\nSupport: support@karwan.site`,
       ...(LOGO_BUFFER
         ? { attachments: [{ filename: 'karwan-logo.png', content: LOGO_BUFFER, contentId: LOGO_CID }] }
         : {}),

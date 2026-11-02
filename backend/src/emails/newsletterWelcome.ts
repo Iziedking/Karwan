@@ -10,7 +10,7 @@ import { logger } from '../logger.js';
 
 const INNER =
   emailHeading({ kicker: 'Newsletter', title: "You're on the Karwan list" }) +
-  emailText("We'll send product updates and new trade corridors when they're ready.") +
+  emailText("We will send occasional updates about Karwan and available features.") +
   emailButton('Visit Karwan', 'https://karwan.site') +
   emailNote('You can unsubscribe from any update.');
 
@@ -19,6 +19,7 @@ export function newsletterWelcomeHtml(): string {
   return brandedEmailHtml({
     title: "You're on the Karwan list",
     inner: INNER,
+    preheader: 'Your subscription to Karwan updates is confirmed.',
     footerNote: 'You subscribed at karwan.site. Not you? Ignore this email.',
   });
 }
@@ -29,7 +30,7 @@ export async function sendNewsletterWelcome(email: string): Promise<void> {
   const html = newsletterWelcomeHtml();
   const text =
     "You're on the Karwan list.\n\n" +
-    "We'll send product updates and new trade corridors when they're ready.\n\n" +
+    "We will send occasional updates about Karwan and available features.\n\n" +
     'You can unsubscribe from any update.\n\n' +
     'Visit Karwan: https://karwan.site\n\n' +
     'You subscribed at karwan.site.';

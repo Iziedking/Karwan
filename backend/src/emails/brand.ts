@@ -4,7 +4,7 @@
 // The rules are the product's: sentence case, the amount is the loudest line,
 // one lime action, hairlines instead of boxes, plain words, no addresses in the
 // body. Markup is table-based with inline styles so Gmail, Outlook and Apple
-// Mail render it the same; the classes only carry the dark theme.
+// Mail have a usable inline-style fallback. Clients vary in their dark-mode support.
 
 /// The mark now loads from the website (see MARK_URL), so no email carries an
 /// inline attachment. Kept null so the senders' attachment branch stays off.
@@ -30,6 +30,7 @@ const SITE = (process.env.FRONTEND_BASE_URL?.trim() || 'https://karwan.site').re
 const MARK_URL = `${SITE}/brand/karwan-mark-email.png`;
 
 const FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif";
+export const EMAIL_FONT_STACK = FONT;
 const PAD = '28px';
 
 export interface BrandShellOptions {
@@ -43,14 +44,16 @@ export interface BrandShellOptions {
   /// Hidden inbox preview line. Defaults to nothing, which lets clients show
   /// the first line of the body.
   preheader?: string;
+  footerAction?: { label: string; url: string };
 }
 
-const DEFAULT_FOOTER_NOTE = "Didn't expect this email? You can ignore it. Nothing changes on your account.";
+const DEFAULT_FOOTER_NOTE = "Need help with this message? Contact support@karwan.site.";
 
-export function brandedEmailHtml({ title, inner, footerNote = DEFAULT_FOOTER_NOTE, preheader }: BrandShellOptions): string {
+export function brandedEmailHtml({ title, inner, footerNote = DEFAULT_FOOTER_NOTE, preheader = title, footerAction }: BrandShellOptions): string {
   // Loaded from the website: every client can fetch it, and it does not depend
   // on a file being present on the server that sends the mail.
   const mark = `<img src="${MARK_URL}" width="28" height="28" alt="Karwan" style="display:block;border:0;border-radius:8px;" />`;
+  const footerLink = footerAction && safeEmailUrl(footerAction.url) ? `<p style="margin:8px 0 0;font-size:13px;line-height:1.6;"><a href="${escapeHtml(footerAction.url)}" class="k-link" style="color:${C.sub};text-decoration:underline;">${escapeHtml(footerAction.label)}</a></p>` : '';
   const hidden = preheader
     ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">${escapeHtml(preheader)}&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;</div>`
     : '';
@@ -65,22 +68,30 @@ export function brandedEmailHtml({ title, inner, footerNote = DEFAULT_FOOTER_NOT
 <style>
   :root { color-scheme: light dark; supported-color-schemes: light dark; }
   a { color: ${C.ink}; }
+  .k-pad { overflow-wrap:anywhere; word-wrap:break-word; }
+  .k-warning { color: #805300; }
   @media (prefers-color-scheme: dark) {
-    .k-canvas { background: #0b0f14 !important; }
-    .k-card { background: #131a22 !important; border-color: #26303b !important; }
+    .k-canvas { background: #171816 !important; }
+    .k-card { background: #22231f !important; border-color: #3b3d35 !important; }
     .k-ink { color: #f4f4f1 !important; }
-    .k-sub { color: #c4c7cc !important; }
-    .k-muted { color: #a3a8ae !important; }
-    .k-line { border-color: #26303b !important; }
-    .k-tint { background: #1b232d !important; }
+    .k-sub { color: #d1d3c9 !important; }
+    .k-muted { color: #b2b6a8 !important; }
+    .k-line { border-color: #3b3d35 !important; }
+    .k-tint { background: #2d2f28 !important; }
     .k-link { color: #f4f4f1 !important; }
+    .k-warning { color: #f2cf83 !important; }
   }
+  [data-ogsc].k-canvas, [data-ogsc] .k-canvas { background: #171816 !important; }
+  [data-ogsc] .k-card { background: #22231f !important; border-color: #3b3d35 !important; }
+  [data-ogsc] .k-tint { background: #2d2f28 !important; }
+  [data-ogsc] .k-line { border-color: #3b3d35 !important; }
   [data-ogsc] .k-ink, [data-ogsc] .k-link { color: #f4f4f1 !important; }
-  [data-ogsc] .k-sub { color: #c4c7cc !important; }
-  [data-ogsc] .k-muted { color: #a3a8ae !important; }
-  [data-ogsb] .k-canvas { background: #0b0f14 !important; }
-  [data-ogsb] .k-card { background: #131a22 !important; }
-  [data-ogsb] .k-tint { background: #1b232d !important; }
+  [data-ogsc] .k-sub { color: #d1d3c9 !important; }
+  [data-ogsc] .k-warning { color: #f2cf83 !important; }
+  [data-ogsc] .k-muted { color: #b2b6a8 !important; }
+  [data-ogsb].k-canvas, [data-ogsb] .k-canvas { background: #171816 !important; }
+  [data-ogsb] .k-card { background: #22231f !important; }
+  [data-ogsb] .k-tint { background: #2d2f28 !important; }
   @media only screen and (max-width: 620px) {
     .k-shell { padding: 12px 8px !important; }
     .k-pad { padding-left: 20px !important; padding-right: 20px !important; }
@@ -93,23 +104,24 @@ export function brandedEmailHtml({ title, inner, footerNote = DEFAULT_FOOTER_NOT
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="k-canvas k-shell" style="background:${C.canvas};padding:28px 14px;">
     <tr>
       <td align="center">
-        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" class="k-card" style="max-width:600px;width:100%;background:${C.card};border:1px solid ${C.line};border-radius:16px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" class="k-card" style="max-width:600px;width:100%;table-layout:fixed;background:${C.card};border:1px solid ${C.line};border-radius:20px 20px 20px 40px;">
           <tr>
-            <td class="k-pad" style="padding:24px ${PAD} 0 ${PAD};">
+            <td class="k-pad" style="font-family:${FONT};padding:24px ${PAD} 0 ${PAD};">
               <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td style="vertical-align:middle;">${mark}</td>
-                  <td class="k-ink" style="vertical-align:middle;padding-left:10px;font-size:16px;font-weight:600;letter-spacing:-0.01em;color:${C.ink};">Karwan</td>
+                  <td class="k-ink" style="font-family:${FONT};vertical-align:middle;padding-left:10px;font-size:16px;font-weight:600;letter-spacing:-0.01em;color:${C.ink};">Karwan</td>
                 </tr>
               </table>
             </td>
           </tr>
 ${inner}
           <tr>
-            <td class="k-pad" style="padding:28px ${PAD} 24px ${PAD};">
-              <div class="k-line" style="border-top:1px solid ${C.line};padding-top:18px;">
-                <p class="k-muted" style="margin:0;font-size:13px;line-height:1.6;color:${C.muted};">${escapeHtml(footerNote)}</p>
-                <p class="k-muted" style="margin:8px 0 0 0;font-size:13px;line-height:1.6;color:${C.muted};">Karwan &middot; One reputation for the internet &middot; <a href="mailto:support@karwan.site" class="k-link" style="color:${C.sub};">support@karwan.site</a></p>
+            <td class="k-pad" style="font-family:${FONT};padding:28px ${PAD} 24px ${PAD};">
+              <div class="k-line" style="border-top:1px solid ${C.line};padding-top:20px;">
+                <p class="k-muted" style="font-family:${FONT};margin:0;font-size:13px;line-height:1.6;color:${C.muted};">${escapeHtml(footerNote)}</p>
+                ${footerLink}
+                <p class="k-muted" style="font-family:${FONT};margin:8px 0 0 0;font-size:13px;line-height:1.6;color:${C.muted};">Karwan support &middot; <a href="mailto:support@karwan.site" class="k-link" style="color:${C.sub};">support@karwan.site</a></p>
               </div>
             </td>
           </tr>
@@ -123,7 +135,7 @@ ${inner}
 
 function row(content: string, top = 0, bottom = 0): string {
   return `          <tr>
-            <td class="k-pad" style="padding:${top}px ${PAD} ${bottom}px ${PAD};">${content}</td>
+            <td class="k-pad" style="font-family:${FONT};padding:${top}px ${PAD} ${bottom}px ${PAD};">${content}</td>
           </tr>
 `;
 }
@@ -131,10 +143,10 @@ function row(content: string, top = 0, bottom = 0): string {
 /// The opening of every email: a quiet kicker and the headline.
 export function emailHeading({ kicker, title }: { kicker?: string; title: string }): string {
   const kick = kicker
-    ? `<p class="k-muted" style="margin:0 0 8px 0;font-size:13px;line-height:1.4;color:${C.muted};">${escapeHtml(kicker)}</p>`
+    ? `<p class="k-muted" style="font-family:${FONT};margin:0 0 8px 0;font-size:13px;line-height:1.4;color:${C.muted};">${escapeHtml(kicker)}</p>`
     : '';
   return row(
-    `${kick}<h1 class="k-ink" style="margin:0;font-size:22px;line-height:1.3;font-weight:600;letter-spacing:-0.01em;color:${C.ink};">${escapeHtml(title)}</h1>`,
+    `${kick}<h1 class="k-ink" style="font-family:${FONT};margin:0;font-size:24px;line-height:1.3;font-weight:600;letter-spacing:-0.01em;color:${C.ink};">${escapeHtml(title)}</h1>`,
     28,
   );
 }
@@ -142,8 +154,8 @@ export function emailHeading({ kicker, title }: { kicker?: string; title: string
 /// The amount, when money is the point of the email. Always with its currency.
 export function emailAmount(amount: string, unit = 'USDC'): string {
   return row(
-    `<p class="k-ink k-amount" style="margin:0;font-size:40px;line-height:1.05;font-weight:600;letter-spacing:-0.02em;font-variant-numeric:tabular-nums;color:${C.ink};">${escapeHtml(amount)}<span class="k-muted" style="font-size:17px;font-weight:500;letter-spacing:0;color:${C.muted};">&nbsp;${escapeHtml(unit)}</span></p>`,
-    22,
+    `<p class="k-ink k-amount" style="margin:0;font-size:40px;line-height:1.05;font-weight:600;letter-spacing:-0.02em;font-variant-numeric:tabular-nums;color:${C.ink};">${escapeHtml(amount)}<span class="k-muted" style="font-size:18px;font-weight:500;letter-spacing:0;color:${C.muted};">&nbsp;${escapeHtml(unit)}</span></p>`,
+    24,
   );
 }
 
@@ -156,7 +168,7 @@ export function emailText(...paragraphs: string[]): string {
 /// Body copy that is already safe HTML (built with escapeHtml and emailStrong).
 export function emailRich(...paragraphs: string[]): string {
   return paragraphs
-    .map((p, i) => row(`<p class="k-sub" style="margin:0;font-size:15px;line-height:1.6;color:${C.sub};">${p}</p>`, i === 0 ? 14 : 10))
+    .map((p, i) => row(`<p class="k-sub" style="font-family:${FONT};margin:0;font-size:16px;line-height:1.6;color:${C.sub};">${p}</p>`, i === 0 ? 16 : 12))
     .join('');
 }
 
@@ -169,36 +181,38 @@ export function emailFacts(facts: Array<[label: string, value: string]>): string
   const rows = facts
     .map(
       ([label, value]) => `<tr>
-                  <td class="k-muted k-line" style="padding:12px 0;border-bottom:1px solid ${C.line};font-size:14px;color:${C.muted};">${escapeHtml(label)}</td>
-                  <td class="k-ink k-line" align="right" style="padding:12px 0;border-bottom:1px solid ${C.line};font-size:14px;text-align:right;font-variant-numeric:tabular-nums;color:${C.ink};">${escapeHtml(value)}</td>
+                  <td class="k-muted k-line" style="font-family:${FONT};padding:12px 0;border-bottom:1px solid ${C.line};font-size:14px;color:${C.muted};">${escapeHtml(label)}</td>
+                  <td class="k-ink k-line" align="right" style="font-family:${FONT};padding:12px 0;border-bottom:1px solid ${C.line};font-size:14px;text-align:right;font-variant-numeric:tabular-nums;color:${C.ink};">${escapeHtml(value)}</td>
                 </tr>`,
     )
     .join('');
   return row(
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="k-line" style="border-top:1px solid ${C.line};">${rows}</table>`,
-    22,
+    24,
   );
 }
 
 /// The one action. A lime pill that says what happens.
 export function emailButton(label: string, url: string): string {
+  if (!safeEmailUrl(url)) return emailNote('Open Karwan directly to review this update.');
   return row(
-    `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td style="border-radius:999px;background:${C.accent};"><a href="${escapeHtml(url)}" style="display:inline-block;padding:14px 24px;border-radius:999px;background:${C.accent};color:${C.accentInk};font-family:${FONT};font-size:15px;font-weight:600;line-height:1;text-decoration:none;">${escapeHtml(label)}</a></td></tr></table>`,
-    26,
+    `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td style="border-radius:999px;background:${C.accent};"><a href="${escapeHtml(url)}" style="display:inline-block;padding:16px 24px;border-radius:999px;background:${C.accent};color:${C.accentInk};font-family:${FONT};font-size:15px;font-weight:600;line-height:1.3;text-decoration:none;">${escapeHtml(label)}</a></td></tr></table>`,
+    28,
   );
 }
 
 /// A quiet secondary link under the action, such as "Proof on Arc".
 export function emailLink(label: string, url: string): string {
+  if (!safeEmailUrl(url)) return emailNote(label);
   return row(
     `<a href="${escapeHtml(url)}" class="k-link" style="font-size:14px;color:${C.ink};text-decoration:underline;">${escapeHtml(label)}</a>`,
-    14,
+    16,
   );
 }
 
 /// Small print that belongs to this message, not the footer.
 export function emailNote(text: string): string {
-  return row(`<p class="k-muted" style="margin:0;font-size:13px;line-height:1.55;color:${C.muted};">${escapeHtml(text)}</p>`, 14);
+  return row(`<p class="k-muted" style="font-family:${FONT};margin:0;font-size:13px;line-height:1.55;color:${C.muted};">${escapeHtml(text)}</p>`, 16);
 }
 
 /// A tinted panel for the one thing the reader must not miss: which account to
@@ -206,16 +220,16 @@ export function emailNote(text: string): string {
 export function emailPanel(html: string, tone: 'plain' | 'warning' = 'plain'): string {
   const color = tone === 'warning' ? C.warning : C.sub;
   return row(
-    `<div class="k-tint${tone === 'plain' ? ' k-sub' : ''}" style="background:${C.tint};border-radius:12px;padding:14px 16px;font-size:14px;line-height:1.55;color:${color};">${html}</div>`,
-    18,
+    `<div class="k-tint${tone === 'plain' ? ' k-sub' : ' k-warning'}" style="background:${C.tint};border-radius:12px;padding:14px 16px;font-size:14px;line-height:1.55;color:${color};">${html}</div>`,
+    20,
   );
 }
 
 /// Free text someone wrote, line breaks kept: a support reply, a quoted ask.
 export function emailQuote(text: string): string {
   return row(
-    `<p class="k-ink" style="margin:0;font-size:15px;line-height:1.6;white-space:pre-wrap;color:${C.ink};">${escapeHtml(text)}</p>`,
-    14,
+    `<p class="k-ink" style="font-family:${FONT};margin:0;font-size:16px;line-height:1.6;white-space:pre-wrap;color:${C.ink};">${escapeHtml(text)}</p>`,
+    16,
   );
 }
 
@@ -225,15 +239,15 @@ export function emailThread(messages: Array<{ who: string; when: string; text: s
     .map(
       (m) => `<tr>
                   <td class="k-line" style="padding:12px 0;border-bottom:1px solid ${C.line};">
-                    <p class="k-muted" style="margin:0 0 4px 0;font-size:13px;color:${C.muted};">${escapeHtml(m.who)} &middot; ${escapeHtml(m.when)}</p>
-                    <p class="k-ink" style="margin:0;font-size:14px;line-height:1.55;white-space:pre-wrap;color:${C.ink};">${escapeHtml(m.text)}</p>
+                    <p class="k-muted" style="font-family:${FONT};margin:0 0 4px 0;font-size:13px;color:${C.muted};">${escapeHtml(m.who)} &middot; ${escapeHtml(m.when)}</p>
+                    <p class="k-ink" style="font-family:${FONT};margin:0;font-size:14px;line-height:1.55;white-space:pre-wrap;color:${C.ink};">${escapeHtml(m.text)}</p>
                   </td>
                 </tr>`,
     )
     .join('');
   return row(
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="k-line" style="border-top:1px solid ${C.line};">${rows}</table>`,
-    18,
+    20,
   );
 }
 
@@ -241,18 +255,28 @@ export function emailThread(messages: Array<{ who: string; when: string; text: s
 export function emailCode(code: string): string {
   return row(
     `<div class="k-tint k-ink" style="display:inline-block;background:${C.tint};border-radius:12px;padding:16px 22px;font-size:34px;line-height:1;font-weight:600;letter-spacing:0.24em;font-variant-numeric:tabular-nums;color:${C.ink};">${escapeHtml(code)}</div>`,
-    22,
+    24,
   );
 }
 
 /// The raw link for readers whose client blocks the button.
 /// Long URLs have no spaces, so `word-break` sits on the cell itself: on an
 /// inline span it is widely ignored and the link widens the card off a phone.
-export function emailUrlFallback(url: string, label = 'If the button does not work, paste this link into your browser:'): string {
+export function emailUrlFallback(url: string, label = 'If the button does not work, use this secure link.'): string {
+  if (!safeEmailUrl(url)) return '';
   return `          <tr>
-            <td class="k-pad k-muted" style="padding:18px ${PAD} 0 ${PAD};font-size:13px;line-height:1.55;color:${C.muted};word-break:break-all;">${escapeHtml(label)}<br />${escapeHtml(url)}</td>
+            <td class="k-pad k-muted" style="padding:18px ${PAD} 0 ${PAD};font-size:13px;line-height:1.55;color:${C.muted};word-break:break-all;">${escapeHtml(label)} <a href="${escapeHtml(url)}" class="k-link" style="color:${C.sub};text-decoration:underline;">Open secure link</a></td>
           </tr>
 `;
+}
+
+/// Only web URLs may become email actions. Tokens remain in the destination, never visible link text.
+export function safeEmailUrl(raw: string): boolean {
+  if (!raw || /[\s\u0000-\u001f]/.test(raw)) return false;
+  try {
+    const url = new URL(raw);
+    return !url.username && !url.password && (url.protocol === 'https:' || (url.protocol === 'http:' && ['localhost','127.0.0.1'].includes(url.hostname)));
+  } catch { return false; }
 }
 
 function escapeHtml(s: string): string {

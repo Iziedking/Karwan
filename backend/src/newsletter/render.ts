@@ -1,4 +1,4 @@
-import { brandedEmailHtml, emailHeading, escapeHtml } from '../emails/brand.js';
+import { brandedEmailHtml, emailHeading, escapeHtml, EMAIL_FONT_STACK } from '../emails/brand.js';
 import type { NewsletterIssue } from '../db/newsletter.js';
 
 /// An issue as an email.
@@ -22,7 +22,7 @@ function inline(text: string): string {
   out = out.replace(
     /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
     (_m, label: string, href: string) =>
-      `<a href="${href}" style="color:#0a0a0b;text-decoration:underline;">${label}</a>`,
+      `<a class="k-link" href="${href}" style="color:#0a0a0b;text-decoration:underline;">${label}</a>`,
   );
   out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   return out;
@@ -40,9 +40,9 @@ function paragraphs(body: string): string {
           .filter((l) => l.trim().startsWith('- '))
           .map((l) => `<li style="margin:0 0 8px 0;">${inline(l.replace(/^\s*-\s*/, ''))}</li>`)
           .join('');
-        return `<ul style="margin:0 0 16px 0;padding-left:20px;font-size:15px;line-height:1.65;color:#0a0a0b;">${items}</ul>`;
+        return `<ul class="k-ink" style="margin:0 0 16px 0;padding-left:20px;font-size:15px;line-height:1.65;color:#0a0a0b;">${items}</ul>`;
       }
-      return `<p style="margin:0 0 16px 0;font-size:15px;line-height:1.65;color:#0a0a0b;">${inline(
+      return `<p class="k-ink" style="margin:0 0 16px 0;font-size:15px;line-height:1.65;color:#0a0a0b;">${inline(
         block.replace(/\n/g, ' '),
       )}</p>`;
     })
@@ -92,13 +92,13 @@ export function renderIssue(issue: NewsletterIssue): RenderedIssue {
     ? `
         <hr style="border:0;border-top:1px solid rgba(0,0,0,0.08);margin:28px 0 16px 0;" />
         <p class="k-muted" style="margin:0 0 8px 0;font-size:13px;color:#6e6e73;">Sources</p>
-        <ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.6;color:#6B6B6B;">
+        <ul class="k-muted" style="margin:0;padding-left:18px;font-size:13px;line-height:1.6;color:#6B6B6B;">
           ${issue.sources
             .map(
               (s) =>
                 `<li style="margin:0 0 6px 0;">${
                   s.url
-                    ? `<a href="${escapeHtml(s.url)}" style="color:#6B6B6B;">${escapeHtml(s.title)}</a>`
+                    ? `<a class="k-link" href="${escapeHtml(s.url)}" style="color:#6B6B6B;">${escapeHtml(s.title)}</a>`
                     : escapeHtml(s.title)
                 } · ${escapeHtml(s.source)} · ${new Date(s.publishedAt)
                   .toISOString()
@@ -119,7 +119,7 @@ export function renderIssue(issue: NewsletterIssue): RenderedIssue {
     emailHeading({ kicker: issue.monthInReview ? 'Month in review' : 'Karwan dispatch', title: issue.subject }) +
     `
           <tr>
-            <td class="k-pad" style="padding:14px 28px 0 28px;">
+            <td class="k-pad" style="font-family:${EMAIL_FONT_STACK};padding:14px 28px 0 28px;">
               <p class="k-sub" style="margin:0 0 4px 0;font-size:15px;line-height:1.6;color:#45454a;">${escapeHtml(
                 issue.preheader,
               )}</p>
@@ -149,7 +149,7 @@ export function renderText(issue: NewsletterIssue): string {
   const lines = [issue.subject, '', issue.preheader, ''];
 
   for (const section of issue.sections) {
-    lines.push(section.heading.toUpperCase(), '');
+    lines.push(section.heading, '');
     lines.push(
       section.body
         .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '$1 ($2)')

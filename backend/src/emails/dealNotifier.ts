@@ -283,7 +283,7 @@ export function contentFor(
   trade: TradeType,
   /// The buyer's private requirement review, read from the deal for the buyer
   /// alone. Never on the event, which both parties receive.
-  buyerPrivateNote?: string,
+  _buyerPrivateNote?: string,
   opts: { shortlistMode?: boolean } = {},
 ): EmailContent | null {
   const shortlistMode = opts.shortlistMode ?? config.SHORTLIST_MODE;
@@ -299,7 +299,7 @@ export function contentFor(
         kicker: 'One step left',
         subject: `A buyer chose your offer${priceSuffix}`,
         heading: 'A buyer chose your offer',
-        body: `A buyer chose your offer${priceSuffix}. Before escrow is funded, confirm with World ID that you are a real person. It takes a minute in the World App. Escrow funds as soon as you do.`,
+        body: `A buyer chose your offer${priceSuffix}. Before escrow is funded, confirm with World ID that you are a real person. Open World App to complete the check, then return to Karwan to review the funding status.`,
         ctaLabel: 'Confirm with World ID',
         ctaUrl: base() ? `${base()}/seller` : undefined,
       };
@@ -312,7 +312,7 @@ export function contentFor(
         kicker: 'Shortlist ready',
         subject: `Your agent found ${people} for your request`,
         heading: `Your agent found ${people}`,
-        body: `Your agent checked their records and listed ${people} for your request, verified or not, with each one's score and numbers. Open the request to see who it recommends and choose. Nothing moves until you choose and confirm.`,
+        body: `Your agent found ${people} for your request. Compare their trade records, verification and offer terms before choosing. Review the total payment before confirming.`,
         ctaLabel: 'Choose a seller',
         ctaUrl: jobUrl(e.jobId),
       };
@@ -389,7 +389,7 @@ export function contentFor(
         subject: `Karwan matched your offer to a request${priceSuffix}`,
         heading: 'Your offer was matched',
         body: `Karwan matched your offer to an open request${priceSuffix}. Review and accept to open the deal.`,
-        ctaLabel: 'Review and accept',
+        ctaLabel: 'Review the match',
         ctaUrl: jobUrl(e.jobId),
       };
     }
@@ -420,7 +420,7 @@ export function contentFor(
             kicker: 'Terms turned down',
             subject: `The seller turned down your Karwan deal${amountSuffix}`,
             heading: 'The seller asked for different terms',
-            body: `The seller left a note: "${String(e.payload?.note ?? '').slice(0, 600)}" Change the terms so they work for both of you. No money has moved.`,
+            body: `The seller left a note: "${String(e.payload?.note ?? '').slice(0, 600)}" Change the terms so they work for both of you. Open the deal to check its current payment status.`,
             ctaLabel: 'Change the terms',
             ctaUrl: dealUrl(e.jobId),
           }
@@ -433,13 +433,12 @@ export function contentFor(
         : e.payload?.reason === 'no-agent-wallet'
           ? 'Automatic release cannot run for this deal. Release it yourself from the deal page.'
           : 'The delivery check paused payment.';
-      const note = role === 'buyer' && buyerPrivateNote ? ` What the check saw: ${buyerPrivateNote.slice(0, 400)}` : '';
       return role === 'buyer'
         ? {
             kicker: 'Payment paused',
             subject: 'The delivery check paused payment on your Karwan deal',
             heading: 'Payment is paused',
-            body: `${reason}${note} Your money stays in escrow. Open the deal to review the delivery and choose what to do.`,
+            body: `${reason} Open the deal to review the delivery, payment status and available actions.`,
             ctaLabel: 'Review the delivery',
             ctaUrl: dealUrl(e.jobId),
           }
@@ -447,7 +446,7 @@ export function contentFor(
             kicker: 'Payment paused',
             subject: 'Payment on your Karwan deal is paused',
             heading: 'Payment is paused',
-            body: `${reason} The money stays in escrow until this is resolved.`,
+            body: `${reason} Open the deal to review the current payment status and next steps.`,
             ctaLabel: 'Open the deal',
             ctaUrl: dealUrl(e.jobId),
           };
@@ -495,7 +494,7 @@ export function contentFor(
         kicker: 'Your offer',
         subject: 'The buyer changed a request you offered on',
         heading: 'The request changed',
-        body: `${title ? `${title}. ` : ''}${price ? `Your offer is ${price} USDC. ` : ''}Keep it, lower it or withdraw it from the request page. An offer can only go down, at most three times.`,
+        body: `${title ? `${title}. ` : ''}${price ? `Your offer is ${price} USDC. ` : ''}Keep it, lower it or withdraw it from the request page. You can reduce an offer up to three times.`,
         ctaLabel: 'Open the request',
         ctaUrl: jobUrl(e.payload?.jobId as string | undefined),
       };
@@ -576,7 +575,7 @@ export function contentFor(
             subject: `The seller agreed to your Karwan deal${amountSuffix}`,
             heading: 'Review the final funding total',
             body: 'The seller agreed to the terms. Review the current fee and exact total before you fund escrow.',
-            ctaLabel: 'Review and fund',
+            ctaLabel: 'Review funding',
             ctaUrl: dealUrl(e.jobId),
           }
         : null;
@@ -584,8 +583,8 @@ export function contentFor(
       return {
         kicker: 'Deal funded',
         subject: `Deal funded${amountSuffix}`,
-        heading: 'The money is held safely',
-        body: `The payment is held in escrow and the seller can ${startPhrase(trade)}. It is released only when the work is accepted.`,
+        heading: 'Payment held in escrow',
+        body: `The payment is held in escrow and the seller can ${startPhrase(trade)}. Payment follows the agreed review and release rules, including any timed release.`,
         ctaLabel: 'Open the deal',
         ctaUrl: dealUrl(e.jobId),
       };
@@ -595,8 +594,8 @@ export function contentFor(
             kicker: 'Delivered',
             subject: `Your seller marked ${deliverableNoun(trade)} delivered`,
             heading: trade === 'service' ? 'Work delivered' : 'Delivered',
-            body: `The seller marked ${deliverableNoun(trade)} delivered. Open the deal to verify and release escrow.`,
-            ctaLabel: 'Verify and release',
+            body: `The seller marked ${deliverableNoun(trade)} delivered. Open the deal to review the delivery and choose whether to release payment or report a problem before the review deadline.`,
+            ctaLabel: 'Review the delivery',
             ctaUrl: dealUrl(e.jobId),
           }
         : null; // seller already knows they delivered
@@ -737,9 +736,9 @@ export function contentFor(
       return role === 'buyer'
         ? {
             kicker: 'Delivery marked',
-            subject: 'Your seller marked delivery on the contract. Your review time has started',
-            heading: 'Delivery marked on the contract',
-            body: 'The seller marked this deal delivered directly on the escrow contract, not through Karwan, so no delivery check ran. Your review time has started. Check what you received. If something is wrong, open a dispute before the review time ends, or the seller can claim the payment.',
+            subject: 'Your delivery review has started',
+            heading: 'Delivery reported',
+            body: 'The seller reported delivery outside Karwan, so Karwan has not checked the submission. Your review period has started. Review what you received and report any problem before the deadline, after which the seller may claim payment.',
             ctaLabel: 'Review the deal',
             ctaUrl: dealUrl(e.jobId),
           }
@@ -764,7 +763,7 @@ export function contentFor(
         kicker: 'Dispute',
         subject: `The ${side} gave their account of the dispute`,
         heading: 'Give your account',
-        body: `The ${side} gave their account of the dispute. Give yours on the deal before ${closesLabel(e.payload?.closesAtMs)}. A side that gives no account loses the dispute.`,
+        body: `The ${side} gave their account of the dispute. Give yours on the deal before ${closesLabel(e.payload?.closesAtMs)}. If you do not respond before the deadline, the dispute may be decided against you.`,
         ctaLabel: 'Give your account',
         ctaUrl: dealUrl(e.jobId),
       };
@@ -775,7 +774,7 @@ export function contentFor(
         kicker: 'Dispute',
         subject: 'Your dispute statement is still missing',
         heading: 'Give your account before the window closes',
-        body: `Your account of the dispute is still missing. Give it on the deal before ${closesLabel(e.payload?.closesAtMs)}. A side that gives no account loses the dispute.`,
+        body: `Your account of the dispute is still missing. Give it on the deal before ${closesLabel(e.payload?.closesAtMs)}. If you do not respond before the deadline, the dispute may be decided against you.`,
         ctaLabel: 'Give your account',
         ctaUrl: dealUrl(e.jobId),
       };
@@ -797,9 +796,9 @@ export function contentFor(
         ? {
             kicker: 'Action needed',
             subject: 'Top up to fund your Karwan escrow',
-            heading: 'Your agent is underfunded',
-            body: "Your buyer agent doesn't have enough USDC on Arc to fund this escrow. Top it up so the seller can accept.",
-            ctaLabel: 'Top up your agent',
+            heading: 'More funds are needed',
+            body: "Your buying balance is below the amount needed to fund this deal. Open the deal to review the shortfall and add funds.",
+            ctaLabel: 'Review funding',
             ctaUrl: dealUrl(e.jobId),
           }
         : null;
@@ -809,7 +808,7 @@ export function contentFor(
         kicker: 'Invoice financing',
         subject: `Add ${short} USDC so the seller can take your offer`,
         heading: 'Your offer needs its advance',
-        body: `A seller tried to accept your financing offer, but your wallet does not hold the advance yet. Add ${short} USDC and they can accept it. Nothing has moved.`,
+        body: `A seller tried to accept your financing offer, but your wallet does not hold the advance yet. Add ${short} USDC and they can accept it. Review the current funding status before trying again.`,
         ctaLabel: 'Open financier desk',
         ctaUrl: financierUrl(),
       };
@@ -851,8 +850,8 @@ export function contentFor(
         kicker: 'Early payout',
         subject: 'The seller took your offer. Pay them within 24 hours',
         heading: 'Pay the seller',
-        body: `The seller took your offer. Pay them ${advance ? `${advance} USDC ` : ''}from your wallet${by}. If you do not, the offer lapses and nothing moves.`,
-        ctaLabel: 'Pay the seller',
+        body: `The seller took your offer. Pay them ${advance ? `${advance} USDC ` : ''}from your wallet${by}. If you do not pay by the deadline, the offer expires. Check the payment status before retrying.`,
+        ctaLabel: 'Review payment',
         ctaUrl: b ? `${b}/financier` : undefined,
       };
     }
@@ -861,7 +860,7 @@ export function contentFor(
         kicker: 'Early payout',
         subject: 'The seller accepted your factoring offer',
         heading: 'Offer accepted',
-        body: 'Your advance is on its way to the seller. You are repaid automatically when the buyer releases the escrow.',
+        body: 'The financing offer was accepted. Check the deal for the advance payment status and the repayment terms.',
         ctaLabel: 'View the deal',
         ctaUrl: dealUrl(e.jobId),
       };
@@ -892,7 +891,7 @@ export function contentFor(
             kicker: 'Action needed',
             subject: 'Your factoring repayment could not be collected',
             heading: 'Repayment failed',
-            body: 'The escrow settled but the repayment to your financier did not go through. Fund your wallet and contact them before this reaches your reputation.',
+            body: 'The escrow settled but the repayment to your financier did not go through. Review the repayment status and contact the financier to resolve it.',
             ctaLabel: 'View the deal',
             ctaUrl: dealUrl(e.jobId),
           }
@@ -961,7 +960,7 @@ export function contentFor(
             kicker: 'Action needed',
             subject: 'Your PO line repayment could not be collected',
             heading: 'Repayment failed',
-            body: 'The escrow settled but the repayment to your financier did not go through. Fund your wallet and contact them before this reaches your reputation.',
+            body: 'The escrow settled but the repayment to your financier did not go through. Review the repayment status and contact the financier to resolve it.',
             ctaLabel: 'View the deal',
             ctaUrl: dealUrl(e.jobId),
           }
@@ -977,30 +976,32 @@ export function contentFor(
     case 'rating.reminder':
     case 'rating.revealed': {
       const tag = e.payload?.withTag ? `@${String(e.payload.withTag)}` : 'a Karwan member';
-      const url = dealUrl(e.payload?.dealId as string | undefined);
+      const target = dealUrl(e.payload?.dealId as string | undefined);
+      const url = target && e.type !== 'rating.revealed' ? target + '#rate' : target;
       if (e.type === 'rating.revealed') {
         const who = e.payload?.withTag ? `@${String(e.payload.withTag)}'s` : 'Their';
-        return { kicker: 'Rating', subject: `${who} rating of you is in`, heading: `${who} rating of you is in`, body: 'It now shows on your Karwan record.', ctaLabel: 'View the deal', ctaUrl: url };
+        return { kicker: 'Rating', subject: `${who} rating is available`, heading: `${who} rating is available`, body: 'The rating is now visible on your trade record. Open the deal to review it.', ctaLabel: 'View the deal', ctaUrl: url };
       }
       const first = e.type === 'rating.requested';
       return {
         kicker: 'Rating',
         subject: first ? `How did your deal with ${tag} go?` : `Rate your deal with ${tag}`,
         heading: first ? `How did your deal with ${tag} go?` : `Rate your deal with ${tag}`,
-        body: 'Rate it 1 to 5, and add a note if you like. Ratings show once you both rate, or 14 days after the deal settled.',
-        ctaLabel: 'Rate the deal',
+        body: 'Choose a rating from 1 to 5 and optionally leave a comment. Ratings become public after both parties submit a rating or 14 days after settlement.',
+        ctaLabel: 'Leave a rating',
         ctaUrl: url,
       };
     }
     case 'reputation.tier-up': {
-      const toTier = (e.payload?.toTier as string | undefined) ?? '';
+      const rawTier = (e.payload?.toTier as string | undefined) ?? '';
+      const toTier = ({ NEW: 'Limited history', COLD: 'Early history', ESTABLISHED: 'Established', STRONG: 'Strong', ELITE: 'Elite' } as Record<string, string>)[rawTier] ?? '';
       const addr = e.payload?.address as string | undefined;
       return {
         kicker: 'Reputation',
         subject: toTier ? `You reached ${toTier} on Karwan` : 'You moved up a tier on Karwan',
         heading: toTier ? `You reached ${toTier}` : 'You moved up a tier',
-        body: 'Your reputation tier rose on Karwan. A stronger tier means agents move faster for you.',
-        ctaLabel: 'View your passport',
+        body: 'Your reputation tier rose on Karwan. Your trade record shows the evidence behind your current tier.',
+        ctaLabel: 'View your trade record',
         ctaUrl: passportUrl(addr),
       };
     }
@@ -1038,11 +1039,14 @@ export function amountFor(e: KarwanEvent): string | undefined {
 
 /// Who a deal email is with and what the deal is for, read once from the deal.
 /// People are named by name and Karwan tag, never a wallet (owner, 23 Oct).
-async function dealContext(jobId: string | undefined, role: 'buyer' | 'seller') {
+async function dealContext(jobId: string | undefined, recipientAddress: string) {
   if (!jobId) return null;
   const deal = await getDeal(jobId).catch(() => null);
   if (!deal) return null;
-  const other = await getProfile(role === 'buyer' ? deal.seller : deal.buyer).catch(() => null);
+  const address = recipientAddress.toLowerCase();
+  const otherAddress = address === deal.buyer.toLowerCase() ? deal.seller : address === deal.seller.toLowerCase() ? deal.buyer : null;
+  if (!otherAddress) return null;
+  const other = await getProfile(otherAddress).catch(() => null);
   const facts: Array<[string, string]> = [];
   if (other?.handle) facts.push(['With', [other.displayName?.trim(), `@${other.handle}`].filter(Boolean).join(' · ')]);
   const what = (deal.terms ?? '').split('\n')[0]!.trim().slice(0, 120);
@@ -1071,12 +1075,10 @@ export function startEmailNotifier(): () => void {
           const via = reminder ? reminderChannelsFor(profile.settings, linked) : channelsFor(profile.settings, linked);
           if (!via.email) continue;
         }
-        const privateNote = e.type === 'deal.release.blocked' && r.role === 'buyer' && e.jobId
-          ? (await getDeal(e.jobId).catch(() => null))?.deliveryMatch?.reason
-          : undefined;
-        const content = r.role === 'financier' ? financierContentFor(e, r.href) : contentFor(e, r.role, trade, privateNote);
+        const content = r.role === 'financier' ? financierContentFor(e, r.href) : contentFor(e, r.role, trade);
         if (!content) continue;
-        const context = r.role === 'buyer' || r.role === 'seller' ? await dealContext(e.jobId, r.role) : null;
+        const contextId = e.jobId ?? (e.type.startsWith('rating.') ? e.payload?.dealId as string | undefined : undefined);
+        const context = r.role === 'buyer' || r.role === 'seller' || e.type.startsWith('rating.') ? await dealContext(contextId, r.address) : null;
         await sendDealEventEmail({
           to: profile.email,
           ...content,

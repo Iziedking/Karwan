@@ -4,14 +4,16 @@
 ///   npx tsx backend/src/emails/preview.ts
 ///
 /// Open the files in a browser, narrow the window to phone width, and switch
-/// the OS to dark mode to check the dark theme. The logo is a CID attachment
-/// in real mail, so previews show a dark square in its place.
+/// the OS to dark mode to check the dark theme. The same hosted brand mark
+/// is used in previews and real mail. This script renders only; it sends nothing.
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { otpEmailHtml, verifyEmailHtml } from './codeEmails.js';
 import { dealInviteHtml } from './dealInvite.js';
 import { dealUpdateHtml } from './dealUpdate.js';
 import { dealCancelledHtml } from './dealCancelled.js';
+import { contentFor, financierContentFor } from './dealNotifier.js';
+import type { KarwanEvent } from '../events.js';
 import { dealEventHtml } from './dealEventEmail.js';
 import { waitlistJoinedEmail } from './waitlistJoined.js';
 import { mainnetAccessEmail } from './mainnetAccess.js';
@@ -20,7 +22,7 @@ import { recoveryEmail } from './recovery.js';
 import { supportTranscriptHtml } from './supportTranscript.js';
 import { teamPasswordResetPreviewHtml } from './teamPasswordReset.js';
 
-const OUT_DIR = resolve(process.cwd(), 'docs/email-previews');
+const OUT_DIR = resolve(process.cwd(), process.env.KARWAN_EMAIL_PREVIEW_DIR || 'docs/email-previews');
 mkdirSync(OUT_DIR, { recursive: true });
 
 function write(name: string, html: string) {
@@ -52,8 +54,8 @@ write('deal-cancelled', dealCancelledHtml({
 }));
 const dealFacts: Array<[string, string]> = [['With', 'Bola Ade · @bola_designs'], ['For', 'Brand kit: logo, colours and a one-page guide']];
 write('deal-event-funded', dealEventHtml({
-  kicker: 'Deal funded', subject: 'Deal funded (1,200.00 USDC)', heading: 'The money is held safely', amount: '1200',
-  body: 'The payment is held in escrow and the seller can start the work. It is released only when the work is accepted.', ctaLabel: 'Open the deal', ctaUrl: dealUrl,
+  kicker: 'Deal funded', subject: 'Deal funded (1,200.00 USDC)', heading: 'Payment held in escrow', amount: '1200',
+  body: 'The payment is held in escrow and the seller can start the work. Payment follows the agreed review and release rules, including any timed release.', ctaLabel: 'Open the deal', ctaUrl: dealUrl,
   facts: dealFacts,
 }));
 write('deal-event-dispute', dealEventHtml({
@@ -70,7 +72,7 @@ write('support-transcript', supportTranscriptHtml({
   id: 'T-4821', status: 'closed', createdAt: Date.UTC(2026, 8, 30, 9, 12),
   messages: [
     { role: 'user', text: 'My top-up says sending for a while. Did it fail?', ts: Date.UTC(2026, 8, 30, 9, 12) },
-    { role: 'assistant', text: 'It has not failed. The network is still confirming it, and nothing is lost.', ts: Date.UTC(2026, 8, 30, 9, 12, 20) },
+    { role: 'assistant', text: 'The payment is still awaiting confirmation. Check its status before trying again.', ts: Date.UTC(2026, 8, 30, 9, 12, 20) },
     { role: 'operator', text: 'Confirmed on our side. It landed at 09:14.\nYour balance is up to date now.', ts: Date.UTC(2026, 8, 30, 9, 15) },
   ],
 } as Parameters<typeof supportTranscriptHtml>[0]));
@@ -96,19 +98,19 @@ write('team-password-reset', teamPasswordResetPreviewHtml({
   const rendered = renderIssue({
     id: 'preview',
     status: 'draft',
-    subject: 'A PO financier reclaimed the principal while the advance stayed locked',
-    preheader: 'We fixed the defect. Collateral now grades by reputation. Factoring is opt-in.',
+    subject: 'A clearer view of your trade record',
+    preheader: 'Review your verification, completed deals and public ratings in one place.',
     sections: [
       {
         key: 'shipped',
         heading: 'What we shipped',
-        body: '**The old PO rail held a fatal design flaw.** At fund time the financier owned the deal\u2019s receivable, while the supplier\u2019s advance sat in contract custody, released only when proof of delivery hit the registry.\n\nHow much collateral a supplier posts now comes from their [reputation tier](https://karwan.site/credit-passport), not the financier guessing.',
+        body: '**Your trade record brings the available evidence together.** Review your verification status, deal history and ratings before sharing your record.\n\nSee what appears on your [trade record](https://karwan.site/credit-passport).',
         signalIds: [],
       },
       {
         key: 'ecosystem',
         heading: 'What moved on Arc and Circle',
-        body: '- Gateway now covers Solana, which widens the pool we already route through\n- A second item, to check list rendering inside the card',
+        body: '- Compare available evidence before choosing a seller\n- Review delivery and payment rules before funding a deal',
         signalIds: [],
       },
     ],
@@ -131,3 +133,72 @@ write('team-password-reset', teamPasswordResetPreviewHtml({
   writeFileSync(resolve(OUT_DIR, 'newsletter-issue.html'), rendered.html, 'utf8');
   console.log('wrote docs/email-previews/newsletter-issue.html');
 }
+
+// All lifecycle variants use the same content builder as actual notifications.
+// Fictional fixtures only. No sender or provider is called.
+const eventTypes = [
+  "agent.suggestion",
+  "offer.request-changed",
+  "deal.review.ending",
+  "record.setup_needed",
+  "deal.extension.requested",
+  "deal.dispute.statement",
+  "deal.dispute.statement.due",
+  "deal.matched",
+  "deal.match.approved",
+  "listing.matched",
+  "request.shortlist",
+  "request.world_check",
+  "deal.direct.created",
+  "deal.seller-approved",
+  "deal.direct.declined",
+  "deal.direct.edited",
+  "offer.created",
+  "deal.release.blocked",
+  "deal.accepted",
+  "deal.delivered",
+  "escrow.settled",
+  "deal.disputed",
+  "deal.dispute.auto_resolved",
+  "deal.cancel.proposed",
+  "deal.fund.insufficient",
+  "deal.deadline.soon",
+  "deal.deadline.passed",
+  "deal.extension.waiting",
+  "deal.delivered.onchain",
+  "deal.match.raised",
+  "escrow.milestone.released",
+  "escrow.refunded",
+  "escrow.reclaimed",
+  "deal.cancelled",
+  "factoring.requested",
+  "factoring.funding_needed",
+  "factoring.offered",
+  "factoring.accepted",
+  "factoring.awaiting_financier",
+  "factoring.settled",
+  "factoring.defaulted",
+  "po.funded",
+  "po.released",
+  "po.repaid",
+  "po.defaulted",
+  "reputation.tier-up",
+  "rating.requested",
+  "rating.reminder",
+  "rating.revealed"
+];
+for (const type of eventTypes) for (const role of ['buyer','seller','self','financier'] as const) {
+  const event = {type,jobId:'0x'+ 'ab'.repeat(32),actor:'platform',ts:0,payload:{
+    buyer:'0x1111111111111111111111111111111111111111',seller:'0x2222222222222222222222222222222222222222',
+    buyerUser:'0x1111111111111111111111111111111111111111',sellerUser:'0x2222222222222222222222222222222222222222',
+    dealId:'0x'+'ab'.repeat(32),dealAmountUsdc:'120',agreedPriceUsdc:'120',askingPriceUsdc:'120',priceUsdc:'120',
+    advance:'90',advanceUsdc:'90',shortfallUsdc:'10',faceValueUsdc:'120',repayUsdc:'95',principalUsdc:'90',
+    withTag:'ada',toTier:'STRONG',notify:true,count:2,buyerConfirmed:true,waitingOn:'seller',side:role,
+    deadline:Date.UTC(2030,0,20),endsAt:Date.UTC(2030,0,20),dueAt:Date.UTC(2030,0,20),refundAt:Date.UTC(2030,0,21),closesAtMs:Date.UTC(2030,0,20),
+    title:'Packaging design for Ada Foods',detail:'off-request',reason:'Please allow time for review.',changedLabels:['Delivery date'],additionalSeconds:86400,discountBps:500,sellerBps:0,
+  }} as unknown as KarwanEvent;
+  const content=role==='financier' ? financierContentFor(event,'/financier/factoring/preview') : contentFor(event,role,'service');
+  if(content) write('event-'+type.replaceAll('.','-')+'-'+role,dealEventHtml({...content, facts:[['With','Ada Foods · @ada'],['For','Packaging design']]}));
+}
+for (const purpose of ['sign-in','waitlist','recovery','confirm'] as const) write('code-'+purpose,otpEmailHtml('447301',purpose));
+for (const kind of ['started','reminder','released','completed','cancelled'] as const) write('recovery-'+kind,recoveryEmail(kind,{releasableAt:Date.UTC(2030,0,20),cancelUrl:'https://karwan.site/recovery/cancel?t=preview'}).html);

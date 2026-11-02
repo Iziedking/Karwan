@@ -22,14 +22,14 @@ export interface SendResult {
 
 function inner(input: TeamInviteEmailInput): string {
   return (
-    emailHeading({ kicker: 'Team access', title: `${input.name}, you have access to the Karwan canon` }) +
+    emailHeading({ kicker: 'Team access', title: `${input.name}, you have been invited to the Karwan team` }) +
     emailText(
-      'It holds what we have shipped, what we have not, how we write, and the brand rules.',
-      'Set a password, then connect it to the Claude app, ChatGPT, or whatever you already use. It will write from what is true about the product instead of guessing.',
+      'Your team account gives you access to product documentation and brand guidelines for your role.',
+      'Set your password to get started. You can connect supported tools after signing in.',
     ) +
     emailFacts([['Role', input.role === 'dev' ? 'Developer' : 'Marketing']]) +
-    emailButton('Set up my account', input.inviteUrl) +
-    emailNote(`${input.expiresLabel}. Your role decides what the canon shows you.`) +
+    emailButton('Set up your account', input.inviteUrl) +
+    emailNote(`${input.expiresLabel}. Keep this invitation private.`) +
     emailUrlFallback(input.inviteUrl)
   );
 }
@@ -41,6 +41,7 @@ export function teamInvitePreviewHtml(input: TeamInviteEmailInput): string {
   return brandedEmailHtml({
     title: 'Your Karwan team access',
     inner: inner(input),
+    preheader: 'Set your password to access Karwan team resources.',
     footerNote: 'You are getting this because somebody at Karwan invited you.',
   });
 }
@@ -56,10 +57,10 @@ export async function sendTeamInviteEmail(input: TeamInviteEmailInput): Promise<
   }
 
   const text =
-    `${input.name}, you have been given access to Karwan's canon.\n\n` +
+    `${input.name}, you have been invited to the Karwan team.\n\n` +
     `Set your password: ${input.inviteUrl}\n\n` +
-    `${input.expiresLabel}. You are joining as ${input.role}.\n` +
-    `If you were not expecting this, ignore it and tell whoever sent it.`;
+    `${input.expiresLabel}. Your role is ${input.role === 'dev' ? 'Developer' : 'Marketing'}.\n` +
+    `If you were not expecting this invitation, contact support@karwan.site.`;
 
   try {
     const { data, error } = await client.emails.send({

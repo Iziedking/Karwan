@@ -12,8 +12,8 @@ export function mainnetAccessEmail(): { subject: string; html: string; text: str
     emailText('You can now create your account on Arc mainnet. Use this same email address when you sign up.') +
     emailButton('Create your account', MAINNET_SIGNUP_URL);
   return {
-    subject: "You're in. Create your Karwan account",
-    html: brandedEmailHtml({ title: 'Your place on Karwan has opened', inner, footerNote: 'You joined the Karwan waitlist with this address. Not you? Ignore this email.' }),
+    subject: "Your Karwan account access is ready",
+    html: brandedEmailHtml({ title: 'Your place on Karwan has opened', preheader: 'Create your account using this email address.', inner, footerNote: 'You joined the Karwan waitlist with this address. Not you? Ignore this email.' }),
     text:
       "Your place on the Karwan waitlist has come up. You can now create your account on Arc mainnet.\n\n" +
       `Create your account: ${MAINNET_SIGNUP_URL}\n\n` +

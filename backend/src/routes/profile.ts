@@ -363,7 +363,7 @@ async function sendVerifyEmail(email: string, code: string): Promise<boolean> {
       html: verifyEmailHtml(code),
       text:
         `Your Karwan email confirmation code is ${code}\n\n` +
-        `It expires in 10 minutes and stops working after five wrong tries.\n\n` +
+        `This code expires in 10 minutes. Do not share it. Karwan support will never ask for your code.\n\n` +
         `If you didn't request this, ignore the email.`,
     });
     if (error) {

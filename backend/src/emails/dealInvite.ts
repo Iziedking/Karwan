@@ -133,7 +133,7 @@ export function dealInviteHtml(input: DealInviteEmailInput): string {
   return brandedEmailHtml({
     title: 'You have a Karwan deal to review',
     preheader: `${from(input)} opened a ${formatEmailUsdc(input.dealAmountUsdc)} USDC deal with you.`,
-    inner: inviteInnerHtml(input),
+    inner: inviteInnerHtml(input) + (config.ARC_NETWORK === 'testnet' ? emailNote('Testnet activity uses test funds with no monetary value.') : ''),
     footerNote:
       "Not expecting this invite? Ignore the email. Nothing is agreed until you sign in and accept.",
   });
@@ -145,7 +145,7 @@ export async function sendDealInviteEmail(
   const client = resendClient();
   if (!client) {
     logger.info(
-      { to: input.to, claimUrl: input.claimUrl },
+      { to: input.to },
       '[invite] no RESEND_API_KEY, log-only',
     );
     return { delivered: false };
@@ -180,7 +180,7 @@ export async function sendDealInviteEmail(
       to: input.to,
       subject,
       html,
-      text,
+      text: text + (config.ARC_NETWORK === 'testnet' ? '\n\nTestnet activity uses test funds with no monetary value.' : ''),
       ...(LOGO_BUFFER
         ? {
             attachments: [

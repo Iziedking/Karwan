@@ -115,7 +115,7 @@ export async function sendOtpEmail(email: string, code: string, purpose: OtpPurp
       html: otpEmailHtml(code, purpose),
       text:
         `Your Karwan ${OTP_COPY[purpose].word} code is ${code}\n\n` +
-        `It expires in 10 minutes and stops working after five wrong tries.\n\n` +
+        `This code expires in 10 minutes. Do not share it. Karwan support will never ask for your code.\n\n` +
         `If you didn't request this, ignore the email.`,
       // CID inline attachment for the brand mark. Falls back gracefully when
       // the asset isn't on disk (the HTML omits the <img> in that case too).

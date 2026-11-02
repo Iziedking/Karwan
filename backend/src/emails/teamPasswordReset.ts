@@ -35,6 +35,7 @@ export function teamPasswordResetPreviewHtml(input: TeamPasswordResetEmailInput)
   return brandedEmailHtml({
     title: 'Reset your Karwan password',
     inner: inner(input),
+    preheader: 'Use this one-time link to choose a new team account password.',
     footerNote: 'You are getting this because a reset was requested for your team account.',
   });
 }

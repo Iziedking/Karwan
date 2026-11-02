@@ -11,14 +11,14 @@ export function waitlistJoinedEmail(position: number | null): { subject: string;
   const place = position ? `You're number ${position.toLocaleString('en-US')} on the list.` : "You're on the list.";
   const inner =
     emailHeading({ kicker: 'Waitlist', title: "You're on the Karwan waitlist" }) +
-    emailText(`${place} We'll email you when your spot on Arc mainnet opens.`, "You don't have to wait to see how it works. Karwan runs in full on testnet, with test money.") +
+    emailText(`${place} We'll email you when your spot on Arc mainnet opens.`, "You can explore available features on Karwan testnet using test funds.") +
     emailButton('Try Karwan on testnet', TESTNET_SIGNUP_URL);
   return {
     subject: "You're on the Karwan waitlist",
-    html: brandedEmailHtml({ title: "You're on the waitlist", inner, footerNote: 'You joined the Karwan waitlist with this address. Not you? Ignore this email.' }),
+    html: brandedEmailHtml({ title: "You're on the waitlist", preheader: 'We will email you when your account can join.', inner, footerNote: 'You joined the Karwan waitlist with this address. Not you? Ignore this email.' }),
     text:
       `${place} We'll email you when your spot on Arc mainnet opens.\n\n` +
-      "You don't have to wait to see how it works. Karwan runs in full on testnet, with test money.\n\n" +
+      "You can explore available features on Karwan testnet using test funds.\n\n" +
       `Try Karwan on testnet: ${TESTNET_SIGNUP_URL}`,
   };
 }

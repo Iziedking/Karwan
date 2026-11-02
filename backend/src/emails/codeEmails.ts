@@ -24,7 +24,7 @@ export function otpEmailHtml(code: string, purpose: OtpPurpose = 'sign-in'): str
       emailHeading({ kicker: copy.kicker, title: copy.title }) +
       emailCode(code) +
       emailText(copy.line) +
-      emailNote('It expires in 10 minutes and stops working after five wrong tries. Karwan will never ask you for this code by phone or chat.'),
+      emailNote('This code expires in 10 minutes. Do not share it. Karwan support will never ask for your code.'),
     footerNote: "Didn't ask for this code? Ignore this email. Nothing changes until the code is entered.",
   });
 }
@@ -37,7 +37,7 @@ export function verifyEmailHtml(code: string): string {
       emailHeading({ kicker: 'Confirm email', title: 'Confirm your Karwan email' }) +
       emailCode(code) +
       emailText('Enter this code in Karwan to use this email for deal updates.') +
-      emailNote('It expires in 10 minutes and stops working after five wrong tries.'),
+      emailNote('This code expires in 10 minutes. Do not share it.'),
     footerNote: "Didn't add this email to Karwan? Ignore this message. Nothing changes until the code is entered.",
   });
 }

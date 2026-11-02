@@ -1,13 +1,13 @@
 import { config } from '../config.js';
 import { logger } from '../logger.js';
-import { brandedEmailHtml, emailButton, emailHeading, emailNote, emailPanel, emailText, escapeHtml, LOGO_BUFFER, LOGO_CID } from './brand.js';
+import { brandedEmailHtml, emailButton, emailHeading, emailPanel, emailText, escapeHtml, LOGO_BUFFER, LOGO_CID } from './brand.js';
 import { resendClient } from './resend.js';
 
 /// Emails for passkey recovery. Every step is announced to the account's
 /// email so the owner can cancel a recovery they did not start.
 export type RecoveryEmailKind = 'started' | 'reminder' | 'released' | 'completed' | 'cancelled';
 
-const when = (ms: number) => new Date(ms).toUTCString();
+const when = (ms: number | undefined): string | null => typeof ms === 'number' && Number.isFinite(ms) && Number.isFinite(new Date(ms).getTime()) ? new Date(ms).toUTCString() : null;
 
 export function recoveryEmail(
   kind: RecoveryEmailKind,
@@ -19,16 +19,16 @@ export function recoveryEmail(
       subject: 'Someone started recovering your Karwan wallet',
       title: 'Recovery started',
       lines: [
-        `A request to recover your wallet was made. It can finish after ${when(opts.releasableAt ?? Date.now())}.`,
+        when(opts.releasableAt) ? `Wallet recovery was requested. The waiting period ends at ${when(opts.releasableAt)}.` : 'Wallet recovery was requested. Check Karwan for the waiting period and current status.',
         "If this was you, you don't need to do anything.",
         cancel,
       ],
     },
     reminder: {
-      subject: 'Recovery of your Karwan wallet finishes in 1 hour',
+      subject: 'Review your Karwan wallet recovery',
       title: 'Recovery finishes soon',
       lines: [
-        `The recovery request for your wallet can finish at ${when(opts.releasableAt ?? Date.now())}.`,
+        when(opts.releasableAt) ? `Your wallet recovery waiting period ends at ${when(opts.releasableAt)}.` : 'Your wallet recovery is pending. Check Karwan for the waiting period and current status.',
         "If this wasn't you, sign in with your passkey and cancel it, or use the link in the first email.",
       ],
     },
@@ -63,7 +63,7 @@ export function recoveryEmail(
     emailHeading({ kicker: 'Wallet recovery', title }) +
     emailText(...body.filter((l) => l !== warning)) +
     (warning ? emailPanel(escapeHtml(warning), 'warning') : '') +
-    (kind === 'started' && opts.cancelUrl ? emailButton('Cancel this recovery', opts.cancelUrl) + emailNote("If this was you, you don't need to do anything.") : '');
+    (kind === 'started' && opts.cancelUrl ? emailButton('Cancel this recovery', opts.cancelUrl) : '');
   return {
     subject,
     html: brandedEmailHtml({

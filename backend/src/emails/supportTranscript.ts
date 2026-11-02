@@ -78,9 +78,11 @@ function fmtTime(ts: number): string {
   }
 }
 
+const accountLabel = (address: string) => /^0x[0-9a-f]{40}$/i.test(address) ? address.slice(0,6) + '…' + address.slice(-4) : address;
+
 function transcriptInnerHtml(convo: SupportConversation): string {
   const facts: Array<[string, string]> = [['Opened', fmtTime(convo.createdAt)]];
-  if (convo.address) facts.push(['Account', convo.address]);
+  if (convo.address) facts.push(['Account', accountLabel(convo.address)]);
   return (
     emailHeading({ kicker: `Conversation ${convo.id}`, title: 'Your support conversation' }) +
     emailFacts(facts) +
@@ -90,7 +92,7 @@ function transcriptInnerHtml(convo: SupportConversation): string {
 
 function transcriptText(convo: SupportConversation): string {
   const head = `Karwan support conversation ${convo.id}\n` +
-    (convo.address ? `Wallet: ${convo.address}\n` : '') +
+    (convo.address ? `Account: ${accountLabel(convo.address)}\n` : '') +
     `Opened: ${fmtTime(convo.createdAt)}\n\n`;
   const body = convo.messages
     .map((m) => `[${fmtTime(m.ts)}] ${ROLE_LABEL[m.role] ?? m.role}: ${stripMd(m.text)}`)
@@ -142,6 +144,7 @@ export async function sendSupportAlertEmail(
 export function supportTranscriptHtml(convo: SupportConversation): string {
   return brandedEmailHtml({
     title: 'Your support conversation',
+    preheader: 'A copy of your conversation with Karwan support.',
     inner: transcriptInnerHtml(convo),
     footerNote: 'Reply to this email to continue the conversation by mail.',
   });
