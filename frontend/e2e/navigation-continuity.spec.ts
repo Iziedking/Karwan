@@ -38,6 +38,7 @@ for(const locale of ['en','fr','ar','hi','sw'] as const)for(const theme of ['lig
 test('same-path query history updates the selected market side and search',async({page})=>{
  await world(page);await page.goto('/market?category=design&q=Logo');
  await expect(page.getByRole('searchbox',{name:en.marketShop.search})).toHaveValue('Logo');
+ await expect.poll(()=>page.evaluate(()=>!!history.state?.__karwanNavigationV2)).toBe(true);
  await page.evaluate(()=>history.pushState(null,'','/market?side=sell#requests'));
  await expect(page.getByRole('tab',{name:en.marketShop.sell,exact:true})).toHaveAttribute('aria-selected','true');
  await page.goBack();await expect(page.getByRole('searchbox',{name:en.marketShop.search})).toHaveValue('Logo');

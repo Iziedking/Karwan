@@ -155,10 +155,15 @@ jobs:
         run: npm --prefix frontend run build
 
   e2e:
-    name: Browser
+    name: Browser (${{ matrix.project }})
     runs-on: ubuntu-latest
     timeout-minutes: 25
     needs: [typecheck]
+    # One runner per screen size: the suite outgrew a single 25-minute runner.
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [phone, tablet, desktop]
     steps:
       - uses: actions/checkout@v4
 
@@ -175,4 +180,4 @@ jobs:
         working-directory: frontend
 
       - name: Deal workspace browser tests
-        run: npm --prefix frontend run test:e2e
+        run: npm --prefix frontend run test:e2e -- --project=${{ matrix.project }}

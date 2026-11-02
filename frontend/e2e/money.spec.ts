@@ -212,7 +212,7 @@ test('the money home reads right to left in Arabic', async ({ page, context }) =
   await serveMoney(page, { balances: funded });
   await page.goto('/account');
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('رصيد USDC');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('الرصيد المتاح');
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(0);
 });

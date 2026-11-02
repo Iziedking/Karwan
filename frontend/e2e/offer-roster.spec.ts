@@ -47,9 +47,9 @@ for (const version of ['live', 'v2'] as const) {
     await expect(page.getByRole('button', { name: /Musa Idris/ })).toBeVisible();
 
     await page.getByRole('button', { name: /Kofi Mensah/ }).click();
-    await page.getByRole('button', { name: 'Choose Kofi Mensah for 240 USDC' }).click();
-    await expect(page.getByText(/puts 240 USDC in escrow now/)).toBeVisible();
-    await page.getByRole('button', { name: 'Confirm' }).click();
+    await page.getByRole('button', { name: 'Review offer from Kofi Mensah · 240 USDC' }).click();
+    await expect(page.getByText(/funds escrow for this offer at 240 USDC/)).toBeVisible();
+    await page.getByRole('button', { name: 'Accept and fund deal' }).click();
     await expect.poll(() => chosen).toMatchObject({ seller: seller(2) });
   });
 }
@@ -64,8 +64,8 @@ test("the agent's pick waits for the seller; only the other offers can be chosen
   await page.getByRole('button', { name: /4 other offers/ }).click();
   await page.getByRole('button', { name: /Ada Okafor/ }).click();
   await expect(page.getByText("Your agent's pick").last()).toBeVisible();
-  await expect(page.getByRole('button', { name: /^Choose / })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^Review offer from / })).toHaveCount(0);
   await page.keyboard.press('Escape');
   await page.getByRole('button', { name: /Kofi Mensah/ }).click();
-  await expect(page.getByRole('button', { name: 'Choose Kofi Mensah for 240 USDC' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Review offer from Kofi Mensah · 240 USDC' })).toBeVisible();
 });

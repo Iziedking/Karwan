@@ -431,15 +431,25 @@ for (const unavailable of ['buyer balance', 'recipient metadata'] as const) {
   });
 }
 
+test('an offer without a verified total asks for a refresh, never a payment', async ({ page }) => {
+  const edgeOffer = offer('o-edge', SELLER_A, '96', 1);
+  delete edgeOffer.fundedUsdc;
+  await open(page, { role: 'buyer', offers: [edgeOffer], balances: { ...funded, [BUYER_AGENT.toLowerCase()]: 91.72 } });
+  await page.getByRole('button', { name: /Review offer/ }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('alert')).toHaveText(topUpMessages.en.offers.totalUnavailable);
+  await expect(dialog.getByRole('button', { name: topUpMessages.en.offers.refreshTotal })).toBeVisible();
+  await expect(dialog.getByRole('button', { name: /Accept and pay/ })).toHaveCount(0);
+  await expect(dialog.getByRole('button', { name: /^Top up .* USDC$/ })).toHaveCount(0);
+});
+
 for (const scenario of [
-  { name: 'falls back to the offer price', fundedUsdc: undefined, buyer: 91.719999, amount: '4.29' },
   { name: 'rounds a microscopic shortfall to one cent', fundedUsdc: '96.720001', buyer: 96.72, amount: '0.01' },
   { name: 'does not offer a top-up when the current balance covers the total', fundedUsdc: '96.72', buyer: 96.72, amount: null },
 ] as const) {
   test(`short-balance recovery ${scenario.name}`, async ({ page }, testInfo) => {
     const edgeOffer = offer('o-edge', SELLER_A, '96', 1);
-    if (scenario.fundedUsdc === undefined) delete edgeOffer.fundedUsdc;
-    else edgeOffer.fundedUsdc = scenario.fundedUsdc;
+    edgeOffer.fundedUsdc = scenario.fundedUsdc;
     await open(page, { role: 'buyer', offers: [edgeOffer],
       balances: { ...funded, [BUYER_AGENT.toLowerCase()]: scenario.buyer }, accept: { status: 409, code: 'INSUFFICIENT_AGENT_BALANCE' } });
     await page.getByRole('button', { name: /Review offer/ }).click();

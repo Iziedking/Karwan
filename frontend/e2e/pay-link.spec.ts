@@ -77,7 +77,7 @@ test('a payment link opens its own page: who asks, how much, Arc first, one butt
 test('a sealed record shows the requester tier, never a deal count', async ({ page }) => {
   await mockApi(page, { reputation: { sealed: true, address: SELLER, displayName: 'Kingizie', tag: 'izieking', tier: 'ESTABLISHED', reasons: ['HAS_COMPLETED_DEALS'], memberSince: null } });
   await page.goto(`/deposit/request/${TOKEN}`);
-  await expect(page.getByText('@izieking · Tier Established')).toBeVisible();
+  await expect(page.getByText('@izieking · Reputation level Established')).toBeVisible();
   await expect(page.getByText(/\d+ deals/)).toHaveCount(0);
 });
 

@@ -85,7 +85,7 @@ test("taking a seller's own offer from the assistant runs the request page route
     payload: { jobId: JOB, offerId: 'o-1' }, confirmLabel: 'Take it and pay 81.6 USDC', cancelLabel: 'Not now',
   });
   await page.getByRole('button', { name: 'Take it and pay 81.6 USDC' }).click();
-  await expect(page.getByText('Offer taken. The escrow is paid and the deal is live.')).toBeVisible();
+  await expect(page.getByText('Offer accepted. Open the deal to check its payment status.')).toBeVisible();
   expect(accepted).toBe(1);
 });
 

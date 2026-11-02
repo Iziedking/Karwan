@@ -29,7 +29,7 @@ test('the page says the agent is on and asks for a usual price the seller never 
   await expect(page.getByRole('heading', { name: 'Your agent' })).toBeVisible();
   await expect(page.locator('[data-agent-state="on"]')).toContainText('2 offers waiting on buyers');
   await expect(page.locator('[data-price-notice]')).toBeVisible();
-  for (const row of ['What you sell', 'Your price', 'How you get paid', 'What it does alone', 'When you buy']) {
+  for (const row of ['What you sell', 'Your price', 'How you get paid', 'Agent permissions', 'When you buy']) {
     await expect(page.locator('[data-your-agent]').getByText(row, { exact: true })).toBeVisible();
   }
   await expect(page.getByText('Not given yet')).toBeVisible();

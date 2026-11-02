@@ -37,11 +37,11 @@ test('a send names the place and the amount, and nothing about routes', async ({
   await page.getByLabel('Amount').fill('25');
   await expect(page.getByRole('button', { name: 'Send 25.00 USDC to Base Sepolia' })).toBeEnabled();
   await expect(page.getByText("A send can't be undone.")).toBeVisible();
-  await expect(page.getByText('Usually takes under a minute.')).toBeVisible();
+  await expect(page.getByText('Cross-network confirmation times vary.')).toBeVisible();
   await expect(page.getByText(/gateway|cctp/i)).toHaveCount(0);
 });
 
-test('a send the backend refused says nothing left the wallet', async ({ page }) => {
+test('a send the backend refused asks to check the wallet before trying again', async ({ page }) => {
   await serveMoney(page, {
     balances: funded,
     bridgeOut: (route) => route.fulfill({ status: 400, json: { error: 'invalid recipient' } }),
@@ -50,7 +50,7 @@ test('a send the backend refused says nothing left the wallet', async ({ page })
   await page.getByLabel('Recipient address').fill('0x2222222222222222222222222222222222222222');
   await page.getByLabel('Amount').fill('25');
   await page.getByRole('button', { name: 'Send 25.00 USDC to Base Sepolia' }).click();
-  await expect(page.getByText("It didn't go through. Nothing left your wallet.")).toBeVisible();
+  await expect(page.getByText('The request did not complete. Check your wallet and transfer history before trying again.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
 });
 
@@ -71,7 +71,7 @@ test('a transfer in flight comes back on return and lands in the balance', async
   });
   await page.goto('/bridge?intent=add');
   await expect(page.locator('li[aria-current="step"]')).toHaveText(/Leaving Base Sepolia$/);
-  await expect(page.getByText(/You can leave this page/)).toBeVisible();
+  await expect(page.getByText('Return to Transfer history to check the status.')).toBeVisible();
   landed = true;
   await expect(page.getByRole('button', { name: 'Done', exact: true })).toBeVisible({ timeout: 10_000 });
   await expect(page.getByRole('status').filter({ hasText: 'In your balance' })).toBeVisible();
@@ -81,7 +81,7 @@ test('a slow transfer says so, and nothing reads as failed', async ({ page }) =>
   await serveMoney(page, { balances: funded, bridges: [inFlight('minting', 10 * 60_000)] });
   await page.goto('/bridge?intent=add');
   await expect(page.locator('li[aria-current="step"]')).toHaveText(/Arriving on Arc$/);
-  await expect(page.getByText('Taking longer than usual. Nothing is lost.')).toBeVisible();
+  await expect(page.getByText('Confirmation is taking longer. Check transfer status before starting another transfer.')).toBeVisible();
   await expect(page.getByText(/fail/i)).toHaveCount(0);
 });
 
