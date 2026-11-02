@@ -119,8 +119,7 @@ function readSession(c: Context): { id: string; ep: number } | null {
 function loginPage(error?: string) {
   return page(
     'Team sign in',
-    `<p class="eyebrow">[:KARWAN TEAM:]</p>
-<h1>Sign in</h1>
+    `<h1>Sign in</h1>
 <p>Connect your AI tools to the Karwan canon so they write from what we have actually shipped.</p>
 ${error ? `<p class="err">${escapeHtml(error)}</p>` : ''}
 <form method="post" action="/team/login">
@@ -143,8 +142,7 @@ function forgotPage(sent?: boolean) {
     // is the exact thing the login page's single error message already avoids.
     return page(
       'Reset your password',
-      `<p class="eyebrow">[:KARWAN TEAM:]</p>
-<h1>Check your email</h1>
+      `<h1>Check your email</h1>
 <p>If that address belongs to a team account, a reset link is on its way. It
 works for one hour and can only be used once.</p>
 <p class="foot"><a href="/team">Back to sign in</a></p>`,
@@ -154,8 +152,7 @@ works for one hour and can only be used once.</p>
 
   return page(
     'Reset your password',
-    `<p class="eyebrow">[:KARWAN TEAM:]</p>
-<h1>Reset your password</h1>
+    `<h1>Reset your password</h1>
 <p>Tell us the address you sign in with and we will email you a link to set a
 new password.</p>
 <form method="post" action="/team/forgot">
@@ -171,8 +168,7 @@ new password.</p>
 function resetPage(token: string, name: string, error?: string) {
   return page(
     'Choose a new password',
-    `<p class="eyebrow">[:KARWAN TEAM:]</p>
-<h1>New password, ${escapeHtml(name)}</h1>
+    `<h1>New password, ${escapeHtml(name)}</h1>
 <p>Pick something you can remember. This link stops working once you use it.</p>
 ${error ? `<p class="err">${escapeHtml(error)}</p>` : ''}
 <form method="post" action="/team/reset">
@@ -190,8 +186,7 @@ ${error ? `<p class="err">${escapeHtml(error)}</p>` : ''}
 function invitePage(token: string, name: string, role: TeamRole, error?: string) {
   return page(
     'Set your password',
-    `<p class="eyebrow">[:KARWAN TEAM:]</p>
-<h1>Welcome, ${escapeHtml(name)}</h1>
+    `<h1>Welcome, ${escapeHtml(name)}</h1>
 <p>Pick a password and your account is ready. You are joining as
 <strong>${escapeHtml(role)}</strong>, which decides what the canon shows you.</p>
 ${error ? `<p class="err">${escapeHtml(error)}</p>` : ''}
@@ -211,64 +206,79 @@ ${error ? `<p class="err">${escapeHtml(error)}</p>` : ''}
 ///
 /// Ordered by who is likely to be reading. Most of the team lives in the Claude
 /// app or ChatGPT, and both take a URL and nothing else, which is the entire
-/// reason the OAuth server exists.
+/// reason the OAuth server exists. The address is the hero because it is the one
+/// thing every tool needs.
 function guide(name: string, role: TeamRole, mcpUrl: string) {
   return page(
     'Connect your tools',
-    `<p class="eyebrow">[:KARWAN TEAM:]</p>
-<h1>Connect your tools</h1>
-<div class="who">
+    `<div class="who rise">
   <span>Signed in as <strong>${escapeHtml(name)}</strong></span>
   <span class="tag">${escapeHtml(role)}</span>
-  <form method="post" action="/team/logout" style="margin-left:auto">
+  <form method="post" action="/team/logout">
     <button class="quiet" type="submit">Sign out</button>
   </form>
 </div>
 
-<p>Point your AI tool at the address below. It will send you back here to sign
-in, then it can read the Karwan canon: what we have shipped, what we have not,
-how we write, and the brand rules. It answers from that instead of guessing,
-which is the difference between copy that is right and copy that sounds right.</p>
+<h1 class="rise">Connect your tools</h1>
+<p class="rise d1">Give your AI tool this address. After you sign in, it works from Karwan's own
+words, current build status, facts and design standard, instead of guessing.</p>
 
-${copyable(mcpUrl)}
+<div class="stack rise d2"><section class="hero">
+  <p class="hero-label">Your Karwan address</p>
+  ${copyable(mcpUrl)}
+</section></div>
 
-<div class="step">
-  <h2>Claude app (desktop or web)</h2>
-  <ol>
-    <li>Settings, then Connectors.</li>
-    <li>Add custom connector.</li>
-    <li>Paste the address above. Leave the advanced fields empty.</li>
-    <li>Click connect. Sign in with this same email and password.</li>
-  </ol>
+<div class="flow rise d3" aria-hidden="true">
+  <span class="token"></span>
+  <div class="node"><span class="dot"></span>Your agent</div>
+  <div class="node"><span class="dot"></span>You sign in</div>
+  <div class="node"><span class="dot"></span>Karwan canon</div>
 </div>
 
-<div class="step">
-  <h2>ChatGPT</h2>
-  <ol>
-    <li>Settings, then Connectors, then Create.</li>
-    <li>Paste the address above and choose OAuth when asked how it authenticates.</li>
-    <li>Connect, then sign in here when it redirects you.</li>
-  </ol>
+<h2>Add it to your tool</h2>
+<div class="tools">
+  <details class="tool" name="tool" open>
+    <summary>Claude app</summary>
+    <div class="tool-body"><ol>
+      <li>Settings, then Connectors.</li>
+      <li>Add custom connector.</li>
+      <li>Paste the address. Leave the advanced fields empty.</li>
+      <li>Click connect, then sign in with this same email and password.</li>
+    </ol></div>
+  </details>
+  <details class="tool" name="tool">
+    <summary>ChatGPT</summary>
+    <div class="tool-body"><ol>
+      <li>Settings, then Connectors, then Create.</li>
+      <li>Paste the address and choose OAuth when asked how it authenticates.</li>
+      <li>Connect, then sign in here when it redirects you.</li>
+    </ol></div>
+  </details>
+  <details class="tool" name="tool">
+    <summary>Claude Code</summary>
+    <div class="tool-body"><p>One command, then follow the browser prompt:</p>
+    ${copyable(`claude mcp add --transport http karwan ${mcpUrl}`)}</div>
+  </details>
+  <details class="tool" name="tool">
+    <summary>Codex, Cursor, or anything else</summary>
+    <div class="tool-body"><p>Anything that speaks MCP over HTTP works. Give it this, and it will handle
+    the sign-in itself:</p>
+    ${copyable(JSON.stringify({ mcpServers: { karwan: { type: 'http', url: mcpUrl } } }, null, 2))}</div>
+  </details>
 </div>
 
-<div class="step">
-  <h2>Claude Code</h2>
-  <p>One command, then follow the browser prompt:</p>
-  ${copyable(`claude mcp add --transport http karwan ${mcpUrl}`)}
+<h2>What your agent gets</h2>
+<div class="rows">
+  <div class="row"><span>Karwan's words</span><span>How we write, and the terms we use</span></div>
+  <div class="row"><span>Build status</span><span>What is built, what is running, what is next</span></div>
+  <div class="row"><span>Facts</span><span>What we may claim, and how each is checked</span></div>
+  <div class="row"><span>Brand and design</span><span>Colours, type, logo and the quality standard</span></div>
+  <div class="row"><span>Draft review</span><span>Checks your draft before it goes out</span></div>
 </div>
 
-<div class="step">
-  <h2>Codex, Cursor, or anything else</h2>
-  <p>Anything that speaks MCP over HTTP works. Give it this, and it will handle
-  the sign-in itself:</p>
-  ${copyable(JSON.stringify({ mcpServers: { karwan: { type: 'http', url: mcpUrl } } }, null, 2))}
-</div>
-
-<h2>What to ask it</h2>
-<p>Start with "read the Karwan brief" so it loads the canon before writing
-anything. Then ask for the post, the page or the thread you need. Before
-anything goes out, ask it to "review this draft against the Karwan voice" and
-it will name what to fix.</p>
+<h2>What to ask it first</h2>
+${copyable('Read the Karwan brief and the current build status, then help me with this.')}
+<p class="foot">Before anything goes out, ask it to review your draft against the Karwan voice.</p>
 
 <p class="foot">Access is tied to this account. If you lose your laptop, tell an
 admin and they will disable it, which cuts off every tool at once.</p>`,

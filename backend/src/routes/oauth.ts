@@ -234,8 +234,7 @@ function consentPage(grant: Grant, clientName: string) {
     .join('');
   return renderPage(
     'Approve access',
-    `<p class="eyebrow">Karwan</p>
-<h1>Allow ${escapeHtml(clientName)}?</h1>
+    `<h1>Allow ${escapeHtml(clientName)}?</h1>
 <p>It will read the canon as ${escapeHtml(grant.email)}.</p>
 <span class="l">Role</span>
 <p style="margin:0 0 16px;color:#F4F4F1"><strong>${escapeHtml(grant.role)}</strong></p>
