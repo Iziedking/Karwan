@@ -286,10 +286,6 @@ html[data-theme="dark"] .global-trade-sketch {
   }
 }
 
-html[data-theme="dark"] .product-surface {
-  --product-panel-shadow: 0 1px 0 rgba(255,255,255,0.025), 0 28px 80px -48px rgba(0,0,0,0.92);
-}
-
 .capability-intro {
   --story-ink: var(--lp-dark);
   --story-sub: var(--lp-text-sub);
@@ -1346,8 +1342,7 @@ html[data-theme="dark"] .product-surface {
 
 html[data-theme="dark"] [data-chrome="nav"] {
   /* Opaque: a translucent bar let the page's own lines show through it. */
-  background: rgb(10, 13, 11);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.025);
+  background: var(--canvas);
 }
 
 html[data-theme="dark"] .product-surface .bg-\[var\(--lp-card\)\] {
@@ -2306,10 +2301,10 @@ html.float-clear [data-float-launcher] {
 }
 .grid-drift { animation: gridDrift 24s linear infinite; }
 
-/* Fresh-row lime flash for live event feeds. */
+/* Fresh-row flash for live event feeds: a neutral tint, never green. */
 @keyframes rowFlash {
-  0%   { background: rgba(175, 201, 91,0.45); }
-  60%  { background: rgba(175, 201, 91,0.18); }
+  0%   { background: color-mix(in srgb, var(--ink) 12%, transparent); }
+  60%  { background: color-mix(in srgb, var(--ink) 5%, transparent); }
   100% { background: transparent; }
 }
 .row-flash { animation: rowFlash 1200ms ease-out both; }
@@ -2628,12 +2623,12 @@ html[data-theme="dark"] .form-input::placeholder {
 /* Diagonal sheen anchored to the inline-start top corner. Use on banners
    whose first signal (icon, eyebrow) sits at the start of the row, so the
    sheen reads as light spilling from where the eye lands first. Pass the
-   color stops via `--sheen-color` (default lime). */
+   color stops via `--sheen-color` (default a neutral tint). */
 .sheen-tl {
-  background-image: linear-gradient(120deg, var(--sheen-color, rgba(175,201,91,0.18)) 0%, transparent 60%);
+  background-image: linear-gradient(120deg, var(--sheen-color, var(--tint)) 0%, transparent 60%);
 }
 [dir="rtl"] .sheen-tl {
-  background-image: linear-gradient(60deg, var(--sheen-color, rgba(175,201,91,0.18)) 0%, transparent 60%);
+  background-image: linear-gradient(60deg, var(--sheen-color, var(--tint)) 0%, transparent 60%);
 }
 #landing-root .lp-panel {
   left: auto;

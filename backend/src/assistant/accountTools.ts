@@ -85,7 +85,7 @@ export function accountTools(address: string, actions: AssistantAction[], deps: 
         "Prepare a card to change account settings: language (en, ar, fr, hi, sw), theme, sounds, alerts on or off, the public passport, publishing settled deals, showing deal history on the passport, and how Karwan reaches them (telegram, email or both). Pass only what changes.",
       inputSchema: z.object({
         locale: z.enum(['en', 'ar', 'fr', 'hi', 'sw']).optional(),
-        theme: z.enum(['light', 'dark', 'system']).optional(),
+        theme: z.enum(['light', 'dark']).optional(),
         soundEnabled: z.boolean().optional(),
         alertsOn: z.boolean().optional().describe('false mutes alerts.'),
         publicPassport: z.boolean().optional(),

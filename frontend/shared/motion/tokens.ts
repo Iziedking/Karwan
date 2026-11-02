@@ -1,13 +1,15 @@
-const uiEase = [0.22, 1, 0.36, 1] as const;
+const uiEase = [0.2, 0, 0, 1] as const;
 
 export const ease = { out: uiEase, in: uiEase, inOut: uiEase } as const;
 export const dur = {
-  micro: 0.2,
-  fast: 0.2,
-  sheet: 0.4,
-  base: 0.4,
-  slow: 0.4,
-  hero: 0.4,
+  press: 0.12,
+  micro: 0.18,
+  fast: 0.18,
+  push: 0.35,
+  sheet: 0.35,
+  base: 0.35,
+  slow: 0.35,
+  hero: 0.35,
   reduced: 0,
 } as const;
 

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 import { getProductBackHref } from '../utils/routes';
 import { en } from '../i18n/messages/en';
@@ -146,20 +146,17 @@ test('the landing trade example keeps its explanatory copy readable', () => {
   assert.match(social, /\.disclaimer \{[^}]*font-size: 16px/);
 });
 
-test('the shared navbar cycles through three persisted appearance choices without a popover', () => {
+test('the theme is chosen only in Profile: no control in the top bar or the rail, two choices in Settings', () => {
   const nav = source('./TopNav.tsx');
-  const control = source('./ThemeControl.tsx');
-  assert.match(nav, /isAlwaysDarkRoute\(pathname\) \? null : <ThemeControl className=/);
-  assert.match(control, /system: 'light'/);
-  assert.match(control, /light: 'dark'/);
-  assert.match(control, /dark: 'system'/);
-  assert.match(control, /setThemePreference\(next\)/);
-  assert.doesNotMatch(control, /ThemePicker|aria-expanded|navbar-theme-options/);
+  assert.doesNotMatch(nav, /ThemeControl|RailTheme|useThemeCycle|ThemeIcon/);
+  assert.equal(existsSync(new URL('./ThemeControl.tsx', import.meta.url)), false);
   const settings = source('../../features/settings/components/SettingsBand.tsx');
-  assert.match(settings, /value: 'system'/);
-  assert.match(settings, /value: 'light'/);
   assert.match(settings, /value: 'dark'/);
+  assert.match(settings, /value: 'light'/);
+  assert.doesNotMatch(settings, /value: 'system'|themeSystem/);
+  assert.equal(en.settings.themeDark, 'Dark');
   assert.equal(en.settings.themeLight, 'Light');
+  assert.equal('themeSystem' in en.settings, false);
 });
 
 test('the wallet home renders translated copy, not hardcoded English', () => {
@@ -212,10 +209,10 @@ test('canonical theme text, selected controls and field edges meet contrast thre
       assert.ok(mix, `${theme}: unsupported colour ${name}=${value}`);
       return [...resolve(mix[1]).slice(0, 3), Number(mix[2]) / 100] as Colour;
     };
-    for (const surfaceName of ['--canvas', '--surface']) {
+    for (const surfaceName of ['--canvas', '--surface', '--raised']) {
       const background = resolve(surfaceName);
       const field = composite(resolve('--tint'), background);
-      for (const name of ['--ink', '--lp-text-sub', '--lp-workspace-faint', '--color-offer', '--color-request', '--color-positive', '--color-warning', '--color-critical']) {
+      for (const name of ['--ink', '--ink-secondary', '--ink-muted', '--lp-text-sub', '--lp-workspace-faint', '--color-offer', '--color-request', '--color-positive', '--color-warning', '--color-critical']) {
         assert.ok(contrast(hex(composite(resolve(name), background)), hex(background)) >= 4.5, `${theme} ${surfaceName} ${name}`);
       }
       assert.ok(contrast(hex(composite(resolve('--lp-field-border'), field)), hex(field)) >= 3, `${theme} field edge`);
@@ -503,19 +500,14 @@ test('money is one balance on Arc: a transfer balance line, no list of other net
   assert.equal(en.money.home.gatewayBalance, 'Transfer balance');
 });
 
-test('the rail foot reads the person, Theme, Sign out; no settings mark is a sun; theme sits in no circle', () => {
+test('the rail foot reads the person, then Sign out; no settings mark is a sun', () => {
   const nav = source('./TopNav.tsx');
   const rail = nav.slice(nav.indexOf('function WorkspaceRail('), nav.indexOf('function RailLink('));
   const foot = rail.slice(rail.indexOf('data-rail-footer'));
   const person = foot.indexOf('<RailProfile');
-  const themeRow = foot.indexOf('<RailTheme');
-  assert.ok(person > -1 && person < themeRow && themeRow < foot.indexOf('<RailAction'));
+  assert.ok(person > -1 && person < foot.indexOf('<RailAction'));
   // The old settings mark was a circle with eight rays: the theme sun.
   assert.doesNotMatch(nav, /M6 6l1\.6 1\.6/);
-  // With the rail on screen, theme lives there, so the top bar drops it.
-  assert.match(nav, /showFullChrome \? 'lg:hidden' : ''/);
-  const theme = source('./ThemeControl.tsx');
-  assert.doesNotMatch(theme, /rounded-full border/);
 });
 
 test('languages are one list, a check on the current one, never an orphan tile centred alone', () => {

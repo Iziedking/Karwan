@@ -209,7 +209,6 @@ export const fr: Messages = {
     theme: 'Thème',
     themeLight: 'Clair',
     themeDark: 'Sombre',
-    themeSystem: 'Lumière du jour',
     sound: 'Son',
     notifications: 'Notifications',
     notificationsNote: "E-mail et canaux connectés",

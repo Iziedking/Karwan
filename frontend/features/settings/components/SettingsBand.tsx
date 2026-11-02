@@ -5,17 +5,16 @@ import {
   startRegistration,
   browserSupportsWebAuthn,
 } from '@simplewebauthn/browser';
-import { api, ApiError, type UserSettings, type ThemePreference } from '@/core/api';
+import { api, ApiError, type UserSettings } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { purgeStoredNotifications } from '@/shared/utils/notificationStore';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { LOCALE_NAMES, type Locale } from '@/shared/i18n/locales';
-import { adoptPreferenceIfUnset, setThemePreference, useTheme } from '@/shared/hooks/useTheme';
+import { adoptPreferenceIfUnset, setThemePreference, useTheme, type Theme } from '@/shared/hooks/useTheme';
 import { LanguagePicker } from './LanguagePicker';
 import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
 import { PublishDealsRows } from './PublishDealsRows';
 import { AssistantMemoryRows } from './AssistantMemoryRows';
-import { ThemeIcon } from '@/shared/components/ThemeControl';
 import { Row, RowGroup, ToggleRow } from '@/features/profile/ui/ProfileUi';
 import { sfx } from '@/shared/utils/sfx';
 import { TRADE_ENTRY_COPY } from '@/features/home/tradeEntry';
@@ -139,7 +138,7 @@ export function SettingsBand() {
     setSheet(null);
   }
 
-  function chooseTheme(next: ThemePreference) {
+  function chooseTheme(next: Theme) {
     setThemePreference(next);
     save({ theme: next });
     setSheet(null);
@@ -153,17 +152,16 @@ export function SettingsBand() {
     setDeleteError(null);
   }
 
-  const themeOptions: { value: ThemePreference; label: string }[] = [
-    { value: 'system', label: t.settings.themeSystem },
-    { value: 'light', label: t.settings.themeLight },
+  const themeOptions: { value: Theme; label: string }[] = [
     { value: 'dark', label: t.settings.themeDark },
+    { value: 'light', label: t.settings.themeLight },
   ];
   // How we reach you: the same three answers as the setup question (view 19).
   const reach = t.setup.choices.reach;
   const reachNow = settings.notifyVia ?? 'both';
   const reachOptions = (Object.entries(reach.options) as Array<[NonNullable<UserSettings['notifyVia']>, { label: string; note: string }]>);
-  const themeNow = mounted ? preference : 'system';
-  const themeLabel = themeOptions.find((o) => o.value === themeNow)?.label ?? t.settings.themeSystem;
+  const themeNow: Theme = mounted ? preference : 'dark';
+  const themeLabel = themeNow === 'light' ? t.settings.themeLight : t.settings.themeDark;
 
   return (
     <div className="space-y-7">
@@ -229,7 +227,7 @@ export function SettingsBand() {
 
       <ConfirmSheetShell open={sheet === 'theme'} labelledBy={`${titleId}-theme`} busy={false} onClose={() => setSheet(null)}>
         <h2 id={`${titleId}-theme`} className="mb-4 text-[20px] font-semibold text-[var(--lp-dark)]">{t.settings.theme}</h2>
-        <div role="radiogroup" aria-labelledby={`${titleId}-theme`} className="divide-y divide-[var(--lp-border-light)] overflow-hidden rounded-[18px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
+        <div role="radiogroup" aria-labelledby={`${titleId}-theme`} className="divide-y divide-[var(--line)] overflow-hidden rounded-[var(--radius-card)] border border-[var(--line)] bg-[var(--surface)]">
           {themeOptions.map((o) => (
             <button
               key={o.value}
@@ -237,13 +235,15 @@ export function SettingsBand() {
               role="radio"
               aria-checked={themeNow === o.value}
               onClick={() => chooseTheme(o.value)}
-              className="flex min-h-[56px] w-full items-center gap-3 px-4 text-start text-[15px] font-semibold text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)]"
+              className="flex min-h-[52px] w-full items-center gap-3 px-5 text-start text-[15px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-press)] hover:bg-[var(--raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ink)]"
             >
-              <span aria-hidden className="grid size-5 place-items-center text-[var(--lp-text-sub)]"><ThemeIcon preference={o.value} /></span>
               <span className="flex-1">{o.label}</span>
-              {themeNow === o.value ? (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0 text-[var(--lp-accent-on-light)]"><path d="m5 12 5 5 9-10" /></svg>
-              ) : null}
+              <span
+                aria-hidden
+                className={`grid size-5 shrink-0 place-items-center rounded-full border-[1.5px] ${themeNow === o.value ? 'border-[var(--ink)]' : 'border-[var(--line-strong)]'}`}
+              >
+                {themeNow === o.value ? <span className="size-2.5 rounded-full bg-[var(--ink)]" /> : null}
+              </span>
             </button>
           ))}
         </div>

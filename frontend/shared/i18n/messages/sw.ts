@@ -206,7 +206,6 @@ export const sw: Messages = {
     theme: 'Mwonekano',
     themeLight: 'Angavu',
     themeDark: 'Mzito',
-    themeSystem: 'Mchana',
     sound: 'Sauti',
     notifications: 'Arifa',
     notificationsNote: "Barua pepe na njia zilizounganishwa",

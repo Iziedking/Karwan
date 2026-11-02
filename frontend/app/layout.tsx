@@ -136,12 +136,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang={DEFAULT_LOCALE}
       dir="ltr"
+      data-theme="dark"
       className={`${generalSans.variable} ${inter.variable} ${notoArabic.variable} ${notoDevanagari.variable}`}
       suppressHydrationWarning
     >
       <head>
-        {/* Pre-paint theme. The landing page is always dark; elsewhere the
-            stored preference applies and a new visitor starts dark. */}
+        {/* Pre-paint theme. The markup is dark; this switches to light only
+            when light was chosen in Profile, and never on the landing page. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_PREPAINT_SCRIPT }} />
         {/* Pre-hydration locale flip. Reads the karwan-locale cookie and
             applies <html lang/dir> before the React tree paints, so RTL

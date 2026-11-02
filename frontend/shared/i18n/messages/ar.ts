@@ -209,7 +209,6 @@ export const ar: Messages = {
     theme: 'المظهر',
     themeLight: 'فاتح',
     themeDark: 'داكن',
-    themeSystem: 'ضوء النهار',
     sound: 'الصوت',
     notifications: 'الإشعارات',
     notificationsNote: "البريد الإلكتروني والقنوات المتصلة",

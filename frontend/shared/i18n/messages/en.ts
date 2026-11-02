@@ -203,7 +203,6 @@ interface MessagesShape {
     theme: string;
     themeLight: string;
     themeDark: string;
-    themeSystem: string;
     sound: string;
     notifications: string;
     notificationsNote: string;
@@ -5473,7 +5472,6 @@ export const en: MessagesShape = {
     theme: 'Theme',
     themeLight: 'Light',
     themeDark: 'Dark',
-    themeSystem: 'Daylight',
     sound: 'Sound',
     notifications: 'Notifications',
     notificationsNote: "Email and connected channels",

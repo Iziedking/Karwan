@@ -19,10 +19,8 @@ import { useOpenDeals } from '@/features/notifications/hooks/useOpenDeals';
 import type { UserProfile } from '@/core/api';
 import { getProfileInitials } from './profileInitials';
 import { LanguagePicker } from './LanguagePicker';
-import { ThemeControl, ThemeIcon, useThemeCycle } from './ThemeControl';
 import { Tooltip } from './Tooltip';
 import { useSignOutRequest } from '@/features/profile/useSignOutRequest';
-import { isAlwaysDarkRoute } from '@/shared/hooks/useTheme';
 import { PublicMenu } from './PublicMenu';
 import { Brand } from './Brand';
 import { Icon } from './Icon';
@@ -165,9 +163,6 @@ export function TopNav() {
               {pathname === START_ROUTE ? null : <LaunchAppCTA />}
             </>
           )}
-          {/* With the assistant switch in the bar a phone has no room for theme too;
-              it stays in Settings. */}
-          {isAlwaysDarkRoute(pathname) ? null : <ThemeControl className={isAssistantRoute(pathname) ? 'max-lg:hidden' : showFullChrome ? 'lg:hidden' : ''} />}
           {publicSurface ? <PublicMenu /> : null}
         </div>
       </div>
@@ -329,7 +324,6 @@ function WorkspaceRail({
             name={identityName}
             address={identityAddress ?? undefined}
           />
-          <RailTheme collapsed={collapsed} />
           <RailAction onClick={() => void signOut.request()} busy={signOut.busy} icon="signOut" collapsed={collapsed}>
             {signOut.busy ? messages.profileSignOut.pending : messages.common.signOut}
           </RailAction>
@@ -390,31 +384,6 @@ function RailLink({
   );
   // Collapsed, the icon stands alone, so it names itself on hover.
   return collapsed ? <Tooltip label={children as string} side="end" className="w-full">{link}</Tooltip> : link;
-}
-
-/// Theme in the rail: the same cycle as the top bar's button, named, with
-/// the icon showing the current choice. The name of the choice is read out,
-/// not printed, so the row stays one plain word.
-function RailTheme({ collapsed }: { collapsed: boolean }) {
-  const theme = useThemeCycle();
-  const button = (
-    <button
-      type="button"
-      onClick={theme.cycle}
-      aria-label={theme.label}
-      data-theme-preference={theme.current}
-      className={cn(
-        'flex min-h-12 w-full items-center rounded-full text-[15px] font-medium text-[var(--color-ink-dim)] transition-colors duration-200 hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]',
-        collapsed ? 'justify-center px-0' : 'gap-3 px-4',
-      )}
-    >
-      <span aria-hidden className="grid size-[22px] shrink-0 place-items-center">
-        <ThemeIcon preference={theme.current} />
-      </span>
-      <span className={cn('min-w-0 flex-1 truncate text-start', collapsed && 'sr-only')}>{theme.title}</span>
-    </button>
-  );
-  return collapsed ? <Tooltip label={theme.label} side="end" className="w-full">{button}</Tooltip> : button;
 }
 
 /// The person at the foot of the rail: their photo, name and the way into

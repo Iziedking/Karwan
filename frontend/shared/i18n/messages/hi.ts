@@ -207,7 +207,6 @@ export const hi: Messages = {
     theme: 'थीम',
     themeLight: 'हल्का',
     themeDark: 'गहरी',
-    themeSystem: 'दिन का प्रकाश',
     sound: 'ध्वनि',
     notifications: 'नोटिफिकेशन',
     notificationsNote: "ईमेल और जुड़े चैनल",

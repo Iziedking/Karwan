@@ -126,7 +126,7 @@ for (const route of ['/start', '/market', '/account']) {
             }
           }
           for (const [name, value] of Object.entries(metrics.tokens)) expect(value, name).not.toBe('');
-          expect(metrics.tokens['--canvas'].toUpperCase()).toBe(theme === 'light' ? '#F3F4EF' : '#0E1216');
+          expect(metrics.tokens['--canvas'].toUpperCase()).toBe(theme === 'light' ? '#EEEFEA' : '#0F1012');
           // The production CSS optimizer can normalize 0ms to 0s.
           expect(parseFloat(metrics.tokens['--dur-small'])).toBe(0);
           expect(parseFloat(metrics.tokens['--dur-panel'])).toBe(0);
@@ -139,3 +139,33 @@ for (const route of ['/start', '/market', '/account']) {
     }
   }
 }
+
+test('the theme is dark until changed in Settings, which offers Dark and Light and repaints at once', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('karwan:guide:disabled', '1'));
+  await serveSearch(page, { balances: funded });
+  const saved: unknown[] = [];
+  await page.route(`${API}/api/settings**`, async request => {
+    if (request.request().method() === 'GET') return request.fulfill({ json: { settings: {} } });
+    const patch = request.request().postDataJSON().settings;
+    saved.push(patch);
+    return request.fulfill({ json: { settings: patch } });
+  });
+
+  await page.goto('/account');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('1,240.50');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expect(page.getByRole('button', { name: /theme/i })).toHaveCount(0);
+
+  await page.goto('/settings');
+  await page.getByRole('button', { name: /^Theme/ }).click();
+  const radios = page.getByRole('radio');
+  await expect(radios).toHaveCount(2);
+  await expect(radios.nth(0)).toHaveAccessibleName('Dark');
+  await expect(radios.nth(1)).toHaveAccessibleName('Light');
+  await expect(radios.nth(0)).toHaveAttribute('aria-checked', 'true');
+
+  await radios.nth(1).click();
+  await expect.poll(() => page.locator('html').getAttribute('data-theme')).toBeNull();
+  expect(await page.evaluate(() => localStorage.getItem('karwan-theme'))).toBe('light');
+  expect(saved).toContainEqual(expect.objectContaining({ theme: 'light' }));
+});

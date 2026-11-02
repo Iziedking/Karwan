@@ -6,7 +6,7 @@ import { confirmNonce, type ConfirmActionBase } from './actions.js';
 
 export type SettingsPatch = {
   locale?: 'en' | 'ar' | 'fr' | 'hi' | 'sw';
-  theme?: 'light' | 'dark' | 'system';
+  theme?: 'light' | 'dark';
   soundEnabled?: boolean;
   notificationsMuted?: boolean;
   publicPassport?: boolean;
@@ -125,7 +125,7 @@ const onOff = (v: boolean) => (v ? 'On' : 'Off');
 function settingFields(s: SettingsPatch): Array<{ label: string; value: string }> {
   const rows: Array<{ label: string; value: string }> = [];
   if (s.locale) rows.push({ label: 'Language', value: LANGUAGE[s.locale] });
-  if (s.theme) rows.push({ label: 'Theme', value: s.theme === 'system' ? 'Match my device' : s.theme === 'dark' ? 'Dark' : 'Light' });
+  if (s.theme) rows.push({ label: 'Theme', value: s.theme === 'light' ? 'Light' : 'Dark' });
   if (s.soundEnabled !== undefined) rows.push({ label: 'Sounds', value: onOff(s.soundEnabled) });
   if (s.notificationsMuted !== undefined) rows.push({ label: 'Alerts', value: onOff(!s.notificationsMuted) });
   if (s.publicPassport !== undefined) rows.push({ label: 'Public passport', value: onOff(s.publicPassport) });

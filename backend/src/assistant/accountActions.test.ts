@@ -37,6 +37,13 @@ test('settings change only what is named, and how we reach you needs the channel
   assert.match(err(buildChangeSettingsConfirm({ address: ME, settings: { notifyVia: 'email' }, hasTelegram: true, hasEmail: false })), /no verified email/);
 });
 
+test('the theme card offers Dark or Light, the same two choices as Profile', () => {
+  const dark = ok(buildChangeSettingsConfirm({ address: ME, settings: { theme: 'dark' }, hasTelegram: false, hasEmail: false }));
+  assert.deepEqual(dark.fields, [{ label: 'Theme', value: 'Dark' }]);
+  const light = ok(buildChangeSettingsConfirm({ address: ME, settings: { theme: 'light' }, hasTelegram: false, hasEmail: false }));
+  assert.deepEqual(light.fields, [{ label: 'Theme', value: 'Light' }]);
+});
+
 test('a profile edit resends the whole profile with only the change applied', () => {
   const profile = {
     address: ME, role: 'both', displayName: 'Ada', accountKind: 'person' as const,

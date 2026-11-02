@@ -3,38 +3,19 @@ import { useEffect, useState } from 'react';
 
 export type Theme = 'light' | 'dark';
 
-/// What the user asked for, which is not the same as what gets painted.
-/// 'system' is retained as the stored compatibility value for the visible
-/// Daylight option. It resolves from local time rather than being frozen into
-/// a stored 'light' or 'dark' value.
-export type ThemePreference = Theme | 'system';
-
 /// Must stay in lockstep with THEME_PREPAINT_SCRIPT (themePrepaintScript.ts),
 /// which runs the same read before first paint. If the two ever disagree the page
 /// paints one theme and then swaps, which is the flash that script exists to
 /// prevent.
 const STORAGE_KEY = 'karwan-theme';
 
-/// Fires when any mounted control changes the theme, so a second switcher on the
-/// page updates its own label instead of showing the theme the user just left.
+/// Fires when the theme changes, so every mounted reader updates together.
 const CHANGE_EVENT = 'karwan-theme-change';
 
-/// Nightfall and first light, in local hours. Not astronomical dusk: a fixed
-/// pair of hours needs no location permission, no geocoding, and no network,
-/// and it lands within an hour of real sunset across the trade lanes Karwan
-/// runs on. The device's own clock supplies the timezone.
-const NIGHT_FROM_HOUR = 19;
-const DAY_FROM_HOUR = 7;
-
-function isNightLocally(now = new Date()): boolean {
-  const hour = now.getHours();
-  return hour >= NIGHT_FROM_HOUR || hour < DAY_FROM_HOUR;
-}
-
-/// Daylight uses local device time. Date's local getters follow the timezone
-/// configured on the device, including its daylight-saving transitions.
-export function resolveDaylightTheme(now = new Date()): Theme {
-  return isNightLocally(now) ? 'dark' : 'light';
+/// Dark unless light was chosen. A theme saved as 'system' (the old Daylight
+/// option) and anything unrecognised read as dark.
+export function themeFromStored(stored: string | null | undefined): Theme {
+  return stored === 'light' ? 'light' : 'dark';
 }
 
 /// The landing page is always dark. It has no theme control and ignores a
@@ -44,51 +25,23 @@ export function isAlwaysDarkRoute(pathname: string | null | undefined): boolean 
   return pathname === '/';
 }
 
-/// What a route paints for a stored preference. Every paint goes through here.
-export function themeForRoute(
-  pathname: string | null | undefined,
-  pref: ThemePreference,
-  now = new Date(),
-): Theme {
-  if (isAlwaysDarkRoute(pathname)) return 'dark';
-  return pref === 'system' ? resolveDaylightTheme(now) : pref;
+/// What a route paints for a saved theme. Every paint goes through here.
+export function themeForRoute(pathname: string | null | undefined, saved: Theme): Theme {
+  return isAlwaysDarkRoute(pathname) ? 'dark' : saved;
 }
 
 function currentPathname(): string | null {
   return typeof window === 'undefined' ? null : window.location.pathname;
 }
 
-/// Milliseconds until the automatic theme could next change, i.e. the next
-/// crossing of either boundary hour. Used to schedule one timer instead of
-/// polling the clock.
-export function msUntilNextDaylightChange(now = new Date()): number {
-  const next = new Date(now);
-  next.setMinutes(0, 0, 0);
-  do {
-    next.setHours(next.getHours() + 1);
-  } while (next.getHours() !== NIGHT_FROM_HOUR && next.getHours() !== DAY_FROM_HOUR);
-  return Math.max(60_000, next.getTime() - now.getTime());
-}
-
-/// The stored preference, or dark when there is none. Anything unrecognised
-/// also falls back to dark so the first visit is stable and intentional.
-export function readPreference(): ThemePreference {
+export function readPreference(): Theme {
   if (typeof window === 'undefined') return 'dark';
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === 'light' || stored === 'dark' || stored === 'system') return stored;
+    return themeFromStored(localStorage.getItem(STORAGE_KEY));
   } catch {
     // Private browsing and blocked storage both throw here.
+    return 'dark';
   }
-  return 'dark';
-}
-
-export function resolveTheme(pref: ThemePreference): Theme {
-  return pref === 'system' ? resolveDaylightTheme() : pref;
-}
-
-export function readTheme(): Theme {
-  return resolveTheme(readPreference());
 }
 
 /// How long the crossfade between themes runs. Must match the duration in the
@@ -105,10 +58,6 @@ export function applyTheme(theme: Theme): void {
   // hook's mount call agrees with it and no crossfade fires.
   if (current === theme) return;
 
-  // Now that the theme changes on its own at the daylight boundaries, the
-  // change has to be legible as a change. A whole page swapping ink and paper
-  // between one frame and the next reads as a glitch; the same swap over
-  // 380ms reads as the room's light changing, which is what it is.
   root.classList.add('theme-shifting');
   window.clearTimeout(shiftTimer);
   shiftTimer = window.setTimeout(() => root.classList.remove('theme-shifting'), SHIFT_MS + 40);
@@ -117,58 +66,52 @@ export function applyTheme(theme: Theme): void {
   else root.removeAttribute('data-theme');
 }
 
-/// The single write path. Every theme control goes through this so the three
-/// things that have to agree — the document attribute, localStorage, and any
-/// other mounted switcher — are updated together rather than by whoever
-/// remembers to.
-export function setThemePreference(pref: ThemePreference): Theme {
-  const resolved = themeForRoute(currentPathname(), pref);
-  applyTheme(resolved);
+/// The single write path: the document attribute, localStorage and every
+/// mounted reader are updated together.
+export function setThemePreference(theme: Theme): Theme {
+  const painted = themeForRoute(currentPathname(), theme);
+  applyTheme(painted);
   try {
-    localStorage.setItem(STORAGE_KEY, pref);
+    localStorage.setItem(STORAGE_KEY, theme);
   } catch {
     // The theme still applies for this session; only persistence is lost.
   }
   if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent<Theme>(CHANGE_EVENT, { detail: resolved }));
+    window.dispatchEvent(new CustomEvent<Theme>(CHANGE_EVENT, { detail: painted }));
   }
-  return resolved;
+  return painted;
 }
 
-/// Adopt an account-level preference on a device that has never expressed one.
-///
-/// Deliberately does NOT overwrite an existing local choice. A device that has
-/// been switched off automatic locally keeps that choice; the account setting
-/// only seeds machines that have never been told anything.
-export function adoptPreferenceIfUnset(pref: ThemePreference): void {
+/// Adopt the account's saved theme on a device that has never been given one.
+/// Never overwrites a choice already made on this device.
+export function adoptPreferenceIfUnset(saved: string): void {
   if (typeof window === 'undefined') return;
   try {
     if (localStorage.getItem(STORAGE_KEY)) return;
   } catch {
     return;
   }
-  setThemePreference(pref);
+  setThemePreference(themeFromStored(saved));
 }
 
-/// Read-only view of the painted theme, kept live: it follows the daylight
-/// boundary and any other control that writes a preference.
+/// Read-only view of the saved and painted theme, kept live across readers.
 /// Writes go through `setThemePreference`, not through here.
 ///
 /// `mounted` is false through the server render and the first client render.
 /// Callers use it to hold a same-size placeholder: the stored theme is not
-/// readable during SSR, so rendering the real control immediately would ship
+/// readable during SSR, so rendering the real value immediately would ship
 /// markup for the wrong theme and hydrate into a mismatch.
 export function useTheme() {
   const [theme, setThemeState] = useState<Theme>('dark');
-  const [preference, setPreferenceState] = useState<ThemePreference>('dark');
+  const [preference, setPreferenceState] = useState<Theme>('dark');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const currentPreference = readPreference();
-    const currentTheme = themeForRoute(currentPathname(), currentPreference);
-    setPreferenceState(currentPreference);
-    setThemeState(currentTheme);
-    applyTheme(currentTheme);
+    const saved = readPreference();
+    const painted = themeForRoute(currentPathname(), saved);
+    setPreferenceState(saved);
+    setThemeState(painted);
+    applyTheme(painted);
     setMounted(true);
 
     const onChange = (e: Event) => {
@@ -177,40 +120,7 @@ export function useTheme() {
       setPreferenceState(readPreference());
     };
     window.addEventListener(CHANGE_EVENT, onChange);
-
-    // While the stored preference is 'system' (shown as Daylight), follow the
-    // local clock live. Without this, a tab left open at sunset would remain on
-    // the daytime surface until the next reload.
-    const onDaylight = () => {
-      if (readPreference() !== 'system') return;
-      const next = themeForRoute(currentPathname(), 'system');
-      applyTheme(next);
-      setThemeState(next);
-    };
-
-    // The other half of Daylight: the clock. Without this, a session left
-    // open through sunset kept the daytime theme until the next reload. One
-    // timer per boundary crossing, rescheduled from the theme it just applied,
-    // so an all-night tab costs two wakeups.
-    let timer = 0;
-    const scheduleDaylight = () => {
-      timer = window.setTimeout(() => {
-        onDaylight();
-        scheduleDaylight();
-      }, msUntilNextDaylightChange());
-    };
-    scheduleDaylight();
-
-    // A machine that slept through the boundary comes back on the wrong theme,
-    // and no timer fires for the hours it was asleep.
-    const onWake = () => onDaylight();
-    document.addEventListener('visibilitychange', onWake);
-
-    return () => {
-      window.removeEventListener(CHANGE_EVENT, onChange);
-      document.removeEventListener('visibilitychange', onWake);
-      window.clearTimeout(timer);
-    };
+    return () => window.removeEventListener(CHANGE_EVENT, onChange);
   }, []);
 
   return { theme, preference, mounted };
