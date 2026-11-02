@@ -14,3 +14,10 @@ test('a new account stays on /start for About you', () => {
 test('the recovery step comes first when it is on', () => {
   assert.equal(afterCreate({ recoveryStep: true }), 'recovery');
 });
+
+ test('account completion resumes a selected task after the required steps', async () => {
+  const { afterAccountCreated } = await import('./afterCreate');
+  const task = '/buyer?mode=direct&seller=%40ada&amount=120#new-deal';
+  assert.equal(afterAccountCreated(task), task);
+  for (const bad of [null,'https://evil.test','//evil.test','/start#about']) assert.equal(afterAccountCreated(bad),'/start?step=about');
+ });

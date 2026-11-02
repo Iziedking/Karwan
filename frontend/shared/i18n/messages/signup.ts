@@ -1,5 +1,5 @@
 export interface SignupCopy {
-  welcome: { tagline: string; backdropLabel: string };
+  welcome: { tagline: string; testnetTagline: string; backdropLabel: string };
   backdrop: {
     states: { agreed: string; locked: string; delivered: string; paid: string };
     deals: [string, string, string, string, string, string];
@@ -135,6 +135,7 @@ export interface SignupCopy {
 
 const en: SignupCopy = {
   welcome: {
+    testnetTagline: "Sign in to continue. Trading here uses test USDC.",
     tagline: "Find opportunities and build a record of completed trades. Mainnet access is by invitation.",
     backdropLabel: "Illustrative deal examples, not live activity",
   },
@@ -283,6 +284,7 @@ const en: SignupCopy = {
 
 const ar: SignupCopy = {
   welcome: {
+    testnetTagline: "سجّل الدخول للمتابعة. تستخدم الصفقات هنا USDC تجريبية.",
     tagline: "ابحث عن فرص وابنِ سجلاً من الصفقات المكتملة. الدخول إلى الشبكة الرئيسية بالدعوة.",
     backdropLabel: "أمثلة توضيحية لصفقات وليست نشاطاً فعلياً",
   },
@@ -431,6 +433,7 @@ const ar: SignupCopy = {
 
 const fr: SignupCopy = {
   welcome: {
+    testnetTagline: "Connectez-vous pour continuer. Les échanges utilisent ici des USDC de test.",
     tagline: "Trouvez des opportunités et construisez un historique d’échanges réalisés. L’accès au mainnet se fait sur invitation.",
     backdropLabel: "Exemples d’accords illustratifs, pas une activité réelle",
   },
@@ -579,6 +582,7 @@ const fr: SignupCopy = {
 
 const hi: SignupCopy = {
   welcome: {
+    testnetTagline: "आगे बढ़ने के लिए साइन इन करें। यहाँ सौदों में टेस्ट USDC का उपयोग होता है।",
     tagline: "अवसर खोजें और पूरे किए गए सौदों का रिकॉर्ड बनाएँ। मेननेट पर प्रवेश निमंत्रण से है।",
     backdropLabel: "समझाने के लिए सौदों के उदाहरण, वास्तविक गतिविधि नहीं",
   },
@@ -727,6 +731,7 @@ const hi: SignupCopy = {
 
 const sw: SignupCopy = {
   welcome: {
+    testnetTagline: "Ingia ili kuendelea. Biashara hapa hutumia USDC za majaribio.",
     tagline: "Pata fursa na jenga rekodi ya miamala iliyokamilika. Ufikiaji wa mainnet ni kwa mwaliko.",
     backdropLabel: "Mifano ya makubaliano kwa maelezo, si miamala halisi",
   },

@@ -8,7 +8,7 @@ import { arcChain } from '@/core/wagmi';
 import { formatUsdc } from '@/shared/utils/format';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { START_ROUTE } from '@/shared/utils/routes';
+import { signInHref } from '@/shared/auth/signInHref';
 import { CircleAccountModal } from './CircleAccountModal';
 import { ChainLogo, type ChainKey } from './ChainLogo';
 
@@ -241,7 +241,7 @@ export function ConnectWalletButton({
                   }
                   return (
                     <button
-                      onClick={() => router.push(START_ROUTE)}
+                      onClick={() => router.push(signInHref(window.location.pathname + window.location.search + window.location.hash))}
                       type="button"
                       suppressHydrationWarning
                       className={SIGN_IN_STYLE[variant]}
@@ -279,7 +279,7 @@ export function ConnectWalletButton({
                 if (!auth.isAuthenticated) {
                   return (
                     <button
-                      onClick={() => router.push(START_ROUTE)}
+                      onClick={() => router.push(signInHref(window.location.pathname + window.location.search + window.location.hash))}
                       type="button"
                       suppressHydrationWarning
                       className={SIGN_IN_STYLE[variant]}

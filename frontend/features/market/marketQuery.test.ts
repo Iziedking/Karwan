@@ -40,3 +40,10 @@ test('links to each view are plain addresses', () => {
 test('not-found states send people to their own trades', () => {
   assert.equal(YOUR_TRADES_HREF, '/market?view=yours');
 });
+
+ test('a service-only search survives a share or sign-in return', () => {
+  const query={side:'buy' as const,category:'all' as const,q:'logo',scope:'services' as const};
+  const href=marketHref(query);
+  assert.equal(href,'/market?scope=services&q=logo');
+  assert.deepEqual(parseMarketQuery(new URLSearchParams(href.split('?')[1])),{...query,view:'find',list:'all'});
+ });

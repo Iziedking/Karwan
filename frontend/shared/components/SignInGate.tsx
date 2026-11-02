@@ -2,7 +2,7 @@
 import { useEffect, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { START_ROUTE } from '@/shared/utils/routes';
+import { signInHref } from '@/shared/auth/signInHref';
 
 /// A signed-out visit to a private page goes straight to sign in, so the app
 /// has one sign-in screen. A shared link that needs its own words first (a
@@ -23,7 +23,7 @@ export function SignInGate({
   const redirect = !title;
 
   useEffect(() => {
-    if (redirect) router.replace(START_ROUTE);
+    if (redirect) router.replace(signInHref(window.location.pathname + window.location.search + window.location.hash));
   }, [redirect, router]);
 
   if (redirect) return <div data-auth-gate="redirect" className="min-h-[60vh]" aria-hidden />;
@@ -35,7 +35,7 @@ export function SignInGate({
         {body ? <p className="mt-2 text-[15px] leading-relaxed text-[var(--lp-text-sub)]">{body}</p> : null}
         <button
           type="button"
-          onClick={() => router.push(START_ROUTE)}
+          onClick={() => router.push(signInHref(window.location.pathname + window.location.search + window.location.hash))}
           className="mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[var(--action)] px-6 text-[15px] font-semibold text-[var(--on-action)] hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-offset-2"
         >
           {buttonLabel ?? copy.button}

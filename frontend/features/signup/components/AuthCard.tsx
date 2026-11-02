@@ -8,9 +8,9 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { startAuthentication, browserSupportsWebAuthn } from '@simplewebauthn/browser';
 import { useAccount, useConnect, useSignMessage } from 'wagmi';
 import { api, ApiError } from '@/core/api';
-import { DEALS_AVAILABLE, ARC_NETWORK } from '@/core/arcNetwork';
+import { DEALS_AVAILABLE } from '@/core/arcNetwork';
 import { BUSINESS_ACCOUNTS_OPEN } from '@/features/account/businessOpen';
-import { ABOUT_YOU, afterCreate } from '@/features/signup/afterCreate';
+import { afterAccountCreated, afterCreate } from '@/features/signup/afterCreate';
 import { Nudge, StartBar } from '@/features/setup/StartParts';
 import { MODULAR_WALLETS_ENABLED } from '@/features/modularWallet/config';
 import { PASSKEY_CONNECTOR_ID } from '@/features/modularWallet/connector';
@@ -21,7 +21,7 @@ import { termsAcceptanceMessage } from '@/shared/hooks/useTerms';
 import { Icon } from '@/shared/components/Icon';
 import { EmailSuggestion } from '@/shared/components/EmailSuggestion';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { MAINNET_ORIGIN, WALLET_HOME } from '@/shared/utils/routes';
+import { WALLET_HOME } from '@/shared/utils/routes';
 import { localTagIssue, normalizeTag, type TagIssue } from '../tag';
 import { RECOVERY_ON } from '@/features/recovery/flag';
 import { RecoverFlow } from '@/features/recovery/components/RecoverFlow';
@@ -116,10 +116,10 @@ export function AuthCard({
     router.replace(next ?? HOME);
   }, [queryClient, router, next]);
 
-  // A new account goes on to About you (view 39); its agents are already being set up.
+  // Required account steps finish first; optional setup yields to a selected task.
   const goSetup = useCallback(() => {
     void queryClient.invalidateQueries();
-    router.replace(next ? `${ABOUT_YOU}&next=${encodeURIComponent(next)}` : ABOUT_YOU);
+    router.replace(afterAccountCreated(next));
   }, [queryClient, router, next]);
 
   // Once a session exists, the server decides what happens next: an account
@@ -435,7 +435,7 @@ export function AuthCard({
               {inStep === 'code' ? t.signIn.codeTitle : inStep === 'passkey' ? t.signIn.passkeyTitle : t.signIn.title}
             </h1>
             {inStep === 'email' && (
-              <p className="mt-1.5 text-[14px] leading-[1.45] font-medium text-[var(--ink-secondary)]">{t.welcome.tagline}</p>
+              <p className="mt-1.5 text-[14px] leading-[1.45] font-medium text-[var(--ink-secondary)]">{DEALS_AVAILABLE ? t.welcome.testnetTagline : t.welcome.tagline}</p>
             )}
           </div>
 
@@ -511,18 +511,10 @@ export function AuthCard({
                 </button>
               </p>
             )}
-            {ARC_NETWORK !== 'mainnet' ? (
-              <p>
-                <a href={`${MAINNET_ORIGIN}/waitlist`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-1.5 rounded-full font-medium text-[var(--ink-secondary)] underline underline-offset-4 hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">
-                  {t.signIn.mainnetWaitlist}
-                  <Icon name="arrow-up-right" size={16} />
-                </a>
-              </p>
-            ) : null}
             {DEALS_AVAILABLE && (
               <p>
                 {t.signIn.browsePrompt}{' '}
-                <Link href="/market" className="inline-flex min-h-11 items-center rounded-full font-medium text-[var(--ink)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">{t.signIn.browse}</Link>
+                <Link href={next === '/market' || next?.startsWith('/market?') ? next : '/market'} className="inline-flex min-h-11 items-center rounded-full font-medium text-[var(--ink)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">{t.signIn.browse}</Link>
               </p>
             )}
           </div>

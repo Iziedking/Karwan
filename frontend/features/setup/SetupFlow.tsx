@@ -12,6 +12,7 @@ import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ease } from '@/shared/motion/tokens';
 import { PRIMARY } from '@/shared/ui/controls';
+import { safeNext } from '@/shared/auth/safeNext';
 import { ChoiceCard, SummaryLines } from './SetupParts';
 import { Nudge, StartBar } from './StartParts';
 import { answersFromProfile, initialSetup, setupReducer } from './setupMachine';
@@ -45,7 +46,8 @@ function SetupConversation({ embedded, next }: { embedded: boolean; next: string
   const [state, dispatch] = useReducer(setupReducer, undefined, initialSetup);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [postNow, setPostNow] = useState(true);
+  const destination = safeNext(next);
+  const [postNow, setPostNow] = useState(!destination);
   const [readBack, setReadBack] = useState<{ lines: string[]; noPrice: boolean } | 'reading' | null>(null);
   const { answers, step } = state;
   const steps = setupSteps(answers.goals);
@@ -101,8 +103,8 @@ function SetupConversation({ embedded, next }: { embedded: boolean; next: string
     try {
       const saved = await api.setupSave(answers);
       refresh();
-      if (postNow && saved.firstPost) openHelp(saved.firstPost.handOff, { send: true });
-      router.push(next ?? '/app');
+      if (!destination && postNow && saved.firstPost) openHelp(saved.firstPost.handOff, { send: true });
+      router.push(destination ?? '/app');
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) dispatch({ type: 'read', lines: state.lines, needs: ['price'] });
       else setError(t.saveError);
@@ -132,7 +134,7 @@ function SetupConversation({ embedded, next }: { embedded: boolean; next: string
         ) : null}
         {embedded ? <StartBar part={step === 'summary' ? 3 : 2} fill={aboutProgress(steps, step)} /> : <span className="flex-1 text-[14px] font-medium text-[var(--lp-text-sub)]">{t.progressLabel}</span>}
         {step !== 'summary' ? (
-          <Link href="/app" className="inline-flex min-h-11 shrink-0 items-center px-1 text-[14px] font-medium text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)]">{t.later}</Link>
+          <Link href={destination ?? '/app'} className="inline-flex min-h-11 shrink-0 items-center px-1 text-[14px] font-medium text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)]">{t.later}</Link>
         ) : null}
       </div>
 
@@ -285,7 +287,7 @@ function SetupConversation({ embedded, next }: { embedded: boolean; next: string
                   <section aria-labelledby="setup-first-post" className="mt-6 rounded-[22px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5">
                     <h2 id="setup-first-post" className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{firstPostKind === 'request' ? f.summary.firstRequest : f.summary.firstOffer}</h2>
                     <SummaryLines lines={state.lines} reduce={reduce} />
-                    {firstPostKind ? (
+                    {firstPostKind && !destination ? (
                       <label className="mt-4 flex min-h-11 cursor-pointer items-center gap-3 text-[15px] font-semibold">
                         <input type="checkbox" checked={postNow} onChange={(e) => setPostNow(e.target.checked)} className="size-5 shrink-0 accent-[var(--lp-accent)]" />
                         {f.summary.postNow}

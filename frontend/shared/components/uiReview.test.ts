@@ -320,7 +320,7 @@ test('dark sign-in card uses slate surfaces and reserves brand green for an avai
 test('signed out, a private page goes straight to the one sign-in screen, never an older gate', () => {
   const gate = source('./SignInGate.tsx');
   // In place, not a reload: a full reload would start a second cold splash.
-  assert.match(gate, /router\.replace\(START_ROUTE\)/);
+  assert.match(gate, /router\.replace\(signInHref\(/);
   assert.doesNotMatch(gate, /window\.location\.assign|LoginModal|Bands|module\.css/);
   assert.doesNotMatch(source('./AuthGuard.tsx'), /Band|GridOverlay/);
 });

@@ -39,7 +39,7 @@ export function parseMarketQuery(params: URLSearchParams): {
 /// The address of one Find view, leaving defaults out.
 export function marketHref({ side, category, q, scope = 'all' }: { side: MarketSide; category: CategoryId | 'all'; q: string; scope?: DiscoveryScope }): string {
   const params = new URLSearchParams();
-  if (scope === 'business') params.set('scope', 'business');
+  if (scope !== 'all') params.set('scope', scope);
   if (side === 'sell') params.set('side', 'sell');
   if (category !== 'all') params.set('category', category);
   if (q.trim()) params.set('q', q.trim());

@@ -76,7 +76,7 @@ function Shop({ scope, initialSide, initialCategory, initialQ }: { scope: Discov
   // The address follows the page without reloading it, so a shared link opens here.
   useEffect(() => {
     const href = marketHref({ side, category, q, scope });
-    if (`${window.location.pathname}${window.location.search}` !== href) window.history.replaceState(window.history.state, '', href);
+    if (`${window.location.pathname}${window.location.search}` !== href) window.history.replaceState(null, '', href);
   }, [side, category, q, scope]);
 
   return (

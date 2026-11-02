@@ -9,6 +9,7 @@ import { NotificationBell } from '@/features/notifications/components/Notificati
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useEntryHref } from '@/shared/auth/useEntryHref';
+import { TaskEntryLink } from './TaskEntryLink';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import { getShellSurface, isAssistantRoute, START_ROUTE, WALLET_HOME } from '@/shared/utils/routes';
@@ -712,12 +713,12 @@ function LaunchAppCTA() {
   const messages = useTranslations();
   const href = useEntryHref();
   return (
-    <Link
+    <TaskEntryLink
       href={href}
       className="hidden min-h-12 items-center gap-2 rounded-full bg-[var(--tint)] px-5 text-[14px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] hover:bg-[color-mix(in_srgb,var(--tint)_92%,var(--ink))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)] md:inline-flex"
     >
       {href === START_ROUTE ? messages.common.signIn : messages.nav.openApp}
       <Icon name="arrow-right" size={16} directional />
-    </Link>
+    </TaskEntryLink>
   );
 }

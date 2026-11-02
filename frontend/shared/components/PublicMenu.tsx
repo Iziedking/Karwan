@@ -6,6 +6,7 @@ import { DEALS_AVAILABLE } from '@/core/arcNetwork';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { START_ROUTE, WALLET_HOME } from '@/shared/utils/routes';
 import { useEntryHref } from '@/shared/auth/useEntryHref';
+import { TaskEntryLink } from './TaskEntryLink';
 import { Icon } from './Icon';
 
 /// Below the width where the public links fit in the bar, they move into a
@@ -72,13 +73,13 @@ export function PublicMenu() {
           <Link className={linkClass} href="/how-it-works">{t.footer.productLinks.howItWorks}</Link>
           {DEALS_AVAILABLE ? <Link className={linkClass} href="/market">{t.nav.market}</Link> : null}
           <Link className={linkClass} href="/docs">{t.footer.productLinks.docs}</Link>
-          <Link
+          <TaskEntryLink
             href={openHref}
             className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--tint)] text-[15px] font-medium text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)] md:hidden"
           >
             {openHref === START_ROUTE ? t.common.signIn : t.nav.openApp}
             <Icon name="arrow-right" size={16} directional />
-          </Link>
+          </TaskEntryLink>
         </nav>
       ) : null}
     </div>
