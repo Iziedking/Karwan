@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { brandedEmailHtml, emailButton, emailLink, emailUrlFallback, safeEmailUrl } from './brand.js';
-import { contentFor } from './dealNotifier.js';
-import { recoveryEmail } from './recovery.js';
-import { dealEventHtml } from './dealEventEmail.js';
 import type { KarwanEvent } from '../events.js';
+
+process.env.NODE_ENV = 'test';
+process.env.FRONTEND_BASE_URL = 'https://testnet.karwan.site';
+const { brandedEmailHtml, emailButton, emailLink, emailUrlFallback, safeEmailUrl } = await import('./brand.js');
+const { contentFor } = await import('./dealNotifier.js');
+const { recoveryEmail } = await import('./recovery.js');
+const { dealEventHtml } = await import('./dealEventEmail.js');
 
 const event = (type:string,payload:Record<string,unknown>={}) => ({type,jobId:'0xabc',ts:0,actor:'platform',payload}) as unknown as KarwanEvent;
 
