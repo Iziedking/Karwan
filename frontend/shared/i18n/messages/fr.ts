@@ -1815,7 +1815,7 @@ export const fr: Messages = {
       buyerLabel: 'Acheteur',
       sellerLabel: 'Vendeur',
       viewProfile: 'Voir le profil',
-      creditPassport: 'Credit Passport',
+      creditPassport: "Historique des échanges",
       onX: 'Sur X',
       more: 'Plus',
       record: {
@@ -2716,7 +2716,7 @@ export const fr: Messages = {
     },
   },
   creditPassport: {
-    eyebrow: 'Credit Passport',
+    eyebrow: "Historique des échanges",
     fallbackName: 'Wallet Karwan',
     copyAddressTitle: "Copier l'adresse",
     copyAddressIdle: 'copier',
@@ -3473,7 +3473,7 @@ export const fr: Messages = {
     confirm: {
       cannotUndo: 'Cette action est irréversible.',
       confirm: 'Confirmer',
-      cancel: 'Annuler',
+      cancel: "Pas maintenant",
       working: 'En cours',
       failed: 'Cela n\'a pas abouti. Vérifiez l\'avancement ci-dessus avant de réessayer.',
     },
@@ -4100,7 +4100,7 @@ export const fr: Messages = {
     scoreMaxTemplate: '/ {max}',
     unratedLabel: 'non noté',
     compositeFootnote: 'Calculée à partir de l’historique des accords, de la garantie de transaction et de l’ancienneté sur Karwan. Enregistrée sur Arc.',
-    creditPassportLink: 'Passeport de crédit',
+    creditPassportLink: "Historique des échanges",
     stats: {
       success: 'Réussies',
       disputed: 'Contestées',

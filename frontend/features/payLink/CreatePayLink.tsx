@@ -65,6 +65,7 @@ export function CreatePayLink() {
         </div>
       ) : (
         <form onSubmit={(event) => void create(event)} className="space-y-3" aria-busy={busy}>
+          <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{copy.directNote}</p>
           <label className={FIELD}>
             <span className="text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.amount}</span>
             <span className="mt-1 flex items-baseline gap-2">

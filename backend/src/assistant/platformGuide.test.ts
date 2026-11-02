@@ -269,3 +269,14 @@ test('the guide names the deal page moves that replaced the older page (Batch 9 
   assert.match(said('delivery'), /there is no older deal page/);
   assert.doesNotMatch(PLATFORM_GUIDE.map((e) => e.summary).join(' '), /with every action as before/);
 });
+
+ test('shared assistant language distinguishes requests, direct payments and commitment', () => {
+  assert.match(KARWAN_ASSISTANT_SYSTEM, /request for a buyer’s posted need/);
+  assert.match(KARWAN_ASSISTANT_SYSTEM, /outside deal escrow/);
+  assert.match(KARWAN_ASSISTANT_SYSTEM, /acceptance or funding requires the final confirmation/);
+  for (const [destination, label] of [['request_payment', 'Request a payment'], ['credit_passport', 'View trade record'], ['payment_link', 'View payment request']] as const) {
+    const card = buildNavigateAction({ destination, address: '0x' + '1'.repeat(40), token: '6f1c2a3b-0000-4000-8000-000000000000' });
+    assert.ok(!('error' in card));
+    assert.equal(card.label, label);
+  }
+ });

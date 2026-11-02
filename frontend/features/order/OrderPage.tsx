@@ -131,6 +131,7 @@ function OrderReview({ listingId, address, circle }: { listingId: string; addres
   return (
     <main className="mx-auto w-full max-w-[560px] px-4 pb-16 pt-6 sm:px-6" data-order-page>
       <h1 className="text-[24px] font-semibold tracking-[-0.02em] text-[var(--lp-dark)]">{t.title}</h1>
+      <p data-order-deal className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{t.dealNext}</p>
 
       <section className="mt-5 flex items-center gap-4">
         {photo ? (

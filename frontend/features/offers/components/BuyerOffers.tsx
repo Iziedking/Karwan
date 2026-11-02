@@ -135,7 +135,7 @@ export function BuyerOffers({ jobId, budgetUsdc }: { jobId: string; budgetUsdc: 
         ))}
       </ul>
       <Button variant={chosen ? 'outline' : undefined} size="lg" className="mt-5 w-full rounded-full" onClick={() => setChosen(top)}>
-        {t.accept.replace('{seller}', nameOf(top)).replace('{price}', formatUsdc(top.priceUsdc, { withSuffix: false }))}
+        {t.review.replace('{price}', formatUsdc(top.priceUsdc, { withSuffix: false }))}
       </Button>
       <p className="mt-3 text-center text-[14px] text-[var(--lp-text-sub)] font-medium">{top.sellerBlock?.recommended ? t.agentPickLine : t.agentLine}</p>
 
@@ -143,7 +143,7 @@ export function BuyerOffers({ jobId, budgetUsdc }: { jobId: string; budgetUsdc: 
         {chosen ? (
           <div className="space-y-5">
             <h2 id={titleId} className="text-[22px] font-medium text-[var(--lp-dark)]">
-              {t.confirmTitle}
+              {t.confirmTitle.replace('{seller}', nameOf(chosen))}
             </h2>
             {/* The amount that leaves the wallet, fee included, is the loudest number. */}
             <p className="text-[36px] font-medium leading-none tabular-nums text-[var(--lp-dark)]">
@@ -188,7 +188,7 @@ export function BuyerOffers({ jobId, budgetUsdc }: { jobId: string; budgetUsdc: 
             ) : null}
             {!funding ? (
               <Button id={`${titleId}-accept`} size="lg" className="w-full rounded-full" loading={busy} onClick={() => void accept(chosen)}>
-                {t.accept.replace('{seller}', nameOf(chosen)).replace('{price}', formatUsdc(chosen.priceUsdc, { withSuffix: false }))}
+                {t.accept.replace('{price}', formatUsdc(chosen.fundedUsdc ?? chosen.priceUsdc, { withSuffix: false }))}
               </Button>
             ) : null}
             <Button variant="ghost" className="w-full rounded-full" disabled={busy || fundingBusy} onClick={closeConfirmation}>

@@ -1815,7 +1815,7 @@ export const ar: Messages = {
       buyerLabel: 'مشتري',
       sellerLabel: 'بائع',
       viewProfile: 'عرض الملف',
-      creditPassport: 'سجل الجدارة',
+      creditPassport: "سجل التجارة",
       onX: 'على X',
       more: 'المزيد',
       record: {
@@ -2716,7 +2716,7 @@ export const ar: Messages = {
     },
   },
   creditPassport: {
-    eyebrow: 'سجل الجدارة',
+    eyebrow: "سجل التجارة",
     fallbackName: 'محفظة كرَوان',
     copyAddressTitle: 'انسخ العنوان',
     copyAddressIdle: 'نسخ',
@@ -3473,7 +3473,7 @@ export const ar: Messages = {
     confirm: {
       cannotUndo: 'لا يمكن التراجع عن هذا.',
       confirm: 'تأكيد',
-      cancel: 'إلغاء',
+      cancel: "ليس الآن",
       working: 'جارٍ التنفيذ',
       failed: 'لم تكتمل العملية. تحقق من التقدم أعلاه قبل المحاولة مرة أخرى.',
     },
@@ -4100,7 +4100,7 @@ export const ar: Messages = {
     scoreMaxTemplate: '/ {max}',
     unratedLabel: 'غير مصنف',
     compositeFootnote: 'مبنية على سجل الصفقات وضمان الصفقة والمدة على Karwan. مسجلة على Arc.',
-    creditPassportLink: 'جواز الائتمان',
+    creditPassportLink: "سجل التجارة",
     stats: {
       success: 'ناجحة',
       disputed: 'متنازع عليها',

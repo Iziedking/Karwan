@@ -193,13 +193,13 @@ export function buildChooseOfferConfirm(i: {
     kind: 'confirm',
     id: `choose_offer:${i.jobId}:${i.seller.toLowerCase()}:${confirmNonce()}`,
     intent: 'choose_offer',
-    title: 'Choose this offer',
+    title: 'Accept this offer and fund the deal',
     summary: `Go with ${i.sellerLabel} at ${i.priceUsdc} USDC and start the deal.`,
     warning: [
       i.unverified
-        ? `${i.sellerLabel} is not verified. Karwan has not checked their identity or past work. Your money stays in escrow until you release it.`
+        ? `${i.sellerLabel} is not verified. Review the available record before accepting. Payment follows the agreed release rules.`
         : null,
-      'This funds the escrow from your buyer agent. The money stays protected until the work is delivered or the deal is cancelled.',
+      'This funds escrow from your buying agent. The agreed release, review and refund rules apply.',
     ]
       .filter(Boolean)
       .join(' '),
@@ -215,7 +215,7 @@ export function buildChooseOfferConfirm(i: {
       amountUsdc: Number(i.priceUsdc),
       ...(i.unverified ? { acknowledgeUnverified: true } : {}),
     },
-    confirmLabel: `Choose and fund ${i.priceUsdc} USDC`,
+    confirmLabel: 'Accept and fund deal',
     cancelLabel: 'Not now',
   };
 }
@@ -824,8 +824,8 @@ export function buildAcceptSellerOfferConfirm(i: {
     kind: 'confirm',
     id: `accept_offer:${i.offerId}:${confirmNonce()}`,
     intent: 'accept_offer',
-    title: `Take ${i.sellerLabel}'s offer`,
-    summary: `${total} USDC goes into escrow from your buying agent and the deal starts. It stays protected until you release it.`,
+    title: `Accept ${i.sellerLabel}'s offer`,
+    summary: `${total} USDC goes into escrow from your buying agent and the deal starts. The agreed release and review rules apply.`,
     fields: [
       { label: 'Seller', value: i.sellerLabel },
       { label: 'Price', value: `${i.priceUsdc} USDC` },
@@ -833,7 +833,7 @@ export function buildAcceptSellerOfferConfirm(i: {
       { label: 'Delivered by', value: isoDay(i.deliverByUnix) },
     ],
     payload: { jobId: i.jobId, offerId: i.offerId },
-    confirmLabel: `Take it and pay ${total} USDC`,
+    confirmLabel: `Accept and pay ${total} USDC`,
     cancelLabel: 'Not now',
   };
 }

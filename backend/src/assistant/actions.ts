@@ -502,12 +502,12 @@ const DESTINATIONS: Record<NavigateDestination, DestSpec> = {
       return query ? `/send?${query}` : '/send';
     },
   },
-  request_payment: { label: 'Create a payment link', build: () => '/request' },
+  request_payment: { label: 'Request a payment', build: () => '/request' },
   // A public offer or open request found by search_market.
-  offer: { label: 'Open the offer', build: (p) => { const id = safeJobId(p.listingId); return id ? `/listings/${id}` : null; } },
-  request: { label: 'Open the request', build: (p) => { const id = safeJobId(p.jobId); return id ? `/jobs/${id}` : null; } },
+  offer: { label: 'View offer', build: (p) => { const id = safeJobId(p.listingId); return id ? `/listings/${id}` : null; } },
+  request: { label: 'View request', build: (p) => { const id = safeJobId(p.jobId); return id ? `/jobs/${id}` : null; } },
   payment_link: {
-    label: 'Open the payment link',
+    label: 'View payment request',
     build: (p) => (p.token && /^[0-9a-f-]{36}$/i.test(p.token) ? `/deposit/request/${p.token.toLowerCase()}` : null),
   },
   // /bridge reads ?rail (gateway|cctp); anything else defaults to the pooled rail.
@@ -547,7 +547,7 @@ const DESTINATIONS: Record<NavigateDestination, DestSpec> = {
     },
   },
   credit_passport: {
-    label: 'View credit passport',
+    label: 'View trade record',
     build: (p) => {
       const a = safeAddress(p.address);
       return a ? `/credit-passport/${a}` : null;

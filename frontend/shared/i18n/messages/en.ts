@@ -7096,7 +7096,7 @@ export const en: MessagesShape = {
       buyerLabel: 'Buyer',
       sellerLabel: 'Seller',
       viewProfile: 'View profile',
-      creditPassport: 'Credit passport',
+      creditPassport: "Trade record",
       onX: 'On X',
       more: 'More',
       record: {
@@ -8016,7 +8016,7 @@ export const en: MessagesShape = {
     },
   },
   creditPassport: {
-    eyebrow: 'Credit passport',
+    eyebrow: "Trade record",
     fallbackName: 'Karwan wallet',
     copyAddressTitle: 'Copy address',
     copyAddressIdle: 'copy',
@@ -8785,7 +8785,7 @@ export const en: MessagesShape = {
     confirm: {
       cannotUndo: 'This cannot be undone.',
       confirm: 'Confirm',
-      cancel: 'Cancel',
+      cancel: "Not now",
       working: 'Working',
       failed: 'That did not go through. Check the progress above before trying again.',
     },
@@ -9443,7 +9443,7 @@ export const en: MessagesShape = {
     scoreMaxTemplate: '/ {max}',
     unratedLabel: 'unrated',
     compositeFootnote: 'Made from deal history, deal guarantee and time on Karwan. Recorded on Arc.',
-    creditPassportLink: 'Credit passport',
+    creditPassportLink: "Trade record",
     stats: {
       success: 'Success',
       disputed: 'Disputed',

@@ -43,8 +43,10 @@ function ok<T extends object>(card: T | { error: string }): T {
 test('choosing an offer warns that escrow is funded from the buyer agent and names seller and price', () => {
   const card = ok(buildChooseOfferConfirm({ caller, jobId, seller, sellerLabel: 'Ada Designs', priceUsdc: '120' }));
   assert.equal(card.intent, 'choose_offer');
+  assert.equal(card.confirmLabel, 'Accept and fund deal');
+  assert.match(card.warning ?? '', /agreed release, review and refund rules/);
   assert.deepEqual(card.payload, { jobId, caller, seller, amountUsdc: 120 });
-  assert.match(card.warning ?? '', /buyer agent/);
+  assert.match(card.warning ?? '', /buying agent/);
   assert.ok(card.fields.some((f) => f.value === '120 USDC'));
   assert.ok(card.fields.some((f) => f.value === 'Ada Designs'));
   assert.doesNotMatch(JSON.stringify(card), /—|\$/);
@@ -146,7 +148,7 @@ test('every new card has a unique id and no em dashes or dollar signs', () => {
 
 test('choosing an unverified seller says so on the card and carries the acknowledgement', () => {
   const card = ok(buildChooseOfferConfirm({ caller, jobId, seller, sellerLabel: 'Kemi', priceUsdc: '60', unverified: true }));
-  assert.match(card.warning ?? '', /^Kemi is not verified\. Karwan has not checked their identity or past work\./);
+  assert.match(card.warning ?? '', /^Kemi is not verified\. Review the available record/);
   assert.equal(card.payload.acknowledgeUnverified, true);
   const verified = ok(buildChooseOfferConfirm({ caller, jobId, seller, sellerLabel: 'Ada', priceUsdc: '80' }));
   assert.equal(verified.payload.acknowledgeUnverified, undefined);
@@ -243,7 +245,7 @@ test('withdrawing and taking a seller offer name the offer only by id', () => {
   assert.deepEqual(ok(buildWithdrawOfferConfirm({ jobId, offerId: 'o1', priceUsdc: '80' })).payload, { jobId, offerId: 'o1' });
   const take = ok(buildAcceptSellerOfferConfirm({ jobId, offerId: 'o1', sellerLabel: '@ada', priceUsdc: '80', fundedUsdc: '81.6', deliverByUnix: NOW }));
   assert.deepEqual(take.payload, { jobId, offerId: 'o1' });
-  assert.equal(take.confirmLabel, 'Take it and pay 81.6 USDC');
+  assert.equal(take.confirmLabel, 'Accept and pay 81.6 USDC');
   assert.ok(take.fields.some((f) => f.label === 'Paid in with the fee'));
 });
 

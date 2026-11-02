@@ -8,6 +8,7 @@ export interface OrderFlowCopy {
   fee: string;
   youPay: string;
   protectedTitle: string;
+  dealNext: string;
   protectedBody: string;
   protectedBodyNoDate: string;
   balance: string;
@@ -64,6 +65,7 @@ export const orderFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', OrderFlowCo
     fee: 'Karwan fee',
     youPay: 'You pay',
     protectedTitle: "Payment in escrow",
+    dealNext: "After you place your order, track the deal in Deals.",
     protectedBody: "Payment stays in escrow while {name} works towards delivery by {date}. Release, review and refund rules apply. After delivery, review or dispute within the review period; the seller may claim payment when it ends.",
     protectedBodyNoDate: "Payment stays in escrow while {name} works. Release, review and refund rules apply. After delivery, review or dispute within the review period; the seller may claim payment when it ends.",
     balance: 'Your balance',
@@ -118,6 +120,7 @@ export const orderFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', OrderFlowCo
     fee: 'Frais Karwan',
     youPay: 'Vous payez',
     protectedTitle: "Paiement sous séquestre",
+    dealNext: "Après la commande, suivez l’accord dans Accords.",
     protectedBody: "Le paiement reste sous séquestre pendant que {name} prépare la livraison prévue le {date}. Les règles de versement, de vérification et de remboursement s’appliquent. Après la livraison, vérifiez ou contestez pendant le délai prévu ; le vendeur peut réclamer le paiement à son terme.",
     protectedBodyNoDate: "Le paiement reste sous séquestre pendant que {name} travaille. Les règles de versement, de vérification et de remboursement s’appliquent. Après la livraison, vérifiez ou contestez pendant le délai prévu ; le vendeur peut réclamer le paiement à son terme.",
     balance: 'Votre solde',
@@ -172,6 +175,7 @@ export const orderFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', OrderFlowCo
     fee: 'رسوم كاروان',
     youPay: 'تدفع',
     protectedTitle: "الدفع في الضمان",
+    dealNext: "بعد تقديم طلبك، تابع الصفقة في الصفقات.",
     protectedBody: "يبقى المبلغ في الضمان بينما يعمل {name} على التسليم بحلول {date}. تسري قواعد الصرف والمراجعة والاسترداد. بعد التسليم، راجع أو اعترض خلال فترة المراجعة؛ يمكن للبائع المطالبة بالدفع عند انتهائها.",
     protectedBodyNoDate: "يبقى المبلغ في الضمان بينما يعمل {name}. تسري قواعد الصرف والمراجعة والاسترداد. بعد التسليم، راجع أو اعترض خلال فترة المراجعة؛ يمكن للبائع المطالبة بالدفع عند انتهائها.",
     balance: 'رصيدك',
@@ -226,6 +230,7 @@ export const orderFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', OrderFlowCo
     fee: 'Karwan शुल्क',
     youPay: 'आप भुगतान करेंगे',
     protectedTitle: "एस्क्रो में भुगतान",
+    dealNext: "ऑर्डर देने के बाद सौदे अनुभाग में उसे ट्रैक करें।",
     protectedBody: "{name} के {date} तक डिलीवरी करने के दौरान भुगतान एस्क्रो में रहता है। भुगतान जारी करने, समीक्षा और वापसी के नियम लागू होते हैं। डिलीवरी के बाद समीक्षा अवधि के भीतर जाँचें या विवाद उठाएँ। अवधि समाप्त होने पर विक्रेता भुगतान का दावा कर सकता है।",
     protectedBodyNoDate: "{name} के काम करने के दौरान भुगतान एस्क्रो में रहता है। भुगतान जारी करने, समीक्षा और वापसी के नियम लागू होते हैं। डिलीवरी के बाद समीक्षा अवधि के भीतर जाँचें या विवाद उठाएँ। अवधि समाप्त होने पर विक्रेता भुगतान का दावा कर सकता है।",
     balance: 'आपका बैलेंस',
@@ -280,6 +285,7 @@ export const orderFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', OrderFlowCo
     fee: 'Ada ya Karwan',
     youPay: 'Unalipa',
     protectedTitle: "Malipo kwenye escrow",
+    dealNext: "Baada ya kuagiza, fuatilia makubaliano katika Mikataba.",
     protectedBody: "Malipo yanabaki kwenye escrow wakati {name} anafanya kazi ya kuwasilisha kufikia {date}. Masharti ya malipo, ukaguzi na kurejeshewa pesa yanatumika. Baada ya uwasilishaji, kagua au fungua mgogoro ndani ya muda wa ukaguzi; muuzaji anaweza kudai malipo muda huo ukiisha.",
     protectedBodyNoDate: "Malipo yanabaki kwenye escrow wakati {name} anafanya kazi. Masharti ya malipo, ukaguzi na kurejeshewa pesa yanatumika. Baada ya uwasilishaji, kagua au fungua mgogoro ndani ya muda wa ukaguzi; muuzaji anaweza kudai malipo muda huo ukiisha.",
     balance: 'Salio lako',

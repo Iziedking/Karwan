@@ -130,3 +130,20 @@ test('reputation documentation describes model v2 without promising yield', () =
   assert.doesNotMatch(text, /~5% APY|on mainnet, locked USDC earns|modelVersion=1/i);
   assert.match(text, /not currently a mainnet yield product/);
 });
+
+ test('payment-request wording belongs to its locale and keeps the recipient placeholder', () => {
+  for (const locale of ['ar', 'fr'] as const) {
+    const c = MESSAGES[locale].payLink;
+    for (const value of [c.create.short, c.create.create, c.create.ready, c.create.another, c.create.requestedTitle, c.create.directNote, c.pay.directPayment]) {
+      if (locale === 'ar') assert.match(value, /\p{Script=Arabic}/u);
+      else {assert.match(value, /[a-zéèêà]/i); assert.doesNotMatch(value, /\p{Script=Arabic}/u);}
+    }
+    assert.match(c.pay.directPayment, /\{name\}/);
+  }
+ });
+
+ test('an unverified seller warning follows the actual release rules', () => {
+  assert.match(MESSAGES.en.shortlist.unverifiedWarning, /agreed release rules/);
+  assert.doesNotMatch(MESSAGES.en.shortlist.unverifiedWarning, /until you release|only when you approve/);
+  for (const t of Object.values(MESSAGES)) assert.match(t.shortlist.unverifiedWarning, /\{name\}/);
+ });

@@ -181,6 +181,7 @@ export function OffersRoster({ jobId, bids, pickSeller, caller, choosable, open:
         open={!!viewing && confirming}
         title={viewing ? fill(copy.confirmTitle, { name: nameOf(viewing) }) : ''}
         consequence={viewing ? fill(copy.confirmBody, { name: nameOf(viewing), amount: price(viewing.priceUsdc) }) : ''}
+        confirmLabel={t.requestFlow.accept}
         irreversible={false}
         busy={busy}
         error={error}

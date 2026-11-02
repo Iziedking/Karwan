@@ -106,6 +106,7 @@ test('short of money: add it, it arrives, then one sheet and one payment', async
   const world = await serveOrder(page);
   await page.goto('/order/lst_logo');
   await expect(page.getByRole('heading', { level: 1, name: t.title })).toBeVisible();
+  await expect(page.locator('[data-order-deal]')).toHaveText(t.dealNext);
   await expect(page.getByText('By 3 Nov 2026', { exact: true })).toBeVisible();
   await expect(page.getByText('120.00 USDC', { exact: true })).toBeVisible();
   await expect(page.getByText('0.60 USDC', { exact: true })).toBeVisible();
@@ -236,4 +237,25 @@ test('unavailable deposit instructions never offer an address or claim to watch 
   await expect(page.getByText(en.deposit.unavailable, { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: t.copy, exact: true })).toHaveCount(0);
   await expect(page.getByText('Waiting for your 120.60 USDC')).toHaveCount(0);
+});
+
+import { fr } from '../shared/i18n/messages/fr';
+import { ar } from '../shared/i18n/messages/ar';
+import { hi } from '../shared/i18n/messages/hi';
+import { sw } from '../shared/i18n/messages/sw';
+const batch3Locales = [['en', en], ['fr', fr], ['ar', ar], ['hi', hi], ['sw', sw]] as const;
+for (const [lang, messages] of batch3Locales) test('Batch 3 order and deal continuity '+lang, async ({page}, info) => {
+ await page.context().addCookies([{ name: 'karwan-locale', value: lang, domain: '127.0.0.1', path: '/' }]);
+ await page.addInitScript(() => {localStorage.setItem('karwan:guide:disabled','1');localStorage.setItem('karwan-theme','light');});
+ const world = await serveOrder(page, { balances: {[ME.toLowerCase()]: 500, [BUYER_AGENT.toLowerCase()]: 500} });
+ await page.goto('/listings/lst_logo');
+ await expect(page.getByRole('link', {name: messages.marketShop.listing.order.replace('{amount}', '120')})).toBeVisible();
+ expect(world.creates).toHaveLength(0);
+ await page.goto('/order/lst_logo');
+ await expect(page.locator('[data-order-deal]')).toHaveText(messages.orderFlow.dealNext);
+ await expect(page.locator('.karwan-splash-mark')).toHaveCount(0);
+ await page.evaluate(() => document.fonts.ready);
+ expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+
+ await page.screenshot({path:info.outputPath('order-'+lang+'.png'),fullPage:true});
 });

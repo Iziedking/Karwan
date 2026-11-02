@@ -5,6 +5,7 @@ export interface RequestFlowCopy {
   neededBy: string;
   bestFit: string;
   accept: string;
+  reviewOffer: string;
   acceptTitle: string;
   confirmFor: string;
   confirmTo: string;
@@ -47,8 +48,9 @@ export const requestFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', RequestFl
     upTo: 'Up to {amount} USDC',
     neededBy: 'Needed by {date}',
     bestFit: 'Best fit, picked by your agent',
-    accept: 'Accept',
-    acceptTitle: 'Accept the offer from {name}?',
+    accept: "Accept and fund deal",
+    reviewOffer: "Review and accept",
+    acceptTitle: "Accept the offer from {name} and fund the deal?",
     confirmFor: 'For',
     confirmTo: 'To',
     confirmPrice: 'Price',
@@ -80,8 +82,9 @@ export const requestFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', RequestFl
     upTo: 'Jusqu’à {amount} USDC',
     neededBy: 'Pour le {date}',
     bestFit: 'Meilleur choix, sélectionné par votre agent',
-    accept: 'Accepter',
-    acceptTitle: 'Accepter l’offre de {name} ?',
+    accept: "Accepter et financer l’accord",
+    reviewOffer: "Vérifier et accepter",
+    acceptTitle: "Accepter l’offre de {name} et financer l’accord ?",
     confirmFor: 'Pour',
     confirmTo: 'À',
     confirmPrice: 'Prix',
@@ -113,8 +116,9 @@ export const requestFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', RequestFl
     upTo: 'حتى {amount} USDC',
     neededBy: 'مطلوب بحلول {date}',
     bestFit: 'الأنسب، اختاره وكيلك',
-    accept: 'قبول',
-    acceptTitle: 'قبول عرض {name}؟',
+    accept: "اقبل وموّل الصفقة",
+    reviewOffer: "راجع واقبل",
+    acceptTitle: "هل تقبل عرض {name} وتموّل الصفقة؟",
     confirmFor: 'مقابل',
     confirmTo: 'إلى',
     confirmPrice: 'السعر',
@@ -146,8 +150,9 @@ export const requestFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', RequestFl
     upTo: '{amount} USDC तक',
     neededBy: '{date} तक चाहिए',
     bestFit: 'सबसे सही, आपके एजेंट ने चुना',
-    accept: 'स्वीकार करें',
-    acceptTitle: '{name} का ऑफ़र स्वीकार करें?',
+    accept: "स्वीकार करें और सौदे में राशि जमा करें",
+    reviewOffer: "समीक्षा करें और स्वीकार करें",
+    acceptTitle: "{name} का ऑफ़र स्वीकार करके सौदे में राशि जमा करें?",
     confirmFor: 'किसके लिए',
     confirmTo: 'किसे',
     confirmPrice: 'कीमत',
@@ -179,8 +184,9 @@ export const requestFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', RequestFl
     upTo: 'Hadi USDC {amount}',
     neededBy: 'Linahitajika kufikia {date}',
     bestFit: 'Linafaa zaidi, limechaguliwa na wakala wako',
-    accept: 'Kubali',
-    acceptTitle: 'Ukubali ofa ya {name}?',
+    accept: "Kubali na weka fedha za makubaliano",
+    reviewOffer: "Kagua na ukubali",
+    acceptTitle: "Ukubali ofa ya {name} na kuweka fedha za makubaliano?",
     confirmFor: 'Kwa ajili ya',
     confirmTo: 'Kwa',
     confirmPrice: 'Bei',

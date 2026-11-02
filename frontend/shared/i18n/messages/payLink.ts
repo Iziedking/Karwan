@@ -8,6 +8,7 @@ export interface PayLinkCopy {
     paidTo: string;
     yourAccount: string;
     lasts: string;
+    directNote: string;
     create: string;
     creating: string;
     error: string;
@@ -27,6 +28,7 @@ export interface PayLinkCopy {
   };
   pay: {
     tag: string;
+    directPayment: string;
     forTemplate: string;
     record: string;
     recordNew: string;
@@ -98,23 +100,24 @@ export interface PayLinkCopy {
 const en: PayLinkCopy = {
   create: {
     title: 'Request a payment',
-    short: 'Request',
+    short: "Request payment",
     amount: 'Amount',
     forLabel: 'For',
     forPlaceholder: 'Logo, first draft',
     paidTo: 'Paid to',
     yourAccount: 'Your account',
     lasts: 'The link works for 7 days.',
-    create: 'Create link',
+    directNote: "Money goes directly to your account, outside deal escrow.",
+    create: "Create payment link",
     creating: 'Creating link',
     error: 'Could not create the link. Try again.',
-    ready: 'Link ready',
+    ready: "Payment link ready",
     copy: 'Copy link',
     copied: 'Link copied',
     share: 'Share',
-    another: 'New request',
+    another: "New payment request",
     qrAlt: 'QR code for this payment link',
-    requestedTitle: "Your requests",
+    requestedTitle: "Your payment requests",
     paidTitle: "Paid by you",
     showMore: "Show more",
     statusOpen: "Waiting",
@@ -124,6 +127,7 @@ const en: PayLinkCopy = {
   },
   pay: {
     tag: 'Payment request',
+    directPayment: "Payment goes directly to {name}, outside deal escrow.",
     forTemplate: 'For: {purpose}',
     record: '{tier} · {n} deals',
     recordNew: 'New on Karwan',
@@ -195,23 +199,24 @@ const en: PayLinkCopy = {
 const fr: PayLinkCopy = {
   create: {
     title: 'Demander un paiement',
-    short: 'Demander',
+    short: "Demander un paiement",
     amount: 'Montant',
     forLabel: 'Pour',
     forPlaceholder: 'Logo, première version',
     paidTo: 'Payé à',
     yourAccount: 'Votre compte',
     lasts: 'Le lien reste valable 7 jours.',
-    create: 'Créer le lien',
+    directNote: "L’argent arrive directement sur votre compte, hors séquestre d’un accord.",
+    create: "Créer un lien de paiement",
     creating: 'Création du lien',
     error: 'Impossible de créer le lien. Réessayez.',
-    ready: 'Lien prêt',
+    ready: "Lien de paiement prêt",
     copy: 'Copier le lien',
     copied: 'Lien copié',
     share: 'Partager',
-    another: 'Nouvelle demande',
+    another: "Nouvelle demande de paiement",
     qrAlt: 'QR code de ce lien de paiement',
-    requestedTitle: "Vos demandes",
+    requestedTitle: "Vos demandes de paiement",
     paidTitle: "Payées par vous",
     showMore: "Afficher plus",
     statusOpen: "En attente",
@@ -221,6 +226,7 @@ const fr: PayLinkCopy = {
   },
   pay: {
     tag: 'Demande de paiement',
+    directPayment: "Le paiement va directement à {name}, hors séquestre d’un accord.",
     forTemplate: 'Pour : {purpose}',
     record: '{tier} · {n} transactions',
     recordNew: 'Nouveau sur Karwan',
@@ -292,23 +298,24 @@ const fr: PayLinkCopy = {
 const ar: PayLinkCopy = {
   create: {
     title: 'اطلب دفعة',
-    short: 'اطلب',
+    short: "اطلب دفعة",
     amount: 'المبلغ',
     forLabel: 'مقابل',
     forPlaceholder: 'شعار، المسودة الأولى',
     paidTo: 'يُدفع إلى',
     yourAccount: 'حسابك',
     lasts: 'يعمل الرابط لمدة 7 أيام.',
-    create: 'أنشئ الرابط',
+    directNote: "يصل المال مباشرة إلى حسابك، خارج ضمان الصفقات.",
+    create: "أنشئ رابط دفع",
     creating: 'جارٍ إنشاء الرابط',
     error: 'تعذّر إنشاء الرابط. حاول مرة أخرى.',
-    ready: 'الرابط جاهز',
+    ready: "رابط الدفع جاهز",
     copy: 'انسخ الرابط',
     copied: 'تم نسخ الرابط',
     share: 'مشاركة',
-    another: 'طلب جديد',
+    another: "طلب دفع جديد",
     qrAlt: 'رمز QR لرابط الدفع هذا',
-    requestedTitle: "طلباتك",
+    requestedTitle: "طلبات الدفع الخاصة بك",
     paidTitle: "دفعتها أنت",
     showMore: "عرض المزيد",
     statusOpen: "بانتظار الدفع",
@@ -318,6 +325,7 @@ const ar: PayLinkCopy = {
   },
   pay: {
     tag: 'طلب دفع',
+    directPayment: "يصل المبلغ مباشرة إلى {name}، خارج ضمان الصفقات.",
     forTemplate: 'مقابل: {purpose}',
     record: '{tier} · {n} صفقة',
     recordNew: 'جديد على Karwan',
@@ -389,23 +397,24 @@ const ar: PayLinkCopy = {
 const hi: PayLinkCopy = {
   create: {
     title: 'भुगतान का अनुरोध करें',
-    short: 'अनुरोध करें',
+    short: "भुगतान माँगें",
     amount: 'राशि',
     forLabel: 'किसके लिए',
     forPlaceholder: 'लोगो, पहला ड्राफ़्ट',
     paidTo: 'किसे भुगतान',
     yourAccount: 'आपका खाता',
     lasts: 'लिंक 7 दिनों तक काम करता है।',
-    create: 'लिंक बनाएँ',
+    directNote: "राशि सीधे आपके खाते में आती है, सौदे के एस्क्रो में नहीं।",
+    create: "भुगतान लिंक बनाएँ",
     creating: 'लिंक बन रहा है',
     error: 'लिंक नहीं बन सका। फिर से कोशिश करें।',
-    ready: 'लिंक तैयार है',
+    ready: "भुगतान लिंक तैयार है",
     copy: 'लिंक कॉपी करें',
     copied: 'लिंक कॉपी हो गया',
     share: 'शेयर करें',
-    another: 'नया अनुरोध',
+    another: "नया भुगतान अनुरोध",
     qrAlt: 'इस भुगतान लिंक का QR कोड',
-    requestedTitle: "आपके अनुरोध",
+    requestedTitle: "आपके भुगतान अनुरोध",
     paidTitle: "आपने भुगतान किया",
     showMore: "और दिखाएँ",
     statusOpen: "प्रतीक्षा में",
@@ -415,6 +424,7 @@ const hi: PayLinkCopy = {
   },
   pay: {
     tag: 'भुगतान अनुरोध',
+    directPayment: "भुगतान सीधे {name} को जाता है, सौदे के एस्क्रो में नहीं।",
     forTemplate: 'किसके लिए: {purpose}',
     record: '{tier} · {n} डील',
     recordNew: 'Karwan पर नया',
@@ -486,23 +496,24 @@ const hi: PayLinkCopy = {
 const sw: PayLinkCopy = {
   create: {
     title: 'Omba malipo',
-    short: 'Omba',
+    short: "Omba malipo",
     amount: 'Kiasi',
     forLabel: 'Kwa ajili ya',
     forPlaceholder: 'Nembo, rasimu ya kwanza',
     paidTo: 'Analipwa',
     yourAccount: 'Akaunti yako',
     lasts: 'Kiungo kinafanya kazi kwa siku 7.',
-    create: 'Unda kiungo',
+    directNote: "Pesa zinaingia moja kwa moja kwenye akaunti yako, nje ya escrow ya makubaliano.",
+    create: "Unda kiungo cha malipo",
     creating: 'Inaunda kiungo',
     error: 'Imeshindwa kuunda kiungo. Jaribu tena.',
-    ready: 'Kiungo kiko tayari',
+    ready: "Kiungo cha malipo kiko tayari",
     copy: 'Nakili kiungo',
     copied: 'Kiungo kimenakiliwa',
     share: 'Shiriki',
-    another: 'Ombi jipya',
+    another: "Ombi jipya la malipo",
     qrAlt: 'Msimbo wa QR wa kiungo hiki cha malipo',
-    requestedTitle: "Maombi yako",
+    requestedTitle: "Maombi yako ya malipo",
     paidTitle: "Uliyolipa",
     showMore: "Onyesha zaidi",
     statusOpen: "Inasubiri",
@@ -512,6 +523,7 @@ const sw: PayLinkCopy = {
   },
   pay: {
     tag: 'Ombi la malipo',
+    directPayment: "Malipo yanaenda moja kwa moja kwa {name}, nje ya escrow ya makubaliano.",
     forTemplate: 'Kwa ajili ya: {purpose}',
     record: '{tier} · mipango {n}',
     recordNew: 'Mpya kwenye Karwan',

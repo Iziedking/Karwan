@@ -36,7 +36,7 @@ const offer = (id: string, seller: string, price: string, createdAt: number): Of
   state: 'pending',
   createdAt,
   lapsesAt: REQUEST.deadlineUnix,
-  fundedUsdc: (Number(price) * 1.0075).toFixed(2),
+  fundedUsdc: (Number(price) * 1.005).toFixed(2),
 });
 
 type World = {
@@ -198,23 +198,25 @@ test('a seller lowers their own offer, never raises it (view 35)', async ({ page
 });
 
 test('buyer sees offers cheapest first and accepts through the confirm sheet', async ({ page }) => {
-  await open(page, { role: 'buyer', offers: [offer('o1', SELLER_A, '120', 1), offer('o2', SELLER_B, '96', 2)] });
+  const world = await open(page, { role: 'buyer', offers: [offer('o1', SELLER_A, '120', 1), offer('o2', SELLER_B, '96', 2)] });
   await expect(page.getByRole('heading', { name: '2 offers' })).toBeVisible();
   await expect(page.getByText('Sorted by price. You decide.')).toBeVisible();
   await layoutIsSound(page);
-  await page.getByRole('button', { name: /Accept 0x8888…8888 · 96 USDC/ }).click();
+  await page.getByRole('button', { name: /Review offer · 96 USDC/ }).click();
   const dialog = page.getByRole('dialog');
+  expect(world.acceptCalls()).toBe(0);
   await expect(dialog).toContainText('held in escrow under the agreed release rules');
   await expect(dialog).toContainText('the seller may claim payment when it ends');
   // The amount that leaves the wallet, fee included, is the loudest number.
-  await expect(dialog).toContainText('96.72 USDC');
+  await expect(dialog).toContainText('96.48 USDC');
   await expect(dialog).toContainText('96 USDC offer plus the fee');
   // The sheet must be a solid surface: money copy never sits over the page text.
   await expect.poll(() => dialog.evaluate((el) => getComputedStyle(el).opacity)).toBe('1');
   const bg = await dialog.evaluate((el) => getComputedStyle(el).backgroundColor);
   expect(bg).not.toMatch(/rgba\(.*,\s*0(\.\d+)?\)$/);
-  await dialog.getByRole('button', { name: /Accept 0x8888/ }).click();
+  await dialog.getByRole('button', { name: 'Accept and pay 96.48 USDC' }).click();
   await expect(page.getByText('Offer accepted. The money is held.')).toBeVisible();
+  expect(world.acceptCalls()).toBe(1);
 });
 
 test("buyer sees who each seller is, the agent's pick first, never a score (view 32)", async ({ page }) => {
@@ -228,24 +230,24 @@ test("buyer sees who each seller is, the agent's pick first, never a score (view
   await expect(page.getByText(/score|23 completed/i)).toHaveCount(0);
   await layoutIsSound(page);
   // The one primary button is on the pick, named by name.
-  await page.getByRole('button', { name: /Accept Ada Obi · 120 USDC/ }).click();
+  await page.getByRole('button', { name: /Review offer · 120 USDC/ }).click();
   await expect(page.getByRole('dialog')).toContainText('Ada Obi');
 });
 
 test('buyer accepting above budget sees the difference', async ({ page }) => {
   await open(page, { role: 'buyer', offers: [offer('o1', SELLER_A, '150', 1)] });
-  await page.getByRole('button', { name: /Accept 0x5555/ }).click();
+  await page.getByRole('button', { name: /Review offer/ }).click();
   await expect(page.getByRole('dialog')).toContainText('30 USDC above your budget');
 });
 
 test('buyer accepting while short sees the exact top-up action', async ({ page }, testInfo) => {
   await open(page, { role: 'buyer', offers: [offer('o1', SELLER_A, '96', 1)],
     balances: { ...funded, [BUYER_AGENT.toLowerCase()]: 90 }, accept: { status: 409, code: 'INSUFFICIENT_AGENT_BALANCE' } });
-  await page.getByRole('button', { name: /Accept 0x5555/ }).click();
-  await page.getByRole('dialog').getByRole('button', { name: /Accept 0x5555/ }).click();
+  await page.getByRole('button', { name: /Review offer/ }).click();
+  await page.getByRole('dialog').getByRole('button', { name: /Accept and pay/ }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog.getByRole('alert')).toHaveText('Top up to accept this offer.');
-  await expect(dialog.getByRole('button', { name: 'Top up 6.72 USDC', exact: true })).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Top up 6.48 USDC', exact: true })).toBeVisible();
   await captureTopUpScreen(page, testInfo, 'offer-short', { root: dialog, primary: 1, wholePagePrimary: 1 });
 });
 
@@ -258,10 +260,10 @@ for (const theme of ['light', 'dark'] as const) {
       const hold = new Promise<void>(resolve => { releaseFunding = resolve; });
       const world = await open(page, { role: 'buyer', offers: [selectedOffer], shortUntilFunded: true,
         balances: { ...funded, [BUYER_AGENT.toLowerCase()]: 91.72 }, confirmed: '40', pending: '8', funding: { hold } }, theme, locale);
-      const acceptName = copy.offers.accept.replace('{seller}', '0x5555…5555').replace('{price}', '96');
-      const opener = page.getByRole('button', { name: acceptName, exact: true });
+      const acceptName = copy.offers.accept.replace('{price}', '96.73');
+      const opener = page.getByRole('button', { name: copy.offers.review.replace('{price}', '96'), exact: true });
       await opener.click();
-      const dialog = page.getByRole('dialog', { name: copy.offers.confirmTitle, exact: true });
+      const dialog = page.getByRole('dialog', { name: copy.offers.confirmTitle.replace('{seller}', '0x5555…5555'), exact: true });
       await dialog.getByRole('button', { name: acceptName, exact: true }).click();
       await expect(dialog.getByRole('alert')).toHaveText(copy.offers.errors.topUp);
       const topUp = dialog.getByRole('button', { name: copy.offers.topUpCta.replace('{amount}', '5.01'), exact: true });
@@ -359,9 +361,9 @@ for (const appearance of [{ theme: 'light', locale: 'en' }, { theme: 'dark', loc
       balances: { ...funded, [BUYER_AGENT.toLowerCase()]: 91.72 }, confirmed: '40', shortUntilFunded: true,
       funding: { refuseFirst: true },
     }, appearance.theme, appearance.locale);
-    const acceptName = copy.offers.accept.replace('{seller}', '0x5555…5555').replace('{price}', '96');
-    await page.getByRole('button', { name: acceptName, exact: true }).click();
-    const dialog = page.getByRole('dialog', { name: copy.offers.confirmTitle, exact: true });
+    const acceptName = copy.offers.accept.replace('{price}', '96.73');
+    await page.getByRole('button', { name: copy.offers.review.replace('{price}', '96'), exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: copy.offers.confirmTitle.replace('{seller}', '0x5555…5555'), exact: true });
     await dialog.getByRole('button', { name: acceptName, exact: true }).click();
     await dialog.getByRole('button', { name: copy.offers.topUpCta.replace('{amount}', '5.01'), exact: true }).click();
     const chooser = dialog.getByTestId('offer-top-up');
@@ -412,9 +414,9 @@ for (const unavailable of ['buyer balance', 'recipient metadata'] as const) {
       buyerBalanceUnavailable: unavailable === 'buyer balance', activationUnavailable: unavailable === 'recipient metadata',
       accept: { status: 409, code: 'INSUFFICIENT_AGENT_BALANCE' },
     });
-    const acceptName = copy.offers.accept.replace('{seller}', '0x5555…5555').replace('{price}', '96');
-    await page.getByRole('button', { name: acceptName, exact: true }).click();
-    const dialog = page.getByRole('dialog', { name: copy.offers.confirmTitle, exact: true });
+    const acceptName = copy.offers.accept.replace('{price}', '96.48');
+    await page.getByRole('button', { name: copy.offers.review.replace('{price}', '96'), exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: copy.offers.confirmTitle.replace('{seller}', '0x5555…5555'), exact: true });
     await dialog.getByRole('button', { name: acceptName, exact: true }).click();
     await expect(dialog.getByRole('alert')).toHaveText(copy.offers.errors.topUp);
     await expect.poll(unavailable === 'buyer balance' ? world.buyerReadFailures : world.activationReadFailures).toBeGreaterThan(0);
@@ -439,9 +441,9 @@ for (const scenario of [
     else edgeOffer.fundedUsdc = scenario.fundedUsdc;
     await open(page, { role: 'buyer', offers: [edgeOffer],
       balances: { ...funded, [BUYER_AGENT.toLowerCase()]: scenario.buyer }, accept: { status: 409, code: 'INSUFFICIENT_AGENT_BALANCE' } });
-    await page.getByRole('button', { name: /Accept 0x5555/ }).click();
+    await page.getByRole('button', { name: /Review offer/ }).click();
     const dialog = page.getByRole('dialog');
-    await dialog.getByRole('button', { name: /Accept 0x5555/ }).click();
+    await dialog.getByRole('button', { name: /Accept and pay/ }).click();
     await expect(dialog.getByRole('alert')).toHaveText(topUpMessages.en.offers.errors.topUp);
     if (scenario.amount) {
       await expect(dialog.getByRole('button', { name: `Top up ${scenario.amount} USDC`, exact: true })).toBeVisible();
@@ -457,4 +459,28 @@ test('signed-out visitor sees the count and a sign-in, never prices of offers', 
   await expect(page.getByText('2 offers')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Sign in to make an offer' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Make an offer' })).toHaveCount(0);
+});
+
+import { en } from '../shared/i18n/messages/en';
+import { fr } from '../shared/i18n/messages/fr';
+import { ar } from '../shared/i18n/messages/ar';
+import { hi } from '../shared/i18n/messages/hi';
+import { sw } from '../shared/i18n/messages/sw';
+const batch3Locales = [['en', en], ['fr', fr], ['ar', ar], ['hi', hi], ['sw', sw]] as const;
+for (const [lang, messages] of batch3Locales) test('Batch 3 offer review and commitment '+lang, async ({page},info) => {
+ const world = await open(page,{role:'buyer',offers:[offer('o-language',SELLER_A,'96',1)]});
+ await page.context().addCookies([{ name: 'karwan-locale', value: lang, domain: '127.0.0.1', path: '/' }]);
+ await page.addInitScript(() => {localStorage.setItem('karwan:guide:disabled','1');localStorage.setItem('karwan-theme','light');});
+ await page.reload();
+ const review = page.getByRole('button',{name:messages.offers.review.replace('{price}','96')});
+ await expect(review).toBeVisible();
+ await review.click();
+ expect(world.acceptCalls()).toBe(0);
+ const dialog = page.getByRole('dialog');
+ await expect(dialog.getByRole('button',{name:messages.offers.accept.replace('{price}','96.48')})).toBeVisible();
+ await expect(page.locator('.karwan-splash-mark')).toHaveCount(0);
+ await page.evaluate(() => document.fonts.ready);
+ expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+
+ await page.screenshot({path:info.outputPath('offer-confirm-'+lang+'.png'),fullPage:true});
 });

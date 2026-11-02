@@ -2,10 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { KARWAN_ASSISTANT_SYSTEM, KARWAN_PRODUCT_IDENTITY } from './knowledge.js';
 
-test('assistant leads with unified reputation and its open market for local and cross-border trade', () => {
+test('assistant explains the trust layer before its technology', () => {
   assert.equal(
     KARWAN_PRODUCT_IDENTITY,
-    'Karwan unifies online reputation, starting with an open market for secure local and cross-border trade.',
+    'Karwan is building a trust layer for online and cross-border trade. Buyers and sellers can find each other, review available records and agree terms before funding USDC escrow.',
   );
   assert.match(KARWAN_ASSISTANT_SYSTEM, /buy or sell services and digital work today, local or cross-border/);
   assert.match(KARWAN_ASSISTANT_SYSTEM, /physical goods and business trade are coming soon/);

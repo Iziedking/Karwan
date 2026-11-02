@@ -1812,7 +1812,7 @@ export const sw: Messages = {
       buyerLabel: 'Mnunuzi',
       sellerLabel: 'Muuzaji',
       viewProfile: 'Tazama wasifu',
-      creditPassport: 'Pasipoti ya mkopo',
+      creditPassport: "Historia ya biashara",
       onX: 'Kwenye X',
       more: 'Zaidi',
       record: {
@@ -2713,7 +2713,7 @@ export const sw: Messages = {
     },
   },
   creditPassport: {
-    eyebrow: 'Pasipoti ya mkopo',
+    eyebrow: "Historia ya biashara",
     fallbackName: 'Pochi ya Karwan',
     copyAddressTitle: 'Nakili anwani',
     copyAddressIdle: 'nakili',
@@ -3470,7 +3470,7 @@ export const sw: Messages = {
     confirm: {
       cannotUndo: 'Hili haliwezi kutenduliwa.',
       confirm: 'Thibitisha',
-      cancel: 'Ghairi',
+      cancel: "Si sasa",
       working: 'Inaendelea',
       failed: 'Haikufanikiwa. Angalia maendeleo hapo juu kabla ya kujaribu tena.',
     },
@@ -4097,7 +4097,7 @@ export const sw: Messages = {
     scoreMaxTemplate: '/ {max}',
     unratedLabel: 'haijapimwa',
     compositeFootnote: 'Imetokana na historia ya mikataba, dhamana ya mpango na muda kwenye Karwan. Imerekodiwa kwenye Arc.',
-    creditPassportLink: 'Pasi ya mkopo',
+    creditPassportLink: "Historia ya biashara",
     stats: {
       success: 'Imefanikiwa',
       disputed: 'Imepingwa',

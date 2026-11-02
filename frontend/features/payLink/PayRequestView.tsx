@@ -405,6 +405,7 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
       </div>
       {request.purpose ? <p className="mt-3 text-[15px] text-[var(--lp-dark)]">{fill(copy.forTemplate, { purpose: request.purpose })}</p> : null}
 
+      <p data-direct-payment className="mt-4 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{fill(copy.directPayment, { name })}</p>
       <p className="mt-8 text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.payWith}</p>
       <div role="radiogroup" aria-label={copy.payWith} className="mt-2 space-y-2">
         {viaAccount ? (

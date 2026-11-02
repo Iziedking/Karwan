@@ -229,10 +229,10 @@ function OfferDetails({ entry, place, canChoose, onClose, onChoose }: {
               <button
                 type="button"
                 onClick={() => onChoose(entry)}
-                aria-label={`${rf.accept} ${entry.name}`}
+                aria-label={`${rf.reviewOffer} ${entry.name}`}
                 className="inline-flex min-h-12 items-center rounded-full bg-[var(--action)] px-6 text-[15px] font-semibold text-[var(--on-action)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-offset-2"
               >
-                {rf.accept}
+                {rf.reviewOffer}
               </button>
             ) : null}
             {v.profileHref ? (

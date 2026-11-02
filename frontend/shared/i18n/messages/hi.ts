@@ -1813,7 +1813,7 @@ export const hi: Messages = {
       buyerLabel: 'क्रेता',
       sellerLabel: 'विक्रेता',
       viewProfile: 'प्रोफ़ाइल देखें',
-      creditPassport: 'क्रेडिट पासपोर्ट',
+      creditPassport: "व्यापार रिकॉर्ड",
       onX: 'X पर',
       more: 'और',
       record: {
@@ -2714,7 +2714,7 @@ export const hi: Messages = {
     },
   },
   creditPassport: {
-    eyebrow: 'क्रेडिट पासपोर्ट',
+    eyebrow: "व्यापार रिकॉर्ड",
     fallbackName: 'कारवान वॉलेट',
     copyAddressTitle: 'पता कॉपी करें',
     copyAddressIdle: 'कॉपी',
@@ -3471,7 +3471,7 @@ export const hi: Messages = {
     confirm: {
       cannotUndo: 'इसे वापस नहीं किया जा सकता।',
       confirm: 'पुष्टि करें',
-      cancel: 'रद्द करें',
+      cancel: "अभी नहीं",
       working: 'हो रहा है',
       failed: 'यह पूरा नहीं हुआ। फिर कोशिश करने से पहले ऊपर प्रगति देखें।',
     },
@@ -4098,7 +4098,7 @@ export const hi: Messages = {
     scoreMaxTemplate: '/ {max}',
     unratedLabel: 'अनरेटेड',
     compositeFootnote: 'डील इतिहास, डील गारंटी और Karwan पर बिताए समय से बनी। Arc पर दर्ज।',
-    creditPassportLink: 'क्रेडिट पासपोर्ट',
+    creditPassportLink: "व्यापार रिकॉर्ड",
     stats: {
       success: 'सफल',
       disputed: 'विवादित',

@@ -1150,7 +1150,7 @@ const REQUEST_PAGE_DONE: Partial<Record<AssistantConfirmAction['intent'], string
   make_offer: 'Offer sent. The buyer sees it now.',
   withdraw_offer: 'Offer withdrawn.',
   lower_offer: 'Offer lowered. The buyer sees the new price.',
-  accept_offer: 'Offer taken. The escrow is paid and the deal is live.',
+  accept_offer: 'Offer accepted. Open the deal to check its payment status.',
   near_miss_proceed: 'Done. The deal starts at that price.',
   near_miss_pass: 'Passed. The request stays open for other offers.',
   reconsider_offer: 'Brought back. Say go ahead when you are ready.',

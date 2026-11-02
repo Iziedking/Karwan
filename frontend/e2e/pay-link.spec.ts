@@ -100,6 +100,7 @@ test('any signed-in account creates a link that lasts a week', async ({ page }) 
   await mockApi(page, { signedInAs: BUYER, onCreate: (body) => (created = body) });
   await page.goto('/request');
   await expect(page.getByRole('heading', { name: copy.create.title })).toBeVisible();
+  await expect(page.getByText(copy.create.directNote)).toBeVisible();
   const create = page.getByRole('button', { name: copy.create.create });
   await expect(create).toBeDisabled();
   await page.getByPlaceholder('0').fill('10');
@@ -140,6 +141,7 @@ const SOLANA = 'So1anaReceive1111111111111111111111111111';
 test('pay with: wallet first, any chain when available, and nothing promised that is not live', async ({ page }) => {
   await mockApi(page, { request: { ...openRequest, anyChain: true } });
   await page.goto(`/deposit/request/${TOKEN}`);
+  await expect(page.locator('[data-direct-payment]')).toHaveText(copy.pay.directPayment.replace('{name}', '@izieking'));
   const options = page.getByRole('radiogroup', { name: copy.pay.payWith });
   await expect(options.getByRole('radio', { name: new RegExp(copy.pay.optWallet) })).toHaveAttribute('aria-checked', 'true');
   await expect(options.getByRole('radio', { name: new RegExp(copy.pay.optChain) })).toBeVisible();
@@ -206,4 +208,31 @@ test('a paid request saves its receipt as an image', async ({ page }) => {
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: copy.pay.saveReceipt }).click();
   expect((await download).suggestedFilename()).toMatch(/^karwan-receipt-.+\.png$/);
+});
+
+import { fr } from '../shared/i18n/messages/fr';
+import { ar } from '../shared/i18n/messages/ar';
+import { hi } from '../shared/i18n/messages/hi';
+import { sw } from '../shared/i18n/messages/sw';
+const batch3Locales = [['en', en], ['fr', fr], ['ar', ar], ['hi', hi], ['sw', sw]] as const;
+for (const [lang, messages] of batch3Locales) test('Batch 3 direct payment clarity '+lang, async ({page},info) => {
+ await page.context().addCookies([{ name: 'karwan-locale', value: lang, domain: '127.0.0.1', path: '/' }]);
+ await page.addInitScript(() => {localStorage.setItem('karwan:guide:disabled','1');localStorage.setItem('karwan-theme','light');});
+ await mockApi(page);
+ await page.goto('/deposit/request/'+TOKEN);
+ await expect(page.locator('[data-direct-payment]')).toHaveText(messages.payLink.pay.directPayment.replace('{name}','@izieking'));
+ await expect(page.locator('.karwan-splash-mark')).toHaveCount(0);
+ await page.evaluate(() => document.fonts.ready);
+ expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+
+ await page.screenshot({path:info.outputPath('payment-'+lang+'.png'),fullPage:true});
+ await mockApi(page,{signedInAs:BUYER});
+ await page.goto('/request');
+ await expect(page.getByText(messages.payLink.create.directNote)).toBeVisible();
+ await expect(page.getByRole('button',{name:messages.payLink.create.create})).toBeVisible();
+ await expect(page.locator('.karwan-splash-mark')).toHaveCount(0);
+ await page.evaluate(() => document.fonts.ready);
+ expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+
+ await page.screenshot({path:info.outputPath('create-'+lang+'.png'),fullPage:true});
 });

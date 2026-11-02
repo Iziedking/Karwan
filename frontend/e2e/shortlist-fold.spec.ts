@@ -28,8 +28,10 @@ const entry = (rank: number, name: string, priceUsdc: number) => ({
   isNew: true,
 });
 
-test('offers are one line each in the agent order, the pick marked, and a tap shows the rest (view 46)', async ({ page }) => {
+test('offers are one line each in the agent order, the pick marked, and a tap shows the rest (view 46)', async ({ page }, info) => {
+  let choices = 0;
   await serveSearch(page, {
+    chooseOffer: async route => { choices += 1; await route.fulfill({json:{accepted:true,jobId:JOB}}); },
     balances: funded,
     job: makeJob({
       budgetUsdc: '100',
@@ -58,11 +60,16 @@ test('offers are one line each in the agent order, the pick marked, and a tap sh
   const details = page.getByRole('dialog').filter({ has: page.getByRole('heading', { name: 'Realnica' }) });
   await expect(details.getByText('Not verified · New')).toBeVisible();
   await expect(details.getByText('Logo work · 14 days')).toBeVisible();
-  await details.getByRole('button', { name: 'Accept Realnica' }).click();
-  const sheet = page.getByRole('dialog').filter({ has: page.getByRole('heading', { name: 'Accept the offer from Realnica?' }) });
-  for (const label of ['For', 'To', 'Price', 'Delivers in', 'Held by']) await expect(sheet.getByText(label, { exact: true })).toBeVisible();
+  await details.getByRole('button', { name: 'Review and accept Realnica' }).click();
+  const sheet = page.getByRole('dialog').filter({ has: page.getByRole('heading', { name: 'Accept the offer from Realnica and fund the deal?' }) });
+  for (const label of ['For', 'To', 'Price', 'Delivers in', 'Payment']) await expect(sheet.getByText(label, { exact: true })).toBeVisible();
   await expect(sheet.getByText('96 USDC', { exact: true })).toBeVisible();
+  await expect(sheet.getByRole('button', { name: 'Accept and fund deal' })).toBeVisible();
+  expect(choices).toBe(0);
+  await expect(page.locator('.karwan-splash-mark')).toHaveCount(0);
+  await page.screenshot({path:info.outputPath('shortlist-review.png'),fullPage:true});
   await sheet.getByRole('button', { name: 'Not now' }).click();
+  expect(choices).toBe(0);
   await expect(page.getByRole('dialog')).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
 });
@@ -123,12 +130,12 @@ test('choosing a seller who is not verified says so, then goes ahead on Confirm'
   await page.goto(`/jobs/${JOB}`);
   await page.getByText('1 offer so far').first().click();
   await page.getByRole('button', { name: /Pamcollins/ }).first().click();
-  await page.getByRole('button', { name: 'Choose Pamcollins for 90 USDC' }).click();
-  await page.getByRole('button', { name: 'Confirm', exact: true }).click();
+  await page.getByRole('button', { name: 'Review offer from Pamcollins · 90 USDC' }).click();
+  await page.getByRole('button', { name: 'Accept and fund deal', exact: true }).click();
 
   await expect(page.getByRole('note').filter({ hasText: 'Pamcollins is not verified' })).toBeVisible();
   await expect(page.getByText('This offer could not be chosen')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Confirm', exact: true }).click();
+  await page.getByRole('button', { name: 'Accept and fund deal', exact: true }).click();
   await expect.poll(() => sent.length).toBe(2);
   expect(sent[1]?.acknowledgeUnverified).toBe(true);
 });
@@ -159,4 +166,27 @@ test("an offer shows the seller's sealed record as reasons, never empty count bo
   await expect(record).toContainText('No lost disputes');
   await expect(page.getByText('Deals settled')).toHaveCount(0);
   await expect(page.getByText('Delivers by')).toBeVisible();
+});
+
+import { en } from '../shared/i18n/messages/en';
+import { fr } from '../shared/i18n/messages/fr';
+import { ar } from '../shared/i18n/messages/ar';
+import { hi } from '../shared/i18n/messages/hi';
+import { sw } from '../shared/i18n/messages/sw';
+const batch3Locales = [['en', en], ['fr', fr], ['ar', ar], ['hi', hi], ['sw', sw]] as const;
+for (const [lang, messages] of batch3Locales) test('Batch 3 shortlist funding warning '+lang, async ({page},info) => {
+ await page.context().addCookies([{ name: 'karwan-locale', value: lang, domain: '127.0.0.1', path: '/' }]);
+ await page.addInitScript(() => {localStorage.setItem('karwan:guide:disabled','1');localStorage.setItem('karwan-theme','light');});
+ await serveSearch(page,{balances:funded,job:makeJob({budgetUsdc:'100',bids:[{seller:'0x'+'1'.repeat(40),priceUsdc:'96',deadlineUnix:Math.floor(Date.now()/1000)+6*86400,score:70,suggestedCounterPrice:null,suggestedCounterDeadlineDays:null,sellerTier:'new',sellerUserAddress:null,sellerDisplayName:'Realnica',topicalMatch:80}]}),shortlist:{entries:[entry(1,'Realnica',96)],closed:false}});
+ await page.goto('/jobs/'+JOB);
+ await page.locator('[data-guide="job-shortlist"] li > button').first().click();
+ await page.getByRole('button',{name:messages.requestFlow.reviewOffer+' Realnica',exact:true}).click();
+ const sheet=page.getByRole('dialog');
+ await expect(sheet.getByText(messages.shortlist.unverifiedWarning.replace('{name}','Realnica'))).toBeVisible();
+ await expect(sheet.getByRole('button',{name:messages.requestFlow.accept,exact:true})).toBeVisible();
+ await expect(page.locator('.karwan-splash-mark')).toHaveCount(0);
+ await page.evaluate(() => document.fonts.ready);
+ expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+
+ await page.screenshot({path:info.outputPath('shortlist-'+lang+'.png'),fullPage:true});
 });
