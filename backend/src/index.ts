@@ -163,11 +163,13 @@ import {
   liveCollection,
   closeCollectionFromTask,
   reseedJobFromChain,
+  liveCounter,
+  moveOnFromCounterTask,
+  resumeFromCounterTask,
 } from './agents/buyer.js';
-import {
-  configureCollectionCloseScheduler,
-  createCollectionCloseHandlers,
-} from './agents/collectionClose.js';
+import { createCollectionCloseHandlers } from './agents/collectionClose.js';
+import { createCounterWaitHandlers } from './agents/counterTimeout.js';
+import { configureDurableTimers } from './agents/durableTimers.js';
 import {
   startSellerAgents,
   hydrateActiveBids,
@@ -1114,6 +1116,13 @@ async function boot() {
         reseed: (jobId) => reseedJobFromChain(jobId, { openOnly: true }),
         close: closeCollectionFromTask,
       }),
+      // Live: the wait for a seller's reply to a counter.
+      ...createCounterWaitHandlers({
+        live: liveCounter,
+        reseed: (jobId) => reseedJobFromChain(jobId, { openOnly: true }),
+        moveOn: moveOnFromCounterTask,
+        resume: resumeFromCounterTask,
+      }),
       ...createBuyerTimerShadowHandlers(buyerSnapshotStore, {
         parityStore: buyerParityStore,
       }),
@@ -1413,8 +1422,8 @@ async function boot() {
       }),
     );
     appLogger.info({ handlerCount: Object.keys(taskHandlers).length }, 'V2 durable task runner started');
-    stopFns.push(configureCollectionCloseScheduler((input) => taskStore.enqueue(input)));
-    appLogger.info('offer window closes run as durable tasks');
+    stopFns.push(configureDurableTimers((input) => taskStore.enqueue(input)));
+    appLogger.info('offer window closes and counter waits run as durable tasks');
   } else if (config.AGENT_RUNTIME_V2_ENABLED) {
     appLogger.error('V2 durable task runner not started because Postgres schema is unavailable');
   } else if (config.MATCH_ENGINE_V2_SHADOW) {

@@ -6,14 +6,12 @@ import {
   type CollectionClose,
   type CollectionClosePort,
   type LiveCollection,
-  RELOAD_GRACE_MS,
-  RELOAD_RETRY_MS,
   armClose,
   collectionCloseTask,
-  configureCollectionCloseScheduler,
   createCollectionCloseHandlers,
   planClose,
 } from './collectionClose.js';
+import { RELOAD_GRACE_MS, RELOAD_RETRY_MS, configureDurableTimers } from './durableTimers.js';
 
 const JOB = '0xAbC0000000000000000000000000000000000000000000000000000000000001';
 const close: CollectionClose = { jobId: JOB, scheduleVersion: 1_700_000_000_000_001, closeAt: 1_000_000, startedAt: 955_000 };
@@ -178,7 +176,7 @@ test('a retry after a close that threw late sees the window fired and stops', as
 
 test('with the durable runtime on, arming enqueues the task and starts no timer', async () => {
   const enqueued: unknown[] = [];
-  const off = configureCollectionCloseScheduler(async (input) => {
+  const off = configureDurableTimers(async (input) => {
     enqueued.push(input);
   });
   try {
@@ -196,7 +194,7 @@ test('with the durable runtime on, arming enqueues the task and starts no timer'
 });
 
 test('a failed enqueue falls back to the timer, so the window still closes', async () => {
-  const off = configureCollectionCloseScheduler(async () => {
+  const off = configureDurableTimers(async () => {
     throw new Error('database down');
   });
   try {

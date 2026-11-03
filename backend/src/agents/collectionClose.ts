@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { RuntimeData } from '../db/agentRuntime.js';
-import { logger } from '../logger.js';
 import type { DurableTaskHandler, EnqueueTaskInput } from './durableTaskRunner.js';
+import { RELOAD_GRACE_MS, RELOAD_RETRY_MS, armDurable } from './durableTimers.js';
 
 /// The close of a request's offer window, as a durable task (view 48, step 7).
 /// It survives a restart: the in-process timer it replaces did not.
@@ -58,33 +58,9 @@ export function collectionCloseTask(close: CollectionClose, now?: number): Enque
   };
 }
 
-type Enqueue = (input: EnqueueTaskInput) => Promise<unknown>;
-let scheduler: Enqueue | null = null;
-
-/// Set when the durable runtime is running. Passing null goes back to timers.
-export function configureCollectionCloseScheduler(enqueue: Enqueue | null): () => void {
-  scheduler = enqueue;
-  return () => {
-    if (scheduler === enqueue) scheduler = null;
-  };
-}
-
-/// Arms a window's close. Returns true when the durable task owns it. A failed
-/// enqueue falls back to the timer, so an auction always closes.
+/// Arms a window's close. Returns true when the durable task owns it.
 export function armClose(close: CollectionClose, armTimer: () => void): boolean {
-  const enqueue = scheduler;
-  if (!enqueue) {
-    armTimer();
-    return false;
-  }
-  void enqueue(collectionCloseTask(close)).catch((err) => {
-    logger.warn(
-      { jobId: close.jobId, err: (err as Error).message },
-      'offer window close could not be queued, using a timer',
-    );
-    armTimer();
-  });
-  return true;
+  return armDurable(collectionCloseTask(close), armTimer);
 }
 
 export interface CollectionClosePort {
@@ -92,11 +68,6 @@ export interface CollectionClosePort {
   reseed(jobId: string): Promise<boolean>;
   close(task: CollectionClose, adopt: boolean): Promise<void>;
 }
-
-/// How long a close waits for its request to be loaded back after a restart.
-/// The boot reload and the task can race; the task waits instead of giving up.
-export const RELOAD_GRACE_MS = 120_000;
-export const RELOAD_RETRY_MS = 5_000;
 
 export function createCollectionCloseHandlers(
   port: CollectionClosePort,

@@ -87,6 +87,7 @@ import type {
 import { countCleanDealsBetween } from './workRecord.js';
 import { pendingEvaluations } from './evaluationTracker.js';
 import { type CollectionClose, type LiveCollection, armClose } from './collectionClose.js';
+import { type CounterWait, type LiveCounter, armCounterWait } from './counterTimeout.js';
 
 /// Hard cap on how many seller candidates the buyer agent will attempt
 /// sequentially on a single brief. Without this, a 10-bid auction could
@@ -1034,6 +1035,12 @@ function publishLegacyRaisedOfferNegotiationShadow(
       'legacy raised-offer negotiation shadow observation failed',
     );
   });
+}
+
+/// A counter is in flight while the agent waits on a seller's reply, whether a
+/// timer or a durable task holds the wait.
+function counterInFlight(state: JobState): boolean {
+  return state.counterWatchdogSeller !== undefined;
 }
 
 /// Cancels a pending counter-response watchdog. Safe to call when none is
@@ -2187,7 +2194,7 @@ async function publishShortlist(
   // or when it expires, never on the first look at the offers.
   if (!recommended) return;
   const head = rankedEntries.find((e) => e.bid.seller === recommended.seller)?.bid;
-  const mayCounter = opts.counter || (changed && !state.counterWatchdog && !state.finalized && !state.escrowFunded);
+  const mayCounter = opts.counter || (changed && !counterInFlight(state) && !state.finalized && !state.escrowFunded);
   if (!head || !mayCounter || state.triedSellers.has(head.seller)) return;
   state.candidateQueue = [head];
   await issueCounter(state, head);
@@ -2286,7 +2293,7 @@ export async function rejudgeOffers(jobId: string): Promise<'rejudge' | 'rank-on
     escrowFunded: state.escrowFunded,
     expired: !!state.expired,
     nearMissPending: !!getPendingNearMiss(jobId),
-    counterInFlight: !!state.counterWatchdog,
+    counterInFlight: counterInFlight(state),
     offers: ranked.length,
   });
   // Before the offer window closes the window ranks them itself, with the new terms.
@@ -3308,50 +3315,92 @@ async function issueCounter(state: JobState, bid: Bid) {
       dueAt: watchdogDueAt,
     },
   };
-  state.counterWatchdog = setTimeout(() => {
-    const observedAt = Date.now();
-    const paritySnapshot = buyerTimerParityObserver
-      ? buildBuyerRuntimeSnapshot(state, observedAt)
-      : null;
-    state.counterWatchdog = null;
-    if (state.finalized || state.expired) {
-      if (paritySnapshot) {
-        publishBuyerTimerParity(
-          paritySnapshot,
-          shadowSchedule,
-          { action: 'stale', reason: 'already-finished' },
-          observedAt,
-        );
-      }
-      return;
+  const version = state.counterScheduleVersion;
+  const ownedByTask = armCounterWait(
+    { jobId: state.jobId, seller: watchedSeller, scheduleVersion: version, round: watchdogRound, dueAt: watchdogDueAt },
+    () => {
+      if (state.counterScheduleVersion !== version) return;
+      if (state.counterWatchdog) clearTimeout(state.counterWatchdog);
+      state.counterWatchdog = setTimeout(() => {
+        if (state.counterScheduleVersion === version) counterWaitEnded(state, watchedSeller, shadowSchedule);
+      }, Math.max(0, watchdogDueAt - Date.now()));
+    },
+  );
+  publishBuyerTimerShadow(state, ownedByTask ? undefined : shadowSchedule);
+}
+
+/// The seller did not answer the counter in time: move on to the next seller.
+function counterWaitEnded(
+  state: JobState,
+  watchedSeller: string,
+  shadowSchedule?: Extract<BuyerTimerParitySchedule, { kind: 'counter-timeout' }>,
+): void {
+  const observedAt = Date.now();
+  const paritySnapshot = shadowSchedule && buyerTimerParityObserver
+    ? buildBuyerRuntimeSnapshot(state, observedAt)
+    : null;
+  state.counterWatchdog = null;
+  if (state.finalized || state.expired) {
+    if (paritySnapshot && shadowSchedule) {
+      publishBuyerTimerParity(paritySnapshot, shadowSchedule, { action: 'stale', reason: 'already-finished' }, observedAt);
     }
-    if (state.triedSellers.has(watchedSeller)) {
-      if (paritySnapshot) {
-        publishBuyerTimerParity(
-          paritySnapshot,
-          shadowSchedule,
-          { action: 'stale', reason: 'seller-already-answered' },
-          observedAt,
-        );
-      }
-      return;
+    return;
+  }
+  if (state.triedSellers.has(watchedSeller as `0x${string}`)) {
+    if (paritySnapshot && shadowSchedule) {
+      publishBuyerTimerParity(paritySnapshot, shadowSchedule, { action: 'stale', reason: 'seller-already-answered' }, observedAt);
     }
-    logger.warn(
-      { jobId: state.jobId, seller: watchedSeller, timeoutMs: COUNTER_RESPONSE_TIMEOUT_MS },
-      'no counter response within watchdog window, cascading to next candidate',
-    );
-    safe('counterWatchdog', () =>
-      tryNextCandidate(
-        state,
-        watchedSeller,
-        'no-response-timeout',
-        paritySnapshot
-          ? { schedule: shadowSchedule, snapshot: paritySnapshot, observedAt }
-          : undefined,
-      ),
-    );
-  }, COUNTER_RESPONSE_TIMEOUT_MS);
-  publishBuyerTimerShadow(state, shadowSchedule);
+    return;
+  }
+  logger.warn(
+    { jobId: state.jobId, seller: watchedSeller, timeoutMs: COUNTER_RESPONSE_TIMEOUT_MS },
+    'no counter response within watchdog window, cascading to next candidate',
+  );
+  safe('counterWatchdog', () =>
+    tryNextCandidate(
+      state,
+      watchedSeller as `0x${string}`,
+      'no-response-timeout',
+      paritySnapshot && shadowSchedule
+        ? { schedule: shadowSchedule, snapshot: paritySnapshot, observedAt }
+        : undefined,
+    ),
+  );
+}
+
+/// What the agent holds for a request and the seller it countered, for the
+/// durable counter wait.
+export function liveCounter(jobId: string, seller: string): LiveCounter | null {
+  const state = jobs.get(jobId as `0x${string}`);
+  if (!state) return null;
+  const silent = seller.toLowerCase();
+  const otherOffers = [...state.bids.values()].filter(
+    (bid) => bid.seller.toLowerCase() !== silent && !state.triedSellers.has(bid.seller),
+  ).length;
+  return {
+    scheduleVersion: state.counterScheduleVersion,
+    ...(state.counterWatchdogDueAt !== undefined ? { dueAt: state.counterWatchdogDueAt } : {}),
+    finalized: state.finalized,
+    expired: state.expired,
+    sellerTried: state.triedSellers.has(seller as `0x${string}`),
+    otherOffers,
+  };
+}
+
+/// The counter wait ended in this process: move on, exactly as the timer did.
+export async function moveOnFromCounterTask(task: CounterWait): Promise<void> {
+  const state = jobs.get(task.jobId as `0x${string}`);
+  if (state) counterWaitEnded(state, task.seller);
+}
+
+/// The counter wait ended after a restart. The queue of sellers was lost with
+/// the process, so the silent seller is passed over and the offers brought
+/// back are ranked again, as the live cascade would have done.
+export async function resumeFromCounterTask(task: CounterWait): Promise<void> {
+  const state = jobs.get(task.jobId as `0x${string}`);
+  if (!state) return;
+  state.triedSellers.add(task.seller as `0x${string}`);
+  await finalizeBidCollection(state);
 }
 
 async function handleCounterResponse(log: Log) {
