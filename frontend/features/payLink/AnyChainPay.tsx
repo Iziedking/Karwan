@@ -7,10 +7,11 @@ import { cn } from '@/shared/utils/cn';
 import { fill } from '@/features/deals/workspace/presentation';
 import { Qr, Watching } from '@/features/deposit/components/DepositCard';
 import { moneySounds } from '@/shared/sound/moneySounds';
+import { buttonClasses } from '@/shared/components/Button';
+import { CARD_CLASS } from '@/shared/components/Card';
 import { chainPayState } from './chainPayState';
 
-const PRIMARY =
-  'flex min-h-14 w-full items-center justify-center rounded-full bg-[var(--lp-accent)] px-5 text-[16px] font-bold text-[#10170b] transition-opacity disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]';
+const PRIMARY = buttonClasses({ size: 'lg', className: 'w-full' });
 
 /// Pay a request from an exchange or any wallet: the request's own address,
 /// the exact amount, and the money followed live until it reaches the
@@ -63,27 +64,27 @@ export function AnyChainPay({ token, request, name, onDelivered }: {
     moneySounds.outcome('success', { ids: [`${token}:delivered`] });
   }, [state.phase, token]);
 
-  if (failed) return <p role="status" className="mt-6 text-[14px] font-medium text-[var(--lp-text-sub)]">{copy.chainError}</p>;
+  if (failed) return <p role="status" className="mt-6 text-[14px] font-medium text-[var(--ink-secondary)]">{copy.chainError}</p>;
 
   if (state.phase === 'moving' || state.phase === 'delayed' || state.phase === 'delivered') {
     return (
-      <ol className="mt-6 space-y-4">
-        <Step done label={fill(copy.stepReceived, { chain: state.chain })} />
-        <Step
-          done={state.phase === 'delivered'}
-          active={state.phase === 'moving'}
-          label={copy.stepMoving}
-          sub={state.phase === 'delayed' ? fill(copy.stepDelayed, { chain: state.chain }) : copy.stepMovingSub}
-        />
-        <Step done={state.phase === 'delivered'} label={fill(copy.stepPaid, { name })} />
+      <div className="mt-6 space-y-5">
+        <ol className={`${CARD_CLASS} space-y-4 px-5 py-4`}>
+          <Step done label={fill(copy.stepReceived, { chain: state.chain })} />
+          <Step
+            done={state.phase === 'delivered'}
+            active={state.phase === 'moving'}
+            label={copy.stepMoving}
+            sub={state.phase === 'delayed' ? fill(copy.stepDelayed, { chain: state.chain }) : copy.stepMovingSub}
+          />
+          <Step done={state.phase === 'delivered'} label={fill(copy.stepPaid, { name })} />
+        </ol>
         {state.phase === 'delivered' ? (
-          <li className="list-none pt-4">
-            <button type="button" onClick={() => onDelivered(current)} className={PRIMARY}>{copy.done}</button>
-          </li>
+          <button type="button" onClick={() => onDelivered(current)} className={PRIMARY}>{copy.done}</button>
         ) : (
-          <li className="list-none pt-2 text-[14px] font-medium text-[var(--lp-text-sub)]">{fill(copy.canClose, { name })}</li>
+          <p className="text-[14px] font-medium text-[var(--ink-secondary)]">{fill(copy.canClose, { name })}</p>
         )}
-      </ol>
+      </div>
     );
   }
 
@@ -102,7 +103,7 @@ export function AnyChainPay({ token, request, name, onDelivered }: {
   return (
     <section className="mt-6">
       {state.phase === 'part' ? (
-        <p role="status" className="mb-4 text-[15px] font-medium text-[var(--lp-dark)]">
+        <p role="status" className="mb-4 text-[15px] font-medium text-[var(--ink)]">
           {fill(copy.partReceived, { got: state.got, total: state.total, left: state.sendUsdc })}
         </p>
       ) : null}
@@ -116,10 +117,10 @@ export function AnyChainPay({ token, request, name, onDelivered }: {
               aria-checked={family === key}
               onClick={() => setFamily(key)}
               className={cn(
-                'min-h-11 flex-1 rounded-full border text-[14px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]',
+                'min-h-11 flex-1 rounded-full border text-[14px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]',
                 family === key
-                  ? 'border-[var(--lp-accent)] text-[var(--lp-dark)] shadow-[inset_0_0_0_1px_var(--lp-accent)]'
-                  : 'border-[var(--lp-border-light)] text-[var(--lp-text-sub)]',
+                  ? 'border-[var(--ink)] text-[var(--ink)] shadow-[inset_0_0_0_1px_var(--ink)]'
+                  : 'border-[var(--line)] text-[var(--ink-secondary)]',
               )}
             >
               {key === 'evm' ? copy.evmTab : copy.solanaTab}
@@ -131,19 +132,19 @@ export function AnyChainPay({ token, request, name, onDelivered }: {
         <div className="mt-5 flex flex-col items-center gap-5 sm:flex-row sm:items-start">
           <Qr value={address} label={deposit.qrAlt} />
           <div className="min-w-0 flex-1">
-            <p className="text-[14px] font-medium text-[var(--lp-text-sub)]">{copy.sendExactly}</p>
-            <p className="mt-1 text-[20px] font-semibold tabular-nums text-[var(--lp-dark)]">{"sendUsdc" in state ? state.sendUsdc : ""} USDC</p>
-            <p className="mt-3 break-all text-[14px] font-medium tabular-nums text-[var(--lp-dark)] select-all">{address}</p>
-            <p className="mt-3 text-[14px] font-medium text-[var(--lp-text-sub)]">{fill(copy.chainsLine, { chains: chains ?? '' })}</p>
+            <p className="text-[14px] font-medium text-[var(--ink-secondary)]">{copy.sendExactly}</p>
+            <p className="mt-1 text-[20px] font-semibold tabular-nums text-[var(--ink)]">{"sendUsdc" in state ? state.sendUsdc : ""} USDC</p>
+            <p className="mt-3 break-all text-[14px] font-medium tabular-nums text-[var(--ink)] select-all">{address}</p>
+            <p className="mt-3 text-[14px] font-medium text-[var(--ink-secondary)]">{fill(copy.chainsLine, { chains: chains ?? '' })}</p>
           </div>
         </div>
       ) : (
-        <div aria-busy className="mt-5 h-[168px] rounded-[16px] bg-[var(--lp-light)] motion-safe:animate-pulse" />
+        <div aria-busy className="mt-5 h-[168px] rounded-[16px] bg-[var(--raised)] motion-safe:animate-pulse" />
       )}
       <button type="button" onClick={() => void copyAddress()} disabled={!address} className={cn(PRIMARY, 'mt-8')}>
         {copied ? copy.copiedAddress : copy.copyAddress}
       </button>
-      <div className="mt-5 border-t border-[var(--lp-border-light)] pt-4">
+      <div className="mt-5 border-t border-[var(--line)] pt-4">
         <Watching label={copy.watching} />
       </div>
     </section>
@@ -157,8 +158,8 @@ function Step({ label, sub, done, active }: { label: string; sub?: string; done?
         aria-hidden
         className={cn(
           'mt-1 grid size-5 shrink-0 place-items-center rounded-full border',
-          done ? 'border-[var(--color-positive)] bg-[var(--color-positive)] text-white' : 'border-[var(--lp-border-light)]',
-          active && 'border-[var(--lp-accent)] motion-safe:animate-pulse',
+          done ? 'border-[var(--ink)] bg-[var(--ink)] text-[var(--canvas)]' : 'border-[var(--line-strong)]',
+          active && 'border-[var(--ink)] motion-safe:animate-pulse',
         )}
       >
         {done ? (
@@ -166,8 +167,8 @@ function Step({ label, sub, done, active }: { label: string; sub?: string; done?
         ) : null}
       </span>
       <span>
-        <span className={cn('block text-[15px] font-semibold', done || active ? 'text-[var(--lp-dark)]' : 'text-[var(--lp-text-sub)]')}>{label}</span>
-        {sub ? <span className="mt-0.5 block text-[14px] font-medium text-[var(--lp-text-sub)]">{sub}</span> : null}
+        <span className={cn('block text-[15px] font-semibold', done || active ? 'text-[var(--ink)]' : 'text-[var(--ink-secondary)]')}>{label}</span>
+        {sub ? <span className="mt-0.5 block text-[14px] font-medium text-[var(--ink-secondary)]">{sub}</span> : null}
       </span>
     </li>
   );

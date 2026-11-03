@@ -236,3 +236,50 @@ for (const [lang, messages] of batch3Locales) test('Batch 3 direct payment clari
 
  await page.screenshot({path:info.outputPath('create-'+lang+'.png'),fullPage:true});
 });
+
+/// Payment requests in the new look (view 48, batch 9d): one green button per screen.
+const greenControls = (page: Page) =>
+  page.evaluate(() => {
+    const probe = document.createElement('span');
+    probe.style.color = getComputedStyle(document.documentElement).getPropertyValue('--action').trim();
+    document.body.appendChild(probe);
+    const green = getComputedStyle(probe).color;
+    probe.remove();
+    return [...document.querySelectorAll<HTMLElement>('a, button')]
+      .filter((el) => el.offsetParent !== null && getComputedStyle(el).backgroundColor === green)
+      .map((el) => el.textContent?.trim() ?? '');
+  });
+
+test('9d: the payer page, signed out, has one green button and an ink pick', async ({ page }, info) => {
+  await mockApi(page, { request: { ...openRequest, anyChain: true } });
+  await page.goto(`/deposit/request/${TOKEN}`);
+  const picked = page.getByRole('radiogroup', { name: copy.pay.payWith }).getByRole('radio', { name: new RegExp(copy.pay.optWallet) });
+  await expect(picked).toHaveAttribute('aria-checked', 'true');
+  expect(await greenControls(page)).toEqual([copy.pay.connect]);
+  await expect(page.locator('.karwan-splash-mark')).toHaveCount(0);
+  await page.screenshot({ path: info.outputPath('payer.png'), fullPage: true });
+});
+
+test('9d: a new link is ready with Copy link as its one green button', async ({ page }, info) => {
+  await mockApi(page, { signedInAs: BUYER });
+  await page.goto('/request');
+  await expect(page.getByRole('button', { name: copy.create.create })).toBeVisible();
+  expect(await greenControls(page)).toEqual([copy.create.create]);
+  await page.getByPlaceholder('0').fill('120');
+  await page.getByPlaceholder(copy.create.forPlaceholder).fill('Logo, first draft');
+  await page.getByRole('button', { name: copy.create.create }).click();
+  await expect(page.getByRole('heading', { name: copy.create.ready })).toBeVisible();
+  await expect(page.getByText(`120 USDC · ${copy.pay.forTemplate.replace('{purpose}', 'Logo, first draft')}`)).toBeVisible();
+  expect(await greenControls(page)).toEqual([copy.create.copy]);
+  await expect(page.locator('.karwan-splash-mark')).toHaveCount(0);
+  await page.screenshot({ path: info.outputPath('ready.png'), fullPage: true });
+});
+
+test('9d: a paid request offers an account as its one green button', async ({ page }, info) => {
+  await mockApi(page, { request: { ...openRequest, status: 'matched', paidAt: Date.now(), paidChain: 'Base' } });
+  await page.goto(`/deposit/request/${TOKEN}`);
+  await expect(page.getByText(copy.pay.joinTitle)).toBeVisible();
+  expect(await greenControls(page)).toEqual([copy.pay.joinCta]);
+  await expect(page.locator('.karwan-splash-mark')).toHaveCount(0);
+  await page.screenshot({ path: info.outputPath('paid.png'), fullPage: true });
+});

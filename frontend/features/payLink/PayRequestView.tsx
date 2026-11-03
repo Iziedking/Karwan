@@ -31,13 +31,14 @@ import { downloadReceiptImage } from '@/features/activity/receiptPresentation';
 import { ARC_NETWORK } from '@/core/arcNetwork';
 import { LoginModal } from '@/shared/components/LoginModal';
 import { ProductBackLink } from '@/shared/components/ProductBackLink';
+import { buttonClasses } from '@/shared/components/Button';
+import { CARD_CLASS } from '@/shared/components/Card';
 
 type Source = 'arc' | CctpChainKey;
 /// How the payer pays: their Karwan balance, a connected wallet, or an address for any chain.
 type Method = 'account' | 'wallet' | 'chain';
 const ZERO = '0x0000000000000000000000000000000000000000';
-const PRIMARY =
-  'flex min-h-14 w-full items-center justify-center rounded-full bg-[var(--lp-accent)] px-5 text-[16px] font-bold text-[#10170b] transition-opacity disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]';
+const PRIMARY = buttonClasses({ size: 'lg', className: 'w-full' });
 
 /// The page a payment link opens. It pays this one request: who asks, how
 /// much, for what, from where, and one button. While the money moves it shows
@@ -58,11 +59,11 @@ export function PayRequestView({ token }: { token: string }) {
   return (
     <main className="product-surface min-h-[calc(100vh-7rem)]">
       <div className="mx-auto max-w-[480px] px-4 pb-16 pt-8 sm:px-6">
-        {view === 'loading' ? <div aria-busy className="h-[480px] rounded-[24px] bg-[var(--lp-card)] motion-safe:animate-pulse" /> : null}
+        {view === 'loading' ? <div aria-busy className={`${CARD_CLASS} h-[480px] motion-safe:animate-pulse`} /> : null}
         {view === 'unavailable' ? (
           <section>
-            <h1 className="text-[24px] font-semibold text-[var(--lp-dark)]">{copy.unavailableTitle}</h1>
-            <p className="mt-2 text-[15px] text-[var(--lp-text-sub)]">{copy.unavailableBody}</p>
+            <h1 className="text-[24px] font-semibold text-[var(--ink)]">{copy.unavailableTitle}</h1>
+            <p className="mt-2 text-[15px] text-[var(--ink-secondary)]">{copy.unavailableBody}</p>
           </section>
         ) : null}
         {view === 'ready' && request ? (
@@ -106,8 +107,8 @@ function Requester({ recipient }: { recipient: string }) {
         <WalletAvatar address={recipient} size={48} />
       )}
       <div className="min-w-0">
-        <p className="truncate text-[16px] font-semibold text-[var(--lp-dark)]">{profile?.displayName?.trim() || name}</p>
-        <p className="truncate text-[14px] text-[var(--lp-text-sub)] font-medium">
+        <p className="truncate text-[16px] font-semibold text-[var(--ink)]">{profile?.displayName?.trim() || name}</p>
+        <p className="truncate text-[14px] text-[var(--ink-secondary)] font-medium">
           {[profile?.handle ? `@${profile.handle}` : null, recordLine]
             .filter(Boolean)
             .join(' · ')}
@@ -119,9 +120,9 @@ function Requester({ recipient }: { recipient: string }) {
 
 function Amount({ value }: { value: string | null }) {
   return (
-    <p className="text-[56px] font-semibold leading-none tracking-[-0.03em] tabular-nums text-[var(--lp-dark)]">
+    <p className="text-[56px] font-semibold leading-none tracking-[-0.03em] tabular-nums text-[var(--ink)]">
       {value ?? '0'}
-      <span className="ms-1 text-[20px] font-medium tracking-normal text-[var(--lp-text-sub)]"> USDC</span>
+      <span className="ms-1 text-[20px] font-medium tracking-normal text-[var(--ink-secondary)]"> USDC</span>
     </p>
   );
 }
@@ -141,14 +142,14 @@ function OwnRequest({ request }: { request: DepositRequestPublic }) {
       <div data-own-back className="-ms-2 empty:hidden">
         <ProductBackLink pathname={pathname} isAuthenticated={isAuthenticated} fallbackHref="/request" />
       </div>
-      <p className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{copy.tag}</p>
+      <p className="text-[14px] font-semibold text-[var(--ink-secondary)]">{copy.tag}</p>
       <Amount value={request.amountUsdc} />
-      {request.purpose ? <p className="text-[15px] text-[var(--lp-dark)]">{fill(copy.forTemplate, { purpose: request.purpose })}</p> : null}
-      <p className="text-[15px] text-[var(--lp-text-sub)]">{request.status === 'matched' ? copy.paidAlready : request.status === 'expired' ? copy.expired : request.status === 'cancelled' ? copy.cancelled : copy.yours}</p>
+      {request.purpose ? <p className="text-[15px] text-[var(--ink)]">{fill(copy.forTemplate, { purpose: request.purpose })}</p> : null}
+      <p className="text-[15px] text-[var(--ink-secondary)]">{request.status === 'matched' ? copy.paidAlready : request.status === 'expired' ? copy.expired : request.status === 'cancelled' ? copy.cancelled : copy.yours}</p>
       {paidOn ? (
-        <dl className="flex justify-between gap-3 border-y border-[var(--lp-border-light)] py-3.5 text-[15px] tabular-nums">
-          <dt className="text-[var(--lp-text-sub)]">{copy.receiptDate}</dt>
-          <dd className="font-medium text-[var(--lp-dark)]">{paidOn}</dd>
+        <dl className="flex justify-between gap-3 border-y border-[var(--line)] py-3.5 text-[15px] tabular-nums">
+          <dt className="text-[var(--ink-secondary)]">{copy.receiptDate}</dt>
+          <dd className="font-medium text-[var(--ink)]">{paidOn}</dd>
         </dl>
       ) : null}
       {request.status === 'open' ? <ShareLink url={url} /> : null}
@@ -340,18 +341,18 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
           verify={arcHash ? { href: ARC_CCTP.explorerTx(arcHash), title: receipt.receiptVerifyTitle, body: receipt.receiptVerifyBody, qrLabel: receipt.receiptProof } : undefined}
           footnote={ARC_NETWORK === 'testnet' ? receipt.receiptTestnet : undefined}
         />
-        <p className="text-center text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.bothSee}</p>
+        <p className="text-center text-[14px] text-[var(--ink-secondary)] font-medium">{copy.bothSee}</p>
         {next.kind === 'join' ? (
-          <div className="border-t border-[var(--lp-border-light)] pt-5">
-            <p className="text-[16px] font-semibold text-[var(--lp-dark)]">{copy.joinTitle}</p>
-            <p className="mt-1 text-[14px] font-medium text-[var(--lp-text-sub)]">{copy.joinBody}</p>
+          <div className={`${CARD_CLASS} px-5 py-4`}>
+            <p className="text-[16px] font-semibold text-[var(--ink)]">{copy.joinTitle}</p>
+            <p className="mt-1 text-[14px] font-medium text-[var(--ink-secondary)]">{copy.joinBody}</p>
           </div>
         ) : null}
         <button type="button" onClick={finish} className={PRIMARY}>{next.kind === 'home' ? copy.goHome : copy.joinCta}</button>
         <button
           type="button"
           onClick={saveReceipt}
-          className="flex min-h-12 w-full items-center justify-center rounded-full border border-[var(--lp-border-light)] px-5 text-[15px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+          className={buttonClasses({ variant: 'secondary', size: 'lg', className: 'w-full' })}
         >
           {copy.saveReceipt}
         </button>
@@ -365,7 +366,7 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
       <section className="space-y-4">
         <Requester recipient={request.recipientAddress} />
         <Amount value={request.amountUsdc} />
-        <p className="text-[15px] text-[var(--lp-text-sub)]">{request.status === 'expired' ? copy.expired : copy.cancelled}</p>
+        <p className="text-[15px] text-[var(--ink-secondary)]">{request.status === 'expired' ? copy.expired : copy.cancelled}</p>
       </section>
     );
   }
@@ -373,7 +374,7 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
   if (followFrom !== null) {
     return (
       <section className="space-y-6">
-        <p className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{fill(copy.paying, { name })}</p>
+        <p className="text-[14px] font-semibold text-[var(--ink-secondary)]">{fill(copy.paying, { name })}</p>
         <Amount value={request.amountUsdc} />
         <TransferProgress
           direction="in"
@@ -396,18 +397,18 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
 
   return (
     <section>
-      <p className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{copy.tag}</p>
+      <p className="text-[14px] font-semibold text-[var(--ink-secondary)]">{copy.tag}</p>
       <div className="mt-5">
         <Requester recipient={request.recipientAddress} />
       </div>
       <div className="mt-7">
         <Amount value={request.amountUsdc} />
       </div>
-      {request.purpose ? <p className="mt-3 text-[15px] text-[var(--lp-dark)]">{fill(copy.forTemplate, { purpose: request.purpose })}</p> : null}
+      {request.purpose ? <p className="mt-3 text-[15px] text-[var(--ink)]">{fill(copy.forTemplate, { purpose: request.purpose })}</p> : null}
 
-      <p data-direct-payment className="mt-4 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{fill(copy.directPayment, { name })}</p>
-      <p className="mt-8 text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.payWith}</p>
-      <div role="radiogroup" aria-label={copy.payWith} className="mt-2 space-y-2">
+      <p data-direct-payment className="mt-4 text-[14px] leading-relaxed text-[var(--ink-secondary)]">{fill(copy.directPayment, { name })}</p>
+      <p className="mt-8 text-[14px] text-[var(--ink-secondary)] font-medium">{copy.payWith}</p>
+      <div role="radiogroup" aria-label={copy.payWith} className={`${CARD_CLASS} mt-2 divide-y divide-[var(--line)] overflow-hidden`}>
         {viaAccount ? (
           <PayOption
             icon="balance"
@@ -430,7 +431,7 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
       <>
       {method === 'wallet' ? (
       <>
-      <p className="mt-6 text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.payFrom}</p>
+      <p className="mt-6 text-[14px] text-[var(--ink-secondary)] font-medium">{copy.payFrom}</p>
       <SourcePicker
         {...sourceRows({
           connected: !!owner,
@@ -444,7 +445,7 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
         connected={!!owner}
       />
       {owner && balance !== null ? (
-        <p className={cn('mt-3 text-[14px]', short ? 'text-[var(--color-critical)]' : 'text-[var(--lp-text-sub)]')}>
+        <p className={cn('mt-3 text-[14px]', short ? 'text-[var(--color-critical)]' : 'text-[var(--ink-secondary)]')}>
           {short ? fill(copy.notEnough, { chain: chainName(source) }) : fill(copy.walletOn, { chain: chainName(source), amount: formatAmount(balance, locale) })}
         </p>
       ) : null}
@@ -458,7 +459,7 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
           onLanded={refetchBalance}
         />
       ) : null}
-      {declined ? <p role="status" className="mt-3 text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.connect}</p> : null}
+      {declined ? <p role="status" className="mt-3 text-[14px] text-[var(--ink-secondary)] font-medium">{copy.connect}</p> : null}
 
       <button type="button" onClick={() => void pay()} disabled={!!owner && (short || amount <= 0)} className={cn(PRIMARY, 'mt-10')}>
         {owner ? fill(copy.payCta, { amount: request.amountUsdc ?? '' }) : copy.connect}
@@ -467,7 +468,7 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
         <button
           type="button"
           onClick={() => setSigningIn(true)}
-          className="mx-auto mt-2 flex min-h-11 items-center px-3 text-[14px] text-[var(--lp-text-sub)] underline-offset-4 hover:text-[var(--lp-dark)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] font-medium"
+          className="mx-auto mt-2 flex min-h-11 items-center px-3 text-[14px] text-[var(--ink-secondary)] underline-offset-4 hover:text-[var(--ink)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] font-medium"
         >
           {copy.useEmail}
         </button>
@@ -476,7 +477,7 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
       )}
       <LoginModal open={signingIn} onClose={() => setSigningIn(false)} postAuthHref={null} />
       {method !== 'chain' ? (
-      <p className="mt-3 text-center text-[14px] text-[var(--lp-text-sub)] font-medium">
+      <p className="mt-3 text-center text-[14px] text-[var(--ink-secondary)] font-medium">
         {[source === 'arc' ? copy.arrivesArc : copy.arrivesOther, fill(copy.expires, { date: new Date(request.expiresAt).toLocaleDateString(locale, { day: 'numeric', month: 'short' }) })].join(' · ')}
       </p>
       ) : null}
@@ -503,7 +504,13 @@ function PayOption({ icon, title, sub, selected, onSelect }: {
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0"><path d={OPTION_ICON[icon]} /></svg>
       <span className="min-w-0 flex-1 text-start">
         <span className="block text-[15px] font-semibold">{title}</span>
-        {sub ? <span className="mt-0.5 block text-[14px] font-medium text-[var(--lp-text-sub)]">{sub}</span> : null}
+        {sub ? <span className="mt-0.5 block text-[14px] font-medium text-[var(--ink-secondary)]">{sub}</span> : null}
+      </span>
+      <span
+        aria-hidden
+        className={cn('grid size-5 shrink-0 place-items-center rounded-full border', selected ? 'border-[var(--ink)] bg-[var(--ink)]' : 'border-[var(--line-strong)]')}
+      >
+        {selected ? <span className="size-2 rounded-full bg-[var(--canvas)]" /> : null}
       </span>
     </>
   );
@@ -514,8 +521,7 @@ function PayOption({ icon, title, sub, selected, onSelect }: {
       aria-checked={!!selected}
       onClick={onSelect}
       className={cn(
-        'flex min-h-16 w-full items-center gap-3 rounded-[16px] border px-4 py-3 text-[var(--lp-dark)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]',
-        selected ? 'border-[var(--lp-accent)] shadow-[inset_0_0_0_1px_var(--lp-accent)]' : 'border-[var(--lp-border-light)] hover:border-[var(--lp-outline-strong)]',
+        'flex min-h-16 w-full items-center gap-3 px-4 py-3 text-[var(--ink)] transition-colors hover:bg-[var(--raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ink)]',
       )}
     >
       {body}

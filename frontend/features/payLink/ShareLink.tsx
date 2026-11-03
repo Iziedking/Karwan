@@ -1,9 +1,8 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
-
-const QUIET =
-  'inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--lp-border-light)] px-5 text-[15px] font-semibold text-[var(--lp-dark)] transition-colors hover:border-[var(--lp-outline-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]';
+import { buttonClasses } from '@/shared/components/Button';
+import { CARD_CLASS } from '@/shared/components/Card';
 
 /// The link, a copy button, the phone's share sheet when there is one, and a QR
 /// code for someone standing next to you.
@@ -24,19 +23,19 @@ export function ShareLink({ url }: { url: string }) {
   }
 
   return (
-    <div className="space-y-4">
-      <p className="break-all rounded-[14px] bg-[var(--lp-light)] px-4 py-3 text-[14px] text-[var(--lp-dark)]">{url}</p>
-      <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={() => void copyLink()} className={QUIET} aria-live="polite">
+    <div className="space-y-5">
+      <p className={`${CARD_CLASS} break-all px-5 py-4 text-[15px] text-[var(--ink)] select-all`}>{url}</p>
+      <PayLinkQr value={url} label={copy.qrAlt} />
+      <div className="flex flex-col gap-2">
+        <button type="button" onClick={() => void copyLink()} className={buttonClasses({ size: 'lg', className: 'w-full' })} aria-live="polite">
           {copied ? copy.copied : copy.copy}
         </button>
         {canShare ? (
-          <button type="button" onClick={() => void navigator.share({ url }).catch(() => {})} className={QUIET}>
+          <button type="button" onClick={() => void navigator.share({ url }).catch(() => {})} className={buttonClasses({ variant: 'secondary', size: 'lg', className: 'w-full' })}>
             {copy.share}
           </button>
         ) : null}
       </div>
-      <PayLinkQr value={url} label={copy.qrAlt} />
     </div>
   );
 }
@@ -61,7 +60,7 @@ export function PayLinkQr({ value, label }: { value: string; label: string }) {
   }, [value]);
   if (failed || !value) return null;
   return (
-    <div className="inline-block rounded-[16px] border border-[var(--lp-border-light)] bg-white p-3">
+    <div className="inline-block rounded-[var(--radius-card)] border border-[var(--line)] bg-white p-3">
       <canvas ref={ref} aria-label={label} role="img" width={180} height={180} />
     </div>
   );

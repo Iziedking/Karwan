@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { cn } from '@/shared/utils/cn';
 import { Icon } from '@/shared/components/Icon';
 import { walletAmount } from '@/features/balances/walletFormat';
+import { CARD_CLASS } from '@/shared/components/Card';
 
 /// Requests this account made and requests it paid, so neither disappears once
 /// the page moves on. Each row opens the request's own page: waiting links can
@@ -54,19 +55,19 @@ function Section({ title, rows, pages }: { title: string; rows: DepositRequestPu
     row.status === 'matched' ? copy.statusPaid : row.status === 'expired' ? copy.statusExpired : row.status === 'cancelled' ? copy.statusCancelled : copy.statusOpen;
   return (
     <section>
-      <h2 className="text-[16px] font-semibold text-[var(--lp-dark)]">{title}</h2>
-      <ul className="mt-2 divide-y divide-[var(--lp-border-light)] border-y border-[var(--lp-border-light)]">
+      <h2 className="text-[16px] font-semibold text-[var(--ink)]">{title}</h2>
+      <ul className={`${CARD_CLASS} mt-2 divide-y divide-[var(--line)] px-4`}>
         {rows.map((row) => (
           <li key={row.requestId}>
             <Link
               href={`/deposit/request/${row.requestId}`}
-              className="flex min-h-14 items-center justify-between gap-4 py-3 hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)]"
+              className="flex min-h-14 items-center justify-between gap-4 py-3 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ink)]"
             >
               <span className="min-w-0">
-                <span className="block text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">
-                  {walletAmount(row.amountUsdc) ?? '…'} <span className="text-[14px] font-medium text-[var(--lp-text-sub)]">USDC</span>
+                <span className="block text-[15px] font-semibold tabular-nums text-[var(--ink)]">
+                  {walletAmount(row.amountUsdc) ?? '…'} <span className="text-[14px] font-medium text-[var(--ink-secondary)]">USDC</span>
                 </span>
-                <span className="block truncate text-[14px] text-[var(--lp-text-sub)] font-medium">
+                <span className="block truncate text-[14px] text-[var(--ink-secondary)] font-medium">
                   {[row.purpose, new Date(row.paidAt ?? row.createdAt).toLocaleDateString(locale, { day: 'numeric', month: 'short' })].filter(Boolean).join(' · ')}
                 </span>
               </span>
@@ -78,13 +79,13 @@ function Section({ title, rows, pages }: { title: string; rows: DepositRequestPu
                     row.status === 'matched'
                       ? 'bg-[var(--color-positive-soft)] text-[var(--color-positive)]'
                       : row.status === 'open'
-                        ? 'bg-[var(--tint)] text-[var(--ink)]'
-                        : 'bg-[var(--tint)] text-[var(--ink-secondary)]',
+                        ? 'bg-[var(--ash)] text-[var(--ink)]'
+                        : 'bg-[var(--ash)] text-[var(--ink-secondary)]',
                   )}
                 >
                   {status(row)}
                 </span>
-                <Icon name="chevron-right" size={16} directional className="shrink-0 text-[var(--lp-text-sub)]" />
+                <Icon name="chevron-right" size={16} directional className="shrink-0 text-[var(--ink-secondary)]" />
               </span>
             </Link>
           </li>
@@ -96,7 +97,7 @@ function Section({ title, rows, pages }: { title: string; rows: DepositRequestPu
           onClick={() => void pages.fetchNextPage()}
           disabled={pages.isFetchingNextPage}
           aria-busy={pages.isFetchingNextPage}
-          className="mt-2 inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--lp-dark)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+          className="mt-2 inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--ink)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
         >
           {copy.showMore}
         </button>

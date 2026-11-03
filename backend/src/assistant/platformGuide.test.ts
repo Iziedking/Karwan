@@ -259,6 +259,13 @@ test('the guide walks Add money and Withdraw as the new look shows them (view 48
   assert.match(said('withdraw'), /Nothing moves before that/);
 });
 
+test('the guide walks a payment link as the new look shows it (view 48, batch 9d)', () => {
+  const said = (id: string) => { const e = PLATFORM_GUIDE.find((entry) => entry.id === id)!; return [e.summary, ...e.steps].join(' '); };
+  assert.match(said('paylink'), /Copy link is the main button/);
+  assert.match(said('paylink'), /signed in or not/);
+  assert.match(said('paylink'), /marked in ink/);
+});
+
 test('the guide reads Activity and its receipt as the new look shows them (view 48, batch 9c)', () => {
   const said = (id: string) => { const e = PLATFORM_GUIDE.find((entry) => entry.id === id)!; return [e.summary, ...e.steps].join(' '); };
   assert.match(said('records'), /one card for each day/);

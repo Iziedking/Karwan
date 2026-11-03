@@ -5,18 +5,19 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ProfileFrame } from '@/features/profile/ui/ProfileUi';
+import { Button } from '@/shared/components/Button';
+import { fill } from '@/features/deals/workspace/presentation';
 import { ShareLink } from './ShareLink';
 import { PayLinkHistory } from './PayLinkHistory';
 
 const WEEK_MINUTES = 7 * 24 * 60;
-const PRIMARY =
-  'flex min-h-14 w-full items-center justify-center rounded-full bg-[var(--lp-accent)] px-5 text-[16px] font-bold text-[#10170b] transition-opacity disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]';
-const FIELD = 'block rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-4 py-3';
+const LABEL = 'block text-[14px] font-medium text-[var(--ink-secondary)]';
+const FIELD = 'mt-2 block w-full rounded-[var(--radius-input)] border border-[var(--line)] bg-[var(--surface)] px-4 py-3 text-[15px] text-[var(--ink)]';
 
 /// Ask anyone for USDC with a link. Any account, email or wallet; the money
 /// lands in the account that made the link.
 export function CreatePayLink() {
-  const copy = useTranslations().payLink.create;
+  const { create: copy, pay } = useTranslations().payLink;
   const { address } = useAuth();
   const { profile } = useUserProfile();
   const [amount, setAmount] = useState('');
@@ -47,8 +48,8 @@ export function CreatePayLink() {
     <ProfileFrame title={url ? copy.ready : copy.title}>
       {url ? (
         <div className="space-y-6">
-          <p className="text-[34px] font-semibold tabular-nums text-[var(--lp-dark)]">
-            {amount} <span className="text-[16px] font-medium text-[var(--lp-text-sub)]">USDC</span>
+          <p className="-mt-3 text-[15px] text-[var(--ink-secondary)]">
+            {[`${amount} USDC`, purpose.trim() ? fill(pay.forTemplate, { purpose: purpose.trim() }) : null].filter(Boolean).join(' · ')}
           </p>
           <ShareLink url={url} />
           <button
@@ -58,16 +59,16 @@ export function CreatePayLink() {
               setAmount('');
               setPurpose('');
             }}
-            className="min-h-11 text-[14px] font-semibold text-[var(--lp-text-sub)] underline underline-offset-4"
+            className="min-h-11 text-[14px] font-semibold text-[var(--ink-secondary)] underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--ink)]"
           >
             {copy.another}
           </button>
         </div>
       ) : (
-        <form onSubmit={(event) => void create(event)} className="space-y-3" aria-busy={busy}>
-          <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{copy.directNote}</p>
-          <label className={FIELD}>
-            <span className="text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.amount}</span>
+        <form onSubmit={(event) => void create(event)} className="space-y-6" aria-busy={busy}>
+          <p className="-mt-3 text-[15px] leading-relaxed text-[var(--ink-secondary)]">{copy.directNote}</p>
+          <label className="block">
+            <span className={LABEL}>{copy.amount}</span>
             <span className="mt-1 flex items-baseline gap-2">
               <input
                 inputMode="decimal"
@@ -75,32 +76,30 @@ export function CreatePayLink() {
                 value={amount}
                 onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, ''))}
                 placeholder="0"
-                className="w-full bg-transparent text-[34px] font-semibold tabular-nums text-[var(--lp-dark)] outline-none"
+                className="w-full bg-transparent text-[34px] font-semibold tabular-nums text-[var(--ink)] outline-none placeholder:text-[var(--ink-muted)]"
               />
-              <span className="text-[16px] font-medium text-[var(--lp-text-sub)]">USDC</span>
+              <span className="text-[17px] font-semibold text-[var(--ink-secondary)]">USDC</span>
             </span>
           </label>
-          <label className={FIELD}>
-            <span className="text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.forLabel}</span>
+          <label className="block">
+            <span className={LABEL}>{copy.forLabel}</span>
             <input
               value={purpose}
               maxLength={120}
               onChange={(e) => setPurpose(e.target.value)}
               placeholder={copy.forPlaceholder}
-              className="mt-1 block w-full bg-transparent text-[17px] text-[var(--lp-dark)] outline-none placeholder:text-[var(--lp-text-muted)]"
+              className={`${FIELD} outline-none placeholder:text-[var(--ink-muted)] focus:border-[var(--ink)]`}
             />
           </label>
-          <div className={FIELD}>
-            <span className="text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.paidTo}</span>
-            <p className="mt-1 text-[17px] text-[var(--lp-dark)]">{me ? `${copy.yourAccount} · ${me}` : copy.yourAccount}</p>
+          <div>
+            <span className={LABEL}>{copy.paidTo}</span>
+            <p className={FIELD}>{me ? `${copy.yourAccount} · ${me}` : copy.yourAccount}</p>
           </div>
-          <p className="px-1 pt-1 text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.lasts}</p>
-          {error ? <p role="alert" className="px-1 text-[14px] text-[var(--color-critical)]">{copy.error}</p> : null}
-          <div className="pt-3">
-            <button type="submit" disabled={!valid || busy} className={PRIMARY}>
-              {busy ? copy.creating : copy.create}
-            </button>
-          </div>
+          <p className="text-[14px] font-medium text-[var(--ink-secondary)]">{copy.lasts}</p>
+          {error ? <p role="alert" className="text-[14px] text-[var(--color-critical)]">{copy.error}</p> : null}
+          <Button type="submit" size="lg" className="w-full" disabled={!valid} loading={busy} loadingLabel={copy.creating}>
+            {copy.create}
+          </Button>
         </form>
       )}
       <PayLinkHistory refreshKey={url} />
