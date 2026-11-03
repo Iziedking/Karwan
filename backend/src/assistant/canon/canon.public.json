@@ -40,7 +40,7 @@
           "date": "2026-11-03"
         }
       ],
-      "body": "On Arc Testnet, a person's agent pays for the market research it uses, from\nits own balance, over x402 on Arc settled through Circle Gateway. Karwan runs\nthe web searches and pays the search provider.\n\nA search costs 0.007 USDC, and 0.002 USDC when another agent ran the same one\nrecently. The agent runs only the searches a question needs: price takes two,\ndemand or suppliers one, and everything four. An agent researching a request\nit is negotiating runs three: price, marketplace rates and demand.\n\nAsk your assistant to research something and it tells you the exact cost\nbefore it runs. When your agent's balance is short it says so, nothing is\npaid, and you can add money to it and ask again. Every payment shows in what\nyour agent spent. Web results are marked as from the web; Karwan's own market\ncomes first.\n\nOn mainnet, agents will pay Circle's services marketplace directly for this."
+      "body": "On Arc Testnet, a person's agent pays for the market research it uses, from\nits own balance, over x402 on Arc settled through Circle Gateway. Karwan runs\nthe web searches and pays the search provider.\n\nA search costs 0.007 USDC, and 0.002 USDC when another agent ran the same one\nrecently. The agent runs only the searches a question needs: price takes two,\ndemand or suppliers one, and everything four. An agent researching a request\nit is negotiating runs three: price, marketplace rates and demand.\n\nAsk your assistant to research something and it tells you the exact cost\nbefore it runs. When your agent's balance is short it says so, nothing is\npaid, and you can add money to it and ask again. Every payment shows in what\nyour agent spent. Web results are marked as from the web; Karwan's own market\ncomes first.\n\nYour agents have a weekly budget for the data they pay for, record checks and\nweb searches together: 0.25 USDC unless you change it, from 0 (free data only)\nup to 5 USDC. They never go over it. When the budget is reached they carry on\nwith free data and you hear once that week; a search you ask for says when it\nwould go over and offers to raise the budget. Once a week, unless you turn it\noff, you get one line in the app and on Telegram on what your agents spent and\nwhat for.\n\nOn mainnet, agents will pay Circle's services marketplace directly for this."
     },
     {
       "id": "assistant-mode-and-help",
@@ -77,7 +77,7 @@
       "id": "brand-colour",
       "title": "Colour",
       "status": "live",
-      "updated": "2026-09-30",
+      "updated": "2026-11-03",
       "tags": [
         "brand",
         "tokens"
@@ -89,7 +89,7 @@
           "date": "2026-09-30"
         }
       ],
-      "body": "These are the published values, from the product's brand palette.\n\n```\naccent              #AFC95B    Karwan green: the one primary action, positive money state\nink / dark          #16202A    ink and dark surface\ncanvas              #EEF2F7    light theme canvas\npaper               #FFFFFF    light cards and email\ndark inset          #27313A\ntext sub on light   #646C74\ntext sub on dark    #A0A6AD\ngreen text on light #42560F    lime-family text that stays readable on light\nhairline on dark    rgba(206, 220, 232, 0.18)\n```\n\nThe accent is a muted lime, softened so green fills do not glare and dark text\nstays legible on top. Use it for one thing per screen. Status colours are\nseparate and always paired with words."
+      "body": "These are the published values, from the product's brand palette.\n\n```\naccent              #AFC95B    Karwan green: the one main button, the send button, signals\nink / dark          #16202A    ink and dark surface\ncanvas              #EEF2F7    light theme canvas\npaper               #FFFFFF    light cards and email\ndark inset          #27313A\ntext sub on light   #646C74\ntext sub on dark    #A0A6AD\ngreen text on light #42560F    lime-family text that stays readable on light\nhairline on dark    rgba(206, 220, 232, 0.18)\n```\n\nThe accent is a muted lime, softened so green fills do not glare and dark text\nstays legible on top. Use it for one thing per screen. Status colours are\nseparate and always paired with words."
     },
     {
       "id": "brand-logo",
@@ -970,7 +970,7 @@
         }
       ],
       "check": null,
-      "updated": "2026-09-30",
+      "updated": "2026-11-03",
       "path": "public/brand/colour.md"
     },
     {
