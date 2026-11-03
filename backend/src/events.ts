@@ -110,6 +110,10 @@ export type KarwanEventType =
   /// A market watch the person set on their agent saw a change (view 48, step 5).
   /// Personal, addressed to its owner by payload user.
   | 'market.watch'
+  /// The weekly line on what a person's agents spent on data (view 48, step 6).
+  | 'agent.weekly'
+  /// A person's agents reached their weekly data budget and use free data (view 48, step 6).
+  | 'agent.budget'
   | 'listing.matched'
   | 'listing.cancelled'
   | 'listing.expired'

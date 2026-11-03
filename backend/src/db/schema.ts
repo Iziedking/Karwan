@@ -413,6 +413,12 @@ export const trendSnapshots = pgTable(
 /// User-triggered market scout reads (routes/research.ts POST /scout). Each row
 /// is one paid market read a user requested for their own keywords, kept so the
 /// UI can show recent scouts and prefill a future request from the latest one.
+/// The person's agent record: data budget, spend, weekly line (view 48, step 6).
+export const agentRecords = pgTable('agent_records_v1', {
+  owner: text('owner').primaryKey(),
+  data: jsonb('data').notNull(),
+});
+
 /// What a person asked their agent to watch on the market (view 48, step 5).
 export const marketWatches = pgTable(
   'market_watches_v1',

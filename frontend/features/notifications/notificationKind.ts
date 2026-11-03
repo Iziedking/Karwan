@@ -17,9 +17,10 @@ const ATTENTION = new Set([
   'job.expired',
   'factoring.defaulted',
   'po.defaulted',
+  'agent.budget',
 ]);
 const DONE = new Set(['deal.seller-approved', 'deal.accepted', 'escrow.settled', 'deal.delivery.cleared', 'reputation.tier-up']);
-const MONEY_PREFIXES = ['wallet.', 'vault.', 'agent.funded', 'agent.withdrawal', 'yield.', 'gateway.', 'bridge.', 'escrow.', 'cashout.', 'factoring.', 'po.'];
+const MONEY_PREFIXES = ['agent.weekly', 'wallet.', 'vault.', 'agent.funded', 'agent.withdrawal', 'yield.', 'gateway.', 'bridge.', 'escrow.', 'cashout.', 'factoring.', 'po.'];
 
 export function notificationKind(type: string): NotificationKind {
   if (ATTENTION.has(type)) return 'attention';
@@ -34,6 +35,7 @@ export function notificationKind(type: string): NotificationKind {
 /// per request) and the record reminder. Null for anything else.
 export function sellerNudge(type: string, payload: Record<string, unknown> | undefined, ts: number): { id: string; href: string } | null {
   if (type === 'trend.match') return { id: `trend.match-${ts}`, href: '/market' };
+  if (type === 'agent.weekly' || type === 'agent.budget') return { id: `${type}-${ts}`, href: '/profile/setup' };
   if (type === 'market.watch') return { id: `market.watch-${String(payload?.watchId ?? '')}-${ts}`, href: '/market' };
   if (type === 'agent.suggestion') {
     const jobId = typeof payload?.jobId === 'string' ? payload.jobId : '';

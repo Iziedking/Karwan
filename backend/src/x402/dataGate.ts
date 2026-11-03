@@ -6,7 +6,9 @@ import type { SignedRecordRead } from '../verification/recordReadSignature.js';
 import { paidRecordRead, paidResearch, type PaidRecordRead } from './buyerClient.js';
 import { cachedAnglesFor, type MarketRead } from './externalClient.js';
 import { quoteResearch, type ResearchFocus, type ResearchQuote } from './researchPricing.js';
-import type { ReadPurpose } from './recordReadGate.js';
+import { RECORD_READ_PRICE_USDC, type ReadPurpose } from './recordReadGate.js';
+import { addSpend, budgetNoticeDue, canSpend, spentThisWeek, type SpendKind } from '../agents/agentRecord.js';
+import { getAgentRecord, updateAgentRecord } from '../db/agentRecords.js';
 
 /// One gate for every paid record read (view 48, decision 6). The same reader,
 /// subject and request pay once while the signed read is kept, unless the
@@ -36,12 +38,28 @@ export interface GatedRecordRead {
 
 export type PaidEvent = Omit<KarwanEvent, 'ts'>;
 
+/// The owner's weekly data budget (view 48, step 6). Absent in tests that do not need it.
+export interface DataBudget {
+  fits(owner: string, priceUsd: number): Promise<boolean>;
+  spent(owner: string, usd: number, kind: SpendKind): Promise<void>;
+  reached(owner: string): void;
+}
+
+export const BUDGET_REACHED = 'weekly data budget reached';
+
+async function withinBudget(budget: DataBudget | undefined, owner: string, priceUsd: number): Promise<void> {
+  if (!budget || (await budget.fits(owner, priceUsd))) return;
+  budget.reached(owner);
+  throw new Error(`${BUDGET_REACHED}: nothing was paid`);
+}
+
 export interface DataGateDeps {
   kept(reader: string, subject: string, ref: string, sinceMs: number): Promise<RecordReadReceipt | null>;
   countsNow(subject: string): Promise<RecordCounts>;
   pay(req: RecordReadRequest): Promise<PaidRecordRead>;
   emit(e: PaidEvent): void;
   now(): number;
+  budget?: DataBudget;
 }
 
 const inFlight = new Map<string, Promise<GatedRecordRead>>();
@@ -65,7 +83,9 @@ async function acquire(req: RecordReadRequest, deps: DataGateDeps): Promise<Gate
   if (kept) {
     return { read: kept.read, reused: true, amountUsd: 0, transaction: null, receipt: { amountUsd: kept.kept.priceUsdc, transaction: kept.kept.paymentTx } };
   }
+  await withinBudget(deps.budget, req.forAccount, RECORD_READ_PRICE_USDC);
   const r = await deps.pay(req);
+  await deps.budget?.spent(req.forAccount, r.amountUsd, 'record');
   deps.emit({
     type: 'agent.paid',
     // A question from the assistant is asked through the person's buying agent.
@@ -111,12 +131,35 @@ export async function acquireRecordRead(req: RecordReadRequest, deps: DataGateDe
   }
 }
 
+/// The live budget: the owner's agent record, and one notice in 7 days when an
+/// agent stops paying for data because the budget is reached.
+export const liveBudget: DataBudget = {
+  fits: async (owner, priceUsd) => canSpend(await getAgentRecord(owner), priceUsd, Date.now()),
+  spent: async (owner, usd, kind) => {
+    await updateAgentRecord(owner, (r) => addSpend(r, usd, kind, Date.now()));
+  },
+  reached: (owner) => {
+    const now = Date.now();
+    void (async () => {
+      const r = await getAgentRecord(owner);
+      if (!budgetNoticeDue(r, now)) return;
+      await updateAgentRecord(owner, (cur) => ({ ...cur, lastBudgetNoticeAt: now }));
+      bus.emitEvent({
+        type: 'agent.budget',
+        actor: 'platform',
+        payload: { user: r.owner, sellerUser: r.owner, budgetUsdc: r.weeklyBudgetUsdc, spentUsdc: spentThisWeek(r, now) },
+      });
+    })().catch(() => undefined);
+  },
+};
+
 export const liveDeps: DataGateDeps = {
   kept: keptReadFor,
   countsNow: async (subject) => countsFor(await listDealsForAddress(subject), subject),
   pay: (r) => paidRecordRead(r.payerAgent, r.subject, { purpose: r.purpose, ref: r.ref, forAccount: r.forAccount }),
   emit: (e) => bus.emitEvent(e),
   now: () => Date.now(),
+  budget: liveBudget,
 };
 
 export interface ResearchRequest {
@@ -133,6 +176,7 @@ export interface ResearchDeps {
   cachedAngles(keywords: string[]): Set<string>;
   pay: typeof paidResearch;
   emit(e: PaidEvent): void;
+  budget?: DataBudget;
 }
 
 /// The exact price before anything runs, so the agent can tell its person.
@@ -145,10 +189,12 @@ export function researchQuote(keywords: string[], focus: ResearchFocus, cached =
 /// a payment only the owner is told, as for record reads.
 export async function acquireResearch(
   req: ResearchRequest,
-  deps: ResearchDeps = { cachedAngles: cachedAnglesFor, pay: paidResearch, emit: (e) => bus.emitEvent(e) },
+  deps: ResearchDeps = { cachedAngles: cachedAnglesFor, pay: paidResearch, emit: (e) => bus.emitEvent(e), budget: liveBudget },
 ): Promise<{ read: MarketRead; quote: ResearchQuote; amountUsd: number }> {
   const quote = quoteResearch(req.focus, deps.cachedAngles(req.keywords));
+  await withinBudget(deps.budget, req.forAccount, quote.totalUsdc);
   const r = await deps.pay(req.payerAgent, { keywords: req.keywords, focus: req.focus, ref: req.ref, forAccount: req.forAccount, priceUsd: quote.totalUsdc });
+  if (r.amountUsd > 0) await deps.budget?.spent(req.forAccount, r.amountUsd, 'research');
   if (r.amountUsd > 0) {
     deps.emit({
       type: 'agent.paid',

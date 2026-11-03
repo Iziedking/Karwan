@@ -37,7 +37,9 @@ import { getUserByAddress } from '../db/users.js';
 import { listDealsForAddress, getDeal, type DirectDeal } from '../db/deals.js';
 import { stageOf } from '../deals/dealView.js';
 import { getAgentWallets } from '../db/agentWallets.js';
-import { acquireResearch, researchQuote } from '../x402/dataGate.js';
+import { BUDGET_REACHED, acquireResearch, researchQuote } from '../x402/dataGate.js';
+import { getAgentRecord, updateAgentRecord } from '../db/agentRecords.js';
+import { MAX_WEEKLY_BUDGET_USDC, spentThisWeek } from '../agents/agentRecord.js';
 import { READS_BALANCE_EMPTY } from '../x402/buyerClient.js';
 import { researchFocusSchema } from '../x402/researchPricing.js';
 import { offerPhotos } from '../listings/photos.js';
@@ -2039,6 +2041,16 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
             sources: read.sources.slice(0, 5).map((x) => ({ title: x.title, url: x.url })),
           };
         } catch (err) {
+          if ((err as Error).message.startsWith(BUDGET_REACHED)) {
+            const record = await getAgentRecord(address);
+            return {
+              overBudget: true,
+              weeklyBudgetUsdc: record.weeklyBudgetUsdc,
+              spentThisWeekUsdc: spentThisWeek(record, Date.now()),
+              costUsdc: quote.totalUsdc,
+              next: 'Say this search would take their agents over their weekly data budget, so nothing was paid, and ask whether to raise the budget (set_agent_budget).',
+            };
+          }
           if ((err as Error).message.startsWith(READS_BALANCE_EMPTY)) {
             return {
               short: true,
@@ -2146,6 +2158,44 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
       execute: async ({ id }) => {
         const stopped = await stopWatch(address, id).catch(() => false);
         return stopped ? { stopped: true } : { error: 'That watch was not found.' };
+      },
+    }),
+
+    get_my_agent: tool({
+      description:
+        "The user's agent: its weekly budget for the data it pays for (record checks and web research), what it spent in the last 7 days and on what, whether the weekly spend line is on, and the market watches it runs. Use it when the user asks what their agent did, spent or is watching.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        const now = Date.now();
+        const record = await getAgentRecord(address);
+        const week = record.spend.filter((s) => now - s.at < 7 * 86_400_000);
+        const watches = await liveWatchesFor(address, now).catch(() => []);
+        return {
+          weeklyBudgetUsdc: record.weeklyBudgetUsdc,
+          spentThisWeekUsdc: spentThisWeek(record, now),
+          recordChecks: week.filter((s) => s.kind === 'record').length,
+          webSearches: week.filter((s) => s.kind === 'research').length,
+          weeklyLine: record.weeklyReport ? 'on' : 'off',
+          watches: watches.map((w) => ({ id: w.id, kind: w.kind, category: CATEGORY_NAMES[w.category] })),
+        };
+      },
+    }),
+
+    set_agent_budget: tool({
+      description: `Set the user's weekly budget for the data their agents pay for, from 0 to ${MAX_WEEKLY_BUDGET_USDC} USDC. 0 means they use free data only. Only when the user asks. Moves no money; it caps what the agents may spend.`,
+      inputSchema: z.object({ weeklyUsdc: z.number().min(0).max(MAX_WEEKLY_BUDGET_USDC) }),
+      execute: async ({ weeklyUsdc }) => {
+        const r = await updateAgentRecord(address, (cur) => ({ ...cur, weeklyBudgetUsdc: Math.round(weeklyUsdc * 1e6) / 1e6, lastBudgetNoticeAt: undefined }));
+        return { weeklyBudgetUsdc: r.weeklyBudgetUsdc, next: 'Say the new weekly budget and that it caps what the agents pay for data, nothing else.' };
+      },
+    }),
+
+    set_weekly_report: tool({
+      description: "Turn the weekly line on what the user's agents spent on data on or off. It is on by default and goes to Telegram and the app.",
+      inputSchema: z.object({ on: z.boolean() }),
+      execute: async ({ on }) => {
+        const r = await updateAgentRecord(address, (cur) => ({ ...cur, weeklyReport: on }));
+        return { weeklyLine: r.weeklyReport ? 'on' : 'off' };
       },
     }),
 

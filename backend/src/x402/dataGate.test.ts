@@ -134,3 +134,33 @@ test('a short balance reaches the caller so the person is asked to add money', a
     /reads balance/,
   );
 });
+
+test('over the weekly budget nothing is paid, the owner is told, and the reason is given', async () => {
+  const h = harness();
+  const told: string[] = [];
+  const deps: DataGateDeps = { ...h.deps, budget: { fits: async () => false, spent: async () => undefined, reached: (o) => told.push(o) } };
+  await assert.rejects(acquireRecordRead(req, deps), /weekly data budget/);
+  assert.equal(h.pays(), 0);
+  assert.deepEqual(told, ['0xOwner']);
+});
+
+test('a payment is added to the owner\u2019s spend', async () => {
+  const h = harness();
+  const spent: Array<[string, number, string]> = [];
+  const deps: DataGateDeps = { ...h.deps, budget: { fits: async () => true, spent: async (o, usd, kind) => { spent.push([o, usd, kind]); }, reached: () => undefined } };
+  await acquireRecordRead(req, deps);
+  assert.deepEqual(spent, [['0xOwner', 0.01, 'record']]);
+});
+
+test('research over the budget is refused before anything runs', async () => {
+  const { acquireResearch } = await import('./dataGate.js');
+  let ran = false;
+  await assert.rejects(
+    acquireResearch(
+      { payerAgent: '0xAgent', forAccount: '0xOwner', keywords: ['rice'], focus: 'full', ref: '0xreq' },
+      { cachedAngles: () => new Set(), pay: async () => { ran = true; throw new Error('no'); }, emit: () => undefined, budget: { fits: async () => false, spent: async () => undefined, reached: () => undefined } },
+    ),
+    /weekly data budget/,
+  );
+  assert.equal(ran, false);
+});

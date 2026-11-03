@@ -141,6 +141,9 @@ export const NOTIFY_TYPES = new Set([
   'trend.match',
   // A market watch the viewer set on their agent saw a change (view 48, step 5).
   'market.watch',
+  // The weekly line on what the viewer's agents spent, and their budget reached (view 48, step 6).
+  'agent.weekly',
+  'agent.budget',
   // "Ask me first": the viewer's own agent found a request (no jobId on the event).
   'agent.suggestion',
   // The buyer changed a request the viewer offered on by hand (view 35).
@@ -208,6 +211,8 @@ export const RECIPIENT: Record<string, Role | 'both'> = {
   'listing.matched': 'seller',
   'trend.match': 'seller', // rising-demand nudge, addressed to the matching seller
   'market.watch': 'seller', // a watch the viewer set, addressed to them
+  'agent.weekly': 'seller', // the viewer's own agents, addressed to them
+  'agent.budget': 'seller',
   'agent.suggestion': 'seller', // ask me first: the seller decides on the offer
   'offer.request-changed': 'seller', // the seller keeps, lowers or withdraws their offer
   'record.setup_needed': 'seller', // the seller sets up their Karwan record

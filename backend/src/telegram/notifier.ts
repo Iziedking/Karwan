@@ -32,6 +32,11 @@ function jobUrl(jobId: string | undefined): string | null {
   return `${config.FRONTEND_BASE_URL.replace(/\/$/, '')}/jobs/${jobId}`;
 }
 
+/// The person's own agent page (view 45), where its budget and weekly line live.
+function yourAgentUrl(): string | null {
+  return config.FRONTEND_BASE_URL ? `${config.FRONTEND_BASE_URL.replace(/\/$/, '')}/profile/setup` : null;
+}
+
 function workUrl(workId: string | undefined): string | null {
   if (!workId || !config.FRONTEND_BASE_URL) return null;
   return `${config.FRONTEND_BASE_URL.replace(/\/$/, '')}/work/${workId}`;
@@ -152,6 +157,8 @@ export const RELEVANT = new Set([
   'listing.match.proactive',
   'trend.match',
   'market.watch',
+  'agent.weekly',
+  'agent.budget',
   'chat.message',
   'bridge.minted',
   'bridge.error',
@@ -345,7 +352,7 @@ export async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     return seller ? [{ address: seller, role: 'self' }] : [];
   }
   // A watch the person set on their agent saw a change (view 48, step 5).
-  if (e.type === 'market.watch') {
+  if (e.type === 'market.watch' || e.type === 'agent.weekly' || e.type === 'agent.budget') {
     const owner = (e.payload?.user as string | undefined)?.toLowerCase();
     return owner ? [{ address: owner, role: 'self' }] : [];
   }
@@ -536,6 +543,18 @@ Nothing is sent until you answer.`, jobUrl(e.payload?.jobId as string | undefine
             ? `*${name} deals now settle around ${e.payload?.toUsdc} USDC* (was ${e.payload?.fromUsdc}), as you asked your agent to watch.`
             : `*Requests for ${name} are rising this week* on Karwan, as you asked your agent to watch.`;
       return withLink(text, marketUrl());
+    }
+    case 'agent.weekly': {
+      const p = e.payload ?? {};
+      const parts = [
+        Number(p.recordChecks) ? `${p.recordChecks} record check${Number(p.recordChecks) === 1 ? '' : 's'}` : '',
+        Number(p.webSearches) ? `${p.webSearches} web search${Number(p.webSearches) === 1 ? '' : 'es'}` : '',
+      ].filter(Boolean);
+      return withLink(`*Your agents spent ${p.totalUsdc} USDC on data this week*${parts.length ? `: ${parts.join(' and ')}` : ''}. Their weekly budget is ${p.budgetUsdc} USDC.`, yourAgentUrl());
+    }
+    case 'agent.budget': {
+      const p = e.payload ?? {};
+      return withLink(`*Your agents reached their ${p.budgetUsdc} USDC data budget for this week* and are using free data. Ask your assistant to raise it if you like.`, yourAgentUrl());
     }
     case 'deal.matched': {
       const price = (e.payload?.agreedPriceUsdc as string | undefined) ?? '';

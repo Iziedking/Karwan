@@ -9,7 +9,7 @@ export interface NotifyCopy {
   matchedSellerPrice: string; matchedSeller: string; matchedBuyerPrice: string; matchedBuyer: string;
   approvedSellerPrice: string; approvedSeller: string; approvedBuyerPrice: string; approvedBuyer: string;
   declinedSeller: string; declinedBuyer: string; raisedPrice: string; raised: string; jobExpired: string;
-  listingMatchedPrice: string; listingMatched: string; trendKeyword: string; trend: string; watchRequests: string; watchPrice: string; watchRising: string; categories: MarketShopCopy['categories']; suggestionTitle: string; suggestion: string; suggestionRangeTitle: string; suggestionRange: string; agentQuestionTitle: string; agentQuestion: string; requestChangedTitle: string; requestChanged: string;
+  listingMatchedPrice: string; listingMatched: string; trendKeyword: string; trend: string; watchRequests: string; watchPrice: string; watchRising: string; agentWeekly: string; agentBudget: string; categories: MarketShopCopy['categories']; suggestionTitle: string; suggestion: string; suggestionRangeTitle: string; suggestionRange: string; agentQuestionTitle: string; agentQuestion: string; requestChangedTitle: string; requestChanged: string;
   recordNeededOffers: string; recordNeededDeal: string;
   agentDeclinedReason: string; agentDeclined: string;
   nearMissBuyerPrice: string; nearMissSellerPrice: string; nearMissBuyer: string; nearMissSeller: string;
@@ -44,6 +44,8 @@ export interface NotifyCopy {
 }
 
 const en: NotifyCopy = {
+  agentWeekly: 'Your agents spent {total} USDC on data this week: {records} record checks and {searches} web searches.',
+  agentBudget: 'Your agents reached their {budget} USDC data budget for this week and are using free data.',
   watchRequests: '{count} new requests for {category}, as you asked your agent to watch.',
   watchPrice: '{category} deals now settle around {to} USDC (was {from}).',
   watchRising: 'Requests for {category} are rising this week.',
@@ -190,6 +192,8 @@ const en: NotifyCopy = {
 };
 
 const fr: NotifyCopy = {
+  agentWeekly: 'Vos agents ont dépensé {total} USDC en données cette semaine : {records} vérifications de dossier et {searches} recherches web.',
+  agentBudget: 'Vos agents ont atteint leur budget de données de {budget} USDC cette semaine et utilisent des données gratuites.',
   watchRequests: '{count} nouvelles demandes pour {category}, comme vous l’avez demandé à votre agent.',
   watchPrice: 'Les accords en {category} se concluent maintenant autour de {to} USDC (contre {from}).',
   watchRising: 'Les demandes pour {category} augmentent cette semaine.',
@@ -336,6 +340,8 @@ const fr: NotifyCopy = {
 };
 
 const ar: NotifyCopy = {
+  agentWeekly: 'أنفق وكلاؤك {total} USDC على البيانات هذا الأسبوع: {records} فحوص سجلات و{searches} عمليات بحث على الويب.',
+  agentBudget: 'بلغ وكلاؤك ميزانية البيانات البالغة {budget} USDC لهذا الأسبوع ويستخدمون بيانات مجانية.',
   watchRequests: '{count} طلبات جديدة في {category}، كما طلبت من وكيلك أن يراقب.',
   watchPrice: 'صفقات {category} تُبرم الآن بنحو {to} USDC (كانت {from}).',
   watchRising: 'الطلبات على {category} في ازدياد هذا الأسبوع.',
@@ -482,6 +488,8 @@ const ar: NotifyCopy = {
 };
 
 const hi: NotifyCopy = {
+  agentWeekly: 'आपके एजेंटों ने इस हफ़्ते डेटा पर {total} USDC खर्च किए: {records} रिकॉर्ड जाँच और {searches} वेब खोज।',
+  agentBudget: 'आपके एजेंट इस हफ़्ते {budget} USDC के डेटा बजट तक पहुँच गए हैं और मुफ़्त डेटा इस्तेमाल कर रहे हैं।',
   watchRequests: '{category} के {count} नए अनुरोध, जैसा आपने अपने एजेंट से देखने को कहा था।',
   watchPrice: '{category} के सौदे अब लगभग {to} USDC पर तय हो रहे हैं (पहले {from})।',
   watchRising: 'इस हफ़्ते {category} के अनुरोध बढ़ रहे हैं।',
@@ -628,6 +636,8 @@ const hi: NotifyCopy = {
 };
 
 const sw: NotifyCopy = {
+  agentWeekly: 'Mawakala wako walitumia USDC {total} kwa data wiki hii: ukaguzi wa rekodi {records} na utafutaji wa mtandaoni {searches}.',
+  agentBudget: 'Mawakala wako wamefikia bajeti yao ya data ya USDC {budget} wiki hii na wanatumia data ya bure.',
   watchRequests: 'Maombi mapya {count} ya {category}, kama ulivyomwomba wakala wako aangalie.',
   watchPrice: 'Mikataba ya {category} sasa inafungwa karibu USDC {to} (ilikuwa {from}).',
   watchRising: 'Maombi ya {category} yanaongezeka wiki hii.',
