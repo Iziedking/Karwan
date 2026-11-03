@@ -17,6 +17,9 @@ import { Icon } from '@/shared/components/Icon';
 import Link from 'next/link';
 import { walletAmount } from '@/features/balances/walletFormat';
 import { CreationReview } from '@/features/deals/components/CreationReview';
+import { FoldRow } from '@/features/deals/components/FoldRow';
+import { Button, buttonClasses } from '@/shared/components/Button';
+import { CARD_CLASS } from '@/shared/components/Card';
 import { TermsBuilder, TermsBlockerNote, DEFAULT_TERMS } from '@/features/deals/terms/TermsBuilder';
 import { stepOneBlocker } from '../offerFlow';
 import { BUSINESS_ACCOUNTS_OPEN } from '@/features/account/businessOpen';
@@ -33,18 +36,18 @@ const OPEN_CHIPS = [7, 30, 90] as const;
 const MAX_FLOOR_DROP_PCT = 50;
 
 const chip =
-  'inline-flex min-h-11 items-center rounded-full border px-3.5 text-[14px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]';
-const chipOn = 'border-[var(--lp-dark)] bg-[var(--lp-dark)] text-[var(--lp-light)]';
-const chipOff = 'border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-dark)] hover:border-[var(--lp-outline-strong)]';
+  'inline-flex min-h-11 items-center rounded-full border px-3.5 text-[14px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]';
+const chipOn = 'border-[var(--ink)] bg-[var(--ink)] text-[var(--canvas)]';
+const chipOff = 'border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] hover:border-[var(--line-strong)]';
 
 const fill = (template: string, n: number | string) => template.replace('{n}', String(n));
 
 export function PostListingForm() {
   const pl = useTranslations().postListing;
   const t = useTranslations();
-  const rs = t.dealCreation.requestSteps;
   const f = pl.flow;
   const offer = t.offerFlow;
+  const rf = t.requestFlow;
   const { locale } = useLocale();
   const auth = useAuth();
   const address = auth.address;
@@ -62,7 +65,6 @@ export function PostListingForm() {
   const initialToleranceRaw = search.get('tolerance');
   const initialTolerance =
     initialToleranceRaw != null && Number.isFinite(Number(initialToleranceRaw)) ? Number(initialToleranceRaw) : null;
-  const [step, setStep] = useState<0 | 1 | 2>(0);
   const [reviewing, setReviewing] = useState(false);
   const [title, setTitle] = useState(search.get('title') ?? '');
   const [description, setDescription] = useState(search.get('description') ?? '');
@@ -78,6 +80,10 @@ export function PostListingForm() {
   const [customReady, setCustomReady] = useState(false);
   const [openDays, setOpenDays] = useState<number>(30);
   const [terms, setTerms] = useState<TermsDraft>(DEFAULT_TERMS);
+  // One screen (view 48, 9b): the less common settings open in place.
+  const [inParts, setInParts] = useState(false);
+  const [openForOpen, setOpenForOpen] = useState(false);
+  const [floorOpen, setFloorOpen] = useState(floorPrice !== '');
   const [photos, setPhotos] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -129,19 +135,11 @@ export function PostListingForm() {
   const floorInvalid =
     floorPrice !== '' && (!priceValue || floorPrice <= 0 || floorPrice > priceValue || (floorDropPct ?? 0) > MAX_FLOOR_DROP_PCT);
   const readyValid = typeof readyInDays === 'number' && readyInDays >= 1 && readyInDays <= MAX_READY_DAYS;
-  const agreementText = composeTerms(terms, { priceUsdc: priceValue, dueLabel: null }, TERMS_COPY[locale].text);
-  const stepReady =
-    step === 0
-      ? title.trim().length >= 3 && description.trim().length >= 5
-      : step === 1
-        ? !!priceValue && !floorInvalid && readyValid
-        : termsIssues(terms).length === 0;
-
-  function goForward() {
-    if (!stepReady) return;
-    if (step < 2) setStep((step + 1) as 1 | 2);
-    else setReviewing(true);
-  }
+  // One payment unless Pay in parts is opened; its milestone is the title.
+  const dealTerms: TermsDraft = inParts ? terms : { ...terms, parts: [{ pct: 100, what: title.trim().slice(0, 240) }] };
+  const agreementText = composeTerms(dealTerms, { priceUsdc: priceValue, dueLabel: null }, TERMS_COPY[locale].text);
+  const wordsMissing = stepOneBlocker(title, description, offer);
+  const ready = !wordsMissing && !!priceValue && !floorInvalid && readyValid && termsIssues(dealTerms).length === 0;
 
   async function publish() {
     if (!address || !priceValue || !readyValid || submitting) return;
@@ -166,7 +164,7 @@ export function PostListingForm() {
         termsDraft: {
           conditions: cleanLines(terms.conditions),
           proof: 'link',
-          parts: terms.parts,
+          parts: dealTerms.parts,
           reviewWindowDays: terms.reviewWindowDays,
         },
       } as Parameters<typeof api.postListing>[0]);
@@ -192,7 +190,8 @@ export function PostListingForm() {
     setTerms(DEFAULT_TERMS);
     setPhotos([]);
     setReviewing(false);
-    setStep(0);
+    setInParts(false);
+    setFloorOpen(false);
     setIntentWarned(false);
     setPublished(null);
     setMatchedJobId(null);
@@ -202,35 +201,24 @@ export function PostListingForm() {
     return <p className="text-[14px] text-[var(--lp-workspace-muted)]">{pl.notConnected}</p>;
   }
 
-  const stepOneMissing = step === 0 ? stepOneBlocker(title, description, offer) : null;
-
-  const stepLabels = [rs.describe, rs.price, rs.payment];
-
   return (
     <div className="space-y-7">
       <PageTour id={SELLER_TOUR_ID} steps={SELLER_STEPS} />
       {published ? (
-        <section aria-live="polite" className="rounded-[18px] border border-[var(--lp-workspace-border)] bg-[var(--lp-card)] p-5">
-          <h2 className="text-[20px] font-semibold text-[var(--lp-workspace-ink)]">{offer.liveTitle}</h2>
-          <p className="mt-2 text-[15px] leading-relaxed text-[var(--lp-workspace-muted)]">{offer.liveBody}</p>
+        <section aria-live="polite" className={`${CARD_CLASS} p-5`}>
+          <h2 className="text-[20px] font-semibold text-[var(--ink)]">{offer.liveTitle}</h2>
+          <p className="mt-2 text-[15px] leading-relaxed text-[var(--ink-secondary)]">{offer.liveBody}</p>
           {matchedJobId ? (
-            <p className="mt-4 text-[15px] font-semibold text-[var(--lp-workspace-ink)]">
+            <p className="mt-4 text-[15px] font-semibold text-[var(--ink)]">
               {offer.matchedTitle}{' '}
               <Link href={`/jobs/${matchedJobId}`} className="underline underline-offset-4">{offer.openDeal}</Link>
             </p>
           ) : null}
-          <div className="mt-5 flex flex-wrap items-center gap-3">
-            <Link
-              href={`/listings/${published.id}`}
-              className="inline-flex min-h-12 items-center rounded-full bg-[var(--lp-accent)] px-6 text-[15px] font-semibold text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)] focus-visible:ring-offset-2"
-            >
+          <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+            <Link href={`/listings/${published.id}`} className={buttonClasses({ size: 'lg', className: 'w-full sm:w-auto' })}>
               {offer.viewOffer}
             </Link>
-            <button
-              type="button"
-              onClick={postAnother}
-              className="inline-flex min-h-12 items-center rounded-full px-4 text-[15px] font-semibold text-[var(--lp-workspace-ink)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
-            >
+            <button type="button" onClick={postAnother} className={buttonClasses({ variant: 'secondary', size: 'lg', className: 'w-full sm:w-auto' })}>
               {offer.postAnother}
             </button>
           </div>
@@ -240,29 +228,14 @@ export function PostListingForm() {
         onSubmit={(e) => {
           e.preventDefault();
           if (reviewing) void publish();
-          else goForward();
+          else if (ready) setReviewing(true);
         }}
-        className="space-y-7"
+        className="space-y-6"
       >
+        {/* One screen (Figma, Batch 9 · Post an offer): the words, the price
+            and time, then the settings most people leave as they are. */}
         <fieldset hidden={reviewing} disabled={submitting} className="min-w-0 space-y-6">
-          <div className="flex items-center gap-3" aria-live="polite">
-            <span aria-hidden className="flex items-center gap-1.5">
-              {[0, 1, 2].map((i) => (
-                <span
-                  key={i}
-                  className={cn(
-                    'block h-2 rounded-full transition-all duration-[var(--dur-small)]',
-                    i === step ? 'w-6 bg-[var(--lp-dark)]' : i < step ? 'w-2 bg-[var(--lp-accent)]' : 'w-2 bg-[var(--lp-border-light)]',
-                  )}
-                />
-              ))}
-            </span>
-            <span className="text-[14px] font-semibold text-[var(--lp-text-sub)]">
-              {fill(rs.stepOf, step + 1)} · {stepLabels[step]}
-            </span>
-          </div>
-
-          <div hidden={step !== 0} className="space-y-6" data-guide="seller-listing">
+          <div className="space-y-6" data-guide="seller-listing">
             <Field label={pl.sectionWork.titleLabel} hint={pl.sectionWork.titleHint}>
               <input
                 type="text"
@@ -276,15 +249,10 @@ export function PostListingForm() {
                 className="form-input"
               />
             </Field>
-            {/* Not a Field: a label around buttons would pass every tap to the first chip. */}
-            <div className="space-y-2">
-              <p className="text-[14px] font-semibold text-[var(--lp-dark)]">{t.marketShop.categoriesLabel}</p>
-              <CategoryChips withAll={false} value={category} onChange={(next) => setCategory((now) => (now === next || next === 'all' ? null : next))} />
-            </div>
             <Field label={pl.sectionWork.descriptionLabel} hint={pl.sectionWork.descriptionHint}>
               <textarea
                 value={description}
-                rows={4}
+                rows={3}
                 maxLength={500}
                 placeholder={pl.sectionWork.descriptionPlaceholder}
                 onChange={(e) => {
@@ -295,131 +263,114 @@ export function PostListingForm() {
               />
             </Field>
           </div>
-          {/* Its own block, after the words: the photos are optional and never
-              mix with the fields the first step checks. */}
-          <div hidden={step !== 0}>
-            <OfferPhotosField value={photos} onChange={setPhotos} title={title.trim()} />
+          {/* Not a Field: a label around buttons would pass every tap to the first chip. */}
+          <div className="space-y-2">
+            <p className="text-[14px] font-medium text-[var(--ink)]">{t.marketShop.categoriesLabel}</p>
+            <CategoryChips withAll={false} value={category} onChange={(next) => setCategory((now) => (now === next || next === 'all' ? null : next))} />
           </div>
 
-          <div hidden={step !== 1} className="space-y-6">
-            {/* Per unit and per hour open with business accounts; until then a
-                fixed price is the only way to charge, so there is no choice. */}
-            {BUSINESS_ACCOUNTS_OPEN ? (
-            <div role="group" aria-label={f.charge}>
-              <p className="mb-2 text-[14px] font-semibold text-[var(--lp-dark)]">{f.charge}</p>
-              <div className="grid gap-2 sm:grid-cols-3">
-                <span className="rounded-[16px] border border-[var(--lp-accent)] bg-[var(--lp-card)] px-3.5 py-3 shadow-[inset_0_0_0_1px_var(--lp-accent)]">
-                  <span className="flex items-center justify-between gap-2 text-[15px] font-semibold text-[var(--lp-dark)]">
-                    {f.fixed}
-                    <span className="grid size-5 place-items-center rounded-full bg-[var(--lp-accent)] text-[var(--lp-band-dark)]">
-                      <Icon name="check" size={16} />
-                    </span>
+          {/* Per unit and per hour open with business accounts; until then a
+              fixed price is the only way to charge, so there is no choice. */}
+          {BUSINESS_ACCOUNTS_OPEN ? (
+          <div role="group" aria-label={f.charge}>
+            <p className="mb-2 text-[14px] font-medium text-[var(--ink)]">{f.charge}</p>
+            <div className="grid gap-2 sm:grid-cols-3">
+              <span className="rounded-[var(--radius-input)] border border-[var(--ink)] bg-[var(--surface)] px-3.5 py-3">
+                <span className="flex items-center justify-between gap-2 text-[15px] font-semibold text-[var(--ink)]">
+                  {f.fixed}
+                  <span className="grid size-5 place-items-center rounded-full bg-[var(--ink)] text-[var(--canvas)]">
+                    <Icon name="check" size={16} />
                   </span>
-                  <span className="mt-0.5 block text-[14px] text-[var(--lp-text-sub)] font-medium">{f.fixedHint}</span>
                 </span>
-                {[
-                  { label: f.perUnit, hint: f.perUnitHint },
-                  { label: f.perHour, hint: f.perHourHint },
-                ].map((option) => (
-                  <span
-                    key={option.label}
-                    role="button"
-                    aria-disabled="true"
-                    tabIndex={0}
-                    aria-label={`${option.label}, ${f.soon}`}
-                    className="group cursor-not-allowed rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3.5 py-3 opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
-                  >
-                    <span className="block text-[15px] font-semibold text-[var(--lp-dark)]">{option.label}</span>
-                    <span aria-hidden className="mt-0.5 block text-[14px] text-[var(--lp-text-sub)] group-hover:hidden group-focus-visible:hidden font-medium">
-                      {option.hint}
-                    </span>
-                    <span aria-hidden className="mt-0.5 hidden text-[14px] font-semibold text-[var(--lp-dark)] group-hover:block group-focus-visible:block">
-                      {f.soon}
-                    </span>
+                <span className="mt-0.5 block text-[14px] font-medium text-[var(--ink-secondary)]">{f.fixedHint}</span>
+              </span>
+              {[
+                { label: f.perUnit, hint: f.perUnitHint },
+                { label: f.perHour, hint: f.perHourHint },
+              ].map((option) => (
+                <span
+                  key={option.label}
+                  role="button"
+                  aria-disabled="true"
+                  tabIndex={0}
+                  aria-label={`${option.label}, ${f.soon}`}
+                  className="group cursor-not-allowed rounded-[var(--radius-input)] border border-[var(--line)] bg-[var(--surface)] px-3.5 py-3 opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]"
+                >
+                  <span className="block text-[15px] font-semibold text-[var(--ink)]">{option.label}</span>
+                  <span aria-hidden className="mt-0.5 block text-[14px] font-medium text-[var(--ink-secondary)] group-hover:hidden group-focus-visible:hidden">
+                    {option.hint}
                   </span>
-                ))}
-              </div>
+                  <span aria-hidden className="mt-0.5 hidden text-[14px] font-semibold text-[var(--ink)] group-hover:block group-focus-visible:block">
+                    {f.soon}
+                  </span>
+                </span>
+              ))}
             </div>
-            ) : null}
+          </div>
+          ) : null}
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field label={f.price} unit="USDC" hint={pl.sectionPricing.askingHint} dataGuide="seller-price">
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min={1}
-                  step="any"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value === '' ? '' : Number(e.target.value))}
-                  placeholder="0"
-                  className="form-input form-input-num"
-                />
-              </Field>
-              <Field label={f.floor} unit="USDC" hint={f.floorHint} dataGuide="seller-floor">
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min={0}
-                  step="any"
-                  value={floorPrice}
-                  onChange={(e) => setFloorPrice(e.target.value === '' ? '' : Number(e.target.value))}
-                  placeholder={priceValue ? String(priceValue) : '0'}
-                  aria-invalid={floorInvalid || undefined}
-                  className="form-input form-input-num"
-                />
-                {floorInvalid ? (
-                  <span className="block text-[14px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))]">{f.floorTooLow}</span>
-                ) : null}
-              </Field>
-            </div>
+          <Field label={f.price} unit="USDC" hint={pl.sectionPricing.askingHint} dataGuide="seller-price">
+            <input
+              type="number"
+              inputMode="decimal"
+              min={1}
+              step="any"
+              value={price}
+              onChange={(e) => setPrice(e.target.value === '' ? '' : Number(e.target.value))}
+              placeholder="0"
+              className="form-input form-input-num"
+            />
+          </Field>
 
-            <div>
-              <p className="mb-2 text-[14px] font-semibold text-[var(--lp-dark)]">{f.readyIn}</p>
-              <div className="flex flex-wrap items-center gap-2">
-                {READY_CHIPS.map((days) => {
-                  const on = !customReady && readyInDays === days;
-                  return (
-                    <button
-                      key={days}
-                      type="button"
-                      aria-pressed={on}
-                      onClick={() => {
-                        setCustomReady(false);
-                        setReadyInDays(days);
+          <div>
+            <p className="mb-2 inline-flex items-center gap-1.5 text-[14px] font-medium text-[var(--ink)]">
+              {f.readyIn}
+              <Hint>{f.readyInHint}</Hint>
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              {READY_CHIPS.map((days) => {
+                const on = !customReady && readyInDays === days;
+                return (
+                  <button
+                    key={days}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => {
+                      setCustomReady(false);
+                      setReadyInDays(days);
+                    }}
+                    className={cn(chip, on ? chipOn : chipOff)}
+                  >
+                    {days === 1 ? f.day1 : fill(f.days, days)}
+                  </button>
+                );
+              })}
+              <button type="button" aria-pressed={customReady} onClick={() => setCustomReady(true)} className={cn(chip, customReady ? chipOn : chipOff)}>
+                {f.other}
+              </button>
+              {customReady ? (
+                <label className="inline-flex items-center gap-2 text-[14px] font-medium text-[var(--ink-secondary)]">
+                  <span className="block w-20 shrink-0">
+                    <input
+                      inputMode="numeric"
+                      value={readyInDays === '' ? '' : String(readyInDays)}
+                      onChange={(e) => {
+                        const text = e.target.value.replace(/\D/g, '').slice(0, 3);
+                        setReadyInDays(text === '' ? '' : Math.min(MAX_READY_DAYS, Number(text)));
                       }}
-                      className={cn(chip, on ? chipOn : chipOff)}
-                    >
-                      {days === 1 ? f.day1 : fill(f.days, days)}
-                    </button>
-                  );
-                })}
-                <button type="button" aria-pressed={customReady} onClick={() => setCustomReady(true)} className={cn(chip, customReady ? chipOn : chipOff)}>
-                  {f.other}
-                </button>
-                {customReady ? (
-                  <label className="inline-flex items-center gap-2 text-[14px] text-[var(--lp-text-sub)] font-medium">
-                    <span className="block w-20 shrink-0">
-                      <input
-                        inputMode="numeric"
-                        value={readyInDays === '' ? '' : String(readyInDays)}
-                        onChange={(e) => {
-                          const text = e.target.value.replace(/\D/g, '').slice(0, 3);
-                          setReadyInDays(text === '' ? '' : Math.min(MAX_READY_DAYS, Number(text)));
-                        }}
-                        aria-label={f.otherDays}
-                        className="form-input form-input-num h-10 text-end"
-                      />
-                    </span>
-                    {f.otherDays}
-                  </label>
-                ) : null}
-              </div>
-              <p className="mt-1.5 text-[14px] text-[var(--lp-text-sub)] font-medium">{f.readyInHint}</p>
+                      aria-label={f.otherDays}
+                      className="form-input form-input-num h-10 text-end"
+                    />
+                  </span>
+                  {f.otherDays}
+                </label>
+              ) : null}
             </div>
+          </div>
 
-            <div data-guide="seller-window">
-              <p className="mb-2 text-[14px] font-semibold text-[var(--lp-dark)]">{f.openFor}</p>
-              <div className="flex flex-wrap gap-2">
+          <div className={cn(CARD_CLASS, 'divide-y divide-[var(--line)] overflow-hidden')}>
+            <FoldRow label={f.openFor} fact={fill(f.openForRow, openDays)} open={openForOpen} onToggle={setOpenForOpen}>
+              <div className="flex flex-wrap gap-2" data-guide="seller-window">
                 {OPEN_CHIPS.map((days) => (
                   <button
                     key={days}
@@ -432,12 +383,44 @@ export function PostListingForm() {
                   </button>
                 ))}
               </div>
-            </div>
+            </FoldRow>
+            <FoldRow
+              label={f.floor}
+              fact={typeof floorPrice === 'number' && floorPrice > 0 ? `${floorPrice} USDC` : offer.notSet}
+              open={floorOpen}
+              onToggle={setFloorOpen}
+            >
+              <Field label={f.floor} unit="USDC" hint={f.floorHint} dataGuide="seller-floor">
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="any"
+                  value={floorPrice}
+                  onChange={(e) => setFloorPrice(e.target.value === '' ? '' : Number(e.target.value))}
+                  placeholder={priceValue ? String(priceValue) : '0'}
+                  aria-invalid={floorInvalid || undefined}
+                  className="form-input form-input-num"
+                />
+              </Field>
+            </FoldRow>
+            <FoldRow
+              label={rf.payInParts}
+              fact={inParts ? terms.parts.map((part) => `${part.pct}%`).join(' / ') : offer.onePayment}
+              open={inParts}
+              onToggle={setInParts}
+              payInParts
+            >
+              <TermsBuilder value={terms} onChange={setTerms} priceUsdc={priceValue} dueLabel={null} disabled={submitting} />
+            </FoldRow>
           </div>
+          {floorInvalid ? (
+            <p role="alert" className="text-[14px] font-medium text-[var(--ink)]">{f.floorTooLow}</p>
+          ) : null}
 
-          <div hidden={step !== 2} className="space-y-6">
-            <TermsBuilder value={terms} onChange={setTerms} priceUsdc={priceValue} dueLabel={null} disabled={submitting} />
-          </div>
+          {/* Its own block, after the words: the photos are optional and never
+              mix with the fields the words check. */}
+          <OfferPhotosField value={photos} onChange={setPhotos} title={title.trim()} />
         </fieldset>
 
         {reviewing ? (
@@ -452,7 +435,7 @@ export function PostListingForm() {
               ...(floorDropPct ? [{ label: f.floor, value: `${floorPrice} USDC` }] : []),
               { label: f.readyIn, value: fill(f.readyInRow, readyInDays) },
               { label: f.openFor, value: fill(f.openForRow, openDays) },
-              { label: t.dealCreation.payment, value: terms.parts.map((part) => `${part.pct}%`).join(' / ') },
+              { label: t.dealCreation.payment, value: dealTerms.parts.map((part) => `${part.pct}%`).join(' / ') },
               { label: TERMS_COPY[locale].agreement, value: agreementText },
             ]}
           >
@@ -463,9 +446,9 @@ export function PostListingForm() {
         {/* An offer that reads like a request is named before it posts. A
             second press publishes it as written. */}
         {reviewing && intentCheck.wrong && intentWarned && (
-          <div className="rounded-[12px] border border-[color-mix(in_srgb,var(--lp-dark)_20%,var(--neg))] px-4 py-3">
-            <p className="text-[14px] font-semibold text-[var(--lp-dark)]">{pl.intentWarning.eyebrow}</p>
-            <p className="mt-1 text-[14px] leading-snug text-[var(--lp-dark)]">
+          <div className="rounded-[var(--radius-input)] border border-[var(--line-strong)] px-4 py-3">
+            <p className="text-[14px] font-semibold text-[var(--ink)]">{pl.intentWarning.eyebrow}</p>
+            <p className="mt-1 text-[14px] leading-snug text-[var(--ink)]">
               {pl.intentWarning.bodyPart1}
               <span className="font-bold">{pl.intentWarning.bodyEmphNeed}</span>
               {pl.intentWarning.bodyPart2}
@@ -481,43 +464,25 @@ export function PostListingForm() {
           </div>
         )}
 
-        <div className="flex flex-wrap items-center gap-3 pt-2">
-          {!reviewing && step > 0 ? (
-            <button
-              type="button"
-              onClick={() => setStep((step - 1) as 0 | 1)}
-              disabled={submitting}
-              className="inline-flex min-h-12 items-center rounded-full px-4 text-[15px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)]"
-            >
-              {rs.back}
-            </button>
-          ) : null}
-          {reviewing ? (
-            <button
-              type="submit"
-              data-guide="seller-submit"
-              disabled={submitting}
-              className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full bg-[var(--lp-accent)] px-6 text-[15px] font-semibold text-[var(--lp-band-dark)] transition-colors hover:bg-[var(--lp-accent-hover)] disabled:cursor-not-allowed disabled:opacity-45 sm:flex-none"
-            >
-              {submitting ? f.publishing : f.publish}
-              {!submitting && <Icon name="send" size={16} directional />}
-            </button>
-          ) : (
-            <button
-              type="submit"
-              disabled={!stepReady || submitting}
-              className="inline-flex min-h-12 flex-1 items-center justify-center rounded-full bg-[var(--lp-accent)] px-6 text-[15px] font-semibold text-[var(--lp-band-dark)] transition-colors hover:bg-[var(--lp-accent-hover)] disabled:cursor-not-allowed disabled:opacity-45 sm:flex-none"
-            >
-              {step < 2 ? rs.continue : t.dealCreation.review}
-            </button>
-          )}
-          {!reviewing && step === 2 ? <TermsBlockerNote terms={terms} /> : null}
+        <div className="space-y-3 border-t border-[var(--line)] pt-5">
+          <Button
+            type="submit"
+            data-guide="seller-submit"
+            size="lg"
+            disabled={!reviewing && !ready}
+            loading={submitting}
+            loadingLabel={f.publishing}
+            className="w-full sm:w-auto"
+          >
+            {reviewing ? f.publish : t.dealCreation.review}
+          </Button>
           {reviewing ? <MarketReadsNote /> : null}
-          {stepOneMissing ? <p role="status" className="w-full text-[14px] font-medium text-[var(--lp-dark)]">{stepOneMissing}</p> : null}
+          {!reviewing && wordsMissing ? <p role="status" className="text-[14px] font-medium text-[var(--ink-secondary)]">{wordsMissing}</p> : null}
+          {!reviewing && !wordsMissing && inParts && termsIssues(dealTerms).length > 0 ? <TermsBlockerNote terms={dealTerms} /> : null}
         </div>
         {error && (
           <div className="space-y-1.5">
-            <p role="alert" className="text-[14px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))]">
+            <p role="alert" className="text-[14px] text-[var(--ink)]">
               {pl.errors.postFailedTemplate.replace('{error}', error)}
             </p>
             {/activate|agent wallet/i.test(error) && (
@@ -532,7 +497,7 @@ export function PostListingForm() {
                   }
                 }}
                 disabled={activating}
-                className="text-[14px] font-semibold text-[var(--lp-dark)] underline underline-offset-2 disabled:opacity-50"
+                className="text-[14px] font-semibold text-[var(--ink)] underline underline-offset-2 disabled:opacity-50"
               >
                 {activating ? pl.errors.activating : pl.errors.activateCta}
               </button>
@@ -576,7 +541,7 @@ export function PostListingForm() {
                     <Link
                       href={`/listings/${l.id}`}
                       aria-label={pl.openAriaTemplate.replace('{title}', l.title)}
-                      className="flex min-h-14 min-w-0 flex-1 items-center justify-between gap-3 rounded-md py-3 hover:bg-[var(--lp-workspace-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)]"
+                      className="flex min-h-14 min-w-0 flex-1 items-center justify-between gap-3 rounded-md py-3 hover:bg-[var(--lp-workspace-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ink)]"
                     >
                       <span className="min-w-0">
                         <span className="line-clamp-2 break-words text-[15px] font-semibold leading-snug text-[var(--lp-workspace-ink)]">{l.title}</span>
@@ -589,7 +554,7 @@ export function PostListingForm() {
                             className={cn(
                               'rounded-full px-2.5 py-0.5 text-[14px] font-semibold',
                               isMatched
-                                ? 'bg-[var(--color-positive-soft)] text-[var(--color-positive)]'
+                                ? 'bg-[var(--ink)] text-[var(--canvas)]'
                                 : isTerminal
                                   ? 'bg-[var(--tint)] text-[var(--ink-secondary)]'
                                   : 'bg-[var(--tint)] text-[var(--ink)]',
@@ -606,7 +571,7 @@ export function PostListingForm() {
                         type="button"
                         aria-label={pl.dismissAriaTemplate.replace('{status}', label.toLowerCase())}
                         onClick={() => dismiss(l.id)}
-                        className="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-[var(--lp-workspace-muted)] transition-colors hover:bg-[var(--lp-workspace-soft)] hover:text-[var(--lp-workspace-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+                        className="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-[var(--lp-workspace-muted)] transition-colors hover:bg-[var(--lp-workspace-soft)] hover:text-[var(--lp-workspace-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
                       >
                         <Icon name="close" size={16} />
                       </button>
@@ -638,11 +603,11 @@ function Field({
   return (
     <label className="block space-y-2" data-guide={dataGuide}>
       <span className="flex items-center justify-between gap-2">
-        <span className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-[var(--lp-dark)]">
+        <span className="inline-flex items-center gap-1.5 text-[14px] font-medium text-[var(--ink)]">
           {label}
           {hint && <Hint>{hint}</Hint>}
         </span>
-        {unit && <span className="text-[14px] text-[var(--lp-text-sub)] font-medium">{unit}</span>}
+        {unit && <span className="text-[14px] text-[var(--ink-muted)]">{unit}</span>}
       </span>
       {children}
     </label>

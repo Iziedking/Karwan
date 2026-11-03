@@ -21,7 +21,7 @@ export const DEFAULT_TERMS: TermsDraft = {
 };
 
 export const chip =
-  'inline-flex min-h-11 items-center rounded-full border px-3.5 text-[14px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]';
+  'inline-flex min-h-11 items-center rounded-full border px-3.5 text-[14px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]';
 export const chipOn = 'border-[var(--lp-dark)] bg-[var(--lp-dark)] text-[var(--lp-light)]';
 export const chipOff = 'border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-dark)] hover:border-[var(--lp-outline-strong)]';
 
@@ -150,7 +150,7 @@ export function TermsBuilder({
               {t.addPart}
             </button>
           ) : <span />}
-          {value.parts.length === 1 ? null : <p className={cn('text-[14px] font-semibold tabular-nums', total === 100 ? 'text-[var(--lp-accent-on-light)]' : 'text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))]')}>
+          {value.parts.length === 1 ? null : <p className={cn('text-[14px] font-semibold tabular-nums', total === 100 ? 'text-[var(--ink)]' : 'text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))]')}>
             {(total === 100 ? t.total : t.needs100).replace('{sum}', String(total))}
           </p>}
         </div>
@@ -208,7 +208,7 @@ export function TermsBuilder({
         <ul className="mt-3 space-y-1.5">
           {issues.length === 0 ? (
             <li className="flex items-start gap-2 text-[14px] text-[var(--lp-dark)]">
-              <span aria-hidden className="mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-full bg-[color-mix(in_srgb,var(--lp-accent)_35%,transparent)] text-[var(--lp-accent-on-light)]">
+              <span aria-hidden className="mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-full bg-[var(--raised)] text-[var(--ink)]">
                 <Icon name="check" size={16} />
               </span>
               {t.ready}

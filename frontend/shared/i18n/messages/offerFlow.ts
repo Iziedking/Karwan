@@ -8,6 +8,8 @@ export interface OfferFlowCopy {
   matchedTitle: string;
   openDeal: string;
   tryAgain: string;
+  notSet: string;
+  onePayment: string;
 }
 
 const en: OfferFlowCopy = {
@@ -20,6 +22,8 @@ const en: OfferFlowCopy = {
   matchedTitle: 'A buyer matched your offer.',
   openDeal: 'Open the deal',
   tryAgain: 'Check your connection and try again.',
+  notSet: 'Not set',
+  onePayment: 'One payment',
 };
 
 const fr: OfferFlowCopy = {
@@ -32,6 +36,8 @@ const fr: OfferFlowCopy = {
   matchedTitle: 'Un acheteur correspond à votre offre.',
   openDeal: 'Ouvrir l’accord',
   tryAgain: 'Vérifiez votre connexion et réessayez.',
+  notSet: 'Non défini',
+  onePayment: 'Un seul paiement',
 };
 
 const ar: OfferFlowCopy = {
@@ -44,6 +50,8 @@ const ar: OfferFlowCopy = {
   matchedTitle: 'وُجد مشترٍ لعرضك.',
   openDeal: 'افتح الصفقة',
   tryAgain: 'تحقق من اتصالك وحاول مرة أخرى.',
+  notSet: 'غير محدد',
+  onePayment: 'دفعة واحدة',
 };
 
 const hi: OfferFlowCopy = {
@@ -56,6 +64,8 @@ const hi: OfferFlowCopy = {
   matchedTitle: 'आपके ऑफ़र से एक खरीदार मेल खा गया।',
   openDeal: 'सौदा खोलें',
   tryAgain: 'अपना कनेक्शन जाँचें और फिर कोशिश करें।',
+  notSet: 'तय नहीं',
+  onePayment: 'एक भुगतान',
 };
 
 const sw: OfferFlowCopy = {
@@ -68,6 +78,8 @@ const sw: OfferFlowCopy = {
   matchedTitle: 'Mnunuzi amelingana na ofa yako.',
   openDeal: 'Fungua makubaliano',
   tryAgain: 'Angalia muunganisho wako na ujaribu tena.',
+  notSet: 'Haijawekwa',
+  onePayment: 'Malipo moja',
 };
 
 export const offerFlowCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', OfferFlowCopy> = { en, ar, fr, hi, sw };

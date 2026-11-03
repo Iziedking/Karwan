@@ -10,10 +10,10 @@ const SAMPLES = [0.25, 1, 24] as const;
 
 const chip = (active: boolean) =>
   cn(
-    'inline-flex min-h-11 items-center rounded-full border px-4 text-[14px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)] disabled:opacity-50',
+    'inline-flex min-h-11 items-center rounded-full border px-4 text-[14px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)] disabled:opacity-50',
     active
-      ? 'border-[var(--lp-dark)] bg-[var(--lp-dark)] text-[var(--lp-light)]'
-      : 'border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-dark)] hover:border-[var(--lp-outline-strong)]',
+      ? 'border-[var(--ink)] bg-[var(--ink)] text-[var(--canvas)]'
+      : 'border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] hover:border-[var(--line-strong)]',
   );
 
 const quarter = (hours: number) => Math.min(MAX_HOURS, Math.max(0.25, Math.round(hours * 4) / 4));
@@ -72,7 +72,7 @@ export function AcceptWithin({ hours, onChange, disabled }: { hours: number; onC
             {labels[i]}
           </button>
         ))}
-        <label className={cn(chip(mode === 'date' && !!date), 'relative cursor-pointer focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--lp-accent)]')}>
+        <label className={cn(chip(mode === 'date' && !!date), 'relative cursor-pointer focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--ink)]')}>
           <span>{mode === 'date' && date ? rs.until.replace('{date}', new Date(`${date}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })) : rs.pickDate}</span>
           <input
             type="date"

@@ -315,7 +315,8 @@ test('a direct deal takes an email, a tag or a wallet address in one box', async
 
   await box.fill('0x3333333333333333333333333333333333333333');
   await expect(page.getByText('Wallet 0x3333…3333. They accept by signing in with it.')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Continue', exact: true })).toBeEnabled();
+  // One screen (view 48, 9b): what is delivered sits under the one box.
+  await expect(page.getByLabel('What will be delivered', { exact: true })).toBeVisible();
 });
 
 test('an old ?search=v1 link to a request opens the request page (view 44, Batch 9)', async ({ page }) => {

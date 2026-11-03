@@ -22,6 +22,7 @@ const FILES = [
   './components/GatewayBalanceCard.tsx',
   './components/SolanaConnectCard.tsx',
   './components/BridgeHistorySection.tsx',
+  './components/CrossChainFlow.tsx',
   '../money/components/WithdrawStart.tsx',
 ];
 

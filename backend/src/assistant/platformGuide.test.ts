@@ -259,6 +259,17 @@ test('the guide walks Add money and Withdraw as the new look shows them (view 48
   assert.match(said('withdraw'), /Nothing moves before that/);
 });
 
+test('the guide walks Post an offer and Start a deal as one screen (view 48, batch 9b)', () => {
+  const said = (id: string) => { const e = PLATFORM_GUIDE.find((entry) => entry.id === id)!; return [e.summary, ...e.steps].join(' '); };
+  assert.match(said('sell'), /The form is one screen/);
+  assert.match(said('sell'), /Lowest you accept and Pay in parts open in place/);
+  assert.match(said('sell'), /Publish offer posts it/);
+  assert.match(said('direct'), /What will be delivered/);
+  assert.match(said('direct'), /Review shows the deal once more/);
+  assert.match(said('direct'), /nothing is paid then/);
+  assert.doesNotMatch(said('direct'), /Step \d of 3/);
+});
+
 test('the guide describes Profile, the public record and Something is wrong (view 44, Batch 8)', () => {
   const said = (id: string) => { const e = PLATFORM_GUIDE.find((entry) => entry.id === id)!; return [e.summary, ...e.steps].join(' '); };
   assert.match(said('reputation'), /Share your record/);

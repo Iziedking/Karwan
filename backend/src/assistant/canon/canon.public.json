@@ -428,7 +428,7 @@
       "id": "milestone-escrow",
       "title": "Milestone escrow",
       "status": "live",
-      "updated": "2026-10-26",
+      "updated": "2026-11-03",
       "tags": [
         "escrow",
         "settlement"
@@ -440,7 +440,7 @@
           "date": "2026-10-26"
         }
       ],
-      "body": "A deal is paid in one to five parts. The seller marks a part delivered, and\nthe buyer has the review time the deal set, at most 30 days, to check it.\n\nDuring that time the buyer can release the payment, ask once for more time\nto check, or raise a problem. Karwan reminds them a day before the time runs\nout. If it ends with no release and no problem raised, that payment goes to\nthe seller. The final payment works the same way. A deposit is the one\nexception: it goes back to the buyer.\n\nOnce either side raises a problem, the payment stays held and each side has\n72 hours to give their side of what happened.\n\nA missed delivery date lets the buyer take back what is left, and the miss\nlands on the seller's record. A cancel or extra time both sides agree to\ncarries no penalty. The fee is 1 percent of the deal, half from each side.\n\nDeals already open on Karwan's earlier escrow finish under its rules: when\nthe review ends with no release, the seller claims the payment."
+      "body": "A deal is paid in one to five parts. The seller marks a part delivered, and\nthe buyer has the review time the deal set, at most 30 days, to check it.\n\nAn offer or a new deal is one payment unless you choose Pay in parts. Either\nway the form shows the terms once more before anything is sent.\n\nDuring that time the buyer can release the payment, ask once for more time\nto check, or raise a problem. Karwan reminds them a day before the time runs\nout. If it ends with no release and no problem raised, that payment goes to\nthe seller. The final payment works the same way. A deposit is the one\nexception: it goes back to the buyer.\n\nOnce either side raises a problem, the payment stays held and each side has\n72 hours to give their side of what happened.\n\nA missed delivery date lets the buyer take back what is left, and the miss\nlands on the seller's record. A cancel or extra time both sides agree to\ncarries no penalty. The fee is 1 percent of the deal, half from each side.\n\nDeals already open on Karwan's earlier escrow finish under its rules: when\nthe review ends with no release, the seller claims the payment."
     },
     {
       "id": "negotiation-in-assistant",

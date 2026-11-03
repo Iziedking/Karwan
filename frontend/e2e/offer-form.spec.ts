@@ -18,7 +18,7 @@ async function signedIn(page: Page, role: 'seller' | 'buyer') {
   await page.route(`${API}/api/listings/mine**`, route => route.fulfill({ json: { listings: [] } }));
 }
 
-test('an offer is set in three steps: price, floor, ready-in time and terms', async ({ page }) => {
+test('an offer is one screen: price, ready-in time, and the floor and terms open in place (view 48, 9b)', async ({ page }) => {
   await signedIn(page, 'seller');
   let posted: Record<string, unknown> | null = null;
   await page.route(`${API}/api/listings`, async route => {
@@ -28,38 +28,37 @@ test('an offer is set in three steps: price, floor, ready-in time and terms', as
   });
 
   await page.goto('/seller');
-  await expect(page.getByText(`${rs.stepOf.replace('{n}', '1')} · ${rs.describe}`)).toBeVisible();
-  const next = page.getByRole('button', { name: rs.continue, exact: true });
-  await expect(next).toBeDisabled();
+  await expect(page.getByText(rs.stepOf.replace('{n}', '1'), { exact: false })).toHaveCount(0);
+  const review = page.getByRole('button', { name: en.dealCreation.review, exact: true });
+  await expect(review).toBeDisabled();
   await page.locator('[data-guide="seller-listing"] input').fill('Logo design for small shops');
   await page.locator('[data-guide="seller-listing"] textarea').fill('A logo in SVG and PNG with two rounds of changes.');
   // The seller can place the offer in a market category (view 44).
   const design = page.getByRole('group', { name: en.marketShop.categoriesLabel }).getByRole('button', { name: en.marketShop.categories.design });
   await design.click();
   await expect(design).toHaveAttribute('aria-pressed', 'true');
-  await next.click();
 
   // Ways to charge that do not work yet stay hidden until business accounts open.
   await expect(page.getByRole('button', { name: f.perUnit })).toHaveCount(0);
   await expect(page.getByRole('button', { name: f.perHour })).toHaveCount(0);
   await page.locator('[data-guide="seller-price"] input').fill('100');
+  await page.locator('summary', { hasText: f.floor }).click();
   await page.locator('[data-guide="seller-floor"] input').fill('40');
   await expect(page.getByText(f.floorTooLow, { exact: true })).toBeVisible();
-  await expect(next).toBeDisabled();
-  await page.locator('[data-guide="seller-floor"] input').fill('80');
   await page.getByRole('button', { name: f.other, exact: true }).click();
   await page.getByRole('textbox', { name: f.otherDays, exact: true }).fill('5');
-  await next.click();
+  await expect(review).toBeDisabled();
+  await page.locator('[data-guide="seller-floor"] input').fill('80');
 
+  await page.locator('[data-pay-in-parts] summary').click();
   await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '1')}: ${tb.whatLabel}`, exact: true }).fill('Three logo sketches to choose from');
-
   // Every deal starts as one milestone; a second is added on purpose.
-
   await page.getByRole('button', { name: tb.addPart, exact: true }).click();
   await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '2')}: ${tb.whatLabel}`, exact: true }).fill('Logo in SVG and PNG');
   await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '1')} %` }).fill('30');
-  await page.getByRole('button', { name: en.dealCreation.review, exact: true }).click();
+  await review.click();
   await expect(page.getByText(f.readyInRow.replace('{n}', '5'), { exact: true })).toBeVisible();
+  expect(posted).toBeNull();
   await page.getByRole('button', { name: f.publish }).click();
 
   await expect.poll(() => posted).not.toBeNull();
@@ -76,6 +75,25 @@ test('an offer is set in three steps: price, floor, ready-in time and terms', as
     },
   });
   expect(String((posted as unknown as { terms: string }).terms)).toContain(': Logo in SVG and PNG');
+});
+
+test('an offer left as one payment posts one milestone named by its title', async ({ page }) => {
+  await signedIn(page, 'seller');
+  let posted: Record<string, unknown> | null = null;
+  await page.route(`${API}/api/listings`, async route => {
+    if (route.request().method() !== 'POST') return route.fallback();
+    posted = route.request().postDataJSON();
+    return route.fulfill({ status: 500, json: { error: 'stop here' } });
+  });
+  await page.goto('/seller');
+  await page.locator('[data-guide="seller-listing"] input').fill('Menu photos');
+  await page.locator('[data-guide="seller-listing"] textarea').fill('Photos of 12 dishes, edited for the web.');
+  await page.locator('[data-guide="seller-price"] input').fill('200');
+  await page.getByRole('button', { name: f.days.replace('{n}', '3'), exact: true }).click();
+  await page.getByRole('button', { name: en.dealCreation.review, exact: true }).click();
+  await page.getByRole('button', { name: f.publish }).click();
+  await expect.poll(() => posted).not.toBeNull();
+  expect(posted).toMatchObject({ askingPriceUsdc: 200, readyInDays: 3, termsDraft: { parts: [{ pct: 100, what: 'Menu photos' }] } });
 });
 
 test('a deal started from an offer starts from its terms and ready-in time', async ({ page }) => {
@@ -104,10 +122,9 @@ test('a deal started from an offer starts from its terms and ready-in time', asy
   }));
 
   await page.goto('/buyer?mode=direct&seller=0x3333333333333333333333333333333333333333&amount=100&listing=lst_1');
-  const next = page.getByRole('button', { name: rs.continue, exact: true });
-  await next.click();
+  // One screen: the date and the seller's milestones are there at once.
   await expect(page.getByText(/^Due /)).toBeVisible();
-  await next.click();
+  await expect(page.locator('[data-pay-in-parts]')).toHaveAttribute('open', '');
   await expect(page.getByRole('textbox', { name: `${tb.part.replace('{n}', '3')}: ${tb.whatLabel}`, exact: true })).toHaveValue('Logo in SVG and PNG');
   await expect(page.getByRole('textbox', { name: `${tb.part.replace('{n}', '1')} %` })).toHaveValue('20');
   await expect(page.getByRole('textbox', { name: `${tb.part.replace('{n}', '2')} %` })).toHaveValue('30');

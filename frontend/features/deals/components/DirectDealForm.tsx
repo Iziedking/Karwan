@@ -21,6 +21,9 @@ import { composeTerms, termsIssues, type TermsDraft } from '../terms/composeTerm
 import { TERMS_COPY } from '../terms/termsCopy';
 import { DueChips } from './DueChips';
 import { CreationReview } from './CreationReview';
+import { FoldRow } from './FoldRow';
+import { Button } from '@/shared/components/Button';
+import { CARD_CLASS } from '@/shared/components/Card';
 import { validAmount, validWhole } from '../creationValidation';
 import { primeCreatedDirectDeal } from '../creationHandoff';
 import { splitDeadline } from '../deadlineSplit';
@@ -96,6 +99,7 @@ export function DirectDealForm() {
   const dd = t.directDeal;
   const c = t.dealCreation;
   const rs = c.requestSteps;
+  const rf = t.requestFlow;
   const { locale } = useLocale();
   const [reviewing, setReviewing] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
@@ -161,9 +165,12 @@ export function DirectDealForm() {
   /// Seller has this long to accept before the deal auto-expires (pre-accept,
   /// no rep hit). Buyer picks a preset; 24h is the human default.
   const [acceptanceHours, setAcceptanceHours] = useState<number>(24);
-  // Asked in three short steps: who, price and time, then the terms.
-  const [step, setStep] = useState<0 | 1 | 2>(0);
-  // The agreement as checkable parts. Direct deals fund in two parts today.
+  // One screen (view 48, 9b). One payment for what is delivered, unless Pay
+  // in parts is opened for milestones.
+  const [delivered, setDelivered] = useState(initialTerms.trim());
+  const [inParts, setInParts] = useState(false);
+  const [acceptOpen, setAcceptOpen] = useState(false);
+  const [depositOpen, setDepositOpen] = useState(false);
   const [terms, setTerms] = useState<TermsDraft>(() =>
     initialTerms.trim()
       ? { ...DEFAULT_TERMS, parts: [{ pct: 100, what: initialTerms.trim() }] }
@@ -180,6 +187,8 @@ export function DirectDealForm() {
         if (cancelled) return;
         const draft = listing.termsDraft;
         if (draft) {
+          if (draft.parts.length > 1) setInParts(true);
+          else setDelivered(draft.parts[0]?.what ?? '');
           setTerms({
             conditions: draft.conditions.length ? draft.conditions : [''],
             proof: draft.proof,
@@ -210,6 +219,7 @@ export function DirectDealForm() {
       setGoodsWay(next === 'in_person' ? 'in_person' : 'shipped');
     }
     if (next === 'stages') {
+      setInParts(true);
       setTerms((current) => ({ ...current, parts: [{ pct: 50, what: current.parts[0]?.what ?? '' }, { pct: 50, what: '' }] }));
     }
   }
@@ -337,7 +347,8 @@ export function DirectDealForm() {
   const deadlineValid =
     deadlineValue === '' ||
     validWhole(deadlineValue, 1, deadlineMax);
-  const termsValid = termsIssues(terms).length === 0;
+  const dealTerms: TermsDraft = inParts ? terms : { ...terms, parts: [{ pct: 100, what: delivered.trim().slice(0, 240) }] };
+  const termsValid = termsIssues(dealTerms).length === 0;
 
   const canSubmit =
     isConnected &&
@@ -369,7 +380,7 @@ export function DirectDealForm() {
     totalSeconds > 0
       ? new Date(Date.now() + totalSeconds * 1000).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
       : null;
-  const agreementText = composeTerms(terms, { priceUsdc: amountValid ? (amount as number) : null, dueLabel }, TERMS_COPY[locale].text);
+  const agreementText = composeTerms(dealTerms, { priceUsdc: amountValid ? (amount as number) : null, dueLabel }, TERMS_COPY[locale].text);
   const recipient =
     contactMatch?.kind === 'karwan'
       ? contactMatch.displayName
@@ -380,7 +391,6 @@ export function DirectDealForm() {
           : sellerAddress
             ? shortAddress(sellerAddress)
             : '';
-  const stepReady = step === 0 ? counterpartyValid : step === 1 ? amountValid && deadlineValid : termsValid;
 
   // What the trust engine will ask on this deal, shown on review instead of switches.
   const [protection, setProtection] = useState<TrustView | undefined>(undefined);
@@ -394,17 +404,8 @@ export function DirectDealForm() {
     return () => { live = false; };
   }, [reviewing, address, knownSeller, amount, amountValid, agreementText]);
 
-  function goForward() {
-    if (step < 2) setStep((step + 1) as 1 | 2);
-    requestAnimationFrame(() => formRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
-  }
-
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (step < 2) {
-      if (stepReady) goForward();
-      return;
-    }
     if (!canSubmit || !address || inFlight.current) return;
     if (!reviewing) { setReviewing(true); return; }
     inFlight.current = true;
@@ -433,8 +434,8 @@ export function DirectDealForm() {
         deadlineHours: submitHours,
         acceptanceWindowHours: acceptanceHours,
         terms: agreementText,
-        firstReleasePct: terms.parts[0].pct,
-        milestonePcts: terms.parts.map((part) => part.pct),
+        firstReleasePct: dealTerms.parts[0].pct,
+        milestonePcts: dealTerms.parts.map((part) => part.pct),
         reviewWindowDays: terms.reviewWindowDays,
         requireStake,
         requireStakePct: requireStake ? requireStakePct : undefined,
@@ -494,26 +495,9 @@ export function DirectDealForm() {
 
   return (
     <form ref={formRef} onSubmit={submit} className="space-y-7">
-      <fieldset hidden={reviewing} disabled={submitting || reviewing} className="space-y-7 min-w-0">
-      <div className="flex items-center gap-3" aria-live="polite">
-        <span aria-hidden className="flex items-center gap-1.5">
-          {[0, 1, 2].map((i) => (
-            <span
-              key={i}
-              className={cn(
-                'block h-2 rounded-full transition-all duration-[var(--dur-small)]',
-                i === step ? 'w-6 bg-[var(--lp-dark)]' : i < step ? 'w-2 bg-[var(--lp-accent)]' : 'w-2 bg-[var(--lp-border-light)]',
-              )}
-            />
-          ))}
-        </span>
-        <span className="text-[14px] font-semibold text-[var(--lp-text-sub)]">
-          {rs.stepOf.replace('{n}', String(step + 1))} · {[rs.seller, rs.price, rs.payment][step]}
-        </span>
-      </div>
-
-      <div hidden={step !== 0} className="space-y-6">
-      <FieldSection title={c.seller}>
+      <fieldset hidden={reviewing} disabled={submitting || reviewing} className="space-y-6 min-w-0">
+      {/* One screen (Figma, Batch 9 · Start a deal): who, what, how much and
+          by when, then the settings most people leave as they are. */}
         <FormLabel label={dd.counterparty.oneBoxLabel} hint={dd.counterparty.contactHint}>
           <input
             type="text"
@@ -539,7 +523,7 @@ export function DirectDealForm() {
                 borderRadius: 10,
               }}
             >
-              <span className="font-sans text-[14px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
+              <span className="text-[14px] font-semibold text-[var(--lp-dark)]">
                 {partner.name}
               </span>
               {partner.verified && (
@@ -595,11 +579,22 @@ export function DirectDealForm() {
             </span>
           )}
         </FormLabel>
-      </FieldSection>
-      </div>
 
-      <div hidden={step !== 1} className="space-y-6">
-      <FieldSection title={wf.whatItIs}>
+      {inParts ? null : (
+        <FormLabel label={t.editDealModal.deliverLabel}>
+          <textarea
+            value={delivered}
+            rows={3}
+            maxLength={240}
+            disabled={submitting}
+            onChange={(e) => setDelivered(e.target.value)}
+            className="form-input form-textarea"
+          />
+        </FormLabel>
+      )}
+
+      <div className="space-y-2">
+        <p className="text-[14px] font-medium text-[var(--ink)]">{wf.whatItIs}</p>
         <div className="flex flex-wrap gap-2" role="group" aria-label={wf.whatItIs}>
           {(['service', 'goods'] as const).map((opt) => {
             const on = opt === 'service' ? tradeType === 'service' : tradeType !== 'service';
@@ -630,51 +625,137 @@ export function DirectDealForm() {
             </div>
           </div>
         )}
-      </FieldSection>
-
-      <FieldSection title={c.priceDeadline}>
-        <FormLabel label={dd.terms.amountLabel} unit="USDC">
-          <input
-            type="number"
-            inputMode="decimal"
-            min={0}
-            step="any"
-            value={amount}
-            disabled={submitting}
-            onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
-            placeholder="0"
-            className="form-input form-input-num"
-          />
-        </FormLabel>
-        <div className="space-y-2">
-          <p className="inline-flex items-center gap-1.5 text-[14px] font-medium text-[var(--lp-dark)]">
-            {dd.terms.deadlineLabel}
-            <Hint>{dd.terms.deadlineHint}</Hint>
-          </p>
-          <DueChips
-            optional
-            value={deadlineValue}
-            unit={deadlineUnit}
-            maxDays={MAX_DEADLINE_DAYS}
-            disabled={submitting}
-            onChange={(value, unit) => {
-              setDeadlineValue(value);
-              setDeadlineUnit(unit);
-            }}
-          />
-        </div>
-        {deadlineValue === '' ? <p className="text-[14px] leading-6 text-[var(--lp-text-sub)] font-medium">{c.noDeadline}</p> : null}
-      </FieldSection>
       </div>
 
-      <div hidden={step !== 2} className="space-y-6">
-      <TermsBuilder
-        value={terms}
-        onChange={setTerms}
-        priceUsdc={amountValid ? (amount as number) : null}
-        dueLabel={dueLabel}
-        disabled={submitting}
-      />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,200px)_minmax(0,1fr)]">
+          <FormLabel label={dd.terms.amountLabel} unit="USDC">
+            <input
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="any"
+              value={amount}
+              disabled={submitting}
+              onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
+              placeholder="0"
+              className="form-input form-input-num"
+            />
+          </FormLabel>
+        <div>
+          <div className="space-y-2">
+            <p className="inline-flex items-center gap-1.5 text-[14px] font-medium text-[var(--lp-dark)]">
+              {dd.terms.deadlineLabel}
+              <Hint>{dd.terms.deadlineHint}</Hint>
+            </p>
+            <DueChips
+              optional
+              value={deadlineValue}
+              unit={deadlineUnit}
+              maxDays={MAX_DEADLINE_DAYS}
+              disabled={submitting}
+              onChange={(value, unit) => {
+                setDeadlineValue(value);
+                setDeadlineUnit(unit);
+              }}
+            />
+          </div>
+          {deadlineValue === '' ? <p className="text-[14px] leading-6 text-[var(--lp-text-sub)] font-medium">{c.noDeadline}</p> : null}
+        </div>
+      </div>
+
+      <div className={cn(CARD_CLASS, 'divide-y divide-[var(--line)] overflow-hidden')}>
+        <FoldRow
+          label={rf.payInParts}
+          fact={inParts ? terms.parts.map((part) => `${part.pct}%`).join(' / ') : t.offerFlow.onePayment}
+          open={inParts}
+          onToggle={(open) => {
+            setInParts(open);
+            if (open && !terms.parts[0]?.what.trim() && delivered.trim()) {
+              setTerms((current) => ({ ...current, parts: current.parts.map((part, i) => (i === 0 ? { ...part, what: delivered.trim() } : part)) }));
+            }
+          }}
+          payInParts
+        >
+          <TermsBuilder
+            value={terms}
+            onChange={setTerms}
+            priceUsdc={amountValid ? (amount as number) : null}
+            dueLabel={dueLabel}
+            disabled={submitting}
+          />
+        </FoldRow>
+        <FoldRow
+          label={dd.terms.acceptanceWindowLabel}
+          fact={formatWindow(acceptanceHours, t.postJob.unitPickerLabels)}
+          open={acceptOpen}
+          onToggle={setAcceptOpen}
+        >
+          <div role="group" aria-label={dd.terms.acceptanceWindowLabel} className="space-y-2">
+            <p className="text-[14px] text-[var(--ink-secondary)]">{dd.terms.acceptanceWindowHint}</p>
+            <AcceptWithin hours={acceptanceHours} onChange={setAcceptanceHours} disabled={submitting} />
+          </div>
+        </FoldRow>
+        <FoldRow
+          label={c.security}
+          fact={requireStake ? `${requireStakePct}%` : t.offerFlow.notSet}
+          open={depositOpen}
+          onToggle={setDepositOpen}
+        >
+          <label
+            className={cn(
+              'flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors',
+              requireStake
+                ? 'bg-[var(--raised)] border-[var(--ink)]'
+                : 'bg-[var(--surface)] border-[var(--line)] hover:border-[var(--line-strong)]',
+            )}
+            style={{
+              border: '1px solid',
+              borderRadius: 12,
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={requireStake}
+              onChange={(e) => setRequireStake(e.target.checked)}
+              disabled={submitting}
+              className="mt-0.5 w-4 h-4 accent-[var(--ink)] shrink-0 cursor-pointer"
+            />
+            <div className="min-w-0">
+              <span className="block text-[14px] font-semibold text-[var(--lp-dark)]">{c.security}</span>
+              <span className="mt-1 block text-[14px] leading-snug text-[var(--lp-text-sub)]">{dd.trustedMatch.body}</span>
+              {requireStake && (
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <input
+                    type="range"
+                    min={50}
+                    max={100}
+                    step={5}
+                    value={requireStakePct}
+                    onChange={(e) => setRequireStakePct(Number(e.target.value))}
+                    disabled={submitting}
+                    className="flex-1 min-w-[180px] accent-[var(--ink)]"
+                    aria-label={dd.trustedMatch.sliderAria}
+                  />
+                  <div className="flex items-baseline gap-1.5 shrink-0">
+                    <span className="text-[20px] font-semibold tabular-nums text-[var(--lp-dark)]">
+                      {requireStakePct}
+                    </span>
+                    <span className="text-[14px] text-[var(--lp-text-sub)]">{dd.trustedMatch.pctCaption}</span>
+                  </div>
+                  {typeof amount === 'number' && amount > 0 && (
+                    <p className="basis-full text-[14px] font-medium text-[var(--lp-dark)]">
+                      {dd.trustedMatch.stakeNoteTemplate.replace(
+                        '{amount}',
+                        ((amount * requireStakePct) / 100).toFixed(2),
+                      )}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </label>
+        </FoldRow>
+      </div>
 
       {/* TRADE CONTEXT. Business-only surface on the SME Trades rail. Hidden
           for individuals so a P2P direct deal stays the simple service flow. */}
@@ -832,79 +913,6 @@ export function DirectDealForm() {
         ) : null}
       </FieldSection>
       )}
-
-      <details className="border-y border-[var(--lp-border-light)]">
-        <summary className="flex min-h-11 cursor-pointer items-center justify-between py-3 text-[15px] font-semibold text-[var(--lp-dark)]">{c.optional}<span aria-hidden>＋</span></summary>
-        <div className="space-y-4 pb-5">
-          <div role="group" aria-label={dd.terms.acceptanceWindowLabel} className="space-y-2">
-            <p className="flex items-center gap-1.5 text-[14px] font-semibold text-[var(--lp-dark)]">
-              {dd.terms.acceptanceWindowLabel}
-              <Hint>{dd.terms.acceptanceWindowHint}</Hint>
-            </p>
-            <AcceptWithin hours={acceptanceHours} onChange={setAcceptanceHours} disabled={submitting} />
-          </div>
-
-      {/* TRUSTED MATCH toggle. When on, the seller will see a stake
-          requirement on their accept panel. Off-default, most direct deals
-          are casual and don't need slashable insurance. Chain-side gating
-          arrives in the next escrow redeploy; the flag is captured today
-          so old deals already carry it then. */}
-      <label
-        className={cn(
-          'flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors',
-          requireStake
-            ? 'bg-[color-mix(in_oklab,var(--lp-accent)_10%,transparent)] border-[color-mix(in_oklab,var(--lp-accent)_35%,transparent)]'
-            : 'bg-[var(--lp-light)] border-[var(--lp-border-light)] hover:border-[var(--lp-text-muted)]',
-        )}
-        style={{
-          border: '1px solid',
-          borderRadius: 12,
-        }}
-      >
-        <input
-          type="checkbox"
-          checked={requireStake}
-          onChange={(e) => setRequireStake(e.target.checked)}
-          disabled={submitting}
-          className="mt-0.5 w-4 h-4 accent-[var(--lp-accent)] shrink-0 cursor-pointer"
-        />
-        <div className="min-w-0">
-          <span className="block text-[14px] font-semibold text-[var(--lp-dark)]">{c.security}</span>
-          <span className="mt-1 block text-[14px] leading-snug text-[var(--lp-text-sub)]">{dd.trustedMatch.body}</span>
-          {requireStake && (
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              <input
-                type="range"
-                min={50}
-                max={100}
-                step={5}
-                value={requireStakePct}
-                onChange={(e) => setRequireStakePct(Number(e.target.value))}
-                disabled={submitting}
-                className="flex-1 min-w-[180px] accent-[var(--lp-accent)]"
-                aria-label={dd.trustedMatch.sliderAria}
-              />
-              <div className="flex items-baseline gap-1.5 shrink-0">
-                <span className="font-sans text-[20px] font-extrabold tabular-nums tracking-[-0.02em] text-[var(--lp-dark)]">
-                  {requireStakePct}
-                </span>
-                <span className="text-[14px] text-[var(--lp-text-sub)]">{dd.trustedMatch.pctCaption}</span>
-              </div>
-              {typeof amount === 'number' && amount > 0 && (
-                <p className="basis-full text-[14px] font-medium text-[var(--lp-dark)]">
-                  {dd.trustedMatch.stakeNoteTemplate.replace(
-                    '{amount}',
-                    ((amount * requireStakePct) / 100).toFixed(2),
-                  )}
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-      </label>
-        </div>
-      </details>
-      </div>
       </fieldset>
 
       {reviewing ? <CreationReview busy={submitting} onEdit={() => {
@@ -922,7 +930,7 @@ export function DirectDealForm() {
         },
         { label: dd.terms.amountLabel, value: `${amount} USDC` },
         { label: dd.terms.deadlineLabel, value: deadlineValue === '' ? c.noDeadline : durationText({ days: submitDays, hours: submitHours }, { day: TERMS_COPY[locale].day, days: TERMS_COPY[locale].days, hr: dd.preview.unitHr, min: dd.preview.unitMin }) },
-        { label: c.payment, value: terms.parts.map((part) => `${part.pct}%`).join(' / ') },
+        { label: c.payment, value: dealTerms.parts.map((part) => `${part.pct}%`).join(' / ') },
         { label: TERMS_COPY[locale].agreement, value: agreementText },
         { label: c.responseWindow, value: formatWindow(acceptanceHours, t.postJob.unitPickerLabels) },
         {
@@ -941,70 +949,26 @@ export function DirectDealForm() {
         <p className="mt-2 text-[var(--lp-text-sub)]">{c.currencyNote}</p>
       </CreationReview> : null}
 
-      {/* SUBMIT */}
-      {!reviewing ? (
-        <div className="flex flex-wrap items-center gap-3 pt-2">
-          {step > 0 ? (
-            <button
-              type="button"
-              onClick={() => setStep((step - 1) as 0 | 1)}
-              disabled={submitting}
-              className="inline-flex min-h-12 items-center rounded-full px-4 text-[15px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)]"
-            >
-              {rs.back}
-            </button>
-          ) : null}
-          {step < 2 ? (
-            <button
-              type="button"
-              onClick={goForward}
-              disabled={!stepReady || submitting}
-              className="inline-flex min-h-12 flex-1 items-center justify-center rounded-full bg-[var(--lp-accent)] px-6 text-[15px] font-semibold text-[var(--lp-band-dark)] transition-colors hover:bg-[var(--lp-accent-hover)] disabled:cursor-not-allowed disabled:opacity-45 sm:flex-none"
-            >
-              {rs.continue}
-            </button>
-          ) : null}
-        </div>
-      ) : null}
-      <div hidden={step < 2 && !reviewing} className="flex flex-wrap items-center gap-4 pt-2 border-t border-[var(--lp-border-light)]">
-        <button
+      {/* SUBMIT: Review, checked once more, then sent (Figma, Batch 9 · Review deal). */}
+      <div className="space-y-3 border-t border-[var(--line)] pt-5">
+        <Button
           type="submit"
+          size="lg"
           disabled={!canSubmit}
-          className={cn(
-            'group inline-flex items-center gap-2 px-[22px] py-[13px] text-[14px] font-semibold',
-            'transition-[transform,box-shadow] duration-150',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2',
-            !canSubmit
-              ? 'bg-[var(--lp-light)] text-[var(--lp-text-muted)] cursor-not-allowed border border-[var(--lp-border-light)]'
-              : 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0 shadow-[0_4px_0_rgba(0,0,0,0.22)] hover:shadow-[0_5px_0_rgba(0,0,0,0.22)] active:shadow-[0_1px_0_rgba(0,0,0,0.22)]',
-          )}
-          style={{
-            borderRadius: 14,
-          }}
+          loading={submitting}
+          loadingLabel={dd.submit.opening}
+          className="w-full sm:w-auto"
         >
-          {submitting && (
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 16 16"
-              fill="none"
-              className="animate-spin"
-              aria-hidden
-            >
-              <circle cx="8" cy="8" r="6" stroke="currentColor" strokeOpacity="0.3" strokeWidth="2" />
-              <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-          )}
-          {submitting ? dd.submit.opening : reviewing ? fill(rs.sendTo, { name: recipient }) : c.review}
-          {!submitting && <Icon name="send" size={16} directional />}
-        </button>
+          {reviewing ? fill(rs.sendTo, { name: recipient }) : c.review}
+        </Button>
         {!submitting && !reviewing && (
-          termsValid || canSubmit ? (
-            <p className="text-[14px] leading-6 text-[var(--lp-text-sub)] font-medium">
+          // Milestone notes only make sense once Pay in parts is open.
+          termsValid || canSubmit || !inParts ? (
+            <p className="text-[14px] leading-6 text-[var(--ink-secondary)] font-medium">
               {canSubmit ? c.directNext : c.required}
             </p>
           ) : (
-            <TermsBlockerNote terms={terms} />
+            <TermsBlockerNote terms={dealTerms} />
           )
         )}
       </div>

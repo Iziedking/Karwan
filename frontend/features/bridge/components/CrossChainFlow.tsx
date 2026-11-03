@@ -6,6 +6,7 @@ import { erc20Abi } from 'viem';
 import { useAccount, useChainId, useReadContracts, useSwitchChain } from 'wagmi';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { AuthGuard } from '@/shared/components/AuthGuard';
+import { buttonClasses } from '@/shared/components/Button';
 import { NetworkHint } from '@/shared/components/NetworkContext';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -28,17 +29,15 @@ import { TransferProgress } from './TransferProgress';
 import { MoneyOutNotice } from '@/features/moneyOut/MoneyOutNotice';
 import type { MoneyOutRefusal } from '@/features/moneyOut/refusal';
 
-const PRIMARY =
-  'inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[var(--action)] px-5 text-[15px] font-medium text-[var(--on-action)] transition-opacity duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:opacity-90 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]';
-const SECONDARY =
-  'inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--tint)] px-5 text-[15px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:bg-[var(--line)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]';
+const PRIMARY = buttonClasses({ size: 'lg', className: 'w-full' });
+const SECONDARY = buttonClasses({ variant: 'secondary', size: 'lg' });
 const QUIET =
-  'inline-flex min-h-11 items-center rounded-full bg-[var(--tint)] px-4 text-[14px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:bg-[var(--line)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]';
+  'inline-flex min-h-11 items-center rounded-full bg-[var(--ash)] px-4 text-[14px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:bg-[var(--line)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]';
 const CHIP =
-  'inline-flex min-h-11 items-center rounded-full bg-[var(--tint)] px-3.5 text-[14px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:bg-[var(--line)] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]';
+  'inline-flex min-h-11 items-center rounded-full bg-[var(--ash)] px-3.5 text-[14px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:bg-[var(--line)] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]';
 const OPTION =
-  'flex min-h-12 cursor-pointer items-center justify-between gap-3 rounded-full bg-[var(--tint)] px-4 text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none has-[:checked]:bg-[var(--ink)] has-[:checked]:text-[var(--canvas)] has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[var(--action)]';
-const SOFT = 'bg-[var(--tint)] motion-safe:animate-pulse motion-reduce:animate-none rounded-full';
+  'flex min-h-12 cursor-pointer items-center justify-between gap-3 rounded-full bg-[var(--ash)] px-4 text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none has-[:checked]:bg-[var(--ink)] has-[:checked]:text-[var(--canvas)] has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[var(--ink)]';
+const SOFT = 'bg-[var(--ash)] motion-safe:animate-pulse motion-reduce:animate-none rounded-full';
 const ADDRESS = /^0x[a-fA-F0-9]{40}$/;
 
 type Started =
@@ -415,7 +414,7 @@ function CrossChainFlow({ intent }: { intent: CrossChainIntent }) {
                         spellCheck={false}
                         autoComplete="off"
                         dir="ltr"
-                        className="mt-2 min-h-[52px] w-full rounded-[14px] bg-[var(--tint)] px-4 text-[16px] text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
+                        className="mt-2 min-h-[52px] w-full rounded-[14px] bg-[var(--ash)] px-4 text-[16px] text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
                       />
                       {recipient.trim() !== '' && !ADDRESS.test(recipient.trim()) ? (
                         <p className="mt-2 text-[14px] text-[var(--color-critical)]">{sheet.recipientInvalid}</p>
@@ -432,7 +431,7 @@ function CrossChainFlow({ intent }: { intent: CrossChainIntent }) {
 
             <section className="space-y-4">
               <label htmlFor={amountId} className="text-[14px] font-medium text-[var(--lp-text-sub)]">{sheet.amountLabel}</label>
-              <div className="flex min-h-[52px] items-center gap-2 rounded-[14px] bg-[var(--tint)] px-4">
+              <div className="flex min-h-[52px] items-center gap-2 rounded-[14px] bg-[var(--ash)] px-4">
                 <input
                   id={amountId}
                   value={typed}
@@ -441,7 +440,7 @@ function CrossChainFlow({ intent }: { intent: CrossChainIntent }) {
                   autoComplete="off"
                   placeholder="0"
                   dir="ltr"
-                  className="min-h-[52px] min-w-0 flex-1 rounded-[14px] bg-transparent text-[32px] font-medium leading-none tracking-normal tabular-nums text-[var(--ink)] outline-none placeholder:text-[var(--ink-secondary)] focus-visible:ring-2 focus-visible:ring-[var(--action)]"
+                  className="min-h-[52px] min-w-0 flex-1 rounded-[14px] bg-transparent text-[32px] font-medium leading-none tracking-normal tabular-nums text-[var(--ink)] outline-none placeholder:text-[var(--ink-secondary)] focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
                 />
                 {' '}<span className="text-[14px] text-[var(--ink-secondary)] font-medium">USDC</span>
               </div>
