@@ -77,10 +77,10 @@ test('your move follows the side you are on', () => {
   assert.equal(classifyDirectDeal(awaitingFunding, BUYER.toUpperCase().replace('0X', '0x')).isBuyer, true);
 });
 
-test('Home shows two that need you, else the next active one, else nothing', () => {
-  assert.deepEqual(homeDealsPreview({ needsYou: [1, 2, 3], active: [4], finished: [] }), { title: 'needsYou', items: [1, 2] });
-  assert.deepEqual(homeDealsPreview({ needsYou: [], active: [4, 5], finished: [] }), { title: 'active', items: [4] });
-  assert.deepEqual(homeDealsPreview({ needsYou: [], active: [], finished: [6] }), { title: null, items: [] });
+test('Home shows the deal that needs you as a card, then up to three on the way, else nothing', () => {
+  assert.deepEqual(homeDealsPreview({ needsYou: [1, 2, 3], active: [4], finished: [] }), { needsYou: 1, needsYouCount: 3, onTheWay: [4], empty: false });
+  assert.deepEqual(homeDealsPreview({ needsYou: [], active: [4, 5, 6, 7], finished: [] }), { needsYou: null, needsYouCount: 0, onTheWay: [4, 5, 6], empty: false });
+  assert.deepEqual(homeDealsPreview({ needsYou: [], active: [], finished: [6] }), { needsYou: null, needsYouCount: 0, onTheWay: [], empty: true });
 });
 
 const next = (action: NonNullable<DirectDeal['view']>['next']['action'], actor: 'you' | 'counterparty' = 'you') =>

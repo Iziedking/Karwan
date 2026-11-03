@@ -1189,14 +1189,10 @@ interface MessagesShape {
     updating: string;
     current: string;
     available: string;
-    activeTrades: string;
-    activeTradesOne: string;
     balanceParts: string;
     wallets: string;
-    add: string;
     withdraw: string;
     send: string;
-    details: string;
     trades: string;
     currentTrade: string;
     latestTrade: string;
@@ -6529,14 +6525,10 @@ export const en: MessagesShape = {
     updating: 'Updating',
     current: 'Current',
     available: 'USDC available',
-    activeTrades: '{n} active trades',
-    activeTradesOne: '1 active trade',
     balanceParts: 'Ready to send {wallet} · Other networks {other} · Agents {agents}',
     wallets: 'Wallets',
-    add: 'Add',
     withdraw: "Withdraw",
     send: 'Send',
-    details: 'Details',
     trades: 'Trades',
     currentTrade: 'Current trade',
     latestTrade: 'Latest trade',

@@ -2,6 +2,7 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { Button } from '@/shared/components/Button';
 
 export function ConfirmSheet({ open, title, consequence, irreversible, busy, error, onConfirm, onClose, children, confirmVariant = 'primary', confirmLabel }: {
   open: boolean;
@@ -35,30 +36,30 @@ export function ConfirmSheet({ open, title, consequence, irreversible, busy, err
   }, [busy, confirmVariant, open]);
   return (
     <ConfirmSheetShell open={open} labelledBy="confirm-title" busy={busy} onClose={onClose}>
-      <h2 id="confirm-title" className="text-[20px] font-medium text-[var(--lp-dark)]">{title}</h2>
-      <p className="mt-3 text-[15px] leading-relaxed text-[var(--lp-dark)]">{consequence}</p>
-      {irreversible ? <p className="mt-2 text-[14px] font-medium text-[var(--color-warning)]">{copy.cannotUndo}</p> : null}
+      <h2 id="confirm-title" className="text-[19px] font-semibold leading-[1.3] tracking-[-0.01em] text-[var(--ink)]">{title}</h2>
+      <p className="mt-2 text-[15px] leading-relaxed text-[var(--ink-secondary)]">{consequence}</p>
+      {irreversible ? <p className="mt-1.5 text-[15px] text-[var(--ink-secondary)]">{copy.cannotUndo}</p> : null}
       {children ? <div className="mt-5">{children}</div> : null}
       {error ? (
-        <p role="alert" className="mt-4 border-s-2 border-[var(--color-critical)] ps-3 text-[14px] text-[var(--lp-dark)]">{error}</p>
+        <p role="alert" className="mt-4 border-s-2 border-[var(--color-critical)] ps-3 text-[14px] text-[var(--ink)]">{error}</p>
       ) : null}
-      <div className="mt-6 flex flex-wrap gap-3">
-        <button
+      <div className="mt-6 flex flex-col gap-2">
+        <Button
           ref={confirmRef}
-          type="button" onClick={onConfirm} disabled={busy}
+          type="button"
+          onClick={onConfirm}
+          loading={busy}
+          loadingLabel={copy.working}
           data-testid="deal-confirm"
-          className={confirmVariant === 'secondary'
-            ? 'inline-flex min-h-12 items-center rounded-full bg-[var(--tint)] px-5 text-[15px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]'
-            : 'inline-flex min-h-12 items-center rounded-full bg-[var(--action)] px-5 text-[15px] font-medium text-[var(--on-action)] transition-opacity duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:opacity-90 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]'}
+          variant={confirmVariant === 'secondary' ? 'secondary' : 'primary'}
+          size="lg"
+          className="w-full"
         >
-          {busy ? copy.working : confirmLabel ?? copy.confirm}
-        </button>
-        <button
-          type="button" onClick={onClose} disabled={busy}
-          className="inline-flex min-h-12 items-center rounded-full bg-[var(--tint)] px-5 text-[15px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:bg-[var(--line)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
-        >
+          {confirmLabel ?? copy.confirm}
+        </Button>
+        <Button type="button" variant="secondary" size="lg" onClick={onClose} disabled={busy} className="w-full">
           {copy.cancel}
-        </button>
+        </Button>
       </div>
     </ConfirmSheetShell>
   );

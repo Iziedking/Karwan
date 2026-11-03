@@ -1,21 +1,22 @@
 'use client';
 import type { ReactNode } from 'react';
+import { Button } from '@/shared/components/Button';
+import { CARD_CLASS } from '@/shared/components/Card';
 import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
+import { FactRows } from '@/shared/components/FactRows';
 
-const PRIMARY =
-  'inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[var(--action)] px-6 text-[15px] font-semibold text-[var(--on-action)] transition-opacity hover:opacity-90 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-offset-2';
-const QUIET =
-  'inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[var(--tint)] px-6 text-[15px] font-semibold text-[var(--ink)] transition-colors hover:bg-[var(--line)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]';
-
-/// Every money move asks once more here (rule 7): a bottom sheet on phones, a
-/// drawer on desktop. The title says the move, the facts sit in rows, the
-/// primary repeats the move, and a quiet button lets the person step back.
-export function FactsConfirmSheet({ open, title, rows, note, primaryLabel, quietLabel, busy, error, onConfirm, onClose, children }: {
+/// Every money move asks once more here (rule 7, view 48 Review): the move as
+/// the title, what cannot be undone under it, the facts in one card, the
+/// primary that repeats the move and turns while it runs, and a quiet button
+/// to step back.
+export function FactsConfirmSheet({ open, title, rows, note, primaryLabel, busyLabel, quietLabel, busy, error, onConfirm, onClose, children }: {
   open: boolean;
   title: string;
   rows: Array<[string, string]>;
   note?: string;
   primaryLabel: string;
+  /// What is happening while the move runs, such as "Releasing 600 USDC".
+  busyLabel?: string;
   quietLabel: string;
   busy: boolean;
   error?: string | null;
@@ -25,25 +26,24 @@ export function FactsConfirmSheet({ open, title, rows, note, primaryLabel, quiet
 }) {
   return (
     <ConfirmSheetShell open={open} labelledBy="facts-confirm-title" busy={busy} onClose={onClose}>
-      <h2 id="facts-confirm-title" className="text-[20px] font-semibold text-[var(--lp-dark)]">{title}</h2>
+      <h2 id="facts-confirm-title" className="text-[19px] font-semibold leading-[1.3] tracking-[-0.01em] text-[var(--ink)]">{title}</h2>
+      {note ? <p className="mt-1.5 text-[15px] text-[var(--ink-secondary)]">{note}</p> : null}
       {rows.length ? (
-        <dl className="mt-4 divide-y divide-[var(--lp-border-light)]">
-          {rows.map(([label, value]) => (
-            <div key={label} className="flex items-baseline justify-between gap-4 py-2.5">
-              <dt className="text-[14px] text-[var(--lp-text-sub)]">{label}</dt>
-              <dd dir="auto" className="min-w-0 text-end text-[14px] font-medium text-[var(--lp-dark)]">{value}</dd>
-            </div>
-          ))}
-        </dl>
+        <div className={`${CARD_CLASS} mt-5 px-5 py-1`}>
+          <FactRows facts={rows.map(([label, value]) => ({ label, value: <span dir="auto">{value}</span>, id: label }))} />
+        </div>
       ) : null}
       {children ? <div className="mt-4">{children}</div> : null}
-      {note ? <p className="mt-4 text-[14px] font-medium text-[var(--color-warning)]">{note}</p> : null}
       {error ? (
-        <p role="alert" className="mt-4 border-s-2 border-[var(--color-critical)] ps-3 text-[14px] text-[var(--lp-dark)]">{error}</p>
+        <p role="alert" className="mt-4 border-s-2 border-[var(--color-critical)] ps-3 text-[14px] text-[var(--ink)]">{error}</p>
       ) : null}
-      <div className="mt-6 flex flex-col gap-3">
-        <button type="button" data-testid="facts-confirm" disabled={busy} onClick={onConfirm} className={PRIMARY}>{primaryLabel}</button>
-        <button type="button" disabled={busy} onClick={onClose} className={QUIET}>{quietLabel}</button>
+      <div className="mt-6 flex flex-col gap-2">
+        <Button type="button" data-testid="facts-confirm" size="lg" loading={busy} loadingLabel={busyLabel} onClick={onConfirm} className="w-full">
+          {primaryLabel}
+        </Button>
+        <Button type="button" variant="secondary" size="lg" disabled={busy} onClick={onClose} className="w-full">
+          {quietLabel}
+        </Button>
       </div>
     </ConfirmSheetShell>
   );

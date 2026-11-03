@@ -196,6 +196,7 @@ export function DealWorkspace({ jobId }: { jobId: string }) {
               ]}
           note={factsAction === 'release' ? dp.release.cannotUndo : actions.sheet?.consequence}
           primaryLabel={factsAction === 'release' ? fill(dp.release.primary, { amount: moveAmount }) : actions.sheet?.title ?? ''}
+          busyLabel={factsAction === 'release' ? fill(dp.release.releasing, { amount: moveAmount }) : undefined}
           quietLabel={factsAction === 'release' ? dp.release.notYet : notNow}
           busy={actions.busy}
           error={actions.error}

@@ -117,7 +117,7 @@ test('signed-in home splits only when the content column has room', () => {
   // Home shows the top of the Deals list (view 44), or nothing when no deal is live.
   assert.match(home, /<HomeDeals \/>/);
   assert.match(deals, /homeDealsPreview\(groups\)/);
-  assert.match(deals, /if \(!preview\.title\) return null;/);
+  assert.match(deals, /if \(preview\.empty\) return null;/);
   assert.doesNotMatch(home, /lg:grid-cols-\[minmax\(0,0\.92fr\)/);
 });
 
@@ -423,13 +423,14 @@ test('phones keep the 14px floor: no rule shrinks text below the size the code a
   assert.doesNotMatch(css, /text-size-adjust:\s*(?!100%)\d+%/);
 });
 
-test('every balance surface offers Withdraw, the route out that works for every account, never the pooled Move', () => {
+test('Money offers Withdraw, the route out that works for every account; no balance surface offers the pooled Move', () => {
+  // Home carries Add money and Send only (view 48); Withdraw lives on Money.
   for (const file of ['../../features/home/components/AccountHome.tsx', '../../features/money/components/MoneyHome.tsx']) {
-    const src = source(file);
-    assert.doesNotMatch(src, /intent=move/, file);
-    assert.match(src, /\/bridge\?direction=out"/, file);
-    assert.match(src, /\.withdraw\b/, file);
+    assert.doesNotMatch(source(file), /intent=move/, file);
   }
+  const money = source('../../features/money/components/MoneyHome.tsx');
+  assert.match(money, /\/bridge\?direction=out"/);
+  assert.match(money, /\.withdraw\b/);
 });
 
 test('Send says what Available counts, so it is never read as a wrong balance', () => {
@@ -529,10 +530,11 @@ test('the desktop rail ends with the person and Sign out, pinned to its foot, si
   assert.match(profile, /useSignOutRequest\(\)/);
 });
 
-test('the deals on Home sit under one heading line with the way to all deals', () => {
+test('the deals on Home: the one that needs you as a card, then On the way, each under one heading line', () => {
   const home = source('../../features/home/components/HomeDeals.tsx');
-  // One heading line; Details sits on the balance line (view 39).
-  assert.equal(home.match(/flex min-h-11 items-center[^"]*px-1/g)?.length, 1);
+  assert.equal(home.match(/<Heading id=/g)?.length, 2);
+  assert.match(home, /variant=\{preview\.needsYou\.row\.move \? 'feature' : 'card'\}/);
+  assert.match(home, /variant="row"/);
   assert.match(home, /<Link href="\/deals"/);
 });
 

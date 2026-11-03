@@ -147,9 +147,9 @@ test('a cancelled deal shows the refund and no move', async ({ page }) => {
     view: { ...base().view!, stage: 'cancelled', money: { line: 'refunding' }, next: { action: null, actor: 'nobody', amountUsdc: null }, automatic: null },
   }));
   await page.goto(`/deals/${JOB}`);
-  const track = page.locator('[data-steps-track]');
-  await expect(track).toContainText(t.steps.cancelled);
-  await expect(track).toContainText(t.steps.refunded);
+  // A cancelled deal is not on its way anywhere: one status line, no route.
+  await expect(page.locator('[data-route-status]')).toHaveText(t.routeStatus.refunding);
+  await expect(page.locator('[data-steps-card] [data-steps-track]')).toHaveCount(0);
   await expect(page.getByRole('button', { name: /^Release/ })).toHaveCount(0);
 });
 
@@ -175,7 +175,7 @@ test('a finished deal: the buyer sees Done, rates it with numbers and can get th
   await serveDeal(page, settled());
   await page.route(`**/api/deals/${JOB}/rating`, (route) => route.fulfill({ json: { rated: false, received: null } }));
   await page.goto(`/deals/${JOB}`);
-  await expect(page.locator('[data-deal-done]')).toContainText(t.doneTitle);
+  await expect(page.locator('[data-deal-done]')).toContainText(t.paidTitle.replace('{name}', 'Ada'));
   await expect(page.locator('[data-steps-track] [aria-current="step"]')).toHaveCount(0);
   for (const n of [1, 2, 3, 4, 5]) await expect(page.getByRole('radio', { name: `${n} out of 5` })).toBeVisible();
   await expect(page.getByRole('button', { name: en.ratings.submit })).toBeVisible();

@@ -20,6 +20,11 @@ export interface DealPageCopy {
   stageLine: { delivered: string; paidOut: string };
   stepsLabel: string;
   routeStatus: { disputed: string; cancelled: string; refunding: string; refunded: string; paidToSeller: string; split: string };
+  withName: string;
+  paidTitle: string;
+  amount: string;
+  rateWork: string;
+  backToDeals: string;
   split: string;
   yourMove: string;
   waitingOn: string;
@@ -49,6 +54,7 @@ export interface DealPageCopy {
     checked: string;
     cannotUndo: string;
     primary: string;
+    releasing: string;
     notYet: string;
   };
   sendDelivery: string;
@@ -85,6 +91,11 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
     stageLine: { delivered: 'Delivered', paidOut: 'Paid out' },
     stepsLabel: 'Steps of this deal',
     routeStatus: { disputed: 'Problem open, money held', cancelled: 'Cancelled', refunding: 'Refund on the way', refunded: 'Refunded', paidToSeller: 'Paid to the seller', split: 'Money split' },
+    withName: 'with {name}',
+    paidTitle: '{name} has been paid',
+    amount: 'Amount',
+    rateWork: 'Rate the work',
+    backToDeals: 'Back to deals',
     split: '{paid} USDC paid to {name} · {held} USDC held by Karwan',
     yourMove: 'Your move',
     waitingOn: 'Waiting on {name}',
@@ -118,6 +129,7 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
       checked: 'Checked by Karwan',
       cannotUndo: 'This cannot be undone.',
       primary: 'Release {amount} USDC',
+      releasing: 'Releasing {amount} USDC',
       notYet: 'Not yet',
     },
     sendDelivery: 'Send delivery',
@@ -152,6 +164,11 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
     stageLine: { delivered: 'Livré', paidOut: 'Versé' },
     stepsLabel: 'Étapes de cette transaction',
     routeStatus: { disputed: 'Problème ouvert, argent bloqué', cancelled: 'Annulée', refunding: 'Remboursement en cours', refunded: 'Remboursée', paidToSeller: 'Payée au vendeur', split: 'Argent partagé' },
+    withName: 'avec {name}',
+    paidTitle: '{name} a reçu le paiement',
+    amount: 'Montant',
+    rateWork: 'Noter le travail',
+    backToDeals: 'Retour aux transactions',
     split: '{paid} USDC versés à {name} · {held} USDC gardés par Karwan',
     yourMove: 'À vous',
     waitingOn: 'En attente de {name}',
@@ -185,6 +202,7 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
       checked: 'Vérifié par Karwan',
       cannotUndo: 'Cette action est définitive.',
       primary: 'Libérer {amount} USDC',
+      releasing: 'Libération de {amount} USDC',
       notYet: 'Pas encore',
     },
     sendDelivery: 'Envoyer la livraison',
@@ -219,6 +237,11 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
     stageLine: { delivered: 'تم التسليم', paidOut: 'تم الصرف' },
     stepsLabel: 'خطوات هذه الصفقة',
     routeStatus: { disputed: 'مشكلة مفتوحة، المال محجوز', cancelled: 'أُلغيت', refunding: 'الاسترداد في الطريق', refunded: 'تم الاسترداد', paidToSeller: 'دُفع للبائع', split: 'قُسّم المال' },
+    withName: 'مع {name}',
+    paidTitle: 'تم الدفع إلى {name}',
+    amount: 'المبلغ',
+    rateWork: 'قيّم العمل',
+    backToDeals: 'العودة إلى الصفقات',
     split: 'صُرف {paid} USDC إلى {name} · تحتفظ كاروان بـ {held} USDC',
     yourMove: 'دورك',
     waitingOn: 'بانتظار {name}',
@@ -252,6 +275,7 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
       checked: 'تحققت منه كاروان',
       cannotUndo: 'لا يمكن التراجع عن هذا.',
       primary: 'اصرف {amount} USDC',
+      releasing: 'جارٍ تحرير {amount} USDC',
       notYet: 'ليس بعد',
     },
     sendDelivery: 'أرسل التسليم',
@@ -286,6 +310,11 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
     stageLine: { delivered: 'डिलीवर हुआ', paidOut: 'भुगतान जारी' },
     stepsLabel: 'इस डील के चरण',
     routeStatus: { disputed: 'समस्या खुली है, पैसा रुका है', cancelled: 'रद्द', refunding: 'रिफ़ंड आ रहा है', refunded: 'रिफ़ंड हो गया', paidToSeller: 'विक्रेता को भुगतान हुआ', split: 'पैसा बँटा' },
+    withName: '{name} के साथ',
+    paidTitle: '{name} को भुगतान हो गया',
+    amount: 'राशि',
+    rateWork: 'काम को रेटिंग दें',
+    backToDeals: 'डील पर वापस',
     split: '{paid} USDC {name} को दिए गए · {held} USDC Karwan के पास',
     yourMove: 'आपकी बारी',
     waitingOn: '{name} का इंतज़ार',
@@ -319,6 +348,7 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
       checked: 'Karwan ने जाँचा',
       cannotUndo: 'इसे वापस नहीं लिया जा सकता।',
       primary: '{amount} USDC जारी करें',
+      releasing: '{amount} USDC जारी हो रहे हैं',
       notYet: 'अभी नहीं',
     },
     sendDelivery: 'डिलीवरी भेजें',
@@ -353,6 +383,11 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
     stageLine: { delivered: 'Imewasilishwa', paidOut: 'Imelipwa kwa muuzaji' },
     stepsLabel: 'Hatua za mpango huu',
     routeStatus: { disputed: 'Tatizo liko wazi, pesa imeshikiliwa', cancelled: 'Umeghairiwa', refunding: 'Pesa inarudishwa', refunded: 'Pesa imerudishwa', paidToSeller: 'Muuzaji amelipwa', split: 'Pesa imegawanywa' },
+    withName: 'na {name}',
+    paidTitle: '{name} amelipwa',
+    amount: 'Kiasi',
+    rateWork: 'Kadiria kazi',
+    backToDeals: 'Rudi kwenye mipango',
     split: 'USDC {paid} zimelipwa kwa {name} · USDC {held} zinashikiliwa na Karwan',
     yourMove: 'Zamu yako',
     waitingOn: 'Inasubiri {name}',
@@ -386,6 +421,7 @@ export const dealPageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', DealPageCopy
       checked: 'Imekaguliwa na Karwan',
       cannotUndo: 'Hili haliwezi kutenduliwa.',
       primary: 'Achilia USDC {amount}',
+      releasing: 'Inatoa {amount} USDC',
       notYet: 'Bado',
     },
     sendDelivery: 'Tuma uwasilishaji',

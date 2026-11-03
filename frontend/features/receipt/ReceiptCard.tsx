@@ -44,7 +44,7 @@ export function ReceiptCard(props: ReceiptCardProps) {
         <span
           className={cn(
             'rounded-full px-3 py-1 text-[14px] font-semibold',
-            props.status.tone === 'done' ? 'bg-[#E7F0CF] text-[#33410f]' : props.status.tone === 'failed' ? 'bg-[#F6E1E0] text-[#7a2421]' : 'bg-[#EEF1F4] text-[#4b545d]',
+            props.status.tone === 'done' ? 'bg-[#E9EBE5] text-[#16202A]' : props.status.tone === 'failed' ? 'bg-[#F6E1E0] text-[#7a2421]' : 'bg-[#EEF1F4] text-[#4b545d]',
           )}
         >
           {props.status.label}

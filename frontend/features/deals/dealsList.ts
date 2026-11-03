@@ -48,12 +48,12 @@ export function classifyDirectDeal(
   return { stage, isBuyer, finished, yourMove: !finished && directDealNeedsViewer(stage, isBuyer) };
 }
 
-/// The top of the Deals list for Home: up to two that need you, else the next
-/// active one, else nothing at all.
-export function homeDealsPreview<T>(groups: DealsGroups<T>): { title: 'needsYou' | 'active' | null; items: T[] } {
-  if (groups.needsYou.length > 0) return { title: 'needsYou', items: groups.needsYou.slice(0, 2) };
-  if (groups.active.length > 0) return { title: 'active', items: groups.active.slice(0, 1) };
-  return { title: null, items: [] };
+/// What Home shows of the Deals list (view 48): the first deal that needs you
+/// as a card with its move, then up to three on the way, else nothing.
+export function homeDealsPreview<T>(groups: DealsGroups<T>): { needsYou: T | null; needsYouCount: number; onTheWay: T[]; empty: boolean } {
+  const needsYou = groups.needsYou[0] ?? null;
+  const onTheWay = groups.active.slice(0, 3);
+  return { needsYou, needsYouCount: groups.needsYou.length, onTheWay, empty: !needsYou && onTheWay.length === 0 };
 }
 
 export type RowMove = 'release' | 'approve' | 'pay' | 'deliver' | 'claim';

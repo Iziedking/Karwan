@@ -116,7 +116,7 @@ export function buildReceiptSvg(data: ReceiptExportData): string {
   const amountMatch = (data.amount ?? '').match(/^(.*?)\s*(USDC)$/);
   const amountWhole = amountMatch ? amountMatch[1]! : data.amount;
   const amountUnit = amountMatch ? amountMatch[2]! : '';
-  const tone = /fail/i.test(data.status) ? ['#F6E1E0', '#7a2421'] : data.done === false ? ['#EEF1F4', '#4b545d'] : ['#E7F0CF', '#33410f'];
+  const tone = /fail/i.test(data.status) ? ['#F6E1E0', '#7a2421'] : data.done === false ? ['#EEF1F4', '#4b545d'] : ['#E9EBE5', '#16202A'];
   const pillWidth = Math.max(96, data.status.length * 11 + 40);
 
   let y = 232;

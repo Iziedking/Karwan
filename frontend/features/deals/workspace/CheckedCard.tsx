@@ -1,33 +1,30 @@
 'use client';
 import type { ReactNode } from 'react';
+import { CARD_CLASS } from '@/shared/components/Card';
 import { Icon } from '@/shared/components/Icon';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { cn } from '@/shared/utils/cn';
 import type { CheckSummary } from './checkSummary';
 
-/// Checked by Karwan (rule 5): a shield, what the agents compared, and the
-/// result in a soft strip. A gap or a pause is said in words; the reasons the
-/// page already gives for a pause sit under the strip.
+/// Checked by Karwan (rule 5, view 48): a shield, the result as the line under
+/// the title, and what was compared. A gap or a pause is said in words in the
+/// warning colour; the reasons the page gives for a pause sit under it.
 export function CheckedCard({ summary, children }: { summary: CheckSummary; children?: ReactNode }) {
   const t = useTranslations().dealPage;
   const warn = summary.result === 'gap' || summary.result === 'held' || summary.result === 'unverified';
   return (
-    <section data-checked-card aria-live="polite" className="rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-4">
-      <p className="flex items-center gap-2 text-[15px] font-semibold text-[var(--lp-dark)]">
-        <Icon name="shield-check" size={20} className="shrink-0" />
-        {t.checkedTitle}
-      </p>
-      <p className="mt-1 text-[14px] text-[var(--lp-text-sub)]">{t.compared[summary.compared]}</p>
-      <div className={cn('mt-3 rounded-[12px] px-3 py-2.5', warn ? 'bg-[var(--color-warning-soft)]' : 'bg-[color-mix(in_srgb,var(--lp-accent)_22%,transparent)]')}>
-        <p className="text-[14px] font-semibold text-[var(--lp-dark)]">
-          {summary.result === 'checking' ? (
-            <span aria-hidden className="me-2 inline-block size-2 rounded-full bg-[var(--accent)] align-middle motion-safe:animate-pulse" />
-          ) : null}
+    <section data-checked-card aria-live="polite" className={cn(CARD_CLASS, 'flex gap-3 p-5 lg:p-6')}>
+      <Icon name="shield-check" size={20} className="mt-0.5 shrink-0 text-[var(--ink)]" />
+      <div className="min-w-0 flex-1">
+        <p className="text-[15px] font-semibold text-[var(--ink)]">{t.checkedTitle}</p>
+        <p className={cn('mt-1 text-[13px] font-medium', warn ? 'text-[var(--color-warning)]' : 'text-[var(--ink)]')}>
+          {summary.result === 'checking' ? <span className="me-2 inline-block align-middle"><span aria-hidden className="inline-block size-2 rounded-full bg-[var(--ink-secondary)] motion-safe:animate-pulse" /></span> : null}
           {t.result[summary.result]}
         </p>
-        {summary.detail ? <p dir="auto" className="mt-0.5 text-[14px] leading-relaxed text-[var(--lp-dark)]">{summary.detail}</p> : null}
+        {summary.detail ? <p dir="auto" className="mt-1 text-[13px] leading-relaxed text-[var(--ink-secondary)]">{summary.detail}</p> : null}
+        <p className="mt-1 text-[13px] text-[var(--ink-secondary)]">{t.compared[summary.compared]}</p>
+        {children ? <div className="mt-3 space-y-2 [&_p]:text-[13px]">{children}</div> : null}
       </div>
-      {children ? <div className="mt-3 space-y-2">{children}</div> : null}
     </section>
   );
 }

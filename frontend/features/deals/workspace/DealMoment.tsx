@@ -1,7 +1,7 @@
 'use client';
 
-/// This moment (rule 3): whose move it is, one sentence, and what happens on
-/// its own and when.
+/// This moment (rule 3, view 48): whose move it is in a small line, then one
+/// sentence as the heading of the page.
 export function DealMoment({ label, yours, sentence, automatic }: {
   label: string;
   yours: boolean;
@@ -10,9 +10,9 @@ export function DealMoment({ label, yours, sentence, automatic }: {
 }) {
   return (
     <div data-deal-moment>
-      <p className={yours ? 'text-[14px] font-bold text-[var(--lp-accent-on-light)]' : 'text-[14px] font-semibold text-[var(--lp-text-sub)]'}>{label}</p>
-      {sentence ? <p className="mt-1 text-[16px] leading-snug text-[var(--lp-dark)]">{sentence}</p> : null}
-      {automatic ? <p className="mt-1 text-[14px] text-[var(--lp-text-sub)]">{automatic}</p> : null}
+      <p className={yours ? 'text-[13px] font-semibold text-[var(--ink)]' : 'text-[13px] text-[var(--ink-secondary)]'}>{label}</p>
+      {sentence ? <p className="mt-1 text-[24px] font-semibold leading-[1.25] tracking-[-0.02em] text-[var(--ink)]">{sentence}</p> : null}
+      {automatic ? <p className="mt-1 text-[13px] text-[var(--ink-secondary)]">{automatic}</p> : null}
     </div>
   );
 }

@@ -93,7 +93,8 @@ export async function captureTopUpScreen(page: Page, testInfo: TestInfo, phase: 
   root = page.locator('.product-surface').last(),
   primary,
   wholePagePrimary,
-  maxHeadingWeight = 500,
+  // The app's semibold (560) is the heaviest a heading goes (view 48); bold never.
+  maxHeadingWeight = 560,
 }: {
   root?: Locator;
   primary?: number;

@@ -1,14 +1,24 @@
 'use client';
 
 import Link from 'next/link';
+import type { DirectDeal } from '@/core/api';
+import { DealRoute } from '@/features/deals/DealRoute';
+import { buttonClasses } from '@/shared/components/Button';
+import { CARD_CLASS } from '@/shared/components/Card';
+import { PersonAvatar } from '@/shared/components/PersonAvatar';
 import { cn } from '@/shared/utils/cn';
 
-/// One open deal: the amount is the loudest line, the status says whose move
-/// it is, and only your own move is lime.
+/// One deal in a list (view 48). `card` is the Deals list card: the person,
+/// what it is, the amount, the route and one status line. `feature` is the
+/// Home card for the deal that needs you, with its move as the screen's one
+/// primary button. `row` is a line in Home's On the way list.
 export function OpenDealRow({
   href,
   role,
   counterparty,
+  counterpartyAddress,
+  title,
+  deal,
   reference,
   amount,
   unit,
@@ -17,10 +27,16 @@ export function OpenDealRow({
   next,
   due,
   move,
+  variant = 'card',
 }: {
   href: string;
   role: string;
   counterparty?: string;
+  counterpartyAddress?: string;
+  /// What the deal is for, when known.
+  title?: string | null;
+  /// A direct deal draws its route; requests and financed deals have none.
+  deal?: DirectDeal;
   /// The short reference people read aloud (D68F-E7D8, REQ-1A2B-3C4D).
   reference?: string | null;
   amount: string;
@@ -29,64 +45,79 @@ export function OpenDealRow({
   yourMove: boolean;
   next?: string;
   due?: string;
-  /// On desktop a row that needs you shows its move as a small button (rule 8).
+  /// The move on a deal that needs you, in a word or two.
   move?: string;
+  variant?: 'card' | 'feature' | 'row';
 }) {
-  const meta = [next, due].filter(Boolean).join(' · ');
+  const who = counterparty ?? role;
+  const heading = title || who;
+  const statusLine = [status, next, due].filter(Boolean).join(' · ');
+  const label = [heading, status, reference, `${formatUsdc(amount)} ${unit}`].filter(Boolean).join(', ');
+
+  if (variant === 'row') {
+    return (
+      <li>
+        <Link
+          href={href}
+          aria-label={label}
+          className="flex min-h-16 items-center gap-4 py-3.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ink)]"
+        >
+          <span className="min-w-0 flex-1">
+            <span dir="auto" className="block truncate text-[15px] font-semibold text-[var(--ink)]">{heading}</span>
+            <span className="mt-0.5 block truncate text-[13px] text-[var(--ink-secondary)]">
+              {[title ? who : null, status].filter(Boolean).join(' · ')}
+            </span>
+          </span>
+          <span className="shrink-0 text-end">
+            <span className="block text-[15px] font-semibold tabular-nums text-[var(--ink)]">{formatUsdc(amount)} {unit}</span>
+            {reference ? <span dir="ltr" className="mt-0.5 block text-[13px] tabular-nums text-[var(--ink-muted)]">{reference}</span> : null}
+          </span>
+        </Link>
+      </li>
+    );
+  }
+
   return (
-    <li>
+    <li className={cn(CARD_CLASS, 'list-none')}>
       <Link
         href={href}
-        aria-label={[status, reference, `${formatUsdc(amount)} ${unit}`].filter(Boolean).join(', ')}
-        className="group flex min-h-20 items-center gap-4 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
+        aria-label={label}
+        className="group block space-y-4 rounded-[var(--radius-card)] p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] lg:p-6"
       >
-        <span className="min-w-0 flex-1">
-          <span className="flex min-w-0 items-baseline gap-2">
-            <span className="truncate text-[14px] text-[var(--lp-text-sub)] font-medium">
-              {counterparty ? `${role} · ${counterparty}` : role}
+        <span className="flex items-start gap-3">
+          {counterpartyAddress ? (
+            <PersonAvatar address={counterpartyAddress} name={who} size={44} />
+          ) : (
+            <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-full bg-[var(--ash)] text-[15px] font-semibold text-[var(--ink)]">
+              {who.slice(0, 1).toUpperCase()}
             </span>
-            {reference ? (
-              <span dir="ltr" className="shrink-0 mono text-[13px] tracking-[0.04em] text-[var(--lp-text-muted)]">{reference}</span>
-            ) : null}
-          </span>
-          <span className="mt-1 flex items-baseline gap-1.5">
-            <span className="text-[24px] font-semibold leading-none tracking-[-0.02em] tabular-nums text-[var(--lp-dark)]">
-              {formatUsdc(amount)}
-            </span>
-            <span className="text-[14px] text-[var(--lp-text-sub)] font-medium">{unit}</span>
-          </span>
-          {meta ? <span className="mt-1.5 block truncate text-[14px] text-[var(--lp-text-muted)]">{meta}</span> : null}
-        </span>
-        <span
-          className={cn(
-            'inline-flex h-8 shrink-0 items-center rounded-full px-3 text-[14px] font-medium',
-            yourMove
-              ? 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)]'
-              : 'bg-[var(--tint)] text-[var(--lp-text-sub)]',
           )}
-        >
-          {status}
-        </span>
-        {yourMove && move ? (
-          <span aria-hidden data-row-move className="hidden h-9 shrink-0 items-center rounded-full bg-[var(--action)] px-4 text-[14px] font-semibold text-[var(--on-action)] lg:inline-flex">
-            {move}
+          <span className="min-w-0 flex-1">
+            <span dir="auto" className="block truncate text-[15px] font-semibold text-[var(--ink)]">{heading}</span>
+            <span className="mt-0.5 flex min-w-0 items-baseline gap-2 text-[13px] text-[var(--ink-secondary)]">
+              <span className="truncate">{title ? who : role}</span>
+              {reference ? <span dir="ltr" className="shrink-0 tabular-nums text-[var(--ink-muted)]">{reference}</span> : null}
+            </span>
           </span>
-        ) : null}
-        <svg
-          aria-hidden
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="shrink-0 text-[var(--lp-text-muted)] transition-transform duration-200 group-hover:translate-x-0.5 motion-reduce:transition-none rtl:-scale-x-100"
-        >
-          <path d="m9 18 6-6-6-6" />
-        </svg>
+          <span className="shrink-0 text-[15px] font-semibold tabular-nums text-[var(--ink)]">{formatUsdc(amount)} {unit}</span>
+        </span>
+        {deal ? <DealRoute deal={deal} /> : null}
+        <span className="flex items-center justify-between gap-3">
+          <span className="min-w-0 truncate text-[13px] text-[var(--ink-secondary)]">{statusLine}</span>
+          {variant === 'card' && yourMove && move ? (
+            <span aria-hidden data-row-move className={cn(buttonClasses({ variant: 'secondary', size: 'sm' }), 'hidden shrink-0 lg:inline-flex')}>
+              {move}
+            </span>
+          ) : null}
+        </span>
       </Link>
+      {variant === 'feature' && move ? (
+        <div className="px-5 pb-5 lg:px-6 lg:pb-6">
+          <Link href={href} className={buttonClasses({ variant: 'primary', size: 'lg', className: 'w-full' })}>
+            {move}
+          </Link>
+        </div>
+      ) : null}
     </li>
   );
 }

@@ -148,5 +148,5 @@ test('the image follows the card: amount, sentence, rows, proof and a testnet no
   // The QR is drawn into the image: a white tile and many dark modules.
   assert.ok((svg.match(/<rect x="[\d.]+" y="[\d.]+" width="[\d.]+" height="[\d.]+"\/>/g) ?? []).length > 100);
   assert.match(svg, /Arc testnet, no real value/);
-  assert.match(svg, /#E7F0CF/);
+  assert.match(svg, /#E9EBE5/);
 });

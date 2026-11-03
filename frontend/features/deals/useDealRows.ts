@@ -13,6 +13,7 @@ import { stageOf } from './components/DirectDealList';
 import { dealReference } from './dealReference';
 import { classifyDirectDeal, orderDeals, rowMove, type Orderable } from './dealsList';
 import { useDirectDeals } from './hooks/useDirectDeals';
+import { whatItIs } from './workspace/titleLine';
 
 export interface DealRow extends Orderable {
   key: string;
@@ -50,6 +51,9 @@ export function useDealRows() {
           href: `/deals/${deal.jobId}`,
           role: c.isBuyer ? p.card.roleBuyer : p.card.roleSeller,
           counterparty: deal.counterpartyTrust?.name ?? undefined,
+          counterpartyAddress: c.isBuyer ? deal.seller : deal.buyer,
+          title: whatItIs(deal),
+          deal,
           reference: dealReference(deal.jobId),
           amount: deal.dealAmountUsdc,
           unit: p.card.unit,

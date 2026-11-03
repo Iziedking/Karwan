@@ -245,6 +245,17 @@ test('the guide describes Profile, the public record and Something is wrong (vie
   assert.doesNotMatch(said('recovery'), /returns the money to the buyer automatically/);
 });
 
+test('the guide describes the new look of Home and the deal page (view 48)', () => {
+  const all = PLATFORM_GUIDE.map((entry) => [entry.summary, ...entry.steps].join(' ')).join(' ');
+  assert.match(all, /Home opens with the total balance and Add money and Send under it/);
+  assert.doesNotMatch(all, /Add money, Send, Request and Withdraw beside it/);
+  assert.match(all, /the road travelled solid and the road ahead dashed/);
+  assert.match(all, /disputed, cancelled or refunded deal shows one status line instead of a route/);
+  assert.match(all, /Something is wrong sits under the move/);
+  assert.match(all, /has been paid/);
+  assert.doesNotMatch(all, /steps card/);
+});
+
 test('the guide gives one Record card on Profile and one balance on Arc (1 Nov)', () => {
   const said = (id: string) => { const e = PLATFORM_GUIDE.find((entry) => entry.id === id)!; return [e.summary, ...e.steps].join(' '); };
   assert.match(said('reputation'), /one Record card/);
