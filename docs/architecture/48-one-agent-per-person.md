@@ -58,6 +58,18 @@ flowchart TB
   SELL --> ST[One task per request it fits]
 ```
 
+8. **The agent's notes on a request are kept.** Everything the buying mode knows about a request it is working is written to the database as it changes and read back when Karwan restarts: the offers in, each seller's counter rounds and last prices, the sellers it already tried, the order it will try the rest, sellers who withdrew, lower offers waiting on a counter, and a near match waiting on the person. The event history stays the record of what happened; the saved notes are where the agent picks up, so a restart never sends a seller a second first round or forgets a price. One server works a request at a time; a lease per request comes before a second server shares the work.
+
+```mermaid
+flowchart LR
+  CH[An offer, a counter, a reply, a pass] --> SV[Save the request's notes, newer version only]
+  SV --> DB[(Saved notes, one per request)]
+  RS[Karwan restarts] --> LD[Load the request's notes]
+  DB --> LD
+  LD --> GO[The agent resumes: same round, same price, same queue]
+  LD -. no notes saved .-> EH[Rebuild the offers from the event history]
+```
+
 ## The parts
 
 | Part | Job | Where it lives |
@@ -65,6 +77,7 @@ flowchart TB
 | Identity | One checksummed address type for agents and accounts; every map keys on it | `backend/src/identity/agentId.ts` (new), used by the market board, buyer, seller and shortlist |
 | The person's agent | Goals ("find buyers for X", "tell me when Y is cheaper"), limits from view 45, the data budget, what it checked | `backend/src/agents/personAgent.ts` (new), stored per workspace |
 | Durable tasks | Judge a request, read a record, research, counter, report; each with a key, a lease and retries | `backend/src/agents/durableTaskRunner.ts`, promoted from beside the loop |
+| Saved notes | One versioned record per request with everything the buying mode knows about it; written on each change, read on restart | `buyer_runtime_snapshots_v2`, promoted from the shadow that writes it today; near matches move from a file to the same database |
 | Data gate | `acquire(subject, kind, purpose, ref, payer)`: consent, reuse, budget, pay, verify, receipt | `backend/src/x402/dataGate.ts` (new); `paidRecordRead`, `paidCreditPassport` and `researchMarket` move behind it |
 | Market store | Demand by category and place, price bands from settled deals and verified web quotes, week-on-week change scaled to volume | `backend/src/intelligence/` (new); `trendScout` and the Home trending card read it |
 | Reporter | Turns events into the few messages a person needs; the same words in every channel | `backend/src/agents/reporter.ts` (new), on the existing in-app, email and Telegram rails |
@@ -87,7 +100,7 @@ flowchart TB
 | Data budget empty | The agent works on free data and says once that research is paused, with Add to budget |
 | A paid read fails or is slow | The free record is used; nothing is paid twice on retry, because the task key is the same |
 | Web research fails | No web signal; demand and prices from Karwan only |
-| The service restarts mid-step | The task resumes from its last checkpoint; no offer is made twice and no read is paid twice |
+| The service restarts mid-step | The task resumes from its last checkpoint and the agent from its saved notes: the same round, the same last price, the same queue; no offer is made twice and no read is paid twice |
 | An agent is not linked | A deal on the escrow family goes ahead; only a deal on an older escrow asks the seller to link first |
 
 ## Order of work
@@ -101,3 +114,4 @@ flowchart TB
 | 5 | Tools: `research_market`, `watch_market`, `find_customers` | steps 1 and 4 |
 | 6 | The person's agent record and the reporter | steps 1 to 5 |
 | 7 | Durable tasks drive the loop, step by step | decision 5 |
+| 8 | The agent's notes on a request are saved and read back on restart | step 7, decision 8 |
