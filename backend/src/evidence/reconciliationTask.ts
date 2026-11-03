@@ -7,11 +7,11 @@ import type {
   EvidencePurchaseRecord,
   EvidenceSnapshotState,
 } from './runtime.js';
-import type { ResearchCreditStore } from './researchCredit.js';
+import type { DataBudget } from '../x402/dataGate.js';
+import { recordEvidenceSpend } from './budgetSpend.js';
 
 export const EVIDENCE_RECONCILIATION_OPERATION_TASK = 'evidence.reconcile.operation';
 
-const addressSchema = z.string().regex(/^0x[0-9a-f]{40}$/i);
 const snapshotSchema = z.object({
   snapshotId: z.string().min(1),
   source: z.string().min(1),
@@ -35,8 +35,6 @@ const taskSchema = z.object({
   txHash: z.string().trim().min(1).optional(),
   failureCode: z.string().trim().min(1).max(200).optional(),
   snapshot: snapshotSchema.optional(),
-  researchCreditOwner: addressSchema.optional(),
-  researchCreditReservationKey: z.string().trim().min(1).max(300).optional(),
 }).strict().superRefine((value, context) => {
   if (value.state === 'settled' && !value.txHash) {
     context.addIssue({ code: z.ZodIssueCode.custom, path: ['txHash'], message: 'settled evidence requires txHash' });
@@ -101,38 +99,6 @@ function snapshotRecord(
   };
 }
 
-async function settleResearchCredit(
-  purchase: EvidencePurchaseRecord,
-  input: EvidenceReconciliationOperationTaskData,
-  researchCredits: ResearchCreditStore | undefined,
-): Promise<string | undefined> {
-  if (!researchCredits || (input.state !== 'settled' && input.state !== 'failed')) return undefined;
-  const data = purchase.data as Record<string, unknown>;
-  const reservationKey = input.researchCreditReservationKey
-    ?? (typeof data.researchCreditReservationKey === 'string' ? data.researchCreditReservationKey : undefined);
-  if (!reservationKey) return undefined;
-  const owner = input.researchCreditOwner
-    ?? (typeof data.researchCreditOwner === 'string' ? data.researchCreditOwner : undefined);
-  if (!owner) throw new Error('RESEARCH_CREDIT_OWNER_MISSING');
-  const reservation = await researchCredits.getReservation(reservationKey);
-  if (!reservation || reservation.state !== 'reserved') return reservation?.state;
-  if (input.state === 'settled') {
-    const result = await researchCredits.settle({
-      reservationKey,
-      expectedVersion: reservation.version,
-      spentUsdc: purchase.priceUsdc,
-      now: input.observedAtUnix,
-    });
-    return result.reservation.state;
-  }
-  const result = await researchCredits.release({
-    reservationKey,
-    expectedVersion: reservation.version,
-    now: input.observedAtUnix,
-  });
-  return result.reservation.state;
-}
-
 async function recordSnapshotAndFulfill(
   repository: EvidenceRuntimeRepository,
   purchase: EvidencePurchaseRecord,
@@ -161,14 +127,12 @@ function duplicateObservationMatches(
     && data.reconciliationSource === input.source
     && data.verificationReference === input.verificationReference
     && (!input.providerTransactionId || purchase.providerTransactionId === input.providerTransactionId)
-    && (!input.txHash || purchase.txHash === input.txHash)
-    && (!input.researchCreditOwner || data.researchCreditOwner === input.researchCreditOwner)
-    && (!input.researchCreditReservationKey || data.researchCreditReservationKey === input.researchCreditReservationKey);
+    && (!input.txHash || purchase.txHash === input.txHash);
 }
 
 export interface EvidenceReconciliationOperationHandlerOptions {
   repository: EvidenceRuntimeRepository;
-  researchCredits?: ResearchCreditStore;
+  budget?: DataBudget;
   clock?: () => number;
 }
 
@@ -236,7 +200,7 @@ export function createEvidenceReconciliationOperationHandlers(
             return { state: 'succeeded' };
           }
           const snapshotState = await recordSnapshotAndFulfill(options.repository, purchase, input);
-          const creditState = await settleResearchCredit(purchase, input, options.researchCredits);
+          const budgetRecorded = !!(await recordEvidenceSpend(options.repository, purchase, options.budget, input.observedAtUnix));
           await context.checkpoint({
             checkpointKey: 'evidence-reconciliation-result',
             phase: 'external.reconciled',
@@ -246,7 +210,7 @@ export function createEvidenceReconciliationOperationHandlers(
               observationKey: input.observationKey,
               purchaseState: purchase.state,
               ...(snapshotState ? { snapshotState } : {}),
-              ...(creditState ? { researchCreditReservationState: creditState } : {}),
+              ...(budgetRecorded ? { budgetRecorded } : {}),
               providerCallMade: false,
               financialMutation: false,
               processedAtUnix,
@@ -284,14 +248,12 @@ export function createEvidenceReconciliationOperationHandlers(
               reconciliationSource: input.source,
               verificationReference: input.verificationReference,
               ...(input.failureCode ? { failureCode: input.failureCode } : {}),
-              ...(input.researchCreditOwner ? { researchCreditOwner: input.researchCreditOwner } : {}),
-              ...(input.researchCreditReservationKey ? { researchCreditReservationKey: input.researchCreditReservationKey } : {}),
             },
             now: input.observedAtUnix,
           },
         );
         const snapshotState = await recordSnapshotAndFulfill(options.repository, next, input);
-        const creditState = await settleResearchCredit(purchase, input, options.researchCredits);
+        const budgetRecorded = !!(await recordEvidenceSpend(options.repository, next, options.budget, input.observedAtUnix));
         await context.checkpoint({
           checkpointKey: 'evidence-reconciliation-result',
           phase: 'external.reconciled',
@@ -303,7 +265,7 @@ export function createEvidenceReconciliationOperationHandlers(
             observationKey: input.observationKey,
             purchaseState: next.state,
             ...(snapshotState ? { snapshotState } : {}),
-            ...(creditState ? { researchCreditReservationState: creditState } : {}),
+            ...(budgetRecorded ? { budgetRecorded } : {}),
             providerCallMade: false,
             financialMutation: false,
             processedAtUnix,

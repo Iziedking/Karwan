@@ -167,6 +167,7 @@ import {
   moveOnFromCounterTask,
   resumeFromCounterTask,
 } from './agents/buyer.js';
+import { liveBudget as liveDataBudget } from './x402/dataGate.js';
 import { createCollectionCloseHandlers } from './agents/collectionClose.js';
 import { createCounterWaitHandlers } from './agents/counterTimeout.js';
 import { configureDurableTimers } from './agents/durableTimers.js';
@@ -283,7 +284,6 @@ import {
   createStakeFinancialOperationObserver,
 } from './agents/stakeFinancialProjection.js';
 import { PostgresEvidenceRuntimeRepository } from './evidence/runtime.js';
-import { PostgresResearchCreditStore } from './evidence/researchCredit.js';
 import { PostgresResearchAllowanceStore } from './evidence/researchAllowance.js';
 import { createAgentKitVerifier } from './agentkit/agentKitVerification.js';
 import { createWorldAgentBookProvider } from './agentkit/worldAgentBookProvider.js';
@@ -1054,7 +1054,7 @@ async function boot() {
       : null;
     const runtimeRepository = new PostgresAgentRuntimeRepository(postgresExecutor());
     const reviewedEvidenceEnabled = config.REVIEWED_OPERATION_TASKS_V2_ENABLED
-      && config.EVIDENCE_RESEARCH_CREDIT_V2_ENABLED;
+      && config.EVIDENCE_PAID_READS_V2_ENABLED;
     const evidenceRuntime = (config.EVIDENCE_V2_SHADOW || stakingShadowEnabled || reviewedEvidenceEnabled)
       ? new PostgresEvidenceRuntimeRepository(postgresExecutor(), withPostgresTransaction)
       : null;
@@ -1099,9 +1099,6 @@ async function boot() {
       : null;
     const reviewedEvidenceAdapter = reviewedEvidenceEnabled
       ? createX402EvidenceAcquisitionAdapter()
-      : null;
-    const researchCreditStore = reviewedEvidenceEnabled
-      ? new PostgresResearchCreditStore(postgresExecutor(), withPostgresTransaction)
       : null;
     const reconciliationCircleAdapter = config.FINANCIAL_RECONCILIATION_V2_ENABLED
       ? createCircleWalletAdapter()
@@ -1156,21 +1153,13 @@ async function boot() {
         ...(reviewedCircleAdapter && financialRuntime
           ? { financialRepository: financialRuntime, approvalRepository: runtimeRepository, financialAdapter: reviewedCircleAdapter }
           : {}),
-        ...(reviewedEvidenceAdapter && researchCreditStore && evidenceRuntime
-          ? {
-              evidenceRepository: evidenceRuntime,
-              evidenceAdapter: reviewedEvidenceAdapter,
-              evidenceResearchCredits: researchCreditStore,
-            }
+        ...(reviewedEvidenceAdapter && evidenceRuntime
+          ? { evidenceRepository: evidenceRuntime, evidenceAdapter: reviewedEvidenceAdapter }
           : {}),
         ...(reviewedEvidenceEnabled && evidenceRuntime
-          ? {
-              evidenceReconciliationRepository: evidenceRuntime,
-              ...(researchCreditStore
-                ? { evidenceReconciliationResearchCredits: researchCreditStore }
-                : {}),
-            }
+          ? { evidenceReconciliationRepository: evidenceRuntime }
           : {}),
+        ...(reviewedEvidenceEnabled ? { evidenceBudget: liveDataBudget } : {}),
       }),
     };
     if (config.NEGOTIATION_V2_SHADOW) {
@@ -1197,14 +1186,14 @@ async function boot() {
           ),
         ),
       );
-      if (reviewedEvidenceAdapter && researchCreditStore && evidenceRuntime) {
+      if (reviewedEvidenceAdapter && evidenceRuntime) {
         stopFns.push(
           configureReviewedEvidenceIngress(
             createEvidenceAcquisitionOperationObserver(taskStore, runtimeRepository),
           ),
         );
         appLogger.warn(
-          'reviewed x402 evidence adapter and research-credit ledger enabled behind explicit flag',
+          'reviewed x402 evidence adapter enabled behind explicit flag, paid from the weekly data budget',
         );
       }
       if (reviewedEvidenceEnabled && evidenceRuntime) {
@@ -1440,7 +1429,7 @@ async function boot() {
     appLogger.error('V2 financial reconciliation requires AGENT_RUNTIME_V2_ENABLED');
   } else if (config.REVIEWED_OPERATION_TASKS_V2_ENABLED) {
     appLogger.error('reviewed operation task handlers require AGENT_RUNTIME_V2_ENABLED and Postgres');
-  } else if (config.EVIDENCE_RESEARCH_CREDIT_V2_ENABLED) {
+  } else if (config.EVIDENCE_PAID_READS_V2_ENABLED) {
     appLogger.error('reviewed x402 evidence requires REVIEWED_OPERATION_TASKS_V2_ENABLED, AGENT_RUNTIME_V2_ENABLED, and Postgres');
   }
   bootAgents();

@@ -11,13 +11,13 @@ import {
 } from './acquisitionTask.js';
 import { PostgresEvidenceRuntimeRepository } from './runtime.js';
 import { evidenceNeedKey } from './planner.js';
-import { PostgresResearchCreditStore } from './researchCredit.js';
+import type { DataBudget } from '../x402/dataGate.js';
 import { createX402EvidenceAcquisitionAdapter } from './x402Adapter.js';
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL;
 
 test(
-  'Postgres reviewed evidence acquisition persists one purchase, receipt, snapshot, and settled research credit',
+  'Postgres reviewed evidence acquisition persists one purchase, receipt, snapshot, and one budget spend',
   { skip: !testDatabaseUrl },
   async () => {
     const pool = new pg.Pool({ connectionString: testDatabaseUrl, max: 4 });
@@ -45,16 +45,22 @@ test(
       };
       const taskStore = new PostgresDurableTaskStore(client, transaction);
       const repository = new PostgresEvidenceRuntimeRepository(client, transaction);
-      const researchCredits = new PostgresResearchCreditStore(client, transaction);
       const rooms = new PostgresAgentRuntimeRepository(client);
       await rooms.createDealRoom({ id: 'room-evidence-operation-postgres', jobId: 'job-evidence-operation-postgres', data: {}, now: 100 });
       const payTo = '0x2222222222222222222222222222222222222222';
-      const researchCreditOwner = '0x3333333333333333333333333333333333333333';
-      await researchCredits.ensureAccount({ owner: researchCreditOwner, initialCreditUsdc: '1', now: 100 });
+      const budgetOwner = '0x3333333333333333333333333333333333333333';
+      const spent: Array<{ owner: string; usd: number }> = [];
+      const budget: DataBudget = {
+        fits: async () => true,
+        spent: async (owner, usd) => {
+          spent.push({ owner, usd });
+        },
+        reached: () => undefined,
+      };
       const data = {
         dealRoomId: 'room-evidence-operation-postgres', source: 'manual-review' as const,
         idempotencyKey: 'evidence-operation:postgres:1',
-        researchCreditOwner,
+        budgetOwner,
         planner: {
           need: {
             needId: 'need-postgres', claim: 'completed-transactions' as const, subject: '0x1111111111111111111111111111111111111111',
@@ -104,7 +110,7 @@ test(
         taskStore,
         createEvidenceAcquisitionOperationHandlers({
           repository,
-          researchCredits,
+          budget,
           clock: () => 200,
           adapter,
         }),
@@ -117,16 +123,12 @@ test(
       assert.equal(purchase?.state, 'settled');
       assert.equal(purchase?.txHash, '0xpostgres-receipt');
       assert.equal((await repository.listSnapshots(purchase!.evidenceNeedId)).length, 1);
-      const creditAccount = await researchCredits.getAccount(researchCreditOwner);
-      assert.equal(creditAccount?.balanceMicros, '750000');
-      assert.equal(creditAccount?.reservedMicros, '0');
-      const creditReservation = await researchCredits.getReservation(`research-credit:${purchaseKey}`);
-      assert.equal(creditReservation?.state, 'settled');
-      assert.equal(creditReservation?.amountMicros, '250000');
+      assert.deepEqual(spent, [{ owner: budgetOwner, usd: 0.25 }]);
+      assert.equal(purchase?.data.budgetOwner, budgetOwner);
       const checkpoints = await taskStore.listCheckpoints('task:evidence:operation:evidence-operation:postgres:1');
       assert.equal(checkpoints.length, 1);
       assert.equal((checkpoints[0]?.data as { mode?: string }).mode, 'reviewed-evidence-operation-seam');
-      assert.equal((checkpoints[0]?.data as { researchCreditReservationState?: string }).researchCreditReservationState, 'settled');
+      assert.equal((checkpoints[0]?.data as { budgetOwner?: string }).budgetOwner, budgetOwner);
     } finally {
       await client.query('RESET search_path');
       if (!/^karwan_evidence_operation_[a-f0-9]{32}$/.test(schema)) throw new Error(`refusing to drop unexpected schema ${schema}`);

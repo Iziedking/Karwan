@@ -31,8 +31,6 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "POST", path: "/api/admin/agent-runtime/matching-shadow/reviews" },
   { method: "GET", path: "/api/admin/agent-runtime/negotiation-shadow" },
   { method: "GET", path: "/api/admin/agent-runtime/operation-audit" },
-  { method: "GET", path: "/api/admin/agent-runtime/research-credit" },
-  { method: "GET", path: "/api/admin/agent-runtime/research-credit/bootstrap-audit" },
   { method: "GET", path: "/api/admin/agent-runtime/reviewed-operations" },
   { method: "GET", path: "/api/admin/agent-runtime/rollout-gate" },
   { method: "GET", path: "/api/admin/agent-runtime/tasks" },

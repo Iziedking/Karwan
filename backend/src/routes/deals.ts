@@ -1750,7 +1750,7 @@ dealsRoutes.post('/direct/:jobId/counterparty-report/complimentary', async (c) =
       return c.json({
         error: error.message,
         code: 'ALLOWANCE_EXHAUSTED',
-        paidContinuation: { kind: 'existing-research-credit', statusEndpoint: '/api/research/status' },
+        paidContinuation: { kind: 'pay-per-search', statusEndpoint: '/api/research/status' },
       }, 429);
     }
     if (error instanceof ResearchAllowanceExpiredError) {

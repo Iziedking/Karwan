@@ -7,7 +7,6 @@ import {
   PostgresDurableTaskStore,
 } from '../agents/durableTaskRunner.js';
 import { runNumberedMigrations } from '../db/migrations.js';
-import { PostgresResearchCreditStore } from '../evidence/researchCredit.js';
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL;
 process.env.ADMIN_API_TOKEN = 'admin-runtime-postgres-test-token';
@@ -76,7 +75,7 @@ test(
       assert.equal((await runner.runOnce(200)).succeeded, 1);
 
       const routes = createAdminAgentRuntimeRoutes(
-        () => null, () => null, () => null, () => null, () => null, () => null, undefined, () => store,
+        () => null, () => null, () => null, () => null, () => null, () => null, () => store,
       );
       const response = await routes.request('/operation-audit?kind=evidence.acquisition.operation', {
         headers: { 'x-admin-token': 'admin-runtime-postgres-test-token' },
@@ -94,25 +93,6 @@ test(
       assert.equal(body.tasks[0]?.checkpoint?.data.purchaseState, 'unknown');
       assert.equal('endpoint' in (body.tasks[0]?.checkpoint?.data ?? {}), false);
 
-      const researchCredits = new PostgresResearchCreditStore(client, transaction);
-      const owner = '0x2222222222222222222222222222222222222222';
-      await researchCredits.ensureAccount({ owner, initialCreditUsdc: '0.5', now: 120 });
-      const bootstrapRoutes = createAdminAgentRuntimeRoutes(
-        undefined, undefined, undefined, undefined, undefined, undefined, () => researchCredits, undefined,
-        () => ({ list: async () => [{ owner, active: true, creditUsdc: 1.5, updatedAt: 100 }] }),
-      );
-      const bootstrapResponse = await bootstrapRoutes.request('/research-credit/bootstrap-audit', {
-        headers: { 'x-admin-token': 'admin-runtime-postgres-test-token' },
-      });
-      assert.equal(bootstrapResponse.status, 200);
-      const bootstrapBody = await bootstrapResponse.json() as {
-        plans: Array<{ action: string; reason: string; ledgerBalanceMicros?: string }>;
-        migrationWritesAuthorized: boolean;
-      };
-      assert.equal(bootstrapBody.migrationWritesAuthorized, false);
-      assert.equal(bootstrapBody.plans[0]?.action, 'review-required');
-      assert.equal(bootstrapBody.plans[0]?.reason, 'LEGACY_LEDGER_MISMATCH');
-      assert.equal(bootstrapBody.plans[0]?.ledgerBalanceMicros, '500000');
     } finally {
       await client.query('RESET search_path');
       if (!/^karwan_admin_audit_[a-f0-9]{32}$/.test(schema)) throw new Error(`refusing to drop unexpected schema ${schema}`);

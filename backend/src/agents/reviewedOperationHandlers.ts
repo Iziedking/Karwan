@@ -18,7 +18,7 @@ import {
   createEvidenceReconciliationOperationHandlers,
 } from '../evidence/reconciliationTask.js';
 import type { EvidenceRuntimeRepository } from '../evidence/runtime.js';
-import type { ResearchCreditStore } from '../evidence/researchCredit.js';
+import type { DataBudget } from '../x402/dataGate.js';
 
 export interface ReviewedOperationHandlerOptions {
   negotiationExecutor?: NegotiationOperationExecutor;
@@ -28,9 +28,9 @@ export interface ReviewedOperationHandlerOptions {
   approvalRepository?: Pick<AgentRuntimeRepository, 'getApproval' | 'updateApproval'>;
   evidenceRepository?: EvidenceRuntimeRepository;
   evidenceAdapter?: EvidenceAcquisitionAdapter;
-  evidenceResearchCredits?: ResearchCreditStore;
   evidenceReconciliationRepository?: EvidenceRuntimeRepository;
-  evidenceReconciliationResearchCredits?: ResearchCreditStore;
+  /** The person's weekly data budget; every paid evidence read goes through it. */
+  evidenceBudget?: DataBudget;
 }
 
 /**
@@ -59,15 +59,13 @@ export function createReviewedOperationTaskHandlers(
       ? createEvidenceAcquisitionOperationHandlers({
           repository: options.evidenceRepository,
           adapter: options.evidenceAdapter,
-          ...(options.evidenceResearchCredits ? { researchCredits: options.evidenceResearchCredits } : {}),
+          ...(options.evidenceBudget ? { budget: options.evidenceBudget } : {}),
         })
       : {}),
     ...(options.evidenceReconciliationRepository
       ? createEvidenceReconciliationOperationHandlers({
           repository: options.evidenceReconciliationRepository,
-          ...(options.evidenceReconciliationResearchCredits
-            ? { researchCredits: options.evidenceReconciliationResearchCredits }
-            : {}),
+          ...(options.evidenceBudget ? { budget: options.evidenceBudget } : {}),
         })
       : {}),
   };

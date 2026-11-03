@@ -11,7 +11,7 @@ import {
   type EvidenceReconciliationOperationTaskData,
 } from './reconciliationTask.js';
 import { PostgresEvidenceRuntimeRepository } from './runtime.js';
-import { PostgresResearchCreditStore } from './researchCredit.js';
+import type { DataBudget } from '../x402/dataGate.js';
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL;
 const owner = '0x1111111111111111111111111111111111111111';
@@ -48,7 +48,6 @@ test(
       const taskStore = new PostgresDurableTaskStore(client, transaction);
       const rooms = new PostgresAgentRuntimeRepository(client);
       const repository = new PostgresEvidenceRuntimeRepository(client, transaction);
-      const researchCredits = new PostgresResearchCreditStore(client, transaction);
       await rooms.createDealRoom({
         id: 'room-evidence-reconcile-postgres',
         jobId: 'job-evidence-reconcile-postgres',
@@ -79,20 +78,19 @@ test(
         'unknown',
         { providerTransactionId: 'provider-tx-reconcile-postgres', now: 102 },
       );
-      const reservationKey = 'research-credit:evidence:reconcile:postgres';
-      await researchCredits.ensureAccount({ owner, initialCreditUsdc: '1', now: 100 });
-      await researchCredits.reserve({
-        id: 'reservation-evidence-reconcile-postgres',
-        reservationKey,
-        owner,
-        amountUsdc: '0.25',
-        now: 103,
-      });
+      const spent: Array<{ owner: string; usd: number }> = [];
+      const budget: DataBudget = {
+        fits: async () => true,
+        spent: async (who, usd) => {
+          spent.push({ owner: who, usd });
+        },
+        reached: () => undefined,
+      };
       const persisted = await repository.updatePurchase(
         unknown.id,
         unknown.version,
         unknown.state,
-        { data: { researchCreditOwner: owner, researchCreditReservationKey: reservationKey }, now: 104 },
+        { data: { budgetOwner: owner }, now: 104 },
       );
 
       const input: EvidenceReconciliationOperationTaskData = {
@@ -124,7 +122,7 @@ test(
         taskStore,
         createReviewedOperationTaskHandlers({
           evidenceReconciliationRepository: repository,
-          evidenceReconciliationResearchCredits: researchCredits,
+          evidenceBudget: budget,
         }),
         { workerId: 'evidence-reconcile-postgres-worker', clock: () => 200 },
       );
@@ -141,10 +139,8 @@ test(
       assert.equal(settled?.txHash, txHash);
       assert.equal((await repository.getNeed(need.record.id))?.state, 'fulfilled');
       assert.equal((await repository.listSnapshots(need.record.id)).length, 1);
-      assert.equal((await researchCredits.getReservation(reservationKey))?.state, 'settled');
-      const account = await researchCredits.getAccount(owner);
-      assert.equal(account?.balanceMicros, '750000');
-      assert.equal(account?.reservedMicros, '0');
+      assert.deepEqual(spent, [{ owner, usd: 0.25 }]);
+      assert.equal((await repository.getPurchase(persisted.id))?.data.budgetRecorded, true);
       const checkpoints = await taskStore.listCheckpoints(
         `task:evidence:reconcile:${input.purchaseId}:${input.observationKey}`,
       );

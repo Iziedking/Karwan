@@ -784,9 +784,9 @@ const envSchema = z.object({
   // keep off until an operator explicitly proves the cutover gate.
   REVIEWED_OPERATION_TASKS_V2_ENABLED: envBool('REVIEWED_OPERATION_TASKS_V2_ENABLED'),
   // Explicitly authorizes the reviewed x402 evidence adapter to call a
-  // provider and consume the separate research-credit ledger. Keep off until
-  // provider, account bootstrap, and reconciliation gates are reviewed.
-  EVIDENCE_RESEARCH_CREDIT_V2_ENABLED: envBool('EVIDENCE_RESEARCH_CREDIT_V2_ENABLED'),
+  // provider, paid from each person's weekly data budget. Keep off until the
+  // provider and reconciliation gates are reviewed.
+  EVIDENCE_PAID_READS_V2_ENABLED: envBool('EVIDENCE_PAID_READS_V2_ENABLED'),
   // AgentKit/AgentBook verification is a separate identity gate. It defaults
   // off until the provider adapter and Sandbox proof are configured.
   AGENTKIT_VERIFICATION_V2_ENABLED: envBool('AGENTKIT_VERIFICATION_V2_ENABLED'),

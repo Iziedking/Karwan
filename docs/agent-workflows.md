@@ -111,7 +111,7 @@ authorizes spend.
 2. Validate the exact URL, method, input schema, output schema, price, asset,
    payment network, recipient, and Gateway support from the current listing.
 3. Apply the mandate, evidence value, freshness, reliability, provenance,
-   research-credit, and per-deal spend gates.
+   weekly data budget, and per-deal spend gates.
 4. Prefer Exa for web research, with Serper as the economical fallback.
 5. Use OpenMart and Voygr only as supplemental business evidence.
 6. Use Allium only after separately confirming that the chain being
@@ -136,14 +136,14 @@ observed and rolled back without activating the rest.
 | `NEGOTIATION_V2_SHADOW` | Validates and checkpoints legacy-derived structured offers without publishing them. |
 | `NEGOTIATION_V2_ENABLED` | Reserved cutover flag. It is parsed and default-off, but no legacy production route delegates authority to it yet. |
 | `EVIDENCE_V2_SHADOW` | Records evidence needs, policy decisions, provider health, and qualification blockers without purchasing. |
-| `EVIDENCE_RESEARCH_CREDIT_V2_ENABLED` | Authorizes the reviewed x402 adapter and the separate research-credit ledger. |
+| `EVIDENCE_PAID_READS_V2_ENABLED` | Authorizes the reviewed x402 adapter, paid from the person's weekly data budget. |
 | `STAKING_V2_ENABLED` | Enables checkpoint-only stake qualification, blockers, and funding-resume observations. It does not approve or move funds by itself. |
 | `FINANCIAL_COMMANDS_V2_ENABLED` | Enables checkpoint-only financial command and reconciliation shadows. It does not call Circle or move funds by itself. |
 | `FINANCIAL_RECONCILIATION_V2_ENABLED` | Polls already submitted Circle operations. It never creates or retries a transfer. |
 | `REVIEWED_OPERATION_TASKS_V2_ENABLED` | Connects the authenticated reviewed-operation ingress to negotiation, evidence, staking, and financial handlers. |
 
 The admin runtime reports task state, parity, matching review coverage,
-negotiation and evidence observations, research credit, financial uncertainty,
+negotiation and evidence observations, financial uncertainty,
 dead letters, and rollout eligibility under `/api/admin/agent-runtime`. Reviewed
 operations are isolated under `/api/admin/reviewed-operation-ingress` and require
 the admin authorization boundary.

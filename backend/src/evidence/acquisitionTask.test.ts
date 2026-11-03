@@ -10,7 +10,22 @@ import {
 } from './acquisitionTask.js';
 import { evidenceNeedKey } from './planner.js';
 import { InMemoryEvidenceRuntimeRepository } from './runtime.js';
-import { InMemoryResearchCreditStore } from './researchCredit.js';
+import type { DataBudget } from '../x402/dataGate.js';
+
+function fakeBudget(limitUsd: number) {
+  const spent: Array<{ owner: string; usd: number; kind: string }> = [];
+  let reached = 0;
+  const budget: DataBudget = {
+    fits: async (_owner, priceUsd) => spent.reduce((sum, s) => sum + s.usd, 0) + priceUsd <= limitUsd,
+    spent: async (owner, usd, kind) => {
+      spent.push({ owner, usd, kind });
+    },
+    reached: () => {
+      reached += 1;
+    },
+  };
+  return { budget, spent, reached: () => reached };
+}
 
 const PAY_TO = '0x2222222222222222222222222222222222222222';
 
@@ -118,17 +133,13 @@ test('provider uncertainty is persisted as UNKNOWN and duplicate delivery cannot
   assert.equal(calls, 1);
 });
 
-test('x402 evidence reserves and settles exact research credit around the injected adapter', async () => {
+test('x402 evidence is checked against the weekly data budget and its price recorded once settled', async () => {
   const tasks = new InMemoryDurableTaskStore();
   const repository = new InMemoryEvidenceRuntimeRepository();
-  const credits = new InMemoryResearchCreditStore();
-  await credits.ensureAccount({ owner: '0x1111111111111111111111111111111111111111', initialCreditUsdc: '1', now: 90 });
-  const data = taskData({
-    idempotencyKey: 'evidence-operation:credit-settle',
-    researchCreditOwner: '0x1111111111111111111111111111111111111111',
-  });
+  const fake = fakeBudget(1);
+  const data = taskData({ idempotencyKey: 'evidence-operation:budget-settle', budgetOwner: '0x1111111111111111111111111111111111111111' });
   await tasks.enqueue({
-    id: 'task:evidence:credit-settle', kind: EVIDENCE_ACQUISITION_OPERATION_TASK,
+    id: 'task:evidence:budget-settle', kind: EVIDENCE_ACQUISITION_OPERATION_TASK,
     idempotencyKey: data.idempotencyKey, availableAt: 100, data, now: 100,
   });
   let calls = 0;
@@ -136,46 +147,37 @@ test('x402 evidence reserves and settles exact research credit around the inject
     tasks,
     createEvidenceAcquisitionOperationHandlers({
       repository,
-      researchCredits: credits,
+      budget: fake.budget,
       clock: () => 200,
       adapter: {
         async acquire() {
           calls += 1;
           return {
-            state: 'settled', providerTransactionId: 'credit-provider-1', txHash: '0xcredit-receipt',
+            state: 'settled', providerTransactionId: 'budget-provider-1', txHash: '0xbudget-receipt',
             snapshot: {
-              snapshotId: 'credit-snapshot', needId: 'need-1', source: 'x402', capturedAtUnix: 100,
-              reliability: 90, status: 'fresh', provenance: ['receipt'], responseHash: 'credit-hash',
+              snapshotId: 'budget-snapshot', needId: 'need-1', source: 'x402', capturedAtUnix: 100,
+              reliability: 90, status: 'fresh', provenance: ['receipt'], responseHash: 'budget-hash',
             },
           };
         },
       },
     }),
-    { workerId: 'credit-settle-worker', clock: () => 200 },
+    { workerId: 'budget-settle-worker', clock: () => 200 },
   );
   assert.equal((await runner.runOnce(200)).succeeded, 1);
   assert.equal(calls, 1);
-  const account = await credits.getAccount('0x1111111111111111111111111111111111111111');
-  assert.equal(account?.balanceMicros, '750000');
-  assert.equal(account?.reservedMicros, '0');
-  const reservation = await credits.getReservation(`research-credit:evidence:${evidenceNeedKey(data.planner.need)}:provider-x402-1`);
-  assert.equal(reservation?.state, 'settled');
+  assert.deepEqual(fake.spent, [{ owner: '0x1111111111111111111111111111111111111111', usd: 0.25, kind: 'research' }]);
   const purchase = await repository.getPurchaseByIdempotencyKey(`evidence:${evidenceNeedKey(data.planner.need)}:provider-x402-1`);
-  assert.equal(purchase?.data.researchCreditOwner, data.researchCreditOwner);
-  assert.equal(purchase?.data.researchCreditReservationKey, `research-credit:evidence:${evidenceNeedKey(data.planner.need)}:provider-x402-1`);
+  assert.equal(purchase?.data.budgetOwner, '0x1111111111111111111111111111111111111111');
 });
 
-test('insufficient x402 research credit waits with a durable unsubmitted purchase and no adapter call', async () => {
+test('a reached data budget waits with an unsubmitted purchase and no adapter call', async () => {
   const tasks = new InMemoryDurableTaskStore();
   const repository = new InMemoryEvidenceRuntimeRepository();
-  const credits = new InMemoryResearchCreditStore();
-  await credits.ensureAccount({ owner: '0x1111111111111111111111111111111111111111', initialCreditUsdc: '0.10', now: 90 });
-  const data = taskData({
-    idempotencyKey: 'evidence-operation:credit-insufficient',
-    researchCreditOwner: '0x1111111111111111111111111111111111111111',
-  });
+  const fake = fakeBudget(0.1);
+  const data = taskData({ idempotencyKey: 'evidence-operation:budget-reached', budgetOwner: '0x1111111111111111111111111111111111111111' });
   await tasks.enqueue({
-    id: 'task:evidence:credit-insufficient', kind: EVIDENCE_ACQUISITION_OPERATION_TASK,
+    id: 'task:evidence:budget-reached', kind: EVIDENCE_ACQUISITION_OPERATION_TASK,
     idempotencyKey: data.idempotencyKey, availableAt: 100, data, now: 100,
   });
   let calls = 0;
@@ -183,26 +185,24 @@ test('insufficient x402 research credit waits with a durable unsubmitted purchas
     tasks,
     createEvidenceAcquisitionOperationHandlers({
       repository,
-      researchCredits: credits,
+      budget: fake.budget,
       clock: () => 200,
       adapter: { async acquire() { calls += 1; throw new Error('must not call provider'); } },
     }),
-    { workerId: 'credit-insufficient-worker', clock: () => 200 },
+    { workerId: 'budget-reached-worker', clock: () => 200 },
   );
   assert.equal((await runner.runOnce(200)).waiting, 1);
   assert.equal(calls, 0);
   assert.equal((await repository.getPurchaseByIdempotencyKey(`evidence:${evidenceNeedKey(data.planner.need)}:provider-x402-1`))?.state, 'created');
-  assert.equal((await credits.getAccount('0x1111111111111111111111111111111111111111'))?.reservedMicros, '0');
+  assert.equal(fake.reached(), 1);
+  assert.deepEqual(fake.spent, []);
 });
 
-test('replaying an already-settled purchase does not charge newly attached research credit', async () => {
+test('replaying an already-settled purchase does not record the spend again', async () => {
   const tasks = new InMemoryDurableTaskStore();
   const repository = new InMemoryEvidenceRuntimeRepository();
-  const credits = new InMemoryResearchCreditStore();
-  const data = taskData({
-    idempotencyKey: 'evidence-operation:credit-replay',
-    researchCreditOwner: '0x1111111111111111111111111111111111111111',
-  });
+  const fake = fakeBudget(1);
+  const data = taskData({ idempotencyKey: 'evidence-operation:budget-replay', budgetOwner: '0x1111111111111111111111111111111111111111' });
   const needKey = evidenceNeedKey(data.planner.need);
   const need = await repository.createNeed({
     id: `need:${needKey}`, dealRoomId: data.dealRoomId, needKey, kind: data.planner.need.claim,
@@ -216,9 +216,8 @@ test('replaying an already-settled purchase does not charge newly attached resea
   let current = purchase.record;
   current = await repository.updatePurchase(current.id, current.version, 'submitted', { providerTransactionId: 'already-paid', now: 101 });
   await repository.updatePurchase(current.id, current.version, 'settled', { txHash: '0xalready-paid', now: 102 });
-  await credits.ensureAccount({ owner: data.researchCreditOwner!, initialCreditUsdc: '1', now: 100 });
   await tasks.enqueue({
-    id: 'task:evidence:credit-replay', kind: EVIDENCE_ACQUISITION_OPERATION_TASK,
+    id: 'task:evidence:budget-replay', kind: EVIDENCE_ACQUISITION_OPERATION_TASK,
     idempotencyKey: data.idempotencyKey, availableAt: 100, data, now: 100,
   });
   let calls = 0;
@@ -226,16 +225,15 @@ test('replaying an already-settled purchase does not charge newly attached resea
     tasks,
     createEvidenceAcquisitionOperationHandlers({
       repository,
-      researchCredits: credits,
+      budget: fake.budget,
       adapter: { async acquire() { calls += 1; throw new Error('must not call provider'); } },
       clock: () => 200,
     }),
-    { workerId: 'credit-replay-worker', clock: () => 200 },
+    { workerId: 'budget-replay-worker', clock: () => 200 },
   );
   assert.equal((await runner.runOnce(200)).succeeded, 1);
   assert.equal(calls, 0);
-  assert.equal((await credits.getAccount(data.researchCreditOwner!))?.balanceMicros, '1000000');
-  assert.equal((await credits.getReservation(`research-credit:evidence:${needKey}:provider-x402-1`)), null);
+  assert.deepEqual(fake.spent, []);
 });
 
 test('fresh evidence is fulfilled without invoking the provider adapter', async () => {

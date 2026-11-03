@@ -12,7 +12,7 @@ import {
 } from '../evidence/acquisitionTask.js';
 import { evidenceNeedKey } from '../evidence/planner.js';
 import { PostgresEvidenceRuntimeRepository } from '../evidence/runtime.js';
-import { PostgresResearchCreditStore } from '../evidence/researchCredit.js';
+import type { DataBudget } from '../x402/dataGate.js';
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL;
 process.env.ADMIN_API_TOKEN = 'reviewed-evidence-operation-postgres-test-token';
@@ -59,21 +59,27 @@ test(
       const taskStore = new PostgresDurableTaskStore(client, transaction);
       const rooms = new PostgresAgentRuntimeRepository(client);
       const repository = new PostgresEvidenceRuntimeRepository(client, transaction);
-      const researchCredits = new PostgresResearchCreditStore(client, transaction);
       await rooms.createDealRoom({
         id: 'room-reviewed-evidence-postgres',
         jobId: 'job-reviewed-evidence-postgres',
         data: {},
         now: 100,
       });
-      const researchCreditOwner = '0x3333333333333333333333333333333333333333';
-      await researchCredits.ensureAccount({ owner: researchCreditOwner, initialCreditUsdc: '1', now: 100 });
+      const budgetOwner = '0x3333333333333333333333333333333333333333';
+      const spent: Array<{ owner: string; usd: number }> = [];
+      const budget: DataBudget = {
+        fits: async () => true,
+        spent: async (owner, usd) => {
+          spent.push({ owner, usd });
+        },
+        reached: () => undefined,
+      };
       const payTo = '0x2222222222222222222222222222222222222222';
       const body = {
         dealRoomId: 'room-reviewed-evidence-postgres',
         source: 'manual-review' as const,
         idempotencyKey: 'reviewed-evidence:postgres:1',
-        researchCreditOwner,
+        budgetOwner,
         planner: {
           need: {
             needId: 'need-reviewed-evidence-postgres',
@@ -169,7 +175,7 @@ test(
         createReviewedOperationTaskHandlers({
           evidenceRepository: repository,
           evidenceAdapter: adapter,
-          evidenceResearchCredits: researchCredits,
+          evidenceBudget: budget,
         }),
         { workerId: 'reviewed-evidence-postgres-worker', clock: () => 200 },
       );
@@ -187,12 +193,8 @@ test(
       assert.equal(purchase?.state, 'settled');
       assert.equal(purchase?.txHash, '0xfake-reviewed-evidence-receipt');
       assert.equal((await repository.listSnapshots(purchase!.evidenceNeedId)).length, 1);
-      const account = await researchCredits.getAccount(researchCreditOwner);
-      assert.equal(account?.balanceMicros, '750000');
-      assert.equal(account?.reservedMicros, '0');
-      const reservation = await researchCredits.getReservation(`research-credit:${purchaseKey}`);
-      assert.equal(reservation?.state, 'settled');
-      assert.equal(reservation?.amountMicros, '250000');
+      assert.deepEqual(spent, [{ owner: budgetOwner, usd: 0.25 }]);
+      assert.equal(purchase?.data.budgetRecorded, true);
     } finally {
       disposeIngress?.();
       await client.query('RESET search_path');

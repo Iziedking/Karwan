@@ -15,11 +15,8 @@ import {
   type EvidenceProviderRegistration,
 } from './providerRegistry.js';
 import type { EvidencePurchaseState, EvidenceRuntimeRepository, EvidenceSnapshotState } from './runtime.js';
-import {
-  ResearchCreditInsufficientError,
-  type ResearchCreditReservationRecord,
-  type ResearchCreditStore,
-} from './researchCredit.js';
+import type { DataBudget } from '../x402/dataGate.js';
+import { recordEvidenceSpend } from './budgetSpend.js';
 
 export const EVIDENCE_ACQUISITION_OPERATION_TASK = 'evidence.acquisition.operation';
 
@@ -102,7 +99,7 @@ const taskSchema = z.object({
   dealRoomId: z.string().min(1),
   source: z.enum(['manual-review', 'negotiation-resume', 'matching-review']),
   idempotencyKey: z.string().min(1),
-  researchCreditOwner: addressSchema.optional(),
+  budgetOwner: addressSchema.optional(),
   planner: plannerSchema,
 }).strict();
 
@@ -195,12 +192,12 @@ export interface EvidenceAcquisitionOperationHandlerOptions {
   repository: EvidenceRuntimeRepository;
   adapter: EvidenceAcquisitionAdapter;
   /**
-   * Optional exact-credit ledger. When omitted, the reviewed seam preserves
-   * its previous injected-adapter behavior. When supplied with a task owner,
-   * x402 purchases reserve credit before any adapter call and settle/release
-   * only after the durable purchase lifecycle is observed.
+   * The person's weekly data budget (view 48, step 6), the one budget every
+   * paid read goes through. When supplied with a task owner, an x402 purchase
+   * is checked against it before any adapter call and its price is recorded
+   * once the purchase settles.
    */
-  researchCredits?: ResearchCreditStore;
+  budget?: DataBudget;
   clock?: () => number;
 }
 
@@ -253,7 +250,7 @@ export function createEvidenceAcquisitionOperationHandlers(
       let providerCallMade = false;
       let financialMutation = false;
       let failureCode: string | undefined;
-      let creditReservation: ResearchCreditReservationRecord | undefined;
+      let budgetOwner: string | undefined;
 
       if (planner.directSnapshot) {
         const snapshot = await options.repository.recordSnapshot({
@@ -294,53 +291,37 @@ export function createEvidenceAcquisitionOperationHandlers(
         let current = purchase.record;
         purchaseId = current.id;
         if (current.state === 'created') {
-          if (provider.source === 'x402' && options.researchCredits && input.researchCreditOwner) {
-            try {
-              const reservation = await options.researchCredits.reserve({
-                id: `research-credit:${purchaseKey}`,
-                reservationKey: `research-credit:${purchaseKey}`,
-                owner: input.researchCreditOwner,
-                amountUsdc: provider.priceUsdc,
-                data: {
-                  mode: 'reviewed-evidence-operation-seam',
-                  evidenceNeedId: planner.need.needId,
-                  providerId: provider.providerId,
-                },
-                now: planner.nowUnix,
-              });
-              creditReservation = reservation.reservation;
-              // Persist the reservation identity alongside the purchase before
-              // the provider call. If the call returns UNKNOWN, a later
-              // reconciliation observation can settle or release the exact
-              // reservation without charging again or relying on task memory.
-              current = await options.repository.updatePurchase(current.id, current.version, current.state, {
-                data: {
-                  researchCreditOwner: input.researchCreditOwner,
-                  researchCreditReservationKey: reservation.reservation.reservationKey,
-                },
-                now: planner.nowUnix,
-              });
-            } catch (error) {
-              if (!(error instanceof ResearchCreditInsufficientError)) throw error;
+          if (provider.source === 'x402' && options.budget && input.budgetOwner) {
+            const price = Number(provider.priceUsdc);
+            if (!(await options.budget.fits(input.budgetOwner, price))) {
+              options.budget.reached(input.budgetOwner);
               await context.checkpoint({
-                checkpointKey: 'research-credit-insufficient',
+                checkpointKey: 'data-budget-reached',
                 phase: 'authorization.recorded',
                 data: {
                   mode: 'reviewed-evidence-operation-seam',
                   source: input.source,
                   decision: decision.action,
-                  reason: 'RESEARCH_CREDIT_INSUFFICIENT',
+                  reason: 'DATA_BUDGET_REACHED',
                   evidenceNeedId: need.record.id,
                   evidenceNeedState: need.record.state,
-                  researchCreditOwner: input.researchCreditOwner,
-                  requiredCreditUsdc: provider.priceUsdc,
+                  budgetOwner: input.budgetOwner,
+                  requiredUsdc: provider.priceUsdc,
                   providerCallMade: false,
                   financialMutation: false,
                   processedAtUnix,
                 },
               });
-              return { state: 'waiting', availableAt: processedAtUnix + 300 };
+              return { state: 'waiting', availableAt: processedAtUnix + 3_600 };
             }
+            budgetOwner = input.budgetOwner;
+            // Kept on the purchase before the provider call, so a later
+            // reconciliation of an UNKNOWN outcome records the spend for the
+            // right person without relying on task memory.
+            current = await options.repository.updatePurchase(current.id, current.version, current.state, {
+              data: { budgetOwner },
+              now: planner.nowUnix,
+            });
           }
           providerCallMade = true;
           financialMutation = provider.source === 'x402';
@@ -378,24 +359,8 @@ export function createEvidenceAcquisitionOperationHandlers(
           }
         }
         purchaseState = current.state;
-        if (creditReservation && options.researchCredits) {
-          if (current.state === 'settled' && creditReservation.state === 'reserved') {
-            const settled = await options.researchCredits.settle({
-              reservationKey: creditReservation.reservationKey,
-              expectedVersion: creditReservation.version,
-              spentUsdc: provider.priceUsdc,
-              now: planner.nowUnix,
-            });
-            creditReservation = settled.reservation;
-          } else if (current.state === 'failed' && creditReservation.state === 'reserved') {
-            const released = await options.researchCredits.release({
-              reservationKey: creditReservation.reservationKey,
-              expectedVersion: creditReservation.version,
-              now: planner.nowUnix,
-            });
-            creditReservation = released.reservation;
-          }
-        }
+        const marked = await recordEvidenceSpend(options.repository, current, options.budget, planner.nowUnix);
+        if (marked) current = marked;
       }
 
       await context.checkpoint({
@@ -413,10 +378,7 @@ export function createEvidenceAcquisitionOperationHandlers(
           ...(purchaseState ? { purchaseState } : {}),
           ...(snapshotState ? { snapshotState } : {}),
           ...(failureCode ? { failureCode } : {}),
-          ...(creditReservation ? {
-            researchCreditReservationKey: creditReservation.reservationKey,
-            researchCreditReservationState: creditReservation.state,
-          } : {}),
+          ...(budgetOwner ? { budgetOwner } : {}),
           providerCallMade,
           financialMutation,
           processedAtUnix,

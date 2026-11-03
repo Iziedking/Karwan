@@ -379,9 +379,7 @@ try {
     () => routeEvidenceStore,
     () => routeFinancialStore,
     () => routeTaskStore,
-    () => null,
     () => routeTaskStore,
-    () => ({ list: async () => [] }),
     () => null,
     () => null,
   );

@@ -2,7 +2,6 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { config } from '../config.js';
 import { pgEnabled, postgresExecutor, withPostgresTransaction } from '../db/client.js';
-import { listProfiles } from '../db/profiles.js';
 import {
   PostgresBuyerTimerParityAuditStore,
   type BuyerTimerParityAuditStore,
@@ -38,14 +37,6 @@ import {
   DeadLetterReplayStateError,
   isManualShadowReplayableTaskKind,
 } from '../agents/durableTaskRunner.js';
-import {
-  PostgresResearchCreditStore,
-  type ResearchCreditAuditStore,
-} from '../evidence/researchCredit.js';
-import {
-  planResearchCreditBootstrap,
-  type LegacyResearchCreditRecord,
-} from '../evidence/researchCreditBootstrap.js';
 import type { AgentTaskState } from '../domain/agentRuntimeState.js';
 import { buildShadowRolloutReport } from '../rollout/report.js';
 import {
@@ -78,11 +69,6 @@ type TaskReplayStoreFactory = () => Pick<DurableTaskStore, 'get' | 'replayDeadLe
 type OperationAuditStore = Pick<DurableTaskAuditStore, 'listRecent'>
   & Pick<DurableTaskStore, 'listCheckpoints'>;
 type OperationAuditStoreFactory = () => OperationAuditStore | null;
-type ResearchCreditStoreFactory = () => ResearchCreditAuditStore | null;
-interface LegacyResearchCreditReader {
-  list(): Promise<readonly LegacyResearchCreditRecord[]>;
-}
-type LegacyResearchCreditReaderFactory = () => LegacyResearchCreditReader;
 type NegotiationCommandAuditStoreFactory = () => NegotiationCommandAuditStore | null;
 
 function defaultStoreFactory(): BuyerTimerParityAuditStore | null {
@@ -129,26 +115,6 @@ function defaultOperationAuditStoreFactory(): OperationAuditStore | null {
     : null;
 }
 
-function defaultLegacyResearchCreditReaderFactory(): LegacyResearchCreditReader {
-  return {
-    async list() {
-      const profiles = await listProfiles();
-      return profiles.map((profile) => ({
-        owner: profile.address,
-        active: profile.research?.active === true,
-        creditUsdc: profile.research?.creditUsdc ?? 0,
-        updatedAt: profile.updatedAt,
-      }));
-    },
-  };
-}
-
-function defaultResearchCreditStoreFactory(): ResearchCreditAuditStore | null {
-  return pgEnabled
-    ? new PostgresResearchCreditStore(postgresExecutor(), withPostgresTransaction)
-    : null;
-}
-
 function defaultNegotiationCommandAuditStoreFactory(): NegotiationCommandAuditStore | null {
   return pgEnabled ? new PostgresNegotiationCommandLedger(postgresExecutor()) : null;
 }
@@ -164,9 +130,7 @@ export function createAdminAgentRuntimeRoutes(
   evidenceStoreFactory: EvidenceStoreFactory = defaultEvidenceStoreFactory,
   financialStoreFactory: FinancialStoreFactory = defaultFinancialStoreFactory,
   taskStoreFactory: TaskStoreFactory = defaultTaskStoreFactory,
-  researchCreditStoreFactory: ResearchCreditStoreFactory = defaultResearchCreditStoreFactory,
   operationAuditStoreFactory: OperationAuditStoreFactory = defaultOperationAuditStoreFactory,
-  legacyResearchCreditReaderFactory: LegacyResearchCreditReaderFactory = defaultLegacyResearchCreditReaderFactory,
   negotiationCommandAuditStoreFactory: NegotiationCommandAuditStoreFactory = defaultNegotiationCommandAuditStoreFactory,
   matchingReviewStoreFactory: MatchingReviewStoreFactory = defaultMatchingReviewStoreFactory,
   taskReplayStoreFactory: TaskReplayStoreFactory = defaultTaskReplayStoreFactory,
@@ -180,13 +144,10 @@ export function createAdminAgentRuntimeRoutes(
     taskHandlersRegistered: config.AGENT_RUNTIME_V2_ENABLED && config.REVIEWED_OPERATION_TASKS_V2_ENABLED,
     evidenceProviderEnabled: config.AGENT_RUNTIME_V2_ENABLED
       && config.REVIEWED_OPERATION_TASKS_V2_ENABLED
-      && config.EVIDENCE_RESEARCH_CREDIT_V2_ENABLED,
+      && config.EVIDENCE_PAID_READS_V2_ENABLED,
     evidenceProviderCallsAuthorized: config.AGENT_RUNTIME_V2_ENABLED
       && config.REVIEWED_OPERATION_TASKS_V2_ENABLED
-      && config.EVIDENCE_RESEARCH_CREDIT_V2_ENABLED,
-    researchCreditLedgerEnabled: config.AGENT_RUNTIME_V2_ENABLED
-      && config.REVIEWED_OPERATION_TASKS_V2_ENABLED
-      && config.EVIDENCE_RESEARCH_CREDIT_V2_ENABLED,
+      && config.EVIDENCE_PAID_READS_V2_ENABLED,
     stakingQualificationShadowEnabled: config.AGENT_RUNTIME_V2_ENABLED
       && (config.STAKING_V2_ENABLED || config.EVIDENCE_V2_SHADOW),
     stakeExecutionAuthorized: false,
@@ -392,7 +353,7 @@ export function createAdminAgentRuntimeRoutes(
         'attemptState', 'purchaseState', 'snapshotState', 'providerLifecycle',
         'reentryCondition', 'resumable',
         'failureCode', 'approvalClaimed', 'providerCallMade', 'financialMutation',
-        'verificationReference', 'observationKey', 'researchCreditReservationState',
+        'verificationReference', 'observationKey', 'budgetRecorded',
       ].flatMap((key) => Object.prototype.hasOwnProperty.call(data, key) ? [[key, data[key]]] : []));
       return {
         id: task.id,
@@ -417,82 +378,6 @@ export function createAdminAgentRuntimeRoutes(
       financialMutationsAuthorized: false,
       reviewedOperationKinds: [...reviewedKinds],
       tasks: audited,
-    });
-  });
-
-  routes.get('/research-credit', async (c) => {
-    const parsed = z.object({
-      owner: z.string().regex(/^0x[0-9a-f]{40}$/i).optional(),
-      state: z.enum(['reserved', 'settled', 'released']).optional(),
-      limit: z.coerce.number().int().min(1).max(500).default(100),
-    }).safeParse(c.req.query());
-    if (!parsed.success) {
-      return c.json({ error: 'invalid research-credit query', detail: parsed.error.flatten() }, 400);
-    }
-    const store = researchCreditStoreFactory();
-    if (!store) return c.json({ error: 'research-credit audit requires Postgres' }, 503);
-    const [accounts, reservations] = await Promise.all([
-      store.listAccounts({ owner: parsed.data.owner, limit: parsed.data.limit }),
-      store.listReservations({ owner: parsed.data.owner, state: parsed.data.state, limit: parsed.data.limit }),
-    ]);
-    return c.json({
-      mode: 'read-only-operational',
-      authoritativeResearchCredit: 'legacy-until-explicit-cutover',
-      providerWritesAuthorized: false,
-      accounts: accounts.map((account) => ({
-        owner: account.owner,
-        balanceMicros: account.balanceMicros,
-        reservedMicros: account.reservedMicros,
-        version: account.version,
-        createdAt: account.createdAt,
-        updatedAt: account.updatedAt,
-      })),
-      reservations: reservations.map((reservation) => ({
-        id: reservation.id,
-        reservationKey: reservation.reservationKey,
-        owner: reservation.owner,
-        amountMicros: reservation.amountMicros,
-        state: reservation.state,
-        version: reservation.version,
-        createdAt: reservation.createdAt,
-        updatedAt: reservation.updatedAt,
-      })),
-    });
-  });
-
-  routes.get('/research-credit/bootstrap-audit', async (c) => {
-    const parsed = z.object({
-      owner: z.string().regex(/^0x[0-9a-f]{40}$/i).optional(),
-      limit: z.coerce.number().int().min(1).max(500).default(100),
-    }).safeParse(c.req.query());
-    if (!parsed.success) {
-      return c.json({ error: 'invalid research-credit bootstrap query', detail: parsed.error.flatten() }, 400);
-    }
-    const store = researchCreditStoreFactory();
-    if (!store) return c.json({ error: 'research-credit bootstrap audit requires Postgres' }, 503);
-    const [legacy, ledger] = await Promise.all([
-      legacyResearchCreditReaderFactory().list(),
-      store.listAccounts({ limit: 500 }),
-    ]);
-    const legacyByOwner = new Map(legacy.map((record) => [record.owner.toLowerCase(), record]));
-    const ledgerByOwner = new Map(ledger.map((record) => [record.owner.toLowerCase(), record]));
-    const owners = [...new Set([
-      ...legacyByOwner.keys(),
-      ...ledgerByOwner.keys(),
-    ])]
-      .filter((owner) => !parsed.data.owner || owner === parsed.data.owner.toLowerCase())
-      .sort()
-      .slice(0, parsed.data.limit);
-    const plans = owners.map((owner) => planResearchCreditBootstrap({
-      owner,
-      ...(legacyByOwner.get(owner) ? { legacy: legacyByOwner.get(owner) } : {}),
-      ...(ledgerByOwner.get(owner) ? { ledger: ledgerByOwner.get(owner) } : {}),
-    }));
-    return c.json({
-      mode: 'read-only-operational',
-      authoritativeResearchCredit: 'legacy-until-explicit-cutover',
-      migrationWritesAuthorized: false,
-      plans,
     });
   });
 

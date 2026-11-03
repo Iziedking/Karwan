@@ -50,8 +50,9 @@ completion, or counterparty relationship.
 3. If a paid read is justified, Discovery is queried with `siwx=false`. The
    exact listing is validated against Karwan's allowlists and the current
    request and response schema.
-4. The research-credit ledger reserves the amount under an idempotency key.
-   Authorization is checkpointed before any payment signature is created.
+4. The price is checked against the person's weekly data budget and the purchase
+   is keyed for idempotency. Authorization is checkpointed before any payment
+   signature is created; the spend is recorded once the purchase settles.
 5. Agent Nanopayments or another explicitly accepted x402 rail pays the selected
    service. The response is size-bounded, schema-checked, hashed, and stored with
    its provenance and payment correlation.
@@ -65,4 +66,4 @@ completion, or counterparty relationship.
 This workflow is part of the public
 [agent workflow architecture](./agent-workflows.md). Paid execution remains
 behind `AGENT_RUNTIME_V2_ENABLED`, `REVIEWED_OPERATION_TASKS_V2_ENABLED`, and
-`EVIDENCE_RESEARCH_CREDIT_V2_ENABLED`.
+`EVIDENCE_PAID_READS_V2_ENABLED`.

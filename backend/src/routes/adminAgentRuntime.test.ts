@@ -7,7 +7,6 @@ import { InMemoryMatchingAuditReviewStore } from '../matching/review.js';
 import { InMemoryNegotiationShadowAuditStore } from '../agents/negotiationTaskShadow.js';
 import { InMemoryEvidenceRuntimeAuditStore } from '../evidence/runtime.js';
 import { InMemoryFinancialRuntimeRepository } from '../financial/runtime.js';
-import { InMemoryResearchCreditStore } from '../evidence/researchCredit.js';
 import { InMemoryNegotiationCommandLedger } from '../negotiation/commandLedger.js';
 
 process.env.ADMIN_API_TOKEN = 'phase3c-admin-test-token';
@@ -89,8 +88,7 @@ test('rollout gate reports durable stale acceptance telemetry without authorizin
     result: { outcome: 'stale', reason: 'STALE_OFFER' }, createdAt: 100,
   });
   const routes = createAdminAgentRuntimeRoutes(
-    () => null, () => null, () => null, () => null, () => null, () => null,
-    undefined, undefined, undefined, () => commands,
+    () => null, () => null, () => null, () => null, () => null, () => null, undefined, () => commands,
   );
   const response = await routes.request('/rollout-gate?minimumObservations=1&maximumStaleOfferAcceptances=0', {
     headers: { 'x-admin-token': 'phase3c-admin-test-token' },
@@ -117,8 +115,7 @@ test('rollout gate reports immutable matching review coverage without changing w
   });
   const reviews = new InMemoryMatchingAuditReviewStore();
   const routes = createAdminAgentRuntimeRoutes(
-    () => null, () => matching, () => null, () => null, () => null, () => null,
-    undefined, undefined, undefined, undefined, () => reviews,
+    () => null, () => matching, () => null, () => null, () => null, () => null, undefined, undefined, () => reviews,
   );
   const headers = { 'x-admin-token': 'phase3c-admin-test-token' };
   const pendingResponse = await routes.request(
@@ -263,8 +260,7 @@ test('enabled admin replay is shadow-only and remains idempotent after the task 
   config.AGENT_RUNTIME_V2_ENABLED = true;
   try {
     const routes = createAdminAgentRuntimeRoutes(
-      undefined, undefined, undefined, undefined, undefined, undefined,
-      undefined, undefined, undefined, undefined, undefined, () => store,
+      undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, () => store,
     );
     const first = await routes.request('/tasks/task-admin-replay/replay', {
       method: 'POST',
@@ -317,7 +313,7 @@ test('reviewed operation audit is read-only and exposes only allowlisted outcome
   );
   assert.equal((await runner.runOnce(200)).succeeded, 1);
   const routes = createAdminAgentRuntimeRoutes(
-    () => null, () => null, () => null, () => null, () => null, () => null, undefined, () => store,
+    () => null, () => null, () => null, () => null, () => null, () => null, () => store,
   );
   const response = await routes.request('/operation-audit?kind=negotiation.turn.operation&limit=10', {
     headers: { 'x-admin-token': 'phase3c-admin-test-token' },
@@ -346,69 +342,6 @@ test('reviewed operation audit is read-only and exposes only allowlisted outcome
   assert.equal((await routes.request('/operation-audit', {
     method: 'POST', headers: { 'x-admin-token': 'phase3c-admin-test-token' },
   })).status, 404);
-});
-
-test('research-credit audit is admin-only, read-only, and never exposes ledger metadata', async () => {
-  const store = new InMemoryResearchCreditStore();
-  const owner = '0x1111111111111111111111111111111111111111';
-  await store.ensureAccount({ owner, initialCreditUsdc: '1', now: 100 });
-  await store.reserve({
-    id: 'admin-credit-reservation', reservationKey: 'admin-credit-key', owner,
-    amountUsdc: '0.25', data: { secret: 'not for reporting' }, now: 110,
-  });
-  const routes = createAdminAgentRuntimeRoutes(undefined, undefined, undefined, undefined, undefined, undefined, () => store);
-  const response = await routes.request('/research-credit?owner=0x1111111111111111111111111111111111111111', {
-    headers: { 'x-admin-token': 'phase3c-admin-test-token' },
-  });
-  assert.equal(response.status, 200);
-  const body = await response.json() as {
-    mode: string;
-    authoritativeResearchCredit: string;
-    providerWritesAuthorized: boolean;
-    accounts: Array<Record<string, unknown>>;
-    reservations: Array<Record<string, unknown>>;
-  };
-  assert.equal(body.mode, 'read-only-operational');
-  assert.equal(body.authoritativeResearchCredit, 'legacy-until-explicit-cutover');
-  assert.equal(body.providerWritesAuthorized, false);
-  assert.equal(body.accounts[0]?.balanceMicros, '1000000');
-  assert.equal(body.reservations[0]?.state, 'reserved');
-  assert.equal('data' in (body.accounts[0] ?? {}), false);
-  assert.equal('data' in (body.reservations[0] ?? {}), false);
-  const unauthenticated = await routes.request('/research-credit');
-  assert.equal(unauthenticated.status, 401);
-});
-
-test('research-credit bootstrap audit compares legacy and ledger state without writing', async () => {
-  const store = new InMemoryResearchCreditStore();
-  const owner = '0x2222222222222222222222222222222222222222';
-  await store.ensureAccount({ owner, initialCreditUsdc: '0.5', now: 120 });
-  const routes = createAdminAgentRuntimeRoutes(
-    undefined, undefined, undefined, undefined, undefined, undefined, () => store, undefined,
-    () => ({
-      list: async () => [{ owner, active: true, creditUsdc: 1.5, updatedAt: 100 }],
-    }),
-  );
-  const response = await routes.request('/research-credit/bootstrap-audit?owner=0x2222222222222222222222222222222222222222', {
-    headers: { 'x-admin-token': 'phase3c-admin-test-token' },
-  });
-  assert.equal(response.status, 200);
-  const body = await response.json() as {
-    mode: string;
-    authoritativeResearchCredit: string;
-    migrationWritesAuthorized: boolean;
-    plans: Array<{ action: string; reason: string; legacyCreditMicros: string; ledgerBalanceMicros?: string }>;
-  };
-  assert.equal(body.mode, 'read-only-operational');
-  assert.equal(body.authoritativeResearchCredit, 'legacy-until-explicit-cutover');
-  assert.equal(body.migrationWritesAuthorized, false);
-  assert.deepEqual(body.plans, [{
-    owner, action: 'review-required', reason: 'LEGACY_LEDGER_MISMATCH',
-    legacyActive: true, legacyCreditMicros: '1500000', ledgerBalanceMicros: '500000',
-    ledgerReservedMicros: '0', ledgerVersion: 1, legacyUpdatedAt: 100, ledgerUpdatedAt: 120,
-  }]);
-  assert.equal((await routes.request('/research-credit/bootstrap-audit')).status, 401);
-  assert.equal((await store.getAccount(owner))?.balanceMicros, '500000');
 });
 
 async function seededStore(): Promise<InMemoryBuyerTimerParityAuditStore> {
@@ -580,8 +513,6 @@ test('matching shadow review ledger is admin-only, immutable, and never changes 
     undefined,
     undefined,
     undefined,
-    undefined,
-    undefined,
     () => reviews,
   );
 
@@ -654,8 +585,6 @@ test('matching shadow review ledger is admin-only, immutable, and never changes 
   const cleanRoutes = createAdminAgentRuntimeRoutes(
     () => null,
     () => clean,
-    undefined,
-    undefined,
     undefined,
     undefined,
     undefined,
@@ -768,8 +697,7 @@ test('rollout gate keeps needs-more-evidence review blocked', async () => {
     decision: 'needs_more_evidence', reviewer: 'operator', createdAt: 200,
   });
   const routes = createAdminAgentRuntimeRoutes(
-    () => null, () => matching, () => null, () => null, () => null, () => null,
-    undefined, undefined, undefined, undefined, () => reviews,
+    () => null, () => matching, () => null, () => null, () => null, () => null, undefined, undefined, () => reviews,
   );
   const response = await routes.request(
     '/rollout-gate?minimumObservations=1&maximumStaleOfferAcceptances=0',

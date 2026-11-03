@@ -10,7 +10,24 @@ import {
   type EvidenceReconciliationOperationTaskData,
 } from './reconciliationTask.js';
 import { InMemoryEvidenceRuntimeRepository } from './runtime.js';
-import { InMemoryResearchCreditStore } from './researchCredit.js';
+import type { DataBudget } from '../x402/dataGate.js';
+
+function fakeBudget(failFirst = false) {
+  const spent: Array<{ owner: string; usd: number }> = [];
+  let failed = !failFirst;
+  const budget: DataBudget = {
+    fits: async () => true,
+    spent: async (owner, usd) => {
+      if (!failed) {
+        failed = true;
+        throw new Error('temporary budget store outage');
+      }
+      spent.push({ owner, usd });
+    },
+    reached: () => undefined,
+  };
+  return { budget, spent };
+}
 
 const OWNER = '0x1111111111111111111111111111111111111111';
 
@@ -62,28 +79,18 @@ function taskData(purchaseVersion: number, overrides: Partial<EvidenceReconcilia
       responseHash: 'sha256:reconcile-task',
       provenance: ['provider-tx-unknown', '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
     },
-    researchCreditOwner: OWNER,
-    researchCreditReservationKey: 'research-credit:evidence:reconcile-task',
     ...overrides,
   };
 }
 
-test('reconciliation observation settles one uncertain purchase, snapshot, and credit reservation without provider authority', async () => {
+test('reconciliation observation settles one uncertain purchase and snapshot, and records the spend once', async () => {
   const { repository, purchase } = await uncertainPurchase();
-  const credits = new InMemoryResearchCreditStore();
-  await credits.ensureAccount({ owner: OWNER, initialCreditUsdc: '1', now: 90 });
-  await credits.reserve({
-    id: 'reservation:reconcile-task',
-    reservationKey: 'research-credit:evidence:reconcile-task',
-    owner: OWNER,
-    amountUsdc: '0.25',
-    now: 103,
-  });
+  const fake = fakeBudget();
   const persistedPurchase = await repository.updatePurchase(
     purchase.id,
     purchase.version,
     purchase.state,
-    { data: { researchCreditOwner: OWNER, researchCreditReservationKey: 'research-credit:evidence:reconcile-task' }, now: 104 },
+    { data: { budgetOwner: OWNER }, now: 104 },
   );
   const tasks = new InMemoryDurableTaskStore();
   const rooms = new InMemoryAgentRuntimeRepository();
@@ -94,37 +101,31 @@ test('reconciliation observation settles one uncertain purchase, snapshot, and c
 
   const runner = new DurableTaskRunner(
     tasks,
-    createEvidenceReconciliationOperationHandlers({ repository, researchCredits: credits, clock: () => 130 }),
+    createEvidenceReconciliationOperationHandlers({ repository, budget: fake.budget, clock: () => 130 }),
     { workerId: 'evidence-reconciliation-worker', clock: () => 130 },
   );
   assert.equal((await runner.runOnce(130)).succeeded, 1);
   const settled = await repository.getPurchase(purchase.id);
   assert.equal(settled?.state, 'settled');
   assert.equal(settled?.txHash, input.txHash);
+  assert.equal(settled?.data.budgetRecorded, true);
   assert.equal((await repository.getNeed('need:reconcile-task'))?.state, 'fulfilled');
   assert.equal((await repository.listSnapshots('need:reconcile-task')).length, 1);
-  assert.equal((await credits.getReservation(input.researchCreditReservationKey!))?.state, 'settled');
+  assert.deepEqual(fake.spent, [{ owner: OWNER, usd: 0.25 }]);
   const checkpoint = (await tasks.listCheckpoints(`task:evidence:reconcile:${input.purchaseId}:${input.observationKey}`)).at(-1);
   assert.equal(checkpoint?.data.providerCallMade, false);
   assert.equal(checkpoint?.data.financialMutation, false);
+  assert.equal(checkpoint?.data.budgetRecorded, true);
 });
 
-test('failed reconciliation releases the exact reserved credit and never fabricates a snapshot', async () => {
+test('failed reconciliation records no spend and never fabricates a snapshot', async () => {
   const { repository, purchase } = await uncertainPurchase();
-  const credits = new InMemoryResearchCreditStore();
-  await credits.ensureAccount({ owner: OWNER, initialCreditUsdc: '1', now: 90 });
-  await credits.reserve({
-    id: 'reservation:reconcile-failed',
-    reservationKey: 'research-credit:evidence:reconcile-task',
-    owner: OWNER,
-    amountUsdc: '0.25',
-    now: 103,
-  });
+  const fake = fakeBudget();
   const persistedPurchase = await repository.updatePurchase(
     purchase.id,
     purchase.version,
     purchase.state,
-    { data: { researchCreditOwner: OWNER, researchCreditReservationKey: 'research-credit:evidence:reconcile-task' }, now: 104 },
+    { data: { budgetOwner: OWNER }, now: 104 },
   );
   const tasks = new InMemoryDurableTaskStore();
   const input = taskData(persistedPurchase.version, {
@@ -146,42 +147,23 @@ test('failed reconciliation releases the exact reserved credit and never fabrica
   });
   const runner = new DurableTaskRunner(
     tasks,
-    createEvidenceReconciliationOperationHandlers({ repository, researchCredits: credits, clock: () => 130 }),
+    createEvidenceReconciliationOperationHandlers({ repository, budget: fake.budget, clock: () => 130 }),
     { workerId: 'evidence-reconciliation-failed-worker', clock: () => 130 },
   );
   assert.equal((await runner.runOnce(130)).succeeded, 1);
   assert.equal((await repository.getPurchase(purchase.id))?.state, 'failed');
   assert.equal((await repository.listSnapshots('need:reconcile-task')).length, 0);
-  assert.equal((await credits.getReservation(input.researchCreditReservationKey!))?.state, 'released');
+  assert.deepEqual(fake.spent, []);
 });
 
-test('retries after a partial settlement and repairs the exact reservation on duplicate replay', async () => {
+test('a spend that fails after settlement is recorded on the retry, once', async () => {
   const { repository, purchase } = await uncertainPurchase();
-  class FailOnceResearchCreditStore extends InMemoryResearchCreditStore {
-    private failed = false;
-
-    override async settle(input: Parameters<InMemoryResearchCreditStore['settle']>[0]): ReturnType<InMemoryResearchCreditStore['settle']> {
-      if (!this.failed) {
-        this.failed = true;
-        throw new Error('temporary research-credit store outage');
-      }
-      return super.settle(input);
-    }
-  }
-  const credits = new FailOnceResearchCreditStore();
-  await credits.ensureAccount({ owner: OWNER, initialCreditUsdc: '1', now: 90 });
-  await credits.reserve({
-    id: 'reservation:reconcile-retry',
-    reservationKey: 'research-credit:evidence:reconcile-task',
-    owner: OWNER,
-    amountUsdc: '0.25',
-    now: 103,
-  });
+  const fake = fakeBudget(true);
   const persistedPurchase = await repository.updatePurchase(
     purchase.id,
     purchase.version,
     purchase.state,
-    { data: { researchCreditOwner: OWNER, researchCreditReservationKey: 'research-credit:evidence:reconcile-task' }, now: 104 },
+    { data: { budgetOwner: OWNER }, now: 104 },
   );
   const tasks = new InMemoryDurableTaskStore();
   const input = taskData(persistedPurchase.version);
@@ -195,7 +177,7 @@ test('retries after a partial settlement and repairs the exact reservation on du
   });
   const runner = new DurableTaskRunner(
     tasks,
-    createEvidenceReconciliationOperationHandlers({ repository, researchCredits: credits, clock: () => 130 }),
+    createEvidenceReconciliationOperationHandlers({ repository, budget: fake.budget, clock: () => 130 }),
     { workerId: 'evidence-reconciliation-retry-worker', clock: () => 130 },
   );
   assert.deepEqual(await runner.runOnce(130), {
@@ -205,7 +187,8 @@ test('retries after a partial settlement and repairs the exact reservation on du
     deadLettered: 0,
     leaseLost: 0,
   });
-  assert.equal((await credits.getReservation(input.researchCreditReservationKey!))?.state, 'reserved');
+  assert.deepEqual(fake.spent, []);
+  assert.equal((await repository.getPurchase(purchase.id))?.state, 'settled');
   assert.equal((await repository.listSnapshots('need:reconcile-task')).length, 1);
   assert.deepEqual(await runner.runOnce(1_130), {
     succeeded: 1,
@@ -214,7 +197,8 @@ test('retries after a partial settlement and repairs the exact reservation on du
     deadLettered: 0,
     leaseLost: 0,
   });
-  assert.equal((await credits.getReservation(input.researchCreditReservationKey!))?.state, 'settled');
+  assert.deepEqual(fake.spent, [{ owner: OWNER, usd: 0.25 }]);
+  assert.equal((await repository.getPurchase(purchase.id))?.data.budgetRecorded, true);
   assert.equal((await repository.listSnapshots('need:reconcile-task')).length, 1);
 });
 
