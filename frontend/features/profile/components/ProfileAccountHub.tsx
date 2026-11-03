@@ -12,6 +12,8 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { formatBalance, heroAmount } from '@/features/money/balanceModel';
 import { useMoneyBalances } from '@/features/money/hooks/useMoneyBalances';
 import { ProfileFrame, Row, RowGroup, ToggleRow } from '../ui/ProfileUi';
+import { liveOffers, openRequests } from '@/features/home/tradeHub';
+import { marketViewHref } from '@/features/market/marketQuery';
 import { useRouter } from 'next/navigation';
 import { rememberReturn } from '@/features/assistant/assistantReturn';
 import { ProfileSignOut } from './ProfileSignOut';
@@ -106,6 +108,14 @@ export function ProfileAccountHub({
   const agentCopy = yourAgentCopy[locale as keyof typeof yourAgentCopy] ?? yourAgentCopy.en;
   const simple = messages.profile.simple;
   const balanceFacts = { balance: money.balance, pool: money.pool, loading: money.loading, error: money.error };
+  const me = address.toLowerCase();
+  const myRequests = useQuery({ queryKey: ['search', 'myRequests', me], queryFn: () => api.buyer(me).then((r) => r.jobs), enabled: DEALS_AVAILABLE && !!me, staleTime: 15_000 });
+  const myListings = useQuery({ queryKey: ['trade-hub', 'listings', me], queryFn: () => api.listingsForSeller(me).then((r) => r.listings), enabled: DEALS_AVAILABLE && !!me, staleTime: 15_000 });
+  const count = (n: number, one: string, many: string) => (n === 1 ? one : many.replace('{n}', String(n)));
+  const trade = {
+    requests: myRequests.data ? count(openRequests(myRequests.data, Date.now()).length, pp.openRequestsOne, pp.openRequests) : undefined,
+    offers: myListings.data ? count(liveOffers(myListings.data, Date.now()).length, pp.liveOffersOne, pp.liveOffers) : undefined,
+  };
   const agentTotal = money.buyer != null || money.seller != null ? (money.buyer ?? 0) + (money.seller ?? 0) : null;
   const usdc = (value: number | null) => (value == null ? undefined : `${formatBalance(value, locale)} USDC`);
   // What setup already filled in, instead of "Set up" (accountRows.ts).
@@ -194,18 +204,16 @@ export function ProfileAccountHub({
         <Row label={agentCopy.recordSources} href="/profile/sources" />
       </RowGroup>
 
-      {DEALS_AVAILABLE ? (
-        <RowGroup title={pp.selling}>
-          <Row label={pp.yourOffers} href="/market?view=yours" />
-          <Row label={pp.howAgentSells} href="/profile/setup" />
-        </RowGroup>
-      ) : null}
-
-      <RowGroup title={hub.money}>
+      {/* Buying, selling and the money in one group, so the app reads at a
+          glance (owner notes, 3 Nov 2026). */}
+      <RowGroup title={pp.tradeAndMoney}>
         <Row label={pp.balance} value={usdc(heroAmount(balanceFacts))} href="/account" />
         {DEALS_AVAILABLE ? <Row label={pp.withAgents} value={usdc(agentTotal)} href="/profile/agent-funds" /> : null}
-        <Row label={hub.activityReceipts} href="/activity" />
         {DEALS_AVAILABLE ? <Row label={messages.dealGuarantee.profile.dealGuarantee} value={guaranteeInPlace} href="/guarantee" /> : null}
+        {DEALS_AVAILABLE ? <Row label={pp.buying} value={trade.requests} href={marketViewHref('yours', 'requests')} /> : null}
+        {DEALS_AVAILABLE ? <Row label={pp.selling} value={trade.offers} href={marketViewHref('yours', 'offers')} /> : null}
+        {DEALS_AVAILABLE ? <Row label={pp.howAgentTrades} href="/profile/setup" /> : null}
+        <Row label={hub.activityReceipts} href="/activity" />
       </RowGroup>
 
       <RowGroup title={pp.accountAndSecurity}>

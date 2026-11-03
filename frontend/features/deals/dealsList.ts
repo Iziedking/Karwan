@@ -1,6 +1,7 @@
 import type { DirectDeal } from '@/core/api';
 import { stageOf, type DealStage } from './components/DirectDealList';
 import { directDealNeedsViewer } from '@/features/notifications/openDealsModel';
+import { dealRoute, type RouteStatus } from './dealRoute';
 
 /// What the Deals list needs to place a row. Home and Deals both order through
 /// orderDeals, so a deal sits in the same place on both.
@@ -66,4 +67,31 @@ export function rowMove(deal: DirectDeal): RowMove | null {
   const next = deal.view?.next;
   if (!next?.action || next.actor !== 'you') return null;
   return ROW_MOVES[next.action] ?? null;
+}
+
+export type DealState = 'yourMove' | 'active' | 'disputed' | 'paidOut' | 'cancelled' | 'refunding' | 'refunded' | 'split' | 'ended';
+
+const ROUTE_STATE: Record<RouteStatus, DealState> = {
+  disputed: 'disputed',
+  cancelled: 'cancelled',
+  refunding: 'refunding',
+  refunded: 'refunded',
+  paidToSeller: 'paidOut',
+  split: 'split',
+};
+
+/// The pill on a deal in a list: where it stands at a glance. A dispute shows
+/// over the move, and an ended deal says how it ended.
+export function dealState({ yourMove, finished, deal }: { yourMove: boolean; finished: boolean; deal?: DirectDeal }): DealState {
+  if (deal) {
+    const route = dealRoute(deal);
+    if (route.kind === 'status') return ROUTE_STATE[route.status];
+    if (deal.settledAt || finished) return 'paidOut';
+  } else if (finished) return 'ended';
+  return yourMove ? 'yourMove' : 'active';
+}
+
+/// The amount is struck through when the money never moved or went back.
+export function amountStruck(state: DealState): boolean {
+  return state === 'cancelled' || state === 'refunding' || state === 'refunded';
 }

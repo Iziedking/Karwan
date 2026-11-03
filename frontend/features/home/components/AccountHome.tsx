@@ -9,9 +9,9 @@ import { FaucetDrop } from './FaucetDrop';
 import { FirstTrade } from './FirstTrade';
 import { HomeBlock } from './HomeBlock';
 import { HomeDeals } from './HomeDeals';
+import { RecordHomeNudge } from './RecordHomeNudge';
 import { useOwnedBalance } from '@/features/money/hooks/useOwnedBalance';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { buttonClasses } from '@/shared/components/Button';
 import { UpdatesCarousel } from './UpdatesCarousel';
 import { ARC_NETWORK } from '@/core/arcNetwork';
 import { PageTour } from '@/shared/guide/PageTour';
@@ -50,8 +50,9 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
           {ARC_NETWORK === 'testnet' ? <FaucetDrop /> : null}
         </div>
 
-        {/* The balance is the top line of the page with the three money moves
-            under it; the one green button on Home is a deal's move (view 48). */}
+        {/* The balance is the top line of the page with the four money moves
+            under it as round buttons; the one green button on Home is a deal's
+            move (view 48). */}
         <m.div
           data-guide="home-money"
           initial={{ opacity: 0, y: 12 }}
@@ -77,12 +78,15 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
               {' '}<span className="text-[17px] font-semibold text-[var(--ink-secondary)]">USDC</span>
             </p>
           )}
-          <div className="mt-6 grid grid-cols-3 gap-2 sm:gap-3 lg:max-w-[540px] [&>a]:px-2 [&>a]:text-center [&>a]:leading-tight sm:[&>a]:px-5">
-            <Link href="/bridge?direction=in" className={buttonClasses({ variant: 'secondary', size: 'lg' })}>{start.addMoney}</Link>
-            <Link href="/send" className={buttonClasses({ variant: 'secondary', size: 'lg' })}>{home.send}</Link>
-            <Link href="/bridge?direction=out" className={buttonClasses({ variant: 'secondary', size: 'lg' })}>{home.withdraw}</Link>
+          <div className="mt-6 grid max-w-[420px] grid-cols-4 gap-2">
+            <QuickAction href="/bridge?direction=in" icon="add">{start.addMoney}</QuickAction>
+            <QuickAction href="/send" icon="send">{home.send}</QuickAction>
+            <QuickAction href="/request" icon="request">{translations.payLink.create.short}</QuickAction>
+            <QuickAction href="/bridge?direction=out" icon="withdraw">{home.withdraw}</QuickAction>
           </div>
         </m.div>
+
+        <RecordHomeNudge />
 
         <div className="mt-7 grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))]">
           <HomeBlock profile={profile} />
@@ -98,3 +102,26 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
   );
 }
 
+const QUICK_ICONS = {
+  add: <path d="M12 5v14M5 12h14" />,
+  send: <path d="M7 17 17 7M9 7h8v8" />,
+  request: <path d="M17 7 7 17M15 17H7V9" />,
+  withdraw: <path d="M12 4v12M7 11l5 5 5-5M5 20h14" />,
+} as const;
+
+/// A round button with its word under it, as on a banking app (owner notes,
+/// 3 Nov 2026). None is green: green is only a deal's move.
+function QuickAction({ href, icon, children }: { href: string; icon: keyof typeof QUICK_ICONS; children: string }) {
+  return (
+    <Link
+      href={href}
+      data-money-move
+      className="group flex min-h-11 flex-col items-center gap-2 rounded-[16px] py-1 text-center text-[13px] font-medium leading-tight text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
+    >
+      <span aria-hidden className="grid size-14 place-items-center rounded-full border border-[var(--line-strong)] bg-[var(--raised)] transition-transform duration-[var(--dur-press)] group-active:scale-95 motion-reduce:transition-none">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{QUICK_ICONS[icon]}</svg>
+      </span>
+      <span className="max-w-full">{children}</span>
+    </Link>
+  );
+}

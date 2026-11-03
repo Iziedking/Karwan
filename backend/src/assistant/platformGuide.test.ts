@@ -247,13 +247,22 @@ test('the guide describes Profile, the public record and Something is wrong (vie
 
 test('the guide describes the new look of Home and the deal page (view 48)', () => {
   const all = PLATFORM_GUIDE.map((entry) => [entry.summary, ...entry.steps].join(' ')).join(' ');
-  assert.match(all, /Home opens with the total balance and Add money, Send and Withdraw under it/);
-  assert.doesNotMatch(all, /Add money, Send, Request and Withdraw beside it/);
+  assert.match(all, /four round buttons under it: Add money, Send, Request payment and Withdraw/);
+  assert.match(all, /Turn on your record with one button/);
   assert.match(all, /the road travelled solid and the road ahead dashed/);
   assert.match(all, /disputed, cancelled or refunded deal shows one status line instead of a route/);
   assert.match(all, /Something is wrong sits under the move/);
   assert.match(all, /has been paid/);
   assert.doesNotMatch(all, /steps card/);
+});
+
+test('the guide names the deal pills, the Sell side cards and Trade and money (owner notes, 3 Nov)', () => {
+  const all = PLATFORM_GUIDE.map((entry) => [entry.summary, ...entry.steps].join(' ')).join(' ');
+  assert.match(all, /each deal with a pill that says where it stands/);
+  assert.match(all, /Paid out, Refunded, Refunding, Cancelled or Split/);
+  assert.match(all, /What buyers need as picture cards like Buy/);
+  assert.match(all, /One Trade and money group/);
+  assert.doesNotMatch(all, /sit under Selling/);
 });
 
 test('the guide gives one Record card on Profile and one balance on Arc (1 Nov)', () => {

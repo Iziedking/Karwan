@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState, type ReactNode } from 'react';
 import { OpenDealRow } from '@/features/notifications/components/OpenDealRow';
 import { Button, buttonClasses } from '@/shared/components/Button';
+import { CARD_CLASS } from '@/shared/components/Card';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { cn } from '@/shared/utils/cn';
 import { useDealRows } from './useDealRows';
@@ -76,7 +77,11 @@ export function DealsPage() {
           </button>
         ) : null}
       >
-        {groups.finished.slice(0, finishedShown).map((r) => <OpenDealRow key={r.key} {...r.row} yourMove={false} />)}
+        <li className={cn(CARD_CLASS, 'list-none px-5 lg:px-6')}>
+          <ul className="divide-y divide-[var(--line)]">
+            {groups.finished.slice(0, finishedShown).map((r) => <OpenDealRow key={r.key} {...r.row} yourMove={false} variant="ended" />)}
+          </ul>
+        </li>
       </Section>
 
       {total > 0 ? (

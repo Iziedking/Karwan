@@ -430,9 +430,11 @@ test('every balance surface offers Withdraw, the route out that works for every 
     assert.match(src, /\/bridge\?direction=out"/, file);
     assert.match(src, /\.withdraw\b/, file);
   }
-  // Home's money moves are secondary buttons: the one green button there is a deal's move (owner, 3 Nov 2026).
+  // Home's money moves are four round buttons, none green: the one green button there is a deal's move (owner, 3 Nov 2026).
   const home = source('../../features/home/components/AccountHome.tsx');
-  assert.equal(home.match(/buttonClasses\(\{ variant: 'secondary', size: 'lg' \}\)/g)?.length, 3);
+  assert.equal(home.match(/<QuickAction href=/g)?.length, 4);
+  assert.match(home, /<QuickAction href="\/request"/);
+  assert.doesNotMatch(home, /--lp-accent|--accent|variant: 'primary'/);
 });
 
 test('Send says what Available counts, so it is never read as a wrong balance', () => {
@@ -493,6 +495,12 @@ test('profile says each thing once: one Record card, Edit profile in the header,
   // Said elsewhere already: Deals has open deals, Home and Money ask for a payment.
   assert.doesNotMatch(hub, /hub\.openDeals|payLink\.create\.title/);
   assert.doesNotMatch(hub, /<RowGroup title=\{pp\.yourOffers\}>/);
+  // Buying, selling and the money sit in one Trade and money group (owner, 3 Nov 2026).
+  const trade = hub.slice(hub.indexOf('<RowGroup title={pp.tradeAndMoney}>'));
+  assert.ok(hub.includes('<RowGroup title={pp.tradeAndMoney}>'));
+  const group = trade.slice(0, trade.indexOf('</RowGroup>'));
+  for (const piece of ['pp.balance', 'pp.withAgents', 'dealGuarantee', 'pp.buying', 'pp.selling', 'pp.howAgentTrades', 'hub.activityReceipts']) assert.ok(group.includes(piece), piece);
+  assert.doesNotMatch(hub, /<RowGroup title=\{pp\.selling\}>|<RowGroup title=\{hub\.money\}>/);
 });
 
 test('money is one balance on Arc: a transfer balance line, no list of other networks, local currency marked soon', () => {

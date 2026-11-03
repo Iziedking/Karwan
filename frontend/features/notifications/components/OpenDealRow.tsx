@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import type { DirectDeal } from '@/core/api';
 import { DealRoute } from '@/features/deals/DealRoute';
+import { DealStatePill } from '@/features/deals/DealStatePill';
+import { amountStruck, type DealState } from '@/features/deals/dealsList';
 import { buttonClasses } from '@/shared/components/Button';
 import { CARD_CLASS } from '@/shared/components/Card';
 import { PersonAvatar } from '@/shared/components/PersonAvatar';
@@ -11,7 +13,8 @@ import { cn } from '@/shared/utils/cn';
 /// One deal in a list (view 48). `card` is the Deals list card: the person,
 /// what it is, the amount, the route and one status line. `feature` is the
 /// Home card for the deal that needs you, with its move as the screen's one
-/// primary button. `row` is a line in Home's On the way list.
+/// primary button. `row` is a line in Home's On the way list. `ended` is a
+/// line in the Deals list's Ended card, with how it ended.
 export function OpenDealRow({
   href,
   role,
@@ -27,6 +30,7 @@ export function OpenDealRow({
   next,
   due,
   move,
+  state,
   variant = 'card',
 }: {
   href: string;
@@ -47,12 +51,37 @@ export function OpenDealRow({
   due?: string;
   /// The move on a deal that needs you, in a word or two.
   move?: string;
-  variant?: 'card' | 'feature' | 'row';
+  /// Where the deal stands, as the pill on the card (owner notes, 3 Nov 2026).
+  state?: DealState;
+  variant?: 'card' | 'feature' | 'row' | 'ended';
 }) {
   const who = counterparty ?? role;
   const heading = title || who;
   const statusLine = [status, next, due].filter(Boolean).join(' · ');
   const label = [heading, status, reference, `${formatUsdc(amount)} ${unit}`].filter(Boolean).join(', ');
+
+  if (variant === 'ended') {
+    const struck = state ? amountStruck(state) : false;
+    return (
+      <li>
+        <Link
+          href={href}
+          aria-label={label}
+          data-ended-row
+          className="flex min-h-16 items-center gap-4 py-3.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ink)]"
+        >
+          <span className="min-w-0 flex-1">
+            <span dir="auto" className="block truncate text-[15px] font-medium text-[var(--ink)]">{heading}</span>
+            <span className="mt-0.5 block truncate text-[13px] text-[var(--ink-secondary)]">{[title ? who : role, due].filter(Boolean).join(' · ')}</span>
+          </span>
+          <span className="flex shrink-0 flex-col items-end gap-1.5">
+            <span className={cn('text-[15px] font-medium tabular-nums', struck ? 'text-[var(--ink-muted)] line-through' : 'text-[var(--ink)]')}>{formatUsdc(amount)} {unit}</span>
+            {state ? <DealStatePill state={state} /> : null}
+          </span>
+        </Link>
+      </li>
+    );
+  }
 
   if (variant === 'row') {
     return (
@@ -103,7 +132,10 @@ export function OpenDealRow({
         </span>
         {deal ? <DealRoute deal={deal} /> : null}
         <span className="flex items-center justify-between gap-3">
-          <span className="min-w-0 truncate text-[13px] text-[var(--ink-secondary)]">{statusLine}</span>
+          <span className="flex min-w-0 items-center gap-2.5">
+            {state ? <DealStatePill state={state} /> : null}
+            <span className="min-w-0 truncate text-[13px] text-[var(--ink-secondary)]">{statusLine}</span>
+          </span>
           {variant === 'card' && yourMove && move ? (
             <span aria-hidden data-row-move className={cn(buttonClasses({ variant: 'secondary', size: 'sm' }), 'hidden shrink-0 lg:inline-flex')}>
               {move}

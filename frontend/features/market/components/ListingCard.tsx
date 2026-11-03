@@ -8,7 +8,7 @@ import { ratingText } from '@/features/ratings/ratingText';
 import { Icon } from '@/shared/components/Icon';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { formatUsdc } from '@/shared/utils/format';
-import { CATEGORY_ICON, deliveryLine, samplePhoto, sellerLine } from '../listingFacts';
+import { CATEGORY_ICON, cardPicture, deliveryLine, samplePhoto, sellerLine } from '../listingFacts';
 
 type Picture = 'own' | 'sample' | 'tile';
 
@@ -18,7 +18,8 @@ type Picture = 'own' | 'sample' | 'tile';
 export function ListingCard({ card }: { card: DiscoveryCard }) {
   const { locale, t: messages } = useLocale();
   const t = messages.marketShop;
-  const [picture, setPicture] = useState<Picture>(card.photo ? 'own' : 'sample');
+  const [failed, setFailed] = useState<{ own: string | null; sample: boolean }>({ own: null, sample: false });
+  const picture: Picture = cardPicture(card.photo, failed);
   const src = picture === 'own' && card.photo ? photoSrc(card.photo) : samplePhoto(card.category);
   const delivery = deliveryLine(card.deliveryKind, card.readyInDays, t);
   const rating = ratingText(card.seller?.rating ?? { kind: 'new', count: 0 }, messages.ratings, locale);
@@ -40,7 +41,7 @@ export function ListingCard({ card }: { card: DiscoveryCard }) {
             src={src}
             alt=""
             loading="lazy"
-            onError={() => setPicture((now) => (now === 'own' ? 'sample' : 'tile'))}
+            onError={() => setFailed((now) => (picture === 'own' ? { ...now, own: card.photo ?? null } : { ...now, sample: true }))}
             className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.02] motion-reduce:transition-none"
           />
         )}

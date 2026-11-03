@@ -13,7 +13,7 @@ const messages = { en, ar };
 const SELLER = '0x5555555555555555555555555555555555555555';
 type Theme = 'light' | 'dark';
 type Locale = 'en' | 'ar';
-type World = { signedOut?: boolean; empty?: boolean; offersDown?: boolean; fits?: string[] };
+type World = { signedOut?: boolean; empty?: boolean; offersDown?: boolean; fits?: string[]; mine?: Listing[] };
 
 const ada: ListingSeller = { name: 'Ada Obi', tag: 'ada', verified: true, rating: { kind: 'rated', value: 4.8, count: 23 }, country: 'NG' };
 
@@ -74,6 +74,7 @@ async function open(page: Page, { theme = 'light', locale = 'en', route = '/mark
       if (world.offersDown) return route.fulfill({ status: 503, json: { error: 'offers unavailable' } });
       return route.fulfill({ json: { listings: world.empty ? [] : data.listings } });
     }
+    if (url.pathname === '/api/listings/mine') return route.fulfill({ json: { listings: world.mine ?? [] } });
     if (url.pathname === '/api/jobs/marketplace') return route.fulfill({ json: { briefs: world.empty ? [] : data.briefs } });
     return route.fallback();
   });
@@ -177,6 +178,33 @@ test('Sell shows what buyers need, the requests that fit you first', async ({ pa
   await expect(page.getByText(t.fitsFirst)).toBeVisible();
   expect(fitsCalls.length).toBeGreaterThan(0);
   await sound(page, testInfo, 'sell');
+});
+
+test('Sell shows your own live offers with their pictures, and each request as a picture card (owner notes, 3 Nov)', async ({ page }, testInfo) => {
+  const now = Date.now();
+  const mine = (id: string, title: string, over: Partial<Listing> = {}): Listing => ({
+    id, title, askingPriceUsdc: 40, postedAt: now - 1000, expiresAt: now + 86_400_000, sellerUser: SELLER, sellerAgent: SELLER_AGENT,
+    description: 'Mine.', category: 'design', ...over,
+  });
+  await open(page, { route: '/market?side=sell', world: { mine: [
+    mine('own-1', 'Wedding photos, one day'),
+    mine('own-2', 'Logo in three versions'),
+    mine('own-old', 'An old offer that ended', { expiresAt: now - 1 }),
+    mine('own-sold', 'Already matched', { matchedAt: now - 10 }),
+  ] } });
+  const t = en.marketShop;
+  const strip = page.locator('[data-your-offers]');
+  await expect(strip).toContainText(t.yourOffers);
+  await expect(strip).toContainText(t.offersLiveMany.replace('{n}', '2'));
+  await expect(strip.getByRole('link', { name: /Wedding photos/ })).toHaveAttribute('href', '/listings/own-1');
+  await expect(strip).not.toContainText('An old offer that ended');
+  await expect(strip).not.toContainText('Already matched');
+  await expect(strip.getByRole('link', { name: t.seeAll })).toHaveAttribute('href', '/market?view=yours&list=offers');
+  // A request has no photo of its own: its picture is a sample, and says so.
+  const card = page.locator('[data-request-row]').first();
+  await expect(card.locator('img')).toHaveCount(1);
+  await expect(card).toContainText(t.samplePhoto);
+  await sound(page, testInfo, 'sell-cards');
 });
 
 test('signed out, Sell marks nothing and never asks which requests fit', async ({ page }) => {

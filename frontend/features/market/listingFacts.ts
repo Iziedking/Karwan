@@ -1,7 +1,7 @@
 import type { ListingSeller } from '@/core/api';
 import type { IconName } from '@/shared/components/Icon';
 import type { MarketShopCopy } from '@/shared/i18n/messages/marketShop';
-import type { CategoryId } from './marketModel';
+import { CATEGORY_IDS, type CategoryId } from './marketModel';
 
 /// What a listing card says under its title (view 44, Figma Listing card).
 
@@ -51,4 +51,17 @@ const SAMPLE: Record<CategoryId, string> = {
 
 export function samplePhoto(category: CategoryId | null): string {
   return `/market-samples/${category ? SAMPLE[category] : 'default'}.jpg`;
+}
+
+/// A listing's category as the server sent it, or none when it is not one of ours.
+export function listingCategory(listing: { category?: string | null }): CategoryId | null {
+  return (CATEGORY_IDS as readonly string[]).includes(listing.category ?? '') ? (listing.category as CategoryId) : null;
+}
+
+/// Which picture a card shows: the seller's own photo whenever it has one that
+/// loaded, the category sample only when it has none or it failed, and a plain
+/// tile when the sample failed too.
+export function cardPicture(photo: string | null | undefined, failed: { own: string | null; sample: boolean }): 'own' | 'sample' | 'tile' {
+  if (photo && failed.own !== photo) return 'own';
+  return failed.sample ? 'tile' : 'sample';
 }

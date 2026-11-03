@@ -11,6 +11,14 @@ export interface ProfilePageCopy {
   share: string;
   record: string;
   selling: string;
+  /// Buying, selling and the money flow in one group (owner notes, 3 Nov 2026).
+  tradeAndMoney: string;
+  buying: string;
+  openRequests: string;
+  openRequestsOne: string;
+  liveOffers: string;
+  liveOffersOne: string;
+  howAgentTrades: string;
   accountAndSecurity: string;
   balance: string;
   withAgents: string;
@@ -53,6 +61,13 @@ export const profilePageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ProfilePa
     share: 'Share your record',
     record: 'Record',
     selling: 'Selling',
+    tradeAndMoney: 'Trade and money',
+    buying: 'Buying',
+    openRequests: '{n} open',
+    openRequestsOne: '1 open',
+    liveOffers: '{n} live',
+    liveOffersOne: '1 live',
+    howAgentTrades: 'How your agent trades',
     accountAndSecurity: 'Account and security',
     balance: 'Balance',
     withAgents: 'With your agents',
@@ -93,6 +108,13 @@ export const profilePageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ProfilePa
     share: 'Partager votre historique',
     record: 'Historique',
     selling: 'Vente',
+    tradeAndMoney: 'Échanges et argent',
+    buying: 'Achats',
+    openRequests: '{n} ouvertes',
+    openRequestsOne: '1 ouverte',
+    liveOffers: '{n} en ligne',
+    liveOffersOne: '1 en ligne',
+    howAgentTrades: 'Comment votre agent négocie',
     accountAndSecurity: 'Compte et sécurité',
     balance: 'Solde',
     withAgents: 'Chez vos agents',
@@ -133,6 +155,13 @@ export const profilePageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ProfilePa
     share: 'شارك سجلّك',
     record: 'السجل',
     selling: 'البيع',
+    tradeAndMoney: 'التجارة والمال',
+    buying: 'الشراء',
+    openRequests: '{n} مفتوحة',
+    openRequestsOne: 'واحد مفتوح',
+    liveOffers: '{n} معروضة',
+    liveOffersOne: 'واحد معروض',
+    howAgentTrades: 'كيف يتاجر وكيلك',
     accountAndSecurity: 'الحساب والأمان',
     balance: 'الرصيد',
     withAgents: 'لدى وكلائك',
@@ -173,6 +202,13 @@ export const profilePageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ProfilePa
     share: 'अपना रिकॉर्ड साझा करें',
     record: 'रिकॉर्ड',
     selling: 'बिक्री',
+    tradeAndMoney: 'व्यापार और पैसा',
+    buying: 'ख़रीद',
+    openRequests: '{n} खुले',
+    openRequestsOne: '1 खुला',
+    liveOffers: '{n} चालू',
+    liveOffersOne: '1 चालू',
+    howAgentTrades: 'आपका एजेंट कैसे व्यापार करता है',
     accountAndSecurity: 'खाता और सुरक्षा',
     balance: 'बैलेंस',
     withAgents: 'आपके एजेंटों के पास',
@@ -213,6 +249,13 @@ export const profilePageCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ProfilePa
     share: 'Shiriki rekodi yako',
     record: 'Rekodi',
     selling: 'Kuuza',
+    tradeAndMoney: 'Biashara na pesa',
+    buying: 'Kununua',
+    openRequests: '{n} wazi',
+    openRequestsOne: '1 wazi',
+    liveOffers: '{n} hai',
+    liveOffersOne: '1 hai',
+    howAgentTrades: 'Jinsi wakala wako anavyofanya biashara',
     accountAndSecurity: 'Akaunti na usalama',
     balance: 'Salio',
     withAgents: 'Kwa mawakala wako',

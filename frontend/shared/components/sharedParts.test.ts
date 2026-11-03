@@ -62,7 +62,7 @@ test('the tab bar and rail carry no green', () => {
 });
 
 test('Home cards carry no green: the one green button on Home is a deal move', () => {
-  for (const file of ['../../features/home/components/HomeBlock.tsx', '../../features/home/components/FirstTrade.tsx', '../../features/home/components/FaucetDrop.tsx']) {
+  for (const file of ['../../features/home/components/HomeBlock.tsx', '../../features/home/components/FirstTrade.tsx', '../../features/home/components/FaucetDrop.tsx', '../../features/home/components/RecordHomeNudge.tsx', '../../features/deals/DealStatePill.tsx', '../../features/market/components/SellCards.tsx']) {
     assert.doesNotMatch(source(file), /--lp-accent\b|className=\{PRIMARY\}/, file);
   }
 });

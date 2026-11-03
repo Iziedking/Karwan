@@ -204,3 +204,19 @@ test('an offer card carries its first photo link; one without photos carries non
   assert.equal(cards.find((c) => c.id === 'offer-open')?.photo, '/api/listings/offer-open/photos/0?v=1');
   assert.ok(cards.filter((c) => c.id !== 'offer-open').every((c) => c.photo === undefined));
 });
+
+/// A request card carries the category the server read from its words (owner
+/// notes, 3 Nov 2026), so the Sell side shows a matching sample picture; an
+/// unknown category reads as none.
+test('a request keeps the category the server gave it', () => {
+  const cards = buildDiscoveryCards([], [
+    { ...briefs[0]!, jobId: 'r-farm', category: 'farm' },
+    { ...briefs[0]!, jobId: 'r-odd', category: 'spaceships' },
+    { ...briefs[0]!, jobId: 'r-none' },
+  ], { now: NOW });
+  const of = (id: string) => cards.find((c) => c.id === id);
+  const [withCategory, unknown, none] = [of('r-farm'), of('r-odd'), of('r-none')];
+  assert.equal(withCategory!.category, 'farm');
+  assert.equal(unknown!.category, null);
+  assert.equal(none!.category, null);
+});

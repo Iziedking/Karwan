@@ -33,6 +33,9 @@ export interface MarketShopCopy {
   dealDirect: string;
   yourRequests: string;
   yourOffers: string;
+  /// Under Your offers on the Sell side: how many are on the market now.
+  offersLiveOne: string;
+  offersLiveMany: string;
   nothingMatches: string;
   nothingBody: string;
   clear: string;
@@ -104,6 +107,8 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     dealDirect: 'More ways to start',
     yourRequests: 'Your requests',
     yourOffers: 'Your offers',
+    offersLiveOne: '1 live in the market',
+    offersLiveMany: '{n} live in the market',
     nothingMatches: 'Nothing matches yet',
     nothingBody: 'Try other words, or say what you need and sellers send you offers.',
     clear: 'Clear search',
@@ -173,6 +178,8 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     dealDirect: 'D’autres façons de commencer',
     yourRequests: 'Vos demandes',
     yourOffers: 'Vos offres',
+    offersLiveOne: '1 en ligne sur le marché',
+    offersLiveMany: '{n} en ligne sur le marché',
     nothingMatches: 'Rien ne correspond pour l’instant',
     nothingBody: 'Essayez d’autres mots, ou dites ce qu’il vous faut et les vendeurs vous font des offres.',
     clear: 'Effacer la recherche',
@@ -242,6 +249,8 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     dealDirect: 'طرق أخرى للبدء',
     yourRequests: 'طلباتك',
     yourOffers: 'عروضك',
+    offersLiveOne: 'عرض واحد معروض في السوق',
+    offersLiveMany: '{n} معروضة في السوق',
     nothingMatches: 'لا شيء يطابق بعد',
     nothingBody: 'جرّب كلمات أخرى، أو قل ما تحتاجه وسيرسل لك البائعون عروضهم.',
     clear: 'مسح البحث',
@@ -311,6 +320,8 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     dealDirect: 'शुरू करने के और तरीके',
     yourRequests: 'आपके अनुरोध',
     yourOffers: 'आपके ऑफ़र',
+    offersLiveOne: 'बाज़ार में 1 चालू',
+    offersLiveMany: 'बाज़ार में {n} चालू',
     nothingMatches: 'अभी कुछ मेल नहीं खाता',
     nothingBody: 'दूसरे शब्द आज़माएँ, या बताइए आपको क्या चाहिए और विक्रेता आपको ऑफ़र भेजेंगे।',
     clear: 'खोज साफ़ करें',
@@ -380,6 +391,8 @@ export const marketShopCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', MarketShop
     dealDirect: 'Njia nyingine za kuanza',
     yourRequests: 'Maombi yako',
     yourOffers: 'Ofa zako',
+    offersLiveOne: '1 iko sokoni',
+    offersLiveMany: '{n} ziko sokoni',
     nothingMatches: 'Hakuna kinacholingana bado',
     nothingBody: 'Jaribu maneno mengine, au sema unachohitaji na wauzaji watakutumia ofa.',
     clear: 'Futa utafutaji',

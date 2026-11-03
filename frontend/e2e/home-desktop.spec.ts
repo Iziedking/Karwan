@@ -39,3 +39,33 @@ test('asking on Home opens assistant mode with the question sent, not Help', asy
   expect(asked).toEqual(['Post my offer']);
   await expect(page.getByRole('dialog')).toHaveCount(0);
 });
+
+/// Owner notes, 3 Nov 2026: the round money buttons are back, none green, and
+/// a record that is not on yet is the one nudge under them.
+for (const locale of ['en', 'fr', 'sw'] as const) {
+  test(`Home has four round money buttons that fit, and nudges a record that is off (${locale})`, async ({ page, context }, testInfo) => {
+    await context.addCookies([{ name: 'karwan-locale', value: locale, domain: '127.0.0.1', path: '/' }]);
+    await serveHome(page, true);
+    await page.route(`${API}/api/record/setup`, (route) => route.fulfill({ json: { available: true, complete: false } }));
+    await page.goto('/app');
+    const moves = page.locator('[data-money-move]');
+    await expect(moves).toHaveCount(4);
+    expect(await moves.evaluateAll((els) => els.map((el) => el.getAttribute('href')))).toEqual(['/bridge?direction=in', '/send', '/request', '/bridge?direction=out']);
+    for (const move of await moves.all()) {
+      expect(await move.evaluate((el) => el.scrollWidth <= el.clientWidth + 1), await move.innerText()).toBe(true);
+      const circle = move.locator('span').first();
+      expect(await circle.evaluate((el) => getComputedStyle(el).backgroundColor)).not.toBe('rgb(175, 201, 91)');
+    }
+    await expect(page.locator('[data-home-nudge]')).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+    await page.screenshot({ path: testInfo.outputPath(`home-moves-${locale}.png`) });
+  });
+}
+
+test('Home shows no record nudge once the record is on', async ({ page }) => {
+  await serveHome(page, true);
+  await page.route(`${API}/api/record/setup`, (route) => route.fulfill({ json: { available: true, complete: true } }));
+  await page.goto('/app');
+  await expect(page.locator('[data-money-move]')).toHaveCount(4);
+  await expect(page.locator('[data-home-nudge]')).toHaveCount(0);
+});

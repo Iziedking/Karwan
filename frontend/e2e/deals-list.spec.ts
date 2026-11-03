@@ -80,6 +80,36 @@ test('needs you, then active, then finished; a disputed deal stays active', asyn
   await expect(active.getByRole('link')).toHaveCount(2);
 });
 
+test('every deal says where it stands, and an ended deal says how it ended (owner notes, 3 Nov)', async ({ page }, testInfo) => {
+  const at = Date.UTC(2026, 9, 5);
+  await serve(page, [
+    ...world.slice(0, 3),
+    deal(200, { acceptedAt: 3, settledAt: at }),
+    deal(201, { cancelledAt: at }),
+    deal(202, { acceptedAt: 3, cancelledAt: at, onChain: { state: 5 } as DirectDeal['onChain'] }),
+    deal(203, { acceptedAt: 3, cancelledAt: at, cancelKind: 'resolved' } as Partial<DirectDeal>),
+  ]);
+  await page.goto('/deals');
+  const pill = (scope: ReturnType<typeof section>, state: string) => scope.locator(`[data-deal-state="${state}"]`);
+  await expect(pill(section(page, t.needsYou), 'yourMove')).toHaveText(t.state.yourMove);
+  await expect(pill(section(page, t.active), 'active')).toHaveText(t.state.active);
+  await expect(pill(section(page, t.active), 'disputed')).toHaveText(t.state.disputed);
+  const ended = section(page, t.finished);
+  await expect(ended.locator('[data-ended-row]')).toHaveCount(4);
+  for (const state of ['paidOut', 'cancelled', 'refunded', 'split'] as const) await expect(pill(ended, state)).toHaveText(t.state[state]);
+  // The money that never moved or went back is struck through; paid out is not.
+  const amount = (n: number) => ended.getByRole('link', { name: new RegExp(ref(n)) }).locator('.tabular-nums').first();
+  await expect(amount(201)).toHaveCSS('text-decoration-line', 'line-through');
+  await expect(amount(202)).toHaveCSS('text-decoration-line', 'line-through');
+  await expect(amount(200)).not.toHaveCSS('text-decoration-line', 'line-through');
+  // No green on a pill: green is only the screen's main button.
+  for (const el of await page.locator('[data-deal-state]').all()) {
+    const bg = await el.evaluate((node) => getComputedStyle(node).backgroundColor);
+    expect(bg).not.toBe('rgb(175, 201, 91)');
+  }
+  await page.screenshot({ path: testInfo.outputPath('deal-states.png'), fullPage: true });
+});
+
 test('finished shows ten, then show more reveals the rest', async ({ page }) => {
   await serve(page, world);
   await page.goto('/deals');

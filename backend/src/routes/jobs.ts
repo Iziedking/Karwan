@@ -43,6 +43,7 @@ import { levelOf } from '../verification/live.js';
 import { matchDecliner } from '../agents/matchDecline.js';
 import { accountTypeOf, deriveJobLane } from '../profile/accountType.js';
 import { getDeal } from '../db/deals.js';
+import { inferCategory, type CategoryId } from '../listings/categories.js';
 import { countLiveDirectOffers } from '../db/directOffers.js';
 import { jobActionsInFlight } from '../offers/jobLock.js';
 import { extractKeywords } from '../llm/keywords.js';
@@ -241,7 +242,7 @@ jobsRoutes.get('/marketplace', async (c) => {
       : addr;
   }
   const candidates = getMarketplaceBriefs();
-  const out: Array<MarketplaceBrief & { buyer: string; offerCount: number }> = [];
+  const out: Array<MarketplaceBrief & { buyer: string; offerCount: number; category: CategoryId | null }> = [];
   const offerCounts = await countLiveDirectOffers(
     candidates.map((b) => b.jobId),
     Math.floor(Date.now() / 1000),
@@ -252,7 +253,8 @@ jobsRoutes.get('/marketplace', async (c) => {
     if (proposal && !proposal.declinedAt) continue;
     const deal = await getDeal(b.jobId);
     if (deal) continue;
-    out.push({ ...b, buyer: mask(b.buyer), offerCount: offerCounts.get(b.jobId) ?? 0 });
+    // The category from the request's words, so the Sell side can show a matching sample picture.
+    out.push({ ...b, buyer: mask(b.buyer), offerCount: offerCounts.get(b.jobId) ?? 0, category: inferCategory(b.briefText) });
   }
   // Who posted each request, by name (view 44, Market Sell); never the address.
   const briefs = await attachPosters(out, (jobId) => getBrief(jobId)?.postedBy, liveSellerSummaries);

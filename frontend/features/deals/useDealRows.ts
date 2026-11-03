@@ -11,7 +11,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { stageOf } from './components/DirectDealList';
 import { dealReference } from './dealReference';
-import { classifyDirectDeal, orderDeals, rowMove, type Orderable } from './dealsList';
+import { classifyDirectDeal, dealState, orderDeals, rowMove, type Orderable } from './dealsList';
 import { useDirectDeals } from './hooks/useDirectDeals';
 import { whatItIs } from './workspace/titleLine';
 
@@ -60,6 +60,9 @@ export function useDealRows() {
           status: live?.text ?? messages.dealStage.labels[c.stage],
           due: c.finished ? undefined : due(deal.deadlineUnix),
           move: (() => { const m = rowMove(deal); return m ? messages.dealsPage.move[m] : undefined; })(),
+          state: dealState({ yourMove: c.yourMove, finished: c.finished, deal }),
+          // An ended deal's line says when it ended.
+          ...(c.finished ? { due: shortDate(deal.settledAt ?? deal.cancelledAt ?? deal.updatedAt, locale) } : {}),
         },
       });
     }
@@ -85,6 +88,7 @@ export function useDealRows() {
           status: messages.negotiationCard.states[presentation.state].tag,
           next: messages.negotiationCard.nextActors[presentation.nextActor],
           due: due(proposal.deadlineUnix),
+          state: dealState({ yourMove: presentation.viewerMustAct, finished: false }),
         },
       });
     }
@@ -106,6 +110,7 @@ export function useDealRows() {
           status: p.financed.stages[item.deal ? financedStage(stageOf(item.deal), item.deal.deadlineUnix) : 'delivering'],
           next: p.financed.backTemplate.replace('{amount}', item.back),
           due: due(item.deal?.deadlineUnix),
+          state: item.deal ? dealState({ yourMove: false, finished: false, deal: item.deal }) : 'active',
         },
       });
     }

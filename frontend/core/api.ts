@@ -1230,6 +1230,8 @@ export interface MarketplaceBrief {
   example?: boolean;
   /// Who posted it, by name (view 44); null when they could not be read.
   poster?: ListingSeller | null;
+  /// The market category read from the request's words; null when none fits.
+  category?: string | null;
 }
 
 export type ListingStatus = 'open' | 'matched' | 'cancelled' | 'expired';

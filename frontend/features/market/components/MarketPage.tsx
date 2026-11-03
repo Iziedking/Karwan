@@ -19,7 +19,6 @@ import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import type { MarketShopCopy } from '@/shared/i18n/messages/marketShop';
 import { cn } from '@/shared/utils/cn';
-import { formatUsdc } from '@/shared/utils/format';
 import { shouldAskTradesAs } from '../entryQuestion';
 import { FRESH, buyCards, sellRequests, type CategoryId } from '../marketModel';
 import { parseMarketQuery, marketHref, marketViewHref, type MarketSide, type MarketView, type YoursList } from '../marketQuery';
@@ -28,6 +27,7 @@ import { BuySellSwitch } from './BuySellSwitch';
 import { CategoryChips } from './CategoryChips';
 import { EntryQuestion } from './EntryQuestion';
 import { ListingCard } from './ListingCard';
+import { RequestCard, YourOffersStrip } from './SellCards';
 import { StartTradeSheet } from './StartTradeSheet';
 import { YourTrades } from './YourTrades';
 
@@ -228,35 +228,28 @@ function BuySide({
 }
 
 function SellSide() {
-  const { locale, t: messages } = useLocale();
+  const { t: messages } = useLocale();
   const t = messages.marketShop;
-  const { isAuthenticated } = useAuth();
   const { cards, loading, failed, retry } = useMarketRequests();
   const fits = useRequestFits(true);
   const requests = useMemo(() => sellRequests(cards, fits), [cards, fits]);
   const anyFit = requests.some((request) => request.fits);
-  const dateOf = (ms: number) => new Intl.DateTimeFormat(locale, { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(ms));
-  const offers = (n: number | undefined) => (!n ? t.offersNone : n === 1 ? t.offersOne : t.offersMany.replace('{n}', String(n)));
 
   return (
     <>
       <Link
         href="/seller#post-listing"
         data-guide="market-sell"
-        className="mt-5 flex items-center gap-4 rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5 transition-colors hover:border-[color-mix(in_srgb,var(--lp-accent)_45%,transparent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)]"
+        className="mt-5 flex items-center gap-4 rounded-[var(--radius-card)] border border-[var(--line)] bg-[var(--surface)] p-5 transition-colors hover:border-[var(--line-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]"
       >
-        <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-full bg-[var(--lp-accent)] text-[var(--accent-ink)]"><Icon name="plus" size={20} /></span>
+        <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-full bg-[var(--ash)] text-[var(--ink)]"><Icon name="plus" size={20} /></span>
         <span className="min-w-0 flex-1">
           <span className="block text-[16px] font-semibold text-[var(--ink)]">{t.listWhatYouSell}</span>
           <span className="mt-0.5 block text-[14px] text-[var(--ink-secondary)]">{t.listBody}</span>
         </span>
         <Icon name="chevron-right" size={20} directional className="shrink-0 text-[var(--ink-secondary)]" />
       </Link>
-      {isAuthenticated ? (
-        <Link href={marketViewHref('yours', 'offers')} className="mt-2 inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--ink-secondary)] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--action)]">
-          {t.yourOffers}
-        </Link>
-      ) : null}
+      <YourOffersStrip />
 
       {failed.includes('requests') ? <Notice failed={failed} retry={retry} t={t} /> : null}
 
@@ -266,31 +259,14 @@ function SellSide() {
           {anyFit ? <p className="text-[14px] font-medium text-[var(--ink-secondary)]">{t.fitsFirst}</p> : null}
         </div>
         {loading ? (
-          <div className="mt-3 space-y-2">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-24 w-full rounded-[16px]" />)}</div>
+          <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+            {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="aspect-[3/4] w-full rounded-[var(--radius-card)]" />)}
+          </div>
         ) : requests.length === 0 ? (
           <p className="mt-3 text-[15px] text-[var(--ink-secondary)]">{t.noRequests}</p>
         ) : (
-          <ul className="mt-3 divide-y divide-[var(--lp-border-light)] rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
-            {requests.slice(0, 30).map((request) => (
-              <li key={request.id}>
-                <Link href={request.href} data-request-row data-fits={request.fits || undefined} className="block px-4 py-4 hover:bg-[var(--lp-light)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--action)] sm:px-5">
-                  <span className="flex items-start justify-between gap-3">
-                    <span dir="auto" className="min-w-0 text-[15px] font-semibold text-[var(--ink)]">{request.title}</span>
-                    {request.fits ? (
-                      <span className="shrink-0 rounded-full bg-[var(--color-accent-soft)] px-2.5 py-0.5 text-[13px] font-semibold text-[var(--lp-accent-on-light)]">{t.fits}</span>
-                    ) : request.example ? (
-                      <span className="shrink-0 rounded-full border border-[var(--lp-border-light)] px-2 py-0.5 text-[13px] font-semibold text-[var(--ink-secondary)]">{t.example}</span>
-                    ) : null}
-                  </span>
-                  <span className="mt-1 block text-[14px] text-[var(--ink-secondary)]">
-                    {t.upTo.replace('{amount}', formatUsdc(request.priceUsdc, { withSuffix: false }))} · {t.neededBy.replace('{date}', dateOf(request.availableUntil))}
-                  </span>
-                  <span className="mt-0.5 block truncate text-[14px] text-[var(--ink-secondary)]">
-                    {[request.seller?.name || (request.seller?.tag ? `@${request.seller.tag}` : null), offers(request.bidsCount)].filter(Boolean).join(' · ')}
-                  </span>
-                </Link>
-              </li>
-            ))}
+          <ul className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+            {requests.slice(0, 30).map((request) => <li key={request.id}><RequestCard card={request} fits={request.fits} /></li>)}
           </ul>
         )}
       </section>

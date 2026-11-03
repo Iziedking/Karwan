@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { marketShopCopy } from '../../shared/i18n/messages/marketShop';
 import { CATEGORY_IDS } from './marketModel';
-import { CATEGORY_ICON, deliveryLine, samplePhoto, sellerLine } from './listingFacts';
+import { CATEGORY_ICON, cardPicture, deliveryLine, samplePhoto, sellerLine } from './listingFacts';
 
 /// What a listing card says under its title (view 44, Figma Listing card).
 ///
@@ -34,4 +34,15 @@ test('every category has an icon and a sample photo, and so does an offer with n
   assert.equal(samplePhoto(null), '/market-samples/default.jpg');
   // Each category shows its own photo, Food included.
   assert.equal(new Set(CATEGORY_IDS.map(samplePhoto)).size, CATEGORY_IDS.length);
+});
+
+/// Owner notes, 3 Nov 2026: a sample shows only when the seller added no photo.
+test("a card shows the seller's own photo, and the sample only when there is none", () => {
+  const none = { own: null, sample: false };
+  assert.equal(cardPicture('/p/1.jpg', none), 'own');
+  assert.equal(cardPicture(undefined, none), 'sample');
+  assert.equal(cardPicture('/p/1.jpg', { own: '/p/1.jpg', sample: false }), 'sample');
+  // A new photo after an old one failed is tried, never left on the sample.
+  assert.equal(cardPicture('/p/2.jpg', { own: '/p/1.jpg', sample: false }), 'own');
+  assert.equal(cardPicture(null, { own: null, sample: true }), 'tile');
 });

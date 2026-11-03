@@ -31,7 +31,8 @@ export interface DiscoveryCard {
   bidsCount?: number;
   /// The offer's first photo link, when it has one (view 28).
   photo?: string;
-  /// The market category (view 44); null for requests and offers that fit none.
+  /// The market category (view 44); for a request the server reads it from its
+  /// words. Null when none fits.
   category: CategoryId | null;
   /// Who sells an offer, or who posted a request; null when it could not be read.
   seller: ListingSeller | null;
@@ -99,7 +100,7 @@ export function buildDiscoveryCards(
         partyIsYou: false,
         matchedBefore: false,
         example: brief.example === true,
-        category: null,
+        category: (CATEGORY_IDS as readonly string[]).includes(brief.category ?? '') ? (brief.category as CategoryId) : null,
         seller: brief.poster ?? null,
         bidsCount: brief.bidsCount + (brief.offerCount ?? 0),
       } satisfies DiscoveryCard;

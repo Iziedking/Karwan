@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import type { DirectDeal } from '@/core/api';
-import { classifyDirectDeal, homeDealsPreview, orderDeals, rowMove, type Orderable } from './dealsList';
+import { amountStruck, classifyDirectDeal, dealState, homeDealsPreview, orderDeals, rowMove, type Orderable } from './dealsList';
 
 const BUYER = `0x${'22'.repeat(20)}`;
 const SELLER = `0x${'33'.repeat(20)}`;
@@ -96,4 +96,32 @@ test('a row that needs you names its move in one word, when it has one', () => {
   assert.equal(rowMove(next('release', 'counterparty')), null);
   assert.equal(rowMove(next(null)), null);
   assert.equal(rowMove(deal({})), null);
+});
+
+/// The pill on every deal (owner notes, 3 Nov 2026): where a deal stands at a
+/// glance, and ended deals each with their own state.
+test('a deal says at a glance where it stands', () => {
+  const at = Date.UTC(2026, 10, 3);
+  const cases: Array<[Partial<DirectDeal>, { yourMove: boolean; finished: boolean }, string]> = [
+    [{}, { yourMove: true, finished: false }, 'yourMove'],
+    [{ acceptedAt: at }, { yourMove: false, finished: false }, 'active'],
+    [{ acceptedAt: at, disputed: true }, { yourMove: true, finished: false }, 'disputed'],
+    [{ acceptedAt: at, settledAt: at }, { yourMove: false, finished: true }, 'paidOut'],
+    [{ cancelledAt: at }, { yourMove: false, finished: true }, 'cancelled'],
+    [{ acceptedAt: at, cancelledAt: at }, { yourMove: false, finished: true }, 'refunding'],
+    [{ acceptedAt: at, cancelledAt: at, onChain: { state: 5 } as DirectDeal['onChain'] }, { yourMove: false, finished: true }, 'refunded'],
+    [{ acceptedAt: at, cancelledAt: at, cancelKind: 'resolved' } as Partial<DirectDeal>, { yourMove: false, finished: true }, 'split'],
+    [{ acceptedAt: at, cancelledAt: at, cancelKind: 'release-from-dispute' } as Partial<DirectDeal>, { yourMove: false, finished: true }, 'paidOut'],
+  ];
+  for (const [fields, flags, want] of cases) assert.equal(dealState({ ...flags, deal: deal(fields) }), want, JSON.stringify(fields));
+});
+
+test('a row with no direct deal still has a state', () => {
+  assert.equal(dealState({ yourMove: true, finished: false }), 'yourMove');
+  assert.equal(dealState({ yourMove: false, finished: false }), 'active');
+  assert.equal(dealState({ yourMove: false, finished: true }), 'ended');
+});
+
+test('money that never moved or came back is struck through; paid out is not', () => {
+  assert.deepEqual((['paidOut', 'cancelled', 'refunding', 'refunded', 'split', 'ended'] as const).map(amountStruck), [false, true, true, true, false, false]);
 });
