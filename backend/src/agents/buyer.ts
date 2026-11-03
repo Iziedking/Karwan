@@ -131,14 +131,13 @@ import { clearNearMiss, getPendingNearMiss, type NearMissApproval } from '../db/
 import { clearOutOfReach } from '../db/outOfReach.js';
 import { config } from '../config.js';
 import { paidCreditPassport, READS_BALANCE_EMPTY, type PaidPassportSignal } from '../x402/buyerClient.js';
-import { acquireRecordRead } from '../x402/dataGate.js';
-import { markUnavailable, pickRecommended, rankCandidates, sealEntries, shortlistLimits, toEntries, unavailableSellers, type ShortlistCandidate, type ShortlistEntry } from './shortlist.js';
+import { acquireRecordRead, acquireResearch } from '../x402/dataGate.js';
+import { AddressMap, AddressSet } from '../identity/address.js';
+import { markUnavailable, onePerPerson, pickRecommended, rankCandidates, sealEntries, shortlistLimits, toEntries, unavailableSellers, type ShortlistCandidate, type ShortlistEntry } from './shortlist.js';
 import { buildCandidates, type ShortlistDeps } from './shortlistRun.js';
 import { countsFor } from '../reputation/recordRead.js';
 import { levelOf } from '../verification/live.js';
-import { researchMarket, type MarketRead } from '../x402/externalClient.js';
-import { chargeResearch } from '../x402/researchAccount.js';
-import { recordExternalResearchFailure, recordExternalResearchPayment } from '../x402/researchAccounting.js';
+import type { MarketRead } from '../x402/externalClient.js';
 import { securityResearchOrder } from '../security/orderResearch.js';
 import { shouldDenyPaidCall } from '../security/sa-stub.js';
 import { recordSpend } from '../security/spendGuard.js';
@@ -1350,15 +1349,17 @@ async function handleJobPosted(log: Log, opts?: { silent?: boolean }) {
       sourcingSector: brief?.counterpartyCompany?.sector,
       sourcingRegion: brief?.counterpartyCompany?.region,
     },
-    bids: new Map(),
+    // Seller-keyed state is held by address, one entry per seller whatever
+    // the casing a log or an event carried (view 48, rule 1).
+    bids: new AddressMap(),
     collectionTimer: null,
     collectionScheduleVersion: 0,
     collectionFired: false,
-    counterRoundsBySeller: new Map(),
-    lastCounterPriceBySeller: new Map(),
+    counterRoundsBySeller: new AddressMap(),
+    lastCounterPriceBySeller: new AddressMap(),
     candidateQueue: [],
-    triedSellers: new Set(),
-    lastSellerCounterBySeller: new Map(),
+    triedSellers: new AddressSet(),
+    lastSellerCounterBySeller: new AddressMap(),
     finalized: !!negotiationEndedAt || recoveredEscrowFunded,
     negotiationEndedAt,
     negotiationEndReason,
@@ -1928,8 +1929,8 @@ function clearCollectionClose(state: JobState, publish = true): void {
   if (hadSchedule && publish) publishBuyerTimerShadow(state);
 }
 
-/// Paid market research for the brief's keywords, gated on the buyer owner
-/// having agent research active (and the platform x402 rail configured). Runs
+/// Paid market research for the brief's keywords, bought by the buyer's own
+/// agent (view 48, decision 2) when the x402 rail is configured. Runs
 /// once per auction. Stores the read on the state for the proposal, pushes the
 /// demand into the shared heat cache so both agents negotiate tuned to it, and
 /// meters the account's credit only on a fresh (uncached) call. Best-effort.
@@ -1940,31 +1941,18 @@ async function maybeResearchMarket(state: JobState): Promise<void> {
   if (keywords.length === 0) return;
   const owner = state.context.buyer;
   try {
-    // Market research is a general baseline now: every deal is researched (the
-    // platform fronts the Base call), the intel is shared, and only the matched
-    // buyer + seller are charged for it at match (see persistApprovedMatch). No
-    // per-agent activation gate, no charge at trigger time.
-    const read = await researchMarket(keywords, undefined, {
-      onPayment: async (notice) => {
-        await recordExternalResearchPayment({
-          notice,
-          actor: 'buyer',
-          agent: 'buyer',
-          jobId: state.jobId,
-          owner,
-          scope: 'matching',
-        });
-      },
-      onFailure: (notice) => {
-        recordExternalResearchFailure({
-          notice,
-          actor: 'buyer',
-          agent: 'buyer',
-          jobId: state.jobId,
-          scope: 'matching',
-        });
-      },
-    });
+    // The person's buying agent pays for its research (view 48, decision 2),
+    // sized to what negotiation needs: price and demand. A short balance means
+    // free data only, and the person is asked to top up.
+    const forAccount = getBrief(state.jobId)?.postedBy ?? (await findAgentWalletByAgentAddress(state.buyer.address))?.userAddress;
+    if (!forAccount) return;
+    let read: MarketRead;
+    try {
+      ({ read } = await acquireResearch({ payerAgent: state.buyer.address, forAccount, keywords, focus: 'negotiation', ref: state.jobId, actor: 'buyer' }));
+    } catch (err) {
+      if ((err as Error).message.startsWith(READS_BALANCE_EMPTY)) state.readsBalanceEmpty = true;
+      throw err;
+    }
     state.marketRead = read;
     publishMarketEvidenceAcquisitionShadow(read, state.jobId);
     setResearchHeat(keywords, read);
@@ -2134,7 +2122,7 @@ async function publishShortlist(
     },
     shortlistDeps(state),
   );
-  const ranked = rankCandidates(candidates, budget);
+  const ranked = onePerPerson(rankCandidates(candidates, budget));
   const limits = shortlistLimits(budget, state.context.negotiationMaxIncreasePct);
   const recommended = pickRecommended(ranked, limits.recommendUpTo, unavailableSellers(state.shortlist ?? []), RECOMMEND_OPTS);
   state.shortlistCandidates = ranked;
@@ -4769,17 +4757,8 @@ ${brief.terms}`
       }
     }
 
-    // Settle the EXTERNAL research cost on the MATCHED pair only. The
-    // SecurityAgent fronted the external market read at post for the whole
-    // auction; here we draw it down from the two accounts that actually
-    // transacted, out of their research credit. The internal counterparty pulls
-    // are paid from each agent's own Gateway deposit, so they are NOT billed to
-    // the research credit. Best-effort and a no-op for an account with no credit.
-    const externalUsd = proposal.marketRead?.amountUsd ?? 0;
-    await Promise.allSettled([
-      chargeResearch(buyerWallets.userAddress, externalUsd),
-      chargeResearch(sellerWallets.userAddress, externalUsd),
-    ]);
+    // Research is paid by each agent when it runs (view 48, decision 2), so
+    // nothing is charged for it at match.
   } catch (err) {
     logger.warn(
       { jobId: proposal.jobId, err: (err as Error).message },

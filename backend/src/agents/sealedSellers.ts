@@ -1,7 +1,7 @@
 import { topicalMatchScore } from '../llm/keywords.js';
 import type { PublicRating } from '../ratings/rules.js';
 import { buildCandidates, type ShortlistBid, type ShortlistDeps } from './shortlistRun.js';
-import { SHORTLIST_MAX, pickRecommended, rankCandidates, sealEntries, toEntries, type ShortlistCandidate } from './shortlist.js';
+import { SHORTLIST_MAX, onePerPerson, pickRecommended, rankCandidates, sealEntries, toEntries, type ShortlistCandidate } from './shortlist.js';
 
 /// The seller block on every offer, fixed price or hourly (view 32). The
 /// buyer's agent ranks the people who offered with the request shortlist's own
@@ -63,7 +63,7 @@ export async function sealedSellers(
   for (let i = 0; i < bids.length; i += SHORTLIST_MAX) {
     candidates.push(...(await buildCandidates({ jobId: input.requestId, buyerAgent: input.buyer, buyerUser: input.buyer, bids: bids.slice(i, i + SHORTLIST_MAX), nowUnix }, deps)));
   }
-  const ranked = rankCandidates(candidates);
+  const ranked = onePerPerson(rankCandidates(candidates));
   const budget = Number(input.budgetUsdc);
   const recommended = pickRecommended(ranked, budget, new Set(), { cleanRecordCounts: deps.cleanRecordCounts });
   const rows: SealedSeller[] = [];

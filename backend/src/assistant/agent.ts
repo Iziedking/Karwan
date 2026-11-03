@@ -30,6 +30,9 @@ import { getUserByAddress } from '../db/users.js';
 import { listDealsForAddress, getDeal, type DirectDeal } from '../db/deals.js';
 import { stageOf } from '../deals/dealView.js';
 import { getAgentWallets } from '../db/agentWallets.js';
+import { acquireResearch, researchQuote } from '../x402/dataGate.js';
+import { READS_BALANCE_EMPTY } from '../x402/buyerClient.js';
+import { researchFocusSchema } from '../x402/researchPricing.js';
 import { offerPhotos } from '../listings/photos.js';
 import { listActivityForAddress } from '../db/activityLog.js';
 import { listBridgesForUser } from '../db/bridges.js';
@@ -1974,6 +1977,61 @@ function toolSet(address: string, method: string, actions: AssistantAction[], co
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant get_market_trends failed');
           return { error: 'Could not read the market right now. Try again shortly.' };
+        }
+      },
+    }),
+
+    research_market: tool({
+      description:
+        "Paid research from the web on a kind of work or goods, bought by the user's own buying agent. Call it first WITHOUT confirm: it returns the exact cost in USDC; tell the user that cost and ask. Call again with confirm: true only after they say yes. focus is what they want to know: price (what it costs, two searches), demand (how wanted it is, one search), suppliers (who sells it, one search) or full (all four). Searches someone already ran recently cost less. Karwan's own market comes first (get_market_trends, search_market); label these results as from the web. If the answer says short, tell them their buying agent does not have enough and to add money under Money, Money your agents hold, then ask again.",
+      inputSchema: z.object({
+        keywords: z.array(z.string().trim().min(1).max(60)).min(1).max(8),
+        focus: researchFocusSchema,
+        confirm: z.boolean().optional(),
+      }),
+      execute: async ({ keywords, focus, confirm }) => {
+        if (!config.X402_PAID_SIGNALS_ENABLED || !config.X402_BASE_PRIVATE_KEY) return { error: 'Research is not available right now.' };
+        const wallets = await getAgentWallets(address).catch(() => null);
+        if (!wallets?.buyerAddress) return { error: 'Turn on your agents first; your buying agent pays for research.' };
+        const quote = researchQuote(keywords, focus);
+        if (!confirm) {
+          return {
+            costUsdc: quote.totalUsdc,
+            searches: quote.angles.length,
+            alreadyResearched: quote.cached,
+            paidBy: 'your buying agent',
+            next: `Tell the user this costs ${quote.totalUsdc} USDC from their buying agent and ask whether to go ahead.`,
+          };
+        }
+        try {
+          const { read, amountUsd, quote: paid } = await acquireResearch({
+            payerAgent: wallets.buyerAddress,
+            forAccount: address,
+            keywords,
+            focus,
+            ref: `chat-${conversationId ?? Date.now()}`,
+          });
+          return {
+            paidUsdc: amountUsd,
+            searches: paid.angles.length,
+            fromTheWeb: true,
+            demand: read.demand,
+            summary: read.summary,
+            priceNote: read.priceNote,
+            ...(read.priceConfidence === 'grounded' && read.priceBandUsdc ? { priceBandUsdc: read.priceBandUsdc } : {}),
+            highlights: read.highlights.slice(0, 4),
+            sources: read.sources.slice(0, 5).map((x) => ({ title: x.title, url: x.url })),
+          };
+        } catch (err) {
+          if ((err as Error).message.startsWith(READS_BALANCE_EMPTY)) {
+            return {
+              short: true,
+              costUsdc: quote.totalUsdc,
+              next: `Say their buying agent does not have ${quote.totalUsdc} USDC for this. They can add money under Money, Money your agents hold, then ask again. Nothing was paid.`,
+            };
+          }
+          logger.warn({ err: (err as Error).message }, 'assistant research_market failed');
+          return { error: 'The research did not go through, and nothing was paid. Try again shortly.' };
         }
       },
     }),

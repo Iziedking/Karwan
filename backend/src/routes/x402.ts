@@ -1,7 +1,10 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import type { Context } from 'hono';
-import { requirePayment, type X402Payment } from '../x402/sellerFacilitator.js';
+import { requirePayment, requirePaymentAround, type X402Payment } from '../x402/sellerFacilitator.js';
+import { quoteResearch, researchFocusSchema } from '../x402/researchPricing.js';
+import { cachedAnglesFor, researchMarket } from '../x402/externalClient.js';
+import { recordExternalResearchFailure, recordExternalResearchPayment } from '../x402/researchAccounting.js';
 import { countPaidRead, type PaidReadEndpoint } from '../db/paidReads.js';
 import { loadInputs } from '../reputation/signals.js';
 import { compute } from '../reputation/engine.js';
@@ -167,6 +170,44 @@ x402Routes.get('/skill-demand/:keywords', async (c) => {
   if (payment instanceof Response) return payment;
 
   return c.json(skillDemand(keywords));
+});
+
+/// GET /api/x402/research: outside research for a person's agent on Arc
+/// Testnet (view 48, decision 2). Sized to the question (`focus`), priced per
+/// angle, cheaper for an angle already researched. Sold only to a Karwan agent
+/// acting for its own account and paying from its own signer, because the
+/// payment is checked, the search run, and the payment settled only when the
+/// search worked; Karwan pays the outside provider.
+x402Routes.get('/research', async (c) => {
+  if (!config.X402_PAID_SIGNALS_ENABLED || !config.X402_BASE_PRIVATE_KEY) return c.json({ error: 'not available' }, 404);
+  const keywords = (c.req.query('keywords') ?? '').split(',').map((s) => s.trim()).filter(Boolean).slice(0, 8);
+  const focus = researchFocusSchema.safeParse(c.req.query('focus'));
+  const ref = c.req.query('ref') ?? '';
+  const forAccount = (c.req.query('for') ?? '').toLowerCase();
+  const payerAgent = (c.req.header('x-karwan-payer-agent') ?? '').toLowerCase();
+  if (keywords.length === 0 || !focus.success || !ref || !addrSchema.safeParse(forAccount).success) {
+    return c.json({ error: 'keywords, focus, ref and for are required' }, 400);
+  }
+  const payerRecord = payerAgent ? await findAgentWalletByAgentAddress(payerAgent).catch(() => null) : null;
+  if (!payerRecord || payerRecord.userAddress.toLowerCase() !== forAccount) {
+    return c.json({ error: 'Research is sold to a Karwan agent acting for its own account.' }, 403);
+  }
+  if (!paymentFromReader(c.req.header('payment-signature'), payerRecord.x402Wallet?.address)) {
+    return c.json({ error: "The payment must come from the named account's own agent." }, 403);
+  }
+  const quote = quoteResearch(focus.data, cachedAnglesFor(keywords));
+  const paid = await requirePaymentAround(c, quote.totalUsdc, `Karwan research: ${quote.angles.length} angle(s) on ${keywords.join(', ')}`, () =>
+    researchMarket(keywords, undefined, {
+      angles: quote.angles,
+      onPayment: async (notice) => {
+        await recordExternalResearchPayment({ notice, actor: 'platform', agent: 'platform', scope: 'resold' });
+      },
+      onFailure: (notice) => recordExternalResearchFailure({ notice, actor: 'platform', agent: 'platform', scope: 'resold' }),
+    }),
+  );
+  if (paid instanceof Response) return paid;
+  await countPaidRead('research', Date.now()).catch((err: Error) => logger.warn({ err: err.message }, 'x402: research read not counted'));
+  return c.json({ quote, read: paid.result });
 });
 
 /// GET /api/x402/credit-passport/:address: $0.01.

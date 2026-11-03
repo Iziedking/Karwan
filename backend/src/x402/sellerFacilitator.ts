@@ -82,104 +82,129 @@ export interface X402Payment {
   transaction: string;
 }
 
-/// Charge the request. Returns a finished Response when payment is missing,
-/// invalid or fails to settle, or the settled payment when USDC moved.
-/// Callers branch with `instanceof Response`.
-///
-/// Price, asset and payee are always rebuilt server-side; only the network
-/// choice is read from the client's header.
-export async function requirePayment(
-  c: Context,
-  priceUsd: number,
-  description: string,
-): Promise<X402Payment | Response> {
+type Prepared = {
+  signed: SignedPaymentHeader;
+  requirements: NonNullable<ReturnType<typeof requirementsFor>>;
+  network: string;
+  verdictPayer?: string;
+};
+
+/// The 402 offer when no payment is attached, or the checked payment ready to
+/// settle. Price, asset and payee are always rebuilt server-side; only the
+/// network choice is read from the client's header.
+async function checkPayment(c: Context, priceUsd: number, description: string): Promise<Prepared | Response> {
   const payTo = config.KARWAN_TREASURY_ADDR;
   if (!payTo) return c.json({ error: 'x402 not configured' }, 503);
 
   const header = c.req.header('payment-signature');
-
-  try {
-    if (!header) {
-      const kinds = await acceptedKinds();
-      const accepts = kinds
-        .map((k) => requirementsFor(k, priceUsd, payTo))
-        .filter((r): r is NonNullable<typeof r> => r !== null);
-      if (accepts.length === 0) {
-        return c.json({ error: 'no payment networks available' }, 503);
-      }
-      const paymentRequired = {
-        x402Version: 2,
-        resource: { url: c.req.path, description, mimeType: 'application/json' },
-        accepts,
-      };
-      c.header(
-        'PAYMENT-REQUIRED',
-        Buffer.from(JSON.stringify(paymentRequired)).toString('base64'),
-      );
-      return c.json({}, 402);
-    }
-
-    let signed: SignedPaymentHeader;
-    try {
-      signed = JSON.parse(Buffer.from(header, 'base64').toString('utf-8'));
-    } catch {
-      return c.json({ error: 'malformed payment-signature header' }, 400);
-    }
-    const network = signed.accepted?.network;
-    if (!network) {
-      return c.json({ error: 'missing accepted requirements in payment' }, 400);
-    }
-
+  if (!header) {
     const kinds = await acceptedKinds();
-    const kind = kinds.find((k) => k.network === network);
-    const requirements = kind ? requirementsFor(kind, priceUsd, payTo) : null;
-    if (!requirements) {
-      return c.json({ error: `network ${network} not accepted` }, 400);
+    const accepts = kinds
+      .map((k) => requirementsFor(k, priceUsd, payTo))
+      .filter((r): r is NonNullable<typeof r> => r !== null);
+    if (accepts.length === 0) {
+      return c.json({ error: 'no payment networks available' }, 503);
     }
-
-    const verdict = await facilitator.verify(signed, requirements);
-    if (!verdict.isValid) {
-      return c.json(
-        { error: 'payment verification failed', reason: verdict.invalidReason },
-        402,
-      );
-    }
-
-    const settled = await facilitator.settle(signed, requirements);
-    if (!settled.success) {
-      return c.json(
-        { error: 'payment settlement failed', reason: settled.errorReason },
-        402,
-      );
-    }
-
-    const payer = settled.payer ?? verdict.payer ?? '';
-    c.header(
-      'PAYMENT-RESPONSE',
-      Buffer.from(
-        JSON.stringify({
-          success: true,
-          transaction: settled.transaction,
-          network,
-          payer,
-        }),
-      ).toString('base64'),
-    );
-    logger.info(
-      { payer, network, amount: requirements.amount, transaction: settled.transaction },
-      'x402: payment settled',
-    );
-    return {
-      payer,
-      network,
-      amountAtomic: requirements.amount,
-      transaction: settled.transaction,
+    const paymentRequired = {
+      x402Version: 2,
+      resource: { url: c.req.path, description, mimeType: 'application/json' },
+      accepts,
     };
-  } catch (err) {
-    logger.error({ err: (err as Error).message }, 'x402: facilitator call failed');
-    return c.json(
-      { error: 'payment facilitator unavailable', detail: (err as Error).message },
-      502,
-    );
+    c.header('PAYMENT-REQUIRED', Buffer.from(JSON.stringify(paymentRequired)).toString('base64'));
+    return c.json({}, 402);
   }
+
+  let signed: SignedPaymentHeader;
+  try {
+    signed = JSON.parse(Buffer.from(header, 'base64').toString('utf-8'));
+  } catch {
+    return c.json({ error: 'malformed payment-signature header' }, 400);
+  }
+  const network = signed.accepted?.network;
+  if (!network) {
+    return c.json({ error: 'missing accepted requirements in payment' }, 400);
+  }
+
+  const kinds = await acceptedKinds();
+  const kind = kinds.find((k) => k.network === network);
+  const requirements = kind ? requirementsFor(kind, priceUsd, payTo) : null;
+  if (!requirements) {
+    return c.json({ error: `network ${network} not accepted` }, 400);
+  }
+
+  const verdict = await facilitator.verify(signed, requirements);
+  if (!verdict.isValid) {
+    return c.json({ error: 'payment verification failed', reason: verdict.invalidReason }, 402);
+  }
+  return { signed, requirements, network, verdictPayer: verdict.payer };
+}
+
+async function settlePayment(c: Context, p: Prepared): Promise<X402Payment | Response> {
+  const settled = await facilitator.settle(p.signed, p.requirements);
+  if (!settled.success) {
+    return c.json({ error: 'payment settlement failed', reason: settled.errorReason }, 402);
+  }
+  const payer = settled.payer ?? p.verdictPayer ?? '';
+  c.header(
+    'PAYMENT-RESPONSE',
+    Buffer.from(JSON.stringify({ success: true, transaction: settled.transaction, network: p.network, payer })).toString('base64'),
+  );
+  logger.info({ payer, network: p.network, amount: p.requirements.amount, transaction: settled.transaction }, 'x402: payment settled');
+  return { payer, network: p.network, amountAtomic: p.requirements.amount, transaction: settled.transaction };
+}
+
+function facilitatorDown(c: Context, err: unknown): Response {
+  logger.error({ err: (err as Error).message }, 'x402: facilitator call failed');
+  return c.json({ error: 'payment facilitator unavailable', detail: (err as Error).message }, 502);
+}
+
+/// Charge the request. Returns a finished Response when payment is missing,
+/// invalid or fails to settle, or the settled payment when USDC moved.
+/// Callers branch with `instanceof Response`.
+export async function requirePayment(c: Context, priceUsd: number, description: string): Promise<X402Payment | Response> {
+  try {
+    const checked = await checkPayment(c, priceUsd, description);
+    if (checked instanceof Response) return checked;
+    return await settlePayment(c, checked);
+  } catch (err) {
+    return facilitatorDown(c, err);
+  }
+}
+
+/// Check the payment, do the paid work, and settle only when the work
+/// succeeded, so nobody pays for a result that failed. Used only where Karwan
+/// runs the paying wallet: verify() does not lock funds, so an outside payer
+/// could empty its balance between the check and the settle (docs/arc-circle-
+/// checks.md, 3 Nov 2026).
+export async function requirePaymentAround<T>(
+  c: Context,
+  priceUsd: number,
+  description: string,
+  work: () => Promise<T>,
+): Promise<{ payment: X402Payment; result: T } | Response> {
+  let checked: Prepared | Response;
+  try {
+    checked = await checkPayment(c, priceUsd, description);
+  } catch (err) {
+    return facilitatorDown(c, err);
+  }
+  if (checked instanceof Response) return checked;
+  let result: T;
+  try {
+    result = await work();
+  } catch (err) {
+    logger.warn({ err: (err as Error).message }, 'x402: paid work failed; payment not settled');
+    return c.json({ error: 'the paid work failed; you were not charged', detail: (err as Error).message }, 502);
+  }
+  let payment: X402Payment | Response;
+  try {
+    payment = await settlePayment(c, checked);
+  } catch (err) {
+    return facilitatorDown(c, err);
+  }
+  if (payment instanceof Response) {
+    logger.warn({ network: checked.network }, 'x402: work done but the payment did not settle; result withheld');
+    return payment;
+  }
+  return { payment, result };
 }

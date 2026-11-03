@@ -12,7 +12,8 @@ export type PaidReadEndpoint =
   | 'concentration'
   | 'document-anchors'
   | 'skill-demand'
-  | 'record';
+  | 'record'
+  | 'research';
 
 export interface PaidReadTotals {
   reads: number;

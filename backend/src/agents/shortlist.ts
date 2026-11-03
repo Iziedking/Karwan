@@ -101,6 +101,19 @@ export function rankCandidates(cands: readonly ShortlistCandidate[], budgetUsdc?
   );
 }
 
+/// One row per person (view 48, decision 1): when two agents of one account
+/// offered, only the better ranked offer is listed. Every agent of an account
+/// serves all its workspaces today, so the account is the person per workspace.
+export function onePerPerson(ranked: readonly ShortlistCandidate[]): ShortlistCandidate[] {
+  const seen = new Set<string>();
+  return ranked.filter((c) => {
+    const person = c.sellerUser.toLowerCase();
+    if (seen.has(person)) return false;
+    seen.add(person);
+    return true;
+  });
+}
+
 /// A verified seller inside the budget, best first. On testnet, where few
 /// people have done the person check yet, a seller with settled Karwan deals
 /// and no lost dispute may be recommended when no verified one fits; they

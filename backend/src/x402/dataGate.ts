@@ -3,7 +3,9 @@ import { listDealsForAddress } from '../db/deals.js';
 import { bus, type KarwanEvent } from '../events.js';
 import { countsFor, type RecordCounts } from '../reputation/recordRead.js';
 import type { SignedRecordRead } from '../verification/recordReadSignature.js';
-import { paidRecordRead, type PaidRecordRead } from './buyerClient.js';
+import { paidRecordRead, paidResearch, type PaidRecordRead } from './buyerClient.js';
+import { cachedAnglesFor, type MarketRead } from './externalClient.js';
+import { quoteResearch, type ResearchFocus, type ResearchQuote } from './researchPricing.js';
 import type { ReadPurpose } from './recordReadGate.js';
 
 /// One gate for every paid record read (view 48, decision 6). The same reader,
@@ -116,3 +118,53 @@ export const liveDeps: DataGateDeps = {
   emit: (e) => bus.emitEvent(e),
   now: () => Date.now(),
 };
+
+export interface ResearchRequest {
+  payerAgent: string;
+  forAccount: string;
+  keywords: string[];
+  focus: ResearchFocus;
+  ref: string;
+  /// Which of the person's agents is paying; the buying one when absent.
+  actor?: 'buyer' | 'seller';
+}
+
+export interface ResearchDeps {
+  cachedAngles(keywords: string[]): Set<string>;
+  pay: typeof paidResearch;
+  emit(e: PaidEvent): void;
+}
+
+/// The exact price before anything runs, so the agent can tell its person.
+export function researchQuote(keywords: string[], focus: ResearchFocus, cached = cachedAnglesFor): ResearchQuote {
+  return quoteResearch(focus, cached(keywords));
+}
+
+/// Outside research paid by the person's agent (view 48, decision 2). A short
+/// balance throws READS_BALANCE_EMPTY for the caller to ask for money. After
+/// a payment only the owner is told, as for record reads.
+export async function acquireResearch(
+  req: ResearchRequest,
+  deps: ResearchDeps = { cachedAngles: cachedAnglesFor, pay: paidResearch, emit: (e) => bus.emitEvent(e) },
+): Promise<{ read: MarketRead; quote: ResearchQuote; amountUsd: number }> {
+  const quote = quoteResearch(req.focus, deps.cachedAngles(req.keywords));
+  const r = await deps.pay(req.payerAgent, { keywords: req.keywords, focus: req.focus, ref: req.ref, forAccount: req.forAccount, priceUsd: quote.totalUsdc });
+  if (r.amountUsd > 0) {
+    deps.emit({
+      type: 'agent.paid',
+      actor: req.actor ?? 'buyer',
+      payload: {
+        rail: 'arc',
+        kind: 'research',
+        focus: req.focus,
+        angles: r.quote.angles,
+        ref: req.ref,
+        user: req.forAccount,
+        amountUsd: r.amountUsd,
+        txHash: r.transaction,
+        payer: r.payer,
+      },
+    });
+  }
+  return { read: r.read, quote: r.quote, amountUsd: r.amountUsd };
+}

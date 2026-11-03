@@ -67,9 +67,8 @@ import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { accountTypeOf } from '../profile/accountType.js';
 import { getProfile } from '../db/profiles.js';
 import { researchMarket, getCachedMarketPrice, getCachedMarketRead } from '../x402/externalClient.js';
-import { recordExternalResearchFailure, recordExternalResearchPayment } from '../x402/researchAccounting.js';
 import { type PaidPassportSignal } from '../x402/buyerClient.js';
-import { acquireRecordRead } from '../x402/dataGate.js';
+import { acquireRecordRead, acquireResearch } from '../x402/dataGate.js';
 import { assessBuyer, type BuyerCheck } from './buyerCheck.js';
 import { config } from '../config.js';
 import { evaluationStarted, evaluationFinished } from './evaluationTracker.js';
@@ -729,9 +728,8 @@ async function handleJobPosted(log: Log, opts?: { rescan?: boolean }) {
 }
 
 /// The seller agent researches an open order before pricing it, so it arrives
-/// informed even when its principal is away. Gated on the SELLER owner having
-/// agent research active (and the platform x402 rail configured); metered
-/// against that account. Writes the order's demand into the shared heat cache
+/// informed even when its principal is away. Paid by the seller's own agent
+/// (view 48, decision 2) when the x402 rail is configured. Writes the order's demand into the shared heat cache
 /// so the seller anchoring (and the buyer, on the same keywords) negotiates
 /// tuned to it. Keyword-scoped, never tied to the counterparty. Best-effort.
 async function maybeSellerResearch(
@@ -742,30 +740,11 @@ async function maybeSellerResearch(
   if (!config.X402_PAID_SIGNALS_ENABLED || !config.X402_BASE_PRIVATE_KEY) return;
   if (keywords.length === 0) return;
   try {
-    // General baseline: the seller agent researches the order regardless of any
-    // per-agent activation. The platform fronts the call and the cost is settled
-    // on the matched pair at match (buyer.ts persistApprovedMatch), not here.
-    const read = await researchMarket(keywords, undefined, {
-      onPayment: async (notice) => {
-        await recordExternalResearchPayment({
-          notice,
-          actor: 'seller',
-          agent: 'seller',
-          jobId,
-          owner: seller.address,
-          scope: 'matching',
-        });
-      },
-      onFailure: (notice) => {
-        recordExternalResearchFailure({
-          notice,
-          actor: 'seller',
-          agent: 'seller',
-          jobId,
-          scope: 'matching',
-        });
-      },
-    });
+    // The person's selling agent pays for its research (view 48, decision 2),
+    // sized to what pricing needs. A short balance means free data only.
+    const owner = await findAgentWalletByAgentAddress(seller.address).catch(() => null);
+    if (!owner?.userAddress) return;
+    const { read } = await acquireResearch({ payerAgent: seller.address, forAccount: owner.userAddress, keywords, focus: 'negotiation', ref: jobId, actor: 'seller' });
     publishMarketEvidenceAcquisitionShadow(read, jobId);
     setResearchHeat(keywords, read);
     logger.info(

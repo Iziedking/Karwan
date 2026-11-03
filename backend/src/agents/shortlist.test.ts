@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { assistantShortlistNote, assistantView, sealEntries, unavailableSellers, markUnavailable, pickRecommended, rankCandidates, shortlistChoiceCheck, shouldSkipBuyer, shortlistLimits, toEntries, SHORTLIST_MAX, type ShortlistCandidate } from './shortlist.js';
+import { assistantShortlistNote, assistantView, onePerPerson, sealEntries, unavailableSellers, markUnavailable, pickRecommended, rankCandidates, shortlistChoiceCheck, shouldSkipBuyer, shortlistLimits, toEntries, SHORTLIST_MAX, type ShortlistCandidate } from './shortlist.js';
 
 const c = (over: Partial<ShortlistCandidate>): ShortlistCandidate => ({
   seller: '0xs',
@@ -354,4 +354,19 @@ test('an offer that needs longer than the request is listed, marked with its ext
 test('at equal fit and reputation, fewer extra days ranks first', () => {
   const out = rankCandidates([c({ seller: 'three-more', extraDays: 3 }), c({ seller: 'one-more', extraDays: 1 })], 100);
   assert.deepEqual(out.map((x) => x.seller), ['one-more', 'three-more']);
+});
+
+test('one person is one row: two agents of the same account keep only the better ranked offer', () => {
+  const ranked = rankCandidates([
+    c({ seller: '0xagentOld', sellerUser: '0xCOTTON', askedUsdc: 503.99, deterministicScore: 40 }),
+    c({ seller: '0xagentNew', sellerUser: '0xcotton', askedUsdc: 501.23, deterministicScore: 60 }),
+    c({ seller: '0xother', sellerUser: '0xgulf', askedUsdc: 1155.42 }),
+  ]);
+  const rows = onePerPerson(ranked);
+  assert.deepEqual(rows.map((x) => x.seller), ['0xagentNew', '0xother']);
+});
+
+test('people stay in their ranked order when nobody repeats', () => {
+  const ranked = rankCandidates([c({ seller: 'a', sellerUser: '0xa' }), c({ seller: 'b', sellerUser: '0xb', matchBand: 4 })]);
+  assert.deepEqual(onePerPerson(ranked).map((x) => x.seller), ['b', 'a']);
 });

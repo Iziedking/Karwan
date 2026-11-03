@@ -19,6 +19,8 @@ import { ARC } from '../chain/client.js';
 import { issuerAddress } from '../attestation/issuer.js';
 import { verifyRecordRead, type SignedRecordRead } from '../verification/recordReadSignature.js';
 import { RECORD_READ_PRICE_USDC, type ReadPurpose } from './recordReadGate.js';
+import type { ResearchFocus, ResearchQuote } from './researchPricing.js';
+import type { MarketRead } from './externalClient.js';
 
 /// Buyer-side x402 client (Path A: same-chain self-pay on the active Arc network).
 /// The buyer agent pays Karwan's own paid endpoints during bid scoring,
@@ -406,6 +408,37 @@ export async function paidRecordRead(
     payer: result.payer,
     depositTxHash: funding.depositTxHash,
     gatewayBalanceAfter,
+  };
+}
+
+/// Outside research bought by a person's agent (view 48, decision 2): Karwan
+/// sells it on Arc and pays the outside provider. The agent tops up its own
+/// Gateway deposit for the quoted price first; a short balance throws
+/// READS_BALANCE_EMPTY so the person is asked to add money.
+export async function paidResearch(
+  payerAgentAddress: string,
+  opts: { keywords: string[]; focus: ResearchFocus; ref: string; forAccount: string; priceUsd: number },
+): Promise<{ read: MarketRead; quote: ResearchQuote; amountUsd: number; transaction: string; payer: string; depositTxHash?: string }> {
+  const record = await findAgentWalletByAgentAddress(payerAgentAddress);
+  if (!record) throw new Error('no agent wallet record behind the paying agent');
+  const payerWalletId =
+    payerAgentAddress.toLowerCase() === record.sellerAddress.toLowerCase() ? record.sellerWalletId : record.buyerWalletId;
+  const x402 = await ensureX402Wallet(record);
+  const funding = await ensureGatewayFunding(record, x402, opts.priceUsd, payerWalletId, opts.ref);
+  if (!funding.funded) throw new Error(`${READS_BALANCE_EMPTY} (available ${funding.availableUsd} USDC)`);
+  const query = new URLSearchParams({ keywords: opts.keywords.join(','), focus: opts.focus, ref: opts.ref, for: opts.forAccount });
+  const result = await payX402<{ quote: ResearchQuote; read: MarketRead }>(
+    `http://127.0.0.1:${config.PORT}/api/x402/research?${query}`,
+    x402,
+    { 'x-karwan-payer-agent': payerAgentAddress },
+  );
+  return {
+    read: result.data.read,
+    quote: result.data.quote,
+    amountUsd: result.amountUsd,
+    transaction: result.transaction,
+    payer: result.payer,
+    ...(funding.depositTxHash ? { depositTxHash: funding.depositTxHash } : {}),
   };
 }
 

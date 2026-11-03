@@ -308,6 +308,8 @@ export interface ResearchFailureNotice {
 
 export interface ResearchMarketOptions {
   bypassCache?: boolean;
+  /// Only these angles (view 48: the search is sized to the question). All four when absent.
+  angles?: readonly string[];
   onPayment?: (notice: ResearchPaymentNotice) => void | Promise<void>;
   onFailure?: (notice: ResearchFailureNotice) => void | Promise<void>;
 }
@@ -522,25 +524,44 @@ export async function researchMarket(
   // concurrent scouts can't double-pay, and it refreshes the cache the agents
   // read from — a scout warms the negotiation layer for free.
   const hit = researchCache.get(key);
-  if (!opts?.bypassCache && hit && Date.now() - hit.researchedAt < RESEARCH_CACHE_TTL_MS) {
+  if (!opts?.bypassCache && hit && Date.now() - hit.researchedAt < RESEARCH_CACHE_TTL_MS && covers(hit, opts?.angles)) {
     return { ...hit, cached: true };
   }
 
   // Single-flight: if a paid call for this keyword set is already running, wait
   // for it and serve the result as cached so this agent does NOT pay again.
-  const running = researchInFlight.get(key);
+  const flightKey = opts?.angles ? `${key}|${[...opts.angles].sort().join(',')}` : key;
+  const running = researchInFlight.get(flightKey);
   if (running) {
     const shared = await running;
     return { ...shared, cached: true };
   }
 
   const work = doResearchMarket(cleaned, key, context, opts);
-  researchInFlight.set(key, work);
+  researchInFlight.set(flightKey, work);
   try {
     return await work;
   } finally {
-    researchInFlight.delete(key);
+    researchInFlight.delete(flightKey);
   }
+}
+
+/// Whether a cached read already ran every asked angle. A caller that names
+/// no angles takes any fresh read, as it always has.
+function covers(read: MarketRead, angles: readonly string[] | undefined): boolean {
+  if (!angles) return true;
+  const ran = new Set(read.anglesRun ?? []);
+  return angles.every((a) => ran.has(a));
+}
+
+/// The angles already researched for these keywords and still fresh, so a
+/// quote can price them at the cached rate.
+export function cachedAnglesFor(keywords: string[]): Set<string> {
+  const cleaned = [...new Set(keywords.map((k) => k.trim()).filter(Boolean))].slice(0, 8);
+  if (cleaned.length === 0) return new Set();
+  const hit = researchCache.get(keywordKey(cleaned));
+  if (!hit || Date.now() - hit.researchedAt >= RESEARCH_CACHE_TTL_MS) return new Set();
+  return new Set(hit.anglesRun ?? []);
 }
 
 /// The actual paid sweep + verified synthesis. Only ever runs once per keyword
@@ -566,8 +587,10 @@ async function doResearchMarket(
   const kw = cleaned.join(', ');
   const freshCutoff = new Date(Date.now() - EVIDENCE_MAX_AGE_MS).toISOString().slice(0, 10);
 
+  const wanted = opts?.angles ? SWEEP_ANGLES.filter((a) => opts.angles!.includes(a.angle)) : SWEEP_ANGLES;
+  if (wanted.length === 0) throw new Error('no research angles asked for');
   const settled = await Promise.allSettled(
-    SWEEP_ANGLES.map((a) =>
+    wanted.map((a) =>
       payExternal<ExaResponse>(EXA_SEARCH_URL, {
         method: 'POST',
         body: {
@@ -740,7 +763,10 @@ async function doResearchMarket(
     researchedAt: Date.now(),
     cached: false,
   };
-  researchCache.set(key, read);
+  // A narrower read never replaces a fuller one that is still fresh.
+  const kept = researchCache.get(key);
+  const keptFresh = kept && Date.now() - kept.researchedAt < RESEARCH_CACHE_TTL_MS;
+  if (!keptFresh || (kept.anglesRun?.length ?? 0) <= anglesRun.length) researchCache.set(key, read);
   logger.info(
     {
       keywords: cleaned,

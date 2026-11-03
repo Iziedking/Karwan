@@ -99,3 +99,38 @@ test('a failed payment throws and leaves nothing behind for the next check', asy
   assert.equal((await acquireRecordRead(req, deps)).reused, false);
   assert.equal(h.paid.length, 1);
 });
+
+test('research is quoted from what is cached, paid by the agent, and its owner alone is told', async () => {
+  const { acquireResearch } = await import('./dataGate.js');
+  const told: PaidEvent[] = [];
+  let priced = -1;
+  const r = await acquireResearch(
+    { payerAgent: '0xAgent', forAccount: '0xOwner', keywords: ['tailoring'], focus: 'price', ref: '0xreq' },
+    {
+      cachedAngles: () => new Set(['pricing']),
+      pay: async (_agent, o) => {
+        priced = o.priceUsd;
+        return { read: { demand: 'steady' } as never, quote: { focus: 'price', angles: ['pricing', 'marketplace-rates'], fresh: 1, cached: 1, totalUsdc: 0.009 }, amountUsd: 0.009, transaction: '0xtx', payer: '0xpayer' };
+      },
+      emit: (e) => told.push(e),
+    },
+  );
+  assert.equal(priced, 0.009, 'the top-up covers the exact quote');
+  assert.equal(r.quote.totalUsdc, 0.009);
+  assert.equal(told.length, 1);
+  assert.equal('jobId' in told[0]!, false);
+  assert.deepEqual(told[0]!.payload, {
+    rail: 'arc', kind: 'research', focus: 'price', angles: ['pricing', 'marketplace-rates'], ref: '0xreq', user: '0xOwner', amountUsd: 0.009, txHash: '0xtx', payer: '0xpayer',
+  });
+});
+
+test('a short balance reaches the caller so the person is asked to add money', async () => {
+  const { acquireResearch } = await import('./dataGate.js');
+  await assert.rejects(
+    acquireResearch(
+      { payerAgent: '0xAgent', forAccount: '0xOwner', keywords: ['tailoring'], focus: 'demand', ref: '0xreq' },
+      { cachedAngles: () => new Set(), pay: async () => Promise.reject(new Error('reads balance not yet credited (available 0 USDC)')), emit: () => undefined },
+    ),
+    /reads balance/,
+  );
+});
