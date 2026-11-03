@@ -264,6 +264,10 @@ test('the guide names the deal pills, the Sell side cards and Trade and money (o
   assert.match(all, /One Trade and money group/);
   assert.doesNotMatch(all, /sit under Selling/);
   assert.match(all, /starts folded under how many sellers offered, and Show your shortlist opens the order/);
+  // A dispute reads as Karwan checking, with the support safety line (owner, 3 Nov 2026).
+  assert.match(all, /Karwan checks both sides, the delivery and the deal chat/);
+  assert.match(all, /Karwan support will never message you outside Karwan or ask you to send money/);
+  assert.doesNotMatch(all, /The judge reads both accounts/);
 });
 
 test('the guide gives one Record card on Profile and one balance on Arc (1 Nov)', () => {

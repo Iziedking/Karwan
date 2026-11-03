@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { api, type DealDisputeView, type DisputeStatementView } from '@/core/api';
+import { Icon } from '@/shared/components/Icon';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { fill, formatDealDate, formatUsdcAmount } from './presentation';
 import { problemSteps } from './problemSteps';
@@ -58,6 +59,10 @@ export function DisputePanel({ jobId, dispute, viewerIsBuyer, caller, name, myNa
           <p className="mt-1.5 text-[15px] leading-relaxed text-[var(--lp-text-sub)]">{t.intro}</p>
           <p className="mt-2 text-[14px] font-semibold text-[var(--lp-dark)]">
             {dispute.open ? fill(t.closes, { date: formatDealDate(dispute.closesAt, locale) }) : t.closed}
+          </p>
+          <p data-dispute-safety className="mt-3 flex gap-2.5 rounded-[var(--radius-input)] bg-[var(--raised)] p-3 text-[14px] leading-snug text-[var(--ink)]">
+            <Icon name="shield-check" size={20} className="shrink-0" />
+            <span>{t.safety}</span>
           </p>
         </div>
       )}

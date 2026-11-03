@@ -25,6 +25,10 @@ test('the buyer gives an account in three answers and sends it', async ({ page }
   });
   await page.goto(`/deals/${JOB}`);
   await expect(page.getByRole('heading', { name: t.title })).toBeVisible();
+  // Karwan is checking, in its own words, never how it runs inside; and how to tell Karwan from a fake (owner, 3 Nov 2026).
+  const panel = page.locator('section').filter({ has: page.getByRole('heading', { name: t.title }) }).last();
+  await expect(panel.locator('[data-dispute-safety]')).toHaveText(t.safety);
+  await expect(panel).not.toContainText(/judge|reviewer/i);
   await page.getByLabel(t.receivedBuyer).fill(statement.received);
   await page.getByLabel(t.missing).fill(statement.missing);
   await page.getByLabel(t.late).fill(statement.late);
@@ -37,7 +41,7 @@ test("the seller does not see the buyer's account before giving their own", asyn
   await serveDeal(page, disputed({ closesAt: Date.now() + 47 * HOUR, open: true, otherSubmitted: true, statements: {} }), SELLER);
   await page.goto(`/deals/${JOB}`);
   await expect(page.getByLabel(t.receivedSeller)).toBeVisible();
-  await expect(page.getByText(/gave their account\. You see it once yours is in/)).toBeVisible();
+  await expect(page.getByText(/has answered\. You see it once yours is in/)).toBeVisible();
   await expect(page.getByText(statement.missing)).toHaveCount(0);
 });
 
