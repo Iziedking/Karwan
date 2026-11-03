@@ -60,3 +60,9 @@ test('the tab bar and rail carry no green', () => {
   const rail = nav.slice(nav.indexOf('function RailLink('), nav.indexOf('function RailProfile('));
   assert.doesNotMatch(rail, /--lp-accent/);
 });
+
+test('Home cards carry no green: the one green button on Home is a deal move', () => {
+  for (const file of ['../../features/home/components/HomeBlock.tsx', '../../features/home/components/FirstTrade.tsx', '../../features/home/components/FaucetDrop.tsx']) {
+    assert.doesNotMatch(source(file), /--lp-accent\b|className=\{PRIMARY\}/, file);
+  }
+});

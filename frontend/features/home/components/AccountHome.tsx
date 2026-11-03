@@ -50,7 +50,7 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
           {ARC_NETWORK === 'testnet' ? <FaucetDrop /> : null}
         </div>
 
-        {/* The balance is the top line of the page with the two money moves
+        {/* The balance is the top line of the page with the three money moves
             under it; the one green button on Home is a deal's move (view 48). */}
         <m.div
           data-guide="home-money"
@@ -77,9 +77,10 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
               {' '}<span className="text-[17px] font-semibold text-[var(--ink-secondary)]">USDC</span>
             </p>
           )}
-          <div className="mt-6 grid grid-cols-2 gap-3 lg:max-w-[420px]">
+          <div className="mt-6 grid grid-cols-3 gap-2 sm:gap-3 lg:max-w-[540px] [&>a]:px-2 [&>a]:text-center [&>a]:leading-tight sm:[&>a]:px-5">
             <Link href="/bridge?direction=in" className={buttonClasses({ variant: 'secondary', size: 'lg' })}>{start.addMoney}</Link>
             <Link href="/send" className={buttonClasses({ variant: 'secondary', size: 'lg' })}>{home.send}</Link>
+            <Link href="/bridge?direction=out" className={buttonClasses({ variant: 'secondary', size: 'lg' })}>{home.withdraw}</Link>
           </div>
         </m.div>
 

@@ -5,7 +5,11 @@ import { useState } from 'react';
 import type { UserProfile } from '@/core/api';
 import { DealLinkSheet } from '@/features/market/components/DealLinkPanel';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
-import { PRIMARY, SECONDARY } from '@/shared/ui/controls';
+import { SECONDARY } from '@/shared/ui/controls';
+import { buttonClasses } from '@/shared/components/Button';
+
+/// The card's first move. Secondary: Home's one green button is a deal's move (view 48).
+const FIRST = buttonClasses({ variant: 'secondary', size: 'lg' });
 import { homeBlock } from '../homeBlock';
 import { TRADE_ENTRY_COPY, tradeEntryRoutes } from '../tradeEntry';
 
@@ -30,18 +34,18 @@ export function HomeBlock({ profile }: { profile: UserProfile }) {
       <div className="mt-auto flex flex-wrap gap-2.5 pt-5">
         {kind === 'getPaid' ? (
           <>
-            <button type="button" onClick={() => setLinkOpen(true)} className={PRIMARY}>{t.sendLink}</button>
+            <button type="button" onClick={() => setLinkOpen(true)} className={FIRST}>{t.sendLink}</button>
             <Link href="/request" className={SECONDARY}>{t.request}</Link>
           </>
         ) : null}
         {kind === 'findWork' ? (
           <>
-            <Link href="/market" className={PRIMARY}>{t.seeRequests}</Link>
+            <Link href="/market" className={FIRST}>{t.seeRequests}</Link>
             <button type="button" onClick={() => setLinkOpen(true)} className={SECONDARY}>{t.sendLink}</button>
           </>
         ) : null}
-        {kind === 'postNeed' ? <Link href={tradeEntryRoutes().buy} className={PRIMARY}>{t.postRequest}</Link> : null}
-        {kind === 'setUp' ? <Link href="/start?step=about" className={PRIMARY}>{t.start}</Link> : null}
+        {kind === 'postNeed' ? <Link href={tradeEntryRoutes().buy} className={FIRST}>{t.postRequest}</Link> : null}
+        {kind === 'setUp' ? <Link href="/start?step=about" className={FIRST}>{t.start}</Link> : null}
       </div>
       <DealLinkSheet open={linkOpen} onClose={() => setLinkOpen(false)} />
     </section>

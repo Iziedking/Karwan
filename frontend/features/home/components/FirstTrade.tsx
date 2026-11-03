@@ -14,7 +14,11 @@ import { useTelegramLink } from '@/features/telegram/hooks/useTelegramLink';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { PRIMARY, SECONDARY } from '@/shared/ui/controls';
+import { SECONDARY } from '@/shared/ui/controls';
+import { buttonClasses } from '@/shared/components/Button';
+
+/// A step's move. Secondary: Home's one green button is a deal's move (view 48).
+const STEP_MOVE = buttonClasses({ variant: 'secondary', size: 'lg' });
 import { cn } from '@/shared/utils/cn';
 import { tradeEntryRoutes } from '../tradeEntry';
 import { firstTrade, type FirstTradeStep } from '../firstTrade';
@@ -80,25 +84,25 @@ export function FirstTrade({ deals, dealsState, className }: {
 
   const routes = tradeEntryRoutes();
   const action = (key: FirstTradeStep) => {
-    if (key === 'setup') return <Link href="/start?step=about" className={PRIMARY}>{t.steps.setup.action}</Link>;
-    if (key === 'connect') return <Link href="/profile/sources" className={PRIMARY}>{t.steps.connect.action}</Link>;
+    if (key === 'setup') return <Link href="/start?step=about" className={STEP_MOVE}>{t.steps.setup.action}</Link>;
+    if (key === 'connect') return <Link href="/profile/sources" className={STEP_MOVE}>{t.steps.connect.action}</Link>;
     if (key === 'money') {
       // On testnet nobody holds USDC yet, so the faucet comes first.
       if (ARC_NETWORK === 'testnet') {
         return (
           <div className="flex flex-wrap gap-2">
-            <Link href="/profile/wallets" className={PRIMARY}>{t.steps.money.faucet}</Link>
+            <Link href="/profile/wallets" className={STEP_MOVE}>{t.steps.money.faucet}</Link>
             <Link href="/bridge?direction=in" className={SECONDARY}>{t.steps.money.fromWallet}</Link>
           </div>
         );
       }
-      return <Link href="/bridge?direction=in" className={PRIMARY}>{t.steps.money.action}</Link>;
+      return <Link href="/bridge?direction=in" className={STEP_MOVE}>{t.steps.money.action}</Link>;
     }
     if (key === 'telegram') return <TelegramConnectButton address={me || undefined} tone="light" />;
     if (key === 'deal' && view.dealAction === 'paymentRequest') {
       return (
         <div className="flex flex-wrap gap-2">
-          <Link href="/request" className={PRIMARY}>{t.steps.deal.paymentRequest}</Link>
+          <Link href="/request" className={STEP_MOVE}>{t.steps.deal.paymentRequest}</Link>
           <Link href={routes.agreement} className={SECONDARY}>{t.steps.deal.agreement}</Link>
         </div>
       );
@@ -106,7 +110,7 @@ export function FirstTrade({ deals, dealsState, className }: {
     if (key === 'deal') {
       return (
         <div className="flex flex-wrap gap-2">
-          <Link href={routes.buy} className={PRIMARY}>{t.steps.deal.buy}</Link>
+          <Link href={routes.buy} className={STEP_MOVE}>{t.steps.deal.buy}</Link>
           <Link href={routes.sell} className={SECONDARY}>{t.steps.deal.sell}</Link>
           <Link href={routes.agreement} className={SECONDARY}>{t.steps.deal.agreement}</Link>
         </div>
@@ -128,7 +132,7 @@ export function FirstTrade({ deals, dealsState, className }: {
       </div>
       <div aria-hidden className="mt-3 grid gap-1.5" style={{ gridTemplateColumns: `repeat(${total}, minmax(0, 1fr))` }}>
         {view.steps.map((step) => (
-          <span key={step.key} className={cn('h-1.5 rounded-full', step.done ? 'bg-[var(--lp-accent)]' : step.key === view.next ? 'bg-[var(--lp-dark)]' : 'bg-[var(--lp-border-light)]')} />
+          <span key={step.key} className={cn('h-1.5 rounded-full', step.done ? 'bg-[var(--ink)]' : step.key === view.next ? 'bg-[var(--ink-secondary)]' : 'bg-[var(--lp-border-light)]')} />
         ))}
       </div>
       {view.next ? (
@@ -154,7 +158,7 @@ export function FirstTrade({ deals, dealsState, className }: {
                   aria-hidden
                   className={cn(
                     'mt-0.5 grid size-7 shrink-0 place-items-center rounded-full border',
-                    step.done ? 'border-[var(--lp-accent)] bg-[var(--lp-accent)] text-[var(--accent-ink)]' : current ? 'border-2 border-[var(--lp-dark)]' : 'border-[var(--lp-outline-strong)]',
+                    step.done ? 'border-[var(--ink)] bg-[var(--ink)] text-[var(--canvas)]' : current ? 'border-2 border-[var(--lp-dark)]' : 'border-[var(--lp-outline-strong)]',
                   )}
                 >
                   {step.done ? (
@@ -179,7 +183,7 @@ export function FirstTrade({ deals, dealsState, className }: {
           <ol className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2 text-[15px] font-medium text-[var(--lp-dark)] sm:grid-cols-4">
             {t.flow.map((line, i) => (
               <li key={line} className="min-w-0">
-                <span aria-hidden className={cn('block h-1 rounded-full', i === 0 ? 'bg-[var(--lp-accent)]' : 'bg-[var(--lp-border-light)]')} />
+                <span aria-hidden className={cn('block h-1 rounded-full', i === 0 ? 'bg-[var(--ink)]' : 'bg-[var(--lp-border-light)]')} />
                 <span className="mt-2 block">{line}</span>
               </li>
             ))}

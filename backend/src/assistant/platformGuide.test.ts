@@ -247,7 +247,7 @@ test('the guide describes Profile, the public record and Something is wrong (vie
 
 test('the guide describes the new look of Home and the deal page (view 48)', () => {
   const all = PLATFORM_GUIDE.map((entry) => [entry.summary, ...entry.steps].join(' ')).join(' ');
-  assert.match(all, /Home opens with the total balance and Add money and Send under it/);
+  assert.match(all, /Home opens with the total balance and Add money, Send and Withdraw under it/);
   assert.doesNotMatch(all, /Add money, Send, Request and Withdraw beside it/);
   assert.match(all, /the road travelled solid and the road ahead dashed/);
   assert.match(all, /disputed, cancelled or refunded deal shows one status line instead of a route/);

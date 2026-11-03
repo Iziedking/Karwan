@@ -423,14 +423,16 @@ test('phones keep the 14px floor: no rule shrinks text below the size the code a
   assert.doesNotMatch(css, /text-size-adjust:\s*(?!100%)\d+%/);
 });
 
-test('Money offers Withdraw, the route out that works for every account; no balance surface offers the pooled Move', () => {
-  // Home carries Add money and Send only (view 48); Withdraw lives on Money.
+test('every balance surface offers Withdraw, the route out that works for every account, never the pooled Move', () => {
   for (const file of ['../../features/home/components/AccountHome.tsx', '../../features/money/components/MoneyHome.tsx']) {
-    assert.doesNotMatch(source(file), /intent=move/, file);
+    const src = source(file);
+    assert.doesNotMatch(src, /intent=move/, file);
+    assert.match(src, /\/bridge\?direction=out"/, file);
+    assert.match(src, /\.withdraw\b/, file);
   }
-  const money = source('../../features/money/components/MoneyHome.tsx');
-  assert.match(money, /\/bridge\?direction=out"/);
-  assert.match(money, /\.withdraw\b/);
+  // Home's money moves are secondary buttons: the one green button there is a deal's move (owner, 3 Nov 2026).
+  const home = source('../../features/home/components/AccountHome.tsx');
+  assert.equal(home.match(/buttonClasses\(\{ variant: 'secondary', size: 'lg' \}\)/g)?.length, 3);
 });
 
 test('Send says what Available counts, so it is never read as a wrong balance', () => {

@@ -49,9 +49,9 @@ export function FaucetDrop() {
         aria-expanded={open}
         aria-controls={cardId}
         onClick={() => setOpen(!pinned)}
-        className="grid size-11 place-items-center rounded-full border border-[var(--faucet-strip-line)] bg-[var(--lp-card)] transition-colors hover:border-[var(--lp-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+        className="grid size-11 place-items-center rounded-full border border-[var(--faucet-strip-line)] bg-[var(--lp-card)] transition-colors hover:border-[var(--line-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
       >
-        <svg aria-hidden width="18" height="18" viewBox="0 0 24 24" fill="var(--lp-accent)" stroke="var(--lp-accent-on-light)" strokeWidth="1.6" strokeLinejoin="round"><path d="M12 3s6 6.4 6 11a6 6 0 0 1-12 0c0-4.6 6-11 6-11z" /></svg>
+        <svg aria-hidden width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="1.6" strokeLinejoin="round"><path d="M12 3s6 6.4 6 11a6 6 0 0 1-12 0c0-4.6 6-11 6-11z" /></svg>
       </button>
       <div
         id={cardId}
@@ -66,7 +66,7 @@ export function FaucetDrop() {
         </p>
         <Link
           href="/profile/wallets"
-          className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-full bg-[var(--lp-dark)] px-4 text-[14px] font-semibold text-[var(--lp-card)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
+          className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-full bg-[var(--lp-dark)] px-4 text-[14px] font-semibold text-[var(--lp-card)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] focus-visible:ring-offset-2"
         >
           {home.faucetClaim}
         </Link>
