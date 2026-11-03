@@ -1,5 +1,12 @@
 /// Requests and offers, and how a deal is paid (view 44, Batch 6).
 export interface RequestFlowCopy {
+  /// The request form on one screen (view 48).
+  pageTitle: string;
+  yourRequest: string;
+  neededByLabel: string;
+  payInParts: string;
+  post: string;
+  finding: string;
   reference: string;
   upTo: string;
   neededBy: string;
@@ -44,6 +51,12 @@ export interface RequestFlowCopy {
 
 export const requestFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', RequestFlowCopy> = {
   en: {
+    pageTitle: 'What do you need?',
+    yourRequest: 'Your request',
+    neededByLabel: 'Needed by',
+    payInParts: 'Pay in parts',
+    post: 'Post request',
+    finding: 'Finding sellers',
     reference: 'Request {reference}',
     upTo: 'Up to {amount} USDC',
     neededBy: 'Needed by {date}',
@@ -78,6 +91,12 @@ export const requestFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', RequestFl
     },
   },
   fr: {
+    pageTitle: 'De quoi avez-vous besoin ?',
+    yourRequest: 'Votre demande',
+    neededByLabel: 'Pour le',
+    payInParts: 'Payer en plusieurs parties',
+    post: 'Publier la demande',
+    finding: 'Recherche de vendeurs',
     reference: 'Demande {reference}',
     upTo: 'Jusqu’à {amount} USDC',
     neededBy: 'Pour le {date}',
@@ -112,6 +131,12 @@ export const requestFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', RequestFl
     },
   },
   ar: {
+    pageTitle: 'ماذا تحتاج؟',
+    yourRequest: 'طلبك',
+    neededByLabel: 'مطلوب بحلول',
+    payInParts: 'ادفع على أجزاء',
+    post: 'انشر الطلب',
+    finding: 'نبحث عن بائعين',
     reference: 'الطلب {reference}',
     upTo: 'حتى {amount} USDC',
     neededBy: 'مطلوب بحلول {date}',
@@ -146,6 +171,12 @@ export const requestFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', RequestFl
     },
   },
   hi: {
+    pageTitle: 'आपको क्या चाहिए?',
+    yourRequest: 'आपका अनुरोध',
+    neededByLabel: 'कब तक चाहिए',
+    payInParts: 'हिस्सों में भुगतान करें',
+    post: 'अनुरोध पोस्ट करें',
+    finding: 'विक्रेता खोजे जा रहे हैं',
     reference: 'अनुरोध {reference}',
     upTo: '{amount} USDC तक',
     neededBy: '{date} तक चाहिए',
@@ -180,6 +211,12 @@ export const requestFlowCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', RequestFl
     },
   },
   sw: {
+    pageTitle: 'Unahitaji nini?',
+    yourRequest: 'Ombi lako',
+    neededByLabel: 'Inahitajika kufikia',
+    payInParts: 'Lipa kwa sehemu',
+    post: 'Weka ombi',
+    finding: 'Inatafuta wauzaji',
     reference: 'Ombi {reference}',
     upTo: 'Hadi USDC {amount}',
     neededBy: 'Linahitajika kufikia {date}',

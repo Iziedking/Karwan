@@ -13,6 +13,10 @@ export interface ShortlistCopy {
   pick: string;
   rank: string;
   close: string;
+  /// The offer sheet's fact rows and why the agent placed it (view 48).
+  recordLabel: string;
+  numbersLabel: string;
+  whyPlace: string;
   recommended: string;
   verified: string;
   notVerified: string;
@@ -56,6 +60,9 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
     pick: 'Agent’s pick',
     rank: '#{n}',
     close: 'Close',
+    recordLabel: 'Record',
+    numbersLabel: 'Deals',
+    whyPlace: 'Why your agent placed {name} here',
     recommended: 'Recommended',
     verified: 'Verified',
     notVerified: 'Not verified',
@@ -104,6 +111,9 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
     pick: 'Choix de votre agent',
     rank: '#{n}',
     close: 'Fermer',
+    recordLabel: 'Historique',
+    numbersLabel: 'Accords',
+    whyPlace: 'Pourquoi votre agent a placé {name} ici',
     recommended: 'Recommandé',
     verified: 'Vérifié',
     notVerified: 'Non vérifié',
@@ -152,6 +162,9 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
     pick: 'اختيار وكيلك',
     rank: '#{n}',
     close: 'إغلاق',
+    recordLabel: 'السجل',
+    numbersLabel: 'الصفقات',
+    whyPlace: 'لماذا وضع وكيلك {name} هنا',
     recommended: 'موصى به',
     verified: 'موثّق',
     notVerified: 'غير موثّق',
@@ -200,6 +213,9 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
     pick: 'एजेंट की पसंद',
     rank: '#{n}',
     close: 'बंद करें',
+    recordLabel: 'रिकॉर्ड',
+    numbersLabel: 'सौदे',
+    whyPlace: 'आपके एजेंट ने {name} को यहाँ क्यों रखा',
     recommended: 'सुझाया गया',
     verified: 'सत्यापित',
     notVerified: 'सत्यापित नहीं',
@@ -248,6 +264,9 @@ export const shortlistCopy: Record<'en' | 'fr' | 'ar' | 'hi' | 'sw', ShortlistCo
     pick: 'Chaguo la wakala wako',
     rank: '#{n}',
     close: 'Funga',
+    recordLabel: 'Rekodi',
+    numbersLabel: 'Mikataba',
+    whyPlace: 'Kwa nini wakala wako alimweka {name} hapa',
     recommended: 'Anapendekezwa',
     verified: 'Amethibitishwa',
     notVerified: 'Hajathibitishwa',

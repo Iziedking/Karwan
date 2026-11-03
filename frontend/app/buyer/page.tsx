@@ -5,6 +5,7 @@ import { DealAmountProvider } from '@/features/balances/dealAmount';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { FullBleed, Band, PageCard } from '@/shared/components/Bands';
 import { Hint } from '@/shared/components/Hint';
+import { CARD_CLASS } from '@/shared/components/Card';
 import { Icon } from '@/shared/components/Icon';
 import Link from 'next/link';
 import { marketViewHref } from '@/features/market/marketQuery';
@@ -32,11 +33,18 @@ function BuyerPageInner() {
 function PersonalBuyerDesk() {
   const creation = useTranslations().dealCreation;
   const bh = useTranslations().buyerHub;
+  const rf = useTranslations().requestFlow;
+  const search = useSearchParams();
+  const direct = !!(search.get('seller') || search.get('sellerEmail') || search.get('mode') === 'direct');
 
   return (
     <FullBleed>
       <Band tone="light" compact>
-        <h1 className="flex items-center gap-2 text-[clamp(2rem,4vw,3rem)] font-semibold leading-tight tracking-[-0.04em] text-[var(--lp-dark)]">{creation.title}<Hint side="bottom">{creation.intro}</Hint></h1>
+        {direct ? (
+          <h1 className="flex items-center gap-2 text-[26px] font-semibold leading-tight tracking-[-0.02em] text-[var(--ink)]">{creation.title}<Hint side="bottom">{creation.intro}</Hint></h1>
+        ) : (
+          <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-[var(--ink)]">{rf.pageTitle}</h1>
+        )}
       </Band>
 
       {/* ACTIVATE NOTICE. shared band, renders nothing once activated. Catches
@@ -48,11 +56,15 @@ function PersonalBuyerDesk() {
         <DealAmountProvider>
         <div className="mx-auto grid max-w-[640px] items-start gap-5">
           <div className="min-w-0">
-            <PageCard>
-              <div className="p-6 md:p-8">
-                <NewDealPanel />
-              </div>
-            </PageCard>
+            {direct ? (
+              <PageCard>
+                <div className="p-6 md:p-8">
+                  <NewDealPanel />
+                </div>
+              </PageCard>
+            ) : (
+              <NewDealPanel />
+            )}
           </div>
         </div>
         </DealAmountProvider>
@@ -63,7 +75,7 @@ function PersonalBuyerDesk() {
         <div className="mx-auto max-w-[640px]">
           <Link
             href={marketViewHref('yours', 'requests')}
-            className="flex min-h-14 items-center justify-between gap-4 rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-5 text-[15px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+            className={`${CARD_CLASS} flex min-h-14 items-center justify-between gap-4 px-5 text-[15px] font-semibold text-[var(--ink)] hover:bg-[var(--raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]`}
           >
             {bh.managedDeals.headline}
             <Icon name="arrow-right" size={16} directional />

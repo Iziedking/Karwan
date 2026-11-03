@@ -68,6 +68,13 @@ test('offers are one line each in the agent order, the pick marked, and a tap sh
   const details = page.getByRole('dialog').filter({ has: page.getByRole('heading', { name: 'Realnica' }) });
   await expect(details.getByText('Not verified · New')).toBeVisible();
   await expect(details.getByText('Logo work · 14 days')).toBeVisible();
+  // View 48: why the agent placed them there, in its own card, and the one green button is the move.
+  await expect(details.locator('[data-offer-why]')).toContainText('Why your agent placed Realnica here');
+  await expect(details.locator('[data-offer-why]')).toContainText('Best skill match');
+  const green = await details.locator('a, button').evaluateAll((els) => els
+    .filter((el) => el.checkVisibility() && getComputedStyle(el).backgroundColor === 'rgb(175, 201, 91)')
+    .map((el) => el.textContent?.trim()));
+  expect(green).toEqual(['Review and accept']);
   await details.getByRole('button', { name: 'Review and accept Realnica' }).click();
   const sheet = page.getByRole('dialog').filter({ has: page.getByRole('heading', { name: 'Accept the offer from Realnica and fund the deal?' }) });
   for (const label of ['For', 'To', 'Price', 'Delivers in', 'Payment']) await expect(sheet.getByText(label, { exact: true })).toBeVisible();

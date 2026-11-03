@@ -17,7 +17,7 @@ async function signedInBuyer(page: Page) {
   await page.route(`${API}/api/agents/buyer**`, route => route.fulfill({ json: { profile: null, jobs: [] } }));
 }
 
-test('a request is asked in three steps and posts the chosen date and milestones', async ({ page }) => {
+test('a request is one screen, parts folded until asked, and posts the chosen date and milestones (view 48)', async ({ page }) => {
   await signedInBuyer(page);
   let posted: Record<string, unknown> | null = null;
   await page.route(`${API}/api/jobs`, async route => {
@@ -25,29 +25,29 @@ test('a request is asked in three steps and posts the chosen date and milestones
     posted = route.request().postDataJSON();
     return route.fulfill({ json: { jobId: '0xjob', deadlineUnix: 0, txHash: '0x1', explorerUrl: '' } });
   });
+  const rf = en.requestFlow;
 
   await page.goto('/buyer?mode=managed');
-  await expect(page.getByText(`${rs.stepOf.replace('{n}', '1')} · ${rs.describe}`)).toBeVisible();
-  const next = page.getByRole('button', { name: rs.continue, exact: true });
-  await expect(next).toBeDisabled();
+  await expect(page.getByRole('heading', { level: 1, name: rf.pageTitle })).toBeVisible();
+  await expect(page.getByText(rs.stepOf.replace('{n}', '1'), { exact: false })).toHaveCount(0);
+  const post = page.locator('button[data-guide="buyer-submit"]');
+  await expect(post).toHaveText(rf.post);
+  await expect(post).toBeDisabled();
 
   await page.locator('textarea[data-guide="buyer-brief"]').fill('A logo and colours for my bakery in Accra.');
-  await next.click();
-
-  await expect(page.getByText(`${rs.stepOf.replace('{n}', '2')} · ${rs.price}`)).toBeVisible();
-  await expect(next).toBeDisabled();
   await page.locator('input[data-guide="buyer-budget"]').fill('150');
   // No agent balance beside the form: one balance, and Karwan moves money to the agent on confirmation (view 38).
   await expect(page.getByRole('button', { name: en.money.home.topUpGapTemplate.replace('{gap}', '30.00') })).toHaveCount(0);
   await page.getByRole('button', { name: new RegExp(`^${rs.weeks2}`) }).click();
   await expect(page.getByRole('button', { name: new RegExp(`^${rs.weeks2}`) })).toHaveAttribute('aria-pressed', 'true');
-  await next.click();
+  await expect(post).toBeEnabled();
 
-  await expect(page.getByText(`${rs.stepOf.replace('{n}', '3')} · ${rs.payment}`)).toBeVisible();
+  // Paid in parts only when asked.
   const tb = TERMS_COPY.en;
+  await expect(page.getByRole('button', { name: tb.addPart, exact: true })).toHaveCount(0);
+  await page.getByText(rf.payInParts, { exact: true }).click();
   await expect(page.getByRole('listitem').filter({ hasText: tb.noWhat.replace('{n}', '1') })).toBeVisible();
   await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '1')}: ${tb.whatLabel}`, exact: true }).fill('Three logo sketches to choose from');
-  // Every deal starts as one milestone; a second is added on purpose.
   await page.getByRole('button', { name: tb.addPart, exact: true }).click();
   await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '2')}: ${tb.whatLabel}`, exact: true }).fill('Final logo in SVG and PNG');
   await page.getByRole('button', { name: tb.addPart, exact: true }).click();
@@ -55,21 +55,17 @@ test('a request is asked in three steps and posts the chosen date and milestones
   await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '3')}: ${tb.whatLabel}`, exact: true }).fill('Brand colours sheet');
   await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '3')} %` }).fill('10');
   await expect(page.getByText(tb.needs100.replace('{sum}', '76'), { exact: true })).toBeVisible();
-  await expect(page.locator('button[data-guide="buyer-submit"]')).toBeDisabled();
+  await expect(post).toBeDisabled();
   await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '1')} %` }).fill('20');
   await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '2')} %` }).fill('70');
   await expect(page.getByText('More terms', { exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: tb.days.replace('{n}', '7'), exact: true }).click();
   await expect(page.getByText(tb.ready, { exact: true })).toBeVisible();
 
-  await page.getByRole('button', { name: rs.back, exact: true }).click();
-  await expect(page.locator('input[data-guide="buyer-budget"]')).toHaveValue('150');
-  await next.click();
-
-  await page.locator('button[data-guide="buyer-submit"]').click();
+  await post.click();
   await expect(page.getByText(en.requestFlow.nothingPaid, { exact: true })).toBeVisible();
   await expect(page.getByText(en.requestFlow.agentLine, { exact: true })).toBeVisible();
-  await page.locator('button[data-guide="buyer-submit"]').click();
+  await post.click();
   await expect.poll(() => posted).not.toBeNull();
   expect(posted).toMatchObject({ budgetUsdc: 150, deadlineSeconds: 14 * DAY_S, milestonePcts: [20, 70, 10], reviewWindowDays: 7 });
   const agreement = String((posted as unknown as { terms: string }).terms);
@@ -79,16 +75,44 @@ test('a request is asked in three steps and posts the chosen date and milestones
   expect(agreement).toContain('Time to check: 7 days after each delivery');
 });
 
+test('left folded, a request is paid at once for what it asks, and Post request turns to Finding sellers while it posts', async ({ page }, testInfo) => {
+  await signedInBuyer(page);
+  let posted: Record<string, unknown> | null = null;
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => { release = resolve; });
+  await page.route(`${API}/api/jobs`, async route => {
+    if (route.request().method() !== 'POST') return route.fallback();
+    posted = route.request().postDataJSON();
+    await held;
+    return route.fulfill({ json: { jobId: '0xjob', deadlineUnix: 0, txHash: '0x1', explorerUrl: '' } });
+  });
+  const rf = en.requestFlow;
+  await page.goto('/buyer?mode=managed');
+  await page.locator('textarea[data-guide="buyer-brief"]').fill('A logo for my bakery, warm and simple.');
+  await page.locator('input[data-guide="buyer-budget"]').fill('150');
+  await page.getByRole('button', { name: new RegExp(`^${rs.week1}`) }).click();
+  await expect(page.locator('.karwan-splash-mark')).toHaveCount(0);
+  await page.screenshot({ path: testInfo.outputPath('request-one-screen.png'), fullPage: true });
+  const post = page.locator('button[data-guide="buyer-submit"]');
+  await post.click();
+  await post.click();
+  await expect(post).toHaveAttribute('aria-busy', 'true');
+  await expect(post).toContainText(rf.finding);
+  await expect.poll(() => posted).not.toBeNull();
+  expect(posted).toMatchObject({ budgetUsdc: 150, deadlineSeconds: 7 * DAY_S, milestonePcts: [100] });
+  expect(String((posted as unknown as { terms: string }).terms)).toContain('A logo for my bakery, warm and simple.');
+  release();
+});
+
 test('a picked date becomes whole days until the end of that day', async ({ page }) => {
   await signedInBuyer(page);
   await page.goto('/buyer?mode=managed');
   await page.locator('textarea[data-guide="buyer-brief"]').fill('Year-end accounts for a small agency.');
-  await page.getByRole('button', { name: rs.continue, exact: true }).click();
   await page.locator('input[data-guide="buyer-budget"]').fill('300');
   const target = new Date(Date.now() + 10 * DAY_S * 1000).toISOString().slice(0, 10);
   await page.getByLabel(rs.pickDate, { exact: true }).fill(target);
   await expect(page.getByText(new RegExp(`^${rs.dueOn.replace('{date}', '.+')}$`))).toBeVisible();
-  await expect(page.getByRole('button', { name: rs.continue, exact: true })).toBeEnabled();
+  await expect(page.locator('button[data-guide="buyer-submit"]')).toBeEnabled();
 });
 
 test('a direct deal names the seller in one box and sends the agreed terms in two parts', async ({ page }) => {

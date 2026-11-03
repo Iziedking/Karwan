@@ -15,8 +15,8 @@ const chipClass = (active: boolean) =>
   cn(
     'inline-flex min-h-11 flex-col items-start justify-center rounded-[14px] border px-3.5 py-1.5 text-start text-[14px] font-medium leading-tight transition-colors',
     active
-      ? 'border-[var(--lp-dark)] bg-[var(--lp-dark)] text-[var(--lp-light)]'
-      : 'border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-dark)] hover:border-[var(--lp-outline-strong)]',
+      ? 'border-[var(--ink)] bg-[var(--ink)] text-[var(--raised)]'
+      : 'border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] hover:border-[var(--line-strong)]',
   );
 
 /// When the work is due: a few common lengths with their dates, any date from
@@ -99,7 +99,7 @@ export function DueChips({
         <label
           className={cn(
             chipClass(dateChipOn),
-            'relative cursor-pointer flex-row items-center gap-2 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--lp-accent)]',
+            'relative cursor-pointer flex-row items-center gap-2 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--ink)]',
           )}
         >
           <span>{dateChipLabel}</span>
@@ -131,7 +131,7 @@ export function DueChips({
             aria-label={rs.exactTime}
             className="form-input form-input-num min-w-0 flex-1"
           />
-          <div role="radiogroup" aria-label={t.postJob.deadlineUnitAria} className="grid shrink-0 grid-cols-3 gap-0.5 rounded-[12px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] p-0.5">
+          <div role="radiogroup" aria-label={t.postJob.deadlineUnitAria} className="grid shrink-0 grid-cols-3 gap-0.5 rounded-[12px] border border-[var(--line)] bg-[var(--raised)] p-0.5">
             {(['min', 'hr', 'd'] as const).map((key) => (
               <button
                 key={key}
@@ -143,7 +143,7 @@ export function DueChips({
                 onClick={() => onChange({ min: 15, hr: 2, d: 5 }[key], key)}
                 className={cn(
                   'min-h-11 min-w-11 rounded-[10px] px-2.5 text-[14px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50',
-                  unit === key ? 'bg-[var(--lp-control-active-bg)] text-[var(--lp-control-active-ink)]' : 'text-[var(--lp-text-sub)]',
+                  unit === key ? 'bg-[var(--lp-control-active-bg)] text-[var(--lp-control-active-ink)]' : 'text-[var(--ink-secondary)]',
                 )}
               >
                 {key === 'min' ? units.min : key === 'hr' ? units.hr : units.day}
@@ -160,7 +160,7 @@ export function DueChips({
             setExactTime(true);
             if (value === '') onChange(2, 'hr');
           }}
-          className="inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--lp-text-sub)] underline underline-offset-4 hover:text-[var(--lp-dark)]"
+          className="inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--ink-secondary)] underline underline-offset-4 hover:text-[var(--ink)]"
         >
           {rs.exactTime}
         </button>

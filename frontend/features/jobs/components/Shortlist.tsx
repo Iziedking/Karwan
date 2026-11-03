@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { api, ApiError, type AgentWorldCheckView, type ShortlistEntry, type WorldCheckReason } from '@/core/api';
 import { PersonAvatar } from '@/shared/components/PersonAvatar';
 import { buttonClasses } from '@/shared/components/Button';
+import { CARD_CLASS } from '@/shared/components/Card';
+import { FactRows } from '@/shared/components/FactRows';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ratingText } from '@/features/ratings/ratingText';
 import { formatUsdc } from '@/shared/utils/format';
@@ -77,6 +79,9 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordCh
   const world = t.agentNudges.world;
   const notice = shortlistNotice(entries, copy);
   const cost = shortlistCostLine(recordChecks, copy);
+  const { locale } = useLocale();
+  // Their record in one line: the rating when they have one, else how far they are verified.
+  const recordLine = (e: RankedOffer) => (e.rating ? ratingText(e.rating, t.ratings, locale) : shortlistRowView(e, copy).levelLine);
   const waitingOn = worldCheck?.waitingOn === 'seller' && worldCheck.buyerConfirmed
     ? entries.find((e) => e.seller.toLowerCase() === worldCheck.sellerAgent.toLowerCase())?.name ?? null
     : null;
@@ -106,9 +111,9 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordCh
   }
 
   return (
-    <section data-guide="job-shortlist" className="mt-6 rounded-[18px] bg-[var(--lp-card)] px-4">
+    <section data-guide="job-shortlist" className={`${CARD_CLASS} mt-6 px-4`}>
       <div className="py-4">
-        <h2 className="text-[17px] font-semibold text-[var(--lp-dark)]">{copy.title}</h2>
+        <h2 className="text-[17px] font-semibold text-[var(--ink)]">{copy.title}</h2>
         {ranked.length ? (
           <div className="mt-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
             <p className="text-[14px] font-medium text-[var(--ink-secondary)]">
@@ -125,35 +130,38 @@ export function Shortlist({ jobId, caller, entries, closed, worldCheck, recordCh
             </button>
           </div>
         ) : null}
-        {notice ? <p className="mt-2 text-[14px] font-semibold text-[var(--lp-dark)]">{notice}</p> : null}
-        {waitingOn ? <p role="status" className="mt-2 text-[14px] font-semibold text-[var(--lp-dark)]">{fill(world.waiting, { name: waitingOn })}</p> : null}
+        {notice ? <p className="mt-2 text-[14px] font-semibold text-[var(--ink)]">{notice}</p> : null}
+        {waitingOn ? <p role="status" className="mt-2 text-[14px] font-semibold text-[var(--ink)]">{fill(world.waiting, { name: waitingOn })}</p> : null}
       </div>
       {ranked.length && open ? (
-        <ul id={`shortlist-${jobId}`} className="divide-y divide-[var(--lp-border-light)] border-t border-[var(--lp-border-light)]">
+        <ul id={`shortlist-${jobId}`} className="divide-y divide-[var(--line)] border-t border-[var(--line)]">
           {ranked.map((e, i) => (
             <li key={e.seller}>
               <button
                 type="button"
                 onClick={() => setViewing(e)}
-                className="flex min-h-16 w-full items-center gap-3 py-3 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent)]"
+                className="flex min-h-16 w-full items-center gap-3 py-3 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ink)]"
               >
                 <PersonAvatar address={e.sellerUser} name={e.name} size={40} />
                 <span className="min-w-0 flex-1">
-                  <span dir="auto" className="block truncate text-[15px] font-semibold text-[var(--lp-dark)]">{e.name}</span>
+                  <span dir="auto" className="block truncate text-[15px] font-semibold text-[var(--ink)]">{e.name}</span>
+                  <span className="block truncate text-[13px] text-[var(--ink-secondary)]">{recordLine(e)}</span>
+                </span>
+                <span className="shrink-0 text-end">
+                  <span className="block text-[15px] font-semibold tabular-nums text-[var(--ink)]">{price(e.priceUsdc)} USDC</span>
                   <span
                     {...(e.bestFit ? { 'data-best-fit': '' } : {})}
-                    className={`block text-[14px] font-medium ${e.bestFit ? 'text-[var(--lp-accent-on-light)]' : 'text-[var(--ink-secondary)]'}`}
+                    className={`block text-[13px] ${e.bestFit ? 'font-semibold text-[var(--ink)]' : 'text-[var(--ink-secondary)]'}`}
                   >
                     {e.state === 'unavailable' ? `${fill(copy.rank, { n: i + 1 })} · ${copy.unavailable}` : rankLine(i, e.bestFit, copy)}
                   </span>
                 </span>
-                <span className="shrink-0 text-[17px] font-semibold tabular-nums text-[var(--lp-dark)]">{price(e.priceUsdc)} USDC</span>
               </button>
             </li>
           ))}
         </ul>
       ) : null}
-      {cost ? <p className="border-t border-[var(--lp-border-light)] py-3 text-[13px] font-medium tabular-nums text-[var(--ink-secondary)]">{cost}</p> : null}
+      {cost ? <p className="border-t border-[var(--line)] py-3 text-[13px] font-medium tabular-nums text-[var(--ink-secondary)]">{cost}</p> : null}
       <OfferDetails
         entry={viewing}
         place={viewing ? ranked.indexOf(viewing) : 0}
@@ -225,47 +233,51 @@ function OfferDetails({ entry, place, canChoose, onClose, onChoose }: {
           <div className="flex items-center gap-3">
             <PersonAvatar address={entry.sellerUser} name={entry.name} size={48} />
             <div className="min-w-0 flex-1">
-              <h2 id="offer-details-title" dir="auto" className="truncate text-[20px] font-semibold text-[var(--lp-dark)]">{entry.name}</h2>
-              {entry.tag ? <p className="text-[14px] font-medium text-[var(--ink-secondary)]">@{entry.tag}</p> : null}
+              <h2 id="offer-details-title" dir="auto" className="truncate text-[20px] font-semibold text-[var(--ink)]">{entry.name}</h2>
+              <p className="truncate text-[13px] text-[var(--ink-secondary)]">
+                {[entry.tag ? `@${entry.tag}` : null, entry.rating ? ratingText(entry.rating, all.ratings, locale) : null].filter(Boolean).join(' · ')}
+              </p>
             </div>
           </div>
-          <p className="mt-4 text-[24px] font-semibold tabular-nums text-[var(--lp-dark)]">{price(entry.priceUsdc)} USDC</p>
-          {v.askedLine ? <p className={line}>{v.askedLine}</p> : null}
-          <p className={`mt-1 text-[15px] font-semibold ${entry.bestFit ? 'text-[var(--lp-accent-on-light)]' : 'text-[var(--lp-dark)]'}`}>{rankLine(place, entry.bestFit, copy)}</p>
-          <div className="mt-4 space-y-1 border-t border-[var(--lp-border-light)] pt-4">
-            <p className={`text-[15px] font-semibold ${entry.verified ? 'text-[var(--color-positive)]' : 'text-[var(--lp-dark)]'}`}>{v.levelLine}</p>
-            {entry.rating ? <p className={`${line} tabular-nums`}>{ratingText(entry.rating, all.ratings, locale)}</p> : null}
-            <p dir="auto" className={line}>{v.offerLine}</p>
-            {v.numbersLine ? <p className={line}>{v.numbersLine}</p> : null}
-            {reasons ? <p className={line}>{reasons}</p> : null}
-            {entry.state === 'negotiating' ? <p className={line}>{copy.negotiating}</p> : null}
-            {entry.state === 'unavailable' ? <p className="text-[15px] font-semibold text-[var(--lp-dark)]">{copy.unavailable}</p> : null}
-            {v.markLine ? <p className="text-[15px] font-semibold text-[var(--lp-dark)]">{v.markLine}</p> : null}
+          <p className="mt-5 flex items-baseline gap-2 tabular-nums">
+            <span className="text-[34px] font-semibold leading-none tracking-[-0.02em] text-[var(--ink)]">{price(entry.priceUsdc)}</span>
+            <span className="text-[17px] font-semibold text-[var(--ink-secondary)]">USDC</span>
+          </p>
+          {v.askedLine ? <p className={`mt-1 ${line}`}>{v.askedLine}</p> : null}
+          <p className={`mt-1 text-[14px] ${entry.bestFit ? 'font-semibold text-[var(--ink)]' : 'text-[var(--ink-secondary)]'}`}>{rankLine(place, entry.bestFit, copy)}</p>
+          <div className={`${CARD_CLASS} mt-4 px-5 py-1`}>
+            <FactRows facts={[
+              { label: copy.recordLabel, value: v.levelLine, id: 'record' },
+              { label: rf.confirmFor, value: <span dir="auto">{v.offerLine}</span>, id: 'offer' },
+              ...(v.numbersLine ? [{ label: copy.numbersLabel, value: v.numbersLine, id: 'numbers' }] : []),
+            ]} />
           </div>
-          <div className="mt-6 flex flex-wrap gap-2">
+          {reasons ? (
+            <div data-offer-why className={`${CARD_CLASS} mt-3 p-4`}>
+              <p className="text-[14px] font-semibold text-[var(--ink)]">{fill(copy.whyPlace, { name: entry.name.split(/\s+/)[0] ?? entry.name })}</p>
+              <p className="mt-1 text-[14px] text-[var(--ink-secondary)]">{reasons}</p>
+            </div>
+          ) : null}
+          {entry.state === 'negotiating' ? <p className={`mt-3 ${line}`}>{copy.negotiating}</p> : null}
+          {entry.state === 'unavailable' ? <p className="mt-3 text-[15px] font-semibold text-[var(--ink)]">{copy.unavailable}</p> : null}
+          {v.markLine ? <p className="mt-3 text-[15px] font-semibold text-[var(--ink)]">{v.markLine}</p> : null}
+          <div className="mt-6 grid gap-2">
             {canChoose && v.choosable ? (
               <button
                 type="button"
                 onClick={() => onChoose(entry)}
                 aria-label={`${rf.reviewOffer} ${entry.name}`}
-                className="inline-flex min-h-12 items-center rounded-full bg-[var(--action)] px-6 text-[15px] font-semibold text-[var(--on-action)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-offset-2"
+                className={buttonClasses({ variant: 'primary', size: 'lg' })}
               >
                 {rf.reviewOffer}
               </button>
             ) : null}
             {v.profileHref ? (
-              <Link
-                href={v.profileHref}
-                className="inline-flex min-h-12 items-center rounded-full border border-[var(--lp-border-light)] px-5 text-[15px] font-semibold text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
-              >
+              <Link href={v.profileHref} className={buttonClasses({ variant: 'secondary', size: 'lg' })}>
                 {copy.viewProfile}
               </Link>
             ) : null}
-            <button
-              type="button"
-              onClick={onClose}
-              className="inline-flex min-h-12 items-center rounded-full px-5 text-[15px] font-semibold text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
-            >
+            <button type="button" onClick={onClose} className={buttonClasses({ variant: 'ghost', size: 'lg' })}>
               {copy.close}
             </button>
           </div>

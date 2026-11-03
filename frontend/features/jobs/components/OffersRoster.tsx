@@ -104,49 +104,49 @@ export function OffersRoster({ jobId, bids, pickSeller, caller, choosable, open:
             type="button"
             onClick={() => setOpen(true)}
             aria-expanded={false}
-            className="flex min-h-14 w-full items-center justify-between gap-3 rounded-[18px] bg-[var(--lp-card)] px-4 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+            className="flex min-h-14 w-full items-center justify-between gap-3 rounded-[18px] bg-[var(--surface)] px-4 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
           >
             <span className="flex min-w-0 items-center gap-3">
               <span aria-hidden className="flex shrink-0">
                 {faces.map((bid, index) => (
-                  <span key={bid.seller} className={`rounded-full ring-2 ring-[var(--lp-card)] ${index > 0 ? '-ms-2.5' : ''}`}>
+                  <span key={bid.seller} className={`rounded-full ring-2 ring-[var(--surface)] ${index > 0 ? '-ms-2.5' : ''}`}>
                     <PersonAvatar address={bid.sellerUserAddress ?? undefined} name={nameOf(bid)} size={30} />
                   </span>
                 ))}
                 {extra > 0 ? (
-                  <span className="-ms-2.5 grid size-[30px] place-items-center rounded-full bg-[var(--lp-light)] text-[14px] font-semibold text-[var(--lp-text-sub)] ring-2 ring-[var(--lp-card)]">+{extra}</span>
+                  <span className="-ms-2.5 grid size-[30px] place-items-center rounded-full bg-[var(--raised)] text-[14px] font-semibold text-[var(--ink-secondary)] ring-2 ring-[var(--surface)]">+{extra}</span>
                 ) : null}
               </span>
               <span className="min-w-0 truncate text-[14px]">
-                <span className="font-semibold text-[var(--lp-dark)]">{folded}</span>
+                <span className="font-semibold text-[var(--ink)]">{folded}</span>
                 {!pickSeller && range ? (
-                  <span className="text-[var(--lp-text-sub)]"> · {fill(copy.range, { min: price(range.min), max: price(range.max) })}</span>
+                  <span className="text-[var(--ink-secondary)]"> · {fill(copy.range, { min: price(range.min), max: price(range.max) })}</span>
                 ) : null}
               </span>
             </span>
-            <span className="inline-flex shrink-0 items-center gap-1 text-[14px] font-semibold text-[var(--lp-dark)]">
+            <span className="inline-flex shrink-0 items-center gap-1 text-[14px] font-semibold text-[var(--ink)]">
               {copy.show}
               <Icon name="chevron-right" size={16} className="rotate-90" />
             </span>
           </button>
         )
       ) : (
-        <div className="rounded-[18px] bg-[var(--lp-card)] px-4">
+        <div className="rounded-[18px] bg-[var(--surface)] px-4">
           <div className="flex min-h-14 items-center justify-between">
-            <h2 className="text-[15px] font-semibold text-[var(--lp-dark)]">
+            <h2 className="text-[15px] font-semibold text-[var(--ink)]">
               {ranked.length === 1 ? copy.countOne : fill(copy.countMany, { n: ranked.length })}
             </h2>
             <button
               type="button"
               onClick={() => setOpen(false)}
               aria-expanded
-              className="inline-flex min-h-11 items-center gap-1 text-[14px] font-semibold text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+              className="inline-flex min-h-11 items-center gap-1 text-[14px] font-semibold text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
             >
               {copy.hide}
               <Icon name="chevron-right" size={16} className="-rotate-90" />
             </button>
           </div>
-          <ul className="divide-y divide-[var(--lp-border-light)] border-t border-[var(--lp-border-light)]">
+          <ul className="divide-y divide-[var(--line)] border-t border-[var(--line)]">
             {shown.map((bid) => (
               <li key={bid.seller}>
                 <OfferRow bid={bid} pick={isPick(bid)} copy={copy} onOpen={() => { setError(null); setViewing(bid); }} />
@@ -157,14 +157,14 @@ export function OffersRoster({ jobId, bids, pickSeller, caller, choosable, open:
             <button
               type="button"
               onClick={() => setPage((p) => p + 1)}
-              className="flex min-h-12 w-full items-center justify-center border-t border-[var(--lp-border-light)] text-[14px] font-semibold text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)]"
+              className="flex min-h-12 w-full items-center justify-center border-t border-[var(--line)] text-[14px] font-semibold text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ink)]"
             >
               {fill(copy.showMore, { n: Math.min(OFFERS_PER_PAGE, ranked.length - shown.length) })}
             </button>
           ) : null}
         </div>
       )}
-      {open ? <p className="mt-3 px-1 text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{copy.rankNote}</p> : null}
+      {open ? <p className="mt-3 px-1 text-[14px] leading-relaxed text-[var(--ink-secondary)] font-medium">{copy.rankNote}</p> : null}
 
       <Sheet open={!!viewing && !confirming} title={viewing ? nameOf(viewing) : ''} onClose={() => setViewing(null)}>
         {viewing ? (
@@ -194,7 +194,7 @@ export function OffersRoster({ jobId, bids, pickSeller, caller, choosable, open:
         }}
       >
         {viewing && unverified && !worldStep ? (
-          <p role="note" className="border-s-2 border-[var(--lp-outline-strong)] ps-3 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+          <p role="note" className="border-s-2 border-[var(--line-strong)] ps-3 text-[14px] leading-relaxed text-[var(--ink-secondary)]">
             {fill(t.shortlist.unverifiedWarning, { name: nameOf(viewing) })}
           </p>
         ) : null}
@@ -219,7 +219,7 @@ function FitMark({ level, copy }: { level: FitLevel; copy: OfferRosterCopy }) {
     <span className="inline-flex items-center gap-1.5">
       <span aria-hidden className="inline-flex gap-0.5">
         {[0, 1, 2].map((i) => (
-          <span key={i} className={`h-1 w-2 rounded-full ${i < filled ? 'bg-[var(--color-positive)]' : 'bg-[var(--lp-border-light)]'}`} />
+          <span key={i} className={`h-1 w-2 rounded-full ${i < filled ? 'bg-[var(--ink)]' : 'bg-[var(--line)]'}`} />
         ))}
       </span>
       {copy.fit[level]}
@@ -235,23 +235,23 @@ function OfferRow({ bid, pick, copy, onOpen }: { bid: BuyerBid; pick: boolean; c
     <button
       type="button"
       onClick={onOpen}
-      className="flex min-h-16 w-full items-center gap-3 py-3 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)]"
+      className="flex min-h-16 w-full items-center gap-3 py-3 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ink)]"
     >
       <PersonAvatar address={bid.sellerUserAddress ?? undefined} name={nameOf(bid)} size={36} />
       <span className="min-w-0 flex-1">
         <span className="flex min-w-0 items-center gap-2">
-          <span dir="auto" className="truncate text-[14px] font-semibold text-[var(--lp-dark)]">{nameOf(bid)}</span>
+          <span dir="auto" className="truncate text-[14px] font-semibold text-[var(--ink)]">{nameOf(bid)}</span>
           <ReputationBadge address={bid.seller} size="sm" appearance="quiet" />
         </span>
-        <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[14px] text-[var(--lp-text-sub)] font-medium">
-          {pick ? <span className="font-semibold text-[var(--color-positive)]">{copy.pick}</span> : null}
+        <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[14px] text-[var(--ink-secondary)] font-medium">
+          {pick ? <span className="font-semibold text-[var(--ink)]">{copy.pick}</span> : null}
           {level ? <FitMark level={level} copy={copy} /> : null}
           {by ? <span>{fill(copy.delivers, { date: by })}</span> : null}
         </span>
       </span>
-      <span className="shrink-0 text-end text-[16px] font-semibold tabular-nums text-[var(--lp-dark)]">
+      <span className="shrink-0 text-end text-[16px] font-semibold tabular-nums text-[var(--ink)]">
         {price(bid.priceUsdc)}
-        <span className="block text-[14px] font-medium text-[var(--lp-text-sub)]">USDC</span>
+        <span className="block text-[14px] font-medium text-[var(--ink-secondary)]">USDC</span>
       </span>
     </button>
   );
@@ -278,42 +278,42 @@ function OfferDetail({ bid, pick, copy, canChoose, onChoose }: {
         <PersonAvatar address={bid.sellerUserAddress ?? undefined} name={nameOf(bid)} size={44} />
         <div className="min-w-0 flex-1">
           <ReputationBadge address={bid.seller} size="md" appearance="quiet" />
-          {pick ? <p className="mt-0.5 text-[14px] font-semibold text-[var(--color-positive)]">{copy.pick}</p> : null}
+          {pick ? <p className="mt-0.5 text-[14px] font-semibold text-[var(--ink)]">{copy.pick}</p> : null}
         </div>
-        <p className="shrink-0 text-end text-[22px] font-semibold tabular-nums text-[var(--lp-dark)]">
+        <p className="shrink-0 text-end text-[22px] font-semibold tabular-nums text-[var(--ink)]">
           {price(bid.priceUsdc)}
-          <span className="block text-[14px] font-medium text-[var(--lp-text-sub)]">USDC</span>
+          <span className="block text-[14px] font-medium text-[var(--ink-secondary)]">USDC</span>
         </p>
       </div>
       <dl className={cn('grid gap-2', data ? 'grid-cols-3' : 'grid-cols-1')}>
         {data ? (
           <>
-            <div className="rounded-[14px] bg-[var(--lp-light)] p-3">
-              <dt className="text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.settled}</dt>
-              <dd className="mt-0.5 text-[17px] font-semibold tabular-nums text-[var(--lp-dark)]">{settled}</dd>
+            <div className="rounded-[14px] bg-[var(--raised)] p-3">
+              <dt className="text-[14px] text-[var(--ink-secondary)] font-medium">{copy.settled}</dt>
+              <dd className="mt-0.5 text-[17px] font-semibold tabular-nums text-[var(--ink)]">{settled}</dd>
             </div>
-            <div className="rounded-[14px] bg-[var(--lp-light)] p-3">
-              <dt className="text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.disputes}</dt>
-              <dd className="mt-0.5 text-[17px] font-semibold tabular-nums text-[var(--lp-dark)]">{data.disputedCount}</dd>
+            <div className="rounded-[14px] bg-[var(--raised)] p-3">
+              <dt className="text-[14px] text-[var(--ink-secondary)] font-medium">{copy.disputes}</dt>
+              <dd className="mt-0.5 text-[17px] font-semibold tabular-nums text-[var(--ink)]">{data.disputedCount}</dd>
             </div>
           </>
         ) : null}
-        <div className="rounded-[14px] bg-[var(--lp-light)] p-3">
-          <dt className="text-[14px] text-[var(--lp-text-sub)] font-medium">{copy.deliverBy}</dt>
-          <dd className="mt-0.5 text-[17px] font-semibold text-[var(--lp-dark)]">{by}</dd>
+        <div className="rounded-[14px] bg-[var(--raised)] p-3">
+          <dt className="text-[14px] text-[var(--ink-secondary)] font-medium">{copy.deliverBy}</dt>
+          <dd className="mt-0.5 text-[17px] font-semibold text-[var(--ink)]">{by}</dd>
         </div>
       </dl>
       {reasons.length ? (
-        <ul aria-label={sr.record} className="divide-y divide-[var(--lp-border-light)] border-y border-[var(--lp-border-light)]">
+        <ul aria-label={sr.record} className="divide-y divide-[var(--line)] border-y border-[var(--line)]">
           {reasons.map((label) => (
-            <li key={label} className="py-2.5 text-[15px] text-[var(--lp-dark)]">{label}</li>
+            <li key={label} className="py-2.5 text-[15px] text-[var(--ink)]">{label}</li>
           ))}
         </ul>
       ) : null}
       {level || settled === 0 ? (
         <p className="flex flex-wrap gap-2 text-[14px]">
-          {level ? <span className="rounded-full bg-[var(--lp-light)] px-3 py-1.5 text-[var(--lp-dark)]"><FitMark level={level} copy={copy} /></span> : null}
-          {settled === 0 ? <span className="rounded-full bg-[var(--lp-light)] px-3 py-1.5 text-[var(--lp-text-sub)]">{copy.newHere}</span> : null}
+          {level ? <span className="rounded-full bg-[var(--raised)] px-3 py-1.5 text-[var(--ink)]"><FitMark level={level} copy={copy} /></span> : null}
+          {settled === 0 ? <span className="rounded-full bg-[var(--raised)] px-3 py-1.5 text-[var(--ink-secondary)]">{copy.newHere}</span> : null}
         </p>
       ) : null}
       {canChoose ? (
@@ -326,7 +326,7 @@ function OfferDetail({ bid, pick, copy, canChoose, onChoose }: {
         </button>
       ) : null}
       {bid.sellerUserAddress ? (
-        <a href={`/credit-passport/${bid.sellerUserAddress}`} target="_blank" rel="noopener noreferrer" className="block text-center text-[14px] font-semibold text-[var(--lp-dark)] underline underline-offset-4">
+        <a href={`/credit-passport/${bid.sellerUserAddress}`} target="_blank" rel="noopener noreferrer" className="block text-center text-[14px] font-semibold text-[var(--ink)] underline underline-offset-4">
           {copy.record}
         </a>
       ) : null}

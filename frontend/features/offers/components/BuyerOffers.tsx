@@ -66,7 +66,7 @@ export function BuyerOffers({ jobId, budgetUsdc }: { jobId: string; budgetUsdc: 
   if (accepted) {
     return (
       <section className="mx-auto w-full max-w-[720px] px-4 pt-8">
-        <p role="status" className="rounded-[20px] bg-[var(--lp-card)] p-6 text-[16px] text-[var(--lp-dark)]">
+        <p role="status" className="rounded-[20px] bg-[var(--surface)] p-6 text-[16px] text-[var(--ink)]">
           {t.accepted}
         </p>
       </section>
@@ -107,29 +107,29 @@ export function BuyerOffers({ jobId, budgetUsdc }: { jobId: string; budgetUsdc: 
 
   return (
     <section aria-labelledby={`${titleId}-list`} className="mx-auto w-full max-w-[720px] px-4 pt-8">
-      <h2 id={`${titleId}-list`} className="text-[22px] font-medium text-[var(--lp-dark)]">
+      <h2 id={`${titleId}-list`} className="text-[22px] font-medium text-[var(--ink)]">
         {offers.length === 1 ? t.countOne : t.listTitle.replace('{n}', String(offers.length))}
       </h2>
       <ul className="mt-5 space-y-3">
         {offers.map((offer) => (
-          <li key={offer.id} className="rounded-[20px] bg-[var(--lp-card)] p-6">
+          <li key={offer.id} className="rounded-[20px] bg-[var(--surface)] p-6">
             <div className={`flex justify-between gap-4 ${offer.sellerBlock ? 'items-start' : 'items-baseline'}`}>
               {offer.sellerBlock ? (
                 <SellerBlock offer={{ seller: offer.sellerUser, ...offer.sellerBlock }} />
               ) : (
                 <span className="flex min-w-0 items-center gap-2">
-                  <span className="truncate text-[16px] font-medium text-[var(--lp-dark)]">{sellerName(offer.sellerUser)}</span>
+                  <span className="truncate text-[16px] font-medium text-[var(--ink)]">{sellerName(offer.sellerUser)}</span>
                   {/^0x[a-fA-F0-9]{40}$/.test(offer.sellerUser) ? <ReputationBadge address={offer.sellerUser} size="sm" appearance="quiet" /> : null}
                 </span>
               )}
-              <span className="shrink-0 text-[16px] font-medium tabular-nums text-[var(--lp-dark)]">
+              <span className="shrink-0 text-[16px] font-medium tabular-nums text-[var(--ink)]">
                 {formatUsdc(offer.priceUsdc)}
               </span>
             </div>
-            <p className="mt-1 text-[14px] text-[var(--lp-text-sub)] font-medium">
+            <p className="mt-1 text-[14px] text-[var(--ink-secondary)] font-medium">
               {t.deliverByOn.replace('{date}', shortDate(offer.deliverByUnix, locale))}
             </p>
-            {offer.note ? <p dir="auto" className="mt-3 text-[15px] leading-relaxed text-[var(--lp-text-sub)]">{offer.note}</p> : null}
+            {offer.note ? <p dir="auto" className="mt-3 text-[15px] leading-relaxed text-[var(--ink-secondary)]">{offer.note}</p> : null}
             {offer.id !== top.id ? (
               <Button variant="outline" size="sm" className="mt-4 rounded-full" onClick={() => setChosen(offer)}>
                 {t.acceptShort}
@@ -141,28 +141,28 @@ export function BuyerOffers({ jobId, budgetUsdc }: { jobId: string; budgetUsdc: 
       <Button variant={chosen ? 'outline' : undefined} size="lg" className="mt-5 w-full rounded-full" onClick={() => setChosen(top)}>
         {t.review.replace('{price}', formatUsdc(top.priceUsdc, { withSuffix: false }))}
       </Button>
-      <p className="mt-3 text-center text-[14px] text-[var(--lp-text-sub)] font-medium">{top.sellerBlock?.recommended ? t.agentPickLine : t.agentLine}</p>
+      <p className="mt-3 text-center text-[14px] text-[var(--ink-secondary)] font-medium">{top.sellerBlock?.recommended ? t.agentPickLine : t.agentLine}</p>
 
       <ConfirmSheetShell open={!!chosen} labelledBy={titleId} busy={busy || fundingBusy} onClose={closeConfirmation}>
         {chosen ? (
           <div className="space-y-5">
-            <h2 id={titleId} className="text-[22px] font-medium text-[var(--lp-dark)]">
+            <h2 id={titleId} className="text-[22px] font-medium text-[var(--ink)]">
               {t.confirmTitle.replace('{seller}', nameOf(chosen))}
             </h2>
             {chosenTotal ? <>
             {/* The verified total, fee included, is the loudest number. */}
-            <p className="text-[36px] font-medium leading-none tabular-nums text-[var(--lp-dark)]">
+            <p className="text-[36px] font-medium leading-none tabular-nums text-[var(--ink)]">
               {formatUsdc(chosenTotal)}
             </p>
             {chosen.fundedUsdc && chosen.fundedUsdc !== chosen.priceUsdc ? (
-              <p className="text-[14px] tabular-nums text-[var(--lp-text-sub)] font-medium">
+              <p className="text-[14px] tabular-nums text-[var(--ink-secondary)] font-medium">
                 {t.includesFee.replace('{price}', formatUsdc(chosen.priceUsdc, { withSuffix: false }))}
               </p>
             ) : null}
-            <p className="text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
+            <p className="text-[15px] leading-relaxed text-[var(--ink-secondary)]">
               {t.confirmBody.replace('{price}', formatUsdc(chosenTotal, { withSuffix: false }))}
             </p>
-            </> : <p role="alert" className="text-[15px] leading-relaxed text-[var(--lp-text-sub)]">{t.totalUnavailable}</p>}
+            </> : <p role="alert" className="text-[15px] leading-relaxed text-[var(--ink-secondary)]">{t.totalUnavailable}</p>}
             {diff ? <p className="text-[14px] text-[var(--color-warning)]">{t.aboveBudget.replace('{diff}', diff)}</p> : null}
             {error ? (
               <p role="alert" className="text-[14px] text-[var(--color-critical)]">

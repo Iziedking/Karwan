@@ -91,7 +91,7 @@ export function MatchPanel({
       {raising ? (
         <div className="flex flex-wrap items-end gap-3">
           <div>
-            <label htmlFor={raiseId} className="text-[14px] text-[var(--lp-dark)]">{t.raise.label}</label>
+            <label htmlFor={raiseId} className="text-[14px] text-[var(--ink)]">{t.raise.label}</label>
             <div className="mt-2 flex items-center gap-2">
               <input
                 id={raiseId}
@@ -100,7 +100,7 @@ export function MatchPanel({
                 onChange={(e) => setRaisePrice(e.target.value)}
                 className={`${FIELD} max-w-[140px] tabular-nums`}
               />
-              <span className="text-[14px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
+              <span className="text-[14px] font-semibold text-[var(--ink-secondary)]">USDC</span>
             </div>
           </div>
           <button type="button" className={SECONDARY} disabled={busy} onClick={() => void sendRaise()}>{t.raise.send}</button>
@@ -118,7 +118,7 @@ export function MatchPanel({
       )}
       {error ? <p role="alert" className={ALERT}>{t.error}</p> : null}
       {proposal?.riskNote && view.viewer === 'seller' ? (
-        <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{proposal.riskNote}</p>
+        <p className="text-[14px] leading-relaxed text-[var(--ink-secondary)] font-medium">{proposal.riskNote}</p>
       ) : null}
     </div>
   );

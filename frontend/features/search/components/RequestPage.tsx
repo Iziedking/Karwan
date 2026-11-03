@@ -41,7 +41,7 @@ function stateCopyKey(v: RequestView): StateKeys {
 }
 
 const TOGGLE =
-  'flex min-h-11 w-full items-center justify-between text-[15px] font-semibold text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]';
+  'flex min-h-11 w-full items-center justify-between text-[15px] font-semibold text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]';
 
 /// One request, one status: what is happening, whose move it is, and the one
 /// action that moves it on. Offers and the agent's timeline stay folded, and
@@ -106,27 +106,27 @@ export function RequestPage({ initial, explorer }: { initial: BuyerJob; explorer
       <AgentNudges events={live.events} />
       <Link
         href={view.viewer === 'seller' ? '/seller' : '/buyer'}
-        className="inline-flex min-h-11 items-center text-[14px] text-[var(--lp-text-sub)] underline-offset-4 hover:underline font-medium"
+        className="inline-flex min-h-11 items-center text-[14px] text-[var(--ink-secondary)] underline-offset-4 hover:underline font-medium"
       >
         {view.viewer === 'seller' ? t.backSeller : t.back}
       </Link>
-      <div className="divide-y divide-[var(--lp-border-light)] [&>*]:py-8">
+      <div className="divide-y divide-[var(--line)] [&>*]:py-8">
         <header className="space-y-2">
-          <p className="mono text-[13px] tracking-[0.04em] text-[var(--lp-text-sub)]">{fill(rf.reference, { reference: requestRef(job.jobId) })}</p>
-          <h1 className="break-words text-[26px] font-semibold tracking-[-0.02em] text-[var(--lp-dark)]">{title}</h1>
-          <p className="text-[15px] tabular-nums text-[var(--lp-text-sub)]">
+          <p className="mono text-[13px] tracking-[0.04em] text-[var(--ink-secondary)]">{fill(rf.reference, { reference: requestRef(job.jobId) })}</p>
+          <h1 className="break-words text-[26px] font-semibold tracking-[-0.02em] text-[var(--ink)]">{title}</h1>
+          <p className="text-[15px] tabular-nums text-[var(--ink-secondary)]">
             {fill(rf.upTo, { amount: job.budgetUsdc })}
             {job.deadlineUnix ? ` · ${fill(rf.neededBy, { date: formatDealDate(job.deadlineUnix * 1000, locale) })}` : ''}
           </p>
           {quantityLine(rp, job.quantity, job.budgetUsdc) ? (
-            <p className="text-[15px] tabular-nums text-[var(--lp-text-sub)]">{quantityLine(rp, job.quantity, job.budgetUsdc)}</p>
+            <p className="text-[15px] tabular-nums text-[var(--ink-secondary)]">{quantityLine(rp, job.quantity, job.budgetUsdc)}</p>
           ) : null}
         </header>
 
         <section aria-labelledby="request-status" className="space-y-4">
           <div aria-live="polite" className="space-y-2">
-            <h2 id="request-status" className="text-[20px] font-semibold text-[var(--lp-dark)]">{fill(copy.headline, values)}</h2>
-            <p className="text-[15px] leading-relaxed text-[var(--lp-text-sub)]">{fill(copy.detail, values)}</p>
+            <h2 id="request-status" className="text-[20px] font-semibold text-[var(--ink)]">{fill(copy.headline, values)}</h2>
+            <p className="text-[15px] leading-relaxed text-[var(--ink-secondary)]">{fill(copy.detail, values)}</p>
             <RequestReachLine
               jobId={job.jobId}
               active={view.viewer === 'buyer' && !proposal && !nearMiss && !job.escrowFunded && !job.expiredAt && !job.cancelledAt}
@@ -136,16 +136,16 @@ export function RequestPage({ initial, explorer }: { initial: BuyerJob; explorer
           {view.priceUsdc && view.state.startsWith('match') ? (
             <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
               {view.viewer === 'buyer' ? (
-                <span className="text-[15px] font-semibold text-[var(--lp-dark)]">{matchedName}</span>
+                <span className="text-[15px] font-semibold text-[var(--ink)]">{matchedName}</span>
               ) : null}
-              <span className="text-[22px] font-semibold tabular-nums text-[var(--lp-dark)]">{view.priceUsdc} USDC</span>
+              <span className="text-[22px] font-semibold tabular-nums text-[var(--ink)]">{view.priceUsdc} USDC</span>
               {view.wasUsdc ? (
-                <span className="text-[14px] text-[var(--lp-text-sub)] font-medium">{fill(t.match.was, { was: view.wasUsdc })}</span>
+                <span className="text-[14px] text-[var(--ink-secondary)] font-medium">{fill(t.match.was, { was: view.wasUsdc })}</span>
               ) : null}
             </p>
           ) : null}
           {view.primary === 'openDeal' ? (
-            <Link href={`/deals/${job.jobId}`} className="inline-flex min-h-12 items-center text-[15px] font-semibold text-[var(--lp-dark)] underline underline-offset-4">
+            <Link href={`/deals/${job.jobId}`} className="inline-flex min-h-12 items-center text-[15px] font-semibold text-[var(--ink)] underline underline-offset-4">
               {t.actions.openDeal}
             </Link>
           ) : (
@@ -168,7 +168,7 @@ export function RequestPage({ initial, explorer }: { initial: BuyerJob; explorer
           <section className="space-y-3">
             <button type="button" aria-expanded={timelineOpen} onClick={() => setTimelineOpen((v) => !v)} className={TOGGLE}>
               <span>{t.timeline}</span>
-              <span className="text-[14px] font-medium text-[var(--lp-text-sub)]">{timelineOpen ? t.offers.hide : t.offers.show}</span>
+              <span className="text-[14px] font-medium text-[var(--ink-secondary)]">{timelineOpen ? t.offers.hide : t.offers.show}</span>
             </button>
             {timelineOpen ? <EventList events={live.events} explorer={explorer} collapseRepeats pageSize={5} /> : null}
           </section>

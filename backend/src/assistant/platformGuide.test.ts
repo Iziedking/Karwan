@@ -199,6 +199,12 @@ test('the guide knows the order path: one fee line, the agent accepting, and the
   assert.match(market.summary, /Paying 120 USDC while the money goes in/);
   assert.match(market.summary, /shows Paid in: the seller has your order/);
   assert.doesNotMatch(market.summary, /you get it back|Protected, the seller/);
+  // View 48 batch 6: a request is one screen, parts folded behind Pay in parts.
+  const steps = market.steps.join(' ');
+  assert.match(steps, /on one screen, What do you need\?/);
+  assert.match(steps, /Pay in parts/);
+  assert.match(steps, /Finding sellers/);
+  assert.doesNotMatch(steps, /in three steps/);
   assert.ok(market.tools.includes('order_listing'));
   assert.ok(market.pages.includes('/order/[listingId]'));
   assert.ok(market.api.includes('GET /api/listings/:id/quote'));
