@@ -1,5 +1,6 @@
 'use client';
 
+import { CARD_CLASS } from '@/shared/components/Card';
 import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -21,11 +22,11 @@ const POSITIONS_KEY = ['financier', 'positions'] as const;
 
 const DOT: Record<ShownStatus, string> = {
   awaiting_financier: 'bg-[var(--warn)]',
-  accepted: 'bg-[var(--lp-accent)]',
+  accepted: 'bg-[var(--ink)]',
   settled: 'bg-[var(--color-positive)]',
   repaid: 'bg-[var(--color-positive)]',
   defaulted: 'bg-[var(--color-critical)]',
-  waived: 'bg-[var(--lp-border-light)]',
+  waived: 'bg-[var(--line)]',
 };
 
 /// The financier's own positions, read once and shared by the open part at the
@@ -68,10 +69,10 @@ export function FactoringPositionsPanel() {
 
   return (
     <section aria-labelledby="your-positions" className="pt-8" data-guide="financier-positions">
-      <h2 id="your-positions" className="text-[clamp(1.35rem,2.4vw,1.75rem)] font-semibold leading-tight tracking-[-0.025em] text-[var(--lp-dark)]">
+      <h2 id="your-positions" className="text-[clamp(1.35rem,2.4vw,1.75rem)] font-semibold leading-tight tracking-[-0.025em] text-[var(--ink)]">
         {t.title}
       </h2>
-      <p className="mt-1 text-[15px] font-medium tabular-nums text-[var(--lp-text-sub)]">
+      <p className="mt-1 text-[15px] font-medium tabular-nums text-[var(--ink-secondary)]">
         {t.summary
           .replace('{active}', String(summary.active))
           .replace('{out}', formatUsdc(summary.outUsdc, { withSuffix: false }))
@@ -116,17 +117,17 @@ export function FactoringHistoryPanel() {
 
   return (
     <section aria-labelledby="positions-history" className="pt-10">
-      <h2 id="positions-history" className="text-[clamp(1.35rem,2.4vw,1.75rem)] font-semibold leading-tight tracking-[-0.025em] text-[var(--lp-dark)]">
+      <h2 id="positions-history" className="text-[clamp(1.35rem,2.4vw,1.75rem)] font-semibold leading-tight tracking-[-0.025em] text-[var(--ink)]">
         {t.historyTitle}
       </h2>
-      <ul className="mt-4 divide-y divide-[var(--lp-border-light)] border-y border-[var(--lp-border-light)]">
+      <ul className={`${CARD_CLASS} mt-4 divide-y divide-[var(--line)] px-5`}>
         {visible.map((offer) => (
           <PositionRow key={offer.id} offer={offer} deal={null} onPaid={() => {}} />
         ))}
       </ul>
       {pageCount > 1 && (
         <nav aria-label={t.pagination} className="mt-4 flex flex-wrap items-center justify-between gap-3">
-          <span className="text-[14px] tabular-nums text-[var(--lp-text-sub)]">
+          <span className="text-[14px] tabular-nums text-[var(--ink-secondary)]">
             {t.range
               .replace('{from}', String(pageStart + 1))
               .replace('{to}', String(Math.min(pageStart + PAGE_SIZE, history.length)))
@@ -149,8 +150,8 @@ export function FactoringHistoryPanel() {
 function PositionGroup({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
     <div className="mt-6" role="group" aria-labelledby={id}>
-      <h3 id={id} className="text-[16px] font-semibold text-[var(--lp-dark)]">{title}</h3>
-      <ul className="mt-2 divide-y divide-[var(--lp-border-light)] border-y border-[var(--lp-border-light)]">{children}</ul>
+      <h3 id={id} className="text-[16px] font-semibold text-[var(--ink)]">{title}</h3>
+      <ul className={`${CARD_CLASS} mt-2 divide-y divide-[var(--line)] px-5`}>{children}</ul>
     </div>
   );
 }
@@ -173,31 +174,31 @@ function PositionRow({ offer, deal, onPaid }: { offer: FactoringOffer; deal: Dir
   return (
     <li className="grid gap-3 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
       <div className="min-w-0">
-        <p className="flex items-center gap-2 text-[15px] font-semibold text-[var(--lp-dark)]">
+        <p className="flex items-center gap-2 text-[15px] font-semibold text-[var(--ink)]">
           <span aria-hidden className={cn('size-2 rounded-full', DOT[status])} />
           {t.status[status]}
-          <span className="font-normal text-[var(--lp-text-sub)]">· {aside}</span>
+          <span className="font-normal text-[var(--ink-secondary)]">· {aside}</span>
         </p>
         {reference ? (
-          <p dir="auto" className="mt-0.5 truncate text-[14px] text-[var(--lp-text-sub)]">
+          <p dir="auto" className="mt-0.5 truncate text-[14px] text-[var(--ink-secondary)]">
             {t.dealLine.replace('{reference}', reference).replace('{seller}', seller)}
           </p>
         ) : null}
-        <p className="mt-0.5 text-[14px] text-[var(--lp-text-sub)]">
+        <p className="mt-0.5 text-[14px] text-[var(--ink-secondary)]">
           {status === 'defaulted' && offer.fromGuaranteeMicros
             ? t.shortfall.replace('{amount}', formatUsdc((Number(offer.fromGuaranteeMicros) / 1e6).toString(), { withSuffix: false }))
             : t.detail[status]}
         </p>
         <dl className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-[14px]">
           <div className="flex gap-1.5">
-            <dt className="text-[var(--lp-text-sub)]">{t.advanced}</dt>
-            <dd className="whitespace-nowrap font-semibold tabular-nums text-[var(--lp-dark)]">
+            <dt className="text-[var(--ink-secondary)]">{t.advanced}</dt>
+            <dd className="whitespace-nowrap font-semibold tabular-nums text-[var(--ink)]">
               {formatUsdc(offer.offeredAdvanceUsdc, { withSuffix: false })} USDC
             </dd>
           </div>
           <div className="flex gap-1.5">
-            <dt className="text-[var(--lp-text-sub)]">{finished ? t.received : t.expected}</dt>
-            <dd className="whitespace-nowrap font-semibold tabular-nums text-[var(--lp-dark)]">
+            <dt className="text-[var(--ink-secondary)]">{finished ? t.received : t.expected}</dt>
+            <dd className="whitespace-nowrap font-semibold tabular-nums text-[var(--ink)]">
               {formatUsdc(offer.expectedReturnUsdc, { withSuffix: false })} USDC
             </dd>
           </div>

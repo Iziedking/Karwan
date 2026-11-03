@@ -82,22 +82,22 @@ export function FinancingPositionWorkspace(props: {
           type="button"
           onClick={() => setMessagesOpen(true)}
           aria-label={fc.privateConversation}
-          className="grid size-11 shrink-0 place-items-center rounded-full border border-[var(--line)] text-[var(--ink)] hover:bg-[var(--tint)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
+          className="grid size-11 shrink-0 place-items-center rounded-full border border-[var(--line)] text-[var(--ink)] hover:bg-[var(--ash)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
         >
           <Icon name="messages" size={20} />
         </button>
       </div>
-      <p className="mt-1 text-[15px] text-[var(--lp-text-sub)]">{fw.privateNote}</p>
+      <p className="mt-1 text-[15px] text-[var(--ink-secondary)]">{fw.privateNote}</p>
 
       <p className="mt-6 text-[17px] font-medium text-[var(--ink)]">
         <span className={props.status === 'review' ? 'text-[var(--color-critical)]' : props.status === 'paySeller' ? 'text-[var(--warn)]' : ''}>{fw[statusKey]}</span>
       </p>
-      <p className="mt-1 text-[15px] text-[var(--lp-text-sub)]">{fw[detailKey]}</p>
+      <p className="mt-1 text-[15px] text-[var(--ink-secondary)]">{fw[detailKey]}</p>
 
       <dl className="mt-6 divide-y divide-[var(--line)] border-y border-[var(--line)]">
         {rows.map(([label, value]) => (
           <div key={label} className="flex items-baseline justify-between gap-4 py-3">
-            <dt className="text-[15px] text-[var(--lp-text-sub)]">{label}</dt>
+            <dt className="text-[15px] text-[var(--ink-secondary)]">{label}</dt>
             <dd className="text-[15px] font-medium tabular-nums text-[var(--ink)]">{value}</dd>
           </div>
         ))}
@@ -106,7 +106,7 @@ export function FinancingPositionWorkspace(props: {
       <section aria-labelledby="financing-progress" className="mt-8">
         <div className="flex items-baseline justify-between gap-3">
           <h2 id="financing-progress" className="text-[17px] font-medium text-[var(--ink)]">{fw.dealProgress}</h2>
-          <span className="text-[15px] text-[var(--lp-text-sub)]">{fw[progress.label]}</span>
+          <span className="text-[15px] text-[var(--ink-secondary)]">{fw[progress.label]}</span>
         </div>
         <ol className="mt-4 space-y-3">
           {steps.map((step, index) => {
@@ -116,13 +116,13 @@ export function FinancingPositionWorkspace(props: {
               <li key={step} className="flex items-center gap-3">
                 <span
                   aria-hidden
-                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold tabular-nums ${
-                    done ? 'bg-[var(--ink)] text-[var(--lp-bg)]' : current ? 'border-2 border-[var(--ink)] text-[var(--ink)]' : 'border border-[var(--line)] text-[var(--lp-text-sub)]'
+                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[14px] font-semibold tabular-nums ${
+                    done ? 'bg-[var(--ink)] text-[var(--canvas)]' : current ? 'border-2 border-[var(--ink)] text-[var(--ink)]' : 'border border-[var(--line)] text-[var(--ink-secondary)]'
                   }`}
                 >
                   {done ? '✓' : index + 1}
                 </span>
-                <span className={`text-[15px] ${done || current ? 'font-medium text-[var(--ink)]' : 'text-[var(--lp-text-sub)]'}`}>{fw[step]}</span>
+                <span className={`text-[15px] ${done || current ? 'font-medium text-[var(--ink)]' : 'text-[var(--ink-secondary)]'}`}>{fw[step]}</span>
                 {current ? <span className="sr-only">{fw.currentStage}</span> : null}
               </li>
             );

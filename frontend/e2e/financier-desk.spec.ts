@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import type { DirectDeal, FactoringOffer } from '../core/api';
 import { en } from '../shared/i18n/messages/en';
+import { financeDeskCopy } from '../shared/i18n/messages/financeDesk';
 import { BUYER, SELLER } from './fixtures';
 
 const API = 'http://127.0.0.1:3199';
@@ -42,7 +43,7 @@ const position = (id: string, status: FactoringOffer['status']): FactoringOffer 
   updatedAt: Date.UTC(2026, 9, 3),
 });
 
-async function serveDesk(page: Page, opts: { invoices?: DirectDeal[]; positions?: FactoringOffer[] } = {}) {
+async function serveDesk(page: Page, opts: { invoices?: DirectDeal[]; positions?: FactoringOffer[]; status?: 'none' | 'approved' } = {}) {
   await page.addInitScript(() => {
     try { localStorage.setItem('karwan:guide:disabled', '1'); } catch { /* private mode */ }
   });
@@ -54,7 +55,7 @@ async function serveDesk(page: Page, opts: { invoices?: DirectDeal[]; positions?
     if (pathname === '/api/terms/status') return route.fulfill({ json: { currentVersion: '1', acceptedVersion: '1' } });
     if (pathname === '/api/financier/eligibility') {
       return route.fulfill({
-        json: { eligible: true, tenureDays: 90, tenureOk: true, stakeUsdc: 500, stakeOk: true, repScore: 800, repTier: 'ESTABLISHED', repOk: true, reasons: [], status: 'approved' },
+        json: { eligible: true, tenureDays: 90, tenureOk: true, stakeUsdc: 500, stakeOk: true, repScore: 800, repTier: 'ESTABLISHED', repOk: true, reasons: [], status: opts.status ?? 'approved' },
       });
     }
     if (pathname === '/api/factoring/available') {
@@ -172,4 +173,41 @@ test('what needs the financier is above the requests and finished positions are 
   expect(o!.y).toBeLessThan(h!.y);
   await expect(page.getByText(t.positions.detail.defaulted)).toBeVisible();
   await expect(page.getByText(t.open.timing.beforeDelivery).first()).toBeVisible();
+});
+
+/// The finance desk in the new look (view 48, batch 9h): positions sit in
+/// cards, and only the one action that needs the financier is green.
+const greenControls = (page: Page) =>
+  page.evaluate(() => {
+    const probe = document.createElement('span');
+    probe.style.backgroundColor = 'var(--action)';
+    document.querySelector('main')!.appendChild(probe);
+    const green = getComputedStyle(probe).backgroundColor;
+    probe.remove();
+    return [...document.querySelectorAll<HTMLElement>('main a, main button')]
+      .filter((el) => el.offsetParent !== null && getComputedStyle(el).backgroundColor === green)
+      .map((el) => el.getAttribute('aria-label') || el.textContent?.trim() || '');
+  });
+
+test('on the desk only Pay the seller is green', async ({ page }, info) => {
+  await serveDesk(page, { positions: [position('w1', 'awaiting_financier'), position('p1', 'accepted')] });
+  await page.goto('/financier');
+  await expect(page.getByRole('button', { name: t.positions.paySeller })).toBeVisible();
+  expect(await greenControls(page)).toEqual([t.positions.paySeller]);
+  await expect(page.locator('.karwan-splash-mark')).toHaveCount(0);
+  await page.screenshot({ path: info.outputPath('finance-home.png'), fullPage: true });
+});
+
+test('Apply shows the three checks in one card and Apply as the green button', async ({ page }, info) => {
+  const copy = financeDeskCopy.en.apply;
+  await serveDesk(page, { status: 'none' });
+  await page.goto('/financier');
+  await expect(page.getByRole('heading', { level: 1, name: copy.title })).toBeVisible();
+  for (const label of [copy.tenure, copy.stake, copy.reputation]) await expect(page.getByText(label, { exact: true })).toBeVisible();
+  await expect(page.getByRole('img', { name: copy.met })).toHaveCount(3);
+  await expect(page.getByText('90 days', { exact: true })).toBeVisible();
+  await expect(page.getByText(t.open.tier.established, { exact: true })).toBeVisible();
+  expect(await greenControls(page)).toEqual([copy.apply]);
+  await expect(page.locator('.karwan-splash-mark')).toHaveCount(0);
+  await page.screenshot({ path: info.outputPath('finance-apply.png'), fullPage: true });
 });

@@ -172,14 +172,14 @@ export function RegisterBusinessBand({
         <SectionTag>{t.eyebrow}</SectionTag>
         <PageCard className="mt-4">
           <div className="p-5 md:p-6">
-            <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] font-medium">{t.loadError}</p>
+            <p className="text-[14px] leading-relaxed text-[var(--ink-secondary)] font-medium">{t.loadError}</p>
             <button
               type="button"
               onClick={() => {
                 setLoaded(false);
                 setReloadKey((value) => value + 1);
               }}
-              className="mt-3 inline-flex min-h-11 items-center mono text-[14px] font-bold uppercase tracking-[0.12em] text-[var(--lp-accent-ink)]"
+              className="mt-3 inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--ink)] underline underline-offset-2"
             >
               {t.actions.retry}
             </button>
@@ -209,8 +209,8 @@ export function RegisterBusinessBand({
             <p
               className={
                 status === 'rejected'
-                  ? 'text-[14px] leading-relaxed text-[var(--lp-critical)]'
-                  : 'text-[14px] leading-relaxed text-[var(--lp-text-sub)]'
+                  ? 'text-[14px] leading-relaxed text-[var(--color-critical)]'
+                  : 'text-[14px] leading-relaxed text-[var(--ink-secondary)]'
               }
             >
               {status === 'verified'
@@ -241,7 +241,7 @@ export function RegisterBusinessBand({
                     type="button"
                     onClick={submit}
                     disabled={submitting}
-                    className="inline-flex min-h-11 items-center px-4 py-2 mono text-[14px] font-bold uppercase tracking-[0.14em] bg-[var(--lp-dark)] text-[var(--lp-light)] disabled:opacity-60"
+                    className="inline-flex min-h-11 items-center px-4 py-2 text-[14px] font-semibold bg-[var(--ink)] text-[var(--raised)] disabled:opacity-60"
                     style={cornerStyle}
                   >
                     {submitting ? t.actions.submitting : t.actions.submit}
@@ -250,7 +250,7 @@ export function RegisterBusinessBand({
                     type="button"
                     onClick={() => setEditing(false)}
                     disabled={submitting}
-                    className="inline-flex min-h-11 items-center px-3 mono text-[14px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]"
+                    className="inline-flex min-h-11 items-center px-3 text-[14px] font-semibold text-[var(--ink-muted)]"
                   >
                     {t.actions.cancel}
                   </button>
@@ -259,7 +259,7 @@ export function RegisterBusinessBand({
                 <button
                   type="button"
                   onClick={() => setEditing(true)}
-                  className="inline-flex min-h-11 items-center px-4 py-2 mono text-[14px] font-bold uppercase tracking-[0.14em] border border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)] transition-colors"
+                  className="inline-flex min-h-11 items-center px-4 py-2 text-[14px] font-semibold border border-[var(--line-strong)] hover:border-[var(--ink-muted)] transition-colors"
                   style={cornerStyle}
                 >
                   {status === 'rejected' ? t.actions.resubmit : t.actions.start}
@@ -267,7 +267,7 @@ export function RegisterBusinessBand({
               ) : mode === 'summary' && status !== 'verified' ? (
                 <Link
                   href="/business/verification"
-                  className="inline-flex min-h-11 items-center justify-between gap-3 rounded-full bg-[var(--lp-accent)] px-4 py-2 text-[14px] font-bold text-[var(--lp-band-dark)] transition-transform hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
+                  className="inline-flex min-h-11 items-center justify-between gap-3 rounded-full bg-[var(--action)] px-4 py-2 text-[14px] font-semibold text-[var(--on-action)] transition-transform hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] focus-visible:ring-offset-2"
                 >
                   <span>{status === 'rejected' ? t.actions.resubmit : t.actions.openWorkflow}</span>
                   <Icon name="arrow-right" size={16} directional />
@@ -275,13 +275,13 @@ export function RegisterBusinessBand({
               ) : mode === 'summary' && status === 'verified' ? (
                 <Link
                   href="/business/verification"
-                  className="inline-flex min-h-11 items-center rounded-full border border-[var(--lp-outline)] px-4 py-2 text-[14px] font-semibold text-[var(--lp-text-sub)] transition-colors hover:border-[var(--lp-outline-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
+                  className="inline-flex min-h-11 items-center rounded-full border border-[var(--line-strong)] px-4 py-2 text-[14px] font-semibold text-[var(--ink-secondary)] transition-colors hover:border-[var(--ink-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] focus-visible:ring-offset-2"
                 >
                   {t.actions.view}
                 </Link>
               ) : null}
               {error ? (
-                <span role="alert" className="text-[14px] leading-snug text-[var(--lp-critical)]">
+                <span role="alert" className="text-[14px] leading-snug text-[var(--color-critical)]">
                   {error}
                 </span>
               ) : null}
@@ -302,15 +302,15 @@ const cornerStyle = {
 function StatusPill({ status }: { status: BusinessRegistrationStatus }) {
   const t = useTranslations().registerBusiness;
   const map: Record<BusinessRegistrationStatus, { label: string; color: string }> = {
-    none: { label: t.status.none, color: 'var(--lp-text-muted)' },
+    none: { label: t.status.none, color: 'var(--ink-muted)' },
     submitted: { label: t.status.submitted, color: '#b07d1f' },
-    verified: { label: t.status.verified, color: 'var(--lp-positive)' },
-    rejected: { label: t.status.rejected, color: 'var(--lp-critical)' },
+    verified: { label: t.status.verified, color: 'var(--color-positive)' },
+    rejected: { label: t.status.rejected, color: 'var(--color-critical)' },
   };
   const current = map[status];
   return (
     <span
-      className="inline-flex min-h-11 items-center px-3 py-2 mono text-[13px] font-bold uppercase tracking-[0.16em] border"
+      className="inline-flex min-h-11 items-center px-3 py-2 text-[14px] font-semibold border"
       style={{ color: current.color, borderColor: current.color, ...cornerStyle }}
     >
       {current.label}
@@ -370,8 +370,8 @@ function RegisterForm(props: {
               onClick={() => props.setSector(value)}
               className={
                 props.sector === value
-                  ? 'inline-flex min-h-11 items-center border border-[var(--lp-dark)] bg-[var(--lp-dark)] px-3 py-2 text-[14px] font-semibold text-[var(--lp-light)]'
-                  : 'inline-flex min-h-11 items-center border border-[var(--lp-outline)] px-3 py-2 text-[14px] font-semibold text-[var(--lp-text-sub)] hover:border-[var(--lp-outline-hover)]'
+                  ? 'inline-flex min-h-11 items-center border border-[var(--ink)] bg-[var(--ink)] px-3 py-2 text-[14px] font-semibold text-[var(--raised)]'
+                  : 'inline-flex min-h-11 items-center border border-[var(--line-strong)] px-3 py-2 text-[14px] font-semibold text-[var(--ink-secondary)] hover:border-[var(--ink-muted)]'
               }
               style={cornerStyle}
             >
@@ -393,8 +393,8 @@ function RegisterForm(props: {
               onClick={() => props.setDocKind(value)}
               className={
                 props.docKind === value
-                  ? 'min-h-11 border border-[var(--lp-dark)] bg-[var(--lp-dark)] px-4 py-3 text-start text-[14px] font-semibold text-[var(--lp-light)]'
-                  : 'min-h-11 border border-[var(--lp-outline)] px-4 py-3 text-start text-[14px] font-semibold text-[var(--lp-text-sub)] hover:border-[var(--lp-outline-hover)]'
+                  ? 'min-h-11 border border-[var(--ink)] bg-[var(--ink)] px-4 py-3 text-start text-[14px] font-semibold text-[var(--raised)]'
+                  : 'min-h-11 border border-[var(--line-strong)] px-4 py-3 text-start text-[14px] font-semibold text-[var(--ink-secondary)] hover:border-[var(--ink-muted)]'
               }
               style={cornerStyle}
             >
@@ -410,9 +410,9 @@ function RegisterForm(props: {
           accept=".pdf,image/png,image/jpeg,image/webp"
           disabled={props.disabled}
           onChange={(event) => props.setFile(event.target.files?.[0] ?? null)}
-          className="form-input min-h-11 file:me-3 file:min-h-9 file:border-0 file:bg-[var(--lp-dark)] file:px-3 file:text-[14px] file:font-bold file:uppercase file:tracking-[0.08em] file:text-[var(--lp-light)]"
+          className="form-input min-h-11 file:me-3 file:min-h-9 file:border-0 file:bg-[var(--ink)] file:px-3 file:text-[14px] file:font-semibold file:text-[var(--raised)]"
         />
-        <span className="block text-[14px] leading-relaxed text-[var(--lp-text-muted)]">
+        <span className="block text-[14px] leading-relaxed text-[var(--ink-muted)]">
           {props.fileName
             ? rb.fileSelected.replace('{name}', props.fileName)
             : rb.filePrivacy}
@@ -423,7 +423,7 @@ function RegisterForm(props: {
 }
 
 const FIELD_LABEL_CLASS =
-  'mono text-[13px] font-medium uppercase tracking-[0.14em] text-[var(--lp-text-muted)]';
+  'text-[14px] font-medium text-[var(--ink-muted)]';
 
 function Field({
   label,

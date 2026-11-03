@@ -48,10 +48,10 @@ export function PaySeller({ offer, onPaid }: { offer: FactoringOffer; onPaid: ()
       <button type="button" disabled={busy} onClick={() => void pay()} className={PRIMARY}>
         {t.paySeller}
       </button>
-      <p className="text-[14px] tabular-nums text-[var(--lp-text-sub)]">
+      <p className="text-[14px] tabular-nums text-[var(--ink-secondary)]">
         {t.paySellerBy.replace('{amount}', formatUsdc(offer.offeredAdvanceUsdc, { withSuffix: false })).replace('{time}', by)}
       </p>
-      {note ? <p role="status" className="text-[14px] text-[var(--lp-dark)]">{note}</p> : null}
+      {note ? <p role="status" className="text-[14px] text-[var(--ink)]">{note}</p> : null}
     </div>
   );
 }

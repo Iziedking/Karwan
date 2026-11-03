@@ -2,6 +2,10 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { api, ApiError } from '@/core/api';
+import { buttonClasses } from '@/shared/components/Button';
+import { CARD_CLASS } from '@/shared/components/Card';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
+import { financeDeskCopy } from '@/shared/i18n/messages/financeDesk';
 import { PageTour } from '@/shared/guide/PageTour';
 import { FINANCIER_APPLY_TOUR_ID, FINANCIER_APPLY_STEPS } from '@/shared/guide/tours';
 
@@ -29,30 +33,34 @@ export function FinancierApply({
   eligibility: FinancierEligibility;
   onApplied: () => void;
 }) {
+  const { locale } = useLocale();
+  const copy = financeDeskCopy[locale].apply;
+  const tiers = useTranslations().financierDashboard.open.tier;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const tier = tiers[eligibility.repTier.toLowerCase() as keyof typeof tiers] ?? eligibility.repTier;
 
   const checks = [
     {
-      label: 'Time on Karwan',
+      label: copy.tenure,
       ok: eligibility.tenureOk,
-      value: `${eligibility.tenureDays}d`,
-      need: 'Your account needs a little more history.',
+      value: copy.days.replace('{days}', String(eligibility.tenureDays)),
+      need: copy.tenureNeed,
       fix: null as { href: string; label: string } | null,
     },
     {
-      label: 'Deal guarantee',
+      label: copy.stake,
       ok: eligibility.stakeOk,
       value: `${eligibility.stakeUsdc.toFixed(2)} USDC`,
-      need: 'Deposit to your deal guarantee first.',
-      fix: { href: '/guarantee', label: 'Deposit to your deal guarantee' },
+      need: copy.stakeNeed,
+      fix: { href: '/guarantee', label: copy.stakeFix },
     },
     {
-      label: 'Reputation',
+      label: copy.reputation,
       ok: eligibility.repOk,
-      value: eligibility.repTier,
-      need: 'Reach at least the COLD tier through settled deals.',
-      fix: { href: '/market', label: 'Trade to build it' },
+      value: tier,
+      need: copy.reputationNeed,
+      fix: { href: '/market', label: copy.reputationFix },
     },
   ];
 
@@ -64,7 +72,7 @@ export function FinancierApply({
       await api.financierApply();
       onApplied();
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Could not apply. Try again.');
+      setError(e instanceof ApiError ? e.message : copy.error);
     } finally {
       setBusy(false);
     }
@@ -73,81 +81,53 @@ export function FinancierApply({
   const pendingReview = eligibility.status === 'applied';
 
   return (
-    <div className="max-w-[640px] mx-auto py-12">
+    <div className="mx-auto max-w-[640px] px-5 py-12">
       <PageTour id={FINANCIER_APPLY_TOUR_ID} steps={FINANCIER_APPLY_STEPS} />
-      <p className="mono text-[13px] font-bold uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-        Financier
-      </p>
-      <h1 className="mt-2 font-sans text-[30px] sm:text-[36px] font-extrabold tracking-[-0.02em] text-[var(--lp-dark)] leading-[1.05]">
-        Fund trade, earn the spread<span className="text-[var(--lp-accent)]">.</span>
-      </h1>
-      <p className="mt-4 text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[52ch] font-medium">
-        Financiers advance against accepted invoices and fund purchase orders, then collect
-        repayment when the trade settles on chain. Anyone can apply. The desk unlocks once you
-        meet the bar below.
-      </p>
+      <h1 className="text-[26px] font-semibold leading-tight text-[var(--ink)]">{copy.title}</h1>
+      <p className="mt-3 max-w-[52ch] text-[15px] leading-relaxed text-[var(--ink-secondary)]">{copy.intro}</p>
 
-      <div
-        className="mt-8 divide-y"
-        style={{ borderColor: 'var(--lp-border-light)' }}
-      >
+      <ul className={`${CARD_CLASS} mt-6 divide-y divide-[var(--line)] px-5`}>
         {checks.map((c) => (
-          <div key={c.label} className="flex items-center gap-3 py-4">
+          <li key={c.label} className="flex items-center gap-3 py-4">
             <span
-              aria-hidden
-              className="shrink-0 inline-flex items-center justify-center w-5 h-5 mono text-[14px] font-bold"
-              style={{
-                color: c.ok ? 'var(--lp-accent)' : 'var(--lp-text-muted)',
-                background: c.ok ? 'rgba(175,201,91,0.16)' : 'rgba(0,0,0,0.05)',
-                borderRadius: 5,
-              }}
+              role="img"
+              aria-label={c.ok ? copy.met : copy.notMet}
+              className={`grid size-5 shrink-0 place-items-center rounded-full border text-[14px] leading-none ${c.ok ? 'border-[var(--ink)] bg-[var(--ink)] text-[var(--canvas)]' : 'border-[var(--line-strong)]'}`}
             >
-              {c.ok ? '✓' : '·'}
+              {c.ok ? '✓' : ''}
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-[14px] font-semibold text-[var(--lp-dark)]">{c.label}</p>
-              {!c.ok && <p className="mt-0.5 text-[14px] leading-snug text-[var(--lp-text-sub)] font-medium">{c.need}</p>}
+              <p className="text-[15px] font-medium text-[var(--ink)]">{c.label}</p>
+              {!c.ok ? <p className="mt-0.5 text-[14px] leading-snug text-[var(--ink-secondary)]">{c.need}</p> : null}
+              {!c.ok && c.fix ? (
+                <Link href={c.fix.href} className="mt-1 inline-block text-[14px] font-medium text-[var(--ink)] underline underline-offset-2">
+                  {c.fix.label}
+                </Link>
+              ) : null}
             </div>
-            <span className="shrink-0 mono text-[14px] tabular-nums text-[var(--lp-dark)]">{c.value}</span>
-            {!c.ok && c.fix && (
-              <Link
-                href={c.fix.href}
-                className="shrink-0 mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] underline underline-offset-2 hover:text-[var(--lp-dark)]"
-              >
-                {c.fix.label}
-              </Link>
-            )}
-          </div>
+            <span className="shrink-0 text-[15px] tabular-nums text-[var(--ink)]">{c.value}</span>
+          </li>
         ))}
-      </div>
+      </ul>
 
       {pendingReview ? (
-        <p className="mt-8 text-[14px] text-[var(--lp-text-sub)] font-medium">
-          Application received. We are reviewing it and will open your desk shortly.
-        </p>
+        <p className="mt-6 text-[15px] text-[var(--ink-secondary)]">{copy.pending}</p>
       ) : (
-        <div className="mt-8 flex items-center gap-3 flex-wrap">
+        <div className="mt-6 space-y-3">
+          <p className="text-[14px] text-[var(--ink-muted)]">{eligibility.eligible ? copy.allMet : copy.meetAll}</p>
           <button
             type="button"
             onClick={apply}
             disabled={busy || !eligibility.eligible}
             aria-busy={busy}
-            className="mono text-[14px] uppercase tracking-[0.1em] font-bold px-5 py-3 bg-[var(--lp-dark)] text-[var(--lp-bg)] disabled:opacity-40 transition"
-            style={{
-              borderRadius: 11,
-            }}
+            className={buttonClasses({ size: 'lg', className: 'w-full', loading: busy })}
           >
-            {busy ? 'Applying...' : eligibility.eligible ? 'Apply to fund trade' : 'Not eligible yet'}
+            {busy ? copy.applying : eligibility.eligible ? copy.apply : copy.notEligible}
           </button>
-          {!eligibility.eligible && (
-            <span className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-              clear the checks above to apply
-            </span>
-          )}
         </div>
       )}
 
-      {error && <p className="mt-3 text-[14px] leading-snug text-[var(--lp-critical)]">{error}</p>}
+      {error ? <p role="alert" className="mt-3 text-[14px] leading-snug text-[var(--color-critical)]">{error}</p> : null}
     </div>
   );
 }

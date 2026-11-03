@@ -9,7 +9,7 @@ export function PoLinePage() {
   const { lineId } = useParams<{ lineId: string }>();
   const [p, setP] = useState<any>();
   useEffect(() => { api.poFinancingLine(lineId).then(setP); }, [lineId]);
-  if (!p) return <main className="min-h-screen bg-[var(--lp-bg)] p-6 text-sm text-[var(--lp-text-muted)]">{pb.financierPanels.loadingPosition}</main>;
+  if (!p) return <main className="min-h-screen bg-[var(--canvas)] p-6 text-sm text-[var(--ink-muted)]">{pb.financierPanels.loadingPosition}</main>;
   const status = p.line.state === 'outstanding' ? 'active' : p.line.state === 'repaid' ? 'repaid' : p.line.state === 'defaulted' ? 'review' : 'pending';
   return <FinancingPositionWorkspace kind="po" positionId={lineId} status={status} seller={p.line.seller} financier={p.line.financier} advanceUsdc={p.line.principalUsdc} expectedReturnUsdc={p.line.repayUsdc} protectionUsdc={p.line.requiredStakeUsdc} deal={p.deal} />;
 }

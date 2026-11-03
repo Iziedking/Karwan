@@ -123,10 +123,10 @@ const TIER_DISCOUNT_HINT: ReadonlyArray<{ tier: 'elite' | 'strong' | 'establishe
   { tier: 'established', bps: 400 },
 ];
 
-const SECTION_TITLE = 'text-[clamp(1.35rem,2.4vw,1.75rem)] font-semibold leading-tight tracking-[-0.025em] text-[var(--lp-dark)]';
-const LABEL = 'text-[14px] font-medium text-[var(--lp-text-sub)]';
+const SECTION_TITLE = 'text-[clamp(1.35rem,2.4vw,1.75rem)] font-semibold leading-tight tracking-[-0.025em] text-[var(--ink)]';
+const LABEL = 'text-[14px] font-medium text-[var(--ink-secondary)]';
 const TOGGLE =
-  'inline-flex min-h-11 items-center rounded-full border px-4 text-[14px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]';
+  'inline-flex min-h-11 items-center rounded-full border px-4 text-[14px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]';
 
 function useDate() {
   const { locale } = useLocale();
@@ -221,12 +221,12 @@ export function FinancierDashboard() {
       <PageTour id={FINANCIER_DESK_TOUR_ID} steps={FINANCIER_DESK_STEPS} />
       <Band tone="light" compact>
         <div className="mx-auto max-w-[940px]">
-          <header className="border-b border-[var(--lp-border-light)] pb-6">
-            <h1 className="text-[clamp(2rem,4vw,3rem)] font-semibold leading-tight tracking-[-0.04em] text-[var(--lp-dark)]">
+          <header className="border-b border-[var(--line)] pb-6">
+            <h1 className="text-[clamp(2rem,4vw,3rem)] font-semibold leading-tight tracking-[-0.04em] text-[var(--ink)]">
               {t.title}
             </h1>
-            <p className="mt-3 max-w-[62ch] text-[16px] leading-relaxed text-[var(--lp-text-sub)]">{t.intro}</p>
-            {ARC_NETWORK === 'testnet' && <p className="mt-3 text-[14px] font-medium text-[var(--lp-text-sub)]">{t.testnet}</p>}
+            <p className="mt-3 max-w-[62ch] text-[16px] leading-relaxed text-[var(--ink-secondary)]">{t.intro}</p>
+            {ARC_NETWORK === 'testnet' && <p className="mt-3 text-[14px] font-medium text-[var(--ink-secondary)]">{t.testnet}</p>}
           </header>
 
           <FactoringPositionsPanel />
@@ -330,8 +330,8 @@ function Filters({
               className={cn(
                 TOGGLE,
                 on
-                  ? 'border-[var(--lp-dark)] bg-[var(--lp-dark)] text-[var(--lp-bg)]'
-                  : 'border-[var(--lp-outline-strong)] text-[var(--lp-dark)]',
+                  ? 'border-[var(--ink)] bg-[var(--ink)] text-[var(--canvas)]'
+                  : 'border-[var(--line-strong)] text-[var(--ink)]',
               )}
             >
               {key ? t.filters.sectors[key as (typeof SECTORS)[number]] : t.filters.any}
@@ -372,9 +372,9 @@ function ListSkeleton() {
 
 function EmptyState({ title, body }: { title: string; body: string }) {
   return (
-    <div className="mt-4 border-y border-[var(--lp-border-light)] py-8">
-      <p className="text-[16px] font-semibold text-[var(--lp-dark)]">{title}</p>
-      <p className="mt-1 max-w-[56ch] text-[15px] leading-relaxed text-[var(--lp-text-sub)]">{body}</p>
+    <div className="mt-4 border-y border-[var(--line)] py-8">
+      <p className="text-[16px] font-semibold text-[var(--ink)]">{title}</p>
+      <p className="mt-1 max-w-[56ch] text-[15px] leading-relaxed text-[var(--ink-secondary)]">{body}</p>
     </div>
   );
 }
@@ -408,7 +408,7 @@ function InvoiceList({
   if (available === null) return <ListSkeleton />;
   if (available.length === 0) return <EmptyState title={t.open.emptyTitle} body={t.open.emptyBody} />;
   return (
-    <ul className="mt-4 divide-y divide-[var(--lp-border-light)] border-y border-[var(--lp-border-light)]">
+    <ul className="mt-4 divide-y divide-[var(--line)] border-y border-[var(--line)]">
       {available.map((deal) => (
         <InvoiceRow
           key={deal.jobId}
@@ -438,12 +438,12 @@ function InvoiceRow({
   return (
     <li className="grid gap-4 py-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center" data-guide="financier-deal">
       <div className="min-w-0">
-        <p dir="auto" className="truncate text-[16px] font-semibold text-[var(--lp-dark)]">{sellerName(deal, t)}</p>
-        {meta && <p className="mt-0.5 text-[14px] text-[var(--lp-text-sub)]">{meta}</p>}
-        <p className="mt-3 text-[22px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--lp-dark)]">
+        <p dir="auto" className="truncate text-[16px] font-semibold text-[var(--ink)]">{sellerName(deal, t)}</p>
+        {meta && <p className="mt-0.5 text-[14px] text-[var(--ink-secondary)]">{meta}</p>}
+        <p className="mt-3 text-[22px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--ink)]">
           {usdc(deal.dealAmountUsdc)}
         </p>
-        <p className="mt-0.5 text-[14px] text-[var(--lp-text-sub)]">
+        <p className="mt-0.5 text-[14px] text-[var(--ink-secondary)]">
           {[
             t.open.timing[invoiceTiming(deal)],
             t.open.terms[termKey(deal.paymentTerms)],
@@ -457,7 +457,7 @@ function InvoiceRow({
       </div>
       <div className="flex flex-wrap items-center gap-3 sm:flex-col sm:items-end">
         {receiptPending ? (
-          <p className="text-[14px] font-medium text-[var(--lp-text-sub)]">{t.open.receiptPending}</p>
+          <p className="text-[14px] font-medium text-[var(--ink-secondary)]">{t.open.receiptPending}</p>
         ) : (
           <button
             type="button"
@@ -469,7 +469,7 @@ function InvoiceRow({
           </button>
         )}
         {existingOffer && !receiptPending ? (
-          <p className="text-[14px] font-medium tabular-nums text-[var(--lp-text-sub)]">
+          <p className="text-[14px] font-medium tabular-nums text-[var(--ink-secondary)]">
             {t.open.yourOffer.replace('{rate}', (existingOffer.discountBps / 100).toFixed(1))}
           </p>
         ) : null}
@@ -500,19 +500,19 @@ function OrderList({
   if (available === null) return <ListSkeleton />;
   if (available.length === 0) return <EmptyState title={t.po.emptyTitle} body={t.po.emptyBody} />;
   return (
-    <ul className="mt-4 divide-y divide-[var(--lp-border-light)] border-y border-[var(--lp-border-light)]">
+    <ul className="mt-4 divide-y divide-[var(--line)] border-y border-[var(--line)]">
       {available.map((deal) => {
         const meta = sellerMeta(deal, t);
         return (
           <li key={deal.jobId} className="grid gap-4 py-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
             <div className="min-w-0">
-              <p dir="auto" className="truncate text-[16px] font-semibold text-[var(--lp-dark)]">{sellerName(deal, t)}</p>
-              {meta && <p className="mt-0.5 text-[14px] text-[var(--lp-text-sub)]">{meta}</p>}
-              <p className="mt-3 text-[14px] text-[var(--lp-text-sub)]">{t.po.capitalRequested}</p>
-              <p className="text-[22px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--lp-dark)]">
+              <p dir="auto" className="truncate text-[16px] font-semibold text-[var(--ink)]">{sellerName(deal, t)}</p>
+              {meta && <p className="mt-0.5 text-[14px] text-[var(--ink-secondary)]">{meta}</p>}
+              <p className="mt-3 text-[14px] text-[var(--ink-secondary)]">{t.po.capitalRequested}</p>
+              <p className="text-[22px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--ink)]">
                 {usdc(deal.poFinancingRequestedAdvanceUsdc ?? deal.dealAmountUsdc)}
               </p>
-              <p className="mt-0.5 text-[14px] text-[var(--lp-text-sub)]">{t.po.repayOnPod}</p>
+              <p className="mt-0.5 text-[14px] text-[var(--ink-secondary)]">{t.po.repayOnPod}</p>
             </div>
             <div className="flex flex-wrap items-center gap-3 sm:flex-col sm:items-end">
               <button type="button" onClick={() => onOpenFund(deal)} className={SECONDARY}>
@@ -533,8 +533,8 @@ const OFFER_EXPIRES_HOURS = 24;
 
 function SheetHeader({ id, title, onClose, closeLabel, busy }: { id: string; title: string; onClose: () => void; closeLabel: string; busy: boolean }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-[var(--lp-border-light)] px-5 py-4">
-      <h2 id={id} className="text-[18px] font-semibold text-[var(--lp-dark)]">
+    <div className="flex items-center justify-between gap-3 border-b border-[var(--line)] px-5 py-4">
+      <h2 id={id} className="text-[18px] font-semibold text-[var(--ink)]">
         {title}
       </h2>
       <button
@@ -542,7 +542,7 @@ function SheetHeader({ id, title, onClose, closeLabel, busy }: { id: string; tit
         onClick={onClose}
         disabled={busy}
         aria-label={closeLabel}
-        className="inline-flex size-11 items-center justify-center rounded-[10px] text-[var(--lp-text-sub)] transition-colors hover:bg-[var(--color-surface-2)] hover:text-[var(--lp-dark)] disabled:opacity-40"
+        className="inline-flex size-11 items-center justify-center rounded-[10px] text-[var(--ink-secondary)] transition-colors hover:bg-[var(--color-surface-2)] hover:text-[var(--ink)] disabled:opacity-40"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
           <path d="M18 6 6 18M6 6l12 12" />
@@ -684,7 +684,7 @@ function OfferSheet({
       <div className="space-y-6 p-5 md:p-6">
         <div>
           <p className={LABEL}>{t.offer.faceValue}</p>
-          <p className="mt-1 text-[28px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--lp-dark)]">
+          <p className="mt-1 text-[28px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--ink)]">
             {usdc(deal.dealAmountUsdc)}
           </p>
         </div>
@@ -703,8 +703,8 @@ function OfferSheet({
                   className={cn(
                     TOGGLE,
                     on
-                      ? 'border-[var(--lp-dark)] bg-[var(--lp-dark)] text-[var(--lp-bg)]'
-                      : 'border-[var(--lp-outline-strong)] text-[var(--lp-dark)]',
+                      ? 'border-[var(--ink)] bg-[var(--ink)] text-[var(--canvas)]'
+                      : 'border-[var(--line-strong)] text-[var(--ink)]',
                   )}
                 >
                   {t.open.tier[tier]} · {(bps / 100).toFixed(0)}%
@@ -738,9 +738,9 @@ function OfferSheet({
                   setPercent(Number.isFinite(pct) ? Math.min(20, Math.max(1, pct)) : 1);
                 }}
                 aria-label={t.offer.customDiscountAria}
-                className="min-h-11 w-[4.5rem] rounded-[8px] border border-[var(--lp-outline-strong)] bg-[var(--lp-card)] px-2 text-end text-[16px] font-semibold tabular-nums text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                className="min-h-11 w-[4.5rem] rounded-[8px] border border-[var(--line-strong)] bg-[var(--surface)] px-2 text-end text-[16px] font-semibold tabular-nums text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]"
               />
-              <span className="text-[16px] font-semibold text-[var(--lp-dark)]">%</span>
+              <span className="text-[16px] font-semibold text-[var(--ink)]">%</span>
             </span>
           </div>
           <input
@@ -751,15 +751,15 @@ function OfferSheet({
             value={discountBps}
             onChange={(e) => setPercent(Number(e.target.value) / 100)}
             aria-label={t.offer.customDiscountAria}
-            className="mt-3 w-full accent-[var(--accent)]"
+            className="mt-3 w-full accent-[var(--ink)]"
           />
-          <div className="mt-1 flex justify-between text-[14px] tabular-nums text-[var(--lp-text-sub)]">
+          <div className="mt-1 flex justify-between text-[14px] tabular-nums text-[var(--ink-secondary)]">
             <span>1%</span>
             <span>20%</span>
           </div>
         </div>
 
-        <dl className="space-y-3 border-t border-[var(--lp-border-light)] pt-4">
+        <dl className="space-y-3 border-t border-[var(--line)] pt-4">
           <SheetRow label={t.offer.settlementAssigned} value={usdc(quote.settlementAssignedUsdc)} />
           <SheetRow label={t.offer.youPayNow} value={usdc(quote.advanceUsdc)} strong />
           <SheetRow label={t.offer.youReceiveOnSettlement} value={usdc(quote.settlementReturnUsdc)} strong />
@@ -767,7 +767,7 @@ function OfferSheet({
           {sellerFloor !== null ? <SheetRow label={t.offer.sellerFloor} value={usdc(sellerFloor)} /> : null}
         </dl>
 
-        <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+        <p className="text-[14px] leading-relaxed text-[var(--ink-secondary)]">
           {t.offer.fundingSummaryTemplate
             .replace('{advance}', formatUsdc(quote.advanceUsdc, { withSuffix: false }))
             .replace('{settlement}', formatUsdc(quote.settlementAssignedUsdc, { withSuffix: false }))}{' '}
@@ -785,8 +785,8 @@ function OfferSheet({
           </p>
         ) : null}
         {shortfall && funding ? (
-          <div role="status" className="rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-4">
-            <p className="text-[15px] text-[var(--lp-dark)]">
+          <div role="status" className="rounded-[16px] border border-[var(--line)] bg-[var(--surface)] p-4">
+            <p className="text-[15px] text-[var(--ink)]">
               {t.offer.fundFirst.replace('{wallet}', formatUsdc(funding.walletUsdc, { withSuffix: false })).replace('{amount}', formatUsdc(shortfall, { withSuffix: false }))}
             </p>
             <Link href="/bridge?direction=in" className={cn(SECONDARY, 'mt-3 w-full')}>
@@ -817,8 +817,8 @@ function OfferSheet({
 function SheetRow({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
     <div className="flex items-baseline justify-between gap-4">
-      <dt className="text-[14px] text-[var(--lp-text-sub)]">{label}</dt>
-      <dd className={cn('whitespace-nowrap text-end text-[15px] tabular-nums text-[var(--lp-dark)]', strong && 'font-semibold')}>{value}</dd>
+      <dt className="text-[14px] text-[var(--ink-secondary)]">{label}</dt>
+      <dd className={cn('whitespace-nowrap text-end text-[15px] tabular-nums text-[var(--ink)]', strong && 'font-semibold')}>{value}</dd>
     </div>
   );
 }
@@ -1041,7 +1041,7 @@ function FundSheet({
       <div className="space-y-6 p-5 md:p-6">
         <div>
           <p className={LABEL}>{t.po.orderValue}</p>
-          <p className="mt-1 text-[28px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--lp-dark)]">{usdc(deal.dealAmountUsdc)}</p>
+          <p className="mt-1 text-[28px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--ink)]">{usdc(deal.dealAmountUsdc)}</p>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -1079,24 +1079,24 @@ function FundSheet({
 
         <div>
           <p className={LABEL}>{t.po.sellerProtection}</p>
-          <p className="mt-2 text-[14px] leading-relaxed text-[var(--lp-dark)]">{protection}</p>
+          <p className="mt-2 text-[14px] leading-relaxed text-[var(--ink)]">{protection}</p>
         </div>
 
         <div>
           <p className={LABEL}>{t.po.repaymentDeadline}</p>
           <dl className="mt-2 grid grid-cols-2 gap-3">
             <div>
-              <dt className="text-[14px] text-[var(--lp-text-sub)]">{t.po.expectedDelivery}</dt>
-              <dd className="mt-0.5 text-[15px] font-semibold text-[var(--lp-dark)]">
+              <dt className="text-[14px] text-[var(--ink-secondary)]">{t.po.expectedDelivery}</dt>
+              <dd className="mt-0.5 text-[15px] font-semibold text-[var(--ink)]">
                 {deal.deadlineUnix ? date(deal.deadlineUnix * 1000) : t.po.notDated}
               </dd>
             </div>
             <div>
-              <dt className="text-[14px] text-[var(--lp-text-sub)]">{t.po.earliestRepayment}</dt>
-              <dd className="mt-0.5 text-[15px] font-semibold text-[var(--lp-dark)]">{date(minimumRepaymentAtMs)}</dd>
+              <dt className="text-[14px] text-[var(--ink-secondary)]">{t.po.earliestRepayment}</dt>
+              <dd className="mt-0.5 text-[15px] font-semibold text-[var(--ink)]">{date(minimumRepaymentAtMs)}</dd>
             </div>
           </dl>
-          <p className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{t.po.earliestNote}</p>
+          <p className="mt-2 text-[14px] leading-relaxed text-[var(--ink-secondary)]">{t.po.earliestNote}</p>
           <div role="radiogroup" aria-label={t.po.repaymentDeadline} className="mt-3 grid grid-cols-3 gap-2">
             {REPAYMENT_EXTENSION_OPTIONS.map((opt) => {
               const on = repaymentWindowSeconds === minimumRepaymentWindowSeconds + opt.seconds;
@@ -1109,10 +1109,10 @@ function FundSheet({
                   disabled={submitting}
                   onClick={() => setRepaymentWindowSeconds(minimumRepaymentWindowSeconds + opt.seconds)}
                   className={cn(
-                    'min-h-11 min-w-0 rounded-[10px] border px-2 py-2 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]',
+                    'min-h-11 min-w-0 rounded-[10px] border px-2 py-2 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)]',
                     on
-                      ? 'border-[var(--lp-dark)] bg-[var(--lp-dark)] text-[var(--lp-bg)]'
-                      : 'border-[var(--lp-outline-strong)] text-[var(--lp-dark)]',
+                      ? 'border-[var(--ink)] bg-[var(--ink)] text-[var(--canvas)]'
+                      : 'border-[var(--line-strong)] text-[var(--ink)]',
                   )}
                 >
                   <span className="block text-[14px] font-semibold">{t.extensions[opt.labelKey]}</span>
@@ -1123,13 +1123,13 @@ function FundSheet({
           </div>
         </div>
 
-        <dl className="space-y-3 border-t border-[var(--lp-border-light)] pt-4">
+        <dl className="space-y-3 border-t border-[var(--line)] pt-4">
           <SheetRow label={t.po.sellerReceivesNow} value={usdc(principal)} />
           <SheetRow label={t.po.youReceiveOnSettlement} value={usdc(repay)} strong />
           <SheetRow label={t.po.yourSpread} value={`+${usdc(spread)}`} />
         </dl>
-        <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
-          <span className="font-medium text-[var(--lp-dark)]">{t.po.ifSettlementFallsShort}.</span>{' '}
+        <p className="text-[14px] leading-relaxed text-[var(--ink-secondary)]">
+          <span className="font-medium text-[var(--ink)]">{t.po.ifSettlementFallsShort}.</span>{' '}
           {t.po.shortfallNote.replace('{date}', date((nowUnix + repaymentWindowSeconds) * 1000))}
         </p>
 

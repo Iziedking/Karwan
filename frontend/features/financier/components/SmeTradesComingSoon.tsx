@@ -23,10 +23,10 @@ export function SmeTradesComingSoon() {
             </h1>
             <p className="mt-3 text-[15px] leading-relaxed text-[var(--ink-secondary)] font-medium">{t.when}</p>
 
-            <ul className="mt-6 divide-y divide-[var(--lp-border-light)] overflow-hidden rounded-[18px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
+            <ul className="mt-6 divide-y divide-[var(--line)] overflow-hidden rounded-[18px] border border-[var(--line)] bg-[var(--surface)]">
               {rows.map((row) => (
                 <li key={row.title} className="px-4 py-4">
-                  <h2 className="text-[15px] font-semibold text-[var(--lp-dark)]">{row.title}</h2>
+                  <h2 className="text-[15px] font-semibold text-[var(--ink)]">{row.title}</h2>
                   <p className="mt-1 text-[14px] leading-relaxed text-[var(--ink-secondary)] font-medium">{row.body}</p>
                 </li>
               ))}
@@ -34,7 +34,7 @@ export function SmeTradesComingSoon() {
 
             <Link
               href="/docs/roadmap"
-              className="mt-6 inline-flex min-h-12 items-center gap-1.5 rounded-full bg-[var(--tint)] px-5 text-[14px] font-medium text-[var(--ink)] transition-colors hover:bg-[color-mix(in_srgb,var(--tint)_92%,var(--ink))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)]"
+              className="mt-6 inline-flex min-h-12 items-center gap-1.5 rounded-full bg-[var(--ash)] px-5 text-[14px] font-medium text-[var(--ink)] transition-colors hover:bg-[color-mix(in_srgb,var(--ash)_92%,var(--ink))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]"
             >
               {t.roadmap}
               <Icon name="chevron-right" size={16} directional className="shrink-0" />

@@ -230,7 +230,7 @@ export function SmeCompanyBand({
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="inline-flex min-h-11 items-center mono text-[14px] uppercase tracking-[0.14em] font-bold px-3 py-2 border border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)] transition-colors"
+            className="inline-flex min-h-11 items-center text-[14px] font-semibold font-semibold px-3 py-2 border border-[var(--line-strong)] hover:border-[var(--ink-muted)] transition-colors"
             style={{
               borderRadius: 6,
             }}
@@ -297,7 +297,7 @@ export function SmeCompanyBand({
                 certifications={certifications}
               />
             ) : (
-              <p className="text-[14px] text-[var(--lp-text-sub)] leading-relaxed font-medium">
+              <p className="text-[14px] text-[var(--ink-secondary)] leading-relaxed font-medium">
 {t.emptyBody}
               </p>
             )}
@@ -308,13 +308,13 @@ export function SmeCompanyBand({
                   checked={!hideFromDiscovery}
                   disabled={saving}
                   onChange={(e) => setHideFromDiscovery(!e.target.checked)}
-                  className="mt-0.5 w-4 h-4 accent-[var(--lp-accent)] shrink-0 cursor-pointer"
+                  className="mt-0.5 w-4 h-4 accent-[var(--ink)] shrink-0 cursor-pointer"
                 />
                 <span className="min-w-0">
-                  <span className="mono text-[13px] font-bold uppercase tracking-[0.16em] text-[var(--lp-dark)]">
+                  <span className="text-[14px] font-semibold text-[var(--ink)]">
                     {t.discovery.label}
                   </span>
-                  <span className="mt-1 block text-[14px] leading-snug text-[var(--lp-text-sub)] font-medium">
+                  <span className="mt-1 block text-[14px] leading-snug text-[var(--ink-secondary)] font-medium">
 {t.discovery.body}
                   </span>
                 </span>
@@ -326,7 +326,7 @@ export function SmeCompanyBand({
                   type="button"
                   onClick={save}
                   disabled={saving}
-                  className="inline-flex min-h-11 items-center mono text-[14px] uppercase tracking-[0.14em] font-bold px-3 py-2 bg-[var(--lp-dark)] text-[var(--lp-bg)] disabled:opacity-60"
+                  className="inline-flex min-h-11 items-center text-[14px] font-semibold font-semibold px-3 py-2 bg-[var(--ink)] text-[var(--canvas)] disabled:opacity-60"
                   style={{
                     borderRadius: 6,
                   }}
@@ -337,12 +337,12 @@ export function SmeCompanyBand({
                   type="button"
                   onClick={() => setEditing(false)}
                   disabled={saving}
-                  className="inline-flex min-h-11 items-center px-2 mono text-[14px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]"
+                  className="inline-flex min-h-11 items-center px-2 text-[14px] font-semibold text-[var(--ink-muted)]"
                 >
                   {t.cancel}
                 </button>
                 {error ? (
-                  <span className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-critical)]">
+                  <span className="text-[14px] font-semibold text-[var(--color-critical)]">
                     {error}
                   </span>
                 ) : null}
@@ -356,10 +356,10 @@ export function SmeCompanyBand({
              padded out with empty space reads as unfinished. */
           <PageCard className="self-start">
             <div className="p-4 md:p-5">
-              <p className="mono text-[13px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+              <p className="text-[14px] font-semibold text-[var(--ink-muted)]">
                 {t.repayment.eyebrow}
               </p>
-              <p className="mt-1.5 mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+              <p className="mt-1.5 text-[14px] font-semibold text-[var(--ink-muted)]">
                 {t.repayment.windowTemplate.replace('{count}', String(repayment.windowDealCount))}
               </p>
               <dl className="mt-5 space-y-3.5">
@@ -446,7 +446,7 @@ function SmeViewRows(props: {
               href={props.websiteUrl}
               target="_blank"
               rel="noreferrer noopener"
-              className="text-[var(--lp-dark)] hover:underline"
+              className="text-[var(--ink)] hover:underline"
             >
               {props.websiteUrl.replace(/^https?:\/\//, '')}
             </a>
@@ -468,12 +468,12 @@ function ViewRow({
 }) {
   return (
     <div className="flex items-baseline justify-between gap-4">
-      <dt className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+      <dt className="text-[14px] font-semibold text-[var(--ink-muted)]">
         {label}
       </dt>
       <dd
         className={cn(
-          'text-[14px] text-[var(--lp-dark)] text-end',
+          'text-[14px] text-[var(--ink)] text-end',
           capitalize && 'capitalize',
         )}
       >
@@ -684,7 +684,7 @@ function EditField({
       <div className="flex min-h-7 items-center gap-1">
         <label
           htmlFor={id}
-          className="mono text-[13px] uppercase tracking-[0.14em] font-medium text-[var(--lp-text-muted)]"
+          className="text-[14px] font-semibold font-medium text-[var(--ink-muted)]"
         >
           {label}
         </label>
@@ -706,13 +706,13 @@ function RepayRow({
 }) {
   const valueClass =
     tone === 'positive'
-      ? 'text-[var(--lp-positive)] font-extrabold'
+      ? 'text-[var(--color-positive)] font-semibold'
       : tone === 'critical'
-        ? 'text-[var(--lp-critical)] font-extrabold'
-        : 'text-[var(--lp-dark)] font-bold';
+        ? 'text-[var(--color-critical)] font-semibold'
+        : 'text-[var(--ink)] font-semibold';
   return (
     <div className="flex items-baseline justify-between gap-4">
-      <dt className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+      <dt className="text-[14px] font-semibold text-[var(--ink-muted)]">
         {label}
       </dt>
       <dd className={cn('text-[18px] tabular-nums', valueClass)}>{value}</dd>

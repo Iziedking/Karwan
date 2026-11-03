@@ -1,6 +1,9 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { buttonClasses } from '@/shared/components/Button';
+import { CARD_CLASS } from '@/shared/components/Card';
+import { useLocale } from '@/shared/i18n/LocaleProvider';
+import { financeDeskCopy } from '@/shared/i18n/messages/financeDesk';
 import { api, type POFinancingLine } from '@/core/api';
 import Link from 'next/link';
 import { settlementExplorer } from '@/core/arcNetwork';
@@ -17,34 +20,13 @@ function isTxHash(h?: string): boolean {
   return !!h && /^0x[0-9a-fA-F]{64}$/.test(h);
 }
 
-/// 'funded', 'released' and 'reclaimed' only appear on lines opened before the
-/// custody rail was retired.
-const STATE_LABEL: Record<POFinancingLine['state'], string> = {
-  outstanding: 'Advanced, awaiting settlement',
-  repaid: 'Repaid, settled',
-  defaulted: 'Defaulted',
-  funded: 'Funded, awaiting delivery',
-  released: 'Delivered, principal sent',
-  reclaimed: 'Reclaimed',
-};
-
-const STATE_TONE: Record<POFinancingLine['state'], string> = {
-  outstanding: '#b25425',
-  repaid: 'var(--lp-accent)',
-  defaulted: '#7a1f1a',
-  funded: '#b25425',
-  released: '#3a6ea5',
-  reclaimed: '#6b6b6b',
-};
-
 /// The single most-advanced on-chain proof for a line: the repayment, else the
 /// release, else the funding. Each is a real Arc transaction.
-function proofFor(line: POFinancingLine): { href: string; label: string } | null {
+function proofFor(line: POFinancingLine): { href: string; kind: 'repay' | 'release' | 'reclaim' | 'fund' } | null {
   const t = line.txHashes;
-  if (isTxHash(t.repay)) return { href: `${ARC_EXPLORER}/tx/${t.repay}`, label: 'repayment ↗' };
-  if (isTxHash(t.release)) return { href: `${ARC_EXPLORER}/tx/${t.release}`, label: 'release ↗' };
-  if (isTxHash(t.reclaim)) return { href: `${ARC_EXPLORER}/tx/${t.reclaim}`, label: 'reclaim ↗' };
-  if (isTxHash(t.fund)) return { href: `${ARC_EXPLORER}/tx/${t.fund}`, label: 'funding ↗' };
+  for (const kind of ['repay', 'release', 'reclaim', 'fund'] as const) {
+    if (isTxHash(t[kind])) return { href: `${ARC_EXPLORER}/tx/${t[kind]}`, kind };
+  }
   return null;
 }
 
@@ -63,9 +45,9 @@ function LineRow({
   side: 'financier' | 'seller';
   onDismissed: () => void;
 }) {
-  const pb = useTranslations().pageBits;
+  const { locale } = useLocale();
+  const copy = financeDeskCopy[locale].poLines;
   const proof = proofFor(line);
-  const tone = STATE_TONE[line.state];
   const counterparty = side === 'financier' ? line.seller : line.financier;
   // A retired-rail line cannot progress: the contract holding it has no USDC
   // and can no longer assign. Leaving it on the desk reads as a delivery that
@@ -84,67 +66,41 @@ function LineRow({
   }
 
   return (
-    <li className="border border-[var(--lp-border-light)] rounded-xl overflow-hidden">
-      <div className="px-3.5 py-3">
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <span
-            className="mono text-[13px] font-bold uppercase tracking-[0.12em] px-1.5 py-0.5 rounded shrink-0"
-            style={{ color: tone, background: `${tone}1f` }}
-          >
-            {STATE_LABEL[line.state]}
-          </span>
+    <li className="py-4">
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="text-[15px] font-medium text-[var(--ink)]">
+          {copy.states[line.state]}
           {/* A line in a custody-rail state sits on the retired contract, which
               has had its escrow assigner revoked and holds no USDC. It cannot
               progress and nothing will drive it. Saying so beats leaving a
               financier waiting on a delivery that will never release. */}
-          {isLegacy ? (
-            <span
-              className="mono text-[13px] font-bold uppercase tracking-[0.12em] px-1.5 py-0.5 rounded shrink-0"
-              style={{ color: '#6b6b6b', background: '#6b6b6b1f' }}
-              title={pb.financierPanels.retiredContract}
-            >
-              RETIRED RAIL
-            </span>
-          ) : null}
-          <span className="mono text-[14px] font-bold tabular-nums text-[var(--lp-dark)]">
-            {side === 'financier'
-              ? `${line.principalUsdc} → ${line.repayUsdc} USDC`
-              : `${line.principalUsdc} USDC advance`}
-          </span>
-        </div>
-        <div className="mt-2 flex items-center gap-3 flex-wrap mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-          <span>{side === 'financier' ? 'seller' : 'financier'} {short(counterparty)}</span>
-          {proof ? (
-            <a
-              href={proof.href}
-              target="_blank"
-              rel="noreferrer"
-              className="underline underline-offset-2 hover:opacity-80"
-              style={{ color: tone }}
-            >
-              {proof.label}
-            </a>
-          ) : null}
-          <Link href={'/financier/po/' + line.id}>{pb.financierPanels.positionDetails}</Link>
-        </div>
-        {isLegacy ? (
-          <div className="mt-2.5 pt-2.5 border-t border-[var(--lp-border-light)] flex items-center justify-between gap-3 flex-wrap">
-            <span className="text-[14px] text-[var(--lp-text-muted)] max-w-[46ch]">
-              This line is on the retired contract. It holds no funds and cannot move, so it will
-              not settle on its own.
-            </span>
-            <button
-              type="button"
-              onClick={dismiss}
-              disabled={dismissing}
-              className="mono text-[13px] uppercase tracking-[0.14em] font-bold px-2.5 py-1.5 border border-[var(--lp-outline-strong)] disabled:opacity-50 shrink-0"
-              style={{ borderRadius: 6 }}
-            >
-              {dismissing ? 'Dismissing…' : 'Dismiss'}
-            </button>
-          </div>
-        ) : null}
+          {isLegacy ? <span className="text-[var(--ink-secondary)]"> · {copy.retired}</span> : null}
+        </p>
+        <p className="shrink-0 text-[15px] tabular-nums text-[var(--ink)]">
+          {side === 'financier'
+            ? copy.outAndBack.replace('{principal}', line.principalUsdc).replace('{repay}', line.repayUsdc)
+            : copy.advance.replace('{amount}', line.principalUsdc)}
+        </p>
       </div>
+      <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[14px] text-[var(--ink-secondary)]">
+        <span>{(side === 'financier' ? copy.seller : copy.financier).replace('{who}', short(counterparty))}</span>
+        {proof ? (
+          <a href={proof.href} target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-[var(--ink)]">
+            {copy.proof[proof.kind]}
+          </a>
+        ) : null}
+        <Link href={'/financier/po/' + line.id} className="underline underline-offset-2 hover:text-[var(--ink)]">
+          {copy.details}
+        </Link>
+      </div>
+      {isLegacy ? (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+          <p className="max-w-[46ch] text-[14px] text-[var(--ink-muted)]">{copy.retiredBody}</p>
+          <button type="button" onClick={dismiss} disabled={dismissing} className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
+            {dismissing ? copy.dismissing : copy.dismiss}
+          </button>
+        </div>
+      ) : null}
     </li>
   );
 }
@@ -154,6 +110,8 @@ export function POLinesPanel() {
     null,
   );
 
+  const { locale } = useLocale();
+  const copy = financeDeskCopy[locale].poLines;
   const load = useCallback(() => {
     api
       .listMyPOLines()
@@ -174,32 +132,19 @@ export function POLinesPanel() {
   if (total === 0) return null;
 
   return (
-    <div
-      className="mt-8 bg-[var(--lp-card)] border border-[var(--lp-border-light)] p-5"
-      style={{
-        borderRadius: 16,
-      }}
-    >
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <span className="mono text-[13px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-          My PO lines
-        </span>
-        <span className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
-          {total} line{total === 1 ? '' : 's'}
+    <section className="mt-8">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="text-[17px] font-semibold text-[var(--ink)]">{copy.title}</h2>
+        <span className="text-[14px] text-[var(--ink-secondary)]">
+          {total === 1 ? copy.one : copy.many.replace('{count}', String(total))}
         </span>
       </div>
-      <p className="mt-2 text-[14px] leading-snug text-[var(--lp-text-sub)] max-w-[64ch] font-medium">
-        The advance reaches the seller in the same transaction that funds the line, and the escrow
-        repays you ahead of the seller when the deal settles. Every step links to its transaction
-        on Arc.
-      </p>
+      <p className="mt-2 max-w-[64ch] text-[14px] leading-snug text-[var(--ink-secondary)]">{copy.intro}</p>
 
       {lines.asFinancier.length > 0 ? (
         <div className="mt-4">
-          <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] mb-2">
-            You funded
-          </p>
-          <ul className="space-y-2">
+          <h3 className="mb-2 text-[15px] font-medium text-[var(--ink)]">{copy.youFunded}</h3>
+          <ul className={`${CARD_CLASS} divide-y divide-[var(--line)] px-5`}>
             {lines.asFinancier.map((l) => (
               <LineRow key={l.id} line={l} side="financier" onDismissed={load} />
             ))}
@@ -209,16 +154,14 @@ export function POLinesPanel() {
 
       {lines.asSeller.length > 0 ? (
         <div className="mt-4">
-          <p className="mono text-[13px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] mb-2">
-            Financed to you
-          </p>
-          <ul className="space-y-2">
+          <h3 className="mb-2 text-[15px] font-medium text-[var(--ink)]">{copy.financedToYou}</h3>
+          <ul className={`${CARD_CLASS} divide-y divide-[var(--line)] px-5`}>
             {lines.asSeller.map((l) => (
               <LineRow key={l.id} line={l} side="seller" onDismissed={load} />
             ))}
           </ul>
         </div>
       ) : null}
-    </div>
+    </section>
   );
 }

@@ -238,7 +238,7 @@
       "id": "deposit-and-withdraw",
       "title": "Deposit and withdraw",
       "status": "live",
-      "updated": "2026-11-03",
+      "updated": "2026-11-04",
       "tags": [
         "money",
         "deposit"
@@ -250,7 +250,7 @@
           "date": "2026-08-05"
         }
       ],
-      "body": "Money moves in and out of Arc on one screen. What that screen asks for depends on\nwho holds the funds, and the difference is the point rather than an inconsistency.\n\nAn account that signs in with email or a passkey gets one address. Copy it, send\nUSDC from Ethereum, Base, Arbitrum, Optimism, Polygon, Avalanche or Unichain,\nand the balance updates itself.\nThere is no chain to choose, no amount to declare and no wallet to connect,\nbecause Circle derives every deposit wallet from that user's identity anchor, so\nthe same address serves all seven. Solana has its own address on the same screen: a\ndifferent signature curve cannot share one.\n\nAn account that connects its own wallet keeps the explicit flow. It holds the\nfunds, so it picks the chain the USDC is on and signs the transfer.\n\nWithdrawals reach Ethereum, Base, Arbitrum, Optimism, Polygon and Solana, and\nnever require that chain's gas token to receive.\nBefore a withdrawal moves, Karwan shows it once more: where it goes, on which\nnetwork, and that it cannot be undone. Nothing leaves until you confirm.\n\nEvery move lands in Activity under its day with a plus or minus sign, not a\ncolour, and opens a receipt you can save as an image or a PDF.\n\nA payment link opens a page anyone can pay, signed in or not. It shows who\nasks, the amount and what it is for, follows the money step by step, and\nends with a receipt both sides see as Paid.\n\nThe word for this is Deposit and Withdraw. Not top up, not add money, not cash\nout, and never the name of the transfer protocol underneath: which rail carries a\nmove is not something a person sending money needs to hold in their head."
+      "body": "Money moves in and out of Arc on one screen. What that screen asks for depends on\nwho holds the funds, and the difference is the point rather than an inconsistency.\n\nAn account that signs in with email or a passkey gets one address. Copy it, send\nUSDC from Ethereum, Base, Arbitrum, Optimism, Polygon, Avalanche or Unichain,\nand the balance updates itself.\nThere is no chain to choose, no amount to declare and no wallet to connect,\nbecause Circle derives every deposit wallet from that user's identity anchor, so\nthe same address serves all seven. Solana has its own address on the same screen: a\ndifferent signature curve cannot share one.\n\nAn account that connects its own wallet keeps the explicit flow. It holds the\nfunds, so it picks the chain the USDC is on and signs the transfer.\n\nWithdrawals reach Ethereum, Base, Arbitrum, Optimism, Polygon and Solana, and\nnever require that chain's gas token to receive.\nBefore a withdrawal moves, Karwan shows it once more: where it goes, on which\nnetwork, and that it cannot be undone. Nothing leaves until you confirm.\nWithdrawing to a bank account or a card is coming soon. Both are listed on\nthe Withdraw screen and cannot be picked yet.\n\nEvery move lands in Activity under its day with a plus or minus sign, not a\ncolour, and opens a receipt you can save as an image or a PDF.\n\nA payment link opens a page anyone can pay, signed in or not. It shows who\nasks, the amount and what it is for, follows the money step by step, and\nends with a receipt both sides see as Paid.\n\nThe word for this is Deposit and Withdraw. Not top up, not add money, not cash\nout, and never the name of the transfer protocol underneath: which rail carries a\nmove is not something a person sending money needs to hold in their head."
     },
     {
       "id": "escrow-families-roadmap",
@@ -349,7 +349,7 @@
       "id": "invoice-factoring",
       "title": "Invoice factoring",
       "status": "live",
-      "updated": "2026-10-30",
+      "updated": "2026-11-03",
       "tags": [
         "financing"
       ],
@@ -364,7 +364,7 @@
           "date": "2026-10-25"
         }
       ],
-      "body": "The supplier asks to be paid early, naming a floor if they want one. Financiers\nthen bid a discount against the supplier's reputation tier, and the supplier\naccepts one or ignores them all.\n\nA supplier who holds their own wallet gets their Karwan record with that first\nask: the website sends the record setup with their wallet signature before the\nrequest goes out. From Telegram the assistant says to open the deal on the\nwebsite for that one step.\n\nNothing reaches a financier until that request exists. An invoice is never listed\nfor funding on the strength of the supplier having opened a deal, because that\nwould publish their counterparty, amount and timing to every approved financier\nwithout anybody asking to be funded.\n\nOffers are priced against what the escrow can still pay, not the invoice face.\nFace includes the platform fee and every tranche already released, and the\nfinancier is only ever repaid out of what is left. On settlement the escrow pays\nthe financier ahead of the supplier, so repayment is not something anyone chases.\n\nAll of it can also be done by asking the Karwan assistant, on the website or in\nTelegram: the supplier asks to be paid early, reads the offers ranked as the deal\npage ranks them, and takes or turns one down; a financier sees the requests they\nmay fund and makes an offer, which is refused before anything moves if their\nwallet does not hold the advance. Taking an offer and making one are confirmed on\nKarwan, where every figure is shown before money moves.\n\nBeing paid early is not yet open on deals made on Karwan's new escrow. Deals made\nbefore it can use it now."
+      "body": "The supplier asks to be paid early, naming a floor if they want one. Financiers\nthen bid a discount against the supplier's reputation tier, and the supplier\naccepts one or ignores them all.\n\nA supplier who holds their own wallet gets their Karwan record with that first\nask: the website sends the record setup with their wallet signature before the\nrequest goes out. From Telegram the assistant says to open the deal on the\nwebsite for that one step.\n\nNothing reaches a financier until that request exists. An invoice is never listed\nfor funding on the strength of the supplier having opened a deal, because that\nwould publish their counterparty, amount and timing to every approved financier\nwithout anybody asking to be funded.\n\nOffers are priced against what the escrow can still pay, not the invoice face.\nFace includes the platform fee and every tranche already released, and the\nfinancier is only ever repaid out of what is left. On settlement the escrow pays\nthe financier ahead of the supplier, so repayment is not something anyone chases.\n\nAll of it can also be done by asking the Karwan assistant, on the website or in\nTelegram: the supplier asks to be paid early, reads the offers ranked as the deal\npage ranks them, and takes or turns one down; a financier sees the requests they\nmay fund and makes an offer, which is refused before anything moves if their\nwallet does not hold the advance. Taking an offer and making one are confirmed on\nKarwan, where every figure is shown before money moves.\n\nOn the financier desk each part is one card of rows and amounts carry no\ncolour; the one green button is Pay the seller, when a seller is waiting.\n\nBeing paid early is not yet open on deals made on Karwan's new escrow. Deals made\nbefore it can use it now."
     },
     {
       "id": "local-payout-roadmap",
@@ -1188,7 +1188,7 @@
         "note": "Returns at most two DISTINCT addresses and no Circle blockchain code, so the chain vocabulary cannot reach a user.",
         "lastVerified": ""
       },
-      "updated": "2026-11-03",
+      "updated": "2026-11-04",
       "path": "public/product/deposit-and-withdraw.md"
     },
     {
@@ -1340,7 +1340,7 @@
         "note": "An invoice reaches no financier until the seller has asked.",
         "lastVerified": ""
       },
-      "updated": "2026-10-30",
+      "updated": "2026-11-03",
       "path": "public/product/invoice-factoring.md"
     },
     {

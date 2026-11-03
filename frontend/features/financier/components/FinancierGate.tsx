@@ -32,7 +32,7 @@ export function FinancierGate() {
         <FinancierApply eligibility={q.data} onApplied={() => q.refetch()} />
       ) : (
         <div className="mx-auto max-w-[940px] px-5 py-16 text-center">
-          <p role="alert" className="text-[15px] font-medium text-[var(--lp-dark)]">{t.loadError}</p>
+          <p role="alert" className="text-[15px] font-medium text-[var(--ink)]">{t.loadError}</p>
           <button type="button" onClick={() => q.refetch()} className={`${SECONDARY} mt-4`}>
             {t.retry}
           </button>
@@ -49,13 +49,13 @@ function FinancierGateSkeleton() {
   const pulse = 'animate-pulse motion-reduce:animate-none';
   return (
     <div className="mx-auto max-w-[1440px] px-[clamp(20px,5vw,72px)] py-[clamp(40px,6vw,88px)]">
-      <div className={`h-3.5 w-36 rounded bg-black/[0.06] ${pulse}`} />
-      <div className={`mt-5 h-9 w-2/3 max-w-md rounded bg-black/[0.06] ${pulse}`} />
+      <div className={`h-3.5 w-36 rounded bg-[var(--ash)] ${pulse}`} />
+      <div className={`mt-5 h-9 w-2/3 max-w-md rounded bg-[var(--ash)] ${pulse}`} />
       <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {[0, 1, 2].map((i) => (
           <div
             key={i}
-            className={`h-40 bg-black/[0.05] ${pulse}`}
+            className={`h-40 bg-[var(--ash)] ${pulse}`}
             style={{
               borderRadius: 16,
             }}

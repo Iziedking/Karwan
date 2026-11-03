@@ -265,6 +265,18 @@ test('the guide reads a conversation as the new look shows it (view 48, batch 9g
   assert.match(all, /round Send button is the one green control/);
 });
 
+test('the guide says bank and card withdrawals are coming soon, never open (owner, 4 Nov)', () => {
+  const all = PLATFORM_GUIDE.map((e) => [e.summary, ...e.steps].join(' ')).join(' ');
+  assert.match(all, /A bank account and A card are listed under it as Coming soon/);
+});
+
+test('the guide reads the finance desk and business verification as the new look shows them (view 48, batch 9h)', () => {
+  const said = (id: string) => { const e = PLATFORM_GUIDE.find((entry) => entry.id === id)!; return [e.summary, ...e.steps].join(' '); };
+  assert.match(said('finance'), /one green button on the desk is Pay the seller/);
+  assert.match(said('finance'), /Apply shows one card of three checks/);
+  assert.match(said('business'), /Submit for review is the one green button/);
+});
+
 test('the guide sends the record to its own page, with one line on Profile (view 48, batch 9e)', () => {
   const said = (id: string) => { const e = PLATFORM_GUIDE.find((entry) => entry.id === id)!; return [e.summary, ...e.steps].join(' '); };
   assert.match(said('reputation'), /record in one line/);
