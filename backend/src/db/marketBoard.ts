@@ -51,6 +51,9 @@ export interface BoardStore {
   eventsAfter(id: number, limit: number): Promise<StoredBoardEvent[]>;
   latestEventId(): Promise<number>;
   postedSince(atMs: number): Promise<StoredBoardEvent[]>;
+  /// How far a named reader has read the events (view 48, decision 8).
+  getCursor(key: string): Promise<number | null>;
+  setCursor(key: string, eventId: number): Promise<void>;
 }
 
 const plain = (args: Record<string, unknown>) =>
@@ -59,6 +62,7 @@ const plain = (args: Record<string, unknown>) =>
 export function memoryBoardStore(): BoardStore {
   const rows = new Map<string, BoardRow>();
   const events: StoredBoardEvent[] = [];
+  const cursors = new Map<string, number>();
   const key = (id: Hex) => id.toLowerCase();
   const copy = <T>(v: T): T => structuredClone(v);
   return {
@@ -89,6 +93,12 @@ export function memoryBoardStore(): BoardStore {
     },
     async postedSince(atMs) {
       return events.filter((e) => e.kind === 'JobPosted' && e.at >= atMs).map(copy);
+    },
+    async getCursor(cursorKey) {
+      return cursors.get(cursorKey) ?? null;
+    },
+    async setCursor(cursorKey, eventId) {
+      cursors.set(cursorKey, Math.max(cursors.get(cursorKey) ?? 0, eventId));
     },
   };
 }
@@ -155,6 +165,17 @@ export function postgresBoardStore(): BoardStore {
         [atMs],
       );
       return (res.rows as EventRow[]).map(fromEventRow);
+    },
+    async getCursor(cursorKey) {
+      const res = await postgresExecutor().query('SELECT event_id FROM market_board_cursors WHERE reader = $1', [cursorKey]);
+      return res.rows[0] ? Number(res.rows[0].event_id) : null;
+    },
+    async setCursor(cursorKey, eventId) {
+      await postgresExecutor().query(
+        `INSERT INTO market_board_cursors (reader, event_id, updated_at) VALUES ($1, $2, $3)
+         ON CONFLICT (reader) DO UPDATE SET event_id = GREATEST(market_board_cursors.event_id, EXCLUDED.event_id), updated_at = EXCLUDED.updated_at`,
+        [cursorKey, eventId, Date.now()],
+      );
     },
   };
 }

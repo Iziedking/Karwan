@@ -199,3 +199,37 @@ test('a counter with a new key, the next round, is made', async () => {
   assert.equal(next.replayed, false);
   assert.equal((await store.eventsAfter(0, 100)).filter((e) => e.kind === 'CounterOfferIssued').length, 2);
 });
+
+test('a reader with a saved position gets the steps written while it was stopped', async () => {
+  const { board, store } = setup();
+  const { jobId } = await post(board);
+  const later = BigInt(NOW) + DAY;
+  const seen: string[] = [];
+  const stop = board.watch('BidSubmitted', (logs) => seen.push(...logs.map((l) => String((l as unknown as { args: { seller: string } }).args.seller))), () => undefined, { cursorKey: 'buyer:BidSubmitted' });
+  await board.ready();
+  await board.placeOffer({ walletId: 's', seller: SELLER, jobId, price: 90_000_000n, deadline: later });
+  await board.pollOnce();
+  assert.deepEqual(seen, [SELLER]);
+  stop();
+
+  // Karwan stops; an offer lands before the next poll; Karwan starts again.
+  await board.placeOffer({ walletId: 'o', seller: OTHER, jobId, price: 95_000_000n, deadline: later });
+  const restarted = createKarwanBoard({ store, chain: noChain, now: () => NOW, pollMs: 1_000_000 });
+  const after: string[] = [];
+  restarted.watch('BidSubmitted', (logs) => after.push(...logs.map((l) => String((l as unknown as { args: { seller: string } }).args.seller))), () => undefined, { cursorKey: 'buyer:BidSubmitted' });
+  await restarted.ready();
+  await restarted.pollOnce();
+  assert.deepEqual(after, [OTHER], 'the offer written while stopped is delivered, the earlier one is not repeated');
+});
+
+test('a reader without a saved position starts at the newest step, as before', async () => {
+  const { board, store } = setup();
+  const { jobId } = await post(board);
+  await board.placeOffer({ walletId: 's', seller: SELLER, jobId, price: 90_000_000n, deadline: BigInt(NOW) + DAY });
+  const fresh = createKarwanBoard({ store, chain: noChain, now: () => NOW, pollMs: 1_000_000 });
+  const seen: unknown[] = [];
+  fresh.watch('BidSubmitted', (logs) => seen.push(...logs), () => undefined, { cursorKey: 'seller:new-reader' });
+  await fresh.ready();
+  await fresh.pollOnce();
+  assert.deepEqual(seen, []);
+});

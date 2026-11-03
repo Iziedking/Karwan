@@ -1043,6 +1043,7 @@ export function startBuyerAgents() {
       for (const log of logs) safe('JobPosted', () => handleJobPosted(log as never));
     },
     (err) => logger.error({ err: err.message }, 'JobPosted watch error'),
+    { cursorKey: 'buyer:JobPosted' },
   );
 
   const unwatchBid = board.watch(
@@ -1051,6 +1052,7 @@ export function startBuyerAgents() {
       for (const log of logs) safe('BidSubmitted', () => handleBidSubmitted(log as never));
     },
     (err) => logger.error({ err: err.message }, 'BidSubmitted watch error'),
+    { cursorKey: 'buyer:BidSubmitted' },
   );
 
   const unwatchCounter = board.watch(
@@ -1059,6 +1061,7 @@ export function startBuyerAgents() {
       for (const log of logs) safe('CounterResponse', () => handleCounterResponse(log as never));
     },
     (err) => logger.error({ err: err.message }, 'CounterResponse watch error'),
+    { cursorKey: 'buyer:CounterResponse' },
   );
 
   const unsubBus = bus.subscribe((e) => {

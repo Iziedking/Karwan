@@ -33,7 +33,9 @@ export interface MarketBoard {
   /// Requests posted lately, as `JobPosted` logs, for the agents' catch-up
   /// sweeps: the last `blocks` on the old board, the last `ms` on Karwan's.
   recentPosted(lookback: { blocks: bigint; ms: number }): Promise<Log[]>;
-  watch(event: BoardEvent, onLogs: (logs: Log[]) => void, onError: (e: Error) => void): () => void;
+  /// With a `cursorKey`, the reader picks up after a restart from where it was
+  /// handed events last, instead of from the newest event.
+  watch(event: BoardEvent, onLogs: (logs: Log[]) => void, onError: (e: Error) => void, opts?: { cursorKey?: string }): () => void;
 }
 
 /// A refusal, named as the old board's revert.
@@ -122,6 +124,8 @@ interface Watcher {
   onLogs: (logs: Log[]) => void;
   onError: (e: Error) => void;
   cursor?: number;
+  cursorKey?: string;
+  savedCursor?: number;
 }
 
 export function createKarwanBoard(deps: {
@@ -188,6 +192,7 @@ export function createKarwanBoard(deps: {
       for (const w of live) {
         const mine = events.filter((e) => e.id > w.cursor! && e.kind === w.kind).map(boardLog);
         w.cursor = Math.max(w.cursor!, last);
+        await saveCursor(w);
         if (mine.length === 0) continue;
         try {
           w.onLogs(mine);
@@ -197,6 +202,18 @@ export function createKarwanBoard(deps: {
       }
       if (events.length === 500) again = true;
     } while (again);
+  }
+
+  // Saved as events are handed over, before the reader acts on them: nothing is
+  // handed over twice, and nothing written before a restart is skipped.
+  async function saveCursor(w: Watcher): Promise<void> {
+    if (!w.cursorKey || w.cursor === undefined || w.cursor === w.savedCursor) return;
+    try {
+      await store.setCursor(w.cursorKey, w.cursor);
+      w.savedCursor = w.cursor;
+    } catch (err) {
+      w.onError(err as Error);
+    }
   }
 
   function pollOnce(): Promise<void> {
@@ -332,13 +349,16 @@ export function createKarwanBoard(deps: {
       return (await store.postedSince(deps.now() * 1000 - ms)).map(boardLog);
     },
 
-    watch(kind, onLogs, onError) {
-      const w: Watcher = { kind, onLogs, onError };
+    watch(kind, onLogs, onError, opts) {
+      const w: Watcher = { kind, onLogs, onError, ...(opts?.cursorKey ? { cursorKey: opts.cursorKey } : {}) };
       watchers.add(w);
-      const start = store
-        .latestEventId()
+      const start = (async () => {
+        const saved = w.cursorKey ? await store.getCursor(w.cursorKey) : null;
+        return saved ?? (await store.latestEventId());
+      })()
         .then((id) => {
           w.cursor = id;
+          w.savedCursor = id;
         })
         .catch((err) => onError(err as Error))
         .finally(() => starting.delete(start));

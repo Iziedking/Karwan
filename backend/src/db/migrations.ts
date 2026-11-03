@@ -1433,6 +1433,19 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
         WHERE data ? 'key';
     `,
   },
+  {
+    // How far each agent has read the board, so a step written just before a
+    // restart is still delivered after it (view 48, decision 8).
+    version: 55,
+    name: 'market_board_cursors',
+    sql: `
+      CREATE TABLE market_board_cursors (
+        reader TEXT PRIMARY KEY,
+        event_id BIGINT NOT NULL,
+        updated_at BIGINT NOT NULL
+      );
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

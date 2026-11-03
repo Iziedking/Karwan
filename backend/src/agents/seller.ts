@@ -222,9 +222,18 @@ function publishStakeQualificationShadow(
 }
 
 function liveActiveBids(): Record<string, ActiveBid> {
-  const out: Record<string, ActiveBid> = {};
-  for (const [k, v] of activeBids) {
-    if (!v.finalized) out[k] = v; // only in-flight negotiations are worth resuming
+  return activeBidsForSaving(activeBids);
+}
+
+/// The open offers as they are saved: only in-flight negotiations, and never
+/// marked as mid-reply. `responding` is a lock for the running process; saved,
+/// it would come back after a restart and the offer would ignore every counter.
+export function activeBidsForSaving<T extends { finalized: boolean; responding: boolean }>(
+  bids: ReadonlyMap<string, T>,
+): Record<string, T> {
+  const out: Record<string, T> = {};
+  for (const [k, v] of bids) {
+    if (!v.finalized) out[k] = { ...v, responding: false };
   }
   return out;
 }
@@ -251,7 +260,7 @@ export async function hydrateActiveBids(): Promise<void> {
     const stored = await loadActiveBids();
     let n = 0;
     for (const [k, v] of Object.entries(stored)) {
-      activeBids.set(k, v as ActiveBid);
+      activeBids.set(k, { ...(v as ActiveBid), responding: false });
       n += 1;
     }
     if (n > 0) logger.info({ count: n }, 'active bids hydrated from snapshot');
@@ -488,6 +497,7 @@ export function startSellerAgents() {
       for (const log of logs) safe('JobPosted', () => handleJobPosted(log as never));
     },
     (err) => logger.error({ err: err.message }, 'JobPosted watch error'),
+    { cursorKey: 'seller:JobPosted' },
   );
 
   const unwatchCounter = board.watch(
@@ -496,6 +506,7 @@ export function startSellerAgents() {
       for (const log of logs) safe('CounterOfferIssued', () => handleCounterOffer(log as never));
     },
     (err) => logger.error({ err: err.message }, 'CounterOfferIssued watch error'),
+    { cursorKey: 'seller:CounterOfferIssued' },
   );
 
   // Periodic safety net for missed websocket JobPosted events.
