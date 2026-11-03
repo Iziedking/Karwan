@@ -160,7 +160,14 @@ import {
   configureEvidenceQualificationShadow,
   configureEvidenceAcquisitionShadow,
   configureFinancialCommandShadow,
+  liveCollection,
+  closeCollectionFromTask,
+  reseedJobFromChain,
 } from './agents/buyer.js';
+import {
+  configureCollectionCloseScheduler,
+  createCollectionCloseHandlers,
+} from './agents/collectionClose.js';
 import {
   startSellerAgents,
   hydrateActiveBids,
@@ -1101,6 +1108,12 @@ async function boot() {
     // checkpoints. They cannot call agents, providers, wallets, contracts, or
     // proposal stores. Legacy timers remain the sole authority.
     const taskHandlers = {
+      // Live: the close of a request's offer window (view 48, step 7).
+      ...createCollectionCloseHandlers({
+        live: liveCollection,
+        reseed: (jobId) => reseedJobFromChain(jobId, { openOnly: true }),
+        close: closeCollectionFromTask,
+      }),
       ...createBuyerTimerShadowHandlers(buyerSnapshotStore, {
         parityStore: buyerParityStore,
       }),
@@ -1400,6 +1413,8 @@ async function boot() {
       }),
     );
     appLogger.info({ handlerCount: Object.keys(taskHandlers).length }, 'V2 durable task runner started');
+    stopFns.push(configureCollectionCloseScheduler((input) => taskStore.enqueue(input)));
+    appLogger.info('offer window closes run as durable tasks');
   } else if (config.AGENT_RUNTIME_V2_ENABLED) {
     appLogger.error('V2 durable task runner not started because Postgres schema is unavailable');
   } else if (config.MATCH_ENGINE_V2_SHADOW) {

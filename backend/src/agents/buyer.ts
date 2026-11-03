@@ -86,6 +86,7 @@ import type {
 } from './buyerTaskParity.js';
 import { countCleanDealsBetween } from './workRecord.js';
 import { pendingEvaluations } from './evaluationTracker.js';
+import { type CollectionClose, type LiveCollection, armClose } from './collectionClose.js';
 
 /// Hard cap on how many seller candidates the buyer agent will attempt
 /// sequentially on a single brief. Without this, a 10-bid auction could
@@ -1893,14 +1894,10 @@ function scheduleCollectionClose(state: JobState, floorMs: number): void {
   // Close no sooner than the floor, extend by the quiet period on each new bid,
   // never past the cap.
   const nextClose = Math.min(capEnd, Math.max(floorEnd, now + BID_WINDOW_QUIET_MS));
-  armCollectionClose(state, nextClose, now);
+  armCollectionClose(state, nextClose);
 }
 
-function armCollectionClose(
-  state: JobState,
-  closeAt: number,
-  armedAt = Date.now(),
-): void {
+function armCollectionClose(state: JobState, closeAt: number): void {
   if (state.collectionTimer) clearTimeout(state.collectionTimer);
   state.collectionScheduleVersion = nextBuyerShadowGeneration(
     state.collectionScheduleVersion,
@@ -1914,11 +1911,57 @@ function armCollectionClose(
       closeAt,
     },
   };
-  state.collectionTimer = setTimeout(
-    () => finalizeBidCollection(state, shadowSchedule),
-    Math.max(0, closeAt - armedAt),
+  const version = state.collectionScheduleVersion;
+  const ownedByTask = armClose(
+    {
+      jobId: state.jobId,
+      scheduleVersion: version,
+      closeAt,
+      ...(state.collectionStartedAt !== undefined ? { startedAt: state.collectionStartedAt } : {}),
+    },
+    () => {
+      if (state.collectionScheduleVersion !== version) return;
+      if (state.collectionTimer) clearTimeout(state.collectionTimer);
+      state.collectionTimer = setTimeout(
+        () => {
+          if (state.collectionScheduleVersion === version) void finalizeBidCollection(state, shadowSchedule);
+        },
+        Math.max(0, closeAt - Date.now()),
+      );
+    },
   );
-  publishBuyerTimerShadow(state, shadowSchedule);
+  // The shadow compares against the timer; when the durable task owns the
+  // close there is no timer to compare against.
+  publishBuyerTimerShadow(state, ownedByTask ? undefined : shadowSchedule);
+}
+
+/// What the agent holds for a request, for the durable window close.
+export function liveCollection(jobId: string): LiveCollection | null {
+  const state = jobs.get(jobId as `0x${string}`);
+  if (!state) return null;
+  return {
+    scheduleVersion: state.collectionScheduleVersion,
+    ...(state.collectionCloseAt !== undefined ? { closeAt: state.collectionCloseAt } : {}),
+    fired: state.collectionFired,
+    finalized: state.finalized,
+    expired: state.expired,
+    shortlisted: !!state.shortlist?.length,
+  };
+}
+
+/// Closes a request's offer window from its durable task. After a restart the
+/// agent adopts the window the task carries, so the shortlist is still made.
+export async function closeCollectionFromTask(task: CollectionClose, adopt: boolean): Promise<void> {
+  const state = jobs.get(task.jobId as `0x${string}`);
+  if (!state) return;
+  if (adopt) {
+    state.collectionScheduleVersion = task.scheduleVersion;
+    state.collectionCloseAt = task.closeAt;
+    if (state.collectionStartedAt === undefined && task.startedAt !== undefined) {
+      state.collectionStartedAt = task.startedAt;
+    }
+  }
+  await finalizeBidCollection(state);
 }
 
 function clearCollectionClose(state: JobState, publish = true): void {
@@ -2439,11 +2482,7 @@ async function finalizeBidCollection(
         recheckStartedAt,
       );
     }
-    armCollectionClose(
-      state,
-      recheckStartedAt + BID_WINDOW_HOLD_RECHECK_MS,
-      recheckStartedAt,
-    );
+    armCollectionClose(state, recheckStartedAt + BID_WINDOW_HOLD_RECHECK_MS);
     return;
   }
 
