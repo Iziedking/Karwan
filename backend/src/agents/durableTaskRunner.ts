@@ -181,8 +181,6 @@ export class DeadLetterReplayStateError extends Error {
 }
 
 const MANUAL_SHADOW_REPLAYABLE_TASK_KINDS = new Set([
-  'buyer.collection_finalize.shadow',
-  'buyer.counter_timeout.shadow',
   'deal_room.reengage',
   'evidence.acquisition.shadow',
   'evidence.qualification.shadow',

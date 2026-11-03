@@ -72,19 +72,7 @@ import {
   buyerMatchBand,
   isDominatedOverCapFallback,
   rankBuyerTimerBids,
-  type BuyerRuntimeSnapshot,
-  type CollectionShadowDecision,
-  type CounterTimeoutShadowDecision,
 } from './buyerTaskPlanning.js';
-import type {
-  BuyerTimerShadowObservation,
-  BuyerTimerShadowObserver,
-} from './buyerTaskShadow.js';
-import type {
-  BuyerTimerParityObservation,
-  BuyerTimerParityObserver,
-  BuyerTimerParitySchedule,
-} from './buyerTaskParity.js';
 import { countCleanDealsBetween } from './workRecord.js';
 import { pendingEvaluations } from './evaluationTracker.js';
 import { type CollectionClose, type LiveCollection, armClose } from './collectionClose.js';
@@ -484,8 +472,6 @@ setCollectingProbe((jobId) => {
   return state ? collectingOffers(state, Date.now(), BID_WINDOW_MAX_MS) : false;
 });
 const handledEvents = new Set<string>();
-let buyerTimerShadowObserver: BuyerTimerShadowObserver | null = null;
-let buyerTimerParityObserver: BuyerTimerParityObserver | null = null;
 let matchingEngineShadowObserver: MatchingShadowObserver | null = null;
 let negotiationShadowObserver: NegotiationShadowObserver | null = null;
 let evidenceQualificationShadowObserver: EvidenceQualificationShadowObserver | null = null;
@@ -497,30 +483,6 @@ function nextBuyerShadowGeneration(current: number): number {
   buyerShadowSequence = (buyerShadowSequence + 1) % 1_000;
   const epochGeneration = Date.now() * 1_000 + buyerShadowSequence;
   return Math.max(current + 1, epochGeneration);
-}
-
-/// Installs the read-only Phase 3B observer. The observer can persist snapshots
-/// and enqueue shadow tasks, but it receives no JobState reference and cannot
-/// mutate the live buyer loop. Passing null disables observation.
-export function configureBuyerTimerShadow(
-  observer: BuyerTimerShadowObserver | null,
-): () => void {
-  buyerTimerShadowObserver = observer;
-  return () => {
-    if (buyerTimerShadowObserver === observer) buyerTimerShadowObserver = null;
-  };
-}
-
-/// Installs the Phase 3C read-only parity observer. It receives a copied
-/// pre-mutation snapshot and normalized decisions only. It cannot invoke a
-/// buyer action or change the legacy timer outcome.
-export function configureBuyerTimerParity(
-  observer: BuyerTimerParityObserver | null,
-): () => void {
-  buyerTimerParityObserver = observer;
-  return () => {
-    if (buyerTimerParityObserver === observer) buyerTimerParityObserver = null;
-  };
 }
 
 /// Installs the read-only Phase 4 matching observer. It receives copied
@@ -677,132 +639,13 @@ function publishLegacyContractAcceptanceShadow(
   });
 }
 
-function buildBuyerRuntimeSnapshot(
-  state: JobState,
-  capturedAt: number,
-  overrides: { pendingEvaluations?: number } = {},
-): BuyerRuntimeSnapshot {
-  return {
-    jobId: state.jobId,
-    revision: state.shadowRevision,
-    capturedAt,
-    budgetUsdc: state.context.budgetUsdc,
-    ...(state.context.negotiationMaxIncreasePct !== undefined
-      ? { negotiationMaxIncreasePct: state.context.negotiationMaxIncreasePct }
-      : {}),
-    trustedMatch: state.context.trustedMatch === true,
-    buyerMinDeadlineDays: state.buyer.minDeadlineDays,
-    buyerMaxDeadlineDays: state.buyer.maxDeadlineDays,
-    buyerMaxCounterRounds: state.buyer.maxCounterRounds,
-    bids: [...state.bids.values()].map((bid) => ({
-      seller: bid.seller,
-      priceUsdc: bid.priceUsdc,
-      deadlineUnix: bid.deadlineUnix,
-      ...(bid.score !== undefined ? { score: bid.score } : {}),
-      ...(bid.suggestedCounterPrice !== undefined
-        ? { suggestedCounterPrice: bid.suggestedCounterPrice }
-        : {}),
-      ...(bid.suggestedCounterDeadlineDays !== undefined
-        ? { suggestedCounterDeadlineDays: bid.suggestedCounterDeadlineDays }
-        : {}),
-      ...(bid.sellerReputationBps !== undefined
-        ? { sellerReputationBps: bid.sellerReputationBps }
-        : {}),
-      ...(bid.sellerTier !== undefined ? { sellerTier: bid.sellerTier as Tier } : {}),
-      ...(bid.topicalMatch !== undefined ? { topicalMatch: bid.topicalMatch } : {}),
-      ...(bid.sellerFreeStakeUsdc !== undefined
-        ? { sellerFreeStakeUsdc: bid.sellerFreeStakeUsdc }
-        : {}),
-      ...(bid.completionRate !== undefined ? { completionRate: bid.completionRate } : {}),
-      ...(bid.velocity24h !== undefined ? { velocity24h: bid.velocity24h } : {}),
-      ...(bid.priorCleanDealsWithBuyer !== undefined
-        ? { priorCleanDealsWithBuyer: bid.priorCleanDealsWithBuyer }
-        : {}),
-    })),
-    candidateQueue: state.candidateQueue.map((bid) => bid.seller),
-    triedSellers: [...state.triedSellers],
-    sellersAtLastPass: [...(state.sellersAtLastPass ?? [])],
-    lastSellerCounterBySeller: Object.fromEntries(state.lastSellerCounterBySeller),
-    collection: {
-      ...(state.collectionStartedAt !== undefined
-        ? { startedAt: state.collectionStartedAt }
-        : {}),
-      ...(state.collectionCloseAt !== undefined ? { closeAt: state.collectionCloseAt } : {}),
-      scheduleVersion: state.collectionScheduleVersion,
-      fired: state.collectionFired,
-      pendingEvaluations:
-        overrides.pendingEvaluations ?? pendingEvaluations(state.jobId),
-      maxWindowMs: BID_WINDOW_MAX_MS,
-      holdRecheckMs: BID_WINDOW_HOLD_RECHECK_MS,
-    },
-    counter: {
-      ...(state.counterWatchdogSeller ? { seller: state.counterWatchdogSeller } : {}),
-      ...(state.counterWatchdogDueAt !== undefined
-        ? { dueAt: state.counterWatchdogDueAt }
-        : {}),
-      scheduleVersion: state.counterScheduleVersion,
-      ...(state.counterWatchdogRound !== undefined
-        ? { round: state.counterWatchdogRound }
-        : {}),
-    },
-    ...(state.parkedAgreement
-      ? {
-          parkedAgreement: {
-            seller: state.parkedAgreement.seller,
-            priceUsdc: state.parkedAgreement.priceUsdc,
-          },
-        }
-      : {}),
-    finalized: state.finalized,
-    escrowFunded: state.escrowFunded,
-    expired: state.expired,
-  };
-}
-
-function publishBuyerTimerShadow(
-  state: JobState,
-  schedule?: BuyerTimerShadowObservation['schedule'],
-): void {
-  notesChanged(state);
-  const observer = buyerTimerShadowObserver;
-  if (!observer) return;
+/// Every change to what the agent knows about a request: the notes are saved
+/// (view 48, decision 8) and the matching shadow sees a new revision.
+function stateChanged(state: JobState): void {
   state.shadowRevision = nextBuyerShadowGeneration(state.shadowRevision);
-  const capturedAt = Date.now();
-  const snapshot = buildBuyerRuntimeSnapshot(state, capturedAt);
-  void observer({ snapshot, ...(schedule ? { schedule } : {}) }).catch((err) => {
-    logger.warn(
-      { jobId: state.jobId, err: (err as Error).message },
-      'buyer timer shadow observation failed',
-    );
-  });
+  notesChanged(state);
 }
 
-function publishBuyerTimerParity(
-  snapshot: BuyerRuntimeSnapshot,
-  schedule: BuyerTimerParitySchedule,
-  legacyDecision: CollectionShadowDecision | CounterTimeoutShadowDecision,
-  observedAt: number,
-): void {
-  const observer = buyerTimerParityObserver;
-  if (!observer) return;
-  const observation: BuyerTimerParityObservation = {
-    snapshot,
-    schedule,
-    legacyDecision,
-    observedAt,
-  };
-  void observer(observation).catch((err) => {
-    logger.warn(
-      {
-        jobId: snapshot.jobId,
-        timerKind: schedule.kind,
-        scheduleVersion: schedule.data.scheduleVersion,
-        err: (err as Error).message,
-      },
-      'buyer timer parity observation failed',
-    );
-  });
-}
 
 function publishMatchingEngineShadow(
   state: JobState,
@@ -1093,7 +936,7 @@ function clearCounterWatchdog(state: JobState, publish = true) {
   state.counterWatchdogSeller = undefined;
   state.counterWatchdogDueAt = undefined;
   state.counterWatchdogRound = undefined;
-  if (hadSchedule && publish) publishBuyerTimerShadow(state);
+  if (hadSchedule && publish) stateChanged(state);
 }
 
 /// Pushes the job's working deadline out to a later proposed counter deadline,
@@ -2022,16 +1865,8 @@ function armCollectionClose(state: JobState, closeAt: number): void {
     state.collectionScheduleVersion,
   );
   state.collectionCloseAt = closeAt;
-  const shadowSchedule: BuyerTimerParitySchedule = {
-    kind: 'collection',
-    data: {
-      jobId: state.jobId,
-      scheduleVersion: state.collectionScheduleVersion,
-      closeAt,
-    },
-  };
   const version = state.collectionScheduleVersion;
-  const ownedByTask = armClose(
+  armClose(
     {
       jobId: state.jobId,
       scheduleVersion: version,
@@ -2043,15 +1878,13 @@ function armCollectionClose(state: JobState, closeAt: number): void {
       if (state.collectionTimer) clearTimeout(state.collectionTimer);
       state.collectionTimer = setTimeout(
         () => {
-          if (state.collectionScheduleVersion === version) void finalizeBidCollection(state, shadowSchedule);
+          if (state.collectionScheduleVersion === version) void finalizeBidCollection(state);
         },
         Math.max(0, closeAt - Date.now()),
       );
     },
   );
-  // The shadow compares against the timer; when the durable task owns the
-  // close there is no timer to compare against.
-  publishBuyerTimerShadow(state, ownedByTask ? undefined : shadowSchedule);
+  stateChanged(state);
 }
 
 /// What the agent holds for a request, for the durable window close.
@@ -2088,7 +1921,7 @@ function clearCollectionClose(state: JobState, publish = true): void {
   if (state.collectionTimer) clearTimeout(state.collectionTimer);
   state.collectionTimer = null;
   state.collectionCloseAt = undefined;
-  if (hadSchedule && publish) publishBuyerTimerShadow(state);
+  if (hadSchedule && publish) stateChanged(state);
 }
 
 /// Paid market research for the brief's keywords, bought by the buyer's own
@@ -2546,20 +2379,8 @@ function pickSupersedingBid(
   return { bid: top, mode: 'direct' };
 }
 
-async function finalizeBidCollection(
-  state: JobState,
-  timerSchedule?: Extract<BuyerTimerParitySchedule, { kind: 'collection' }>,
-) {
+async function finalizeBidCollection(state: JobState) {
   if (state.collectionFired || state.finalized) {
-    if (timerSchedule && buyerTimerParityObserver) {
-      const observedAt = Date.now();
-      publishBuyerTimerParity(
-        buildBuyerRuntimeSnapshot(state, observedAt),
-        timerSchedule,
-        { action: 'stale', reason: 'already-finished' },
-        observedAt,
-      );
-    }
     return;
   }
 
@@ -2592,33 +2413,16 @@ async function finalizeBidCollection(
       });
     }
     const recheckStartedAt = Date.now();
-    if (timerSchedule && buyerTimerParityObserver) {
-      publishBuyerTimerParity(
-        buildBuyerRuntimeSnapshot(state, recheckStartedAt, {
-          pendingEvaluations: stillEvaluating,
-        }),
-        timerSchedule,
-        {
-          action: 'hold_for_evaluations',
-          availableAt: recheckStartedAt + BID_WINDOW_HOLD_RECHECK_MS,
-          pendingEvaluations: stillEvaluating,
-        },
-        recheckStartedAt,
-      );
-    }
     armCollectionClose(state, recheckStartedAt + BID_WINDOW_HOLD_RECHECK_MS);
     return;
   }
 
   const decisionAt = Date.now();
-  const paritySnapshot = timerSchedule && buyerTimerParityObserver
-    ? buildBuyerRuntimeSnapshot(state, decisionAt)
-    : null;
 
   state.collectionFired = true;
   state.collectionTimer = null;
   state.collectionCloseAt = undefined;
-  publishBuyerTimerShadow(state);
+  stateChanged(state);
 
   // Match-first ranking (see rankBidEntries). budget + effectiveCap are also
   // used by the tier-aware branches below.
@@ -2687,14 +2491,6 @@ async function finalizeBidCollection(
 
   if (ranked.length === 0) {
     const received = state.bids.size;
-    if (timerSchedule && paritySnapshot) {
-      publishBuyerTimerParity(
-        paritySnapshot,
-        timerSchedule,
-        { action: 'no_candidates', receivedBids: received },
-        decisionAt,
-      );
-    }
     logger.warn({ jobId: state.jobId, received }, 'no scored bids, nothing to counter');
     markNegotiationEnded(state, received > 0 ? 'bids-unevaluated' : 'no-bids');
     bus.emitEvent({
@@ -2749,20 +2545,6 @@ async function finalizeBidCollection(
   // have countered them in normal flow, but the spec says elite gets first
   // look, so we honour that.
   if (topTier === 'elite' && topPrice <= effectiveCap) {
-    if (timerSchedule && paritySnapshot) {
-      publishBuyerTimerParity(
-        paritySnapshot,
-        timerSchedule,
-        {
-          action: 'propose_match',
-          seller: top.seller,
-          priceUsdc: top.priceUsdc,
-          reason: 'elite-in-cap',
-          candidateQueue: state.candidateQueue.map((bid) => bid.seller),
-        },
-        decisionAt,
-      );
-    }
     logger.info(
       {
         jobId: state.jobId,
@@ -2785,20 +2567,6 @@ async function finalizeBidCollection(
   if (topTier === 'strong' && ranked.length >= 2 && topPrice <= budget) {
     const secondPrice = Number(ranked[1]!.priceUsdc);
     if (secondPrice > 0 && Math.abs(topPrice - secondPrice) / secondPrice <= 0.05) {
-      if (timerSchedule && paritySnapshot) {
-        publishBuyerTimerParity(
-          paritySnapshot,
-          timerSchedule,
-          {
-            action: 'propose_match',
-            seller: top.seller,
-            priceUsdc: top.priceUsdc,
-            reason: 'strong-near-tie',
-            candidateQueue: state.candidateQueue.map((bid) => bid.seller),
-          },
-          decisionAt,
-        );
-      }
       logger.info(
         {
           jobId: state.jobId,
@@ -2828,21 +2596,6 @@ async function finalizeBidCollection(
           Math.floor((top.deadlineUnix - Math.floor(decisionAt / 1000)) / 86_400),
         ),
       );
-      if (timerSchedule && paritySnapshot) {
-        publishBuyerTimerParity(
-          paritySnapshot,
-          timerSchedule,
-          {
-            action: 'issue_counter',
-            seller: top.seller,
-            counterPriceUsdc: counterPrice.toFixed(2),
-            counterDeadlineDays: remainingDays,
-            reason: 'cold-discount',
-            candidateQueue: state.candidateQueue.map((bid) => bid.seller),
-          },
-          decisionAt,
-        );
-      }
       logger.info(
         {
           jobId: state.jobId,
@@ -2867,20 +2620,6 @@ async function finalizeBidCollection(
   // budget, accept it. Prevents the LLM-vs-LLM race-to-the-bottom counter
   // pattern where both sides reflexively counter-down regardless of context.
   if (topPrice <= budget) {
-    if (timerSchedule && paritySnapshot) {
-      publishBuyerTimerParity(
-        paritySnapshot,
-        timerSchedule,
-        {
-          action: 'propose_match',
-          seller: top.seller,
-          priceUsdc: top.priceUsdc,
-          reason: 'at-or-under-budget',
-          candidateQueue: state.candidateQueue.map((bid) => bid.seller),
-        },
-        decisionAt,
-      );
-    }
     logger.info(
       {
         jobId: state.jobId,
@@ -2923,21 +2662,6 @@ async function finalizeBidCollection(
         Math.floor((top.deadlineUnix - Math.floor(decisionAt / 1000)) / 86_400),
       ),
     );
-  if (timerSchedule && paritySnapshot) {
-    publishBuyerTimerParity(
-      paritySnapshot,
-      timerSchedule,
-      {
-        action: 'issue_counter',
-        seller: top.seller,
-        counterPriceUsdc: top.suggestedCounterPrice ?? budget.toFixed(2),
-        counterDeadlineDays: fallbackCounterDeadlineDays,
-        reason: 'above-budget',
-        candidateQueue: state.candidateQueue.map((bid) => bid.seller),
-      },
-      decisionAt,
-    );
-  }
   await issueCounter(state, {
     ...top,
     suggestedCounterPrice: top.suggestedCounterPrice ?? budget.toFixed(2),
@@ -2970,12 +2694,6 @@ function pickLowestSellerLast(
   return best;
 }
 
-interface CounterTimerParityContext {
-  schedule: Extract<BuyerTimerParitySchedule, { kind: 'counter-timeout' }>;
-  snapshot: BuyerRuntimeSnapshot;
-  observedAt: number;
-}
-
 /// Pop the next candidate off the queue and start a fresh negotiation with
 /// them. Called from any terminal-failure path on the current candidate
 /// (LLM decline, counter-out-of-range, max-counter-rounds). Marks the
@@ -2994,7 +2712,6 @@ async function tryNextCandidate(
   state: JobState,
   failedSeller: `0x${string}`,
   reason: string,
-  timerParity?: CounterTimerParityContext,
 ) {
   if (state.finalized) return;
   // Leaving the "waiting on this seller" state: cancel any pending watchdog so
@@ -3027,19 +2744,6 @@ async function tryNextCandidate(
     state.parkedAgreement.seller.toLowerCase() !== failedSeller.toLowerCase()
   ) {
     const parked = state.parkedAgreement;
-    if (timerParity) {
-      publishBuyerTimerParity(
-        timerParity.snapshot,
-        timerParity.schedule,
-        {
-          action: 'propose_parked',
-          seller: parked.seller,
-          priceUsdc: parked.priceUsdc,
-          timedOutSeller: failedSeller,
-        },
-        timerParity.observedAt,
-      );
-    }
     state.parkedAgreement = null;
     notesChanged(state);
     logger.info(
@@ -3074,20 +2778,6 @@ async function tryNextCandidate(
     const buyerCeiling = computeBuyerEffectiveCap(state.context, state.buyer);
     const best = pickLowestSellerLast(state);
     if (best && Number(best.lastPrice) > buyerCeiling) {
-      if (timerParity) {
-        publishBuyerTimerParity(
-          timerParity.snapshot,
-          timerParity.schedule,
-          {
-            action: 'evaluate_walk_end_near_miss',
-            timedOutSeller: failedSeller,
-            seller: best.seller,
-            lastPriceUsdc: best.lastPrice,
-            buyerCeilingUsdc: buyerCeiling,
-          },
-          timerParity.observedAt,
-        );
-      }
       try {
         const raised = await maybeRaiseNearMiss({
           jobId: state.jobId,
@@ -3129,14 +2819,6 @@ async function tryNextCandidate(
       }
     }
 
-    if (timerParity && !(best && Number(best.lastPrice) > buyerCeiling)) {
-      publishBuyerTimerParity(
-        timerParity.snapshot,
-        timerParity.schedule,
-        { action: 'exhausted', timedOutSeller: failedSeller },
-        timerParity.observedAt,
-      );
-    }
     markNegotiationEnded(state, 'all-candidates-exhausted');
     bus.emitEvent({
       type: 'negotiation.exhausted',
@@ -3179,18 +2861,6 @@ async function tryNextCandidate(
     return;
   }
 
-  if (timerParity) {
-    publishBuyerTimerParity(
-      timerParity.snapshot,
-      timerParity.schedule,
-      {
-        action: 'next_candidate',
-        timedOutSeller: failedSeller,
-        nextSeller: next.seller,
-      },
-      timerParity.observedAt,
-    );
-  }
 
   bus.emitEvent({
     type: 'negotiation.next-candidate',
@@ -3449,66 +3119,31 @@ function armCounterWatchdog(
   state.counterWatchdogSeller = watchedSeller;
   state.counterWatchdogDueAt = watchdogDueAt;
   state.counterWatchdogRound = watchdogRound;
-  const shadowSchedule: Extract<BuyerTimerParitySchedule, { kind: 'counter-timeout' }> = {
-    kind: 'counter-timeout',
-    data: {
-      jobId: state.jobId,
-      seller: watchedSeller,
-      scheduleVersion: state.counterScheduleVersion,
-      round: watchdogRound,
-      dueAt: watchdogDueAt,
-    },
-  };
   const version = state.counterScheduleVersion;
-  const ownedByTask = armCounterWait(
+  armCounterWait(
     { jobId: state.jobId, seller: watchedSeller, scheduleVersion: version, round: watchdogRound, dueAt: watchdogDueAt },
     () => {
       if (state.counterScheduleVersion !== version) return;
       if (state.counterWatchdog) clearTimeout(state.counterWatchdog);
       state.counterWatchdog = setTimeout(() => {
-        if (state.counterScheduleVersion === version) counterWaitEnded(state, watchedSeller, shadowSchedule);
+        if (state.counterScheduleVersion === version) counterWaitEnded(state, watchedSeller);
       }, Math.max(0, watchdogDueAt - Date.now()));
     },
   );
-  publishBuyerTimerShadow(state, ownedByTask ? undefined : shadowSchedule);
+  stateChanged(state);
 }
 
 /// The seller did not answer the counter in time: move on to the next seller.
-function counterWaitEnded(
-  state: JobState,
-  watchedSeller: string,
-  shadowSchedule?: Extract<BuyerTimerParitySchedule, { kind: 'counter-timeout' }>,
-): void {
-  const observedAt = Date.now();
-  const paritySnapshot = shadowSchedule && buyerTimerParityObserver
-    ? buildBuyerRuntimeSnapshot(state, observedAt)
-    : null;
+function counterWaitEnded(state: JobState, watchedSeller: string): void {
   state.counterWatchdog = null;
-  if (state.finalized || state.expired) {
-    if (paritySnapshot && shadowSchedule) {
-      publishBuyerTimerParity(paritySnapshot, shadowSchedule, { action: 'stale', reason: 'already-finished' }, observedAt);
-    }
-    return;
-  }
-  if (state.triedSellers.has(watchedSeller as `0x${string}`)) {
-    if (paritySnapshot && shadowSchedule) {
-      publishBuyerTimerParity(paritySnapshot, shadowSchedule, { action: 'stale', reason: 'seller-already-answered' }, observedAt);
-    }
-    return;
-  }
+  if (state.finalized || state.expired) return;
+  if (state.triedSellers.has(watchedSeller as `0x${string}`)) return;
   logger.warn(
     { jobId: state.jobId, seller: watchedSeller, timeoutMs: COUNTER_RESPONSE_TIMEOUT_MS },
     'no counter response within watchdog window, cascading to next candidate',
   );
   safe('counterWatchdog', () =>
-    tryNextCandidate(
-      state,
-      watchedSeller as `0x${string}`,
-      'no-response-timeout',
-      paritySnapshot && shadowSchedule
-        ? { schedule: shadowSchedule, snapshot: paritySnapshot, observedAt }
-        : undefined,
-    ),
+    tryNextCandidate(state, watchedSeller as `0x${string}`, 'no-response-timeout'),
   );
 }
 
@@ -5450,7 +5085,7 @@ export function reopenForNewBids(jobId: string): boolean {
   state.finalized = false;
   state.collectionFired = false;
   state.collectionStartedAt = undefined;
-  publishBuyerTimerShadow(state);
+  stateChanged(state);
   bus.emitEvent({
     type: 'negotiation.reopened',
     jobId: state.jobId,
@@ -5479,7 +5114,7 @@ export async function reopenAfterEdit(jobId: string): Promise<boolean> {
   patchBrief(state.jobId, { negotiationEndedAt: undefined, negotiationEndReason: undefined });
   state.collectionFired = false;
   state.collectionStartedAt = Date.now();
-  publishBuyerTimerShadow(state);
+  stateChanged(state);
   bus.emitEvent({
     type: 'negotiation.reopened',
     jobId: state.jobId,
@@ -5570,7 +5205,7 @@ export function expireJob(jobId: `0x${string}`): boolean {
   clearCounterWatchdog(state);
   state.expired = true;
   state.expiredAt = Date.now();
-  publishBuyerTimerShadow(state);
+  stateChanged(state);
   patchBrief(jobId, { expiredAt: state.expiredAt });
   bus.emitEvent({
     type: 'job.expired',
@@ -5614,7 +5249,7 @@ export function cancelBriefByBuyer(
   clearCollectionClose(state);
   state.expired = true;
   state.expiredAt = Date.now();
-  publishBuyerTimerShadow(state);
+  stateChanged(state);
   patchBrief(jobId, { expiredAt: state.expiredAt });
   bus.emitEvent({
     type: 'brief.cancelled',

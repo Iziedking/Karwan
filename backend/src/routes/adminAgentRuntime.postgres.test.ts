@@ -75,7 +75,7 @@ test(
       assert.equal((await runner.runOnce(200)).succeeded, 1);
 
       const routes = createAdminAgentRuntimeRoutes(
-        () => null, () => null, () => null, () => null, () => null, () => null, () => store,
+        () => null, () => null, () => null, () => null, () => null, () => store,
       );
       const response = await routes.request('/operation-audit?kind=evidence.acquisition.operation', {
         headers: { 'x-admin-token': 'admin-runtime-postgres-test-token' },

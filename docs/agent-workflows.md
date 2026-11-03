@@ -132,7 +132,7 @@ observed and rolled back without activating the rest.
 | --- | --- |
 | `AGENT_RUNTIME_V2_ENABLED` | Starts the Postgres-backed durable task runtime. Required by every V2 workflow. |
 | `EVENT_OUTBOX_V2_ENABLED` | Delivers persisted events to notifications and browser projections. |
-| `MATCH_ENGINE_V2_SHADOW` | Records matching and buyer-timer parity without replacing legacy authority. |
+| `MATCH_ENGINE_V2_SHADOW` | Records matching parity without replacing legacy authority. The buyer's offer window close and counter wait are live durable tasks, not a shadow. |
 | `NEGOTIATION_V2_SHADOW` | Validates and checkpoints legacy-derived structured offers without publishing them. |
 | `NEGOTIATION_V2_ENABLED` | Reserved cutover flag. It is parsed and default-off, but no legacy production route delegates authority to it yet. |
 | `EVIDENCE_V2_SHADOW` | Records evidence needs, policy decisions, provider health, and qualification blockers without purchasing. |

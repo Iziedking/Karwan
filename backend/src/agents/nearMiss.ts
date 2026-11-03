@@ -6,6 +6,7 @@ import {
   getPendingNearMiss,
   getNearMiss,
   upsertNearMiss,
+  nearMissSaved,
   isPending,
   type NearMissApproval,
 } from '../db/nearMiss.js';
@@ -302,6 +303,7 @@ export async function maybeRaiseNearMiss(input: NearMissInput): Promise<boolean>
     // state if needed; budget/terms ride the job state today.
   };
   upsertNearMiss(record);
+  await nearMissSaved(jobId);
   // A fresh crossable ask supersedes any earlier out-of-reach state: a real
   // near-match is back on the table, so drop the "no match at your budget"
   // marker (a cheaper seller showed up after the pass).

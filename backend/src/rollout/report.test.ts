@@ -12,17 +12,11 @@ const thresholds = {
 
 const cleanSources = {
   matching: {
-    total: 4,
-    bySource: { 'buyer-bids': 4, 'listing-brief': 0 },
-    comparison: { matched: 4, diverged: 0 },
+    total: 7,
+    bySource: { 'buyer-bids': 7, 'listing-brief': 0 },
+    comparison: { matched: 7, diverged: 0 },
     falseNegativeReviews: 0,
     uncertainEvidenceUses: 0,
-  },
-  parity: {
-    total: 3,
-    byKind: { collection: 2, 'counter-timeout': 1 },
-    comparison: { pending: 0, matched: 3, diverged: 0 },
-    task: { pending: 0, 'awaiting-planner': 0, matched: 3, 'stale-suppressed': 0, diverged: 0 },
   },
   negotiation: { total: 3, byState: { succeeded: 3 }, checkpointed: 3, rejected: 0 },
   negotiationCommands: { total: 3, staleOfferAcceptances: 0, duplicateCommandConflicts: 0 },
@@ -106,24 +100,16 @@ test('rollout report exposes measured matching latency and paid-call delta witho
   assert.equal(report.matchingTelemetry?.paidCalls.delta, -2);
 });
 
-test('matching or timer divergence remains visible when telemetry is complete', () => {
+test('matching divergence remains visible when telemetry is complete', () => {
   const report = buildShadowRolloutReport({
     ...cleanSources,
     matching: {
       ...cleanSources.matching,
-      comparison: { matched: 3, diverged: 1 },
-    },
-    parity: {
-      ...cleanSources.parity,
-      comparison: { pending: 0, matched: 2, diverged: 1 },
+      comparison: { matched: 6, diverged: 1 },
     },
   }, thresholds);
-  assert.deepEqual(report.gate.reasons, [
-    'MATCHING_DIVERGENCE',
-    'TIMER_DIVERGENCE',
-  ]);
+  assert.deepEqual(report.gate.reasons, ['MATCHING_DIVERGENCE']);
   assert.equal(report.metrics.matchingDivergences, 1);
-  assert.equal(report.metrics.timerDivergences, 1);
 });
 
 test('pending semantic review remains a cutover blocker', () => {

@@ -3,7 +3,7 @@ import test from 'node:test';
 import { evaluateShadowRollout } from './gates.js';
 
 const thresholds = { minimumObservations: 10, maximumStaleOfferAcceptances: 0 };
-const clean = { observations: 10, matchingDivergences: 0, timerDivergences: 0, deadLetters: 0, leaseLosses: 0, duplicateCommandConflicts: 0, staleOfferAcceptances: 0, repeatedReengagements: 0 };
+const clean = { observations: 10, matchingDivergences: 0, deadLetters: 0, leaseLosses: 0, duplicateCommandConflicts: 0, staleOfferAcceptances: 0, repeatedReengagements: 0 };
 
 test('clean shadow evidence is eligible only after the minimum sample', () => {
   assert.deepEqual(evaluateShadowRollout(clean, thresholds), { eligible: true, reasons: [], killSwitch: false });

@@ -38,7 +38,7 @@ test(
       });
 
       const routes = createAdminAgentRuntimeRoutes(
-        () => null, () => matching, () => null, () => null, () => null, () => null, undefined, undefined, () => reviews,
+        () => matching, () => null, () => null, () => null, () => null, undefined, undefined, () => reviews,
       );
       const headers = { 'x-admin-token': 'matching-review-postgres-test-token' };
       const pendingResponse = await routes.request(

@@ -23,7 +23,6 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "GET", path: "/api/admin/account-deletions" },
   { method: "POST", path: "/api/admin/account-deletions" },
   { method: "POST", path: "/api/admin/account-deletions/:id/refuse" },
-  { method: "GET", path: "/api/admin/agent-runtime/buyer-timer-parity" },
   { method: "GET", path: "/api/admin/agent-runtime/evidence-shadow" },
   { method: "GET", path: "/api/admin/agent-runtime/financial-shadow" },
   { method: "GET", path: "/api/admin/agent-runtime/matching-shadow" },

@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { DurableTaskRunner, InMemoryDurableTaskStore } from '../agents/durableTaskRunner.js';
-import { InMemoryBuyerTimerParityAuditStore } from '../agents/buyerTaskParity.js';
 import { InMemoryMatchingAuditStore } from '../matching/audit.js';
 import { InMemoryMatchingAuditReviewStore } from '../matching/review.js';
 import { InMemoryNegotiationShadowAuditStore } from '../agents/negotiationTaskShadow.js';
@@ -41,7 +40,6 @@ test('reviewed operation status is admin-only and cannot claim live authority', 
 
 test('rollout gate is admin-only, read-only, and fails closed on incomplete telemetry', async () => {
   const routes = createAdminAgentRuntimeRoutes(
-    () => new InMemoryBuyerTimerParityAuditStore(),
     () => new InMemoryMatchingAuditStore(),
     () => new InMemoryNegotiationShadowAuditStore([]),
     () => new InMemoryEvidenceRuntimeAuditStore({ needs: [], purchases: [], blockers: [] }),
@@ -88,7 +86,7 @@ test('rollout gate reports durable stale acceptance telemetry without authorizin
     result: { outcome: 'stale', reason: 'STALE_OFFER' }, createdAt: 100,
   });
   const routes = createAdminAgentRuntimeRoutes(
-    () => null, () => null, () => null, () => null, () => null, () => null, undefined, () => commands,
+    () => null, () => null, () => null, () => null, () => null, undefined, () => commands,
   );
   const response = await routes.request('/rollout-gate?minimumObservations=1&maximumStaleOfferAcceptances=0', {
     headers: { 'x-admin-token': 'phase3c-admin-test-token' },
@@ -115,7 +113,7 @@ test('rollout gate reports immutable matching review coverage without changing w
   });
   const reviews = new InMemoryMatchingAuditReviewStore();
   const routes = createAdminAgentRuntimeRoutes(
-    () => null, () => matching, () => null, () => null, () => null, () => null, undefined, undefined, () => reviews,
+    () => matching, () => null, () => null, () => null, () => null, undefined, undefined, () => reviews,
   );
   const headers = { 'x-admin-token': 'phase3c-admin-test-token' };
   const pendingResponse = await routes.request(
@@ -168,7 +166,7 @@ test('rollout gate includes unresolved financial provider state as a blocker', a
     lifecycle: 'RECONCILING', providerId: 'provider-rollout-1',
   }, 200);
   const routes = createAdminAgentRuntimeRoutes(
-    () => null, () => null, () => null, () => null, () => store, () => null,
+    () => null, () => null, () => null, () => store, () => null,
   );
   const response = await routes.request('/rollout-gate?minimumObservations=1&maximumStaleOfferAcceptances=0', {
     headers: { 'x-admin-token': 'phase3c-admin-test-token' },
@@ -205,7 +203,7 @@ test('durable task operational report is read-only, filterable, and exposes retr
   );
   assert.equal((await runner.runOnce(100)).deadLettered, 1);
 
-  const routes = createAdminAgentRuntimeRoutes(() => null, () => null, () => null, () => null, () => null, () => store);
+  const routes = createAdminAgentRuntimeRoutes(() => null, () => null, () => null, () => null, () => store);
   const response = await routes.request('/tasks?state=dead_letter&limit=10', {
     headers: { 'x-admin-token': 'phase3c-admin-test-token' },
   });
@@ -260,7 +258,7 @@ test('enabled admin replay is shadow-only and remains idempotent after the task 
   config.AGENT_RUNTIME_V2_ENABLED = true;
   try {
     const routes = createAdminAgentRuntimeRoutes(
-      undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, () => store,
+      undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, () => store,
     );
     const first = await routes.request('/tasks/task-admin-replay/replay', {
       method: 'POST',
@@ -313,7 +311,7 @@ test('reviewed operation audit is read-only and exposes only allowlisted outcome
   );
   assert.equal((await runner.runOnce(200)).succeeded, 1);
   const routes = createAdminAgentRuntimeRoutes(
-    () => null, () => null, () => null, () => null, () => null, () => null, () => store,
+    () => null, () => null, () => null, () => null, () => null, () => store,
   );
   const response = await routes.request('/operation-audit?kind=negotiation.turn.operation&limit=10', {
     headers: { 'x-admin-token': 'phase3c-admin-test-token' },
@@ -344,70 +342,6 @@ test('reviewed operation audit is read-only and exposes only allowlisted outcome
   })).status, 404);
 });
 
-async function seededStore(): Promise<InMemoryBuyerTimerParityAuditStore> {
-  const store = new InMemoryBuyerTimerParityAuditStore();
-  await store.ensureSchedule({
-    jobId: 'job-1',
-    kind: 'collection',
-    scheduleVersion: 1,
-    scheduledFor: 1_000,
-    snapshotRevision: 1,
-    createdAt: 900,
-  });
-  const decision = {
-    action: 'propose_match' as const,
-    seller: 'seller-a',
-    priceUsdc: '90',
-    reason: 'at-or-under-budget' as const,
-    candidateQueue: ['seller-a'],
-  };
-  await store.recordComparison({
-    jobId: 'job-1',
-    kind: 'collection',
-    scheduleVersion: 1,
-    snapshotRevision: 2,
-    observedAt: 1_000,
-    legacyDecision: decision,
-    plannerDecision: decision,
-  });
-  return store;
-}
-
-test('buyer timer parity report fails closed without the admin token', async () => {
-  const store = await seededStore();
-  const routes = createAdminAgentRuntimeRoutes(() => store);
-  const response = await routes.request('/buyer-timer-parity');
-  assert.equal(response.status, 401);
-});
-
-test('buyer timer parity report is read-only, filterable, and explicit about authority', async () => {
-  const store = await seededStore();
-  const routes = createAdminAgentRuntimeRoutes(() => store);
-  const response = await routes.request(
-    '/buyer-timer-parity?comparison=matched&kind=collection&limit=10',
-    { headers: { 'x-admin-token': 'phase3c-admin-test-token' } },
-  );
-  assert.equal(response.status, 200);
-  const body = await response.json() as {
-    mode: string;
-    authoritativeTimers: string;
-    summary: { total: number };
-    records: Array<{ comparisonStatus: string; kind: string }>;
-  };
-  assert.equal(body.mode, 'read-only-shadow');
-  assert.equal(body.authoritativeTimers, 'legacy');
-  assert.equal(body.summary.total, 1);
-  assert.deepEqual(body.records.map((record) => [record.kind, record.comparisonStatus]), [
-    ['collection', 'matched'],
-  ]);
-
-  const writeResponse = await routes.request('/buyer-timer-parity', {
-    method: 'POST',
-    headers: { 'x-admin-token': 'phase3c-admin-test-token' },
-  });
-  assert.equal(writeResponse.status, 404);
-});
-
 test('matching shadow report is admin-only, read-only, and explicit about legacy authority', async () => {
   const store = new InMemoryMatchingAuditStore();
   await store.record({
@@ -420,7 +354,7 @@ test('matching shadow report is admin-only, read-only, and explicit about legacy
     evaluations: [],
     observedAt: 1_000,
   });
-  const routes = createAdminAgentRuntimeRoutes(() => null, () => store);
+  const routes = createAdminAgentRuntimeRoutes(() => store);
   const response = await routes.request('/matching-shadow?source=buyer-bids&comparison=matched', {
     headers: { 'x-admin-token': 'phase3c-admin-test-token' },
   });
@@ -464,7 +398,7 @@ test('matching shadow review filter is read-only and exposes explicit review rea
     evaluations: [],
     observedAt: 900,
   });
-  const routes = createAdminAgentRuntimeRoutes(() => null, () => store);
+  const routes = createAdminAgentRuntimeRoutes(() => store);
   const response = await routes.request('/matching-shadow?review=required', {
     headers: { 'x-admin-token': 'phase3c-admin-test-token' },
   });
@@ -505,7 +439,6 @@ test('matching shadow review ledger is admin-only, immutable, and never changes 
   });
   const reviews = new InMemoryMatchingAuditReviewStore();
   const routes = createAdminAgentRuntimeRoutes(
-    () => null,
     () => matching,
     undefined,
     undefined,
@@ -583,7 +516,6 @@ test('matching shadow review ledger is admin-only, immutable, and never changes 
     observedAt: 2_000,
   });
   const cleanRoutes = createAdminAgentRuntimeRoutes(
-    () => null,
     () => clean,
     undefined,
     undefined,
@@ -622,7 +554,7 @@ test('negotiation shadow report is admin-only, read-only, and explicit about leg
       data: { mode: 'read-only-shadow', offerVersion: 1 },
     },
   }]);
-  const routes = createAdminAgentRuntimeRoutes(() => null, () => null, () => store);
+  const routes = createAdminAgentRuntimeRoutes(() => null, () => store);
   const response = await routes.request('/negotiation-shadow?limit=10', {
     headers: { 'x-admin-token': 'phase3c-admin-test-token' },
   });
@@ -660,7 +592,7 @@ test('evidence shadow report is admin-only, read-only, and keeps uncertain state
       state: 'open', version: 1, createdAt: 100, updatedAt: 100, data: {},
     }],
   });
-  const routes = createAdminAgentRuntimeRoutes(() => null, () => null, () => null, () => store);
+  const routes = createAdminAgentRuntimeRoutes(() => null, () => null, () => store);
   const response = await routes.request('/evidence-shadow?limit=10', {
     headers: { 'x-admin-token': 'phase3c-admin-test-token' },
   });
@@ -697,7 +629,7 @@ test('rollout gate keeps needs-more-evidence review blocked', async () => {
     decision: 'needs_more_evidence', reviewer: 'operator', createdAt: 200,
   });
   const routes = createAdminAgentRuntimeRoutes(
-    () => null, () => matching, () => null, () => null, () => null, () => null, undefined, undefined, () => reviews,
+    () => matching, () => null, () => null, () => null, () => null, undefined, undefined, () => reviews,
   );
   const response = await routes.request(
     '/rollout-gate?minimumObservations=1&maximumStaleOfferAcceptances=0',
@@ -728,7 +660,7 @@ test('financial shadow report is admin-only, read-only, and keeps unknown provid
   await store.recordProviderUpdate(created.record.idempotencyKey, created.record.version, {
     lifecycle: 'UNKNOWN', providerId: 'circle-1',
   }, 200);
-  const routes = createAdminAgentRuntimeRoutes(() => null, () => null, () => null, () => null, () => store);
+  const routes = createAdminAgentRuntimeRoutes(() => null, () => null, () => null, () => store);
   const response = await routes.request('/financial-shadow?limit=10', {
     headers: { 'x-admin-token': 'phase3c-admin-test-token' },
   });

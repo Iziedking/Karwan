@@ -3,10 +3,6 @@ import { z } from 'zod';
 import { config } from '../config.js';
 import { pgEnabled, postgresExecutor, withPostgresTransaction } from '../db/client.js';
 import {
-  PostgresBuyerTimerParityAuditStore,
-  type BuyerTimerParityAuditStore,
-} from '../agents/buyerTaskParity.js';
-import {
   PostgresMatchingAuditStore,
   buildMatchingAuditReviewQueue,
   type MatchingAuditStore,
@@ -44,21 +40,6 @@ import {
   type NegotiationCommandAuditStore,
 } from '../negotiation/commandLedger.js';
 
-const listQuerySchema = z.object({
-  jobId: z.string().trim().min(1).optional(),
-  kind: z.enum(['collection', 'counter-timeout']).optional(),
-  comparison: z.enum(['pending', 'matched', 'diverged']).optional(),
-  task: z.enum([
-    'pending',
-    'awaiting-planner',
-    'matched',
-    'stale-suppressed',
-    'diverged',
-  ]).optional(),
-  limit: z.coerce.number().int().min(1).max(500).default(100),
-});
-
-type StoreFactory = () => BuyerTimerParityAuditStore | null;
 type MatchingStoreFactory = () => MatchingAuditStore | null;
 type MatchingReviewStoreFactory = () => MatchingAuditReviewStore | null;
 type NegotiationStoreFactory = () => NegotiationShadowAuditStore | null;
@@ -70,12 +51,6 @@ type OperationAuditStore = Pick<DurableTaskAuditStore, 'listRecent'>
   & Pick<DurableTaskStore, 'listCheckpoints'>;
 type OperationAuditStoreFactory = () => OperationAuditStore | null;
 type NegotiationCommandAuditStoreFactory = () => NegotiationCommandAuditStore | null;
-
-function defaultStoreFactory(): BuyerTimerParityAuditStore | null {
-  return pgEnabled
-    ? new PostgresBuyerTimerParityAuditStore(postgresExecutor())
-    : null;
-}
 
 function defaultMatchingStoreFactory(): MatchingAuditStore | null {
   return pgEnabled ? new PostgresMatchingAuditStore(postgresExecutor()) : null;
@@ -124,7 +99,6 @@ const taskStateSchema = z.enum([
 ] satisfies [AgentTaskState, ...AgentTaskState[]]);
 
 export function createAdminAgentRuntimeRoutes(
-  storeFactory: StoreFactory = defaultStoreFactory,
   matchingStoreFactory: MatchingStoreFactory = defaultMatchingStoreFactory,
   negotiationStoreFactory: NegotiationStoreFactory = defaultNegotiationStoreFactory,
   evidenceStoreFactory: EvidenceStoreFactory = defaultEvidenceStoreFactory,
@@ -176,7 +150,6 @@ export function createAdminAgentRuntimeRoutes(
     // set of read-only audit sources rather than constructing mixed stores.
     const stores = {
       matching: matchingStoreFactory(),
-      parity: storeFactory(),
       negotiation: negotiationStoreFactory(),
       negotiationCommands: negotiationCommandAuditStoreFactory(),
       evidence: evidenceStoreFactory(),
@@ -187,9 +160,8 @@ export function createAdminAgentRuntimeRoutes(
     if (!Object.values(stores).some(Boolean)) {
       return c.json({ error: 'rollout gate audit requires Postgres' }, 503);
     }
-    const [matching, parity, negotiation, negotiationCommands, evidence, financial, tasks, matchingRecords] = await Promise.all([
+    const [matching, negotiation, negotiationCommands, evidence, financial, tasks, matchingRecords] = await Promise.all([
       stores.matching?.summary() ?? null,
-      stores.parity?.summary() ?? null,
       stores.negotiation?.summary() ?? null,
       stores.negotiationCommands?.summary() ?? null,
       stores.evidence?.summary() ?? null,
@@ -210,7 +182,7 @@ export function createAdminAgentRuntimeRoutes(
         })
       : null;
     const report = buildShadowRolloutReport(
-      { matching, matchingReviewCoverage, parity, negotiation, negotiationCommands, evidence, financial, tasks },
+      { matching, matchingReviewCoverage, negotiation, negotiationCommands, evidence, financial, tasks },
       parsed.data,
     );
     return c.json({
@@ -381,38 +353,6 @@ export function createAdminAgentRuntimeRoutes(
     });
   });
 
-
-  routes.get('/buyer-timer-parity', async (c) => {
-    const parsed = listQuerySchema.safeParse(c.req.query());
-    if (!parsed.success) {
-      return c.json({ error: 'invalid parity query', detail: parsed.error.flatten() }, 400);
-    }
-    const store = storeFactory();
-    if (!store) {
-      return c.json({ error: 'buyer timer parity audit requires Postgres' }, 503);
-    }
-    const [summary, candidates] = await Promise.all([
-      store.summary(),
-      store.list({
-        ...(parsed.data.jobId ? { jobId: parsed.data.jobId } : {}),
-        ...(parsed.data.kind ? { kind: parsed.data.kind } : {}),
-        limit: 500,
-      }),
-    ]);
-    const records = candidates
-      .filter((record) =>
-        !parsed.data.comparison || record.comparisonStatus === parsed.data.comparison)
-      .filter((record) => !parsed.data.task || record.taskStatus === parsed.data.task)
-      .slice(0, parsed.data.limit);
-    return c.json({
-      mode: 'read-only-shadow',
-      enabled: config.AGENT_RUNTIME_V2_ENABLED && config.MATCH_ENGINE_V2_SHADOW,
-      authoritativeTimers: 'legacy',
-      summary,
-      recordWindow: { scanned: candidates.length, maximum: 500 },
-      records,
-    });
-  });
 
   routes.get('/matching-shadow', async (c) => {
     const parsed = z.object({

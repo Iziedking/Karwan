@@ -153,8 +153,6 @@ import {
   startBuyerAgents,
   backfillRecentJobs as backfillBuyer,
   reseedStoredBriefs,
-  configureBuyerTimerShadow,
-  configureBuyerTimerParity,
   configureMatchingEngineShadow,
   configureNegotiationShadow,
   configureEvidenceQualificationShadow,
@@ -244,15 +242,6 @@ import {
   startDurableTaskRunnerLoop,
 } from './agents/durableTaskRunner.js';
 import {
-  PostgresBuyerRuntimeSnapshotStore,
-  createBuyerTimerShadowHandlers,
-  createBuyerTimerShadowObserver,
-} from './agents/buyerTaskShadow.js';
-import {
-  PostgresBuyerTimerParityAuditStore,
-  createBuyerTimerParityObserver,
-} from './agents/buyerTaskParity.js';
-import {
   PostgresMatchingAuditStore,
 } from './matching/audit.js';
 import { createMatchingShadowObserver } from './matching/shadow.js';
@@ -310,6 +299,7 @@ import { PostgresMatchProposalRevisionStore } from './negotiation/proposalRevisi
 import { initUsersStore } from './db/users.js';
 import { initPriceObservationsStore } from './db/priceObservations.js';
 import { hydrateResearchCache } from './x402/externalClient.js';
+import { hydrateNearMisses } from './db/nearMiss.js';
 import { initEphemeralStores } from './db/ephemeral.js';
 import { createCorrelationMiddleware } from './observability/correlationMiddleware.js';
 import { requireAdmin } from './middleware/adminAuth.js';
@@ -1035,6 +1025,8 @@ async function boot() {
   // Paid web research still fresh comes back too, so a restart never pays for
   // it again (view 48, step 4). Non-fatal.
   await hydrateResearchCache().catch((err: Error) => appLogger.warn({ err: err.message }, 'research cache hydrate failed'));
+  // Near matches waiting on a person come back before the agents start (view 48, decision 8).
+  await hydrateNearMisses().catch((err: Error) => appLogger.error({ err: err.message }, 'near-miss hydrate failed'));
   // In-flight seller bids restore BEFORE agents start, so a deploy mid-auction
   // resumes negotiations instead of stalling on a lost activeBids map.
   await hydrateActiveBids();
@@ -1046,8 +1038,6 @@ async function boot() {
       postgresExecutor(),
       withPostgresTransaction,
     );
-    const buyerSnapshotStore = new PostgresBuyerRuntimeSnapshotStore(postgresExecutor());
-    const buyerParityStore = new PostgresBuyerTimerParityAuditStore(postgresExecutor());
     const matchingAuditStore = new PostgresMatchingAuditStore(postgresExecutor());
     const proposalRevisionStore = config.MATCH_ENGINE_V2_SHADOW
       ? new PostgresMatchProposalRevisionStore(postgresExecutor())
@@ -1119,9 +1109,6 @@ async function boot() {
         reseed: (jobId) => reseedJobFromChain(jobId, { openOnly: true }),
         moveOn: moveOnFromCounterTask,
         resume: resumeFromCounterTask,
-      }),
-      ...createBuyerTimerShadowHandlers(buyerSnapshotStore, {
-        parityStore: buyerParityStore,
       }),
       ...(config.NEGOTIATION_V2_SHADOW
         ? createNegotiationShadowHandlers(
@@ -1366,24 +1353,11 @@ async function boot() {
         stopFns.push(configureMatchProposalRevisionObserver(proposalRevisionStore));
       }
       stopFns.push(
-        configureBuyerTimerShadow(
-          createBuyerTimerShadowObserver(
-            taskStore,
-            buyerSnapshotStore,
-            buyerParityStore,
-          ),
-        ),
-      );
-      stopFns.push(
-        configureBuyerTimerParity(createBuyerTimerParityObserver(buyerParityStore)),
-      );
-      stopFns.push(
         configureMatchingEngineShadow(createMatchingShadowObserver(matchingAuditStore)),
       );
       stopFns.push(
         configureListingMatchingEngineShadow(createMatchingShadowObserver(matchingAuditStore)),
       );
-      appLogger.info('V2 buyer timer shadow scheduling enabled');
       appLogger.info('V2 immutable MatchProposal revision audit enabled');
     }
     const taskRunner = new DurableTaskRunner(taskStore, taskHandlers, {
@@ -1416,7 +1390,7 @@ async function boot() {
   } else if (config.AGENT_RUNTIME_V2_ENABLED) {
     appLogger.error('V2 durable task runner not started because Postgres schema is unavailable');
   } else if (config.MATCH_ENGINE_V2_SHADOW) {
-    appLogger.error('V2 buyer timer shadow requires AGENT_RUNTIME_V2_ENABLED');
+    appLogger.error('V2 matching shadow requires AGENT_RUNTIME_V2_ENABLED');
   } else if (config.NEGOTIATION_V2_SHADOW) {
     appLogger.error('V2 structured negotiation shadow requires AGENT_RUNTIME_V2_ENABLED');
   } else if (config.EVIDENCE_V2_SHADOW) {

@@ -1,5 +1,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+import { logger } from '../logger.js';
+import { pgEnabled, postgresExecutor } from './client.js';
 
 const STORE_PATH = resolve(process.cwd(), 'data', 'near-miss.json');
 
@@ -54,7 +56,7 @@ export function isPending(n: NearMissApproval, now = Date.now()): boolean {
 }
 
 export function getNearMiss(jobId: string): NearMissApproval | null {
-  return loadFile()[jobId.toLowerCase()] ?? null;
+  return records().get(jobId.toLowerCase()) ?? null;
 }
 
 /// The pending near-miss for a job, or null if none / resolved / lapsed.
@@ -67,12 +69,8 @@ export function getPendingNearMiss(jobId: string): NearMissApproval | null {
 /// re-opens the auction: clearing the resolved record lets a genuinely new
 /// seller raise a fresh near-miss instead of being blocked by "already-resolved".
 export function clearNearMiss(jobId: string): void {
-  const store = loadFile();
   const key = jobId.toLowerCase();
-  if (store[key]) {
-    delete store[key];
-    saveFile(store);
-  }
+  if (records().delete(key)) saved(key);
 }
 
 export function upsertNearMiss(n: NearMissApproval): NearMissApproval {
@@ -85,9 +83,8 @@ export function upsertNearMiss(n: NearMissApproval): NearMissApproval {
     sellerAgent: n.sellerAgent.toLowerCase(),
     askedUser: n.askedUser.toLowerCase(),
   };
-  const store = loadFile();
-  store[next.jobId] = next;
-  saveFile(store);
+  records().set(next.jobId, next);
+  saved(next.jobId);
   return next;
 }
 
@@ -96,27 +93,90 @@ export function upsertNearMiss(n: NearMissApproval): NearMissApproval {
 export function listPendingNearMissForUser(address: string): NearMissApproval[] {
   const a = address.toLowerCase();
   const now = Date.now();
-  return Object.values(loadFile())
+  return [...records().values()]
     .filter((n) => n.askedUser === a && isPending(n, now))
     .sort((x, y) => y.createdAt - x.createdAt);
 }
 
 export function deleteNearMissInvolvingAddress(addressLower: string): number {
   const target = addressLower.toLowerCase();
-  const store = loadFile();
   let removed = 0;
-  for (const [k, v] of Object.entries(store)) {
+  for (const [k, v] of [...records()]) {
     if (v.buyerUser === target || v.sellerUser === target) {
-      delete store[k];
+      records().delete(k);
+      saved(k);
       removed += 1;
     }
   }
-  if (removed > 0) saveFile(store);
   return removed;
 }
 
-// --- flat-file store. Near-misses are short-lived and low-volume, so they live
-// alongside the other off-chain stores in data/ rather than in Postgres. ---
+/// Resolves once the latest change to a job's near-miss is stored. A raise
+/// awaits this before telling the person, so a restart never loses the ask.
+export function nearMissSaved(jobId: string): Promise<void> {
+  return writes.get(jobId.toLowerCase()) ?? Promise.resolve();
+}
+
+/// Loads the near-misses at boot. With Postgres they live in `near_misses_v1`
+/// (view 48, decision 8); the old file is imported once when the table is empty.
+export async function hydrateNearMisses(): Promise<number> {
+  if (!pgEnabled) {
+    cache = loadFile();
+    return cache.size;
+  }
+  const res = await postgresExecutor().query('SELECT data FROM near_misses_v1');
+  const loaded = new Map<string, NearMissApproval>();
+  for (const row of res.rows as Array<{ data: NearMissApproval }>) loaded.set(row.data.jobId, row.data);
+  if (loaded.size === 0 && existsSync(STORE_PATH)) {
+    for (const [k, v] of loadFile()) {
+      loaded.set(k, v);
+      await writeRow(k, v);
+    }
+  }
+  cache = loaded;
+  return loaded.size;
+}
+
+// --- storage. Postgres when enabled, written in order per job behind an
+// in-memory copy the sync reads use; the data/ file otherwise. ---
+
+let cache: Map<string, NearMissApproval> | null = null;
+const writes = new Map<string, Promise<void>>();
+
+function records(): Map<string, NearMissApproval> {
+  cache ??= pgEnabled ? new Map() : loadFile();
+  return cache;
+}
+
+async function writeRow(key: string, record: NearMissApproval | undefined): Promise<void> {
+  if (record) {
+    await postgresExecutor().query(
+      'INSERT INTO near_misses_v1 (job_id, updated_at, data) VALUES ($1, $2, $3) ON CONFLICT (job_id) DO UPDATE SET updated_at = EXCLUDED.updated_at, data = EXCLUDED.data',
+      [key, Date.now(), record],
+    );
+  } else {
+    await postgresExecutor().query('DELETE FROM near_misses_v1 WHERE job_id = $1', [key]);
+  }
+}
+
+function saved(key: string): void {
+  if (!pgEnabled) {
+    saveFile(records());
+    return;
+  }
+  const previous = writes.get(key) ?? Promise.resolve();
+  const next = previous
+    .catch(() => undefined)
+    .then(() => writeRow(key, records().get(key)))
+    .catch((err) => {
+      logger.warn({ jobId: key, err: (err as Error).message }, 'near-miss write failed');
+      throw err;
+    });
+  writes.set(key, next);
+  void next.catch(() => undefined).finally(() => {
+    if (writes.get(key) === next) writes.delete(key);
+  });
+}
 
 function ensureFile() {
   const dir = dirname(STORE_PATH);
@@ -124,16 +184,16 @@ function ensureFile() {
   if (!existsSync(STORE_PATH)) writeFileSync(STORE_PATH, '{}', 'utf8');
 }
 
-function loadFile(): Record<string, NearMissApproval> {
+function loadFile(): Map<string, NearMissApproval> {
   ensureFile();
   try {
-    return JSON.parse(readFileSync(STORE_PATH, 'utf8')) as Record<string, NearMissApproval>;
+    return new Map(Object.entries(JSON.parse(readFileSync(STORE_PATH, 'utf8')) as Record<string, NearMissApproval>));
   } catch {
-    return {};
+    return new Map();
   }
 }
 
-function saveFile(store: Record<string, NearMissApproval>) {
+function saveFile(store: Map<string, NearMissApproval>) {
   ensureFile();
-  writeFileSync(STORE_PATH, JSON.stringify(store, null, 2), 'utf8');
+  writeFileSync(STORE_PATH, JSON.stringify(Object.fromEntries(store), null, 2), 'utf8');
 }

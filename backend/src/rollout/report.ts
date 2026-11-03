@@ -1,4 +1,3 @@
-import type { BuyerTimerParitySummary } from '../agents/buyerTaskParity.js';
 import type { DurableTaskAuditSummary } from '../agents/durableTaskRunner.js';
 import type { NegotiationShadowSummary } from '../agents/negotiationTaskShadow.js';
 import type { EvidenceRuntimeAuditSummary } from '../evidence/runtime.js';
@@ -16,7 +15,6 @@ import {
 export interface RolloutAuditSources {
   matching?: MatchingAuditSummary | null;
   matchingReviewCoverage?: MatchingReviewCoverage | null;
-  parity?: BuyerTimerParitySummary | null;
   negotiation?: NegotiationShadowSummary | null;
   negotiationCommands?: NegotiationCommandAuditSummary | null;
   evidence?: EvidenceRuntimeAuditSummary | null;
@@ -48,7 +46,6 @@ export function buildShadowRolloutReport(
   const missingMetrics: string[] = [];
   const matching = sources.matching;
   const matchingReviewCoverage = sources.matchingReviewCoverage;
-  const parity = sources.parity;
   const negotiation = sources.negotiation;
   const negotiationCommands = sources.negotiationCommands;
   const evidence = sources.evidence;
@@ -63,7 +60,6 @@ export function buildShadowRolloutReport(
   if (matchingReviewCoverage && !matchingReviewCoverage.scanComplete) {
     missingMetrics.push('matching.reviews.window');
   }
-  if (!parity) missingMetrics.push('buyerTimer.observations');
   if (!negotiation) missingMetrics.push('negotiation.observations');
   if (!negotiationCommands) {
     missingMetrics.push('negotiation.staleOfferAcceptances', 'negotiation.duplicateCommandConflicts');
@@ -76,11 +72,8 @@ export function buildShadowRolloutReport(
   if (!tasks) missingMetrics.push('tasks.deadLetters');
 
   const metrics: ShadowRolloutMetrics = {
-    observations: (matching?.total ?? 0) + (parity?.total ?? 0) + (negotiation?.total ?? 0),
+    observations: (matching?.total ?? 0) + (negotiation?.total ?? 0),
     matchingDivergences: matching?.comparison.diverged ?? 0,
-    timerDivergences: parity
-      ? parity.comparison.diverged + parity.task.diverged
-      : 0,
     deadLetters: tasks?.deadLettered ?? 0,
     leaseLosses: tasks?.leaseLosses ?? 0,
     duplicateCommandConflicts: negotiationCommands?.duplicateCommandConflicts ?? 0,

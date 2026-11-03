@@ -1,7 +1,6 @@
 export interface ShadowRolloutMetrics {
   observations: number;
   matchingDivergences: number;
-  timerDivergences: number;
   deadLetters: number;
   leaseLosses: number;
   duplicateCommandConflicts: number;
@@ -40,7 +39,6 @@ export function evaluateShadowRollout(metrics: ShadowRolloutMetrics, thresholds:
   const reasons: string[] = [];
   if (metrics.observations < thresholds.minimumObservations) reasons.push('INSUFFICIENT_OBSERVATIONS');
   if (metrics.matchingDivergences > 0) reasons.push('MATCHING_DIVERGENCE');
-  if (metrics.timerDivergences > 0) reasons.push('TIMER_DIVERGENCE');
   if (metrics.deadLetters > 0) reasons.push('DEAD_LETTERS_PRESENT');
   if (metrics.leaseLosses > 0) reasons.push('LEASE_LOSS_PRESENT');
   if (metrics.duplicateCommandConflicts > 0) reasons.push('COMMAND_IDEMPOTENCY_CONFLICT');
