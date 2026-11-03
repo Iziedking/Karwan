@@ -764,6 +764,18 @@ async function tryMatchListingToJob(
   }
 }
 
+/// Request and listing pairs already told "this is your own request". The
+/// listing sweep meets the same pair on every pass; without this it wrote the
+/// same skip every 90 seconds (252 times for one pair in three days).
+const ownBriefSkips = new Set<string>();
+
+export function firstOwnBriefSkip(jobId: string, listingId: string): boolean {
+  const key = `${jobId.toLowerCase()}:${listingId}`;
+  if (ownBriefSkips.has(key)) return false;
+  ownBriefSkips.add(key);
+  return true;
+}
+
 async function tryMatchListingToJobLegacy(
   listing: Listing,
   job: ListingMatchJob,
@@ -779,6 +791,8 @@ async function tryMatchListingToJobLegacy(
   // Skip the user's own briefs, sellers shouldn't bid on themselves.
   const briefBuyerOwner = await findAgentWalletByAgentAddress(job.buyer);
   if (briefBuyerOwner?.userAddress === listing.sellerUser) {
+    // The sweep meets the same pair every 90 seconds; say it once.
+    if (!firstOwnBriefSkip(job.jobId, listing.id)) return false;
     logger.info(
       { listingId: listing.id, jobId: job.jobId },
       'skipping own brief',
