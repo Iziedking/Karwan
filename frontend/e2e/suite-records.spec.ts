@@ -91,15 +91,17 @@ for (const [theme, locale] of [['light', 'en'], ['dark', 'en'], ['light', 'ar'],
   test(`a settled deal's record line in ${theme} ${locale}`, async ({ page, context }, testInfo) => {
     await appearance(page, context, theme, locale);
     const words = dealLiveCopy[locale];
+    // The buyer's settled title names the seller (view 48): "{name} has been paid".
+    const paidTitle = new RegExp(`^${dealPageCopy[locale].paidTitle.replace('{name}', '.+')}$`);
     for (const [state, line, body] of [
       [true, words.onBothRecords, null],
-      [false, dealPageCopy[locale].doneTitle, words.recordPending],
-      [null, dealPageCopy[locale].doneTitle, null],
+      [false, paidTitle, words.recordPending],
+      [null, paidTitle, null],
     ] as const) {
       await page.unrouteAll({ behavior: 'ignoreErrors' });
       await serveDeal(page, settled(state));
       await page.goto(`/deals/${JOB}`);
-      await expect(page.locator('[data-deal-done]').getByText(line, { exact: true })).toBeVisible();
+      await expect(page.locator('[data-deal-done]').getByText(line, typeof line === 'string' ? { exact: true } : undefined)).toBeVisible();
       if (body) await expect(page.getByText(body, { exact: true })).toBeVisible();
       // No record claim at all when a side had no record when it was paid in.
       if (state === null) await expect(page.getByText(words.completeBody, { exact: true })).toHaveCount(0);

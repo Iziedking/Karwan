@@ -110,10 +110,10 @@ async function layoutIsSound(page: Page, testInfo: TestInfo) {
     const style = getComputedStyle(el);
     return { radius: style.borderRadius, border: style.borderTopWidth, shadow: style.boxShadow };
   });
-  // The approved glass card: 24px corners, one hairline, a soft lift.
+  // The sign-in card: 24px corners, one hairline, and no shadow, as every card in the new look (view 48).
   expect(cardStyle.radius).toBe('24px');
   expect(cardStyle.border).toBe('1px');
-  expect(cardStyle.shadow).not.toBe('none');
+  expect(cardStyle.shadow).toBe('none');
   for (const heading of metrics.headings) expect(heading.weight, heading.text).toBeLessThanOrEqual(600);
   expect(axe.violations.filter(v => v.impact === 'serious' || v.impact === 'critical')).toEqual([]);
 }
