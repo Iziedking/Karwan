@@ -1670,20 +1670,9 @@ html[data-auth-dialog='open'] .page-feedback-slot {
    rail only changed its own width, so collapsing it left the content parked
    behind the expanded rail. The canvas now follows the same state and gains
    the space the user just freed. */
+/* View 48 desktop: a 256px rail 20px from the edge, then 40px before the page. */
 :root {
-  --workspace-content-start: 268px;
-}
-
-@media (min-width: 1280px) {
-  html:not([data-workspace-rail='collapsed']) {
-    --workspace-content-start: 268px;
-  }
-}
-
-@media (min-width: 1536px) {
-  html:not([data-workspace-rail='collapsed']) {
-    --workspace-content-start: 268px;
-  }
+  --workspace-content-start: 316px;
 }
 
 html[data-workspace-rail='collapsed'] {

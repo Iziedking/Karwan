@@ -276,7 +276,7 @@ function WorkspaceRail({
         aria-label={t.railLabel}
         className={cn(
           'pointer-events-auto absolute top-0 bottom-6 flex flex-col gap-1 transition-[width] duration-300 ease-out',
-          collapsed ? 'w-[72px]' : 'w-[220px]',
+          collapsed ? 'w-[72px]' : 'w-[256px]',
         )}
         style={{ insetInlineStart: 'max(20px, calc(50% - 800px))' }}
       >

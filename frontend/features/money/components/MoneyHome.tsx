@@ -71,7 +71,7 @@ function MoneyHomeInner() {
     : null;
 
   return (
-    <div className="product-surface mx-auto max-w-[1120px] px-4 pb-24 pt-6 sm:px-6 lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-10">
+    <div className="product-surface mx-auto max-w-[1120px] px-4 pb-24 pt-6 sm:px-6 lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-10">
       <div className="min-w-0 max-w-[720px] divide-y divide-[var(--line)] [&>*]:py-8">
         <section aria-labelledby="money-balance" className="space-y-4">
           {state === 'loading' ? (

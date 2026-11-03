@@ -205,6 +205,11 @@ test('the guide knows the order path: one fee line, the agent accepting, and the
   assert.match(steps, /Pay in parts/);
   assert.match(steps, /Finding sellers/);
   assert.doesNotMatch(steps, /in three steps/);
+  // View 48 batch 7: the record's three facts and one ask, and the Theme screen from Profile.
+  const all = PLATFORM_GUIDE.map((entry) => entry.summary).join(' ');
+  assert.match(all, /three facts in one card \(the average rating, how many rated them and the tier name\)/);
+  assert.match(all, /one button to ask them for an offer, never a score, a count of deals or an amount/);
+  assert.match(all, /the Theme screen \(\/profile\/theme\), opened from the Theme row on Profile/);
   assert.ok(market.tools.includes('order_listing'));
   assert.ok(market.pages.includes('/order/[listingId]'));
   assert.ok(market.api.includes('GET /api/listings/:id/quote'));
@@ -245,7 +250,7 @@ test('the guide describes Profile, the public record and Something is wrong (vie
   const said = (id: string) => { const e = PLATFORM_GUIDE.find((entry) => entry.id === id)!; return [e.summary, ...e.steps].join(' '); };
   assert.match(said('reputation'), /Share your record/);
   assert.match(said('reputation'), /\/r\/<tag>/);
-  assert.match(said('reputation'), /never a score or counts/);
+  assert.match(said('reputation'), /never a score, a count of deals or an amount/);
   assert.match(said('delivery'), /It needs changes/);
   assert.match(said('delivery'), /It is not what we agreed/);
   assert.match(said('delivery'), /Nothing arrived/);
