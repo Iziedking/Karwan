@@ -1,6 +1,6 @@
 # 48 · One agent per person
 
-T1 (find and agree), with T3 (paid record reads) and T6 (one assistant everywhere). It builds on [view 41](41-agents-that-always-answer.md) (agents that always answer), [view 45](45-your-agent.md) (your agent, set up on one page) and [view 13](13-portable-reputation.md) (paid record reads). Raised by the owner on 3 Nov 2026 after a seller was shortlisted twice: "this is where the product stands out and it must be accurate and unique. We have to fix the loop and re-arrange the architecture to fit proper agentic engineering." Decisions 1 to 4, 6 and 7 approved by the owner the same day.
+T1 (find and agree), with T3 (paid record reads) and T6 (one assistant everywhere). It builds on [view 41](41-agents-that-always-answer.md) (agents that always answer), [view 45](45-your-agent.md) (your agent, set up on one page) and [view 13](13-portable-reputation.md) (paid record reads). Raised by the owner on 3 Nov 2026 after a seller was shortlisted twice: "this is where the product stands out and it must be accurate and unique. We have to fix the loop and re-arrange the architecture to fit proper agentic engineering." Decisions 1 to 7 approved by the owner the same day.
 
 ## What is hard today
 
@@ -41,10 +41,10 @@ flowchart TB
 ## Decisions
 
 1. **One row per person per workspace.** The shortlist, the sealed seller block and every list of people count a person once in each workspace. A person's personal and business workspaces are separate rows; two agents of the same workspace are one row, with the better offer.
-2. **The person's agent pays for its research.** Web research is paid from the person's agent, metered against their data budget, with a receipt like every other read. The platform no longer fronts it.
+2. **The person's agent pays for its data.** A Karwan record read costs 0.005 USDC (owner, 3 Nov 2026). Outside research is paid by the person's agent through Circle's agent stack: the agent sizes the search to what the person asked, tells them the exact cost before it runs, and asks them to add money when its balance is short. A result another agent already paid for is served from the cache to cut the cost. The research credit goes, since the agent pays for its own data. The platform no longer fronts it.
 3. **Karwan first, outside second.** Demand, prices and trends come from Karwan's own requests, offers and settled deals. Paid web research is a second signal, always labelled as from the web, and never changes a verdict on its own.
-4. **Agents are linked at setup.** Turning on an agent links it to its owner in the same step. Agents already unlinked are linked by a one-time backfill the owner runs.
-5. **The durable runtime becomes the runtime.** Recommended: promote the task runner that runs beside the loop today, one step at a time, starting with the shortlist, which it already checks. *Waiting for the owner.*
+4. **No offer or deal waits for a link it does not need.** Approved as "link agents at setup"; on reading the code, the link that blocked sellers (the vault binding) is read only by the older escrows. Deals on the escrow family record each side through their Karwan record, which Karwan sets up on the way and nothing waits for. So the vault link is checked only for a deal that pays in on an older escrow, and a family deal never waits for it.
+5. **The durable runtime becomes the runtime.** The task runner that runs beside the loop today is promoted one step at a time, starting with the shortlist, which it already checks (owner, 3 Nov 2026).
 6. **One gate for paid reads.** A read for the same reader, subject and request is paid once in that request's life, unless the subject's record changed since. Every read (record, passport, research) writes one receipt and one "your agent paid" event.
 7. **One agent, three roles.** Buying and selling are two modes of the same agent, sharing one memory, one set of goals and one data budget. The assistant is how that agent talks to the person, on the website, in Telegram or through MCP; it is not a separate brain. What the person asks for in a conversation ("find me customers", "watch tomato prices") becomes a goal on their agent. What stays separate: the buying and selling wallets behind the one balance; each request as its own task, so many deals run at once and one failing never stalls the others; the selling mode never offers on a request the buying mode posted; and no money moves until the person confirms.
 
@@ -88,26 +88,16 @@ flowchart TB
 | A paid read fails or is slow | The free record is used; nothing is paid twice on retry, because the task key is the same |
 | Web research fails | No web signal; demand and prices from Karwan only |
 | The service restarts mid-step | The task resumes from its last checkpoint; no offer is made twice and no read is paid twice |
-| An agent is not linked | Linked at setup; an old unlinked agent is linked by the backfill, never skipped silently |
+| An agent is not linked | A deal on the escrow family goes ahead; only a deal on an older escrow asks the seller to link first |
 
 ## Order of work
 
 | Step | What | Depends on |
 |---|---|---|
 | 1 | Data gate with reuse; the seller side first | Arc and Circle checks recorded in `docs/arc-circle-checks.md` |
-| 2 | Link agents at setup, plus the backfill | none |
+| 2 | Hold only older-escrow deals for the vault link | none |
 | 3 | Identity type; one row per person per workspace | none |
 | 4 | Market store; one trend source, Karwan first | step 1 for the web signal |
 | 5 | Tools: `research_market`, `watch_market`, `find_customers` | steps 1 and 4 |
 | 6 | The person's agent record and the reporter | steps 1 to 5 |
 | 7 | Durable tasks drive the loop, step by step | decision 5 |
-
-## Status
-
-| Part | State |
-|---|---|
-| Duplicate seller on the shortlist | Fixed 3 Nov 2026 at the market board, not deployed |
-| This view | Proposed 3 Nov 2026; decisions 1 to 4, 6 and 7 approved, decision 5 waiting |
-| Step 1, record reads | Built 3 Nov 2026, not deployed: `backend/src/x402/dataGate.ts` reuses a kept read for the same reader, subject and request unless the record changed, shares one payment between checks running at once, and tells only the owner what was paid; the buyer shortlist, the seller's buyer check and the assistant's question go through it |
-| Step 1, research paid by the person's agent | Designed, waiting for the owner: research becomes a paid Karwan read on Arc from the agent's own balance |
-| Steps 2 to 7 | Not built |
