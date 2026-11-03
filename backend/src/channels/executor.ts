@@ -201,7 +201,6 @@ export const ROUTES: Partial<Record<ConfirmAction['intent'], (p: P, a: ConfirmAc
   send_feedback: (p) => ({ method: 'POST', path: '/api/feedback', body: { category: p.category, title: p.title, message: p.message } }),
   set_up_agents: (p) => ({ method: 'POST', path: '/api/activation/activate', body: p }),
   rename_agents: (p) => ({ method: 'POST', path: '/api/activation/agent-names', body: p }),
-  add_research_credit: () => ({ method: 'POST', path: '/api/research/activate', body: {} }),
   create_business: (p) => ({ method: 'POST', path: '/api/workspaces/business', body: { name: p.name } }),
   rename_business: (p) => ({ method: 'PATCH', path: `/api/workspaces/${encodeURIComponent(String(p.workspaceId))}`, body: { name: p.name } }),
   save_trade_line: (p) => {
@@ -301,7 +300,6 @@ const DONE: Partial<Record<ConfirmAction['intent'], string>> = {
   send_feedback: 'Sent. Thank you; the team reads every note.',
   set_up_agents: 'Your agents are set up.',
   rename_agents: 'Names saved.',
-  add_research_credit: 'Research credit added.',
   create_business: 'Business added. Switch to it from your profile.',
   rename_business: 'Renamed.',
   save_trade_line: 'Saved on your company card.',

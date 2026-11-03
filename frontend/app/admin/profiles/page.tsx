@@ -20,7 +20,7 @@ export default function AdminProfiles() {
   const [q, setQ] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
   const [page, setPage] = useState(0);
-  const { confirm, prompt, notify } = useDialog();
+  const { confirm, notify } = useDialog();
 
   useEffect(() => {
     setPage(0);
@@ -38,34 +38,6 @@ export default function AdminProfiles() {
   useEffect(() => {
     void reload();
   }, []);
-
-  async function toggleResearch(p: AdminProfileRow) {
-    let credit: number | undefined;
-    if (!p.researchActive) {
-      const amt = await prompt({
-        title: 'Grant research credit',
-        message: 'How much research credit, in USDC?',
-        defaultValue: '5',
-      });
-      if (amt === null) return;
-      credit = Number(amt);
-      if (!Number.isFinite(credit) || credit <= 0) {
-        notify('Enter an amount', 'error');
-        return;
-      }
-    }
-    setBusy(p.address);
-    try {
-      if (p.researchActive) await api.adminSetResearch(p.address, false, 0);
-      else await api.adminSetResearch(p.address, true, credit);
-      await reload();
-      notify(p.researchActive ? 'Research cleared' : 'Research granted');
-    } catch (e) {
-      notify(e instanceof Error ? e.message : 'Failed', 'error');
-    } finally {
-      setBusy(null);
-    }
-  }
 
   async function toggleBusiness(p: AdminProfileRow) {
     const verify = p.businessStatus !== 'verified';
@@ -141,16 +113,15 @@ export default function AdminProfiles() {
                 <dd className="mt-1 mono uppercase tracking-[0.08em] text-white/55">{p.businessStatus}</dd>
               </div>
               <div className="col-span-2">
-                <dt className="mono text-[9px] uppercase tracking-[0.12em] text-white/30">Research</dt>
-                <dd className={`mt-1 mono uppercase tracking-[0.08em] ${p.researchActive ? 'text-[#9ac58b]' : 'text-white/40'}`}>
-                  {p.researchActive ? `On · $${p.researchCreditUsdc.toFixed(2)}` : 'Off'}
+                <dt className="mono text-[9px] uppercase tracking-[0.12em] text-white/30">Research credit to refund</dt>
+                <dd className="mt-1 mono uppercase tracking-[0.08em] text-white/55">
+                  {p.researchCreditUsdc > 0 ? `${p.researchCreditUsdc.toFixed(2)} USDC` : 'None'}
                 </dd>
               </div>
             </dl>
             <div className="mt-3 grid gap-2">
               <Link href={`/credit-passport/${p.address}`} className="inline-flex min-h-11 items-center justify-center rounded-lg border border-white/10 px-3 mono text-[10px] uppercase tracking-[0.1em] text-white/65">Passport ↗</Link>
-              <div className="grid grid-cols-2 gap-2">
-                <button type="button" onClick={() => toggleResearch(p)} disabled={busy === p.address} className="min-h-11 rounded-lg border border-white/10 px-2 mono text-[9px] uppercase tracking-[0.08em] text-white/60 disabled:opacity-40">{p.researchActive ? 'Clear research' : 'Grant research'}</button>
+              <div className="grid gap-2">
                 <button type="button" onClick={() => toggleBusiness(p)} disabled={busy === p.address} className="min-h-11 rounded-lg border border-white/10 px-2 mono text-[9px] uppercase tracking-[0.08em] text-white/60 disabled:opacity-40">{p.businessStatus === 'verified' ? 'Unverify' : 'Verify biz'}</button>
               </div>
             </div>
@@ -166,7 +137,7 @@ export default function AdminProfiles() {
               <th className="text-start font-normal px-3 py-2.5">Type</th>
               <th className="text-start font-normal px-3 py-2.5">Email</th>
               <th className="text-start font-normal px-3 py-2.5">Business</th>
-              <th className="text-start font-normal px-3 py-2.5">Research</th>
+              <th className="text-start font-normal px-3 py-2.5">Research credit</th>
               <th className="text-end font-normal px-3 py-2.5">Actions</th>
             </tr>
           </thead>
@@ -198,13 +169,9 @@ export default function AdminProfiles() {
                   </span>
                 </td>
                 <td className="px-3 py-2.5">
-                  {p.researchActive ? (
-                    <span className="mono text-[10px] uppercase tracking-[0.1em] text-[#7fae6f]">
-                      on · ${p.researchCreditUsdc.toFixed(2)}
-                    </span>
-                  ) : (
-                    <span className="mono text-[10px] uppercase tracking-[0.1em] text-white/30">off</span>
-                  )}
+                  <span className="mono text-[10px] uppercase tracking-[0.1em] text-white/55">
+                    {p.researchCreditUsdc > 0 ? `${p.researchCreditUsdc.toFixed(2)} to refund` : 'none'}
+                  </span>
                 </td>
                 <td className="px-3 py-2.5">
                   <div className="flex items-center justify-end gap-2 flex-wrap mono text-[10px] uppercase tracking-[0.1em]">
@@ -214,14 +181,6 @@ export default function AdminProfiles() {
                     >
                       passport ↗
                     </Link>
-                    <button
-                      type="button"
-                      onClick={() => toggleResearch(p)}
-                      disabled={busy === p.address}
-                      className="text-white/55 hover:text-white disabled:opacity-40"
-                    >
-                      {p.researchActive ? 'clear research' : 'grant research'}
-                    </button>
                     <button
                       type="button"
                       onClick={() => toggleBusiness(p)}

@@ -106,7 +106,7 @@ import { assistantConversationRoutes } from './routes/assistantConversations.js'
 import { assistantMemoryRoutes } from './routes/assistantMemory.js';
 import { assistantAttachRoutes } from './routes/assistantAttach.js';
 import { supportRoutes, startSupportSweeper } from './routes/support.js';
-import { configureAgentKitResearch, configureResearchScoutEvidenceShadow, researchRoutes } from './routes/research.js';
+import { configureAgentKitResearch, researchRoutes } from './routes/research.js';
 import { configureWorldIdProof, createPostgresWorldIdNullifierStore, verifyConfiguredWorldId, worldIdRoutes } from './routes/worldId.js';
 import type { IdKitResponseShape } from './worldid/idkitProof.js';
 import { isSessionSelf, readSession, sessionAddress } from './auth/session.js';
@@ -1211,11 +1211,6 @@ async function boot() {
       );
       stopFns.push(
         configureEvidenceAcquisitionShadow(
-          createEvidenceAcquisitionShadowObserver(taskStore, runtimeRepository),
-        ),
-      );
-      stopFns.push(
-        configureResearchScoutEvidenceShadow(
           createEvidenceAcquisitionShadowObserver(taskStore, runtimeRepository),
         ),
       );

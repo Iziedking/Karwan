@@ -2047,7 +2047,6 @@ export interface AssistantConfirmAction {
     | 'send_feedback'
     | 'set_up_agents'
     | 'rename_agents'
-    | 'add_research_credit'
     | 'create_business'
     | 'rename_business'
     | 'save_trade_line'
@@ -2737,13 +2736,6 @@ export interface ApiMarketRead {
   cached: boolean;
 }
 
-export interface ScoutReadEntry {
-  id: string;
-  owner: string;
-  ts: number;
-  read: ApiMarketRead;
-}
-
 export interface AgentKitResearchStatus {
   verification: 'not-checked' | 'verified';
   provider: 'world-agentbook';
@@ -3391,15 +3383,6 @@ export const api = {
     json<{ ok: true; txHash: string; settled: boolean; milestoneIndex: number }>(
       `/api/admin/deals/${jobId}/release`,
       { method: 'POST', headers: adminHeaders() },
-    ),
-  adminSetResearch: (address: string, active: boolean, creditUsdc?: number) =>
-    json<{ ok: true; active: boolean; creditUsdc: number }>(
-      `/api/admin/profiles/${address}/research`,
-      {
-        method: 'POST',
-        headers: adminHeaders(),
-        body: JSON.stringify({ active, ...(creditUsdc !== undefined ? { creditUsdc } : {}) }),
-      },
     ),
   adminSetBusiness: (address: string, status: 'none' | 'submitted' | 'verified' | 'rejected') =>
     json<{ ok: true; status: string; accountType: string }>(
@@ -5932,27 +5915,9 @@ export const api = {
   supportClose: (id: string) =>
     json<{ ok: boolean }>(`/api/support/${id}/close`, { method: 'POST' }),
 
-  // Agent research activation. UI copy frames this as the agent paying for its
-  // own market research; "x402" stays out of the interface.
+  // What research costs: the person's agents pay for it themselves (view 48).
   researchStatus: () =>
-    json<{ active: boolean; creditUsdc: number; priceUsdc: number }>(
-      withCaller('/api/research/status'),
-    ),
-  researchActivate: () =>
-    json<{ active: boolean; creditUsdc: number; txHash?: string }>(
-      withCaller('/api/research/activate'),
-      { method: 'POST' },
-    ),
-  // Market scout: the user pays their research credit for a fresh market read on
-  // their own keywords. Errors (402 no-credit, 429 rate-limit) surface as thrown
-  // ApiError the caller inspects.
-  scoutMarket: (input: { query?: string; keywords?: string[] }) =>
-    json<{ read: ApiMarketRead; creditUsdc: number }>(withCaller('/api/research/scout'), {
-      method: 'POST',
-      body: JSON.stringify(input),
-    }),
-  recentScouts: (limit = 8) =>
-    json<{ scouts: ScoutReadEntry[] }>(withCaller(`/api/research/scout/recent?limit=${limit}`)),
+    json<{ freshSearchUsdc: number; cachedSearchUsdc: number; paidBy: 'agent' }>(withCaller('/api/research/status')),
   researchAgentKitStatus: () =>
     json<AgentKitResearchStatus>(withCaller('/api/research/agentkit/status')),
 

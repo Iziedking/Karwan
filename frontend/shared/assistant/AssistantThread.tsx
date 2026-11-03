@@ -1063,7 +1063,6 @@ const ACCOUNT_STEP: Partial<Record<AssistantConfirmAction['intent'], (p: P) => P
   send_feedback: (p) => api.submitFeedback({ category: p.category as 'bug' | 'improvement' | 'other' | 'praise', title: str(p.title), message: str(p.message) }),
   set_up_agents: (p) => api.activate(str(p.address), { ...(p.buyerName ? { buyerName: str(p.buyerName) } : {}), ...(p.sellerName ? { sellerName: str(p.sellerName) } : {}) }),
   rename_agents: (p) => api.setAgentNames(str(p.address), { ...(p.buyerName ? { buyerName: str(p.buyerName) } : {}), ...(p.sellerName ? { sellerName: str(p.sellerName) } : {}) }),
-  add_research_credit: () => api.researchActivate(),
   create_business: (p) => api.createBusinessWorkspace(str(p.name)),
   rename_business: (p) => api.updateWorkspace(str(p.workspaceId), { name: str(p.name) }),
   save_trade_line: (p) => {
@@ -1089,7 +1088,6 @@ const ACCOUNT_STEP_DONE: Partial<Record<AssistantConfirmAction['intent'], [strin
   send_feedback: ['Sent. Thank you; the team reads every note.', '/'],
   set_up_agents: ['Your agents are set up.', '/profile'],
   rename_agents: ['Names saved.', '/profile'],
-  add_research_credit: ['Research credit added.', '/profile/agent-funds'],
   create_business: ['Business added. Switch to it from your profile.', '/profile'],
   rename_business: ['Renamed.', '/profile'],
   save_trade_line: ['Saved on your company card.', '/profile'],
@@ -1192,7 +1190,6 @@ const DEAL_STEP_BUSY: Partial<Record<AssistantConfirmAction['intent'], string>> 
   send_feedback: 'Sending…',
   set_up_agents: 'Setting up…',
   rename_agents: 'Saving…',
-  add_research_credit: 'Adding…',
   create_business: 'Adding…',
   rename_business: 'Saving…',
   save_trade_line: 'Saving…',

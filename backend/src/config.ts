@@ -752,9 +752,6 @@ const envSchema = z.object({
   // The daily trend scout nudges sellers when a trending category overlaps
   // their history. Off = no trend nudges emitted (today).
   TREND_NUDGES_ENABLED: envBool('TREND_NUDGES_ENABLED'),
-  // The user-triggered market scout endpoint (/api/research/scout) is live.
-  // Off = the route responds 404/disabled (today).
-  SCOUT_ENABLED: envBool('SCOUT_ENABLED'),
 
   // --- Reliable agent runtime V2 rollout flags ---------------------------
   // These flags are intentionally independent and default off. Phase 3C may

@@ -64,10 +64,6 @@ export interface RenameAgentsConfirm extends ConfirmActionBase {
   intent: 'rename_agents';
   payload: { address: string; buyerName?: string; sellerName?: string };
 }
-export interface AddResearchCreditConfirm extends ConfirmActionBase {
-  intent: 'add_research_credit';
-  payload: Record<string, never>;
-}
 export interface CreateBusinessConfirm extends ConfirmActionBase {
   intent: 'create_business';
   payload: { name: string };
@@ -111,7 +107,6 @@ export type AccountStepConfirm =
   | SendFeedbackConfirm
   | SetUpAgentsConfirm
   | RenameAgentsConfirm
-  | AddResearchCreditConfirm
   | CreateBusinessConfirm
   | RenameBusinessConfirm
   | SaveTradeLineConfirm
@@ -378,21 +373,6 @@ export function buildRenameAgentsConfirm(i: { address: string; active: boolean; 
     payload: { address: i.address, ...(names.buyerName ? { buyerName: names.buyerName } : {}), ...(names.sellerName ? { sellerName: names.sellerName } : {}) },
     confirmLabel: 'Save names',
     cancelLabel: 'Keep as is',
-  };
-}
-
-export function buildAddResearchCreditConfirm(i: { active: boolean; priceUsdc: number; creditUsdc: number }): AddResearchCreditConfirm | { error: string } {
-  if (i.active && i.creditUsdc > 0) return { error: `They still have ${i.creditUsdc.toFixed(2)} USDC of research credit.` };
-  return {
-    kind: 'confirm',
-    id: `add_research_credit:${confirmNonce()}`,
-    intent: 'add_research_credit',
-    title: `Add ${i.priceUsdc.toFixed(2)} USDC of research credit`,
-    summary: 'Your agents use it for paid market research once the free reports for the day are used. It is taken from your buying agent, or your selling agent if the buying agent is short.',
-    fields: [{ label: 'Amount', value: `${i.priceUsdc.toFixed(2)} USDC` }],
-    payload: {},
-    confirmLabel: `Add ${i.priceUsdc.toFixed(2)} USDC`,
-    cancelLabel: 'Not now',
   };
 }
 

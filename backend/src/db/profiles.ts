@@ -266,6 +266,8 @@ export interface UserProfile {
     creditUsdc: number;
     activatedAt: number;
     lastChargedAt?: number;
+    /// The transfer that returned the credit (view 48, decision 2).
+    refundTx?: string;
   };
   /// Account type. Every wallet is a person by default; a wallet becomes a
   /// business only when Karwan approves its on-chain registration (the

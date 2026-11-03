@@ -934,19 +934,14 @@ interface MessagesShape {
       skillsHint: string;
       researchTitle: string;
       researchHint: string;
-      researchCredit: string;
-      none: string;
-      addCreditTemplate: string;
-      confirmCreditTemplate: string;
+      researchCostLabel: string;
+      researchCostTemplate: string;
       freeReports: string;
       reportsLeftTemplate: string;
       reportsPerDayTemplate: string;
       verifiedPerson: string;
       yes: string;
       notYet: string;
-      creditAdded: string;
-      notEnough: string;
-      tryAgain: string;
       profileTitle: string;
       agentsTitle: string;
       agentsHint: string;
@@ -6239,20 +6234,15 @@ export const en: MessagesShape = {
       aboutYou: "About you",
       skillsHint: "Separate with commas",
       researchTitle: "Market research",
-      researchHint: "Your agent can check market prices before it negotiates. Verified people get a few free reports each day.",
-      researchCredit: "Research credit",
-      none: "None",
-      addCreditTemplate: "Add {price} USDC",
-      confirmCreditTemplate: "Confirm {price} USDC",
+      researchHint: "Your agents pay for the market research they use, from their own balance. Verified people get a few free reports each day.",
+      researchCostLabel: "Each web search",
+      researchCostTemplate: "{fresh} USDC, {cached} if already run",
       freeReports: "Free reports",
       reportsLeftTemplate: "{left} of {total} left today",
       reportsPerDayTemplate: "{n} a day",
       verifiedPerson: "Verified person",
       yes: "Yes",
       notYet: "Not yet",
-      creditAdded: "Credit added.",
-      notEnough: "Not enough USDC in your buying agent. Top it up first.",
-      tryAgain: "That did not go through. Try again.",
       profileTitle: "Profile",
       agentsTitle: "Your agent",
       agentsHint: "Your agents only agree to deals inside these limits.",

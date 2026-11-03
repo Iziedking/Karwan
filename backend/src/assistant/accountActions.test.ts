@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  buildAddResearchCreditConfirm,
   buildChangeSettingsConfirm,
   buildCreateBusinessConfirm,
   buildEditCompanyCardConfirm,
@@ -79,14 +78,12 @@ test('switches refuse a change to what is already so', () => {
   assert.match(ok(buildRemovePublishedDealsConfirm({ publishedCount: 2 })).summary ?? '', /2 settled deals/);
 });
 
-test('feedback, agents and research credit', () => {
+test('feedback and agents', () => {
   assert.deepEqual(ok(buildSendFeedbackConfirm({ category: 'bug', title: ' Map broke ', message: 'The map did not load.' })).payload, { category: 'bug', title: 'Map broke', message: 'The map did not load.' });
   assert.ok('error' in buildSendFeedbackConfirm({ category: 'bug', title: 'x', message: 'The map did not load.' }));
   assert.match(err(buildSetUpAgentsConfirm({ address: ME, active: true })), /already set up/);
   assert.deepEqual(ok(buildSetUpAgentsConfirm({ address: ME, active: false, buyerName: ' Bee ' })).payload, { address: ME, buyerName: 'Bee' });
   assert.match(err(buildRenameAgentsConfirm({ address: ME, active: true })), /new name/);
-  assert.match(err(buildAddResearchCreditConfirm({ active: true, priceUsdc: 1, creditUsdc: 0.5 })), /still have 0\.50/);
-  assert.equal(ok(buildAddResearchCreditConfirm({ active: false, priceUsdc: 1, creditUsdc: 0 })).title, 'Add 1.00 USDC of research credit');
 });
 
 test('the business workspace, what it trades and the company card', () => {

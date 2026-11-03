@@ -46,8 +46,6 @@ export const COVERAGE: Record<string, Coverage> = {
   'POST /api/jobs/:/world-check/request': WORLD,
   'POST /api/jobs/:/world-check/verify': WORLD,
   'POST /api/jobs/:/world-check/skip': { by: 'page', why: 'Part of the World ID check on the request page; skipping it is a testnet step beside the camera check.' },
-  'POST /api/research/scout': UNUSED,
-  'POST /api/research/activate': { by: 'assistant', via: 'add_research_credit' },
   'POST /api/agents/extract-deal': ASSISTANT_OWN,
 
   // Deals.

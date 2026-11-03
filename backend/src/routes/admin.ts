@@ -607,37 +607,6 @@ adminRoutes.post('/deals/:jobId/resolve', async (c) => {
   }
 });
 
-/// Set a profile's agent-research state (grant/clear/top up credit) to fix
-/// account issues without the user re-paying.
-const adminResearchSchema = z.object({
-  active: z.boolean(),
-  creditUsdc: z.number().min(0).max(10_000).optional(),
-});
-adminRoutes.post('/profiles/:address/research', async (c) => {
-  const parsed = addrSchema.safeParse(c.req.param('address'));
-  if (!parsed.success) return c.json({ error: 'invalid address' }, 400);
-  const p = await getProfile(parsed.data);
-  if (!p) return c.json({ error: 'profile not found' }, 404);
-  let body;
-  try {
-    body = adminResearchSchema.parse(await c.req.json());
-  } catch (e) {
-    return c.json({ error: 'invalid body', detail: (e as Error).message }, 400);
-  }
-  const creditUsdc = body.creditUsdc ?? p.research?.creditUsdc ?? 0;
-  const active = body.active && creditUsdc > 0;
-  await upsertProfile({
-    ...p,
-    research: {
-      active,
-      creditUsdc,
-      activatedAt: p.research?.activatedAt ?? Date.now(),
-      lastChargedAt: p.research?.lastChargedAt,
-    },
-  });
-  logger.info({ address: parsed.data, active, creditUsdc }, 'admin set research state');
-  return c.json({ ok: true, active, creditUsdc });
-});
 
 /// Set a profile's verified-business status (operator override of the on-chain
 /// registry flow, to fix a stuck verification).

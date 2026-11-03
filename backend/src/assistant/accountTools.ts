@@ -3,7 +3,6 @@ import { z } from 'zod';
 import { logger } from '../logger.js';
 import { hasEquivalentConfirm, type AssistantAction, type ConfirmAction } from './actions.js';
 import {
-  buildAddResearchCreditConfirm,
   buildChangeSettingsConfirm,
   buildCreateBusinessConfirm,
   buildEditCompanyCardConfirm,
@@ -210,16 +209,6 @@ export function accountTools(address: string, actions: AssistantAction[], deps: 
       execute: async ({ buyerName, sellerName }) =>
         guarded('propose_rename_agents', async () =>
           offer(actions, buildRenameAgentsConfirm({ address: me, active: await deps.agentsActive(me), ...(buyerName ? { buyerName } : {}), ...(sellerName ? { sellerName } : {}) }))),
-    }),
-
-    propose_add_research_credit: tool({
-      description: 'Testnet. Prepare a card to add research credit, which agents spend on paid market research after the free reports of the day. The fixed amount comes from the buying agent.',
-      inputSchema: z.object({}),
-      execute: async () =>
-        guarded('propose_add_research_credit', async () => {
-          const r = await deps.call(me, 'GET', '/api/research/status');
-          return offer(actions, buildAddResearchCreditConfirm({ active: r.json.active === true, priceUsdc: Number(r.json.priceUsdc ?? 0), creditUsdc: Number(r.json.creditUsdc ?? 0) }));
-        }),
     }),
 
     propose_add_business: tool({
